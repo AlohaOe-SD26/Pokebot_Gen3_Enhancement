@@ -36,6 +36,7 @@ __all__ = [
     "TALK_START_BUDGET",
     "UNGATED_GATE",
     "advance",
+    "awaits_press",
     "busy_reason",
     "dialogue_over",
     "facing_direction",
@@ -232,15 +233,36 @@ def advance(hands: Hands, until: Callable[[Observation], bool], why: str,
     return "budget"
 
 
-def talk(hands: Hands, target: SeenObject, why: str) -> Generator[None, None, bool]:
+def awaits_press(look: Observation) -> str | None:
+    """(build step 5.1) What on screen WAITS FOR A PRESS, in words, or None: a text waiting for A or B
+    (`ScreenState.waits_for_button`), or a menu that takes input (a yes/no, a list, a cursor). A screen like that never
+    frees itself: a person presses."""
+    screen = look.screen
+    if screen.waits_for_button:
+        return f"a text waits for a press ({screen.wait_reason or 'A/B'})"
+    if screen.ui is not None and screen.ui.accepts_input:
+        return f"the {screen.ui.kind} takes input"
+    return None
+
+
+def talk(hands: Hands, target: SeenObject, why: str, give_way: bool = False) -> Generator[None, None, bool]:
     """Start a conversation with `target`: face it (a short tap, checked), then A, but only while the player
     is FREE (nothing running, nothing on screen): the museum-greeter rule. Returns True once the game has
-    started the conversation (a script runs or a text appears), False if it did not within the budget."""
+    started the conversation (a script runs or a text appears), False if it did not within the budget.
+
+    `give_way` (build step 5.1, the step-5 verifier's FAILURE (b)): while it waits for the player to be free, a screen that
+    WAITS FOR A PRESS (`awaits_press`: a scene began, its text waits for A) is not waited out: it returns False at once, so
+    its caller plays the scene (measured 2026-10-14, live arm CH1M: a chat chosen on the frame PROF. BIRCH's scene landed
+    stood here 1,200 frames while his text waited for A). The default (False) is the step-2 rule, unchanged for its callers."""
     for _ in range(4):
         look = hands.look()
         for _ in range(FREE_BUDGET):
             if player_free(look):
                 break
+            waiting = awaits_press(look) if give_way else None
+            if waiting is not None:
+                hands.tell(f"talk: {why}: {waiting}: a scene began before it could talk; it gives the screen back")
+                return False
             yield from hands.pad.busy("waiting until the player is free to talk")
             look = hands.look()
         else:

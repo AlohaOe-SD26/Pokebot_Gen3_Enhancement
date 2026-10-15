@@ -42,10 +42,11 @@ from typing import Protocol
 
 from ai_player.brain.battle import BattleFaults, BattleMind, needs_rest
 from ai_player.brain.explore import explore_intent, goto_intent, weights_for
-from ai_player.brain.goals import GoalManager, GoalRunner, battles_lost
+from ai_player.brain.goals import Goal, GoalManager, GoalRunner, battles_lost, party_share
 from ai_player.brain.navigator import Navigator, nav_free
 from ai_player.eyes.observation import Observation
-from ai_player.hands.dialogue import advance, player_free, talk
+from ai_player.hands.dialogue import advance, busy_reason, player_free, talk
+from ai_player.hands.waiting import WaitWatch
 from ai_player.hands.menus import local_clock, mart_buy, nurse_heal, set_clock
 from ai_player.hands.pad import Faults, Hands
 from ai_player.knowledge.story import load_story
@@ -58,7 +59,7 @@ from ai_player.skills.clock import set_wall_clock
 from ai_player.skills.flee import in_battle
 from ai_player.skills.intro import play_intro
 from ai_player.skills.roam_train import roam_train
-from ai_player.skills.story import answer_question, choose_starter as choose_starter_in_bag, play_out
+from ai_player.skills.story import answer_question, choose_starter as choose_starter_in_bag, leave_shop, play_out
 from ai_player.world.memory import WorldMemory, read_world
 
 __all__ = [
@@ -100,6 +101,24 @@ CHALLENGE_WALK_BUDGET = 6000
 #: development sweeps of 2026-10-14, `gates/rate_step5.py`), or after this many battles lost.
 STORY_PATIENCE = 120_000
 MAX_LOSSES = 3
+#: BUILD STEP 5.1 (the step-5 adversarial review's finding 2: "chapter 4 will stop as stuck while it is still training"):
+#: `STORY_PATIENCE` counts from the last REAL PROGRESS, not only from the last milestone: battles WON while training, a
+#: level gained, a heal, a map never seen before, a catch, an item (picked up or bought). A heal counts at most this many
+#: times a milestone (heal, get hurt, heal is no progress), so goals that keep FAILING are still stopped by the patience.
+HEAL_RESETS_MAX = 3
+#: BUILD STEP 5.1 (the step-5 verifier's FAILURE (b): a goal chosen on the frame a scene's map change landed, the scene's
+#: text then waited for A while `talk` waited 1,200 frames): after a map change the screen must stay free this many frames
+#: before a goal is chosen (a person takes in a new place; a scene that begins on arrival begins within them: PROF.
+#: BIRCH's lab scene began within the 25 frames of thinking that followed the map change at f40017 in arm CH1M).
+SETTLE_FREE = 30
+#: BUILD STEP 5.1 (the step-5 verifier: "every `while True` ... has a frame/attempt bound"): passes of the play loop in a row
+#: that let no frame pass before the loop gives up (each pass decides, plays a screen or settles: every one lets frames
+#: pass, so this many in a row is a loop that does nothing), and the loop's passes at most (a pass takes at least one
+#: decision's thinking pause, 14 frames: a run's frame budget bounds it long before this).
+STILL_PASSES_MAX = 50
+PLAY_PASSES_MAX = 100_000
+#: (the step-5.1 verifier's second round) what played between two goals, as the goal manager's balance counts it: the story's
+BETWEEN_GOALS = Goal("scene", "what played between two goals (a scene, the settling)")
 
 
 class Controls(Protocol):
@@ -347,15 +366,27 @@ class HandsBrain:
         look = hands.look()
         story = load_story(look.player.gender if look.player is not None else None)
         manager = GoalManager(story, state, random.Random(f"{seed}:goals"), hints_off=options.fault_no_hints,
-                              train_off=options.fault_no_training)
+                              train_off=options.fault_no_training, errands_off=options.fault_no_errands)
         manager.memory.landmarks = world.landmarks  # the doors it recognised live in the world memory: a later run has them
+        manager.say = hands.tell  # (build step 5.1) a draw that chose no errand is told too
         hands.watchers.append(manager.notice)
+        # (build step 5.1, the step-5 verifier's FAILURE) every stretch a screen WAITED FOR A PRESS with none, whatever the
+        # reason it gave (`hands/waiting.py`): written to the action log, graded by `gates/live_step5.py` / `rate_step5.py`
+        waits = WaitWatch(lambda: hands.pad.presses, hands.note, lambda: getattr(hands.pad, "doing", None))
+        hands.watchers.append(waits)
         runner = GoalRunner(hands, nav, manager, mind, hands.tell)
         target = story.index(options.target)
         hands.tell(f"play brain: target {options.target} ({story.milestones[target].title}); personality {state.base} "
                    f"(errands {state.errands}); favourite Pokemon {state.favourite} (the shiny hunt is deferred); starter "
-                   f"{starter} ({starter_why}); faults no_hints:{options.fault_no_hints},no_training:{options.fault_no_training}")
-        self.play_report = report = {"milestones": [], "goals": [], "losses": 0, "target": options.target}
+                   f"{starter} ({starter_why}); faults no_hints:{options.fault_no_hints},no_training:{options.fault_no_training},"
+                   f"no_errands:{options.fault_no_errands}")
+        self.play_report = report = {"milestones": [], "goals": [], "losses": 0, "target": options.target, "progress": [],
+                                     "won_training": 0, "waits": None,
+                                     # (the step-5.1 verifier's second round) the goal manager's own count of its time
+                                     # (`brain/goals.py` spent): the BALANCE it keeps
+                                     "spent": manager.memory.spent}
+        self._waits = waits
+        ended: list = [None]  # (the second round) the pad's frames when the last goal ended (what played after it: a scene)
 
         def visited(const: str) -> bool:
             return any(memory.const == const and memory.visits for memory in world.maps.values())
@@ -365,7 +396,15 @@ class HandsBrain:
 
         last: list = [-1, None]  # the last milestone read from marks (index, milestone): kept while marks are not read
         changed_at = hands.pad.frames
-        while True:
+        progress: dict = {}  # (build step 5.1) the last progress snapshot (`_progress`)
+        still, last_frames = 0, -1
+        for _ in range(PLAY_PASSES_MAX):
+            # (build step 5.1) a bound on passes that let no frame pass: never a loop that does nothing
+            still = still + 1 if hands.pad.frames == last_frames else 0
+            last_frames = hands.pad.frames
+            if still > STILL_PASSES_MAX:
+                return self._play_end(hands, story, manager, runner, report, "stuck",
+                                      f"{still} passes of the play loop in a row let no frame pass")
             # the battles LOST since the last decision, wherever they were played (inside a goal: training, a walk, a talk;
             # or a scene on screen): until the step-5 verifier's round of 2026-10-14 only the second kind was counted, so a
             # run that whited out twice while training reported "battles lost 0" and MAX_LOSSES could not fire
@@ -385,8 +424,16 @@ class HandsBrain:
                 story = load_story(look.player.gender)  # the player's own sprite: whose house is whose
                 manager.story = story
             if index != last[0] and index >= 0:
-                self._milestone_line(hands, look, story, last, index, milestone, report)
+                self._milestone_line(hands, look, story, last, index, milestone, report, visited)
                 last[0], last[1], changed_at = index, milestone, hands.pad.frames
+                progress["heals_counted"] = 0
+            # (build step 5.1, the step-5 review's finding 2) REAL progress short of a milestone resets the patience too
+            moved = self._progress(look, world, runner, report, progress)
+            if moved:
+                report["progress"].append({"frame": look.frame, "pad_frames": hands.pad.frames, "what": moved})
+                hands.tell(f"[AI-GOALS] progress: {'; '.join(moved)}: the story's patience counts from here "
+                           f"(it had waited {hands.pad.frames - changed_at} frames)")
+                changed_at = hands.pad.frames
             if milestone is None or index > target:
                 return self._play_end(hands, story, manager, runner, report, "done", f"{options.target} reached")
             if milestone.steps and milestone.steps[0].do == "intro" and (look.player is None
@@ -403,7 +450,8 @@ class HandsBrain:
             # (`gates/test_goals.py` PlayLoopTests drives this loop on such a screen; mutant G47 brings the old rule back)
             if hands.pad.frames - changed_at > STORY_PATIENCE:
                 return self._play_end(hands, story, manager, runner, report, "stuck",
-                                      f"no milestone for {hands.pad.frames - changed_at} frames (since {milestone.title})")
+                                      f"no progress for {hands.pad.frames - changed_at} frames (no milestone, battle won "
+                                      f"training, level, new map, catch, item or heal; since {milestone.title})")
             if not nav_free(look):
                 stop = yield from play_out(hands, nav, f"{milestone.title}: what is on screen")
                 if stop is not None and "battle was lost" not in stop:  # a loss is counted at the top of the loop
@@ -411,18 +459,101 @@ class HandsBrain:
                     if not nav_free(hands.look()):
                         yield from hands.pad.busy("waiting for the screen to settle after a stop")
                 continue
+            # (build step 5.1, the step-5 verifier's FAILURE (b)) SETTLE FIRST: right after a map change a scene may begin
+            # (PROF. BIRCH's lab), so the screen must stay free `SETTLE_FREE` frames before a goal is chosen
+            arrived = world.transitions[-1].frame if getattr(world, "transitions", None) else None
+            if arrived is not None and 0 <= look.frame - arrived < SETTLE_FREE:
+                yield from hands.pad.busy("taking in the new place: a scene may begin on arrival")
+                continue
             state.step(nav.stats.steps)
+            if ended[0] is not None and hands.pad.frames > ended[0]:
+                # (the step-5.1 verifier's second round) what played BETWEEN two goals (a scene the loop played out, the
+                # settling) was the story's time: a person who has just watched WALLY's tutorial has had plenty of story
+                manager.spent(BETWEEN_GOALS, hands.pad.frames - ended[0])
+                ended[0] = None
             goal = manager.next_goal(look, world, milestone, index)
             hands.tell(f"[AI-GOALS] goal {goal.kind}: {goal.reason} (milestone {milestone.id}, personality {state.active})")
             hands.note("goal", goal.kind, goal.reason, {"milestone": milestone.id, "active": state.active, "key": goal.key,
                                                         "map": goal.map, "steps": goal.steps})
-            yield from hands.pad.idle(hands.pad.think_frames(), f"deciding: {goal.kind}: {goal.reason[:80]}")
             began = hands.pad.frames
+            yield from hands.pad.idle(hands.pad.think_frames(), f"deciding: {goal.kind}: {goal.reason[:80]}")
+            seen = hands.look()
+            if not nav_free(seen):
+                # (build step 5.1) the screen changed while it decided (a scene began): the goal waits, the scene first
+                hands.tell(f"[AI-GOALS] goal {goal.kind} waits: the screen changed while it decided ({busy_reason(seen)}); "
+                           f"what is on screen first")
+                report["goals"].append({"kind": goal.kind, "key": goal.key, "ok": None, "frames": hands.pad.frames - began,
+                                        "outcome": "dropped: a scene began while it decided", "milestone": milestone.id})
+                # (build step 5.1, the verifier's second round: the live CH2T arm's 'chat' dropped at f227827 was graded as
+                # the 11,019 frames of WALLY's scene that followed) a goal's END is recorded: what came after it was no goal
+                manager.spent(goal, hands.pad.frames - began)
+                hands.note("goal_end", goal.kind, "dropped: a scene began while it decided",
+                           {"ok": None, "frames": hands.pad.frames - began, "key": goal.key, "story_moved": False})
+                ended[0] = hands.pad.frames
+                continue
+            battles = len(nav.battle_log)
             ok, outcome = yield from runner.pursue(goal, milestone, index, current)
             manager.outcome(goal, ok)
+            if goal.kind == "train":
+                report["won_training"] += sum(1 for _, _, result in nav.battle_log[battles:] if result in ("won", "caught"))
             report["goals"].append({"kind": goal.kind, "key": goal.key, "ok": ok, "frames": hands.pad.frames - began,
                                     "outcome": outcome[:200], "milestone": milestone.id})
             hands.tell(f"[AI-GOALS] goal {goal.kind} {'done' if ok else 'not done'}: {outcome[:300]}")
+            # (build step 5.1, the verifier's second round) the goal's END, and its frames into the goal manager's BALANCE
+            # (`brain/goals.py` spent, owed): a curiosity goal in which the story moved on is the story's
+            moved_story = current(hands.look()) != index
+            manager.spent(goal, hands.pad.frames - began, moved_story)
+            hands.note("goal_end", goal.kind, outcome[:200], {"ok": ok, "frames": hands.pad.frames - began, "key": goal.key,
+                                                             "story_moved": moved_story})
+            ended[0] = hands.pad.frames
+        return self._play_end(hands, story, manager, runner, report, "stuck", f"{PLAY_PASSES_MAX} passes of the play loop")
+
+    @staticmethod
+    def _progress(look: Observation, world, runner, report: dict, seen: dict) -> list[str]:
+        """(build step 5.1, the step-5 review's finding 2) What REAL PROGRESS a person would see since the last snapshot
+        `seen` (updated here): battles WON while training (`report["won_training"]`), a level gained (by one Pokemon, by its
+        PID, above its highest level seen: the verifier's second round; the party's levels added up rose back after WALLY's
+        tutorial lent the party a Pokemon), a map never seen before (the world memory's maps), a catch (the POKéDEX's owned
+        count), an item picked up or bought (the runner's records), a heal (at most `HEAL_RESETS_MAX` a milestone: heal, get
+        hurt, heal again is no progress). The first call only takes the snapshot."""
+        mons = [m for m in look.party or () if not m.is_egg] if look.party is not None else None
+        before = seen.get("snapshot") or {}
+        # (build step 5.1, the verifier's second round: the SUM of the party's levels fell from 15 to 10 when WALLY's
+        # tutorial lent the player a Zigzagoon, and rose back "10 -> 15" after it: a false "level gained") a level is GAINED
+        # by one Pokemon, by its IDENTITY (its PID, CLAUDE.md rule 3), above the highest level it was seen at; a Pokemon never
+        # seen before only sets its own mark (a catch counts by the POKéDEX)
+        peaks: dict = seen.setdefault("peaks", {})
+        gained = 0
+        for mon in mons or ():
+            peak = peaks.get(mon.pid)
+            if peak is not None and mon.level > peak:
+                gained += mon.level - peak
+            if peak is None or mon.level > peak:
+                peaks[mon.pid] = mon.level
+        seen["gained"] = seen.get("gained", 0) + gained
+        now = {"won_training": report.get("won_training", 0),
+               "levels": seen["gained"],
+               "maps": len(getattr(world, "maps", {}) or {}),
+               "owned": look.progress.dex_owned if look.progress is not None else before.get("owned"),
+               "items": len(getattr(runner, "picked", ())) + sum(1 for s in getattr(runner, "shopping", ()) if "bought" in s),
+               "heals": sum(1 for h in getattr(runner, "heals", ()) if h == "healed")}
+        if "snapshot" not in seen:
+            seen["snapshot"] = now
+            seen.setdefault("heals_counted", 0)
+            return []
+        moved: list[str] = []
+        names = {"won_training": "battles won while training", "levels": "a level gained", "maps": "a map never seen before",
+                 "owned": "a catch (the POKéDEX's owned count)", "items": "an item picked up or bought", "heals": "a heal"}
+        for key, name in names.items():
+            if now[key] is None or before.get(key) is None or now[key] <= before[key]:
+                continue
+            if key == "heals":
+                if seen.get("heals_counted", 0) >= HEAL_RESETS_MAX:
+                    continue
+                seen["heals_counted"] = seen.get("heals_counted", 0) + 1
+            moved.append(f"{name} ({before[key]} -> {now[key]})")
+        seen["snapshot"] = now
+        return moved
 
     @staticmethod
     def _count_losses(hands: Hands, nav: Navigator, report: dict) -> str | None:
@@ -446,15 +577,30 @@ class HandsBrain:
         if kind == "clock":
             hours, minutes = self.options.clock if self.options.clock is not None else local_clock()
             return (yield from set_clock(hands, hours, minutes, f"{why}: the wall clock to {hours}:{minutes:02d}"))
+        if kind in ("mart_buy", "mart_menu"):
+            # (build step 5.1) a mart's list or menu left open (an item not on the list stops `mart_buy` there): left
+            return (yield from leave_shop(hands, self.navigator, why)) == "left"
         return False
 
-    def _milestone_line(self, hands: Hands, look: Observation, story, last: list, index: int, milestone, report) -> None:
+    def _milestone_line(self, hands: Hands, look: Observation, story, last: list, index: int, milestone, report,
+                        visited: Callable[[str], bool] | None = None) -> None:
         marks = dict(look.progress.marks) if look.progress is not None else {}
         if last[1] is not None and index > last[0]:
             for passed in story.milestones[max(last[0], 0):index]:
+                # (build step 5.1, the step-5 verifier: "MILESTONE ch1_intro done ... VAR_LITTLEROOT_INTRO_STATE=0 (>= 1)"
+                # quoted a proof that did not hold) HOW it passed: its proofs hold, a WAYPOINT stood on, or OPTIONAL
+                proven = passed.done(marks) is True
+                if proven:
+                    how = "done"
+                elif passed.optional:
+                    how = "passed as OPTIONAL (not required; its proofs do not hold)"
+                elif passed.waypoint is not None and visited is not None and visited(passed.waypoint):
+                    how = f"passed as a WAYPOINT (it stood on {passed.waypoint}; its save proofs do not hold yet)"
+                else:
+                    how = "passed (a later milestone's proofs hold)"
                 report["milestones"].append({"id": passed.id, "frame": look.frame, "pad_frames": hands.pad.frames,
-                                             "proofs": passed.proofs(marks)})
-                hands.tell(f"[AI-GOALS] MILESTONE {passed.id} done at f{look.frame} ({passed.title}): {passed.proofs(marks)}")
+                                             "proofs": passed.proofs(marks), "how": "done" if proven else how.split(" (")[0]})
+                hands.tell(f"[AI-GOALS] MILESTONE {passed.id} {how} at f{look.frame} ({passed.title}): {passed.proofs(marks)}")
         if milestone is not None:
             hands.tell(f"[AI-GOALS] the story is at {milestone.id} ({milestone.title}); proofs now: {milestone.proofs(marks)}")
             hands.note("milestone", milestone.id, milestone.title, {"index": index, "frame": look.frame})
@@ -467,15 +613,23 @@ class HandsBrain:
         logged = battles_lost(runner.nav.battle_log)
         if logged != report["losses"]:
             hands.tell(f"the loop counted {report['losses']} battles lost, but the battle log holds {logged}")
+        waits = getattr(self, "_waits", None)
+        if waits is not None:
+            waits.finish()
+            report["waits"] = waits.summary()
         prep = {key: dict(value) for key, value in manager.memory.fight_prep.items()}
         hands.tell(f"[AI-GOALS] the end ({kind}: {why}); milestones {[m['id'] for m in report['milestones']]}; before the "
                    f"fights {prep}; roams {len(runner.roams)}, heals {runner.heals}, shopping {runner.shopping}, items "
                    f"{runner.picked}, battles lost {report['losses']}, personality {manager.state.history}, favourite "
-                   f"{manager.state.favourite}")
+                   f"{manager.state.favourite}; progress resets {len(report.get('progress') or [])}; waits on a press "
+                   f"{report.get('waits')}")
         hands.note("end", kind, why, {"milestones": report["milestones"], "fight_prep": prep, "roams": runner.roams,
                                       "heals": runner.heals, "shopping": runner.shopping, "items": runner.picked,
                                       "losses": report["losses"], "drift": manager.state.history,
-                                      "favourite": manager.state.favourite})
+                                      "favourite": manager.state.favourite, "progress": report.get("progress"),
+                                      "waits": report.get("waits"), "spent": dict(manager.memory.spent),
+                                      "seen_levels": dict(manager.memory.seen_levels),
+                                      "no_balls": dict(manager.memory.no_balls), "home_heals": manager.memory.home_heals})
         return f"{kind}: {why}"
 
     # ------------------------------------------------------------------ build step 4: battles
@@ -597,18 +751,16 @@ class HandsBrain:
                             extra={"maps": len(self.world.maps), "tiles": self.world.tiles_learned})
 
     def _bounded(self, skill: Generator[None, None, str], hands: Hands) -> Generator[None, None, str]:
-        """Drive `skill` one frame per `yield`, for at most `settings.frames` frames."""
-        frames = 0
+        """Drive `skill` one frame per `yield`, for at most `settings.frames` frames (build step 5.1: a `for` over the
+        frames, so the bound is the loop itself)."""
         try:
-            while True:
-                if frames >= self.settings.frames:
-                    hands.tell(f"the skill did not finish within {frames} frames: stopped")
-                    return f"stopped: not finished within {frames} frames"
+            for frames in range(self.settings.frames):
                 try:
                     next(skill)
                 except StopIteration as done:
                     return str(done.value)
                 yield
-                frames += 1
+            hands.tell(f"the skill did not finish within {self.settings.frames} frames: stopped")
+            return f"stopped: not finished within {self.settings.frames} frames"
         finally:
             skill.close()

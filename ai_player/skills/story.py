@@ -29,19 +29,24 @@ from collections.abc import Generator
 from ai_player.brain.navigator import Navigator, Target, nav_free
 from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import STARTER_OPTIONS, page_text
-from ai_player.hands.dialogue import player_free, talk, talk_direction
-from ai_player.hands.menus import MART_CLERK_GFX, NURSE_GFX, mart_buy, nurse_heal, wait_for_ui
+from ai_player.hands.dialogue import advance, player_free, talk, talk_direction
+from ai_player.hands.menus import GAVE_WAY, MART_CLERK_GFX, NURSE_GFX, choose, mart_buy, nurse_heal
 from ai_player.hands.pad import Hands
 from ai_player.skills.flee import in_battle
 from ai_player.world.memory import DIRECTIONS, OPPOSITE, moved
 
 __all__ = [
     "APPROACH_BUDGET",
+    "LIST_WAIT",
+    "NOT_FOR_SALE",
     "QUESTION_RULES",
     "SCENE_ROUNDS",
+    "STARTER_WAIT",
     "answer_question",
     "approach",
+    "bag_or_its_question",
     "choose_starter",
+    "leave_shop",
     "enter_door",
     "heal_at_center",
     "pick_up",
@@ -58,6 +63,13 @@ APPROACH_BUDGET = 4000
 SCENE_ROUNDS = 12
 #: Presses a starter cursor may take to reach its ball.
 STARTER_MOVES = 8
+#: (build step 5.1) What `hands/menus.py` mart_buy answers when the item is not on the list it READ (the list stays open).
+NOT_FOR_SALE = "is not for sale here"
+#: (build step 5.1) Frames a mart's item list may take to take input (it slides in: `CB2_BuyMenu`).
+LIST_WAIT = 300
+#: (build step 5.1) Frames PROF. BIRCH's bag may take to take input again (a ball opening: measured 2026-10-14, the yes/no
+#: came 39 frames after the A in the live arm CH1T): a bound, never a wait for something that will not come.
+STARTER_WAIT = 600
 #: The QUESTIONS a person answers by their words (lower-case words -> (yes, why)); first match wins. Anything else: YES,
 #: a person goes along with what the story asks (`answer_question`).
 QUESTION_RULES: tuple[tuple[str, bool, str], ...] = (
@@ -156,10 +168,19 @@ def talk_to(hands: Hands, nav: Navigator, target: SeenObject, why: str) -> Gener
     if reached != "reached":
         return reached
     look = hands.look()
+    if not nav_free(look):
+        # (build step 5.1) a scene began on the last steps of the walk: it is played first, never waited out
+        stop = yield from play_out(hands, nav, why)
+        return f"interrupted before it could talk: {stop or 'a scene, played out'}"
     seen = _same(look, target)
     if seen is None:
         return f"the {target.kind} is not on screen any more"
-    if not (yield from talk(hands, seen, why)):
+    if not (yield from talk(hands, seen, why, give_way=True)):
+        if not nav_free(hands.look()):
+            # (build step 5.1, the step-5 verifier's FAILURE (b)) a scene began while it turned to talk: its text waits for
+            # A, so it is PLAYED (it used to stand 1,200 frames in `talk` waiting for the player to be free)
+            stop = yield from play_out(hands, nav, why)
+            return f"interrupted before it could talk: {stop or 'a scene, played out'}"
         return f"the {target.kind} did not answer"
     stop = yield from play_out(hands, nav, why)
     return "talked" if stop is None else f"talked; then {stop}"
@@ -252,7 +273,18 @@ def heal_at_center(hands: Hands, nav: Navigator, why: str = "heal at the POKéMO
     reached = yield from approach(hands, nav, nurse, why)
     if reached != "reached":
         return f"could not reach the nurse: {reached}"
-    return (yield from nurse_heal(hands, why))
+    outcome = ""
+    for _ in range(2):
+        # (build step 5.1, the verifier's second round: seed 42 stood 1,203 frames in front of the nurse while "TREECKO
+        # fainted…", the poison's faint on the way in, waited for A) a screen that waits for a press is PLAYED, then the
+        # nurse asked again (once)
+        outcome = yield from nurse_heal(hands, why, give_way=True)
+        if outcome != GAVE_WAY:
+            return outcome
+        stop = yield from play_out(hands, nav, why)
+        if stop is not None:
+            return f"interrupted at the nurse: {stop}"
+    return outcome
 
 
 def shop_at_mart(hands: Hands, nav: Navigator, wants: list[tuple[str, int]],
@@ -270,8 +302,24 @@ def shop_at_mart(hands: Hands, nav: Navigator, wants: list[tuple[str, int]],
         if reached != "reached":
             out.append(f"{item}: could not reach the clerk: {reached}")
             break
-        outcome = yield from mart_buy(hands, item, count, f"{why}: {count} x {item}")
+        outcome = yield from mart_buy(hands, item, count, f"{why}: {count} x {item}", give_way=True)
+        if outcome == GAVE_WAY:
+            # (build step 5.1, the verifier's second round) a screen that waits for a press came first: played, then the
+            # clerk asked again (once)
+            stop = yield from play_out(hands, nav, why)
+            if stop is not None:
+                out.append(f"{item}: interrupted at the clerk: {stop}")
+                break
+            outcome = yield from mart_buy(hands, item, count, f"{why}: {count} x {item}", give_way=True)
         out.append(f"{item} x{count}: {outcome}")
+        if NOT_FOR_SALE in outcome:
+            # (build step 5.1) the list was READ and the item is not on it: the list is still open (`mart_buy` stops
+            # there), so it is left the way a person leaves it, and the next item wanted is asked for
+            left = yield from leave_shop(hands, nav, why)
+            if left != "left":
+                out.append(f"after: {left}")
+                break
+            continue
         if not player_free(hands.look()):
             stop = yield from play_out(hands, nav, why)
             if stop is not None:
@@ -280,21 +328,74 @@ def shop_at_mart(hands: Hands, nav: Navigator, wants: list[tuple[str, int]],
     return out
 
 
+def leave_shop(hands: Hands, nav: Navigator, why: str) -> Generator[None, None, str]:
+    """(build step 5.1) Out of a mart's conversation, whatever it shows: the item list left with B (LIST_CANCEL), QUIT in
+    the shop menu, the goodbye read on the eyes' waits. Returns "left" or why not. Bounded (`SCENE_ROUNDS` menus, each
+    wait `LIST_WAIT` frames)."""
+    for _ in range(SCENE_ROUNDS):
+        if player_free(hands.look()):
+            return "left"
+        outcome = yield from advance(hands, player_free, f"{why}: leaving the shop")
+        if outcome == "done":
+            return "left"
+        if outcome == "menu:mart_buy":
+            for _ in range(LIST_WAIT):
+                ui = hands.look().screen.ui
+                if ui is None or ui.kind != "mart_buy" or ui.accepts_input:
+                    break
+                yield from hands.pad.busy("waiting for the item list to take input")
+            ui = hands.look().screen.ui
+            if ui is not None and ui.kind == "mart_buy" and ui.accepts_input:
+                yield from hands.pad.idle(hands.pad.think_frames(), "nothing on this list it came for: leaving the list")
+                yield from hands.pad.press("B", why, "the item list is open: B leaves it (LIST_CANCEL)")
+            continue
+        if outcome == "menu:mart_menu":
+            if not (yield from choose(hands, "mart_menu", "QUIT", f"{why}: the shop menu")):
+                return "could not choose QUIT in the shop menu"
+            continue
+        return f"unexpected while leaving the shop: {outcome}"
+    return f"the shop conversation did not end within {SCENE_ROUNDS} menus"
+
+
 def _person(look: Observation, graphics_id: int) -> SeenObject | None:
     people = [o for o in (look.view.objects if look.view else ()) if o.source == "object" and o.graphics_id == graphics_id]
     return min(people, key=lambda o: (abs(o.dx) + abs(o.dy), o.local_id)) if people else None
 
 
+def bag_or_its_question(hands: Hands, why: str, budget: int = STARTER_WAIT) -> Generator[None, None, Observation | None]:
+    """(build step 5.1, the step-5 verifier's FAILURE (a)) Watch PROF. BIRCH's bag until something on it takes input: the
+    bag itself (its cursor), or what the bag ASKS once it took a choice ("Do you choose this POKéMON?": a yes/no of
+    `Task_HandleConfirmStarterInput`), or the bag is gone (the scene goes on). Returns that look, or None after `budget`
+    frames. (`wait_for_ui(choose_starter)` watched for the bag ALONE: after the A on a ball the bag shows busy while the ball
+    opens, so the scene handed it back here, and the yes/no that followed was watched for 600 frames, never pressed: 20 of
+    40 sweep runs and the live arm CH1M, A at f34499, YES at f35142.)"""
+    for _ in range(budget):
+        look = hands.look()
+        ui = look.screen.ui
+        if ui is not None and ui.accepts_input:
+            return look
+        if ui is None and look.screen.game_state != "CHOOSE_STARTER":
+            return look
+        yield from hands.pad.busy("waiting for PROF. BIRCH's bag: a ball opening or its cursor sliding")
+    hands.tell(f"{why}: PROF. BIRCH's bag took no input within {budget} frames")
+    return None
+
+
 def choose_starter(hands: Hands, starter: str, why: str) -> Generator[None, None, bool]:
     """PROF. BIRCH's bag: bring the cursor to `starter` by READING it (Left / Right) and press A on its look. True once the
-    bag took the choice (the question that follows is the scene's, answered by `answer_question`)."""
+    bag took the choice (the question that follows is the scene's, answered by `answer_question`), and True at once when the
+    bag has its choice already and ASKS about it (build step 5.1: `bag_or_its_question`)."""
     if starter not in STARTER_OPTIONS:
         hands.tell(f"{why}: {starter!r} is not in the bag {STARTER_OPTIONS}")
         return False
     target = STARTER_OPTIONS.index(starter)
-    look = yield from wait_for_ui(hands, "choose_starter", why)
+    look = yield from bag_or_its_question(hands, why)
     if look is None:
         return False
+    if look.screen.ui is None or look.screen.ui.kind != "choose_starter":
+        what = look.screen.ui.kind if look.screen.ui is not None else "nothing (the bag is gone)"
+        hands.tell(f"{why}: the bag has taken its choice: {what} on screen now, the scene's to answer")
+        return True
     yield from hands.pad.idle(hands.pad.think_frames(), f"looking at the three POKé BALLS {list(STARTER_OPTIONS)}: the cursor "
                                                         f"on {look.screen.ui.cursor}, wanted {target} ({starter})")
     for _ in range(STARTER_MOVES * 30):

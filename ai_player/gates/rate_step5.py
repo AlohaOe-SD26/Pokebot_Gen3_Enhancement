@@ -3,8 +3,9 @@ fault arm costs. In-process (`gates/play_harness.py`), the cartridge's clock pin
 record (`play_harness.StoryRecorder`: save block 1's marks and the game's counters read by the harness's own code, never the
 AI's eyes), the AI's told lines only cross-checked.
 
-    py -3.12 ai_player/gates/rate_step5.py [--plans CH1,NOTRAIN,NOHINTS,DEADREST,STOP,STOPDEAD] [--seeds 12]
-                                           [--first-seed 1] [--workers 8] [--frames 300000] [--evidence-tag step5]
+    py -3.12 ai_player/gates/rate_step5.py [--plans CH1,NOTRAIN,NOHINTS,DEADREST,ERRANDS_OFF,STALL1,STALL2,PATIENCE,
+                                                    PATIENCE_OLD,STOP,STOPDEAD] [--seeds 12] [--first-seed 1] [--workers 8]
+                                           [--frames 300000] [--evidence-tag step51]
 
 THE PLANS (each seed: a personality and a starter drawn by the seed number, so every personality and starter is played):
   CH1      a real New Game to the POKéDEX (`ch1_pokedex`): reached? frames; the rival beaten at the FIRST try (by the game:
@@ -28,10 +29,53 @@ THE PLANS (each seed: a personality and a starter drawn by the seed number, so e
   STOP, STOPDEAD  PHASE 2 (`STOP_PLANS`): every run above that the GAME recorded a battle lost in, replayed with MAX_LOSSES
            1 in a copy: STOP must end at that loss with the loop's reason; STOPDEAD (the loop's count also removed,
            revert_step5 G46: the verifier's V6) must not, and its report says 0 losses where the game lost
+  ERRANDS_OFF  (build step 5.1) FAULT `no_errands`: the BEELINE control: no look-around, detour, new-map stop, chat or
+           catching roam. The intent mix, the seed divergence and the frames to the POKéDEX must all move against CH1
+  STALL1, STALL2  (build step 5.1) the step-5 verifier's two stalls RE-INTRODUCED in copies (`MUTANT_PLANS`): the stall
+           property must FAIL in them, by both paths (the AI's record and the game's)
+  PATIENCE, PATIENCE_OLD  (build step 5.1) a copy with `STORY_PATIENCE` = `SMALL_PATIENCE`, shorter than the training
+           before the rival: with the real rule (progress resets it) the POKéDEX is reached; with the step-5 rule (G67: only a
+           milestone resets it) the run stops "no progress for ..." while training
+  STALL3   (the step-5.1 verifier's round: "the game-side second path does not cover battles") a copy whose battle skill
+           waits 600 frames at the action menu: the stall property must FAIL by BOTH paths (the second path now reads a
+           battle's own waits: `play_harness.waits_now`), on the Story's seeds
+  LOSE3    (the verifier's round: "MAX_LOSSES 3 was never reached by an unaltered run") a copy whose decider, once its
+           battler is L7, uses its status move every turn of a wild battle and never runs: the play loop's REAL MAX_LOSSES
+           must end the run at the game's third loss, report == told == game == 3, on the Catcher's seeds
+  CH2, CH2_OFF  (the step-5.1 verifier's SECOND round: "chapter 2's stall property rests on the AI's own eyes alone", and the
+           live arm CH2T FAILED the intent-mix floor) CHAPTER 2 in the sweep: every CH1 (and ERRANDS_OFF) run that reached
+           the POKéDEX goes on, in its own worker, from ITS OWN end state and world memory to WALLY's tutorial (`ch2_wally`),
+           the same seed, personality and faults (`CHAPTER2`, `run_chain`): WALLY by the game, the stall property by BOTH
+           paths (the game's second path now reads chapter 2's screens too: the mart's menus, the PETALBURG gym, WALLY's
+           tutorial), the intent-mix floor and the curiosity the story did not need in EVERY run, a new place new to the
+           memory it started from; CH2_OFF, the beeline's chapter 2, must fall under the floor (`chapter2_verdicts`)
+(The step-5.1 verifier's second round) the INTENT MIX is honest: a goal's frames end at its END record (the play loop's
+`goal_end`; a goal DROPPED for a scene no longer counts the scene after it), and a curiosity goal the story moved on in is
+the story's in the errand share too (`intent_mix`). Every graded run keeps its tree (`provenance.snapshot_tree`).
+(The verifier's round) THE ERRANDS' OWN METRICS, which the beeline control must NOT meet: the CURIOSITY THE STORY DID NOT
+NEED in every run (`intent_mix` free_share: a curiosity goal in which a milestone passed, the rival's POKé BALL, is the
+story's own), the control under it; OFF THE BEELINE (`off_beeline`: the tiles a run stood on that no control run stood on,
+against the control's own leave-one-out spread) and how those tiles differ by seed; NO SPEEDRUN per paired seed as well as
+pooled.
+THE STALL PROPERTY (build step 5.1, the step-5 verifier's FAILURE): in every run of the real code no screen WAITED FOR A
+PRESS `AWAIT_MAX` frames or more with none, whatever reason the AI gave: by the AI's own record (`hands/waiting.py`, its
+eyes) AND by the game's second path (`play_harness.WaitRecorder`: the framework's own reads of the tasks that poll a
+button and of a text waiting for A/B, and the controls' presses).
 The verdicts are PRE-REGISTERED in `BOUNDS` (machine-checked) from the DEVELOPMENT sweeps of 2026-10-14 (`step5dev1` to
 `step5dev8`, seeds 1-9); the graded sweep plays HELD-OUT seeds. The first graded sweep played seeds 101-110 (the tree
 59521c7ebf62dc70); the step-5 verifier's round (2026-10-14) re-graded on NEW held-out seeds, 201-210, since its fixes
-were developed while seeds 101-110's results were known. The last development sweep (step5dev8, the tree of that round)
+were developed while seeds 101-110's results were known; its round 2 on seeds 301-310; build step 5.1 (developed on seeds
+1-9 again, `step51dev*`) on NEW held-out seeds 401-410; the step-5.1 verifier's round (developed on seeds 1-9 and 21-29,
+`step51vdev*`) on NEW held-out seeds 501-520 (twenty: the two pre-registered arm comparisons the verifier measured within
+the noise, the beeline's time and its divergence, get twice the pairs). That sweep FAILED two of this round's own new
+checks, each by an error in the check, not in the AI: the training bound was taken from the BASE personality though 2 runs
+had DRIFTED into the Story's (`train_steps_min_run`), and LOSE3 graded a run that never reached a third loss; both were
+corrected (no AI code changed) and graded again on NEW held-out seeds 601-620; the failed sweep's evidence is kept in
+`evidence/archive/dee96b6ddadb6b11/`. The step-5.1 verifier's SECOND round (developed on seeds 31-39 and 41-49,
+`step51wdev1`, `step51wdev2`, `step51wdev3`, with chapter 2) was graded on NEW held-out seeds 701-720; that pass FAILED the
+chapter-2 floor in one run (seed 706: a walk to a known gym door skipped its stops; kept in `evidence/archive/
+d0c949e96d355afe/`), was fixed (developed on 61-72 and 81-92, `step51wdev4`, `step51wdev5`) and is graded again on NEW
+held-out seeds 801-820. The last development sweep (step5dev8, the tree of that round)
 measured: CH1 9 of 9 reached, 9 of 9 first-try, wild battles WON before the rival 12-27 a seed, training steps 120-240,
 spins 11 in 1566 steps (0.70 %), the catch-all 0, the rest rule 0 breaches over 20 occasions, whiteouts 0 (3 in 9 in
 step5dev6 and step5dev7, before the way home was known); NOTRAIN won wild battles 47 vs 162, the strongest level at the
@@ -59,7 +103,7 @@ REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from ai_player.gates.provenance import keep_earlier, provenance  # noqa: E402
+from ai_player.gates.provenance import keep_earlier, provenance, snapshot_tree  # noqa: E402
 
 HARNESS = Path(__file__).resolve().parent / "play_harness.py"
 EVIDENCE_DIR = REPO / "ai_player" / "evidence"
@@ -67,11 +111,48 @@ GAME_CLOCK = "2026-10-14T10:00"
 WALL_CLOCK = "10:00"
 PERSONALITIES = ("Story", "Catcher", "Trainer")
 STARTERS = ("TREECKO", "TORCHIC", "MUDKIP")
-PLANS = {"CH1": "", "NOTRAIN": "no_training", "NOHINTS": "no_hints", "DEADREST": ""}
+PLANS = {"CH1": "", "NOTRAIN": "no_training", "NOHINTS": "no_hints", "DEADREST": "",
+         # (build step 5.1) the BEELINE control (no look-around, detour, new-map stop, chat or catching roam); the two
+         # STALLs re-introduced (each a copy with the fix reverted); the patience A/B (a copy with a SMALL patience, the real
+         # rule, and the same with the step-5 rule back); (the verifier's round) a BATTLE's wait for a press stalled
+         # (STALL3: the second path now reads battles) and the decider made to lose (LOSE3: the real MAX_LOSSES reached)
+         "ERRANDS_OFF": "no_errands", "STALL1": "", "STALL2": "", "PATIENCE": "", "PATIENCE_OLD": "", "STALL3": "",
+         "LOSE3": "",
+         # (the step-5.1 verifier's second round: "chapter 2's stall property rests on the AI's own eyes alone", and the live
+         # CH2T arm FAILED the intent-mix floor) CHAPTER 2 in the sweep: each run of the base plan that reached the
+         # POKéDEX goes on from ITS OWN end state and world memory to WALLY's tutorial (`CHAPTER2`), graded by the game's
+         # second path too; CH2_OFF is the beeline control's chapter 2 (from the ERRANDS_OFF runs' ends)
+         "CH2": "", "CH2_OFF": "no_errands"}
+#: (the step-5.1 verifier's second round) the chapter-2 plans: plan -> the chapter-1 plan whose runs' ends it starts from,
+#: and its target
+CHAPTER2 = {"CH2": "CH1", "CH2_OFF": "ERRANDS_OFF"}
+CH2_TARGET = "ch2_wally"
 #: (the step-5 verifier's round, 2026-10-14) a plan played by a COPY of the package with mutants of
 #: `gates/revert_step5.py` applied: DEADREST is G36, the navigator asking the rest rule only with a battle limit set (the
-#: verifier's DEAD FIX, as it was): the arm with the fix REMOVED (CLAUDE.md rule 8), graded by the same rest check
-MUTANT_PLANS = {"DEADREST": ["G36"]}
+#: verifier's DEAD FIX, as it was): the arm with the fix REMOVED (CLAUDE.md rule 8), graded by the same rest check.
+#: (build step 5.1) STALL1 is G53 (the starter bag watched for the bag alone: the verifier's stall (a)); STALL2 is G55, G56,
+#: G57 and G86 (`talk` waits out a scene's text, no settling after a map change, no second look after deciding, no first
+#: look in `talk_to`: stall (b), every layer removed); PATIENCE is the real code with `STORY_PATIENCE` small enough that
+#: the training before the rival outlasts it (`SMALL_PATIENCE`), PATIENCE_OLD the same with G67 (the step-5 rule: only a
+#: milestone resets it)
+MUTANT_PLANS = {"DEADREST": ["G36"], "STALL1": ["G53"], "STALL2": ["G55", "G56", "G57", "G86"],
+                "PATIENCE": ["PATIENCE_SMALL"], "PATIENCE_OLD": ["PATIENCE_SMALL", "G67"],
+                # (the verifier's round) STALL3: the battle skill waits 600 frames at the action menu before it acts (a
+                # battle's wait for a press, which the second path did not read); LOSE3: once its strongest is L7, the
+                # decider uses its status move (slot 1: Leer or Growl) every turn of a wild battle and never runs
+                "STALL3": ["STALL3"], "LOSE3": ["LOSE3"]}
+#: (the verifier's round) plans whose losses are the fault itself: never replayed by the phase-2 STOP plans; (the second
+#: round) nor the chapter-2 plans (a STOP replay starts from a New Game)
+NO_PHASE2 = ("LOSE3", "CH2", "CH2_OFF")
+#: (build step 5.1) the plans of the REAL code (no fault, no mutant): the stall property, the goal-after-page check and
+#: the losses must hold in each
+REAL_PLANS = ("CH1", "NOTRAIN", "NOHINTS", "ERRANDS_OFF", "CH2", "CH2_OFF")
+#: (build step 5.1) plans played only on the seeds of one personality: the patience A/B on the TRAINER's seeds, whose
+#: training before the rival is the longest (the review's case: a long training stint toward a higher target)
+PLAN_PERSONALITY = {"PATIENCE": "Trainer", "PATIENCE_OLD": "Trainer",
+                    # (the verifier's round) the two new fault arms on one personality's seeds each: a fault's mechanism,
+                    # not a rate (the Story's for the battle stall, the Catcher's for the losses)
+                    "STALL3": "Story", "LOSE3": "Catcher"}
 #: (the step-5 verifier's round 2, 2026-10-14: "no run reached the MAX_LOSSES stop", and the loop's count was unproven)
 #: PHASE 2, the STOP plans: every run of the plans above whose GAME recorded a battle LOST is played again, the same seed,
 #: faults and mutants, in a copy whose MAX_LOSSES is 1 (`CAP1`): STOP must end with "1 battles lost (MAX_LOSSES 1)" right
@@ -79,8 +160,28 @@ MUTANT_PLANS = {"DEADREST": ["G36"]}
 #: REMOVED too (revert_step5 G46, the verifier's V6), must NOT, and its report must say 0 losses where the game lost (the
 #: ALL PLANS check's arm: it would catch the dead count). The plans are chosen by the game's own record, before they run.
 STOP_PLANS = {"STOP": ["CAP1"], "STOPDEAD": ["CAP1", "G46"]}
+#: (build step 5.1) the PATIENCE plans' patience (frames): see `BOUNDS` for why this number
+SMALL_PATIENCE = 40_000
 EXTRA_EDITS = {"CAP1": [("mode.py", "MAX_LOSSES = 3\n",
-                         "MAX_LOSSES = 1  # gates/rate_step5.py's STOP plans: the first battle lost ends the run\n")]}
+                         "MAX_LOSSES = 1  # gates/rate_step5.py's STOP plans: the first battle lost ends the run\n")],
+               "PATIENCE_SMALL": [("mode.py", "STORY_PATIENCE = 120_000\n",
+                                   f"STORY_PATIENCE = {SMALL_PATIENCE}  # gates/rate_step5.py's PATIENCE plans\n")],
+               # (the verifier's round) a battle's action menu waited out 600 frames before the decision is carried out
+               "STALL3": [("skills/battle.py", "            done = yield from _execute(hands, mind, decision, why)\n"
+                                               "            if done is not None:\n                return done\n"
+                                               "            continue\n        if kind == BATTLE_MOVE:\n",
+                           "            yield from hands.pad.idle(600, \"MUTANT STALL3: the action menu waited out\")\n"
+                           "            done = yield from _execute(hands, mind, decision, why)\n"
+                           "            if done is not None:\n                return done\n"
+                           "            continue\n        if kind == BATTLE_MOVE:\n")],
+               # (the verifier's round) once trained (its battler L7 or more), every wild battle: the status move in slot 1
+               # every turn, never a run: the battles are LOST, and the real MAX_LOSSES must end the run
+               "LOSE3": [("brain/battle.py", "        values = self._values(own, foe, hp_share, look)\n"
+                                              "        if battle.kind == \"wild\" and mem.want_catch:\n",
+                          "        values = self._values(own, foe, hp_share, look)\n"
+                          "        if battle.kind == \"wild\" and own.level >= 7:  # MUTANT LOSE3\n"
+                          "            return Decision(\"fight\", \"MUTANT LOSE3: the status move every turn\", move_slot=1)\n"
+                          "        if battle.kind == \"wild\" and mem.want_catch:\n")]}
 STOP_REASON = "play: stuck: 1 battles lost (MAX_LOSSES 1)"
 #: frames from the game's record of the loss (gBattleOutcome LOST) to the run's end: the whiteout's text and the warp home
 #: (~1,500 frames), the goal under way unwinding, and the loop's next pass
@@ -94,12 +195,20 @@ BOUNDS = {
     # NOTRAIN, which never trains, in 6 of 10 seeds: walks win battles too) every CH1 seed that beat the rival: inside the
     # windows its log says it ROAMED TO TRAIN before the rival's flag (`training_windows`), the GAME says at least this many
     # wild battles were WON (`play_harness` THE BATTLES) ...
+    # RE-DERIVED (the step-5.1 verifier's round: "the training bounds (60 steps, 3 won) were carried over, not re-derived"),
+    # from the two graded sweeps' rows (seeds 301-310 and 401-410, 20 CH1 runs, every one past the rival; their evidence
+    # files `2026-10-14-step5-RATE.txt`, `2026-10-14-step51-RATE.txt`): WON inside the windows 4-18 (NOTRAIN 0 in all 20),
+    # so 3 stays, now one under the measured minimum, not a carried number
     "CH1_WILD_WON_MIN": 3,
     # ... and the GAME's step counter rose at least this much there (`play_harness` THE STEPS); its roam reports must say
-    # as much too. Both bounds are round 1's, carried over (not re-derived); measured on the kept action logs of the
-    # development seeds 1-9 and the graded seeds 201-210 (the AI's log: the game's own counts in the windows are new),
-    # 5-21 wild battles won and 110-279 training steps in the windows, NOTRAIN 0 and 0 in every seed
+    # as much too. RE-DERIVED from the design's own rule, per personality: a person roams at least `train_min_steps` before
+    # a known fight (`personality.py` Errands: Story 80, Catcher 100, Trainer 150), so the bound is that minimum times
+    # `CH1_TRAIN_STEPS_SHARE` (72 / 90 / 135; the 10 % for a step the game's counter refuses as an impossible reading or a
+    # roam an item ball stopped). Measured on the same 20 runs, the game's steps over the personality's minimum 1.04-1.95
+    # (Story 88-170, Catcher 104-188, Trainer 161-293). Every one of the three is tighter than round 1's carried 60, which
+    # is kept below only as the floor of `train_steps_min`
     "CH1_TRAIN_STEPS_MIN": 60,
+    "CH1_TRAIN_STEPS_SHARE": 0.9,
     # (the step-5 verifier's round) the game's WHITEOUTS (battles LOST) over all the CH1 seeds together at most this: the
     # development sweeps measured 3 in 9 (step5dev6, step5dev7: every one a wild battle met at 2-5 HP, six of them on a walk
     # home that could not find the house) and 0 in 9 once the way home was known (step5dev8)
@@ -111,6 +220,107 @@ BOUNDS = {
     # and no seed where NOTRAIN is 2 or more levels higher
     "NOTRAIN_LEVEL_PAIRED_MIN": 0.5,
     "NOHINTS_SLOWER": True,  # NOHINTS reaches the POKéDEX in fewer seeds, or later on average where both reach it
+    # ---- BUILD STEP 5.1, PRE-REGISTERED 2026-10-14 from the development sweeps step51dev1-dev7 (seeds 1-9, 63 CH1 runs of
+    # the real code, 36 of the beeline control, 9 + 9 of the two STALL copies, 3 + 3 of the patience copies), BEFORE the
+    # graded sweep on the held-out seeds 401-410:
+    # THE STALL PROPERTY: the longest a screen may wait for a press with none (frames). The pad's longest deliberate pause
+    # before a press is its READING cap (`hands/pad.py` Pacing.read_max: 150 frames, the jitter inside it) and its thinking
+    # pause (14-45 frames, before a menu's cursor moves): MEASURED, the longest stretch in every development run of the
+    # real code was 150 frames by the AI's own record and 150 by the game's second path (a page read at the cap). 300 is
+    # twice that cap: room for the gate's look and the second path's 10-frame sampling, and far under the measured stalls
+    # (the starter's yes/no 600-644 frames in STALL1, the scene's text 1,153-1,196 in STALL2)
+    "AWAIT_MAX": 300,
+    # each STALL copy must fail the property in at least this many of its 10 runs (measured: STALL1 in 5 of 9, STALL2 in 3
+    # of 9 development runs; at those rates 10 runs miss both with probability 0.1 % and 2 %)
+    "STALL_ARM_HITS_MIN": 1,
+    # THE INTENT MIX: in EVERY CH1 run at least this share of the goals' frames on errands (all of them: heal, shop, train,
+    # find a centre, an item, catch, chat, look around, a detour; measured 0.34-0.57 by run) ...
+    "MIX_MIN": 0.30,
+    # ... and each PERSONALITY's mean share on CURIOSITY (look around, a detour, a chat, a catching roam, an item ball) at
+    # least this (measured by personality 0.087-0.135 with the errands, 0.030-0.035 under the beeline control)
+    "CURIOSITY_MIN": 0.06,
+    # SEED DIVERGENCE: every pair of CH1 runs of one personality, the mean edit distance of their goal sequences and the
+    # mean Jaccard distance of the tiles they stood on at least these (measured 0.53-0.58 and 0.46-0.48; the beeline control
+    # 0.49 and 0.46: the goal sequences must also diverge MORE than the beeline control's, the paths are reported)
+    "DIV_GOALS_MIN": 0.30,
+    "DIV_TILES_MIN": 0.30,
+    # ERRANDS_OFF MOVES THE MIX: CH1 - ERRANDS_OFF curiosity share paired by seed, mean at least this (measured 0.08, 0.09)
+    "MIX_DROP_MIN": 0.04,
+    # NO SPEEDRUN: the frames to the POKéDEX OUTSIDE the needs (training, healing, finding a centre, shopping: the beeline
+    # control keeps those, and their length is the battles' dice), CH1 over ERRANDS_OFF pooled over the paired seeds, at
+    # least this: ABOVE the beeline. MEASURED 1.047 and 1.053; the TOTAL frames to the POKéDEX measured 0.987 and 1.006,
+    # within the training's noise, so the total is REPORTED, not bounded (the README's step-5.1 section says so)
+    "SLOWER_THAN_BEELINE_MIN": 1.0,
+    # ... and every CH1 run that reached the POKéDEX did so within this many frames (the budget)
+    "DEX_FRAMES_MAX": 300_000,
+    # THE PATIENCE A/B (Trainer seeds, `SMALL_PATIENCE` 40,000: measured, the real rule's longest stretch with no progress
+    # 13,512-29,504 frames, the training stints 53,553-63,537 frames): the real rule reaches the POKéDEX in at least this
+    # share, the step-5 rule stops 'no progress' in at least this share, at least once WHILE TRAINING (measured 3 of 3 and
+    # 3 of 3, each stop with a training session the last goal)
+    "PATIENCE_REACHED_MIN": 0.8,
+    "PATIENCE_OLD_STOPS_MIN": 0.8,
+    # ---- THE VERIFIER'S ROUND OF STEP 5.1 (2026-10-14), PRE-REGISTERED from the development sweeps of this round's AI code
+    # (step51vdev1: seeds 1-9, CH1, ERRANDS_OFF, STALL3, LOSE3, before the look-around debt and the 6-tile detour;
+    # step51vdev2: seeds 1-9 and 21-29, CH1 and ERRANDS_OFF, the AI code graded; only gates changed after it) BEFORE the
+    # graded sweep on NEW held-out seeds 501-520 (seeds 401-410's results were known while these fixes were made). Seeds 11,
+    # 12 and 13 were never played in process on this tree: they are the live arms'.
+    # CURIOSITY THE STORY DID NOT NEED (`intent_mix` free_share: a curiosity goal in which a milestone passed is the
+    # story's own, the rival's POKé BALL): in EVERY CH1 run at least this share of the goals' frames (the look-around debt,
+    # `brain/goals.py` LOOK_DEBT, makes at least one look round of `look_frames`, 3,000 or more, in a run of under 150,000
+    # frames: 0.02; MEASURED in step51vdev2 0.040-0.157 over 18 runs; step51vdev1, before the debt, 0.0023 in seed 4) ...
+    "FREE_RUN_MIN": 0.02,
+    # ... each personality's mean at least this (measured in step51vdev2, six personality means 0.069-0.131) ...
+    "FREE_MEAN_MIN": 0.05,
+    # ... and the beeline control UNDER the per-run bound in at least this share of its runs (the check separates the arms:
+    # measured 0.0 in 18 of 18, and in all 10 control runs of the first round's graded sweep, recounted)
+    "FREE_CONTROL_FAILS_MIN": 0.8,
+    # OFF THE BEELINE (`off_beeline`): CH1 stood on more tiles no beeline run stood on than the control run of its seed did
+    # (against the other control runs) in at least this share of the paired seeds, and pooled at least this many times
+    # (measured in step51vdev2 7 of 9 at 1.73x and 9 of 9 at 4.11x; the first round's code, recounted on 401-410, 6 of 10 at
+    # 1.30x: the broken detour; the beeline's own leave-one-out spread 1-67 tiles a run) ...
+    "OFF_SEEDS_MIN": 0.6,
+    "OFF_RATIO_MIN": 1.3,
+    # NO SPEEDRUN WITHOUT THE GRASS'S DICE (`time_to_dex` outside_nb): CH1 over ERRANDS_OFF pooled at least this, and CH1
+    # the slower in at least this share of the paired seeds (measured in step51vdev2 1.069 with 9 of 9 and 1.058 with 7 of
+    # 9, the per-seed ratio's spread 0.035 and 0.076; the first round's code on 401-410, recounted, 1.065 with 8 of 10;
+    # while the frames outside the needs WITH the battles measured 1.078 and 0.995: the old bound below 1.0 in one of five
+    # samples, so it is kept, pre-registered, and its failure would be the grass's dice, which this check removes)
+    "NOBATTLE_RATIO_MIN": 1.02,
+    "NOBATTLE_SEEDS_MIN": 0.6,
+    # THE ERRANDS DIFFER BY SEED: their decisions in order (`curiosity_sequence`), mean edit distance over the pairs of
+    # CH1 runs of one personality at least this (measured in step51vdev2 0.739 and 0.664; the control has none: 0)
+    "CUR_DIV_MIN": 0.5,
+    # A STORY GOAL PUT ASIDE COMES BACK (`aside_streaks`): a streak of asides for one story goal lasts at most this many
+    # frames: the aside ends at the first decision after `brain/goals.py` STORY_ASIDE_FRAMES (6,000), and the look round
+    # under way then runs out its LOOK_AROUND_FRAMES (2,400), with room for one battle met in it (one more 2,400). The
+    # live CH2 arm of step 5.1's first round measured 10 asides in a row, about 32,000 frames
+    "ASIDE_STREAK_MAX": 10_800,
+    # LOSE3 (CORRECTED after the graded sweep on 501-520, see `step51_verdicts`): the arm reaches the game's third loss in
+    # at least this share of its runs (measured: 3 of 3 in development, 5 of 6 on 501-520)
+    "LOSE3_REACH_MIN": 0.6,
+    # ---- THE STEP-5.1 VERIFIER'S SECOND ROUND (2026-10-14): CHAPTER 2 in the sweep (`CHAPTER2`, `chapter2_verdicts`).
+    # PRE-REGISTERED 2026-10-15 from the round's development sweeps (step51wdev1, seeds 31-39, before the fixes it found;
+    # step51wdev2, seeds 41-49, and step51wdev3, seeds 51-59, the AI code graded but for the nurse's give-way and the
+    # curiosity minimum, which only dev3 had) BEFORE the graded sweep on NEW held-out seeds 701-720. MIX_MIN and FREE_RUN_MIN
+    # above hold in EVERY chapter-2 run too (measured, the honest share: 0.42-0.55 and 0.40-0.65; dev1's two runs stuck on the
+    # unreachable door 0.82-0.85). WALLY's tutorial reached in at least this share of the chapter-2 runs (measured 9 of 9
+    # twice; dev1 7 of 9, the two runs the door bug stopped) ...
+    # (KEPT, 2026-10-15, after the first graded pass on 701-720 FAILED the floor in one run, seed 706, 28.7 %: its walk to a
+    # known gym door skipped the go's own stops. Fixed, and the Story's balance raised 40 % -> 45 %, the Trainer's 45 % ->
+    # 48 %; measured again on NEW development seeds, step51wdev4 (61-72, the old balance) and step51wdev5 (81-92, the code
+    # graded): the floor 0.34-0.55 and 0.42-0.65, WALLY 12 of 12 twice, CH2_OFF under the floor 12 of 12, the chapter-2
+    # time 1.494 with 12 of 12; NONE of these bounds changed. The final graded sweep plays NEW held-out seeds 801-820.)
+    "CH2_REACHED_MIN": 0.8,
+    # ... the game's whiteouts over the chapter-2 runs together at most this (measured 0 in 27) ...
+    "CH2_WHITEOUTS_MAX": 2,
+    # ... the beeline control's chapter 2 under MIX_MIN in at least this share of its runs (measured 8 of 9 and 7 of 9: in
+    # chapter 2 no training fills the floor, so it separates the arms there) ...
+    "CH2_OFF_UNDER_MIN": 0.6,
+    # ... and NO SPEEDRUN in chapter 2 without the grass's dice: the AI's own frames to WALLY outside the needs and the
+    # battles, CH2 over CH2_OFF pooled at least this, CH2 the slower in at least this share of the paired seeds (measured
+    # 1.491 with 9 of 9 and 1.369 with 8 of 9: the bound well under both)
+    "CH2_NOBATTLE_RATIO_MIN": 1.15,
+    "CH2_NOBATTLE_SEEDS_MIN": 0.7,
 }
 
 
@@ -132,15 +342,21 @@ def copy_with(names: list[str]) -> Path:
     return make_copy(edits)
 
 
-def run_one(plan: str, seed: int, frames: int, target: str, root: Path = REPO, base: str | None = None) -> dict:
-    """One run of `plan` (a phase-2 STOP plan replays the run of plan `base`: its faults, in the copy `root`)."""
+def run_one(plan: str, seed: int, frames: int, target: str, root: Path = REPO, base: str | None = None,
+            start: dict | None = None) -> dict:
+    """One run of `plan` (a phase-2 STOP plan replays the run of plan `base`: its faults, in the copy `root`). (The step-5.1
+    verifier's second round) every run saves its end state in its folder (`_end_state`, beside `world.jsonl`); a
+    chapter-2 run (`CHAPTER2`) starts from `start`, the chapter-1 row it goes on from: its end state and world memory, the
+    same seed, personality and starter."""
     personality, starter = plan_of(seed)
     folder = Path(tempfile.mkdtemp(prefix=f"ai_step5_{plan}{'_' + base if base else ''}_{seed}_"))
     fault = PLANS[base or plan]
     harness = root / "ai_player" / "gates" / "play_harness.py"
-    command = [sys.executable, str(harness), "--fresh", "--seed", str(seed), "--frames", str(frames), "--personality",
-               personality, "--starter", starter, "--target", target, "--game-clock", GAME_CLOCK, "--clock", WALL_CLOCK,
-               "--run-dir", str(folder)] + (["--fault", fault] if fault else [])
+    begin = (["--state", start["_end_state"], "--world-in", start["_world"]] if start is not None
+             else ["--fresh", "--starter", starter])
+    command = [sys.executable, str(harness), *begin, "--seed", str(seed), "--frames", str(frames), "--personality",
+               personality, "--target", target, "--game-clock", GAME_CLOCK, "--clock", WALL_CLOCK,
+               "--run-dir", str(folder), "--save-end", str(folder / "end_state.ss1")] + (["--fault", fault] if fault else [])
     began = time.monotonic()
     env = {**os.environ, "PYTHONUTF8": "1"}
     if root != REPO:
@@ -162,15 +378,63 @@ def run_one(plan: str, seed: int, frames: int, target: str, root: Path = REPO, b
                 actions.append(json.loads(raw))
             except json.JSONDecodeError:
                 pass
-    row = grade_run(plan, seed, personality, starter, data, actions, time.monotonic() - began)
+    earlier = (start or {}).get("_reads") or []
+    row = grade_run(plan, seed, personality, starter, data, actions, time.monotonic() - began, earlier=earlier,
+                    world_in=(start or {}).get("_world"))
+    row.update({"_end_state": data.get("saved_end"), "_world": data.get("world_file"),
+                "_reads": earlier + [r for r in actions if r.get("decision") == "read"]})
     return {**row, "base": base} if base else row
+
+
+def run_chain(plan: str, seed: int, frames: int, target: str, root: Path, chapter2: list[str]) -> list[dict]:
+    """(the step-5.1 verifier's second round) One run of `plan` and, for every chapter-2 plan of `chapter2` that goes on
+    from it (`CHAPTER2`), that plan's run from ITS end state, when it reached the POKéDEX (by the game's flag): played one
+    after the other in the same worker, so the chapter-2 runs start as soon as their chapter 1 ends."""
+    rows = [run_one(plan, seed, frames, target, root)]
+    first = rows[0]
+    for follow in chapter2:
+        if "error" not in first and first.get("reached") and first.get("_end_state") and first.get("_world"):
+            rows.append(run_one(follow, seed, frames, CH2_TARGET, REPO, start=first))
+        else:
+            rows.append({"plan": follow, "seed": seed, "error": f"its chapter 1 ({plan}) did not reach the POKéDEX or left "
+                                                                f"no end state: {first.get('reason') or first.get('error')}"
+                                                                [:400], "skipped": True})
+    return rows
+
+
+def train_steps_min(personality: str) -> int:
+    """(the step-5.1 verifier's round: the bound RE-DERIVED) The training steps a CH1 run of `personality` must have
+    roamed before the rival: its own `train_min_steps` times `CH1_TRAIN_STEPS_SHARE`, never under `CH1_TRAIN_STEPS_MIN`."""
+    import math
+
+    from ai_player.personality import ERRANDS
+
+    errands = ERRANDS.get(personality, ERRANDS["Story"])
+    return max(BOUNDS["CH1_TRAIN_STEPS_MIN"], math.ceil(errands.train_min_steps * BOUNDS["CH1_TRAIN_STEPS_SHARE"]))
+
+
+def train_steps_min_run(row: dict) -> int:
+    """The training-steps bound of ONE run: the lowest `train_steps_min` among the personalities it played AS during the
+    rival's milestone (`rival_actives`: the ACTIVE personality of its goals there, `personality.py` DRIFT included), its
+    base personality's when none is recorded. (CORRECTED 2026-10-14 after the graded sweep on seeds 501-520 FAILED it in 2
+    of 20 runs, 506 and 516: both had DRIFTED into the Story personality during that milestone, and a person trains to
+    the minimum of the personality it is acting as, 80 for the Story; the bound had been taken from the BASE personality.
+    That sweep's evidence is kept, `evidence/archive/dee96b6ddadb6b11/`; the corrected bound is graded on new seeds.)"""
+    # (the step-5.1 verifier's second round: "it is still the loosest reading, because which personality judged the run
+    # 'trained' is not logged") the personality whose rule JUDGED it trained, now logged (`brain/goals.py` fight_prep
+    # `judged_by`): its own minimum; the lowest of those it played as only for a log without it
+    if row.get("rival_judge"):
+        return train_steps_min(row["rival_judge"])
+    actives = [p for p in row.get("rival_actives") or [] if p]
+    return min(train_steps_min(p) for p in actives or [row.get("personality") or "Story"])
 
 
 def trained_by_game(row: dict) -> bool:
     """THE TRAINED CHECK by the game (the step-5 verifier's round 2): inside the windows its log says it roamed to train
-    before the rival's flag, the game's step counter rose at least `CH1_TRAIN_STEPS_MIN` and the game says at least
-    `CH1_WILD_WON_MIN` wild battles were WON."""
-    return (row.get("game_train_steps") or 0) >= BOUNDS["CH1_TRAIN_STEPS_MIN"] \
+    before the rival's flag, the game's step counter rose at least the run's `train_steps_min_run` (the step-5.1
+    verifier's round: re-derived, and corrected for DRIFT) and the game says at least `CH1_WILD_WON_MIN` wild battles were
+    WON."""
+    return (row.get("game_train_steps") or 0) >= train_steps_min_run(row) \
         and (row.get("game_train_won") or 0) >= BOUNDS["CH1_WILD_WON_MIN"]
 
 
@@ -179,8 +443,8 @@ def stop_verdicts(rows: dict[str, list[dict]]) -> list[tuple[bool, str]]:
     out: list[tuple[bool, str]] = []
     if "STOP" not in rows and "STOPDEAD" not in rows:
         return out
-    bases = {(r["plan"], r["seed"]): r for plan, plan_rows in rows.items() if plan in PLANS for r in plan_rows
-             if "error" not in r}
+    bases = {(r["plan"], r["seed"]): r for plan, plan_rows in rows.items() if plan in PLANS and plan not in NO_PHASE2
+             for r in plan_rows if "error" not in r}
     lost = sorted(key for key, r in bases.items() if r["losses_game"])
     for plan in ("STOP", "STOPDEAD"):
         if plan not in rows:
@@ -306,8 +570,324 @@ def roam_breaches(actions: list[dict]) -> tuple[list[tuple], int]:
     return breaches, low_ends
 
 
-def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, actions: list[dict], seconds: float) -> dict:
-    """One run's numbers, each by the game (the recorder) unless named as the AI's."""
+def await_stretches(actions: list[dict]) -> list[dict]:
+    """(build step 5.1, the step-5 verifier's FAILURE) The AI's own record of every stretch a screen WAITED FOR A PRESS with
+    none (`hands/waiting.py`: the eyes' look, never the busy reason it gave), `NOTE_FRAMES` or longer: [{frames, first,
+    what, doing}]."""
+    return [{"frames": (r.get("extra") or {}).get("frames", 0), "first": (r.get("extra") or {}).get("first"),
+             "what": (r.get("extra") or {}).get("what"), "doing": (r.get("extra") or {}).get("doing")}
+            for r in actions if r.get("decision") == "await"]
+
+
+#: (the step-5.1 verifier's second round) frames after a goal's END record within which a milestone record is that goal's
+#: (`goal_spans`): the loop's next pass reads the marks with no frame passing; 60 is room for a settle look
+END_SLACK = 60
+
+
+def goal_spans(actions: list[dict]) -> list[dict]:
+    """(build step 5.1) Every goal the AI chose, with the frames it lasted: [{kind, key, frames, frame, map, story_moved,
+    gap}] from the action log's goal records (the same in a live run and in the sweep). A goal lasts to its END record
+    (`goal_end`, the play loop's, the step-5.1 verifier's second round: a goal DROPPED because a scene began while it decided
+    was graded as the 11,019 frames of WALLY's scene that followed it in CH2T), else (a log without them) to the next goal or
+    the run's last record; `gap`: the frames after its end that were no goal's (a scene the loop played, the settling).
+    `story_moved` (the verifier's round): a milestone record came while it was the goal (in the log's order, after its
+    record and before its end): the STORY moved on in it (the rival's POKé BALL picked up plays the rival's scene)."""
+    goals = [r for r in actions if r.get("decision") == "goal"]
+    end = max((r.get("frame") or 0 for r in actions if isinstance(r.get("frame"), int)), default=0)
+    moved: list[bool] = []
+    ends: list[int | None] = []
+    for r in actions:
+        if r.get("decision") == "goal":
+            moved.append(False)
+            ends.append(None)
+        elif r.get("decision") == "goal_end" and ends and ends[-1] is None:
+            ends[-1] = r.get("frame") if isinstance(r.get("frame"), int) else None
+        elif r.get("decision") == "milestone" and moved:
+            # the play loop writes a milestone's record on its next pass, right after the goal it passed in ended (no frame
+            # passes between): a milestone within `END_SLACK` frames of the goal's end is the goal's; one a scene played
+            # long after the goal ended is not (CH2T's dropped chat and WALLY's tutorial)
+            frame = r.get("frame")
+            if ends[-1] is None or (isinstance(frame, int) and frame <= ends[-1] + END_SLACK):
+                moved[-1] = True
+    out = []
+    for this, nxt, story_moved, ended in zip(goals, goals[1:] + [None], moved, ends):
+        start = this.get("frame") or 0
+        following = (nxt.get("frame") or start) if nxt is not None else end
+        stop = min(max(ended, start), following) if ended is not None else following
+        extra = this.get("extra") or {}
+        out.append({"kind": this.get("action"), "key": extra.get("key") or "", "frames": max(0, stop - start),
+                    "frame": start, "map": extra.get("map"), "active": extra.get("active"), "story_moved": story_moved,
+                    "gap": max(0, following - stop)})
+    return out
+
+
+def intent_mix(actions: list[dict]) -> dict:
+    """(build step 5.1, the step-5 review's finding 1; design draft §7 "intent mix (time in explore, catch, train, story)")
+    The share of the goals' FRAMES (and of their count) spent on ERRANDS (`brain/goals.py` ERRAND_KINDS: heal, shop, train,
+    catch, an item, chat, looking around a new place, a detour) rather than the story's own steps. (The step-5.1 verifier's
+    second round) a goal's frames end at its END record (`goal_spans`): what the loop played after a goal ended (a scene)
+    is no goal's frames (`between_goals`, reported); and a curiosity goal the story moved on in is the story's, in the
+    errand share as in the curiosity the story did not need (`story_own`)."""
+    from ai_player.brain.goals import ERRAND_KINDS
+
+    spans = goal_spans(actions)
+    frames: dict[str, int] = {}
+    for span in spans:
+        frames[span["kind"]] = frames.get(span["kind"], 0) + span["frames"]
+    total = sum(frames.values())
+    curious = sum(v for k, v in frames.items() if k in CURIOSITY_KINDS)
+    # (the verifier's round: "the pick_up is the rival's POKé BALL, a step the story requires; it counts as curiosity in
+    # BOTH arms") CURIOSITY THE STORY DID NOT NEED: a curiosity goal in which the story moved on is the story's own
+    story_own = [(s["frame"], s["kind"], s["frames"]) for s in spans if s["kind"] in CURIOSITY_KINDS and s["story_moved"]]
+    free = curious - sum(f for _, _, f in story_own)
+    # (the step-5.1 verifier's second round: "MIX_MIN counts story-owned curiosity goals as errands") the ERRAND share
+    # counts them as the story's too: a goal the story moved on in was the story's time, whatever its kind
+    errand = sum(v for k, v in frames.items() if k in ERRAND_KINDS) - sum(f for _, _, f in story_own)
+    count = sum(1 for s in spans if s["kind"] in ERRAND_KINDS)
+    between = sum(s["gap"] for s in spans)
+    return {"frames": dict(sorted(frames.items())), "errand_share": round(errand / total, 4) if total else 0.0,
+            # (reported, not bounded) the same with the scenes the loop played between goals counted as the story's time
+            "errand_share_with_scenes": round(errand / (total + between), 4) if total + between else 0.0,
+            "errand_frames": errand, "curiosity_share": round(curious / total, 4) if total else 0.0,
+            "free_share": round(free / total, 4) if total else 0.0, "free_frames": free, "story_own": story_own,
+            "errand_goals": count, "goals": len(spans), "between_goals": between,
+            "kinds": sorted({s["kind"] for s in spans if s["kind"] in ERRAND_KINDS})}
+
+
+#: (build step 5.1) The errands a person does out of CURIOSITY, not need (no heal, shop or training: those the beeline
+#: control keeps too): looking round a new place, a detour off the way, a chat, a catching roam, an item ball
+CURIOSITY_KINDS = ("explore", "detour", "chat", "catch", "pick_up")
+
+
+#: (build step 5.1) the NEEDS: errands the beeline control keeps too, whose length is the battles' dice
+NEED_KINDS = ("train", "heal", "find_center", "shop")
+
+
+def time_to_dex(actions: list[dict], milestone: str = "ch1_pokedex", since_start: bool = False) -> dict | None:
+    """(the step-5.1 verifier's round: "the NO SPEEDRUN margin is within noise") The run's way to `milestone` in the AI's
+    own frames (its log's MILESTONE line), split: the frames of its NEEDS goals (`NEED_KINDS`), and the frames a BATTLE was
+    on screen outside them (the action digests' screen: the number and length of the battles met on a walk are the grass's
+    dice, which swung the frames outside the needs by up to 37,000 in the development sweep step51vdev2). `outside_nb`:
+    the frames outside the needs AND outside those battles, the AI's own walking, talking and looking. None: never
+    reached."""
+    end = next((r.get("frame") for r in actions if r.get("decision") == "tell"
+                and f"MILESTONE {milestone} done at f" in str(r.get("reason"))), None)
+    if end is None:
+        return None
+    spans = [s for s in goal_spans(actions) if s["frame"] < end]
+    need_iv = [(s["frame"], min(s["frame"] + s["frames"], end)) for s in spans if s["kind"] in NEED_KINDS]
+    need = sum(b - a for a, b in need_iv)
+    timed = sorted((r["frame"], str(r.get("digest") or "")) for r in actions if isinstance(r.get("frame"), int))
+    battle = 0
+    for (frame, digest), (after, _) in zip(timed, timed[1:]):
+        if frame >= end:
+            break
+        stop = min(after, end)
+        if digest.split(" ")[1:2] == ["battle"] and stop > frame:
+            inside = sum(max(0, min(stop, b) - max(frame, a)) for a, b in need_iv)
+            battle += (stop - frame) - inside
+    # (the step-5.1 verifier's second round) a chapter-2 run starts where its chapter 1 stopped: its way is counted from its
+    # first record (`since_start`); chapter 1's from frame 0, as registered
+    begin = (timed[0][0] if timed else 0) if since_start else 0
+    return {"end": end, "begin": begin, "needs": need, "battles": battle, "outside": end - begin - need,
+            "outside_nb": end - begin - need - battle}
+
+
+def needs(row: dict) -> int:
+    """The frames a run's goals spent on NEEDS (`NEED_KINDS`), from its intent mix."""
+    return sum(frames for kind, frames in (row.get("mix") or {}).get("frames", {}).items() if kind in NEED_KINDS)
+
+
+def goal_sequence(actions: list[dict], first: int = 60) -> list[str]:
+    """The first `first` goals as `kind@map they were chosen on`: what the run DID, in order (the divergence metric)."""
+    seq, here = [], "?"
+    for r in actions:
+        if r.get("decision") == "world" and str(r.get("reason", "")).startswith("MAP "):
+            here = str(r.get("reason")).split(" -> ", 1)[1].split(" at ", 1)[0] if " -> " in str(r.get("reason")) else here
+        if r.get("decision") == "goal":
+            seq.append(f"{r.get('action')}@{here}")
+            if len(seq) >= first:
+                break
+    return seq
+
+
+def aside_streaks(actions: list[dict]) -> list[tuple[str, int, int, int]]:
+    """(the step-5.1 verifier's round: "in CH2, 10 look_around goals in a row (about 32,000 frames) passed while the walk to
+    PETALBURG waited out its cooldown") Every STREAK of goals put aside for one story goal (the goal manager's `aside:` key,
+    `brain/goals.py` ASIDE): (the story goal's key, the first aside's frame, the frames until the next goal that is not that
+    aside, how many asides in a row)."""
+    from ai_player.brain.goals import ASIDE
+
+    spans = goal_spans(actions)
+    out, i = [], 0
+    while i < len(spans):
+        key = spans[i]["key"]
+        if not key.startswith(ASIDE):
+            i += 1
+            continue
+        j = i
+        while j < len(spans) and spans[j]["key"] == key:
+            j += 1
+        last = spans[j - 1]
+        out.append((key[len(ASIDE):], spans[i]["frame"], last["frame"] + last["frames"] - spans[i]["frame"], j - i))
+        i = j
+    return out
+
+
+def curiosity_sequence(actions: list[dict]) -> list[str]:
+    """(the step-5.1 verifier's round) The ERRANDS' OWN decisions in order: every curiosity goal the story did not need
+    (`intent_mix`'s free ones) as `kind@map it was chosen on`. The beeline control has none."""
+    spans = iter(goal_spans(actions))
+    seq, here = [], "?"
+    for r in actions:
+        if r.get("decision") == "world" and str(r.get("reason", "")).startswith("MAP "):
+            here = str(r.get("reason")).split(" -> ", 1)[1].split(" at ", 1)[0] if " -> " in str(r.get("reason")) else here
+        if r.get("decision") == "goal":
+            span = next(spans, None)
+            if span is not None and span["kind"] in CURIOSITY_KINDS and not span["story_moved"]:
+                seq.append(f"{r.get('action')}@{here}")
+    return seq
+
+
+def sequence_divergence(rows: list[dict], key: str) -> dict:
+    """The mean, over every pair of runs of one personality, of the edit distance of their `key` sequences over the
+    longer one's length (two empty sequences: 0, the same); and the pairs that are the same."""
+    pairs = []
+    for i, a in enumerate(rows):
+        for b in rows[i + 1:]:
+            if a["personality"] != b["personality"]:
+                continue
+            longest = max(len(a[key]), len(b[key]))
+            pairs.append({"seeds": [a["seed"], b["seed"]],
+                          "distance": round(edit_distance(a[key], b[key]) / longest, 3) if longest else 0.0})
+    return {"pairs": pairs, "mean": round(sum(p["distance"] for p in pairs) / len(pairs), 3) if pairs else None,
+            "same": [p["seeds"] for p in pairs if p["distance"] == 0]}
+
+
+def edit_distance(a: list[str], b: list[str]) -> int:
+    row = list(range(len(b) + 1))
+    for i, x in enumerate(a, 1):
+        prev, row[0] = row[0], i
+        for j, y in enumerate(b, 1):
+            prev, row[j] = row[j], min(row[j] + 1, row[j - 1] + 1, prev + (x != y))
+    return row[-1]
+
+
+def visited_tiles(world_file: str | None) -> set[str]:
+    """Every tile the AI stood on (its world memory's last snapshot: `world.jsonl`), as `MAP x,y`: the run's PATH."""
+    if not world_file or not Path(world_file).is_file():
+        return set()
+    lines = [line for line in Path(world_file).read_text(encoding="utf-8").splitlines() if line.strip()]
+    if not lines:
+        return set()
+    data = json.loads(lines[-1])
+    out = set()
+    for memory in (data.get("maps") or {}).values():
+        const = memory.get("const") or memory.get("name") or "?"
+        out.update(f"{const} {xy}" for xy in (memory.get("visits") or {}))
+    return out
+
+
+def divergence(rows: list[dict]) -> dict:
+    """(build step 5.1, design draft §7: "run-to-run divergence for different seeds"; §5 pillar 5 "two runs with different
+    seeds must differ") For every PAIR of runs of one PERSONALITY: the edit distance of their goal sequences over the
+    longer one's length (0 the same decisions in the same order, 1 nothing alike) and the Jaccard distance of the tiles
+    they stood on (0 the same path, 1 no tile shared)."""
+    pairs = []
+    ok = [r for r in rows if "error" not in r and r.get("_sequence") is not None]
+    for i, a in enumerate(ok):
+        for b in ok[i + 1:]:
+            if a["personality"] != b["personality"]:
+                continue
+            longest = max(len(a["_sequence"]), len(b["_sequence"]), 1)
+            goals = edit_distance(a["_sequence"], b["_sequence"]) / longest
+            union = a["_tiles"] | b["_tiles"]
+            tiles = 1 - len(a["_tiles"] & b["_tiles"]) / len(union) if union else 0.0
+            pairs.append({"seeds": [a["seed"], b["seed"]], "personality": a["personality"], "goals": round(goals, 3),
+                          "tiles": round(tiles, 3)})
+
+    def mean(key: str) -> float | None:
+        return round(sum(p[key] for p in pairs) / len(pairs), 3) if pairs else None
+
+    return {"pairs": pairs, "goals_mean": mean("goals"), "tiles_mean": mean("tiles"),
+            "identical": [p["seeds"] for p in pairs if p["goals"] == 0 or p["tiles"] == 0]}
+
+
+def off_beeline(rows: list[dict], control: list[dict]) -> dict:
+    """(build step 5.1, the verifier's round: "the divergence comes mostly from battle dice and personality, not from the new
+    errands": goals and paths diverge across seeds under the beeline control too) WHERE NO BEELINE WENT. For each run of
+    `rows`, the tiles it stood on that NO run of the beeline `control` stood on (the control's union over the sweep's seeds:
+    the beeline's corridor, dice and all); for a control run itself, the tiles no OTHER control run stood on (leave one out:
+    the beeline's own seed-to-seed spread, the null the errands are measured against). And how much those tiles DIFFER
+    between two runs of one personality (the mean pairwise Jaccard distance of the off-beeline sets): the divergence the
+    ERRANDS add, where a fixed side trip would score near 0."""
+    union_all: set[str] = set().union(*(r["_tiles"] for r in control)) if control else set()
+    off = {r["seed"]: r["_tiles"] - union_all for r in rows}
+    alone = {r["seed"]: len(r["_tiles"] - set().union(*(o["_tiles"] for o in control if o is not r))) for r in control}
+    pairs = []
+    for i, a in enumerate(rows):
+        for b in rows[i + 1:]:
+            if a["personality"] != b["personality"]:
+                continue
+            union = off[a["seed"]] | off[b["seed"]]
+            pairs.append({"seeds": [a["seed"], b["seed"]],
+                          "distance": round(1 - len(off[a["seed"]] & off[b["seed"]]) / len(union), 3) if union else 0.0})
+    return {"runs": {seed: len(tiles) for seed, tiles in off.items()}, "control": alone, "corridor": len(union_all),
+            "pairs": pairs, "pairs_mean": round(sum(p["distance"] for p in pairs) / len(pairs), 3) if pairs else None}
+
+
+def told_before(actions: list[dict]) -> list[tuple]:
+    """(build step 5.1, the step-5 review's finding 6: "no live check confirms that every go goal with a map came after the
+    page that named it") Every `go` goal WITH a map whose reason quotes a page ("the game said: '...'") must come AFTER a
+    page the AI READ that holds the quoted words (its `read` records): the goals that do not, [(frame, quoted)]."""
+    pages: list[tuple[int, str]] = []
+    bad = []
+    for r in actions:
+        if r.get("decision") == "read":
+            pages.append((r.get("frame") or 0, " ".join(str(r.get("reason") or "").split()).lower()))
+            continue
+        if r.get("decision") != "goal" or r.get("action") != "go" or not (r.get("extra") or {}).get("map"):
+            continue
+        found = re.search(r"the game said: '(.*?)'\)", str(r.get("reason") or "")) or \
+            re.search(r'the game said: "(.*?)"\)', str(r.get("reason") or ""))
+        if found is None:
+            continue
+        quoted = " ".join(found.group(1).strip(".").split()).lower().strip()
+        quoted = quoted[3:] if quoted.startswith("...") else quoted
+        if quoted and not any(quoted[:40] in page for frame, page in pages if frame <= (r.get("frame") or 0)):
+            bad.append((r.get("frame"), quoted[:60]))
+    return bad
+
+
+def new_place_draws(actions: list[dict], known: set[str]) -> tuple[list, list]:
+    """(the step-5.1 verifier's round, `live_step5.check_new_places`; the second round: in the sweep's chapter 2 too) Every
+    look-around draw, made or not, as (frame, map), and those that name a map the world memory the run STARTED from had
+    stood on (`known`): a carried-on run's home town is no new place."""
+    named = []
+    for r in actions:
+        text = str(r.get("reason") or "")
+        found = re.search(r"a new place, ([A-Z0-9_]+)", text)
+        if found and ((r.get("decision") == "goal" and r.get("action") == "explore")
+                      or (r.get("decision") == "tell" and "it goes on without looking round" in text)):
+            named.append((r.get("frame"), found.group(1)))
+    return named, [(frame, const) for frame, const in named if const in known]
+
+
+def known_maps(world_file: str | None) -> set[str]:
+    """The maps (consts) a world memory file's LAST snapshot had stood on (empty for none)."""
+    if not world_file or not Path(world_file).is_file():
+        return set()
+    lines = [line for line in Path(world_file).read_text(encoding="utf-8").splitlines() if line.strip()]
+    if not lines:
+        return set()
+    return {memory.get("const") for memory in (json.loads(lines[-1]).get("maps") or {}).values() if memory.get("visits")}
+
+
+def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, actions: list[dict], seconds: float,
+              earlier: list[dict] | None = None, world_in: str | None = None) -> dict:
+    """One run's numbers, each by the game (the recorder) unless named as the AI's. (The step-5.1 verifier's second round)
+    `earlier`: the pages READ in the run this one goes on from (its world memory carries them); `world_in`: the world
+    memory it started from (a chapter-2 run's)."""
     changes = (data.get("story") or {}).get("changes") or []
     end = (data.get("story_truth") or {}).get("marks") or {}
     stats = (data.get("story_truth") or {}).get("stats") or {}
@@ -352,7 +932,47 @@ def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, 
     windows = training_windows(actions)
     by_game = training_by_game(windows, data.get("story") or {}, offset, rival_frame)
     told = sum(1 for r in actions if r.get("decision") == "tell" and str(r.get("reason", "")).startswith("a battle was LOST ("))
+    # (build step 5.1) THE WAITS ON A PRESS: the AI's own record (its eyes, whatever reason it gave) and the GAME's (the
+    # harness's second path); the INTENT MIX; the PATH and the goal SEQUENCE (seed divergence); the patience's resets and
+    # the longest stretch between two of them (or milestones); every go goal after the page that told it
+    awaits = await_stretches(actions)
+    waits_game = data.get("waits_game") or {}
+    report = data.get("report") or {}
+    marks_at = sorted([m.get("pad_frames") or 0 for m in report.get("milestones") or []]
+                      + [p.get("pad_frames") or 0 for p in report.get("progress") or []])
+    gaps = [b - a for a, b in zip([0] + marks_at, marks_at + [data.get("frames") or 0])]
+    spans_all = goal_spans(actions)
+    trains = [s for s in spans_all if s["kind"] == "train"]
+    train_span = (trains[-1]["frame"] + trains[-1]["frames"] - trains[0]["frame"]) if trains else 0
+    # (the step-5.1 verifier's second round) whose rule judged the run TRAINED for the rival (the goal manager's
+    # `fight_prep` `judged_by`, in its end record): the run's own training bound; and CHAPTER 2's numbers by the game: WALLY's
+    # tutorial (VAR_PETALBURG_GYM_STATE >= 2 and HIDE_PETALBURG_CITY_WALLYS_MOM at the end) and when its var rose
+    end_note = next(((r.get("extra") or {}) for r in reversed(actions)
+                     if r.get("decision") == "end" and "fight_prep" in (r.get("extra") or {})), {})
+    judge = ((end_note.get("fight_prep") or {}).get("ch1_rival_route103") or {}).get("judged_by")
+    wally = first_change(changes, "VAR_PETALBURG_GYM_STATE", 2)
+    named, old_places = new_place_draws(actions, known_maps(world_in))
     return {
+        "rival_judge": judge, "wally": bool(end.get("HIDE_PETALBURG_CITY_WALLYS_MOM"))
+        and (end.get("VAR_PETALBURG_GYM_STATE") or 0) >= 2, "wally_frame": wally["f"] if wally else None,
+        "time_wally": time_to_dex(actions, CH2_TARGET, since_start=True), "place_draws": len(named), "old_places": old_places,
+        "train_span": train_span, "last_goal": spans_all[-1]["kind"] if spans_all else None,
+        "trains": len(trains),
+        "await_ai_max": max((a["frames"] for a in awaits), default=0),
+        "await_ai_long": [(a["first"], a["frames"], str(a["what"])[:40], str(a["doing"])[:60]) for a in awaits
+                          if a["frames"] >= BOUNDS["AWAIT_MAX"]],
+        "await_game_max": ((waits_game.get("longest") or [0, 0, 0])[2]) if waits_game else None,
+        "await_game_long": [k for k in waits_game.get("kept") or [] if k[2] >= BOUNDS["AWAIT_MAX"]],
+        "await_game_samples": waits_game.get("samples"),
+        "mix": intent_mix(actions),
+        "progress_resets": len(report.get("progress") or []),
+        "longest_without_progress": max(gaps, default=None),
+        "told_before_bad": told_before([{**r, "frame": -1} for r in earlier or []] + actions),
+        "_sequence": goal_sequence(actions), "_tiles": visited_tiles(data.get("world_file")),
+        "curious_sequence": curiosity_sequence(actions), "asides": aside_streaks(actions), "time": time_to_dex(actions),
+        "rival_actives": sorted({(r.get("extra") or {}).get("active") for r in actions if r.get("decision") == "goal"
+                                 and (r.get("extra") or {}).get("milestone") == "ch1_rival_route103"} - {None}),
+        "dropped_goals": sum(1 for g in report.get("goals") or [] if g.get("ok") is None and "dropped" in str(g.get("outcome"))),
         "plan": plan, "seed": seed, "personality": personality, "starter": starter, "reason": data.get("reason"),
         "frames": data.get("frames"), "seconds": round(seconds, 1),
         "reached": bool(end.get("RECEIVED_POKEDEX_FROM_BIRCH")), "dex_frame": dex["f"] if dex else None,
@@ -360,7 +980,7 @@ def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, 
         "train_windows": by_game["windows"], "game_train_steps": by_game["steps"], "game_train_won": by_game["won"],
         "game_steps_refused": by_game["refused"], "train_steps_before_rival": train_steps,
         "losses_game": len(lost), "losses_ai": ((data.get("report") or {}).get("losses")), "losses_told": told,
-        "first_loss_f": lost[0]["f"] if lost else None,
+        "first_loss_f": lost[0]["f"] if lost else None, "last_loss_f": lost[-1]["f"] if lost else None,
         "trainer_battles_to_rival": trainer_before, "wild_before_rival": wild_before,
         "wild_won_before_rival": len(won_before) if rival else None,
         "spins": spins, "roam_steps": steps_all,
@@ -402,15 +1022,17 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[tupl
                     f"(bound >= {BOUNDS['CH1_FIRST_TRY_MIN']:.0%})"))
         beaten = [r for r in rows["CH1"] if r.get("rival_beaten")]
         low = [(r["seed"], r["game_train_won"], r["game_train_steps"], r["train_steps_before_rival"]) for r in beaten
-               if not trained_by_game(r) or r["train_steps_before_rival"] < BOUNDS["CH1_TRAIN_STEPS_MIN"]]
+               if not trained_by_game(r) or r["train_steps_before_rival"] < train_steps_min_run(r)]
         out.append((bool(beaten) and not low,
                     f"CH1: every seed that beat the rival TRAINED first, BY THE GAME inside the windows its log says it "
                     f"roamed to train before the rival's flag (the step-5 verifier's round 2): the game's step counter rose "
-                    f">= {BOUNDS['CH1_TRAIN_STEPS_MIN']} there {[r['game_train_steps'] for r in beaten]} and the game says "
+                    f"at least the re-derived minimum of the personality it played as (the step-5.1 verifier's round: "
+                    f"{ {p: train_steps_min(p) for p in PERSONALITIES} }; a run that DRIFTED during the rival's milestone: "
+                    f"the lowest of those it played as) (seed, base, played as, bound, the game's steps) "
+                    f"{[(r['seed'], r['personality'][0], ''.join(p[0] for p in r.get('rival_actives') or []), train_steps_min_run(r), r['game_train_steps']) for r in beaten]} and the game says "
                     f">= {BOUNDS['CH1_WILD_WON_MIN']} wild battles were WON there {[r['game_train_won'] for r in beaten]} "
-                    f"(windows {[r['train_windows'] for r in beaten]}); and its roam reports say >= "
-                    f"{BOUNDS['CH1_TRAIN_STEPS_MIN']} training steps {[r['train_steps_before_rival'] for r in beaten]}; "
-                    f"short: {low or 'none'}"))
+                    f"(windows {[r['train_windows'] for r in beaten]}); and its roam reports say as many training steps "
+                    f"{[r['train_steps_before_rival'] for r in beaten]}; short: {low or 'none'}"))
         out.append((True, f"CH1 (reported): wild battles WON anywhere between the starter's mark and the rival's flag (the "
                           f"game's outcomes; NOT a training check: walks win battles too) "
                           f"{[r['wild_won_before_rival'] for r in beaten]}, met (the game's counter) "
@@ -522,6 +1144,290 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[tupl
                                   f"reached, frames {sum(h for _, h in both) if both else '-'} vs CH1 "
                                   f"{sum(c for c, _ in both) if both else '-'}; its ends {nh['reasons']}"))
     out += stop_verdicts(rows)
+    out += step51_verdicts(rows)
+    out += chapter2_verdicts(rows)
+    return out
+
+
+def chapter2_verdicts(rows: dict[str, list[dict]]) -> list[tuple[bool, str]]:
+    """(the step-5.1 verifier's second round) CHAPTER 2 in the sweep (`CHAPTER2`), each check pre-registered in `BOUNDS`:
+    WALLY's tutorial by the game; the intent-mix floor and the curiosity the story did not need in EVERY run (the live CH2T
+    arm FAILED the floor); a new place is new to the world memory it started from; the beeline control's chapter 2 under
+    the floor (the floor has teeth in chapter 2) and faster to WALLY outside the needs. The stall property, the asides, the
+    pages and the losses of these runs are graded with every real plan's above."""
+    out: list[tuple[bool, str]] = []
+    played = [r for r in rows.get("CH2", []) if "error" not in r]
+    skipped = [(r["seed"], r["error"][:80]) for r in rows.get("CH2", []) if "error" in r]
+    off = [r for r in rows.get("CH2_OFF", []) if "error" not in r]
+    if not played:
+        return out
+    reached = [r for r in played if r["wally"]]
+    out.append((len(reached) >= BOUNDS["CH2_REACHED_MIN"] * len(played),
+                f"CH2: WALLY's tutorial reached (the game: HIDE_PETALBURG_CITY_WALLYS_MOM and VAR_PETALBURG_GYM_STATE >= 2) in "
+                f"{len(reached)} of {len(played)} chapter-2 runs (bound >= {BOUNDS['CH2_REACHED_MIN']:.0%}), each from its "
+                f"own chapter 1's end; the frames {[(r['seed'], r['frames']) for r in played]}; not played (chapter 1 did "
+                f"not reach the POKéDEX): {skipped or 'none'}; the ends of those that did not reach it "
+                f"{[(r['seed'], r['reason'][:70]) for r in played if not r['wally']] or 'none'}"))
+    shares = {r["seed"]: (r["personality"][0], r["mix"]["errand_share"]) for r in played}
+    low = {s: v for s, v in shares.items() if v[1] < BOUNDS["MIX_MIN"]}
+    out.append((not low, f"CH2: THE INTENT MIX, a FLOOR in EVERY chapter-2 run (the live CH2T arm FAILED it; honest: a "
+                         f"goal ends at its end record, a curiosity goal the story moved on in is the story's): the share "
+                         f"of the goals' frames on errands {dict(sorted(shares.items()))} (bound >= {BOUNDS['MIX_MIN']}); "
+                         f"under: {low or 'none'}; reported, with the scenes between goals counted as the story's time: "
+                         f"{ {r['seed']: r['mix'].get('errand_share_with_scenes') for r in played} }"))
+    free = {r["seed"]: (r["personality"][0], r["mix"]["free_share"]) for r in played}
+    short = {s: v for s, v in free.items() if v[1] < BOUNDS["FREE_RUN_MIN"]}
+    out.append((not short, f"CH2: CURIOSITY THE STORY DID NOT NEED in EVERY chapter-2 run {dict(sorted(free.items()))} "
+                           f"(bound >= {BOUNDS['FREE_RUN_MIN']}); under: {short or 'none'}"))
+    old = [(r["seed"], r["old_places"][:2]) for r in played if r["old_places"]]
+    out.append((not old, f"CH2: A NEW PLACE IS NEW (every look-around draw names a map the world memory it started from had "
+                         f"not stood on): draws {[(r['seed'], r['place_draws']) for r in played]}; a known one called new: "
+                         f"{old or 'none'}"))
+    whiteouts = sum(r["losses_game"] for r in played)
+    out.append((whiteouts <= BOUNDS["CH2_WHITEOUTS_MAX"],
+                f"CH2: the game's whiteouts over the chapter-2 runs together {whiteouts} (bound <= "
+                f"{BOUNDS['CH2_WHITEOUTS_MAX']}), per seed {[(r['seed'], r['losses_game']) for r in played if r['losses_game']]}"))
+    if off:
+        under = [r["seed"] for r in off if r["mix"]["errand_share"] < BOUNDS["MIX_MIN"]]
+        out.append((len(under) >= BOUNDS["CH2_OFF_UNDER_MIN"] * len(off),
+                    f"CH2_OFF (the beeline control's chapter 2): under the intent-mix floor in {len(under)} of {len(off)} "
+                    f"(bound >= {BOUNDS['CH2_OFF_UNDER_MIN']:.0%}: the floor separates the arms in chapter 2, where no "
+                    f"training fills it): {dict(sorted((r['seed'], r['mix']['errand_share']) for r in off))}; its curiosity "
+                    f"the story did not need {sorted({r['mix']['free_share'] for r in off})}"))
+        by_off = {r["seed"]: r for r in off}
+        pairs = [(r, by_off[r["seed"]]) for r in played if r["seed"] in by_off and r.get("time_wally")
+                 and by_off[r["seed"]].get("time_wally")]
+        outside = [(a["seed"], a["time_wally"]["outside_nb"], b["time_wally"]["outside_nb"]) for a, b in pairs]
+        pooled = sum(x for _, x, _ in outside) / max(1, sum(y for _, _, y in outside)) if outside else 0.0
+        slower = [s for s, x, y in outside if x > y]
+        out.append((bool(outside) and pooled >= BOUNDS["CH2_NOBATTLE_RATIO_MIN"]
+                    and len(slower) >= BOUNDS["CH2_NOBATTLE_SEEDS_MIN"] * len(outside),
+                    f"CH2: NO SPEEDRUN, WITHOUT THE GRASS'S DICE: the AI's own frames to WALLY outside the needs and the "
+                    f"battles met on the way, CH2 over CH2_OFF pooled {round(pooled, 3)} (bound >= "
+                    f"{BOUNDS['CH2_NOBATTLE_RATIO_MIN']}), CH2 the slower in {len(slower)} of {len(outside)} paired seeds "
+                    f"(bound >= {BOUNDS['CH2_NOBATTLE_SEEDS_MIN']:.0%}): (seed, CH2, CH2_OFF) {outside}"))
+    return out
+
+
+def step51_verdicts(rows: dict[str, list[dict]]) -> list[tuple[bool, str]]:
+    """(build step 5.1) The new checks, each pre-registered in `BOUNDS` (module docstring)."""
+    out: list[tuple[bool, str]] = []
+    bound = BOUNDS["AWAIT_MAX"]
+
+    def good(plan: str) -> list[dict]:
+        return [r for r in rows.get(plan, []) if "error" not in r]
+
+    # THE STALL PROPERTY (the step-5 verifier's FAILURE): in every run of the real code, no screen waited for a press
+    # `AWAIT_MAX` frames or more with none, by the AI's own record AND by the game's (the second path); whatever the reason
+    real = [r for plan in REAL_PLANS for r in good(plan)]
+    if real:
+        long_ = [(r["plan"], r["seed"], r["await_ai_max"], r["await_game_max"], r["await_ai_long"][:1]) for r in real
+                 if r["await_ai_max"] >= bound or (r["await_game_max"] or 0) >= bound]
+        out.append((not long_, f"THE STALL PROPERTY (every run of {list(REAL_PLANS)}, {len(real)} runs): the longest a screen "
+                               f"waited for a press with none, by the AI's record {max(r['await_ai_max'] for r in real)} "
+                               f"frames, by the GAME's (second path) {max((r['await_game_max'] or 0) for r in real)} "
+                               f"(bound under {bound}, whatever reason was given); over it: {long_ or 'none'}"))
+        missing = [(r["plan"], r["seed"]) for r in real if not r.get("await_game_samples")]
+        out.append((not missing, f"THE STALL PROPERTY's second path read the game in every run (samples "
+                                 f"{sorted({r.get('await_game_samples') or 0 for r in real})[:3]}...): unread {missing or 'none'}"))
+    for plan in ("STALL1", "STALL2", "STALL3"):
+        runs = good(plan)
+        if not runs:
+            continue
+        hit = [(r["seed"], r["await_ai_max"], r["await_game_max"]) for r in runs
+               if r["await_ai_max"] >= bound and (r["await_game_max"] or 0) >= bound]
+        out.append((len(hit) >= BOUNDS["STALL_ARM_HITS_MIN"],
+                    f"{plan} (the fix REVERTED in a copy, {MUTANT_PLANS[plan]}): the stall property FAILS (both paths at or "
+                    f"over {bound}) in {len(hit)} of {len(runs)} runs (bound >= {BOUNDS['STALL_ARM_HITS_MIN']}): {hit}; "
+                    f"what waited: {[r['await_ai_long'][:1] for r in runs if r['await_ai_long']][:3]}"))
+    # the two paths AGREE on the verdict run by run, in every plan
+    every = [r for plan_rows in rows.values() for r in plan_rows if "error" not in r and r.get("await_game_max") is not None]
+    split = [(r["plan"], r["seed"], r["await_ai_max"], r["await_game_max"]) for r in every
+             if (r["await_ai_max"] >= bound) != (r["await_game_max"] >= bound)]
+    if every:
+        out.append((not split, f"THE TWO PATHS AGREE on the stall verdict (AI record vs the game's) in {len(every) - len(split)} "
+                               f"of {len(every)} runs; apart: {split or 'none'}"))
+    # (the verifier's round) a story goal put aside comes back after a breather: no streak of asides longer than the bound
+    if real:
+        streaks = [(r["plan"], r["seed"], s) for r in real for s in r.get("asides") or []]
+        long_asides = [s for s in streaks if s[2][2] > BOUNDS["ASIDE_STREAK_MAX"]]
+        out.append((not long_asides, f"A STORY GOAL PUT ASIDE COMES BACK (every run of {list(REAL_PLANS)}): streaks of goals "
+                                     f"put aside for a story goal (plan, seed, (goal, first frame, frames, asides)) "
+                                     f"{streaks[:12] or 'none (not exercised in this sweep)'}; longest "
+                                     f"{max((s[2][2] for s in streaks), default=0)} frames (bound <= "
+                                     f"{BOUNDS['ASIDE_STREAK_MAX']}); over it: {long_asides or 'none'}"))
+    # every go goal with a map came after the page that told it (the review's finding 6)
+    if real:
+        bad = [(r["plan"], r["seed"], r["told_before_bad"][:2]) for r in real if r["told_before_bad"]]
+        out.append((not bad, f"EVERY GO GOAL WITH A MAP CAME AFTER THE PAGE THAT TOLD IT (the AI's read records), {len(real)} "
+                             f"runs: off {bad or 'none'}"))
+    ch1, off = good("CH1"), good("ERRANDS_OFF")
+    if ch1:
+        # THE INTENT MIX (the review's finding 1): every personality spends at least its share of the goals' frames on errands
+        by, curious = {}, {}
+        for r in ch1:
+            by.setdefault(r["personality"], []).append(r["mix"]["errand_share"])
+            curious.setdefault(r["personality"], []).append(r["mix"]["curiosity_share"])
+        low = {p: [s for s in shares if s < BOUNDS["MIX_MIN"]] for p, shares in by.items()}
+        low = {p: s for p, s in low.items() if s}
+        thin = {p: round(sum(s) / len(s), 4) for p, s in curious.items()
+                if sum(s) / len(s) < BOUNDS["CURIOSITY_MIN"]}
+        kinds = sorted({k for r in ch1 for k in r["mix"]["kinds"]})
+        out.append((not low and not thin and {"explore", "detour"} <= set(kinds),
+                    f"THE INTENT MIX (CH1): the share of the goals' frames spent on errands, by personality "
+                    f"{ {p: sorted(s) for p, s in by.items()} } (bound >= {BOUNDS['MIX_MIN']} in EVERY run: a FLOOR on needs "
+                    f"and curiosity together, which the beeline control meets too, the verifier's round: the curiosity "
+                    f"checks below are what separate the arms); on errands of CURIOSITY ({list(CURIOSITY_KINDS)}) {curious} "
+                    f"(bound: each personality's mean >= {BOUNDS['CURIOSITY_MIN']}); the errand kinds played {kinds} (the "
+                    f"look-around and the detour among them); under: {low or 'none'}, {thin or 'none'}"))
+        # (the verifier's round: "per-run curiosity can be almost zero, because the bound is a per-personality mean", and
+        # "the pick_up is the rival's POKé BALL, a step the story requires") CURIOSITY THE STORY DID NOT NEED, in EVERY run
+        free = {r["seed"]: (r["personality"], r["mix"]["free_share"], r["mix"]["free_frames"]) for r in ch1}
+        short = {seed: v for seed, v in free.items() if v[1] < BOUNDS["FREE_RUN_MIN"]}
+        by_free: dict[str, list[float]] = {}
+        for personality, share, _ in free.values():
+            by_free.setdefault(personality, []).append(share)
+        means = {p: round(sum(s) / len(s), 4) for p, s in by_free.items()}
+        own = sorted({(k, f) for r in ch1 for _, k, f in r["mix"]["story_own"]})[:6]
+        out.append((not short and all(m >= BOUNDS["FREE_MEAN_MIN"] for m in means.values()),
+                    f"CURIOSITY THE STORY DID NOT NEED (CH1; a curiosity goal in which a milestone passed is the story's "
+                    f"own: {len(own)} kinds/frames, e.g. {own[:3]}): the share of the goals' frames in EVERY run "
+                    f"{ {s: v[1] for s, v in sorted(free.items())} } (bound >= {BOUNDS['FREE_RUN_MIN']} each), frames "
+                    f"{ {s: v[2] for s, v in sorted(free.items())} }; each personality's mean {means} (bound >= "
+                    f"{BOUNDS['FREE_MEAN_MIN']}); under: {short or 'none'}"))
+        div = divergence(ch1)
+        out.append((div["goals_mean"] is not None and div["goals_mean"] >= BOUNDS["DIV_GOALS_MIN"]
+                    and div["tiles_mean"] >= BOUNDS["DIV_TILES_MIN"] and not div["identical"],
+                    f"SEED DIVERGENCE (CH1, every pair of runs of one personality; pillar 5: seeds differ; the beeline "
+                    f"control's dice and personality meet this too, the verifier's round: the OFF-THE-BEELINE checks below "
+                    f"are the errands' own): goal sequences {div['goals_mean']} "
+                    f"(bound >= {BOUNDS['DIV_GOALS_MIN']}), paths {div['tiles_mean']} (bound >= {BOUNDS['DIV_TILES_MIN']}), "
+                    f"identical pairs {div['identical'] or 'none'}; pairs {[(p['seeds'], p['goals'], p['tiles']) for p in div['pairs']]}"))
+    if ch1 and off:
+        # the beeline control MOVES every metric: less errand time, less divergence, and the POKéDEX sooner
+        by_off = {r["seed"]: r for r in off}
+        pairs = [(r, by_off[r["seed"]]) for r in ch1 if r["seed"] in by_off]
+        drops = [round(a["mix"]["curiosity_share"] - b["mix"]["curiosity_share"], 3) for a, b in pairs]
+        mean_drop = sum(drops) / len(drops) if drops else 0.0
+        out.append((bool(drops) and mean_drop >= BOUNDS["MIX_DROP_MIN"],
+                    f"ERRANDS_OFF MOVES THE INTENT MIX: CH1 - ERRANDS_OFF share of the frames on curiosity, paired by seed, "
+                    f"{drops}, mean {mean_drop:.3f} (bound >= {BOUNDS['MIX_DROP_MIN']}); all errands (reported) "
+                    f"{[round(a['mix']['errand_share'] - b['mix']['errand_share'], 3) for a, b in pairs]}"))
+        div_on, div_off = divergence(ch1), divergence(off)
+        out.append((div_off["goals_mean"] is not None and div_on["goals_mean"] is not None
+                    and div_on["goals_mean"] > div_off["goals_mean"],
+                    f"ERRANDS_OFF MOVES THE DIVERGENCE: goal sequences {div_on['goals_mean']} (CH1) vs {div_off['goals_mean']} "
+                    f"(ERRANDS_OFF, bound: CH1 more); paths {div_on['tiles_mean']} vs {div_off['tiles_mean']} (reported)"))
+        # (the verifier's round) the control FAILS the per-run curiosity bound: the check is not met by a beeline
+        off_free = {r["seed"]: r["mix"]["free_share"] for r in off}
+        failing = [s for s, share in off_free.items() if share < BOUNDS["FREE_RUN_MIN"]]
+        out.append((len(failing) >= BOUNDS["FREE_CONTROL_FAILS_MIN"] * len(off),
+                    f"THE BEELINE FAILS THE CURIOSITY BOUND: ERRANDS_OFF runs under {BOUNDS['FREE_RUN_MIN']} (the curiosity "
+                    f"the story did not need) {len(failing)} of {len(off)} (bound >= {BOUNDS['FREE_CONTROL_FAILS_MIN']:.0%}): "
+                    f"{dict(sorted(off_free.items()))}"))
+        # (the verifier's round) WHERE NO BEELINE WENT: the errands' own footprint, against the beeline's own spread
+        beeline = off_beeline(ch1, off)
+        paired = [(seed, beeline["runs"][seed], beeline["control"][seed]) for seed in sorted(beeline["runs"])
+                  if seed in beeline["control"]]
+        more = [p for p in paired if p[1] > p[2]]
+        pooled = (sum(p[1] for p in paired) / max(1, sum(p[2] for p in paired))) if paired else 0.0
+        out.append((bool(paired) and len(more) >= BOUNDS["OFF_SEEDS_MIN"] * len(paired)
+                    and pooled >= BOUNDS["OFF_RATIO_MIN"],
+                    f"OFF THE BEELINE (the tiles a run stood on that NO beeline-control run stood on; a control run against "
+                    f"the OTHER control runs, its own spread): CH1 vs ERRANDS_OFF by seed {paired}; CH1 more in "
+                    f"{len(more)} of {len(paired)} (bound >= {BOUNDS['OFF_SEEDS_MIN']:.0%}), pooled {round(pooled, 2)}x "
+                    f"(bound >= {BOUNDS['OFF_RATIO_MIN']}); the corridor {beeline['corridor']} tiles"))
+        # (the verifier's round: "the divergence comes mostly from battle dice and personality, not from the new errands")
+        # the ERRANDS' OWN divergence: their decisions in order (`curiosity_sequence`) differ between the seeds of one
+        # personality, where the beeline control has none at all; where they took the player is reported beside it
+        cur_on = sequence_divergence(ch1, "curious_sequence")
+        cur_off = sequence_divergence(off, "curious_sequence")
+        out.append((cur_on["mean"] is not None and cur_on["mean"] >= BOUNDS["CUR_DIV_MIN"],
+                    f"THE ERRANDS DIFFER BY SEED: the curiosity decisions in order (kind@map) of every pair of CH1 runs of "
+                    f"one personality, mean edit distance {cur_on['mean']} (bound >= {BOUNDS['CUR_DIV_MIN']}; the same "
+                    f"sequence in {cur_on['same'] or 'no pair'}); the beeline control's {cur_off['mean']} (none to differ); "
+                    f"pairs {[(p['seeds'], p['distance']) for p in cur_on['pairs']]}; the CH1 sequences "
+                    f"{ {r['seed']: r['curious_sequence'] for r in ch1} }; the off-the-beeline tiles' mean Jaccard distance "
+                    f"between those pairs {beeline['pairs_mean']} (reported)"))
+        both = [(a, b) for a, b in pairs if a["dex_frame"] and b["dex_frame"]]
+        outside = [(a["dex_frame"] - needs(a), b["dex_frame"] - needs(b)) for a, b in both]
+        ratio = sum(x for x, _ in outside) / sum(y for _, y in outside) if outside else 0.0
+        slower = [(a["seed"], round(x / y, 3)) for (a, _), (x, y) in zip(both, outside) if y and x > y]
+        total = (sum(a["dex_frame"] for a, _ in both) / sum(b["dex_frame"] for _, b in both)) if both else 0.0
+        over = [r["seed"] for r in ch1 if r["reached"] and (r["dex_frame"] or 0) > BOUNDS["DEX_FRAMES_MAX"]]
+        # (the verifier's round: "the NO SPEEDRUN margin is within noise") the decomposition, per paired seed: what the
+        # errands ADD (their frames) and what the story's own goals TAKE LESS (a place looked round is walked faster later)
+        story = [(a["seed"], (a["dex_frame"] - needs(a) - a["mix"]["free_frames"]) - (b["dex_frame"] - needs(b)
+                                                                                    - b["mix"]["free_frames"]))
+                 for a, b in both]
+        added = [(a["seed"], a["mix"]["free_frames"]) for a, _ in both]
+        out.append((bool(both) and ratio >= BOUNDS["SLOWER_THAN_BEELINE_MIN"] and not over,
+                    f"NO SPEEDRUN (the time): the frames to the POKéDEX outside the needs (training, healing, finding a "
+                    f"centre, shopping), CH1 over the beeline control (ERRANDS_OFF) pooled over the paired seeds "
+                    f"{round(ratio, 3)} (bound >= {BOUNDS['SLOWER_THAN_BEELINE_MIN']}: above the beeline) {outside}; CH1 the "
+                    f"slower in {len(slower)} of {len(both)} paired seeds {slower} (reported: the verifier's round measured "
+                    f"this margin within the noise, and the decomposition says why: the errands ADD {added} frames, and the "
+                    f"rest of the way to the POKéDEX took CH1 {story} frames more (+) or fewer (-) than the control: a place "
+                    f"looked round is walked faster later. The no-speedrun claim rests on the behaviour checks above, the "
+                    f"curiosity the story did not need in EVERY run and the beeline failing it); the TOTAL frames to the "
+                    f"POKéDEX (reported) {round(total, 3)} {[(a['dex_frame'], b['dex_frame']) for a, b in both]}; within the "
+                    f"budget ({BOUNDS['DEX_FRAMES_MAX']}): over it {over or 'none'}"))
+        # (the verifier's round) THE SAME, WITHOUT THE GRASS'S DICE: outside the needs AND outside the battles met on the
+        # way (`time_to_dex`), per paired seed and pooled
+        timed = [(a["seed"], a["time"], b["time"]) for a, b in pairs if a.get("time") and b.get("time")]
+        nb = [(seed, ta["outside_nb"], tb["outside_nb"], round(ta["outside_nb"] / tb["outside_nb"], 3))
+              for seed, ta, tb in timed if tb["outside_nb"]]
+        nb_pooled = sum(x[1] for x in nb) / sum(x[2] for x in nb) if nb else 0.0
+        nb_slower = [x[0] for x in nb if x[3] > 1]
+        out.append((bool(nb) and nb_pooled >= BOUNDS["NOBATTLE_RATIO_MIN"]
+                    and len(nb_slower) >= BOUNDS["NOBATTLE_SEEDS_MIN"] * len(nb),
+                    f"NO SPEEDRUN, WITHOUT THE GRASS'S DICE: the AI's own frames to the POKéDEX outside the needs AND outside "
+                    f"the battles met on the way (its walking, talking and looking), CH1 over the beeline control pooled "
+                    f"{round(nb_pooled, 3)} (bound >= {BOUNDS['NOBATTLE_RATIO_MIN']}) and per paired seed (seed, CH1, "
+                    f"control, ratio) {nb}: CH1 the slower in {len(nb_slower)} of {len(nb)} (bound >= "
+                    f"{BOUNDS['NOBATTLE_SEEDS_MIN']:.0%}); the battles' frames outside the needs (CH1, control) "
+                    f"{[(seed, ta['battles'], tb['battles']) for seed, ta, tb in timed]}"))
+    # (the verifier's round: "MAX_LOSSES 3 was never reached by an unaltered run") LOSE3: the decider made to lose its wild
+    # battles once trained (a copy: a status move every turn, never a run, mutant LOSE3); the play loop's REAL MAX_LOSSES (3)
+    # must end the run at the game's third loss, its report, its told losses and the game's all 3
+    lose = good("LOSE3")
+    if lose:
+        from ai_player.mode import MAX_LOSSES
+        want = f"play: stuck: {MAX_LOSSES} battles lost (MAX_LOSSES {MAX_LOSSES})"
+        rows3 = [(r["seed"], r["reason"], r["losses_ai"], r["losses_told"], r["losses_game"], r["last_loss_f"], r["frames"])
+                 for r in lose]
+        # (CORRECTED 2026-10-14 after the graded sweep on 501-520 FAILED it in 1 of 6 runs: seed 503 lost twice, then met
+        # a wild battle the mutant's status move could not lose within the battle skill's 150 menus, and the run ended on
+        # its patience with 2 losses: a run that never reached a third loss tests nothing of the stop) the stop is graded on
+        # every run the GAME recorded a THIRD loss in; the arm must reach one in at least LOSE3_REACH_MIN of its runs
+        reached3 = [row for row in rows3 if row[4] >= MAX_LOSSES]
+        bad3 = [row for row in reached3 if not (row[1] == want and row[2] == row[3] == row[4] == MAX_LOSSES
+                                                and row[5] is not None and 0 <= row[6] - row[5] <= STOP_WITHIN)]
+        out.append((bool(reached3) and not bad3 and len(reached3) >= BOUNDS["LOSE3_REACH_MIN"] * len(rows3),
+                    f"LOSE3 (a copy whose decider loses its wild battles once trained, mutant LOSE3; the play loop's "
+                    f"MAX_LOSSES {MAX_LOSSES} untouched): every run the GAME recorded a loss number {MAX_LOSSES} in "
+                    f"({len(reached3)} of {len(rows3)}, bound >= {BOUNDS['LOSE3_REACH_MIN']:.0%}) ends {want!r} within "
+                    f"{STOP_WITHIN} frames of it, its report == its told == the game's == {MAX_LOSSES}: (seed, reason, "
+                    f"report, told, game, the game's last loss, the run's end) {rows3}; off: {bad3 or 'none'}"))
+    pat, old = good("PATIENCE"), good("PATIENCE_OLD")
+    if pat and old:
+        reached = [r["seed"] for r in pat if r["reached"]]
+        stopped = [r["seed"] for r in old if str(r["reason"]).startswith("play: stuck: no progress for")]
+        spans = {r["seed"]: r["train_span"] for r in pat}
+        long_spans = [s for s, span in spans.items() if (span or 0) > SMALL_PATIENCE]
+        out.append((len(reached) >= BOUNDS["PATIENCE_REACHED_MIN"] * len(pat) and bool(long_spans)
+                    and all(s in reached for s in long_spans),
+                    f"PATIENCE (STORY_PATIENCE {SMALL_PATIENCE} in a copy, the real rule): the POKéDEX reached in "
+                    f"{len(reached)} of {len(pat)} (bound >= {BOUNDS['PATIENCE_REACHED_MIN']:.0%}); a TRAINING stint longer "
+                    f"than the patience (first to last train goal, frames) in seeds {long_spans} (>= 1: not vacuous), each "
+                    f"reached; spans {spans}; the ends {[r['reason'][:60] for r in pat if not r['reached']]}"))
+        training = [r["seed"] for r in old if r["seed"] in stopped and r["last_goal"] == "train"]
+        out.append((len(stopped) >= BOUNDS["PATIENCE_OLD_STOPS_MIN"] * len(old) and bool(training),
+                    f"PATIENCE_OLD (the same, with the step-5 rule: only a milestone resets the patience, G67): stopped "
+                    f"'no progress for ...' in {len(stopped)} of {len(old)} (bound >= {BOUNDS['PATIENCE_OLD_STOPS_MIN']:.0%}): "
+                    f"{stopped}, WHILE TRAINING (its last goal a training session) in {training} (>= 1: the review's case); "
+                    f"its training sessions before the stop {[(r['seed'], r['trains']) for r in old]}; reached "
+                    f"{[r['seed'] for r in old if r['reached']]}"))
     return out
 
 
@@ -531,13 +1437,14 @@ def main() -> int:
     except Exception:
         pass
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--plans", default="CH1,NOTRAIN,NOHINTS,DEADREST,STOP,STOPDEAD")
+    parser.add_argument("--plans", default="CH1,NOTRAIN,NOHINTS,DEADREST,ERRANDS_OFF,STALL1,STALL2,STALL3,PATIENCE,"
+                                           "PATIENCE_OLD,LOSE3,STOP,STOPDEAD")
     parser.add_argument("--seeds", type=int, default=12)
     parser.add_argument("--first-seed", type=int, default=1)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--frames", type=int, default=300000)
     parser.add_argument("--target", default="ch1_pokedex")
-    parser.add_argument("--evidence-tag", default="step5")
+    parser.add_argument("--evidence-tag", default="step51")
     args = parser.parse_args()
     plans = [p.strip() for p in args.plans.split(",") if p.strip()]
     seeds = list(range(args.first_seed, args.first_seed + args.seeds))
@@ -547,13 +1454,22 @@ def main() -> int:
         print(line, flush=True)
         lines.append(line)
 
-    say(f"AI PLAYER BUILD STEP 5 - THE SEED SWEEP: plans {plans}, seeds {seeds[0]}-{seeds[-1]}, frames {args.frames}, game "
+    say(f"AI PLAYER BUILD STEP 5.1 - THE SEED SWEEP: plans {plans}, seeds {seeds[0]}-{seeds[-1]}, frames {args.frames}, game "
         f"clock {GAME_CLOCK}, wall clock set {WALL_CLOCK}")
+    say(f"pre-registered bounds: {json.dumps(BOUNDS)}; SMALL_PATIENCE {SMALL_PATIENCE}")
     say(f"code: {provenance(REPO)}")
+    # (the step-5.1 verifier's second round: "the dee96b tree was not kept") the tree this sweep runs on is kept
+    say(f"tree kept: {snapshot_tree(REPO)}")
     unknown = [p for p in plans if p not in PLANS and p not in STOP_PLANS]
     if unknown:
         parser.error(f"unknown plans {unknown}")
-    jobs = [(plan, seed) for plan in plans if plan in PLANS for seed in seeds]
+    orphans = [p for p in plans if p in CHAPTER2 and CHAPTER2[p] not in plans]
+    if orphans:
+        parser.error(f"the chapter-2 plans {orphans} go on from {[CHAPTER2[p] for p in orphans]}: name those plans too")
+    # (the step-5.1 verifier's second round) a chapter-2 plan's runs are played after their chapter-1 run, in its worker
+    follow = {base: [p for p in plans if CHAPTER2.get(p) == base] for base in plans}
+    jobs = [(plan, seed) for plan in plans if plan in PLANS and plan not in CHAPTER2 for seed in seeds
+            if plan not in PLAN_PERSONALITY or plan_of(seed)[0] == PLAN_PERSONALITY[plan]]
     rows: dict[str, list[dict]] = {plan: [] for plan in plans}
     copies: dict[tuple[str, str], Path] = {(plan, plan): copy_with(MUTANT_PLANS[plan]) for plan in plans if plan in MUTANT_PLANS}
     for (plan, _), root in copies.items():
@@ -561,22 +1477,27 @@ def main() -> int:
 
     def play(jobs: list[tuple[str, str | None, int]]) -> None:
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
-            futures = {pool.submit(run_one, plan, seed, args.frames, args.target,
-                                   copies.get((plan, base or plan), REPO), base): (plan, seed)
-                       for plan, base, seed in jobs}
-            for future, (plan, seed) in futures.items():
-                row = future.result()
-                rows[plan].append(row)
-                say(f"  {plan}{' (' + row['base'] + ')' if row.get('base') else ''} seed {seed}: "
-                    f"{json.dumps(row, ensure_ascii=False)[:2400]}")
+            futures = {}
+            for plan, base, seed in jobs:
+                root = copies.get((plan, base or plan), REPO)
+                if base is None:
+                    futures[pool.submit(run_chain, plan, seed, args.frames, args.target, root, follow.get(plan, []))] = seed
+                else:
+                    futures[pool.submit(lambda *a: [run_one(*a)], plan, seed, args.frames, args.target, root, base)] = seed
+            for future, seed in futures.items():
+                for row in future.result():
+                    rows[row["plan"]].append(row)
+                    shown = {k: v for k, v in row.items() if not k.startswith("_")}
+                    say(f"  {row['plan']}{' (' + row['base'] + ')' if row.get('base') else ''} seed {seed}: "
+                        f"{json.dumps(shown, ensure_ascii=False)[:3000]}")
 
     try:
         play([(plan, None, seed) for plan, seed in jobs])
         # PHASE 2 (`STOP_PLANS`): the runs the GAME recorded a loss in, replayed with MAX_LOSSES 1 (and without the loop's
         # count): chosen by the game's own record of phase 1, before they run
         stops = [plan for plan in plans if plan in STOP_PLANS]
-        lost = sorted((r["plan"], r["seed"]) for plan in plans if plan in PLANS for r in rows[plan]
-                      if "error" not in r and r["losses_game"])
+        lost = sorted((r["plan"], r["seed"]) for plan in plans if plan in PLANS and plan not in NO_PHASE2
+                      for r in rows[plan] if "error" not in r and r["losses_game"])
         if stops:
             say(f"PHASE 2: the runs of phase 1 the game recorded a battle LOST in: {lost or 'none'}; plans {stops}")
         for stop in stops:

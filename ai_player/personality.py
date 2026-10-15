@@ -13,8 +13,12 @@ BUILD STEP 5 (the goal manager, `brain/goals.py`), three more things a person ha
     interleaves with the story (pillar 1: "a personality = its own scoring weights"): how far above the next known fight it
     trains (Trainer most, Story least, never far below: `train_margin`) and how long it roams at the least before one
     (`train_min_steps`); how much it seeks new species (Catcher most) and roams new grass for them; when it buys POKé BALLS
-    and how many; when it heals; how often it talks to someone nearby. Taste, not measured from people (plausible values,
-    each named here);
+    and how many; when it heals; how often it talks to someone nearby; (build step 5.1, the step-5 adversarial review's
+    "it plays like a speedrun") how often it LOOKS AROUND a new outdoor map and for how long (`look_around`, `look_frames`)
+    and takes a DETOUR off the way (`detour`, `detour_frames`), Story least, none of them nothing; (the step-5.1
+    verifier's second round) the BALANCE it keeps between the story and everything else (`balance`: Catcher 50 %,
+    Trainer 48 %, Story 45 % of a session's time) and the part of it kept for curiosity alone (`curious_min`: Catcher
+    12 %, the others 10 %; `brain/goals.py` owed). Taste, not measured from people (plausible values, each named here);
   * DRIFT (`PersonalityState`, design draft §2.3 "drift": "with a small chance ... it switches `active` for a bounded time,
     then returns to `base`"; §10.10: it counts STEPS, not the in-game clock): every `DRIFT_EVERY` steps the player walks, a
     `DRIFT_CHANCE` draw may switch the ACTIVE personality to another one for `DRIFT_STEPS` steps (seeded), after which it
@@ -122,15 +126,40 @@ class Errands:
     heal_below: float  # head for a POKéMON CENTER when the party's HP share falls under this (a centre known)
     chat: float  # the chance, when someone not talked to stands near, that it walks up and talks to them
     potions_buy: int  # POTIONS bought with the balls (a person stocks a few)
+    # (build step 5.1, the step-5 review's finding 1: "it plays like a speedrun"; RULING 37 Q6: detours for exploring)
+    # the chance, on an outdoor map new to it (its world memory, carried between sessions, had not stood there when this
+    # session began; one draw a map, `brain/goals.py` may_look_around), that it looks around it first (Story least)
+    look_around: float
+    look_frames: int  # ... for this many frames (a bound, the errand's own budget)
+    # the chance, travelling across an outdoor map toward a place it knows (one draw a map and milestone), of a short walk
+    # to a place off the way, at least `brain/goals.py` DETOUR_MIN_TILES tiles from where it is, and a look there
+    detour: float
+    detour_frames: int  # ... for at most this many frames
+    # (build step 5.1, the verifier's second round: the Story player's chapter 2 spent 16 % of its goals' frames on errands)
+    # the share of a session's time (once it has a Pokemon: its goals and the scenes between them) it keeps for things
+    # besides the story, needs and curiosity alike: under it, the curiosity draws pass without the dice (`brain/goals.py`
+    # owed, BALANCE_MIN_FRAMES). The design's floor for every personality is 30 % of the goals' frames (`gates/
+    # rate_step5.py` MIX_MIN): each balance is above it, by taste, with room for the story stretch that ENDS a session (the
+    # walk to DAD, his talk, WALLY's scene: no break can follow them). Measured in the round's development sweeps: at 36 %
+    # the Story's chapter 2 ended at 31 % and 35 % (step51wdev1); at 40 % at 34-39 % (step51wdev4, its own count 51 % before
+    # the last stretch and 34 % after it); so the Story's is 45 %, the Trainer's 48 %
+    balance: float = 0.45
+    # ... and the share of it it keeps for CURIOSITY, the errands no need asks for (looking round, a detour, a chat, a
+    # catch, an item ball): chapter 1's training fills the balance with needs, and the round's development sweep step51wdev2
+    # measured its curiosity at 4-16 % of a run, the time to the POKéDEX then within the beeline's noise
+    curious_min: float = 0.10
 
 
 ERRANDS: dict[str, Errands] = {
     "Catcher": Errands(train_margin=2, train_min_steps=100, train_session=120, catch_seek=0.9, catch_roam_steps=120,
-                       balls_low=8, balls_buy=10, heal_below=0.5, chat=0.12, potions_buy=1),
+                       balls_low=8, balls_buy=10, heal_below=0.5, chat=0.12, potions_buy=1,
+                       look_around=0.8, look_frames=4200, detour=0.5, detour_frames=1500, balance=0.50, curious_min=0.12),
     "Story": Errands(train_margin=1, train_min_steps=80, train_session=100, catch_seek=0.3, catch_roam_steps=60,
-                     balls_low=4, balls_buy=5, heal_below=0.6, chat=0.18, potions_buy=2),
+                     balls_low=4, balls_buy=5, heal_below=0.6, chat=0.18, potions_buy=2,
+                     look_around=0.55, look_frames=3000, detour=0.35, detour_frames=1200, balance=0.45, curious_min=0.10),
     "Trainer": Errands(train_margin=3, train_min_steps=150, train_session=150, catch_seek=0.45, catch_roam_steps=80,
-                       balls_low=5, balls_buy=5, heal_below=0.45, chat=0.3, potions_buy=2),
+                       balls_low=5, balls_buy=5, heal_below=0.45, chat=0.3, potions_buy=2,
+                       look_around=0.7, look_frames=3600, detour=0.45, detour_frames=1500, balance=0.48, curious_min=0.10),
 }
 #: DRIFT (module docstring): every this many STEPS walked, one draw ...
 DRIFT_EVERY = 400

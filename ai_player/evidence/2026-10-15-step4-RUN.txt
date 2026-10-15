@@ -1,0 +1,167 @@
+AI PLAYER BUILD STEP 4 (BATTLES) - LIVE PROOF - ARM RUN: training, the Poochyena at 29 % HP: an unwanted wild battle RUN from (gBattleOutcome 4)
+date: 2026-10-15 05:28:50
+code: HEAD b029673d; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d3d34871df0ac077 over git diff HEAD (21 files, 481617 bytes) and 1 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+fixture: ai_player/gates/fixtures/run_r116.ss1 md5=5f7e8b23495c1533030619cc27943e1e
+fixture documentation: gates/make_step41_fixtures.py --only run (run_r116.build.json): route116team.ss1, the Poochyena put first, the AI's battle brain roaming; the first frame of a wild battle begun with the Poochyena under 30 %
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step4-battle --frames 12000 --wall-seconds 600 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step4-battle\ai_player_runs\20261015-052824-RUN --state C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\fixtures\run_r116.ss1
+env: AI_PLAYER_BRAIN=battle AI_PLAYER_SEED=1 AI_PLAYER_PERSONALITY=Story AI_PLAYER_BATTLES=1
+exit code: 0   elapsed: 16.4s   run dir: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step4-battle\ai_player_runs\20261015-052824-RUN
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 5 synthetic runs (its own: pass; a stale mtime, a frame +3000, no file, the fixture's md5: fail): PASS
+checks (pre-registered in ai_player/gates/live_step4.py's docstring and PREDICTED; each quotes both values):
+  [PASS] the launcher gated the real package: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] verdict file: verdict=CLEAN (want CLEAN)
+  [PASS] ai_presses=10 (the instrument, at the emulator's door: hold_button + release_button) == 2 x the AI pad's own count 5 ([AI-HANDS] outcome="battles: 1 played: ['ran']" presses=5 frames=1063 looks=793 records=36), and > 0
+  [PASS] the AI pad's own frame count 1063 == the instrument's real_frames 1063 (every frame the AI let pass is a frame the main loop ran, and no other)
+  [PASS] every breach counter 0, incl. foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_bot_calls=0 (non-zero: none)
+  [PASS] ended by itself: exit_reason="battle: battles: 1 played: ['ran']" exit_code=0 process=0 real_frames=1063 (budget 12000)
+  [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] the state graded is the one THIS run wrote: written 16.1s after the run started; frame 142177 == start 141114 + 1063 real frames (+-5); md5 0de9a76f77008570bad4e7949d3dcbcb (fixture 5f7e8b23495c1533030619cc27943e1e)
+  [PASS] 5 presses in the action log, every one with its gate (without: 0)
+  [PASS] EVERY A press is a WAIT, a MENU confirm or a TALK by its look: {'menu': 1, 'wait': 2}, the menus {'battle_action': 1}; any other: none
+  [PASS] no press without the eyes asked (a 'NONE' gate): 0
+  [PASS] 0 walking holds (want none: this arm starts in a battle)
+  [PASS] 17 stretches standing still, NONE under the catch-all 'watching: the game is busy': none
+  [PASS] training, the Poochyena low: the decider RAN: ['turn 1: run: its Poochyena is low (29%) and the foe is not (100%): not worth the risk (battler 0)']
+  [PASS] BY THE TRUTH: gBattleOutcome 4 (4: ran); the AI's outcome ['ran']
+  [PASS] THE REPLAY is this run's trajectory: in-process (`hands_harness.py --battle-log`, the same fixture, seed 1 and faults) 1063 frames and 5 presses == the launcher's 1063 and 5 (one trajectory replayed, not a second sample); its outcome "battle: battles: 1 played: ['ran']"
+  [PASS] BY THE GAME (the replay): the Poochyena never fell: []
+  [PASS] BY THE GAME every frame (the replay's gBattleOutcome: its value on the first frame, then each change, with frames [(695, 4)]): [0, 4]: 0 (the battle's own clear, `BattleStartClearSetData`, pret src/battle_main.c, already done in the replay's first frame), then 4 (ran), the last; the fixture BEFORE the run reads 4 by the truth (a stale value from an earlier battle)
+  [PASS] PRE-REGISTERED outcomes: predicted ['ran'], measured ['ran']
+  [PASS] PRE-REGISTERED frames: predicted 1063, measured 1063
+  [PASS] PRE-REGISTERED presses: predicted 5, measured 5
+MEASURED: {"frames": 1063, "outcomes": ["ran"], "presses": 5}
+
+---- notes: the decider's told lines ----
+[AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False
+[AI-HANDS] battle: a wild battle against Poochyena L8 (Dark)
+[AI-HANDS] battle: turn 1: run: its Poochyena is low (29%) and the foe is not (100%): not worth the risk (battler 0)
+[AI-HANDS] battle: over: ran (gBattleOutcome 4); party [('Poochyena', 4, 5, 17), ('Mudkip', 13, 37, 40), ('Nincada', 6, 20, 20), ('Whismur', 6, 23, 23)]
+
+---- THE REPLAY in-process (hands_harness.py --battle-log): 1063 frames, 5 presses, "battle: battles: 1 played: ['ran']"; the GAME's battle, read each frame (gBattleMons, gBattlerAttacker, gCurrentMove, gBattlerTarget, gChosenMoveByBattler) ----
+at the start: [{"battler": 0, "species": "Poochyena", "pid": "5815089e", "hp": [5, 17]}, {"battler": 1, "species": "Poochyena", "pid": "717ada53", "hp": [12, 21]}, {"battler": 2, "species": "Poochyena", "pid": "5815089e", "hp": [16, 17]}, {"battler": 3, "species": "Lotad", "pid": "00136880", "hp": [0, 20]}]
+{"f": 9, "kind": "in", "battler": 1, "species": "Poochyena", "pid": "9b026d32", "hp": [25, 25]}
+chosen {"f": 616, "chosen": ["-", "-", "-", "-"], "species": ["Poochyena", "Poochyena", "Poochyena", "Lotad"]}
+chosen {"f": 622, "chosen": ["-", "Howl", "-", "-"], "species": ["Poochyena", "Poochyena", "Poochyena", "Lotad"]}
+
+---- the instrument's verdict file (purity.json) ----
+{
+  "counters": {
+    "ai_bot_calls": 0,
+    "ai_loads": 0,
+    "ai_presses": 10,
+    "ai_unrouted_presses": 0,
+    "ai_writes": 0,
+    "extra_frames": 0,
+    "foreign_loads": 0,
+    "foreign_presses": 0,
+    "foreign_writes": 0,
+    "instrument_errors": 0,
+    "instrument_tampered": 0,
+    "isolation_lost": 0,
+    "peek_restores": 0,
+    "ran_after_finish": 0,
+    "real_frames": 1063,
+    "unattributed_inputs": 0,
+    "unattributed_state_changes": 0
+  },
+  "facts": {
+    "exit_code": 0,
+    "exit_reason": "battle: battles: 1 played: ['ran']",
+    "isolation": {
+      "active": "n=1 types=[GuardListener] rebuild_door=AI",
+      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x19f7c047c00",
+      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x19f7c047c00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"
+    },
+    "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"
+  },
+  "finish": {
+    "frame_in_flight": false,
+    "main_thread": true,
+    "thread": "MainThread"
+  },
+  "origins": {},
+  "pid": 10200,
+  "verdict": "CLEAN",
+  "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"
+}
+
+---- TRUTH of the fixture BEFORE the run (gates/hands_harness.py truth) ----
+{"FLAG_SET_WALL_CLOCK": true, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_TOWN_STATE": 4, "balls": {"POKé BALL": 27, "PREMIER BALL": 1}, "battle_outcome": 4, "boxes": [], "flags": {"ADVENTURE_STARTED": true, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": true, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": true, "RECEIVED_POKEDEX_FROM_BIRCH": true, "RESCUED_BIRCH": true, "SYS_B_DASH": true, "SYS_POKEDEX_GET": true, "SYS_POKEMON_GET": true}, "frame": 141114, "gLocalTime": [80, 8, 46, 45], "game_state": "BATTLE", "game_stats": {"steps": 1080, "total_battles": 31, "trainer_battles": 11, "wild_battles": 20}, "gender": 0, "gender_name": "BOY", "items": {}, "localTimeOffset": [9698, 1, 51, 30], "map": [0, 31], "money": 824, "name": "NICK", "name_bytes": "c8c3bdc5ffffffff", "party": [["Poochyena", 5, 17], ["Mudkip", 37, 40], ["Nincada", 20, 20], ["Whismur", 23, 23]], "party_exp": [["5815089e", "Poochyena", 119, 4], ["550a9be6", "Mudkip", 1569, 13], ["4457d0fb", "Nincada", 406, 6], ["7e9bb3ba", "Whismur", 179, 6]], "party_moves": [["5815089e", "Poochyena", ["Tackle"]], ["550a9be6", "Mudkip", ["Tackle", "Growl", "Mud-slap", "Water Gun"]], ["4457d0fb", "Nincada", ["Scratch", "Harden", "Leech Life"]], ["7e9bb3ba", "Whismur", ["Pound", "Uproar"]]], "party_ot": [["5815089e", 22640], ["550a9be6", 22640], ["4457d0fb", 22640], ["7e9bb3ba", 22640]], "party_pp": [["5815089e", "Poochyena", [["Tackle", 28]]], ["550a9be6", "Mudkip", [["Tackle", 31], ["Growl", 40], ["Mud-slap", 10], ["Water Gun", 7]]], ["4457d0fb", "Nincada", [["Scratch", 35], ["Harden", 29], ["Leech Life", 14]]], ["7e9bb3ba", "Whismur", [["Pound", 35], ["Uproar", 10]]]], "player_tid": 22640, "pos": [14, 10], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "state_md5": "5f7e8b23495c1533030619cc27943e1e", "trainer_defeated": {"280": false, "318": true, "322": false, "333": true, "520": false, "523": false, "526": false, "529": true, "532": false, "535": false, "600": false, "603": true, "615": true, "617": false, "631": false, "753": false, "754": false}}
+
+---- TRUTH of the state the run LEFT (gates/hands_harness.py truth) ----
+{"FLAG_SET_WALL_CLOCK": true, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_TOWN_STATE": 4, "balls": {"POKé BALL": 27, "PREMIER BALL": 1}, "battle_outcome": 4, "boxes": [], "flags": {"ADVENTURE_STARTED": true, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": true, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": true, "RECEIVED_POKEDEX_FROM_BIRCH": true, "RESCUED_BIRCH": true, "SYS_B_DASH": true, "SYS_POKEDEX_GET": true, "SYS_POKEMON_GET": true}, "frame": 142177, "gLocalTime": [80, 8, 46, 45], "game_state": "OVERWORLD", "game_stats": {"steps": 1080, "total_battles": 31, "trainer_battles": 11, "wild_battles": 20}, "gender": 0, "gender_name": "BOY", "items": {}, "localTimeOffset": [9698, 1, 51, 30], "map": [0, 31], "money": 824, "name": "NICK", "name_bytes": "c8c3bdc5ffffffff", "party": [["Poochyena", 5, 17], ["Mudkip", 37, 40], ["Nincada", 20, 20], ["Whismur", 23, 23]], "party_exp": [["5815089e", "Poochyena", 119, 4], ["550a9be6", "Mudkip", 1569, 13], ["4457d0fb", "Nincada", 406, 6], ["7e9bb3ba", "Whismur", 179, 6]], "party_moves": [["5815089e", "Poochyena", ["Tackle"]], ["550a9be6", "Mudkip", ["Tackle", "Growl", "Mud-slap", "Water Gun"]], ["4457d0fb", "Nincada", ["Scratch", "Harden", "Leech Life"]], ["7e9bb3ba", "Whismur", ["Pound", "Uproar"]]], "party_ot": [["5815089e", 22640], ["550a9be6", 22640], ["4457d0fb", 22640], ["7e9bb3ba", 22640]], "party_pp": [["5815089e", "Poochyena", [["Tackle", 28]]], ["550a9be6", "Mudkip", [["Tackle", 31], ["Growl", 40], ["Mud-slap", 10], ["Water Gun", 7]]], ["4457d0fb", "Nincada", [["Scratch", 35], ["Harden", 29], ["Leech Life", 14]]], ["7e9bb3ba", "Whismur", [["Pound", 35], ["Uproar", 10]]]], "player_tid": 22640, "pos": [14, 10], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "state_md5": "0de9a76f77008570bad4e7949d3dcbcb", "trainer_defeated": {"280": false, "318": true, "322": false, "333": true, "520": false, "523": false, "526": false, "529": true, "532": false, "535": false, "600": false, "603": true, "615": true, "617": false, "631": false, "753": false, "754": false}}
+
+---- the action log: 36 records (frame | decision | action | gate or reason | digest) ----
+f141114 | start | battle | the first look | f141114 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[] dex=4/15 money=824 badges=0 cost=3.44ms
+f141114 | tell | say | battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types: | f141114 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[] dex=4/15 money=824 badges=0 cost=3.44ms
+f141123 | watch | busy 9f | watching: a battle (it runs by itself: nothing on screen takes a press now) | f141123 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f141128 | watch | busy 5f | watching: the screen fades (a battle) | f141128 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f141276 | watch | busy 148f | watching: a battle (it runs by itself: nothing on screen takes a press now) | f141276 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f141291 | watch | busy 15f | watching: the screen fades (a battle) | f141291 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f141360 | watch | busy 69f | watching: a battle (it runs by itself: nothing on screen takes a press now) | f141360 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f141456 | watch | busy 96f | reading along: a text is printing | f141456 battle waits=A/B(text printer 0 CLEAR) ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 b
+f141456 | idle | idle 62f | reading 24 new characters: 'Wild POOCHYENA appeared!' | f141456 battle waits=A/B(text printer 0 CLEAR) ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 b
+f141518 | read | text | Wild POOCHYENA appeared! | f141518 battle waits=A/B(text printer 0 CLEAR) ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 b
+f141518 | battle (train) | press A 7f | text printer 0 CLEAR | f141518 battle waits=A/B(text printer 0 CLEAR) ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 b
+f141581 | watch | busy 47f | reading along: a text is printing | f141581 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f141661 | watch | busy 80f | watching: a battle (it runs by itself: nothing on screen takes a press now) | f141661 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f141705 | watch | busy 44f | watching: the screen fades (a battle) | f141705 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f141735 | tell | say | battle: a wild battle against Poochyena L8 (Dark) | f141735 battle ui=battle_action[FIGHT] ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48
+f141735 | tell | say | battle: turn 1: run: its Poochyena is low (29%) and the foe is not (100%): not worth the risk (battler 0) | f141735 battle ui=battle_action[FIGHT] ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48
+f141735 | decide | battle run | its Poochyena is low (29%) and the foe is not (100%): not worth the risk | f141735 battle ui=battle_action[FIGHT] ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48
+f141735 | watch | busy 30f | watching: a battle (it runs by itself: nothing on screen takes a press now) | f141735 battle ui=battle_action[FIGHT] ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48
+f141735 | idle | idle 35f | looking at the battle_action: ['FIGHT', 'BAG', 'POKéMON', 'RUN'], cursor on 0 (FIGHT); wanted RUN | f141735 battle ui=battle_action[FIGHT] ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48
+f141770 | battle (train): its Poochyena is low (29%) and the foe is not (100%): not worth the risk (RUN) | press Right 3f | battle_action cursor on 0 (FIGHT), wanted 3 (RUN): one step right | f141770 battle ui=battle_action[FIGHT] ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48
+f141789 | battle (train): its Poochyena is low (29%) and the foe is not (100%): not worth the risk (RUN) | press Down 4f | battle_action cursor on 1 (BAG), wanted 3 (RUN): one step down | f141789 battle ui=battle_action[BAG] ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] 
+f141801 | battle (train): its Poochyena is low (29%) and the foe is not (100%): not worth the risk (RUN) | press A 7f | battle_action cursor on 3 (RUN) | f141801 battle ui=battle_action[RUN] ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] 
+f141933 | watch | busy 112f | reading along: a text is printing | f141933 battle waits=A/B(text printer 0 CLEAR) ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 b
+f141933 | idle | idle 100f | reading 30 new characters: 'POOCHYENA fled using RUN AWAY!' | f141933 battle waits=A/B(text printer 0 CLEAR) ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 b
+f142033 | read | text | POOCHYENA fled using RUN AWAY! | f142033 battle waits=A/B(text printer 0 CLEAR) ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 b
+f142033 | battle (train) | press A 7f | text printer 0 CLEAR | f142033 battle waits=A/B(text printer 0 CLEAR) ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 b
+f142105 | watch | busy 51f | watching: a battle (it runs by itself: nothing on screen takes a press now) | f142105 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f142140 | watch | busy 35f | watching: the screen fades (a battle) | f142140 battle ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] battle=wild foe=[Poochyena:L8 bar 48/48] dex=4/15 money=824 bad
+f142142 | watch | busy 2f | watching: a battle (it runs by itself: nothing on screen takes a press now) | f142142 other ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] dex=4/15 money=824 badges=0 cost=1.79ms
+f142152 | watch | busy 10f | watching: the map loading (it runs by itself: nothing on screen takes a press now) | f142152 other party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] problems=1 cost=0.64ms
+f142153 | watch | busy 1f | watching: the screen fades (the map loading) | f142153 overworld ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] sees=[npc(-2,-3),item_ball(5,-4),cut_tree(7,-4),sign(2,2)] d
+f142177 | tell | say | battle: over: ran (gBattleOutcome 4); party [('Poochyena', 4, 5, 17), ('Mudkip', 13, 37, 40), ('Nincada', 6, 20, 20), ('Whismur', 6, 23, 23)] | f142177 overworld ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] sees=[npc(-2,-3),item_ball(5,-4),cut_tree(7,-4),sign(2,2)] d
+f142177 | world | say | battle 1: ran | f142177 overworld ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] sees=[npc(-2,-3),item_ball(5,-4),cut_tree(7,-4),sign(2,2)] d
+f142177 | watch | busy 24f | watching: a scene plays (a script runs, the controls are locked) | f142177 overworld ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] sees=[npc(-2,-3),item_ball(5,-4),cut_tree(7,-4),sign(2,2)] d
+f142177 | end | battle | battles: 1 played: ['ran'] | f142177 overworld ROUTE 116(0,31) xy=(14,10) facing=up walking party=[Poochyena:L4 5/17,Mudkip:L13 37/40,Nincada:L6 20/20,Whismur:L6 23/23] sees=[npc(-2,-3),item_ball(5,-4),cut_tree(7,-4),sign(2,2)] dex=4/15 money=824 badges=0 cost=2.47ms
+fNone | world | snapshot | the end of the run | 
+
+---- evidence lines from stdout ([AI-*]) ----
+[AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+[AI-RUN] package: the child imports ai_player from C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step4-battle exists (ai_player-owned=True)
+[AI-RUN] state: seeded from run_r116.ss1 md5=5f7e8b23495c1533030619cc27943e1e -> current_state.ss1
+[AI-RUN] http_server=off (forced: ai-step4-battle/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=12000 wall_seconds=600 soft_deadline_margin=30s switches=none dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step4-battle\ai_player_runs\20261015-052824-RUN
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step4-battle -m AI Player -s 0 -na -hl
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=12000 brain=battle watch_every=60 switches=none wall_deadline=1792067880.7 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step4-battle\ai_player_runs\20261015-052824-RUN http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x19f7c047c00
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+[AI-HANDS] brain=battle seed=1 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=12000
+[AI-WORLD] memory from nothing (a new memory): 0 maps (none), 0 tiles learned, 0 warp links, 0 connections, 0 map changes; goal -; personality Story (weights Weights(frontier=1.0, road=4.0, door=0.8, back=0.15, grass=0.0, people=0.0, away=0.3, grass_cost=2.0))
+[AI-HANDS] battle brain: 1 battle(s), purpose train, personality Story (Temperament(near_best=0.85, catch_new=0.6, run_travel=0.8, switch_willing=0.3, heal_below=0.3, run_low=0.3, opener=0.12)); talk to nobody; faults ignore_types:False,ignore_recoil:False
+[AI-HANDS] battle: a wild battle against Poochyena L8 (Dark)
+[AI-HANDS] battle: turn 1: run: its Poochyena is low (29%) and the foe is not (100%): not worth the risk (battler 0)
+[AI-HEARTBEAT] frames=1000 ai_steps=999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=10 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HANDS] battle: over: ran (gBattleOutcome 4); party [('Poochyena', 4, 5, 17), ('Mudkip', 13, 37, 40), ('Nincada', 6, 20, 20), ('Whismur', 6, 23, 23)]
+[AI-WORLD] battle 1: ran
+[AI-WORLD] memory at the end: 1 maps (ROUTE116 165 tiles 0 bumped), 165 tiles learned, 0 warp links, 0 connections, 0 map changes
+[AI-WORLD] navigator: 0 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 1 maps, 165 tiles learned
+[AI-HANDS] outcome="battles: 1 played: ['ran']" presses=5 frames=1063 looks=793 records=36
+[AI-HANDS] presses by gate: {'A:battle_action cursor on 3': 1, 'A:text printer 0 CLEAR': 2, 'Down:battle_action cursor on 1': 1, 'Right:battle_action cursor on 0': 1}
+[AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=10 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=1063 peek_restores=0 verdict=CLEAN
+[AI-PURITY-ORIGINS] none
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x19f7c047c00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step4-battle\ai_player_runs\20261015-052824-RUN\purity.json
+[AI-EXIT] reason=battle: battles: 1 played: ['ran'] code=0
+[AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-RUN] child exit code=0 elapsed=10.2s killed=False
+[AI-RUN] verdict file: verdict=CLEAN exit_reason=battle: battles: 1 played: ['ran'] exit_code=0 pid=10200 package_is_the_gated_one=True

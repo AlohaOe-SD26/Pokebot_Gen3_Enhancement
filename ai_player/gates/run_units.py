@@ -56,7 +56,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--suites", default=",".join(SUITES))
     parser.add_argument("--evidence", type=Path)
-    parser.add_argument("--title", default="AI PLAYER BUILD STEP 4.1 ROUND 3 - THE STATIC GATE AND THE UNIT SUITES")
+    # (build step 5.1, the step-5 verifier: the step-5 UNITS evidence carried step 4.1's title) the title names the step
+    parser.add_argument("--title", default="AI PLAYER BUILD STEP 5.1 - THE STATIC GATE AND THE UNIT SUITES")
     args = parser.parse_args()
     wanted = [s.strip() for s in args.suites.split(",") if s.strip()]
     unknown = [s for s in wanted if s not in SUITES]

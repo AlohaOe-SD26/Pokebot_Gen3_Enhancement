@@ -53,6 +53,7 @@ __all__ = [
     "ENV_FAULT_NO_HINTS",
     "ENV_FAULT_NO_REBIND",
     "ENV_FAULT_NO_TRAINING",
+    "ENV_FAULT_NO_ERRANDS",
     "ENV_FAULT_RAISE",
     "ENV_FAULT_SKIP_RESTORE",
     "ENV_FAULT_UNGATED_A",
@@ -225,6 +226,10 @@ ENV_STARTER = "AI_PLAYER_STARTER"
 ENV_FAULT_NO_HINTS = "AI_PLAYER_FAULT_NO_HINTS"
 #: FAULT (build step 5): no training before a known fight (the TRAIN arm: the rival's win rate measured without it).
 ENV_FAULT_NO_TRAINING = "AI_PLAYER_FAULT_NO_TRAINING"
+#: FAULT (build step 5.1): the BEELINE control: no look-around errand, no detour, no stop on a new map, no chat, no catching
+#: roam (`brain/goals.py` errands_off): the ERRANDS_OFF arm the intent mix, the seed divergence and the no-speedrun bound
+#: must tell apart from the real code.
+ENV_FAULT_NO_ERRANDS = "AI_PLAYER_FAULT_NO_ERRANDS"
 
 #: Every fault and control switch (the launcher prints the ones that are set).
 ALL_SWITCHES = (
@@ -233,6 +238,7 @@ ALL_SWITCHES = (
     ENV_FAULT_IGNORE_TYPES, ENV_FAULT_IGNORE_RECOIL, ENV_FAULT_UNCAPPED_RECOIL, ENV_FAULT_FORGET_FIELD,
     ENV_FAULT_IGNORE_REFUSAL, ENV_FAULT_OVERKILL, ENV_FAULT_SHIFT_FAINTED, ENV_FAULT_FORGET_UNUSABLE,
     ENV_FAULT_NO_CATCH_STATUS, ENV_FAULT_IGNORE_PP, ENV_FAULT_FORGET_SHIFT, ENV_FAULT_NO_HINTS, ENV_FAULT_NO_TRAINING,
+    ENV_FAULT_NO_ERRANDS,
 )
 
 DEFAULT_FRAMES = 3000
@@ -361,6 +367,8 @@ class HandsOptions:
     starter: str | None = None
     fault_no_hints: bool = False
     fault_no_training: bool = False
+    # BUILD STEP 5.1
+    fault_no_errands: bool = False
 
     @classmethod
     def from_env(cls) -> "HandsOptions":
@@ -425,6 +433,7 @@ class HandsOptions:
             starter=os.environ.get(ENV_STARTER, "").strip().upper() or None,
             fault_no_hints=_flag(ENV_FAULT_NO_HINTS),
             fault_no_training=_flag(ENV_FAULT_NO_TRAINING),
+            fault_no_errands=_flag(ENV_FAULT_NO_ERRANDS),
         )
 
 

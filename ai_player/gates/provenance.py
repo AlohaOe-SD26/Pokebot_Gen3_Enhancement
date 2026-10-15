@@ -4,6 +4,9 @@
     py -3.12 ai_player/gates/provenance.py --check-evidence
                                                   (the step-3.1 verifier's second round) every evidence file at the top of
                                                   ai_player/evidence/ names THIS tree's digest (exit 0), or which do not
+    py -3.12 ai_player/gates/provenance.py --snapshot          (the step-5.1 verifier's second round) keep this tree in
+                                                  ai_player/evidence/trees/<digest>.zip (the graded drivers do it themselves)
+    py -3.12 ai_player/gates/provenance.py --compare A B       the files two kept trees (digests or zip paths) differ in
 
 WHY (the step-2 review, item 2): the seed-9 replication was run on code that changed afterwards, and its evidence
 said only "HEAD 9f859914; ai_player/ has UNCOMMITTED changes": every uncommitted tree printed the SAME line, so
@@ -132,6 +135,60 @@ def keep_earlier(path: Path, current: str | None = None, folder: Path = EVIDENCE
     return target
 
 
+#: (the step-5.1 verifier's second round: "the claim that dee96b and a883634 differ only in gates and comments cannot be
+#: checked independently, because the dee96b tree was not kept") every graded driver KEEPS the tree it ran on: its diff
+#: against HEAD and the untracked files the digest covers, in `evidence/trees/<digest>.zip` (`snapshot_tree`; the archive
+#: policy's tools never touch this folder); `--compare A B` lists the files two kept trees differ in, each zip's digest
+#: recomputed from its own contents first.
+TREES = EVIDENCE / "trees"
+
+
+def snapshot_tree(repo: Path = REPO, folder: Path | None = None) -> Path | None:
+    """Keep this tree (`TREES`): `HEAD`, `diff.patch` and `untracked/<path>` in `<digest>.zip`, once per digest. Returns
+    the zip's path (None if git could not be read: the run goes on, its code line says why)."""
+    import zipfile
+
+    folder = folder or TREES
+    try:
+        head, diff, untracked, _ = read_tree(repo)
+    except Exception:  # noqa: BLE001 - a driver must not fail on its record-keeping
+        return None
+    target = folder / f"{tree_digest(diff, untracked)[:16]}.zip"
+    if target.is_file():
+        return target
+    folder.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as kept:
+        kept.writestr("HEAD", head)
+        kept.writestr("diff.patch", diff)
+        for name, data in sorted(untracked.items()):
+            kept.writestr(f"untracked/{name}", data)
+    return target
+
+
+def tree_files(path: Path) -> tuple[str, dict[str, bytes]]:
+    """A kept tree: (its digest recomputed from the zip's own contents, path -> its diff section or untracked bytes)."""
+    import re
+    import zipfile
+
+    with zipfile.ZipFile(path) as kept:
+        diff = kept.read("diff.patch")
+        untracked = {name[len("untracked/"):]: kept.read(name) for name in kept.namelist() if name.startswith("untracked/")}
+    files: dict[str, bytes] = {}
+    for section in re.split(rb"(?m)^(?=diff --git )", diff):
+        found = re.match(rb"diff --git a/(\S+) b/", section)
+        if found:
+            files[found.group(1).decode("utf-8", "replace")] = section
+    files.update(untracked)
+    return tree_digest(diff, untracked)[:16], files
+
+
+def compare_trees(a: Path, b: Path) -> tuple[str, str, list[str]]:
+    """(a's digest, b's digest, the files whose change against HEAD differs between the two kept trees)."""
+    digest_a, files_a = tree_files(a)
+    digest_b, files_b = tree_files(b)
+    return digest_a, digest_b, sorted(n for n in set(files_a) | set(files_b) if files_a.get(n) != files_b.get(n))
+
+
 def check_evidence(folder: Path = EVIDENCE, repo: Path = REPO) -> tuple[bool, str]:
     """(ok, report): every top-level evidence file names the CURRENT tree's digest."""
     current = provenance(repo)
@@ -153,6 +210,16 @@ def main() -> int:
         ok, report = check_evidence()
         print(f"EVIDENCE: {report} -> {'PASS' if ok else 'FAIL'}")
         return 0 if ok else 1
+    if "--snapshot" in sys.argv[1:]:
+        print(f"TREE kept: {snapshot_tree()}")
+        return 0
+    if "--compare" in sys.argv[1:]:
+        at = sys.argv.index("--compare")
+        a, b = (Path(p) if Path(p).suffix == ".zip" else TREES / f"{p}.zip" for p in sys.argv[at + 1:at + 3])
+        digest_a, digest_b, files = compare_trees(a, b)
+        print(f"TREES {a.name} (recomputed {digest_a}) and {b.name} (recomputed {digest_b}) differ in {len(files)} "
+              f"files: {files}")
+        return 0
     print(f"live_step1.py, live_step2.py: {provenance()}")
     print(f"live_step0.py: {provenance(scope=HOOK_SCOPE, label='ai_player/ + hook')}")
     return 0

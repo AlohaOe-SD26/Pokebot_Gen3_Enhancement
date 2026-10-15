@@ -38000,3 +38000,44 @@ bought balls only at fixed story points.
     - The training target's `max()` is untested.
     - Some milestone lines say "done" on a waypoint pass.
     - A battle line says it "WANTS" a species before it has balls.
+
+## 2026-10-15 — AI player step 5.1: human pacing (no screen-wait stalls, by a PROPERTY check read two ways), exploring instead of beelining, patience on real progress, person-fair errands; the Chapter 3-4 recon; USER RULING 38 (the learner at 8 lanes)
+
+- **Built (workflow: build, verifier, 2 fix rounds, ONE full regression, review):**
+  - **The two stalls are fixed.** The starter's yes/no is answered on screen, and the screen settles after a map change before a goal is chosen.
+  - **A STALL PROPERTY check** (`hands/waiting.py` WaitWatch, plus the game-side `play_harness.WaitRecorder`). It grades the longest time a screen waited for a press with none, under any reason.
+  - **Exploring:** look-around, detours, item curiosity and chats, weighted by personality, with a balance of errand time.
+  - **Patience** resets on real progress (battles won while training, a level, a new map, a catch, an item, a heal).
+  - **Person-fair:**
+    - the scripted rival's-house `use` step is gone;
+    - each step's map needs its own heard words or a visit;
+    - fight levels only for fights the game names;
+    - marts by their list;
+    - home healing from MOM's words;
+    - the gym recognised by its door tile.
+  - **Loops:** story goals get a cooldown, and the gym trainers are optional in the data.
+  - **Chapter 2 joined the sweep** (CH2, CH2_OFF), each run starting from its own chapter-1 end.
+- **Proven on tree `d3d34871df0ac077` (game reads; held-out seeds 801-820, 213 runs; `rate_step5` `VERDICT: PASS`):**
+  - **CH1:** the POKéDEX 20/20; the rival beaten at the first try 20/20; whiteouts 0. Curiosity the story did not need was 7.1-18.2 % of frames in every run, against 0.0 in the beeline control (20/20).
+  - **CH2:** WALLY's tutorial 20/20. The beeline control's chapter 2 falls under the intent-mix floor in 19/20. Chapter 2 takes 1.403x the beeline's time, and the AI was slower in 20/20 paired seeds.
+  - **Stalls:** the longest screen wait was AI 150 frames / game 180 frames, and the two readings agree in 213/213 runs. The planted stalls are caught: STALL1 16/20, STALL2 9/20, STALL3 7/7.
+  - **Patience:** PATIENCE reached 7/7, while PATIENCE_OLD (the step-5 rule) stopped 7/7 mid-training. NOTRAIN is 1.5 levels lower.
+  - **Other suites:** `live_step5` six arms PASS (CH1T/CH1C/CH1M, CH2/CH2T/CH2M); `revert_step5` 137/137; `test_goals` 136 OK.
+  - **Regression:** the full regression of steps 0-5 passed.
+    - `provenance --check-evidence` PASS, 200/200, after the three older trees were retired.
+    - Two step-0 files (G, M6) were moved to `archive/no-digest/`: their code line sits past the 12 lines `provenance.evidence_digests` reads. The checker fix is open.
+  - **A FAILED graded pass was KEPT** (`archive/d0c949e96d355afe/`, seed 706 under the chapter-2 floor), fixed (G137, G138) and re-graded on NEW seeds.
+- **OPEN -> step 5.2 (the 5.1 review, `07` here):**
+  1. **It LOAFS now.** When the errand-time quota is short it forces errands that yield nothing. CH1M pushed about 7,500 frames against an NPC-blocked exit; CH2M spent 8,400 frames on look-rounds that found 1 tile.
+  2. **The quota bypasses the dice and sits just above the grader's floor,** so the floor measures the AI's own target.
+  3. **Detours are cosmetic:** "looked at" is printed when the target was not reached.
+  4. **The beeline A/Bs cannot fail:** errands are removed in code.
+  5. **The stall check cannot see pushing against a blocker.**
+  6. **Small:** a known town called "new"; the `ask` step walks to its own house.
+  - Also: the live arms are replays (one trajectory each); MAX_LOSSES has never been reached unaltered; chapters 3-4 have never been played.
+- **Chapter 3-4 recon (read-only; `ai-research-notes/2026-10-15-ch34-recon/`, a NOTE):** six angles (decomp, human play plus one Gemini enumeration, our code gaps, the bot's teaching, static maps, a lessons draft), a synthesis (`00-RECON-NOTE.md`), and two adversarial verifiers (`07` about 190 decomp claims, `08` code gaps).
+  - **The run-stopper:** `goals.py` treats PETALBURG_WOODS as an interior, but the woods are the ONLY link between Route 104's halves. Any decision inside the woods sends the AI back south.
+  - **Data and proof traps:** MARC is missing from `milestones.json`. Beating ROXANNE sets all three gym trainers' flags. The badge flag is set before her TM39 text ends.
+  - **Double battles:** the Route 104 twins and gym tile (1,9) start one, but only with 2 usable Pokemon.
+  - **The draft pre-registration** would let a beeline pass. Its two woods "witnesses" are one script.
+- **USER RULING 38:** `ai-agent/config.json` `max_lanes` 16 -> 8 (`06`). The learner applies it at its first cycle after this push.

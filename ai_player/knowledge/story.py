@@ -48,12 +48,14 @@ class Look:
 @dataclass(frozen=True)
 class Step:
     """One thing a person DOES for a milestone: `go` to `map`, `use` a thing / `talk` to someone that looks like `look` on
-    `map`, `ask` the people of `map` until `words` are heard, `follow` a scene, or play the `intro`."""
+    `map`, `ask` the people of `map` until `words` are heard, `follow` a scene, or play the `intro`. `told` (build step
+    5.1): the words whose READING tells a person this step's map (its OWN words; None: a step only a visit makes known)."""
 
     do: str
     map: str | None = None
     look: str | None = None
     words: str | None = None
+    told: str | None = None
 
 
 @dataclass(frozen=True)
@@ -71,6 +73,11 @@ class Milestone:
     hint_map: str | None
     fight_levels: tuple[int, ...]  # the opponents' party levels (empty: no fight)
     waypoint: str | None
+    #: (build step 5.1) the fight is one the game NAMES to the player (the rival, a gym leader): its levels may be trained
+    #: for before it is seen; any other fight's levels are learned only when seen (`brain/goals.py` fight_levels)
+    fight_named: bool = False
+    #: (build step 5.1) not required for the story: never the current milestone (the gym's trainers)
+    optional: bool = False
 
     def done(self, marks: dict[str, int]) -> bool | None:
         """Every proof holds on the eyes' marks; None when a proof is not in the marks (not read)."""
@@ -116,9 +123,11 @@ class Story:
             variables=tuple((name, int(info["at_least"])) for name, info in done.get("variables", {}).items()),
             trainers=tuple(done.get("trainers", {})),
             maps=tuple(self.resolve(m) for m in raw.get("maps", [])),
-            steps=tuple(Step(s["do"], self.resolve(s.get("map")), s.get("look"), s.get("words")) for s in raw.get("steps", [])),
+            steps=tuple(Step(s["do"], self.resolve(s.get("map")), s.get("look"), s.get("words"), s.get("told"))
+                        for s in raw.get("steps", [])),
             hint_said=hint.get("said", ""), hint_words=hint.get("words"), hint_map=self.resolve(hint.get("map")),
-            fight_levels=tuple(fight.get("levels", ())), waypoint=raw.get("waypoint"))
+            fight_levels=tuple(fight.get("levels", ())), waypoint=raw.get("waypoint"),
+            fight_named=bool(fight.get("named")), optional=bool(raw.get("optional")))
 
     def index(self, milestone_id: str) -> int:
         for number, milestone in enumerate(self.milestones):
@@ -130,6 +139,8 @@ class Story:
         """The FIRST milestone in order not done (and its index); (len, None) when every one is. A milestone whose proof
         was not read counts as not done (the AI does not assume progress it cannot see)."""
         for number, milestone in enumerate(self.milestones):
+            if milestone.optional:
+                continue  # (build step 5.1) not required: never the current one
             if milestone.done(marks) is not True:
                 return number, milestone
         return len(self.milestones), None

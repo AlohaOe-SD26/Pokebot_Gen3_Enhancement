@@ -1,0 +1,103 @@
+AI PLAYER BUILD STEP 0.1 - LIVE PROOF - ARM XR: the XP plant WITHOUT --allow-ungated: the launcher must refuse
+date: 2026-10-15 03:01:09
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step0-fixture --frames 3000 --wall-seconds 240 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261015-030101-XR --state C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\oldale.ss1
+package run: a TEMPORARY copy of the package (deleted after the run)
+env switches: none
+seed: fixture tools/story-dev/saves/oldale.ss1 md5=df2d885f29e8aaefbacd2cb2d854c93a
+code: HEAD b029673d; ai_player/ + hook has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d3d34871df0ac077 over git diff HEAD (21 files, 481617 bytes) and 1 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+exit code: 7   elapsed: 3.1s
+run dir (chosen by the driver): C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step0-fixture\ai_player_runs\20261015-030101-XR
+VERDICT: PASS
+checks (pre-registered in ai_player/gates/live_step0.py's docstring):
+  [PASS] the launcher's gate failed the planted copy: [AI-GATE] exit=1 verdict=FAIL package=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_XR_6cy9hn2b\ai_player
+  [PASS] and refused: [AI-GATE] refusing to launch: the purity gate failed on the package the framework would load (exit 7); fix the findings, or pass --allow-ungated for a fault arm
+  [PASS] exit code 7 (got 7)
+  [PASS] the framework was never started
+  [PASS] the AI never started
+  [PASS] no verdict file
+  [PASS] the refusal names the planted file
+
+---- the instrument's verdict file (purity.json): what the grade rests on ----
+(none)
+
+---- the plant (ai_player/_plant.py in the copy; host/session.py calls tick(step, self) every brain step) ----
+"""PLANTED by ai_player/gates/live_step0.py into a TEMPORARY COPY of the package. Never in the real one."""
+from modules.context import context
+
+__all__ = ["tick"]
+
+
+def tick(step: int, session=None) -> None:
+    if step % 8 == 0:
+        context.emulator._pressed_inputs |= 1  # press A through no door
+
+---- static gate run by the driver on the package that ran (exit 1) ----
+AI PLAYER PURITY GATE (offline AST)
+  play       41: __init__.py, _plant.py, memory_log.py, mode.py, options.py, personality.py, runlog.py, brain/__init__.py, brain/battle.py, brain/explore.py, brain/goals.py, brain/navigator.py, eyes/__init__.py, eyes/observation.py, eyes/party.py, eyes/screens.py, eyes/view.py, hands/__init__.py, hands/dialogue.py, hands/menus.py, hands/pad.py, hands/waiting.py, host/__init__.py, host/controller.py, host/eyes.py, host/isolation.py, host/lifecycle.py, host/session.py, knowledge/__init__.py, knowledge/facts.py, knowledge/story.py, skills/__init__.py, skills/battle.py, skills/clock.py, skills/flee.py, skills/intro.py, skills/roam_train.py, skills/story.py, world/__init__.py, world/memory.py, <hook>
+  instrument 1: host/attribution.py
+  launcher   2: __main__.py, host/launcher.py
+  test side (not scanned for a/b/d/f): gates/__init__.py, gates/check_purity.py, gates/console_signal.py, gates/exit_looks.py, gates/extract_knowledge.py, gates/extract_milestones.py, gates/game_answer.py, gates/hands_harness.py, gates/inspect_state.py, gates/live_step0.py, gates/live_step1.py, gates/live_step2.py, gates/live_step3.py, gates/live_step4.py, gates/live_step5.py, gates/make_clock_fixture.py, gates/make_defeat_text_fixture.py, gates/make_mart_fixture.py, gates/make_step32_fixtures.py, gates/make_step3_fixtures.py, gates/make_step41_fixtures.py, gates/make_step4_fixtures.py, gates/make_trainer_fixture.py, gates/play_harness.py, gates/probe_eyes.py, gates/probe_presses.py, gates/probe_step11.py, gates/provenance.py, gates/prune_evidence.py, gates/rate_step3.py, gates/rate_step4.py, gates/rate_step5.py, gates/revert_step11.py, gates/revert_step2.py, gates/revert_step3.py, gates/revert_step4.py, gates/revert_step5.py, gates/run_units.py, gates/survey_party_moves.py, gates/test_battle.py, gates/test_check_purity.py, gates/test_evidence.py, gates/test_eyes.py, gates/test_goals.py, gates/test_hands.py, gates/test_host.py, gates/test_world.py, gates/verify_knowledge.py, gates/warp_reads.py, gates/window.py
+  framework top-level names: 17 (discovered in the build root)
+  libraries: 28 allowlisted, judged against Python 3.12.4 (cpython-312)
+  __pycache__: 0 current cache file(s) proven equal to their source; 0 of another interpreter not judged (it cannot load them)
+  instrument sha256: 4ba24f27f519d53b66d6e38119338b7ee7f46795554cb71f910b93845e9b0103 (pinned)
+  allowlisted framework imports found: 28
+  ok   ai_player/host/attribution.py:169 import modules.memory as framework_memory
+  ok   ai_player/host/attribution.py:170 from mgba import ffi
+  ok   ai_player/host/attribution.py:171 from modules.context import context
+  ok   ai_player/host/controller.py:23 from modules.context import context
+  ok   ai_player/host/eyes.py:103 from modules.battle_state import battle_is_active
+  ok   ai_player/host/eyes.py:103 from modules.battle_state import get_battle_state
+  ok   ai_player/host/eyes.py:104 from modules.context import context
+  ok   ai_player/host/eyes.py:105 from modules.game import get_symbol
+  ok   ai_player/host/eyes.py:105 from modules.game import get_symbol_name
+  ok   ai_player/host/eyes.py:106 from modules.items import get_item_bag
+  ok   ai_player/host/eyes.py:107 from modules.map import get_map_data_for_current_position
+  ok   ai_player/host/eyes.py:107 from modules.map import get_map_objects
+  ok   ai_player/host/eyes.py:108 from modules.map_data import get_map_enum
+  ok   ai_player/host/eyes.py:109 from modules.memory import get_event_flag
+  ok   ai_player/host/eyes.py:109 from modules.memory import get_game_state
+  ok   ai_player/host/eyes.py:109 from modules.memory import read_symbol
+  ok   ai_player/host/eyes.py:110 from modules.player import get_player
+  ok   ai_player/host/eyes.py:111 from modules.pokedex import get_pokedex
+  ok   ai_player/host/eyes.py:112 from modules.pokemon import get_move_by_index
+  ok   ai_player/host/eyes.py:112 from modules.pokemon import get_species_by_index
+  ok   ai_player/host/eyes.py:113 from modules.tasks import get_global_script_context
+  ok   ai_player/host/eyes.py:113 from modules.tasks import get_tasks
+  ok   ai_player/host/isolation.py:44 import modules.main as framework_main
+  ok   ai_player/host/isolation.py:45 from modules.context import context
+  ok   ai_player/host/isolation.py:46 from modules.modes._interface import BotListener
+  ok   ai_player/host/session.py:59 from modules.context import context
+  ok   <hook> ai_player_mode.py:41 from modules.context import context
+  ok   <hook> ai_player_mode.py:42 from modules.modes._interface import BotMode
+  host exports (__all__), pinned by rule g:
+    host/__init__.py: (empty)
+    host/attribution.py: Attribution, Guarded, PurityCounters, Sealed, seal_module
+    host/controller.py: BUTTONS, MAX_ACTION_FRAMES, Controller, ControllerError
+    host/eyes.py: MAP_OFFSET, FrameworkEyes
+    host/isolation.py: GuardListener, ListenerIsolation, describe
+    host/launcher.py: ENV_BUILD_ROOT, GATE_REFUSED_EXIT, NO_VERDICT_EXIT, PROFILE_MARKER, UNTRUSTED_ENV, WALL_CLOCK_EXIT, ChildResult, GateRun, LaunchError, bot_command, check_package_resolution, child_env, ensure_profile, force_http_off, hook_path, kill_tree, package_root, read_verdict, resolve_build_root, run_child, run_gate, seed_profile, soft_deadline_margin
+    host/lifecycle.py: EXIT_BRAIN_RETURNED, EXIT_CRASH, EXIT_FRAME_BUDGET, EXIT_INTERRUPTED, EXIT_OK, EXIT_PARKED, EXIT_PURITY_BREACH, EXIT_REFUSED, EXIT_WALL_CLOCK, Lifecycle
+    host/session.py: Session, start_session
+  VIOLATIONS: 3
+  FAIL ai_player/_plant.py:2 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+  FAIL ai_player/_plant.py:9 [d] uses the private attribute `._pressed_inputs` of another object (only `self._x`)
+  FAIL ai_player/_plant.py:9 [f] assigns to `._pressed_inputs` of the imported `context`: changing another module's object changes code that module (or the framework) runs
+VERDICT: FAIL
+
+---- evidence lines (the [AI-*] / [SIGNAL] / [PLANT] lines from stdout) ----
+[AI-GATE] exit=1 verdict=FAIL package=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_XR_6cy9hn2b\ai_player
+[AI-GATE] FAIL ai_player/_plant.py:2 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:9 [d] uses the private attribute `._pressed_inputs` of another object (only `self._x`)
+[AI-GATE] FAIL ai_player/_plant.py:9 [f] assigns to `._pressed_inputs` of the imported `context`: changing another module's object changes code that module (or the framework) runs
+[AI-GATE] refusing to launch: the purity gate failed on the package the framework would load (exit 7); fix the findings, or pass --allow-ungated for a fault arm
+
+---- stdout (full) ----
+[AI-GATE] exit=1 verdict=FAIL package=C:\Users\Ripto\AppData\Local\Temp\ai_player_plant_XR_6cy9hn2b\ai_player
+[AI-GATE] FAIL ai_player/_plant.py:2 [a] `from modules.context import context` is a framework import that is not on any allowlist for this file
+[AI-GATE] FAIL ai_player/_plant.py:9 [d] uses the private attribute `._pressed_inputs` of another object (only `self._x`)
+[AI-GATE] FAIL ai_player/_plant.py:9 [f] assigns to `._pressed_inputs` of the imported `context`: changing another module's object changes code that module (or the framework) runs
+[AI-GATE] refusing to launch: the purity gate failed on the package the framework would load (exit 7); fix the findings, or pass --allow-ungated for a fault arm
+
+---- ai_player.log (the AI's own log file) ----
+(none)

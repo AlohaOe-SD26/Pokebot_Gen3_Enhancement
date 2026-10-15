@@ -700,6 +700,10 @@ class Navigator:
         #: BUILD STEP 5: who plays ANOTHER menu a scene raises, `on_menu(kind, why)` -> a generator returning True when it
         #: was played (PROF. BIRCH's bag: `choose_starter`). None (the earlier brains): the intent stops, as before.
         self.on_menu: Callable[[str, str], Generator[None, None, bool]] | None = None
+        #: BUILD STEP 5.1: tiles a scene sent the player back from in EARLIER intents (map key -> tiles), which an intent
+        #: starts from instead of nothing (`run`): the play brain carries them from goal to goal within one milestone
+        #: (`brain/goals.py` GoalRunner.pursue). None (every earlier brain): each intent starts with none, as before.
+        self.carried_scene_walls: dict[str, set[tuple[int, int]]] | None = None
         #: BUILD STEP 5: every battle the battler played, as (the frame it began, its kind "wild" / "trainer" as the eyes
         #: first showed it DURING the battle, its outcome): what the goal manager counts as training and the play brain as
         #: battles lost (`brain/goals.py` battles_lost)
@@ -1108,6 +1112,8 @@ class Navigator:
         self.excluded = {}
         self.scene_hits = {}
         self.scene_spots, self.scene_walls, self.scene_said = {}, {}, {}
+        if self.carried_scene_walls:
+            self.scene_walls = {key: set(tiles) for key, tiles in self.carried_scene_walls.items()}
         self.plan, self.planned_for = None, None
         self.carries = 0
         self.people_tries = {}

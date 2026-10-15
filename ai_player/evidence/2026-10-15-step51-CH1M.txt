@@ -1,0 +1,139 @@
+AI PLAYER BUILD STEP 5.1 (THE STORY, HUMAN-LIKE) - LIVE PROOF - ARM CH1M: chapter 1 from a real New Game, MUDKIP, Trainer: the POKéDEX, having trained before the rival
+date: 2026-10-15 06:02:01
+code: HEAD b029673d; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d3d34871df0ac077 over git diff HEAD (21 files, 481617 bytes) and 1 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+start: a real New Game (--fresh)
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step5-play --frames 330000 --wall-seconds 3600 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step5-play\ai_player_runs\20261015-055241-CH1M --fresh
+env: AI_PLAYER_BRAIN=play AI_PLAYER_CLOCK=10:00 AI_PLAYER_PERSONALITY=Trainer AI_PLAYER_SEED=13 AI_PLAYER_STARTER=MUDKIP AI_PLAYER_TARGET=ch1_pokedex
+exit code: 0   elapsed: 558.5s   run dir: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step5-play\ai_player_runs\20261015-055241-CH1M
+VERDICT: PASS
+checks (pre-registered in ai_player/gates/live_step5.py's docstring and PREDICTED; each quotes both values):
+  [PASS] the launcher gated the real package: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] verdict file: verdict=CLEAN (want CLEAN)
+  [PASS] ai_presses=7174 (the instrument, at the emulator's door: hold_button + release_button) == 2 x the AI pad's own count 3587 ([AI-HANDS] outcome='done: ch1_pokedex reached' presses=3587 frames=170501 looks=107442 records=7342), and > 0
+  [PASS] the AI pad's own frame count 170501 == the instrument's real_frames 170501 (every frame the AI let pass is a frame the main loop ran, and no other)
+  [PASS] every breach counter 0, incl. foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_bot_calls=0 (non-zero: none)
+  [PASS] ended by itself: exit_reason='play: done: ch1_pokedex reached' exit_code=0 process=0 real_frames=170501 (budget 330000)
+  [PASS] the brain's outcome: 'play: done: ch1_pokedex reached' (want play: 'done: ch1_pokedex reached')
+  [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] the state graded is the one THIS run wrote: written 558.3s after the run started; frame 170501 == start 0 + 170501 real frames (+-5); md5 376b7a593a9c2b65a3c07c052d2001d7 (start -: a fresh boot)
+  [PASS] 3587 presses in the action log, every one with its gate (without: 0)
+  [PASS] EVERY A press is a WAIT, a MENU confirm or a TALK by its look: {'menu': 157, 'talk': 17, 'wait': 281}, the menus {'battle_action': 67, 'battle_move': 58, 'choose_starter': 1, 'clock reads 10:00, the time wanted': 1, 'gender': 1, 'keyboard:': 4, "keyboard: the text reads 'Milo' and the cursor is on OK": 1, 'main_menu': 1, 'mart_buy': 2, 'mart_menu': 8, 'mart_quantity reads x2, the number wanted': 2, 'yes_no': 11}; any other: none
+  [PASS] no press without the eyes asked (a 'NONE' gate): 0
+  [PASS] 1444 stretches standing still, NONE under the catch-all 'watching: the game is busy': none
+  [PASS] NEVER WITHOUT A GOAL: 42 goals chosen, each with its reason (without: 0); kinds {'chat': 5, 'detour': 3, 'explore': 4, 'find': 1, 'go': 13, 'heal': 3, 'look_around': 1, 'pick_up': 1, 'shop': 2, 'talk': 4, 'train': 3, 'use': 2}
+  [PASS] THE STALL PROPERTY (its record of every look): the longest a screen waited for a press with none 150 frames (bound under 300, whatever the reason); 237 stretches of 60 or more; over the bound: none; its end record {'stretches': 509, 'longest': 150, 'longest_at': 2534, 'longest_what': 'a text waits for a press (text printer 0 CLEAR)', 'noted': 237}
+  [PASS] EVERY GO GOAL WITH A MAP CAME AFTER THE PAGE THAT TOLD IT (its read records, and the 0 pages of the run it continues): off none
+  [PASS] THE INTENT MIX: 64.2% of the goals' frames on errands (bound >= 30%: a floor on needs and curiosity together, which a beeline meets too in chapter 1), 21 of 42 goals; frames by kind {'chat': 4631, 'detour': 2049, 'explore': 14126, 'find': 1636, 'go': 26973, 'heal': 7090, 'look_around': 625, 'pick_up': 3800, 'shop': 5785, 'talk': 8814, 'train': 56785, 'use': 8496}; the story's own curiosity goals (counted as the story's) [(28299, 'pick_up', 3800)]; between goals (no goal's: scenes) 20256 frames; reported: 56.2% with those counted as the story's time
+  [PASS] CURIOSITY THE STORY DID NOT NEED: 14.8% of the goals' frames (20806 frames; bound >= 2%), the story's own curiosity goals not counted [(28299, 'pick_up', 3800)]
+  [PASS] A NEW PLACE IS NEW: every look-around draw (3: ['LITTLEROOT_TOWN', 'OLDALE_TOWN', 'ROUTE101']) names a map the world memory it started from had not stood on (0 known at the start: a New Game); a known one called new: none
+  [PASS] A STORY GOAL PUT ASIDE COMES BACK: its streaks of asides (goal, first frame, frames, asides) none (not exercised in this run) (each <= 10800 frames); over it: none
+  [PASS] BOUNDED: 170501 real frames <= the pre-registered 300000
+  [PASS] THE GAME (save block 1, the harness's own read): {'RECEIVED_POKEDEX_FROM_BIRCH': 1, 'SYS_POKEDEX_GET': 1, 'ADVENTURE_STARTED': 1, 'DEFEATED_RIVAL_ROUTE103': 1, 'SET_WALL_CLOCK': 1, 'RESCUED_BIRCH': 1, 'SYS_POKEMON_GET': 1}
+  [PASS] THE GAME (save block 2): name 'Milo' gender BOY == the intro's intent 'Milo' BOY (recomputed from personality.py for seed 13)
+  [PASS] THE GAME (the framework's party decoder): the first Pokemon ['a9388bd8', 'Mudkip', 580, 10] is the MUDKIP the run named, its OT 21387 == the player's 21387
+  [PASS] THE GAME (the bag): POKé BALLS {'POKé BALL': 5} (the rival's 5 after the POKéDEX)
+  [PASS] TRAINED BEFORE THE RIVAL (its log: its 3 TRAINING roam(s) for the rival, before its rival milestone at f159117): 251 training steps in them, the stopped ones included (>= 135), and 19 wild battles WON inside them (>= 3; of 19 met there). Reported, not a training check: between its starter milestone at f41084 and the rival, {'ran': 9, 'won': 21} of the 30 wild battles there; 31 met before the rival in all
+  [PASS] THE REST RULE (its log): battles a roam played after one that ended under the personality's heal_below: 0 [] (bound 0), over 2 such ends; roams stopped by a rest 2
+  [PASS] ITS END LINE'S LOSSES (0) == the battles its log records as lost (0: []) == the play loop's told losses (0: [])
+  [PASS] ITS END LINE'S TRAINING (ch1_rival_route103: {'steps': 251, 'sessions': 3, 'wild': 19, 'won': 19, 'rests': 2, 'ready': True, 'why_ready': 'trained', 'judged_by': 'Catcher', 'min_steps': 100}) == its log's wild battles in its training roams for it: met 19, won 19 (and more than 0: the count the verifier found always 0)
+  [PASS] THE GAME AGREES WITH ITS COUNT: its told wild battles in all 31 == GAME_STAT_WILD_BATTLES 31 (the harness's own read of save block 1's counters)
+  [PASS] ROAMING, NOT SPINNING: 0 spins over 251 training steps = 0.0000 (at most 5 spins in a run; the CH1 arms together under 2 %: the overall line)
+measures: {"await_max": 150, "intent_mix": {"frames": {"chat": 4631, "detour": 2049, "explore": 14126, "find": 1636, "go": 26973, "heal": 7090, "look_around": 625, "pick_up": 3800, "shop": 5785, "talk": 8814, "train": 56785, "use": 8496}, "errand_share": 0.6425, "errand_share_with_scenes": 0.5617, "errand_frames": 90466, "curiosity_share": 0.1747, "free_share": 0.1478, "free_frames": 20806, "story_own": [[28299, "pick_up", 3800]], "errand_goals": 21, "goals": 42, "between_goals": 20256, "kinds": ["chat", "detour", "explore", "heal", "pick_up", "shop", "train"]}, "asides": [], "frames": 170501, "goals": {"chat": 5, "detour": 3, "explore": 4, "find": 1, "go": 13, "heal": 3, "look_around": 1, "pick_up": 1, "shop": 2, "talk": 4, "train": 3, "use": 2}, "rest_breaches": 0, "rest_occasions": 2, "rests": 2, "rival_frame": 159117, "train_steps_before": 251, "wild_before": 31, "wild_won_training": 19, "wild_met_training": 19, "wild_won_starter_to_rival": 21, "wild_total": 31, "spin_ratio": 0.0, "spins": 0, "roam_steps": 251, "game_stats": {"steps": 1493, "total_battles": 32, "wild_battles": 31, "trainer_battles": 1, "captures": 0, "used_pokecenter": 4, "rested_at_home": 0}}
+the AI's milestones (its told lines; the GAME's proofs are the checks above):
+  [AI-GOALS] MILESTONE ch1_intro passed as a WAYPOINT (it stood on INSIDE_OF_TRUCK; its save proofs do not hold yet) at f8569 (A New Game: name, gender, the moving truck): VAR_LITTLEROOT_INTRO_STATE=0 (>= 1)
+  [AI-GOALS] MILESTONE ch1_truck done at f9642 (Off the moving truck into LITTLEROOT TOWN): VISITED_LITTLEROOT_TOWN=1
+  [AI-GOALS] MILESTONE ch1_mom done at f13693 (MOM shows the player into the new house): VAR_LITTLEROOT_INTRO_STATE=4 (>= 4)
+  [AI-GOALS] MILESTONE ch1_clock done at f16485 (Set the wall clock in the player's room): SET_WALL_CLOCK=1
+  [AI-GOALS] MILESTONE ch1_rival_house done at f32099 (Next door: meet the rival in the rival's house): VAR_LITTLEROOT_RIVAL_STATE=3 (>= 3)
+  [AI-GOALS] MILESTONE ch1_birch done at f41084 (Route 101: PROF. BIRCH chased by a wild POKéMON; open his bag): RESCUED_BIRCH=1
+  [AI-GOALS] MILESTONE ch1_starter done at f41084 (Choose a starter from the bag and win the first battle): SYS_POKEMON_GET=1, VAR_BIRCH_LAB_STATE=2 (>= 2)
+  [AI-GOALS] MILESTONE ch1_lab done at f45909 (In the lab: the starter is the player's, and Birch sends the player to the rival): VAR_BIRCH_LAB_STATE=3 (>= 3)
+  [AI-GOALS] MILESTONE ch1_rival_route103 done at f159117 (Find the rival on ROUTE 103 and win the battle): DEFEATED_RIVAL_ROUTE103=1
+  [AI-GOALS] MILESTONE ch1_pokedex done at f170501 (Back to the lab: the POKéDEX from PROF. BIRCH): RECEIVED_POKEDEX_FROM_BIRCH=1, SYS_POKEDEX_GET=1, ADVENTURE_STARTED=1
+  [AI-GOALS] MILESTONE ch2_oldale done at f170501 (OLDALE TOWN (its mart sells POKé BALLS once the adventure has started)): VISITED_OLDALE_TOWN=1
+the AI's goals (kind: reason), first 400:
+  f9435 chat: someone stands near at (0, 0): a person says hello now and then
+  f9471 go: Off the moving truck into LITTLEROOT TOWN: where to? nothing the game said names it, and it has not been there: exploring
+  f13693 go: Set the wall clock in the player's room: to LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (the game said: 'Milo, your room is upstairs. Go check it out, dear!')
+  f14059 use: Set the wall clock in the player's room: the new wall clock on the wall of the player's room at (5, 1)
+  f16485 go: Next door: meet the rival in the rival's house: where to? nobody has said yet (words 'next door' not heard): exploring
+  f19521 go: Next door: meet the rival in the rival's house: to LITTLEROOT_TOWN_MAYS_HOUSE_1F (the game said: 'He lives right next door, so you should go over and introduce yourself.')
+  f19793 explore: a new place, LITTLEROOT_TOWN: a person looks around it (draw 0.43 < the Trainer's 0.7) before going on
+  f23426 detour: on the way to LITTLEROOT_TOWN_MAYS_HOUSE_1F: a look at something off the way on LITTLEROOT_TOWN (draw 0.22 < the Trainer's 0.45)
+  f23650 go: Next door: meet the rival in the rival's house: to LITTLEROOT_TOWN_MAYS_HOUSE_1F (the game said: 'He lives right next door, so you should go over and introduce yourself.')
+  f26941 chat: someone stands near at (3, 8): a person says hello now and then
+  f27921 go: Next door: meet the rival in the rival's house: to LITTLEROOT_TOWN_MAYS_HOUSE_2F (the game said: 'Our daughter is upstairs, I think.')
+  f28299 pick_up: an item ball on the ground at (5, 4): a person picks it up
+  f32099 go: Route 101: PROF. BIRCH chased by a wild POKéMON; open his bag: where to? nobody has said yet (words 'BAG' not heard): exploring
+  f35014 use: Route 101: PROF. BIRCH chased by a wild POKéMON; open his bag: PROF. BIRCH's bag on the ground at (7, 14)
+  f45909 go: Find the rival on ROUTE 103 and win the battle: to ask at LITTLEROOT_TOWN_MAYS_HOUSE_1F where to go (a place it has been to; nothing was said)
+  f46639 talk: Find the rival on ROUTE 103 and win the battle: asking the people here ('ROUTE 103' not heard yet)
+  f47376 look_around: Find the rival on ROUTE 103 and win the battle: nobody here left to ask (round 1 of 2)
+  f48017 detour: on the way to LITTLEROOT_TOWN_MAYS_HOUSE_1F: a look at something off the way on ROUTE101 (draw 0.14 < the Trainer's 0.45)
+  f48288 go: Find the rival on ROUTE 103 and win the battle: to ask at LITTLEROOT_TOWN_MAYS_HOUSE_1F where to go (a place it has been to; nothing was said)
+  f48983 talk: Find the rival on ROUTE 103 and win the battle: asking the people here ('ROUTE 103' not heard yet)
+  f49969 train: the next fight (Find the rival on ROUTE 103 and win the battle) has levels [5] (a fight the game names): its strongest Pokemon is L5, the Trainer's target L8; 0 of at least 150 training steps roamed i
+  f63081 chat: someone stands near at (3, 13): a person says hello now and then
+  f64000 go: Find the rival on ROUTE 103 and win the battle: to ROUTE103 (the game said: 'Oh, MAY went out to ROUTE 103 just a little while ago.')
+  f79085 heal: the party is at 17% of its HP (under 45%): the POKéMON CENTER door it saw on OLDALE_TOWN at (6, 16)
+  f81598 shop: 0 POKé BALLS left (fewer than 5) and 3000 money: the MART door it saw on OLDALE_TOWN at (14, 6)
+  f84529 train: the next fight (Find the rival on ROUTE 103 and win the battle) has levels [5] (a fight the game names): its strongest Pokemon is L7, the Trainer's target L8; 30 of at least 150 training steps roamed 
+  f102967 heal: the party is at 41% of its HP (under 45%): the POKéMON CENTER it knows (OLDALE_TOWN_POKEMON_CENTER_1F)
+  f105350 train: the next fight (Find the rival on ROUTE 103 and win the battle) has levels [5] (a fight the game names): its strongest Pokemon is L8, the Trainer's target L8; 101 of at least 150 training steps roamed
+  f130585 explore: ROUTE101 some more (1% of this session's 84676 goal frames went to curiosity, under the Catcher's 12%): a break from the story, looking round where it is (1 of at most 2 here)
+  f134815 heal: the party is at 59% of its HP; a known fight is next: the POKéMON CENTER it knows (OLDALE_TOWN_POKEMON_CENTER_1F)
+  f137009 chat: someone stands near at (7, 2): a person says hello now and then (draw 0.34, but 6% of this session's 91100 goal frames went to curiosity, under the Catcher's 12%: a break from the story)
+  f138823 chat: someone stands near at (4, 4): a person says hello now and then
+  f139705 go: Find the rival on ROUTE 103 and win the battle: to ROUTE103 (the game said: 'Oh, MAY went out to ROUTE 103 just a little while ago.')
+  f140021 explore: a new place, OLDALE_TOWN: a person looks around it (draw 0.91, but 9% of this session's 94112 goal frames went to curiosity, under the Catcher's 12%: a break from the story) before going on
+  f143249 explore: OLDALE_TOWN some more (12% of this session's 97340 goal frames went to curiosity, under the Catcher's 12%): a break from the story, looking round where it is (1 of at most 2 here)
+  f146284 detour: on the way to ROUTE103: a look at something off the way on OLDALE_TOWN (draw 0.42 < the Catcher's 0.5)
+  f147838 go: Find the rival on ROUTE 103 and win the battle: to ROUTE103 (the game said: 'Oh, MAY went out to ROUTE 103 just a little while ago.')
+  f148264 find: Find the rival on ROUTE 103 and win the battle: looking for the rival (MAY or BRENDAN), met in the rival's room on ROUTE103
+  f149900 talk: Find the rival on ROUTE 103 and win the battle: the rival (MAY or BRENDAN), met in the rival's room at (10, 3)
+  f152054 talk: Find the rival on ROUTE 103 and win the battle: the rival (MAY or BRENDAN), met in the rival's room at (10, 3)
+  f159117 shop: 0 POKé BALLS left (fewer than 5) and 2700 money: the MART it knows (OLDALE_TOWN_MART)
+  f161971 go: Back to the lab: the POKéDEX from PROF. BIRCH: to LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB (the game said: 'Well, it’s time to head back to the LAB.')
+the end of the AI's log:
+  [AI-HEARTBEAT] frames=161000 ai_steps=160999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=6854 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HANDS] 0 POKé BALLS left (fewer than 5) and 2700 money: the MART it knows (OLDALE_TOWN_MART): 2 x POTION: done; POTION in the bag 2 -> 4, money 2700 -> 2100, listed price 300
+  [AI-HANDS] [AI-GOALS] no POKé BALLS on OLDALE_TOWN_MART's list: it will come back once the story has moved on
+  [AI-HANDS] [AI-GOALS] goal shop done: POKé BALL x5: POKé BALL is not for sale here: ('POTION', 'ANTIDOTE', 'PARLYZ HEAL', 'AWAKENING', 'CANCEL'); POTION x2: bought
+  [AI-HANDS] [AI-GOALS] progress: an item picked up or bought (1 -> 2): the story's patience counts from here (it had waited 2854 frames)
+  [AI-HANDS] [AI-GOALS] goal go: Back to the lab: the POKéDEX from PROF. BIRCH: to LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB (the game said: 'Well, it’s time to head back to the LAB.') (milestone ch1_pokedex, personality Trainer)
+  [AI-HEARTBEAT] frames=162000 ai_steps=161999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=6872 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-WORLD] intent 'travel to LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB': budget 9000 frames; on OLDALE_TOWN_MART at (1, 5); 5076 tiles known on 12 maps
+  [AI-WORLD] go to the route at (3, 6) then use it pressing down: it leads toward the goal (4 link(s) known) (score 97.8)
+  [AI-WORLD] MAP OLDALE_TOWN_MART -> OLDALE_TOWN at (14, 6): the warp at (3, 7) (the AI, f162189); 760 tiles of it known
+  [AI-WORLD] go to the route at (8, 20): the road down leads toward the goal (score 82.0)
+  [AI-HEARTBEAT] frames=163000 ai_steps=162999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=6968 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-WORLD] novelty at f163198: new words heard ('MAY: Milo! Over here!'): progress (the intent's clock f162356 -> f163198)
+  [AI-WORLD] a scene stopped the way to the route at (8, 20) (time 1 for this target)
+  [AI-WORLD] MAP OLDALE_TOWN -> ROUTE101 at (8, 0): the down edge from (8, 19) (the AI, f163206); 875 tiles of it known
+  [AI-WORLD] go to the route at (10, 21): the road down leads toward the goal (score 78.5)
+  [AI-WORLD] MAP ROUTE101 -> LITTLEROOT_TOWN at (10, 0): the warp at (10, 19) (the AI, f163581); 748 tiles of it known
+  [AI-WORLD] go to the route at (7, 17) then use it pressing up: it leads toward the goal (1 link(s) known) (score 81.4)
+  [AI-HEARTBEAT] frames=164000 ai_steps=163999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=7138 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-WORLD] MAP LITTLEROOT_TOWN -> LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB at (6, 12): the warp at (7, 16) (the AI, f164069); 300 tiles of it known
+  [AI-HANDS] [AI-GOALS] goal go done: done: travel to LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB (1468 steps, 0 bumps, 63 people in the way, 26 exits used, 32 battles, 45 scenes, 173 decisions (13 detours, 47 carried on); 12 maps, 5077 tiles learned)
+  [AI-HEARTBEAT] frames=165000 ai_steps=164999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=7142 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=166000 ai_steps=165999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=7148 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=167000 ai_steps=166999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=7154 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=168000 ai_steps=167999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=7160 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=169000 ai_steps=168999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=7166 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=170000 ai_steps=169999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=7170 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HANDS] [AI-GOALS] MILESTONE ch1_pokedex done at f170501 (Back to the lab: the POKéDEX from PROF. BIRCH): RECEIVED_POKEDEX_FROM_BIRCH=1, SYS_POKEDEX_GET=1, ADVENTURE_STARTED=1
+  [AI-HANDS] [AI-GOALS] MILESTONE ch2_oldale done at f170501 (OLDALE TOWN (its mart sells POKé BALLS once the adventure has started)): VISITED_OLDALE_TOWN=1
+  [AI-HANDS] [AI-GOALS] the story is at ch2_route102 (West of Oldale: ROUTE 102 and its trainers (open once the adventure has started)); proofs now: VISITED_PETALBURG_CITY=0
+  [AI-HANDS] [AI-GOALS] the end (done: ch1_pokedex reached); milestones ['ch1_intro', 'ch1_truck', 'ch1_mom', 'ch1_clock', 'ch1_rival_house', 'ch1_birch', 'ch1_starter', 'ch1_lab', 'ch1_rival_route103', 'ch1_pokedex', 'ch2_oldale']; before the fights {'ch1_rival_route103': {'steps': 251, 'sessions': 3, 'wild': 19, 'won': 19, 'rests': 2, 'ready': True, 'why_ready': 'trained', 'judged_by': 'Catcher', 
+  [AI-WORLD] memory at the end: 12 maps (INSIDE_OF_TRUCK 187 tiles 0 bumped, LITTLEROOT_TOWN 748 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 310 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 219 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 300 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 350 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 243 tiles 0 bumped, ROUTE101 875 tiles 0 bum
+  [AI-WORLD] navigator: 1468 steps, 0 bumps, 63 people in the way, 26 exits used, 32 battles, 47 scenes, 173 decisions (13 detours, 47 carried on); 12 maps, 5077 tiles learned
+  [AI-HANDS] outcome='done: ch1_pokedex reached' presses=3587 frames=170501 looks=107442 records=7342
+  [AI-HANDS] presses by gate: {'A:battle level-up stats box': 10, 'A:battle_action cursor on 0': 58, 'A:battle_action cursor on 3': 9, 'A:battle_move cursor on 0': 49, 'A:battle_move cursor on 1': 4, 'A:battle_move cursor on 2': 5, 'A:choose_starter cursor on 2': 1, 'A:clock reads 10': 1, 'A:gender cursor on 0': 1, 'A:keyboard': 5, 'A:main_menu cursor on 0': 1, 'A:mart_buy cursor on 0': 2, 'A:mart_m
+  [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=7174 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=170501 peek_restores=0 verdict=CLEAN
+  [AI-PURITY-ORIGINS] none
+  [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x210931a6d00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0
+  [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step5-play\ai_player_runs\20261015-055241-CH1M\purity.json
+  [AI-EXIT] reason=play: done: ch1_pokedex reached code=0
+verdict file: {"counters": {"ai_bot_calls": 0, "ai_loads": 0, "ai_presses": 7174, "ai_unrouted_presses": 0, "ai_writes": 0, "extra_frames": 0, "foreign_loads": 0, "foreign_presses": 0, "foreign_writes": 0, "instrument_errors": 0, "instrument_tampered": 0, "isolation_lost": 0, "peek_restores": 0, "ran_after_finish": 0, "real_frames": 170501, "unattributed_inputs": 0, "unattributed_state_changes": 0}, "facts": {"exit_code": 0, "exit_reason": "play: done: ch1_pokedex reached", "isolation": {"active": "n=1 types=[GuardListener] rebuild_door=AI", "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x210931a6d00", "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x210931a6d00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"}, "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"}, "finish": {"frame_in_flight": false, "main_thread": true, "thread": "MainThread"}, "origins": {}, "pid": 47996, "verdict": "CLEAN", "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"}
+second path at the end: {"name": "Milo", "gender_name": "BOY", "party_exp": [["a9388bd8", "Mudkip", 580, 10]], "party_ot": [["a9388bd8", 21387]], "balls": {"POKé BALL": 5}, "money": 2100, "map": [1, 4], "story": {"marks": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 0, "HIDE_PETALBURG_CITY_WALLYS_MOM": 0, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 1, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 0, "TRAINER_RICK": 0, "TRAINER_TIANA": 0, "TRAINER_ALLEN": 0, "TRAINER_GRUNT_PETALBURG_WOODS": 0, "TRAINER_ROXANNE_1": 0, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 0, "VAR_PETALBURG_WOODS_STATE": 0}, "stats": {"steps": 1493, "total_battles": 32, "wild_battles": 31, "trainer_battles": 1, "captures": 0, "used_pokecenter": 4, "rested_at_home": 0}, "items": {"FLAG_ITEM_PETALBURG_CITY_ETHER": 0, "FLAG_ITEM_PETALBURG_CITY_MAX_REVIVE": 0, "FLAG_ITEM_PETALBURG_WOODS_ETHER": 0, "FLAG_ITEM_PETALBURG_WOODS_GREAT_BALL": 0, "FLAG_ITEM_PETALBURG_WOODS_PARALYZE_HEAL": 0, "FLAG_ITEM_PETALBURG_WOODS_X_ATTACK": 0, "FLAG_ITEM_ROUTE_102_POTION": 0, "FLAG_ITEM_ROUTE_103_GUARD_SPEC": 0, "FLAG_ITEM_ROUTE_103_PP_UP": 0, "FLAG_ITEM_ROUTE_104_POKE_BALL": 0, "FLAG_ITEM_ROUTE_104_POTION": 0, "FLAG_ITEM_ROUTE_104_PP_UP": 0, "FLAG_ITEM_ROUTE_104_X_ACCURACY": 0, "FLAG_ITEM_RUSTBORO_CITY_X_DEFEND": 0}}}

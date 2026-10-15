@@ -78,6 +78,14 @@ class Pad:
         self.history: list[dict] = []  # every press: frame index, button, hold, gap, gate, why
         self._idle_reason: str | None = None
         self._idle_frames = 0
+        self._last_idle: str | None = None
+
+    @property
+    def doing(self) -> str | None:
+        """(build step 5.1) What the pad says it is doing while no button is pressed: the busy reason of the frames under
+        way, else the last idle's reason (reading, thinking). For the log only (`hands/waiting.py` names it beside a long
+        wait for a press); nothing decides by it."""
+        return self._idle_reason or self._last_idle
 
     # ------------------------------------------------------------------ presses
     def press(self, button: str, why: str, gate: str, hold: int | None = None) -> Generator[None, None, None]:
@@ -123,6 +131,7 @@ class Pad:
             return
         self._flush_idle()
         self._record("idle", f"idle {frames}f", reason, {"pad_frame": self.frames})
+        self._last_idle = reason
         yield from self._count(self._controls.wait(frames))
 
     def busy(self, reason: str) -> Generator[None, None, None]:

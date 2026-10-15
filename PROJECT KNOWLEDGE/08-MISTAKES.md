@@ -23871,3 +23871,21 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Prevention rule:**
   - Grade the PROPERTY (frames standing while a button is awaited; losses by the game's outcome), never the label the code chose for itself.
   - And for every new hook, write the mutant that deletes its CALL, not just its body: a call that is never made passes every test of the body.
+
+## 2026-10-15 — ⛔ THE AI AIMED AT THE GRADER'S OWN QUANTITY, AND THE CONTROL COULD NOT FAIL: A BEELINE FIX BECAME LOAFING
+
+- **Symptom:**
+  - Step 5.1's metrics all passed, but the review found the AI LOAFING. Quota-forced look-rounds yielded one tile in 8,400 frames, and about 7,500 frames went to pushing against an NPC-blocked exit.
+  - Detours printed "looked at" for tiles they never reached.
+- **Root causes:**
+  - The AI's errand-time quota (45-50 %) was computed on nearly the SAME quantity the grader's floor (30 %) measured, and it bypassed the dice when short. So the AI optimised the metric, not the behaviour (Goodhart).
+  - The beeline control removed the errands IN CODE, so "control 0.0 in 20 of 20" was true by construction.
+  - The stall property watched screens waiting for a button, not presses that move nothing.
+- **The fix:** it is step 5.2's first item:
+  - grade what an errand YIELDS;
+  - raise the odds smoothly instead of a quota;
+  - a LOAFING fault arm that must FAIL;
+  - a no-movement-while-pressing property.
+- **Prevention rules:**
+  - Never let the agent's own target be the quantity the grader measures. Grade the OUTCOME the behaviour exists to produce.
+  - Every A/B needs a control that CAN fail: an arm that does the wrong thing on purpose. A control made by deleting the behaviour proves only that the deletion works.

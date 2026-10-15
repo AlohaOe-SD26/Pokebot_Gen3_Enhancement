@@ -1,0 +1,101 @@
+AI PLAYER BUILD STEP 5.1 (THE STORY, HUMAN-LIKE) - LIVE PROOF - ARM CH2T: chapter 2 (stretch), a second trajectory: from the CH1T arm's own end, Story, seed 11
+date: 2026-10-14 21:04:41
+code: HEAD b029673d; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:dee96b6ddadb6b11 over git diff HEAD (18 files, 346079 bytes) and 1 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+start: the end state of arm CH1T: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step5-play\ai_player_runs\20261014-200507-CH1T\end_state.ss1
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step5-play --frames 330000 --wall-seconds 3600 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step5-play\ai_player_runs\20261014-205941-CH2T --state C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step5-play\ai_player_runs\20261014-200507-CH1T\end_state.ss1
+env: AI_PLAYER_BRAIN=play AI_PLAYER_CLOCK=10:00 AI_PLAYER_PERSONALITY=Story AI_PLAYER_SEED=11 AI_PLAYER_TARGET=ch2_wally
+exit code: 0   elapsed: 290.2s   run dir: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step5-play\ai_player_runs\20261014-205941-CH2T
+VERDICT: FAIL
+checks (pre-registered in ai_player/gates/live_step5.py's docstring and PREDICTED; each quotes both values):
+  [PASS] the launcher gated the real package: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] verdict file: verdict=CLEAN (want CLEAN)
+  [PASS] ai_presses=3586 (the instrument, at the emulator's door: hold_button + release_button) == 2 x the AI pad's own count 1793 ([AI-HANDS] outcome='done: ch2_wally reached' presses=1793 frames=90814 looks=57332 records=3591), and > 0
+  [PASS] the AI pad's own frame count 90814 == the instrument's real_frames 90814 (every frame the AI let pass is a frame the main loop ran, and no other)
+  [PASS] every breach counter 0, incl. foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_bot_calls=0 (non-zero: none)
+  [PASS] ended by itself: exit_reason='play: done: ch2_wally reached' exit_code=0 process=0 real_frames=90814 (budget 330000)
+  [PASS] the brain's outcome: 'play: done: ch2_wally reached' (want play: 'done: ch2_wally reached')
+  [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] the state graded is the one THIS run wrote: written 290.0s after the run started; frame 238846 == start 148032 + 90814 real frames (+-5); md5 0a4fe0a00a74221af6971baa723f5af9 (start a79aeb8b41130248caa63edab6336a49)
+  [PASS] 1793 presses in the action log, every one with its gate (without: 0)
+  [PASS] EVERY A press is a WAIT, a MENU confirm or a TALK by its look: {'menu': 55, 'talk': 7, 'wait': 160}, the menus {'bag': 1, 'bag_action': 1, 'battle_action': 20, 'battle_move': 18, 'battle_yes_no': 4, 'mart_buy': 2, 'mart_menu': 4, 'mart_quantity reads x2, the number wanted': 1, 'mart_quantity reads x5, the number wanted': 1, 'yes_no': 3}; any other: none
+  [PASS] no press without the eyes asked (a 'NONE' gate): 0
+  [PASS] 658 stretches standing still, NONE under the catch-all 'watching: the game is busy': none
+  [PASS] NEVER WITHOUT A GOAL: 14 goals chosen, each with its reason (without: 0); kinds {'chat': 3, 'explore': 1, 'go': 6, 'heal': 1, 'pick_up': 1, 'shop': 1, 'talk': 1}
+  [PASS] THE STALL PROPERTY (its record of every look): the longest a screen waited for a press with none 150 frames (bound under 300, whatever the reason); 140 stretches of 60 or more; over the bound: none; its end record {'stretches': 242, 'longest': 150, 'longest_at': 148610, 'longest_what': 'a text waits for a press (script waitbuttonpress)', 'noted': 140}
+  [PASS] EVERY GO GOAL WITH A MAP CAME AFTER THE PAGE THAT TOLD IT (its read records, and the 256 pages of the run it continues): off none
+  [FAIL] THE INTENT MIX: 28% of the goals' frames on errands (bound >= 30%: a floor on needs and curiosity together, which a beeline meets too), 7 of 14 goals; frames by kind {'chat': 12157, 'explore': 4788, 'go': 58364, 'heal': 3447, 'pick_up': 664, 'shop': 4753, 'talk': 6641}
+  [PASS] CURIOSITY THE STORY DID NOT NEED: 7.3% of the goals' frames (6590 frames; bound >= 2%), the story's own curiosity goals not counted [(227827, 'chat', 11019)]
+  [PASS] A NEW PLACE IS NEW: every look-around draw (2: ['PETALBURG_CITY', 'ROUTE102']) names a map the world memory it started from had not stood on (12 known at the start: ['INSIDE_OF_TRUCK', 'LITTLEROOT_TOWN', 'LITTLEROOT_TOWN_BRENDANS_HOUSE_1F', 'LITTLEROOT_TOWN_BRENDANS_HOUSE_2F', 'LITTLEROOT_TOWN_MAYS_HOUSE_1F', 'LITTLEROOT_TOWN_MAYS_HOUSE_2F', 'LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB', 'OLDALE_TOWN']); a known one called new: none
+  [PASS] A STORY GOAL PUT ASIDE COMES BACK: its streaks of asides (goal, first frame, frames, asides) none (not exercised in this run) (each <= 10800 frames); over it: none
+  [PASS] BOUNDED: 90814 real frames <= the pre-registered 300000
+  [PASS] THE GAME: WALLY's tutorial: HIDE_PETALBURG_CITY_WALLYS_MOM 1, VAR_PETALBURG_GYM_STATE 2 (>= 2)
+  [PASS] CAUGHT: GAME_STAT_POKEMON_CAPTURES +1 and 1 new PIDs with the player's OT 5248: [['e32810fe', 5248]] (>= 1)
+  [PASS] HEALED: GAME_STAT_USED_POKECENTER +1 (>= 1)
+  [PASS] ITEMS: item-ball flags newly set ['FLAG_ITEM_ROUTE_102_POTION'] (>= 0)
+  [PASS] THE REST RULE (its log): battles a roam played after one that ended under the personality's heal_below: 0 [] (bound 0), over 0 such ends; roams stopped by a rest 0
+  [PASS] ITS END LINE'S LOSSES (0) == the battles its log records as lost (0: []) == the play loop's told losses (0: [])
+  [PASS] SHOPPED (its told purchase): ['4 POKé BALLS left (fewer than 5) and 2356 money: the MART it knows (OLDALE_TOWN_MART): 5 x POKé BALL: done; POKé BALL in']; money 2100 -> 756, balls {'POKé BALL': 5} -> {'POKé BALL': 9}
+measures: {"await_max": 150, "intent_mix": {"frames": {"chat": 12157, "explore": 4788, "go": 58364, "heal": 3447, "pick_up": 664, "shop": 4753, "talk": 6641}, "errand_share": 0.2842, "curiosity_share": 0.1939, "free_share": 0.0726, "free_frames": 6590, "story_own": [[227827, "chat", 11019]], "errand_goals": 7, "goals": 14, "kinds": ["chat", "explore", "heal", "pick_up", "shop"]}, "asides": [], "frames": 90814, "goals": {"chat": 3, "explore": 1, "go": 6, "heal": 1, "pick_up": 1, "shop": 1, "talk": 1}, "rest_breaches": 0, "rest_occasions": 0, "rests": 0, "caught": 1, "heals": 1, "items": ["FLAG_ITEM_ROUTE_102_POTION"], "game_stats": {"steps": 1715, "total_battles": 34, "wild_battles": 29, "trainer_battles": 5, "captures": 1, "used_pokecenter": 4, "rested_at_home": 0}}
+the AI's milestones (its told lines; the GAME's proofs are the checks above):
+  [AI-GOALS] MILESTONE ch2_route102 passed as a WAYPOINT (it stood on ROUTE102; its save proofs do not hold yet) at f158315 (West of Oldale: ROUTE 102 and its trainers (open once the adventure has started)): VISITED_PETALBURG_CITY=0
+  [AI-GOALS] MILESTONE ch2_petalburg done at f186613 (PETALBURG CITY, where DAD runs the GYM): VISITED_PETALBURG_CITY=1
+  [AI-GOALS] MILESTONE ch2_dad done at f227827 (DAD at the PETALBURG GYM: talk to him (WALLY walks in)): HIDE_PETALBURG_CITY_WALLYS_MOM=1
+  [AI-GOALS] MILESTONE ch2_wally done at f238846 (WALLY's catching tutorial, back in the gym): VAR_PETALBURG_GYM_STATE=2 (>= 2)
+the AI's goals (kind: reason), first 400:
+  f148032 chat: someone stands near at (6, 4): a person says hello now and then
+  f148780 chat: someone stands near at (7, 5): a person says hello now and then
+  f149170 go: West of Oldale: ROUTE 102 and its trainers (open once the adventure has started): to PETALBURG_CITY (the game said: 'INTERVIEWER: …We brought you this report from in front of PETALBURG GYM.')
+  f158317 explore: a new place, ROUTE102: a person looks around it (draw 0.38 < the Story's 0.55) before going on
+  f163105 go: PETALBURG CITY, where DAD runs the GYM: to PETALBURG_CITY (the game said: 'INTERVIEWER: …We brought you this report from in front of PETALBURG GYM.')
+  f186613 heal: the party is at 50% of its HP (under 60%): the POKéMON CENTER it knows (OLDALE_TOWN_POKEMON_CENTER_1F)
+  f190060 go: DAD at the PETALBURG GYM: talk to him (WALLY walks in): to PETALBURG_CITY_GYM (the game said: 'INTERVIEWER: …We brought you this report from in front of PETALBURG GYM.')
+  f191837 go: DAD at the PETALBURG GYM: talk to him (WALLY walks in): to PETALBURG_CITY_GYM (the game said: 'INTERVIEWER: …We brought you this report from in front of PETALBURG GYM.')
+  f200111 shop: 4 POKé BALLS left (fewer than 5) and 2356 money: the MART it knows (OLDALE_TOWN_MART)
+  f204864 go: DAD at the PETALBURG GYM: talk to him (WALLY walks in): to PETALBURG_CITY_GYM (the game said: 'INTERVIEWER: …We brought you this report from in front of PETALBURG GYM.')
+  f208958 pick_up: an item ball on the ground at (11, 15): a person picks it up
+  f209622 go: DAD at the PETALBURG GYM: talk to him (WALLY walks in): to PETALBURG_CITY_GYM (the game said: 'INTERVIEWER: …We brought you this report from in front of PETALBURG GYM.')
+  f221186 talk: DAD at the PETALBURG GYM: talk to him (WALLY walks in): DAD (NORMAN), the PETALBURG GYM leader at (4, 107)
+  f227827 chat: someone stands near at (15, 10): a person says hello now and then
+the end of the AI's log:
+  [AI-HEARTBEAT] frames=74000 ai_steps=73999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3506 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=75000 ai_steps=74999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3512 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=76000 ai_steps=75999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3518 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=77000 ai_steps=76999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3522 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=78000 ai_steps=77999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3530 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=79000 ai_steps=78999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3538 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HANDS] [AI-GOALS] goal talk done: talked
+  [AI-WORLD] MAP PETALBURG_CITY_GYM -> PETALBURG_CITY at (15, 8): the warp at (4, 111) (a scene, f227788); 828 tiles of it known
+  [AI-HANDS] [AI-GOALS] MILESTONE ch2_dad done at f227827 (DAD at the PETALBURG GYM: talk to him (WALLY walks in)): HIDE_PETALBURG_CITY_WALLYS_MOM=1
+  [AI-HANDS] [AI-GOALS] the story is at ch2_wally (WALLY's catching tutorial, back in the gym); proofs now: VAR_PETALBURG_GYM_STATE=1 (>= 2)
+  [AI-HANDS] [AI-GOALS] goal chat: someone stands near at (15, 10): a person says hello now and then (milestone ch2_wally, personality Trainer)
+  [AI-HANDS] [AI-GOALS] goal chat waits: the screen changed while it decided (watching: a scene plays (a script runs, the controls are locked)); what is on screen first
+  [AI-HEARTBEAT] frames=80000 ai_steps=79999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3544 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=81000 ai_steps=80999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3548 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=82000 ai_steps=81999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3552 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=83000 ai_steps=82999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3552 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=84000 ai_steps=83999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3552 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=85000 ai_steps=84999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3552 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=86000 ai_steps=85999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3552 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HANDS] battle: over: caught (gBattleOutcome 7); party [('Treecko', 12, 33, 33), ('Poochyena', 3, 15, 15)]
+  [AI-WORLD] battle 8: caught
+  [AI-WORLD] MAP PETALBURG_CITY -> ROUTE102 at (0, 7): the warp at (29, 17) (a scene, f228193); 1246 tiles of it known
+  [AI-WORLD] MAP ROUTE102 -> PETALBURG_CITY_GYM at (4, 108): the warp at (5, 5) (a scene, f234390); 210 tiles of it known
+  [AI-HANDS] [AI-GOALS] progress: a level gained (10 -> 15): the story's patience counts from here (it had waited 6565 frames)
+  [AI-HEARTBEAT] frames=87000 ai_steps=86999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3560 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=88000 ai_steps=87999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3566 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=89000 ai_steps=88999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3574 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HEARTBEAT] frames=90000 ai_steps=89999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3580 unattributed_inputs=0 unattributed_state_changes=0
+  [AI-HANDS] [AI-GOALS] MILESTONE ch2_wally done at f238846 (WALLY's catching tutorial, back in the gym): VAR_PETALBURG_GYM_STATE=2 (>= 2)
+  [AI-HANDS] [AI-GOALS] the story is at ch3_route104 (West of Petalburg: ROUTE 104 (south)); proofs now: VAR_PETALBURG_WOODS_STATE=0 (>= 1)
+  [AI-HANDS] [AI-GOALS] the end (done: ch2_wally reached); milestones ['ch2_route102', 'ch2_petalburg', 'ch2_dad', 'ch2_wally']; before the fights {'ch2_route102': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}, 'ch2_petalburg': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}, 'ch2_dad': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rest
+  [AI-WORLD] memory at the end: 20 maps (OLDALE_TOWN 789 tiles 0 bumped, ROUTE101 871 tiles 0 bumped, ROUTE103 725 tiles 0 bumped, LITTLEROOT_TOWN 735 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 345 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 240 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 306 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 217 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_B
+  [AI-WORLD] navigator: 739 steps, 0 bumps, 6 people in the way, 16 exits used, 8 battles, 30 scenes, 84 decisions (13 detours, 58 carried on); 20 maps, 8701 tiles learned
+  [AI-HANDS] outcome='done: ch2_wally reached' presses=1793 frames=90814 looks=57332 records=3591
+  [AI-HANDS] presses by gate: {'A:bag cursor on 0': 1, 'A:bag_action cursor on 0': 1, 'A:battle level-up stats box': 4, 'A:battle_action cursor on 0': 18, 'A:battle_action cursor on 1': 1, 'A:battle_action cursor on 3': 1, 'A:battle_move cursor on 0': 14, 'A:battle_move cursor on 2': 1, 'A:battle_move cursor on 3': 3, 'A:battle_yes_no cursor on 1': 4, 'A:mart_buy cursor on 0': 1, 'A:mart_buy cursor 
+  [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3586 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=90814 peek_restores=0 verdict=CLEAN
+  [AI-PURITY-ORIGINS] none
+  [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1b1efac7cc0 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0
+  [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step5-play\ai_player_runs\20261014-205941-CH2T\purity.json
+  [AI-EXIT] reason=play: done: ch2_wally reached code=0
+verdict file: {"counters": {"ai_bot_calls": 0, "ai_loads": 0, "ai_presses": 3586, "ai_unrouted_presses": 0, "ai_writes": 0, "extra_frames": 0, "foreign_loads": 0, "foreign_presses": 0, "foreign_writes": 0, "instrument_errors": 0, "instrument_tampered": 0, "isolation_lost": 0, "peek_restores": 0, "ran_after_finish": 0, "real_frames": 90814, "unattributed_inputs": 0, "unattributed_state_changes": 0}, "facts": {"exit_code": 0, "exit_reason": "play: done: ch2_wally reached", "isolation": {"active": "n=1 types=[GuardListener] rebuild_door=AI", "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1b1efac7cc0", "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x1b1efac7cc0 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"}, "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"}, "finish": {"frame_in_flight": false, "main_thread": true, "thread": "MainThread"}, "origins": {}, "pid": 47228, "verdict": "CLEAN", "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"}
+second path at the end: {"name": "Luna", "gender_name": "GIRL", "party_exp": [["aac65798", "Treecko", 975, 12], ["e32810fe", "Poochyena", 27, 3]], "party_ot": [["aac65798", 5248], ["e32810fe", 5248]], "balls": {"POKé BALL": 9}, "money": 756, "map": [8, 1], "story": {"marks": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 1, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "TRAINER_GRUNT_PETALBURG_WOODS": 0, "TRAINER_ROXANNE_1": 0, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 2, "VAR_PETALBURG_WOODS_STATE": 0}, "stats": {"steps": 1715, "total_battles": 34, "wild_battles": 29, "trainer_battles": 5, "captures": 1, "used_pokecenter": 4, "rested_at_home": 0}, "items": {"FLAG_ITEM_PETALBURG_CITY_ETHER": 0, "FLAG_ITEM_PETALBURG_CITY_MAX_REVIVE": 0, "FLAG_ITEM_PETALBURG_WOODS_ETHER": 0, "FLAG_ITEM_PETALBURG_WOODS_GREAT_BALL": 0, "FLAG_ITEM_PETALBURG_WOODS_PARALYZE_HEAL": 0, "FLAG_ITEM_PETALBURG_WOODS_X_ATTACK": 0, "FLAG_ITEM_ROUTE_102_POTION": 1, "FLAG_ITEM_ROUTE_103_GUARD_SPEC": 0, "FLAG_ITEM_ROUTE_103_PP_UP": 0, "FLAG_ITEM_ROUTE_104_POKE_BALL": 0, "FLAG_ITEM_ROUTE_104_POTION": 0, "FLAG_ITEM_ROUTE_104_PP_UP": 0, "FLAG_ITEM_ROUTE_104_X_ACCURACY": 0, "FLAG_ITEM_RUSTBORO_CITY_X_DEFEND": 0}}}

@@ -25,11 +25,12 @@ from collections.abc import Generator
 
 from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import KEYBOARD_COLUMNS, KEYBOARD_PAGES, key_position
-from ai_player.hands.dialogue import advance, dialogue_over, talk, talk_direction
+from ai_player.hands.dialogue import advance, awaits_press, dialogue_over, talk, talk_direction
 from ai_player.hands.pad import Hands
 
 __all__ = [
     "BLIND_GATE",
+    "GAVE_WAY",
     "MART_CLERK_GFX",
     "NURSE_GFX",
     "answer_yes_no",
@@ -54,6 +55,10 @@ NURSE_GFX = 58
 MART_CLERK_GFX = 83
 #: The gate the blind-count FAULT writes on its presses.
 BLIND_GATE = "NONE (FAULT blind count: pressed by count from the top, the cursor not read)"
+#: (build step 5.1, the verifier's second round: the round's development sweep, seed 42, stood 1,203 frames in `talk` in
+#: front of the nurse while "TREECKO fainted…" (the poison's faint on the way in) waited for A) what `nurse_heal` and
+#: `mart_buy` return, with `give_way`, when a screen that waits for a press came before the talk: the caller plays it
+GAVE_WAY = "a screen that waits for a press came before the talk: handed back"
 #: Bounds.
 WAIT_UI_BUDGET = 600  # frames for a menu to appear
 MOVE_BUDGET = 60  # presses to bring a cursor to its target
@@ -333,17 +338,21 @@ def find_person(look: Observation, graphics_id: int) -> SeenObject | None:
     return people[0] if people else None
 
 
-def nurse_heal(hands: Hands, why: str = "heal the party at the nurse") -> Generator[None, None, str]:
+def nurse_heal(hands: Hands, why: str = "heal the party at the nurse", give_way: bool = False) -> Generator[None, None, str]:
     """Talk to the nurse in front of the player and accept the healing: advance her text (gated on the eyes'
     waits), answer her yes/no with YES by intent, advance to the end of the conversation, then CHECK: every
-    party Pokemon at full HP on the eyes. Returns "healed", or what went wrong."""
+    party Pokemon at full HP on the eyes. Returns "healed", or what went wrong. (Build step 5.1, the verifier's second
+    round) `give_way`: a screen that waits for a press before she is talked to is handed back at once (`GAVE_WAY`), never
+    waited out (the step-2 default, False, is unchanged)."""
     look = hands.look()
     nurse = find_person(look, NURSE_GFX)
     if nurse is None or talk_direction(look, nurse) is None:
         return "no nurse in talking reach"
     hands.tell(f"{why}: the nurse at ({nurse.dx},{nurse.dy}); party HP "
                f"{[(m.species, m.hp, m.max_hp) for m in look.party or ()]}")
-    if not (yield from talk(hands, nurse, why)):
+    if not (yield from talk(hands, nurse, why, give_way=give_way)):
+        if give_way and awaits_press(hands.look()) is not None:
+            return GAVE_WAY
         return "the nurse did not answer"
     for _ in range(6):
         outcome = yield from advance(hands, dialogue_over, why)
@@ -398,11 +407,13 @@ def set_quantity(hands: Hands, count: int, why: str) -> Generator[None, None, bo
     return False
 
 
-def mart_buy(hands: Hands, item: str, count: int, why: str = "buy at the mart") -> Generator[None, None, str]:
+def mart_buy(hands: Hands, item: str, count: int, why: str = "buy at the mart",
+             give_way: bool = False) -> Generator[None, None, str]:
     """Buy `count` of `item` from the clerk in front of the player: talk; BUY; the item, by its NAME in the
     list; the quantity, read; YES to the price; then leave the list (B) and the shop menu (QUIT) and advance
     the goodbye. Then CHECK on the eyes: that item in the bag rose by exactly `count` and the money fell by
-    `count` x its listed price. Returns "bought", or what went wrong."""
+    `count` x its listed price. Returns "bought", or what went wrong. (Build step 5.1, the verifier's second round)
+    `give_way`: as `nurse_heal`'s."""
     look = hands.look()
     clerk = find_person(look, MART_CLERK_GFX)
     if clerk is None or talk_direction(look, clerk) is None:
@@ -411,7 +422,9 @@ def mart_buy(hands: Hands, item: str, count: int, why: str = "buy at the mart") 
     before = _bag_count(look, key)
     money_before = look.progress.money if look.progress is not None else None
     hands.tell(f"{why}: {count} x {item}; the clerk at ({clerk.dx},{clerk.dy}); in the bag {before}, money {money_before}")
-    if not (yield from talk(hands, clerk, why)):
+    if not (yield from talk(hands, clerk, why, give_way=give_way)):
+        if give_way and awaits_press(hands.look()) is not None:
+            return GAVE_WAY
         return "the clerk did not answer"
     bought = False
     price = None

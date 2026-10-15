@@ -144,5 +144,34 @@ class PackTests(Folder):
         self.assertTrue(path.exists())
 
 
+class SnapshotTests(Folder):
+    """(build step 5.1, the verifier's second round: "the dee96b tree was not kept", so "two trees differ only in gates and
+    comments" could not be checked) `provenance.snapshot_tree` keeps the tree a graded driver ran on; its digest is
+    recomputed from the kept zip's own contents and two kept trees are compared file by file."""
+
+    def test_this_tree_is_kept_and_its_digest_recomputed_from_the_zip(self) -> None:
+        from ai_player.gates.provenance import compare_trees, provenance, snapshot_tree, tree_files
+
+        kept = snapshot_tree(folder=self.folder)
+        self.assertIsNotNone(kept)
+        digest, files = tree_files(kept)
+        self.assertEqual(kept.stem, digest)
+        self.assertIn(f"sha256:{digest}", provenance())  # the very digest every evidence file of this tree names
+        self.assertEqual(snapshot_tree(folder=self.folder), kept)  # once per digest
+        self.assertEqual(compare_trees(kept, kept)[2], [])
+        # FAULT half: one changed byte in a kept file is a different tree (its recomputed digest is not its name), and the
+        # comparison names the file that changed
+        changed = self.folder / "changed.zip"
+        with zipfile.ZipFile(kept) as source, zipfile.ZipFile(changed, "w") as target:
+            for name in source.namelist():
+                data = source.read(name)
+                target.writestr(name, data + b"\n# one more line\n" if name.startswith("untracked/") else data)
+        other, _ = tree_files(changed)
+        untracked = [name for name in files if not files[name].startswith(b"diff --git ")]
+        if untracked:
+            self.assertNotEqual(other, digest)
+            self.assertEqual(compare_trees(kept, changed)[2], sorted(untracked))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

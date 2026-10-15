@@ -41,6 +41,19 @@ THE ARMS
                      GAME_STAT_POKEMON_CAPTURES and new PIDs with the player's OT); at least 1 nurse heal (the game's
                      GAME_STAT_USED_POKECENTER); at least 1 item ball picked up (its FLAG_ITEM_* set); POKé BALLS bought
                      (its told purchase, the money and the bag by the second path).
+  CH2T, CH2M         (build step 5.1) a second and (the step-5.1 verifier's round) a THIRD chapter 2: from CH1T's end (Story,
+                     seed 11) and CH1M's (Trainer, seed 13), each from the save ITS OWN chapter-1 run made; CH2M's claims
+                     were registered before any run of its trajectory (`PREDICTED`).
+(Build step 5.1) EVERY arm also: THE STALL PROPERTY (no screen waited for a press `AWAIT_MAX` frames with none, by the AI's
+record of every look); every go goal with a map after the page that told it; THE INTENT MIX (a floor) and, the step-5.1
+verifier's round, the CURIOSITY THE STORY DID NOT NEED in this run (`rate_step5.intent_mix` free_share >= FREE_RUN_MIN) and
+A NEW PLACE IS NEW (every look-around draw names a map the world memory it started from had not stood on: CH2T had "looked
+round a new place, LITTLEROOT_TOWN", its home town).
+(The step-5.1 verifier's second round: CH2T FAILED the intent-mix floor) the INTENT MIX is HONEST (`rate_step5.intent_mix`:
+a goal ends at its end record, so a goal dropped for a scene no longer counts the scene; a curiosity goal the story moved
+on in is the story's); the share with the scenes between goals counted as the story's is reported beside it. Chapter 2's
+screens are graded by the game's second path in the sweep (`rate_step5.py` CH2): a launcher run has none while it plays.
+Every arm keeps the tree it ran on (`provenance.snapshot_tree`).
 The fault arms (no training before the rival; no hints; the rest rule's fix removed; the MAX_LOSSES stop and the loop's
 count removed) are the seed sweep's (`gates/rate_step5.py` NOTRAIN, NOHINTS, DEADREST, STOP, STOPDEAD): a win RATE and a
 slowdown are frequency claims, which a sweep answers (CLAUDE.md rule 9).
@@ -65,8 +78,10 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from ai_player.gates.live_step2 import check_purity, classify_a, clean_env, run_json  # noqa: E402
-from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance  # noqa: E402
-from ai_player.gates.rate_step5 import roam_breaches, training_windows  # noqa: E402
+from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance, snapshot_tree  # noqa: E402
+from ai_player.gates.rate_step5 import (  # noqa: E402
+    BOUNDS, aside_streaks, await_stretches, intent_mix, roam_breaches, told_before, train_steps_min, training_windows,
+)
 from ai_player.hands.dialogue import GENERIC_BUSY  # noqa: E402
 from ai_player.host import launcher  # noqa: E402
 from ai_player.options import (  # noqa: E402
@@ -89,12 +104,29 @@ WALL_CLOCK = "10:00"
 PREDICTED: dict[str, dict] = {
     # (the step-5 verifier's round, 2026-10-14) `wild_won`: wild battles WON (a battle FLED is not training); round 2: WON
     # INSIDE ITS TRAINING ROAMS for the rival (between the starter and the rival, an arm that never trains won >= 3 in 6
-    # seeds of 10: walks win battles too). `train_steps`: the training roams' steps. Numbers carried over from round 1;
-    # measured in round 1's three arms by the verifier, 11 / 6 / 11 won inside training
-    "CH1T": {"frames_max": 300000, "train_steps": 60, "wild_won": 3},
-    "CH1C": {"frames_max": 300000, "train_steps": 60, "wild_won": 3},
-    "CH1M": {"frames_max": 300000, "train_steps": 60, "wild_won": 3},
+    # seeds of 10: walks win battles too). `train_steps`: the training roams' steps; (the step-5.1 verifier's round: "carried
+    # over, not re-derived") now the personality's own minimum times 0.9 (`rate_step5.train_steps_min`: Story 72, Catcher
+    # 90, Trainer 135; the derivation is at `rate_step5.BOUNDS` CH1_TRAIN_STEPS_SHARE), and 3 WON (measured 4-18 over the 20
+    # graded sweep runs of seeds 301-310 and 401-410)
+    "CH1T": {"frames_max": 300000, "train_steps": train_steps_min("Story"), "wild_won": 3},
+    "CH1C": {"frames_max": 300000, "train_steps": train_steps_min("Catcher"), "wild_won": 3},
+    "CH1M": {"frames_max": 300000, "train_steps": train_steps_min("Trainer"), "wild_won": 3},
     "CH2": {"frames_max": 300000, "caught": 2, "heals": 1, "items": 1},
+    # (build step 5.1) the second, independent chapter 2 (Story, seed 11, from CH1T's end): measured in development (in
+    # process, the Story seed 11 CH1 end state, 2026-10-14, the tree of step 5.1's first round): 1 capture, 1 POKéMON CENTER
+    # heal, 0 item balls (a Story player walks past more), balls bought; so items are REPORTED here (>= 0), the other claims
+    # bounded. (The verifier's round: that development run was the live arm's own trajectory replayed. On this round's tree
+    # no in-process run of seed 11, 12 or 13 was made, so no live arm replays a development run.)
+    "CH2T": {"frames_max": 300000, "caught": 1, "heals": 1, "items": 0},
+    # (the step-5.1 verifier's round: "CH2T replays its development trajectory") a THIRD chapter 2, the Trainer's, from
+    # CH1M's own end (seed 13): its claims PRE-REGISTERED here before ANY run of that trajectory, in process or live, from
+    # what the other two showed of chapter 2 and the Trainer's taste (catch_seek 0.45, balls_low 5): WALLY's tutorial, at
+    # least 1 new capture, at least 1 POKéMON CENTER heal, balls bought; item balls reported (>= 0)
+    "CH2M": {"frames_max": 300000, "caught": 1, "heals": 1, "items": 0},
+    # (the step-5.1 verifier's second round) every claim above is KEPT as registered: the round's AI changes (the gym by its
+    # look, the nearest place to heal, the balance, the first POKé BALLS tried) make all six arms NEW trajectories, never a
+    # replay of `a883634`'s; in the round's development sweeps every chapter-2 run caught at least 1 and healed at least
+    # once (18 of 18 in step51wdev2 and dev3), so the claims are not loosened
 }
 
 
@@ -130,6 +162,10 @@ class Run:
     checks: list[tuple[bool, str]] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     measures: dict = field(default_factory=dict)
+    #: (build step 5.1) the `read` records of the run(s) this one continues (their pages are in its world memory)
+    earlier: list[dict] = field(default_factory=list)
+    #: (the step-5.1 verifier's round) the world memory this run started from (a continuing arm's), or None
+    world_in: Path | None = None
 
     def check(self, ok: bool, text: str) -> None:
         self.checks.append((bool(ok), text))
@@ -163,6 +199,13 @@ ARMS: list[Arm] = [
         3600.0, play_env("Trainer", "MUDKIP", "ch1_pokedex"), seed=13),
     Arm("CH2", "chapter 2 (stretch) from the CH1C arm's own end: Oldale's balls, ROUTE 102, PETALBURG, DAD, WALLY's tutorial",
         330000, 3600.0, play_env("Catcher", None, "ch2_wally"), seed=12, fresh=False, state_from="CH1C"),
+    # (build step 5.1, the step-5 review's finding 6: "CH2 is one Catcher trajectory replayed") a SECOND, INDEPENDENT
+    # chapter 2: another personality and seed, from the save ITS OWN chapter-1 run made
+    Arm("CH2T", "chapter 2 (stretch), a second trajectory: from the CH1T arm's own end, Story, seed 11", 330000, 3600.0,
+        play_env("Story", None, "ch2_wally"), seed=11, fresh=False, state_from="CH1T"),
+    # (the step-5.1 verifier's round) a THIRD chapter 2, never played before it is graded: the Trainer's, from CH1M's end
+    Arm("CH2M", "chapter 2 (stretch), a third trajectory, pre-registered unseen: from the CH1M arm's own end, Trainer, seed "
+                "13", 330000, 3600.0, play_env("Trainer", None, "ch2_wally"), seed=13, fresh=False, state_from="CH1M"),
 ]
 
 
@@ -171,7 +214,7 @@ def truth_of(state: Path) -> tuple[dict | None, str]:
     return run_json([sys.executable, str(HARNESS), "truth", str(state)], "TRUTH", clean_env({}), 600)
 
 
-def run_arm(arm: Arm, build_root: Path, carried: dict[str, tuple[Path, Path]]) -> Run:
+def run_arm(arm: Arm, build_root: Path, carried: dict[str, tuple[Path, Path, list]]) -> Run:
     run = Run(arm)
     profile_dir, _ = launcher.ensure_profile(build_root, PROFILE)
     if not (profile_dir / launcher.PROFILE_MARKER).is_file():
@@ -187,7 +230,11 @@ def run_arm(arm: Arm, build_root: Path, carried: dict[str, tuple[Path, Path]]) -
         if arm.state_from not in carried:
             run.notes.append(f"the arm {arm.state_from} it starts from left no state: not run")
             return run
-        state, world = carried[arm.state_from]
+        state, world, earlier = carried[arm.state_from]
+        # (build step 5.1) the pages the AI READ in the run it continues (its world memory carries them): a go goal may
+        # quote one of those
+        run.earlier = [r for r in earlier if r.get("decision") == "read"]
+        run.world_in = world
         run.start_state = state
         start = ["--state", str(state)]
         env_extra[ENV_WORLD] = str(world)
@@ -232,7 +279,7 @@ def run_arm(arm: Arm, build_root: Path, carried: dict[str, tuple[Path, Path]]) -
             run.notes.append(f"truth of the state left behind failed: {raw[-1500:]}")
         world = run.run_dir / "world.jsonl"
         if world.is_file():
-            carried[arm.name] = (keep, world)
+            carried[arm.name] = (keep, world, run.earlier + run.records)
     return run
 
 
@@ -290,6 +337,74 @@ def check_hands(run: Run) -> None:
     empty = [r for r in goals if not str(r.get("reason", "")).strip()]
     run.check(bool(goals) and not empty, f"NEVER WITHOUT A GOAL: {len(goals)} goals chosen, each with its reason (without: "
                                          f"{len(empty)}); kinds {count(r['action'] for r in goals)}")
+    # (build step 5.1, the step-5 verifier's FAILURE: a stall of 600-1,200 frames under a NAMED reason passed the check
+    # above) THE STALL PROPERTY: no screen waited for a press `AWAIT_MAX` frames or more with none, by the AI's own record of
+    # every look (`hands/waiting.py`), whatever reason it gave meanwhile
+    awaits = await_stretches(run.records)
+    longest = max((a["frames"] for a in awaits), default=0)
+    over = [(a["first"], a["frames"], str(a["what"])[:40], str(a["doing"])[:60]) for a in awaits
+            if a["frames"] >= BOUNDS["AWAIT_MAX"]]
+    noted = [r for r in run.records if r.get("decision") == "end" and (r.get("extra") or {}).get("waits")]
+    run.check(not over and bool(noted), f"THE STALL PROPERTY (its record of every look): the longest a screen waited for a "
+                                        f"press with none {longest} frames (bound under {BOUNDS['AWAIT_MAX']}, whatever the "
+                                        f"reason); {len(awaits)} stretches of 60 or more; over the bound: {over or 'none'}; "
+                                        f"its end record {(noted[0].get('extra') or {}).get('waits') if noted else 'MISSING'}")
+    # (the pages of the run it continues count as read before its first frame: its world memory carries them)
+    bad = told_before([{**r, "frame": -1} for r in run.earlier] + run.records)
+    run.check(not bad, f"EVERY GO GOAL WITH A MAP CAME AFTER THE PAGE THAT TOLD IT (its read records, and the "
+                       f"{len(run.earlier)} pages of the run it continues): off {bad or 'none'}")
+    mix = intent_mix(run.records)
+    # (the step-5.1 verifier's second round) honest: a goal's frames end at its END record (a goal dropped for a scene no
+    # longer counts the scene after it), and a curiosity goal the story moved on in is the story's
+    run.check(mix["errand_share"] >= BOUNDS["MIX_MIN"],
+              f"THE INTENT MIX: {mix['errand_share']:.1%} of the goals' frames on errands (bound >= {BOUNDS['MIX_MIN']:.0%}: a "
+              f"floor on needs and curiosity together, which a beeline meets too in chapter 1), {mix['errand_goals']} of "
+              f"{mix['goals']} goals; frames by kind {mix['frames']}; the story's own curiosity goals (counted as the story's) "
+              f"{mix['story_own']}; between goals (no goal's: scenes) {mix['between_goals']} frames; reported: "
+              f"{mix['errand_share_with_scenes']:.1%} with those counted as the story's time")
+    # (the step-5.1 verifier's round: the errand share does not separate errands from a beeline; the curiosity the story did
+    # not need does, in every run: the beeline control's is 0)
+    run.check(mix["free_share"] >= BOUNDS["FREE_RUN_MIN"],
+              f"CURIOSITY THE STORY DID NOT NEED: {mix['free_share']:.1%} of the goals' frames ({mix['free_frames']} frames; "
+              f"bound >= {BOUNDS['FREE_RUN_MIN']:.0%}), the story's own curiosity goals not counted {mix['story_own']}")
+    check_new_places(run)
+    # (the step-5.1 verifier's round: CH2's ten asides in a row, about 32,000 frames) a story goal put aside comes back
+    streaks = aside_streaks(run.records)
+    long_ = [s for s in streaks if s[2] > BOUNDS["ASIDE_STREAK_MAX"]]
+    run.check(not long_, f"A STORY GOAL PUT ASIDE COMES BACK: its streaks of asides (goal, first frame, frames, asides) "
+                         f"{streaks or 'none (not exercised in this run)'} (each <= {BOUNDS['ASIDE_STREAK_MAX']} frames); "
+                         f"over it: {long_ or 'none'}")
+    run.measures.update({"await_max": longest, "intent_mix": mix, "asides": streaks})
+
+
+def known_at_start(run: Run) -> set[str]:
+    """The maps (consts) the world memory this run started from had STOOD on (a continuing arm's carried memory); empty for
+    a New Game."""
+    if run.world_in is None or not Path(run.world_in).is_file():
+        return set()
+    lines = [line for line in Path(run.world_in).read_text(encoding="utf-8").splitlines() if line.strip()]
+    if not lines:
+        return set()
+    data = json.loads(lines[-1])
+    return {memory.get("const") for memory in (data.get("maps") or {}).values() if memory.get("visits")}
+
+
+def check_new_places(run: Run) -> None:
+    """(the step-5.1 verifier's round: "CH2T logged 'explore a new place, LITTLEROOT_TOWN' (its home town, walked all
+    through chapter 1)") Every look-around draw, made or not (the goal's reason and the told line "a new place, X: it goes
+    on without looking round"), names a map the world memory it STARTED from had never stood on."""
+    known = known_at_start(run)
+    named = []
+    for r in run.records:
+        text = str(r.get("reason") or "")
+        found = re.search(r"a new place, ([A-Z0-9_]+)", text)
+        if found and ((r.get("decision") == "goal" and r.get("action") == "explore")
+                      or (r.get("decision") == "tell" and "it goes on without looking round" in text)):
+            named.append((r.get("frame"), found.group(1)))
+    old = [(frame, const) for frame, const in named if const in known]
+    run.check(not old, f"A NEW PLACE IS NEW: every look-around draw ({len(named)}: {sorted({c for _, c in named})}) names a map "
+                       f"the world memory it started from had not stood on ({len(known)} known at the start"
+                       f"{': ' + str(sorted(known)[:8]) if known else ': a New Game'}); a known one called new: {old or 'none'}")
 
 
 def count(values) -> dict:
@@ -468,7 +583,7 @@ def grade_CH2(run: Run) -> None:
     run.check(m.get("HIDE_PETALBURG_CITY_WALLYS_MOM") == 1 and (m.get("VAR_PETALBURG_GYM_STATE") or 0) >= 2,
               f"THE GAME: WALLY's tutorial: HIDE_PETALBURG_CITY_WALLYS_MOM {m.get('HIDE_PETALBURG_CITY_WALLYS_MOM')}, "
               f"VAR_PETALBURG_GYM_STATE {m.get('VAR_PETALBURG_GYM_STATE')} (>= 2)")
-    want = PREDICTED["CH2"]
+    want = PREDICTED[run.arm.name]
     caught = stats(after).get("captures", 0) - stats(before).get("captures", 0)
     pids_before = {row[0] for row in (before or {}).get("party_exp") or []} | {row[0] for row in (before or {}).get("boxes") or []}
     tid = (after or {}).get("player_tid")
@@ -490,13 +605,14 @@ def grade_CH2(run: Run) -> None:
     run.measures.update({"caught": caught, "heals": heals, "items": picked, "game_stats": stats(after)})
 
 
-GRADERS = {"CH1T": grade_CH1, "CH1C": grade_CH1, "CH1M": grade_CH1, "CH2": grade_CH2}
+GRADERS = {"CH1T": grade_CH1, "CH1C": grade_CH1, "CH1M": grade_CH1, "CH2": grade_CH2, "CH2T": grade_CH2,
+           "CH2M": grade_CH2}
 
 
 def write_evidence(run: Run, code: str, tag: str) -> Path:
     out = EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-{tag}-{run.arm.name}.txt"
     keep_earlier(out)
-    lines = [f"AI PLAYER BUILD STEP 5 (THE STORY) - LIVE PROOF - ARM {run.arm.name}: {run.arm.title}",
+    lines = [f"AI PLAYER BUILD STEP 5.1 (THE STORY, HUMAN-LIKE) - LIVE PROOF - ARM {run.arm.name}: {run.arm.title}",
              f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}", f"code: {code}",
              f"start: {'a real New Game (--fresh)' if run.arm.fresh else f'the end state of arm {run.arm.state_from}: {run.start_state}'}",
              f"command: {' '.join(run.command)}",
@@ -543,14 +659,16 @@ def main() -> int:
         pass
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--arms", default=",".join(arm.name for arm in ARMS))
-    parser.add_argument("--evidence-tag", default="step5")
+    parser.add_argument("--evidence-tag", default="step51")
     parser.add_argument("--build-root", type=Path, default=launcher.resolve_build_root(None))
     args = parser.parse_args()
     wanted = [a.strip() for a in args.arms.split(",") if a.strip()]
     arms = [arm for arm in ARMS if arm.name in wanted]
     code = tree_provenance(REPO)
     print(f"[LIVE5] code: {code}", flush=True)
-    carried: dict[str, tuple[Path, Path]] = {}
+    # (the step-5.1 verifier's second round: "the dee96b tree was not kept") the tree these arms run on is kept
+    print(f"[LIVE5] tree kept: {snapshot_tree(REPO)}", flush=True)
+    carried: dict[str, tuple[Path, Path, list]] = {}
     results = []
     for arm in arms:
         print(f"[LIVE5] arm {arm.name}: {arm.title}", flush=True)

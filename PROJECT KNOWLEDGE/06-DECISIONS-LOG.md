@@ -9289,3 +9289,43 @@ on all three questions:
 - **Rejected:**
   - Fixing them inside step 5: the workflow had used both of its fix rounds.
   - Going straight to chapters 3-4: they would be built on the beelining and the patience rule, which would then have to be re-proven.
+
+## 2026-10-15 — USER RULING 38: the learner drops to 8 lanes, and goes back to 16 when the AI player gives it something new to test
+
+- **The user's words:** "Reduce it to 8, scale it back to 16 when the AI player gives it something new to test."
+- **Why (the evidence put to the user):** after 26 cycles and 2,031 runs, the learner's top 15 strategies all score 0.36-0.38 +/- 0.02 (`findings/LATEST.md`, 2026-10-15 02:25 AM), so they are statistically tied. It tunes the PARKED bot's knobs (teacher side, RULING 35), not the AI player. Half the lanes lose almost nothing and halve its heat, CPU and disk use; the C: drive had 76 GB free of 1.86 TB.
+- **How:** `ai-agent/config.json` `max_lanes` 16 -> 8, committed here. The learner's deployment clone fast-forwards between cycles and re-reads the config at each cycle's start (`ai-agent/README.md`), so the change takes effect at the first cycle after the push. No restart is needed and no file in the clone is edited.
+- **The trigger to scale back to 16:** the AI player hands the learner something NEW to test (a knob or strategy of the AI's that the screen can measure). A plateau on the bot's knobs is not a reason to scale up.
+- **Also user-directed the same day (standing):** proceed autonomously, strategically and cautiously; use Claude agents for research, checking, reviewing and reporting; research the story's ROUTING and MAPPING with agents BEFORE testing (no blind testing); keep "living, adaptive" mistake avoidance (safety measures from past mistakes, updated only when that prevents mistakes).
+
+## 2026-10-15 — The AI player's development rounds: a fix round only for a FAILURE; the full regression of every step at a CHAPTER boundary
+
+- **Decision:**
+  - Within a step's workflow, a fix round runs only when the verifier reports a FAILURE or a rule violation. Its "weak proof" notes go onto the NEXT step's list, where they are still fixed and proven.
+  - Each step runs the suites of the code it touched, including every earlier step's suites for a shared file it changed. The full regression of all steps runs at each CHAPTER (badge) boundary and before any promotion.
+- **Why:**
+  - Step 5 took about 7.5 hours and step 5.1 about 15. A careful verifier always lists weak proofs, so the old loop ran a 1.5-2 hour fix round even when nothing failed: step 5's second round did.
+  - The CPU was 37-79% busy, so the time goes to sequential stages, not to hardware.
+  - The user asked for safe speed-ups that keep accuracy (2026-10-15).
+- **What is kept:** the independent verifier, the planted-bug (revert) proofs, held-out seed sweeps, pre-registration, the adversarial review, and Tier 0/1/2 on the docs.
+- **Risk accepted:** a break in an earlier step that no touched suite covers is caught at the next chapter boundary, not the same day.
+- **Rejected:**
+  - Dropping the verifier or the revert proofs: they caught every real defect in steps 4-5.1.
+  - Fewer seeds: frequency questions need them.
+
+## 2026-10-15 — The AI player's order of work: step 5.2 = safety gates + PRODUCTIVE curiosity (on chapters 1-2), then 5.3 = chapter 3, then 5.4 = chapter 4 with the full regression at the badge
+
+- **Decision:**
+  - **Step 5.2** (proven on chapters 1-2):
+    - The lessons draft's five missing gates: a frozen-tree watch, a seed and bounds ledger, a call-site census, a person-fair data door, and a disk budget with harness cleanup. Also the evidence checker's code-line fix and a living `ai_player` LESSONS list whose every line names its gate.
+    - Curiosity graded by what it YIELDS: new tiles, items, catches, words, talks.
+    - Errands raised by smooth odds, not a bypassing quota; detours that arrive or report not reached; a check for pushing against a blocker.
+    - A LOAFING fault arm that must FAIL.
+  - **Step 5.3:** chapter 3. First the recon's probes, then the woods as a passage, DOUBLE battles, and the milestone fixes.
+  - **Step 5.4:** chapter 4 (the gym, MARC and TOMMY, ROXANNE with type advantage, the Quick Claw), with the full regression at the badge boundary.
+- **Why:**
+  - Loafing and the gates' absence affect every chapter. Building chapter 3 on them would mean re-proving it.
+  - The recon showed chapter 3 alone needs double battles and a navigation change, which is a full step.
+- **Rejected:**
+  - Going straight to chapter 3.
+  - Chapters 3-4 in one step: about two days of sequential work, with no checkpoint between them.

@@ -490,6 +490,8 @@ and `/checkpoint` carry these steps explicitly (they are outside the managed blo
 - The user chose the HYBRID. The story bot is PARKED, not abandoned. The **Emerald AI strategy learner** in
   `ai-agent/` (manual: `ai-agent/README.md`) runs 24/7 on the user's PC and is the active line of work. The user
   authorized it to run as many parallel runs as the hardware allows.
+- ⭐ **USER RULING 38 (2026-10-15): 8 lanes (`config.json` `max_lanes`) while its ranking is plateaued; back to 16
+  when the AI player gives it something NEW to test.** A plateau on the bot's knobs is not a reason to scale up.
 - ⭐ **It RUNS from its own deployment clone, `C:/Remote Projects/pokebot-learner`**, never from this checkout.
   The batch runner abandons a cycle when HEAD moves mid-batch, and on 2026-10-03 a docs commit here killed cycle
   ai0002. So commit here freely: changes reach the learner only when IT fast-forwards its clone to `origin/main`,

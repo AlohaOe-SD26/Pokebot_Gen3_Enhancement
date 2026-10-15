@@ -84,7 +84,13 @@ LOOKS: dict[str, dict] = {
                             "decomp": "METATILE_General_Door_PokeCenter"},
     "mart_door": {"metatile": [0x041], "what": "the door of a POKéMON MART (blue roof, MART sign)",
                   "decomp": "METATILE_General_Door_PokeMart"},
-    "nurse": {"gfx": [58], "what": "the POKéMON CENTER nurse", "decomp": "OBJ_EVENT_GFX_NURSE"},
+    # (build step 5.1, the verifier's second round: the live CH2T arm searched PETALBURG CITY door by door for its GYM) the
+    # gym's door is the GENERAL tileset's, the same in every city: METATILE_General_Door_Gym (0x1CD) under the warp to
+    # MAP_PETALBURG_CITY_GYM at (15, 8) of `data/layouts/PetalburgCity/map.bin` and to MAP_RUSTBORO_CITY_GYM at (27, 19) of
+    # `data/layouts/RustboroCity/map.bin` (read 2026-10-14 from pret/pokeemerald by blob, low 10 bits of each block)
+    "gym_door": {"metatile": [0x1CD], "what": "the door of a POKéMON GYM (the big building, the GYM sign)",
+                 "decomp": "METATILE_General_Door_Gym"},
+    "nurse":{"gfx": [58], "what": "the POKéMON CENTER nurse", "decomp": "OBJ_EVENT_GFX_NURSE"},
     "clerk": {"gfx": [83], "what": "the mart's clerk", "decomp": "OBJ_EVENT_GFX_MART_EMPLOYEE"},
     "birchs_bag": {"gfx": [97], "what": "PROF. BIRCH's bag on the ground", "decomp": "OBJ_EVENT_GFX_BIRCHS_BAG"},
     "rival": {"gfx": [105, 100], "what": "the rival (MAY or BRENDAN), met in the rival's room",
@@ -135,7 +141,8 @@ MILESTONES: list[dict] = [
      "decomp": {"LITTLEROOT_INTRO_STATE": "data/scripts/players_house.inc"}},
     {"id": "ch1_clock", "chapter": 1, "title": "Set the wall clock in the player's room",
      "done": {"flags": ["SET_WALL_CLOCK"]}, "maps": ["<player_house_2f>"],
-     "steps": [{"do": "go", "map": "<player_house_2f>"}, {"do": "use", "map": "<player_house_2f>", "look": "clock"}],
+     "steps": [{"do": "go", "map": "<player_house_2f>", "told": "upstairs"},
+               {"do": "use", "map": "<player_house_2f>", "look": "clock", "told": "clock"}],
      "hint": {"said": "MOM: {PLAYER}, your room is upstairs. ... DAD bought you a new clock to mark our move here. Don't "
                       "forget to set it!", "words": "clock", "map": "<player_house_2f>",
               "file": "data/maps/LittlerootTown_BrendansHouse_1F/scripts.inc"},
@@ -144,8 +151,14 @@ MILESTONES: list[dict] = [
     {"id": "ch1_rival_house", "chapter": 1, "title": "Next door: meet the rival in the rival's house",
      "done": {"vars": {"LITTLEROOT_RIVAL_STATE": 3}},
      "maps": ["<rival_house_1f>", "<rival_house_2f>"],
-     "steps": [{"do": "go", "map": "<rival_house_1f>"}, {"do": "go", "map": "<rival_house_2f>"},
-               {"do": "use", "map": "<rival_house_2f>", "look": "rivals_poke_ball"}],
+     "steps": [{"do": "go", "map": "<rival_house_1f>", "told": "next door"},
+               {"do": "go", "map": "<rival_house_2f>", "told": "is upstairs, I think",
+                "file": "data/maps/LittlerootTown_MaysHouse_1F/scripts.inc"}],
+     "note": "(build step 5.1, the step-5 review's finding 3) no step says 'use the POKé BALL on the floor': the game never "
+             "tells the player to. The rival's mom says the rival 'is upstairs' (RivalsHouse_1F_Text_OhYoureTheNewNeighbor), "
+             "and upstairs a POKé BALL lies on the floor (an object with the item ball's look, "
+             "LittlerootTown_MaysHouse_2F_EventScript_RivalsPokeBall, which plays MeetMay at VAR_LITTLEROOT_RIVAL_STATE 2): "
+             "the AI's item curiosity walks up to it, as a person's does",
      "hint": {"said": "MOM: One of DAD's friends lives in town. PROF. BIRCH is his name. He lives right next door, so you "
                       "should go over and introduce yourself.", "words": "next door", "map": "<rival_house_1f>",
               "file": "data/maps/LittlerootTown_BrendansHouse_1F/scripts.inc"},
@@ -153,7 +166,8 @@ MILESTONES: list[dict] = [
      "decomp": {"LITTLEROOT_RIVAL_STATE": "data/maps/LittlerootTown_MaysHouse_2F/scripts.inc"}},
     {"id": "ch1_birch", "chapter": 1, "title": "Route 101: PROF. BIRCH chased by a wild POKéMON; open his bag",
      "done": {"flags": ["RESCUED_BIRCH"]}, "maps": ["LITTLEROOT_TOWN", "ROUTE101"],
-     "steps": [{"do": "go", "map": "ROUTE101"}, {"do": "use", "map": "ROUTE101", "look": "birchs_bag"}],
+     "steps": [{"do": "go", "map": "ROUTE101", "told": "BAG"},
+               {"do": "use", "map": "ROUTE101", "look": "birchs_bag", "told": "BAG"}],
      "hint": {"said": "PROF. BIRCH: Hello! You over there! Please! Help! In my BAG! There's a POKé BALL!",
               "words": "BAG", "map": "ROUTE101", "file": "data/maps/Route101/scripts.inc"},
      "taught_by": [("modules/story/early_game.py", "_go_north_to_birch_rescue")],
@@ -175,18 +189,22 @@ MILESTONES: list[dict] = [
      "decomp": {"BIRCH_LAB_STATE": "data/maps/LittlerootTown_ProfessorBirchsLab/scripts.inc"}},
     {"id": "ch1_rival_route103", "chapter": 1, "title": "Find the rival on ROUTE 103 and win the battle",
      "done": {"flags": ["DEFEATED_RIVAL_ROUTE103"]}, "maps": ["<rival_house_1f>", "OLDALE_TOWN", "ROUTE103"],
-     "steps": [{"do": "ask", "map": "<rival_house_1f>", "words": "ROUTE 103"}, {"do": "go", "map": "ROUTE103"},
-               {"do": "talk", "map": "ROUTE103", "look": "rival"}],
+     "steps": [{"do": "ask", "map": "<rival_house_1f>", "words": "ROUTE 103"},
+               {"do": "go", "map": "ROUTE103", "told": "ROUTE 103"},
+               {"do": "talk", "map": "ROUTE103", "look": "rival", "told": "ROUTE 103"}],
      "hint": {"said": "the rival's mom: Oh, {RIVAL} went out to ROUTE 103 just a little while ago.", "words": "ROUTE 103",
               "map": "ROUTE103", "file": "data/maps/LittlerootTown_MaysHouse_1F/scripts.inc"},
+     # (build step 5.1) NAMED: the rival is a fight the game names to the player (RULING 33's "train to the leader's
+     # level" applies to the rival and the gym leaders only; any other trainer's levels are learned when SEEN)
      "fight": {"trainers": ["MAY_ROUTE_103_TREECKO", "MAY_ROUTE_103_TORCHIC", "MAY_ROUTE_103_MUDKIP",
-                            "BRENDAN_ROUTE_103_TREECKO", "BRENDAN_ROUTE_103_TORCHIC", "BRENDAN_ROUTE_103_MUDKIP"]},
+                            "BRENDAN_ROUTE_103_TREECKO", "BRENDAN_ROUTE_103_TORCHIC", "BRENDAN_ROUTE_103_MUDKIP"],
+               "named": True},
      "taught_by": [("modules/story/early_game.py", "STORY CONDITION: `DEFEATED_RIVAL_ROUTE103` is set")],
      "decomp": {"DEFEATED_RIVAL_ROUTE103": "data/maps/Route103/scripts.inc"}},
     {"id": "ch1_pokedex", "chapter": 1, "title": "Back to the lab: the POKéDEX from PROF. BIRCH",
      "done": {"flags": ["RECEIVED_POKEDEX_FROM_BIRCH", "SYS_POKEDEX_GET", "ADVENTURE_STARTED"]},
      "maps": ["ROUTE103", "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB"],
-     "steps": [{"do": "go", "map": "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB"}, {"do": "follow"}],
+     "steps": [{"do": "go", "map": "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB", "told": "LAB"}, {"do": "follow"}],
      "hint": {"said": "MAY: Well, it's time to head back to the LAB.", "words": "LAB",
               "map": "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB", "file": "data/maps/Route103/scripts.inc"},
      "taught_by": [("modules/story/early_game.py", "GOAL/END STATE: `RECEIVED_POKEDEX_FROM_BIRCH` is set")],
@@ -203,7 +221,7 @@ MILESTONES: list[dict] = [
      "decomp": {"VISITED_OLDALE_TOWN": "data/maps/OldaleTown/scripts.inc"}},
     {"id": "ch2_route102", "chapter": 2, "title": "West of Oldale: ROUTE 102 and its trainers (open once the adventure has started)",
      "done": {"flags": ["VISITED_PETALBURG_CITY"]}, "waypoint": "ROUTE102", "maps": ["OLDALE_TOWN", "ROUTE102"],
-     "steps": [{"do": "go", "map": "PETALBURG_CITY"}],
+     "steps": [{"do": "go", "map": "PETALBURG_CITY", "told": "PETALBURG"}],
      "hint": {"said": "MOM, on the TV: Look! It's PETALBURG GYM! Maybe DAD will be on!", "words": "PETALBURG",
               "map": "PETALBURG_CITY", "file": "data/maps/LittlerootTown_BrendansHouse_1F/scripts.inc"},
      "fight": {"trainers": ["CALVIN_1", "RICK", "TIANA", "ALLEN"]},
@@ -215,14 +233,15 @@ MILESTONES: list[dict] = [
      "decomp": {"VISITED_PETALBURG_CITY": "data/maps/PetalburgCity/scripts.inc"}},
     {"id": "ch2_petalburg", "chapter": 2, "title": "PETALBURG CITY, where DAD runs the GYM",
      "done": {"flags": ["VISITED_PETALBURG_CITY"]}, "maps": ["ROUTE102", "PETALBURG_CITY"],
-     "steps": [{"do": "go", "map": "PETALBURG_CITY"}],
+     "steps": [{"do": "go", "map": "PETALBURG_CITY", "told": "PETALBURG"}],
      "hint": {"said": "MOM, on the TV: Look! It's PETALBURG GYM! Maybe DAD will be on!", "words": "PETALBURG",
               "map": "PETALBURG_CITY", "file": "data/maps/LittlerootTown_BrendansHouse_1F/scripts.inc"},
      "taught_by": [("modules/story/early_game.py", "STORY CONDITION: begins in Petalburg City with the Pokédex")],
      "decomp": {"VISITED_PETALBURG_CITY": "data/maps/PetalburgCity/scripts.inc"}},
     {"id": "ch2_dad", "chapter": 2, "title": "DAD at the PETALBURG GYM: talk to him (WALLY walks in)",
      "done": {"flags": ["HIDE_PETALBURG_CITY_WALLYS_MOM"]}, "maps": ["PETALBURG_CITY", "PETALBURG_CITY_GYM"],
-     "steps": [{"do": "go", "map": "PETALBURG_CITY_GYM"}, {"do": "talk", "map": "PETALBURG_CITY_GYM", "look": "norman"}],
+     "steps": [{"do": "go", "map": "PETALBURG_CITY_GYM", "told": "PETALBURG GYM"},
+               {"do": "talk", "map": "PETALBURG_CITY_GYM", "look": "norman", "told": "PETALBURG GYM"}],
      "hint": {"said": "MOM, on the TV: Look! It's PETALBURG GYM! Maybe DAD will be on!", "words": "PETALBURG GYM",
               "map": "PETALBURG_CITY_GYM", "file": "data/maps/LittlerootTown_BrendansHouse_1F/scripts.inc"},
      "taught_by": [("modules/story/early_game.py", "STORY CONDITION: begins in Petalburg City with the Pokédex")],
@@ -237,7 +256,7 @@ MILESTONES: list[dict] = [
     # ---------------------------------------------------------------- CHAPTER 3: Route 104, Petalburg Woods, Rustboro
     {"id": "ch3_route104", "chapter": 3, "title": "West of Petalburg: ROUTE 104 (south)",
      "done": {"vars": {"PETALBURG_WOODS_STATE": 1}}, "waypoint": "ROUTE104", "maps": ["PETALBURG_CITY", "ROUTE104"],
-     "steps": [{"do": "go", "map": "RUSTBORO_CITY"}],
+     "steps": [{"do": "go", "map": "RUSTBORO_CITY", "told": "RUSTBORO CITY"}],
      "hint": DAD_RUSTBORO,
      "note": "no save flag records the walk onto ROUTE 104: the eyes see the map; VAR_PETALBURG_WOODS_STATE, set past it, is "
              "the save's proof. DAD names RUSTBORO CITY, never ROUTE 104, so that is where the AI heads (the step-5 "
@@ -246,16 +265,16 @@ MILESTONES: list[dict] = [
      "decomp": {"PETALBURG_WOODS_STATE": "data/maps/PetalburgWoods/scripts.inc"}},
     {"id": "ch3_woods", "chapter": 3, "title": "PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher",
      "done": {"vars": {"PETALBURG_WOODS_STATE": 1}}, "maps": ["PETALBURG_WOODS"],
-     "steps": [{"do": "go", "map": "RUSTBORO_CITY"}, {"do": "follow"}],
+     "steps": [{"do": "go", "map": "RUSTBORO_CITY", "told": "RUSTBORO CITY"}, {"do": "follow"}],
      "hint": DAD_RUSTBORO,
-     "fight": {"trainers": ["GRUNT_PETALBURG_WOODS"]},
+     "fight": {"trainers": ["GRUNT_PETALBURG_WOODS"]},  # not named: its levels are learned when SEEN (build step 5.1)
      "note": "the woods are on the way to RUSTBORO CITY, which DAD names: the scene with the DEVON researcher plays as the "
              "player walks through them",
      "taught_by": [("modules/story/early_game.py", "STORY CONDITION: begins just inside the Woods south entrance")],
      "decomp": {"PETALBURG_WOODS_STATE": "data/maps/PetalburgWoods/scripts.inc"}},
     {"id": "ch3_rustboro", "chapter": 3, "title": "RUSTBORO CITY",
      "done": {"flags": ["VISITED_RUSTBORO_CITY"]}, "maps": ["ROUTE104", "RUSTBORO_CITY"],
-     "steps": [{"do": "go", "map": "RUSTBORO_CITY"}],
+     "steps": [{"do": "go", "map": "RUSTBORO_CITY", "told": "RUSTBORO"}],
      "hint": {"said": "the DEVON researcher: TEAM AQUA ... after something in RUSTBORO", "words": "RUSTBORO",
               "map": "RUSTBORO_CITY", "file": "data/maps/PetalburgWoods/scripts.inc"},
      "taught_by": [("modules/story/early_game.py", "STORY CONDITION: standing on Route 104 north")],
@@ -263,16 +282,20 @@ MILESTONES: list[dict] = [
     # ---------------------------------------------------------------- CHAPTER 4: the RUSTBORO GYM
     {"id": "ch4_gym_trainers", "chapter": 4, "title": "The RUSTBORO GYM's trainers",
      "done": {"trainers": ["JOSH", "TOMMY"]}, "maps": ["RUSTBORO_CITY_GYM"],
-     "steps": [{"do": "go", "map": "RUSTBORO_CITY_GYM"}, {"do": "follow"}],
+     # (build step 5.1, the step-5 review's finding 5) OPTIONAL: a path to ROXANNE may pass TOMMY by (he faces left at
+     # (3, 9), RustboroCity_Gym/map.json), so ROXANNE is proven by her badge alone and this is never the current milestone
+     "optional": True,
+     "steps": [{"do": "go", "map": "RUSTBORO_CITY_GYM", "told": "ROXANNE"}, {"do": "follow"}],
      "hint": {**DAD_RUSTBORO, "words": "ROXANNE", "map": "RUSTBORO_CITY_GYM"},
-     "fight": {"trainers": ["JOSH", "TOMMY"]},
+     "fight": {"trainers": ["JOSH", "TOMMY"]},  # not named: learned when SEEN
      "taught_by": [("modules/story/early_game.py", "STORY CONDITION: in Rustboro City with a starter strong enough to win")],
      "decomp": {"JOSH": "data/maps/RustboroCity_Gym/scripts.inc", "TOMMY": "data/maps/RustboroCity_Gym/scripts.inc"}},
     {"id": "ch4_roxanne", "chapter": 4, "title": "ROXANNE: the STONE BADGE",
      "done": {"flags": ["DEFEATED_RUSTBORO_GYM", "BADGE01_GET"]}, "maps": ["RUSTBORO_CITY_GYM"],
-     "steps": [{"do": "go", "map": "RUSTBORO_CITY_GYM"}, {"do": "talk", "map": "RUSTBORO_CITY_GYM", "look": "roxanne"}],
+     "steps": [{"do": "go", "map": "RUSTBORO_CITY_GYM", "told": "ROXANNE"},
+               {"do": "talk", "map": "RUSTBORO_CITY_GYM", "look": "roxanne", "told": "ROXANNE"}],
      "hint": {**DAD_RUSTBORO, "words": "ROXANNE", "map": "RUSTBORO_CITY_GYM"},
-     "fight": {"trainers": ["ROXANNE_1"]},
+     "fight": {"trainers": ["ROXANNE_1"], "named": True},  # DAD names her: "challenge the GYM LEADER, ROXANNE"
      "taught_by": [("modules/story/early_game.py", "GOAL/END STATE: BADGE01_GET set (Stone Badge earned)")],
      "decomp": {"DEFEATED_RUSTBORO_GYM": "data/maps/RustboroCity_Gym/scripts.inc",
                 "BADGE01_GET": "data/maps/RustboroCity_Gym/scripts.inc"}},
@@ -351,7 +374,8 @@ def extract() -> dict:
             "done": {"flags": flag_numbers, "variables": {name: {"number": var_numbers[name], "at_least": value}
                                                           for name, value in done.get("vars", {}).items()},
                      "trainers": trainer_flags},
-            "waypoint": raw.get("waypoint"), "maps": raw["maps"], "steps": raw["steps"], "hint": raw["hint"],
+            "waypoint": raw.get("waypoint"), "optional": bool(raw.get("optional")), "maps": raw["maps"],
+            "steps": raw["steps"], "hint": raw["hint"],
             "fight": fight, "note": raw.get("note"), "taught_by": taught, "decomp": raw["decomp"],
         })
     return {
@@ -507,17 +531,28 @@ def verify(data: dict, say) -> list[str]:
             pret = evaluate(label, metatiles) if label in metatiles else None
             if [pret] != look["metatile"]:
                 problems.append(f"looks: {name}: ours metatile {[hex(v) for v in look['metatile']]}, pret {pret} ({label})")
+    def said_in(path: str) -> str:
+        text = re.sub(r'"\s*\n\s*\.string\s*"', "", script(path))
+        return text.replace("\\n", " ").replace("\\l", " ").replace("\\p", " ")
+
+    checked["told"] = 0
     for milestone in data["milestones"]:
         hint = milestone["hint"]
         if hint.get("words") and hint.get("file"):
             checked["hints"] += 1
-            text = re.sub(r'"\s*\n\s*\.string\s*"', "", script(hint["file"]))
-            text = text.replace("\\n", " ").replace("\\l", " ").replace("\\p", " ")
-            if hint["words"] not in text:
+            if hint["words"] not in said_in(hint["file"]):
                 problems.append(f"{milestone['id']}: hint words {hint['words']!r} are not in {hint['file']}")
+        # (build step 5.1) every STEP's own words (`told`): in the script the step names, else the milestone hint's
+        for step in milestone["steps"]:
+            if not step.get("told"):
+                continue
+            path = step.get("file") or hint.get("file")
+            checked["told"] += 1
+            if not path or step["told"] not in said_in(path):
+                problems.append(f"{milestone['id']}: the {step['do']} step's words {step['told']!r} are not in {path}")
     say(f"[VERIFY] checked: {checked['flags']} flag numbers, {checked['vars']} var numbers, {checked['setters']} proofs set by "
         f"their scripts, {checked['trainers']} trainer ids, {checked['levels']} party level lists, {checked['looks']} looks, "
-        f"{checked['hints']} hint words in their scripts")
+        f"{checked['hints']} hint words in their scripts, {checked['told']} steps' own words in their scripts")
     return problems
 
 

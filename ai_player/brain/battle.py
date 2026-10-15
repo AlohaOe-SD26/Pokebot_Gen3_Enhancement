@@ -677,6 +677,8 @@ class _Memory:
     heals: int = 0
     runs: int = 0
     want_catch: bool = False
+    #: (build step 5.1) it wants this species but has no ball to throw (said so, never "it WANTS it")
+    no_ball: bool = False
     new_species: bool = False
     last_bar: int | None = None
     last_move: str | None = None
@@ -808,9 +810,15 @@ class BattleMind:
             if foe.species not in self.wishes:
                 self.wishes[foe.species] = self.rng.random() < self.temper.catch_new
             self.memory.want_catch = self.wishes[foe.species]
+        # (build step 5.1, the step-5 verifier: "it WANTS it" was said with no ball in the bag, and then "run: this wild
+        # Zigzagoon is not one it wants") the words say what it can do: a wish with no ball is said as one
+        balls = any(count > 0 and name != "Master Ball" for name, count in (look.bag.balls if look.bag is not None else ()))
+        self.memory.no_ball = self.memory.want_catch and not balls
+        wish = ("it WANTS it" if balls else "it would like it, but it has no POKé BALL") if self.memory.want_catch \
+            else "it lets this one go"
         what = (f"a {battle.kind} battle against {foe.species} L{foe.level} ({'/'.join(seen_types(foe))})"
-                + (f"; a species it has not caught: {'it WANTS it' if self.memory.want_catch else 'it lets this one go'} "
-                   f"({self.personality}: catch_new {self.temper.catch_new})" if self.memory.new_species else ""))
+                + (f"; a species it has not caught: {wish} ({self.personality}: catch_new {self.temper.catch_new})"
+                   if self.memory.new_species else ""))
         return what
 
     def next_foe(self, look: Observation) -> None:
@@ -1261,9 +1269,16 @@ class BattleMind:
                 reason = f"its {own.species} is low ({hp_share:.0%}) and the foe is not ({bar:.0%}): not worth the risk"
             elif foe.level - own.level >= 6:
                 reason = f"{foe.species} L{foe.level} is far stronger than its {own.species} L{own.level}"
+        elif hp_share < self.temper.run_low and bar > 0.3:
+            # (build step 5.1: measured 2026-10-14, the step-5.1 development sweep, three whiteouts in nine seeds, each a
+            # Trainer travelling at 1-5 HP of 22 who fought a wild Wurmple, since a travel's run was a temperament's draw on
+            # the first turn only) travelling with its Pokemon LOW, a person runs, whatever its temperament, on any turn
+            reason = f"travelling with its {own.species} low ({hp_share:.0%}) and the foe not ({bar:.0%}): not worth the risk"
         elif mem.turns == 1:
             if self.rng.random() < self.temper.run_travel:
-                reason = f"travelling, and this wild {foe.species} is not one it wants ({self.personality})"
+                reason = (f"travelling, and it has no POKé BALL for this wild {foe.species} ({self.personality})"
+                          if mem.no_ball else
+                          f"travelling, and this wild {foe.species} is not one it wants ({self.personality})")
         if reason is None:
             return None
         mem.runs += 1

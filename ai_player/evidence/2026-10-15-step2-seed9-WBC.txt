@@ -1,0 +1,62 @@
+AI PLAYER BUILD STEP 2 (THE HANDS) - LIVE PROOF - ARM WBC: BEHAVIOUR of every A press: the wall clock
+date: 2026-10-15 04:05:46
+code: HEAD b029673d; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d3d34871df0ac077 over git diff HEAD (21 files, 481617 bytes) and 1 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+fixture: ai_player/gates/fixtures/clock_room.ss1 md5=5d1d0ce0974470bf11040fc39f832041
+fixture documentation: as CLOCK, the time pinned
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\probe_presses.py clock --state C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\fixtures\clock_room.ss1 --seed 9 --frames 10000 --clock 13:37
+env: none (a test-side script in its own throwaway emulator; its arguments are in the command; seed 9)
+exit code: 0   elapsed: 35.9s   run dir: None
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS; [SELFTEST] leftover_processes on two idle 'hands_harness.py' processes (this run's mark: found; another driver's: not counted): PASS
+checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes both values):
+  [PASS] the probe ran and tested 10 A presses, each in forks of its own frame, the frame restored after each (10 of 10); IDLE/PRESS_WATCH/PRINT_WINDOW = {'IDLE_FRAMES': 300, 'PRESS_WATCH': 60, 'PRINT_WINDOW': 8, 'OTHER_BUTTONS': ['Start', 'B', 'Select']}
+  [PASS] EVERY START / B / SELECT press was TAKEN by the game (the run with the press differs from the run with no input, within 60 frames): none pressed (pre-registered at least none); dropped: none; short: none
+  [PASS] the forks changed nothing in the run: probe ['clock: clock set to 13:37', 2726, 16] == unforked harness ['clock: clock set to 13:37', 2726, 16]
+  [PASS] the skill's outcome: 'clock: clock set to 13:37' (want 'clock: clock set to 13:37')
+  [PASS] EVERY A press, by the GAME'S behaviour: 2 menu, 1 talk, 7 wait; each WAIT: no text printing, nothing moved in 300 frames with no input, A moved it, B did the same; each MENU: no text printing, the menu sat still for input, A did something; each TALK: the player free, A started a script. Wrong: none
+  [PASS] no A press landed while a text was PRINTING (an active printer advancing in the next 8 frames, no input): none
+  [PASS] NON-VACUITY (pre-registered >= 1): 2 A presses gated 'script waitbuttonpress', 2 of them proven by the game: ["f13074 wait 'script waitbuttonpress': printing=False still=True A moved it at +2 ['script_ptr'] B-same=True free=False started=True", "f15336 wait 'script waitbuttonpress': printing=False still=True A moved it at +2 ['script_ptr'] B-same=True free=False started=True"]
+  [PASS] NON-VACUITY (pre-registered >= 4): 5 A presses gated 'text printer 0 *', 5 of them proven by the game: ["f12881 wait 'text printer 0 CLEAR': printing=False still=True A moved it at +1 ['printers'] B-same=True free=False started=True", "f14082 wait 'text printer 0 CLEAR': printing=False still=True A moved it at +1 ['printers'] B-same=True free=False started=True"]
+  [PASS] NON-VACUITY (pre-registered >= 1): 1 A presses gated 'talk: facing *', 1 of them proven by the game: ["f12714 talk 'talk: facing up to the sign at (0,-1), nothing running (': printing=False still=True A moved it at +1 ['locked', 'script_ptr', 'script_status'] B-same=False free=True started=True"]
+  [PASS] NON-VACUITY (pre-registered >= 1): 1 A presses gated 'clock reads *', 1 of them proven by the game: ["f13544 menu 'clock reads 13:37, the time wanted': printing=False still=True A moved it at +1 ['tasks'] B-same=False free=False started=True"]
+  [PASS] TRUTH at the end: FLAG_SET_WALL_CLOCK=True VAR_LITTLEROOT_INTRO_STATE=6 gLocalTime [0, 13, 37, 8] (want 13:37)
+
+---- notes ----
+no START / B / SELECT press in this run
+every A press, the probe's verdict:
+    OK  f12714 talk 'talk: facing up to the sign at (0,-1), nothing running (': printing=False still=True A moved it at +1 ['locked', 'script_ptr', 'script_status'] B-same=False free=True started=True
+    OK  f12881 wait 'text printer 0 CLEAR': printing=False still=True A moved it at +1 ['printers'] B-same=True free=False started=True
+    OK  f13074 wait 'script waitbuttonpress': printing=False still=True A moved it at +2 ['script_ptr'] B-same=True free=False started=True
+    OK  f13544 menu 'clock reads 13:37, the time wanted': printing=False still=True A moved it at +1 ['tasks'] B-same=False free=False started=True
+    OK  f13628 menu 'yes_no cursor on 0 (YES)': printing=False still=True A moved it at +1 ['tasks'] B-same=False free=False started=True
+    OK  f14082 wait 'text printer 0 CLEAR': printing=False still=True A moved it at +1 ['printers'] B-same=True free=False started=True
+    OK  f14334 wait 'text printer 0 CLEAR': printing=False still=True A moved it at +1 ['printers'] B-same=True free=False started=True
+    OK  f14692 wait 'text printer 0 CLEAR': printing=False still=True A moved it at +1 ['printers'] B-same=True free=False started=True
+    OK  f14916 wait 'text printer 0 CLEAR': printing=False still=True A moved it at +1 ['printers'] B-same=True free=False started=True
+    OK  f15336 wait 'script waitbuttonpress': printing=False still=True A moved it at +2 ['script_ptr'] B-same=True free=False started=True
+gates seen: ['clock reads 13:37, the time wanted', 'script waitbuttonpress', 'talk: facing up to the sign at (0,-1), nothing running (no script, controls free, no text, no menu)', 'text printer 0 CLEAR', 'yes_no cursor on 0 (YES)']
+
+---- STEP 2.1: the probe (gates/probe_presses.py) ----
+{"brain": "clock", "constants": {"IDLE_FRAMES": 300, "OTHER_BUTTONS": ["Start", "B", "Select"], "PRESS_WATCH": 60, "PRINT_WINDOW": 8}, "eyes_code": {"screens": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\ai_player\\eyes\\screens.py", "task_waits": ["Task_HandleCaughtMonPageInput", "Task_NewGameBirchSpeech_WaitPressBeforeNameChoice", "Task_ReturnToItemListAfterDecorationPurchase", "Task_ReturnToItemListAfterItemPurchase", "Task_ViewClock_HandleInput", "Task_WaitForBatteryDryErrorWindow", "Task_WaitForSaveFileErrorWindow"]}, "fault": null, "frames": 2726, "other_presses": [], "presses": 16, "reason": "clock: clock set to 13:37", "seconds": 11.5, "seed": 9}
+the brain's lines:
+  [AI-HANDS] brain=clock seed=9 (given) personality=Trainer (seed) faults=ungated_a:False,blind_count:False frames=10000
+  [AI-HANDS] set the wall clock: the clock at (0,-1); the time to set: 13:37 (named by the run)
+  [AI-HANDS] outcome='clock set to 13:37' presses=16 frames=2726 looks=1252 records=55
+  [AI-HANDS] presses by gate: {'A:clock reads 13': 1, 'A:script waitbuttonpress': 2, 'A:talk': 1, 'A:text printer 0 CLEAR': 5, 'A:yes_no cursor on 0': 1, 'Right:clock reads 10': 1, 'Right:clock reads 13': 3, 'Up:turn up to face the sign at': 1, 'Up:yes_no cursor on 1': 1}
+TRUTH at the end (gates/hands_harness.py truth, in the probe's emulator):
+{"FLAG_SET_WALL_CLOCK": true, "VAR_LITTLEROOT_INTRO_STATE": 6, "VAR_LITTLEROOT_TOWN_STATE": 0, "balls": {}, "battle_outcome": 0, "boxes": [], "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 15380, "gLocalTime": [0, 13, 37, 8], "game_state": "OVERWORLD", "game_stats": {"steps": 9, "total_battles": 0, "trainer_battles": 0, "wild_battles": 0}, "gender": 0, "gender_name": "BOY", "items": {}, "localTimeOffset": [9784, 14, 28, 19], "map": [1, 1], "money": 3000, "name": "Rowan", "name_bytes": "cce3ebd5e2ffffff", "party": [], "party_exp": [], "party_moves": [], "party_ot": [], "party_pp": [], "player_tid": 34234, "pos": [5, 2], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "trainer_defeated": {"280": false, "318": false, "322": false, "333": false, "520": false, "523": false, "526": false, "529": false, "532": false, "535": false, "600": false, "603": false, "615": false, "617": false, "631": false, "753": false, "754": false}}
+every A press, raw (frame, gate, kind, printing, still, moved_by_itself_at, moved_by_a_at, b_same, free, started, the probe's task list):
+  f12714 | talk: facing up to the sign at (0,-1), nothing running (no script, controls free, no text, no menu) | talk  | printing=False still=True by-itself=None [] | A=1 ['locked', 'script_ptr', 'script_status'] | B-same=False [1, ['locked', 'script_ptr', 'script_status']] | free=True started=True | tasks ['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+  f12881 | text printer 0 CLEAR | wait  | printing=False still=True by-itself=None [] | A=1 ['printers'] | B-same=True  | free=False started=True | tasks ['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage']
+  f13074 | script waitbuttonpress | wait  | printing=False still=True by-itself=None [] | A=2 ['script_ptr'] | B-same=True  | free=False started=True | tasks ['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents']
+  f13544 | clock reads 13:37, the time wanted | menu clock | printing=False still=True by-itself=None [] | A=1 ['tasks'] | B-same=False [1, ['tasks']] | free=False started=True | tasks ['Task_SetClock_HandleInput']
+  f13628 | yes_no cursor on 0 (YES) | menu yes_no | printing=False still=True by-itself=None [] | A=1 ['tasks'] | B-same=False [1, ['tasks']] | free=False started=True | tasks ['Task_SetClock_HandleConfirmInput']
+  f14082 | text printer 0 CLEAR | wait  | printing=False still=True by-itself=None [] | A=1 ['printers'] | B-same=True  | free=False started=True | tasks ['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+  f14334 | text printer 0 CLEAR | wait  | printing=False still=True by-itself=None [] | A=1 ['printers'] | B-same=True  | free=False started=True | tasks ['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+  f14692 | text printer 0 CLEAR | wait  | printing=False still=True by-itself=None [] | A=1 ['printers'] | B-same=True  | free=False started=True | tasks ['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+  f14916 | text printer 0 CLEAR | wait  | printing=False still=True by-itself=None [] | A=1 ['printers'] | B-same=True  | free=False started=True | tasks ['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage']
+  f15336 | script waitbuttonpress | wait  | printing=False still=True by-itself=None [] | A=2 ['script_ptr'] | B-same=True  | free=False started=True | tasks ['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects']
+STEP 2.1 (the review's item 4): every START / B / SELECT press, raw (frame, button, gate, a fade running on its frame, taken at +N frames: the first frame the pressed run differs from the run with no input, and in what):
+
+---- STEP 2.1: the unforked run of the same start (gates/hands_harness.py) ----
+{"brain": "clock", "seed": 9, "fault": null, "reason": "clock: clock set to 13:37", "frames": 2726, "presses": 16, "seconds": 7.2}

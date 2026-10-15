@@ -1,8 +1,8 @@
 {
   "_help": "Read by the learner at the start of EVERY cycle, so an edit applies to the next cycle without a restart. Keys starting with _ are ignored. See README.md.",
   "lanes": "auto",
-  "_max_lanes": "16 from 2026-10-07 (USER RULING 37 Q7): leaves CPU for the AI player's development runs",
-  "max_lanes": 16,
+  "_max_lanes": "8 from 2026-10-15 (USER RULING 38): the strategy ranking has plateaued (top 15 tied at 0.36-0.38 +/- 0.02 after 26 cycles), so half the lanes lose almost nothing and halve heat, CPU and disk. Scale back to 16 when the AI player gives the learner something new to test. (16 from 2026-10-07, USER RULING 37 Q7.)",
+  "max_lanes": 8,
   "reserve_threads": 4,
   "reserve_ram_gb": 8,
   "ram_per_lane_gb": 1.5,

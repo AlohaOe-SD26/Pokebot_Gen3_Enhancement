@@ -11,7 +11,43 @@ the bot is hard-coded.
 Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md` (sections 10
 and 11 win over 2-9) and `ai-agent/HUMAN-PLAY-DESIGN.md`.
 
-**Where it is now: build step 5, the AI plays the STORY itself** (section "The story (build step 5)" below): a new brain,
+**Where it is now: build step 5.1, the verifier's SECOND round** (section "Step 5.1, the verifier's second round" below;
+final tree `d3d34871df0ac077`). The two failures and eight weak proofs are answered, and everything on that tree PASSED:
+* the graded sweep on NEW held-out seeds 801-820, now with chapter 2 (WALLY's tutorial, 20 of 20; the intent-mix floor
+  41-59 % in every chapter-2 run; the beeline's chapter 2 under it in 19 of 20);
+* the six live arms, CH2T among them at 40 %;
+* 137 of 137 mutants caught, the units and the milestone checks;
+* the full regression of steps 0-4, every evidence file naming that tree.
+
+‼ **A first graded pass FAILED one check, and is kept.** It ran on tree `d0c949e96d355afe`, held-out seeds 701-720: CH2's
+floor in seed 706 measured 28.7 %. Its cause is fixed (G137, G138) and the Story's and Trainer's balance raised. Chapters 3
+and 4 are still unplayed (the known limits).
+
+**Before that, build step 5.1, the verifier's round** (section "Step 5.1, the verifier's round" below; its tree
+`a883634ab24c3792`). The step-5.1 verifier's nine weak proofs and one rule violation are answered:
+* the curiosity the story did not need is now graded in EVERY run, and the beeline control fails it;
+* the errands' own divergence and the tiles no beeline stood on are measured;
+* a battle-free no-speedrun time is added;
+* the DETOUR is fixed (11 of the first round's 12 graded CH1 detours had ended at once), and a look-around debt added;
+* "a new place" now means new to the carried world memory;
+* the second path reads battles (fault arm STALL3);
+* the training bounds are re-derived, and MAX_LOSSES 3 is proven (fault arm LOSE3);
+* a story goal put aside comes back after 6,000 frames, and a walk its battles ate walks on.
+‼ **Not all green:** the live arm CH2T fails the pre-registered intent-mix floor (28 % against 30 %), and the full
+regression of steps 0-4 has not been re-run on this tree (both in that section). The first round's text follows.
+
+**Build step 5.1, the story played HUMAN-LIKE** (section "The story, human-like (build step 5.1)" below;
+first round's tree `c450adc2865848e4`): the step-5 verifier's FAILURE is fixed (two stand-stills of 600 and
+1,200 frames in front of a screen that waited for a press: the starter's yes/no and a scene's text) and graded now as a
+PROPERTY, by the AI's own record of every look and by a second path in the sweep: no screen waits for a press 300 frames
+with none, whatever the reason given. The story is no longer a beeline (review #1): a personality-weighted LOOK-AROUND on
+outdoor maps, DETOURS off the way, item curiosity (the rival's POKé BALL is found by it, not by a scripted step), chats,
+measured as an INTENT MIX, a SEED DIVERGENCE and a beeline control (`AI_PLAYER_FAULT_NO_ERRANDS`). STORY_PATIENCE counts
+from the last REAL progress (review #2); every step's map needs its OWN words or a visit, only fights the game names are
+trained for, shopping is by the mart's list and home healing by MOM's words (review #3, #4); a failing story goal waits a
+cooldown and the gym's trainers are optional (review #5). Below that, the step-5 text (unchanged):
+
+**Build step 5, the AI plays the STORY itself** (section "The story (build step 5)" below): a new brain,
 `AI_PLAYER_BRAIN=play`, plays from a real New Game toward a target milestone (`AI_PLAYER_TARGET`, default `ch1_pokedex`)
 of the story to badge 1 (4 chapters, 20 milestones in `knowledge/milestones.json`, each proven by the game's own flags and
 vars, every number checked against pret/pokeemerald). A GOAL MANAGER (`brain/goals.py`) reads where the story is and
@@ -340,8 +376,9 @@ Will ... change POKéMON?", the AI switches to its Taillow (step 4.1's fixtures:
 
 Build step 5: the PLAY brain, `AI_PLAYER_BRAIN=play` (a world brain: the same memory, navigator and battle decider). It
 plays the story toward `AI_PLAYER_TARGET` (a milestone id of `knowledge/milestones.json`; default `ch1_pokedex`; e.g.
-`ch2_wally`, `ch4_roxanne`) and ends with `play: done: <target> reached`, or `play: stuck: no milestone for N frames
-(since <milestone>)` (`mode.py` STORY_PATIENCE), `play: ... battles lost` (MAX_LOSSES), or the frame budget. From a fresh
+`ch2_wally`, `ch4_roxanne`) and ends with `play: done: <target> reached`, or `play: stuck: no progress for N frames
+(... since <milestone>)` (`mode.py` STORY_PATIENCE, since step 5.1 counted from the last REAL progress; step 5 said "no
+milestone for N frames"), `play: ... battles lost` (MAX_LOSSES), or the frame budget. From a fresh
 boot it plays the intro itself (the title screen, the AI's name and gender, the truck). `AI_PLAYER_STARTER=TREECKO|
 TORCHIC|MUDKIP` names the starter (unset: the personality's lean, drawn from the seed); `AI_PLAYER_PERSONALITY`,
 `AI_PLAYER_SEED`, `AI_PLAYER_CLOCK` (the time it sets on the wall clock) and `AI_PLAYER_WORLD` (a `world.jsonl` a previous
@@ -354,9 +391,15 @@ AI_PLAYER_BRAIN=play AI_PLAYER_TARGET=ch2_wally AI_PLAYER_WORLD=<that run's dir>
 
 plays a New Game to the POKéDEX with a Torchic, then chapter 2 from where it stopped. The in-process harness runs the same
 brain: `py -3.12 ai_player/gates/play_harness.py --fresh --seed N --personality P --starter S --target T --frames F
---game-clock 2026-10-14T10:00 --clock 10:00 [--fault no_hints|no_training] [--state PATH --world-in WORLD] [--save-end
-PATH] [--run-dir DIR] [--checkpoints DIR]` (the cartridge's clock PINNED, so a seed replays; its recorder reads the game's
-marks and counters every 30 frames by a second path; `truth STATE` reads a saved state the same way).
+--game-clock 2026-10-14T10:00 --clock 10:00 [--fault no_hints|no_training|no_errands] [--state PATH --world-in WORLD]
+[--save-end PATH] [--run-dir DIR] [--checkpoints DIR]` (the cartridge's clock PINNED, so a seed replays; its recorder reads
+the game's marks and counters every 30 frames by a second path; since step 5.1 its `WaitRecorder` reads every 10 frames
+whether the GAME waits for a press, by the framework's own reads, beside the presses: `waits_game` in its PLAY line; `truth
+STATE` reads a saved state the same way). Step 5.1's beeline control: `AI_PLAYER_FAULT_NO_ERRANDS=1` (`--fault no_errands`).
+Since the step-5.1 verifier's second round the sweep plays chapter 2 too: `py -3.12 ai_player/gates/rate_step5.py --plans
+CH1,ERRANDS_OFF,CH2,CH2_OFF --seeds 9 --first-seed 41` goes on from each chapter-1 run's own end state and world memory to
+WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3.12 ai_player/gates/provenance.py
+--snapshot`, `--compare A B`).
 
 ## Layout
 
@@ -369,13 +412,14 @@ marks and counters every 30 frames by a second path; `truth STATE` reads a saved
 | `brain/battle.py` | step 4: the AI's OWN BATTLE DECIDER (framework-free): a move's worth (`move_value`: type x STAB x power x hit chance, minus `recoil_penalty`), the near-best draw (`choose_move`), switching (`matchup`, `better_member`), healing in a trainer's battle, running, the catch (weaken under `KO_MARGIN`, then the ball), who goes in after a faint (`replacement`), the battle's questions by their words (`answer`), which move to forget (`learn_choice`), when training should stop (`needs_rest`); the personality's `Temperament`; the FAULT switches `BattleFaults`; since the step-4 verifier's second round every choice of the best move tells what the type chart changed in it (`TypeSay`); since step 4.1 the shift question about the foe its words name (`incoming`, `_shift`, `shift_to`), the moves the game refused this turn (`cannot_use`), the types a person knows (`seen_types`), a rough sense of a hit (`rough_share`, `damage_fraction`), finishers worth as the strongest (`_ko_worth`), safe openers and a catch's sleep or paralysis (`_opener`, `_catch_status`, `_safe_for_status`), the ball by visible cues (`_ball`); since step 4.1 round 2 an opener the draw passes over is SAID with the move chosen ("no opener this time": the sweep counts the rule's chances), a species named with a full stop or a sign read whole (`incoming`: MR. MIME, NIDORAN♀), and the FAULTS `no_catch_status` and `ignore_pp` (the arms CATCHSX, REFUSED) |
 | `skills/battle.py` | step 4: playing a battle to its end (`play_battle`): every text advanced on the eyes' waits, every battle menu chosen by reading its cursor (the action and move grids, a double battle's target, the bag's pocket and item and USE, the party menu and SHIFT / SEND OUT, the yes/no, the summary screen's forget-a-move list), every decision logged with its reason; the outcome is the game's `gBattleOutcome` |
 | `knowledge/` | step 4: the AI's OWN game facts, `types.json` (the Gen-3 chart), `moves.json` (354 moves: type, power, accuracy, PP, effect, priority, target, category, recoil class), `species.json` (386 species: types, base stats, catch rate, experience yield), each with its provenance (the bot's data file it was extracted from and that file's sha256); `facts.py` reads them (the play loop never reads the bot's data) |
-| `brain/goals.py` | step 5: the GOAL MANAGER (framework-free): which milestone the marks prove (`milestone`, a waypoint passed on its map), ONE goal at a time with its reason in a fixed order, HEAL, SHOP, TRAIN, ITEM, CATCH, CHAT, then the STORY step (`next_goal`, `_story_goal`: go where the words heard say, `ask` the people of a place when nothing was said, `seek` someone seen earlier where they stood, `find` them, `use`/`talk`/`follow`), the doors it recognises by their look (`notice`, kept in the world memory), the training target from the fight's levels and the personality's margin (`prep`), a goal that failed twice put aside (`FAIL_LIMIT`, `COOLDOWN_DECISIONS`; a heal not, when the party is in danger); the way to an unknown place (`lead_toward`: out to the open map with most left to see, or a building's own town; `travel_intent`); the roam's rest (`training_rest`, installed by `GoalRunner.roam_hooks`), the losses (`battles_lost`); and `GoalRunner`, which plays each goal with the navigator, roaming and the story skills |
+| `brain/goals.py` | step 5: the GOAL MANAGER (framework-free): which milestone the marks prove (`milestone`, a waypoint passed on its map), ONE goal at a time with its reason in a fixed order, HEAL, SHOP, TRAIN, ITEM, CATCH, CHAT, then the STORY step (`next_goal`, `_story_goal`: go where the words heard say, `ask` the people of a place when nothing was said, `seek` someone seen earlier where they stood, `find` them, `use`/`talk`/`follow`), the doors it recognises by their look (`notice`, kept in the world memory), the training target from the fight's levels and the personality's margin (`prep`), a goal that failed twice put aside (`FAIL_LIMIT`, `COOLDOWN_DECISIONS`; a heal not, when the party is in danger); the way to an unknown place (`lead_toward`: out to the open map with most left to see, or a building's own town; `travel_intent`); the roam's rest (`training_rest`, installed by `GoalRunner.roam_hooks`), the losses (`battles_lost`); and `GoalRunner`, which plays each goal with the navigator, roaming and the story skills; step 5.1: the look-around (`may_look_around`, kind `explore`) and the detour (`_detour`), the new-map stop, item curiosity (`_remembered_ball`), each step's own words (`step_known`), the fights a person knows (`fight_levels`, `training_target`), the mart by its list (`no_balls`), home healing by experience (`home_heals`, `_saw_mom_heal`), finding a centre (`find_center`), hurt walks out of the grass, the story's cooldown (`aside:`) and the scene walls carried within a milestone; step 5.1's verifier's round: a new place is new to the carried world memory (`_Memory.known_before`), the look-around debt (`LOOK_DEBT`) and every draw told (`say`), the detour walks to a place it chose (`DETOUR_MIN_TILES`, `DETOUR_TRIES`), a story goal put aside comes back after `STORY_ASIDE_FRAMES`, and a walk whose battles ate its budget walks on (`_walk_on_after_battles`, `_BattleClock`, `GO_BATTLE_EXTENSIONS`); the verifier's second round: a GYM by its door's look (`door_of`, `is_gym`, `GoalRunner._to_building`), the nearest place to heal or shop (`_nearest_place`; a door past a crossed edge is not that map's, a door that cannot be walked into is forgotten, `DOOR_UNUSABLE`), a town's own centre looked for first (`find_center` with `via`), the BALANCE (`spent`, `owed`, `OWED_STOP`, `AGAIN_MAX`, the curiosity minimum), its first POKé BALLS tried, the story's own person no chat, `DANGER_RETRIES`, `ASIDE_LOOK_MIN`, and whose rule judged a fight's training done (`fight_prep` `judged_by`) |
 | `skills/story.py` | step 5: the story's person-level skills: talk to someone seen (beside or across a counter), use a thing, pick up an item ball (read what was found), walk into a door, the nurse and the clerk (found by their look), the starter chosen in the bag by its cursor, a scene's yes/no answered by its words (`answer_question`, `QUESTION_RULES`), a scene played to its end (`play_out`) |
 | `knowledge/milestones.json`, `knowledge/story.py`, `knowledge/wild_species.json` | step 5: the story to badge 1 as DATA (20 milestones in 4 chapters: proofs, maps, steps, the game's own hint, the fight's levels), extracted from the bot's `story/early_game.py` (teaching material, named with its sha256) by `gates/extract_milestones.py` and checked against pret/pokeemerald by its `--verify`; `story.py` reads it (which milestone the marks prove, the player's own gender's houses); the species a person meets in the wild (the favourite's pool) |
 | `skills/roam_train.py`, `skills/flee.py` | step 3: training by ROAMING through seen grass (training steps, every press an attempt, the spin ratio over the training steps, distinct tiles, encounters fled); a WILD battle fled by choosing RUN on the cursor read (a trainer battle: the reason, nothing pressed) |
 | `hands/pad.py` | step 2: the PAD (every press a jittered hold and gap, a gate it names, logged; reading and thinking delays; never an idle without a reason) and `Hands`, what every skill holds (eyes, pad, the choices stream, the faults, the log) |
-| `hands/dialogue.py` | step 2: advance text only on the eyes' waits, stop at every menu; start a conversation only while the player is free (`talk`) |
-| `hands/menus.py` | step 2: move a cursor by reading it, choose by intent, answer a yes/no, type a name, set the clock, the "How many?" box, and the nurse (`nurse_heal`) and the mart (`mart_buy`) |
+| `hands/dialogue.py` | step 2: advance text only on the eyes' waits, stop at every menu; start a conversation only while the player is free (`talk`); step 5.1: what on screen waits for a press (`awaits_press`) and `talk(give_way=True)`, which gives a screen that waits for a press back to its caller at once (the story skills use it; the default is step 2's rule) |
+| `hands/waiting.py` | step 5.1: `WaitWatch`, a hands watcher the play brain installs: every stretch a screen waited for a press with none (a text waiting for A/B, a menu taking input), whatever busy reason the pad gave meanwhile; the stretches of 60 frames or more go to the action log (`decision` "await"), the longest to the end record (the graders' STALL PROPERTY) |
+| `hands/menus.py` | step 2: move a cursor by reading it, choose by intent, answer a yes/no, type a name, set the clock, the "How many?" box, and the nurse (`nurse_heal`) and the mart (`mart_buy`); the step-5.1 verifier's second round: with `give_way` (the story's skills; the step-2 default unchanged) a screen that waits for a press before the talk is handed back at once (`GAVE_WAY`) |
 | `skills/intro.py`, `skills/clock.py` | step 2: the New Game intro from the title screen to the truck; the wall clock in the player's room |
 | `personality.py` | step 2: the base personality (Catcher, Story, Trainer) and the intro's two choices, gender and name, by a personality-weighted draw from the seed; step 5: each personality's ERRAND weights (`Errands`, `ERRANDS`: training margin and minimum, catching, balls, healing, chatting), the step-based DRIFT to another personality and back (`PersonalityState`, `DRIFT_EVERY`, `DRIFT_CHANCE`, `DRIFT_STEPS`, every drift logged), the starter's lean (`choose_starter`) and the FAVOURITE Pokemon (`choose_favourite`, a wild species; the shiny hunt is deferred) |
 | `eyes/screens.py` | step 2: the eyes' perception of menus and text (framework-free): which menu is open by its input task, its cursor, the keyboard's layout, the charmap, the tasks that wait for A/B |
@@ -608,6 +652,11 @@ Read inside the AI's own code, never set on the happy path:
 | `AI_PLAYER_FAULT_NO_TRAINING=1` | step 5: no training before a known fight (the rival goes un-prepared) | the sweep's NOTRAIN (`rate_step5.py`); `test_goals.py` ErrandTests |
 | (a COPY) | step 5: one rule of the goal manager, the story reader, the personality, the story skills, the route rules, the milestone marks, the play loop or the roam's report broken (`revert_step5.MUTANTS` G1-G52) | `revert_step5.py` (`test_goals.py` from the copy) |
 | (a COPY) | step 5 round 2: MAX_LOSSES 1 (`CAP1`), alone and with the play loop's loss count removed (G46) | the sweep's phase 2, STOP and STOPDEAD (`rate_step5.py`) |
+| `AI_PLAYER_FAULT_NO_ERRANDS=1` | step 5.1: the BEELINE control: no look-around, no detour, no stop on a map whose look-around is due, no chat, no catching roam | the sweep's ERRANDS_OFF (`rate_step5.py`); `test_goals.py` ExploreTests |
+| (a COPY) | step 5.1: the starter bag watched for the bag alone (G53: the verifier's stall (a)); `talk` waiting out a scene's text with no settling and no second look (G55, G56, G57, G86: stall (b)) | the sweep's STALL1, STALL2 (`rate_step5.py`) |
+| (a COPY) | step 5.1: `STORY_PATIENCE` 40,000 (`PATIENCE_SMALL`), alone and with the step-5 rule back (G67: only a milestone resets it) | the sweep's PATIENCE, PATIENCE_OLD (`rate_step5.py`, the Trainer's seeds) |
+| (a COPY) | step 5.1, the verifier's round: the battle skill waits 600 frames at the action menu before it acts (`STALL3`: a battle's wait for a press, which the second path did not read until this round) | the sweep's STALL3 (`rate_step5.py`, the Story's seeds) |
+| (a COPY) | step 5.1, the verifier's round: once its battler is L7, the decider uses its status move (slot 1) every turn of a wild battle and never runs (`LOSE3`): the play loop's real `MAX_LOSSES` (3) must end the run | the sweep's LOSE3 (`rate_step5.py`, the Catcher's seeds) |
 | `AI_PLAYER_FAULT_UNGATED_A=1` | the dialogue driver presses A on its cadence with no wait gate and never stops for a menu (step 2) | XU (live_step2) |
 | `AI_PLAYER_FAULT_BLIND_COUNT=1` | the menu driver moves every cursor by a count from the top, without reading it (step 2); since step 2.1 it still waits for a menu to take input before its A (it is blind to the CURSOR only: an A dropped in the gender menu's sprite slide now ends the intro, the review's item 6) | XBN, XBC (live_step2) |
 | (a COPY of the package, not a switch) | step 2.1: the eyes' TASK_WAITS list a timer task (`Task_NewGameBirchSpeech_WaitToShowBirch`) as a wait | XTW (live_step2): the press-behaviour probe must flag every A pressed on it |
@@ -656,6 +705,536 @@ step-0.1 runs of 2026-10-07 (no digest line: they predate `provenance.py`) were 
 (`evidence/archive/no-digest/2026-10-07-step2-<ARM>.txt`, "archived in `evidence/archive/<digest>/`") now lead to
 `evidence/archive/INDEX.md`, where each such file has one line with the `git show <commit>:<path>` that prints it (git
 keeps every one: the tool deletes a file only when git tracks it unchanged).
+
+## The story, human-like (build step 5.1)
+
+‼ Sections A-F and "The proof of the first round" below are the FIRST round's (tree `c450adc2865848e4`, its evidence now in
+`evidence/archive/c450adc2865848e4/`). "Step 5.1, the verifier's round" after them supersedes their metrics and proof:
+read it for what holds now.
+
+Step 5.1 answers the step-5 verifier's FAILURE and the step-5 adversarial review's six findings (both verbatim in the round's
+input), on ONE tree: working-tree digest `c450adc2865848e4` (the first round's `2026-10-14-step51-*.txt` evidence files name it). USER
+RULING 37 Q6 ("HUMAN pacing, but always goal-directed and never idle ... detours are allowed") and RULING 32 ("never a
+speedrun") are what each part serves; RULING 35 holds (the AI's own code plays; the purity gate unchanged, `check_purity`
+PASS; no host-side door or read was added: every change is in the AI's brain, hands, skills, knowledge and gates, and the
+second path's framework reads live in the harness, `gates/play_harness.py`, never in the AI).
+
+### A. Pacing: never standing in front of a screen that waits for a press
+
+* **(a) The starter's yes/no** (the verifier: A on a ball at f34499, YES at f35142 in arm CH1M; 20 of 40 sweep runs). After
+  the A the bag shows BUSY while the ball opens, so the scene handed it back to the play brain's menu, whose
+  `wait_for_ui("choose_starter")` watched for the bag ALONE 600 frames while the yes/no that followed waited. Fix:
+  `skills/story.py` `bag_or_its_question` returns as soon as anything on the bag TAKES INPUT (the bag again, or its
+  question) or the bag is gone; `choose_starter` then hands the question back at once. Live now: A to YES 39 / 48 / 61 frames
+  (CH1T, CH1C, CH1M; step 5's CH1M 643).
+* **(b) A goal chosen on the frame a scene's map change landed** (the verifier: 'goal chat' 2 frames after PROF. BIRCH's
+  scene put the player in his lab; `talk` then waited 1,200 frames "until the player is free" while his text waited for
+  A; 13 of 40 sweep runs). Three layers, each with its own mutant: the play loop lets the screen stay free `SETTLE_FREE`
+  (30) frames after a map change before it chooses a goal (`mode.py`; G56); after the decision's thinking pause it looks
+  again and, a scene having begun, plays it first (the goal is recorded "dropped", not failed; G57); `talk(give_way=True)`
+  (`hands/dialogue.py`, used by the story skills only; the step-2 default is unchanged) returns at once when what is on
+  screen waits for a press, and `talk_to` plays that scene (G54, G55, G86). Live now: the lab's arrival to its first page
+  read 156 / 158 / 151 frames (step 5's CH1M 1,295).
+* **(c) The PROPERTY, not a reason label.** `hands/waiting.py` `WaitWatch` (installed by the play brain, told every look)
+  measures every stretch in which the screen WAITED FOR A PRESS (`awaits_press`: a text waiting for A/B, a menu taking
+  input) and no press came, whatever busy reason the pad gave meanwhile (it records them all). Its stretches of 60 frames or
+  more are written to the action log (`decision` "await"), the longest to the end record. In the sweep a SECOND PATH reads
+  the game every 10 frames by the framework's own code (`gates/play_harness.py` `WaitRecorder`: the tasks that poll a
+  button, and `modules.tasks.is_waiting_for_input` on the overworld) beside the presses. **The bound, pre-registered:
+  `AWAIT_MAX` = 300 frames**: the pad's longest deliberate pause before a press is its reading cap (`Pacing.read_max`, 150
+  frames); MEASURED, the longest stretch in every development run of the real code was 150 by both paths; 300 is twice the
+  cap, far under the stalls (600-644 and 1,141-1,210 frames). Live (`live_step5.py`) by the AI's record; the sweep
+  (`rate_step5.py`) by both, and the two paths must AGREE run by run.
+* **The sweep for other stalls of this shape**: 99 development runs (step51dev1-dev7 and their ERRANDS_OFF controls, 9 CH1
+  seeds each, on the code of their day), the graded sweep's 40 runs of the real code (CH1, NOTRAIN, NOHINTS, ERRANDS_OFF)
+  and the five live arms: the longest is 150 frames everywhere by the AI's record, and 150 by the game's in the graded sweep. One second-path reading was a false alarm and is
+  documented in `play_harness.waits_now`: during a wild battle's opening the framework's read of text printer 0 said
+  "waiting" for 510 frames before "Wild WURMPLE appeared!" was printed (a printer state left from before the battle); the
+  second path reads text waits on the overworld only (the battle skill's waits stay in the AI's record).
+
+### B. Explore, don't beeline (review #1, RULINGS 32 and 37)
+
+* **LOOK AROUND** (`brain/goals.py` `may_look_around`, goal kind `explore`): on an OUTDOOR map whose draw is due, one
+  seeded draw against the personality's `look_around` (Catcher 0.8, Trainer 0.7, Story 0.55: the Story player too, less),
+  then `look_frames` (4,200 / 3,600 / 3,000) of looking round that map, keeping to it; never in danger, never the intro,
+  and not where the story's own next thing is told and HERE (measured in development: it looked round ROUTE 101 while PROF.
+  BIRCH cried "Help! In my BAG!", and he cried "Don't leave me like this!"; G85). A walk (`go`, `look_around`) that arrives on
+  an outdoor map whose draw is due STOPS there so the next decision may make it (`NEW_MAP_STOP`; G66, G87: step51dev2-4
+  stopped only on maps never visited and the draw was rarely due). The order is now HEAL, SHOP, ITEM, EXPLORE, TRAIN, CATCH,
+  CHAT, STORY (an item ball before training: a training roam stops for one, so training first ended every session at once).
+* **DETOURS** (goal kind `detour`, `GoalRunner._detour`): a `go` with a known map across an outdoor map, one draw a map and
+  milestone against `detour` (0.5 / 0.45 / 0.35): one place OFF the way (a frontier, grass, someone not met: never the way
+  on, back, or into a building), within `detour_frames` (1,500 / 1,500 / 1,200).
+* **Item curiosity**: an item ball in view is picked up before the party too (G64), and one it SAW earlier on this map is
+  walked back to (`_remembered_ball`, `_back_to_ball`; G65). **Chatting** now and then is step 5's errand (Trainer most).
+* **The beeline control** `AI_PLAYER_FAULT_NO_ERRANDS` / `--fault no_errands`: none of the above, no chat, no catching roam.
+* **Metrics, pre-registered** (`rate_step5.py` BOUNDS, from the development sweeps; the README's numbers are the graded
+  sweep's, seeds 401-410): the INTENT MIX (`intent_mix`: the share of the goals' frames on errands, in EVERY run >= 0.30:
+  0.46-0.62; on CURIOSITY, `explore`, `detour`, `chat`, `catch`, `pick_up`, each personality's mean >= 0.06: Catcher 0.108,
+  Trainer 0.114, Story 0.117); SEED DIVERGENCE (`divergence`: every pair of runs of one personality, goal sequences 0.515
+  and paths 0.438, bound >= 0.30 each, no identical pair); the beeline control MOVES them (curiosity drops by 0.080, the mean
+  of the paired seeds, bound >= 0.04; goal-sequence divergence 0.446, bound below CH1's; paths 0.455, reported); NO SPEEDRUN (the frames
+  to the POKéDEX outside the NEEDS, training, healing, finding a centre and shopping, which the control keeps too and whose
+  length is the battles' dice: CH1 over the control pooled 1.061, bound >= 1.0, every run within its 300,000 budget).
+  ‼ **The literal "frames to the POKéDEX above the beeline" is REPORTED, not bounded**: in development it measured 0.987 and
+  1.006 (the errands' extra time is within the training's run-to-run noise, and looking round a place makes later walks
+  shorter); on the graded seeds the total was 1.05. The no-speedrun claim rests on the outside-the-needs ratio.
+
+### C. Patience counts from real progress (review #2)
+
+`mode.py`: `STORY_PATIENCE` now counts from the last REAL PROGRESS (`HandsBrain._progress`): a milestone, battles WON while
+training, a level gained, a map never seen before, a catch (the POKéDEX's owned count), an item picked up or bought, a
+heal (at most `HEAL_RESETS_MAX` = 3 a milestone, so heal, get hurt, heal again cannot reset it forever). Goals that keep
+FAILING make no progress and are still stopped ("stuck: no progress for N frames ..."). Through the real loop
+(`PlayLoopTests`): a training stint of 8 sessions, 160,000 frames, each winning a battle, is played to its end and the goals
+after it are stopped at the patience (G67 is the step-5 rule back: it stops after 6 sessions); failing goals report no
+progress; the heal cap (G68). In the game, the sweep's patience A/B on the Trainer's seeds 402, 405, 408 with
+`STORY_PATIENCE` 40,000 in a copy: the real rule reached the POKéDEX in 3 of 3 with training stints of 56,318-70,957 frames
+(longer than the patience); the step-5 rule (G67) stopped 3 of 3, each WHILE TRAINING (its last goal a training session).
+
+### D. Person-fair (review #3, #4)
+
+* **Each STEP's own words or a visit** (`Step.told`, `GoalManager.step_known`; `gates/extract_milestones.py` writes them and
+  `--verify` finds all 19 in the decomp): upstairs in the rival's house needs the rival's mom's "is upstairs, I think",
+  never MOM's "next door" (G69); the `ask` step goes only to a place it has BEEN (G70).
+* **The rival's POKé BALL is no scripted step any more** (`ch1_rival_house` steps: go 1F, go 2F): it lies on the floor with an
+  item ball's look, and item curiosity walks up to it, which plays the rival's scene (all 10 graded CH1 runs and the 3 live
+  arms: "goal pick_up: an item ball on the ground at (5, 4)", (3, 4) in BRENDAN's house, before MILESTONE ch1_rival_house;
+  G71 restores the step and is caught).
+* **Fight levels only for fights the game NAMES** (`Milestone.fight_named`: the rival, ROXANNE; RULING 33 "train to the
+  leader's level"), any other trainer's only as SEEN in a trainer's battle on the milestone's maps (`seen_levels`; G72); the
+  target is the STRONGEST level plus the margin, asked of the goal manager (`training_target`; the verifier's min() mutant is
+  G73, caught).
+* **Shopping by the mart's LIST**: no flag; a list with no POKé BALLS is remembered and that mart tried again only once the
+  story moved on (`no_balls`; G12 re-targeted). In chapter 1 each graded CH1 run (10 of 10) and live arm (3 of 3) visited
+  the OLDALE MART, read "POTION, ANTIDOTE, PARLYZ HEAL, AWAKENING", left the list (`skills/story.py` `leave_shop`) and bought
+  POTIONS (twice a run: before the rival and once the story had moved on, still before the POKéDEX opens the balls' sale).
+* **Home healing by experience**: MOM's words ("If anything happens, you can come home.", "I think you should rest a bit.")
+  or a heal SEEN after talking to her (`home_heals`; G76, G77), never FLAG_RESCUED_BIRCH. ‼ Found in development (step51dev1,
+  3 whiteouts in 9): MOM says "come home" only with the RUNNING SHOES, after the POKéDEX, so before the rival a hurt AI knew
+  nowhere to heal and walked on at 1-5 HP. Three fixes: in DANGER with no place known it LOOKS for a POKéMON CENTER
+  (`find_center`; G82), a TRAVELLING battle with its Pokemon LOW is run from on any turn whatever the temperament
+  (`brain/battle.py` `_run_or_not`; G83), and ANY walk while hurt keeps out of the tall grass (`GoalRunner.pursue`; G84).
+  Whiteouts in the graded CH1 seeds: 0 of 10.
+
+### E. Loops (review #5)
+
+A STORY goal that failed `FAIL_LIMIT` times waits the same cooldown as `seek` (12 decisions) and the decision says so and
+LOOKS AROUND meanwhile (`_story_goal`, key `aside:<goal>`; G78). The gym's trainers are OPTIONAL (`ch4_gym_trainers`
+`"optional": true`): never the current milestone; ROXANNE is proven by her badge alone (G74). ‼ Development also found the
+twin's loop: after looking round LITTLEROOT, every walk to the rival's house chose the frontier past the twin, who sent the
+player back twice per walk until the patience ran out (3 of 9 runs, step51dev5). The tiles a scene sent the player back
+from are now CARRIED from goal to goal within a milestone (`Navigator.carried_scene_walls`, an opt-in attribute the play
+brain sets; None for every earlier brain; G88, G89).
+
+### F. The small items
+
+`test_goals.py` asks the goal manager for the training target on ROXANNE's [12, 15] (G73); milestone lines say how a
+milestone passed ("passed as a WAYPOINT (it stood on INSIDE_OF_TRUCK; its save proofs do not hold yet)", "passed as
+OPTIONAL"; G79); a battle line says "it would like it, but it has no POKé BALL" and the run reason "it has no POKé BALL for
+this wild ..." (G80); `run_units.py`'s title and `rate_step5.py`'s seed comment name step 5.1; the play loop, `_bounded` and
+the harness's loop are `for` loops over their bounds (`PLAY_PASSES_MAX`, `STILL_PASSES_MAX`); `SmallTests.test_the_step5_
+regexes_with_both_cases` prints `ROAM_LINE`, `OUTDOOR` and the whole-word pattern's characters with a positive and a
+negative case each, and the grader's goal-after-page check both ways (G81).
+
+### The proof of the first round (tree `c450adc2865848e4`: superseded by the verifier's round below)
+
+Kept as history. These numbers are the first round's tree's; its evidence files were moved to
+`evidence/archive/c450adc2865848e4/` when the verifier's round wrote its own (`provenance.keep_earlier`).
+
+| proof | what it shows | result (first round: `evidence/archive/c450adc2865848e4/2026-10-14-step51-*.txt`) |
+|---|---|---|
+| `live_step5.py` CH1T, CH1C, CH1M | chapter 1 from a REAL New Game through the real launcher, one per starter and personality (seeds 11, 12, 13) | OVERALL PASS, purity CLEAN; `done: ch1_pokedex reached` in 148,032 / 132,547 / 151,408 frames; the game's flags all 1; THE STALL PROPERTY: the longest wait for a press 150 frames in each (211 / 199 / 218 stretches of 60 or more noted); every go goal after its page; intent mix 65 % / 56 % / 55 %; goals include `explore` 2 / 3 / 1, `detour` 0 / 2 / 2, `chat` 3 / 2 / 4, `find_center` 0 / 0 / 2; trained 274 / 239 / 206 steps, 21 / 11 / 14 wild battles WON in the training roams; spins 1 in 719 steps |
+| `live_step5.py` CH2 | chapter 2 from CH1C's own end (Catcher, seed 12) | PASS, 143,152 frames: WALLY's tutorial (VAR_PETALBURG_GYM_STATE 2); +4 captures, 4 new PIDs of the player's OT; +2 POKéMON CENTER heals; FLAG_ITEM_ROUTE_102_POTION; 10 POKé BALLS bought |
+| `live_step5.py` CH2T | a SECOND, INDEPENDENT chapter 2: from CH1T's own end (Story, seed 11) | PASS, 82,140 frames: WALLY's tutorial; +1 capture; +1 heal; 5 POKé BALLS bought; items 0 (reported). ‼ Its claims were pre-registered from an in-process development run that turned out to be THE SAME TRAJECTORY (the in-process CH1 of Story seed 11 ended at the same 148,032 frames as the live CH1T, and the chapter-2 run from it at the same 82,140): one trajectory, replayed (CLAUDE.md rule 8); it is independent of CH2, not a held-out sample |
+| `rate_step5.py` (NEW held-out seeds 401-410, 78 runs + 4 in phase 2) | how often; what each fault costs | VERDICT PASS on every pre-registered check: CH1 POKéDEX 10 of 10, the rival at the first try 10 of 10, whiteouts 0; THE STALL PROPERTY 150 frames by both paths in all 40 runs of the real code; STALL1 fails it in 8 of 10 (617-643 frames), STALL2 in 3 of 10 (1,141-1,210); the paths agree in 80 of 80; every go goal after its page; the intent mix, divergence, beeline A/B and no-speedrun as in B; PATIENCE / PATIENCE_OLD as in C; and step 5's checks unchanged (NOTRAIN +2.1 levels, DEADREST 53 breaches over 64, NOHINTS 0 of 10, STOP and STOPDEAD, losses agree in 78 of 78) |
+| `revert_step5.py` | each rule carries weight | 88 of 88 mutants CAUGHT as predicted (G53-G89 new; G7, G12, G13, G30, G31, G32, G41, G49 re-anchored to the 5.1 code). ‼ G86 was first registered REDUNDANT ALONE ("`talk` with give_way covers it"); the mutant proof found the prediction WRONG (with the person off the screen `talk_to` answers "not on screen any more" and never plays the scene) and it is CAUGHT |
+| `test_goals.py` | the rules unit by unit | 94 tests OK (35 new: PacingTests, ExploreTests, PersonFairTests, LoopGoalTests, SceneWallTests, SmallTests, PlayLoopTests' progress and pacing) |
+| `extract_milestones.py --verify` / `--plant` | every fact against pret/pokeemerald, now the steps' own words too | OVERALL PASS (19 steps' own words in their scripts); the three plants found and nothing else |
+| `run_units.py` | the static gate and every unit suite | OVERALL PASS |
+
+### Step 5.1, the verifier's round (2026-10-14)
+
+The step-5.1 verifier found no failure, nine weak proofs and one rule violation (verbatim in the round's input). Each is
+answered below. The fixes were developed on seeds 1-9 and 21-29 (the sweeps `step51vdev1` and `step51vdev2`, kept
+outside `evidence/`: they are development). Seeds 11, 12 and 13, the live arms', were never played in process.
+
+**Two graded passes, on two trees that differ in GATES and comments only (no AI behaviour changed between them):**
+* Tree `dee96b6ddadb6b11`, graded on NEW held-out seeds 501-520 (twenty, see 3), plus the six live arms. Its evidence is
+  kept in `evidence/archive/dee96b6ddadb6b11/`. **It FAILED three pre-registered checks:**
+  * Two were this round's OWN new checks, each wrong in itself, not in the AI. The re-derived training bound (see 8) was
+    taken from the BASE personality, but 2 of 20 runs (506, 516) had DRIFTED into the Story personality during the
+    rival's milestone and trained to the Story's minimum. LOSE3 (see 8) graded a run, seed 503, that never reached a
+    third loss: a wild battle its status move could not lose within the battle skill's 150 menus.
+  * The third is the live arm CH2T's INTENT MIX floor, 28 % against 30 % (see the known limits).
+* Tree `a883634ab24c3792`, the FINAL one: every `2026-10-14-step51-*.txt` evidence file at the top of `evidence/` names
+  it. Both checks are corrected, each with a unit test and a mutant (G105, G106), and four code comments carrying a
+  miscount are corrected (see 4). It is graded on NEW held-out seeds 601-620: VERDICT PASS, every check. The live arms
+  were run again on the same AI code. CH1T, CH1M, CH2T and CH2M REPLAYED their `dee96b6` trajectories to the frame
+  (148,032 / 158,657 / 90,814 / 134,105: CLAUDE.md rule 8, one trajectory replayed, no second sample), so CH2T FAILS the
+  floor again, 28 %. CH1C did NOT replay: 117,428 frames against 136,721. The AI code
+  and the arm's settings were the same, and a launcher run's cartridge clock is the host's: that is the likeliest
+  difference, not proven. So CH1C, and CH2 from its end (130,440 against 149,447), are new trajectories.
+
+The first round's files are in `evidence/archive/c450adc2865848e4/`.
+
+**The rule violation: a result stated for a tree whose evidence came from another.** The first round's "Known limits"
+said the full regression of steps 0-4 had passed on `c450adc2865848e4`, `rate_step4` (36 of 36) included. It had been run
+there WITHOUT `--evidence`, so `2026-10-14-step4-RATE.txt` still named `6172ff8932690719` (as did `step4-SURVEY` and
+`step2-seed9-RATE`; `provenance.py --check-evidence` counted 18 files of another tree). The verifier re-ran
+`rate_step4.py` on c450 and got 36 of 36 PASS, every verdict line the same as the 6172ff file, so the claim was true but
+had no evidence of its own. ⇒ This README now states a suite's result only for the tree its evidence file names. **The
+full regression of steps 0-4 has NOT been re-run on this round's trees.** Under the round's process it runs ONCE, at the
+end of step 5.1. Until then, `provenance.py --check-evidence` lists every step 0-4 file as another tree's.
+
+**1. The intent mix did not separate errands from the beeline** (the verifier: "errand share >= 0.30 in EVERY run" was met
+by the ERRANDS_OFF control in 10 of 10 runs; training, healing and shopping dominate it). `MIX_MIN` is kept as it was
+registered, now labelled a FLOOR. It is no longer the claim. The claim is CURIOSITY THE STORY DID NOT NEED
+(`rate_step5.intent_mix` `free_share`): a curiosity goal in which a milestone passed is the story's own, and is not
+counted (the rival's POKé BALL, see 4). The bounds: at least `FREE_RUN_MIN` 0.02 of the goals' frames in EVERY CH1 run,
+each personality's mean at least `FREE_MEAN_MIN` 0.05, and THE BEELINE FAILS IT in at least 80 % of its runs.
+On 501-520 every CH1 run measured 0.030-0.138 (seed 502 the least, 3,321 frames); the personality means were Trainer
+0.106, Story 0.057 and Catcher 0.094; ERRANDS_OFF measured 0.0 in 20 of 20. The 601-620 numbers are in the proof table.
+
+**2. Seed divergence was met by the beeline control too** (goals 0.446 and paths 0.455 under ERRANDS_OFF; paths diverged
+MORE without errands). The goals/paths divergence is kept, and its line now says what it shows: pillar 5's "seeds differ",
+which dice and personality give the control as well. The ERRANDS' OWN divergence has two new checks:
+* THE ERRANDS DIFFER BY SEED. The curiosity decisions in order (`curiosity_sequence`: `kind@map`) of every pair of CH1
+  runs of one personality must differ, mean edit distance at least `CUR_DIV_MIN` 0.5. The beeline control has none: 0.
+* OFF THE BEELINE (`off_beeline`). These are the tiles a run stood on that NO control run stood on. Each control run is
+  measured the same way against the OTHER control runs: the beeline's own seed-to-seed spread, the null. CH1 must have
+  more in at least 60 % of the paired seeds and at least 1.3x pooled.
+On 501-520: the curiosity sequences 0.729, no pair the same, the control 0.0; off the beeline, CH1 had more in 18 of 20
+seeds, 3.58x pooled, against a corridor of 915 tiles. The pre-registered goals/paths divergence: CH1 0.518 / 0.443, the
+control 0.309 / 0.412. On 601-620: 0.682; 20 of 20 at 3.79x; 0.553 / 0.459 against the control's 0.367 / 0.407. ‼ The
+paths still diverge about as much without errands (0.407 against 0.459). The errands' part is in the two new checks, not
+in that one.
+
+**3. The no-speedrun margin was within the noise** (pooled 1.061 against a bound of 1.0, about 1.3 standard errors; CH1
+faster than the beeline in 3 of 10 seeds). MEASURED this round: the frames OUTSIDE the needs are dominated by the BATTLES
+met on the way. Their number and length are the grass's dice, and they swung single seeds by up to 37,000 frames. Two
+more effects push the other way: the errands ADD 4,000-19,000 frames, and a place looked round is walked faster later. On
+the development seeds 21-29 the pre-registered ratio measured 0.995, under its bound. Three answers:
+* The bound is KEPT exactly as registered (never loosened), and the sweep has TWENTY held-out seeds, twice the pairs.
+* NO SPEEDRUN, WITHOUT THE GRASS'S DICE (`time_to_dex`): the AI's own frames to the POKéDEX outside the needs AND outside
+  the battles met on the way (its walking, talking and looking). It must be at least `NOBATTLE_RATIO_MIN` 1.02 pooled,
+  and CH1 the slower in at least 60 % of the paired seeds. In development it measured 1.069 (9 of 9) and 1.058 (7 of 9),
+  with the per-seed ratio's spread 0.035-0.076. The first round's code, recounted on 401-410, gave 1.065 (8 of 10).
+* The line now prints the decomposition per seed: what the errands add, and what the rest of the way took more or less.
+On 501-520 the kept bound measured 1.095 pooled, CH1 the slower in 16 of 20 seeds. Without the grass's dice it measured
+1.088, the slower in 18 of 20. On 601-620 the kept bound measured only **1.026**, CH1 the slower in **9 of 20** seeds:
+it passed, but this is the noise the verifier named. Without the dice it measured 1.065, the slower in 15 of 20. ‼ So
+the claim that the AI is SLOWER than a beeline rests on the battle-free check and on the behaviour checks of 1 and 2,
+not on the kept bound. The literal TOTAL frames to the POKéDEX stay reported only (1.025 on 601-620): the training's
+length is the battles' dice too.
+
+**4. Per-run curiosity could be almost zero, and the rival's POKé BALL counted as curiosity in both arms.** The ball is
+excluded (1). The verifier's seed 410 (a Catcher with no look round) showed a deeper cause. The graded sweep's kept logs
+were read for every detour: **11 of the 12 DETOURS of its CH1 runs had ended at once.** Over every plan of that sweep it
+was 56 of 63: 51 "stuck: 51 decisions in a row without a frame passing (every target fails at once)" and 5 "nothing off
+the way". (A first count, "15 of 16", written into four code comments of `dee96b6` before this recount, is corrected in
+the final tree.) The detour chose an explorer's FRONTIER, which went stale after one step (seen past), and chose it again
+and again. Fixed (`GoalRunner._detour`): the detour walks TO the chosen place and stands there
+(a `wander` target on its tile, which never goes stale), at least `DETOUR_MIN_TILES` (6) away. A place it cannot reach is
+swapped for another, at most `DETOUR_TRIES` (3) in all (G93, G94, G95). The development sweep step51vdev1 then found a
+Story run (seed 4) whose three look-around draws all chose nothing: 212 frames of curiosity in the run. A person who has
+gone past `LOOK_DEBT` (2) new places in a row without a look round now looks round the next one without a draw, and says
+so (G102). Every draw that chooses nothing is TOLD now too ("it goes on without looking round (draw 0.70 >= the Story's
+0.55; 1 in a row)", "no detour on ROUTE101 this time"; G98), so the rates can be read from the log.
+
+**5. Two documented rules had no test** (the verifier's own mutants MY3 and MY4, not caught). Two new tests now carry them:
+`VerifierRoundTests.test_no_look_around_while_in_danger` (G90) covers README B's "never in danger", and
+`test_the_bag_gone_is_handed_back_at_once` (G91) covers `bag_or_its_question`'s "the bag is gone" return, which fired in
+none of the graded runs, so only a unit test can carry it.
+
+**6. "Explore a new place" was false in a run that carries on** (CH2T: "a new place, LITTLEROOT_TOWN", its home town). The
+look-around's draws were a per-process set. The world memory is carried between sessions, but the goal manager's memory
+is not. Now a map the WORLD MEMORY had stood on when the session's first decision was made is no new place
+(`_Memory.known_before`; G92). The `personality.py` and `brain/goals.py` texts say so. The live arms check it: A NEW
+PLACE IS NEW, every look-around draw (made or not) names a map the world memory it started from had not stood on. In
+the three chapter-2 arms on `dee96b6` the draws named only PETALBURG_CITY and ROUTE102, with 12 maps known at the start
+(LITTLEROOT and OLDALE among them).
+
+**7. The game-side second path did not cover battles.** `play_harness.waits_now` now reads a battle's own waits. A battle
+text waits for A/B when a battler's controller waits on the text printer (`CompleteOnInactiveTextPrinter`) while printer
+0 waits (active, state CLEAR or SCROLL_START). The player's controller polls the pad in the action menu, the move grid, a
+target or the yes/no (`HandleInputChooseAction`, `HandleInputChooseMove`, `HandleInputChooseTarget`,
+`HandleMoveSwitching`, `PlayerHandleYesNoInput`). Three input tasks were added too: the party menu's list and actions,
+and the bag's list. The controller condition is what tells a battle's own text from the stale printer state that gave the
+first round's 510-frame false alarm (no controller waits on the printer then). A new fault arm proves the reads are not
+blind. STALL3 is a copy whose battle skill waits 600 frames at the action menu, and it must FAIL the stall property by
+BOTH paths. Development: 3 of 3, AI 645 and game 640 frames each; the two paths agreed in 24 of 24 runs. On 501-520:
+STALL3 7 of 7 (AI 643-645, game 640). The two paths agreed in 169 of 169 runs. Every run of the real code was 150
+frames by both paths. On 601-620: STALL3 7 of 7 (644-645 / 640), agreement in 170 of 170, the real code 150 by both.
+
+**8. Still open from step 5:**
+* **The training bounds were carried over.** They are RE-DERIVED now. The steps bound is the design's own rule: a person
+  roams at least `train_min_steps` before a known fight, so the bound is that minimum times 0.9 (Story 72, Catcher 90,
+  Trainer 135; `rate_step5.train_steps_min`; G101). It is tighter than the carried 60 for all three. Measured on the 20
+  graded runs of seeds 301-310 and 401-410, the game's steps over the personality's minimum were 1.04-1.95. The WON
+  bound, 3, is now one under the measured minimum (4-18; NOTRAIN 0 in all 20). ‼ **On 501-520 the steps bound FAILED in 2
+  of 20 runs (506: 90 by the game, 88 by its roam reports, against the Catcher's 90; 516: 83 against the Trainer's
+  135).** Both runs had DRIFTED into the Story personality during the rival's milestone (`personality.py` DRIFT), and the
+  Story's own minimum, 80, judged them trained. The bound had been taken from the BASE personality. Corrected
+  (`train_steps_min_run`, G105): it is now the lowest minimum among the personalities a run played AS during that
+  milestone (the ACTIVE personality of its goals there), the base's when none drifted. For a drifted run that loosens it
+  (516: 135 to 72), and it is never under the carried 60. It is graded on the new seeds 601-620, never on the seeds that
+  failed it: 20 of 20 PASS. ‼ There it DECIDED one run, 609, a Trainer that also played as the Story, with 115 steps,
+  which the base Trainer's 135 would have failed. Six of the twenty played as two personalities in that milestone. The
+  live arms keep the base personality's minimum, which is stricter, and the three CH1 arms pass it.
+* **MAX_LOSSES 3 was never reached by an unaltered run.** LOSE3 is a copy whose decider, once its battler is L7, uses its
+  status move every turn of a wild battle and never runs. The play loop's REAL `MAX_LOSSES` (3) must end the run within
+  6,000 frames of the game's third loss, with the run's report, its told losses and the game's all 3. Development: 3 of
+  3 (seeds 2, 5, 8: "play: stuck: 3 battles lost (MAX_LOSSES 3)", 652, 639 and 669 frames after the game's third loss).
+  On 501-520, 5 of 6 runs ended exactly so, 630-664 frames after the third loss. ‼ **The sixth, seed 503, FAILED the
+  check as registered.** It lost twice, then met a wild battle its status move could not lose within the battle skill's
+  150 menus ("the battle did not end within 150 menus", three times), and its patience ended it with 2 losses. Such a run
+  tests nothing of the stop. Corrected (G106): the stop is graded on every run the GAME recorded a third loss in, and the
+  arm must reach one in at least `LOSE3_REACH_MIN` (60 %) of its runs. On 601-620: 7 of 7 reached it, and each ended
+  "3 battles lost (MAX_LOSSES 3)" 631-666 frames after the game's third loss.
+* **CH2T replayed its development trajectory.** On these trees no in-process run of seeds 11-13 was made. A THIRD chapter
+  2, CH2M (the Trainer's, from CH1M's end, seed 13), was registered in `live_step5.PREDICTED` before ANY run of its
+  trajectory, and on `dee96b6` it PASSED its unseen claims (see the proof table).
+* **Each live arm is one trajectory on the host clock.** That is what a live arm is, and the frequencies are the sweep's
+  (CLAUDE.md rule 9). ‼ CH1T on these trees is the first round's CH1T REPLAYED: the same 148,032 frames, the same 274
+  training steps and 21 battles won. None of this round's changes fired in it: its two detour draws and one look-around
+  draw chose nothing, no walk ran out of frames, and the debt never reached 2. One trajectory, replayed (rule 8), so it is
+  no second sample of chapter 1. On the final tree CH1M, CH2T and CH2M replayed theirs too. CH1C did not (the host's
+  clock), so CH1C and CH2 there are new trajectories.
+* **Chapters 3 and 4 have never been played.** "Optional gym trainers" and "ROXANNE by her badge alone" are still proven
+  in unit tests only. They are the next build step's to play.
+
+**9. The story-goal cooldown counted DECISIONS** (CH2: 10 looks round in a row, about 32,000 frames, while the walk to
+PETALBURG waited). Two fixes:
+* A story goal put aside now comes back after `COOLDOWN_DECISIONS` decisions OR `STORY_ASIDE_FRAMES` (6,000) frames,
+  whichever comes first, and says so (G96).
+* The root cause: those two walks had met 8 and 13 battles on ROUTE 102, which ate their 9,000 frames, so they were put
+  aside as FAILING. A `go` whose budget ran out while its battles took 600 frames or more now walks on for the frames
+  they took, at most its own budget again and at most twice (`GO_BATTLE_EXTENSIONS`; G97).
+Graded as A STORY GOAL PUT ASIDE COMES BACK: no streak of asides longer than `ASIDE_STREAK_MAX` 10,800 frames (the
+6,000, the look round under way, one battle in it), in every live arm and every sweep run of the real code. On 501-520
+asides came only in NOHINTS runs (a step it is never told the map of): the longest streak was 8,188 frames (7,345 on
+601-620). In the live
+arms on `dee96b6`, CH2M had one streak, `go:PETALBURG_CITY_GYM`: 3 asides, 9,856 frames. CH2T's walk to PETALBURG CITY
+walked on twice ("its battles took 12264 of them: it walks on for 9000 more") and arrived, where the first round's CH2
+had put two such walks aside.
+
+#### The proof (final tree `a883634ab24c3792`; the failed pass on `dee96b6ddadb6b11` in its archive)
+
+| proof | what it shows | result (`ai_player/evidence/2026-10-14-step51-*.txt`, all naming `a883634ab24c3792`) |
+|---|---|---|
+| `rate_step5.py` on NEW held-out seeds 601-620 (166 runs + 4 in phase 2) | the round's checks and every earlier one, pre-registered in `BOUNDS` | **VERDICT PASS, every check.** CH1 POKéDEX 20 of 20, the rival at the first try 20 of 20, whiteouts 0. TRAINED by the game, with the drift-corrected bound: 20 of 20; it decided one run, 609 (a Trainer that also played as the Story: 115 steps against the base 135). NOTRAIN 0 of 20, +1.6 levels paired. THE STALL PROPERTY 150 frames by both paths in all 80 real runs; STALL1 14 of 20 (610-643), STALL2 4 of 20 (1,186-1,210), STALL3 7 of 7 (644-645 / 640); the paths agree in 170 of 170. Asides: longest 7,345 frames (NOHINTS), bound 10,800. CURIOSITY THE STORY DID NOT NEED in every run 0.043-0.134 (3,738-19,163 frames); means Story 0.065, Catcher 0.098, Trainer 0.095; the beeline 0.0 in 20 of 20. OFF THE BEELINE: CH1 more in 20 of 20, 3.79x, corridor 917. The errands differ: 0.682, no pair the same. Goals/paths divergence 0.553 / 0.459 (control 0.367 / 0.407). NO SPEEDRUN: the kept bound 1.026, CH1 the slower in only 9 of 20 (reported); without the grass's dice 1.065, the slower in 15 of 20; the total 1.025 (reported). LOSE3: 7 of 7 reached a third loss, each ended "3 battles lost (MAX_LOSSES 3)" 631-666 frames after it. PATIENCE 6 of 6 reached, training stints 51,475-71,947 frames; PATIENCE_OLD stopped 6 of 6, 4 of them while training. DEADREST 115 breaches over 137; NOHINTS 0 of 20; STOP and STOPDEAD (NOHINTS 611, STALL1 609); losses agree in 168 of 168 |
+| (archive) `rate_step5.py` on 501-520, tree `dee96b6` (`evidence/archive/dee96b6ddadb6b11/2026-10-14-step51-RATE.txt`; its live arms beside it, CH2T's `2026-10-14-step51-CH2T.txt` the FAIL) | the same checks before their two corrections | **VERDICT FAIL**: the training bound by the base personality (506, 516 drifted) and LOSE3 (503 never reached a third loss). Every other check PASSED; the numbers are in the sections above |
+| `live_step5.py` CH1T, CH1C, CH1M | chapter 1 from a REAL New Game through the real launcher (seeds 11, 12, 13) | PASS 3 of 3, purity CLEAN (0 foreign presses, writes and loads; 0 bot calls). `done: ch1_pokedex reached` in 148,032 / 117,428 / 158,657 frames; the game's flags all 1. The stall property 150 frames each. Curiosity the story did not need 6.7 % / 17.7 % / 4.7 %; a new place is new (3 draws each). Trained 274 / 163 / 251 steps (bounds 72 / 90 / 135), 21 / 8 / 19 wild battles WON in the roams. Spins 1 in 688 steps. CH1T and CH1M replay `dee96b6`'s runs; CH1C does not |
+| `live_step5.py` CH2 | chapter 2 from CH1C's end (Catcher) | PASS, 130,440 frames: WALLY's tutorial (VAR_PETALBURG_GYM_STATE 2); +4 captures, 4 new PIDs of the player's OT; +1 heal; FLAG_ITEM_ROUTE_102_POTION; curiosity the story did not need 33.8 % |
+| `live_step5.py` CH2T | chapter 2 from CH1T's end (Story) | **FAIL: the intent-mix floor, 28 % against 30 %** (the known limits). Its other checks PASS: WALLY's tutorial, +1 capture, +1 heal, the ROUTE 102 POTION, the stall property 150, curiosity 7.3 %, a new place is new |
+| `live_step5.py` CH2M | a THIRD chapter 2, registered unseen: from CH1M's end (Trainer) | PASS, 134,105 frames: WALLY's tutorial; +4 captures; +2 heals; the ROUTE 102 POTION; one aside streak, 9,856 frames; curiosity 30.2 % |
+| `revert_step5.py` | each rule carries weight | 105 of 105 mutants CAUGHT as predicted (G90-G106 this round's; G60 and G61 re-anchored to the look-around debt) |
+| `test_goals.py` | the rules unit by unit | 109 tests OK (`VerifierRoundTests`: 15 new) |
+| `extract_milestones.py --verify` / `--plant` | every fact against pret/pokeemerald | OVERALL PASS; the three plants found and nothing else |
+| `run_units.py` | the static gate and every unit suite | OVERALL PASS (`check_purity` PASS) |
+
+### Known limits of step 5.1, as the verifier's round left them (superseded by the second round's, below)
+
+* ‼ **The live arm CH2T FAILS the pre-registered intent-mix floor**: 28 % of its goals' frames on errands against 30 %,
+  on both trees (the final run replayed `dee96b6`'s to the frame, 90,814). Frames by kind: go 58,364, chat 12,157, talk
+  6,641, explore 4,788, shop 4,753, heal 3,447, pick_up 664. The first round's CH2T measured 34 %. The floor (`MIX_MIN`: at least 30 % of the
+  goals' frames on errands, in every run) was set from chapter-1 runs, and the verifier showed it cannot separate errands
+  from the beeline. CH2T is the Story player in chapter 2. Chapter 2 names no fight, so it does no training, and most of
+  its goals' frames went to the story's own walks:
+  * ROUTE 102 with its trainers and grass: one walk of 23,473 frames.
+  * About 24,000 frames of walks toward PETALBURG's GYM, searching the town door by door. It recognises a centre's and a
+    mart's door by their look, but not a gym's.
+  * Two walks back to OLDALE, to heal and to shop, though PETALBURG has both (it had not seen them yet).
+  Its curiosity the story did not need was 7.3 % (bound 2 %). The floor is NOT re-bounded here: a bound is never loosened
+  to pass. Candidates for the next round: recognising a gym by its look (the building and its sign are on screen), and
+  looking for a centre in the town it stands in before walking back to one it knows.
+* **The full regression of steps 0-4 has NOT been run on this tree** (the rule violation, above).
+* **Chapters 3 and 4 have never been played** (8).
+* **A live arm is one trajectory.** CH1T replays the first round's (8). On the final tree four of the six arms replayed
+  their `dee96b6` runs, so the final live evidence is largely the same trajectories run twice, not new samples.
+  ‼ CH1C diverged, from a cause not proven: the cartridge's clock is the host's in a launcher run.
+* **The kept time bound includes the battles' dice.** On the development seeds 21-29 it measured 0.995, under its 1.0.
+  It passed on 501-520 (1.095) and only just on 601-620 (1.026, the slower in 9 of 20). A failure of it would be the
+  grass's dice, which the battle-free check removes (1.088 and 1.065).
+* **OFF THE BEELINE's corridor is the sweep's own control runs** (20 runs, 915 tiles on 501-520). Fewer control runs give
+  a smaller corridor and larger counts. It counts tiles only, not when a place was visited.
+* **The drift correction of the training bound** takes the LOWEST minimum among the personalities a run played as during
+  the rival's milestone. Which personality judged it trained is not logged, so this is the looser reading.
+* **LOSE3's mutant cannot always lose.** A wild battle its status move cannot lose within the battle skill's 150 menus
+  happened in one run of six on 501-520. The check grades the runs that reached a third loss, and the arm must reach one
+  in 60 % of its runs.
+* **The second path's battle reads** are the player's controller polling the pad, a battler's controller waiting on the
+  text printer, and the party menu's and bag's input tasks. Their names are the symbol table's. Any other screen inside a
+  battle (the summary screen, the forget-a-move list) is the AI's own record alone.
+* `LOOK_DEBT` (2), `DETOUR_MIN_TILES` (6), `STORY_ASIDE_FRAMES` (6,000) and `GO_BATTLE_*` are taste and bounds, not
+  measured from people.
+
+### Step 5.1, the verifier's second round (2026-10-14/15)
+
+The step-5.1 verifier graded tree `a883634ab24c3792` `all_pass: false` on two failures (the live arm CH2T under the
+intent-mix floor; the full regression of steps 0-4 not run on that tree) and eight weak proofs. Each is answered below, on
+ONE final tree, working-tree digest `d3d34871df0ac077` (every `2026-10-15-step51-*.txt` at the top of `evidence/` and every
+steps 0-4 file of the full regression names it; the tree itself is kept, `evidence/trees/d3d34871df0ac077.zip`; the first
+graded pass's tree `d0c949e96d355afe`, which FAILED one check, below). Every rule below has a unit test
+(`gates/test_goals.py` `SecondRoundTests`, and `PlayLoopTests` for the verifier's V9) and a mutant (`gates/revert_step5.py`
+G107-G138). The fixes were developed on NEW development seeds, chapter 1 AND chapter 2: 31-39 (`step51wdev1`, before the
+fixes it found), 41-49 (`step51wdev2`), 51-59 (`step51wdev3`), and after the first graded pass (below) 61-72
+(`step51wdev4`) and 81-92 (`step51wdev5`, the AI code graded), kept outside `evidence/`; the first graded pass played NEW
+held-out seeds 701-720, the final one NEW held-out seeds 801-820; the live arms' seeds 11-13 were never played in process.
+
+**FAILURE 1: CH2T under the intent-mix floor (28 %; honestly 16 %).** Three parts.
+1. *The grader is honest* (`rate_step5.goal_spans`, `intent_mix`). The play loop now writes every goal's END (`goal_end`,
+   `mode.py`; a goal DROPPED because a scene began while it decided included): a goal's frames end there. CH2T's dropped
+   `chat` at f227827 had been graded as the 11,019 frames of WALLY's tutorial that followed it. What the loop played after a
+   goal ended is no goal's frames (`between_goals`, reported, and the share with them counted as the story's,
+   `errand_share_with_scenes`, reported beside the graded one). A curiosity goal in which the story moved on is the story's
+   in the ERRAND share too, not only in the curiosity the story did not need (the verifier: "MIX_MIN counts story-owned
+   curiosity goals as errands"); a milestone record is a goal's only within `END_SLACK` (60) frames of its end (the loop
+   writes it on its next pass with no frame passing; development found the beeline's rival POKé BALL counted as free
+   curiosity without this). On CH2T's own log (no end records) the honest share is 16.3 %, the verifier's recount. G122,
+   G123, G124, G125.
+2. *Chapter 2 is played like a person* (`brain/goals.py`; CH2T's 58,364 frames of `go` were mostly a door-by-door search of
+   PETALBURG for its GYM, about 25,700 frames, and two walks back to OLDALE past PETALBURG's centre and mart):
+   * a GYM is RECOGNISED by its door, `looks.gym_door`: METATILE_General_Door_Gym (0x1CD), the general tileset's, read under
+     the warps to MAP_PETALBURG_CITY_GYM (15, 8) and MAP_RUSTBORO_CITY_GYM (27, 19) in pret's layouts and checked by
+     `extract_milestones.py --verify` (12 looks). A walk to a gym ends as soon as its door is SEEN and goes in by it
+     (`GoalRunner._to_building`); in the development sweeps dev2 and dev3 all 18 chapter-2 runs went in by the door's
+     look, each walk to the gym 173-8,354 frames (median 899). G107, G108;
+   * the NEAREST place to heal or to shop, one it has been in or one whose door it has seen (`_nearest_place`; step 5 took
+     any place it had been IN first, however far); hurt in a TOWN whose POKéMON CENTER it has not seen, it looks for it
+     there first, once (`find_center` with `via`, `CENTER_LOOK_FRAMES` 3,000). G109, G110, G126;
+   * the BALANCE (`GoalManager.spent`, `owed`; `personality.py` `Errands.balance` and `curious_min`): a person keeps a share
+     of a session's time (its goals and the scenes between them, once it has a Pokemon) for errands, Catcher 50 %, Trainer
+     48 %, Story 45 %, and of it some for CURIOSITY alone, Catcher 12 %, the others 10 %. Under either, the curiosity draws
+     (look round, catch, chat, detour) pass without the dice and say so ("draw 0.95, but 28 % of this session's 47,782 goal
+     frames went to errands, under the Story's 40 %: a break from the story", a development run's line when the Story's was
+     40 %), a walk that arrives on another outdoor map
+     stops there once a milestone (`OWED_STOP`), and with no draw due it looks round where it stands some more (at most
+     `AGAIN_MAX` 2 a map and milestone). Never under the beeline control. G111-G116, G132, G136;
+   * its first POKé BALLS are tried: a POKéDEX holding only its first Pokemon passes the catch draw (development seed 31's
+     Story player went through chapter 2 with five balls and caught nothing). G133.
+3. *Chapter 2 is in the sweep* (`rate_step5.py` plans CH2 and CH2_OFF, `CHAPTER2`, `run_chain`): every CH1 (and
+   ERRANDS_OFF) run that reached the POKéDEX goes on, in its own worker, from ITS OWN end state and world memory to WALLY's
+   tutorial. Graded there: WALLY by the game, the intent-mix floor and the curiosity the story did not need in EVERY run, a
+   new place new to the memory it started from, the beeline's chapter 2 under the floor, the chapter-2 time without the
+   grass's dice, and with every real plan the stall property by BOTH paths, the asides, the pages and the losses.
+   (`chapter2_verdicts`; the bounds pre-registered from the development sweeps, `BOUNDS` CH2_*.)
+
+**Found by the development sweeps and fixed** (each with its test and mutant):
+* dev1 seeds 33, 36, 37, 38: OLDALE's centre door, seen from ROUTE 102 across its right edge, was kept on ROUTE 102 at
+  (56, 16). As the NEAREST place it was a door nobody could reach, and a party in danger tried it again every 20-40 frames
+  until the patience ran out: two runs stopped on "no progress for 120,000 frames", and the game's second path read a
+  stale "text waits" for 120,020 frames in them (no press came) while the AI's record said 150: the two paths DISAGREED and
+  the agreement check failed, as it should. Fixed: a door past an edge it has crossed is the next map's (G127); a door it
+  cannot walk into is forgotten (`DOOR_UNUSABLE`, G128); in danger a heal is tried again at most `DANGER_RETRIES` (3)
+  times in a row (G129).
+* dev1 seeds 37, 39: DAD chosen as a "chat" under the balance, a story-owned goal under an errand's name: the person the
+  story's step names is no chat (G130).
+* dev1 seed 32: a look round put aside for a story goal, begun 617 frames before the breather's end, ran 6,444 frames among
+  the grass's battles (a streak of 11,827 over `ASIDE_STREAK_MAX`): an aside look round lasts only the breather left, and
+  with under `ASIDE_LOOK_MIN` (600) left the story goal comes back (G131).
+* dev2 seed 42: the stall property caught a NEW stall, by both paths (AI 1,203, game 1,200 frames): the poison's "TREECKO
+  fainted…" came up as the AI reached the nurse, and `nurse_heal`'s talk stood waiting for the player to be free. With
+  `give_way` (`hands/menus.py`, story skills only; the step-2 default unchanged) the nurse and the clerk hand a waiting
+  screen back at once, it is played, and they are asked again (G134, G135).
+* dev2: the time to the POKéDEX outside the needs fell within the beeline's noise (0.975, the kept bound FAILED; without the
+  grass's dice 1.028 with 5 of 9 slower). Chapter 1's training filled the balance with needs while its curiosity was 4 %
+  in some runs: the curiosity minimum (G136). dev3: 1.137 (8 of 9) and 1.163 (9 of 9).
+
+**The first graded pass FAILED one check, and was kept.** Tree `d0c949e96d355afe` (its files are archived in
+`evidence/archive/d0c949e96d355afe/`, the tree in `evidence/trees/d0c949e96d355afe.zip`) was graded on held-out seeds
+701-720: every check PASSED but one, CH2's intent-mix floor in EVERY run: seed 706, a Story player, 28.7 % (the other 19
+runs 0.38-0.64). Read from its log: the gym's door was already KNOWN when it set out from OLDALE's POKéMON CENTER, so
+`_to_building` went straight to `_go_inside`, whose walk to PETALBURG had none of the go's own stops: the stops a break
+owed (its balance said "34 % of this session's 41,252 goal frames went to errands, under the Story's 40 %") never came,
+and the talk to DAD and WALLY's scene ended chapter 2 under the floor. 19 of that sweep's 22 gym walks had begun with the
+door known, 12 of them from another map (OLDALE or ROUTE 102). And earlier, a look round PETALBURG of 5,012 frames had not passed its centre, so
+the town was taken for one with none (the `explored` rule) and the heal was a walk back to OLDALE. Two fixes, each with
+its test and mutant: the way to a known gym's town is a walk like any other, its stops held, then in by the door (G137);
+only a town SEEN ALL OF (`WorldMemory.promise` 0) and looked round has no centre to look for (G138). The six live arms on
+`d0c949e` had all PASSED (archived beside it). Everything was run again on the final tree below: new held-out seeds
+801-820, the six live arms, the mutants and the units.
+
+**FAILURE 2: the full regression of steps 0-4** ran ONCE, on the final tree (the proof table below).
+
+**The weak proofs:**
+1. *Chapter 2's stall property rested on the AI's eyes alone.* The sweep's CH2 and CH2_OFF runs are real plans: the stall
+   property by BOTH paths over chapter 2's screens (the marts' menus, the PETALBURG gym, WALLY's tutorial). A launcher run
+   (the live arms) still has only the AI's record while it plays.
+2. *The no-speedrun margin was thin* (1.024 total, 9 of 20 by the kept bound). The curiosity minimum (above), and chapter
+   2's own check, CH2 over CH2_OFF without the grass's dice (development 1.491 and 1.369). Graded numbers in the table.
+3. *The drift correction was the loosest reading.* The goal manager now LOGS whose rule judged the training done
+   (`fight_prep` `judged_by`, `min_steps`) and the bound is that personality's own minimum (`train_steps_min_run`; the
+   lowest of those it played as only for a log without it). G120, G121.
+4. *Two mutants were not caught* (the verifier's V3 and V9): `test_a_walk_walks_on_twice_when_its_battles_ate_it_twice`
+   (three walks, two extensions) and `test_a_scene_soon_after_a_map_change_comes_before_any_goal` (a scene SETTLE_FREE - 10
+   frames after the map change is played before any goal is chosen). G117, G118.
+5. *"A level gained" was the party's SUM* (WALLY's lent Zigzagoon: "10 -> 15"). Now one Pokemon, by its PID, above the
+   highest level it was seen at (`mode.py` `_progress`). G119.
+6. *The live arms were largely replays; "the trees differ only in gates" could not be checked.* The AI changed, so all six
+   arms are new trajectories against `a883634`'s (five of them ended on the same frame on the two graded trees of this
+   round, the table's caveat). Every graded driver now KEEPS its tree (`provenance.snapshot_tree`: `evidence/trees/
+   <digest>.zip`, the diff against HEAD and the untracked files, its digest recomputed from its own contents;
+   `provenance.py --compare A B` lists the files two kept trees differ in; `test_evidence.py` SnapshotTests).
+7. *MIX_MIN counted story-owned curiosity as errands*: fixed in the grader (FAILURE 1, part 1).
+8. *Chapters 3 and 4 have never been played.* Still true (the known limits). No save holds the badge without the gym's
+   trainers beaten, so "ROXANNE by her badge alone" cannot be shown on a real save either: `gym1_done.ss1`,
+   `r20_badge1_party1_gym.ss1`, `ki_ch12_gymdoor.ss1` and `ki15_gymdoor_wedge.ss1` have TRAINER_JOSH, TRAINER_TOMMY,
+   TRAINER_ROXANNE_1, DEFEATED_RUSTBORO_GYM and BADGE01_GET all 1, `rustboro.ss1` and `r20_pregym1_party4_r116.ss1` all 0
+   (the harness's second-path read, 2026-10-15).
+
+#### The proof (final tree `d3d34871df0ac077`)
+
+| proof | what it shows | result (`ai_player/evidence/2026-10-15-*.txt`, all naming `d3d34871df0ac077`) |
+|---|---|---|
+| `rate_step5.py` on NEW held-out seeds 801-820, chapter 1 AND chapter 2 (213 runs; `2026-10-15-step51-RATE.txt`) | every check of the rounds before, and chapter 2's, pre-registered in `BOUNDS` (none changed after the first graded pass) | **VERDICT PASS, every check.** CH1: POKéDEX 20 of 20, the rival at the first try 20 of 20, whiteouts 0. TRAINED by the game 20 of 20 against the bound of the personality whose rule JUDGED it (801 played as Story and Trainer, judged by the Trainer's: bound 135, 207 steps; 819 the same two, judged by the Story's: 72, 130). NOTRAIN 0 of 20, +1.5 levels paired. Spins 4 in 3,230 steps. THE STALL PROPERTY over 120 real runs, chapter 2's included: AI 150, game 180 frames; STALL1 16 of 20, STALL2 9 of 20, STALL3 7 of 7; the paths agree in 213 of 213. Asides: longest 6,220 (bound 10,800). CURIOSITY THE STORY DID NOT NEED in every CH1 run 7.1-18.2 % (means Trainer 13.5 %, Story 11.6 %, Catcher 15.6 %); the beeline 0.0 in 20 of 20. OFF THE BEELINE 20 of 20, 6.82x (corridor 905). The errands differ 0.596; goals / paths 0.544 / 0.445 (control 0.376 / 0.417). NO SPEEDRUN: kept bound 1.135, the slower in 16 of 20; without the grass's dice 1.141, 19 of 20. LOSE3 5 of 6. PATIENCE 7 of 7 reached, stints 58,157-96,508 frames; PATIENCE_OLD stopped 7 of 7, 5 while training. DEADREST 131 over 159; NOHINTS 0 of 20; STOP / STOPDEAD 3 / 3; losses agree in 210 of 210. **CH2**: WALLY's tutorial 20 of 20 (63,784-174,264 frames); the intent-mix floor in EVERY run 40.6-59.1 % (the Story's 40.6-49.5 %; with the scenes counted as the story's 34.6-53.1 %, reported); curiosity the story did not need 19.4-52.4 %; a new place new in all 40 draws; whiteouts 0; CH2_OFF under the floor in 19 of 20 (814 at 30.05 %); the chapter-2 time without the grass's dice 1.403, the slower in 20 of 20 |
+| (archive) `rate_step5.py` on 701-720, tree `d0c949e` (`evidence/archive/d0c949e96d355afe/2026-10-15-step51-RATE.txt`) | the same checks before G137, G138 and the balance raise | **VERDICT FAIL**: CH2's floor in seed 706 (Story), 28.7 % (above). Every other check PASSED, among them WALLY 20 of 20 and CH2_OFF under the floor 16 of 20 |
+| `live_step5.py` CH1T, CH1C, CH1M | chapter 1 from a REAL New Game through the real launcher (seeds 11, 12, 13) | PASS 3 of 3, purity CLEAN (0 foreign presses, writes and loads; 0 bot calls). `done: ch1_pokedex reached` in 143,957 / 116,754 / 170,501 frames. The stall property 150 frames each. Errands 71.5 / 65.0 / 64.3 % of the goals' frames; curiosity the story did not need 12.4 / 20.8 / 14.8 %. Trained 274 / 163 / 251 steps; 17 / 8 / 19 wild battles won in the roams; spins 1 in 688 steps |
+| `live_step5.py` CH2 | chapter 2 from CH1C's end (Catcher) | PASS, 129,349 frames: WALLY's tutorial; +4 captures; +1 heal; FLAG_ITEM_ROUTE_102_POTION; errands 48.1 % (44.0 % with the scenes); curiosity 35.1 % |
+| `live_step5.py` CH2T | chapter 2 from CH1T's end (Story): the arm that FAILED | **PASS**, 69,411 frames: errands **40.2 %** (33.9 % with the scenes; bound 30 %), against 28 % on the verifier's tree (16.3 % honestly). WALLY's tutorial, +1 capture, +1 heal; curiosity 29.3 %; the stall property 150 |
+| `live_step5.py` CH2M | chapter 2 from CH1M's end (Trainer) | PASS, 181,977 frames: WALLY's tutorial; +5 captures; +2 heals; the ROUTE 102 POTION; errands 50.8 %; curiosity 47.2 % |
+| (live, the caveat) | | Five of the six arms ended on the SAME frame as their runs on `d0c949e` (that tree's arms all PASSED too; archived beside its sweep): most likely the same trajectories, which the balance raise and G137/G138 did not reach (the logs were not diffed). CH2M diverged (182,980 frames there). One trajectory each; the frequencies are the sweep's |
+| `revert_step5.py` (`2026-10-15-step51-REVERT.txt`) | each rule carries weight | 137 of 137 mutants CAUGHT as predicted (G107-G138 this round's; G10, G43, G60, G61, G63, G85, G87, G96, G102 and G111 re-anchored) |
+| `test_goals.py` | the rules unit by unit | 136 tests OK (`SecondRoundTests`, and `PlayLoopTests` for V9) |
+| `extract_milestones.py --verify` / `--plant` | every fact against pret/pokeemerald, the gym's door among the 12 looks | OVERALL PASS; the three plants found and nothing else |
+| `run_units.py` (`2026-10-15-step51-UNITS.txt`) | the static gate and every unit suite | OVERALL PASS: `check_purity` PASS; test_check_purity 29, test_host 20, test_eyes 56, test_hands 57, test_world 132, test_battle 107, test_evidence 10, test_goals 136 |
+| **the full regression of steps 0-4** (FAILURE 2), once, on this tree | nothing earlier broke | **PASS, every driver exit 0.** `live_step0` OVERALL PASS; `live_step1` PASS; `live_step2` PASS (and `--seed 9` PASS); `live_step3` PASS; `live_step4` PASS; `revert_step11` PASS; `revert_step2` 39 CAUGHT + 5 REDUNDANT ALONE as predicted, of 44; `revert_step3` 93 + 1 of 94; `revert_step4` 62 of 62; `rate_step3` OVERALL PASS; `rate_step4` 36 of 36 PASS; `survey_party_moves` written (a survey, no verdict). 191 evidence files of steps 0-4 dated 2026-10-15, every one naming `d3d34871df0ac077`; 190 with their verdict PASS, and the survey, which has none |
+
+### Known limits of step 5.1 (the second round)
+
+* **Chapters 3 and 4 have never been played** (weak proof 8): "optional gym trainers" and "ROXANNE by her badge alone"
+  are unit-tested only, and no save shows them either. The gym's door is recognised in RUSTBORO by the same metatile (read
+  from pret's layout), not yet seen live. They are the next build step's to play.
+* **The BALANCE makes the floor partly the AI's own aim.** The graded floor (`MIX_MIN`, 30 % of the goals' frames) and the
+  AI's balance (45-50 % of its time, scenes included) measure nearly the same thing, by design: a person keeps a share of
+  their time for things besides the story (design draft §5, "even the Story personality takes them"). What separates the
+  AI from a beeline is graded apart from it: the beeline's chapter 2 under the floor (CH2_OFF), the curiosity the story did
+  not need in EVERY run, the off-the-beeline tiles and the no-speedrun times. The balance values are taste, chosen above the
+  floor with room for the story stretch that ENDS a session (the walk to DAD, his talk, WALLY's scene: no break can follow
+  them): in development, at 36 % the Story's chapter 2 ended at 31 % and 35 % (dev1), at 40 % at 34-39 % (dev4: its own
+  count 51 % before the last stretch, 34 % after it), so the Story's is 45 % and the Trainer's 48 % (dev5, seeds 81-92:
+  every chapter-2 run 42-65 %, the Story's 42-51 %; the beeline's 0-25 %).
+* **The honest share excludes the scenes between goals** (no goal's frames). With them counted as the story's time the
+  share is lower: it is reported beside the graded one in every live evidence file and every chapter-2 sweep line (the
+  graded numbers are in the table). (CH2T's old log has no end records: there the honest share falls back to "to the next
+  goal", 16.3 %.)
+* **A launcher run's stall property is the AI's own record**; the game's second path reads chapter 1 and chapter 2 only in
+  the sweep. Inside a battle the summary screen and the forget-a-move list are the AI's record alone.
+* **A live arm is one trajectory on the host's clock.** This round's are NEW trajectories against `a883634`'s (the AI
+  changed), but five of the six ended on the same frame as on the first graded pass's tree `d0c949e`, so the final live
+  evidence is largely those trajectories run twice. Each is one sample; the frequencies are the sweep's.
+* **The balance was raised after a graded failure** (Story 40 % -> 45 %, Trainer 45 % -> 48 %), with the gym-walk fix. It
+  is taste, measured on two NEW development sweeps (61-72, 81-92) and graded on NEW held-out seeds (801-820); no bound
+  changed. The Story's chapter 2 still ends nearest the floor (40.6 % at the lowest), because the session ENDS on the
+  story's own stretch.
+* **The curiosity minimum is taste too** (Catcher 12 %, the others 10 %). Development measured chapter 1's no-speedrun time
+  at 0.975 without it (dev2) and 1.137 with it (dev3); the graded number is in the table.
+* `BALANCE_MIN_FRAMES` (12,000), `AGAIN_MAX` (2), `CENTER_LOOK_FRAMES` (3,000), `DANGER_RETRIES` (3), `ASIDE_LOOK_MIN`
+  (600) and `END_SLACK` (60) are bounds chosen, not measured from people.
+* The earlier rounds' limits that still hold: OFF THE BEELINE's corridor is the sweep's own control runs; LOSE3's mutant
+  cannot always lose (graded on the runs that reached a third loss); `LOOK_DEBT`, `DETOUR_MIN_TILES`, `STORY_ASIDE_FRAMES`
+  and `GO_BATTLE_*` are taste.
 
 ## The story (build step 5)
 

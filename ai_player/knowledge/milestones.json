@@ -77,6 +77,13 @@
    "what": "the door of a POKéMON MART (blue roof, MART sign)",
    "decomp": "METATILE_General_Door_PokeMart"
   },
+  "gym_door": {
+   "metatile": [
+    461
+   ],
+   "what": "the door of a POKéMON GYM (the big building, the GYM sign)",
+   "decomp": "METATILE_General_Door_Gym"
+  },
   "nurse": {
    "gfx": [
     58
@@ -257,6 +264,7 @@
     "trainers": {}
    },
    "waypoint": "INSIDE_OF_TRUCK",
+   "optional": false,
    "maps": [
     "INSIDE_OF_TRUCK"
    ],
@@ -296,6 +304,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "INSIDE_OF_TRUCK",
     "LITTLEROOT_TOWN"
@@ -340,6 +349,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "LITTLEROOT_TOWN",
     "<player_house_1f>"
@@ -381,18 +391,21 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "<player_house_2f>"
    ],
    "steps": [
     {
      "do": "go",
-     "map": "<player_house_2f>"
+     "map": "<player_house_2f>",
+     "told": "upstairs"
     },
     {
      "do": "use",
      "map": "<player_house_2f>",
-     "look": "clock"
+     "look": "clock",
+     "told": "clock"
     }
    ],
    "hint": {
@@ -430,6 +443,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "<rival_house_1f>",
     "<rival_house_2f>"
@@ -437,16 +451,14 @@
    "steps": [
     {
      "do": "go",
-     "map": "<rival_house_1f>"
+     "map": "<rival_house_1f>",
+     "told": "next door"
     },
     {
      "do": "go",
-     "map": "<rival_house_2f>"
-    },
-    {
-     "do": "use",
      "map": "<rival_house_2f>",
-     "look": "rivals_poke_ball"
+     "told": "is upstairs, I think",
+     "file": "data/maps/LittlerootTown_MaysHouse_1F/scripts.inc"
     }
    ],
    "hint": {
@@ -456,7 +468,7 @@
     "file": "data/maps/LittlerootTown_BrendansHouse_1F/scripts.inc"
    },
    "fight": null,
-   "note": null,
+   "note": "(build step 5.1, the step-5 review's finding 3) no step says 'use the POKé BALL on the floor': the game never tells the player to. The rival's mom says the rival 'is upstairs' (RivalsHouse_1F_Text_OhYoureTheNewNeighbor), and upstairs a POKé BALL lies on the floor (an object with the item ball's look, LittlerootTown_MaysHouse_2F_EventScript_RivalsPokeBall, which plays MeetMay at VAR_LITTLEROOT_RIVAL_STATE 2): the AI's item curiosity walks up to it, as a person's does",
    "taught_by": [
     {
      "file": "sandbox-pokebot/modules/story/early_game.py",
@@ -481,6 +493,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "LITTLEROOT_TOWN",
     "ROUTE101"
@@ -488,12 +501,14 @@
    "steps": [
     {
      "do": "go",
-     "map": "ROUTE101"
+     "map": "ROUTE101",
+     "told": "BAG"
     },
     {
      "do": "use",
      "map": "ROUTE101",
-     "look": "birchs_bag"
+     "look": "birchs_bag",
+     "told": "BAG"
     }
    ],
    "hint": {
@@ -533,6 +548,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "ROUTE101"
    ],
@@ -581,6 +597,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB"
    ],
@@ -621,6 +638,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "<rival_house_1f>",
     "OLDALE_TOWN",
@@ -634,12 +652,14 @@
     },
     {
      "do": "go",
-     "map": "ROUTE103"
+     "map": "ROUTE103",
+     "told": "ROUTE 103"
     },
     {
      "do": "talk",
      "map": "ROUTE103",
-     "look": "rival"
+     "look": "rival",
+     "told": "ROUTE 103"
     }
    ],
    "hint": {
@@ -657,6 +677,7 @@
      "BRENDAN_ROUTE_103_TORCHIC",
      "BRENDAN_ROUTE_103_MUDKIP"
     ],
+    "named": true,
     "levels": [
      5
     ],
@@ -708,6 +729,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "ROUTE103",
     "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB"
@@ -715,7 +737,8 @@
    "steps": [
     {
      "do": "go",
-     "map": "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB"
+     "map": "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB",
+     "told": "LAB"
     },
     {
      "do": "follow"
@@ -755,6 +778,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "ROUTE101",
     "OLDALE_TOWN"
@@ -797,6 +821,7 @@
     "trainers": {}
    },
    "waypoint": "ROUTE102",
+   "optional": false,
    "maps": [
     "OLDALE_TOWN",
     "ROUTE102"
@@ -804,7 +829,8 @@
    "steps": [
     {
      "do": "go",
-     "map": "PETALBURG_CITY"
+     "map": "PETALBURG_CITY",
+     "told": "PETALBURG"
     }
    ],
    "hint": {
@@ -868,6 +894,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "ROUTE102",
     "PETALBURG_CITY"
@@ -875,7 +902,8 @@
    "steps": [
     {
      "do": "go",
-     "map": "PETALBURG_CITY"
+     "map": "PETALBURG_CITY",
+     "told": "PETALBURG"
     }
    ],
    "hint": {
@@ -910,6 +938,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "PETALBURG_CITY",
     "PETALBURG_CITY_GYM"
@@ -917,12 +946,14 @@
    "steps": [
     {
      "do": "go",
-     "map": "PETALBURG_CITY_GYM"
+     "map": "PETALBURG_CITY_GYM",
+     "told": "PETALBURG GYM"
     },
     {
      "do": "talk",
      "map": "PETALBURG_CITY_GYM",
-     "look": "norman"
+     "look": "norman",
+     "told": "PETALBURG GYM"
     }
    ],
    "hint": {
@@ -960,6 +991,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "PETALBURG_CITY",
     "PETALBURG_CITY_GYM"
@@ -1004,6 +1036,7 @@
     "trainers": {}
    },
    "waypoint": "ROUTE104",
+   "optional": false,
    "maps": [
     "PETALBURG_CITY",
     "ROUTE104"
@@ -1011,7 +1044,8 @@
    "steps": [
     {
      "do": "go",
-     "map": "RUSTBORO_CITY"
+     "map": "RUSTBORO_CITY",
+     "told": "RUSTBORO CITY"
     }
    ],
    "hint": {
@@ -1049,13 +1083,15 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "PETALBURG_WOODS"
    ],
    "steps": [
     {
      "do": "go",
-     "map": "RUSTBORO_CITY"
+     "map": "RUSTBORO_CITY",
+     "told": "RUSTBORO CITY"
     },
     {
      "do": "follow"
@@ -1105,6 +1141,7 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "ROUTE104",
     "RUSTBORO_CITY"
@@ -1112,7 +1149,8 @@
    "steps": [
     {
      "do": "go",
-     "map": "RUSTBORO_CITY"
+     "map": "RUSTBORO_CITY",
+     "told": "RUSTBORO"
     }
    ],
    "hint": {
@@ -1148,13 +1186,15 @@
     }
    },
    "waypoint": null,
+   "optional": true,
    "maps": [
     "RUSTBORO_CITY_GYM"
    ],
    "steps": [
     {
      "do": "go",
-     "map": "RUSTBORO_CITY_GYM"
+     "map": "RUSTBORO_CITY_GYM",
+     "told": "ROXANNE"
     },
     {
      "do": "follow"
@@ -1212,18 +1252,21 @@
     "trainers": {}
    },
    "waypoint": null,
+   "optional": false,
    "maps": [
     "RUSTBORO_CITY_GYM"
    ],
    "steps": [
     {
      "do": "go",
-     "map": "RUSTBORO_CITY_GYM"
+     "map": "RUSTBORO_CITY_GYM",
+     "told": "ROXANNE"
     },
     {
      "do": "talk",
      "map": "RUSTBORO_CITY_GYM",
-     "look": "roxanne"
+     "look": "roxanne",
+     "told": "ROXANNE"
     }
    ],
    "hint": {
@@ -1236,6 +1279,7 @@
     "trainers": [
      "ROXANNE_1"
     ],
+    "named": true,
     "levels": [
      12,
      15

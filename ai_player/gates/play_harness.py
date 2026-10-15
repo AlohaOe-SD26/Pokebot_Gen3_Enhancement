@@ -57,7 +57,7 @@ STATS = {"steps": 5, "total_battles": 7, "wild_battles": 8, "trainer_battles": 9
          "rested_at_home": 16}
 #: (test side) every item ball's FLAG_ITEM_* on badge 1's maps (`gates/extract_milestones.py --items`)
 ITEM_FLAGS = Path(__file__).resolve().parent / "fixtures" / "item_flags.json"
-FAULTS = ("no_hints", "no_training")
+FAULTS = ("no_hints", "no_training", "no_errands")
 
 
 def tracked() -> tuple[dict[str, int], dict[str, int]]:
@@ -203,6 +203,122 @@ class StoryRecorder:
                 "last": self.last, "blips": self.blips, "battles": self.battles, "steps": self.steps}
 
 
+#: (build step 5.1) THE WAITS by a second path, test side: the tasks that poll a button THEMSELVES (a yes/no, a menu with a
+#: cursor, a list), by their `gTasks[].func` symbols (the decomp's names, `src/*.c`); with the framework's own
+#: `modules.tasks.is_waiting_for_input` (a text printer waiting for A or B, a script's WaitForAorBPress), the GAME WAITS
+#: FOR A PRESS. Never the AI's eyes.
+INPUT_TASKS = ("Task_HandleYesNoInput", "Task_HandleConfirmStarterInput", "Task_HandleStarterChooseInput",
+               "Task_HandleMultichoiceInput", "Task_HandleMultichoiceGridInput", "Task_ShopMenu", "Task_BuyMenu",
+               "Task_BuyHowManyDialogueHandleInput", "Task_SetClock_HandleInput", "Task_SetClock_HandleConfirmInput",
+               "Task_CallYesOrNoCallback", "StartMenuTask", "Task_HandleMainMenuInput",
+               "Task_NewGameBirchSpeech_ProcessNameYesNoMenu", "Task_NewGameBirchSpeech_ChooseGender",
+               "Task_ReturnToItemListAfterItemPurchase", "Task_HandleCaughtMonPageInput",
+               # (build step 5.1, the verifier's round: battles covered) the party menu's list and its action menu (a
+               # Pokemon sent in, in a battle or on the field) and the bag's list (a ball thrown, an item used)
+               "Task_HandleChooseMonInput", "Task_HandleSelectionMenuInput", "Task_BagMenu_HandleInput")
+#: (build step 5.1, the verifier's round) the player's battle controller POLLING THE PAD (`src/battle_controller_player.c`):
+#: the action menu, the move grid, a target (a double battle), the moves' reordering, the yes/no ("Use next POKéMON?")
+BATTLE_INPUT_CALLBACKS = ("HandleInputChooseAction", "HandleInputChooseMove", "HandleInputChooseTarget",
+                          "HandleMoveSwitching", "PlayerHandleYesNoInput")
+#: ... and a battler's controller WAITING ON the text printer (each controller file has its own of these: the message of
+#: any battler's turn); with printer 0 waiting for A/B, the battle's text waits for a press
+BATTLE_TEXT_WAITS = ("CompleteOnInactiveTextPrinter", "CompleteOnInactiveTextPrinter2")
+#: (build step 5.1) the second path's stretches at least this long are kept (shorter ones are counted)
+WAIT_KEEP = 60
+
+
+class WaitRecorder:
+    """(build step 5.1) Every `every` frames: does the GAME wait for a press (`INPUT_TASKS`, `is_waiting_for_input`, read by
+    the framework's own code), and has a press begun since the last sample (`HarnessControls.presses`, counted where the
+    button goes down)? A STRETCH is a run of
+    samples that wait with no press between them; its frames are the last sample's less the first's. Graded by
+    `gates/rate_step5.py` beside the AI's own record (`hands/waiting.py`)."""
+
+    def __init__(self, controls: HarnessControls, every: int = 10) -> None:
+        self.controls = controls
+        self.every = every
+        self.frame = 0
+        self.samples = self.errors = self.waiting_samples = 0
+        self.open: list | None = None  # [first, last, presses, what]
+        self.kept: list[list] = []
+        self.longest: list | None = None
+        self.count = 0
+
+    def after_frame(self) -> None:
+        self.frame += 1
+        if self.frame % self.every:
+            return
+        try:
+            what = waits_now()
+        except Exception:  # noqa: BLE001 - a read between screens: try again next time
+            self.errors += 1
+            return
+        self.samples += 1
+        presses = self.controls.presses
+        stretch = self.open
+        if stretch is not None and (what is None or presses != stretch[2]):
+            self._close(stretch)
+            stretch = self.open = None
+        if what is None:
+            return
+        self.waiting_samples += 1
+        if stretch is None:
+            self.open = [self.frame, self.frame, presses, what]
+        else:
+            stretch[1] = self.frame
+
+    def _close(self, stretch: list) -> None:
+        frames = stretch[1] - stretch[0]
+        self.count += 1
+        if self.longest is None or frames > self.longest[2]:
+            self.longest = [stretch[0], stretch[1], frames, stretch[3]]
+        if frames >= WAIT_KEEP:
+            self.kept.append([stretch[0], stretch[1], frames, stretch[3]])
+
+    def result(self) -> dict:
+        if self.open is not None:
+            self._close(self.open)
+            self.open = None
+        return {"every": self.every, "samples": self.samples, "errors": self.errors, "waiting_samples": self.waiting_samples,
+                "stretches": self.count, "longest": self.longest, "kept": self.kept}
+
+
+def waits_now() -> str | None:
+    """(build step 5.1) What makes the GAME wait for a press now, by the framework's own reads (`WaitRecorder`), or None. A
+    text or a script waiting for A/B is read on the OVERWORLD by the framework's `is_waiting_for_input`; in a BATTLE (the
+    verifier's round: "the game-side second path does not cover battles") by the battle's own state: a battler's
+    controller waiting on the text printer (`CompleteOnInactiveTextPrinter`, `BATTLE_TEXT_WAITS`) while printer 0 waits
+    for A/B (`sTextPrinters[0]` active, state CLEAR or SCROLL_START: `src/text.c`), or the player's controller polling the
+    pad (`BATTLE_INPUT_CALLBACKS`: the action menu, the move grid, a target, the yes/no). MEASURED 2026-10-14 (the
+    development sweep step51dev2, seed 9): during a wild battle's opening the framework's overworld read of printer 0 said
+    "waiting" for 510 frames before "Wild WURMPLE appeared!" was printed (a printer state left from before the battle);
+    the controller condition is what tells a battle's own text from such a state (no controller waits on the printer
+    then). The tasks that poll a button count on every screen."""
+    from modules.battle_state import get_battle_controller_callback
+    from modules.memory import get_game_state, read_symbol
+    from modules.tasks import TaskList, is_waiting_for_input
+
+    tasks = TaskList(read_symbol("gTasks"))
+    for name in INPUT_TASKS:
+        if name in tasks:
+            return name
+    state = get_game_state().name
+    if state == "BATTLE":
+        battlers = read_symbol("gBattlersCount", size=1)[0]
+        callbacks = [get_battle_controller_callback(index) for index in range(min(battlers, 4))]
+        for index, callback in enumerate(callbacks):
+            if index % 2 == 0 and callback in BATTLE_INPUT_CALLBACKS:
+                return f"the battle's {callback} (battler {index})"
+        if any(callback in BATTLE_TEXT_WAITS for callback in callbacks):
+            active, printer_state = read_symbol("sTextPrinters", offset=0x1B, size=2)
+            if active and printer_state in (2, 3):
+                return "a battle text waits for A/B"
+        return None
+    if state != "OVERWORLD":
+        return None
+    return "a text or script waits for A/B" if is_waiting_for_input() else None
+
+
 def steps_counted(timeline: list[list[int]], start: int, end: int) -> tuple[int, int]:
     """THE STEPS the game counted between frames `start` and `end` of a recorder's timeline (`StoryRecorder.steps`): the
     sum of every rise between two readings inside the window that the game CAN have made (at most one step per
@@ -235,14 +351,17 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
     options = HandsOptions(brain="play", run_dir=run_dir, seed=seed, personality=personality, mart_item=DEFAULT_MART_ITEM,
                            mart_count=DEFAULT_MART_COUNT, clock=clock_value, fault_ungated_a=False, fault_blind_count=False,
                            world_in=Path(world_in) if world_in else None, target=target, starter=starter,
-                           fault_no_hints="no_hints" in faults, fault_no_training="no_training" in faults)
+                           fault_no_hints="no_hints" in faults, fault_no_training="no_training" in faults,
+                           fault_no_errands="no_errands" in faults)
     lines: list[str] = []
     brain = HandsBrain(BrainSettings(frames=frames), lines.append, options)
     controls = HarnessControls(emulator)
+    waits = WaitRecorder(controls)
     started = time.monotonic()
     steps = brain.play(controls, FrameworkEyes())
-    reason, count = None, 0
-    while True:
+    reason, count = "harness: the brain overran its budget", 0
+    # (build step 5.1: every loop bounded) at most the brain's frames and a margin: the brain ends itself within its budget
+    for count in range(frames + 11):
         try:
             next(steps)
         except StopIteration as done:
@@ -251,14 +370,13 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
         emulator.run_single_frame()
         if recorder is not None:
             recorder.after_frame()
-        count += 1
-        if count > frames + 10:
-            reason = "harness: the brain overran its budget"
-            break
+        waits.after_frame()
+    else:
+        count = frames + 11
     return {"seed": seed, "personality": personality, "starter": starter, "target": target, "faults": sorted(faults),
             "reason": reason, "frames": count, "seconds": round(time.monotonic() - started, 1), "presses": controls.presses,
             "lines": lines, "report": brain.play_report, "actions": str(run_dir / "actions.jsonl"),
-            "world_file": str(run_dir / "world.jsonl")}
+            "world_file": str(run_dir / "world.jsonl"), "waits_game": waits.result()}
 
 
 def run(state: Path | None, seed: int, frames: int, personality: str | None, starter: str | None, target: str,
