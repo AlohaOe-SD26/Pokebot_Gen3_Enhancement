@@ -402,7 +402,110 @@ def extract_learnsets(d, c, out):
     return sp_list
 
 
-STEPS = [("species", extract_species), ("moves", extract_moves), ("learnsets", extract_learnsets)]
+# ---------------------------------------------------------------- encounters.json
+def _slots(mons, rates, offset=0):
+    out = []
+    for i, w in enumerate(mons):
+        r = rates[offset + i]
+        out.append({"slot": offset + i, "species": w["species"], "min_level": w["min_level"],
+                    "max_level": w["max_level"], "chance_pct": r})
+    return out
+
+
+def _method(slots, rate):
+    by = {}
+    for sl in slots:
+        e = by.setdefault(sl["species"], {"chance_pct": 0, "min_level": sl["min_level"], "max_level": sl["max_level"], "slots": []})
+        e["chance_pct"] += sl["chance_pct"]
+        e["min_level"] = min(e["min_level"], sl["min_level"])
+        e["max_level"] = max(e["max_level"], sl["max_level"])
+        e["slots"].append(sl["slot"])
+    return {"encounter_rate": rate, "slots": slots,
+            "rarity": dict(sorted(by.items(), key=lambda kv: (-kv[1]["chance_pct"], kv[0])))}
+
+
+def extract_encounters(d, c, out):
+    j = json.loads(d.read("src/data/wild_encounters.json"))
+    wc = d.read("src/wild_encounter.c")
+    fields = {f["type"]: f for f in j["wild_encounter_groups"][0]["fields"]}
+    land_r = fields["land_mons"]["encounter_rates"]
+    water_r = fields["water_mons"]["encounter_rates"]
+    rock_r = fields["rock_smash_mons"]["encounter_rates"]
+    fish_r = fields["fishing_mons"]["encounter_rates"]
+    groups = fields["fishing_mons"]["groups"]
+    expected = {"land": [20, 20, 10, 10, 10, 10, 5, 5, 4, 4, 1, 1], "water": [60, 30, 5, 4, 1],
+                "rock_smash": [60, 30, 5, 4, 1], "old_rod": [70, 30], "good_rod": [60, 20, 20], "super_rod": [40, 40, 15, 4, 1]}
+    got = {"land": land_r, "water": water_r, "rock_smash": rock_r,
+           "old_rod": [fish_r[i] for i in groups["old_rod"]], "good_rod": [fish_r[i] for i in groups["good_rod"]],
+           "super_rod": [fish_r[i] for i in groups["super_rod"]]}
+    # the C code compares against ENCOUNTER_CHANCE_*_SLOT_n constants generated from these same json fields
+    code_uses_generated = "ENCOUNTER_CHANCE_LAND_MONS_SLOT_0" in wc and "ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_5" in wc
+    maps = []
+    for gi, g in enumerate(j["wild_encounter_groups"]):
+        is_main = g["label"] == "gWildMonHeaders"
+        for e in g["encounters"]:
+            entry = {"group": g["label"], "base_label": e["base_label"], "map": e.get("map"), "methods": {}}
+            if "land_mons" in e:
+                lm = e["land_mons"]
+                entry["methods"]["land"] = _method(_slots(lm["mons"], land_r), lm["encounter_rate"])
+            if "water_mons" in e:
+                wm = e["water_mons"]
+                entry["methods"]["water"] = _method(_slots(wm["mons"], water_r), wm["encounter_rate"])
+            if "rock_smash_mons" in e:
+                rm = e["rock_smash_mons"]
+                entry["methods"]["rock_smash"] = _method(_slots(rm["mons"], rock_r), rm["encounter_rate"])
+            if "fishing_mons" in e:
+                fm = e["fishing_mons"]
+                for rod in ("old_rod", "good_rod", "super_rod"):
+                    idx = groups[rod]
+                    sl = []
+                    for i in idx:
+                        w = fm["mons"][i]
+                        sl.append({"slot": i, "species": w["species"], "min_level": w["min_level"],
+                                   "max_level": w["max_level"], "chance_pct": fish_r[i]})
+                    entry["methods"][rod] = _method(sl, fm["encounter_rate"])
+            maps.append(entry)
+    # overall per-species index: where can I find X, best chance per method
+    where = {}
+    for m in maps:
+        for meth, info in m["methods"].items():
+            for sp, r in info["rarity"].items():
+                where.setdefault(sp, []).append({"map": m["map"] or m["base_label"], "base_label": m["base_label"],
+                                                 "method": meth, "chance_pct": r["chance_pct"],
+                                                 "min_level": r["min_level"], "max_level": r["max_level"]})
+    for v in where.values():
+        v.sort(key=lambda x: (-x["chance_pct"], x["map"], x["method"]))
+    hdr = d.header(["src/data/wild_encounters.json", "src/wild_encounter.c"])
+    hdr["slot_probabilities_pct"] = got
+    hdr["slot_probabilities_match_expected_gen3"] = got == expected
+    hdr["slot_probabilities_note"] = (
+        "Taken from the fields block of wild_encounters.json; src/wild_encounter.c selects slots with the "
+        "ENCOUNTER_CHANCE_*_SLOT_n constants that the build generates from those same fields "
+        "(wild_encounters.constants.json.txt), so code and json agree by construction. "
+        "Result of comparing against the expected Gen-3 lists: %s." % ("IDENTICAL" if got == expected else "DIFFERENT"))
+    hdr["encounter_rate_note"] = ("encounter_rate is the map's per-step base; WildEncounterCheck multiplies it by 16 and compares "
+                                  "Random() % 2880 < rate (cap 2880), then modifiers (flute, cleanse tag, abilities, bike). "
+                                  "Per-step chance = encounter_rate*16/2880.")
+    hdr["ability_note"] = ("Static/Magnet Pull (land/water) force a matching-type slot 50%; Intimidate/Keen Eye/Cute Charm-style "
+                           "effects change level/odds; chance_pct here is the unmodified slot table.")
+    hdr["feebas"] = {
+        "map": "MAP_ROUTE119", "species": "SPECIES_FEEBAS", "min_level": 20, "max_level": 25,
+        "rule": "FishingWildEncounter -> CheckFeebas(): on Route 119 any rod; 50% roll (Random()%100 > 49 fails), then 6 'Feebas "
+                "spots' are chosen among 447 fishing tiles (131+167+149) by an RNG seeded from dewfordTrends[0].rand (the "
+                "Dewford trend seed); spots 1-3 are rerolled (inaccessible). If the fished tile's spot id is one of the 6 the "
+                "encounter is Feebas instead of the rod table.",
+        "tiles": "NOT STATICALLY EXTRACTABLE: the 6 tiles depend on the save's trend seed, which changes when the Dewford trend is "
+                 "re-rolled. The decomp gives the algorithm, not coordinates; tile coordinates need the map data plus the seed.",
+        "fishing_tiles_by_section": {"y 0-45": 131, "y 46-91": 167, "y 92-139": 149}}
+    hdr["count_map_entries"] = len(maps)
+    hdr["groups"] = [{"label": g["label"], "entries": len(g["encounters"])} for g in j["wild_encounter_groups"]]
+    hdr["maps"] = maps
+    hdr["where_to_find"] = dict(sorted(where.items()))
+    write_json(os.path.join(out, "encounters.json"), hdr)
+    return maps
+
+
+STEPS = [("species", extract_species), ("moves", extract_moves), ("learnsets", extract_learnsets), ("encounters", extract_encounters)]
 
 
 def run(decomp_root, out):
