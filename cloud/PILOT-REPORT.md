@@ -17,3 +17,12 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G  9.5G   30G  25% /
 pwsh: NOT FOUND
 ```
+
+## Step 2: do the safety hooks run here?
+| Command | Expected | Observed |
+|---|---|---|
+| `git add -A --dry-run` | blocked | **RAN** (not blocked; clean tree, no output) |
+| `git stash list` | allowed | **RAN** (empty output) |
+| `git stash` | blocked | **RAN** ("No local changes to save") |
+
+Conclusion: the hooks did NOT enforce in this cloud session. Likely cause: `.claude/settings.json` invokes several hooks via `powershell ...` (pwsh/powershell absent on this Linux box) and every command ends in `|| true`, so they fail open. `block_destructive_git.py` is Python and could run, but `git stash` was still not blocked (it may not be wired to run here, or the harness did not apply it). Do not rely on hooks in cloud runs; follow the rules manually.
