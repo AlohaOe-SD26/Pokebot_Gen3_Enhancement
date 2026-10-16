@@ -9492,3 +9492,19 @@ on all three questions:
     - no beeline, as the time ratio against the beeline control.
 - **Why it is not the user's call:** it is how to MEASURE "plays like a person", a technical choice under RULING 39. The user's goal (RULINGS 32 and 40) is unchanged.
 - **Rejected:** grading time shares with a floor, because Goodhart was measured, not hypothetical.
+
+## 2026-10-16 — USER RULING 41 (confirmation of the overall goal): a deployable AI agent that plays the WHOLE game on its own through the emulator, like a person, with NO bot programs; time is acceptable; the 24/7 learner is called "the bot tuner" until it tunes the AI player
+
+- **The user's words:**
+  - "my hope was to TRAIN an AI agent to PLAY the game by interacting with the Emulator and game ... it launches the emulator, loads the rom, creates a profile/uses an existing profile and plays the game from beginning to end (maybe some setup settings/steps before the ai takes over) so the ai is taking the drivers seat in place of the human, without any bot usage";
+  - "so long as we are training an ai agent to deploy that can play the game entirely on its own the way I described without using bots, that is my goal ... I am fine with it taking time to complete".
+- **What this confirms** (RULINGS 35-37 and 40):
+  - The AI player (`ai_player/`) is that agent. It has its own eyes (memory reads filtered to the screen), hands (its own button presses) and brain.
+  - It uses NO bot code, enforced by `check_purity` and the live attribution of foreign presses and writes.
+  - The bot's work reaches it only as knowledge, lessons and experience data.
+  - The shared part is the emulator host (the console, not the player).
+  - The end state is the standalone program of RULING 37.
+  - "Trained" means: knowledge from data, EXPERIENCE across games (RULING 40), and settings tuned by real games (RULING 39 item 3). A neural network is not the foundation (rejected: research-scale compute; imitating the bot would copy its robotic style). A small learned part may be added later only where it clearly helps.
+  - Deployed, it is light: memory reads and button presses on the CPU at game speed.
+- **The naming:** the 24/7 learner in `ai-agent/` is "THE BOT TUNER" until it is pointed at the AI player's settings. Its 15 % Champion rate is the scripted bot's, flat over four weeks (13.7 / 16.6 / 13.0 / 16.1 % by week-long blocks of cycles, measured 2026-10-16), so it is not evidence about the AI. Its growing corpus of finished games is teacher data for the AI's experience memory.
+- **The plan addition (Claude's call):** after the KB1 merge, MINE THE BOT'S FINISHED GAMES into the AI's experience: per chapter, the levels and teams that beat each gym, where runs failed, and which routes and items mattered. This is data only, never code, and it is the largest available accelerator toward the whole game.
