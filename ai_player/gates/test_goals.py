@@ -38,7 +38,7 @@ if str(REPO) not in sys.path:
 from ai_player.brain.goals import (  # noqa: E402
     ASK_ROUNDS, TRAIN_SESSIONS, GoalManager, battles_lost, heard_words, roam_numbers, training_rest,
 )
-from ai_player.brain.navigator import Navigator  # noqa: E402
+from ai_player.brain.navigator import Navigator, Target  # noqa: E402
 from ai_player.eyes.observation import (  # noqa: E402
     BagSummary, BattleView, MonSummary, Observation, PlayerState, Progress, ScreenState, SeenObject, Tile, View,
 )
@@ -53,6 +53,8 @@ from ai_player.skills.story import answer_question  # noqa: E402
 from ai_player.world.memory import MapMemory, TileFact, WorldMemory  # noqa: E402
 
 KNOWLEDGE = json.loads((REPO / "ai_player" / "knowledge" / "milestones.json").read_text(encoding="utf-8"))
+#: (build step 5.2) the page PROF. BIRCH's lab scene shows after "go see MAY?" (the `ask` step's own words)
+BIRCH_GO_SEE = "Get MAY to teach you what it means to be a TRAINER."
 CH1 = ["ch1_intro", "ch1_truck", "ch1_mom", "ch1_clock", "ch1_rival_house", "ch1_birch", "ch1_starter", "ch1_lab",
        "ch1_rival_route103", "ch1_pokedex"]
 
@@ -298,8 +300,17 @@ class HintTests(unittest.TestCase):
         self.assertEqual(mgr.memory.pages, {page: 700})
 
     def test_before_the_words_it_goes_to_ask_at_the_rivals_house(self):
-        goal = self.rival_goal()
+        """(build step 5.2, the step-5.1 review's finding 6: "it walks to the step's own house with 'nothing was said'") once
+        PROF. BIRCH has said "Get MAY to teach you what it means to be a TRAINER." it goes to ask at the rival's house, and
+        its reason quotes that page; before it, nobody has told it whom to see: it explores (no walk to the very house
+        where the answer is)."""
+        goal = self.rival_goal(heard={BIRCH_GO_SEE})
         self.assertEqual((goal.kind, goal.map), ("go", "LITTLEROOT_TOWN_MAYS_HOUSE_1F"))
+        self.assertIn("to teach you what it means", goal.reason)
+        self.assertNotIn("nothing was said", goal.reason)
+        goal = self.rival_goal()
+        self.assertEqual((goal.kind, goal.map), ("go", None))  # FAULT half: the walk to the house with nothing said
+        self.assertIn("nobody has told it whom to see", goal.reason)
 
     def test_in_the_rivals_house_it_asks_the_people_there(self):
         goal = self.rival_goal(const="LITTLEROOT_TOWN_MAYS_HOUSE_1F", objects=[person(12, 10, gfx=22, local_id=4)])
@@ -825,7 +836,7 @@ class PlayLoopTests(unittest.TestCase):
     PER_SCREEN = 5000  # frames a stand-in `play_out` takes on a screen that never frees
 
     def run_loop(self, screen, lose: bool = False, budget: int = 60_000, heard=(), win_training: bool = False,
-                 arrived_at: int | None = None):
+                 arrived_at: int | None = None, effect=None, personality: str = "Story"):
         from ai_player import mode as mode_module
         from ai_player.world.memory import Transition
 
@@ -834,6 +845,10 @@ class PlayLoopTests(unittest.TestCase):
             world.transitions.append(Transition(arrived_at, "0:1", "0:2", "warp", "scene", (7, 15), (6, 5), None))
         nav = types.SimpleNamespace(battle_log=[], take_changes=lambda: [], stats=types.SimpleNamespace(steps=0), world=world,
                                     battler=None, answer=None, on_menu=None)
+        # (build step 5.2, the verifier's round) the navigator's own `story_moved`, recorded: the loop asks it at every
+        # milestone change
+        nav.moved = []
+        nav.story_moved = lambda: (nav.moved.append(hands.pad.frames), "nothing to forget")[1]
         hands = _LoopHands(screen)
         hands.starts = []  # the pad's frames at which each goal was pursued
         pursued: list[str] = []
@@ -849,6 +864,13 @@ class PlayLoopTests(unittest.TestCase):
             def pursue(self, goal, milestone, index, current):
                 pursued.append(goal.kind)
                 hands.starts.append(hands.pad.frames)
+                if effect is not None:  # (build step 5.2) what the goal brings, as the world memory sees it
+                    result = effect(goal, world, self)
+                    if result is not None:  # the goal's own (ok, outcome)
+                        hands.pad.frames += per_goal
+                        hands.pad.presses += 5  # it walked: pressed, with nothing new unless `effect` brought it
+                        yield
+                        return result
                 if goal.kind == "train" and win_training:
                     # a training session that WINS a battle (the real runner's own bookkeeping of the session)
                     hands.pad.frames += per_train
@@ -874,7 +896,7 @@ class PlayLoopTests(unittest.TestCase):
                                               fault_no_errands=False, starter=None, clock=None)
         brain.navigator, brain.world, brain.seed, brain._say, brain.play_report = nav, world, 5, (lambda line: None), None
         with mock.patch.object(mode_module, "GoalRunner", Runner), mock.patch.object(mode_module, "play_out", play_out):
-            reason = drive(brain._play(hands, types.SimpleNamespace(name="Story")), budget)
+            reason = drive(brain._play(hands, types.SimpleNamespace(name=personality)), budget)
         return reason, hands, pursued, screens, brain.play_report
 
     def free_screen(self) -> Observation:
@@ -1361,7 +1383,7 @@ class PersonFairTests(unittest.TestCase):
         mgr = manager("Story", train_off=True)
         for places, want in ((("LITTLEROOT_TOWN", "ROUTE101"), None),
                              (("LITTLEROOT_TOWN", "ROUTE101", "LITTLEROOT_TOWN_MAYS_HOUSE_1F"), "LITTLEROOT_TOWN_MAYS_HOUSE_1F")):
-            world = world_with(*places, current="LITTLEROOT_TOWN")
+            world = world_with(*places, current="LITTLEROOT_TOWN", heard={BIRCH_GO_SEE})
             observation = look(ch1_through("ch1_rival_route103"), party=[mon(6)], const="LITTLEROOT_TOWN")
             index, milestone = mgr.milestone(observation, visited_in(world))
             goal = mgr.next_goal(observation, world, milestone, index)
@@ -1722,15 +1744,16 @@ class VerifierRoundTests(unittest.TestCase):
             explored += mgr.next_goal(seen, world, milestone, index).kind == "explore"
         quiet = [line for line in told if "it goes on without looking round" in line]
         self.assertEqual(len(quiet) + explored, 60)  # every draw is in the log: a goal, or a told line
-        self.assertTrue(all("draw " in line and ">= the Story's" in line for line in quiet))
+        self.assertTrue(all("draw " in line and ">= 0.55, the Story's 0.55" in line for line in quiet), quiet[:2])
 
     def test_after_passing_new_places_it_looks_round_the_next(self):
         """The verifier: "per-run curiosity can be almost zero" (and the development sweep step51vdev1's Story seed 4: all
-        three look-around draws chose nothing). After LOOK_DEBT new places gone past in a row, the next one is looked round
-        without a draw, said so; a failed draw counts one more, a look round starts the count again."""
-        from ai_player.brain.goals import LOOK_DEBT
+        three look-around draws chose nothing). After LOOK_DEBT new places gone past in a row, the next one's odds are
+        raised to CURIOUS_ODDS_CAP (build step 5.2: a dice throw, never certain; 5.1 looked without a draw), said so; a
+        failed draw counts one more, a look round starts the count again."""
+        from ai_player.brain.goals import CURIOUS_ODDS_CAP, LOOK_DEBT
         forced = drawn = 0
-        for seed in range(100):
+        for seed in range(200):
             for debt in (LOOK_DEBT, 0):
                 mgr = manager("Story", seed=seed, quiet=False, train_off=True)
                 mgr.memory.passed_new = debt
@@ -1742,14 +1765,16 @@ class VerifierRoundTests(unittest.TestCase):
                 goal = mgr.next_goal(seen, world, milestone, index)
                 if debt:
                     forced += goal.kind == "explore"
-                    self.assertEqual(mgr.memory.passed_new, 0)
-                    if "gone past" in goal.reason:
+                    self.assertEqual(mgr.memory.passed_new, 0 if goal.kind == "explore" else LOOK_DEBT + 1)
+                    if goal.kind == "explore":
                         self.assertIn(f"gone past {LOOK_DEBT} new places in a row", goal.reason)
                 else:
                     drawn += goal.kind == "explore"
                     self.assertEqual(mgr.memory.passed_new, 0 if goal.kind == "explore" else 1)
-        self.assertEqual(forced, 100)
-        self.assertLess(drawn, 75)  # FAULT half: without the debt the Story's draw passes some new places by
+        self.assertLess(abs(forced / 200 - CURIOUS_ODDS_CAP), 0.06)  # the dice, at the cap: never 200 of 200
+        self.assertLess(forced, 200)
+        self.assertLess(drawn, 150)  # FAULT half: without the debt the Story's draw passes some new places by
+        self.assertGreater(forced, drawn + 20)
 
     def detour_runner(self, places, excluded=()):
         from ai_player.brain.goals import Goal, GoalRunner
@@ -1763,9 +1788,14 @@ class VerifierRoundTests(unittest.TestCase):
             return "budget: 1500 frames ran out"
 
         excluded = set(excluded)
+        world = world_with("ROUTE101", current="ROUTE101")
+        memory = world.maps["0:1"]
+        for x in range(0, 21):  # (build step 5.2) ROUTE 101 seen round the player at (10, 10): every place can be walked to
+            for y in range(0, 21):
+                memory.tiles[(x, y)] = TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (10, 10))
         fake_nav = types.SimpleNamespace(rng=random.Random(1), is_excluded=lambda t: t.tile in excluded,
-                                         where=lambda seen: (None, (10, 10)))
-        nav = types.SimpleNamespace(run=run, world=world_with("ROUTE101", current="ROUTE101"))
+                                         where=lambda seen: (memory, (10, 10)), world=world)
+        nav = types.SimpleNamespace(run=run, world=world)
         runner = GoalRunner(types.SimpleNamespace(look=lambda: look()), nav, mgr, types.SimpleNamespace(purpose=""),
                             lambda line: None)
         targets = [Target(kind, tile, f"a {kind}") for kind, tile in places]
@@ -2127,10 +2157,11 @@ class SecondRoundTests(unittest.TestCase):
         """(the graded sweep on 701-720, seed 706: the gym's door known, the walk went straight from OLDALE's centre into the
         gym, past every stop a break owed would have made: chapter 2 ended at 28.7 %, under the floor) The way to the gym's
         town is a walk like any other: its stops hold (an item ball, a break owed); then in by the door."""
-        from ai_player.brain.goals import OWED_STOP, Goal, GoalRunner
+        from ai_player.brain.goals import BREAK_STOP, Goal, GoalRunner
         world = petalburg_world("OLDALE_TOWN")
-        mgr = self.owed_manager()
-        mgr.memory.looked = _Everything()  # no look-around draw is due: only the balance can stop the walk
+        mgr = self.bored_manager()
+        mgr.rng = _Draws(0.0)  # the arrival's boredom draw passes
+        mgr.memory.looked = _Everything()  # no look-around draw is due: only boredom can stop the walk
         mgr.memory.landmarks[("0:3", (15, 8))] = "gym"
         arrive = look(ch2_dad_marks(), party=[mon(9)], const="ROUTE102", map_number=2)
         walks, insides = [], []
@@ -2155,8 +2186,8 @@ class SecondRoundTests(unittest.TestCase):
         ok, outcome = drive(runner.pursue(Goal("go", "DAD", map="PETALBURG_CITY_GYM", key="go:PETALBURG_CITY_GYM"),
                                           mgr.story.milestones[index], index, lambda seen: index))
         self.assertEqual(walks, ["PETALBURG_CITY"])  # FAULT half: no walk of its own, straight in
-        self.assertEqual(insides, [])  # stopped on the way: a break owed
-        self.assertIn(OWED_STOP, outcome)
+        self.assertEqual(insides, [])  # stopped on the way: a break taken
+        self.assertIn(BREAK_STOP, outcome)
         self.assertTrue(ok, outcome)
 
     def test_looking_for_a_towns_centre_ends_when_its_door_is_seen(self):
@@ -2183,72 +2214,114 @@ class SecondRoundTests(unittest.TestCase):
         self.assertTrue(ok, outcome)
         self.assertIn("its door seen on PETALBURG_CITY", outcome)
 
-    # ---- the BALANCE
-    def owed_manager(self, personality: str = "Story", story: int = 20_000, errand: int = 2_000, curious: int | None = None,
-                     **kwargs) -> GoalManager:
+    # ---- BOREDOM (build step 5.2: the step-5.1 review's finding 2 replaced the 5.1 BALANCE, a quota on nearly the graders'
+    # own quantity whose shortfall skipped the dice)
+    def bored_manager(self, personality: str = "Story", since: int | None = None, **kwargs) -> GoalManager:
+        """A goal manager `since` frames past its last productive curiosity at the tests' look frame (1000); by default
+        fully bored (its personality's `bored_frames`)."""
         mgr = manager(personality, quiet=False, train_off=True, **kwargs)
-        mgr.memory.spent = {"story": story, "errand": errand, "curious": errand if curious is None else curious}
+        mgr.memory.curious_since = 1000 - (ERRANDS[personality].bored_frames if since is None else since)
         return mgr
 
-    def test_the_balance_owes_a_break_from_the_story(self):
-        from ai_player.brain.goals import BALANCE_MIN_FRAMES, Goal
-        self.assertIn(f"under the Story's {ERRANDS['Story'].balance:.0%}", self.owed_manager().owed())
-        self.assertIsNone(self.owed_manager(errand=18_000).owed())  # 47 %: kept
-        self.assertIsNone(self.owed_manager(story=BALANCE_MIN_FRAMES - 1, errand=0).owed())  # too soon to judge
-        self.assertIsNone(self.owed_manager(errands_off=True).owed())  # the beeline control never owes one
-        self.assertGreater(ERRANDS["Catcher"].balance, ERRANDS["Story"].balance)
-        self.assertGreaterEqual(min(e.balance for e in ERRANDS.values()), 0.30)  # every one above the graders' floor
-        mgr = manager("Story")
-        mgr.memory.decided_with_party = True
-        mgr.spent(Goal("heal", "x"), 1000)
-        mgr.spent(Goal("pick_up", "x"), 500, story_moved=True)  # the rival's POKé BALL: the story's
-        mgr.spent(Goal("go", "x"), 700)
-        mgr.spent(Goal("explore", "x"), 300)
-        self.assertEqual(mgr.memory.spent, {"story": 1200, "errand": 1300, "curious": 300})
-        mgr.memory.decided_with_party = False
-        mgr.spent(Goal("explore", "x"), 999)
-        self.assertEqual(mgr.memory.spent["errand"], 1300)  # before its first Pokemon nothing counts
+    def test_boredom_raises_the_odds_smoothly_and_capped(self):
+        """The odds of a curiosity draw: the personality's own at first, rising LINEARLY with the frames since its last
+        productive curiosity to `CURIOUS_ODDS_CAP` at `Errands.bored_frames`, never above it, never below the base."""
+        from ai_player.brain.goals import CURIOUS_ODDS_CAP
+        base = ERRANDS["Story"].look_around
+        bored = ERRANDS["Story"].bored_frames
+        self.assertEqual(self.bored_manager(since=0).curious_odds(base, 1000)[0], base)
+        half = self.bored_manager(since=bored // 2).curious_odds(base, 1000)[0]
+        self.assertAlmostEqual(half, base + (CURIOUS_ODDS_CAP - base) / 2, places=3)  # FAULT half: a step, not smooth
+        self.assertAlmostEqual(self.bored_manager().curious_odds(base, 1000)[0], CURIOUS_ODDS_CAP)
+        self.assertAlmostEqual(self.bored_manager(since=10 * bored).curious_odds(base, 1000)[0], CURIOUS_ODDS_CAP)
+        self.assertEqual(self.bored_manager().curious_odds(0.95, 1000)[0], 0.95)  # a base above the cap is kept
+        self.assertLess(CURIOUS_ODDS_CAP, 1.0)  # never certain: the dice are thrown
+        self.assertLess(ERRANDS["Catcher"].bored_frames, ERRANDS["Trainer"].bored_frames)
+        self.assertLess(ERRANDS["Trainer"].bored_frames, ERRANDS["Story"].bored_frames)
+        self.assertIn("raised to", self.bored_manager().curious_odds(base, 1000)[1])
+        self.assertFalse(manager("Story", errands_off=True).curious_ok())  # the beeline control: no curiosity
 
-    def test_the_balance_keeps_some_of_it_for_curiosity(self):
-        """(the round's development sweep step51wdev2: chapter 1's TRAINING kept the errands' share at 50-74 % while its
-        curiosity was 4 % in some runs, and the time to the POKéDEX fell within the beeline's noise) Errands enough, but
-        curiosity under the personality's `curious_min`: a break is owed all the same."""
-        needs_only = self.owed_manager(story=20_000, errand=20_000, curious=1_000)  # 50 % errands, 2.5 % curiosity
-        self.assertIn(f"went to curiosity, under the Story's {ERRANDS['Story'].curious_min:.0%}", needs_only.owed())
-        self.assertIsNone(self.owed_manager(story=20_000, errand=20_000, curious=5_000).owed())  # 12.5 %: kept
-        self.assertGreaterEqual(ERRANDS["Catcher"].curious_min, ERRANDS["Story"].curious_min)
+    def test_only_productive_curiosity_resets_the_boredom_clock(self):
+        """`after_goal`: a PRODUCTIVE curiosity goal resets the clock; one that brought nothing does not (5.1 counted every
+        curiosity frame, CH1M's 6,000 frames of looking round OLDALE for one tile among them); a story or need goal ends a
+        row of curiosity; a curiosity goal the story moved on in is the story's."""
+        from ai_player.brain.goals import Goal
+        mgr = self.bored_manager(since=5000)
+        mgr.after_goal(Goal("chat", "x"), {"productive": False, "frames": 300}, 2000, "ch1_rival_route103")
+        self.assertEqual((mgr.memory.curious_since, mgr.memory.curious_row), (1000 - 5000, 1))  # FAULT half: reset
+        self.assertEqual(mgr.memory.idle, {"goals": 1, "frames": 300})
+        mgr.after_goal(Goal("chat", "x"), {"productive": True, "frames": 300}, 2500, "ch1_rival_route103")
+        self.assertEqual((mgr.memory.curious_since, mgr.memory.curious_row), (2500, 2))
+        mgr.after_goal(Goal("go", "x"), {"productive": False}, 3000, "ch1_rival_route103")
+        self.assertEqual(mgr.memory.curious_row, 0)
+        mgr.after_goal(Goal("pick_up", "x"), {"productive": True}, 3500, "ch1_rival_house", story_moved=True)
+        self.assertEqual((mgr.memory.curious_row, mgr.memory.curious_since), (0, 2500))  # the rival's POKé BALL: the story's
 
-    def oldale(self, mgr: GoalManager) -> Goal:
-        mgr.rng = _Draws(0.99)  # every draw the dice would NOT pass
+    def oldale(self, mgr: GoalManager, draw: float = 0.99, frontier: bool = True, people=()) -> Goal:
+        mgr.rng = _Draws(draw)
         world = world_with("LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN", "LITTLEROOT_TOWN_MAYS_HOUSE_1F",
                            current="OLDALE_TOWN", heard={"Oh, MAY went out to ROUTE 103 just a little while ago."})
+        if frontier:  # a patch of OLDALE seen round the player at (10, 10): its border lies beside unseen tiles
+            oldale = world.maps["0:3"]
+            for x in range(6, 15):
+                for y in range(6, 15):
+                    oldale.tiles[(x, y)] = TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (10, 10))
+            oldale.people_now = frozenset(people)
         mgr.memory.asked_rounds["ch1_rival_route103"] = ASK_ROUNDS
         observation = look(ch1_through("ch1_rival_route103"), party=[mon(9)], const="OLDALE_TOWN")
         index, milestone = mgr.milestone(observation, visited_in(world))
         return mgr.next_goal(observation, world, milestone, index)
 
-    def test_an_owed_break_passes_the_draws(self):
-        goal = self.oldale(self.owed_manager())
+    def test_boredom_never_skips_the_dice(self):
+        """A draw at 0.99 is over the cap: however bored, the look round is NOT chosen (5.1's owed break passed it without
+        the dice); a draw at 0.85 passes for a bored person and not for one who has just been curious."""
+        self.assertNotEqual(self.oldale(self.bored_manager(), 0.99).kind, "explore")  # FAULT half: the quota's bypass
+        goal = self.oldale(self.bored_manager(), 0.85)
         self.assertEqual(goal.kind, "explore")
         self.assertIn("a new place, OLDALE_TOWN", goal.reason)
-        self.assertIn("a break from the story", goal.reason)
-        self.assertNotEqual(self.oldale(self.owed_manager(errand=20_000)).kind, "explore")  # FAULT half: the dice said no
+        self.assertIn("raised to 0.90", goal.reason)
+        self.assertNotEqual(self.oldale(self.bored_manager(since=0), 0.85).kind, "explore")  # its own 0.55
 
-    def test_with_no_draw_due_an_owed_break_looks_round_here_some_more(self):
+    def test_some_more_only_where_something_is_left_to_walk_to(self):
+        """(the review's finding 1: CH2M looked round PETALBURG twice, 8,400 frames, tiles 8025 -> 8026 -> 8026) "Some
+        more" by boredom's dice, at most AGAIN_MAX a map and milestone, and only where a frontier is left that it can WALK
+        to: not on a map seen all of, not with someone standing in every way, not on a map a look round EXHAUSTED."""
         from ai_player.brain.goals import AGAIN_MAX
-        mgr = self.owed_manager()
+        mgr = self.bored_manager()
         mgr.memory.looked, mgr.memory.detoured = _Everything(), _Everything()  # this map's draws were made
-        kinds = [self.oldale(mgr) for _ in range(AGAIN_MAX + 1)]
-        self.assertEqual([g.kind for g in kinds], ["explore"] * AGAIN_MAX + ["go"])  # FAULT halves: none, or no bound
+        kinds = [self.oldale(mgr, 0.0) for _ in range(AGAIN_MAX + 1)]
+        self.assertEqual([g.kind for g in kinds], ["explore"] * AGAIN_MAX + ["go"])  # FAULT: none, or no bound
         self.assertIn("some more", kinds[0].reason)
         self.assertNotIn("a new place", kinds[0].reason)  # (`live_step5` "a new place is new" reads new places only)
-        self.assertEqual(self.oldale(self.owed_manager(errand=20_000)).kind, "go")
+        self.assertEqual(kinds[0].via, "0:3")
+        for case, mgr, frontier, people in (
+                ("seen all of", self.bored_manager(), False, ()),
+                ("nobody lets it through", self.bored_manager(), True, ((9, 10), (11, 10), (10, 9), (10, 11))),
+                ("not bored", self.bored_manager(since=0), True, ())):
+            mgr.memory.looked, mgr.memory.detoured = _Everything(), _Everything()
+            self.assertEqual(self.oldale(mgr, 0.0, frontier, people).kind, "go", case)  # FAULT halves: loafing there
+        exhausted = self.bored_manager()
+        exhausted.memory.looked, exhausted.memory.detoured = _Everything(), _Everything()
+        exhausted.memory.exhausted["0:3|ch1_rival_route103"] = "a look round there brought nothing new"
+        self.assertEqual(self.oldale(exhausted, 0.0).kind, "go")
 
-    def test_a_walk_stops_where_the_owed_break_can_be_taken(self):
-        """A `go` that arrives on ANOTHER outdoor map while the balance is owed stops there once a map and milestone (the
-        next decision takes the break there); not when nothing is owed, nor on the map the walk began on."""
-        from ai_player.brain.goals import OWED_STOP, Goal, GoalRunner
-        for owed, began_there, want in ((True, False, True), (False, False, False), (True, True, False)):
+    def test_at_most_two_curiosity_goals_in_a_row(self):
+        """(the review's finding 2: CH1M ran six curiosity goals in a row) After CURIOUS_ROW_MAX in a row, the story or a
+        need comes first: here the look round a draw at 0.0 would choose waits, its draw not made."""
+        from ai_player.brain.goals import CURIOUS_ROW_MAX
+        mgr = self.bored_manager()
+        mgr.memory.curious_row = CURIOUS_ROW_MAX
+        goal = self.oldale(mgr, 0.0)
+        self.assertEqual(goal.kind, "go")  # FAULT half: a third curiosity goal
+        self.assertNotIn("0:3", mgr.memory.looked)  # the draw waits for a later decision there
+        mgr.memory.curious_row = CURIOUS_ROW_MAX - 1
+        self.assertEqual(self.oldale(mgr, 0.0).kind, "explore")
+
+    def test_a_walk_stops_where_a_bored_break_can_be_taken(self):
+        """A `go` that arrives on ANOTHER outdoor map makes one boredom draw there a map and milestone; when it passes the
+        walk stops (the next decision may take a break there); not when it fails, nor on the map the walk began on."""
+        from ai_player.brain.goals import BREAK_STOP, Goal, GoalRunner
+        for since, began_there, want in ((None, False, True), (0, False, False), (None, True, False)):
             world = world_with("LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN", current="OLDALE_TOWN" if began_there else
                                "ROUTE101")
             arrive = look(ch1_through("ch1_rival_route103"), party=[mon(9)], const="OLDALE_TOWN", map_number=3)
@@ -2260,16 +2333,72 @@ class SecondRoundTests(unittest.TestCase):
                 yield
                 return "done: travel" if stopped[-1] else "budget: ran out"
 
-            mgr = self.owed_manager(errand=2_000 if owed else 20_000)
-            mgr.memory.looked = _Everything()  # its look-around draw was made: only the balance can stop the walk
+            mgr = self.bored_manager(since=since)
+            mgr.rng = _Draws(0.5)  # passes 0.9 x boredom when bored, fails at boredom 0
+            mgr.memory.looked = _Everything()  # its look-around draw was made: only boredom can stop the walk
             nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
             runner = GoalRunner(types.SimpleNamespace(look=lambda arrive=arrive: arrive), nav, mgr,
                                 types.SimpleNamespace(purpose=""), lambda line: None)
             runner._travel = lambda target, why, budget, done, run=run: run(types.SimpleNamespace(done=done), why)  # noqa: SLF001
             ok, outcome = drive(runner.pursue(Goal("go", "to ROUTE 103", map="ROUTE103"), mgr.story.milestones[8], 8,
                                               lambda seen: 8))
-            self.assertEqual(stopped, [want], (owed, began_there))
-            self.assertEqual(OWED_STOP in outcome, want, outcome)
+            self.assertEqual(stopped, [want], (since, began_there))
+            self.assertEqual(BREAK_STOP in outcome, want, outcome)
+
+    def test_a_walk_may_stop_for_a_break_after_a_battle(self):
+        """(step52dev3: the Trainer's chapter 2, seed 1017, walked 25,408 frames on ROUTE 102 and met 17 battles with no
+        decision between) a battle won on a `go` walk is a moment for one boredom draw, once the player is free on an
+        outdoor map: bored, the walk stops for the next decision; not bored, it walks on; one draw per battle."""
+        from ai_player.brain.goals import BREAK_STOP, CURIOUS_ROW_MAX, Goal, GoalRunner
+        for since, battles, want, row in ((None, 1, [False, True], 0), (0, 1, [False, False], 0),
+                                          (None, 0, [False, False], 0), (None, 1, [False, False], CURIOUS_ROW_MAX)):
+            world = world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101")
+            free = look(ch1_through("ch1_rival_route103"), party=[mon(9)], const="ROUTE101", map_number=2)
+            stopped = []
+            draws = _Draws(0.5)  # passes 0.9 x boredom when bored, fails at boredom 0
+
+            def run(intent, why, free=free, stopped=stopped, battles=battles):
+                stopped.append(intent.done(free))  # no battle yet: walks on
+                nav.battle_log.extend([(900, "wild", "won")] * battles)
+                stopped.append(intent.done(free))
+                yield
+                return "done: travel" if stopped[-1] else "budget: ran out"
+
+            mgr = self.bored_manager(since=since)
+            mgr.rng = draws
+            mgr.memory.curious_row = row  # at the row cap: no break (FAULT half: the cap not asked)
+            mgr.memory.looked = _Everything()
+            mgr.memory.break_stops = _Everything()  # its arrival draws were made: only a battle can stop the walk
+            nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+            runner = GoalRunner(types.SimpleNamespace(look=lambda free=free: free), nav, mgr,
+                                types.SimpleNamespace(purpose=""), lambda line: None)
+            runner._travel = lambda target, why, budget, done, run=run: run(types.SimpleNamespace(done=done), why)  # noqa: SLF001
+            ok, outcome = drive(runner.pursue(Goal("go", "to ROUTE 103", map="ROUTE103"), mgr.story.milestones[8], 8,
+                                              lambda seen: 8))
+            self.assertEqual(stopped, want, (since, battles, row))  # FAULT half: a battle never stops the walk
+            self.assertEqual(f"{BREAK_STOP}: after a battle" in outcome, want[-1], outcome)
+        # one draw per battle: a draw that failed is not thrown again at the next look (FAULT half: thrown every look)
+        world = world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101")
+        free = look(ch1_through("ch1_rival_route103"), party=[mon(9)], const="ROUTE101", map_number=2)
+        stream = [0.95, 0.1, 0.1]
+        stopped = []
+
+        def again(intent, why):
+            nav.battle_log.append((900, "wild", "won"))
+            stopped.extend([intent.done(free), intent.done(free)])
+            yield
+            return "budget: ran out"
+
+        mgr = self.bored_manager()
+        mgr.rng = types.SimpleNamespace(random=lambda: stream.pop(0))
+        mgr.memory.looked = _Everything()
+        mgr.memory.break_stops = _Everything()
+        nav = types.SimpleNamespace(world=world, run=again, battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: free), nav, mgr, types.SimpleNamespace(purpose=""),
+                            lambda line: None)
+        runner._travel = lambda target, why, budget, done: again(types.SimpleNamespace(done=done), why)  # noqa: SLF001
+        drive(runner.pursue(Goal("go", "to ROUTE 103", map="ROUTE103"), mgr.story.milestones[8], 8, lambda seen: 8))
+        self.assertEqual(stopped, [False, False])
 
     # ---- the verifier's V3: the walk walks on TWICE
     def test_a_walk_walks_on_twice_when_its_battles_ate_it_twice(self):
@@ -2540,6 +2669,27 @@ class SecondRoundTests(unittest.TestCase):
         self.assertTrue(verdict(good, "CH2: NO SPEEDRUN"))
         self.assertFalse(verdict({**good, "CH2": [row(1, 0.4, wally=False)] * 2}, "CH2: WALLY"))
 
+    def test_the_shares_of_frames_are_reported_not_graded(self):
+        """(build step 5.2, P2: "grade YIELD and SPACING, not share of frames") the sweep's verdicts REPORT every check of a
+        share of frames (`rate_step5.P2_REPORTED`), saying whether its old bound held; any other check stays graded."""
+        from ai_player.gates import rate_step5
+        made = [(False, "CH2: THE INTENT MIX, a FLOOR in EVERY chapter-2 run ..."), (False, "CH2: WALLY's tutorial ..."),
+                (True, "THE INTENT MIX (CH1): the share ..."), (False, "THE BEELINE FAILS THE CURIOSITY BOUND: ...")]
+        with mock.patch.object(rate_step5, "stop_verdicts", lambda rows: []), \
+                mock.patch.object(rate_step5, "step51_verdicts", lambda rows: made[2:]), \
+                mock.patch.object(rate_step5, "chapter2_verdicts", lambda rows: made[:2]), \
+                mock.patch.object(rate_step5, "step52_verdicts", lambda rows: []):
+            results = rate_step5.verdicts({}, {})
+        def by(part: str) -> tuple[bool, str]:
+            return next((ok, text) for ok, text in results if part in text)
+
+        self.assertEqual(by("CH2: THE INTENT MIX")[0], True)  # FAULT half: graded, and the run FAILS
+        self.assertIn("the old bound did NOT hold", by("CH2: THE INTENT MIX")[1])
+        self.assertIn("the old bound HELD", by("THE INTENT MIX (CH1)")[1])
+        self.assertEqual(by("CH2: WALLY")[0], False)  # graded as before
+        self.assertTrue(by("THE BEELINE FAILS")[0])
+        self.assertEqual(len(rate_step5.P2_REPORTED), 7)
+
 
 class WayTests(unittest.TestCase):
     """Going somewhere: a SCENE's map change is no way to walk; a map never seen is looked for out in the open; a house
@@ -2725,6 +2875,1885 @@ class ChoiceTests(unittest.TestCase):
         self.assertTrue(ask("don't you think it might be a good idea to go see MAY?")[0])
         self.assertTrue(ask("Do you choose this POKéMON?", "CHOOSE_STARTER")[0])
         self.assertTrue(ask("Would you like to rest your POKéMON?")[0])
+
+
+class ProductiveTests(unittest.TestCase):
+    """(build step 5.2, PRODUCTIVE CURIOSITY: the step-5.1 adversarial review, 2026-10-15, "it LOAFS, and every metric pays
+    for it") Curiosity counted by what it BROUGHT; what brought nothing marked so it is not tried again; places someone
+    keeps standing in the way of blocked; detours that say whether they arrived and talk to the person they chose; a look
+    round only among new things; a known town no new place; and the instrument that sees pressing with nothing new."""
+
+    def test_a_curiosity_goal_counts_by_what_it_brought(self):
+        from ai_player.brain.goals import YIELD_TILES_MIN, Goal, goal_yield
+        base = {"tiles": 100, "maps": 3, "items": 0, "caught": 1, "species": 2, "pages": 10}
+
+        def made(kind: str, outcome: str = "done", **more) -> dict:
+            return goal_yield(Goal(kind, "x"), base, {**base, **{k: base[k] + v for k, v in more.items()}}, outcome)
+
+        self.assertFalse(made("explore", tiles=1)["productive"])  # CH1M's look round of OLDALE: one new tile
+        self.assertFalse(made("explore", tiles=YIELD_TILES_MIN - 1)["productive"])
+        self.assertTrue(made("explore", tiles=YIELD_TILES_MIN)["productive"])
+        for key in ("maps", "items", "caught", "species", "pages"):
+            self.assertTrue(made("catch", **{key: 1})["productive"], key)
+        self.assertTrue(made("chat", outcome="talked", pages=1)["productive"])
+        # (the verifier's round: 60 nurses, 46 clerks and 21 footprints men chatted with straight after they had spoken,
+        # every one hearing nothing new) a talk that told it NOTHING NEW is no yield (FAULT half: credited by its label)
+        heard_nothing = made("chat", outcome="talked")
+        self.assertFalse(heard_nothing["productive"])
+        self.assertEqual((heard_nothing["talks"], heard_nothing["talked"]), (True, False))
+        self.assertFalse(made("chat", outcome="unreachable: no tile from which the npc can be talked to")["productive"])
+        # a DETOUR only when it reached its place: the tiles seen on the way are no credit (FAULT half: 40 tiles count)
+        self.assertFalse(made("detour", outcome="not reached: the frontier at (-7, 15) (budget: ran out)", tiles=40)
+                         ["productive"])
+        self.assertTrue(made("detour", outcome="reached the frontier at (3, 3) (done: a detour)", tiles=9)["productive"])
+        self.assertTrue(made("detour", outcome="reached the people at (3, 3) (done: a detour); talked", pages=2)
+                        ["productive"])
+        self.assertFalse(made("detour", outcome="reached the people at (3, 3) (done: a detour); talked")["productive"])
+        self.assertFalse(made("detour", outcome="reached the grass at (3, 3) (done: a detour)")["productive"])
+
+    def test_a_look_round_is_worth_only_what_it_showed_for_its_time(self):
+        """(the round's development sweep step52dev2: with the 8 tiles alone, the LOAF control's looks round among tiles it
+        had stood on, 0-11 new tiles per 1,000 frames, were productive in 80 % of their frames) a look round or a detour
+        must show `YIELD_TILE_RATE` new tiles per 1,000 of its frames; another kind keeps its own measure (a catching roam,
+        its catch)."""
+        from ai_player.brain.goals import YIELD_TILE_RATE, Goal, goal_yield
+        base = {"tiles": 100, "maps": 3, "items": 0, "caught": 1, "species": 2, "pages": 10}
+
+        def made(kind: str, tiles: int, frames: int, outcome: str = "budget: ran out") -> bool:
+            return goal_yield(Goal(kind, "x"), base, {**base, "tiles": 100 + tiles}, outcome, frames)["productive"]
+
+        self.assertEqual(YIELD_TILE_RATE, 20)
+        self.assertFalse(made("explore", 9, 3000))  # FAULT half: 9 tiles in 3,000 frames counted
+        self.assertTrue(made("explore", 9, 300))
+        self.assertTrue(made("explore", 60, 3000))
+        self.assertFalse(made("detour", 20, 1500, "reached the frontier at (3, 3)"))
+        self.assertTrue(made("detour", 30, 1500, "reached the frontier at (3, 3)"))
+        self.assertTrue(made("catch", 9, 13000))  # a roam's tiles as before: its measure is its catch
+        # its OWN time: the battles met in it are not (a look round of ROUTE 101 that met 12 battles walked 1,561 of 5,703)
+        fought = goal_yield(Goal("explore", "x"), {**base, "battle_frames": 1000},
+                            {**base, "tiles": 130, "battle_frames": 3000}, "budget: ran out", 3000)
+        self.assertEqual(fought["walking"], 1000)
+        self.assertTrue(fought["productive"])  # FAULT half: 30 tiles in 3,000 frames, the 2,000 of battles counted
+
+    def test_the_battle_clock_counts_the_frames_a_battle_was_on_screen(self):
+        """`hands/waiting.py` BattleClock: from one look in a battle to the next (the game state's battle phases too, as
+        `skills/flee.py` in_battle reads them), never across a look out of one."""
+        from dataclasses import replace
+        from ai_player.hands.waiting import BattleClock
+        clock = BattleClock()
+
+        def seen(frame: int, state: str = "OVERWORLD", in_battle: bool = False) -> Observation:
+            plain = look(frame=frame)
+            return replace(plain, screen=replace(plain.screen, game_state=state, in_battle=in_battle))
+
+        for observation in (seen(100), seen(110, "BATTLE", True), seen(150, "BATTLE", True), seen(200, "BATTLE", True),
+                            seen(210), seen(300, "BATTLE_STARTING"), seen(320, "BATTLE_STARTING"), seen(330)):
+            clock(observation)
+        # FAULT halves: 90 with the battle's opening (BATTLE_STARTING, not yet `in_battle`) missed; 210 counted across
+        # the look out of the battle at f210
+        self.assertEqual(clock.battle_frames, 90 + 20)
+
+    def test_the_play_loop_judges_a_curiosity_goal_by_its_yield(self):
+        """The REAL play loop: a look round whose walk showed 20 new tiles is productive; one that showed none is NOT
+        (reported "not done", told so, its map exhausted, the end record's idle count); a chat that talked is productive."""
+        from ai_player import mode as mode_module
+        from ai_player.brain.goals import Goal
+        scripted = ["explore", "explore", "chat", "chat"]
+        explores: list[int] = []
+        chats: list[int] = []
+
+        class Scripted(mode_module.GoalManager):
+            def next_goal(self, look_, world, milestone, index):
+                if scripted:
+                    kind = scripted.pop(0)
+                    self.memory.decisions += 1
+                    return Goal(kind, f"scripted {kind}", milestone.id, key=f"{kind}:{world.current}", via=world.current)
+                return super().next_goal(look_, world, milestone, index)
+
+        def effect(goal, world, runner):
+            if goal.kind == "explore":
+                explores.append(1)
+                if len(explores) == 1:
+                    world.tiles_learned += 60  # the first look round showed 60 new tiles, the second none
+                return True, "budget: 3000 frames ran out"  # both ran their time: 5.1 called both "done"
+            if goal.kind == "chat":
+                chats.append(1)
+                if len(chats) == 1:
+                    world.heard.add("Hello there!")  # the first chat told it something; the second heard nothing new
+                return True, "talked"
+            return None
+
+        loop = PlayLoopTests()
+        original = loop.run_loop
+
+        def run(**kwargs):
+            with mock.patch.object(mode_module, "GoalManager", Scripted):
+                return original(**kwargs)
+
+        reason, hands, pursued, _, report = run(screen=loop.free_screen(), budget=20_000, effect=effect)
+        self.assertEqual(pursued[:4], ["explore", "explore", "chat", "chat"])
+        ends = [extra for decision, _, _, extra in hands.notes if decision == "goal_end"][:4]
+        # FAULT halves: all by their kind; (the verifier's round) the talk that heard nothing new credited by its label
+        self.assertEqual([e["yield"]["productive"] for e in ends], [True, False, True, False])
+        self.assertEqual([e["ok"] for e in ends], [True, False, True, False])  # the empty look round is NOT done (5.1: done)
+        self.assertEqual([g["ok"] for g in report["goals"][:4]], [True, False, True, False])
+        brought = [line for line in hands.told if line.startswith("[AI-GOALS] its ")]
+        self.assertIn("its explore brought tiles 60", brought[0])
+        self.assertIn("NOT productive", brought[1])
+        self.assertIn("is exhausted for this milestone", brought[1])  # FAULT half: no mark, tried again
+        self.assertIn("its chat brought pages 1, a talk", brought[2])
+        self.assertIn("its chat brought a talk that told it nothing new: NOT productive", brought[3])
+        end = next(extra for decision, _, _, extra in hands.notes if decision == "end")
+        self.assertGreaterEqual(end["idle"]["goals"], 1)
+        self.assertTrue(end["exhausted"])
+
+    def test_what_brought_nothing_is_marked_and_not_tried_again(self):
+        """`after_goal`: a look round that brought nothing EXHAUSTS its map for the milestone (no "some more" there); a
+        detour that did not get there BLOCKS its place for curiosity."""
+        from ai_player.brain.goals import Goal
+        mgr = manager("Catcher")
+        told = mgr.after_goal(Goal("explore", "x", via="0:3"), {"productive": False, "frames": 3000}, 5000, "ch1_lab")
+        self.assertEqual(mgr.memory.exhausted, {"0:3|ch1_lab": "a look round there brought nothing new (f5000)"})
+        self.assertIn("exhausted", told)
+        mgr.after_goal(Goal("detour", "x", via="0:3"), {"productive": False, "reached": False,
+                                                        "place": ["0:3", -7, 15, "frontier"]}, 6000, "ch1_lab")
+        self.assertIn((-7, 15), mgr.blocked_on("ch1_lab", "0:3"))
+        self.assertEqual(mgr.blocked_on("ch1_pokedex", "0:3"), {})  # another milestone: tried again (the man moves on)
+        fresh = manager("Catcher")
+        fresh.after_goal(Goal("explore", "x", via="0:3"), {"productive": True}, 5000, "ch1_lab")
+        self.assertEqual(fresh.memory.exhausted, {})  # FAULT half: a productive look round marks nothing
+
+    def detour(self, places, people=(), current_changes=False, reach_it=True, objects=()):
+        """`GoalRunner._detour` with a stand-in navigator: ROUTE 101 seen round the player at (10, 10), `places` the
+        explorer's candidates (kind, tile, who), the walk reaching the chosen place (or not, or leaving the map)."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import Goal, GoalRunner
+        from ai_player.brain.navigator import Target
+        mgr = manager("Trainer")
+        world = world_with("ROUTE101", "OLDALE_TOWN", current="ROUTE101")
+        memory = world.maps["0:1"]
+        for x in range(0, 21):
+            for y in range(0, 21):
+                memory.tiles[(x, y)] = TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (10, 10))
+        memory.people_now = frozenset(people)
+        chosen: list = []
+
+        def run(intent, why):
+            target = intent.choose(nav, look())
+            chosen.append(target)
+            if target is not None and current_changes:
+                world._last.key = "0:2"  # noqa: SLF001 - the walk crossed onto OLDALE
+            elif target is not None and reach_it:
+                intent.reached(target)
+            yield
+            return "done: a detour" if intent.done(look()) else "budget: 1500 frames ran out"
+
+        nav = types.SimpleNamespace(run=run, world=world, rng=random.Random(1), is_excluded=lambda t: False,
+                                    where=lambda seen: (memory, (10, 10)))
+        targets = [Target(kind, tile, f"a {kind}", who=who) for kind, tile, who in places]
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(objects=objects)), nav, mgr,
+                            types.SimpleNamespace(purpose=""), lambda line: None)
+        talks = []
+
+        def talk_to(hands, nav_, person_, why):
+            talks.append(person_.local_id)
+            yield
+            return "talked"
+
+        with mock.patch.object(goals_module, "candidates", lambda *a, **k: list(targets)), \
+                mock.patch.object(goals_module, "pick", lambda found, rng: found[0]), \
+                mock.patch.object(goals_module, "talk_to", talk_to):
+            ok, outcome = drive(runner.pursue(Goal("detour", "on the way", steps=1500, via="0:1"), mgr.story.milestones[8],
+                                              8, lambda seen: 8))
+        return ok, outcome, chosen, runner, mgr, talks
+
+    def test_a_detour_says_whether_it_arrived(self):
+        """(the review's finding 3: "looked at the frontier at (-7, 15)" for a place never reached) the outcome is "reached
+        ..." or "not reached ...", and only a reached detour is done; the place is kept for the yield."""
+        ok, outcome, chosen, runner, _, _ = self.detour([("frontier", (16, 10), None)])
+        self.assertTrue(ok, outcome)
+        self.assertTrue(outcome.startswith("reached the frontier at (16, 10)"), outcome)
+        self.assertEqual(runner.detour_place, ["0:1", 16, 10, "frontier"])
+        ok, outcome, _, _, _, _ = self.detour([("frontier", (16, 10), None)], reach_it=False)
+        self.assertFalse(ok)  # FAULT half (5.1): "budget ... looked at the frontier" counted as done
+        self.assertTrue(outcome.startswith("not reached: the frontier at (16, 10)"), outcome)
+        ok, outcome, _, _, _, _ = self.detour([("frontier", (16, 10), None)], current_changes=True)
+        self.assertFalse(ok)
+        self.assertIn("the walk left the map", outcome)
+
+    def test_a_detour_to_a_person_talks_to_them(self):
+        """(the review's finding 3: "nothing happens on arrival, not even a talk with the people it chose")"""
+        stranger = person(16, 9, gfx=1, local_id=7)
+        ok, outcome, _, _, mgr, talks = self.detour([("people", (16, 10), 7)], objects=[stranger])
+        self.assertTrue(ok, outcome)
+        self.assertEqual(talks, [7])  # FAULT half: no talk on arrival
+        self.assertIn("talked", outcome)
+        self.assertIn("0:1|7", mgr.memory.talked)
+        _, outcome, _, _, _, talks = self.detour([("people", (16, 10), 7)], objects=[])
+        self.assertEqual(talks, [])
+        self.assertIn("not on screen any more", outcome)
+
+    def test_a_detour_chooses_only_a_place_it_can_walk_to(self):
+        """(the review's finding 3: CH1C and CH1M both chose (-7, 15), past OLDALE's west exit someone stood in; CH2M a tile
+        its own log called unreachable) never a place behind someone standing in every way to it, past an edge it has seen
+        crossed, or blocked for curiosity; a place it can walk to over known tiles is chosen."""
+        places = [("frontier", (30, 10), None), ("frontier", (16, 10), None)]
+        _, _, chosen, _, _, _ = self.detour(places)
+        self.assertEqual(chosen[0].tile, (16, 10))  # (30, 10) is past the tiles it knows: no known way there
+        boxed = ((9, 10), (11, 10), (10, 9), (10, 11))
+        ok, outcome, chosen, _, _, _ = self.detour([("frontier", (16, 10), None)], people=boxed)
+        self.assertEqual(chosen, [None])  # someone stands in every way out: FAULT half, chosen and pushed against
+        self.assertTrue(outcome.startswith("not reached: nothing off the way here that it can walk to"), outcome)
+        self.assertFalse(ok)
+
+    def test_a_detour_never_chooses_a_blocked_place_or_one_past_a_known_edge(self):
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import Goal, GoalRunner
+        from ai_player.brain.navigator import Target
+        for case in ("blocked", "edge"):
+            mgr = manager("Trainer")
+            world = world_with("ROUTE101", current="ROUTE101")
+            memory = world.maps["0:1"]
+            for x in range(0, 21):
+                for y in range(0, 21):
+                    memory.tiles[(x, y)] = TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (10, 10))
+            if case == "blocked":
+                mgr.blocked_on(mgr.story.milestones[8].id, "0:1")[(16, 10)] = "someone stood in the way"
+            else:
+                memory.edges["right"] = 15  # crossed at x 15: x >= 15 is the next map
+            seen = []
+
+            def run(intent, why, seen=seen):
+                seen.append(intent.choose(nav, look()))
+                yield
+                return "budget: ran out"
+
+            nav = types.SimpleNamespace(run=run, world=world, rng=random.Random(1), is_excluded=lambda t: False,
+                                        where=lambda look_, memory=memory: (memory, (10, 10)))
+            targets = [Target("frontier", (16, 10), "east"), Target("grass", (10, 18), "south")]
+            runner = GoalRunner(types.SimpleNamespace(look=lambda: look()), nav, mgr, types.SimpleNamespace(purpose=""),
+                                lambda line: None)
+            with mock.patch.object(goals_module, "candidates", lambda *a, **k: list(targets)), \
+                    mock.patch.object(goals_module, "pick", lambda found, rng: found[0]):
+                drive(runner._detour(Goal("detour", "x", steps=1500), mgr.story.milestones[8]))  # noqa: SLF001
+            self.assertEqual(seen[0].tile, (10, 18), case)  # FAULT half: the east frontier first
+
+    def detour_seen(self, case, blocked=(17, 9)):
+        """One detour's choices on ROUTE 101 (all seen, the player at (10, 10)), with `case` set up: the places it chose,
+        whether its intent was done after a scene on the way ("scene"), and its outcome."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import Goal, GoalRunner
+        from ai_player.brain.navigator import Target
+        mgr = manager("Trainer")
+        world = world_with("ROUTE101", current="ROUTE101")
+        memory = world.maps["0:1"]
+        for x in range(0, 21):
+            for y in range(0, 21):
+                memory.tiles[(x, y)] = TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (10, 10))
+        excluded: set = set()
+        nav = types.SimpleNamespace(world=world, rng=random.Random(1), is_excluded=lambda t: t.tile in excluded,
+                                    where=lambda look_: (memory, (10, 10)), scene_walls={}, scene_hits={})
+        if case == "beside":
+            mgr.blocked_on(mgr.story.milestones[8].id, "0:1")[blocked] = "a scene stopped the way there 2 times"
+        elif case == "walled":
+            nav.scene_walls = {"0:1": {(9, 10), (11, 10), (10, 9), (10, 11)}}  # a scene sent it back from every way out
+        seen, dones = [], []
+
+        def run(intent, why):
+            seen.append(intent.choose(nav, look()))
+            dones.append(intent.done(look()))
+            if case == "scene" and seen[-1] is not None:
+                nav.scene_hits[f"0:1|{seen[-1].key}"] = [500]  # a scene stopped the way there, once
+                dones.append(intent.done(look()))
+            if case == "unreachable" and seen[-1] is not None:
+                excluded.add(seen[-1].tile)  # the navigator found no way there
+                seen.append(intent.choose(nav, look()))
+            yield
+            return "done: a detour" if dones[-1] else "budget: ran out"
+
+        nav.run = run
+        targets = [Target("frontier", (16, 10), "east"), Target("grass", (10, 18), "south")]
+        if case == "unreachable":  # the tile beside the place it could not reach: the same corner
+            targets.insert(1, Target("frontier", (16, 11), "east, a step south"))
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look()), nav, mgr, types.SimpleNamespace(purpose=""),
+                            lambda line: None)
+        with mock.patch.object(goals_module, "candidates", lambda *a, **k: list(targets)), \
+                mock.patch.object(goals_module, "pick", lambda found, rng: found[0]):
+            outcome = drive(runner._detour(Goal("detour", "x", steps=1500), mgr.story.milestones[8]))  # noqa: SLF001
+        return [None if t is None else t.tile for t in seen], dones, outcome
+
+    def test_a_detour_never_chooses_a_place_beside_a_blocked_one(self):
+        """(the round's development sweeps: a detour chose (2, -3) beside the (3, -4) a look round had just been turned back
+        from by LITTLEROOT's twin, step52dev2, and (5, -4) two tiles from (3, -3), step52dev3, and met her twice more) the
+        same corner of the map, `BESIDE` tiles round, is not chosen."""
+        from ai_player.brain.goals import BESIDE
+        self.assertEqual(BESIDE, 2)
+        self.assertEqual(self.detour_seen("none")[0][0], (16, 10))
+        self.assertEqual(self.detour_seen("beside")[0][0], (10, 18))  # FAULT half: (16, 10), beside the blocked (17, 9)
+        self.assertEqual(self.detour_seen("beside", (18, 8))[0][0], (10, 18))  # 2 tiles: FAULT half, a radius of 1
+        self.assertEqual(self.detour_seen("beside", (19, 10))[0][0], (16, 10))  # 3 tiles: another corner
+
+    def test_a_detour_ends_at_the_first_scene_on_the_way(self):
+        """(step52dev2 and step52dev3: every detour stopped by a scene met it TWICE, about 2,200 frames, because a scene
+        does not make the navigator choose again) the first scene that stops the way to its place ENDS the detour, which
+        says so; a detour with no scene on the way is not done."""
+        tiles, dones, outcome = self.detour_seen("scene")
+        self.assertEqual(tiles, [(16, 10)])
+        self.assertEqual(dones, [False, True])  # FAULT half: walked on to meet it again
+        self.assertTrue(outcome.startswith("not reached: the frontier at (16, 10) (a scene stopped the way there)"), outcome)
+
+    def test_a_detour_swaps_a_place_it_cannot_reach_for_another_corner(self):
+        """A place the navigator cannot reach is swapped for another, never the one beside it (the same corner)."""
+        self.assertEqual(self.detour_seen("unreachable")[0], [(16, 10), (10, 18)])  # FAULT half: (16, 11)
+
+    def test_a_detour_reaches_round_the_tiles_a_scene_sent_it_back_from(self):
+        """The walk plans round the scene walls, so the reach does: walled in, nothing is chosen (FAULT half: a place)."""
+        self.assertEqual(self.detour_seen("walled")[0], [None])
+
+    def test_a_catching_roam_gives_the_hunt_up_after_fruitless_battles(self):
+        """(step52dev4: catching roams that met only POKéMON it had seen ran 8,136-16,867 frames, 4-7 battles, nothing new)
+        `GoalRunner.roam_hooks(hunt=True)`: HUNT_FRUITLESS battles in a row with the POKéDEX's seen and owned counts
+        unchanged stop the roam; a species first seen starts the count again; a TRAINING roam never stops for it."""
+        from ai_player.brain.goals import HUNT_FRUITLESS, HUNT_STOP, GoalRunner
+        world = world_with("ROUTE101", current="ROUTE101")
+
+        def seen(dex_seen: int) -> Observation:
+            plain = look(party=[mon(9)])
+            return replace(plain, progress=replace(plain.progress, dex_seen=dex_seen))
+
+        for hunt in (True, False):
+            nav = types.SimpleNamespace(world=world, battle_log=[], battle_limit=None, battle_rest=None, roam_stop=None)
+            runner = GoalRunner(types.SimpleNamespace(look=lambda: look()), nav, manager("Catcher"),
+                                types.SimpleNamespace(purpose=""), lambda line: None)
+            runner.roam_hooks(hunt=hunt)
+            stops = [nav.roam_stop(seen(3))]
+            for _ in range(HUNT_FRUITLESS - 1):
+                nav.battle_log.append((1, "wild", "won"))
+                stops.append(nav.roam_stop(seen(3)))
+            nav.battle_log.append((1, "wild", "won"))
+            stops.append(nav.roam_stop(seen(4)))  # a species first seen in that battle: the count starts again
+            for _ in range(HUNT_FRUITLESS):
+                nav.battle_log.append((1, "wild", "won"))
+                stops.append(nav.roam_stop(seen(4)))
+            if hunt:
+                self.assertEqual(stops[:-1], [None] * (len(stops) - 1))  # FAULT half: stopped at the third battle
+                self.assertTrue(str(stops[-1]).startswith(HUNT_STOP), stops[-1])  # FAULT half: the hunt roams on
+            else:
+                self.assertEqual(stops, [None] * len(stops))
+
+    def test_a_catch_goal_asks_the_hunt_rule_and_training_does_not(self):
+        """`GoalRunner._pursue` hands a CATCH goal's roam the hunt rule (a TRAIN goal's roam never)."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import HUNT_FRUITLESS, HUNT_STOP, Goal, GoalRunner
+        asked = []
+
+        def roam(hands, nav, steps, why):
+            nav.roam_stop(look(party=[mon(9)]))  # the roam's first free look
+            nav.battle_log.extend([(1, "wild", "won")] * HUNT_FRUITLESS)
+            asked.append(nav.roam_stop(look(party=[mon(9)])))
+            yield
+            return "roamed: roam: 10 training steps"
+
+        for kind in ("catch", "train"):
+            mgr = manager("Catcher")
+            world = world_with("ROUTE101", current="ROUTE101", grass=True)
+            nav = types.SimpleNamespace(world=world, battle_log=[], battle_limit=None, battle_rest=None, roam_stop=None)
+            runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(9)]), note=lambda *a: None), nav, mgr,
+                                types.SimpleNamespace(purpose=""), lambda line: None)
+            runner._grass_map = lambda milestone: None  # noqa: SLF001 - it stands in the grass already
+            with mock.patch.object(goals_module, "roam_train", roam):
+                drive(runner._pursue(Goal(kind, "x", steps=10), mgr.story.milestones[8], 8, lambda s: 8))  # noqa: SLF001
+        self.assertTrue(str(asked[0]).startswith(HUNT_STOP), asked)  # FAULT half: the catch never asked
+        self.assertIsNone(asked[1])
+
+    GAP = {"A": ["##.##", "#...#", "#...#", "#...#", "#####"], "B": ['#"""#', '#"""#']}
+    GAP_LINKS = {("A", "up"): ("B", (0, 2)), ("B", "down"): ("A", (0, -2))}
+
+    def test_a_walk_to_a_tile_ends_when_it_leaves_the_map(self):
+        """(found by the pushing property, step52dev6, seed 1049: a walk to grass seen past OLDALE's bottom edge crossed
+        onto ROUTE 101, where the same coordinates lie past ITS edge, then onto LITTLEROOT and back, 3,313 frames)
+        `Navigator.go_to`: a tile is a tile of the map it was chosen on; the walk ends when it leaves that map, and says
+        so."""
+        from ai_player.gates.test_world import GridGame, drive as drive_world, rig
+        game = GridGame(self.GAP, ("A", (2, 3)), links=self.GAP_LINKS)
+        hands, nav, world, _, _ = rig(game)
+        drive_world(nav.go_to((2, 1), "to the gap", 600))
+        self.assertIn((2, -1), world.here().tiles)  # seen past the top edge
+        outcome = drive_world(nav.go_to((2, -1), "past the edge", 600))
+        self.assertEqual(game.map, "B")
+        # FAULT halves: on B, (2, -1) walked on for (the walk ends stuck, not done); nothing said of the map it left
+        self.assertTrue(outcome.startswith("left the map: A for B (done"), outcome)
+
+    def test_a_roam_walks_on_to_the_grass_of_the_map_it_crossed_onto(self):
+        """`skills/roam_train.py`: the nearest grass was seen past the map's edge; the walk to it ends on the next map
+        (`go_to` "left the map"), and the roam walks once more, to that map's own grass, and roams there."""
+        from ai_player.gates.test_world import GridGame, drive as drive_world, rig
+        from ai_player.skills.roam_train import roam_train
+        game = GridGame(self.GAP, ("A", (2, 3)), links=self.GAP_LINKS)
+        hands, nav, world, _, _ = rig(game, personality="Catcher")
+        drive_world(nav.go_to((2, 1), "to the gap", 600))
+        outcome = drive_world(roam_train(hands, nav, 10), budget=200_000)
+        self.assertEqual(game.map, "B")
+        self.assertTrue(outcome.startswith("roamed"), outcome)  # FAULT half: "could not reach the grass"
+
+    def test_a_tile_of_this_map_is_walked_to_over_tiles_of_this_map(self):
+        """(found by the pushing property, step52dev4, chapter-2 seed 1026: ROUTE 103's frontier at (25, 15) was planned
+        through OLDALE's tiles seen below the edge, 3,372 frames of crossing back and forth) `Navigator._next_step`: with
+        the bottom edge crossed (y >= 6 is the next map), the way from (2, 5) to (8, 5) goes round the wall at x 5 INSIDE the
+        map, not through the next map's row below; a target past the edge (a road) is still walked to across it."""
+        from ai_player.brain.navigator import Navigator, Target
+        from ai_player.hands.pad import Hands
+        from ai_player.world.memory import WorldMemory
+        world = WorldMemory()
+        memory = MapMemory("0:1", "ROUTE103", "ROUTE103")
+        for x in range(0, 10):
+            for y in range(0, 9):
+                wall = x == 5 and 1 <= y <= 5  # a wall down to the edge: inside, the way round is through y 0
+                memory.tiles[(x, y)] = TileFact(wall, False, False, False, None, False, False, 3, "NORMAL", 0, (2, 5))
+        memory.edges["down"] = 6
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        first = nav._next_step(memory, (2, 5), Target("frontier", (8, 5), "east"), frozenset())  # noqa: SLF001
+        self.assertNotEqual(first, "down")  # FAULT half: the short way through the next map's row
+        self.assertEqual(first, "up")
+        nav.plan, nav.planned_for = None, None
+        self.assertEqual(nav._next_step(memory, (2, 5), Target("road", (2, 7), "the road down"), frozenset()),  # noqa: SLF001
+                         "down")
+
+    def test_a_frontier_it_found_no_way_to_is_not_left_to_see(self):
+        """(found by the pushing property, step52dev6, the beeline's chapter 2 of seed 1050: ROUTE 103's one frontier it
+        could not reach kept "1 thing left to see" there, and OLDALE's explorer went back for it, 186 crossings) a frontier
+        a walk found NO way to (the navigator's "unreachable") is marked in the world memory and left out of the map's
+        `promise` until the map shows something new."""
+        from ai_player.brain.navigator import Intent, Target
+        from ai_player.gates.test_world import GridGame, drive as drive_world, rig
+        rows = ["#" * 30] + ["#" + "." * 8 + "#" + "." * 19 + "#" for _ in range(9)] + ["#" * 30]
+        game = GridGame({"SPLIT": rows}, ("SPLIT", (3, 5)))  # a wall at x 9; the screen shows x 10, not x 11
+        hands, nav, world, _, _ = rig(game)
+        world.observe(game.look())
+        key = world.current
+        self.assertEqual(world.promise(key), 9)  # x 10, y 1-9, beside the unseen x 11: frontier, across the wall
+        tried: list = []
+
+        def choose(navigator, look_):  # a walk that tries the frontier at (10, 5) once
+            if tried:
+                return None
+            tried.append(1)
+            return Target("frontier", (10, 5), "across the wall")
+
+        outcome = drive_world(nav.run(Intent("try it", 2000, choose, lambda look_: False), "try"))
+        self.assertTrue(outcome.startswith("stuck"), outcome)
+        self.assertIn((10, 5), world.unreached.get(key, {}))  # FAULT half: no mark
+        self.assertEqual(world.promise(key), 8)  # FAULT half: the mark not asked by `promise`
+        # the map shows something new (a tile learned): the frontier counts again (a way may be known now)
+        world.maps[key].tiles[(40, 40)] = TileFact(True, False, False, False, None, False, False, 3, "NORMAL", 0, (3, 5))
+        self.assertEqual(world.promise(key), 9)
+
+    def test_the_navigator_keeps_the_places_a_scene_made_it_give_up(self):
+        """`Navigator._scene_met`: a target given up because a scene stopped the way there is kept in `scene_given_up`
+        (map key, tile, why), over every intent, for the goal runner to read."""
+        from ai_player.brain.navigator import Navigator, Target
+        from ai_player.hands.pad import Hands
+        from ai_player.world.memory import WorldMemory
+        world = WorldMemory()
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        world._last.key = "0:9"  # noqa: SLF001
+        target = Target("frontier", (3, -4), "x")
+        still = mock.Mock(last=80, last_progress=80)
+        self.assertFalse(nav._scene_met(f"0:9|{target.key}", target, 90, still))  # noqa: SLF001
+        self.assertEqual(nav.scene_given_up, [])
+        self.assertTrue(nav._scene_met(f"0:9|{target.key}", target, 300, still))  # noqa: SLF001
+        self.assertEqual([(key, tile) for key, tile, _ in nav.scene_given_up], [("0:9", (3, -4))])  # FAULT half: none
+
+    def test_a_place_a_scene_turned_a_look_round_back_from_is_blocked_for_curiosity(self):
+        """(step52dev2: in 4 of the 7 detours that did not arrive, a look round had just given up a place past LITTLEROOT's
+        twin) `GoalRunner.pursue`: the targets the navigator gave up because of a scene during a walk that looks round are
+        blocked for curiosity in the milestone; a story walk's are not (the navigator keeps those to its own walk)."""
+        from ai_player.brain.goals import Goal, GoalRunner
+        for kind, expect in (("explore", {(3, -4): "a scene stopped the way there 2 times"}), ("go", {})):
+            mgr = manager("Catcher")
+            milestone = mgr.story.milestones[8]
+            world = world_with("LITTLEROOT_TOWN", current="LITTLEROOT_TOWN")
+            nav = types.SimpleNamespace(world=world, carried_scene_walls=None, scene_walls={}, battle_log=[],
+                                        scene_given_up=[("0:9", (1, 1), "an earlier goal's")])
+
+            def pursue(goal, milestone_, index, current, nav=nav):
+                nav.scene_given_up.append(("0:9", (3, -4), "a scene stopped the way there 2 times"))
+                yield
+                return True, "stuck: nothing new"
+
+            runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(9)])), nav, mgr,
+                                types.SimpleNamespace(purpose=""), lambda line: None)
+            runner._pursue = pursue  # noqa: SLF001
+            drive(runner.pursue(Goal(kind, "x", via="0:9"), milestone, 8, lambda s: 8))
+            self.assertEqual(dict(mgr.memory.blocked.get(milestone.id, {}).get("0:9", {})), expect, kind)
+            self.assertNotIn((3, -4), mgr.memory.scene_walls[milestone.id].get("0:9", set()), kind)
+
+    def test_someone_in_the_way_again_and_again_blocks_the_place(self):
+        """`_PersonBlock`: PERSON_BLOCK_HITS people in the way on the walk to one place, with no new tile seen since the
+        first, block it (once); a new tile seen in between starts the count again."""
+        from ai_player.brain.goals import PERSON_BLOCK_HITS, _PersonBlock
+        from ai_player.brain.navigator import Plan
+        world = types.SimpleNamespace(current="0:3", tiles_learned=500)
+        nav = types.SimpleNamespace(stats=types.SimpleNamespace(people=8), world=world,
+                                    plan=Plan("frontier:(-7, 10)", "0:3", (2, 10), ["left"] * 9, True))
+        blocked = []
+        watch = _PersonBlock(nav, lambda key, tile, why: blocked.append((key, tile, why)))
+        for frame in range(PERSON_BLOCK_HITS - 1):
+            nav.stats.people += 1
+            watch(look(frame=1000 + frame))
+        self.assertEqual(blocked, [])
+        world.tiles_learned += 15  # something new came into view: the count starts again
+        nav.stats.people += 1
+        watch(look(frame=1100))
+        self.assertEqual(blocked, [])  # FAULT half: blocked although the walk brought new tiles
+        for frame in range(PERSON_BLOCK_HITS - 1):
+            nav.stats.people += 1
+            nav.plan = Plan("frontier:(-7, 10)", "0:3", (3, 10), ["left"] * 10, True)  # the same place, a step on
+            watch(look(frame=1200 + frame))
+        self.assertEqual([(key, tile) for key, tile, _ in blocked], [("0:3", (-7, 10))])
+        self.assertIn(f"someone stood in the way {PERSON_BLOCK_HITS} times", blocked[0][2])
+        watch(look(frame=1300))  # no one met since: nothing more
+        self.assertEqual(len(blocked), 1)
+
+    def test_blocked_places_wall_curiosity_walks_only(self):
+        """`GoalRunner.pursue`: a walk that looks round carries the milestone's blocked places as walls (with the scene
+        walls) and watches for someone in the way; the story's walks carry the scene walls only, and a place blocked
+        during a look round never joins the scene walls."""
+        from ai_player.brain.goals import Goal, GoalRunner, _PersonBlock
+        mgr = manager("Catcher")
+        milestone = mgr.story.milestones[8]
+        mgr.memory.scene_walls[milestone.id] = {"0:3": {(5, 5)}}
+        mgr.blocked_on(milestone.id, "0:3")[(-7, 10)] = "someone stood in the way"
+        world = world_with("OLDALE_TOWN", current="OLDALE_TOWN")
+        nav = types.SimpleNamespace(world=world, carried_scene_walls=None, scene_walls={}, stats=types.SimpleNamespace(people=0),
+                                    plan=None, battle_log=[])
+        hands = types.SimpleNamespace(look=lambda: look(party=[mon(9)]), watchers=[])
+        runner = GoalRunner(hands, nav, mgr, types.SimpleNamespace(purpose=""), lambda line: None)
+        seen = []
+
+        def pursue(goal, milestone_, index, current):
+            seen.append(({k: set(v) for k, v in nav.carried_scene_walls.items()},
+                         [type(w).__name__ for w in hands.watchers]))
+            nav.scene_walls = {"0:3": {(5, 5), (-7, 10), (9, 9)}}  # (9, 9): a scene wall met in this walk
+            yield
+            return False, "stuck: nothing left to try"
+
+        runner._pursue = pursue  # noqa: SLF001
+        drive(runner.pursue(Goal("explore", "x", via="0:3"), milestone, 8, lambda s: 8))
+        self.assertEqual(seen[0], ({"0:3": {(5, 5), (-7, 10)}}, [_PersonBlock.__name__]))  # FAULT half: no wall, no watch
+        self.assertEqual(hands.watchers, [])  # the watch is removed after the walk
+        self.assertEqual(mgr.memory.scene_walls[milestone.id]["0:3"], {(5, 5), (9, 9)})  # the blocked place stays apart
+        drive(runner.pursue(Goal("go", "x", map="ROUTE103"), milestone, 8, lambda s: 8))
+        self.assertEqual(seen[1], ({"0:3": {(5, 5), (9, 9)}}, []))  # the story's walk: scene walls only
+
+    def test_a_look_round_chooses_only_new_things_and_ends_when_none_is_left(self):
+        """`look_round_intent`: a frontier, grass not walked, someone not met; never a wander among what it has seen (5.1's
+        look round fell back to one), never a blocked place, never carried on from one; its own novelty window."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import CURIOUS_NOVELTY, look_round_intent
+        from ai_player.brain.navigator import Target
+        blocked = {(3, 3): "someone stood in the way"}
+        intent = look_round_intent("Catcher", 3000, lambda seen: False, lambda key: blocked)
+        self.assertEqual(intent.novelty_window, CURIOUS_NOVELTY)
+        nav = types.SimpleNamespace(choosing_on_the_move=False, world=types.SimpleNamespace(current="0:3"),
+                                    rng=random.Random(1), where=lambda seen: (None, (10, 10)), heading=lambda: None)
+        for targets, want in (([Target("wander", (1, 1), "least visited"), Target("back", (2, 2), "the way back")], None),
+                              ([Target("frontier", (3, 3), "blocked")], None),
+                              ([Target("frontier", (3, 3), "blocked"), Target("grass", (4, 4), "grass")], (4, 4))):
+            with mock.patch.object(goals_module, "candidates", lambda *a, targets=targets, **k: list(targets)), \
+                    mock.patch.object(goals_module, "pick", lambda found, rng: found[0]):
+                chosen = intent.choose(nav, look())
+            self.assertEqual(chosen.tile if chosen is not None else None, want)  # FAULT half: the wander, the blocked
+        self.assertIsNone(intent.carry_on(nav, look(), Target("frontier", (3, 3), "blocked")))
+
+    def test_a_known_town_is_no_new_place(self):
+        """(the review's finding 6: CH1M said "a new place, OLDALE_TOWN" after healing there twice) a map it has LEFT once
+        is known, though the session's first decision did not know it and its draw was never made there."""
+        from ai_player.world.memory import Transition
+        mgr = manager("Catcher", quiet=False)
+        world = world_with("LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN", current="OLDALE_TOWN")
+        seen = look(ch1_through("ch1_rival_route103"), party=[mon(9)], const="OLDALE_TOWN")
+        step = mgr.story_step(seen, world, mgr.story.milestones[8])
+        self.assertTrue(mgr.may_look_around(seen, world, step))  # its first stay: a new place
+        world.transitions.append(Transition(900, "0:3", "9:9", "warp", "ai", (6, 16), (7, 8), "up"))  # into its centre
+        self.assertFalse(mgr.may_look_around(seen, world, step))  # FAULT half: "a new place" again on coming back
+
+    def test_the_push_watch_measures_pressing_that_brings_nothing_new(self):
+        """`hands/waiting.py` PushWatch: free frames with presses and nothing new (no tile seen, no map stood on, no battle)
+        make a stretch; something new ends it; a text or a scene PAUSES it (neither counts nor ends it); a battle ends it;
+        a stretch with no press is no pushing; stretches of PUSH_NOTE frames or more are written to the action log."""
+        from ai_player.hands.waiting import PUSH_NOTE, PushWatch
+        state = {"presses": 0, "novelty": (100, 3)}
+        notes = []
+        watch = PushWatch(lambda: state["presses"], lambda *a: notes.append(a), lambda: state["novelty"])
+        free = look(ch1_through("ch1_lab"))
+        text = screen_look(waits=True, text="Hiya! Are you maybe… A rookie TRAINER?")
+        battle = replace(free, screen=replace(free.screen, in_battle=True, game_state="BATTLE"))
+        frame = 0
+        for _ in range(100):  # 800 free frames, pressing: nothing new
+            frame += 8
+            state["presses"] += 1
+            watch(replace(free, frame=frame))
+        for _ in range(50):  # 400 frames of the same text: a pause, not more pushing and not the end
+            frame += 8
+            watch(replace(text, frame=frame))
+        for _ in range(10):
+            frame += 8
+            state["presses"] += 1
+            watch(replace(free, frame=frame))
+        state["novelty"] = (101, 3)  # a new tile: the stretch is over
+        frame += 8
+        watch(replace(free, frame=frame))
+        self.assertEqual(watch.longest["frames"], 792 + 72)  # FAULT half (no pause): the text's 400 frames counted
+        closed = [note for note in notes if not note[3].get("open")]
+        self.assertEqual(len(closed), 1)
+        self.assertEqual(closed[0][0], "push")
+        self.assertGreaterEqual(closed[0][3]["frames"], PUSH_NOTE)
+        self.assertEqual([note[3]["frames"] for note in notes if note[3].get("open")], [600])  # told while it went on
+        for _ in range(10):  # a short stretch, then a battle ends it
+            frame += 8
+            state["presses"] += 1
+            watch(replace(free, frame=frame))
+        watch(replace(battle, frame=frame + 8))
+        self.assertEqual(watch.stretches, 2)
+        for _ in range(200):  # standing free with NO press: not pushing (the stall property's business)
+            frame += 8
+            watch(replace(free, frame=frame))
+        watch.wind_up()
+        self.assertEqual(watch.stretches, 2)
+        self.assertEqual(watch.push_report()["longest"], 864)
+
+    def test_the_push_watch_tells_a_stretch_that_is_still_going_on(self):
+        """(step52dev3: the BLOCKED control pushed for 136,370-244,940 free frames by the game's second path while the AI's
+        record said 0-1,758: a run its frame budget cut off never ENDED its last stretch, and nothing of it was written)
+        an OPEN stretch is written each time it grows by PUSH_NOTE frames; the graders read it (`rate_step5.push_ai`)."""
+        from ai_player.gates.rate_step5 import push_ai
+        from ai_player.hands.waiting import PUSH_NOTE, PushWatch
+        state = {"presses": 0}
+        notes = []
+        watch = PushWatch(lambda: state["presses"], lambda *a: notes.append(a), lambda: (100, 3))
+        free = look(ch1_through("ch1_lab"))
+        for frame in range(0, 2 * PUSH_NOTE + 100, 10):  # pushing on, never ended (the run is cut off here)
+            state["presses"] += 1
+            watch(replace(free, frame=frame))
+        told = [note[3]["frames"] for note in notes if note[0] == "push"]
+        self.assertEqual(told, [PUSH_NOTE, 2 * PUSH_NOTE])  # FAULT half: nothing, the stretch never ended
+        records = [{"decision": "push", "extra": note[3]} for note in notes]
+        self.assertEqual(push_ai(records), 2 * PUSH_NOTE)
+
+
+class ProductiveWiringTests(unittest.TestCase):
+    """(build step 5.2) Each new rule is ASKED where it acts (CLAUDE.md lessons PF-2: a mutant deletes its CALL, not only its
+    body): every curiosity draw raised by boredom, the walk's break stop under the row cap, "some more" past a blocked
+    frontier, the explore goal's look round, the blocked place made a wall at once and kept, someone in the way blocked
+    through `pursue`, the push watch's last stretch, the play loop's push report, the play brain's entry, the walk back to
+    a ball through `pursue`, and the goal manager's report of its frames."""
+
+    def bored(self, personality: str = "Story", since: int | None = None) -> GoalManager:
+        return SecondRoundTests().bored_manager(personality, since)
+
+    def test_boredom_raises_every_curiosity_draw(self):
+        """A draw at 0.85 passes a bored Story player's catch (its own 0.3), chat (0.18) and detour (0.35), not a fresh
+        one's: each draw asks `curious_odds` (FAULT halves: a draw at its base)."""
+        def route102(mgr):  # a catching roam's draw: grass not walked, balls in hand, two species owned
+            mgr.rng = _Draws(0.85)
+            world = world_with("OLDALE_TOWN", "ROUTE102", current="ROUTE102", grass=True)
+            seen = look({**ch1_through("ch2_oldale"), "VISITED_OLDALE_TOWN": 1}, party=[mon(9)], balls=5, const="ROUTE102",
+                        map_number=2)
+            seen = replace(seen, progress=replace(seen.progress, dex_owned=2))
+            mgr.memory.looked, mgr.memory.detoured = _Everything(), _Everything()
+            index, milestone = mgr.milestone(seen, visited_in(world))
+            return mgr.next_goal(seen, world, milestone, index)
+
+        self.assertEqual(route102(self.bored()).kind, "catch")
+        self.assertNotEqual(route102(self.bored(since=0)).kind, "catch")
+
+        def chat(mgr):
+            mgr.rng = _Draws(0.85)
+            world = world_with("LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN", current="OLDALE_TOWN",
+                               heard={"Oh, MAY went out to ROUTE 103 just a little while ago."})
+            mgr.memory.asked_rounds["ch1_rival_route103"] = ASK_ROUNDS
+            mgr.memory.looked, mgr.memory.detoured = _Everything(), _Everything()
+            seen = look(ch1_through("ch1_rival_route103"), party=[mon(9)], const="OLDALE_TOWN",
+                        objects=[person(11, 10, gfx=1, local_id=5)])
+            index, milestone = mgr.milestone(seen, visited_in(world))
+            return mgr.next_goal(seen, world, milestone, index)
+
+        self.assertEqual(chat(self.bored()).kind, "chat")
+        self.assertNotEqual(chat(self.bored(since=0)).kind, "chat")
+        detour = SecondRoundTests()
+
+        def walk(mgr):
+            mgr.memory.looked = _Everything()  # no look-around draw: the walk's detour draw is next
+            return detour.oldale(mgr, 0.85, frontier=False)
+
+        self.assertEqual(walk(self.bored()).kind, "detour")
+        self.assertEqual(walk(self.bored(since=0)).kind, "go")
+
+    def test_no_break_stop_after_two_curiosity_goals_in_a_row(self):
+        from ai_player.brain.goals import BREAK_STOP, CURIOUS_ROW_MAX, Goal, GoalRunner
+        world = world_with("LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN", current="ROUTE101")
+        arrive = look(ch1_through("ch1_rival_route103"), party=[mon(9)], const="OLDALE_TOWN", map_number=3)
+        stopped = []
+
+        def run(intent, why):
+            world._last.key = "0:3"  # noqa: SLF001
+            stopped.append(intent.done(arrive))
+            yield
+            return "done: travel" if stopped[-1] else "budget: ran out"
+
+        mgr = self.bored()
+        mgr.rng = _Draws(0.0)
+        mgr.memory.looked = _Everything()
+        mgr.memory.curious_row = CURIOUS_ROW_MAX
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: arrive), types.SimpleNamespace(world=world, run=run,
+                                                                                               battle_log=[]),
+                            mgr, types.SimpleNamespace(purpose=""), lambda line: None)
+        runner._travel = lambda target, why, budget, done: run(types.SimpleNamespace(done=done), why)  # noqa: SLF001
+        ok, outcome = drive(runner.pursue(Goal("go", "to ROUTE 103", map="ROUTE103"), mgr.story.milestones[8], 8,
+                                          lambda seen: 8))
+        self.assertEqual(stopped, [False])  # FAULT half: a third curiosity stop
+        self.assertNotIn(BREAK_STOP, outcome)
+
+    def test_no_look_round_some_more_past_a_blocked_frontier(self):
+        """The only frontier left is behind a place curiosity found blocked: nothing left to see that it can walk to."""
+        helper = SecondRoundTests()
+        mgr = self.bored()
+        mgr.memory.looked, mgr.memory.detoured = _Everything(), _Everything()
+        blocked = mgr.blocked_on("ch1_rival_route103", "0:3")
+        for x in range(6, 15):  # every border tile of the seen patch round the player
+            for y in range(6, 15):
+                if x in (6, 14) or y in (6, 14):
+                    blocked[(x, y)] = "someone stood in the way"
+        self.assertEqual(helper.oldale(mgr, 0.0).kind, "go")  # FAULT half: "some more" at a blocked frontier
+
+    def test_an_explore_goal_looks_round_with_the_look_round_intent(self):
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import CURIOUS_NOVELTY, Goal, GoalRunner
+        from ai_player.brain.navigator import Target
+        mgr = manager("Catcher")
+        mgr.blocked_on(mgr.story.milestones[8].id, "0:1")[(3, 3)] = "someone stood in the way"
+        intents = []
+
+        def run(intent, why):
+            intents.append(intent)
+            yield
+            return "stuck: nothing left to try on OLDALE_TOWN"
+
+        world = world_with("OLDALE_TOWN", current="OLDALE_TOWN")
+        nav = types.SimpleNamespace(world=world, run=run, battle_log=[], choosing_on_the_move=False, rng=random.Random(1),
+                                    where=lambda seen: (None, (10, 10)), heading=lambda: None)
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look()), nav, mgr, types.SimpleNamespace(purpose=""),
+                            lambda line: None)
+        ok, outcome = drive(runner.pursue(Goal("explore", "a new place", steps=3000, via="0:1"), mgr.story.milestones[8], 8,
+                                          lambda seen: 8))
+        self.assertTrue(ok, outcome)  # nothing more to look at: a look round that ended as it should
+        self.assertEqual((intents[0].name, intents[0].novelty_window), ("look round", CURIOUS_NOVELTY))  # FAULT: 5.1's
+        targets = [Target("frontier", (3, 3), "blocked"), Target("grass", (4, 4), "grass")]
+        with mock.patch.object(goals_module, "candidates", lambda *a, **k: list(targets)), \
+                mock.patch.object(goals_module, "pick", lambda found, rng: found[0]):
+            self.assertEqual(intents[0].choose(nav, look()).tile, (4, 4))  # the milestone's blocked place is not chosen
+        ball = person(12, 10, gfx=59, local_id=1, kind="item_ball")
+        self.assertTrue(intents[0].done(look(const="OLDALE_TOWN", objects=[ball])))  # the walk's own stops: an item ball
+
+    def test_a_look_around_walk_stops_for_an_item_ball(self):
+        from ai_player.brain.goals import Goal, GoalRunner
+        mgr = manager("Catcher")
+        intents = []
+
+        def run(intent, why):
+            intents.append(intent)
+            yield
+            return "budget: ran out"
+
+        world = world_with("OLDALE_TOWN", current="OLDALE_TOWN")
+        nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look()), nav, mgr, types.SimpleNamespace(purpose=""),
+                            lambda line: None)
+        drive(runner.pursue(Goal("look_around", "every step done", key="look_around"), mgr.story.milestones[8], 8,
+                            lambda seen: 8))
+        ball = person(12, 10, gfx=59, local_id=1, kind="item_ball")
+        self.assertTrue(intents[0].done(look(const="OLDALE_TOWN", objects=[ball])))  # FAULT half: walks past the ball
+        self.assertFalse(intents[0].done(look(const="OLDALE_TOWN")))
+
+    def test_the_play_loop_ends_when_its_target_is_reached(self):
+        loop = PlayLoopTests()
+        past = look(ch1_through("ch2_oldale"), party=[mon(9)], const="ROUTE101")
+        reason, hands, pursued, _, report = loop.run_loop(past, budget=2000)
+        self.assertEqual(reason, "done: ch1_pokedex reached")  # FAULT half: it plays on past its target
+        self.assertEqual(pursued, [])
+
+    def test_a_blocked_place_is_a_wall_at_once_and_kept(self):
+        from ai_player.brain.goals import GoalRunner
+        mgr = manager("Catcher")
+        told = []
+        world = world_with("OLDALE_TOWN", current="OLDALE_TOWN")
+        nav = types.SimpleNamespace(world=world, scene_walls={})
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look()), nav, mgr, types.SimpleNamespace(purpose=""),
+                            told.append)
+        runner._blocked(mgr.story.milestones[8], "0:1", (-7, 10), "someone stood in the way 3 times")  # noqa: SLF001
+        self.assertEqual(nav.scene_walls, {"0:1": {(-7, 10)}})  # FAULT half: walked into again in this walk
+        self.assertIn((-7, 10), mgr.blocked_on(mgr.story.milestones[8].id, "0:1"))  # FAULT half: tried by the next goal
+        self.assertTrue(any("given up, and kept from curiosity" in line for line in told))
+
+    def test_someone_in_the_way_is_blocked_through_pursue(self):
+        """`pursue` installs the watch and hands it `_blocked`: three people in the way of one place, nothing new, inside a
+        look round, and the place is blocked for the milestone."""
+        from ai_player.brain.goals import PERSON_BLOCK_HITS, Goal, GoalRunner
+        from ai_player.brain.navigator import Plan
+        mgr = manager("Catcher")
+        world = world_with("OLDALE_TOWN", current="OLDALE_TOWN")
+        nav = types.SimpleNamespace(world=world, carried_scene_walls=None, scene_walls={},
+                                    stats=types.SimpleNamespace(people=0), battle_log=[],
+                                    plan=Plan("frontier:(-7, 10)", "0:1", (2, 10), ["left"] * 9, True))
+        hands = types.SimpleNamespace(look=lambda: look(party=[mon(9)]), watchers=[])
+        runner = GoalRunner(hands, nav, mgr, types.SimpleNamespace(purpose=""), lambda line: None)
+
+        def pursue(goal, milestone_, index, current):
+            for frame in range(PERSON_BLOCK_HITS):
+                nav.stats.people += 1
+                for watcher in list(hands.watchers):
+                    watcher(look(frame=2000 + frame))
+            yield
+            return False, "stuck: nothing new"
+
+        runner._pursue = pursue  # noqa: SLF001
+        drive(runner.pursue(Goal("explore", "x", via="0:1"), mgr.story.milestones[8], 8, lambda s: 8))
+        self.assertIn((-7, 10), mgr.blocked_on(mgr.story.milestones[8].id, "0:1"))  # FAULT half: never blocked
+
+    def test_the_push_watch_closes_its_last_stretch_when_wound_up(self):
+        from ai_player.hands.waiting import PushWatch
+        state = {"presses": 0}
+        watch = PushWatch(lambda: state["presses"], lambda *a: None, lambda: (1, 1))
+        free = look(ch1_through("ch1_lab"))
+        for frame in range(8, 800, 8):
+            state["presses"] += 1
+            watch(replace(free, frame=frame))
+        self.assertIsNone(watch.longest)  # open: nothing new ended it
+        watch.wind_up()
+        self.assertEqual(watch.push_report()["longest"], 784)  # FAULT half: the run's last stretch lost
+
+    def test_the_play_loop_reports_pressing_that_brought_nothing(self):
+        """The REAL play loop installs the push watch and reports its longest stretch at the end: goals that press and
+        bring nothing new make one stretch of the whole run."""
+        loop = PlayLoopTests()
+        free = loop.free_screen()
+        reason, hands, pursued, _, report = loop.run_loop(lambda frames: replace(free, frame=frames), budget=20_000,
+                                                          effect=lambda goal, world, runner: (False, "nothing"))
+        self.assertIsNotNone(report["pushes"])  # FAULT half: no watch, or no report
+        self.assertGreater(report["pushes"]["longest"], 0)
+        end = next(extra for decision, _, _, extra in hands.notes if decision == "end")
+        self.assertEqual(end["pushes"], report["pushes"])
+
+    def test_the_play_brain_is_played_through_its_skill(self):
+        from ai_player.mode import HandsBrain
+        brain = HandsBrain.__new__(HandsBrain)
+        brain.options = types.SimpleNamespace(brain="play", intent_frames=1000)
+        brain.settings = types.SimpleNamespace(frames=10_000)
+        calls = []
+
+        def play(hands, personality):
+            calls.append(personality)
+            yield
+            return "play: done"
+
+        brain._play = play  # noqa: SLF001
+        brain.world = None
+        result = drive(brain._skill(types.SimpleNamespace(), "Story"))  # noqa: SLF001
+        self.assertEqual((result, calls), ("play: done", ["Story"]))  # FAULT half: the play brain never runs
+
+    def test_a_ball_seen_earlier_is_picked_up_through_pursue(self):
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import Goal, GoalRunner
+        mgr = manager("Catcher")
+        world = world_with("ROUTE102", current="ROUTE102")
+        memory = world.maps["0:1"]
+        for x in range(15, 25):
+            for y in range(0, 10):
+                memory.tiles[(x, y)] = TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (20, 5))
+        ball = person(20, 5, gfx=59, local_id=4, kind="item_ball")
+        picked = []
+
+        def pick_up(hands, nav, target, why):
+            picked.append((target.x, target.y))
+            yield
+            return "picked up: POTION"
+
+        def go_to(tile, why, budget):
+            yield
+            return "done"
+
+        nav = types.SimpleNamespace(world=world, where=lambda seen: (memory, (16, 5)), go_to=go_to, battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(objects=[ball], const="ROUTE102")), nav, mgr,
+                            types.SimpleNamespace(purpose=""), lambda line: None)
+        with mock.patch.object(goals_module, "pick_up", pick_up):
+            ok, outcome = drive(runner.pursue(Goal("pick_up", "back to it", tile=(20, 5)), mgr.story.milestones[11], 11,
+                                              lambda seen: 11))
+        self.assertEqual(picked, [(20, 5)])  # FAULT half: walked back, never picked up
+        self.assertTrue(ok, outcome)
+
+    def test_the_play_loop_judges_a_look_round_by_its_length(self):
+        """The REAL play loop hands the yield the goal's frames: two looks round of the stand-in's 1,000 frames, 30 new
+        tiles (productive) and 9 (8 or more, but under `YIELD_TILE_RATE` per 1,000 frames: NOT)."""
+        from ai_player import mode as mode_module
+        from ai_player.brain.goals import Goal
+        scripted = ["explore", "explore"]
+        shown = [30, 9]
+
+        class Scripted(mode_module.GoalManager):
+            def next_goal(self, look_, world, milestone, index):
+                if scripted:
+                    kind = scripted.pop(0)
+                    self.memory.decisions += 1
+                    return Goal(kind, f"scripted {kind}", milestone.id, key=f"{kind}:{world.current}", via=world.current)
+                return super().next_goal(look_, world, milestone, index)
+
+        def effect(goal, world, runner):
+            if goal.kind == "explore" and shown:
+                world.tiles_learned += shown.pop(0)
+                return True, "budget: 3000 frames ran out"
+            return None
+
+        loop = PlayLoopTests()
+        with mock.patch.object(mode_module, "GoalManager", Scripted):
+            _, hands, pursued, _, _ = loop.run_loop(screen=loop.free_screen(), budget=10_000, effect=effect)
+        self.assertEqual(pursued[:2], ["explore", "explore"])
+        ends = [extra for decision, _, _, extra in hands.notes if decision == "goal_end"][:2]
+        self.assertEqual([e["yield"]["tiles"] for e in ends], [30, 9])
+        self.assertEqual([e["yield"]["productive"] for e in ends], [True, False])  # FAULT half: 9 tiles in 1,000 frames
+
+    def test_the_play_loop_installs_its_battle_clock(self):
+        """The REAL play loop tells its battle clock every look (`hands.watchers`)."""
+        from ai_player.hands.waiting import BattleClock
+        loop = PlayLoopTests()
+        _, hands, _, _, _ = loop.run_loop(screen=loop.free_screen(), budget=3_000)
+        self.assertEqual(sum(isinstance(w, BattleClock) for w in hands.watchers), 1)  # FAULT half: never told a look
+
+    def test_the_play_loop_takes_the_battles_out_of_a_look_rounds_time(self):
+        """The REAL play loop reads its battle clock before and after each goal: three looks round of the stand-in's 1,000
+        frames, the clock saying 300 battle frames in the second and 600 in the third; 9 new tiles each but the first's 30:
+        the second walked 700 (NOT productive), the third 400 (productive)."""
+        from ai_player import mode as mode_module
+        from ai_player.brain.goals import Goal
+        scripted = ["explore", "explore", "explore"]
+        shown = [30, 9, 9]
+        readings = [0, 0, 0, 300, 300, 900]
+
+        class Clock:  # stands in for `hands/waiting.py` BattleClock: its reading at each look of the play loop
+            def __call__(self, look_) -> None:
+                pass
+
+            @property
+            def battle_frames(self) -> int:
+                return readings.pop(0) if readings else 900
+
+        class Scripted(mode_module.GoalManager):
+            def next_goal(self, look_, world, milestone, index):
+                if scripted:
+                    kind = scripted.pop(0)
+                    self.memory.decisions += 1
+                    return Goal(kind, f"scripted {kind}", milestone.id, key=f"{kind}:{world.current}", via=world.current)
+                return super().next_goal(look_, world, milestone, index)
+
+        def effect(goal, world, runner):
+            if goal.kind == "explore" and shown:
+                world.tiles_learned += shown.pop(0)
+                return True, "budget: 3000 frames ran out"
+            return None
+
+        loop = PlayLoopTests()
+        with mock.patch.object(mode_module, "GoalManager", Scripted), mock.patch.object(mode_module, "BattleClock", Clock):
+            _, hands, pursued, _, _ = loop.run_loop(screen=loop.free_screen(), budget=10_000, effect=effect)
+        self.assertEqual(pursued[:3], ["explore", "explore", "explore"])
+        ends = [extra for decision, _, _, extra in hands.notes if decision == "goal_end"][:3]
+        self.assertEqual([e["yield"]["battle_frames"] for e in ends], [0, 300, 600])
+        # FAULT halves: the before-reading lost (the second walked 400: productive), the after-reading lost (the third
+        # walked 1,000: not)
+        self.assertEqual([e["yield"]["productive"] for e in ends], [True, False, True])
+
+    def test_a_goal_starts_from_its_milestones_walls_not_the_last_intents(self):
+        """(found by the development sweep step52dev2, seed 1010, by the new pushing property: 114,121 frames of pressing with
+        nothing new) PROF. BIRCH's "Don't leave me like this!" walls on ROUTE 101, left in the navigator by the last intent
+        of his milestone, were merged into the RIVAL's milestone after a goal that ran no intent (a talk at hand), and every
+        walk north from LITTLEROOT planned round them, back across the edge. Every goal starts from its own milestone's."""
+        from ai_player.brain.goals import Goal, GoalRunner
+        mgr = manager("Catcher")
+        milestone = mgr.story.milestones[8]
+        world = world_with("ROUTE101", current="ROUTE101")
+        nav = types.SimpleNamespace(world=world, carried_scene_walls=None, scene_walls={"0:1": {(10, 18), (11, 18)}},
+                                    battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(9)])), nav, mgr,
+                            types.SimpleNamespace(purpose=""), lambda line: None)
+
+        def pursue(goal, milestone_, index, current):  # a goal that runs no intent: someone at hand talked to
+            yield
+            return True, "talked"
+
+        runner._pursue = pursue  # noqa: SLF001
+        drive(runner.pursue(Goal("chat", "x"), milestone, 8, lambda s: 8))
+        self.assertEqual(mgr.memory.scene_walls[milestone.id], {})  # FAULT half: the earlier milestone's walls carried
+
+    def test_the_beeline_still_picks_up_an_item_ball(self):
+        """The beeline control keeps item balls, as 5.1's did: the rival's POKé BALL is how its chapter 1 goes on (the
+        development sweep step52dev2's beeline, with none, stuck in 12 runs of 12)."""
+        mgr = manager("Story", errands_off=True)
+        world = world_with("LITTLEROOT_TOWN", "LITTLEROOT_TOWN_MAYS_HOUSE_1F", "LITTLEROOT_TOWN_MAYS_HOUSE_2F",
+                           current="LITTLEROOT_TOWN_MAYS_HOUSE_2F", heard={"Our daughter is upstairs, I think.",
+                                                                          "He lives right next door, so you should"})
+        ball = person(12, 10, gfx=59, local_id=1, kind="item_ball")
+        observation = look(ch1_through("ch1_rival_house"), party=[], objects=[ball], const="LITTLEROOT_TOWN_MAYS_HOUSE_2F")
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(mgr.next_goal(observation, world, milestone, index).kind, "pick_up")  # FAULT half: stuck
+
+    def test_the_goal_managers_report_of_its_frames(self):
+        """`spent` (a REPORT since build step 5.2: nothing decides by it): needs and curiosity are errands, a curiosity goal
+        the story moved on in is the story's, nothing counts before the first Pokemon."""
+        from ai_player.brain.goals import Goal
+        mgr = manager("Story")
+        mgr.memory.decided_with_party = True
+        mgr.spent(Goal("heal", "x"), 1000)
+        mgr.spent(Goal("pick_up", "x"), 500, story_moved=True)  # the rival's POKé BALL: the story's
+        mgr.spent(Goal("go", "x"), 700)
+        mgr.spent(Goal("explore", "x"), 300)
+        self.assertEqual(mgr.memory.spent, {"story": 1200, "errand": 1300, "curious": 300})
+        mgr.memory.decided_with_party = False
+        mgr.spent(Goal("explore", "x"), 999)
+        self.assertEqual(mgr.memory.spent["errand"], 1300)  # before its first Pokemon nothing counts
+
+
+class GraderYieldTests(unittest.TestCase):
+    """(build step 5.2) The sweep's grader of productive curiosity, unit by unit: the intent mix by yield, the game's yield
+    of a span, the detours' truth, the streaks, the pushing by both paths, the BLOCKED arm's reach, a known place called new
+    by the game's stays, the verdicts with their controls; and the game-side recorder of places."""
+
+    def test_the_intent_mix_counts_curiosity_that_brought_nothing_as_idle(self):
+        from ai_player.gates.rate_step5 import intent_mix
+        records = [{"decision": "goal", "action": "go", "frame": 0}, {"decision": "goal_end", "action": "go", "frame": 1000},
+                   {"decision": "goal", "action": "explore", "frame": 1000},
+                   {"decision": "goal_end", "action": "explore", "frame": 4000},
+                   {"decision": "goal", "action": "chat", "frame": 4000},
+                   {"decision": "goal_end", "action": "chat", "frame": 4500}, {"decision": "watch", "frame": 5000}]
+        honest = intent_mix(records, {1000})
+        self.assertEqual((honest["idle_frames"], honest["free_frames"], honest["errand_frames"]), (3000, 500, 500))
+        self.assertEqual(intent_mix(records)["free_frames"], 3500)  # FAULT half: by kind, the loaf counted
+
+    def test_the_game_says_what_a_span_brought(self):
+        from ai_player.gates.rate_step5 import YIELD_TILES, game_yield
+        places = {"new_tiles": [[100, 3], [150, YIELD_TILES]], "stays": [[0, "0:9"], [300, "0:10"], [500, "0:9"]],
+                  "texts": [[50, 90, True], [420, 460, True], [900, 940, False], [960, 990]]}
+        story = {"captures": [[0, 1], [700, 2]], "item_flags": [[0, 0], [800, 1]]}
+        self.assertTrue(game_yield(places, story, 120, 200)["productive"])  # 8 tiles
+        self.assertFalse(game_yield(places, story, 60, 110)["productive"])  # 3 tiles, a text begun before it
+        self.assertTrue(game_yield(places, story, 250, 350)["maps"])  # 0:10 first stood on
+        self.assertFalse(game_yield(places, story, 480, 520)["maps"])  # 0:9 again: no new map
+        self.assertTrue(game_yield(places, story, 400, 430)["talked"])
+        # (the verifier's round: the nurse's welcome right after a heal, a scripted stop met again) a message the game had
+        # shown before is no talk (FAULT half: any text begun in the span), nor a record that does not say
+        self.assertFalse(game_yield(places, story, 880, 950)["talked"])
+        self.assertFalse(game_yield(places, story, 950, 1000)["talked"])
+        self.assertEqual(game_yield(places, story, 650, 750)["caught"], 1)
+        self.assertEqual(game_yield(places, story, 790, 820)["items"], 1)
+        self.assertFalse(game_yield(places, story, 1000, 1100)["productive"])
+        self.assertEqual(YIELD_TILES, 8)
+
+    def test_the_game_judges_a_look_round_by_its_length(self):
+        """(step52dev2: the LOAF control was productive in 80 % of its curiosity frames by the 8 tiles alone) a look round or
+        a detour's span must show the graders' `YIELD_TILE_RATE` new tiles per 1,000 frames; another kind does not; and the
+        grader hands each span its kind."""
+        from ai_player.gates.rate_step5 import YIELD_TILE_RATE, curiosity_rows, game_yield
+        places = {"new_tiles": [[1500, 9]]}
+        self.assertEqual(YIELD_TILE_RATE, 20)
+        self.assertFalse(game_yield(places, {}, 1000, 4000, "explore")["productive"])  # FAULT half: 9 tiles in 3,000
+        self.assertTrue(game_yield(places, {}, 1400, 1700, "explore")["productive"])
+        self.assertTrue(game_yield(places, {}, 1000, 4000, "catch")["productive"])
+        # the span's own time: the game's battles in it are not (2,560 of its 3,000 frames: it walked 440)
+        fought = game_yield({**places, "battles": [[1050, 3600]], "every": 10}, {}, 1000, 4000, "explore")
+        self.assertEqual(fought["walking"], 440)
+        self.assertTrue(fought["productive"])  # FAULT half: the battles counted as its time
+        records = [{"decision": "goal", "action": "explore", "frame": 1000},
+                   {"decision": "goal_end", "action": "explore", "frame": 4000, "reason": "budget: ran out",
+                    "extra": {"yield": {"productive": True}}}, {"decision": "watch", "frame": 4000}]
+        rows = curiosity_rows(records, {"places": places}, 0)
+        self.assertEqual([r["game"] for r in rows], [False])  # FAULT half: judged without its kind
+
+    def test_loafing_is_the_own_time_of_curiosity_that_brought_nothing(self):
+        """(step52dev4: catching roams that met only known POKéMON were 80-87 % battles) `loafing_frames`: the curiosity
+        goals the game says brought nothing, counted by their time OUTSIDE the game's battles (`curiosity_rows` walking)."""
+        from ai_player.gates.rate_step5 import curiosity_rows, loafing_frames
+        records = [{"decision": "goal", "action": "catch", "frame": 1000},
+                   {"decision": "goal_end", "action": "catch", "frame": 9000, "reason": "roam: the hunt brought nothing new",
+                    "extra": {"yield": {"productive": False, "walking": 1500}}}, {"decision": "watch", "frame": 9000}]
+        places = {"battles": [[2000, 4990], [5000, 7990]], "every": 10}  # 6,000 of its 8,000 frames in two battles
+        rows = curiosity_rows(records, {"places": places}, 0)
+        self.assertEqual((rows[0]["walking"], rows[0]["walking_ai"]), (2000, 1500))
+        self.assertEqual(loafing_frames(rows), 2000)  # FAULT half: 8,000, the battles counted as loafing
+
+    def test_the_grader_checks_a_detours_word_against_the_game(self):
+        from ai_player.gates.rate_step5 import curiosity_rows
+        records = [{"decision": "goal", "action": "detour", "frame": 1000},
+                   {"decision": "goal_end", "action": "detour", "frame": 1500, "reason": "reached the frontier at (5, 5)",
+                    "extra": {"yield": {"productive": True, "place": ["0:9", 5, 5, "frontier"]}}},
+                   {"decision": "goal", "action": "detour", "frame": 2000},
+                   {"decision": "goal_end", "action": "detour", "frame": 2500, "reason": "reached the frontier at (7, 7)",
+                    "extra": {"yield": {"productive": True, "place": ["0:9", 7, 7, "frontier"]}}},
+                   {"decision": "watch", "frame": 3000}]
+        data = {"places": {"moves": [[900, "0:9", 1, 1], [1400, "0:9", 5, 5], [2400, "0:9", 6, 7]],
+                           "new_tiles": [[1200, 20], [2200, 20]]}}
+        rows = curiosity_rows(records, data, 0)
+        self.assertEqual([(r["said_reached"], r["game_reached"]) for r in rows], [(True, True), (True, False)])
+        self.assertEqual([r["game"] for r in rows], [True, False])  # FAULT half: the AI's word believed
+
+    def test_the_two_paths_on_the_talks_are_put_side_by_side(self):
+        """(build step 5.2, THE VERIFIER'S SECOND ROUND: the README said the footprints man's chat was "counted by both
+        paths" while the game's path credited all 20 and the AI's none, and no line put the two verdicts side by side)
+        `curiosity_rows` keeps each path's word on a chat's talk; `step52_verdicts` reports the talks they disagree on."""
+        from ai_player.gates.rate_step5 import curiosity_rows, step52_verdicts
+        records = [{"decision": "goal", "action": "chat", "frame": 1000},
+                   {"decision": "goal_end", "action": "chat", "frame": 1700, "reason": "talked to someone",
+                    "extra": {"yield": {"productive": False, "talks": True, "talked": False}}},
+                   {"decision": "goal", "action": "chat", "frame": 2000},
+                   {"decision": "goal_end", "action": "chat", "frame": 2600, "reason": "talked to someone",
+                    "extra": {"yield": {"productive": True, "talks": True, "talked": True}}},
+                   {"decision": "watch", "frame": 3000}]
+        data = {"places": {"texts": [[1100, 1300, True], [2100, 2300, True]]}}
+        rows = curiosity_rows(records, data, 0)
+        self.assertEqual([(r["talks_ai"], r["talked_ai"], r["talked_game"]) for r in rows],
+                         [(True, False, True), (True, True, True)])
+        real = {"CH1": [self.row("CH1", 1, talks_ai=2, talks_apart=[(1000, "cha", 0, 1)])], "CH2": [self.row("CH2", 1)]}
+        line = next(text for _, text in step52_verdicts(real) if text.startswith("(reported) THE TWO PATHS ON THE TALKS"))
+        self.assertIn("in 1 of 2", line)
+        self.assertIn("('CH1', 1, 1000, 'cha', 0, 1)", line)  # FAULT half: nothing reported apart
+
+    def test_the_grader_finds_curiosity_streaks(self):
+        from ai_player.gates.rate_step5 import curiosity_streaks
+        kinds = ["go", "chat", "explore", "detour", "go", "chat", "heal", "explore"]
+        records = [{"decision": "goal", "action": k, "frame": 1000 * i} for i, k in enumerate(kinds)]
+        records.append({"decision": "watch", "frame": 9000})
+        self.assertEqual(curiosity_streaks(records), [(1000, 3, 3000), (5000, 1, 1000), (7000, 1, 2000)])
+
+    def test_the_grader_reads_pushing_and_person_blocks(self):
+        from ai_player.gates.rate_step5 import person_blocks, push_ai
+        records = [{"decision": "push", "frame": 100, "extra": {"frames": 900}},
+                   {"decision": "goal", "action": "explore", "frame": 200},
+                   {"decision": "idle", "frame": 210, "reason": "someone stands in the way on the next steps toward the "
+                                                               "frontier at (-7, 10): letting them pass"},
+                   {"decision": "idle", "frame": 230, "reason": "someone is in the way at someone at (-6, 10): letting them"},
+                   {"decision": "idle", "frame": 250, "reason": "someone stands in the way on the next steps"},
+                   {"decision": "goal", "action": "go", "frame": 300},
+                   {"decision": "idle", "frame": 310, "reason": "someone stands in the way on the next steps"},
+                   {"decision": "end", "frame": 400, "extra": {"pushes": {"longest": 1200}}}]
+        self.assertEqual(push_ai(records), 1200)
+        self.assertEqual(push_ai(records[:-1]), 900)
+        self.assertEqual(person_blocks(records), 3)  # the story's walk's wait is not counted
+
+    def test_a_place_left_before_called_new_by_the_games_stays(self):
+        from ai_player.gates.rate_step5 import new_place_left_before
+        records = [{"decision": "goal", "action": "explore", "frame": 100, "reason": "a new place, OLDALE_TOWN: a person"},
+                   {"decision": "goal", "action": "explore", "frame": 900, "reason": "a new place, OLDALE_TOWN: a person"}]
+        data = {"places": {"stays": [[0, "0:16"], [50, "0:9"], [400, "0:16"], [800, "0:9"]]}}
+        with mock.patch("ai_player.gates.rate_step5.map_keys", lambda world_file: {"OLDALE_TOWN": "0:9"}):
+            self.assertEqual(new_place_left_before(records, data, 0), [(900, "OLDALE_TOWN")])  # its second stay
+
+    def row(self, plan, seed, **more):
+        base = {"plan": plan, "seed": seed, "personality": "Story", "curious": [], "curious_frames": 4000,
+                "productive_frames": 3600, "loaf_frames": 400, "seeing_frames": 3000, "seeing_productive": 2600,
+                "yield_agree": 0, "detours": [(1, ["0:9", 1, 1, "f"], 1, 1)],
+                "streak_goals": 2, "streak_frames": 3000, "push_ai": 900, "push_game": 950, "push_game_at": [0, 0],
+                "person_blocks": 0, "left_called_new": [], "ask_nothing_said": 0, "places_samples": 100}
+        return {**base, **more}
+
+    def test_the_step52_verdicts_and_their_controls(self):
+        from ai_player.gates.rate_step5 import BOUNDS, step52_verdicts
+        real = {"CH1": [self.row("CH1", s) for s in (1, 2)], "CH2": [self.row("CH2", s) for s in (1, 2)]}
+        controls = {"LOAF": [self.row("LOAF", s, loaf_frames=BOUNDS["LOAF_FRAMES_MAX"] + 1, productive_frames=100,
+                                      seeing_productive=600) for s in (1, 2)],
+                    "GREEDY": [self.row("GREEDY", s, streak_goals=BOUNDS["SPACING_ROW_MAX"] + 2) for s in (1, 2)],
+                    "BLOCKED": [self.row("BLOCKED", 1, person_blocks=5, push_ai=BOUNDS["PUSH_MAX"] + 9,
+                                         push_game=BOUNDS["PUSH_MAX"] + 9), self.row("BLOCKED", 2)]}
+
+        def check(rows, prefix: str) -> bool:
+            results = step52_verdicts(rows)
+            found = [ok for ok, text in results if text.startswith(prefix)]
+            self.assertEqual(len(found), 1, (prefix, [text[:40] for _, text in results]))
+            return found[0]
+
+        results = step52_verdicts({**real, **controls})
+        self.assertTrue(all(ok for ok, _ in results), [text[:120] for ok, text in results if not ok])
+        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, loaf_frames=7500)], **controls}, "NO LOAFING"))
+        self.assertFalse(check({**real, **controls, "LOAF": [self.row("LOAF", 1)]}, "LOAF ("))  # a control that holds
+        self.assertFalse(check({**real, "CH2": [self.row("CH2", 1, streak_goals=6)], **controls}, "CURIOSITY SPACED"))
+        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, detours=[(1, ["0:9", 1, 1, "f"], 1, 0)])], **controls},
+                               "THE DETOUR'S WORD IS TRUE"))
+        pushed = {**real, "CH1": [self.row("CH1", 1, push_ai=BOUNDS["PUSH_MAX"], push_game=10)], **controls}
+        self.assertFalse(check(pushed, "THE PUSHING PROPERTY"))
+        self.assertFalse(check(pushed, "THE TWO PATHS AGREE on the pushing"))
+        self.assertFalse(check({**real, **controls, "BLOCKED": [self.row("BLOCKED", 1)]}, "BLOCKED ("))  # never reached
+        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, seeing_frames=4000, seeing_productive=1000)],
+                                "CH2": real["CH2"], **controls}, "CH1: CURIOSITY BY YIELD"))
+        # (step52dev3) the arrival share counts the detours that CHOSE a place: one that found none walked nowhere (FAULT
+        # halves: counted as failures to arrive, 3 of 7; and a run whose placed detours did not arrive passes)
+        nowhere = [(1, None, 0, 0), (2, None, 0, 0), (4, None, 0, 0), (5, None, 0, 0), (3, ["0:9", 1, 1, "f"], 1, 1)]
+        self.assertTrue(check({**real, "CH1": [self.row("CH1", 1, detours=nowhere)], "CH2": real["CH2"], **controls},
+                              "DETOURS THAT ARRIVE"))
+        short = [(1, ["0:9", 1, 1, "f"], 0, 0), (2, ["0:9", 2, 2, "f"], 0, 0), (3, ["0:9", 3, 3, "f"], 1, 1)]
+        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, detours=short)], "CH2": [self.row("CH2", 1, detours=[])],
+                                **controls}, "DETOURS THAT ARRIVE"))
+        # (step52dev2) graded on the curiosity that SEES: a run whose looks loafed while its chats talked FAILS it
+        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, seeing_productive=500)], "CH2": real["CH2"],
+                                **controls}, "CH1: CURIOSITY BY YIELD"))
+        # LOAF whose looks brought something does not fail its check (FAULT half: graded on all its curiosity)
+        self.assertFalse(check({**real, **controls, "LOAF": [self.row("LOAF", s, loaf_frames=BOUNDS["LOAF_FRAMES_MAX"] + 1)
+                                                             for s in (1, 2)]}, "LOAF ("))
+
+    def test_the_game_side_recorder_of_places(self):
+        """`play_harness.PlaceRecorder` (the framework's reads stood in for by `place_now`): new tiles of the screen's
+        window, a new map, a talk, and the pushing stretches: free time only, ended by something new or a battle, paused
+        by a text, counted only with presses."""
+        from ai_player.gates import play_harness
+        samples = []
+        controls = types.SimpleNamespace(presses=0)
+        recorder = play_harness.PlaceRecorder(controls, every=1, pages={"Thank you for waiting."})
+        shown = [["Hello, and welcome to the POKéMON CENTER."]]
+
+        def feed(sample, presses=1):
+            samples.append(sample)
+            controls.presses += presses
+            recorder.after_frame()
+
+        def pages_now() -> list[str]:
+            if shown[-1] is None:
+                raise RuntimeError("a read between screens")
+            return shown[-1]
+
+        with mock.patch.object(play_harness, "place_now", lambda: samples[-1]), \
+                mock.patch.object(play_harness, "shown_pages", pages_now):
+            feed(("OVERWORLD", (0, 9, 10, 10), True, False))  # a new map: the OPENING window, 165 tiles, no goal's yield
+            for _ in range(50):
+                feed(("OVERWORLD", (0, 9, 10, 10), True, False))  # pressing, nothing new: 50 free frames
+            for _ in range(30):
+                feed(("OVERWORLD", (0, 9, 10, 10), False, True))  # a text waits: a pause, and a talk
+            for _ in range(20):
+                feed(("OVERWORLD", (0, 9, 10, 10), True, False))
+            feed(("OVERWORLD", (0, 9, 11, 10), True, False))  # a step east: a new column of tiles ends the stretch
+            feed(("BATTLE", None, False, False), presses=0)
+            for _ in range(10):
+                feed(("OVERWORLD", (0, 9, 11, 10), True, False), presses=0)  # free, no press: no pushing
+            # (the verifier's round) the same message again, one the run it goes on from showed, a new one, an unread one,
+            # (its second round) a buffer with no page, read as unread
+            for message in (["Hello, and welcome to the POKéMON CENTER."], ["Thank you for waiting."],
+                            ["We hope to see you again!"], None, []):
+                shown.append(message)
+                feed(("OVERWORLD", (0, 9, 11, 10), False, True), presses=0)
+                feed(("OVERWORLD", (0, 9, 11, 10), True, False), presses=0)
+        result = recorder.result()
+        self.assertEqual(result["stays"], [[1, "0:9"]])
+        # (the verifier's second round) FAULT half: the opening window credited to the first goal (the truck chats)
+        self.assertEqual(result["new_tiles"], [[102, 11]])
+        self.assertEqual(result["opening"], 165)
+        # FAULT halves: every text new (the label), the earlier run's messages forgotten
+        self.assertEqual(result["texts"], [[52, 81, True], [114, 114, False], [116, 116, False], [118, 118, True],
+                                           [120, 120, True], [122, 122, True]])
+        self.assertEqual(result["text_errors"], 2)  # the unread one and the empty one: counted, each text counted new
+        self.assertEqual(result["battles"], [[103, 103]])  # (step52dev2) FAULT half: no battle recorded
+        self.assertEqual(result["push"]["longest"][2], 69)  # FAULT halves: the text's 30 counted; no end at the new tiles
+        self.assertEqual(result["push"]["stretches"], 1)
+
+    #: pret/pokeemerald data/maps/OldaleTown/scripts.inc (read 2026-10-16): the footprints man's scene and his talk
+    FOOTPRINTS_SCENE = ["Aaaaah! Wait! Please don't come in here.", "I just discovered the footprints of a rare POKéMON!",
+                        "Wait until I finish sketching them, okay?"]
+
+    def test_a_talk_is_new_only_with_a_page_never_shown(self):
+        """(build step 5.2, THE VERIFIER'S SECOND ROUND: "PlaceRecorder compares WHOLE messages", so OLDALE's footprints
+        man's talk, the last two pages of his own scene, was a new message 20 times in the graded sweep, game 1 and AI 0)
+        `PlaceRecorder`: a text is NEW only when it shows a page the game never showed before in the run (or in the run it
+        goes on from); a talk with one new page among old ones is new."""
+        from ai_player.gates import play_harness
+        samples = []
+        controls = types.SimpleNamespace(presses=0)
+        recorder = play_harness.PlaceRecorder(controls, every=1, pages={"Thank you for waiting."})
+        shown: list = []
+        scene = self.FOOTPRINTS_SCENE
+        with mock.patch.object(play_harness, "place_now", lambda: samples[-1]), \
+                mock.patch.object(play_harness, "shown_pages", lambda: shown[-1]):
+            for pages in (scene, scene[1:], [scene[1], "I finished sketching the footprints of a rare POKéMON."],
+                          ["Thank you for waiting.", scene[2]], list(reversed(scene))):
+                shown.append(pages)
+                samples.append(("OVERWORLD", (0, 10, 1, 11), False, True))
+                recorder.after_frame()
+                samples.append(("OVERWORLD", (0, 10, 1, 11), True, False))
+                recorder.after_frame()
+        # FAULT half (whole messages compared): the talk after the scene, a message of its own, was NEW
+        self.assertEqual([text[2] for text in recorder.result()["texts"]], [True, False, True, False, False])
+        self.assertEqual(recorder.result()["text_errors"], 0)
+
+    def test_a_message_is_cut_into_pages_where_the_box_waits_for_a_press(self):
+        """`play_harness.split_pages`: the bytes up to the string's end (0xFF: what lies past it is an older message's),
+        cut at a page's clear (0xFB) and at a scroll (0xFA), each piece decoded; a newline (0xFE) stays inside its page; a
+        control code's argument bytes are never read as a break (0xFC 0x01 0xFB: a text colour 0xFB); empty pieces are
+        left out."""
+        from ai_player.gates.play_harness import split_pages
+        letters = {chr(ord("a") + n): 0x10 + n for n in range(26)} | {" ": 0x00, "!": 0x50}
+        decoded: list[bytes] = []
+
+        def encode(text: str) -> bytes:
+            return bytes(letters[c] for c in text)
+
+        def decode(raw: bytes) -> str:  # the framework's rules for the codes used here: 0xFE a space, 0xFC + 1 + its byte,
+            decoded.append(raw)        # 0xFA and 0xFB dropped (`modules.game.decode_string`)
+            out, at = "", 0
+            while at < len(raw) and raw[at] != 0xFF:
+                byte = raw[at]
+                at += 1
+                if byte == 0xFE:
+                    out += " "
+                elif byte == 0xFC:
+                    at += 2
+                elif byte in (0xFA, 0xFB):
+                    continue
+                else:
+                    out += next(c for c, b in letters.items() if b == byte)
+            return out
+
+        raw = (encode("aaaaah!") + b"\xfe" + encode("wait") + b"\xfb" + encode("i just") + b"\xfe" + encode("found ")
+               + b"\xfc\x01\xfb" + encode("them") + b"\xfa" + encode("so") + b"\xfb\xfb"
+               + b"\xff" + encode("old") + b"\xfb" + encode("page") + b"\xff")
+        # FAULT halves: no cut at the scroll ("i just found them so"); the colour's 0xFB read as a break ("i just found",
+        # "them"); past the end read on (an extra page "page")
+        self.assertEqual(split_pages(raw, decode), ["aaaaah! wait", "i just found them", "so"])
+        self.assertTrue(all(piece.endswith(b"\xff") for piece in decoded))  # each piece handed on as a whole string
+        self.assertEqual(split_pages(b"\xff" + encode("stale"), decode), [])  # nothing before the end: no page
+        self.assertEqual(split_pages(encode("no end"), decode), ["no end"])
+
+    def test_a_script_waits_only_while_it_runs_its_wait(self):
+        """(build step 5.2, THE VERIFIER'S SECOND ROUND, its weak proof "NOHINTS 938's explore at f70318 is 0 tiles by the
+        game, 50 by the AI": a diagnostic replay measured the player WALKING while the framework's read said a text waited)
+        `play_harness.text_waits`: a script waits for A/B only while its context RUNS WaitForAorBPress (mode Native); the
+        pointer a finished script leaves behind (mode Stopped, or Bytecode after the press) is no wait; a printer waits while
+        active in state 2 or 3."""
+        from ai_player.gates.play_harness import text_waits
+        self.assertTrue(text_waits("Native", "WaitForAorBPress", (0, 0)))  # a sign's last wait: no printer, the script waits
+        self.assertFalse(text_waits("Stopped", "WaitForAorBPress", (0, 0)))  # FAULT half: the leftover (the replay's walk)
+        self.assertFalse(text_waits("Bytecode", "WaitForAorBPress", (0, 0)))  # the script went on after the press
+        self.assertFalse(text_waits("Native", "IsFieldMessageBoxHidden", (0, 0)))
+        self.assertTrue(text_waits("Stopped", "WaitForAorBPress", (1, 2)))  # a page waits in the printer
+        self.assertTrue(text_waits("Bytecode", None, (1, 3)))
+        self.assertFalse(text_waits("Stopped", None, (1, 0)))  # printing, not waiting
+
+    def test_both_recorders_read_a_wait_by_the_harness_s_own_rule(self):
+        """The overworld reads of both second paths (`waits_now`, the stall's; `place_now`, the places') CALL
+        `text_waits_now`, never the framework's `is_waiting_for_input`, and `text_waits_now` calls `text_waits` (by AST:
+        a mention in a docstring or a comment is no call)."""
+        from ai_player.gates import play_harness
+        tree = ast.parse(Path(play_harness.__file__).read_text(encoding="utf-8"))
+        calls: dict[str, set] = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name in ("waits_now", "place_now", "text_waits_now"):
+                calls[node.name] = {getattr(call.func, "id", getattr(call.func, "attr", None))
+                                    for call in ast.walk(node) if isinstance(call, ast.Call)}
+        for name in ("waits_now", "place_now"):
+            self.assertIn("text_waits_now", calls[name], name)
+            self.assertNotIn("is_waiting_for_input", calls[name], name)
+        self.assertIn("text_waits", calls["text_waits_now"])
+        self.assertNotIn("is_waiting_for_input", calls["text_waits_now"])
+
+
+class VerifierRound52Tests(unittest.TestCase):
+    """(build step 5.2, THE VERIFIER'S ROUND, 2026-10-15) Its two FAILURES, each rule with its fault half and a mutant in
+    `gates/revert_step5.py` (G277-G313):
+      * LOAFING CREDITED AS A TALK (60 nurses re-healing a full party, 46 MART clerks, 21 times OLDALE's footprints man,
+        straight after they had spoken, every one hearing nothing new, "a talk" by both paths): someone who SPOKE (straight
+        ahead, at most `SPOKE_REACH` tiles, words on the overworld screen) is never chatted with, and is kept with the
+        world memory; a talk is a yield only when it told something new (`goal_yield`; the game's `game_yield` by a message
+        the game never showed before: `GraderYieldTests`);
+      * THE NOHINTS PUSHING (20 of 20 graded runs, 31,676-62,012 frames by the AI's record: OLDALE's house door used for up
+        to 98 goals in a row, each ended by the ping-pong rule, or OLDALE's edge crossed both ways "seen all of"): a warp's
+        ping-pong is kept past its intent; what the navigator's reach shows no way to is out of a map's promise; a frontier
+        stood on whose unseen side stays unseen is given up; a walk with NO LEAD heads for what is left anywhere it knows,
+        and with nothing left anywhere it gives the run up ("out of ideas") instead of pressing for nothing."""
+
+    NURSE_WORDS = "Hello, and welcome to the POKéMON CENTER."
+
+    def speaking(self, objects, facing: str = "up", waits: bool = True, in_battle: bool = False,
+                 text: str = NURSE_WORDS) -> Observation:
+        seen = look(objects=objects, map_number=1)
+        return replace(seen, player=replace(seen.player, facing=facing),
+                       screen=replace(seen.screen, waits_for_button=waits, text=text if waits else None,
+                                      in_battle=in_battle))
+
+    def test_someone_who_spoke_is_remembered_and_never_chatted_with(self):
+        """`GoalManager.notice`: the person straight in front of the player, at most two tiles away (the nurse across her
+        counter), while words wait on the overworld screen, has SPOKEN; nobody beside it, nobody three tiles ahead, nobody
+        when no words are on screen or in a battle. `_chat_person` never chooses someone who spoke."""
+        from ai_player.brain.goals import SPOKE_REACH
+        self.assertEqual(SPOKE_REACH, 2)
+        nurse, beside, far = person(10, 8, local_id=1), person(11, 10, local_id=2), person(10, 7, local_id=3)
+        mgr = manager("Catcher")
+        mgr.memory.hearing = True  # a service talk or a chat is the goal (`GoalRunner.pursue`)
+        mgr.notice(self.speaking([nurse, beside, far]))
+        self.assertEqual(mgr.memory.spoke, {"0:1|1"})  # FAULT halves: anyone near (beside, far); one tile only (none)
+        quiet = manager("Catcher")
+        quiet.memory.hearing = True
+        quiet.notice(self.speaking([nurse], waits=False))
+        quiet.notice(self.speaking([nurse], in_battle=True))
+        self.assertEqual(quiet.memory.spoke, set())
+        mgr.notice(self.speaking([person(11, 10, local_id=4)], facing="right", text="Hello there!"))
+        self.assertIn("0:1|4", mgr.memory.spoke)  # face to face
+        # (step52vdev2: remembering a SCENE's speakers too cut the chats with new words by half, PROF. BIRCH's 18 of the
+        # graded sweep among them) someone who speaks in a scene, no service talk or chat the goal, is not remembered
+        scene = manager("Catcher")
+        scene.notice(self.speaking([nurse], text="PROF. BIRCH: So, you're NOVA?"))
+        self.assertEqual(scene.memory.spoke, set())  # FAULT half: every speaker remembered
+        world = world_with("OLDALE_TOWN_POKEMON_CENTER_1F", current="OLDALE_TOWN_POKEMON_CENTER_1F")
+        other = person(12, 10, local_id=5)
+        for chooser, want in ((mgr, 5), (manager("Catcher"), 1)):  # FAULT half: the nurse who just healed it, chatted with
+            chooser.rng = types.SimpleNamespace(random=lambda: 0.0)
+            chosen = chooser._chat_person(look(objects=[nurse, other], map_number=1), world, 1000)  # noqa: SLF001
+            self.assertEqual(chosen[0].local_id if chosen else None, want)
+
+    def test_a_service_talk_or_a_chat_is_heard_and_other_goals_are_not(self):
+        """`GoalRunner.pursue`: while the goal is a heal, a shop, a chat or a detour (`HEARD_KINDS`) the goal manager is
+        `hearing` (its `notice` remembers who speaks); for every other goal, and after the goal, it is not."""
+        from ai_player.brain.goals import HEARD_KINDS, Goal, GoalRunner
+        self.assertEqual(HEARD_KINDS, ("heal", "shop", "chat", "detour"))
+        mgr = manager("Catcher")
+        milestone = mgr.story.milestones[8]
+        nav = types.SimpleNamespace(world=world_with("OLDALE_TOWN", current="OLDALE_TOWN"), battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(9)])), nav, mgr,
+                            types.SimpleNamespace(purpose=""), lambda line: None)
+        heard: list = []
+
+        def pursue(goal, milestone_, index, current):
+            heard.append((goal.kind, mgr.memory.hearing))
+            yield
+            return True, "done"
+
+        runner._pursue = pursue  # noqa: SLF001
+        for kind in ("heal", "shop", "chat", "detour", "go", "talk", "explore"):
+            drive(runner.pursue(Goal(kind, "x"), milestone, 8, lambda s: 8))
+        self.assertEqual(heard, [("heal", True), ("shop", True), ("chat", True), ("detour", True), ("go", False),
+                                 ("talk", False), ("explore", False)])  # FAULT half: never hearing (nobody remembered)
+        self.assertFalse(mgr.memory.hearing)
+
+    def test_a_scene_that_turned_a_curiosity_walk_back_once_blocks_its_tile(self):
+        """(step52vdev2, CH1 seed 1209: a detour ended at the footprints man's first "Wait! Please don't come in here.", and
+        the look round "some more" after it walked OLDALE for 2,003 frames toward his corner) the navigator keeps every tile
+        a scene BEGAN on and turned the player back from (`scene_turned`, over all intents); `GoalRunner.pursue` blocks the
+        ones a CURIOSITY walk met for curiosity in the milestone after ONE meeting; a story walk's are not."""
+        from ai_player.brain.goals import Goal, GoalRunner
+        from ai_player.brain.navigator import Navigator
+        from ai_player.hands.pad import Hands
+        world = WorldMemory()
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        world._last.key = "0:10"  # noqa: SLF001
+        still = mock.Mock(last=80, last_progress=80)
+        nav._scene_met("0:10|frontier:(-3, 11)", Target("frontier", (-3, 11), "x"), 93007, still, "0:10", (0, 10), (1, 10))  # noqa: SLF001
+        self.assertEqual([(key, tile) for key, tile, _ in nav.scene_turned], [("0:10", (0, 10))])  # FAULT half: not kept
+        nav._scene_met("0:10|frontier:(-3, 9)", Target("frontier", (-3, 9), "x"), 93500, still, "0:10", (2, 2), (2, 2))  # noqa: SLF001
+        self.assertEqual(len(nav.scene_turned), 1)  # a scene that left it where it stood turned nothing back
+        # (step52vdev5, NOHINTS seed 1245: the STORY's walk had met the footprints man, and a look round "some more" later
+        # walked into his scene twice) a story walk's too: blocked for CURIOSITY, never one of the story's own walls
+        for kind, expect in (("detour", {(0, 10)}), ("explore", {(0, 10)}), ("go", {(0, 10)})):
+            mgr = manager("Catcher")
+            milestone = mgr.story.milestones[9]
+            stub = types.SimpleNamespace(world=world_with("OLDALE_TOWN", current="OLDALE_TOWN"), carried_scene_walls=None,
+                                         scene_walls={}, battle_log=[], scene_given_up=[],
+                                         scene_turned=[("0:1", (5, 5), "an earlier goal's")])
+
+            def pursue(goal, milestone_, index, current, stub=stub):
+                stub.scene_turned.append(("0:1", (0, 10), "a scene began here and turned it back (f93007)"))
+                yield
+                return False, "not reached: the frontier at (-3, 11) (a scene stopped the way there)"
+
+            runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(9)])), stub, mgr,
+                                types.SimpleNamespace(purpose=""), lambda line: None)
+            runner._pursue = pursue  # noqa: SLF001
+            drive(runner.pursue(Goal(kind, "x", via="0:1"), milestone, 9, lambda s: 9))
+            self.assertEqual(set(mgr.memory.blocked.get(milestone.id, {}).get("0:1", {})), expect, kind)  # FAULT: none
+            self.assertNotIn((0, 10), mgr.memory.scene_walls.get(milestone.id, {}).get("0:1", set()), kind)
+
+    def test_a_look_round_is_over_when_it_has_seen_nothing_new_battles_or_not(self):
+        """(step52vdev3, CH2 seed 1220: a look round of ROUTE 102's grass ran its 4,200 frames through 21 battles, 9 new
+        tiles, each battle's experience resetting its novelty window) `GoalRunner._pursue`'s look round ends once it has
+        SEEN nothing new (no tile, no map) for `CURIOUS_NOVELTY` frames, whatever else happened; and at once at a stop of
+        the walk (`walk_done`: here the story moving on)."""
+        from ai_player.brain.goals import CURIOUS_NOVELTY, Goal, GoalRunner
+        for story_moves, want in ((False, 1500 + CURIOUS_NOVELTY), (True, 1000)):
+            mgr = manager("Catcher")
+            milestone = mgr.story.milestones[8]
+            world = world_with("ROUTE102", current="ROUTE102")
+            ended: list = []
+
+            def run(intent, why, world=world, ended=ended):
+                for frame in range(1000, 12000, 100):
+                    if frame == 1500:
+                        world.tiles_learned += 20  # something new seen at f1500, then nothing (battles or not)
+                    if intent.done(look(frame=frame)):
+                        ended.append(frame)
+                        break
+                    yield
+                return "done: look round" if ended else "budget: ran out"
+
+            nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+            runner = GoalRunner(types.SimpleNamespace(look=lambda: look()), nav, mgr, types.SimpleNamespace(purpose=""),
+                                lambda line: None)
+            drive(runner._pursue(Goal("explore", "x", milestone.id, steps=9000, via="0:1"), milestone, 8,  # noqa: SLF001
+                                 (lambda seen: 9) if story_moves else (lambda seen: 8)))
+            self.assertEqual(ended, [want], story_moves)  # FAULT halves: never over (the budget); the walk's stops lost
+
+    def test_curiosity_keeps_out_of_the_corner_a_scene_turned_it_back_from(self):
+        """(step52vdev5, CH2 seed 1242: PETALBURG's "Hiya! Are you maybe... A rookie TRAINER?" turned a look round back at
+        (8, 10) and (8, 12), and the detour after it walked round both into the same scene at (8, 13)) `_scene_corners`: the
+        tiles beside a place a SCENE blocked for curiosity (not one someone stood in the way of) are curiosity's walls too:
+        a curiosity walk carries them, "some more" counts nothing past them (`left_to_see`), and the story's own walls never
+        get them."""
+        from ai_player.brain.goals import Goal, GoalRunner, _scene_corners
+        places = {(8, 12): "a scene began here and turned it back (f296679)", (5, 5): "someone stood in the way 3 times"}
+        self.assertEqual(_scene_corners(places), {(9, 12), (7, 12), (8, 13), (8, 11)})  # FAULT half: the person's too
+        mgr = manager("Catcher")
+        milestone = mgr.story.milestones[9]
+        mgr.blocked_on(milestone.id, "0:1").update(places)
+        stub = types.SimpleNamespace(world=world_with("PETALBURG_CITY", current="PETALBURG_CITY"), carried_scene_walls=None,
+                                     scene_walls={}, battle_log=[], scene_given_up=[], scene_turned=[])
+        carried: list = []
+
+        def pursue(goal, milestone_, index, current):
+            carried.append({key: set(tiles) for key, tiles in stub.carried_scene_walls.items()})
+            yield
+            return False, "budget: ran out"
+
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(9)])), stub, mgr,
+                            types.SimpleNamespace(purpose=""), lambda line: None)
+        runner._pursue = pursue  # noqa: SLF001
+        drive(runner.pursue(Goal("detour", "x", via="0:1"), milestone, 9, lambda s: 9))
+        self.assertIn((8, 13), carried[0]["0:1"])  # FAULT half: the walk round into the same scene
+        self.assertNotIn((8, 13), mgr.memory.scene_walls[milestone.id].get("0:1", set()))  # the story's walls: never
+        # "some more" counts no frontier past the corner: a corridor at y 10, its end (10, 10) beside the unseen
+        world = world_with("ROUTE102", current="ROUTE102")
+        here = world.here()
+        for x in range(0, 11):
+            here.tiles[(x, 10)] = TileFact(x == 0, False, False, False, None, False, False, 3, "NORMAL", 0, (1, 10))
+            for y in (9, 11):
+                here.tiles[(x, y)] = TileFact(True, False, False, False, None, False, False, 3, "NORMAL", 0, (1, 10))
+        seen = replace(look(), player=replace(look().player, x=1, y=10))
+        quiet = manager("Catcher")
+        self.assertIsNone(quiet.left_to_see(seen, world, milestone.id))  # the end of the corridor is left to see
+        quiet.blocked_on(milestone.id, world.current)[(6, 9)] = "a scene began here and turned it back (f1)"
+        self.assertEqual(quiet.left_to_see(seen, world, milestone.id), "nothing left to see here that it can walk to")
+
+    def test_whom_it_met_is_kept_with_the_world_memory(self):
+        """`WorldMemory.spoke` is written with the memory only when it holds someone (the earlier brains' snapshots are
+        unchanged) and read back, so a later session (chapter 2) does not chat with chapter 1's speakers again."""
+        world = WorldMemory()
+        self.assertNotIn("spoke", world.to_dict())
+        world.spoke.add("2:2|1")
+        back = WorldMemory.from_dict(json.loads(world.snapshot()))
+        self.assertEqual(back.spoke, {"2:2|1"})  # FAULT halves: not written, not read
+
+    def test_the_play_brain_turns_the_new_rules_on(self):
+        """The REAL play loop: the goal manager's `spoke` IS the world memory's set, its `notice` watches every look, and
+        the navigator keeps ping-pongs past an intent (`ponged`) and marks what its reach shows no way to (`mark_cut`)."""
+        from ai_player.brain.goals import GoalManager as RealManager
+        seen: list = []
+
+        def effect(goal, world, runner):
+            seen.append((runner.manager.memory.spoke is world.spoke, runner.nav.ponged, runner.nav.mark_cut))
+            return None
+
+        loop = PlayLoopTests()
+        _, hands, _, _, _ = loop.run_loop(screen=loop.free_screen(), budget=5000, effect=effect)
+        self.assertEqual(seen[0], (True, {}, True))  # FAULT halves: a set of its own, the rules off
+        self.assertTrue(any(getattr(w, "__func__", None) is RealManager.notice for w in hands.watchers))
+
+    SPLIT_ROWS = ["#" * 10 + "D" + "#" * 19] + ["#" + "." * 8 + "#" + "." * 19 + "#" for _ in range(9)] + ["#" * 30]
+
+    def test_what_its_reach_shows_no_way_to_is_not_left_to_see(self):
+        """`Navigator.cut_off` (OLDALE_TOWN_HOUSE1's two tiles no walk from its door can get to were "2 things left to see"
+        for ever): the frontier tiles and unused exits the reach from where the player stands shows no way to are marked
+        (`WorldMemory.mark_cut_off`) and out of the map's `promise` until it shows something new; the people standing in
+        the way are no wall of it (they walk on); off for the earlier brains."""
+        from ai_player.gates.test_world import GridGame, rig
+        game = GridGame({"SPLIT": self.SPLIT_ROWS}, ("SPLIT", (3, 5)))  # a wall at x 9; the screen shows x 10, not x 11
+        hands, nav, world, _, _ = rig(game)
+        world.observe(game.look())
+        key = world.current
+        self.assertIn((10, 0), world.here().exits())
+        self.assertEqual(world.promise(key), 10)  # x 10, y 1-9 beside the unseen x 11, and the door above (10, 1)
+        self.assertEqual(nav.cut_off(game.look()), [])  # the earlier brains: as before
+        nav.mark_cut = True
+        cut = nav.cut_off(game.look())
+        self.assertEqual(sorted(cut), sorted([(10, y) for y in range(1, 10)] + [(10, 0)]))
+        self.assertEqual(world.promise(key), 0)  # FAULT halves: not marked; marked and `promise` blind to it
+        world.maps[key].tiles[(40, 40)] = TileFact(True, False, False, False, None, False, False, 3, "NORMAL", 0, (3, 5))
+        self.assertEqual(world.promise(key), 10)  # the map showed something new: counted again
+        gap = [row[:9] + "." + row[10:] if y == 5 else row for y, row in enumerate(self.SPLIT_ROWS)]
+        game = GridGame({"SPLIT": gap}, ("SPLIT", (3, 5)), people={"SPLIT": {(9, 5)}})  # someone stands in the gap
+        hands, nav, world, _, _ = rig(game)
+        world.observe(game.look())
+        nav.mark_cut = True
+        self.assertIn((9, 5), nav.walls(world.here(), (3, 5)))
+        self.assertEqual(nav.cut_off(game.look()), [])  # FAULT half: the person a wall, all ten cut off
+
+    def test_the_navigator_marks_what_it_cannot_get_to_before_it_chooses(self):
+        """`Navigator.run` asks `cut_off` at every decision (before the intent chooses)."""
+        from ai_player.brain.navigator import Intent
+        from ai_player.gates.test_world import GridGame, drive as drive_world, rig
+        game = GridGame({"SPLIT": self.SPLIT_ROWS}, ("SPLIT", (3, 5)))
+        hands, nav, world, _, _ = rig(game)
+        nav.mark_cut = True
+        drive_world(nav.run(Intent("nothing", 500, lambda navigator, look_: None, lambda look_: False), "nothing"))
+        self.assertEqual(len(world.cut_off[world.current][1]), 10)  # FAULT half: the call deleted, nothing marked
+
+    def test_a_ping_pong_is_kept_past_its_intent(self):
+        """(OLDALE's house door used for up to 98 goals in a row) `Navigator._remember_pingpong`: the warp that ended an
+        intent as a ping-pong is kept (`ponged`) with the world memory's `stamp`; `ponged_now` says a target through it is
+        one while nothing new has been seen anywhere since; the earlier brains keep none."""
+        from ai_player.brain.navigator import Target
+        from ai_player.gates.test_world import ExitTests, drive as drive_world, rig
+        from ai_player.brain.explore import explore_intent
+        for keep in (False, True):
+            game = ExitTests().house(scene=True)
+            hands, nav, world, _, _ = rig(game)
+            if keep:
+                nav.ponged = {}
+            outcome = drive_world(nav.run(explore_intent("TOWN", "Story", 20000), "leave the house"))
+            self.assertTrue(outcome.startswith("stuck: ping-pong"), outcome)
+            if not keep:
+                self.assertIsNone(nav.ponged)  # the earlier brains: as before
+                continue
+            self.assertEqual(len(nav.ponged), 1)  # FAULT half: nothing kept (the call deleted)
+            name, stamp = next(iter(nav.ponged.items()))
+            self.assertEqual(stamp, world.stamp())
+            source, _, where = name.partition("|")
+            world._last.key = source  # noqa: SLF001 - test side: standing on the warp's map
+            exit_tile = tuple(int(v) for v in where.split(","))
+            through = Target("back", (0, 0), "the stairs", exit=exit_tile)
+            self.assertTrue(nav.ponged_now(through))  # FAULT halves: the stamp not kept, not compared
+            self.assertFalse(nav.ponged_now(Target("back", (0, 0), "elsewhere", exit=(99, 99))))
+            world.tiles_learned += 1  # something new seen anywhere: the warp is worth a try again
+            self.assertFalse(nav.ponged_now(through))
+
+    def lost(self, targets, routes=(), left=(("0:2", 3),), ponged=(), dead=(), personality: str = "Catcher",
+             way_out: bool = True):
+        """`lost_intent`'s choice on OLDALE with the explorer's candidates stood in for: `targets` (goal None), `routes`
+        (toward a map in `left`), the warps `ponged`, the frontier tiles `dead` (a walk found no way there); `way_out`:
+        OLDALE has a known way out (its MART's door), else the player is shut in."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import lost_intent
+        world = world_with("OLDALE_TOWN", "ROUTE101", current="OLDALE_TOWN", mart_from="OLDALE_TOWN" if way_out else None)
+        here = world.here()
+        world.unreached[world.current] = {tile: len(here.tiles) for tile in dead}
+        world.left_anywhere = lambda: list(left)
+        nav = types.SimpleNamespace(choosing_on_the_move=False, world=world, rng=random.Random(1), heading=lambda: None,
+                                    where=lambda seen: (here, (10, 10)), ponged_now=lambda t: t.exit in ponged)
+        told: list[str] = []
+        intent = lost_intent(personality, 2400, lambda seen: False, told.append)
+        with mock.patch.object(goals_module, "candidates",
+                               lambda nav_, look_, weights, goal=None, jitter_on=True: list(routes if goal else targets)), \
+                mock.patch.object(goals_module, "pick", lambda found, rng: found[0]), \
+                mock.patch.object(goals_module, "choose_target", lambda *a, **k: Target("wander", (1, 1), "wander")):
+            chosen = intent.choose(nav, look(const="OLDALE_TOWN"))
+        return chosen, told
+
+    def test_a_walk_with_no_lead_heads_for_what_is_left_and_else_is_out_of_ideas(self):
+        """`lost_intent` (seed 903: OLDALE's bottom edge crossed back and forth, "seen all of" both ways, until the
+        patience): nothing here worth going to -> the way toward the nearest map with something left (`lost_way`); nothing
+        left on ANY map it knows -> no target, and it says it is out of ideas; something new here -> that, as always."""
+        from ai_player.brain.goals import OUT_OF_IDEAS, travel_intent
+        from ai_player.brain import goals as goals_module
+        seen_all = [Target("back", (8, 20), "the road down: it leads back to ROUTE101, seen all of")]
+        route = [Target("route", (14, 7), "it leads toward the goal (1 link(s) known)", score=50.0, exit=(14, 6))]
+        chosen, told = self.lost(seen_all, route)
+        self.assertEqual((chosen.kind, chosen.tile), ("route", (14, 7)))  # FAULT half: the road back, seen all of
+        self.assertTrue(chosen.reason.startswith("lost: "), chosen.reason)
+        self.assertEqual(told, [])
+        chosen, told = self.lost(seen_all, route, left=())
+        self.assertIsNone(chosen)  # FAULT half: a wander among what it has seen, the push of the NOHINTS runs
+        self.assertEqual(len(told), 1)
+        self.assertTrue(told[0].startswith(OUT_OF_IDEAS), told)
+        # (step52vdev1: three of four chapter-1 runs gave up inside the moving truck) SHUT IN, no way out known: it waits,
+        # as before (FAULT half: out of ideas 26 frames into the game)
+        chosen, told = self.lost([], route, left=(), way_out=False)
+        self.assertEqual((chosen.kind if chosen else None, told), ("wander", []))
+        frontier = [Target("frontier", (3, 3), "2 unseen tile(s) beside it")]
+        chosen, told = self.lost(frontier + seen_all, route, left=())
+        self.assertEqual((chosen.kind, told), ("frontier", []))
+        # a frontier a walk found no way to is no option (seed 903 tried OLDALE's nine past the footprints man 41 times)
+        chosen, told = self.lost(frontier + seen_all, route, dead=[(3, 3)])
+        self.assertEqual(chosen.kind, "route")  # FAULT half: the dead frontier again
+        # the old walk (`travel_intent`), the same candidates: the road back, seen all of
+        world = world_with("OLDALE_TOWN", current="OLDALE_TOWN")
+        nav = types.SimpleNamespace(choosing_on_the_move=False, world=world, rng=random.Random(1), heading=lambda: None,
+                                    where=lambda seen: (world.here(), (10, 10)))
+        with mock.patch.object(goals_module, "candidates", lambda *a, **k: list(seen_all)), \
+                mock.patch.object(goals_module, "pick", lambda found, rng: found[0]):
+            self.assertEqual(travel_intent(None, "Catcher", 2400, lambda s: False).choose(nav, look()).kind, "back")
+
+    def test_a_map_a_lost_walk_found_nothing_worth_going_to_on_is_spent(self):
+        """(step52vdev3, NOHINTS seed 1223: OLDALE <-> ROUTE 103 across the edge for 3,395 frames, each map "where something
+        is left" seen from the other, nothing worth going to on either) a walk with no lead that stands on a map and finds
+        nothing there worth going to marks it SPENT (`WorldMemory.mark_spent`): its `promise` is 0 until it shows something
+        new, or the story moves on (`forget_marks`)."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import lost_intent
+        world = world_with("OLDALE_TOWN", "ROUTE103", current="OLDALE_TOWN", mart_from="OLDALE_TOWN")
+        here = world.here()
+        for x in range(3):  # a frontier on OLDALE: something left to see there, as far as `promise` knows
+            here.tiles[(x, 0)] = TileFact(False, False, False, True, None, False, False, 3, "NORMAL", 0, (0, 0))
+        key = world.current
+        before = world.promise(key)
+        self.assertGreater(before, 0)
+        nav = types.SimpleNamespace(choosing_on_the_move=False, world=world, rng=random.Random(1), heading=lambda: None,
+                                    where=lambda seen: (here, (1, 1)), ponged_now=lambda t: False)
+        seen_all = [Target("back", (8, 20), "the road down: it leads back to ROUTE101, seen all of")]
+        with mock.patch.object(goals_module, "candidates", lambda *a, **k: list(seen_all)), \
+                mock.patch.object(goals_module, "pick", lambda found, rng: found[0]):
+            lost_intent("Catcher", 2400, lambda seen: False, lambda why: None).choose(nav, look(const="OLDALE_TOWN"))
+        self.assertEqual(world.promise(key), 0)  # FAULT halves: not marked; marked and `promise` blind to it
+        here.tiles[(9, 9)] = TileFact(True, False, False, False, None, False, False, 3, "NORMAL", 0, (0, 0))
+        self.assertGreater(world.promise(key), 0)  # it showed something new: counted again
+        world.mark_spent(key)
+        world.forget_marks()
+        self.assertGreater(world.promise(key), 0)  # the story moved on: counted again (FAULT half: kept)
+
+    def test_a_lost_walk_never_goes_back_through_a_ping_pong_door_unless_it_is_the_only_way(self):
+        doors = [Target("door", (5, 8), "an exit not used yet: where does it go?", exit=(5, 7)),
+                 Target("door", (9, 8), "an exit not used yet: where does it go?", exit=(9, 7))]
+        chosen, _ = self.lost(doors, ponged=[(5, 7)])
+        self.assertEqual(chosen.exit, (9, 7))  # FAULT half: the door of the ping-pong again
+        chosen, _ = self.lost(doors, ponged=[(5, 7), (9, 7)])
+        self.assertEqual(chosen.exit, (5, 7))  # the only ways left: kept (FAULT half: none, a wander)
+
+    def test_a_frontier_stood_on_whose_unseen_side_stays_unseen_is_given_up(self):
+        """`Navigator._seen_out` (OLDALE's MART: two frontier tiles whose unseen side the screen never shows): a walk that
+        ARRIVED on a frontier tile that is still one marks it like one no walk found a way to (out of `promise`) and gives
+        it up for the intent; the earlier brains as before."""
+        from ai_player.brain.navigator import Intent
+        from ai_player.gates.test_world import GridGame, drive as drive_world, rig
+        rows = ["#" * 30] + ["#" + "." * 28 + "#" for _ in range(9)] + ["#" * 30]
+        for on in (False, True):
+            game = GridGame({"OPEN": rows}, ("OPEN", (3, 5)))
+            plain = game.view
+            game.view = lambda plain=plain: replace(plain(), rows=tuple(tuple(t for t in row if t.x < 11)
+                                                                        for row in plain().rows))  # x 11+ never shown
+            hands, nav, world, _, _ = rig(game)
+            nav.mark_cut = on
+            tried: list = []
+
+            def choose(navigator, look_):
+                if tried:
+                    return None
+                tried.append(1)
+                return Target("frontier", (10, 5), "1 unseen tile(s) beside it")
+
+            drive_world(nav.run(Intent("to the edge", 3000, choose, lambda look_: False), "to the edge"))
+            self.assertEqual(game.pos, (10, 5))  # it stood there
+            key = world.current
+            self.assertIn((10, 5), world.here().frontier())  # and the unseen beside it stayed unseen
+            marked = (10, 5) in world.unreached.get(key, {})
+            self.assertEqual(marked, on)  # FAULT halves: the call deleted, the mark deleted
+            given_up = any(why.startswith("arrived: the unseen beside it stayed unseen") for why in nav.excluded.values())
+            self.assertEqual(given_up, on)  # FAULT half: not given up for the intent
+
+    def test_out_of_ideas_gives_the_run_up(self):
+        """`GoalManager.next_goal`: a story goal with NO LEAD whose last walk found nothing left on any map it knows
+        (`lost_end`), nothing new seen since: the run is given up ("give_up"); something new seen since, or a goal with a
+        lead: not."""
+        mgr = manager("Catcher", hints_off=True)
+        milestone = mgr.story.milestones[8]
+        mgr.prep(milestone)["steps"] = 1000
+        world = world_with("LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN", current="OLDALE_TOWN")
+        seen = look(ch1_through("ch1_rival_route103"), party=[mon(20)], const="OLDALE_TOWN", money=0)
+        goal = mgr.next_goal(seen, world, milestone, 8)
+        self.assertEqual((goal.kind, goal.key), ("go", "go:?ch1_rival_route103"))
+        mgr.memory.lost_end = (milestone.id, world.stamp())
+        given = mgr.next_goal(seen, world, milestone, 8)
+        self.assertEqual(given.kind, "give_up")  # FAULT halves: never asked; the stamp not compared
+        self.assertIn("out of ideas", given.reason)
+        world.tiles_learned += 5  # something new since: not out of ideas
+        self.assertEqual(mgr.next_goal(seen, world, milestone, 8).kind, "go")
+        led = manager("Catcher")  # hints on, the step's words read: a lead
+        led.prep(milestone)["steps"] = 1000
+        told = world_with("LITTLEROOT_TOWN", "ROUTE101", "OLDALE_TOWN", current="OLDALE_TOWN",
+                          heard={"Your POKéMON may be a match for my friend on ROUTE 103."})
+        led.memory.lost_end = (milestone.id, told.stamp())
+        self.assertEqual(led.next_goal(seen, told, milestone, 8).key, "go:ROUTE103")
+
+    def test_the_story_moving_on_forgets_what_it_could_not_get_to(self):
+        """(step52vdev1, chapter-1 seed 1201: "out of ideas" at the start of PROF. BIRCH's milestone, in the rival's bedroom,
+        LITTLEROOT's road north still marked from the twin's scene of the milestone before) `Navigator.story_moved` drops the
+        ping-pongs kept and the world memory's marks (`forget_marks`); the REAL play loop asks it when the milestone
+        changes."""
+        from ai_player.brain.navigator import Navigator
+        from ai_player.hands.pad import Hands
+        world = world_with("LITTLEROOT_TOWN", current="LITTLEROOT_TOWN")
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        nav.ponged = {"0:1|5,8": world.stamp()}
+        world.unreached["0:1"] = {(8, -1): 0}
+        world.cut_off["0:1"] = (0, frozenset({(9, -1), (10, -1)}))
+        said = nav.story_moved()
+        self.assertEqual((nav.ponged, world.unreached, world.cut_off), ({}, {}, {}))  # FAULT half: kept into the milestone
+        self.assertIn("1 ping-pong(s) and 3 place(s)", said)
+        asked: list = []
+
+        def effect(goal, world_, runner):
+            asked.append(list(runner.nav.moved))
+            return None
+
+        loop = PlayLoopTests()
+        loop.run_loop(screen=loop.free_screen(), budget=5000, effect=effect)
+        self.assertEqual(len(asked[0]), 1)  # asked once, at the first milestone read (FAULT half: never asked)
+
+    def test_the_play_loop_ends_a_run_given_up(self):
+        from ai_player import mode as mode_module
+        from ai_player.brain.goals import Goal
+
+        class GivesUp(mode_module.GoalManager):
+            def next_goal(self, look_, world, milestone, index):
+                self.memory.decisions += 1
+                return Goal("give_up", f"{milestone.title}: out of ideas: nothing left", milestone.id, key="give_up")
+
+        loop = PlayLoopTests()
+        with mock.patch.object(mode_module, "GoalManager", GivesUp):
+            reason, _, pursued, _, _ = loop.run_loop(screen=loop.free_screen(), budget=20_000)
+        self.assertTrue(reason.startswith("stuck: ") and "out of ideas: nothing left" in reason, reason)
+        self.assertEqual(pursued, [])  # FAULT half: pursued as a goal (none can), the run going on
+
+    def test_a_walk_with_no_lead_uses_the_lost_walk(self):
+        """`GoalRunner._pursue`: an exploring `go` with no lead and its look round put aside (`LOST_KEYS`) walk with
+        `lost_intent`; when it is out of ideas the outcome says so and `lost_end` holds the milestone and the stamp; a led
+        walk, the look round of a milestone whose steps are done and a search keep `travel_intent`."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import Goal, GoalRunner
+        from ai_player.brain.navigator import Intent
+        mgr = manager("Catcher", hints_off=True)
+        milestone = mgr.story.milestones[8]
+        world = world_with("OLDALE_TOWN", current="OLDALE_TOWN")
+        lost_made: list = []
+
+        def fake_lost(personality, budget, done, told):
+            lost_made.append(told)
+            return Intent("look around", budget, lambda nav_, look_: None, done)
+
+        def run(intent, why):
+            if lost_made:
+                lost_made[-1]("out of ideas: nothing left (test)")
+            yield
+            return "stuck: nothing left to try on OLDALE_TOWN"
+
+        nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(20)])), nav, mgr,
+                            types.SimpleNamespace(purpose=""), lambda line: None)
+        for kind, key, lost in (("go", "go:?ch1_rival_route103", True), ("look_around", "aside:go:?ch1_rival_route103", True),
+                                ("look_around", "look_around", False), ("find", "find:rival", False)):
+            lost_made.clear()
+            mgr.memory.lost_end = None
+            with mock.patch.object(goals_module, "lost_intent", fake_lost):
+                ok, outcome = drive(runner._pursue(Goal(kind, "x", milestone.id, key=key, look="rival" if kind == "find"  # noqa: SLF001
+                                                        else None), milestone, 8, lambda seen: 8))
+            self.assertEqual(bool(lost_made), lost, key)  # FAULT half: the old walk, which wanders
+            if lost:
+                self.assertTrue(outcome.startswith("out of ideas: nothing left (test)"), outcome)
+                self.assertEqual(mgr.memory.lost_end, (milestone.id, world.stamp()))  # FAULT half: no stamp kept
 
 
 def _unused_tile() -> Tile:  # keeps the builder import honest (a Tile is what View rows hold)

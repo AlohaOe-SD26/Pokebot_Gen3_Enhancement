@@ -45,9 +45,14 @@ ARCHIVE = EVIDENCE / "archive"
 INDEX = ARCHIVE / "INDEX.md"
 #: The documents whose words count as a CITATION (the archive's own README and INDEX are the policy, not a citation).
 CITING = ("PROJECT KNOWLEDGE/**/*.md", "ai_player/README.md", "ai-agent/**/*.md", "ai_player/gates/*.py")
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 #: (step 4.1 round 3, the verifier: "The prune_evidence.py gap with the `[VERIFY] code:` prefix is not fixed") a code line
-#: may carry a bracketed tag before it (`verify_knowledge.py` prints "[VERIFY] code: ...")
-CODE_LINE = re.compile(r"^(?:\[[A-Z0-9-]+\] *)?code: .*?([0-9a-f]{16})", re.M)
+#: may carry a bracketed tag before it (`verify_knowledge.py` prints "[VERIFY] code: ..."). (Build step 5.2, G6) the
+#: pattern and the reader are `provenance`'s, the ONE reader `evidence_digests` and `keep_earlier` use too: this file read
+#: the first 4000 characters and that one the first 12 lines, so a file whose command is a multi-line `-c` script (its code
+#: line on line 32) had a digest for one and none for the other.
+from ai_player.gates.provenance import CODE_LINE, code_digest, file_digest  # noqa: E402,F401
 #: (step 4.1 round 3, the verifier: "the archive is back to 9.8 MB ... The 115 files (8.2 MB) of the never-committed tree
 #: 8b742931d35fa205 are kept wholesale, against the 'cited by name only' policy") the uncited files of a tree git does not
 #: hold (never committed) are PACKED into this one compressed file in their tree's folder, one INDEX line each (their size
@@ -56,9 +61,8 @@ PACK_NAME = "uncited.zip"
 
 
 def digest_of(path: Path) -> str | None:
-    """The 16-hex digest the file's code line names (within its first 4000 characters), or None."""
-    found = CODE_LINE.search(path.read_text(encoding="utf-8", errors="replace")[:4000])
-    return found.group(1) if found else None
+    """The 16-hex digest the file's code line names (`provenance.file_digest`, the one reader), or None."""
+    return file_digest(path)
 
 
 def pack(folder: Path, files: list[Path]) -> list[str]:

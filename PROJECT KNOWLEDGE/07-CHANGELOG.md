@@ -38041,3 +38041,46 @@ bought balls only at fixed story points.
   - **Double battles:** the Route 104 twins and gym tile (1,9) start one, but only with 2 usable Pokemon.
   - **The draft pre-registration** would let a beeline pass. Its two woods "witnesses" are one script.
 - **USER RULING 38:** `ai-agent/config.json` `max_lanes` 16 -> 8 (`06`). The learner applies it at its first cycle after this push.
+
+## 2026-10-16 — AI player step 5.2: seven safety gates and a living LESSONS list; PRODUCTIVE curiosity (graded by yield, a loafing control that must fail, a pushing property); the learner at 12 lanes with consult kept ON
+
+- **Gates (part 1),** each fault-tested (`test_safety_gates.py` 48 tests; `revert_safety_gates.py` 23 of 23 caught):
+  - G1, a FROZEN-TREE watch, central in `provenance.py`, with a backstop for drivers that never seal.
+  - G2, the seed and bounds LEDGER (`gates/ledger.py`, `ledger.json`, 34 entries): graded runs refuse development seeds.
+  - G3, a CALL-SITE CENSUS with waivers.
+  - G4, the PERSON-FAIR DATA DOOR (`check_fairness.py`).
+  - G5, the DISK BUDGET: harnesses clean their run folders, and a sweep refuses to start under 30 GB free.
+  - G6, ONE evidence code-line reader: the G and M6 files read correctly again.
+  - G7, `ai_player/LESSONS.md` with `check_lessons.py`.
+- **Play (part 2):**
+  - Curiosity is judged by what it YIELDS.
+  - Boredom raises the odds and the dice decide: no quota.
+  - A cap on curiosity goals in a row.
+  - Detours that report reached or not reached.
+  - A pushing property, and a LOAF fault arm.
+  - A known town is never "new".
+- **The harness:**
+  - Texts are judged by PAGE (0xFA/0xFB).
+  - A framework trap was found: `is_waiting_for_input` reads the script's native pointer, which `StopScript` never clears (pret `src/script.c`), so a finished script still reads as "waiting". The harness now reads waits itself.
+- **Proven on tree `7c385bbd906e0866`:**
+  - `rate_step5` GRADED on held-out seeds 941-960 (ledger #34): `VERDICT: PASS`, 67 checks.
+  - `live_step5` 6 of 6 PASS. Four arms are replays of the earlier tree; CH1C and CH2 are new trajectories.
+  - `revert_step5`: 342 caught plus 2 redundant, of 344.
+  - The FULL regression of steps 0-5 PASSED. `provenance.py` changed, so every suite ran.
+  - `provenance --check-evidence` PASS (206 of 206) after the intermediate trees were retired.
+  - A failed graded pass (seeds 921-940; the game path misread waits) was KEPT, fixed on the test side, and re-graded on NEW seeds.
+- **OPEN, carried to the next steps (the verifier and review, verbatim in the workflow's result):**
+  1. **`LESSONS.md` OVERSTATES enforcement:** bounds listed as Enforced sit in `P2_REPORTED`, which forces them to PASS. `check_lessons` checks only that a name exists.
+  2. **Loafing is separated from the LOAF control only when POOLED:** one CH1 seed is 13.1 % productive against LOAF's 13.7 %. ⇒ a per-run yield floor is needed.
+  3. **GOODHART:** the AI uses the grader's own yield thresholds (8 tiles; 20 per 1,000 frames). ⇒ grade yields the AI never computes (species seen, item flags, unique pages, maps first entered).
+  4. **The pushing property** cannot see pushing in grass, and `PUSH_MAX` was raised 2,700 -> 4,000 in development.
+  5. **Three gate bypasses:** wildcard census waivers, a ledger path inside copies, and the fairness rule matching attribute names only.
+  6. **Chapter 2 drifted back toward the beeline** (1.181 against a bound of 1.15).
+  7. **A WRONG NUMBER in `ai_player/README.md:1211`:** NOHINTS 948's look-round is 578 walking frames of the 3,903, not 3,668 (3,090 were battle frames). Not edited at commit time, because that would change the graded tree.
+  8. **The instrument fix G342-G344 is tested by source shape only.**
+- **Learner (USER RULING 38 follow-up):** `ai-agent/config.json` `max_lanes` 12 (3 arms a cycle), consult kept ON. The autostart task `Pokebot-AI-Learner-Autostart` is registered and was tested live. Its manual row says to DISABLE it, never delete it.
+- **The cloud phase (`06`):**
+  - The pilot proved the repo's hooks fail open in the cloud.
+  - KB1 (the seasoned knowledge base, slice 1: 386 species, 354 moves, learnsets, 135 maps of encounters with rarity, held-item rules, Feebas) is on branch `claude/kb1-seasoned-knowledge-cr1f5t`. It is NOT merged; it waits for a local check.
+  - The credit card stayed at $250 while the weekly meter rose, so cloud jobs are PAUSED until billing is confirmed.
+- **Cost:** step 5.2 was about 143M input-equivalent tokens (about 36 % of a week), by the usage audit. This is the measured case for the lean process (`06` 2026-10-15).

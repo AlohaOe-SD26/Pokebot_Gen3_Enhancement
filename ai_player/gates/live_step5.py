@@ -46,7 +46,8 @@ THE ARMS
                      were registered before any run of its trajectory (`PREDICTED`).
 (Build step 5.1) EVERY arm also: THE STALL PROPERTY (no screen waited for a press `AWAIT_MAX` frames with none, by the AI's
 record of every look); every go goal with a map after the page that told it; THE INTENT MIX (a floor) and, the step-5.1
-verifier's round, the CURIOSITY THE STORY DID NOT NEED in this run (`rate_step5.intent_mix` free_share >= FREE_RUN_MIN) and
+verifier's round, the CURIOSITY THE STORY DID NOT NEED in this run (`rate_step5.intent_mix` free_share >= FREE_RUN_MIN;
+both shares of frames REPORTED since build step 5.2, its P2, with the old bound's verdict beside them) and
 A NEW PLACE IS NEW (every look-around draw names a map the world memory it started from had not stood on: CH2T had "looked
 round a new place, LITTLEROOT_TOWN", its home town).
 (The step-5.1 verifier's second round: CH2T FAILED the intent-mix floor) the INTENT MIX is HONEST (`rate_step5.intent_mix`:
@@ -54,8 +55,21 @@ a goal ends at its end record, so a goal dropped for a scene no longer counts th
 on in is the story's); the share with the scenes between goals counted as the story's is reported beside it. Chapter 2's
 screens are graded by the game's second path in the sweep (`rate_step5.py` CH2): a launcher run has none while it plays.
 Every arm keeps the tree it ran on (`provenance.snapshot_tree`).
+(Build step 5.2, the safety gates) THE FROZEN-TREE WATCH (`provenance.FrozenTree`, G1): checked before and after every
+arm (an arm whose files moved FAILS its check "FROZEN TREE"; once moved, no further arm runs) and sealed at OVERALL. THE
+DISK BUDGET (`disk_budget.prune_runs`, G5): after grading, the profile's run folders are pruned (this invocation's, the
+failing, the cited by name and the newest 12 kept; `--keep-runs` keeps all).
+(Build step 5.2, PRODUCTIVE CURIOSITY, the step-5.1 adversarial review: "it LOAFS") every arm plays a NEW trajectory: its
+seed is `LIVE_SEEDS` (14, 15, 16 in 5.2's first graded round; 17, 18, 19 since its verifier's round: never a live arm's seed
+before, nor in a development sweep the docs list), so a 5.2 arm is a new trajectory, never a replay of 5.1's (seeds 11-13). And EVERY arm also, by the AI's own record (the game's second path of each is the sweep's): NO
+LOAFING (the frames of curiosity goals whose END record says they brought nothing, at most `LOAF_FRAMES_MAX`); CURIOSITY
+SPACED (at most `SPACING_ROW_MAX` curiosity goals in a row; the streak's frames reported); THE PUSHING PROPERTY (the longest
+free overworld stretch of pressing that brought no new tile or map, `hands/waiting.py` PushWatch, under `PUSH_MAX`); THE
+ASK STEP never walks to its house with nothing said; A PLACE IT HAS LEFT IS NO NEW PLACE (a look-around draw on a map it
+stood on earlier in the run); its detours reported (place, said reached). The bounds are `rate_step5.BOUNDS`, registered
+in the seed ledger before the graded sweep.
 The fault arms (no training before the rival; no hints; the rest rule's fix removed; the MAX_LOSSES stop and the loop's
-count removed) are the seed sweep's (`gates/rate_step5.py` NOTRAIN, NOHINTS, DEADREST, STOP, STOPDEAD): a win RATE and a
+count removed; and 5.2's LOAF, BLOCKED and GREEDY controls) are the seed sweep's (`gates/rate_step5.py` NOTRAIN, NOHINTS, DEADREST, STOP, STOPDEAD): a win RATE and a
 slowdown are frequency claims, which a sweep answers (CLAUDE.md rule 9).
 """
 
@@ -78,9 +92,11 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from ai_player.gates.live_step2 import check_purity, classify_a, clean_env, run_json  # noqa: E402
-from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance, snapshot_tree  # noqa: E402
+from ai_player.gates.disk_budget import prune_runs  # noqa: E402
+from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance, snapshot_tree, watch  # noqa: E402
 from ai_player.gates.rate_step5 import (  # noqa: E402
-    BOUNDS, aside_streaks, await_stretches, intent_mix, roam_breaches, told_before, train_steps_min, training_windows,
+    BOUNDS, aside_streaks, await_stretches, curiosity_rows, curiosity_streaks, intent_mix, push_ai, roam_breaches,
+    told_before, train_steps_min, training_windows,
 )
 from ai_player.hands.dialogue import GENERIC_BUSY  # noqa: E402
 from ai_player.host import launcher  # noqa: E402
@@ -190,22 +206,31 @@ def play_env(personality: str, starter: str | None, target: str, **extra: str) -
     return env
 
 
+#: (build step 5.2, the step-5.1 final verifier: "LIVE ARMS ARE REPLAYS, now proven by a log diff": five of 5.1's six arms
+#: replayed, record for record, the trajectories of an earlier tree) the arms play NEW seeds, 14, 15 and 16 (never played
+#: by any arm or sweep: the sweeps' development seeds were 1-9, 21-29, 31-39, 41-49, 51-59, 61-72, 81-92 and 1000-1099, the
+#: earlier arms' 11, 12 and 13), each a NEW trajectory on the host's clock: a sample, not a replay. (Build step 5.2, the
+#: verifier's round) 17, 18 and 19: the code changed after the arms on 14-16, and the round's evidence must be NEW
+#: trajectories again (no sweep plays them: the round's development seeds are 1201 and up, its graded ones 921-940)
+LIVE_SEEDS = {"Story": 17, "Catcher": 18, "Trainer": 19}
+
 ARMS: list[Arm] = [
     Arm("CH1T", "chapter 1 from a real New Game, TREECKO, Story: the POKéDEX, having trained before the rival", 330000,
-        3600.0, play_env("Story", "TREECKO", "ch1_pokedex"), seed=11),
+        3600.0, play_env("Story", "TREECKO", "ch1_pokedex"), seed=LIVE_SEEDS["Story"]),
     Arm("CH1C", "chapter 1 from a real New Game, TORCHIC, Catcher: the POKéDEX, having trained before the rival", 330000,
-        3600.0, play_env("Catcher", "TORCHIC", "ch1_pokedex"), seed=12),
+        3600.0, play_env("Catcher", "TORCHIC", "ch1_pokedex"), seed=LIVE_SEEDS["Catcher"]),
     Arm("CH1M", "chapter 1 from a real New Game, MUDKIP, Trainer: the POKéDEX, having trained before the rival", 330000,
-        3600.0, play_env("Trainer", "MUDKIP", "ch1_pokedex"), seed=13),
+        3600.0, play_env("Trainer", "MUDKIP", "ch1_pokedex"), seed=LIVE_SEEDS["Trainer"]),
     Arm("CH2", "chapter 2 (stretch) from the CH1C arm's own end: Oldale's balls, ROUTE 102, PETALBURG, DAD, WALLY's tutorial",
-        330000, 3600.0, play_env("Catcher", None, "ch2_wally"), seed=12, fresh=False, state_from="CH1C"),
+        330000, 3600.0, play_env("Catcher", None, "ch2_wally"), seed=LIVE_SEEDS["Catcher"], fresh=False, state_from="CH1C"),
     # (build step 5.1, the step-5 review's finding 6: "CH2 is one Catcher trajectory replayed") a SECOND, INDEPENDENT
     # chapter 2: another personality and seed, from the save ITS OWN chapter-1 run made
-    Arm("CH2T", "chapter 2 (stretch), a second trajectory: from the CH1T arm's own end, Story, seed 11", 330000, 3600.0,
-        play_env("Story", None, "ch2_wally"), seed=11, fresh=False, state_from="CH1T"),
+    Arm("CH2T", f"chapter 2 (stretch), a second trajectory: from the CH1T arm's own end, Story, seed {LIVE_SEEDS['Story']}",
+        330000, 3600.0, play_env("Story", None, "ch2_wally"), seed=LIVE_SEEDS["Story"], fresh=False, state_from="CH1T"),
     # (the step-5.1 verifier's round) a THIRD chapter 2, never played before it is graded: the Trainer's, from CH1M's end
-    Arm("CH2M", "chapter 2 (stretch), a third trajectory, pre-registered unseen: from the CH1M arm's own end, Trainer, seed "
-                "13", 330000, 3600.0, play_env("Trainer", None, "ch2_wally"), seed=13, fresh=False, state_from="CH1M"),
+    Arm("CH2M", f"chapter 2 (stretch), a third trajectory, pre-registered unseen: from the CH1M arm's own end, Trainer, seed "
+                f"{LIVE_SEEDS['Trainer']}", 330000, 3600.0, play_env("Trainer", None, "ch2_wally"), seed=LIVE_SEEDS["Trainer"],
+        fresh=False, state_from="CH1M"),
 ]
 
 
@@ -353,20 +378,56 @@ def check_hands(run: Run) -> None:
     bad = told_before([{**r, "frame": -1} for r in run.earlier] + run.records)
     run.check(not bad, f"EVERY GO GOAL WITH A MAP CAME AFTER THE PAGE THAT TOLD IT (its read records, and the "
                        f"{len(run.earlier)} pages of the run it continues): off {bad or 'none'}")
-    mix = intent_mix(run.records)
+    # (build step 5.2, PRODUCTIVE CURIOSITY) a curiosity goal counts by what it BROUGHT: in a launcher run by the AI's own
+    # record of it (its END record's yield: the tiles its memory learned, a map, an item, a catch, words, a talk); the
+    # game's second path is the sweep's (`rate_step5.py` curiosity_rows)
+    curious = curiosity_rows(run.records, {}, 0)
+    idle = {row["frame"] for row in curious if not row["ai"]}
+    mix = intent_mix(run.records, idle)
+    loaf = sum(row["walking_ai"] for row in curious if not row["ai"])  # its own time, outside battles (step52dev4)
+    made = sum(row["frames"] for row in curious if row["ai"])
+    run.check(loaf <= BOUNDS["LOAF_FRAMES_MAX"],
+              f"NO LOAFING (its record of what each curiosity goal brought): {loaf} frames of curiosity that brought "
+              f"nothing, its own time outside battles (bound <= {BOUNDS['LOAF_FRAMES_MAX']}); {made} frames that brought "
+              f"something; by goal (kind, frame, "
+              f"frames, productive) {[(r['kind'], r['frame'], r['frames'], int(r['ai'])) for r in curious][:12]}")
+    # (its own names: the stall property's `longest` above is its measures' await_max; the 5.2 live arms first reported
+    # this streak's frames under that name)
+    rows = curiosity_streaks(run.records)
+    most = max((s[1] for s in rows), default=0)
+    row_frames = max((s[2] for s in rows), default=0)
+    run.check(most <= BOUNDS["SPACING_ROW_MAX"],
+              f"CURIOSITY SPACED: at most {most} curiosity goals in a row (bound <= {BOUNDS['SPACING_ROW_MAX']}); (reported) "
+              f"the longest streak {row_frames} frames; streaks of 2+ (first frame, goals, frames) "
+              f"{[s for s in rows if s[1] >= 2][:6] or 'none'}")
+    pushed = push_ai(run.records)
+    run.check(pushed < BOUNDS["PUSH_MAX"], f"THE PUSHING PROPERTY (its record of every look, `hands/waiting.py` PushWatch): "
+                                           f"the longest free stretch of pressing that brought nothing new {pushed} frames "
+                                           f"(bound under {BOUNDS['PUSH_MAX']}); the game's second path is the sweep's")
+    detours = [(r["frame"], r.get("place"), r["said_reached"]) for r in curious if r["kind"] == "detour"]
+    run.notes.append(f"(reported) its detours (frame, place, said reached): {detours or 'none'}; the GAME's word on them is the "
+                     f"sweep's (a launcher run has no second path while it plays)")
+    asked = [r.get("frame") for r in run.records if r.get("decision") == "goal" and "to ask at" in str(r.get("reason"))
+             and "nothing was said" in str(r.get("reason"))]
+    run.check(not asked, f"THE ASK STEP WALKS TO ITS HOUSE ONLY WHEN TOLD (no 'to ask at ... nothing was said'): off "
+                         f"{asked or 'none'}")
+    run.measures.update({"loaf_frames": loaf, "productive_frames": made, "streak_goals": most, "streak_frames": row_frames,
+                         "push_ai": pushed, "detours": detours})
     # (the step-5.1 verifier's second round) honest: a goal's frames end at its END record (a goal dropped for a scene no
-    # longer counts the scene after it), and a curiosity goal the story moved on in is the story's
-    run.check(mix["errand_share"] >= BOUNDS["MIX_MIN"],
-              f"THE INTENT MIX: {mix['errand_share']:.1%} of the goals' frames on errands (bound >= {BOUNDS['MIX_MIN']:.0%}: a "
-              f"floor on needs and curiosity together, which a beeline meets too in chapter 1), {mix['errand_goals']} of "
-              f"{mix['goals']} goals; frames by kind {mix['frames']}; the story's own curiosity goals (counted as the story's) "
-              f"{mix['story_own']}; between goals (no goal's: scenes) {mix['between_goals']} frames; reported: "
-              f"{mix['errand_share_with_scenes']:.1%} with those counted as the story's time")
-    # (the step-5.1 verifier's round: the errand share does not separate errands from a beeline; the curiosity the story did
-    # not need does, in every run: the beeline control's is 0)
-    run.check(mix["free_share"] >= BOUNDS["FREE_RUN_MIN"],
-              f"CURIOSITY THE STORY DID NOT NEED: {mix['free_share']:.1%} of the goals' frames ({mix['free_frames']} frames; "
-              f"bound >= {BOUNDS['FREE_RUN_MIN']:.0%}), the story's own curiosity goals not counted {mix['story_own']}")
+    # longer counts the scene after it), and a curiosity goal the story moved on in is the story's; (build step 5.2) and
+    # a curiosity goal that brought nothing is no errand
+    # (build step 5.2, P2: "grade YIELD and SPACING, not share of frames"; `rate_step5.P2_REPORTED`) the two shares of
+    # frames are REPORTED with the old bound's own verdict beside them
+    run.notes.append(f"(reported, 5.2 P2: a share of frames is not graded; the old bound "
+                     f"{'HELD' if mix['errand_share'] >= BOUNDS['MIX_MIN'] else 'did NOT hold'}) THE INTENT MIX: "
+                     f"{mix['errand_share']:.1%} of the goals' frames on errands (old bound >= {BOUNDS['MIX_MIN']:.0%}), "
+                     f"{mix['errand_goals']} of {mix['goals']} goals; frames by kind {mix['frames']}; the story's own "
+                     f"curiosity goals (counted as the story's) {mix['story_own']}; between goals (no goal's: scenes) "
+                     f"{mix['between_goals']} frames; {mix['errand_share_with_scenes']:.1%} with those counted as the story's")
+    run.notes.append(f"(reported, 5.2 P2: a share of frames is not graded; the old bound "
+                     f"{'HELD' if mix['free_share'] >= BOUNDS['FREE_RUN_MIN'] else 'did NOT hold'}) CURIOSITY THE STORY "
+                     f"DID NOT NEED: {mix['free_share']:.1%} of the goals' frames ({mix['free_frames']} frames; old bound >= "
+                     f"{BOUNDS['FREE_RUN_MIN']:.0%}), the story's own curiosity goals not counted {mix['story_own']}")
     check_new_places(run)
     # (the step-5.1 verifier's round: CH2's ten asides in a row, about 32,000 frames) a story goal put aside comes back
     streaks = aside_streaks(run.records)
@@ -402,9 +463,20 @@ def check_new_places(run: Run) -> None:
                       or (r.get("decision") == "tell" and "it goes on without looking round" in text)):
             named.append((r.get("frame"), found.group(1)))
     old = [(frame, const) for frame, const in named if const in known]
-    run.check(not old, f"A NEW PLACE IS NEW: every look-around draw ({len(named)}: {sorted({c for _, c in named})}) names a map "
-                       f"the world memory it started from had not stood on ({len(known)} known at the start"
-                       f"{': ' + str(sorted(known)[:8]) if known else ': a New Game'}); a known one called new: {old or 'none'}")
+    # (build step 5.2, the step-5.1 review's finding 6: CH1M said "a new place, OLDALE_TOWN" after healing there twice) nor
+    # a map it had LEFT earlier in this run (its own record of its map changes: the navigator's MAP records)
+    from ai_player.gates.rate_step5 import map_keys
+    keys = map_keys(str(run.run_dir / "world.jsonl")) if run.run_dir is not None else {}
+    left = [(t[0], t[1]) for t in (((r.get("extra") or {}).get("transition")) for r in run.records
+                                   if r.get("decision") == "world") if t]
+    again = [(frame, const) for frame, const in named
+             if any(source == keys.get(const) and at < (frame or 0) for at, source in left)]
+    run.check(not old and not again,
+              f"A NEW PLACE IS NEW: every look-around draw ({len(named)}: {sorted({c for _, c in named})}) names a map the "
+              f"world memory it started from had not stood on ({len(known)} known at the start"
+              f"{': ' + str(sorted(known)[:8]) if known else ': a New Game'}) and that it had not LEFT earlier in the run "
+              f"(its record of {len(left)} map changes); a known one called new: {old or 'none'}; one left before: "
+              f"{again or 'none'}")
 
 
 def count(values) -> dict:
@@ -612,7 +684,8 @@ GRADERS = {"CH1T": grade_CH1, "CH1C": grade_CH1, "CH1M": grade_CH1, "CH2": grade
 def write_evidence(run: Run, code: str, tag: str) -> Path:
     out = EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-{tag}-{run.arm.name}.txt"
     keep_earlier(out)
-    lines = [f"AI PLAYER BUILD STEP 5.1 (THE STORY, HUMAN-LIKE) - LIVE PROOF - ARM {run.arm.name}: {run.arm.title}",
+    lines = [f"AI PLAYER BUILD STEP 5.2 (PRODUCTIVE CURIOSITY) - LIVE PROOF - ARM {run.arm.name}: {run.arm.title} "
+             f"(seed {run.arm.seed}: a NEW trajectory, never played by an arm or a sweep; one sample on the host's clock)",
              f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}", f"code: {code}",
              f"start: {'a real New Game (--fresh)' if run.arm.fresh else f'the end state of arm {run.arm.state_from}: {run.start_state}'}",
              f"command: {' '.join(run.command)}",
@@ -659,21 +732,32 @@ def main() -> int:
         pass
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--arms", default=",".join(arm.name for arm in ARMS))
-    parser.add_argument("--evidence-tag", default="step51")
+    parser.add_argument("--evidence-tag", default="step52")
     parser.add_argument("--build-root", type=Path, default=launcher.resolve_build_root(None))
+    # (build step 5.2, G5) the profile's older run folders are pruned after grading unless this is given
+    parser.add_argument("--keep-runs", action="store_true", help="keep every run folder of the profile")
     args = parser.parse_args()
     wanted = [a.strip() for a in args.arms.split(",") if a.strip()]
     arms = [arm for arm in ARMS if arm.name in wanted]
     code = tree_provenance(REPO)
     print(f"[LIVE5] code: {code}", flush=True)
+    # (build step 5.2, G1) the frozen-tree watch (started by the code line): checked around every arm, sealed at OVERALL
+    tree = watch(REPO, explicit=True)
+    print(f"[LIVE5] frozen-tree watch: {len(tree.stats)} files, files digest {tree.digest}", flush=True)
     # (the step-5.1 verifier's second round: "the dee96b tree was not kept") the tree these arms run on is kept
     print(f"[LIVE5] tree kept: {snapshot_tree(REPO)}", flush=True)
     carried: dict[str, tuple[Path, Path, list]] = {}
     results = []
     for arm in arms:
+        if tree.moved or not tree.check(f"before arm {arm.name}"):
+            print(f"[LIVE5] arm {arm.name}: NOT RUN, the tree changed mid-run: {tree.moves[0][:300]}", flush=True)
+            continue
         print(f"[LIVE5] arm {arm.name}: {arm.title}", flush=True)
         run = run_arm(arm, args.build_root, carried)
         GRADERS[arm.name](run)
+        run.check(tree.check(f"after arm {arm.name}"),
+                  f"FROZEN TREE: the files of the code under test did not change while this arm played "
+                  f"({tree.moves[-1][:300] if tree.moves else 'unchanged'})")
         path = write_evidence(run, code, args.evidence_tag)
         results.append(run)
         print(f"[LIVE5] arm {arm.name}: {'PASS' if run.passed else 'FAIL'} ({run.elapsed:.0f}s) -> {path}", flush=True)
@@ -694,7 +778,16 @@ def main() -> int:
         print(f"[LIVE5] the CH1 arms' occasions for the rest rule together (a battle in a roam that ended under the "
               f"personality's heal_below): {occasions} (>= 1, so the rule's check is not vacuous): "
               f"{'PASS' if rest_ok else 'FAIL'}; rests {[r.measures.get('rests') for r in chapter_1]}", flush=True)
-    passed = all(run.passed for run in results) and not left and pooled_ok and rest_ok
+    passed = all(run.passed for run in results) and not left and pooled_ok and rest_ok and len(results) == len(arms)
+    # (build step 5.2, G1) the frozen-tree watch seals the overall verdict
+    overall, frozen_line = tree.seal("PASS" if passed else "FAIL")
+    print(f"[LIVE5] {frozen_line}", flush=True)
+    passed = overall == "PASS"
+    # (G5) the profile's run folders: this invocation's, the failing, the cited and the newest kept; the rest deleted
+    folders = {r.run_dir.parent for r in results if r.run_dir is not None}
+    for runs in sorted(folders):
+        print(f"[LIVE5] {prune_runs(runs, keep=[r.run_dir for r in results if r.run_dir], apply=not args.keep_runs)[2]}",
+              flush=True)
     print(f"[LIVE5] OVERALL {'PASS' if passed else 'FAIL'}: " + ", ".join(f"{r.arm.name} {'PASS' if r.passed else 'FAIL'}"
                                                                             for r in results), flush=True)
     return 0 if passed else 1

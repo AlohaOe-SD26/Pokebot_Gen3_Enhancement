@@ -659,6 +659,15 @@ class Navigator:
         #: (the step-3.1 verifier's second round) "map|words" -> the frames of the scenes with those WORDS that put the
         #: player elsewhere, and the tiles they began on (`scene_words`; every one walled at `SCENE_REPEATS`)
         self.scene_said: dict[str, dict] = {}
+        #: (build step 5.2) every target given up because a scene stopped the way there, as (map key, tile, why), over ALL
+        #: intents (never reset: the goal runner reads the ones its goal added, `GoalRunner.pursue`)
+        self.scene_given_up: list[tuple[str, tuple[int, int], str]] = []
+        #: (build step 5.2, the verifier's round; its development sweep step52vdev2, CH1 seed 1209: a detour past OLDALE's
+        #: footprints man ended at his "Wait! Please don't come in here.", and the look round "some more" that followed walked
+        #: OLDALE for 2,003 frames toward the same corner, nothing new) every tile a scene BEGAN on that put the player
+        #: elsewhere, as (map key, tile, why), over ALL intents (never reset): the goal runner blocks the ones a curiosity
+        #: walk met for curiosity in the milestone (`GoalRunner.pursue`)
+        self.scene_turned: list[tuple[str, tuple[int, int], str]] = []
         self.stats = _Stats()
         self.entry: dict[str, tuple[int, int]] = {}  # map -> where the AI came into it (the explorer's "away")
         #: (build step 3.1) the AI's own last steps that moved the player, as (map, direction): the HEADING a plan's
@@ -711,6 +720,18 @@ class Navigator:
         #: BUILD STEP 5: asked on every free look while roaming (`skills/roam_train.py`): a reason to stop the roam now (an
         #: item ball came into view: a person walks over to it), or None. None (the earlier brains): roam as before.
         self.roam_stop: Callable[[Observation], str | None] | None = None
+        #: BUILD STEP 5.2 (the verifier's round: the graded NOHINTS runs, 20 of 20, went through OLDALE's house door for up
+        #: to 98 goals in a row, each ended by the ping-pong rule, which counts the uses of ONE intent: the next goal's
+        #: intent started from none) "map key|x,y" of a warp that ENDED an intent as a ping-pong -> the world's `stamp`
+        #: then: while nothing new has been seen anywhere since, no later intent goes through it again unless it is the only
+        #: way left (`brain/explore.py` candidates, `ponged_now`). None (every earlier brain): each intent on its own, as
+        #: before; the play brain sets {}.
+        self.ponged: dict[str, tuple] | None = None
+        #: BUILD STEP 5.2 (the verifier's round) at every decision, the frontier tiles and unused exits of the map that the
+        #: reach from where the player stands shows no way to are marked in the world memory (`cut_off`), so a map's
+        #: `promise` holds only what it could get to (OLDALE_TOWN_HOUSE1's two unreachable tiles were "2 things left to see"
+        #: for ever). False (every earlier brain): as before; the play brain sets True.
+        self.mark_cut = False
 
     # ------------------------------------------------------------------ telling
     def tell(self, line: str, extra: dict | None = None) -> None:
@@ -735,6 +756,65 @@ class Navigator:
         """Tiles not to step on now: where someone stands, and (the step-3.1 verifier's round) a tile a repeating scene
         sent the player back from in this intent (`scene_walls`)."""
         return frozenset((memory.objects_now | self.scene_walls.get(memory.key, set())) - {here})
+
+    def ponged_now(self, target: Target) -> bool:
+        """(build step 5.2, the verifier's round) Does `target` go through a warp that ended an earlier intent as a ping-pong,
+        with nothing new seen anywhere since (`ponged`, `WorldMemory.stamp`)?"""
+        if self.ponged is None or target.exit is None:
+            return False
+        return self.ponged.get(f"{self.world.current}|{target.exit[0]},{target.exit[1]}") == self.world.stamp()
+
+    def story_moved(self) -> str:
+        """(build step 5.2, the verifier's round; step52vdev1, chapter-1 seed 1201: given up at the start of a milestone over
+        a road the milestone before had cut off) The play brain's milestone changed: the ping-pongs kept (`ponged`) and the
+        world memory's marks of what it could not get to (`WorldMemory.forget_marks`) are forgotten, so the new milestone
+        looks again. Told, and returned."""
+        pongs = len(self.ponged or {})
+        if self.ponged is not None:
+            self.ponged.clear()
+        marks = self.world.forget_marks()
+        said = f"the story moved on: {pongs} ping-pong(s) and {marks} place(s) it could not get to forgotten"
+        self.tell(said)
+        return said
+
+    def _remember_pingpong(self, name: str) -> None:
+        """(build step 5.2, the verifier's round) The warp `name` ended this intent as a ping-pong: kept past it (`ponged`),
+        with what the world memory had seen then, so no later intent goes through it again while nothing new is seen
+        anywhere (`ponged_now`). Off for the earlier brains (`ponged` None)."""
+        if self.ponged is not None:
+            self.ponged[name] = self.world.stamp()
+
+    def _seen_out(self, target: Target, result: str) -> None:
+        """(build step 5.2, the verifier's round: OLDALE's MART kept two frontier tiles whose unseen side the screen never
+        shows, "2 things left to see" for ever) a walk ARRIVED on a frontier tile and the unseen beside it stayed unseen:
+        nothing more is to be seen from it while the map shows nothing new: marked like a frontier no walk found a way to
+        (`WorldMemory.mark_unreached`: out of `promise`; `brain/goals.py` lost_intent leaves it out) and given up for the
+        intent. Off for the earlier brains (`mark_cut`)."""
+        memory = self.world.here()
+        if (self.mark_cut and result == "arrived" and target.kind == "frontier" and memory is not None
+                and target.tile in memory.frontier()):
+            self.world.mark_unreached(memory.key, target.tile)
+            self.exclude(target, "arrived: the unseen beside it stayed unseen")
+
+    def cut_off(self, look: Observation) -> list[tuple[int, int]]:
+        """(build step 5.2, the verifier's round) The frontier tiles and unused exits of the map the player stands on that
+        its reach shows NO way to (the navigator's own `distances`, over known and unknown tiles, round the scene walls and
+        what lies on the ground; never round the people, who walk on), marked in the world memory (`mark_cut_off`) so the
+        map's `promise` is only what it could get to. Off unless `mark_cut` (the earlier brains)."""
+        if not self.mark_cut:
+            return []
+        found = self.where(look)
+        if found is None:
+            return []
+        memory, here = found
+        reach = distances(memory, here, self.walls(memory, here) - memory.people_now, self.grass_cost)
+        cut = [xy for xy in memory.frontier() if xy not in reach]
+        for xy in memory.exits():
+            if self.world.link_of(memory.key, xy) is None and not any(
+                    moved(xy, direction) in reach and memory.passable(moved(xy, direction)) for direction in DIRECTIONS):
+                cut.append(xy)
+        self.world.mark_cut_off(memory.key, cut)
+        return cut
 
     def exclude(self, target: Target, why: str = "") -> None:
         """`target` failed on the current map, for the rest of the intent (a tile is a tile of ONE map)."""
@@ -1071,6 +1151,14 @@ class Navigator:
         waited for (`WAIT`), at most `PERSON_PLAN_WAITS` times a plan, before it is redone round them."""
         noise = self.noise_for(target)
         plan, current = self.plan, self.world.current
+        # (build step 5.2, found by the pushing property in the round's development sweep step52dev4, chapter-2 seed 1026:
+        # 3,372 frames of pressing with nothing new, 30 and more crossings of OLDALE's top edge) a tile of THIS map is walked
+        # to over tiles of this map: the tiles SEEN past an edge it has crossed are the next map's, and a plan through them
+        # crosses onto it (the frontier at (25, 15) on ROUTE 103 was planned through OLDALE's tiles below the edge; on
+        # OLDALE the explorer chose "the road up, back to ROUTE 103", and round again). A target past an edge (a road)
+        # still crosses it.
+        if memory.edges and not memory.outside(target.tile):
+            walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy))
         if plan is not None and plan.key == target.key and plan.map == current and plan.at == here and plan.path:
             near, tile = set(), here
             for direction in plan.path[:PERSON_AHEAD]:
@@ -1209,6 +1297,7 @@ class Navigator:
                         f"frames, the last at f{novelty.last}: {novelty.events[-1][1] if novelty.events else 'none'} ({self.summary()})")
             for name, frames in uses.items():
                 if len(frames) >= PINGPONG_USES and novelty.last <= frames[1]:
+                    self._remember_pingpong(name)
                     return (f"stuck: ping-pong: the warp {name} used {len(frames)} times (f{frames[0]}..f{frames[-1]}) "
                             f"with nothing new since its second use, f{frames[1]} ({self.summary()})")
             if target is not None:
@@ -1242,6 +1331,8 @@ class Navigator:
             if target is None:
                 # (build step 3.2, the step-3.1 review's finding 4) chosen ON THE MOVE: the heading kept, no whim
                 self.choosing_on_the_move = on_the_move
+                # (build step 5.2, the verifier's round) what this map holds that it cannot get to, before choosing
+                self.cut_off(look)
                 try:
                     target = intent.choose(self, look)
                 finally:
@@ -1269,12 +1360,16 @@ class Navigator:
             if result in ("arrived", "used"):
                 if intent.reached is not None:
                     intent.reached(target)
+                self._seen_out(target, result)
                 target = None
                 # arrived and stopping to decide: a person turns round freely there (an errand behind, a dead end); the
                 # turn-back cost is for a plan changed ON THE MOVE (build step 3.1, finding 2)
                 self.recent = []
             elif result in ("unreachable", "failed", "strayed"):
                 self.exclude(target, result)
+                if result == "unreachable" and target.kind == "frontier":
+                    # (build step 5.2) no way known to it at all: not "left to see" on this map until it shows more
+                    world.mark_unreached(world.current, target.tile)
                 self.tell(f"the {target.kind} at {target.tile} cannot be reached that way ({result}): another target")
                 target = detour = None
             elif result == "lost":
@@ -1321,6 +1416,7 @@ class Navigator:
         if began is not None and after is not None and after != began and scene_map is not None:
             spots = self.scene_spots.setdefault(f"{scene_map}|{began[0]},{began[1]}", [])
             spots.append(frame)
+            self.scene_turned.append((scene_map, began, f"a scene began here and turned it back (f{frame})"))
             walled = self.scene_walls.setdefault(scene_map, set())
             if len(spots) >= SCENE_REPEATS and novelty.last_progress <= spots[0] and began not in walled:
                 walled.add(began)
@@ -1353,6 +1449,7 @@ class Navigator:
             why = (f"a scene stopped the way there {len(hits)} times (f{hits[0]}..f{hits[-1]}) with nothing new since the "
                    f"first")
             self.excluded[key] = why
+            self.scene_given_up.append((key.split("|", 1)[0], target.tile, why))
             self.tell(f"the {target.kind} at {target.tile}: {why}: given up", {"given_up": list(target.tile), "why": why})
             return True
         return False
@@ -1386,12 +1483,26 @@ class Navigator:
         return Target("detour", self.rng.choice(sorted(options)), f"a small detour on the way to the {target.kind}")
 
     def go_to(self, tile: tuple[int, int], why: str, budget: int) -> Generator[None, None, str]:
-        """Walk to `tile` of the current map (one target, its own bounded intent)."""
+        """Walk to `tile` of the current map (one target, its own bounded intent). (Build step 5.2, found by the pushing
+        property in the round's development sweep step52dev6, seed 1049: a training roam's walk to grass seen past OLDALE's
+        bottom edge, (5, 23), crossed onto ROUTE 101, where (5, 23) lies past ITS bottom edge, then onto LITTLEROOT and back,
+        3,313 frames of pressing with nothing new: a tile is a tile of the map it was chosen on) the walk ENDS when it
+        leaves that map, and says so: "left the map"."""
         goal = Target("goto", tile, f"walk to {tile}")
         reached: list[bool] = []
+        began: list[str | None] = [self.world.current]
+
+        def left_the_map(look: Observation) -> bool:
+            if began[0] is None:  # the world memory had no map yet: the walk's first look names it
+                began[0] = self.world.current
+            return began[0] is not None and self.world.current != began[0]
+
         intent = Intent(f"walk to {tile}", budget, lambda nav, look: None if reached else goal,
-                        lambda look: bool(reached), lambda target: reached.append(True))
-        return (yield from self.run(intent, why))
+                        lambda look: bool(reached) or left_the_map(look), lambda target: reached.append(True))
+        outcome = yield from self.run(intent, why)
+        if not reached and began[0] is not None and self.world.current != began[0]:
+            return f"left the map: {self.world.names().get(began[0], began[0])} for {self._map_name()} ({outcome})"
+        return outcome
 
     def _decided(self, target: Target, look: Observation, detour: Target | None, on_the_move: bool = False) -> None:
         found = self.where(look)

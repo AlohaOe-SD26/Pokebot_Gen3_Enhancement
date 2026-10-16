@@ -12,7 +12,9 @@ unrecoverable"; "The prune_evidence.py gap with the `[VERIFY] code:` prefix is n
                     suffix, an identical copy is not kept twice, a file of THIS tree is left to be rewritten, a file outside
                     the folder's top level is not touched. FAULT (the step-4.1 round-2 order: no keep): the earlier bytes lost.
   CodeLineTests     `prune_evidence.CODE_LINE` reads a code line with a bracketed tag ("[VERIFY] code: ...", as
-                    `verify_knowledge.py` prints it). FAULT (round 2's `^code:`): no digest found.
+                    `verify_knowledge.py` prints it). FAULT (round 2's `^code:`): no digest found. (Build step 5.2, G6: the
+                    reader is `provenance.code_digest`, the one every checker uses; `test_safety_gates.py` G6 tests it on
+                    a file whose command is a multi-line `-c` script.)
   PackTests         `prune_evidence.pack`: uncited files of a tree git does not hold are packed into one `uncited.zip`, every
                     member checked byte for byte before a file is deleted, one INDEX line each with its size and sha256.
 """
@@ -102,9 +104,11 @@ class KeepEarlierTests(Folder):
 
 class CodeLineTests(unittest.TestCase):
     def test_a_tagged_code_line_names_its_digest(self) -> None:
+        # (build step 5.2, G6) through the ONE reader, `provenance.code_digest`, which `prune_evidence` re-uses
         text = f"[VERIFY] code: HEAD 7a70a445; ... working-tree digest sha256:{NEW} over git diff HEAD\n[VERIFY] more\n"
-        self.assertEqual(prune_evidence.CODE_LINE.search(text).group(1), NEW)
-        self.assertEqual(prune_evidence.CODE_LINE.search(evidence(OLD)).group(1), OLD)
+        self.assertEqual(prune_evidence.code_digest(text), NEW)
+        self.assertEqual(prune_evidence.code_digest(evidence(OLD)), OLD)
+        self.assertIsNotNone(prune_evidence.CODE_LINE.search(text))
 
     def test_fault_round_2s_pattern_misses_the_tag(self) -> None:
         import re

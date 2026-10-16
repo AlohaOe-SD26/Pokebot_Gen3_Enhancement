@@ -23889,3 +23889,18 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Prevention rules:**
   - Never let the agent's own target be the quantity the grader measures. Grade the OUTCOME the behaviour exists to produce.
   - Every A/B needs a control that CAN fail: an arm that does the wrong thing on purpose. A control made by deleting the behaviour proves only that the deletion works.
+
+## 2026-10-16 — ⛔ THE FRAMEWORK SAYS "WAITING FOR A PRESS" AFTER THE SCRIPT HAS ENDED; AND A LESSONS FILE CLAIMED BOUNDS "ENFORCED" THAT THE GRADER FORCES TO PASS
+
+- **Symptom 1:**
+  - A graded sweep FAILED NO LOAFING on one seed, while the AI's own record and a verifier's recount said it was walking.
+  - The game-side path counted 0 tiles for a 50-tile look-around.
+- **Root cause 1:**
+  - `is_waiting_for_input` checks only the script's native pointer, and `StopScript` never clears it (pret `src/script.c`).
+  - So a FINISHED script still reads as "waiting" while the player walks.
+  - **The fix that worked:** the harness reads waits by its own rule (`play_harness.text_waits`). Pages are split at 0xFA/0xFB.
+- **Symptom 2:** the review found `ai_player/LESSONS.md` listing bounds as Enforced although every check using them is in `P2_REPORTED`, which forces PASS.
+- **Root cause 2:** `check_lessons.py` verified that a named gate EXISTS, not that it has an EFFECT.
+- **Prevention rules:**
+  - Never trust a framework "is waiting" or "is busy" flag for grading without a positive control on a finished script.
+  - An "Enforced" claim must be backed by a mutant: deleting the bound must FAIL something. A checker that checks names checks spelling.

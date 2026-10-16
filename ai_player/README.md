@@ -11,7 +11,32 @@ the bot is hard-coded.
 Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md` (sections 10
 and 11 win over 2-9) and `ai-agent/HUMAN-PLAY-DESIGN.md`.
 
-**Where it is now: build step 5.1, the verifier's SECOND round** (section "Step 5.1, the verifier's second round" below;
+**Where it is now: build step 5.2, the verifier's SECOND round** (section "Step 5.2, the verifier's second round
+(2026-10-16)" below; final tree `7c385bbd906e0866`). Its one failure is fixed in the GAME's second path, the test side:
+a talk is new only with a PAGE the game never showed (OLDALE's footprints man's talk, the last two pages of his own scene,
+had been credited 20 times), the run's opening screen is no goal's yield, and both recorders read a wait by the
+harness's own rule (the framework's read took a finished script's leftover pointer for a wait while the player walked).
+The AI's own code is unchanged. Graded again on NEW held-out seeds 941-960 (ledger #34, registered with the SAME numbers'
+sha256 `53ca1f74fdde6b0e` as 921-940: no bound changed): **VERDICT PASS, 67 checks, none FAILS**. NO LOAFING's most is
+3,903 frames (NOHINTS 948, an honest idle look round; bound 4,000); every footprints chat of the real plans (20) is idle by
+BOTH paths; the AI's word on its curiosity's yield agrees with the game's in 717 of 717 goals (921-940: 695 of 750) and on
+the talks in 331 of 331. 342 + 2 of 344 mutants, the safety gates' 23, every unit suite and gate PASS on the same tree.
+
+**Before that, build step 5.2, the verifier's round** (section "Step 5.2, the verifier's round (2026-10-15)" below;
+tree `d49ea333e0545c91`). The verifier's two failures are fixed: the pushing loop with no hints (a ping-pong kept
+past its goal, "left to see" only what it could get to, a walk with no lead that heads where something is left or gives
+the run up OUT OF IDEAS) and the talks credited by their label (who spoke in a service talk is not chatted with; a talk is
+a yield only when the game showed a message new to the run). On that tree everything PASSED (⛔ but its NO LOAFING PASS
+rested on the error the second round found): the graded sweep on NEW
+held-out seeds 921-940 (66 checks, the pushing property's longest 2,056 frames with NOHINTS included), the six live arms
+on new seeds, 328 + 2 of 330 mutants, the step-3 mutants, the safety gates' mutants and every unit suite. The
+verifier's weak proofs other than the one fixed are carried (that section's known limits); P2 still waits for a user
+ruling.
+
+**Before that, build step 5.2's productive curiosity** (section "Productive curiosity (build step 5.2)" below): its graded
+sweep on 901-920 FAILED the pushing property in NOHINTS, which this round fixed.
+
+**Before that, build step 5.1, the verifier's SECOND round** (section "Step 5.1, the verifier's second round" below;
 final tree `d3d34871df0ac077`). The two failures and eight weak proofs are answered, and everything on that tree PASSED:
 * the graded sweep on NEW held-out seeds 801-820, now with chapter 2 (WALLY's tutorial, 20 of 20; the intent-mix floor
   41-59 % in every chapter-2 run; the beeline's chapter 2 under it in 19 of 20);
@@ -705,6 +730,516 @@ step-0.1 runs of 2026-10-07 (no digest line: they predate `provenance.py`) were 
 (`evidence/archive/no-digest/2026-10-07-step2-<ARM>.txt`, "archived in `evidence/archive/<digest>/`") now lead to
 `evidence/archive/INDEX.md`, where each such file has one line with the `git show <commit>:<path>` that prints it (git
 keeps every one: the tool deletes a file only when git tracks it unchanged).
+
+## Productive curiosity (build step 5.2)
+
+Step 5.2 answers the step-5.1 adversarial review (`PROJECT KNOWLEDGE/ai-research-notes/2026-10-15-step51-REVIEW-FINDINGS.md`:
+"it LOAFS, and every metric pays for it"). Part 1 built the safety gates (G1-G7: the frozen-tree watch, the seed and bounds
+ledger, the call-site census, the person-fair data door, the disk budget, one evidence reader, the LESSONS checker; see
+`LESSONS.md`). Part 2, this section, is the AI's behaviour and the metrics that grade it. RULING 35 holds: every change is
+in the AI's own brain, hands and gates; `check_purity` PASS; the second path's new framework reads live in the harness
+(`gates/play_harness.py` `PlaceRecorder`), never in the AI. Person-fair: the AI counts its yield by what it saw and heard
+(its world memory, its POKéDEX counts, the words it read), never by a hidden read.
+
+### P1. Curiosity counts by what it BROUGHT
+
+* **The yield** (`brain/goals.py` `yield_snapshot` before a goal, `goal_yield` after it): a curiosity goal (a look round, a
+  detour, a chat, a catching roam, an item ball) is PRODUCTIVE only if it brought new tiles seen (at least `YIELD_TILES_MIN`
+  8, and for a walk whose purpose is to SEE, a look round or a detour, at least `YIELD_TILE_RATE` 20 per 1,000 of its OWN
+  frames: the battles met in it, timed by `hands/waiting.py` `BattleClock`, are not its time), a map first stood on, an
+  item, a catch, a species first seen, words never read, or a talk. A DETOUR counts only if it REACHED its place. 5.1
+  counted a curiosity goal by its kind and its frames (CH1M's two looks round OLDALE, 6,000 frames, one new tile, were
+  curiosity like any other).
+* **What it does with the answer** (`mode.py`, `GoalManager.after_goal`): an unproductive curiosity goal is reported "not
+  done" and told so ("its explore brought nothing new: NOT productive"); a look round that brought nothing EXHAUSTS its map
+  for the milestone (no "some more" there); a detour that did not arrive BLOCKS its place for curiosity in the milestone;
+  only a PRODUCTIVE curiosity resets the boredom clock (P2); the end record counts the idle goals and frames.
+* **A fruitless hunt is given up** (`GoalRunner.roam_hooks(hunt=True)`, `HUNT_FRUITLESS` 3): a CATCHING roam stops after 3
+  battles in a row that brought no POKéMON first seen and none caught. (Step52dev4: catching roams that met only known
+  POKéMON ran to their steps' end, 8,136-16,867 frames, 4-7 battles, two in one chapter-2 run.)
+* **Loafing is counted by the goal's OWN time**: the frames OUTSIDE the battles met in it (`rate_step5.loafing_frames`, by
+  the game's battles; the AI's own record by its `BattleClock`): a catching roam is 80-87 % battles (step52dev4), which are
+  the game played, not loafing; the frames with the battles are reported beside it.
+* **Kept across goals** (`GoalRunner.pursue`): the places curiosity found blocked in this milestone are walls of every walk
+  that LOOKS ROUND (`ROUND_KINDS`: a look round, a detour, a look-around), never of the story's walks; a place someone stood
+  in the way of `PERSON_BLOCK_HITS` 3 times with no new tile seen since the first is blocked at once (`_PersonBlock`, a
+  watch over the navigator's own "someone in the way" count: 5.1's OLDALE had 61 people in the way); and (found in
+  development, below) a place a SCENE made a look round give up is blocked too.
+* **The rate rule's reason, measured** (development sweep step52dev2, seeds 1001-1012): with the 8 tiles alone the LOAF
+  control (below) was productive in 80 % of its curiosity frames, so the yield could not fail its control. Its looks round
+  among tiles it had stood on showed 0-11 new tiles per 1,000 frames outside battles (3,000 frames bringing 9 tiles; a few
+  short ones 22-83); the real code's 14 and more. The battles are taken out because step52dev3 measured a real look round
+  of ROUTE 101 that met 12 battles: 32 new tiles in 5,703 frames, 1,561 of them its own walking.
+* **Graded where loafing hides: the curiosity that SEES.** The sweep's yield check pools the looks round and detours of
+  each chapter (`rate_step5.py` `seeing_frames`); a chat's talk and a roam's catch are nearly always there, and over ALL
+  curiosity they diluted LOAF's yield to 0.54 (its looks' own 0.21; the real code's 0.85 and 0.96, chapters 1 and 2: all
+  recounted on step52dev2's rows with the battles' time estimated from the AI's action digests). All curiosity's yield is
+  reported beside it; every curiosity kind counts in NO LOAFING, per run.
+
+### P2. No quota: boredom raises the odds, the dice decide
+
+* 5.1's BALANCE (a share of the session's goal frames kept for errands, which SKIPPED the dice whenever it was short) is
+  gone, and with it the AI aiming at the graders' own quantity (`08` 2026-10-15). Instead `Errands.bored_frames`
+  (`personality.py`): every curiosity draw's odds rise SMOOTHLY from the personality's own odds to at most
+  `CURIOUS_ODDS_CAP` 0.9 over that many frames since its last curiosity that came to something
+  (`GoalManager.curious_odds`); the dice are always thrown. At most `CURIOUS_ROW_MAX` 2 curiosity goals in a row
+  (`curious_ok`; CH1M ran six). "Some more" of a map only where something is LEFT to walk to (`left_to_see`: not
+  exhausted, a reachable frontier not blocked), at most `AGAIN_MAX` 2 times. A long walk may stop where a bored break can
+  be taken (`BREAK_STOP`): one draw when it ARRIVES on another outdoor map (per map and milestone), and one after each
+  BATTLE won on the way (`walk_battle_break`: step52dev3's Trainer, chapter 2, seed 1017, walked 25,408 frames on ROUTE
+  102, met 17 battles and stopped for nothing; the review's finding 2 asked for errands INTERLEAVED, not filled in).
+* `bored_frames` is taste: Catcher 8,000, Trainer 10,000, Story 12,000 frames. (For step52dev3 and dev4 it was LOWERED to
+  5,000 / 6,500 / 8,000 because chapter-2 runs fell under the old floor of errands; it is RESTORED: tuning a taste toward a
+  share of frames is the AI aiming at the grader's quantity again, `LESSONS.md` PF-14.)
+* **Graded by YIELD and SPACING, not by a share of frames** (P2's own words). The checks of a SHARE OF FRAMES, every one of
+  them the quantity 5.1's balance or its curiosity minimum aimed at, and their controls (`rate_step5.P2_REPORTED`: the
+  intent-mix floor in chapters 1 and 2, the curiosity the story did not need in chapters 1 and 2, ERRANDS_OFF moving the
+  mix, the beeline failing the curiosity bound, CH2_OFF under the floor) are REPORTED, each line saying whether its old
+  bound HELD; `live_step5.py` reports its two the same way. ‼ This was decided in DEVELOPMENT, before any graded run of 5.2
+  but AFTER development runs had failed the old chapter-2 floor (it held in 10 of 11 chapter-2 runs of step52dev2 and 22 of
+  24 of step52dev3 and dev4; the lowest 0.2464, the Trainer's seed 1017, whose walk to PETALBURG met 17 battles). What
+  separates the AI from a beeline stays GRADED: OFF THE BEELINE, NO SPEEDRUN (with and without the grass's dice, chapters 1
+  and 2), THE ERRANDS DIFFER BY SEED, SEED DIVERGENCE, the yield against LOAF, the spacing against GREEDY. A curiosity goal
+  that brought nothing is counted as IDLE, not as an errand, in the reported shares (`rate_step5.intent_mix` `unproductive`).
+
+### P3. Detours that arrive, and say so
+
+* A detour chooses only a place it can WALK to over tiles it KNOWS (`_known_reach`: nobody standing in the way now, no place
+  curiosity found blocked, no tile a scene sent it back from), never past an edge it has seen crossed (`MapMemory.outside`),
+  never at or BESIDE a blocked place (`BESIDE` 2 tiles round: the same corner), nor beside one it already tried (`_beside`);
+  the FIRST scene that stops the way to its place ENDS it ("not reached: ... (a scene stopped the way there)"). Its outcome
+  is "reached the <kind> at <tile>" or "not reached: ..." and only "reached" is done; at a PERSON it chose, it walks up and
+  TALKS.
+* Development found why the detours that did not arrive failed (step52dev2: 7 of them, about 2,200 frames each): in 4 a look
+  round had JUST given up a place past LITTLEROOT's twin ("a scene stopped the way there 2 times") and the detour after it
+  chose the same place or the one beside it, and met her twice more. The navigator now keeps every place a scene made it give
+  up (`Navigator.scene_given_up`); the goal runner blocks those of a look round for curiosity in the milestone. Step52dev3
+  (seeds 1013-1024, with that fix) still had two such detours: one chose (5, -4), TWO tiles from the (3, -3) just given up
+  (so `BESIDE` is 2, not 1), and the first version's give-up lived in the detour's CHOICE, which the navigator does not ask
+  again after a scene, so both met her twice (a unit test had called the choice directly: the action was never
+  instrumented, CLAUDE.md rule 7). The detour's DONE asks now.
+* **The arrival share counts the detours that chose a place** (`rate_step5.py` DETOURS THAT ARRIVE; step52dev3: 7 of 23
+  found nothing off the way, "not reached: nothing off the way here that it can walk to", 17-29 frames each, and walked
+  nowhere): those are reported apart; the AI's word on EVERY detour is checked against the game.
+
+### P4. The pushing property (pressing that brings nothing new is idling too)
+
+* `hands/waiting.py` `PushWatch` (the AI's record of every look): a STRETCH is the free overworld time since the last new
+  thing (a tile learned, a map stood on), paused by a text, a menu, a scene or a battle; it counts only when the pad PRESSED
+  in it. The game's second path (`gates/play_harness.py` `PlaceRecorder`, every 10 frames by the framework's reads: the
+  player's tile, `player_avatar_is_controllable`, the script context, the text printers, the 15x11 window of tiles) measures
+  the same thing from the game. Bound `PUSH_MAX` (pre-registered); the two paths must agree run by run.
+* **An open stretch is told as it grows** (`PushWatch._tell_open`, each `PUSH_NOTE` frames): in step52dev3 the BLOCKED
+  control pushed against the man at OLDALE's west exit for 136,370-244,940 free frames by the game's second path, and the
+  AI's own record said 0-1,758, because a run its frame budget cuts off never ENDS its last stretch. The AI's record now has
+  the stretch whenever the run stops.
+* **What it found at once** (step52dev2, chapter-1 seed 1010, 114,121 frames of pressing with nothing new, stopped by the
+  patience): PROF. BIRCH's "Don't leave me like this!" walls on ROUTE 101, left in the navigator by the last intent of his
+  milestone, were carried into the RIVAL's milestone by a goal that ran no intent (a talk at hand); every walk north from
+  LITTLEROOT planned round them, back across the edge. Every goal now STARTS from its own milestone's walls (G229). Replayed
+  with the fix alone (the same seed, game clock and host clock pinned): `done: ch1_pokedex reached` at 141,632 frames.
+* **And a second one** (step52dev6, chapter-1 seed 1049, 3,313 frames, a 5.1 behaviour): a training roam's walk to the
+  nearest grass chose (5, 23) on OLDALE, grass SEEN past its bottom edge; the walk crossed onto ROUTE 101, where (5, 23)
+  lies past ITS bottom edge, onto LITTLEROOT, and back: 58 crossings of that edge. `Navigator.go_to` now ends when the walk leaves the
+  tile's map and says "left the map" (G268, G269), and the roam then walks to the new map's own grass (G270). Replayed
+  with the fix (the same seed and clocks, from a copy that differs from the sweep's by the fix alone): the same trajectory to
+  f81581, then the roam walked to ROUTE 101's own grass at (5, 3); the longest push 1,164 frames (the sweep's 3,313);
+  `done: ch1_pokedex reached` at 147,964 frames.
+* **And a third** (step52dev4, chapter-2 seed 1026, 3,372 frames; step52dev6, the beeline's chapter 2 of seed 1050, 9,261
+  frames and 186 crossings of OLDALE's top edge; step-3 behaviours): ROUTE 103's frontier at (25, 15), across its water,
+  was PLANNED through OLDALE's tiles seen below the edge; the walk crossed onto OLDALE, whose explorer chose "the road up,
+  back to ROUTE 103, where 1 thing is left to see", and round again. TWO fixes, the first of which was NOT enough
+  (measured, not assumed): `Navigator._next_step` plans a tile of this map over tiles of this map (the tiles past an edge
+  it has crossed are walls for a target inside it; a road past the edge still crosses it: G272, G273); replayed from
+  step52dev6's own chapter-1 end with that fix alone against without it, the loop went on (198 crossings, 10,683 frames,
+  against 186 and 9,261): (25, 15) was now unreachable, but still "1 thing left to see" on ROUTE 103, and OLDALE's explorer
+  went back for it. So a frontier a walk found NO way to is marked in the world memory (`WorldMemory.mark_unreached`) and
+  left out of the map's `promise` until the map shows something new (G275, G276). Replayed the same way with BOTH fixes
+  against neither: neither, 186 crossings and 9,261 frames (step52dev6's own run, frame for frame); both, 2 crossings, the
+  longest push 1,021 frames, WALLY's tutorial at 117,953 frames (neither: 143,921). (The first replay, from step52dev4's
+  chapter-1 end of seed 1026, never reached the case: the code had moved since, so its arms were identical and proved
+  nothing; it is reported, not counted.)
+
+### P5. Controls that CAN fail
+
+The sweep's new arms (`rate_step5.py` `EXTRA_EDITS`, applied to a COPY): **LOAF** looks round and takes detours among tiles
+it has STOOD on, with no novelty window (the yield checks must FAIL it); **BLOCKED** never gives up a place it cannot get to
+(no watch for someone in the way, no blocked place carried, the look round with neither its novelty window nor its budget;
+the pushing property must FAIL it in the runs that met someone in the way at least 3 times in one curiosity walk); **GREEDY**
+passes every curiosity draw with no cap in a row (the spacing check must FAIL it). ERRANDS_OFF (the beeline) is REPORTED
+beside them, a comparison, not their control.
+* BLOCKED's first version removed only 5.2's blocks (the look round's novelty window the navigator's 3,000 frames): in
+  step52dev2 it stayed UNDER the pushing bound in 12 of 12, its longest stretch 2,057 frames by the game (the real code's
+  949-1,718). 5.1's navigator already ended ONE stretch by its novelty window, so that arm measured the REPEATS (the most
+  people in the way in one curiosity walk: 0-12, mean 3.8, against the real code's 0-6, mean 1.3), not a push. The arm now
+  removes every bound on pushing a blocked place, which is the defect the property guards. In step52dev3 it did what it
+  should: 10 of 12 runs pushed at a person until the frame budget (965-1,727 "someone stands in the way" waits each; the
+  game's longest stretch 136,370-244,940 frames), and the AI's record missed it (above). And once the route fixes (P4)
+  were in, the arm REACHED its state in 0 of its first 10 runs of step52dev9 (someone in the way of a curiosity walk 3 times
+  or more: never): the world memory's unreached frontier and the in-map plan give up a place it cannot get to too. The arm
+  removes them as well (its `EXTRA_EDITS`), measured again on NEW development seeds before the graded run (step52dev10,
+  seeds 1097-1108): someone in the way 1,196-1,748 times in 10 of 12 runs, each of them pushing until the frame budget,
+  169,572-247,442 frames by the AI's record and 169,920-247,900 by the game's.
+* The beeline control could not reach the POKéDEX in step52dev2 (12 of 12 stuck): 5.2 had put the item pick-ups under the
+  curiosity switch, so the rival's POKé BALL, how chapter 1 goes on, was never picked up. Item balls are curiosity under the
+  row cap only, as in 5.1 (G230).
+
+### P6. The small items
+
+* A town it has LEFT earlier in the run is never "a new place" (`GoalManager.left_before`, kept live: CH1M's OLDALE).
+* The 'ask' step (PROF. BIRCH's lab, `knowledge/milestones.json` with the words that tell it, checked against the decomp by
+  `extract_milestones.py --verify`) walks to its house only when those words were heard: "nobody has told it whom to see".
+
+### The proof (the graded sweep and the live arms on tree `a1e6d2e6db88e7a4`; the unit suites and the mutants on the final tree `9d87ce1d2d81294e`, which differs from it by three TEST files only, compared file by file against the graded sweep's kept tree `evidence/trees/a1e6d2e6db88e7a4.zip`: `gates/revert_step5.py` (six anchors re-pointed to lines 5.2 had changed, G62 re-predicted REDUNDANT once its full run showed it), `gates/test_safety_gates.py` (the ledger test, once 901-920 were played) and `gates/live_step5.py` (a variable renamed in its `measures`))
+
+| proof | what it shows | result (`ai_player/evidence/2026-10-15-step52-*.txt`) |
+|---|---|---|
+| `rate_step5.py` on NEW held-out seeds 901-920, REGISTERED first (ledger #22, the numbers' sha256 `bf99ed386f168dc5`; 267 runs; `step52-RATE.txt`) | every check of the rounds before (the shares of frames REPORTED, P2) and step 5.2's | **VERDICT FAIL: 62 checks PASS, ONE FAILS.** The failing one: THE PUSHING PROPERTY, in the NOHINTS plan alone (20 of 20 runs, 31,676-62,012 frames by the AI's record, 37,850-98,290 by the game's). The development sweeps never ran NOHINTS (see below). Every other plan under the bound: the real code's longest 1,843 frames by the AI (CH2_OFF), 1,770 by the game; the two paths agree in 267 of 267 runs; BLOCKED over it in 18 of the 18 of 20 runs that reached its state (247,420 frames at most). Step 5.2's other checks: THE YIELD of the curiosity that sees, CH1 86.8 % (149,854 of 172,626 frames), CH2 93.8 % (212,596 of 226,628), all curiosity 91.4 % / 93.2 % (reported); LOAF 31.9 %, over the per-run loafing bound in 6 of 20; NO LOAFING at most 2,307 frames a run (120 runs); CURIOSITY SPACED at most 2 in a row, GREEDY 4-5 in a row in 7 of 7; DETOURS THAT ARRIVE 37 of the 46 that chose a place (80 %), the AI's word true in 69 of 69; no place it had left called new; the ask step never walked with nothing said. The rounds before: CH1 the POKéDEX 20 of 20, the rival at the first try 20 of 20, trained by the game 20 of 20 (NOTRAIN 0 of 20), whiteouts 1; THE STALL PROPERTY 150 / 160 frames (STALL1 12 of 20, STALL2 18 of 20, STALL3 7 of 7 over it); CH2 WALLY 20 of 20, whiteouts 0; NO SPEEDRUN 1.182 and 1.172 without the grass's dice (CH2 1.334, 20 of 20); OFF THE BEELINE, the errands differ 0.64, divergence 0.579 vs the beeline's 0.418; PATIENCE 6 of 6, PATIENCE_OLD 6 of 6; LOSE3 7 of 7; STOP and STOPDEAD as predicted. Reported shares: the old chapter-2 floor would have FAILED in 5 of 20 runs (0.248-0.290) |
+| the NOHINTS failure, read | what the AI does with no hints | with its hints removed (the fault arm `no_hints`: it reached the POKéDEX in 0 of 20, by design) the AI, once nothing reachable is left to see, issues one look-around or exploring `go` goal after another, and each walks through the same POKéMON CENTER door until the navigator's warp ping-pong rule ends it (about 1,100 frames), with nothing new between them, until the story's patience stops the run: a ping-pong rule that holds for one intent, not across goals. Not fixed in this round (a fix after the graded run would need a NEW registration on NEW held-out seeds). ‼ THE CAUSE OF THE MISS: the property was developed on the plans the development sweeps ran (CH1, ERRANDS_OFF, CH2, CH2_OFF and the three controls) and graded on every plan of `REAL_PLANS`, NOTRAIN and NOHINTS included (`LESSONS.md` PF-16) |
+| `live_step5.py`, six arms through the real launcher, NEW trajectories on seeds 14, 15, 16 (`step52-CH1T/CH1C/CH1M/CH2/CH2T/CH2M.txt`) | the AI plays chapters 1 and 2 itself | **OVERALL PASS, 6 of 6**, no leftover emulator. CH1T / CH1C / CH1M: `done: ch1_pokedex reached` in 130,327 / 135,760 / 145,414 frames; loafing 16 / 47 / 15 frames; the longest push 840 / 823 / 1,557; 2 curiosity goals in a row at most; spins 3 in 564 training steps. CH2 / CH2T / CH2M: WALLY's tutorial in 109,898 / 67,005 / 110,269 frames; loafing 0 / 0 / 426; the longest push 1,093 / 1,271 / 1,132. Reported: CH2M's share of errands 25.1 %, under the old floor. One trajectory each (CLAUDE.md rule 8) |
+| `revert_step5.py` (`step52-REVERT.txt`, the final tree) | each rule carries weight, its CALL deleted too (G3's census: 0 sites missing, 11 waivers in `gates/census_waivers.json`, each with its reason) | **OVERALL PASS: 272 mutants CAUGHT as predicted and 2 REDUNDANT ALONE as predicted (G62, G186), of 274**; G139-G276 this round's (G136 deleted). Its title line still says "5.1" (a text not re-touched, so the final tree's other evidence would stand) |
+| `revert_safety_gates.py` (`step52-REVERT-GATES.txt`, the final tree) | the safety gates' own proof, S23 the census's nested-function walk (it missed a hook inside a function nested in an `if`) | **OVERALL PASS: 23 of 23 CAUGHT** |
+| `run_units.py` (`step52-UNITS.txt`, the final tree) | the static gate, every unit suite, every 5.2 gate | **OVERALL PASS, every suite exit 0**: `check_purity` PASS; test_check_purity 29, test_host 20, test_eyes 56, test_hands 57, test_world 132, test_battle 107, test_evidence 10, test_goals 194, test_safety_gates 48; the milestone table and the knowledge up to date; the ledger well formed (22 entries); CALL-SITE CENSUS PASS (135 sites, 0 missing); PERSON-FAIR DATA DOOR PASS; LESSONS CHECK PASS (46 lessons); the disk budget |
+| A/B replays (development, scratch, named in P4 above) | each loop fix, the fix alone against without it | seed 1010 (G229): 114,121 frames of pushing -> the POKéDEX at 141,632; seed 1049 (G268): 3,313 -> 1,164, the POKéDEX at 147,964; seed 1050's beeline chapter 2 (G272 + G275): 9,261 frames and 186 crossings -> 1,021 and 2, WALLY at 117,953 (G272 alone: 10,683 and 198, no fix) |
+
+### Known limits of step 5.2
+
+* **The shares of frames are REPORTED, not graded** (P2), and this was decided in DEVELOPMENT after development runs had
+  failed the old chapter-2 floor (P2 above). The live CH2M arm's share is under the old floor (25.1 %) and says so.
+* **Bounds chosen in development, before any graded run, after the measures changed under them**: `PUSH_MAX` 2,700 -> 4,000
+  (the loops it found fixed; the largest non-loop 3,224), `LOAF_FAILS_MIN` 0.5 (a share) -> `LOAF_FAILS_RUNS_MIN` 1 (once
+  the loafing was counted outside battles), the yield graded on the curiosity that SEES, the arrival share over the detours
+  that chose a place, the streak's frames reported. Each is in `rate_step5.BOUNDS`' comments with its measurement.
+* **The pushing property's two paths measure the same thing differently**: the game's window (15 x 11 round the player)
+  counts tiles the AI's memory does not (past an edge, beside an elevation), so its stretches are shorter where they differ
+  (step52dev3 chapter-2 seed 1023: the AI 3,224, the game 720). Their VERDICTS must agree run by run, not their lengths.
+* **Loops the property has not met yet may exist.** It found three and each is fixed with an A/B; the step-3 explorer still
+  counts exits and roads never used as "left to see" however far they are, and a frontier is "unreached" only after a
+  walk found no way to it (a person standing in a one-tile gap makes it so, until the map shows a new tile).
+* **BLOCKED reaches its state by the dice**: someone in the way of a curiosity walk 3 or more times (OLDALE's man at the
+  west exit, before the POKéDEX) in 10 of 12 runs of step52dev10 and 0 of 12 before its last edits (step52dev9).
+* **LOAF fails by its yield** (0.20-0.31 against the real code's 0.97 and more); its per-run loafing goes over the bound in
+  only a few runs (2-3 of 12), so that bound's control is that it is ever exceeded.
+* **A goal's yield is the whole goal's**: a look round that talked once is productive however long it was (the BLOCKED
+  arm's 250,000-frame looks round were, by a talk); the real code's looks round end within their budget.
+* **Taste, not measured from people**: `HUNT_FRUITLESS` 3, `BESIDE` 2, `YIELD_TILE_RATE` 20, `YIELD_TILES_MIN` 8,
+  `CURIOUS_ODDS_CAP` 0.9, `CURIOUS_ROW_MAX` 2, `PERSON_BLOCK_HITS` 3, `bored_frames`.
+* **The live arms' `measures` line names the curiosity streak's frames `await_max`** (a variable reused in
+  `live_step5.check_hands`; fixed after the arms ran): the STALL PROPERTY's own check line in each file is the stall's
+  (150 frames in every arm).
+* **The regression of steps 0-4 was not re-run**, though 5.2 changed the navigator (`go_to`, `_next_step`, `run`'s mark)
+  and the world memory (`promise`): `test_world` and `test_hands` pass on the final tree, and the live arms and the graded
+  sweep walk every map of chapters 1 and 2; the chapter-boundary regression (PR-2) is the coordinator's to schedule.
+
+### Step 5.2, the verifier's round (2026-10-15)
+
+The verifier checked the final tree `9d87ce1d2d81294e` independently and found two FAILURES. Its weak proofs are carried
+to the next step (listed under this round's known limits); one of them, inside the code of a failure, is fixed too.
+
+1. **THE NOHINTS PUSHING** (the builder's own reported FAIL, confirmed by the verifier's own count, 20 of 20 runs): with its
+   hints removed, the AI "issues one look-around or exploring `go` goal after another" once nothing reachable is left, and
+   each walks through OLDALE's house door until the navigator's warp ping-pong rule ends it. "The ping-pong rule ends one
+   goal; nothing stops the next goal from looping through the same door." In seed 901, 98 goals in a row ended "stuck:
+   ping-pong"; one stretch of pressing stayed open for 59,204 frames. Seeds 903, 909, 911 and 912 looped another way: OLDALE's
+   bottom edge crossed back and forth, "seen all of" both ways, each goal ended by the novelty window or its budget.
+2. **LOAFING CREDITED AS A TALK**: "a curiosity chat with the person of the need goal that just ended, hearing nothing new".
+   The graded sweep had 60 NURSE RE-HEALS (a full party healed again straight after a heal, 1,747-1,957 frames each), 46 MART
+   clerks' "Welcome!" straight after a shop, and 21 chats with OLDALE's footprints man straight after his own scene had
+   stopped a look round. All 127 had no new page and fewer than 8 new tiles, and both yield paths called them productive by
+   the label "talked". Counted as loafing, they broke NO LOAFING's 4,000 frames in CH2 seed 912 and in 13 of 20 NOHINTS runs.
+
+**Why the two were missed, in one line each.** The ping-pong rule was a property of ONE intent, and nothing carried it past
+the goal. And a map's "left to see" counted what no walk could reach: OLDALE_TOWN_HOUSE1's two tiles behind its back wall,
+the POKéMON CENTER's two Cable Club doors behind their counter, the MART's two tiles at the edge of the screen. Separately, a
+talk was credited by its LABEL: "grade the property, not the label", once more (`LESSONS.md` PF-1, PL-13).
+
+#### The fixes (each with its unit test and its fault half in `gates/test_goals.py` VerifierRound52Tests, and its mutants)
+
+* **Who SPOKE in its own service talk or chat is never chatted with** (`brain/goals.py` GoalManager.notice, `_chat_person`;
+  `SPOKE_REACH` 2, `HEARD_KINDS`). While the goal is a heal, a shop, a chat or a detour, the person straight in front of the
+  player, at most two tiles away, while words wait on the overworld screen, has SPOKEN to it. The nurse and the MART clerk
+  speak across their counter, two tiles ahead: the graded logs show "npc(0,-2)" facing up while "Hello, and welcome to the
+  POKéMON CENTER." and "Welcome!" were on screen. The chat chooser leaves them out. The set is kept with the world memory
+  (`WorldMemory.spoke`, written only when it holds someone), so chapter 2 does not chat again with chapter 1's (CH2 seed
+  912's PC-corner man, twice). A SCENE's speaker is not remembered: the first version remembered every speaker, and the
+  development sweep step52vdev2 had half the chats with new words. PROF. BIRCH's "MAY? Gone home, I think." in his lab had
+  been 18 chats of the graded sweep, every one with new words, and so had the rival's parents' and the rival's own. A
+  scene's speaker may be chatted with once, and is then in `talked` (the footprints man: once a run, its talk no yield).
+  Mutants G292, G296-G299, G302, G320, G321 (the watcher's install, the rule, the record, the reach, "anyone near", the
+  world's set, "every speaker", the goal runner's word); G293 and G294 (the write and the read).
+* **A talk is a yield only when it TOLD something new.** By the AI (`goal_yield`): a chat or a detour's talk counts only with
+  words never read (`pages`). A talk that heard nothing is told as "a talk that told it nothing new: NOT productive" (G295,
+  G313). By the GAME (`rate_step5.game_yield`): only a text whose MESSAGE the game had never shown before in the run
+  (⛔ a whole message was too coarse a unit, so the verifier's second round made it a text with a PAGE never shown). The
+  harness's `PlaceRecorder` reads the message buffer `gStringVar4` when a text begins waiting: the buffer a message is
+  expanded into before it is printed, pret/pokeemerald `src/field_message_box.c` ShowFieldMessage and `src/menu_helpers.c`
+  DisplayMessageAndContinueTask, read 2026-10-15. A chapter-2 run starts from chapter 1's messages (`seen_texts.json`
+  beside `seen_tiles.json`); a failed read is counted and the text counted new (G309-G311). This also answers the
+  verifier's weak proof "the game's second path credits ANY text begun in a goal's span as a talk" (NOHINTS 902's
+  "Aaaaah! Wait! Please don't come in here." met twice in a look round of 0 new tiles).
+* **A ping-pong is kept past its intent** (`Navigator._remember_pingpong`, `ponged_now`). The warp that ENDED an intent as
+  a ping-pong is kept with the world memory's `stamp` (tiles learned, maps stood on, news). While nothing new has been seen
+  anywhere since, a walk with no lead does not go through it again, unless it is the only way left (G277, G282, G283, G289,
+  G308).
+* **"Left to see" is only what it could get to.** At every decision, `Navigator.cut_off` marks the frontier tiles and the
+  unused exits that its own reach (round the scene walls, never round the people, who walk on) shows no way to. A map's
+  `promise` leaves them out while the map shows nothing new (G278, G280, G305, G306). A frontier tile it STOOD ON whose
+  unseen side stayed unseen is given up and marked too (`Navigator._seen_out`: the MART's two tiles; G279, G281, G312). The
+  earlier brains keep neither rule (`Navigator.ponged` None, `mark_cut` False), so steps 3 and 4 play as before.
+* **A walk with NO LEAD** (`LOST_KEYS`: an exploring `go`, and the look round while one is put aside) is `lost_intent`. It
+  never tries a frontier a walk found no way to. When nothing on the map is worth going to (`worth_going`: somewhere new, or
+  a way back to a map with something left), it heads for the nearest map it knows where something IS left (`lost_way`, by
+  the known links), not to a whim among what it has seen. When NOTHING is left on any map it knows, it is **OUT OF IDEAS**:
+  the walk ends, and the next decision gives the run up ("give_up", `GoalManager.next_goal`). This happens only when
+  nothing new has been seen since that walk; a mark made on another map earlier in the same milestone may be stale (a
+  known limit below). A person stuck like that puts the game down rather
+  than walk the same streets for half an hour; the run used to wait for the story's 120,000-frame patience (G284-G288,
+  G290, G291, G300, G301, G307). New graded check, pre-registered: no run of a plan that goes by what the game says ends out
+  of ideas (`BOUNDS["OUT_OF_IDEAS_LED_MAX"]` 0); NOHINTS's are reported.
+
+#### Found in this round's development (scratch copies of the tree, every range written in the seed ledger BEFORE it was played)
+
+* **step52vdev1** (seeds 1201-1204: NOHINTS, CH1, CH2), with the out-of-ideas rule as first built:
+  * **three of four CHAPTER-1 runs gave up inside the moving truck**, 26 frames into their first goal, before its door had
+    opened. A person SHUT IN, on a map with no way out it knows of, waits; it is not out of ideas (`shut_in`, G317).
+  * **CH1 seed 1201 gave up in the rival's bedroom** at the start of PROF. BIRCH's milestone. LITTLEROOT's road north was
+    still marked "no way there" from the twin's scene of the milestone before. When the milestone changes, the marks and the
+    ping-pongs are forgotten (`Navigator.story_moved`, `WorldMemory.forget_marks`, G314-G316): the twin steps aside once
+    the story moves on.
+  * NOHINTS seed 1201, the only NOHINTS run past the truck, beat the rival by exploring Route 103 and ended "out of ideas"
+    at f119122 in the "Back to the lab" milestone. Its longest stretch of pressing was 1,276 frames by its own record.
+* **step52vdev2** (seeds 1205-1216: the six real plans, LOAF, BLOCKED, GREEDY; 100 runs) FAILED three checks; every
+  other check passed. The pushing property's longest stretch was 2,595 frames by the AI's record and 2,380 by the game's
+  (bound under 4,000). NOHINTS ended "out of ideas" in 11 of 12 runs; the other reached the POKéDEX, its walk with no lead
+  having taken it back into PROF. BIRCH's lab where something was left. No run of a plan with hints ended out of ideas.
+  Nurse chats: none (the graded sweep had 60). The three FAILs:
+  * **NO LOAFING, CH1 seed 1209, 4,851 frames.** A detour ended at the footprints man's first word ("a scene stopped the
+    way there"), and the look round "some more" after it walked OLDALE for 2,003 frames toward his corner, nothing new. The
+    navigator now keeps every tile where a scene BEGAN and turned the player back (`Navigator.scene_turned`), and the goal
+    runner blocks the ones a curiosity walk met, for curiosity in the milestone, after ONE meeting (G318, G319). A person
+    told "please don't come in here" does not try that way again for curiosity's sake; the story's walks are not blocked.
+  * **GREEDY, over the spacing bound in 0 of 4 runs** (3 in a row in each, the bound "more than 3"). The control could no
+    longer fail: once a map's "left to see" counted only what it could get to, its looks round "some more" ran out. GREEDY now
+    also looks round "some more" without limit and whether or not anything is left (`rate_step5.EXTRA_EDITS`, set in
+    development before any graded run of the round).
+  * **NO SPEEDRUN (the time), 0.989** (bound >= 1.0: CH1's frames to the POKéDEX outside the needs, battles included, over the
+    beeline's). The battle-free check passed at 1.06 (bound >= 1.02). On 901-920 the two were 1.182 and 1.172. The
+    decomposition the check prints says why. The errands added 2,842-17,240 frames a run (901-920: 4,323-23,674). The rest of
+    the way took CH1 10,566 frames FEWER than the beeline on average (901-920: 251 more). The old margin held the nurse
+    re-heals and the walks among places seen all of, both gone. This bound is NOT changed. Its own comment in
+    `rate_step5.BOUNDS` (NOBATTLE_RATIO_MIN) already says it fell under 1.0 in one of five development samples by the grass's
+    dice.
+* **step52vdev3** (seeds 1217-1228, every plan of the graded sweep, 154 runs), with the fixes above, FAILED one check.
+  THE TWO PATHS AGREE on the pushing verdict "in 153 of 154 runs; apart: [('LOAF', 1224, 4099, 3990)]": the LOAF control,
+  near the bound, by 109 frames. That check is not changed. Every other check passed, the restored ones among them: NO
+  SPEEDRUN 1.155 (battle-free 1.148), GREEDY over the spacing bound in 4 of 4, and PROF. BIRCH chatted with again (12 chats,
+  all with new words). Two runs came close to a bound, and each was looked into:
+  * **NOHINTS seed 1223, the longest push, 3,395 frames.** Its walk with no lead went OLDALE -> ROUTE 103 -> OLDALE across
+    the edge, each map "where something is left" seen from the other, and on each nothing worth going to (the frontier tried
+    and given up in that walk). A map on which a walk with no lead finds nothing worth going to is now SPENT
+    (`WorldMemory.mark_spent`): its `promise` is 0 until it shows something new, or the milestone changes (G322-G324).
+  * **CH2 seed 1220, the most loafing, 3,993 frames** (bound 4,000). A look round "some more" of ROUTE 102's grass ran its
+    4,200 frames through 21 battles and showed 9 new tiles: each battle's experience reset its novelty window. A look round is
+    a walk to SEE, so it is now over once it has seen nothing new (no tile, no map) for `CURIOUS_NOVELTY` frames, the
+    battles met in it included (`look_saw_nothing`, G325, G326). The LOAF and BLOCKED controls have that end taken out too
+    (`rate_step5.EXTRA_EDITS`: each arm is the defect with every end of a look round removed).
+* **step52vdev4** (seeds 1229-1240: CH1, NOTRAIN, NOHINTS, CH2), with the spent maps but not yet the look-round end: the
+  pushing property's longest 1,974 frames by the AI (1,820 by the game). NOHINTS ended "out of ideas" in 12 of 12. NO
+  LOAFING FAILED by a little, 4,074 (NOHINTS 1231) and 4,020 (CH2 1240).
+* **step52vdev5** (seeds 1241-1252, every plan), with the look-round end: the real plans' loafing tail 4,350, 3,977, 3,861,
+  each read in its log:
+  * **NOHINTS seeds 1245 and 1252**: a look round "some more" of OLDALE walked into the footprints man's scene twice, 2,320
+    frames, though the STORY's walk had met him earlier in the milestone. A scene that turned ANY walk back is now blocked
+    for curiosity in the milestone; the story's own walks keep their walls (G327).
+  * **CH2 seed 1242**: PETALBURG's "Hiya! Are you maybe... A rookie TRAINER?" turned a look round back at (8, 10) and (8,
+    12), and the detour after it walked round both, into the same scene at (8, 13), about 1,800 frames of it. A scene's
+    trigger is a line of tiles across a way, of which the AI has met only some. So the tiles beside each place a SCENE
+    blocked (`_scene_corners`; never round a place someone stood in the way of) are curiosity's walls too: a curiosity walk
+    carries them, "some more" counts nothing past them, and the story's own walls never get them (G328-G332).
+  * Its other FAILs: STOP and STOPDEAD "not exercised" (no run of phase 1 lost a battle, the dice); CH2's no-speedrun
+    without the grass's dice, pooled 1.184 (bound 1.15) but CH2 the slower in 8 of 12 (bound 70 %); and THE TWO PATHS AGREE
+    on the stall verdict "in 151 of 152 runs; apart: [('GREEDY', 1250, 150, 2730)]". GREEDY's first strengthening ignored
+    the exhausted mark too. In seed 1250 it chose 94 goals in 2,738 frames, empty looks round of LITTLEROOT each ending at
+    once, with no press between. The game's second path saw a text wait 2,730 frames there; the AI's own record saw 150. It
+    now stops a map's "some more" once a look round there brought nothing. Its own development sweep step52vdev7 (seeds
+    1265-1276, GREEDY alone) had it 5, 6, 8 and 5 in a row, and the stall's two paths agreed in 4 of 4. Why the eyes did not
+    see that wait is NOT explained (a known limit).
+* **step52vdev6** (seeds 1253-1264, every plan, 154 runs; the final code, GREEDY's edit not yet changed) FAILED one check:
+  THE TWO PATHS AGREE on the stall verdict "in 150 of 154 runs; apart: [('GREEDY', 1253, 150, 19550), ('GREEDY', 1256,
+  150, 2910), ('GREEDY', 1259, 150, 2880), ('GREEDY', 1262, 150, 2980)]", the same GREEDY pattern as step52vdev5's seed
+  1250. Every other check PASSED: NO LOAFING at most 2,941 a run (72 runs); THE PUSHING PROPERTY 2,035 by the AI, 1,930 by
+  the game; NO SPEEDRUN 1.065, battle-free 1.125; CH2's battle-free 1.254, CH2 the slower in 11 of 12; NOHINTS out of ideas
+  12 of 12, no plan with hints out of ideas; the chats that told it nothing new 3, 5 and 4 a plan (CH1, NOTRAIN,
+  NOHINTS), none in chapter 2; the game's message reads that failed 0.
+* **A bug of my own, caught by an existing test.** The harness's new "is the message new?" flag was first named `new`, the
+  name `PlaceRecorder.after_frame` already uses for its count of new tiles. Every text then ENDED the pushing stretch.
+  `GraderYieldTests.test_the_game_side_recorder_of_places` failed at once ("50 != 69"); it is now `unseen`.
+
+#### The proof (ONE tree: working-tree digest `d49ea333e0545c91`, kept as `evidence/trees/d49ea333e0545c91.zip`; every file below names it)
+
+| proof | what it shows | result (`ai_player/evidence/2026-10-15-*.txt`) |
+|---|---|---|
+| `rate_step5.py` on NEW held-out seeds 921-940, REGISTERED again with this round's numbers before the run (ledger #23, the numbers' sha256 `53ca1f74fdde6b0e`, which includes the new bound `OUT_OF_IDEAS_LED_MAX` 0 and the controls' `EXTRA_EDITS`; 257 runs; `step52-RATE.txt`) | every check of the rounds before, step 5.2's, and this round's | **VERDICT: PASS, 66 checks PASS, none FAILS; FROZEN TREE PASS (515 checks).** THE PUSHING PROPERTY: "by the AI's record 2056 frames, by the GAME's 1990 (bound under 4000); over it: none", NOHINTS included (on 901-920 it was 31,676-62,012); the two paths agree in 257 of 257. NO LOAFING: "the most 3461; over it: none" (120 runs). The talks: no nurse chat at all (`repeat_talks.py` over the 257 kept folders: "nurse chats (plan, productive): {}"; 901-920 had 60 re-heals), no MART clerk's "Welcome!". The footprints man is still chatted with after his scene, 20 times. ⛔ WRONG, found by the verifier's second round: this cell said each "now counts as LOAFING by both paths" and cited "the chats the GAME says told it nothing new (count, own frames) by plan: {'CH1': (12, 2913), 'NOTRAIN': (9, 2419), 'NOHINTS': (9, 2425), ...}; the game's message reads that failed: 0"; those chats are other people's ("Um, um, um!", the truck, ROUTE 101), and the game's path credited all 20 footprints chats as talks (whole messages compared). NO LOAFING's PASS on 921-940 rests on that error: "Step 5.2, the verifier's second round" below. OUT OF IDEAS ONLY WITH NO LEAD: "runs ended 'out of ideas' 0 (bound <= 0)"; NOHINTS ended out of ideas in 17 of 20 and reached the POKéDEX by exploring alone in 3 (921, 927, 930). The rounds before: CH1 the POKéDEX 20 of 20; THE STALL PROPERTY 150 / 160 frames, its two paths agreeing in 257 of 257; CH2 WALLY 20 of 20; NO SPEEDRUN 1.184, battle-free 1.17; CH2's battle-free 1.234, the slower in 18 of 20; CH1's yield 86.9 %, CH2's 87.3 %; LOAF 27.1 % and over the loafing bound in 6 of 20; GREEDY over the spacing bounds in 6 of 6; BLOCKED over the pushing bound in 19 of the 19 runs that reached its state; DETOURS THAT ARRIVE 40 of 44; STOP and STOPDEAD exercised by STALL1 927 and STALL2 940 |
+| `live_step5.py`, six arms through the real launcher, NEW trajectories on seeds 17, 18, 19 (`step52-CH1T/CH1C/CH1M/CH2/CH2T/CH2M.txt`) | the AI plays chapters 1 and 2 itself | **OVERALL PASS, 6 of 6**; "leftover emulator processes: none"; FROZEN TREE PASS. CH1T / CH1C / CH1M: `done: ch1_pokedex reached` in 140,077 / 141,156 / 149,102 frames; loafing 0 / 601 / 27 frames; the longest push 831 / 653 / 1,404. CH2 / CH2T / CH2M: `done: ch2_wally reached`; loafing 1,090 / 0 / 2,497; the longest push 1,286 / 932 / 1,268. The chats after a heal or a shop were with another person in the room, not the nurse or the clerk (read in each folder's actions). One trajectory each, the AI's own record only (CLAUDE.md rule 8) |
+| `revert_step5.py` (`step52-REVERT.txt`) | each rule carries weight, its CALL deleted too | **OVERALL PASS: 328 mutants CAUGHT as predicted and 2 REDUNDANT ALONE as predicted, of 330**; the control copy 212 tests, none failing. G277-G332 are this round's |
+| `revert_step3.py` (`step3-REVERT.txt`) and `revert_safety_gates.py` (`step52-REVERT-GATES.txt`) | the navigator's and the world memory's step-3 rules still carry weight; the safety gates' own proof (the round changed `rate_step5.py`) | **OVERALL PASS: 93 CAUGHT and 1 REDUNDANT ALONE (W13) of 94**; **OVERALL PASS: 23 of 23 CAUGHT** |
+| `run_units.py` (`step52-UNITS.txt`) | the static gate, every unit suite, every 5.2 gate | **OVERALL PASS, every suite exit 0**: `check_purity` PASS; test_check_purity 29, test_host 20, test_eyes 56, test_hands 57, test_world 132, test_battle 107, test_evidence 10, test_goals 212, test_safety_gates 48; the knowledge and the milestone table up to date; the ledger well formed (30 entries); "CALL-SITE CENSUS since HEAD: 8 AI files changed, 116 functions or added calls, 187 sites; 0 MISSING"; PERSON-FAIR DATA DOOR PASS; LESSONS CHECK PASS (52 lessons) |
+| development sweeps step52vdev1-vdev7 (scratch copies, ledger #24-#30, each written BEFORE it was played) | what each fix did, read in the logs | above; vdev7 PASSED (GREEDY alone); vdev6 failed only on GREEDY's old edit |
+
+#### Known limits of this round (the verifier's weak proofs carried, and this round's own)
+
+* **The verifier's weak proofs, carried to the next step** (the task: "fix one only if it is cheap and inside the same
+  code"; only the first was):
+  1. FIXED: "The game's second path credits ANY text begun in a goal's span as 'a talk'". It now credits only a message the
+     game had never shown in the run (above).
+  2. "NO LOAFING's control is weak": LOAF goes over 4,000 frames in 6 of 20 graded runs here, against `LOAF_FAILS_RUNS_MIN`
+     1; the separation still rests on the yield (27.1 % against the 60 % bound).
+  3. "P2 needs a user ruling": the shares of frames are still REPORTED, not graded. Undecided, and the user's call.
+  4. "The ledger can only refuse runs made from this checkout." This round's development sweeps wrote their ledger entry
+     into the REAL ledger BEFORE playing (the scratch script `dev52v.py` calls `ledger.begin` first), so each range was on
+     record before a frame of it ran. Nothing mechanical stops a copy from playing a held-out seed, and the wrong refusal
+     reason for a graded re-run of played seeds ("was never REGISTERED") is not changed.
+  5. "check_lessons reads a lesson's Status by its prefix" (a Status 'GATEDISH' passes as GATED): not changed.
+  6. Part 1's final tree `36a2c3e4dfa87a16` has no zip in `evidence/trees`: not recoverable without git.
+  7. "Live arms: each is one trajectory on the host clock, and only the AI's own record covers them": still so.
+  8. The verifier's third push count was an upper bound in training roams: not re-run.
+* **The footprints man is chatted with once after his own scene** (20 times in 257 graded runs). A scene's speaker is not
+  remembered as having SPOKEN, because PROF. BIRCH, the rival's parents and the rival say new words each time (narrowing
+  the rule to service talks and chats restored 18 productive BIRCH chats). ⛔ **WRONG, found by the verifier's second
+  round:** this paragraph said the chat with him "is honest LOAFING now, counted by both paths, and the loafing bound holds
+  with it (3,461 at most)". The AI's own record counted it as loafing; the GAME's path, which grades NO LOAFING, did NOT
+  (all 20: game 1, AI 0), because it compared whole messages and his talk is a message of its own made of his scene's
+  last two pages. The figure it cited ("the chats the GAME says told it nothing new ... 'NOHINTS': (9, 2425)") holds no
+  footprints chat at all. Counted as loafing, NOHINTS seed 938 is 3,461 + 732 = 4,193, over the bound. Fixed and graded
+  again: "Step 5.2, the verifier's second round" below.
+* **A mark made on another map earlier in the milestone may be stale** when the out-of-ideas rule fires (it fires only
+  when nothing new has been seen since its last walk with no lead; the marks are forgotten when the milestone changes).
+* **Why GREEDY's old edit made the two stall paths disagree is NOT explained.** In step52vdev5 seed 1250 and step52vdev6
+  seeds 1253-1262, the game's second path saw a text or script wait 2,730-19,550 frames that the AI's eyes did not (150).
+  The AI chose dozens of empty goals there with no press between. One candidate, NOT measured: a printer state left from
+  an earlier text, which `play_harness.waits_now`'s docstring measured once in a battle's opening. GREEDY's edit was
+  changed (a map's "some more" stops once a look round there brought nothing), and the two paths then agreed in 4 of 4
+  (step52vdev7) and 257 of 257 (graded). (The verifier's second round found a better candidate, measured on NOHINTS seed
+  938 but NOT on GREEDY's runs: the framework's read of a wait answers yes to a finished script's leftover WaitForAorBPress
+  pointer, with no printer active. The harness no longer uses that read: "Step 5.2, the verifier's second round".)
+* **NO SPEEDRUN is sensitive to the grass's dice** (0.989 once, in step52vdev2); the bound is not changed.
+* **Taste, not measured from people**: `SPOKE_REACH` 2, the scene corners (one tile each way), `CURIOUS_NOVELTY` as a
+  look round's end.
+* **The regression of steps 0-4 was not re-run as live arms.** This round changed the navigator and the world memory: the
+  step-3 mutants (94) and `test_world` pass on the final tree, and the graded sweep and the live arms walk every map of
+  chapters 1 and 2.
+
+### Step 5.2, the verifier's second round (2026-10-16)
+
+The verifier checked tree `d49ea333e0545c91` and found ONE failure; everything else it checked held. Its weak proofs are
+carried, but one, inside the code of the failure and measured to decide the failure's own verdict, is fixed too.
+
+**THE FAILURE: the footprints man's chats were credited as talks by the GAME's path.** "PlaceRecorder compares WHOLE
+messages" (`unseen = message is None or message not in self.messages`). OLDALE's footprints man's scene is three pages
+("Aaaaah! Wait! Please don't come in here." / "I just discovered the footprints of a rare POKéMON!" / "Wait until I finish
+sketching them, okay?") and his talk is its last two (pret/pokeemerald `data/maps/OldaleTown/scripts.inc`, read
+2026-10-16), a message of its own. So all 20 chats with him after his scene were "new" by the game (game 1, AI 0), and the
+README's sentence that they were "counted by both paths" was false. Counted as loafing, NOHINTS seed 938 is 3,461 + 732 =
+4,193 frames, over `LOAF_FRAMES_MAX` 4,000: the graded NO LOAFING PASS on 921-940 rested on the error. "This is the
+label-not-property flaw again" (`LESSONS.md` PL-13, PF-18).
+
+**Why it was missed, in one line.** The sentence was written from the rule the AI applies, and the game's own per-chat
+verdict was never read beside it; the figure it cited holds other people's chats.
+
+#### The fixes (each with its unit test and its fault half in `gates/test_goals.py` GraderYieldTests, and its mutants)
+
+* **A talk is new only with a PAGE never shown** (`play_harness.split_pages`, `shown_pages`, `PlaceRecorder.pages`). The
+  message buffer `gStringVar4` is cut where the box waits for a press: pret/pokeemerald `include/constants/characters.h`
+  (read 2026-10-16) CHAR_PROMPT_SCROLL 0xFA "waits for button press and scrolls dialog" and CHAR_PROMPT_CLEAR 0xFB "waits for
+  button press and clears dialog"; up to EOS 0xFF (what lies past it is an older message's), with a control code's argument
+  bytes never read as a break. A text is new when one of its pages was never shown in the run (or the run it goes on from:
+  `seen_texts.json` now holds pages). A failed read, or a buffer with no page, is counted (`text_errors`) and the text
+  counted new, as before. Mutants G333 (whole messages again), G334 (every page must be new), G335 (`shown_pages`'s CALL
+  deleted), G336 (pages never kept), G338-G340 (the cutting); G310 and G311 re-anchored.
+* **The run's opening window is no goal's yield** (`PlaceRecorder.opening`): the screen of the first free sample was
+  credited to the first goal, seven truck chats of 16-44 frames (the verifier's weak proof 1). G337.
+* **A wait is read by the harness's own rule, not the framework's** (`play_harness.text_waits`, `text_waits_now`, used by
+  both second paths: the places' `place_now` and the stall's `waits_now`). This is the verifier's weak proof 1 again,
+  "NOHINTS 938's explore at f70318 is 0 tiles by the game, 50 by the AI and 50 by me", and it decides the failure's verdict:
+  with the page fix alone, that run is over the bound. A DIAGNOSTIC REPLAY of seed 938 (`2026-10-16-step52v2replay938-RATE.txt`,
+  ledger #31, a replay: its curiosity rows are the graded run's, but for the footprints chat, now idle) and a second one
+  run through the harness alone to f75600 (a diagnostic, not a sweep: no ledger entry, no verdict; its log of the game's
+  reads every 10 frames is the scratchpad's `diag_stale.jsonl`) showed why: from f70300 to f70740, and after each battle of
+  that look round, the player WALKED, controllable, with the global script context Stopped and text printer 0 inactive,
+  while the framework's `is_waiting_for_input` said "waiting" (`{"f": 70440, "state": "OVERWORLD", "printer": [0, 0],
+  "box": 0, "script": false, "native": "WaitForAorBPress", "wait": true, "ctrl": true, "xy": [14, 15]}`, the player at
+  (13, 13) at f70390 and (17, 9) at f70590): it asks only the context's native pointer, and pret/pokeemerald `src/script.c`
+  (read 2026-10-16) `StopScript` never clears it. So the framework's `is_waiting_for_input` reads a finished script's
+  leftover pointer as a wait, and the recorder counted no free time and none of the 50 tiles that walk's windows showed for
+  the first time. The AI's eyes have refused that leftover since build step 1 (`eyes/view.py` script_waits_for_button); the
+  harness's rule is its own, from the decomp: a script waits only while its context runs WaitForAorBPress (mode Native), a
+  printer while active in state 2 or 3. Mutants G341 (the mode not asked), G342 and G343 (each recorder's CALL of
+  `text_waits_now` replaced by the framework's read), G344 (`text_waits`'s call deleted).
+* **The two paths' word on each talk side by side** (`rate_step5.curiosity_rows` talks_ai, talked_ai, talked_game; the
+  reported line "THE TWO PATHS ON THE TALKS"): G345, G346. And each run's whole second-path record is kept beside its log
+  (`places.json`, `PLACES_FILE`), for a recount.
+* The AI's own code is UNCHANGED: every file of `ai_player/` outside `gates/` has the same diff from HEAD as tree
+  `d49ea333e0545c91` (compared hunk by hunk), so the live arms of the round before are not re-run (they grade by the AI's
+  own record and play the same code).
+
+#### The A/B on ONE trajectory: NOHINTS seed 938, replayed (the AI's code the same in all three; only the instrument differs)
+
+Both replays are written in the seed ledger as REPLAYS (#31, #33), never measurements (CLAUDE.md rule 8): the same seed
+plays the same game (the curiosity rows of all three are the same goals at the same frames, f20907 to f150701).
+
+| the game's path | the footprints chat (f141125) | the look round at f70318 | NO LOAFING, this run | text stretches with the player MOVING inside |
+|---|---|---|---|---|
+| as graded on 921-940 (whole messages, the framework's wait read) | credited (game 1, AI 0) | 0 new tiles, idle | 3,461 | not kept then |
+| pages only, the framework's wait read (`2026-10-16-step52v2replay938-RATE.txt`) | IDLE, as the AI's record says | 0 new tiles, idle | **4,193: FAIL** | 21 of 156 (7,750 frames) |
+| pages and the harness's own wait read (`2026-10-16-step52v2replay938b-RATE.txt`) | IDLE | **50 new tiles**, productive | **3,018** | **0 of 147** |
+
+3,018 is exactly the verifier's own page-by-page recount and the AI's own record. The talks: "they agree on 'told something
+new' in 6 of 6". The stall: 150 frames by both paths; the pushing: 1,195 by the AI, 1,330 by the game.
+
+#### Development before the graded run (`2026-10-16-step52v2dev1-RATE.txt`, seeds 1277-1288, ledger #32, written BEFORE it was played)
+
+Plans CH1, NOTRAIN, NOHINTS, CH2, STALL2 (the stall's control, which reads the overworld wait the change touches),
+BLOCKED and LOAF, 84 runs: **VERDICT PASS, 48 checks**. NO LOAFING at most 3,253; LOAF's yield 8.7 % and over the loafing
+bound in 8 of 12; STALL2 over the stall bound in 12 of 12 by both paths (1,163-1,227 frames by the AI, 1,150-1,210 by the
+game); the two paths agree on the stall in 84 of 84 and on the pushing in 84 of 84; the AI's word on the yield agrees with
+the game's in 412 of 413 goals; the talks 183 of 183. No number was changed after it.
+
+#### The proof (ONE tree: working-tree digest `7c385bbd906e0866`, kept as `evidence/trees/7c385bbd906e0866.zip`; every file below names it)
+
+| proof | what it shows | result (`ai_player/evidence/2026-10-16-*.txt`) |
+|---|---|---|
+| `rate_step5.py` on NEW held-out seeds 941-960, REGISTERED before the run (ledger #34 at 01:31:35, the run from 01:31:53 to 04:03:38; the numbers' sha256 `53ca1f74fdde6b0e`, the same as 921-940's: no bound changed; 260 runs; `step52-RATE.txt`; `--keep-runs`: all 260 folders, each with its `places.json`, under `%TEMP%/ai_sweep_step5_step52_mwklev4z`, 2,201 MB) | every check of the rounds before, with the game's path by page and by the harness's own wait read | **VERDICT: PASS, 67 checks PASS, none FAILS; FROZEN TREE PASS (521 checks).** NO LOAFING: "the most 3903; over it: none" (120 runs; NOHINTS 948's look round at f68340, 0 new tiles by every count and idle by the AI's own record, is 3,668 of it). The footprints man: 20 chats of the real plans after his scene (CH1 4, NOTRAIN 6, NOHINTS 10, counted from the run folders), every one idle by BOTH paths; "the chats the GAME says told it nothing new (count, own frames) by plan: {'CH1': (12, 4466), 'NOTRAIN': (16, 6653), 'NOHINTS': (20, 8594), ...}; the game's message reads that failed: 0". "the AI's own word on its curiosity's yield agrees with the game's in 717 of 717 goals". "THE TWO PATHS ON THE TALKS ... agree on 'told something new' in 331 of 331". LOAF: "13.7% pooled ... over the per-run loafing bound in 10 of 20 runs". THE PUSHING PROPERTY: "by the AI's record 2997 frames, by the GAME's 3310 (bound under 4000)", the two paths agreeing in 260 of 260; BLOCKED over it by both in 19 of the 19 that reached its state. THE STALL PROPERTY 150 / 150, the two paths agreeing in 260 of 260; STALL1 17 of 20, STALL2 16 of 20, STALL3 6 of 6. CH1 the POKéDEX 20 of 20; CH2 WALLY 20 of 20; NO SPEEDRUN 1.193, battle-free 1.17; CH2's battle-free 1.181, the slower in 18 of 20; CH1's yield 87.8 %, CH2's 91.4 %; DETOURS THAT ARRIVE 37 of 46, their word true in 60 of 60; GREEDY 7 of 7; OUT OF IDEAS with a lead 0; NOHINTS out of ideas in 18 of 20; STOP and STOPDEAD exercised by ERRANDS_OFF 945, STALL1 960, STALL2 945 |
+| the two replays of NOHINTS 938 (ledger #31, #33; `step52v2replay938-RATE.txt`, `step52v2replay938b-RATE.txt`) | the A/B of the instrument on ONE trajectory | the table above: 4,193 (FAIL) with pages alone, 3,018 with the harness's wait read |
+| `revert_step5.py` (`step52-REVERT.txt`) | each rule carries weight, its CALL deleted too | **OVERALL PASS: 342 mutants CAUGHT as predicted and 2 REDUNDANT ALONE as predicted, of 344**; the control copy 217 tests, none failing. G333-G346 are this round's; G310 and G311 re-anchored |
+| `revert_safety_gates.py` (`step52-REVERT-GATES.txt`) | the safety gates' own proof (this round changed `rate_step5.py`) | **OVERALL PASS: 23 of 23 CAUGHT** |
+| `run_units.py` (`step52-UNITS.txt`) | the static gate, every unit suite, every 5.2 gate | **OVERALL PASS, every suite exit 0**: `check_purity` PASS; test_goals 217; the ledger well formed (34 entries); "CALL-SITE CENSUS since HEAD: 8 AI files changed, 116 functions or added calls, 187 sites; 0 MISSING"; PERSON-FAIR DATA DOOR PASS; LESSONS CHECK PASS (54 lessons) |
+| `live_step5.py` | NOT re-run | the AI's own code is unchanged since tree `d49ea333e0545c91` (its `ai_player/` files outside `gates/` diff from HEAD hunk for hunk the same), and the live arms grade by the AI's own record; their evidence of the round before stands for that code |
+
+#### Known limits of this round (the verifier's weak proofs carried, and this round's own)
+
+* **The verifier's weak proofs, carried** ("fix one only if it is cheap and inside the same code"): the two-path
+  disagreement on the YIELD (its weak proof 1) is answered inside the code of the failure (the truck chats, the f70318 look
+  round: both were the game's path, and the paths now agree in 717 of 717); the rest are carried unchanged:
+  2. walks with NO LEAD (an exploring `go`, a story look round) are not graded for loafing;
+  3. G4's flag door can be bypassed by `vars(...)`, `__dict__` and a computed `getattr` name;
+  4. G2's coverage: `registered_numbers` hashes MUTANT_PLANS' names, not the mutants' edits nor the graders' code; a
+     development run on graded seeds already played is accepted; a graded re-run of played seeds is refused with the wrong
+     reason;
+  5. G1's scope leaves out the framework under `sandbox-pokebot/modules` that the harness and the AI run on;
+  6. the evidence rows are still cut at 3,000 characters (a recount reads the kept folders' `places.json` and actions);
+  7. the live arms are one trajectory each, on the host clock, by the AI's own record;
+  8. G7 accepts a Status that only starts with a status word ('GATEDISH').
+* **Loafing is still graded by the game's path alone.** The paths now agree on every goal of the graded sweep and the talks
+  are reported side by side, but a GRADED two-path agreement on each run's loafing verdict, as the pushing has, is not
+  built (`LESSONS.md` PF-18 Needs).
+* **NOHINTS loafs close to the bound**: 3,903 of 4,000 in seed 948, 3,030-3,344 in eight more of its 20 runs (941, 942,
+  945, 947, 956, 957, 959, 960). Read in their rows: in each, an idle look round of 2,281-2,335 frames (948:
+  3,668 and 2,373; 941: 2,310 and 1,942), then the footprints man's chat (682-751 frames, the run folders' read pages),
+  idle by both paths. Only the plan with no hints; the hinted plans' most is 3,433 (NOTRAIN 941).
+* **Every other framework read the second paths make is not yet checked against the eyes' measured traps** (`LESSONS.md`
+  PF-19 Needs); this one was found by the verifier's recount, not by a check.
+* **The 2026-10-14 "printer state left from before the battle"** (`play_harness.waits_now`'s docstring) may have been this
+  leftover pointer; NOT measured then, and the GREEDY stall disagreement of step52vdev5/vdev6 is not re-measured.
 
 ## The story, human-like (build step 5.1)
 

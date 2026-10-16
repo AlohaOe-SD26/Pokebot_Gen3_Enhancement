@@ -483,6 +483,7 @@ and `/checkpoint` carry these steps explicitly (they are outside the managed blo
 - ⇒ **The 24/7 learner in `ai-agent/` tunes the BOT. It is TEACHER-side: strategy knowledge plus a corpus of games.
   It is NOT the AI player.** The AI player (its perception of the game, its button-level control, and how it learns
   from the bot's demonstrations) is still to be designed: `#28-aiagent-v2`.
+- ⭐ **USER RULING 40 (2026-10-15): the AI is a SEASONED PLAYER.** It KNOWS Pokemon and Emerald (species, learnsets, items and where they are, rarity, bosses, maps) and REMEMBERS past games. It still PLAYS each new game like a person, with cycled personality archetypes. Static game KNOWLEDGE is allowed; LIVE HIDDEN STATE the screen does not show (RNG, unrevealed PID/IV/held items, foe stats) is not. This supersedes the step 5-5.2 "dialogue-level hints only" limit (`06`).
 - **Never change the bot's default behaviour to serve the AI.** (The one knob already added,
   `POKEBOT_BOSSMODE_TOPUP`, defaults to the bot's old behaviour.)
 
@@ -490,8 +491,9 @@ and `/checkpoint` carry these steps explicitly (they are outside the managed blo
 - The user chose the HYBRID. The story bot is PARKED, not abandoned. The **Emerald AI strategy learner** in
   `ai-agent/` (manual: `ai-agent/README.md`) runs 24/7 on the user's PC and is the active line of work. The user
   authorized it to run as many parallel runs as the hardware allows.
-- ⭐ **USER RULING 38 (2026-10-15): 8 lanes (`config.json` `max_lanes`) while its ranking is plateaued; back to 16
-  when the AI player gives it something NEW to test.** A plateau on the bot's knobs is not a reason to scale up.
+- ⭐ **USER RULING 38 (2026-10-15): 12 lanes (`config.json` `max_lanes`; 3 strategies a cycle) while its ranking is
+  plateaued; back to 16 when the AI player gives it something NEW to test. Consult stays ON** (its proposals made
+  the top 5 strategies). A plateau on the bot's knobs is not a reason to scale up.
 - ⭐ **It RUNS from its own deployment clone, `C:/Remote Projects/pokebot-learner`**, never from this checkout.
   The batch runner abandons a cycle when HEAD moves mid-batch, and on 2026-10-03 a docs commit here killed cycle
   ai0002. So commit here freely: changes reach the learner only when IT fast-forwards its clone to `origin/main`,

@@ -458,6 +458,31 @@ class WorldMemory:
         self.heard: set[str] = set()
         self.pids: set[int] | None = None
         self.news_log: list[tuple[int, str]] = []
+        #: (build step 5.2, found by the pushing property in the round's development sweeps: step52dev4 and dev6, ROUTE 103
+        #: and OLDALE crossed 186-198 times in one walk) map key -> frontier tile -> how many tiles the map had when a walk
+        #: found NO way to it over the tiles it knows (`mark_unreached`): left out of the map's `promise` until the map shows
+        #: something new
+        self.unreached: dict[str, dict[tuple[int, int], int]] = {}
+        #: (build step 5.2, the verifier's round: the graded NOHINTS runs went OLDALE -> OLDALE_TOWN_HOUSE1 -> OLDALE for up
+        #: to 98 goals in a row, each ended by the ping-pong rule, because the house's two frontier tiles, which no walk from
+        #: its door can get to, were "2 things left to see" for ever) map key -> (how many tiles the map had, the frontier
+        #: tiles and unused exits the navigator's own reach, from where the player stood, showed NO way to:
+        #: `Navigator.cut_off`): left out of the map's `promise` until the map shows something new. Recomputed (replaced)
+        #: at every decision on the map, so a way that opens (a scene's walls lifted) counts again at the next one.
+        self.cut_off: dict[str, tuple[int, frozenset]] = {}
+        #: (build step 5.2, the verifier's round; its development sweep step52vdev3, NOHINTS seed 1223: a walk with no lead
+        #: went OLDALE -> ROUTE 103 -> OLDALE across the edge, each map "where something is left" seen from the other, and on
+        #: each nothing worth going to, for 3,395 frames) map key -> how many tiles the map had when a walk with no lead stood
+        #: on it and found NOTHING there worth going to (`mark_spent`): its `promise` is 0 until the map shows something new
+        self.spent: dict[str, int] = {}
+        #: (build step 5.2, the verifier's round: 60 POKéMON CENTER nurses and 46 MART clerks "chatted" with right after
+        #: the heal or the shop that had just talked to them, and 21 chats with OLDALE's footprints man right after his own
+        #: scene had stopped a look round, every one hearing nothing new) "map key|local id" of the people who have SPOKEN
+        #: to the player: someone standing straight in front of it, at most two tiles away (a counter between), while words
+        #: were on the overworld screen (`brain/goals.py` GoalManager.notice). A person does not walk up to say hello to
+        #: someone who has just spoken to them. Kept with the memory (a later session remembers whom it met); written only
+        #: when it holds something, so the earlier brains' snapshots are unchanged.
+        self.spoke: set[str] = set()
         #: closed doors reopened and not yet told: (frame, map key, tile, why) (`take_reopened`)
         self.reopened: list[tuple[int, str, tuple[int, int], str]] = []
         #: BUILD STEP 5: (map key, (x, y)) -> "pokemon_center" / "mart": a door the play brain RECOGNISED by its look
@@ -516,14 +541,70 @@ class WorldMemory:
 
     def promise(self, key: str) -> int:
         """How much is left to see on map `key`, as far as the AI knows: its frontier tiles, its exits never used, and its
-        roads on a side whose connection it does not know. 0 for a map it has seen all of (or never visited)."""
+        roads on a side whose connection it does not know. 0 for a map it has seen all of (or never visited). (Build step
+        5.2) A frontier tile a walk found no way to is left out while the map has shown nothing new since (`unreached`):
+        a person who could not get there does not go back for it (the explorer on OLDALE chose "back to ROUTE 103, where 1
+        thing is left to see", ROUTE 103's one frontier it could not reach, and on ROUTE 103 "back to OLDALE", for 10,683
+        frames of pressing with nothing new). (The verifier's round) neither is a frontier tile or an unused exit that the
+        navigator's reach, at its last decision on the map, showed no way to (`cut_off`, `Navigator.cut_off`)."""
         memory = self.maps.get(key)
         if memory is None or not memory.visits:
             return 0
+        if self.spent.get(key) == len(memory.tiles):
+            return 0  # (the verifier's round) a walk with no lead stood here and found nothing worth going to
         sides = {link["direction"] for kind, link in self.links_from(key) if kind == "connection"}
         unused = [xy for xy in memory.exits() if self.link_of(key, xy) is None]
         roads = [xy for xy in memory.roads() if road_side(memory, xy) not in sides]
-        return len(memory.frontier()) + len(unused) + len(roads)
+        gone = self.unreached.get(key, {})
+        frontier = [xy for xy in memory.frontier() if gone.get(xy) != len(memory.tiles)]
+        # (build step 5.2, the verifier's round) nor what the navigator's reach showed no way to, while the map is unchanged
+        count, cut = self.cut_off.get(key, (None, frozenset()))
+        if count == len(memory.tiles):
+            unused = [xy for xy in unused if xy not in cut]
+            frontier = [xy for xy in frontier if xy not in cut]
+        return len(frontier) + len(unused) + len(roads)
+
+    def mark_unreached(self, key: str, tile: tuple[int, int]) -> None:
+        """(build step 5.2) A walk found no way to the frontier `tile` of map `key` over the tiles it knows (`promise`)."""
+        memory = self.maps.get(key)
+        if memory is not None:
+            self.unreached.setdefault(key, {})[tuple(tile)] = len(memory.tiles)
+
+    def mark_cut_off(self, key: str, tiles) -> None:
+        """(build step 5.2, the verifier's round) The frontier tiles and unused exits of map `key` that the navigator's reach
+        from where the player stands shows NO way to (`Navigator.cut_off`), replacing what was marked there before: left out
+        of `promise` while the map shows nothing new."""
+        memory = self.maps.get(key)
+        if memory is not None:
+            self.cut_off[key] = (len(memory.tiles), frozenset(tuple(tile) for tile in tiles))
+
+    def forget_marks(self) -> int:
+        """(build step 5.2, the verifier's round; found by its first development sweep, step52vdev1: chapter-1 seed 1201 gave
+        up "out of ideas" in the rival's bedroom at the start of PROF. BIRCH's milestone, because LITTLEROOT's road north,
+        cut off by the twin's scene in the milestone before, was still marked) The STORY moved on (a milestone passed): what
+        a walk found no way to (`unreached`) and what the reach showed no way to (`cut_off`) are forgotten: a person tries a
+        way again once the story has moved (the twin steps aside). Returns how many marks were dropped."""
+        dropped = (sum(len(marks) for marks in self.unreached.values()) + sum(len(cut) for _, cut in self.cut_off.values())
+                   + len(self.spent))
+        self.unreached, self.cut_off, self.spent = {}, {}, {}
+        return dropped
+
+    def mark_spent(self, key: str) -> None:
+        """(build step 5.2, the verifier's round) A walk with no lead stood on map `key` and found nothing there worth going
+        to: what `promise` counted there cannot be had as things are (`spent`), until the map shows something new."""
+        memory = self.maps.get(key)
+        if memory is not None:
+            self.spent[key] = len(memory.tiles)
+
+    def stamp(self) -> tuple[int, int, int]:
+        """(build step 5.2, the verifier's round) What the memory has seen so far, counted: tiles learned, maps stood on,
+        news (words never read, a Pokemon never seen). The same stamp: nothing new seen anywhere since."""
+        return self.tiles_learned, sum(1 for memory in self.maps.values() if memory.visits), self.news
+
+    def left_anywhere(self) -> list[tuple[str, int]]:
+        """(build step 5.2, the verifier's round) Every map it has stood on with something still left to see there that it
+        could get to as far as it knows (`promise` > 0): [(map key, how much)], nearest first is the caller's business."""
+        return [(key, left) for key in sorted(self.maps) if (left := self.promise(key)) > 0]
 
     # ------------------------------------------------------------------ the one entry: a look
     def observe(self, look: Observation) -> None:
@@ -730,6 +811,8 @@ class WorldMemory:
         }
         if self.landmarks:  # (build step 5) only when the play brain recognised a door: earlier snapshots unchanged
             out["landmarks"] = {f"{key}|{xy[0]},{xy[1]}": kind for (key, xy), kind in sorted(self.landmarks.items())}
+        if self.spoke:  # (build step 5.2, the verifier's round) only when someone has spoken to the player: the same
+            out["spoke"] = sorted(self.spoke)
         return out
 
     def snapshot(self) -> str:
@@ -754,6 +837,7 @@ class WorldMemory:
             key, _, xy = str(place).rpartition("|")
             x, _, y = xy.partition(",")
             world.landmarks[(key, (int(x), int(y)))] = str(kind)
+        world.spoke = {str(who) for who in data.get("spoke") or []}  # (build step 5.2, the verifier's round)
         for memory in world.maps.values():
             for info in memory.closed.values():
                 info.setdefault("news", world.news)

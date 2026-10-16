@@ -3,9 +3,23 @@ fault arm costs. In-process (`gates/play_harness.py`), the cartridge's clock pin
 record (`play_harness.StoryRecorder`: save block 1's marks and the game's counters read by the harness's own code, never the
 AI's eyes), the AI's told lines only cross-checked.
 
-    py -3.12 ai_player/gates/rate_step5.py [--plans CH1,NOTRAIN,NOHINTS,DEADREST,ERRANDS_OFF,STALL1,STALL2,PATIENCE,
-                                                    PATIENCE_OLD,STOP,STOPDEAD] [--seeds 12] [--first-seed 1] [--workers 8]
-                                           [--frames 300000] [--evidence-tag step51]
+    py -3.12 ai_player/gates/rate_step5.py --purpose development|graded|replay --first-seed N [--seeds 12]
+                                           [--plans CH1,NOTRAIN,NOHINTS,DEADREST,ERRANDS_OFF,STALL1,STALL2,PATIENCE,
+                                                    PATIENCE_OLD,STOP,STOPDEAD] [--workers 8]
+                                           [--frames 300000] [--evidence-tag step51] [--keep-runs]
+    py -3.12 ai_player/gates/rate_step5.py --purpose graded --first-seed 901 --seeds 20 [same options] --register
+                                           (pre-registers a graded range in `gates/ledger.json` with the numbers it will be
+                                           graded by, BEFORE any run of it; plays nothing)
+
+(Build step 5.2, the safety gates) EVERY SWEEP: `--purpose` and `--first-seed` have NO default (a graded sweep with
+default arguments played development seed 1 and said nothing). THE SEED LEDGER (`gates/ledger.py`, G2): a graded run
+plays only a range REGISTERED first with the sha256 of `registered_numbers` (BOUNDS, the constants, the plans, frames and
+target) and overlapping no other entry; a development run may not spend a registered range; a replay is written and
+reported as one. THE FROZEN-TREE WATCH (`provenance.FrozenTree`, G1): checked before and after every run; once the tree
+moved, the remaining runs are skipped and the verdict is FAIL "the tree changed mid-run". THE DISK BUDGET
+(`gates/disk_budget.py`, G5): no start with under 30 GB free; every run folder under ONE root, deleted after grading but
+for the failing runs (all of them when the verdict is FAIL) and the newest 5 (`--keep-runs` keeps all: a verifier who will
+recount from the raw logs passes it).
 
 THE PLANS (each seed: a personality and a starter drawn by the seed number, so every personality and starter is played):
   CH1      a real New Game to the POKéDEX (`ch1_pokedex`): reached? frames; the rival beaten at the FIRST try (by the game:
@@ -106,6 +120,12 @@ if str(REPO) not in sys.path:
 from ai_player.gates.provenance import keep_earlier, provenance, snapshot_tree  # noqa: E402
 
 HARNESS = Path(__file__).resolve().parent / "play_harness.py"
+#: (build step 5.2) the seed ledger's family of this sweep (its successors grade the same story on the same seeds)
+LEDGER_FAMILY = "story"
+#: (build step 5.2, G1 and G5) the sweep's frozen-tree watch and its run folders' root, set by `main` (None: a run made
+#: outside a sweep, by a test or another driver, gets its own temporary folder and no watch)
+_TREE = None
+_FOLDERS = None
 EVIDENCE_DIR = REPO / "ai_player" / "evidence"
 GAME_CLOCK = "2026-10-14T10:00"
 WALL_CLOCK = "10:00"
@@ -122,7 +142,13 @@ PLANS = {"CH1": "", "NOTRAIN": "no_training", "NOHINTS": "no_hints", "DEADREST":
          # CH2T arm FAILED the intent-mix floor) CHAPTER 2 in the sweep: each run of the base plan that reached the
          # POKéDEX goes on from ITS OWN end state and world memory to WALLY's tutorial (`CHAPTER2`), graded by the game's
          # second path too; CH2_OFF is the beeline control's chapter 2 (from the ERRANDS_OFF runs' ends)
-         "CH2": "", "CH2_OFF": "no_errands"}
+         "CH2": "", "CH2_OFF": "no_errands",
+         # (build step 5.2, PRODUCTIVE CURIOSITY) the controls that CAN fail (`08` 2026-10-15: "every A/B needs a control that
+         # CAN fail: an arm that does the wrong thing on purpose"): LOAF looks round and takes detours among places it has
+         # stood on (the yield checks must FAIL it); BLOCKED never gives up a place it cannot get to (the pushing property
+         # must FAIL it where it met someone in the way); GREEDY passes every curiosity draw with no cap in a row (the
+         # spacing check must FAIL it)
+         "LOAF": "", "BLOCKED": "", "GREEDY": ""}
 #: (the step-5.1 verifier's second round) the chapter-2 plans: plan -> the chapter-1 plan whose runs' ends it starts from,
 #: and its target
 CHAPTER2 = {"CH2": "CH1", "CH2_OFF": "ERRANDS_OFF"}
@@ -140,10 +166,12 @@ MUTANT_PLANS = {"DEADREST": ["G36"], "STALL1": ["G53"], "STALL2": ["G55", "G56",
                 # (the verifier's round) STALL3: the battle skill waits 600 frames at the action menu before it acts (a
                 # battle's wait for a press, which the second path did not read); LOSE3: once its strongest is L7, the
                 # decider uses its status move (slot 1: Leer or Growl) every turn of a wild battle and never runs
-                "STALL3": ["STALL3"], "LOSE3": ["LOSE3"]}
+                "STALL3": ["STALL3"], "LOSE3": ["LOSE3"],
+                # (build step 5.2) the three controls of productive curiosity (`EXTRA_EDITS`)
+                "LOAF": ["LOAF"], "BLOCKED": ["BLOCKED"], "GREEDY": ["GREEDY"]}
 #: (the verifier's round) plans whose losses are the fault itself: never replayed by the phase-2 STOP plans; (the second
-#: round) nor the chapter-2 plans (a STOP replay starts from a New Game)
-NO_PHASE2 = ("LOSE3", "CH2", "CH2_OFF")
+#: round) nor the chapter-2 plans (a STOP replay starts from a New Game); (build step 5.2) nor the curiosity controls
+NO_PHASE2 = ("LOSE3", "CH2", "CH2_OFF", "LOAF", "BLOCKED", "GREEDY")
 #: (build step 5.1) the plans of the REAL code (no fault, no mutant): the stall property, the goal-after-page check and
 #: the losses must hold in each
 REAL_PLANS = ("CH1", "NOTRAIN", "NOHINTS", "ERRANDS_OFF", "CH2", "CH2_OFF")
@@ -152,7 +180,10 @@ REAL_PLANS = ("CH1", "NOTRAIN", "NOHINTS", "ERRANDS_OFF", "CH2", "CH2_OFF")
 PLAN_PERSONALITY = {"PATIENCE": "Trainer", "PATIENCE_OLD": "Trainer",
                     # (the verifier's round) the two new fault arms on one personality's seeds each: a fault's mechanism,
                     # not a rate (the Story's for the battle stall, the Catcher's for the losses)
-                    "STALL3": "Story", "LOSE3": "Catcher"}
+                    "STALL3": "Story", "LOSE3": "Catcher",
+                    # (build step 5.2) GREEDY's spacing failure is a mechanism, not a rate: the Catcher's seeds (the most
+                    # curious taste)
+                    "GREEDY": "Catcher"}
 #: (the step-5 verifier's round 2, 2026-10-14: "no run reached the MAX_LOSSES stop", and the loop's count was unproven)
 #: PHASE 2, the STOP plans: every run of the plans above whose GAME recorded a battle LOST is played again, the same seed,
 #: faults and mutants, in a copy whose MAX_LOSSES is 1 (`CAP1`): STOP must end with "1 battles lost (MAX_LOSSES 1)" right
@@ -181,7 +212,86 @@ EXTRA_EDITS = {"CAP1": [("mode.py", "MAX_LOSSES = 3\n",
                           "        values = self._values(own, foe, hp_share, look)\n"
                           "        if battle.kind == \"wild\" and own.level >= 7:  # MUTANT LOSE3\n"
                           "            return Decision(\"fight\", \"MUTANT LOSE3: the status move every turn\", move_slot=1)\n"
-                          "        if battle.kind == \"wild\" and mem.want_catch:\n")]}
+                          "        if battle.kind == \"wild\" and mem.want_catch:\n")],
+               # (build step 5.2, the step-5.1 review's finding 4: "the beeline A/Bs cannot fail") LOAF: an AI that LOAFS on
+               # purpose: its looks round walk among tiles it has STOOD ON (nothing new to see) with no novelty window, and
+               # its detours go to such a tile; everything else is the real code. The yield checks must FAIL it.
+               "LOAF": [("brain/goals.py",
+                         "        found = [t for t in candidates(nav, look, weights, None, jitter_on=not moving)\n"
+                         "                 if t.kind in LOOK_KINDS and t.tile not in avoid]\n",
+                         "        here_ = nav.where(look)  # MUTANT LOAF: a tile it has stood on, nothing new to see\n"
+                         "        found = [Target(\"wander\", xy, \"MUTANT LOAF\") for xy in sorted(here_[0].visits)\n"
+                         "                 if abs(xy[0] - here_[1][0]) + abs(xy[1] - here_[1][1]) >= 4] if here_ else []\n"),
+                        ("brain/goals.py", "carry_on=look_carry, novelty_window=CURIOUS_NOVELTY)\n",
+                         "carry_on=look_carry, novelty_window=10 ** 9)  # MUTANT LOAF\n"),
+                        # (the verifier's round) nor the end of a look round that has seen nothing new for a while
+                        ("brain/goals.py", "                    return look.frame - seen_clock[1] >= CURIOUS_NOVELTY\n",
+                         "                    return False  # MUTANT LOAF\n"),
+                        ("brain/goals.py",
+                         "            found = [t for t in candidates(navigator, look, weights, None, jitter_on=True) if t.kind "
+                         "in DETOUR_KINDS\n",
+                         "            found = [t for t in [Target(\"frontier\", xy, \"MUTANT LOAF\") for xy in sorted(memory."
+                         "visits)] if True\n")],
+               # (build step 5.2, the review's finding 5) BLOCKED: an AI that never gives up a place it cannot get to: no
+               # watch for someone in the way, no blocked place carried, no place a scene turned it back from carried, a
+               # detour to any place (none given up at a scene), "some more" wherever, and the look round with neither its
+               # novelty window nor its budget. The pushing property must FAIL it in the runs that MET someone standing in
+               # the way of a curiosity walk (`person_blocks`). (The development sweep step52dev2 ran the first version,
+               # 5.2's blocks alone removed and the look round's novelty window the navigator's 3,000 frames: under the
+               # pushing bound in 12 of 12, its longest stretch 2,057 frames by the game: 5.1's navigator already ended
+               # ONE stretch by its novelty window, so that arm tested the repeats, not a push. Reported in the README.)
+               "BLOCKED": [("brain/goals.py",
+                            "        if blocked is not None and watchers is not None and hasattr(nav, \"stats\"):\n",
+                            "        if False:  # MUTANT BLOCKED\n"),
+                           ("brain/goals.py", "            nav.carried_scene_walls = walls if blocked is None else {\n",
+                            "            nav.carried_scene_walls = walls if True else {  # MUTANT BLOCKED\n"),
+                           ("brain/goals.py", "                    self._blocked(milestone, key, tuple(tile), why)\n",
+                            "                    pass  # MUTANT BLOCKED\n"),
+                           ("brain/goals.py", "carry_on=look_carry, novelty_window=CURIOUS_NOVELTY)\n",
+                            "carry_on=look_carry, novelty_window=10 ** 9)  # MUTANT BLOCKED\n"),
+                           # (the verifier's round) nor the end of a look round that has seen nothing new for a while
+                           ("brain/goals.py", "                    return look.frame - seen_clock[1] >= CURIOUS_NOVELTY\n",
+                            "                    return False  # MUTANT BLOCKED\n"),
+                           ("brain/goals.py",
+                            "                      else goal.steps if goal.kind == \"explore\" else goal.steps or LOOK_AROUND_FRAMES)\n",
+                            "                      else 10 ** 9 if goal.kind == \"explore\" else goal.steps or LOOK_AROUND_FRAMES)"
+                            "  # MUTANT BLOCKED\n"),
+                           ("brain/goals.py",
+                            "                     and t.tile in reach and not _beside(t.tile, avoid) and not memory.outside(t.tile)]\n",
+                            "                     and not memory.outside(t.tile)]  # MUTANT BLOCKED\n"),
+                           ("brain/goals.py",
+                            "            if chosen and getattr(nav, \"scene_hits\", {}).get(f\"{nav.world.current}|{chosen[-1].key}\"):\n",
+                            "            if False:  # MUTANT BLOCKED\n"),
+                           ("brain/goals.py",
+                            "            nothing = self.left_to_see(look, world, milestone.id) if odds > 0 else None\n",
+                            "            nothing = None  # MUTANT BLOCKED\n"),
+                           # (the development sweep step52dev9: with the route fixes the arm reached someone in the way
+                           # of a curiosity walk in 0 of its first 10 runs; they too give up a place it cannot get to,
+                           # the world memory's unreached frontier and the in-map plan, so the arm removes them as well)
+                           ("brain/navigator.py", "                    world.mark_unreached(world.current, target.tile)\n",
+                            "                    pass  # MUTANT BLOCKED\n"),
+                           ("brain/navigator.py",
+                            "            walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy))\n",
+                            "            pass  # MUTANT BLOCKED\n")],
+               # (build step 5.2, the review's finding 2) GREEDY: every curiosity draw passes and no cap in a row (the
+               # quota's bypass, at its worst). The spacing checks must FAIL it. (The verifier's round: once a map's "left
+               # to see" counted only what it could get to, GREEDY's looks round "some more" ran out, and the round's
+               # development sweep step52vdev2 had it at 3 in a row in 4 of 4, never over the bound: the control could no
+               # longer fail. It now also looks round "some more" without limit and whether or not anything is left that
+               # it can walk to, until a look round there brought nothing (its map exhausted): its greed at its worst
+               # again. The first version ignored the exhausted mark too, and step52vdev5's GREEDY seed 1250 chose 94 goals
+               # in 2,738 frames, empty looks round of LITTLEROOT each ending at once, with no press between (the game's
+               # second path saw a text wait 2,730 frames there, the AI's record 150: the one two-path disagreement);
+               # set in development, before any graded run of the round.)
+               "GREEDY": [("brain/goals.py", "CURIOUS_ODDS_CAP = 0.9\n", "CURIOUS_ODDS_CAP = 1.0  # MUTANT GREEDY\n"),
+                          ("brain/goals.py", "CURIOUS_ROW_MAX = 2\n", "CURIOUS_ROW_MAX = 99  # MUTANT GREEDY\n"),
+                          ("brain/goals.py",
+                           "        return min(1.0, since / max(1, self.state.errands.bored_frames)), since\n",
+                           "        return 1.0, since  # MUTANT GREEDY\n"),
+                          ("brain/goals.py", "AGAIN_MAX = 2\n", "AGAIN_MAX = 99  # MUTANT GREEDY\n"),
+                          ("brain/goals.py",
+                           "            nothing = self.left_to_see(look, world, milestone.id) if odds > 0 else None\n",
+                           "            nothing = self.memory.exhausted.get(f\"{world.current}|{milestone.id}\")  # MUTANT GREEDY\n")]}
 STOP_REASON = "play: stuck: 1 battles lost (MAX_LOSSES 1)"
 #: frames from the game's record of the loss (gBattleOutcome LOST) to the run's end: the whiteout's text and the warp home
 #: (~1,500 frames), the goal under way unwinding, and the loop's next pass
@@ -321,6 +431,77 @@ BOUNDS = {
     # 1.491 with 9 of 9 and 1.369 with 8 of 9: the bound well under both)
     "CH2_NOBATTLE_RATIO_MIN": 1.15,
     "CH2_NOBATTLE_SEEDS_MIN": 0.7,
+    # ---- BUILD STEP 5.2, PRODUCTIVE CURIOSITY (the step-5.1 adversarial review, 2026-10-15: "it LOAFS"). Every number below
+    # is PRE-REGISTERED from the development sweeps of this round (README "Build step 5.2"), BEFORE the graded sweep on NEW
+    # held-out seeds 901-920, and the ledger holds their sha256 (`registered_numbers`). Curiosity is graded by what it
+    # BROUGHT (by the GAME: `game_yield`) and how it is SPACED, never by a share of frames (the AI's own target must not be
+    # the graded quantity); the old bounds above still hold but the shares of frames (`P2_REPORTED`), their curiosity
+    # counted by yield (`intent_mix` unproductive). THE FINAL DEVELOPMENT SWEEP, step52dev9 (seeds 1085-1096, the code
+    # graded but for the BLOCKED arm's last edits, measured apart in step52dev10): every 5.2 check below PASSED but BLOCKED's
+    # reach (its fix since): the yield CH1 0.985, CH2 0.97, LOAF 0.203; the loafing at most 2,461 a run, LOAF over the bound
+    # in 2 of 12; 2 curiosity goals in a row at most, GREEDY 4 in 4 of 4; detours 13 of the 15 that chose a place arrived,
+    # the AI's word true in 23 of 23; the longest push 2,051 frames by the AI, 1,960 by the game.
+    # THE YIELD: the share of the frames of the curiosity that SEES (a look round, a detour: `SEEING`; the story did not
+    # need it) that BROUGHT something (by the game), pooled over each chapter's runs, at least this. (Development sweep
+    # step52dev2, seeds 1001-1012, recounted with the rate rule `YIELD_TILE_RATE` over the frames outside battles, the
+    # battles' time estimated there from the AI's action digests: CH1 0.85, CH2 0.96, the LOAF control 0.21. With the 8
+    # tiles alone LOAF was 0.80 and could not fail, which is why the rate rule exists; over ALL curiosity, chats and catches
+    # included, LOAF was 0.54, the real code's chats diluting it: that pooled share is reported, not bounded) ...
+    "YIELD_RATE_MIN": 0.6,
+    # ... and in EVERY run of the real code, at most this many frames of curiosity that brought nothing, its OWN time
+    # outside the battles met in it (CH1M's loaf at OLDALE: about 7,500; step52dev2 recounted as above: the real code
+    # 0-2,429 a run, most of it the detours past LITTLEROOT's twin, fixed since; LOAF 226-11,354, over 4,000 in 8 of 12;
+    # step52dev4: two catching roams that met only known POKéMON, 25,003 frames, were 80-87 % battles, which are the game
+    # played, not loafing, so the battles are taken out, and a catching roam gives the hunt up, `brain/goals.py`
+    # HUNT_FRUITLESS) ...
+    "LOAF_FRAMES_MAX": 4000,
+    # ... while the LOAF control (`EXTRA_EDITS` LOAF: looks round and detours among tiles it has stood on) is under
+    # YIELD_RATE_MIN pooled (its looks' own yield: step52dev6 0.31, dev3 0.09 recounted) and over that bound in at least
+    # this many of its runs (the per-run bound CAN fail). (First pre-set as a SHARE, 0.5 of the runs, from the span frames;
+    # once the loafing was counted outside battles, step52dev6 measured LOAF over it in 3 of 12 runs, 5,374-8,202 frames,
+    # the rest 0-3,586: a run with few looks round loafs little whatever its rule, so the per-run bound's control is that
+    # it is ever exceeded, and the YIELD carries the separation. Set in development, before any graded run.)
+    "LOAF_FAILS_RUNS_MIN": 1,
+    # THE SPACING: in EVERY run of the real code, at most this many curiosity goals in a row (the AI's own cap is
+    # `CURIOUS_ROW_MAX` 2; the grader reads the goal sequence itself, where a goal DROPPED as it began, a scene starting
+    # while it decided, still stands between two: measured 3 once in step52dev2, CH2 seed 1004; CH1M: six in a row) ...
+    # (the streak's FRAMES were to be bounded too, 9,000: step52dev2 measured the real code's streaks at up to 30,135
+    # frames, one catching roam of 21,000-28,000 frames being ONE goal, so frames measure the roam's battles, not the
+    # spacing: REPORTED, not bounded, decided before any graded run)
+    "SPACING_ROW_MAX": 3,
+    # ... while the GREEDY control (every curiosity draw passes, no cap) is over it in at least this share of its runs
+    # (step52dev2: 4 in a row in 4 of 4)
+    "GREEDY_FAILS_MIN": 0.5,
+    # DETOURS THAT ARRIVE: the share of the detours of the real code's runs that CHOSE a place where the GAME had the player
+    # stand at it when they ended, pooled, at least this; and the AI's "reached" / "not reached" agrees with the game in
+    # EVERY detour (no bound number: the truth). (step52dev3: 11 of the 16 that chose a place, 69 %; 7 more chose none,
+    # "nothing off the way here that it can walk to", and are reported apart; of the 5 that did not arrive, 2 were stopped
+    # by LITTLEROOT's twin, a detour now ended at the first scene, and 3 ran out their budget on the way)
+    "ARRIVE_MIN": 0.5,
+    # THE PUSHING PROPERTY: in EVERY run of the real code the longest free stretch of pressing that brought nothing new
+    # (no tile seen, no map stood on, no battle), by the AI's record AND by the game's, under this (frames); the two paths
+    # agree on it run by run. (First pre-set at 2,700 from step52dev2. The property then found THREE real loops, each fixed
+    # and each its A/B in the README: 114,121 frames (scene walls carried, G229), 3,313 (a walk to a tile past the edge,
+    # G268) and 3,372 / 9,261 (a frontier it could not reach kept "left to see", G272, G275). With them fixed, the
+    # development sweeps step52dev8 and dev9 (the final code but for G275 in dev8) measured the real code's longest at
+    # 1,813 and 2,051 frames by the AI's record (the game's 1,960), every real-code run of both; the longest NOT a loop in
+    # any sweep, 3,224 (step52dev3,
+    # chapter 2 seed 1023: grass it could not reach on ROUTE 102 with people in the way; the game's path said 720).
+    # The bound is above that, and far under the BLOCKED control's 149,668-241,992) ...
+    "PUSH_MAX": 4000,
+    # ... and the BLOCKED control is over it, by both paths, in at least this many of its runs that MET someone standing in
+    # the way of a curiosity walk at least BLOCKED_REACH_HITS times (`person_blocks`), and such a run happens in at least
+    # BLOCKED_REACH_MIN of its runs (the control must REACH the state it tests: PF-4)
+    "BLOCKED_REACH_HITS": 3,
+    "BLOCKED_HITS_MIN": 1,
+    "BLOCKED_REACH_MIN": 0.1,
+    # ---- BUILD STEP 5.2, THE VERIFIER'S ROUND (2026-10-15): its two failures (the NOHINTS pushing, 20 of 20 graded runs on
+    # 901-920; loafing credited as a talk, 127 chats that heard nothing new) are graded by the checks above, unchanged; what
+    # changed is the AI and the game's yield of a talk (a message the game never showed before). One new check, set while
+    # the round's first development sweep (step52vdev1, which did not grade it) was running, before any run graded it: no
+    # run of a plan that goes by what the game says (every real plan but NOHINTS) ends "out of ideas" (`brain/goals.py`
+    # lost_intent: a walk with no lead that found nothing left on any map it knows).
+    "OUT_OF_IDEAS_LED_MAX": 0,
 }
 
 
@@ -349,11 +530,20 @@ def run_one(plan: str, seed: int, frames: int, target: str, root: Path = REPO, b
     chapter-2 run (`CHAPTER2`) starts from `start`, the chapter-1 row it goes on from: its end state and world memory, the
     same seed, personality and starter."""
     personality, starter = plan_of(seed)
-    folder = Path(tempfile.mkdtemp(prefix=f"ai_step5_{plan}{'_' + base if base else ''}_{seed}_"))
+    # (build step 5.2, G1) the frozen-tree watch before the run: once the tree moved, no run is played on it
+    if _TREE is not None and (_TREE.moved or not _TREE.check(f"before run {plan}{'(' + base + ')' if base else ''} seed {seed}")):
+        return {"plan": plan, "seed": seed, "base": base, "skipped": True,
+                "error": f"skipped: the tree changed mid-run ({_TREE.moves[0][:300]})"}
+    prefix = f"ai_step5_{plan}{'_' + base if base else ''}_{seed}_"
+    # (build step 5.2, G5) under the sweep's one root, deleted after grading (`SweepFolders.tidy`)
+    folder = _FOLDERS.new(prefix) if _FOLDERS is not None else Path(tempfile.mkdtemp(prefix=prefix))
     fault = PLANS[base or plan]
     harness = root / "ai_player" / "gates" / "play_harness.py"
     begin = (["--state", start["_end_state"], "--world-in", start["_world"]] if start is not None
              else ["--fresh", "--starter", starter])
+    if start is not None and start.get("_seen"):
+        # (build step 5.2) the tiles its chapter 1's screen showed are no new tiles in chapter 2 (the game's second path)
+        begin += ["--seen-in", start["_seen"]]
     command = [sys.executable, str(harness), *begin, "--seed", str(seed), "--frames", str(frames), "--personality",
                personality, "--target", target, "--game-clock", GAME_CLOCK, "--clock", WALL_CLOCK,
                "--run-dir", str(folder), "--save-end", str(folder / "end_state.ss1")] + (["--fault", fault] if fault else [])
@@ -364,10 +554,12 @@ def run_one(plan: str, seed: int, frames: int, target: str, root: Path = REPO, b
 
         env.update({ENV_BUILD_ROOT: str(resolve_build_root(None)), "PYTHONDONTWRITEBYTECODE": "1"})
     result = subprocess.run(command, cwd=str(root), capture_output=True, timeout=7200, env=env)
+    if _TREE is not None:
+        _TREE.check(f"after run {plan}{'(' + base + ')' if base else ''} seed {seed}")  # (G1) the verdict seals it
     text = result.stdout.decode("utf-8", errors="replace")
     line = next((l for l in text.splitlines() if l.startswith("PLAY ")), None)
     if line is None:
-        return {"plan": plan, "seed": seed, "base": base,
+        return {"plan": plan, "seed": seed, "base": base, "_folder": str(folder),
                 "error": (text + result.stderr.decode("utf-8", errors="replace"))[-2000:]}
     data = json.loads(line[5:])
     actions = []
@@ -381,8 +573,8 @@ def run_one(plan: str, seed: int, frames: int, target: str, root: Path = REPO, b
     earlier = (start or {}).get("_reads") or []
     row = grade_run(plan, seed, personality, starter, data, actions, time.monotonic() - began, earlier=earlier,
                     world_in=(start or {}).get("_world"))
-    row.update({"_end_state": data.get("saved_end"), "_world": data.get("world_file"),
-                "_reads": earlier + [r for r in actions if r.get("decision") == "read"]})
+    row.update({"_end_state": data.get("saved_end"), "_world": data.get("world_file"), "_folder": str(folder),
+                "_reads": earlier + [r for r in actions if r.get("decision") == "read"], "_seen": data.get("seen_file")})
     return {**row, "base": base} if base else row
 
 
@@ -621,13 +813,17 @@ def goal_spans(actions: list[dict]) -> list[dict]:
     return out
 
 
-def intent_mix(actions: list[dict]) -> dict:
+def intent_mix(actions: list[dict], unproductive: set | None = None) -> dict:
     """(build step 5.1, the step-5 review's finding 1; design draft §7 "intent mix (time in explore, catch, train, story)")
     The share of the goals' FRAMES (and of their count) spent on ERRANDS (`brain/goals.py` ERRAND_KINDS: heal, shop, train,
     catch, an item, chat, looking around a new place, a detour) rather than the story's own steps. (The step-5.1 verifier's
     second round) a goal's frames end at its END record (`goal_spans`): what the loop played after a goal ended (a scene)
     is no goal's frames (`between_goals`, reported); and a curiosity goal the story moved on in is the story's, in the
-    errand share as in the curiosity the story did not need (`story_own`)."""
+    errand share as in the curiosity the story did not need (`story_own`). (Build step 5.2, the step-5.1 review's finding
+    1: "`intent_mix` counts curiosity frames by goal kind, not by what the goal produced") `unproductive`: the frames (the
+    goal records' frames) of the curiosity goals that BROUGHT nothing (`curiosity_rows`: by the GAME in the sweep, by the
+    AI's own record in a live run): their frames are IDLE (`idle_frames`), neither errand nor curiosity, though still in
+    the total."""
     from ai_player.brain.goals import ERRAND_KINDS
 
     spans = goal_spans(actions)
@@ -643,6 +839,10 @@ def intent_mix(actions: list[dict]) -> dict:
     # (the step-5.1 verifier's second round: "MIX_MIN counts story-owned curiosity goals as errands") the ERRAND share
     # counts them as the story's too: a goal the story moved on in was the story's time, whatever its kind
     errand = sum(v for k, v in frames.items() if k in ERRAND_KINDS) - sum(f for _, _, f in story_own)
+    # (build step 5.2) a curiosity goal that brought nothing is IDLE time: no errand, no curiosity
+    idle = sum(s["frames"] for s in spans if s["kind"] in CURIOSITY_KINDS and not s["story_moved"]
+               and unproductive is not None and s["frame"] in unproductive)
+    curious, free, errand = curious - idle, free - idle, errand - idle
     count = sum(1 for s in spans if s["kind"] in ERRAND_KINDS)
     between = sum(s["gap"] for s in spans)
     return {"frames": dict(sorted(frames.items())), "errand_share": round(errand / total, 4) if total else 0.0,
@@ -650,8 +850,170 @@ def intent_mix(actions: list[dict]) -> dict:
             "errand_share_with_scenes": round(errand / (total + between), 4) if total + between else 0.0,
             "errand_frames": errand, "curiosity_share": round(curious / total, 4) if total else 0.0,
             "free_share": round(free / total, 4) if total else 0.0, "free_frames": free, "story_own": story_own,
-            "errand_goals": count, "goals": len(spans), "between_goals": between,
-            "kinds": sorted({s["kind"] for s in spans if s["kind"] in ERRAND_KINDS})}
+            "errand_goals": count, "goals": len(spans), "between_goals": between, "idle_frames": idle,
+            "total_frames": total, "kinds": sorted({s["kind"] for s in spans if s["kind"] in ERRAND_KINDS})}
+
+
+# ---------------------------------------------------------------------- build step 5.2: productive curiosity
+#: (build step 5.2) the fewest NEW tiles a curiosity goal's span must show on the GAME's screen to be productive by its
+#: tiles alone: the graders' own number, written here (the AI's is `brain/goals.py` YIELD_TILES_MIN; a check must not
+#: read the code it grades: CLAUDE.md, the lessons' PF-6)
+YIELD_TILES = 8
+#: ... and, for a look round or a detour (`SEEING`: walks whose purpose is to see), at least this many per 1,000 frames of
+#: its span OUTSIDE the game's battles (the graders' own number again; set from the development sweep step52dev2, where
+#: with the 8 tiles alone the LOAF control's yield was 80 %: its looks round showed 0-11 new tiles per 1,000 frames outside
+#: battles but for a few short ones, the real code's 14 and more)
+YIELD_TILE_RATE = 20
+SEEING = ("explore", "detour")
+#: (build step 5.2) frames of slack after a goal's end in which the game's second-path samples still count as its (the
+#: samples are 10 frames apart, the AI's frame offset may lag one look)
+YIELD_SLACK = 30
+
+
+def _timeline_rise(timeline: list[list[int]] | None, start: int, end: int) -> int:
+    """How much a [frame, value] timeline (changes only) rose between frames `start` and `end`."""
+    before = after = None
+    for frame, value in timeline or ():
+        if frame <= start:
+            before = value
+        if frame <= end:
+            after = value
+    if before is None or after is None:
+        return 0
+    return max(0, after - before)
+
+
+def game_yield(places: dict | None, story: dict | None, start: int, end: int, kind: str = "") -> dict:
+    """(build step 5.2) What the GAME says a goal's span [`start`, `end`] (the recorder's frames) BROUGHT: tiles its screen
+    showed for the first time and maps first stood on (`play_harness.PlaceRecorder`), captures and item balls (the game's
+    counters and flags, `play_harness.StoryRecorder`), and a talk (a text or a script that waited for A/B on the
+    overworld, since the verifier's round only one that showed a PAGE the game had not shown before in the run; by whole
+    MESSAGE before its second round);
+    `productive` by the graders' own `YIELD_TILES` (and, for a goal of a `SEEING` `kind`, `YIELD_TILE_RATE`
+    per 1,000 frames of the span outside the game's battles, `PlaceRecorder` battles). Never the AI's own reads."""
+    places = places or {}
+    end_s = end + YIELD_SLACK
+    tiles = sum(n for frame, n in places.get("new_tiles") or () if start < frame <= end_s)
+    first: dict[str, int] = {}
+    for frame, stay in places.get("stays") or ():
+        first.setdefault(stay, frame)
+    maps = sum(1 for stay, frame in first.items() if start < frame <= end_s and frame != (places.get("stays") or [[0]])[0][0])
+    caught = _timeline_rise((story or {}).get("captures"), start, end_s)
+    items = _timeline_rise((story or {}).get("item_flags"), start, end_s)
+    # a talk BEGUN in the span (a text still on screen from the goal before is not this goal's: measured on the development
+    # smoke run of seed 1001, a 17-frame chat right after another was credited with the first one's text); (build step 5.2,
+    # the verifier's round: "the game's second path credits ANY text begun in a goal's span as a talk", the nurse's welcome
+    # right after a heal, a scripted stop met again) that showed a PAGE the game had never shown before in the run (the
+    # recorder's third field: `play_harness.PlaceRecorder` pages; a record without it is no talk). (The verifier's second
+    # round: whole messages were compared, so OLDALE's footprints man's talk, the last two pages of his own scene, was
+    # credited 20 times while the AI's own record, and the verifier's page-by-page recount, said it told nothing new)
+    talked = any(start <= text[0] <= end_s and len(text) > 2 and bool(text[2]) for text in places.get("texts") or ())
+    # the span's OWN time: less the stretches the game was in a battle (each sample stands for `every` frames)
+    every = int(places.get("every") or 10)
+    battle = sum(max(0, min(end, b + every) - max(start, a)) for a, b in places.get("battles") or ())
+    walking = max(0, end - start - battle)
+    seen = tiles >= YIELD_TILES and (kind not in SEEING or tiles * 1000 >= YIELD_TILE_RATE * walking)
+    return {"tiles": tiles, "maps": maps, "caught": caught, "items": items, "talked": talked, "walking": walking,
+            "productive": bool(seen or maps or caught or items or talked)}
+
+
+def loafing_frames(curious: list[dict]) -> int:
+    """(build step 5.2) The LOAFING of a run (`curiosity_rows`): the curiosity goals' OWN time, outside the battles the game
+    had in them (`walking`), where the game says they brought nothing. (The round's development sweep step52dev4: catching
+    roams that met only known POKéMON were 80-87 % battles, which are the game played, not loafing.)"""
+    return sum(row["walking"] for row in curious if not row["game"])
+
+
+def position_at(places: dict | None, frame: int) -> tuple[str, int, int] | None:
+    """(build step 5.2) Where the GAME had the player at `frame` (the recorder's frames): (map "group:number", x, y)."""
+    where = None
+    for at, stay, x, y in (places or {}).get("moves") or ():
+        if at > frame:
+            break
+        where = (stay, x, y)
+    return where
+
+
+def curiosity_rows(actions: list[dict], data: dict, offset: int) -> list[dict]:
+    """(build step 5.2, the step-5.1 review's findings 1 and 3) Every CURIOSITY goal of a run that the story did not need,
+    with what it brought by the AI's own record (its END record's `yield`) and by the GAME (`game_yield` over its span, the
+    AI's frames less `offset`); for a DETOUR, the place it chose (its yield's `place`), whether it SAID it reached it (its
+    outcome: "reached ...") and whether the GAME had the player standing there when it ended (`position_at`)."""
+    ends = {}
+    goal_frames: list[int] = []
+    for r in actions:
+        if r.get("decision") == "goal":
+            goal_frames.append(r.get("frame") or 0)
+        elif r.get("decision") == "goal_end" and goal_frames:
+            ends.setdefault(goal_frames[-1], r)
+    rows = []
+    places, story = data.get("places") or {}, data.get("story") or {}
+    for span in goal_spans(actions):
+        if span["kind"] not in CURIOSITY_KINDS or span["story_moved"]:
+            continue
+        end = ends.get(span["frame"]) or {}
+        mine = (end.get("extra") or {}).get("yield") or {}
+        if mine.get("dropped"):
+            continue
+        start, stop = span["frame"] - offset, span["frame"] + span["frames"] - offset
+        game = game_yield(places, story, start, stop, span["kind"])
+        # (step52dev4) its OWN time too, outside the battles met in it, by each path: a catching roam is 80-87 % battles
+        row = {"kind": span["kind"], "frame": span["frame"], "frames": span["frames"], "ai": bool(mine.get("productive")),
+               "game": game["productive"], "tiles_game": game["tiles"], "tiles_ai": mine.get("tiles"),
+               "walking": game["walking"], "walking_ai": mine.get("walking", span["frames"]),
+               # (the verifier's second round: "counted by both paths" was written of a talk neither path's verdict was
+               # read for) a talk by each path: the AI had one (`talks`), it told something new (`talked`), the game's
+               "talks_ai": bool(mine.get("talks")), "talked_ai": bool(mine.get("talked")), "talked_game": bool(game["talked"])}
+        if span["kind"] == "detour":
+            place = mine.get("place")
+            said = str(end.get("reason") or "").startswith("reached")
+            stood = position_at(places, stop + YIELD_SLACK)
+            there = bool(place) and stood is not None and stood[0] == place[0] and (stood[1], stood[2]) == (place[1], place[2])
+            row.update({"place": place, "said_reached": said, "game_reached": there,
+                        "game": game["productive"] and there})
+        rows.append(row)
+    return rows
+
+
+def curiosity_streaks(actions: list[dict]) -> list[tuple[int, int, int]]:
+    """(build step 5.2, the step-5.1 review's finding 2: "it ran six curiosity goals in a row") Every STREAK of curiosity
+    goals with no story or need goal between (a goal dropped for a scene neither ends nor joins one; a curiosity goal the
+    story moved on in is the story's): (first frame, goals in it, frames from its first goal's start to its last's end)."""
+    out, streak = [], []
+    for span in goal_spans(actions):
+        if span["kind"] in CURIOSITY_KINDS and not span["story_moved"]:
+            streak.append(span)
+            continue
+        if streak:
+            out.append((streak[0]["frame"], len(streak), streak[-1]["frame"] + streak[-1]["frames"] - streak[0]["frame"]))
+            streak = []
+    if streak:
+        out.append((streak[0]["frame"], len(streak), streak[-1]["frame"] + streak[-1]["frames"] - streak[0]["frame"]))
+    return out
+
+
+def push_ai(actions: list[dict]) -> int:
+    """(build step 5.2) The longest free stretch of pressing that brought nothing new, by the AI's own record
+    (`hands/waiting.py` PushWatch: its end record's `pushes`, and every stretch it noted)."""
+    end = next(((r.get("extra") or {}).get("pushes") or {} for r in reversed(actions) if r.get("decision") == "end"), {})
+    noted = [(r.get("extra") or {}).get("frames", 0) for r in actions if r.get("decision") == "push"]
+    return max([int(end.get("longest") or 0)] + noted)
+
+
+def person_blocks(actions: list[dict]) -> int:
+    """(build step 5.2, the BLOCKED arm's REACH) The most times, in one curiosity goal, the navigator met someone in the
+    way of where it walked ("someone stands in the way ...", "someone is in the way at ...": the pad's idle records)."""
+    most, count, inside = 0, 0, False
+    for r in actions:
+        if r.get("decision") == "goal":
+            inside, count = r.get("action") in CURIOSITY_KINDS, 0
+            continue
+        reason = str(r.get("reason") or "")
+        if inside and r.get("decision") == "idle" and ("someone stands in the way" in reason
+                                                       or "someone is in the way at" in reason):
+            count += 1
+            most = max(most, count)
+    return most
 
 
 #: (build step 5.1) The errands a person does out of CURIOSITY, not need (no heal, shop or training: those the beeline
@@ -883,6 +1245,36 @@ def known_maps(world_file: str | None) -> set[str]:
     return {memory.get("const") for memory in (json.loads(lines[-1]).get("maps") or {}).values() if memory.get("visits")}
 
 
+def map_keys(world_file: str | None) -> dict[str, str]:
+    """(build step 5.2) A world memory file's map constants and their keys ("group:number"): const -> key."""
+    if not world_file or not Path(world_file).is_file():
+        return {}
+    lines = [line for line in Path(world_file).read_text(encoding="utf-8").splitlines() if line.strip()]
+    if not lines:
+        return {}
+    return {memory.get("const"): key for key, memory in (json.loads(lines[-1]).get("maps") or {}).items()
+            if memory.get("const")}
+
+
+def new_place_left_before(actions: list[dict], data: dict, offset: int) -> list[tuple]:
+    """(build step 5.2, the step-5.1 review's finding 6: "a known town called 'a new place'": CH1M after healing in OLDALE
+    twice) Every look-around draw ("a new place, X") made on a map the GAME had had the player stand on in an EARLIER
+    stay of this run (the second path's stays, `play_harness.PlaceRecorder`): [(frame, map)]."""
+    named, _ = new_place_draws(actions, set())
+    keys = map_keys(data.get("world_file"))
+    stays = (data.get("places") or {}).get("stays") or []
+    bad = []
+    for frame, const in named:
+        key = keys.get(const)
+        at = (frame or 0) - offset
+        index = max((i for i, (start, _) in enumerate(stays) if start <= at), default=None)
+        if key is None or index is None:
+            continue
+        if any(stay == key for _, stay in stays[:index]) and stays[index][1] == key:
+            bad.append((frame, const))
+    return bad
+
+
 def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, actions: list[dict], seconds: float,
               earlier: list[dict] | None = None, world_in: str | None = None) -> dict:
     """One run's numbers, each by the game (the recorder) unless named as the AI's. (The step-5.1 verifier's second round)
@@ -952,7 +1344,46 @@ def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, 
     judge = ((end_note.get("fight_prep") or {}).get("ch1_rival_route103") or {}).get("judged_by")
     wally = first_change(changes, "VAR_PETALBURG_GYM_STATE", 2)
     named, old_places = new_place_draws(actions, known_maps(world_in))
+    # (build step 5.2, PRODUCTIVE CURIOSITY) every curiosity goal the story did not need, what it brought by its own record
+    # and by the GAME; the intent mix counts the ones that brought nothing (by the game) as IDLE; the streaks; the pushing
+    # by both paths; the person-blocks met (the BLOCKED arm's reach); a known place called new, by the game's stays
+    curious = curiosity_rows(actions, data, offset)
+    unproductive = {row["frame"] for row in curious if not row["game"]}
+    streaks = curiosity_streaks(actions)
+    push_game = ((data.get("places") or {}).get("push") or {}).get("longest") or [0, 0, 0, 0]
     return {
+        "curious": [(r["kind"][:3], r["frame"], r["frames"], int(r["ai"]), int(r["game"]), r["tiles_game"]) for r in curious],
+        "curious_frames": sum(r["frames"] for r in curious),
+        "productive_frames": sum(r["frames"] for r in curious if r["game"]),
+        "loaf_frames": loafing_frames(curious),
+        "loaf_frames_all": sum(r["frames"] for r in curious if not r["game"]),
+        # (step52dev2) the curiosity that SEES (a look round, a detour): where loafing hides (a chat's talk and a roam's
+        # catch are nearly always there, and diluted the pooled yield: LOAF 0.54 pooled, 0.21 of its looks)
+        "seeing_frames": sum(r["frames"] for r in curious if r["kind"] in SEEING),
+        "seeing_productive": sum(r["frames"] for r in curious if r["kind"] in SEEING and r["game"]),
+        "yield_agree": sum(1 for r in curious if r["ai"] == r["game"]),
+        "detours": [(r["frame"], r.get("place"), r["said_reached"], r["game_reached"]) for r in curious
+                    if r["kind"] == "detour"],
+        "streak_goals": max((s[1] for s in streaks), default=0), "streak_frames": max((s[2] for s in streaks), default=0),
+        "streaks_long": [s for s in streaks if s[1] >= 3][:4],
+        "push_ai": push_ai(actions), "push_game": push_game[2], "push_game_at": push_game[:2],
+        "person_blocks": person_blocks(actions),
+        "left_called_new": new_place_left_before(actions, data, offset),
+        "ask_nothing_said": sum(1 for r in actions if r.get("decision") == "goal" and "to ask at" in str(r.get("reason"))
+                                and "nothing was said" in str(r.get("reason"))),
+        "places_samples": (data.get("places") or {}).get("samples"),
+        # (build step 5.2, the verifier's round) the run given up OUT OF IDEAS (its walk with no lead found nothing left on
+        # any map it knows: `brain/goals.py` lost_intent); the chats the GAME says told it nothing new (their message shown
+        # before, no tile, map, capture or item: the nurse right after a heal), as (frame, own frames); the game's message
+        # reads that failed (`play_harness.PlaceRecorder` text_errors: each such text counted new)
+        "out_of_ideas": "out of ideas" in str(data.get("reason") or ""),
+        "chats_idle": [(r["frame"], r["walking"]) for r in curious if r["kind"] == "chat" and not r["game"]],
+        # (the verifier's second round) every talk the AI had, and the ones whose "told something new" the two paths
+        # disagree on, (frame, kind, the AI, the game)
+        "talks_ai": sum(1 for r in curious if r["talks_ai"]),
+        "talks_apart": [(r["frame"], r["kind"][:3], int(r["talked_ai"]), int(r["talked_game"])) for r in curious
+                        if r["talks_ai"] and r["talked_ai"] != r["talked_game"]],
+        "text_errors": (data.get("places") or {}).get("text_errors"),
         "rival_judge": judge, "wally": bool(end.get("HIDE_PETALBURG_CITY_WALLYS_MOM"))
         and (end.get("VAR_PETALBURG_GYM_STATE") or 0) >= 2, "wally_frame": wally["f"] if wally else None,
         "time_wally": time_to_dex(actions, CH2_TARGET, since_start=True), "place_draws": len(named), "old_places": old_places,
@@ -964,7 +1395,7 @@ def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, 
         "await_game_max": ((waits_game.get("longest") or [0, 0, 0])[2]) if waits_game else None,
         "await_game_long": [k for k in waits_game.get("kept") or [] if k[2] >= BOUNDS["AWAIT_MAX"]],
         "await_game_samples": waits_game.get("samples"),
-        "mix": intent_mix(actions),
+        "mix": intent_mix(actions, unproductive),
         "progress_resets": len(report.get("progress") or []),
         "longest_without_progress": max(gaps, default=None),
         "told_before_bad": told_before([{**r, "frame": -1} for r in earlier or []] + actions),
@@ -1146,6 +1577,172 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[tupl
     out += stop_verdicts(rows)
     out += step51_verdicts(rows)
     out += chapter2_verdicts(rows)
+    out += step52_verdicts(rows)
+    return p2_reported(out)
+
+
+#: (build step 5.2, the step's own P2: "AI's own target must not be the graded quantity: grade YIELD and SPACING, not share
+#: of frames"; the step-5.1 review: "THE CH2 FLOOR IS PARTLY THE AI'S OWN TARGET") the checks of a SHARE OF FRAMES, every
+#: one of them the quantity 5.1's balance or its curiosity minimum aimed at, and their controls: REPORTED with the old
+#: bound's own verdict beside them, no longer graded. (Decided in development, before any graded run of 5.2, and after
+#: development runs had FAILED the old chapter-2 floor: it held in 10 of 11 chapter-2 runs of step52dev2 and 22 of 24 of
+#: step52dev3 and dev4, the AI aiming at no share; the taste lowered for it in dev3 and dev4 was restored,
+#: `personality.py` bored_frames.) What separates the AI from a beeline
+#: stays graded: OFF THE BEELINE, NO SPEEDRUN, THE ERRANDS DIFFER BY SEED, the yield against LOAF, the spacing.
+P2_REPORTED = ("THE INTENT MIX (CH1)", "CURIOSITY THE STORY DID NOT NEED (CH1", "ERRANDS_OFF MOVES THE INTENT MIX",
+               "THE BEELINE FAILS THE CURIOSITY BOUND", "CH2: THE INTENT MIX", "CH2: CURIOSITY THE STORY DID NOT NEED",
+               "CH2_OFF (the beeline control's chapter 2)")
+
+
+def p2_reported(results: list[tuple[bool, str]]) -> list[tuple[bool, str]]:
+    """(build step 5.2, P2) The share-of-frames checks (`P2_REPORTED`) REPORTED, each with whether its old bound held."""
+    return [(True, f"(reported, 5.2 P2: a share of frames is not graded; the old bound "
+                   f"{'HELD' if ok else 'did NOT hold'}) {text}") if text.startswith(P2_REPORTED) else (ok, text)
+            for ok, text in results]
+
+
+def step52_verdicts(rows: dict[str, list[dict]]) -> list[tuple[bool, str]]:
+    """(build step 5.2, PRODUCTIVE CURIOSITY) The new checks, each pre-registered in `BOUNDS`, each with the control that
+    CAN fail it: the YIELD (LOAF), the SPACING (GREEDY), the PUSHING (BLOCKED), and the truth of what the AI says (the
+    detours, a new place, the ask step). ERRANDS_OFF is reported beside them, a comparison, not their control."""
+    out: list[tuple[bool, str]] = []
+
+    def good(plan: str) -> list[dict]:
+        return [r for r in rows.get(plan, []) if "error" not in r]
+
+    real = [r for plan in REAL_PLANS for r in good(plan)]
+    if not real:
+        return out
+    # THE YIELD of the curiosity that SEES (a look round, a detour), pooled by chapter; all curiosity's reported; and the
+    # loafing in every run
+    for plan in ("CH1", "CH2"):
+        runs = good(plan)
+        if not runs:
+            continue
+        seeing = sum(r["seeing_frames"] for r in runs)
+        made = sum(r["seeing_productive"] for r in runs)
+        rate = made / seeing if seeing else 0.0
+        curious = sum(r["curious_frames"] for r in runs)
+        pooled = sum(r["productive_frames"] for r in runs) / curious if curious else 0.0
+        out.append((seeing > 0 and rate >= BOUNDS["YIELD_RATE_MIN"],
+                    f"{plan}: CURIOSITY BY YIELD (the GAME's second path: a look round's or a detour's span showed "
+                    f"{YIELD_TILES}+ new tiles and {YIELD_TILE_RATE} per 1,000 frames outside battles, or a map first stood "
+                    f"on, a capture, an item ball, a talk; a detour only where it stood at its place): {made} of {seeing} "
+                    f"frames of looking round and detours brought something, {rate:.1%} pooled (bound >= "
+                    f"{BOUNDS['YIELD_RATE_MIN']:.0%}); by run (seed, productive, all) "
+                    f"{[(r['seed'], r['seeing_productive'], r['seeing_frames']) for r in runs]}; (reported) all its "
+                    f"curiosity {pooled:.1%} of {curious} frames"))
+    loafing = [(r["plan"], r["seed"], r["loaf_frames"]) for r in real if r["loaf_frames"] > BOUNDS["LOAF_FRAMES_MAX"]]
+    out.append((not loafing, f"NO LOAFING (every run of {list(REAL_PLANS)}, {len(real)} runs): the frames of curiosity that "
+                             f"brought nothing (by the game), its own time outside battles, at most "
+                             f"{BOUNDS['LOAF_FRAMES_MAX']} a run; the most {max(r['loaf_frames'] for r in real)}; over it: "
+                             f"{loafing or 'none'}; (reported) with the battles in them, the most "
+                             f"{max(r.get('loaf_frames_all', 0) for r in real)}"))
+    agree = sum(r["yield_agree"] for r in real)
+    total = sum(len(r["curious"]) for r in real)
+    out.append((True, f"(reported) the AI's own word on its curiosity's yield agrees with the game's in {agree} of {total} "
+                      f"goals"))
+    loaf = good("LOAF")
+    if loaf:
+        over = [r["seed"] for r in loaf if r["loaf_frames"] > BOUNDS["LOAF_FRAMES_MAX"]]
+        seeing = sum(r["seeing_frames"] for r in loaf)
+        rate = sum(r["seeing_productive"] for r in loaf) / seeing if seeing else 0.0
+        out.append((len(over) >= BOUNDS["LOAF_FAILS_RUNS_MIN"] and seeing > 0 and rate < BOUNDS["YIELD_RATE_MIN"],
+                    f"LOAF (the control that CAN fail: looks round and detours among tiles it has stood on, `EXTRA_EDITS`): "
+                    f"the yield of its looks round and detours {rate:.1%} pooled of {seeing} frames (must be under "
+                    f"{BOUNDS['YIELD_RATE_MIN']:.0%}); over the per-run loafing bound in {len(over)} of {len(loaf)} runs "
+                    f"(bound >= {BOUNDS['LOAF_FAILS_RUNS_MIN']}): {dict((r['seed'], r['loaf_frames']) for r in loaf)}"))
+    off = good("ERRANDS_OFF")
+    if off:
+        out.append((True, f"(reported) ERRANDS_OFF, the beeline: its curiosity (item balls only) {sum(r['curious_frames'] for r in off)} "
+                          f"frames, {sum(r['productive_frames'] for r in off)} productive; loafing "
+                          f"{[r['loaf_frames'] for r in off]}"))
+    # THE SPACING in every run; GREEDY over it
+    spaced = [(r["plan"], r["seed"], r["streak_goals"], r["streak_frames"]) for r in real
+              if r["streak_goals"] > BOUNDS["SPACING_ROW_MAX"]]
+    out.append((not spaced, f"CURIOSITY SPACED (every run of {list(REAL_PLANS)}): at most {BOUNDS['SPACING_ROW_MAX']} curiosity "
+                            f"goals in a row; the most {max(r['streak_goals'] for r in real)}; over: {spaced or 'none'}; "
+                            f"(reported, not bounded: a streak's frames, a catching roam being one goal) the longest "
+                            f"{max(r['streak_frames'] for r in real)} frames"))
+    greedy = good("GREEDY")
+    if greedy:
+        over = [(r["seed"], r["streak_goals"], r["streak_frames"]) for r in greedy
+                if r["streak_goals"] > BOUNDS["SPACING_ROW_MAX"]]
+        out.append((len(over) >= BOUNDS["GREEDY_FAILS_MIN"] * len(greedy),
+                    f"GREEDY (the control that CAN fail: every curiosity draw passes, no cap in a row): over the spacing "
+                    f"bounds in {len(over)} of {len(greedy)} runs (bound >= {BOUNDS['GREEDY_FAILS_MIN']:.0%}): {over}"))
+    # DETOURS THAT ARRIVE, and what the AI says of them is true
+    detours = [(r["plan"], r["seed"], *d) for r in real for d in r["detours"]]
+    if detours:
+        # (step52dev3) a detour that chose NO place ("not reached: nothing off the way here that it can walk to", 7 of 23
+        # there, 17-29 frames each) walked nowhere: it is no detour that failed to arrive, and is reported apart
+        placed = [d for d in detours if d[3]]
+        there = [d for d in placed if d[5]]
+        out.append((bool(placed) and len(there) >= BOUNDS["ARRIVE_MIN"] * len(placed),
+                    f"DETOURS THAT ARRIVE (by the game: the player stood at the place chosen when the detour ended): "
+                    f"{len(there)} of the {len(placed)} that chose a place (bound >= {BOUNDS['ARRIVE_MIN']:.0%}); "
+                    f"(reported) {len(detours) - len(placed)} more found no place off the way to walk to"))
+        lies = [d for d in detours if bool(d[4]) != bool(d[5])]
+        out.append((not lies, f"THE DETOUR'S WORD IS TRUE: its 'reached' / 'not reached' agrees with the game in "
+                              f"{len(detours) - len(lies)} of {len(detours)} detours; apart (plan, seed, frame, place, said "
+                              f"reached, the game): {lies[:6] or 'none'}"))
+    else:
+        out.append((False, "DETOURS THAT ARRIVE: no detour in the real code's runs (the check is vacuous)"))
+    # THE PUSHING PROPERTY, both paths, every real run; the two paths agree; BLOCKED over it where it met someone
+    bound = BOUNDS["PUSH_MAX"]
+    pushing = [(r["plan"], r["seed"], r["push_ai"], r["push_game"], r["push_game_at"]) for r in real
+               if r["push_ai"] >= bound or r["push_game"] >= bound]
+    out.append((not pushing, f"THE PUSHING PROPERTY (every run of {list(REAL_PLANS)}): the longest free stretch of pressing that "
+                             f"brought nothing new, by the AI's record {max(r['push_ai'] for r in real)} frames, by the "
+                             f"GAME's {max(r['push_game'] for r in real)} (bound under {bound}); over it: {pushing or 'none'}"))
+    every = [r for plan_rows in rows.values() for r in plan_rows if "error" not in r and "push_ai" in r]
+    split = [(r["plan"], r["seed"], r["push_ai"], r["push_game"]) for r in every
+             if (r["push_ai"] >= bound) != (r["push_game"] >= bound)]
+    out.append((not split, f"THE TWO PATHS AGREE on the pushing verdict in {len(every) - len(split)} of {len(every)} runs; "
+                           f"apart: {split or 'none'}"))
+    blocked = good("BLOCKED")
+    if blocked:
+        reached = [r for r in blocked if r["person_blocks"] >= BOUNDS["BLOCKED_REACH_HITS"]]
+        hit = [(r["seed"], r["push_ai"], r["push_game"]) for r in reached
+               if r["push_ai"] >= bound and r["push_game"] >= bound]
+        out.append((len(hit) >= BOUNDS["BLOCKED_HITS_MIN"] and len(reached) >= BOUNDS["BLOCKED_REACH_MIN"] * len(blocked),
+                    f"BLOCKED (the control that CAN fail: it never gives up a place it cannot get to): it met someone in the "
+                    f"way of a curiosity walk {BOUNDS['BLOCKED_REACH_HITS']}+ times in {len(reached)} of {len(blocked)} runs "
+                    f"(bound >= {BOUNDS['BLOCKED_REACH_MIN']:.0%}: it REACHED the state tested); of them, over the pushing "
+                    f"bound by BOTH paths in {len(hit)} (bound >= {BOUNDS['BLOCKED_HITS_MIN']}): {hit}; all its runs (seed, "
+                    f"blocks, AI, game) {[(r['seed'], r['person_blocks'], r['push_ai'], r['push_game']) for r in blocked]}"))
+    # A KNOWN PLACE IS NEVER NEW (by the game's stays), and the ask step never walks with nothing said
+    left = [(r["plan"], r["seed"], r["left_called_new"][:2]) for r in real if r["left_called_new"]]
+    out.append((not left, f"A PLACE IT HAS LEFT IS NO NEW PLACE (the GAME's stays: a look-around draw on a map stood on in an "
+                          f"earlier stay of the run): off {left or 'none'}"))
+    asked = [(r["plan"], r["seed"], r["ask_nothing_said"]) for r in real if r["ask_nothing_said"]]
+    out.append((not asked, f"THE ASK STEP WALKS TO ITS HOUSE ONLY WHEN TOLD (no 'to ask at ... nothing was said'): off "
+                           f"{asked or 'none'}"))
+    sampled = [(r["plan"], r["seed"]) for r in every if not r.get("places_samples")]
+    out.append((not sampled, f"THE GAME'S PLACES (second path) were read in every run: unread {sampled or 'none'}"))
+    # (build step 5.2, the verifier's round) OUT OF IDEAS is the lost walk's last word, never a led one's: no run of a plan
+    # that goes by what the game says ends with it (pre-registered `OUT_OF_IDEAS_LED_MAX`); NOHINTS's are reported
+    led = [(r["plan"], r["seed"], str(r.get("reason"))[:120]) for r in real if r["plan"] != "NOHINTS" and r.get("out_of_ideas")]
+    out.append((len(led) <= BOUNDS["OUT_OF_IDEAS_LED_MAX"],
+                f"OUT OF IDEAS ONLY WITH NO LEAD (the plans that go by what the game says: {[p for p in REAL_PLANS if p != 'NOHINTS']}): "
+                f"runs ended 'out of ideas' {len(led)} (bound <= {BOUNDS['OUT_OF_IDEAS_LED_MAX']}): {led or 'none'}"))
+    nohints = good("NOHINTS")
+    if nohints:
+        gave_up = [(r["seed"], r["frames"]) for r in nohints if r.get("out_of_ideas")]
+        out.append((True, f"(reported) NOHINTS (no hint ever used) ended 'out of ideas' in {len(gave_up)} of {len(nohints)} runs "
+                          f"(seed, frames): {gave_up}; the others: "
+                          f"{[(r['seed'], str(r.get('reason'))[:60]) for r in nohints if not r.get('out_of_ideas')]}"))
+    idle = {plan: [c for r in good(plan) for c in r.get("chats_idle", [])] for plan in REAL_PLANS}
+    out.append((True, f"(reported) the chats the GAME says told it nothing new (count, own frames) by plan: "
+                      f"{ {plan: (len(c), sum(f for _, f in c)) for plan, c in idle.items()} }; the game's message reads "
+                      f"that failed: {sum(r.get('text_errors') or 0 for r in every)}"))
+    # (the verifier's second round: the README said a talk was "counted by both paths" while the GAME's path, which grades
+    # NO LOAFING, credited it in all 20 cases and the AI's in none; no line showed the two verdicts side by side)
+    had = sum(r.get("talks_ai") or 0 for r in real)
+    apart = [(r["plan"], r["seed"], *t) for r in real for t in r.get("talks_apart") or ()]
+    out.append((True, f"(reported) THE TWO PATHS ON THE TALKS (a chat's or a detour's talk the AI had: words never read by "
+                      f"its record, a page never shown by the game's): they agree on 'told something new' in "
+                      f"{had - len(apart)} of {had}; apart (plan, seed, frame, kind, the AI, the game): {apart[:12] or 'none'}"))
     return out
 
 
@@ -1431,41 +2028,100 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[tuple[bool, str]]:
     return out
 
 
+def registered_numbers(plans: list[str], frames: int, target: str) -> dict:
+    """(Build step 5.2, G2) EVERY number a sweep's verdict depends on, whose sha256 a graded range is REGISTERED with in the
+    seed ledger (`gates/ledger.py`) before it runs: the bounds, the constants the checks use, the plans and their faults,
+    and the run's frames and target."""
+    return {"BOUNDS": BOUNDS, "SMALL_PATIENCE": SMALL_PATIENCE, "STOP_WITHIN": STOP_WITHIN, "STOP_REASON": STOP_REASON,
+            "GAME_CLOCK": GAME_CLOCK, "WALL_CLOCK": WALL_CLOCK, "PLANS": PLANS, "MUTANT_PLANS": MUTANT_PLANS,
+            "STOP_PLANS": STOP_PLANS, "CHAPTER2": CHAPTER2, "CH2_TARGET": CH2_TARGET, "plans": plans, "frames": frames,
+            "target": target,
+            # (build step 5.2) the controls' own edits (an arm is what its copy does) and the yield's own numbers
+            "EXTRA_EDITS": EXTRA_EDITS, "PLAN_PERSONALITY": PLAN_PERSONALITY, "YIELD_TILES": YIELD_TILES,
+            "YIELD_SLACK": YIELD_SLACK, "YIELD_TILE_RATE": YIELD_TILE_RATE, "SEEING": SEEING, "P2_REPORTED": P2_REPORTED}
+
+
 def main() -> int:
+    global _TREE, _FOLDERS
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
+    from ai_player.gates import ledger as seed_ledger
+    from ai_player.gates.disk_budget import SweepFolders, preflight
+    from ai_player.gates.provenance import line_digest, watch
+
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--plans", default="CH1,NOTRAIN,NOHINTS,DEADREST,ERRANDS_OFF,STALL1,STALL2,STALL3,PATIENCE,"
-                                           "PATIENCE_OLD,LOSE3,STOP,STOPDEAD")
+                                           "PATIENCE_OLD,LOSE3,CH2,CH2_OFF,LOAF,BLOCKED,GREEDY,STOP,STOPDEAD")
     parser.add_argument("--seeds", type=int, default=12)
-    parser.add_argument("--first-seed", type=int, default=1)
+    # (build step 5.2, G2: "no default --first-seed for a graded run") neither has a default
+    parser.add_argument("--purpose", required=True, choices=seed_ledger.PURPOSES,
+                        help="graded: a range REGISTERED first (--register); development; replay: seeds already played")
+    parser.add_argument("--first-seed", type=int, required=True)
+    parser.add_argument("--register", action="store_true",
+                        help="with --purpose graded: pre-register the range and the numbers it is graded by, play nothing")
+    parser.add_argument("--keep-runs", action="store_true", help="keep every run folder (a verifier's recount needs them)")
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--frames", type=int, default=300000)
     parser.add_argument("--target", default="ch1_pokedex")
-    parser.add_argument("--evidence-tag", default="step51")
+    parser.add_argument("--evidence-tag", default="step52")
     args = parser.parse_args()
     plans = [p.strip() for p in args.plans.split(",") if p.strip()]
     seeds = list(range(args.first_seed, args.first_seed + args.seeds))
-    lines: list[str] = []
-
-    def say(line: str) -> None:
-        print(line, flush=True)
-        lines.append(line)
-
-    say(f"AI PLAYER BUILD STEP 5.1 - THE SEED SWEEP: plans {plans}, seeds {seeds[0]}-{seeds[-1]}, frames {args.frames}, game "
-        f"clock {GAME_CLOCK}, wall clock set {WALL_CLOCK}")
-    say(f"pre-registered bounds: {json.dumps(BOUNDS)}; SMALL_PATIENCE {SMALL_PATIENCE}")
-    say(f"code: {provenance(REPO)}")
-    # (the step-5.1 verifier's second round: "the dee96b tree was not kept") the tree this sweep runs on is kept
-    say(f"tree kept: {snapshot_tree(REPO)}")
+    if not seeds:
+        parser.error("--seeds must be at least 1")
     unknown = [p for p in plans if p not in PLANS and p not in STOP_PLANS]
     if unknown:
         parser.error(f"unknown plans {unknown}")
     orphans = [p for p in plans if p in CHAPTER2 and CHAPTER2[p] not in plans]
     if orphans:
         parser.error(f"the chapter-2 plans {orphans} go on from {[CHAPTER2[p] for p in orphans]}: name those plans too")
+    numbers_sha = seed_ledger.numbers_sha256(registered_numbers(plans, args.frames, args.target))
+    if args.register:
+        if args.purpose != "graded":
+            parser.error("--register pre-registers a GRADED range: pass --purpose graded")
+        try:
+            entry = seed_ledger.register(LEDGER_FAMILY, "rate_step5", seeds[0], seeds[-1], numbers_sha,
+                                         note=f"plans {plans}, frames {args.frames}, target {args.target}")
+        except seed_ledger.Refused as refusal:
+            print(f"LEDGER: REFUSED - {refusal}")
+            return 2
+        print(f"LEDGER: REGISTERED #{entry['id']}: graded seeds {seeds[0]}-{seeds[-1]}, the numbers' sha256 "
+              f"{numbers_sha[:16]} ({seed_ledger.LEDGER}); nothing was played")
+        return 0
+    # (G5) the disk budget, before anything is played or written
+    disk_ok, disk_line = preflight()
+    if not disk_ok:
+        print(disk_line)
+        return 2
+    code = provenance(REPO)
+    # (G1) this driver checks and seals its own verdict (the watch started with the code line above)
+    _TREE = watch(REPO, explicit=True)
+    try:
+        entry, ledger_lines = seed_ledger.begin(LEDGER_FAMILY, "rate_step5", args.purpose, seeds[0], seeds[-1], numbers_sha,
+                                                line_digest(code), note=f"plans {plans}, tag {args.evidence_tag}")
+    except seed_ledger.Refused as refusal:
+        print(f"LEDGER: REFUSED - {refusal}")
+        return 2
+    _FOLDERS = SweepFolders(f"step5_{args.evidence_tag}")
+    lines: list[str] = []
+
+    def say(line: str) -> None:
+        print(line, flush=True)
+        lines.append(line)
+
+    say(f"AI PLAYER BUILD STEP 5.2 - THE SEED SWEEP: plans {plans}, seeds {seeds[0]}-{seeds[-1]}, frames {args.frames}, game "
+        f"clock {GAME_CLOCK}, wall clock set {WALL_CLOCK}")
+    say(f"pre-registered bounds: {json.dumps(BOUNDS)}; SMALL_PATIENCE {SMALL_PATIENCE}")
+    say(f"code: {code}")
+    # (the step-5.1 verifier's second round: "the dee96b tree was not kept") the tree this sweep runs on is kept
+    say(f"tree kept: {snapshot_tree(REPO)}")
+    for line in ledger_lines:
+        say(line)
+    say(f"the numbers this sweep is graded by: sha256 {numbers_sha} (`registered_numbers`)")
+    say(disk_line)
+    say(f"frozen-tree watch: {len(_TREE.stats)} files, files digest {_TREE.digest} (checked before and after every run)")
     # (the step-5.1 verifier's second round) a chapter-2 plan's runs are played after their chapter-1 run, in its worker
     follow = {base: [p for p in plans if CHAPTER2.get(p) == base] for base in plans}
     jobs = [(plan, seed) for plan in plans if plan in PLANS and plan not in CHAPTER2 for seed in seeds
@@ -1516,10 +2172,21 @@ def main() -> int:
     for ok, text in results:
         say(f"  [{'PASS' if ok else 'FAIL'}] {text}")
     verdict = "PASS" if results and all(ok for ok, _ in results) else "FAIL"
-    say(f"VERDICT: {verdict}")
+    # (build step 5.2, G1) the frozen-tree watch seals the verdict: FAIL when the tree moved at any check
+    verdict, frozen_line = _TREE.seal(verdict)
+    say(frozen_line)
+    # (G5) every run folder deleted but the failing runs (all of them when the sweep FAILED) and the newest
+    every = [row for plan_rows in rows.values() for row in plan_rows if row.get("_folder")]
+    failing = [Path(row["_folder"]) for row in every if verdict == "FAIL" or "error" in row]
+    say(_FOLDERS.tidy(failing, keep_all=args.keep_runs))
+    say(f"VERDICT: {verdict} ({seed_ledger.label(args.purpose)}, seeds {seeds[0]}-{seeds[-1]}, ledger #{entry['id']})")
     out = EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-{args.evidence_tag}-RATE.txt"
     keep_earlier(out)
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        seed_ledger.finish(entry["id"], verdict, out.relative_to(REPO).as_posix())
+    except seed_ledger.Refused as refusal:
+        print(f"LEDGER: could not complete entry #{entry['id']}: {refusal}")
     print(f"evidence: {out}")
     return 0 if verdict == "PASS" else 1
 

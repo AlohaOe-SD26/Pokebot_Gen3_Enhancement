@@ -1,0 +1,56 @@
+AI PLAYER BUILD STEP 5.2 - THE STATIC GATE, THE UNIT SUITES AND THE SAFETY GATES
+code: HEAD 75c2080a; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:7c385bbd906e0866 over git diff HEAD (19 files, 565154 bytes) and 8 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+Each suite's START line names the digest it ran on (all the same as the code line above).
+
+== check_purity: started 04:44:10 on sha256:7c385bbd906e0866, exit 0 at 04:44:14
+   VERDICT: PASS
+== test_check_purity: started 04:44:14 on sha256:7c385bbd906e0866, exit 0 at 04:50:36
+   Ran 29 tests in 381.512s
+   OK
+== test_host: started 04:50:36 on sha256:7c385bbd906e0866, exit 0 at 04:50:55
+   Ran 20 tests in 19.065s
+   OK
+== test_eyes: started 04:50:55 on sha256:7c385bbd906e0866, exit 0 at 04:50:57
+   Ran 56 tests in 0.857s
+   OK
+== test_hands: started 04:50:57 on sha256:7c385bbd906e0866, exit 0 at 04:50:59
+   Ran 57 tests in 1.636s
+   OK
+== test_world: started 04:50:59 on sha256:7c385bbd906e0866, exit 0 at 04:52:17
+   Ran 132 tests in 78.047s
+   OK
+== test_battle: started 04:52:18 on sha256:7c385bbd906e0866, exit 0 at 04:52:19
+   Ran 107 tests in 0.981s
+   OK
+== test_evidence: started 04:52:19 on sha256:7c385bbd906e0866, exit 0 at 04:52:20
+   Ran 10 tests in 0.948s
+   OK
+== extract_knowledge_check: started 04:52:20 on sha256:7c385bbd906e0866, exit 0 at 04:52:21
+   [KNOWLEDGE] types.json: up to date
+   [KNOWLEDGE] moves.json: up to date
+   [KNOWLEDGE] species.json: up to date
+== test_goals: started 04:52:21 on sha256:7c385bbd906e0866, exit 0 at 04:52:23
+   Ran 217 tests in 2.088s
+   OK
+== extract_milestones_check: started 04:52:24 on sha256:7c385bbd906e0866, exit 0 at 04:52:24
+   [MILESTONES] ai_player\knowledge\milestones.json is up to date
+== test_safety_gates: started 04:52:24 on sha256:7c385bbd906e0866, exit 0 at 04:52:52
+   Ran 48 tests in 27.038s
+   OK
+== ledger_check: started 04:52:52 on sha256:7c385bbd906e0866, exit 0 at 04:52:52
+   LEDGER ledger.json: 34 entries; well formed -> PASS
+== call_census: started 04:52:52 on sha256:7c385bbd906e0866, exit 0 at 04:53:26
+   CALL-SITE CENSUS since HEAD: 8 AI files changed, 116 functions or added calls, 187 sites; 0 MISSING
+   CALL-SITE CENSUS: PASS
+== check_fairness: started 04:53:26 on sha256:7c385bbd906e0866, exit 0 at 04:53:28
+   23 files (deciding code and loaders); 6 flag doors, each with its purpose; knowledge key paths by kind {'ai': 7133, 'developer': 74, 'hidden': 3860, 'meta': 32}; developer-only keys ['decomp', 'flag', 'line', 'measured', 'note', 'state', 'taught_by', 'x', 'y']; hidden keys ['attack', 'base', 'catch_rate', 'defense', 'exp_yield', 'growth', 'hp', 'sp_attack', 'sp_defense', 'speed']
+   PERSON-FAIR DATA DOOR: PASS (0 breaches)
+== check_lessons: started 04:53:28 on sha256:7c385bbd906e0866, exit 0 at 04:53:37
+   LESSONS LESSONS.md: 54 lessons, by status {'GATED': 32, 'PARTIAL': 16, 'PROSE ONLY': 6}
+   LESSONS CHECK: PASS (0 problems)
+== disk_budget: started 04:53:38 on sha256:7c385bbd906e0866, exit 0 at 04:53:38
+   DISK BUDGET: C:\ 58.5 GB free (a sweep needs 30 GB to start)
+   %TEMP%/ai_* folders: 20069 (`--temp` for their sizes)
+
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (18 checks of 154 files, files digest e3432fc80d8251c1)
+OVERALL: PASS (every suite exit 0)

@@ -86,11 +86,39 @@ intent-mix floor, 16 % of its goals' frames on errands once a goal DROPPED for W
   * The BALANCE (`spent`, `owed`, `Errands.balance`): when this session's goal frames (and the scenes between them) went
     to errands less than the personality's share, the curiosity draws pass without the dice, a walk stops on arriving at
     another outdoor map (`OWED_STOP`) and, with no draw due, it looks round where it stands some more (`AGAIN_MAX`).
+    (REPLACED by build step 5.2's boredom, below: the balance was a quota on nearly the graders' own quantity.)
   * Found by the round's development sweep: a door seen ACROSS a map's edge is not that map's, a door that cannot be walked
     into is forgotten (`DOOR_UNUSABLE`), a heal in danger is tried again at most `DANGER_RETRIES` times in a row, the
     story's own person is no "chat", and a look round while a story goal is put aside lasts only the breather left
     (`ASIDE_LOOK_MIN`).
   * Which personality judged a fight's training done is logged (`fight_prep` `judged_by`), for the graders' bound.
+
+BUILD STEP 5.2, PRODUCTIVE CURIOSITY (the step-5.1 adversarial review, 2026-10-15: "it LOAFS, and every metric pays for it":
+at OLDALE three errands in a row went nowhere, about 7,500 frames of walking into someone standing at the west exit, and
+CH2M looked round PETALBURG twice for one new tile; the 5.1 metrics counted curiosity by its KIND and its TIME, and the
+balance's quota aimed at nearly the graders' own quantity). Each rule has its test in `gates/test_goals.py`
+(`ProductiveTests`) and a mutant in `gates/revert_step5.py` (G139 on):
+  * CURIOSITY BY YIELD (`yield_snapshot`, `goal_yield`): a curiosity goal is PRODUCTIVE only by what it brought, as the AI
+    saw it: at least `YIELD_TILES_MIN` new tiles seen, a map first stood on, an item, a catch, a species first seen, words
+    never read before, a talk. Only a productive one resets the boredom clock (`after_goal`); one that brought nothing
+    marks its place: a look round with nothing new EXHAUSTS that map for the milestone (`exhausted`), a detour that did not
+    get there BLOCKS its place (`blocked`), and a place someone kept standing in the way of is blocked as it happens
+    (`GoalRunner`'s `_PersonBlock`, `PERSON_BLOCK_HITS`): curiosity never chooses a blocked place again in the milestone
+    (the blocked tiles are walls of the curiosity goals' walks, kept apart from the scene walls the story's walks carry).
+  * BOREDOM, NOT A QUOTA (`curious_odds`): every curiosity draw (a look round, a detour, a chat, a catching roam, "some
+    more") is a DICE throw whose odds rise SMOOTHLY from the personality's own with the frames since its last PRODUCTIVE
+    curiosity, capped at `CURIOUS_ODDS_CAP` (`Errands.bored_frames`); never a draw skipped. At most `CURIOUS_ROW_MAX`
+    curiosity goals in a row (`curious_ok`): then the story or a need comes first. Nothing here computes a share of frames,
+    the quantity the graders' floor measures.
+  * LOOKING ROUND ONLY WHERE SOMETHING IS LEFT (`look_round_intent`, `left_to_see`): a look round chooses only places that
+    can show something new (a frontier, grass not walked, someone not met), never a wander among what it has seen; with
+    none left it ends; it ends too after `CURIOUS_NOVELTY` frames with nothing new; "some more" only where a frontier is
+    left that it can WALK to (known tiles, nobody in the way, not blocked) and the map is not exhausted.
+  * DETOURS THAT ARRIVE (`GoalRunner._detour`): a place on this map that it can walk to over tiles it knows, nobody in the
+    way, never past an edge it knows, never blocked; the outcome says "reached" or "not reached", and only a reached one
+    is done; at a person it chose, it TALKS to them.
+  * A known town is never "a new place" (`may_look_around`: a map it has LEFT is known, whatever the session's first
+    decision knew); the `ask` step goes to its house only once it was told to go and see the rival (its own words).
 """
 
 from __future__ import annotations
@@ -102,6 +130,9 @@ from dataclasses import dataclass, field, replace
 
 from ai_player.brain.battle import BattleMind, needs_rest
 from ai_player.brain.explore import (
+    JUST_COME_FROM,
+    ONWARD_KINDS,
+    SEEN_ALL,
     candidates,
     carry_on,
     choose_target,
@@ -110,9 +141,10 @@ from ai_player.brain.explore import (
     pick_on_the_move,
     weights_for,
 )
-from ai_player.brain.navigator import Intent, Navigator, Target
+from ai_player.brain.navigator import Intent, Navigator, Target, step_from
 from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import page_text
+from ai_player.hands.dialogue import player_free
 from ai_player.hands.pad import Hands
 from ai_player.knowledge.story import Milestone, Step, Story
 from ai_player.personality import PersonalityState
@@ -132,12 +164,16 @@ __all__ = [
     "AGAIN_MAX",
     "ASIDE",
     "ASIDE_LOOK_MIN",
+    "BREAK_STOP",
+    "CURIOUS_NOVELTY",
+    "CURIOUS_ODDS_CAP",
+    "CURIOUS_ROW_MAX",
     "DANGER_RETRIES",
     "DOOR_UNUSABLE",
     "ASK_ROUNDS",
-    "BALANCE_MIN_FRAMES",
     "CENTER_LOOK_FRAMES",
     "CENTER_SUFFIX",
+    "CURIOSITY_KINDS",
     "GYM_SUFFIX",
     "DETOUR_KINDS",
     "DETOUR_MIN_TILES",
@@ -148,11 +184,20 @@ __all__ = [
     "GO_BATTLE_EXTENSIONS",
     "GO_BATTLE_MIN",
     "STORY_ASIDE_FRAMES",
+    "LOOK_KINDS",
     "MOM_HEAL_WORDS",
     "NEW_MAP_STOP",
-    "OWED_STOP",
+    "PERSON_BLOCK_HITS",
     "STORY_KINDS",
+    "YIELD_TILES_MIN",
+    "YIELD_TILE_RATE",
+    "SEEING_KINDS",
     "HURT_GRASS_COST",
+    "FACING_STEP",
+    "HEARD_KINDS",
+    "LOST_KEYS",
+    "OUT_OF_IDEAS",
+    "SPOKE_REACH",
     "Goal",
     "GoalManager",
     "GoalRunner",
@@ -163,19 +208,26 @@ __all__ = [
     "ON_THE_MAP",
     "TRAIN_SESSIONS",
     "battles_lost",
+    "goal_yield",
     "heard_page",
     "heard_words",
     "is_gym",
     "keeps_going",
     "lead_toward",
+    "look_round_intent",
+    "lost_intent",
+    "lost_way",
     "marks_of",
     "party_share",
     "quote",
     "roam_numbers",
+    "shut_in",
     "strongest_level",
     "training_rest",
     "travel_intent",
     "world_distance",
+    "worth_going",
+    "yield_snapshot",
 ]
 
 #: Map constants of the interiors a person recognises by their sign (`include/constants/map_groups.h` names): a POKéMON
@@ -190,6 +242,11 @@ TRAIN_SESSIONS = 8
 #: The reason a roam stops for an item ball that came into view (`GoalRunner.pursue`; the chapter-2 development run of
 #: 2026-10-14 roamed past two on ROUTE 102 for 120 steps at a time and picked up none)
 ITEM_STOP = "an item ball came into view"
+#: (build step 5.2, the round's development sweep step52dev4: catching roams that met only POKéMON it had seen ran on to
+#: their steps' end, 8,136-16,867 frames with 4-7 battles and nothing new, two in one chapter-2 run) a CATCHING roam stops
+#: after this many battles in a row that brought no species first seen and no catch: a person gives the hunt up there
+HUNT_FRUITLESS = 3
+HUNT_STOP = "the hunt brought nothing new"
 #: How many walks to one item ball a battle or a scene may interrupt before it is given up.
 ITEM_TRIES = 3
 #: How often the people of a map are asked round before the AI gives the ask up.
@@ -266,19 +323,38 @@ def is_gym(const: str | None) -> bool:
 #: both") a person hurt in a TOWN whose POKéMON CENTER it has not seen yet looks round that town for one (a town has one)
 #: before walking back to the one it knows, for at most this many frames (one look round)
 CENTER_LOOK_FRAMES = 3000
-#: (build step 5.1, the verifier's second round: the live arm CH2T, the Story player in chapter 2, spent 16 % of its goals'
-#: frames on errands once the WALLY scene played inside a dropped goal was no longer counted as one) A person keeps a
-#: BALANCE: when the share of this session's goal frames spent on errands (its own count, `GoalManager.spent`: needs and
-#: curiosity alike, a curiosity goal the story moved on in counted as the story's) falls under its personality's
-#: `Errands.balance`, the curiosity draws pass without the dice and, with none due, it looks round where it stands some
-#: more (`owed`). Not judged before this many frames of goals in the session (a session's first goals are no proportion).
-BALANCE_MIN_FRAMES = 12_000
-#: ... and at most this many looks round "some more" on one map in one milestone (the balance is kept on the way, not by
-#: wandering one place for ever)
+#: (build step 5.1, the verifier's second round) at most this many looks round "some more" on one map in one milestone
+#: (build step 5.2: and only where something is left that it can walk to, `GoalManager.left_to_see`)
 AGAIN_MAX = 2
-#: ... and a walk that ARRIVES on another outdoor map while the balance is owed stops there (once a map and milestone),
-#: so the next decision may take the break there; its outcome says so
-OWED_STOP = "arrived where it takes a break from the story"
+#: (build step 5.2, replacing 5.1's OWED_STOP) a walk that ARRIVES on another outdoor map stops there once a map and
+#: milestone when a BOREDOM draw passes (`GoalManager.curious_odds`), so the next decision may take a break there
+BREAK_STOP = "arrived where it takes a break from the story"
+#: (build step 5.2, the step-5.1 review's finding 2: "errands are filled by a quota, not interleaved") the most a curiosity
+#: draw's odds rise to with boredom (`GoalManager.curious_odds`): never certain, the dice are always thrown
+CURIOUS_ODDS_CAP = 0.9
+#: ... and at most this many CURIOSITY goals in a row (no story or need goal between): CH1M ran six (a look round some more,
+#: two chats, a look round, a look round some more, a detour) when the quota was short
+CURIOUS_ROW_MAX = 2
+#: (build step 5.2, the review's finding 1: "it loafs") the fewest NEW tiles seen that make a curiosity goal productive by
+#: its tiles alone (one step into the unseen shows a row of 11 to 15; CH1M's look round of 3,012 frames showed 1)
+YIELD_TILES_MIN = 8
+#: ... and, for a walk whose purpose is to SEE (a look round, a detour: `SEEING_KINDS`), at least this many new tiles per
+#: 1,000 of its OWN frames (the battles met in it not counted): what it showed must be worth the time it took. (Build
+#: step 5.2, the round's development sweep step52dev2: with the 8 tiles alone, the LOAF control, looking round among tiles
+#: it had stood on, was productive in 80 % of its frames, its looks round 0-11 new tiles per 1,000 frames outside battles
+#: but for a few short ones, 3,000 frames bringing 9 tiles; the real code's 14 and more)
+YIELD_TILE_RATE = 20
+SEEING_KINDS = ("explore", "detour")
+#: (build step 5.2, the review's finding 1: "people in the way" went from 8 to 61 at OLDALE) a place someone stood in the
+#: way of this many times, with no new tile seen since the first, is BLOCKED for curiosity (`GoalRunner._PersonBlock`)
+PERSON_BLOCK_HITS = 3
+#: (build step 5.2) a look round that has seen nothing new (no tile, map, flag, Pokemon, item or experience) this many
+#: frames is over (the navigator's own window is `navigator.NOVELTY_WINDOW`, 3,000: CH1M's two looks round OLDALE ran it
+#: out twice, one tile in 6,000 frames)
+CURIOUS_NOVELTY = 1500
+#: (build step 5.2) the places a LOOK ROUND chooses: only those that can show something new (`look_round_intent`); 5.1's
+#: look round also WANDERED among what it had seen once nothing else was left (`brain/explore.py` choose_target)
+LOOK_KINDS = ("frontier", "grass", "people")
 #: (the round's development sweep step51wdev1) what `skills/story.py` enter_door says of a door that CANNOT be walked into
 #: (its tile below unknown or not walkable, or it did not open): such a door it saw is forgotten (`GoalRunner._go_inside`)
 DOOR_UNUSABLE = ("the tile below the door at", "the door at ")
@@ -289,6 +365,23 @@ DANGER_RETRIES = 3
 #: grass's battles) a look round while a story goal is put aside is given the frames LEFT of the breather; with fewer than
 #: this many left the story goal is tried again at once
 ASIDE_LOOK_MIN = 600
+#: (build step 5.2, the verifier's round) how far straight ahead of the player someone who SPOKE stands (`notice`): the
+#: nurse and the MART clerk across their counter (two tiles: measured in the graded sweep's logs, "npc(0,-2)" facing up
+#: while "Hello, and welcome to the POKéMON CENTER." and "Welcome!" were on screen), OLDALE's footprints man face to face
+#: ("npc(1,0)" facing right during "Aaaaah! Wait! Please don't come in here.")
+SPOKE_REACH = 2
+FACING_STEP = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
+#: (the same; its development sweep step52vdev2: remembering EVERY speaker, a scene's too, cut the chats with new words by
+#: half: PROF. BIRCH's "MAY? Gone home, I think." in his lab had been 18 chats of the graded sweep with new words, every one
+#: of them, and the rival's parents' and the rival's own) the goals whose talk is the AI's OWN and the same every time: a
+#: SERVICE (the nurse's heal, the clerk's shop) or a chat it walked up for (a detour's included). Only who speaks while one of
+#: these is the goal is remembered (`_Memory.hearing`); a scene's speaker may be chatted with once, and then is in `talked`
+HEARD_KINDS = ("heal", "shop", "chat", "detour")
+#: (build step 5.2, the verifier's round) the story goals with NO LEAD (nothing the game said names where to go: an
+#: exploring `go`, and the look round while one is put aside): the walks that are LOST (`travel_intent(lost=True)`)
+LOST_KEYS = ("go:?", "aside:go:?")
+#: (the same) what such a walk says when nothing is left on any map it knows that it could get to
+OUT_OF_IDEAS = "out of ideas"
 
 
 @dataclass(frozen=True)
@@ -359,12 +452,26 @@ class _Memory:
     aside_from: dict[str, int] = field(default_factory=dict)
     #: (build step 5.1, the verifier's round) new places gone past in a row without a look round (`LOOK_DEBT`)
     passed_new: int = 0
-    #: (build step 5.1, the verifier's second round) this session's goal frames: "story" and "errand" (`spent`, `owed`)
+    #: (build step 5.1, the verifier's second round) this session's goal frames: "story" and "errand" (`spent`); since build
+    #: step 5.2 a REPORT only (the end record): nothing decides by it (5.1's `owed` quota is gone)
     spent: dict[str, int] = field(default_factory=lambda: {"story": 0, "errand": 0, "curious": 0})
     #: (the same) "map key|milestone id" -> looks round "some more" made there (`AGAIN_MAX`)
     again: dict[str, int] = field(default_factory=dict)
-    #: (the same) "map key|milestone id" where a walk stopped because the balance was owed (once each)
-    owed_stops: set[str] = field(default_factory=set)
+    #: (build step 5.2) "map key|milestone id" where a walk's arrival made its boredom draw (`BREAK_STOP`, once each)
+    break_stops: set[str] = field(default_factory=set)
+    #: (build step 5.2) the frame of the last PRODUCTIVE curiosity goal's end (the boredom clock, `curious_odds`); None until
+    #: this session's first decision, which starts the clock
+    curious_since: int | None = None
+    #: (build step 5.2) curiosity goals chosen in a row, no story or need goal between (`CURIOUS_ROW_MAX`)
+    curious_row: int = 0
+    #: (build step 5.2) "map key|milestone id" -> why: a look round there brought nothing new (no look round there again in
+    #: the milestone)
+    exhausted: dict[str, str] = field(default_factory=dict)
+    #: (build step 5.2) milestone id -> map key -> {tile: why}: places a curiosity goal could not get to (someone kept
+    #: standing in the way; a detour that did not arrive): never chosen by curiosity again in the milestone
+    blocked: dict[str, dict[str, dict]] = field(default_factory=dict)
+    #: (build step 5.2) curiosity goals that brought nothing, and their frames (reported in the end record)
+    idle: dict[str, int] = field(default_factory=lambda: {"goals": 0, "frames": 0})
     #: (the same) town map keys whose own POKéMON CENTER was looked for (`CENTER_LOOK_FRAMES`, once each)
     center_looked: set[str] = field(default_factory=set)
     #: (the same) map keys it LOOKED ROUND (an explore goal chosen there): a town looked round whose centre was not seen
@@ -375,6 +482,18 @@ class _Memory:
     decided_with_party: bool = False
     #: (the round's development sweep) heal goal key -> times in a row it was tried again in danger (`DANGER_RETRIES`)
     danger_again: dict[str, int] = field(default_factory=dict)
+    #: (build step 5.2, the verifier's round) "map key|local id" of the people who have SPOKEN to the player in its own
+    #: service talk or chat (`notice`: someone straight in front of it, `SPOKE_REACH` tiles at most, while words were on the
+    #: overworld screen and the goal was one of `HEARD_KINDS`): never chatted with (again): the nurse right after a heal, the
+    #: clerk after a shop, someone chatted with in chapter 1. The play brain hands it the WORLD memory's set
+    #: (`WorldMemory.spoke`), so a later session remembers whom it met.
+    spoke: set[str] = field(default_factory=set)
+    #: (the same) the goal being pursued is one of `HEARD_KINDS` (`GoalRunner.pursue` sets it for the goal's time)
+    hearing: bool = False
+    #: (build step 5.2, the verifier's round) (milestone id, `Navigator.stamp`) when a walk with NO LEAD found nothing left
+    #: on any map it knows that it could get to (`travel_intent(lost=True)`): the next decision gives the run up
+    #: (`next_goal`, "out of ideas") if nothing new has been seen since
+    lost_end: tuple | None = None
 
 
 def marks_of(look: Observation) -> dict[str, int] | None:
@@ -407,6 +526,95 @@ def battles_lost(battle_log) -> int:
     """Battles LOST (the party fainted: a whiteout) among every battle the battler played (`Navigator.battle_log`): the
     ones inside a goal and the ones a scene raised alike (the play brain's `MAX_LOSSES` counts these)."""
     return sum(1 for _, _, outcome in battle_log if outcome == "lost")
+
+
+def yield_snapshot(look: Observation, world, runner, battle_frames: int = 0) -> dict:
+    """(build step 5.2) What a curiosity goal's YIELD is counted by, as the AI saw it (`goal_yield`, before and after the
+    goal): the tiles its world memory has learned, the maps it has stood on, the item balls it picked up, the POKéDEX's
+    owned and seen counts, and the pages of words it has read on the overworld; and `battle_frames`, the frames a battle
+    was on screen so far in the run (`hands/waiting.py` BattleClock): the goal's own time is its frames less those."""
+    progress = look.progress
+    return {"tiles": world.tiles_learned, "maps": sum(1 for memory in world.maps.values() if memory.visits),
+            "items": len(getattr(runner, "picked", ()) or ()),
+            "caught": progress.dex_owned if progress is not None else None,
+            "species": progress.dex_seen if progress is not None else None, "pages": len(world.heard),
+            "battle_frames": battle_frames}
+
+
+def goal_yield(goal: "Goal", before: dict, after: dict, outcome: str, frames: int = 0) -> dict:
+    """(build step 5.2, the step-5.1 review's finding 1) What one goal BROUGHT (`yield_snapshot` before and after it), and
+    whether that makes a curiosity goal PRODUCTIVE: at least `YIELD_TILES_MIN` new tiles seen (for a look round or a
+    detour, `SEEING_KINDS`, also `YIELD_TILE_RATE` per 1,000 of its `frames` outside battles), a map first stood on, an
+    item, a catch, a species first seen, words never read before, or a talk (a chat that talked; a detour that talked to
+    the person it chose) THAT TOLD IT SOMETHING: since the verifier's round a talk that read no new words is no yield
+    (`talks` says a talk was had, `talked` that it told something). A DETOUR is productive only when it REACHED the place it chose (its outcome says so: "reached"): on the way it
+    brought no credit. (5.1 counted a curiosity goal by its kind and its frames: CH1M's two looks round OLDALE, 6,000
+    frames and one new tile, were curiosity like any other.)"""
+    made: dict = {}
+    for key, value in before.items():
+        now = after.get(key)
+        made[key] = max(0, now - value) if isinstance(value, int) and isinstance(now, int) else 0
+    # a chat's outcome is the talk's own ("talked ..."); a detour's says it after its arrival ("reached ...; talked ...")
+    talk = goal.kind in ("chat", "detour") and (outcome.startswith("talked") or "; talked" in outcome)
+    # (build step 5.2, the verifier's round: 127 chats of the graded sweep's real plans heard NOTHING new and were credited
+    # "a talk": 60 POKéMON CENTER nurses right after the heal that had just talked to them, the party full, 46 MART clerks
+    # right after the shop, 21 times OLDALE's footprints man right after his own scene; 1,747-1,957 frames each for the
+    # nurse) a talk is a yield only when it TOLD it something: words it had never read (the label alone is no yield: the
+    # step-5.1 review's "grade the property, not the label" again)
+    made["talked"] = bool(talk and made.get("pages"))
+    made["talks"] = bool(talk)
+    reached = goal.kind != "detour" or outcome.startswith("reached")
+    made["reached"] = reached
+    # (step52dev2) the goal's OWN time: its frames less the battles met in it (a look round in the grass meets them)
+    walking = max(0, frames - made.get("battle_frames", 0))
+    made["walking"] = walking
+    seen = made["tiles"] >= YIELD_TILES_MIN and (goal.kind not in SEEING_KINDS
+                                                 or made["tiles"] * 1000 >= YIELD_TILE_RATE * walking)
+    made["productive"] = bool(reached and (seen or made["maps"] or made["items"] or made["caught"] or made["species"]
+                                           or made["pages"] or made["talked"]))
+    return made
+
+
+#: (build step 5.2) how far round a place curiosity was turned back from is still "the same corner" (`_beside`): measured,
+#: the detours that chose the place NEXT to one a look round had just given up at LITTLEROOT's twin were 1 tile from it in
+#: step52dev2 (seeds 1002, 1010) and 2 tiles in step52dev3 (seed 1013: (5, -4) after (3, -3))
+BESIDE = 2
+
+
+#: (build step 5.2, the verifier's round) why a place was blocked for curiosity by a SCENE (`_scene_corners`)
+SCENE_BLOCKS = ("a scene began here", "a scene stopped the way there")
+
+
+def _scene_corners(places: dict) -> set:
+    """(build step 5.2, the verifier's round; its development sweep step52vdev5, CH2 seed 1242: PETALBURG's "Hiya! Are you
+    maybe... A rookie TRAINER?" turned a look round back at (8, 10) and (8, 12), and the detour after it walked round both into
+    the same scene at (8, 13), 1,800 frames of it) the tiles BESIDE each place a scene blocked for curiosity (`SCENE_BLOCKS`):
+    a scene's trigger is a line of tiles across a way, of which the AI has met only some; curiosity keeps out of the corner."""
+    out: set = set()
+    for (x, y), why in places.items():
+        if str(why).startswith(SCENE_BLOCKS):
+            out |= {(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)}
+    return out
+
+
+def _beside(tile: tuple[int, int], places) -> bool:
+    """(build step 5.2) `tile` is one of `places` or within `BESIDE` tiles of one: the same corner of a map, for a person
+    who was turned back from it."""
+    return any(abs(tile[0] - x) <= BESIDE and abs(tile[1] - y) <= BESIDE for x, y in places)
+
+
+def _known_reach(memory, start: tuple[int, int], walls) -> set[tuple[int, int]]:
+    """(build step 5.2) Every tile the player can WALK to from `start` over tiles it KNOWS (`navigator.step_from` with no
+    unknown tile), `walls` (people standing now, blocked places) left out: where a curious person can actually go."""
+    seen, frontier = {start}, [start]
+    while frontier:
+        here = frontier.pop()
+        for direction in DIRECTIONS:
+            step = step_from(memory, here, direction, walls, 0.0, allow_unknown=False)
+            if step is not None and step[0] not in seen:
+                seen.add(step[0])
+                frontier.append(step[0])
+    return seen
 
 
 #: A roam's report line (`skills/roam_train.py` RoamReport.line): its numbers, for a roam that STOPPED early (a rest, an
@@ -502,6 +710,40 @@ def keeps_going(world, target: Target, goal_map: str | None, stay: bool = False)
     return inside is None or bool(OUTDOOR.match(inside.const or "")) or inside.const == goal_map
 
 
+def worth_going(target: Target) -> bool:
+    """(build step 5.2, the verifier's round) Is `target` a place where something may be learned: somewhere new (a frontier,
+    a road, a door, a route, grass, someone not met: `ONWARD_KINDS`) or a way back to a map with something left to see?
+    Not a way back to a map seen all of, nor straight back the way it came."""
+    return target.kind in ONWARD_KINDS or (target.kind == "back" and SEEN_ALL not in target.reason
+                                           and JUST_COME_FROM not in target.reason)
+
+
+def shut_in(world) -> bool:
+    """(build step 5.2, the verifier's round; found by its first development sweep: the chapter-1 runs gave up inside the
+    moving truck) Is the player on a map with NO way out it knows of: no exit tile seen, no road past an edge, no link (a
+    warp or a connection) from it? Then it waits for something to open; it is not out of ideas."""
+    here = world.here()
+    return here is None or not (here.exits() or here.roads() or world.links_from(world.current))
+
+
+def lost_way(nav: Navigator, look: Observation, weights, moving: bool) -> tuple[Target | None, list]:
+    """(build step 5.2, the verifier's round) For a walk with NO LEAD on a map where nothing is worth going to: the way
+    toward the nearest map it knows (by the known links, `explore.route_to`) where something is still left that it could
+    get to (`WorldMemory.left_anywhere`), and that list. (None, []): nothing is left on any map it knows."""
+    left = [(key, n) for key, n in nav.world.left_anywhere() if key != nav.world.current]
+    if not left:
+        return None, []
+    keys = {key for key, _ in left}
+    ways = [t for t in candidates(nav, look, weights, lambda memory, key: key in keys, jitter_on=not moving)
+            if t.kind == "route"]
+    if not ways:
+        return None, left
+    names = nav.world.names()
+    best = max(ways, key=lambda t: t.score)
+    return replace(best, reason=f"lost: {best.reason}: somewhere it knows something is left to see "
+                                f"({', '.join(f'{names.get(k, k)} {n}' for k, n in left[:4])})"), left
+
+
 def travel_intent(goal_map: str | None, personality: str, budget: int, done: Callable[[Observation], bool],
                   stay: bool = False) -> Intent:
     """`brain/explore.py` explore_intent's taste and walk, for a person who is GOING somewhere: the ways BACK into a building
@@ -530,6 +772,90 @@ def travel_intent(goal_map: str | None, personality: str, budget: int, done: Cal
         return carry_on(nav, look, weights, old, goal if goal_map else None)
 
     return Intent(f"travel to {goal_map}" if goal_map else "look around", budget, choose, done, carry_on=carry)
+
+
+def lost_intent(personality: str, budget: int, done: Callable[[Observation], bool], told: Callable[[str], None]) -> Intent:
+    """(build step 5.2, the verifier's round: the graded NOHINTS runs, 20 of 20, pressed for 31,676-62,012 frames with nothing
+    new: through OLDALE's house door and back for up to 98 goals in a row, each ended by the ping-pong rule and the next
+    starting from none, or across OLDALE's bottom edge and back, "seen all of" both ways, until the story's patience) A
+    walk with NO LEAD (`LOST_KEYS`: nothing the game said names where to go): `travel_intent(None)`'s taste and walk, but
+      * never through a warp that ENDED an earlier intent as a ping-pong while nothing new has been seen anywhere since
+        (`Navigator.ponged_now`), unless it is the only way left;
+      * never to a frontier tile a walk found no way to, or stood on with its unseen side staying unseen, while the map
+        shows nothing new (`WorldMemory.unreached`: seed 903 chose OLDALE's nine tiles past the footprints man 41 times
+        each, every goal trying them again);
+      * when nothing here is worth going to (`worth_going`), it heads for the nearest map it knows where something is left
+        that it could get to (`lost_way`), not to a whim among what it has seen; and when NOTHING is left on any map it
+        knows, it does not wander: it is done (None), and `told(why)`: the goal manager gives the run up (out of ideas)."""
+    weights = weights_for(personality)
+
+    def lost_choose(nav: Navigator, look: Observation) -> Target | None:
+        moving = nav.choosing_on_the_move
+        world = nav.world
+        here = world.here()
+        tiles = len(here.tiles) if here is not None else -1
+        gone = world.unreached.get(world.current, {}) if here is not None else {}
+        found = [t for t in candidates(nav, look, weights, None, jitter_on=not moving)
+                 if keeps_going(world, t, None) and not (t.kind == "frontier" and gone.get(t.tile) == tiles)]
+        found = [t for t in found if not nav.ponged_now(t)] or found
+        located = nav.where(look)
+        if located is not None and not any(worth_going(t) for t in found):
+            # (step52vdev3, NOHINTS seed 1223: OLDALE <-> ROUTE 103 across the edge, each "where something is left" seen
+            # from the other) nothing here is worth going to: what this map's promise counted cannot be had as things are
+            world.mark_spent(world.current)
+            way, left = lost_way(nav, look, weights, moving)
+            if way is not None:
+                return way
+            # (the round's first development sweep, step52vdev1: three of four chapter-1 runs gave up INSIDE THE MOVING
+            # TRUCK, 26 frames into their first goal, before its door had opened) a person SHUT IN, on a map with no way out
+            # it knows of (no exit, no road, no link), is not out of ideas: something will open; it waits, as before
+            if not left and not shut_in(world):
+                told(f"{OUT_OF_IDEAS}: nothing is left to see that it could get to on any of the "
+                     f"{sum(1 for memory in world.maps.values() if memory.visits)} maps it knows, and no hint it goes by "
+                     f"names where to go")
+                return None
+        if not found or located is None:
+            return choose_target(nav, look, weights, None)
+        if moving:
+            return pick_on_the_move(found, located[1], nav.heading())
+        return pick(found, nav.rng)
+
+    def lost_carry(nav: Navigator, look: Observation, old: Target) -> Target | None:
+        return carry_on(nav, look, weights, old, None)
+
+    return Intent("look around", budget, lost_choose, done, carry_on=lost_carry)
+
+
+def look_round_intent(personality: str, budget: int, done: Callable[[Observation], bool],
+                      blocked: Callable[[str | None], dict]) -> Intent:
+    """(build step 5.2, the step-5.1 review's finding 1: "it loafs") LOOKING ROUND a place as a curious person does: only
+    the places that can show something NEW (`LOOK_KINDS`: a frontier, grass not walked, someone not met), by the explorer's
+    own taste and walk (`candidates`, `pick`, `pick_on_the_move`, `carry_on`), never a place curiosity found BLOCKED
+    (`blocked(map key)`: someone kept standing in the way, a detour that did not arrive) and never carried on from one;
+    with nothing new left it is DONE looking (`None`: the navigator's "nothing left to try"), never a wander among what it
+    has seen (5.1's look round, `travel_intent(stay=True)`, fell back to `choose_target`'s wander: CH1M walked OLDALE for
+    3,001 frames and saw nothing); and it ends after `CURIOUS_NOVELTY` frames with nothing new."""
+    weights = weights_for(personality)
+
+    def look_choose(nav: Navigator, look: Observation) -> Target | None:
+        moving = nav.choosing_on_the_move
+        avoid = blocked(nav.world.current)
+        found = [t for t in candidates(nav, look, weights, None, jitter_on=not moving)
+                 if t.kind in LOOK_KINDS and t.tile not in avoid]
+        located = nav.where(look)
+        if not found or located is None:
+            return None
+        if moving:
+            return pick_on_the_move(found, located[1], nav.heading())
+        return pick(found, nav.rng)
+
+    def look_carry(nav: Navigator, look: Observation, old: Target) -> Target | None:
+        if old.tile in blocked(nav.world.current):
+            return None
+        carried = carry_on(nav, look, weights, old, None)
+        return carried if carried is None or carried.tile not in blocked(nav.world.current) else None
+
+    return Intent("look round", budget, look_choose, done, carry_on=look_carry, novelty_window=CURIOUS_NOVELTY)
 
 
 #: The characters a WORD is made of when a page is searched for a hint's words: letters (POKéMON's é included), digits and
@@ -624,6 +950,11 @@ class GoalManager:
         if (self.errands_off or here is None or not OUTDOOR.match(const or "") or world.current in self.memory.looked
                 or world.current in (self.memory.known_before or ()) or (step is not None and step.do == "intro")):
             return False
+        if self.left_before(world):
+            # (build step 5.2, the step-5.1 review's finding 6: CH1M said "a new place, OLDALE_TOWN" after healing there
+            # twice: `known_before` was frozen at the session's start) a map it has LEFT once is known: a later visit is no
+            # new place, whether or not its draw was made on the first
+            return False
         mons = [m for m in look.party or () if not m.is_egg]
         if mons and (any(m.hp <= 0 for m in mons) or needs_rest(look.party) is not None):
             return False
@@ -649,27 +980,100 @@ class GoalManager:
         if errand and goal.kind in CURIOSITY_KINDS:
             self.memory.spent["curious"] = self.memory.spent.get("curious", 0) + frames
 
-    def owed(self) -> str | None:
-        """Why a person would take a break from the story now, or None: this session's time (its goals and the scenes
-        between them), `BALANCE_MIN_FRAMES` at least, went to errands less than the active personality's
-        `Errands.balance`, or to CURIOSITY (the errands no need asks for) less than its `Errands.curious_min` (the round's
-        development sweep: chapter 1's training kept the errands' share high while the curiosity stayed at 4 %); never
-        under the beeline control."""
-        if self.errands_off:
-            return None
-        story, errand = self.memory.spent["story"], self.memory.spent["errand"]
-        curious = self.memory.spent.get("curious", 0)
-        total = story + errand
-        errands = self.state.errands
-        if total < BALANCE_MIN_FRAMES:
-            return None
-        if errand < errands.balance * total:
-            return (f"{errand / total:.0%} of this session's {total} goal frames went to errands, under the "
-                    f"{self.state.active}'s {errands.balance:.0%}")
-        if curious < errands.curious_min * total:
-            return (f"{curious / total:.0%} of this session's {total} goal frames went to curiosity, under the "
-                    f"{self.state.active}'s {errands.curious_min:.0%}")
+    # ------------------------------------------------------------------ curiosity (build step 5.2)
+    def left_before(self, world) -> bool:
+        """(build step 5.2, the review's finding 6) Has the player LEFT the map it stands on at least once (a map change
+        from it, the AI's or a scene's, in its world memory)? Then it is a place it knows."""
+        return any(change.source == world.current for change in getattr(world, "transitions", ()) or ())
+
+    def curious_ok(self) -> bool:
+        """(build step 5.2, the review's finding 2: CH1M ran six curiosity goals in a row once its quota was short) May the
+        next goal be one of CURIOSITY? Not under the beeline control, and not after `CURIOUS_ROW_MAX` in a row: the story
+        or a need comes between."""
+        return not self.errands_off and self.memory.curious_row < CURIOUS_ROW_MAX
+
+    def boredom(self, frame: int) -> tuple[float, int]:
+        """(build step 5.2) How BORED of the story alone a person is at `frame`, 0 to 1, and the frames since its last
+        curiosity that came to something (the clock starts at the session's first decision): `Errands.bored_frames` of
+        them make it 1. Never a share of frames: the graders measure those."""
+        since = max(0, frame - (self.memory.curious_since if self.memory.curious_since is not None else frame))
+        return min(1.0, since / max(1, self.state.errands.bored_frames)), since
+
+    def curious_odds(self, base: float, frame: int) -> tuple[float, str]:
+        """(build step 5.2, the step-5.1 review's finding 2: "when the time quota is short, the dice are skipped") The odds
+        of one curiosity draw: the personality's own `base`, raised SMOOTHLY by boredom toward `CURIOUS_ODDS_CAP` (never
+        lowered, never certain), and why. 5.1's balance passed the draw without the dice when a share of the session's
+        frames fell under a quota set just above the graders' floor: the AI aimed at the graders' own quantity."""
+        bored, since = self.boredom(frame)
+        top = max(base, CURIOUS_ODDS_CAP)
+        odds = base + (top - base) * bored
+        if odds <= base + 1e-9:
+            return base, f"the {self.state.active}'s {base}"
+        return odds, (f"the {self.state.active}'s {base}, raised to {odds:.2f}: {since} frames since its last curiosity "
+                      f"that came to something")
+
+    def blocked_on(self, milestone_id: str | None, key: str | None) -> dict:
+        """(build step 5.2) The places curiosity found BLOCKED on map `key` in this milestone: {tile: why}."""
+        return self.memory.blocked.setdefault(milestone_id or "", {}).setdefault(key or "", {})
+
+    def left_to_see(self, look: Observation, world, milestone_id: str | None) -> str | None:
+        """(build step 5.2, the step-5.1 review's finding 1: "the 'some more' look-round never checks that anything is left
+        to see": CH2M looked round PETALBURG twice, 8,400 frames, tiles 8025 -> 8026 -> 8026) Why there is NOTHING left to
+        see here that it can walk to, or None: a frontier tile (seen, walkable, beside unseen ones) it can reach over
+        tiles it KNOWS with nobody standing in the way and no blocked place on the way (`world.promise` counts the
+        frontier, the exits not used and the roads; only the frontier is looked round), and the map not EXHAUSTED by an
+        earlier look round that brought nothing in this milestone."""
+        here = world.here()
+        player = look.player
+        if here is None or player is None or player.x is None:
+            return "it does not know where it stands"
+        why = self.memory.exhausted.get(f"{world.current}|{milestone_id}")
+        if why is not None:
+            return why
+        if world.promise(world.current) <= 0:
+            return "it has seen all of this place"
+        blocked = set(self.blocked_on(milestone_id, world.current))
+        blocked |= _scene_corners(self.blocked_on(milestone_id, world.current))  # (the verifier's round)
+        frontier = set(here.frontier()) - blocked
+        if not frontier:
+            return "nothing left to see here but the places blocked to it"
+        reach = _known_reach(here, (player.x, player.y), frozenset(set(here.people_now) | blocked))
+        if not reach & frontier:
+            return "nothing left to see here that it can walk to"
         return None
+
+    def after_goal(self, goal: Goal, made: dict, frame: int, milestone_id: str | None, story_moved: bool = False) -> str | None:
+        """(build step 5.2) After a goal: the curiosity goals IN A ROW (a story or need goal ends the row; a curiosity goal
+        the story moved on in, the rival's POKé BALL, is the story's), the BOREDOM clock (only a PRODUCTIVE curiosity goal,
+        `goal_yield`, resets it), and what an UNPRODUCTIVE one marks so it is not tried again: a look round EXHAUSTS its
+        map for the milestone, a detour that did not get there BLOCKS its place. What it brought is told (`say`); returns
+        what was marked."""
+        if goal.kind not in CURIOSITY_KINDS or story_moved:
+            self.memory.curious_row = 0
+            return None
+        self.memory.curious_row += 1
+        brought = ", ".join([f"{key} {made[key]}" for key in ("tiles", "maps", "items", "caught", "species", "pages")
+                             if made.get(key)] + (["a talk"] if made.get("talked") else [])
+                            + (["a talk that told it nothing new"] if made.get("talks") and not made.get("talked") else [])
+                            ) or "nothing new"
+        if made.get("productive"):
+            self.memory.curious_since = frame
+            self._say(f"[AI-GOALS] its {goal.kind} brought {brought}")
+            return None
+        self.memory.idle["goals"] += 1
+        self.memory.idle["frames"] += int(made.get("frames") or 0)
+        marked = None
+        if goal.kind == "explore" and goal.via is not None:
+            why = f"a look round there brought nothing new (f{frame})"
+            self.memory.exhausted[f"{goal.via}|{milestone_id}"] = why
+            marked = f"{goal.via} is exhausted for this milestone: {why}"
+        place = made.get("place")
+        if goal.kind == "detour" and place and not made.get("reached"):
+            tile = (int(place[1]), int(place[2]))
+            self.blocked_on(milestone_id, place[0])[tile] = f"a detour did not get there (f{frame})"
+            marked = f"the place at {tile} on {place[0]} is blocked for curiosity: the detour did not get there"
+        self._say(f"[AI-GOALS] its {goal.kind} brought {brought}: NOT productive{'; ' + marked if marked else ''}")
+        return marked
 
     def hurt(self, look: Observation) -> bool:
         """(build step 5.1) The party is HURT as this personality sees it: a Pokemon fainted, the strongest under a third
@@ -719,6 +1123,15 @@ class GoalManager:
         if look.player.map_const:
             self.memory.last_map = look.player.map_const
         key = f"{look.player.map_group}:{look.player.map_number}"
+        if (self.memory.hearing and screen.waits_for_button and screen.text and not screen.in_battle
+                and screen.game_state == "OVERWORLD"):
+            # (build step 5.2, the verifier's round) who SPOKE in its own service talk or chat: the person straight in front
+            # of the player while words are on screen (the nurse and the clerk across their counter, two tiles ahead)
+            ahead = FACING_STEP.get(look.player.facing or "")
+            for seen in look.view.objects:
+                if (ahead is not None and seen.source == "object" and seen.kind == "npc"
+                        and (seen.dx, seen.dy) in [(ahead[0] * n, ahead[1] * n) for n in range(1, SPOKE_REACH + 1)]):
+                    self.memory.spoke.add(f"{key}|{seen.local_id}")
         center = self.story.looks.get("pokemon_center_door")
         mart = self.story.looks.get("mart_door")
         gym = self.story.looks.get("gym_door")
@@ -749,6 +1162,9 @@ class GoalManager:
         if self.memory.known_before is None:
             # (build step 5.1) this session's first decision: what the world memory knew already is no new place
             self.memory.known_before = {key for key, memory in world.maps.items() if memory.visits}
+        if self.memory.curious_since is None:
+            # (build step 5.2) the boredom clock starts at this session's first decision
+            self.memory.curious_since = look.frame
         here = world.here()
         here_const = here.const if here is not None else None
         errands = self.state.errands
@@ -818,14 +1234,21 @@ class GoalManager:
                 return Goal("shop", f"{balls} POKé BALLS left (fewer than {errands.balls_low}) and {money} money: "
                                     f"{where[3]}", milestone.id, map=where[0], via=where[1], tile=where[2],
                             key=f"shop:{where[0]}")
+        # (build step 5.2, the step-5.1 review's finding 2: CH1M ran six curiosity goals in a row) at most CURIOUS_ROW_MAX
+        # curiosity goals in a row: then the story or a need first (every curiosity choice below asks; a draw it holds back
+        # is made on a later decision)
+        curious = self.curious_ok()
         # 3. ITEM: a ball on screen, or one it saw earlier on this map (build step 5.1: before the party too, so the rival's
         # POKé BALL on the floor of the rival's room is found by curiosity, review #3, not by a scripted step; and before
-        # training: a training roam STOPS for a ball in view, so with training first each session ended at once)
-        ball = self._item_ball(look, world)
+        # training: a training roam STOPS for a ball in view, so with training first each session ended at once); (build
+        # step 5.2) under the row cap like all curiosity, and under the beeline control too, as in 5.1 (the rival's POKé BALL
+        # is how its chapter 1 goes on: the development sweep step52dev2's beeline, with no item balls, stuck in 12 of 12)
+        items = self.memory.curious_row < CURIOUS_ROW_MAX
+        ball = self._item_ball(look, world) if items else None
         if ball is not None:
             return Goal("pick_up", f"an item ball on the ground at {(ball.x, ball.y)}: a person picks it up", milestone.id,
                         target=ball, key=f"item:{world.current}|{ball.x},{ball.y}")
-        remembered = self._remembered_ball(look, world)
+        remembered = self._remembered_ball(look, world) if items else None
         if remembered is not None and self._allowed(f"item:{world.current}|{remembered[0]},{remembered[1]}"):
             return Goal("pick_up", f"an item ball it saw on {here_const} at {remembered}: back over to it", milestone.id,
                         tile=remembered, key=f"item:{world.current}|{remembered[0]},{remembered[1]}")
@@ -837,23 +1260,27 @@ class GoalManager:
         # (and not where the story's own next thing is, told and here: measured 2026-10-14, the step-5.1 development sweep:
         # it looked round ROUTE 101 while PROF. BIRCH cried "Help! In my BAG!", and he cried "Don't leave me like this!";
         # the draw waits for a later decision there)
-        # (build step 5.1, the verifier's second round) the BALANCE: a break from the story owed (`owed`), never while hurt
-        owed = self.owed() if not hurt else None
-        if self.may_look_around(look, world, step):
+        # (build step 5.2, the step-5.1 review's finding 2) every curiosity draw below is a DICE throw at the personality's
+        # own odds raised by boredom (`curious_odds`): 5.1's balance passed them WITHOUT the dice when a share of the
+        # session's frames fell under a quota, the quantity the graders' floor measures
+        if curious and self.may_look_around(look, world, step):
             self.memory.looked.add(world.current)
             draw = self.rng.random()
-            if draw < errands.look_around or self.memory.passed_new >= LOOK_DEBT or owed:
-                why = (f"draw {draw:.2f} < the {self.state.active}'s {errands.look_around}" if draw < errands.look_around
-                       else f"it has gone past {self.memory.passed_new} new places in a row without a look: this time it "
-                            f"looks (draw {draw:.2f})" if self.memory.passed_new >= LOOK_DEBT
-                       else f"draw {draw:.2f}, but {owed}: a break from the story")
+            odds, odds_why = self.curious_odds(errands.look_around, look.frame)
+            if self.memory.passed_new >= LOOK_DEBT:
+                # (build step 5.1's look-around debt, as ODDS since build step 5.2: raised to the cap, never certain)
+                odds = max(odds, CURIOUS_ODDS_CAP)
+                odds_why = (f"it has gone past {self.memory.passed_new} new places in a row without a look: the odds "
+                            f"raised to {odds:.2f}")
+            if draw < odds:
                 self.memory.passed_new = 0
                 self.memory.explored.add(world.current)
-                return Goal("explore", f"a new place, {here_const}: a person looks around it ({why}) before going on",
-                            milestone.id, steps=errands.look_frames, key=f"explore:{world.current}")
+                return Goal("explore", f"a new place, {here_const}: a person looks around it (draw {draw:.2f} < "
+                                       f"{odds_why}) before going on", milestone.id, steps=errands.look_frames,
+                            key=f"explore:{world.current}", via=world.current)
             self.memory.passed_new += 1
-            self._say(f"[AI-GOALS] a new place, {here_const}: it goes on without looking round (draw {draw:.2f} >= the "
-                      f"{self.state.active}'s {errands.look_around}; {self.memory.passed_new} in a row)")
+            self._say(f"[AI-GOALS] a new place, {here_const}: it goes on without looking round (draw {draw:.2f} >= "
+                      f"{odds:.2f}, {odds_why}; {self.memory.passed_new} in a row)")
         # 5. TRAIN before a fight it KNOWS of (never while hurt: a person heals first, and a roam begun hurt stops at its first
         # battle, `training_rest`, burning a session of `TRAIN_SESSIONS` for nothing: step5dev7, seed 3, six in a row)
         if fight_next and not self.train_off and not hurt:
@@ -877,17 +1304,17 @@ class GoalManager:
                 prep["min_steps"] = errands.train_min_steps
         # 6. CATCH: balls in hand, grass not walked on this map
         if (has_party and balls > 0 and here is not None and here.grass() and world.current not in self.memory.catch_maps
-                and not fight_next and not self.errands_off):
+                and not fight_next and curious):
             self.memory.catch_maps.add(world.current)
             fresh = [xy for xy in here.grass() if not here.visits.get(xy)]
             draw = self.rng.random()
+            odds, odds_why = self.curious_odds(errands.catch_seek, look.frame)
             # (the round's development sweep step51wdev1: a Story player went through chapter 2 with its first five POKé
             # BALLS and caught nothing) a POKéDEX that holds only its first Pokemon and balls just in hand: a person tries
             # them, whatever its taste (PROF. BIRCH's "fill the POKéDEX", the rival's "catch POKéMON with these")
             first = look.progress is not None and look.progress.dex_owned <= 1
-            if fresh and (draw < errands.catch_seek or owed or first) and self._allowed(f"catch:{world.current}"):
-                why = (f"draw {draw:.2f} < the {self.state.active}'s {errands.catch_seek}" if draw < errands.catch_seek
-                       else f"draw {draw:.2f}, but {owed}: a break from the story" if owed
+            if fresh and (draw < odds or first) and self._allowed(f"catch:{world.current}"):
+                why = (f"draw {draw:.2f} < {odds_why}" if draw < odds
                        else f"draw {draw:.2f}, but its POKéDEX holds only its first Pokemon and it has its first POKé "
                             f"BALLS: it tries them")
                 return Goal("catch", f"{len(fresh)} grass tiles not walked on {here_const} and {balls} POKé BALLS ({why}): "
@@ -896,37 +1323,56 @@ class GoalManager:
         # 7. CHAT with someone near (never the person the story's own step names: the round's development sweep chose DAD as a
         # "chat", seeds 37 and 39, a story-owned goal under an errand's name; the story's goal talks to him)
         own = self.story.looks.get(step.look) if step is not None and step.look else None
-        chat = self._chat_person(look, world, owed, own.gfx if own is not None else ()) if not self.errands_off else None
+        chat = self._chat_person(look, world, look.frame, own.gfx if own is not None else ()) if curious else None
         if chat is not None:
             person, why = chat
             return Goal("chat", f"someone stands near at {(person.x, person.y)}: a person says hello now and then{why}",
                         milestone.id, target=person, key=f"chat:{world.current}|{person.local_id}")
-        # 7b. (build step 5.1, the verifier's second round) the BALANCE owed and no draw due here: it looks round where it
-        # stands some more (an outdoor map, not where the story's own next thing is told and here; `AGAIN_MAX` a map and
-        # milestone)
+        # 7b. (build step 5.1, the verifier's second round; build step 5.2: by BOREDOM's dice, not a quota, and only where
+        # something is left that it can walk to, the step-5.1 review's finding 1) it looks round where it stands some more
+        # (an outdoor map, not where the story's own next thing is told and here; `AGAIN_MAX` a map and milestone)
         again = f"{world.current}|{milestone.id}"
-        if (owed and here is not None and OUTDOOR.match(here_const or "") and not must_rest and step is not None
+        if (curious and here is not None and OUTDOOR.match(here_const or "") and not must_rest and step is not None
                 and step.do != "intro" and not self._story_here(step, world)
                 and self.memory.again.get(again, 0) < AGAIN_MAX):
-            self.memory.again[again] = self.memory.again.get(again, 0) + 1
-            self.memory.explored.add(world.current)
-            return Goal("explore", f"{here_const} some more ({owed}): a break from the story, looking round where it is "
-                                   f"({self.memory.again[again]} of at most {AGAIN_MAX} here)", milestone.id,
-                        steps=errands.look_frames, key=f"explore:{world.current}:again")
+            bored, since = self.boredom(look.frame)
+            odds = CURIOUS_ODDS_CAP * bored
+            nothing = self.left_to_see(look, world, milestone.id) if odds > 0 else None
+            if odds > 0 and nothing is None:
+                draw = self.rng.random()
+                if draw < odds:
+                    self.memory.again[again] = self.memory.again.get(again, 0) + 1
+                    self.memory.explored.add(world.current)
+                    return Goal("explore", f"{here_const} some more (draw {draw:.2f} < {odds:.2f}: {since} frames since its "
+                                           f"last curiosity that came to something): a break from the story, looking round "
+                                           f"where something is left to see ({self.memory.again[again]} of at most "
+                                           f"{AGAIN_MAX} here)", milestone.id, steps=errands.look_frames,
+                                key=f"explore:{world.current}:again", via=world.current)
         # 8. STORY (and now and then a DETOUR off the way while travelling)
         goal = self._story_goal(look, world, milestone, step)
-        if (goal.kind == "go" and goal.map is not None and not self.errands_off and here is not None
+        if (goal.key.startswith(LOST_KEYS) and self.memory.lost_end is not None
+                and self.memory.lost_end == (milestone.id, world.stamp())):
+            # (build step 5.2, the verifier's round: the graded NOHINTS runs, told nothing they would use, pressed for
+            # 31,676-62,012 frames with nothing new, goal after goal, until the story's 120,000-frame patience) OUT OF
+            # IDEAS: its last walk with no lead found nothing left to see that it could get to on any map it knows, nothing
+            # new has been seen since, and nothing it has heard says where to go: a person stuck like that puts the game
+            # down rather than walk the same streets for half an hour
+            return Goal("give_up", f"{milestone.title}: {OUT_OF_IDEAS}: its last walk with no lead found nothing left to "
+                                   f"see that it could get to on any of the "
+                                   f"{sum(1 for memory in world.maps.values() if memory.visits)} maps it knows, nothing "
+                                   f"new since, and no hint it goes by names where to go", milestone.id, key="give_up")
+        if (goal.kind == "go" and goal.map is not None and curious and here is not None
                 and OUTDOOR.match(here_const or "") and f"{world.current}|{milestone.id}" not in self.memory.detoured
                 and goal.key.startswith("go:") and not must_rest):
             self.memory.detoured.add(f"{world.current}|{milestone.id}")
             draw = self.rng.random()
-            if draw < errands.detour or owed:
-                why = (f"draw {draw:.2f} < the {self.state.active}'s {errands.detour}" if draw < errands.detour
-                       else f"draw {draw:.2f}, but {owed}: a break from the story")
-                return Goal("detour", f"on the way to {goal.map}: a look at something off the way on {here_const} ({why})",
-                            milestone.id, steps=errands.detour_frames, key=f"detour:{world.current}")
-            self._say(f"[AI-GOALS] on the way to {goal.map}: no detour on {here_const} this time (draw {draw:.2f} >= the "
-                      f"{self.state.active}'s {errands.detour})")
+            odds, odds_why = self.curious_odds(errands.detour, look.frame)
+            if draw < odds:
+                return Goal("detour", f"on the way to {goal.map}: a look at something off the way on {here_const} (draw "
+                                      f"{draw:.2f} < {odds_why})", milestone.id, steps=errands.detour_frames,
+                            key=f"detour:{world.current}", via=world.current)
+            self._say(f"[AI-GOALS] on the way to {goal.map}: no detour on {here_const} this time (draw {draw:.2f} >= "
+                      f"{odds:.2f}, {odds_why})")
         return goal
 
     def story_step(self, look: Observation, world, milestone: Milestone) -> Step | None:
@@ -1003,13 +1449,19 @@ class GoalManager:
         if step.do == "ask":
             if const != step.map:
                 # (build step 5.1, review #3: step 5 went to ask there with no check at all) only a place it has BEEN to:
-                # a person asks where they know people (the rival's house, visited for the rival's milestone)
-                if self.step_known(step, world.heard, world):
+                # a person asks where they know people (the rival's house, visited for the rival's milestone); (build step
+                # 5.2, the step-5.1 review's finding 6: "it walks to the step's own house with 'nothing was said'") and only
+                # once the step's OWN words were read (PROF. BIRCH's "Get MAY to teach you what it means to be a TRAINER.":
+                # a person told to go and see the rival goes to the rival's house)
+                told = self.step_known(step, world.heard, world)
+                if told and self.been_to(world, step.map):
                     return Goal("go", f"{milestone.title}: to ask at {step.map} where to go ({self._told(step, world)})",
                                 milestone.id, map=step.map, key=f"go:{step.map}")
-                return Goal("go", f"{milestone.title}: who would know where to go? It has not been to {step.map}: "
-                                  f"exploring", milestone.id, map=None, key=f"go:?{milestone.id}",
-                            words=None if self.hints_off else step.words)
+                why = (f"it has not been to {step.map}" if told
+                       else f"nobody has told it whom to see (words {step.told!r} not heard)" if step.told
+                       else f"it has not been to {step.map}")
+                return Goal("go", f"{milestone.title}: who would know where to go? {why}: exploring", milestone.id,
+                            map=None, key=f"go:?{milestone.id}", words=None if self.hints_off else step.words)
             person = self._ask_person(look, world)
             if person is None:
                 self.memory.asked_rounds[milestone.id] = self.memory.asked_rounds.get(milestone.id, 0) + 1
@@ -1115,22 +1567,27 @@ class GoalManager:
                 return person
         return None
 
-    def _chat_person(self, look: Observation, world, owed: str | None = None,
+    def _chat_person(self, look: Observation, world, frame: int | None = None,
                      story_gfx: tuple[int, ...] = ()) -> tuple[SeenObject, str] | None:
-        """Someone near to say hello to, and what the reason adds: one draw a person against `chat`; (build step 5.1, the
-        verifier's second round) a break from the story owed passes the draw (`owed`); never someone who LOOKS like the
-        person the story's own step names (`story_gfx`)."""
+        """Someone near to say hello to, and what the reason adds: one draw a person against `chat`, (build step 5.2) its
+        odds raised by boredom at `frame` (`curious_odds`; 5.1's owed break passed the draw without the dice); never
+        someone who LOOKS like the person the story's own step names (`story_gfx`), nor (the verifier's round) someone who
+        has already SPOKEN to it (`_Memory.spoke`)."""
         for person in self._people(look):
             key = f"{world.current}|{person.local_id}"
             if (key in self.memory.talked or key in self.memory.chat_drawn or abs(person.dx) + abs(person.dy) > 4
                     or person.graphics_id in story_gfx):
                 continue
+            if key in self.memory.spoke:
+                # (build step 5.2, the verifier's round) never someone who has SPOKEN to it (`notice`): the nurse right
+                # after the heal, the clerk after the shop, the footprints man after his scene (127 chats of the graded
+                # sweep heard nothing new, the nurse's 1,747-1,957 frames each)
+                continue
             self.memory.chat_drawn.add(key)
             draw = self.rng.random()
-            if draw < self.state.errands.chat:
-                return person, ""
-            if owed:
-                return person, f" (draw {draw:.2f}, but {owed}: a break from the story)"
+            odds, odds_why = self.curious_odds(self.state.errands.chat, look.frame if frame is None else frame)
+            if draw < odds:
+                return person, (f" (draw {draw:.2f} < {odds_why})" if odds > self.state.errands.chat else "")
         return None
 
     # ------------------------------------------------------------------ where to heal and shop
@@ -1269,6 +1726,48 @@ class _BattleClock:
         self._last = (look.frame, bool(look.screen.in_battle))
 
 
+#: (build step 5.2) the goal kinds that LOOK ROUND a place (curiosity's walks among a map's places): someone who keeps
+#: standing in the way is watched for in them (`_PersonBlock`), and the places curiosity found blocked are their walls
+ROUND_KINDS = ("explore", "detour", "look_around")
+
+
+class _PersonBlock:
+    """(build step 5.2, the step-5.1 review's finding 1: at OLDALE "people in the way" went from 8 to 61 over three errands,
+    about 1,160 presses moving the player 377 steps, all toward frontiers past the west exit someone stood in) A hands
+    watcher while curiosity looks round: every time the navigator meets someone in the way (its `stats.people` count rises:
+    a step into a person, or a wait for one on the way) it is counted for the PLACE being walked to (the end of the plan
+    followed); once that place has met `PERSON_BLOCK_HITS` with no new tile seen since the first, `on_block(map key,
+    tile, why)` is told: the place is a wall of this walk at once (the navigator plans round it, so the target is out of
+    reach and another is chosen) and blocked for curiosity in the milestone. It presses nothing."""
+
+    def __init__(self, nav, on_block: Callable[[str, tuple[int, int], str], None]) -> None:
+        self.nav = nav
+        self.on_block = on_block
+        self.people = nav.stats.people
+        #: (map key, tile) -> [people met there, tiles learned at the first, its frame]
+        self.hits: dict[tuple, list] = {}
+
+    def __call__(self, look: Observation) -> None:
+        nav = self.nav
+        people = nav.stats.people
+        if people <= self.people:
+            return
+        new, self.people = people - self.people, people
+        plan = nav.plan
+        if plan is None or plan.map != nav.world.current:
+            return
+        tile = plan.at
+        for direction in plan.path:
+            tile = moved(tile, direction)
+        hit = self.hits.get((plan.map, tile))
+        if hit is None or nav.world.tiles_learned > hit[1]:
+            hit = self.hits[(plan.map, tile)] = [0, nav.world.tiles_learned, look.frame]
+        hit[0] += new
+        if hit[0] >= PERSON_BLOCK_HITS:
+            self.on_block(plan.map, tile, f"someone stood in the way {hit[0]} times since f{hit[2]}, nothing new seen")
+            del self.hits[(plan.map, tile)]
+
+
 class GoalRunner:
     """Plays one goal with the AI's own skills (the play brain, `ai_player/mode.py`, calls `pursue`). Returns (ok, what
     happened). `mind` is the battle decider (its PURPOSE set per goal: "train" while training or catching, "travel"
@@ -1302,17 +1801,81 @@ class GoalRunner:
         # errand (measured 2026-10-14, the development sweep step51dev5, seeds 2, 3 and 9: after looking round LITTLEROOT the
         # AI's walks to the rival's house chose the frontier past the twin, met her twice per walk, and ran out its patience)
         walls = self.manager.memory.scene_walls.setdefault(milestone.id, {}) if hasattr(nav, "carried_scene_walls") else None
+        # (build step 5.2, the step-5.1 review's finding 1: "keep person-blocked targets across goals") a walk that LOOKS
+        # ROUND (`ROUND_KINDS`) also walls the places curiosity found blocked in this milestone, and watches for someone
+        # who keeps standing in the way (`_PersonBlock`); those places are never handed to the story's walks
+        blocked = self.manager.memory.blocked.setdefault(milestone.id, {}) if goal.kind in ROUND_KINDS else None
+        # (build step 5.2, the verifier's round) the corners round the places a scene blocked are curiosity's walls too
+        # (`_scene_corners`), and never join the story's: the ones that were not the milestone's walls already
+        corners = ({key: _scene_corners(places) - set((walls or {}).get(key, set())) for key, places in blocked.items()}
+                   if blocked is not None else {})
         if walls is not None:
-            nav.carried_scene_walls = walls
+            nav.carried_scene_walls = walls if blocked is None else {
+                key: set(walls.get(key, set())) | set(blocked.get(key, {})) | corners.get(key, set())
+                for key in set(walls) | set(blocked)}
+            # (build step 5.2, found by the round's development sweep step52dev2, seed 1010, by the new pushing property:
+            # 114,121 frames pressing with nothing new) every goal STARTS from this milestone's walls: a goal that runs no
+            # intent (a talk to someone at hand) left the LAST intent's walls in the navigator, and the merge below carried
+            # them into this milestone (PROF. BIRCH's "Don't leave me like this!" walls on ROUTE 101, kept into the rival's
+            # milestone: every walk north from LITTLEROOT planned round them, back across the edge, until the patience ran out)
+            nav.scene_walls = {key: set(tiles) for key, tiles in nav.carried_scene_walls.items()}
+        watch = None
+        watchers = getattr(self.hands, "watchers", None)
+        if blocked is not None and watchers is not None and hasattr(nav, "stats"):
+            watch = _PersonBlock(nav, lambda key, tile, why: self._blocked(milestone, key, tile, why))
+            watchers.append(watch)
+        given_up = getattr(nav, "scene_given_up", None)
+        given_from = len(given_up) if given_up is not None else 0
+        turned = getattr(nav, "scene_turned", None) or []
+        turned_from = len(turned)
+        # (build step 5.2, the verifier's round) who speaks in a service talk or a chat is remembered (`notice`)
+        self.manager.memory.hearing = goal.kind in HEARD_KINDS
         try:
             return (yield from self._pursue(goal, milestone, index, current))
         finally:
+            self.manager.memory.hearing = False
+            if watch is not None and watch in watchers:
+                watchers.remove(watch)
             if hurt:
                 nav.grass_cost = own
+            if blocked is not None and given_up is not None:
+                # (build step 5.2, the round's development sweep step52dev2: in 4 of the 7 detours that did not arrive, a
+                # look round had just given up a place past LITTLEROOT's twin, and the detour after it chose the same place,
+                # or the one beside it, and met her twice more) a place a scene turned a look round back from is blocked for
+                # curiosity in the milestone, as one someone stood in the way of is; (the verifier's round, step52vdev2, CH1
+                # seed 1209: a detour ended at the footprints man's first word, and the look round after it walked OLDALE
+                # 2,003 frames toward his corner) and so is the tile where a scene BEGAN and turned it back, after ONE
+                # meeting: a person told "please don't come in here" does not try that way again for curiosity's sake
+                for key, tile, why in given_up[given_from:] + turned[turned_from:]:
+                    self._blocked(milestone, key, tuple(tile), why)
+            if blocked is None:
+                # (the verifier's round, step52vdev5, NOHINTS seed 1245: the STORY's walk had met the footprints man, and a
+                # look round "some more" later in the milestone walked into his scene twice, 2,320 frames) a scene that
+                # turned ANY walk back is blocked for curiosity in the milestone; the story's own walks keep their walls
+                for key, tile, why in turned[turned_from:]:
+                    self.manager.blocked_on(milestone.id, key)[tuple(tile)] = why
             if walls is not None:
                 for key, tiles in (getattr(nav, "scene_walls", None) or {}).items():
-                    walls.setdefault(key, set()).update(tiles)
+                    walls.setdefault(key, set()).update(set(tiles) - set((blocked or {}).get(key, {})))
+                    walls[key] -= corners.get(key, set())
                 nav.carried_scene_walls = None
+
+    def _blocked(self, milestone: Milestone, key: str, tile: tuple[int, int], why: str) -> None:
+        """(build step 5.2) `_PersonBlock` found a place blocked: a wall of this walk now (the navigator plans round it and
+        chooses another place), and blocked for curiosity in the milestone (`GoalManager.blocked_on`)."""
+        self.manager.blocked_on(milestone.id, key)[tile] = why
+        walls = getattr(self.nav, "scene_walls", None)
+        if walls is not None:
+            walls.setdefault(key, set()).add(tile)
+        name = getattr(self.nav.world.maps.get(key), "const", None) or key
+        self.tell(f"[AI-GOALS] the place at {tile} on {name}: {why}: given up, and kept from curiosity in this milestone")
+
+    def _out_of_ideas(self, milestone: Milestone, why: str, said: list[str]) -> None:
+        """(build step 5.2, the verifier's round) A walk with NO LEAD found nothing left on any map it knows that it could
+        get to (`lost_intent`): remembered with what the world memory had seen then (`WorldMemory.stamp`), so the next
+        decision gives the run up if nothing new has been seen since (`GoalManager.next_goal`); `why` is the walk's word."""
+        said.append(why)
+        self.manager.memory.lost_end = (milestone.id, self.nav.world.stamp())
 
     def _pursue(self, goal: Goal, milestone: Milestone, index: int, current: Callable[[Observation], int]) -> Generator[None, None, tuple[bool, str]]:
         hands, nav, manager = self.hands, self.nav, self.manager
@@ -1332,7 +1895,8 @@ class GoalRunner:
             arrived: list[str] = []
             began_on = nav.world.current
 
-            def done(look: Observation) -> bool:
+            # (build step 5.2) its own name: a call-site census by name must not take every other `done` for this one
+            def walk_done(look: Observation) -> bool:
                 if moved_on(look):
                     return True
                 if goal.words and heard_words(nav.world.heard, goal.words):
@@ -1350,41 +1914,106 @@ class GoalRunner:
                             and manager.may_look_around(look, nav.world, manager.story_step(look, nav.world, milestone))):
                         arrived.append(f"{NEW_MAP_STOP}: {player.map_const}")
                         return True
-                    # (build step 5.1, the verifier's second round) the BALANCE owed: a walk that ARRIVES on another outdoor
-                    # map stops there once a milestone, so the next decision may take its break from the story there
+                    # (build step 5.1, the verifier's second round; build step 5.2: by BOREDOM's dice, not a quota) a walk
+                    # that ARRIVES on another outdoor map makes one draw there a milestone; when it passes, the walk stops
+                    # so the next decision may take a break from the story there
                     stop = f"{nav.world.current}|{milestone.id}"
-                    if (nav.world.current != began_on and stop not in manager.memory.owed_stops and not manager.hurt(look)
-                            and manager.owed()):
-                        manager.memory.owed_stops.add(stop)
-                        arrived.append(f"{OWED_STOP}: {player.map_const} ({manager.owed()})")
-                        return True
+                    if (nav.world.current != began_on and stop not in manager.memory.break_stops and not manager.hurt(look)
+                            and manager.curious_ok()):
+                        manager.memory.break_stops.add(stop)
+                        bored, since = manager.boredom(look.frame)
+                        draw = manager.rng.random()
+                        if draw < CURIOUS_ODDS_CAP * bored:
+                            arrived.append(f"{BREAK_STOP}: {player.map_const} (draw {draw:.2f} < "
+                                           f"{CURIOUS_ODDS_CAP * bored:.2f}: {since} frames since its last curiosity that "
+                                           f"came to something)")
+                            return True
+                if goal.kind == "go" and stop_new and walk_battle_break(look):
+                    return True
                 return look_for is not None and manager.looks_like(look, look_for) is not None
+
+            battles_at = [len(getattr(nav, "battle_log", None) or ())]
+
+            def walk_battle_break(look: Observation) -> bool:
+                """(build step 5.2, the round's development sweep step52dev3: the Trainer's chapter 2, seed 1017, walked
+                25,408 frames on ROUTE 102, met 17 battles and stopped for nothing, the walk's only stops being a map's
+                arrival; the review's finding 2: errands not INTERLEAVED) a battle won on the walk is a moment to stop too:
+                once the player is free again on an outdoor map, one boredom draw per battle."""
+                count = len(getattr(nav, "battle_log", None) or ())
+                player = look.player
+                if (count <= battles_at[0] or player is None or player.settling or look.screen.game_state != "OVERWORLD"
+                        or not OUTDOOR.match(player.map_const or "") or not player_free(look)):
+                    return False
+                battles_at[0] = count
+                if manager.hurt(look) or not manager.curious_ok():
+                    return False
+                bored, since = manager.boredom(look.frame)
+                draw = manager.rng.random()
+                if draw >= CURIOUS_ODDS_CAP * bored:
+                    return False
+                arrived.append(f"{BREAK_STOP}: after a battle on {player.map_const} (draw {draw:.2f} < "
+                               f"{CURIOUS_ODDS_CAP * bored:.2f}: {since} frames since its last curiosity that came to "
+                               f"something)")
+                return True
 
             budget = (GO_FRAMES if goal.kind == "go" else FIND_FRAMES if goal.kind == "find"
                       else goal.steps if goal.kind == "explore" else goal.steps or LOOK_AROUND_FRAMES)
             if goal.kind == "go" and is_gym(target_map):
                 # (build step 5.1, the verifier's second round) a GYM is RECOGNISED by its door's look: walked into once seen
-                outcome = yield from self._to_building(goal, target_map, budget, done)
+                outcome = yield from self._to_building(goal, target_map, budget, walk_done)
                 if arrived:
                     outcome = f"{outcome}; {arrived[0]}"
                 return outcome.startswith(("done", "entered")), outcome
             if goal.kind == "go" and target_map is not None:
-                outcome = yield from self._walk_on_after_battles(target_map, goal.reason, budget, done)
+                outcome = yield from self._walk_on_after_battles(target_map, goal.reason, budget, walk_done)
             else:
                 # looking for someone on THIS map keeps to it (a person searching ROUTE 103 for the rival does not go back
-                # to OLDALE), and so does looking around a new place (build step 5.1); looking around for what comes next
-                # may go anywhere
-                outcome = yield from nav.run(travel_intent(None, manager.state.active, budget, done,
-                                                           stay=goal.kind in ("find", "explore")), goal.reason)
+                # to OLDALE); looking around for what comes next may go anywhere; (build step 5.2, the step-5.1 review's
+                # finding 1) a LOOK ROUND (`explore`) chooses only places that can show something new, never one curiosity
+                # found blocked here, and is over once none is left (5.1 wandered among what it had seen: CH1M's look round
+                # of OLDALE, 3,001 frames, nothing new)
+                # (build step 5.2, the verifier's round) a walk with NO LEAD (`LOST_KEYS`: nothing the game said names where
+                # to go) heads for what is left anywhere it knows, and says when nothing is: "out of ideas" (`lost_intent`)
+                lost_why: list[str] = []
+                seen_clock: list = [None, 0]
+
+                def look_saw_nothing(look: Observation) -> bool:
+                    """(build step 5.2, the verifier's round; its development sweep step52vdev3, CH2 seed 1220: a look round
+                    of ROUTE 102's grass ran its 4,200 frames through 21 battles and showed 9 new tiles, the experience
+                    each battle gave resetting its novelty window) a look round is a walk to SEE: it is over once it has
+                    seen nothing new (no tile, no map) for `CURIOUS_NOVELTY` frames, the battles met in it included; and
+                    at every stop of the walk (`walk_done`)."""
+                    if walk_done(look):
+                        return True
+                    now = (nav.world.tiles_learned, sum(1 for memory in nav.world.maps.values() if memory.visits))
+                    if seen_clock[0] != now:
+                        seen_clock[0], seen_clock[1] = now, look.frame
+                        return False
+                    return look.frame - seen_clock[1] >= CURIOUS_NOVELTY
+
+                intent = (look_round_intent(manager.state.active, budget, look_saw_nothing,
+                                            lambda key: manager.blocked_on(milestone.id, key))
+                          if goal.kind == "explore"
+                          else lost_intent(manager.state.active, budget, walk_done,
+                                           lambda why: self._out_of_ideas(milestone, why, lost_why))
+                          if goal.kind in ("go", "look_around") and goal.key.startswith(LOST_KEYS)
+                          else travel_intent(None, manager.state.active, budget, walk_done, stay=goal.kind == "find"))
+                outcome = yield from nav.run(intent, goal.reason)
+                if lost_why:
+                    outcome = f"{lost_why[-1]} ({outcome})"
             if arrived:
                 outcome = f"{outcome}; {arrived[0]}"
             if goal.kind == "explore":
-                # looking around is its own end: the time spent IS the errand (a budget that ran out is done)
-                return outcome.startswith(("done", "budget")), outcome
+                # looking around is its own end: a look round that ran its time, or found nothing more to look at, ended
+                # as it should (build step 5.2: whether it BROUGHT anything is its yield, `goal_yield`, judged by the play
+                # loop: an unproductive look round is "not done" there and exhausts the map for the milestone)
+                return outcome.startswith(("done", "budget", "stuck: nothing")), outcome
             return outcome.startswith("done"), outcome
         if goal.kind == "detour":
-            outcome = yield from self._detour(goal)
-            return outcome.startswith(("done", "budget")), outcome
+            # (build step 5.2, the step-5.1 review's finding 3: "detours are cosmetic") only a detour that REACHED its place
+            # is done ("reached ..."); one that did not is "not reached ..." and no curiosity
+            outcome = yield from self._detour(goal, milestone)
+            return outcome.startswith("reached"), outcome
         if goal.kind == "find_center" and goal.via is not None:
             # (build step 5.1, the verifier's second round) THIS town's own centre: looked for here, keeping to the town,
             # until its door is seen (the next decision heals at the nearest place it knows: that door, now)
@@ -1456,7 +2085,7 @@ class GoalRunner:
                                                                                 and look.player.map_const == where))
                 if nav.world.here() is None or nav.world.here().const != where:
                     return False, f"could not get to the grass of {where}: {went}"
-            self.roam_hooks()
+            self.roam_hooks(hunt=goal.kind == "catch")
             before = len(nav.battle_log)
             try:
                 outcome = yield from roam_train(hands, nav, goal.steps, goal.reason)
@@ -1478,7 +2107,7 @@ class GoalRunner:
                 prep["wild"] += wild
                 prep["won"] += won
                 prep["rests"] += 1 if "rest:" in outcome else 0
-            return ("roamed" in outcome or "rest:" in outcome or ITEM_STOP in outcome), outcome
+            return ("roamed" in outcome or "rest:" in outcome or ITEM_STOP in outcome or HUNT_STOP in outcome), outcome
         if goal.kind == "heal":
             outcome = yield from self._heal(goal)
             self.heals.append(outcome)
@@ -1529,17 +2158,33 @@ class GoalRunner:
         outcome = yield from self.pursue(replace(goal, target=ball, tile=None), milestone, index, current)
         return outcome[1]
 
-    def roam_hooks(self) -> None:
+    def roam_hooks(self, hunt: bool = False) -> None:
         """What a TRAINING or CATCHING roam asks (set for the roam only, `clear_roam_hooks` after): after every battle, a
         reason to stop and heal (`training_rest`: under the personality's `heal_below`; the navigator asks it with no battle
         limit set: until the step-5 verifier's round of 2026-10-14 it asked only WITH one, so the rule never fired and a run
-        roamed on at 22 % HP); on every free look, an item ball come into view (a person walks over to it, then roams on)."""
+        roamed on at 22 % HP); on every free look, an item ball come into view (a person walks over to it, then roams on);
+        and (build step 5.2) for a CATCHING roam (`hunt`), `HUNT_FRUITLESS` battles in a row that brought nothing new to its
+        POKéDEX (`hunt_fruitless`)."""
         nav, manager = self.nav, self.manager
         heal_below, active = manager.state.errands.heal_below, manager.state.active
         nav.battle_limit = None
         nav.battle_rest = lambda look: training_rest(look, heal_below, active)
+        since = {"battles": len(getattr(nav, "battle_log", None) or ()), "dex": None}
+
+        def hunt_fruitless(look: Observation) -> str | None:
+            """The POKéDEX's seen and owned counts as the eyes show them: a change starts the count again."""
+            progress = look.progress
+            dex = (progress.dex_seen, progress.dex_owned) if progress is not None else None
+            if dex != since["dex"]:
+                since["dex"], since["battles"] = dex, len(nav.battle_log)
+                return None
+            fought = len(nav.battle_log) - since["battles"]
+            if fought < HUNT_FRUITLESS:
+                return None
+            return f"{HUNT_STOP}: {fought} battles in a row with no POKéMON first seen and none caught"
+
         nav.roam_stop = lambda look: (ITEM_STOP if look.party and manager.item_ball_in_view(look, nav.world) is not None
-                                      else None)
+                                      else hunt_fruitless(look) if hunt else None)
 
     def clear_roam_hooks(self) -> None:
         self.nav.battle_rest = None
@@ -1732,7 +2377,7 @@ class GoalRunner:
             self.tell(f"[AI-GOALS] no POKé BALLS on {here.const}'s list: it will come back once the story has moved on")
         return "; ".join(outcomes)
 
-    def _detour(self, goal: Goal) -> Generator[None, None, str]:
+    def _detour(self, goal: Goal, milestone: Milestone | None = None) -> Generator[None, None, str]:
         """(build step 5.1, review #1: "an occasional detour that is not the shortest way") A short look at something OFF
         the way on this map before travelling on: one place the explorer would like here (a frontier, grass, someone not
         met: never the way on to the goal, never back, never into a building), chosen on a whim among the about-equal
@@ -1740,38 +2385,89 @@ class GoalRunner:
         there (a `wander` target on its tile, which the walk never makes stale: the chosen frontier was "seen past" after one
         step, and the detour chose it again and again with no frame passing: 11 of the 12 detours of the first round's
         graded CH1 runs ended at once), at least
-        `DETOUR_MIN_TILES` tiles away; a place it cannot reach is swapped for another, at most `DETOUR_TRIES` in all."""
-        nav, manager = self.nav, self.manager
+        `DETOUR_MIN_TILES` tiles away; a place it cannot reach is swapped for another, at most `DETOUR_TRIES` in all.
+        (Build step 5.2, the step-5.1 review's finding 3: "detours are cosmetic": "looked at the frontier at (-7, 15)" was
+        printed for a place never reached, CH1C and CH1M both chose it, past OLDALE's west exit someone stood in, and
+        nothing happened on arrival) the place is one it can WALK to over tiles it KNOWS, nobody standing in the way and
+        no place curiosity found blocked on the way (`_known_reach`), never past an edge it knows (`MapMemory.outside`),
+        never a blocked place itself; the detour is over when it stands there, when the walk leaves this map, or at its
+        budget, and its outcome SAYS which: "reached ..." or "not reached ..."; at a PERSON it chose, it talks to them.
+        The place is kept for the play loop's yield (`detour_place`: map key, x, y, kind)."""
+        nav, manager, hands = self.nav, self.manager, self.hands
         weights = weights_for(manager.state.active)
+        began_on = nav.world.current
+        avoid = manager.blocked_on(milestone.id if milestone is not None else None, began_on)
         chosen: list[Target] = []
         kinds: list[str] = []
+        whos: list[int | None] = []
         reached: list[bool] = []
+        self.detour_place = None
 
-        def choose(navigator: Navigator, look: Observation) -> Target | None:
-            if reached:
+        def detour_choose(navigator: Navigator, look: Observation) -> Target | None:
+            if reached or navigator.world.current != began_on:
                 return None
-            if chosen and not navigator.is_excluded(chosen[-1]):
-                return chosen[-1]  # the same place (a scene or a battle met on the way to it)
+            if chosen and not navigator.is_excluded(chosen[-1]) and chosen[-1].tile not in avoid:
+                return chosen[-1]  # the same place (a battle met on the way to it)
             if len(chosen) >= DETOUR_TRIES:
                 return None
             located = navigator.where(look)
-            at = located[1] if located is not None else None
+            if located is None:
+                return None
+            memory, at = located
+            # (build step 5.2, step52dev2) the walk plans round the tiles a scene sent the player back from, so the reach does
+            walled = getattr(navigator, "scene_walls", None) or {}
+            reach = _known_reach(memory, at, frozenset(set(memory.people_now) | set(avoid) | set(walled.get(memory.key, ()))))
+            # (build step 5.2, step52dev2: a detour chose the tile BESIDE a place a scene had just turned it back from, the same
+            # corner past LITTLEROOT's twin) never a place at or beside a blocked one, nor beside one tried in this detour
             found = [t for t in candidates(navigator, look, weights, None, jitter_on=True) if t.kind in DETOUR_KINDS
-                     and all(t.tile != old.tile for old in chosen)
-                     and (at is None or abs(t.tile[0] - at[0]) + abs(t.tile[1] - at[1]) >= DETOUR_MIN_TILES)]
+                     and not _beside(t.tile, [old.tile for old in chosen])
+                     and abs(t.tile[0] - at[0]) + abs(t.tile[1] - at[1]) >= DETOUR_MIN_TILES
+                     and t.tile in reach and not _beside(t.tile, avoid) and not memory.outside(t.tile)]
             if not found:
                 return None
             place = pick(found, navigator.rng)
             kinds.append(place.kind)
+            whos.append(place.who)
             chosen.append(Target("wander", place.tile, f"a detour: a look at the {place.kind} at {place.tile} "
                                                        f"({place.reason})", place.score))
             return chosen[-1]
 
-        intent = Intent(f"a detour ({goal.reason[:40]})", goal.steps, choose, lambda look: bool(reached),
+        turned: list[bool] = []
+
+        def detour_turned_back(look: Observation) -> bool:
+            """(build step 5.2, the round's development sweeps: four of the seven detours that did not arrive in step52dev2,
+            and both in step52dev3, about 2,200 frames each, met LITTLEROOT's twin twice on the way to a place past her)
+            a detour is a look on the way, not a push: the first SCENE that stops the way to its place ends it."""
+            if chosen and getattr(nav, "scene_hits", {}).get(f"{nav.world.current}|{chosen[-1].key}"):
+                turned.append(True)
+                return True
+            return False
+
+        intent = Intent(f"a detour ({goal.reason[:40]})", goal.steps, detour_choose,
+                        lambda look: bool(reached) or nav.world.current != began_on or detour_turned_back(look),
                         lambda target: reached.append(True))
         outcome = yield from nav.run(intent, goal.reason)
         if not chosen:
-            return f"nothing off the way to look at here: {outcome}"
-        return f"{outcome}; looked at the {kinds[-1]} at {chosen[-1].tile}" + (
-            f" ({len(chosen) - 1} place(s) before it could not be reached)" if len(chosen) > 1 else "")
+            return f"not reached: nothing off the way here that it can walk to ({outcome})"
+        tile, kind = chosen[-1].tile, kinds[-1]
+        self.detour_place = [began_on, tile[0], tile[1], kind]
+        tried = f" ({len(chosen) - 1} place(s) before it could not be reached)" if len(chosen) > 1 else ""
+        if not reached:
+            why = ("the walk left the map" if nav.world.current != began_on
+                   else "a scene stopped the way there" if turned else outcome)
+            return f"not reached: the {kind} at {tile} ({why}){tried}"
+        said = ""
+        if kind == "people" and whos[-1] is not None:
+            # (build step 5.2, the review's finding 3: "nothing happens on arrival, not even a talk with the people it
+            # chose") a person walks over to someone to TALK to them
+            look = hands.look()
+            person = next((o for o in (look.view.objects if look.view is not None else ()) if o.kind == "npc"
+                           and o.source == "object" and o.local_id == whos[-1]), None)
+            if person is None:
+                said = "; the person it walked over to is not on screen any more"
+            else:
+                manager.memory.talked.add(f"{nav.world.current}|{person.local_id}")
+                talk = yield from talk_to(hands, nav, person, f"{goal.reason}: hello to the person it walked over to")
+                said = f"; {talk}"
+        return f"reached the {kind} at {tile} ({outcome}){said}{tried}"
 

@@ -42,11 +42,13 @@ from typing import Protocol
 
 from ai_player.brain.battle import BattleFaults, BattleMind, needs_rest
 from ai_player.brain.explore import explore_intent, goto_intent, weights_for
-from ai_player.brain.goals import Goal, GoalManager, GoalRunner, battles_lost, party_share
+from ai_player.brain.goals import (
+    CURIOSITY_KINDS, Goal, GoalManager, GoalRunner, battles_lost, goal_yield, party_share, yield_snapshot,
+)
 from ai_player.brain.navigator import Navigator, nav_free
 from ai_player.eyes.observation import Observation
 from ai_player.hands.dialogue import advance, busy_reason, player_free, talk
-from ai_player.hands.waiting import WaitWatch
+from ai_player.hands.waiting import BattleClock, PushWatch, WaitWatch
 from ai_player.hands.menus import local_clock, mart_buy, nurse_heal, set_clock
 from ai_player.hands.pad import Faults, Hands
 from ai_player.knowledge.story import load_story
@@ -368,12 +370,27 @@ class HandsBrain:
         manager = GoalManager(story, state, random.Random(f"{seed}:goals"), hints_off=options.fault_no_hints,
                               train_off=options.fault_no_training, errands_off=options.fault_no_errands)
         manager.memory.landmarks = world.landmarks  # the doors it recognised live in the world memory: a later run has them
+        # (build step 5.2, the verifier's round) so do the people who have spoken to it (never chatted with again); and the
+        # navigator keeps a warp's ping-pong past its intent and marks what the reach shows no way to (the earlier brains
+        # keep neither)
+        manager.memory.spoke = world.spoke
+        nav.ponged = {}
+        nav.mark_cut = True
         manager.say = hands.tell  # (build step 5.1) a draw that chose no errand is told too
         hands.watchers.append(manager.notice)
         # (build step 5.1, the step-5 verifier's FAILURE) every stretch a screen WAITED FOR A PRESS with none, whatever the
         # reason it gave (`hands/waiting.py`): written to the action log, graded by `gates/live_step5.py` / `rate_step5.py`
         waits = WaitWatch(lambda: hands.pad.presses, hands.note, lambda: getattr(hands.pad, "doing", None))
         hands.watchers.append(waits)
+        # (build step 5.2, the step-5.1 review's finding 5: about 7,500 frames of walking into someone at OLDALE passed the
+        # stall property) every stretch of FREE time with presses that brought nothing new (no tile seen, no map stood on,
+        # no battle), whatever the goal (`hands/waiting.py`): graded by `gates/live_step5.py` / `rate_step5.py` PUSH_MAX
+        pushes = PushWatch(lambda: hands.pad.presses, hands.note,
+                           lambda: (world.tiles_learned, sum(1 for memory in world.maps.values() if memory.visits)))
+        hands.watchers.append(pushes)
+        # (build step 5.2, step52dev2) the frames battles took: a look round's yield is counted over its OWN time
+        battle_clock = BattleClock()
+        hands.watchers.append(battle_clock)
         runner = GoalRunner(hands, nav, manager, mind, hands.tell)
         target = story.index(options.target)
         hands.tell(f"play brain: target {options.target} ({story.milestones[target].title}); personality {state.base} "
@@ -381,11 +398,12 @@ class HandsBrain:
                    f"{starter} ({starter_why}); faults no_hints:{options.fault_no_hints},no_training:{options.fault_no_training},"
                    f"no_errands:{options.fault_no_errands}")
         self.play_report = report = {"milestones": [], "goals": [], "losses": 0, "target": options.target, "progress": [],
-                                     "won_training": 0, "waits": None,
+                                     "won_training": 0, "waits": None, "pushes": None,
                                      # (the step-5.1 verifier's second round) the goal manager's own count of its time
-                                     # (`brain/goals.py` spent): the BALANCE it keeps
+                                     # (`brain/goals.py` spent): a report only since build step 5.2
                                      "spent": manager.memory.spent}
         self._waits = waits
+        self._pushes = pushes
         ended: list = [None]  # (the second round) the pad's frames when the last goal ended (what played after it: a scene)
 
         def visited(const: str) -> bool:
@@ -427,6 +445,8 @@ class HandsBrain:
                 self._milestone_line(hands, look, story, last, index, milestone, report, visited)
                 last[0], last[1], changed_at = index, milestone, hands.pad.frames
                 progress["heals_counted"] = 0
+                # (build step 5.2, the verifier's round) the story moved on: what it could not get to is worth a look again
+                nav.story_moved()
             # (build step 5.1, the step-5 review's finding 2) REAL progress short of a milestone resets the patience too
             moved = self._progress(look, world, runner, report, progress)
             if moved:
@@ -475,6 +495,10 @@ class HandsBrain:
             hands.tell(f"[AI-GOALS] goal {goal.kind}: {goal.reason} (milestone {milestone.id}, personality {state.active})")
             hands.note("goal", goal.kind, goal.reason, {"milestone": milestone.id, "active": state.active, "key": goal.key,
                                                         "map": goal.map, "steps": goal.steps})
+            if goal.kind == "give_up":
+                # (build step 5.2, the verifier's round) OUT OF IDEAS (`brain/goals.py` next_goal): the run ends here, not
+                # after the story's patience of pressing for nothing
+                return self._play_end(hands, story, manager, runner, report, "stuck", goal.reason)
             began = hands.pad.frames
             yield from hands.pad.idle(hands.pad.think_frames(), f"deciding: {goal.kind}: {goal.reason[:80]}")
             seen = hands.look()
@@ -488,23 +512,38 @@ class HandsBrain:
                 # the 11,019 frames of WALLY's scene that followed) a goal's END is recorded: what came after it was no goal
                 manager.spent(goal, hands.pad.frames - began)
                 hands.note("goal_end", goal.kind, "dropped: a scene began while it decided",
-                           {"ok": None, "frames": hands.pad.frames - began, "key": goal.key, "story_moved": False})
+                           {"ok": None, "frames": hands.pad.frames - began, "key": goal.key, "story_moved": False,
+                            "yield": {"productive": False, "dropped": True}})
                 ended[0] = hands.pad.frames
                 continue
             battles = len(nav.battle_log)
+            # (build step 5.2, the step-5.1 review's finding 1: "it loafs") what the goal BRINGS is counted: before it ...
+            before = yield_snapshot(seen, world, runner, battle_clock.battle_frames)
             ok, outcome = yield from runner.pursue(goal, milestone, index, current)
+            after = hands.look()
+            # ... and after it: a CURIOSITY goal is done only when it brought something (`brain/goals.py` goal_yield): 5.1
+            # called a look round whose budget ran out "done" whatever it saw
+            made = goal_yield(goal, before, yield_snapshot(after, world, runner, battle_clock.battle_frames), outcome,
+                              hands.pad.frames - began)
+            made["frames"] = hands.pad.frames - began
+            made["place"] = getattr(runner, "detour_place", None) if goal.kind == "detour" else None
+            if goal.kind in CURIOSITY_KINDS and not made["productive"]:
+                ok = False
             manager.outcome(goal, ok)
             if goal.kind == "train":
                 report["won_training"] += sum(1 for _, _, result in nav.battle_log[battles:] if result in ("won", "caught"))
             report["goals"].append({"kind": goal.kind, "key": goal.key, "ok": ok, "frames": hands.pad.frames - began,
                                     "outcome": outcome[:200], "milestone": milestone.id})
             hands.tell(f"[AI-GOALS] goal {goal.kind} {'done' if ok else 'not done'}: {outcome[:300]}")
-            # (build step 5.1, the verifier's second round) the goal's END, and its frames into the goal manager's BALANCE
-            # (`brain/goals.py` spent, owed): a curiosity goal in which the story moved on is the story's
-            moved_story = current(hands.look()) != index
+            # (build step 5.1, the verifier's second round) the goal's END, and its frames into the goal manager's count
+            # (`brain/goals.py` spent; a report since build step 5.2): a curiosity goal in which the story moved on is the story's
+            moved_story = current(after) != index
             manager.spent(goal, hands.pad.frames - began, moved_story)
+            # (build step 5.2) the curiosity in a row, the boredom clock (only a PRODUCTIVE curiosity goal resets it), and
+            # what an unproductive one marks (a map exhausted, a place blocked)
+            manager.after_goal(goal, made, after.frame, milestone.id, moved_story)
             hands.note("goal_end", goal.kind, outcome[:200], {"ok": ok, "frames": hands.pad.frames - began, "key": goal.key,
-                                                             "story_moved": moved_story})
+                                                             "story_moved": moved_story, "yield": made})
             ended[0] = hands.pad.frames
         return self._play_end(hands, story, manager, runner, report, "stuck", f"{PLAY_PASSES_MAX} passes of the play loop")
 
@@ -617,17 +656,27 @@ class HandsBrain:
         if waits is not None:
             waits.finish()
             report["waits"] = waits.summary()
+        pushes = getattr(self, "_pushes", None)
+        if pushes is not None:
+            # (build step 5.2) the longest free stretch of presses that brought nothing new
+            pushes.wind_up()
+            report["pushes"] = pushes.push_report()
         prep = {key: dict(value) for key, value in manager.memory.fight_prep.items()}
         hands.tell(f"[AI-GOALS] the end ({kind}: {why}); milestones {[m['id'] for m in report['milestones']]}; before the "
                    f"fights {prep}; roams {len(runner.roams)}, heals {runner.heals}, shopping {runner.shopping}, items "
                    f"{runner.picked}, battles lost {report['losses']}, personality {manager.state.history}, favourite "
                    f"{manager.state.favourite}; progress resets {len(report.get('progress') or [])}; waits on a press "
-                   f"{report.get('waits')}")
+                   f"{report.get('waits')}; pressing with nothing new {report.get('pushes')}; curiosity that brought "
+                   f"nothing {manager.memory.idle}")
         hands.note("end", kind, why, {"milestones": report["milestones"], "fight_prep": prep, "roams": runner.roams,
                                       "heals": runner.heals, "shopping": runner.shopping, "items": runner.picked,
                                       "losses": report["losses"], "drift": manager.state.history,
                                       "favourite": manager.state.favourite, "progress": report.get("progress"),
-                                      "waits": report.get("waits"), "spent": dict(manager.memory.spent),
+                                      "waits": report.get("waits"), "pushes": report.get("pushes"),
+                                      "idle": dict(manager.memory.idle),
+                                      "blocked": {m: {k: sorted(map(list, v)) for k, v in maps.items() if v}
+                                                  for m, maps in manager.memory.blocked.items() if any(maps.values())},
+                                      "exhausted": dict(manager.memory.exhausted), "spent": dict(manager.memory.spent),
                                       "seen_levels": dict(manager.memory.seen_levels),
                                       "no_balls": dict(manager.memory.no_balls), "home_heals": manager.memory.home_heals})
         return f"{kind}: {why}"

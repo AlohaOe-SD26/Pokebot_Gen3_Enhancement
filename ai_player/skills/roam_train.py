@@ -200,21 +200,26 @@ def roam_train(hands: Hands, nav: Navigator, steps: int, why: str = "train by ro
         outcome = yield from nav.run(intent, f"{why}: find grass")
         if not outcome.startswith("done"):
             return f"roam: no grass found: {outcome}"
-    # 2. walk to the nearest grass tile
-    look = hands.look()
-    found = nav.where(look)
-    if found is None:
-        return "roam: the player's tile is not known"
-    memory, here = found
-    path = astar(memory, here, set(memory.grass()), nav.walls(memory, here), 0.0, allow_unknown=False)
-    if path is None:
-        return "roam: no seen grass can be reached"
-    goal = here
-    for direction in path:
-        goal = moved(goal, direction)
-    if goal != here:
+    # 2. walk to the nearest grass tile; (build step 5.2, step52dev6) grass seen past the map's edge is grass of the NEXT
+    # map: a walk that crossed onto it (`Navigator.go_to` "left the map") walks once more, to that map's own nearest grass
+    for attempt in range(2):
+        look = hands.look()
+        found = nav.where(look)
+        if found is None:
+            return "roam: the player's tile is not known"
+        memory, here = found
+        path = astar(memory, here, set(memory.grass()), nav.walls(memory, here), 0.0, allow_unknown=False)
+        if path is None:
+            return "roam: no seen grass can be reached"
+        goal = here
+        for direction in path:
+            goal = moved(goal, direction)
+        if goal == here:
+            break
         outcome = yield from nav.go_to(goal, f"{why}: to the grass at {goal}", FIND_GRASS_BUDGET)
-        if not outcome.startswith("done"):
+        if outcome.startswith("done"):
+            break
+        if not outcome.startswith("left the map") or attempt:
             return f"roam: could not reach the grass at {goal}: {outcome}"
     look = hands.look()
     memory, here = nav.where(look)

@@ -156,6 +156,10 @@ class StoryRecorder:
         self.outcome: int | None = None
         #: THE STEPS (module docstring): [frame, GAME_STAT_STEPS] at every sample where the game's step counter changed
         self.steps: list[list[int]] = []
+        #: (build step 5.2) [frame, GAME_STAT_POKEMON_CAPTURES] and [frame, item-ball flags set] at every change: what a
+        #: curiosity goal BROUGHT, by the game (`gates/rate_step5.py` game_yield)
+        self.captures: list[list[int]] = []
+        self.item_flags: list[list[int]] = []
 
     def after_frame(self) -> None:
         self.frame += 1
@@ -172,6 +176,9 @@ class StoryRecorder:
                                  "trainer": bool(flags & BATTLE_TYPE_TRAINER), "stats": now["stats"]})
         self.outcome = outcome
         self._step_sample(now["stats"]["steps"])
+        for timeline, value in ((self.captures, now["stats"]["captures"]), (self.item_flags, sum(now["items"].values()))):
+            if not timeline or timeline[-1][1] != value:
+                timeline.append([self.frame, value])
         if self.last is None:
             self.last = now
             return
@@ -200,13 +207,15 @@ class StoryRecorder:
 
     def result(self) -> dict:
         return {"every": self.every, "changes": self.changes, "errors": self.errors, "frames": self.frame,
-                "last": self.last, "blips": self.blips, "battles": self.battles, "steps": self.steps}
+                "last": self.last, "blips": self.blips, "battles": self.battles, "steps": self.steps,
+                "captures": self.captures, "item_flags": self.item_flags}
 
 
 #: (build step 5.1) THE WAITS by a second path, test side: the tasks that poll a button THEMSELVES (a yes/no, a menu with a
 #: cursor, a list), by their `gTasks[].func` symbols (the decomp's names, `src/*.c`); with the framework's own
 #: `modules.tasks.is_waiting_for_input` (a text printer waiting for A or B, a script's WaitForAorBPress), the GAME WAITS
-#: FOR A PRESS. Never the AI's eyes.
+#: FOR A PRESS (since the verifier's second round the harness's own `text_waits_now` in place of that read). Never the AI's
+#: eyes.
 INPUT_TASKS = ("Task_HandleYesNoInput", "Task_HandleConfirmStarterInput", "Task_HandleStarterChooseInput",
                "Task_HandleMultichoiceInput", "Task_HandleMultichoiceGridInput", "Task_ShopMenu", "Task_BuyMenu",
                "Task_BuyHowManyDialogueHandleInput", "Task_SetClock_HandleInput", "Task_SetClock_HandleConfirmInput",
@@ -293,10 +302,14 @@ def waits_now() -> str | None:
     development sweep step51dev2, seed 9): during a wild battle's opening the framework's overworld read of printer 0 said
     "waiting" for 510 frames before "Wild WURMPLE appeared!" was printed (a printer state left from before the battle);
     the controller condition is what tells a battle's own text from such a state (no controller waits on the printer
-    then). The tasks that poll a button count on every screen."""
+    then). The tasks that poll a button count on every screen. (The verifier's second round: the overworld read is now the
+    harness's own, `text_waits_now`: the framework's `is_waiting_for_input` reads a script's LEFTOVER native pointer as a
+    wait. MEASURED on a diagnostic replay of NOHINTS seed 938: in a wild battle's opening, BATTLE_STARTING, printer 0 was
+    inactive and the context Stopped while that pointer named WaitForAorBPress; the 2026-10-14 "printer state left from
+    before the battle" may have been this pointer, NOT measured then.)"""
     from modules.battle_state import get_battle_controller_callback
     from modules.memory import get_game_state, read_symbol
-    from modules.tasks import TaskList, is_waiting_for_input
+    from modules.tasks import TaskList
 
     tasks = TaskList(read_symbol("gTasks"))
     for name in INPUT_TASKS:
@@ -316,7 +329,274 @@ def waits_now() -> str | None:
         return None
     if state != "OVERWORLD":
         return None
-    return "a text or script waits for A/B" if is_waiting_for_input() else None
+    return "a text or script waits for A/B" if text_waits_now() else None
+
+
+#: (build step 5.2, the verifier's second round) the script's native function while it waits in `waitbuttonpress`
+#: (pret/pokeemerald `src/scrcmd.c` ScrCmd_waitbuttonpress -> SetupNativeScript(ctx, WaitForAorBPress))
+WAIT_NATIVE = "WaitForAorBPress"
+#: `src/script.c` SCRIPT_MODE_NATIVE, as the framework's `ScriptContext.mode` names it
+NATIVE_MODE = "Native"
+
+
+def text_waits(mode: str, native: str | None, printer: tuple[int, int]) -> bool:
+    """(build step 5.2, the verifier's second round) Does a text or a script wait for A/B, from the global script context's
+    MODE and native function and text printer 0's (active, state)? A script waits only while its context RUNS that native
+    (`NATIVE_MODE`): pret/pokeemerald `src/script.c` (read 2026-10-16) `StopScript` sets the mode STOPPED and never clears
+    `nativePtr`, and a native that returns TRUE hands the context back to BYTECODE with `nativePtr` unchanged, so the pointer
+    names the LAST native the context ran, long after it returned. A printer waits while active in state 2 or 3 (as the
+    framework reads it). The framework's `is_waiting_for_input` asks the pointer alone: MEASURED on a diagnostic replay of
+    NOHINTS seed 938 (f70300-f70740, and after each battle of its look round at f70318), the player WALKED, controllable,
+    the context Stopped, printer 0 inactive, while it said "waiting", so the recorder counted no free time and none of the
+    50 tiles its windows showed for the first time. (The AI's eyes have refused that leftover since build step 1,
+    `eyes/view.py` script_waits_for_button; this is the harness's own read, from the decomp.)"""
+    if mode == NATIVE_MODE and native == WAIT_NATIVE:
+        return True
+    return bool(printer[0]) and printer[1] in (2, 3)
+
+
+def text_waits_now() -> bool:
+    """`text_waits` by the framework's reads: the global script context (`modules.tasks.get_global_script_context`) and
+    `sTextPrinters[0]` (Emerald). Test side: never the AI's eyes."""
+    from modules.memory import read_symbol
+    from modules.tasks import get_global_script_context
+
+    script = get_global_script_context()
+    active, state = read_symbol("sTextPrinters", offset=0x1B, size=2)
+    return text_waits(script.mode, script.native_function_name, (active, state))
+
+
+#: (build step 5.2) the game's pushing stretches at least this long (free frames) are kept (`PlaceRecorder`)
+PUSH_KEEP = 300
+
+
+class PlaceRecorder:
+    """(build step 5.2, the step-5.1 review's findings 1, 3 and 5) THE PLACES by a second path, test side: every `every`
+    frames, by the framework's own reads (`modules.player.get_player_avatar`: the player object's map and coordinates;
+    `player_avatar_is_controllable`; `text_waits_now`, the framework's script context and text printer; the game state),
+    never the AI's eyes:
+      * the tiles the GAME's screen showed (the gate's own window, `gates/window.py`, round every position the player stood
+        on while free: SEEN tiles, keyed by the map group, number and the map's own coordinates, as the AI's memory keys
+        them) and the samples that showed NEW ones (`new_tiles`, [frame, how many]); the maps stood on, in order
+        (`stays`, [frame, "group:number"] at each change), the player's position at each change (`moves`), and the
+        stretches a text or a script waited for A/B on the overworld (`texts`, a TALK or a page read), and the stretches
+        the game was in a BATTLE (`battles`): what a curiosity goal BROUGHT for its own time, and whether a detour stood
+        where it said, by the game (`gates/rate_step5.py` game_yield);
+      * THE PUSHING PROPERTY's second path (`push`): a stretch is the FREE time (controllable, nothing waiting for A/B)
+        since the last NEW thing (a tile the screen showed for the first time, a map first stood on, a battle), paused by
+        time that is not free, counted only when the controls pressed something in it (`HarnessControls.presses`); the
+        longest, and every one of `PUSH_KEEP` frames or more.
+    `seen` (a chapter-2 run's): the tiles its chapter 1 showed (`seen_tiles.json` of that run), so they are not new.
+    (The verifier's second round) The run's OPENING window, the screen its first free sample showed, is no goal's yield:
+    it is recorded as `opening` and not in `new_tiles` (seven truck chats of 16-44 frames had been credited its 165 tiles)."""
+
+    def __init__(self, controls, every: int = 10, seen: set | None = None, pages: set | None = None) -> None:
+        from ai_player.gates.window import SCREEN_DOWN, SCREEN_HALF_WIDTH, SCREEN_UP
+
+        self.controls = controls
+        self.every = every
+        self.frame = 0
+        self.samples = self.errors = 0
+        #: (build step 5.2, the verifier's round: "the game's second path credits ANY text begun in a goal's span as a
+        #: talk", the nurse's welcome right after a heal, a scripted stop met again) the PAGES the game has shown in this run
+        #: (and, `pages`, in the run this one goes on from: its `TEXTS_FILE`), read from the game's message buffer
+        #: (`gStringVar4`, where the field's message boxes expand what they print) when a text began waiting for A/B, cut
+        #: where the box waits for a press (`split_pages`); every `texts` stretch says whether its message showed a page
+        #: NEVER shown before. (The verifier's SECOND round: whole messages were compared, so OLDALE's footprints man, whose
+        #: talk is the last two pages of his own scene, "told something new" 20 times by the game and never by the AI.)
+        #: `text_errors`: buffer reads that failed or found no page (counted new, and reported)
+        self.pages: set[str] = set(pages or ())
+        self.text_errors = 0
+        self.window = [(dx, dy) for dx in range(-SCREEN_HALF_WIDTH, SCREEN_HALF_WIDTH + 1)
+                       for dy in range(-SCREEN_UP, SCREEN_DOWN + 1)]
+        self.seen: set = set(seen or ())
+        self.maps: set = {key[:2] for key in self.seen}
+        #: (the verifier's second round) the new tiles of the run's first free window: the screen it began on
+        self.opening: int | None = None
+        self.new_tiles: list[list[int]] = []
+        self.stays: list[list] = []
+        self.moves: list[list] = []
+        self.texts: list[list[int]] = []
+        self._text: list[int] | None = None
+        #: (build step 5.2, step52dev2) the stretches the game state was BATTLE, [first, last] sample frames
+        self.battles: list[list[int]] = []
+        self._battle: list[int] | None = None
+        #: the open pushing stretch: [first, last, free frames, presses at its start]
+        self._stretch: list | None = None
+        self._free_at: int | None = None
+        self.longest: list | None = None
+        self.kept: list[list] = []
+        self.count = 0
+
+    def after_frame(self) -> None:
+        self.frame += 1
+        if self.frame % self.every:
+            return
+        try:
+            sample = place_now()
+        except Exception:  # noqa: BLE001 - a read between screens: try again next time
+            self.errors += 1
+            return
+        self.samples += 1
+        state, where, free, waiting = sample
+        new = 0
+        if where is not None:
+            group, number, x, y = where
+            stay = f"{group}:{number}"
+            if not self.stays or self.stays[-1][1] != stay:
+                self.stays.append([self.frame, stay])
+            if not self.moves or self.moves[-1][1:] != [stay, x, y]:
+                self.moves.append([self.frame, stay, x, y])
+            if free:
+                if (group, number) not in self.maps:
+                    self.maps.add((group, number))
+                    new += 1
+                window = {(group, number, x + dx, y + dy) for dx, dy in self.window}
+                fresh = window - self.seen
+                self.seen |= fresh
+                if self.opening is None:
+                    # (the verifier's second round) the screen the run began on: seen, and no goal's yield
+                    self.opening = len(fresh)
+                elif fresh:
+                    self.new_tiles.append([self.frame, len(fresh)])
+                    new += len(fresh)
+        if waiting and state == "OVERWORLD":
+            if self._text is not None and self._text[1] >= self.frame - self.every:
+                self._text[1] = self.frame
+            else:
+                # (build step 5.2, the verifier's round; its second round: by PAGE) did the message show a page the game
+                # never showed before in the run?
+                try:
+                    pages = shown_pages()
+                except Exception:  # noqa: BLE001 - a read between screens: counted, and the text counted new
+                    pages = None
+                if not pages:
+                    self.text_errors += 1
+                # (its own name: `new` above counts the new tiles, and a stretch closes on it)
+                unseen = not pages or any(page not in self.pages for page in pages)
+                self.pages.update(pages or ())
+                self._text = [self.frame, self.frame, bool(unseen)]
+                self.texts.append(self._text)
+        if state == "BATTLE":
+            # (step52dev2) the stretches the game was in a BATTLE: a look round's yield is counted over its own time
+            if self._battle is not None and self._battle[1] >= self.frame - self.every:
+                self._battle[1] = self.frame
+            else:
+                self._battle = [self.frame, self.frame]
+                self.battles.append(self._battle)
+        if state == "BATTLE" or new:
+            self._close()
+            self._free_at = None
+            if state == "BATTLE":
+                return
+        if not free:
+            self._free_at = None
+            return
+        presses = self.controls.presses
+        if self._stretch is None:
+            self._stretch = [self.frame, self.frame, 0, presses]
+        elif self._free_at is not None:
+            self._stretch[2] += self.frame - self._free_at
+            self._stretch[1] = self.frame
+        self._free_at = self.frame
+
+    def _close(self) -> None:
+        stretch, self._stretch = self._stretch, None
+        if stretch is None or self.controls.presses - stretch[3] <= 0:
+            return
+        self.count += 1
+        record = [stretch[0], stretch[1], stretch[2], self.controls.presses - stretch[3]]
+        if self.longest is None or record[2] > self.longest[2]:
+            self.longest = record
+        if record[2] >= PUSH_KEEP:
+            self.kept.append(record)
+
+    def result(self) -> dict:
+        self._close()
+        return {"every": self.every, "samples": self.samples, "errors": self.errors, "seen": len(self.seen),
+                "opening": self.opening, "new_tiles": self.new_tiles, "stays": self.stays, "moves": self.moves,
+                "texts": self.texts, "pages": len(self.pages), "text_errors": self.text_errors,
+                "battles": self.battles, "push": {"longest": self.longest, "kept": self.kept, "stretches": self.count, "keep": PUSH_KEEP}}
+
+
+#: (build step 5.2, the verifier's second round) pret/pokeemerald `include/constants/characters.h` (read 2026-10-16):
+#: CHAR_PROMPT_SCROLL 0xFA "waits for button press and scrolls dialog", CHAR_PROMPT_CLEAR 0xFB "waits for button press and
+#: clears dialog": where a message box WAITS FOR A PRESS, so where one page a person reads ends; EOS 0xFF ends the string;
+#: EXT_CTRL_CODE_BEGIN 0xFC and PLACEHOLDER_BEGIN 0xFD carry argument bytes, skipped as `modules.game.decode_string` skips
+#: them (its lengths), so an argument byte is never read as a break
+PAGE_BREAKS = (0xFA, 0xFB)
+STRING_END = 0xFF
+CONTROL_CODE, PLACEHOLDER = 0xFC, 0xFD
+
+
+def split_pages(raw: bytes, decode) -> list[str]:
+    """(build step 5.2, the verifier's second round) The PAGES of an encoded message: its bytes up to the string's end, cut
+    at every code where the box waits for a press (`PAGE_BREAKS`), each piece decoded by `decode` (bytes -> str, the
+    framework's `decode_string`) and its spacing normalised; empty pieces left out. OLDALE's footprints man's scene,
+    "Aaaaah! Wait!\\nPlease don't come in here.\\pI just discovered ...\\pWait until ...", is three pages; his talk is the
+    last two of them (pret/pokeemerald `data/maps/OldaleTown/scripts.inc`, read 2026-10-16)."""
+    data = bytes(raw)
+    pieces: list[bytes] = []
+    piece = bytearray()
+    at = 0
+    while at < len(data):
+        byte = data[at]
+        at += 1
+        if byte == STRING_END:
+            break
+        if byte in PAGE_BREAKS:
+            pieces.append(bytes(piece))
+            piece = bytearray()
+            continue
+        piece.append(byte)
+        if byte == PLACEHOLDER:
+            piece += data[at:at + 1]
+            at += 1
+        elif byte == CONTROL_CODE and at < len(data):
+            code = data[at]
+            length = 3 if code in (0x04, 0x0C, 0x10) else 2 if code in (0x01, 0x02, 0x03, 0x06, 0x08, 0x0D) else 1
+            piece += data[at:at + length]
+            at += length
+    pieces.append(bytes(piece))
+    pages = [" ".join(str(decode(piece + bytes([STRING_END])) or "").split()) for piece in pieces]
+    return [page for page in pages if page]
+
+
+def shown_pages() -> list[str]:
+    """(build step 5.2, the verifier's round; its second round: the PAGES, not the whole message) The pages of the message
+    the field's text box is showing, by the framework's own reads: `gStringVar4`, the buffer a message is expanded into
+    before it is printed (pret/pokeemerald `src/field_message_box.c` ShowFieldMessage, `src/menu_helpers.c`
+    DisplayMessageAndContinueTask: read 2026-10-15), cut into pages (`split_pages`) and decoded
+    (`modules.game.decode_string`). Test side: never the AI's eyes."""
+    from modules.game import decode_string
+    from modules.memory import read_symbol
+
+    return split_pages(read_symbol("gStringVar4"), decode_string)
+
+
+def place_now() -> tuple[str, tuple[int, int, int, int] | None, bool, bool]:
+    """(build step 5.2) The game's state, the player's (map group, number, x, y) on the overworld, whether the player is
+    FREE (the framework's `player_avatar_is_controllable`, no script running in the global script context, text printer 0
+    not printing and nothing waiting for A/B: a scene's text printing is no free time, MEASURED on the development smoke
+    run of seed 1000, where controllability alone counted PROF. BIRCH's lab scene as 4,200 free frames) and whether a text
+    or a script waits for A/B (since the verifier's second round `text_waits_now`, not the framework's
+    `is_waiting_for_input`, which reads a finished script's leftover pointer as a wait), by the framework's own reads
+    (`PlaceRecorder`)."""
+    from modules.memory import get_game_state, read_symbol
+    from modules.player import get_player_avatar, player_avatar_is_controllable
+    from modules.tasks import get_global_script_context
+
+    state = get_game_state().name
+    if state != "OVERWORLD":
+        return state, None, False, False
+    avatar = get_player_avatar()
+    group, number = avatar.map_group_and_number
+    x, y = avatar.local_coordinates
+    waiting = text_waits_now()
+    printing = bool(read_symbol("sTextPrinters", offset=0x1B, size=1)[0])
+    free = (bool(player_avatar_is_controllable()) and not waiting and not printing
+            and not get_global_script_context().is_active)
+    return state, (int(group), int(number), int(x), int(y)), free, waiting
 
 
 def steps_counted(timeline: list[list[int]], start: int, end: int) -> tuple[int, int]:
@@ -340,8 +620,38 @@ def steps_counted(timeline: list[list[int]], start: int, end: int) -> tuple[int,
     return counted, refused
 
 
+#: (build step 5.2) the file a run's game-side seen tiles are written to (`PlaceRecorder`), for the run that goes on from it
+SEEN_FILE = "seen_tiles.json"
+
+
+def read_seen(path: str | None) -> set:
+    """(build step 5.2) The tiles a run's `SEEN_FILE` says the game's screen showed: {(group, number, x, y)}."""
+    if not path or not Path(path).is_file():
+        return set()
+    return {tuple(int(v) for v in item.split(":")) for item in json.loads(Path(path).read_text(encoding="utf-8"))}
+
+
+#: (build step 5.2, the verifier's round) the file beside `SEEN_FILE` with the pages a run's game showed (`PlaceRecorder`
+#: pages; whole messages before the verifier's second round), for the run that goes on from it: a chapter-2 talk is NEW
+#: only if it shows a page chapter 1 never showed either
+TEXTS_FILE = "seen_texts.json"
+#: (the verifier's second round: "a row-level recount needs the %TEMP% run folders" and the rows were clipped) the
+#: second path's whole record of a run (`PlaceRecorder.result`), beside its action log, for a recount
+PLACES_FILE = "places.json"
+
+
+def read_texts(seen_path: str | None) -> set:
+    """(build step 5.2, the verifier's round) The pages the run whose `SEEN_FILE` is `seen_path` showed (its `TEXTS_FILE`,
+    beside it); none for a run that wrote none."""
+    if not seen_path:
+        return set()
+    path = Path(seen_path).with_name(TEXTS_FILE)
+    return set(json.loads(path.read_text(encoding="utf-8"))) if path.is_file() else set()
+
+
 def play(context, seed: int, frames: int, run_dir: Path, personality: str | None, starter: str | None, target: str,
-         faults: set[str], clock: str | None, world_in: str | None, recorder: StoryRecorder | None) -> dict:
+         faults: set[str], clock: str | None, world_in: str | None, recorder: StoryRecorder | None,
+         seen_in: str | None = None) -> dict:
     from ai_player.host.eyes import FrameworkEyes
     from ai_player.mode import BrainSettings, HandsBrain
     from ai_player.options import DEFAULT_MART_COUNT, DEFAULT_MART_ITEM, HandsOptions
@@ -357,6 +667,8 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
     brain = HandsBrain(BrainSettings(frames=frames), lines.append, options)
     controls = HarnessControls(emulator)
     waits = WaitRecorder(controls)
+    # (build step 5.2) THE PLACES by the second path: the tiles the game's screen showed, the maps, the texts, the pushing
+    places = PlaceRecorder(controls, seen=read_seen(seen_in), pages=read_texts(seen_in))
     started = time.monotonic()
     steps = brain.play(controls, FrameworkEyes())
     reason, count = "harness: the brain overran its budget", 0
@@ -371,17 +683,24 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
         if recorder is not None:
             recorder.after_frame()
         waits.after_frame()
+        places.after_frame()
     else:
         count = frames + 11
+    places_result = places.result()
+    seen_file = run_dir / SEEN_FILE
+    seen_file.write_text(json.dumps(sorted(":".join(str(v) for v in tile) for tile in places.seen)), encoding="utf-8")
+    (run_dir / TEXTS_FILE).write_text(json.dumps(sorted(places.pages), ensure_ascii=False), encoding="utf-8")
+    (run_dir / PLACES_FILE).write_text(json.dumps(places_result, ensure_ascii=False), encoding="utf-8")
     return {"seed": seed, "personality": personality, "starter": starter, "target": target, "faults": sorted(faults),
             "reason": reason, "frames": count, "seconds": round(time.monotonic() - started, 1), "presses": controls.presses,
             "lines": lines, "report": brain.play_report, "actions": str(run_dir / "actions.jsonl"),
-            "world_file": str(run_dir / "world.jsonl"), "waits_game": waits.result()}
+            "world_file": str(run_dir / "world.jsonl"), "waits_game": waits.result(), "places": places_result,
+            "seen_file": str(seen_file)}
 
 
 def run(state: Path | None, seed: int, frames: int, personality: str | None, starter: str | None, target: str,
         faults: set[str], game_clock: str | None, clock: str | None, world_in: str | None, run_dir: Path,
-        save_end: Path | None, every: int, checkpoints: Path | None = None) -> dict:
+        save_end: Path | None, every: int, checkpoints: Path | None = None, seen_in: str | None = None) -> dict:
     context = boot(PROFILE)
     emulator = context.emulator
     if state is not None:
@@ -390,7 +709,8 @@ def run(state: Path | None, seed: int, frames: int, personality: str | None, sta
         pin_game_clock(emulator, game_clock)
     start = story_truth(context) if state is not None else None
     recorder = StoryRecorder(context, every, checkpoints)
-    result = play(context, seed, frames, run_dir, personality, starter, target, faults, clock, world_in, recorder)
+    result = play(context, seed, frames, run_dir, personality, starter, target, faults, clock, world_in, recorder,
+                  seen_in)
     result["story"] = recorder.result()
     result["truth"] = truth(context)
     result["story_truth"] = story_truth(context)
@@ -431,6 +751,7 @@ def main() -> int:
     parser.add_argument("--run-dir", type=Path)
     parser.add_argument("--every", type=int, default=30, help="frames between two second-path reads of the story")
     parser.add_argument("--checkpoints", type=Path, help="(development) save the state at every milestone mark's change here")
+    parser.add_argument("--seen-in", help="(build step 5.2) the seen_tiles.json of the run this one goes on from")
     args = parser.parse_args()
     if args.state is None and not args.fresh:
         parser.error("--state PATH or --fresh")
@@ -440,7 +761,7 @@ def main() -> int:
         parser.error(f"unknown faults {sorted(unknown)}: {FAULTS}")
     run_dir = args.run_dir or Path(tempfile.mkdtemp(prefix="ai_play_"))
     result = run(args.state, args.seed, args.frames, args.personality, args.starter, args.target, faults, args.game_clock,
-                 args.clock, args.world_in, run_dir, args.save_end, args.every, args.checkpoints)
+                 args.clock, args.world_in, run_dir, args.save_end, args.every, args.checkpoints, args.seen_in)
     print("PLAY " + json.dumps(result, ensure_ascii=False), flush=True)
     return 0
 

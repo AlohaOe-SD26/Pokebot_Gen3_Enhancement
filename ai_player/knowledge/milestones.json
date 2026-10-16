@@ -648,7 +648,9 @@
     {
      "do": "ask",
      "map": "<rival_house_1f>",
-     "words": "ROUTE 103"
+     "words": "ROUTE 103",
+     "told": "to teach you what it means",
+     "file": "data/maps/LittlerootTown_ProfessorBirchsLab/scripts.inc"
     },
     {
      "do": "go",

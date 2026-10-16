@@ -1,0 +1,362 @@
+AI PLAYER BUILD STEP 2 (THE HANDS) - LIVE PROOF - ARM XBC: FAULT blind count on the clock: 'Is this the correct time?' opens on NO
+date: 2026-10-16 04:46:25
+code: HEAD 75c2080a; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:7c385bbd906e0866 over git diff HEAD (19 files, 565154 bytes) and 8 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+fixture: ai_player/gates/fixtures/clock_room.ss1 md5=5d1d0ce0974470bf11040fc39f832041
+fixture documentation: as CLOCK; the time PINNED (step 2.1) so the arm reproduces
+command: C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe -m ai_player run --profile ai-step2-hands --frames 6000 --wall-seconds 600 --build-root C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot --run-dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261016-044609-XBC --state C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\fixtures\clock_room.ss1
+env: AI_PLAYER_BRAIN=clock AI_PLAYER_SEED=3 AI_PLAYER_FAULT_BLIND_COUNT=1 AI_PLAYER_CLOCK=13:37
+exit code: 0   elapsed: 14.5s   run dir: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261016-044609-XBC
+VERDICT: PASS
+[SELFTEST] check_after_is_this_run on 7 synthetic runs (2 its own: pass; 5 someone else's: stale mtime, frame +3000, frame -3000, no file, the fixture's md5: fail): PASS; [SELFTEST] leftover_processes on two idle 'hands_harness.py' processes (this run's mark: found; another driver's: not counted): PASS
+checks (pre-registered in ai_player/gates/live_step2.py's docstring; each quotes both values):
+  [PASS] the launcher gated the real package: [AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+  [PASS] verdict file: verdict=CLEAN (want CLEAN)
+  [PASS] ai_presses=238 (the instrument, at the emulator's door: hold_button + release_button) == 2 x the AI pad's own count 119 ([AI-HANDS] outcome='stopped: not finished within 6000 frames' presses=119 frames=6000 looks=597 records=247), and > 0
+  [PASS] the AI pad's own frame count 6000 == the instrument's real_frames 6000 (every frame the AI let pass is a frame the main loop ran, and no other)
+  [PASS] every breach counter 0, incl. foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_bot_calls=0 (non-zero: none)
+  [PASS] ended by itself: exit_reason='clock: stopped: not finished within 6000 frames' exit_code=0 process=0 real_frames=6000 (budget 6000)
+  [PASS] the verdict file names the package that ran: C:\Remote Projects\Pokebot_Gen3_Enhancement
+  [PASS] the state graded is the one THIS run wrote: written 14.2s after the run started; frame 18654 == start 12654 + 6000 real frames (+-5); md5 e4a6574f1a6a7bf957d44abe41bda32a (fixture 5d1d0ce0974470bf11040fc39f832041)
+  [PASS] HARM, by the second path: FLAG_SET_WALL_CLOCK=False VAR_LITTLEROOT_INTRO_STATE=5: the clock was never confirmed (the CLOCK arm: True, 6)
+  [PASS] the brain did not claim it: 'clock: stopped: not finished within 6000 frames'
+  [PASS] STEP 2.1: the time is PINNED (AI_PLAYER_CLOCK=13:37), so the arm reproduces: [AI-HANDS] set the wall clock: the clock at (0,-1); the time to set: 13:37 (named by the run)
+  [PASS] 119 presses in the action log, every one with its gate (without: 0)
+  [PASS] 2 A presses advanced a text, each on a look whose digest says waits=A/B(<that reason>) (mismatched: none)
+  [PASS] human pace: 115 presses held 3-7 frames (seen [3, 4, 5, 6, 7]) with gaps 8-18 (seen 8-18); 3 short taps (a turn in place, or a single minute on the clock)
+  [PASS] 2 reading delays, 73-74 frames (bound 18-150), each logged with the page it read
+  [PASS] A was pressed on 'Is this the correct time?' with the cursor on NO 55 times (the clock asked again each time): [13545, 13627, 13735, 13795, 13870, 13966]; blind A presses 55
+
+---- notes ----
+presses by button and gate: {"A: NONE (FAULT blind count": 55, "A: clock reads #": 56, "A: script waitbuttonpress": 1, "A: talk": 1, "A: text printer # CLEAR": 1, "Right: clock reads #": 4, "Up: turn up to face the sign at (#,-#)": 1}
+
+---- the instrument's verdict file (purity.json) ----
+{
+  "counters": {
+    "ai_bot_calls": 0,
+    "ai_loads": 0,
+    "ai_presses": 238,
+    "ai_unrouted_presses": 0,
+    "ai_writes": 0,
+    "extra_frames": 0,
+    "foreign_loads": 0,
+    "foreign_presses": 0,
+    "foreign_writes": 0,
+    "instrument_errors": 0,
+    "instrument_tampered": 0,
+    "isolation_lost": 0,
+    "peek_restores": 0,
+    "ran_after_finish": 0,
+    "real_frames": 6000,
+    "unattributed_inputs": 0,
+    "unattributed_state_changes": 0
+  },
+  "facts": {
+    "exit_code": 0,
+    "exit_reason": "clock: stopped: not finished within 6000 frames",
+    "isolation": {
+      "active": "n=1 types=[GuardListener] rebuild_door=AI",
+      "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2143e8f7c00",
+      "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2143e8f7c00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"
+    },
+    "package_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement"
+  },
+  "finish": {
+    "frame_in_flight": false,
+    "main_thread": true,
+    "thread": "MainThread"
+  },
+  "origins": {},
+  "pid": 31344,
+  "verdict": "CLEAN",
+  "written_by": "ai_player/host/attribution.py Attribution.write_verdict_file"
+}
+
+---- TRUTH of the fixture BEFORE the run (gates/hands_harness.py truth) ----
+{"FLAG_SET_WALL_CLOCK": false, "VAR_LITTLEROOT_INTRO_STATE": 5, "VAR_LITTLEROOT_TOWN_STATE": 0, "balls": {}, "battle_outcome": 0, "boxes": [], "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 12654, "gLocalTime": [9777, 21, 38, 33], "game_state": "OVERWORLD", "game_stats": {"steps": 9, "total_battles": 0, "trainer_battles": 0, "wild_battles": 0}, "gender": 0, "gender_name": "BOY", "items": {}, "localTimeOffset": [0, 0, 0, 0], "map": [1, 1], "money": 3000, "name": "Rowan", "name_bytes": "cce3ebd5e2ffffff", "party": [], "party_exp": [], "party_moves": [], "party_ot": [], "party_pp": [], "player_tid": 34234, "pos": [5, 2], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "state_md5": "5d1d0ce0974470bf11040fc39f832041", "trainer_defeated": {"280": false, "318": false, "322": false, "333": false, "520": false, "523": false, "526": false, "529": false, "532": false, "535": false, "600": false, "603": false, "615": false, "617": false, "631": false, "753": false, "754": false}}
+
+---- TRUTH of the state the run LEFT (gates/hands_harness.py truth) ----
+{"FLAG_SET_WALL_CLOCK": false, "VAR_LITTLEROOT_INTRO_STATE": 5, "VAR_LITTLEROOT_TOWN_STATE": 0, "balls": {}, "battle_outcome": 0, "boxes": [], "flags": {"ADVENTURE_STARTED": false, "BADGE01_GET": false, "BADGE02_GET": false, "BADGE03_GET": false, "BADGE04_GET": false, "BADGE05_GET": false, "BADGE06_GET": false, "BADGE07_GET": false, "BADGE08_GET": false, "DEFEATED_RIVAL_ROUTE103": false, "DEFEATED_RUSTBORO_GYM": false, "HIDE_PETALBURG_CITY_WALLYS_MOM": false, "RECEIVED_POKEDEX_FROM_BIRCH": false, "RESCUED_BIRCH": false, "SYS_B_DASH": false, "SYS_POKEDEX_GET": false, "SYS_POKEMON_GET": false}, "frame": 18654, "gLocalTime": [9777, 21, 38, 33], "game_state": "UNKNOWN", "game_stats": {"steps": 9, "total_battles": 0, "trainer_battles": 0, "wild_battles": 0}, "gender": 0, "gender_name": "BOY", "items": {}, "localTimeOffset": [0, 0, 0, 0], "map": [1, 1], "money": 3000, "name": "Rowan", "name_bytes": "cce3ebd5e2ffffff", "party": [], "party_exp": [], "party_moves": [], "party_ot": [], "party_pp": [], "player_tid": 34234, "pos": [5, 2], "rom_poke_ball": {"name": "POKé BALL", "price": 200}, "state_md5": "e4a6574f1a6a7bf957d44abe41bda32a", "trainer_defeated": {"280": false, "318": false, "322": false, "333": false, "520": false, "523": false, "526": false, "529": false, "532": false, "535": false, "600": false, "603": false, "615": false, "617": false, "631": false, "753": false, "754": false}}
+
+---- the action log: 247 records (frame | decision | action | gate or reason | digest) ----
+f12654 | start | clock | the first look | f12654 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=left walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=2.86ms
+f12654 | tell | say | set the wall clock: the clock at (0,-1); the time to set: 13:37 (named by the run) | f12654 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=left walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.46ms
+f12654 | set the wall clock | press Up 4f | turn up to face the sign at (0,-1) | f12654 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=left walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.52ms
+f12654 | idle | idle 30f | looking at the sign before talking | f12654 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=left walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.52ms
+f12701 | set the wall clock | press A 6f | talk: facing up to the sign at (0,-1), nothing running (no script, controls free, no text, no menu) | f12701 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=2.88ms
+f12790 | watch | busy 65f | reading along: a text is printing | f12790 text waits=A/B(text printer 0 CLEAR) LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.80ms
+f12790 | idle | idle 74f | reading 21 new characters: 'The clock is stopped…' | f12790 text waits=A/B(text printer 0 CLEAR) LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.80ms
+f12864 | read | text | The clock is stopped… | f12864 text waits=A/B(text printer 0 CLEAR) LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.79ms
+f12864 | set the wall clock | press A 4f | text printer 0 CLEAR | f12864 text waits=A/B(text printer 0 CLEAR) LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.79ms
+f12977 | watch | busy 93f | reading along: a text is printing | f12977 overworld LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.50ms
+f12979 | watch | busy 2f | watching: a scene plays (a script runs, the controls are locked) | f12979 overworld waits=A/B(script waitbuttonpress) LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.85ms
+f12979 | idle | idle 73f | reading 27 new characters: 'Better set it and start it!' | f12979 overworld waits=A/B(script waitbuttonpress) LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.85ms
+f13052 | read | text | Better set it and start it! | f13052 overworld waits=A/B(script waitbuttonpress) LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.64ms
+f13052 | set the wall clock | press A 7f | script waitbuttonpress | f13052 overworld waits=A/B(script waitbuttonpress) LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking sees=[sign(-5,-1),sign(-4,-1),sign(0,-1),sign(-2,-1)] dex=0/0 money=3000 badges=0 cost=1.64ms
+f13077 | watch | busy 7f | watching: a scene plays (a script runs, the controls are locked) | f13077 other LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.29ms
+f13080 | watch | busy 3f | watching: the wall clock (it runs by itself: nothing on screen takes a press now) | f13080 other LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.20ms
+f13102 | watch | busy 22f | watching: the screen fades (the wall clock) | f13102 other LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.90ms
+f13103 | watch | busy 1f | watching: the wall clock (it runs by itself: nothing on screen takes a press now) | f13103 other ui=clock[10:00] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.51ms
+f13103 | set the wall clock | hold Right 333f | clock reads 10:00, wanted 13:37: 217 minutes right | f13103 other ui=clock[10:00] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.51ms
+f13436 | set the wall clock | press Right 2f | clock reads 13:33, wanted 13:37: 4 minutes right | f13436 other ui=clock[13:33] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.54ms
+f13449 | set the wall clock | press Right 2f | clock reads 13:35, wanted 13:37: 2 minutes right | f13449 other ui=clock[13:35] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.95ms
+f13468 | set the wall clock | press Right 2f | clock reads 13:36, wanted 13:37: 1 minutes right | f13468 other ui=clock[13:36] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.39ms
+f13479 | idle | idle 22f | the clock reads 13:37 | f13479 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.83ms
+f13501 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f13501 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.83ms
+f13516 | idle | idle 29f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f13516 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f13545 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f13545 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f13561 | idle | idle 23f | the clock reads 13:37 | f13561 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f13584 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f13584 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.91ms
+f13606 | idle | idle 21f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f13606 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.47ms
+f13627 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f13627 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f13644 | idle | idle 27f | the clock reads 13:37 | f13644 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.37ms
+f13671 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f13671 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.91ms
+f13691 | idle | idle 44f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f13691 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.46ms
+f13735 | set the wall clock: the clock reads 13:37 | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f13735 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.46ms
+f13753 | idle | idle 14f | the clock reads 13:37 | f13753 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.47ms
+f13767 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f13767 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.40ms
+f13781 | idle | idle 14f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f13781 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f13795 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f13795 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.58ms
+f13809 | idle | idle 18f | the clock reads 13:37 | f13809 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f13827 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f13827 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.01ms
+f13844 | idle | idle 26f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f13844 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.43ms
+f13870 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f13870 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.43ms
+f13883 | idle | idle 29f | the clock reads 13:37 | f13883 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.42ms
+f13912 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f13912 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.38ms
+f13932 | idle | idle 34f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f13932 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f13966 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f13966 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.30ms
+f13991 | idle | idle 35f | the clock reads 13:37 | f13991 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.47ms
+f14026 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f14026 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.86ms
+f14041 | idle | idle 17f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14041 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.46ms
+f14058 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14058 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f14080 | idle | idle 32f | the clock reads 13:37 | f14080 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.25ms
+f14112 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f14112 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.45ms
+f14133 | idle | idle 24f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14133 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f14157 | set the wall clock: the clock reads 13:37 | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14157 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f14172 | idle | idle 20f | the clock reads 13:37 | f14172 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.48ms
+f14192 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f14192 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.49ms
+f14211 | idle | idle 34f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14211 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f14245 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14245 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.48ms
+f14261 | idle | idle 38f | the clock reads 13:37 | f14261 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f14299 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f14299 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.58ms
+f14316 | idle | idle 44f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14316 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.45ms
+f14360 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14360 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.51ms
+f14375 | idle | idle 27f | the clock reads 13:37 | f14375 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.50ms
+f14402 | set the wall clock | press A 6f | clock reads 13:37, the time wanted | f14402 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.43ms
+f14420 | idle | idle 40f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14420 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f14460 | set the wall clock: the clock reads 13:37 | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14460 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.45ms
+f14475 | idle | idle 29f | the clock reads 13:37 | f14475 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.44ms
+f14504 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f14504 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.86ms
+f14518 | idle | idle 33f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14518 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.32ms
+f14551 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14551 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.33ms
+f14569 | idle | idle 19f | the clock reads 13:37 | f14569 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.47ms
+f14588 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f14588 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.84ms
+f14605 | idle | idle 16f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14605 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f14621 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14621 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f14633 | idle | idle 31f | the clock reads 13:37 | f14633 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f14664 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f14664 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.89ms
+f14686 | idle | idle 26f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14686 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f14712 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14712 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f14734 | idle | idle 41f | the clock reads 13:37 | f14734 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.30ms
+f14775 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f14775 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.95ms
+f14799 | idle | idle 24f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14799 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f14823 | set the wall clock: the clock reads 13:37 | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14823 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.46ms
+f14841 | idle | idle 27f | the clock reads 13:37 | f14841 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f14868 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f14868 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.91ms
+f14879 | idle | idle 19f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14879 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f14898 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14898 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f14916 | idle | idle 38f | the clock reads 13:37 | f14916 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f14954 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f14954 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.85ms
+f14973 | idle | idle 19f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f14973 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f14992 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f14992 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f15013 | idle | idle 26f | the clock reads 13:37 | f15013 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f15039 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f15039 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.85ms
+f15055 | idle | idle 45f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15055 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.47ms
+f15100 | set the wall clock: the clock reads 13:37 | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15100 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f15119 | idle | idle 33f | the clock reads 13:37 | f15119 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f15152 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f15152 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.50ms
+f15169 | idle | idle 14f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15169 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f15183 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15183 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f15200 | idle | idle 21f | the clock reads 13:37 | f15200 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f15221 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f15221 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.85ms
+f15239 | idle | idle 16f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15239 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f15255 | set the wall clock: the clock reads 13:37 | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15255 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.50ms
+f15276 | idle | idle 30f | the clock reads 13:37 | f15276 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.34ms
+f15306 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f15306 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.96ms
+f15317 | idle | idle 27f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15317 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.44ms
+f15344 | set the wall clock: the clock reads 13:37 | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15344 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.43ms
+f15357 | idle | idle 38f | the clock reads 13:37 | f15357 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.32ms
+f15395 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f15395 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.90ms
+f15415 | idle | idle 14f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15415 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f15429 | set the wall clock: the clock reads 13:37 | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15429 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f15450 | idle | idle 34f | the clock reads 13:37 | f15450 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f15484 | set the wall clock | press A 6f | clock reads 13:37, the time wanted | f15484 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.43ms
+f15501 | idle | idle 30f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15501 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.43ms
+f15531 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15531 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.45ms
+f15545 | idle | idle 39f | the clock reads 13:37 | f15545 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.45ms
+f15584 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f15584 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.85ms
+f15602 | idle | idle 19f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15602 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f15621 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15621 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f15644 | idle | idle 45f | the clock reads 13:37 | f15644 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f15689 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f15689 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.86ms
+f15709 | idle | idle 17f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15709 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.48ms
+f15726 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15726 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f15744 | idle | idle 31f | the clock reads 13:37 | f15744 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f15775 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f15775 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.83ms
+f15796 | idle | idle 26f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15796 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.32ms
+f15822 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15822 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f15845 | idle | idle 31f | the clock reads 13:37 | f15845 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.48ms
+f15876 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f15876 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.87ms
+f15892 | idle | idle 38f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15892 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f15930 | set the wall clock: the clock reads 13:37 | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f15930 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f15954 | idle | idle 26f | the clock reads 13:37 | f15954 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f15980 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f15980 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.85ms
+f15995 | idle | idle 14f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f15995 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f16009 | set the wall clock: the clock reads 13:37 | press A 4f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16009 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f16031 | idle | idle 20f | the clock reads 13:37 | f16031 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.42ms
+f16051 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f16051 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.89ms
+f16063 | idle | idle 27f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16063 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.47ms
+f16090 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16090 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f16104 | idle | idle 30f | the clock reads 13:37 | f16104 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.50ms
+f16134 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f16134 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.32ms
+f16149 | idle | idle 26f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16149 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f16175 | set the wall clock: the clock reads 13:37 | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16175 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f16192 | idle | idle 21f | the clock reads 13:37 | f16192 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f16213 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f16213 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.86ms
+f16230 | idle | idle 45f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16230 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f16275 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16275 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f16296 | idle | idle 31f | the clock reads 13:37 | f16296 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.38ms
+f16327 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f16327 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.86ms
+f16348 | idle | idle 43f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16348 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f16391 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16391 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f16409 | idle | idle 26f | the clock reads 13:37 | f16409 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.44ms
+f16435 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f16435 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.85ms
+f16453 | idle | idle 31f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16453 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f16484 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16484 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f16499 | idle | idle 25f | the clock reads 13:37 | f16499 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f16524 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f16524 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.89ms
+f16548 | idle | idle 42f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16548 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.38ms
+f16590 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16590 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.35ms
+f16615 | idle | idle 36f | the clock reads 13:37 | f16615 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f16651 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f16651 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.84ms
+f16671 | idle | idle 28f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16671 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.52ms
+f16699 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16699 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f16721 | idle | idle 31f | the clock reads 13:37 | f16721 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.46ms
+f16752 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f16752 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.85ms
+f16771 | idle | idle 18f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16771 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f16789 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16789 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.30ms
+f16804 | idle | idle 40f | the clock reads 13:37 | f16804 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.27ms
+f16844 | set the wall clock | press A 6f | clock reads 13:37, the time wanted | f16844 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.88ms
+f16864 | idle | idle 17f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16864 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f16881 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16881 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.30ms
+f16896 | idle | idle 18f | the clock reads 13:37 | f16896 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f16914 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f16914 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.84ms
+f16931 | idle | idle 27f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f16931 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.34ms
+f16958 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f16958 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.50ms
+f16981 | idle | idle 36f | the clock reads 13:37 | f16981 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f17017 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f17017 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.29ms
+f17031 | idle | idle 29f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17031 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.44ms
+f17060 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17060 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.45ms
+f17082 | idle | idle 33f | the clock reads 13:37 | f17082 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.39ms
+f17115 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f17115 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.41ms
+f17128 | idle | idle 38f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17128 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.45ms
+f17166 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17166 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f17182 | idle | idle 31f | the clock reads 13:37 | f17182 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.43ms
+f17213 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f17213 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.84ms
+f17228 | idle | idle 40f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17228 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.33ms
+f17268 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17268 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.36ms
+f17288 | idle | idle 39f | the clock reads 13:37 | f17288 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.48ms
+f17327 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f17327 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.43ms
+f17344 | idle | idle 32f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17344 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.37ms
+f17376 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17376 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f17389 | idle | idle 43f | the clock reads 13:37 | f17389 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.51ms
+f17432 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f17432 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.44ms
+f17447 | idle | idle 17f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17447 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f17464 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17464 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f17483 | idle | idle 14f | the clock reads 13:37 | f17483 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f17497 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f17497 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.44ms
+f17514 | idle | idle 42f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17514 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.30ms
+f17556 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17556 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.31ms
+f17572 | idle | idle 17f | the clock reads 13:37 | f17572 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.40ms
+f17589 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f17589 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.36ms
+f17610 | idle | idle 19f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17610 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f17629 | set the wall clock: the clock reads 13:37 | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17629 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.42ms
+f17649 | idle | idle 37f | the clock reads 13:37 | f17649 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f17686 | set the wall clock | press A 6f | clock reads 13:37, the time wanted | f17686 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.14ms
+f17706 | idle | idle 29f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17706 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.56ms
+f17735 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17735 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.41ms
+f17748 | idle | idle 26f | the clock reads 13:37 | f17748 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.45ms
+f17774 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f17774 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.11ms
+f17798 | idle | idle 29f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17798 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.52ms
+f17827 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17827 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.52ms
+f17850 | idle | idle 20f | the clock reads 13:37 | f17850 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.30ms
+f17870 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f17870 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.50ms
+f17890 | idle | idle 25f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17890 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f17915 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f17915 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.29ms
+f17940 | idle | idle 35f | the clock reads 13:37 | f17940 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.39ms
+f17975 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f17975 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.32ms
+f17988 | idle | idle 14f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f17988 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f18002 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f18002 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.50ms
+f18021 | idle | idle 19f | the clock reads 13:37 | f18021 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.52ms
+f18040 | set the wall clock | press A 3f | clock reads 13:37, the time wanted | f18040 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.28ms
+f18052 | idle | idle 44f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f18052 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.38ms
+f18096 | set the wall clock: the clock reads 13:37 | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f18096 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f18116 | idle | idle 20f | the clock reads 13:37 | f18116 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f18136 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f18136 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.40ms
+f18153 | idle | idle 44f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f18153 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.47ms
+f18197 | set the wall clock: the clock reads 13:37 | press A 3f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f18197 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.49ms
+f18214 | idle | idle 17f | the clock reads 13:37 | f18214 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f18231 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f18231 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.86ms
+f18246 | idle | idle 32f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f18246 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f18278 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f18278 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.25ms
+f18296 | idle | idle 15f | the clock reads 13:37 | f18296 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.31ms
+f18311 | set the wall clock | press A 4f | clock reads 13:37, the time wanted | f18311 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.52ms
+f18332 | idle | idle 32f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f18332 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.50ms
+f18364 | set the wall clock: the clock reads 13:37 | press A 7f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f18364 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f18382 | idle | idle 39f | the clock reads 13:37 | f18382 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.32ms
+f18421 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f18421 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.15ms
+f18444 | idle | idle 43f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f18444 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.46ms
+f18487 | set the wall clock: the clock reads 13:37 | press A 5f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f18487 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f18503 | idle | idle 37f | the clock reads 13:37 | f18503 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.47ms
+f18540 | set the wall clock | press A 5f | clock reads 13:37, the time wanted | f18540 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.43ms
+f18555 | idle | idle 25f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f18555 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.28ms
+f18580 | set the wall clock: the clock reads 13:37 | press A 6f | NONE (FAULT blind count: pressed by count from the top, the cursor not read) | f18580 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.26ms
+f18604 | idle | idle 24f | the clock reads 13:37 | f18604 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.36ms
+f18628 | set the wall clock | press A 7f | clock reads 13:37, the time wanted | f18628 other ui=clock[13:37] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=1.21ms
+f18645 | idle | idle 37f | looking at the yes_no: ['YES', 'NO'], cursor on 1 (NO); wanted 0 (YES) | f18645 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.35ms
+f18645 | tell | say | the skill did not finish within 6000 frames: stopped | f18645 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.35ms
+f18654 | end | clock | stopped: not finished within 6000 frames | f18654 other ui=yes_no[NO] LITTLEROOT TOWN(1,1) xy=(5,2) facing=up walking dex=0/0 money=3000 badges=0 cost=0.90ms
+
+---- evidence lines from stdout ([AI-*]) ----
+[AI-GATE] exit=0 verdict=PASS package=C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player
+[AI-RUN] package: the child imports ai_player from C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\__init__.py (checked before launch)
+[AI-RUN] profile ai-step2-hands exists (ai_player-owned=True)
+[AI-RUN] state: seeded from clock_room.ss1 md5=5d1d0ce0974470bf11040fc39f832041 -> current_state.ss1
+[AI-RUN] http_server=off (forced: ai-step2-hands/http.yml rewritten with enable: false)
+[AI-RUN] build_root=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot frames=6000 wall_seconds=600 soft_deadline_margin=30s switches=AI_PLAYER_FAULT_BLIND_COUNT=1 dropped_env=none
+[AI-RUN] run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261016-044609-XBC
+[AI-RUN] command=C:\Users\Ripto\AppData\Local\Programs\Python\Python312\python.exe C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\pokebot.py ai-step2-hands -m AI Player -s 0 -na -hl
+[AI-HOOK] listeners before the AI starts: n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-START] mode='AI Player' frames=6000 brain=clock watch_every=60 switches=none wall_deadline=1792151742.8 run_dir=C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261016-044609-XBC http_server=off debug=False
+[AI-PACKAGE] matches_hook_root=True loaded_from=C:\Remote Projects\Pokebot_Gen3_Enhancement
+[AI-START] interrupt handlers: SIGINT,SIGBREAK (they end the run with a verdict; if no frame comes within 10s, the interrupt watch does)
+[AI-ISOLATION] entry n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2143e8f7c00
+[AI-ISOLATION] active n=1 types=[GuardListener] rebuild_door=AI keep_foreign=False
+[AI-HANDS] brain=clock seed=3 (given) personality=Catcher (seed) faults=ungated_a:False,blind_count:True frames=6000
+[AI-HANDS] set the wall clock: the clock at (0,-1); the time to set: 13:37 (named by the run)
+[AI-HEARTBEAT] frames=1000 ai_steps=999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=24 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=2000 ai_steps=1999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=68 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=3000 ai_steps=2999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=112 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=4000 ai_steps=3999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=153 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=5000 ai_steps=4999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=196 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HEARTBEAT] frames=6000 ai_steps=5999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=238 unattributed_inputs=0 unattributed_state_changes=0
+[AI-HANDS] the skill did not finish within 6000 frames: stopped
+[AI-HANDS] outcome='stopped: not finished within 6000 frames' presses=119 frames=6000 looks=597 records=247
+[AI-HANDS] presses by gate: {'A:NONE': 55, 'A:clock reads 13': 56, 'A:script waitbuttonpress': 1, 'A:talk': 1, 'A:text printer 0 CLEAR': 1, 'Right:clock reads 10': 1, 'Right:clock reads 13': 3, 'Up:turn up to face the sign at': 1}
+[AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=238 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=6000 peek_restores=0 verdict=CLEAN
+[AI-PURITY-ORIGINS] none
+[AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x2143e8f7c00 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True
+[AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-step2-hands\ai_player_runs\20261016-044609-XBC\purity.json
+[AI-EXIT] reason=clock: stopped: not finished within 6000 frames code=0
+[AI-HOOK] listeners at process exit: same_list_object=True members_unchanged=True n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener]
+[AI-RUN] child exit code=0 elapsed=11.2s killed=False
+[AI-RUN] verdict file: verdict=CLEAN exit_reason=clock: stopped: not finished within 6000 frames exit_code=0 pid=31344 package_is_the_gated_one=True

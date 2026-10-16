@@ -9329,3 +9329,166 @@ on all three questions:
 - **Rejected:**
   - Going straight to chapter 3.
   - Chapters 3-4 in one step: about two days of sequential work, with no checkpoint between them.
+
+## 2026-10-15 — Usage-safe operation: the learner needs no Claude (consult OFF), restarts itself at logon, and the AI player's rounds go LEAN from step 5.3
+
+- **The user's direction (2026-10-15):** about 60 % of the weekly usage was spent. The user wants the learner to run safely without Claude responses, and work to resume easily after a usage cut-off or a power cut. Usage should not be burned for little STORY progress, without sacrificing intelligence, safety or meaningful results. The user's words: "proceed how you think we should proceed, SAFELY".
+- **Done the same day:**
+  - **Consult OFF:** `ai-agent/config.json` `consult.enabled` false, committed with step 5.2. Each consult spent the user's weekly usage, and the ranking has plateaued (USER RULING 38).
+    - A failed consult was already harmless (`consult.py` returns a log line; it is not a cycle failure), so this removes a dependency, not a crash.
+    - Claude still reads the learner's findings in sessions (USER RULING 36's dev path).
+    - Turn it back ON with the learner's scale-up.
+  - **Autostart:** Task Scheduler `Pokebot-AI-Learner-Autostart` starts the clone's `run_agent.ps1` 2 minutes after the user logs on, with no time limit and never a second instance.
+    - Tested live: started while the learner ran, the new wrapper's learner found the lock (pid 41292) and exited with code 2, and the running learner was untouched.
+    - After a power cut it returns only if the PC powers on and logs in by itself (BIOS restore-on-AC, Windows auto-login): the user's choice.
+    - On restart the learner ADOPTS and scores the cut cycle (`adopt_unfinished`).
+  - **Tidy-ups:**
+    - Closed an idle wrapper window left from 2026-10-03, which ran from the DEV checkout and had no child.
+    - Closed the live test's window.
+    - Removed the expired one-time task `Pokebot-Batch14` (last run 2026-10-01, no next run).
+  - **In flight:** the handoff's "if stopped mid-task" row says that step 5.2 is IN FLIGHT and what to do if the session dies.
+- **Decision: the AI player's rounds go LEAN from step 5.3.** The safety bar is unchanged; the machinery is cheaper.
+  - **Where the usage went:** about 11M agent tokens since 2026-10-14 (step 5 3.0M, 5.1 2.6M, the recon 2.7M, 5.2 under way). The story frontier has not moved since step 5 (chapter 2).
+  - **The four big costs:**
+    - agents babysitting long emulator runs (5.1 alone made about 1,900 tool calls);
+    - agents running mechanical regressions;
+    - three overlapping verifier and reviewer agents per step;
+    - a very long main chat re-read on every status message.
+  - **The lean rules:**
+    1. Long runs (sweeps, regressions) are plain BACKGROUND SCRIPTS that write a summary. An agent reads only the summary, or investigates a failure. A regression script (`run_regression.py`) runs every suite and prints the verdict lines, with no agent tokens while it runs.
+    2. STORY-FIRST steps. Each proves its chapter's story goal by game reads on held-out seeds, with one fault arm per new guard and the existing human-likeness floors. No new metric machinery unless a real defect shows up.
+    3. ONE combined adversarial verify-and-review agent per step. A fix round only for a failure (06 2026-10-15, unchanged).
+    4. Cheaper models for read-only extraction and doc checks; the strongest for building and the adversarial check.
+    5. Fewer, shorter status turns, and a FRESH session at each clean boundary: the handoff exists so that resuming costs little.
+- **Rejected:**
+  - Stopping step 5.2 mid-build: about 20 half-edited files, and its gates and loafing fix are prerequisites anyway.
+  - Dropping the verifier, the planted-bug proofs or held-out seeds: they caught every real defect so far.
+
+## 2026-10-15 — USER RULING 38 follow-up: consult KEPT ON (it CORRECTS this day's "consult OFF" entry); the learner at 12 lanes; the lean process to start after step 5.2
+
+- **The user's words:**
+  - "1. The Claude advice: keep it on";
+  - "2. Lanes: you decide, if 12 doesnt add to the cost and/or the benefits of 12 is better, then change it back to 12";
+  - "3. The lean approach: go ahead with it once we settle the details and when you think the best time to change things over to it".
+- **Consult ON: "consult OFF" earlier today was WRONG, so read this entry instead.**
+  - That entry rested on the claim that consult was "not adding much". Measured afterwards: 10 of the 15 best-ranked strategies in `findings/LATEST.md`, including the top 5, entered as consult PROPOSALS (21 such genomes in `learner.log`). The learner's own screening only measures knobs; the proposals are its exploitation.
+  - The OFF edit was never pushed, so the learner never lost consult.
+  - Cost: about 2 cheap-model calls a day. A failed call, for example when the usage runs out, is logged and harmless.
+- **12 lanes (Claude's call, as the user delegated):**
+  - `max_lanes` 12 gives 3 arms a cycle: the incumbent, one proposal and one design row (`brain.choose_arms`; lanes come in fours).
+  - 8 lanes gave 2 arms, and while proposals queue faster than one per cycle (9 were waiting; 2 arrive a day), the screening design got NO rows. That side effect was missed when 8 was recommended.
+  - Lanes cost no Claude usage. 12 is 75 % of the old 16-lane load; disk is guarded by `min_free_gb` 25.
+  - Scale to 16 when the AI player gives the learner something new to test (USER RULING 38).
+- **The lean process starts at the next clean boundary,** after step 5.2 is committed. Its scripts (`run_regression.py`, a sweep-summary runner) are its first work.
+- **The autostart task is never deleted:** when training ends it is DISABLED (`Disable-ScheduledTask -TaskName Pokebot-AI-Learner-Autostart`) and re-enabled when needed (`Enable-ScheduledTask`), per the user's 2026-10-15 request.
+- **Lesson (`08` is for bugs; this is a judgment error, recorded here):** a recommendation to remove a component needs the measurement of what that component PRODUCES first. Here the measurement took one read-only script and reversed the recommendation.
+
+## 2026-10-15 — USER RULING 39: the trainer runs and IMPROVES on its own when Claude or the internet is unavailable, QUEUES its questions and reconnects by itself; the user drives goals and design, and Claude owns technical decisions
+
+- **The user's words:**
+  - "I am not a programmer and rely alot on you to make these sorts of decisions, I am more driving the goal and design of the ai agent the trainer is creating for me to deploy."
+  - "I want the trainer to be able to autonomously run as stated (without internet or claude in the event they go out/usage credits run out) as well as be able to self improve and progress on its own if the above mentioned happens but also be able to still use claude so it effectively pings it (once it detects claude is unreachable) whenever it has a question so it acts as a way to continue to use claude so when claude becomes available it will reconnect with it (or some way to know when tokens are available/token weekly usage limit awareness or internet connection reconnected so it knows when claude is available again)".
+- **Roles:**
+  - TECHNICAL decisions are Claude's: architecture, process, tooling, learner settings. Each is explained in plain English with its evidence and recorded here.
+  - Decisions about what the AI IS and how it should BEHAVE go to the user.
+- **The design (Claude's, recorded so any session builds the same thing):**
+  - **A. Runs without Claude.** Play already does. IMPROVEMENT will continue too: when no Claude proposal is waiting, the learner fills that slot ITSELF from its existing exploit mode (a Thompson draw, then mutants of the best; `brain.choose_arms`). Later, the same engine tunes the AI PLAYER's own settings (item C of the order below).
+  - **B. A QUESTION QUEUE.** Whatever the trainer would ask Claude goes into a persistent queue file (it survives a power cut), with a priority and an expiry, because a stale question is dropped.
+    - When Claude is reachable, the top questions are sent within the EXISTING daily cap (2 calls).
+    - A backlog NEVER bursts: a reconnect must not spend the user's freshly reset weekly usage.
+    - Answers stay PROPOSALS that real runs test before anything is adopted.
+  - **C. Knowing when Claude is back, without spending usage:**
+    - First a FREE internet check (can `api.anthropic.com` be reached).
+    - No "ping" calls that cost tokens: the real question IS the probe.
+    - Each failure is classified as NETWORK, USAGE LIMIT or OTHER:
+      - a network failure retries when the free check passes;
+      - a usage-limit failure waits until the reset time if the error states one, else backs off exponentially (30 minutes doubling, up to 12 hours).
+    - The state ("Claude unreachable since X, reason, N questions queued, next try at Y") is written to `findings/LATEST.md` and `learner.py status`, so a session sees it.
+    - ⚠ To Claude's knowledge, the CLI does NOT expose the account's remaining WEEKLY usage to a script. So "usage awareness" is inferred from the errors and the trainer's own cap. If a reliable meter is found, use it, but never assume one.
+  - **D. Safety, unchanged:**
+    - The 24/7 process never edits code, never commits and never pushes.
+    - Its only git is the clone's fast-forward.
+    - Consults stay read-only.
+    - Self-improvement means TUNING settings and strategies, tested by real runs. New SKILLS (new game mechanics) still come from development sessions.
+- **The order (Claude's call):**
+  1. In the lean phase right after step 5.2: A's fallback, B and C, in the learner.
+  2. Chapters 3-4 (the skills that story progress needs).
+  3. Self-tuning of the AI player on all of badge 1. The learner points at the AI player's knobs, scored by story progress plus the human-likeness floors. This is the "something new to test" that returns it to 16 lanes (USER RULING 38).
+  4. The coach (step 6) reuses B and C for the AI's own in-game questions.
+- **Open for the user, at item 3:** should the AI play every game as a first-time player, or as one who remembers past playthroughs (bosses' levels, what worked, the map)?
+
+## 2026-10-15 — USER RULING 40: the AI is a SEASONED PLAYER (it knows Pokemon and Emerald and remembers past games) who still plays every new game like a person, with many personalities cycled so no two playthroughs feel alike; Claude controls how and when
+
+- **The user's words:** "I think it would be nice if the AI was familiar with the game between each game run (fresh start) so it doesnt look dumb/stupid, it should look like a seasoned player that is aware of the mechanics of pokemon in general as well as pokemon emerald, but still have the "new game" logic where it still explores and plays like a human, still aware of all pokemon available in the game, levels, skills, abilities, moves, type weaknesses/advantages, move pools for each pokemon, item list and location in physical world on the ground and gifts as well as carried items by pokemon (including rarity of carried items so it knows they dont carry them all the time) as well as rarity of pokemon that we discussed and shiny pokemon and legendary/event pokemon (cheat to obtain items to encounter them as we discussed in the past) effectively act like a human (Me) who plays the game but with varying personalities (more aggressive, more defensive, more exploratory, more completionist, collector, etc... and other personalities we can come up with) that it uses and cycles through so each gameplay looks, plays and feels unique and organic and not cold and robotic." And: "I give you control over how and when we implement this and how we handle/adapt it as we go (you too need to be self improving based on logic, reason and evidence and input from me if needed but mostly autonomous/self sustaining and improving)". This also answers RULING 39's open question: the AI REMEMBERS across playthroughs.
+- **What it means:**
+  - **KNOWLEDGE: all allowed,** as a seasoned player has it from experience or a guide:
+    - the mechanics;
+    - every species with its levels, learnsets (move pools), abilities and types;
+    - every item and WHERE it is: on the ground, hidden, gifts, and items wild Pokemon CARRY, with their held-item rarity;
+    - each species' rarity by area, shiny odds, and legendaries and events (event Pokemon by the simulated mystery gift, post-game, RULING 33);
+    - trainers and bosses and their teams, and the maps and their connections.
+  - **EXPERIENCE: allowed.** It remembers across playthroughs what worked (the levels a boss needed, the moves that won, places it got stuck). It starts each New Game knowing more than the last time.
+  - **BEHAVIOUR: must stay human.** Each new game is still PLAYED like a person: it explores, detours, takes opportunities, and makes human-like choices and mistakes.
+    - Knowledge informs choices (a seasoned player detours for an item they remember). It must never produce a beeline, a scripted route or robotic perfection.
+    - RULING 32 (no speedrun) and the step 5.1/5.2 human-likeness floors (no stalls, no loafing, no beeline) stand.
+  - **STILL NOT ALLOWED: LIVE HIDDEN STATE a player cannot see.** That is the RNG, a wild Pokemon's PID, IVs, nature or held item before the game shows them, the foe's exact stats, upcoming encounters, and anything the screen does not show NOW. The eyes stay memory injection filtered to what is on screen (RULING 36).
+- **What it SUPERSEDES:** the step 5-5.2 limits on KNOWLEDGE:
+  - hints only at the level the dialogue gives;
+  - fight levels only for fights the game names;
+  - coordinates and trainer positions marked developer-only and refused by the brain.
+  - ⇒ The step-5.2 person-fair data door (gate G4) is RE-SCOPED: it guards LIVE HIDDEN STATE, not static game knowledge. The dialogue hints stay as the human-flavoured reasons the AI tells in its log.
+- **Personalities:** archetypes such as AGGRESSIVE, DEFENSIVE, EXPLORER, COMPLETIONIST, COLLECTOR ("and other personalities we can come up with"); today's Catcher/Story/Trainer map onto them.
+  - Each archetype is a weight set over battles, errands, risk and pace.
+  - Each run picks one, drifts and returns, and has its own name, team and favourite, so playthroughs feel distinct and organic.
+- **How and when: Claude's call, recorded here.**
+  1. **Step 5.2 finishes unchanged.** Its G4 is re-scoped in the next step, a classification change, so step 5.2 is not interrupted.
+  2. **Lean phase:** the scripts, RULING 39's autonomy pieces, G4 re-scoped.
+  3. **A SEASONED-KNOWLEDGE BASE, before chapters 3-4,** because it helps them directly: knowing that PETALBURG WOODS joins Route 104's halves removes the recon's run-stopper. Learnsets, abilities, encounter tables with rarity, held items with rarity, item and gift locations, trainer rosters, boss teams, map links, shiny, legendary and event data.
+     - Extracted as DATA with provenance from the bot's data files and the decomp, verified against the decomp (Claude agents validate; Gemini only enumerates).
+     - It makes curiosity PRODUCTIVE: detours go to items and Pokemon it knows about, which also answers step 5.1's loafing finding.
+  4. **Chapters 3-4.**
+  5. **Self-tuning with EXPERIENCE memory and the expanded personalities** (RULING 39 item 3).
+- **Self-improvement of the PROCESS (the user: "you too need to be self improving"):** every step ends with a short evidence-based retro:
+  - what it cost (the usage audit);
+  - what the verifier and review found;
+  - which lesson or gate that adds to `ai_player/LESSONS.md` (living; a lesson retires when a gate makes it impossible).
+  The user is asked only about goals and design.
+
+## 2026-10-15 — The CLOUD PHASE: the user's $250 promotional cloud credit buys THINKING work that needs no emulator. Nothing may get stuck there, and the setup reverts when the credit ends
+
+- **The user's words:** "proceed but ensure nothing gets stuck on the cloud in the event that I run out of credits or go beyond the expiration date or an outage ... leverage these temporary credits while they are available then reverting back to how things were setup before".
+- **What the cloud is good for here (measured by the pilot, `claude/practical-pascal-ye42tg`):**
+  - Linux, 4 cores, 15 GB, Python 3.11.
+  - The doc gates and `check_purity` PASS there. Three unit suites fail only on missing pip packages (`confz`, `numpy`).
+  - There is no emulator: `sandbox-pokebot/mgba` is Windows-only and untracked.
+  - ⇒ Use it for research, data extraction, offline-testable code, doc housekeeping and reviews. Live game runs, sweeps and the learner stay on the PC.
+- **Rejected:**
+  - Running the game in the cloud: a Linux emulator setup, 4 cores, a 10-minute idle cut-off, and throwaway work after the expiry.
+  - Routing the learner's consults through the cloud: they are small, the learner must never push its data, and it would add a stored token and moving parts that are useless after the expiry.
+- **Safety, learned the same day:**
+  1. The repo's hooks do NOT run in the cloud: they call `powershell`, which is absent there, and end in `|| true`, so they fail open. The pilot proved it: `git add -A --dry-run` and `git stash` both RAN. Every job's instructions therefore carry the rules, and after each job the coordinator confirms that `origin/main` is unchanged.
+  2. Creating a routine through the API attached ALL the account's connectors (Claude Docs, Higgsfield, Google Drive, Claude Code Remote), and an update with an empty list did NOT clear them. Only the routine the user made on the website has none.
+     - ⇒ ONE routine, `pokebot-cloud-worker`, is reused: its instructions are updated and it is run ON DEMAND.
+     - Before every run, a `get` must show `mcp_connections: []`.
+     - The API-made routine was disabled and renamed "DISABLED-do-not-run", for the user to delete.
+  3. No schedules (a cloud job never fires by itself). Each job is small, pushes after every step, and keeps a STATUS file, so a cut-off loses at most one step.
+  4. Nothing merges to main without local verification.
+- **Cost:**
+  - Not yet measurable: the pilot (5.5 minutes on Sonnet) left the card at $250 and the weekly meter at 64 %.
+  - KB1 is the first medium job; the user reads both meters after it.
+  - If the WEEKLY meter carries the cost, the cloud phase stops.
+- **The revert,** by 2026-11-01 or when the credit is spent: disable the routine, keep every branch (merged or archived), and drop the handoff's cloud note. Nothing in the AI or the learner depends on the cloud.
+
+## 2026-10-16 — "P2" decided by Claude (USER RULING 39: technical): the shares of TIME stay REPORTED, never graded; human-likeness is graded by what curiosity YIELDS, run by run
+
+- **The question** (`ai_player/README.md` "P2 needs a user ruling"): should the share of frames spent on errands and curiosity be a pass/fail bound?
+- **Decision: NO.**
+  - Step 5.1 measured the cost of that: a time quota is the exact quantity the AI learned to fill, and it LOAFED (`08` 2026-10-15).
+  - Time shares stay REPORTED.
+  - The graded human-likeness properties are:
+    - a per-run yield floor, measured by the GAME's reads the AI never computes;
+    - spacing;
+    - no stall, no loafing, no pushing;
+    - no beeline, as the time ratio against the beeline control.
+- **Why it is not the user's call:** it is how to MEASURE "plays like a person", a technical choice under RULING 39. The user's goal (RULINGS 32 and 40) is unchanged.
+- **Rejected:** grading time shares with a floor, because Goodhart was measured, not hypothetical.

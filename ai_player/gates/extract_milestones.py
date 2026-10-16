@@ -189,7 +189,12 @@ MILESTONES: list[dict] = [
      "decomp": {"BIRCH_LAB_STATE": "data/maps/LittlerootTown_ProfessorBirchsLab/scripts.inc"}},
     {"id": "ch1_rival_route103", "chapter": 1, "title": "Find the rival on ROUTE 103 and win the battle",
      "done": {"flags": ["DEFEATED_RIVAL_ROUTE103"]}, "maps": ["<rival_house_1f>", "OLDALE_TOWN", "ROUTE103"],
-     "steps": [{"do": "ask", "map": "<rival_house_1f>", "words": "ROUTE 103"},
+     # (build step 5.2, the step-5.1 review's finding 6: "the ask step still walks to the step's own house with 'nothing
+     # was said'") the ask step's OWN words: PROF. BIRCH's "Get {RIVAL} to teach you what it means to be a TRAINER." (the
+     # page after his "go see {RIVAL}?", whose yes/no page is a menu, not a page read): a person told to go and see the
+     # rival goes to the rival's house, where it met them
+     "steps": [{"do": "ask", "map": "<rival_house_1f>", "words": "ROUTE 103", "told": "to teach you what it means",
+                "file": "data/maps/LittlerootTown_ProfessorBirchsLab/scripts.inc"},
                {"do": "go", "map": "ROUTE103", "told": "ROUTE 103"},
                {"do": "talk", "map": "ROUTE103", "look": "rival", "told": "ROUTE 103"}],
      "hint": {"said": "the rival's mom: Oh, {RIVAL} went out to ROUTE 103 just a little while ago.", "words": "ROUTE 103",

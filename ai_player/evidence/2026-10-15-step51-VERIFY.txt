@@ -1,5 +1,0 @@
-[VERIFY] code: HEAD b029673d; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:d3d34871df0ac077 over git diff HEAD (21 files, 481617 bytes) and 1 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
-[VERIFY] ai_player\knowledge\milestones.json: 20 milestones; teacher sandbox-pokebot/modules/story/early_game.py sha256 9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77
-[VERIFY] pret/pokeemerald via gh api: flags.h 2419 defines, vars.h 294, opponents.h 857, event_objects.h 276, metatile_labels.h 693
-[VERIFY] checked: 15 flag numbers, 8 var numbers, 25 proofs set by their scripts, 14 trainer ids, 14 party level lists, 12 looks, 13 hint words in their scripts, 19 steps' own words in their scripts
-[VERIFY] OVERALL PASS

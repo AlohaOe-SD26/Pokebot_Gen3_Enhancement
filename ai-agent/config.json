@@ -1,8 +1,8 @@
 {
   "_help": "Read by the learner at the start of EVERY cycle, so an edit applies to the next cycle without a restart. Keys starting with _ are ignored. See README.md.",
   "lanes": "auto",
-  "_max_lanes": "8 from 2026-10-15 (USER RULING 38): the strategy ranking has plateaued (top 15 tied at 0.36-0.38 +/- 0.02 after 26 cycles), so half the lanes lose almost nothing and halve heat, CPU and disk. Scale back to 16 when the AI player gives the learner something new to test. (16 from 2026-10-07, USER RULING 37 Q7.)",
-  "max_lanes": 8,
+  "_max_lanes": "12 from 2026-10-15 (USER RULING 38 and its follow-up: the user left 8 vs 12 to Claude). Lanes cost no Claude usage. 12 lanes = 3 strategies a cycle (the incumbent, one Claude proposal, one screening-design row), while 8 lanes = 2, which starves the design while proposals queue (brain.choose_arms). Scale to 16 when the AI player gives the learner something new to test. (8 briefly on 2026-10-15; 16 from 2026-10-07, USER RULING 37 Q7.)",
+  "max_lanes": 12,
   "reserve_threads": 4,
   "reserve_ram_gb": 8,
   "ram_per_lane_gb": 1.5,
@@ -22,7 +22,7 @@
   "max_proposals_per_cycle": 1,
   "two_flip_prob": 0.3,
   "consult": {
-    "_enabled": "turned ON 2026-10-03 after a live test (60 s, 2 proposals, a developer note); at most 2 calls a day, each capped at max_usd_per_call",
+    "_enabled": "ON since 2026-10-03; KEPT ON by the user 2026-10-15 (06) after measurement: 10 of the 15 best-ranked strategies, including the top 5, came from these proposals. It costs about 2 cheap-model calls a day, and a failed call (e.g. the user's usage ran out) is logged and harmless, never a cycle failure.",
     "enabled": true,
     "max_calls_per_day": 2,
     "model": "sonnet",
