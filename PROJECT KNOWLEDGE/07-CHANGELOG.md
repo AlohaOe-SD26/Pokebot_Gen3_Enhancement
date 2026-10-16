@@ -38084,3 +38084,17 @@ bought balls only at fixed story points.
   - KB1 (the seasoned knowledge base, slice 1: 386 species, 354 moves, learnsets, 135 maps of encounters with rarity, held-item rules, Feebas) is on branch `claude/kb1-seasoned-knowledge-cr1f5t`. It is NOT merged; it waits for a local check.
   - The credit card stayed at $250 while the weekly meter rose, so cloud jobs are PAUSED until billing is confirmed.
 - **Cost:** step 5.2 was about 143M input-equivalent tokens (about 36 % of a week), by the usage audit. This is the measured case for the lean process (`06` 2026-10-15).
+
+## 2026-10-16 — Disk: step 5.2's runs left 1,258 temp folders (24.3 GB) although gate G5 promised cleanup; they were deleted by hand. The learner was healthy at the check-in
+
+- **What happened:**
+  - C: free fell from 81 GB (2026-10-15 morning) to 58 GB.
+  - `%TEMP%` held 1,299 AI test folders (`ai_step*`, `ai_sweep*`, `ai_player_gate_*`), all over 6 hours old.
+  - Step 5.2 was committed with its evidence filed, so they were scratch. 1,258 were deleted: 24.3 GB freed, C: back to 82 GB.
+  - The sandbox's AI run logs are 0.7 GB and were kept.
+- **⇒ OPEN for the lean setup:** G5 ("harnesses delete their own temp run folders") did not cover these runs. The suspects are the agents' development sweeps, run from scratch scripts, and the purity gate's copies. ⇒ every runner and gate copy must clean up in `finally`, and a run_units check must fail when stale AI temp folders pass a threshold.
+- **The learner at the check-in (12:23 PM):**
+  - RUNNING since 2026-10-04: cycle ai0029, 29 cycles, 0 failures, 2,116 runs, Champion in 15 % of scored runs.
+  - Consult ON; this cycle's arm B is a consult proposal.
+  - Its clone is at `75c2080a` (8 lanes). It fast-forwards to `c4c3ce8a` (12 lanes) at the next cycle (about 2:28 PM).
+- **The user's meters:** weekly 86 %; the cloud credit still $250. Cloud jobs stay paused.
