@@ -67,6 +67,13 @@ def maybe_consult(cfg: dict, repo: Path, ai: Path, tag: str) -> str:
     log = ai / "data" / "consult_log.jsonl"
     if _calls_today(log) >= int(c.get("max_calls_per_day", 2)):
         return "consult: daily cap reached"
+    # A queue that grows faster than one proposal per cycle is used only spends the user's Claude usage on ideas
+    # that will wait days (2026-10-17: 12 waiting, 2 arriving and 1 used per cycle). Ask again once it drains.
+    inbox = ai / "inbox"
+    waiting = len(list(inbox.glob("*.json"))) if inbox.is_dir() else 0
+    cap = int(c.get("max_waiting_proposals", 6))
+    if waiting >= cap:
+        return f"consult: skipped, {waiting} proposal(s) already waiting (cap {cap}); asking again once the queue drains"
     exe = shutil.which("claude")
     if not exe:
         return "consult: the `claude` command is not on PATH"

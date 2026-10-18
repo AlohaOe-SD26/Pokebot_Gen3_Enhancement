@@ -72,7 +72,7 @@ DEFAULTS = {
     "wait_if_other_bots_running": True, "idle_wait_minutes": 15, "max_consecutive_failures": 3,
     "max_proposals_per_cycle": 1, "two_flip_prob": 0.3,
     "consult": {"enabled": False, "max_calls_per_day": 2, "model": "sonnet", "max_usd_per_call": 0.75,
-                "timeout_minutes": 20},
+                "timeout_minutes": 20, "max_waiting_proposals": 6},
 }
 
 

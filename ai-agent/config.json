@@ -27,6 +27,8 @@
     "max_calls_per_day": 2,
     "model": "sonnet",
     "max_usd_per_call": 0.75,
-    "timeout_minutes": 20
+    "timeout_minutes": 20,
+    "_max_waiting_proposals": "skip a consult while this many proposals already wait in inbox/ (2026-10-17: 12 waited; 2 arrive a cycle, 1 is used), so the user's Claude usage is not spent on ideas that would wait days",
+    "max_waiting_proposals": 6
   }
 }

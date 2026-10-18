@@ -38098,3 +38098,17 @@ bought balls only at fixed story points.
   - Consult ON; this cycle's arm B is a consult proposal.
   - Its clone is at `75c2080a` (8 lanes). It fast-forwards to `c4c3ce8a` (12 lanes) at the next cycle (about 2:28 PM).
 - **The user's meters:** weekly 86 %; the cloud credit still $250. Cloud jobs stay paused.
+
+## 2026-10-18 — Bot tuner: a consult BACKLOG CAP (`#28-trainer-improvements` item 3), the one improvement that fit the user's remaining weekly usage (87 %)
+
+- **Why:** 12 consult proposals were waiting. 2 arrive a cycle and 1 is used, so each consult spent the user's Claude usage on ideas that would wait days.
+- **What:**
+  - `ai-agent/consult.py` `maybe_consult` returns "consult: skipped, N proposal(s) already waiting (cap M)" BEFORE reaching Claude while `inbox/*.json` holds at least `consult.max_waiting_proposals` files.
+  - The cap is 6, in `config.json` and `learner.DEFAULTS`.
+  - Consult stays ON (USER RULING 38 follow-up); it simply resumes once the queue drains.
+- **Proof:**
+  - `test_agent.py` ALL PASS (54 checks), with two new ones:
+    - C3: a full queue skips without reaching Claude (`shutil.which` is patched to raise if called);
+    - C4, the control: under the cap the consult goes ahead.
+  - A MUTANT run in memory without the skip: "FAIL C3 … CALLED: the consult reached for claude" (C4 still PASS). No file was changed by the mutant.
+- **Deploy:** the push reaches the learner at its next cycle boundary. Its clone fast-forwards and restarts into the new code only after `test_agent.py` passes.

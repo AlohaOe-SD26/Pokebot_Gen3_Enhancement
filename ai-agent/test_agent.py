@@ -233,6 +233,36 @@ def test_prune_and_inbox(tmp: Path) -> None:
     check("C2 consult skips project hooks (no git pull), is read-only, capped and on a cheap model",
           "--setting-sources user" in joined and "--allowedTools Read,Grep,Glob" in joined
           and "--max-budget-usd" in cmd and "--model sonnet" in joined and "--max-turns" not in cmd, joined[-160:])
+    # The backlog cap (2026-10-17): a full queue must skip BEFORE Claude is reached; under the cap it goes ahead.
+    box = tmp / "consult_queue"
+    (box / "inbox").mkdir(parents=True)
+    (box / "data").mkdir()
+    for name in ("a", "b"):
+        (box / "inbox" / f"{name}.json").write_text("{}", encoding="utf-8")
+    cfg = {"consult": {"enabled": True, "max_calls_per_day": 99, "max_waiting_proposals": 2}}
+    real_which = consult.shutil.which
+
+    def claude_reached(name: str) -> str:
+        raise AssertionError("the consult reached for claude")
+
+    consult.shutil.which = claude_reached
+    try:
+        try:
+            out = consult.maybe_consult(cfg, tmp, box, "x")
+        except AssertionError as error:
+            out = f"CALLED: {error}"
+    finally:
+        consult.shutil.which = real_which
+    check("C3 a full queue skips the consult without reaching Claude",
+          out.startswith("consult: skipped, 2 proposal(s) already waiting (cap 2)"), out)
+    (box / "inbox" / "b.json").unlink()
+    consult.shutil.which = lambda name: None
+    try:
+        out = consult.maybe_consult(cfg, tmp, box, "x")
+    finally:
+        consult.shutil.which = real_which
+    check("C4 FAULT CONTROL: under the cap the consult goes ahead (here it stops at 'no claude on PATH')",
+          out == "consult: the `claude` command is not on PATH", out)
 
 
 def test_adopt_and_reparse(tmp: Path) -> None:
