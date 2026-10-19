@@ -38112,3 +38112,25 @@ bought balls only at fixed story points.
     - C4, the control: under the cap the consult goes ahead.
   - A MUTANT run in memory without the skip: "FAIL C3 … CALLED: the consult reached for claude" (C4 still PASS). No file was changed by the mutant.
 - **Deploy:** the push reaches the learner at its next cycle boundary. Its clone fast-forwards and restarts into the new code only after `test_agent.py` passes.
+
+## 2026-10-19 — Improvement backlog ROUND 2 (four cheap read-only angles plus a critic); the raw-log loss stopped for now (`keep_raw_cycles` 20)
+
+- **The round:**
+  - Workflow `improvement-backlog-round2`: four Sonnet agents (failure classes, cost, AI-player robustness, operations) and an Opus synthesis and critic, about 0.9M agent tokens.
+  - Notes: `ai-research-notes/2026-10-19-backlog-round2/01-04`, merged into `2026-10-18-improvement-backlog.md`.
+  - 25 items were added (deduped and merged).
+  - REJECTED, with reasons in the file:
+    - relaxing "every evidence file names THIS tree";
+    - an "already read" hook (measured 11 of 5,909);
+    - "don't start late games";
+    - a prune-to-2;
+    - using the bot's saves as AI start states (USER RULING 35).
+  - All 5 of the critic's spot checks were confirmed.
+- **Key measurements:**
+  - Source reads and grep output are about 70 % of agent context; evidence-log reads about 2 %. My 2026-10-15 "logs 32-50 %" was a classifier error (`08` 2026-10-19).
+  - Agents with 200+ tool calls (3 %) hold 53 % of context weight.
+  - Opus-class agents are about 90 % of cost.
+  - 91 % of decomp fetches repeat a path already fetched.
+  - The tuner's cut-off games are exactly one per lane per cycle.
+  - Raw logs compress about 37:1, and `prune()` deleted one cycle of them every 12 h.
+- **Done now (no code):** `ai-agent/config.json` `keep_raw_cycles` 12 -> 20, about +10 GB, until O3 (gzip instead of delete) is built. `test_agent.py` ALL PASS (54). The learner applies it at its next cycle.

@@ -23904,3 +23904,16 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Prevention rules:**
   - Never trust a framework "is waiting" or "is busy" flag for grading without a positive control on a finished script.
   - An "Enforced" claim must be backed by a mutant: deleting the bound must FAIL something. A checker that checks names checks spelling.
+
+## 2026-10-19 — ⛔ A COST CLASSIFIER THAT FILED SOURCE-CODE READS UNDER "LOGS" PUT THE WRONG LEVER FIRST
+
+- **Symptom:**
+  - On 2026-10-15 I reported that reading raw logs and evidence was 32-50 % of a builder's cost, and ranked "summary-first suites" (backlog A2) as a top saving.
+  - The round-2 cost agent measured 980 workflow transcripts: source reads plus grep/cat output are about 70 % of context weight, and evidence-log reads about 2 %.
+- **Root cause:** my `turn_audit.py` filed every Bash command matching `grep|tail|head|cat|sed -n` as "read logs/evidence". That includes the agents' greps and cats of SOURCE CODE.
+- **The fix that worked:**
+  - The backlog was re-ranked. A code map (P2), a local decomp plus a verified-facts lookup (P5) and smaller files move up; A2 moves down.
+  - A real usage audit (P3) comes before any further ranking.
+- **Prevention rule:**
+  - A cost category must be defined by the OBJECT read (a source file, an evidence file, a log), never by the command that read it.
+  - Check a classifier on a hand-labelled sample before ranking work on it.
