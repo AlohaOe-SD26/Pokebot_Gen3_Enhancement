@@ -38134,3 +38134,23 @@ bought balls only at fixed story points.
   - The tuner's cut-off games are exactly one per lane per cycle.
   - Raw logs compress about 37:1, and `prune()` deleted one cycle of them every 12 h.
 - **Done now (no code):** `ai-agent/config.json` `keep_raw_cycles` 12 -> 20, about +10 GB, until O3 (gzip instead of delete) is built. `test_agent.py` ALL PASS (54). The learner applies it at its next cycle.
+
+## 2026-10-20 — `tools/status.py`: the one-call check-in (backlog A1, spec S1-5, lean v1), and `PROJECT KNOWLEDGE/ai-frontier.txt` (backlog D3)
+
+- **Why:** every check-in had taken 3-8 tool calls over a large chat context. Now it is ONE read-only command.
+- **What `py -3.12 tools/status.py [--started "1:10 PM" --eta-minutes 90] [--fetch] [--json]` prints,** on one screen:
+  - the clock in 12-hour local time, with elapsed and ETA;
+  - the bot tuner: process, cycle, lanes, time left, failures, the last 3 cycles' usable/runs, the BOT's Champion line, the consult inbox and its last outcome;
+  - disk;
+  - git: uncommitted, ahead/behind, the fetch age, the clone's HEAD;
+  - the AI frontier line, and the newest 3 evidence verdicts;
+  - the pieces not built yet.
+- **Safety:** it never writes, never calls Claude, and never fetches unless `--fetch` is given. Every section is fault-isolated (`unavailable: <reason>`) and the exit code is always 0. ⇒ A section that fails says so, and it does not stop the others.
+- **Proof:** `tools/selftest_status.py` ALL PASS (21 checks) on a fake tree:
+  - T1, every field present, with a control: no `unavailable` on a good tree;
+  - T2 FAULT: a zero-byte `state.json` plus a truncated `cycles.jsonl` row give `unavailable` for that field, the good rows and the other sections still print, there is no traceback, and the exit is 0;
+  - T3: a pinned clock gives the exact elapsed and ETA;
+  - T4: READ-ONLY, the tree is byte-identical with the same mtimes.
+  - A live run on the real project printed 22 lines.
+- **Lean v1 limits** (spec S1-5's full version needs pieces not built yet): no watchdog line (O1), no archive and backup lines (O3, O4), no usage-audit line (P3), and in-flight notes only if `PROJECT KNOWLEDGE/in-flight/` exists (E1). The code signature check (fact 1) is not in v1.
+- **Also checked:** the consult backlog cap works as designed. At 2026-10-20 04:05 AM the queue had drained to 5 (under the cap of 6), so the consult correctly went ahead.

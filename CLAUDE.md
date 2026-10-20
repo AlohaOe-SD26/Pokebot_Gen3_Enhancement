@@ -500,8 +500,9 @@ and `/checkpoint` carry these steps explicitly (they are outside the managed blo
   ai0002. So commit here freely: changes reach the learner only when IT fast-forwards its clone to `origin/main`,
   between cycles (`auto_update`). If its own code changed, it restarts into it only after `test_agent.py` passes.
   ⇒ **Deploying a learner change = commit + push to main.** Never edit files inside the clone.
-- **At session start**, after the sync ritual, run
-  `py -3.12 "C:/Remote Projects/pokebot-learner/ai-agent/learner.py" status`. Then read that clone's
+- **At session start**, after the sync ritual, run `py -3.12 tools/status.py` (the one-screen check-in: the tuner, disk, git, the AI frontier;
+  read-only, 2026-10-20), or the learner alone: `py -3.12 "C:/Remote Projects/pokebot-learner/ai-agent/learner.py" status`.
+  ⇒ For a user's "how is it going?", run tools/status.py ONCE instead of several commands. Then read that clone's
   `ai-agent/findings/LATEST.md`, `DEVELOPER-NOTES.md` (Claude's consult notes) and `ATTENTION.md`, if present. The
   learner's data lives THERE; this checkout's `ai-agent/data` is not the live data.
 - The 24/7 process never edits code. Its only git is that fetch plus fast-forward of its own clone. Knob changes,

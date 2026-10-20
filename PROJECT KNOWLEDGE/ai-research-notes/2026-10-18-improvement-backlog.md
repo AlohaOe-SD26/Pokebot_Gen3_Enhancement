@@ -42,7 +42,7 @@ cost and risk, and its priority.
 
 ## A. Highest value per token (the order below sets the sequence; A2 and A3 are not first)
 
-**A1. A one-call STATUS script for check-ins.**
+**A1. A one-call STATUS script for check-ins.** ✅ **LEAN v1 DONE 2026-10-20** (`tools/status.py`, `selftest_status.py` 21/21; `07` 2026-10-20). The full S1-5 version grows with O1, O3, O4 and P3.
 - **Evidence:** every health check this session took 3-8 tool calls, each re-reading a 300k-token chat context.
 - **What:** `tools/status.py` prints one screen:
   - the learner (cycle, lanes, failures, games, the Champion trend, the consult queue, Claude reachable or not);
