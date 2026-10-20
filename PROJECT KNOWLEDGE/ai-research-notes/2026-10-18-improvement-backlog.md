@@ -1,5 +1,24 @@
 # Improvement backlog: the AI agent, the bot tuner and the PROCESS (2026-10-18)
 
+## ONE-PAGE SUMMARY (2026-10-19, round 4): the top 15 in build order (step = "The order" below; sizes = new code + tests lines)
+1. **O3** compress each cycle's raw logs, never delete. DEADLINE: before ai0024 is pruned (about 2026-10-24, an estimate). Step 1; 85 + 95.
+2. **O4** nightly backup of `data/` and `findings/` off C: (every game exists once, on a 96 %-full drive). Step 1; 120 + 90.
+3. **O6 + O7** an ops-ledger row per cycle and an early-prune margin; one learner restart with O3. Step 1; 55 + 60.
+4. **P3** `usage_audit.py` and `cost-ledger.jsonl`: every saving in this file is an estimate until it exists. Step 1; 230 + 130.
+5. **A1 + D3** one-call `status.py` with the AI-frontier line (convenience and safety, not tokens). Step 1; 170 + 90.
+6. **O1** session-free watchdog, notifying on a change; NEEDS THE USER'S OK for scheduled tasks. Step 1; 285 + 150.
+7. **N3 + P9** byte and line budgets; split the 514 KB `ai_player/README.md` (cold start about 100k to 15k, est.). Step 2; 315 + 260.
+8. **P11 + P1 + N6 + P10** stage templates (deliver A3 and E1): READ LIST, STOP, WAIT RULE, a model per stage. Step 2; 280 + 140.
+9. **KB1 merge (S3-1), then N2 + P5 (S3-2)**: merge between graded rounds; rulings index, facts ledger, pinned-decomp lookup. Step 3; 60 + about 310 + 150.
+10. **A6 (S3-3)** experience records from the bot's games, a script; run it first in step 3 if O3 is late. Step 3; 260 + 200.
+11. **A5 + L1 + L2 (S3-4)** ONE generator; slice 1 (trainers, bosses, maps, campaign) build-ready, slice 2 (items, events) NEEDS DESIGN. Step 3; 700 + 250.
+12. **B1 (+R13)** Goodhart gate: grader thresholds the AI cannot import or reach. Step 4; est. 80 + 80.
+13. **A2 (agent-free half) + P7** `run_regression.py`, summary files, a `--quick` lane. Step 4; est. 250 + 150.
+14. **E2 + O8** per-game recording; torn-write resilience and a crash-loop breaker. Step 5; est. 150 + 150.
+15. **R5, then R1 + R2 (+DP1, DP2, L3 a-b)** free screen, then save/CONTINUE and a memory that survives a kill; DECIDE EARLY. Step 6; est. 300 + 200.
+
+Also now: C1 as a checklist line. Waits on the user: O1's scheduled tasks, O4's target disk, O3's "keep compressed logs forever", S3-4's boss moves and held items. Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
+
 The user asked for improvements that make the work cheaper on usage without losing progress, results or rigor,
 drawn from everything that went wrong. Each item names the EVIDENCE that motivates it, the expected benefit, the
 cost and risk, and its priority.
@@ -7,20 +26,21 @@ cost and risk, and its priority.
 - **Source of the numbers:** the usage audit of 2026-10-15/16, by input-equivalent tokens (`06` 2026-10-15
   "usage-safe operation"), plus this session's measurements.
 - **What these are:** candidates, not decisions. Each becomes a decision (`06`) and a punch-list status when built.
-- **What gets built first:** priority A items, in the lean phase right after the weekly reset.
+- **What gets built first:** the steps in "The order" below, not the A label (A2 and A3 come later, and A-labelled R1, R2, R8, R9 wait for step 5.3). Every percentage comes from an audit script that is not in the repo until P3, so each is an estimate.
+- **IDs:** A-E are in this file. O, N, P, R come from round 2 (`2026-10-19-backlog-round2/01..04`; R10 and R13 are defined in `03-ai-player.md`). L and DP come from round 3; S1-S2 are in the steps 1-2 build specs, S3-1 to S3-4 in the step 3 build specs. KB1 is the seasoned knowledge base, slice 1 (branch `claude/kb1-seasoned-knowledge`, merge pending).
 
 ## Where the usage actually goes (measured, so the priorities follow it)
 
 - **About 95 % is the WORKFLOW AGENTS.** The main chat was about 3 %, and doc checks about 0.2 %.
 - **Inside a builder:**
-  - reading raw logs and evidence: 32-50 % of its cost;
+  - reading raw logs and evidence: 32-50 % of its cost (the 5.1 and 5.2 builders only; over all 980 transcripts it is 2.2 %, see Round 2);
   - writing code: 25-35 %;
   - running and waiting on suites: 15-25 %.
 - **The multiplier is CONTEXT SIZE:** a builder carries about 600k tokens by mid-task and re-reads it every turn.
 - **Steps cost 15-36 % of a week each:** step 5 about 60M, 5.1 about 112M, 5.2 about 143M input-equivalent.
 - ⇒ The levers, in order: what agents READ, how LONG an agent lives, and how many agents a step uses.
 
-## A. Highest value per token (build first)
+## A. Highest value per token (the order below sets the sequence; A2 and A3 are not first)
 
 **A1. A one-call STATUS script for check-ins.**
 - **Evidence:** every health check this session took 3-8 tool calls, each re-reading a 300k-token chat context.
@@ -29,19 +49,19 @@ cost and risk, and its priority.
   - the AI player's frontier (the furthest story point reached, and when);
   - the newest evidence verdicts, disk, git sync, any in-flight workflow, and the usage estimate (the audit script,
     calibrated).
-- **Benefit:** a check-in becomes one call. **Cost:** small. **Risk:** none (read-only).
+- **Benefit:** a check-in becomes one call. This is convenience, not tokens (the main chat is about 3 % of usage; P3 will say). It prints the AI frontier, so build D3's one line with it in step 1. **Cost:** small. **Risk:** none (read-only).
 
 **A2. SUMMARY-FIRST suites, and a regression SCRIPT.**
-- **Evidence:** agents reading raw logs cost 32-50 % of a builder.
+- **Evidence:** the 5.1 and 5.2 builders spent 32-50 % reading raw logs, but over 980 transcripts evidence and log reads are 2.2 % and suite output 7.6 % (Round 2, angle 2). UNPROVEN until P3; build the agent-free `run_regression.py` half first.
 - **What:**
   - Every live, rate and revert suite also writes `<evidence>.summary.json`: the verdict, the failing checks, the key
     numbers and the tree digest, in 2 KB or less. Agents are told and tooled to read the summary, and to `grep` the
     raw log only for a named check.
   - `run_regression.py` runs every suite in the background and prints the summaries, with no agent tokens. An agent
     is called only on a failure.
-- **Benefit:** an estimated -20-35 % per step. **Risk:** low, because the raw logs stay on disk.
+- **Benefit:** UNMEASURED (an earlier estimate said -20-35 % per step); P3 decides. **Risk:** low, because the raw logs stay on disk.
 
-**A3. SHORT-LIVED staged agents instead of one long builder.**
+**A3. SHORT-LIVED staged agents instead of one long builder.** (DELIVERED by the stage templates P11 + P1 + N6 + P10 in order step 2; no separate build.)
 - **Evidence:** the median context is about 600k, and step 5.2's play builder made 685 turns.
 - **What:** split a step into stages with fresh agents (spec, then code and unit tests, then a background sweep, then
   analysis of the summary, then a fix), each handing over through a short written note in the repo.
@@ -49,13 +69,13 @@ cost and risk, and its priority.
 
 **A4. SLIM documents at every session start.**
 - **Evidence:** `03-PUNCH-LIST.md` is 4,400 lines and `04-HANDOFF.md` 900, both at their budgets. `CLAUDE.md` (about
-  500 lines) is injected into EVERY agent, so every turn of every agent pays for it.
+  500 lines, 38.9 KB) is injected into every agent, but that is under 2 % of a 600k context (DEMOTED, Round 2); the handoff's 390,563 bytes is the cold-start cost (N3 + P9).
 - **What:**
   - An archive script moves closed punch-list items and old handoff blocks into the append-only archives
     (`28-HANDOFF-ARCHIVE.md`, a punch-list archive), with a pointer line left behind. Slugs keep resolving (R-PUNCH
     rule: summarise and point, never delete).
-  - Move the bot-era rules of `CLAUDE.md` (outside the managed block) into a linked `BOT-RULES.md`. Every rule is KEPT
-    and only MOVED, and the move is recorded in `06`.
+  - ~~Move the bot-era rules of `CLAUDE.md` (outside the managed block) into a linked `BOT-RULES.md`. Every rule is KEPT
+    and only MOVED, and the move is recorded in `06`.~~ DROPPED (review 2026-10-19): it is under 2 % of a context, and a rule moved out of the auto-loaded file stops firing. Revisit only if P3 shows otherwise.
 - **Benefit:** a smaller fixed cost on every agent turn and every cold start. **Risk:** a moved rule being missed; the
   link and the gates mitigate it.
 
@@ -68,7 +88,7 @@ cost and risk, and its priority.
   the bot's games, USER RULING 41). An agent is spent only on the adversarial check of the pack's load-bearing claims.
 - **Benefit:** research cost per chapter falls several-fold, and the packs are re-usable for the AI's own knowledge.
 
-**A6. EXPERIENCE RECORDS from the bot's finished games** (`#28-trainer-improvements` item 7; USER RULING 41).
+**A6. EXPERIENCE RECORDS from the bot's finished games** (`#28-trainer-improvements` item 7; USER RULING 41). This IS item 7 and L10; C2 is only its lane policy. Build spec: S3-3.
 - **What:** a script, not agents, over `runs.jsonl` and the batch logs. Per chapter: the team and levels at each gym,
   items used, failure points and causes, and which routes and catches mattered.
 - **Benefit:** the "seasoned player" memory of a thousand playthroughs, and the largest accelerator toward the whole
@@ -115,14 +135,14 @@ cost and risk, and its priority.
 **B6. DETERMINISM by default.**
 - **Evidence:** the game reads the host clock (KI-112), so "live arms" turned out to be replays of one trajectory.
 - **What:** every live arm pins the host clock and records the seed and clock in its evidence header, and the ledger
-  marks a replay as a replay. Part of this exists; make it universal and gated.
+  marks a replay as a replay. Part of this exists (UNVERIFIED which part: name the file before building; round 2 found no run record holding a seed); make it universal and gated. One probe (O13: can `x4_headless` pin the seed despite KI-112?) also settles D2/DP5's seed and R4's card field.
 
 ## C. The bot tuner (beyond `#28-trainer-improvements` and `#28-trainer-autonomy`)
 
 **C1. Usage-aware consults without code.**
-- `config.json` is re-read every cycle, so near the weekly limit a session sets `consult.max_calls_per_day` 0 and
-  back after the reset.
-- Write it into the session-start checklist. The backlog cap of 2026-10-18 already avoids the wasted calls.
+- `config.json` is read each cycle, but only after the learner fast-forwards its clone to `origin/main`, so near the weekly
+  limit a session sets `consult.max_calls_per_day` 0 by commit + push (never by editing the clone), and back after the reset.
+- Write it into the session-start checklist (a checklist line, not a build). The backlog cap is ✅ DONE 2026-10-18 (`c787dc0e`, `consult.py:74-76`) and already avoids the wasted calls; priority, expiry and de-duplication belong to O5.
 
 **C2. A CHEAP PLATEAU STOP for the bot tuner itself.**
 - **Evidence:** the Champion rate was flat at 13-17 % for four weeks.
@@ -140,7 +160,7 @@ cost and risk, and its priority.
 - **Benefit:** every later chapter costs less.
 
 **D2. Personalities as DATA.** Archetype weight files (aggressive, defensive, explorer, completionist, collector …;
-USER RULING 40), so a new personality is configuration, not code, and the tuner can tune it later.
+USER RULING 40), so a new personality is configuration, not code, and the tuner can tune it later. Build R12's knob registry first, or the weight files hold unregistered constants; DP5's personality and seed flags use the same schema.
 
 **D3. A visible AI FRONTIER line.** One line in `04` and in A1's status: "AI frontier: chapter 2 (WALLY), first
 reached 2026-10-14, re-proven 2026-10-16". The user measures progress by the story the AI reaches (USER RULING 41).
@@ -151,29 +171,31 @@ reached 2026-10-14, re-proven 2026-10-16". The user measures progress by the sto
 (stage, files touched, what to re-verify), so a dead session leaves an exact resume point without depending on the
 coordinator. It complements the handoff's "if stopped mid-task" row.
 
-**E2. Per-game recording for the tuner** (`#28-trainer-improvements` item 1): a power cut loses only the games in
-progress (on 2026-10-17 it lost the whole of cycle ai0031).
+**E2. Per-game recording for the tuner** (`#28-trainer-improvements` item 1): an unexpected shutdown (cause of 2026-10-17
+unknown, O12) loses only the games in progress (it lost the whole of cycle ai0031).
 
-**E3. Power-cut recovery:** the BIOS "restore on AC power loss" and Windows auto-login are the user's choice. The
+**E3. Unexpected-shutdown recovery (informational, no build):** the BIOS "restore on AC power loss" helps only if the cause was power (unknown, O12); Windows auto-login is the user's choice. The
 logon autostart already worked on 2026-10-17: boot at 3:57 PM, the learner at 4:00 PM.
 
-## The order (Claude's call; re-ranked 2026-10-19 with rounds 2-3; steps 1-2 specced in `2026-10-19-BUILD-SPECS-steps-1-2.md`)
+## The order (Claude's call; re-ranked 2026-10-19 with rounds 2-4; steps 1-2 specced in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md`)
 
 0. ✅ **DONE 2026-10-19 (`ai-agent/config.json`, pushed):** O3's interim, `keep_raw_cycles` 12 to 20, set the usual way learner
-   settings change. It is the one TIME-LIMITED item: every 12 hours `prune()` deletes another cycle of A6's raw input.
-1. **O3 and O4** (compress, back up), then **A1 with O1 + O6 + O7** and **P3** (the usage audit). P3 moves up because every
+   settings change. It is the one TIME-LIMITED item: every 12 hours `prune()` deletes another cycle of A6's raw input. In effect only from the cycle after ai0035: ai0023 was still pruned at 04:04 PM 2026-10-19 (the clone's `data/learner.log` line 333). The first deletion under 20 is ai0024, when ai0044 finishes, about 2026-10-24 (an estimate): O3 must ship before then.
+1. **O3 and O4** (compress, back up), then **A1 (with D3's frontier line) with O1 + O6 + O7** and **P3** (the usage audit; O1 needs the user's OK for scheduled tasks). P3 moves up because every
    saving in this file is an estimate and angle 2 contradicts A2's premise: re-rank the rest on P3's first report.
 2. **A4 with N3 + P9, O5, and the stage templates (P11 + P1 + N6 + P10):** they cut what every agent and every session
    start reads, and the 53 % of context weight held by long agents, with no game code.
 3. **The KB1 merge and N2 + P5** (the lookup), then **A6** and **A5**: progress accelerators built from data. **L1 + L2's schema**
-   joins A5's generator here (round 3: one generator for the packs and the AI's knowledge; two would be rework).
-4. **A2 with R3 + N8 + R4, A3, P7, P2,** with **B1-B5, N1, N4, N10** in the lean setup (the 5.2 review's gate items too).
+   joins A5's generator here (round 3: one generator for the packs and the AI's knowledge; two would be rework). Specced as S3-1 to S3-4 in `2026-10-19-BUILD-SPECS-step-3.md`; A6 goes first if O3 is late.
+4. **A2 (agent-free half first) with R3 + N8 + R4, P7, P2,** with **B1-B5, N1, N4, N10** in the lean setup (the 5.2 review's gate items too).
 5. **`#28-trainer-autonomy` plus `#28-trainer-improvements`** (the learner), with **E2, O8, N11 + O9, then O2, O10**.
-6. **Step 5.3, then chapters 3-4,** on **D1-D3** and **R6, R1 + R2, R5, R8 + R9, R12** (R13's rule written before any
+6. **Step 5.3, then chapters 3-4,** on **D1, D2** and **R6, R5, R1 + R2, R8 + R9, R12** (R13's rule written before any
    AI-tuner mode), with **R7, R11** during chapters 3-4. **DP1 + DP2 and L3 (a)-(b) land WITH R1 + R2**, before its first
    memory file (round 3: that file fixes paths and schema). Other round-3 items wait for their chapter (L4-L9) or the whole game.
 
 Each step's cost is recorded in its `07` entry (P3's ledger line once it exists); re-rank when measured costs say so.
+- **Unplaced above (review 2026-10-19):** C1 (a checklist line, now); C2 (with A6, step 3); B6 and its seed probe, N5, N7, N9, P4 + P6 (step 4, after B2; P4's pinned clone arrives with S3-1); E1 (with the templates, step 2); E3 (informational); L4, L5, L12 (per chapter, see `03-long-horizon.md`); DP3, DP6, DP7, DP8, DP9, DP10-DP13 (after the AI plays the whole game).
+- **Merged (review 2026-10-19), build each cluster ONCE:** check-in surface (A1, O1, O6, O7, D3, N14, `#28-trainer-improvements` items 6 and 9) = one ops ledger (O6) with three renderers (`status.py`, `LEARNER-STATUS.txt`, a line atop `LATEST.md`); cut-off games (E2, O2, item 2, O10) = E2 first, then O2, O10 as the bias check; gate effectiveness = B2 the rule, N5 its mutants, N9 its reach counter; static gates (N10, B1's AST rule, R3's AST gate) = one pass over the lint/`check_purity` module; free screen = R5 inside R6's screen ladder; claim hygiene = N1 + N4 first, N7 later; seed and clock (B6, O13, DP5, R4) = one probe.
 
 ## Round 2 (2026-10-19): independent mining of the history
 
@@ -192,7 +214,7 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
 
 - **A1** + N14: a clock line, now / started / elapsed / ETA in 12-hour LA time (08 2026-09-07 misquoted it twice).
 - **A4:** its `CLAUDE.md` half is DEMOTED as a cost lever (38.9 KB is under 2 % of a 600k context; angle 2 "dead
-  ends"). Keep it for clarity; the lever is the handoff, punch list and README (N3 + P9).
+  ends"). Keep it for clarity; the lever is the handoff, punch list and README (N3 + P9). Review 2026-10-19: the move itself is DROPPED (a rule moved out of the auto-loaded file stops firing); this line is its rejection record.
 - **B1** + R13: before any AI-tuner mode, write its fitness: progress READ FROM THE GAME plus a held-out human-likeness
   judge neither tuner nor AI can read, the leader re-graded weekly by the strict gate (08 2026-10-15, "loafing").
 - **B6** + O13's probe: can `x4_headless` pin the game's seed despite KI-112? No run record holds a seed today.
@@ -202,22 +224,22 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
   reword "power cut" in `#28-trainer-improvements` item 1. Update restarts are allowed 10 PM-5 AM, mid-cycle.
 - **`#28-trainer-improvements` item 9** + O11: a plateau meter, "last time a strategy beat the leader by more than noise".
 
-### A. Highest value per token
+### A. Highest value per token (the order sets when)
 
 - **O3. COMPRESS the learner's raw logs instead of deleting them.** (A, TIME-LIMITED) **Evidence:** `prune()` deletes a
-  cycle's raw logs every 12 hours (ai0001-ai0022 gone, ai0022 at 04:03 AM 2026-10-19), and they are A6's input; three
-  `stdout.txt` went 247 MB to 7 MB (angle 4 facts 2, 5). **What:** gzip per cycle, read back, then delete; interim, no
-  code: `keep_raw_cycles` 12 to 20 (about 11 GB of 79 free). **Cost / risk:** 30 lines; fault-test a kill mid-gzip.
+  cycle's raw logs every 12 hours (ai0001-ai0023 gone; ai0022 at 04:03 AM and ai0023 at 04:04 PM 2026-10-19, after the push of the interim), and they are A6's input; three
+  `stdout.txt` went 247 MB to 7 MB (angle 4 facts 2, 5). **What:** gzip per cycle, read back, then delete; interim ✅ DONE 2026-10-19, no
+  code: `keep_raw_cycles` 12 to 20 from the cycle after ai0035 (about 11 GB of 79 free; the config comment says 10 of 78). Deadline: before ai0044 ends (about 2026-10-24, an estimate). **Cost / risk:** 30 lines; fault-test a kill mid-gzip.
 - **O4. BACK UP the learner's data off C:.** (A) **Evidence:** `data/` (all 2,371 games) and `findings/` are git-ignored and
-  exist once, on a drive 96 % full. **What:** a nightly 2-3 MB zip to another PHYSICAL disk (confirm `E:` is one), newest
+  exist once, on a drive 96 % full (2026-10-19: `runs.jsonl` 2,424 rows, 1,852 usable, 572 cut; step 3 specs fact 7). **What:** a nightly 2-3 MB zip to another PHYSICAL disk (`E:` is a different physical disk with 47 GB free per the build specs, a note; `Z:` is the alternative), newest
   14, and a weekly snapshot committed with explicit paths from an interactive session (never by the 24/7 process).
 - **O1 + O6 + O7. A session-free WATCHDOG, fed by an OPS LEDGER row per cycle.** (A; sharpens A1, B4) **Evidence:** every
   alert is a file seen only when a session runs `status`; the autostart has `RestartCount 0` and a closable `-NoExit`
-  window; disk fell 81 to 58 GB in a day from outside the learner, and `cycles.jsonl` holds no time, disk or CPU to say
+  window; disk fell 81 to 58 GB in a day from outside the learner (23 GB, probably B4's 24.3 GB of temp folders; UNVERIFIED), and `cycles.jsonl` holds no time, disk or CPU to say
   why. **What:** a separate 30-minute task writes `Desktop\LEARNER-STATUS.txt` (`OK` or `NEEDS YOU: <reason>`, the disk
   slope, "restart pending") and notifies on a CHANGE only; cycle rows gain start, minutes, disk, CPU, consult seconds,
   boot and downtime. **Benefit:** a check-in costs the user a glance, not a Claude turn. **Cost:** about 80 lines.
-- **O5. A NOVELTY GATE on the consult, and a rolling `DEVELOPER-NOTES.md`.** (A; sharpens C1) **Evidence:** the notes of
+- **O5. A NOVELTY GATE on the consult, and a rolling `DEVELOPER-NOTES.md`.** (B, the smallest saving of this list, labelled A until 2026-10-19; order step 2; sharpens C1) **Evidence:** the notes of
   2026-10-11 to 10-19 restate one message; every session start reads the 34 KB file (about 9k tokens). **What:** consult
   only when a local digest moved (top 3, wall shares, 40+ new runs), forced weekly; a repeat note is one line; keep 5
   notes; expire 3-day-old proposals; probe once if the `claude` call loads `CLAUDE.md`. **Saves:** ~1 call a day, 7k tokens.
@@ -325,14 +347,14 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
 - **O13, fewer control lanes and paired seeds: DEFERRED.** The ranking is plateaued and the knobs exhausted, so less
   variance buys nothing now, and the control lanes are what detect drift. Its seed probe moved to B6.
 - **A "you already read this" hook: REJECTED by measurement** (11 identical re-reads in 5,909; P2 targets the real waste).
-- **"Stop starting games that cannot finish": REJECTED** (each cut game becomes an idle lane; only O2 gains games).
+- **"Stop starting games that cannot finish": REJECTED** (each cut game becomes an idle lane; only O2 gains games). Strike it as an option in `#28-trainer-improvements` item 2.
 - **O7's "prune to 2 cycles under disk pressure": REJECTED** (it deletes A6's input): compress (O3), drop lane profiles.
 - **P13's bot saves as AI start states: REJECTED** (USER RULING 35, recon Gap 9); its index lives on in R8 + R9.
 
 ## Round 3 (2026-10-19): deployment and the late game
 
 Notes in `2026-10-19-backlog-round3/`: `02-deployment.md` (traps T1-T7, decisions renamed **DP1-DP13** here so they never collide
-with D1-D3) and `03-long-horizon.md` (L1-L12). Angle 1 became `2026-10-19-BUILD-SPECS-steps-1-2.md` after critique. Candidates.
+with D1-D3) and `03-long-horizon.md` (L1-L12). Angle 1 became `2026-10-19-BUILD-SPECS-steps-1-2.md` after critique. Candidates. Do not build from `2026-10-19-backlog-round3/01-build-specs.md`; it is the uncritiqued copy.
 
 - **Spot checks (grep, 2026-10-19), all CONFIRMED:** `sandbox-pokebot/pokebot.py:236-238` runs `run_updater()` unless bundled or a
   `.git` is in an ancestor (T1); the learner's `findings/LATEST.md:76-81` gives Tate & Liza 303, basket short 288, level floor 163;
