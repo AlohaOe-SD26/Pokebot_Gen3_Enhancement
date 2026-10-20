@@ -62,7 +62,7 @@ split -> ratchet down; O5 independent; templates after P3 (P3 measures their com
 
 **Files:** CHANGE `ai-agent/learner.py` (`prune` `:418-432`, callers `finish_cycle :390` and the disk guard `:487`; new
 `archive_cycle`, `verify_archive`, `cmd_archive`; guard in `cmd_reparse :566`); CHANGE `ai-agent/config.json` (new keys, below);
-CHANGE `ai-agent/test_agent.py` (R4-R10); doc fix `ai-agent/README.md` ("about 4 GB a cycle" is 1.4 GB, measured 1.3 G for ai0034).
+CHANGE `ai-agent/test_agent.py` (R4-R11 and R5b); doc fix `ai-agent/README.md` ("about 4 GB a cycle" is 1.4 GB, measured 1.3 G for ai0034).
 
 **Behaviour.**
 - `keep_raw_cycles` keeps its meaning: the newest N cycles stay RAW (interactive grep). Cycles older than that are ARCHIVED, then
@@ -113,8 +113,15 @@ CHANGE `ai-agent/test_agent.py` (R4-R10); doc fix `ai-agent/README.md` ("about 4
 **Deploy.** Commit and push `ai-agent/*.py` and the config with `keep_raw_cycles` STILL 20 (no behaviour change on first restart).
 Canary: set `keep_raw_cycles` to 13 once (the learner re-reads config each cycle) [CRITIC: by a commit + push to main that the clone
 fast-forwards, the usual way; NEVER by editing the clone's `config.json`, whose tracked change would silently stop auto-update (fact 2);
-a code deploy is confirmed only by the clone's `learner.log` "restarting into it" line (fact 1)], so exactly ONE real cycle (ai0023) leaves the window at the next boundary;
+a code deploy is confirmed only by the clone's `learner.log` "restarting into it" line (fact 1)], so exactly ONE real cycle leaves the window at the next boundary [COLD-START CHECK 2026-10-19: the value "13" and "ai0023" are STALE, because ai0023 was pruned at 4:04:30 PM on 2026-10-19 and the oldest raw cycle is now ai0024. COMPUTE it at build time: N = (the number of cycles in the clone's `state.json` that still hold a `batch/` dir) - 1, read just before the change. A config change reaches `finish_cycle` ONE CYCLE LATE (its `cfg` is loaded at cycle start), so expect the canary archive at the second boundary after the push, not the first];
 check zip, ratio, `batch/` gone, `runs.jsonl` row count unchanged, and `status`. Then set 4 (same route), only after `archive-check` passes on the canary's zip. Expected: 16 GB of raw becomes about 0.6 GB; steady state 40-60 MB/cycle (ESTIMATE from one measured `stdout.txt` ratio; `.log` ratio unmeasured, so the canary is the measurement).
+**Implementation facts the cold-start check had to guess (2026-10-19, now given):**
+- The raw logs live at `<clone>/ai-agent/runs/<tag>/batch/L01/debug-logs/*.log`, not in `data/`.
+- The disk guard is INLINE in `loop()` (about `learner.py:487`). Extract it into a helper first, so R-tests can drive it.
+- `cmd_archive` takes the learner's lock through `acquire_lock()` and `release_lock()`. `acquire_lock` replaces a STALE lock; it never waits on a live one.
+- Register `archive` and `archive-check` in the argparse choices (about `:619`) and the dispatch dict (about `:639`).
+- `archive-check` prints one line per zip, `OK <tag> <members> <bytes>` or `BAD <tag> <reason>`, and exits 1 on any BAD.
+
 **Risks:** a wrong delete is the only dangerous failure; contained by verify-then-delete, the idempotent recovery tests and "ours" predicate. Boundary latency bounded by `max_archives_per_prune`.
 **Size:** about 85 lines code + 95 lines tests: small-medium.
 
