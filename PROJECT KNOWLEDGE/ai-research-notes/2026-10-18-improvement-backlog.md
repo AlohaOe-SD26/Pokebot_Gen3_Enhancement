@@ -157,7 +157,7 @@ progress (on 2026-10-17 it lost the whole of cycle ai0031).
 **E3. Power-cut recovery:** the BIOS "restore on AC power loss" and Windows auto-login are the user's choice. The
 logon autostart already worked on 2026-10-17: boot at 3:57 PM, the learner at 4:00 PM.
 
-## The order (Claude's call, after the reset; re-ranked 2026-10-19 with round 2, below)
+## The order (Claude's call; re-ranked 2026-10-19 with rounds 2-3; steps 1-2 specced in `2026-10-19-BUILD-SPECS-steps-1-2.md`)
 
 0. ✅ **DONE 2026-10-19 (`ai-agent/config.json`, pushed):** O3's interim, `keep_raw_cycles` 12 to 20, set the usual way learner
    settings change. It is the one TIME-LIMITED item: every 12 hours `prune()` deletes another cycle of A6's raw input.
@@ -165,11 +165,13 @@ logon autostart already worked on 2026-10-17: boot at 3:57 PM, the learner at 4:
    saving in this file is an estimate and angle 2 contradicts A2's premise: re-rank the rest on P3's first report.
 2. **A4 with N3 + P9, O5, and the stage templates (P11 + P1 + N6 + P10):** they cut what every agent and every session
    start reads, and the 53 % of context weight held by long agents, with no game code.
-3. **The KB1 merge and N2 + P5** (the lookup), then **A6** and **A5**: progress accelerators built from data.
+3. **The KB1 merge and N2 + P5** (the lookup), then **A6** and **A5**: progress accelerators built from data. **L1 + L2's schema**
+   joins A5's generator here (round 3: one generator for the packs and the AI's knowledge; two would be rework).
 4. **A2 with R3 + N8 + R4, A3, P7, P2,** with **B1-B5, N1, N4, N10** in the lean setup (the 5.2 review's gate items too).
 5. **`#28-trainer-autonomy` plus `#28-trainer-improvements`** (the learner), with **E2, O8, N11 + O9, then O2, O10**.
 6. **Step 5.3, then chapters 3-4,** on **D1-D3** and **R6, R1 + R2, R5, R8 + R9, R12** (R13's rule written before any
-   AI-tuner mode), with **R7, R11** during chapters 3-4.
+   AI-tuner mode), with **R7, R11** during chapters 3-4. **DP1 + DP2 and L3 (a)-(b) land WITH R1 + R2**, before its first
+   memory file (round 3: that file fixes paths and schema). Other round-3 items wait for their chapter (L4-L9) or the whole game.
 
 Each step's cost is recorded in its `07` entry (P3's ledger line once it exists); re-rank when measured costs say so.
 
@@ -326,3 +328,87 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
 - **"Stop starting games that cannot finish": REJECTED** (each cut game becomes an idle lane; only O2 gains games).
 - **O7's "prune to 2 cycles under disk pressure": REJECTED** (it deletes A6's input): compress (O3), drop lane profiles.
 - **P13's bot saves as AI start states: REJECTED** (USER RULING 35, recon Gap 9); its index lives on in R8 + R9.
+
+## Round 3 (2026-10-19): deployment and the late game
+
+Notes in `2026-10-19-backlog-round3/`: `02-deployment.md` (traps T1-T7, decisions renamed **DP1-DP13** here so they never collide
+with D1-D3) and `03-long-horizon.md` (L1-L12). Angle 1 became `2026-10-19-BUILD-SPECS-steps-1-2.md` after critique. Candidates.
+
+- **Spot checks (grep, 2026-10-19), all CONFIRMED:** `sandbox-pokebot/pokebot.py:236-238` runs `run_updater()` unless bundled or a
+  `.git` is in an ancestor (T1); the learner's `findings/LATEST.md:76-81` gives Tate & Liza 303, basket short 288, level floor 163;
+  `consult.py:46` counts any `{"day": "<today>"` line.
+- **What orders the late game:** of 1,852 scored bot runs, boss walls (44 %) and the League door (24 %) end 68 %; navigation and
+  puzzles end 8 % (`03-long-horizon.md`). PLANNING is the late wall, not the hands.
+- **⏰ DECIDE EARLY** = the first file the item writes fixes its shape; a later change migrates every saved run.
+
+### Folded into existing items
+
+- **D1** + L6 + L8 + L9: a TEACH skill that reads the cursor's item and the move list before each confirm and the result after
+  (closes the KI-88/89/104/105 class); puzzle solvers over the VISIBLE state that explore a pad or switch before planning through
+  it, knowledge naming the puzzle TYPE only; R10's edges carry the ability they need, and the screen beats knowledge (gap logged).
+  Proof: the game's badge flag on a pinned fixture, plus a CONTROL tile. Built with each chapter.
+- **A6** + L10: per boss the party (species, levels, moves), money and items; fit L4's margin priors and L5's income curve; an
+  OFFLINE held-out test (fit on cycles A, ask on B) of whether `readiness` flags the Tate & Liza and League-door failures before they
+  happen, with its false-alarm rate and a control (fights the bot won). Bot data is a prior on NEEDS, never a style.
+- **R1 + R2** + DP4: the `.sav` is the durable copy (`.ss1` is tied to the emulator build); keep the newest 10; deploy "new game"
+  makes a NEW profile and "retire" archives, never a silent `--fresh` wipe.
+- **R8 + R9** + L11: a late-game SKILL may be proven on a pinned bot fixture with a control arm; "the AI beat X" counts only from the
+  AI's own chain. Pin those fixtures (`prenorman_fodder_grind.ss1` is said to be missing from `saves/FIXTURES.md5`, UNVERIFIED).
+- **R11** + L7: a loss must change something (lead, moves, margin, items, the answer mon) or log why not (a crit: people retry after
+  bad luck); a whiteout RECOVERY skill (read the respawn map, release input, re-plan); a lead check by identity before each boss; a
+  two-usable-mons check for doubles. A whiteout is a mistake that costs money, never the heal (KI-106, KI-107, KI-116).
+- **D2** + DP5: `personality: random | catcher | story | trainer | cycle` and `seed`, in the run card; a seed replays the AI's
+  CHOICES, not the game's RNG (KI-112, B6).
+
+### A. Decide early, build small
+
+- **DP1 + DP2. One `AppPaths` and a `schema_version` on every user-data file.** (A, ⏰ DECIDE EARLY) **Evidence:** the dev default is
+  `<repo>/sandbox-pokebot` and a profile needs a donor (`launcher.py:89,145-165`); R2's memory, R11's ledger and R8's `INDEX.json`
+  will be the first persisted AI files. **What:** four data classes (program, knowledge, user data, the key), `AI_PLAYER_HOME`, a gate
+  on path literals outside the dev resolver; a NEWER file is refused byte-identical, an older one migrated after a backup copy.
+  **Cost:** about 60 lines and a fault arm per rule. **Risk:** none at runtime.
+- **L3 (a)-(b). Every mon by PID and species, with ROLES.** (A, ⏰ DECIDE EARLY: fields in R2's memory schema from its first line)
+  **Evidence:** the identity class recurred at least six times (KI-18, 34, 66, 84, 96, 100, 101); the PC boxed a counter fetched
+  across Hoenn (08 2026-08-03); KI-122's unscoped `_hunted_counter_pids` heads `LATEST.md:76`. **What:** roles (lead, HM carrier,
+  counter for boss Y, catch helper, spare) decide boxing, never level; a preference expires with its boss; protected roles capped.
+  (c)-(d), the PC skill, before chapter 5. **Benefit:** removes three wall causes by construction.
+- **L1 + L2. A CAMPAIGN MANIFEST and a BOSS BOOK, generated and decomp-verified.** (A, ⏰ DECIDE EARLY: ONE generator with A5 and the
+  KB1 slices) **Evidence:** the goal manager knows 20 milestones, all in chapters 1-4; 2026-08-05's full party with no Surf learner
+  cut the finish rate 52.0 % to 15.8 %. **What:** per milestone NEEDS and gates (HM and badge, party size, the types ahead, money,
+  level band), never routes; per boss the party, levels, moves, single or double, and a `measured` field labelled bot data; a
+  `--plant` verifier. ⚠ **RULING 40 boundary:** boss HELD ITEMS and STATS stay out until the user rules them static knowledge.
+
+### B. Design now, build with the chapter (chapter 5 on)
+
+- **L4. A READINESS estimator in place of thresholds.** (B) **Evidence:** each League refusal was a threshold wrong once (a wallet read
+  before Victory Road's payouts, 08 2026-09-26; base power 1 on Magnitude); Wallace beats 46 % of teams at level 64-65 (cause UNREAD:
+  grep 20 loss logs first). **What:** `readiness(party, boss, bag)` from visible moves and the boss book; the margin is LEARNED (A6
+  prior, moved by R11) and judged by game counters and held-out seeds (R13); constants are R12 knobs. **Cost:** medium.
+- **L5. An ECONOMY ledger.** (B) **Evidence:** "basket short" ends 288 runs (`LATEST.md:77`); a whiteout halves money (not re-checked
+  in pret) and Tate & Liza averages 11.8 losses. **What:** balance, income and L1's budgeted spends, checked where money is spent;
+  sell from an allow-list. **First, cheap:** whiteouts at Tate & Liza in "basket short" runs against runs that passed the door.
+
+### C. The deployable program (after the AI plays the whole game; USER RULING 41)
+
+- **DP9. The artifact from an ALLOWLIST, and a gate on forbidden bytes.** (C) The ROM rulings of 2026-07-18 and 2026-08-23 cover
+  the REPO: sharing it with a friend shares the ROM. Fail on `.gba`, `.sav`, `.ss1`, `roms/`, `profiles/`, fixtures, the `BPEE`
+  header and `sk-ant-`, each with a planted fault arm. A first share re-opens the ROM ruling with the user.
+- **DP3 + DP6 + DP8.** (C) ROM intake: the user's own dump, SHA-1 checked, `metadata.yml` from the header (T2); `play` reads
+  `settings.json` and SCRUBS every `AI_PLAYER_FAULT_*` switch from the child (T4); disk, retention and priority settings sized on one
+  measured whole-game run.
+- **DP7. The optional consult as a host-side `Coach`** (C; its interface when first built). RULING 36's consult only: OFF by default,
+  no network code or key in the brain (`check_purity`), any failure means carry on, a cap ledger read back on start. Acceptance adds
+  a consult-OFF whole-game arm (RULING 41) and a planted-key grep of every log, report and bundle.
+- **DP10-DP13.** (C) The user's installer pattern for source, binaries hash-pinned beside it; no phone-home; `report` builds a
+  redacted zip, never uploads; DP13 (a)'s host Protocol and `FakeHost` when next in `host/`. Proof: one install OUTSIDE any git
+  tree, on a second Windows user (the user's OK first), network off.
+
+### Rejected or held (so nobody rebuilds them)
+
+- **T1's fix by an empty `.git` folder: REJECTED.** It fools the fork's ancestor check (`pokebot.py:229-236`), lets git tools treat
+  the install as a repo, and makes the "outside any git tree" proof meaningless. Use a logged divergence: no updater in `play`.
+- **Boss held items and stats: HELD** for the user (RULING 40 names unrevealed held items and foe stats as hidden state).
+- **From the specs:** the under-2 GB "delete the oldest raw" (pause instead), a typed `PLANT-CAUGHT` marker as a model-move proof,
+  and a ceiling ratcheted to the exact current size (it rewards trimming caveats).
+- **Bot-like (RULING 35):** a Victory Road leg, a League basket script, stored ice or statue paths, hidden vars such as
+  `ICE_STEP_COUNT`, and the bot helpers it routed around (KI-84, 88, 89).
