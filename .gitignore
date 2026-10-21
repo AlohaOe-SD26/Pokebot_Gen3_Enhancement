@@ -62,3 +62,7 @@ tools/story-dev/.cache/
 # instead of discarding output. One appeared on 2026-09-06 and nearly reached a commit.
 NUL
 nul
+
+# Workflow in-flight notes (backlog E1, 06 2026-10-21): this machine's uncommitted working state; only the README is tracked
+PROJECT KNOWLEDGE/in-flight/*
+!PROJECT KNOWLEDGE/in-flight/README.md

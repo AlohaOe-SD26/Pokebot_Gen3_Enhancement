@@ -38270,3 +38270,49 @@ bought balls only at fixed story points.
   - `verify_seasoned.py`: the last species block (Chimecho, no trailing comma) failed ~3 % of seeds; `wild_encounters` is now parsed without key-order dependence.
 - **Proof (final code and data):** V1 `--check` "CHECK OK: 4 files identical"; extractor `--selftest` 37 of 37 arms; V2 245/245 on seeds 20261015, 1-3, 49, 76, 116, 777, 31337 and a sweep of 4-200 (197 seeds, 0 failures); V3 33 of 33 plants caught, 33 controls pass; cross-check `selftest_seasoned_crosscheck.py` ALL PASS (50 checks); 23 mutants caught (27 of 27 as required with 4 harness controls). The decomp walk reaches 375 of 518 maps before the Hall of Fame and 459 after.
 - **Not fixed here:** the verifier's model leaves out warps done by C code (fly, Dig, Teleport, secret bases); the Lilycove rival is listed as a Hall-of-Fame-only blocker, not modelled. `encounters.json` grew from 990 KB to 1.58 MB. The note's `encounter_rate*16/2880` line is bannered in `ai-research-notes/2026-10-15-KB1-REPORT.md`.
+
+## 2026-10-21 — A6: the experience records, built and twice reviewed (spec S3-3; punch-list #28-trainer-improvements)
+
+- **Commits** `57a7ec28` (build), `df792190` (review round 1), `65fdd212` (review round 2), all LOCAL until (0a2). Files: `tools/experience/extract_experience.py`, `tools/experience/test_extract_experience.py`, `tools/experience/fixtures/golden.log`, `tools/experience/fixtures/golden_pairing.log`, `tools/story-dev/selftest_experience.py` (the gate shim), `tools/story-dev/run_gates.py` (its entry; `WARN_OK` gains it), `.gitignore` (`tools/experience/store/`).
+- **What it does:** one record per finished bot-tuner game, in a git-ignored store (`tools/experience/store/`): tier A from `runs.jsonl`, tier B streamed from the raw log or its O3 `raw.zip` member, and the lane badge-log joined by frame identity (stale-boot entries dropped). `--incremental` appends. `--priors` (interactive only, between graded rounds) writes the AI-facing `ai_player/knowledge/experience/chapter_priors.json` ("bot corpus" on every block, no species), and `--check-priors` is its privacy gate. Exit codes: 0 ok, 2 refused, 4 WARN, 5 crash, 6 deferred.
+- **Real run:** 2,586 rows: 754 tier A+B, 1,800 tier A only, 32 none. Tier B agreed with `runs.jsonl` on all 5,956 bosses compared (0 disagreements). A later `--incremental` is a byte-identical no-op (1.2 s). ⚠ `chapter_priors.json` is NOT generated yet: nothing loads it, and its keys must be classified when the AI's loader first reads it (`check_fairness.py`'s glob does not reach `experience/`).
+- **Review round 1** (7 findings, all fixed in `df792190`):
+  - The write guard compared `abspath` strings, so a junction, an 8.3 short name, `\\?\` or `--repo` / `--clone` got past it. It now compares resolved paths AND directory identity (each layer tested alone), and always guards the default clone and this repo's `ai_player/`.
+  - The privacy sanitizer was a deny-mask that passed case and phrase variants and dict keys. Labels now come from an ALLOWLIST of label vocabulary (anything else becomes `<other>` and is counted), and the denylist gate is a second layer over keys and values.
+  - An `--incremental` racing O3's archive stored a run as tier A for good; it is now DEFERRED (exit 6, not stored, not cursored).
+  - `--priors` did not guard `--store`; five tests could not fail (now hand-derived goldens); a stale-lock race (now an OS byte-range mutex plus a per-run token); a crash exited 1 (now 5).
+- **Review round 2** (5 minor findings, all fixed in `65fdd212`):
+  - A cycle pruned with its `batch/` folder left behind deferred forever. Such a cycle is now settled at once when the learner's `state.json` marks it pruned, or when `batch/` holds no log and there is no `raw.zip`. Any other deferral ends after 3 passes AND 24 h as tier A with `raw_missing` `deferred-timeout: ...` and one WARN, counted in the store's `deferrals.json`.
+  - The lock release could crash and strand the lock for 6 h; it now runs under the mutex, retries, and never raises.
+  - A hard-linked write target bypassed the guard; it is refused now.
+  - The denylist missed normalised and glued forms; it now NFKC-normalises, strips format characters and refuses non-ASCII letters.
+- **Proof:** 157 checks ALL PASS (about 45 s). Round 1's code fails 25 of the round-2 arms, and the build's code failed 31 of round 1's. Mutants: 56 of 57 caught in round 1 (N3 is equivalent) and 37 of 37 in round 2. The independent round-2 check is CLEAN.
+- **Known minor limits, left (measured by the round-2 check):** a clock that was fast at a key's first deferral holds that deferral until the stamp; a `deferrals.json` write failure after the append exits 5 (the next pass recounts); the non-ASCII rule flags "Poké Balls", so that wall label cannot join the allowlist, and `var8004` is not caught; `--full` reads a leftover `deferrals.json`.
+
+## 2026-10-21 — The stage templates: workflow prompts live in the repo, built and twice reviewed (spec S2-3; backlog P11 + P1 + N6 + P10 + PR-2 + E1; punch-list #28-trainer-improvements)
+
+- **Commits** `72b75a45` (build), `48f12dad` (review round 1), `40dffe72` (review round 2), all LOCAL until (0a2). Files: `tools/workflows/` (`README.md`, `lint_templates.py`, `models.json`, `regression_due.py`, `render.py`, `stage_helpers.py`, `suite_map.json`, `templates/{recon,build,sweep-analysis,verify,doc-check}.md`), `tools/story-dev/selftest_workflows.py`, `tools/usage_audit.py`, `tools/story-dev/selftest_usage_audit.py`, `tools/story-dev/run_gates.py` (its entry). This paperwork commit adds `.claude/commands/orchestrate.md` (the prompt-source rule), `PROJECT KNOWLEDGE/in-flight/README.md` and two `.gitignore` lines (E1).
+- **What it does:**
+  - Each stage's prompt is rendered from a template with nine fields (GOAL, READ-LIST with ranges, DO-NOT-READ, STOP, RETURN-CAP, MODEL, WAIT-RULE, MAP-FIRST, LOOKUP-FIRST), and line 1 is the marker `<!-- stage-template:<role>@<ver> -->`.
+  - `render.py` refuses a template that fails the lint, a tier that disagrees with `models.json`, a READ-LIST range over 30 KB, and unsafe values.
+  - `stage_helpers.py refix` decides PASS / REFIX / UNKNOWN, and UNKNOWN goes to a human, never to PASS.
+  - `regression_due.py` + `suite_map.json` say which AI-player suites are stale since their evidence.
+  - `usage_audit.py` counts an agent TEMPLATED only when its first prompt line is the exact marker.
+  - Every stage stays at the top model: no plant proof exists yet, and verify is pinned to top.
+- **Review round 1** (the review's critical, 6 major and the minors, fixed in `48f12dad`):
+  - refix returned PASS on self-contradicting verdicts.
+  - A verify cut short read PASS. verify@2 now has `complete`, which is required for PASS.
+  - regression_due under-reported renames, non-ASCII paths, dirty out-of-scope files, ignored files and `sandbox-pokebot/modules`.
+  - render did not enforce the tier, and a P10 proof could be typed.
+  - The 30 KB rule was nominal, and doc-check's range missed the NEXT ACTIONS head.
+  - usage_audit's "templated" was a substring test.
+- **Review round 2** (2 major and 3 minor, fixed in `40dffe72`):
+  - A near-variant failure key (`FAILURE`, `errors`, `failed_checks`) still read PASS. PASS is now an allow-list of verify@2's six keys.
+  - units did not cover `LESSONS.md` and `gates/ledger.json`. Each suite now has `reads`, measured from its driver.
+  - An assume-unchanged file read ok.
+  - `../<repo>/` escaped DO-NOT-READ.
+  - A deeply nested verdict raised and exited 1, which reads as REFIX.
+- **Proof:** `selftest_workflows.py` 309 checks ALL PASS (about 30 s; round 1's code fails 44 of them); `selftest_usage_audit.py` 94 ALL PASS. Mutants: 12 of 12 caught in round 1 and 24 of 24 in round 2. The independent round-2 check is CLEAN: in 34 inventive verdict shapes, only a clean, complete verdict reads PASS.
+- **Measured on the real repo:** `regression_due.py` reports every AI-player suite as DUE. Most changed since their evidence; the rest can only be "unproven", because no evidence producer records a scope as wide as the suites cover. This is documented, and the remedy is a producer change.
+- **Known minor limits, left:** a non-string `summary` is not type-checked; a sourceless git-ignored `.pyc` reads ok; doc-check still says to Read the 60 KB queue line alone; the P10 typed-transcript forgery is documented, not prevented; the doc-check banner range is 23.6 KB of its 30 KB and grows.
+- **Wired in:** `/orchestrate` now says workflow prompts are rendered from `tools/workflows/templates/` and a fix round runs only on REFIX. ⚠ No real workflow has used a rendered prompt yet (usage_audit: 0 of 730 agents templated), so the next build workflow is the first.

@@ -60,6 +60,15 @@ EVIDENCE:    <the proof command + verdict>
 ```
 This is the §6 metric trail — it is how we learn whether the pattern is actually working.
 
+## Workflow prompts come from `tools/workflows/` (spec S2-3, 2026-10-21)
+Every workflow agent's prompt is RENDERED from `tools/workflows/templates/<role>.md` (recon, build, sweep-analysis,
+verify, doc-check): `py -3.12 tools/workflows/render.py <role> --values <values.json> --format json`, then paste its
+`prompt` into `agent()` and pass its `model` when it is not null. Do not hand-type a stage prompt: if a template does
+not fit, change the template and run `py -3.12 tools/workflows/lint_templates.py`. A fix round runs only when
+`py -3.12 tools/workflows/stage_helpers.py refix <verdict.json>` prints REFIX; UNKNOWN goes to the user, never to
+PASS. `py -3.12 tools/workflows/regression_due.py` says which AI-player suites a change made stale. A stage that stops
+early leaves a note in `PROJECT KNOWLEDGE/in-flight/` (git-ignored). Details: `tools/workflows/README.md`.
+
 ## Never
 - Delegate without FILES + ACCEPT.
 - Re-read files a worker already summarized (that's the re-hydration trap that erases the

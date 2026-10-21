@@ -23965,3 +23965,17 @@ and give each row a mutant that turns it red. A property with no row is a claim 
   - An INDEPENDENT reading path in the verifier: a forward walk from the start over warps, connections and map scripts, with `FLAG_SYS_GAME_CLEAR` branches taken before and after the game, which finds the same 26 post-game tables by itself.
   - The adversarial pass picked its own sample (a different seed and its own scripts, not the verifier's). The verifier gained 18 new plants (33 in all, up from 15).
 - **Prevention rule:** a verifier that re-reads the source the way the extractor does certifies the reading, not the meaning. Give every semantic label (available, post-game, normal, gift) an independent check that derives it a different way, and an adversarial pass that picks its own sample.
+
+## 2026-10-21 — ⛔ A6'S TWO GUARDS CHECKED THE TEXT THEY WERE GIVEN, NOT WHAT IT DENOTES
+
+- **Symptom:** the adversarial review wrote the experience store into the learner clone through a junction, an 8.3 short name and the `\\?\` prefix. It also got species names, PIDs and positions into the AI-facing priors by changing case or phrasing, or by putting them in a dict KEY.
+- **Root cause:** the write guard compared `abspath` strings, and `abspath` resolves neither links nor short names. The privacy filter was a deny-mask over the spellings someone had thought of, applied to values only. Both guards checked the TEXT they were handed, not the thing it names, and the builder's tests planted only the spellings the mask already knew.
+- **The fix that worked** (commits `df792190`, `65fdd212`): resolved path + directory identity + a hard-link refusal; an ALLOWLIST of label vocabulary, with the normalised denylist as a second layer over keys and values.
+- **Prevention rule:** a guard on a path compares RESOLVED identities, never strings. A filter on what may leave (privacy, secrets) is an ALLOWLIST of what is known safe, never a list of what is known bad.
+
+## 2026-10-21 — ⛔ A FIX ROUND WIDENED A DENY-LIST INSTEAD OF INVERTING IT, AND THE NEXT ROUND FOUND THE NEXT SPELLING
+
+- **Symptom:** the stage templates' `refix_decision` returned PASS (no fix round, no human) for verdicts with `rule_violations` beside `all_pass: true`, a lower-case `failures` and duplicated keys. After the round-1 fix it still returned PASS for `FAILURE`, `errors` and `failed_checks`.
+- **Root cause:** PASS was the default, and the code looked for KNOWN failure keys. Round 1 widened that list (variant spellings) rather than inverting the test, so round 2 simply found the next spelling. It is the same shape as A6's privacy mask the same day.
+- **The fix that worked** (`40dffe72`): PASS only when every key is one of verify@2's six schema keys and `complete` is true. Anything else is UNKNOWN, and the function never raises.
+- **Prevention rule:** when a fix widens a deny-list, first ask whether the check should be inverted into an allow-list. A decision whose wrong answer is "skip the work" must default to the safe answer.

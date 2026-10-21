@@ -8,9 +8,9 @@
 5. **A1 + D3** one-call `status.py` with the AI-frontier line (convenience and safety, not tokens). Step 1; 170 + 90.
 6. **O1** ✅ BUILT 2026-10-21 (its task not registered yet) session-free watchdog, notifying on a change; the scheduled tasks are approved (USER RULING 42). Step 1; 285 + 150.
 7. **N3 + P9** byte and line budgets; split the 514 KB `ai_player/README.md` (cold start about 100k to 15k, est.). Step 2; 315 + 260.
-8. **P11 + P1 + N6 + P10** ⏳ BUILT 2026-10-21, in its review fix round: stage templates (deliver A3 and E1): READ LIST, STOP, WAIT RULE, a model per stage. Step 2; 280 + 140.
+8. **P11 + P1 + N6 + P10** ✅ DONE 2026-10-21 (two review rounds; E1's in-flight folder decided, `06`): stage templates (deliver A3 and E1): READ LIST, STOP, WAIT RULE, a model per stage. Step 2; 280 + 140.
 9. **KB1 merge (S3-1), then N2 + P5 (S3-2)** (KB1 merged 2026-10-21, `3a85d759`; the S3-2 half ✅ BUILT 2026-10-21): merge between graded rounds; rulings index, facts ledger, pinned-decomp lookup. Step 3; 60 + about 310 + 150.
-10. **A6 (S3-3)** ⏳ BUILT 2026-10-21, in its review fix round: experience records from the bot's games, a script; run it first in step 3 if O3 is late. Step 3; 260 + 200.
+10. **A6 (S3-3)** ✅ DONE 2026-10-21 (two review rounds; `chapter_priors.json` waits for the AI's loader): experience records from the bot's games, a script; run it first in step 3 if O3 is late. Step 3; 260 + 200.
 11. **A5 + L1 + L2 (S3-4)** ONE generator; slice 1 (trainers, bosses, maps, campaign) build-ready, slice 2 (items, events) NEEDS DESIGN. Step 3; 700 + 250.
 12. **B1 (+R13)** Goodhart gate: grader thresholds the AI cannot import or reach. Step 4; est. 80 + 80.
 13. **A2 (agent-free half) + P7** `run_regression.py`, summary files, a `--quick` lane. Step 4; est. 250 + 150.
