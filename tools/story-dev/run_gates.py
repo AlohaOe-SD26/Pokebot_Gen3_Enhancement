@@ -1231,6 +1231,19 @@ GATES: list[tuple[str, bool]] = [
     # must redden NOTHING (a comment-only mention, 6 equivalent refactors); coverage + load-bearing checks. No ROM; ~2 s.
     # ‼ APPENDED AT THE END.
     ("probe_battle_state_eq.py", False),
+    # backlog O4 (spec S1-2, `ai-research-notes/2026-10-19-BUILD-SPECS-steps-1-2.md`): `tools/ops/backup_learner.py`, the
+    # nightly backup of the bot tuner's data/findings/inbox OFF drive C:. WHY: every game record existed once, on one
+    # disk. B1-B11 on a fake clone, FAULT + CONTROL each: round trip by sha256, a torn append keeps only whole lines, a
+    # same-volume or low-space destination is refused with nothing written, retention keeps the 14 newest backups and
+    # never prunes after a failed one, a corrupt zip is caught, restore-check refuses a non-empty or in-clone target, the
+    # installer's default is a dry run. No ROM; ~4 s. ‼ APPENDED AT THE END.
+    ("selftest_ops.py", False),
+    # backlog P3 (spec S1-6): `tools/usage_audit.py`, the usage audit over the Claude transcripts (input-equivalent tokens
+    # per session, workflow and stage; context weight by the OBJECT read). WHY: every saving in the backlog was an estimate
+    # until this existed, and a classifier keyed on the COMMAND once ranked the wrong lever first (08 2026-10-19). U1-U6 on
+    # a hand-written fixture: a split response counted once, `git commit -m "cat ..."` is not a cat, cold re-writes,
+    # append-only ledger revs, read-only. No ROM; under 1 s. ‼ APPENDED AT THE END.
+    ("selftest_usage_audit.py", False),
 ]
 
 
