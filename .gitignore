@@ -34,6 +34,10 @@ install.log.old
 install_sandbox.log
 install_sandbox.log.old
 
+# A6 experience records (spec S3-3): the per-run store is the bot corpus WITH species and team detail, rebuilt from
+# the learner clone; only the small AI-facing aggregate (ai_player/knowledge/experience/chapter_priors.json) is committed.
+tools/experience/store/
+
 # Endless-run batch output (logs + LEDGER.md) — run artefacts, not source.
 tools/story-dev/endless-runs/
 tools/story-dev/saves/stalls/

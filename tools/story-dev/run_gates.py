@@ -107,7 +107,7 @@ ADVISORY: frozenset[str] = frozenset({
 #: suite, but it is counted OUT of the passing enforcing gates and named in the closing line, so the headline carries
 #: the caveat. Any other non-zero exit from these gates is still a FAIL.
 WARN_EXIT = 4
-WARN_OK: frozenset[str] = frozenset({"selftest_facts_ledger.py"})
+WARN_OK: frozenset[str] = frozenset({"selftest_facts_ledger.py", "selftest_experience.py"})
 
 #: The standing suite. `slow=True` means it boots a ROM/emulator and takes real time.
 GATES: list[tuple[str, bool]] = [
@@ -1286,6 +1286,15 @@ GATES: list[tuple[str, bool]] = [
     # suite but is counted out and named; exit 1 from it, or exit 4 from any other gate, is a FAIL; every WARN_OK name is
     # a registered gate. WHY: a third state that is too wide becomes a silent pass. No ROM; ~1 s. ‼ APPENDED AT THE END.
     ("selftest_run_gates_warn.py", False),
+    # spec S3-3 A6 (`ai-research-notes/2026-10-19-BUILD-SPECS-step-3.md`): `tools/experience/extract_experience.py` turns
+    # each bot-tuner game into one record in a git-ignored store: tier A from runs.jsonl, tier B streamed from the raw
+    # log or its O3 raw.zip member, and the lane badge-log joined by frame IDENTITY. Only an interactive --priors writes
+    # the AI-facing chapter_priors.json ("bot corpus" on every block, no species). WHY: the raw logs were the AI's only
+    # experience input and were being pruned, and a priors change during a graded sweep FAILs it (digest scope).
+    # E1-E8, E10, G1-G7, J1, FAULT + CONTROL each; all 22 guard-deletion mutants caught. The real-data arms (E2, E3, E4,
+    # E6b, E7) read the learner clone and copy before mutating. Exit 4 = WARN (in WARN_OK): no clone or no pinned
+    # decomp, so those arms were SKIPPED; never a pass. ~17 s. No ROM. ‼ APPENDED AT THE END.
+    ("selftest_experience.py", False),
 ]
 
 

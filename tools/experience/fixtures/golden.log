@@ -1,0 +1,40 @@
+=== DEBUG LOG START 2026-10-18T23:15:00 ===
+    log: C:\fixture\golden.log
+f100 [TRAINER] start opp=265 class=0x20(LEADER) value=25 lvl_last=15 first=True base=1500 double=False two=False money=1000 heal_stock=- map=11,3 enemy_alive=3
+f110 [TRAINER] end opp=265 class=0x20(LEADER) value=25 lvl_last=15 first=True base=1500 res=Won money=1000->2500 delta=1500 mult=1 heal_stock=- map=11,3
+f301 [BADGE] n=1 party=6/6 box=12 owned=26 spare=10
+f13041 [STEP] 'Story: choosing Torchic!'
+f15036 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Torchic:L5']
+f170000 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=RUSTBORO CITY(11,3) pos=(5, 3) party=['Combusken:L16', 'Poochyena:L7'] ids=['Combusken#3E751CAF:L16:exp3071', 'Poochyena#A16DC140:L7:exp505'] owned=5 balls=0 money=7368 box=0 badges=0 msg='Story: entering Rustboro Gym'
+f174824 [BATTLE] started hp=[('Combusken', 48, 48), ('Poochyena', 22, 22)]
+f174824 [TRAINER] start opp=265 class=0x20(LEADER) value=25 lvl_last=15 first=True base=1500 double=False two=False money=7368 heal_stock=- map=11,3 enemy_alive=3
+f174824 [DMGAUDIT] CTL v=1
+f175478 [BATTLE] [TURN 0] Combusken L16 48/48 -> UseMove:Double Kick(pp26)  vs Geodude L12 33/33
+f175497 [BATTLE] [TURN 0] Combusken L16 48/48 -> UseMove:Double Kick(pp26)  vs Geodude L12 33/33
+f176774 [BATTLE] [TURN 1] Combusken L16 48/48 -> UseMove:Ember(pp24)  vs Nosepass L15 37/37
+f182534 [BATTLE] ended (outcome=BattleOutcome.Won) party=['Combusken:L17', 'Poochyena:L7']
+f182534 [TRAINER] end opp=265 class=0x20(LEADER) value=25 lvl_last=15 first=True base=1500 res=Won money=7368->8868 delta=1500 mult=1 heal_stock=- map=11,3
+f183421 [BADGE] n=1 party=2/6 box=0 owned=5 spare=0
+f198001 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=DEWFORD TOWN(3,0) pos=(4, 5) party=['Combusken:L17', 'Poochyena:L8'] ids=['Combusken#3E751CAF:L17:exp3600', 'Poochyena#A16DC140:L8:exp600'] owned=5 balls=0 money=5000 box=0 badges=1 msg='x'
+f200000 [TRAINER] start opp=266 class=0x20(LEADER) value=25 lvl_last=19 first=True base=1900 double=False two=False money=5000 heal_stock=Potion:5,Revive:1 map=3,0 enemy_alive=3
+f201000 [BATTLE] [TURN 0] Combusken L17 10/51 -> UseItem  vs Makuhita L16 40/40
+f201010 [BATTLE] [TURN 0] Combusken L17 10/51 -> UseItem  vs Makuhita L16 40/40
+f202000 [BATTLE] [TURN 1] Combusken L17 30/51 -> UseMove:Peck(pp30)  vs Makuhita L16 40/40
+f203000 [TRAINER] end opp=266 class=0x20(LEADER) value=25 lvl_last=19 first=True base=1900 res=Lost money=5000->2500 delta=-2500 mult=1 heal_stock=Potion:4,Revive:1 map=3,0
+f203100 [STORY] WHITEOUT recovery #1 at (0, 2)
+f210000 [TRAINER] start opp=266 class=0x20(LEADER) value=25 lvl_last=19 first=False base=1900 double=False two=False money=2500 heal_stock=Potion:4,Revive:1 map=3,0 enemy_alive=3
+f211000 [BATTLE] [TURN 0] Combusken L18 9/53 -> UseItem  vs Makuhita L16 40/40
+f212000 [BATTLE] [TURN 3] Combusken L18 8/53 -> UseItem  vs Makuhita L16 12/40
+f213000 [TRAINER] end opp=266 class=0x20(LEADER) value=25 lvl_last=19 first=False base=1900 res=Lost money=2500->1250 delta=-1250 mult=1 heal_stock=Potion:2,Revive:1 map=3,0
+f213500 [STORY] DERAIL #1: Brawly: 2 losses with no super-effective answer to Fighting. Need one of: Flying.
+f213600 [GYM_TM] boss=Brawly losses=2 faints=[{'Makuhita': 1}] wall=Makuhita outcome='no plan' plan=None error=None why=[]
+f220001 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=DEWFORD TOWN(3,0) pos=(4, 5) party=['Combusken:L20', 'Taillow:L18'] ids=['Combusken#3E751CAF:L20:exp5000', 'Taillow#0BADF00D:L18:exp4000'] owned=6 balls=2 money=4000 box=1 badges=1 msg='x'
+f221000 [TRAINER] start opp=266 class=0x20(LEADER) value=25 lvl_last=19 first=False base=1900 double=False two=False money=4000 heal_stock=Potion:2,Revive:1 map=3,0 enemy_alive=3
+f222000 [BATTLE] [TURN 0] Taillow L18 50/50 -> UseMove:Wing Attack(pp35)  vs Makuhita L16 40/40
+f223000 [TRAINER] end opp=266 class=0x20(LEADER) value=25 lvl_last=19 first=False base=1900 res=Won money=4000->5900 delta=1900 mult=1 heal_stock=Potion:2,Revive:1 map=3,0
+f223100 [BADGE] n=2 party=2/6 box=1 owned=6 spare=0
+f230000 [TRAINER] start opp=400 class=0x05(COOLTRAINER) value=10 lvl_last=20 first=True base=800 double=False two=False money=5900 heal_stock=Potion:2,Revive:1 map=12,0 enemy_alive=2
+f230500 [TRAINER] end opp=400 class=0x05(COOLTRAINER) value=10 lvl_last=20 first=True base=800 res=Won money=5900->6700 delta=800 mult=1 heal_stock=Potion:2,Revive:1 map=12,0
+f231000 [NEWTAG] a tag this parser has never seen
+f241000 [TRAINER] start opp=267 class=0x20(LEADER) value=25 lvl_last=24 first=True base=2400 double=False two=False money=6700 heal_stock=Potion:2,Revive:1 map=10,0 enemy_alive=4
+f242000 [BATTLE] [TURN 0] Combusken L21 60/60 -> UseMove:Ember(pp25)  vs Magnemite L22 40/40
