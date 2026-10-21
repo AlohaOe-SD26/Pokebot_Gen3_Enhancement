@@ -143,6 +143,24 @@ end, then scores it.
      are the AI's experience input (backlog A6): `zipfile.ZipFile(path).open("batch/L01/debug-logs/<x>.log")`, or
      `.open("profiles/<profile>/badge-log.json")`. A reader that wants a `dup_of` file opens its `dup_of` member.
    - The run records in `data/runs.jsonl` are kept forever, as before.
+   - **Early archive** (backlog O7, 2026-10-21). Before each cycle, if free disk is under `min_free_gb` +
+     `early_prune_margin_gb` (25 + 15 = 40 GB), the same archive runs with only the newest 2 cycles kept raw, at
+     most `max_archives_per_prune` a pass (it runs again at the next pass, idle waits included). It IS the archive
+     above, so it never deletes without a verified zip and skips held and still-busy cycles. Why: it archives while
+     there is still room to write zips, long before the 25 GB stop below.
+8. **Ops ledger** (backlog O6, 2026-10-21). After the archive, one row per cycle goes to `data/ops.jsonl` (not
+   `cycles.jsonl`, so the report and `publish` see nothing new):
+   - `tag`, `started`, `finished` (the moment the batch was scored, as in `cycles.jsonl`), `minutes` between them;
+   - `gap_minutes`: from the previous cycle's `finished` to this `started` (the boundary's consult, archive and
+     update, plus any idle wait), so consecutive rows tile the clock;
+   - `free_gb_start`, `free_gb_end` (after the archive), `learner_gb` (`runs/` plus the learner's `endless-ai*`
+     profiles; the size walk gives up after 20 s), `cpu_avg` (the whole machine's CPU % over the batch, sampled every
+     60 s), `consult_seconds`, `boot_time` (when Windows last started);
+   - `archive_seconds` and `archive_bytes`: how long this boundary's archive took and the size of the zips it wrote
+     (the early archive logs its own numbers to `learner.log` instead).
+   - A field that could not be measured is null and `ops_error` says why. **The ledger never fails a cycle**: the
+     cycle is scored and saved first, and every failure (psutil missing or failing, the row builder failing, the file
+     unwritable) becomes a null or a log line (tests O6-1 to O6-5). An adopted cycle's row has null start fields.
 
 ## Talking to Claude
 
@@ -182,7 +200,8 @@ end, then scores it.
 - It pauses itself, instead of retrying forever:
   - after 3 cycles in a row with no scored runs;
   - when the disk falls below 25 GB free. It first archives every cycle but the newest (it never deletes
-    without a verified archive) and stops only if that is not enough.
+    without a verified archive) and stops only if that is not enough. Under 40 GB it has already been archiving
+    early (step 7, tests O7).
   - Under 2 GB free no archive can be written: it archives nothing, deletes nothing, starts no batch and writes
     `findings/ATTENTION.md` (test R10).
 - **It plays the code its clone holds.** Commits and pulls in the development checkout cannot touch a running
@@ -216,6 +235,6 @@ That is an interactive-session job.
 | `brain.py` | strategy choice and knob-effect estimates |
 | `report.py` | `findings/LATEST.md` |
 | `consult.py` | the optional Claude call |
-| `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune and archive safety) |
+| `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune and archive safety, the ops ledger and the early archive) |
 | `config.json` | the settings, re-read every cycle |
 | `run_agent.ps1` | the 24/7 wrapper (restarts after a crash or into updated code; stops on `STOP` or `ATTENTION.md`) |

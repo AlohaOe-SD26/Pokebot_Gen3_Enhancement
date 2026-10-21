@@ -16,6 +16,8 @@
   "_keep_archive_cycles": "RESERVED, only 0 is implemented: 0 = keep every raw.zip forever (the archives are the AI's experience input, backlog A6). Nothing in the learner ever deletes an archive.",
   "keep_archive_cycles": 0,
   "min_free_gb": 25,
+  "_early_prune_margin_gb": "backlog O7 (spec S1-3, 2026-10-21): before each cycle, if free disk is under min_free_gb + this (25 + 15 = 40 GB), the learner runs the ordinary archive (O3: zip, verify, only then delete) keeping only the newest 2 cycles raw, so it archives while there is still room to write zips instead of reaching the 25 GB stop. With 0 it fires only under min_free_gb, just before disk_guard's own archive.",
+  "early_prune_margin_gb": 15,
   "_design": "screen = after the control, run the rows of a screening design that measures each knob's own effect (Plackett-Burman 12 for 11 knobs, Hadamard 16 for 12-15); anything else = Thompson draw + mutants",
   "design": "screen",
   "_auto_update": "between cycles only: fast-forward this deployment clone to origin/main, then restart into new learner code if test_agent.py passes",

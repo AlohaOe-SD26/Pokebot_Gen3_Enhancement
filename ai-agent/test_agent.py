@@ -241,6 +241,7 @@ def test_preflight(tmp: Path) -> None:
 LEARNER_PATHS = {"RUNS": "runs", "PROFILES": "profiles", "DATA": "data", "FINDINGS": "findings", "INBOX": "inbox",
                  "PUBLISHED": "published", "RUNS_FILE": "data/runs.jsonl", "CYCLES_FILE": "data/cycles.jsonl",
                  "STATE_FILE": "data/state.json", "LOCK": "data/agent.lock", "LOG": "data/learner.log",
+                 "OPS_FILE": "data/ops.jsonl",
                  "STOP": "STOP", "ATTENTION": "findings/ATTENTION.md", "DEPLOYMENT": "DEPLOYMENT"}
 #: The only learner Path globals allowed to stay real: the code folders it READS (code, config.json, the bot).
 CODE_ROOTS = {"AI", "REPO", "STORY_DEV"}
@@ -477,7 +478,10 @@ def flip_member_byte(zpath: Path, name: str) -> None:
 SANDBOX_ATTRS = ("free_gb", "REPLACE_WAIT_S", "REPLACE_TRIES", "_copy_member", "verify_archive", "_os_replace",
                  "_os_rename", "_delete_ours", "load_config", "archive_cycle", "_write_manifest", "QUIET_MINUTES",
                  "_cmdlines", "LOCK_POLL_S", "LOCK_WAIT_MAX_MIN", "disk_guard", "sleep_unless_stopped", "run_cycle",
-                 "acquire_lock", "_lock_holder")
+                 "acquire_lock", "_lock_holder",
+                 # O6 + O7 (test_o6_o7)
+                 "prune", "batch_command", "now", "CPU_SAMPLE_S", "SIZE_WALK_CAP_S", "_ops_row", "_CpuSampler",
+                 "append_jsonl", "write_ops_row")
 #: The real learner attributes, captured at import, before any test patches one.
 O3_REAL = {k: getattr(learner, k) for k in SANDBOX_ATTRS}
 
@@ -1704,6 +1708,252 @@ def test_o3_lock(tmp: Path) -> None:
               learner.acquire_lock_waiting_for_archive() is None and not answers, answers)
 
 
+# ------------------------------------------------------------------- O6 the ops ledger, O7 the early archive (S1-3)
+#: A stand-in for the batch runner: a BOUNDED child (CHILD_PRELUDE) that copies a prepared batch into place, then
+#: lives about 0.4 s so the CPU sampler takes readings while `run_cycle` blocks on it, as it does on a real batch.
+FAKE_BATCH_BODY = ("import shutil\nshutil.copytree(ARGS[0], ARGS[1])\nt = time.time()\n"
+                   "while alive() and time.time() - t < 0.4:\n    time.sleep(0.02)\n")
+
+
+def fake_batch_command(template: Path):
+    def command(plan: dict, cdir: Path) -> list[str]:
+        return [sys.executable, "-c", CHILD_PRELUDE + FAKE_BATCH_BODY, str(os.getpid()), "20", str(template),
+                str(cdir / "batch")]
+    return command
+
+
+def ops_rows() -> list[dict]:
+    return learner.load_jsonl(learner.OPS_FILE) if learner.OPS_FILE.is_file() else []
+
+
+def drive_cycle(template: Path, cfg: dict) -> tuple[object, dict]:
+    """One whole fake cycle through the REAL `run_cycle` (ops_start, the sampler, finish_cycle, prune, the ops row),
+    with only the batch runner replaced. Returns (its result or 'RAISED ...', the newest cycle in state.json)."""
+    learner.batch_command = fake_batch_command(template)
+    learner.load_config = lambda: cfg
+    try:
+        ok, _ = captured(lambda: learner.run_cycle(cfg, learner.load_state(), 8))
+    except Exception as exc:  # noqa: BLE001 - a raise here IS the failure the ledger must never cause
+        ok = f"RAISED {exc!r}"
+    cycles = learner.load_state()["cycles"]
+    return ok, (cycles[-1] if cycles else {})
+
+
+def scored(ok: object, newest: dict, tag: str) -> bool:
+    """The cycle was scored and recorded: run_cycle returned True, state.json records `tag`, runs.jsonl holds its 4."""
+    return ok is True and newest.get("tag") == tag and newest.get("usable") == 3 and \
+        len(learner.load_jsonl(learner.RUNS_FILE)) == 4
+
+
+class FrozenDatetime(__import__("datetime").datetime):
+    @classmethod
+    def now(cls, tz=None):  # noqa: ANN206
+        return cls(2026, 1, 1, 8, 0, 0)
+
+
+def test_o6_o7(tmp: Path) -> None:
+    """S1-3. O6: every finished cycle appends one data/ops.jsonl row, and NO failure of that ledger (psutil missing or
+    raising, the row builder raising, the file unwritable) ever fails the cycle. O7: under min_free_gb +
+    early_prune_margin_gb the loop runs the O3 archive prune with keep 2 BEFORE the disk_guard floor path."""
+    import types
+    import report
+    template = tmp / "template"
+    make_batch(template)
+    template = template / "batch"
+    cfg = dict(learner.DEFAULTS, keep_raw_cycles=1, max_archives_per_prune=3)
+    real_psutil = sys.modules["psutil"]
+    five_min_ago = (FrozenDatetime.fromtimestamp(time.time() - 300)).strftime(learner.TIME_FMT)
+
+    # O6-1 a real cycle appends one row with every key and sane types ------------------------------------------------
+    with O3Sandbox(tmp / "o6-1"):
+        learner.CPU_SAMPLE_S = 0.1
+        old = dict(make_raw_cycle(tmp, "ai0001"), finished=five_min_ago)
+        O3Sandbox.state([old])
+        ok, newest = drive_cycle(template, cfg)
+        rows = ops_rows()
+        row = rows[-1] if rows else {}
+        zsize = (learner.RUNS / "ai0001" / "raw.zip").stat().st_size if \
+            (learner.RUNS / "ai0001" / "raw.zip").exists() else -1
+        num = (int, float)
+        sane = (len(rows) == 1 and tuple(row) == learner.OPS_KEYS and row["tag"] == "ai0002"
+                and learner._parse_time(row["started"]) <= learner._parse_time(row["finished"])
+                and isinstance(row["minutes"], num) and 0 <= row["minutes"] < 5
+                and row["free_gb_start"] == 500.0 and row["free_gb_end"] == 500.0
+                and isinstance(row["learner_gb"], num) and row["learner_gb"] >= 0
+                and isinstance(row["cpu_avg"], num) and 0 <= row["cpu_avg"] <= 100
+                and isinstance(row["consult_seconds"], num) and row["consult_seconds"] >= 0
+                and learner._parse_time(row["boot_time"]) < time.time()
+                and isinstance(row["gap_minutes"], num) and 4.9 <= row["gap_minutes"] <= 6
+                and isinstance(row["archive_seconds"], num) and row["archive_seconds"] >= 0
+                and row["ops_error"] is None)
+        check("O6-1 a finished cycle appends ONE ops.jsonl row: every key in order, sane types, CPU sampled during the "
+              "batch, gap from the previous cycle's finish", scored(ok, newest, "ai0002") and sane, (ok, row))
+        check("O6-1 archive_bytes is the size of the raw.zip this boundary's prune wrote",
+              zsize > 0 and row.get("archive_bytes") == zsize, (zsize, row.get("archive_bytes")))
+
+    # O6-2 FAULT: the ledger fails in every way it can -> the cycle is still scored, a row says why ---------------------
+    class RaisingPsutil(types.ModuleType):
+        def cpu_percent(self, *a):
+            raise RuntimeError("simulated: psutil.cpu_percent failed")
+
+        def boot_time(self):
+            raise RuntimeError("simulated: psutil.boot_time failed")
+
+    def no_sampler():
+        raise RuntimeError("simulated: the sampler cannot start")
+
+    def broken_builder(*a, **k):
+        raise RuntimeError("simulated: the row builder failed")
+
+    arms = (("psutil cannot be imported", lambda: sys.modules.__setitem__("psutil", None),
+             lambda r: r["cpu_avg"] is None and r["boot_time"] is None
+             and r["ops_error"].count("import of psutil halted") == 2 and "cpu_avg: ModuleNotFoundError" in
+             r["ops_error"] and "boot_time: ModuleNotFoundError" in r["ops_error"] and r["free_gb_start"] == 500.0
+             and r["free_gb_end"] == 500.0),
+            ("psutil raises", lambda: sys.modules.__setitem__("psutil", RaisingPsutil("psutil")),
+             lambda r: r["cpu_avg"] is None and r["boot_time"] is None and "cpu_percent failed" in r["ops_error"]
+             and "boot_time failed" in r["ops_error"] and r["free_gb_end"] == 500.0
+             and isinstance(r["learner_gb"], (int, float))),
+            ("the sampler cannot start", lambda: setattr(learner, "_CpuSampler", no_sampler),
+             lambda r: r["cpu_avg"] is None and "ops_start" in r["ops_error"] and r["free_gb_end"] == 500.0),
+            ("the row builder raises", lambda: setattr(learner, "_ops_row", broken_builder),
+             lambda r: r["tag"] == "ai0002" and r["minutes"] is None and tuple(r) == learner.OPS_KEYS
+             and "could not be built" in r["ops_error"]),
+            ("ops.jsonl cannot be written", lambda: learner.OPS_FILE.mkdir(parents=True),
+             None))
+    for i, (arm, fault, row_ok) in enumerate(arms):
+        with O3Sandbox(tmp / f"o6-2-{i}"):
+            learner.CPU_SAMPLE_S = 0.1
+            O3Sandbox.state([dict(make_raw_cycle(tmp, "ai0001"), finished=five_min_ago)])
+            try:
+                fault()
+                ok, newest = drive_cycle(template, cfg)
+            finally:
+                sys.modules["psutil"] = real_psutil
+            rows = ops_rows()
+            if row_ok is None:  # nowhere to write: the cycle is recorded and the failure logged instead
+                good = learner.OPS_FILE.is_dir() and "could not write its data/ops.jsonl row" in log_text()
+            else:
+                good = len(rows) == 1 and bool(row_ok(rows[0]))
+            check(f"O6-2 FAULT ({arm}): the cycle is still scored and recorded, and the ledger says why",
+                  scored(ok, newest, "ai0002") and good, (ok, rows[-1] if rows else None))
+
+    # O6-3 CONTROL: what report.write and cycles.jsonl see is byte-identical with and without the ledger ---------------
+    plan = {"tag": "ai0005", "lanes": 8, "arms": {"A": {"genome": "g"}}, "proposal_files": []}
+    out = {}
+    real_report_dt = report.dt
+    for arm in ("with ops.jsonl", "without ops.jsonl", "LEAK"):
+        with O3Sandbox(tmp / f"o6-3-{arm.replace(' ', '-')}"):
+            report.dt = types.SimpleNamespace(datetime=FrozenDatetime)
+            learner.now = lambda: "2026-01-01 08:00:00 AM"
+            learner.load_config = lambda: cfg
+            try:
+                st = O3Sandbox.state([])
+                shutil.copytree(template, learner.RUNS / "ai0005" / "batch")
+                if arm == "without ops.jsonl":
+                    learner.write_ops_row = lambda *a, **k: None
+                if arm == "LEAK":  # the comparison must SEE a ledger field leaking into cycles.jsonl
+                    real_append = learner.append_jsonl
+                    learner.append_jsonl = lambda p, rows: real_append(p, [dict(r, cpu_avg=1.0) if p ==
+                                                                          learner.CYCLES_FILE else r for r in rows])
+                ops = learner.ops_start(st)
+                learner.ops_batch_ended(ops)
+                captured(lambda: learner.finish_cycle(cfg, st, plan, 0, ops))
+                out[arm] = ({n: (learner.FINDINGS / n).read_bytes() for n in ("LATEST.md", "latest.json")},
+                            learner.CYCLES_FILE.read_bytes(), learner.OPS_FILE.exists())
+            finally:
+                report.dt = real_report_dt
+    w, wo, leak = out["with ops.jsonl"], out["without ops.jsonl"], out["LEAK"]
+    check("O6-3 CONTROL: LATEST.md, latest.json and cycles.jsonl are byte-identical with and without the ledger",
+          w[2] and not wo[2] and w[0] == wo[0] and w[1] == wo[1], (w[2], wo[2], w[1][:120], wo[1][:120]))
+    check("O6-3 FAULT: a ledger field leaking into cycles.jsonl IS seen by that comparison",
+          leak[1] != wo[1] and leak[2], leak[1][:160])
+    keys = set(json.loads(w[1].decode("utf-8").splitlines()[-1]))
+    check("O6-3 CONTROL: a cycles.jsonl row holds exactly its pre-O6 keys (no ledger field in either arm)",
+          keys == {"source", "tag", "finished", "exit", "lanes", "runs", "usable", "arms_label", "code_commit",
+                   "pruned"}, sorted(keys))
+
+    # O6-4 learner_gb: exactly the learner's own files, and capped ---------------------------------------------------
+    with O3Sandbox(tmp / "o6-4"):
+        make_raw_cycle(tmp, "ai0001")
+        foreign = learner.PROFILES / "endless-s14-H1-torchic"
+        foreign.mkdir(parents=True)
+        (foreign / "save.ss1").write_bytes(b"\x02" * 12345)
+        ours = sum(p.stat().st_size for root in [learner.RUNS, *learner.PROFILES.glob("endless-ai*")]
+                   for p in root.rglob("*") if p.is_file())
+        got = learner.learner_bytes()
+        check("O6-4 learner_gb counts runs/ and the learner's endless-ai* profiles, never another profile",
+              got == ours and ours > 10 * 2 ** 20, (got, ours))
+        learner.SIZE_WALK_CAP_S = -1.0  # the walk is already past its cap when it starts
+        r = learner._ops_row("ai0009", {"errors": []}, "x", time.time(), 0.0, {"seconds": 0.0, "bytes": 0})
+        check("O6-4 FAULT: a size walk past SIZE_WALK_CAP_S gives learner_gb null with the reason, not a hang",
+              r["learner_gb"] is None and "learner_gb: TimeoutError" in (r["ops_error"] or ""), r)
+        r = learner._ops_row("ai0009", None, "x", time.time(), 0.0, None)
+        check("O6-5 an ADOPTED cycle (its start never measured) gets a row whose ops_error says so",
+              r["started"] is None and r["minutes"] is None and r["cpu_avg"] is None
+              and (r["ops_error"] or "").startswith("adopted"), r)
+
+    # O7 the early archive, driven through the REAL loop -------------------------------------------------------------
+    def drive_loop(name: str, free: float, margin: float, n: int = 3, held: bool = False, busy: bool = False,
+                   fail: bool = False) -> dict:
+        with O3Sandbox(tmp / name, free=free):
+            learner.DEPLOYMENT.parent.mkdir(parents=True, exist_ok=True)
+            learner.DEPLOYMENT.write_text("", encoding="utf-8")
+            cs = [make_raw_cycle(tmp, f"ai{k:04d}") for k in range(1, n + 1)]
+            if held:
+                cs[0]["held"] = {"reason": "planted by the test", "since": "x"}
+            st = O3Sandbox.state(cs)
+            st["parser_version"] = scoring.PARSER_VERSION
+            learner.save_state(st)
+            before = {c["tag"]: raw_view(tmp, c["tag"]) for c in cs}
+            whole = tree(learner.RUNS), tree(learner.PROFILES)
+            lcfg = dict(learner.DEFAULTS, auto_update=False, lanes=8, keep_raw_cycles=20, min_free_gb=25,
+                        early_prune_margin_gb=margin, wait_if_other_bots_running=False)
+            learner.load_config = lambda: lcfg
+            order: list[tuple] = []
+            real_prune, real_guard = learner.prune, learner.disk_guard
+            learner.prune = lambda c, s: order.append(("prune", c["keep_raw_cycles"])) or real_prune(c, s)
+            learner.disk_guard = lambda c, s: order.append(("guard",)) or real_guard(c, s)
+            learner.run_cycle = lambda *a: order.append(("run",)) or True
+            if busy:  # an orphaned lane of ai0001 still names it: the cycle is NOT quiet
+                learner._cmdlines = lambda: iter([(4242, "python lane.py --profile endless-ai0001-H1-torchic")])
+            if fail:
+                def failing_copy(zf, src, nm):
+                    raise OSError("simulated: the archive cannot be written")
+                learner._copy_member = failing_copy
+            rc, _ = captured(lambda: learner.loop(single=True))
+            stc = {c["tag"]: c for c in learner.load_state()["cycles"]}
+            return {"rc": rc, "order": order, "state": stc, "same": (tree(learner.RUNS), tree(learner.PROFILES)) ==
+                    whole, "raw": {t: raw_view(tmp, t) == before[t] for t in before},
+                    "restored": {t: (learner.RUNS / t / "raw.zip").exists() and restored(learner.RUNS / t) == before[t]
+                                 for t in before}, "log": log_text()}
+
+    r = drive_loop("o7-1", free=38.0, margin=15.0)
+    check("O7-1 free 38 GB (min 25 + margin 15): the loop runs the archive prune with keep 2 BEFORE disk_guard, then "
+          "the batch", r["rc"] == 0 and r["order"] == [("prune", 2), ("guard",), ("run",)], r["order"])
+    check("O7-1 and it ARCHIVES (verified read-back) all but the newest 2; those 2 stay raw",
+          r["restored"]["ai0001"] and r["state"]["ai0001"].get("archived")
+          and r["raw"]["ai0002"] and r["raw"]["ai0003"] and not r["state"]["ai0002"].get("pruned"), r["state"])
+    r = drive_loop("o7-fail", free=38.0, margin=15.0, fail=True)
+    check("O7-1 FAULT: archiving fails -> the early prune deletes NOTHING (whole tree byte-identical); the batch "
+          "still starts", r["same"] and r["order"] == [("prune", 2), ("guard",), ("run",)]
+          and not r["state"]["ai0001"].get("pruned"), r["order"])
+    r = drive_loop("o7-60", free=60.0, margin=15.0)
+    check("O7 CONTROL: free 60 GB -> no early prune (only disk_guard, then the batch), nothing touched",
+          r["order"] == [("guard",), ("run",)] and r["same"], r["order"])
+    r = drive_loop("o7-m0", free=38.0, margin=0.0)
+    check("O7 FAULT: margin 0 at 38 GB -> no early prune: the margin is what fires it",
+          r["order"] == [("guard",), ("run",)] and r["same"], r["order"])
+    r = drive_loop("o7-held", free=38.0, margin=15.0, n=4, held=True)
+    check("O7 HOLD: a HELD cycle is untouched by the early archive; the next eligible one is archived",
+          r["raw"]["ai0001"] and not r["state"]["ai0001"].get("pruned") and r["restored"]["ai0002"]
+          and r["raw"]["ai0003"] and r["raw"]["ai0004"], r["state"])
+    r = drive_loop("o7-busy", free=38.0, margin=15.0, n=4, busy=True)
+    check("O7 QUIESCENCE: a cycle a live process still names is skipped by the early archive (in use); the next is "
+          "archived", r["raw"]["ai0001"] and not r["state"]["ai0001"].get("pruned") and r["restored"]["ai0002"]
+          and "ai0001: in use" in r["log"], r["state"])
+
+
 def main() -> int:
     global GLOBAL_ROOT
     tmp = Path(tempfile.mkdtemp(prefix="aiagent-test-")).resolve()
@@ -1719,7 +1969,7 @@ def main() -> int:
                  lambda: test_o3_reparse(tmp / "o3reparse"), lambda: test_o3_review(tmp / "o3review"),
                  lambda: test_o3_orphan(tmp / "o3orphan"), lambda: test_o3_liveness(tmp / "o3live"),
                  lambda: test_o3_lock(tmp / "o3lock"), lambda: test_o3_profiles(tmp / "o3prof"),
-                 lambda: test_children(tmp / "children"))
+                 lambda: test_children(tmp / "children"), lambda: test_o6_o7(tmp / "o6o7"))
         for i, t in enumerate(tests):
             try:
                 assert_isolated(tmp)

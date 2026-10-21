@@ -18,6 +18,10 @@ Each CYCLE:
    archive, stored or through `dup_of`, and no archive file is ever overwritten or deleted. A cycle still in use is
    skipped until it is quiet; one whose state the code cannot prove safe is HELD for a human (`archive-check`).
    Accepted residual risk: see `archive_cycle` (a write landing in the ~0.1 s between the last re-check and the delete).
+   Before each cycle, if free disk is under `min_free_gb + early_prune_margin_gb` (40 GB by default), the same
+   archive runs early with only the newest 2 cycles kept raw (backlog O7, `early_archive`).
+7. appends one row to `data/ops.jsonl` (backlog O6, `OPS_KEYS`): how long the cycle and its boundary took, the CPU
+   and disk it used. A failed measurement is a null field plus `ops_error`, never a failed cycle.
 
 Resilience:
 - If the learner dies mid-cycle, the batch keeps running. The next start ADOPTS it: it waits for that batch to end,
@@ -55,6 +59,7 @@ import random
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import traceback
 import zipfile
@@ -76,6 +81,9 @@ STORY_DEV = REPO / "tools" / "story-dev"
 PROFILES = REPO / "sandbox-pokebot" / "profiles"
 DATA, FINDINGS, INBOX, RUNS, PUBLISHED = AI / "data", AI / "findings", AI / "inbox", AI / "runs", AI / "published"
 RUNS_FILE, CYCLES_FILE, STATE_FILE = DATA / "runs.jsonl", DATA / "cycles.jsonl", DATA / "state.json"
+#: The ops ledger (backlog O6): one row per finished cycle, how long it took and what it cost the machine. A file of its
+#: own, NOT cycles.jsonl, so the readers of cycles.jsonl (`report.write`, `publish`) never see a new field (test O6-3).
+OPS_FILE = DATA / "ops.jsonl"
 LOCK, LOG, STOP, ATTENTION = DATA / "agent.lock", DATA / "learner.log", AI / "STOP", FINDINGS / "ATTENTION.md"
 RESTART_CODE = 3
 #: The raw-log archive of one cycle (backlog O3): `runs/<tag>/raw.zip` with its `raw.manifest.json`. A zip is written as
@@ -99,7 +107,7 @@ _os_rename = os.rename
 DEFAULTS = {
     "lanes": "auto", "max_lanes": 24, "reserve_threads": 4, "reserve_ram_gb": 8, "ram_per_lane_gb": 1.5,
     "cycle_minutes": 720, "keep_raw_cycles": 3, "min_free_gb": 25, "design": "screen", "auto_update": True,
-    "max_archives_per_prune": 3, "keep_archive_cycles": 0,
+    "max_archives_per_prune": 3, "keep_archive_cycles": 0, "early_prune_margin_gb": 15,
     "objective": "human_balanced",
     "wait_if_other_bots_running": True, "idle_wait_minutes": 15, "max_consecutive_failures": 3,
     "max_proposals_per_cycle": 1, "two_flip_prob": 0.3,
@@ -116,8 +124,12 @@ def score_key(cfg: dict) -> str:
     return OBJECTIVES.get(str(cfg.get("objective", "human_balanced")), "human_score")
 
 
+#: The learner's time stamps (state.json, cycles.jsonl, learner.log, ops.jsonl): 12-hour local time.
+TIME_FMT = "%Y-%m-%d %I:%M:%S %p"
+
+
 def now() -> str:
-    return dt.datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+    return dt.datetime.now().strftime(TIME_FMT)
 
 
 def log(msg: str) -> None:
@@ -371,6 +383,182 @@ def attention(reason: str) -> None:
     log(f"PAUSED for attention: {reason}")
 
 
+# -------------------------------------------------------------------------------------------- ops ledger (backlog O6)
+#: The keys of every `data/ops.jsonl` row, in order. Times are TIME_FMT strings; `minutes` runs from `started` to
+#: `finished` (the moment the batch was scored, the same value as the cycle's `finished` in cycles.jsonl) and
+#: `gap_minutes` from the PREVIOUS cycle's `finished` to this `started`, so consecutive rows tile the clock: a gap holds
+#: the previous boundary's consult, archive and update plus every idle wait. `cpu_avg` is the whole machine's CPU % over
+#: the batch. `learner_gb` is what the learner holds on disk after this boundary's archive: `runs/` (raw logs and zips)
+#: plus its lane profiles (`endless-ai*`). `archive_seconds`/`archive_bytes`: how long this boundary's prune took and
+#: the bytes of the `raw.zip` files it wrote. A field that could not be measured is null and `ops_error` says why;
+#: `ops_error` is null when every field was measured.
+OPS_KEYS = ("tag", "started", "finished", "minutes", "free_gb_start", "free_gb_end", "learner_gb", "cpu_avg",
+            "consult_seconds", "boot_time", "gap_minutes", "archive_seconds", "archive_bytes", "ops_error")
+#: How often the CPU sampler reads `psutil.cpu_percent` while a batch runs. A module constant so a test can shorten it.
+CPU_SAMPLE_S = 60.0
+#: The `learner_gb` size walk gives up (null + ops_error) after this long, so a slow disk never delays a boundary
+#: by more than this.
+SIZE_WALK_CAP_S = 20.0
+
+
+class _CpuSampler(threading.Thread):
+    """Samples the machine's CPU % every CPU_SAMPLE_S while a batch runs (a daemon thread: `subprocess.run` blocks the
+    main one). WHY a thread: the batch is one blocking call of up to 12 hours, and an average needs readings across it.
+
+    psutil is imported INSIDE the sampler's `try` (spec S1-3): any failure of it, at import or at a call, ends only the
+    sampler and leaves `cpu_avg` null with the reason in `error`. It does NOT make psutil optional for the learner,
+    which imports it at the top for the lock and process checks; it keeps a failing sampler from ever failing a cycle."""
+
+    def __init__(self) -> None:
+        super().__init__(name="ops-cpu-sampler", daemon=True)
+        self.halt = threading.Event()
+        self.samples: list[tuple[float, float]] = []  # (cpu %, seconds that reading covers)
+        self.error: str | None = None
+
+    def run(self) -> None:
+        try:
+            import psutil as ps  # noqa: PLC0415 - lazy on purpose, see the class docstring
+            ps.cpu_percent(None)  # primes psutil: the first reading without an interval is meaningless
+            last = time.monotonic()
+            while not self.halt.wait(CPU_SAMPLE_S):
+                pct, t = float(ps.cpu_percent(None)), time.monotonic()
+                self.samples.append((pct, t - last))
+                last = t
+            pct, t = float(ps.cpu_percent(None)), time.monotonic()  # the tail since the last full interval
+            if t > last:
+                self.samples.append((pct, t - last))
+        except Exception as exc:  # noqa: BLE001 - a sampler failure is a null field, never a failed cycle
+            self.error = f"cpu_avg: {exc!r}"[:200]
+
+    def finish(self) -> float | None:
+        """Stop sampling; the time-weighted average CPU %, or None (and `error` set) when there is none."""
+        self.halt.set()
+        self.join(timeout=5)
+        if self.is_alive():
+            self.error = self.error or "cpu_avg: the sampler did not stop within 5 s"
+            return None
+        total = sum(w for _, w in self.samples)
+        if self.error or total <= 0:
+            self.error = self.error or "cpu_avg: no sample was taken"
+            return None
+        return round(sum(p * w for p, w in self.samples) / total, 1)
+
+
+def _measured(errors: list[str], name: str, fn):
+    """fn(), or None with `name: <error>` appended to `errors`. Every ops field is read through this, so one failing
+    measurement nulls that field only."""
+    try:
+        return fn()
+    except Exception as exc:  # noqa: BLE001 - the ledger never fails a cycle
+        errors.append(f"{name}: {exc!r}"[:200])
+        return None
+
+
+def _parse_time(text: str) -> float:
+    return dt.datetime.strptime(text, TIME_FMT).timestamp()
+
+
+def ops_start(state: dict) -> dict:
+    """Taken just before a batch starts: the start time, free disk, the gap since the previous cycle finished, and a
+    running CPU sampler. NEVER raises (a failure becomes nulls plus the reason, carried to the row by `errors`)."""
+    ops: dict = {"errors": []}
+    try:
+        ops["t0"], ops["started"] = time.time(), now()
+        ops["free_gb_start"] = _measured(ops["errors"], "free_gb_start", lambda: round(free_gb(), 1))
+        prev = [c for c in state.get("cycles", []) if isinstance(c, dict) and c.get("finished")]
+        ops["gap_minutes"] = _measured(ops["errors"], "gap_minutes", lambda: round(
+            (ops["t0"] - _parse_time(prev[-1]["finished"])) / 60, 1)) if prev else None
+        sampler = _CpuSampler()
+        sampler.start()
+        ops["sampler"] = sampler
+    except Exception as exc:  # noqa: BLE001
+        ops["errors"].append(f"ops_start: {exc!r}"[:200])
+    return ops
+
+
+def ops_batch_ended(ops: dict | None) -> None:
+    """Stop the CPU sampler the moment the batch returns (or raises). NEVER raises."""
+    try:
+        sampler = (ops or {}).pop("sampler", None)
+        if sampler is not None:
+            ops["cpu_avg"] = sampler.finish()
+            if sampler.error:
+                ops["errors"].append(sampler.error)
+    except Exception as exc:  # noqa: BLE001
+        try:
+            ops["errors"].append(f"cpu_avg: {exc!r}"[:200])
+        except Exception:  # noqa: BLE001 - `ops` itself is unusable; the row then says so
+            pass
+
+
+def _tree_bytes(roots: list[Path], deadline: float) -> int:
+    """Bytes of every regular file under `roots`, no link followed; raises TimeoutError past `deadline`."""
+    total, stack = 0, [r for r in roots if r.is_dir()]
+    while stack:
+        if time.monotonic() > deadline:
+            raise TimeoutError(f"size walk over its {SIZE_WALK_CAP_S:.0f} s cap")
+        with os.scandir(stack.pop()) as it:
+            for e in it:
+                if e.is_dir(follow_symlinks=False):
+                    stack.append(Path(e.path))
+                elif e.is_file(follow_symlinks=False):
+                    total += e.stat(follow_symlinks=False).st_size
+    return total
+
+
+def learner_bytes() -> int:
+    """The learner's own disk use: `runs/` plus its lane profiles (`endless-ai*`), capped at SIZE_WALK_CAP_S."""
+    deadline = time.monotonic() + SIZE_WALK_CAP_S
+    return _tree_bytes([RUNS] + sorted(PROFILES.glob("endless-ai*")), deadline)
+
+
+def _ops_row(tag: str, ops: dict | None, finished: str, t_fin: float, consult_s: float | None,
+             archive: dict | None) -> dict:
+    """The ops row for cycle `tag`. `ops` is None for an ADOPTED cycle (the learner that started it died, so its
+    start-side fields were never measured: they are null and `ops_error` says so)."""
+    errors = list((ops or {}).get("errors", [])) if ops is not None else [
+        "adopted: the learner that started this cycle died, so started, minutes, free_gb_start, gap_minutes and "
+        "cpu_avg were never measured"]
+    ops = ops or {}
+    t0 = ops.get("t0")
+    row = {"tag": tag, "started": ops.get("started"), "finished": finished,
+           "minutes": round((t_fin - t0) / 60, 1) if t0 else None,
+           "free_gb_start": ops.get("free_gb_start"),
+           "free_gb_end": _measured(errors, "free_gb_end", lambda: round(free_gb(), 1)),
+           "learner_gb": _measured(errors, "learner_gb", lambda: round(learner_bytes() / 2 ** 30, 2)),
+           "cpu_avg": ops.get("cpu_avg"),
+           "consult_seconds": consult_s,
+           "boot_time": _measured(errors, "boot_time", _boot_time),
+           "gap_minutes": ops.get("gap_minutes"),
+           "archive_seconds": (archive or {}).get("seconds"), "archive_bytes": (archive or {}).get("bytes")}
+    row["ops_error"] = "; ".join(errors)[:1000] or None
+    return row
+
+
+def _boot_time() -> str:
+    import psutil as ps  # noqa: PLC0415 - lazy like the sampler's, so its failure is this field's alone
+    return dt.datetime.fromtimestamp(ps.boot_time()).strftime(TIME_FMT)
+
+
+def write_ops_row(tag: str, ops: dict | None, finished: str, t_fin: float, consult_s: float | None,
+                  archive: dict | None) -> None:
+    """Append cycle `tag`'s row to data/ops.jsonl. THE LEDGER CAN NEVER FAIL A CYCLE: it is called after the cycle is
+    scored and saved, a row that cannot be built becomes a row of nulls with `ops_error`, and a row that cannot be
+    written is logged. NEVER raises."""
+    try:
+        row = _ops_row(tag, ops, finished, t_fin, consult_s, archive)
+    except Exception as exc:  # noqa: BLE001
+        row = dict.fromkeys(OPS_KEYS)
+        row.update(tag=tag, finished=finished, ops_error=f"the ops row could not be built: {exc!r}"[:300])
+    try:
+        append_jsonl(OPS_FILE, [row])
+    except Exception as exc:  # noqa: BLE001
+        try:
+            log(f"{tag}: could not write its data/ops.jsonl row ({exc!r}); the cycle itself is recorded")
+        except Exception:  # noqa: BLE001
+            pass
+
+
 # ------------------------------------------------------------------------------------------------------------- inbox
 def read_inbox() -> list[dict]:
     """Valid waiting proposals, oldest first. An invalid one is moved to inbox/rejected/ with the reason."""
@@ -446,14 +634,19 @@ def run_cycle(cfg: dict, state: dict, lanes: int) -> bool:
     env = {k: v for k, v in os.environ.items() if not k.startswith("POKEBOT_")}
     env["PYTHONUTF8"] = "1"
     log(f"{tag}: starting {lanes} lanes for {plan['minutes']:.0f} minutes")
-    with open(cdir / "x4.out.txt", "w", encoding="utf-8") as out:
-        rc = subprocess.run(batch_command(plan, cdir), cwd=STORY_DEV, env=env, stdout=out,
-                            stderr=subprocess.STDOUT).returncode
-    return finish_cycle(cfg, load_state(), plan, rc)
+    ops = ops_start(state)  # the ops ledger (O6): never raises
+    try:
+        with open(cdir / "x4.out.txt", "w", encoding="utf-8") as out:
+            rc = subprocess.run(batch_command(plan, cdir), cwd=STORY_DEV, env=env, stdout=out,
+                                stderr=subprocess.STDOUT).returncode
+    finally:
+        ops_batch_ended(ops)  # stops the CPU sampler even when the batch call raises
+    return finish_cycle(cfg, load_state(), plan, rc, ops)
 
 
-def finish_cycle(cfg: dict, state: dict, plan: dict, rc) -> bool:
-    """Score a finished batch and record it. Used both after a normal run and when ADOPTING an orphaned one."""
+def finish_cycle(cfg: dict, state: dict, plan: dict, rc, ops: dict | None = None) -> bool:
+    """Score a finished batch and record it. Used both after a normal run and when ADOPTING an orphaned one (`ops`
+    None: its start was never measured). Last, it appends the cycle's `data/ops.jsonl` row, which never fails it."""
     tag = plan["tag"]
     batch = RUNS / tag / "batch"
     records = []
@@ -468,6 +661,7 @@ def finish_cycle(cfg: dict, state: dict, plan: dict, rc) -> bool:
     usable = sum(1 for r in records if r.get("usable"))
     meta = json.loads((batch / "ARMS.json").read_text(encoding="utf-8")) if (batch / "ARMS.json").exists() else {}
     created = [str(batch)] + [str(PROFILES / ln["profile"]) for ln in meta.get("lanes", [])]
+    t_fin = time.time()
     cycle = {"source": "cycle", "tag": tag, "finished": now(), "exit": rc, "lanes": plan["lanes"],
              "runs": len(records), "usable": usable,
              "arms_label": ", ".join(f"{a}={v['genome']}" for a, v in plan["arms"].items()),
@@ -484,8 +678,11 @@ def finish_cycle(cfg: dict, state: dict, plan: dict, rc) -> bool:
     save_state(state)
     log(f"{tag}: batch exit {rc}; {len(records)} runs logged, {usable} scored")
     report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), key=score_key(load_config()), status=f"after cycle {tag}")
+    t_consult = time.monotonic()
     log(consult.maybe_consult(cfg, REPO, AI, tag))
-    prune(cfg, state)
+    consult_s = round(time.monotonic() - t_consult, 1)
+    archive = prune(cfg, state)
+    write_ops_row(tag, ops, cycle["finished"], t_fin, consult_s, archive)
     return ok
 
 
@@ -933,23 +1130,40 @@ def archive_cycle(c: dict, cmds: list[tuple[int, str]] | None = None) -> str:
             f"batch file), {raw / 2**20:.0f} MB -> {packed / 2**20:.1f} MB; raw logs and lane profiles deleted")
 
 
-def prune(cfg: dict, state: dict) -> None:
+def prune(cfg: dict, state: dict) -> dict:
     """Archive, then delete, the raw logs and lane profiles of all but the newest `keep_raw_cycles` cycles (at most
     `max_archives_per_prune` archives a call, which bounds the cycle-boundary delay). Only paths this learner created
     and recorded, and only names it would have created. HELD cycles are skipped (and listed once per call). It NEVER
     raises an Exception into the loop: the WHOLE body is guarded, a failure is logged and the next boundary retries,
-    and no original is ever deleted without a verified archive. Under ARCHIVE_FLOOR_GB free it does nothing at all."""
+    and no original is ever deleted without a verified archive. Under ARCHIVE_FLOOR_GB free it does nothing at all.
+
+    Returns {"seconds": wall time of this call, "bytes": total size of the `raw.zip` files it WROTE} for the ops
+    ledger (O6): a zip that did not exist before a cycle's archive and exists after it counts, even if the delete
+    after it then failed (its bytes are on disk). A failed prune still returns what it measured up to the failure."""
+    stats = {"seconds": 0.0, "bytes": 0}
+    t0 = time.monotonic()
     try:
-        _prune(cfg, state)
+        _prune(cfg, state, stats)
     except Exception:  # noqa: BLE001 - never into the loop
         try:
             log(f"prune FAILED (nothing more is archived this boundary; the next one retries):\n"
                 f"{traceback.format_exc()}")
         except Exception:  # noqa: BLE001 - even the log may be unwritable; the loop must go on
             pass
+    stats["seconds"] = round(time.monotonic() - t0, 2)
+    return stats
 
 
-def _prune(cfg: dict, state: dict) -> None:
+def _zip_written(zpath: Path, existed: bool) -> int:
+    """Bytes of `zpath` if this archive attempt created it, else 0. Never raises (an unreadable size counts 0)."""
+    try:
+        return 0 if existed or not zpath.exists() else zpath.stat().st_size
+    except OSError:
+        return 0
+
+
+def _prune(cfg: dict, state: dict, stats: dict | None = None) -> None:
+    stats = {"seconds": 0.0, "bytes": 0} if stats is None else stats
     every = state.get("cycles", [])
     cycles = [c for c in every if isinstance(c, dict) and c.get("tag")]
     for c in cycles:  # a `.part` is never live outside archive_cycle: one left over is from a killed run
@@ -975,6 +1189,8 @@ def _prune(cfg: dict, state: dict) -> None:
             break
         if cmds is None:
             cmds = list(_cmdlines())  # one process scan per boundary
+        zpath = RUNS / c["tag"] / ARCHIVE
+        had_zip = zpath.exists()
         try:
             outcome = archive_cycle(c, cmds)
             if not outcome.startswith(NOT_AN_ATTEMPT):
@@ -984,6 +1200,8 @@ def _prune(cfg: dict, state: dict) -> None:
             attempts += 1
             log(f"{c['tag']}: archiving FAILED, its raw logs are KEPT and it is retried at the next boundary:\n"
                 f"{traceback.format_exc()}")
+        finally:
+            stats["bytes"] += _zip_written(zpath, had_zip)
         save_state(state)  # per cycle: a crash after this archive cannot lose its flags
     held = [c["tag"] for c in cycles if c.get("held")]
     if held:
@@ -1011,6 +1229,35 @@ def disk_guard(cfg: dict, state: dict) -> bool:
         attention(f"Only {free:.0f} GB free on this disk after archiving old raw logs; config min_free_gb is "
                   f"{cfg['min_free_gb']}.")
     return False
+
+
+#: The early archive keeps this many newest cycles raw (spec S1-3), whatever `keep_raw_cycles` says.
+EARLY_KEEP_RAW = 2
+
+
+def early_archive(cfg: dict, state: dict) -> dict | None:
+    """O7, called by `loop` BEFORE `disk_guard`: when free disk is under `min_free_gb + early_prune_margin_gb` (25 + 15
+    = 40 GB by default), run the ordinary archive `prune` with `keep_raw_cycles` EARLY_KEEP_RAW (2).
+
+    WHY: with keep_raw_cycles 20 the raw logs and lane profiles hold about 26 GB (measured on the clone 2026-10-21,
+    the S1-3 real run), and the only other relief is `disk_guard` at 25 GB,
+    which stops the learner if archiving all but one cycle is not enough. Archiving earlier, while there is room to
+    write the zips, keeps the learner running. It is `prune` itself, so it ARCHIVES and never deletes without a
+    verified archive (O3), skips HELD cycles and cycles not yet quiet, does nothing under ARCHIVE_FLOOR_GB, and keeps
+    the per-call cap `max_archives_per_prune` (it runs at every loop pass, idle waits included, so it continues at the
+    next pass). Returns prune's {"seconds", "bytes"} when it ran, None when free disk is above the threshold. prune
+    never raises; reading free disk can, and `loop` guards this call like `disk_guard`."""
+    margin = float(cfg.get("early_prune_margin_gb", DEFAULTS["early_prune_margin_gb"]))
+    threshold = float(cfg["min_free_gb"]) + margin
+    free = free_gb()
+    if free >= threshold:
+        return None
+    log(f"early archive: {free:.1f} GB free, under min_free_gb + early_prune_margin_gb = {threshold:.0f} GB: archiving "
+        f"all but the newest {EARLY_KEEP_RAW} cycles (up to {cfg.get('max_archives_per_prune', 3)} this pass)")
+    stats = prune({**cfg, "keep_raw_cycles": EARLY_KEEP_RAW}, state)
+    log(f"early archive: {stats['seconds']:.0f} s, {stats['bytes'] / 2 ** 20:.1f} MB of zips written; "
+        f"{free_gb():.1f} GB free now")
+    return stats
 
 
 def sleep_unless_stopped(minutes: float) -> bool:
@@ -1067,6 +1314,7 @@ def loop(single: bool, dev: bool = False) -> int:
                 log(f"code changed ({sig}) but test_agent.py FAILS: keeping the running version {started_sig}")
             cfg, state = load_config(), load_state()
             try:
+                early_archive(cfg, state)  # O7: archive early under min_free_gb + margin, before the floor path
                 room = disk_guard(cfg, state)
             except Exception:  # noqa: BLE001 - a failed disk check must not kill the 24/7 process; start no batch
                 log(f"disk check FAILED: no batch started; trying again in {cfg['idle_wait_minutes']} min:\n"
