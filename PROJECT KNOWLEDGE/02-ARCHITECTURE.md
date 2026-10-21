@@ -27,7 +27,7 @@ orientation error — see the "which copy" table below the tree.
 Pokebot_Gen3_Enhancement/
 ├── CLAUDE.md                      # Kit directives + project rules (3-copy layout, daily upstream check, sandbox rule §"Sandbox area")
 ├── Pokemon_Emerald_AI_Notes.md    # Cross-project transfer notes (Emerald AI project)
-├── ai-agent/, ai_player/          # ★ ai-agent = TEACHER-side learner (runs from clone C:/Remote Projects/pokebot-learner; since 2026-10-21 learner.py ARCHIVES old raw logs + lane profiles to runs/<tag>/raw.zip, never deleting unverified); ai_player = the AI PLAYER (RULING 35), see its README.md (ai_player/knowledge/seasoned/ = KB1 data, merged 2026-10-21, not loaded yet). Since 2026-10-21 also: tools/status.py (check-in), tools/usage_audit.py, tools/decomp_lookup.py + tools/decomp.pin, tools/ops/ (backup_learner.py to Z:, install_ops_tasks.ps1, dry run by default)
+├── ai-agent/, ai_player/          # ★ ai-agent = TEACHER-side learner (runs from clone C:/Remote Projects/pokebot-learner; since 2026-10-21 learner.py ARCHIVES old raw logs + lane profiles to runs/<tag>/raw.zip, never deleting unverified); ai_player = the AI PLAYER (RULING 35), see its README.md (ai_player/knowledge/seasoned/ = KB1 data, merged 2026-10-21, not loaded yet). Since 2026-10-21 also: tools/status.py (check-in), tools/usage_audit.py, tools/decomp_lookup.py + tools/decomp.pin, tools/ops/ (backup_learner.py to Z:, watchdog.py + watchdog.ps1 = O1 the session-free watchdog writing a Desktop status file, install_ops_tasks.ps1, dry run by default; neither task registered yet); learner.py also writes an ops ledger row per cycle (data/ops.jsonl, O6) and archives early under min_free_gb + early_prune_margin_gb (O7), both local until O3's deploy is confirmed. tools/experience/ (A6, experience records, store git-ignored) and tools/workflows/ (the stage templates) are built and in review
 ├── install.py, install_sandbox.py # installer/updater/healer for custom-pokebot and for sandbox-pokebot
 ├── PROJECT KNOWLEDGE/             # ★ this documentation set (00–31 + playbooks + batch-evidence/)
 │   ├── 00–08 kit docs             # vision, architecture, punch list, handoff, logs
@@ -293,7 +293,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 151 entries = 147 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 153 entries = 149 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips the 14 SLOW (ROM) gates (recounted 2026-09-29: 14 `True`; counted 2026-09-27: 13 `True`
 #   entries in `run_gates.py`; this line said 9, then 12) and is NOT a green suite.

@@ -23952,3 +23952,16 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** a config change reaches `finish_cycle` one cycle late (its `cfg` is loaded at the start of the cycle). Counted when the config is pushed, cycle X is still running and not yet in `state.json`, so the count is 2 short.
 - **The fix that worked:** K = (unpruned entries in `state.json` while cycle X runs) + 1; the canary archive happens at the end of X+1. The BUILD-SPECS S1-1 canary text carries a dated correction.
 - **Prevention rule:** a count that feeds a threshold is stated together with the exact MOMENT it is read, and checked by running the real loop on a state shaped like the live one.
+
+## 2026-10-21 — ⛔ KB1'S EXTRACTOR AND ITS VERIFIER SHARED A BLIND SPOT: BOTH CALLED EVERY ORDINARY WILD TABLE "FINDABLE IN NORMAL PLAY"
+
+- **Symptom:** the adversarial pass (spec S3-1 step 5, its own seed) found that `where_to_find_normal_play` offered post-game areas (the Safari Zone NE/SE, the Desert Underpass, Artisan Cave, the Altering Cave, Steven's cave) as normal-play rows. For 20 species every row was behind the Hall of Fame (Ditto, Smeargle, Aipom, Gligar, Houndour, Miltank, Shuckle, Teddiursa and others). Feebas was missing, and the encounter-rate, ability and held-item notes were wrong. The verifier's 221 checks and 6 plants (232 checks and 15 plants after the availability step) all passed over it.
+- **Root cause:**
+  - The extractor treated every table that was not a frontier or unused placeholder as "normal".
+  - The verifier re-read the same source the same way, so it certified the READING, not the MEANING. Agreement between the two was by construction.
+  - The plants only planted the errors someone had already thought of.
+- **The fix that worked** (commit `3c137984`):
+  - A decomp-derived availability / progression gate: `requires=post_game` with a cited gate line, and the extractor refuses when that line's text is gone.
+  - An INDEPENDENT reading path in the verifier: a forward walk from the start over warps, connections and map scripts, with `FLAG_SYS_GAME_CLEAR` branches taken before and after the game, which finds the same 26 post-game tables by itself.
+  - The adversarial pass picked its own sample (a different seed and its own scripts, not the verifier's). The verifier gained 18 new plants (33 in all, up from 15).
+- **Prevention rule:** a verifier that re-reads the source the way the extractor does certifies the reading, not the meaning. Give every semantic label (available, post-game, normal, gift) an independent check that derives it a different way, and an adversarial pass that picks its own sample.
