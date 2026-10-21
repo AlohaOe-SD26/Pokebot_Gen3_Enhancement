@@ -58,6 +58,22 @@ ADDED BY THE 2026-10-21 REVIEW FIX (each arm failed on 57a7ec28 or on a mutant t
   G2b the lock: a held take-mutex refuses; two runs that both see a stale lock never both acquire (each layer alone,
       and the harness shows they DO without both); a run removes only its own lock. C1 a crash exits 5, never 1.
   N2  a torn last runs.jsonl line is skipped and picked up once whole.
+ADDED BY REVIEW ROUND 2 (2026-10-21; each arm failed on df792190 or on a mutant):
+  B1  the deferral is bounded: a cycle pruned leaving an EMPTY batch/ stores tier A (was exit 6 forever); a cycle the
+      learner's state.json marks pruned stores tier A for a missing log; CONTROLS: the same log missing from an
+      unmarked cycle that still has logs, or beside a raw.zip, still defers. B2 the ledger: a run deferred in 3 passes
+      over 24 h (an injected clock) is stored as tier A `deferred-timeout:` with one WARN; fewer passes, or less time,
+      still defer; a recovered run leaves the ledger.
+  R5b a ZIP_DEFLATED member with corrupt compressed bytes (zlib.error, not a CRC error) is deferred, the other stored.
+  G2c the lock release: under the take-mutex (a reader holding the mutex and a handle on .lock) and with a brief retry
+      (a reader holding only a handle), .lock is removed and a later run acquires; an unlink that keeps failing is a
+      WARN and exit 0, never exit 5 after a successful append.
+  G4d a hard link planted at any existing write target (store, cursor, ledger, lock, mutex, priors file) is refused,
+      the linked file untouched; CONTROL an ordinary existing file is written.
+  E7c the denylist after NFKC, format-character stripping and the non-ASCII-letter rule: the review round 2 vectors
+      (fullwidth, Cyrillic, soft hyphen, zero width, PID glued or decimal, camelCase and digit-glued species, nidoranf,
+      spaced letters, x 12 y 7, tile 12/7, a bare 12,7, FLAGBADGE07); its mentions stay clean; --check-priors says it is
+      the SECOND layer.
 E9 (wall time, tier shares) is measured by the real `--full` run and recorded in 07, not here.
 """
 from __future__ import annotations
@@ -78,6 +94,7 @@ import threading
 import time
 import uuid
 import zipfile
+import zlib
 from pathlib import Path
 
 for _s in (sys.stdout, sys.stderr):
@@ -96,6 +113,8 @@ GOLDEN_PAIRING = HERE / "fixtures" / "golden_pairing.log"
 WARN_EXIT = 4
 #: The extractor's documented exit codes, pinned here (O1 and a reader act on them): a crash is never 1.
 EXIT_CRASH, EXIT_DEFERRED = 5, 6
+#: The deferral ledger's file name, pinned here too (a version without a ledger then FAILS its arms, not crashes).
+LEDGER_FILE = "deferrals.json"
 
 
 def _load(path: Path, name: str):
@@ -925,20 +944,31 @@ LEAKY_LABELS = (
     "stuck at x=12 y=7", "stuck at [12, 7]", "stuck at 12,7 on ROUTE 111", "flag_badge07_get unset",
     "FLAGBADGE07 unset", "Ch# (Victory Road) failed after # attempts. attempt #: BotModeError: C",
     "boss wall: norman", "boss wall: Norman ")
-#: What the DENYLIST gate must catch ON ITS OWN (the independent second layer). Not in it, said out loud: a bare `12,7`
-#: pair (the file's own text says "3,600 frames") and `FLAGBADGE07` (no underscore); the allowlist is their only layer.
+#: What the DENYLIST gate must catch ON ITS OWN (the independent second layer; the allowlist is the guarantee).
 DENY_PLANTS = (
     "kingdra", "KINGDRA", "Kingdra's Dragon Dance", "Mr. Mime", "mr mime", "Farfetch'd", "Farfetch’d", "farfetchd",
     "Nidoran♀'s", "Kingdra-type", "Kingdra/Luvdisc", "two Zubats", "Ho-Oh", "#3e751caf", "pid=3E751CAF",
     "0x3E751CAF", "lead 3e751caf fainted", "x=12 y=7", "y: -3", "[12, 7]", "at (5, 3)", "pos=(5, 3)", "map=11,3",
     "flag_badge07_get", "Var_Temp_1", "set_flag_x", "FLAG_BADGE07_GET", "BADGE07_GET")
-#: Mentions the gate must NOT fire on (a gate with false positives teaches people to bypass it).
+#: Review round 2 (2026-10-21): each of these PASSED the round-1 gate as a value. One per layer, so a mutant that drops
+#: a layer is caught: NFKC (fullwidth `＝` and digits, which are no letters), the format-character strip (soft hyphen,
+#: zero width), the non-ASCII-letter rule (Cyrillic `а`; fullwidth letters fold to ASCII under NFKC), `pid` glued or
+#: decimal, the bare pair, `x 12 y 7`, `tile`, the camelCase and letter/digit split, the Nidoran aliases, the
+#: spaced-letter join, `flag`/`var` glued to a name with a digit.
+DENY_PLANTS_R2 = (
+    "12,7 on ROUTE 111", "PID3E751CAF", "pid 1047919791", "KingdraLuvdisc", "Kingdra2", "lead: K i n g d r a",
+    "FLAGBADGE07", "tile 12/7", "x 12 y 7", "Ｋｉｎｇｄｒａ", "Kingdrа", "Kin­gdra", "nidoranf", "NidoranM",
+    "King​dra", "stuck at x＝12 y＝7", "stuck at １２,７", "stuck at 12, 7", "VarTemp1")
+#: Mentions the gate must NOT fire on (a gate with false positives teaches people to bypass it). The second group is
+#: the review round 2 checker's 15 mentions.
 DENY_NEGATIVES = (
     "no PID, position, flag or var name, or species", "up to 3,600 frames old", "27-29", "first_try_win_rate",
     "a game cut by the time limit (usable false) is censored", "boss wall: Tate & Liza",
     "E4 refused: League basket short", "max=3", "variable flags were flagged", "the map", "Poke Balls", "heal_stock",
     "2026-10-21", "deadbeef12", "1234567", "boss wall: this boss", "<other>", "CHAMPION", "Abracadabra", "Drake",
-    "Normal")
+    "Normal",
+    "unreachable target", "heal walk blocked", "bot corpus", "first try", "the deadline", "decades", "faceted",
+    "Wallace", "x-ray", "max", "p10", "rapid 12", "flagship", "1,234 runs", "tiles of grass", "levels_at_badge")
 
 
 def e7b(tmp: Path) -> None:
@@ -984,9 +1014,9 @@ def e7c(tmp: Path) -> None:
     clean = X.check_ai_facing(base, species)
     check("E7c CONTROL: the clean skeleton passes", not clean, clean)
 
-    def missed(place) -> list[str]:
+    def missed(place, plants) -> list[str]:
         out = []
-        for s in DENY_PLANTS:
+        for s in plants:
             obj = copy.deepcopy(base)
             place(obj, s)
             if not X.check_ai_facing(obj, species):
@@ -997,8 +1027,16 @@ def e7c(tmp: Path) -> None:
               ("a runs.wall_labels KEY", lambda o, s: o["runs"]["wall_labels"].__setitem__(s, 1)),
               ("a boss's failures.labels KEY", lambda o, s: o["bosses"]["JUAN"]["failures"]["labels"].__setitem__(s, 1)))
     for what, place in places:
-        m = missed(place)
+        m = missed(place, DENY_PLANTS)
         check(f"E7c FAULT: each of {len(DENY_PLANTS)} planted leaks fails the gate as {what}", not m, m)
+        m = missed(place, DENY_PLANTS_R2)
+        check(f"E7c FAULT (round 2): each of {len(DENY_PLANTS_R2)} normalised spellings fails the gate as {what}",
+              not m, [ascii(s) for s in m])
+    path = tmp / "clean.json"
+    path.write_text(json.dumps(base), encoding="utf-8")
+    code, out = run_main(["--check-priors", path])
+    check("E7c --check-priors' PASS line says it is the SECOND layer and that the allowlist is the guarantee",
+          code == 0 and "SECOND layer" in out and "allowlist is the guarantee" in out, out[-200:])
     fp = []
     for s in DENY_NEGATIVES:
         obj = copy.deepcopy(base)
@@ -1089,6 +1127,31 @@ def _raced(tmp: Path, name: str, rows: list[dict], logs: dict[str, bytes], o3) -
     return code, out, tmp / name / "store"
 
 
+def deflate_corrupt_cycle(work: Path, logs: dict[str, bytes], rows: list[dict], member: str = "b.log") -> Path:
+    """A fake clone whose cycle is in its FINAL archived form, with the DEFLATE stream of `batch/.../<member>` broken:
+    its first four compressed bytes set to 0xFF (an invalid block type), so reading it raises zlib.error before any
+    CRC check. Asserted, so an arm built on it cannot be vacuous."""
+    root = fake_clone(work, logs, rows)
+    zip_cycle(root, TAG, [PROFILE])
+    zpath = root / "ai-agent/runs" / TAG / "raw.zip"
+    name = f"batch/L01/debug-logs/{member}"
+    with zipfile.ZipFile(zpath) as zf:
+        info = zf.getinfo(name)
+    if info.compress_type != zipfile.ZIP_DEFLATED:
+        raise AssertionError(f"{name} is not deflated")
+    data = bytearray(zpath.read_bytes())
+    start = info.header_offset + 30 + len(info.filename.encode()) + len(info.extra)  # the local header, then data
+    data[start:start + 4] = b"\xff" * 4
+    zpath.write_bytes(bytes(data))
+    try:
+        with zipfile.ZipFile(zpath) as zf, zf.open(name) as fh:
+            fh.read()
+        raise AssertionError("the corrupted member still reads")
+    except zlib.error:
+        pass
+    return root
+
+
 def r_race(tmp: Path) -> None:
     g = GOLDEN.read_bytes()
     rows = [golden_row("a.log"), golden_row("b.log")]
@@ -1153,11 +1216,137 @@ def r_race(tmp: Path) -> None:
           "exit 6 (a read failure is never proof the data is gone)", code == EXIT_DEFERRED and len(keys) == 1
           and "read failed" in out, f"exit {code}; {keys}; {out[-240:]}")
 
+    root = deflate_corrupt_cycle(tmp / "r5b", logs, rows)
+    code, out = run_main(extract_args(root, tmp / "r5b" / "store", "--incremental"))
+    keys = [r["key"] for r in records(tmp / "r5b" / "store")] if (tmp / "r5b/store" / X.STORE_FILE).exists() else []
+    check("R5b FAULT: a ZIP_DEFLATED member whose compressed bytes are corrupt (zlib.error, not a CRC error) is "
+          "DEFERRED, exit 6, and the other run is stored (the error never escapes the pass)",
+          code == EXIT_DEFERRED and keys == [f"{TAG}/1/a.log"] and f"DEFERRED {TAG}/1/b.log: read failed: error("
+          in out and "Error -3" in out, f"exit {code}; {keys}; {out[-240:]}")
+
     root = fake_clone(tmp / "r4", {"a.log": g}, rows)
     shutil.rmtree(root / "ai-agent/runs" / TAG / "batch")
     code, out = run_main(extract_args(root, tmp / "r4" / "store", "--incremental"))
     check("R4 CONTROL: a cycle with no raw data at all (pruned before O3) is not deferred: tier A, exit 0",
           code == 0 and [r["tier"] for r in records(tmp / "r4" / "store")] == ["A", "A"], f"exit {code}; {out[-200:]}")
+
+
+# ============================================================================================ B1/B2 the deferral bound
+
+def _tiers(store: Path) -> list[str]:
+    return ([r["key"].split("/")[-1] + ":" + r["tier"] for r in records(store)]
+            if (store / X.STORE_FILE).exists() else [])
+
+
+def _ledger(store: Path) -> dict:
+    p = store / LEDGER_FILE
+    return json.loads(p.read_text(encoding="utf-8"))["deferred"] if p.exists() else {}
+
+
+def _state_json(root: Path, pruned: bool) -> None:
+    """The learner's state.json beside runs.jsonl, shaped as learner.py writes it (`cycles[].pruned`)."""
+    (root / "ai-agent/data/state.json").write_text(json.dumps(
+        {"cycle": 1, "current": None, "cycles": [{"source": "cycle", "tag": TAG, "pruned": pruned}]}), encoding="utf-8")
+
+
+def b_bound(tmp: Path) -> None:
+    check("B the ledger file name the tests read is the extractor's", getattr(X, "LEDGER_FILE", None) == LEDGER_FILE)
+    g = GOLDEN.read_bytes()
+    rows = [golden_row("a.log"), golden_row("b.log")]
+    logs = {"a.log": g, "b.log": g}
+
+    # B1 (a): the review's perm_defer shape. The learner's prune (rmtree, ignore_errors) left an EMPTY batch/.
+    root = fake_clone(tmp / "b1empty", logs, rows)
+    cdir = root / "ai-agent/runs" / TAG
+    shutil.rmtree(cdir / "batch")
+    (cdir / "batch").mkdir()
+    store = tmp / "b1empty" / "store"
+    codes = [run_main(extract_args(root, store, "--incremental"))[0] for _ in range(3)]
+    recs = records(store) if (store / X.STORE_FILE).exists() else []
+    check("B1 FAULT: a cycle pruned leaving an EMPTY batch/ (no raw.zip) stores both runs as tier A on the first pass, "
+          "the reason in raw_missing (was: exit 6 on every pass, nothing stored)",
+          codes == [0, 0, 0] and _tiers(store) == ["a.log:A", "b.log:A"]
+          and all("missing for good" in str(r["raw_missing"]) for r in recs), (codes, _tiers(store)))
+
+    # B1 (a): a cycle the learner marked pruned in state.json, its rmtree stopped part-way (a.log left, b.log gone).
+    for arm, pruned, want_code, want in (("marked", True, 0, ["a.log:A+B", "b.log:A"]),
+                                         ("unmarked", False, EXIT_DEFERRED, ["a.log:A+B"])):
+        root = fake_clone(tmp / f"b1{arm}", {"a.log": g}, rows)
+        _state_json(root, pruned)
+        store = tmp / f"b1{arm}" / "store"
+        code, out = run_main(extract_args(root, store, "--incremental"))
+        b = [r for r in records(store) if r["key"].endswith("b.log")] if (store / X.STORE_FILE).exists() else []
+        if pruned:
+            check("B1 FAULT: a log missing from a cycle state.json marks PRUNED (its folder half deleted, other logs "
+                  "left) is stored as tier A with the reason, exit 0",
+                  code == 0 and _tiers(store) == want and "marked the cycle pruned" in str(b[0]["raw_missing"]),
+                  f"exit {code}; {_tiers(store)}; {out[-200:]}")
+        else:
+            check("B1 CONTROL: the same missing log in a cycle NOT marked pruned (other logs still there) is deferred, "
+                  "exit 6", code == want_code and _tiers(store) == want, f"exit {code}; {_tiers(store)}")
+
+    # B1 (a): an empty batch/ beside a raw.zip that lacks the member: O3 may be mid-delete, so it is not settled for
+    # good by (a) (the general bound (b) still ends it).
+    root = fake_clone(tmp / "b1zip", {"a.log": g}, rows)
+    zip_cycle(root, TAG, [PROFILE])
+    (root / "ai-agent/runs" / TAG / "batch").mkdir()
+    store = tmp / "b1zip" / "store"
+    code, out = run_main(extract_args(root, store, "--incremental"))
+    check("B1 CONTROL: an empty batch/ BESIDE a raw.zip that lacks the log still defers (exit 6): only 'no log AND no "
+          "raw.zip' is settled for good", code == EXIT_DEFERRED and _tiers(store) == ["a.log:A+B"],
+          f"exit {code}; {_tiers(store)}")
+
+    # B2 (b): the general bound, on a corrupt member of a final archive (never settled by (a)). Clock injected.
+    t0 = 1_800_000_000.0
+    real_clock = getattr(X, "CLOCK", None)
+
+    def at(work: str, hours: float) -> tuple[int, str]:
+        X.CLOCK = lambda: t0 + hours * 3600
+        try:
+            return run_main(extract_args(roots[work], tmp / work / "store", "--incremental"))
+        finally:
+            X.CLOCK = real_clock
+
+    roots = {w: deflate_corrupt_cycle(tmp / w, logs, rows) for w in ("b2", "b2age", "b2passes")}
+    seq = [at("b2", h) for h in (0, 1, 2)]
+    led = _ledger(tmp / "b2" / "store")
+    check("B2 CONTROL: before the bound each pass defers (exit 6) and the ledger counts it",
+          [c for c, _ in seq] == [EXIT_DEFERRED] * 3 and led.get(f"{TAG}/1/b.log", {}).get("passes") == 3
+          and led[f"{TAG}/1/b.log"]["first_deferred_at"] == round(t0), led)
+    code4, out4 = at("b2", 25)
+    b = [r for r in records(tmp / "b2" / "store") if r["key"].endswith("b.log")]
+    check("B2 FAULT: deferred in 3 passes AND 24 h since the first -> stored as tier A, raw_missing 'deferred-timeout: "
+          "read failed...', one WARN naming it, exit 0, the ledger entry dropped",
+          code4 == 0 and len(b) == 1 and b[0]["tier"] == "A"
+          and str(b[0]["raw_missing"]).startswith("deferred-timeout: read failed")
+          and out4.count(f"WARN DEFERRED-TIMEOUT {TAG}/1/b.log") == 1 and not _ledger(tmp / "b2" / "store"),
+          f"exit {code4}; {_tiers(tmp / 'b2' / 'store')}; {out4[-300:]}")
+    before = (tmp / "b2" / "store" / X.STORE_FILE).read_bytes()
+    code5, out5 = at("b2", 26)
+    check("B2 CONTROL: the next pass is a no-op (exit 0, store unchanged, no WARN again)",
+          code5 == 0 and (tmp / "b2" / "store" / X.STORE_FILE).read_bytes() == before and "WARN" not in out5,
+          f"exit {code5}; {out5[-200:]}")
+    ages = [at("b2age", h)[0] for h in (0, 1, 2, 3, 23.9)]
+    check("B2 CONTROL (age): 5 deferred passes within 24 h of the first all defer (passes alone never end it)",
+          ages == [EXIT_DEFERRED] * 5 and _tiers(tmp / "b2age" / "store") == ["a.log:A+B"], ages)
+    passes = [at("b2passes", h)[0] for h in (0, 30, 31)]
+    code_p, _ = at("b2passes", 32)
+    check("B2 CONTROL (passes): a run first deferred 30 h ago but in only 1-2 passes still defers; its 4th pass, after "
+          "3 deferred passes, stores it (time alone never ends it)",
+          passes == [EXIT_DEFERRED] * 3 and code_p == 0 and _tiers(tmp / "b2passes" / "store") == ["a.log:A+B",
+                                                                                                    "b.log:A"],
+          (passes, code_p))
+
+    # The ledger follows a recovery: a log missing from a fresh cycle defers, then is stored once it appears.
+    root = fake_clone(tmp / "b2rec", {"a.log": g}, rows)
+    store = tmp / "b2rec" / "store"
+    c1, _ = run_main(extract_args(root, store, "--incremental"))
+    led1 = _ledger(store)
+    (root / "ai-agent/runs" / TAG / "batch/L01/debug-logs/b.log").write_bytes(g)
+    c2, _ = run_main(extract_args(root, store, "--incremental"))
+    check("B2 CONTROL: a deferred run that recovers is stored A+B and leaves the ledger",
+          c1 == EXIT_DEFERRED and led1.get(f"{TAG}/1/b.log", {}).get("passes") == 1 and c2 == 0
+          and _tiers(store) == ["a.log:A+B", "b.log:A+B"] and _ledger(store) == {}, (c1, led1, c2, _ledger(store)))
 
 
 # ============================================================================================ G4b the write guard
@@ -1257,6 +1446,64 @@ def g_paths(tmp: Path) -> None:
     finally:
         for link in links:
             os.rmdir(link)  # removes the junction only, never its target
+
+
+def _hardlink(link: Path, target: Path) -> bool:
+    """A hard link (`mklink /H`, no admin rights needed on NTFS), confirmed by the link count."""
+    r = subprocess.run(["cmd", "/c", "mklink", "/H", str(link), str(target)], capture_output=True, text=True,
+                       timeout=30)
+    return r.returncode == 0 and link.is_file() and os.stat(target).st_nlink == 2
+
+
+def g_hardlinks(tmp: Path) -> None:
+    g = GOLDEN.read_bytes()
+    root = fake_clone(tmp / "hl", {"golden.log": g}, [golden_row()])
+    good = tmp / "hl" / "good"
+    run_main(extract_args(root, good))
+    victims = root / "ai-agent" / "data"
+    # A new row waits, so a run that is NOT refused really writes (into the linked file, for the store file).
+    with open(root / "ai-agent/data/runs.jsonl", "a", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(golden_row("golden2.log")) + "\n")
+    (root / "ai-agent/runs" / TAG / "batch/L01/debug-logs/golden2.log").write_bytes(g)
+    made = 0
+    for name in (X.STORE_FILE, X.CURSOR_FILE, LEDGER_FILE, LEDGER_FILE + ".tmp", X.CURSOR_FILE + ".tmp",
+                 X.LOCK_FILE, X.MUTEX_FILE):
+        store = tmp / "hl" / f"s_{name.strip('.')}"
+        shutil.copytree(good, store)
+        (store / name).unlink(missing_ok=True)
+        victim = victims / f"victim_{name.strip('.')}"
+        # The store's own files keep a VALID body (so only the link check can refuse them); a stale lock, so only the
+        # link check can refuse it (a fresh one is refused as held).
+        body = (good / name).read_bytes() if (good / name).is_file() else b"VICTIM inside the clone\n"
+        victim.write_bytes(body)
+        if name == X.LOCK_FILE:
+            old = time.time() - X.LOCK_STALE_S - 60
+            os.utime(victim, (old, old))
+        if not _hardlink(store / name, victim):
+            skip("G4d hard-link arms", "mklink /H failed on this machine")
+            return
+        made += 1
+        before = sorted(p.name for p in store.iterdir())
+        code, out = run_main(extract_args(root, store, "--incremental"))
+        check(f"G4d FAULT: a hard link planted at <store>/{name} (to a file inside the clone) is REFUSED, the clone's "
+              f"file untouched, nothing written in the store", code == X.EXIT_REFUSED and victim.is_file()
+              and victim.read_bytes() == body and sorted(p.name for p in store.iterdir()) == before,
+              f"exit {code}; {out[-160:]}")
+    pri_victim = victims / "victim_priors.json"
+    pri_victim.write_bytes(b"{}\n")
+    out_file = tmp / "hl" / "priors.json"
+    if _hardlink(out_file, pri_victim):
+        code, out = run_main(["--priors", "--store", good, "--priors-out", out_file, "--clone", root, "--force-priors"])
+        check("G4d FAULT: a hard link at the priors file (to a file inside the clone) is REFUSED, the clone's file "
+              "untouched", code == X.EXIT_REFUSED and pri_victim.read_bytes() == b"{}\n", f"exit {code}; {out[-160:]}")
+        out_file.unlink()
+    out_file.write_bytes(b"{}\n")  # an ORDINARY existing priors file: regenerated
+    code, out = run_main(["--priors", "--store", good, "--priors-out", out_file, "--clone", root, "--force-priors"])
+    check("G4d CONTROL: an ordinary existing priors file (one link) is regenerated", code == 0
+          and json.loads(out_file.read_text(encoding="utf-8")).get("source") == X.CORPUS, out[-160:])
+    code, out = run_main(extract_args(root, good, "--incremental"))
+    check("G4d CONTROL: an ordinary existing store (every file one link) takes the new record, exit 0",
+          code == 0 and len(records(good)) == 2 and made == 7, f"exit {code}; {out[-160:]}")
 
 
 def g_priors_store(tmp: Path) -> None:
@@ -1414,13 +1661,167 @@ def g_lock(tmp: Path) -> None:
     lock = store / X.LOCK_FILE
     check("G2b FAULT: a run removes .lock only while it holds ITS token (someone else's lock survives its exit)",
           lock.is_file() and lock.read_bytes() == b"999 1 another-run", lock.is_file())
+    g_lock_release(tmp)
+
+
+@contextlib.contextmanager
+def _exclusive(path: Path):
+    """`path` opened with NO sharing at all (CreateFileW, share mode 0): no other handle may read, write or delete it,
+    the worst a foreign process can do to `.lock`."""
+    import ctypes  # noqa: PLC0415 - Windows only, and only here
+    from ctypes import wintypes  # noqa: PLC0415
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CreateFileW.restype = wintypes.HANDLE
+    k32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID, wintypes.DWORD,
+                                wintypes.DWORD, wintypes.HANDLE]
+    h = k32.CreateFileW(str(path), 0x80000000, 0, None, 3, 0x80, None)  # GENERIC_READ, no share, OPEN_EXISTING
+    if h in (None, wintypes.HANDLE(-1).value):
+        raise OSError(ctypes.get_last_error(), "CreateFileW failed")
+    try:
+        yield
+    finally:
+        k32.CloseHandle(h)
+
+
+def _exit_while_read(store: Path, hold_s: float, with_mutex: bool, how: str = "thread") -> tuple[str, bool, bool]:
+    """The review round 2 interleaving: another run has `.lock` OPEN for reading (as `_retire_if_stale`'s read_bytes
+    does) at the instant this run's `__exit__` removes it. `with_mutex`: the reader also holds the take-mutex, as the
+    real reader does. `how`: "thread" a reader thread holding a Python handle `hold_s`; "sync" the review's
+    lock_exit.py (a Python handle open for the WHOLE of __exit__, closed only after it returns); "exclusive" a thread
+    holding a no-sharing handle `hold_s`. -> (what __exit__ printed or raised, .lock left behind, a later run took
+    the lock)."""
+    store.mkdir()
+    lk = X.StoreLock(store)
+    lk.__enter__()
+    ready = threading.Event()
+
+    def reader() -> None:
+        with (X._OsMutex(store / X.MUTEX_FILE) if with_mutex else contextlib.nullcontext()):
+            with (_exclusive(store / X.LOCK_FILE) if how == "exclusive" else open(store / X.LOCK_FILE, "rb")):
+                ready.set()
+                time.sleep(hold_s)
+
+    t = threading.Thread(target=reader)
+    held = open(store / X.LOCK_FILE, "rb") if how == "sync" else None
+    if held is None:
+        t.start()
+        ready.wait(10)
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            lk.__exit__(None, None, None)
+        said = buf.getvalue()
+    except Exception as e:  # noqa: BLE001 - exactly what this measures (df792190 raised PermissionError here)
+        said = f"raised {type(e).__name__}: {e}"
+    finally:
+        if held is not None:
+            held.close()
+    if held is None:
+        t.join(30)
+    left = (store / X.LOCK_FILE).exists()
+    try:
+        with X.StoreLock(store):
+            later = True
+    except X.Refused:
+        later = False
+    return said, left, later
+
+
+def g_lock_release(tmp: Path) -> None:
+    # The reader holds the mutex for 1 s, longer than the whole retry window (UNLINK_TRIES x UNLINK_RETRY_S = 0.5 s):
+    # only waiting for the mutex releases the lock in time.
+    said, left, later = _exit_while_read(tmp / "rel_mutex", 1.0, with_mutex=True)
+    check("G2c FAULT: a reader holding the take-mutex and a handle on .lock while this run exits: __exit__ waits for "
+          "the mutex, removes .lock, no WARN, and a later run acquires", not said and not left and later,
+          (said[-200:], left, later))
+    said, left, later = _exit_while_read(tmp / "rel_retry", 0.2, with_mutex=False)
+    check("G2c FAULT: a reader holding only a handle on .lock for 0.2 s: the unlink is retried, .lock removed, and a "
+          "later run acquires", not said and not left and later, (said[-200:], left, later))
+    said, left, later = _exit_while_read(tmp / "rel_sync", 0, with_mutex=False, how="sync")
+    check("G2c FAULT (the review's lock_exit.py): a handle open for the WHOLE of __exit__: the lock is marked released "
+          "in place (a NOTE, no exception), and a later run acquires at once",
+          "marked released" in said and not said.startswith("raised") and later, (said[-200:], left, later))
+    said, left, later = _exit_while_read(tmp / "rel_excl", 1.0, with_mutex=False, how="exclusive")
+    check("G2c FAULT: a no-sharing handle (neither delete nor mark possible): __exit__ returns with a WARN, never an "
+          "exception", said.startswith("WARN could not remove"), said[-200:])
+
+    # The mark re-reads the lock through its OWN handle: a lock that turned out not to be ours by then (the earlier
+    # read is made to lie here, so the moment is deterministic) is never marked released.
+    store = tmp / "rel_foreign"
+    store.mkdir()
+    lk = X.StoreLock(store)
+    lk.__enter__()
+    foreign = b"999 1 another-run"
+    (store / X.LOCK_FILE).write_bytes(foreign)
+    real_rb, real_unlink = Path.read_bytes, Path.unlink
+
+    def lying_read(self):
+        return lk.token if self.name == X.LOCK_FILE else real_rb(self)
+
+    def no_unlink(self, *a, **k):
+        if self.name == X.LOCK_FILE:
+            raise PermissionError(32, "planted: in use", str(self))
+        return real_unlink(self, *a, **k)
+    Path.read_bytes, Path.unlink = lying_read, no_unlink
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            lk.__exit__(None, None, None)
+    finally:
+        Path.read_bytes, Path.unlink = real_rb, real_unlink
+    check("G2c FAULT: the release mark never rewrites a lock that is not this run's (checked through its own handle)",
+          (store / X.LOCK_FILE).read_bytes() == foreign, (store / X.LOCK_FILE).read_bytes())
+
+    # Through main(): a .lock that cannot be deleted after a SUCCESSFUL append must never turn it into exit 5.
+    def through_main(name: str, deny_open: bool) -> tuple[int, str, Path]:
+        root = fake_clone(tmp / name, {"golden.log": GOLDEN.read_bytes()}, [golden_row()])
+        store = tmp / name / "store"
+        real_unlink, real_open = Path.unlink, Path.open
+
+        def no_unlink(self, *a, **k):
+            if self.name == X.LOCK_FILE:
+                raise PermissionError(32, "planted: the file is in use by another process", str(self))
+            return real_unlink(self, *a, **k)
+
+        def no_write(self, mode="r", *a, **k):
+            if self.name == X.LOCK_FILE and "+" in mode:
+                raise PermissionError(32, "planted: the file is in use by another process", str(self))
+            return real_open(self, mode, *a, **k)
+        Path.unlink = no_unlink
+        if deny_open:
+            Path.open = no_write
+        try:
+            code, out = main_exit(extract_args(root, store, "--incremental"))
+        finally:
+            Path.unlink, Path.open = real_unlink, real_open
+        return code, out, store
+
+    code, out, store = through_main("rel_main", deny_open=False)
+    try:
+        with X.StoreLock(store):
+            later = True
+    except X.Refused:
+        later = False
+    check("G2c FAULT: a .lock that cannot be deleted after a SUCCESSFUL append: exit 0, the record stored, the lock "
+          "marked released, and the next run takes it", code == 0 and _tiers(store) == ["golden.log:A+B"]
+          and "marked released" in out and later, f"exit {code}; later {later}; {out[-240:]}")
+    code, out, store = through_main("rel_main2", deny_open=True)
+    check("G2c FAULT: a .lock that can be neither deleted nor marked: exit 0, the record stored, a WARN naming the "
+          "lock (never exit 5, a crash that did not happen)",
+          code == 0 and _tiers(store) == ["golden.log:A+B"] and "WARN could not remove" in out,
+          f"exit {code}; {out[-240:]}")
+    (store / X.LOCK_FILE).unlink(missing_ok=True)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), X.StoreLock(store):
+        pass
+    check("G2c CONTROL: an ordinary exit removes .lock with no WARN", not (store / X.LOCK_FILE).exists()
+          and not buf.getvalue(), buf.getvalue())
 
 
 # ============================================================================================ main
 
 def main() -> int:
-    tests = (e1, e2, e3, e4, e5, e6a, e6b, e7, e7b, e7c, e8, e10, g_guards, g_paths, g_priors_store, g_lock, j1, p1,
-             r_race, n2, c1)
+    tests = (e1, e2, e3, e4, e5, e6a, e6b, e7, e7b, e7c, e8, e10, g_guards, g_paths, g_priors_store, g_hardlinks,
+             g_lock, j1, p1, r_race, b_bound, n2, c1)
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         tmp = Path(td)
         for test in tests:

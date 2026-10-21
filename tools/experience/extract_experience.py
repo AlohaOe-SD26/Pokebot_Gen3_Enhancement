@@ -54,7 +54,9 @@ the `\\\\?\\` prefix, case, slashes) AND file identity (a UNC admin share such a
 same folder under a spelling `realpath` keeps). It always protects the DEFAULT clone and this checkout's `ai_player/`,
 not only the trees `--clone`/`--repo` name, and the raw-data folders the run reads (review 2026-10-21: an abspath
 compare let a junction, the `\\\\?\\` prefix and the clone's 8.3 short name through, and pointing `--repo` or
-`--clone` elsewhere switched the guard off).
+`--clone` elsewhere switched the guard off). An EXISTING write target with more than one hard link is refused (a
+hard link planted at `<store>/runs_experience.jsonl` to a file inside the clone passed both checks, because the path
+and the folder chain are the store's while the bytes are the clone's; review round 2).
 
 THE O3 RACE. O3 renames `raw.zip` into a cycle and then deletes its folder; a cycle opened as a folder can lose a log
 (or a lane profile) in the middle of a pass. So a record whose log is missing or fails to read, or that was built
@@ -63,6 +65,16 @@ while `raw.zip` appeared, in a cycle that HAD raw data, is rebuilt once on a fre
 gone), or its read still fails, the run is DEFERRED: not appended, not in the cursor, named in a warning, and the next
 `--incremental` retries it (exit 6). An append-only store never revisits a key, so a tier-A-only record written
 during the race would have lost tier B for good.
+
+A DEFERRAL IS BOUNDED (review round 2, 2026-10-21: a cycle pruned with its `batch/` folder left behind deferred its
+rows on EVERY pass, exit 6 forever, and not even tier A was stored). Two layers. (a) A cycle SETTLED FOR GOOD is
+treated as settled now, so a log missing from it is stored as tier A with the reason: the learner marked it pruned
+(`state.json` `cycles[].pruned`, the only place that mark is persisted; `cycles.jsonl` keeps the `false` it was
+appended with) and never revisits it, or its `batch/` holds no log file at all and there is no `raw.zip`. (b) Every
+other deferral, a corrupt member of a final archive included, is counted in the store's `deferrals.json` (first
+deferred, passes, reason; written atomically under the lock): after `DEFER_MAX_PASSES` deferred passes AND
+`DEFER_MAX_AGE_S` since the first, the run is stored as tier A with `raw_missing` `deferred-timeout: <reason>` and
+a WARN names it, once, at that pass.
 
 LIMITS (stated in the store header and the priors file, measured on the real logs 2026-10-19/21): `UseItem` turns do
 not name the item, so "items used" is a count of UseItem turns plus the drop in `heal_stock` across a fight; no log
@@ -73,7 +85,9 @@ Exit codes: 0 ok; 1 at least one boss disagrees with runs.jsonl (records still w
 2 refused (a guard: see `Refused`); 3 the AI-facing file failed the privacy gate (nothing written); 5 CRASHED (an
 uncaught error or an unreadable runs.jsonl line, named; never 1, which O1 or a reader would take for a disagreement);
 6 some runs were DEFERRED by the O3 race (the rest written; the next `--incremental` retries them). With both a
-disagreement and a deferral the exit is 1 and both are printed.
+disagreement and a deferral the exit is 1 and both are printed. A run stored at the deferral bound (tier A,
+`deferred-timeout`) prints a WARN and does not change the exit. A `.lock` that cannot be removed after a successful
+append prints a WARN and does not change the exit either (it is retired as stale after LOCK_STALE_S).
 """
 from __future__ import annotations
 
@@ -83,9 +97,11 @@ import collections
 import json
 import os
 import re
+import stat
 import sys
 import time
 import traceback
+import unicodedata
 import uuid
 import zipfile
 import zlib
@@ -111,12 +127,23 @@ PRIORS_REL = Path("ai_player/knowledge/experience/chapter_priors.json")
 #: (`--incremental`, `--full`) never write inside it (E10).
 DIGEST_SCOPE_REL = ("ai_player",)
 STORE_FILE, CURSOR_FILE, LOCK_FILE = "runs_experience.jsonl", "cursor.json", ".lock"
+#: The deferral ledger (see the module docstring's A DEFERRAL IS BOUNDED): {key: first deferred, passes, reason}.
+LEDGER_FILE = "deferrals.json"
 #: The OS-locked sidecar that serialises taking `.lock` (see `StoreLock`). It stays in the store; it is never content.
 MUTEX_FILE = ".lock.mutex"
 #: A lock older than this is a crashed run's leftover (a full pass over ~900 logs measured about 4 minutes).
 LOCK_STALE_S = 6 * 3600
 #: How long a run waits for another run to finish TAKING the lock (milliseconds of work) before it gives up.
 MUTEX_WAIT_S = 30.0
+#: Releasing `.lock`: a PermissionError (another process has it open) is retried this often, this far apart.
+UNLINK_TRIES, UNLINK_RETRY_S = 10, 0.05
+#: A `.lock` that could not be deleted is rewritten to this prefix + its token: free to take (see StoreLock._release).
+RELEASED_PREFIX = b"RELEASED "
+#: A run deferred in at least this many passes AND first deferred at least this long ago is stored as tier A. Both,
+#: so neither a burst of passes (a session re-running by hand) nor one pass after a long gap ends it early.
+DEFER_MAX_PASSES, DEFER_MAX_AGE_S = 3, 24 * 3600
+#: The clock of the deferral bound (a test replaces it; never read for anything stored as data but the ledger).
+CLOCK = time.time
 SCHEMA = 1
 CORPUS = "bot corpus"
 EXIT_OK, EXIT_DISAGREE, EXIT_REFUSED, EXIT_GATE, EXIT_CRASH, EXIT_DEFERRED = 0, 1, 2, 3, 5, 6
@@ -457,6 +484,21 @@ class CycleRaw:
         missing from it missing for good (O3 zips EVERY original before it deletes any)."""
         return self._zip is not None and not (self.cdir / "batch").exists()
 
+    def settled_for_good(self, marked_pruned: bool) -> str | None:
+        """Why a log MISSING from this cycle is missing for good although `settled()` is False, or None. Two shapes
+        leave a `batch/` folder behind that nothing will ever fill again (review round 2): the learner's prune and
+        O3's `_delete_ours` both rmtree with `ignore_errors=True`, so a held handle leaves a folder, and a cycle marked
+        pruned is never revisited. The `raw.zip` check comes AFTER the log check on purpose: O3 renames `raw.zip` in
+        before it deletes any log, so "no log, then no zip" cannot be a cycle O3 is archiving right now."""
+        if marked_pruned:
+            return "the learner marked the cycle pruned (state.json) and never revisits it"
+        batch = self.cdir / "batch"
+        if batch.is_dir() and next(batch.rglob("*.log"), None) is not None:
+            return None
+        if (self.cdir / "raw.zip").exists():
+            return None
+        return "batch/ holds no log file and there is no raw.zip (a prune left the folder behind)"
+
     def _folder_or_zip(self, folder_path: Path, member: str):
         """An open binary stream of the file, or None."""
         if folder_path.is_file():
@@ -699,6 +741,21 @@ def refuse_protected_write(path: Path, repo: Path, clone: Path, allow_digest_sco
                 if _inside(path, base / rel):
                     raise Refused(f"{path} is inside the AI's digest scope {base / rel}: only an interactive --priors "
                                   f"call may write there, between graded rounds")
+    refuse_linked_target(path)
+
+
+def refuse_linked_target(path: Path) -> None:
+    """Refuse an EXISTING write target with more than one hard link. WHY: a hard link's path and its folder chain are
+    the store's own, so neither `_inside` check sees that its BYTES are a file inside the clone (review round 2: an
+    append through `mklink /H` wrote into the clone). This run never makes a hard link, so one is always planted.
+    A path that does not exist yet is created fresh by the write (no link to follow)."""
+    try:
+        st = os.stat(path)
+    except (OSError, ValueError):
+        return
+    if stat.S_ISREG(st.st_mode) and st.st_nlink > 1:  # a folder's link count is not a hard link (POSIX counts 2+)
+        raise Refused(f"{path} has {st.st_nlink} hard links: its bytes may live in another tree (this run makes no "
+                      f"hard link, so one was planted); remove the extra link by hand")
 
 
 def _lock_byte(fd: int) -> None:
@@ -756,7 +813,8 @@ class StoreLock:
     O_EXCL and holds a unique token; one older than LOCK_STALE_S is a crashed run's. Taking it happens under
     `_OsMutex`; a stale lock is retired by `os.replace` to a unique name and checked to BE the stale lock that was read
     (its token), so a fresh lock is never removed. `create=False` (a read-only `--priors` run) refuses a missing store
-    instead of creating it. On exit a run removes `.lock` only if it still holds ITS token."""
+    instead of creating it. On exit a run removes `.lock` only if it still holds ITS token (or, when another process
+    has it open, marks it RELEASED in place, which the next run takes at once)."""
 
     def __init__(self, store: Path, create: bool = True):
         self.store, self.create = store, create
@@ -788,13 +846,15 @@ class StoreLock:
             age = time.time() - self.path.stat().st_mtime
         except FileNotFoundError:
             return  # its owner released it: take it on the next try
-        if age < LOCK_STALE_S:
+        if age < LOCK_STALE_S and not seen.startswith(RELEASED_PREFIX):
             raise Refused(f"{self.path} is held ({age:.0f} s old): another extractor is running")
         aside = self.path.with_name(f"{LOCK_FILE}.stale.{uuid.uuid4().hex}")
         try:
             os.replace(self.path, aside)
         except FileNotFoundError:
             return
+        except PermissionError as exc:  # open in another process right now: never a crash, a retry later
+            raise Refused(f"{self.path} is free but open in another process ({exc.strerror}); retry shortly") from exc
         if aside.read_bytes() != seen:
             # Not the lock judged stale: someone's FRESH lock was moved. Put it back (never over a new one) and stop.
             try:
@@ -805,12 +865,50 @@ class StoreLock:
         aside.unlink(missing_ok=True)
 
     def __exit__(self, *exc) -> None:
+        """Remove `.lock` if it still holds THIS run's token, under `_OsMutex`. WHY the mutex (review round 2): another
+        run's `_retire_if_stale` reads `.lock` while it holds the mutex, and Python opens a file without
+        FILE_SHARE_DELETE, so an unlink at that instant failed with WinError 32: the run exited 5 after a successful
+        append and left its lock to block every run for LOCK_STALE_S. A PermissionError from any other reader is
+        retried briefly, and a lock still open elsewhere is then marked RELEASED in place (`_release`). Never raises:
+        the run's work is done, and a crash exit would report a failure that did not happen; a lock that can be
+        neither removed nor marked is a WARN (it is retired as stale later)."""
         try:
-            mine = self.path.read_bytes() == self.token
-        except OSError:
-            mine = False
-        if mine:
-            self.path.unlink(missing_ok=True)
+            try:
+                mutex = _OsMutex(self.store / MUTEX_FILE)
+                mutex.__enter__()
+            except Refused:
+                mutex = None  # the mutex stayed held for MUTEX_WAIT_S: release without it (the token check still holds)
+            try:
+                self._release()
+            finally:
+                if mutex is not None:
+                    mutex.__exit__()
+        except Exception as e:  # noqa: BLE001 - see the docstring: a release failure is never a crash
+            print(f"WARN could not remove {self.path} ({type(e).__name__}: {e}); the next run retires it as stale "
+                  f"after {LOCK_STALE_S // 3600} h, or remove it by hand once no extractor runs")
+
+    def _release(self) -> None:
+        for _ in range(UNLINK_TRIES):
+            try:
+                if self.path.read_bytes() != self.token:
+                    return  # not ours any more: another run's lock is never removed
+                self.path.unlink()
+                return
+            except FileNotFoundError:
+                return
+            except PermissionError:
+                time.sleep(UNLINK_RETRY_S)
+        # Still open elsewhere (an indexer, an editor, a reader that holds no mutex). Python and most readers share
+        # read AND write, only not delete: so mark the lock RELEASED in place, and the next run takes it at once
+        # (`_retire_if_stale`) instead of waiting LOCK_STALE_S. A PermissionError here reaches __exit__'s WARN.
+        with self.path.open("r+b") as fh:
+            if fh.read() != self.token:
+                return
+            fh.seek(0)
+            fh.truncate()
+            fh.write(RELEASED_PREFIX + self.token)
+        print(f"NOTE {self.path} is open in another process, so it was marked released instead of deleted; the next "
+              f"run takes it")
 
 
 def _dumps(obj) -> str:
@@ -858,6 +956,42 @@ def write_cursor(store: Path, keys: set[str]) -> None:
     os.replace(tmp, store / CURSOR_FILE)
 
 
+def read_ledger(store: Path) -> dict[str, dict]:
+    """The deferral ledger: {key: {"first_deferred_at": epoch s, "passes": n, "reason": text}}. Refused if it cannot
+    be read: it is written atomically, so an unreadable one is not ours to guess at."""
+    path = store / LEDGER_FILE
+    if not path.exists():
+        return {}
+    try:
+        led = json.loads(path.read_text(encoding="utf-8"))["deferred"]
+        if not isinstance(led, dict) or not all(isinstance(v, dict) and isinstance(v.get("passes"), int)
+                                                and isinstance(v.get("first_deferred_at"), (int, float))
+                                                for v in led.values()):
+            raise TypeError("an entry without passes or first_deferred_at")
+        return led
+    except (ValueError, KeyError, TypeError) as exc:
+        raise Refused(f"{path} cannot be read ({exc})") from exc
+
+
+def write_ledger(store: Path, ledger: dict[str, dict]) -> None:
+    tmp = store / (LEDGER_FILE + ".tmp")
+    tmp.write_text(json.dumps({"schema": SCHEMA, "deferred": dict(sorted(ledger.items()))}, indent=1),
+                   encoding="utf-8")
+    os.replace(tmp, store / LEDGER_FILE)
+
+
+def load_pruned(state_json: Path | None) -> set[str]:
+    """The cycle tags the learner marked pruned in its `state.json` (`cycles[].pruned`). Missing or unreadable: none
+    (the general deferral bound still ends any deferral)."""
+    if state_json is None:
+        return set()
+    try:
+        cycles = json.loads(state_json.read_text(encoding="utf-8")).get("cycles") or []
+        return {str(c["tag"]) for c in cycles if isinstance(c, dict) and c.get("tag") and c.get("pruned") is True}
+    except (OSError, ValueError, AttributeError, TypeError):
+        return set()
+
+
 def load_rows(path: Path) -> list[dict]:
     rows = []
     with open(path, "rb") as fh:
@@ -880,11 +1014,27 @@ def _open_cycle(runs_dir: Path, profiles_dir: Path, src: str) -> CycleRaw | None
 RACE_MISSING = ("log not in the cycle folder or raw.zip", "read failed:")
 
 
+#: The `raw_missing` prefix of a run stored at the deferral bound (DEFER_MAX_PASSES and DEFER_MAX_AGE_S).
+TIMEOUT_PREFIX = "deferred-timeout: "
+
+
+def timed_out(entry: dict | None, now: float) -> bool:
+    """A ledger entry past the deferral bound: deferred in DEFER_MAX_PASSES passes AND first deferred DEFER_MAX_AGE_S
+    ago (see the module docstring's A DEFERRAL IS BOUNDED)."""
+    return (entry is not None and entry["passes"] >= DEFER_MAX_PASSES
+            and now - entry["first_deferred_at"] >= DEFER_MAX_AGE_S)
+
+
 def extract(rows: list[dict], skip: set[str], runs_dir: Path, profiles_dir: Path, boss_ids: dict[int, str],
-            opp_names: dict[int, str]) -> tuple[list[dict], list[tuple[str, str]]]:
+            opp_names: dict[int, str], pruned: set[str] | frozenset = frozenset(), ledger: dict | None = None,
+            now: float | None = None) -> tuple[list[dict], list[tuple[str, str]]]:
     """(a record for every row whose key is not in `skip`, in `rows` order; the DEFERRED (key, why)), opening each
     cycle's raw files once. See the module docstring's O3 RACE: a record built while O3 archived its cycle is rebuilt
-    on a fresh open, and one whose tier B still fails in a cycle that is not in its final archived form is deferred."""
+    on a fresh open, and one whose tier B still fails in a cycle that is not in its final archived form is deferred,
+    unless its cycle is settled for good (`pruned`: the tags the learner marked pruned) or its `ledger` entry is past
+    the deferral bound at `now`; either is stored as tier A, its reason in `raw_missing`."""
+    ledger = ledger or {}
+    now = CLOCK() if now is None else now
     todo = [r for r in rows if row_key(r) not in skip]
     caches: dict[str, CycleRaw | None] = {}
     out: list[dict] = []
@@ -905,8 +1055,14 @@ def extract(rows: list[dict], skip: set[str], runs_dir: Path, profiles_dir: Path
                 # proof: a sharing violation passes, and a corrupt member of the only copy should stay loud.
                 if raw is not None and (missing.startswith(RACE_MISSING[1]) or
                                         (missing.startswith(RACE_MISSING[0]) and not raw.settled())):
-                    deferred.append((rec["key"], missing))
-                    continue
+                    final = raw.settled_for_good(src in pruned) if missing.startswith(RACE_MISSING[0]) else None
+                    if final:
+                        rec["raw_missing"] = f"{missing}; missing for good: {final}"
+                    elif timed_out(ledger.get(rec["key"]), now):
+                        rec["raw_missing"] = TIMEOUT_PREFIX + missing
+                    else:
+                        deferred.append((rec["key"], missing))
+                        continue
             out.append(rec)
     finally:
         for c in caches.values():
@@ -916,14 +1072,16 @@ def extract(rows: list[dict], skip: set[str], runs_dir: Path, profiles_dir: Path
 
 
 def run_extract(mode: str, runs_jsonl: Path, runs_dir: Path, profiles_dir: Path, store: Path, repo: Path, clone: Path,
-                decomp: Path | None = None) -> tuple[int, dict]:
-    """`--full` (an EMPTY store only) or `--incremental`. Returns (exit code, summary)."""
+                decomp: Path | None = None, state_json: Path | None = None) -> tuple[int, dict]:
+    """`--full` (an EMPTY store only) or `--incremental`. Returns (exit code, summary). `state_json`: the learner's
+    state file, read only for its pruned marks (A DEFERRAL IS BOUNDED)."""
     t0 = time.perf_counter()
     # The folders of raw data it reads. Not runs.jsonl's folder: a copy of runs.jsonl at a checkout's root would make
     # that root a "read tree" and refuse the default store inside it (the clone itself is guarded as the clone).
     reads = (runs_dir, profiles_dir)
     for target in (store, store / STORE_FILE, store / CURSOR_FILE, store / (CURSOR_FILE + ".tmp"), store / LOCK_FILE,
-                   store / MUTEX_FILE):  # every path this run writes (a planted symlink at any of them is resolved)
+                   store / MUTEX_FILE, store / LEDGER_FILE, store / (LEDGER_FILE + ".tmp")):
+        # every path this run writes: a planted symlink at any of them is resolved, a hard link is refused
         refuse_protected_write(target, repo, clone, read_roots=reads)
     boss_ids, opp_names, boss_source = boss_tables(decomp)
     with StoreLock(store):
@@ -935,7 +1093,10 @@ def run_extract(mode: str, runs_jsonl: Path, runs_dir: Path, profiles_dir: Path,
         if cursor is not None and not cursor <= have:
             raise Refused(f"{store / CURSOR_FILE} lists {len(cursor - have)} keys that are not in the store")
         rows = load_rows(runs_jsonl)
-        new, deferred = extract(rows, have, runs_dir, profiles_dir, boss_ids, opp_names)
+        ledger = read_ledger(store)
+        now = CLOCK()
+        new, deferred = extract(rows, have, runs_dir, profiles_dir, boss_ids, opp_names, load_pruned(state_json),
+                                ledger, now)
         path = store / STORE_FILE
         empty = not path.exists() or path.stat().st_size == 0
         with open(path, "ab") as fh:
@@ -945,15 +1106,28 @@ def run_extract(mode: str, runs_jsonl: Path, runs_dir: Path, profiles_dir: Path,
                 fh.write((_dumps(r) + "\n").encode("utf-8"))
             fh.flush()
             os.fsync(fh.fileno())
-        write_cursor(store, have | {r["key"] for r in new})
+        stored = have | {r["key"] for r in new}
+        write_cursor(store, stored)
+        # The ledger AFTER the append: a crash between the two leaves at most a stale entry for a stored key, which
+        # the next pass drops here (a stored key is never deferred again); a deferral is never counted before it
+        # happened.
+        led = {k: dict(v) for k, v in ledger.items() if k not in stored}  # copies: `ledger` is compared below
+        for key, why in deferred:
+            e = led.setdefault(key, {"first_deferred_at": round(now), "passes": 0})
+            e["passes"] += 1
+            e["reason"] = why
+        if led != ledger:  # written only on a change, so a no-op pass touches nothing
+            write_ledger(store, led)
     tiers = collections.Counter(r["tier"] for r in new)
+    timeouts = [(r["key"], r["raw_missing"], ledger[r["key"]]) for r in new
+                if str(r["raw_missing"]).startswith(TIMEOUT_PREFIX) and r["key"] in ledger]
     dis = [(r["key"], d) for r in new for d in r["disagreements"]]
     summary = {"mode": mode, "rows": len(rows), "already": len(have), "new": len(new), "tiers": dict(tiers),
                "no_boss_log": [r["key"] for r in new if r["tier_a"] is None],
                "parse_suspect": [r["key"] for r in new if r["tier_b"] and r["tier_b"]["parse_suspect"]],
                "badge_join": dict(collections.Counter(r["badge_log_join"].split(":")[0].split(" (")[0] for r in new)),
                "bosses_compared": sum(len(r["agrees_with_runs_jsonl"]) for r in new),
-               "disagreements": dis, "deferred": deferred, "boss_ids_from": boss_source,
+               "disagreements": dis, "deferred": deferred, "timeouts": timeouts, "boss_ids_from": boss_source,
                "seconds": round(time.perf_counter() - t0, 1)}
     return (EXIT_DISAGREE if dis else EXIT_DEFERRED if deferred else EXIT_OK), summary
 
@@ -1009,16 +1183,64 @@ def priors_label(wall) -> str:
     return wall if isinstance(wall, str) and wall in ALLOWED_LABELS else OTHER_LABEL
 
 
-#: THE E7 DENYLIST, the gate's second and INDEPENDENT layer (it never consults the allowlist, so one bug cannot open
-#: both). Matched case-insensitively. A PID: eight hex digits standing alone, with or without `#` or `0x`. A position:
-#: `(x, y)`, `[x, y]`, `x=`/`y=` with a number, `pos=`/`position:`/`coords=` with a number, `map=a,b`, `at (a,`.
-#: A flag or var: `flag_`/`var_` in any case, or an ALL_CAPS_NAME (case-sensitive: the file's own keys are lower-case
-#: snake_case, and the 13 boss keys are allowed as KEYS of the `bosses` block). Species: see `species_re`.
-PID_RE = re.compile(r"(?i)(?:0x|(?<![0-9a-z]))[0-9a-f]{8}(?![0-9a-z])")
+#: THE E7 DENYLIST, the gate's SECOND and INDEPENDENT layer (it never consults the allowlist, so one bug cannot open
+#: both). It is a backstop for a hand-edited or future file, NOT the guarantee: the allowlist is (the writer cannot
+#: emit a label outside it). Every string is first NORMALISED (`_normalise`: NFKC, so fullwidth letters become ASCII,
+#: and Unicode format characters such as a soft hyphen or a zero-width space removed), and any string that then still
+#: holds a non-ASCII LETTER fails (a Cyrillic `а` inside `Kingdrа`; the allowlist's vocabulary is pure ASCII). Then,
+#: case-insensitively: a PID is eight hex digits standing alone (with or without `#` or `0x`), or any number glued
+#: to or following `pid` (`PID3E751CAF`, `pid 1047919791`). A position: `(x, y)`, `[x, y]`, `x=`/`y=` with a number,
+#: `x 12 y 7`, `pos=`/`position:`/`coords=`/`tile` with a number, `map=a,b`, `at (a,`, `12/7` after `tile`, and a bare
+#: `a,b` pair (`BARE_PAIR_RE`: a thousands-grouped number such as `3,600` is not one). A flag or var: `flag_`/`var_`,
+#: `flag`/`var` glued to a name holding a digit (`FLAGBADGE07`), or an ALL_CAPS_NAME (case-sensitive: the file's own
+#: keys are lower-case snake_case, and the 13 boss keys are allowed as KEYS of the `bosses` block). Species: see
+#: `species_re`, matched on three spellings of the text (`_species_texts`).
+PID_RE = re.compile(r"(?i)(?:0x|(?<![0-9a-z]))[0-9a-f]{8}(?![0-9a-z])"
+                    r"|(?<![a-z])pid[\s#:=_-]*(?:0x)?(?=[0-9a-f]*\d)[0-9a-f]+(?![0-9a-z])")
 POS_RE = re.compile(r"(?i)\(\s*-?\d+\s*,\s*-?\d+\s*\)|\[\s*-?\d+\s*,\s*-?\d+\s*\]|(?<![0-9a-z])[xy]\s*[=:]\s*-?\d"
-                    r"|\b(?:pos|position|coords?)\s*[=:]\s*[(\[]?\s*-?\d|\bmap\s*=\s*\d+\s*,\s*\d|\bat \(\s*-?\d+\s*,")
-FLAGVAR_RE = re.compile(r"(?i)(?<![0-9a-z])(?:flag|var)_[0-9a-z_]")
+                    r"|\b(?:pos|position|coords?)\s*[=:]\s*[(\[]?\s*-?\d|\btiles?\s*[=:]?\s*[(\[]?\s*-?\d"
+                    r"|\bmap\s*=\s*\d+\s*,\s*\d"
+                    r"|\bat \(\s*-?\d+\s*,|(?<![0-9a-z])x\s*[=:]?\s*-?\d+\s*,?\s*y\s*[=:]?\s*-?\d")
+#: `a,b` / `a, b` standing alone. A match is a position unless it is a thousands-grouped number (`3,600`: no space, up
+#: to three digits, then exactly three), which the file's own text uses ("up to 3,600 frames old").
+BARE_PAIR_RE = re.compile(r"(?<![0-9.,])-?(\d+)(\s*),(\s*)-?(\d+)(?![0-9])")
+FLAGVAR_RE = re.compile(r"(?i)(?<![0-9a-z])(?:flag|var)_[0-9a-z_]|(?<![a-z])(?:flag|var)(?=[a-z]*\d)[a-z]+\d")
 CONST_RE = re.compile(r"\b[A-Z][A-Z0-9#]*(?:_[A-Z0-9#]+)+\b")
+#: Species aliases with no symbol (`Nidoran♀` is `NidoranF` in many tools): matched like species names.
+SPECIES_ALIASES = ("NidoranF", "NidoranM")
+#: Case and letter/digit boundaries inside a word (`KingdraLuvdisc`, `Kingdra2`): split before species matching.
+CAMEL_RE = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Za-z])(?=[0-9])|(?<=[0-9])(?=[A-Za-z])")
+#: Three or more single letters each standing alone (`K i n g d r a`, `K.i.n.g`): joined before species matching.
+SPACED_RE = re.compile(r"(?<![0-9a-z])[a-z](?:[^0-9a-z]{1,2}[a-z](?![0-9a-z])){2,}")
+
+
+def _normalise(s: str) -> str:
+    """NFKC with every format character (category Cf: soft hyphen, zero-width space and joiner, BOM) removed, before
+    and after (NFKC can expose one)."""
+    def strip(t: str) -> str:
+        return "".join(c for c in t if unicodedata.category(c) != "Cf")
+    return strip(unicodedata.normalize("NFKC", strip(s)))
+
+
+def _non_ascii_letters(s: str) -> list[str]:
+    return [c for c in s if ord(c) > 127 and unicodedata.category(c).startswith("L")]
+
+
+def _bare_pair(s: str) -> str | None:
+    for m in BARE_PAIR_RE.finditer(s):
+        a, sp1, sp2, b = m.groups()
+        if not (sp1 or sp2) and len(a) <= 3 and len(b) == 3:
+            continue  # 3,600: a thousands separator
+        return m.group(0)
+    return None
+
+
+def _species_texts(s: str) -> set[str]:
+    """The spellings species are matched in: casefolded; with case and letter/digit boundaries split; with runs of
+    single letters joined."""
+    folded = s.casefold()
+    joined = SPACED_RE.sub(lambda m: re.sub(r"[^0-9a-z]", "", m.group(0)), folded)
+    return {folded, CAMEL_RE.sub(" ", s).casefold(), joined}
 
 
 def _species_names(repo: Path) -> set[str]:
@@ -1033,9 +1255,10 @@ def species_re(species: set[str]) -> re.Pattern[str] | None:
     """One pattern for every species name, matched on CASEFOLDED text. Each name's letter-and-digit runs are joined by
     up to three other characters, so a name is matched as a phrase in any spelling: `Mr. Mime` / `mr mime`,
     `Farfetch'd` with either apostrophe (species.json holds the curly one), `Ho-Oh`, `Nidoran` for both symbols. Word
-    boundaries on both ends; a possessive (`Kingdra's`), a `-type` suffix and an `s`/`es` plural still match."""
+    boundaries on both ends; a possessive (`Kingdra's`), a `-type` suffix and an `s`/`es` plural still match.
+    `SPECIES_ALIASES` are names too."""
     alts = set()
-    for name in species:
+    for name in [*species, *(SPECIES_ALIASES if species else ())]:
         toks = re.findall(r"[0-9a-z]+", name.casefold())
         if toks:
             alts.add(r"[^0-9a-z]{0,3}".join(map(re.escape, toks)))
@@ -1066,14 +1289,20 @@ def check_ai_facing(obj, species: set[str]) -> list[str]:
         elif isinstance(x, str):
             check_text(x, path)
 
-    def check_text(s: str, where: str) -> None:
+    def check_text(raw: str, where: str) -> None:
+        s = _normalise(raw)
+        odd = _non_ascii_letters(s)
+        if odd:
+            problems.append(f"{where}: a non-ASCII letter {odd[0]!r} in {raw[:80]!r} (the label vocabulary is ASCII; "
+                            f"a look-alike letter would hide a name)")
         if PID_RE.search(s):
-            problems.append(f"{where}: a PID in {s[:80]!r}")
-        if POS_RE.search(s):
-            problems.append(f"{where}: a position in {s[:80]!r}")
+            problems.append(f"{where}: a PID in {raw[:80]!r}")
+        if POS_RE.search(s) or _bare_pair(s):
+            problems.append(f"{where}: a position in {raw[:80]!r}")
         if FLAGVAR_RE.search(s) or CONST_RE.search(s):
-            problems.append(f"{where}: a flag- or var-shaped name in {s[:80]!r}")
-        hit = sp_re.search(s.casefold()) if sp_re is not None else None
+            problems.append(f"{where}: a flag- or var-shaped name in {raw[:80]!r}")
+        hit = next((h for h in (sp_re.search(t) for t in sorted(_species_texts(s))) if h), None) \
+            if sp_re is not None else None
         if hit:
             problems.append(f"{where}: a species name {hit.group(0)!r} (species shares are the bot's style, withheld)")
 
@@ -1230,6 +1459,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--runs-jsonl", type=Path)
     ap.add_argument("--runs-dir", type=Path)
     ap.add_argument("--profiles-dir", type=Path)
+    ap.add_argument("--state-json", type=Path, help="the learner's state.json (read for its pruned marks; default: "
+                                                    "beside runs.jsonl)")
     ap.add_argument("--store", type=Path, default=DEFAULT_STORE)
     ap.add_argument("--repo", type=Path, default=REPO, help="the checkout whose ai_player/ is the digest scope")
     ap.add_argument("--priors-out", type=Path)
@@ -1247,18 +1478,19 @@ def main(argv: list[str] | None = None) -> int:
             problems = check_ai_facing(obj, _species_names(repo))
             for p in problems:
                 print(f"FAIL {p}")
-            print("PASS: no PID, position, flag/var name or species; every block labelled" if not problems else
-                  f"FAILED: {len(problems)} problems")
+            print("PASS (the denylist, the SECOND layer; the writer's label allowlist is the guarantee): no PID, "
+                  "position, flag/var name, species or non-ASCII letter found; every block labelled" if not problems
+                  else f"FAILED: {len(problems)} problems")
             return EXIT_GATE if problems else EXIT_OK
         if args.priors:
             code, msg = write_priors(args.store, args.priors_out or repo / PRIORS_REL, repo, clone, args.force_priors)
             print(msg)
             return code
-        code, s = run_extract("full" if args.full else "incremental",
-                              args.runs_jsonl or clone / "ai-agent/data/runs.jsonl",
+        runs_jsonl = args.runs_jsonl or clone / "ai-agent/data/runs.jsonl"
+        code, s = run_extract("full" if args.full else "incremental", runs_jsonl,
                               args.runs_dir or clone / "ai-agent/runs",
                               args.profiles_dir or clone / "sandbox-pokebot/profiles", args.store, repo, clone,
-                              args.decomp)
+                              args.decomp, args.state_json or runs_jsonl.parent / "state.json")
     except Refused as exc:
         print(f"REFUSED: {exc}")
         return EXIT_REFUSED
@@ -1286,6 +1518,10 @@ def main(argv: list[str] | None = None) -> int:
               f"in its final archived form")
         for key, why in s["deferred"][:20]:
             print(f"  DEFERRED {key}: {why}")
+    for key, why, e in s["timeouts"]:
+        print(f"WARN DEFERRED-TIMEOUT {key}: deferred in {e['passes']} passes since "
+              f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(e['first_deferred_at']))}; stored as tier A "
+              f"({why}). Its tier B is lost unless the raw log is recovered by hand")
     return code
 
 
