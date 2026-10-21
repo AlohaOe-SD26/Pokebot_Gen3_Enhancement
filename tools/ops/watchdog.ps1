@@ -9,8 +9,10 @@
     anything but 0, this script writes "NEEDS YOU: watchdog could not run" (and why) into the same status file and its
     fallback copy, and toasts it. A python-only watchdog could never report its own missing interpreter.
   - The toast. Windows 11 Home has no msg.exe; Windows PowerShell 5.1 can reach the WinRT ToastNotificationManager.
-    watchdog.py prints one "NOTIFY<TAB>title<TAB>body" line per toast it owes (it decides WHEN: only on a change of
-    state, one reminder a day, one "recovered"); this script shows them. A toast that fails falls back to the file.
+    watchdog.py prints one "NOTIFY<TAB>title<TAB>body" line per toast it owes (it decides WHEN: only when a NEW
+    problem appears, one reminder a day, one "recovered" when none is left; a problem that merely resolves while
+    others remain is written to the file, not toasted); this script shows them. A toast that fails falls back to the
+    file.
 
   This script's OWN failure toast follows the same rule: the first failure toasts, a repeat within 24 h does not
   (marker: watchdog_ps1_failed.txt in the ops folder), and the first good run after a failure removes the marker and

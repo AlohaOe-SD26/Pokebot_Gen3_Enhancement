@@ -14,12 +14,19 @@ T7 the nightly backup line (backlog O4, final re-verify 2026-10-21 B6), from too
    whole screen in budget with it); CONTROL no status file -> 'no backup yet'. FAULT a NEEDS-YOU night and a REFUSED
    night show the word, the ages and the reason, cut to the screen width; a half-written file and a JSON that is not
    a status say 'unavailable', exit 0, never a false ok.
+T8 the watchdog line (backlog O1, review 2026-10-21 should-fix 3), from the first line of the watchdog's
+   LEARNER-STATUS.txt in the ops folder. CONTROL a file 10 min old -> 'WATCHDOG: OK | checked 10 m ago'; 65 min old
+   -> not stale. FAULT a fresh NEEDS YOU is shown as is; a file 2 h 40 m old that still says OK (the task stopped) ->
+   'STALE: last checked ...' FIRST; no file -> 'not registered yet'. The NOT YET section no longer claims O1, O3 or P3
+   is unbuilt. The tree is unchanged after a run.
 """
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -81,6 +88,10 @@ def backup_of(out: str) -> str:
     return next((l for l in out.splitlines() if l.startswith("BACKUP:")), "(no BACKUP line)")
 
 
+def watchdog_of(out: str) -> str:
+    return next((l for l in out.splitlines() if l.startswith("WATCHDOG:")), "(no WATCHDOG line)")
+
+
 def snapshot(root: Path) -> dict[str, tuple[str, float]]:
     return {str(p): (hashlib.sha256(p.read_bytes()).hexdigest(), p.stat().st_mtime) for p in root.rglob("*")
             if p.is_file()}
@@ -95,8 +106,13 @@ def main() -> int:
         root = Path(tmp)
         clone = fake_tree(root)
         status_file = root / "localappdata" / "pokebot-ops" / "backup_status.json"
+        wd_status = root / "localappdata" / "pokebot-ops" / "LEARNER-STATUS.txt"
+        wd_status.write_text("OK\nchecked 3:31 PM PT, next 4:01 PM\nlearner: running (pid 1)\n", encoding="utf-8")
+        pinned = dt.datetime(2026, 10, 20, 15, 41).timestamp()  # the same instant as --now
+        os.utime(wd_status, (pinned - 10 * 60, pinned - 10 * 60))
+        # --backup-status stays LAST: T7 swaps it with base[:-1]
         base = ["--clone", str(clone), "--repo", str(root / "repo"), "--now", "2026-10-20 3:41 PM",
-                "--backup-status", str(status_file)]
+                "--watchdog-status", str(wd_status), "--backup-status", str(status_file)]
         before = snapshot(root)
         code, out = run(*base)
         after = snapshot(root)
@@ -136,7 +152,8 @@ def main() -> int:
         check("T5 the archive count and the last archive-check result are shown",
               "raw-log archives: 1 raw.zip | last archive-check 2026-10-21 04:00:00 AM: 1 checked, 0 BAD" in out,
               tuner_block(out))
-        check("T5 'not built yet' no longer lists O3", "NOT YET" in out and "O3" not in out.split("NOT YET", 1)[1],
+        check("T5 'not built yet' no longer lists O3, P3 or O1 (all three are built)",
+              "NOT YET" in out and not any(x in out.split("NOT YET", 1)[1] for x in ("O3", "P3", "O1", "not built")),
               out[-200:])
         (clone / "data" / "archive_check.json").write_text('{"checked": "2026-10', encoding="utf-8")
         code, out = run(*base)
@@ -200,6 +217,34 @@ def main() -> int:
         code, out = run(*base[:-1], str(root / "nowhere" / "backup_status.json"))
         check("T7 CONTROL no status file (the task never ran) -> 'BACKUP: no backup yet'",
               backup_of(out) == "BACKUP: no backup yet (no backup_status.json)", backup_of(out))
+        # T8 the watchdog line (backlog O1, review 2026-10-21 should-fix 3), from the watchdog's LEARNER-STATUS.txt
+        code, out = run(*base)
+        check("T8 CONTROL a fresh watchdog file (10 min old) -> 'WATCHDOG: OK | checked 10 m ago'",
+              watchdog_of(out) == "WATCHDOG: OK | checked 10 m ago", watchdog_of(out))
+        wd_status.write_text("NEEDS YOU: learner is not running\nchecked 3:31 PM PT, next 4:01 PM\n", encoding="utf-8")
+        os.utime(wd_status, (pinned - 10 * 60, pinned - 10 * 60))
+        code, out = run(*base)
+        check("T8 FAULT a fresh NEEDS YOU -> its first line is shown as is",
+              watchdog_of(out) == "WATCHDOG: NEEDS YOU: learner is not running | checked 10 m ago", watchdog_of(out))
+        wd_status.write_text("OK\nchecked 1:01 PM PT, next 1:31 PM\n", encoding="utf-8")
+        os.utime(wd_status, (pinned - 160 * 60, pinned - 160 * 60))
+        code, out = run(*base)
+        check("T8 FAULT a watchdog file 2 h 40 m old that still says OK (the task stopped) -> 'STALE: last checked "
+              "2 h 40 m ago' FIRST, never a bare OK", watchdog_of(out).startswith("WATCHDOG: STALE: last checked 2 h "
+                                                                                   "40 m ago")
+              and watchdog_of(out).endswith("it said: OK"), watchdog_of(out))
+        os.utime(wd_status, (pinned - 65 * 60, pinned - 65 * 60))
+        code, out = run(*base)
+        check("T8 CONTROL 65 min old (under the 70-min limit: one late run) -> not STALE",
+              watchdog_of(out) == "WATCHDOG: OK | checked 1 h 5 m ago", watchdog_of(out))
+        no_wd = [str(root / "nowhere" / "LEARNER-STATUS.txt") if a == str(wd_status) else a for a in base]
+        code, out = run(*no_wd)
+        check("T8 FAULT no watchdog file -> 'WATCHDOG: not registered yet', exit 0",
+              code == 0 and watchdog_of(out).startswith("WATCHDOG: not registered yet (no LEARNER-STATUS.txt"),
+              watchdog_of(out))
+        before = snapshot(root)
+        run(*base)
+        check("T8 READ-ONLY: the watchdog file and the whole tree are unchanged after a run", snapshot(root) == before)
         spec = importlib.util.spec_from_file_location("status_under_test", STATUS)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
@@ -207,10 +252,15 @@ def main() -> int:
         check("T7 the default status path is ops_config.json's status_file, expanded (no '%')",
               default.name == "backup_status.json" and default.parent.name == "pokebot-ops" and "%" not in str(default),
               str(default))
+        wdefault = mod.default_watchdog_status()
+        check("T8 the default watchdog path is ops_config.json's ops_dir / LEARNER-STATUS.txt, expanded (no '%')",
+              wdefault.name == "LEARNER-STATUS.txt" and wdefault.parent.name == "pokebot-ops"
+              and "%" not in str(wdefault), str(wdefault))
 
     bad = [r for r in RESULTS if not r[1]]
     for name, ok, detail in RESULTS:
-        print(("PASS " if ok else "FAIL ") + name + ("" if ok else f" | {detail[:200]}"))
+        line = ("PASS " if ok else "FAIL ") + name + ("" if ok else f" | {detail[:200]}")
+        print(line.encode("ascii", "backslashreplace").decode("ascii"))  # a FAIL detail may hold any character
     print(f"{'ALL PASS' if not bad else 'FAILED'} ({len(RESULTS)} checks)")
     return 1 if bad else 0
 

@@ -76,17 +76,20 @@ the toast) except where a test says REAL. Nothing pops a real toast: watchdog.ps
      that does not parse is NEEDS YOU and the threshold checks say SKIPPED.
   W2 FAULT no learner -> after ONE 90 s re-check 'NEEDS YOU: learner is not running' and one toast. CONTROL a restart
      blink (gone, then back at the re-check) -> OK; the user's STOP file -> NOTE, no toast. REAL processes: another
-     checkout's 'learner.py run' and a -c string that only mentions it -> NEEDS YOU; THIS clone's -> OK; .kill() ->
-     NEEDS YOU. Unit: the argv match is by basename (tested alone: the path-identity check masks it).
+     checkout's 'learner.py run' and a -c string that only mentions it -> NEEDS YOU; THIS clone's -> 'runs again' on
+     the first check and OK on the second (the recovery hysteresis); .kill() -> NEEDS YOU. Unit: the argv match is by
+     basename (tested alone: the path-identity check masks it).
   W3 FAULT ATTENTION.md in the learner's own format -> NEEDS YOU carrying its reason line. CONTROL a log line or a
      findings file that merely CONTAINS 'NEEDS YOU' -> OK.
   W4 learner.log 14 h old with cycle_minutes 720 -> NEEDS YOU; 11 h -> OK; 14 h with 1440 -> OK (kills a fixed 13 h);
      a stale log while the learner is NOT running is not called stuck.
   W5 -6 GB/day at 79 GB -> 'falling 6.0 GB/day; 25 GB in 9 days'; FAULT a 12 GB drop in 6 h -> NEEDS YOU; CONTROL
-     flat -> 'no downward trend'; 39 GB -> NEEDS YOU, 41 -> OK; min_free_gb 50 -> 60 GB is NEEDS YOU (kills a fixed
+     flat -> 'no downward trend'; 39 GB -> NEEDS YOU, then 41 -> still NEEDS YOU (hysteresis: it clears above
+     40 + 2), 42.5 -> OK; 41 with no alarm raised before -> OK; min_free_gb 50 -> 60 GB is NEEDS YOU (kills a fixed
      40); O7's early_prune_margin_gb is honoured.
-  W6 notify on change: 3 runs in one NEEDS YOU state -> ONE toast; 12 h later none; 25 h -> one reminder; recovery ->
-     one 'recovered'; OK again -> none; a NEW problem joining -> another. (The 'notify every run' mutant fails it.)
+  W6 notify on change: 3 runs in one NEEDS YOU state -> ONE toast; 12 h later none; 25 h -> one reminder; the first
+     alive check after 'not running' -> still NEEDS YOU, no toast; the second -> one 'recovered'; OK again -> none; a
+     NEW problem joining -> another. (The 'notify every run' mutant fails it.)
   W7 CONTROL boot 5 min ago + no learner -> NOTE, no toast; FAULT 20 min -> NEEDS YOU.
   W8 watchdog.ps1: FAULT a nonexistent python -> exit 1, 'NEEDS YOU: watchdog could not run' in the file and the
      fallback, one (WOULD) toast, none on the repeat; FAULT python runs but watchdog.py crashes -> the same, with its
@@ -105,6 +108,27 @@ the toast) except where a test says REAL. Nothing pops a real toast: watchdog.ps
   W13 the installer: the default dry run shows the watchdog task (every 30 minutes, IgnoreNew, 5-minute limit,
      interactive session, powershell.exe -WindowStyle Hidden -File watchdog.ps1) and leaves its registration
      unchanged; FAULT a mutant installer without the task's Execute is caught.
+  The review of 2026-10-21 (three should-fix findings and three notes) added W14-W19:
+  W14 the learner's documented defaults: LEARNER_DEFAULTS equals learner.DEFAULTS (cycle_minutes, min_free_gb,
+     early_prune_margin_gb; imported from the main checkout's ai-agent/learner.py in a -B child), and the comparison
+     catches a skewed copy. FAULT a config.json with none of those keys -> a 14 h silent log is stuck and 39 GB is low
+     (both were SKIPPED); CONTROL the same config, 11 h and 60 GB -> OK.
+  W15 hysteresis and no spam: FAULT-ARMS disk hovering 39.6 / 40.4 GB over 10 runs -> at most 1 toast; the same plus a
+     persistent NEEDS -> exactly 1; a crash-looping learner (dead / alive) over 10 runs -> exactly 1. A SHRINKING set ->
+     no toast and 'resolved since the last check: X; still NEEDS YOU: Y'; CONTROL an id joining again -> a toast; a
+     healthy wobble -> none. Unit: decide_notify on new / same / shrinking / emptied / old-format states.
+  W16 FALSE CALM: FAULT no cycle for 3 days with the learner alive and its log fresh -> NEEDS YOU 'has not started a
+     cycle' with the log's last line; FAULT a current cycle 15 h old (720 + 120) -> 'has not finished'; FAULT a key-less
+     config uses the default 720. CONTROL finished 10 h ago, current 13 h old, a 1440-min batch at 20 h with config
+     now 720 and a 14 h log (neither stuck nor no-progress; then FAULT at 27 h), a current with no start time
+     (SKIPPED, no crash), and a DEAD learner (only 'not running').
+  W17 FAULT-ARM an unwritable watchdog_state.json + a persistent NEEDS over 4 runs -> 1 toast, the record in the marker,
+     a WARN line in the status file; CONTROL writable again -> saved, marker removed, no repeat toast.
+  W18 the grace counts from LOGON: CONTROL booted 3 h ago, logged on 5 min ago -> NOTE; FAULT logged on 20 min ago ->
+     NEEDS YOU; CONTROL a logon older than the boot (stale) -> the boot counts; the REAL probe returns a past time or
+     None.
+  W19 FAULT a backup-disk probe that never answers -> the run ends in about the (shortened) limit with 'free space
+     UNKNOWN' and a null sample; CONTROL a probe that answers -> its free space.
 
 Run: cd tools/story-dev && py -3.12 selftest_ops.py      (about 30 s)
 """
@@ -1061,8 +1085,9 @@ ATTENTION_TEXT = ("# The learner paused itself\n\n2026-10-21 04:00:00 AM\n\nOnly
 class WEnv:
     """One fake world for the watchdog: a clone (config, state, log, a learner.py), an ops folder, a Desktop, a
     healthy backup status, and the watchdog module with EVERY system probe injected: the process scan (a running
-    learner unless a test says otherwise), the boot time (2 days ago), free disk (200 GB on C:, 180 on the backup
-    disk), no pending restart, the clock, the 90 s wait (recorded, never slept) and the toast (recorded)."""
+    learner unless a test says otherwise), the boot time (2 days ago), the logon time (none listed), free disk (200 GB
+    on C:, 180 on the backup disk), no pending restart, the clock, the 90 s wait (recorded, never slept) and the toast
+    (recorded)."""
 
     def __init__(self, tmp: Path, name: str, cycle_minutes: int = 720, min_free_gb: int = 25, extra_cfg=None):
         self.root = tmp / name
@@ -1097,6 +1122,8 @@ class WEnv:
         self.w.clock = lambda: self.T
         self.w.sleep = self.sleeps.append
         self.w.boot_time = lambda: self.boot
+        self.logon: float | None = None  # no logon session listed: the grace falls back to the boot time
+        self.w.logon_time = lambda: self.logon
         clone_root = self.root / "clone"
         self.w.disk_free_gib = lambda p: self.free_c if self.w.is_under(p, clone_root) else self.free_backup
         self.w.restart_pending = lambda: self.pending
@@ -1229,9 +1256,12 @@ def w2(tmp: Path) -> None:
         deadline = time.time() + 15
         while live.pid not in r.real_pids(r.agent) and time.time() < deadline:
             time.sleep(0.2)
+        _c, first = r.run()  # the check before said 'not running': recovery needs 2 alive checks in a row (hysteresis)
         code, text = r.run()
-        check("W2 CONTROL real process: THIS clone's 'learner.py run' alive -> OK, its pid named",
-              text.splitlines()[0] == "OK" and f"pid {live.pid}" in text, text[:300])
+        check("W2 CONTROL real process: THIS clone's 'learner.py run' alive -> 'runs again' on the first check, OK on "
+              "the second, its pid named",
+              first.startswith("NEEDS YOU: the learner runs again") and text.splitlines()[0] == "OK"
+              and f"pid {live.pid}" in text, first[:200] + " || " + text[:300])
         live.kill()
         live.wait(30)
         head = r.head()
@@ -1314,7 +1344,17 @@ def w5(tmp: Path) -> None:
           head.startswith("NEEDS YOU: only 39 GB free on C:"), head)
     lo.free_c = 41.0
     head = lo.head()
-    check("W5 CONTROL 41 GB free -> OK", head == "OK", head)
+    check("W5 HYSTERESIS 41 GB right after the 39 GB alarm -> still NEEDS YOU (it clears only above 40 + 2)",
+          head.startswith("NEEDS YOU: only 41.0 GB free on C:, still within 2 GB") and "clears above 42 GB" in head,
+          head)
+    lo.free_c = 42.5
+    head = lo.head()
+    check("W5 CONTROL 42.5 GB (above alarm + 2) -> OK", head == "OK", head)
+    fresh = WEnv(tmp, "w5fresh")
+    fresh.free_c = 41.0
+    head = fresh.head()
+    check("W5 CONTROL 41 GB with NO alarm raised before -> OK (the band only HOLDS an alarm, never raises one)",
+          head == "OK", head)
     hi = WEnv(tmp, "w5cfg", min_free_gb=50)
     hi.free_c = 60.0
     head = hi.head()
@@ -1346,10 +1386,14 @@ def w6(tmp: Path) -> None:
     e.run()
     check("W6 26 h: no second reminder within 24 h of the first", len(e.toasts) == 2, str(e.toasts))
     e.pids = [4242]
+    e.set_time(t0 + 25.75 * 3600)
+    _c, text = e.run()
+    check("W6 HYSTERESIS the first alive check after 'not running' -> still NEEDS YOU ('runs again'), no toast",
+          len(e.toasts) == 2 and text.startswith("NEEDS YOU: the learner runs again"), text[:200] + str(e.toasts))
     e.set_time(t0 + 26 * 3600)
     e.run()
-    check("W6 CONTROL recovery -> one 'recovered' toast", len(e.toasts) == 3 and "recovered" in e.toasts[2][0],
-          str(e.toasts))
+    check("W6 CONTROL recovery (the 2nd alive check in a row) -> one 'recovered' toast",
+          len(e.toasts) == 3 and "recovered" in e.toasts[2][0], str(e.toasts))
     e.set_time(t0 + 26.5 * 3600)
     e.run()
     check("W6 CONTROL OK again -> no toast", len(e.toasts) == 3, str(e.toasts))
@@ -1594,12 +1638,273 @@ def w13(tmp: Path) -> None:
           mutant != text and "-3.12" in mrun and "powershell.exe" not in mrun, mrun or m.stdout[-300:])
 
 
+def learner_defaults_live() -> dict:
+    """The three DEFAULTS the watchdog mirrors, read from the main checkout's ai-agent/learner.py by IMPORTING it in a
+    child python with -B (no __pycache__ is written there; nothing else of the learner runs at import)."""
+    code = ("import json, sys; sys.path.insert(0, sys.argv[1]); import learner; "
+            "print(json.dumps({k: learner.DEFAULTS[k] for k in sys.argv[2:]}))")
+    r = subprocess.run([sys.executable, "-B", "-c", code, str(ROOT / "ai-agent"), "cycle_minutes", "min_free_gb",
+                        "early_prune_margin_gb"], capture_output=True, text=True, timeout=120, cwd=str(ROOT))
+    if r.returncode != 0:
+        raise RuntimeError(f"importing learner.py failed: {r.stderr.strip()[-300:]}")
+    return json.loads(r.stdout.strip().splitlines()[-1])
+
+
+def w14(tmp: Path) -> None:
+    """The learner's documented defaults, used when config.json LACKS a key (review 2026-10-21 note: a missing key used
+    to SKIP the check while the learner still enforced its default)."""
+    e = WEnv(tmp, "w14")
+    live = learner_defaults_live()
+    mine = {k: e.w.LEARNER_DEFAULTS[k] for k in live}
+    check("W14 the watchdog's LEARNER_DEFAULTS equal learner.DEFAULTS for cycle_minutes, min_free_gb and "
+          "early_prune_margin_gb (imported from the main checkout's ai-agent/learner.py)",
+          {k: float(v) for k, v in live.items()} == {k: float(v) for k, v in mine.items()}, f"{live} vs {mine}")
+    skewed = dict(mine, cycle_minutes=mine["cycle_minutes"] + 1)
+    check("W14 FAULT the same comparison on a skewed copy (cycle_minutes + 1) is caught (not vacuous)",
+          {k: float(v) for k, v in live.items()} != {k: float(v) for k, v in skewed.items()}, "")
+    n = WEnv(tmp, "w14nokeys")
+    (n.agent / "config.json").write_text(json.dumps({"_help": "no threshold keys at all"}), encoding="utf-8")
+    n.set_time(n.T, log_age_s=14 * 3600)
+    head = n.head()
+    check("W14 FAULT config.json WITHOUT cycle_minutes, log 14 h old -> NEEDS YOU stuck on the default 720 (was: "
+          "SKIPPED)", head.startswith("NEEDS YOU: learner.log silent for 14.0 h") and "the learner's default" in head,
+          head)
+    n.set_time(n.T, log_age_s=11 * 3600)
+    n.free_c = 39.0
+    head = n.head()
+    check("W14 FAULT config.json WITHOUT min_free_gb / margin, 39 GB free -> NEEDS YOU on the default alarm 25 + 15",
+          head.startswith("NEEDS YOU: only 39 GB free on C:") and "under 40 GB" in head, head)
+    c = WEnv(tmp, "w14control")
+    (c.agent / "config.json").write_text(json.dumps({"_help": "no threshold keys at all"}), encoding="utf-8")
+    c.set_time(c.T, log_age_s=11 * 3600)
+    c.free_c = 60.0
+    head = c.head()
+    check("W14 CONTROL the same key-less config, log 11 h old and 60 GB free -> OK", head == "OK", head)
+
+
+def write_state(e: WEnv, current=None, cycles=None) -> None:
+    (e.agent / "data" / "state.json").write_text(json.dumps(
+        {"cycle": 40, "cycles": cycles if cycles is not None else [], "current": current, "failures": 0}),
+        encoding="utf-8")
+
+
+def w15(tmp: Path) -> None:
+    """HYSTERESIS and no spam (review 2026-10-21, should-fix 1, attacks A and B): a value hovering at a threshold, a
+    crash-looping learner, and a NEEDS set that only shrinks must not toast every 30 minutes."""
+    a = WEnv(tmp, "w15hover")
+    t0 = a.T
+    heads = []
+    for k in range(10):
+        a.free_c = 39.6 if k % 2 == 0 else 40.4
+        a.set_time(t0 + k * 1800)
+        heads.append(a.head())
+    check("W15 FAULT-ARM disk hovering 39.6 / 40.4 GB at the 40 GB alarm over 10 runs -> at most 1 toast (was 8 in "
+          "4 h)", len(a.toasts) <= 1, str(a.toasts))
+    check("W15 ... and every one of those runs still says NEEDS YOU disk (the alarm is held, not dropped)",
+          all(h.startswith("NEEDS YOU: only") for h in heads), str([h[:50] for h in heads]))
+    b = WEnv(tmp, "w15backup")
+    b.backup_status = b.root / "never-ran" / "backup_status.json"  # a persistent NEEDS YOU
+    t0 = b.T
+    for k in range(10):
+        b.free_c = 39.6 if k % 2 == 0 else 40.4
+        b.set_time(t0 + k * 1800)
+        b.run()
+    check("W15 FAULT-ARM a persistent NEEDS (no backup) plus the same hover over 10 runs -> exactly 1 toast (was 6, "
+          "including a disk RECOVERY announced as 'NEEDS YOU')", len(b.toasts) == 1, str(b.toasts))
+    b.free_c = 60.0
+    b.set_time(t0 + 10 * 1800)
+    _c, text = b.run()
+    lines = text.splitlines()
+    check("W15 the set SHRINKS (disk recovers, backup still missing) -> no toast, and the file says what resolved and "
+          "what is still open", len(b.toasts) == 1 and lines[0].startswith("NEEDS YOU: no backup has run yet")
+          and lines[2].startswith("resolved since the last check: only")
+          and lines[2].endswith("still NEEDS YOU: backup"), f"{b.toasts} {lines[:3]}")
+    b.free_c = 39.0
+    b.set_time(t0 + 11 * 1800)
+    b.run()
+    check("W15 CONTROL a problem that JOINS again (disk under the alarm once more) -> one toast", len(b.toasts) == 2,
+          str(b.toasts))
+    c = WEnv(tmp, "w15crash")  # run_agent.ps1 restarts a crashed learner after 600 s: seen alive, dead, alive...
+    t0 = c.T
+    for k in range(10):
+        c.pids = [] if k % 2 == 0 else [4242]
+        c.set_time(t0 + k * 1800)
+        c.run()
+    check("W15 FAULT-ARM a crash-looping learner (dead / alive alternating) over 10 runs -> exactly 1 toast (no "
+          "'recovered' on a single alive check)", len(c.toasts) == 1, str(c.toasts))
+    q = WEnv(tmp, "w15quiet")
+    t0 = q.T
+    for k in range(10):
+        q.free_c = 60.0 + (k % 2)
+        q.set_time(t0 + k * 1800)
+        q.run()
+    check("W15 CONTROL a healthy disk wobbling 60 / 61 GB over 10 runs -> no toast", q.toasts == [], str(q.toasts))
+    u = WEnv(tmp, "w15unit")
+    dn = u.w.decide_notify
+    check("W15 unit decide_notify: a new id -> 'needs'; the same set -> None; a shrink -> None; empty after "
+          "needs -> 'recovered'; an old state with only 'code' is understood",
+          dn({}, {"backup": "x"}, 0) == "needs"
+          and dn({"needs": {"backup": "x"}, "last_toast": 0}, {"backup": "x"}, 60) is None
+          and dn({"needs": {"backup": "x", "disk_low": "y"}, "last_toast": 0}, {"backup": "x"}, 60) is None
+          and dn({"needs": {"backup": "x"}, "last_toast": 0}, {"backup": "x", "held": "z"}, 60) == "needs"
+          and dn({"needs": {"backup": "x"}}, {}, 60) == "recovered"
+          and dn({"level": "NEEDS", "code": "NEEDS:backup,disk_low", "last_toast": 0}, {"backup": "x"}, 60) is None,
+          "")
+
+
+def w16(tmp: Path) -> None:
+    """FALSE CALM (review 2026-10-21, should-fix 2, attack D): the learner alive, its log fresh, and no cycle for
+    days."""
+    d = WEnv(tmp, "w16idle")
+    with open(d.agent / "data" / "learner.log", "a", encoding="utf-8") as fh:
+        fh.write("[2026-10-21 08:00:00 AM] waiting 15 min: only 6 lanes available (RAM 17 GB free)\n")
+    d.set_time(d.T)
+    write_state(d, current=None, cycles=[{"tag": "ai0039", "finished": bstamp(d.T - 3 * 86400)}])
+    head = d.head()
+    check("W16 FAULT no cycle for 3 days, learner alive, log fresh -> NEEDS YOU 'has not started a cycle' with the "
+          "last log line (was: OK)", head.startswith("NEEDS YOU: the learner runs but has not started a cycle for 3.0 "
+                                                     "days") and "waiting 15 min: only 6 lanes available" in head, head)
+    check("W16 FAULT: one toast", len(d.toasts) == 1, str(d.toasts))
+    ok = WEnv(tmp, "w16recent")
+    write_state(ok, current=None, cycles=[{"tag": "ai0038", "finished": bstamp(ok.T - 20 * 3600)},
+                                          {"tag": "ai0039", "finished": bstamp(ok.T - 10 * 3600)}])
+    _c, text = ok.run()
+    check("W16 CONTROL the newest cycle finished 10 h ago (under 720 + 120 min) -> OK, and it says when",
+          text.splitlines()[0] == "OK" and "the last (ai0039) finished 10.0 h ago" in text, text[:400])
+    run_ = WEnv(tmp, "w16hung")
+    write_state(run_, current={"tag": "ai0040", "started": bstamp(run_.T - 15 * 3600), "lanes": 12, "minutes": 720.0})
+    head = run_.head()
+    check("W16 FAULT the current cycle started 15 h ago (over 720 + 120 min) while the log is fresh -> NEEDS YOU 'has "
+          "not finished a cycle'",
+          head.startswith("NEEDS YOU: the learner runs but has not finished a cycle for 15.0 h") and "ai0040" in head,
+          head)
+    run_ok = WEnv(tmp, "w16running")
+    write_state(run_ok, current={"tag": "ai0040", "started": bstamp(run_ok.T - 13 * 3600), "lanes": 12,
+                                 "minutes": 720.0})
+    head = run_ok.head()
+    check("W16 CONTROL the current cycle started 13 h ago (under 14 h) -> OK", head == "OK", head)
+    long_ = WEnv(tmp, "w16long")  # attack F: config shortened to 720 while a 1440-minute batch runs
+    write_state(long_, current={"tag": "ai0040", "started": bstamp(long_.T - 20 * 3600), "lanes": 12,
+                                "minutes": 1440.0})
+    long_.set_time(long_.T, log_age_s=14 * 3600)
+    head = long_.head()
+    check("W16 CONTROL a 1440-min batch running 20 h, config now 720, log 14 h old -> OK: neither stuck nor "
+          "no-progress (the RUNNING batch's own length counts; was a false 'stuck')", head == "OK", head)
+    long_.set_time(long_.T + 7 * 3600, log_age_s=14 * 3600)
+    head = long_.head()
+    check("W16 FAULT the same batch at 27 h (over 1440 + 120 min) -> NEEDS YOU 'has not finished'",
+          "has not finished a cycle for 27.0 h" in head and "the running batch's 1440 min" in head, head)
+    ns = WEnv(tmp, "w16nostart")  # the reviewer's attack-F state: a current cycle with no 'started'
+    write_state(ns, current={"tag": "ai0040", "minutes": 1440.0})
+    _c, text = ns.run()
+    check("W16 CONTROL a current cycle with no readable start time -> OK, the progress check says SKIPPED (no crash, "
+          "no false NEEDS YOU)", text.splitlines()[0] == "OK" and "progress check SKIPPED: the current cycle ai0040"
+          in text, text[:400])
+    nk = WEnv(tmp, "w16nokey")
+    (nk.agent / "config.json").write_text(json.dumps({"_help": "no cycle_minutes"}), encoding="utf-8")
+    write_state(nk, current=None, cycles=[{"tag": "ai0039", "finished": bstamp(nk.T - 15 * 3600)}])
+    head = nk.head()
+    check("W16 FAULT config.json without cycle_minutes, last cycle 15 h ago -> NEEDS YOU on the learner's default 720",
+          head.startswith("NEEDS YOU: the learner runs but has not started a cycle for 15.0 h"), head)
+    dead = WEnv(tmp, "w16dead")
+    dead.pids = []
+    write_state(dead, current=None, cycles=[{"tag": "ai0039", "finished": bstamp(dead.T - 3 * 86400)}])
+    head = dead.head()
+    check("W16 CONTROL a DEAD learner with no cycle for 3 days -> only 'not running' (the process check owns it)",
+          head == "NEEDS YOU: learner is not running", head)
+
+
+def w17(tmp: Path) -> None:
+    """A state file that cannot be written (review 2026-10-21 note, attack E): the marker holds the record, so a
+    persistent NEEDS YOU is toasted once, not every 30 minutes."""
+    e = WEnv(tmp, "w17")
+    e.backup_status = e.root / "never-ran" / "backup_status.json"
+    e.ops.mkdir(parents=True, exist_ok=True)
+    (e.ops / "watchdog_state.json").mkdir()  # a directory where the file should be: every write is denied
+    t0 = e.T
+    texts = []
+    for k in range(4):
+        e.set_time(t0 + k * 1800)
+        texts.append(e.run()[1])
+    marker = e.ops / "watchdog_state.failed.json"
+    check("W17 FAULT-ARM an unwritable watchdog_state.json, a persistent NEEDS YOU, 4 runs -> exactly 1 toast (was 4)",
+          len(e.toasts) == 1, str(e.toasts))
+    check("W17 ... the record went to the marker, and the status file says the state could not be saved",
+          marker.exists() and "WARN the watchdog state could not be saved" in texts[-1]
+          and "WARN the watchdog state could not be saved" in e.out.read_text(encoding="utf-8"), texts[-1][:400])
+    (e.ops / "watchdog_state.json").rmdir()
+    e.set_time(t0 + 4 * 1800)
+    _c, text = e.run()
+    check("W17 CONTROL the state file writable again -> saved, the marker removed, no repeat toast, no WARN",
+          (e.ops / "watchdog_state.json").is_file() and not marker.exists() and len(e.toasts) == 1
+          and "WARN" not in text, f"{e.toasts} {text[:300]}")
+
+
+def w18(tmp: Path) -> None:
+    """The autostart grace counts from LOGON (review 2026-10-21 note, attack C): the learner's autostart task is a
+    logon trigger, and logon can come long after boot."""
+    e = WEnv(tmp, "w18")
+    e.pids = []
+    e.boot = e.T - 3 * 3600
+    e.logon = e.T - 5 * 60
+    head = e.head()
+    check("W18 CONTROL booted 3 h ago, LOGGED ON 5 min ago, no learner yet -> NOTE (the grace counts from logon), no "
+          "toast (was a NEEDS YOU toast)", head.startswith("NOTE: you logged on 5 min ago") and e.toasts == [], head)
+    f = WEnv(tmp, "w18late")
+    f.pids = []
+    f.boot = f.T - 3 * 3600
+    f.logon = f.T - 20 * 60
+    head = f.head()
+    check("W18 FAULT logged on 20 min ago, no learner -> NEEDS YOU: learner is not running",
+          head.startswith("NEEDS YOU: learner is not running"), head)
+    s = WEnv(tmp, "w18stale")
+    s.pids = []
+    s.boot = s.T - 5 * 60
+    s.logon = s.T - 3 * 86400  # a session listed as older than the boot is stale: the boot counts
+    head = s.head()
+    check("W18 CONTROL a stale logon (before the boot) and a boot 5 min ago -> NOTE 'the PC booted'",
+          head.startswith("NOTE: the PC booted 5 min ago"), head)
+    real = load_watchdog().logon_time()
+    check("W18 the REAL logon probe (psutil.users() for this user) returns a past time or None, never raises",
+          real is None or (isinstance(real, float) and real <= time.time() + 5), repr(real))
+
+
+def w19(tmp: Path) -> None:
+    """The backup disk's free-space probe is bounded (review 2026-10-21 note): a sleeping USB disk must not hang the
+    task into its 5-minute kill, before any status is written."""
+    e = WEnv(tmp, "w19")
+    release = threading.Event()
+    clone_root = e.root / "clone"
+
+    def slow(p):
+        if e.w.is_under(p, clone_root):
+            return 200.0
+        release.wait(6.0)  # a disk that does not answer
+        return 99.0
+
+    e.w.disk_free_gib = slow
+    e.w.DISK_PROBE_TIMEOUT_S = 0.5
+    t = time.perf_counter()
+    try:
+        _c, text = e.run()
+    finally:
+        took = time.perf_counter() - t
+        release.set()
+    rows = [json.loads(x) for x in (e.ops / "samples.jsonl").read_text(encoding="utf-8").splitlines()]
+    check("W19 FAULT a backup-disk probe that never answers -> the run finishes in about the 0.5 s limit, the line "
+          "says UNKNOWN, the sample holds null", took < 3.0 and "free space UNKNOWN (no answer in 0.5 s" in text
+          and rows[-1]["free_gb_backup"] is None, f"{took:.1f}s {text[:400]}")
+    c = WEnv(tmp, "w19control")
+    _c, text = c.run()
+    check("W19 CONTROL a probe that answers -> 'backup disk ... 180 GB free'", "180 GB free" in text, text[:400])
+
+
 def main() -> int:
     # ignore_cleanup_errors: a LEAKED handle (the B8 fault) must be reported as a FAIL line, not crash the cleanup.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         tmp = Path(td)
         for test in (b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20,
-                     w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13):
+                     w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19):
             try:
                 test(tmp)
             except Exception as ex:  # noqa: BLE001 - a crash is a FAIL with its reason, never a silent pass

@@ -1,9 +1,10 @@
 """One-call check-in for the whole project (backlog A1, spec S1-5; LEAN v1, 2026-10-20).
 
 Prints ONE screen (at most 40 lines): the clock, the 24/7 bot tuner, disk, the nightly learner backup (one BACKUP
-line from tools/ops/backup_learner.py's status file, backlog O4), git, the AI player's frontier and newest evidence,
-and the pieces that are not built yet. READ-ONLY: it opens files and runs `git` read commands, never
-writes, never calls Claude, and never runs `git fetch` unless `--fetch` is given.
+line from tools/ops/backup_learner.py's status file, backlog O4), the session-free watchdog (one WATCHDOG line: the
+first line of its LEARNER-STATUS.txt in the ops folder, 'STALE' when that file is over 70 minutes old, backlog O1),
+git, the AI player's frontier and newest evidence, and the in-flight notes. READ-ONLY: it opens files and runs `git`
+read commands, never writes, never calls Claude, and never runs `git fetch` unless `--fetch` is given.
 
 Every section is fault-isolated: a section that fails prints `unavailable: <reason>` and the others still print, so a
 half-written file of a running learner never breaks a check-in (test T2). Exit code is always 0.
@@ -230,6 +231,37 @@ def backup_line(path: Path, now: dt.datetime) -> str:
         return f"BACKUP: unavailable: {type(error).__name__}: {str(error)[:60]}"
 
 
+WATCHDOG_STALE_MIN = 70  # the watchdog task runs every 30 minutes: two missed runs plus slack
+
+
+def default_watchdog_status() -> Path:
+    """The copy of the watchdog's status file (tools/ops/watchdog.py, backlog O1) that it keeps in the ops folder:
+    ops_config.json's ops_dir, with %LOCALAPPDATA% expanded, + LEARNER-STATUS.txt (the Desktop copy can be moved by
+    OneDrive; this one cannot)."""
+    try:
+        cfg = json.loads((REPO / "tools" / "ops" / "ops_config.json").read_text(encoding="utf-8"))
+        return Path(os.path.expandvars(cfg["ops_dir"])) / "LEARNER-STATUS.txt"
+    except Exception:  # noqa: BLE001 - a check-in never dies on a config file
+        return Path(os.path.expandvars("%LOCALAPPDATA%/pokebot-ops/LEARNER-STATUS.txt"))
+
+
+def watchdog_line(path: Path, now: dt.datetime) -> str:
+    """ONE line for the session-free watchdog: its own first line (OK / NOTE / NEEDS YOU) and when it last checked.
+    A file older than WATCHDOG_STALE_MIN says STALE first: a watchdog task that stopped (disabled, its script moved,
+    killed at its 5-minute limit) leaves exactly that, an old file that still reads OK. No file at all: the task is not
+    registered yet (install_ops_tasks.ps1 -Apply). Never raises."""
+    try:
+        if not path.exists():
+            return f"WATCHDOG: not registered yet (no {path.name} in {path.parent})"
+        age = now.timestamp() - path.stat().st_mtime
+        first = (path.read_bytes().decode("utf-8", errors="replace").splitlines() or ["(empty file)"])[0].strip()
+        if age > WATCHDOG_STALE_MIN * 60:
+            return f"WATCHDOG: STALE: last checked {span(age)} ago (due every 30 min: task stopped?) | it said: {first}"
+        return f"WATCHDOG: {first} | checked {span(age)} ago"
+    except Exception as error:  # noqa: BLE001 - a status file being replaced right now must not break the check-in
+        return f"WATCHDOG: unavailable: {type(error).__name__}: {str(error)[:60]}"
+
+
 def git_lines(repo: Path, clone: Path, fetch: bool) -> list[str]:
     if fetch:
         git(repo, "fetch", "origin", "--quiet")
@@ -260,8 +292,7 @@ def ai_lines(repo: Path) -> list[str]:
 def later_lines(repo: Path) -> list[str]:
     inflight = repo / "PROJECT KNOWLEDGE" / "in-flight"
     notes = sorted(inflight.glob("*.md")) if inflight.is_dir() else []
-    return [f"in-flight notes: {', '.join(p.name for p in notes[-3:]) if notes else 'none'}",
-            "not built yet: usage audit (P3), watchdog/alerts (O1)"]
+    return [f"in-flight notes: {', '.join(p.name for p in notes[-3:]) if notes else 'none'}"]
 
 
 def build(args: argparse.Namespace) -> list[str]:
@@ -271,6 +302,7 @@ def build(args: argparse.Namespace) -> list[str]:
     lines += section("BOT TUNER (24/7 learner, ai-agent/)", learner_lines, args.clone, now)
     lines += section("DISK", disk_lines, args.clone)
     lines.append(backup_line(args.backup_status, now))
+    lines.append(watchdog_line(args.watchdog_status, now))
     lines += section("GIT", git_lines, args.repo, args.clone, args.fetch)
     lines += section("AI PLAYER", ai_lines, args.repo)
     lines += section("NOT YET", later_lines, args.repo)
@@ -284,6 +316,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--fetch", action="store_true", help="run `git fetch` first (off by default)")
     p.add_argument("--backup-status", type=Path, default=default_backup_status(),
                    help="the nightly backup's status file (default: tools/ops/ops_config.json status_file)")
+    p.add_argument("--watchdog-status", type=Path, default=default_watchdog_status(),
+                   help="the watchdog's status file (default: ops_config.json ops_dir / LEARNER-STATUS.txt)")
     p.add_argument("--started", help='when the current work started, e.g. "1:10 PM"')
     p.add_argument("--eta-minutes", type=float)
     p.add_argument("--now", help='pin the clock for tests, e.g. "2026-10-20 3:41 PM"')
