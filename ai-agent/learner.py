@@ -9,7 +9,9 @@ Each CYCLE:
 4. turns the logs into small run records (`scoring.py`), updates what it has learned and rewrites
    `findings/LATEST.md` (`report.py`);
 5. optionally asks Claude for advice (`consult.py`, off by default);
-6. deletes its own old raw logs, keeping the newest `keep_raw_cycles` cycles.
+6. ARCHIVES its own old raw logs (backlog O3, 2026-10-21): the newest `keep_raw_cycles` cycles stay raw; each older
+   cycle's `batch/` is zipped to `runs/<tag>/raw.zip` (+ `raw.manifest.json`), the zip is VERIFIED against the
+   originals, and only then are the originals deleted. Nothing is ever deleted without a verified archive.
 
 Resilience:
 - If the learner dies mid-cycle, the batch keeps running. The next start ADOPTS it: it waits for that batch to end,
@@ -31,6 +33,8 @@ Commands (run from this folder with `py -3.12 learner.py <command>`):
   report     rewrite findings/LATEST.md from the data
   status     where the learner is now
   publish    copy the findings and data into published/, small enough to commit for a cloud session
+  archive    archive every cycle outside keep_raw_cycles now (refuses while the 24/7 learner holds its lock)
+  archive-check  re-verify every runs/<tag>/raw.zip against its manifest (read-only; exit 1 on any BAD)
 """
 from __future__ import annotations
 
@@ -45,6 +49,8 @@ import subprocess
 import sys
 import time
 import traceback
+import zipfile
+import zlib
 from pathlib import Path
 
 import psutil
@@ -64,10 +70,20 @@ DATA, FINDINGS, INBOX, RUNS, PUBLISHED = AI / "data", AI / "findings", AI / "inb
 RUNS_FILE, CYCLES_FILE, STATE_FILE = DATA / "runs.jsonl", DATA / "cycles.jsonl", DATA / "state.json"
 LOCK, LOG, STOP, ATTENTION = DATA / "agent.lock", DATA / "learner.log", AI / "STOP", FINDINGS / "ATTENTION.md"
 RESTART_CODE = 3
+#: The raw-log archive of one cycle (backlog O3): `runs/<tag>/raw.zip` with its `raw.manifest.json`. A zip is written as
+#: `.part`, verified, then renamed; one that fails a later re-verification is kept aside as `.bad`.
+ARCHIVE, ARCHIVE_PART, ARCHIVE_BAD, MANIFEST = "raw.zip", "raw.zip.part", "raw.zip.bad", "raw.manifest.json"
+#: Below this much free disk no archive can be written safely: archive nothing, delete nothing, start no batch.
+ARCHIVE_FLOOR_GB = 2.0
+#: The rename of a finished `.part` is retried for a transient lock (an antivirus scan holds a new file briefly).
+#: Module constants, so a TEST can shorten the wait; nothing in the environment changes them.
+REPLACE_TRIES, REPLACE_WAIT_S = 5, 2.0
+_os_replace = os.replace
 
 DEFAULTS = {
     "lanes": "auto", "max_lanes": 24, "reserve_threads": 4, "reserve_ram_gb": 8, "ram_per_lane_gb": 1.5,
     "cycle_minutes": 720, "keep_raw_cycles": 3, "min_free_gb": 25, "design": "screen", "auto_update": True,
+    "max_archives_per_prune": 3, "keep_archive_cycles": 0,
     "objective": "human_balanced",
     "wait_if_other_bots_running": True, "idle_wait_minutes": 15, "max_consecutive_failures": 3,
     "max_proposals_per_cycle": 1, "two_flip_prob": 0.3,
@@ -415,21 +431,226 @@ def adopt_unfinished(cfg: dict) -> bool | None:
     return finish_cycle(cfg, state, plan, "adopted")
 
 
+def _ours(c: dict, p: Path) -> bool:
+    """A path this learner created for cycle `c`, by exact name: its `runs/<tag>/batch` or a lane profile
+    `endless-<tag>-*`. Nothing else is ever archived or deleted (test R2)."""
+    return (p.parent == RUNS / c["tag"] and p.name == "batch") or \
+           (p.parent == PROFILES and p.name.startswith(f"endless-{c['tag']}-"))
+
+
+class ArchiveError(RuntimeError):
+    """An archive could not be written or verified. The originals are untouched."""
+
+
+def _member(name: str, size: int, crc: int) -> dict:
+    return {"name": name, "size": size, "crc32": crc}
+
+
+def _scan_originals(cdir: Path, files: list[Path]) -> list[dict]:
+    """(name, size, CRC32) of each original file, read from disk; names relative to `runs/<tag>/`."""
+    out = []
+    for f in files:
+        crc, size = 0, 0
+        with open(f, "rb") as fh:
+            while chunk := fh.read(1 << 20):
+                crc, size = zlib.crc32(chunk, crc), size + len(chunk)
+        out.append(_member(f.relative_to(cdir).as_posix(), size, crc))
+    return out
+
+
+def _copy_member(zf: zipfile.ZipFile, src: Path, name: str) -> dict:
+    """Stream one file into the zip, computing its CRC32 from the bytes read (never trusting the zip's own)."""
+    info = zipfile.ZipInfo.from_file(src, name, strict_timestamps=False)
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info._compresslevel = 6  # read by zipfile's compressor for a ZipInfo opened for writing (3.12 and 3.13)
+    crc, size = 0, 0
+    with open(src, "rb") as fin, zf.open(info, "w", force_zip64=True) as fout:
+        while chunk := fin.read(1 << 20):
+            crc, size = zlib.crc32(chunk, crc), size + len(chunk)
+            fout.write(chunk)
+    return _member(name, size, crc)
+
+
+def verify_archive(zpath: Path, members: list[dict]) -> str | None:
+    """None if `zpath` holds EXACTLY `members` (same names, sizes and CRC32s) and every member decompresses to its
+    stored CRC (`testzip`); otherwise the reason. Never raises."""
+    try:
+        with zipfile.ZipFile(zpath) as zf:
+            bad = zf.testzip()
+            if bad is not None:
+                return f"member {bad} fails its CRC"
+            infos = zf.infolist()
+            got = {i.filename: i for i in infos}
+            want = {m["name"]: m for m in members}
+            if len(infos) != len(got) or len(got) != len(want) or set(got) != set(want):
+                return f"members differ: {len(infos)} in the zip, {len(want)} expected"
+            for name, m in want.items():
+                if got[name].file_size != m["size"]:
+                    return f"{name}: size {got[name].file_size} != {m['size']}"
+                if got[name].CRC != m["crc32"]:
+                    return f"{name}: CRC {got[name].CRC:08x} != the source's {m['crc32']:08x}"
+    except Exception as exc:  # noqa: BLE001 - an unreadable zip is a failed verification, never a crash
+        return f"unreadable: {exc!r}"[:200]
+    return None
+
+
+def _replace_with_retry(src: Path, dst: Path) -> None:
+    """os.replace, retried REPLACE_TRIES times REPLACE_WAIT_S apart on PermissionError (a transient antivirus lock)."""
+    for attempt in range(1, REPLACE_TRIES + 1):
+        try:
+            _os_replace(src, dst)
+            return
+        except PermissionError:
+            if attempt == REPLACE_TRIES:
+                raise
+            log(f"rename {src.name} -> {dst.name} is locked (attempt {attempt}/{REPLACE_TRIES}); retrying")
+            time.sleep(REPLACE_WAIT_S)
+
+
+def _remove_part(part: Path) -> None:
+    try:
+        part.unlink(missing_ok=True)
+    except OSError as exc:
+        log(f"could not remove {part} ({exc!r}); the next prune removes it")
+
+
+def _read_manifest(path: Path) -> dict | None:
+    try:
+        man = json.loads(path.read_text(encoding="utf-8"))
+        return man if isinstance(man.get("members"), list) else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def _write_manifest(cdir: Path, tag: str, members: list[dict]) -> None:
+    man = {"tag": tag, "written": now(), "n_files": len(members), "bytes_raw": sum(m["size"] for m in members),
+           "bytes_zip": (cdir / ARCHIVE).stat().st_size, "members": members}
+    tmp = cdir / (MANIFEST + ".tmp")
+    tmp.write_text(json.dumps(man, indent=1), encoding="utf-8")
+    tmp.replace(cdir / MANIFEST)
+
+
+def _delete_ours(c: dict) -> None:
+    for p in map(Path, c.get("created", [])):
+        if _ours(c, p) and p.exists():
+            shutil.rmtree(p, ignore_errors=True)
+
+
+def archive_cycle(c: dict) -> str:
+    """Archive one cycle's raw logs, then delete its originals (`batch/` and its lane profiles, by `_ours`).
+
+    Order, so a crash or kill at ANY point loses nothing: write `raw.zip.part` -> verify it against the CRC32s read
+    while streaming -> rename to `raw.zip` -> write `raw.manifest.json` -> delete the originals -> set the flags.
+    Recovery: a `raw.zip` beside its originals is re-verified against them (the manifest's member list when there is
+    one: deletion may have stopped part-way) and the originals deleted only if it passes; a failing one is renamed
+    `raw.zip.bad`, the originals are KEPT and the next prune archives them again. Returns what happened; raises
+    (with the originals untouched and no `.part` left) when the archive cannot be written or verified."""
+    tag = c["tag"]
+    cdir = RUNS / tag
+    batch, zpath, part = cdir / "batch", cdir / ARCHIVE, cdir / ARCHIVE_PART
+    ours_batch = any(_ours(c, p) and p.name == "batch" for p in map(Path, c.get("created", [])))
+    files = sorted(f for f in batch.rglob("*") if f.is_file()) if ours_batch and batch.is_dir() else []
+    if not files:  # nothing to archive (an empty or missing batch/): today's delete, as before O3 (tests R1/R2)
+        _delete_ours(c)
+        if zpath.exists():
+            c["archived"] = True
+        c["pruned"] = True
+        return "no raw logs to archive; deleted its empty leftovers"
+    if zpath.exists():
+        sources = _scan_originals(cdir, files)
+        man = _read_manifest(cdir / MANIFEST)
+        if man:
+            reason = verify_archive(zpath, man["members"])
+            listed = {m["name"]: m for m in man["members"]}
+            if not reason and any(listed.get(s["name"]) != s for s in sources):
+                reason = "an original differs from (or is missing in) the manifest"
+        else:
+            reason = verify_archive(zpath, sources)
+        if reason:
+            _replace_with_retry(zpath, cdir / ARCHIVE_BAD)
+            log(f"{tag}: raw.zip FAILED re-verification ({reason}); quarantined as {ARCHIVE_BAD}, the raw logs are "
+                f"KEPT and archived again at the next prune")
+            return "quarantined"
+        if not man:
+            _write_manifest(cdir, tag, sources)
+        how = "re-verified an existing raw.zip against the originals"
+    else:
+        try:
+            with zipfile.ZipFile(part, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True, compresslevel=6,
+                                 strict_timestamps=False) as zf:
+                members = [_copy_member(zf, f, f.relative_to(cdir).as_posix()) for f in files]
+            reason = verify_archive(part, members)
+            if reason:
+                raise ArchiveError(f"{tag}: the new archive failed verification: {reason}")
+            _replace_with_retry(part, zpath)
+        except BaseException:
+            _remove_part(part)
+            raise
+        _write_manifest(cdir, tag, members)
+        how = "archived"
+    _delete_ours(c)
+    if batch.exists():
+        raise ArchiveError(f"{tag}: raw.zip is verified but batch/ could not be fully deleted; retried next prune")
+    c["archived"] = c["pruned"] = True
+    man = _read_manifest(cdir / MANIFEST) or {}
+    raw, packed = man.get("bytes_raw", 0), man.get("bytes_zip", 0)
+    return f"{how}: {man.get('n_files')} files, {raw / 2**20:.0f} MB -> {packed / 2**20:.1f} MB; raw logs deleted"
+
+
 def prune(cfg: dict, state: dict) -> None:
-    """Delete raw logs and lane profiles of all but the newest `keep_raw_cycles` cycles. Only paths this learner
-    created and recorded, and only names it would have created."""
-    keep = int(cfg["keep_raw_cycles"])
+    """Archive, then delete, the raw logs and lane profiles of all but the newest `keep_raw_cycles` cycles (at most
+    `max_archives_per_prune` archives a call, which bounds the cycle-boundary delay). Only paths this learner created
+    and recorded, and only names it would have created. NEVER raises into the loop: a failure is logged and retried at
+    the next boundary, and its originals stay. Under ARCHIVE_FLOOR_GB free it does nothing at all."""
+    for c in state["cycles"]:  # a `.part` is never live outside archive_cycle: one left over is from a killed run
+        part = RUNS / c["tag"] / ARCHIVE_PART
+        if part.exists():
+            _remove_part(part)
+            log(f"{c['tag']}: removed a leftover {ARCHIVE_PART} (an archive interrupted earlier; its raw logs are "
+                f"intact)")
+    free = free_gb()
+    if free < ARCHIVE_FLOOR_GB:
+        log(f"prune: only {free:.1f} GB free, below the {ARCHIVE_FLOOR_GB} GB an archive needs: archiving and "
+            f"deleting NOTHING")
+        return
+    keep, cap = int(cfg["keep_raw_cycles"]), int(cfg.get("max_archives_per_prune", 3))
+    attempts = 0
     for c in state["cycles"][:-keep] if keep > 0 else state["cycles"]:
         if c.get("pruned"):
             continue
-        for p in map(Path, c.get("created", [])):
-            ours = (p.parent == RUNS / c["tag"] and p.name == "batch") or \
-                   (p.parent == PROFILES and p.name.startswith(f"endless-{c['tag']}-"))
-            if ours and p.exists():
-                shutil.rmtree(p, ignore_errors=True)
-        c["pruned"] = True
-        log(f"pruned the raw logs of {c['tag']} (its run records are kept)")
+        if attempts >= cap:
+            log(f"prune: {cap} archive(s) this boundary (max_archives_per_prune); the rest wait for the next one")
+            break
+        try:
+            outcome = archive_cycle(c)
+            if not outcome.startswith("no raw logs"):
+                attempts += 1
+            log(f"{c['tag']}: {outcome} (its run records are kept)")
+        except Exception:  # noqa: BLE001 - never into the loop; the raw logs stay and the next boundary retries
+            attempts += 1
+            log(f"{c['tag']}: archiving FAILED, its raw logs are KEPT and it is retried at the next boundary:\n"
+                f"{traceback.format_exc()}")
+        save_state(state)
     save_state(state)
+
+
+def disk_guard(cfg: dict, state: dict) -> bool:
+    """Before a batch: True = enough free disk to start it. Under `min_free_gb` it ARCHIVES every cycle but the
+    newest (never a delete without a verified archive); if still short it writes ATTENTION.md and the learner stops.
+    Under ARCHIVE_FLOOR_GB prune archives and deletes nothing, so the learner stops with the raw logs intact."""
+    if free_gb() >= float(cfg["min_free_gb"]):
+        return True
+    prune({**cfg, "keep_raw_cycles": 1, "max_archives_per_prune": 10 ** 6}, state)
+    free = free_gb()
+    if free >= float(cfg["min_free_gb"]):
+        return True
+    if free < ARCHIVE_FLOOR_GB:
+        attention(f"Only {free:.1f} GB free on this disk: below the {ARCHIVE_FLOOR_GB} GB an archive needs, so the "
+                  f"learner archived and deleted NOTHING and did not start the next batch. Free some space.")
+    else:
+        attention(f"Only {free:.0f} GB free on this disk after archiving old raw logs; config min_free_gb is "
+                  f"{cfg['min_free_gb']}.")
+    return False
 
 
 def sleep_unless_stopped(minutes: float) -> bool:
@@ -483,11 +704,8 @@ def loop(single: bool, dev: bool = False) -> int:
                 refused_sig = sig
                 log(f"code changed ({sig}) but test_agent.py FAILS: keeping the running version {started_sig}")
             cfg, state = load_config(), load_state()
-            if free_gb() < float(cfg["min_free_gb"]):
-                prune({**cfg, "keep_raw_cycles": 1}, state)
-                if free_gb() < float(cfg["min_free_gb"]):
-                    attention(f"Only {free_gb():.0f} GB free on this disk; config min_free_gb is {cfg['min_free_gb']}.")
-                    return 0
+            if not disk_guard(cfg, state):
+                return 0
             batches, singles = other_bots_running()
             if not cfg["wait_if_other_bots_running"]:
                 batches = []
@@ -563,7 +781,8 @@ def cmd_reparse() -> int:
         for r in recs:
             r["genome_id"] = brain.genome_id(r["genome"])
         fresh += recs
-        covered.add(json.loads((Path(path) / "ARMS.json").read_text(encoding="utf-8")).get("stamp"))
+        if recs:  # a batch whose logs are gone yields nothing: its OLD records must then be kept, not dropped (R9)
+            covered.add(json.loads((Path(path) / "ARMS.json").read_text(encoding="utf-8")).get("stamp"))
     old = load_jsonl(RUNS_FILE)
     kept = [r for r in old if r.get("batch") not in covered]
     write_jsonl(RUNS_FILE, kept + fresh)
@@ -598,10 +817,49 @@ def cmd_status() -> int:
     print(f"cycles started: {state['cycle']}; failures in a row: {state.get('failures', 0)}; "
           f"design row next: {state.get('design_next', 0)}")
     print(f"runs recorded: {len(load_jsonl(RUNS_FILE))}; free disk: {free_gb():.0f} GB; "
-          f"raw cycles kept: {cfg['keep_raw_cycles']}")
+          f"raw cycles kept: {cfg['keep_raw_cycles']}; archived cycles: {len(list(RUNS.glob('*/' + ARCHIVE)))}")
     print(f"STOP file: {STOP.exists()}; ATTENTION: {ATTENTION.exists()}; consult: {cfg['consult']['enabled']}")
     print(f"findings: {FINDINGS / 'LATEST.md'}")
     return 0
+
+
+def cmd_archive() -> int:
+    """Archive every cycle outside keep_raw_cycles now. It takes the learner's lock, so it REFUSES while the 24/7
+    learner runs (its own prune would race this one); `acquire_lock` replaces only a STALE lock."""
+    why = acquire_lock()
+    if why:
+        print(f"archive refused: {why}. The running learner archives at each cycle boundary by itself.")
+        return 2
+    try:
+        cfg, state = load_config(), load_state()
+        prune({**cfg, "max_archives_per_prune": 10 ** 6}, state)
+        print(f"archived; see {LOG}")
+        return 0
+    finally:
+        release_lock()
+
+
+def cmd_archive_check() -> int:
+    """READ-ONLY re-verification of every `runs/<tag>/raw.zip` against its manifest. One line per zip, exit 1 on any
+    BAD. Its result (with a timestamp) also goes to `data/archive_check.json`, which `tools/status.py` shows."""
+    lines, bad = [], 0
+    for zpath in sorted(RUNS.glob(f"*/{ARCHIVE}")):
+        tag = zpath.parent.name
+        man = _read_manifest(zpath.parent / MANIFEST)
+        reason = verify_archive(zpath, man["members"]) if man else f"no readable {MANIFEST}"
+        if reason:
+            bad += 1
+            lines.append(f"BAD {tag} {reason}")
+        else:
+            lines.append(f"OK {tag} {len(man['members'])} {zpath.stat().st_size}")
+    print("\n".join(lines) if lines else "no archives yet")
+    DATA.mkdir(parents=True, exist_ok=True)
+    out = DATA / "archive_check.json"
+    tmp = out.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"checked": now(), "archives": len(lines), "bad": bad, "lines": lines}, indent=1),
+                   encoding="utf-8")
+    tmp.replace(out)
+    return 1 if bad else 0
 
 
 def cmd_publish() -> int:
@@ -616,7 +874,8 @@ def cmd_publish() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["run", "once", "plan", "ingest", "reparse", "report", "status", "publish"])
+    ap.add_argument("command", choices=["run", "once", "plan", "ingest", "reparse", "report", "status", "publish",
+                                        "archive", "archive-check"])
     ap.add_argument("batch_dir", nargs="?")
     ap.add_argument("--lanes", default=None, help="override config.json's lanes for this process (e.g. a smoke test)")
     ap.add_argument("--minutes", type=float, default=None, help="override config.json's cycle_minutes")
@@ -636,7 +895,8 @@ def main() -> int:
         report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), key=score_key(load_config()), status="report")
         print(FINDINGS / "LATEST.md")
         return 0
-    return {"plan": cmd_plan, "status": cmd_status, "publish": cmd_publish, "reparse": cmd_reparse}[a.command]()
+    return {"plan": cmd_plan, "status": cmd_status, "publish": cmd_publish, "reparse": cmd_reparse,
+            "archive": cmd_archive, "archive-check": cmd_archive_check}[a.command]()
 
 
 if __name__ == "__main__":

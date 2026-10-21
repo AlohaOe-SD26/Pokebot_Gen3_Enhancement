@@ -5,6 +5,8 @@ T2 FAULT: a zero-byte state.json and a truncated cycles.jsonl -> those fields sa
    still print, no traceback, exit 0.
 T3 a pinned --now and --started give the exact elapsed and ETA strings.
 T4 READ-ONLY: every file in the fake tree is byte-identical, with the same mtime, after a run.
+T5 the raw-log archive line (backlog O3): the count of runs/<tag>/raw.zip and the last archive-check result; a
+   half-written data/archive_check.json makes only that line 'unavailable'.
 """
 from __future__ import annotations
 
@@ -94,6 +96,24 @@ def main() -> int:
         code, out = run(*base, "--started", "1:10 PM", "--eta-minutes", "240")
         check("T3 elapsed from a pinned clock", "elapsed 2 h 31 m" in out, out.splitlines()[2] if out else "")
         check("T3 ETA from a pinned clock", "ETA 5:10 PM" in out, out.splitlines()[2] if out else "")
+
+        check("T5 CONTROL: no archives yet -> '0 raw.zip | archive-check never run'",
+              "raw-log archives: 0 raw.zip | archive-check never run" in out, tuner_block(out))
+        (clone / "runs" / "ai0090").mkdir(parents=True)
+        (clone / "runs" / "ai0090" / "raw.zip").write_bytes(b"PK")
+        (clone / "data" / "archive_check.json").write_text(json.dumps(
+            {"checked": "2026-10-21 04:00:00 AM", "archives": 1, "bad": 0, "lines": ["OK ai0090 4 2"]}),
+            encoding="utf-8")
+        code, out = run(*base)
+        check("T5 the archive count and the last archive-check result are shown",
+              "raw-log archives: 1 raw.zip | last archive-check 2026-10-21 04:00:00 AM: 1 checked, 0 BAD" in out,
+              tuner_block(out))
+        check("T5 'not built yet' no longer lists O3", "NOT YET" in out and "O3" not in out.split("NOT YET", 1)[1],
+              out[-200:])
+        (clone / "data" / "archive_check.json").write_text('{"checked": "2026-10', encoding="utf-8")
+        code, out = run(*base)
+        check("T5 FAULT: a half-written archive_check.json -> that line says 'unavailable', exit 0, the rest prints",
+              code == 0 and "raw-log archives: unavailable" in out and "AI PLAYER:" in out, tuner_block(out))
 
     bad = [r for r in RESULTS if not r[1]]
     for name, ok, detail in RESULTS:

@@ -130,7 +130,25 @@ def learner_lines(clone: Path, now: dt.datetime) -> list[str]:
         lines = [l for l in log.read_text(encoding="utf-8", errors="replace").splitlines()[-400:] if "consult:" in l]
         consult = lines[-1].split("] ", 1)[-1][:70] if lines else "no consult in the log tail"
     out.append(f"consult inbox {len(files)} waiting{oldest} | last: {consult}")
+    out.append(archive_line(clone))
     return out
+
+
+def archive_line(clone: Path) -> str:
+    """The raw-log archives (backlog O3): how many runs/<tag>/raw.zip exist, and the last `learner.py archive-check`."""
+    try:
+        zips = list((clone / "runs").glob("*/raw.zip")) if (clone / "runs").is_dir() else []
+        line = f"raw-log archives: {len(zips)} raw.zip"
+        check = clone / "data" / "archive_check.json"
+        if check.exists():
+            rec = json.loads(check.read_text(encoding="utf-8"))
+            line += (f" | last archive-check {rec.get('checked')}: {rec.get('archives')} checked, "
+                     f"{rec.get('bad')} BAD")
+        else:
+            line += " | archive-check never run"
+        return line
+    except Exception as error:  # noqa: BLE001
+        return f"raw-log archives: unavailable: {type(error).__name__}: {str(error)[:60]}"
 
 
 def disk_lines(clone: Path) -> list[str]:
@@ -175,7 +193,7 @@ def later_lines(repo: Path) -> list[str]:
     inflight = repo / "PROJECT KNOWLEDGE" / "in-flight"
     notes = sorted(inflight.glob("*.md")) if inflight.is_dir() else []
     return [f"in-flight notes: {', '.join(p.name for p in notes[-3:]) if notes else 'none'}",
-            "not built yet: usage audit (P3), watchdog/alerts (O1), log archive (O3, due about 2026-10-24)"]
+            "not built yet: usage audit (P3), watchdog/alerts (O1)"]
 
 
 def build(args: argparse.Namespace) -> list[str]:

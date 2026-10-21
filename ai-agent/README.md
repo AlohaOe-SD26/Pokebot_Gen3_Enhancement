@@ -56,6 +56,8 @@ Run these in `C:\Remote Projects\pokebot-learner\ai-agent`, the deployment clone
 | see where it is | `py -3.12 learner.py status` |
 | see what it learned | open `findings\LATEST.md` (rewritten after every cycle) |
 | preview the next cycle | `py -3.12 learner.py plan` (runs nothing) |
+| check the raw-log archives | `py -3.12 learner.py archive-check` (read-only, any time: one `OK`/`BAD` line per `raw.zip`, exit 1 on any BAD; the result goes to `data\archive_check.json` for `tools/status.py`) |
+| archive old raw logs now | `py -3.12 learner.py archive` (only while the learner is STOPPED: it refuses while the 24/7 learner holds its lock; the running learner archives at each boundary by itself) |
 | check the code still works | `py -3.12 test_agent.py` (offline, about 10 seconds, must say ALL PASS) |
 
 If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, delete that file, start it again.
@@ -85,16 +87,27 @@ end, then scores it.
    - Per boss: losses, whether it was beaten, and the team just before the first loss and before the win.
    - The order and timing of each first win; every derail; money after the last battle.
    - A run the time limit cut off is kept but not scored.
-   - `learner.py reparse` re-reads every batch whose raw logs still exist after a parser upgrade.
+   - `learner.py reparse` re-reads every batch whose raw logs still exist after a parser upgrade (not yet the
+     archived ones; a batch whose logs are missing keeps its old records, test R9).
 5. **Learn and report** (`report.py`): `findings/LATEST.md` holds:
    - the strategy ranking;
    - what each knob seems worth (a regression);
    - where runs end, with hints from `05-KNOWN-ISSUES.md`;
    - questions for Claude.
 6. **Ask Claude** (`consult.py`; ON since 2026-10-03, at most 2 calls a day; see below).
-7. **Clean up.** It deletes its own raw logs (about 4 GB a cycle) except the newest `keep_raw_cycles`. That is
-   12 until the next interactive session, so every log survives for re-analysis. The disk guard still applies, and
-   the run records are kept forever.
+7. **Archive** (backlog O3, built 2026-10-21). The newest `keep_raw_cycles` cycles (20) keep their raw logs as
+   files. Each older cycle's `runs/<tag>/batch/` (measured 1.3-1.7 GB) is zipped to `runs/<tag>/raw.zip`, with
+   `raw.manifest.json` listing every file's name, size and CRC32.
+   - Measured on a copy of ai0038: 73 files, 1,303 MB -> 68.6 MB (19:1) in 16 s.
+   - The zip is VERIFIED (every member's CRC equals the CRC read from the original) before anything is deleted.
+     Then `batch/` and the cycle's lane profiles are deleted. **Nothing is ever deleted without a verified archive.**
+   - At most `max_archives_per_prune` (3) cycles a boundary; a failure is logged, the raw logs stay, and the next
+     boundary retries. A killed archive leaves only a `raw.zip.part`, removed next time.
+   - A `raw.zip` that later fails re-verification is renamed `raw.zip.bad`, and its originals, if still present,
+     are archived again.
+   - Archives are kept forever (`keep_archive_cycles: 0`; any other value is reserved and does nothing yet). They
+     are the AI's experience input (backlog A6): `zipfile.ZipFile(path).open("batch/L01/debug-logs/<x>.log")`.
+   - The run records in `data/runs.jsonl` are kept forever, as before.
 
 ## Talking to Claude
 
@@ -131,7 +144,10 @@ end, then scores it.
     game (`06`, 2026-10-03).
 - It pauses itself, instead of retrying forever:
   - after 3 cycles in a row with no scored runs;
-  - when the disk falls below 25 GB free.
+  - when the disk falls below 25 GB free. It first archives every cycle but the newest (it never deletes
+    without a verified archive) and stops only if that is not enough.
+  - Under 2 GB free no archive can be written: it archives nothing, deletes nothing, starts no batch and writes
+    `findings/ATTENTION.md` (test R10).
 - **It plays the code its clone holds.** Commits and pulls in the development checkout cannot touch a running
   cycle. New bot code reaches the learner at the next cycle boundary, through `auto_update`.
 
@@ -157,12 +173,12 @@ That is an interactive-session job.
 
 | file | job |
 |---|---|
-| `learner.py` | the loop and its commands (`run`, `once`, `plan`, `ingest`, `reparse`, `report`, `status`, `publish`) |
+| `learner.py` | the loop and its commands (`run`, `once`, `plan`, `ingest`, `reparse`, `report`, `status`, `publish`, `archive`, `archive-check`) |
 | `knowledge.py` | what it knows up front: knobs, bosses, named failure shapes, with sources |
 | `scoring.py` | logs -> run records (the run-identity rules learned from KI-119) |
 | `brain.py` | strategy choice and knob-effect estimates |
 | `report.py` | `findings/LATEST.md` |
 | `consult.py` | the optional Claude call |
-| `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune safety) |
+| `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune and archive safety) |
 | `config.json` | the settings, re-read every cycle |
 | `run_agent.ps1` | the 24/7 wrapper (restarts after a crash or into updated code; stops on `STOP` or `ATTENTION.md`) |

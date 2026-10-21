@@ -5,11 +5,15 @@ input is decoration.
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import random
 import shutil
+import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 AI = Path(__file__).resolve().parent
@@ -208,10 +212,46 @@ def test_preflight(tmp: Path) -> None:
     check("P4 every knob exists in the sandbox source", bool(src) and not missing, missing)
 
 
+#: Every path the learner WRITES, re-pointed into a test's temp dir. This suite runs INSIDE the live learner's clone
+#: as its restart gate, so a test that reached the real `runs/` or `data/` would archive or delete live raw logs.
+LEARNER_PATHS = {"RUNS": "runs", "PROFILES": "profiles", "DATA": "data", "FINDINGS": "findings", "INBOX": "inbox",
+                 "PUBLISHED": "published", "RUNS_FILE": "data/runs.jsonl", "CYCLES_FILE": "data/cycles.jsonl",
+                 "STATE_FILE": "data/state.json", "LOCK": "data/agent.lock", "LOG": "data/learner.log",
+                 "STOP": "STOP", "ATTENTION": "findings/ATTENTION.md", "DEPLOYMENT": "DEPLOYMENT"}
+#: The only learner Path globals allowed to stay real: the code folders it READS (code, config.json, the bot).
+CODE_ROOTS = {"AI", "REPO", "STORY_DEV"}
+
+
+def assert_isolated(root: Path) -> None:
+    """Raise unless EVERY Path global of the learner module (so also one added later) lies under `root`, and `root`
+    lies under the system temp dir. Called after patching and before any test acts."""
+    root = Path(root).resolve()
+    if not root.is_relative_to(Path(tempfile.gettempdir()).resolve()):
+        raise AssertionError(f"test root {root} is not under the temp dir")
+    for name, value in vars(learner).items():
+        if isinstance(value, Path) and name not in CODE_ROOTS and not value.resolve().is_relative_to(root):
+            raise AssertionError(f"learner.{name} = {value} is outside the test dir {root}")
+
+
+def patch_learner_paths(root: Path) -> dict:
+    """Point every learner write path into `root`, assert it, and return the old values for `restore_paths`."""
+    root = Path(root).resolve()
+    saved = {name: getattr(learner, name) for name in LEARNER_PATHS}
+    for name, rel in LEARNER_PATHS.items():
+        setattr(learner, name, root / rel)
+    assert_isolated(root)
+    return saved
+
+
+def restore_paths(saved: dict) -> None:
+    for name, value in saved.items():
+        setattr(learner, name, value)
+
+
 def test_prune_and_inbox(tmp: Path) -> None:
     runs, profiles, inbox = tmp / "runs", tmp / "profiles", tmp / "inbox"
-    learner.RUNS, learner.PROFILES, learner.INBOX = runs, profiles, inbox
-    learner.DATA, learner.STATE_FILE, learner.LOG = tmp / "data", tmp / "data" / "s.json", tmp / "data" / "l.log"
+    patch_learner_paths(tmp)
+    learner.free_gb = lambda: 500.0  # prune reads free disk now (O3); a fixed value keeps R1/R2 deterministic
     ours = [runs / "ai0001" / "batch", profiles / "endless-ai0001-H1-torchic"]
     foreign = [profiles / "endless-s14-H1-torchic", tmp / "elsewhere"]
     for d in ours + foreign:
@@ -267,10 +307,7 @@ def test_prune_and_inbox(tmp: Path) -> None:
 
 def test_adopt_and_reparse(tmp: Path) -> None:
     """A learner that dies mid-cycle must not lose the cycle: the next one waits for the batch, then scores it."""
-    learner.RUNS, learner.PROFILES, learner.INBOX = tmp / "runs", tmp / "profiles", tmp / "inbox"
-    learner.DATA, learner.FINDINGS = tmp / "data", tmp / "findings"
-    learner.STATE_FILE, learner.LOG = tmp / "data" / "state.json", tmp / "data" / "learner.log"
-    learner.RUNS_FILE, learner.CYCLES_FILE = tmp / "data" / "runs.jsonl", tmp / "data" / "cycles.jsonl"
+    patch_learner_paths(tmp)
     cdir = learner.RUNS / "ai0007"
     make_batch(cdir)  # creates cdir/batch
     plan = {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": []}
@@ -317,11 +354,462 @@ def test_adopt_and_reparse(tmp: Path) -> None:
           len(after) == 5 and sum(r["batch"] == "OLD-PRUNED" for r in after) == 1, len(after))
 
 
+# ------------------------------------------------------------------------------------- O3: archive, never just delete
+BIG_LOG = b"f123456 [hb] mode=Story state=7 controllable=True map=ROUTE 104(0,19) pos=(5, 6) party=['Mudkip:L9']\n"
+
+
+def make_raw_cycle(root: Path, tag: str) -> dict:
+    """A finished cycle the learner created: `runs/<tag>/batch` (ARMS.json + 3 logs, one 5 MB and repetitive) and a
+    lane profile. Returns its state entry, recorded exactly as `finish_cycle` records it."""
+    batch = learner.RUNS / tag / "batch"
+    (batch / "L01" / "debug-logs").mkdir(parents=True)
+    (batch / "L02" / "debug-logs").mkdir(parents=True)
+    (batch / "ARMS.json").write_text(json.dumps({"stamp": tag, "lanes": []}), encoding="utf-8")
+    (batch / "L01" / "debug-logs" / "a-1.log").write_text(f"{tag} first run\n" * 50, encoding="utf-8")
+    (batch / "L01" / "debug-logs" / "big.log").write_bytes(BIG_LOG * (5 * 2 ** 20 // len(BIG_LOG)))
+    (batch / "L02" / "stdout.txt").write_bytes(bytes(range(256)) * 40)
+    prof = learner.PROFILES / f"endless-{tag}-H1-torchic"
+    prof.mkdir(parents=True)
+    (prof / "save.ss1").write_bytes(b"\x01" * 1000)
+    return {"tag": tag, "created": [str(batch), str(prof)], "pruned": False}
+
+
+def tree(root: Path) -> dict[str, str]:
+    """relative path -> sha256 of every file under `root` (missing root = empty)."""
+    import hashlib
+    return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(root.rglob("*")) if p.is_file()} if root.exists() else {}
+
+
+def zip_tree(zpath: Path) -> dict[str, str]:
+    import hashlib
+    import zipfile
+    with zipfile.ZipFile(zpath) as zf:
+        return {n: hashlib.sha256(zf.read(n)).hexdigest() for n in zf.namelist()}
+
+
+def raw_view(root: Path, tag: str) -> dict[str, str]:
+    """What the cycle's originals look like, keyed as the zip names them (relative to runs/<tag>/)."""
+    return {k[len(tag) + 1:]: v for k, v in tree(learner.RUNS).items() if k.startswith(f"{tag}/batch/")}
+
+
+def flip_member_byte(zpath: Path, name: str) -> None:
+    """Flip one byte INSIDE the compressed data of `name` (deterministic: the zip's own local header gives where)."""
+    import struct
+    import zipfile
+    with zipfile.ZipFile(zpath) as zf:
+        info = zf.getinfo(name)
+    data = bytearray(zpath.read_bytes())
+    n, m = struct.unpack("<HH", data[info.header_offset + 26:info.header_offset + 30])
+    at = info.header_offset + 30 + n + m + info.compress_size // 2
+    data[at] ^= 0xFF
+    zpath.write_bytes(bytes(data))
+
+
+class O3Sandbox:
+    """A temp learner tree: every learner write path inside it (asserted), free disk and the rename wait fixed.
+    Restores everything it patched on exit, whatever happened."""
+
+    def __init__(self, root: Path, free: float = 500.0):
+        self.root, self.free = Path(root).resolve(), free
+
+    def __enter__(self) -> "O3Sandbox":
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.saved = patch_learner_paths(self.root)
+        self.saved_fns = {k: getattr(learner, k) for k in ("free_gb", "REPLACE_WAIT_S", "_copy_member",
+                                                           "verify_archive", "_os_replace", "_delete_ours",
+                                                           "load_config", "archive_cycle")}
+        learner.free_gb = lambda: self.free
+        learner.REPLACE_WAIT_S = 0.01
+        return self
+
+    def __exit__(self, *exc) -> None:
+        for k, v in self.saved_fns.items():
+            setattr(learner, k, v)
+        restore_paths(self.saved)
+
+    @staticmethod
+    def state(cycles: list[dict]) -> dict:
+        st = {"cycle": len(cycles), "cycles": cycles, "current": None, "failures": 0}
+        learner.save_state(st)
+        return st
+
+
+def test_o3_archive(tmp: Path) -> None:
+    import zipfile
+    keep1 = {"keep_raw_cycles": 1, "max_archives_per_prune": 3}
+
+    # R4 round trip ------------------------------------------------------------------------------------------------
+    with O3Sandbox(tmp / "r4"):
+        c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+        before1, before2 = raw_view(tmp, "ai0001"), raw_view(tmp, "ai0002")
+        st = {"cycles": [c1, c2]}
+        learner.prune(keep1, st)
+        cdir = learner.RUNS / "ai0001"
+        mpath = cdir / "raw.manifest.json"
+        man = json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else {}
+        got = zip_tree(cdir / "raw.zip") if (cdir / "raw.zip").exists() else {}
+        check("R4 prune archives an old cycle: every member's bytes read back from raw.zip equal the originals' sha256",
+              len(before1) == 4 and got == before1, (len(before1), sorted(got)))
+        check("R4 then its batch/ and lane profile are gone and it is flagged archived + pruned",
+              not (cdir / "batch").exists() and not (learner.PROFILES / "endless-ai0001-H1-torchic").exists()
+              and c1.get("archived") is True and c1.get("pruned") is True, c1)
+        check("R4 the manifest lists the members, sizes and CRCs exactly",
+              man.get("n_files") == 4 and learner.verify_archive(cdir / "raw.zip", man.get("members", [])) is None
+              and man.get("bytes_raw") == sum(m["size"] for m in man.get("members", [])), man.get("n_files"))
+        with zipfile.ZipFile(cdir / "raw.zip") as zf:
+            names = zf.namelist()
+            deflated = all(i.compress_type == zipfile.ZIP_DEFLATED for i in zf.infolist())
+        check("R4 member names are relative to runs/<tag>/ and deflated", "batch/L01/debug-logs/big.log" in names
+              and deflated, names)
+        check("R4 CONTROL: the newest cycle (inside keep_raw_cycles) is untouched",
+              raw_view(tmp, "ai0002") == before2 and not (learner.RUNS / "ai0002" / "raw.zip").exists()
+              and not c2.get("pruned"))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc = learner.cmd_archive_check()
+        rec = json.loads((learner.DATA / "archive_check.json").read_text(encoding="utf-8"))
+        check("R12 archive-check: OK <tag> <members> <bytes>, exit 0, result saved with a timestamp",
+              rc == 0 and out.getvalue().startswith("OK ai0001 4 ") and rec["bad"] == 0 and rec["checked"],
+              (rc, out.getvalue()))
+        zbefore = (cdir / "raw.zip").read_bytes()
+        flip_member_byte(cdir / "raw.zip", "batch/L01/debug-logs/big.log")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc = learner.cmd_archive_check()
+        check("R12 FAULT: a flipped byte in a zip -> BAD <tag> <reason>, exit 1",
+              rc == 1 and out.getvalue().startswith("BAD ai0001 "), (rc, out.getvalue()))
+        (cdir / "raw.zip").write_bytes(zbefore)
+
+    # R4b the per-boundary cap --------------------------------------------------------------------------------------
+    with O3Sandbox(tmp / "r4b"):
+        cs = [make_raw_cycle(tmp, f"ai00{i:02d}") for i in range(1, 7)]
+        learner.prune({"keep_raw_cycles": 1, "max_archives_per_prune": 3}, {"cycles": cs})
+        done = [c["tag"] for c in cs if c.get("archived")]
+        check("R4b max_archives_per_prune: 3 of 5 eligible archived this boundary, oldest first; the rest wait",
+              done == ["ai0001", "ai0002", "ai0003"] and (learner.RUNS / "ai0004" / "batch").exists(), done)
+
+    # R5 FAULT: the stream copy raises after the first member --------------------------------------------------------
+    with O3Sandbox(tmp / "r5"):
+        c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+        before = raw_view(tmp, "ai0001")
+        calls = []
+        real_copy = learner._copy_member
+
+        def copy_then_fail(zf, src, name):
+            calls.append(name)
+            if len(calls) > 1:
+                raise OSError("simulated disk error mid-archive")
+            return real_copy(zf, src, name)
+
+        learner._copy_member = copy_then_fail
+        try:
+            learner.prune(keep1, {"cycles": [c1, c2]})
+            escaped = None
+        except Exception as exc:  # noqa: BLE001
+            escaped = exc
+        learner._copy_member = real_copy
+        cdir = learner.RUNS / "ai0001"
+        check("R5 FAULT: a copy error mid-archive -> prune returns normally (nothing raised into the loop)",
+              escaped is None and len(calls) == 2, (escaped, calls))
+        check("R5 FAULT: the originals are byte-identical, no raw.zip, no .part, not flagged pruned",
+              raw_view(tmp, "ai0001") == before and not (cdir / "raw.zip").exists()
+              and not (cdir / "raw.zip.part").exists() and not c1.get("pruned") and not c1.get("archived"), c1)
+        learner.prune(keep1, {"cycles": [c1, c2]})
+        check("R5 CONTROL: the next prune with no fault archives it",
+              c1.get("archived") and zip_tree(cdir / "raw.zip") == before and not (cdir / "batch").exists())
+
+    # R6 FAULT: verification sees a corrupt archive ------------------------------------------------------------------
+    with O3Sandbox(tmp / "r6"):
+        c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+        before = raw_view(tmp, "ai0001")
+        real_verify = learner.verify_archive
+
+        def flip_then_verify(zpath, members):
+            if Path(zpath).name.endswith(".part"):
+                flip_member_byte(Path(zpath), "batch/L01/debug-logs/big.log")
+            return real_verify(zpath, members)
+
+        learner.verify_archive = flip_then_verify
+        learner.prune(keep1, {"cycles": [c1, c2]})
+        learner.verify_archive = real_verify
+        cdir = learner.RUNS / "ai0001"
+        check("R6 FAULT: an archive with one flipped byte is never trusted: originals kept, .part removed, no raw.zip",
+              raw_view(tmp, "ai0001") == before and not (cdir / "raw.zip.part").exists()
+              and not (cdir / "raw.zip").exists() and not c1.get("pruned"), sorted(p.name for p in cdir.iterdir()))
+        learner.prune(keep1, {"cycles": [c1, c2]})
+        check("R6 CONTROL: untouched verification -> archived and the originals deleted",
+              c1.get("archived") and not (cdir / "batch").exists() and zip_tree(cdir / "raw.zip") == before)
+
+    # R7 a crash between the rename and the delete ------------------------------------------------------------------
+    with O3Sandbox(tmp / "r7"):
+        c1, c3, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0003"), make_raw_cycle(tmp, "ai0002")
+        before1, before3 = raw_view(tmp, "ai0001"), raw_view(tmp, "ai0003")
+        real_delete = learner._delete_ours
+
+        def crash(c):
+            raise RuntimeError("simulated crash after the rename, before the delete")
+
+        learner._delete_ours = crash
+        learner.prune({"keep_raw_cycles": 1, "max_archives_per_prune": 9}, {"cycles": [c1, c3, c2]})
+        learner._delete_ours = real_delete
+        d1, d3 = learner.RUNS / "ai0001", learner.RUNS / "ai0003"
+        setup_ok = all((d / "raw.zip").exists() and (d / "raw.manifest.json").exists() for d in (d1, d3)) and \
+            raw_view(tmp, "ai0001") == before1 and not c1.get("pruned")
+        # ai0003's raw.zip: a VALID zip with the same names and sizes, one byte of content changed
+        bad_zip = d3 / "raw.zip"
+        bad_zip.unlink()
+        with zipfile.ZipFile(bad_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+            for f in sorted((d3 / "batch").rglob("*")):
+                if f.is_file():
+                    data = bytearray(f.read_bytes())
+                    if f.name == "big.log":
+                        data[100] ^= 0x01
+                    zf.writestr(f.relative_to(d3).as_posix(), bytes(data))
+        learner.prune({"keep_raw_cycles": 1, "max_archives_per_prune": 9}, {"cycles": [c1, c3, c2]})
+        check("R7 setup: a crash after the rename leaves raw.zip + manifest + the originals, not flagged", setup_ok)
+        check("R7 raw.zip + originals -> re-verified against them, then the originals deleted",
+              c1.get("archived") and not (d1 / "batch").exists() and zip_tree(d1 / "raw.zip") == before1, c1)
+        check("R7 FAULT: a CORRUPT raw.zip + originals -> originals kept, the zip quarantined as raw.zip.bad",
+              raw_view(tmp, "ai0003") == before3 and (d3 / "raw.zip.bad").exists() and not bad_zip.exists()
+              and not c3.get("pruned"), sorted(p.name for p in d3.iterdir()))
+        learner.prune({"keep_raw_cycles": 1, "max_archives_per_prune": 9}, {"cycles": [c1, c3, c2]})
+        check("R7 CONTROL: the next prune re-archives the kept originals correctly",
+              c3.get("archived") and not (d3 / "batch").exists() and zip_tree(d3 / "raw.zip") == before3)
+
+    # R7b an original that changed after its archive was written: the archive no longer describes it --------------
+    with O3Sandbox(tmp / "r7b"):
+        c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+        real_delete = learner._delete_ours
+        learner._delete_ours = lambda c: (_ for _ in ()).throw(RuntimeError("simulated crash before the delete"))
+        learner.prune(keep1, {"cycles": [c1, c2]})
+        learner._delete_ours = real_delete
+        d1 = learner.RUNS / "ai0001"
+        with open(d1 / "batch" / "L01" / "debug-logs" / "a-1.log", "ab") as fh:
+            fh.write(b"one more line written after the archive\n")
+        changed = raw_view(tmp, "ai0001")
+        learner.prune(keep1, {"cycles": [c1, c2]})
+        check("R7b FAULT: an original that differs from the manifest -> originals kept, zip quarantined",
+              raw_view(tmp, "ai0001") == changed and (d1 / "raw.zip.bad").exists() and not c1.get("pruned"),
+              sorted(p.name for p in d1.iterdir()))
+
+    # R13 the delete stops part-way (a locked file): flags only once the originals are really gone ------------------
+    with O3Sandbox(tmp / "r13"):
+        import os
+        import stat
+        c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+        before = raw_view(tmp, "ai0001")
+        d1 = learner.RUNS / "ai0001"
+        stuck = d1 / "batch" / "L02" / "stdout.txt"
+        os.chmod(stuck, stat.S_IREAD)  # Windows refuses to delete a read-only file: rmtree stops part-way
+        try:
+            learner.prune(keep1, {"cycles": [c1, c2]})
+            escaped = None
+        except Exception as exc:  # noqa: BLE001
+            escaped = exc
+        finally:
+            os.chmod(stuck, stat.S_IREAD | stat.S_IWRITE)
+        partial = stuck.exists() and not (d1 / "batch" / "L01" / "debug-logs" / "big.log").exists()
+        check("R13 FAULT: a delete that stops part-way -> NOT flagged archived/pruned, nothing escapes",
+              escaped is None and partial and not c1.get("pruned") and not c1.get("archived")
+              and (d1 / "raw.zip").exists(), (escaped, partial, c1))
+        learner.prune(keep1, {"cycles": [c1, c2]})
+        check("R13 CONTROL: the next prune re-verifies the zip against the manifest + the REMAINING originals",
+              c1.get("archived") and not (d1 / "batch").exists() and zip_tree(d1 / "raw.zip") == before, c1)
+
+    # R8 the rename is locked (antivirus) ---------------------------------------------------------------------------
+    with O3Sandbox(tmp / "r8"):
+        c1, c3, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0003"), make_raw_cycle(tmp, "ai0002")
+        before1, before3 = raw_view(tmp, "ai0001"), raw_view(tmp, "ai0003")
+        real_replace, tries = learner._os_replace, []
+
+        def locked_twice(src, dst):
+            tries.append(src)
+            if len(tries) <= 2:
+                raise PermissionError("simulated antivirus lock")
+            return real_replace(src, dst)
+
+        learner._os_replace = locked_twice
+        learner.prune({"keep_raw_cycles": 2, "max_archives_per_prune": 9}, {"cycles": [c1, c3, c2]})
+        check("R8 a rename locked twice then free -> retried and archived",
+              len(tries) == 3 and c1.get("archived") and zip_tree(learner.RUNS / "ai0001" / "raw.zip") == before1,
+              (len(tries), c1))
+        always = []
+
+        def locked_forever(src, dst):
+            always.append(src)
+            raise PermissionError("simulated permanent lock")
+
+        learner._os_replace = locked_forever
+        try:
+            learner.prune({"keep_raw_cycles": 1, "max_archives_per_prune": 9}, {"cycles": [c1, c3, c2]})
+            escaped = None
+        except Exception as exc:  # noqa: BLE001
+            escaped = exc
+        learner._os_replace = real_replace
+        d3 = learner.RUNS / "ai0003"
+        check("R8 FAULT: always locked -> 5 tries, originals intact, no raw.zip or .part, nothing escapes",
+              escaped is None and len(always) == learner.REPLACE_TRIES and raw_view(tmp, "ai0003") == before3
+              and not (d3 / "raw.zip").exists() and not (d3 / "raw.zip.part").exists() and not c3.get("pruned"),
+              (escaped, len(always)))
+
+    # R10 the emergency floor ----------------------------------------------------------------------------------------
+    for arm, free, fail in (("FAULT", 1.0, True), ("FAULT working-archive", 1.0, False), ("CONTROL", 50.0, True)):
+        with O3Sandbox(tmp / f"r10-{arm.replace(' ', '-')}", free=free):
+            c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+            before = tree(learner.RUNS), tree(learner.PROFILES)
+            attempts = []
+            real_archive = learner.archive_cycle
+            real_copy = learner._copy_member
+
+            def failing_copy(zf, src, name):
+                raise OSError("simulated: the archive cannot be written")
+
+            def counted(c):
+                attempts.append(c["tag"])
+                return real_archive(c)
+
+            learner.archive_cycle = counted
+            if fail:
+                learner._copy_member = failing_copy
+            st = {"cycle": 2, "cycles": [c1, c2], "current": None}
+            cfg = dict(learner.DEFAULTS, min_free_gb=25, keep_raw_cycles=20)
+            started = learner.disk_guard(cfg, st)
+            after = tree(learner.RUNS), tree(learner.PROFILES)
+            if arm.startswith("FAULT"):
+                check(f"R10 {arm}: 1 GB free -> nothing archived or deleted, the batch NOT started, ATTENTION.md",
+                      not started and after == before and attempts == [] and learner.ATTENTION.exists()
+                      and "deleted NOTHING" in learner.ATTENTION.read_text(encoding="utf-8"), (started, attempts))
+                learner.prune(keep1, st)
+                check(f"R10 {arm}: and the boundary prune at 1 GB archives and deletes nothing either",
+                      tree(learner.RUNS) == before[0] and attempts == [], attempts)
+            else:
+                check("R10 CONTROL: 50 GB free, a failing archive -> nothing deleted, the batch starts, no ATTENTION",
+                      started and after == before and not learner.ATTENTION.exists(), started)
+                learner.prune(keep1, st)
+                kept = raw_view(tmp, "ai0001") == {k[len("ai0001/"):]: v for k, v in before[0].items()
+                                                   if k.startswith("ai0001/batch/")}
+                learner._copy_member = real_copy
+                learner.prune(keep1, st)
+                check("R10 CONTROL: the failing archive deletes nothing, and the next boundary archives it",
+                      kept and attempts == ["ai0001", "ai0001"] and c1.get("archived")
+                      and not (learner.RUNS / "ai0001" / "batch").exists(), (kept, attempts))
+
+    with O3Sandbox(tmp / "r10c", free=10.0):
+        c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+        before1 = raw_view(tmp, "ai0001")
+        started = learner.disk_guard(dict(learner.DEFAULTS, min_free_gb=25, keep_raw_cycles=20),
+                                     {"cycles": [c1, c2]})
+        check("R10c under min_free_gb but above the floor: archives (verified) all but the newest; still short -> stop",
+              not started and c1.get("archived") and zip_tree(learner.RUNS / "ai0001" / "raw.zip") == before1
+              and not c2.get("pruned") and learner.ATTENTION.exists(), (started, c1))
+
+    # R11 the manual `archive` command and the learner's lock --------------------------------------------------------
+    with O3Sandbox(tmp / "r11"):
+        c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+        O3Sandbox.state([c1, c2])
+        learner.load_config = lambda: dict(learner.DEFAULTS, keep_raw_cycles=1)
+        holder = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "learner.py"])
+        try:
+            learner.DATA.mkdir(parents=True, exist_ok=True)
+            learner.LOCK.write_text(str(holder.pid))
+            before = tree(learner.RUNS), tree(learner.PROFILES)
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = learner.cmd_archive()
+            check("R11 FAULT: a live learner holds the lock -> `archive` refuses and the tree is byte-identical",
+                  rc == 2 and (tree(learner.RUNS), tree(learner.PROFILES)) == before
+                  and learner.LOCK.read_text() == str(holder.pid), rc)
+        finally:
+            holder.kill()
+            holder.wait()
+        learner.LOCK.unlink()
+        before1 = raw_view(tmp, "ai0001")
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = learner.cmd_archive()
+        st = learner.load_state()
+        check("R11 CONTROL: lock free -> `archive` archives, records it, and releases the lock",
+              rc == 0 and zip_tree(learner.RUNS / "ai0001" / "raw.zip") == before1
+              and st["cycles"][0].get("archived") and not learner.LOCK.exists(), rc)
+
+
+def test_o3_kill(tmp: Path) -> None:
+    """R5b: a REAL kill of a process mid-archive (the backlog's 'kill mid-gzip'). The slowing lives in a TEST-SIDE
+    wrapper; the learner has no delay switch."""
+    with O3Sandbox(tmp):
+        c1, c2 = make_raw_cycle(tmp, "ai0001"), make_raw_cycle(tmp, "ai0002")
+        O3Sandbox.state([c1, c2])
+        before = raw_view(tmp, "ai0001")
+        wrapper = tmp / "r5b_wrapper.py"
+        wrapper.write_text(
+            "import sys, time\n"
+            "from pathlib import Path\n"
+            "root, ai, tag = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]\n"
+            "sys.path.insert(0, str(ai))\n"
+            "import test_agent as T\n"
+            "import learner\n"
+            "T.patch_learner_paths(root)  # asserts every learner path is inside root BEFORE anything acts\n"
+            "real = learner._copy_member\n"
+            "def slow(zf, src, name):\n"
+            "    time.sleep(1.0)\n"
+            "    return real(zf, src, name)\n"
+            "learner._copy_member = slow\n"
+            "learner.free_gb = lambda: 500.0\n"
+            "c = next(c for c in learner.load_state()['cycles'] if c['tag'] == tag)\n"
+            "learner.archive_cycle(c)\n", encoding="utf-8")
+        part, cdir = learner.RUNS / "ai0001" / "raw.zip.part", learner.RUNS / "ai0001"
+        proc = subprocess.Popen([sys.executable, str(wrapper), str(tmp), str(AI), "ai0001"],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        deadline = time.time() + 30
+        while not part.exists() and proc.poll() is None and time.time() < deadline:
+            time.sleep(0.02)
+        time.sleep(0.3)  # inside the first slowed member
+        alive = proc.poll() is None
+        proc.kill()
+        out = proc.communicate()[0].decode("utf-8", "replace")
+        check("R5b setup: the wrapper was killed while raw.zip.part existed (mid-archive)",
+              alive and part.exists() and not (cdir / "raw.zip").exists(), out[-300:])
+        check("R5b FAULT: after the kill the originals are intact and nothing was flagged",
+              raw_view(tmp, "ai0001") == before and not learner.load_state()["cycles"][0].get("pruned"))
+        learner.prune({"keep_raw_cycles": 5, "max_archives_per_prune": 3}, learner.load_state())
+        check("R5b the next prune removes the leftover .part even for a cycle it does not archive; raw intact",
+              not part.exists() and raw_view(tmp, "ai0001") == before and not (cdir / "raw.zip").exists())
+        part.write_bytes(b"PK\x03\x04 half a zip")  # a second interrupted attempt, left for the archiving prune
+        st = learner.load_state()
+        learner.prune({"keep_raw_cycles": 1, "max_archives_per_prune": 3}, st)
+        check("R5b CONTROL: the next prune completes the archive",
+              st["cycles"][0].get("archived") and zip_tree(cdir / "raw.zip") == before and not part.exists()
+              and not (cdir / "batch").exists(), st["cycles"][0])
+
+
+def test_o3_reparse(tmp: Path) -> None:
+    """R9 (fact 4): a batch whose ARMS.json exists but whose logs are gone must not erase its old run records."""
+    with O3Sandbox(tmp):
+        good = scoring.parse_batch(make_batch(tmp / "src"), "x")[0]
+        empty = learner.RUNS / "ai0009" / "batch"
+        (empty / "L01" / "debug-logs").mkdir(parents=True)
+        (empty / "ARMS.json").write_text(json.dumps({"stamp": "T9", "arms_text": json.dumps({"arms": {}}),
+                                                     "lanes": [{"arm": "A", "profile": "p"}]}), encoding="utf-8")
+        full = learner.RUNS / "ai0010"
+        make_batch(full)
+        O3Sandbox.state([{"tag": "ai0009", "created": []}, {"tag": "ai0010", "created": []}])
+        old = [dict(good, batch="T9", log="old-T9.log"), dict(good, batch="T", log="stale-T.log")]
+        learner.write_jsonl(learner.RUNS_FILE, old)
+        learner.cmd_reparse()
+        after = learner.load_jsonl(learner.RUNS_FILE)
+        check("R9 FAULT: ARMS.json with no logs -> that batch's old records are KEPT",
+              [r["log"] for r in after if r["batch"] == "T9"] == ["old-T9.log"], [r["log"] for r in after])
+        check("R9 CONTROL: a batch whose logs exist is re-read (its stale record replaced by the 4 fresh ones)",
+              sorted(r["log"] for r in after if r["batch"] == "T") == ["a-0.log", "a-1.log", "a-2.log", "b-1.log"],
+              sorted(r["log"] for r in after if r["batch"] == "T"))
+
+
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="aiagent-test-"))
     try:
         for t in (lambda: test_scoring(tmp / "s"), test_brain, test_effects, lambda: test_preflight(tmp),
-                  lambda: test_prune_and_inbox(tmp / "p"), lambda: test_adopt_and_reparse(tmp / "a")):
+                  lambda: test_prune_and_inbox(tmp / "p"), lambda: test_adopt_and_reparse(tmp / "a"),
+                  lambda: test_o3_archive(tmp / "o3"), lambda: test_o3_kill(tmp / "o3kill"),
+                  lambda: test_o3_reparse(tmp / "o3reparse")):
             try:
                 t()
             except Exception as exc:  # a crash is a failed check, not a silent pass
