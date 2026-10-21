@@ -1,5 +1,5 @@
 {
-  "_doc": "regression_due.py's map (LESSONS PR-2): each AI-player suite -> the NAMES of its evidence files in evidence_dir (case-insensitive globs) and the repo files it COVERS (case-sensitive globs; each must match a real file, and every module ai_player/ imports from this repo must be covered by every suite, or the tool exits 2). Initial map 2026-10-21 from the evidence names then on disk (step52 / step52reg / kb1-merge-units). COVERS were MEASURED 2026-10-21 (fix round): an import scan of ai_player/ resolves `modules` to sandbox-pokebot/modules/ (24 files import it), `scoring` to ai-agent/scoring.py (test_eyes, live_step1) and `mgba` to sandbox-pokebot/mgba/ (ignored by git: environment); the import closure of each suite's driver reaches brain/, host/ and those imports (revert_safety_gates runs test_safety_gates.py, which reaches 77 ai_player files, so it covers all of ai_player/, not only gates/); live_step5 runs the framework itself (launcher -> sandbox-pokebot/pokebot.py) and rate_step5 runs it in-process (play_harness), so both cover sandbox-pokebot/**. `exclude` mirrors provenance.EXCLUDED: evidence, Markdown and the seed ledger are not code under test. `environment`: what git ignores but a run depends on (the emulator binding the installer downloads, the bot's profiles, backups, logs, caches): regression_due cannot see it change and prints it as a NOTE on every run.",
+  "_doc": "regression_due.py's map (LESSONS PR-2): each AI-player suite -> the NAMES of its evidence files in evidence_dir (case-insensitive globs) and the repo files it COVERS (case-sensitive globs; each must match a real file, and every module ai_player/ imports from this repo must be covered by every suite, or the tool exits 2). Initial map 2026-10-21 from the evidence names then on disk (step52 / step52reg / kb1-merge-units). COVERS were MEASURED 2026-10-21 (fix round): an import scan of ai_player/ resolves `modules` to sandbox-pokebot/modules/ (24 files import it), `scoring` to ai-agent/scoring.py (test_eyes, live_step1) and `mgba` to sandbox-pokebot/mgba/ (ignored by git: environment); the import closure of each suite's driver reaches brain/, host/ and those imports (revert_safety_gates runs test_safety_gates.py, which reaches 77 ai_player files, so it covers all of ai_player/, not only gates/); live_step5 runs the framework itself (launcher -> sandbox-pokebot/pokebot.py) and rate_step5 runs it in-process (play_harness), so both cover sandbox-pokebot/**. `exclude` mirrors provenance.EXCLUDED: evidence, Markdown and the seed ledger are not code under test. `reads` (round 2, 2026-10-21): the NON-CODE files a suite's driver reads and whose content can change its verdict, covered even when `exclude` matches them (a literal path must exist; a wildcard mirrors the driver's own glob and may match nothing yet). MEASURED by scanning the files each driver runs for path constants: units runs check_lessons (ai_player/LESSONS.md, ai_player/README.md + ai_player/readme/**/*.md, PROJECT KNOWLEDGE 06/07/08, the step-5.1 review note, CLAUDE.md), ledger_check and test_safety_gates' real-ledger test (ai_player/gates/ledger.json), and test_goals, which parses ai-agent/knowledge.py as DATA (BOSS_LEVELS); revert_safety_gates runs test_safety_gates in a copy of ai_player/ with the project's documents from this repo (its S0 control includes the real lessons list and the real ledger); revert_step5 runs test_goals in a copy. NOT covered, on purpose: the evidence folder and every other doc disk_budget / prune_evidence read to find CITED run folders (housekeeping: disk_budget's exit code is always 0, prune_evidence's tests use scratch folders), and the ledger for rate_step5 / live_step5, which WRITE it (pre-registration), so covering it would make each permanently DUE after its own run. `environment`: what git ignores but a run depends on (the emulator binding the installer downloads, the bot's profiles, backups, logs, caches): regression_due cannot see it change and prints it as a NOTE on every run.",
   "evidence_dir": "ai_player/evidence",
   "exclude": ["ai_player/evidence/**", "**/*.md", "ai_player/gates/ledger.json*"],
   "environment": ["sandbox-pokebot/mgba/**", "sandbox-pokebot/profiles/**", "sandbox-pokebot/backups/**",
@@ -9,19 +9,27 @@
       "_run": "py -3.12 ai_player/gates/run_units.py",
       "evidence": ["*-units.txt"],
       "covers": ["ai_player/**", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py", "sandbox-pokebot/modules/**",
-                 "ai-agent/scoring.py"]
+                 "ai-agent/scoring.py", "ai-agent/knowledge.py"],
+      "reads": ["ai_player/LESSONS.md", "ai_player/README.md", "ai_player/readme/**/*.md",
+                "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md", "PROJECT KNOWLEDGE/07-CHANGELOG.md",
+                "PROJECT KNOWLEDGE/08-MISTAKES.md", "PROJECT KNOWLEDGE/ai-research-notes/2026-10-15-step51-REVIEW-FINDINGS.md",
+                "CLAUDE.md", "ai_player/gates/ledger.json"]
     },
     "revert_step5": {
       "_run": "py -3.12 ai_player/gates/revert_step5.py",
       "evidence": ["*-step5*-revert.txt"],
       "covers": ["ai_player/**", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py", "sandbox-pokebot/modules/**",
-                 "ai-agent/scoring.py"]
+                 "ai-agent/scoring.py", "ai-agent/knowledge.py"]
     },
     "revert_safety_gates": {
       "_run": "py -3.12 ai_player/gates/revert_safety_gates.py",
       "evidence": ["*-revert-gates.txt"],
       "covers": ["ai_player/**", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py", "sandbox-pokebot/modules/**",
-                 "ai-agent/scoring.py"]
+                 "ai-agent/scoring.py"],
+      "reads": ["ai_player/LESSONS.md", "ai_player/README.md", "ai_player/readme/**/*.md",
+                "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md", "PROJECT KNOWLEDGE/07-CHANGELOG.md",
+                "PROJECT KNOWLEDGE/08-MISTAKES.md", "PROJECT KNOWLEDGE/ai-research-notes/2026-10-15-step51-REVIEW-FINDINGS.md",
+                "CLAUDE.md", "ai_player/gates/ledger.json"]
     },
     "rate_step5": {
       "_run": "py -3.12 ai_player/gates/rate_step5.py",

@@ -14,7 +14,9 @@ promises become a real prompt, and where the model is CHOSEN, so it REFUSES rath
     once rendered `verify` on haiku while its prompt said `top` (review 2026-10-21);
   * a value that is not a JSON STRING (null, false, a list, a number: `str()` would render "None" or "False" as if it
     were text), a value over MAX_VALUE_CHARS (a document belongs in READ-LIST with a range, not pasted into a prompt),
-    or a value holding a `## ` heading line (it would inject a field, e.g. a second, permissive `## RULES`);
+    a value holding a `## ` heading line (it would inject a field, e.g. a second, permissive `## RULES`), or a value
+    holding any line break other than LF / CRLF (a lone CR, VT, FF, U+001C-U+001E, NEL U+0085, U+2028, U+2029:
+    `str.splitlines()` and JS readers start a new line there, where the heading check does not look);
   * an unresolved `{{placeholder}}` (a value not given, or a value that itself holds `{{...}}`): an agent handed a
     literal "{{spec_range}}" reads the whole file, which is the cost the template exists to remove;
   * an empty value for a REQUIRED placeholder `{{name}}` (only `{{name?}}` may be empty), and any required field whose
@@ -53,6 +55,11 @@ for _s in (sys.stdout, sys.stderr):
 MAX_VALUE_CHARS = 20_000
 #: A heading line a value must not carry: `##` then a space or the line's end, after any indentation.
 VALUE_HEADING_RE = re.compile(r"^[ \t]*##(?:[ \t]|$)", re.M)
+#: Every character `str.splitlines()` breaks a line at, other than LF (and CR as half of CRLF). A value may carry
+#: none of them. WHY (round 2): VALUE_HEADING_RE sees only LF line starts, so `"\u2028## RULES"` or `"\r## RULES"`
+#: rendered, and a reader that splits like Python (or a JS string) then saw a second `## RULES`. Refusing the
+#: character is simpler than teaching every reader about it. selftest T-5c proves this set equals splitlines' own.
+LINE_BREAKS = frozenset("\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029")
 
 
 class RenderError(ValueError):
@@ -81,6 +88,11 @@ def value_errors(values: dict) -> list[str]:
         if len(value) > MAX_VALUE_CHARS:
             reasons.append(f"value {name!r} is {len(value):,} characters (over {MAX_VALUE_CHARS:,}): put the document "
                            f"in READ-LIST with a range instead")
+        breaks = sorted({ch for ch in value.replace("\r\n", "\n") if ch in LINE_BREAKS})
+        if breaks:
+            shown = ", ".join(ascii(c) for c in breaks)
+            reasons.append(f"value {name!r} holds a line break other than LF or CRLF ({shown}): a reader that splits "
+                           f"lines there would see a new line, and so a possible heading")
         # format characters (a zero-width space) are invisible to a reader, so they cannot hide a heading
         visible = "".join(ch for ch in value if unicodedata.category(ch) != "Cf")
         if VALUE_HEADING_RE.search(visible):

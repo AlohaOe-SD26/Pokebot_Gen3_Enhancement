@@ -31,8 +31,10 @@ THE CHECKS (each one has a FAULT and a CONTROL arm in tools/story-dev/selftest_w
     file's: `04-HANDOFF.md:1-120` is 74 KB because its line 6 alone is 23 KB, so "has a range" said nothing. A path
     that does not exist is a finding, ranged or not, unless the bullet says `[later]` (a file an earlier stage
     writes); a folder is a finding. An entry under a DO-NOT-READ path must carry a range (a slice may be read, the
-    whole never); paths are NORMALISED first (`./x`, `a/../x`, backslashes, the repo's absolute prefix, case), so a
-    spelling cannot step round the list. A path still holding a placeholder is checked when `render.py` fills it;
+    whole never); paths are RESOLVED against the repo root first (`./x`, `a/../x`, a `../<repo folder>/` detour,
+    backslashes, the repo's absolute prefix, case: `repo_relative`), so a spelling cannot step round the list. A
+    RELATIVE path that resolves outside the repo is a finding; an absolute one outside it (a scratch report) is
+    allowed and size-checked. A path still holding a placeholder is checked when `render.py` fills it;
   * DO-NOT-READ holds the STANDING entries (`ai_player/evidence/`, `**/INDEX.md`, whole `07`/`08`, whole
     `ai_player/README.md`): the files whose whole-read made the heaviest contexts;
   * RETURN-CAP has `words: N` (1..200) and `file: <path>`: a stage hands over a short answer and a file, so the
@@ -171,6 +173,19 @@ def norm_path(path: str, repo: Path = REPO) -> str:
     return (p + "/" if folder and p else p).lower()
 
 
+def repo_relative(path: str, repo: Path = REPO) -> str | None:
+    """A READ-LIST path as the repo-relative path of the file it NAMES: resolved against the repo root (`..`, links,
+    a `../<repo folder>/` detour and case all folded by the OS), or None when it lands outside the repo. WHY (round
+    2): `norm_path` folds `x/../` lexically but never sees that `../Pokebot_Gen3_Enhancement/ai_player/evidence/f`
+    is the evidence folder again, so that spelling slipped past every DO-NOT-READ rule."""
+    p = Path(path.replace("\\", "/").strip())
+    try:
+        target = (p if p.is_absolute() else repo / p).resolve()
+        return target.relative_to(Path(repo).resolve()).as_posix()
+    except (OSError, ValueError, RuntimeError):
+        return None
+
+
 def _under(path: str, rule: str, repo: Path = REPO) -> bool:
     """Is READ-LIST `path` covered by DO-NOT-READ `rule` (a folder ending in '/', a glob, or one file)? Both are
     normalised (`norm_path`); `*` crosses folders (fnmatch), and a leading `**/` also matches at the repo root."""
@@ -258,9 +273,16 @@ def read_list_errors(body: str, do_not_read: list[str], repo: Path = REPO) -> li
         if spec["kind"] == "bad":
             errors.append(f"READ-LIST `{entry}` is not a range (START >= 1 and END >= START)")
             continue
-        if spec["kind"] == "whole":
+        rel = repo_relative(path, repo)
+        if rel is None and not Path(path.replace("\\", "/").strip()).is_absolute():
+            # a RELATIVE path that climbs out of the repo: no template has a reason to, and the only use found was
+            # a detour back in that hid a DO-NOT-READ path. An ABSOLUTE path outside the repo is a scratch file
+            # (a builder report, a sweep summary) and stays allowed; the size rules below still apply to it.
+            errors.append(f"READ-LIST `{path}` leaves the repository: name the file from the repo root")
+            continue
+        if spec["kind"] == "whole" and rel is not None:
             for rule in do_not_read:
-                if _under(path, rule, repo):
+                if _under(rel, rule, repo):
                     errors.append(f"READ-LIST `{path}` is under DO-NOT-READ `{rule}` and has no range")
         target = Path(path) if Path(path).is_absolute() else repo / path
         if target.is_dir():

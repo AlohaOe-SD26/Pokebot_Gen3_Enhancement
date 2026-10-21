@@ -9,7 +9,8 @@ v.weak_proofs.length || v.rule_violations.length)`, so a weak proof bought a who
 silent one: a verifier that forgets its JSON, or writes `"all_pass": "false"` (a STRING, which JavaScript and Python
 both read as TRUE), must never read as a pass. So the decision is a pure function of the file with three answers:
   PASS     `all_pass` is the boolean true, `complete` is the boolean true, `FAILURES` is absent or an empty list,
-           and `rule_violations` is absent or an empty list: no fix round.
+           `rule_violations` is absent or an empty list, `weak_proofs` is absent or a list, and NO OTHER KEY is
+           present (the ALLOW-LIST `VERIFY_KEYS`, verify@2's schema): no fix round.
   REFIX    `all_pass` is the boolean false and `FAILURES` is a NON-EMPTY list: one fix round, aimed at exactly those
            FAILURES (a rule violation is a FAILURE; the verify template says to list it in both). `complete` may be
            false here: the failures found are real, and the re-verify after the fix covers what was not checked.
@@ -19,13 +20,22 @@ both read as TRUE), must never read as a pass. So the decision is a pure functio
            - `all_pass` absent or not a boolean (the string "false" included); `complete` absent or not the boolean
              true where a PASS would follow (the verify template's WAIT-RULE writes `complete: false` when a verify
              is cut short at 150 calls, and an unfinished check with nothing found yet is not a pass);
-           - `FAILURES` or `rule_violations` not a list; `all_pass: false` with an empty or missing `FAILURES`;
+           - `FAILURES`, `rule_violations` or `weak_proofs` present but not a list (`null` included); `all_pass:
+             false` with an empty or missing `FAILURES`;
            - `all_pass: true` WITH failures, or WITH rule violations (a rule violation is a FAILURE);
+           - `all_pass: true` beside ANY key outside the allow-list (round 2, 2026-10-21): `FAILURE`, `violations`,
+             `rule_violation`, `failed_checks`, `errors`, `completed`, a Cyrillic look-alike `аll_pass`, a nested
+             verdict under `result`, even an empty `failures: []`. WHY an allow-list and not a smarter variant
+             match: round 1 folded spellings of the four known keys, and the review then wrote five other names a
+             verifier could put its failures under, every one of which read PASS. A pass may not carry what the
+             reader does not understand; the list is checked against verify.md's schema by the self-test;
            - a VARIANT spelling of a key (`failures`, `Failures`, `rule-violations`, `All_Pass`, a zero-width
-             character inside one) that holds anything but nothing: the verifier meant something by it, and the
-             exact-key reader would have ignored it. An empty variant (`"failures": []`) is ignored.
+             character inside one) that holds anything but nothing, whatever `all_pass` says.
+           With `all_pass: false` an unknown key does not block REFIX: more fixing is never unsafe.
 UNKNOWN MEANS ASK A HUMAN, NEVER PASS. The file is read as UTF-8 with an optional BOM (PowerShell's `Out-File` writes
 one), so a correct verdict saved from PowerShell is not noise; any other encoding is UNKNOWN, never an exception.
+NEVER RAISES: a verdict nested deeper than the JSON reader's recursion limit (200,000 `[`), or any other surprise, is
+UNKNOWN, and the CLI exits 2. WHY: the CLI's exit code IS the decision, and a traceback exits 1, which is REFIX.
 """
 from __future__ import annotations
 
@@ -38,6 +48,11 @@ from pathlib import Path
 PASS, REFIX, UNKNOWN = "PASS", "REFIX", "UNKNOWN"
 #: The keys the verify template asks for, exactly as written there.
 KEYS = ("all_pass", "complete", "FAILURES", "rule_violations")
+#: The ALLOW-LIST: every top-level key of verify@2's schema (templates/verify.md, RETURN-CAP). A PASS carries no other
+#: key. selftest_workflows T-6c fails when the template's schema and this tuple disagree.
+VERIFY_KEYS = ("all_pass", "complete", "FAILURES", "weak_proofs", "rule_violations", "summary")
+#: The keys whose value must be a list when present (`null` is not a list: the schema says `[...]`).
+LIST_KEYS = ("FAILURES", "rule_violations", "weak_proofs")
 #: Characters that make two spellings of one key look different: everything but letters and digits (so `_`, `-`,
 #: spaces and zero-width characters, which are not word characters, all drop out).
 _NOT_ALNUM = re.compile(r"[\W_]+")
@@ -64,7 +79,15 @@ def _fold(key: str) -> str:
 
 def refix_decision_why(verifier_json_path) -> tuple[str, str]:
     """(verdict, reason) for the verifier JSON at `verifier_json_path`; never raises."""
-    path = Path(verifier_json_path)
+    try:
+        return _decide(Path(verifier_json_path))
+    except RecursionError:
+        return UNKNOWN, "verifier JSON is nested too deeply to read (RecursionError): a human decides"
+    except Exception as error:  # noqa: BLE001 - the last resort: a crash must read UNKNOWN, never REFIX or PASS
+        return UNKNOWN, f"verifier JSON could not be judged ({type(error).__name__}): a human decides"
+
+
+def _decide(path: Path) -> tuple[str, str]:
     try:
         text = path.read_bytes().decode("utf-8-sig")
     except OSError as error:
@@ -89,16 +112,19 @@ def refix_decision_why(verifier_json_path) -> tuple[str, str]:
     all_pass = data["all_pass"]
     if not isinstance(all_pass, bool):
         return UNKNOWN, f"all_pass is {all_pass!r} ({type(all_pass).__name__}), not a boolean"
-    failures = data.get("FAILURES")
-    if failures is not None and not isinstance(failures, list):
-        return UNKNOWN, f"FAILURES is {type(failures).__name__}, not a list"
-    violations = data.get("rule_violations")
-    if violations is not None and not isinstance(violations, list):
-        return UNKNOWN, f"rule_violations is {type(violations).__name__}, not a list"
+    for key in LIST_KEYS:
+        if key in data and not isinstance(data[key], list):
+            return UNKNOWN, f"{key} is {type(data[key]).__name__}, not a list"
+    failures, violations = data.get("FAILURES"), data.get("rule_violations")
     complete = data.get("complete")
     if complete is not None and not isinstance(complete, bool):
         return UNKNOWN, f"complete is {complete!r} ({type(complete).__name__}), not a boolean"
     if all_pass:
+        unknown = [key for key in data if key not in VERIFY_KEYS]
+        if unknown:
+            return UNKNOWN, (f"all_pass is true beside {len(unknown)} key(s) outside verify@2's schema "
+                             f"({', '.join(ascii(k) for k in unknown[:3])}): a pass may not carry what the reader "
+                             f"does not understand")
         if failures:
             return UNKNOWN, f"all_pass is true but FAILURES lists {len(failures)}: a contradiction"
         if violations:
@@ -125,7 +151,16 @@ def main(argv: list[str] | None = None) -> int:
         print(__doc__.strip().splitlines()[2].strip())
         return 2
     verdict, why = refix_decision_why(argv[1])
-    print(f"{verdict} {why}")
+    try:
+        # backslashreplace: a reason quoting a Cyrillic key must not crash a cp1252 console, because a traceback
+        # exits 1, which a script reads as REFIX (measured on the review's N5 shape)
+        sys.stdout.reconfigure(errors="backslashreplace")
+    except (AttributeError, ValueError):
+        pass
+    try:
+        print(f"{verdict} {why}")
+    except Exception:  # noqa: BLE001 - the exit code is the decision; printing must never change it
+        pass
     return {PASS: 0, REFIX: 1}.get(verdict, 2)
 
 

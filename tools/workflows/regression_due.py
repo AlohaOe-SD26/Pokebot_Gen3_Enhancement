@@ -30,9 +30,23 @@ the files it covers; this tool reads every suite's NEWEST evidence file and deci
                                     ai_player/, `ai_player/ + hook` adds the hook); a file there that was dirty while
                                     the suite ran and was restored afterwards would otherwise read "ok", although other
                                     code was tested; (b) covered files GIT IGNORES (other than bytecode caches), which
-                                    no digest, kept tree or diff ever records. The remedy is a driver that records the
-                                    wider scope (`provenance(scope=...)`), never a looser rule here.
+                                    no digest, kept tree or diff ever records; (c) covered files git is told NOT TO
+                                    LOOK AT (`git update-index --assume-unchanged` / `--skip-worktree`: the `h`/`S`
+                                    flags and their lower-case forms in `git ls-files -v`), whose edits neither the
+                                    diff nor the digest sees (round 2, 2026-10-21). The remedy for (a) is a driver
+                                    that records the wider scope (`provenance(scope=...)`), never a looser rule here.
   ok   same tree / untouched        otherwise. "ok" means NOT STALE; it says nothing about whether that run passed.
+'ok' IS UNREACHABLE TODAY (round 2, 2026-10-21, measured): every suite of the shipped map covers files outside both
+scope labels the evidence producers write (sandbox-pokebot/modules/**, ai-agent/scoring.py; units and
+revert_safety_gates also the documents check_lessons reads, which provenance's digest leaves out by design), so every
+suite reads DUE `unproven` even on a clean tree with fresh evidence, and the CLI says so in ONE NOTE line. That is
+the honest answer, not a bug of this tool: it cannot clear what the evidence does not record. The remedy is a producer
+recording a wider scope; changing the producers is outside this tool (decided 2026-10-21).
+WHAT A SUITE COVERS. `covers` (code globs, less the map's `exclude`) plus `reads`: the NON-CODE files its driver reads
+(MEASURED 2026-10-21 by scanning the files each driver runs: check_lessons reads ai_player/LESSONS.md, the README
+tree, 06/07/08, a review note and CLAUDE.md; ledger_check and test_safety_gates read ai_player/gates/ledger.json;
+test_goals reads ai-agent/knowledge.py as data). `exclude` never removes a `reads` file: a committed edit that
+breaks LESSONS.md must make `units` DUE (round 2; it read "untouched" because `**/*.md` was excluded).
 HOW THE DIGEST IS USED, AND WHY NOT ALONE. The digest (`provenance.tree_digest` over `read_tree`, the same two
 functions `provenance()` uses, called directly so no frozen-tree watch is started) covers only the UNCOMMITTED
 difference of its scope from HEAD. Two clean trees at different commits therefore share one digest, so "the digest
@@ -90,6 +104,13 @@ LABEL_RE = re.compile(r"\bHEAD [0-9a-f]{7,40}; (?P<label>.+?) (?:clean at HEAD|h
 DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
 #: Bytecode caches: never code under test (the purity gate's rule e).
 CACHE_RE = re.compile(r"(?:^|/)(?:__pycache__|\.pytest_cache)(?:/|$)|\.py[co]$")
+#: The words of an `unproven` reason that say the evidence's recorded scope is narrower than the suite's covers.
+RECORDS_ONLY = " records only "
+#: (round 2) printed ONCE when every suite is DUE only because its evidence records too narrow a scope.
+ALL_UNPROVEN_NOTE = ("NOTE every suite is DUE only as `unproven`: each covers files outside the scope its evidence "
+                     "records (`ai_player/` or `ai_player/ + hook`), so 'ok' is unreachable with today's evidence "
+                     "producers. Nothing here is known to be stale; the remedy is a producer that records a wider "
+                     "scope (`provenance(scope=...)`), never a looser rule in this tool.")
 #: The folders ai_player's own `sys.path` entries add, in the order a top-level import name is resolved.
 IMPORT_ROOTS = ("", "sandbox-pokebot", "ai-agent")
 
@@ -119,6 +140,24 @@ def glob_regex(glob: str) -> re.Pattern:
 
 def matches(path: str, globs) -> bool:
     return any(glob_regex(g).match(path) for g in globs)
+
+
+def suite_covers(path: str, suite: dict, excluded) -> bool:
+    """Does `suite` cover `path`? Its `covers` less the map's `exclude`, PLUS its `reads` (non-code files its driver
+    reads), which `exclude` never removes."""
+    return ((matches(path, suite.get("covers", [])) and not matches(path, excluded))
+            or matches(path, suite.get("reads", [])))
+
+
+def unwatched_files(repo: Path) -> set[str]:
+    """Tracked files git is told not to look at: `git ls-files -v` tags assume-unchanged entries in LOWER case and
+    skip-worktree entries `S` (`s` = both). An edit there shows in no `git diff` and no digest."""
+    out = set()
+    for item in _git(repo, "ls-files", "-v", "-z").split("\0"):
+        tag, _, path = item.partition(" ")
+        if path and len(tag) == 1 and (tag.islower() or tag == "S"):
+            out.add(path)
+    return out
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -235,6 +274,15 @@ def load_map(path: Path, repo: Path) -> dict:
         for glob in suite["covers"]:
             if not any(glob_regex(glob).match(f) and not matches(f, excluded) for f in files):
                 errors.append(f"suite {name!r}: covers glob {glob!r} matches no file of the repository")
+        reads = suite.get("reads", [])
+        if not isinstance(reads, list) or not all(isinstance(g, str) and g for g in reads):
+            errors.append(f"suite {name!r}: `reads` must be a list of globs")
+            continue
+        for glob in reads:
+            # a LITERAL path must exist (a typo is an error); a WILDCARD mirrors the driver's own glob, which may
+            # match nothing yet (check_lessons globs ai_player/readme/**/*.md before that folder exists)
+            if not any(ch in glob for ch in "*?") and glob not in files:
+                errors.append(f"suite {name!r}: reads {glob!r} is not a file of the repository")
     if not errors:
         errors += uncovered_imports(repo, data, files)
     if errors:
@@ -339,6 +387,7 @@ def assess(repo: Path, smap: dict) -> list[tuple[str, bool, str]]:
     head = _git(repo, "rev-parse", "HEAD").strip()
     tracked, untracked_names, ignored = repo_files(repo)
     files = tracked | untracked_names
+    unwatched = unwatched_files(repo)
     excluded = smap.get("exclude", [])
     environment = smap.get("environment", [])
     folder = repo / smap.get("evidence_dir", "ai_player/evidence")
@@ -352,7 +401,6 @@ def assess(repo: Path, smap: dict) -> list[tuple[str, bool, str]]:
 
     out = []
     for name, suite in smap["suites"].items():
-        covers = suite["covers"]
         ev = newest_evidence(folder, suite["evidence"])
         if ev is None:
             out.append((name, True, "never run (no evidence file matches)"))
@@ -374,6 +422,12 @@ def assess(repo: Path, smap: dict) -> list[tuple[str, bool, str]]:
         if not full:
             out.append((name, True, f"unknown commit {commit} in {ev.name}"))
             continue
+        blind = sorted(f for f in unwatched if suite_covers(f, suite, excluded))
+        if blind:
+            out.append((name, True, f"unproven: git is told not to look at {len(blind)} covered file(s) "
+                                    f"(assume-unchanged / skip-worktree: {_sample(blind, 3)}), so neither the diff "
+                                    f"nor the digest sees an edit there"))
+            continue
         same_tree = full == head and digest == current(scope)
         changed = _z(_git(repo, "diff", "--name-only", "--no-renames", "-z", full)) | untracked_names
         if digest != CLEAN_DIGEST and not same_tree:
@@ -386,17 +440,17 @@ def assess(repo: Path, smap: dict) -> list[tuple[str, bool, str]]:
             changed |= dirty
         if same_tree:
             changed = {f for f in changed if not in_scope(f, globs)}
-        hit = sorted(f for f in changed if matches(f, covers) and not matches(f, excluded))
+        hit = sorted(f for f in changed if suite_covers(f, suite, excluded))
         if hit:
             out.append((name, True, f"changed since {ev.name} ({commit}): {_sample(hit, 5)}"))
             continue
-        outside = [f for f in files if matches(f, covers) and not matches(f, excluded) and not in_scope(f, globs)]
-        hidden = [f for f in ignored if matches(f, covers) and not CACHE_RE.search(f) and not matches(f, excluded)
+        outside = [f for f in files if suite_covers(f, suite, excluded) and not in_scope(f, globs)]
+        hidden = [f for f in ignored if suite_covers(f, suite, excluded) and not CACHE_RE.search(f)
                   and not matches(f, environment)]
         if outside or hidden:
             parts = []
             if outside:
-                parts.append(f"{ev.name} records only {label}, and the suite also covers {len(outside)} files outside "
+                parts.append(f"{ev.name}{RECORDS_ONLY}{label}, and the suite also covers {len(outside)} files outside "
                              f"it (e.g. {_sample(outside, 2)}), whose state when it ran is not recorded")
             if hidden:
                 parts.append(f"git ignores {len(hidden)} covered files ({_sample(hidden, 2)}), which no evidence records")
@@ -425,6 +479,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"NOTE not tracked by this tool (environment, ignored by git): {', '.join(smap['environment'])}")
     n = sum(1 for _, due, _ in rows if due)
     unproven = sum(1 for _, due, why in rows if due and why.startswith("unproven:"))
+    if rows and all(due and why.startswith("unproven:") and RECORDS_ONLY in why for _, due, why in rows):
+        print(ALL_UNPROVEN_NOTE)
     print(f"{n} of {len(rows)} suites due" + (f" ({unproven} of them only unproven)" if unproven else ""))
     return 1 if n else 0
 
