@@ -7,7 +7,10 @@ every expected value is re-derived by regex / line scanning over the raw decomp 
   python3 ai_player/gates/verify_seasoned.py --decomp /tmp/pokeemerald [--seed N] [--data DIR]
   python3 ai_player/gates/verify_seasoned.py --decomp /tmp/pokeemerald --selftest
 
---selftest plants wrong values in a temp copy of the data and requires each to be caught.
+--selftest plants wrong values in a temp copy of the data and requires each to be caught, and runs the same check on
+the untouched data as its CONTROL (it must pass). Since 2026-10-21 the plants include each KB1 semantic error that was
+fixed in encounters.json (F-1, F-2, F-4, F-5, F-6, plus a leaking normal-play index and a false citation), checked
+by check_availability, which re-derives every table's availability from the raw decomp in its own way.
 Exit 0 = every check passed; non-zero = at least one failure.
 """
 import argparse
@@ -236,6 +239,174 @@ def totals(cx):
     cx.check("TOTAL species ids unique", len({s["id"] for s in cx.sp}) == len(cx.sp))
 
 
+# ------------------------------------------------------------------ availability (KB1 semantic fixes, 2026-10-21)
+# INTENT: re-derive, from the raw decomp and WITHOUT the extractor's rules, which wild tables a player meets in normal
+# play, and require encounters.json to say the same for every table and every where_to_find row.
+# WHY: the first KB1 extraction listed Battle Pyramid header species, Pike header levels, Altering Cave sets 2-9 and the
+# unused Cave of Origin maps as ordinary finds (findings F-1, F-2, F-4, F-6) and put a base_label in a map field (F-5).
+# This verifier passed all of them, because it only compared the tables, never what they MEAN. The readings here are
+# deliberately different from the extractor's: a different scan (write commands, not all mentions; namer folders, not
+# a reachability walk) and the raw json read by regex, so one shared mistake has to be made twice to pass.
+AV_KINDS = ("normal", "battle_frontier_runtime_species", "battle_frontier_runtime_level", "mystery_gift_required",
+            "unreachable_unused_map")
+_SCAN_CACHE = {}
+
+
+def raw_tables(cx):
+    """[(base_label, map or None, group label)] in file order, by regex over the raw wild_encounters.json."""
+    t = cx.text("src/data/wild_encounters.json")
+    groups = [(m.start(), m.group(1)) for m in re.finditer(r'"label"\s*:\s*"(\w+)"', t)]
+    out = []
+    for m in re.finditer(r'\{\s*(?:"map"\s*:\s*"(MAP_\w+)"\s*,\s*)?"base_label"\s*:\s*"(\w+)"', t):
+        grp = [g for pos, g in groups if pos < m.start()][-1]
+        out.append((m.group(2), m.group(1), grp))
+    return out
+
+
+def decomp_scan(root):
+    """One walk of data/ and src/: (folder_id {map folder: MAP id}, namers {MAP id: set of (folder or None)},
+    writers [(rel, line)] of VAR_ALTERING_CAVE_WILD_SET). Cached per decomp root (the selftest builds many Ctx)."""
+    if root in _SCAN_CACHE:
+        return _SCAN_CACHE[root]
+    folder_id = {}
+    for name in sorted(os.listdir(os.path.join(root, "data", "maps"))):
+        p = os.path.join(root, "data", "maps", name, "map.json")
+        if os.path.isfile(p):
+            folder_id[name] = re.search(r'"id"\s*:\s*"(MAP_\w+)"', open(p, encoding="utf-8").read()).group(1)
+    namers = {}
+    writers = []
+    write_cmd = re.compile(r"^\s*(setvar|addvar|subvar|copyvar|setorcopyvar|copyvarifnotzero|random)\s+"
+                           r"VAR_ALTERING_CAVE_WILD_SET\b|VarSet\(\s*VAR_ALTERING_CAVE_WILD_SET")
+    for base in ("data", "src"):
+        for dp, dn, fn in os.walk(os.path.join(root, base)):
+            dn.sort()
+            for f in sorted(fn):
+                rel = os.path.relpath(os.path.join(dp, f), root).replace("\\", "/")
+                if rel.startswith("data/layouts/") or rel == "src/data/wild_encounters.json":
+                    continue
+                if not f.endswith((".c", ".h", ".inc", ".s", ".json", ".pory")):
+                    continue
+                text = open(os.path.join(dp, f), encoding="utf-8", errors="replace").read()
+                parts = rel.split("/")
+                folder = parts[2] if rel.startswith("data/maps/") and len(parts) > 3 and parts[2] in folder_id else None
+                for mid in set(re.findall(r"\bMAP_[A-Z0-9_]+\b", text)):
+                    if folder is None or folder_id[folder] != mid:
+                        namers.setdefault(mid, set()).add(folder)
+                if "VAR_ALTERING_CAVE_WILD_SET" in text:
+                    writers += [(rel, ln.strip()) for ln in text.splitlines() if write_cmd.search(ln)]
+    _SCAN_CACHE[root] = (folder_id, namers, writers)
+    return _SCAN_CACHE[root]
+
+
+def expected_availability(cx):
+    """{base_label: (availability, map, group)} from the verifier's own reading of the decomp."""
+    folder_id, namers, writers = decomp_scan(cx.decomp)
+    pyr = cx.text("src/battle_pyramid.c")
+    pike = cx.text("src/battle_pike.c")
+    pyramid_replaces = "SetMonData(&gEnemyParty[0], MON_DATA_SPECIES, &wildMons[id].species)" in pyr
+    pike_body = pike[pike.find("bool32 TryGenerateBattlePikeWildMon("):]
+    pike_body = pike_body[:pike_body.find("\n}\n")]
+    pike_party_level = "GetHighestLevelInPlayerParty()" in pike_body and "levelDelta" in pike_body
+    gift_only = bool(writers) and all(rel == "data/scripts/gift_altering_cave.inc" for rel, _ in writers)
+    unused_folders = {f for f, mid in folder_id.items() if "UNUSED" in mid}
+    out = {}
+    seen_alter = False
+    for bl, mp, grp in raw_tables(cx):
+        if grp == "gBattlePyramidWildMonHeaders":
+            av = "battle_frontier_runtime_species" if pyramid_replaces else "normal"
+        elif grp == "gBattlePikeWildMonHeaders":
+            av = "battle_frontier_runtime_level" if pike_party_level else "normal"
+        elif mp == "MAP_ALTERING_CAVE":
+            av = "mystery_gift_required" if seen_alter and gift_only else "normal"
+            seen_alter = True
+        elif "UNUSED" in mp and not (namers.get(mp, set()) - unused_folders):
+            av = "unreachable_unused_map"   # no file outside an UNUSED map's folder names it
+        else:
+            av = "normal"
+        out[bl] = (av, mp, grp)
+    return out
+
+
+def _cited_pairs(cites):
+    """'path:12,14 text' -> {(path, 12), (path, 14)}; also accepts the short 'p:1,2; q:3' row form."""
+    pairs = set()
+    for c in cites:
+        for part in c.split("; "):
+            m = re.match(r"([\w./-]+):([\d,]+)", part)
+            if m:
+                pairs |= {(m.group(1), int(n)) for n in m.group(2).split(",")}
+    return pairs
+
+
+def check_availability(cx):
+    exp = expected_availability(cx)
+    en = cx.en
+    ok = cx.check("AVAIL every table has a known label", all(m.get("availability") in AV_KINDS for m in en["maps"]),
+                  str([m["base_label"] for m in en["maps"] if m.get("availability") not in AV_KINDS][:5]))
+    for kind in AV_KINDS:
+        want = sorted(bl for bl, (av, _, _) in exp.items() if av == kind)
+        got = sorted(m["base_label"] for m in en["maps"] if m.get("availability") == kind)
+        ok &= cx.check("AVAIL maps[] %s: %d tables (raw decomp reading)" % (kind, len(want)), got == want,
+                       "only json=%s only raw=%s" % (sorted(set(got) - set(want))[:6], sorted(set(want) - set(got))[:6]))
+    bad_rows, bad_map, n = [], [], 0
+    src_of = {m["base_label"]: m.get("availability_source") for m in en["maps"]}
+    for sp, rows in en["where_to_find"].items():
+        for r in rows:
+            n += 1
+            av, mp, grp = exp.get(r["base_label"], (None, None, None))
+            if (r.get("availability"), r.get("group"), r.get("availability_source")) != (av, grp, src_of.get(
+                    r["base_label"])):
+                bad_rows.append((sp, r["base_label"], r.get("availability"), av))
+            if r.get("map") != mp:
+                bad_map.append((sp, r["base_label"], r.get("map"), mp))
+    ok &= cx.check("AVAIL where_to_find: all %d rows carry their table's raw availability, group and source" % n,
+                   not bad_rows, str(bad_rows[:4]))
+    ok &= cx.check("AVAIL where_to_find map = the raw table's MAP_* id, null for frontier tables (F-5)",
+                   not bad_map, str(bad_map[:4]))
+    want_np = {}
+    for sp, rows in en["where_to_find"].items():
+        keep = [r for r in rows if r.get("availability") == "normal"]
+        if keep:
+            want_np[sp] = keep
+    got_np = en.get("where_to_find_normal_play")
+    diff = sorted(set(want_np) ^ set(got_np or {})) + sorted(s for s in want_np if (got_np or {}).get(s) not in
+                                                               (None, want_np[s]))
+    ok &= cx.check("AVAIL where_to_find_normal_play = exactly the where_to_find rows labelled normal (%d species)"
+                   % len(want_np), got_np == want_np, "species that differ: %s" % diff[:6])
+    # The citations must be TRUE: each cited line number holds the quoted text, and each row points only at lines
+    # its kind's rule cites.
+    rules = en.get("availability_rules", {})
+    bad_cite = []
+    allowed = {}
+    for kind in AV_KINDS:
+        r = rules.get(kind, {})
+        cites = list(r.get("decomp", [])) + [v["id_line"] for v in r.get("maps", {}).values()]
+        allowed[kind] = _cited_pairs(cites)
+        for c in cites:
+            m = re.match(r"([\w./-]+):([\d,]+) (.*)$", c)
+            if not m:
+                bad_cite.append(c)
+                continue
+            lines = cx.text(m.group(1)).splitlines()
+            for num in m.group(2).split(","):
+                if not (0 < int(num) <= len(lines) and lines[int(num) - 1].strip() == m.group(3)):
+                    bad_cite.append(c)
+        for mid, v in r.get("maps", {}).items():
+            for nb in v["named_only_by"]:
+                path, num = nb.rsplit(":", 1)
+                if mid not in cx.text(path).splitlines()[int(num) - 1]:
+                    bad_cite.append(nb)
+    ok &= cx.check("AVAIL every availability_rules citation quotes its decomp line exactly",
+                   bool(rules) and not bad_cite,
+                   str(bad_cite[:4]))
+    stray = [(m["base_label"], m.get("availability_source")) for m in en["maps"]
+             if not _cited_pairs([m.get("availability_source") or ""])
+             or not _cited_pairs([m.get("availability_source") or ""]) <= allowed.get(m.get("availability"), set())]
+    ok &= cx.check("AVAIL every table's availability_source points only at lines its kind's rule cites",
+                   not stray, str(stray[:4]))
+    return ok
+
+
 def run_checks(cx, seed):
     rnd = random.Random(seed)
     real = [s["symbol"] for s in cx.sp if not s["placeholder"]]
@@ -258,6 +429,7 @@ def run_checks(cx, seed):
     for label, meth in rnd.sample(pairs, 14):
         check_encounter_slot(cx, label, meth, rnd)
     totals(cx)
+    check_availability(cx)
 
 
 def report(cx):
@@ -302,8 +474,9 @@ def selftest(decomp, data, seed):
         plants.append(("move TACKLE power", "move", "MOVE_TACKLE"))
         save("moves.json", mv)
         caught = 0
-        for desc, kind, key in plants:
-            cx = Ctx(decomp, tmp)
+        controls = 0
+
+        def run_one(cx, kind, key):
             if kind == "species":
                 check_species(cx, key)
             elif kind == "levelup":
@@ -314,19 +487,132 @@ def selftest(decomp, data, seed):
                 check_encounter_slot(cx, key, "land", _Force(0))
             elif kind == "move":
                 check_move(cx, key)
-            failed = any(not r[1] for r in cx.results)
-            print("  planted [%s] -> %s" % (desc, "CAUGHT (verifier failed as required)" if failed else "MISSED"))
+            return any(not r[1] for r in cx.results)
+
+        for desc, kind, key in plants:
+            failed = run_one(Ctx(decomp, tmp), kind, key)
+            # CONTROL: the same check on the untouched data must pass, or a CAUGHT above proves nothing.
+            ctrl_ok = not run_one(Ctx(decomp, data), kind, key)
+            print("  planted [%s] -> %s; control %s" % (desc, "CAUGHT (verifier failed as required)" if failed
+                                                         else "MISSED", "passes" if ctrl_ok else "FAILS"))
             caught += failed
+            controls += ctrl_ok
         # the total checks must also notice a planted wrong total
         cx = Ctx(decomp, tmp)
         cx.sp = cx.sp[:-1]
         totals(cx)
         failed = any(not r[1] for r in cx.results)
-        print("  planted [species count - 1] -> %s" % ("CAUGHT" if failed else "MISSED"))
+        cx = Ctx(decomp, data)
+        totals(cx)
+        ctrl_ok = all(r[1] for r in cx.results)
+        print("  planted [species count - 1] -> %s; control %s" % ("CAUGHT" if failed else "MISSED",
+                                                                  "passes" if ctrl_ok else "FAILS"))
         caught += failed
-        want = len(plants) + 1
-        print("SELFTEST: %d of %d plants caught" % (caught, want))
-        return 0 if caught == want else 1
+        controls += ctrl_ok
+        a_caught, a_ctrl, a_n = availability_plants(decomp, data)
+        want = len(plants) + 1 + a_n
+        caught += a_caught
+        controls += a_ctrl
+        print("SELFTEST: %d of %d plants caught, %d of %d controls pass" % (caught, want, controls, want))
+        return 0 if caught == want and controls == want else 1
+
+
+def _row(en, sp, label):
+    return next(r for r in en["where_to_find"][sp] if r["base_label"] == label)
+
+
+def _plant_f1(en):
+    r = _row(en, "SPECIES_BULBASAUR", "gBattlePyramid_1")
+    r["availability"] = "normal"
+    en["where_to_find_normal_play"]["SPECIES_BULBASAUR"] = [r]
+
+
+def _plant_f2(en):
+    _row(en, "SPECIES_SEVIPER", "gBattlePike_1")["availability"] = "normal"
+
+
+def _plant_f4(en):
+    _row(en, "SPECIES_AIPOM", "gAlteringCave6")["availability"] = "normal"
+
+
+def _plant_f5(en):
+    r = _row(en, "SPECIES_BULBASAUR", "gBattlePyramid_1")
+    r["map"] = r["base_label"]
+
+
+def _plant_f6(en):
+    next(m for m in en["maps"] if m["base_label"] == "gCaveOfOrigin_UnusedRubySapphireMap1")["availability"] = "normal"
+
+
+def _plant_index(en):
+    en["where_to_find_normal_play"].setdefault("SPECIES_SEVIPER", []).append(
+        _row(en, "SPECIES_SEVIPER", "gBattlePike_1"))
+
+
+def _plant_source(en):
+    """A Pike table (and its rows) pointing at the Pyramid rule's lines: the label is right, its justification is not."""
+    pyr = next(m for m in en["maps"] if m["base_label"] == "gBattlePyramid_1")["availability_source"]
+    next(m for m in en["maps"] if m["base_label"] == "gBattlePike_1")["availability_source"] = pyr
+    for rows in en["where_to_find"].values():
+        for r in rows:
+            if r["base_label"] == "gBattlePike_1":
+                r["availability_source"] = pyr
+
+
+def _plant_cite(en):
+    c = en["availability_rules"]["battle_frontier_runtime_species"]["decomp"]
+    path, rest = c[0].split(":", 1)
+    num, text = rest.split(" ", 1)
+    c[0] = "%s:%d %s" % (path, int(num) + 1, text)
+
+
+# Each KB1 semantic error fixed on 2026-10-21, planted back, and the AVAIL check label that must name it.
+AVAIL_PLANTS = [
+    ("F-1 Pyramid header species Bulbasaur as a normal find", _plant_f1, "where_to_find: all"),
+    ("F-2 Pike Seviper header level as a normal find", _plant_f2, "where_to_find: all"),
+    ("F-4 Altering Cave set 6 (Aipom) without the Mystery Gift label", _plant_f4, "where_to_find: all"),
+    ("F-5 a Pyramid row's map holding its base_label", _plant_f5, "where_to_find map"),
+    ("F-6 the unused Cave of Origin map 1 labelled normal", _plant_f6, "maps[] normal"),
+    ("normal-play index leaking a Pike row", _plant_index, "normal_play"),
+    ("a rule citation off by one line", _plant_cite, "citation quotes"),
+    ("a Pike table justified by the Pyramid rule's lines", _plant_source, "points only at lines"),
+]
+
+
+def availability_plants(decomp, data):
+    """FAULT: each plant must turn check_availability red ON ITS OWN LABEL. CONTROL: the untouched data passes."""
+    import copy
+    base = Ctx(decomp, data)
+    clean = copy.deepcopy(base.en)
+    check_availability(base)
+    ctrl_ok = all(r[1] for r in base.results)
+    caught = controls = 0
+    for desc, plant, label in AVAIL_PLANTS:
+        cx = Ctx.__new__(Ctx)
+        cx.__dict__.update(base.__dict__)
+        cx.results = []
+        cx.en = copy.deepcopy(clean)
+        plant(cx.en)
+        check_availability(cx)
+        hit = any(not ok and label in name for name, ok, _ in cx.results)
+        print("  planted [%s] -> %s; control %s" % (desc, "CAUGHT by '%s'" % label if hit else "MISSED",
+                                                     "passes" if ctrl_ok else "FAILS"))
+        caught += hit
+        controls += ctrl_ok
+    # The same through run_checks(), the path a normal run takes: the check must be CALLED there, not only exist.
+    cx = Ctx.__new__(Ctx)
+    cx.__dict__.update(base.__dict__)
+    cx.results = []
+    cx.en = copy.deepcopy(clean)
+    _plant_f1(cx.en)
+    run_checks(cx, 20261015)
+    hit = any(not ok and name.startswith("AVAIL") for name, ok, _ in cx.results)
+    ctrl = Ctx(decomp, data)
+    run_checks(ctrl, 20261015)
+    c_ok = all(r[1] for r in ctrl.results)
+    print("  planted [F-1 through run_checks] -> %s; control %s" % ("CAUGHT" if hit else "MISSED",
+                                                                    "passes" if c_ok else "FAILS"))
+    return caught + hit, controls + c_ok, len(AVAIL_PLANTS) + 1
 
 
 class _Force:

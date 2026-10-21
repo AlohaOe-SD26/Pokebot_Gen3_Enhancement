@@ -6,8 +6,28 @@ ai_player/knowledge/seasoned/.  Standard library only.
 
   python3 ai_player/gates/extract_seasoned.py --decomp /tmp/pokeemerald
   python3 ai_player/gates/extract_seasoned.py --decomp /tmp/pokeemerald --check
+  python3 ai_player/gates/extract_seasoned.py --selftest
 
 --check re-extracts into a temp folder and fails if the committed files differ.
+--selftest runs a FAULT and a CONTROL arm for every guard below on synthetic input (no decomp needed).
+
+ENCOUNTER AVAILABILITY (added 2026-10-21, the KB1 decomp-confirmed semantic fixes F-1, F-2, F-4, F-5, F-6).
+INTENT: a seasoned player knows the wild tables AND knows which of them a player actually meets in normal play.
+WHY: the first KB1 extraction copied every wild table into `where_to_find` as if it were findable, so a consumer
+asking "where do I find Bulbasaur?" got the Battle Pyramid, where Bulbasaur never appears (its header species is
+only an index the game replaces). The raw facts are KEPT; each table and each where_to_find row now carries an
+`availability` label and the decomp line that justifies it, and `where_to_find_normal_play` holds only the
+`normal` rows, so a consumer that asks the normal-play question cannot get the other kinds by accident:
+  normal                            the map's first gWildMonHeaders entry, met by walking/surfing/fishing/smashing
+  battle_frontier_runtime_species   Battle Pyramid: the header species is an INDEX, replaced at runtime (F-1)
+  battle_frontier_runtime_level     Battle Pike: the species is real, the level comes from the party (F-2)
+  mystery_gift_required             Altering Cave sets 2-9: only a Mystery Gift script moves the set var (F-4)
+  unreachable_unused_map            the unused Cave of Origin maps: nothing outside them names them (F-6)
+F-5: a frontier table has no map; its where_to_find `map` is null and the label stays in `base_label` (before, the
+label was substituted into `map`, a field that otherwise holds MAP_* ids).
+Each rule's decomp citation is COMPUTED at extraction time (cite()), so it is true for the pinned decomp, and the
+extractor REFUSES to write (SemanticsChanged) when a cited line or an assumed property is gone: on a different
+decomp the rules must be re-adjudicated, not silently re-applied.
 """
 import argparse
 import hashlib
@@ -29,6 +49,7 @@ class Decomp:
     def __init__(self, root):
         self.root = root
         self.used = {}
+        self.cited = set()  # files an availability rule quotes; they join encounters.json's _files
         r = subprocess.run(["git", "-C", root, "rev-parse", "HEAD"], capture_output=True, text=True)
         self.sha = r.stdout.strip() or "unknown"
 
@@ -424,8 +445,264 @@ def _method(slots, rate):
             "rarity": dict(sorted(by.items(), key=lambda kv: (-kv[1]["chance_pct"], kv[0])))}
 
 
+# ---------------------------------------------------------------- encounter availability (F-1, F-2, F-4, F-5, F-6)
+class SemanticsChanged(Exception):
+    """A decomp fact an availability rule rests on is gone or different: re-adjudicate, do not extract."""
+
+
+AV_NORMAL = "normal"
+AV_PYRAMID = "battle_frontier_runtime_species"
+AV_PIKE = "battle_frontier_runtime_level"
+AV_GIFT = "mystery_gift_required"
+AV_UNUSED = "unreachable_unused_map"
+ALTERING_MAP = "MAP_ALTERING_CAVE"
+ALTERING_VAR = "VAR_ALTERING_CAVE_WILD_SET"
+ALTERING_GIFT_FILE = "data/scripts/gift_altering_cave.inc"
+PYRAMID_GROUP = "gBattlePyramidWildMonHeaders"
+PIKE_GROUP = "gBattlePikeWildMonHeaders"
+MAIN_GROUP = "gWildMonHeaders"
+MAP_TOKEN = re.compile(r"\bMAP_[A-Z0-9_]+\b")
+SCAN_DIRS = ("data", "src")
+SCAN_EXT = (".c", ".h", ".inc", ".s", ".json", ".pory")
+# wild_encounters.json names every map with a table, so it would make each one look "referenced"; layouts name
+# LAYOUT_* ids, not maps. Neither is a way for a player to get somewhere.
+SCAN_SKIP_PREFIX = ("data/layouts/", "src/data/wild_encounters.json")
+
+
+def cite_lines(text, needle):
+    """GUARD G1: the 1-based numbers of the lines whose stripped text is exactly `needle`; raises when there is none.
+    WHY: a rule's justification must be TRUE for the decomp it was extracted from. Looking the line up (instead of
+    hard-coding a number) keeps the citation right when lines move, and refuses when the code itself changed."""
+    found = [i for i, ln in enumerate(text.splitlines(), 1) if ln.strip() == needle]
+    if not found:
+        raise SemanticsChanged("cited line not found: %r" % needle)
+    return found
+
+
+def cite(d, rel, needle):
+    d.cited.add(rel)
+    return "%s:%s %s" % (rel, ",".join(str(n) for n in cite_lines(d.read(rel), needle)), needle)
+
+
+def short_cites(cites):
+    """'src/x.c:12 foo' + 'src/x.c:14 bar' -> 'src/x.c:12,14' (the per-row pointer into availability_rules)."""
+    by = {}
+    for c_ in cites:
+        path, rest = c_.split(":", 1)
+        by.setdefault(path, []).append(rest.split(" ", 1)[0])
+    return "; ".join("%s:%s" % (p, ",".join(v)) for p, v in by.items())
+
+
+def check_header_multiplicity(main_entries, n_altering_tables):
+    """GUARD G2: in gWildMonHeaders only MAP_ALTERING_CAVE may own several headers, and exactly NUM_ALTERING_CAVE_TABLES.
+    WHY: GetCurrentMapWildMonHeaderId (src/wild_encounter.c) returns the FIRST header whose map matches, adding the
+    set var only for the Altering Cave; a second header on any other map would never be read, and the labels below
+    would call it normal. `main_entries` is the list of (base_label, map) in file order."""
+    count = {}
+    for _, mp in main_entries:
+        count[mp] = count.get(mp, 0) + 1
+    bad = sorted(mp for mp, n in count.items() if n > 1 and mp != ALTERING_MAP)
+    if bad:
+        raise SemanticsChanged("maps with several gWildMonHeaders entries besides the Altering Cave: %s" % bad)
+    if count.get(ALTERING_MAP, 0) != n_altering_tables:
+        raise SemanticsChanged("Altering Cave headers %d != NUM_ALTERING_CAVE_TABLES %d"
+                               % (count.get(ALTERING_MAP, 0), n_altering_tables))
+
+
+def check_altering_var_mentions(mentions):
+    """GUARD G3: every mention of VAR_ALTERING_CAVE_WILD_SET in data/ and src/ is either a VarGet read in C or a line
+    of the Mystery Gift script data/scripts/gift_altering_cave.inc. `mentions` is a list of (rel path, stripped line).
+    WHY: the label mystery_gift_required claims nothing else in the game moves the var off 0; any other mention (a
+    script setvar, a C VarSet) must be adjudicated before the label can stand."""
+    bad = [(rel, ln) for rel, ln in mentions
+           if not (rel == ALTERING_GIFT_FILE or (rel.endswith(".c") and "VarGet(%s)" % ALTERING_VAR in ln))]
+    if bad:
+        raise SemanticsChanged("unexpected %s mention(s): %s" % (ALTERING_VAR, bad[:5]))
+    if not any(rel == ALTERING_GIFT_FILE for rel, _ in mentions):
+        raise SemanticsChanged("the Mystery Gift writer %s no longer names %s" % (ALTERING_GIFT_FILE, ALTERING_VAR))
+
+
+def unreached_maps(owner_refs, root_refs):
+    """The maps a BFS from `root_refs` cannot reach. `owner_refs` = {map id: maps its own folder's files name};
+    `root_refs` = maps named by files that belong to no map (C code, shared scripts: the new-game warp, heal
+    locations, fly targets...). An edge A -> B means a warp, connection or script in A's folder names B."""
+    seen = set()
+    todo = sorted(root_refs)
+    for _ in range(MAX_ITER):
+        if not todo:
+            break
+        m = todo.pop()
+        if m in seen:
+            continue
+        seen.add(m)
+        todo.extend(sorted(owner_refs.get(m, ())))
+    else:
+        # a cut-short walk would call reachable maps unreachable: refuse instead of labelling from a partial walk
+        raise SemanticsChanged("map reference walk did not finish in %d steps" % MAX_ITER)
+    return sorted(set(owner_refs) - seen)
+
+
+def check_unused_names(unreached_wild):
+    """GUARD G4: every wild-table map the scan cannot reach must be one the decomp itself NAMES unused.
+    WHY: the scan only sees maps named in text. A map reached through a COMPUTED id (the Battle Pyramid squares are
+    MAP_NUM(SQUARE01) + offset, src/battle_pyramid.c) looks unreached too, so the scan alone can call a real map
+    unreachable. Requiring the decomp's own 'UNUSED' name as a second, independent condition keeps that error out;
+    a wild map that fails it stops the extraction for a human to adjudicate."""
+    bad = [m for m in unreached_wild if "UNUSED" not in m]
+    if bad:
+        raise SemanticsChanged("wild-table maps no reference reaches, without an UNUSED name: %s" % bad)
+
+
+def scan_map_references(root):
+    """Walk data/ and src/ once. Returns (owner_refs, root_refs, map_dirs, altering_mentions, n_files, digest).
+    Files are read raw (not through Decomp.read) so the 1500+ scanned files stay out of `_files`; their identity is
+    recorded as one digest over the sorted (path, sha256) list instead."""
+    map_dirs = {}
+    maps_root = os.path.join(root, "data", "maps")
+    for name in sorted(os.listdir(maps_root)):
+        p = os.path.join(maps_root, name, "map.json")
+        if os.path.isfile(p):
+            with open(p, encoding="utf-8") as f:
+                map_dirs[name] = json.load(f)["id"]
+    owner_refs = {mid: set() for mid in map_dirs.values()}
+    root_refs = set()
+    mentions = []
+    h = hashlib.sha256()
+    n = 0
+    for base in SCAN_DIRS:
+        for dp, dn, fn in os.walk(os.path.join(root, base)):
+            dn.sort()
+            for f in sorted(fn):
+                rel = os.path.relpath(os.path.join(dp, f), root).replace("\\", "/")
+                if not f.endswith(SCAN_EXT) or rel.startswith(SCAN_SKIP_PREFIX):
+                    continue
+                with open(os.path.join(dp, f), "rb") as fh:
+                    raw = fh.read()
+                n += 1
+                h.update(("%s %s\n" % (rel, hashlib.sha256(raw).hexdigest())).encode())
+                text = raw.decode("utf-8", errors="replace")
+                refs = set(MAP_TOKEN.findall(text))
+                parts = rel.split("/")
+                owner = map_dirs.get(parts[2]) if rel.startswith("data/maps/") and len(parts) > 3 else None
+                if owner:
+                    owner_refs[owner] |= refs - {owner}
+                else:
+                    root_refs |= refs
+                if ALTERING_VAR in text and rel != "include/constants/vars.h":
+                    mentions += [(rel, ln.strip()) for ln in text.splitlines() if ALTERING_VAR in ln]
+    return owner_refs, root_refs, map_dirs, mentions, n, h.hexdigest()
+
+
+def namer_lines(root, map_dirs, mid):
+    """'path:line' for every line in another map's folder that names `mid` (the evidence quoted for an unused map)."""
+    out = []
+    for name, owner in sorted(map_dirs.items()):
+        if owner == mid:
+            continue
+        folder = os.path.join(root, "data", "maps", name)
+        for f in sorted(os.listdir(folder)):
+            with open(os.path.join(folder, f), encoding="utf-8", errors="replace") as fh:
+                for i, ln in enumerate(fh, 1):
+                    if re.search(r"\b%s\b" % mid, ln):
+                        out.append("data/maps/%s/%s:%d" % (name, f, i))
+    return out
+
+
+def availability_rules(d, j):
+    """Decide each table's availability. Returns (rules, label_of) where label_of[base_label] = (availability, source)
+    and `rules` is the top-level `availability_rules` block: what each label means and the decomp lines behind it."""
+    wc = "src/wild_encounter.c"
+    pyr = "src/battle_pyramid.c"
+    pike = "src/battle_pike.c"
+    # normal: GetCurrentMapWildMonHeaderId returns the first header whose map matches (src/wild_encounter.c:305-333).
+    normal = [cite(d, wc, "static u16 GetCurrentMapWildMonHeaderId(void)")]
+    # F-1: src/battle_pyramid.c:1361-1362 overwrite the species with wildMons[species - 1] of the round's table;
+    # called from src/wild_encounter.c:588 (and :722) right after TryGenerateWildMon on the Pyramid header.
+    pyramid = [cite(d, pyr, "id = GetMonData(&gEnemyParty[0], MON_DATA_SPECIES, NULL) - 1;"),
+               cite(d, pyr, "SetMonData(&gEnemyParty[0], MON_DATA_SPECIES, &wildMons[id].species);"),
+               cite(d, wc, "GenerateBattlePyramidWildMon();")]
+    # F-2: src/battle_pike.c:1118 (open level, then :1125 minus levelDelta) and :1132 (level 50) set the level; the
+    # species is only mapped to an index (SpeciesToPikeMonId, :1644) and is not overwritten. Called from
+    # src/wild_encounter.c:572.
+    pike_c = [cite(d, pike, "monLevel = GetHighestLevelInPlayerParty();"),
+              cite(d, pike, "monLevel -= wildMons[headerId][pikeMonId].levelDelta;"),
+              cite(d, pike, "monLevel = FRONTIER_MAX_LEVEL_50 - wildMons[headerId][pikeMonId].levelDelta;"),
+              cite(d, wc, "else if (!TryGenerateBattlePikeWildMon(TRUE))")]
+    # F-4: src/wild_encounter.c:321 and :325 offset the Altering Cave header by the set var; a new game zeroes it
+    # (src/new_game.c:160 ClearSav1, src/load_save.c:66 CpuFill16(0, &gSaveblock1...)); its only writer is the
+    # Mystery Gift script data/scripts/gift_altering_cave.inc:3, included from data/mystery_gift.s:25 (G3 enforces it).
+    gift = [cite(d, wc, "u16 alteringCaveId = VarGet(VAR_ALTERING_CAVE_WILD_SET);"),
+            cite(d, wc, "i += alteringCaveId;"),
+            cite(d, "src/new_game.c", "ClearSav1();"),
+            cite(d, "src/load_save.c", "CpuFill16(0, &gSaveblock1, sizeof(struct SaveBlock1ASLR));"),
+            cite(d, ALTERING_GIFT_FILE, "addvar VAR_ALTERING_CAVE_WILD_SET, 1"),
+            cite(d, "data/mystery_gift.s", '.include "data/scripts/gift_altering_cave.inc"')]
+    n_tables = int(re.search(r"#define NUM_ALTERING_CAVE_TABLES (\d+)",
+                             d.read("src/data/wild_encounters.constants.json.txt")).group(1))
+    d.cited.add("src/data/wild_encounters.constants.json.txt")
+    main = [(e["base_label"], e.get("map")) for g in j["wild_encounter_groups"] if g["label"] == MAIN_GROUP
+            for e in g["encounters"]]
+    check_header_multiplicity(main, n_tables)
+    owner_refs, root_refs, map_dirs, mentions, n_files, digest = scan_map_references(d.root)
+    check_altering_var_mentions(mentions)
+    wild_ids = {mp for _, mp in main}
+    # F-6: the reference scan; G4 adds the decomp's own UNUSED name as a second condition. On the pinned decomp it
+    # leaves exactly data/maps/CaveOfOrigin_UnusedRubySapphireMap1..3 (map.json:2 "id": ...UNUSED...), named only by
+    # each other's warps (Map2/map.json:22 -> Map1, Map1/map.json:29 and Map3/map.json:22 -> Map2, Map2/map.json:29 ->
+    # Map3) and by nothing in src/ (no CAVE_OF_ORIGIN map id appears in any .c/.h there, so no computed id either).
+    unreached = [m for m in unreached_maps(owner_refs, root_refs) if m in wild_ids]
+    check_unused_names(unreached)
+    dir_of = {v: k for k, v in map_dirs.items()}
+    unused_evidence = {}
+    for m in unreached:
+        rel = "data/maps/%s/map.json" % dir_of[m]
+        unused_evidence[m] = {"id_line": cite(d, rel, '"id": "%s",' % m),
+                              "named_only_by": namer_lines(d.root, map_dirs, m)}
+    first_alter = next(bl for bl, mp in main if mp == ALTERING_MAP)
+    label_of = {}
+    for g in j["wild_encounter_groups"]:
+        for e in g["encounters"]:
+            bl, mp = e["base_label"], e.get("map")
+            if g["label"] == PYRAMID_GROUP:
+                label_of[bl] = (AV_PYRAMID, short_cites(pyramid))
+            elif g["label"] == PIKE_GROUP:
+                label_of[bl] = (AV_PIKE, short_cites(pike_c))
+            elif g["label"] != MAIN_GROUP:
+                raise SemanticsChanged("unknown wild encounter group %s" % g["label"])
+            elif mp == ALTERING_MAP:
+                label_of[bl] = ((AV_NORMAL, short_cites(gift[:4])) if bl == first_alter
+                                else (AV_GIFT, short_cites(gift)))
+            elif mp in unused_evidence:
+                label_of[bl] = (AV_UNUSED, unused_evidence[mp]["id_line"].split(" ", 1)[0] + "; availability_rules")
+            else:
+                label_of[bl] = (AV_NORMAL, short_cites(normal))
+    rules = {
+        AV_NORMAL: {"meaning": "the map's own wild table, met in ordinary play (walking, surfing, fishing, Rock Smash). "
+                               "For the Altering Cave that is set 1, because the set var a new game zeroes is added to "
+                               "the first header. Conditional terrain still counts: e.g. ROUTE130 land exists only "
+                               "while Mirage Island is shown.", "decomp": normal + gift[:4]},
+        AV_PYRAMID: {"meaning": "Battle Pyramid: the header species is an INDEX (species - 1) into the round's own "
+                                "table, and the game replaces species and level at runtime; a player never meets the "
+                                "header species there. min/max level and species in these rows are NOT what is met.",
+                     "decomp": pyramid},
+        AV_PIKE: {"meaning": "Battle Pike: the species is real, but the level is set at runtime from the player's "
+                             "party (open level) or 50 minus a delta (level 50); the rows' min/max level are header "
+                             "values, not what is met.", "decomp": pike_c},
+        AV_GIFT: {"meaning": "Altering Cave sets 2-%d: the game reads header 1 + %s, which a new game zeroes and only "
+                             "a Mystery Gift script changes. In ordinary play only set 1 is live." % (n_tables, ALTERING_VAR),
+                  "decomp": gift},
+        AV_UNUSED: {"meaning": "a leftover map no warp, connection or script outside the unused group names, and "
+                               "whose decomp id says UNUSED: its table exists in the ROM but no player reaches it.",
+                    "scan": {"dirs": list(SCAN_DIRS), "extensions": list(SCAN_EXT), "skipped": list(SCAN_SKIP_PREFIX),
+                             "files": n_files, "digest": digest},
+                    "maps": unused_evidence},
+    }
+    return rules, label_of
+
+
 def extract_encounters(d, c, out):
     j = json.loads(d.read("src/data/wild_encounters.json"))
+    rules, label_of = availability_rules(d, j)
     wc = d.read("src/wild_encounter.c")
     fields = {f["type"]: f for f in j["wild_encounter_groups"][0]["fields"]}
     land_r = fields["land_mons"]["encounter_rates"]
@@ -444,7 +721,9 @@ def extract_encounters(d, c, out):
     for gi, g in enumerate(j["wild_encounter_groups"]):
         is_main = g["label"] == "gWildMonHeaders"
         for e in g["encounters"]:
-            entry = {"group": g["label"], "base_label": e["base_label"], "map": e.get("map"), "methods": {}}
+            av, av_src = label_of[e["base_label"]]
+            entry = {"group": g["label"], "base_label": e["base_label"], "map": e.get("map"),
+                     "availability": av, "availability_source": av_src, "methods": {}}
             if "land_mons" in e:
                 lm = e["land_mons"]
                 entry["methods"]["land"] = _method(_slots(lm["mons"], land_r), lm["encounter_rate"])
@@ -470,12 +749,22 @@ def extract_encounters(d, c, out):
     for m in maps:
         for meth, info in m["methods"].items():
             for sp, r in info["rarity"].items():
-                where.setdefault(sp, []).append({"map": m["map"] or m["base_label"], "base_label": m["base_label"],
+                # F-5: `map` is the table's MAP_* id or null (a frontier table has none); before 2026-10-21 the
+                # base_label was substituted here, a non-map string in a map field (maps[] already said null).
+                where.setdefault(sp, []).append({"map": m["map"], "base_label": m["base_label"], "group": m["group"],
                                                  "method": meth, "chance_pct": r["chance_pct"],
-                                                 "min_level": r["min_level"], "max_level": r["max_level"]})
+                                                 "min_level": r["min_level"], "max_level": r["max_level"],
+                                                 "availability": m["availability"],
+                                                 "availability_source": m["availability_source"]})
     for v in where.values():
-        v.sort(key=lambda x: (-x["chance_pct"], x["map"], x["method"]))
-    hdr = d.header(["src/data/wild_encounters.json", "src/wild_encounter.c"])
+        v.sort(key=lambda x: (-x["chance_pct"], x["map"] or x["base_label"], x["method"]))
+    # The consumer view: only what a player meets in normal play. A species with no normal row is absent here.
+    normal_play = {}
+    for sp, rows in where.items():
+        keep = [r for r in rows if r["availability"] == AV_NORMAL]
+        if keep:
+            normal_play[sp] = keep
+    hdr = d.header(sorted({"src/data/wild_encounters.json", "src/wild_encounter.c"} | d.cited))
     hdr["slot_probabilities_pct"] = got
     hdr["slot_probabilities_match_expected_gen3"] = got == expected
     hdr["slot_probabilities_note"] = (
@@ -499,8 +788,16 @@ def extract_encounters(d, c, out):
         "fishing_tiles_by_section": {"y 0-45": 131, "y 46-91": 167, "y 92-139": 149}}
     hdr["count_map_entries"] = len(maps)
     hdr["groups"] = [{"label": g["label"], "entries": len(g["encounters"])} for g in j["wild_encounter_groups"]]
+    hdr["availability_note"] = (
+        "Every maps[] entry and every where_to_find row carries `availability` (see availability_rules for what each "
+        "value means and the decomp lines behind it) and a short `availability_source` (file:line). where_to_find "
+        "keeps ALL tables (the raw facts); where_to_find_normal_play keeps only availability == 'normal', and is the "
+        "index to use for 'where can a player find X in normal play'. `map` is null for Battle Frontier tables, "
+        "which belong to no map; their label is in base_label.")
+    hdr["availability_rules"] = rules
     hdr["maps"] = maps
     hdr["where_to_find"] = dict(sorted(where.items()))
+    hdr["where_to_find_normal_play"] = dict(sorted(normal_play.items()))
     write_json(os.path.join(out, "encounters.json"), hdr)
     return maps
 
@@ -518,12 +815,144 @@ def run(decomp_root, out):
     return ctx
 
 
+def _mini_decomp(root, change=None):
+    """Write a minimal decomp tree that holds every line availability_rules() cites, plus four maps: ROUTE101 (named by
+    C code), ALTERING_CAVE (named by ROUTE101's warp), OLD_UNUSED_MAP1 (named by nothing) and, for the 'orphan' arm,
+    SECRET_ROOM (named by nothing, no UNUSED in its id). Returns the parsed wild_encounters json."""
+    def put(rel, text):
+        p = os.path.join(root, rel)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+    wc = ["static u16 GetCurrentMapWildMonHeaderId(void)", "u16 alteringCaveId = VarGet(VAR_ALTERING_CAVE_WILD_SET);",
+          "i += alteringCaveId;", "else if (!TryGenerateBattlePikeWildMon(TRUE))", "GenerateBattlePyramidWildMon();"]
+    if change == "drop_line":
+        wc.remove("i += alteringCaveId;")
+    put("src/wild_encounter.c", "\n".join(wc) + "\n")
+    put("src/battle_pyramid.c", "id = GetMonData(&gEnemyParty[0], MON_DATA_SPECIES, NULL) - 1;\n"
+                                "SetMonData(&gEnemyParty[0], MON_DATA_SPECIES, &wildMons[id].species);\n")
+    put("src/battle_pike.c", "monLevel = GetHighestLevelInPlayerParty();\n"
+                             "monLevel -= wildMons[headerId][pikeMonId].levelDelta;\n"
+                             "monLevel = FRONTIER_MAX_LEVEL_50 - wildMons[headerId][pikeMonId].levelDelta;\n")
+    put("src/new_game.c", "ClearSav1();\nSetWarpDestination(MAP_ROUTE101);\n")
+    put("src/load_save.c", "CpuFill16(0, &gSaveblock1, sizeof(struct SaveBlock1ASLR));\n")
+    put(ALTERING_GIFT_FILE, "addvar VAR_ALTERING_CAVE_WILD_SET, 1\n")
+    put("data/mystery_gift.s", '.include "data/scripts/gift_altering_cave.inc"\n')
+    put("src/data/wild_encounters.constants.json.txt", "#define NUM_ALTERING_CAVE_TABLES 2\n")
+    maps = {"Route101": ("MAP_ROUTE101", ["MAP_ALTERING_CAVE"]), "AlteringCave": ("MAP_ALTERING_CAVE", []),
+            "OldUnusedMap1": ("MAP_OLD_UNUSED_MAP1", [])}
+    main_rows = [("MAP_ROUTE101", "gRoute101"), ("MAP_ALTERING_CAVE", "gAlteringCave1"),
+                 ("MAP_ALTERING_CAVE", "gAlteringCave2"), ("MAP_OLD_UNUSED_MAP1", "gOldUnused1")]
+    if change == "dup_header":
+        main_rows.append(("MAP_ROUTE101", "gRoute101b"))
+    if change == "orphan":
+        maps["SecretRoom"] = ("MAP_SECRET_ROOM", [])
+        main_rows.append(("MAP_SECRET_ROOM", "gSecretRoom"))
+    if change == "setvar":
+        put("data/maps/Route101/scripts.inc", "setvar VAR_ALTERING_CAVE_WILD_SET, 3\n")
+    for folder, (mid, warps) in maps.items():
+        put("data/maps/%s/map.json" % folder, json.dumps(
+            {"id": mid, "name": folder, "warps": [{"dest_map": w} for w in warps]}, indent=2) + "\n")
+    j = {"wild_encounter_groups": [
+        {"label": MAIN_GROUP, "encounters": [{"map": mp, "base_label": bl} for mp, bl in main_rows]},
+        {"label": PYRAMID_GROUP, "encounters": [{"base_label": "gBattlePyramid_1"}]},
+        {"label": PIKE_GROUP, "encounters": [{"base_label": "gBattlePike_1"}]}]}
+    put("src/data/wild_encounters.json", json.dumps(j))
+    return j
+
+
+def selftest():
+    """FAULT and CONTROL for each availability guard (G1-G4) and the reachability walk, on synthetic input.
+    WHY: these guards only fire when the decomp changes, which the pinned clone never does, so without arms that
+    feed them a changed input a deleted guard call would pass every real run unnoticed."""
+    results = []
+
+    def arm(name, fn, want_raise):
+        try:
+            fn()
+            raised = False
+        except SemanticsChanged:
+            raised = True
+        ok = raised == want_raise
+        results.append(ok)
+        print("%s  %s (%s)" % ("PASS" if ok else "FAIL", name, "raised" if raised else "accepted"))
+
+    txt = "void f(void)\n{\n    x = 1;\n}\n"
+    arm("G1 CONTROL: a present line is cited", lambda: cite_lines(txt, "x = 1;"), False)
+    arm("G1 FAULT: a missing line refuses", lambda: cite_lines(txt, "x = 2;"), True)
+    alter = [("gAlteringCave%d" % i, ALTERING_MAP) for i in range(1, 10)]
+    arm("G2 CONTROL: one header per map + 9 Altering Cave headers",
+        lambda: check_header_multiplicity([("gRoute101", "MAP_ROUTE101")] + alter, 9), False)
+    arm("G2 FAULT: a second header on another map refuses",
+        lambda: check_header_multiplicity([("gRoute101", "MAP_ROUTE101"), ("gRoute101b", "MAP_ROUTE101")] + alter, 9),
+        True)
+    arm("G2 FAULT: an Altering Cave header count != NUM_ALTERING_CAVE_TABLES refuses",
+        lambda: check_header_multiplicity(alter[:8], 9), True)
+    ok_m = [("src/wild_encounter.c", "u16 alteringCaveId = VarGet(VAR_ALTERING_CAVE_WILD_SET);"),
+            (ALTERING_GIFT_FILE, "addvar VAR_ALTERING_CAVE_WILD_SET, 1")]
+    arm("G3 CONTROL: VarGet reads + the gift script", lambda: check_altering_var_mentions(ok_m), False)
+    arm("G3 FAULT: a setvar in a map script refuses", lambda: check_altering_var_mentions(
+        ok_m + [("data/maps/AlteringCave/scripts.inc", "setvar VAR_ALTERING_CAVE_WILD_SET, 3")]), True)
+    arm("G3 FAULT: a C VarSet refuses", lambda: check_altering_var_mentions(
+        ok_m + [("src/foo.c", "VarSet(VAR_ALTERING_CAVE_WILD_SET, 2);")]), True)
+    arm("G3 FAULT: the gift writer gone refuses", lambda: check_altering_var_mentions(ok_m[:1]), True)
+    arm("G4 CONTROL: an unreached UNUSED map is accepted",
+        lambda: check_unused_names(["MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1"]), False)
+    arm("G4 FAULT: an unreached map without an UNUSED name refuses",
+        lambda: check_unused_names(["MAP_BATTLE_PYRAMID_SQUARE02"]), True)
+    # The walk: A is a root; A -> B; C <-> D only name each other; E is named only by C.
+    owner = {"A": {"B"}, "B": set(), "C": {"D", "E"}, "D": {"C"}, "E": set()}
+    got = unreached_maps(owner, {"A"})
+    ok = got == ["C", "D", "E"]
+    results.append(ok)
+    print("%s  walk CONTROL+FAULT: root-reached A,B kept; the closed C,D cluster and E (named only by it) unreached: %s"
+          % ("PASS" if ok else "FAIL", got))
+    global MAX_ITER
+    saved = MAX_ITER
+    MAX_ITER = 2  # the walk above needs 3 loop passes from A (pop A, pop B, see the empty list)
+    try:
+        arm("walk FAULT: a walk cut short by its bound refuses (never labels from a partial walk)",
+            lambda: unreached_maps(owner, {"A"}), True)
+    finally:
+        MAX_ITER = saved
+    # The same guards through availability_rules() on a tiny synthetic decomp tree, so a deleted guard CALL (not only
+    # a broken guard function) turns an arm red.
+    want = {"gRoute101": AV_NORMAL, "gAlteringCave1": AV_NORMAL, "gAlteringCave2": AV_GIFT,
+            "gOldUnused1": AV_UNUSED, "gBattlePyramid_1": AV_PYRAMID, "gBattlePike_1": AV_PIKE}
+
+    def tree_arm(name, change, want_raise):
+        with tempfile.TemporaryDirectory() as root:
+            j = _mini_decomp(root, change)
+            try:
+                _, label_of = availability_rules(Decomp(root), j)
+                got = {bl: av for bl, (av, _) in label_of.items()}
+                raised = False
+            except SemanticsChanged:
+                got, raised = None, True
+        ok = raised if want_raise else got == want
+        results.append(ok)
+        print("%s  %s (%s)" % ("PASS" if ok else "FAIL", name, "raised" if raised else got))
+
+    tree_arm("TREE CONTROL: the six tables get the six labels", None, False)
+    tree_arm("TREE FAULT G1: a cited line removed from src/wild_encounter.c refuses", "drop_line", True)
+    tree_arm("TREE FAULT G2: a second gWildMonHeaders entry for MAP_ROUTE101 refuses", "dup_header", True)
+    tree_arm("TREE FAULT G3: a map script that sets the Altering Cave var refuses", "setvar", True)
+    tree_arm("TREE FAULT G4: a wild map nothing names, without UNUSED in its id, refuses", "orphan", True)
+    print("SELFTEST: %d of %d arms as required" % (sum(results), len(results)))
+    return 0 if all(results) else 1
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--decomp", required=True)
+    ap.add_argument("--decomp")
     ap.add_argument("--out", default=OUT_DEFAULT)
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
+    if a.selftest:
+        return selftest()
+    if not a.decomp:
+        ap.error("--decomp is required (except with --selftest)")
     if a.check:
         with tempfile.TemporaryDirectory() as tmp:
             run(a.decomp, tmp)
@@ -543,4 +972,8 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except SemanticsChanged as exc:
+        print("REFUSED (an availability rule's decomp fact changed; re-adjudicate before extracting):", exc)
+        sys.exit(2)

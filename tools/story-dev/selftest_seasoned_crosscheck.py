@@ -11,10 +11,23 @@ to the same facts, and every difference must carry a STATED reason (the tables b
     X3  species: sandbox-pokebot/modules/data/species.json vs seasoned species.json + learnsets.json, JOINED ON NATIONAL
                  DEX (names differ): types, abilities, stats, catch rate, gender byte, egg groups, wild held items,
                  level-up (level, move), TM/HM, tutor, egg moves
-    X4  encounters: sandbox-pokebot/modules/data/emerald_rarity.json vs seasoned encounters.json `where_to_find`: the
-                 species set, then per species the set of maps and the best per-map-and-method rate. The check is not
-                 "equal" but "every difference carries a stated reason" (GAP_SPECIES, X4_SCOPE, X4_FIELD_REASONS).
+    X4  encounters: sandbox-pokebot/modules/data/emerald_rarity.json vs seasoned encounters.json
+                 `where_to_find_normal_play` (the rows KB1 labels availability=normal): the species set, then per
+                 species the set of maps and the best per-map-and-method rate. The check is not "equal" but "every
+                 difference carries a stated reason" (GAP_SPECIES, X4_SCOPE, FIELD_REASONS). Both sides describe
+                 what a player meets in ordinary play, so they are compared like for like.
+                 X4 also ties KB1's `unreachable_unused_map` labels to the rarity file's own EXCLUDED list (an
+                 independent measurement: "no warp reaches it"), each leftover entry carrying a stated reason.
     NON-VACUITY: each X compares at least 90 % of the smaller side, so a join that matches nothing cannot pass.
+
+CHANGED 2026-10-21 (the KB1 semantic fixes F-1, F-2, F-4, F-5, F-6). X4 used to read KB1's full `where_to_find` and
+project away, by three scope rules of its own, the Battle Pyramid/Pike rows, the Altering Cave sets 2-9 and the unused
+Cave of Origin maps, and to explain 8 Pyramid placeholder species and 3 Pike species as "only in seasoned". KB1 now
+LABELS those rows itself (decomp-cited, verified by verify_seasoned.py) and keeps them out of its normal-play index,
+so the three rules and the 11 Pike/Pyramid gap reasons became stale and were removed: a stale reason is a failure
+here, so leaving them would have turned this gate red. WHY X4 reads the normal-play index rather than re-filtering:
+that index is what a consumer asks, so it is the thing worth cross-checking; a label leak (a Pyramid row marked
+normal) now shows up as an unexplained species or map, which fault arms F8-F11 prove.
 
 WHAT THESE CHECKS CAN AND CANNOT SEE (read this before trusting a PASS).
   * ‼ AGREEMENT CERTIFIES NOTHING. Every source here descends from the same game: the decomp (KB1), the ROM (the rarity
@@ -27,8 +40,9 @@ WHAT THESE CHECKS CAN AND CANNOT SEE (read this before trusting a PASS).
   * The sandbox level-up learnset is a dict keyed by move, so a move learned at several levels (Smeargle's Sketch)
     keeps ONE level there; X3 accepts it when that level is one of KB1's levels and says so (reason R-LVL-DICT).
   * X4 sees the 131 species both files hold and the set of species each holds; it cannot see slot levels, methods or
-    the encounter rate. The rarity file reads only `gWildMonHeaders` (first header per map), so Battle Pyramid/Pike
-    and the Altering Cave sets 2-9 are out of its scope (X4_SCOPE says which rows that removes, and why).
+    the encounter rate. The rarity file reads only `gWildMonHeaders` (first header per map), so it has no counterpart
+    for the rows KB1 labels battle_frontier_runtime_* or mystery_gift_required: X4 cannot confirm those labels, only
+    notice a row that LEAKS into the normal-play index (verify_seasoned.py re-derives the labels from the decomp).
   * Nothing here reads the decomp, so a value BOTH sides got wrong passes. The adversarial pass (S3-1 step 5) exists
     for that.
 
@@ -38,8 +52,10 @@ missing folder after the merge, an explicitly passed `--seasoned-dir` that is mi
 (a shallow clone without the tip) is a FAILURE.
 
 FAULT ARMS (built in, each beside its CONTROL): a planted move power (X1), a planted base stat (X2), a planted wrong
-type (X3), a dropped map (X4), a broken join (the non-vacuity guard), and a stale reason (a GAP_SPECIES entry for a
-species that is not in the gap). Each must turn its check red, naming the planted row.
+type (X3), a dropped map (X4), a broken join (the non-vacuity guard), a stale reason (a GAP_SPECIES entry for a
+species that is not in the gap), and each fixed KB1 error leaked back into the normal-play index or labels (F8 a
+Pyramid placeholder, F9 an Altering Cave set 6 row, F10 the unused Cave of Origin map 1, F11 a Pike-only species).
+Each must turn its check red, naming the planted row.
 
 Run:  cd tools/story-dev && py -3.12 selftest_seasoned_crosscheck.py [--seasoned-dir DIR] [--verbose]
 Exit: 0 all checks pass (or SKIPPED before the merge); 1 any check failed or any difference is unexplained.
@@ -101,44 +117,31 @@ EGG_GROUP_ALIAS = {"NOEGGS": "NOEGGSDISCOVERED"}
 _LEG = ("rarity", "legendary: met in a static/scripted/roaming encounter, never in a wild table; the rarity file adds "
                   "it by its literal LEGENDARY list with maps=[] (rare_species_dataset.py LEGENDARY); KB1's "
                   "where_to_find indexes wild tables only")
-_PYR = ("seasoned", "Battle Pyramid header placeholder: KB1 lists the species found in gBattlePyramidWildMonHeaders, "
-                    "but the game REPLACES it at runtime (decomp src/battle_pyramid.c GenerateBattlePyramidWildMon: "
-                    "id = species - 1; SetMonData(..., &wildMons[id].species)), so a player never meets this species "
-                    "there. KB1 SEMANTIC ERROR (reported as a finding). The rarity file reads gWildMonHeaders only.")
-_PIKE = ("seasoned", "Battle Pike only: gBattlePikeWildMonHeaders is out of the rarity file's scope (it reads "
-                     "gWildMonHeaders only). The Pike's species are real (src/battle_pike.c sLvl50_Mons1 lists "
-                     "SEVIPER, MILOTIC, DUSCLOPS) but the LEVEL is set at runtime from the party "
-                     "(TryGenerateBattlePikeWildMon), so KB1's min/max level 5 is the header's, not what a player meets.")
 GAP_SPECIES: dict[int, tuple[str, str]] = {
     **{n: _LEG for n in (144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251,
                          377, 378, 379, 380, 381, 382, 383, 384, 385, 386)},
     349: ("rarity", "Feebas: special; in no wild slot (the Route 119 tile rule replaces the rod table, "
                     "src/wild_encounter.c CheckFeebas). KB1 holds it in encounters.json `feebas`, not where_to_find "
                     "(this check asserts that block names SPECIES_FEEBAS)."),
-    **{n: _PYR for n in (1, 2, 3, 4, 5, 6, 7, 8)},
-    286: _PIKE, 350: _PIKE, 356: _PIKE,
     360: ("seasoned", "Wynaut: its only wild table is ROUTE130 land (Mirage Island), which the rarity file EXCLUDES "
-                      "(rare_species_dataset.py EXCLUDED (0, 45): 'Mirage Island only ... a PV-matched random day')."),
+                      "(rare_species_dataset.py EXCLUDED (0, 45): 'Mirage Island only ... a PV-matched random day'); "
+                      "KB1 keeps it as normal play, since Mirage Island is reachable on its day "
+                      "(this check asserts Wynaut's normal rows are all MAP_ROUTE130 land)."),
 }
 
 # X4 scope rules: which seasoned rows are projected away before the per-species comparison, so that both sides
 # describe the same set of tables. Each rule must remove at least one row (a rule that removes nothing is stale).
-X4_SCOPE = {
-    "frontier": ("gBattlePyramid_/gBattlePike_ rows: the rarity file reads gWildMonHeaders only",
-                 lambda e: e["base_label"].startswith(("gBattlePyramid_", "gBattlePike_"))),
-    "altering": ("gAlteringCave2..9: the game picks header i + VAR_ALTERING_CAVE_WILD_SET (src/wild_encounter.c "
-                 "GetCurrentMapWildMonHeaderId); only a Mystery Gift script changes the var, so in ordinary play set 1 "
-                 "(Zubat) is live and the rarity file reads the first header only",
-                 lambda e: e["map"] == "MAP_ALTERING_CAVE" and e["base_label"] != "gAlteringCave1"),
-    "excluded": ("the rarity file's EXCLUDED tables: the three unused Cave of Origin maps (no warp reaches them) and "
-                 "ROUTE130 land (Mirage Island)",
-                 lambda e: e["map"] in ("MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1",
-                                        "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2",
-                                        "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3")
-                 or (e["map"] == "MAP_ROUTE130" and e["method"] == "land")),
+# EMPTY since 2026-10-21: the three rules that lived here (frontier, altering, excluded) are now KB1's own
+# availability labels, which keep those rows out of where_to_find_normal_play. The old "excluded" rule's ROUTE130 half
+# removed no row of a species both files hold (Route 130 land is Wynaut only), so it is covered by Wynaut's gap reason.
+X4_SCOPE: dict = {}
+
+# The rarity file's own EXCLUDED list (its measurement, not KB1's) must equal KB1's unreachable_unused_map maps plus
+# the entries below, each with the reason KB1 does NOT mark it unreachable.
+RARITY_EXCLUDED_KB1_NORMAL = {
+    "ROUTE130": "Mirage Island land: rare (a PV-matched day) but reachable in ordinary play, so KB1 labels it normal; "
+                "its only species, Wynaut, is the seasoned-only gap entry 360",
 }
-X4_EXCLUDED_NAMES = {"ROUTE130", "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1",
-                     "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2", "CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3"}
 
 # Per-field differences that remain after the scope projection, each with its reason:
 #   (check, subject, field) -> reason.   Empty when the sides agree everywhere they are compared.
@@ -333,7 +336,10 @@ def x3_multilevel_count(d: dict) -> int:
 def x4(d: dict, report: list | None = None) -> list[tuple]:
     enc = d["encounters"]
     nat_of = {s["symbol"]: s["national_dex"] for s in d["species"]["species"]}
-    wtf = enc["where_to_find"]
+    if "where_to_find_normal_play" not in enc:
+        check("X4 KB1 has where_to_find_normal_play (an extraction from before 2026-10-21 does not)", False)
+        return []
+    wtf = enc["where_to_find_normal_play"]
     sea_species = {nat_of[s]: s for s in wtf}
     rar = {int(k): v for k, v in d["rarity"]["species"].items()}
 
@@ -354,13 +360,19 @@ def x4(d: dict, report: list | None = None) -> list[tuple]:
           str([(n, rar[n]["maps"], rar[n]["reasons"]) for n in only_r if rar[n]["maps"]]))
     check("X4 reason check: KB1's feebas block names SPECIES_FEEBAS (Feebas is held there, not in where_to_find)",
           enc.get("feebas", {}).get("species") == "SPECIES_FEEBAS", str(enc.get("feebas", {}).get("species")))
-    frontier = {n for n in only_s if all(e["base_label"].startswith(("gBattlePyramid_", "gBattlePike_"))
-                                         for e in wtf[sea_species[n]])}
-    check("X4 reason check: every seasoned-only Pyramid/Pike species has ONLY Pyramid/Pike rows",
-          frontier == {n for n in only_s if GAP_SPECIES.get(n) in (_PYR, _PIKE)}, str(sorted(frontier)))
-    check("X4 reason check: the rarity file's own excluded list is the one X4_SCOPE projects away",
-          set(d["rarity"]["_meta"].get("excluded", {})) == X4_EXCLUDED_NAMES,
-          str(sorted(d["rarity"]["_meta"].get("excluded", {}))))
+    wyn = wtf.get("SPECIES_WYNAUT", [])
+    check("X4 reason check: Wynaut's normal rows are all MAP_ROUTE130 land (its gap reason)",
+          bool(wyn) and all(e["map"] == "MAP_ROUTE130" and e["method"] == "land" for e in wyn), str(wyn)[:200])
+    # KB1's unreachable labels against the rarity file's independent EXCLUDED list (ROM reader + warp walk).
+    kb1_unused = {strip(m["map"], "MAP_") for m in enc["maps"] if m.get("availability") == "unreachable_unused_map"}
+    r_excl = set(d["rarity"]["_meta"].get("excluded", {}))
+    check("X4 reason check: the rarity file's EXCLUDED list = KB1's unreachable_unused_map maps + "
+          "RARITY_EXCLUDED_KB1_NORMAL (each with a stated reason)",
+          bool(kb1_unused) and r_excl == kb1_unused | set(RARITY_EXCLUDED_KB1_NORMAL)
+          and not kb1_unused & set(RARITY_EXCLUDED_KB1_NORMAL),
+          f"rarity excluded={sorted(r_excl)} kb1 unreachable={sorted(kb1_unused)}")
+    leaked = sorted({e["base_label"] for rows in wtf.values() for e in rows if e.get("availability") != "normal"})
+    check("X4 KB1's normal-play index holds only rows labelled normal", not leaked, str(leaked[:6]))
     if report is not None:
         for n in sorted(gap):
             name = rar[n]["name"] if n in rar else sea_species[n]
@@ -379,7 +391,8 @@ def x4(d: dict, report: list | None = None) -> list[tuple]:
             else:
                 rows.append(e)
         sym = sea_species[n]
-        maps_s = sorted({strip(e["map"], "MAP_") for e in rows})
+        # a frontier row has map null; if one leaks in, its base_label stands in so it shows up as a map difference
+        maps_s = sorted({strip(e["map"] or e["base_label"], "MAP_") for e in rows})
         maps_r = sorted(rar[n]["maps"])
         if maps_s != maps_r:
             diffs.append((sym, "maps", sorted(set(maps_r) - set(maps_s)), sorted(set(maps_s) - set(maps_r))))
@@ -408,6 +421,9 @@ def run_all(d: dict, label_prefix: str = "") -> tuple[int, list]:
 
 def fault_arms(d: dict) -> None:
     # CONTROL is the real run in main(); each FAULT below must turn red, naming the planted row.
+    if "where_to_find_normal_play" not in d["encounters"]:
+        check("FAULT arms skipped: KB1 has no where_to_find_normal_play (X4 already failed on it)", False)
+        return
     # F1 X1: a planted move power
     f = copy.deepcopy(d)
     mv = next(m for m in f["moves"]["moves"] if m["symbol"] == "MOVE_TACKLE")
@@ -438,8 +454,8 @@ def fault_arms(d: dict) -> None:
           any(u[0] == "SPECIES_BULBASAUR" and u[1].startswith("level_up") for u in un), str(un[:3]))
     # F4 X4: a dropped map
     f = copy.deepcopy(d)
-    f["encounters"]["where_to_find"]["SPECIES_ABRA"] = [
-        e for e in f["encounters"]["where_to_find"]["SPECIES_ABRA"] if e["map"] != "MAP_ROUTE116"]
+    f["encounters"]["where_to_find_normal_play"]["SPECIES_ABRA"] = [
+        e for e in f["encounters"]["where_to_find_normal_play"]["SPECIES_ABRA"] if e["map"] != "MAP_ROUTE116"]
     _, un, _ = run_all(f)
     check("FAULT F4 (X4 has teeth): dropped SPECIES_ABRA's MAP_ROUTE116 row is reported",
           any(u[0] == "SPECIES_ABRA" and u[1] == "maps" for u in un), str(un[:3]))
@@ -454,7 +470,7 @@ def fault_arms(d: dict) -> None:
           str([n for n, ok, _ in added if "non-vacuity" in n]))
     # F4b X4: a changed rate
     f = copy.deepcopy(d)
-    for e in f["encounters"]["where_to_find"]["SPECIES_ABSOL"]:
+    for e in f["encounters"]["where_to_find_normal_play"]["SPECIES_ABSOL"]:
         e["chance_pct"] += 1
     _, un, _ = run_all(f)
     check("FAULT F4b (X4 rates have teeth): SPECIES_ABSOL chance_pct+1 is reported as best_rate",
@@ -475,6 +491,60 @@ def fault_arms(d: dict) -> None:
         GAP_SPECIES[360] = saved
     check("FAULT F7 (an unexplained species is caught): without Wynaut's reason the gap check fails naming 360",
           any("species by species" in name and not ok and "360" in detail for name, ok, detail in added))
+
+    # F8-F11: each fixed KB1 semantic error, leaked back as a MISLABEL (availability 'normal' and in the normal-play
+    # index), must be caught by the rarity side, not merely by KB1's own label check.
+    def leak(f, sp, label):
+        enc = f["encounters"]
+        row = next(e for e in enc["where_to_find"][sp] if e["base_label"] == label)
+        row["availability"] = "normal"
+        enc["where_to_find_normal_play"].setdefault(sp, []).append(row)
+
+    f = copy.deepcopy(d)
+    leak(f, "SPECIES_BULBASAUR", "gBattlePyramid_1")
+    _, _, added = run_all(f)
+    check("FAULT F8 (F-1 leak): a Pyramid header Bulbasaur labelled normal is an unexplained gap species (1)",
+          any("species by species" in name and not ok and "(1, 'seasoned')" in detail for name, ok, detail in added))
+    f = copy.deepcopy(d)
+    leak(f, "SPECIES_AIPOM", "gAlteringCave6")
+    _, un, _ = run_all(f)
+    check("FAULT F9 (F-4 leak): Altering Cave set 6 labelled normal gives Aipom an unexplained ALTERING_CAVE map",
+          any(u[0] == "SPECIES_AIPOM" and u[1] == "maps" and "ALTERING_CAVE" in u[3] for u in un), str(un[:3]))
+    f = copy.deepcopy(d)
+    next(m for m in f["encounters"]["maps"]
+         if m["base_label"] == "gCaveOfOrigin_UnusedRubySapphireMap1")["availability"] = "normal"
+    leak(f, "SPECIES_ZUBAT", "gCaveOfOrigin_UnusedRubySapphireMap1")
+    _, un, added = run_all(f)
+    check("FAULT F10 (F-6 leak): unused Cave of Origin map 1 labelled normal fails the EXCLUDED tie and gives Zubat "
+          "an unexplained map",
+          any("EXCLUDED list" in name and not ok for name, ok, _ in added)
+          and any(u[0] == "SPECIES_ZUBAT" and u[1] == "maps" for u in un), str(un[:3]))
+    f = copy.deepcopy(d)
+    leak(f, "SPECIES_BRELOOM", "gBattlePike_3")
+    _, _, added = run_all(f)
+    check("FAULT F11 (F-2 leak): a Pike-only Breloom labelled normal is an unexplained gap species (286)",
+          any("species by species" in name and not ok and "(286, 'seasoned')" in detail for name, ok, detail in added))
+    # F12: a row still labelled non-normal but sitting in the normal-play index (an index-building bug, not a label one)
+    f = copy.deepcopy(d)
+    enc = f["encounters"]
+    enc["where_to_find_normal_play"]["SPECIES_SEVIPER"].append(
+        next(e for e in enc["where_to_find"]["SPECIES_SEVIPER"] if e["base_label"] == "gBattlePike_1"))
+    _, _, added = run_all(f)
+    check("FAULT F12 (index leak): a Pike row still labelled runtime-level inside the normal-play index is reported",
+          any("holds only rows labelled normal" in name and not ok and "gBattlePike_1" in detail
+              for name, ok, detail in added))
+    # F13: Wynaut's gap reason claims ROUTE130 land; a Wynaut row elsewhere makes that reason false
+    f = copy.deepcopy(d)
+    f["encounters"]["where_to_find_normal_play"]["SPECIES_WYNAUT"][0]["map"] = "MAP_ROUTE119"
+    _, _, added = run_all(f)
+    check("FAULT F13 (a reason's own claim is checked): a Wynaut row off ROUTE130 land fails Wynaut's reason check",
+          any("Wynaut's normal rows" in name and not ok for name, ok, _ in added))
+    # F14: an extraction from before 2026-10-21 (no normal-play index) must fail X4, not crash or pass
+    f = copy.deepcopy(d)
+    del f["encounters"]["where_to_find_normal_play"]
+    _, _, added = run_all(f)
+    check("FAULT F14 (old-format KB1): no where_to_find_normal_play fails X4",
+          any("has where_to_find_normal_play" in name and not ok for name, ok, _ in added))
 
 
 # ================================================================================================ merge state
