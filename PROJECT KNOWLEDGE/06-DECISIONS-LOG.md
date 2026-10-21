@@ -9508,3 +9508,22 @@ on all three questions:
   - Deployed, it is light: memory reads and button presses on the CPU at game speed.
 - **The naming:** the 24/7 learner in `ai-agent/` is "THE BOT TUNER" until it is pointed at the AI player's settings. Its 15 % Champion rate is the scripted bot's, flat over four weeks (13.7 / 16.6 / 13.0 / 16.1 % by week-long blocks of cycles, measured 2026-10-16), so it is not evidence about the AI. Its growing corpus of finished games is teacher data for the AI's experience memory.
 - **The plan addition (Claude's call):** after the KB1 merge, MINE THE BOT'S FINISHED GAMES into the AI's experience: per chapter, the levels and teams that beat each gym, where runs failed, and which routes and items mattered. This is data only, never code, and it is the largest available accelerator toward the whole game.
+
+## 2026-10-21 — USER RULING 42 (the step-1 operations questions): backups go to Z:, the scheduled tasks are approved, compressed raw logs are kept forever, and a weekly-meter reading of 3 %
+
+- **The questions** (asked 2026-10-21 about 4:46 AM and 5:31 AM; the backlog listed them under "Waits on the user"):
+  - O4: where the nightly backup of the bot tuner's data goes (E:, a separate SSD, or Z:, the 4 TB HDD);
+  - O4 + O1: may Claude register Windows scheduled tasks (the 1 AM backup, and later the 30-minute watchdog);
+  - O3: keep the compressed raw logs forever (measured about 69 MB a 12-hour cycle, about 50 GB a year on C:), or cap them;
+  - the current weekly usage meter, to calibrate the usage audit (P3).
+- **The user's answers, verbatim:**
+  - "1: 3% used right now."
+  - "2: Z 4tb HDD is fine."
+  - "3: That is fine if you deem it necessary."
+  - "4: Whatever you recommend."
+- **What follows:**
+  - **Backups go to Z:** (`tools/ops/ops_config.json` `backup_dir`). E: was Claude's first suggestion; Z: has 181 GB free, and a nightly backup is about 1.2 MB.
+  - **Scheduled tasks are APPROVED, at Claude's judgement.** Claude registers the backup task once O4 is reviewed and the clone holds `tools/ops/`, and the watchdog task once O1 is built and reviewed. Each goes in with a dry run first; `install_ops_tasks.ps1 -Uninstall -Apply` removes them. This approval covers these two ops tasks, not scheduled tasks in general.
+  - **The compressed raw logs are KEPT FOREVER** (`ai-agent/config.json` `keep_archive_cycles` 0; nothing deletes an archive). They are the AI's experience input (USER RULING 41, backlog A6). Claude's plan, which the user accepted: the watchdog warns below 40 GB free on C:, and archives older than about a year move to Z: later (not built; a future item, by copy-verify-then-delete).
+  - **Calibration:** the meter read 3 % when this session's input-equivalent total was 8.53 Mtok (`tools/usage_audit.py --session`). On that one point, a week is about 280 Mtok, against the older 143 Mtok = 36 % point (about 400 Mtok). The meter rounds to whole percent and also counts the bot tuner's consult calls, which leave no transcript, so this is one point of several to collect; the usage warnings (85 % warn, 90 % park) follow the meter whenever the user gives a reading.
+- **Do not re-raise these four questions.**

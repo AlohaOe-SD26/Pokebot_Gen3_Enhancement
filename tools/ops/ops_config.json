@@ -1,10 +1,12 @@
 {
-  "_help": "Read by tools/ops/backup_learner.py (and later the S1-4 watchdog). The scheduled tasks run the DEPLOYMENT CLONE's copy of this file, so a change here reaches them by commit + push to main and the clone's next fast-forward. Keys starting with _ are ignored.",
+  "_help": "Read by tools/ops/backup_learner.py and install_ops_tasks.ps1 (its clone key); the S1-4 watchdog will read it too, once built. The scheduled tasks run the DEPLOYMENT CLONE's copy of this file, so a change here reaches them by commit + push to main and the clone's next fast-forward. Keys starting with _ are ignored.",
   "clone": "C:/Remote Projects/pokebot-learner/ai-agent",
-  "_backup_dir": "E: is a different physical disk from C: (Samsung 970 EVO, 46.9 GB free on 2026-10-19). Z: (WD HDD 4 TB) is the alternative if E: fills. NOT YET CHOSEN BY THE USER (2026-10-21): the tool refuses any folder on the learner's own volume.",
-  "backup_dir": "E:/pokebot-backups/learner",
+  "_backup_dir": "Z: (WD HDD 4 TB, 181 GB free on 2026-10-19), a different physical disk from C:, chosen by the user on 2026-10-21 (USER RULING 42, 06). A nightly backup is about 1.2 MB. The tool refuses any folder on the learner's own volume, and any folder under ops_dir.",
+  "backup_dir": "Z:/pokebot-backups/learner",
   "keep": 14,
   "min_dest_free_gb": 10,
-  "_status_file": "Outside the clone, so the backup never writes a path there; %LOCALAPPDATA% is expanded. The watchdog (S1-4) and tools/status.py read it.",
+  "_ops_dir": "The ops folder every backup ALSO captures (the backup status; the S1-4 watchdog's samples and state once it exists); %LOCALAPPDATA% is expanded. An explicit key since 2026-10-21 (it used to be the status file's folder, implicitly): a destination inside it made each zip contain every earlier one, so the tool refuses a backup_dir or a clone under it, and an ops tree over 200 MB.",
+  "ops_dir": "%LOCALAPPDATA%/pokebot-ops",
+  "_status_file": "Outside the clone, so the backup never writes a path there; %LOCALAPPDATA% is expanded. It will be read by the S1-4 watchdog and tools/status.py.",
   "status_file": "%LOCALAPPDATA%/pokebot-ops/backup_status.json"
 }

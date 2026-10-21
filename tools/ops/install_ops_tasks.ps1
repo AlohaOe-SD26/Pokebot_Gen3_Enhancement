@@ -9,8 +9,10 @@
 
   - The tasks run the DEPLOYMENT CLONE's copy of tools/ops (C:\Remote Projects\pokebot-learner\tools\ops), never this
     checkout's, so work in progress here cannot break the nightly. The clone gets tools/ by its own fast-forward.
-  - They run "py -3.12 -B" so no __pycache__ is written into the clone (a stray file there is harmless, but the clone
-    stays exactly as git left it).
+  - They run "pyw.exe -3.12 -B": -B so no __pycache__ is written into the clone (a stray file there is harmless, but
+    the clone stays exactly as git left it), and pyw.exe (the windowless launcher) so no console window flashes on
+    the desktop at 1 AM (review finding 8). backup_learner.py's record is its status file, so it needs no console.
+    If pyw.exe is missing, the script falls back to py.exe and SAYS so (a window will then open each night).
   - Idempotent: -Apply replaces an existing task of the same name with the same definition (Register -Force).
 
   Modes (every mode previews unless -Apply is given):
@@ -32,14 +34,25 @@ $cfg = Get-Content -Raw -Path $cfgPath | ConvertFrom-Json
 $agentDir = $cfg.clone -replace '/', '\'
 $cloneRoot = Split-Path -Parent $agentDir
 $opsDir = Join-Path $cloneRoot 'tools\ops'
-$py = (Get-Command py.exe -ErrorAction SilentlyContinue)
-$pyPath = if ($null -ne $py) { $py.Source } else { 'C:\Windows\py.exe' }
+# The WINDOWLESS launcher first (no console flashes at 1 AM); py.exe only as a fallback that is printed, never silent.
+$launcherNote = 'pyw.exe (windowless: no console window opens when the task runs)'
+$pyw = Get-Command 'C:\Windows\pyw.exe' -ErrorAction SilentlyContinue
+if ($null -eq $pyw) { $pyw = Get-Command pyw.exe -ErrorAction SilentlyContinue }
+if ($null -ne $pyw) {
+    $pyPath = $pyw.Source
+} else {
+    $py = (Get-Command py.exe -ErrorAction SilentlyContinue)
+    $pyPath = if ($null -ne $py) { $py.Source } else { 'C:\Windows\py.exe' }
+    $launcherNote = 'NOTE pyw.exe was not found: falling back to py.exe, so a console window WILL open each time the task runs'
+}
 
 # ---------------------------------------------------------------------------------------------- the task table
 # Each task: Name, Description, Script (in the clone's tools\ops), Arguments, Trigger, Settings.
 $Tasks = @()
 
-# O4 / S1-2: nightly backup of the learner's data off C:. 1:00 AM is clear of the 4 AM / 4 PM cycle boundaries;
+# O4 / S1-2: nightly backup of the learner's data off C:. 1:00 AM is a quiet hour, NOT a guaranteed gap between the
+# learner's writes: its cycle boundaries drift and reset on every restart (02:23 AM on 10-14, 04:07 AM on 10-21), so
+# the backup's millisecond reads can still collide with a state.json replace (see backup_learner.py _open_read).
 # StartWhenAvailable runs a missed night (PC off at 1 AM) as soon as the PC is back.
 $Tasks += @{
     Name        = 'Pokebot-Ops-Backup'
@@ -64,6 +77,7 @@ $tag = if ($Apply) { 'APPLY' } else { 'WHATIF (dry run; nothing is changed; pass
 Write-Output "install_ops_tasks.ps1: $mode, $tag"
 Write-Output "  deployment clone: $cloneRoot"
 Write-Output "  python launcher:  $pyPath"
+Write-Output "                    $launcherNote"
 
 $failed = $false
 foreach ($t in $Tasks) {
@@ -86,7 +100,7 @@ foreach ($t in $Tasks) {
     Write-Output "      in:       $opsDir"
     Write-Output "      when:     $($t.TriggerText)"
     Write-Output "      settings: $($t.SettingsText)"
-    Write-Output "      as:       $env:USERNAME (interactive session)"
+    Write-Output "      as:       $env:USERNAME (interactive session: it does not run while the user is logged off)"
     if (-not (Test-Path -LiteralPath $t.Script)) {
         Write-Output "      WARN the clone has no $($t.Script) yet: it arrives on the clone's next fast-forward after this is pushed."
         if ($Apply) {

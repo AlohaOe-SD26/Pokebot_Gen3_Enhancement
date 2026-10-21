@@ -26,27 +26,49 @@ the real clone, E:, Z: and %LOCALAPPDATA% are never touched.
   B8 (Windows) no handle outlives the copy: after a backup the learner's tmp.replace onto every data file succeeds.
      FAULT arm: a handle held on state.json makes that replace raise PermissionError (the probe can see a leak, and
      the hazard is real: opening with FILE_SHARE_DELETE was tried and does NOT avoid it, measured 2026-10-21).
-  B9 the installer: the default run is a dry run (exit 0, names the task, 1:00 AM, py -3.12 -B, StartWhenAvailable,
+  B9 the installer: the default run is a dry run (exit 0, names the task, 1:00 AM, -3.12 -B, StartWhenAvailable,
      "no scheduled task was created") and the task's registration state is unchanged; the installed command never
-     carries the test flag (FAULT: a mutant text carrying it is caught).
+     carries the test flag (FAULT: a mutant text carrying it is caught). The task launches pyw.exe (no window at 1 AM),
+     and the tool run HEADLESS through that launcher (stdout and stderr None, as under Task Scheduler) still returns
+     its exit code and writes its status: FAULT same volume -> 2 REFUSED; CONTROL the test flag -> 0 ok.
   B10 the weekly snapshot (--publish-to): FAULT a target inside the clone is refused and not created; CONTROL the six
      files land in a main-checkout target, a learner.log over 5 MB is cut to its last 5,000 lines, and runs.jsonl
      over 5 MB is published WHOLE (measured 2026-10-21: the real one is 10.2 MB in 2,586 lines).
-  B11 FAULT runs.jsonl shrank since the previous backup -> still ok, with 'WARN runs.jsonl shrank A -> B' (a reparse
-     may legitimately rewrite it). CONTROL it grew -> no warning.
+  B11 FAULT runs.jsonl shrank -> NEEDS-YOU: exit 1, ok false, the new zip KEPT, nothing pruned; 15 more shrunken
+     nights still prune nothing (the baseline is the LARGEST earlier copy, not the newest). CONTROL it grew -> ok. The
+     documented release (move the larger zips into a sub-folder) resumes pruning and leaves the sub-folder untouched.
+  B12 (review finding 0, its absent.py shape) FAULT 14 good nights, then 15 nights with NO runs.jsonl -> every night
+     NEEDS-YOU, exit 1, and all 14 good backups still exist and hold runs.jsonl; a clone that never had one is held
+     too. CONTROL runs.jsonl back whole -> ok and pruning resumes.
+  B13 (finding 1) FAULT backups named in the future (clock went backwards) -> NEEDS-YOU, the new zip KEPT, nothing
+     deleted; with that hold disabled the new zip is still never pruned (`protect`). CONTROL past names -> the
+     oldest is pruned. Unit: apply_retention never deletes the protected name.
+  B14 (finding 3) FAULT a destination under the ops folder / a clone under it / an ops tree over the cap -> exit 2,
+     nothing in the destination. CONTROL a normal layout captures the ops folder.
+  B15 (finding 6) FAULT a fresh lock -> exit 2, the lock untouched; two CONCURRENT runs -> the second is REFUSED and
+     the first completes. CONTROL a stale lock is replaced (WARN), no lock is left behind; the sweep removes only a
+     .part over an hour old.
+  B16 (finding 7) FAULT a backup name in non-ASCII digits is not ours: it takes no keep slot. CONTROL ASCII names are.
+  B17 (finding 5) FAULT \\\\?\\ and UNC targets are refused outright by --restore-check and --publish-to, and with the
+     name check blinded the IDENTITY check still refuses a target inside the clone. CONTROL a plain outside target
+     restores.
 
-Run: cd tools/story-dev && py -3.12 selftest_ops.py      (about 10 s)
+Run: cd tools/story-dev && py -3.12 selftest_ops.py      (about 8 s)
 """
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import importlib.util
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import zipfile
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -137,12 +159,12 @@ class Env:
                                          else 2 if self.tool.is_under(p, self.clone.parent) else 1)
         self.tool.free_gb = lambda p: self.free
 
-    def backup(self, minute: int = 0, **kw):
-        import datetime as dt
-        when = dt.datetime(2026, 10, 21, 1, minute)
+    def backup(self, minute: int = 0, keep: int = 14, when=None, **kw):
+        when = when or dt.datetime(2026, 10, 21, 1, minute)
+        kw.setdefault("ops_dir", self.ops)
         buf = io.StringIO()
         with redirect_stdout(buf):
-            code, status = self.tool.run_backup(self.clone, self.dest, 14, 10.0, self.status, when=when, **kw)
+            code, status = self.tool.run_backup(self.clone, self.dest, keep, 10.0, self.status, when=when, **kw)
         return code, status, buf.getvalue()
 
     def dest_files(self) -> list[str]:
@@ -278,7 +300,7 @@ def b3(tmp: Path) -> None:
     # test flag lets it through with a loud warning recorded in the status file.
     e2 = Env(tmp, "b3cli")
     base = [sys.executable, "-B", str(TOOL), "--clone", str(e2.clone), "--dest", str(e2.dest), "--status-file",
-            str(e2.status), "--min-free-gb", "0"]
+            str(e2.status), "--ops-dir", str(e2.ops), "--min-free-gb", "0"]
     r = subprocess.run(base, capture_output=True, text=True, timeout=120)
     check("B3 FAULT CLI without the test flag on one disk -> exit 2 REFUSED", r.returncode == 2 and "REFUSED" in r.stdout,
           r.stdout + r.stderr)
@@ -444,19 +466,276 @@ def b10(tmp: Path) -> None:
               (out_dir / "runs.jsonl").read_bytes() == big_runs, "")
 
 
+def night(day: int, minute: int = 0) -> dt.datetime:
+    return dt.datetime(2026, 10, day, 1, minute)
+
+
+def holds_runs(path: Path) -> bool:
+    with zipfile.ZipFile(path) as z:
+        return "ai-agent/data/runs.jsonl" in z.namelist()
+
+
 def b11(tmp: Path) -> None:
-    """runs.jsonl shrinking between backups is a WARNING (a reparse may rewrite it), never a failure, never silent."""
+    """runs.jsonl shrinking is a NEEDS-YOU hold: the zip is kept and nothing is pruned, on every night it stays short."""
     e = Env(tmp, "b11")
-    code, _s, out = e.backup(minute=0)
+    code, _s, out = e.backup(when=night(1))
     runs = e.clone / "data" / "runs.jsonl"
     runs.write_text(runs.read_text(encoding="utf-8") + jl([{"run": 999}]), encoding="utf-8")
-    code2, s2, out2 = e.backup(minute=1)
-    check("B11 CONTROL: runs.jsonl grew -> ok and no 'shrank' warning",
-          code == 0 and code2 == 0 and not any("shrank" in w for w in s2["warnings"]), out + out2)
+    code2, s2, out2 = e.backup(when=night(2))
+    check("B11 CONTROL: runs.jsonl grew -> ok, exit 0, no hold",
+          code == 0 and code2 == 0 and s2["ok"] and not s2["error"], out + out2)
     runs.write_text(jl({"run": i} for i in range(50)), encoding="utf-8")
-    code3, s3, out3 = e.backup(minute=2)
-    check("B11 FAULT: runs.jsonl shrank -> still ok (exit 0) with 'WARN runs.jsonl shrank 201 -> 50'",
-          code3 == 0 and s3["ok"] and any("WARN runs.jsonl shrank 201 -> 50" in w for w in s3["warnings"]), out3)
+    code3, s3, out3 = e.backup(when=night(3))
+    check("B11 FAULT: runs.jsonl shrank -> NEEDS-YOU, exit 1, ok false, 'runs.jsonl shrank 201 -> 50'",
+          code3 == 1 and not s3["ok"] and "NEEDS-YOU" in (s3["error"] or "")
+          and "runs.jsonl shrank 201 -> 50" in s3["error"], out3)
+    check("B11 FAULT: the shrunken night's zip is KEPT and nothing was pruned",
+          (e.dest / "learner-data-20261003-0100.zip").exists() and s3["pruned"] == [] and s3["bytes"] > 0, str(s3))
+    st = json.loads(e.status.read_text(encoding="utf-8"))
+    check("B11 FAULT: the status FILE says ok false with the NEEDS-YOU reason", not st["ok"] and "NEEDS-YOU" in st["error"],
+          str(st))
+    codes = [e.backup(when=night(d), keep=14)[0] for d in range(4, 19)]  # 15 more nights, still 50 lines
+    big = ["learner-data-20261001-0100.zip", "learner-data-20261002-0100.zip"]
+    check("B11 FAULT: 15 more shrunken nights (18 zips, keep 14) -> every night exit 1 and BOTH larger backups remain",
+          codes == [1] * 15 and all((e.dest / n).exists() for n in big), f"{codes} {e.dest_files()[:3]}")
+    keep_dir = e.dest / "kept-before-reparse"
+    keep_dir.mkdir()
+    for n in big:
+        os.replace(e.dest / n, keep_dir / n)
+    code4, s4, out4 = e.backup(when=night(19))
+    check("B11 CONTROL: the documented release (larger zips moved into a sub-folder) -> exit 0 and pruning resumes",
+          code4 == 0 and s4["ok"] and len(s4["pruned"]) == 3, out4)
+    check("B11 CONTROL: the sub-folder is never touched by retention",
+          sorted(p.name for p in keep_dir.iterdir()) == big, "")
+
+
+def b12(tmp: Path) -> None:
+    """The reviewer's absent.py: a clone that LOST runs.jsonl must never prune the good copies away."""
+    e = Env(tmp, "b12")
+    runs = e.clone / "data" / "runs.jsonl"
+    good_bytes = runs.read_bytes()
+    first = [e.backup(when=night(d))[0] for d in range(1, 15)]
+    good = sorted(n for n in e.dest_files() if e.tool.ZIP_RE.match(n))
+    check("B12 setup: 14 good nightly backups, each holding runs.jsonl",
+          first == [0] * 14 and len(good) == 14 and all(holds_runs(e.dest / n) for n in good), str(first))
+    runs.unlink()
+    results = [e.backup(when=night(d)) for d in range(15, 30)]
+    check("B12 FAULT: 15 nights without runs.jsonl -> every night exit 1, ok false, NEEDS-YOU 'NOT captured'",
+          all(c == 1 and not s["ok"] and "runs.jsonl was NOT captured" in (s["error"] or "") for c, s, _o in results),
+          str([(c, (s["error"] or "")[:60]) for c, s, _o in results[:2]]))
+    check("B12 FAULT: all 14 good backups still exist and still hold runs.jsonl",
+          all((e.dest / n).exists() and holds_runs(e.dest / n) for n in good), str(e.dest_files()[:5]))
+    check("B12 FAULT: each held night's zip was KEPT (29 zips now)",
+          len([n for n in e.dest_files() if e.tool.ZIP_RE.match(n)]) == 29, str(len(e.dest_files())))
+    runs.write_bytes(good_bytes)
+    code, s, out = e.backup(when=night(30))
+    check("B12 CONTROL: runs.jsonl back whole -> exit 0, ok, and pruning resumes (30 zips -> 14)",
+          code == 0 and s["ok"] and len([n for n in e.dest_files() if e.tool.ZIP_RE.match(n)]) == 14, out)
+    f = Env(tmp, "b12never")
+    (f.clone / "data" / "runs.jsonl").unlink()
+    seed_old(f.dest)
+    code, s, out = f.backup()
+    check("B12 FAULT: a clone that never had runs.jsonl -> held too (exit 1), all 20 old files kept",
+          code == 1 and "no earlier backup holds one" in (s["error"] or "") and len(f.dest_files()) == 23, out)
+
+
+def b13(tmp: Path) -> None:
+    """A clock that went backwards must never make retention delete tonight's verified zip (review finding 1)."""
+    e = Env(tmp, "b13")
+    e.dest.mkdir(parents=True)
+    future = [f"learner-data-2099010{i}-0100.zip" for i in range(1, 4)]
+    for n in future:
+        (e.dest / n).write_bytes(b"future")
+    code, s, out = e.backup(keep=3)
+    tonight = "learner-data-20261021-0100.zip"
+    check("B13 FAULT: backups named in the future -> NEEDS-YOU (clock), exit 1, ok false",
+          code == 1 and not s["ok"] and "named LATER than now" in (s["error"] or ""), out)
+    check("B13 FAULT: tonight's zip KEPT, every future-named file kept, the size recorded",
+          (e.dest / tonight).exists() and all((e.dest / n).exists() for n in future) and s["bytes"] > 0, str(s))
+
+    g = Env(tmp, "b13protect")  # the second layer: with the clock hold disabled, `protect` alone must save it
+    g.dest.mkdir(parents=True)
+    for n in future:
+        (g.dest / n).write_bytes(b"future")
+    g.tool.clock_hold = lambda dest, final_name: []
+    code, s, out = g.backup(keep=3)
+    check("B13 FAULT: clock hold disabled -> tonight's zip is STILL not pruned (protect), exit 0",
+          code == 0 and (g.dest / tonight).exists() and tonight not in s["pruned"], out + str(g.dest_files()))
+
+    c = Env(tmp, "b13control")
+    c.dest.mkdir(parents=True)
+    past = [f"learner-data-2026101{i}-0100.zip" for i in range(1, 4)]
+    for n in past:
+        (c.dest / n).write_bytes(b"older")
+    code, s, out = c.backup(keep=3)
+    check("B13 CONTROL: past names, keep 3 -> exit 0, the OLDEST pruned, tonight's zip kept",
+          code == 0 and s["pruned"] == [past[0]] and (c.dest / tonight).exists(), out)
+
+    u = tmp / "b13unit"
+    u.mkdir()
+    names = [f"learner-data-2026100{i}-0100.zip" for i in range(1, 5)]
+    for n in names:
+        (u / n).write_bytes(b"x")
+    gone = c.tool.apply_retention(u, 3, protect=names[0])
+    check("B13 unit FAULT: apply_retention never deletes the protected name, even when it sorts oldest",
+          gone == [] and (u / names[0]).exists(), str(gone))
+    gone = c.tool.apply_retention(u, 3)
+    check("B13 unit CONTROL: without protect the oldest IS deleted", gone == [names[0]], str(gone))
+
+
+def b14(tmp: Path) -> None:
+    """The ops folder is explicit and guarded: a destination or clone inside it, or a huge one, is refused."""
+    e = Env(tmp, "b14")
+    e.dest = e.ops / "backups"
+    code, s, out = e.backup()
+    check("B14 FAULT: a destination under the ops folder -> exit 2 REFUSED, the destination not created",
+          code == 2 and "under the ops folder" in (s["error"] or "") and not e.dest.exists(), out)
+    f = Env(tmp, "b14clone")
+    code, s, out = f.backup(ops_dir=f.clone.parent)  # <root>/clone holds the clone and NOT the destination
+    check("B14 FAULT: a clone under the ops folder -> exit 2 REFUSED, nothing in the destination",
+          code == 2 and "the clone" in (s["error"] or "") and "under the ops folder" in s["error"]
+          and f.dest_files() == [], out)
+    g = Env(tmp, "b14big")
+    g.tool.OPS_MAX_BYTES = 4000
+    (g.ops / "big.bin").write_bytes(b"x" * 5000)
+    code, s, out = g.backup()
+    check("B14 FAULT: an ops tree over the cap -> exit 2 REFUSED, nothing in the destination",
+          code == 2 and "cap" in (s["error"] or "") and g.dest_files() == [], out)
+    (g.ops / "big.bin").unlink()
+    code, s, out = g.backup(minute=1)
+    mem = zip_members(Path(s["zip"])) if s.get("zip") else {}
+    check("B14 CONTROL: a normal ops folder -> exit 0, and it is captured (pokebot-ops/samples.jsonl)",
+          code == 0 and "pokebot-ops/samples.jsonl" in mem, out)
+
+
+def b15(tmp: Path) -> None:
+    """One run at a time (review finding 6), and the sweep never removes a young .part."""
+    e = Env(tmp, "b15")
+    e.dest.mkdir(parents=True)
+    lock = e.dest / e.tool.LOCK_NAME
+    lock.write_text("another run", encoding="utf-8")
+    code, s, out = e.backup()
+    check("B15 FAULT: a fresh lock -> exit 2 REFUSED, no zip, the lock untouched",
+          code == 2 and "another backup holds" in (s["error"] or "") and lock.read_text(encoding="utf-8") == "another run"
+          and not any(n.endswith(".zip") for n in e.dest_files()), out)
+    old = time.time() - 3 * 3600
+    os.utime(lock, (old, old))
+    code, s, out = e.backup(minute=1)
+    check("B15 CONTROL: a lock 3 h old is stale -> replaced with a WARN, exit 0, and no lock is left behind",
+          code == 0 and any("stale lock" in w for w in s["warnings"]) and not lock.exists(), out)
+
+    young = e.dest / "learner-data-20261020-0100.zip.part"
+    stale = e.dest / "learner-data-20261019-0100.zip.part"
+    alien = e.dest / "learner-data-٢٠٢٠0101-0100.zip.part"  # Arabic-Indic digits: not ours
+    for p in (young, stale, alien):
+        p.write_bytes(b"part")
+    for p in (stale, alien):
+        os.utime(p, (old, old))
+    code, s, out = e.backup(minute=2)
+    check("B15 CONTROL: the sweep removes our .part over an hour old (with a WARN)",
+          code == 0 and not stale.exists() and any(stale.name in w for w in s["warnings"]), out)
+    check("B15 FAULT: a .part under an hour old (a live run's) is NOT removed", young.exists(), str(e.dest_files()))
+    check("B15 FAULT: a .part named in non-ASCII digits is not ours and is NOT removed", alien.exists(), "")
+
+    c = Env(tmp, "b15concurrent")
+    real_verify = c.tool.verify_zip
+    paused, gate = threading.Event(), threading.Event()
+
+    def slow_verify(path, expect=None):
+        if threading.current_thread().name == "runA":
+            paused.set()
+            gate.wait(20)
+        return real_verify(path, expect)
+
+    c.tool.verify_zip = slow_verify
+    res = {}
+    ta = threading.Thread(target=lambda: res.__setitem__("A", c.backup()), name="runA")
+    ta.start()
+    paused.wait(20)
+    res["B"] = c.backup()
+    gate.set()
+    ta.join(60)
+    a_code, a_s = res.get("A", (None, {}, ""))[:2]
+    b_code, b_s = res["B"][:2]
+    check("B15 FAULT: two CONCURRENT runs -> the second is REFUSED (exit 2) by the lock",
+          b_code == 2 and "another backup holds" in (b_s["error"] or ""), str(b_s.get("error")))
+    check("B15 CONTROL: the first run completes (exit 0) with its zip", a_code == 0 and
+          "learner-data-20261021-0100.zip" in c.dest_files(), f"{a_code} {a_s.get('error')} {c.dest_files()}")
+
+
+def b16(tmp: Path) -> None:
+    """Backup names are matched with ASCII [0-9] only: a non-ASCII-digit name takes no keep slot (finding 7)."""
+    e = Env(tmp, "b16")
+    e.dest.mkdir(parents=True)
+    olds = [f"learner-data-202609{d:02d}-0100.zip" for d in range(1, 15)]  # 14 old + tonight = 15 > keep 14
+    for n in olds:
+        (e.dest / n).write_bytes(b"old")
+    alien = "learner-data-٢٠٢٠0101-0100.zip"
+    (e.dest / alien).write_bytes(b"not ours")
+    check("B16 FAULT: ZIP_RE does not match a name in Arabic-Indic digits", e.tool.ZIP_RE.match(alien) is None, "")
+    check("B16 CONTROL: ZIP_RE matches an ASCII backup name", e.tool.ZIP_RE.match(olds[0]) is not None, "")
+    code, s, out = e.backup()
+    ours = [n for n in e.dest_files() if re.fullmatch(r"learner-data-[0-9]{8}-[0-9]{4}\.zip", n, re.ASCII)]
+    check("B16 FAULT: with the alien file present, exactly 14 REAL backups remain and the alien file is untouched",
+          code == 0 and len(ours) == 14 and (e.dest / alien).read_bytes() == b"not ours", f"{code} {len(ours)} {out}")
+
+
+def b17(tmp: Path) -> None:
+    """--restore-check and --publish-to never write in the clone, whatever the spelling (review finding 5)."""
+    e = Env(tmp, "b17")
+    code, status, out = e.backup()
+    z = Path(status["zip"]) if status.get("zip") else None
+    if not z:
+        check("B17 setup backup", False, out)
+        return
+    inside_t = e.clone / "data" / "restore-alias"
+    outside_t = tmp / "b17out"
+    q = lambda p: Path("\\\\?\\" + str(p.resolve()))  # noqa: E731
+    drive, rest = os.path.splitdrive(str(inside_t.resolve()))
+    unc = Path("\\\\localhost\\" + drive.rstrip(":") + "$" + rest)
+    for label, target in (("\\\\?\\ spelling of a target inside the clone", q(inside_t)),
+                          ("\\\\localhost\\C$ spelling of a target inside the clone", unc),
+                          ("\\\\?\\ spelling of a target OUTSIDE the clone", q(outside_t))):
+        with redirect_stdout(io.StringIO()) as buf:
+            rc = e.tool.restore_check(z, target, e.clone)
+        check(f"B17 FAULT restore-check: {label} -> refused outright (exit 2), nothing created",
+              rc == 2 and "UNC" in buf.getvalue() and not inside_t.exists() and not outside_t.exists(),
+              buf.getvalue())
+    with redirect_stdout(io.StringIO()) as buf:
+        rc = e.tool.publish(e.clone, q(e.clone / "published"))
+    check("B17 FAULT publish: a \\\\?\\ spelling of a target inside the clone -> exit 2, not created",
+          rc == 2 and not (e.clone / "published").exists(), buf.getvalue())
+    # OUTSIDE the clone, so only the outright refusal can say no (the identity layer would catch the inside one alone:
+    # a mutant deleting publish's refusal survived the line above)
+    pub_out = tmp / "b17pubout"
+    with redirect_stdout(io.StringIO()) as buf:
+        rc = e.tool.publish(e.clone, q(pub_out))
+    check("B17 FAULT publish: a \\\\?\\ spelling of a target OUTSIDE the clone -> refused outright, not created",
+          rc == 2 and "UNC" in buf.getvalue() and not pub_out.exists(), buf.getvalue())
+    with redirect_stdout(io.StringIO()):
+        rc = e.tool.publish(e.clone, pub_out)
+    check("B17 CONTROL publish: the same OUTSIDE target in a plain spelling publishes (exit 0)",
+          rc == 0 and (pub_out / "runs.jsonl").exists(), str(rc))
+    with redirect_stdout(io.StringIO()):
+        rc = e.tool.restore_check(z, outside_t, e.clone)
+    check("B17 CONTROL: the same OUTSIDE target in a plain spelling restores (exit 0)", rc == 0, str(rc))
+
+    b = Env(tmp, "b17blind")  # the second layer alone: a name check that MISSES (as an alias spelling made it do)
+    code, status, out = b.backup()
+    b.tool.is_under = lambda child, parent: False
+    check("B17 FAULT: with the name check blinded, inside() still finds a target in the clone by IDENTITY",
+          b.tool.inside(b.clone / "data" / "x" / "y", b.clone.parent), "")
+    check("B17 CONTROL: ... and does NOT claim an unrelated folder", not b.tool.inside(tmp / "elsewhere", b.clone.parent),
+          "")
+    blind_t = b.clone / "data" / "restore-blind"
+    with redirect_stdout(io.StringIO()):
+        rc = b.tool.restore_check(Path(status["zip"]), blind_t, b.clone) if status.get("zip") else -1
+    check("B17 FAULT: with the name check blinded, restore-check into the clone is still refused, not created",
+          rc == 2 and not blind_t.exists(), str(rc))
+    with redirect_stdout(io.StringIO()):
+        rc = b.tool.publish(b.clone, b.clone / "published-blind")
+    check("B17 FAULT: with the name check blinded, publish into the clone is still refused, not created",
+          rc == 2 and not (b.clone / "published-blind").exists(), str(rc))
 
 
 def installer_carries_test_flag(text: str) -> bool:
@@ -479,6 +758,30 @@ def b9(tmp: Path) -> None:
         check(f"B9 the default dry run prints '{want}'", r.returncode == 0 and want in out, out[-400:])
     check("B9 CONTROL: the dry run left the task's registration unchanged", before == after and before in
           ("present", "absent"), f"{before} -> {after}")
+    m = re.search(r'run:\s+"([^"]+)" -3\.12 -B', out)
+    launcher = m.group(1) if m else ""
+    if Path(r"C:\Windows\pyw.exe").is_file():
+        check("B9 the task launches pyw.exe (windowless: no console flashes at 1 AM)",
+              launcher.lower().endswith("pyw.exe"), launcher or out[-400:])
+    else:
+        check("B9 no pyw.exe on this PC: the py.exe fallback is SAID, not silent", "pyw.exe was not found" in out, out)
+    if launcher:
+        # HEADLESS, as Task Scheduler runs it: stdout and stderr are None, so print() must be harmless and the exit
+        # code and the status file are the only record.
+        e = Env(tmp, "b9headless")
+        shim = ("import sys, runpy; sys.stdout = sys.stderr = None; t = sys.argv[1]; sys.argv = sys.argv[1:]; "
+                "runpy.run_path(t, run_name='__main__')")
+        base = [launcher, "-3.12", "-B", "-c", shim, str(TOOL), "--clone", str(e.clone), "--dest", str(e.dest),
+                "--status-file", str(e.status), "--ops-dir", str(e.ops), "--min-free-gb", "0"]
+        quiet = dict(stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
+        rc = subprocess.run(base, **quiet).returncode
+        st = json.loads(e.status.read_text(encoding="utf-8")) if e.status.exists() else {}
+        check("B9 FAULT headless through the task's launcher: same volume -> exit 2 and the status file says REFUSED",
+              rc == 2 and "REFUSED" in (st.get("error") or ""), f"{rc} {st}")
+        rc = subprocess.run(base + ["--test-allow-same-volume"], **quiet).returncode
+        st = json.loads(e.status.read_text(encoding="utf-8")) if e.status.exists() else {}
+        check("B9 CONTROL headless through the task's launcher: test flag -> exit 0 and the status file says ok",
+              rc == 0 and st.get("ok") is True, f"{rc} {st}")
     text = INSTALLER.read_text(encoding="utf-8")
     check("B9 the installer is ASCII-only (PowerShell 5.1 reads a BOM-less .ps1 as Windows-1252)", text.isascii(), "")
     check("B9 CONTROL: the installed command never carries --test-allow-same-volume", not installer_carries_test_flag(text))
@@ -491,14 +794,17 @@ def main() -> int:
     # ignore_cleanup_errors: a LEAKED handle (the B8 fault) must be reported as a FAIL line, not crash the cleanup.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         tmp = Path(td)
-        for test in (b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11):
+        for test in (b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17):
             try:
                 test(tmp)
             except Exception as ex:  # noqa: BLE001 - a crash is a FAIL with its reason, never a silent pass
                 check(f"{test.__name__.upper()} crashed", False, f"{type(ex).__name__}: {ex}")
     bad = [r for r in RESULTS if not r[1]]
     for name, ok, detail in RESULTS:
-        print(("PASS " if ok else "FAIL ") + name + ("" if ok else f" | {detail[:300]}"))
+        line = ("PASS " if ok else "FAIL ") + name + ("" if ok else f" | {detail[:300]}")
+        # ASCII-safe: a FAIL detail can hold a non-ASCII file name (B15/B16), and printing it to a cp1252 pipe once
+        # crashed the report instead of showing the FAIL (found by mutant M15)
+        print(line.encode("ascii", "backslashreplace").decode("ascii"))
     print(f"{'ALL PASS' if not bad else 'FAILED'} ({len(RESULTS)} checks, {len(bad)} failed)")
     return 1 if bad else 0
 
