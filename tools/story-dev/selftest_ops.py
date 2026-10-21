@@ -65,7 +65,48 @@ the real clone, E:, Z: and %LOCALAPPDATA% are never touched.
   B20 (B5) FAULT a destination on a drive letter that is not present, with the REAL probes -> exit 2 'REFUSED:
      destination drive not present', in the status file too. CONTROL the same run to a present drive -> exit 0.
 
-Run: cd tools/story-dev && py -3.12 selftest_ops.py      (about 10 s)
+THE WATCHDOG (tools/ops/watchdog.py + watchdog.ps1, backlog O1, build spec S1-4). WHY: it is the only thing that tells
+the user the learner stopped, so its failure modes are a false OK (the user is never told), a false NEEDS YOU (the user
+learns to ignore it), a toast every 30 minutes (same), and a write into the clone (which silently stops the clone's
+auto-update). Every system probe is injected (process scan, boot time, free disk, pending restart, clock, the 90 s wait,
+the toast) except where a test says REAL. Nothing pops a real toast: watchdog.ps1 runs with -NoToast.
+  W1 CONTROL a healthy fake tree -> first line exactly 'OK', no toast, line 2 'checked 12:30 PM PT, next 1:00 PM' at a
+     pinned instant, the Desktop file and the ops fallback both written, one sample appended. FAULT: the same tree with
+     no learner process is not OK; a check that RAISES is a NEEDS YOU naming it while the rest still run; a config.json
+     that does not parse is NEEDS YOU and the threshold checks say SKIPPED.
+  W2 FAULT no learner -> after ONE 90 s re-check 'NEEDS YOU: learner is not running' and one toast. CONTROL a restart
+     blink (gone, then back at the re-check) -> OK; the user's STOP file -> NOTE, no toast. REAL processes: another
+     checkout's 'learner.py run' and a -c string that only mentions it -> NEEDS YOU; THIS clone's -> OK; .kill() ->
+     NEEDS YOU. Unit: the argv match is by basename (tested alone: the path-identity check masks it).
+  W3 FAULT ATTENTION.md in the learner's own format -> NEEDS YOU carrying its reason line. CONTROL a log line or a
+     findings file that merely CONTAINS 'NEEDS YOU' -> OK.
+  W4 learner.log 14 h old with cycle_minutes 720 -> NEEDS YOU; 11 h -> OK; 14 h with 1440 -> OK (kills a fixed 13 h);
+     a stale log while the learner is NOT running is not called stuck.
+  W5 -6 GB/day at 79 GB -> 'falling 6.0 GB/day; 25 GB in 9 days'; FAULT a 12 GB drop in 6 h -> NEEDS YOU; CONTROL
+     flat -> 'no downward trend'; 39 GB -> NEEDS YOU, 41 -> OK; min_free_gb 50 -> 60 GB is NEEDS YOU (kills a fixed
+     40); O7's early_prune_margin_gb is honoured.
+  W6 notify on change: 3 runs in one NEEDS YOU state -> ONE toast; 12 h later none; 25 h -> one reminder; recovery ->
+     one 'recovered'; OK again -> none; a NEW problem joining -> another. (The 'notify every run' mutant fails it.)
+  W7 CONTROL boot 5 min ago + no learner -> NOTE, no toast; FAULT 20 min -> NEEDS YOU.
+  W8 watchdog.ps1: FAULT a nonexistent python -> exit 1, 'NEEDS YOU: watchdog could not run' in the file and the
+     fallback, one (WOULD) toast, none on the repeat; FAULT python runs but watchdog.py crashes -> the same, with its
+     exit code. CONTROL a real python -> watchdog.py's own status, its NOTIFY line reaches the toaster, and the failure
+     marker is cleared with one 'runs again'.
+  W9 read-only: CONTROL (path, mtime, size) of the whole fake clone identical after 2 in-process runs and the DEPLOYED
+     copy's own run with -B; FAULT the snapshot does see a touched file; FAULT --out or the ops folder inside the clone
+     -> REFUSED, nothing written, also with the name check blinded (the identity layer).
+  W10 FAULT two cycles HELD by the archiver (O3's state.json "held") -> NEEDS YOU naming both tags and the reason;
+     CONTROL none held (one 'held': null) -> OK; FAULT a zero-byte state.json -> NEEDS YOU 'unreadable', never 'none'.
+  W11 FAULT a pending Windows restart -> NOTE, no toast; CONTROL none -> OK. FAULT the boot time moved -> NOTE 'the PC
+     restarted' with the downtime and event 41, kept for 6 h then gone; CONTROL a 1.5 s boot-time wobble on a boot
+     3 h old (inside the note window, so a false detection WOULD show) -> OK.
+  W12 check (7) on the REAL backup tool's status files: CONTROL ok 2 h old -> OK; FAULT the same 40 h old, its REFUSED
+     (same volume), its NEEDS-YOU (runs.jsonl shrank) and no file at all -> NEEDS YOU, each quoted.
+  W13 the installer: the default dry run shows the watchdog task (every 30 minutes, IgnoreNew, 5-minute limit,
+     interactive session, powershell.exe -WindowStyle Hidden -File watchdog.ps1) and leaves its registration
+     unchanged; FAULT a mutant installer without the task's Execute is caught.
+
+Run: cd tools/story-dev && py -3.12 selftest_ops.py      (about 30 s)
 """
 from __future__ import annotations
 
@@ -991,11 +1032,574 @@ def b9(tmp: Path) -> None:
           mutant != text and installer_carries_test_flag(mutant), "mutation anchor missing" if mutant == text else "")
 
 
+# ================================================================================================ S1-4 the watchdog
+WATCHDOG = ROOT / "tools" / "ops" / "watchdog.py"
+WATCHDOG_PS1 = ROOT / "tools" / "ops" / "watchdog.ps1"
+SLEEPER = "import time; time.sleep(60)"
+PS = ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass"]
+
+
+def load_watchdog():
+    spec = importlib.util.spec_from_file_location("watchdog_under_test", WATCHDOG)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.STATE_SLEEP = 0.0
+    mod.WRITE_SLEEP = 0.0
+    return mod
+
+
+def bstamp(t: float) -> str:
+    """A time in backup_learner.py's own status format (its stamp())."""
+    return dt.datetime.fromtimestamp(t).strftime("%Y-%m-%d %I:%M:%S %p")
+
+
+ATTENTION_TEXT = ("# The learner paused itself\n\n2026-10-21 04:00:00 AM\n\nOnly 20 GB free on this disk after archiving "
+                  "old raw logs; config min_free_gb is 25.\n\nFix the cause, delete this file, then start the learner "
+                  "again (`run_agent.ps1`).\n")  # the learner's attention() format, byte for byte
+
+
+class WEnv:
+    """One fake world for the watchdog: a clone (config, state, log, a learner.py), an ops folder, a Desktop, a
+    healthy backup status, and the watchdog module with EVERY system probe injected: the process scan (a running
+    learner unless a test says otherwise), the boot time (2 days ago), free disk (200 GB on C:, 180 on the backup
+    disk), no pending restart, the clock, the 90 s wait (recorded, never slept) and the toast (recorded)."""
+
+    def __init__(self, tmp: Path, name: str, cycle_minutes: int = 720, min_free_gb: int = 25, extra_cfg=None):
+        self.root = tmp / name
+        self.agent = self.root / "clone" / "ai-agent"
+        for d in ("data", "findings", "runs"):
+            (self.agent / d).mkdir(parents=True, exist_ok=True)
+        cfg = {"_help": "fake", "cycle_minutes": cycle_minutes, "min_free_gb": min_free_gb, "keep_raw_cycles": 20}
+        cfg.update(extra_cfg or {})
+        (self.agent / "config.json").write_text(json.dumps(cfg), encoding="utf-8")
+        (self.agent / "data" / "state.json").write_text(json.dumps(
+            {"cycle": 2, "cycles": [{"tag": "ai0001", "pruned": True}, {"tag": "ai0002", "pruned": False}]}),
+            encoding="utf-8")
+        (self.agent / "data" / "learner.log").write_text("[x] ai0002: starting 12 lanes for 720 minutes\n",
+                                                         encoding="utf-8")
+        (self.agent / "learner.py").write_text("# a fake learner: only its PATH matters\n", encoding="utf-8")
+        self.ops = self.root / "localappdata" / "pokebot-ops"
+        self.out = self.root / "Desktop" / "LEARNER-STATUS.txt"
+        self.backup_status = self.ops / "backup_status.json"
+        self.backup_dir = self.root / "Z" / "pokebot-backups" / "learner"
+        self.w = load_watchdog()
+        self.real_pids = self.w.learner_pids
+        self.pids: list[int] = [4242]
+        self.boot = 0.0
+        self.free_c, self.free_backup = 200.0, 180.0
+        self.pending = None
+        self.unexpected = None
+        self.sleeps: list[float] = []
+        self.toasts: list[tuple[str, str]] = []
+        self.set_time(time.time())
+        self.boot = self.T - 2 * 86400
+        self.write_backup_status(ok=True, age_h=3)
+        self.w.clock = lambda: self.T
+        self.w.sleep = self.sleeps.append
+        self.w.boot_time = lambda: self.boot
+        clone_root = self.root / "clone"
+        self.w.disk_free_gib = lambda p: self.free_c if self.w.is_under(p, clone_root) else self.free_backup
+        self.w.restart_pending = lambda: self.pending
+        self.w.unexpected_shutdown_since = lambda t: self.unexpected
+        self.w.learner_pids = lambda agent: list(self.pids)
+        self.w.toast = lambda title, body: self.toasts.append((title, body))
+
+    def set_time(self, t: float, log_age_s: float = 600) -> None:
+        """Move the pinned clock; learner.log is re-touched so its age stays `log_age_s` unless a test says otherwise."""
+        self.T = t
+        log = self.agent / "data" / "learner.log"
+        os.utime(log, (t - log_age_s, t - log_age_s))
+
+    def write_backup_status(self, ok: bool, age_h: float, error=None) -> None:
+        self.ops.mkdir(parents=True, exist_ok=True)
+        self.backup_status.write_text(json.dumps(
+            {"time": bstamp(self.T - age_h * 3600), "ok": ok, "dest": str(self.backup_dir),
+             "zip": str(self.backup_dir / "learner-data-20261021-0100.zip"), "bytes": 1000, "warnings": [],
+             "error": error, "pruned": []}), encoding="utf-8")
+
+    def run(self, out=None, ops=None) -> tuple[int, str]:
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code, text = self.w.run(self.agent, ops or self.ops, out or self.out, self.backup_status, self.backup_dir)
+        return code, text
+
+    def head(self) -> str:
+        code, text = self.run()
+        return text.splitlines()[0] if text else f"(exit {code})"
+
+
+def snapshot(root: Path) -> set:
+    """(path, mtime_ns, size) of every file AND folder under root: W9's read-only proof."""
+    out = set()
+    for p in root.rglob("*"):
+        st = p.stat()
+        out.add((p.relative_to(root).as_posix(), st.st_mtime_ns, st.st_size if p.is_file() else -1))
+    return out
+
+
+def w1(tmp: Path) -> None:
+    e = WEnv(tmp, "w1")
+    code, text = e.run()
+    lines = text.splitlines()
+    check("W1 CONTROL healthy fake tree -> exit 0 and the first line is exactly 'OK'", code == 0 and lines[0] == "OK",
+          text)
+    check("W1 CONTROL: no toast, and the 90 s re-check was not needed", e.toasts == [] and e.sleeps == [],
+          f"{e.toasts} {e.sleeps}")
+    check("W1 line 2 is 'checked H:MM AM PT, next H:MM PM' (12-hour Los Angeles time)",
+          re.fullmatch(r"checked \d{1,2}:\d{2} [AP]M PT, next \d{1,2}:\d{2} [AP]M", lines[1]) is not None, lines[1])
+    check("W1 the Desktop file and its fallback copy in the ops folder both hold the status",
+          e.out.read_text(encoding="utf-8") == text == (e.ops / "LEARNER-STATUS.txt").read_text(encoding="utf-8"), "")
+    rows = [json.loads(x) for x in (e.ops / "samples.jsonl").read_text(encoding="utf-8").splitlines()]
+    check("W1 one sample {t, free_gb_c, free_gb_backup, alive, boot} was appended in the ops folder",
+          len(rows) == 1 and set(rows[0]) == {"t", "free_gb_c", "free_gb_backup", "alive", "boot"}
+          and rows[0]["alive"] is True and rows[0]["free_gb_c"] == 200.0, str(rows))
+    check("W1 the restart line names the clone's run_agent.ps1", f"run {e.agent / 'run_agent.ps1'}" in text, text[-200:])
+    # pinned instant: 2026-10-21 19:30 UTC is 12:30 PM PDT
+    e.set_time(dt.datetime(2026, 10, 21, 19, 30, tzinfo=dt.timezone.utc).timestamp())
+    e.write_backup_status(ok=True, age_h=3)
+    _code, text = e.run()
+    check("W1 the exact 12-hour LA wording: 'checked 12:30 PM PT, next 1:00 PM'",
+          text.splitlines()[1] == "checked 12:30 PM PT, next 1:00 PM", text.splitlines()[1])
+    f = WEnv(tmp, "w1fault")
+    f.pids = []
+    check("W1 FAULT: the same tree with no learner process is NOT 'OK' (the OK depends on the probe)",
+          f.head() != "OK", "")
+    g = WEnv(tmp, "w1raise")
+
+    def broken_probe():
+        raise RuntimeError("registry probe exploded")
+
+    g.w.restart_pending = broken_probe
+    code, text = g.run()
+    check("W1 FAULT a check that RAISES -> exit 0, NEEDS YOU naming it, and the checks after it still ran",
+          code == 0 and text.startswith("NEEDS YOU: the restart check failed: RuntimeError")
+          and "held cycles: none" in text and "backup: ok" in text, text)
+    c = WEnv(tmp, "w1config")
+    (c.agent / "config.json").write_text('{"cycle_minutes": 720,', encoding="utf-8")
+    code, text = c.run()
+    check("W1 FAULT the clone's config.json does not parse -> NEEDS YOU, and the threshold checks say SKIPPED (no "
+          "built-in fallback threshold)", text.startswith("NEEDS YOU: the clone's config.json cannot be read")
+          and "stuck check SKIPPED" in text and "disk alarm SKIPPED" in text, text)
+
+
+def w2(tmp: Path) -> None:
+    e = WEnv(tmp, "w2")
+    e.pids = []
+    head = e.head()
+    check("W2 FAULT process dead -> 'NEEDS YOU: learner is not running', after ONE 90 s re-check",
+          head.startswith("NEEDS YOU: learner is not running") and e.sleeps == [90.0], f"{head} {e.sleeps}")
+    check("W2 FAULT: one toast, titled NEEDS YOU", len(e.toasts) == 1 and "NEEDS YOU" in e.toasts[0][0], str(e.toasts))
+
+    b = WEnv(tmp, "w2blink")  # an exit-code-3 restart: gone at the first look, back at the second
+    looks = iter([[], [777]])
+    b.w.learner_pids = lambda agent: next(looks)
+    head = b.head()
+    check("W2 CONTROL a restart blink (missing, then back after the re-check) -> OK, no toast",
+          head == "OK" and b.sleeps == [90.0] and b.toasts == [], f"{head} {b.sleeps}")
+
+    s = WEnv(tmp, "w2stop")
+    s.pids = []
+    (s.agent / "STOP").write_text("", encoding="utf-8")
+    head = s.head()
+    check("W2 CONTROL: the user's STOP file -> NOTE (not NEEDS YOU) and no toast",
+          head.startswith("NOTE: the learner is stopped by your STOP file") and s.toasts == [], head)
+
+    idx = e.w.learner_argv_index
+    check("W2 unit: the script argument is matched by BASENAME (a -c string holding 'learner.py' followed by 'run' is "
+          "not the learner; tested alone because the path-identity check behind it masks a regression here)",
+          idx(["python.exe", "-c", "print('learner.py')", "run"]) is None
+          and idx(["py.exe", "-3.12", "learner.py", "run"]) == 2
+          and idx(["python.exe", r"C:\x\ai-agent\learner.py", "once"]) == 1
+          and idx(["py.exe", "-3.12", "learner.py", "status"]) is None, "")
+
+    r = WEnv(tmp, "w2real")  # the REAL process scan
+    r.w.learner_pids = r.real_pids
+    other = r.root / "other-checkout" / "ai-agent"
+    other.mkdir(parents=True)
+    (other / "learner.py").write_text("# another checkout's learner\n", encoding="utf-8")
+    procs = [subprocess.Popen([sys.executable, "-c", SLEEPER, "learner.py", "run"], cwd=other),  # another checkout
+             subprocess.Popen([sys.executable, "-c", SLEEPER + "  # learner.py run"], cwd=r.agent)]  # a mention
+    try:
+        time.sleep(1.0)
+        head = r.head()
+        check("W2 FAULT real processes: ANOTHER checkout's 'learner.py run' and a -c string that merely MENTIONS it "
+              "-> NEEDS YOU: learner is not running", head.startswith("NEEDS YOU: learner is not running"), head)
+        live = subprocess.Popen([sys.executable, "-c", SLEEPER, "learner.py", "run"], cwd=r.agent)
+        procs.append(live)
+        deadline = time.time() + 15
+        while live.pid not in r.real_pids(r.agent) and time.time() < deadline:
+            time.sleep(0.2)
+        code, text = r.run()
+        check("W2 CONTROL real process: THIS clone's 'learner.py run' alive -> OK, its pid named",
+              text.splitlines()[0] == "OK" and f"pid {live.pid}" in text, text[:300])
+        live.kill()
+        live.wait(30)
+        head = r.head()
+        check("W2 FAULT real process: the same one .kill()ed -> NEEDS YOU: learner is not running",
+              head.startswith("NEEDS YOU: learner is not running"), head)
+    finally:
+        for p in procs:
+            p.kill()
+            p.wait(30)
+
+
+def w3(tmp: Path) -> None:
+    e = WEnv(tmp, "w3")
+    (e.agent / "findings" / "ATTENTION.md").write_text(ATTENTION_TEXT, encoding="utf-8")
+    head = e.head()
+    check("W3 FAULT ATTENTION.md (the learner's own format) -> NEEDS YOU carrying its reason line",
+          head == "NEEDS YOU: the learner paused itself: Only 20 GB free on this disk after archiving old raw logs; "
+                  "config min_free_gb is 25.", head)
+    c = WEnv(tmp, "w3control")
+    with open(c.agent / "data" / "learner.log", "a", encoding="utf-8") as fh:
+        fh.write("[x] NEEDS YOU: a log line that merely contains the words\n")
+    (c.agent / "findings" / "LATEST.md").write_text("NEEDS YOU: words in another findings file\n", encoding="utf-8")
+    c.set_time(c.T)
+    head = c.head()
+    check("W3 CONTROL: a log line (and a findings file) that merely CONTAIN 'NEEDS YOU' change nothing -> OK",
+          head == "OK" and c.toasts == [], head)
+
+
+def w4(tmp: Path) -> None:
+    e = WEnv(tmp, "w4")
+    e.set_time(e.T, log_age_s=14 * 3600)
+    head = e.head()
+    check("W4 FAULT learner.log 14 h old with cycle_minutes 720 (limit 13 h) -> NEEDS YOU, stuck",
+          head.startswith("NEEDS YOU: learner.log silent for 14.0 h") and "cycle_minutes 720" in head, head)
+    e.set_time(e.T, log_age_s=11 * 3600)
+    head = e.head()
+    check("W4 CONTROL 11 h old with cycle_minutes 720 -> OK", head == "OK", head)
+    f = WEnv(tmp, "w4long", cycle_minutes=1440)
+    f.set_time(f.T, log_age_s=14 * 3600)
+    head = f.head()
+    check("W4 CONTROL 14 h old with cycle_minutes 1440 -> OK (the limit is READ from config, not a fixed 13 h)",
+          head == "OK", head)
+    d = WEnv(tmp, "w4dead")
+    d.pids = []
+    d.set_time(d.T, log_age_s=30 * 3600)
+    _c, text = d.run()
+    check("W4 CONTROL a stale log while the learner is NOT running is not called stuck (that is the process check's)",
+          "silent" not in text.splitlines()[0], text.splitlines()[0])
+
+
+def write_samples(e: WEnv, rows: list[dict]) -> None:
+    e.ops.mkdir(parents=True, exist_ok=True)
+    (e.ops / "samples.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+
+
+def w5(tmp: Path) -> None:
+    e = WEnv(tmp, "w5")
+    e.free_c = 79.0
+    write_samples(e, [{"t": e.T - k * 1800, "free_gb_c": 79.0 + 6.0 * k * 1800 / 86400, "boot": e.boot}
+                      for k in range(144, 0, -1)])
+    _c, text = e.run()
+    check("W5 -6 GB/day at 79 GB (min_free_gb 25) -> 'falling 6.0 GB/day; 25 GB in 9 days', and still OK",
+          "79 GB free; falling 6.0 GB/day; 25 GB in 9 days" in text and text.splitlines()[0] == "OK", text)
+    f = WEnv(tmp, "w5drop")
+    f.free_c = 83.0
+    write_samples(f, [{"t": f.T - k * 1800, "free_gb_c": 95.0, "boot": f.boot} for k in range(144, 0, -1)])
+    head = f.head()
+    check("W5 FAULT a 12 GB drop in 6 h (95 -> 83, far above the 40 GB alarm) -> NEEDS YOU",
+          head.startswith("NEEDS YOU: free space on C: fell 12.0 GB in the last 6 h"), head)
+    g = WEnv(tmp, "w5flat")
+    g.free_c = 100.0
+    write_samples(g, [{"t": g.T - k * 1800, "free_gb_c": 100.0, "boot": g.boot} for k in range(144, 0, -1)])
+    _c, text = g.run()
+    check("W5 CONTROL flat -> 'no downward trend', no 'falling', OK",
+          "100 GB free; no downward trend" in text and "falling" not in text and text.splitlines()[0] == "OK", text)
+    lo = WEnv(tmp, "w5low")
+    lo.free_c = 39.0
+    head = lo.head()
+    check("W5 FAULT 39 GB free (alarm = min_free_gb 25 + margin 15 = 40) -> NEEDS YOU",
+          head.startswith("NEEDS YOU: only 39 GB free on C:"), head)
+    lo.free_c = 41.0
+    head = lo.head()
+    check("W5 CONTROL 41 GB free -> OK", head == "OK", head)
+    hi = WEnv(tmp, "w5cfg", min_free_gb=50)
+    hi.free_c = 60.0
+    head = hi.head()
+    check("W5 FAULT min_free_gb 50 in config -> 60 GB free is NEEDS YOU (alarm 65: READ from config, not a fixed 40)",
+          head.startswith("NEEDS YOU: only 60 GB free") and "under 65 GB" in head, head)
+    mg = WEnv(tmp, "w5margin", extra_cfg={"early_prune_margin_gb": 5})
+    mg.free_c = 35.0
+    head = mg.head()
+    check("W5 CONTROL early_prune_margin_gb 5 in config (O7's key) -> 35 GB is above the alarm 30 -> OK", head == "OK",
+          head)
+
+
+def w6(tmp: Path) -> None:
+    e = WEnv(tmp, "w6")
+    e.pids = []
+    t0 = e.T
+    for k in range(3):
+        e.set_time(t0 + k * 1800)
+        e.run()
+    check("W6 FAULT 3 runs in the same NEEDS YOU state -> the toast is called ONCE", len(e.toasts) == 1, str(e.toasts))
+    e.set_time(t0 + 12 * 3600)
+    e.run()
+    check("W6 12 h later, same state -> still one toast (no reminder before 24 h)", len(e.toasts) == 1, str(e.toasts))
+    e.set_time(t0 + 25 * 3600)
+    e.run()
+    check("W6 25 h later, same state -> ONE reminder ('still NEEDS YOU')",
+          len(e.toasts) == 2 and "still NEEDS YOU" in e.toasts[1][0], str(e.toasts))
+    e.set_time(t0 + 25.5 * 3600)
+    e.run()
+    check("W6 26 h: no second reminder within 24 h of the first", len(e.toasts) == 2, str(e.toasts))
+    e.pids = [4242]
+    e.set_time(t0 + 26 * 3600)
+    e.run()
+    check("W6 CONTROL recovery -> one 'recovered' toast", len(e.toasts) == 3 and "recovered" in e.toasts[2][0],
+          str(e.toasts))
+    e.set_time(t0 + 26.5 * 3600)
+    e.run()
+    check("W6 CONTROL OK again -> no toast", len(e.toasts) == 3, str(e.toasts))
+    e.pids = []
+    e.run()
+    (e.agent / "findings" / "ATTENTION.md").write_text(ATTENTION_TEXT, encoding="utf-8")
+    e.run()
+    check("W6 a NEW problem joining a NEEDS YOU state (dead, then dead + ATTENTION.md) toasts again",
+          len(e.toasts) == 5, str([t for t, _b in e.toasts]))
+
+
+def w7(tmp: Path) -> None:
+    e = WEnv(tmp, "w7")
+    e.pids = []
+    e.boot = e.T - 5 * 60
+    head = e.head()
+    check("W7 CONTROL boot 5 min ago + no learner -> NOTE (autostart grace), no toast",
+          head.startswith("NOTE: the PC booted 5 min ago") and e.toasts == [], head)
+    f = WEnv(tmp, "w7late")
+    f.pids = []
+    f.boot = f.T - 20 * 60
+    head = f.head()
+    check("W7 FAULT boot 20 min ago + no learner -> NEEDS YOU: learner is not running",
+          head.startswith("NEEDS YOU: learner is not running"), head)
+
+
+def w8(tmp: Path) -> None:
+    if os.name != "nt":
+        check("W8 (not Windows: no Windows PowerShell)", True)
+        return
+    root = tmp / "w8"
+    ops = root / "ops"
+    out = root / "Desktop" / "LEARNER-STATUS.txt"
+    base = PS + ["-File", str(WATCHDOG_PS1), "-Out", str(out), "-OpsDir", str(ops), "-NoToast"]
+    nope = ["-Python", str(root / "no-such-python" / "py.exe")]
+    r1 = subprocess.run(base + nope, capture_output=True, text=True, timeout=120)
+    first = out.read_text(encoding="utf-8").splitlines()[0] if out.exists() else "(no status file)"
+    check("W8 FAULT a nonexistent python -> exit 1 and the status file says 'NEEDS YOU: watchdog could not run'",
+          r1.returncode == 1 and first == "NEEDS YOU: watchdog could not run", f"{r1.returncode} {first} {r1.stdout}")
+    fb = ops / "LEARNER-STATUS.txt"
+    check("W8 FAULT: the fallback copy in the ops folder says the same",
+          fb.exists() and fb.read_text(encoding="utf-8").splitlines()[0] == first, "")
+    check("W8 FAULT: it toasts itself (WOULD TOAST under -NoToast)",
+          "WOULD TOAST: Pokebot learner: NEEDS YOU | watchdog could not run" in r1.stdout, r1.stdout)
+    r2 = subprocess.run(base + nope, capture_output=True, text=True, timeout=120)
+    check("W8 the same failure 30 min later -> still NEEDS YOU in the file, but NO second toast",
+          r2.returncode == 1 and "WOULD TOAST" not in r2.stdout, r2.stdout)
+    r3 = subprocess.run(base + ["--config", str(root / "no-such-config.json")], capture_output=True, text=True,
+                        timeout=120)
+    check("W8 FAULT python RUNS but watchdog.py crashes (missing config) -> 'could not run' with its exit code",
+          r3.returncode == 1 and out.read_text(encoding="utf-8").startswith("NEEDS YOU: watchdog could not run")
+          and "exited with code 1" in out.read_text(encoding="utf-8"), r3.stdout[-400:])
+    e = WEnv(tmp, "w8clone")  # a real fake clone for the control; nothing in it runs a learner
+    cfg = root / "ops_config.json"
+    cfg.write_text(json.dumps({"clone": str(e.agent), "ops_dir": str(ops), "status_file": str(e.backup_status),
+                               "backup_dir": str(e.backup_dir)}), encoding="utf-8")
+    r4 = subprocess.run(base + ["--config", str(cfg), "--recheck-seconds", "0"], capture_output=True, text=True,
+                        timeout=120)
+    lines = out.read_text(encoding="utf-8").splitlines()
+    check("W8 CONTROL a real python -> exit 0 and the status file is watchdog.py's own (line 2 'checked ... PT')",
+          r4.returncode == 0 and lines[0] != "NEEDS YOU: watchdog could not run" and lines[1].startswith("checked ")
+          and " PT, next " in lines[1], f"{r4.returncode} {lines[:2]} {r4.stdout[-300:]}")
+    check("W8 CONTROL: watchdog.py's NOTIFY line reaches the toaster (no learner in the fake clone)",
+          "WOULD TOAST: Pokebot learner: NEEDS YOU | learner is not running" in r4.stdout, r4.stdout[-400:])
+    check("W8 CONTROL: the failure marker is removed and 'watchdog runs again' is toasted once",
+          not (ops / "watchdog_ps1_failed.txt").exists() and "watchdog runs again" in r4.stdout, r4.stdout[-300:])
+    text = WATCHDOG_PS1.read_text(encoding="utf-8")
+    check("W8 watchdog.ps1 is ASCII-only (PowerShell 5.1 reads a BOM-less .ps1 as Windows-1252)", text.isascii(), "")
+
+
+def w9(tmp: Path) -> None:
+    e = WEnv(tmp, "w9")
+    e.pids = []  # exercise the NEEDS YOU path with toasts, and ATTENTION, held and the reboot note
+    (e.agent / "findings" / "ATTENTION.md").write_text(ATTENTION_TEXT, encoding="utf-8")
+    deployed = e.root / "clone" / "tools" / "ops"  # the deployment shape: the task runs the CLONE's copy
+    deployed.mkdir(parents=True)
+    (deployed / "watchdog.py").write_bytes(WATCHDOG.read_bytes())
+    cfg = deployed / "ops_config.json"
+    cfg.write_text(json.dumps({"clone": str(e.agent), "ops_dir": str(e.ops), "status_file": str(e.backup_status),
+                               "backup_dir": str(e.backup_dir)}), encoding="utf-8")
+    clone_root = e.root / "clone"
+    before = snapshot(clone_root)
+    e.run()
+    e.T += 3600  # NOT set_time: that re-touches learner.log, i.e. the TEST would write into the clone
+    e.run()
+    r = subprocess.run([sys.executable, "-B", str(deployed / "watchdog.py"), "--config", str(cfg), "--recheck-seconds",
+                        "0", "--out", str(e.out)], capture_output=True, text=True, timeout=120)
+    after = snapshot(clone_root)
+    check("W9 CONTROL read-only: (path, mtime, size) of the whole fake clone identical after 2 runs and the deployed "
+          "copy's own run (no __pycache__ either)", r.returncode == 0 and before == after,
+          f"{r.returncode} changed {sorted(before ^ after)[:4]} {r.stdout[-200:]}")
+    probe = e.agent / "data" / "learner.log"
+    os.utime(probe, (e.T + 99, e.T + 99))
+    check("W9 FAULT: the same snapshot DOES see a touched file (the comparison is not vacuous)",
+          snapshot(clone_root) != before, "")
+    before = snapshot(clone_root)
+    inside_out = e.agent / "data" / "LEARNER-STATUS.txt"
+    code, msg = e.run(out=inside_out)
+    check("W9 FAULT --out inside the clone -> REFUSED (exit 2), nothing written there",
+          code == 2 and "REFUSED" in msg and not inside_out.exists() and snapshot(clone_root) == before, msg)
+    code, msg = e.run(ops=e.agent / "data" / "ops")
+    check("W9 FAULT an ops folder inside the clone -> REFUSED (exit 2), not created",
+          code == 2 and not (e.agent / "data" / "ops").exists() and snapshot(clone_root) == before, msg)
+    e.w.is_under = lambda child, parent: False  # blind the name check: the IDENTITY layer must still refuse
+    code, msg = e.run(out=inside_out)
+    check("W9 FAULT with the name check blinded, the identity check still refuses --out inside the clone",
+          code == 2 and not inside_out.exists(), msg)
+    code, _t = e.run()
+    check("W9 CONTROL the normal outside paths -> exit 0", code == 0, "")
+
+
+def w10(tmp: Path) -> None:
+    e = WEnv(tmp, "w10")
+    cycles = [{"tag": "ai0030", "pruned": True, "archived": True},
+              {"tag": "ai0031", "held": {"reason": "raw.zip and its originals disagree", "since": "2026-10-21 04:06 AM"}},
+              {"tag": "ai0032", "pruned": False},
+              {"tag": "ai0033", "held": {"reason": "a lane still writes into it", "since": "2026-10-21 04:07 AM"}}]
+    (e.agent / "data" / "state.json").write_text(json.dumps({"cycle": 33, "cycles": cycles}), encoding="utf-8")
+    head = e.head()
+    check("W10 FAULT two cycles HELD by the archiver -> NEEDS YOU naming both tags and the first reason",
+          head.startswith("NEEDS YOU: 2 cycle(s) HELD for review: ai0031, ai0033")
+          and "raw.zip and its originals disagree" in head, head)
+    check("W10 FAULT: one toast", len(e.toasts) == 1, str(e.toasts))
+    c = WEnv(tmp, "w10control")
+    for cy in cycles:
+        cy.pop("held", None)
+    cycles[1]["held"] = None  # resolved by a human: the learner's own test is truthiness (c.get("held"))
+    (c.agent / "data" / "state.json").write_text(json.dumps({"cycle": 33, "cycles": cycles}), encoding="utf-8")
+    _code, text = c.run()
+    check("W10 CONTROL no held cycle (one 'held': null, resolved) -> OK and 'held cycles: none'",
+          text.splitlines()[0] == "OK" and "held cycles: none" in text, text)
+    z = WEnv(tmp, "w10empty")
+    (z.agent / "data" / "state.json").write_bytes(b"")
+    head = z.head()
+    check("W10 FAULT a zero-byte state.json -> NEEDS YOU 'unreadable' (never a silent 'none held')",
+          head.startswith("NEEDS YOU: data/state.json unreadable"), head)
+
+
+def w11(tmp: Path) -> None:
+    e = WEnv(tmp, "w11")
+    e.pending = "Windows Update"
+    head = e.head()
+    check("W11 FAULT a pending Windows restart -> NOTE naming why, and no toast",
+          head == "NOTE: Windows has a restart pending (Windows Update): the learner stops while the PC restarts"
+          and e.toasts == [], head)
+    e.pending = None
+    _c, text = e.run()
+    check("W11 CONTROL none pending -> OK, 'Windows restart pending: no'",
+          text.splitlines()[0] == "OK" and "Windows restart pending: no" in text, text)
+    r = WEnv(tmp, "w11reboot")
+    write_samples(r, [{"t": r.T - 40 * 60, "free_gb_c": 200.0, "alive": True, "boot": r.T - 3 * 86400}])
+    r.boot = r.T - 10 * 60
+    r.unexpected = True
+    head = r.head()
+    check("W11 FAULT the boot time moved since the last sample -> NOTE 'the PC restarted' with the downtime and the "
+          "event-41 flag", head.startswith("NOTE: the PC restarted at") and "down at most 30 min" in head
+          and "UNEXPECTED" in head and r.toasts == [], head)
+    r.set_time(r.T + 2 * 3600)
+    check("W11 the restart NOTE persists for a while (2 h later, the new boot is now in the samples)",
+          r.head().startswith("NOTE: the PC restarted at"), "")
+    r.set_time(r.T + 5 * 3600)
+    check("W11 ... and is gone after 6 h -> OK", r.head() == "OK", "")
+    j = WEnv(tmp, "w11jitter")
+    # the boot must be RECENT (inside the 6 h note window), or a wrongly detected restart would never show: the first
+    # version used the 2-day-old default boot and a mutant with no jitter tolerance survived it
+    j.boot = j.T - 3 * 3600
+    write_samples(j, [{"t": j.T - 30 * 60, "free_gb_c": 200.0, "alive": True, "boot": j.boot + 1.5}])
+    head = j.head()
+    check("W11 CONTROL psutil's boot-time wobble (1.5 s, boot 3 h ago) is not a restart -> OK", head == "OK", head)
+
+
+def w12(tmp: Path) -> None:
+    """Check (7) reads backup_learner.py's REAL status files: each produced here by the real tool."""
+    b = Env(tmp, "w12backup")
+    when = dt.datetime(2026, 10, 21, 1, 0)
+    code, _s, out = b.backup(when=when)
+    e = WEnv(tmp, "w12")
+    e.backup_status = b.status
+    e.set_time(when.timestamp() + 2 * 3600)
+    _c, text = e.run()
+    check("W12 CONTROL the real tool's ok status, 2 h old -> OK and 'backup: ok 2.0 h ago'",
+          code == 0 and text.splitlines()[0] == "OK" and "backup: ok 2.0 h ago (learner-data-20261021-0100.zip)" in text,
+          text + out)
+    e.set_time(when.timestamp() + 40 * 3600)
+    head = e.head()
+    check("W12 FAULT the same ok status 40 h old (over 36 h) -> NEEDS YOU 'no backup for 40.0 h'",
+          head.startswith("NEEDS YOU: no backup for 40.0 h"), head)
+    b.same_volume = True
+    code, _s, out = b.backup(when=dt.datetime(2026, 10, 21, 1, 30))
+    e.set_time(when.timestamp() + 2 * 3600)
+    head = e.head()
+    check("W12 FAULT the real tool's REFUSED status -> NEEDS YOU quoting 'REFUSED: ... SAME volume'",
+          code == 2 and head.startswith("NEEDS YOU: the last backup") and "REFUSED: destination" in head
+          and "SAME volume" in head, head)
+    n = Env(tmp, "w12needs")
+    n.backup(when=dt.datetime(2026, 10, 20, 1, 0))
+    runs = n.clone / "data" / "runs.jsonl"
+    runs.write_text(jl({"run": i} for i in range(50)), encoding="utf-8")
+    code, _s, out = n.backup(when=when)
+    e.backup_status = n.status
+    head = e.head()
+    check("W12 FAULT the real tool's NEEDS-YOU status (runs.jsonl shrank) -> NEEDS YOU with its reason, the long fixed "
+          "prefix dropped", code == 1 and "NEEDS-YOU: runs.jsonl shrank 200 -> 50" in head
+          and "verified and KEPT" not in head, head)
+    e.backup_status = e.root / "never-ran" / "backup_status.json"
+    head = e.head()
+    check("W12 FAULT no status file at all -> NEEDS YOU 'no backup has run yet'",
+          head.startswith("NEEDS YOU: no backup has run yet"), head)
+
+
+def w13(tmp: Path) -> None:
+    if os.name != "nt":
+        check("W13 (not Windows: no Task Scheduler)", True)
+        return
+    probe = ("if (Get-ScheduledTask -TaskName 'Pokebot-Ops-Watchdog' -ErrorAction SilentlyContinue) {'present'} "
+             "else {'absent'}")
+    before = subprocess.run(PS + ["-Command", probe], capture_output=True, text=True, timeout=120).stdout.strip()
+    r = subprocess.run(PS + ["-File", str(INSTALLER)], capture_output=True, text=True, timeout=120)
+    after = subprocess.run(PS + ["-Command", probe], capture_output=True, text=True, timeout=120).stdout.strip()
+    out = r.stdout + r.stderr
+    block = out.split("[Pokebot-Ops-Watchdog]", 1)[1] if "[Pokebot-Ops-Watchdog]" in out else ""
+    run_line = next((ln for ln in block.splitlines() if ln.strip().startswith("run:")), "")
+    for want in ("every 30 minutes", "MultipleInstances IgnoreNew", "5-minute limit", "interactive session"):
+        check(f"W13 the dry run's watchdog task prints '{want}'", r.returncode == 0 and want in block, block[:500])
+    check("W13 the watchdog task runs powershell.exe -WindowStyle Hidden -File ...watchdog.ps1 (the wrapper, not python)",
+          "powershell.exe" in run_line and "-WindowStyle Hidden" in run_line and "watchdog.ps1" in run_line
+          and "-3.12" not in run_line, run_line)
+    check("W13 CONTROL: the dry run left the watchdog task's registration unchanged",
+          before == after and before in ("present", "absent") and "no scheduled task was created" in out,
+          f"{before} -> {after}")
+    mdir = tmp / "w13mutant"
+    mdir.mkdir()
+    (mdir / "ops_config.json").write_bytes((INSTALLER.parent / "ops_config.json").read_bytes())
+    text = INSTALLER.read_text(encoding="utf-8")
+    mutant = re.sub(r"(?m)^    Execute     = .*\n", "", text, count=1)
+    (mdir / "install_ops_tasks.ps1").write_text(mutant, encoding="utf-8")
+    m = subprocess.run(PS + ["-File", str(mdir / "install_ops_tasks.ps1")], capture_output=True, text=True,
+                       timeout=120)
+    mblock = m.stdout.split("[Pokebot-Ops-Watchdog]", 1)[1] if "[Pokebot-Ops-Watchdog]" in m.stdout else ""
+    mrun = next((ln for ln in mblock.splitlines() if ln.strip().startswith("run:")), "")
+    check("W13 FAULT a mutant installer without the watchdog's Execute IS caught (it would run python on a .ps1)",
+          mutant != text and "-3.12" in mrun and "powershell.exe" not in mrun, mrun or m.stdout[-300:])
+
+
 def main() -> int:
     # ignore_cleanup_errors: a LEAKED handle (the B8 fault) must be reported as a FAIL line, not crash the cleanup.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         tmp = Path(td)
-        for test in (b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20):
+        for test in (b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20,
+                     w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13):
             try:
                 test(tmp)
             except Exception as ex:  # noqa: BLE001 - a crash is a FAIL with its reason, never a silent pass

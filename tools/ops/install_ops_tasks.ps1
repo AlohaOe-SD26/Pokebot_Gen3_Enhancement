@@ -3,7 +3,7 @@
   Register (or remove) the learner's ops scheduled tasks. DEFAULT IS A DRY RUN: it only PRINTS what it would do.
 
 .DESCRIPTION
-  WHY: the nightly backup (backlog O4, spec S1-2) and later the watchdog (S1-4) must run with no Claude session and
+  WHY: the nightly backup (backlog O4, spec S1-2) and the 30-minute watchdog (S1-4) must run with no Claude session and
   no human. Registering a scheduled task is a SYSTEM change, so this script never makes it unless -Apply is given,
   and -Apply is used only after the user says yes.
 
@@ -14,6 +14,8 @@
     the desktop at 1 AM (review finding 8). backup_learner.py's record is its status file, so it needs no console;
     tools/status.py prints that file as its one BACKUP line (ok / NEEDS-YOU / REFUSED and why).
     If pyw.exe is missing, the script falls back to py.exe and SAYS so (a window will then open each night).
+    The watchdog task is the exception: it runs powershell.exe on tools\ops\watchdog.ps1 (hidden window), because
+    that wrapper reports a python that cannot run and shows the toast; see its entry in the task table.
   - Idempotent: -Apply replaces an existing task of the same name with the same definition (Register -Force).
 
   Modes (every mode previews unless -Apply is given):
@@ -67,10 +69,29 @@ $Tasks += @{
     SettingsText = 'StartWhenAvailable; MultipleInstances IgnoreNew; 30-minute limit; runs on battery'
 }
 
-# ===== S1-4 WATCHDOG TASK GOES HERE =====================================================================
-# Add 'Pokebot-Ops-Watchdog' (tools\ops\watchdog.ps1, every 30 minutes, user session only, hidden window,
-# MultipleInstances IgnoreNew, 5-minute limit) as one more $Tasks += @{ ... } entry with the same keys as above.
-# Nothing else in this script needs to change: preview, -Apply and -Uninstall all walk $Tasks.
+# ===== S1-4 WATCHDOG TASK ===============================================================================
+# O1 / S1-4: every 30 minutes, the session-free watchdog writes LEARNER-STATUS.txt on the Desktop and toasts ONLY on a
+# change of state. It runs watchdog.ps1, not the python: the wrapper is what reports "watchdog could not run" when
+# python itself is missing or crashes, and what shows the toast (Windows PowerShell 5.1, WinRT). So this task carries
+# its own Execute (powershell.exe) and full Arguments instead of the python launcher line the loop builds by default.
+# -WindowStyle Hidden still FLASHES a console for a moment every 30 minutes: whether that is acceptable is a human
+# check recorded with the first real toast (watchdog.ps1 -TestToast). The interactive principal the loop uses is the
+# spec's "user session only": a toast needs the user's desktop, and nothing runs while the user is logged off.
+# The trigger starts at midnight today and repeats every 30 minutes with no end (Windows 10+: an omitted
+# RepetitionDuration is indefinite); StartWhenAvailable runs a missed check as soon as the PC is back.
+$watchdogPs1 = Join-Path $opsDir 'watchdog.ps1'
+$Tasks += @{
+    Name        = 'Pokebot-Ops-Watchdog'
+    Description = 'Every 30 minutes: checks the 24/7 learner (process, ATTENTION.md, stuck log, disk, restart, backup, held cycles), writes LEARNER-STATUS.txt on the Desktop and toasts only on a change. tools/ops/watchdog.ps1 + watchdog.py; read-only on the clone.'
+    Script      = $watchdogPs1
+    Execute     = (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')
+    Arguments   = ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}"' -f $watchdogPs1)
+    Trigger     = { New-ScheduledTaskTrigger -Once -At (Get-Date).Date -RepetitionInterval (New-TimeSpan -Minutes 30) }
+    Settings    = { New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew `
+                        -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries }
+    TriggerText = 'every 30 minutes, from midnight today, with no end'
+    SettingsText = 'StartWhenAvailable; MultipleInstances IgnoreNew; 5-minute limit; runs on battery; hidden window (-WindowStyle Hidden)'
+}
 # ========================================================================================================
 
 $mode = if ($Uninstall) { 'UNINSTALL' } else { 'INSTALL' }
@@ -83,7 +104,15 @@ Write-Output "                    $launcherNote"
 $failed = $false
 foreach ($t in $Tasks) {
     $existing = Get-ScheduledTask -TaskName $t.Name -ErrorAction SilentlyContinue
-    $argLine = ('-3.12 -B "{0}" {1}' -f $t.Script, $t.Arguments).Trim()
+    # A task with its own Execute (the watchdog's powershell.exe) runs that with its Arguments verbatim; every other
+    # task runs the python launcher on its Script.
+    if ($t.ContainsKey('Execute')) {
+        $exe = $t.Execute
+        $argLine = $t.Arguments
+    } else {
+        $exe = $pyPath
+        $argLine = ('-3.12 -B "{0}" {1}' -f $t.Script, $t.Arguments).Trim()
+    }
     if ($Uninstall) {
         if ($null -eq $existing) {
             Write-Output "  [$($t.Name)] not registered: nothing to remove"
@@ -97,7 +126,7 @@ foreach ($t in $Tasks) {
     }
     $verb = if ($null -eq $existing) { 'CREATE' } else { 'REPLACE (same name; idempotent)' }
     Write-Output "  [$($t.Name)] would $verb"
-    Write-Output "      run:      `"$pyPath`" $argLine"
+    Write-Output "      run:      `"$exe`" $argLine"
     Write-Output "      in:       $opsDir"
     Write-Output "      when:     $($t.TriggerText)"
     Write-Output "      settings: $($t.SettingsText)"
@@ -111,7 +140,7 @@ foreach ($t in $Tasks) {
         }
     }
     if ($Apply) {
-        $action = New-ScheduledTaskAction -Execute $pyPath -Argument $argLine -WorkingDirectory $opsDir
+        $action = New-ScheduledTaskAction -Execute $exe -Argument $argLine -WorkingDirectory $opsDir
         $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
         Register-ScheduledTask -TaskName $t.Name -Description $t.Description -Action $action `
             -Trigger (& $t.Trigger) -Settings (& $t.Settings) -Principal $principal -Force | Out-Null
