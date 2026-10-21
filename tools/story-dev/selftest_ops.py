@@ -52,8 +52,20 @@ the real clone, E:, Z: and %LOCALAPPDATA% are never touched.
   B17 (finding 5) FAULT \\\\?\\ and UNC targets are refused outright by --restore-check and --publish-to, and with the
      name check blinded the IDENTITY check still refuses a target inside the clone. CONTROL a plain outside target
      restores.
+  B18 (final re-verify 2026-10-21, blocker B3: hold on IDENTITY, not count) FAULT the reviewer's o4_regrow.py shape:
+     3 nights of 100 records with keep 3, then 4 nights that each drop the same 10 records while 50 more are added
+     (the count GROWS) -> every night NEEDS-YOU, nothing pruned, the pre-drop zips still hold the dropped record; the
+     same with the reviewer's own key-less rows, and with earlier zips that carry no identity cache (the slow path).
+     A manifest whose cached run_ids drop one record fails verification. CONTROL pure growth -> exit 0 and one prune
+     a night; a reparse that rewrites every row's CONTENT under the same (batch, lane, log) -> no hold; the documented
+     release (the pre-drop zips moved into a sub-folder) -> pruning resumes.
+  B19 (B4) FAULT a leftover lock dated 30 days in the FUTURE (the reviewer's o4_lock.py arm) -> replaced, exit 0 three
+     nights running; a FRESH lock naming an exited pid -> replaced. CONTROL a lock 30 s ahead with no readable pid
+     (inside the 2-minute grace) and a fresh lock naming a LIVE process -> REFUSED, untouched.
+  B20 (B5) FAULT a destination on a drive letter that is not present, with the REAL probes -> exit 2 'REFUSED:
+     destination drive not present', in the status file too. CONTROL the same run to a present drive -> exit 0.
 
-Run: cd tools/story-dev && py -3.12 selftest_ops.py      (about 8 s)
+Run: cd tools/story-dev && py -3.12 selftest_ops.py      (about 10 s)
 """
 from __future__ import annotations
 
@@ -738,6 +750,195 @@ def b17(tmp: Path) -> None:
           rc == 2 and not (b.clone / "published-blind").exists(), str(rc))
 
 
+def keyed_rows(ids) -> str:
+    """runs.jsonl rows shaped like the learner's: identified by (batch, lane, log), plus fields a reparse rewrites."""
+    return jl({"batch": f"202610{10 + i // 50:02d}-0100", "lane": i % 12 + 1, "log": f"Story-debug-{i:05d}.log",
+               "score": i * 0.5, "champion": False} for i in ids)
+
+
+def zip_has_record(path: Path, log_name: str) -> bool:
+    with zipfile.ZipFile(path) as z:
+        return log_name.encode() in z.read("ai-agent/data/runs.jsonl")
+
+
+def b18(tmp: Path) -> None:
+    """HOLD ON IDENTITY, NOT COUNT (final re-verify 2026-10-21, blocker B3; the reviewer's o4_regrow.py shape)."""
+    def regrow(name: str, drop: bool, rows=keyed_rows, old_scheme: bool = False):
+        e = Env(tmp, name)
+        runs = e.clone / "data" / "runs.jsonl"
+        runs.write_text(rows(range(0, 100)), encoding="utf-8")
+        real_scheme = e.tool.ID_SCHEME
+        if old_scheme:  # the first 3 zips are written as an OLDER tool would: no identity cache under today's scheme
+            e.tool.ID_SCHEME = "an-older-scheme"
+        first = [e.backup(when=night(d), keep=3)[0] for d in (1, 2, 3)]
+        e.tool.ID_SCHEME = real_scheme
+        nights = []
+        for n in range(4):  # a bad reparse dropped records 0..9; the learner keeps appending 50 runs a night
+            start = 10 if drop else 0
+            runs.write_text(rows(range(start, 150 + 50 * n)), encoding="utf-8")
+            nights.append(e.backup(when=night(4 + n), keep=3))
+        return e, first, nights
+
+    e, first, nights = regrow("b18regrow", drop=True)
+    check("B18 setup: 3 nights of 100 records, keep 3 -> exit 0", first == [0, 0, 0], str(first))
+    check("B18 FAULT 10 records dropped + 50 added a night (the COUNT grows 100 -> 140 -> 290): every night "
+          "NEEDS-YOU, exit 1, 'MISSING'", all(c == 1 and not s["ok"] and "NEEDS-YOU" in (s["error"] or "")
+                                             and "10 runs.jsonl record(s)" in s["error"] and "MISSING" in s["error"]
+                                             for c, s, _o in nights),
+          str([(c, s.get("runs_lines"), (s["error"] or "")[:90]) for c, s, _o in nights]))
+    check("B18 FAULT: nothing was pruned on any of the 4 nights", all(s["pruned"] == [] for _c, s, _o in nights),
+          str([s["pruned"] for _c, s, _o in nights]))
+    pre = [f"learner-data-2026100{d}-0100.zip" for d in (1, 2, 3)]
+    check("B18 FAULT: all 3 pre-drop backups still exist and still hold the dropped record 0",
+          all((e.dest / n).exists() and zip_has_record(e.dest / n, "Story-debug-00000.log") for n in pre),
+          str(e.dest_files()))
+    check("B18 FAULT: the count pre-filter alone did NOT fire (runs.jsonl grew), so the hold is the identity check's",
+          all("shrank" not in (s["error"] or "") for _c, s, _o in nights), "")
+
+    c, cfirst, cnights = regrow("b18growth", drop=False)
+    check("B18 CONTROL pure growth (+50 a night, nothing dropped): every night exit 0, ok, one zip pruned (keep 3)",
+          cfirst == [0, 0, 0] and all(code == 0 and s["ok"] and len(s["pruned"]) == 1 for code, s, _o in cnights),
+          str([(code, s["pruned"], (s["error"] or "")[:80]) for code, s, _o in cnights]))
+    check("B18 CONTROL: exactly 3 backups remain", len([n for n in c.dest_files() if c.tool.ZIP_RE.match(n)]) == 3,
+          str(c.dest_files()))
+
+    r = Env(tmp, "b18rescore")  # what cmd_reparse legitimately does: the SAME identities, re-parsed field values
+    runs = r.clone / "data" / "runs.jsonl"
+    runs.write_text(keyed_rows(range(100)), encoding="utf-8")
+    r.backup(when=night(1), keep=3)
+    runs.write_text(keyed_rows(range(100)).replace('"champion": false', '"champion": true'), encoding="utf-8")
+    code, s, out = r.backup(when=night(2), keep=3)
+    check("B18 CONTROL a reparse that rewrites every row's CONTENT but keeps its identity -> exit 0, no hold",
+          code == 0 and s["ok"], out)
+
+    def unkeyed(ids) -> str:  # the reviewer's exact rows: no batch, lane or log -> identified by content
+        return jl({"run_id": i} for i in ids)
+
+    _u, _uf, unights = regrow("b18unkeyed", drop=True, rows=unkeyed)
+    check("B18 FAULT the reviewer's o4_regrow rows ({'run_id': i}, no identity fields): every night held, nothing "
+          "pruned", all(code == 1 and "MISSING" in (s["error"] or "") and s["pruned"] == [] for code, s, _o in unights),
+          str([(code, (s["error"] or "")[:80]) for code, s, _o in unights]))
+    _o, _of, onights = regrow("b18oldzips", drop=True, old_scheme=True)
+    check("B18 FAULT earlier zips WITHOUT the identity cache (an older tool's): still held, read the slow way",
+          all(code == 1 and "MISSING" in (s["error"] or "") for code, s, _o2 in onights),
+          str([(code, (s["error"] or "")[:80]) for code, s, _o2 in onights]))
+
+    # The release the message names: the pre-drop zips moved into a sub-folder -> pruning resumes.
+    aside = e.dest / "kept-before-reparse"
+    aside.mkdir()
+    for n in pre:
+        os.replace(e.dest / n, aside / n)
+    code, s, out = e.backup(when=night(8), keep=3)
+    check("B18 CONTROL the documented release (pre-drop zips moved into a sub-folder) -> exit 0, pruning resumes",
+          code == 0 and s["ok"] and len(s["pruned"]) == 2 and sorted(p.name for p in aside.iterdir()) == pre,
+          out + str(s["pruned"]))
+
+    # The cache must be TRUE: a manifest whose run_ids disagree with its records fails verification.
+    v = Env(tmp, "b18verify")
+    real_manifest = v.tool.manifest_for
+
+    def lying_manifest(got, clone, created):
+        man = real_manifest(got, clone, created)
+        row = next(m for m in man["members"] if m["name"] == v.tool.RUNS_MEMBER)
+        row["run_ids"] = row["run_ids"][1:]  # one record silently missing from the cache
+        return man
+
+    v.tool.manifest_for = lying_manifest
+    code, s, out = v.backup()
+    check("B18 FAULT a manifest whose cached run_ids drop one record -> VERIFY FAILED, exit 1, nothing kept",
+          code == 1 and "run_ids do not match" in (s["error"] or "") and v.dest_files() == [], out)
+    v.tool.manifest_for = real_manifest
+    code, s, out = v.backup(minute=1)
+    check("B18 CONTROL the true cache verifies -> exit 0", code == 0 and s["ok"], out)
+    check("B18 unit: a keyed row's identity is its (batch, lane, log), whatever its other fields; a row without them "
+          "is a content hash", v.tool.run_identity({"batch": "b", "lane": 3, "log": "x.log", "score": 1})
+          == v.tool.run_identity({"batch": "b", "lane": 3, "log": "x.log", "score": 9}) == '["b",3,"x.log"]'
+          and v.tool.run_identity({"run": 1}).startswith("row:")
+          and v.tool.run_identity({"run": 1}) != v.tool.run_identity({"run": 2}), "")
+
+
+def dead_pid() -> int:
+    p = subprocess.Popen([sys.executable, "-c", "pass"])
+    p.wait(30)
+    return p.pid
+
+
+def b19(tmp: Path) -> None:
+    """A lock dated in the FUTURE, or naming a pid that is not running, is a dead run's (re-verify 2026-10-21, B4)."""
+    e = Env(tmp, "b19future")  # the reviewer's o4_lock.py future arm: a killed run's lock, then the clock went back
+    e.dest.mkdir(parents=True)
+    lock = e.dest / e.tool.LOCK_NAME
+    lock.write_text("unreadable: no pid", encoding="utf-8")  # so ONLY the age rule can call it stale
+    ahead = time.time() + 30 * 86400
+    os.utime(lock, (ahead, ahead))
+    runs = [e.backup(minute=m) for m in range(3)]
+    check("B19 FAULT a leftover lock dated 30 days AHEAD -> replaced with a WARN ('FUTURE'), exit 0 on all 3 nights",
+          [c for c, _s, _o in runs] == [0, 0, 0] and any("FUTURE" in w for w in runs[0][1]["warnings"])
+          and not lock.exists(), str([(c, s["error"]) for c, s, _o in runs]))
+    lock.write_text("unreadable: no pid", encoding="utf-8")
+    soon = time.time() + 30
+    os.utime(lock, (soon, soon))
+    code, s, out = e.backup(minute=5)
+    check("B19 CONTROL a lock only 30 s ahead (inside the 2-minute grace for a coarse filesystem clock) and no pid "
+          "-> REFUSED, exit 2, the lock untouched", code == 2 and "another backup holds" in (s["error"] or "")
+          and lock.exists() and lock.read_text(encoding="utf-8") == "unreadable: no pid", out)
+    lock.unlink(missing_ok=True)  # missing when a mutant replaced it: report that as the FAIL above, not a crash
+
+    d = Env(tmp, "b19deadpid")
+    d.dest.mkdir(parents=True)
+    lock = d.dest / d.tool.LOCK_NAME
+    gone = dead_pid()
+    check("B19 unit: pid_alive(this process) is True, pid_alive(an exited child) is False",
+          d.tool.pid_alive(os.getpid()) and not d.tool.pid_alive(gone), str(gone))
+    lock.write_text(json.dumps({"pid": gone, "since": "now"}), encoding="utf-8")  # FRESH: the age rules say live
+    code, s, out = d.backup()
+    check("B19 FAULT a FRESH lock whose pid is not running -> replaced ('not running'), exit 0, no lock left",
+          code == 0 and any("not running" in w for w in s["warnings"]) and not lock.exists(), out)
+    holder = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        lock.write_text(json.dumps({"pid": holder.pid, "since": "now"}), encoding="utf-8")
+        code, s, out = d.backup(minute=1)
+        check("B19 CONTROL a fresh lock whose pid IS running (another live process) -> REFUSED, exit 2, untouched",
+              code == 2 and "another backup holds" in (s["error"] or "") and lock.exists(), out)
+    finally:
+        holder.kill()
+        holder.wait(30)
+
+
+def free_drive_letter() -> str | None:
+    for letter in "QPONMLKJIHGWVUTSR":
+        if not os.path.exists(f"{letter}:\\"):
+            return letter
+    return None
+
+
+def b20(tmp: Path) -> None:
+    """A destination drive that is not present is REFUSED by preflight (re-verify 2026-10-21, B5)."""
+    if os.name != "nt":
+        check("B20 (not Windows: no drive letters)", True)
+        return
+    letter = free_drive_letter()
+    if letter is None:
+        check("B20 SKIPPED: every candidate drive letter is in use on this PC", True)
+        return
+    e = Env(tmp, "b20")
+    e.tool.volume_id = load_tool().volume_id  # the REAL probes, as the nightly task runs them
+    e.tool.free_gb = load_tool().free_gb
+    e.dest = Path(f"{letter}:/pokebot-backups/learner")
+    code, s, out = e.backup()
+    st = json.loads(e.status.read_text(encoding="utf-8")) if e.status.exists() else {}
+    check(f"B20 FAULT destination on an absent drive {letter}: -> exit 2 'REFUSED: destination drive not present'",
+          code == 2 and (s["error"] or "").startswith("REFUSED: destination drive not present"), out)
+    check("B20 FAULT: the status file records the refusal", "destination drive not present" in (st.get("error") or ""),
+          str(st))
+    check("B20 CONTROL drive_present: True for the temp folder's drive, False for the absent letter",
+          e.tool.drive_present(tmp) and not e.tool.drive_present(e.dest), "")
+    e.dest = e.root / "E" / "pokebot-backups" / "learner"
+    e.tool.volume_id = lambda p: 2 if e.tool.is_under(p, e.clone.parent) else 1
+    code, s, out = e.backup(minute=1)
+    check("B20 CONTROL the same run to a present drive -> exit 0", code == 0 and s["ok"], out)
+
+
 def installer_carries_test_flag(text: str) -> bool:
     return "--test-allow-same-volume" in text
 
@@ -794,7 +995,7 @@ def main() -> int:
     # ignore_cleanup_errors: a LEAKED handle (the B8 fault) must be reported as a FAIL line, not crash the cleanup.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         tmp = Path(td)
-        for test in (b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17):
+        for test in (b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20):
             try:
                 test(tmp)
             except Exception as ex:  # noqa: BLE001 - a crash is a FAIL with its reason, never a silent pass

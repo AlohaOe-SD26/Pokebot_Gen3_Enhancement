@@ -9,10 +9,16 @@ T5 the raw-log archive line (backlog O3): the count of runs/<tag>/raw.zip and th
    half-written data/archive_check.json makes only that line 'unavailable'.
 T6 the archive line's held count (O3 review fix): cycles HELD for review, from data/state.json; an unreadable
    state.json gives 'held for review: ?', never a false 0.
+T7 the nightly backup line (backlog O4, final re-verify 2026-10-21 B6), from tools/ops/backup_learner.py's
+   backup_status.json. CONTROL ok -> 'BACKUP: ok' with the last run's age and the newest zip's (T1 also keeps the
+   whole screen in budget with it); CONTROL no status file -> 'no backup yet'. FAULT a NEEDS-YOU night and a REFUSED
+   night show the word, the ages and the reason, cut to the screen width; a half-written file and a JSON that is not
+   a status say 'unavailable', exit 0, never a false ok.
 """
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import subprocess
 import sys
@@ -54,7 +60,25 @@ def fake_tree(root: Path) -> Path:
     (repo / "PROJECT KNOWLEDGE" / "ai-frontier.txt").write_text("AI frontier: test chapter\n", encoding="utf-8")
     (repo / "ai_player" / "evidence").mkdir(parents=True)
     (repo / "ai_player" / "evidence" / "x.txt").write_text("line\nOVERALL: PASS\n", encoding="utf-8")
+    dest = root / "backupdisk" / "pokebot-backups" / "learner"  # the nightly backup's folder and its status file
+    dest.mkdir(parents=True)
+    for name in ("learner-data-20261019-0100.zip", "learner-data-20261020-0100.zip", "notes.txt"):
+        (dest / name).write_bytes(b"PK")
+    write_backup_status(root, {"time": "2026-10-20 01:00:05 AM", "ok": True, "dest": str(dest),
+                               "zip": str(dest / "learner-data-20261020-0100.zip"), "bytes": 1076145, "warnings": [],
+                               "error": None, "pruned": []})
     return clone
+
+
+def write_backup_status(root: Path, status) -> Path:
+    path = root / "localappdata" / "pokebot-ops" / "backup_status.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(status if isinstance(status, str) else json.dumps(status), encoding="utf-8")
+    return path
+
+
+def backup_of(out: str) -> str:
+    return next((l for l in out.splitlines() if l.startswith("BACKUP:")), "(no BACKUP line)")
 
 
 def snapshot(root: Path) -> dict[str, tuple[str, float]]:
@@ -70,7 +94,9 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         clone = fake_tree(root)
-        base = ["--clone", str(clone), "--repo", str(root / "repo"), "--now", "2026-10-20 3:41 PM"]
+        status_file = root / "localappdata" / "pokebot-ops" / "backup_status.json"
+        base = ["--clone", str(clone), "--repo", str(root / "repo"), "--now", "2026-10-20 3:41 PM",
+                "--backup-status", str(status_file)]
         before = snapshot(root)
         code, out = run(*base)
         after = snapshot(root)
@@ -133,6 +159,54 @@ def main() -> int:
         code, out = run(*base)
         check("T6 FAULT: an unreadable state.json -> 'held for review: ?', exit 0",
               code == 0 and "| held for review: ?" in out, tuner_block(out))
+
+        # T7 the nightly backup line (backlog O4; final re-verify 2026-10-21 B6), from backup_status.json
+        code, out = run(*base)
+        check("T7 CONTROL an ok backup -> 'BACKUP: ok', the last run's age and the newest zip's (from its NAME)",
+              backup_of(out) == "BACKUP: ok | last run 14 h 40 m ago | newest zip 14 h 41 m old", backup_of(out))
+        dest = root / "backupdisk" / "pokebot-backups" / "learner"
+        needs = ("NEEDS-YOU (the new zip was written, verified and KEPT; NOTHING was pruned): 10 runs.jsonl record(s) "
+                 "held by 3 earlier backup(s) are MISSING tonight (newest holder learner-data-20261019-0100.zip; e.g. "
+                 '["20261010-0100",1,"Story-debug-00000.log"]): a reparse that dropped records? If intended, move '
+                 "those backups into a sub-folder of the destination (retention never looks inside one) and pruning "
+                 "resumes")
+        write_backup_status(root, {"time": "2026-10-20 01:00:05 AM", "ok": False, "dest": str(dest),
+                                   "zip": str(dest / "learner-data-20261020-0100.zip"), "error": needs, "pruned": []})
+        code, out = run(*base)
+        line = backup_of(out)
+        check("T7 FAULT a held night -> 'BACKUP: NEEDS-YOU', the ages, then the reason (cut to the screen width)",
+              line.startswith("BACKUP: NEEDS-YOU | last run 14 h 40 m ago | newest zip 14 h 41 m old | 10 runs.jsonl "
+                              "record(s)") and len(line) <= 118, line)
+        check("T7 FAULT ... and the whole screen stays within 40 lines and 2.5 KB",
+              len(out.splitlines()) <= 40 and len(out.encode("utf-8")) <= 2560,
+              f"{len(out.splitlines())} lines {len(out.encode('utf-8'))} bytes")
+        write_backup_status(root, {"time": "2026-10-20 01:00:05 AM", "ok": False, "dest": "Q:/pokebot-backups/learner",
+                                   "zip": None, "error": "REFUSED: destination drive not present: Q:\\ for "
+                                   "Q:/pokebot-backups/learner (is the backup disk plugged in?)", "pruned": []})
+        code, out = run(*base)
+        line = backup_of(out)
+        check("T7 FAULT a refused night -> 'BACKUP: REFUSED' and its reason",
+              line.startswith("BACKUP: REFUSED | last run 14 h 40 m ago | newest zip ?")
+              and "destination drive not present" in line, line)
+        write_backup_status(root, '{"time": "2026-10')  # the backup is rewriting it right now
+        code, out = run(*base)
+        check("T7 FAULT a half-written backup_status.json -> 'BACKUP: unavailable', exit 0, no traceback, the rest "
+              "prints", code == 0 and backup_of(out).startswith("BACKUP: unavailable: JSONDecodeError")
+              and "Traceback" not in out and "AI PLAYER:" in out, backup_of(out))
+        write_backup_status(root, "{}")
+        code, out = run(*base)
+        check("T7 FAULT a JSON file that is not a backup status -> 'unavailable', never a false ok",
+              backup_of(out).startswith("BACKUP: unavailable: ValueError"), backup_of(out))
+        code, out = run(*base[:-1], str(root / "nowhere" / "backup_status.json"))
+        check("T7 CONTROL no status file (the task never ran) -> 'BACKUP: no backup yet'",
+              backup_of(out) == "BACKUP: no backup yet (no backup_status.json)", backup_of(out))
+        spec = importlib.util.spec_from_file_location("status_under_test", STATUS)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        default = mod.default_backup_status()
+        check("T7 the default status path is ops_config.json's status_file, expanded (no '%')",
+              default.name == "backup_status.json" and default.parent.name == "pokebot-ops" and "%" not in str(default),
+              str(default))
 
     bad = [r for r in RESULTS if not r[1]]
     for name, ok, detail in RESULTS:

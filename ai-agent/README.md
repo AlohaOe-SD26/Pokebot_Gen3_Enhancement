@@ -57,7 +57,7 @@ Run these in `C:\Remote Projects\pokebot-learner\ai-agent`, the deployment clone
 | see what it learned | open `findings\LATEST.md` (rewritten after every cycle) |
 | preview the next cycle | `py -3.12 learner.py plan` (runs nothing) |
 | check the raw-log archives | `py -3.12 learner.py archive-check` (read-only, any time: one `OK`/`BAD` line per `raw.zip`, then one `HELD <tag> <reason>` line per cycle held for review; exit 1 on any BAD or HELD; the result goes to `data\archive_check.json` for `tools/status.py`) |
-| archive old raw logs now | `py -3.12 learner.py archive` is meant for when the learner is STOPPED. It refuses while the 24/7 learner holds its lock (the running learner archives at each boundary by itself). If the learner is started while a manual archive runs, it WAITS for it (up to 120 min, then exits 2) instead of refusing |
+| archive old raw logs now | `py -3.12 learner.py archive` is meant for when the learner is STOPPED. It refuses while the 24/7 learner holds its lock (the running learner archives at each boundary by itself). If the learner is started while a manual archive runs, it WAITS for it instead of refusing. After 120 min it gives up: it writes `findings\ATTENTION.md` with that reason and exits 2, which `run_agent.ps1` reports as "Another learner is already running" (it is not) and does not retry |
 | check the code still works | `py -3.12 test_agent.py` (offline, about 10 seconds, must say ALL PASS) |
 
 If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, delete that file, start it again.
@@ -96,18 +96,39 @@ end, then scores it.
    - questions for Claude.
 6. **Ask Claude** (`consult.py`; ON since 2026-10-03, at most 2 calls a day; see below).
 7. **Archive** (backlog O3, built 2026-10-21). The newest `keep_raw_cycles` cycles (20) keep their raw logs as
-   files. Each older cycle's `runs/<tag>/batch/` (measured 1.3-1.7 GB) is zipped to `runs/<tag>/raw.zip`, with
-   `raw.manifest.json` listing every file's name, size and CRC32.
-   - Measured on a copy of ai0038: 73 files, 1,303 MB -> 68.6 MB (19:1) in 16 s.
-   - The zip is VERIFIED (every member's CRC equals the CRC read from the original) before anything is deleted.
-     Then `batch/` and the cycle's lane profiles are deleted. **An original is deleted only when its exact bytes
-     (name, size, CRC32) are in a verified archive, and no archive file is ever overwritten or deleted.**
+   files. Each older cycle is zipped to `runs/<tag>/raw.zip`, with `raw.manifest.json` listing every file's name,
+   size and CRC32. The zip holds BOTH halves of the cycle:
+   - `batch/...`: the cycle's `runs/<tag>/batch/` (measured 1.3-1.7 GB);
+   - `profiles/<profile>/...`: every file of each of its lane profiles (`sandbox-pokebot/profiles/endless-<tag>-*`,
+     about 46 MB each, one per lane: 12-16 a cycle). Most of a profile is its debug logs, byte-identical to the copies in `batch/`;
+     the rest is found nowhere else: `badge-log.json` (the team and levels at every badge, the AI's experience
+     data, backlog A6), `stats.db`, the saves, the screenshots and the profile's settings.
+   - A profile file whose file name, size and CRC32 equal a `batch/` file's is not stored twice: its manifest entry
+     says `"dup_of": "<that batch member>"`, and verification checks that member is in the zip with that size and
+     CRC32. Every other file is stored.
+   - Measured 2026-10-21 on a scratch copy of ai0024 (its batch and 16 profiles): 306 files (96 batch, 210 profile),
+     2,469 MB -> 96.7 MB (25:1) in 24 s. Of the 210 profile files 134 were stored and 76 (every debug log) were
+     `dup_of`; an independent sha256 read-back of all 306 originals (the `dup_of` ones through their targets) matched.
+     The batch alone, before profiles were archived: ai0038, 73 files, 1,303 MB -> 68.6 MB in 16 s.
+   - The zip is VERIFIED (every member's CRC equals the CRC read from the original, every `dup_of` target matches)
+     before anything is deleted. Then `batch/` and the cycle's lane profiles are deleted. **No original, batch or
+     profile, is deleted unless its exact bytes (name, size, CRC32) are in a verified archive, stored or through
+     `dup_of`; no archive file is ever overwritten or deleted.** Before 2026-10-21 (re-verify F6) the profiles were
+     deleted unarchived; cycles pruned before then have no profile files in any archive.
    - A cycle is archived only once it is QUIET: no batch runner or lane process (`endless-<tag>-`) names it and no
-     original changed in the last 60 minutes (`QUIET_MINUTES`). Otherwise it is skipped until a later boundary. If an
-     original changes while it is being archived, nothing is deleted.
+     original, in `batch/` or in a profile, changed in the last 60 minutes (`QUIET_MINUTES`). Otherwise it is skipped
+     until a later boundary. If an original changes while it is being archived, nothing is deleted.
+   - **Accepted residual risk.** The last check that nothing changed and the delete are two steps. A write that lands
+     between them is deleted with its file. Measured on a batch shaped like a real one (96 files, 1.6 GB): 0.16 ms
+     from that check to the start of the delete, 118 ms to its end (measured before profiles were archived; the delete
+     now also removes the cycle's profiles, so it ends later). It needs a writer that was silent for 60 minutes,
+     holds no open handle on the file, and has no command line naming the cycle. The fix (rename the folder away,
+     re-check the renamed tree, then delete) is not built.
+   - A cycle with no file in `batch/` but files in its profiles archives those files; only a cycle with no file
+     anywhere has its empty folders deleted without an archive.
    - At most `max_archives_per_prune` (3) cycles a boundary; a failure is logged, the raw logs stay, and the next
      boundary retries. A killed archive leaves only a `raw.zip.part`, removed next time. Links and junctions inside
-     `batch/` are neither archived nor followed.
+     `batch/` or a profile are neither archived nor followed.
    - A `raw.zip` that cannot be trusted while every original is still on disk is SET ASIDE as `raw.zip.bad.<k>` (with
      `raw.manifest.json.bad.<k>`), and the originals are archived afresh. A set-aside file is never overwritten,
      renamed or deleted; delete them by hand only after checking them.
@@ -115,11 +136,12 @@ end, then scores it.
      `HELD FOR REVIEW` once, then `held for review: <tags>` each boundary. It keeps running. The cases are: a delete
      that stopped part-way (so `raw.zip` is the only copy of some files) whose remaining originals changed or gained
      a file, or whose `raw.zip` no longer verifies; an unreadable `raw.manifest.json`; a `runs/<tag>/batch` that its cycle's `created` list does not name;
-     and a `batch` that is a link. `learner.py archive-check` lists them (exit 1), `learner.py status` and
+     and a `batch` or a lane profile that is a link, a junction or a file. `learner.py archive-check` lists them (exit 1), `learner.py status` and
      `tools/status.py` count them. To release a cycle: stop the learner, inspect and fix that folder, remove the
      cycle's `"held"` entry from `data\state.json`, and start the learner again.
    - Archives are kept forever (`keep_archive_cycles: 0`; any other value is reserved and does nothing yet). They
-     are the AI's experience input (backlog A6): `zipfile.ZipFile(path).open("batch/L01/debug-logs/<x>.log")`.
+     are the AI's experience input (backlog A6): `zipfile.ZipFile(path).open("batch/L01/debug-logs/<x>.log")`, or
+     `.open("profiles/<profile>/badge-log.json")`. A reader that wants a `dup_of` file opens its `dup_of` member.
    - The run records in `data/runs.jsonl` are kept forever, as before.
 
 ## Talking to Claude
@@ -148,9 +170,11 @@ end, then scores it.
 
 - It never edits code. Its only git is fetch plus a fast-forward-only merge of its own clone, between cycles
   (test L5). It writes inside `ai-agent/`, plus the batch runner's lane profiles
-  (`sandbox-pokebot/profiles/endless-ai####-*`), which it later deletes by exact name. A test (R2) proves it never
-  deletes anything else.
-- It allows one learner at a time (a lock file) and never runs two batches at once.
+  (`sandbox-pokebot/profiles/endless-ai####-*`), which it later archives and deletes by exact name. Tests R2 and R22
+  prove it never archives or deletes anything else.
+- It allows one learner at a time (a lock file) and never runs two batches at once. Known limit: taking the lock is a
+  check followed by a write, not one atomic step, so two starts within milliseconds of each other both take it
+  (measured 12 of 12; 0.5 s apart, the second is refused). Real starts are seconds apart.
 - It only uses knob values listed in `knowledge.GENES`, and anything else is refused (tests B7, B8).
   - The eleven step-14 knobs use only values that ran for 13 hours.
   - The one documented exception is the boss-mode knob's `4`, which drives training the bot already runs every

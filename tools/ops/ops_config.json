@@ -7,6 +7,6 @@
   "min_dest_free_gb": 10,
   "_ops_dir": "The ops folder every backup ALSO captures (the backup status; the S1-4 watchdog's samples and state once it exists); %LOCALAPPDATA% is expanded. An explicit key since 2026-10-21 (it used to be the status file's folder, implicitly): a destination inside it made each zip contain every earlier one, so the tool refuses a backup_dir or a clone under it, and an ops tree over 200 MB.",
   "ops_dir": "%LOCALAPPDATA%/pokebot-ops",
-  "_status_file": "Outside the clone, so the backup never writes a path there; %LOCALAPPDATA% is expanded. It will be read by the S1-4 watchdog and tools/status.py.",
+  "_status_file": "Outside the clone, so the backup never writes a path there; %LOCALAPPDATA% is expanded. tools/status.py reads it (its one BACKUP line: ok / NEEDS-YOU / REFUSED, the last run's age and the newest zip's); the S1-4 watchdog will read it too, once built.",
   "status_file": "%LOCALAPPDATA%/pokebot-ops/backup_status.json"
 }

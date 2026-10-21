@@ -1,7 +1,8 @@
 """One-call check-in for the whole project (backlog A1, spec S1-5; LEAN v1, 2026-10-20).
 
-Prints ONE screen (at most 40 lines): the clock, the 24/7 bot tuner, disk, git, the AI player's frontier and newest
-evidence, and the pieces that are not built yet. READ-ONLY: it opens files and runs `git` read commands, never
+Prints ONE screen (at most 40 lines): the clock, the 24/7 bot tuner, disk, the nightly learner backup (one BACKUP
+line from tools/ops/backup_learner.py's status file, backlog O4), git, the AI player's frontier and newest evidence,
+and the pieces that are not built yet. READ-ONLY: it opens files and runs `git` read commands, never
 writes, never calls Claude, and never runs `git fetch` unless `--fetch` is given.
 
 Every section is fault-isolated: a section that fails prints `unavailable: <reason>` and the others still print, so a
@@ -17,6 +18,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -26,6 +28,8 @@ REPO = Path(__file__).resolve().parents[1]
 CLONE = Path("C:/Remote Projects/pokebot-learner/ai-agent")
 MAX_LINES, WIDTH = 40, 118
 STAMP = "%Y-%m-%d %I:%M:%S %p"
+# backup_learner.py's own ZIP_RE (ASCII [0-9] only), with the timestamp captured
+BACKUP_ZIP = re.compile(r"^learner-data-([0-9]{8}-[0-9]{4})\.zip$")
 
 
 def clock12(t: dt.datetime) -> str:
@@ -173,6 +177,59 @@ def disk_lines(clone: Path) -> list[str]:
     return out
 
 
+def default_backup_status() -> Path:
+    """Where the nightly backup (tools/ops/backup_learner.py, backlog O4) writes its status: ops_config.json's
+    status_file, with %LOCALAPPDATA% expanded; the documented default if that file cannot be read."""
+    try:
+        cfg = json.loads((REPO / "tools" / "ops" / "ops_config.json").read_text(encoding="utf-8"))
+        return Path(os.path.expandvars(cfg["status_file"]))
+    except Exception:  # noqa: BLE001 - a check-in never dies on a config file
+        return Path(os.path.expandvars("%LOCALAPPDATA%/pokebot-ops/backup_status.json"))
+
+
+def newest_zip_age(dest: str | None, now: dt.datetime) -> str:
+    """The age of the newest learner-data-YYYYMMDD-HHMM.zip in the backup folder, from its name (the name IS the
+    time). On a failed night this is the number that matters: how old the last GOOD copy is."""
+    if not dest:
+        return "newest zip ?"
+    folder = Path(dest)
+    if not os.path.isdir(Path(os.path.abspath(folder)).anchor or "."):
+        return "newest zip ? (its drive is not present)"
+    if not folder.is_dir():
+        return "no zip yet"
+    names = sorted(p.name for p in folder.iterdir() if BACKUP_ZIP.match(p.name))
+    if not names:
+        return "no zip yet"
+    made = dt.datetime.strptime(BACKUP_ZIP.match(names[-1]).group(1), "%Y%m%d-%H%M")
+    return f"newest zip {span((now - made).total_seconds())} old"
+
+
+def backup_line(path: Path, now: dt.datetime) -> str:
+    """ONE line for the nightly learner backup, from its status file: ok / NEEDS-YOU / REFUSED / FAILED, how long ago
+    it last ran, the newest zip's age, and the reason. Never raises: an absent file is 'no backup yet' (the task is
+    not installed, or has never run), and a file that cannot be read is 'unavailable: <why>', never a false ok."""
+    try:
+        if not path.exists():
+            return f"BACKUP: no backup yet (no {path.name})"
+        st = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(st, dict) or not isinstance(st.get("ok"), bool) or not isinstance(st.get("time"), str):
+            raise ValueError("not a backup status file (no ok / time)")
+        ran = dt.datetime.strptime(st["time"], STAMP)
+        error = str(st.get("error") or "")
+        if st["ok"]:
+            word, why = "ok", ""
+        elif error.startswith("NEEDS-YOU"):
+            word, why = "NEEDS-YOU", error.split("): ", 1)[-1]
+        elif error.startswith("REFUSED"):
+            word, why = "REFUSED", error.split(": ", 1)[-1]
+        else:
+            word, why = "FAILED", error or "no reason recorded"
+        line = f"BACKUP: {word} | last run {span((now - ran).total_seconds())} ago | {newest_zip_age(st.get('dest'), now)}"
+        return line + (f" | {why}" if why else "")
+    except Exception as error:  # noqa: BLE001 - a half-written status file must not break the check-in
+        return f"BACKUP: unavailable: {type(error).__name__}: {str(error)[:60]}"
+
+
 def git_lines(repo: Path, clone: Path, fetch: bool) -> list[str]:
     if fetch:
         git(repo, "fetch", "origin", "--quiet")
@@ -213,6 +270,7 @@ def build(args: argparse.Namespace) -> list[str]:
     lines += section("CLOCK", clock_lines, now, args.started, args.eta_minutes)
     lines += section("BOT TUNER (24/7 learner, ai-agent/)", learner_lines, args.clone, now)
     lines += section("DISK", disk_lines, args.clone)
+    lines.append(backup_line(args.backup_status, now))
     lines += section("GIT", git_lines, args.repo, args.clone, args.fetch)
     lines += section("AI PLAYER", ai_lines, args.repo)
     lines += section("NOT YET", later_lines, args.repo)
@@ -224,6 +282,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--clone", type=Path, default=CLONE, help="the learner's ai-agent folder in its deployment clone")
     p.add_argument("--repo", type=Path, default=REPO, help="the main checkout")
     p.add_argument("--fetch", action="store_true", help="run `git fetch` first (off by default)")
+    p.add_argument("--backup-status", type=Path, default=default_backup_status(),
+                   help="the nightly backup's status file (default: tools/ops/ops_config.json status_file)")
     p.add_argument("--started", help='when the current work started, e.g. "1:10 PM"')
     p.add_argument("--eta-minutes", type=float)
     p.add_argument("--now", help='pin the clock for tests, e.g. "2026-10-20 3:41 PM"')

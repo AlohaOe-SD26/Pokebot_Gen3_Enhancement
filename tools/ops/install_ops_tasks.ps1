@@ -11,7 +11,8 @@
     checkout's, so work in progress here cannot break the nightly. The clone gets tools/ by its own fast-forward.
   - They run "pyw.exe -3.12 -B": -B so no __pycache__ is written into the clone (a stray file there is harmless, but
     the clone stays exactly as git left it), and pyw.exe (the windowless launcher) so no console window flashes on
-    the desktop at 1 AM (review finding 8). backup_learner.py's record is its status file, so it needs no console.
+    the desktop at 1 AM (review finding 8). backup_learner.py's record is its status file, so it needs no console;
+    tools/status.py prints that file as its one BACKUP line (ok / NEEDS-YOU / REFUSED and why).
     If pyw.exe is missing, the script falls back to py.exe and SAYS so (a window will then open each night).
   - Idempotent: -Apply replaces an existing task of the same name with the same definition (Register -Force).
 
@@ -56,7 +57,7 @@ $Tasks = @()
 # StartWhenAvailable runs a missed night (PC off at 1 AM) as soon as the PC is back.
 $Tasks += @{
     Name        = 'Pokebot-Ops-Backup'
-    Description = 'Nightly zip of the 24/7 learner data (data, findings, inbox, config) to a disk other than C:. tools/ops/backup_learner.py; status in %LOCALAPPDATA%\pokebot-ops\backup_status.json.'
+    Description = 'Nightly zip of the 24/7 learner data (data, findings, inbox, config) to a disk other than C:. tools/ops/backup_learner.py; status in %LOCALAPPDATA%\pokebot-ops\backup_status.json, shown by tools/status.py.'
     Script      = Join-Path $opsDir 'backup_learner.py'
     Arguments   = ''
     Trigger     = { New-ScheduledTaskTrigger -Daily -At '1:00 AM' }

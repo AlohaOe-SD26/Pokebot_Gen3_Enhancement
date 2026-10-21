@@ -10,10 +10,14 @@ Each CYCLE:
    `findings/LATEST.md` (`report.py`);
 5. optionally asks Claude for advice (`consult.py`, off by default);
 6. ARCHIVES its own old raw logs (backlog O3, 2026-10-21): the newest `keep_raw_cycles` cycles stay raw; each older
-   cycle's `batch/` is zipped to `runs/<tag>/raw.zip` (+ `raw.manifest.json`), the zip is VERIFIED against the
-   originals, and only then are the originals deleted. An original is deleted ONLY when its exact bytes (name, size,
-   CRC32) are in a verified archive, and no archive file is ever overwritten or deleted. A cycle still in use is
+   cycle's `batch/` AND its lane profiles (`profiles/<name>/...`: badge-log.json, stats.db and the saves are the AI's
+   experience data, backlog A6) are zipped to `runs/<tag>/raw.zip` (+ `raw.manifest.json`), the zip is VERIFIED
+   against the originals, and only then are the originals deleted. A profile file byte-identical to a batch file of the
+   same name (the lane's debug logs, copied into `batch/`) is not stored twice: the manifest names it `dup_of` that
+   member. No original (batch or profile) is deleted unless its exact bytes (name, size, CRC32) are in a verified
+   archive, stored or through `dup_of`, and no archive file is ever overwritten or deleted. A cycle still in use is
    skipped until it is quiet; one whose state the code cannot prove safe is HELD for a human (`archive-check`).
+   Accepted residual risk: see `archive_cycle` (a write landing in the ~0.1 s between the last re-check and the delete).
 
 Resilience:
 - If the learner dies mid-cycle, the batch keeps running. The next start ADOPTS it: it waits for that batch to end,
@@ -252,7 +256,13 @@ def _is_manual_archive(cmd: list[str]) -> bool:
 
 
 def acquire_lock() -> str | None:
-    """None if this process now holds the lock, else why not."""
+    """None if this process now holds the lock, else why not.
+
+    KNOWN LIMIT (re-verify 2026-10-21, measured): the check and the write are two steps, not one atomic create. Two
+    processes that start within milliseconds of each other BOTH take the lock (12 of 12 trials; a start 0.5 s later is
+    refused, 3 of 3). The starts here are a human's `learner.py archive` and the Task Scheduler / `run_agent.ps1` start,
+    seconds or more apart, so this is accepted for now; the fix is an O_CREAT|O_EXCL create (as
+    `tools/ops/backup_learner.py` does) with a stale-lock replace."""
     DATA.mkdir(parents=True, exist_ok=True)
     holder = _lock_holder()
     if holder:
@@ -264,7 +274,11 @@ def acquire_lock() -> str | None:
 def acquire_lock_waiting_for_archive() -> str | None:
     """`acquire_lock`, except that a lock held by a manual `learner.py archive` is WAITED for (STOP-aware, polling
     every LOCK_POLL_S, giving up after LOCK_WAIT_MAX_MIN) instead of refused: `run_agent.ps1` treats a refusal (exit 2)
-    as 'another learner runs' and stops for good. Returns None (lock held), "STOP", or why not."""
+    as 'another learner runs' and stops for good. Returns None (lock held), "STOP", or why not.
+
+    GIVING UP writes findings/ATTENTION.md with the real reason before returning (re-verify 2026-10-21, F8): the exit 2
+    that follows makes `run_agent.ps1` print 'Another learner is already running' and stop, which is not what
+    happened, and without ATTENTION.md that stop was visible nowhere else (test R21)."""
     why = acquire_lock()
     if not why:
         return None
@@ -287,6 +301,12 @@ def acquire_lock_waiting_for_archive() -> str | None:
         if holder and not _is_manual_archive(holder[1]):
             return why
     log(f"gave up waiting for the manual archive after {LOCK_WAIT_MAX_MIN:.0f} min: not starting (exit 2)")
+    holder = _lock_holder()
+    attention(f"The learner did NOT start: a manual `learner.py archive` "
+              f"({'pid ' + str(holder[0]) if holder else 'its pid is gone now'}) still held the learner's lock after "
+              f"{LOCK_WAIT_MAX_MIN:.0f} min of waiting. The learner exited with code 2, which `run_agent.ps1` reports "
+              f"as 'Another learner is already running' and does not retry; no second learner was running. Let the "
+              f"archive finish (or stop it), delete this file, then start the learner again.")
     return why or "the lock is still held"
 
 
@@ -507,12 +527,29 @@ def _ours(c: dict, p: Path) -> bool:
            (_same_path(p.parent, PROFILES) and name.startswith(f"endless-{tag}-".casefold()))
 
 
+def _profile_dirs(c: dict) -> list[Path]:
+    """The lane profiles of cycle `c` that `_delete_ours` would delete: every `created` path `_ours` accepts as a
+    profile (so never its `batch/`), each folder once (a case or separator variant of the same path is one folder)."""
+    out, seen = [], set()
+    for p in map(Path, c.get("created", [])):
+        key = os.path.normcase(os.path.normpath(str(p)))
+        if _ours(c, p) and p.name.casefold() != "batch" and key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out
+
+
 class ArchiveError(RuntimeError):
     """An archive could not be written or verified, or a delete stopped part-way. No original was lost."""
 
 
 def _member(name: str, size: int, crc: int) -> dict:
     return {"name": name, "size": size, "crc32": crc}
+
+
+def _plain(m: dict) -> dict:
+    """A manifest member without its `dup_of`: what an original read from disk is compared with."""
+    return _member(m["name"], m["size"], m["crc32"])
 
 
 def _is_link(p: Path) -> bool:
@@ -538,21 +575,64 @@ def _originals(batch: Path) -> list[Path]:
     return sorted(out)
 
 
+def _cycle_originals(c: dict) -> dict[str, Path]:
+    """member name -> file, for EVERY original of cycle `c`, sorted by name: each regular file under `runs/<tag>/batch`
+    (named `batch/<rel>`) and under each lane profile of `_profile_dirs` (named `profiles/<profile>/<rel>`), found by
+    `_originals` (no link followed). These are exactly the files `_delete_ours` deletes, so the archive's scope equals
+    the delete's scope: before 2026-10-21 (re-verify F6) the profiles were deleted UNARCHIVED, and with them
+    badge-log.json, stats.db and the saves, which exist nowhere else. A missing folder contributes nothing."""
+    cdir = RUNS / c["tag"]
+    out: dict[str, Path] = {}
+    if (cdir / "batch").is_dir():
+        out.update({f.relative_to(cdir).as_posix(): f for f in _originals(cdir / "batch")})
+    for p in _profile_dirs(c):
+        if p.is_dir():
+            out.update({f"profiles/{p.name}/{f.relative_to(p).as_posix()}": f for f in _originals(p)})
+    return dict(sorted(out.items()))
+
+
 def _stat_sig(files: list[Path]) -> dict[str, tuple[int, int]]:
     """path -> (size, mtime_ns): taken before an archive reads the originals and again just before the delete, so an
     original written to (or a new one created) in between is never deleted."""
     return {str(f): (st.st_size, st.st_mtime_ns) for f in files for st in [f.stat()]}
 
 
-def _scan_originals(cdir: Path, files: list[Path]) -> list[dict]:
-    """(name, size, CRC32) of each original file, read from disk; names relative to `runs/<tag>/`."""
+def _crc_of(f: Path) -> tuple[int, int]:
+    crc, size = 0, 0
+    with open(f, "rb") as fh:
+        while chunk := fh.read(1 << 20):
+            crc, size = zlib.crc32(chunk, crc), size + len(chunk)
+    return size, crc
+
+
+def _scan_originals(originals: dict[str, Path]) -> list[dict]:
+    """(name, size, CRC32) of each original file, read from disk, in `originals`' order."""
+    return [_member(name, *_crc_of(f)) for name, f in originals.items()]
+
+
+def _dup_key(m: dict) -> tuple[str, int, int]:
+    return m["name"].rsplit("/", 1)[-1], m["size"], m["crc32"]
+
+
+def _dup_index(members: list[dict]) -> dict[tuple[str, int, int], str]:
+    """(file name, size, CRC32) -> the first STORED `batch/` member with them: what a profile file may be `dup_of`."""
+    index: dict[tuple[str, int, int], str] = {}
+    for m in members:
+        if m["name"].startswith("batch/") and not m.get("dup_of"):
+            index.setdefault(_dup_key(m), m["name"])
+    return index
+
+
+def _plan_members(scanned: list[dict]) -> list[dict]:
+    """The manifest members for originals scanned from disk: a `profiles/` member whose file name, size and CRC32
+    equal a `batch/` member's is `dup_of` it (stored once: a lane's debug logs are copied into `batch/`, so storing both
+    doubles the zip for nothing); every other member is stored. Deterministic, so an interrupted archive re-plans the
+    same members from the same bytes (recovery case 2)."""
+    index = _dup_index(scanned)
     out = []
-    for f in files:
-        crc, size = 0, 0
-        with open(f, "rb") as fh:
-            while chunk := fh.read(1 << 20):
-                crc, size = zlib.crc32(chunk, crc), size + len(chunk)
-        out.append(_member(f.relative_to(cdir).as_posix(), size, crc))
+    for m in scanned:
+        target = index.get(_dup_key(m)) if m["name"].startswith("profiles/") else None
+        out.append(dict(m, dup_of=target) if target else m)
     return out
 
 
@@ -570,8 +650,10 @@ def _copy_member(zf: zipfile.ZipFile, src: Path, name: str) -> dict:
 
 
 def verify_archive(zpath: Path, members: list[dict]) -> str | None:
-    """None if `zpath` holds EXACTLY `members` (same names, sizes and CRC32s; no extra and no missing member) and every
-    member decompresses to its stored CRC (`testzip`); otherwise the reason. Never raises."""
+    """None if `zpath` holds EXACTLY the stored `members` (those without `dup_of`: same names, sizes and CRC32s; no
+    extra and no missing member), every member decompresses to its stored CRC (`testzip`), and every `dup_of` member's
+    target IS in the zip with that member's size and CRC32 (so its bytes are there, under the target's name);
+    otherwise the reason. Never raises."""
     try:
         with zipfile.ZipFile(zpath) as zf:
             bad = zf.testzip()
@@ -579,7 +661,9 @@ def verify_archive(zpath: Path, members: list[dict]) -> str | None:
                 return f"member {bad} fails its CRC"
             infos = zf.infolist()
             got = {i.filename: i for i in infos}
-            want = {m["name"]: m for m in members}
+            want = {m["name"]: m for m in members if not m.get("dup_of")}
+            if len({m["name"] for m in members}) != len(members):
+                return "the manifest names one member twice"
             if len(infos) != len(got) or len(got) != len(want) or set(got) != set(want):
                 return f"members differ: {len(infos)} in the zip, {len(want)} expected"
             for name, m in want.items():
@@ -587,6 +671,14 @@ def verify_archive(zpath: Path, members: list[dict]) -> str | None:
                     return f"{name}: size {got[name].file_size} != {m['size']}"
                 if got[name].CRC != m["crc32"]:
                     return f"{name}: CRC {got[name].CRC:08x} != the source's {m['crc32']:08x}"
+            for m in members:
+                if m.get("dup_of"):
+                    t = got.get(m["dup_of"])
+                    if t is None:
+                        return f"{m['name']}: its dup_of {m['dup_of']} is not in the zip"
+                    if t.file_size != m["size"] or t.CRC != m["crc32"]:
+                        return (f"{m['name']}: its dup_of {m['dup_of']} holds size {t.file_size} CRC {t.CRC:08x}, "
+                                f"not {m['size']} {m['crc32']:08x}")
     except Exception as exc:  # noqa: BLE001 - an unreadable zip is a failed verification, never a crash
         return f"unreadable: {exc!r}"[:200]
     return None
@@ -630,20 +722,23 @@ def _remove_part(part: Path) -> None:
 
 
 def _read_manifest(path: Path) -> dict | None:
-    """The manifest, or None when it cannot be read or any member is not a well-formed {name, size, crc32}."""
+    """The manifest, or None when it cannot be read or any member is not a well-formed {name, size, crc32} (plus, for
+    a profile file stored once through its batch twin, a string `dup_of`)."""
     try:
         man = json.loads(path.read_text(encoding="utf-8"))
         members = man.get("members")
         ok = isinstance(members, list) and all(
             isinstance(m, dict) and isinstance(m.get("name"), str) and isinstance(m.get("size"), int)
-            and isinstance(m.get("crc32"), int) for m in members)
+            and isinstance(m.get("crc32"), int) and isinstance(m.get("dup_of", ""), str) for m in members)
         return man if ok else None
     except (OSError, ValueError, AttributeError):
         return None
 
 
 def _write_manifest(cdir: Path, tag: str, members: list[dict]) -> None:
-    man = {"tag": tag, "written": now(), "n_files": len(members), "bytes_raw": sum(m["size"] for m in members),
+    dups = [m for m in members if m.get("dup_of")]
+    man = {"tag": tag, "written": now(), "n_files": len(members), "n_stored": len(members) - len(dups),
+           "n_dup": len(dups), "bytes_raw": sum(m["size"] for m in members),
            "bytes_zip": (cdir / ARCHIVE).stat().st_size, "members": members}
     tmp = cdir / (MANIFEST + ".tmp")
     tmp.write_text(json.dumps(man, indent=1), encoding="utf-8")
@@ -678,9 +773,10 @@ def _hold(c: dict, reason: str) -> str:
     return f"HELD: {reason}"
 
 
-def _in_use(tag: str, cdir: Path, files: list[Path], cmds: list[tuple[int, str]]) -> str | None:
+def _in_use(tag: str, cdir: Path, originals: dict[str, Path], cmds: list[tuple[int, str]]) -> str | None:
     """Why cycle `tag` must not be archived or deleted yet, or None when it is QUIET: no batch runner writes into it,
-    no process (an orphaned lane) names its profiles `endless-<tag>-`, and no original changed within QUIET_MINUTES."""
+    no process (an orphaned lane) names its profiles `endless-<tag>-`, and no original (a batch file OR a lane-profile
+    file: a lane writes its profile's save, stats.db and logs) changed within QUIET_MINUTES."""
     if batch_running(cdir, cmds):
         return "its batch runner is alive"
     marker = f"endless-{tag}-"
@@ -688,13 +784,15 @@ def _in_use(tag: str, cdir: Path, files: list[Path], cmds: list[tuple[int, str]]
         if marker in cmd:
             return f"process {pid} names {marker}*"
     cutoff = time.time() - 60 * QUIET_MINUTES
-    for f in files:
+    for name, f in originals.items():
         if f.stat().st_mtime > cutoff:
-            return f"{f.relative_to(cdir).as_posix()} was modified within the last {QUIET_MINUTES} min"
+            return f"{name} was modified within the last {QUIET_MINUTES} min"
     return None
 
 
 def _delete_ours(c: dict) -> None:
+    """Delete every `created` path of cycle `c` that `_ours` accepts (its batch/, then its lane profiles), and nothing
+    else. Errors are ignored here: the caller checks what is left and raises (a partial delete is recovery case 4)."""
     for p in map(Path, c.get("created", [])):
         if _ours(c, p) and p.exists():
             shutil.rmtree(p, ignore_errors=True)
@@ -705,23 +803,39 @@ NOT_AN_ATTEMPT = ("no raw logs", "in use", "HELD")
 
 
 def archive_cycle(c: dict, cmds: list[tuple[int, str]] | None = None) -> str:
-    """Archive one cycle's raw logs, then delete its originals (`batch/` and its lane profiles, by `_ours`).
+    """Archive one cycle's originals, then delete them: every file of its `batch/` and of its lane profiles (by `_ours`;
+    `_cycle_originals` names them `batch/<rel>` and `profiles/<profile>/<rel>` inside the zip).
 
-    THE INVARIANT: an original is deleted ONLY when its exact bytes (name, size, CRC32) are in a VERIFIED archive, and
-    no archive file is ever overwritten or deleted. What the code cannot prove safe is HELD (`_hold`): no file touched.
+    THE INVARIANT: NO original (batch or profile) is deleted unless its exact bytes (name, size, CRC32) are in a
+    VERIFIED archive: stored as a zip member, or (a profile file byte-identical to a batch file of the same name,
+    `_plan_members`) recorded in the manifest as `dup_of` a stored member that `verify_archive` checks has its size and
+    CRC32. No archive file is ever overwritten or deleted. What the code cannot prove safe is HELD (`_hold`): no file
+    touched.
 
-    Fresh: write `raw.zip.part` -> verify it against the CRC32s read while streaming -> rename (never over an existing
-    file) to `raw.zip` -> write `raw.manifest.json` -> re-check that no original changed -> delete -> set the flags.
+    Fresh: write `raw.zip.part` (batch members first, then each profile file: `dup_of` its batch twin, else stored) ->
+    verify it against the CRC32s read from the originals -> rename (never over an existing file) to `raw.zip` -> write
+    `raw.manifest.json` -> re-check that no original changed -> delete -> check nothing is left -> set the flags.
     Before ANY archive or delete the cycle must be quiet (`_in_use`; skipped this boundary otherwise, not held).
-    Recovery, when `raw.zip` exists beside originals O (M = the manifest's members):
+    Recovery, when `raw.zip` exists beside originals O (batch AND profile files; M = the manifest's members):
       1. a manifest file that cannot be read -> HOLD;
-      2. no manifest (deletion never starts before it is written): the zip verifies EXACTLY against O -> write the
-         manifest and delete; otherwise SET ASIDE the zip (`_set_aside`) and archive afresh at the next prune;
+      2. no manifest (deletion never starts before it is written): the zip verifies EXACTLY against O, planned as a
+         fresh archive plans it -> write the manifest and delete; otherwise SET ASIDE the zip (`_set_aside`) and archive
+         afresh at the next prune;
       3. every manifest member is still an original (the delete had not started): the zip verifies against M and O == M
-         -> delete; otherwise SET ASIDE the zip and its manifest (every original is still on disk);
+         -> delete; otherwise SET ASIDE the zip and its manifest (every original is still on disk; a manifest written
+         before profiles were archived lacks them, so it is set aside and the cycle archived afresh);
       4. some manifest member is gone (a delete stopped part-way; the zip is the ONLY copy of those): the zip verifies
          against M, every remaining original equals its manifest entry and there is no extra original -> resume the
          delete; otherwise HOLD.
+
+    ACCEPTED RESIDUAL RISK (re-verify 2026-10-21, measured): the last re-stat and the delete are not one atomic step. A
+    write that lands AFTER the re-stat is deleted with its file; measured 0.16 ms from the re-stat to the start of the
+    delete and 118 ms to its end, on a batch shaped like a real one (96 files, 1.6 GB; measured before the profiles were
+    archived: the delete now also removes 12-16 profiles of about 46 MB and 13 files each, so its end comes later). Its
+    preconditions: the writer was silent for QUIET_MINUTES (60 min), holds no open handle on the file, and no process
+    command line names the cycle (`_in_use`). Closing it (rename the folder away, re-stat the renamed tree, then
+    delete) is not built.
+
     Returns what happened; raises (no original lost, no `.part` left) when an archive cannot be written or verified or
     a delete stops part-way. `cmds`: a `_cmdlines()` snapshot shared by one prune (a scan costs about 0.5 s)."""
     tag = c["tag"]
@@ -732,32 +846,36 @@ def archive_cycle(c: dict, cmds: list[tuple[int, str]] | None = None) -> str:
             return _hold(c, "runs/<tag>/batch is a link, a junction or a file, not a plain folder")
         if not any(_ours(c, p) and p.name.casefold() == "batch" for p in map(Path, c.get("created", []))):
             return _hold(c, "runs/<tag>/batch exists on disk but no `created` entry of this cycle names it")
-    files = _originals(batch) if batch.is_dir() else []
-    why = _in_use(tag, cdir, files, list(_cmdlines()) if cmds is None else cmds)
+    for p in _profile_dirs(c):
+        if os.path.lexists(p) and (_is_link(p) or not p.is_dir()):
+            return _hold(c, f"lane profile {p.name} is a link, a junction or a file, not a plain folder")
+    originals = _cycle_originals(c)
+    why = _in_use(tag, cdir, originals, list(_cmdlines()) if cmds is None else cmds)
     if why:
         return f"in use ({why}); retried next boundary"
-    if not files:  # nothing to archive (an empty or missing batch/): today's delete, as before O3 (tests R1/R2)
+    if not originals:  # no file in batch/ OR in any lane profile: only empty folders are left to delete (tests R1/R2)
         _delete_ours(c)
         if zpath.exists():
             c["archived"] = True
         c["pruned"] = True
-        return "no raw logs to archive; deleted its empty leftovers"
-    sig = _stat_sig(files)
+        return "no raw logs (no file in batch/ or its lane profiles) to archive; deleted its empty leftovers"
+    sig = _stat_sig(list(originals.values()))
     if zpath.exists():
-        sources = _scan_originals(cdir, files)
+        sources = _scan_originals(originals)
         o = {s["name"]: s for s in sources}
         if not os.path.lexists(mpath):  # case 2
-            reason = verify_archive(zpath, sources)
+            planned = _plan_members(sources)
+            reason = verify_archive(zpath, planned)
             if reason:
                 return _set_aside_logged(tag, cdir, f"no manifest, and it does not match the originals exactly: "
                                                     f"{reason}")
-            _write_manifest(cdir, tag, sources)
+            _write_manifest(cdir, tag, planned)
             how = "completed an interrupted archive (raw.zip verified exactly against the originals; manifest written)"
         else:
             man = _read_manifest(mpath)
             if man is None:  # case 1
                 return _hold(c, f"{MANIFEST} exists but cannot be read")
-            m = {x["name"]: x for x in man["members"]}
+            m = {x["name"]: _plain(x) for x in man["members"]}
             reason = verify_archive(zpath, man["members"])
             missing = sorted(set(m) - set(o))
             if not missing:  # case 3: the delete had not started
@@ -778,10 +896,19 @@ def archive_cycle(c: dict, cmds: list[tuple[int, str]] | None = None) -> str:
     else:
         if os.path.lexists(mpath):  # a manifest without its zip: a set-aside interrupted between its two renames
             log(f"{tag}: {MANIFEST} without its raw.zip; set aside as {_set_aside(cdir).replace(ARCHIVE, MANIFEST)}")
+        cdir.mkdir(parents=True, exist_ok=True)  # runs/<tag>/ may be gone while its lane profiles remain
         try:
             with zipfile.ZipFile(part, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True, compresslevel=6,
                                  strict_timestamps=False) as zf:
-                members = [_copy_member(zf, f, f.relative_to(cdir).as_posix()) for f in files]
+                members = [_copy_member(zf, f, name) for name, f in originals.items() if name.startswith("batch/")]
+                index = _dup_index(members)  # every batch member is stored before any profile file is planned
+                for name, f in originals.items():
+                    if name.startswith("batch/"):
+                        continue
+                    size, crc = _crc_of(f)
+                    target = index.get((name.rsplit("/", 1)[-1], size, crc))
+                    members.append(dict(_member(name, size, crc), dup_of=target) if target else
+                                   _copy_member(zf, f, name))
             reason = verify_archive(part, members)
             if reason:
                 raise ArchiveError(f"{tag}: the new archive failed verification: {reason}")
@@ -791,16 +918,19 @@ def archive_cycle(c: dict, cmds: list[tuple[int, str]] | None = None) -> str:
             raise
         _write_manifest(cdir, tag, members)
         how = "archived"
-    if _stat_sig(_originals(batch)) != sig:  # written to (or a file added) while it was being read: delete nothing
+    # written to (or a file added) while it was being read, in batch/ OR a lane profile: delete nothing
+    if _stat_sig(list(_cycle_originals(c).values())) != sig:
         log(f"{tag}: an original changed while it was being archived; NOTHING deleted, retried next boundary")
         return "changed while archiving: nothing deleted; retried next boundary"
     _delete_ours(c)
-    if batch.exists():
-        raise ArchiveError(f"{tag}: raw.zip is verified but batch/ could not be fully deleted; retried next prune")
+    left = [p.name for p in [batch] + _profile_dirs(c) if os.path.lexists(p)]
+    if left:
+        raise ArchiveError(f"{tag}: raw.zip is verified but {left[:3]} could not be fully deleted; retried next prune")
     c["archived"] = c["pruned"] = True
     man = _read_manifest(mpath) or {}
     raw, packed = man.get("bytes_raw", 0), man.get("bytes_zip", 0)
-    return f"{how}: {man.get('n_files')} files, {raw / 2**20:.0f} MB -> {packed / 2**20:.1f} MB; raw logs deleted"
+    return (f"{how}: {man.get('n_files')} files ({man.get('n_stored', '?')} stored, {man.get('n_dup', '?')} dup_of a "
+            f"batch file), {raw / 2**20:.0f} MB -> {packed / 2**20:.1f} MB; raw logs and lane profiles deleted")
 
 
 def prune(cfg: dict, state: dict) -> None:

@@ -29,25 +29,45 @@ DESIGN, AND THE REASON FOR EACH PART
   prunes an old backup: the old ones are then the only good copies.
 - RETENTION IS HELD (the new zip is KEPT, nothing is pruned, status ok false with a `NEEDS-YOU` reason, exit 1 so Task
   Scheduler shows a failure) when the capture looks like a LOSS rather than a backup: runs.jsonl was not captured at
-  all, or it has FEWER lines than the largest copy in any existing backup, or an existing backup is named LATER than
-  now (the clock went backwards). WHY: a wiped clone or a bad reparse produces a perfectly valid zip of the damage,
-  and pruning on it deletes one good copy a night until none is left (review finding 0 measured exactly that: after
-  15 such nights, 0 of 14 zips still held runs.jsonl). Compared with the LARGEST copy, not the newest, because a held
-  night's own zip would otherwise become the baseline and pruning would resume the next night. To release a
-  legitimate shrink (a reparse run on purpose), move the older, larger zips into a sub-folder of the destination:
-  neither retention nor this comparison looks inside one.
+  all, or it has FEWER lines than the largest copy in any existing backup, or ANY run record held by ANY existing
+  backup is missing tonight, or an existing backup is named LATER than now (the clock went backwards). WHY: a wiped
+  clone or a bad reparse produces a perfectly valid zip of the damage, and pruning on it deletes one good copy a night
+  until none is left (review finding 0 measured exactly that: after 15 such nights, 0 of 14 zips still held
+  runs.jsonl). The count is compared with the LARGEST earlier copy, not the newest, because a held night's own zip
+  would otherwise become the baseline and pruning would resume the next night.
+- THE RECORD CHECK IS BY IDENTITY, NOT COUNT (CLAUDE.md session rule 3; final re-verify 2026-10-21, blocker). The
+  learner adds about 107 runs a day, so a reparse that drops 10 records followed by 50 new runs before 1 AM leaves the
+  count GROWING: a count check never fired, and 3 nights later no kept zip held the dropped records (o4_regrow.py).
+  A run's identity is (batch, lane, log): the key the learner's own `cmd_ingest` deduplicates on, and the key
+  `cmd_reparse` preserves (it replaces a batch's rows with freshly parsed rows of the same batch, lane and log).
+  Measured 2026-10-21 on the real runs.jsonl: 2,586 rows, 2,586 distinct identities, no row missing a field (`log`
+  alone is NOT unique: one log name appears twice). A row lacking any of the three is identified by the sha256 of its
+  canonical JSON, so it is still protected, only more strictly. The count check stays as the cheap first filter.
+  Each zip's MANIFEST caches its identity list (`run_ids`, under `id_scheme`), so the nightly check reads 14
+  manifests instead of 14 copies of runs.jsonl; a zip without that list (or under another scheme) is read the slow
+  way. Measured 2026-10-21 on 14 zips built from the real 10.2 MB runs.jsonl: 0.02 s from the manifests, 0.85 s the
+  slow way; the cache adds about 17 KB (compressed) to a 1.08 MB zip. verify_zip proves the list equals the records
+  in the zip, so the cache cannot drift from what it describes.
+- To release a legitimate shrink or rewrite (a reparse run on purpose), move the older zips that hold the old records
+  into a sub-folder of the destination: neither retention nor either comparison looks inside one.
 - Retention touches only files matching `^learner-data-[0-9]{8}-[0-9]{4}\\.zip$`, and never the zip this run wrote.
   The sweep removes only this tool's own `.part` files of that stem, and only when they are over an hour old. ASCII
   `[0-9]`, never a bare `\\d`: in a str pattern `\\d` matches any Unicode digit, and such a name took a keep slot.
 - ONE RUN AT A TIME: an `O_EXCL` lock file (`.backup_learner.lock`) in the destination. A second run is REFUSED (exit
-  2), because two concurrent runs in one minute deleted each other's `.part`. A lock over 2 hours old (a killed run)
-  is stale and replaced, with a WARN.
+  2), because two concurrent runs in one minute deleted each other's `.part`. A lock is STALE, and replaced with a
+  WARN, when it is over 2 hours old, or dated more than 2 minutes in the FUTURE (a killed run, then an RTC reset: its
+  age was negative, so the old age rule refused every night until the clock caught up; final re-verify 2026-10-21), or
+  when the pid written in it is not running. A lock whose pid cannot be read (another run between creating the file
+  and writing it) falls back to the age rules only.
+- A destination DRIVE that is not present (the backup disk unplugged, or a mapped letter gone) is REFUSED as
+  'destination drive not present', exit 2. Before 2026-10-21 it surfaced as a generic FAILED from deep in a probe.
 - The OPS FOLDER (`ops_dir` in ops_config.json, `%LOCALAPPDATA%/pokebot-ops`: the watchdog's samples and state once
   S1-4 exists, the backup status) is captured too. It is an EXPLICIT key (it used to be the status file's folder,
   implicitly), and preflight REFUSES a destination or a clone under it and an ops tree over 200 MB: a destination
   inside it made each zip contain every earlier one (review finding 3: 52 KB to 3.4 GB in 19 runs, read into RAM).
-- `backup_status.json` (time, zip, bytes, ok, warnings, error) goes to `%LOCALAPPDATA%/pokebot-ops/`, never into the
-  clone. It will be read by the S1-4 watchdog and tools/status.py.
+- `backup_status.json` (time, dest, zip, bytes, ok, warnings, error) goes to `%LOCALAPPDATA%/pokebot-ops/`, never into
+  the clone. tools/status.py reads it and prints one BACKUP line (ok / NEEDS-YOU / REFUSED / FAILED, the age of the
+  last run and of the newest zip); the S1-4 watchdog will read it too, once built.
 
 OTHER MODES
 - `--restore-check ZIP --into DIR`: the restore drill. Extracts into an EMPTY dir (refuses a non-empty one and any dir
@@ -93,6 +113,9 @@ ZIP_RE = re.compile(r"^learner-data-[0-9]{8}-[0-9]{4}\.zip$")
 PART_RE = re.compile(r"^learner-data-[0-9]{8}-[0-9]{4}\.zip\.part$")
 LOCK_NAME = ".backup_learner.lock"
 LOCK_STALE_S = 2 * 3600  # a lock older than this is a killed run's and is replaced
+# A lock dated further than this in the FUTURE is stale too (a killed run, then the clock went back). Not zero: a live
+# run's lock can read slightly ahead of time.time() on a coarse filesystem clock (FAT rounds mtimes UP to 2 s).
+LOCK_FUTURE_S = 120
 PART_STALE_S = 3600  # the sweep removes only a .part older than this (a younger one may belong to a live run)
 OPS_MAX_BYTES = 200 * 1024 * 1024  # the ops tree is read into RAM; anything bigger is not just ops files
 MANIFEST = "MANIFEST.json"
@@ -101,6 +124,10 @@ EXCLUDE_NAMES = {"agent.lock"}
 EXCLUDE_SUFFIXES = (".tmp",)
 STATE_MEMBER = "ai-agent/data/state.json"
 RUNS_MEMBER = "ai-agent/data/runs.jsonl"
+# A run's identity: the learner's own dedup key (learner.py cmd_ingest), and what cmd_reparse preserves. Bump ID_SCHEME
+# whenever run_identity changes, so a manifest cached under the old rule is recomputed, never compared as if equal.
+ID_FIELDS = ("batch", "lane", "log")
+ID_SCHEME = "v1:batch,lane,log|row-sha256-32"
 STATE_RETRIES = 3
 STATE_RETRY_SLEEP = 1.0  # seconds; the selftest sets 0
 REPLACE_RETRIES = 5
@@ -128,6 +155,45 @@ def volume_id(path: Path) -> int:
 def free_gb(path: Path) -> float:
     """Free space at a path, in GB (the selftest injects this to fake a full or an empty disk)."""
     return shutil.disk_usage(nearest_existing(path)).free / 1e9
+
+
+def drive_present(path: Path) -> bool:
+    """The drive (or UNC share) a path is on exists. False for an unplugged disk or a dropped mapped letter."""
+    anchor = Path(os.path.abspath(path)).anchor
+    return not anchor or os.path.isdir(anchor)
+
+
+def pid_alive(pid: int) -> bool:
+    """Whether a process with this pid is running now. Windows: OpenProcess + GetExitCodeProcess == STILL_ACTIVE
+    (never `os.kill(pid, 0)` there: signal 0 is CTRL_C_EVENT on Windows). Access denied means it exists. A REUSED pid
+    reads as alive, which only means the lock waits for the age rules: the safe direction."""
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.OpenProcess.restype = wintypes.HANDLE
+        k32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        k32.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+        k32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        handle = k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return ctypes.get_last_error() == 5  # ERROR_ACCESS_DENIED: it exists, it is just not ours
+        try:
+            code = wintypes.DWORD()
+            if not k32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                return True
+            return code.value == 259  # STILL_ACTIVE
+        finally:
+            k32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+        return True
+    except PermissionError:
+        return True
+    except OSError:
+        return False
 
 
 def nearest_existing(path: Path) -> Path:
@@ -313,12 +379,36 @@ def capture(clone: Path, ops_dir: Path | None, warnings: list[str]) -> dict[str,
     return got
 
 
+def run_identity(row) -> str:
+    """One run record's stable identity (see ID_FIELDS). A row lacking a field is identified by its whole content."""
+    if isinstance(row, dict) and all(row.get(k) is not None for k in ID_FIELDS):
+        return json.dumps([row[k] for k in ID_FIELDS], ensure_ascii=False, separators=(",", ":"))
+    canon = json.dumps(row, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return "row:" + sha256(canon.encode("utf-8"))[:32]
+
+
+def run_identities(data: bytes) -> set[str]:
+    """The identity of every record in a runs.jsonl. A line that does not parse has no identity: verify_zip reports
+    it on a fresh backup, and an earlier zip passed that same check when it was written."""
+    out: set[str] = set()
+    for line in data.decode("utf-8", errors="replace").splitlines():
+        if line.strip():
+            try:
+                out.add(run_identity(json.loads(line)))
+            except ValueError:
+                continue
+    return out
+
+
 def manifest_for(got: dict[str, tuple[bytes, float]], clone: Path, created: str) -> dict:
     members = []
     for name, (data, _m) in got.items():
         row = {"name": name, "size": len(data), "sha256": sha256(data)}
         if name.endswith(".jsonl"):
             row["lines"] = data.count(b"\n")
+        if name == RUNS_MEMBER:  # the identity cache later nights' record check reads (identity_hold)
+            row["id_scheme"] = ID_SCHEME
+            row["run_ids"] = sorted(run_identities(data))
         members.append(row)
     return {"tool": "backup_learner.py", "created": created, "clone": str(clone), "n_files": len(members),
             "bytes_raw": sum(m["size"] for m in members), "members": members}
@@ -379,6 +469,10 @@ def verify_zip(path: Path, expect: dict | None = None) -> tuple[list[str], dict]
                     err = parse_jsonl(name, data)
                     if err:
                         errors.append(err)
+                if name == RUNS_MEMBER:
+                    err = run_ids_mismatch(want[name], data)
+                    if err:
+                        errors.append(err)
                 if name == STATE_MEMBER:
                     try:
                         json.loads(data.decode("utf-8"))
@@ -391,6 +485,16 @@ def verify_zip(path: Path, expect: dict | None = None) -> tuple[list[str], dict]
         # zlib.error is what a flipped byte inside DEFLATE data raises, from testzip() itself (found by B6/B7: it
         # escaped this handler at first, so a corrupt zip was reported as a generic failure, not as VERIFY FAILED).
         return [f"unreadable zip: {type(e).__name__}: {e}"], {}
+
+
+def run_ids_mismatch(row: dict, data: bytes) -> str | None:
+    """The manifest's cached identity list must equal the identities of the records actually in the zip: the nightly
+    record check trusts that list, so a list that drifted from its data would protect the wrong records."""
+    if row.get("id_scheme") != ID_SCHEME or "run_ids" not in row:
+        return None  # no cache under this scheme: nothing to prove (the record check then reads the data itself)
+    if row["run_ids"] != sorted(run_identities(data)):
+        return f"{RUNS_MEMBER}: the manifest's run_ids do not match the records in the zip"
+    return None
 
 
 def our_backups(dest: Path) -> list[str]:
@@ -417,13 +521,30 @@ def largest_previous_runs(dest: Path, exclude: str) -> tuple[int | None, str | N
     return best
 
 
+def backup_run_ids(path: Path) -> set[str] | None:
+    """The run identities an earlier backup holds: from its manifest's `run_ids` when cached under this ID_SCHEME (one
+    small member), else by reading its runs.jsonl. None when the zip holds no runs.jsonl or cannot be read."""
+    try:
+        with zipfile.ZipFile(path) as z:
+            man = json.loads(z.read(MANIFEST).decode("utf-8"))
+            row = next((m for m in man["members"] if m["name"] == RUNS_MEMBER), None)
+            if row is None:
+                return None
+            if row.get("id_scheme") == ID_SCHEME and isinstance(row.get("run_ids"), list):
+                return set(row["run_ids"])
+            return run_identities(z.read(RUNS_MEMBER))
+    except (zipfile.BadZipFile, zlib.error, EOFError, OSError, KeyError, ValueError, TypeError):
+        return None
+
+
 # --------------------------------------------------------------------------------------------- retention holds
 def runs_hold(dest: Path, final_name: str, now_lines: int | None) -> list[str]:
     """Reasons NOT to prune tonight because the capture looks like a loss of runs.jsonl (review finding 0).
 
-    Prune only when runs.jsonl WAS captured and no earlier backup holds more lines. Compared with the LARGEST earlier
+    Hold when runs.jsonl was NOT captured, or an earlier backup holds more lines. Compared with the LARGEST earlier
     copy, not the newest: a held night's own zip would otherwise become the next night's baseline, pruning would
-    resume, and the good copies would still be gone 14 nights later."""
+    resume, and the good copies would still be gone 14 nights later. This is only the cheap FIRST filter: a count
+    cannot see a drop the learner's growth outweighs, so a night that passes it still goes through identity_hold."""
     prev, prev_name = largest_previous_runs(dest, final_name)
     if now_lines is None:
         if prev is not None:
@@ -436,6 +557,34 @@ def runs_hold(dest: Path, final_name: str, now_lines: int | None) -> list[str]:
                 "the shrink is intended, move the older, larger zips into a sub-folder of the destination (retention "
                 "never looks inside one) and pruning resumes"]
     return []
+
+
+def identity_hold(dest: Path, final_name: str, now_ids: set[str] | None) -> list[str]:
+    """A reason NOT to prune tonight when ANY run record held by ANY earlier backup is missing from tonight's capture
+    (final re-verify 2026-10-21, blocker B3). WHY by identity: the learner's growth hides a drop from a count (10 runs
+    dropped by a reparse plus 50 new ones reads as +40), and after `keep` such nights no backup holds the dropped runs.
+    Every earlier zip is checked, not only the newest: once a drop has been held for a night, that night's own zip
+    lacks the records too, and only the zips from before the drop still prove they existed. `now_ids` None (runs.jsonl
+    not captured) is left to runs_hold, which holds on its own."""
+    if now_ids is None:
+        return []
+    missing: dict[str, str] = {}  # identity -> the NEWEST earlier backup that holds it
+    holders: set[str] = set()
+    for name in our_backups(dest):  # oldest first, so a later zip overwrites: the newest holder wins
+        if name == final_name:
+            continue
+        ids = backup_run_ids(dest / name)
+        gone = (ids - now_ids) if ids else set()
+        if gone:
+            holders.add(name)
+            for i in gone:
+                missing[i] = name
+    if not missing:
+        return []
+    return [f"{len(missing)} runs.jsonl record(s) held by {len(holders)} earlier backup(s) are MISSING tonight (newest "
+            f"holder {max(missing.values())}; e.g. {sorted(missing)[0][:90]}): a reparse that dropped records? If "
+            "intended, move those backups into a sub-folder of the destination (retention never looks inside one) "
+            "and pruning resumes"]
 
 
 def clock_hold(dest: Path, final_name: str) -> list[str]:
@@ -455,6 +604,9 @@ def preflight(clone: Path, dest: Path, ops_dir: Path | None, min_free: float, al
     """Every refusal happens HERE, before a single byte is written to the destination."""
     if not (clone / "data").is_dir():
         raise Refused(f"no data/ under {clone}: is it the learner's ai-agent folder?")
+    if not drive_present(dest):
+        raise Refused(f"destination drive not present: {Path(os.path.abspath(dest)).anchor} for {dest} (is the backup "
+                      "disk plugged in, and is its drive letter the one in ops_config.json?)")
     if inside(dest, clone.parent):
         raise Refused(f"destination {dest} is inside the clone {clone.parent}: never write there")
     if ops_dir is not None:
@@ -485,9 +637,31 @@ def preflight(clone: Path, dest: Path, ops_dir: Path | None, min_free: float, al
         raise Refused(f"destination {dest} is not writable: {e}")
 
 
+def lock_pid(lock: Path) -> int | None:
+    """The pid a lock names, or None when it cannot be read: an older format, or a run that has created the file and
+    not yet written it (that run is ALIVE, so an unreadable pid must never count as a dead one)."""
+    try:
+        pid = json.loads(lock.read_text(encoding="utf-8")).get("pid")
+        return pid if isinstance(pid, int) and not isinstance(pid, bool) else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def lock_stale_reason(age: float, pid: int | None) -> str | None:
+    """Why a lock is a dead run's and may be replaced, or None while it may belong to a live run."""
+    if age > LOCK_STALE_S:
+        return f"{age / 3600:.1f} h old, a killed run?"
+    if age < -LOCK_FUTURE_S:
+        return f"dated {-age / 3600:.1f} h in the FUTURE: a killed run, then the clock went back?"
+    if pid is not None and not pid_alive(pid):
+        return f"its pid {pid} is not running: a killed run"
+    return None
+
+
 def acquire_lock(dest: Path, warnings: list[str]) -> Path:
     """One backup at a time per destination (review finding 6: two runs in one minute deleted each other's .part).
-    O_EXCL create; a lock older than LOCK_STALE_S is a killed run's and is replaced once. Raises Refused otherwise."""
+    O_EXCL create; a lock `lock_stale_reason` calls dead (over 2 h old, dated in the future, or its pid not running)
+    is replaced once, with a WARN. Raises Refused otherwise."""
     lock = dest / LOCK_NAME
     for attempt in range(2):
         try:
@@ -497,8 +671,9 @@ def acquire_lock(dest: Path, warnings: list[str]) -> Path:
                 age = time.time() - lock.stat().st_mtime
             except FileNotFoundError:
                 continue  # released between the two calls: try once more
-            if attempt == 0 and age > LOCK_STALE_S:
-                warnings.append(f"WARN a stale lock {lock.name} ({age / 3600:.1f} h old, a killed run?) was replaced")
+            why = lock_stale_reason(age, lock_pid(lock))
+            if attempt == 0 and why:
+                warnings.append(f"WARN a stale lock {lock.name} ({why}) was replaced")
                 lock.unlink(missing_ok=True)
                 continue
             raise Refused(f"another backup holds {lock} ({max(age, 0) / 60:.0f} min old): two runs at once could "
@@ -513,7 +688,7 @@ def release_lock(lock: Path) -> None:
     try:
         lock.unlink(missing_ok=True)
     except OSError as e:
-        print(f"WARN could not remove the lock {lock}: {e} (the next run treats it as stale after 2 hours)")
+        print(f"WARN could not remove the lock {lock}: {e} (the next run replaces it: its pid will not be running)")
 
 
 def sweep_stale_parts(dest: Path) -> list[str]:
@@ -590,11 +765,16 @@ def run_backup(clone: Path, dest: Path, keep: int, min_free: float, status_file:
             write_status(status_file, status)
             return 1, status
         replace_with_retry(part, final)
-        now_lines = next((m["lines"] for m in manifest["members"] if m["name"] == RUNS_MEMBER), None)
+        runs_row = next((m for m in manifest["members"] if m["name"] == RUNS_MEMBER), None)
+        now_lines = runs_row["lines"] if runs_row else None
+        now_ids = set(runs_row["run_ids"]) if runs_row else None
         # the size is taken BEFORE retention, so nothing below can turn a good backup into a crash on final.stat()
         status.update(zip=str(final), bytes=final.stat().st_size, n_files=manifest["n_files"],
                       bytes_raw=manifest["bytes_raw"], runs_lines=now_lines)
-        holds = runs_hold(dest, final.name, now_lines) + clock_hold(dest, final.name)
+        holds = runs_hold(dest, final.name, now_lines)  # the cheap count check first ...
+        if not holds:  # ... then the record check: a growing file cannot hide a drop from it
+            holds = identity_hold(dest, final.name, now_ids)
+        holds += clock_hold(dest, final.name)
         for w in warnings:
             print(w)
         if holds:
