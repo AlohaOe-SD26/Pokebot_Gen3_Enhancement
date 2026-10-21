@@ -14,7 +14,18 @@
  "_kind": "static game knowledge (USER RULING 40)",
  "_made_by": "ai_player/gates/extract_seasoned.py",
  "_notes": {
-  "wild_held_item_rule": "src/pokemon.c SetWildMonHeldItem: roll 0-99; <45 none, <95 itemCommon (50%), else itemRare (5%); if both slots are the same non-NONE item it is held 100%. A lead with Compound Eyes uses 20/60/20 instead (none/common/rare). Not applied for legendary/trainer/pyramid/pike battles. Altering Cave has its own table.",
+  "wild_held_item_rule": "src/pokemon.c SetWildMonHeldItem: roll 0-99; <45 none, <95 itemCommon (50%), else itemRare (5%) (src/pokemon.c:6684, src/pokemon.c:6685); if both slots are the same non-NONE item it is held 100% (src/pokemon.c:6715). A lead with Compound Eyes uses 20/60/20 instead (src/pokemon.c:6689, src/pokemon.c:6690). Not applied for legendary/trainer/pyramid/pike battles. In the Altering Cave (src/pokemon.c:6692) a species listed in sAlteringCaveWildMonHeldItems (src/pokemon.c:2114: the set 2-9 species) holds only that list's item, on the rare roll alone: 5%, or 20% with Compound Eyes (src/pokemon.c:6698,6707,6724, src/pokemon.c:6700); there it never holds its own itemCommon/itemRare. Any other species there (set 1's Zubat) uses the 45/50/5 roll WITHOUT the both-slots-equal 100% rule, which applies only outside the Altering Cave.",
+  "wild_held_item_decomp": [
+   "src/pokemon.c:6684 u16 chanceNoItem = 45;",
+   "src/pokemon.c:6685 u16 chanceNotRare = 95;",
+   "src/pokemon.c:6689 chanceNoItem = 20;",
+   "src/pokemon.c:6690 chanceNotRare = 80;",
+   "src/pokemon.c:6692 if (gMapHeader.mapLayoutId == LAYOUT_ALTERING_CAVE)",
+   "src/pokemon.c:6698,6707,6724 if (rnd < chanceNotRare)",
+   "src/pokemon.c:6700 SetMonData(&gEnemyParty[0], MON_DATA_HELD_ITEM, &sAlteringCaveWildMonHeldItems[alteringCaveId].item);",
+   "src/pokemon.c:6715 if (gSpeciesInfo[species].itemCommon == gSpeciesInfo[species].itemRare && gSpeciesInfo[species].itemCommon != ITEM_NONE)",
+   "src/pokemon.c:2114 static const struct SpeciesItem sAlteringCaveWildMonHeldItems[] ="
+  ],
   "placeholder": "SPECIES_OLD_UNOWN_B..Z (252-276) are unused filler entries, flagged placeholder=true; the 28 Unown forms above NUM_SPECIES are forms of SPECIES_UNOWN and have no own species_info entry.",
   "female_pct": "null = genderless; derived from the decomp's PERCENT_FEMALE() byte macro (gender_ratio_byte)."
  },

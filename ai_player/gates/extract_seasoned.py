@@ -28,6 +28,23 @@ label was substituted into `map`, a field that otherwise holds MAP_* ids).
 Each rule's decomp citation is COMPUTED at extraction time (cite()), so it is true for the pinned decomp, and the
 extractor REFUSES to write (SemanticsChanged) when a cited line or an assumed property is gone: on a different
 decomp the rules must be re-adjudicated, not silently re-applied.
+
+PROGRESSION GATES, CONDITIONS, FEEBAS AND NOTES (added 2026-10-21, the KB1 step-5 adversarial review).
+  * requires='post_game' (with requires_gate and requires_source) on every table behind the Hall of Fame: the Altering
+    Cave, Steven's cave in Meteor Falls, the Desert Underpass, the Safari Zone Northeast/Southeast expansion, Artisan
+    Cave and the Battle Pike/Pyramid tables (POST_GAME_GATES; the top-level `progression_gates` block cites the
+    lines). where_to_find_normal_play still holds every normal row; the new where_to_find_main_story holds only the
+    ungated ones. GUARDS: G1 (each cited line), G5 (the gated edges are the only way into the gated region:
+    gate_region / check_gate_region), G6 (the gate flag's only writers: check_flag_writers).
+  * `conditions` per table method: Route 130 land only while Mirage Island is shown, and the two Shoal Cave rooms'
+    water and rods only at high tide (CONDITIONS; the `conditions` block cites the lines). GUARD G7: a condition on a
+    method the table lacks refuses.
+  * SPECIES_FEEBAS rows in every index (special 'feebas_tiles', one per rod; chance_pct is per cast on a Feebas tile),
+    every value read from src/wild_encounter.c (feebas_rows refuses when the reading fails or Feebas has a slot).
+  * encounter_rate_note (the 4-step grace and the 60% new-metatile gate), ability_note (Cute Charm = gender, Magnet
+    Pull land only) and species.json's wild_held_item_rule (the Altering Cave branch) are built from cited lines.
+The verifier (verify_seasoned.py) re-derives all of it by a different reading; this file's --selftest feeds every
+guard a changed input (FAULT) beside an unchanged one (CONTROL), so a deleted guard call turns an arm red.
 """
 import argparse
 import hashlib
@@ -309,10 +326,12 @@ def extract_species(d, c, out):
                     "src/data/text/species_names.h", "src/pokemon.c", "include/constants/species.h",
                     "include/constants/pokemon.h", "include/constants/pokedex.h",
                     "include/constants/abilities.h", "include/constants/items.h"])
+    held_text, held_cites = held_item_note(d)
     hdr["_notes"] = {
-        "wild_held_item_rule": "src/pokemon.c SetWildMonHeldItem: roll 0-99; <45 none, <95 itemCommon (50%), else itemRare (5%); "
-                               "if both slots are the same non-NONE item it is held 100%. A lead with Compound Eyes uses 20/60/20 instead "
-                               "(none/common/rare). Not applied for legendary/trainer/pyramid/pike battles. Altering Cave has its own table.",
+        # Corrected 2026-10-21 (step-5 review note): the Altering Cave branch was "has its own table", which hid that
+        # its list species hold only the list item, at the rare chance, and that the 100% rule does not apply there.
+        "wild_held_item_rule": held_text,
+        "wild_held_item_decomp": held_cites,
         "placeholder": "SPECIES_OLD_UNOWN_B..Z (252-276) are unused filler entries, flagged placeholder=true; the 28 Unown forms "
                        "above NUM_SPECIES are forms of SPECIES_UNOWN and have no own species_info entry.",
         "female_pct": "null = genderless; derived from the decomp's PERCENT_FEMALE() byte macro (gender_ratio_byte).",
@@ -468,6 +487,146 @@ SCAN_EXT = (".c", ".h", ".inc", ".s", ".json", ".pory")
 # LAYOUT_* ids, not maps. Neither is a way for a player to get somewhere.
 SCAN_SKIP_PREFIX = ("data/layouts/", "src/data/wild_encounters.json")
 
+# ---------------------------------------------------------------- progression gates and table conditions (2026-10-21)
+# INTENT: `normal` says HOW a table is met (walking, surfing, fishing); it does not say WHEN a player can first get
+# there. A seasoned player planning a team before the Champion must know that the Safari Zone expansion, the Desert
+# Underpass, Artisan Cave, the Altering Cave and Steven's cave in Meteor Falls open only after the Hall of Fame.
+# WHY: the KB1 step-5 adversarial review found 20 species whose every normal-play row is behind the Hall of Fame,
+# listed in where_to_find_normal_play without a caveat (finding 1). The fix keeps those rows (they ARE normal play,
+# after the credits) and labels each table `requires: post_game` with the decomp lines that gate it; the new
+# where_to_find_main_story index leaves them out.
+# HOW THE LIST WAS DERIVED (from the decomp, 2026-10-21, pinned 731ad5bf): every script line in data/ that branches on
+# FLAG_SYS_GAME_CLEAR, plus every flag data/scripts/hall_of_fame.inc sets or clears, was read; those that open or
+# close the way to a map with a wild table are the five gates below. verify_seasoned.py re-derives the same set in a
+# different way (a walk of every warp, connection and map script from the new-game start, with the flag unset).
+# Each gate names its GATED EDGES (map folder -> map it leads to). GUARD G5 walks BACKWARDS from the gate's seed maps
+# over every map folder that names a map, stopping only at a gated edge, and refuses unless (a) every gated edge is
+# met and (b) the set of non-map files (C code, shared scripts) that name a map of that region is exactly the
+# `root_mentions` below, each with the reason it is not a way in. A new warp into the region from anywhere else makes
+# the walk spill into the main world, whose maps C code names, so (b) fails. GUARD G6 refuses unless the flag's
+# writers are exactly the listed lines (the flag is set only by the Hall of Fame).
+REQ_POST_GAME = "post_game"
+GAME_CLEAR = "FLAG_SYS_GAME_CLEAR"
+SAFARI_WORKERS = "FLAG_HIDE_SAFARI_ZONE_SOUTH_CONSTRUCTION_WORKERS"
+HOF_LINES = (("data/maps/EverGrandeCity_HallOfFame/scripts.inc", "special GameClear"),
+             ("src/post_battle_event_funcs.c", "int GameClear(void)"))
+GAME_CLEAR_WRITERS = (("src/post_battle_event_funcs.c", "FlagSet(FLAG_SYS_GAME_CLEAR);"),)
+FLAG_WRITE = re.compile(r"\b(?:setflag|clearflag)\s+(FLAG_\w+)|\bFlag(?:Set|Clear)\(\s*(FLAG_\w+)\s*\)")
+_BF_ROOT_WHY = ("a test of the map the player is ALREADY in, or a list of such maps (Pokemon Centers, marts, save "
+                "locations, the Frontier Pass map); read 2026-10-21, no warp")
+POST_GAME_GATES = (
+    {"id": "altering_cave_opened_at_game_clear",
+     "meaning": "Route 103's ON_LOAD script turns the wall over the Altering Cave's warp tile (45,6) into a cave mouth "
+                "only when FLAG_SYS_GAME_CLEAR is set, which GameClear sets after the Hall of Fame. Before that the "
+                "warp tile is a wall. This gates every Altering Cave set, set 1 included.",
+     "seeds": ("MAP_ALTERING_CAVE",), "groups": {},
+     "edges": (("Route103", "MAP_ALTERING_CAVE"),),
+     "flags": {GAME_CLEAR: GAME_CLEAR_WRITERS},
+     "lines": (("data/maps/Route103/scripts.inc", "call_if_set FLAG_SYS_GAME_CLEAR, Route103_EventScript_OpenAlteringCave"),
+               ("data/maps/Route103/scripts.inc", "setmetatile 45, 6, METATILE_General_CaveEntrance_Bottom, FALSE")),
+     "root_mentions": {"src/wild_encounter.c": "GetCurrentMapWildMonHeaderId tests whether the player IS in the "
+                                               "Altering Cave; a location test, not a way in"}},
+    {"id": "meteor_falls_stevens_cave_opened_at_game_clear",
+     "meaning": "Meteor Falls 1F_1R's ON_LOAD script opens the cave mouth over the warp tile (4,2) to Steven's cave "
+                "only when FLAG_SYS_GAME_CLEAR is set. Before that the warp tile is a wall.",
+     "seeds": ("MAP_METEOR_FALLS_STEVENS_CAVE",), "groups": {},
+     "edges": (("MeteorFalls_1F_1R", "MAP_METEOR_FALLS_STEVENS_CAVE"),),
+     "flags": {GAME_CLEAR: GAME_CLEAR_WRITERS},
+     "lines": (("data/maps/MeteorFalls_1F_1R/scripts.inc",
+                "call_if_set FLAG_SYS_GAME_CLEAR, MeteorFalls_1F_1R_EventScript_OpenStevensCave"),
+               ("data/maps/MeteorFalls_1F_1R/scripts.inc",
+                "setmetatile 4, 2, METATILE_MeteorFalls_CaveEntrance_Bottom, FALSE")),
+     "root_mentions": {}},
+    {"id": "desert_underpass_closed_until_game_clear",
+     "meaning": "The Fossil Maniac's tunnel's ON_LOAD script puts a rock wall on the Desert Underpass warp tile (6,2) "
+                "while FLAG_SYS_GAME_CLEAR is NOT set, so the underpass opens only after the Hall of Fame.",
+     "seeds": ("MAP_DESERT_UNDERPASS",), "groups": {},
+     "edges": (("Route114_FossilManiacsTunnel", "MAP_DESERT_UNDERPASS"),),
+     "flags": {GAME_CLEAR: GAME_CLEAR_WRITERS},
+     "lines": (("data/maps/Route114_FossilManiacsTunnel/scripts.inc",
+                "call_if_unset FLAG_SYS_GAME_CLEAR, Route114_FossilManiacsTunnel_EventScript_CloseDesertUnderpass"),
+               ("data/maps/Route114_FossilManiacsTunnel/scripts.inc",
+                "setmetatile 6, 2, METATILE_Fallarbor_RedRockWall, TRUE")),
+     "root_mentions": {}},
+    {"id": "battle_frontier_ferry_after_game_clear",
+     "meaning": "Artisan Cave and the Battle Pike and Pyramid lie on the Battle Frontier island, reached only by the "
+                "S.S. Tidal from the Lilycove and Slateport harbors. Both ferry attendants refuse before "
+                "FLAG_SYS_GAME_CLEAR is set. The Pike and Pyramid tables (no map of their own) are used only on the "
+                "layouts cited below, which are Battle Frontier maps.",
+     "seeds": ("MAP_ARTISAN_CAVE_1F", "MAP_ARTISAN_CAVE_B1F", "MAP_BATTLE_FRONTIER_BATTLE_PIKE_ROOM_WILD_MONS",
+               "MAP_BATTLE_FRONTIER_BATTLE_PYRAMID_FLOOR"),
+     "groups": {PIKE_GROUP: ("src/wild_encounter.c",
+                             "if (gMapHeader.mapLayoutId == LAYOUT_BATTLE_FRONTIER_BATTLE_PIKE_ROOM_WILD_MONS)"),
+                PYRAMID_GROUP: ("src/wild_encounter.c",
+                                "if (gMapHeader.mapLayoutId == LAYOUT_BATTLE_FRONTIER_BATTLE_PYRAMID_FLOOR)")},
+     "edges": (("LilycoveCity_Harbor", "MAP_BATTLE_FRONTIER_OUTSIDE_WEST"),
+               ("SlateportCity_Harbor", "MAP_BATTLE_FRONTIER_OUTSIDE_WEST")),
+     "flags": {GAME_CLEAR: GAME_CLEAR_WRITERS},
+     "lines": (("data/maps/LilycoveCity_Harbor/scripts.inc",
+                "goto_if_unset FLAG_SYS_GAME_CLEAR, LilycoveCity_Harbor_EventScript_FerryUnavailable"),
+               ("data/maps/SlateportCity_Harbor/scripts.inc",
+                "goto_if_set FLAG_SYS_GAME_CLEAR, SlateportCity_Harbor_EventScript_AskForTicket"),
+               ("data/maps/LilycoveCity_Harbor/scripts.inc", "warp MAP_BATTLE_FRONTIER_OUTSIDE_WEST, 19, 67"),
+               ("data/maps/SlateportCity_Harbor/scripts.inc", "warp MAP_BATTLE_FRONTIER_OUTSIDE_WEST, 19, 67")),
+     "root_mentions": {
+         "data/scripts/battle_pike.inc": "the Battle Pike's own room-to-room warps, run from inside the Pike",
+         "src/data/heal_locations.json": "a fly and whiteout target; flying there needs a visit first",
+         "src/field_door.c": _BF_ROOT_WHY, "src/field_specials.c": _BF_ROOT_WHY, "src/frontier_pass.c": _BF_ROOT_WHY,
+         "src/party_menu.c": _BF_ROOT_WHY, "src/save_location.c": _BF_ROOT_WHY, "src/tv.c": _BF_ROOT_WHY}},
+    {"id": "safari_zone_expansion_after_hall_of_fame",
+     "meaning": "Two construction workers stand in the Safari Zone South area's only path east until the Hall of Fame "
+                "script sets their hide flag; nothing else sets it. The North area's map also connects to the "
+                "Northeast area, but no walkable tile pair crosses that edge from the part of North a player "
+                "reaches (layout collision and elevation; verify_seasoned.py re-derives it with a flood fill).",
+     "seeds": ("MAP_SAFARI_ZONE_NORTHEAST", "MAP_SAFARI_ZONE_SOUTHEAST"), "groups": {},
+     "edges": (("SafariZone_South", "MAP_SAFARI_ZONE_SOUTHEAST"), ("SafariZone_North", "MAP_SAFARI_ZONE_NORTHEAST")),
+     "flags": {SAFARI_WORKERS: (("data/scripts/hall_of_fame.inc", "setflag " + SAFARI_WORKERS),)},
+     "lines": (("data/maps/SafariZone_South/map.json", '"flag": "%s"' % SAFARI_WORKERS),
+               ("data/maps/SafariZone_South/map.json", '"map": "MAP_SAFARI_ZONE_SOUTHEAST",'),
+               ("data/maps/SafariZone_North/map.json", '"map": "MAP_SAFARI_ZONE_NORTHEAST",'),
+               ("data/maps/EverGrandeCity_HallOfFame/scripts.inc",
+                "call EverGrandeCity_HallOfFame_EventScript_SetGameClearFlags")),
+     "root_mentions": {}},
+)
+
+# Conditions: a method of a table that exists only while a script has swapped the map's layout. Not a progression
+# gate: the condition can hold at any point of the game. verify_seasoned.py re-derives the (map, method) pairs by
+# counting encounter tiles in every layout each map's scripts can load.
+CONDITIONS = (
+    {"id": "mirage_island_shown",
+     "methods": {"MAP_ROUTE130": ("land",)},
+     "meaning": "Route 130's only land tiles are on Mirage Island, in LAYOUT_ROUTE130_MIRAGE_ISLAND. The map's "
+                "ON_TRANSITION script loads that layout only when IsMirageIslandPresent() is TRUE: some party "
+                "Pokemon's personality, low 16 bits, equals the high 16 bits of the mirage value, which "
+                "UpdateMirageRnd re-rolls each day. With six party Pokemon that is about 6 in 65536 on a given "
+                "day. The water and fishing tables need no condition.",
+     "lines": (("src/time_events.c", "u16 rnd = GetMirageRnd() >> 16;"),
+               ("src/time_events.c", "if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) && "
+                                     "(GetMonData(&gPlayerParty[i], MON_DATA_PERSONALITY) & 0xFFFF) == rnd)"),
+               ("src/clock.c", "UpdateMirageRnd(daysSince);"),
+               ("data/maps/Route130/scripts.inc", "specialvar VAR_RESULT, IsMirageIslandPresent"),
+               ("data/maps/Route130/scripts.inc",
+                "goto_if_eq VAR_RESULT, TRUE, Route130_EventScript_SetMirageIslandLayout"),
+               ("data/maps/Route130/scripts.inc", "setmaplayoutindex LAYOUT_ROUTE130_MIRAGE_ISLAND"))},
+    {"id": "shoal_cave_high_tide",
+     "methods": {"MAP_SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM": ("water", "old_rod", "good_rod", "super_rod"),
+                 "MAP_SHOAL_CAVE_LOW_TIDE_INNER_ROOM": ("water", "old_rod", "good_rod", "super_rod")},
+     "meaning": "These two Shoal Cave rooms have no water at low tide. Their ON_TRANSITION scripts load the "
+                "high-tide layout when FLAG_SYS_SHOAL_TIDE is set, and UpdateShoalTideFlag sets it from the game "
+                "clock's hour: high tide at hours %s. Surfing and fishing there need high tide; the land table "
+                "is met at either tide.",
+     "lines": (("src/time_events.c", "if (tide[gLocalTime.hours])"),
+               ("src/time_events.c", "FlagSet(FLAG_SYS_SHOAL_TIDE);"),
+               ("data/maps/ShoalCave_LowTideEntranceRoom/scripts.inc",
+                "goto_if_set FLAG_SYS_SHOAL_TIDE, ShoalCave_LowTideEntranceRoom_EventScript_SetHighTide"),
+               ("data/maps/ShoalCave_LowTideEntranceRoom/scripts.inc",
+                "setmaplayoutindex LAYOUT_SHOAL_CAVE_HIGH_TIDE_ENTRANCE_ROOM"),
+               ("data/maps/ShoalCave_LowTideInnerRoom/scripts.inc",
+                "goto_if_set FLAG_SYS_SHOAL_TIDE, ShoalCave_LowTideInnerRoom_EventScript_SetHighTide"),
+               ("data/maps/ShoalCave_LowTideInnerRoom/scripts.inc",
+                "setmaplayoutindex LAYOUT_SHOAL_CAVE_HIGH_TIDE_INNER_ROOM"))},
+)
+
 
 def cite_lines(text, needle):
     """GUARD G1: the 1-based numbers of the lines whose stripped text is exactly `needle`; raises when there is none.
@@ -553,10 +712,14 @@ def check_unused_names(unreached_wild):
         raise SemanticsChanged("wild-table maps no reference reaches, without an UNUSED name: %s" % bad)
 
 
-def scan_map_references(root):
-    """Walk data/ and src/ once. Returns (owner_refs, root_refs, map_dirs, altering_mentions, n_files, digest).
+def scan_map_references(root, watch_flags=()):
+    """Walk data/ and src/ once. Returns (owner_refs, root_refs, map_dirs, altering_mentions, n_files, digest,
+    root_files_of, flag_writes): root_files_of = {map id: non-map files naming it}; flag_writes = {flag: [(rel, line)]}
+    for each flag in `watch_flags`, every setflag/clearflag/FlagSet/FlagClear line that writes it.
     Files are read raw (not through Decomp.read) so the 1500+ scanned files stay out of `_files`; their identity is
     recorded as one digest over the sorted (path, sha256) list instead."""
+    root_files_of = {}
+    flag_writes = {f: [] for f in watch_flags}
     map_dirs = {}
     maps_root = os.path.join(root, "data", "maps")
     for name in sorted(os.listdir(maps_root)):
@@ -588,9 +751,16 @@ def scan_map_references(root):
                     owner_refs[owner] |= refs - {owner}
                 else:
                     root_refs |= refs
+                    for r in refs:
+                        root_files_of.setdefault(r, set()).add(rel)
                 if ALTERING_VAR in text and rel != "include/constants/vars.h":
                     mentions += [(rel, ln.strip()) for ln in text.splitlines() if ALTERING_VAR in ln]
-    return owner_refs, root_refs, map_dirs, mentions, n, h.hexdigest()
+                if any(f in text for f in flag_writes):
+                    for ln in text.splitlines():
+                        for m in FLAG_WRITE.finditer(ln):
+                            if (m.group(1) or m.group(2)) in flag_writes:
+                                flag_writes[m.group(1) or m.group(2)].append((rel, ln.strip()))
+    return owner_refs, root_refs, map_dirs, mentions, n, h.hexdigest(), root_files_of, flag_writes
 
 
 def namer_lines(root, map_dirs, mid):
@@ -608,9 +778,122 @@ def namer_lines(root, map_dirs, mid):
     return out
 
 
-def availability_rules(d, j):
-    """Decide each table's availability. Returns (rules, label_of) where label_of[base_label] = (availability, source)
-    and `rules` is the top-level `availability_rules` block: what each label means and the decomp lines behind it."""
+def gate_region(seeds, edges, owner_refs, root_files_of):
+    """The maps behind a gate: walk BACKWARDS from `seeds` over every map folder that names a map in the region,
+    stopping only at a gated edge (holder map id, target map id) in `edges`. Returns (region, edges met, non-map
+    files naming a region map). A namer that is not a gated edge joins the region, so a new way in spills the walk
+    into the main world instead of being skipped."""
+    named_by = {}
+    for owner, refs in owner_refs.items():
+        for r in refs:
+            named_by.setdefault(r, set()).add(owner)
+    region, met = set(), set()
+    todo = list(seeds)
+    for _ in range(MAX_ITER):
+        if not todo:
+            break
+        m = todo.pop()
+        if m in region:
+            continue
+        region.add(m)
+        for owner in sorted(named_by.get(m, ())):
+            if (owner, m) in edges:
+                met.add((owner, m))
+            elif owner not in region:
+                todo.append(owner)
+    else:
+        raise SemanticsChanged("gate region walk did not finish in %d steps" % MAX_ITER)
+    roots = set()
+    for m in region:
+        roots |= root_files_of.get(m, set())
+    return region, met, roots
+
+
+def check_gate_region(gate_id, edges, met, roots, want_roots):
+    """GUARD G5: every gated edge still exists, and the non-map files that name the gated region are exactly the
+    listed ones. WHY: the post_game label claims the gated edges are the ONLY way in. A warp from an ungated map
+    pulls that map into the region (gate_region), and from there the walk reaches maps that C code and shared
+    scripts name, so the file set changes and the label is refused instead of silently kept."""
+    if met != set(edges):
+        raise SemanticsChanged("gate %s: gated edges %s not found as map references" % (gate_id, sorted(set(edges) - met)))
+    if roots != set(want_roots):
+        raise SemanticsChanged("gate %s: non-map files naming the region changed: new %s, gone %s"
+                               % (gate_id, sorted(roots - set(want_roots)), sorted(set(want_roots) - roots)))
+
+
+def check_flag_writers(flag, got, want):
+    """GUARD G6: the lines that set or clear `flag` in data/ and src/ are exactly `want`. WHY: a gate holds only
+    while the flag that opens it is written by the Hall of Fame and nothing else; a second writer (an earlier
+    setflag, a clearflag) means the gate can open, or close, at another point of the game."""
+    if sorted(set(got)) != sorted(set(want)):
+        raise SemanticsChanged("%s writers changed: %s (expected %s)" % (flag, sorted(set(got)), sorted(set(want))))
+
+
+def build_gates(d, owner_refs, root_files_of, flag_writes, map_dirs, gates):
+    """Apply G1, G5 and G6 to every gate spec. Returns {gate id: the encounters.json block}."""
+    out = {}
+    for g in gates:
+        edges = set()
+        for folder, target in g["edges"]:
+            if folder not in map_dirs:
+                raise SemanticsChanged("gate %s: map folder %s is gone" % (g["id"], folder))
+            edges.add((map_dirs[folder], target))
+        region, met, roots = gate_region(g["seeds"], edges, owner_refs, root_files_of)
+        check_gate_region(g["id"], edges, met, roots, g["root_mentions"])
+        cites = [cite(d, rel, needle) for rel, needle in g["lines"]]
+        for flag, writers in g["flags"].items():
+            check_flag_writers(flag, flag_writes.get(flag, []), writers)
+            cites += [cite(d, rel, ln) for rel, ln in writers]
+        cites += [cite(d, rel, needle) for rel, needle in HOF_LINES]
+        cites += [cite(d, rel, needle) for rel, needle in g["groups"].values()]
+        out[g["id"]] = {"requires": REQ_POST_GAME, "meaning": g["meaning"], "seed_maps": list(g["seeds"]),
+                        "groups": sorted(g["groups"]),
+                        "gated_edges": [{"from": f, "to": t} for f, t in g["edges"]],
+                        "region": sorted(region), "decomp": cites,
+                        "root_mentions": dict(sorted(g["root_mentions"].items()))}
+    return out
+
+
+def build_conditions(d, j, conditions):
+    """G1 for every condition's lines, and refuse when a named method is not in that map's table."""
+    have = {}
+    for g in j["wild_encounter_groups"]:
+        if g["label"] != MAIN_GROUP:
+            continue
+        for e in g["encounters"]:
+            meths = set()
+            for k, names in (("land_mons", ("land",)), ("water_mons", ("water",)), ("rock_smash_mons", ("rock_smash",)),
+                             ("fishing_mons", ("old_rod", "good_rod", "super_rod"))):
+                if k in e:
+                    meths |= set(names)
+            have[e["map"]] = meths
+    out = {}
+    for c in conditions:
+        for mp, meths in c["methods"].items():
+            if not set(meths) <= have.get(mp, set()):
+                raise SemanticsChanged("condition %s: %s has no %s table" % (c["id"], mp, sorted(set(meths) - have.get(mp, set()))))
+        meaning = c["meaning"]
+        if "%s" in meaning:  # the Shoal Cave tide hours, read from src/time_events.c tide[]
+            t = d.read("src/time_events.c")
+            body = re.search(r"static const u8 tide\[\]\s*=\s*\{(.*?)\};", t, flags=re.S)
+            if not body:
+                raise SemanticsChanged("src/time_events.c tide[] table not found")
+            hours = [int(h) for v, h in re.findall(r"([01]),\s*//\s*(\d+)", body.group(1)) if v == "1"]
+            if not hours:
+                raise SemanticsChanged("src/time_events.c tide[] has no high-tide hour")
+            meaning = meaning % ", ".join("%02d" % h for h in hours)
+        out[c["id"]] = {"meaning": meaning, "methods": {k: list(v) for k, v in c["methods"].items()},
+                        "decomp": [cite(d, rel, needle) for rel, needle in c["lines"]]}
+    return out
+
+
+def availability_rules(d, j, gates=None, conditions=None):
+    """Decide each table's availability, progression gate and conditions. Returns (rules, label_of, extra):
+    label_of[base_label] = (availability, source); `rules` is the top-level `availability_rules` block (what each
+    label means and the decomp lines behind it); extra = {"gates", "requires_of", "conditions", "condition_of"}
+    where requires_of[base_label] = gate id and condition_of[(base_label, method)] = condition id."""
+    gates = POST_GAME_GATES if gates is None else gates
+    conditions = CONDITIONS if conditions is None else conditions
     wc = "src/wild_encounter.c"
     pyr = "src/battle_pyramid.c"
     pike = "src/battle_pike.c"
@@ -643,8 +926,12 @@ def availability_rules(d, j):
     main = [(e["base_label"], e.get("map")) for g in j["wild_encounter_groups"] if g["label"] == MAIN_GROUP
             for e in g["encounters"]]
     check_header_multiplicity(main, n_tables)
-    owner_refs, root_refs, map_dirs, mentions, n_files, digest = scan_map_references(d.root)
+    watch = sorted({f for g in gates for f in g["flags"]})
+    owner_refs, root_refs, map_dirs, mentions, n_files, digest, root_files_of, flag_writes = \
+        scan_map_references(d.root, watch)
     check_altering_var_mentions(mentions)
+    gate_blocks = build_gates(d, owner_refs, root_files_of, flag_writes, map_dirs, gates)  # map_dirs: folder -> id
+    cond_blocks = build_conditions(d, j, conditions)
     wild_ids = {mp for _, mp in main}
     # F-6: the reference scan; G4 adds the decomp's own UNUSED name as a second condition. On the pinned decomp it
     # leaves exactly data/maps/CaveOfOrigin_UnusedRubySapphireMap1..3 (map.json:2 "id": ...UNUSED...), named only by
@@ -677,10 +964,13 @@ def availability_rules(d, j):
             else:
                 label_of[bl] = (AV_NORMAL, short_cites(normal))
     rules = {
-        AV_NORMAL: {"meaning": "the map's own wild table, met in ordinary play (walking, surfing, fishing, Rock Smash). "
-                               "For the Altering Cave that is set 1, because the set var a new game zeroes is added to "
-                               "the first header. Conditional terrain still counts: e.g. ROUTE130 land exists only "
-                               "while Mirage Island is shown.", "decomp": normal + gift[:4]},
+        AV_NORMAL: {"meaning": "the map's own wild table, met in ordinary play (walking, surfing, fishing, Rock Smash) "
+                               "once the player can get there. For the Altering Cave that is set 1, because the set "
+                               "var a new game zeroes is added to the first header. `normal` says HOW a table is met, "
+                               "not WHEN: a table behind the Hall of Fame carries requires='post_game' (see "
+                               "progression_gates), and a method that exists only in a swapped layout carries a "
+                               "condition (see conditions; e.g. ROUTE130 land only while Mirage Island is shown).",
+                    "decomp": normal + gift[:4]},
         AV_PYRAMID: {"meaning": "Battle Pyramid: the header species is an INDEX (species - 1) into the round's own "
                                 "table, and the game replaces species and level at runtime; a player never meets the "
                                 "header species there. min/max level and species in these rows are NOT what is met.",
@@ -697,12 +987,151 @@ def availability_rules(d, j):
                              "files": n_files, "digest": digest},
                     "maps": unused_evidence},
     }
-    return rules, label_of
+    requires_of, condition_of = {}, {}
+    for g in gates:
+        gid = g["id"]
+        for grp in j["wild_encounter_groups"]:
+            for e in grp["encounters"]:
+                if e.get("map") in g["seeds"] or grp["label"] in g["groups"]:
+                    if e["base_label"] in requires_of:
+                        raise SemanticsChanged("table %s is behind two gates" % e["base_label"])
+                    requires_of[e["base_label"]] = gid
+    for c_ in conditions:
+        for grp in j["wild_encounter_groups"]:
+            for e in grp["encounters"]:
+                for meth in c_["methods"].get(e.get("map"), ()):
+                    condition_of[(e["base_label"], meth)] = c_["id"]
+    return rules, label_of, {"gates": gate_blocks, "requires_of": requires_of, "conditions": cond_blocks,
+                             "condition_of": condition_of}
+
+
+# ---------------------------------------------------------------- notes with decomp citations (2026-10-21)
+def cite_quiet(d, rel, needle):
+    """cite() for a note in a file whose header lists its own sources (it does not join encounters.json's _files)."""
+    return "%s:%s %s" % (rel, ",".join(str(n) for n in cite_lines(d.read(rel), needle)), needle)
+
+
+def _ln(cites, i):
+    """'path:12,14' of the i-th full citation (the form a note's text quotes)."""
+    return cites[i].split(" ", 1)[0]
+
+
+def encounter_rate_note(d):
+    """The step-level rule, with the two gates the first KB1 note left out (finding 3 of the step-5 review)."""
+    wc, fca = "src/wild_encounter.c", "src/field_control_avatar.c"
+    cites = [cite(d, wc, "static bool8 WildEncounterCheck(u32 encounterRate, bool8 ignoreAbility)"),  # 0
+             cite(d, wc, "encounterRate *= 16;"),                                                       # 1
+             cite(d, wc, "#define MAX_ENCOUNTER_RATE 2880"),                                            # 2
+             cite(d, wc, "if (Random() % MAX_ENCOUNTER_RATE < encounterRate)"),                         # 3
+             cite(d, wc, "encounterRate = encounterRate * 80 / 100;"),                                  # 4
+             cite(d, fca, "if (sWildEncounterImmunitySteps < 4)"),                                      # 5
+             cite(d, fca, "sWildEncounterImmunitySteps = 0;"),                                          # 6
+             cite(d, "src/battle_setup.c", "RestartWildEncounterImmunitySteps();"),                     # 7
+             cite(d, "src/overworld.c", "RestartWildEncounterImmunitySteps();"),                        # 8
+             cite(d, wc, "static bool8 AllowWildCheckOnNewMetatile(void)"),                             # 9
+             cite(d, wc, "if (Random() % 100 >= 60)"),                                                  # 10
+             cite(d, wc, "else if (prevMetatileBehavior != curMetatileBehavior && !AllowWildCheckOnNewMetatile())")]  # 11
+    text = ("encounter_rate is the map's per-step base. WildEncounterCheck (%s) multiplies it by 16 (%s), applies the "
+            "modifiers (Mach/Acro Bike x0.8 %s; White/Black Flute; Cleanse Tag; lead ability: Stench and White Smoke "
+            "halve it (Stench x3/4 on a Battle Pyramid floor), Illuminate and Arena Trap double it, Sand Veil halves "
+            "it in a sandstorm), caps it at 2880 (%s) "
+            "and passes when Random() %% 2880 < rate (%s). That check is not run on every step: (a) for 4 steps after "
+            "each wild encounter, each battle start and each map change (a warp or walking across a map connection) "
+            "no check runs (%s; the counter is reset at %s, at %s in Task_BattleStart and the first battle, and at "
+            "%s in LoadMapFromCameraTransition and LoadMapFromWarp); (b) a step onto a tile whose metatile "
+            "behaviour differs from the previous step's is "
+            "checked only 60%% of the time (%s, %s; applied at %s for land and water). So encounter_rate*16/2880 "
+            "is the chance on a CHECKED step, and the real per-step rate is lower."
+            % (_ln(cites, 0), _ln(cites, 1), _ln(cites, 4), _ln(cites, 2), _ln(cites, 3), _ln(cites, 5),
+               _ln(cites, 6), _ln(cites, 7), _ln(cites, 8), _ln(cites, 9), _ln(cites, 10), _ln(cites, 11)))
+    return text, cites
+
+
+def ability_note(d):
+    """Lead-slot ability effects on what is met (finding: the first note misdescribed Cute Charm and Magnet Pull)."""
+    wc = "src/wild_encounter.c"
+    cites = [cite(d, wc, "if (TRY_GET_ABILITY_INFLUENCED_WILD_MON_INDEX(wildMonInfo->wildPokemon, TYPE_STEEL, "
+                         "ABILITY_MAGNET_PULL, &wildMonIndex, NUM_LAND_MONS_ENCOUNTER_SLOTS))"),             # 0
+             cite(d, wc, "if (TRY_GET_ABILITY_INFLUENCED_WILD_MON_INDEX(wildMonInfo->wildPokemon, TYPE_ELECTRIC, "
+                         "ABILITY_STATIC, &wildMonIndex, NUM_LAND_MONS_ENCOUNTER_SLOTS))"),                  # 1
+             cite(d, wc, "if (TRY_GET_ABILITY_INFLUENCED_WILD_MON_INDEX(wildMonInfo->wildPokemon, TYPE_ELECTRIC, "
+                         "ABILITY_STATIC, &wildMonIndex, NUM_WATER_MONS_ENCOUNTER_SLOTS))"),                 # 2
+             cite(d, wc, "if (ability == ABILITY_HUSTLE || ability == ABILITY_VITAL_SPIRIT || ability == ABILITY_PRESSURE)"),  # 3
+             cite(d, wc, "if (ability == ABILITY_KEEN_EYE || ability == ABILITY_INTIMIDATE)"),            # 4
+             cite(d, wc, "&& GetMonAbility(&gPlayerParty[0]) == ABILITY_CUTE_CHARM"),                     # 5
+             cite(d, wc, "&& GetMonAbility(&gPlayerParty[0]) == ABILITY_SYNCHRONIZE"),                    # 6
+             cite(d, wc, "static bool8 TryGetAbilityInfluencedWildMonIndex(const struct WildPokemon *wildMon, "
+                         "u8 type, u8 ability, u8 *monIndex, u32 size)")]                                   # 7
+    text = ("Lead-slot abilities change what is met; chance_pct here is the unmodified slot table. Magnet Pull "
+            "(land only, %s) picks a Steel-type slot and Static (land %s and water %s) an Electric-type slot, each "
+            "50%% of the time and only when the table has such a slot (%s). Hustle, Vital Spirit and Pressure give "
+            "the slot's max level 50%% of the time (%s). Keen Eye and Intimidate, on a lead above level 5, drop 50%% "
+            "of encounters with a wild Pokemon 5 or more levels below the lead (%s). Cute Charm makes a gendered "
+            "wild Pokemon the lead's opposite gender 2/3 of the time (%s). Synchronize gives the lead's nature 50%% "
+            "of the time (%s)."
+            % tuple(_ln(cites, i) for i in (0, 1, 2, 7, 3, 4, 5, 6)))
+    return text, cites
+
+
+def held_item_note(d):
+    """species.json's wild held-item rule, with the Altering Cave branch stated exactly (step-5 review note)."""
+    pk = "src/pokemon.c"
+    cites = [cite_quiet(d, pk, "u16 chanceNoItem = 45;"),                                             # 0
+             cite_quiet(d, pk, "u16 chanceNotRare = 95;"),                                            # 1
+             cite_quiet(d, pk, "chanceNoItem = 20;"),                                                 # 2
+             cite_quiet(d, pk, "chanceNotRare = 80;"),                                                # 3
+             cite_quiet(d, pk, "if (gMapHeader.mapLayoutId == LAYOUT_ALTERING_CAVE)"),               # 4
+             cite_quiet(d, pk, "if (rnd < chanceNotRare)"),                                           # 5
+             cite_quiet(d, pk, "SetMonData(&gEnemyParty[0], MON_DATA_HELD_ITEM, "
+                               "&sAlteringCaveWildMonHeldItems[alteringCaveId].item);"),              # 6
+             cite_quiet(d, pk, "if (gSpeciesInfo[species].itemCommon == gSpeciesInfo[species].itemRare && "
+                               "gSpeciesInfo[species].itemCommon != ITEM_NONE)"),                     # 7
+             cite_quiet(d, pk, "static const struct SpeciesItem sAlteringCaveWildMonHeldItems[] =")]  # 8
+    text = ("src/pokemon.c SetWildMonHeldItem: roll 0-99; <45 none, <95 itemCommon (50%%), else itemRare (5%%) "
+            "(%s, %s); if both slots are the same non-NONE item it is held 100%% (%s). A lead with Compound Eyes "
+            "uses 20/60/20 instead (%s, %s). Not applied for legendary/trainer/pyramid/pike battles. In the Altering "
+            "Cave (%s) a species listed in sAlteringCaveWildMonHeldItems (%s: the set 2-9 species) holds only that "
+            "list's item, on the rare roll alone: 5%%, or 20%% with Compound Eyes (%s, %s); there it never holds its "
+            "own itemCommon/itemRare. Any other species there (set 1's Zubat) uses the 45/50/5 roll WITHOUT the "
+            "both-slots-equal 100%% rule, which applies only outside the Altering Cave."
+            % (_ln(cites, 0), _ln(cites, 1), _ln(cites, 7), _ln(cites, 2), _ln(cites, 3), _ln(cites, 4),
+               _ln(cites, 8), _ln(cites, 5), _ln(cites, 6)))
+    return text, cites
+
+
+def feebas_rows(d, rods, where):
+    """SPECIES_FEEBAS where_to_find rows (finding 2 of the step-5 review: the index omitted the only route to
+    Milotic). Every value is read from src/wild_encounter.c; refuses when the reading fails, and when `where` (the
+    slot-built index) already holds SPECIES_FEEBAS, because then the special rows would duplicate or contradict it."""
+    if "SPECIES_FEEBAS" in where:
+        raise SemanticsChanged("SPECIES_FEEBAS now has a wild slot; re-adjudicate the special feebas_tiles rows")
+    wc = "src/wild_encounter.c"
+    t = d.read(wc)
+    m = re.search(r"static const struct WildPokemon sWildFeebas = \{(\d+), (\d+), (SPECIES_\w+)\};", t)
+    body = re.search(r"static bool8 CheckFeebas\(void\)\n\{(.*?)\n\}\n", t, flags=re.S)
+    fish = re.search(r"void FishingWildEncounter\(u8 rod\)\n\{(.*?)\n\}\n", t, flags=re.S)
+    roll = re.search(r"if \(Random\(\) % 100 > (\d+)\)", body.group(1)) if body else None
+    if not (m and body and fish and roll and "MAP_ROUTE119" in body.group(1)
+            and fish.group(1).find("CheckFeebas()") != -1
+            and fish.group(1).find("CheckFeebas()") < fish.group(1).find("rod")
+            and m.group(3) == "SPECIES_FEEBAS"):
+        raise SemanticsChanged("the Feebas rule in %s no longer reads as: any rod on Route 119, sWildFeebas levels" % wc)
+    cites = [cite(d, wc, m.group(0)), cite(d, wc, "void FishingWildEncounter(u8 rod)"),
+             cite(d, wc, "if (CheckFeebas() == TRUE)"),
+             cite(d, wc, "if (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(MAP_ROUTE119)"),
+             cite(d, wc, roll.group(0))]
+    chance = 100 - (int(roll.group(1)) + 1)
+    rows = [{"map": "MAP_ROUTE119", "base_label": None, "group": None, "method": rod, "chance_pct": chance,
+             "min_level": int(m.group(1)), "max_level": int(m.group(2)), "availability": AV_NORMAL,
+             "availability_source": short_cites(cites), "requires": None, "requires_gate": None,
+             "requires_source": None, "condition": None, "special": "feebas_tiles"} for rod in rods]
+    return rows, cites, chance
 
 
 def extract_encounters(d, c, out):
     j = json.loads(d.read("src/data/wild_encounters.json"))
-    rules, label_of = availability_rules(d, j)
+    rules, label_of, extra = availability_rules(d, j)
+    gate_src = {gid: short_cites(g["decomp"]) for gid, g in extra["gates"].items()}
     wc = d.read("src/wild_encounter.c")
     fields = {f["type"]: f for f in j["wild_encounter_groups"][0]["fields"]}
     land_r = fields["land_mons"]["encounter_rates"]
@@ -722,8 +1151,14 @@ def extract_encounters(d, c, out):
         is_main = g["label"] == "gWildMonHeaders"
         for e in g["encounters"]:
             av, av_src = label_of[e["base_label"]]
+            gid = extra["requires_of"].get(e["base_label"])
             entry = {"group": g["label"], "base_label": e["base_label"], "map": e.get("map"),
-                     "availability": av, "availability_source": av_src, "methods": {}}
+                     "availability": av, "availability_source": av_src,
+                     "requires": REQ_POST_GAME if gid else None, "requires_gate": gid,
+                     "requires_source": gate_src[gid] if gid else None,
+                     "conditions": {meth: cid for (bl, meth), cid in sorted(extra["condition_of"].items())
+                                    if bl == e["base_label"]},
+                     "methods": {}}
             if "land_mons" in e:
                 lm = e["land_mons"]
                 entry["methods"]["land"] = _method(_slots(lm["mons"], land_r), lm["encounter_rate"])
@@ -755,15 +1190,28 @@ def extract_encounters(d, c, out):
                                                  "method": meth, "chance_pct": r["chance_pct"],
                                                  "min_level": r["min_level"], "max_level": r["max_level"],
                                                  "availability": m["availability"],
-                                                 "availability_source": m["availability_source"]})
+                                                 "availability_source": m["availability_source"],
+                                                 "requires": m["requires"], "requires_gate": m["requires_gate"],
+                                                 "requires_source": m["requires_source"],
+                                                 "condition": m["conditions"].get(meth), "special": None})
+    # Feebas: a rule, not a slot (finding 2). Its rows join the indexes so "where is Feebas?" has an answer there.
+    f_rows, f_cites, f_chance = feebas_rows(d, ("old_rod", "good_rod", "super_rod"), where)
+    where["SPECIES_FEEBAS"] = f_rows
     for v in where.values():
         v.sort(key=lambda x: (-x["chance_pct"], x["map"] or x["base_label"], x["method"]))
-    # The consumer view: only what a player meets in normal play. A species with no normal row is absent here.
-    normal_play = {}
+    # The consumer views. normal_play: every row a player meets in ordinary play, at any point of the game (a species
+    # with no normal row is absent). main_story: the normal rows with no progression gate, i.e. reachable before the
+    # Hall of Fame; rows with a `condition` stay (the condition can hold before the Champion) and say so.
+    normal_play, main_story = {}, {}
     for sp, rows in where.items():
         keep = [r for r in rows if r["availability"] == AV_NORMAL]
         if keep:
             normal_play[sp] = keep
+        keep = [r for r in keep if r["requires"] is None]
+        if keep:
+            main_story[sp] = keep
+    rate_text, rate_cites = encounter_rate_note(d)
+    ab_text, ab_cites = ability_note(d)
     hdr = d.header(sorted({"src/data/wild_encounters.json", "src/wild_encounter.c"} | d.cited))
     hdr["slot_probabilities_pct"] = got
     hdr["slot_probabilities_match_expected_gen3"] = got == expected
@@ -772,32 +1220,48 @@ def extract_encounters(d, c, out):
         "ENCOUNTER_CHANCE_*_SLOT_n constants that the build generates from those same fields "
         "(wild_encounters.constants.json.txt), so code and json agree by construction. "
         "Result of comparing against the expected Gen-3 lists: %s." % ("IDENTICAL" if got == expected else "DIFFERENT"))
-    hdr["encounter_rate_note"] = ("encounter_rate is the map's per-step base; WildEncounterCheck multiplies it by 16 and compares "
-                                  "Random() % 2880 < rate (cap 2880), then modifiers (flute, cleanse tag, abilities, bike). "
-                                  "Per-step chance = encounter_rate*16/2880.")
-    hdr["ability_note"] = ("Static/Magnet Pull (land/water) force a matching-type slot 50%; Intimidate/Keen Eye/Cute Charm-style "
-                           "effects change level/odds; chance_pct here is the unmodified slot table.")
+    # Corrected 2026-10-21 (step-5 review finding 3): the old text called encounter_rate*16/2880 the per-step chance.
+    hdr["encounter_rate_note"] = rate_text
+    hdr["encounter_rate_decomp"] = rate_cites
+    # Corrected 2026-10-21 (step-5 review note): Cute Charm sets gender, not level; Magnet Pull is land only.
+    hdr["ability_note"] = ab_text
+    hdr["ability_decomp"] = ab_cites
     hdr["feebas"] = {
-        "map": "MAP_ROUTE119", "species": "SPECIES_FEEBAS", "min_level": 20, "max_level": 25,
-        "rule": "FishingWildEncounter -> CheckFeebas(): on Route 119 any rod; 50% roll (Random()%100 > 49 fails), then 6 'Feebas "
-                "spots' are chosen among 447 fishing tiles (131+167+149) by an RNG seeded from dewfordTrends[0].rand (the "
-                "Dewford trend seed); spots 1-3 are rerolled (inaccessible). If the fished tile's spot id is one of the 6 the "
-                "encounter is Feebas instead of the rod table.",
+        "map": "MAP_ROUTE119", "species": "SPECIES_FEEBAS", "min_level": f_rows[0]["min_level"],
+        "max_level": f_rows[0]["max_level"],
+        "rule": "FishingWildEncounter -> CheckFeebas(): on Route 119 any rod; %d%% roll (Random()%%100 > %d fails), then "
+                "6 'Feebas spots' are chosen among 447 fishing tiles (131+167+149) by an RNG seeded from "
+                "dewfordTrends[0].rand (the Dewford trend seed); spots 1-3 are rerolled (inaccessible). If the fished "
+                "tile's spot id is one of the 6 the encounter is Feebas instead of the rod table."
+                % (f_chance, 99 - f_chance),
         "tiles": "NOT STATICALLY EXTRACTABLE: the 6 tiles depend on the save's trend seed, which changes when the Dewford trend is "
                  "re-rolled. The decomp gives the algorithm, not coordinates; tile coordinates need the map data plus the seed.",
-        "fishing_tiles_by_section": {"y 0-45": 131, "y 46-91": 167, "y 92-139": 149}}
+        "fishing_tiles_by_section": {"y 0-45": 131, "y 46-91": 167, "y 92-139": 149},
+        "where_to_find_rows": "SPECIES_FEEBAS has one where_to_find row per rod (map MAP_ROUTE119, base_label null, "
+                              "special 'feebas_tiles'). Their chance_pct (%d) is the chance PER CAST ON ONE OF THE 6 "
+                              "FEEBAS TILES, not a slot share: on every other Route 119 tile it is 0." % f_chance,
+        "decomp": f_cites}
     hdr["count_map_entries"] = len(maps)
     hdr["groups"] = [{"label": g["label"], "entries": len(g["encounters"])} for g in j["wild_encounter_groups"]]
     hdr["availability_note"] = (
         "Every maps[] entry and every where_to_find row carries `availability` (see availability_rules for what each "
-        "value means and the decomp lines behind it) and a short `availability_source` (file:line). where_to_find "
-        "keeps ALL tables (the raw facts); where_to_find_normal_play keeps only availability == 'normal', and is the "
-        "index to use for 'where can a player find X in normal play'. `map` is null for Battle Frontier tables, "
-        "which belong to no map; their label is in base_label.")
+        "value means and the decomp lines behind it) and a short `availability_source` (file:line). It also carries "
+        "`requires` ('post_game' or null), `requires_gate` and `requires_source`: a table behind the Hall of Fame "
+        "(see progression_gates). A row's `condition` (or a maps[] entry's `conditions`, per method) names a layout "
+        "condition (see conditions). A row's `special` is 'feebas_tiles' for the Feebas rows (see feebas; their "
+        "chance_pct is per cast on one of the 6 Feebas tiles, not a slot share), else null. where_to_find keeps "
+        "ALL tables (the raw facts). where_to_find_normal_play keeps only availability == "
+        "'normal' at ANY point of the game, the Hall of Fame included. where_to_find_main_story keeps the normal "
+        "rows with requires == null: the index for 'where can a player find X before the Champion'. A species "
+        "whose every normal row is post-game is in normal_play and NOT in main_story. `map` is null for Battle "
+        "Frontier tables, which belong to no map; their label is in base_label.")
     hdr["availability_rules"] = rules
+    hdr["progression_gates"] = extra["gates"]
+    hdr["conditions"] = extra["conditions"]
     hdr["maps"] = maps
     hdr["where_to_find"] = dict(sorted(where.items()))
     hdr["where_to_find_normal_play"] = dict(sorted(normal_play.items()))
+    hdr["where_to_find_main_story"] = dict(sorted(main_story.items()))
     write_json(os.path.join(out, "encounters.json"), hdr)
     return maps
 
@@ -839,6 +1303,10 @@ def _mini_decomp(root, change=None):
     put(ALTERING_GIFT_FILE, "addvar VAR_ALTERING_CAVE_WILD_SET, 1\n")
     put("data/mystery_gift.s", '.include "data/scripts/gift_altering_cave.inc"\n')
     put("src/data/wild_encounters.constants.json.txt", "#define NUM_ALTERING_CAVE_TABLES 2\n")
+    # the post-game gate of MINI_GATES: Route101 -> ALTERING_CAVE, opened by a FLAG_SYS_GAME_CLEAR script line
+    put("src/post_battle_event_funcs.c", "int GameClear(void)\n{\n    FlagSet(FLAG_SYS_GAME_CLEAR);\n}\n")
+    put("data/maps/EverGrandeCity_HallOfFame/scripts.inc", "special GameClear\n")
+    r101 = ["call_if_set FLAG_SYS_GAME_CLEAR, Route101_EventScript_OpenCave"]
     maps = {"Route101": ("MAP_ROUTE101", ["MAP_ALTERING_CAVE"]), "AlteringCave": ("MAP_ALTERING_CAVE", []),
             "OldUnusedMap1": ("MAP_OLD_UNUSED_MAP1", [])}
     main_rows = [("MAP_ROUTE101", "gRoute101"), ("MAP_ALTERING_CAVE", "gAlteringCave1"),
@@ -849,12 +1317,25 @@ def _mini_decomp(root, change=None):
         maps["SecretRoom"] = ("MAP_SECRET_ROOM", [])
         main_rows.append(("MAP_SECRET_ROOM", "gSecretRoom"))
     if change == "setvar":
-        put("data/maps/Route101/scripts.inc", "setvar VAR_ALTERING_CAVE_WILD_SET, 3\n")
+        r101.append("setvar VAR_ALTERING_CAVE_WILD_SET, 3")
+    if change == "gate_leak":  # a second, ungated way in: Route101 -> Route102 -> the cave
+        maps["Route101"] = ("MAP_ROUTE101", ["MAP_ALTERING_CAVE", "MAP_ROUTE102"])
+        maps["Route102"] = ("MAP_ROUTE102", ["MAP_ALTERING_CAVE"])
+    if change == "gate_moved":  # the gated edge is gone; the cave is reached through Route103 instead
+        maps["Route101"] = ("MAP_ROUTE101", ["MAP_ROUTE103"])
+        maps["Route103"] = ("MAP_ROUTE103", ["MAP_ALTERING_CAVE"])
+    if change == "flag_writer":  # a second writer of the gate's flag
+        r101.append("setflag FLAG_SYS_GAME_CLEAR")
+    if change == "gate_line":
+        r101.remove("call_if_set FLAG_SYS_GAME_CLEAR, Route101_EventScript_OpenCave")
+    put("data/maps/Route101/scripts.inc", "\n".join(r101) + "\n")
     for folder, (mid, warps) in maps.items():
         put("data/maps/%s/map.json" % folder, json.dumps(
             {"id": mid, "name": folder, "warps": [{"dest_map": w} for w in warps]}, indent=2) + "\n")
     j = {"wild_encounter_groups": [
-        {"label": MAIN_GROUP, "encounters": [{"map": mp, "base_label": bl} for mp, bl in main_rows]},
+        {"label": MAIN_GROUP, "encounters": [dict({"map": mp, "base_label": bl},
+                                                  **({"land_mons": {}} if bl == "gRoute101" else {}))
+                                             for mp, bl in main_rows]},
         {"label": PYRAMID_GROUP, "encounters": [{"base_label": "gBattlePyramid_1"}]},
         {"label": PIKE_GROUP, "encounters": [{"base_label": "gBattlePike_1"}]}]}
     put("src/data/wild_encounters.json", json.dumps(j))
@@ -862,20 +1343,26 @@ def _mini_decomp(root, change=None):
 
 
 def selftest():
-    """FAULT and CONTROL for each availability guard (G1-G4) and the reachability walk, on synthetic input.
+    """FAULT and CONTROL for each availability guard (G1-G4), the progression-gate guards (G5, G6, the double gate,
+    a gone folder, the bounded region walk), the condition guard (G7, the tide table) and the Feebas reading, plus the
+    reachability walk, on synthetic input.
     WHY: these guards only fire when the decomp changes, which the pinned clone never does, so without arms that
     feed them a changed input a deleted guard call would pass every real run unnoticed."""
     results = []
 
     def arm(name, fn, want_raise):
+        crash = None
         try:
             fn()
             raised = False
         except SemanticsChanged:
             raised = True
+        except Exception as exc:  # any other exception is a crash, never a refusal: the arm fails
+            raised, crash = None, exc
         ok = raised == want_raise
         results.append(ok)
-        print("%s  %s (%s)" % ("PASS" if ok else "FAIL", name, "raised" if raised else "accepted"))
+        print("%s  %s (%s)" % ("PASS" if ok else "FAIL", name,
+                               "CRASHED: %r" % crash if crash else "raised" if raised else "accepted"))
 
     txt = "void f(void)\n{\n    x = 1;\n}\n"
     arm("G1 CONTROL: a present line is cited", lambda: cite_lines(txt, "x = 1;"), False)
@@ -918,14 +1405,19 @@ def selftest():
     # The same guards through availability_rules() on a tiny synthetic decomp tree, so a deleted guard CALL (not only
     # a broken guard function) turns an arm red.
     want = {"gRoute101": AV_NORMAL, "gAlteringCave1": AV_NORMAL, "gAlteringCave2": AV_GIFT,
-            "gOldUnused1": AV_UNUSED, "gBattlePyramid_1": AV_PYRAMID, "gBattlePike_1": AV_PIKE}
+            "gOldUnused1": AV_UNUSED, "gBattlePyramid_1": AV_PYRAMID, "gBattlePike_1": AV_PIKE,
+            "requires": {"gAlteringCave1": "mini_gate", "gAlteringCave2": "mini_gate"},
+            "conditions": {("gRoute101", "land"): "mini_cond"}}
 
-    def tree_arm(name, change, want_raise):
+    def tree_arm(name, change, want_raise, conditions=None):
         with tempfile.TemporaryDirectory() as root:
             j = _mini_decomp(root, change)
             try:
-                _, label_of = availability_rules(Decomp(root), j)
+                _, label_of, extra = availability_rules(Decomp(root), j, gates=MINI_GATES,
+                                                        conditions=conditions or MINI_CONDITIONS)
                 got = {bl: av for bl, (av, _) in label_of.items()}
+                got["requires"] = extra["requires_of"]
+                got["conditions"] = extra["condition_of"]
                 raised = False
             except SemanticsChanged:
                 got, raised = None, True
@@ -933,13 +1425,111 @@ def selftest():
         results.append(ok)
         print("%s  %s (%s)" % ("PASS" if ok else "FAIL", name, "raised" if raised else got))
 
-    tree_arm("TREE CONTROL: the six tables get the six labels", None, False)
+    tree_arm("TREE CONTROL: the six tables get the six labels, the gate and the condition", None, False)
     tree_arm("TREE FAULT G1: a cited line removed from src/wild_encounter.c refuses", "drop_line", True)
     tree_arm("TREE FAULT G2: a second gWildMonHeaders entry for MAP_ROUTE101 refuses", "dup_header", True)
     tree_arm("TREE FAULT G3: a map script that sets the Altering Cave var refuses", "setvar", True)
     tree_arm("TREE FAULT G4: a wild map nothing names, without UNUSED in its id, refuses", "orphan", True)
+    # 2026-10-21: the progression gate and the condition (step-5 review findings 1 and the Route 130 note)
+    tree_arm("TREE FAULT G5: an ungated second way into the gated map (Route101 -> Route102 -> cave) refuses",
+             "gate_leak", True)
+    tree_arm("TREE FAULT G5: the gated edge gone, the map reached through another map instead, refuses",
+             "gate_moved", True)
+    tree_arm("TREE FAULT G6: a second writer of FLAG_SYS_GAME_CLEAR (a map script setflag) refuses", "flag_writer", True)
+    tree_arm("TREE FAULT G1: the gate's cited flag line removed refuses", "gate_line", True)
+    tree_arm("TREE FAULT G7: a condition on a method the map's table does not have refuses", None, True,
+             conditions=(dict(MINI_CONDITIONS[0], methods={"MAP_ROUTE101": ("water",)}),))
+
+    def gates_arm(name, gates, want_raise):
+        with tempfile.TemporaryDirectory() as root:
+            j = _mini_decomp(root, None)
+            arm(name, lambda: availability_rules(Decomp(root), j, gates=gates, conditions=MINI_CONDITIONS), want_raise)
+
+    arm_gate = MINI_GATES[0]
+    gates_arm("GATES FAULT: one table behind two gates refuses",
+              (arm_gate, dict(arm_gate, id="mini_gate_twice")), True)
+    gates_arm("GATES FAULT: a gated edge from a map folder that is gone refuses",
+              (dict(arm_gate, edges=(("NoSuchFolder", "MAP_ALTERING_CAVE"),)),), True)
+    # gate_region on its own: A is named by B (not a gated edge), so the walk needs 3 passes (A, B, the empty list)
+    arm("GATES CONTROL: a gate region walk within its bound finishes",
+        lambda: gate_region(("A",), set(), {"B": {"A"}}, {}), False)
+    saved = MAX_ITER
+    MAX_ITER = 2
+    try:
+        arm("GATES FAULT: a gate region walk cut short by its bound refuses (never labels from a partial walk)",
+            lambda: gate_region(("A",), set(), {"B": {"A"}}, {}), True)
+    finally:
+        MAX_ITER = saved
+    # the Shoal Cave tide hours are read from src/time_events.c tide[]; no table (or no high-tide hour) refuses
+    tide_cond = ({"id": "tide", "methods": {"MAP_ROUTE101": ("land",)}, "meaning": "hours %s",
+                  "lines": (("src/wild_encounter.c", "static u16 GetCurrentMapWildMonHeaderId(void)"),)},)
+    for name, text, want_raise in (
+            ("TIDE CONTROL: hours read from tide[]", "static const u8 tide[] =\n{\n    0, // 00\n    1, // 01\n};\n", False),
+            ("TIDE FAULT: no tide[] table refuses", "int x;\n", True),
+            ("TIDE FAULT: a tide[] with no high-tide hour refuses", "static const u8 tide[] =\n{\n    0, // 00\n};\n", True)):
+        with tempfile.TemporaryDirectory() as root:
+            j = _mini_decomp(root, None)
+            with open(os.path.join(root, "src", "time_events.c"), "w", encoding="utf-8", newline="\n") as f:
+                f.write(text)
+            got = {}
+
+            def go():
+                got.update(build_conditions(Decomp(root), j, tide_cond))
+            arm(name, go, want_raise)
+            if not want_raise:
+                ok = got.get("tide", {}).get("meaning") == "hours 01"
+                results.append(ok)
+                print("%s  TIDE CONTROL value: 'hours 01' (%s)" % ("PASS" if ok else "FAIL", got.get("tide", {}).get("meaning")))
+    # Feebas (step-5 review finding 2): feebas_rows reads every value from src/wild_encounter.c and refuses otherwise.
+    feebas_c = ("static const struct WildPokemon sWildFeebas = {20, 25, SPECIES_FEEBAS};\n"
+                "static bool8 CheckFeebas(void)\n{\n"
+                "    if (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(MAP_ROUTE119)\n"
+                "        if (Random() % 100 > 49)\n}\n"
+                "void FishingWildEncounter(u8 rod)\n{\n    if (CheckFeebas() == TRUE)\n"
+                "        x = GenerateFishingWildMon(info, rod);\n}\n")
+
+    def feebas_arm(name, text, where, want_raise):
+        with tempfile.TemporaryDirectory() as root:
+            os.makedirs(os.path.join(root, "src"))
+            with open(os.path.join(root, "src", "wild_encounter.c"), "w", encoding="utf-8", newline="\n") as f:
+                f.write(text)
+            got = None
+
+            def go():
+                nonlocal got
+                got = feebas_rows(Decomp(root), ("old_rod", "good_rod", "super_rod"), where)
+            arm(name, go, want_raise)
+        if not want_raise and got is not None:
+            rows, _, chance = got
+            ok = (chance == 50 and [(r["method"], r["min_level"], r["max_level"], r["map"]) for r in rows]
+                  == [(rod, 20, 25, "MAP_ROUTE119") for rod in ("old_rod", "good_rod", "super_rod")])
+            results.append(ok)
+            print("%s  FEEBAS CONTROL values: 3 rods, levels 20-25, MAP_ROUTE119, chance 50" % ("PASS" if ok else "FAIL"))
+
+    feebas_arm("FEEBAS CONTROL: the rule reads (any rod, Route 119, sWildFeebas)", feebas_c, {}, False)
+    feebas_arm("FEEBAS FAULT: CheckFeebas no longer tests MAP_ROUTE119 refuses",
+               feebas_c.replace("MAP_ROUTE119", "MAP_ROUTE120"), {}, True)
+    # every cited line still present, only the READING changes: these turn red only through feebas_rows' own check
+    feebas_arm("FEEBAS FAULT: sWildFeebas names another species (cited lines intact) refuses",
+               feebas_c.replace("SPECIES_FEEBAS}", "SPECIES_MAGIKARP}"), {}, True)
+    feebas_arm("FEEBAS FAULT: the rod table is used before CheckFeebas (cited lines intact) refuses",
+               feebas_c.replace("    if (CheckFeebas() == TRUE)\n        x = GenerateFishingWildMon(info, rod);\n",
+                                "    x = GenerateFishingWildMon(info, rod);\n    if (CheckFeebas() == TRUE)\n"),
+               {}, True)
+    feebas_arm("FEEBAS FAULT: SPECIES_FEEBAS already has a wild slot refuses (re-adjudicate the special rows)",
+               feebas_c, {"SPECIES_FEEBAS": [{}]}, True)
     print("SELFTEST: %d of %d arms as required" % (sum(results), len(results)))
     return 0 if all(results) else 1
+
+
+# The synthetic gate and condition the selftest's mini decomp is built for (see _mini_decomp).
+MINI_GATES = ({"id": "mini_gate", "meaning": "m", "seeds": ("MAP_ALTERING_CAVE",), "groups": {},
+               "edges": (("Route101", "MAP_ALTERING_CAVE"),), "flags": {GAME_CLEAR: GAME_CLEAR_WRITERS},
+               "lines": (("data/maps/Route101/scripts.inc",
+                          "call_if_set FLAG_SYS_GAME_CLEAR, Route101_EventScript_OpenCave"),),
+               "root_mentions": {}},)
+MINI_CONDITIONS = ({"id": "mini_cond", "methods": {"MAP_ROUTE101": ("land",)}, "meaning": "m",
+                    "lines": (("src/wild_encounter.c", "static u16 GetCurrentMapWildMonHeaderId(void)"),)},)
 
 
 def main():

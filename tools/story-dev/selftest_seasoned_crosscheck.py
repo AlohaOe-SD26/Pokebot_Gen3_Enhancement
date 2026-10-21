@@ -18,6 +18,10 @@ to the same facts, and every difference must carry a STATED reason (the tables b
                  what a player meets in ordinary play, so they are compared like for like.
                  X4 also ties KB1's `unreachable_unused_map` labels to the rarity file's own EXCLUDED list (an
                  independent measurement: "no warp reaches it"), each leftover entry carrying a stated reason.
+                 KB1's Feebas rule rows (special 'feebas_tiles', added 2026-10-21) are projected away by the scope
+                 rule feebas_rule_rows: the rarity file records Feebas as 'special' with no map, the same fact.
+                 X4 does not read `requires`/`where_to_find_main_story`: the rarity file has no notion of the Hall
+                 of Fame, so the post-game gates are verified only by verify_seasoned.py.
     NON-VACUITY: each X compares at least 90 % of the smaller side, so a join that matches nothing cannot pass.
 
 CHANGED 2026-10-21 (the KB1 semantic fixes F-1, F-2, F-4, F-5, F-6). X4 used to read KB1's full `where_to_find` and
@@ -54,7 +58,10 @@ missing folder after the merge, an explicitly passed `--seasoned-dir` that is mi
 FAULT ARMS (built in, each beside its CONTROL): a planted move power (X1), a planted base stat (X2), a planted wrong
 type (X3), a dropped map (X4), a broken join (the non-vacuity guard), a stale reason (a GAP_SPECIES entry for a
 species that is not in the gap), and each fixed KB1 error leaked back into the normal-play index or labels (F8 a
-Pyramid placeholder, F9 an Altering Cave set 6 row, F10 the unused Cave of Origin map 1, F11 a Pike-only species).
+Pyramid placeholder, F9 an Altering Cave set 6 row, F10 the unused Cave of Origin map 1, F11 a Pike-only species),
+F12 an index leak, F13 a Wynaut row off its stated reason, F14 an old-format KB1, and (2026-10-21) F15 Feebas rows
+without their `special` marker, F16 the Feebas rows gone (the scope rule goes stale), F17 a Wynaut row without its
+Mirage Island condition and F18 a special Feebas row off Route 119 (only the scope rule's reason check sees it).
 Each must turn its check red, naming the planted row.
 
 Run:  cd tools/story-dev && py -3.12 selftest_seasoned_crosscheck.py [--seasoned-dir DIR] [--verbose]
@@ -120,27 +127,34 @@ _LEG = ("rarity", "legendary: met in a static/scripted/roaming encounter, never 
 GAP_SPECIES: dict[int, tuple[str, str]] = {
     **{n: _LEG for n in (144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251,
                          377, 378, 379, 380, 381, 382, 383, 384, 385, 386)},
-    349: ("rarity", "Feebas: special; in no wild slot (the Route 119 tile rule replaces the rod table, "
-                    "src/wild_encounter.c CheckFeebas). KB1 holds it in encounters.json `feebas`, not where_to_find "
-                    "(this check asserts that block names SPECIES_FEEBAS)."),
     360: ("seasoned", "Wynaut: its only wild table is ROUTE130 land (Mirage Island), which the rarity file EXCLUDES "
                       "(rare_species_dataset.py EXCLUDED (0, 45): 'Mirage Island only ... a PV-matched random day'); "
-                      "KB1 keeps it as normal play, since Mirage Island is reachable on its day "
-                      "(this check asserts Wynaut's normal rows are all MAP_ROUTE130 land)."),
+                      "KB1 keeps it as normal play, since Mirage Island is reachable on its day, and marks the rows "
+                      "with condition 'mirage_island_shown' (this check asserts Wynaut's normal rows are all "
+                      "MAP_ROUTE130 land with that condition)."),
 }
 
 # X4 scope rules: which seasoned rows are projected away before the per-species comparison, so that both sides
 # describe the same set of tables. Each rule must remove at least one row (a rule that removes nothing is stale).
-# EMPTY since 2026-10-21: the three rules that lived here (frontier, altering, excluded) are now KB1's own
-# availability labels, which keep those rows out of where_to_find_normal_play. The old "excluded" rule's ROUTE130 half
-# removed no row of a species both files hold (Route 130 land is Wynaut only), so it is covered by Wynaut's gap reason.
-X4_SCOPE: dict = {}
+# The three 2026-10-21 rules (frontier, altering, excluded) became KB1's own availability labels, which keep those rows
+# out of where_to_find_normal_play; the old "excluded" rule's ROUTE130 half removed no row of a species both files
+# hold (Route 130 land is Wynaut only), so it is covered by Wynaut's gap reason.
+# ADDED 2026-10-21 (KB1 step-5 review finding 2): KB1 now lists SPECIES_FEEBAS in its indexes as three rule rows
+# (special 'feebas_tiles', MAP_ROUTE119, one per rod) instead of only in its `feebas` block. The rarity file lists
+# Feebas with maps=[] and reason 'special' (no wild slot). Both describe the same fact, a rule rather than a table, so
+# the rule rows are projected away and Feebas is compared as "no table on either side". Before this, Feebas was the
+# rarity-only gap entry 349, which is now stale and removed.
+X4_SCOPE: dict = {
+    "feebas_rule_rows": ("KB1's Feebas rows describe CheckFeebas's tile rule, not a wild table; the rarity file "
+                         "records the same species as 'special' with no map",
+                         lambda e: e.get("special") == "feebas_tiles"),
+}
 
 # The rarity file's own EXCLUDED list (its measurement, not KB1's) must equal KB1's unreachable_unused_map maps plus
 # the entries below, each with the reason KB1 does NOT mark it unreachable.
 RARITY_EXCLUDED_KB1_NORMAL = {
-    "ROUTE130": "Mirage Island land: rare (a PV-matched day) but reachable in ordinary play, so KB1 labels it normal; "
-                "its only species, Wynaut, is the seasoned-only gap entry 360",
+    "ROUTE130": "Mirage Island land: rare (a PV-matched day) but reachable in ordinary play, so KB1 labels it normal "
+                "with condition 'mirage_island_shown'; its only species, Wynaut, is the seasoned-only gap entry 360",
 }
 
 # Per-field differences that remain after the scope projection, each with its reason:
@@ -358,11 +372,19 @@ def x4(d: dict, report: list | None = None) -> list[tuple]:
     check("X4 reason check: every rarity-only species has maps=[] and a legendary/special reason",
           all(not rar[n]["maps"] and set(rar[n]["reasons"]) & {"legendary", "special"} for n in only_r),
           str([(n, rar[n]["maps"], rar[n]["reasons"]) for n in only_r if rar[n]["maps"]]))
-    check("X4 reason check: KB1's feebas block names SPECIES_FEEBAS (Feebas is held there, not in where_to_find)",
-          enc.get("feebas", {}).get("species") == "SPECIES_FEEBAS", str(enc.get("feebas", {}).get("species")))
+    feb = wtf.get("SPECIES_FEEBAS", [])
+    check("X4 reason check (scope rule feebas_rule_rows): KB1's feebas block names SPECIES_FEEBAS, its normal rows are "
+          "all special 'feebas_tiles' on MAP_ROUTE119, and the rarity file lists Feebas as 'special' with no map",
+          enc.get("feebas", {}).get("species") == "SPECIES_FEEBAS" and bool(feb)
+          and all(e.get("special") == "feebas_tiles" and e["map"] == "MAP_ROUTE119" for e in feb)
+          and 349 in rar and rar[349]["maps"] == [] and "special" in rar[349]["reasons"],
+          f"block={enc.get('feebas', {}).get('species')} rows={[(e.get('special'), e['map']) for e in feb]} "
+          f"rarity={rar.get(349, {}).get('maps')},{rar.get(349, {}).get('reasons')}")
     wyn = wtf.get("SPECIES_WYNAUT", [])
-    check("X4 reason check: Wynaut's normal rows are all MAP_ROUTE130 land (its gap reason)",
-          bool(wyn) and all(e["map"] == "MAP_ROUTE130" and e["method"] == "land" for e in wyn), str(wyn)[:200])
+    check("X4 reason check: Wynaut's normal rows are all MAP_ROUTE130 land with condition 'mirage_island_shown' "
+          "(its gap reason)",
+          bool(wyn) and all(e["map"] == "MAP_ROUTE130" and e["method"] == "land"
+                            and e.get("condition") == "mirage_island_shown" for e in wyn), str(wyn)[:200])
     # KB1's unreachable labels against the rarity file's independent EXCLUDED list (ROM reader + warp walk).
     kb1_unused = {strip(m["map"], "MAP_") for m in enc["maps"] if m.get("availability") == "unreachable_unused_map"}
     r_excl = set(d["rarity"]["_meta"].get("excluded", {}))
@@ -545,6 +567,37 @@ def fault_arms(d: dict) -> None:
     _, _, added = run_all(f)
     check("FAULT F14 (old-format KB1): no where_to_find_normal_play fails X4",
           any("has where_to_find_normal_play" in name and not ok for name, ok, _ in added))
+    # F15: a Feebas row that has lost its `special` marker looks like a table row; the scope rule no longer applies
+    # to it, so Feebas gets an unexplained ROUTE119 map
+    f = copy.deepcopy(d)
+    for e in f["encounters"]["where_to_find_normal_play"]["SPECIES_FEEBAS"]:
+        e["special"] = None
+    _, un, _ = run_all(f)
+    check("FAULT F15 (scope rule has teeth): Feebas rows without special 'feebas_tiles' give Feebas an unexplained map",
+          any(u[0] == "SPECIES_FEEBAS" and u[1] == "maps" for u in un), str(un[:3]))
+    # F16: the Feebas rows gone (the pre-fix KB1): the scope rule removes nothing and goes stale, and Feebas is an
+    # unexplained rarity-only species
+    f = copy.deepcopy(d)
+    del f["encounters"]["where_to_find_normal_play"]["SPECIES_FEEBAS"]
+    _, _, added = run_all(f)
+    check("FAULT F16 (the pre-fix KB1 without Feebas rows): the feebas_rule_rows scope rule goes stale and 349 is "
+          "an unexplained gap species",
+          any("feebas_rule_rows" in name and not ok for name, ok, _ in added)
+          and any("species by species" in name and not ok and "(349, 'rarity')" in detail
+                  for name, ok, detail in added))
+    # F17: Wynaut's gap reason now also claims KB1's Mirage Island condition; a row without it makes the reason false
+    f = copy.deepcopy(d)
+    f["encounters"]["where_to_find_normal_play"]["SPECIES_WYNAUT"][0]["condition"] = None
+    _, _, added = run_all(f)
+    check("FAULT F17 (Wynaut's condition is checked): a Wynaut row without 'mirage_island_shown' fails its reason check",
+          any("Wynaut's normal rows" in name and not ok for name, ok, _ in added))
+    # F18: the scope rule projects Feebas rows away, so only the reason check sees a Feebas row off Route 119
+    f = copy.deepcopy(d)
+    f["encounters"]["where_to_find_normal_play"]["SPECIES_FEEBAS"][0]["map"] = "MAP_ROUTE120"
+    _, _, added = run_all(f)
+    check("FAULT F18 (the scope rule's own claim is checked): a special Feebas row off MAP_ROUTE119 fails the "
+          "feebas_rule_rows reason check",
+          any("scope rule feebas_rule_rows" in name and not ok for name, ok, _ in added))
 
 
 # ================================================================================================ merge state
