@@ -2158,6 +2158,13 @@ def o5_consult(box: Path, cfg: dict | None = None, tag: str = "ai0002") -> tuple
     return out, bool(reached)
 
 
+def o5_rows(box: Path, kind: str) -> list[dict]:
+    """The consult_log.jsonl rows of one kind (O5 round 4): 'reserved' (counted by the daily cap, written BEFORE the
+    call) or 'outcome' (the call's result, not counted)."""
+    log = box / "data" / consult.LOG_NAME
+    return [r for r in learner.load_jsonl(log) if r.get("kind") == kind] if log.is_file() else []
+
+
 def o5_notes(n: int, terms: str = O5_TERMS) -> str:
     """`n` DEVELOPER-NOTES.md entries exactly as the learner writes them in Windows text mode (CRLF, a blank line
     before each heading). Entry 2 holds a '## ' line and an inline quote of a heading, and the last entry a prose
@@ -2252,6 +2259,27 @@ def test_o5(tmp: Path) -> None:
     check("N6 FAULT: a corrupt latest.json, a corrupt consult_state.json, a wrong-shape digest and an unusable "
           "threshold each FAIL OPEN: the consult goes ahead and its line says why (N1 is the control)",
           all(r and "failed open" in o for o, r in six), six)
+    # N6b a threshold that is not a finite number > 0 fails OPEN too. Parsed with json.loads, exactly as config.json
+    # is read: Python's json accepts NaN and Infinity, and 1e400 overflows to inf. Before the round-2 fix a NaN or
+    # infinite forced_days compared False for ever, so an unchanged digest was skipped every cycle (fail CLOSED).
+    # The last consult was 1 day ago and the digest is unchanged, so with usable thresholds these would all SKIP.
+    bad_values = json.loads("[NaN, Infinity, 1e400, 0, -1, -Infinity]")
+    for key in ("wall_move_points", "new_runs", "forced_days"):
+        # new_runs is a count: 0.5 passes the float check but truncates to 0, and "grew >= 0" would hold every cycle
+        values = bad_values + ([0.5] if key == "new_runs" else [])
+        outs = {repr(v): o5_consult(o5_box(tmp / f"n6b-{key}-{i}", base, prev=base),
+                                    {"consult": dict(O5_CFG["consult"], **{key: v})})
+                for i, v in enumerate(values)}
+        check(f"N6b FAULT: {key} NaN, Infinity, 1e400, 0, -1 or -Infinity (as json.loads reads config.json"
+              f"{'; and 0.5, under one run' if key == 'new_runs' else ''}) each GOES ahead and says the gate failed "
+              f"open, never a skip",
+              all(r and "failed open" in o and key in o for o, r in outs.values()), outs)
+    ordinary = json.loads('{"wall_move_points": 3, "new_runs": 150.0, "forced_days": "7"}')
+    out, reached = o5_consult(o5_box(tmp / "n6b-ok", base, prev=base),
+                              {"consult": dict(O5_CFG["consult"], **ordinary)})
+    check("N6b CONTROL: ordinary thresholds (an int, a float, a numeric string) do not trip the finiteness check: an "
+          "unchanged digest is still skipped", not reached and out.startswith("consult: skipped, nothing new")
+          and "failed open" not in out, out)
 
     # N7 roll_notes: newest 5 kept, the rest moved verbatim, never lost ----------------------------------------------
     f = tmp / "n7"
@@ -2491,13 +2519,455 @@ def test_o5(tmp: Path) -> None:
         outs += [consult.maybe_consult(O5_CFG, repo, box, "ai0004"), consult.maybe_consult(O5_CFG, repo, box, "ai0005")]
     finally:
         consult.subprocess.run, consult.shutil.which = real_run, real_which
-    rows = learner.load_jsonl(box / "data" / consult.LOG_NAME)
+    rows, held = o5_rows(box, "outcome"), o5_rows(box, "reserved")
     check("N11 only a call that went through (exit 0) saves the baseline: after exit 1 the next cycle asks again, after "
           "exit 0 an unchanged digest is skipped; 3 calls logged, each run from the repo (the cwd is unchanged)",
           [o.split(",")[0] for o in outs] == ["consult: exit 1", "consult: exit 1", "consult: exit 0",
                                                "consult: skipped"]
           and len(seen) == 3 and all(s == repo for s in seen) and consult._calls_today(box / "data" / consult.LOG_NAME)
-          == 3 and [r["exit"] for r in rows] == [1, 1, 0] and rows[0]["why"] == "no previous digest", outs)
+          == 3 and [r["exit"] for r in rows] == [1, 1, 0] and held[0]["why"] == "no previous digest", outs)
+
+    # G1-G4 (round 2): the four guards the independent check found untested. Each FAULT arm calls the real function
+    # with the fault injected and turns a raise into a failed check (not a crash), so a mutant that drops the guard
+    # fails exactly this check; each CONTROL arm is the ordinary case, where the guard must not fire.
+    test_o5_guards(tmp)
+
+
+def test_o5_guards(tmp: Path) -> None:
+    import types
+    base = o5_latest()
+
+    # G1 learner._expire: a move that fails leaves the proposal waiting and the cycle going ---------------------------
+    with O3Sandbox(tmp / "g1"):
+        o5_put(learner.INBOX, "old", {"POKEBOT_R25_CAP": "1"}, 4.0)
+        real_rename = learner._rename_no_overwrite
+
+        def locked(src: Path, dst: Path) -> None:
+            raise PermissionError(13, "locked")
+
+        learner._rename_no_overwrite = locked
+        try:
+            try:
+                got, res = [p["name"] for p in learner.read_inbox(3)], "returned"
+            except Exception as exc:  # noqa: BLE001 - a raise here IS the failure under test
+                got, res = [], f"RAISED {exc!r}"
+        finally:
+            learner._rename_no_overwrite = real_rename
+        check("G1 FAULT: an expiry move that fails (a locked file) never stops the plan: read_inbox returns, the "
+              "proposal stays waiting and is still offered, and the log says why",
+              res == "returned" and got == ["old"] and (learner.INBOX / "old.json").exists()
+              and "could not expire old.json" in log_text(), (res, got))
+        got = [p["name"] for p in learner.read_inbox(3)]
+        check("G1 CONTROL: with the move working, the same proposal expires and nothing more is logged as failed",
+              got == [] and (learner.INBOX / "expired" / "old.json").exists()
+              and log_text().count("could not expire") == 1, got)
+
+    # G2 consult.record_skip: an unwritable skips file never raises out of the skip ---------------------------------
+    box = o5_box(tmp / "g2", base, prev=base)
+    (box / "data" / consult.SKIPS_NAME).mkdir()  # opening a directory for append raises an OSError
+    try:
+        out, reached = o5_consult(box)
+    except Exception as exc:  # noqa: BLE001
+        out, reached = f"RAISED {exc!r}", None
+    check("G2 FAULT: consult_skips.jsonl cannot be written -> the skip still returns its line, says it could not "
+          "write, never reaches Claude and never writes consult_log.jsonl",
+          out.startswith("consult: skipped, nothing new") and f"could not write {consult.SKIPS_NAME}" in out
+          and reached is False and not (box / "data" / consult.LOG_NAME).exists(), out)
+    box = o5_box(tmp / "g2-ok", base, prev=base)
+    out, reached = o5_consult(box)
+    check("G2 CONTROL: a writable skips file -> the skip is written and the line claims no failure",
+          out.startswith("consult: skipped, nothing new") and "could not write" not in out
+          and (box / "data" / consult.SKIPS_NAME).is_file(), out)
+
+    # G3 consult.write_note: a notes file it cannot compare against still gets the note, AFTER the paid call --------
+    reply = ("Diagnosis.\n```json\n" + json.dumps({"proposals": [], "for_the_developer": "Still: fix KI-122 first, "
+             "then KI-118. Tate & Liza and Norman remain the walls."}) + "\n```\n")
+
+    def fake_claude(cmd, cwd=None, **kw):  # noqa: ANN001, ANN202
+        return types.SimpleNamespace(stdout=reply, returncode=0)
+
+    def consult_with_notes(name: str, notes: bytes) -> tuple[str, Path]:
+        box = o5_box(tmp / name, o5_latest(walls=tuple((w, 1) for w in O5_NOTE_WALLS)))  # no state: it goes ahead
+        (box / "findings" / consult.NOTES).write_bytes(notes)
+        real_run, real_which = consult.subprocess.run, consult.shutil.which
+        consult.subprocess.run, consult.shutil.which = fake_claude, lambda name: "claude"
+        try:
+            try:
+                out = consult.maybe_consult(O5_CFG, tmp, box, "ai0002")
+            except Exception as exc:  # noqa: BLE001
+                out = f"RAISED {exc!r}"
+        finally:
+            consult.subprocess.run, consult.shutil.which = real_run, real_which
+        return out, box
+
+    cp1252 = "\r\n## 2026-10-01 01:00 AM, after cycle ai0001\r\n\r\nCafé: fix KI-122.\r\n".encode("cp1252")
+    out, box = consult_with_notes("g3", cp1252)
+    rows = o5_rows(box, "outcome")
+    notes = (box / "findings" / consult.NOTES).read_bytes()
+    check("G3 FAULT: a DEVELOPER-NOTES.md that is not UTF-8 (the compare raises) -> the note is still written in full "
+          "after the old bytes, and the paid call still writes its consult_log.jsonl row, so the daily cap counts it",
+          "note full" in out and len(rows) == 1 and rows[0]["note"] == "full" and notes.startswith(cp1252)
+          and b"Tate & Liza and Norman remain the walls." in notes, (out, rows))
+    out, box = consult_with_notes("g3-ok", o5_notes(3).encode("utf-8"))
+    rows = o5_rows(box, "outcome")
+    check("G3 CONTROL: a readable notes file is compared as usual: the same note repeating the last 2 collapses to ONE "
+          "line (the except did not swallow an ordinary read), and the call is logged once",
+          "note repeat" in out and len(rows) == 1 and rows[0]["note"] == "repeat", (out, rows))
+
+    # G4 the future-state guard: a clock skew must not postpone the weekly force ----------------------------------
+    out, reached = o5_consult(o5_box(tmp / "g4", base, prev=base, days_ago=-3.0))
+    check("G4 FAULT: a consult_state.json 3 days in the FUTURE (a clock skew) with an unchanged digest goes ahead and "
+          "says the gate failed open, instead of skipping until the clock catches up",
+          reached and "failed open" in out and "lies in the future" in out, out)
+    out, reached = o5_consult(o5_box(tmp / "g4-ok", base, prev=base, days_ago=-0.5))
+    check("G4 CONTROL: a state half a day ahead (within the 1-day tolerance) is not an error: an unchanged digest is "
+          "skipped", not reached and out.startswith("consult: skipped, nothing new") and "failed open" not in out, out)
+
+    # G5 the copy-back advice (round 2, decision 3): a Windows copy keeps the old modified date --------------------
+    with O3Sandbox(tmp / "g5"):
+        exp = learner.INBOX / "expired"
+        o5_put(learner.INBOX, "prop", {"POKEBOT_R25_CAP": "1"}, 4.0)
+        learner.read_inbox(3)
+        why = (exp / "prop.why.txt").read_text(encoding="utf-8") if (exp / "prop.why.txt").exists() else ""
+        check("G5 the .why.txt tells the user to refresh the file time after copying it back (the PowerShell line), and "
+              "no longer claims that a copy gets today's date",
+              "(Get-Item <file>).LastWriteTime = Get-Date" in why and "copy gets today" not in why, why)
+        back = learner.INBOX / "prop.json"
+        shutil.copy2(exp / "prop.json", back)  # copy2 keeps the mtime, as Explorer, copy and Copy-Item do
+        trap = [p["name"] for p in learner.read_inbox(3)]
+        check("G5 FAULT (the trap the advice is about): a copy that keeps its old mtime expires again at once",
+              trap == [] and (exp / "prop.1.json").exists() and not back.exists(), trap)
+        shutil.copy2(exp / "prop.json", back)
+        os.utime(back, None)  # what (Get-Item <file>).LastWriteTime = Get-Date does: the modified time becomes now
+        plan = learner.plan_cycle(learner.DEFAULTS, {"cycle": 0}, 8)
+        check("G5 CONTROL: after the documented refresh the copied-back proposal is planned",
+              plan["proposal_files"] == ["prop.json"] and back.exists(), plan["proposal_files"])
+        back.unlink()
+        shutil.copy2(exp / "prop.json", back)
+        back.write_bytes(back.read_bytes())  # the editor route: saving the file again
+        got = [p["name"] for p in learner.read_inbox(3)]
+        check("G5b saving the copy again (the editor route) also makes it a fresh proposal", got == ["prop"], got)
+
+    test_o5_round3(tmp)
+
+
+def test_o5_round3(tmp: Path) -> None:
+    """R1-R3 (O5 round 3): a PAID call is always logged, so the daily cap counts it; a consult failure never fails a
+    scored cycle; publish copies the notes archive."""
+    import types
+    calls: list[str] = []
+    reply = ("Diagnosis.\n```json\n" + json.dumps({"proposals": [
+        {"name": "p1", "why": "w", "genes": {"POKEBOT_R25_CAP": "1"}},
+        {"name": "p2", "why": "w", "genes": {"POKEBOT_R25_CAP": "0"}}],
+        "for_the_developer": "Fix KI-122 first."}) + "\n```\n")
+
+    def fake_claude(cmd, cwd=None, **kw):  # noqa: ANN001, ANN202
+        calls.append(str(cwd))
+        return types.SimpleNamespace(stdout=reply, returncode=0)
+
+    def cycles(box: Path, n: int, cap: int) -> list[str]:
+        """`n` cycles through the real maybe_consult with a fake claude; each cycle the scored count grows by 1000, so
+        the novelty gate always lets it through and only the daily cap can stop a call. A raise becomes a line."""
+        cfg = {"consult": dict(O5_CFG["consult"], max_calls_per_day=cap)}
+        real_run, real_which = consult.subprocess.run, consult.shutil.which
+        consult.subprocess.run, consult.shutil.which = fake_claude, lambda name: "claude"
+        outs = []
+        try:
+            for i in range(n):
+                (box / "findings" / "latest.json").write_text(json.dumps(o5_latest(scored=1000 * (i + 1))),
+                                                              encoding="utf-8")
+                try:
+                    outs.append(consult.maybe_consult(cfg, tmp, box, f"ai{i + 2:04d}"))
+                except Exception as exc:  # noqa: BLE001 - a raise here IS the failure under test
+                    outs.append(f"RAISED {exc!r}")
+        finally:
+            consult.subprocess.run, consult.shutil.which = real_run, real_which
+        return outs
+
+    # R1 the notes path cannot be appended to (here a directory) AFTER the paid call -------------------------------
+    calls.clear()
+    box = o5_box(tmp / "r3-1")
+    (box / "findings" / consult.NOTES).mkdir()
+    outs = cycles(box, 3, cap=2)
+    rows = o5_rows(box, "outcome")
+    check("R1 FAULT: DEVELOPER-NOTES.md cannot be appended to -> no exception escapes, every paid call writes its "
+          "consult_log.jsonl row (note 'failed', the reason in 'failed'), and the daily cap of 2 stops the 3rd call",
+          len(calls) == 2 and len(rows) == 2 and not any(o.startswith("RAISED") for o in outs)
+          and outs[2] == "consult: daily cap reached" and all(r["note"] == "failed" and r.get("failed", "").startswith("note: ")
+                                                             and r["proposals_accepted"] == 2 for r in rows)
+          and consult._calls_today(box / "data" / consult.LOG_NAME) == 2
+          and all("note failed" in o and "the call is still logged" in o for o in outs[:2]), (outs, rows))
+
+    # R1b one side effect failing costs no other: the reply file and proposal 1 blocked, proposal 2 and the note go --
+    calls.clear()
+    box = o5_box(tmp / "r3-1b")
+    (box / "findings" / "claude-ai0002.md").mkdir()
+    (box / "inbox" / "claude-ai0002-1.json").mkdir()
+    outs = cycles(box, 1, cap=2)
+    rows = o5_rows(box, "outcome")
+    notes = box / "findings" / consult.NOTES
+    check("R1b FAULT: the reply file and proposal 1 cannot be written -> proposal 2 is still queued, the note is still "
+          "written, and the row names both failures",
+          len(rows) == 1 and rows[0]["proposals_accepted"] == 1 and rows[0]["note"] == "full"
+          and "claude-ai0002.md: " in rows[0].get("failed", "") and "proposal 1: " in rows[0].get("failed", "")
+          and (box / "inbox" / "claude-ai0002-2.json").is_file() and notes.is_file()
+          and "Fix KI-122 first." in notes.read_text(encoding="utf-8"), (outs, rows))
+
+    # R1 CONTROL: an ordinary consult writes its reply, proposals, note and row exactly as before --------------------
+    calls.clear()
+    box = o5_box(tmp / "r3-1c")
+    outs = cycles(box, 1, cap=2)
+    rows = o5_rows(box, "outcome")
+    check("R1 CONTROL: an ordinary consult writes its reply file, both proposals, its note (full) and ONE row with no "
+          "'failed' key, and its line claims no failure",
+          len(calls) == 1 and len(rows) == 1 and rows[0]["note"] == "full" and rows[0]["proposals_accepted"] == 2
+          and "failed" not in rows[0] and (box / "findings" / "claude-ai0002.md").is_file()
+          and "Fix KI-122 first." in (box / "findings" / consult.NOTES).read_text(encoding="utf-8")
+          and outs[0].startswith("consult: exit 0, 2 proposal(s) queued, note full")
+          and "still logged" not in outs[0], (outs, rows))
+
+    # R2 finish_cycle: a consult that raises never fails a scored cycle ----------------------------------------------
+    off = dict(learner.DEFAULTS)
+    plan = {"tag": "ai0001", "lanes": 8, "arms": {}}
+    real_consult = consult.maybe_consult
+
+    def run_finish(name: str, fake) -> tuple[str, list, str]:  # noqa: ANN001
+        with O3Sandbox(tmp / name):
+            learner.load_config = lambda: off
+            consult.maybe_consult = fake
+            try:
+                try:
+                    captured(lambda: learner.finish_cycle(off, O3Sandbox.state([]), dict(plan), 0))
+                    res = "returned"
+                except Exception as exc:  # noqa: BLE001 - a raise here IS the failure under test
+                    res = f"RAISED {exc!r}"
+            finally:
+                consult.maybe_consult = real_consult
+            return res, [c["tag"] for c in learner.load_state()["cycles"]], log_text() + f"|ops={len(ops_rows())}"
+
+    def boom(cfg, repo, ai, tag):  # noqa: ANN001, ANN202
+        raise PermissionError(13, "consult_log.jsonl is locked")
+
+    res, tags, text = run_finish("r3-2", boom)
+    check("R2 FAULT: maybe_consult raising -> finish_cycle returns, the cycle is recorded, its ops row is written and "
+          "the log says 'consult failed: <reason>'", res == "returned" and tags == ["ai0001"] and text.endswith("|ops=1")
+          and "ai0001: consult failed: PermissionError" in text and "consult_log.jsonl is locked" in text,
+          (res, tags, text[-300:]))
+    res, tags, text = run_finish("r3-2c", lambda cfg, repo, ai, tag: "consult: off")
+    check("R2 CONTROL: an ordinary consult outcome is logged as before and nothing says the consult failed",
+          res == "returned" and tags == ["ai0001"] and text.endswith("|ops=1") and "consult: off" in text
+          and "consult failed" not in text, (res, tags, text[-300:]))
+
+    # R3 publish copies DEVELOPER-NOTES-ARCHIVE.md when it exists, and nothing else new --------------------------------
+    for name, with_archive in (("r3-3", True), ("r3-3c", False)):
+        with O3Sandbox(tmp / name):
+            learner.FINDINGS.mkdir(parents=True, exist_ok=True)
+            for fname in ("LATEST.md", consult.NOTES, "claude-ai0001.md", "other.txt"):
+                (learner.FINDINGS / fname).write_text(fname, encoding="utf-8")
+            if with_archive:
+                (learner.FINDINGS / consult.NOTES_ARCHIVE).write_text("archived notes", encoding="utf-8")
+            rc, _ = captured(learner.cmd_publish)
+            got = sorted(p.name for p in learner.PUBLISHED.iterdir())
+        want = sorted(["LATEST.md", consult.NOTES] + ([consult.NOTES_ARCHIVE] if with_archive else []))
+        check(f"R3 {'FAULT-side' if with_archive else 'CONTROL'}: publish copies exactly {want} (the archive only when "
+              f"it exists; never the claude-*.md replies or other findings files)", rc == 0 and got == want, got)
+
+    test_o5_round4(tmp)
+
+
+class _ReadOnlyShare:
+    """Windows only: hold `path` open for READING with FILE_SHARE_READ alone, the round-3 checker's lock shape. Others
+    can still read the file (so `_calls_today` sees its rows) but no one can open it for append."""
+
+    def __init__(self, path: Path):
+        import ctypes
+        from ctypes import wintypes
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.CreateFileW.restype = wintypes.HANDLE
+        k32.CreateFileW.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID, wintypes.DWORD,
+                                    wintypes.DWORD, wintypes.HANDLE)
+        k32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        generic_read, file_share_read, open_existing = 0x80000000, 0x1, 3
+        self.k32, self.h = k32, k32.CreateFileW(str(path), generic_read, file_share_read, None, open_existing, 0, None)
+        if self.h in (None, wintypes.HANDLE(-1).value):
+            raise OSError(ctypes.get_last_error(), f"CreateFileW failed on {path}")
+
+    def close(self) -> None:
+        self.k32.CloseHandle(self.h)
+
+
+def test_o5_round4(tmp: Path) -> None:
+    """V1-V5 (O5 round 4): RESERVE BEFORE THE CALL. A paid `claude` call is impossible unless the daily cap already
+    counts it: the counted 'reserved' row goes to disk first, and a consult_log.jsonl that can be read but not appended
+    to means NO call (round 3 paid for one every cycle there). The uncounted 'outcome' row, joined by "id", never
+    counts the same call twice. Every FAULT arm turns a raise into a failed check, so a mutant crashes nothing."""
+    import types
+    calls: list[str] = []
+    reply = ("Diagnosis.\n```json\n" + json.dumps({"proposals": [
+        {"name": "p1", "why": "w", "genes": {"POKEBOT_R25_CAP": "1"}}],
+        "for_the_developer": "Fix KI-122 first."}) + "\n```\n")
+    behaviour: list = [None]  # None: an ordinary reply; an exception: raised mid-call; a callable: run, then reply
+
+    def fake_claude(cmd, cwd=None, **kw):  # noqa: ANN001, ANN202
+        calls.append(str(cwd))
+        what = behaviour[0]
+        if isinstance(what, BaseException):
+            raise what
+        if callable(what):
+            what()
+        return types.SimpleNamespace(stdout=reply, returncode=0)
+
+    def one(box: Path, cap: int, tag: str, scored: int) -> str:
+        """One consult through the REAL maybe_consult with the fake claude; a raise (any BaseException: a simulated
+        kill) becomes a line, so the check that follows can still look at what is on disk."""
+        (box / "findings" / "latest.json").write_text(json.dumps(o5_latest(scored=scored)), encoding="utf-8")
+        cfg = {"consult": dict(O5_CFG["consult"], max_calls_per_day=cap)}
+        real_run, real_which = consult.subprocess.run, consult.shutil.which
+        consult.subprocess.run, consult.shutil.which = fake_claude, lambda name: "claude"
+        try:
+            return consult.maybe_consult(cfg, tmp, box, tag)
+        except BaseException as exc:  # noqa: BLE001 - a raise here is either the simulated kill or the failure
+            return f"RAISED {exc!r}"
+        finally:
+            consult.subprocess.run, consult.shutil.which = real_run, real_which
+
+    def drive(name: str, n: int, cap: int, lock=None) -> tuple[list, str, list, Path]:  # noqa: ANN001
+        """`n` cycles through the REAL learner.finish_cycle (the checker's shape), its consult redirected to a temp
+        box with consult on and a cap of `cap`; the digest grows every cycle, so novelty never stops a call. `lock`
+        (applied to the log once it exists) makes the log readable but not appendable. Returns (each finish_cycle
+        result, learner.log, the cycles recorded, the log path)."""
+        box = o5_box(tmp / name / "box")
+        log = box / "data" / consult.LOG_NAME
+        log.write_text(json.dumps({"day": "2000-01-01", "kind": "reserved", "id": "old"}) + "\n", encoding="utf-8")
+        undo = lock(log) if lock else (lambda: None)
+        real_consult, res = consult.maybe_consult, []
+        cfg = {"consult": dict(O5_CFG["consult"], max_calls_per_day=cap)}
+        real_run, real_which = consult.subprocess.run, consult.shutil.which
+        try:
+            with O3Sandbox(tmp / name / "learner"):
+                off = dict(learner.DEFAULTS)
+                learner.load_config = lambda: off
+                consult.maybe_consult = lambda _cfg, repo, _ai, tag: real_consult(cfg, repo, box, tag)
+                consult.subprocess.run, consult.shutil.which = fake_claude, lambda name: "claude"
+                O3Sandbox.state([])
+                for i in range(n):
+                    (box / "findings" / "latest.json").write_text(json.dumps(o5_latest(scored=1000 * (i + 1))),
+                                                                  encoding="utf-8")
+                    try:
+                        learner.finish_cycle(off, learner.load_state(), {"tag": f"ai{i + 1:04d}", "lanes": 8,
+                                                                         "arms": {}}, 0)
+                        res.append("returned")
+                    except Exception as exc:  # noqa: BLE001 - a raise here IS a failure under test
+                        res.append(f"RAISED {exc!r}")
+                text = log_text()
+                tags = [c["tag"] for c in learner.load_state()["cycles"]]
+        finally:
+            consult.maybe_consult = real_consult
+            consult.subprocess.run, consult.shutil.which = real_run, real_which
+            undo()
+        return res, text, tags, log
+
+    def read_only(log: Path):  # noqa: ANN202
+        os.chmod(log, stat.S_IREAD)
+        return lambda: os.chmod(log, stat.S_IREAD | stat.S_IWRITE)
+
+    def share_read_only(log: Path):  # noqa: ANN202
+        h = _ReadOnlyShare(log)
+        return h.close
+
+    # V1 the checker's shape: consult_log.jsonl readable but not appendable, many cycles -> ZERO paid calls ----------
+    shapes = [("read-only attribute", read_only)] + ([("a handle sharing read only", share_read_only)]
+                                                     if sys.platform == "win32" else [])
+    for label, lock in shapes:
+        calls.clear()
+        behaviour[0] = None
+        res, text, tags, log = drive(f"v1-{label.split()[0]}", 6, cap=2, lock=lock)
+        named = text.count(f"consult: not asked, could not reserve the call in {log}")
+        check(f"V1 FAULT ({label}): consult_log.jsonl can be read but not appended to -> over 6 cycles ZERO paid calls "
+              f"(the reservation fails first), every cycle's learner.log line names the file, and every cycle is "
+              f"still recorded", len(calls) == 0 and named == 6 and res == ["returned"] * 6 and len(tags) == 6
+              and "consult failed" not in text, (len(calls), named, res, text[-400:]))
+    calls.clear()
+    res, text, tags, log = drive("v1-ok", 6, cap=2)
+    held, done = o5_rows(log.parent.parent, "reserved"), o5_rows(log.parent.parent, "outcome")
+    check("V1 CONTROL: the same 6 cycles with a writable log -> exactly 2 paid calls (the cap of 2), then 'daily cap "
+          "reached'; no 'not asked' line", len(calls) == 2 and text.count("consult: daily cap reached") == 4
+          and "not asked" not in text and res == ["returned"] * 6 and len(done) == 2
+          and len([r for r in held if r["day"] == dt.date.today().isoformat()]) == 2, (len(calls), text[-400:]))
+
+    # V2 a call killed mid-way (Ctrl+C, an ordinary error) still leaves its reservation, so the cap counts it ------
+    for label, exc in (("KeyboardInterrupt, as Ctrl+C", KeyboardInterrupt()), ("an OSError", OSError(5, "boom"))):
+        calls.clear()
+        box = o5_box(tmp / f"v2-{type(exc).__name__}")
+        behaviour[0] = exc
+        first = one(box, 1, "ai0002", 1000)
+        behaviour[0] = None
+        second = one(box, 1, "ai0003", 2000)
+        held, done = o5_rows(box, "reserved"), o5_rows(box, "outcome")
+        check(f"V2 FAULT: the call raises mid-way ({label}) -> the raise propagates, its reservation is on disk with "
+              f"no outcome, the cap counts it, and with a cap of 1 the next cycle is stopped by the cap (no 2nd call)",
+              first.startswith("RAISED") and len(held) == 1 and done == []
+              and consult._calls_today(box / "data" / consult.LOG_NAME) == 1
+              and second == "consult: daily cap reached" and len(calls) == 1, (first, second, held, len(calls)))
+    calls.clear()
+    box = o5_box(tmp / "v2-ok")
+    first, second = one(box, 1, "ai0002", 1000), one(box, 1, "ai0003", 2000)
+    held, done = o5_rows(box, "reserved"), o5_rows(box, "outcome")
+    check("V2 CONTROL: the same call completing -> one reservation and one outcome joined by the same id (exit 0), the "
+          "cap counts it ONCE, and the next cycle is stopped by the cap of 1",
+          first.startswith("consult: exit 0") and len(held) == 1 and len(done) == 1 and held[0]["id"] == done[0]["id"]
+          and done[0]["exit"] == 0 and consult._calls_today(box / "data" / consult.LOG_NAME) == 1
+          and second == "consult: daily cap reached" and len(calls) == 1, (first, second, held, done))
+
+    # V3 CONTROL: ordinary consults reserve once and count once: a cap of 2 allows exactly 2 -------------------------
+    calls.clear()
+    box = o5_box(tmp / "v3")
+    outs = [one(box, 2, f"ai{i + 2:04d}", 1000 * (i + 1)) for i in range(3)]
+    held, done = o5_rows(box, "reserved"), o5_rows(box, "outcome")
+    lines = (box / "data" / consult.LOG_NAME).read_text(encoding="utf-8").splitlines()
+    check("V3 CONTROL: two consults in a day with a cap of 2 -> both go ahead (an outcome row is NEVER counted a 2nd "
+          "time), each reserves once and writes its outcome under the same id, and the 3rd is stopped by the cap",
+          len(calls) == 2 and all(o.startswith("consult: exit 0, 1 proposal(s) queued") for o in outs[:2])
+          and outs[2] == "consult: daily cap reached" and [r["id"] for r in held] == [r["id"] for r in done]
+          and len(set(r["id"] for r in held)) == 2 and all(r["tag"] for r in held) and all("why" in r for r in held)
+          and [ln.split(",")[0] for ln in lines] == [f'{{"day": "{dt.date.today()}"', '{"kind": "outcome"'] * 2
+          and consult._calls_today(box / "data" / consult.LOG_NAME) == 2, (outs, lines))
+
+    # V4 the outcome row cannot be written (the log turns read-only DURING the call): counted, baseline still moves -
+    calls.clear()
+    box = o5_box(tmp / "v4")
+    log = box / "data" / consult.LOG_NAME
+    behaviour[0] = lambda: os.chmod(log, stat.S_IREAD)
+    try:
+        out = one(box, 2, "ai0002", 1000)
+    finally:
+        behaviour[0] = None
+        if log.exists():
+            os.chmod(log, stat.S_IREAD | stat.S_IWRITE)
+    check("V4 FAULT: the outcome row cannot be written after a paid call -> nothing raises, the line says so, the call "
+          "is still counted by its reservation, and the novelty baseline still moves (consult_state.json saved)",
+          out.startswith("consult: exit 0") and "could not write its outcome row" in out
+          and len(o5_rows(box, "reserved")) == 1 and o5_rows(box, "outcome") == []
+          and consult._calls_today(log) == 1 and (box / "data" / consult.STATE_NAME).is_file(), out)
+    # (V4's CONTROL is V3: a writable log gets its outcome rows and the line claims no failure)
+    check("V4 CONTROL: with a writable log no line claims a missing outcome row",
+          not any("could not write its outcome row" in o for o in outs), outs)
+
+    # V5 the counter: a pre-round-4 single row counts, an outcome row alone never does -------------------------------
+    today = dt.date.today().isoformat()
+    box = o5_box(tmp / "v5")
+    (box / "data" / consult.LOG_NAME).write_text(json.dumps({"day": today, "tag": "ai0001", "exit": 0}) + "\n",
+                                                 encoding="utf-8")
+    calls.clear()
+    old = one(box, 1, "ai0002", 1000)
+    check("V5 FAULT-side: a row written before round 4 (\"day\" first, no kind) still counts: a cap of 1 is reached",
+          old == "consult: daily cap reached" and calls == [], old)
+    box = o5_box(tmp / "v5-ok")
+    (box / "data" / consult.LOG_NAME).write_text(json.dumps({"kind": "outcome", "id": "x", "day": today}) + "\n",
+                                                 encoding="utf-8")
+    new = one(box, 1, "ai0002", 1000)
+    check("V5 CONTROL: an outcome row alone (\"kind\" first) is never counted: under a cap of 1 the consult goes ahead",
+          new.startswith("consult: exit 0") and len(calls) == 1, new)
 
 
 def main() -> int:

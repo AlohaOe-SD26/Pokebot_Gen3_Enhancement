@@ -190,12 +190,24 @@ end, then scores it.
   - it appends Claude's "for the developer" note to `findings/DEVELOPER-NOTES.md`, the first thing an
     interactive session should read;
   - capped at `max_calls_per_day`, and every call is logged in `data/consult_log.jsonl`.
+  - **Reserve before the call** (O5 round 4): a paid call can only happen once the cap already counts it. Each
+    consult writes two rows to `data/consult_log.jsonl`, joined by `id`:
+    - BEFORE `claude` runs, a reservation, `{"day": "<date>", "kind": "reserved", "id", "tag", "started", "why"}`.
+      Only these rows count toward the daily cap (lines that start with `{"day": "<today>"`; rows written before
+      round 4 have the same start, so they count too). If it cannot be written (the file is read-only, or another
+      program holds it open for reading only), NO call is made that cycle and `learner.log` says
+      `consult: not asked, could not reserve the call in <path> ...`. A learner killed during the call keeps its
+      reservation, so that call is still counted.
+    - AFTER the call, the outcome, `{"kind": "outcome", "id", "day", "tag", "started", "seconds", "exit",
+      "proposals_accepted", "note", "failed"?}`, which is never counted. `note` is `full`, `repeat`, `none` or
+      `failed`; the optional `failed` key names each side effect (reply file, proposal, note) that could not be
+      written. If the outcome row itself cannot be written, the line says so and the reservation still counts it.
   - **Only when there is something new** (backlog O5, 2026-10-21; checked after the two caps): the top 3
     strategies changed (in order), one wall's share of scored runs moved at least `wall_move_points` (3.0, raw
     percentage points), at least `new_runs` (150) more scored runs arrived, or `forced_days` (7) passed since the
     last consult that went ahead. The baseline is `data/consult_state.json`, saved only after a call that exited 0.
-    A skip goes to `learner.log` and `data/consult_skips.jsonl`, never to `consult_log.jsonl` (whose lines ARE the
-    daily cap). If `findings/latest.json` or the state cannot be read, the consult goes ahead and says why.
+    A skip goes to `learner.log` and `data/consult_skips.jsonl`, never to `consult_log.jsonl` (whose reservation
+    rows ARE the daily cap). If `findings/latest.json` or the state cannot be read, the consult goes ahead and says why.
   - A note that repeats the last two notes (Jaccard >= 0.6 of their key terms: `KI-n` ids, `POKEBOT_` knobs, the
     wall names; a `KI-n` id neither of them names always counts as new) becomes ONE line, `- <date>, after <cycle>:
     unchanged since <date> (N consults)`; the full reply is still in `findings/claude-<cycle>.md`.
@@ -204,6 +216,8 @@ end, then scores it.
     entry in both files but never in neither). A failure there is logged and never fails the cycle.
   - A waiting `inbox/` proposal older than `proposal_ttl_days` (3, by file date), or naming the same genome as an
     older waiting one, is moved to `inbox/expired/` with a `.why.txt` when a cycle is planned (`plan` does it too).
+    To run one after all, copy it back AND refresh its file time (`inbox/README.md`): a Windows copy keeps the old
+    date, so a plain copy expires again at once.
   - `py -3.12 consult.py --probe-context` is a ONE-TIME developer probe (two cheap calls of the user's usage):
     does `claude -p --setting-sources user` still load the repo's CLAUDE.md? It prints the input-token
     difference between a run from the repo and one from an empty folder with `--add-dir`. It changes nothing.

@@ -8,12 +8,20 @@ run, so a reply can only choose among knob values that have already run.
 Code changes, relaunches and anything that needs judgment stay with an interactive Claude session, where a person
 can see them. Every call is logged in `data/consult_log.jsonl`, and a daily cap bounds the cost.
 
+RESERVE BEFORE THE CALL (O5 round 4): a paid call must be impossible unless the daily cap already counts it. So the
+consult appends a 'reserved' row (the row `_calls_today` counts) BEFORE it runs `claude`, and when that append fails
+(the log is read-only, or another process holds it open for reading only) it does not call at all. After the call an
+'outcome' row, joined to the reservation by its "id", records what happened; `_calls_today` does not count it. WHY:
+round 3 wrote the only row AFTER the call, so a log that could be read but not appended to paid for a call every
+cycle with no row (and no limit, once a consult failure no longer stopped the learner), and a learner killed during
+the call (taskkill, Ctrl+C) left no row at all. A reservation is on disk before the money is spent.
+
 The order of the checks (backlog O5, spec S2-2): enabled -> daily cap -> waiting-proposals cap -> NOVELTY -> claude.
 The novelty gate asks again only when the learner has something new to show: the top 3 strategies changed, a wall's
 share of scored runs moved, enough new scored runs arrived, or a week passed (`novelty`). WHY: from 2026-10-11 the
 consult answered twice a day about findings that had barely moved, and its notes repeated themselves. A skip is
-logged to `learner.log` and `data/consult_skips.jsonl`, never to `consult_log.jsonl`, whose lines ARE the daily cap
-(`_calls_today`): a skip must not use up a real call. Any doubt in the gate (an unreadable digest or state) FAILS
+logged to `learner.log` and `data/consult_skips.jsonl`, never to `consult_log.jsonl`, whose reservation rows ARE the
+daily cap (`_calls_today`): a skip must not use up a real call. Any doubt in the gate (an unreadable digest or state) FAILS
 OPEN: the consult goes ahead, and the reason is in the outcome line.
 
 `findings/DEVELOPER-NOTES.md` stays short: a note that repeats the last two (`repeat_line`) becomes one line, and
@@ -28,12 +36,14 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import math
 import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 import knowledge as K
@@ -59,6 +69,9 @@ JSON_BLOCK = re.compile(r"```json\s*(\{.*?\})\s*```", re.S)
 
 
 def _calls_today(log: Path) -> int:
+    """Today's calls: the consult_log.jsonl lines that START with `{"day": "<today>"`. Those are the 'reserved' rows
+    (and the single rows written before O5 round 4); an 'outcome' row starts with `{"kind": "outcome"` so the same
+    call is never counted twice (`_outcome_row`). A log it cannot read raises, and the caller then makes no call."""
     if not log.exists():
         return 0
     today = dt.date.today().isoformat()
@@ -131,13 +144,25 @@ def write_state(ai: Path, digest: dict, started: dt.datetime, tag: str) -> None:
     os.replace(tmp, path)
 
 
+def _threshold(c: dict, key: str) -> float:
+    """A novelty threshold from the consult config, or RAISE unless it is a finite number > 0. Python's json reads NaN,
+    Infinity and 1e400 (inf) from config.json, and `age >= inf` or `age >= nan` is never true: the weekly force would
+    then never fire and a plateau would never be consulted again (fail CLOSED). Raising lets `maybe_consult` fail
+    OPEN with the reason in its line, as `learner._ttl_seconds` guards the inbox TTL."""
+    value = float(c.get(key, NOVELTY_DEFAULTS[key]))
+    if not (math.isfinite(value) and value > 0):
+        raise ValueError(f"consult.{key} {c.get(key)!r} is not a finite number > 0")
+    return value
+
+
 def novelty(c: dict, new: dict, prev: dict | None, now: dt.datetime) -> tuple[bool, str]:
     """(go, why). Go when there is no previous digest, the top 3 changed (order included: a new leader is news), a
     wall's share moved >= wall_move_points, scored runs grew >= new_runs, or forced_days passed since the last consult
     that went ahead. A bad threshold or state RAISES (the caller fails open)."""
-    pts = float(c.get("wall_move_points", NOVELTY_DEFAULTS["wall_move_points"]))
-    runs = int(c.get("new_runs", NOVELTY_DEFAULTS["new_runs"]))
-    days = float(c.get("forced_days", NOVELTY_DEFAULTS["forced_days"]))
+    pts, days = _threshold(c, "wall_move_points"), _threshold(c, "forced_days")
+    runs = int(_threshold(c, "new_runs"))
+    if runs <= 0:  # 0.5 truncates to 0, and "grew >= 0" would then hold every cycle
+        raise ValueError(f"consult.new_runs {c.get('new_runs')!r} is under 1")
     if prev is None:
         return True, "no previous digest"
     old, at = prev["digest"], prev["at"]
@@ -162,8 +187,8 @@ def novelty(c: dict, new: dict, prev: dict | None, now: dt.datetime) -> tuple[bo
 
 
 def record_skip(ai: Path, tag: str, why: str, digest: dict) -> str:
-    """Log a novelty skip to `data/consult_skips.jsonl`, NEVER `consult_log.jsonl` (that file's lines are the daily
-    cap). Returns the outcome line for `learner.log`. A failed write is reported in it, never raised."""
+    """Log a novelty skip to `data/consult_skips.jsonl`, NEVER `consult_log.jsonl` (that file's reservation rows are
+    the daily cap). Returns the outcome line for `learner.log`. A failed write is reported in it, never raised."""
     row = {"day": dt.date.today().isoformat(), "tag": tag, "at": dt.datetime.now().isoformat(timespec="seconds"),
            "why": why, "scored": digest["scored"], "top3": digest["top3"]}
     extra = ""
@@ -335,9 +360,32 @@ def build_command(exe: str, c: dict, prompt: str = PROMPT, fmt: str = "text") ->
             "--setting-sources", "user", "--no-session-persistence"]
 
 
+def _append_row(log: Path, row: dict) -> None:
+    """Append one JSON line to consult_log.jsonl (its folder made if missing). Raises on any failure: the caller
+    decides what a failed write means (no call for a reservation; a note in the outcome line for an outcome row)."""
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with open(log, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row) + "\n")
+
+
+def _reservation_row(rid: str, tag: str, started: dt.datetime, why: str) -> dict:
+    """The row that COUNTS toward the daily cap: "day" is its first key, so its line starts `{"day": "<today>"`."""
+    return {"day": dt.date.today().isoformat(), "kind": "reserved", "id": rid, "tag": tag,
+            "started": started.isoformat(), "why": why}
+
+
+def _outcome_row(rid: str, fields: dict) -> dict:
+    """The row that records a call's result and is NOT counted: "kind" is its first key, so its line never starts
+    with `{"day": `. `fields` are the result (day, tag, started, seconds, exit, proposals_accepted, note, failed?)."""
+    return {"kind": "outcome", "id": rid, **fields}
+
+
 def maybe_consult(cfg: dict, repo: Path, ai: Path, tag: str) -> str:
     """Run one consult if enabled, under the daily cap, not held back by a full queue, and there is something new to
-    show (`novelty`). Returns a one-line outcome for the learner's log."""
+    show (`novelty`). Returns a one-line outcome for the learner's log.
+    Before `claude` runs, a counted 'reserved' row must be on disk; if it cannot be written, no call is made (the
+    module docstring says why). After the call, an uncounted 'outcome' row with the same "id" records the result. An
+    exception from the call itself (a kill, Ctrl+C) propagates, and the reservation already counts that call."""
     c = cfg.get("consult", {})
     if not c.get("enabled"):
         return "consult: off"
@@ -364,42 +412,86 @@ def maybe_consult(cfg: dict, repo: Path, ai: Path, tag: str) -> str:
         return f"consult: the `claude` command is not on PATH (it would have gone ahead: {why})"
     cmd = build_command(exe, c)
     started = dt.datetime.now()
+    rid = uuid.uuid4().hex[:12]
+    # RESERVE BEFORE THE CALL: the counted row goes to disk first, and a call the cap cannot count is never made. A
+    # learner killed during the call keeps this row, so the cap still counts the call it may have paid for.
+    try:
+        _append_row(log, _reservation_row(rid, tag, started, why))
+    except Exception as exc:  # noqa: BLE001 - ANY doubt that the cap counts this call means no call
+        return (f"consult: not asked, could not reserve the call in {log} ({type(exc).__name__}: {exc}); a call the "
+                f"daily cap cannot count is never made, so this cycle has no consult (it would have gone ahead: {why})")
     try:
         proc = subprocess.run(cmd, cwd=repo, capture_output=True, text=True, encoding="utf-8", errors="replace",
                               timeout=60 * float(c.get("timeout_minutes", 20)))
         reply, rc = proc.stdout, proc.returncode
     except subprocess.TimeoutExpired:
         reply, rc = "", "timeout"
-    (ai / "findings").mkdir(exist_ok=True)
-    (ai / "findings" / f"claude-{tag}.md").write_text(reply or "(no reply)", encoding="utf-8")
-    accepted, note_kind = 0, "none"
+    accepted, note_kind, failures = 0, "none", []
+    # The call is PAID now (and already counted by its reservation). Each side effect (the reply file, a proposal, the
+    # notes append, e.g. a notes file locked by another process) is guarded on its own, so one failure costs no other
+    # and none stops the outcome row or the baseline below (O5 round 3); the reasons go in the outcome row
+    # ("failed"), and a note that could not be written is note 'failed'.
+
+    def guarded(what: str, fn, *args):  # noqa: ANN001, ANN202
+        try:
+            return fn(*args)
+        except Exception as exc:  # noqa: BLE001 - see above: the row below must be written after a paid call
+            failures.append(f"{what}: {type(exc).__name__}: {exc}"[:300])
+            return None
+
+    findings = ai / "findings"
+
+    def save_reply() -> None:
+        findings.mkdir(exist_ok=True)
+        (findings / f"claude-{tag}.md").write_text(reply or "(no reply)", encoding="utf-8")
+
+    guarded(f"claude-{tag}.md", save_reply)
     m = JSON_BLOCK.search(reply or "")
     if m:
         try:
             body = json.loads(m.group(1))
         except ValueError:
             body = {}
-        for i, p in enumerate(body.get("proposals", [])[:2]):
-            if isinstance(p, dict) and isinstance(p.get("genes"), dict) and not K.validate_genes(p["genes"]):
-                (ai / "inbox").mkdir(exist_ok=True)
-                (ai / "inbox" / f"claude-{tag}-{i + 1}.json").write_text(json.dumps(p, indent=1), encoding="utf-8")
+        if not isinstance(body, dict):
+            body = {}
+
+        def queue(i: int, p) -> bool:  # noqa: ANN001
+            if not (isinstance(p, dict) and isinstance(p.get("genes"), dict)) or K.validate_genes(p["genes"]):
+                return False
+            (ai / "inbox").mkdir(exist_ok=True)
+            (ai / "inbox" / f"claude-{tag}-{i + 1}.json").write_text(json.dumps(p, indent=1), encoding="utf-8")
+            return True
+
+        props = body.get("proposals")
+        for i, p in enumerate(props[:2] if isinstance(props, list) else []):
+            if guarded(f"proposal {i + 1}", queue, i, p):
                 accepted += 1
         note = body.get("for_the_developer")
         if isinstance(note, str) and note.strip():
             # One running file for the next interactive session to read first; a repeat becomes one line.
-            note_kind = write_note(ai / "findings", note, started, tag, list(digest["walls"]) if digest else [])
-    with open(log, "a", encoding="utf-8") as fh:
-        fh.write(json.dumps({"day": dt.date.today().isoformat(), "tag": tag, "started": started.isoformat(),
-                             "seconds": round((dt.datetime.now() - started).total_seconds()), "exit": rc,
-                             "proposals_accepted": accepted, "note": note_kind, "why": why}) + "\n")
+            note_kind = guarded("note", lambda: write_note(findings, note, started, tag, list(digest["walls"])
+                                                           if digest else [])) or "failed"
+    failed = "; ".join(failures)
+    fields = {"day": dt.date.today().isoformat(), "tag": tag, "started": started.isoformat(),
+              "seconds": round((dt.datetime.now() - started).total_seconds()), "exit": rc,
+              "proposals_accepted": accepted, "note": note_kind}
+    if failed:
+        fields["failed"] = failed
     extra = ""
+    try:
+        _append_row(log, _outcome_row(rid, fields))
+    except Exception as exc:  # noqa: BLE001 - the reservation already counts the call; the baseline below must move
+        extra = (f"; could not write its outcome row ({type(exc).__name__}: {exc}), the call is counted by its "
+                 "reservation")
     if rc == 0 and digest is not None:
         # Only a call that went through moves the baseline: after a failed one (the usage ran out, a timeout) the next
         # cycle asks again, as it did before the gate.
         try:
             write_state(ai, digest, started, tag)
         except OSError as exc:
-            extra = f"; could not save {STATE_NAME} ({exc!r})"
+            extra += f"; could not save {STATE_NAME} ({exc!r})"
+    if failed:
+        extra += f"; a side effect failed after the call ({failed}), the call is still logged"
     return f"consult: exit {rc}, {accepted} proposal(s) queued, note {note_kind}; asked because {why}{extra}"
 
 

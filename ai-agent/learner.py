@@ -634,8 +634,10 @@ def _expire(path: Path, why: str) -> bool:
         return False
     try:
         (dest_dir / f"{stem}.why.txt").write_text(
-            f"{why}\nTo run it after all, COPY it back into inbox/ (a copy gets today's date; a move keeps the old one "
-            f"and it would expire again).\n", encoding="utf-8")
+            f"{why}\nTo run it after all, copy it back into inbox/ AND refresh its file time, or it expires again at "
+            f"once: a Windows copy (Explorer, copy, Copy-Item) keeps the old modified date, and the age is read from "
+            f"it. In PowerShell, after the copy: (Get-Item <file>).LastWriteTime = Get-Date. Saving it from an editor "
+            f"after any edit also works.\n", encoding="utf-8")
     except OSError:
         pass  # the proposal itself is safe in expired/; the reason is also in learner.log
     log(f"inbox: expired {path.name}: {why}")
@@ -776,7 +778,10 @@ def finish_cycle(cfg: dict, state: dict, plan: dict, rc, ops: dict | None = None
     log(f"{tag}: batch exit {rc}; {len(records)} runs logged, {usable} scored")
     report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), key=score_key(load_config()), status=f"after cycle {tag}")
     t_consult = time.monotonic()
-    log(consult.maybe_consult(cfg, REPO, AI, tag))
+    try:
+        log(consult.maybe_consult(cfg, REPO, AI, tag))
+    except Exception as exc:  # noqa: BLE001 - the consult is advisory: it must never fail a scored cycle (O5 round 3)
+        log(f"{tag}: consult failed: {type(exc).__name__}: {exc}")
     consult_s = round(time.monotonic() - t_consult, 1)
     roll_developer_notes(tag)
     archive = prune(cfg, state)
@@ -1644,8 +1649,9 @@ def held_cycles() -> list[tuple[str, str]]:
 
 def cmd_publish() -> int:
     PUBLISHED.mkdir(exist_ok=True)
-    for src in [FINDINGS / "LATEST.md", FINDINGS / "latest.json", FINDINGS / "DEVELOPER-NOTES.md", RUNS_FILE,
-                CYCLES_FILE, LOG]:
+    # The notes archive too: a cloud session reading published/ would otherwise see only the newest 5 notes (O5).
+    for src in [FINDINGS / "LATEST.md", FINDINGS / "latest.json", FINDINGS / consult.NOTES,
+                FINDINGS / consult.NOTES_ARCHIVE, RUNS_FILE, CYCLES_FILE, LOG]:
         if src.exists():
             shutil.copy2(src, PUBLISHED / src.name)
     print(f"copied into {PUBLISHED}; commit that folder (explicit paths) for a cloud session to read it")

@@ -14,5 +14,12 @@ proposal is moved to `done/` once a cycle has scored runs for it. Claude's consu
 
 A proposal that has waited longer than `consult.proposal_ttl_days` in `config.json` (3 days, by its file date),
 or that names the same strategy (genome) as an older waiting one, is moved to `expired/` with a `.why.txt` when the
-next cycle is planned (`learner.py plan` does it too). Nothing is deleted. To run an expired one after all, COPY it
-back here: a copy gets today's date, while a moved file keeps its old one and would expire again.
+next cycle is planned (`learner.py plan` does it too). Nothing is deleted. To run an expired one after all, copy it
+back here AND refresh its file time, or it expires again at once: a Windows copy (Explorer, `copy`, `Copy-Item`)
+keeps the old modified date, and the age is read from that date. In PowerShell, after the copy:
+
+```powershell
+(Get-Item .\inbox\<file>.json).LastWriteTime = Get-Date
+```
+
+Saving the copy from an editor after any edit also works.
