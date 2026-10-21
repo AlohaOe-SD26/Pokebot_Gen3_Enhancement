@@ -38154,3 +38154,81 @@ bought balls only at fixed story points.
   - A live run on the real project printed 22 lines.
 - **Lean v1 limits** (spec S1-5's full version needs pieces not built yet): no watchdog line (O1), no archive and backup lines (O3, O4), no usage-audit line (P3), and in-flight notes only if `PROJECT KNOWLEDGE/in-flight/` exists (E1). The code signature check (fact 1) is not in v1.
 - **Also checked:** the consult backlog cap works as designed. At 2026-10-20 04:05 AM the queue had drained to 5 (under the cap of 6), so the consult correctly went ahead.
+
+## 2026-10-21 — O3: the bot tuner archives old raw logs to verified zips instead of deleting them (backlog O3, spec S1-1; punch-list #28-trainer-improvements)
+
+- **Why:** `prune()` deleted one cycle of raw logs every 12 hours. Those logs are the AI's experience input (USER RULING 41), so they are now compressed and kept, not deleted. Commits `4f16aae3` (first build), `5704fefd` (review fixes) and `b58b1521` (profiles and final re-verify).
+- **What it does** (`ai-agent/learner.py`):
+  - at each cycle boundary, a cycle that has left the `keep_raw_cycles` window is zipped to `runs/<tag>/raw.zip`, with `raw.manifest.json` listing every file's name, size and CRC32;
+  - the zip is read back and checked against the manifest, and only then are the originals deleted;
+  - `learner.py archive` (manual, refuses under a live lock) and `learner.py archive-check` (read-only, `OK` / `BAD` / `HELD` per cycle) are new; `tools/status.py` shows an archive line and the held count.
+- **THE INVARIANT:** an original is deleted only when its exact bytes (name, size, CRC32) are in a VERIFIED archive, and no archive file is ever overwritten or deleted.
+- **HOLD, not rebuild:** anything the code cannot prove safe is HELD (`state.json` "held": touch nothing, flag it, the learner keeps running). A set-aside is `raw.zip.bad.<k>` / `raw.manifest.json.bad.<k>`, `k` the smallest unused, by a rename that cannot overwrite.
+- **Quiescence:** no archive or delete while x4 runs, a lane names the tag, or any file changed in the last 60 minutes, plus a re-stat just before the delete. `os.walk(followlinks=False)`: junctions and symlinks are neither archived nor followed.
+- **The lane profiles are archived too** (`sandbox-pokebot/profiles/endless-<tag>-*`). The old code deleted them unarchived. Their debug logs are byte-identical to the batch's (recorded as `dup_of`, not stored twice); their unique files are stored: `badge-log.json` (team and levels at every badge, the AI's experience data), `stats.db`, the saves, the `.yml` files, screenshots.
+- **Other fixes from the adversarial review:** `save_state` retries a locked replace; `prune()` never raises; a `disk_guard` exception sleeps instead of exiting; `log()` survives a non-ASCII name on a cp1252 pipe; `loop()` waits (STOP-aware, up to 120 minutes) for a manual `archive` instead of exiting 2 for good; a lock-wait give-up writes `ATTENTION.md`.
+- **Real-data numbers (on COPIES, never the live clone):**
+  - ai0038, batch only (the first build): 73 files, 1,366,722,575 -> 71,880,906 bytes (19.0:1) in 16.3 s; every member sha256-equal on read-back.
+  - ai0024, batch plus profiles (final build): 306 files (96 batch + 210 profile), 2,589,058,697 -> 101,355,997 bytes (25.5:1) in 24.4 s; 134 profile files stored, 76 `dup_of`; sha256 read-back of all 306: 0 mismatches.
+- **Proof:**
+  - `ai-agent/test_agent.py` ALL PASS (171 checks, 28 s); it was 91 after the first build and 140 after the first review round.
+  - 16 call-deleting mutants caught in the first build; 27 more after the review, and 18 more after the profile change, all caught; the reviewer's 12 semantic mutants all caught.
+  - the fake-clone sentinel run (exactly as `tests_pass()` runs it) leaves every planted file byte-identical.
+  - every helper child in `test_agent.py` has a deadline and exits when its parent is gone (a hard-killed suite had leaked an endless writer).
+- **Accepted limits (documented in `ai-agent/README.md`):** the residual re-stat window, and the non-atomic `acquire_lock`.
+- ⛔ **NOT DEPLOYED.** The code reaches the learner only when it is pushed and the clone's `learner.log` shows "restarting into it". Until that line is seen, the live learner still runs the old code, which DELETES. `keep_raw_cycles` is still 20, and the next prune is due about 2026-10-24.
+- **Canary plan (corrected, `08` 2026-10-21):**
+  1. Deploy the CODE with `keep_raw_cycles` still 20, and confirm the restart in `learner.log`.
+  2. Only then push the config change to `keep_raw_cycles` = K, where K = (unpruned entries in `state.json` while cycle X runs) + 1, X being the cycle running when the config is pushed.
+  3. The canary archive happens at the end of cycle X+1 (the config reaches `finish_cycle` one cycle late). Check the zip with `archive-check`, then continue.
+
+## 2026-10-21 — O4: the nightly backup of the bot tuner's data to Z: (backlog O4, spec S1-2; USER RULING 42; punch-list #28-trainer-improvements)
+
+- **What it is:** `tools/ops/backup_learner.py` (stdlib only), `tools/ops/ops_config.json`, `tools/ops/install_ops_tasks.ps1`. A nightly verified zip of the clone's data, findings, inbox and config, kept at `Z:/pokebot-backups/learner` (USER RULING 42), retention 14. Commits `3b44f657`, `7a5fc433`, `b58b1521`.
+- **Review round 1 found two backup-loss paths (both reproduced, fixed):** a missing or shrunken `runs.jsonl` now HOLDS every backup (NEEDS-YOU, exit 1) instead of pruning one good copy a night; tonight's zip is never a prune candidate, and a clock that went backwards holds pruning. Also an explicit `ops_dir`, a lock against two runs, a `.part` sweep only over 1 hour old, ASCII-only name patterns, alias paths of the clone refused, `pyw.exe` (no window).
+- **Final re-verify round (`b58b1521`):**
+  - the `runs.jsonl` hold compares record IDENTITY (batch, lane, log), unique over all 2,586 real rows, not the line count (the learner's own growth, about 107 records a day, masked it); the identities ride in each zip's manifest;
+  - a lock dated over 120 s in the future, or whose pid is gone, is stale;
+  - a missing destination drive is REFUSED (exit 2);
+  - `tools/status.py` has one BACKUP line (ok / NEEDS-YOU / REFUSED, with ages).
+- **Proof:** `tools/story-dev/selftest_ops.py` ALL PASS (130 checks); 10 mutants caught in the final round (21 in the review-fix round). `tools/selftest_status.py` ALL PASS (36).
+- ⛔ **The scheduled task is NOT registered yet.** `install_ops_tasks.ps1` registers it only with `-Apply` (the default is a dry run). USER RULING 42 approves registering it once O4 is reviewed and the clone holds `tools/ops/`; nothing has been written to Z: or E:. `tools/status.py` reads "no backup yet" until the task has run.
+
+## 2026-10-21 — P3: the usage audit (`tools/usage_audit.py`) and the cost ledger (backlog P3, spec S1-6; punch-list #28-trainer-improvements)
+
+- **What it is:** `tools/usage_audit.py` reports input-equivalent tokens per session, workflow and stage (`--session` gives one line per step), and `PROJECT KNOWLEDGE/cost-ledger.jsonl` holds one row per finished workflow (102 at first; numbers and descriptions capped at 80 characters, never prompt text). Commits `3b44f657`, `7a5fc433`.
+- **Review fix, the OBJECT axis:** a cost category is now defined by the OBJECT read (source / doc / evidence+log / suite / other), never by the command (the `08` 2026-10-19 rule). The by-object table heads the report; `echo` / `printf` header lines are skipped; suites are matched by path; the consults are declared NOT COUNTED (`claude -p --no-session-persistence` leaves no transcript); the calibration points are printed.
+- **U8 hand-label gate:** the reviewer's 25 hand-labelled calls. CONTROL: the object classifier scores 25/25 (bar 23). FAULT: the command-only classifier fails the bar under all 25 object assignments (best 19/25; 14/25 scored the reviewer's way).
+- **First real result (subagents, by object):** source 58.4 %, doc 16.8 %, evidence 9.7 %, suite 1.3 %, other 13.8 %.
+- **Exact recount:** the old 143 Mtok point recounts to 143.979 Mtok (1,969 responses), the same as the ledger row.
+- **Calibration:** the user's meter read 3 % when this session's total was 8.53 Mtok. One point only; the meter rounds to whole percent and does not count the consults. A row in `cost-ledger.jsonl` records it.
+- **Proof:** `tools/story-dev/selftest_usage_audit.py` ALL PASS (84 checks; 91 with `--real`); 22 of 23 mutants caught (the survivor guarded a case another rule already covers, so it was removed).
+
+## 2026-10-21 — KB1 merged: the AI's seasoned-knowledge base, slice 1 (spec S3-1; punch-list #28-seasoned-player; USER RULING 40)
+
+- **What merged** (`3a85d759`, branch `claude/kb1-seasoned-knowledge-cr1f5t`): exactly 8 paths, none edited (the two sides' changed-path lists did not intersect, checked first): `ai_player/knowledge/seasoned/{species,moves,learnsets,encounters}.json`, `ai_player/gates/extract_seasoned.py`, `ai_player/gates/verify_seasoned.py`, `cloud/KB1-REPORT.md`, `cloud/KB1-STATUS.md`.
+- **DATA ONLY:** nothing loads `seasoned/` yet (a loader plus the `KNOWLEDGE_FIELDS` classification is a separate graded step, `#28-aiagent-v2`), so the AI player's behaviour is unchanged.
+- **Before the merge:** `.gitattributes` got one rule (`ai_player/knowledge/seasoned/*.json text eol=lf`, commit `5a32dcb1`), because `core.autocrlf` is true on this PC and `extract_seasoned.py --check` compares raw bytes (a CRLF checkout failed on four identical files). The decomp is pinned: `tools/decomp.pin` = `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`, clone at `C:/Remote Projects/_decomp/pokeemerald` (`core.autocrlf` false).
+- **Verified on the merged tree** (evidence in `ai_player/evidence/2026-10-21-kb1-merge.txt` and `...-units.txt`): V1 `--check` "CHECK OK: 4 files identical"; V2 221/221; V3 6 of 6 plants caught; V4 seeds 1, 2, 3 each 221/221; V5 `tools/story-dev/selftest_seasoned_crosscheck.py` 40/40 (X1 moves, X2 species, X3 the sandbox species data, X4 encounters vs `emerald_rarity.json`, every difference with a stated reason, FAULT arms F1-F7); M5 `run_units.py` OVERALL PASS, 17 suites. The cross-check is registered in `run_gates.py`.
+- **KNOWN SEMANTIC ERRORS (confirmed against the decomp; the next item fixes the extractor and re-extracts):**
+  - the Battle Pyramid header species are listed as findable (`battle_pyramid.c` replaces them at runtime);
+  - Altering Cave sets 2-9 are listed without their Mystery Gift requirement (`gift_altering_cave.inc` is the only writer of `VAR_ALTERING_CAVE_WILD_SET`);
+  - Battle Pike levels are header values;
+  - the frontier rows' "map" field;
+  - unused Cave of Origin maps;
+  - the report's "6" Altering Cave headers (there are 9).
+- ⛔ **Step 5's adversarial pass has NOT been run yet.** Do not treat the data as verified for use until it has.
+- **The cloud agent's reports moved** (the spec's follow-up): `cloud/KB1-REPORT.md` and `cloud/KB1-STATUS.md` are now `PROJECT KNOWLEDGE/ai-research-notes/2026-10-15-KB1-REPORT.md` and `-STATUS.md`, each with a NOTE header (an AI agent's claim document, `00-READ-THIS-FIRST.md`) naming the errors above; `cloud/` is gone. Gate `selftest_seasoned_crosscheck.py` (X1-X4) is registered; `tools/decomp.pin` holds the pinned SHA.
+
+## 2026-10-21 — S3-2: the rulings index, the verified-facts ledger and `decomp_lookup.py` on the pinned decomp (backlog N2 + P5; punch-list #28-trainer-improvements)
+
+- **Why:** `CLAUDE.md` rule 11 says grep `06` before escalating, but `06` is about 720 KB with no index, and a ruling NUMBER is not a key (12, 13, 21, 23, 25 and 39 each name more than one heading). Questions were re-asked anyway. Commit `dd0ba099`.
+- **What:** `py -3.12 tools/decomp_lookup.py ask "<topic>"` prints the matching `06` sections with the do-not line FIRST (quoted from `06`), the facts-ledger rows, and hits in the PINNED local decomp (exit 3 = nothing found). Also `grep / symbol / trainer / map / ruling / fact`. It refuses (exit 2) any clone whose HEAD is not `tools/decomp.pin` (the June clone is refused). `06` still wins; the index is a finding aid.
+- **Files:**
+  - `tools/story-dev/build_rulings_index.py`: stable section ids `<date>-<sha1(heading)[:6]>`; `--check` finds stale output, unclassified do-not lines, repeated ruling numbers without a key, dangling overlay ids. 315 sections indexed. Regenerate after every `06` append.
+  - `PROJECT KNOWLEDGE/rulings-overlay.json` (hand-curated, 49 sections' judgments, each quoting `06`), `RULINGS.generated.json`, `RULINGS.md`.
+  - `PROJECT KNOWLEDGE/facts-ledger.jsonl` (append-only, 4 seeds, each re-checked the same day, including "Roxanne = 265 with an L12 Geodude lead" on the pinned clone and the refuted "no healing house on Route 112/113"); `tools/story-dev/check_facts_ledger.py` (a REFUTED row is never removed or edited against HEAD; decomp refs resolve on the pinned clone, or a loud WARN, never a pass).
+  - `tools/decomp_lookup.py`, `selftest_rulings_index.py` (32 arms), `selftest_facts_ledger.py` (27 arms); 25 builder mutants caught.
+- **The independent overlay review** (a separate cheap-model agent) agreed with 43 of 48 judgments. Its 5 disagreements were checked against `06` and applied: 38271b is SUPERSEDED by RULING 15's entry gate; 42f4fa only half superseded; 360ecb amends; 33b616's five questions; RULING 42's task approval scoped to the two ops tasks. Two omissions were added, and the do-not phrases gained "re-propose" (the review found 06:4447, 4448, 5661).
+- **The WARN state in `run_gates.py`** (`WARN_OK`, exit 4): a gate that ran but could not verify (for example, no decomp clone) is counted OUT of the passing gates and named in the closing line, never a pass. `tools/story-dev/selftest_run_gates_warn.py` (5 checks) fault-tests it; two mutants (a WARN counted as a failure; exit 4 accepted from any gate) are both caught.
+- Gate counts 151 / 137 no-ROM. `lint_docs.py` and `audit_doc_consistency.py` exit 0.

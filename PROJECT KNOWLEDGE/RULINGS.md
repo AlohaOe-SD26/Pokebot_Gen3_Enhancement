@@ -62,10 +62,11 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 315 sections (newest first)
+## All 316 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-21-1bd257` | 9531 | 42 |  | 2026-10-21 — Technical decisions of the O3 / O4 / P3 / KB1 / S3-2 round (Claude's calls; USER RULING 42 is the user's) |
 | `2026-10-21-58fe1b` | 9512 | 42 | DO-NOT-REOPEN | 2026-10-21 — USER RULING 42 (the step-1 operations questions): backups go to Z:, the scheduled tasks are approved, compressed raw logs are kept forever, and a w |
 | `2026-10-16-32da14` | 9496 | 41 |  | 2026-10-16 — USER RULING 41 (confirmation of the overall goal): a deployable AI agent that plays the WHOLE game on its own through the emulator, like a person,  |
 | `2026-10-16-aaa49a` | 9482 | 39 |  | 2026-10-16 — "P2" decided by Claude (USER RULING 39: technical): the shares of TIME stay REPORTED, never graded; human-likeness is graded by what curiosity YIEL |

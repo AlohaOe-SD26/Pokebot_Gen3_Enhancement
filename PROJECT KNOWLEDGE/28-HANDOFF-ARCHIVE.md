@@ -12715,3 +12715,49 @@ R3 line budget, 2026-09-30: a closed, driven fix; moved whole to make room for #
                `R arrived = ((0,8),(18,6))`, `moved=True`, `missing=[]`, `ACCEPTANCE: PASS`
   ⇒ the guard separates: it blocks the illegal case and is invisible to the legal one. ✅ `probe_fly_allowed_here.py` answers “can I Fly from here?” per fixture, for any future save.
 
+---
+
+## Archived from `04-HANDOFF.md`
+
+2026-10-21: moved for the 04-HANDOFF line budget (the story bot is parked; its gates still run in run_gates.py).
+
+### Design v2 steps 8-9b — the 2026-09-29 gates and live arms
+```
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 probe_r25_catch_cap.py      # step 8: the cap of 3 + the rare exemption (K/A rows, 13 mutants)
+PYTHONUTF8=1 py -3.12 probe_stock_topoff.py       # step 9a: the ball top-off (L/A/E rows, 20 mutants)
+# the 9a live arms: the seed-1 storyresume on r20_badge1_party1_gym.ss1, --set-balls 5 --frames 60000, with
+# POKEBOT_R23_BALLRESTOCK=<unset|observe|1> (the exact command heads evidence/2026-09-29-ballrestock-M0.txt)
+PYTHONUTF8=1 py -3.12 probe_stock_topoff_sootopolis.py   # step 9b: the Sootopolis consumer (F/K/O/P/S/A/D rows, 39 mutants)
+# the 9b live arms: the seed-1 wrapper, --driver earlybasket --frames 16000 on post_hm07.ss1 (EB_EXPECT=buy|ballfail|budget)
+# or on its own EB_SAVE_AFTER output (EB_EXPECT=balls|nothing); each arm's exact env heads
+# evidence/2026-09-29-ballrestock9b-<ARM>.txt
+```
+
+---
+
+## Archived from `04-HANDOFF.md`
+
+2026-10-21: moved for the 04-HANDOFF line budget (the story bot is parked; its gates still run in run_gates.py).
+
+### RULING 20 Phase 2 + `#27-enroutejoin` — the 2026-09-28 drivers (all flags default OFF)
+Pair live A/B arms by SEEDING the bot's own RNG (the emulator replays; the bot's organic `random` draws do not — `08`,
+2026-09-28). ⛔ If a batch is running, build and drive on a fresh worktree branch cut from `main`.
+```
+cd tools/story-dev
+W="import random,runpy,sys; random.seed(1); sys.argv=['story_harness.py']+sys.argv[1:]; runpy.run_path('story_harness.py', run_name='__main__')"
+# P2-b (open fence): the first catch that JOINS the party is Aron at f218453
+POKEBOT_R20_OPENFENCE=1 PYTHONUTF8=1 py -3.12 -c "$W" r20_badge1_party1_gym.ss1 --driver storyresume --set-balls 30 --frames 240000 --profile a --log a.log
+# #27-enroutejoin: a walk catch derails the Surf hunt under POKEBOT_ENROUTE_FAULT_NOWALK=1; the fix refuses it
+R101_ARM=healed101 R101_FENCE=real POKEBOT_R20_OPENFENCE=1 PYTHONUTF8=1 py -3.12 -c "$W" norman_done.ss1 --driver r101hunt --set-balls 20 --frames 45000 --profile b --log b.log
+# P2-c (hunt first): the f140752 Abra is refused while the pre-gym-1 counter hunt is armed
+POKEBOT_R20_TEAM6=1 POKEBOT_R20_HUNTFIRST=1 PYTHONUTF8=1 py -3.12 -c "$W" r20_pregym1_party4_r116.ss1 --driver huntfirst --frames 60000 --profile c --log c.log
+# v2 step 10a (HK at Rustboro), arm K-ON: the kit rides the post-badge-1 heal. Drop BALLRESTOCK for K-ONLY; the
+# seven arms' exact flags head evidence/2026-09-29-kittopoff10a-<ARM>.txt; gate: probe_kit_topoff.py
+POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R26_KITTOPOFF=1 POKEBOT_R27_KEYITEMS=1 PYTHONUTF8=1 py -3.12 -c "$W" r20_badge1_party1_gym.ss1 --driver storyresume --set-balls 5 --frames 60000 --log k.log
+# v2 step 10b (HK at Sootopolis), arm S-ON: the kit rides RULING 18's League-basket visit; the twelve graded arms'
+# and the four ballfail arms' exact flags and fixtures head evidence/2026-09-30-kittopoff10b-<ARM>.txt and
+# -REVIEW-RERUN.txt; gate: probe_kit_topoff_sootopolis.py
+EB_EXPECT=buy POKEBOT_R23_BALLRESTOCK=1 POKEBOT_R26_KITTOPOFF=1 POKEBOT_R27_KEYITEMS=1 PYTHONUTF8=1 py -3.12 -c "$W" saves/post_hm07.ss1 --driver earlybasket --frames 16000 --log s.log
+```
+

@@ -23917,3 +23917,38 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Prevention rule:**
   - A cost category must be defined by the OBJECT read (a source file, an evidence file, a log), never by the command that read it.
   - Check a classifier on a hand-labelled sample before ranking work on it.
+
+## 2026-10-21 — ⛔ O3'S RECOVERY PATH QUARANTINED A VALID ARCHIVE, AND THE NEXT QUARANTINE OVERWROTE THE ONLY COPY
+
+- **Symptom:**
+  - The adversarial review reproduced PERMANENT LOSS of 3 of 4 original raw files (`batch/ARMS.json`, `big.log`, `stdout.txt`) with a real child process that kept appending to an old cycle's log across several cycle boundaries (an orphaned lane does exactly that).
+  - A softer variant ended with `archived=True`, a `raw.zip` holding one member, and `archive-check` reporting OK.
+- **Root cause:**
+  - After a partial delete, the code treated a VALID `raw.zip` as bad because one remaining original had changed, moved it aside with `os.replace`, and rebuilt from the partial raw set.
+  - After a partial delete that zip was the ONLY copy of the deleted files, and the next quarantine silently overwrote the earlier `.bad`.
+  - The builder's 16 call-deleting mutants were all caught, because mutants test the guards you wrote, not the states you did not imagine. Only a real concurrent writer exposed it.
+- **The fix that worked** (commit `5704fefd`): the invariant "an original is deleted only when its exact bytes are in a VERIFIED archive, and no archive file is ever overwritten or deleted". Anything unprovable is HELD (touch nothing, flag it). Set-asides are `raw.zip.bad.<k>` by a rename that cannot overwrite. Quiescence (nothing archived or deleted while a file changed in the last 60 minutes, or a lane names the tag) and a pre-delete re-stat. Tests R4-R19 use a real orphan writer in three variants, a real NTFS junction and a real lock holder.
+- **Prevention rule:** for any code that deletes originals, review with a REAL concurrent writer and assert, at every step, that each original's bytes exist in some archive or raw file. A mutant suite proves the guards you wrote; it cannot prove the states you did not imagine.
+
+## 2026-10-21 — ⛔ THE SPEC CARRIED "DELETE THE LANE PROFILES AS TODAY" FORWARD, AND NOBODY OPENED A PROFILE
+
+- **Symptom:** the final re-verify found that `learner.py` deleted `sandbox-pokebot/profiles/endless-<tag>-*` unarchived, and those profiles hold `badge-log.json` (the team and levels at every badge: the AI's experience data), `stats.db`, saves and screenshots.
+- **Root cause:** "delete the lane profiles as today" came from the existing behaviour, was copied into the spec and the first build, and no one looked inside one profile to see what the deletion removed.
+- **The fix that worked** (commit `b58b1521`): the profiles are archived before deletion; their debug logs, byte-identical to the batch's, are recorded as `dup_of` and not stored twice; the unique files are stored. Measured on a copy of real ai0024: 306 files, 25.5:1, 0 sha256 mismatches.
+- **Prevention rule:** before automating a delete (or "keeping the delete as today"), open ONE instance of everything it deletes and list what is in it.
+
+## 2026-10-21 — ⛔ O4'S "NOTHING SHRANK" HOLD KEYED ON A COUNT, AND THE LEARNER'S OWN GROWTH DEFEATED IT
+
+- **Symptom:**
+  - Review round 1: a backup whose clone had lost `runs.jsonl` reported ok every night and pruned one good copy a night, so after 14 nights no copy held it. The first version pruned on a MISSING file.
+  - Final re-verify: after that was fixed with a line-COUNT shrink check, a reparse that dropped 10 records while the learner added 50 a night still grew the count (140 -> 290), so no hold fired and every pre-drop zip was pruned within a week.
+- **Root cause:** a count was used as a stand-in for "the same records are still there" (CLAUDE.md rule 3: assert IDENTITY, never position or count). The learner adds about 107 records a day, which hides any smaller loss.
+- **The fix that worked** (commit `b58b1521`): the hold compares record IDENTITY (batch, lane, log), unique over all 2,586 real rows. The identities ride in each zip's manifest, and the count stays only as a cheap pre-filter. A missing `runs.jsonl` holds every backup (exit 1, NEEDS-YOU). Proven by `selftest_ops.py` B18 FAULT (10 dropped, 50 added) and CONTROL (pure growth).
+- **Prevention rule:** a "nothing was lost" check compares record IDENTITIES from the previous capture, never counts; and test it with a drop smaller than the growth between two runs.
+
+## 2026-10-21 — ⛔ THE CANARY FORMULA WAS COUNTED AT THE WRONG MOMENT (OFF BY TWO)
+
+- **Symptom:** the O3 spec said to set the canary `keep_raw_cycles` from the number of cycles still holding `batch/` "just before the change". Run through the real loop, K=14 archived 3 cycles, not 1 (live: 15 unpruned, so K=16 was needed).
+- **Root cause:** a config change reaches `finish_cycle` one cycle late (its `cfg` is loaded at the start of the cycle). Counted when the config is pushed, cycle X is still running and not yet in `state.json`, so the count is 2 short.
+- **The fix that worked:** K = (unpruned entries in `state.json` while cycle X runs) + 1; the canary archive happens at the end of X+1. The BUILD-SPECS S1-1 canary text carries a dated correction.
+- **Prevention rule:** a count that feeds a threshold is stated together with the exact MOMENT it is read, and checked by running the real loop on a state shaped like the live one.

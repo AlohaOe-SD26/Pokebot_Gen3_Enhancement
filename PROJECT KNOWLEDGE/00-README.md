@@ -13,7 +13,7 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | 5 | `03-PUNCH-LIST.md` | The work queue | current-state |
 | 6 | `05-KNOWN-ISSUES.md` | Open bugs and traps (a few CLOSED entries stay, each marked CLOSED or FIXED in its header, where an auditor would otherwise re-flag them) | current-state |
 | 7 | `08-MISTAKES.md` | Bugs/dead-ends already solved — don't repeat them | append-only |
-| 8 | `06-DECISIONS-LOG.md` | Why things are the way they are | append-only |
+| 8 | `06-DECISIONS-LOG.md` | Why things are the way they are. ⭐ Since 2026-10-21 it has a finding aid: `RULINGS.md` (generated, with the hand-curated `rulings-overlay.json`), searched by `py -3.12 tools/decomp_lookup.py ask "<topic>"` together with `facts-ledger.jsonl` (verified facts, append-only) and the pinned decomp; `06` always wins. `cost-ledger.jsonl` is the usage audit's per-workflow cost ledger (`tools/usage_audit.py`) | append-only |
 | 9 | `07-CHANGELOG.md` | Everything that has ever changed | append-only |
 | 10 | `12-STORYMODE-DESIGN.md` | Story bot design: chapters, Area Atlas (§AA), resume/defeat/self-correct | reference |
 | 11 | `13-PLANNING-AND-RESILIENCE.md` | HOW the bot decides & stays robust: task model, resource ledger, contingency catalog, marts | reference |

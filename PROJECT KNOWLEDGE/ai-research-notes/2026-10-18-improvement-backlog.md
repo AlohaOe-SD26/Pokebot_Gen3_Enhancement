@@ -1,15 +1,15 @@
 # Improvement backlog: the AI agent, the bot tuner and the PROCESS (2026-10-18)
 
 ## ONE-PAGE SUMMARY (2026-10-19, round 4): the top 15 in build order (step = "The order" below; sizes = new code + tests lines)
-1. **O3** compress each cycle's raw logs, never delete. DEADLINE: before ai0024 is pruned (about 2026-10-24, an estimate). Step 1; 85 + 95.
-2. **O4** nightly backup of `data/` and `findings/` off C: (every game exists once, on a 96 %-full drive). Step 1; 120 + 90.
+1. **O3** ✅ BUILT 2026-10-21 (deploys at the next push) compress each cycle's raw logs, never delete. DEADLINE: before ai0024 is pruned (about 2026-10-24, an estimate). Step 1; 85 + 95.
+2. **O4** ✅ BUILT 2026-10-21 (task not registered yet) nightly backup of `data/` and `findings/` off C: (every game exists once, on a 96 %-full drive). Step 1; 120 + 90.
 3. **O6 + O7** an ops-ledger row per cycle and an early-prune margin; one learner restart with O3. Step 1; 55 + 60.
-4. **P3** `usage_audit.py` and `cost-ledger.jsonl`: every saving in this file is an estimate until it exists. Step 1; 230 + 130.
+4. **P3** ✅ BUILT 2026-10-21 `usage_audit.py` and `cost-ledger.jsonl`: every saving in this file is an estimate until it exists. Step 1; 230 + 130.
 5. **A1 + D3** one-call `status.py` with the AI-frontier line (convenience and safety, not tokens). Step 1; 170 + 90.
 6. **O1** session-free watchdog, notifying on a change; NEEDS THE USER'S OK for scheduled tasks. Step 1; 285 + 150.
 7. **N3 + P9** byte and line budgets; split the 514 KB `ai_player/README.md` (cold start about 100k to 15k, est.). Step 2; 315 + 260.
 8. **P11 + P1 + N6 + P10** stage templates (deliver A3 and E1): READ LIST, STOP, WAIT RULE, a model per stage. Step 2; 280 + 140.
-9. **KB1 merge (S3-1), then N2 + P5 (S3-2)**: merge between graded rounds; rulings index, facts ledger, pinned-decomp lookup. Step 3; 60 + about 310 + 150.
+9. **KB1 merge (S3-1), then N2 + P5 (S3-2)** (KB1 merged 2026-10-21, `3a85d759`; the S3-2 half ✅ BUILT 2026-10-21): merge between graded rounds; rulings index, facts ledger, pinned-decomp lookup. Step 3; 60 + about 310 + 150.
 10. **A6 (S3-3)** experience records from the bot's games, a script; run it first in step 3 if O3 is late. Step 3; 260 + 200.
 11. **A5 + L1 + L2 (S3-4)** ONE generator; slice 1 (trainers, bosses, maps, campaign) build-ready, slice 2 (items, events) NEEDS DESIGN. Step 3; 700 + 250.
 12. **B1 (+R13)** Goodhart gate: grader thresholds the AI cannot import or reach. Step 4; est. 80 + 80.
@@ -17,7 +17,7 @@
 14. **E2 + O8** per-game recording; torn-write resilience and a crash-loop breaker. Step 5; est. 150 + 150.
 15. **R5, then R1 + R2 (+DP1, DP2, L3 a-b)** free screen, then save/CONTINUE and a memory that survives a kill; DECIDE EARLY. Step 6; est. 300 + 200.
 
-Also now: C1 as a checklist line. Waits on the user: O1's scheduled tasks, O4's target disk, O3's "keep compressed logs forever", S3-4's boss moves and held items. Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
+Also now: C1 as a checklist line. Waits on the user: S3-4's boss moves and held items. (O4's disk, O1's and O4's scheduled tasks and O3's "keep compressed logs forever" are ANSWERED, USER RULING 42 in `06`.) Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
 
 The user asked for improvements that make the work cheaper on usage without losing progress, results or rigor,
 drawn from everything that went wrong. Each item names the EVIDENCE that motivates it, the expected benefit, the
@@ -27,7 +27,7 @@ cost and risk, and its priority.
   "usage-safe operation"), plus this session's measurements.
 - **What these are:** candidates, not decisions. Each becomes a decision (`06`) and a punch-list status when built.
 - **What gets built first:** the steps in "The order" below, not the A label (A2 and A3 come later, and A-labelled R1, R2, R8, R9 wait for step 5.3). Every percentage comes from an audit script that is not in the repo until P3, so each is an estimate.
-- **IDs:** A-E are in this file. O, N, P, R come from round 2 (`2026-10-19-backlog-round2/01..04`; R10 and R13 are defined in `03-ai-player.md`). L and DP come from round 3; S1-S2 are in the steps 1-2 build specs, S3-1 to S3-4 in the step 3 build specs. KB1 is the seasoned knowledge base, slice 1 (branch `claude/kb1-seasoned-knowledge`, merge pending).
+- **IDs:** A-E are in this file. O, N, P, R come from round 2 (`2026-10-19-backlog-round2/01..04`; R10 and R13 are defined in `03-ai-player.md`). L and DP come from round 3; S1-S2 are in the steps 1-2 build specs, S3-1 to S3-4 in the step 3 build specs. KB1 is the seasoned knowledge base, slice 1 (branch `claude/kb1-seasoned-knowledge`, MERGED 2026-10-21 as `3a85d759`).
 
 ## Where the usage actually goes (measured, so the priorities follow it)
 
