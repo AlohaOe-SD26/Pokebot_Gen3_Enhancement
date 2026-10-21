@@ -5,3 +5,6 @@
 "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md" merge=union
 "PROJECT KNOWLEDGE/07-CHANGELOG.md" merge=union
 "PROJECT KNOWLEDGE/08-MISTAKES.md" merge=union
+# KB1 (spec S3-1): the extractor writes LF and its --check compares raw bytes, so a CRLF checkout (core.autocrlf true on
+# this PC) would read four identical files as "differs". Committed on its own BEFORE the merge, so the merge writes LF.
+ai_player/knowledge/seasoned/*.json text eol=lf
