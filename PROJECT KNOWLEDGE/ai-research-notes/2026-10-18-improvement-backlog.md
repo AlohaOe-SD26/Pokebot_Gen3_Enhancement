@@ -17,7 +17,7 @@
 14. **E2 + O8** per-game recording; torn-write resilience and a crash-loop breaker. Step 5; est. 150 + 150.
 15. **R5, then R1 + R2 (+DP1, DP2, L3 a-b)** free screen, then save/CONTINUE and a memory that survives a kill; DECIDE EARLY. Step 6; est. 300 + 200.
 
-Also now: C1 as a checklist line. Waits on the user: S3-4's boss moves and held items. (O4's disk, O1's and O4's scheduled tasks and O3's "keep compressed logs forever" are ANSWERED, USER RULING 42 in `06`.) Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
+Also now: C1 as a checklist line. S3-4's boss held items are ANSWERED (USER RULING 44: allowed; exact stats withheld); its two other "needs the user" items (bot species shares, sight ranges) keep the spec's defaults until answered. (O4's disk, O1's and O4's scheduled tasks and O3's "keep compressed logs forever" are ANSWERED, USER RULING 42 in `06`.) Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
 
 The user asked for improvements that make the work cheaper on usage without losing progress, results or rigor,
 drawn from everything that went wrong. Each item names the EVIDENCE that motivates it, the expected benefit, the

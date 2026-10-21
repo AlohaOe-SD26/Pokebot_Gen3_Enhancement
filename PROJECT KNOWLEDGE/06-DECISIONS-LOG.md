@@ -9578,3 +9578,14 @@ on all three questions:
 - **So:** the watchdog task (O1) is registered as built: every 30 minutes, in the user's session, in a hidden PowerShell window. It waits only for the clone to hold `tools/ops/watchdog.ps1`, which arrives with its next fast-forward (the end of ai0040, about 4:08 AM 2026-10-22), because the task runs the clone's copy.
 - **The monitor being off changes nothing:** the tasks run in the logged-on session, a toast waits in the notification panel, and the Desktop status file and `tools/status.py` carry the state. Only sleep or signing out stops them.
 - ⛔ **Do not re-ask** whether the toast reaches the user or whether the 30-minute flash is acceptable.
+
+## 2026-10-21 — USER RULING 44 (the S3-4 boss-knowledge question): the AI KNOWS each boss Pokémon's held item; it does NOT know their exact stats (IVs, hidden stats) or the trainers' AI flags
+
+- **The question, as put to the user:** should the AI know bosses' held items (Claude recommended yes) and their exact stats (Claude recommended no)?
+- **The user, 2026-10-21 (after 4:54 PM):** "I approve what you recommend for the remaining questions".
+- **So, for S3-4's generated knowledge (`trainers.json`):**
+  - `heldItem` moves from WITHHELD to ALLOWED. A seasoned player knows or looks up what a gym leader's Pokémon hold; it is static game knowledge, RULING 40.
+  - `iv` and `aiFlags` stay WITHHELD. They are hidden numbers a person playing cannot see.
+  - The spec's default stands for moves and levels, which are KEPT. This answer did not change it.
+- **Not decided by this ruling:** the S3-4 spec's two other "needs the user" items (the bot's species shares in the AI-facing statistics, and exact trainer sight ranges). They keep the spec's defaults until the user answers.
+- ⛔ **Do not re-ask** whether bosses' held items are allowed or their exact stats withheld.

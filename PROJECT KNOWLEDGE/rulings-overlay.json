@@ -406,6 +406,17 @@
    "do_not_reopen": "Whether the watchdog's toast reaches the user and whether its 30-minute window flash is acceptable (both yes, 2026-10-21; the monitor stays off).",
    "reason": "06 USER RULING 43: \"Do not re-ask whether the toast reaches the user or whether the 30-minute flash is acceptable.\"",
    "status": "ACTIVE"
+  },
+  "2026-10-21-3b21a7": {
+   "title": "2026-10-21 — USER RULING 44 (the S3-4 boss-knowledge question): the AI KNOWS each boss Pokémon's held item; it does NOT know their exact stats (IVs, hidden stats) or the trainers' AI flags",
+   "candidates": {
+    "683eafee": "marker"
+   },
+   "ruling_key": "44@2026-10-21",
+   "do_not_reopen": "Whether the AI may know bosses' held items (yes) and their exact stats / IVs and AI flags (no), for S3-4's trainers.json (2026-10-21). Not the spec's other two items (species shares, sight ranges).",
+   "reason": "06 USER RULING 44: \"Do not re-ask whether bosses' held items are allowed or their exact stats withheld.\"",
+   "status": "ACTIVE",
+   "topics": "held item heldItem boss gym leader stats IV aiFlags trainers.json S3-4 seasoned"
   }
  }
 }

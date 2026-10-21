@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "a9615728803113697a036ccc22909cb4b43b3a71",
+ "source_sha1_lf": "4cfd9eb1e10301bf5712ba67187eb1dad3263710",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 320,
-  "donot_candidates": 22,
-  "sections_naming_user_rulings": 37
+  "sections": 321,
+  "donot_candidates": 23,
+  "sections_naming_user_rulings": 38
  },
  "sections": [
   {
@@ -5010,6 +5010,27 @@
      "key": "92c36a47",
      "line": 9580,
      "text": "- ⛔ **Do not re-ask** whether the toast reaches the user or whether the 30-minute flash is acceptable."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-3b21a7",
+   "date": "2026-10-21",
+   "line_start": 9582,
+   "line_end": 9591,
+   "title": "2026-10-21 — USER RULING 44 (the S3-4 boss-knowledge question): the AI KNOWS each boss Pokémon's held item; it does NOT know their exact stats (IVs, hidden stats) or the trainers' AI flags",
+   "rulings": [
+    44
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "683eafee",
+     "line": 9591,
+     "text": "- ⛔ **Do not re-ask** whether bosses' held items are allowed or their exact stats withheld."
     }
    ],
    "cues": []

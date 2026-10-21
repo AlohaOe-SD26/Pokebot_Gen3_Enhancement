@@ -398,7 +398,8 @@ the pack generator and the AI's knowledge come from the same files (round 3's "t
 **Inputs and what each file holds (decomp-derived; the pinned clone, never `gh api`).**
 - `trainers.json`: every id in `opponents.h` (855) joined to its `trainers.h` block and party, parsing ALL FOUR party shapes
   (fact 10): `id, symbol, name, class, double (doubleBattle), party[{species, level, moves?}]`, plus `rematch_of` for `_2.._5`.
-  **Withheld by an explicit allowlist: `heldItem`, `iv`, `aiFlags`.** The backlog says boss held items and stats stay out until the
+  **Withheld by an explicit allowlist: `iv`, `aiFlags`** (USER RULING 44, 2026-10-21: `heldItem` is ALLOWED, a seasoned player
+  knows what a boss holds; exact stats and AI flags stay withheld). Before that ruling: the backlog said boss held items and stats stay out until the
   user rules them static knowledge (RULING 40 boundary). The constant `WITHHELD_FIELDS` is tested (W1).
 - `maps.json`: per map folder: `id, name, region_map_section, map_type, requires_flash, allow_cycling/escaping/running,
   connections[{dir, map, offset}], warps[{dest_map, dest_warp_id}]` (coordinates kept, a seasoned player knows where doors are),
@@ -496,7 +497,8 @@ campaign) is medium and can ship alone.
 
 ## Needs the user (plain-English calls only)
 
-1. **Boss moves and held items.** The backlog already says held items and stats stay out until you rule them "knowledge a seasoned
+1. ✅ **ANSWERED: USER RULING 44 (2026-10-21): held items ALLOWED, exact stats (IVs) and AI flags WITHHELD, moves and levels kept.**
+   The question as it was: **Boss moves and held items.** The backlog already says held items and stats stay out until you rule them "knowledge a seasoned
    player has". This spec withholds held items, hidden stats and the trainers' AI flags by default and keeps each boss's moves and
    levels. Say so if you want moves withheld too, or held items allowed.
 2. **Bot statistics shown to the AI.** The AI-facing numbers (levels at first loss and at win, losses, money) are labelled "bot
