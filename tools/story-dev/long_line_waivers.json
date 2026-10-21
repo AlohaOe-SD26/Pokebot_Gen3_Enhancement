@@ -14,17 +14,24 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
-      "chars": 2672,
+      "chars": 2757,
       "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
       "tails": [
         "ty`, `wt/boxfirst`) stay parked until the user resumes them."
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-10-21",
+          "from_chars": 2672,
+          "to_chars": 2757,
+          "why": "2026-10-21 deploy paperwork: O3 deployed, O6+O7 pushed"
+        }
+      ]
     },
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
-      "chars": 4012,
+      "chars": 3936,
       "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
       "tails": [
         "ntrols, one temp-folder factory, Python hooks, determinism)."
@@ -574,12 +581,19 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "6bb82211422407fedabce93214bee38bac58d7fe",
-      "chars": 22987,
+      "chars": 23044,
       "head": "**Last updated:** 2026-10-21 (⭐ **STEP 1 BUILT AND REVIEWED ",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-10-21",
+          "from_chars": 22987,
+          "to_chars": 23044,
+          "why": "2026-10-21 deploy paperwork: (0a) confirmed O3, the held commits pushed, the canary K=17"
+        }
+      ]
     },
     {
       "file": "04-HANDOFF.md",
@@ -624,12 +638,19 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "c65b58bd2aafaf32b6cb7a55334a43ef53060cfb",
-      "chars": 2020,
+      "chars": 2042,
       "head": "| box | ▶ **2026-10-21: the BOT TUNER (`ai-agent/`, 24/7 lea",
       "tails": [
         "adder length, and record deepest-chapter-at-death instead. |"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-10-21",
+          "from_chars": 2020,
+          "to_chars": 2042,
+          "why": "2026-10-21 Tier 1 fixes on the deploy paperwork: the STATE row's cycle, and (0c)'s precondition and the watchdog warning"
+        }
+      ]
     },
     {
       "file": "04-HANDOFF.md",
@@ -713,13 +734,27 @@
     },
     {
       "file": "04-HANDOFF.md",
-      "sha1": "83c78afc19e7bcb23b902b3721cfd939384ec5d5",
-      "chars": 15927,
-      "head": "| **if stopped mid-task** | ⚠ **2026-10-21: the work this co",
+      "sha1": "22de0320e7193594fd0c510866689af7b5e3b02a",
+      "chars": 16249,
+      "head": "| **if stopped mid-task** | ✅ **2026-10-21, 4:08 PM: (0a) CO",
       "tails": [
         "noting this is 'the row a resuming session reads FIRST'.)* |"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-10-21",
+          "from_sha1": "83c78afc19e7bcb23b902b3721cfd939384ec5d5",
+          "from_chars": 15927,
+          "to_chars": 16271,
+          "from_tails": [
+            "noting this is 'the row a resuming session reads FIRST'.)* |"
+          ],
+          "to_tails": [
+            "noting this is 'the row a resuming session reads FIRST'.)* |"
+          ],
+          "why": "2026-10-21 deploy paperwork: (0a) confirmed O3, the held commits pushed, the canary K=17"
+        }
+      ]
     },
     {
       "file": "04-HANDOFF.md",
@@ -744,12 +779,19 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 60141,
+      "chars": 60094,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-10-21",
+          "from_chars": 59713,
+          "to_chars": 60094,
+          "why": "2026-10-21 Tier 1 fixes on the deploy paperwork: the STATE row's cycle, and (0c)'s precondition and the watchdog warning"
+        }
+      ]
     },
     {
       "file": "04-HANDOFF.md",

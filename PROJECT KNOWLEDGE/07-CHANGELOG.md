@@ -38351,3 +38351,10 @@ bought balls only at fixed story points.
   - `### ✅ FIXED (sandbox only)` is still selected;
   - the rehearsal runs `lint_docs` only, not `audit_doc_consistency`.
 - **How a doc editor works now:** put new text on its OWN line, under 1,200 characters. Appending inside a waived mega-line needs `--rewaive --why`.
+
+## 2026-10-21 — O3 DEPLOYED to the bot tuner; the held commits pushed; the canary `keep_raw_cycles` 17 (spec S1-1; punch-list #28-trainer-improvements)
+
+- **(0a) confirmed.** The clone's `learner.log`: `[2026-10-21 04:08:02 PM] update: 6e39ede7 -> a76879b8`, then `[04:08:26 PM] code changed (ddb49bd5c391 -> 319d8d3394e2) and test_agent.py passes: restarting into it`. ai0040 started at 4:08:28 PM with 12 lanes. ai0039 had ended with `batch exit 0; 54 runs logged, 42 scored`.
+- **(0a2) pushed:** every commit held since `a76879b8` (O6+O7, O1, KB1's fixes, A6, the stage templates, S2-1, the B1 recon note and the paperwork), with this commit.
+- **(0b) the canary:** `ai-agent/config.json` `keep_raw_cycles` 20 -> 17 (16 cycles unpruned in `data/state.json` at 4:08 PM: ai0024-ai0039). The config is read at a cycle start, so this is not a restart. The end of ai0040 archives nothing; the end of ai0041 (about 4:08 PM 2026-10-22) archives exactly ai0024. Then `learner.py archive-check` must print OK ai0024 before K goes to 4. `test_agent.py` reads no real-config K (checked), so the value cannot refuse a restart.
+- **Next restart:** O6+O7's learner code restarts at the end of ai0040 (about 4:08 AM 2026-10-22); confirm its line. O5 waits on its branch for its own restart after that.
