@@ -14,7 +14,9 @@ in a git-ignored store. The AI player later reads a few numbers per boss from `c
 NEEDS ("the bot's teams that beat Norman had a median team level near 29"), never as a policy: the bot's games are
 teaching material,
 not the AI's hands (USER RULING 35), so the AI-facing file is labelled "bot corpus" on every block and carries NO
-species shares (which species the bot chose is the bot's style, not a need).
+species shares (which species the bot chose is the bot's style, not a need). Its failure labels pass an ALLOWLIST of
+fixed label names (`ALLOWED_LABELS`; anything else is counted as `<other>`), and the whole file then passes the E7
+denylist gate, an independent second layer (USER RULING 40: no live hidden state, no species, PID, position or flag).
 
 TWO TIERS (fact 8). Tier A comes from the `runs.jsonl` row (every row; survives pruning): per boss `won`, `losses`,
 the parties at first loss and at the win (`ast.literal_eval` of the stored repr string), the win frame from
@@ -47,13 +49,31 @@ mid-run". So `--incremental` and `--full` write ONLY the store (refused, exit 2,
 Until the O1 watchdog task exists and is registered (that needs the user's OK), a session runs `--incremental` by hand;
 since O3, a cycle's logs stay readable inside its `raw.zip`, so a late run still finds them.
 
+THE WRITE GUARD compares RESOLVED paths (`realpath`: junctions, symlinks, 8.3 short names such as `C:\\REMOTE~1\\...`,
+the `\\\\?\\` prefix, case, slashes) AND file identity (a UNC admin share such as `\\\\localhost\\C$\\...` reaches the
+same folder under a spelling `realpath` keeps). It always protects the DEFAULT clone and this checkout's `ai_player/`,
+not only the trees `--clone`/`--repo` name, and the raw-data folders the run reads (review 2026-10-21: an abspath
+compare let a junction, the `\\\\?\\` prefix and the clone's 8.3 short name through, and pointing `--repo` or
+`--clone` elsewhere switched the guard off).
+
+THE O3 RACE. O3 renames `raw.zip` into a cycle and then deletes its folder; a cycle opened as a folder can lose a log
+(or a lane profile) in the middle of a pass. So a record whose log is missing or fails to read, or that was built
+while `raw.zip` appeared, in a cycle that HAD raw data, is rebuilt once on a freshly opened cycle (re-checking
+`raw.zip`). If its log is still missing and the cycle is not in its final archived form (`raw.zip` readable, folder
+gone), or its read still fails, the run is DEFERRED: not appended, not in the cursor, named in a warning, and the next
+`--incremental` retries it (exit 6). An append-only store never revisits a key, so a tier-A-only record written
+during the race would have lost tier B for good.
+
 LIMITS (stated in the store header and the priors file, measured on the real logs 2026-10-19/21): `UseItem` turns do
 not name the item, so "items used" is a count of UseItem turns plus the drop in `heal_stock` across a fight; no log
 line carries the bot's move list or held item, so tier-B moves are "moves actually used" (a lower bound; the
 badge-log has the full move list at each badge); the team is read from a heartbeat up to 3,600 frames old.
 
 Exit codes: 0 ok; 1 at least one boss disagrees with runs.jsonl (records still written, each disagreement listed);
-2 refused (a guard: see `Refused`); 3 the AI-facing file failed the privacy gate (nothing written).
+2 refused (a guard: see `Refused`); 3 the AI-facing file failed the privacy gate (nothing written); 5 CRASHED (an
+uncaught error or an unreadable runs.jsonl line, named; never 1, which O1 or a reader would take for a disagreement);
+6 some runs were DEFERRED by the O3 race (the rest written; the next `--incremental` retries them). With both a
+disagreement and a deferral the exit is 1 and both are printed.
 """
 from __future__ import annotations
 
@@ -65,8 +85,16 @@ import os
 import re
 import sys
 import time
+import traceback
+import uuid
 import zipfile
+import zlib
 from pathlib import Path
+
+if os.name == "nt":
+    import msvcrt
+else:  # pragma: no cover - the tuner and this checkout run on Windows
+    import fcntl
 
 for _s in (sys.stdout, sys.stderr):
     try:
@@ -83,11 +111,15 @@ PRIORS_REL = Path("ai_player/knowledge/experience/chapter_priors.json")
 #: (`--incremental`, `--full`) never write inside it (E10).
 DIGEST_SCOPE_REL = ("ai_player",)
 STORE_FILE, CURSOR_FILE, LOCK_FILE = "runs_experience.jsonl", "cursor.json", ".lock"
+#: The OS-locked sidecar that serialises taking `.lock` (see `StoreLock`). It stays in the store; it is never content.
+MUTEX_FILE = ".lock.mutex"
 #: A lock older than this is a crashed run's leftover (a full pass over ~900 logs measured about 4 minutes).
 LOCK_STALE_S = 6 * 3600
+#: How long a run waits for another run to finish TAKING the lock (milliseconds of work) before it gives up.
+MUTEX_WAIT_S = 30.0
 SCHEMA = 1
 CORPUS = "bot corpus"
-EXIT_OK, EXIT_DISAGREE, EXIT_REFUSED, EXIT_GATE = 0, 1, 2, 3
+EXIT_OK, EXIT_DISAGREE, EXIT_REFUSED, EXIT_GATE, EXIT_CRASH, EXIT_DEFERRED = 0, 1, 2, 3, 5, 6
 
 #: The 13 key bosses in story order, by the names `runs.jsonl` uses, and the decomp constant each one is.
 BOSS_ORDER = ("ROXANNE", "BRAWLY", "WATTSON", "FLANNERY", "NORMAN", "WINONA", "TATE_AND_LIZA", "JUAN",
@@ -142,6 +174,10 @@ GYM_TM_RE = re.compile(r"\[GYM_TM\] boss=(.+?) losses=(\d+) .*?\bwall=(\S+) outc
 
 class Refused(Exception):
     """A guard refused the run (exit 2): nothing unsafe was written."""
+
+
+class BadInput(Exception):
+    """An input the run cannot read (exit 5, EXIT_CRASH), named with its line: never a disagreement's exit 1."""
 
 
 # ============================================================================================ boss names
@@ -411,6 +447,16 @@ class CycleRaw:
         if self._zip is not None:
             self._zip.close()
 
+    def archived_since_open(self) -> bool:
+        """True when `raw.zip` is on disk but this object did not load it: O3 archived the cycle after it was opened,
+        and it may have deleted folder files (a log, a lane listing, a profile) in the middle of a record."""
+        return self._zip is None and (self.cdir / "raw.zip").is_file()
+
+    def settled(self) -> bool:
+        """The cycle is in its FINAL archived form: `raw.zip` loaded and the batch folder gone. Only then is a member
+        missing from it missing for good (O3 zips EVERY original before it deletes any)."""
+        return self._zip is not None and not (self.cdir / "batch").exists()
+
     def _folder_or_zip(self, folder_path: Path, member: str):
         """An open binary stream of the file, or None."""
         if folder_path.is_file():
@@ -538,8 +584,8 @@ def build_record(row: dict, raw: CycleRaw | None, boss_ids: dict[int, str], opp_
             else:
                 with fh:  # a file or a ZipExtFile: both iterate line by line, streamed
                     tb = parse_log_stream(fh, boss_ids, opp_names)
-        except (OSError, zipfile.BadZipFile, EOFError) as exc:  # a cycle pruned mid-read: tier A only, said why
-            tb, raw_missing = None, f"read failed: {exc!r}"[:200]
+        except (OSError, zipfile.BadZipFile, EOFError, zlib.error) as exc:  # pruned mid-read, or a corrupt member
+            tb, raw_missing = None, f"read failed: {exc!r}"[:200]  # (a bad deflate stream raises zlib.error)
     rec["tier_b"], rec["raw_missing"] = tb, raw_missing
     rec["tier"] = {(True, True): "A+B", (True, False): "A", (False, True): "B", (False, False): "none"}[
         (ta is not None, tb is not None)]
@@ -582,53 +628,189 @@ def build_record(row: dict, raw: CycleRaw | None, boss_ids: dict[int, str], opp_
 
 # ============================================================================================ store, cursor, guards
 
-def _inside(path: Path, root: Path) -> bool:
+def _canon(p: Path | str) -> str:
+    """The path as the filesystem resolves it: `realpath` follows junctions and symlinks and expands 8.3 short names
+    (`C:\\REMOTE~1\\PO7209~1` is the clone), `normcase` folds case and slashes. `realpath` KEEPS a `\\\\?\\` prefix it was
+    given, so it is stripped here, or `\\\\?\\C:\\...` would never compare inside `C:\\...` (measured 2026-10-21)."""
     try:
-        return Path(os.path.normcase(os.path.abspath(path))).is_relative_to(Path(os.path.normcase(os.path.abspath(root))))
+        r = os.path.realpath(p)
+    except (OSError, ValueError):
+        r = os.path.abspath(p)
+    if r.startswith("\\\\?\\UNC\\"):
+        r = "\\\\" + r[8:]
+    elif r.startswith("\\\\?\\"):
+        r = r[4:]
+    return os.path.normcase(r)
+
+
+def _file_id(p: Path | str) -> tuple[int, int] | None:
+    try:
+        st = os.stat(p)
+    except (OSError, ValueError):
+        return None
+    return (st.st_dev, st.st_ino) if st.st_ino else None
+
+
+def _chain_ids(path: Path | str) -> set[tuple[int, int]]:
+    """The identities (volume, file id) of `path`'s nearest EXISTING ancestor and all of ITS ancestors, walked on the
+    resolved path (a junction's lexical parent is not its target's parent). A folder not yet created is created inside
+    that ancestor, so this chain is where a write would land."""
+    q = Path(_canon(path))
+    while not q.exists() and q.parent != q:
+        q = q.parent
+    return {i for i in map(_file_id, [q, *q.parents]) if i is not None}
+
+
+def _inside_by_path(path: Path | str, root: Path | str) -> bool:
+    try:
+        return Path(_canon(path)).is_relative_to(Path(_canon(root)))
     except ValueError:
         return False
 
 
-def refuse_protected_write(path: Path, repo: Path, clone: Path, allow_digest_scope: bool = False) -> None:
-    """THE WRITE GUARD. Refuse a write into the clone (read-only: a live batch runs there) and, unless this is the
-    interactive `--priors` call, into the AI's digest scope (`ai_player/`): a routine run there would change the
-    code-under-test tree in the middle of a graded sweep (E10)."""
-    if _inside(path, clone):
-        raise Refused(f"{path} is inside the learner clone {clone}: the clone is read-only")
+def _inside_by_identity(path: Path | str, root: Path | str) -> bool:
+    rid = _file_id(root)
+    return rid is not None and rid in _chain_ids(path)
+
+
+def _inside(path: Path | str, root: Path | str) -> bool:
+    """`path` is `root` or below it, by EITHER of two checks: the resolved spellings (`_canon`), or file identity,
+    which also sees a spelling `realpath` does not rewrite (a UNC admin share `\\\\localhost\\C$\\...` reaches the same
+    folder; measured 2026-10-21: same volume and file id, while `realpath` keeps the UNC form)."""
+    return _inside_by_path(path, root) or _inside_by_identity(path, root)
+
+
+def refuse_protected_write(path: Path, repo: Path, clone: Path, allow_digest_scope: bool = False,
+                           read_roots: tuple[Path, ...] = ()) -> None:
+    """THE WRITE GUARD. Refuse a write into the clone (read-only: a live batch runs there), into the raw-data folders
+    this run READS (`read_roots`), and, unless this is the interactive `--priors` call, into the AI's digest scope
+    (`ai_player/`):
+    a routine run there would change the code-under-test tree in the middle of a graded sweep (E10).
+
+    The DEFAULT clone and THIS checkout's `ai_player/` are always protected as well, whatever `--clone` and `--repo`
+    say: those arguments choose what to read, and pointing either one elsewhere must not switch the guard off (review
+    2026-10-21). `REPO` and `DEFAULT_CLONE` are read at call time, so a test can point them into a scratch tree."""
+    for root in dict.fromkeys([clone, DEFAULT_CLONE, *read_roots]):
+        if _inside(path, root):
+            raise Refused(f"{path} is inside {root}, which this run must only read (the learner clone is read-only)")
     if not allow_digest_scope:
-        for rel in DIGEST_SCOPE_REL:
-            if _inside(path, repo / rel):
-                raise Refused(f"{path} is inside the AI's digest scope {repo / rel}: only an interactive --priors "
-                              f"call may write there, between graded rounds")
+        for base in dict.fromkeys([repo, REPO]):
+            for rel in DIGEST_SCOPE_REL:
+                if _inside(path, base / rel):
+                    raise Refused(f"{path} is inside the AI's digest scope {base / rel}: only an interactive --priors "
+                                  f"call may write there, between graded rounds")
+
+
+def _lock_byte(fd: int) -> None:
+    if os.name == "nt":
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+    else:  # pragma: no cover
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _unlock_byte(fd: int) -> None:
+    if os.name == "nt":
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+    else:  # pragma: no cover
+        fcntl.flock(fd, fcntl.LOCK_UN)
+
+
+class _OsMutex:
+    """An OS byte-range lock on `MUTEX_FILE`, held only while a `StoreLock` is being TAKEN. WHY: with no mutex, two
+    runs that both see a stale `.lock` can each retire it, and the later retire then removes the EARLIER run's fresh
+    lock (review 2026-10-21: both acquired). Serialising the take makes "is it stale?" and "retire it" one step. The
+    OS drops the lock when its process dies, so this mutex can never go stale itself."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self.fd: int | None = None
+
+    def __enter__(self) -> "_OsMutex":
+        fd = os.open(self.path, os.O_RDWR | os.O_CREAT)
+        deadline = time.monotonic() + MUTEX_WAIT_S
+        while True:
+            try:
+                _lock_byte(fd)
+                self.fd = fd
+                return self
+            except OSError:
+                if time.monotonic() >= deadline:
+                    os.close(fd)
+                    raise Refused(f"{self.path} stayed locked for {MUTEX_WAIT_S:.0f} s: another extractor is "
+                                  f"taking the store lock") from None
+                time.sleep(0.05)
+
+    def __exit__(self, *exc) -> None:
+        if self.fd is not None:
+            try:
+                _unlock_byte(self.fd)
+            finally:
+                os.close(self.fd)
+                self.fd = None
 
 
 class StoreLock:
-    """One extractor at a time per store (the O1 task and a session must not both append). A lock older than
-    LOCK_STALE_S is a crashed run's and is replaced."""
+    """One extractor at a time per store (the O1 task and a session must not both append). `.lock` is created with
+    O_EXCL and holds a unique token; one older than LOCK_STALE_S is a crashed run's. Taking it happens under
+    `_OsMutex`; a stale lock is retired by `os.replace` to a unique name and checked to BE the stale lock that was read
+    (its token), so a fresh lock is never removed. `create=False` (a read-only `--priors` run) refuses a missing store
+    instead of creating it. On exit a run removes `.lock` only if it still holds ITS token."""
 
-    def __init__(self, store: Path):
+    def __init__(self, store: Path, create: bool = True):
+        self.store, self.create = store, create
         self.path = store / LOCK_FILE
+        self.token = f"{os.getpid()} {time.time():.0f} {uuid.uuid4().hex}".encode()
 
     def __enter__(self) -> "StoreLock":
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        for _ in range(2):
-            try:
-                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                os.write(fd, f"{os.getpid()} {time.time():.0f}".encode())
-                os.close(fd)
-                return self
-            except FileExistsError:
+        if not self.store.is_dir():
+            if not self.create:
+                raise Refused(f"the store {self.store} does not exist: run --full or --incremental first")
+            self.store.mkdir(parents=True, exist_ok=True)
+        with _OsMutex(self.store / MUTEX_FILE):
+            for _ in range(3):
                 try:
-                    age = time.time() - self.path.stat().st_mtime
-                except OSError:
+                    fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                except FileExistsError:
+                    self._retire_if_stale()
                     continue
-                if age < LOCK_STALE_S:
-                    raise Refused(f"{self.path} is held ({age:.0f} s old): another extractor is running")
-                self.path.unlink(missing_ok=True)
+                try:
+                    os.write(fd, self.token)
+                finally:
+                    os.close(fd)
+                return self
         raise Refused(f"could not take {self.path}")
 
+    def _retire_if_stale(self) -> None:
+        try:
+            seen = self.path.read_bytes()
+            age = time.time() - self.path.stat().st_mtime
+        except FileNotFoundError:
+            return  # its owner released it: take it on the next try
+        if age < LOCK_STALE_S:
+            raise Refused(f"{self.path} is held ({age:.0f} s old): another extractor is running")
+        aside = self.path.with_name(f"{LOCK_FILE}.stale.{uuid.uuid4().hex}")
+        try:
+            os.replace(self.path, aside)
+        except FileNotFoundError:
+            return
+        if aside.read_bytes() != seen:
+            # Not the lock judged stale: someone's FRESH lock was moved. Put it back (never over a new one) and stop.
+            try:
+                os.rename(aside, self.path)
+            except OSError:
+                pass
+            raise Refused(f"{self.path} changed while being retired: another extractor took it")
+        aside.unlink(missing_ok=True)
+
     def __exit__(self, *exc) -> None:
-        self.path.unlink(missing_ok=True)
+        try:
+            mine = self.path.read_bytes() == self.token
+        except OSError:
+            mine = False
+        if mine:
+            self.path.unlink(missing_ok=True)
 
 
 def _dumps(obj) -> str:
@@ -679,39 +861,70 @@ def write_cursor(store: Path, keys: set[str]) -> None:
 def load_rows(path: Path) -> list[dict]:
     rows = []
     with open(path, "rb") as fh:
-        for raw in fh:
+        for i, raw in enumerate(fh, 1):
             if raw.strip() and raw.endswith(b"\n"):  # a torn last line (the tuner appending right now) is skipped
-                rows.append(json.loads(raw))
+                try:
+                    rows.append(json.loads(raw))
+                except ValueError as exc:
+                    raise BadInput(f"{path} line {i} is not JSON ({exc})") from exc
     return rows
 
 
+def _open_cycle(runs_dir: Path, profiles_dir: Path, src: str) -> CycleRaw | None:
+    cdir = runs_dir / src
+    return CycleRaw(runs_dir, profiles_dir, src) if (cdir / "batch").is_dir() or (cdir / "raw.zip").is_file() else None
+
+
+#: `raw_missing` texts of `build_record` that can be a race with O3 (the log moved into raw.zip, or its folder file was
+#: deleted mid-read), as opposed to a row with no lane/log or a cycle with no raw data at all.
+RACE_MISSING = ("log not in the cycle folder or raw.zip", "read failed:")
+
+
 def extract(rows: list[dict], skip: set[str], runs_dir: Path, profiles_dir: Path, boss_ids: dict[int, str],
-            opp_names: dict[int, str]) -> list[dict]:
-    """A record for every row whose key is not in `skip`, in `rows` order, opening each cycle's raw files once."""
+            opp_names: dict[int, str]) -> tuple[list[dict], list[tuple[str, str]]]:
+    """(a record for every row whose key is not in `skip`, in `rows` order; the DEFERRED (key, why)), opening each
+    cycle's raw files once. See the module docstring's O3 RACE: a record built while O3 archived its cycle is rebuilt
+    on a fresh open, and one whose tier B still fails in a cycle that is not in its final archived form is deferred."""
     todo = [r for r in rows if row_key(r) not in skip]
     caches: dict[str, CycleRaw | None] = {}
-    out = []
+    out: list[dict] = []
+    deferred: list[tuple[str, str]] = []
     try:
         for row in todo:
             src = str(row.get("source"))
             if src not in caches:
-                cdir = runs_dir / src
-                caches[src] = CycleRaw(runs_dir, profiles_dir, src) if (cdir / "batch").is_dir() or \
-                    (cdir / "raw.zip").is_file() else None
-            out.append(build_record(row, caches[src], boss_ids, opp_names))
+                caches[src] = _open_cycle(runs_dir, profiles_dir, src)
+            raw = caches[src]
+            rec = build_record(row, raw, boss_ids, opp_names)
+            if raw is not None and (str(rec["raw_missing"]).startswith(RACE_MISSING) or raw.archived_since_open()):
+                raw.close()
+                raw = caches[src] = _open_cycle(runs_dir, profiles_dir, src)
+                rec = build_record(row, raw, boss_ids, opp_names)
+                missing = str(rec["raw_missing"])
+                # Only an archive in its final form proves a MISSING member is gone for good. A failed READ is never
+                # proof: a sharing violation passes, and a corrupt member of the only copy should stay loud.
+                if raw is not None and (missing.startswith(RACE_MISSING[1]) or
+                                        (missing.startswith(RACE_MISSING[0]) and not raw.settled())):
+                    deferred.append((rec["key"], missing))
+                    continue
+            out.append(rec)
     finally:
         for c in caches.values():
             if c is not None:
                 c.close()
-    return out
+    return out, deferred
 
 
 def run_extract(mode: str, runs_jsonl: Path, runs_dir: Path, profiles_dir: Path, store: Path, repo: Path, clone: Path,
                 decomp: Path | None = None) -> tuple[int, dict]:
     """`--full` (an EMPTY store only) or `--incremental`. Returns (exit code, summary)."""
     t0 = time.perf_counter()
-    for target in (store, store / STORE_FILE, store / CURSOR_FILE):
-        refuse_protected_write(target, repo, clone)
+    # The folders of raw data it reads. Not runs.jsonl's folder: a copy of runs.jsonl at a checkout's root would make
+    # that root a "read tree" and refuse the default store inside it (the clone itself is guarded as the clone).
+    reads = (runs_dir, profiles_dir)
+    for target in (store, store / STORE_FILE, store / CURSOR_FILE, store / (CURSOR_FILE + ".tmp"), store / LOCK_FILE,
+                   store / MUTEX_FILE):  # every path this run writes (a planted symlink at any of them is resolved)
+        refuse_protected_write(target, repo, clone, read_roots=reads)
     boss_ids, opp_names, boss_source = boss_tables(decomp)
     with StoreLock(store):
         recs, have = read_store(store)
@@ -722,7 +935,7 @@ def run_extract(mode: str, runs_jsonl: Path, runs_dir: Path, profiles_dir: Path,
         if cursor is not None and not cursor <= have:
             raise Refused(f"{store / CURSOR_FILE} lists {len(cursor - have)} keys that are not in the store")
         rows = load_rows(runs_jsonl)
-        new = extract(rows, have, runs_dir, profiles_dir, boss_ids, opp_names)
+        new, deferred = extract(rows, have, runs_dir, profiles_dir, boss_ids, opp_names)
         path = store / STORE_FILE
         empty = not path.exists() or path.stat().st_size == 0
         with open(path, "ab") as fh:
@@ -740,8 +953,9 @@ def run_extract(mode: str, runs_jsonl: Path, runs_dir: Path, profiles_dir: Path,
                "parse_suspect": [r["key"] for r in new if r["tier_b"] and r["tier_b"]["parse_suspect"]],
                "badge_join": dict(collections.Counter(r["badge_log_join"].split(":")[0].split(" (")[0] for r in new)),
                "bosses_compared": sum(len(r["agrees_with_runs_jsonl"]) for r in new),
-               "disagreements": dis, "boss_ids_from": boss_source, "seconds": round(time.perf_counter() - t0, 1)}
-    return (EXIT_DISAGREE if dis else EXIT_OK), summary
+               "disagreements": dis, "deferred": deferred, "boss_ids_from": boss_source,
+               "seconds": round(time.perf_counter() - t0, 1)}
+    return (EXIT_DISAGREE if dis else EXIT_DEFERRED if deferred else EXIT_OK), summary
 
 
 # ============================================================================================ priors
@@ -769,10 +983,41 @@ def _levels(parties: list[list[dict] | None]) -> dict:
             "team_max": _q([s[2] for s in stats])}
 
 
-#: Masks in a failure label, applied before the privacy gate: a PID, a position, a flag- or var-shaped constant (an
-#: ALL_CAPS_NAME), a species name. The labels come from the tuner's `classify_wall`, which already turns digits into #.
-PID_RE = re.compile(r"#[0-9A-F]{8}\b")
-POS_RE = re.compile(r"\(\s*-?\d+\s*,\s*-?\d+\s*\)|\bpos=|\bat \(-?\d+,")
+#: THE AI-FACING LABEL ALLOWLIST (USER RULING 40). A run's wall label reaches chapter_priors.json only if it is EXACTLY
+#: one of these names; any other label is written as OTHER_LABEL and counted there. WHY an allowlist and not masks: the
+#: masks it replaced matched exact-case single words and upper-case hex only, so 'boss wall: Mr. Mime', "Kingdra's",
+#: 'kingdra', 'lead #3e751caf', 'x=12 y=7' and 'flag_badge07_get' all reached the AI-facing file (review 2026-10-21).
+#: A fixed name cannot carry live state; `classify_wall`'s free-text fallback (the first 70 characters of any derail)
+#: is exactly what must not pass. The names: `classify_wall`'s WALLS table and its "no derail recorded"
+#: (`ai-agent/knowledge.py`, read 2026-10-21; the test fails if that table gains a name missing here); its
+#: "boss wall: <name>" for the 13 bosses as the story bot names them in its loss message (`story_mode.py`, the
+#: `{boss_name}: {losses} losses with no super-effective answer` line) and its default "this boss"; `scoring.py`'s
+#: "CHAMPION"; and NO_WALL_LABEL, this file's own label for a row with no wall.
+BOSS_DISPLAY = ("Roxanne", "Brawly", "Wattson", "Flannery", "Norman", "Winona", "Tate & Liza", "Juan", "Sidney",
+                "Phoebe", "Glacia", "Drake", "Wallace")
+WALL_NAMES = ("E4 refused: League basket short", "E4 refused: team below level floor", "training ended below floor",
+              "heal walk blocked", "unreachable target", "no derail recorded")
+OTHER_LABEL, NO_WALL_LABEL = "<other>", "<no wall label>"
+ALLOWED_LABELS = frozenset({*WALL_NAMES, "CHAMPION", NO_WALL_LABEL, "boss wall: this boss",
+                            *(f"boss wall: {b}" for b in BOSS_DISPLAY)})
+
+
+def priors_label(wall) -> str:
+    """The label the AI-facing file may carry for a run's `wall`: the wall itself when allowlisted, else OTHER_LABEL."""
+    if wall is None:
+        return NO_WALL_LABEL
+    return wall if isinstance(wall, str) and wall in ALLOWED_LABELS else OTHER_LABEL
+
+
+#: THE E7 DENYLIST, the gate's second and INDEPENDENT layer (it never consults the allowlist, so one bug cannot open
+#: both). Matched case-insensitively. A PID: eight hex digits standing alone, with or without `#` or `0x`. A position:
+#: `(x, y)`, `[x, y]`, `x=`/`y=` with a number, `pos=`/`position:`/`coords=` with a number, `map=a,b`, `at (a,`.
+#: A flag or var: `flag_`/`var_` in any case, or an ALL_CAPS_NAME (case-sensitive: the file's own keys are lower-case
+#: snake_case, and the 13 boss keys are allowed as KEYS of the `bosses` block). Species: see `species_re`.
+PID_RE = re.compile(r"(?i)(?:0x|(?<![0-9a-z]))[0-9a-f]{8}(?![0-9a-z])")
+POS_RE = re.compile(r"(?i)\(\s*-?\d+\s*,\s*-?\d+\s*\)|\[\s*-?\d+\s*,\s*-?\d+\s*\]|(?<![0-9a-z])[xy]\s*[=:]\s*-?\d"
+                    r"|\b(?:pos|position|coords?)\s*[=:]\s*[(\[]?\s*-?\d|\bmap\s*=\s*\d+\s*,\s*\d|\bat \(\s*-?\d+\s*,")
+FLAGVAR_RE = re.compile(r"(?i)(?<![0-9a-z])(?:flag|var)_[0-9a-z_]")
 CONST_RE = re.compile(r"\b[A-Z][A-Z0-9#]*(?:_[A-Z0-9#]+)+\b")
 
 
@@ -784,19 +1029,30 @@ def _species_names(repo: Path) -> set[str]:
         return set()
 
 
-def sanitize_label(label: str, species: set[str]) -> str:
-    label = PID_RE.sub("<pid>", label)
-    label = re.sub(r"\(\s*-?\d+\s*,\s*-?\d+\s*\)", "(<pos>)", label)
-    label = CONST_RE.sub("<id>", label)
-    return " ".join("<species>" if w.strip(".,:;!?'\"()") in species else w for w in label.split(" "))
+def species_re(species: set[str]) -> re.Pattern[str] | None:
+    """One pattern for every species name, matched on CASEFOLDED text. Each name's letter-and-digit runs are joined by
+    up to three other characters, so a name is matched as a phrase in any spelling: `Mr. Mime` / `mr mime`,
+    `Farfetch'd` with either apostrophe (species.json holds the curly one), `Ho-Oh`, `Nidoran` for both symbols. Word
+    boundaries on both ends; a possessive (`Kingdra's`), a `-type` suffix and an `s`/`es` plural still match."""
+    alts = set()
+    for name in species:
+        toks = re.findall(r"[0-9a-z]+", name.casefold())
+        if toks:
+            alts.add(r"[^0-9a-z]{0,3}".join(map(re.escape, toks)))
+    if not alts:
+        return None
+    return re.compile(r"(?<![0-9a-z])(?:" + "|".join(sorted(alts, key=lambda a: (-len(a), a))) +
+                      r")(?:e?s)?(?![0-9a-z])")
 
 
 def check_ai_facing(obj, species: set[str]) -> list[str]:
-    """THE E7 GATE on an AI-facing file: [] or the problems. No PID (`#XXXXXXXX`), no `(x, y)` position, no flag- or
-    var-shaped constant (the 13 boss keys are allowed as KEYS of the `bosses` block), no species name in any string
-    value or key, and every block of `bosses` and `runs` labelled `source: "bot corpus"`."""
+    """THE E7 GATE on an AI-facing file: [] or the problems. In every string value AND every dict key: no PID, no
+    position, no flag- or var-shaped name (the 13 boss keys are allowed as KEYS of the `bosses` block), no species
+    name (all as `PID_RE`, `POS_RE`, `FLAGVAR_RE`/`CONST_RE`, `species_re` define them); and every block of `bosses`
+    and `runs` labelled `source: "bot corpus"`."""
     problems: list[str] = []
     allowed_keys = set(BOSS_ORDER)
+    sp_re = species_re(species)
 
     def walk(x, path: str) -> None:
         if isinstance(x, dict):
@@ -815,16 +1071,19 @@ def check_ai_facing(obj, species: set[str]) -> list[str]:
             problems.append(f"{where}: a PID in {s[:80]!r}")
         if POS_RE.search(s):
             problems.append(f"{where}: a position in {s[:80]!r}")
-        if CONST_RE.search(s):
+        if FLAGVAR_RE.search(s) or CONST_RE.search(s):
             problems.append(f"{where}: a flag- or var-shaped name in {s[:80]!r}")
-        hit = [w for w in re.findall(r"[A-Za-z][A-Za-z'.\-]+", s) if w in species]
+        hit = sp_re.search(s.casefold()) if sp_re is not None else None
         if hit:
-            problems.append(f"{where}: a species name {hit[0]!r} (species shares are the bot's style, withheld)")
+            problems.append(f"{where}: a species name {hit.group(0)!r} (species shares are the bot's style, withheld)")
 
     walk(obj, "")
     for block in ("bosses", "runs"):
         if not isinstance(obj, dict) or block not in obj:
             problems.append(f"no {block} block")
+            continue
+        if block == "bosses" and not isinstance(obj[block], dict):
+            problems.append("bosses: not a block of bosses")
             continue
         items = obj[block].items() if block == "bosses" else [("runs", obj[block])]
         for name, b in items:
@@ -833,8 +1092,9 @@ def check_ai_facing(obj, species: set[str]) -> list[str]:
     return problems
 
 
-def build_priors(recs: list[dict], species: set[str]) -> dict:
-    """The AI-facing per-boss numbers (spec S3-3), from the store's records. Censoring as in the module docstring."""
+def build_priors(recs: list[dict]) -> dict:
+    """The AI-facing per-boss numbers (spec S3-3), from the store's records. Censoring as in the module docstring;
+    every label through `priors_label` (the allowlist)."""
     bosses = {}
     usable = [r for r in recs if r.get("usable")]
     for k in BOSS_ORDER:
@@ -848,7 +1108,7 @@ def build_priors(recs: list[dict], species: set[str]) -> dict:
             else:
                 censored += 1  # fought, never won, the game cut by the time limit: not a failure
             if r.get("usable") and not a["won"]:
-                fails[sanitize_label(str(r.get("wall")), species)] += 1
+                fails[priors_label(r.get("wall"))] += 1
         first_party = [a["party_first_loss"] if a["losses"] else a["party_win"] for _, a in resolved]
         bands: dict[int, list[int]] = {}
         for (r, a), party in zip(resolved, first_party):
@@ -900,7 +1160,7 @@ def build_priors(recs: list[dict], species: set[str]) -> dict:
             "failures": {"n": sum(fails.values()), "n_usable_rows_fought": sum(
                 1 for r in usable if (r.get("tier_a") or {}).get(k)), "labels": dict(sorted(fails.items()))},
         }
-    walls = collections.Counter(sanitize_label(str(r.get("wall")), species) for r in usable)
+    walls = collections.Counter(priors_label(r.get("wall")) for r in usable)
     return {
         "source": CORPUS, "schema": SCHEMA,
         "what": "per-boss numbers from the bot tuner's games: a PRIOR ON NEEDS for the AI player, never a policy or a "
@@ -922,9 +1182,16 @@ def build_priors(recs: list[dict], species: set[str]) -> dict:
 
 def write_priors(store: Path, out: Path, repo: Path, clone: Path, force: bool = False) -> tuple[int, str]:
     """`--priors`: regenerate the AI-facing file from the store, only when there is none or the sample grew 10 %
-    (or `force`). The E7 gate runs BEFORE the write; a file that fails it is never written (exit 3)."""
-    refuse_protected_write(out, repo, clone, allow_digest_scope=True)
-    with StoreLock(store):  # never read a line the O1 task is appending
+    (or `force`). The E7 gate runs BEFORE the write; a file that fails it is never written (exit 3).
+
+    The STORE is guarded too, before the lock touches it: taking the lock writes `.lock` files there, and a `--store`
+    inside the clone or `ai_player/` used to get a folder and a lock created before the empty store was refused
+    (review 2026-10-21). This run only READS the store, so a missing one is refused, never created."""
+    for target in (store, store / LOCK_FILE, store / MUTEX_FILE):
+        refuse_protected_write(target, repo, clone)  # no digest exemption: the store never belongs in ai_player/
+    for target in (out, out.with_suffix(".json.tmp")):
+        refuse_protected_write(target, repo, clone, allow_digest_scope=True)
+    with StoreLock(store, create=False):  # never read a line the O1 task is appending
         recs, _ = read_store(store)
     if not recs:
         raise Refused(f"the store {store} is empty: run --full or --incremental first")
@@ -935,9 +1202,8 @@ def write_priors(store: Path, out: Path, repo: Path, clone: Path, force: bool = 
             old_n = 0
         if old_n and len(recs) < old_n * 1.1:
             return EXIT_OK, f"not regenerated: {len(recs)} records vs {old_n} in the file (< 10 % growth)"
-    species = _species_names(repo)
-    priors = build_priors(recs, species)
-    problems = check_ai_facing(priors, species)
+    priors = build_priors(recs)
+    problems = check_ai_facing(priors, _species_names(repo))
     if problems:
         return EXIT_GATE, "REFUSED by the privacy gate: " + "; ".join(problems[:5])
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -945,7 +1211,9 @@ def write_priors(store: Path, out: Path, repo: Path, clone: Path, force: bool = 
     tmp.write_text(json.dumps(priors, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8",
                    newline="\n")
     os.replace(tmp, out)
-    return EXIT_OK, f"wrote {out} from {len(recs)} records"
+    other = priors["runs"]["wall_labels"].get(OTHER_LABEL, 0)
+    return EXIT_OK, (f"wrote {out} from {len(recs)} records; {other} usable runs' wall labels are outside the "
+                     f"allowlist and counted as {OTHER_LABEL!r}")
 
 
 # ============================================================================================ CLI
@@ -994,6 +1262,13 @@ def main(argv: list[str] | None = None) -> int:
     except Refused as exc:
         print(f"REFUSED: {exc}")
         return EXIT_REFUSED
+    except BadInput as exc:
+        print(f"CRASHED (unreadable input): {exc}")
+        return EXIT_CRASH
+    except Exception as exc:  # noqa: BLE001 - a crash must never exit 1, the code that means "a boss disagrees"
+        traceback.print_exc()
+        print(f"CRASHED: {type(exc).__name__}: {exc}")
+        return EXIT_CRASH
     print(f"{s['mode']}: {s['rows']} rows in runs.jsonl, {s['already']} already in the store, {s['new']} new "
           f"records in {s['seconds']} s; tiers {s['tiers']}; badge-log joins {s['badge_join']}; boss ids from "
           f"{s['boss_ids_from']}")
@@ -1005,6 +1280,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"tier B vs runs.jsonl: {s['bosses_compared']} bosses compared, {len(s['disagreements'])} disagree")
     for key, d in s["disagreements"]:
         print(f"  DISAGREE {key} {d['boss']}: runs.jsonl {d['runs_jsonl']} vs log {d['log']}")
+    if s["deferred"]:
+        print(f"WARN DEFERRED {len(s['deferred'])} runs (not written, not in the cursor; the next --incremental "
+              f"retries them): their cycle had raw data but the log could not be read, and the cycle is not yet "
+              f"in its final archived form")
+        for key, why in s["deferred"][:20]:
+            print(f"  DEFERRED {key}: {why}")
     return code
 
 

@@ -1,0 +1,9 @@
+f50 [hb] mode=Story state=7 party=['Treecko:L5'] money=3000
+f100 [STEP] 'Story: choosing Mudkip!'
+f200 [hb] mode=Story (ENDLESS RESET) state=7 controllable=True map=LAVARIDGE TOWN(4,1) pos=(5, 3) party=['Marshtomp:L30', 'Taillow:L25'] owned=8 money=9000
+f1000 [TRAINER] start opp=268 class=0x20(LEADER) value=29 lvl_last=29 first=True base=2900 double=False two=False money=9000 heal_stock=- map=4,1 enemy_alive=4
+f1500 [TRAINER] start opp=268 class=0x20(LEADER) value=29 lvl_last=29 first=False base=2900 double=False two=False money=9000 heal_stock=- map=4,1 enemy_alive=4
+f2000 [TRAINER] end opp=268 class=0x20(LEADER) value=29 lvl_last=29 first=False base=2900 res=Won money=9000->11900 delta=2900 mult=1 heal_stock=- map=4,1
+f3000 [TRAINER] start opp=269 class=0x20(LEADER) value=31 lvl_last=31 first=True base=3100 double=False two=False money=11900 heal_stock=- map=8,1 enemy_alive=4
+f3500 [TRAINER] end opp=270 class=0x20(LEADER) value=33 lvl_last=33 first=True base=3300 res=Lost money=11900->5950 delta=-5950 mult=1 heal_stock=- map=8,1
+f4000 [TRAINER] end opp=269 class=0x20(LEADER) value=31 lvl_last=31 first=False base=3100 res=Lost money=5950->2975 delta=-2975 mult=1 heal_stock=- map=8,1

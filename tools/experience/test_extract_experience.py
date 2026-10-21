@@ -31,7 +31,7 @@ C:/Remote Projects/pokebot-learner) is only READ, and its logs are copied before
       byte-identical to the store from the folder. FAULT: a zip with one member changed gives a different store.
   E7  the privacy gate on the AI-facing file: FAULT a planted PID, position, flag name, species, or a missing
       "bot corpus" label each fail; the writer refuses a failing file (nothing written); a dirty wall label is
-      MASKED, not leaked. CONTROL a generated file (and, with the clone, one from the real rows) passes.
+      never written (counted as <other>). CONTROL a generated file (and, with the clone, one from the real rows) passes.
   E8  format drift: a >1,000-line log with no [TRAINER] start is parse_suspect; CONTROL with one start, it is not;
       unknown tags are counted, never fatal.
   E10 the digest scope: --incremental on a scratch git repo leaves its ai_player/ digest (provenance.py) unchanged;
@@ -42,6 +42,22 @@ C:/Remote Projects/pokebot-learner) is only READ, and its logs are copied before
       store line or a cursor key missing from the store refuses; a store inside the clone refuses; a decomp whose boss
       ids drift refuses; an incomplete-only boss is adjudicated but a tier-A-absent WIN is still a disagreement; the
       badge-log joins by frame identity (wrong frames are not attached, stale-boot entries are dropped).
+ADDED BY THE 2026-10-21 REVIEW FIX (each arm failed on 57a7ec28 or on a mutant that suite let survive):
+  P1  a second golden (`fixtures/golden_pairing.log`, hand-derived): a boss start cut off by another start is
+      incomplete, never a loss; an end line for another opp closes nothing of the open fight; G6 a LOST boss absent from
+      runs.jsonl is a disagreement (the incomplete-only adjudication must not widen).
+  E7b the label ALLOWLIST: the review's crafted labels become `<other>` (counted), allowlisted names pass unchanged,
+      the allowlist covers classify_wall's real names; E7c the DENYLIST gate alone catches them as VALUES and as KEYS
+      (case, possessives, phrases, both apostrophes, hex PIDs with/without # or 0x, x=/y= and [a, b], flag_/var_), and
+      does not fire on mentions.
+  G4b the write guard on resolved paths and identity: a junction, a `\\\\?\\` prefix, an 8.3 short name, a UNC admin
+      share, case and slashes; the default clone and this checkout's ai_player/ stay guarded when --clone/--repo point
+      elsewhere; the trees the run reads; each layer tested alone; --priors guards its --store and never creates one.
+  R1-R4 the O3 race: a cycle archived between two records gives the same store as no race; a log missing from a cycle
+      not yet archived is DEFERRED (exit 6, not in the cursor) and retried; a final archive or a pruned cycle is not.
+  G2b the lock: a held take-mutex refuses; two runs that both see a stale lock never both acquire (each layer alone,
+      and the harness shows they DO without both); a run removes only its own lock. C1 a crash exits 5, never 1.
+  N2  a torn last runs.jsonl line is skipped and picked up once whole.
 E9 (wall time, tier shares) is measured by the real `--full` run and recorded in 07, not here.
 """
 from __future__ import annotations
@@ -58,7 +74,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+import uuid
 import zipfile
 from pathlib import Path
 
@@ -74,7 +92,10 @@ CLONE = Path(os.environ.get("EXPERIENCE_CLONE", "C:/Remote Projects/pokebot-lear
 #: The module under test; a mutant run points this at a scratch copy (the copy's REPO is reset to this checkout).
 UNDER_TEST = Path(os.environ.get("EXPERIENCE_UNDER_TEST", HERE / "extract_experience.py"))
 GOLDEN = HERE / "fixtures" / "golden.log"
+GOLDEN_PAIRING = HERE / "fixtures" / "golden_pairing.log"
 WARN_EXIT = 4
+#: The extractor's documented exit codes, pinned here (O1 and a reader act on them): a crash is never 1.
+EXIT_CRASH, EXIT_DEFERRED = 5, 6
 
 
 def _load(path: Path, name: str):
@@ -108,7 +129,7 @@ def parse_bytes(data: bytes) -> dict:
 
 def run_main(args: list[str]) -> tuple[int, str]:
     buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):  # a crash's traceback is part of the output
         code = X.main([str(a) for a in args])
     return code, buf.getvalue()
 
@@ -292,12 +313,14 @@ def e2(tmp: Path) -> None:
     pick = cycles if os.environ.get("EXPERIENCE_E2_ALL") == "1" else cycles[-1:]
     ids, names, source = X.boss_tables()
     sub = [r for r in rows if r.get("source") in pick]
-    recs = X.extract(sub, set(), CLONE / "ai-agent" / "runs", CLONE / "sandbox-pokebot" / "profiles", ids, names)
+    recs, deferred = X.extract(sub, set(), CLONE / "ai-agent" / "runs", CLONE / "sandbox-pokebot" / "profiles", ids,
+                               names)
     both = [r for r in recs if r["tier"] == "A+B"]
     compared = sum(len(r["agrees_with_runs_jsonl"]) for r in both)
     dis = [(r["key"], d) for r in recs for d in r["disagreements"]]
-    check(f"E2 REAL ({', '.join(pick)}): every tier-B boss equals runs.jsonl's boss_log", not dis and compared > 0,
-          f"{len(dis)} disagree of {compared}: {dis[:3]}")
+    check(f"E2 REAL ({', '.join(pick)}): every tier-B boss equals runs.jsonl's boss_log; no run deferred",
+          not dis and compared > 0 and not deferred, f"{len(dis)} disagree of {compared}: {dis[:3]}; deferred "
+          f"{deferred[:3]}")
     check("E2 REAL: non-vacuous (most rows have a log; each such row compared at least one boss when it has one)",
           len(both) >= 0.8 * len(sub) and all(r["agrees_with_runs_jsonl"] or not r["tier_a"] for r in both),
           f"{len(both)} A+B of {len(sub)}")
@@ -377,12 +400,12 @@ def tl_row(n: int, usable: bool = True) -> dict:
 
 def e4_arms(rows: list[dict], flip_key: str, label: str) -> None:
     recs = [X.build_record(r, None, FALLBACK, {}) for r in rows]
-    base = X.build_priors(recs, set())
+    base = X.build_priors(recs)
     flipped = copy.deepcopy(recs)
     for r in flipped:
         if r["key"] == flip_key:
             r["usable"] = False
-    after = X.build_priors(flipped, set())
+    after = X.build_priors(flipped)
     tl0, tl1 = base["bosses"]["TATE_AND_LIZA"], after["bosses"]["TATE_AND_LIZA"]
     w = "boss wall: Tate & Liza"
     beaten = [k for k, v in (next(r for r in recs if r["key"] == flip_key)["tier_a"] or {}).items() if v["won"]]
@@ -441,8 +464,10 @@ def e5(tmp: Path) -> None:
 
 # ============================================================================================ E6 archive parity
 
-def zip_cycle(root: Path, tag: str, profiles: list[str], mutate: tuple[str, bytes, bytes] | None = None) -> None:
-    """Replace runs/<tag>/batch and the profiles with runs/<tag>/raw.zip (stdlib; names as O3 writes them)."""
+def zip_cycle(root: Path, tag: str, profiles: list[str], mutate: tuple[str, bytes, bytes] | None = None,
+              delete_batch: bool = True) -> None:
+    """Replace runs/<tag>/batch and the profiles with runs/<tag>/raw.zip (stdlib; names as O3 writes them).
+    `delete_batch=False` stops part-way, as O3's delete can: the zip is in, the profiles are gone, the batch is not."""
     cdir = root / "ai-agent/runs" / tag
     with zipfile.ZipFile(cdir / "raw.zip", "w", zipfile.ZIP_DEFLATED) as zf:
         for f in sorted((cdir / "batch").rglob("*")):
@@ -457,7 +482,8 @@ def zip_cycle(root: Path, tag: str, profiles: list[str], mutate: tuple[str, byte
             for f in sorted(pdir.rglob("*")):
                 if f.is_file():
                     zf.writestr(f"profiles/{p}/{f.relative_to(pdir).as_posix()}", f.read_bytes())
-    shutil.rmtree(cdir / "batch")
+    if delete_batch:
+        shutil.rmtree(cdir / "batch")
     for p in profiles:
         shutil.rmtree(root / "sandbox-pokebot/profiles" / p)
 
@@ -576,15 +602,20 @@ def e7(tmp: Path) -> None:
           len(species))
     dirty = tl_row(9)  # a usable row that LOST a boss, so its label lands in that boss's failures AND the run walls
     dirty["wall"] = "boss wall: Kingdra at (5, 3) #3E751CAF FLAG_BADGE07_GET"
-    root = fake_clone(tmp / "e7", {"golden.log": GOLDEN.read_bytes()}, [golden_row(), tl_row(1), dirty])
+    # The two tier-A rows come from a cycle with NO raw data (ai9002): a row of a cycle that still has its folder but
+    # not its log is deferred (the O3 race rule, R2), and these rows have no log.
+    tier_a_only = [r | {"source": "ai9002"} for r in (tl_row(1), dirty)]
+    root = fake_clone(tmp / "e7", {"golden.log": GOLDEN.read_bytes()}, [golden_row(), *tier_a_only])
     store = tmp / "e7" / "store"
     run_main(extract_args(root, store))
     out = tmp / "e7" / "priors.json"
     code, msg = run_main(["--priors", "--store", store, "--priors-out", out, "--clone", root])
     text = out.read_text(encoding="utf-8") if out.exists() else ""
-    check("E7 CONTROL: the generated priors pass the gate; the dirty wall label is MASKED, not leaked",
+    walls = json.loads(text)["runs"]["wall_labels"] if text else {}
+    check("E7 CONTROL: the generated priors pass the gate; the dirty wall label is not leaked but COUNTED as <other>",
           code == 0 and text and "3E751CAF" not in text and "Kingdra" not in text and "(5, 3)" not in text
-          and "FLAG_" not in text, msg)
+          and "FLAG_" not in text and walls.get("<other>") == 1 and walls.get("boss wall: Tate & Liza") == 1,
+          f"{msg} | {walls}")
     c2, _ = run_main(["--check-priors", out])
     check("E7 CONTROL: --check-priors passes the generated file", c2 == 0)
     priors = json.loads(text) if text else {}
@@ -611,8 +642,8 @@ def e7(tmp: Path) -> None:
         check(f"E7 FAULT: {what} planted in a scratch priors file fails the gate", c3 == X.EXIT_GATE, o3[-200:])
     real_build = X.build_priors
     try:
-        def leaky(recs, species_):
-            p = real_build(recs, species_)
+        def leaky(recs):
+            p = real_build(recs)
             p["runs"]["note"] = "#3E751CAF"
             return p
         X.build_priors = leaky
@@ -624,7 +655,7 @@ def e7(tmp: Path) -> None:
           c4 == X.EXIT_GATE and not out2.exists(), msg4)
     if clone_ready():
         recs = [X.build_record(r, None, FALLBACK, {}) for r in real_rows()]
-        problems = X.check_ai_facing(X.build_priors(recs, species), species)
+        problems = X.check_ai_facing(X.build_priors(recs), species)
         check("E7 CONTROL (REAL rows): priors built from every real runs.jsonl row pass the gate", not problems,
               problems[:3])
     else:
@@ -830,10 +861,566 @@ def j1(tmp: Path) -> None:
           out == [] and why.startswith("ok"), why)
 
 
+# ============================================================================================ P1 pairing golden
+
+#: Derived BY HAND from fixtures/golden_pairing.log (2026-10-21), line by line, not printed from the code. The f50
+#: heartbeat is before `Story: choosing` (ignored; the party comes from f200, 800 frames before the first start).
+#: Flannery (opp 268): the f1000 start is cut off by a SECOND start at f1500, so that fight is incomplete and never a
+#: loss; the f1500 fight ends Won. Norman (269) starts at f3000; the f3500 end is for opp=270 (Winona), so it closes
+#: NOTHING of Norman's (his fight is incomplete) and is Winona's orphan Lost end; the f4000 end opp=269 is an orphan
+#: Lost for Norman. scoring.py counts END lines, so it agrees: Flannery won with 0 losses, Norman 1 loss, Winona 1.
+EXPECTED_PAIRING_BOSSES = {"FLANNERY": {"won": True, "losses": 0, "fights": 2, "incomplete": 1},
+                           "NORMAN": {"won": False, "losses": 1, "fights": 2, "incomplete": 1},
+                           "WINONA": {"won": False, "losses": 1, "fights": 1, "incomplete": 0}}
+#: (boss, start_frame, end_frame, res, incomplete, orphan_end, fight_no, money_before, money_after)
+EXPECTED_PAIRING_FIGHTS = [("FLANNERY", 1000, None, None, True, False, 1, 9000, None),
+                           ("FLANNERY", 1500, 2000, "Won", False, False, 2, 9000, 11900),
+                           ("NORMAN", 3000, None, None, True, False, 1, 11900, None),
+                           ("WINONA", None, 3500, "Lost", False, True, 1, 11900, 5950),
+                           ("NORMAN", None, 4000, "Lost", False, True, 2, 5950, 2975)]
+
+
+def pairing_row(**over) -> dict:
+    """The row scoring.py writes for golden_pairing.log: a boss_log entry for every boss with an END line."""
+    team = "['Marshtomp:L30', 'Taillow:L25']"
+    bl = {"FLANNERY": {"losses": 0, "won": True, "party_first_loss": None, "party_win": team},
+          "NORMAN": {"losses": 1, "won": False, "party_first_loss": team, "party_win": None},
+          "WINONA": {"losses": 1, "won": False, "party_first_loss": team, "party_win": None}}
+    return golden_row(log="pairing.log", boss_log=bl, milestones=[["FLANNERY", 2000]], **over)
+
+
+def p1(tmp: Path) -> None:
+    data = GOLDEN_PAIRING.read_bytes()
+    got = parse_bytes(data)
+    check("P1 pairing golden: 9 lines, the run starts at f100, 3 starts, the pre-start heartbeat ignored",
+          got["lines"] == 9 and got["start_frame"] == 100 and got["trainer_starts"] == 3
+          and got["fights"][0]["party_age_frames"] == 800, (got["lines"], got["start_frame"], got["trainer_starts"]))
+    check("P1 FAULT-SHAPES: a start cut off by a start is incomplete (never a loss); an end for another opp closes "
+          "nothing of the open fight: per boss equal to the hand-derived table", got["bosses"] == EXPECTED_PAIRING_BOSSES,
+          got["bosses"])
+    proj = [(f["boss"], f["start_frame"], f["end_frame"], f["res"], f["incomplete"], f["orphan_end"], f["fight_no"],
+             f["money_before"], f["money_after"]) for f in got["fights"]]
+    check("P1 every fight equals the hand-derived pairing (frames, result, incomplete, orphan, number, money)",
+          proj == EXPECTED_PAIRING_FIGHTS, proj)
+    rec = build_from_bytes(pairing_row(), data)
+    check("P1 CONTROL: scoring.py's boss_log for this log agrees boss by boss; nothing adjudicated",
+          rec["agrees_with_runs_jsonl"] == {"FLANNERY": True, "NORMAN": True, "WINONA": True}
+          and not rec["disagreements"] and rec["bosses_incomplete_only"] == [], rec["disagreements"])
+    row = pairing_row()
+    row["boss_log"].pop("WINONA")
+    rec = build_from_bytes(row, data)
+    check("G6 FAULT: a boss LOST in the log (1 loss, never won) but absent from runs.jsonl is a disagreement, never "
+          "adjudicated as incomplete-only", any(d["boss"] == "WINONA" for d in rec["disagreements"])
+          and "WINONA" not in rec["bosses_incomplete_only"], (rec["disagreements"], rec["bosses_incomplete_only"]))
+
+
+# ============================================================================================ E7b/E7c labels, gate
+
+#: The review's crafted wall labels (2026-10-21): each reached the AI-facing file through the old masks. The allowlist
+#: must turn every one into <other> (the last three are not leaks, only not EXACTLY an allowlisted name).
+LEAKY_LABELS = (
+    "boss wall: kingdra", "boss wall: KINGDRA", "boss wall: Kingdra's Dragon Dance", "boss wall: Mr. Mime",
+    "boss wall: Farfetch'd", "boss wall: Farfetch’d", "boss wall: Nidoran♀'s", "boss wall: Kingdra-type",
+    "boss wall: Kingdra/Luvdisc", "lead #3e751caf fainted", "lead pid=3E751CAF fainted", "lead 0x3E751CAF fainted",
+    "stuck at x=12 y=7", "stuck at [12, 7]", "stuck at 12,7 on ROUTE 111", "flag_badge07_get unset",
+    "FLAGBADGE07 unset", "Ch# (Victory Road) failed after # attempts. attempt #: BotModeError: C",
+    "boss wall: norman", "boss wall: Norman ")
+#: What the DENYLIST gate must catch ON ITS OWN (the independent second layer). Not in it, said out loud: a bare `12,7`
+#: pair (the file's own text says "3,600 frames") and `FLAGBADGE07` (no underscore); the allowlist is their only layer.
+DENY_PLANTS = (
+    "kingdra", "KINGDRA", "Kingdra's Dragon Dance", "Mr. Mime", "mr mime", "Farfetch'd", "Farfetch’d", "farfetchd",
+    "Nidoran♀'s", "Kingdra-type", "Kingdra/Luvdisc", "two Zubats", "Ho-Oh", "#3e751caf", "pid=3E751CAF",
+    "0x3E751CAF", "lead 3e751caf fainted", "x=12 y=7", "y: -3", "[12, 7]", "at (5, 3)", "pos=(5, 3)", "map=11,3",
+    "flag_badge07_get", "Var_Temp_1", "set_flag_x", "FLAG_BADGE07_GET", "BADGE07_GET")
+#: Mentions the gate must NOT fire on (a gate with false positives teaches people to bypass it).
+DENY_NEGATIVES = (
+    "no PID, position, flag or var name, or species", "up to 3,600 frames old", "27-29", "first_try_win_rate",
+    "a game cut by the time limit (usable false) is censored", "boss wall: Tate & Liza",
+    "E4 refused: League basket short", "max=3", "variable flags were flagged", "the map", "Poke Balls", "heal_stock",
+    "2026-10-21", "deadbeef12", "1234567", "boss wall: this boss", "<other>", "CHAMPION", "Abracadabra", "Drake",
+    "Normal")
+
+
+def e7b(tmp: Path) -> None:
+    """The label ALLOWLIST (the first layer)."""
+    other = [lab for lab in LEAKY_LABELS if X.priors_label(lab) != "<other>"]
+    check(f"E7b FAULT: each of {len(LEAKY_LABELS)} crafted labels (species in any spelling, hex PIDs, x=/[a, b] "
+          f"positions, flag names, free text, a wrong case) becomes <other>", not other, other)
+    kept = [lab for lab in sorted(X.ALLOWED_LABELS) if X.priors_label(lab) != lab]
+    check("E7b CONTROL: every allowlisted name passes unchanged", not kept and len(X.ALLOWED_LABELS) >= 20, kept)
+    check("E7b CONTROL: a row with no wall gets the fixed '<no wall label>'", X.priors_label(None) == "<no wall label>",
+          X.priors_label(None))
+    species = X._species_names(REPO)
+    dirty = [lab for lab in sorted(X.ALLOWED_LABELS) if X.check_ai_facing(
+        {"bosses": {}, "runs": {"source": X.CORPUS, "wall_labels": {lab: 1}, "note": lab}}, species)]
+    check("E7b CONTROL: the allowlist's own names pass the denylist gate, as keys and as values", not dirty, dirty)
+    knowledge = _load(REPO / "ai-agent" / "knowledge.py", "knowledge_for_e7b")
+    emitted = {name for name, _, _ in knowledge.WALLS} | {knowledge.classify_wall(None)}
+    emitted |= {knowledge.classify_wall(f"{b}: 3 losses with no super-effective answer to Water. Need one of: Grass.")
+                for b in X.BOSS_DISPLAY}
+    emitted |= {knowledge.classify_wall(f"this boss: 3 losses with no super-effective answer to {t}. x")
+                for t in ("Normal", "Rock")}
+    missing = sorted(emitted - X.ALLOWED_LABELS)
+    check("E7b CONTROL: every name classify_wall emits from its table, for the 13 bosses and for 'this boss', is "
+          "allowlisted (a new WALLS name must be reviewed and added)", not missing and len(emitted) >= 20, missing)
+    rows = [tl_row(i) | {"wall": lab} for i, lab in enumerate(LEAKY_LABELS)] + [tl_row(99)]
+    recs = [X.build_record(r, None, FALLBACK, {}) for r in rows]
+    p = X.build_priors(recs)
+    text = json.dumps(p, ensure_ascii=False)
+    leaked = [lab for lab in LEAKY_LABELS if lab in text]
+    n = len(LEAKY_LABELS)
+    check("E7b END TO END: priors built from rows with the crafted labels carry none of them, count each as <other> "
+          "(run walls and the boss's failure labels), keep the allowlisted one, and pass the gate",
+          not leaked and p["runs"]["wall_labels"] == {"<other>": n, "boss wall: Tate & Liza": 1}
+          and p["bosses"]["TATE_AND_LIZA"]["failures"]["labels"] == {"<other>": n, "boss wall: Tate & Liza": 1}
+          and not X.check_ai_facing(p, species), (leaked, p["runs"]["wall_labels"]))
+
+
+def e7c(tmp: Path) -> None:
+    """The DENYLIST gate on its own (it never consults the allowlist)."""
+    species = X._species_names(REPO)
+    base = {"bosses": {k: {"source": X.CORPUS, "failures": {"labels": {}}} for k in X.BOSS_ORDER},
+            "runs": {"source": X.CORPUS, "wall_labels": {}}}
+    clean = X.check_ai_facing(base, species)
+    check("E7c CONTROL: the clean skeleton passes", not clean, clean)
+
+    def missed(place) -> list[str]:
+        out = []
+        for s in DENY_PLANTS:
+            obj = copy.deepcopy(base)
+            place(obj, s)
+            if not X.check_ai_facing(obj, species):
+                out.append(s)
+        return out
+
+    places = (("a string VALUE", lambda o, s: o["runs"].__setitem__("note", s)),
+              ("a runs.wall_labels KEY", lambda o, s: o["runs"]["wall_labels"].__setitem__(s, 1)),
+              ("a boss's failures.labels KEY", lambda o, s: o["bosses"]["JUAN"]["failures"]["labels"].__setitem__(s, 1)))
+    for what, place in places:
+        m = missed(place)
+        check(f"E7c FAULT: each of {len(DENY_PLANTS)} planted leaks fails the gate as {what}", not m, m)
+    fp = []
+    for s in DENY_NEGATIVES:
+        obj = copy.deepcopy(base)
+        obj["runs"]["note"] = s
+        obj["runs"]["wall_labels"][s] = 1
+        if X.check_ai_facing(obj, species):
+            fp.append(s)
+    check(f"E7c CONTROL: the gate does not fire on {len(DENY_NEGATIVES)} mentions and the file's own words",
+          not fp, fp)
+
+
+# ============================================================================================ N2, C1: inputs, crashes
+
+def n2(tmp: Path) -> None:
+    g = GOLDEN.read_bytes()
+    root = fake_clone(tmp / "torn", {"a.log": g, "b.log": g}, [golden_row("a.log")])
+    rj = root / "ai-agent" / "data" / "runs.jsonl"
+    whole = json.dumps(golden_row("b.log")) + "\n"
+    with open(rj, "a", encoding="utf-8", newline="\n") as fh:
+        fh.write(whole[:len(whole) // 2])  # the tuner is appending this row right now
+    store = tmp / "torn" / "store"
+    code, out = run_main(extract_args(root, store, "--incremental"))
+    keys = [r["key"] for r in records(store)] if (store / X.STORE_FILE).exists() else []
+    check("N2 FAULT: a torn last runs.jsonl line is skipped: exit 0, only the whole row extracted",
+          code == 0 and keys == [f"{TAG}/1/a.log"], f"exit {code}; {keys}; {out[-200:]}")
+    with open(rj, "a", encoding="utf-8", newline="\n") as fh:
+        fh.write(whole[len(whole) // 2:])
+    code, out = run_main(extract_args(root, store, "--incremental"))
+    keys = [r["key"] for r in records(store)]
+    check("N2 CONTROL: once the line is whole, the next --incremental extracts it",
+          code == 0 and keys == [f"{TAG}/1/a.log", f"{TAG}/1/b.log"], f"exit {code}; {keys}")
+
+
+def main_exit(args: list) -> tuple[int, str]:
+    """main()'s exit code as `sys.exit(main())` turns it into one: an exception escaping main() is exit 1."""
+    try:
+        return run_main(args)
+    except Exception as exc:  # noqa: BLE001 - exactly what this measures
+        return 1, f"(escaped main) {type(exc).__name__}: {exc}"
+
+
+def c1(tmp: Path) -> None:
+    root = fake_clone(tmp / "c1", {"golden.log": GOLDEN.read_bytes()}, [golden_row()])
+    rj = root / "ai-agent" / "data" / "runs.jsonl"
+    rj.write_bytes(b"{not json}\n" + rj.read_bytes())
+    code, out = main_exit(extract_args(root, tmp / "c1" / "store", "--incremental"))
+    check("C1 FAULT: a corrupt runs.jsonl line exits 5 (never 1, 'a boss disagrees') and names line 1",
+          code == EXIT_CRASH and "runs.jsonl line 1 is not JSON" in out, f"exit {code}: {out[-200:]}")
+    real = X.read_cursor
+
+    def planted(store):
+        raise RuntimeError("planted")
+    X.read_cursor = planted
+    try:
+        code, out = main_exit(extract_args(root, tmp / "c1" / "store2", "--incremental"))
+    finally:
+        X.read_cursor = real
+    check("C1 FAULT: any uncaught error exits 5 with its traceback, never 1",
+          code == EXIT_CRASH and "RuntimeError: planted" in out and "Traceback" in out, f"exit {code}: {out[-200:]}")
+    rj.write_bytes(rj.read_bytes().split(b"\n", 1)[1])
+    code, _ = main_exit(extract_args(root, tmp / "c1" / "store3", "--incremental"))
+    check("C1 CONTROL: the same runs.jsonl without the bad line exits 0", code == 0, code)
+    codes = [getattr(X, n, None) for n in ("EXIT_OK", "EXIT_DISAGREE", "EXIT_REFUSED", "EXIT_GATE", "EXIT_CRASH",
+                                           "EXIT_DEFERRED")]
+    check("C1 the documented exit codes: crash 5, deferred 6, all six distinct", codes[4:] == [EXIT_CRASH, EXIT_DEFERRED]
+          and len(set(codes)) == 6, codes)
+
+
+# ============================================================================================ R1-R4 the O3 race
+
+def _raced(tmp: Path, name: str, rows: list[dict], logs: dict[str, bytes], o3) -> tuple[int, str, Path]:
+    """--incremental over a fake clone, with `o3(root)` run just BEFORE the second record is built: O3 archives the
+    cycle in the middle of a pass, after the cycle was opened as a folder and its first record was written."""
+    root = fake_clone(tmp / name, logs, rows)
+    real = X.build_record
+    calls = {"n": 0}
+
+    def wrapped(row, raw, ids, names):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            o3(root)
+        return real(row, raw, ids, names)
+    X.build_record = wrapped
+    try:
+        code, out = run_main(extract_args(root, tmp / name / "store", "--incremental"))
+    finally:
+        X.build_record = real
+    return code, out, tmp / name / "store"
+
+
+def r_race(tmp: Path) -> None:
+    g = GOLDEN.read_bytes()
+    rows = [golden_row("a.log"), golden_row("b.log")]
+    logs = {"a.log": g, "b.log": g}
+    ref_root = fake_clone(tmp / "ref", logs, rows)
+    c0, _ = run_main(extract_args(ref_root, tmp / "ref" / "store", "--incremental"))
+    ref = (tmp / "ref" / "store" / X.STORE_FILE).read_bytes()
+    check("R CONTROL: the no-race reference run writes both logs as tier A+B",
+          c0 == 0 and [r["tier"] for r in records(tmp / "ref" / "store")] == ["A+B", "A+B"])
+
+    code, out, store = _raced(tmp, "r1", rows, logs, lambda root: zip_cycle(root, TAG, [PROFILE]))
+    got = (store / X.STORE_FILE).read_bytes()
+    check("R1 FAULT: O3 archives the cycle between two records (raw.zip in, folder and profile deleted): the second "
+          "record is still A+B, and the store equals the no-race store byte for byte, exit 0",
+          code == 0 and got == ref, f"exit {code}; tiers {[r['tier'] for r in records(store)]}; "
+                                    f"{[r['badge_log_join'] for r in records(store)]}")
+
+    code, out, store = _raced(tmp, "r1b", rows, logs,
+                              lambda root: zip_cycle(root, TAG, [PROFILE], delete_batch=False))
+    got = (store / X.STORE_FILE).read_bytes()
+    check("R1b FAULT: raw.zip arrives and the lane profile is deleted, the logs not yet: a record built then (the log "
+          "read fine, the badge-log gone from the folder) is rebuilt from the zip: same store as no race",
+          code == 0 and got == ref, f"exit {code}; {[r['badge_log_join'] for r in records(store)]}")
+
+    root = fake_clone(tmp / "r2", {"a.log": g}, rows)  # b.log's row exists, its file is not in the folder (yet)
+    store = tmp / "r2" / "store"
+    code, out = run_main(extract_args(root, store, "--incremental"))
+    keys = [r["key"] for r in records(store)]
+    cursor = json.loads((store / X.CURSOR_FILE).read_text(encoding="utf-8"))["extracted"]
+    check("R2 FAULT: a log missing from a cycle that still has its folder (not in its final archived form) is "
+          "DEFERRED: exit 6, not in the store, not in the cursor, named in a WARN",
+          code == EXIT_DEFERRED and keys == [f"{TAG}/1/a.log"] and cursor == [f"{TAG}/1/a.log"]
+          and f"DEFERRED {TAG}/1/b.log" in out, f"exit {code}; {keys}; {out[-300:]}")
+    (root / "ai-agent/runs" / TAG / "batch/L01/debug-logs/b.log").write_bytes(g)
+    code, out = run_main(extract_args(root, store, "--incremental"))
+    check("R2 CONTROL: the next --incremental retries it and appends it as A+B, exit 0",
+          code == 0 and [r["tier"] for r in records(store)] == ["A+B", "A+B"], f"exit {code}; {out[-200:]}")
+
+    root = fake_clone(tmp / "r3", {"a.log": g}, rows)
+    zip_cycle(root, TAG, [PROFILE])
+    code, out = run_main(extract_args(root, tmp / "r3" / "store", "--incremental"))
+    check("R3 CONTROL: in a cycle in its FINAL archived form (raw.zip, no folder) a member the zip lacks is gone for "
+          "good: appended as tier A, exit 0, not deferred",
+          code == 0 and [r["tier"] for r in records(tmp / "r3" / "store")] == ["A+B", "A"], f"exit {code}; {out[-200:]}")
+
+    root = fake_clone(tmp / "r5", logs, rows)
+    zip_cycle(root, TAG, [PROFILE])
+    zpath = root / "ai-agent/runs" / TAG / "raw.zip"
+    with zipfile.ZipFile(zpath) as zi:
+        members = [(i.filename, zi.read(i.filename)) for i in zi.infolist()]
+    with zipfile.ZipFile(zpath, "w", zipfile.ZIP_STORED) as zo:  # stored, so one flipped byte is a CRC failure
+        for name, data in members:
+            zo.writestr(name, data)
+        offset = zo.getinfo("batch/L01/debug-logs/b.log").header_offset
+    blob = zpath.read_bytes()
+    body = g.replace(b"res=Won money=7368", b"res=Wox money=7368", 1)
+    at = blob.index(g, offset)  # the stored bytes of THE member the extractor reads (not the profile's twin)
+    zpath.write_bytes(blob[:at] + body + blob[at + len(g):])
+    code, out = run_main(extract_args(root, tmp / "r5" / "store", "--incremental"))
+    keys = [r["key"] for r in records(tmp / "r5" / "store")]
+    check("R5 FAULT: a member of a FINAL archive that fails to READ (a bad CRC) is DEFERRED, never written as tier A: "
+          "exit 6 (a read failure is never proof the data is gone)", code == EXIT_DEFERRED and len(keys) == 1
+          and "read failed" in out, f"exit {code}; {keys}; {out[-240:]}")
+
+    root = fake_clone(tmp / "r4", {"a.log": g}, rows)
+    shutil.rmtree(root / "ai-agent/runs" / TAG / "batch")
+    code, out = run_main(extract_args(root, tmp / "r4" / "store", "--incremental"))
+    check("R4 CONTROL: a cycle with no raw data at all (pruned before O3) is not deferred: tier A, exit 0",
+          code == 0 and [r["tier"] for r in records(tmp / "r4" / "store")] == ["A", "A"], f"exit {code}; {out[-200:]}")
+
+
+# ============================================================================================ G4b the write guard
+
+def _junction(link: Path, target: Path) -> bool:
+    """A directory junction (no admin rights needed), as `mklink /J` makes it."""
+    r = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)], capture_output=True, text=True,
+                       timeout=30)
+    return r.returncode == 0 and link.is_dir()
+
+
+def _short(p: Path) -> str | None:
+    """The 8.3 short spelling of `p`, or None where the volume makes no short names."""
+    import ctypes  # noqa: PLC0415 - Windows only, and only here
+    buf = ctypes.create_unicode_buffer(2048)
+    n = ctypes.windll.kernel32.GetShortPathNameW(str(p), buf, 2048)
+    return buf.value if n and "~" in buf.value and buf.value.casefold() != str(p).casefold() else None
+
+
+def g_paths(tmp: Path) -> None:
+    g = GOLDEN.read_bytes()
+    fakerepo = tmp / "fakerepo"
+    (fakerepo / "ai_player" / "knowledge").mkdir(parents=True)
+    root = fake_clone(tmp / "Long Clone Name Here", {"golden.log": g}, [golden_row()])
+    inputs = ["--runs-jsonl", root / "ai-agent/data/runs.jsonl", "--runs-dir", root / "ai-agent/runs",
+              "--profiles-dir", root / "sandbox-pokebot/profiles"]
+
+    def attempt(store, repo: Path = fakerepo, clone: Path = root) -> tuple[int, list[str], str]:
+        code, out = run_main(["--incremental", "--clone", clone, "--store", store, "--repo", repo, *inputs])
+        landed = [str(p) for base in (fakerepo / "ai_player", root)
+                  for name in (X.STORE_FILE, X.LOCK_FILE, getattr(X, "MUTEX_FILE", ".lock.mutex"))
+                  for p in base.rglob(name)]
+        for p in landed:  # the next arm starts clean (a landed write is in a scratch tree)
+            shutil.rmtree(Path(p).parent, ignore_errors=True)
+        return code, landed, out
+
+    code, landed, out = attempt(tmp / "ok_store")
+    check("G4b CONTROL: a store outside every protected tree is written", code == 0 and not landed
+          and (tmp / "ok_store" / X.STORE_FILE).is_file(), out[-200:])
+    links: list[Path] = []
+    try:
+        # (what, the --store spelling, whether the resolved-path layer can see it: all but the UNC share)
+        arms = [("upper case and backslashes into ai_player/",
+                 str(fakerepo / "AI_PLAYER" / "Knowledge" / "exp").upper().replace("/", "\\"), True),
+                ("a \\\\?\\ prefix into ai_player/", "\\\\?\\" + str(fakerepo / "ai_player" / "knowledge" / "exp"), True)]
+        j_sub, j_clone = tmp / "J_sub", tmp / "J_clone"
+        if _junction(j_sub, fakerepo / "ai_player" / "knowledge") and _junction(j_clone, root / "ai-agent"):
+            links += [j_sub, j_clone]
+            arms += [("a junction to a folder inside ai_player/", j_sub / "exp", True),
+                     ("a junction into the clone", j_clone / "exp", True)]
+        else:
+            skip("G4b junction arms", "mklink /J failed on this machine")
+        short = _short(root)
+        if short:
+            arms.append((f"the clone's 8.3 short name (...{short[-30:]})", short + "\\ai-agent\\exp", True))
+        else:
+            skip("G4b short-name arm", "this volume makes no 8.3 short names")
+        unc = "\\\\localhost\\" + str(root)[0] + "$" + str(root)[2:]
+        if os.path.isdir(unc):
+            arms.append(("a UNC admin share (\\\\localhost\\C$) into the clone", unc + "\\ai-agent\\exp", False))
+        else:
+            skip("G4b UNC arm", "no \\\\localhost admin share on this machine")
+        for what, store, _ in arms:
+            code, landed, out = attempt(store)
+            check(f"G4b FAULT: a store reached by {what} is REFUSED, nothing written", code == X.EXIT_REFUSED
+                  and not landed, f"exit {code}; landed {landed}; {out[-160:]}")
+        # The module's own defaults stay guarded whatever the arguments say (pointed into scratch trees here, so a
+        # broken guard writes only there).
+        saved = X.REPO, X.DEFAULT_CLONE
+        try:
+            X.REPO = fakerepo
+            code, landed, out = attempt(fakerepo / "ai_player" / "knowledge" / "exp", repo=tmp / "elsewhere_repo")
+            check("G4b FAULT: --repo pointed elsewhere does not unguard this checkout's ai_player/",
+                  code == X.EXIT_REFUSED and not landed, f"exit {code}; {landed}")
+            X.REPO = saved[0]
+            X.DEFAULT_CLONE = root
+            code, landed, out = attempt(root / "ai-agent" / "exp", clone=tmp / "elsewhere_clone")
+            check("G4b FAULT: --clone pointed elsewhere does not unguard the DEFAULT clone",
+                  code == X.EXIT_REFUSED and not landed, f"exit {code}; {landed}")
+        finally:
+            X.REPO, X.DEFAULT_CLONE = saved
+        code, landed, out = attempt(root / "ai-agent" / "runs" / "exp", clone=tmp / "elsewhere_clone")
+        check("G4b FAULT: a store inside a tree the run READS (--runs-dir) is refused even with --clone elsewhere",
+              code == X.EXIT_REFUSED and not landed, f"exit {code}; {landed}")
+        # Each layer ALONE (the other switched off), so neither can hide behind the other.
+        for layer, off, wanted in (("resolved-path", "_inside_by_identity", [a for a in arms if a[2]]),
+                                   ("file-identity", "_inside_by_path", arms)):
+            real = getattr(X, off)
+            setattr(X, off, lambda p, r: False)
+            try:
+                res = [(what, attempt(store)) for what, store, _ in wanted]
+            finally:
+                setattr(X, off, real)
+            bad = [(w, c, la) for w, (c, la, _) in res if c != X.EXIT_REFUSED or la]
+            check(f"G4b FAULT (the {layer} layer ALONE): its {len(res)} spellings are still REFUSED",
+                  res and not bad, bad)
+    finally:
+        for link in links:
+            os.rmdir(link)  # removes the junction only, never its target
+
+
+def g_priors_store(tmp: Path) -> None:
+    g = GOLDEN.read_bytes()
+    fakerepo = tmp / "fakerepo"
+    (fakerepo / "ai_player").mkdir(parents=True)
+    root = fake_clone(tmp / "ps", {"golden.log": g}, [golden_row()])
+    good = tmp / "ps" / "store"
+    run_main(extract_args(root, good))
+    for what, store in (("inside the clone", root / "ai-agent" / "data" / "newdir"),
+                        ("inside ai_player/", fakerepo / "ai_player" / "knowledge" / "exp")):
+        code, out = run_main(["--priors", "--store", store, "--priors-out", tmp / "ps" / "p.json", "--clone", root,
+                              "--repo", fakerepo])
+        check(f"G4c FAULT: --priors with its --store {what} is REFUSED before the lock: no folder, no .lock",
+              code == X.EXIT_REFUSED and not store.exists() and not (tmp / "ps" / "p.json").exists(),
+              f"exit {code}; exists {store.exists()}; {out[-160:]}")
+    for what, store in (("an EXISTING store inside the clone", root / "ai-agent" / "data" / "oldstore"),
+                        ("an EXISTING store inside ai_player/", fakerepo / "ai_player" / "oldstore")):
+        store.mkdir(parents=True)
+        shutil.copy2(good / X.STORE_FILE, store / X.STORE_FILE)  # a store that would read fine: only the guard stops it
+        code, out = run_main(["--priors", "--store", store, "--priors-out", tmp / "ps" / "p.json", "--clone", root,
+                              "--repo", fakerepo])
+        check(f"G4c FAULT: --priors on {what} is REFUSED before the lock: no lock file of any kind is created there",
+              code == X.EXIT_REFUSED and sorted(p.name for p in store.iterdir()) == [X.STORE_FILE]
+              and not (tmp / "ps" / "p.json").exists(), f"exit {code}; {sorted(p.name for p in store.iterdir())}")
+    missing = tmp / "ps" / "no-such-store"
+    code, out = run_main(["--priors", "--store", missing, "--priors-out", tmp / "ps" / "p.json", "--clone", root])
+    check("G4c FAULT: a read-only --priors with a missing store is refused and never creates it",
+          code == X.EXIT_REFUSED and not missing.exists(), f"exit {code}; {out[-160:]}")
+    code, out = run_main(["--priors", "--store", good, "--priors-out", tmp / "ps" / "p.json", "--clone", root,
+                          "--repo", fakerepo])
+    check("G4c CONTROL: --priors on a real store outside the protected trees writes the file",
+          code == 0 and (tmp / "ps" / "p.json").is_file(), out[-200:])
+
+
+# ============================================================================================ G2b the store lock
+
+def _stale_race(tmp: Path, name: str, mutex: bool = True, verify: bool = True) -> list[str]:
+    """Two runs that BOTH see a stale lock (forced: each waits at a barrier right after reading the lock's age), the
+    second one's retire delayed until the first has taken a fresh lock (the review's interleaving). -> who acquired."""
+    store = tmp / name
+    store.mkdir()
+    (store / X.LOCK_FILE).write_text("1 1", encoding="utf-8")
+    old = time.time() - X.LOCK_STALE_S - 60
+    os.utime(store / X.LOCK_FILE, (old, old))
+    barrier = threading.Barrier(2)
+
+    class SlowPath(type(store)):
+        def stat(self, *a, **k):
+            st = super().stat(*a, **k)
+            if self.name == X.LOCK_FILE:
+                try:
+                    barrier.wait(timeout=1.0)
+                except threading.BrokenBarrierError:
+                    pass
+            return st
+
+    held: list[str] = []
+    real_replace, real_unlink = os.replace, Path.unlink
+    patched: dict = {}
+
+    def slow_replace(src, dst, *a, **k):
+        if threading.current_thread().name == "B" and Path(src).name == X.LOCK_FILE:
+            time.sleep(0.3)  # B retires AFTER A has taken its fresh lock
+        return real_replace(src, dst, *a, **k)
+
+    def slow_unlink(self, *a, **k):  # the same delay for a retire by unlink (how 57a7ec28 retired a stale lock)
+        if threading.current_thread().name == "B" and self.name == X.LOCK_FILE and not held:
+            time.sleep(0.3)
+        return real_unlink(self, *a, **k)
+
+    def plain_retire(self) -> None:  # the retire WITHOUT checking it moved the lock it judged stale
+        try:
+            age = time.time() - self.path.stat().st_mtime
+        except FileNotFoundError:
+            return
+        if age < X.LOCK_STALE_S:
+            raise X.Refused("held")
+        aside = self.path.with_name(f"{X.LOCK_FILE}.stale.{uuid.uuid4().hex}")
+        try:
+            os.replace(self.path, aside)
+        except FileNotFoundError:
+            return
+        aside.unlink(missing_ok=True)
+
+    def worker(name: str) -> None:
+        lk = X.StoreLock(store)
+        lk.path = SlowPath(lk.path)
+        try:
+            lk.__enter__()
+        except X.Refused:
+            return
+        held.append(name)
+        time.sleep(1.0)
+        lk.__exit__(None, None, None)
+
+    os.replace, Path.unlink = slow_replace, slow_unlink
+    if not mutex:
+        patched["_OsMutex"] = X._OsMutex
+        X._OsMutex = lambda path: contextlib.nullcontext()
+    if not verify:
+        patched["_retire_if_stale"] = X.StoreLock._retire_if_stale
+        X.StoreLock._retire_if_stale = plain_retire
+    try:
+        ts = [threading.Thread(target=worker, args=(n,), name=n) for n in ("A", "B")]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join(timeout=60)
+    finally:
+        os.replace, Path.unlink = real_replace, real_unlink
+        if "_OsMutex" in patched:
+            X._OsMutex = patched["_OsMutex"]
+        if "_retire_if_stale" in patched:
+            X.StoreLock._retire_if_stale = patched["_retire_if_stale"]
+    return sorted(held)
+
+
+def g_lock(tmp: Path) -> None:
+    got = _stale_race(tmp, "race_real")
+    check("G2b FAULT (race_real): two runs that both saw a stale lock (the second retiring after the first took a "
+          "fresh lock) -> exactly ONE acquires", len(got) == 1, got)
+    store = tmp / "held"
+    store.mkdir()
+    saved = X.MUTEX_WAIT_S
+    X.MUTEX_WAIT_S = 0.3
+    try:
+        with X._OsMutex(store / X.MUTEX_FILE):
+            try:
+                with X.StoreLock(store):
+                    took = True
+            except X.Refused:
+                took = False
+    finally:
+        X.MUTEX_WAIT_S = saved
+    check("G2b FAULT: while another run holds the take-mutex, a run REFUSES and creates no .lock",
+          not took and not (store / X.LOCK_FILE).exists(), took)
+    with X.StoreLock(store):
+        pass
+    check("G2b CONTROL: with the mutex free the lock is taken and released", not (store / X.LOCK_FILE).exists())
+
+    both = _stale_race(tmp, "race_none", mutex=False, verify=False)
+    check("G2b HARNESS: with BOTH layers off, the forced interleaving makes both runs acquire (the race is real, so the "
+          "arms below are not vacuous)", both == ["A", "B"], both)
+    for name, kw in (("race_mutex_only", {"verify": False}), ("race_verify_only", {"mutex": False})):
+        got = _stale_race(tmp, name, **kw)
+        check(f"G2b FAULT ({name}): two runs that both saw a stale lock -> exactly ONE acquires", len(got) == 1, got)
+
+    store = tmp / "own"
+    store.mkdir()
+    lk = X.StoreLock(store)
+    lk.__enter__()
+    (store / X.LOCK_FILE).write_bytes(b"999 1 another-run")  # the lock now belongs to someone else
+    lk.__exit__(None, None, None)
+    lock = store / X.LOCK_FILE
+    check("G2b FAULT: a run removes .lock only while it holds ITS token (someone else's lock survives its exit)",
+          lock.is_file() and lock.read_bytes() == b"999 1 another-run", lock.is_file())
+
+
 # ============================================================================================ main
 
 def main() -> int:
-    tests = (e1, e2, e3, e4, e5, e6a, e6b, e7, e8, e10, g_guards, j1)
+    tests = (e1, e2, e3, e4, e5, e6a, e6b, e7, e7b, e7c, e8, e10, g_guards, g_paths, g_priors_store, g_lock, j1, p1,
+             r_race, n2, c1)
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         tmp = Path(td)
         for test in tests:
