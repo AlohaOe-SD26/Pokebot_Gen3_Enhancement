@@ -1,0 +1,270 @@
+# KB1 report: seasoned-player knowledge base, slice 1 (USER RULING 40)
+
+**Decomp:** pret/pokeemerald@`731ad5bfd6e6f265508d0efcca0ba42f9dcf5881` (shallow clone, 2026-10-15).
+**Wall time:** about 272 s measured by the shell clock from the first command to the step-4 push (the clock file was written at the first command; model thinking time between calls is included).
+**Branch:** `claude/kb1-seasoned-knowledge-cr1f5t`. Only new files were added; no existing file was edited.
+
+## Files
+| File | Size | Contents |
+|---|---|---|
+| `ai_player/knowledge/seasoned/species.json` | 284 KB | 411 entries = 386 real species + 25 `OLD_UNOWN_B..Z` placeholders (flagged `placeholder: true`) |
+| `ai_player/knowledge/seasoned/moves.json` | 126 KB | 354 moves |
+| `ai_player/knowledge/seasoned/learnsets.json` | 975 KB | 386 species: level-up, TM/HM (58 slots), tutor (30 tutor moves), egg moves (165 species) |
+| `ai_player/knowledge/seasoned/encounters.json` | 638 KB | 135 map entries (124 `gWildMonHeaders` + 7 Battle Pyramid + 4 Battle Pike), per-method slots and rarity, plus a `where_to_find` index of 143 species |
+| `ai_player/gates/extract_seasoned.py` | | re-runnable extractor, `--check` re-extracts to a temp dir and fails on any byte difference (currently `CHECK OK: 4 files identical`) |
+| `ai_player/gates/verify_seasoned.py` | | independent verifier (regex/line scan, does not import the extractor), `--selftest` plants wrong values |
+
+Encounter coverage by method: land 106 maps, water 55, rock smash 6, old/good/super rod 53 each.
+Species: 202 have a Hoenn dex number (matches `HOENN_DEX_COUNT`), 386 have a national number.
+
+## Where the decomp matches or differs from the expected Gen-3 rules
+- **Slot probabilities: IDENTICAL** to the expected lists (land 20,20,10,10,10,10,5,5,4,4,1,1; water and rock smash 60,30,5,4,1; old rod 70,30; good rod 60,20,20; super rod 40,40,15,4,1). Caveat on how this was "checked against the code": `src/wild_encounter.c` does not hold the numbers; it compares `Random() % ENCOUNTER_CHANCE_*_TOTAL` against `ENCOUNTER_CHANCE_*_SLOT_n` constants that the build generates (`wild_encounters.constants.json.txt`) from the `fields` block of `wild_encounters.json`. So the numbers in the code are the json's by construction, and the comparison is json vs. the expected lists. Fishing is one shared 10-entry table; the rod picks its sub-range (old 0-1, good 2-4, super 5-9).
+- **Wild held items:** rule from `SetWildMonHeldItem` in `src/pokemon.c`: roll 0-99, <45 nothing, <95 `itemCommon` (50%), else `itemRare` (5%); same non-NONE item in both slots = 100%. **Difference from the plain rule:** a lead with Compound Eyes uses 20/60/20 (none/common/rare); not applied in legendary/trainer/Pyramid/Pike battles; Altering Cave has its own item table. Recorded in `species.json` `_notes`.
+- **Encounter rate:** per step it is `encounter_rate*16` (then flute, cleanse tag, ability and bike modifiers, cap 2880) against `Random() % 2880`. So per-step chance is `encounter_rate*16/2880` before modifiers. Recorded in `encounters.json`.
+- **Ability influence on slots** (Static/Magnet Pull and similar) is NOT folded into `chance_pct`; the table is the unmodified one.
+- **Feebas:** Route 119, any rod, level 20-25. 50% roll, then 6 spots among 447 fishing tiles chosen by an RNG seeded from `dewfordTrends[0].rand` (spots 1-3 are rerolled). The algorithm is recorded in `encounters.json` -> `feebas`.
+- 6 `gAlteringCave*` headers share `MAP_ALTERING_CAVE` (the game picks one by a variable); they are kept as separate entries keyed by `base_label`. Battle Pyramid/Pike entries have no `map` (null).
+
+## Could not extract / not done
+- **Feebas tile coordinates:** not statically extractable. They depend on the save's Dewford trend seed; the decomp gives only the algorithm. Getting coordinates would need the map data plus a seed.
+- Each Unown form above `NUM_SPECIES` (28 forms) has no own species entry; they are forms of `SPECIES_UNOWN`.
+- Not parsed (outside the slice): trainer parties, static/gift/legendary encounters, items.json, abilities descriptions, move descriptions, type chart.
+- Gender is stored as the raw byte plus the female percentage from the `PERCENT_FEMALE()` macro; "female_pct" for 12.5% is the macro's input, the actual game threshold is the byte.
+- Verifier limits: it re-derives from the same decomp text, so it catches extractor bugs and plants, not decomp errors. It samples 12 species / 10 level-up / 8 TM / 4 tutor / 3 egg / 4 held-item / 8 moves / 14 encounter slots with a fixed seed (change with `--seed`), plus totals.
+
+## Verify output (verbatim, default seed 20261015)
+```
+PASS  SPECIES_KOFFING types
+PASS  SPECIES_KOFFING abilities
+PASS  SPECIES_KOFFING base hp
+PASS  SPECIES_KOFFING base attack
+PASS  SPECIES_KOFFING base speed
+PASS  SPECIES_KOFFING catch rate
+PASS  SPECIES_KOFFING growth
+PASS  SPECIES_EXEGGCUTE types
+PASS  SPECIES_EXEGGCUTE abilities
+PASS  SPECIES_EXEGGCUTE base hp
+PASS  SPECIES_EXEGGCUTE base attack
+PASS  SPECIES_EXEGGCUTE base speed
+PASS  SPECIES_EXEGGCUTE catch rate
+PASS  SPECIES_EXEGGCUTE growth
+PASS  SPECIES_MANTINE types
+PASS  SPECIES_MANTINE abilities
+PASS  SPECIES_MANTINE base hp
+PASS  SPECIES_MANTINE base attack
+PASS  SPECIES_MANTINE base speed
+PASS  SPECIES_MANTINE catch rate
+PASS  SPECIES_MANTINE growth
+PASS  SPECIES_PUPITAR types
+PASS  SPECIES_PUPITAR abilities
+PASS  SPECIES_PUPITAR base hp
+PASS  SPECIES_PUPITAR base attack
+PASS  SPECIES_PUPITAR base speed
+PASS  SPECIES_PUPITAR catch rate
+PASS  SPECIES_PUPITAR growth
+PASS  SPECIES_CHARIZARD types
+PASS  SPECIES_CHARIZARD abilities
+PASS  SPECIES_CHARIZARD base hp
+PASS  SPECIES_CHARIZARD base attack
+PASS  SPECIES_CHARIZARD base speed
+PASS  SPECIES_CHARIZARD catch rate
+PASS  SPECIES_CHARIZARD growth
+PASS  SPECIES_SPEAROW types
+PASS  SPECIES_SPEAROW abilities
+PASS  SPECIES_SPEAROW base hp
+PASS  SPECIES_SPEAROW base attack
+PASS  SPECIES_SPEAROW base speed
+PASS  SPECIES_SPEAROW catch rate
+PASS  SPECIES_SPEAROW growth
+PASS  SPECIES_PIDGEY types
+PASS  SPECIES_PIDGEY abilities
+PASS  SPECIES_PIDGEY base hp
+PASS  SPECIES_PIDGEY base attack
+PASS  SPECIES_PIDGEY base speed
+PASS  SPECIES_PIDGEY catch rate
+PASS  SPECIES_PIDGEY growth
+PASS  SPECIES_MANECTRIC types
+PASS  SPECIES_MANECTRIC abilities
+PASS  SPECIES_MANECTRIC base hp
+PASS  SPECIES_MANECTRIC base attack
+PASS  SPECIES_MANECTRIC base speed
+PASS  SPECIES_MANECTRIC catch rate
+PASS  SPECIES_MANECTRIC growth
+PASS  SPECIES_VOLTORB types
+PASS  SPECIES_VOLTORB abilities
+PASS  SPECIES_VOLTORB base hp
+PASS  SPECIES_VOLTORB base attack
+PASS  SPECIES_VOLTORB base speed
+PASS  SPECIES_VOLTORB catch rate
+PASS  SPECIES_VOLTORB growth
+PASS  SPECIES_DUSTOX types
+PASS  SPECIES_DUSTOX abilities
+PASS  SPECIES_DUSTOX base hp
+PASS  SPECIES_DUSTOX base attack
+PASS  SPECIES_DUSTOX base speed
+PASS  SPECIES_DUSTOX catch rate
+PASS  SPECIES_DUSTOX growth
+PASS  SPECIES_URSARING types
+PASS  SPECIES_URSARING abilities
+PASS  SPECIES_URSARING base hp
+PASS  SPECIES_URSARING base attack
+PASS  SPECIES_URSARING base speed
+PASS  SPECIES_URSARING catch rate
+PASS  SPECIES_URSARING growth
+PASS  SPECIES_GIRAFARIG types
+PASS  SPECIES_GIRAFARIG abilities
+PASS  SPECIES_GIRAFARIG base hp
+PASS  SPECIES_GIRAFARIG base attack
+PASS  SPECIES_GIRAFARIG base speed
+PASS  SPECIES_GIRAFARIG catch rate
+PASS  SPECIES_GIRAFARIG growth
+PASS  SPECIES_POOCHYENA held items
+PASS  SPECIES_KECLEON held items
+PASS  SPECIES_CAMERUPT held items
+PASS  SPECIES_EXPLOUD held items
+PASS  SPECIES_SOLROCK level-up moves
+PASS  SPECIES_WYNAUT level-up moves
+PASS  SPECIES_WOBBUFFET level-up moves
+PASS  SPECIES_STARYU level-up moves
+PASS  SPECIES_TORCHIC level-up moves
+PASS  SPECIES_SHUPPET level-up moves
+PASS  SPECIES_NIDORINA level-up moves
+PASS  SPECIES_SPINDA level-up moves
+PASS  SPECIES_HAUNTER level-up moves
+PASS  SPECIES_NIDORAN_M level-up moves
+PASS  SPECIES_ROSELIA TM/HM set
+PASS  SPECIES_OMASTAR TM/HM set
+PASS  SPECIES_CLEFAIRY TM/HM set
+PASS  SPECIES_FLAAFFY TM/HM set
+PASS  SPECIES_EXPLOUD TM/HM set
+PASS  SPECIES_MR_MIME TM/HM set
+PASS  SPECIES_SEALEO TM/HM set
+PASS  SPECIES_UNOWN TM/HM set
+PASS  SPECIES_ONIX tutor moves
+PASS  SPECIES_PIDGEOTTO tutor moves
+PASS  SPECIES_SANDSLASH tutor moves
+PASS  SPECIES_ARMALDO tutor moves
+PASS  SPECIES_BULBASAUR egg moves
+PASS  SPECIES_AZURILL egg moves
+PASS  SPECIES_SEEDOT egg moves
+PASS  MOVE_FRUSTRATION power
+PASS  MOVE_FRUSTRATION accuracy
+PASS  MOVE_FRUSTRATION pp
+PASS  MOVE_FRUSTRATION priority
+PASS  MOVE_FRUSTRATION type
+PASS  MOVE_FRUSTRATION effect
+PASS  MOVE_FRUSTRATION contact
+PASS  MOVE_THUNDER_WAVE power
+PASS  MOVE_THUNDER_WAVE accuracy
+PASS  MOVE_THUNDER_WAVE pp
+PASS  MOVE_THUNDER_WAVE priority
+PASS  MOVE_THUNDER_WAVE type
+PASS  MOVE_THUNDER_WAVE effect
+PASS  MOVE_THUNDER_WAVE contact
+PASS  MOVE_FIRE_PUNCH power
+PASS  MOVE_FIRE_PUNCH accuracy
+PASS  MOVE_FIRE_PUNCH pp
+PASS  MOVE_FIRE_PUNCH priority
+PASS  MOVE_FIRE_PUNCH type
+PASS  MOVE_FIRE_PUNCH effect
+PASS  MOVE_FIRE_PUNCH contact
+PASS  MOVE_BULLET_SEED power
+PASS  MOVE_BULLET_SEED accuracy
+PASS  MOVE_BULLET_SEED pp
+PASS  MOVE_BULLET_SEED priority
+PASS  MOVE_BULLET_SEED type
+PASS  MOVE_BULLET_SEED effect
+PASS  MOVE_BULLET_SEED contact
+PASS  MOVE_FAKE_TEARS power
+PASS  MOVE_FAKE_TEARS accuracy
+PASS  MOVE_FAKE_TEARS pp
+PASS  MOVE_FAKE_TEARS priority
+PASS  MOVE_FAKE_TEARS type
+PASS  MOVE_FAKE_TEARS effect
+PASS  MOVE_FAKE_TEARS contact
+PASS  MOVE_BULK_UP power
+PASS  MOVE_BULK_UP accuracy
+PASS  MOVE_BULK_UP pp
+PASS  MOVE_BULK_UP priority
+PASS  MOVE_BULK_UP type
+PASS  MOVE_BULK_UP effect
+PASS  MOVE_BULK_UP contact
+PASS  MOVE_RAPID_SPIN power
+PASS  MOVE_RAPID_SPIN accuracy
+PASS  MOVE_RAPID_SPIN pp
+PASS  MOVE_RAPID_SPIN priority
+PASS  MOVE_RAPID_SPIN type
+PASS  MOVE_RAPID_SPIN effect
+PASS  MOVE_RAPID_SPIN contact
+PASS  MOVE_SPIT_UP power
+PASS  MOVE_SPIT_UP accuracy
+PASS  MOVE_SPIT_UP pp
+PASS  MOVE_SPIT_UP priority
+PASS  MOVE_SPIT_UP type
+PASS  MOVE_SPIT_UP effect
+PASS  MOVE_SPIT_UP contact
+PASS  gRoute111 good_rod slot 2
+PASS  gRoute111 good_rod encounter_rate
+PASS  gRoute111 good_rod rarity sums to 100
+PASS  gMtPyre_1F land slot 4
+PASS  gMtPyre_1F land encounter_rate
+PASS  gMtPyre_1F land rarity sums to 100
+PASS  gRoute114 rock_smash slot 1
+PASS  gRoute114 rock_smash encounter_rate
+PASS  gRoute114 rock_smash rarity sums to 100
+PASS  gRoute119 land slot 6
+PASS  gRoute119 land encounter_rate
+PASS  gRoute119 land rarity sums to 100
+PASS  gPetalburgCity super_rod slot 1
+PASS  gPetalburgCity super_rod encounter_rate
+PASS  gPetalburgCity super_rod rarity sums to 100
+PASS  gRoute105 super_rod slot 1
+PASS  gRoute105 super_rod encounter_rate
+PASS  gRoute105 super_rod rarity sums to 100
+PASS  gMeteorFalls_1F_2R water slot 0
+PASS  gMeteorFalls_1F_2R water encounter_rate
+PASS  gMeteorFalls_1F_2R water rarity sums to 100
+PASS  gSafariZone_Southeast old_rod slot 1
+PASS  gSafariZone_Southeast old_rod encounter_rate
+PASS  gSafariZone_Southeast old_rod rarity sums to 100
+PASS  gRoute120 old_rod slot 0
+PASS  gRoute120 old_rod encounter_rate
+PASS  gRoute120 old_rod rarity sums to 100
+PASS  gShoalCave_LowTideEntranceRoom water slot 0
+PASS  gShoalCave_LowTideEntranceRoom water encounter_rate
+PASS  gShoalCave_LowTideEntranceRoom water rarity sums to 100
+PASS  gRoute103 good_rod slot 1
+PASS  gRoute103 good_rod encounter_rate
+PASS  gRoute103 good_rod rarity sums to 100
+PASS  gShoalCave_LowTideInnerRoom good_rod slot 2
+PASS  gShoalCave_LowTideInnerRoom good_rod encounter_rate
+PASS  gShoalCave_LowTideInnerRoom good_rod rarity sums to 100
+PASS  gSafariZone_Southeast super_rod slot 2
+PASS  gSafariZone_Southeast super_rod encounter_rate
+PASS  gSafariZone_Southeast super_rod rarity sums to 100
+PASS  gRoute115 good_rod slot 0
+PASS  gRoute115 good_rod encounter_rate
+PASS  gRoute115 good_rod rarity sums to 100
+PASS  TOTAL species count (raw=411)
+PASS  TOTAL real species = 386
+PASS  TOTAL move count (raw=354)
+PASS  TOTAL TM+HM = 58
+PASS  TOTAL tutor moves = 30
+PASS  TOTAL learnset species = real species
+PASS  TOTAL every method's slots sum to 100 (106 land maps)
+PASS  TOTAL land tables raw=106 json=106
+PASS  TOTAL map entries raw=135 json=135
+PASS  TOTAL species ids unique
+---- 221 checks, 221 passed, 0 FAILED
+```
+
+### Self-test (planted wrong values in a temp copy)
+```
+  planted [species type SABLEYE] -> CAUGHT (verifier failed as required)
+  planted [level-up BULBASAUR] -> CAUGHT (verifier failed as required)
+  planted [TM SWELLOW] -> CAUGHT (verifier failed as required)
+  planted [encounter Route101 slot 0] -> CAUGHT (verifier failed as required)
+  planted [move TACKLE power] -> CAUGHT (verifier failed as required)
+  planted [species count - 1] -> CAUGHT
+SELFTEST: 6 of 6 plants caught
+```
