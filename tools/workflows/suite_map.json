@@ -1,0 +1,32 @@
+{
+  "_doc": "regression_due.py's map (LESSONS PR-2): each AI-player suite -> the NAMES of its evidence files in evidence_dir (case-insensitive globs) and the repo files it COVERS (case-sensitive globs; each must match a real file or the tool exits 2). Initial map written 2026-10-21 from the evidence names then on disk (step52 / step52reg / kb1-merge-units); edit it when a suite's evidence name or scope changes. `exclude` mirrors provenance.EXCLUDED: evidence, Markdown and the seed ledger are not code under test.",
+  "evidence_dir": "ai_player/evidence",
+  "exclude": ["ai_player/evidence/**", "**/*.md", "ai_player/gates/ledger.json*"],
+  "suites": {
+    "units": {
+      "_run": "py -3.12 ai_player/gates/run_units.py",
+      "evidence": ["*-units.txt"],
+      "covers": ["ai_player/**", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py"]
+    },
+    "revert_step5": {
+      "_run": "py -3.12 ai_player/gates/revert_step5.py",
+      "evidence": ["*-step5*-revert.txt"],
+      "covers": ["ai_player/**"]
+    },
+    "revert_safety_gates": {
+      "_run": "py -3.12 ai_player/gates/revert_safety_gates.py",
+      "evidence": ["*-revert-gates.txt"],
+      "covers": ["ai_player/gates/**"]
+    },
+    "rate_step5": {
+      "_run": "py -3.12 ai_player/gates/rate_step5.py",
+      "evidence": ["*-step5*-rate.txt"],
+      "covers": ["ai_player/**", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py"]
+    },
+    "live_step5": {
+      "_run": "py -3.12 ai_player/gates/live_step5.py",
+      "evidence": ["*-step5*-ch*.txt"],
+      "covers": ["ai_player/**", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py"]
+    }
+  }
+}

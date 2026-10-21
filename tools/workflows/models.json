@@ -1,0 +1,12 @@
+{
+  "_doc": "The model TIER of each workflow stage (backlog P10, spec S2-3). Every stage ships at top: a stage moves to mid or cheap ONLY with `proof`, the repo path of the JSON a PLANT RUN wrote (at least 3 planted defects of 3 different kinds, all caught by the cheaper agent, and one clean control with zero findings, for that stage, tier and template version); lint_templates.py checks it. `verify` is pinned to top in lint_templates.PINNED_TOP, so no edit here can move it. render.py --format json maps a tier to the workflow agent() model option via `agent_model` (top = no option: the coordinator's model).",
+  "tiers": ["top", "mid", "cheap"],
+  "agent_model": {"top": null, "mid": "sonnet", "cheap": "haiku"},
+  "stages": {
+    "recon": {"tier": "top", "proof": null},
+    "build": {"tier": "top", "proof": null},
+    "sweep-analysis": {"tier": "top", "proof": null},
+    "verify": {"tier": "top", "proof": null},
+    "doc-check": {"tier": "top", "proof": null}
+  }
+}

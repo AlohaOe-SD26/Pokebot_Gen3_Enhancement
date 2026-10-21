@@ -1295,6 +1295,15 @@ GATES: list[tuple[str, bool]] = [
     # E6b, E7) read the learner clone and copy before mutating. Exit 4 = WARN (in WARN_OK): no clone or no pinned
     # decomp, so those arms were SKIPPED; never a pass. ~17 s. No ROM. ‼ APPENDED AT THE END.
     ("selftest_experience.py", False),
+    # spec S2-3 (backlog P11 + P1 + N6 + P10, `ai-research-notes/2026-10-19-BUILD-SPECS-steps-1-2.md`): `tools/workflows/`, the
+    # repo's stage templates (recon, build, sweep-analysis, verify, doc-check) with `lint_templates.py`, `render.py`,
+    # `stage_helpers.py` (N6 refix_decision: UNKNOWN means ask a human, never PASS) and `regression_due.py` + `suite_map.json`
+    # (LESSONS PR-2). WHY: no workflow prompt lived in the repo, so the read ranges, stop rules, answer caps and model tiers
+    # were re-remembered per script. T-1..T-8, FAULT + CONTROL each: every field and the marker, the 30 KB range rule from
+    # disk, a model move only on a plant-run JSON (3+ plants of 3+ kinds, all caught, a clean control; verify pinned to
+    # top), the mention rule, render refusals, 15 verdict shapes, regression_due on a throw-away git repo, and the marker
+    # through usage_audit's own parser. 57 call-deleting mutants all caught. No ROM; ~5 s. ‼ APPENDED AT THE END.
+    ("selftest_workflows.py", False),
 ]
 
 
