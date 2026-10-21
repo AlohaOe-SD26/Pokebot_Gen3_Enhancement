@@ -417,6 +417,17 @@
    "reason": "06 USER RULING 44: \"Do not re-ask whether bosses' held items are allowed or their exact stats withheld.\"",
    "status": "ACTIVE",
    "topics": "held item heldItem boss gym leader stats IV aiFlags trainers.json S3-4 seasoned"
+  },
+  "2026-10-21-bd628b": {
+   "title": "2026-10-21 — USER RULING 45 (S3-4's two other user items): the AI does NOT see which species the bot chose; it DOES know trainers' positions and sight ranges",
+   "candidates": {
+    "9cc99a18": "marker"
+   },
+   "ruling_key": "45@2026-10-21",
+   "do_not_reopen": "Whether the AI sees which species the scripted bot chose (no) and whether it knows trainers' positions and sight ranges (yes), for S3-4 (2026-10-21).",
+   "reason": "06 USER RULING 45: \"Do not re-ask whether the AI sees the bot's species choices, or whether it knows trainer positions and sight ranges.\"",
+   "status": "ACTIVE",
+   "topics": "bot corpus species shares sight range trainer position maps.json S3-4 seasoned"
   }
  }
 }

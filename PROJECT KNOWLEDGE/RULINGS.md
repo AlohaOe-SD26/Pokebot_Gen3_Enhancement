@@ -31,6 +31,7 @@
 | `2026-10-21-58fe1b` | 9512 | The four step-1 operations questions: backups go to Z:, the TWO ops scheduled tasks (the nightly backup and the watchdog) approved at Claude's judgement (not scheduled tasks in general), compressed raw logs kept forever, the 3 % weekly-meter calibration. |
 | `2026-10-21-d1e589` | 9575 | Whether the watchdog's toast reaches the user and whether its 30-minute window flash is acceptable (both yes, 2026-10-21; the monitor stays off). |
 | `2026-10-21-3b21a7` | 9582 | Whether the AI may know bosses' held items (yes) and their exact stats / IVs and AI flags (no), for S3-4's trainers.json (2026-10-21). Not the spec's other two items (species shares, sight ranges). |
+| `2026-10-21-bd628b` | 9593 | Whether the AI sees which species the scripted bot chose (no) and whether it knows trainers' positions and sight ranges (yes), for S3-4 (2026-10-21). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -64,10 +65,11 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 321 sections (newest first)
+## All 322 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-21-bd628b` | 9593 | 45 | DO-NOT-REOPEN | 2026-10-21 — USER RULING 45 (S3-4's two other user items): the AI does NOT see which species the bot chose; it DOES know trainers' positions and sight ranges |
 | `2026-10-21-3b21a7` | 9582 | 44 | DO-NOT-REOPEN | 2026-10-21 — USER RULING 44 (the S3-4 boss-knowledge question): the AI KNOWS each boss Pokémon's held item; it does NOT know their exact stats (IVs, hidden stat |
 | `2026-10-21-d1e589` | 9575 | 43 | DO-NOT-REOPEN | 2026-10-21 — USER RULING 43 (the watchdog's human check): the test toast arrived; a brief window flash every 30 minutes is fine; the monitor stays off |
 | `2026-10-21-07367b` | 9566 |  |  | 2026-10-21 — Technical decisions of S2-1, the doc-size ratchet (Claude's calls) |

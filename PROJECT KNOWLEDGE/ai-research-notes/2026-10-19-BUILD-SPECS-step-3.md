@@ -501,9 +501,9 @@ campaign) is medium and can ship alone.
    The question as it was: **Boss moves and held items.** The backlog already says held items and stats stay out until you rule them "knowledge a seasoned
    player has". This spec withholds held items, hidden stats and the trainers' AI flags by default and keeps each boss's moves and
    levels. Say so if you want moves withheld too, or held items allowed.
-2. **Bot statistics shown to the AI.** The AI-facing numbers (levels at first loss and at win, losses, money) are labelled "bot
+2. ✅ **ANSWERED: USER RULING 45 (2026-10-21): the bot's species shares stay OUT (the default).** The question as it was: **Bot statistics shown to the AI.** The AI-facing numbers (levels at first loss and at win, losses, money) are labelled "bot
    corpus". Which species the bot chose are kept out as the bot's style. Say so if you want those shares included.
-3. **Trainer positions and sight ranges (critic addition).** `maps.json` keeps each trainer's tile and sight range and each door's
+3. ✅ **ANSWERED: USER RULING 45 (2026-10-21): positions and sight ranges are KEPT (the default).** The question as it was: **Trainer positions and sight ranges (critic addition).** `maps.json` keeps each trainer's tile and sight range and each door's
    position, as static map knowledge (RULING 40 "maps"). Say so if a seasoned player should not know exact sight ranges.
 
 ## What I did not verify

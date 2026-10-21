@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "4cfd9eb1e10301bf5712ba67187eb1dad3263710",
+ "source_sha1_lf": "fed029f12d5afb38e38a698e53bef08c9756c07e",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 321,
-  "donot_candidates": 23,
-  "sections_naming_user_rulings": 38
+  "sections": 322,
+  "donot_candidates": 24,
+  "sections_naming_user_rulings": 39
  },
  "sections": [
   {
@@ -5031,6 +5031,27 @@
      "key": "683eafee",
      "line": 9591,
      "text": "- ⛔ **Do not re-ask** whether bosses' held items are allowed or their exact stats withheld."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-bd628b",
+   "date": "2026-10-21",
+   "line_start": 9593,
+   "line_end": 9600,
+   "title": "2026-10-21 — USER RULING 45 (S3-4's two other user items): the AI does NOT see which species the bot chose; it DOES know trainers' positions and sight ranges",
+   "rulings": [
+    45
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "9cc99a18",
+     "line": 9600,
+     "text": "- ⛔ **Do not re-ask** whether the AI sees the bot's species choices, or whether it knows trainer positions and sight ranges."
     }
    ],
    "cues": []

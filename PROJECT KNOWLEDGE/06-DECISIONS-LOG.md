@@ -9589,3 +9589,12 @@ on all three questions:
   - The spec's default stands for moves and levels, which are KEPT. This answer did not change it.
 - **Not decided by this ruling:** the S3-4 spec's two other "needs the user" items (the bot's species shares in the AI-facing statistics, and exact trainer sight ranges). They keep the spec's defaults until the user answers.
 - ⛔ **Do not re-ask** whether bosses' held items are allowed or their exact stats withheld.
+
+## 2026-10-21 — USER RULING 45 (S3-4's two other user items): the AI does NOT see which species the bot chose; it DOES know trainers' positions and sight ranges
+
+- **The questions, as put to the user (with Claude's recommendations):**
+  - (1) The AI sees the scripted bot's statistics (levels at first loss and at the win per gym, losses), labelled "bot corpus". Should it also see which Pokémon the bot chose? Recommended: no, so the AI picks its own team the way a person would.
+  - (2) Should the AI know where each trainer stands and how far they see? Recommended: yes, static map knowledge a seasoned player has from past playthroughs (RULING 40 "maps").
+- **The user, 2026-10-21 (after 4:56 PM):** "Whatever you recommend".
+- **So, for S3-4:** the bot's species choices stay OUT of the AI-facing statistics, and `maps.json` KEEPS each trainer's tile and sight range (and each door's position). Both were the spec's defaults, so no build change follows.
+- ⛔ **Do not re-ask** whether the AI sees the bot's species choices, or whether it knows trainer positions and sight ranges.
