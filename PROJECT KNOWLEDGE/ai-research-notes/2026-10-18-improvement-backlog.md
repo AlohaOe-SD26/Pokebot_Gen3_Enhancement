@@ -2,7 +2,7 @@
 
 ## ONE-PAGE SUMMARY (2026-10-19, round 4): the top 15 in build order (step = "The order" below; sizes = new code + tests lines)
 1. **O3** ✅ DEPLOYED 2026-10-21 4:08 PM (the canary K=17 runs; `archive-check` after ai0041) compress each cycle's raw logs, never delete. (its deadline, before ai0024 was pruned, is MET: the canary archives ai0024 at the end of ai0041). Step 1; 85 + 95.
-2. **O4** ✅ BUILT 2026-10-21 (task not registered yet) nightly backup of `data/` and `findings/` off C: (every game exists once, on a 96 %-full drive). Step 1; 120 + 90.
+2. **O4** ✅ BUILT 2026-10-21 (its nightly task REGISTERED 2026-10-21, the restore drill passed) nightly backup of `data/` and `findings/` off C: (every game exists once, on a 96 %-full drive). Step 1; 120 + 90.
 3. **O6 + O7** ✅ BUILT 2026-10-21 (pushed; restarts at the end of ai0040, about 4:08 AM 2026-10-22) an ops-ledger row per cycle and an early-prune margin; its OWN learner restart after O3's (`06` 2026-10-21; this line said "one restart with O3" until then). Step 1; 55 + 60.
 4. **P3** ✅ BUILT 2026-10-21 `usage_audit.py` and `cost-ledger.jsonl`: every saving in this file is an estimate until it exists. Step 1; 230 + 130.
 5. **A1 + D3** one-call `status.py` with the AI-frontier line (convenience and safety, not tokens). Step 1; 170 + 90.

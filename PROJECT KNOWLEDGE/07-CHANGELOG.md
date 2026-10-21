@@ -38358,3 +38358,10 @@ bought balls only at fixed story points.
 - **(0a2) pushed:** every commit held since `a76879b8` (O6+O7, O1, KB1's fixes, A6, the stage templates, S2-1, the B1 recon note and the paperwork), with this commit.
 - **(0b) the canary:** `ai-agent/config.json` `keep_raw_cycles` 20 -> 17 (16 cycles unpruned in `data/state.json` at 4:08 PM: ai0024-ai0039). The config is read at a cycle start, so this is not a restart. The end of ai0040 archives nothing; the end of ai0041 (about 4:08 PM 2026-10-22) archives exactly ai0024. Then `learner.py archive-check` must print OK ai0024 before K goes to 4. `test_agent.py` reads no real-config K (checked), so the value cannot refuse a restart.
 - **Next restart:** O6+O7's learner code restarts at the end of ai0040 (about 4:08 AM 2026-10-22); confirm its line. O5 waits on its branch for its own restart after that.
+
+## 2026-10-21 — (0c): the nightly backup task registered; the first backup and the restore drill pass (spec S1-2; USER RULING 42; punch-list #28-trainer-improvements)
+
+- **Registered:** the CLONE's `tools/ops/install_ops_tasks.ps1` was run as a dry run, then with `-Apply` at 4:20 PM. Its table held only `Pokebot-Ops-Backup`: `"C:\Windows\pyw.exe" -3.12 -B ...\pokebot-learner\tools\ops\backup_learner.py`, daily at 1:00 AM, StartWhenAvailable, IgnoreNew, a 30-minute limit, the user's interactive session. `Get-ScheduledTask` shows it Ready.
+- **First backup** (the clone's copy, run by hand): `OK learner-data-20261021-1620.zip: 113 files, 10,815,854 bytes raw -> 1,245,913 bytes zipped; runs.jsonl 2640 lines`.
+- **Restore drill:** `backup_learner.py --restore-check Z:/pokebot-backups/learner/learner-data-20261021-1620.zip --into <empty scratch folder>` printed `OK restore-check ...: 113 files restored ..., every sha256 matches, every .jsonl parses; runs.jsonl 2640 lines; state.json has 38 cycles` (exit 0).
+- **Not registered:** the watchdog (O1). After the clone's next fast-forward its installer also holds that task, and `-Apply` registers every task in its table, so the next `-Apply` waits for the user's `watchdog.ps1 -TestToast` check.

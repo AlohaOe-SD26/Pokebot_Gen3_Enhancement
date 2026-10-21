@@ -14,7 +14,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
-      "chars": 2757,
+      "chars": 2783,
       "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
       "tails": [
         "ty`, `wt/boxfirst`) stay parked until the user resumes them."
@@ -25,18 +25,31 @@
           "from_chars": 2672,
           "to_chars": 2757,
           "why": "2026-10-21 deploy paperwork: O3 deployed, O6+O7 pushed"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 2757,
+          "to_chars": 2783,
+          "why": "2026-10-21 Tier 1 fix: the backup task marked registered in the NEXT line"
         }
       ]
     },
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
-      "chars": 3936,
+      "chars": 3973,
       "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
       "tails": [
         "ntrols, one temp-folder factory, Python hooks, determinism)."
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-10-21",
+          "from_chars": 3936,
+          "to_chars": 3973,
+          "why": "2026-10-21 (0c): O4's nightly task registered"
+        }
+      ]
     },
     {
       "file": "03-PUNCH-LIST.md",
@@ -581,7 +594,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "6bb82211422407fedabce93214bee38bac58d7fe",
-      "chars": 23044,
+      "chars": 23129,
       "head": "**Last updated:** 2026-10-21 (⭐ **STEP 1 BUILT AND REVIEWED ",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
@@ -592,6 +605,12 @@
           "from_chars": 22987,
           "to_chars": 23044,
           "why": "2026-10-21 deploy paperwork: (0a) confirmed O3, the held commits pushed, the canary K=17"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 23044,
+          "to_chars": 23129,
+          "why": "2026-10-21 (0c): the backup task registered and the restore drill passed"
         }
       ]
     },
@@ -735,7 +754,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "22de0320e7193594fd0c510866689af7b5e3b02a",
-      "chars": 16249,
+      "chars": 16308,
       "head": "| **if stopped mid-task** | ✅ **2026-10-21, 4:08 PM: (0a) CO",
       "tails": [
         "noting this is 'the row a resuming session reads FIRST'.)* |"
@@ -753,6 +772,12 @@
             "noting this is 'the row a resuming session reads FIRST'.)* |"
           ],
           "why": "2026-10-21 deploy paperwork: (0a) confirmed O3, the held commits pushed, the canary K=17"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 16249,
+          "to_chars": 16308,
+          "why": "2026-10-21 Tier 1 fix: the live-system line no longer commands (0c)"
         }
       ]
     },
@@ -779,7 +804,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 60094,
+      "chars": 60031,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
