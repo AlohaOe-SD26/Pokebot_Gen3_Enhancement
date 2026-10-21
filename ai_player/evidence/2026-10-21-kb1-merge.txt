@@ -1,0 +1,24 @@
+HEAD 5704fefd; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+KB1 MERGE (spec S3-1): branch claude/kb1-seasoned-knowledge-cr1f5t tip 880d7448, merged as 3a85d759 after the
+.gitattributes rule 5a32dcb1. Pinned decomp: C:/Remote Projects/_decomp/pokeemerald at 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881
+Every line below is a fresh run on the merged working tree.
+== V1 reproduction: `py -3.12 -I ai_player/gates/extract_seasoned.py --decomp C:/Remote Projects/_decomp/pokeemerald --check` exit 0
+   CHECK OK: 4 files identical
+== V2 verifier seed 20261015: `py -3.12 -I ai_player/gates/verify_seasoned.py --decomp C:/Remote Projects/_decomp/pokeemerald` exit 0
+   ---- 221 checks, 221 passed, 0 FAILED
+== V3 verifier selftest: `py -3.12 -I ai_player/gates/verify_seasoned.py --decomp C:/Remote Projects/_decomp/pokeemerald --selftest` exit 0
+   SELFTEST: 6 of 6 plants caught
+== V4 verifier seed 1: `py -3.12 -I ai_player/gates/verify_seasoned.py --decomp C:/Remote Projects/_decomp/pokeemerald --seed 1` exit 0
+   ---- 221 checks, 221 passed, 0 FAILED
+== V4 verifier seed 2: `py -3.12 -I ai_player/gates/verify_seasoned.py --decomp C:/Remote Projects/_decomp/pokeemerald --seed 2` exit 0
+   ---- 221 checks, 221 passed, 0 FAILED
+== V4 verifier seed 3: `py -3.12 -I ai_player/gates/verify_seasoned.py --decomp C:/Remote Projects/_decomp/pokeemerald --seed 3` exit 0
+   ---- 221 checks, 221 passed, 0 FAILED
+== V5 cross-check X1-X4: `py -3.12 -I selftest_seasoned_crosscheck.py` exit 0
+   ALL PASS (40 checks)
+M5: run_units.py on this tree: OVERALL PASS (17 suites), see 2026-10-21-kb1-merge-units.txt.
+M2/M3/M4 (one-byte, CRLF and planted-type FAULT arms with CONTROLs) ran on scratch copies before the merge: as expected.
+KNOWN SEMANTIC ERRORS (decomp-confirmed; a follow-up fixes the extractor): Battle Pyramid header species listed
+as findable (battle_pyramid.c overwrites them), Altering Cave sets 2-9 without their Mystery Gift requirement
+(gift_altering_cave.inc), Battle Pike header levels, frontier rows' map field, unused Cave of Origin maps.
+The spec's step-5 adversarial pass has NOT run yet: no refutation has been sought, so nothing here is 'verified'.

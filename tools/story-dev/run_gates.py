@@ -1249,6 +1249,16 @@ GATES: list[tuple[str, bool]] = [
     # the 2026-10-21 adversarial reviewer: the object classifier must agree on >= 23, and the command-only one must fail).
     # No ROM; about 1 s. ‼ APPENDED AT THE END.
     ("selftest_usage_audit.py", False),
+    # KB1 merge (spec S3-1 V5, `ai-research-notes/2026-10-19-BUILD-SPECS-step-3.md`): `selftest_seasoned_crosscheck.py`
+    # compares the AI's seasoned knowledge (`ai_player/knowledge/seasoned/`) with sources that are NOT its extractor: X1
+    # moves and X2 species against `ai_player/knowledge/`, X3 the sandbox's 412-entry species data joined on NATIONAL dex
+    # (types, abilities, stats, gender, egg groups, held items, every learnset kind), X4 encounters against
+    # `emerald_rarity.json`, where every difference must carry a stated reason (the 143 vs 153 gap is explained species
+    # by species). WHY: the verifier re-reads the decomp the way the extractor does, so a shared misreading passes both;
+    # these sources can disagree. Agreement certifies nothing (they all descend from the game): each check finds rows
+    # to adjudicate. Non-vacuity guards (>= 90 % of the smaller side), built-in FAULT arms F1-F7. Lives outside
+    # `ai_player/` so it adds nothing to the AI's tree digest. No ROM, no decomp needed; ~2 s. ‼ APPENDED AT THE END.
+    ("selftest_seasoned_crosscheck.py", False),
 ]
 
 
