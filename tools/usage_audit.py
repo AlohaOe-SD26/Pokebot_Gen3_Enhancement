@@ -44,8 +44,15 @@ HOW IT COUNTS (each choice is a place a wrong proxy would rank the wrong lever, 
     writes no transcript, so they are outside every total here; the report says so.
   * A COLD RE-WRITE is a response whose cache write exceeds half of the previous response's whole context after a gap
     of more than 300 s (the 5-minute prompt cache expired, so the context was paid for again).
-  * UNTEMPLATED: a workflow agent whose first prompt lacks `<!-- stage-template:<role>@<ver> -->` (spec S2-3); this is
-    how template compliance is measured rather than assumed.
+  * UNTEMPLATED: a workflow agent whose first prompt does not BEGIN with a stage-template marker (spec S2-3); this is
+    how template compliance is measured rather than assumed. TEMPLATED means the prompt's FIRST LINE is exactly
+    `<!-- stage-template:<role>@<ver> -->` (`tools/workflows/lint_templates.MARKER_RE`, the one definition) for a
+    <role> that has a template in tools/workflows/templates/. The harness's framing is taken off first: a first user
+    message that is the `[Workflow harness — user request]` relay is skipped (the computed task, where a rendered
+    prompt sits, is the NEXT message: 371 of 715 workflow agents on 2026-10-21), and the `[Workflow harness —
+    computed task]` header line and its 2-space indent are removed. WHY not "the marker occurs somewhere": every
+    prompt that QUOTES the marker (a build or review of the templates themselves) counted as templated, which
+    inflated compliance exactly where it was being measured (review 2026-10-21).
 
 WHAT IT WRITES. Nothing, unless asked: `--append` adds ONE row per finished workflow to
 `PROJECT KNOWLEDGE/cost-ledger.jsonl` (append-only; a changed re-run appends rev+1, an unchanged one appends nothing;
@@ -81,6 +88,11 @@ WEIGHTS = {"input": 1.0, "cw5m": 1.25, "cw1h": 2.0, "cache_read": 0.1, "output":
 WEIGHTS_TEXT = "WEIGHTS (input-equivalent): input 1x, cache write 5m 1.25x, cache write 1h 2x, cache read 0.1x, output 5x"
 SEED_CALIBRATION = [(143.0, 36.0)]  # 07-CHANGELOG: step 5.2 = about 143M input-equivalent = about 36 % of a week
 MARKER = "<!-- stage-template:"
+#: The workflow harness's framing of an agent's prompt (measured on the real transcripts, 2026-10-21: one header line,
+#: then every line of the relayed or computed text indented by 2 spaces).
+RELAY_PREFIX = "[Workflow harness — user request]"
+COMPUTED_PREFIX = "[Workflow harness — computed task]"
+WORKFLOWS = REPO / "tools" / "workflows"
 CAP = 80
 GAP_S = 300
 CATEGORIES = ("read_py", "read_md", "read_evidence", "read_other", "bash_cat", "bash_grep", "bash_suite",
@@ -562,9 +574,46 @@ def is_cold_rewrite(prev: dict, cur: dict) -> bool:
     return gap > GAP_S and context > 0 and (cur["cw5m"] + cur["cw1h"]) > 0.5 * context
 
 
+_MARKER_CACHE: list = []
+
+
+def template_marker():
+    """(the marker regex, the roles that have a template), from tools/workflows/lint_templates.py: the ONE definition
+    of a marker line, so this count and the lint can never disagree about what a marker is."""
+    if not _MARKER_CACHE:
+        if str(WORKFLOWS) not in sys.path:
+            sys.path.append(str(WORKFLOWS))
+        import lint_templates  # noqa: PLC0415  (tools/workflows; loaded only when a prompt is classified)
+        _MARKER_CACHE.append((lint_templates.MARKER_RE,
+                              frozenset(p.stem for p in Path(lint_templates.TEMPLATES).glob("*.md"))))
+    return _MARKER_CACHE[0]
+
+
+def prompt_text(content) -> str:
+    """A user message's text: the string, or its text blocks joined."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(x.get("text", "") for x in content if isinstance(x, dict) and x.get("type") == "text")
+    return ""
+
+
+def is_templated(text: str) -> bool:
+    """Is this first prompt a RENDERED template? Its first line, once the harness's computed-task header line and
+    2-space indent are taken off, must be exactly a marker of a role that has a template (see the docstring)."""
+    if text.startswith(COMPUTED_PREFIX):
+        body = text.partition("\n")[2]
+        text = "\n".join(line[2:] if line.startswith("  ") else line for line in body.split("\n"))
+    first = text.split("\n", 1)[0].rstrip("\r")
+    marker_re, roles = template_marker()
+    found = marker_re.fullmatch(first)
+    return found is not None and found["role"] in roles
+
+
 def scan_file(path: Path, agent: Agent, stats: Counter, since=None, lean: bool = False) -> Agent:
     """Stream one transcript. `lean` (the --session fast path) skips tool results and parses only assistant lines."""
     uses: dict = {}
+    relay_skipped = False
     with open(path, "rb") as fh:
         for raw in fh:
             if not raw.strip():
@@ -586,7 +635,11 @@ def scan_file(path: Path, agent: Agent, stats: Counter, since=None, lean: bool =
             if typ == "user" and not lean:
                 if agent.templated is None and not (isinstance(content, list) and any(
                         isinstance(x, dict) and x.get("type") == "tool_result" for x in content)):
-                    agent.templated = MARKER in (content if isinstance(content, str) else json.dumps(content))
+                    text = prompt_text(content)
+                    if not relay_skipped and text.startswith(RELAY_PREFIX):
+                        relay_skipped = True  # the user-request relay: the computed task comes next
+                    else:
+                        agent.templated = is_templated(text)
                 if isinstance(content, list) and not (since and ts and ts < since):
                     for x in content:
                         if isinstance(x, dict) and x.get("type") == "tool_result":
@@ -623,6 +676,8 @@ def scan_file(path: Path, agent: Agent, stats: Counter, since=None, lean: bool =
                             uses[x.get("id")] = (x.get("name", "?"), inp, tool_category(x.get("name", ""), inp),
                                                  tool_objects(x.get("name", ""), inp))
                             agent.tool_calls[x.get("name", "?")] += 1
+    if agent.templated is None and relay_skipped:
+        agent.templated = False  # a relay and no computed task after it: no marker was ever seen
     agent.finish()
     return agent
 

@@ -1,4 +1,4 @@
-<!-- stage-template:verify@1 -->
+<!-- stage-template:verify@2 -->
 You are the ONE adversarial VERIFIER for {{task}} in the repo C:/Remote Projects/Pokebot_Gen3_Enhancement (Windows;
 use py -3.12). Your job is to BREAK it, not to confirm it.
 
@@ -32,12 +32,15 @@ report. Never "revert" a mutant in the main checkout; mutants live only in scrat
 ## RETURN-CAP
 words: 200
 file: {{verdict_path}}
-Write the verdict as JSON to that file, exactly these keys:
-`{"all_pass": true|false, "FAILURES": [...], "weak_proofs": [...], "rule_violations": [...], "summary": "..."}`.
-`all_pass` is a JSON boolean, never a string. A FAILURE is something broken or a rule violated (list a rule violation
-in BOTH `rule_violations` and `FAILURES`); a weak proof is not a FAILURE and goes to the next step's list. A fix round
-runs only for `all_pass: false` with a non-empty `FAILURES` (`py -3.12 tools/workflows/stage_helpers.py refix <file>`);
-a missing or malformed file is sent to a human. Your final answer is at most 200 words plus the file's path.
+Write the verdict as JSON to that file, exactly these keys, each once, spelled exactly so:
+`{"all_pass": true|false, "complete": true|false, "FAILURES": [...], "weak_proofs": [...], "rule_violations": [...],
+"summary": "..."}`.
+`all_pass` and `complete` are JSON booleans, never strings. `complete` is true ONLY when every item of the checklist in
+GOAL was checked; a verify cut short (WAIT-RULE) writes `"complete": false`, and that is never a pass. A FAILURE is
+something broken or a rule violated (list a rule violation in BOTH `rule_violations` and `FAILURES`); a weak proof is
+not a FAILURE and goes to the next step's list. A fix round runs only for `all_pass: false` with a non-empty
+`FAILURES` (`py -3.12 tools/workflows/stage_helpers.py refix <file>`); a missing, malformed, contradictory or
+incomplete file is sent to a human. Your final answer is at most 200 words plus the file's path.
 
 ## MODEL
 top
@@ -46,7 +49,8 @@ top
 Never wait inside a big context. A run longer than a few minutes is started DETACHED (PowerShell `Start-Process`) and
 writes its own summary file. Write the in-flight note `PROJECT KNOWLEDGE/in-flight/{{run}}.md` (stage, what was
 checked, the command, the summary path, what remains) and finish with that path. Past 150 tool calls: write the same
-note, write the verdict JSON with what you have, and hand back.
+note, write the verdict JSON with what you have and `"complete": false` (say in `summary` which checks did not run),
+and hand back.
 
 ## MAP-FIRST
 Before reading a source file over 30 KB, map it: `grep -n "^def \|^class \|^    def " <file>`, then Read only the

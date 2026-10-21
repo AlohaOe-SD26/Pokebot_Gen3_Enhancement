@@ -6,22 +6,35 @@
 WHY. A workflow script is JavaScript and cannot read the repo, so the coordinator renders each stage's prompt HERE and
 pastes the result into the script (`--format json` prints a JSON object whose "prompt" value is a valid JS string
 literal, plus the stage's tier and the `agent()` model option from models.json). Rendering is where a template's
-promises become a real prompt, so it REFUSES rather than guesses:
+promises become a real prompt, and where the model is CHOSEN, so it REFUSES rather than guesses:
+  * a template the lint does not pass (`lint_templates.lint_text` on this role's text, with `models_errors` over
+    models.json): a MODEL line that disagrees with models.json, a tier below top without a valid plant-run proof,
+    `verify` moved off top, or `agent_model.top` set to a model would otherwise reach `agent()` unchecked. WHY here
+    and not only in the lint: the lint runs at commit time, render at use time, and a models.json edited in between
+    once rendered `verify` on haiku while its prompt said `top` (review 2026-10-21);
+  * a value that is not a JSON STRING (null, false, a list, a number: `str()` would render "None" or "False" as if it
+    were text), a value over MAX_VALUE_CHARS (a document belongs in READ-LIST with a range, not pasted into a prompt),
+    or a value holding a `## ` heading line (it would inject a field, e.g. a second, permissive `## RULES`);
   * an unresolved `{{placeholder}}` (a value not given, or a value that itself holds `{{...}}`): an agent handed a
     literal "{{spec_range}}" reads the whole file, which is the cost the template exists to remove;
   * an empty value for a REQUIRED placeholder `{{name}}` (only `{{name?}}` may be empty), and any required field whose
     body is empty after filling;
-  * a READ-LIST path, once filled, that is a file over 30 KB without a range (`lint_templates.read_list_errors`, the
-    same function the lint runs: one rule, one reader);
-  * a prompt whose line 1 is not this role's marker `<!-- stage-template:<role>@<ver> -->`, because
-    `tools/usage_audit.py` counts an agent as TEMPLATED only by that marker in its first prompt.
+  * a READ-LIST entry, once filled, that reads over 30 KB (a whole file, or a range's own bytes), does not exist
+    (unless tagged [later]), or sits under DO-NOT-READ unranged (`lint_templates.read_list_errors`, the same function
+    the lint runs: one rule, one reader). An ANCHORED entry `path:@<line prefix>+N` is resolved here to the concrete
+    `path:START-END` the agent reads, found the way `grep -n '^<prefix>'` finds it;
+  * a template whose line 1 is not this role's marker `<!-- stage-template:<role>@<ver> -->` (the lint), a filled
+    prompt with a second marker line, or a value that opens a fence or comment that never closes, because
+    `tools/usage_audit.py` counts an agent as TEMPLATED only by that marker on its first prompt's line 1.
 Exit 0 = rendered; 2 = refused (the reasons are printed, nothing is written).
 """
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
+import unicodedata
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -34,6 +47,12 @@ for _s in (sys.stdout, sys.stderr):
         _s.reconfigure(encoding="utf-8")
     except (AttributeError, ValueError):
         pass
+
+#: Characters. A value is a sentence or a paragraph (a goal, a claim, a path list); the longest real one so far was a
+#: few thousand characters. Anything longer is a document, which belongs in READ-LIST with a range.
+MAX_VALUE_CHARS = 20_000
+#: A heading line a value must not carry: `##` then a space or the line's end, after any indentation.
+VALUE_HEADING_RE = re.compile(r"^[ \t]*##(?:[ \t]|$)", re.M)
 
 
 class RenderError(ValueError):
@@ -52,26 +71,68 @@ def placeholders(text: str) -> dict[str, bool]:
     return found
 
 
-def render(text: str, values: dict[str, str], role: str, repo: Path = lt.REPO) -> str:
-    """Fill `text` (a template of `role`) from `values`; raise RenderError instead of returning an unsafe prompt."""
+def value_errors(values: dict) -> list[str]:
+    """The values no prompt may carry (see the module docstring)."""
     reasons = []
+    for name, value in values.items():
+        if not isinstance(value, str):
+            reasons.append(f"value {name!r} is a {type(value).__name__}, not a string")
+            continue
+        if len(value) > MAX_VALUE_CHARS:
+            reasons.append(f"value {name!r} is {len(value):,} characters (over {MAX_VALUE_CHARS:,}): put the document "
+                           f"in READ-LIST with a range instead")
+        # format characters (a zero-width space) are invisible to a reader, so they cannot hide a heading
+        visible = "".join(ch for ch in value if unicodedata.category(ch) != "Cf")
+        if VALUE_HEADING_RE.search(visible):
+            reasons.append(f"value {name!r} holds a `## ` heading line: it would inject a field into the prompt")
+    return reasons
+
+
+def resolve_anchors(text: str, repo: Path) -> str:
+    """Every bullet `path:@<prefix>+N` -> `path:START-END`, the lines the agent will read. An anchor that resolves to
+    nothing is left as written: `read_list_errors` (the one reader of the rule) then refuses it."""
+    out = []
+    for line in text.split("\n"):
+        bullet = lt.BULLET_RE.match(line.strip())
+        spec = lt.parse_entry(bullet["entry"]) if bullet else None
+        target = lt._resolve(spec["path"], repo) if spec and spec["kind"] == "anchor" else None
+        span = lt.resolve_range(spec, target) if target is not None and target.is_file() else None
+        if isinstance(span, tuple):
+            line = line.replace(f"`{bullet['entry']}`", f"`{spec['path']}:{span[0]}-{span[1]}`", 1)
+        out.append(line)
+    return "\n".join(out)
+
+
+def render(text: str, values: dict, role: str, repo: Path = lt.REPO, models: dict | None = None) -> str:
+    """Fill `text` (a template of `role`) from `values`; raise RenderError instead of returning an unsafe prompt.
+    `models` is models.json's content (default: this folder's models.json)."""
+    models = lt.load_models() if models is None else models
+    lint = lt.models_errors(models) + lt.lint_text(text, role, models, repo)
+    if lint:
+        raise RenderError([f"the template does not lint: {e}" for e in lint])
+    reasons = value_errors(values)
     wanted = placeholders(text)
     for name, optional in wanted.items():
         if optional:
             continue  # `{{name?}}` may be left out: it renders empty
         if name not in values:
             reasons.append(f"unresolved placeholder {{{{{name}}}}}: no value given")
-        elif not str(values[name]).strip():
+        elif isinstance(values[name], str) and not values[name].strip():
             reasons.append(f"required placeholder {{{{{name}}}}} has an empty value")
     if reasons:
         raise RenderError(reasons)
-    out = lt.PLACEHOLDER_RE.sub(lambda m: str(values.get(m["name"], "")), text)
+    out = lt.PLACEHOLDER_RE.sub(lambda m: values.get(m["name"], ""), text)
     left = lt.ANY_BRACES_RE.findall(out)
     if left:
         raise RenderError([f"unresolved placeholder after filling: {s}" for s in left])
+    out = resolve_anchors(out, repo)
     doc = lt.parse(out)
-    if doc["marker"] is None or doc["marker"][0] != role:
-        reasons.append(f"line 1 is not the marker of role {role!r} (usage_audit would count this agent untemplated)")
+    # (line 1 is this role's marker: the lint above proved it of the template, and a marker line cannot hold a
+    # placeholder, so no value can change it. A value CAN add lines below it, which the checks below are for.)
+    if doc["unclosed"]:
+        reasons.append(f"after filling, {doc['unclosed']}: a value opened it, and the agent would read the rest as code")
+    for line in doc["extra_markers"]:
+        reasons.append(f"line {line} is a second marker after filling (only line 1 may be one)")
     for name in lt.FIELDS:
         bodies = doc["fields"].get(name, [])
         if len(bodies) != 1:
@@ -79,25 +140,42 @@ def render(text: str, values: dict[str, str], role: str, repo: Path = lt.REPO) -
         elif not bodies[0].strip():
             reasons.append(f"{name}: required field is empty after filling")
     if doc["fields"].get("READ-LIST") and doc["fields"].get("DO-NOT-READ"):
-        dnr = [lt._norm(e) for e, _ in lt.bullet_entries(doc["fields"]["DO-NOT-READ"][0])[0]]
+        dnr = [e for e, _ in lt.bullet_entries(doc["fields"]["DO-NOT-READ"][0])[0]]
         reasons += lt.read_list_errors(doc["fields"]["READ-LIST"][0], dnr, repo)
     if reasons:
         raise RenderError(reasons)
     return out
 
 
-def render_role(role: str, values: dict[str, str], templates: Path = lt.TEMPLATES, repo: Path = lt.REPO) -> str:
+def render_stage(role: str, values: dict, templates: Path = lt.TEMPLATES, models_path: Path = lt.MODELS,
+                 repo: Path = lt.REPO) -> dict:
+    """{"role", "tier", "model", "prompt"}: the rendered prompt and the `agent()` model option, both from ONE read of
+    models.json (the tier the lint just checked is the tier that is handed out)."""
     path = templates / f"{role}.md"
     if not path.is_file():
         raise RenderError([f"no template {path}"])
-    return render(path.read_text(encoding="utf-8"), values, role, repo)
+    try:
+        models = lt.load_models(models_path)
+    except (OSError, ValueError) as error:
+        raise RenderError([f"models.json unreadable: {type(error).__name__}: {error}"]) from error
+    prompt = render(path.read_text(encoding="utf-8"), values, role, repo, models)
+    tier = models["stages"][role]["tier"]
+    # the workflow agent() `model` option; null for top = no option, the agent inherits the coordinator's model
+    return {"role": role, "tier": tier, "model": models["agent_model"][tier], "prompt": prompt}
 
 
-def _values(args) -> dict[str, str]:
-    values: dict[str, str] = {}
+def render_role(role: str, values: dict, templates: Path = lt.TEMPLATES, repo: Path = lt.REPO,
+                models_path: Path = lt.MODELS) -> str:
+    return render_stage(role, values, templates, models_path, repo)["prompt"]
+
+
+def _values(args) -> dict:
+    values: dict = {}
     if args.values:
         loaded = json.loads(Path(args.values).read_text(encoding="utf-8"))
-        values.update({str(k): str(v) for k, v in loaded.items()})
+        if not isinstance(loaded, dict):
+            raise RenderError([f"--values {args.values} is not a JSON object"])
+        values.update({str(k): v for k, v in loaded.items()})  # NOT str(v): render refuses a non-string value
     for item in args.set or []:
         key, sep, val = item.partition("=")
         if not sep:
@@ -121,20 +199,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", help="write here instead of stdout")
     args = ap.parse_args(argv)
     try:
-        prompt = render_role(args.role, _values(args))
+        stage = render_stage(args.role, _values(args))
     except RenderError as error:
         for r in error.reasons:
             print(f"REFUSED {r}", file=sys.stderr)
         return 2
-    if args.format == "json":
-        models = lt.load_models()
-        tier = ((models.get("stages") or {}).get(args.role) or {}).get("tier")
-        # the workflow agent() `model` option; null for top = no option, the agent inherits the coordinator's model
-        model = (models.get("agent_model") or {}).get(tier)
-        out = json.dumps({"role": args.role, "tier": tier, "model": model, "prompt": prompt},
-                         ensure_ascii=False, indent=1)
-    else:
-        out = prompt
+    out = json.dumps(stage, ensure_ascii=False, indent=1) if args.format == "json" else stage["prompt"]
     if args.out:
         Path(args.out).write_text(out, encoding="utf-8")
     else:

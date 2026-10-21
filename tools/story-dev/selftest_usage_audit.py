@@ -32,6 +32,10 @@ confidence. So each counting rule below has a FAULT arm (the rule broken -> the 
   U11 the object rules one at a time (even split, pattern is not a file, include/type filters, heredoc bodies,
      stdout to a file, a pipeline into a file, evidence/ and scratchpad folders, config as source, PowerShell -Path,
      quoted "<", `< file`), each beside a CONTROL.
+  U12 TEMPLATED by the prompt's FIRST LINE (spec S2-3, review 2026-10-21 finding 6): a rendered prompt counts bare,
+     inside the computed-task framing, and after the user-request relay; a prompt that only MENTIONS the marker, a
+     marker for a role with no template, and a marker with text after it on line 1 do not (each a FAULT arm for the
+     substring test that preceded it); a relay with no computed task is untemplated, never unknown.
   U7 (NOT a gate; `--real`): the REAL transcript folder, read-only: all four share tables (by object and by
      command, all agents and subagents) sum to 100 +/- 0.5 and the round-2 reference numbers print beside this run's.
 
@@ -46,6 +50,7 @@ import json
 import shutil
 import sys
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent.parent
@@ -184,7 +189,7 @@ def score(classify) -> tuple[int, list[str]]:
 def cold_agent(gap_s: int, write: int) -> list:
     t0, t1 = "2026-10-21T12:00:00.000Z", f"2026-10-21T12:{gap_s // 60:02d}:{gap_s % 60:02d}.000Z"
     return [{"type": "user", "uuid": "c0", "timestamp": t0,
-             "message": {"role": "user", "content": "<!-- stage-template:verify@1 --> check it"}},
+             "message": {"role": "user", "content": "<!-- stage-template:verify@1 -->\ncheck it"}},
             asst("c1", "msg_c1", t0, usage(0, 1000, 0, 9000, 10), [{"type": "text", "text": "a"}]),
             asst("c2", "msg_c2", t1, usage(0, write, 0, 0, 10), [{"type": "text", "text": "b"}])]
 
@@ -429,6 +434,47 @@ def selftest() -> None:
 
     hand_label_gate()
     object_units()
+    templated_units()
+
+
+def _computed(text: str) -> str:
+    """`text` as the workflow harness frames a computed task (measured 2026-10-21: one header line, 2-space indent)."""
+    return ("[Workflow harness — computed task] The task text below was computed at runtime by a workflow script. "
+            "The computed task text follows:\n" + "\n".join(("  " + x) if x else "" for x in text.split("\n")))
+
+
+def templated_units() -> None:
+    """U12: TEMPLATED is decided by the prompt's FIRST LINE (spec S2-3; review 2026-10-21, finding 6). Each FAULT case
+    is the arm of one rule (it reads wrongly when that rule is removed); the CONTROL cases hold either way."""
+    marker = "<!-- stage-template:verify@1 -->"
+    body = "You are the ONE adversarial VERIFIER.\n\n## GOAL\nbreak it"
+    relay = ("[Workflow harness — user request] The harness relays, verbatim and indented below, the user's request:\n"
+             "  please review the templates")
+    cases = [
+        # (label, the agent's user messages in order, want) -- the rule each one guards
+        ("CONTROL a bare rendered prompt", [marker + "\n" + body], True),
+        ("a rendered prompt inside the computed-task framing", [_computed(marker + "\n" + body)], True),  # header strip
+        ("the user-request relay FIRST, the rendered computed task second", [relay, _computed(marker + "\n" + body)],
+         True),                                                                                # the relay is skipped
+        ("CONTROL the relay first, a computed task WITHOUT a marker second", [relay, _computed(body)], False),
+        ("a prompt that MENTIONS the marker on a later line", ["Review the lint. Line 1 must read:\n" + marker], False),
+        ("a mention inside the computed framing", [_computed("Check that " + marker + " is line 1.\n" + body)], False),
+        ("a marker line for a role with NO template", ["<!-- stage-template:nosuchrole@1 -->\n" + body], False),
+        ("a marker followed by more text on line 1", [marker + " check it\n" + body], False),        # fullmatch
+        ("a relay and no computed task after it", [relay], False),                               # never left None
+        ("CONTROL text blocks (list content) whose first line is the marker",
+         [[{"type": "text", "text": marker + "\n" + body}]], True),
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        for i, (label, users, want) in enumerate(cases):
+            rows = [{"type": "user", "uuid": f"t{i}-{k}", "timestamp": T.format(k),
+                     "message": {"role": "user", "content": text}} for k, text in enumerate(users)]
+            rows.append(asst(f"t{i}-a", f"msg_t{i}", T.format(9), usage(1, 0, 0, 0, 1), [{"type": "text", "text": "ok"}]))
+            path = Path(tmp) / f"agent-t{i}.jsonl"
+            write_jsonl(path, rows)
+            agent = ua.Agent(path, "s", "workflow", "wf_t", "stage", "phase")
+            ua.scan_file(path, agent, Counter())
+            check(f"U12 {label} -> templated {want}", agent.templated is want, f"got {agent.templated!r}")
 
 
 def hand_label_gate() -> None:
