@@ -13,7 +13,7 @@
 10. **A6 (S3-3)** ✅ DONE 2026-10-21 (two review rounds; `chapter_priors.json` waits for the AI's loader): experience records from the bot's games, a script; run it first in step 3 if O3 is late. Step 3; 260 + 200.
 11. **A5 + L1 + L2 (S3-4)** ONE generator; slice 1 (trainers, bosses, maps, campaign) build-ready, slice 2 (items, events) NEEDS DESIGN. Step 3; 700 + 250.
 12. **B1 (+R13)** Goodhart gate: grader thresholds the AI cannot import or reach. Step 4; est. 80 + 80. ⚠ RE-SCOPED 2026-10-21 by recon (`2026-10-21-B1-recon.md`): the import half is ALREADY enforced (check_purity rule (c)); the real gap is that the AI copies the grader's numbers and part of the grade is read from the AI's own record, so B1 changes the step-5 grader and RE-GRADES step 5: spec it with the next graded round (5.3).
-13. **A2 (agent-free half) + P7** `run_regression.py`, summary files, a `--quick` lane. Step 4; est. 250 + 150.
+13. **A2 (agent-free half) + P7** `run_regression.py`, summary files, a `--quick` lane. Step 4; est. 250 + 150. SPECCED 2026-10-21 as S4-1 (`2026-10-21-BUILD-SPEC-S4-1-A2-P7.md`, from `2026-10-21-A2-P7-recon.md`); N8's grader half goes with B1 at step 5.3.
 14. **E2 + O8** per-game recording; torn-write resilience and a crash-loop breaker. Step 5; est. 150 + 150.
 15. **R5, then R1 + R2 (+DP1, DP2, L3 a-b)** free screen, then save/CONTINUE and a memory that survives a kill; DECIDE EARLY. Step 6; est. 300 + 200.
 
