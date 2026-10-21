@@ -1,0 +1,4943 @@
+{
+ "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
+ "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
+ "source_sha1_lf": "9cfbda43cc9c76cbdeaa4e495a0c2a9d438b2eb3",
+ "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
+ "counts": {
+  "sections": 315,
+  "donot_candidates": 21,
+  "sections_naming_user_rulings": 35
+ },
+ "sections": [
+  {
+   "id": "2026-07-17-31ec7b",
+   "date": "2026-07-17",
+   "line_start": 7,
+   "line_end": 12,
+   "title": "2026-07-17 — Adopted the Claude Code Project Kit",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-17-ba32a6",
+   "date": "2026-07-17",
+   "line_start": 14,
+   "line_end": 25,
+   "title": "2026-07-17 — Vendor upstream via git subtree (squashed), not clone/submodule",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-17-fb3c6f",
+   "date": "2026-07-17",
+   "line_start": 27,
+   "line_end": 38,
+   "title": "2026-07-17 — Installer enhancement will ADAPT, not literally apply, the base64 pattern",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-17-61ace6",
+   "date": "2026-07-17",
+   "line_start": 40,
+   "line_end": 61,
+   "title": "2026-07-17 — Two-folder fork layout + daily upstream sync (user directive)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-17-c7d216",
+   "date": "2026-07-17",
+   "line_start": 63,
+   "line_end": 84,
+   "title": "2026-07-17 — Installer implemented as git-driven one-script (supersedes provisional entry)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "supersedes"
+   ]
+  },
+  {
+   "id": "2026-07-18-2d9552",
+   "date": "2026-07-18",
+   "line_start": 86,
+   "line_end": 97,
+   "title": "2026-07-18 — Emerald ROM stays tracked in the repo (user ruling)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "3b048741",
+     "line": 90,
+     "text": "Do not re-raise this for THIS file."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-07-21-b2a107",
+   "date": "2026-07-21",
+   "line_start": 99,
+   "line_end": 119,
+   "title": "2026-07-21 — Skip the forced PokéNav Match-Call tutorial via a targeted state-write",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-21-3d5d1d",
+   "date": "2026-07-21",
+   "line_start": 121,
+   "line_end": 135,
+   "title": "2026-07-21 (revised) — PokéNav Match-Call tutorial: FAITHFUL primary, state-write fallback",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-23-463b22",
+   "date": "2026-07-23",
+   "line_start": 137,
+   "line_end": 150,
+   "title": "2026-07-23 — Derive the Lavaridge maze from ROM data; don't explore it or hardcode it",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-23-71564b",
+   "date": "2026-07-23",
+   "line_start": 152,
+   "line_end": 163,
+   "title": "2026-07-23 — Research answers never supply numbers the ROM already knows",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-23-22885f",
+   "date": "2026-07-23",
+   "line_start": 165,
+   "line_end": 175,
+   "title": "2026-07-23 — Proactive prep is a hint; reactive escalation is the guarantee",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-train-efficiency"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-24-d62320",
+   "date": "2026-07-24",
+   "line_start": 177,
+   "line_end": 191,
+   "title": "2026-07-24 — KI-15: clear the post-battle input wedge at the RUN-LOOP seam, not in the rider",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-15"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-24-f32198",
+   "date": "2026-07-24",
+   "line_start": 193,
+   "line_end": 219,
+   "title": "2026-07-24 — Orchestration: premium orchestrator + cheap workers, gated by the HARNESS (not by model opinion)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-24-a43da8",
+   "date": "2026-07-24",
+   "line_start": 221,
+   "line_end": 244,
+   "title": "2026-07-24 — Fodder grass: SKIP the grind rather than travel, and keep the trigger conservative",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-watertrain"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-24-a43bab",
+   "date": "2026-07-24",
+   "line_start": 246,
+   "line_end": 278,
+   "title": "2026-07-24 — Budget training in FRAMES, not levels (punch-list #24)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-25-4fa5ea",
+   "date": "2026-07-25",
+   "line_start": 280,
+   "line_end": 304,
+   "title": "2026-07-25 — Ground decomp research in a LOCAL SPARSE CLONE, not per-file `gh api` fetches",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-25-88df32",
+   "date": "2026-07-25",
+   "line_start": 306,
+   "line_end": 333,
+   "title": "2026-07-25 — `region_reach` is a NEW predicate, not a repair of `calculate_path`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-25-ce6123",
+   "date": "2026-07-25",
+   "line_start": 335,
+   "line_end": 366,
+   "title": "2026-07-25 — Hop count is a FILTER (`max_hops=4`), never a RANK",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-edgecost"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-25-7e01c4",
+   "date": "2026-07-25",
+   "line_start": 368,
+   "line_end": 390,
+   "title": "2026-07-25 — The Gemini Pro-3.1+ requirement is enforced in CODE, not by a doc rule",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-25-23544a",
+   "date": "2026-07-25",
+   "line_start": 392,
+   "line_end": 421,
+   "title": "2026-07-25 — \"Endless reset runs\" ships as an IN-PROCESS bot mode, reversing the shipped launcher",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "reversing"
+   ]
+  },
+  {
+   "id": "2026-07-25-0e1f48",
+   "date": "2026-07-25",
+   "line_start": 423,
+   "line_end": 482,
+   "title": "2026-07-25 — The TRAINING gate switches to `region_reach` too (KI-24 closed on both consumers)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-24"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-25-3dee16",
+   "date": "2026-07-25",
+   "line_start": 484,
+   "line_end": 513,
+   "title": "2026-07-25 — Battle-handler faults reach the mode by an OPT-IN channel, not by an exception",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-movelearn-recovery"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-42f4fa",
+   "date": "2026-07-26",
+   "line_start": 515,
+   "line_end": 535,
+   "title": "2026-07-26 — ENDLESS RESET restores SPEED but never touches VIDEO (user directive)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-pokenav-faithful"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-8e9970",
+   "date": "2026-07-26",
+   "line_start": 537,
+   "line_end": 554,
+   "title": "2026-07-26 — Hard-won map/route facts live in the DECISION CODE, not in prose (user directive)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-a96c47",
+   "date": "2026-07-26",
+   "line_start": 556,
+   "line_end": 568,
+   "title": "2026-07-26 — Validation runs are BATCHED across fixes, not run per fix (user directive)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-940959",
+   "date": "2026-07-26",
+   "line_start": 570,
+   "line_end": 596,
+   "title": "2026-07-26 — ENDLESS LOOP ×4 runs as four CHILD PROCESSES, not four emulators in one process",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-d4cbc7",
+   "date": "2026-07-26",
+   "line_start": 598,
+   "line_end": 610,
+   "title": "2026-07-26 — Lane profiles are BOT-MANAGED: `story.yml` is rewritten on every batch launch",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-f3d7de",
+   "date": "2026-07-26",
+   "line_start": 612,
+   "line_end": 622,
+   "title": "2026-07-26 — Separate profiles per lane, not one shared profile with tagged logs",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-4581ad",
+   "date": "2026-07-26",
+   "line_start": 624,
+   "line_end": 643,
+   "title": "2026-07-26 — A lane's party travels as JSON and is rebuilt as stand-ins, rather than forking the party renderer",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-27c12c",
+   "date": "2026-07-26",
+   "line_start": 645,
+   "line_end": 658,
+   "title": "2026-07-26 — The badge recorder ships BEFORE the trainer-card UI that motivated it",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-a91740",
+   "date": "2026-07-26",
+   "line_start": 660,
+   "line_end": 679,
+   "title": "2026-07-26 — Log collection is park → copy → VERIFY → archive, and never reorders",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-a0aed2",
+   "date": "2026-07-26",
+   "line_start": 681,
+   "line_end": 693,
+   "title": "2026-07-26 — The parent→child command channel is a SEPARATE shared-memory region",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-db1f0f",
+   "date": "2026-07-26",
+   "line_start": 695,
+   "line_end": 727,
+   "title": "2026-07-26 — Cold-start runs decorrelate via a random pause on the NAMING SCREEN",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-2e8395",
+   "date": "2026-07-26",
+   "line_start": 729,
+   "line_end": 747,
+   "title": "2026-07-26 — Per-run state gets an explicit reset method, not a fresh object",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-b2fb26",
+   "date": "2026-07-26",
+   "line_start": 749,
+   "line_end": 767,
+   "title": "2026-07-26 — `run_index` dedupe by ownership, not by adjacency",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-26-6ecd41",
+   "date": "2026-07-26",
+   "line_start": 769,
+   "line_end": 782,
+   "title": "2026-07-26 — Lead policy and the Route 110 rival cap are NOT fixed autonomously",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-leadpolicy",
+    "#24-route110cap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-27-ce41e5",
+   "date": "2026-07-27",
+   "line_start": 784,
+   "line_end": 811,
+   "title": "2026-07-27 — The per-run frame budget is enforced by stepping the generator, not by a timer",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-27-a5d154",
+   "date": "2026-07-27",
+   "line_start": 813,
+   "line_end": 837,
+   "title": "2026-07-27 — Documentation audits use read-only agents; only the main thread writes",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-27-aed0cc",
+   "date": "2026-07-27",
+   "line_start": 839,
+   "line_end": 857,
+   "title": "2026-07-27 — Fixed-in-sandbox issues stay in 05-KNOWN-ISSUES until promotion (PROVISIONAL)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-18"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-29-575205",
+   "date": "2026-07-29",
+   "line_start": 859,
+   "line_end": 914,
+   "title": "2026-07-29 — USER RULINGS on the six open questions",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-counters",
+    "#24-leadpolicy",
+    "#24-route110cap",
+    "#24-trainmap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-29-9b440e",
+   "date": "2026-07-29",
+   "line_start": 916,
+   "line_end": 956,
+   "title": "2026-07-29 — Debug Story modes force unthrottled + video ON; this SUPERSEDES the 2026-07-26 \"never touch video\" rule",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "supersedes"
+   ]
+  },
+  {
+   "id": "2026-07-30-e695a0",
+   "date": "2026-07-30",
+   "line_start": 958,
+   "line_end": 996,
+   "title": "2026-07-30 — Counter hunting grounds are a WHITELIST, and huntability is separate from reachability",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-counters"
+   ],
+   "ki": [
+    "KI-24"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-30-441578",
+   "date": "2026-07-30",
+   "line_start": 998,
+   "line_end": 1033,
+   "title": "2026-07-30 — The counter hunt is bounded by PER-RUN STATE, not by retries or frames",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-counters",
+    "#24-team"
+   ],
+   "ki": [
+    "KI-34"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-30-c8fc9d",
+   "date": "2026-07-30",
+   "line_start": 1035,
+   "line_end": 1065,
+   "title": "2026-07-30 — Menu entries keep a FIXED position; a disabled entry beats a missing one",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-31-40bea4",
+   "date": "2026-07-31",
+   "line_start": 1067,
+   "line_end": 1091,
+   "title": "2026-07-31 — The headless batch runner ASSERTS the emulation config; it does not set it",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-31-7e8b7a",
+   "date": "2026-07-31",
+   "line_start": 1093,
+   "line_end": 1106,
+   "title": "2026-07-31 — Headless lanes keep the RENDERER on (`-hl`, never `-nv`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-31-c846f7",
+   "date": "2026-07-31",
+   "line_start": 1108,
+   "line_end": 1155,
+   "title": "2026-07-31 — Warp planning becomes MAP-granular, but the walk decision stays with `calculate_path`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-39"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-31-609d87",
+   "date": "2026-07-31",
+   "line_start": 1157,
+   "line_end": 1173,
+   "title": "2026-07-31 — The candidate progress filter rejects only moves AWAY, never \"not strictly closer\"",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-07-31-cf6a0e",
+   "date": "2026-07-31",
+   "line_start": 1175,
+   "line_end": 1213,
+   "title": "2026-07-31 — USER RULING: `#24-dexhunt` is \"always catch new, WHEN IT IS CHEAP\"",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-counters",
+    "#24-dexhunt",
+    "#24-journey",
+    "#24-pc",
+    "#24-smashroute"
+   ],
+   "ki": [
+    "KI-24",
+    "KI-42"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-02-b1072f",
+   "date": "2026-08-02",
+   "line_start": 1215,
+   "line_end": 1254,
+   "title": "2026-08-02 — Lead policy: super-effectiveness outranks level ONLY for a hunted counter",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-leadpolicy"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-05-548af8",
+   "date": "2026-08-05",
+   "line_start": 1256,
+   "line_end": 1284,
+   "title": "2026-08-05 — USER DIRECTIVE: stop bisecting after this batch; get back to STORY CONTENT",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-areaitemgate",
+    "#24-leadpolicy",
+    "#24-pc"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-05-26c51a",
+   "date": "2026-08-05",
+   "line_start": 1286,
+   "line_end": 1323,
+   "title": "2026-08-05 — `#24-hmslots`: RESERVE SLOTS. Deeper teams are deferred to an organic-play pass.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-cavethread",
+    "#24-hmslots",
+    "#24-organicteam",
+    "#24-partycap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-06-e37aa0",
+   "date": "2026-08-06",
+   "line_start": 1325,
+   "line_end": 1359,
+   "title": "2026-08-06 — `#24-roster`: USER RULINGS on the PC roster / duplicate-catch exemption",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-dexhunt",
+    "#24-organicteam",
+    "#24-partycap",
+    "#24-pcoverflow",
+    "#24-roster"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-12-15152d",
+   "date": "2026-08-12",
+   "line_start": 1361,
+   "line_end": 1380,
+   "title": "2026-08-12 — §Ch19 is ONE segment covering TWO beats, graded on `RECEIVED_HM_DIVE`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-12-c9b1f7",
+   "date": "2026-08-12",
+   "line_start": 1382,
+   "line_end": 1398,
+   "title": "2026-08-12 — the party-selection menu is DRIVEN AND VERIFIED, not mashed",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-12-2e3274",
+   "date": "2026-08-12",
+   "line_start": 1400,
+   "line_end": 1435,
+   "title": "2026-08-12 — gates must REFUSE, and their scope is chosen so they stay believed",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-hmteachloop",
+    "#24-pcoverflow"
+   ],
+   "ki": [
+    "KI-65"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-10-8ad582",
+   "date": "2026-08-10",
+   "line_start": 1437,
+   "line_end": 1453,
+   "title": "2026-08-10 — RETIRE the finish rate as a grading metric; grade content BINARY",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-10-eb76fe",
+   "date": "2026-08-10",
+   "line_start": 1455,
+   "line_end": 1471,
+   "title": "2026-08-10 — PROMOTE `#24-battleitems` with NO resolved outcome metric",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-battleitems"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-10-f85760",
+   "date": "2026-08-10",
+   "line_start": 1473,
+   "line_end": 1489,
+   "title": "2026-08-10 — SPEND ON CONTENT (coverage), not on optimising the first six badges",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-10-3706c8",
+   "date": "2026-08-10",
+   "line_start": 1491,
+   "line_end": 1505,
+   "title": "2026-08-10 — KEEP the self-correcting index space rather than hard-coding one rule",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-10-80c3c4",
+   "date": "2026-08-10",
+   "line_start": 1507,
+   "line_end": 1525,
+   "title": "2026-08-10 — Ch15 is built as THREE separately-graded increments, not one chapter function",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-10-48295f",
+   "date": "2026-08-10",
+   "line_start": 1527,
+   "line_end": 1545,
+   "title": "2026-08-10 — grade Jagged Pass reachability by VAR_JAGGED_PASS_STATE, never by calculate_path",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-10-956ff4",
+   "date": "2026-08-10",
+   "line_start": 1547,
+   "line_end": 1563,
+   "title": "2026-08-10 — the en-route heals are best-effort; the chapter does not die on a nice-to-have",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-11-504bee",
+   "date": "2026-08-11",
+   "line_start": 1565,
+   "line_end": 1583,
+   "title": "2026-08-11 — menu detectors watch the INPUT HANDLER, not just the display task",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-menutext"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-11-1dd71e",
+   "date": "2026-08-11",
+   "line_start": 1585,
+   "line_end": 1595,
+   "title": "2026-08-11 — a fault injection that models a TIMING miss must fire exactly once",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-11-b5f5e5",
+   "date": "2026-08-11",
+   "line_start": 1597,
+   "line_end": 1609,
+   "title": "2026-08-11 — every button in the teach flow goes through a recording `_press()` wrapper",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-11-4a9bf7",
+   "date": "2026-08-11",
+   "line_start": 1611,
+   "line_end": 1637,
+   "title": "2026-08-11 — KI-56 is fixed with the Escape Rope the DUNGEON provides, not a shopping detour",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-56"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-11-7dc88a",
+   "date": "2026-08-11",
+   "line_start": 1639,
+   "line_end": 1673,
+   "title": "2026-08-11 — §Ch17's route is SOLVED BY THE WARP GRAPH, and each hop is graded on the TILE",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-56"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-12-9e70db",
+   "date": "2026-08-12",
+   "line_start": 1675,
+   "line_end": 1700,
+   "title": "2026-08-12 — the warp-maze solver is now a TOOL, and its control is a route we already drove",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-56",
+    "KI-58"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-12-a65240",
+   "date": "2026-08-12",
+   "line_start": 1702,
+   "line_end": 1724,
+   "title": "2026-08-12 — Claude subagents are STANDING-APPROVED for research and assistance",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-58",
+    "KI-59",
+    "KI-60"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-12-72809f",
+   "date": "2026-08-12",
+   "line_start": 1726,
+   "line_end": 1747,
+   "title": "2026-08-12 — §Ch18's chapter function lives in `mossdeep_gym.py`, not `early_game.py`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-13-fee98f",
+   "date": "2026-08-13",
+   "line_start": 1749,
+   "line_end": 1900,
+   "title": "2026-08-13 — RULING: **Shoal Cave is NOT adopted as a hunting ground.** Route 117 stays.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-54",
+    "KI-73"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-13-9e8ace",
+   "date": "2026-08-13",
+   "line_start": 1902,
+   "line_end": 1949,
+   "title": "2026-08-13 — KI-59: land the MEASUREMENT as its own item; the fix is FIX-A + a new exit-blocking concept, A/B'd on a LIVE map",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-59"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-13-b9e4ed",
+   "date": "2026-08-13",
+   "line_start": 1951,
+   "line_end": 2005,
+   "title": "2026-08-13 — the next BUILD is §Ch20 (Seafloor Cavern), NOT the Regi arc — and KI-59 was never the arc's blocker",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ch20rename",
+    "#24-r110mauville"
+   ],
+   "ki": [
+    "KI-48",
+    "KI-59",
+    "KI-63",
+    "KI-70",
+    "KI-71",
+    "KI-72",
+    "KI-73",
+    "KI-74"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-13-9d3b6c",
+   "date": "2026-08-13",
+   "line_start": 2007,
+   "line_end": 2030,
+   "title": "2026-08-13 — USER RULING: `stash@{0}` is KEPT PERMANENTLY as a record. Do not drop it.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-13-1ea1a9",
+   "date": "2026-08-13",
+   "line_start": 2032,
+   "line_end": 2072,
+   "title": "2026-08-13 — §Ch20 Room 1: DRIVE UPSTREAM'S SEQUENCE, not our own build spec's — and treat that spec's \"exhaustive\" claims as unaudited",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-13-0117b1",
+   "date": "2026-08-13",
+   "line_start": 2074,
+   "line_end": 2114,
+   "title": "2026-08-13 — an acceptance test asserts the OUTCOME, not the position you expected to see it from",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-14-a6e059",
+   "date": "2026-08-14",
+   "line_start": 2116,
+   "line_end": 2140,
+   "title": "2026-08-14 — §Ch20 Room 8: the jam response is EXIT-AND-RE-ENTER with ONE retry, wired and fault-tested — never improvised pushes, never unbounded retries",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-34"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-14-41b89b",
+   "date": "2026-08-14",
+   "line_start": 2142,
+   "line_end": 2163,
+   "title": "2026-08-14 — §Ch20 Room 9: release is gated on VAR_ROUTE128_STATE == 2, never on \"looks controllable\"; scene-riding presses are gated, never mashed",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-14-212d1a",
+   "date": "2026-08-14",
+   "line_start": 2165,
+   "line_end": 2187,
+   "title": "2026-08-14 — §Ch20: losing to Archie is a VALID BRANCH the chapter must handle, not a defect a driver should prevent",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-14-8594d0",
+   "date": "2026-08-14",
+   "line_start": 2189,
+   "line_end": 2218,
+   "title": "2026-08-14 — USER RULING: the `#24-organicteam` gate is LIFTED (re-confirmed), and the punch list was contradicting the ruling record",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-organicteam",
+    "#24-rarepredicate",
+    "#24-roster"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-14-10aa4b",
+   "date": "2026-08-14",
+   "line_start": 2220,
+   "line_end": 2289,
+   "title": "2026-08-14 — USER RULINGS: the LIVING-DEX goal, resumable runs, and a sanctioned trade-evolution deviation",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-14-b14e4f",
+   "date": "2026-08-14",
+   "line_start": 2291,
+   "line_end": 2343,
+   "title": "2026-08-14 — KI-78 Stage 1: identity is `(personality, species)`, and an evolved-since-capture mon is RE-RESOLVED rather than raising — except when it is ambiguous",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-78"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-14-62859d",
+   "date": "2026-08-14",
+   "line_start": 2345,
+   "line_end": 2388,
+   "title": "2026-08-14 — Party accounting Stage 0: observe from INSIDE the reader, ship no consumer, and say which classes are sampled",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-15-440deb",
+   "date": "2026-08-15",
+   "line_start": 2390,
+   "line_end": 2418,
+   "title": "2026-08-15 — `party_accounting_ledger.jsonl` IS COMMITTED, not gitignored (and harness logs stay ignored)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-15-357d25",
+   "date": "2026-08-15",
+   "line_start": 2420,
+   "line_end": 2456,
+   "title": "2026-08-15 — USER APPROVED TWO PROMOTIONS, and the second established the evidence bar for a BEHAVIOUR promotion",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-79"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-15-687b92",
+   "date": "2026-08-15",
+   "line_start": 2458,
+   "line_end": 2498,
+   "title": "2026-08-15 — KI-80's repro is THREE arms terminated by a tripwire, not a two-arm A/B run to completion",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-80"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-16-802eff",
+   "date": "2026-08-16",
+   "line_start": 2500,
+   "line_end": 2563,
+   "title": "2026-08-16 — KI-80's decoupling: the MINIMAL split, and the two things deliberately NOT done",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-23",
+    "KI-80"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-16-0f5bc3",
+   "date": "2026-08-16",
+   "line_start": 2565,
+   "line_end": 2588,
+   "title": "2026-08-16 — a SELF-RETIRED gate is LEFT retired, not deleted",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-16-6ea351",
+   "date": "2026-08-16",
+   "line_start": 2590,
+   "line_end": 2619,
+   "title": "2026-08-16 — unique harness log names: unbounded (gitignored) growth accepted over ANY retention cap",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-16-640a16",
+   "date": "2026-08-16",
+   "line_start": 2621,
+   "line_end": 2656,
+   "title": "2026-08-16 — USER RULING: how production reacts to a failed PC withdraw",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-movelearn-recovery",
+    "#24-orphans"
+   ],
+   "ki": [
+    "KI-65",
+    "KI-79"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-16-f2c554",
+   "date": "2026-08-16",
+   "line_start": 2658,
+   "line_end": 2743,
+   "title": "2026-08-16 — DESIGN for the failed-PC-withdraw reaction: FOUR PREREQUISITES BEFORE ANY RETRY",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-pc"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-16-17ac23",
+   "date": "2026-08-16",
+   "line_start": 2745,
+   "line_end": 2772,
+   "title": "2026-08-16 — `withdraw_from_box`'s \"Never raises\" contract is narrowed, not abandoned (KI-81)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-81"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-16-600493",
+   "date": "2026-08-16",
+   "line_start": 2774,
+   "line_end": 2788,
+   "title": "2026-08-16 — the abort probe stays a PROBE, and `--build` is what makes a promotion measurable",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-79",
+    "KI-81"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-16-5bf4bb",
+   "date": "2026-08-16",
+   "line_start": 2790,
+   "line_end": 2817,
+   "title": "2026-08-16 — A SAFETY VETO THAT CANNOT EVALUATE MUST FAIL **CLOSED** (KI-65)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-movelearn-recovery",
+    "#24-teachmsgstall"
+   ],
+   "ki": [
+    "KI-65"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-17-a6b313",
+   "date": "2026-08-17",
+   "line_start": 2819,
+   "line_end": 2845,
+   "title": "2026-08-17 — MEASURE an index-space conversion's DIRECTION before applying it (KI-66)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-18",
+    "KI-34",
+    "KI-66"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-17-22c043",
+   "date": "2026-08-17",
+   "line_start": 2847,
+   "line_end": 2902,
+   "title": "2026-08-17 — Drift claims are PARSED AS CLAIMS (polarity + currency marker), not pattern-matched as tokens (`#24-driftassertions`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-driftassertions"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-17-d5629d",
+   "date": "2026-08-17",
+   "line_start": 2904,
+   "line_end": 2935,
+   "title": "2026-08-17 — `#24-orphans` (5): fix the AXIS, do not build the WRAPPER",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-orphans"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-17-2e9e98",
+   "date": "2026-08-17",
+   "line_start": 2937,
+   "line_end": 2972,
+   "title": "2026-08-17 — `#24-ki76correctness`: MEASURE the arming before touching shared pathfinding, and let PRODUCTION be the oracle",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ki76correctness"
+   ],
+   "ki": [
+    "KI-59",
+    "KI-76"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-17-1201e6",
+   "date": "2026-08-17",
+   "line_start": 2974,
+   "line_end": 2999,
+   "title": "2026-08-17 — promote all five in ONE round, but prove them in THREE groups",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-22-37699d",
+   "date": "2026-08-22",
+   "line_start": 3001,
+   "line_end": 3044,
+   "title": "2026-08-22 — PASS 4 rulings: an ADVISORY gate tier, and three things deliberately NOT done",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-flagnamedocscan",
+    "#24-testrunsweep"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-22-c4a4a7",
+   "date": "2026-08-22",
+   "line_start": 3046,
+   "line_end": 3088,
+   "title": "2026-08-22 — PASS 5 rulings: a scope that did not exist, and what NOT to fix",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ki76correctness",
+    "#24-sanitycheck"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-a4429c",
+   "date": "2026-08-23",
+   "line_start": 3090,
+   "line_end": 3117,
+   "title": "2026-08-23 — RULING: the pair list gains **P5**, and a dead agent means an UNCOVERED ANGLE",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-sanitycheck"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-43fd61",
+   "date": "2026-08-23",
+   "line_start": 3119,
+   "line_end": 3154,
+   "title": "2026-08-23 — RE-AFFIRMED (not a new decision): the Emerald ROM stays tracked. ⛔ THIS IS THE SECOND RULING ON IT.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-82"
+   ],
+   "donot": [
+    {
+     "key": "4967eb1d",
+     "line": 3126,
+     "text": "already ended with *\"Do not re-raise this for THIS file.\"* A PASS 4 audit surfaced the tracked ROMs"
+    }
+   ],
+   "cues": [
+    "re-affirmed"
+   ]
+  },
+  {
+   "id": "2026-08-23-908a3b",
+   "date": "2026-08-23",
+   "line_start": 3156,
+   "line_end": 3190,
+   "title": "2026-08-23 — RULING: the whiteout-RECOVERY path is permanently exempt from `_check_abort()`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-loopheadabort"
+   ],
+   "ki": [
+    "KI-67"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-55fdc8",
+   "date": "2026-08-23",
+   "line_start": 3192,
+   "line_end": 3198,
+   "title": "2026-08-23 — RULING: this fix is NOT promoted. Drift is 1 and the decision is the user's.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-576b9b",
+   "date": "2026-08-23",
+   "line_start": 3200,
+   "line_end": 3228,
+   "title": "2026-08-23 — ⛔ REVERSED, SAME DAY: the \"recovery path is exempt from `_check_abort()`\" ruling above is WITHDRAWN",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "reversed",
+    "withdrawn"
+   ]
+  },
+  {
+   "id": "2026-08-23-fc657d",
+   "date": "2026-08-23",
+   "line_start": 3230,
+   "line_end": 3261,
+   "title": "2026-08-23 — RULINGS from `#24-p4residuals`: two obvious fixes refuted, and why a DENYLIST beat an allowlist",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-p4residuals"
+   ],
+   "ki": [
+    "KI-65"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-a9efcf",
+   "date": "2026-08-23",
+   "line_start": 3263,
+   "line_end": 3272,
+   "title": "2026-08-23 — RULING: the abort-swallow ratchet now carries DIFFERENT baselines per fork",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-loopheadabort"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-395bcf",
+   "date": "2026-08-23",
+   "line_start": 3274,
+   "line_end": 3286,
+   "title": "2026-08-23 — RULING: fix the debt you CREATED; file the debt you INHERITED",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-e6e84a",
+   "date": "2026-08-23",
+   "line_start": 3288,
+   "line_end": 3321,
+   "title": "2026-08-23 — RULING: three design choices in `#24-p2headergate`, and why each alternative was rejected",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-p2headergate"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-fdae9a",
+   "date": "2026-08-23",
+   "line_start": 3322,
+   "line_end": 3348,
+   "title": "2026-08-23 — RULING: delete `check_ratchet_baseline_claims` rather than fix its 7 blockers",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-p2headergate"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-23-e58d12",
+   "date": "2026-08-23",
+   "line_start": 3350,
+   "line_end": 3390,
+   "title": "2026-08-23 (logged 2026-08-24) — RULING: `#24-abortrecoveryresiduals` (a) — do NOT patch the whiteout-recovery path; close it on an ASSESSMENT",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-abortrecoveryresiduals"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-24-6ae55e",
+   "date": "2026-08-24",
+   "line_start": 3393,
+   "line_end": 3420,
+   "title": "2026-08-24 — §Ch21 leg 1's acceptance was RE-POINTED from the Cave of Origin to the Poké Center",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-26-2557d6",
+   "date": "2026-08-26",
+   "line_start": 3423,
+   "line_end": 3446,
+   "title": "2026-08-26 — The Winona SECOND WIND: one derail-retry may do what the manual flip does",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-26-ad07f9",
+   "date": "2026-08-26",
+   "line_start": 3448,
+   "line_end": 3469,
+   "title": "2026-08-26 — `#24-difftriggeredrules`: advisory-only, diff-indexed, and NO permissionDecision in the hook",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-difftriggeredrules"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-26-f9bebb",
+   "date": "2026-08-26",
+   "line_start": 3471,
+   "line_end": 3484,
+   "title": "2026-08-26 — `#24-driftheadlineshape`: position-scoped exemption, not vocabulary",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-driftheadlineshape"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-27-bc9868",
+   "date": "2026-08-27",
+   "line_start": 3486,
+   "line_end": 3528,
+   "title": "2026-08-27 — THE POCKET-EXIT QUESTION IS ANSWERED STATIC-FIRST, WITH PRODUCTION'S PLANNER AS THE ORACLE AND THE DRIVE RESERVED FOR WHAT STATIC CANNOT SEE",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ch21anchor"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-28-db0019",
+   "date": "2026-08-28",
+   "line_start": 3530,
+   "line_end": 3560,
+   "title": "2026-08-28 — USER RULING: THE PREVENTION RULES ARE LIVING, AND I MAY UPDATE THEM — NOT ONLY APPEND",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-08-28-1b2e58",
+   "date": "2026-08-28",
+   "line_start": 3562,
+   "line_end": 3594,
+   "title": "2026-08-28 — USER QUESTION, ANSWERED AND SETTLED: WHY `04-HANDOFF.md` IS NOT SPLIT INTO \"PART 1 OF N\"",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-01-2c95ed",
+   "date": "2026-09-01",
+   "line_start": 3596,
+   "line_end": 3689,
+   "title": "2026-09-01 — §Ch21 LEG 3: FIVE DECISIONS THE BUILD SPEC LEFT TO THE BUILDER",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-73"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-01-0ce209",
+   "date": "2026-09-01",
+   "line_start": 3691,
+   "line_end": 3722,
+   "title": "2026-09-01 (later) — READ THE SKY PILLAR'S CLEAN LAYOUTS FROM **OUR OWN ROM**, NOT BY EXTENDING THE NETWORK PROBE",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-01-d04f21",
+   "date": "2026-09-01",
+   "line_start": 3724,
+   "line_end": 3760,
+   "title": "2026-09-01 (later) — LEG 4's END BOUNDARY: **THE DESCENT IS IN SCOPE.** Not a judgement call — forced by a standing rule plus a measurement",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-01-3d0017",
+   "date": "2026-09-01",
+   "line_start": 3762,
+   "line_end": 3804,
+   "title": "2026-09-01 (later) — §Ch21 LEG 4: THE FALL IS ITS OWN PRIMITIVE, AND THE GRADE IS POSITION+PATH, NOT VARS",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-02-cb308e",
+   "date": "2026-09-02",
+   "line_start": 3806,
+   "line_end": 3843,
+   "title": "2026-09-02 — §Ch21 LEG 5: THE FOUR CHOICES THAT SHAPED IT",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-73"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-02-622828",
+   "date": "2026-09-02",
+   "line_start": 3845,
+   "line_end": 3869,
+   "title": "2026-09-02 (later) — CORRECTION to the entry above: `chapters.py` ALREADY consumes `RECEIVED_HM_WATERFALL`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "correction"
+   ]
+  },
+  {
+   "id": "2026-09-02-a7c936",
+   "date": "2026-09-02",
+   "line_start": 3871,
+   "line_end": 3893,
+   "title": "2026-09-02 (later still) — §Ch21 DISPATCH grades STRICTER than `chapters.py` does, on purpose",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-03-0416fa",
+   "date": "2026-09-03",
+   "line_start": 3896,
+   "line_end": 3920,
+   "title": "2026-09-03 — §Ch22's LEG ORDER, AND WHAT A CHAPTER DRIVER'S GRADE IS ALLOWED TO DEMAND",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-80"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-03-78d5f8",
+   "date": "2026-09-03",
+   "line_start": 3923,
+   "line_end": 3959,
+   "title": "2026-09-03 — VICTORY ROAD B1F: A FIXED PUSH SEQUENCE WITH A REFUSAL GUARD, NOT A RUNTIME SOLVER",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-04-6f8621",
+   "date": "2026-09-04",
+   "line_start": 3962,
+   "line_end": 3989,
+   "title": "2026-09-04 — §Ch23: generalise leg 6's ladder helpers rather than copy them into leg 7",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-04-8cafcd",
+   "date": "2026-09-04",
+   "line_start": 3992,
+   "line_end": 4052,
+   "title": "2026-09-04 — USER DIRECTIVE: the Elite Four is an ITEM-ONLY gauntlet",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ch23attrition",
+    "#24-e4healing"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-04-14103b",
+   "date": "2026-09-04",
+   "line_start": 4055,
+   "line_end": 4094,
+   "title": "2026-09-04 — USER DIRECTIVE: the bot CATCHES and TRAINS, and fills the Pokédex",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ch23wally"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-05-327083",
+   "date": "2026-09-05",
+   "line_start": 4097,
+   "line_end": 4120,
+   "title": "2026-09-05 — The 2026-09-04 catching directive is served BY `#24-dexhunt`, not by a new item",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-dexcatch",
+    "#24-dexhunt",
+    "#24-pcoverflow"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-05-6620a9",
+   "date": "2026-09-05",
+   "line_start": 4123,
+   "line_end": 4149,
+   "title": "2026-09-05 — §Ch23's completion gate is FLAG **AND** POSITION, not the chapter table's milestone",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-05-55b4ca",
+   "date": "2026-09-05",
+   "line_start": 4152,
+   "line_end": 4188,
+   "title": "2026-09-05 — a repro for an OPEN bug may be a gate ONLY if it SELF-RETIRES",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-05-fb7a4d",
+   "date": "2026-09-05",
+   "line_start": 4191,
+   "line_end": 4226,
+   "title": "2026-09-05 — modifying `modules/battle_*`: what is ACTUALLY decided (and the phantom ruling this replaces)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-83",
+    "KI-88",
+    "KI-89",
+    "KI-90"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-05-db3496",
+   "date": "2026-09-05",
+   "line_start": 4229,
+   "line_end": 4272,
+   "title": "2026-09-05 — `KI-90` is fixed AT THE CHECKPOINT: aim at the RIGHT opponent when the LEFT is absent",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-90"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-05-04819e",
+   "date": "2026-09-05",
+   "line_start": 4275,
+   "line_end": 4309,
+   "title": "2026-09-05 — REVERSAL: `ch23_chapter_done()` DOES require the Elite Four basket",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "reversal"
+   ]
+  },
+  {
+   "id": "2026-09-05-810262",
+   "date": "2026-09-05",
+   "line_start": 4312,
+   "line_end": 4349,
+   "title": "2026-09-05 — REJECTED: a gate for \"two different next steps on one line\"",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-05-11b4ba",
+   "date": "2026-09-05",
+   "line_start": 4352,
+   "line_end": 4389,
+   "title": "2026-09-05 — the leg-9 attrition fix will be a POKÉ CENTER heal, not bag items, and not grinding",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ch23attrition",
+    "#24-ch23chain",
+    "#24-e4healing"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-05-cc4d7b",
+   "date": "2026-09-05",
+   "line_start": 4392,
+   "line_end": 4453,
+   "title": "2026-09-05 (evening) — REVERSAL: the leg-9 fix is TWO SINGLE BATTLES. The heal AND the bypass are measured dead.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "5440f1eb",
+     "line": 4447,
+     "text": "* *A Poké Center heal before leg 9* — **measured impossible** (above). Do not re-propose."
+    },
+    {
+     "key": "caec5783",
+     "line": 4448,
+     "text": "* *Route around via (33,17)* — **measured dead end** (above). Do not re-propose."
+    }
+   ],
+   "cues": [
+    "reversal"
+   ]
+  },
+  {
+   "id": "2026-09-05-079ffd",
+   "date": "2026-09-05",
+   "line_start": 4456,
+   "line_end": 4503,
+   "title": "2026-09-05 (late) — REVERSAL #2: leg 9 ROUTES AROUND the pair via (33,16). The split is shelved.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-e4healing"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "reversal"
+   ]
+  },
+  {
+   "id": "2026-09-05-7ea9a8",
+   "date": "2026-09-05",
+   "line_start": 4506,
+   "line_end": 4542,
+   "title": "2026-09-05 (late) — leg 11 may SELL to close a basket shortfall, from an ALLOW-LIST, never a deny-list",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-masterball"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-06-96e383",
+   "date": "2026-09-06",
+   "line_start": 4545,
+   "line_end": 4604,
+   "title": "2026-09-06 — KI-93 (Torment): the fix is DESIGNED AND VERIFIED, and deliberately NOT IMPLEMENTED YET",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-18",
+    "KI-34",
+    "KI-45",
+    "KI-46",
+    "KI-47",
+    "KI-66",
+    "KI-93"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-06-ba281b",
+   "date": "2026-09-06",
+   "line_start": 4606,
+   "line_end": 4634,
+   "title": "2026-09-06 — reuse the shipped damage formula, and make the faint ranking a PURE function",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-06-6d95ae",
+   "date": "2026-09-06",
+   "line_start": 4636,
+   "line_end": 4662,
+   "title": "2026-09-06 — `KI-93`: gate the dismiss on the PRINTER STATE, and hold the refusal memory at MODULE level",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-93"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-07-a26209",
+   "date": "2026-09-07",
+   "line_start": 4664,
+   "line_end": 4689,
+   "title": "2026-09-07 — `KI-93`: the refusal memory is keyed on the POKÉMON and expires when a turn executes",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-93",
+    "KI-95"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-07-48241e",
+   "date": "2026-09-07",
+   "line_start": 4691,
+   "line_end": 4731,
+   "title": "2026-09-07 — the grind: STEP the proven trainer, never re-implement it, and never raise its ceiling",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-84"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-07-05d943",
+   "date": "2026-09-07",
+   "line_start": 4733,
+   "line_end": 4769,
+   "title": "2026-09-07 — `#24-hm07teach`: TEACH the move (not relax the preflight), and place it at Segment 22b",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-hm07funnel",
+    "#24-hm07teach"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-08-79bf73",
+   "date": "2026-09-08",
+   "line_start": 4771,
+   "line_end": 4812,
+   "title": "2026-09-08 — An accumulate-reasons predicate must handle the EMPTY input EXPLICITLY (`team_is_ready`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-lowlevelmules"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-08-a3b3ab",
+   "date": "2026-09-08",
+   "line_start": 4814,
+   "line_end": 4847,
+   "title": "2026-09-08 — Two Gen-3 facts settled FROM THE DECOMP, and what we did NOT do with them",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-bosstrainingeconomics",
+    "#24-regimeb-noescalation"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-08-4698bb",
+   "date": "2026-09-08",
+   "line_start": 4849,
+   "line_end": 4877,
+   "title": "2026-09-08 — Where the \"run it bare\" guarantee stops: the runner and its REGISTERED gates",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-10-c60cf4",
+   "date": "2026-09-10",
+   "line_start": 4879,
+   "line_end": 4929,
+   "title": "2026-09-10 — `#24-dexhunt`: four design rulings on the catching fence",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-dexcatch-battlebail",
+    "#24-dexhunt",
+    "#24-partycap"
+   ],
+   "ki": [
+    "KI-18",
+    "KI-34",
+    "KI-66",
+    "KI-95"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-10-c0342b",
+   "date": "2026-09-10",
+   "line_start": 4931,
+   "line_end": 4994,
+   "title": "2026-09-10 — §Ch24's entry marker: THREE DESIGNS KILLED, and the question was the wrong one",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-10-7e05ef",
+   "date": "2026-09-10",
+   "line_start": 4996,
+   "line_end": 5029,
+   "title": "2026-09-10 (later) — CORRECTION to the §Ch24 entry-marker entry above: its leg-4 mechanism was wrong",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "correction"
+   ]
+  },
+  {
+   "id": "2026-09-10-3b0bfa",
+   "date": "2026-09-10",
+   "line_start": 5031,
+   "line_end": 5062,
+   "title": "2026-09-10 — Post-Winona loss adaptation: grass-less configs, and why `#24-maintain` cannot be built yet",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-maintain"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-11-79f56f",
+   "date": "2026-09-11",
+   "line_start": 5064,
+   "line_end": 5107,
+   "title": "2026-09-11 — `#24-maintain` is TWO items in one slug; the early half is buildable and the late half stays dead",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-maintain"
+   ],
+   "ki": [
+    "KI-84"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-12-125f6e",
+   "date": "2026-09-12",
+   "line_start": 5109,
+   "line_end": 5136,
+   "title": "2026-09-12 — `#24-maintain` stays DEFAULT-OFF after its A/B, and the A/B is kept rather than re-run",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-maintain"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "e20d8387",
+     "line": 5133,
+     "text": "**⛔ DO NOT RE-RAISE \"why not just train the laggard to the boss's level?\"** — ruled 2026-09-10,"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-12-e757a6",
+   "date": "2026-09-12",
+   "line_start": 5138,
+   "line_end": 5165,
+   "title": "2026-09-12 (09:03) — `#24-maintain`: the benefit question is ANSWERED (no), and the flag stays OFF",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-maintain"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-12-f83fd9",
+   "date": "2026-09-12",
+   "line_start": 5167,
+   "line_end": 5199,
+   "title": "2026-09-12 (user ruling) — ‼ `POKEBOT_MAINTAIN` WILL BE TURNED **ON**. This SUPERSEDES the two “stays OFF” entries above.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "018d1e82",
+     "line": 5173,
+     "text": "⛔⛔ **DO NOT RE-RAISE THE VALUE QUESTION.** It was asked twice, measured twice (32×310 and 32×120 per"
+    }
+   ],
+   "cues": [
+    "supersedes"
+   ]
+  },
+  {
+   "id": "2026-09-12-d713d6",
+   "date": "2026-09-12",
+   "line_start": 5201,
+   "line_end": 5233,
+   "title": "2026-09-12 — `#24-maintain-staletarget`: leave the ordering alone (measured zero cost; reordering has a CERTAIN harm)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-maintain-staletarget"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-13-bf098b",
+   "date": "2026-09-13",
+   "line_start": 5236,
+   "line_end": 5265,
+   "title": "2026-09-13 — `#24-e4healing` step 3: four design choices in the in-battle item policy",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-e4healing"
+   ],
+   "ki": [
+    "KI-18",
+    "KI-34",
+    "KI-66",
+    "KI-100"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-13-0e7479",
+   "date": "2026-09-13",
+   "line_start": 5268,
+   "line_end": 5291,
+   "title": "2026-09-13 — `#24-e4healing` step 3, the WIRING: three more choices",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-e4healing"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-15-500206",
+   "date": "2026-09-15",
+   "line_start": 5293,
+   "line_end": 5329,
+   "title": "2026-09-15 — Fix the DRIFT METER, not the file's line endings (`#24-driftreduction`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-driftreduction"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-16-42f48d",
+   "date": "2026-09-16",
+   "line_start": 5331,
+   "line_end": 5379,
+   "title": "2026-09-16 — USER RULING: the post-whiteout money policy is **SPEND DOWN BEFORE ENTERING**",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "debfc742",
+     "line": 5345,
+     "text": "**⛔ THE THREE REJECTED OPTIONS — OFFERED AND DECLINED. DO NOT RE-RAISE THEM.** *(Recorded per"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-16-cd940d",
+   "date": "2026-09-16",
+   "line_start": 5381,
+   "line_end": 5423,
+   "title": "2026-09-16 — USER RULING: 05-KNOWN-ISSUES gets ARCHIVE + RAISE + GUARD (not a bigger file, not \"Part 2\")",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-93"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-16-cb324e",
+   "date": "2026-09-16",
+   "line_start": 5426,
+   "line_end": 5493,
+   "title": "2026-09-16 — ⛔ DO **NOT** WIRE SEGMENT 24 YET, EVEN THOUGH LEG 1'S MECHANICS ARE FULLY DRIVEN",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-16-d32268",
+   "date": "2026-09-16",
+   "line_start": 5496,
+   "line_end": 5541,
+   "title": "2026-09-16 (later) — THE §Ch24 PROGRESS MARKER MUST BE A **POSITION ON THE SEALED SIDE**, and that is safe by EXHAUSTION",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-90"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-16-322cd3",
+   "date": "2026-09-16",
+   "line_start": 5543,
+   "line_end": 5578,
+   "title": "2026-09-16 (later still) — ⛔ CORRECTION TO MY OWN WINNABILITY VERDICT: \"WALLACE IS OUT OF REACH\" IS AN **L53** RESULT, AND LEVELLING CONVERTS IT",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "correction"
+   ]
+  },
+  {
+   "id": "2026-09-17-5edc72",
+   "date": "2026-09-17",
+   "line_start": 5581,
+   "line_end": 5635,
+   "title": "2026-09-17 — ⛔ THE L75 GRIND RUNS ON `post_ch24ready.ss1`. `post_grind_L60.ss1` IS A DEAD BRANCH.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "abd58de6",
+     "line": 5585,
+     "text": "repaired, and NOT to be cited as \"13 levels we already paid for\".** DO-NOT-REOPEN."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-17-11cd93",
+   "date": "2026-09-17",
+   "line_start": 5638,
+   "line_end": 5694,
+   "title": "2026-09-17 (second) — THREE USER RULINGS ON §Ch24, PLUS A NEW STANDING CHANNEL",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-gameclearflag",
+    "#24-learnhmcoverage"
+   ],
+   "ki": [
+    "KI-100"
+   ],
+   "donot": [
+    {
+     "key": "21dd9b50",
+     "line": 5661,
+     "text": "⛔ **DO NOT re-propose fetching another TM13, buying one, or tutoring an Ice move onto Wailord.**"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-17-f8f2d5",
+   "date": "2026-09-17",
+   "line_start": 5696,
+   "line_end": 5731,
+   "title": "2026-09-17 (third) — USER RULING: §Ch24 HEALS FROM THE BAG BETWEEN ROOMS. IT IS NOT OPTIONAL.",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-e4healing",
+    "#24-leg2spec"
+   ],
+   "ki": [
+    "KI-74"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-17-3a4ad8",
+   "date": "2026-09-17",
+   "line_start": 5733,
+   "line_end": 5770,
+   "title": "2026-09-17 (late) — Mint room 3's start fixture by adding a POST-FIGHT capture to the proven Phoebe driver, not by building a two-room driver",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-17-f27980",
+   "date": "2026-09-17",
+   "line_start": 5772,
+   "line_end": 5805,
+   "title": "2026-09-17 (late) — the §Ch24 tail probe does NOT defeat the 20,000-frame no-progress detector, on purpose",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-17-c1970f",
+   "date": "2026-09-17",
+   "line_start": 5808,
+   "line_end": 5863,
+   "title": "2026-09-17 (late) — ⛔ THE LEVEL FIX IS **NOT** “A CAPABILITY WE ALREADY SHIPPED”: IT IS SHIPPED IN THE HARNESS ONLY",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-levelgap",
+    "#24-trainestimatorcal"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "2a921735",
+     "line": 5846,
+     "text": "on FRAMES. See `07-CHANGELOG.md` (2026-09-08, `:24637-24641`) for the settled adjudication. ⛔ Do not re-open it."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-17-5bafb0",
+   "date": "2026-09-17",
+   "line_start": 5866,
+   "line_end": 5888,
+   "title": "2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-17-b69c79",
+   "date": "2026-09-17",
+   "line_start": 5891,
+   "line_end": 5919,
+   "title": "2026-09-17 (late) — ⛔ REVERSAL OF THE ENTRY ABOVE: THE RETRACTION-COVERAGE CHECK IS **ADVISORY**, NOT ENFORCING",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "reversal"
+   ]
+  },
+  {
+   "id": "2026-09-17-8f6cba",
+   "date": "2026-09-17",
+   "line_start": 5922,
+   "line_end": 5945,
+   "title": "2026-09-17 (late) — ENFORCING IS JUSTIFIED BY THE **INPUT DOMAIN**, NOT BY THE CHECKER",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-17-f37484",
+   "date": "2026-09-17",
+   "line_start": 5948,
+   "line_end": 5986,
+   "title": "2026-09-17 (late) — ⛔ A THIRD CAVEAT ON THE §Ch24 MARKER RULING: IT DOES NOT COVER **WINNING**",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-gameclearflag",
+    "#24-markerwinstate"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-4d4aa9",
+   "date": "2026-09-18",
+   "line_start": 5989,
+   "line_end": 6025,
+   "title": "2026-09-18 — BUILD THE STEPPED GRIND ON **1F** FIRST; CHOOSE THE GROUND **LAST**",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-cavehealblind"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-6186dd",
+   "date": "2026-09-18",
+   "line_start": 6028,
+   "line_end": 6083,
+   "title": "2026-09-18 (later) — ⛔ REVERSAL: §Ch23 IS THE WRONG HOST FOR THE GRIND. THE DECISION ABOVE NAMED THE GROUND AND ASSUMED THE HOST",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-levelgap"
+   ],
+   "ki": [
+    "KI-67"
+   ],
+   "donot": [],
+   "cues": [
+    "reversal"
+   ]
+  },
+  {
+   "id": "2026-09-18-0ce2d2",
+   "date": "2026-09-18",
+   "line_start": 6086,
+   "line_end": 6122,
+   "title": "2026-09-18 (later) — THE §Ch24 MARKER IS AN **EXPLICIT TUPLE**, NEVER A GROUP TEST — AND ALL THREE CAVEATS ARE CLOSED",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-gameclearflag"
+   ],
+   "ki": [
+    "KI-90"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-983f5f",
+   "date": "2026-09-18",
+   "line_start": 6125,
+   "line_end": 6153,
+   "title": "2026-09-18 (later) — THE LOBBY FIXTURE IS MINTED **WITHOUT** THE GUARD TALK",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-lobbyfixture"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-b5e69d",
+   "date": "2026-09-18",
+   "line_start": 6156,
+   "line_end": 6177,
+   "title": "2026-09-18 — MINT THE LOBBY FIXTURE ON THE *REVERSIBLE* SIDE OF THE IRREVERSIBLE STEP",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-d88ad7",
+   "date": "2026-09-18",
+   "line_start": 6179,
+   "line_end": 6193,
+   "title": "2026-09-18 — A GUARD TRANSCRIPTION MUST NAME THE *CALL*, NOT THE ENCLOSING `if`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-7c5632",
+   "date": "2026-09-18",
+   "line_start": 6196,
+   "line_end": 6257,
+   "title": "2026-09-18 — ⭐ USER RULINGS: THE LEVEL TARGET, THE GRIND LOCATION, AND WHERE §Ch24 HEALS",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-cavehealblind",
+    "#24-levelgap"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "2d55d8a3",
+     "line": 6225,
+     "text": "point of the user's instruction is round-trip SPEED. **Do not reopen B1F without a new ruling.**"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-58a393",
+   "date": "2026-09-18",
+   "line_start": 6260,
+   "line_end": 6319,
+   "title": "2026-09-18 (second round) — ⭐ USER RULINGS: TIME IS NOT THE CONSTRAINT, LEVEL-APPROPRIATENESS IS",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-levelgap",
+    "#24-trainingbrackets"
+   ],
+   "ki": [
+    "KI-28"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-1ad42c",
+   "date": "2026-09-18",
+   "line_start": 6322,
+   "line_end": 6352,
+   "title": "2026-09-18 — ⭐ USER RULING 8: “REGULAR SPEED” MEANS ×1 IN PRODUCTION; FAST-FORWARD IS FOR DATA",
+   "rulings": [
+    8
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-dc6cd5",
+   "date": "2026-09-18",
+   "line_start": 6355,
+   "line_end": 6383,
+   "title": "2026-09-18 — ⭐ USER DIRECTIVE: A REMATCH LEDGER, AND A PER-CHAPTER MAP KNOWLEDGE BASE THAT IS *PRODUCT*",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-d4732f",
+   "date": "2026-09-18",
+   "line_start": 6386,
+   "line_end": 6417,
+   "title": "2026-09-18 — ⭐ USER RULINGS 9 & 10: THE LEDGER IS TWO ARTIFACTS; OVERWORLD ITEMS ARE USER-GATED",
+   "rulings": [
+    9,
+    10
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-amuletcoin",
+    "#24-overworlditems"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-5c6096",
+   "date": "2026-09-18",
+   "line_start": 6420,
+   "line_end": 6454,
+   "title": "2026-09-18 — ⭐⭐ USER RULING 11: THE §Ch24 ACCEPTANCE BAR, AND IT IS BIGGER THAN THE ITEM THAT PROMPTED IT",
+   "rulings": [
+    11
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-overworlditems"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-9c3dff",
+   "date": "2026-09-18",
+   "line_start": 6457,
+   "line_end": 6534,
+   "title": "2026-09-18 — THE VICTORY ROAD TRAINING ROW IS NOT ADDED UNTIL `#24-waterfallcap` IS FIXED; THE CAP FIX ITSELF MAY LAND ALONE, AND FIRST",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-waterfallcap"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "d7fc7059",
+     "line": 6523,
+     "text": "⛔⛔ **THE “DO NOT REOPEN” THAT WAS HERE HAS BEEN WITHDRAWN AND REPLACED — SAME DAY, BY EVIDENCE.**"
+    },
+    {
+     "key": "d4577a63",
+     "line": 6524,
+     "text": "It read: *“DO NOT REOPEN the question of adding the row alone, or of fixing the cap alone.”* ‼ I"
+    },
+    {
+     "key": "5a98d74b",
+     "line": 6529,
+     "text": "✅ **WHAT IS ACTUALLY SETTLED, AND MAY BE TREATED AS DO-NOT-REOPEN, BECAUSE IT IS MEASURED:**"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-fa9ec4",
+   "date": "2026-09-18",
+   "line_start": 6537,
+   "line_end": 6584,
+   "title": "2026-09-18 — A PRE-REGISTERED ABORT CONDITION FIRED AND I PROCEEDED ANYWAY — HERE IS THE REASONING, ON THE RECORD",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-gategranularity",
+    "#24-waterfallcap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-dcfea7",
+   "date": "2026-09-18",
+   "line_start": 6587,
+   "line_end": 6619,
+   "title": "2026-09-18 — VICTORY ROAD IS NOT PROMOTED INTO `TRAINING_GRASS`, AND `#24-trainingbrackets` CLOSES WITHOUT A CODE CHANGE",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-healmapfallback",
+    "#24-levelgap",
+    "#24-trainingbrackets"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "61bba6aa",
+     "line": 6615,
+     "text": "**DO NOT REOPEN the promotion** — reason 1 and reason 2 are measurements I took myself, and reason 3"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-18-e97c57",
+   "date": "2026-09-18",
+   "line_start": 6622,
+   "line_end": 6664,
+   "title": "2026-09-18 — ⭐ USER RULING: EVERY TEAM MEMBER MUST BE L65-75, AND THEY NEED NOT MATCH",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-trainingbrackets"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-19-7dd76c",
+   "date": "2026-09-19",
+   "line_start": 6667,
+   "line_end": 6707,
+   "title": "2026-09-19 — ⭐⭐ USER RULING: TRAIN EACH MŌN AT A LEVEL-APPROPRIATE GROUND, AND FLY TO REACH IT",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-trainingbrackets"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-19-0fdf1f",
+   "date": "2026-09-19",
+   "line_start": 6710,
+   "line_end": 6735,
+   "title": "2026-09-19 — `max_wild_max` TAKES A NUMBER, NOT A MARGIN, BECAUSE `modules/` MAY NOT IMPORT `plugins/`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ladderleak",
+    "#24-waterfallcap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-23-35005f",
+   "date": "2026-09-23",
+   "line_start": 6738,
+   "line_end": 6773,
+   "title": "2026-09-23 — USER DIRECTIVE: FISHING AS AN HM-CARRIER SOURCE, A SIX-MŌN TEAM, AND WORKING PC SWAPS — SCOPED AFTER §Ch24",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-partycap",
+    "#24-pcoverflow",
+    "#25-partyroster"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-23-15754a",
+   "date": "2026-09-23",
+   "line_start": 6776,
+   "line_end": 6813,
+   "title": "2026-09-23 — THE FLY-AWARE PREDICATE IS A **DISJUNCT** OVER `region_reach`, NOT A `calculate_path` LAST-MILE CHECK",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-24"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-23-5c88b3",
+   "date": "2026-09-23",
+   "line_start": 6816,
+   "line_end": 6858,
+   "title": "2026-09-23 — ⭐⭐ USER RULING 12: TRAIN ALL SIX ON THE FLY LADDER. THE PARTY IS NOT REDUCED.",
+   "rulings": [
+    12
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-swaptrigger2"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "7bafa57b",
+     "line": 6834,
+     "text": "level floor easier. Do not re-raise this."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-23-8c1057",
+   "date": "2026-09-23",
+   "line_start": 6860,
+   "line_end": 6875,
+   "title": "2026-09-23 — USER RULING 13: IF A MŌN IS EVER REMOVED, IT IS A PC DEPOSIT — AND THE ROUND TRIP IS PROVEN FIRST",
+   "rulings": [
+    13
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-pcoverflow",
+    "#25-partyroster"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-24-1b9a57",
+   "date": "2026-09-24",
+   "line_start": 6878,
+   "line_end": 6896,
+   "title": "2026-09-24 — ⭐ USER RULING: THE ORDER IS ELITE FOUR → POKÉDEX → ORGANIC PLAY",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-catchcap",
+    "#24-dexhunt",
+    "#25-organicplay"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-24-38cb13",
+   "date": "2026-09-24",
+   "line_start": 6899,
+   "line_end": 6924,
+   "title": "2026-09-24 — ⭐ DESIGN RULING: §Ch24 LEG 1 STOPS **AT** THE LEAGUE DOOR; THE COMMITMENT BELONGS TO THE GAUNTLET LEG",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-24-e59b96",
+   "date": "2026-09-24",
+   "line_start": 6927,
+   "line_end": 6964,
+   "title": "2026-09-24 — ⭐ USER GOAL: **THE TEAM LINEUP SHOULD VARY BETWEEN RUNS** (organic play)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-icebeamteach",
+    "#24-icebeamtrip",
+    "#25-organicplay"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-25-bd0d61",
+   "date": "2026-09-25",
+   "line_start": 6967,
+   "line_end": 7019,
+   "title": "2026-09-25 — ⭐⭐ USER RULING 12: ON LOSING THE ELITE FOUR, THE BOT **RESTOCKS AND RETRIES**",
+   "rulings": [
+    12
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#25-organicplay"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "cc9d2192",
+     "line": 7012,
+     "text": "### ⛔ DO NOT RE-RAISE THIS QUESTION"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-25-52b1fb",
+   "date": "2026-09-25",
+   "line_start": 7022,
+   "line_end": 7098,
+   "title": "2026-09-25 — ⭐ USER DIRECTION: THE HM-LEARNER SEARCH MUST USE THE **PC** AND THE **WHOLE MAP**",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-dexhunt",
+    "#25-organicplay"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-25-40ef56",
+   "date": "2026-09-25",
+   "line_start": 7101,
+   "line_end": 7140,
+   "title": "2026-09-25 — ⭐⭐ USER RULING 13: **THE BATTLE TEAM IS L65-75; THE ROSTER IS FREE**",
+   "rulings": [
+    13
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-catchcap",
+    "#24-dexhunt",
+    "#25-organicplay"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-25-70d879",
+   "date": "2026-09-25",
+   "line_start": 7142,
+   "line_end": 7166,
+   "title": "2026-09-25 (later still) — prove the PC-first HM block LOAD-BEARING from PRODUCTION, not from the driver",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-25-9652b1",
+   "date": "2026-09-25",
+   "line_start": 7168,
+   "line_end": 7180,
+   "title": "2026-09-25 (later still) — test the HM path with WATERFALL, never SURF",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-61c53c",
+   "date": "2026-09-26",
+   "line_start": 7183,
+   "line_end": 7202,
+   "title": "2026-09-26 — ENDLESS-RESET CAP: RAISE THE BASE TO 7M, AND EXTEND IT ONLY ONCE §Ch24 OWNS THE RUN (`#26-endlesscap`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-endlesscap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-3a4b03",
+   "date": "2026-09-26",
+   "line_start": 7204,
+   "line_end": 7212,
+   "title": "2026-09-26 — USER RULING: THE UPSTREAM SYNC STAYS PARKED (\"Not now, keep it parked\")",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-1d4bda",
+   "date": "2026-09-26",
+   "line_start": 7214,
+   "line_end": 7233,
+   "title": "2026-09-26 — HOLD THE USER'S OFFERED 12-HOUR x4 BATCH UNTIL THE TWO §Ch23 KILLERS ARE FIXED (`#26-batch0926`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-ch23training",
+    "#26-batch0926",
+    "#26-carleestage",
+    "#26-endlesscap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-60c04c",
+   "date": "2026-09-26",
+   "line_start": 7236,
+   "line_end": 7249,
+   "title": "2026-09-26 — THE ENDLESS ANALYZER KEYS END-GAME MILESTONES ON NAME ∧ (GROUP, NUMBER) ∧ ≥2 SIGHTINGS, AND READS `debug-logs/` + `Old/`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-18ee11",
+   "date": "2026-09-26",
+   "line_start": 7252,
+   "line_end": 7270,
+   "title": "2026-09-26 — ⭐ USER RULING 14: LOW-LEVEL HM CARRIERS MAY BE SWAP-TRAINED ON VICTORY ROAD 1F INSIDE §Ch23, IN BOUNDED CHUNKS",
+   "rulings": [
+    14
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-41e337",
+   "date": "2026-09-26",
+   "line_start": 7273,
+   "line_end": 7285,
+   "title": "2026-09-26 — ⛔ CORRECTION TO RULING 14's MONEY CLAUSE (same day, caught BEFORE any code used it)",
+   "rulings": [],
+   "ruling_mentions": [
+    14
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "correction"
+   ]
+  },
+  {
+   "id": "2026-09-26-20079f",
+   "date": "2026-09-26",
+   "line_start": 7287,
+   "line_end": 7298,
+   "title": "2026-09-26 — §Ch23's CHUNKED TRAINING GRANTS ITS PURSE TO THE BATCH RUN CAP (`_ch23_training_allowance`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-38271b",
+   "date": "2026-09-26",
+   "line_start": 7300,
+   "line_end": 7315,
+   "title": "2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAGGED",
+   "rulings": [
+    12
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-restockleg",
+    "#26-ch24organic"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-5fbdbd",
+   "date": "2026-09-26",
+   "line_start": 7317,
+   "line_end": 7325,
+   "title": "2026-09-26 — `#26-ch24organic` IS BUILT ON A WORKTREE BRANCH WHILE THE USER'S BATCH RUNS",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-batch0926",
+    "#26-ch24organic"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-667eb2",
+   "date": "2026-09-26",
+   "line_start": 7328,
+   "line_end": 7337,
+   "title": "2026-09-26 — THE RETURN BRIDGE RUNS AFTER R1, AND ONLY ONCE (`#26-ch24organic` gap 2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-ch24organic"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-346986",
+   "date": "2026-09-26",
+   "line_start": 7339,
+   "line_end": 7349,
+   "title": "2026-09-26 — `ensure_fly_learner` REPORTS A MISSING LEARNER, IT NEVER RAISES; THE WALK-OFF GUARD RUNS ONLY WITHOUT FLY",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-24"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-cc050f",
+   "date": "2026-09-26",
+   "line_start": 7350,
+   "line_end": 7370,
+   "title": "2026-09-26 — ⭐⭐ USER RULINGS 15-18: §Ch24 READINESS AND THE LEAGUE-BASKET MONEY (asked with evidence; `06` grepped first — none was ruled)",
+   "rulings": [
+    15,
+    16,
+    17,
+    18
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-amuletcoin",
+    "#26-ch23money"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-931cb0",
+   "date": "2026-09-26",
+   "line_start": 7372,
+   "line_end": 7385,
+   "title": "2026-09-26 — RULING 17 IMPLEMENTATION CHOICES: SEGMENT 12d, FAIL SOFT, TOP-LEVEL HOLDER (v1)",
+   "rulings": [],
+   "ruling_mentions": [
+    17
+   ],
+   "slugs": [
+    "#24-itemcontextplural"
+   ],
+   "ki": [
+    "KI-97"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-682edf",
+   "date": "2026-09-26",
+   "line_start": 7387,
+   "line_end": 7405,
+   "title": "2026-09-26 — RULING 18 IMPLEMENTATION CHOICES: SOOTOPOLIS IN §Ch22 L1, RESERVE UNTIL THE ELITE FOUR, STATE-DERIVED",
+   "rulings": [],
+   "ruling_mentions": [
+    18
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-f56b48",
+   "date": "2026-09-26",
+   "line_start": 7407,
+   "line_end": 7420,
+   "title": "2026-09-26 — §Ch23 LEG-5 RE-ENTRY: A PATH CHECK, NOT A y-THRESHOLD; FAIL TOWARD THE OLD GUARD",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-103"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-6d6b8c",
+   "date": "2026-09-26",
+   "line_start": 7421,
+   "line_end": 7452,
+   "title": "2026-09-26 — ⭐⭐ USER RULINGS 19-21: GYM ANSWERS FROM OWNED TMs; ORGANIC CATCHING INSTEAD OF CHAPTER FIXES; THE FLY SWAP",
+   "rulings": [
+    19,
+    20,
+    21
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-partycap",
+    "#26-ch24organic"
+   ],
+   "ki": [
+    "KI-63"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-86b525",
+   "date": "2026-09-26",
+   "line_start": 7454,
+   "line_end": 7465,
+   "title": "2026-09-26 — THE DEX-CATCH BAIL: STOP AT THE RESERVE; WHEN TRAPPED, THROW; TRAPPED AND EMPTY, FIGHT",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-9ff66b",
+   "date": "2026-09-26",
+   "line_start": 7467,
+   "line_end": 7487,
+   "title": "2026-09-26 — RULING 19 BUILT AS \"TEACH ONLY WHERE THE TM CAN REACH AND WIN SOMETHING\" (design 4)",
+   "rulings": [],
+   "ruling_mentions": [
+    19
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-c73225",
+   "date": "2026-09-26",
+   "line_start": 7489,
+   "line_end": 7504,
+   "title": "2026-09-26 — RULING 20 PHASE 0: DO NOT START A POKÉDEX CATCH EXPECTED TO COST MORE THAN 10 BALLS",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-26-4f81b7",
+   "date": "2026-09-26",
+   "line_start": 7506,
+   "line_end": 7521,
+   "title": "2026-09-26 — KI-104: THE HM TEACH'S SLOT PICKER IS TOTAL, AND TYPE PROTECTION IS A PREFERENCE, NEVER A REFUSAL",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-104"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-6929a2",
+   "date": "2026-09-27",
+   "line_start": 7523,
+   "line_end": 7544,
+   "title": "2026-09-27 — KI-106: RELEASE LEAKED HELD INPUT AT THE STORY'S RECOVERY SEAM, not in `_sampling` or `isolate_inputs`",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-truckleak"
+   ],
+   "ki": [
+    "KI-106"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-864d48",
+   "date": "2026-09-27",
+   "line_start": 7546,
+   "line_end": 7572,
+   "title": "2026-09-27 — RULING 20 Phase 0: the pre-gym-1 attempt cap is DEFERRED to Phase 2, and the full-HP pre-gym-1 health check is REJECTED",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-da5804",
+   "date": "2026-09-27",
+   "line_start": 7574,
+   "line_end": 7592,
+   "title": "2026-09-27 — an unreachable training ground is remembered from BOTH the map where the walk died and the map it was chosen from",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-8a6372",
+   "date": "2026-09-27",
+   "line_start": 7594,
+   "line_end": 7615,
+   "title": "2026-09-27 — the Lavaridge heal is fixed AT THE SEGMENT (F4), not in the navigator",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-81d5ef",
+   "date": "2026-09-27",
+   "line_start": 7617,
+   "line_end": 7634,
+   "title": "2026-09-27 — the Norman heal TRIES the generic walk first and falls back only on failure (unlike Lavaridge's pre-check)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-106"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-e47f76",
+   "date": "2026-09-27",
+   "line_start": 7636,
+   "line_end": 7653,
+   "title": "2026-09-27 — USER OBSERVATIONS during batch `#27-batch0927`: catching still stops at 4 (re-affirms RULING 20), and a FUTURE fossil request",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [
+    "#26-organiccatch",
+    "#27-batch0927",
+    "#27-desertfossil"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "020fb4d2",
+     "line": 7653,
+     "text": "- ⛔ Do not re-ask the user what they meant: the intent is recorded here."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-230438",
+   "date": "2026-09-27",
+   "line_start": 7655,
+   "line_end": 7686,
+   "title": "2026-09-27 — ⭐ USER RULING 22: A DEDICATED SHEDINJA SEQUENCE — THE ONLY DUPLICATE-CATCH EXCEPTION BESIDES RARE/SHINY; and two RULING 20 design points settled from the log (not re-asked)",
+   "rulings": [
+    22
+   ],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [
+    "#27-shedinjahunt"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-69bc11",
+   "date": "2026-09-27",
+   "line_start": 7688,
+   "line_end": 7704,
+   "title": "2026-09-27 — RULING 20 Phase 1, increment A: the REQUIRED-errand victim is the lowest-level unprotected member; counters expire at their badge",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [
+    "#24-partycap",
+    "#24-pc"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-7b0088",
+   "date": "2026-09-27",
+   "line_start": 7706,
+   "line_end": 7722,
+   "title": "2026-09-27 — RULING 20 Phase 1, increment B (Strength): box-first only where a centre trip can come back; the boxed pick prefers a learner that cannot carry HM07",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [
+    "#24-hm07funnel"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-c6a75e",
+   "date": "2026-09-27",
+   "line_start": 7724,
+   "line_end": 7739,
+   "title": "2026-09-27 — RULING 20 Phase 1, increment B (Waterfall): box-first INSIDE `ensure_waterfall_learner`, at Sootopolis only",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-83e6c0",
+   "date": "2026-09-27",
+   "line_start": 7741,
+   "line_end": 7763,
+   "title": "2026-09-27 — RULING 20 Phase 1, increment B (counters): box-first before the hunt with a NEW strict picker; the heal withdraws only OWED counters",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-360ecb",
+   "date": "2026-09-27",
+   "line_start": 7765,
+   "line_end": 7786,
+   "title": "2026-09-27 — RULING 20 Phase 1, increment B (Fly) + USER RULING 21: the lobby PC; the lowest fighter sits out; the swap-back happens in the lobby, before the guards",
+   "rulings": [
+    21
+   ],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-6c5555",
+   "date": "2026-09-27",
+   "line_start": 7788,
+   "line_end": 7797,
+   "title": "2026-09-27 — KI-107: bound the whiteout recovery's waits NOW; leave the root cause (F1) for a driven fix",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-47",
+    "KI-107"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-57614f",
+   "date": "2026-09-27",
+   "line_start": 7799,
+   "line_end": 7817,
+   "title": "2026-09-27 — `#24-restockleg` F1 (USER RULING 12): R1 restocks ONCE, inside itself, only when the basket is its ONLY reason",
+   "rulings": [
+    12
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-restockleg"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-27-71fbf2",
+   "date": "2026-09-27",
+   "line_start": 7819,
+   "line_end": 7828,
+   "title": "2026-09-27 — RULING 21's identity check accepts an EVOLUTION on the same PID (not PID-only, not a re-record)",
+   "rulings": [],
+   "ruling_mentions": [
+    21
+   ],
+   "slugs": [],
+   "ki": [
+    "KI-78"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-7858e3",
+   "date": "2026-09-28",
+   "line_start": 7830,
+   "line_end": 7854,
+   "title": "2026-09-28 — The destructive-git hook: Python with a shell-aware pre-scan; a hatch read from the COMMAND; every hook located via $CLAUDE_PROJECT_DIR",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-hookhatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-6eddd7",
+   "date": "2026-09-28",
+   "line_start": 7856,
+   "line_end": 7883,
+   "title": "2026-09-28 — The after-faint chooser decides by IDENTITY (PID + species); every index conversion is confined to a fault arm (`#27-ki47range`, KI-47)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-battleeq",
+    "#27-ki47range"
+   ],
+   "ki": [
+    "KI-18",
+    "KI-34",
+    "KI-47",
+    "KI-66",
+    "KI-96",
+    "KI-101"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-f98703",
+   "date": "2026-09-28",
+   "line_start": 7885,
+   "line_end": 7900,
+   "title": "2026-09-28 — The `#24-faintchooser-fourthspace` closure (2026-08-17) is SUPERSEDED by measured evidence",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-faintchooser-fourthspace",
+    "#27-batch0927"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "superseded"
+   ]
+  },
+  {
+   "id": "2026-09-28-9f12c0",
+   "date": "2026-09-28",
+   "line_start": 7902,
+   "line_end": 7916,
+   "title": "2026-09-28 — RULING 20's catch telemetry is ALWAYS ON (no flag), and it ships ahead of every behaviour change",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-9c79ab",
+   "date": "2026-09-28",
+   "line_start": 7918,
+   "line_end": 7929,
+   "title": "2026-09-28 — `--set-balls N` sets the Poké Ball STACK only, and a failure aborts the run",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-77cc5e",
+   "date": "2026-09-28",
+   "line_start": 7931,
+   "line_end": 7949,
+   "title": "2026-09-28 — A hunt's spin tile is filtered and ASSERTED by tile type; the filter fails OPEN; no automatic retarget",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-waterrows"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-c3d6b1",
+   "date": "2026-09-28",
+   "line_start": 7951,
+   "line_end": 7963,
+   "title": "2026-09-28 — RULING 20 P2-a ships OFF, with its `none_left` exit active only under the flag",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [
+    "#24-partycap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-d6562e",
+   "date": "2026-09-28",
+   "line_start": 7964,
+   "line_end": 7983,
+   "title": "2026-09-28 — RULING 20 P2-b lifts ONE refusal, behind a flag that ships OFF; its fault arm is \"the open branch returns early\"",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [
+    "#24-partycap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-12a491",
+   "date": "2026-09-28",
+   "line_start": 7984,
+   "line_end": 8002,
+   "title": "2026-09-28 — `#27-enroutejoin`: refuse a PARTY JOIN while a hunt walks, rather than re-reading the party on arrival or arming before the walk",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-enroutejoin"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-92a86a",
+   "date": "2026-09-28",
+   "line_start": 8003,
+   "line_end": 8021,
+   "title": "2026-09-28 — RULING 20 P2-c ships OFF, covers a WALKING hunt as well as an armed one, and has no production fault env",
+   "rulings": [],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [
+    "#27-enroutejoin"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-28-f65547",
+   "date": "2026-09-28",
+   "line_start": 8022,
+   "line_end": 8056,
+   "title": "2026-09-28 — USER RULINGS 23, 24 and 25: the answers to RULING 20's §8 questions (money for balls, catching while hurt or training, the attempt cap)",
+   "rulings": [
+    23,
+    24,
+    25
+   ],
+   "ruling_mentions": [
+    20
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "2162ccb9",
+     "line": 8025,
+     "text": "(2026-09-28, evening). ⛔ **Do not re-ask any of them.**"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-33b616",
+   "date": "2026-09-29",
+   "line_start": 8057,
+   "line_end": 8104,
+   "title": "2026-09-29 — USER RULINGS 23 and 25 CLARIFIED, and USER RULINGS 26 and 27: stocks kept all game, the best ball, never give up on a wanted rare, weaken-to-catch BUILT, healing items in key battles only",
+   "rulings": [
+    23,
+    25,
+    26,
+    27
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-rarepredicate"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "c5a1ea9c",
+     "line": 8059,
+     "text": "The user answered the five questions of `ai-research-notes/2026-09-28-r23-25-DESIGN.md` §5 (2026-09-29). ⛔ **Do not re-ask any of them.**"
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-e4472b",
+   "date": "2026-09-29",
+   "line_start": 8105,
+   "line_end": 8122,
+   "title": "2026-09-29 — RULING 24 step 2: the health lift removes ONE refusal, and a lost DEX catch is filed apart from map defeats (team losses are not)",
+   "rulings": [],
+   "ruling_mentions": [
+    24
+   ],
+   "slugs": [
+    "#24-partycap"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-191151",
+   "date": "2026-09-29",
+   "line_start": 8123,
+   "line_end": 8131,
+   "title": "2026-09-29 — RULING 24 C4 knowingly changes what a SHARED map key sees; `_catch_defeat_counts` is telemetry only",
+   "rulings": [],
+   "ruling_mentions": [
+    24
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-5c03e2",
+   "date": "2026-09-29",
+   "line_start": 8132,
+   "line_end": 8149,
+   "title": "2026-09-29 — RULING 24 step 3: the training lift removes ONE refusal; a training dex catch keeps the trainee as lead; the flag is read from the RUNNING mode",
+   "rulings": [],
+   "ruling_mentions": [
+    24
+   ],
+   "slugs": [],
+   "ki": [
+    "KI-84"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-aa4777",
+   "date": "2026-09-29",
+   "line_start": 8151,
+   "line_end": 8174,
+   "title": "2026-09-29 — RULING 24 step 4: a wanted species outranks SURVIVAL MODE; the dex commit is ONE helper called from two places, through the class",
+   "rulings": [],
+   "ruling_mentions": [
+    24
+   ],
+   "slugs": [
+    "#24-whiteout"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-0695b5",
+   "date": "2026-09-29",
+   "line_start": 8176,
+   "line_end": 8198,
+   "title": "2026-09-29 — RULING 24 step 5: no faint bail on a dex catch, on BOTH paths; the flag is read from the running mode; BAILWIDE became a gate mutant",
+   "rulings": [],
+   "ruling_mentions": [
+    24
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-19e818",
+   "date": "2026-09-29",
+   "line_start": 8200,
+   "line_end": 8227,
+   "title": "2026-09-29 — READINGS OF THE RECORD that design v2 builds on (recorded so they are not re-derived or re-asked)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-3567e5",
+   "date": "2026-09-29",
+   "line_start": 8229,
+   "line_end": 8246,
+   "title": "2026-09-29 — `#24-rarepredicate`: the 2026-08-07 \"the dataset does not reproduce\" verdict is RETRACTED (two script defects)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-rarepredicate"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-2b24be",
+   "date": "2026-09-29",
+   "line_start": 8248,
+   "line_end": 8272,
+   "title": "2026-09-29 — design v2 step 5 (TID/T1): trainer telemetry is ALWAYS ON and log-only; B is read only in TwoOpponents; a post-battle re-entry is skipped by a MEASURED discriminator; a control is run more than once",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-112"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-01fad8",
+   "date": "2026-09-29",
+   "line_start": 8274,
+   "line_end": 8297,
+   "title": "2026-09-29 — RULING 27 / design v2 step 6 (KB): healing items only against KEY trainer classes, gated INSIDE `_maybe_use_item`, failing OPEN",
+   "rulings": [],
+   "ruling_mentions": [
+    27
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-2fb9cc",
+   "date": "2026-09-29",
+   "line_start": 8299,
+   "line_end": 8328,
+   "title": "2026-09-29 — design v2 step 7 (RP): what \"rare\" is, pinned in data (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-rarepredicate",
+    "#26-organiccatch"
+   ],
+   "ki": [
+    "KI-113"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-2da544",
+   "date": "2026-09-29",
+   "line_start": 8330,
+   "line_end": 8358,
+   "title": "2026-09-29 — RULING 25 / design v2 step 8 (RC): the cap of 3 and the rare exemption, through two pure helpers, asking about `encounter.pokemon` (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [
+    25
+   ],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-2a62c0",
+   "date": "2026-09-29",
+   "line_start": 8360,
+   "line_end": 8374,
+   "title": "2026-09-29 — RULING 25 / design v2 step 8 (RC), after the review: the accepted consequences are WIDER than first recorded (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [
+    25
+   ],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-7d7a2c",
+   "date": "2026-09-29",
+   "line_start": 8376,
+   "line_end": 8404,
+   "title": "2026-09-29 — RULINGS 23 + 26 / design v2 step 9a (BB): the ball top-off rides the heal, Rustboro first, with bounded defaults (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [
+    23
+   ],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-aa8144",
+   "date": "2026-09-29",
+   "line_start": 8406,
+   "line_end": 8435,
+   "title": "2026-09-29 — Design v2 step 9b (BB consumer b, Sootopolis): how the ball top-off rides RULING 18's visit (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [
+    18
+   ],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-033776",
+   "date": "2026-09-29",
+   "line_start": 8437,
+   "line_end": 8449,
+   "title": "2026-09-29 — Design v2 step 9b review: where the driver's ball grade lives (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-557b8f",
+   "date": "2026-09-29",
+   "line_start": 8451,
+   "line_end": 8492,
+   "title": "2026-09-29 — Design v2 step 10 (HK, the healing-kit top-off): the spec as it will be built (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-provisions",
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-29-ba0289",
+   "date": "2026-09-29",
+   "line_start": 8494,
+   "line_end": 8528,
+   "title": "2026-09-29 — Design v2 step 10a (HK at Rustboro) as built, and its review: how each set is logged, and where the kit is planned (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-30-27d7da",
+   "date": "2026-09-30",
+   "line_start": 8530,
+   "line_end": 8579,
+   "title": "2026-09-30 — Design v2 step 10b (HK at Sootopolis) as built, and its review: the kit separated from the basket by TIME, the driver's lever rule completed, each set's line carrying only its own money (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-30-6cffed",
+   "date": "2026-09-30",
+   "line_start": 8581,
+   "line_end": 8617,
+   "title": "2026-09-30 — Design v2 step 11 (M1, damage-calculator fidelity) as built and graded: raw reads in production, every verdict offline, the faint rule, and how a diverged trajectory is graded (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-30-e235c5",
+   "date": "2026-09-30",
+   "line_start": 8619,
+   "line_end": 8647,
+   "title": "2026-09-30 — Design v2 step 11's review: which classifier exclusions to tighten, and which to RELAX (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-30-3a5ec4",
+   "date": "2026-09-30",
+   "line_start": 8649,
+   "line_end": 8689,
+   "title": "2026-09-30 — Design v2 step 12 (W, weaken-to-catch, RULING 25) as built: a BINARY no-self-harm rule, gain counted in BALLS, the kind read from the mode, a test lever, and the builder's gap decisions ruled (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [
+    25
+   ],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [
+    "KI-114"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-30-49d8a0",
+   "date": "2026-09-30",
+   "line_start": 8691,
+   "line_end": 8716,
+   "title": "2026-09-30 — Design v2 step 12's BUILD REVIEW: its rulings, and a correction to the entry above (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "correction"
+   ]
+  },
+  {
+   "id": "2026-09-30-0edd97",
+   "date": "2026-09-30",
+   "line_start": 8718,
+   "line_end": 8743,
+   "title": "2026-09-30 — Design v2 step 13 (KB-2, items in DOUBLE battles): the design's rulings, and their rejected alternatives (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-30-cb30b1",
+   "date": "2026-09-30",
+   "line_start": 8745,
+   "line_end": 8771,
+   "title": "2026-09-30 — Design v2 step 13 BUILT and FOLDED: the builder's gap rulings, and the adversarial pass's (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-09-30-318d5b",
+   "date": "2026-09-30",
+   "line_start": 8773,
+   "line_end": 8791,
+   "title": "2026-09-30 — Design v2 step 13's BUILD REVIEW: its rulings, and step 14's arm B (`#26-organiccatch`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch",
+    "#27-itemprobes"
+   ],
+   "ki": [
+    "KI-45"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-500697",
+   "date": "2026-10-01",
+   "line_start": 8793,
+   "line_end": 8808,
+   "title": "2026-10-01 — `#27-itemprobes`: how step 14 will be measured, and the open question it leaves for the user (`#27-itemprobes`)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-drawdefeat",
+    "#27-itemprobes"
+   ],
+   "ki": [
+    "KI-116"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-fc47a9",
+   "date": "2026-10-01",
+   "line_start": 8810,
+   "line_end": 8848,
+   "title": "2026-10-01 — design v2 step 14 (the Phase 3 batch): how the A/B is run and graded (`#26-organiccatch`, v2 step 14)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#24-partycap",
+    "#26-organiccatch"
+   ],
+   "ki": [
+    "KI-112"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-99acef",
+   "date": "2026-10-01",
+   "line_start": 8850,
+   "line_end": 8863,
+   "title": "2026-10-01 — USER RULING 28: step 14's batch — 16 lanes, two arms; start TONIGHT if the smoke run passes; Q1 and Q3 run AS BUILT (`#26-organiccatch`, v2 step 14)",
+   "rulings": [
+    28
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-94f74d",
+   "date": "2026-10-01",
+   "line_start": 8865,
+   "line_end": 8883,
+   "title": "2026-10-01 — design v2 step 14 T1: how the A/B runner refuses a contaminated batch (`#26-organiccatch`, v2 step 14)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#26-organiccatch"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-2c582c",
+   "date": "2026-10-01",
+   "line_start": 8885,
+   "line_end": 8895,
+   "title": "2026-10-01 — USER RULING 29: the heredoc / shell-text hook is APPROVED (`#27-shellhook`)",
+   "rulings": [
+    29
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-hookhatch",
+    "#27-shellhook"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-48ecb7",
+   "date": "2026-10-01",
+   "line_start": 8897,
+   "line_end": 8908,
+   "title": "2026-10-01 — `#27-shellhook`: the hook's scope after its adversarial pass (USER RULING 29)",
+   "rulings": [
+    29
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-shellhook"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-1ebcca",
+   "date": "2026-10-01",
+   "line_start": 8910,
+   "line_end": 8924,
+   "title": "2026-10-01 — design v2 step 14 T2/T3: how the comparator handles what the DESIGN left to the tool (after its adversarial pass)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-c8854b",
+   "date": "2026-10-01",
+   "line_start": 8926,
+   "line_end": 8952,
+   "title": "2026-10-01 — design v2 step 14 T4: STOP-3 counts only ACTING package tags; E4 is a hand read, not a simulation (after its adversarial pass)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-01-bee57d",
+   "date": "2026-10-01",
+   "line_start": 8954,
+   "line_end": 8976,
+   "title": "2026-10-01 — `#27-battleeq` (KI-108): fix `BattleState.__eq__` as the DEFAULT, with a fault switch; the evidence is a forced second caller, not an ordinary-battle A/B",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-battleeq",
+    "#27-battlestructptr",
+    "#27-ki47range"
+   ],
+   "ki": [
+    "KI-108",
+    "KI-115"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-02-dfea15",
+   "date": "2026-10-02",
+   "line_start": 8978,
+   "line_end": 8996,
+   "title": "2026-10-02 — design v2 step 14 graded: the registered verdict is REPORTED but not RELIED ON; the corrected re-grade is EXPLORATORY; promotion is blocked",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#27-dmgcalcfix"
+   ],
+   "ki": [
+    "KI-118"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-03-23ae4e",
+   "date": "2026-10-03",
+   "line_start": 8998,
+   "line_end": 9038,
+   "title": "2026-10-03 — USER RULING 31: the HYBRID direction. The story bot is parked; the Emerald AI strategy learner (`ai-agent/`) is built on top of it",
+   "rulings": [
+    31
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-119"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-03-febc24",
+   "date": "2026-10-03",
+   "line_start": 9040,
+   "line_end": 9077,
+   "title": "2026-10-03 — The AI learner runs from its OWN deployment clone and updates itself between cycles (supersedes \"never runs git\" in the RULING 31 entry); its knobs are screened with a Plackett–Burman design",
+   "rulings": [],
+   "ruling_mentions": [
+    31
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "supersedes"
+   ]
+  },
+  {
+   "id": "2026-10-03-2484db",
+   "date": "2026-10-03",
+   "line_start": 9079,
+   "line_end": 9110,
+   "title": "2026-10-03 — The first WALL knob: `POKEBOT_BOSSMODE_TOPUP` (boss mode's +1 top-up becomes learnable); the screen grows to Hadamard-16; genome ids hash only changed knobs",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-03-b3e98e",
+   "date": "2026-10-03",
+   "line_start": 9112,
+   "line_end": 9133,
+   "title": "2026-10-03 — USER RULING 32: the AI's ultimate goal is HUMAN-LIKE, organic play, never a speedrun; the learner's progress-only score is a partial proxy",
+   "rulings": [
+    32
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-03-eaffe3",
+   "date": "2026-10-03",
+   "line_start": 9135,
+   "line_end": 9192,
+   "title": "2026-10-03 — USER RULING 33: the human-play design. Personalities, catching, training with type and recoil awareness, no speedrunning, roaming (not spinning), a favourite-Pokémon shiny hunt, visible and gift items, and the post-game (event Pokémon, trade-only species, simulated trades)",
+   "rulings": [
+    33
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-03-b6d7bf",
+   "date": "2026-10-03",
+   "line_start": 9194,
+   "line_end": 9209,
+   "title": "2026-10-03 — USER RULING 33, addendum: PC team swapping for situations (hunting, legendaries, gym and Elite Four counters), VARIED across playthroughs; Game Corner as a future note",
+   "rulings": [
+    33
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-118"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-03-852e91",
+   "date": "2026-10-03",
+   "line_start": 9211,
+   "line_end": 9218,
+   "title": "2026-10-03 — USER RULING 34: the focus is the AI version; the bot is parked, not abandoned; AI concepts reach the bot only when the user says so",
+   "rulings": [
+    34
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-03-c60e81",
+   "date": "2026-10-03",
+   "line_start": 9220,
+   "line_end": 9228,
+   "title": "2026-10-03 — USER RULING 35: the AI PLAYS THE GAME ITSELF; the bot is only its TEACHER (supersedes ruling 34's \"AI-only flags in the bot's code\" and ruling 31's \"the bot is the hands\")",
+   "rulings": [
+    35
+   ],
+   "ruling_mentions": [
+    31,
+    34
+   ],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "supersedes"
+   ]
+  },
+  {
+   "id": "2026-10-03-bd23a6",
+   "date": "2026-10-03",
+   "line_start": 9230,
+   "line_end": 9238,
+   "title": "2026-10-03 — USER RULING 36: the AI player's eyes and its Claude coach. Perception by memory injection (as the bot does); the first version asks Claude; later versions consult Claude only when toggled on with the USER'S OWN API key (shareable, no dependency on one person's setup)",
+   "rulings": [
+    36
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-03-0bc438",
+   "date": "2026-10-03",
+   "line_start": 9240,
+   "line_end": 9246,
+   "title": "2026-10-03 — USER RULING 36, addendum: only the PRODUCTION version needs an API key; dev/prototype/test versions consult Claude through the chat (reports and logs); a standing setup prompt for the production version, later",
+   "rulings": [
+    36
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-07-389c41",
+   "date": "2026-10-07",
+   "line_start": 9248,
+   "line_end": 9264,
+   "title": "2026-10-07 — USER RULING 37: the AI player v1 decisions (answers to the design draft's §9)",
+   "rulings": [
+    37
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-07-862657",
+   "date": "2026-10-07",
+   "line_start": 9266,
+   "line_end": 9275,
+   "title": "2026-10-07 — The AI player's purity hardening STOPS at step 0.1; the remaining residuals are documented limits, and work moves to the AI itself (step 1, EYES)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-14-969c77",
+   "date": "2026-10-14",
+   "line_start": 9277,
+   "line_end": 9291,
+   "title": "2026-10-14 — AI player step 5 is COMMITTED with the verifier's pacing failure OPEN; step 5.1 fixes it and the review's findings BEFORE chapters 3-4 are attempted",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-15-a2b22c",
+   "date": "2026-10-15",
+   "line_start": 9293,
+   "line_end": 9299,
+   "title": "2026-10-15 — USER RULING 38: the learner drops to 8 lanes, and goes back to 16 when the AI player gives it something new to test",
+   "rulings": [
+    38
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-15-f4f400",
+   "date": "2026-10-15",
+   "line_start": 9301,
+   "line_end": 9314,
+   "title": "2026-10-15 — The AI player's development rounds: a fix round only for a FAILURE; the full regression of every step at a CHAPTER boundary",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-15-815b9c",
+   "date": "2026-10-15",
+   "line_start": 9316,
+   "line_end": 9331,
+   "title": "2026-10-15 — The AI player's order of work: step 5.2 = safety gates + PRODUCTIVE curiosity (on chapters 1-2), then 5.3 = chapter 3, then 5.4 = chapter 4 with the full regression at the badge",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-15-f882fc",
+   "date": "2026-10-15",
+   "line_start": 9333,
+   "line_end": 9365,
+   "title": "2026-10-15 — Usage-safe operation: the learner needs no Claude (consult OFF), restarts itself at logon, and the AI player's rounds go LEAN from step 5.3",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-15-1ae414",
+   "date": "2026-10-15",
+   "line_start": 9367,
+   "line_end": 9384,
+   "title": "2026-10-15 — USER RULING 38 follow-up: consult KEPT ON (it CORRECTS this day's \"consult OFF\" entry); the learner at 12 lanes; the lean process to start after step 5.2",
+   "rulings": [
+    38
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": [
+    "corrects"
+   ]
+  },
+  {
+   "id": "2026-10-15-17dd10",
+   "date": "2026-10-15",
+   "line_start": 9386,
+   "line_end": 9418,
+   "title": "2026-10-15 — USER RULING 39: the trainer runs and IMPROVES on its own when Claude or the internet is unavailable, QUEUES its questions and reconnects by itself; the user drives goals and design, and Claude owns technical decisions",
+   "rulings": [
+    39
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-15-994eef",
+   "date": "2026-10-15",
+   "line_start": 9420,
+   "line_end": 9455,
+   "title": "2026-10-15 — USER RULING 40: the AI is a SEASONED PLAYER (it knows Pokemon and Emerald and remembers past games) who still plays every new game like a person, with many personalities cycled so no two playthroughs feel alike; Claude controls how and when",
+   "rulings": [
+    40
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-15-040755",
+   "date": "2026-10-15",
+   "line_start": 9457,
+   "line_end": 9480,
+   "title": "2026-10-15 — The CLOUD PHASE: the user's $250 promotional cloud credit buys THINKING work that needs no emulator. Nothing may get stuck there, and the setup reverts when the credit ends",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-16-aaa49a",
+   "date": "2026-10-16",
+   "line_start": 9482,
+   "line_end": 9494,
+   "title": "2026-10-16 — \"P2\" decided by Claude (USER RULING 39: technical): the shares of TIME stay REPORTED, never graded; human-likeness is graded by what curiosity YIELDS, run by run",
+   "rulings": [
+    39
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-16-32da14",
+   "date": "2026-10-16",
+   "line_start": 9496,
+   "line_end": 9510,
+   "title": "2026-10-16 — USER RULING 41 (confirmation of the overall goal): a deployable AI agent that plays the WHOLE game on its own through the emulator, like a person, with NO bot programs; time is acceptable; the 24/7 learner is called \"the bot tuner\" until it tunes the AI player",
+   "rulings": [
+    41
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-58fe1b",
+   "date": "2026-10-21",
+   "line_start": 9512,
+   "line_end": 9529,
+   "title": "2026-10-21 — USER RULING 42 (the step-1 operations questions): backups go to Z:, the scheduled tasks are approved, compressed raw logs are kept forever, and a weekly-meter reading of 3 %",
+   "rulings": [
+    42
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "49a64eea",
+     "line": 9529,
+     "text": "- **Do not re-raise these four questions.**"
+    }
+   ],
+   "cues": []
+  }
+ ]
+}

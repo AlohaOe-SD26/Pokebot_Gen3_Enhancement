@@ -100,6 +100,15 @@ ADVISORY: frozenset[str] = frozenset({
     "probe_retraction_coverage.py",
 })
 
+#: (spec S3-2, critic fix, 2026-10-21) A gate in WARN_OK may exit WARN_EXIT to say "I RAN BUT COULD NOT VERIFY": the
+#: facts-ledger gate checks decomp references against the PINNED local decomp clone (`tools/decomp.pin`), and a machine
+#: without that clone can check nothing. WHY a third state: a silent skip would read as a pass (a vacuous gate), and a
+#: failure would turn every machine without the clone red for a reason that is not a defect. A WARN does not fail the
+#: suite, but it is counted OUT of the passing enforcing gates and named in the closing line, so the headline carries
+#: the caveat. Any other non-zero exit from these gates is still a FAIL.
+WARN_EXIT = 4
+WARN_OK: frozenset[str] = frozenset({"selftest_facts_ledger.py"})
+
 #: The standing suite. `slow=True` means it boots a ROM/emulator and takes real time.
 GATES: list[tuple[str, bool]] = [
     ("preflight.py", False),
@@ -1259,6 +1268,24 @@ GATES: list[tuple[str, bool]] = [
     # to adjudicate. Non-vacuity guards (>= 90 % of the smaller side), built-in FAULT arms F1-F7. Lives outside
     # `ai_player/` so it adds nothing to the AI's tree digest. No ROM, no decomp needed; ~2 s. ‼ APPENDED AT THE END.
     ("selftest_seasoned_crosscheck.py", False),
+    # spec S3-2 N2 (`ai-research-notes/2026-10-19-BUILD-SPECS-step-3.md`): `build_rulings_index.py` indexes 06 by a stable
+    # section id `<date>-<sha1(heading)[:6]>` (a ruling NUMBER is not a key: 12, 13, 21, 23, 25 and 39 name more than one
+    # heading) with the hand-curated `rulings-overlay.json`, and `tools/decomp_lookup.py ask` surfaces a do-not line FIRST.
+    # WHY: rule 11 says grep 06 before escalating, and 06 is 720 KB with no index; questions were re-asked anyway. N0 the
+    # real tree's --check (‼ REDS AFTER EVERY 06 APPEND until `py -3.12 tools/story-dev/build_rulings_index.py` is re-run:
+    # by design); N1 a DETERMINISM check, not recall; N2-N5 FAULT + CONTROL; N6 six golden re-asks by section id with an
+    # emptied-overlay FAULT and a never-ruled CONTROL (exit 3). No ROM, no clone; ~3 s. ‼ APPENDED AT THE END.
+    ("selftest_rulings_index.py", False),
+    # spec S3-2 P5: `check_facts_ledger.py` (the append-only verified-facts ledger: CONFIRMED needs a source and a re-check
+    # tool, a REFUTED row is never removed or edited against HEAD, decomp refs resolve on the PINNED clone) and
+    # `tools/decomp_lookup.py` (refuses, exit 2, any clone whose HEAD is not `tools/decomp.pin`). L1 pin refusal FAULT +
+    # the Roxanne = 265 / L12 Geodude CONTROL, L2 CRLF, F1, F2. Exit 4 = WARN (WARN_OK above): no pinned clone on this
+    # machine, so the clone arms were SKIPPED; never a pass. ~3 s. ‼ APPENDED AT THE END.
+    ("selftest_facts_ledger.py", False),
+    # The WARN state's own fault test (2026-10-21): the real `main()` over fake gates. A WARN_OK gate exiting 4 passes the
+    # suite but is counted out and named; exit 1 from it, or exit 4 from any other gate, is a FAIL; every WARN_OK name is
+    # a registered gate. WHY: a third state that is too wide becomes a silent pass. No ROM; ~1 s. ‼ APPENDED AT THE END.
+    ("selftest_run_gates_warn.py", False),
 ]
 
 
@@ -1327,20 +1354,25 @@ def main() -> int:
         results.append((name, rc, elapsed))
         if name in ADVISORY:
             label = "ADVIS"
+        elif name in WARN_OK and rc == WARN_EXIT:
+            label = "WARN"
         else:
             label = "PASS" if rc == 0 else "FAIL"
         print(f"  {label:<5} {name:<34} exit={rc}  {elapsed:6.1f}s")
 
     # ‼ An ADVISORY probe's exit code does not gate — see the ADVISORY note above.
-    failed = [(n, rc) for n, rc, _ in results if rc != 0 and n not in ADVISORY]
+    warned = [n for n, rc, _ in results if n in WARN_OK and rc == WARN_EXIT]
+    failed = [(n, rc) for n, rc, _ in results if rc != 0 and n not in ADVISORY and n not in warned]
     advisory_ran = [n for n, _, _ in results if n in ADVISORY]
     print("=" * 92)
     if not failed:
         total = sum(e for _, _, e in results)
-        enforcing = len(results) - len(advisory_ran)
+        enforcing = len(results) - len(advisory_ran) - len(warned)
         line = f"ALL {enforcing} ENFORCING GATES PASS  ({total:.1f}s total)"
         if advisory_ran:
             line += f"   [+{len(advisory_ran)} ADVISORY probe(s) — run, NOT gated]"
+        if warned:
+            line += f"   [‼ {len(warned)} WARN: ran but could NOT verify: {', '.join(warned)}]"
         print(line)
         # ‼ THE HEADLINE CARRIES THE CAVEAT — added 2026-08-22, deep sanity check PASS 4.
         # `--quick` skips every ROM gate and the CLOSING line — the one people paste into a doc or

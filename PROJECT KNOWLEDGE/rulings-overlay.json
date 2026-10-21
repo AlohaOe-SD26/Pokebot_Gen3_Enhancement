@@ -1,0 +1,401 @@
+{
+ "_READ_FIRST": "06 wins. HAND-CURATED judgments over 06-DECISIONS-LOG.md (spec S3-2); the generator carries the facts. A section absent from here is ACTIVE with no flag. Key = section id <date>-<sha1(heading)[:6]>. Every entry's `reason` quotes the section's own text. Gate: py -3.12 tools/story-dev/build_rulings_index.py --check",
+ "fields": {
+  "status": "ACTIVE | SUPERSEDED | WITHDRAWN (absent = ACTIVE)",
+  "superseded_by": "id of the section that replaces this one",
+  "ruling_key": "<n>@<date>: the USER RULING number(s) this heading DEFINES (a number is not a key)",
+  "application_of": "id: this heading only APPLIES an earlier ruling",
+  "amends": "id or ids: this section corrects or clarifies part of an earlier one, which stays ACTIVE",
+  "do_not_reopen": "one line: what exactly must not be re-asked, and its scope",
+  "candidates": "do-not candidate line key -> marker (an instruction) | mention (a quotation of one)",
+  "topics": "extra words for `decomp_lookup.py ask` ranking",
+  "reason": "the judgment's basis, quoted from the section"
+ },
+ "curated": "2026-10-21",
+ "sections": {
+  "2026-07-17-fb3c6f": {
+   "title": "2026-07-17 — Installer enhancement will ADAPT, not literally apply, the base64 pattern",
+   "status": "SUPERSEDED",
+   "superseded_by": "2026-07-17-c7d216",
+   "reason": "its own \"Decision (provisional, to finalize at punch-list #4)\"; 06:63 heading \"(supersedes provisional entry)\""
+  },
+  "2026-07-17-c7d216": {
+   "title": "2026-07-17 — Installer implemented as git-driven one-script (supersedes provisional entry)",
+   "reason": "cue \"supersedes provisional entry\": the target is 2026-07-17-fb3c6f, marked SUPERSEDED",
+   "status": "ACTIVE"
+  },
+  "2026-07-18-2d9552": {
+   "title": "2026-07-18 — Emerald ROM stays tracked in the repo (user ruling)",
+   "candidates": {
+    "3b048741": "marker"
+   },
+   "do_not_reopen": "Keeping the user's Emerald ROM tracked in the private repo (revisit only if the repo is ever made public).",
+   "reason": "06:90 \"Do not re-raise this for THIS file.\" (the user chose \"keep it as is\")",
+   "status": "ACTIVE"
+  },
+  "2026-07-25-23544a": {
+   "title": "2026-07-25 — \"Endless reset runs\" ships as an IN-PROCESS bot mode, reversing the shipped launcher",
+   "reason": "cue \"reversing the shipped launcher\": \"the first version was a GUI menu item that shelled out to tools/story-dev/endless_runs.py\" — that launcher has no 06 section of its own, so nothing is marked",
+   "status": "ACTIVE"
+  },
+  "2026-07-26-42f4fa": {
+   "title": "2026-07-26 — ENDLESS RESET restores SPEED but never touches VIDEO (user directive)",
+   "status": "ACTIVE",
+   "reason": "06:526 \"Speed is restored; video is never written.\" Only the VIDEO half is replaced: 06:928 \"THIS SUPERSEDES the 2026-07-26 directive 'SPEED ONLY - NEVER TOUCH context.video'\"; the speed half stays in force, 06:939 \"ENDLESS RESET captures batch_speed at batch start and restores it\" (independent review 2026-10-21)."
+  },
+  "2026-07-29-9b440e": {
+   "title": "2026-07-29 — Debug Story modes force unthrottled + video ON; this SUPERSEDES the 2026-07-26 \"never touch video\" rule",
+   "reason": "cue \"SUPERSEDES the 2026-07-26 \\\"never touch video\\\" rule\": the target 2026-07-26-42f4fa is marked SUPERSEDED",
+   "status": "ACTIVE",
+   "amends": "2026-07-26-42f4fa"
+  },
+  "2026-08-23-43fd61": {
+   "title": "2026-08-23 — RE-AFFIRMED (not a new decision): the Emerald ROM stays tracked. ⛔ THIS IS THE SECOND RULING ON IT.",
+   "candidates": {
+    "4967eb1d": "mention"
+   },
+   "amends": "2026-07-18-2d9552",
+   "do_not_reopen": "The tracked Emerald ROM, now BOTH tree entries (custom-pokebot/roms/ and sandbox-pokebot/roms/): keep as is, fix the docs.",
+   "reason": "06:3126 only QUOTES the 2026-07-18 line (\"already ended with *\\\"Do not re-raise this for THIS file.\\\"*\"); the section itself says \"THIS ENTRY EXISTS TO STOP A THIRD ASKING\" and widens the scope to both roms/ paths",
+   "status": "ACTIVE"
+  },
+  "2026-08-23-908a3b": {
+   "title": "2026-08-23 — RULING: the whiteout-RECOVERY path is permanently exempt from `_check_abort()`",
+   "status": "WITHDRAWN",
+   "superseded_by": "2026-08-23-576b9b",
+   "reason": "06:3202 \"The ruling above is wrong and is superseded by this one.\" (the recovery-path exemption from _check_abort())"
+  },
+  "2026-08-23-576b9b": {
+   "title": "2026-08-23 — ⛔ REVERSED, SAME DAY: the \"recovery path is exempt from `_check_abort()`\" ruling above is WITHDRAWN",
+   "reason": "cue \"REVERSED, SAME DAY ... is WITHDRAWN\": the target 2026-08-23-908a3b is marked WITHDRAWN",
+   "status": "ACTIVE"
+  },
+  "2026-09-02-622828": {
+   "title": "2026-09-02 (later) — CORRECTION to the entry above: `chapters.py` ALREADY consumes `RECEIVED_HM_WATERFALL`",
+   "amends": "2026-09-02-cb308e",
+   "reason": "\"This file is append-only, so the entry above is left standing and corrected here\": one FALSE sentence (\"not yet consumed by chapters.py\") in the leg-5 entry, not its decision",
+   "status": "ACTIVE"
+  },
+  "2026-09-05-04819e": {
+   "title": "2026-09-05 — REVERSAL: `ch23_chapter_done()` DOES require the Elite Four basket",
+   "reason": "cue \"REVERSAL\": \"This REVERSES the reasoning recorded in its own docstring earlier today\" — the reversed reasoning is a code docstring, not a 06 section",
+   "status": "ACTIVE"
+  },
+  "2026-09-05-11b4ba": {
+   "title": "2026-09-05 — the leg-9 attrition fix will be a POKÉ CENTER heal, not bag items, and not grinding",
+   "status": "SUPERSEDED",
+   "superseded_by": "2026-09-05-079ffd",
+   "reason": "06:4394 \"THIS SUPERSEDES THE ENTRY EARLIER TODAY TITLED \\\"the leg-9 attrition fix will be a POKE CENTER heal...\\\"\" and 06:4458 \"THIS SUPERSEDES BOTH OF TODAY'S EARLIER LEG-9 DECISIONS\" (its grinding/bag-items reasoning still stands)"
+  },
+  "2026-09-05-cc4d7b": {
+   "title": "2026-09-05 (evening) — REVERSAL: the leg-9 fix is TWO SINGLE BATTLES. The heal AND the bypass are measured dead.",
+   "status": "SUPERSEDED",
+   "superseded_by": "2026-09-05-079ffd",
+   "reason": "06:4458 \"THIS SUPERSEDES BOTH OF TODAY'S EARLIER LEG-9 DECISIONS (the Poke Center heal, and the split-singles reversal)\" | do-not candidate 5440f1eb classified marker by the independent overlay review (2026-10-21): 06:4447 \"A Poké Center heal before leg 9 — measured impossible (above). Do not re-propose.\" | do-not candidate caec5783 classified marker by the independent overlay review (2026-10-21): 06:4448 \"Route around via (33,17) — measured dead end (above). Do not re-propose.\" (06:4479 later calls the bypass claim an artifact of the probe; the section is SUPERSEDED)",
+   "candidates": {
+    "5440f1eb": "marker",
+    "caec5783": "marker"
+   },
+   "do_not_reopen": "NOT BINDING: this section is SUPERSEDED by 2026-09-05-079ffd (\"THIS SUPERSEDES BOTH OF TODAY'S EARLIER LEG-9 DECISIONS\"), so its two 'do not re-propose' lines (a Poke Center heal before leg 9; the (33,17) bypass) do not stand on their own, and 06:4479 calls the bypass claim an artifact of the probe. Read 079ffd."
+  },
+  "2026-09-05-079ffd": {
+   "title": "2026-09-05 (late) — REVERSAL #2: leg 9 ROUTES AROUND the pair via (33,16). The split is shelved.",
+   "reason": "cue \"REVERSAL #2\": the current leg-9 decision; its two targets are marked SUPERSEDED",
+   "status": "ACTIVE"
+  },
+  "2026-09-10-7e05ef": {
+   "title": "2026-09-10 (later) — CORRECTION to the §Ch24 entry-marker entry above: its leg-4 mechanism was wrong",
+   "amends": "2026-09-10-c0342b",
+   "reason": "\"READ THIS BEFORE ACTING ON THE PRECEDING ENTRY\": corrects the entry-marker entry's leg-4 mechanism, not its decision",
+   "status": "ACTIVE"
+  },
+  "2026-09-12-125f6e": {
+   "title": "2026-09-12 — `#24-maintain` stays DEFAULT-OFF after its A/B, and the A/B is kept rather than re-run",
+   "status": "SUPERSEDED",
+   "superseded_by": "2026-09-12-f83fd9",
+   "candidates": {
+    "e20d8387": "marker"
+   },
+   "do_not_reopen": "\"Why not just train the laggard to the boss's level?\" (ruled 2026-09-10 with arithmetic: L40->L47 = 285,167 frames against a 250,000 ceiling). The flag-OFF decision of this section is superseded; this question is not.",
+   "reason": "06:5133 \"DO NOT RE-RAISE \\\"why not just train the laggard to the boss's level?\\\" ... Unchanged by this entry.\"; superseded by 06:5167 \"This SUPERSEDES the two \\\"stays OFF\\\" entries above.\""
+  },
+  "2026-09-12-e757a6": {
+   "title": "2026-09-12 (09:03) — `#24-maintain`: the benefit question is ANSWERED (no), and the flag stays OFF",
+   "status": "SUPERSEDED",
+   "superseded_by": "2026-09-12-f83fd9",
+   "reason": "06:5167 heading: \"This SUPERSEDES the two \\\"stays OFF\\\" entries above.\" (this is the 09:03 \"flag stays OFF\" entry)"
+  },
+  "2026-09-12-f83fd9": {
+   "title": "2026-09-12 (user ruling) — ‼ `POKEBOT_MAINTAIN` WILL BE TURNED **ON**. This SUPERSEDES the two “stays OFF” entries above.",
+   "candidates": {
+    "018d1e82": "marker"
+   },
+   "do_not_reopen": "The VALUE question of POKEBOT_MAINTAIN (top-up): the user ruled it ON after being shown it measures neutral (32x310 and 32x120 per arm).",
+   "reason": "06:5173 \"DO NOT RE-RAISE THE VALUE QUESTION. It was asked twice, measured twice (32x310 and 32x120 per arm)\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-16-42f48d": {
+   "title": "2026-09-16 — USER RULING: the post-whiteout money policy is **SPEND DOWN BEFORE ENTERING**",
+   "candidates": {
+    "debfc742": "marker"
+   },
+   "do_not_reopen": "The three rejected post-whiteout money options (adaptive re-stock, attempt cap, re-earning trip): the user chose SPEND DOWN BEFORE ENTERING.",
+   "reason": "06:5345 \"THE THREE REJECTED OPTIONS — OFFERED AND DECLINED. DO NOT RE-RAISE THEM.\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-16-322cd3": {
+   "title": "2026-09-16 (later still) — ⛔ CORRECTION TO MY OWN WINNABILITY VERDICT: \"WALLACE IS OUT OF REACH\" IS AN **L53** RESULT, AND LEVELLING CONVERTS IT",
+   "amends": "2026-09-16-cb324e",
+   "reason": "\"THE RULING ABOVE IS UNCHANGED — Segment 24 still must not be wired\"; it corrects the winnability framing (\"an L53 result\")",
+   "status": "ACTIVE"
+  },
+  "2026-09-17-5edc72": {
+   "title": "2026-09-17 — ⛔ THE L75 GRIND RUNS ON `post_ch24ready.ss1`. `post_grind_L60.ss1` IS A DEAD BRANCH.",
+   "candidates": {
+    "abd58de6": "marker"
+   },
+   "do_not_reopen": "post_grind_L60.ss1 is a dead branch: not grinded from, not repaired, not cited as \"13 levels we already paid for\"; the L75 grind starts from post_ch24ready.ss1.",
+   "reason": "06:5585 \"NOT to be cited as \\\"13 levels we already paid for\\\".** DO-NOT-REOPEN.\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-17-c1970f": {
+   "title": "2026-09-17 (late) — ⛔ THE LEVEL FIX IS **NOT** “A CAPABILITY WE ALREADY SHIPPED”: IT IS SHIPPED IN THE HARNESS ONLY",
+   "candidates": {
+    "2a921735": "marker"
+   },
+   "do_not_reopen": "#24-trainestimatorcal (the item filed against the train estimator's cost model): withdrawn the same day; the estimator is ~18% pessimistic on frames (07 2026-09-08 :24637-24641).",
+   "reason": "06:5846-5847 \"#24-trainestimatorcal, WAS FILED AGAINST THAT COST MODEL AND WITHDRAWN THE SAME DAY ... Do not re-open it.\"",
+   "status": "ACTIVE",
+   "amends": [
+    "2026-09-16-322cd3",
+    "2026-09-16-cb324e"
+   ]
+  },
+  "2026-09-17-5bafb0": {
+   "title": "2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY",
+   "status": "SUPERSEDED",
+   "superseded_by": "2026-09-17-b69c79",
+   "reason": "06:5891 \"REVERSAL OF THE ENTRY ABOVE: THE RETRACTION-COVERAGE CHECK IS ADVISORY, NOT ENFORCING\""
+  },
+  "2026-09-17-b69c79": {
+   "title": "2026-09-17 (late) — ⛔ REVERSAL OF THE ENTRY ABOVE: THE RETRACTION-COVERAGE CHECK IS **ADVISORY**, NOT ENFORCING",
+   "reason": "cue \"REVERSAL OF THE ENTRY ABOVE\": the target 2026-09-17-5bafb0 (ENFORCING) is marked SUPERSEDED",
+   "status": "ACTIVE"
+  },
+  "2026-09-18-6186dd": {
+   "title": "2026-09-18 (later) — ⛔ REVERSAL: §Ch23 IS THE WRONG HOST FOR THE GRIND. THE DECISION ABOVE NAMED THE GROUND AND ASSUMED THE HOST",
+   "amends": "2026-09-18-4d4aa9",
+   "reason": "\"The engine survives; the location does not.\" — a partial reversal (the host) of \"build the stepped leg on 1F first\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-18-7c5632": {
+   "title": "2026-09-18 — ⭐ USER RULINGS: THE LEVEL TARGET, THE GRIND LOCATION, AND WHERE §Ch24 HEALS",
+   "candidates": {
+    "2d55d8a3": "marker"
+   },
+   "do_not_reopen": "Victory Road B1F as the grind ground: off the table (user RULING 2 of 2026-09-18 picked the room before the Victory Road exit, for round-trip speed) unless a new ruling says otherwise.",
+   "reason": "06:6225 \"Do not reopen B1F without a new ruling.\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-18-9c3dff": {
+   "title": "2026-09-18 — THE VICTORY ROAD TRAINING ROW IS NOT ADDED UNTIL `#24-waterfallcap` IS FIXED; THE CAP FIX ITSELF MAY LAND ALONE, AND FIRST",
+   "candidates": {
+    "d7fc7059": "mention",
+    "d4577a63": "mention",
+    "5a98d74b": "marker"
+   },
+   "do_not_reopen": "Settled because measured: the TRAINING_GRASS row never lands without its AREA_PREREQ row; adding it does not make Victory Road huntable; _MAX_TRAINING_TRAVEL_LEGS = 4 is not binding. NOT settled (reopen freely): the ranking-level change from inside Victory Road, a companion narrowing of _counter_area_allowed.",
+   "reason": "06:6523 announces a WITHDRAWN do-not (\"THE \\\"DO NOT REOPEN\\\" THAT WAS HERE HAS BEEN WITHDRAWN AND REPLACED\") and 06:6524 quotes it (\"It read: ...\"), both mentions; 06:6529 \"WHAT IS ACTUALLY SETTLED, AND MAY BE TREATED AS DO-NOT-REOPEN, BECAUSE IT IS MEASURED\" is the marker",
+   "status": "ACTIVE"
+  },
+  "2026-09-18-dcfea7": {
+   "title": "2026-09-18 — VICTORY ROAD IS NOT PROMOTED INTO `TRAINING_GRASS`, AND `#24-trainingbrackets` CLOSES WITHOUT A CODE CHANGE",
+   "candidates": {
+    "61bba6aa": "marker"
+   },
+   "do_not_reopen": "Promoting Victory Road into TRAINING_GRASS (#24-trainingbrackets closed without a code change). Reopen freely: the heal-map fallback (#24-healmapfallback) and B1F's Rock Smash table if USER RULING 2's B1F exclusion is ever revisited.",
+   "reason": "06:6615 \"DO NOT REOPEN the promotion — reason 1 and reason 2 are measurements I took myself\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-23-5c88b3": {
+   "title": "2026-09-23 — ⭐⭐ USER RULING 12: TRAIN ALL SIX ON THE FLY LADDER. THE PARTY IS NOT REDUCED.",
+   "candidates": {
+    "7bafa57b": "marker"
+   },
+   "ruling_key": "12@2026-09-23",
+   "do_not_reopen": "Boxing Zigzagoon or Castform to make the L65-75 floor easier: the user ruled (a), train all six on the Fly ladder. Read with 13@2026-09-25 (the battle team is L65-75, the roster is free), which moved the team boundary but not the floor.",
+   "reason": "06:6834 \"Do not box Zigzagoon or Castform to make the level floor easier. Do not re-raise this.\"; heading \"USER RULING 12: TRAIN ALL SIX ON THE FLY LADDER\" defines 12 on 09-23",
+   "status": "ACTIVE"
+  },
+  "2026-09-23-8c1057": {
+   "title": "2026-09-23 — USER RULING 13: IF A MŌN IS EVER REMOVED, IT IS A PC DEPOSIT — AND THE ROUND TRIP IS PROVEN FIRST",
+   "ruling_key": "13@2026-09-23",
+   "reason": "\"THE RULING: removal, if it ever happens, uses the Poke Center PC ... a full named-PID round trip ... must be demonstrated in a drive first.\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-25-bd0d61": {
+   "title": "2026-09-25 — ⭐⭐ USER RULING 12: ON LOSING THE ELITE FOUR, THE BOT **RESTOCKS AND RETRIES**",
+   "candidates": {
+    "cc9d2192": "marker"
+   },
+   "ruling_key": "12@2026-09-25",
+   "do_not_reopen": "What the bot does on LOSING the Elite Four: restock, then retry (authorised and unbuilt is not undecided).",
+   "reason": "06:7012 \"### DO NOT RE-RAISE THIS QUESTION\"; a DIFFERENT decision under the same number: \"When the bot LOSES to the Elite Four ... THE RULING: \\\"Restock, then retry.\\\"\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-25-40ef56": {
+   "title": "2026-09-25 — ⭐⭐ USER RULING 13: **THE BATTLE TEAM IS L65-75; THE ROSTER IS FREE**",
+   "ruling_key": "13@2026-09-25",
+   "amends": "2026-09-18-e97c57",
+   "reason": "a DIFFERENT decision under the same number: \"The six mon the bot FIGHTS with stay L65-75. Everything else ... lives in the PC\"; \"WHAT THIS REPEALS: The \\\"none benched\\\" clause\" of the 2026-09-18 L65-75 ruling",
+   "status": "ACTIVE"
+  },
+  "2026-09-26-41e337": {
+   "title": "2026-09-26 — ⛔ CORRECTION TO RULING 14's MONEY CLAUSE (same day, caught BEFORE any code used it)",
+   "amends": "2026-09-26-18ee11",
+   "reason": "\"CORRECTION TO RULING 14's MONEY CLAUSE (same day, caught BEFORE any code used it)\": one clause of ruling 14, not the ruling",
+   "status": "ACTIVE"
+  },
+  "2026-09-26-38271b": {
+   "title": "2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAGGED",
+   "application_of": "2026-09-23-5c88b3",
+   "reason": "decided at 06:7302-7303: R1 refuses the Elite Four \"unless EVERY party member is at CH24_LEVEL_FLOOR (65)\"; 06:7356-7358 RULING 15: \"R1 refuses the Elite Four only if FEWER THAN FOUR party members are at the floor ... supersedes the 'all six at L65' reading of RULING 12 for the gauntlet-entry gate\". Still in force: the basket conjunct, the ch24_readiness_shortfall predicate and the training target (independent review 2026-10-21).",
+   "status": "SUPERSEDED",
+   "superseded_by": "2026-09-26-cc050f"
+  },
+  "2026-09-26-6d6b8c": {
+   "title": "2026-09-26 — ⭐⭐ USER RULINGS 19-21: GYM ANSWERS FROM OWNED TMs; ORGANIC CATCHING INSTEAD OF CHAPTER FIXES; THE FLY SWAP",
+   "ruling_key": [
+    "19@2026-09-26",
+    "20@2026-09-26",
+    "21@2026-09-26"
+   ],
+   "reason": "heading \"USER RULINGS 19-21: GYM ANSWERS FROM OWNED TMs; ORGANIC CATCHING INSTEAD OF CHAPTER FIXES; THE FLY SWAP\" defines 19, 20 and 21",
+   "status": "ACTIVE"
+  },
+  "2026-09-27-e47f76": {
+   "title": "2026-09-27 — USER OBSERVATIONS during batch `#27-batch0927`: catching still stops at 4 (re-affirms RULING 20), and a FUTURE fossil request",
+   "candidates": {
+    "020fb4d2": "marker"
+   },
+   "do_not_reopen": "What the user meant by the desert fossil request (#27-desertfossil): get the desert fossil, choosing one at random each run; the mechanics are UNVERIFIED (recon the decomp first).",
+   "reason": "06:7653 \"Do not re-ask the user what they meant: the intent is recorded here.\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-27-360ecb": {
+   "title": "2026-09-27 — RULING 20 Phase 1, increment B (Fly) + USER RULING 21: the lobby PC; the lowest fighter sits out; the swap-back happens in the lobby, before the guards",
+   "reason": "06:7774-7775 \"(c) The swap-back happens IN THE LOBBY, after E1-INSIDE and before the guard talk, not before R1 as the ruling's wording ('restored and checked by PID before R1') suggests\" (06:7447): it changes the ruling's timing.",
+   "status": "ACTIVE",
+   "amends": "2026-09-26-6d6b8c"
+  },
+  "2026-09-27-57614f": {
+   "title": "2026-09-27 — `#24-restockleg` F1 (USER RULING 12): R1 restocks ONCE, inside itself, only when the basket is its ONLY reason",
+   "application_of": "2026-09-25-bd0d61",
+   "reason": "\"#24-restockleg F1 (USER RULING 12): R1 restocks ONCE\" applies the 09-25 restock-and-retry ruling (\"R1 already runs on every re-entry, including after a loss\")",
+   "status": "ACTIVE"
+  },
+  "2026-09-28-f98703": {
+   "title": "2026-09-28 — The `#24-faintchooser-fourthspace` closure (2026-08-17) is SUPERSEDED by measured evidence",
+   "reason": "cue \"SUPERSEDED\": the superseded closure (2026-08-17) is an agent probe recorded in 05, not a 06 section (\"This log holds no USER ruling on the item\")",
+   "status": "ACTIVE"
+  },
+  "2026-09-28-f65547": {
+   "title": "2026-09-28 — USER RULINGS 23, 24 and 25: the answers to RULING 20's §8 questions (money for balls, catching while hurt or training, the attempt cap)",
+   "candidates": {
+    "2162ccb9": "marker"
+   },
+   "ruling_key": [
+    "23@2026-09-28",
+    "24@2026-09-28",
+    "25@2026-09-28"
+   ],
+   "do_not_reopen": "The three RULING 20 §8 policy questions: money for Poke Balls (23), catching while hurt or training (24), the attempt cap (25).",
+   "reason": "06:8025 \"Do not re-ask any of them.\"; the heading defines USER RULINGS 23, 24 and 25",
+   "status": "ACTIVE"
+  },
+  "2026-09-29-33b616": {
+   "title": "2026-09-29 — USER RULINGS 23 and 25 CLARIFIED, and USER RULINGS 26 and 27: stocks kept all game, the best ball, never give up on a wanted rare, weaken-to-catch BUILT, healing items in key battles only",
+   "candidates": {
+    "c5a1ea9c": "marker"
+   },
+   "amends": "2026-09-28-f65547",
+   "ruling_key": [
+    "26@2026-09-29",
+    "27@2026-09-29"
+   ],
+   "do_not_reopen": "The five questions of 2026-09-28-r23-25-DESIGN.md §5: Q1 the ball budget (no per-run ceiling, bounded batches), Q2 stocks (kept all game, RULING 26), Q3 what \"rare\" means (already answered: check the notes), Q4 hard catches (keep trying), Q5 giving up (never on a wanted rare); and RULING 27 (healing items in KEY battles only).",
+   "reason": "06:8059-8060 \"Do not re-ask any of them.\"; heading \"USER RULINGS 23 and 25 CLARIFIED, and USER RULINGS 26 and 27\" (23/25 amended, 26/27 new)",
+   "status": "ACTIVE"
+  },
+  "2026-09-30-49d8a0": {
+   "title": "2026-09-30 — Design v2 step 12's BUILD REVIEW: its rulings, and a correction to the entry above (`#26-organiccatch`)",
+   "amends": "2026-09-30-3a5ec4",
+   "reason": "\"CORRECTION (review F5): the entry above over-justified one gap ruling ... The ruling stands, on a different reason\"",
+   "status": "ACTIVE"
+  },
+  "2026-10-03-febc24": {
+   "title": "2026-10-03 — The AI learner runs from its OWN deployment clone and updates itself between cycles (supersedes \"never runs git\" in the RULING 31 entry); its knobs are screened with a Plackett–Burman design",
+   "amends": "2026-10-03-23ae4e",
+   "reason": "heading \"(supersedes \\\"never runs git\\\" in the RULING 31 entry)\": one clause of ruling 31",
+   "status": "ACTIVE"
+  },
+  "2026-10-03-c60e81": {
+   "title": "2026-10-03 — USER RULING 35: the AI PLAYS THE GAME ITSELF; the bot is only its TEACHER (supersedes ruling 34's \"AI-only flags in the bot's code\" and ruling 31's \"the bot is the hands\")",
+   "amends": [
+    "2026-10-03-852e91",
+    "2026-10-03-23ae4e"
+   ],
+   "reason": "\"supersedes ruling 34's \\\"AI-only flags in the bot's code\\\" and ruling 31's \\\"the bot is the hands\\\"\": clauses of both, \"Both framings are WITHDRAWN\"",
+   "status": "ACTIVE"
+  },
+  "2026-10-15-1ae414": {
+   "title": "2026-10-15 — USER RULING 38 follow-up: consult KEPT ON (it CORRECTS this day's \"consult OFF\" entry); the learner at 12 lanes; the lean process to start after step 5.2",
+   "amends": [
+    "2026-10-15-f882fc",
+    "2026-10-15-a2b22c"
+   ],
+   "reason": "\"Consult ON: \\\"consult OFF\\\" earlier today was WRONG, so read this entry instead.\"; also \"the learner at 12 lanes\" (ruling 38 said 8)",
+   "status": "ACTIVE"
+  },
+  "2026-10-15-17dd10": {
+   "title": "2026-10-15 — USER RULING 39: the trainer runs and IMPROVES on its own when Claude or the internet is unavailable, QUEUES its questions and reconnects by itself; the user drives goals and design, and Claude owns technical decisions",
+   "ruling_key": "39@2026-10-15",
+   "reason": "\"TECHNICAL decisions are Claude's: architecture, process, tooling, learner settings.\"",
+   "status": "ACTIVE"
+  },
+  "2026-10-16-aaa49a": {
+   "title": "2026-10-16 — \"P2\" decided by Claude (USER RULING 39: technical): the shares of TIME stay REPORTED, never graded; human-likeness is graded by what curiosity YIELDS, run by run",
+   "application_of": "2026-10-15-17dd10",
+   "reason": "heading \"\\\"P2\\\" decided by Claude (USER RULING 39: technical)\": a decision taken UNDER ruling 39, not a new ruling",
+   "status": "ACTIVE"
+  },
+  "2026-10-21-58fe1b": {
+   "title": "2026-10-21 — USER RULING 42 (the step-1 operations questions): backups go to Z:, the scheduled tasks are approved, compressed raw logs are kept forever, and a weekly-meter reading of 3 %",
+   "candidates": {
+    "49a64eea": "marker"
+   },
+   "ruling_key": "42@2026-10-21",
+   "do_not_reopen": "The four step-1 operations questions: backups go to Z:, the TWO ops scheduled tasks (the nightly backup and the watchdog) approved at Claude's judgement (not scheduled tasks in general), compressed raw logs kept forever, the 3 % weekly-meter calibration.",
+   "reason": "06:9529 \"Do not re-raise these four questions.\"",
+   "status": "ACTIVE"
+  },
+  "2026-09-26-cc050f": {
+   "title": "2026-09-26 — ⭐⭐ USER RULINGS 15-18: §Ch24 READINESS AND THE LEAGUE-BASKET MONEY (asked with evidence; `06` grepped first — none was ruled)",
+   "ruling_key": [
+    "15@2026-09-26",
+    "16@2026-09-26",
+    "17@2026-09-26",
+    "18@2026-09-26"
+   ],
+   "reason": "06:7356-7358 \"RULING 15 — R1: 'Enter if 4+ are L65' ... supersedes the 'all six at L65' reading of RULING 12 for the gauntlet-entry gate\" (it supersedes 2026-09-26-38271b's entry gate)",
+   "status": "ACTIVE"
+  },
+  "2026-09-17-11cd93": {
+   "candidates": {
+    "21dd9b50": "marker"
+   },
+   "reason": "do-not candidate 21dd9b50 classified marker by the independent overlay review (2026-10-21): 06:5661 \"DO NOT re-propose fetching another TM13, buying one, or tutoring an Ice move onto Wailord.\"",
+   "do_not_reopen": "Fetching another TM13, buying one, or tutoring an Ice move onto Wailord (06:5661)."
+  }
+ }
+}

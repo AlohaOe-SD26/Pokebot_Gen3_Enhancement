@@ -110,6 +110,10 @@ ACCEPT:      the command that proves success + expected output
 CONTEXT:     facts already established (so they aren't re-derived)
 RETURN:      the structured schema for this role
 ```
+Before any stage escalates a question or reads decomp text (2026-10-21, spec S3-2): run
+`py -3.12 tools/decomp_lookup.py ask "<topic>"` (06 rulings with the do-not line first, the facts ledger, the pinned clone;
+exit 3 = nothing found), and read the decomp through `decomp_lookup.py grep|symbol|trainer|map` against `tools/decomp.pin`,
+never through `gh api`.
 Evidence (Gemini q4 §6, practitioner consensus): **context quality beats worker tier.**
 A MID model with the exact files + a precise spec beats a PREMIUM model with a vague ask.
 So the orchestrator's cheapest, highest-leverage act is writing FILES + ACCEPT well.

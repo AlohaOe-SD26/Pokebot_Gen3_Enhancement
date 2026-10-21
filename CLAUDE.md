@@ -378,6 +378,10 @@ as "the lesson from bug X" does not fire when you are building Y.
    load-bearing as a deferral being a claim with an expiry date.** When a re-discovery turns out to
    be already-ruled, the fix is to document WHY it is not a defect *at the place the auditor looks*,
    so the next audit stops re-flagging it.
+   ⇒ **First run `py -3.12 tools/decomp_lookup.py ask "<topic>"`** (2026-10-21, spec S3-2): it prints any matching 06
+   ruling with its do-not line FIRST (quoted from 06 itself), matching rows of `facts-ledger.jsonl`, and hits in the
+   PINNED local decomp; exit 3 = "NO PRIOR RULING OR FACT FOUND". It is a finding aid (06 wins), and a no-hit is not
+   proof: still grep 06 before escalating.
 
 
 ### ‼‼ DOC CONSISTENCY LAYER — independent eyes on documentation (user directive, 2026-08-13)
