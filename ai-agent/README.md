@@ -190,6 +190,23 @@ end, then scores it.
   - it appends Claude's "for the developer" note to `findings/DEVELOPER-NOTES.md`, the first thing an
     interactive session should read;
   - capped at `max_calls_per_day`, and every call is logged in `data/consult_log.jsonl`.
+  - **Only when there is something new** (backlog O5, 2026-10-21; checked after the two caps): the top 3
+    strategies changed (in order), one wall's share of scored runs moved at least `wall_move_points` (3.0, raw
+    percentage points), at least `new_runs` (150) more scored runs arrived, or `forced_days` (7) passed since the
+    last consult that went ahead. The baseline is `data/consult_state.json`, saved only after a call that exited 0.
+    A skip goes to `learner.log` and `data/consult_skips.jsonl`, never to `consult_log.jsonl` (whose lines ARE the
+    daily cap). If `findings/latest.json` or the state cannot be read, the consult goes ahead and says why.
+  - A note that repeats the last two notes (Jaccard >= 0.6 of their key terms: `KI-n` ids, `POKEBOT_` knobs, the
+    wall names; a `KI-n` id neither of them names always counts as new) becomes ONE line, `- <date>, after <cycle>:
+    unchanged since <date> (N consults)`; the full reply is still in `findings/claude-<cycle>.md`.
+  - At every cycle end, consult or not, `DEVELOPER-NOTES.md` keeps its newest 5 entries; older ones are moved, byte
+    for byte, to `findings/DEVELOPER-NOTES-ARCHIVE.md` (archive written and read back first, so a crash can leave an
+    entry in both files but never in neither). A failure there is logged and never fails the cycle.
+  - A waiting `inbox/` proposal older than `proposal_ttl_days` (3, by file date), or naming the same genome as an
+    older waiting one, is moved to `inbox/expired/` with a `.why.txt` when a cycle is planned (`plan` does it too).
+  - `py -3.12 consult.py --probe-context` is a ONE-TIME developer probe (two cheap calls of the user's usage):
+    does `claude -p --setting-sources user` still load the repo's CLAUDE.md? It prints the input-token
+    difference between a run from the repo and one from an empty folder with `--add-dir`. It changes nothing.
 - **Code changes, new knobs, relaunches:** these stay with an interactive Claude session, where you can see them.
 
 ## Safety rules (built in, not just written down)
@@ -242,7 +259,7 @@ That is an interactive-session job.
 | `scoring.py` | logs -> run records (the run-identity rules learned from KI-119) |
 | `brain.py` | strategy choice and knob-effect estimates |
 | `report.py` | `findings/LATEST.md` |
-| `consult.py` | the optional Claude call |
-| `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune and archive safety, the ops ledger and the early archive) |
+| `consult.py` | the optional Claude call, its novelty gate, the DEVELOPER-NOTES collapse and roll, and the one-time `--probe-context` |
+| `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune and archive safety, the ops ledger and the early archive, the consult's novelty gate, notes roll and inbox expiry) |
 | `config.json` | the settings, re-read every cycle |
 | `run_agent.ps1` | the 24/7 wrapper (restarts after a crash or into updated code; stops on `STOP` or `ATTENTION.md`) |

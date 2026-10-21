@@ -11,3 +11,8 @@ per cycle, oldest first):
 A knob you leave out stays at its baseline value (step 14's arm A). The learner checks every file against
 `knowledge.GENES`. A file naming an unknown knob or value is moved to `rejected/` with a `.why.txt`. A
 proposal is moved to `done/` once a cycle has scored runs for it. Claude's consult step writes here too.
+
+A proposal that has waited longer than `consult.proposal_ttl_days` in `config.json` (3 days, by its file date),
+or that names the same strategy (genome) as an older waiting one, is moved to `expired/` with a `.why.txt` when the
+next cycle is planned (`learner.py plan` does it too). Nothing is deleted. To run an expired one after all, COPY it
+back here: a copy gets today's date, while a moved file keeps its old one and would expire again.

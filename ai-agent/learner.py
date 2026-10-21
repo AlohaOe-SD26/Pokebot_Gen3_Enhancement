@@ -8,7 +8,9 @@ Each CYCLE:
    plays real games in the emulator and refuses anything malformed;
 4. turns the logs into small run records (`scoring.py`), updates what it has learned and rewrites
    `findings/LATEST.md` (`report.py`);
-5. optionally asks Claude for advice (`consult.py`, off by default);
+5. optionally asks Claude for advice (`consult.py`, off by default), only when the findings changed since the last
+   consult (its novelty gate, backlog O5), then keeps `findings/DEVELOPER-NOTES.md` to its newest 5 entries (the rest
+   moved verbatim to `DEVELOPER-NOTES-ARCHIVE.md`, `roll_developer_notes`, every cycle, consult or not);
 6. ARCHIVES its own old raw logs (backlog O3, 2026-10-21): the newest `keep_raw_cycles` cycles stay raw; each older
    cycle's `batch/` AND its lane profiles (`profiles/<name>/...`: badge-log.json, stats.db and the saves are the AI's
    experience data, backlog A6) are zipped to `runs/<tag>/raw.zip` (+ `raw.manifest.json`), the zip is VERIFIED
@@ -113,7 +115,7 @@ DEFAULTS = {
     "wait_if_other_bots_running": True, "idle_wait_minutes": 15, "max_consecutive_failures": 3,
     "max_proposals_per_cycle": 1, "two_flip_prob": 0.3,
     "consult": {"enabled": False, "max_calls_per_day": 2, "model": "sonnet", "max_usd_per_call": 0.75,
-                "timeout_minutes": 20, "max_waiting_proposals": 6},
+                "timeout_minutes": 20, "max_waiting_proposals": 6, **consult.NOVELTY_DEFAULTS},
 }
 
 
@@ -603,9 +605,51 @@ def write_ops_row(tag: str, ops: dict | None, finished: str, t_fin: float, consu
 
 
 # ------------------------------------------------------------------------------------------------------------- inbox
-def read_inbox() -> list[dict]:
-    """Valid waiting proposals, oldest first. An invalid one is moved to inbox/rejected/ with the reason."""
-    out = []
+def _ttl_seconds(ttl_days: object) -> float | None:
+    """`proposal_ttl_days` in seconds, or None (nothing expires by age) when it is not a positive finite number: a
+    bad value must not expire the whole queue."""
+    try:
+        ttl = float(ttl_days)
+    except (TypeError, ValueError):
+        ttl = math.nan
+    if not (math.isfinite(ttl) and ttl > 0):
+        log(f"inbox: proposal_ttl_days {ttl_days!r} is unusable; no proposal expires by age this time")
+        return None
+    return ttl * 86400
+
+
+def _expire(path: Path, why: str) -> bool:
+    """Move a waiting proposal to inbox/expired/ with a .why.txt: never deleted, never overwriting an earlier one of
+    the same name. False (it stays waiting, as before O5) when the move fails, so an expiry can never stop a cycle."""
+    dest_dir = INBOX / "expired"
+    stem, k = path.stem, 0
+    try:
+        dest_dir.mkdir(exist_ok=True)
+        while (dest_dir / f"{stem}.json").exists() or (dest_dir / f"{stem}.why.txt").exists():
+            k += 1
+            stem = f"{path.stem}.{k}"
+        _rename_no_overwrite(path, dest_dir / f"{stem}.json")
+    except OSError as exc:
+        log(f"inbox: could not expire {path.name} ({exc!r}); it stays waiting")
+        return False
+    try:
+        (dest_dir / f"{stem}.why.txt").write_text(
+            f"{why}\nTo run it after all, COPY it back into inbox/ (a copy gets today's date; a move keeps the old one "
+            f"and it would expire again).\n", encoding="utf-8")
+    except OSError:
+        pass  # the proposal itself is safe in expired/; the reason is also in learner.log
+    log(f"inbox: expired {path.name}: {why}")
+    return True
+
+
+def read_inbox(ttl_days: object = consult.NOVELTY_DEFAULTS["proposal_ttl_days"]) -> list[dict]:
+    """Valid waiting proposals, oldest first. An invalid one is moved to inbox/rejected/ with the reason. One that has
+    waited longer than `ttl_days` (by its file time), or names the same genome as an OLDER waiting one, is moved to
+    inbox/expired/ with a .why.txt (backlog O5): a queue that only grows spends the consult's usage on ideas that will
+    wait days. `plan_cycle`, and so also `learner.py plan`, reads the inbox, so both expire."""
+    out, seen = [], {}
+    ttl = _ttl_seconds(ttl_days)
+    t_now = time.time()
     for path in sorted(INBOX.glob("*.json"), key=lambda p: p.stat().st_mtime):
         try:
             p = json.loads(path.read_text(encoding="utf-8"))
@@ -618,6 +662,15 @@ def read_inbox() -> list[dict]:
             (INBOX / "rejected" / (path.stem + ".why.txt")).write_text("\n".join(errors), encoding="utf-8")
             log(f"inbox: rejected {path.name}: {errors}")
             continue
+        gid, age = brain.genome_id(p["genes"]), t_now - path.stat().st_mtime
+        why = None
+        if ttl is not None and age > ttl:
+            why = f"waited {age / 86400:.1f} days, longer than proposal_ttl_days ({ttl_days})"
+        elif gid in seen:
+            why = f"names the same genome ({gid}) as {seen[gid]}, which is older and still waiting"
+        if why and _expire(path, why):
+            continue
+        seen.setdefault(gid, path.name)
         p["_file"] = path.name
         out.append(p)
     return out
@@ -626,7 +679,8 @@ def read_inbox() -> list[dict]:
 # ------------------------------------------------------------------------------------------------------------- cycle
 def plan_cycle(cfg: dict, state: dict, lanes: int) -> dict:
     records = load_jsonl(RUNS_FILE)
-    proposals = read_inbox()
+    ttl = cfg.get("consult", {}).get("proposal_ttl_days", consult.NOVELTY_DEFAULTS["proposal_ttl_days"])
+    proposals = read_inbox(ttl)
     k = lanes // 4
     design, design_name = None, None
     if cfg.get("design") in ("screen", "pb12"):
@@ -724,9 +778,25 @@ def finish_cycle(cfg: dict, state: dict, plan: dict, rc, ops: dict | None = None
     t_consult = time.monotonic()
     log(consult.maybe_consult(cfg, REPO, AI, tag))
     consult_s = round(time.monotonic() - t_consult, 1)
+    roll_developer_notes(tag)
     archive = prune(cfg, state)
     write_ops_row(tag, ops, cycle["finished"], t_fin, consult_s, archive)
     return ok
+
+
+def roll_developer_notes(tag: str) -> None:
+    """Keep findings/DEVELOPER-NOTES.md to its newest entries, the older ones moved verbatim to the archive file
+    (backlog O5, `consult.roll_notes`). At EVERY cycle end, consult or not, so a long file shrinks at once rather than
+    at the next consult. Housekeeping: any failure is logged and the cycle goes on (the notes file stays as it was)."""
+    try:
+        msg = consult.roll_notes(FINDINGS)
+        if msg:
+            log(f"{tag}: {msg}")
+    except Exception as exc:  # noqa: BLE001 - a notes housekeeping failure must never fail a scored cycle
+        try:
+            log(f"{tag}: rolling {consult.NOTES} failed ({exc!r}); it is left as it was")
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def adopt_unfinished(cfg: dict) -> bool | None:

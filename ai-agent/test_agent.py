@@ -6,11 +6,13 @@ input is decoration.
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import io
 import json
 import os
 import random
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -337,8 +339,9 @@ def test_prune_and_inbox(tmp: Path) -> None:
         out = consult.maybe_consult(cfg, tmp, box, "x")
     finally:
         consult.shutil.which = real_which
+    # Since O5 the line also says why the novelty gate let it through (here: no latest.json, so it failed open).
     check("C4 FAULT CONTROL: under the cap the consult goes ahead (here it stops at 'no claude on PATH')",
-          out == "consult: the `claude` command is not on PATH", out)
+          out.startswith("consult: the `claude` command is not on PATH"), out)
 
 
 def test_adopt_and_reparse(tmp: Path) -> None:
@@ -2115,6 +2118,388 @@ def test_o6_o7(tmp: Path) -> None:
     check("O7 the same unusable margin over 3 loop passes is logged ONCE, not every pass", once == 1, once)
 
 
+# ------------------------------------------------------------------------------------------- O5 (spec S2-2) tests
+#: A consult config that passes both caps, so only the novelty gate decides.
+O5_CFG = {"consult": {"enabled": True, "max_calls_per_day": 99, "max_waiting_proposals": 99}}
+#: 1,000 scored runs: Norman 30 %, the League basket 30 %, the Champion 40 %.
+O5_WALLS = (("boss wall: Norman", 300), ("E4 refused: League basket short", 300), ("CHAMPION", 400))
+#: The key terms every generated note shares (two KI ids, two walls).
+O5_TERMS = "KI-122 and KI-118 at Tate & Liza and Norman"
+O5_NOTE_WALLS = ["boss wall: Tate & Liza", "boss wall: Norman", "CHAMPION"]
+
+
+def o5_latest(top3: tuple = ("ga", "gb", "gc"), walls: tuple = O5_WALLS, scored: int = 1000) -> dict:
+    """A findings/latest.json with the fields the digest reads (report.build writes more)."""
+    return {"ranked": [{"genome": g} for g in top3], "walls": [list(w) for w in walls], "scored": scored}
+
+
+def o5_box(root: Path, latest: dict | None = None, prev: dict | None = None, days_ago: float = 1.0) -> Path:
+    """A consult folder (maybe_consult's `ai`): data/, inbox/, findings/latest.json from `latest`, and from `prev` the
+    state of a last consult that went ahead `days_ago` days ago."""
+    for sub in ("data", "inbox", "findings"):
+        (root / sub).mkdir(parents=True, exist_ok=True)
+    if latest is not None:
+        (root / "findings" / "latest.json").write_text(json.dumps(latest), encoding="utf-8")
+    if prev is not None:
+        consult.write_state(root, consult.digest_of(prev), dt.datetime.now() - dt.timedelta(days=days_ago), "ai0001")
+    return root
+
+
+def o5_consult(box: Path, cfg: dict | None = None, tag: str = "ai0002") -> tuple[str, bool]:
+    """maybe_consult with no `claude` installed: (its outcome, whether it REACHED for claude). Reaching it means the
+    gate let the consult through (the outcome is then the 'not on PATH' line); a skip never reaches it."""
+    reached: list[str] = []
+    real = consult.shutil.which
+    consult.shutil.which = lambda name: reached.append(name)  # returns None: 'not on PATH'
+    try:
+        out = consult.maybe_consult(cfg or O5_CFG, box, box, tag)
+    finally:
+        consult.shutil.which = real
+    return out, bool(reached)
+
+
+def o5_notes(n: int, terms: str = O5_TERMS) -> str:
+    """`n` DEVELOPER-NOTES.md entries exactly as the learner writes them in Windows text mode (CRLF, a blank line
+    before each heading). Entry 2 holds a '## ' line and an inline quote of a heading, and the last entry a prose
+    mention of the repeat format: the MENTION controls, none of which may split an entry or count as a repeat."""
+    out = ""
+    for i in range(1, n + 1):
+        body = f"Note {i}: fix {terms}."
+        if i == 2:
+            body += "\r\n## A heading inside a note\r\nIt quotes '## 2026-10-01 01:00 AM, after cycle ai0099' inline."
+        if i == n:
+            body += "\r\nA reader wrote that it was unchanged since 2026-10-01 01:00 AM (5 consults)."
+        out += f"\r\n## 2026-10-{i:02d} {i:02d}:00 AM, after cycle ai{i:04d}\r\n\r\n{body}\r\n"
+    return out
+
+
+def o5_put(inbox: Path, name: str, genes: dict, days_old: float) -> bytes:
+    """A waiting proposal whose file time is `days_old` days ago; returns its bytes."""
+    inbox.mkdir(parents=True, exist_ok=True)
+    p = inbox / f"{name}.json"
+    p.write_text(json.dumps({"name": name, "why": "test", "genes": genes}), encoding="utf-8")
+    t = time.time() - days_old * 86400
+    os.utime(p, (t, t))
+    return p.read_bytes()
+
+
+def test_o5(tmp: Path) -> None:
+    """S2-2 (backlog O5): the consult's novelty gate, the developer-notes collapse and roll, the inbox expiry, and the
+    --probe-context probe (built, never run against the real `claude`)."""
+    import types
+    base = o5_latest()
+
+    # N1 / N2 an unchanged digest is skipped without reaching Claude; a changed top 3 goes ahead --------------------
+    box = o5_box(tmp / "n1", base, prev=base)
+    out, reached = o5_consult(box)
+    skips = box / "data" / consult.SKIPS_NAME
+    check("N1 an unchanged digest skips the consult, logs it in consult_skips.jsonl (not consult_log.jsonl), and never "
+          "reaches Claude", out.startswith("consult: skipped, nothing new since") and not reached and skips.is_file()
+          and len(skips.read_text(encoding="utf-8").splitlines()) == 1
+          and not (box / "data" / consult.LOG_NAME).exists(), (out, reached))
+    box = o5_box(tmp / "n2", o5_latest(top3=("ga", "gb", "gz")), prev=base)
+    out, reached = o5_consult(box)
+    check("N2 FAULT CONTROL: the top 3 changed -> the consult goes ahead (it reaches the 'not on PATH' line, as C4)",
+          reached and out.startswith("consult: the `claude` command is not on PATH") and "top 3 changed" in out, out)
+    out, reached = o5_consult(o5_box(tmp / "n2b", o5_latest(top3=("gb", "ga", "gc")), prev=base))
+    check("N2b a new leader among the same three genomes is news too (the top 3 compare in order)", reached, out)
+
+    # N3 the wall rule and the new-runs rule, each on both sides of its threshold ----------------------------------
+    def moved(tenths: int) -> tuple:  # Norman's share up by tenths/10 points and the basket's down by as much
+        return (("boss wall: Norman", 300 + tenths), ("E4 refused: League basket short", 300 - tenths),
+                ("CHAMPION", 400))
+    res = {t: o5_consult(o5_box(tmp / f"n3-{t}", o5_latest(walls=moved(t)), prev=base))[1] for t in (29, 30, 31)}
+    check("N3 a wall's share moved 2.9 points -> skip; 3.1 -> go; exactly 3.0 -> go (the threshold is inclusive)",
+          res == {29: False, 30: True, 31: True}, res)
+    # Norman 19 of 60 -> 26 of 75 is exactly 31.67% -> 34.67% (3.0 points), but 2.9999999999999964 in floats; the other
+    # two walls move 0.3 and 2.7 points (found by a brute-force search over small tables)
+    before = o5_latest(walls=(("boss wall: Norman", 19), ("x", 1), ("y", 40)), scored=60)
+    after = o5_latest(walls=(("boss wall: Norman", 26), ("x", 1), ("y", 48)), scored=60)
+    gap = consult.digest_of(after)["walls"]["boss wall: Norman"] - consult.digest_of(before)["walls"]["boss wall: Norman"]
+    out_eps = o5_consult(o5_box(tmp / "n3-eps", after, prev=before))[1]
+    check("N3c a move of exactly 3.0 points that floats compute a hair under still goes ahead (EPS)",
+          gap < 3.0 and abs(gap - 3.0) < 1e-9 and out_eps, (gap, out_eps))
+    res = {m: o5_consult(o5_box(tmp / f"n3b-{m}", o5_latest(scored=1000 + m), prev=base))[1] for m in (149, 150)}
+    check("N3b 149 new scored runs -> skip; 150 -> go (new_runs, both sides)", res == {149: False, 150: True}, res)
+
+    # N4 the weekly force, both sides ----------------------------------------------------------------------------------
+    res = {d: o5_consult(o5_box(tmp / f"n4-{d}", base, prev=base, days_ago=d))[1] for d in (6, 8)}
+    check("N4 forced_days 7: the last consult 8 days ago -> go; 6 days ago -> skip", res == {6: False, 8: True}, res)
+
+    # N5 skips never use up the daily cap --------------------------------------------------------------------------
+    box = o5_box(tmp / "n5", base, prev=base)
+    cap1 = {"consult": dict(O5_CFG["consult"], max_calls_per_day=1)}
+    outs = [o5_consult(box, cap1, tag=f"ai{i:04d}") for i in range(5)]
+    log = box / "data" / consult.LOG_NAME
+    calls = consult._calls_today(log)
+    (box / "findings" / "latest.json").write_text(json.dumps(o5_latest(top3=("gz", "ga", "gb"))), encoding="utf-8")
+    after, reached = o5_consult(box, cap1, tag="ai0009")
+    check("N5 FAULT: 5 skips use none of the daily cap (_calls_today stays 0, consult_log.jsonl unwritten), so a real "
+          "change after them still goes ahead under a cap of 1",
+          all(o.startswith("consult: skipped, nothing new") and not r for o, r in outs) and calls == 0
+          and not log.exists() and reached, (calls, after))
+
+    # N6 any doubt in the gate fails OPEN ----------------------------------------------------------------------------
+    box = o5_box(tmp / "n6a", None, prev=base)
+    (box / "findings" / "latest.json").write_text("{not json", encoding="utf-8")
+    six = [o5_consult(box)]
+    box = o5_box(tmp / "n6b", base)
+    (box / "data" / consult.STATE_NAME).write_text('{"digest": 7', encoding="utf-8")
+    six.append(o5_consult(box))
+    six.append(o5_consult(o5_box(tmp / "n6c", dict(base, scored="1000"), prev=base)))
+    six.append(o5_consult(o5_box(tmp / "n6d", base, prev=base),
+                          {"consult": dict(O5_CFG["consult"], wall_move_points="abc")}))
+    check("N6 FAULT: a corrupt latest.json, a corrupt consult_state.json, a wrong-shape digest and an unusable "
+          "threshold each FAIL OPEN: the consult goes ahead and its line says why (N1 is the control)",
+          all(r and "failed open" in o for o, r in six), six)
+
+    # N7 roll_notes: newest 5 kept, the rest moved verbatim, never lost ----------------------------------------------
+    f = tmp / "n7"
+    f.mkdir(parents=True)
+    original = o5_notes(7)
+    notes, arch = f / consult.NOTES, f / consult.NOTES_ARCHIVE
+    notes.write_bytes(original.encode("utf-8"))
+    msg = consult.roll_notes(f)
+    kept_text, arch_text = notes.read_bytes().decode("utf-8"), arch.read_bytes().decode("utf-8")
+    pre, kept = consult.split_notes(kept_text)
+    _, moved_entries = consult.split_notes(arch_text)
+    check("N7 7 notes -> the newest 5 stay and the 2 oldest move to the archive byte for byte: pre + archive + kept "
+          "== the original, CRLF kept, and a '## ' line or a quoted heading inside a note splits nothing",
+          len(kept) == 5 and len(moved_entries) == 2 and pre + arch_text + kept_text[len(pre):] == original
+          and "after cycle ai0003" in kept[0] and "A heading inside a note" in moved_entries[1]
+          and "\r\n" in arch_text, msg)
+    again = consult.roll_notes(f)
+    check("N7b a second roll moves nothing and changes neither file", again == ""
+          and notes.read_bytes().decode("utf-8") == kept_text and arch.read_bytes().decode("utf-8") == arch_text, again)
+    f = tmp / "n7c"
+    f.mkdir()
+    eight = o5_notes(8)
+    _, e8 = consult.split_notes(eight)
+    (f / consult.NOTES).write_bytes(eight.encode("utf-8"))
+    (f / consult.NOTES_ARCHIVE).write_bytes(("older\r\n" + e8[0] + e8[1]).encode("utf-8"))  # a crash after the append
+    consult.roll_notes(f)
+    arch_c = (f / consult.NOTES_ARCHIVE).read_bytes().decode("utf-8")
+    check("N7c after a crash between the archive append and the rewrite, the next roll archives no entry twice",
+          arch_c == "older\r\n" + "".join(e8[:3]) and len(consult.split_notes(
+              (f / consult.NOTES).read_bytes().decode("utf-8"))[1]) == 5, arch_c.count("## "))
+    f = tmp / "n7d"
+    f.mkdir()
+    (f / consult.NOTES).write_bytes(original.encode("utf-8"))
+    ro = f / consult.NOTES_ARCHIVE
+    ro.write_bytes(b"")
+    os.chmod(ro, stat.S_IREAD)
+    try:
+        try:
+            consult.roll_notes(f)
+            raised = False
+        except OSError:
+            raised = True
+    finally:
+        os.chmod(ro, stat.S_IREAD | stat.S_IWRITE)
+    check("N7d FAULT: an archive that cannot be written raises and leaves DEVELOPER-NOTES.md byte-identical",
+          raised and (f / consult.NOTES).read_bytes() == original.encode("utf-8"), raised)
+    f = tmp / "n7e"
+    f.mkdir()
+    (f / consult.NOTES).write_bytes(original.encode("utf-8"))
+    late = "\r\n## 2026-10-21 04:06 AM, after cycle ai0999\r\n\r\nLate.\r\n"
+    real_read, reads = consult._read_exact, []
+
+    def racing(path: Path) -> str:
+        if path.name == consult.NOTES:
+            reads.append(path)
+            if len(reads) == 2:  # the re-read just before the replace: a consult appends a note first
+                with open(path, "ab") as fh:
+                    fh.write(late.encode("utf-8"))
+        return real_read(path)
+
+    consult._read_exact = racing
+    try:
+        try:
+            consult.roll_notes(f)
+            raced = "rolled"
+        except RuntimeError as exc:
+            raced = str(exc)
+    finally:
+        consult._read_exact = real_read
+    final = (f / consult.NOTES).read_bytes().decode("utf-8")
+    check("N7e FAULT: a note appended DURING a roll is never lost: the roll leaves the file as it is",
+          "changed while rolling" in raced and final == original + late, raced)
+    f = tmp / "n7f"
+    f.mkdir()
+    (f / consult.NOTES).write_bytes(original.encode("utf-8"))
+
+    def short_archive(path: Path) -> str:  # the archive reads back without the entries just appended
+        return "" if path.name == consult.NOTES_ARCHIVE else real_read(path)
+
+    consult._read_exact = short_archive
+    try:
+        try:
+            consult.roll_notes(f)
+            verdict = "rolled"
+        except RuntimeError as exc:
+            verdict = str(exc)
+    finally:
+        consult._read_exact = real_read
+    check("N7f FAULT: when the archive does not read back with the moved entries, the notes file is not rewritten",
+          "does not end with the entries to move" in verdict
+          and (f / consult.NOTES).read_bytes() == original.encode("utf-8"), verdict)
+
+    # N8 the repeat collapse -----------------------------------------------------------------------------------------
+    f = tmp / "n8"
+    f.mkdir()
+    (f / consult.NOTES).write_bytes(o5_notes(3).encode("utf-8"))
+    same = "Still: fix KI-122 first, then KI-118. Tate & Liza and Norman remain the walls."
+    when = dt.datetime(2026, 10, 21, 4, 6)
+    kinds = [consult.write_note(f, same, when, "ai0010", O5_NOTE_WALLS)]
+    line1 = (f / consult.NOTES).read_text(encoding="utf-8").rstrip("\n").rsplit("\n", 1)[-1]
+    kinds.append(consult.write_note(f, same, when + dt.timedelta(hours=12), "ai0011", O5_NOTE_WALLS))
+    text = (f / consult.NOTES).read_text(encoding="utf-8")
+    line2 = text.rstrip("\n").rsplit("\n", 1)[-1]
+    check("N8 a note with the same key terms as the last 2 becomes ONE line under 200 characters, counting the consults "
+          "since the last distinct note (a prose mention of the format counts nothing)",
+          kinds == ["repeat", "repeat"] and len(line1) < 200 and line1.startswith("- 2026-10-21 04:06 AM, after ai0010")
+          and "unchanged since 2026-10-03 03:00 AM (1 consult)" in line1 and "(2 consults)" in line2
+          and len(consult.split_notes(text)[1]) == 3 and same not in text, (line1, line2))
+    kinds = [consult.write_note(f, same + " New: KI-200 is the cause.", when, "ai0012", O5_NOTE_WALLS),
+             consult.write_note(f, "Something else: POKEBOT_R25_RARE and the Winona wall.", when, "ai0013",
+                                O5_NOTE_WALLS)]
+    text = (f / consult.NOTES).read_text(encoding="utf-8")
+    check("N8b CONTROL: a note naming a NEW KI- id is written in full (one new id among 4 shared terms leaves the "
+          "Jaccard at 0.8), and so is a note about other things", kinds == ["full", "full"]
+          and "KI-200 is the cause" in text and "POKEBOT_R25_RARE" in text, kinds)
+    g = tmp / "n8c"
+    g.mkdir()
+    (g / consult.NOTES).write_bytes(o5_notes(1).encode("utf-8"))
+    check("N8c with only one earlier note, a note is always written in full",
+          consult.write_note(g, same, when, "ai0002", O5_NOTE_WALLS) == "full")
+
+    # I3 / I4 / I5 / I6 the inbox expiry --------------------------------------------------------------------------
+    with O3Sandbox(tmp / "i3"):
+        exp = learner.INBOX / "expired"
+        old = o5_put(learner.INBOX, "old", {"POKEBOT_R25_CAP": "1"}, 4.0)
+        o5_put(learner.INBOX, "young", {"POKEBOT_R27_KEYITEMS": "1"}, 2.9)
+        exp.mkdir(parents=True)
+        (exp / "old.json").write_bytes(b"an earlier expiry of the same name")
+        got = [p["name"] for p in learner.read_inbox(3)]
+        why = (exp / "old.1.why.txt").read_text(encoding="utf-8") if (exp / "old.1.why.txt").exists() else ""
+        check("I3 a proposal 4 days old moves to inbox/expired/ with a .why.txt, its bytes kept (never deleted); one "
+              "2.9 days old stays waiting", got == ["young"] and (exp / "old.1.json").read_bytes() == old
+              and "4.0 days" in why and not (learner.INBOX / "old.json").exists(), (got, why))
+        check("I3b an expiry never overwrites an earlier expired file of the same name",
+              (exp / "old.json").read_bytes() == b"an earlier expiry of the same name")
+    with O3Sandbox(tmp / "i4"):
+        o5_put(learner.INBOX, "dup-old", {"POKEBOT_R25_RARE": "1"}, 1.0)
+        o5_put(learner.INBOX, "dup-new", {"POKEBOT_R25_RARE": "1", "POKEBOT_R25_CAP": "0"}, 0.5)  # same genome
+        o5_put(learner.INBOX, "other", {"POKEBOT_R20_OPENFENCE": "1"}, 0.2)
+        got = [p["name"] for p in learner.read_inbox(3)]
+        exp = learner.INBOX / "expired"
+        why = (exp / "dup-new.why.txt").read_text(encoding="utf-8") if (exp / "dup-new.why.txt").exists() else ""
+        check("I4 a proposal naming the same GENOME as an older waiting one (spelt differently) moves to expired/; the "
+              "older one and a distinct genome (CONTROL) stay", got == ["dup-old", "other"]
+              and (exp / "dup-new.json").exists() and "dup-old.json" in why, (got, why))
+    with O3Sandbox(tmp / "i5"):
+        o5_put(learner.INBOX, "two-days", {"POKEBOT_R25_CAP": "1"}, 2.0)
+        cfg = dict(learner.DEFAULTS, consult=dict(learner.DEFAULTS["consult"], proposal_ttl_days=1))
+        plan = learner.plan_cycle(cfg, {"cycle": 0}, 8)
+        check("I5 plan_cycle (so also `learner.py plan`) expires by the CONFIGURED proposal_ttl_days (1: a 2-day-old "
+              "proposal goes, and is not planned)", (learner.INBOX / "expired" / "two-days.json").exists()
+              and not plan["proposal_files"], plan["proposal_files"])
+    with O3Sandbox(tmp / "i6"):
+        o5_put(learner.INBOX, "ancient", {"POKEBOT_R25_CAP": "1"}, 30.0)
+        got = [[p["name"] for p in learner.read_inbox(bad)] for bad in ("abc", 0, None)]
+        check("I6 an unusable proposal_ttl_days ('abc', 0, None) expires nothing by age: a bad value must not empty the "
+              "queue", got == [["ancient"]] * 3 and "is unusable" in log_text(), got)
+
+    # N9 every cycle end rolls the notes, and a failed roll never fails the cycle -----------------------------------
+    off = dict(learner.DEFAULTS)  # the consult OFF: the roll must not depend on a consult
+    plan = {"tag": "ai0001", "lanes": 8, "arms": {}}
+    with O3Sandbox(tmp / "n9"):
+        learner.FINDINGS.mkdir(parents=True, exist_ok=True)
+        (learner.FINDINGS / consult.NOTES).write_bytes(o5_notes(7).encode("utf-8"))
+        learner.load_config = lambda: off
+        captured(lambda: learner.finish_cycle(off, O3Sandbox.state([]), dict(plan), 0))
+        n_kept = len(consult.split_notes((learner.FINDINGS / consult.NOTES).read_text(encoding="utf-8"))[1])
+        check("N9 every cycle end rolls DEVELOPER-NOTES.md, with the consult OFF (5 kept, 2 archived)",
+              n_kept == 5 and (learner.FINDINGS / consult.NOTES_ARCHIVE).exists(), n_kept)
+    with O3Sandbox(tmp / "n9b"):
+        learner.FINDINGS.mkdir(parents=True, exist_ok=True)
+        (learner.FINDINGS / consult.NOTES).write_bytes(o5_notes(7).encode("utf-8"))
+        learner.load_config = lambda: off
+        real_roll = consult.roll_notes
+
+        def broken(findings: Path) -> str:
+            raise OSError("the disk went away")
+
+        consult.roll_notes = broken
+        try:
+            try:
+                captured(lambda: learner.finish_cycle(off, O3Sandbox.state([]), dict(plan), 0))
+                res = "returned"
+            except Exception as exc:  # noqa: BLE001 - a raise here IS the failure under test
+                res = f"RAISED {exc!r}"
+        finally:
+            consult.roll_notes = real_roll
+        tags = [c["tag"] for c in learner.load_state()["cycles"]]
+        check("N9b FAULT: a roll that raises never fails the cycle: finish_cycle returns, the cycle is recorded, its ops "
+              "row is written, the log says why and the notes are untouched",
+              res == "returned" and tags == ["ai0001"] and len(ops_rows()) == 1
+              and "rolling DEVELOPER-NOTES.md failed" in log_text()
+              and (learner.FINDINGS / consult.NOTES).read_bytes() == o5_notes(7).encode("utf-8"), (res, tags))
+
+    # N10 the --probe-context probe, with a fake `claude` (it is never run for real here) --------------------------
+    calls = []
+
+    def fake_probe(cmd, cwd=None, **kw):  # noqa: ANN001, ANN202
+        calls.append((list(cmd), Path(cwd), sorted(os.listdir(cwd))))
+        usage = {"input_tokens": 5, "cache_creation_input_tokens": 12000 if len(calls) == 1 else 2000,
+                 "cache_read_input_tokens": 100}
+        return types.SimpleNamespace(returncode=0, stdout=json.dumps({"usage": usage}), stderr="")
+
+    repo = tmp / "n10repo"
+    repo.mkdir()
+    rc, printed = captured(lambda: consult.probe_context(repo, {"model": "sonnet"}, run=fake_probe,
+                                                         which=lambda name: "claude"))
+    ok = len(calls) == 2
+    c1, cwd1, _ = calls[0] if ok else ([], None, None)
+    c2, cwd2, ls2 = calls[1] if ok else ([], None, None)
+    check("N10 the probe runs the consult's own flags twice: from the repo, then from an EMPTY temp dir with --add-dir "
+          "<repo>, and prints the input-token difference", ok and rc == 0 and cwd1 == repo and "--add-dir" not in c1
+          and cwd2 != repo and ls2 == [] and c2[-2:] == ["--add-dir", str(repo)]
+          and all(c[c.index("--setting-sources") + 1] == "user" and c[2] == "Reply OK"
+                  and c[c.index("--output-format") + 1] == "json" for c in (c1, c2))
+          and "difference (repo minus empty dir): 10000 tokens" in printed, (rc, printed))
+    rc_none, _ = captured(lambda: consult.probe_context(repo, {}, run=fake_probe, which=lambda name: None))
+    rc_main, _ = captured(lambda: consult.main([]))
+    check("N10b FAULT: without claude the probe stops before any call, and `consult.py` without --probe-context runs "
+          "nothing", rc_none == 2 and len(calls) == 2 and rc_main == 2, (rc_none, rc_main, len(calls)))
+
+    # N11 only a consult that went through moves the baseline --------------------------------------------------------
+    box = o5_box(tmp / "n11", base)
+    reply = ("Diagnosis.\n```json\n" + json.dumps({"proposals": [{"name": "p", "why": "w", "genes": {
+        "POKEBOT_R25_CAP": "1"}}], "for_the_developer": "Fix KI-122."}) + "\n```\n")
+    seen, rc_box = [], [1]
+
+    def fake_claude(cmd, cwd=None, **kw):  # noqa: ANN001, ANN202
+        seen.append(Path(cwd))
+        return types.SimpleNamespace(stdout=reply, returncode=rc_box[0])
+
+    real_run, real_which = consult.subprocess.run, consult.shutil.which
+    consult.subprocess.run, consult.shutil.which = fake_claude, lambda name: "claude"
+    try:
+        outs = [consult.maybe_consult(O5_CFG, repo, box, "ai0002"), consult.maybe_consult(O5_CFG, repo, box, "ai0003")]
+        rc_box[0] = 0
+        outs += [consult.maybe_consult(O5_CFG, repo, box, "ai0004"), consult.maybe_consult(O5_CFG, repo, box, "ai0005")]
+    finally:
+        consult.subprocess.run, consult.shutil.which = real_run, real_which
+    rows = learner.load_jsonl(box / "data" / consult.LOG_NAME)
+    check("N11 only a call that went through (exit 0) saves the baseline: after exit 1 the next cycle asks again, after "
+          "exit 0 an unchanged digest is skipped; 3 calls logged, each run from the repo (the cwd is unchanged)",
+          [o.split(",")[0] for o in outs] == ["consult: exit 1", "consult: exit 1", "consult: exit 0",
+                                               "consult: skipped"]
+          and len(seen) == 3 and all(s == repo for s in seen) and consult._calls_today(box / "data" / consult.LOG_NAME)
+          == 3 and [r["exit"] for r in rows] == [1, 1, 0] and rows[0]["why"] == "no previous digest", outs)
+
+
 def main() -> int:
     global GLOBAL_ROOT
     tmp = Path(tempfile.mkdtemp(prefix="aiagent-test-")).resolve()
@@ -2130,7 +2515,8 @@ def main() -> int:
                  lambda: test_o3_reparse(tmp / "o3reparse"), lambda: test_o3_review(tmp / "o3review"),
                  lambda: test_o3_orphan(tmp / "o3orphan"), lambda: test_o3_liveness(tmp / "o3live"),
                  lambda: test_o3_lock(tmp / "o3lock"), lambda: test_o3_profiles(tmp / "o3prof"),
-                 lambda: test_children(tmp / "children"), lambda: test_o6_o7(tmp / "o6o7"))
+                 lambda: test_children(tmp / "children"), lambda: test_o6_o7(tmp / "o6o7"),
+                 lambda: test_o5(tmp / "o5"))
         for i, t in enumerate(tests):
             try:
                 assert_isolated(tmp)

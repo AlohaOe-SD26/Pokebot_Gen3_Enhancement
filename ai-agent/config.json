@@ -38,6 +38,12 @@
     "max_usd_per_call": 0.75,
     "timeout_minutes": 20,
     "_max_waiting_proposals": "skip a consult while this many proposals already wait in inbox/ (2026-10-17: 12 waited; 2 arrive a cycle, 1 is used), so the user's Claude usage is not spent on ideas that would wait days",
-    "max_waiting_proposals": 6
+    "max_waiting_proposals": 6,
+    "_novelty": "backlog O5 (spec S2-2, 2026-10-21): after the caps, a consult goes ahead only when the findings changed since the last one that went ahead: the top 3 strategies differ, one wall's share of scored runs moved at least wall_move_points (raw percentage points), at least new_runs more scored runs (150, not 40: a 12-lane cycle scores about 38-41, so 40 would fire every cycle), or forced_days passed. A skip is logged in data/consult_skips.jsonl and never uses up the daily cap. Any doubt (an unreadable latest.json or data/consult_state.json) lets the consult go ahead.",
+    "wall_move_points": 3.0,
+    "new_runs": 150,
+    "forced_days": 7,
+    "_proposal_ttl_days": "a waiting inbox proposal older than this (by file date), or naming the same genome as an older waiting one, is moved to inbox/expired/ with a .why.txt when the next cycle is planned (also by `learner.py plan`); never deleted",
+    "proposal_ttl_days": 3
   }
 }
