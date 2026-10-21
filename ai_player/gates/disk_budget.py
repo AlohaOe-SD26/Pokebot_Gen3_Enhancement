@@ -127,7 +127,9 @@ def citing_text(extra: Iterable[Path] = ()) -> str:
     """Every text that may CITE a run folder by name: the evidence (top level and archive), the AI player's README and
     gates, and the project's documents."""
     parts = []
-    patterns = ("ai_player/evidence/**/*.txt", "ai_player/README.md", "ai_player/LESSONS.md", "PROJECT KNOWLEDGE/**/*.md")
+    # (spec S2-1, P9) `ai_player/readme/**/*.md`: the README's sections moved out by `split_readme.py` still cite
+    patterns = ("ai_player/evidence/**/*.txt", "ai_player/README.md", "ai_player/readme/**/*.md", "ai_player/LESSONS.md",
+                "PROJECT KNOWLEDGE/**/*.md")
     for pattern in patterns:
         for path in REPO.glob(pattern):
             try:

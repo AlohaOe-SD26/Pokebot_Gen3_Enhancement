@@ -35,11 +35,19 @@ GATES = REPO / "ai_player" / "gates"
 #: the project's documents, from this repository (a mutant COPY of the package names it: `AI_PLAYER_TEST_SUPPORT_ROOT`)
 SUPPORT = Path(os.environ.get("AI_PLAYER_TEST_SUPPORT_ROOT") or REPO)
 KNOWLEDGE = SUPPORT / "PROJECT KNOWLEDGE"
-DOCUMENTS = {
+
+
+def readme_documents(root: Path) -> tuple[Path, ...]:
+    """(spec S2-1, P9, 2026-10-21) the README is its current part PLUS the sections `split_readme.py` moved to
+    `ai_player/readme/**/*.md`, read as one text: a lesson's quoted Origin still resolves wherever its section moved."""
+    return (root / "ai_player" / "README.md", *sorted((root / "ai_player" / "readme").glob("**/*.md")))
+
+
+DOCUMENTS: dict[str, Path | tuple[Path, ...]] = {
     "08": KNOWLEDGE / "08-MISTAKES.md",
     "07": KNOWLEDGE / "07-CHANGELOG.md",
     "06": KNOWLEDGE / "06-DECISIONS-LOG.md",
-    "README": REPO / "ai_player" / "README.md",
+    "README": readme_documents(REPO),
     "REVIEW": KNOWLEDGE / "ai-research-notes" / "2026-10-15-step51-REVIEW-FINDINGS.md",
     "CLAUDE": SUPPORT / "CLAUDE.md",
 }
@@ -152,7 +160,14 @@ def parse(text: str) -> list[dict]:
     return lessons
 
 
-def check(text: str, documents: dict[str, Path] = DOCUMENTS, required: tuple[str, ...] = REQUIRED) -> tuple[list[str], dict]:
+def _document_text(paths: Path | tuple[Path, ...] | None) -> str:
+    """One document's text: a path, or several read in order as ONE text (the README and its moved sections)."""
+    group = (paths,) if isinstance(paths, Path) else tuple(paths or ())
+    return "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in group if p.is_file())
+
+
+def check(text: str, documents: dict[str, Path | tuple[Path, ...]] = DOCUMENTS,
+          required: tuple[str, ...] = REQUIRED) -> tuple[list[str], dict]:
     """(problems, counts by status)."""
     problems: list[str] = []
     lessons = parse(text)
@@ -181,8 +196,7 @@ def check(text: str, documents: dict[str, Path] = DOCUMENTS, required: tuple[str
         for quote in quotes:
             doc = quote["doc"]
             if doc not in cache:
-                path = documents.get(doc)
-                cache[doc] = _norm(path.read_text(encoding="utf-8", errors="replace")) if path and path.is_file() else ""
+                cache[doc] = _norm(_document_text(documents.get(doc)))
             if _norm(quote["text"]) not in cache[doc]:
                 problems.append(f"{tag}: its Origin quotes {doc} \"{quote['text']}\", which {doc} does not contain")
         if "Retires" not in fields and status != "RETIRED":

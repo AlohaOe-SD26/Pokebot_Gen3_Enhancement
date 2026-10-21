@@ -74,13 +74,21 @@ STOP_PREFIXES = ("- [", "### ", "## ", "#### ")
 _BOUNDARY_FOR_CHECK = ("- [", "### ", "## ", "#### ")
 
 
-def find_block(lines: "list[str]", starts_with: str) -> "tuple[int, int]":
+def find_block(
+    lines: "list[str]", starts_with: str, stop_prefixes: "tuple[str, ...] | None" = None
+) -> "tuple[int, int]":
     """Return `(start, end)` of the one block whose first line starts with `starts_with`.
 
     ⛔ BOTH ENDS COME FROM THE SAME LIST — that is the whole point of this function. Refuses an
     anchor that does not match EXACTLY ONE line: silently archiving the wrong block is worse than
     a refusal.
+
+    `stop_prefixes` (spec S2-1, 2026-10-21): `archive_sweep.py` moves a WHOLE `###` section, whose
+    `- [x]` bullets are part of it, so it stops only at a heading of the same or a higher level.
+    ⚠ Resolved at CALL time, never as a default argument, so the self-test's fault arm B (which
+    swaps the global) still reaches the default path.
     """
+    stops = STOP_PREFIXES if stop_prefixes is None else stop_prefixes
     hits = [i for i, line in enumerate(lines) if line.startswith(starts_with)]
     if len(hits) != 1:
         raise SystemExit(
@@ -89,7 +97,7 @@ def find_block(lines: "list[str]", starts_with: str) -> "tuple[int, int]":
         )
     start = hits[0]
     end = start + 1
-    while end < len(lines) and not lines[end].startswith(STOP_PREFIXES):
+    while end < len(lines) and not lines[end].startswith(stops):
         end += 1
     return start, end
 
@@ -108,10 +116,14 @@ def archive_block(
     note: str,
     *,
     dry_run: bool = False,
+    stop_prefixes: "tuple[str, ...] | None" = None,
 ) -> "tuple[int, int]":
-    """Move one block. Returns `(lines_removed, source_line_count_after)`."""
+    """Move one block. Returns `(lines_removed, source_line_count_after)`.
+
+    `stop_prefixes`: where the block ends (see `find_block`); invariant B keeps its OWN frozen
+    boundary list whatever is passed here, so a caller cannot widen the check with the finder."""
     lines = source.read_text(encoding="utf-8").splitlines()
-    start, end = find_block(lines, starts_with)
+    start, end = find_block(lines, starts_with, stop_prefixes)
     block = "\n".join(lines[start:end]).rstrip()
     removed = [line for line in lines[start + 1:end] if line.strip()]
     lines[start:end] = [pointer]

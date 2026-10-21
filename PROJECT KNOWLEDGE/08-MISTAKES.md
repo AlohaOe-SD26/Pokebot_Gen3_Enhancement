@@ -23979,3 +23979,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** PASS was the default, and the code looked for KNOWN failure keys. Round 1 widened that list (variant spellings) rather than inverting the test, so round 2 simply found the next spelling. It is the same shape as A6's privacy mask the same day.
 - **The fix that worked** (`40dffe72`): PASS only when every key is one of verify@2's six schema keys and `complete` is true. Anything else is UNKNOWN, and the function never raises.
 - **Prevention rule:** when a fix widens a deny-list, first ask whether the check should be inverted into an allow-list. A decision whose wrong answer is "skip the work" must default to the safe answer.
+
+## 2026-10-21 — ⛔ S2-1'S SIZE TARGET WAS SET WITHOUT MEASURING WHERE THE BYTES ARE: ITS SWEEP MOVES 0 B FROM THE HANDOFF
+
+- **Symptom:** the S2-1 spec's final acceptance was "handoff <= 60 KB", reached through a sweep of closed `###` blocks. Built and dry-run, the sweep moves 0 B from 04 (395 KB) and about 100 B from 03.
+- **Root cause:** 285 KB of 04 sit in 18 mega-lines inside `##` sections, the banner and the state table. 04 has 6 `###` headings, and the 4 closed ones were already pointers. The spec named a target and a mechanism without measuring how many of the file's bytes the mechanism's selection could reach. The round-1 check found it, after the build.
+- **The fix that worked:** the tools ship as built (the ratchet, the sweep for 03/05, the README split), and the 60 KB target moves to its own design, S2-1b (`06` 2026-10-21).
+- **Prevention rule:** a spec that sets a size or count target for a tool first measures, on the real file, how much of it the tool's selection can reach. A target the mechanism cannot reach is a design gap, and it is found before the build.

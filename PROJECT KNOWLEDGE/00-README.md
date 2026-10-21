@@ -79,7 +79,7 @@ touching `PROJECT KNOWLEDGE/`. ‼ **IT SAID "ALL THREE" OVER *FOUR* COMMANDS AN
 
 ```
 PYTHONUTF8=1 py -3.12 run_gates.py              # THE STANDING SUITE — required before any CODE commit
-PYTHONUTF8=1 py -3.12 lint_docs.py              # line budgets, banners, flag registry
+PYTHONUTF8=1 py -3.12 lint_docs.py              # line budgets, banners, flag registry, R8 byte ratchet (new text on its own line)
 PYTHONUTF8=1 py -3.12 audit_doc_consistency.py  # docs vs code vs each other
 PYTHONUTF8=1 py -3.12 audit_encoding.py         # mojibake + BOM (--repair fixes in place)
 ```

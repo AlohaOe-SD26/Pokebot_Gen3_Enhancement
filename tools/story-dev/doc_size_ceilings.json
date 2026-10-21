@@ -1,0 +1,41 @@
+{
+  "_why": "R8 (lint_docs.py, spec S2-1): byte ceilings of the current-state docs, measured with CRLF folded to LF. A ratchet: --ratchet lowers, never raises; a raise needs a `raised` record (--raise), printed for review.",
+  "files": {
+    "00-README.md": {
+      "ceiling": 19182,
+      "headroom": 8192,
+      "target": null,
+      "raised": []
+    },
+    "01-VISION-AND-DESIGN.md": {
+      "ceiling": 45540,
+      "headroom": 8192,
+      "target": null,
+      "raised": []
+    },
+    "02-ARCHITECTURE.md": {
+      "ceiling": 70345,
+      "headroom": 8192,
+      "target": null,
+      "raised": []
+    },
+    "03-PUNCH-LIST.md": {
+      "ceiling": 699459,
+      "headroom": 8192,
+      "target": null,
+      "raised": []
+    },
+    "04-HANDOFF.md": {
+      "ceiling": 405423,
+      "headroom": 8192,
+      "target": 61440,
+      "raised": []
+    },
+    "05-KNOWN-ISSUES.md": {
+      "ceiling": 286507,
+      "headroom": 8192,
+      "target": null,
+      "raised": []
+    }
+  }
+}

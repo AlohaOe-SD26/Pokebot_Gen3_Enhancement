@@ -255,6 +255,11 @@ CONTROL free 60 -> not called; FAULT margin 0 -> not called (proves the margin i
 
 ### S2-1. N3 + A4 + P9: slim docs with byte budgets, built as a RATCHET
 
+> **Status 2026-10-21: BUILT** (tools only; nothing swept or split; `07`). As built, it differs from this text in three ways:
+> - table rows are NOT exempt: they are waived like prose (`06` 2026-10-21);
+> - the override is CLI flags (`--docs-dir`, `--budget-dir`), not `POKEBOT_DOCS_DIR` (R6);
+> - the final acceptance (handoff <= 60 KB) is UNREACHABLE by this `###` sweep (04 moves 0 B), so it moves to a separate design, S2-1b (`06`, `08`).
+
 **Why a ratchet:** `04-HANDOFF.md` is 390,563 B and `03-PUNCH-LIST.md` 693,665 B; a hard 60 KB budget fails the gate today. So R8 ships GREEN at today's sizes and tightens as the sweep removes bytes.
 
 **Files.** CHANGE `tools/story-dev/lint_docs.py` (add R8 beside R3, `:184-216`); ADD `tools/story-dev/doc_size_ceilings.json` (file -> ceiling bytes) and `long_line_waivers.json`

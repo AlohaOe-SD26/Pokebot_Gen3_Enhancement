@@ -119,19 +119,11 @@ set is different again today after PARTY ACCOUNTING STAGE 0). Each was true for 
 precisely why `audit_doc_consistency.py` MEASURES drift rather than trusting any sentence,
 including this one.
 
-⭐ **AND `tools/story-dev/archive_doc_block.py` (added 2026-09-05) IS THE SAME IDEA APPLIED TO DOC
-MAINTENANCE.** `03-PUNCH-LIST.md` and `05-KNOWN-ISSUES.md` carry `lint_docs` R3 line budgets, so
-closed content is periodically retired to `28-HANDOFF-ARCHIVE.md` / `31-KNOWN-ISSUES-ARCHIVE.md`.
-Doing that by hand went wrong TWICE IN ONE SESSION, in OPPOSITE directions — once dropping the
-block's tail ("ARCHIVED VERBATIM" over a truncation) and once keeping it in the wrong place (only
-the header moved, leaving "STATUS: OPEN... this is the next build" under a CLOSED heading). ⇒ the
-tool enforces **two** invariants before writing either file: **no loss** (every removed non-blank
-line is in the archive) and **no orphan** (the pointer is followed by a real block boundary).
-‼ `--self-test` fault-proves both, and its own arms caught a flaw in the checker: invariant B first
-read the same boundary constant the block-finder uses, so the injected fault blinded the check.
-⇒ ⭐ **a check that shares its input with the thing it checks is not a check** — the reason
-`_BOUNDARY_FOR_CHECK` is a deliberate duplicate. ⛔ It is a TOOL, not a gate, and is deliberately NOT
-in `run_gates.py`: it performs an operation, so it has nothing to assert on a clean tree. Superseded text: **DRIFT IS ZERO AGAIN AS OF 2026-08-13.** `modules/story/roster.py` and `modules/menuing.py`
+⭐ **AND `tools/story-dev/archive_doc_block.py` (added 2026-09-05) IS THE SAME IDEA APPLIED TO DOC MAINTENANCE.** `03-PUNCH-LIST.md` and `05-KNOWN-ISSUES.md` carry `lint_docs` R3 line budgets, so closed content is periodically retired to `28-HANDOFF-ARCHIVE.md` / `31-KNOWN-ISSUES-ARCHIVE.md`. Doing that by hand went wrong TWICE IN ONE SESSION, in OPPOSITE directions — once dropping the block's tail ("ARCHIVED VERBATIM" over a truncation) and once keeping it in the wrong place (only the header moved, leaving "STATUS: OPEN... this is the next build" under a CLOSED heading). ⇒ the tool enforces **two** invariants before writing either file: **no loss** (every removed non-blank line is in the archive) and **no orphan** (the pointer is followed by a real block boundary). ‼ `--self-test` fault-proves both, and its own arms caught a flaw in the checker: invariant B first read the same boundary constant the block-finder uses, so the injected fault blinded the check. ⇒ ⭐ **a check that shares its input with the thing it checks is not a check** — the reason `_BOUNDARY_FOR_CHECK` is a deliberate
+duplicate. ⛔ It is a TOOL, not a gate, and is deliberately NOT in `run_gates.py`: it performs an operation, so it has nothing to assert on a clean tree.
+⭐ **R8, the doc-size RATCHET (spec S2-1, 2026-10-21).** `lint_docs.py` R8 keeps `00-README` and `01`-`05` under a byte ceiling each (`tools/story-dev/doc_size_ceilings.json`, today's size + 8 KB) and waives every line over 1,200 characters outside fences (table rows included) by head hash + tail (`tools/story-dev/long_line_waivers.json`). Both only SHRINK against HEAD: a waived line that grows, or a ceiling that rises, needs `lint_docs.py --rewaive <FILE> --why "..."` or `--raise FILE --to BYTES --why "..."`, which writes a history record the lint prints. ⇒ **A doc editor adds new text on its OWN line** (under 1,200 characters), never inside a waived mega-line. `archive_sweep.py` (a dry run by default) moves R7-closed `###` blocks through `archive_doc_block`'s invariants with slug-keeping pointers and can split mega-lines; every `--apply` first rehearses the complete result and refuses, writing nothing, if the lint would go red. `split_readme.py` is the one-off split of `ai_player/README.md` into a current part plus `ai_player/readme/*.md` (`prune_evidence`, `disk_budget` and
+`check_lessons` already read both). Neither has been applied yet; the handoff's 60 KB target needs its own design (S2-1b, `06` 2026-10-21).
+Superseded text: **DRIFT IS ZERO AGAIN AS OF 2026-08-13.** `modules/story/roster.py` and `modules/menuing.py`
 were **PROMOTED** (user-approved) after `--driver roster --build custom` returned
 `ACCEPTANCE: PASS` **frame-identical to the sandbox run** — and after `find_spec` confirmed the
 custom tree was the one actually imported, so a frame-identical result could not be a silent
@@ -293,7 +285,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 153 entries = 149 ENFORCING + 4 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 154 entries = 150 ENFORCING + 4 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips the 14 SLOW (ROM) gates (recounted 2026-09-29: 14 `True`; counted 2026-09-27: 13 `True`
 #   entries in `run_gates.py`; this line said 9, then 12) and is NOT a green suite.

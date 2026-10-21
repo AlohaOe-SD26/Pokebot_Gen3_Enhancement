@@ -44,7 +44,10 @@ EVIDENCE = REPO / "ai_player" / "evidence"
 ARCHIVE = EVIDENCE / "archive"
 INDEX = ARCHIVE / "INDEX.md"
 #: The documents whose words count as a CITATION (the archive's own README and INDEX are the policy, not a citation).
-CITING = ("PROJECT KNOWLEDGE/**/*.md", "ai_player/README.md", "ai-agent/**/*.md", "ai_player/gates/*.py")
+#: (spec S2-1, P9, 2026-10-21) `ai_player/readme/**/*.md` holds the README's sections moved out by `split_readme.py`:
+#: without it, an evidence file cited ONLY by a moved section reads as uncited and is INDEXED AND DELETED.
+CITING = ("PROJECT KNOWLEDGE/**/*.md", "ai_player/README.md", "ai_player/readme/**/*.md", "ai-agent/**/*.md",
+          "ai_player/gates/*.py")
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 #: (step 4.1 round 3, the verifier: "The prune_evidence.py gap with the `[VERIFY] code:` prefix is not fixed") a code line

@@ -38316,3 +38316,38 @@ bought balls only at fixed story points.
 - **Measured on the real repo:** `regression_due.py` reports every AI-player suite as DUE. Most changed since their evidence; the rest can only be "unproven", because no evidence producer records a scope as wide as the suites cover. This is documented, and the remedy is a producer change.
 - **Known minor limits, left:** a non-string `summary` is not type-checked; a sourceless git-ignored `.pyc` reads ok; doc-check still says to Read the 60 KB queue line alone; the P10 typed-transcript forgery is documented, not prevented; the doc-check banner range is 23.6 KB of its 30 KB and grows.
 - **Wired in:** `/orchestrate` now says workflow prompts are rendered from `tools/workflows/templates/` and a fix round runs only on REFIX. ⚠ No real workflow has used a rendered prompt yet (usage_audit: 0 of 730 agents templated), so the next build workflow is the first.
+
+## 2026-10-21 — S2-1: the doc-size RATCHET (R8), the archive sweep and the README split tool, built and reviewed three times; nothing applied yet (spec S2-1; backlog N3 + A4 + P9)
+
+- **Commit:** this one, LOCAL until (0a2). Files:
+  - `tools/story-dev/lint_docs.py` (R8; `--seed`, `--rewaive`, `--raise`, `--ratchet`; the test flags `--docs-dir`, `--budget-dir`, `--repo-dir`, `--head-budget-dir`; the script body moved into `lint()` / `main()` so it can be imported, a pure re-indent).
+  - `tools/story-dev/doc_size_ceilings.json` and `tools/story-dev/long_line_waivers.json` (seeded: 6 ceilings, 87 waivers).
+  - `tools/story-dev/archive_sweep.py` (new), `tools/story-dev/split_readme.py` (new), and `tools/story-dev/archive_doc_block.py` (an optional `stop_prefixes`; its default and its self-test are unchanged).
+  - `tools/story-dev/selftest_lint_docs.py` (the new gate) and `tools/story-dev/run_gates.py` (its entry).
+  - `ai_player/gates/prune_evidence.py`, `disk_budget.py` and `check_lessons.py`, which also read `ai_player/readme/**/*.md` once the README is split.
+- **R8:** `00-README` and `01`-`05` each have a byte ceiling (today's size + 8 KB; bytes counted with CRLF folded to LF). Every line over 1,200 characters outside a fence, table rows included, is waived by its head hash plus its last 60 characters. Both only SHRINK against HEAD. Growth needs `lint_docs.py --rewaive <FILE> --why "..."` or `--raise FILE --to BYTES --why "..."`, which records it in the JSON's history, and the lint prints it for Tier 1. 04's 60 KB target is printed as "over target", non-fatal.
+- **The sweep** (`archive_sweep.py --source <file>`, a dry run by default) lists R7-closed `###` blocks whose heading AND body carry no open marker. `--apply` moves them through `archive_doc_block`'s invariants A-D, leaving slug-keeping pointers, and `--split-lines` splits prose mega-lines. Every `--apply` first REHEARSES the complete result in a temp copy and runs `lint_docs` on it, refusing with nothing written if any rule would go red.
+- **The split** (`split_readme.py`) moves every section of `ai_player/README.md` outside an allowlist (written from the real README) to `ai_player/readme/NN-<slug>.md`, checking invariant A before it writes.
+- **Measured (dry runs only):**
+  - 03: 1 block (about 100 B) would move. 04: 0 B. 05: 9 blocks.
+  - `--apply --split-lines` is REFUSED for 04 by R3 (883 -> 1,069 lines against 900) and for 03 (4,399 -> 4,525 against 4,400).
+  - The README split would leave a 124,981 B current part of 514,440 B, with 18 sections moving.
+  - ⚠ The spec's final acceptance (handoff <= 60 KB) is NOT reachable this way: 04's bulk sits in `##` sections, the banner and 18 mega-lines, which a `###` sweep never selects. It moves to a separate design, S2-1b (`06`, `08` 2026-10-21).
+- **Reviews:**
+  - **Round 1 check** (5 major):
+    - the sweep moved ✅-headed blocks whose BODY said MIXED / STILL OPEN;
+    - `--split-lines` refused every blockquote mega-line, AFTER writing;
+    - removing a `/`-keyed ceiling switched R8 off for that file;
+    - the table-row exemption hid 10 mega-lines of up to 24,531 characters;
+    - and the 60 KB target above.
+    It also found minors: a prefix-only waiver match, a sweep of a copy ratcheting the real JSON, `--raise` for a `/` key, untested count growth, and missing deny-list words.
+  - **Round 2** fixed them. Its check found that a split could write a result that fails R3.
+  - **Round 3** added the rehearsal. Its check is CLEAN.
+- **Proof:** `selftest_lint_docs.py` 187 checks ALL PASS (about 39 s). Call-deleting mutants: 75 of 76 in round 1 (the 76th is the unchanged-copy control), 22 of 23 in round 2 (1 equivalent), 7 of 7 in round 3. On the real tree, `lint_docs` and `audit_doc_consistency` exit 0.
+- **Known minor limits, left:**
+  - a `/`-keyed source is not rehearsed as itself (this matters once the README joins R8);
+  - a 05 sweep can move a `###` block that its `##` heading says "remains here";
+  - shrinking a waived line fails until `--rewaive` is run (no `--why` needed);
+  - `### ✅ FIXED (sandbox only)` is still selected;
+  - the rehearsal runs `lint_docs` only, not `audit_doc_consistency`.
+- **How a doc editor works now:** put new text on its OWN line, under 1,200 characters. Appending inside a waived mega-line needs `--rewaive --why`.

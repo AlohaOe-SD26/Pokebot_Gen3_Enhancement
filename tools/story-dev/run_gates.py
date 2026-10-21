@@ -1308,6 +1308,19 @@ GATES: list[tuple[str, bool]] = [
     # only verify@2's keys and never raises, `complete` is required for PASS, every suite covers what its driver reads,
     # READ-LIST paths resolve against the repo: 309 checks. No ROM; ~30 s. ‼ APPENDED AT THE END.
     ("selftest_workflows.py", False),
+    # spec S2-1 (backlog N3 + A4 + P9, `ai-research-notes/2026-10-19-BUILD-SPECS-steps-1-2.md`): `lint_docs.py` R8, a byte
+    # RATCHET on 00-README + 01-05 (ceilings in `doc_size_ceilings.json`; lines over 1,200 chars outside fences, table
+    # rows included, waived by head hash + tail in `long_line_waivers.json`; both only SHRINK against HEAD, and a raise or
+    # a waived line's growth needs a printed record: `--raise` / `--rewaive --why`), `archive_sweep.py` (R7-closed `###`
+    # blocks whose heading AND body carry no open marker, through archive_doc_block's invariants A-D, slug-keeping
+    # pointers, opt-in mega-line splitting; every --apply first REHEARSES the whole result and refuses, writing nothing,
+    # if lint_docs would go red) and `split_readme.py` (the one-off P9 README split) with its three consumers
+    # (prune_evidence CITING, disk_budget.citing_text, check_lessons DOCUMENTS). WHY: 04 was ~395 KB and 03 ~690 KB
+    # against a ~60 KB goal; a hard budget would be red on arrival, and a ceiling at the exact size rewards trimming a
+    # caveat. FAULT + CONTROL each on synthetic git trees (the real docs are only read); three review rounds
+    # (2026-10-21): 187 checks; 75 + 22 + 7 call-deleting mutants caught (1 control, 1 equivalent). No ROM; ~20-40 s.
+    # ‼ APPENDED AT THE END.
+    ("selftest_lint_docs.py", False),
 ]
 
 

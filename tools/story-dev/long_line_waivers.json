@@ -1,0 +1,875 @@
+{
+  "_why": "R8 (lint_docs.py, spec S2-1): the lines over 1,200 characters (table rows included, fenced lines exempt) that existed when R8 shipped, keyed by sha1 of their first 60 characters AND pinned by their last 60 (`tails`). Only shrink; growth and a new end are recorded in `history` by --rewaive, printed for review.",
+  "waivers": [
+    {
+      "file": "01-VISION-AND-DESIGN.md",
+      "sha1": "023e15d40361f06cd326c0379f48797d626e0220",
+      "chars": 1569,
+      "head": "⛔ **CORRECTED 2026-09-03 — this paragraph has now been stale",
+      "tails": [
+        "t is verifiable; a finish rate at that sample size is not.**"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
+      "chars": 2672,
+      "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
+      "tails": [
+        "ty`, `wt/boxfirst`) stay parked until the user resumes them."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
+      "chars": 4012,
+      "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
+      "tails": [
+        "ntrols, one temp-folder factory, Python hooks, determinism)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "448e82459ab2f888c49ef35ea3e91208dfcc55d7",
+      "chars": 1263,
+      "head": "- [ ] ⭐ `#28-seasoned-player` — **KB1 MERGED 2026-10-21 (`3a",
+      "tails": [
+        "loors stand (no stall, no loafing, no beeline, no speedrun)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "3a42c6f536bc95f65436ca568ccdd8e6cd034f09",
+      "chars": 2195,
+      "head": "- [ ] `#27-dmgcalcfix` — **FOUND 2026-09-30 (design v2 step ",
+      "tails": [
+        "ge Power …), so a fix cannot move a row it was not meant to."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "1e86bb175e400f8d0b51a24ec6226ce11893bf69",
+      "chars": 1411,
+      "head": "- [ ] `#27-obtaindata` — **FOUND 2026-09-29 (design v2 step ",
+      "tails": [
+        " `custom-pokebot` changes only by promotion (user approval)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "4b53d6ffb355eba28d27bed40a768a87f5e7871c",
+      "chars": 1746,
+      "head": "- [x] ⭐ `#27-setballs` — ✅ **DONE 2026-09-28: `--set-balls` ",
+      "tails": [
+        "ncoded item name, and re-derive any fixture premise by LOAD."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "a10bb8c8655063905c817d43bb788b3ac9dc89f5",
+      "chars": 1236,
+      "head": "- [ ] ⭐⭐ `#27-boxfirsttype` — **FOUND 2026-10-02 by step 14'",
+      "tails": [
+        " and loads inside a wild battle on ROUTE102. Detail: KI-118."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "eb9ac43989f55ff65d733931ade43e733f87f67c",
+      "chars": 1204,
+      "head": "- [x] ⭐ `#27-enroutejoin` — ✅ **DONE 2026-09-28: WITH `POKEB",
+      "tails": [
+        "e-picks) is unchanged: their walks cross no land encounters."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "30086d2edc351b624416c119d66aa9d3c9d70092",
+      "chars": 1424,
+      "head": "- [ ] ⭐ `#27-evgpcwedge` — **✅ FIXED AND A/B-PROVEN 2026-09-",
+      "tails": [
+        "nd only then choose a fix. Hypothesis and log lines: KI-106."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "509b693674db388942ca4d9268aabf3bd8e33d95",
+      "chars": 3392,
+      "head": "- [x] ⭐⭐ `#27-batch0927` — ✅✅ **DONE 2026-09-27: RAN (8:17:4",
+      "tails": [
+        "ne Badge (the dex fence). New: KI-107 (`#27-falsewhiteout`)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "2335c460259b8b85b2930396bf731eb4aa88d43f",
+      "chars": 1498,
+      "head": "- [ ] ⭐ `#27-falsewhiteout` — **NEW 2026-09-27 (KI-107; n=1,",
+      "tails": [
+        "ast-forward `94314281`)* (a mitigation, not the root cause):"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "14a2384d73d7d359b2d44c0a63f651e4eb41524f",
+      "chars": 1400,
+      "head": "- [x] ⭐⭐ `#27-ki47range` — ✅✅ **DONE 2026-09-28: KI-47's FAI",
+      "tails": [
+        "badges; `ai-research-notes/2026-09-27-batch0927-FINAL.md`.)*"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "487b636351dbb6a7570f8b6ae085b755a371a68c",
+      "chars": 1965,
+      "head": "- [x] ⭐⭐ `#26-carleestage` — ✅✅ **FIXED, REPRODUCED AND A/B-",
+      "tails": [
+        "`ai-research-notes/2026-09-26-organic-frontier-RECON.md` §2."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "7603909a6eb6dc6121a66a5f8fb24cd17dc9c378",
+      "chars": 3882,
+      "head": "- [ ] ⭐⭐⭐ `#26-ch23money` — **⭐ FINAL 2026-09-27 (the parked",
+      "tails": [
+        "en recon (agents) where money can come from before building."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "2a8d96eb69cee2a3b9a9ed07e94b937e9c6b9329",
+      "chars": 3906,
+      "head": "- [ ] ⭐⭐ `#26-ch24organic` — **MIXED (2026-09-26 late): gaps",
+      "tails": [
+        "AULT` offers only `nolatch`/`skiptalk`) — build one with R1."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "298b724e498e01cef203accbe352907d82245b6f",
+      "chars": 3026,
+      "head": "- [x] ⭐⭐ `#26-batch0926` — ✅✅ **DONE 2026-09-27: RAN, PARKED",
+      "tails": [
+        "ount doubles (it did in the quick count above until caught)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "e83b45ccc50ff6a2a9ff1d3cdb788193a09587c9",
+      "chars": 21506,
+      "head": "- [ ] ⭐⭐⭐ `#26-organiccatch` — **NEW 2026-09-26 — USER RULIN",
+      "tails": [
+        "nt-only). Three policy questions for the user are in its §8."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "1fbda7d022ba22c3b9b3aa7e60277ad7f18c814b",
+      "chars": 1663,
+      "head": "- [ ] ⭐⭐ `#26-gymtmteach` — **✅ BUILT, DRIVEN AND REVIEWED 2",
+      "tails": [
+        "t-answers-from-deposit — do not build those under this item."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "4879a1ae0b17307bb24ed592000ce07e0b66fbf0",
+      "chars": 2577,
+      "head": "- [ ] ⬇⬇ `#24-rival110` — ⛔ **DOWNGRADED 2026-09-13 THE SAME",
+      "tails": [
+        "e depends on it (`ai-research-notes/00-READ-THIS-FIRST.md`)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "b274bcca016cf0e9659769ec8fa717d0e2f7f889",
+      "chars": 4820,
+      "head": "- [ ] ⚠ `#26-healmap-lavaridge` — **✅ RECON DONE; THE RUN-EN",
+      "tails": [
+        "s that. Full evidence: `07-CHANGELOG.md` 2026-09-12 (night)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "e7eb6906569cd8c84140e2bf7e2e029c5c95b2f1",
+      "chars": 5828,
+      "head": "- [x] ⭐ `#24-pass2triage` — **CLOSED 2026-09-16: all eleven ",
+      "tails": [
+        "ves quotes is in `07-CHANGELOG.md` 2026-09-16 (second pass)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "c6294175f99765f5cf493807433d639535a09a05",
+      "chars": 4626,
+      "head": "- [x] ⭐ `#24-promotedpairgate` — ✅✅ **DONE 2026-09-16: `prob",
+      "tails": [
+        " must find line 386's defect class with ZERO hits on `:145`."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "d9136f8b64bcc8d819ab58528e7e2671d9123bda",
+      "chars": 18955,
+      "head": "- [~] ⭐ `#24-e4postbattlestall` — ⚠ **AUDIT STATUS, STATED H",
+      "tails": [
+        "i-research-notes/2026-09-16-ch24-leg1-RECON-6-ANGLES.md` §0."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "72be91526bcd69de9d2b9fede7aa8f1b3214f39b",
+      "chars": 2127,
+      "head": "- [x] ⭐⭐ `#24-marthreachable` — ✅✅ **ANSWERED 2026-09-25: TH",
+      "tails": [
+        " shape (`KI-48`), and inside the League there is no retreat."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "24f01cb3e3ab81270abbc7c297b103785225968e",
+      "chars": 1289,
+      "head": "- [x] ⛔⛔ `#24-contentendcase` — ✅ **FIXED AND GATED 2026-09-",
+      "tails": [
+        "*. Found by the 2026-09-25 champion-leg recon workflow (P1)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "58d5d9331dc9eea7f8875c2277f34e51ad9aab19",
+      "chars": 11317,
+      "head": "- [ ] ⭐⭐ `#24-championleg` — **ROOM 5 (WALLACE) + THE TAIL, ",
+      "tails": [
+        "RED BY ANYTHING: **the win rate** — Wallace was beaten ONCE."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "97957cc2833d2942d03e1f13bb89e8a9bf2330c9",
+      "chars": 3012,
+      "head": "- [ ] ⭐⭐ `#24-restockleg` — **THE §Ch24-OWNED RESTOCK LEG (a",
+      "tails": [
+        " so post-loss state is byte-identical to never having tried."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "375e33007a2e4bdcd407bd1136c468230d69deee",
+      "chars": 1364,
+      "head": "- [ ] ⬇ `#24-e4fixtureparty` — ⛔ **DOWNGRADED 2026-09-16, TH",
+      "tails": [
+        " L60 party is the obvious candidate and has not been costed."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "4b9185677af5af1009852ae73c9be84bc523daab",
+      "chars": 2119,
+      "head": "- [x] ✅ `#24-hallwarpdisputed` — **SETTLED THE SAME DAY BY M",
+      "tails": [
+        "eat the hall walk as COLUMN-CONSTRAINED and do not sidestep."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "ef70272bbc7a3f56ee104ca98d556ad02afaf60e",
+      "chars": 1254,
+      "head": "- [x] ✅✅ `#24-grindppstall` — **FIXED AND A/B-PROVEN 2026-09",
+      "tails": [
+        "ry/except`. **A/B, same fixture, same 90,000-frame budget:**"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "70cebad9d2df1b792caefebc352c8d1985b7f15e",
+      "chars": 2973,
+      "head": "  **Every ATTACKING move is at ZERO PP and the only move lef",
+      "tails": [
+        "yed, so a determinism check, not an independent replication."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "27164f9ae2f129ac437fd2305c820919a83aa247",
+      "chars": 1708,
+      "head": "- [~] ✅⭐ `#24-markerwinstate` — **PART (b) IS BUILT AND GATE",
+      "tails": [
+        "called done” — that design decision is made; see the body.)*"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "6e966771e2eb6a8d07adb0125d5888f51c59409e",
+      "chars": 2664,
+      "head": "  `POKEMON_LEAGUE_2F (16,14)`. ⛔⛔ **CITATION CORRECTED 2026-",
+      "tails": [
+        "ached an agent's sentence about leg 10 to it. ⇒ a range test"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "c6ef39d76372faea2aa41067f2c63a628ff9078b",
+      "chars": 2441,
+      "head": "- [x] ✅✅✅ `#24-waterfallcap` — **FIXED AND PROVEN 2026-09-18",
+      "tails": [
+        "_GRASS` row must never land without its `AREA_PREREQ` row.**"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "50b12e73c76512c99f444f24e469fc5fbef0825a",
+      "chars": 2156,
+      "head": "- [ ] ⭐⭐⭐ `#24-leg2spec` — ‼‼ **STUB MARKER (2026-09-17 even",
+      "tails": [
+        "ts exit is a scripted warp and its tail is a console reboot."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "6137ad009604c3a4c41ae7433f4ceeaadafd10c3",
+      "chars": 1570,
+      "head": "      ‼‼ **TWO DIVERGENCES IN OPPOSITE DIRECTIONS, FROM ONE ",
+      "tails": [
+        "olis.py:871 _live_collision_grid`), never the static layout."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "a3e2d5b35cee22ec8abd000ec891a2eecb35a2d4",
+      "chars": 5253,
+      "head": "- [ ] ⛔⛔⛔ `#24-gameclearflag` — ⛔⛔ **MEASURED 2026-09-25: RA",
+      "tails": [
+        "ified here by reading `chapters.py` and the decomp directly."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "adbb37f644fcf0151336e53bc63b8f089b63dfa5",
+      "chars": 1371,
+      "head": "  ⭐⭐ **AND THE OBVIOUS REPLACEMENT TERM IS NOT SAFE TO GUESS",
+      "tails": [
+        "nthetic arm and that is exactly why this item is open again."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "3f3c59bec782c5e94b48db2fc9660cc89a86d422",
+      "chars": 2029,
+      "head": "  ✅✅ **DOES *NOT* BLOCK LEG 2 — CORRECTED 2026-09-17 (evenin",
+      "tails": [
+        "_replacement` against Phoebe's lead Dusclops (pure Ghost):**"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "971cb43a22c17d2c3c844cf9456c6828abcf2fd8",
+      "chars": 1204,
+      "head": "  The key was `(incoming, -outgoing, -hp_fraction, -level)` ",
+      "tails": [
+        "_faint_chooser_rank.py`), and the fault test is the proof:**"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "f068c277a0920f6e21f302fa3fc3ef0edcac452d",
+      "chars": 1268,
+      "head": "  ⇒ C8 detects the defect, the fix is what makes it pass, an",
+      "tails": [
+        "with controls that fire (Sableye→Mightyena, Sealeo→Wailord)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "04397dc119b0f30a95b790777b2690f9e1068f4b",
+      "chars": 1444,
+      "head": "- [x] ✅✅ `#24-planorder` — **NEW AND FIXED 2026-09-17. `TRAV",
+      "tails": [
+        "EAL PINNED FIXTURES — `probe_plan_order_guard.py`, exit 0:**"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "7b86aee6a4e6f237ab7c4f568119c66953ba8a13",
+      "chars": 1326,
+      "head": "  ⛔ **THE CONTROL IS NOT THE OBVIOUS ONE, ON PURPOSE.** `pos",
+      "tails": [
+        "w-abandoned L60 repair — the plan died, the finding did not."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "59b03f288404fff700c10a643c810acd0230869f",
+      "chars": 2976,
+      "head": "- [x] ✅✅ `#24-fixturelineage` — **RESOLVED 2026-09-17 BY MEA",
+      "tails": [
+        "because `get_event_flag` returns False for an unknown name):"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "11d42a9f341428fa3ca9479903f1636d3aa71294",
+      "chars": 2956,
+      "head": "  ⭐ **THE REAL MECHANISM** (`#24-learnhmcoverage`, now fixed",
+      "tails": [
+        "the other fixture. The manifest row now carries the warning."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "4e4db4f91333e52e9ccbd0b57276b1b717186fca",
+      "chars": 2045,
+      "head": "- [ ] ⛔ `#24-ghostzerodamage` — **NEW 2026-09-16. LEG 2 (PHO",
+      "tails": [
+        " plus a decomp roster, and the PP arithmetic is unsimulated."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "50ab1689fc3d1a9b6abf6ff42832e8d7f9609aa0",
+      "chars": 1912,
+      "head": "- [ ] ⛔ `#24-itemcontextplural` — **NEW 2026-09-16. THE HEAL",
+      "tails": [
+        "is correct for every item this function is currently handed."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "d56981310739c70d7d24ff2d1b5f4c03810409b6",
+      "chars": 4595,
+      "head": "- [x] ⭐⭐ `#26-victoryroadgap` — ✅✅ **CLOSED 2026-09-26 (late",
+      "tails": [
+        "batches answer frequency questions, which this no longer is."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "5bec45482d64ce2587c50043ba5ad048ab00ce92",
+      "chars": 2221,
+      "head": "- [ ] ⭐ `#26-destreachability` — **⚠ RE-MEASURED 2026-09-26 ",
+      "tails": [
+        "nce: `ai-research-notes/2026-09-16-endless-batch-REVIEW.md`."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "5fb749a2a4ca1546b843bd5dc9af0c933ad92702",
+      "chars": 3174,
+      "head": "### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSE",
+      "tails": [
+        "and a fall direction reversed because y increases SOUTHWARD."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "d5471da538bdad734f5d78b0432e7630d7d35b92",
+      "chars": 2679,
+      "head": "### 🔜 `#24-e4healing` — **§Ch24 HEALING. MIXED — read each s",
+      "tails": [
+        " REVIVE half stays OFF pending `KI-100`. (opened 2026-09-04)"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "a655ba3e8f1d723740ae90df4989515c7cb25c32",
+      "chars": 3694,
+      "head": "**STATUS: OPEN — steps 1, 3 AND 4 DONE; ONLY step 2 remains,",
+      "tails": [
+        "revives on only after an observe-only index probe (rule 10)."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "564bad553221a71d1e776cf9e0131414069b7d32",
+      "chars": 2014,
+      "head": "      IS inside two-shot range — **VERIFIED by executing the",
+      "tails": [
+        "-09-14-ch24probe-STEP4-AB-heal0{35-WON,50-LOST}.stdout.txt`."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "7d7f85d11bca09065abdf95af351d92c01297383",
+      "chars": 1833,
+      "head": "### 🔶 `#24-maintain` — MAINTAIN, not cram — **⚖ TWO A/Bs DON",
+      "tails": [
+        " The late-game half stays DEAD.** (user proposal 2026-07-29)"
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "5a6320c82372045039a6adb51abf8899bc079c31",
+      "chars": 1448,
+      "head": "      ⭐⭐ **RE-MEASURED 2026-09-13 ON THE CURRENT BUILD — THI",
+      "tails": [
+        ", *(iii) shipped and regressed* is true BEFORE writing code."
+      ],
+      "history": []
+    },
+    {
+      "file": "03-PUNCH-LIST.md",
+      "sha1": "1906beb2bc14e5c64cd5b5d1f83e493c35990ca9",
+      "chars": 1685,
+      "head": "- [x] ⭐⭐⭐ **FIXED 2026-09-26 (late) — CHUNKED TRAINING SHIPP",
+      "tails": [
+        "rdict was withdrawn 2026-09-09 (no swap-training installed)."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "6bb82211422407fedabce93214bee38bac58d7fe",
+      "chars": 22987,
+      "head": "**Last updated:** 2026-10-21 (⭐ **STEP 1 BUILT AND REVIEWED ",
+      "tails": [
+        "asurement correction still stands, and is recorded below.)*)"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "f7f53e6605d70d8f68a78d0df789a06838437576",
+      "chars": 31416,
+      "head": "*(Previous entry: 2026-09-19 — PIECE 2a shipped, the safety ",
+      "tails": [
+        "r frequency questions, drivers answer correctness questions."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "3a4266e4360ea707a67e5877d35614e8adc6cc1b",
+      "chars": 2635,
+      "head": "> — **both must exit 0; ⛔ the suite SIZE is not quoted here ",
+      "tails": [
+        "ape)** ⚠ *(ONE EXPECTED EXCEPTION: if a session deliberately"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "fd78b4c470553f26e4db33020efa8a691f4ac077",
+      "chars": 1801,
+      "head": "> **State: `main`, suite size ⛔ NOT QUOTED — `run_gates.py` ",
+      "tails": [
+        "y condition that reopens it is the repo being made PUBLIC.)*"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "679c7a9fbf195fd7075cd3ae763ad333bd0f54ca",
+      "chars": 1500,
+      "head": "> ⚠ *(Superseded 2026-08-27: this led with a drift figure of",
+      "tails": [
+        "matches the phrasing with a NOUN between 'drift' and 'is'.)*"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "c65b58bd2aafaf32b6cb7a55334a43ef53060cfb",
+      "chars": 2020,
+      "head": "| box | ▶ **2026-10-21: the BOT TUNER (`ai-agent/`, 24/7 lea",
+      "tails": [
+        "adder length, and record deepest-chapter-at-death instead. |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "907ec18d628f38ea7631f6ae969e0e34ec422955",
+      "chars": 1424,
+      "head": "| story content | ✅ **§Ch19 COMPLETE 2026-08-12 — the MOSSDE",
+      "tails": [
+        " Center multi battle + Dive**. (was 19 of 24 before Ch19.) |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "a235f8428854ab9f4bcd81a2c287a5c2406d5785",
+      "chars": 1359,
+      "head": "| ‼ **§Ch20 SEAFLOOR CAVERN** | ✅ **DRIVEN END TO END (2026-",
+      "tails": [
+        "-flight, whiteout-retry for Archie, the atoll escape leg). |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "44d9f67aa73f605fc2209d72ccdedd04ca02491f",
+      "chars": 3120,
+      "head": "| ‼ **§Ch21 SOOTOPOLIS / SKY PILLAR** | ✅ **LEGS 1, 2a, 2b A",
+      "tails": [
+        "ND 'Fall Warp') — `_live_wall_tiles` alone is crack-BLIND. |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "e2909011fc684466aff76e20af0d962b6751d782",
+      "chars": 1242,
+      "head": "| ‼ **§Ch22 GYM 8 — JUAN** | ✅✅✅ **A CHAPTER AS OF 2026-09-0",
+      "tails": [
+        "in `ai-research-notes/2026-09-03-ch22-CHAPTER-RESULTS.md`. |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "4e075209b34c10ed4619a87e5e60bc5789e3a62b",
+      "chars": 14097,
+      "head": "| ‼‼ **§Ch23 VICTORY ROAD / §Ch24 THE LEAGUE** | ⭐⭐⭐ **2026-",
+      "tails": [
+        " are in HOW TO RUN (`--driver ch24lobby` / `ch24lobby2f`). |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "d3be6df967cf66cd1430fa5407a8bf0968d497e0",
+      "chars": 2528,
+      "head": "| upstream | ⏸ **USER RULING 2026-09-26: “NOT NOW, KEEP IT P",
+      "tails": [
+        "40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "399e83a7fc529e775b6c8345cfa5a20333699d81",
+      "chars": 2350,
+      "head": "| restore point | **NEWEST: `restore/2026-08-17-pre-promotio",
+      "tails": [
+        "ter-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "761596b8de1bab77a3ae77e49f362ad55228697e",
+      "chars": 24531,
+      "head": "| sandbox ↔ custom drift | **31 as of 2026-10-07 (LATEST): +",
+      "tails": [
+        " → arm B red; `promote.py` restored byte-identically after)."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "83c78afc19e7bcb23b902b3721cfd939384ec5d5",
+      "chars": 15927,
+      "head": "| **if stopped mid-task** | ⚠ **2026-10-21: the work this co",
+      "tails": [
+        "noting this is 'the row a resuming session reads FIRST'.)* |"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "9b69788c1e43f217579b6f9b5a6ac154cfd6ae41",
+      "chars": 2288,
+      "head": "Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md",
+      "tails": [
+        "-587`. See KI-66's DRIVEN block. KI-64 and KI-67 are CLOSED."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "9dc265714a15451fde8189fcf23ac876b61b6933",
+      "chars": 4252,
+      "head": ">    ✅ **`03-PUNCH-LIST.md` HAS HEADROOM AGAIN (2026-09-02):",
+      "tails": [
+        "therwise a cold session meets it as a red gate mid-commit.)*"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
+      "chars": 60141,
+      "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
+      "tails": [
+        "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "c875549948368b1c0680bc70b1214748c26c8132",
+      "chars": 1231,
+      "head": ">    ⛔⛔ **P7 REFUTED — READ THIS BEFORE WRITING ANY ROOM COD",
+      "tails": [
+        "d` (P1–P8 all CONFIRMED). ⛔ **DO NOT REBUILD THE ROOM LEG.**"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "04c9fc5ceaa11e219cd9990459041c2f8cd395e2",
+      "chars": 3511,
+      "head": ">    ⛔ **SUPERSEDED HISTORY (done since: `enter_the_league` ",
+      "tails": [
+        "` *(✅ both run inside Segment 24 since 2026-09-25 evening)*."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "860b7138fb86535af1a03200ae9a40a100215e2f",
+      "chars": 1444,
+      "head": ">    ‼‼ **DO NOT PLAN A DRIVE TO ANSWER \"CAN THE PARTY WIN\".",
+      "tails": [
+        "arlier \"SPLIT\" label is WITHDRAWN, see below**, P3 partial)."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "9ba8006f97dfd668e7a58e7ef46af29bc7d6943c",
+      "chars": 2046,
+      "head": ">    **(3) THE READINESS GUARD SHOULD CHECK \"CAN WE STILL HE",
+      "tails": [
+        " an irreversible experiment, ask what READS the same fact.**"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "bc128b5c2d644982d624cc1675e2d963876d5311",
+      "chars": 5076,
+      "head": ">    ⛔⛔ **THE ENTRY LEG WAS DESIGNED, REVIEWED AND SENT BACK",
+      "tails": [
+        ")/(10,2), and the walk into the lobby is driven and passing."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "8bc0377578083f1218b54f58451d4d3edda70d6d",
+      "chars": 1401,
+      "head": ">    ⛔ **NOT A NEXT ACTION — HISTORY, AND ITS DIRECTIVE IS R",
+      "tails": [
+        " on the CURRENT build: **180 of 749 = 24.0%**, 119 W / 180 L"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "302f82718e7de2ee6d83407ed559ecb03bff3911",
+      "chars": 46505,
+      "head": "⭐⭐ **AND THEIR DISCRIMINATORS DIFFER — DO NOT REPRODUCE #2 U",
+      "tails": [
+        "RECON,VICTORY-ROAD-B1F-B2F,WATERFALL-TEACH-PREDICTIONS}.md`."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "ea2bb6dbdfda3a29d9022877d667f6cee5814322",
+      "chars": 3828,
+      "head": ">    after the change they return True/False. ⇒ ✅✅ **(2) KI-",
+      "tails": [
+        " alternatives: `#24-zerokocounter`, which needs TWO new arms"
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "2a7793e98b56412a70aab8a499b1c3a5e48652f5",
+      "chars": 10850,
+      "head": ">    ⚠ **EXPECT 31 differing as of 2026-10-07 (LATEST; +`plu",
+      "tails": [
+        " → arm B red; `promote.py` restored byte-identically after)."
+      ],
+      "history": []
+    },
+    {
+      "file": "04-HANDOFF.md",
+      "sha1": "24d4f681cec54974ea32efe05ca953aabcb2b0d7",
+      "chars": 9186,
+      "head": "‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING",
+      "tails": [
+        " → arm B red; `promote.py` restored byte-identically after)."
+      ],
+      "history": []
+    },
+    {
+      "file": "05-KNOWN-ISSUES.md",
+      "sha1": "a5a499e3f5eba6307c2a817f1162e6aa4f58b730",
+      "chars": 1256,
+      "head": "- ⭐ **2026-09-17 (late) — A THIRD ROOM, AND BOTH DIRECTIONS ",
+      "tails": [
+        " evidence DURING a run; on a reloaded fixture it is vacuous."
+      ],
+      "history": []
+    },
+    {
+      "file": "05-KNOWN-ISSUES.md",
+      "sha1": "1a233a8b86c2a18867ccf61c5c2271cd90c941ae",
+      "chars": 1263,
+      "head": "✅ **MITIGATED:** the policy takes `allow_revive` and **THE D",
+      "tails": [
+        "ped dead. ⛔ It is checked at the REVIVE branch, never at the"
+      ],
+      "history": []
+    }
+  ]
+}
