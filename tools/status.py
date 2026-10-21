@@ -135,7 +135,8 @@ def learner_lines(clone: Path, now: dt.datetime) -> list[str]:
 
 
 def archive_line(clone: Path) -> str:
-    """The raw-log archives (backlog O3): how many runs/<tag>/raw.zip exist, and the last `learner.py archive-check`."""
+    """The raw-log archives (backlog O3): how many runs/<tag>/raw.zip exist, the last `learner.py archive-check`, and
+    how many cycles the learner HELD for review (read live from data/state.json; '?' when it cannot be read)."""
     try:
         zips = list((clone / "runs").glob("*/raw.zip")) if (clone / "runs").is_dir() else []
         line = f"raw-log archives: {len(zips)} raw.zip"
@@ -146,9 +147,19 @@ def archive_line(clone: Path) -> str:
                      f"{rec.get('bad')} BAD")
         else:
             line += " | archive-check never run"
-        return line
+        return line + " | " + held_part(clone)
     except Exception as error:  # noqa: BLE001
         return f"raw-log archives: unavailable: {type(error).__name__}: {str(error)[:60]}"
+
+
+def held_part(clone: Path) -> str:
+    """'held for review: N' (+ the first tags) from data/state.json; never raises."""
+    try:
+        state = json.loads((clone / "data" / "state.json").read_text(encoding="utf-8"))
+        held = [c.get("tag", "?") for c in state.get("cycles", []) if isinstance(c, dict) and c.get("held")]
+        return f"held for review: {len(held)}" + (f" ({', '.join(held[:4])}) - run archive-check" if held else "")
+    except Exception:  # noqa: BLE001
+        return "held for review: ?"
 
 
 def disk_lines(clone: Path) -> list[str]:

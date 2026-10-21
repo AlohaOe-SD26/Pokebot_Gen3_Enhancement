@@ -11,7 +11,9 @@ Each CYCLE:
 5. optionally asks Claude for advice (`consult.py`, off by default);
 6. ARCHIVES its own old raw logs (backlog O3, 2026-10-21): the newest `keep_raw_cycles` cycles stay raw; each older
    cycle's `batch/` is zipped to `runs/<tag>/raw.zip` (+ `raw.manifest.json`), the zip is VERIFIED against the
-   originals, and only then are the originals deleted. Nothing is ever deleted without a verified archive.
+   originals, and only then are the originals deleted. An original is deleted ONLY when its exact bytes (name, size,
+   CRC32) are in a verified archive, and no archive file is ever overwritten or deleted. A cycle still in use is
+   skipped until it is quiet; one whose state the code cannot prove safe is HELD for a human (`archive-check`).
 
 Resilience:
 - If the learner dies mid-cycle, the batch keeps running. The next start ADOPTS it: it waits for that batch to end,
@@ -33,8 +35,10 @@ Commands (run from this folder with `py -3.12 learner.py <command>`):
   report     rewrite findings/LATEST.md from the data
   status     where the learner is now
   publish    copy the findings and data into published/, small enough to commit for a cloud session
-  archive    archive every cycle outside keep_raw_cycles now (refuses while the 24/7 learner holds its lock)
-  archive-check  re-verify every runs/<tag>/raw.zip against its manifest (read-only; exit 1 on any BAD)
+  archive    archive every cycle outside keep_raw_cycles now; for when the learner is STOPPED (it refuses while the
+             24/7 learner holds its lock, and a learner starting meanwhile waits for it, up to LOCK_WAIT_MAX_MIN)
+  archive-check  re-verify every runs/<tag>/raw.zip against its manifest and list HELD cycles (read-only; exit 1 on
+             any BAD or HELD)
 """
 from __future__ import annotations
 
@@ -71,14 +75,22 @@ RUNS_FILE, CYCLES_FILE, STATE_FILE = DATA / "runs.jsonl", DATA / "cycles.jsonl",
 LOCK, LOG, STOP, ATTENTION = DATA / "agent.lock", DATA / "learner.log", AI / "STOP", FINDINGS / "ATTENTION.md"
 RESTART_CODE = 3
 #: The raw-log archive of one cycle (backlog O3): `runs/<tag>/raw.zip` with its `raw.manifest.json`. A zip is written as
-#: `.part`, verified, then renamed; one that fails a later re-verification is kept aside as `.bad`.
-ARCHIVE, ARCHIVE_PART, ARCHIVE_BAD, MANIFEST = "raw.zip", "raw.zip.part", "raw.zip.bad", "raw.manifest.json"
+#: `.part`, verified, then renamed. One that cannot be trusted is SET ASIDE as `raw.zip.bad.<k>` (its manifest as
+#: `raw.manifest.json.bad.<k>`), k the smallest unused integer: a set-aside file is never overwritten, renamed or deleted.
+ARCHIVE, ARCHIVE_PART, MANIFEST = "raw.zip", "raw.zip.part", "raw.manifest.json"
 #: Below this much free disk no archive can be written safely: archive nothing, delete nothing, start no batch.
 ARCHIVE_FLOOR_GB = 2.0
-#: The rename of a finished `.part` is retried for a transient lock (an antivirus scan holds a new file briefly).
-#: Module constants, so a TEST can shorten the wait; nothing in the environment changes them.
+#: A cycle is archived (or its delete resumed) only once it is QUIET: no batch runner or lane process names it, and no
+#: original was modified within this many minutes. An orphaned lane still appending to an old cycle's log is the
+#: demonstrated hazard (O3 review, 2026-10-21).
+QUIET_MINUTES = 60
+#: A rename or replace is retried for a transient lock (an antivirus scan holds a new file briefly; a reader holding
+#: state.json open blocks os.replace on Windows). Module constants, so a TEST can shorten the wait.
 REPLACE_TRIES, REPLACE_WAIT_S = 5, 2.0
+#: A learner starting while a manual `learner.py archive` holds the lock WAITS for it (polling), up to this long.
+LOCK_POLL_S, LOCK_WAIT_MAX_MIN = 30.0, 120.0
 _os_replace = os.replace
+_os_rename = os.rename
 
 DEFAULTS = {
     "lanes": "auto", "max_lanes": 24, "reserve_threads": 4, "reserve_ram_gb": 8, "ram_per_lane_gb": 1.5,
@@ -106,7 +118,10 @@ def now() -> str:
 
 def log(msg: str) -> None:
     line = f"[{now()}] {msg}"
-    print(line, flush=True)
+    try:
+        print(line, flush=True)
+    except UnicodeEncodeError:  # a cp1252 console or pipe cannot show every file name; the log file is UTF-8
+        print(line.encode("ascii", "backslashreplace").decode("ascii"), flush=True)
     DATA.mkdir(parents=True, exist_ok=True)
     with open(LOG, "a", encoding="utf-8") as fh:
         fh.write(line + "\n")
@@ -157,10 +172,12 @@ def load_state() -> dict:
 
 
 def save_state(state: dict) -> None:
+    """Write state.json atomically. The replace is retried on PermissionError: on Windows any process holding
+    state.json open (tools/status.py, a watchdog, an editor) makes os.replace fail for that moment."""
     DATA.mkdir(parents=True, exist_ok=True)
     tmp = STATE_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(state, indent=1, default=str), encoding="utf-8")
-    tmp.replace(STATE_FILE)
+    _replace_with_retry(tmp, STATE_FILE)
 
 
 def code_signature(folder: Path = AI) -> str:
@@ -211,22 +228,66 @@ def tests_pass() -> bool:
 
 
 # ----------------------------------------------------------------------------------------------------- safety checks
+def _lock_holder() -> tuple[int, list[str]] | None:
+    """(pid, cmdline) of the LIVE learner process named in the lock file, or None (no lock, a stale one, or a pid now
+    used by a process that is not a learner)."""
+    if not LOCK.exists():
+        return None
+    try:
+        pid = int(LOCK.read_text().strip())
+    except (ValueError, OSError):
+        return None
+    if pid == os.getpid() or not psutil.pid_exists(pid):
+        return None
+    try:
+        cmd = psutil.Process(pid).cmdline()
+    except psutil.Error:
+        return None
+    return (pid, cmd) if "learner.py" in " ".join(cmd) else None
+
+
+def _is_manual_archive(cmd: list[str]) -> bool:
+    """True for a `learner.py archive` command line (not `archive-check`, which takes no lock)."""
+    return any(a.endswith("learner.py") and b == "archive" for a, b in zip(cmd, cmd[1:]))
+
+
 def acquire_lock() -> str | None:
     """None if this process now holds the lock, else why not."""
     DATA.mkdir(parents=True, exist_ok=True)
-    if LOCK.exists():
-        try:
-            pid = int(LOCK.read_text().strip())
-        except ValueError:
-            pid = -1
-        if pid != os.getpid() and psutil.pid_exists(pid):
-            try:
-                if "learner.py" in " ".join(psutil.Process(pid).cmdline()):
-                    return f"another learner is running (pid {pid})"
-            except psutil.Error:
-                pass
+    holder = _lock_holder()
+    if holder:
+        return f"another learner is running (pid {holder[0]})"
     LOCK.write_text(str(os.getpid()))
     return None
+
+
+def acquire_lock_waiting_for_archive() -> str | None:
+    """`acquire_lock`, except that a lock held by a manual `learner.py archive` is WAITED for (STOP-aware, polling
+    every LOCK_POLL_S, giving up after LOCK_WAIT_MAX_MIN) instead of refused: `run_agent.ps1` treats a refusal (exit 2)
+    as 'another learner runs' and stops for good. Returns None (lock held), "STOP", or why not."""
+    why = acquire_lock()
+    if not why:
+        return None
+    holder = _lock_holder()
+    if holder is None:  # the holder exited between the two looks: the lock is free now
+        return acquire_lock()
+    if not _is_manual_archive(holder[1]):
+        return why
+    log(f"the lock is held by a manual `learner.py archive` (pid {holder[0]}); waiting for it to finish "
+        f"(up to {LOCK_WAIT_MAX_MIN:.0f} min)")
+    end = time.time() + 60 * LOCK_WAIT_MAX_MIN
+    while time.time() < end:
+        if not sleep_unless_stopped(LOCK_POLL_S / 60):
+            return "STOP"
+        why = acquire_lock()
+        if not why:
+            log("the manual archive finished; the learner took the lock")
+            return None
+        holder = _lock_holder()
+        if holder and not _is_manual_archive(holder[1]):
+            return why
+    log(f"gave up waiting for the manual archive after {LOCK_WAIT_MAX_MIN:.0f} min: not starting (exit 2)")
+    return why or "the lock is still held"
 
 
 def release_lock() -> None:
@@ -260,9 +321,10 @@ def other_bots_running() -> tuple[list[str], list[str]]:
     return batches, singles
 
 
-def batch_running(cdir: Path) -> bool:
-    """True while the batch runner that writes into `cdir` is alive."""
-    return any("x4_headless.py" in cmd and str(cdir) in cmd for _, cmd in _cmdlines())
+def batch_running(cdir: Path, cmds: list[tuple[int, str]] | None = None) -> bool:
+    """True while the batch runner that writes into `cdir` is alive. `cmds`: a `_cmdlines()` snapshot to reuse (one
+    process scan costs about 0.5 s)."""
+    return any("x4_headless.py" in cmd and str(cdir) in cmd for _, cmd in (_cmdlines() if cmds is None else cmds))
 
 
 def size_lanes(cfg: dict, singles: int = 0) -> tuple[int, str]:
@@ -431,19 +493,55 @@ def adopt_unfinished(cfg: dict) -> bool | None:
     return finish_cycle(cfg, state, plan, "adopted")
 
 
+def _same_path(a: Path, b: Path) -> bool:
+    """Equal after normalising separators and, on Windows, case (the file system there ignores case)."""
+    return os.path.normcase(os.path.normpath(str(a))) == os.path.normcase(os.path.normpath(str(b)))
+
+
 def _ours(c: dict, p: Path) -> bool:
     """A path this learner created for cycle `c`, by exact name: its `runs/<tag>/batch` or a lane profile
-    `endless-<tag>-*`. Nothing else is ever archived or deleted (test R2)."""
-    return (p.parent == RUNS / c["tag"] and p.name == "batch") or \
-           (p.parent == PROFILES and p.name.startswith(f"endless-{c['tag']}-"))
+    `endless-<tag>-*`. Nothing else is ever archived or deleted (test R2). Names compare with casefold and folders with
+    os.path.normcase, so a case or separator variant of the SAME folder is still recognised (O3 review finding 8)."""
+    tag, name = c["tag"], p.name.casefold()
+    return (_same_path(p.parent, RUNS / tag) and name == "batch") or \
+           (_same_path(p.parent, PROFILES) and name.startswith(f"endless-{tag}-".casefold()))
 
 
 class ArchiveError(RuntimeError):
-    """An archive could not be written or verified. The originals are untouched."""
+    """An archive could not be written or verified, or a delete stopped part-way. No original was lost."""
 
 
 def _member(name: str, size: int, crc: int) -> dict:
     return {"name": name, "size": size, "crc32": crc}
+
+
+def _is_link(p: Path) -> bool:
+    """A symlink or an NTFS junction (an unreadable entry counts as one: it is never entered)."""
+    try:
+        return p.is_symlink() or p.is_junction()
+    except OSError:
+        return True
+
+
+def _originals(batch: Path) -> list[Path]:
+    """Every regular file under `batch`, found WITHOUT following links: a symlink or junction (to a folder or a file) is
+    skipped and never entered. `shutil.rmtree` does not follow them either, so the archive's scope equals the delete's
+    scope (O3 review finding 6). A folder that cannot be listed raises, so a scan is never silently partial."""
+    def fail(error: OSError) -> None:
+        raise error
+
+    out: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(batch, onerror=fail, followlinks=False):
+        d = Path(dirpath)
+        dirnames[:] = [n for n in dirnames if not _is_link(d / n)]
+        out += [d / n for n in filenames if not _is_link(d / n) and (d / n).is_file()]
+    return sorted(out)
+
+
+def _stat_sig(files: list[Path]) -> dict[str, tuple[int, int]]:
+    """path -> (size, mtime_ns): taken before an archive reads the originals and again just before the delete, so an
+    original written to (or a new one created) in between is never deleted."""
+    return {str(f): (st.st_size, st.st_mtime_ns) for f in files for st in [f.stat()]}
 
 
 def _scan_originals(cdir: Path, files: list[Path]) -> list[dict]:
@@ -472,8 +570,8 @@ def _copy_member(zf: zipfile.ZipFile, src: Path, name: str) -> dict:
 
 
 def verify_archive(zpath: Path, members: list[dict]) -> str | None:
-    """None if `zpath` holds EXACTLY `members` (same names, sizes and CRC32s) and every member decompresses to its
-    stored CRC (`testzip`); otherwise the reason. Never raises."""
+    """None if `zpath` holds EXACTLY `members` (same names, sizes and CRC32s; no extra and no missing member) and every
+    member decompresses to its stored CRC (`testzip`); otherwise the reason. Never raises."""
     try:
         with zipfile.ZipFile(zpath) as zf:
             bad = zf.testzip()
@@ -495,10 +593,27 @@ def verify_archive(zpath: Path, members: list[dict]) -> str | None:
 
 
 def _replace_with_retry(src: Path, dst: Path) -> None:
-    """os.replace, retried REPLACE_TRIES times REPLACE_WAIT_S apart on PermissionError (a transient antivirus lock)."""
+    """os.replace, retried REPLACE_TRIES times REPLACE_WAIT_S apart on PermissionError (a transient antivirus lock, or a
+    reader holding `dst` open). For files that MAY be replaced (state.json, archive_check.json), never for an archive."""
     for attempt in range(1, REPLACE_TRIES + 1):
         try:
             _os_replace(src, dst)
+            return
+        except PermissionError:
+            if attempt == REPLACE_TRIES:
+                raise
+            log(f"replace {src.name} -> {dst.name} is locked (attempt {attempt}/{REPLACE_TRIES}); retrying")
+            time.sleep(REPLACE_WAIT_S)
+
+
+def _rename_no_overwrite(src: Path, dst: Path) -> None:
+    """Rename `src` to `dst`, NEVER replacing an existing `dst`: it is checked first, and os.rename also refuses on
+    Windows. Retried like `_replace_with_retry` on PermissionError. Every archive file is placed through this."""
+    for attempt in range(1, REPLACE_TRIES + 1):
+        if os.path.lexists(dst):
+            raise FileExistsError(f"{dst} already exists: an archive file is never overwritten")
+        try:
+            _os_rename(src, dst)
             return
         except PermissionError:
             if attempt == REPLACE_TRIES:
@@ -515,9 +630,14 @@ def _remove_part(part: Path) -> None:
 
 
 def _read_manifest(path: Path) -> dict | None:
+    """The manifest, or None when it cannot be read or any member is not a well-formed {name, size, crc32}."""
     try:
         man = json.loads(path.read_text(encoding="utf-8"))
-        return man if isinstance(man.get("members"), list) else None
+        members = man.get("members")
+        ok = isinstance(members, list) and all(
+            isinstance(m, dict) and isinstance(m.get("name"), str) and isinstance(m.get("size"), int)
+            and isinstance(m.get("crc32"), int) for m in members)
+        return man if ok else None
     except (OSError, ValueError, AttributeError):
         return None
 
@@ -527,7 +647,51 @@ def _write_manifest(cdir: Path, tag: str, members: list[dict]) -> None:
            "bytes_zip": (cdir / ARCHIVE).stat().st_size, "members": members}
     tmp = cdir / (MANIFEST + ".tmp")
     tmp.write_text(json.dumps(man, indent=1), encoding="utf-8")
-    tmp.replace(cdir / MANIFEST)
+    _rename_no_overwrite(tmp, cdir / MANIFEST)
+
+
+def _set_aside(cdir: Path) -> str:
+    """Rename `raw.zip` and `raw.manifest.json` (whichever exist) to `<name>.bad.<k>`, k the smallest integer >= 1 used
+    by neither. Never overwrites; nothing ever renames or deletes a `.bad.<k>` file. Returns the zip's new name."""
+    k = 1
+    while any(os.path.lexists(cdir / f"{n}.bad.{k}") for n in (ARCHIVE, MANIFEST)):
+        k += 1
+    for n in (ARCHIVE, MANIFEST):
+        if os.path.lexists(cdir / n):
+            _rename_no_overwrite(cdir / n, cdir / f"{n}.bad.{k}")
+    return f"{ARCHIVE}.bad.{k}"
+
+
+def _set_aside_logged(tag: str, cdir: Path, reason: str) -> str:
+    name = _set_aside(cdir)
+    log(f"{tag}: raw.zip cannot be trusted ({reason}); SET ASIDE as {name} (kept forever). Every original is still on "
+        f"disk; they are archived afresh at the next prune")
+    return f"set aside as {name}: {reason}"
+
+
+def _hold(c: dict, reason: str) -> str:
+    """HOLD a cycle the code cannot prove safe: touch no file, flag it for a human, keep the learner running."""
+    c["held"] = {"reason": reason, "since": now()}
+    log(f"{c['tag']}: HELD FOR REVIEW: {reason}. NOTHING of this cycle is archived or deleted until a human looks "
+        f"(README 'Archive': resolve it, then remove 'held' from this cycle in data/state.json while the learner is "
+        f"stopped)")
+    return f"HELD: {reason}"
+
+
+def _in_use(tag: str, cdir: Path, files: list[Path], cmds: list[tuple[int, str]]) -> str | None:
+    """Why cycle `tag` must not be archived or deleted yet, or None when it is QUIET: no batch runner writes into it,
+    no process (an orphaned lane) names its profiles `endless-<tag>-`, and no original changed within QUIET_MINUTES."""
+    if batch_running(cdir, cmds):
+        return "its batch runner is alive"
+    marker = f"endless-{tag}-"
+    for pid, cmd in cmds:
+        if marker in cmd:
+            return f"process {pid} names {marker}*"
+    cutoff = time.time() - 60 * QUIET_MINUTES
+    for f in files:
+        if f.stat().st_mtime > cutoff:
+            return f"{f.relative_to(cdir).as_posix()} was modified within the last {QUIET_MINUTES} min"
+    return None
 
 
 def _delete_ours(c: dict) -> None:
@@ -536,45 +700,84 @@ def _delete_ours(c: dict) -> None:
             shutil.rmtree(p, ignore_errors=True)
 
 
-def archive_cycle(c: dict) -> str:
+#: archive_cycle outcomes that did no archive work: not counted toward max_archives_per_prune.
+NOT_AN_ATTEMPT = ("no raw logs", "in use", "HELD")
+
+
+def archive_cycle(c: dict, cmds: list[tuple[int, str]] | None = None) -> str:
     """Archive one cycle's raw logs, then delete its originals (`batch/` and its lane profiles, by `_ours`).
 
-    Order, so a crash or kill at ANY point loses nothing: write `raw.zip.part` -> verify it against the CRC32s read
-    while streaming -> rename to `raw.zip` -> write `raw.manifest.json` -> delete the originals -> set the flags.
-    Recovery: a `raw.zip` beside its originals is re-verified against them (the manifest's member list when there is
-    one: deletion may have stopped part-way) and the originals deleted only if it passes; a failing one is renamed
-    `raw.zip.bad`, the originals are KEPT and the next prune archives them again. Returns what happened; raises
-    (with the originals untouched and no `.part` left) when the archive cannot be written or verified."""
+    THE INVARIANT: an original is deleted ONLY when its exact bytes (name, size, CRC32) are in a VERIFIED archive, and
+    no archive file is ever overwritten or deleted. What the code cannot prove safe is HELD (`_hold`): no file touched.
+
+    Fresh: write `raw.zip.part` -> verify it against the CRC32s read while streaming -> rename (never over an existing
+    file) to `raw.zip` -> write `raw.manifest.json` -> re-check that no original changed -> delete -> set the flags.
+    Before ANY archive or delete the cycle must be quiet (`_in_use`; skipped this boundary otherwise, not held).
+    Recovery, when `raw.zip` exists beside originals O (M = the manifest's members):
+      1. a manifest file that cannot be read -> HOLD;
+      2. no manifest (deletion never starts before it is written): the zip verifies EXACTLY against O -> write the
+         manifest and delete; otherwise SET ASIDE the zip (`_set_aside`) and archive afresh at the next prune;
+      3. every manifest member is still an original (the delete had not started): the zip verifies against M and O == M
+         -> delete; otherwise SET ASIDE the zip and its manifest (every original is still on disk);
+      4. some manifest member is gone (a delete stopped part-way; the zip is the ONLY copy of those): the zip verifies
+         against M, every remaining original equals its manifest entry and there is no extra original -> resume the
+         delete; otherwise HOLD.
+    Returns what happened; raises (no original lost, no `.part` left) when an archive cannot be written or verified or
+    a delete stops part-way. `cmds`: a `_cmdlines()` snapshot shared by one prune (a scan costs about 0.5 s)."""
     tag = c["tag"]
     cdir = RUNS / tag
-    batch, zpath, part = cdir / "batch", cdir / ARCHIVE, cdir / ARCHIVE_PART
-    ours_batch = any(_ours(c, p) and p.name == "batch" for p in map(Path, c.get("created", [])))
-    files = sorted(f for f in batch.rglob("*") if f.is_file()) if ours_batch and batch.is_dir() else []
+    batch, zpath, part, mpath = cdir / "batch", cdir / ARCHIVE, cdir / ARCHIVE_PART, cdir / MANIFEST
+    if os.path.lexists(batch):
+        if _is_link(batch) or not batch.is_dir():
+            return _hold(c, "runs/<tag>/batch is a link, a junction or a file, not a plain folder")
+        if not any(_ours(c, p) and p.name.casefold() == "batch" for p in map(Path, c.get("created", []))):
+            return _hold(c, "runs/<tag>/batch exists on disk but no `created` entry of this cycle names it")
+    files = _originals(batch) if batch.is_dir() else []
+    why = _in_use(tag, cdir, files, list(_cmdlines()) if cmds is None else cmds)
+    if why:
+        return f"in use ({why}); retried next boundary"
     if not files:  # nothing to archive (an empty or missing batch/): today's delete, as before O3 (tests R1/R2)
         _delete_ours(c)
         if zpath.exists():
             c["archived"] = True
         c["pruned"] = True
         return "no raw logs to archive; deleted its empty leftovers"
+    sig = _stat_sig(files)
     if zpath.exists():
         sources = _scan_originals(cdir, files)
-        man = _read_manifest(cdir / MANIFEST)
-        if man:
-            reason = verify_archive(zpath, man["members"])
-            listed = {m["name"]: m for m in man["members"]}
-            if not reason and any(listed.get(s["name"]) != s for s in sources):
-                reason = "an original differs from (or is missing in) the manifest"
-        else:
+        o = {s["name"]: s for s in sources}
+        if not os.path.lexists(mpath):  # case 2
             reason = verify_archive(zpath, sources)
-        if reason:
-            _replace_with_retry(zpath, cdir / ARCHIVE_BAD)
-            log(f"{tag}: raw.zip FAILED re-verification ({reason}); quarantined as {ARCHIVE_BAD}, the raw logs are "
-                f"KEPT and archived again at the next prune")
-            return "quarantined"
-        if not man:
+            if reason:
+                return _set_aside_logged(tag, cdir, f"no manifest, and it does not match the originals exactly: "
+                                                    f"{reason}")
             _write_manifest(cdir, tag, sources)
-        how = "re-verified an existing raw.zip against the originals"
+            how = "completed an interrupted archive (raw.zip verified exactly against the originals; manifest written)"
+        else:
+            man = _read_manifest(mpath)
+            if man is None:  # case 1
+                return _hold(c, f"{MANIFEST} exists but cannot be read")
+            m = {x["name"]: x for x in man["members"]}
+            reason = verify_archive(zpath, man["members"])
+            missing = sorted(set(m) - set(o))
+            if not missing:  # case 3: the delete had not started
+                if not reason and o != m:
+                    reason = "the originals differ from the manifest"
+                if reason:
+                    return _set_aside_logged(tag, cdir, reason)
+                how = "resumed: raw.zip re-verified against its manifest and the identical originals"
+            else:  # case 4: a delete stopped part-way; raw.zip is the only copy of the missing originals
+                extra = sorted(set(o) - set(m))
+                changed = sorted(n for n in o if n in m and o[n] != m[n])
+                if reason or extra or changed:
+                    return _hold(c, f"a delete stopped part-way ({len(missing)} of {len(m)} archived originals are "
+                                    f"gone) and " + (f"raw.zip fails verification: {reason}" if reason else
+                                                     f"the remaining originals no longer match the manifest: "
+                                                     f"changed {changed[:3]}, new {extra[:3]}"))
+                how = "resumed an interrupted delete: raw.zip re-verified against its manifest and the remaining originals"
     else:
+        if os.path.lexists(mpath):  # a manifest without its zip: a set-aside interrupted between its two renames
+            log(f"{tag}: {MANIFEST} without its raw.zip; set aside as {_set_aside(cdir).replace(ARCHIVE, MANIFEST)}")
         try:
             with zipfile.ZipFile(part, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True, compresslevel=6,
                                  strict_timestamps=False) as zf:
@@ -582,17 +785,20 @@ def archive_cycle(c: dict) -> str:
             reason = verify_archive(part, members)
             if reason:
                 raise ArchiveError(f"{tag}: the new archive failed verification: {reason}")
-            _replace_with_retry(part, zpath)
+            _rename_no_overwrite(part, zpath)
         except BaseException:
             _remove_part(part)
             raise
         _write_manifest(cdir, tag, members)
         how = "archived"
+    if _stat_sig(_originals(batch)) != sig:  # written to (or a file added) while it was being read: delete nothing
+        log(f"{tag}: an original changed while it was being archived; NOTHING deleted, retried next boundary")
+        return "changed while archiving: nothing deleted; retried next boundary"
     _delete_ours(c)
     if batch.exists():
         raise ArchiveError(f"{tag}: raw.zip is verified but batch/ could not be fully deleted; retried next prune")
     c["archived"] = c["pruned"] = True
-    man = _read_manifest(cdir / MANIFEST) or {}
+    man = _read_manifest(mpath) or {}
     raw, packed = man.get("bytes_raw", 0), man.get("bytes_zip", 0)
     return f"{how}: {man.get('n_files')} files, {raw / 2**20:.0f} MB -> {packed / 2**20:.1f} MB; raw logs deleted"
 
@@ -600,9 +806,25 @@ def archive_cycle(c: dict) -> str:
 def prune(cfg: dict, state: dict) -> None:
     """Archive, then delete, the raw logs and lane profiles of all but the newest `keep_raw_cycles` cycles (at most
     `max_archives_per_prune` archives a call, which bounds the cycle-boundary delay). Only paths this learner created
-    and recorded, and only names it would have created. NEVER raises into the loop: a failure is logged and retried at
-    the next boundary, and its originals stay. Under ARCHIVE_FLOOR_GB free it does nothing at all."""
-    for c in state["cycles"]:  # a `.part` is never live outside archive_cycle: one left over is from a killed run
+    and recorded, and only names it would have created. HELD cycles are skipped (and listed once per call). It NEVER
+    raises an Exception into the loop: the WHOLE body is guarded, a failure is logged and the next boundary retries,
+    and no original is ever deleted without a verified archive. Under ARCHIVE_FLOOR_GB free it does nothing at all."""
+    try:
+        _prune(cfg, state)
+    except Exception:  # noqa: BLE001 - never into the loop
+        try:
+            log(f"prune FAILED (nothing more is archived this boundary; the next one retries):\n"
+                f"{traceback.format_exc()}")
+        except Exception:  # noqa: BLE001 - even the log may be unwritable; the loop must go on
+            pass
+
+
+def _prune(cfg: dict, state: dict) -> None:
+    every = state.get("cycles", [])
+    cycles = [c for c in every if isinstance(c, dict) and c.get("tag")]
+    for c in cycles:  # a `.part` is never live outside archive_cycle: one left over is from a killed run
+        if c.get("held"):  # a HELD cycle's folder is touched by nobody but a human
+            continue
         part = RUNS / c["tag"] / ARCHIVE_PART
         if part.exists():
             _remove_part(part)
@@ -614,30 +836,38 @@ def prune(cfg: dict, state: dict) -> None:
             f"deleting NOTHING")
         return
     keep, cap = int(cfg["keep_raw_cycles"]), int(cfg.get("max_archives_per_prune", 3))
-    attempts = 0
-    for c in state["cycles"][:-keep] if keep > 0 else state["cycles"]:
-        if c.get("pruned"):
+    attempts, cmds = 0, None
+    for c in every[:-keep] if keep > 0 else every:
+        if not isinstance(c, dict) or not c.get("tag") or c.get("pruned") or c.get("held"):
             continue
         if attempts >= cap:
             log(f"prune: {cap} archive(s) this boundary (max_archives_per_prune); the rest wait for the next one")
             break
+        if cmds is None:
+            cmds = list(_cmdlines())  # one process scan per boundary
         try:
-            outcome = archive_cycle(c)
-            if not outcome.startswith("no raw logs"):
+            outcome = archive_cycle(c, cmds)
+            if not outcome.startswith(NOT_AN_ATTEMPT):
                 attempts += 1
             log(f"{c['tag']}: {outcome} (its run records are kept)")
         except Exception:  # noqa: BLE001 - never into the loop; the raw logs stay and the next boundary retries
             attempts += 1
             log(f"{c['tag']}: archiving FAILED, its raw logs are KEPT and it is retried at the next boundary:\n"
                 f"{traceback.format_exc()}")
-        save_state(state)
+        save_state(state)  # per cycle: a crash after this archive cannot lose its flags
+    held = [c["tag"] for c in cycles if c.get("held")]
+    if held:
+        log(f"prune: held for review: {', '.join(held)} (nothing of theirs is touched; `learner.py archive-check` "
+            f"lists why)")
     save_state(state)
 
 
 def disk_guard(cfg: dict, state: dict) -> bool:
     """Before a batch: True = enough free disk to start it. Under `min_free_gb` it ARCHIVES every cycle but the
     newest (never a delete without a verified archive); if still short it writes ATTENTION.md and the learner stops.
-    Under ARCHIVE_FLOOR_GB prune archives and deletes nothing, so the learner stops with the raw logs intact."""
+    Under ARCHIVE_FLOOR_GB prune archives and deletes nothing, so the learner stops with the raw logs intact.
+    prune never raises, but reading free disk or writing ATTENTION.md can: `loop` guards this call (it logs, starts no
+    batch, waits idle_wait_minutes and tries again)."""
     if free_gb() >= float(cfg["min_free_gb"]):
         return True
     prune({**cfg, "keep_raw_cycles": 1, "max_archives_per_prune": 10 ** 6}, state)
@@ -669,7 +899,9 @@ def loop(single: bool, dev: bool = False) -> int:
               f"clone so development commits cannot abort its batches: see README.md 'Where it runs'. Pass --dev to "
               f"run here anyway (smoke tests only).")
         return 2
-    why = acquire_lock()
+    why = acquire_lock_waiting_for_archive()  # a manual `learner.py archive` is waited for, not refused (O3 review)
+    if why == "STOP":
+        return 0
     if why:
         print(why)
         return 2
@@ -704,7 +936,15 @@ def loop(single: bool, dev: bool = False) -> int:
                 refused_sig = sig
                 log(f"code changed ({sig}) but test_agent.py FAILS: keeping the running version {started_sig}")
             cfg, state = load_config(), load_state()
-            if not disk_guard(cfg, state):
+            try:
+                room = disk_guard(cfg, state)
+            except Exception:  # noqa: BLE001 - a failed disk check must not kill the 24/7 process; start no batch
+                log(f"disk check FAILED: no batch started; trying again in {cfg['idle_wait_minutes']} min:\n"
+                    f"{traceback.format_exc()}")
+                if single or not sleep_unless_stopped(float(cfg["idle_wait_minutes"])):
+                    return 0
+                continue
+            if not room:
                 return 0
             batches, singles = other_bots_running()
             if not cfg["wait_if_other_bots_running"]:
@@ -818,14 +1058,18 @@ def cmd_status() -> int:
           f"design row next: {state.get('design_next', 0)}")
     print(f"runs recorded: {len(load_jsonl(RUNS_FILE))}; free disk: {free_gb():.0f} GB; "
           f"raw cycles kept: {cfg['keep_raw_cycles']}; archived cycles: {len(list(RUNS.glob('*/' + ARCHIVE)))}")
+    held = held_cycles()
+    print(f"held for review: {len(held)}" + (f" ({', '.join(t for t, _ in held)}; `learner.py archive-check` says why)"
+                                              if held else ""))
     print(f"STOP file: {STOP.exists()}; ATTENTION: {ATTENTION.exists()}; consult: {cfg['consult']['enabled']}")
     print(f"findings: {FINDINGS / 'LATEST.md'}")
     return 0
 
 
 def cmd_archive() -> int:
-    """Archive every cycle outside keep_raw_cycles now. It takes the learner's lock, so it REFUSES while the 24/7
-    learner runs (its own prune would race this one); `acquire_lock` replaces only a STALE lock."""
+    """Archive every cycle outside keep_raw_cycles now; meant for when the learner is STOPPED. It takes the learner's
+    lock, so it REFUSES while the 24/7 learner runs (its own prune would race this one); `acquire_lock` replaces only a
+    STALE lock. A learner started meanwhile WAITS for it (`acquire_lock_waiting_for_archive`), up to LOCK_WAIT_MAX_MIN."""
     why = acquire_lock()
     if why:
         print(f"archive refused: {why}. The running learner archives at each cycle boundary by itself.")
@@ -840,8 +1084,10 @@ def cmd_archive() -> int:
 
 
 def cmd_archive_check() -> int:
-    """READ-ONLY re-verification of every `runs/<tag>/raw.zip` against its manifest. One line per zip, exit 1 on any
-    BAD. Its result (with a timestamp) also goes to `data/archive_check.json`, which `tools/status.py` shows."""
+    """READ-ONLY re-verification of every `runs/<tag>/raw.zip` against its manifest: one OK/BAD line per zip, then one
+    `HELD <tag> <reason>` line per cycle held for review; exit 1 on any BAD or HELD. Its result (with a timestamp, the
+    held count and the count of set-aside `raw.zip.bad.<k>`) also goes to `data/archive_check.json`, which
+    `tools/status.py` shows."""
     lines, bad = [], 0
     for zpath in sorted(RUNS.glob(f"*/{ARCHIVE}")):
         tag = zpath.parent.name
@@ -852,14 +1098,27 @@ def cmd_archive_check() -> int:
             lines.append(f"BAD {tag} {reason}")
         else:
             lines.append(f"OK {tag} {len(man['members'])} {zpath.stat().st_size}")
+    n_archives = len(lines)
+    held = held_cycles()
+    lines += [f"HELD {tag} {reason}" for tag, reason in held]
+    set_aside = len(list(RUNS.glob(f"*/{ARCHIVE}.bad.*")))
     print("\n".join(lines) if lines else "no archives yet")
     DATA.mkdir(parents=True, exist_ok=True)
     out = DATA / "archive_check.json"
     tmp = out.with_suffix(".tmp")
-    tmp.write_text(json.dumps({"checked": now(), "archives": len(lines), "bad": bad, "lines": lines}, indent=1),
-                   encoding="utf-8")
-    tmp.replace(out)
-    return 1 if bad else 0
+    tmp.write_text(json.dumps({"checked": now(), "archives": n_archives, "bad": bad, "held": len(held),
+                               "set_aside": set_aside, "lines": lines}, indent=1), encoding="utf-8")
+    _replace_with_retry(tmp, out)
+    return 1 if bad or held else 0
+
+
+def held_cycles() -> list[tuple[str, str]]:
+    """(tag, reason) of every cycle HELD for review (`_hold`). An unreadable state.json is reported as one."""
+    try:
+        return [(c["tag"], str((c["held"] or {}).get("reason", "?"))) for c in load_state().get("cycles", [])
+                if isinstance(c, dict) and c.get("held")]
+    except Exception as exc:  # noqa: BLE001 - a check that cannot read the state must not say "nothing held"
+        return [("?", f"data/state.json unreadable: {exc!r}"[:160])]
 
 
 def cmd_publish() -> int:

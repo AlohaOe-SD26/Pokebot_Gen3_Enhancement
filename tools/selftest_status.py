@@ -7,6 +7,8 @@ T3 a pinned --now and --started give the exact elapsed and ETA strings.
 T4 READ-ONLY: every file in the fake tree is byte-identical, with the same mtime, after a run.
 T5 the raw-log archive line (backlog O3): the count of runs/<tag>/raw.zip and the last archive-check result; a
    half-written data/archive_check.json makes only that line 'unavailable'.
+T6 the archive line's held count (O3 review fix): cycles HELD for review, from data/state.json; an unreadable
+   state.json gives 'held for review: ?', never a false 0.
 """
 from __future__ import annotations
 
@@ -114,6 +116,23 @@ def main() -> int:
         code, out = run(*base)
         check("T5 FAULT: a half-written archive_check.json -> that line says 'unavailable', exit 0, the rest prints",
               code == 0 and "raw-log archives: unavailable" in out and "AI PLAYER:" in out, tuner_block(out))
+
+        # T6 the held count (O3 review fix): cycles the learner HELD for review, read from data/state.json
+        (clone / "data" / "archive_check.json").unlink()
+        state = {"current": None, "failures": 0, "cycles": [{"tag": "ai0090", "pruned": True},
+                                                           {"tag": "ai0091", "held": {"reason": "x", "since": "y"}}]}
+        (clone / "data" / "state.json").write_text(json.dumps(state), encoding="utf-8")
+        code, out = run(*base)
+        check("T6 one held cycle -> 'held for review: 1 (ai0091)' on the archive line",
+              code == 0 and "| held for review: 1 (ai0091)" in out, tuner_block(out))
+        state["cycles"][1].pop("held")
+        (clone / "data" / "state.json").write_text(json.dumps(state), encoding="utf-8")
+        code, out = run(*base)
+        check("T6 CONTROL: nothing held -> 'held for review: 0'", "| held for review: 0" in out, tuner_block(out))
+        (clone / "data" / "state.json").write_text("", encoding="utf-8")
+        code, out = run(*base)
+        check("T6 FAULT: an unreadable state.json -> 'held for review: ?', exit 0",
+              code == 0 and "| held for review: ?" in out, tuner_block(out))
 
     bad = [r for r in RESULTS if not r[1]]
     for name, ok, detail in RESULTS:

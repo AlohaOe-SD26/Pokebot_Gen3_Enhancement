@@ -56,8 +56,8 @@ Run these in `C:\Remote Projects\pokebot-learner\ai-agent`, the deployment clone
 | see where it is | `py -3.12 learner.py status` |
 | see what it learned | open `findings\LATEST.md` (rewritten after every cycle) |
 | preview the next cycle | `py -3.12 learner.py plan` (runs nothing) |
-| check the raw-log archives | `py -3.12 learner.py archive-check` (read-only, any time: one `OK`/`BAD` line per `raw.zip`, exit 1 on any BAD; the result goes to `data\archive_check.json` for `tools/status.py`) |
-| archive old raw logs now | `py -3.12 learner.py archive` (only while the learner is STOPPED: it refuses while the 24/7 learner holds its lock; the running learner archives at each boundary by itself) |
+| check the raw-log archives | `py -3.12 learner.py archive-check` (read-only, any time: one `OK`/`BAD` line per `raw.zip`, then one `HELD <tag> <reason>` line per cycle held for review; exit 1 on any BAD or HELD; the result goes to `data\archive_check.json` for `tools/status.py`) |
+| archive old raw logs now | `py -3.12 learner.py archive` is meant for when the learner is STOPPED. It refuses while the 24/7 learner holds its lock (the running learner archives at each boundary by itself). If the learner is started while a manual archive runs, it WAITS for it (up to 120 min, then exits 2) instead of refusing |
 | check the code still works | `py -3.12 test_agent.py` (offline, about 10 seconds, must say ALL PASS) |
 
 If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, delete that file, start it again.
@@ -100,11 +100,24 @@ end, then scores it.
    `raw.manifest.json` listing every file's name, size and CRC32.
    - Measured on a copy of ai0038: 73 files, 1,303 MB -> 68.6 MB (19:1) in 16 s.
    - The zip is VERIFIED (every member's CRC equals the CRC read from the original) before anything is deleted.
-     Then `batch/` and the cycle's lane profiles are deleted. **Nothing is ever deleted without a verified archive.**
+     Then `batch/` and the cycle's lane profiles are deleted. **An original is deleted only when its exact bytes
+     (name, size, CRC32) are in a verified archive, and no archive file is ever overwritten or deleted.**
+   - A cycle is archived only once it is QUIET: no batch runner or lane process (`endless-<tag>-`) names it and no
+     original changed in the last 60 minutes (`QUIET_MINUTES`). Otherwise it is skipped until a later boundary. If an
+     original changes while it is being archived, nothing is deleted.
    - At most `max_archives_per_prune` (3) cycles a boundary; a failure is logged, the raw logs stay, and the next
-     boundary retries. A killed archive leaves only a `raw.zip.part`, removed next time.
-   - A `raw.zip` that later fails re-verification is renamed `raw.zip.bad`, and its originals, if still present,
-     are archived again.
+     boundary retries. A killed archive leaves only a `raw.zip.part`, removed next time. Links and junctions inside
+     `batch/` are neither archived nor followed.
+   - A `raw.zip` that cannot be trusted while every original is still on disk is SET ASIDE as `raw.zip.bad.<k>` (with
+     `raw.manifest.json.bad.<k>`), and the originals are archived afresh. A set-aside file is never overwritten,
+     renamed or deleted; delete them by hand only after checking them.
+   - **HELD for review.** When the learner cannot prove a cycle safe, it touches NOTHING of that cycle and logs
+     `HELD FOR REVIEW` once, then `held for review: <tags>` each boundary. It keeps running. The cases are: a delete
+     that stopped part-way (so `raw.zip` is the only copy of some files) whose remaining originals changed or gained
+     a file, or whose `raw.zip` no longer verifies; an unreadable `raw.manifest.json`; a `runs/<tag>/batch` that its cycle's `created` list does not name;
+     and a `batch` that is a link. `learner.py archive-check` lists them (exit 1), `learner.py status` and
+     `tools/status.py` count them. To release a cycle: stop the learner, inspect and fix that folder, remove the
+     cycle's `"held"` entry from `data\state.json`, and start the learner again.
    - Archives are kept forever (`keep_archive_cycles: 0`; any other value is reserved and does nothing yet). They
      are the AI's experience input (backlog A6): `zipfile.ZipFile(path).open("batch/L01/debug-logs/<x>.log")`.
    - The run records in `data/runs.jsonl` are kept forever, as before.
