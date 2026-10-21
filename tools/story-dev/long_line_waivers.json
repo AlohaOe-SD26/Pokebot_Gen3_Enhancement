@@ -37,7 +37,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
-      "chars": 3973,
+      "chars": 4055,
       "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
       "tails": [
         "ntrols, one temp-folder factory, Python hooks, determinism)."
@@ -48,6 +48,12 @@
           "from_chars": 3936,
           "to_chars": 3973,
           "why": "2026-10-21 (0c): O4's nightly task registered"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 3973,
+          "to_chars": 4055,
+          "why": "2026-10-21 USER RULING 43: the watchdog approved"
         }
       ]
     },
@@ -594,7 +600,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "6bb82211422407fedabce93214bee38bac58d7fe",
-      "chars": 23129,
+      "chars": 23275,
       "head": "**Last updated:** 2026-10-21 (⭐ **STEP 1 BUILT AND REVIEWED ",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
@@ -611,6 +617,12 @@
           "from_chars": 23044,
           "to_chars": 23129,
           "why": "2026-10-21 (0c): the backup task registered and the restore drill passed"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 23129,
+          "to_chars": 23275,
+          "why": "2026-10-21 USER RULING 43: the watchdog approved; registered after the clone's next fast-forward"
         }
       ]
     },
@@ -804,7 +816,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 60031,
+      "chars": 60256,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -815,6 +827,12 @@
           "from_chars": 59713,
           "to_chars": 60094,
           "why": "2026-10-21 Tier 1 fixes on the deploy paperwork: the STATE row's cycle, and (0c)'s precondition and the watchdog warning"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 60031,
+          "to_chars": 60256,
+          "why": "2026-10-21 USER RULING 43: the watchdog approved; registered after the clone's next fast-forward"
         }
       ]
     },

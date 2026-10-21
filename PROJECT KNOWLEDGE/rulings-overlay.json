@@ -396,6 +396,16 @@
    },
    "reason": "do-not candidate 21dd9b50 classified marker by the independent overlay review (2026-10-21): 06:5661 \"DO NOT re-propose fetching another TM13, buying one, or tutoring an Ice move onto Wailord.\"",
    "do_not_reopen": "Fetching another TM13, buying one, or tutoring an Ice move onto Wailord (06:5661)."
+  },
+  "2026-10-21-d1e589": {
+   "title": "2026-10-21 — USER RULING 43 (the watchdog's human check): the test toast arrived; a brief window flash every 30 minutes is fine; the monitor stays off",
+   "candidates": {
+    "92c36a47": "marker"
+   },
+   "ruling_key": "43@2026-10-21",
+   "do_not_reopen": "Whether the watchdog's toast reaches the user and whether its 30-minute window flash is acceptable (both yes, 2026-10-21; the monitor stays off).",
+   "reason": "06 USER RULING 43: \"Do not re-ask whether the toast reaches the user or whether the 30-minute flash is acceptable.\"",
+   "status": "ACTIVE"
   }
  }
 }

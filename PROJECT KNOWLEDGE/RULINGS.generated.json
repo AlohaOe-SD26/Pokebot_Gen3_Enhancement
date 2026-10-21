@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "cd44c85aeb2e0e83de2ba10bfea98b3c82df3673",
+ "source_sha1_lf": "a9615728803113697a036ccc22909cb4b43b3a71",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 316,
-  "donot_candidates": 21,
-  "sections_naming_user_rulings": 36
+  "sections": 320,
+  "donot_candidates": 22,
+  "sections_naming_user_rulings": 37
  },
  "sections": [
   {
@@ -4952,6 +4952,66 @@
    "slugs": [],
    "ki": [],
    "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-7e2320",
+   "date": "2026-10-21",
+   "line_start": 9544,
+   "line_end": 9552,
+   "title": "2026-10-21 — Technical decisions of the O6 + O7 / O1 / KB1 step-5 round (Claude's calls)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-a23037",
+   "date": "2026-10-21",
+   "line_start": 9554,
+   "line_end": 9564,
+   "title": "2026-10-21 — Technical decisions of the A6 and stage-template review rounds (Claude's calls)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-07367b",
+   "date": "2026-10-21",
+   "line_start": 9566,
+   "line_end": 9573,
+   "title": "2026-10-21 — Technical decisions of S2-1, the doc-size ratchet (Claude's calls)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-d1e589",
+   "date": "2026-10-21",
+   "line_start": 9575,
+   "line_end": 9580,
+   "title": "2026-10-21 — USER RULING 43 (the watchdog's human check): the test toast arrived; a brief window flash every 30 minutes is fine; the monitor stays off",
+   "rulings": [
+    43
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "92c36a47",
+     "line": 9580,
+     "text": "- ⛔ **Do not re-ask** whether the toast reaches the user or whether the 30-minute flash is acceptable."
+    }
+   ],
    "cues": []
   }
  ]
