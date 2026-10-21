@@ -481,7 +481,9 @@ SANDBOX_ATTRS = ("free_gb", "REPLACE_WAIT_S", "REPLACE_TRIES", "_copy_member", "
                  "acquire_lock", "_lock_holder",
                  # O6 + O7 (test_o6_o7)
                  "prune", "batch_command", "now", "CPU_SAMPLE_S", "SIZE_WALK_CAP_S", "_ops_row", "_CpuSampler",
-                 "append_jsonl", "write_ops_row")
+                 "append_jsonl", "write_ops_row",
+                 # the O6/O7 review fixes: the pinned and stepping clocks, the walk's check interval, a raising O7
+                 "time", "SIZE_WALK_CHECK_EVERY", "early_archive")
 #: The real learner attributes, captured at import, before any test patches one.
 O3_REAL = {k: getattr(learner, k) for k in SANDBOX_ATTRS}
 
@@ -1751,6 +1753,55 @@ class FrozenDatetime(__import__("datetime").datetime):
         return cls(2026, 1, 1, 8, 0, 0)
 
 
+#: The fixed instant O6-1 and O6-6 run at: 8 AM on a 1 January (no DST change is near it in any time zone) in the
+#: FUTURE, so every file the test writes is older than it and the archive's quiescence check (QUIET_MINUTES 0) passes.
+#: WHY pinned: the gap and started/finished checks parse naive TIME_FMT strings, which are ambiguous in the repeated
+#: autumn DST hour; at the real clock this test, which is the learner's restart gate, could fail inside that hour.
+PIN_EPOCH = FrozenDatetime(2030, 1, 1, 8, 0, 0).timestamp()
+
+
+class PinnedClock:
+    """Stands in for the learner's `time` module: `time()` starts at PIN_EPOCH and runs at real speed (so `minutes`
+    and the sampler's readings stay real); everything else is the real module."""
+
+    def __init__(self) -> None:
+        self.m0 = time.monotonic()
+
+    def time(self) -> float:
+        return PIN_EPOCH + (time.monotonic() - self.m0)
+
+    def __getattr__(self, name: str):  # noqa: ANN204
+        return getattr(time, name)
+
+
+class StepClock:
+    """Stands in for the learner's `time` module: every `monotonic()` call returns 1.0, 2.0, 3.0 ... so a test can put
+    a deadline BETWEEN two of the size walk's checks without depending on how fast the disk is."""
+
+    def __init__(self) -> None:
+        self.n = 0
+
+    def monotonic(self) -> float:
+        self.n += 1
+        return float(self.n)
+
+    def __getattr__(self, name: str):  # noqa: ANN204
+        return getattr(time, name)
+
+
+def pin_clock() -> PinnedClock:
+    """Pin the learner's clock (`time.time` and `now()`) to PIN_EPOCH; O3Sandbox restores both."""
+    clock = PinnedClock()
+    learner.time = clock
+    learner.now = lambda: __import__("datetime").datetime.fromtimestamp(clock.time()).strftime(learner.TIME_FMT)
+    return clock
+
+
+def at_pin(offset_s: float) -> str:
+    """PIN_EPOCH + offset_s as a TIME_FMT string."""
+    return __import__("datetime").datetime.fromtimestamp(PIN_EPOCH + offset_s).strftime(learner.TIME_FMT)
+
+
 def test_o6_o7(tmp: Path) -> None:
     """S1-3. O6: every finished cycle appends one data/ops.jsonl row, and NO failure of that ledger (psutil missing or
     raising, the row builder raising, the file unwritable) ever fails the cycle. O7: under min_free_gb +
@@ -1764,10 +1815,11 @@ def test_o6_o7(tmp: Path) -> None:
     real_psutil = sys.modules["psutil"]
     five_min_ago = (FrozenDatetime.fromtimestamp(time.time() - 300)).strftime(learner.TIME_FMT)
 
-    # O6-1 a real cycle appends one row with every key and sane types ------------------------------------------------
+    # O6-1 a real cycle appends one row with every key and sane types (the clock pinned: see PIN_EPOCH) --------------
     with O3Sandbox(tmp / "o6-1"):
         learner.CPU_SAMPLE_S = 0.1
-        old = dict(make_raw_cycle(tmp, "ai0001"), finished=five_min_ago)
+        pin_clock()
+        old = dict(make_raw_cycle(tmp, "ai0001"), finished=at_pin(-300))
         O3Sandbox.state([old])
         ok, newest = drive_cycle(template, cfg)
         rows = ops_rows()
@@ -1777,6 +1829,7 @@ def test_o6_o7(tmp: Path) -> None:
         num = (int, float)
         sane = (len(rows) == 1 and tuple(row) == learner.OPS_KEYS and row["tag"] == "ai0002"
                 and learner._parse_time(row["started"]) <= learner._parse_time(row["finished"])
+                and isinstance(row["finished_epoch"], num) and PIN_EPOCH <= row["finished_epoch"] < PIN_EPOCH + 300
                 and isinstance(row["minutes"], num) and 0 <= row["minutes"] < 5
                 and row["free_gb_start"] == 500.0 and row["free_gb_end"] == 500.0
                 and isinstance(row["learner_gb"], num) and row["learner_gb"] >= 0
@@ -1790,6 +1843,9 @@ def test_o6_o7(tmp: Path) -> None:
               "batch, gap from the previous cycle's finish", scored(ok, newest, "ai0002") and sane, (ok, row))
         check("O6-1 archive_bytes is the size of the raw.zip this boundary's prune wrote",
               zsize > 0 and row.get("archive_bytes") == zsize, (zsize, row.get("archive_bytes")))
+        check("O6-1 the row's finished_epoch is what the NEXT cycle's gap reads back (write -> read round trip)",
+              row.get("finished_epoch") is not None and learner._prev_finished_epoch("ai0002") == row["finished_epoch"],
+              (row.get("finished_epoch"), learner._prev_finished_epoch("ai0002")))
 
     # O6-2 FAULT: the ledger fails in every way it can -> the cycle is still scored, a row says why ---------------------
     class RaisingPsutil(types.ModuleType):
@@ -1818,7 +1874,8 @@ def test_o6_o7(tmp: Path) -> None:
              lambda r: r["cpu_avg"] is None and "ops_start" in r["ops_error"] and r["free_gb_end"] == 500.0),
             ("the row builder raises", lambda: setattr(learner, "_ops_row", broken_builder),
              lambda r: r["tag"] == "ai0002" and r["minutes"] is None and tuple(r) == learner.OPS_KEYS
-             and "could not be built" in r["ops_error"]),
+             and "could not be built" in r["ops_error"]
+             and isinstance(r["finished_epoch"], float) and abs(r["finished_epoch"] - time.time()) < 300),
             ("ops.jsonl cannot be written", lambda: learner.OPS_FILE.mkdir(parents=True),
              None))
     for i, (arm, fault, row_ok) in enumerate(arms):
@@ -1888,15 +1945,80 @@ def test_o6_o7(tmp: Path) -> None:
         r = learner._ops_row("ai0009", {"errors": []}, "x", time.time(), 0.0, {"seconds": 0.0, "bytes": 0})
         check("O6-4 FAULT: a size walk past SIZE_WALK_CAP_S gives learner_gb null with the reason, not a hang",
               r["learner_gb"] is None and "learner_gb: TimeoutError" in (r["ops_error"] or ""), r)
+        learner.SIZE_WALK_CAP_S = O3_REAL["SIZE_WALK_CAP_S"]
         r = learner._ops_row("ai0009", None, "x", time.time(), 0.0, None)
         check("O6-5 an ADOPTED cycle (its start never measured) gets a row whose ops_error says so",
               r["started"] is None and r["minutes"] is None and r["cpu_avg"] is None
               and (r["ops_error"] or "").startswith("adopted"), r)
 
+        # O6-4b the cap is checked INSIDE one directory too. StepClock: the check before the directory reads 1.0, the
+        # first in-directory check (entry SIZE_WALK_CHECK_EVERY = 10) reads 2.0, so a deadline of 1.5 falls between.
+        flat = tmp / "o6-4-flat"
+        flat.mkdir()
+        for k in range(25):
+            (flat / f"f{k}.txt").write_bytes(b"x" * 7)
+        learner.SIZE_WALK_CHECK_EVERY = 10
+        learner.time = StepClock()
+        try:
+            learner._tree_bytes([flat], 1.5)
+            inner = "returned"
+        except TimeoutError as exc:
+            inner = f"TimeoutError {exc}"
+        learner.time = StepClock()
+        control = learner._tree_bytes([flat], 10 ** 9)
+        check("O6-4b FAULT: a deadline passed while ONE directory is being walked stops the walk (checked every "
+              "SIZE_WALK_CHECK_EVERY entries, not only between directories)", "inside one directory" in inner, inner)
+        check("O6-4b CONTROL: with the deadline far away the same directory is counted in full", control == 25 * 7,
+              control)
+
+    # O6-6 gap_minutes comes from the previous ROW's epoch when that row is the previous cycle's ---------------------
+    # Discriminator: the previous cycle's `finished` STRING says 60 min ago and the ops row's EPOCH says 5 min ago, so
+    # the two sources give 60.0 and 5.0 in any time zone. (In the repeated DST hour the string can be 60 min off.)
+    def gap_with(name: str, ops_text: str | None, as_dir: bool = False) -> object:
+        with O3Sandbox(tmp / f"o6-6-{name}"):
+            pin_clock()
+            st = O3Sandbox.state([{"tag": "ai0001", "finished": at_pin(-3600)}])
+            learner.OPS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            if as_dir:
+                learner.OPS_FILE.mkdir()
+            elif ops_text is not None:
+                learner.OPS_FILE.write_text(ops_text, encoding="utf-8")
+            ops = learner.ops_start(st)
+            learner.ops_batch_ended(ops)
+            return ops.get("gap_minutes"), ops.get("errors")
+
+    def ops_line(tag: str, epoch: object) -> str:
+        return json.dumps({"tag": "ai0000", "finished_epoch": PIN_EPOCH - 99999}) + "\n" + \
+            json.dumps({"tag": tag, "finished_epoch": epoch}) + "\n"
+
+    def near(g: object, minutes: float) -> bool:
+        """The gap is `minutes` (the pinned clock runs on: allow the few ms ops_start takes) and no gap error was
+        recorded. The sampler is stopped at once here, so its own 'no sample was taken' is expected and ignored."""
+        return isinstance(g, tuple) and isinstance(g[0], float) and abs(g[0] - minutes) <= 0.2 and \
+            not [e for e in g[1] if not e.startswith("cpu_avg:")]
+
+    g = gap_with("epoch", ops_line("ai0001", PIN_EPOCH - 300))
+    check("O6-6 the previous cycle's ops row carries finished_epoch -> gap_minutes is from that EPOCH (5.0), not the "
+          "string (60.0)", near(g, 5.0), g)
+    g = gap_with("other-tag", ops_line("ai0000", PIN_EPOCH - 300))
+    check("O6-6 IDENTITY: the last ops row is ANOTHER cycle's -> its epoch is not used; the string gives 60.0",
+          near(g, 60.0), g)
+    g = gap_with("no-file", None)
+    check("O6-6 CONTROL: no ops.jsonl yet (the first row after O6) -> the string gives 60.0, no error", near(g, 60.0),
+          g)
+    bad = {"null": "null", "text": '"x"', "NaN": "NaN", "bool": "true"}
+    got = {k: gap_with(f"bad-{k}", json.dumps({"tag": "ai0001"})[:-1] + f', "finished_epoch": {v}}}\n')
+           for k, v in bad.items()}
+    got["unreadable"] = gap_with("unreadable", None, as_dir=True)
+    got["junk line"] = gap_with("junk", "{not json\n")
+    check("O6-6 FAULT: an unusable epoch (null, text, NaN, true) or an unreadable ops.jsonl -> the string, never a crash "
+          "or a null gap", all(near(v, 60.0) for v in got.values()), got)
+
     # O7 the early archive, driven through the REAL loop -------------------------------------------------------------
-    def drive_loop(name: str, free: float, margin: float, n: int = 3, held: bool = False, busy: bool = False,
-                   fail: bool = False) -> dict:
+    def drive_loop(name: str, free: float, margin: object, n: int = 3, held: bool = False, busy: bool = False,
+                   fail: bool = False, early_raises: bool = False) -> dict:
         with O3Sandbox(tmp / name, free=free):
+            learner._BAD_MARGIN_LOGGED.clear()  # 'logged once' is per process: each arm starts with none logged
             learner.DEPLOYMENT.parent.mkdir(parents=True, exist_ok=True)
             learner.DEPLOYMENT.write_text("", encoding="utf-8")
             cs = [make_raw_cycle(tmp, f"ai{k:04d}") for k in range(1, n + 1)]
@@ -1921,7 +2043,15 @@ def test_o6_o7(tmp: Path) -> None:
                 def failing_copy(zf, src, nm):
                     raise OSError("simulated: the archive cannot be written")
                 learner._copy_member = failing_copy
-            rc, _ = captured(lambda: learner.loop(single=True))
+            if early_raises:
+                def raising_early(c, s):
+                    order.append(("early raised",))
+                    raise OSError("simulated: the early archive failed")
+                learner.early_archive = raising_early
+            try:
+                rc, _ = captured(lambda: learner.loop(single=True))
+            except Exception as exc:  # noqa: BLE001 - a raise out of loop is a failure the arms must be able to see
+                rc = f"RAISED {exc!r}"
             stc = {c["tag"]: c for c in learner.load_state()["cycles"]}
             return {"rc": rc, "order": order, "state": stc, "same": (tree(learner.RUNS), tree(learner.PROFILES)) ==
                     whole, "raw": {t: raw_view(tmp, t) == before[t] for t in before},
@@ -1952,6 +2082,37 @@ def test_o6_o7(tmp: Path) -> None:
     check("O7 QUIESCENCE: a cycle a live process still names is skipped by the early archive (in use); the next is "
           "archived", r["raw"]["ai0001"] and not r["state"]["ai0001"].get("pruned") and r["restored"]["ai0002"]
           and "ai0001: in use" in r["log"], r["state"])
+
+    # O7 an unusable margin, and a failing early archive, can never withhold the disk check or the batch ------------
+    # At free 60 GB: the default margin (15) gives a 40 GB threshold, so the guarded parse runs no early archive. An
+    # UNGUARDED parse raises on null, a word or a list (order [], no batch: the review's finding) and fires at ANY free
+    # space on NaN (order [prune, guard, run]): both differ from [guard, run].
+    junk = {}
+    for label, m in (("null", None), ("word", "abc"), ("list", [15]), ("NaN", float("nan")), ("inf", float("inf")),
+                     ("negative", -30.0), ("bool", True)):
+        r = drive_loop(f"o7-bad-{label}", free=60.0, margin=m, n=1)
+        junk[label] = (r["rc"], r["order"], r["log"].count("is unusable"))
+    check("O7 FAULT: margin null / 'abc' / [15] / NaN / inf / -30 / true at 60 GB -> [guard, run]: the disk check and "
+          "the batch still run, no early archive fires, and the bad value is logged ONCE",
+          all(v == (0, [("guard",), ("run",)], 1) for v in junk.values()), junk)
+    r = drive_loop("o7-bad-38", free=38.0, margin="abc")
+    check("O7 an unusable margin means the DEFAULT 15 (not 'no early archive'): 'abc' at 38 GB still archives early",
+          r["order"] == [("prune", 2), ("guard",), ("run",)] and r["restored"]["ai0001"], r["order"])
+    r = drive_loop("o7-str15", free=38.0, margin="15", n=1)
+    check("O7 CONTROL: a numeric string '15' is a usable margin and is NOT logged as unusable",
+          r["order"] == [("prune", 2), ("guard",), ("run",)] and "is unusable" not in r["log"], r["order"])
+    r = drive_loop("o7-raises", free=38.0, margin=15.0, n=1, early_raises=True)
+    check("O7 FAULT: the early archive RAISES -> logged, and the loop still runs disk_guard and the batch (only "
+          "disk_guard's own failure may withhold a batch)",
+          r["rc"] == 0 and r["order"] == [("early raised",), ("guard",), ("run",)]
+          and "early archive FAILED" in r["log"] and "disk check FAILED" not in r["log"], (r["rc"], r["order"]))
+    with O3Sandbox(tmp / "o7-once", free=60.0):
+        learner._BAD_MARGIN_LOGGED.clear()
+        bad_cfg = dict(learner.DEFAULTS, early_prune_margin_gb="abc")
+        for _ in range(3):
+            learner.early_archive(bad_cfg, {"cycles": []})
+        once = log_text().count("is unusable")
+    check("O7 the same unusable margin over 3 loop passes is logged ONCE, not every pass", once == 1, once)
 
 
 def main() -> int:

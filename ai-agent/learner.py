@@ -54,6 +54,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import math
 import os
 import random
 import shutil
@@ -387,18 +388,24 @@ def attention(reason: str) -> None:
 #: The keys of every `data/ops.jsonl` row, in order. Times are TIME_FMT strings; `minutes` runs from `started` to
 #: `finished` (the moment the batch was scored, the same value as the cycle's `finished` in cycles.jsonl) and
 #: `gap_minutes` from the PREVIOUS cycle's `finished` to this `started`, so consecutive rows tile the clock: a gap holds
-#: the previous boundary's consult, archive and update plus every idle wait. `cpu_avg` is the whole machine's CPU % over
+#: the previous boundary's consult, archive and update plus every idle wait. `finished_epoch` is `finished` as Unix
+#: seconds. WHY it exists: a TIME_FMT string is naive local time, so in the repeated hour of the autumn DST change it
+#: names two instants and a gap computed from it can be 60 min wrong. `gap_minutes` is computed from the previous
+#: ROW's `finished_epoch` when that row is the previous cycle's (same tag), and from its string only otherwise (the
+#: first row after O6 shipped, or after a row that could not be written). `cpu_avg` is the whole machine's CPU % over
 #: the batch. `learner_gb` is what the learner holds on disk after this boundary's archive: `runs/` (raw logs and zips)
 #: plus its lane profiles (`endless-ai*`). `archive_seconds`/`archive_bytes`: how long this boundary's prune took and
 #: the bytes of the `raw.zip` files it wrote. A field that could not be measured is null and `ops_error` says why;
 #: `ops_error` is null when every field was measured.
-OPS_KEYS = ("tag", "started", "finished", "minutes", "free_gb_start", "free_gb_end", "learner_gb", "cpu_avg",
-            "consult_seconds", "boot_time", "gap_minutes", "archive_seconds", "archive_bytes", "ops_error")
+OPS_KEYS = ("tag", "started", "finished", "finished_epoch", "minutes", "free_gb_start", "free_gb_end", "learner_gb",
+            "cpu_avg", "consult_seconds", "boot_time", "gap_minutes", "archive_seconds", "archive_bytes", "ops_error")
 #: How often the CPU sampler reads `psutil.cpu_percent` while a batch runs. A module constant so a test can shorten it.
 CPU_SAMPLE_S = 60.0
 #: The `learner_gb` size walk gives up (null + ops_error) after this long, so a slow disk never delays a boundary
-#: by more than this.
+#: by much more than this. It is checked before each directory and every SIZE_WALK_CHECK_EVERY entries inside one, so
+#: one huge directory cannot run past it either.
 SIZE_WALK_CAP_S = 20.0
+SIZE_WALK_CHECK_EVERY = 1000
 
 
 class _CpuSampler(threading.Thread):
@@ -455,7 +462,37 @@ def _measured(errors: list[str], name: str, fn):
 
 
 def _parse_time(text: str) -> float:
+    """A TIME_FMT string as Unix seconds. Naive local time: in the repeated autumn DST hour it picks the FIRST of the
+    two instants, so it can be 60 min early. For `gap_minutes` it is only the fallback (see OPS_KEYS)."""
     return dt.datetime.strptime(text, TIME_FMT).timestamp()
+
+
+def _prev_finished_epoch(tag: object) -> float | None:
+    """`finished_epoch` from the LAST row of data/ops.jsonl, but only when that row is cycle `tag`'s (identity, not
+    position: a row that could not be written leaves an older cycle's row last) and its value is a finite number.
+    None otherwise, including when the file cannot be read. NEVER raises: the caller then uses the string."""
+    try:
+        if not OPS_FILE.is_file():
+            return None
+        lines = [x for x in OPS_FILE.read_text(encoding="utf-8").splitlines() if x.strip()]
+        last = json.loads(lines[-1]) if lines else None
+        if not isinstance(last, dict) or last.get("tag") != tag:
+            return None
+        epoch = last.get("finished_epoch")
+        if isinstance(epoch, bool) or not isinstance(epoch, (int, float)) or not math.isfinite(epoch):
+            return None
+        return float(epoch)
+    except Exception:  # noqa: BLE001 - an unreadable ledger only means the string fallback is used
+        return None
+
+
+def _gap_minutes(t0: float, prev: dict) -> float:
+    """Minutes from the previous cycle `prev` finishing to `t0`: from its ops row's epoch when there is one, else from
+    its TIME_FMT `finished` string (which can be 60 min off in the repeated DST hour)."""
+    epoch = _prev_finished_epoch(prev.get("tag"))
+    if epoch is None:
+        epoch = _parse_time(prev["finished"])
+    return round((t0 - epoch) / 60, 1)
 
 
 def ops_start(state: dict) -> dict:
@@ -466,8 +503,8 @@ def ops_start(state: dict) -> dict:
         ops["t0"], ops["started"] = time.time(), now()
         ops["free_gb_start"] = _measured(ops["errors"], "free_gb_start", lambda: round(free_gb(), 1))
         prev = [c for c in state.get("cycles", []) if isinstance(c, dict) and c.get("finished")]
-        ops["gap_minutes"] = _measured(ops["errors"], "gap_minutes", lambda: round(
-            (ops["t0"] - _parse_time(prev[-1]["finished"])) / 60, 1)) if prev else None
+        ops["gap_minutes"] = _measured(ops["errors"], "gap_minutes",
+                                       lambda: _gap_minutes(ops["t0"], prev[-1])) if prev else None
         sampler = _CpuSampler()
         sampler.start()
         ops["sampler"] = sampler
@@ -492,13 +529,17 @@ def ops_batch_ended(ops: dict | None) -> None:
 
 
 def _tree_bytes(roots: list[Path], deadline: float) -> int:
-    """Bytes of every regular file under `roots`, no link followed; raises TimeoutError past `deadline`."""
-    total, stack = 0, [r for r in roots if r.is_dir()]
+    """Bytes of every regular file under `roots`, no link followed; raises TimeoutError past `deadline`, checked before
+    each directory and every SIZE_WALK_CHECK_EVERY entries inside one."""
+    total, stack, seen = 0, [r for r in roots if r.is_dir()], 0
     while stack:
         if time.monotonic() > deadline:
             raise TimeoutError(f"size walk over its {SIZE_WALK_CAP_S:.0f} s cap")
         with os.scandir(stack.pop()) as it:
             for e in it:
+                seen += 1
+                if seen % SIZE_WALK_CHECK_EVERY == 0 and time.monotonic() > deadline:
+                    raise TimeoutError(f"size walk over its {SIZE_WALK_CAP_S:.0f} s cap (inside one directory)")
                 if e.is_dir(follow_symlinks=False):
                     stack.append(Path(e.path))
                 elif e.is_file(follow_symlinks=False):
@@ -521,7 +562,7 @@ def _ops_row(tag: str, ops: dict | None, finished: str, t_fin: float, consult_s:
         "cpu_avg were never measured"]
     ops = ops or {}
     t0 = ops.get("t0")
-    row = {"tag": tag, "started": ops.get("started"), "finished": finished,
+    row = {"tag": tag, "started": ops.get("started"), "finished": finished, "finished_epoch": round(t_fin, 3),
            "minutes": round((t_fin - t0) / 60, 1) if t0 else None,
            "free_gb_start": ops.get("free_gb_start"),
            "free_gb_end": _measured(errors, "free_gb_end", lambda: round(free_gb(), 1)),
@@ -550,6 +591,8 @@ def write_ops_row(tag: str, ops: dict | None, finished: str, t_fin: float, consu
     except Exception as exc:  # noqa: BLE001
         row = dict.fromkeys(OPS_KEYS)
         row.update(tag=tag, finished=finished, ops_error=f"the ops row could not be built: {exc!r}"[:300])
+        if isinstance(t_fin, (int, float)) and not isinstance(t_fin, bool) and math.isfinite(t_fin):
+            row["finished_epoch"] = round(t_fin, 3)  # so the next row's gap_minutes still gets its epoch
     try:
         append_jsonl(OPS_FILE, [row])
     except Exception as exc:  # noqa: BLE001
@@ -1233,6 +1276,31 @@ def disk_guard(cfg: dict, state: dict) -> bool:
 
 #: The early archive keeps this many newest cycles raw (spec S1-3), whatever `keep_raw_cycles` says.
 EARLY_KEEP_RAW = 2
+#: The unusable `early_prune_margin_gb` values this process has already logged (each is logged once, not every pass).
+_BAD_MARGIN_LOGGED: set[str] = set()
+
+
+def early_margin(cfg: dict) -> float:
+    """`early_prune_margin_gb` from cfg when it is a finite number >= 0 (a numeric string such as "15" counts), else
+    DEFAULTS' value, with the unusable value logged ONCE per process. WHY: a null, a word, a list or NaN (json.loads
+    accepts the bare token NaN) must neither make the early archive raise (which, before this, withheld every batch)
+    nor make it fire at any free space (NaN did: every comparison with NaN is False). The default rather than 'skip
+    O7', so a broken edit does not silently remove the early relief either."""
+    raw = cfg.get("early_prune_margin_gb", DEFAULTS["early_prune_margin_gb"])
+    try:
+        if isinstance(raw, bool):
+            raise TypeError("a boolean is not a margin")
+        margin = float(raw)
+        if not math.isfinite(margin) or margin < 0:
+            raise ValueError("not a finite number >= 0")
+        return margin
+    except (TypeError, ValueError) as exc:
+        fallback = float(DEFAULTS["early_prune_margin_gb"])
+        if repr(raw) not in _BAD_MARGIN_LOGGED:
+            _BAD_MARGIN_LOGGED.add(repr(raw))
+            log(f"config early_prune_margin_gb {raw!r} is unusable ({exc}): using the default {fallback:g} "
+                f"(logged once)")
+        return fallback
 
 
 def early_archive(cfg: dict, state: dict) -> dict | None:
@@ -1245,9 +1313,11 @@ def early_archive(cfg: dict, state: dict) -> dict | None:
     write the zips, keeps the learner running. It is `prune` itself, so it ARCHIVES and never deletes without a
     verified archive (O3), skips HELD cycles and cycles not yet quiet, does nothing under ARCHIVE_FLOOR_GB, and keeps
     the per-call cap `max_archives_per_prune` (it runs at every loop pass, idle waits included, so it continues at the
-    next pass). Returns prune's {"seconds", "bytes"} when it ran, None when free disk is above the threshold. prune
-    never raises; reading free disk can, and `loop` guards this call like `disk_guard`."""
-    margin = float(cfg.get("early_prune_margin_gb", DEFAULTS["early_prune_margin_gb"]))
+    next pass). Returns prune's {"seconds", "bytes"} when it ran, None when free disk is above the threshold. The
+    margin goes through `early_margin` (an unusable value means the default, logged once). prune never raises; reading
+    free disk or `min_free_gb` can, and `loop` gives this call its OWN guard: the failure is logged and the loop goes
+    on to `disk_guard`, so only `disk_guard`'s own failure can withhold a batch."""
+    margin = early_margin(cfg)
     threshold = float(cfg["min_free_gb"]) + margin
     free = free_gb()
     if free >= threshold:
@@ -1315,6 +1385,9 @@ def loop(single: bool, dev: bool = False) -> int:
             cfg, state = load_config(), load_state()
             try:
                 early_archive(cfg, state)  # O7: archive early under min_free_gb + margin, before the floor path
+            except Exception:  # noqa: BLE001 - an optional relief: its failure must never withhold a batch
+                log(f"early archive FAILED (going on to the disk check):\n{traceback.format_exc()}")
+            try:
                 room = disk_guard(cfg, state)
             except Exception:  # noqa: BLE001 - a failed disk check must not kill the 24/7 process; start no batch
                 log(f"disk check FAILED: no batch started; trying again in {cfg['idle_wait_minutes']} min:\n"

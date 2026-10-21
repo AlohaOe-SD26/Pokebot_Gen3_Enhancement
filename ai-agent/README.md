@@ -147,20 +147,28 @@ end, then scores it.
      `early_prune_margin_gb` (25 + 15 = 40 GB), the same archive runs with only the newest 2 cycles kept raw, at
      most `max_archives_per_prune` a pass (it runs again at the next pass, idle waits included). It IS the archive
      above, so it never deletes without a verified zip and skips held and still-busy cycles. Why: it archives while
-     there is still room to write zips, long before the 25 GB stop below.
+     there is still room to write zips, long before the 25 GB stop below. An unusable `early_prune_margin_gb` (null,
+     a word, a list, NaN, infinity, a negative number or true/false) is logged once and the default 15 is used. If
+     the early archive fails, `learner.log` says so and the disk check and the batch go ahead: only the disk check
+     itself can hold a batch back (tests O7).
 8. **Ops ledger** (backlog O6, 2026-10-21). After the archive, one row per cycle goes to `data/ops.jsonl` (not
    `cycles.jsonl`, so the report and `publish` see nothing new):
-   - `tag`, `started`, `finished` (the moment the batch was scored, as in `cycles.jsonl`), `minutes` between them;
-   - `gap_minutes`: from the previous cycle's `finished` to this `started` (the boundary's consult, archive and
-     update, plus any idle wait), so consecutive rows tile the clock;
+   - `tag`, `started`, `finished` (the moment the batch was scored, as in `cycles.jsonl`), `finished_epoch` (the
+     same moment in Unix seconds), `minutes` between them;
+   - `gap_minutes`: from the previous cycle's finish to this `started` (the boundary's consult, archive and
+     update, plus any idle wait), so consecutive rows tile the clock. It is computed from the previous row's
+     `finished_epoch` when that row is the previous cycle's (the same tag). Only otherwise (the first row, or after a
+     row that could not be written) does it use the `finished` text, which is local time and can be 60 min off in
+     the repeated hour when the clocks go back;
    - `free_gb_start`, `free_gb_end` (after the archive), `learner_gb` (`runs/` plus the learner's `endless-ai*`
-     profiles; the size walk gives up after 20 s), `cpu_avg` (the whole machine's CPU % over the batch, sampled every
-     60 s), `consult_seconds`, `boot_time` (when Windows last started);
+     profiles; the size walk gives up after 20 s, checked between folders and every 1,000 entries), `cpu_avg` (the
+     whole machine's CPU % over the batch, sampled every 60 s), `consult_seconds`, `boot_time` (when Windows last
+     started);
    - `archive_seconds` and `archive_bytes`: how long this boundary's archive took and the size of the zips it wrote
      (the early archive logs its own numbers to `learner.log` instead).
    - A field that could not be measured is null and `ops_error` says why. **The ledger never fails a cycle**: the
      cycle is scored and saved first, and every failure (psutil missing or failing, the row builder failing, the file
-     unwritable) becomes a null or a log line (tests O6-1 to O6-5). An adopted cycle's row has null start fields.
+     unwritable) becomes a null or a log line (tests O6-1 to O6-6). An adopted cycle's row has null start fields.
 
 ## Talking to Claude
 
