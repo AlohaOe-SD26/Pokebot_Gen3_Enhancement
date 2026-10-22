@@ -164,8 +164,12 @@ _FORBIDDEN_KEYS = frozenset({"POKEBOT_RNG_DECORRELATION_FRAMES"})
 #: D6: behaviour or trace variables WITHOUT the `POKEBOT_` prefix that the sandbox reads (grep, 2026-10-01). They are
 #: stripped from every lane of an `--arms` batch, since `env-all:` records only `POKEBOT_*` and could not show a leak.
 #: ‼ The gate scans the build for any other such name, so a new one cannot slip past this list.
+#: `AI_PLAYER_PACKAGE_ROOT` (2026-10-22): the AI player's plugin (`plugins/custom_modes/ai_player_mode.py`) loads its
+#: package from it; only `py -3.12 -m ai_player run` should set it, and a value inherited from a shell that ran the AI
+#: could point a bot lane at another checkout's package. Added after the gate had been red on it since 2026-10-07.
 STRIP_UNPREFIXED: tuple[str, ...] = ("TEACH_TRACE", "TEACH_MISS_WINDOW", "TEACH_CANCEL_FORGET", "STORY_TALK_DEBUG",
-                                     "KI15_TRACE", "FW_TRACE", "CAPTURE_FORCE", "SAVE_POST_RIVAL")
+                                     "KI15_TRACE", "FW_TRACE", "CAPTURE_FORCE", "SAVE_POST_RIVAL",
+                                     "AI_PLAYER_PACKAGE_ROOT")
 STRIP_UNPREFIXED_PREFIXES: tuple[str, ...] = ("CH21_CAPTURE_",)
 _TAG_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 _POKEBOT_TOKEN_RE = re.compile(r"POKEBOT_[A-Za-z0-9_]+")

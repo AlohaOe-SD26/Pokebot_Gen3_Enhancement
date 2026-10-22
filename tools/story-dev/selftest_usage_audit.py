@@ -120,7 +120,9 @@ GOLDEN = {"calls": 4, "input": 16, "cw5m": 1660, "cw1h": 100, "cache_read": 4250
 # transcripts), each reduced to a short SYNTHETIC command with the same file arguments and no file contents. The label
 # is the reviewer's, by the OBJECT read ("log" folded into evidence, "suite output" = suite). Where the reviewer's text
 # elided a path or argument ("...", "$f"), the stand-in keeps the same folder, suffix and command shape.
-R, SP = "C:/Remote Projects/Pokebot_Gen3_Enhancement", "C:/Users/u/AppData/Local/Temp/claude/P/S1/scratchpad"
+# R is this checkout's root, derived (2026-10-22): a literal of the main checkout's path turned
+# `probe_no_hardcoded_repo.py` red from 2026-10-21, and the labels depend only on the folder and suffix under R.
+R, SP = Path(__file__).resolve().parents[2].as_posix(), "C:/Users/u/AppData/Local/Temp/claude/P/S1/scratchpad"
 HAND_LABELS = [
     ("Read", {"file_path": f"{R}/ai_player/host/eyes.py"}, "source"),                                       # 1
     ("Read", {"file_path": f"{R}/sandbox-pokebot/modules/battle_handler.py"}, "source"),                    # 2

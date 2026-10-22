@@ -24017,3 +24017,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **The fix that worked:** delete the working-copy subfolders of each finished item (reports kept), after checking no running process used them. 60.7 GB was freed.
 - **Prevention rule:** a workflow that makes scratch copies cleans them up when its item is committed, and a session checks `%TEMP%/claude` with `tools/status.py`'s disk line before starting another big fan-out. TODO, its gate: the build and verify templates gain a "delete your scratch copies before you answer" line, and `status.py` shows the scratch tree's size.
 - **Update, the same day:** the template half of the TODO is done. Every stage template's scratch rule now ends "before your final answer, DELETE the copies, clones and repos you made there" (build@2, doc-check@3, recon@3, sweep-analysis@2, verify@3). The watchdog's disk-drop alert is the backstop that caught this one.
+
+## 2026-10-22 — ⛔ THE NO-ROM GATE SUITE WAS RED FOR UP TO 15 DAYS AND NO SESSION NOTICED
+
+- **Symptom:** `run_gates.py --quick` -> `FAILED: 2 of 142`. `repro_x4_headless.py` F5 had been red since 2026-10-07, when the AI player's plugin started reading `AI_PLAYER_PACKAGE_ROOT`. `probe_no_hardcoded_repo.py` had been red since 2026-10-21, when `selftest_usage_audit.py` was committed with the repo path as a literal.
+- **Root cause:** the AI-player era runs its own gates (`run_units`, `run_regression`) and each item ran only the gates it touched. Nobody ran the whole standing suite after a change outside `tools/story-dev/`. Both gates did exactly their job, turning red on a NEW unprefixed env name and on a hardcoded path, but nobody looked.
+- **The fix that worked:** read the failing line before touching anything (CLAUDE.md rule 4). Both failures were real and small, one line each. See `07` 2026-10-22.
+- **Prevention rule:** an item that adds or changes code anywhere runs `cd tools/story-dev && PYTHONUTF8=1 py -3.12 run_gates.py --quick` (about 4 minutes, background) before its commit, and quotes the `FAILED: n of N` or PASS line in the commit message. A suite nobody runs is not a gate.

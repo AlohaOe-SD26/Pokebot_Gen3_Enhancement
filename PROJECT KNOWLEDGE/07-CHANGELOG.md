@@ -38604,3 +38604,10 @@ bought balls only at fixed story points.
   - A3: the real census, which must have 0 UNPARSED.
   - Mutants: 5 of 6 call-deleting mutants are caught (verdict, preprocessor kind, C comment clause, pin check, the unparsed record). The survivor, `main` ignoring the verdict, is inert on the real tree, which has 0 UNPARSED. Testing it needed a pin-bypass flag, which was rejected because it would weaken the pin rule.
 - **Next:** slice 2's design, after S2-1b (the handoff slim-down, backlog item 7's open half), by the top-15 order.
+
+## 2026-10-22 — Two gates of the no-ROM suite had been RED for days; both fixed (`run_gates.py --quick`: 142 of 142)
+
+- **Found by** the census item's own `run_gates.py --quick` run, which ended at 5:44:42 AM: `FAILED: 2 of 142`.
+- **`repro_x4_headless.py` F5, red since 2026-10-07.** The AI player's plugin `sandbox-pokebot/plugins/custom_modes/ai_player_mode.py:46` reads `AI_PLAYER_PACKAGE_ROOT`, and the D6 source scan rightly turned red: "every unprefixed env name the build reads is stripped (a NEW one turns this red) — ['AI_PLAYER_PACKAGE_ROOT']". **Fix:** `x4_headless.STRIP_UNPREFIXED` gains it. Only `py -3.12 -m ai_player run` should set it, and a value inherited from a shell that ran the AI could point a bot lane at another checkout's package. F5's strip test now plants it and asserts it is removed. The strip applies to `--arms` batch lanes only.
+- **`probe_no_hardcoded_repo.py` H1, red since 2026-10-21.** `selftest_usage_audit.py:123` held the main checkout's path as a literal in synthetic test data. **Fix:** `R` is derived from the file's own location. The labels depend only on the folder and suffix under `R`, and the selftest still passes ALL 94.
+- **Proof:** the same three gates were red in that suite run and exit 0 after the fix, with the tree otherwise unchanged (`probe_no_hardcoded_repo`, `repro_x4_headless`, `selftest_usage_audit`).

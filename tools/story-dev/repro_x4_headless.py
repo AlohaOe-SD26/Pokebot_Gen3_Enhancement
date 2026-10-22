@@ -595,7 +595,8 @@ check("F4 names are DISTINCT within an arm", len(set(_names[:8])) == 8, str(_nam
 
 _env_in = {"PATH": "x", "COLUMNS": "80", "POKEBOT_R24_CATCHHURT": "1", "POKEBOT_HEAL_AT_FRACTION": "0.8", "TEACH_TRACE": "1",
            "TEACH_MISS_WINDOW": "1", "CAPTURE_FORCE": "1", "CH21_CAPTURE_WALLACE": "x", "SAVE_POST_RIVAL": "1",
-           "STORY_TALK_DEBUG": "1", "KI15_TRACE": "1", "FW_TRACE": "1", "TEACH_CANCEL_FORGET": "1"}
+           "STORY_TALK_DEBUG": "1", "KI15_TRACE": "1", "FW_TRACE": "1", "TEACH_CANCEL_FORGET": "1",
+           "AI_PLAYER_PACKAGE_ROOT": "C:/elsewhere"}
 _kept, _removed = x4.strip_inherited(_env_in)
 check("F5 the strip removes every POKEBOT_* and every D6 variable", set(_kept) == {"PATH", "COLUMNS"}, str(_kept))
 check("F5 the strip REPORTS what it removed, sorted", _removed == sorted(set(_env_in) - {"PATH", "COLUMNS"}),
