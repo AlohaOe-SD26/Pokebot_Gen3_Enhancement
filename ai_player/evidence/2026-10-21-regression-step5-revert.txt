@@ -1,10 +1,10 @@
 AI PLAYER REGRESSION - full lane, evidence group `revert_step5` (gates/run_regression.py, spec S4-1)
-date: 2026-10-21 20:27:14
-code: HEAD 08392c98; covers:revert_step5 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-10-21 22:45:25
+code: HEAD 2267aecf; covers:revert_step5 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 command: py -3.12 ai_player/gates/run_regression.py --full --evidence
 Each section is one suite: the runner's typed status, then the suite's raw output (indented).
 
-== revert_step5: PASS (exit 0, 1056.1 s, 344 mutants)
+== revert_step5: PASS (exit 0, 1048.5 s, 344 mutants)
     | [G0] CONTROL, the unchanged copy: 217 tests, failing none (ran the copy: True) -> PASS
     | [G1] BROKEN: a milestone's VARS are not checked (only its flags). Predicted CAUGHT by ['MilestoneTests.test_vars_count_at_least', 'MilestoneTests.test_chapter_1_in_order_from_the_marks']. The copy ran 217 tests (the copy); failing: {'ExploreTests.test_curiosity_finds_an_item_ball_before_the_party': 'FAIL', 'MilestoneTests.test_chapter_1_in_order_from_the_marks': 'FAIL', 'MilestoneTests.test_the_intro_is_passed_by_its_waypoint_the_truck': 'FAIL', 'MilestoneTests.test_vars_count_at_least': 'FAIL', 'PersonFairTests.test_each_step_needs_its_own_words': 'FAIL', 'PersonFairTests.test_roxanne_is_proven_by_the_badge_alone': 'FAIL', 'SmallTests.test_milestone_lines_say_how_a_milestone_passed': 'FAIL'} -> CAUGHT
     | [G2] BROKEN: a proof NOT READ counts as done. Predicted CAUGHT by ['MilestoneTests.test_a_proof_not_read_is_never_progress']. The copy ran 217 tests (the copy); failing: {'MilestoneTests.test_a_proof_not_read_is_never_progress': 'FAIL'} -> CAUGHT
@@ -351,10 +351,11 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [G326] BROKEN: a look round goes on while its battles bring experience and nothing new is seen (5.2 part 2). Predicted CAUGHT by ['VerifierRound52Tests.test_a_look_round_is_over_when_it_has_seen_nothing_new_battles_or_not']. The copy ran 217 tests (the copy); failing: {'VerifierRound52Tests.test_a_look_round_is_over_when_it_has_seen_nothing_new_battles_or_not': 'FAIL'} -> CAUGHT
     | [G317] BROKEN: a player SHUT IN (no way out known: the moving truck) is out of ideas (`shut_in`'s call deleted). Predicted CAUGHT by ['VerifierRound52Tests.test_a_walk_with_no_lead_heads_for_what_is_left_and_else_is_out_of_ideas']. The copy ran 217 tests (the copy); failing: {'VerifierRound52Tests.test_a_walk_with_no_lead_heads_for_what_is_left_and_else_is_out_of_ideas': 'FAIL'} -> CAUGHT
     | 342 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 344
-    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (346 checks of 163 files, files digest dc5ca69070091afc)
+    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (346 checks of 163 files, files digest 5c2c78470a09db62)
     | OVERALL: PASS
+    | [EVIDENCE] kept the earlier tree's 2026-10-21-step52-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-08392c98/2026-10-21-step52-REVERT.txt
     | evidence: ai_player\evidence\2026-10-21-step52-REVERT.txt
 
 
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (29 checks of 163 files, files digest dc5ca69070091afc); the covers digests of revert_safety_gates, revert_step5, units did not move either
-REGRESSION: PASS (full, 24 suites, 4309.3 s wall)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (29 checks of 163 files, files digest 5c2c78470a09db62); the covers digests of revert_safety_gates, revert_step5, units did not move either
+REGRESSION: PASS (full, 24 suites, 4295.5 s wall)
