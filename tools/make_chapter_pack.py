@@ -51,14 +51,20 @@ THE DIVISION OF LABOUR (fix round 2, 2026-10-22). Two different failures, two di
      its own regexes (it never imports the extractor). So the run starts it as a subprocess on the same world folder,
      over EVERY record (never the seeded sample), before anything is generated, and REFUSES (exit 2, nothing written)
      unless it exits 0 with `[VERIFY-WORLD] PASS: 0 mismatches (every record; ...`. A verifier that cannot run (no
-     clone at the pin) is a refusal too. The pack header's `inputs_verified` records the command, its exit code, its
+     clone at the pin) is a refusal too, and so is one still running after --verify-timeout seconds (default 120;
+     it takes about 1 s). The pack header's `inputs_verified` records the command, its exit code, its
      summary line and the verifier's sha256. verify_world covers the four WORLD files only; KB1's seasoned files
      (encounters, learnsets, species) are not re-verified by this run (their verifier is verify_seasoned.py).
-  2. THE PACK IS WRONG AGAINST ITS INPUTS (the generator dropped or changed something). That is this tool's own check:
-     expected_selection is a SECOND reading of the inputs that shares no code with build_pack, and expected_pack builds
-     the WHOLE pack from it a second time (every key but the provenance header). check_complete compares the pack with
+  2. THE PACK IS WRONG AGAINST ITS INPUTS (the generator, or its input reader, dropped or changed something). That is
+     this tool's own check. The check reads the input FILES again with its own loader (read_inputs_for_check, by its
+     own key paths; fix round 3: until then both readings consumed the one dict load_inputs returns, so a boss level,
+     a connection or a double flag corrupted inside that reader passed both, and verify_world too, since the files on
+     disk were right). expected_selection is that SECOND reading, sharing no code with build_pack, and expected_pack
+     builds the WHOLE pack from it a second time (every key but the pin, generator and verification header; the
+     source hashes are the check's own). check_complete compares the pack with
      it VALUE BY VALUE (deep_diff: a boss mon's moves and held item, a double flag, a connection's offset, an HM's badge,
-     every claim's full text and source) beside its older findings that name an omission in words (MISSING boss ...).
+     every claim's full text and source; a bool is never equal to an int there) beside its older findings that name an
+     omission in words (MISSING boss ...).
      check_md_complete then compares the .md LINE BY LINE, every line, with render_md_check's rendering of that second
      reading, at the summary level its own size measurements choose: so a boss line must hold every mon with species,
      level, types, moves and held item, a double battle must say DOUBLE, a links line must list every connection and
@@ -85,7 +91,9 @@ THE GUARDS (each stops the run with exit 2 and a message naming what it found; t
 feeds each a broken input beside a healthy one, and its --mutants mode deletes each CALL in a scratch copy and must see
 a failing arm):
   check_pins             an input whose `_source` pin differs from tools/decomp.pin (a pack mixing two decomps)
-  verify_inputs          verify_world.py not exiting 0 with 0 mismatches over every record (division of labour, 1)
+  verify_inputs          verify_world.py not exiting 0 with 0 mismatches over every record, or not finishing within
+                         --verify-timeout seconds (division of labour, 1)
+  read_inputs_for_check  the check's own reading of the files (division of labour, 2): what the pack is compared with
   refuse_empty_chapter   a chapter with no campaign entry (a typo'd chapter must not write an empty pack)
   refuse_route_keys      a key named x, y, route, path, steps or coords inside the chapter's campaign entries
   resolve_maps           an area map that maps.json does not hold
@@ -113,9 +121,12 @@ OUT_DEFAULT = os.path.join(REPO, "PROJECT KNOWLEDGE", "chapter-packs")
 VERIFY_WORLD = os.path.join(REPO, "ai_player", "gates", "verify_world.py")
 #: the only summary line that lets a pack be written: zero mismatches over EVERY record (never a seeded sample)
 VERIFY_PASS = re.compile(r"^\[VERIFY-WORLD\] PASS: 0 mismatches \(every record;")
-#: the pack's provenance header: check_complete copies these from the pack (the selftest's hashes and F2 arms check
-#: them against the files); every other key is re-derived from the inputs
-PROVENANCE = ("decomp_pin", "generator", "sources", "inputs_verified")
+#: seconds verify_world may run before the run refuses: it takes about 1 s here, so this only ever fires on a hang
+#: (a timeout is a refusal with its reason, never a wait without end)
+VERIFY_TIMEOUT_S = 120
+#: the pack's provenance header: check_complete copies these from the pack (the selftest's pin, hashes and F2 arms
+#: check them); every other key, `sources` included (fix round 3), is re-derived from the check's own reading
+PROVENANCE = ("decomp_pin", "generator", "inputs_verified")
 #: hex digits of each sha256 the .md shows (the .json keeps all 64); the room pays for the verification line
 MD_HASH_CHARS = 16
 
@@ -199,7 +210,7 @@ def repo_rel(path, root=REPO):
     return p.replace("\\", "/") if rel.startswith("..") else rel.replace("\\", "/")
 
 
-def verify_inputs(world_dir, decomp=None, verifier=VERIFY_WORLD):
+def verify_inputs(world_dir, decomp=None, verifier=VERIFY_WORLD, timeout=None):
     """Run ai_player/gates/verify_world.py over EVERY record of the four world files this run reads, and stop the run
     (PackError, so exit 2 and nothing written) unless it exits 0 with a `PASS: 0 mismatches (every record; ...)` line.
     WHY: this tool cannot see a fact missing from its own inputs (a double battle, a badge or a connection dropped by
@@ -207,7 +218,11 @@ def verify_inputs(world_dir, decomp=None, verifier=VERIFY_WORLD):
     regexes and reports exactly such omissions. `--knowledge` points its W1 withheld-field scan at the same folder, so
     the result line depends only on these inputs. Returns the record the pack header carries. (`verifier` is a path
     only so that a scratch copy of this file, which has no repo around it, can name the real one: the selftest's.
-    The paths the record shows are relative to the repo the verifier lives in, <repo>/ai_player/gates/.)"""
+    The paths the record shows are relative to the repo the verifier lives in, <repo>/ai_player/gates/.)
+    A verifier that has not finished after `timeout` seconds (default VERIFY_TIMEOUT_S) is killed and the run refuses
+    naming the timeout (fix round 3: without it a hung verifier hung the generator until something outside killed it,
+    and the project's rule is that every wait is bounded)."""
+    timeout = VERIFY_TIMEOUT_S if timeout is None else timeout
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(verifier))))
     cmd = [sys.executable, verifier, "--data", world_dir, "--knowledge", world_dir]
     shown = "py -3.12 %s --data %s --knowledge %s" % (repo_rel(verifier, root), repo_rel(world_dir, root),
@@ -215,7 +230,12 @@ def verify_inputs(world_dir, decomp=None, verifier=VERIFY_WORLD):
     if decomp:
         cmd += ["--decomp", decomp]
         shown += " --decomp %s" % repo_rel(decomp, root)
-    p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise PackError("ai_player/gates/verify_world.py did not finish within %g s (`%s`): it was stopped and the run "
+                        "refuses rather than wait (the inputs are NOT verified; --verify-timeout raises the bound)" % (
+                            timeout, shown)) from None
     lines = (p.stdout or "").strip().splitlines()
     summary = next((ln for ln in reversed(lines) if ln.startswith("[VERIFY-WORLD]")), "")
     if p.returncode != 0 or not VERIFY_PASS.match(summary):
@@ -591,15 +611,55 @@ def claims(pack, badges_won, maps_by_id):
 
 
 # ---------------------------------------------------------------- the independent completeness check
-def expected_selection(chapter, data):
+def read_inputs_for_check(world_dir, seasoned_dir):
+    """The CHECKING side's own loader (fix round 3, 2026-10-22): it opens the seven input files itself, parses their
+    bytes and hashes those same bytes, then hands them to check_fields. It calls neither load_inputs nor sha256_lf.
+    WHY: up to round 2 both readings consumed the ONE dict load_inputs returned, so a defect inside that reader (a boss
+    level off by one, a dropped connection, a double battle read as single: the round-2 re-verify planted all three)
+    reached the written packs at exit 0. The files on disk stayed right, so verify_world passed too, and the pack was
+    checked only against the corrupted dict, never against the files whose sha256 its header records. A check that
+    shares its input path with the thing it checks is not a check (02-ARCHITECTURE). Reading the files a second time
+    costs about 0.1 s a run."""
+    parsed, digests = {}, {}
+    for folder, prefix, names in (
+            (world_dir, "ai_player/knowledge/world/", ("campaign.json", "maps.json", "trainers.json", "bosses.json")),
+            (seasoned_dir, "ai_player/knowledge/seasoned/", ("encounters.json", "learnsets.json", "species.json"))):
+        for name in names:
+            with open(os.path.join(folder, name), "rb") as f:
+                raw = f.read()
+            parsed[prefix + name] = json.loads(raw.decode("utf-8"))
+            digests[prefix + name] = hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
+    return check_fields(parsed, digests)
+
+
+def check_fields(parsed, digests):
+    """The fields the second reading checks, pulled out of the parsed files by the check side's OWN key paths into
+    one flat dict (expected_selection and expected_pack read only this dict, never load_inputs' one). `sha256` is the
+    hash of the bytes the check itself read: expected_pack carries it as the pack's `sources`, so a header hash that
+    differs from the files' is a finding too. (Called only by read_inputs_for_check. The selftest's mutant hands it the
+    FIRST reading instead, and the reader-plant arms must then fail.)"""
+    world, seasoned = "ai_player/knowledge/world/", "ai_player/knowledge/seasoned/"
+    return {"entries": parsed[world + "campaign.json"]["entries"],
+            "field_move_badges": parsed[world + "campaign.json"]["field_move_badges"],
+            "maps": parsed[world + "maps.json"]["maps"],
+            "trainers": parsed[world + "trainers.json"]["trainers"],
+            "bosses": parsed[world + "bosses.json"]["bosses"],
+            "encounters": parsed[seasoned + "encounters.json"]["maps"],
+            "learnsets": parsed[seasoned + "learnsets.json"]["species"],
+            "species": parsed[seasoned + "species.json"]["species"],
+            "sha256": dict(sorted(digests.items()))}
+
+
+def expected_selection(chapter, chk):
     """A SECOND reading of the inputs for chapter `chapter`, sharing no code with build_pack, ring, links,
-    trainers_on, wild, hm_learners or claims, so a bug or a deleted line in those cannot hide here too.
+    trainers_on, wild, hm_learners or claims, so a bug or a deleted line in those cannot hide here too. `chk` is
+    read_inputs_for_check's dict: the files read again by the check's own loader, never load_inputs' dict.
     Returns (expected, problems): `expected` is what a complete pack must hold; `problems` are the inputs disagreeing
     with each other (an item one file names and another lost), each a finding on its own."""
-    camp = data["ai_player/knowledge/world/campaign.json"]
-    every_map = data["ai_player/knowledge/world/maps.json"]["maps"]
-    tdata = {t["symbol"]: t for t in data["ai_player/knowledge/world/trainers.json"]["trainers"]}
-    brows = data["ai_player/knowledge/world/bosses.json"]["bosses"]
+    camp = {"entries": chk["entries"], "field_move_badges": chk["field_move_badges"]}
+    every_map = chk["maps"]
+    tdata = {t["symbol"]: t for t in chk["trainers"]}
+    brows = chk["bosses"]
     mapd = {m["id"]: m for m in every_map}
     problems = []
 
@@ -673,7 +733,7 @@ def expected_selection(chapter, data):
                             "for it" % (badge, who))
         exp_hm.update(rows_by_badge.get(badge) or [])
     learners = {}
-    for sp in data["ai_player/knowledge/seasoned/learnsets.json"]["species"]:
+    for sp in chk["learnsets"]:
         for row in sp.get("tm_hm") or []:
             learners.setdefault(row["move"], set()).add(sp["symbol"])
 
@@ -718,7 +778,7 @@ def expected_selection(chapter, data):
 
     # wild: re-aggregated from the SLOTS (build_pack reads the precomputed `rarity`)
     exp_wild = []
-    for row in data["ai_player/knowledge/seasoned/encounters.json"]["maps"]:
+    for row in chk["encounters"]:
         if row.get("map") in area and row.get("availability") == "normal":
             for meth in sorted(row["methods"]):
                 agg = {}
@@ -732,7 +792,7 @@ def expected_selection(chapter, data):
                 "connections": exp_conn, "warps": exp_warps, "warps_in": exp_in, "wild": sorted(exp_wild),
                 "flash": sorted(a for a in area if mapd[a]["requires_flash"]),
                 "entries": mine,
-                "pack": expected_pack(chapter, data)}
+                "pack": expected_pack(chapter, chk)}
     return expected, problems
 
 
@@ -746,19 +806,19 @@ def _bare(sym):
     return sym
 
 
-def expected_pack(chapter, data):
+def expected_pack(chapter, chk):
     """The WHOLE pack a second time, every key build_pack writes except the PROVENANCE header, written as its own code
     over the inputs (it calls none of build_pack, ring, links, classify_warp, trainers_on, wild, hm_learners, claims or
-    short). check_complete compares the pack with it value by value, so a boss mon's move or held item, a double flag, a
-    connection, an HM's badge or one word of a claim that differs from the inputs is a finding; and render_md_check
-    renders the .md from THIS dict, so check_md_complete compares every line of the page with the inputs.
-    Wild rows are summed from the SLOTS (build_pack reads the precomputed `rarity`). Returns None if an area map is not
-    in maps.json (resolve_maps refuses that chapter first)."""
-    world, seasoned = "ai_player/knowledge/world/", "ai_player/knowledge/seasoned/"
-    camp = data[world + "campaign.json"]
-    mapd = {m["id"]: m for m in data[world + "maps.json"]["maps"]}
-    tdata = {t["symbol"]: t for t in data[world + "trainers.json"]["trainers"]}
-    brows = data[world + "bosses.json"]["bosses"]
+    short), from `chk`, read_inputs_for_check's own reading of the files. check_complete compares the pack with it
+    value by value, so a boss mon's move or held item, a double flag, a connection, an HM's badge, one word of a claim
+    or a source hash that differs from the files is a finding; and render_md_check renders the .md from THIS dict, so
+    check_md_complete compares every line of the page with the files.
+    Wild rows are summed from the SLOTS (build_pack reads the precomputed `rarity`). `sources` is the sha256 of the
+    bytes the check read. Returns None if an area map is not in maps.json (resolve_maps refuses that chapter first)."""
+    camp = {"entries": chk["entries"], "field_move_badges": chk["field_move_badges"]}
+    mapd = {m["id"]: m for m in chk["maps"]}
+    tdata = {t["symbol"]: t for t in chk["trainers"]}
+    brows = chk["bosses"]
     mine = [e for e in camp["entries"] if e.get("chapter") == chapter]
     entries = [dict((k, v) for k, v in e.items() if k in ENTRY_FIELDS) for e in mine]
     area = list(dict.fromkeys("MAP_" + a for e in mine for a in e["area"]))
@@ -851,9 +911,9 @@ def expected_pack(chapter, data):
                 later.append({"fight": f, "role": vs[0]["role"], "entry": vs[0]["entry"], "ids": [b["id"] for b in vs],
                               "level_max": max(p["level"] for b in vs for p in b["party"])})
 
-    names = {s["symbol"]: s["name"] for s in data[seasoned + "species.json"]["species"]}
+    names = {s["symbol"]: s["name"] for s in chk["species"]}
     wild_rows = []
-    for row in data[seasoned + "encounters.json"]["maps"]:
+    for row in chk["encounters"]:
         if row.get("map") not in in_area or row.get("availability") != "normal":
             continue
         for meth in sorted(row["methods"]):
@@ -879,7 +939,7 @@ def expected_pack(chapter, data):
     wild_species = {m["species"] for r in wild_rows for m in r["species"]}
     hms = []
     for mv, why in wanted:
-        rows = [(s["symbol"], t["tm"]) for s in data[seasoned + "learnsets.json"]["species"]
+        rows = [(s["symbol"], t["tm"]) for s in chk["learnsets"]
                 for t in s.get("tm_hm", []) if t["move"] == "MOVE_" + mv]
         who = [sp for sp, _ in rows]
         hms.append({"move": mv, "why": why, "hm": next((tm for _, tm in rows if tm), None),
@@ -955,7 +1015,7 @@ def expected_pack(chapter, data):
 
     return {"_generated": GENERATED, "_absent": ABSENT, "chapter": chapter, "entries": entries, "maps": map_rows,
             "links": link_rows, "warps_in": warps_in, "trainers": trainers, "bosses": bosses,
-            "area_bosses_later": later, "wild": wild_rows, "hms": hms, "claims": cl}
+            "area_bosses_later": later, "wild": wild_rows, "hms": hms, "claims": cl, "sources": chk["sha256"]}
 
 
 def deep_diff(have, want, path, out):
@@ -1086,9 +1146,9 @@ def check_complete(pack, expected):
 
 
 def with_provenance(xp, pack):
-    """The second reading plus the pack's PROVENANCE header (hashes, pin, generator, verification: the selftest's
-    hashes and F2 arms check those against the files). A header key the pack lacks stays absent from the pack and
-    present here, so deep_diff names it."""
+    """The second reading plus the pack's PROVENANCE header (pin, generator, verification: the selftest's pin, hashes
+    and F2 arms check those). The source hashes are NOT copied: the second reading carries its own. A header key the
+    pack lacks stays absent from the pack and present here, so deep_diff names it."""
     full = dict(xp)
     for k in PROVENANCE:
         full[k] = pack.get(k, "(absent from the pack)")
@@ -1537,12 +1597,14 @@ def dump_json(pack):
     return json.dumps(pack, indent=1, sort_keys=False, ensure_ascii=False) + "\n"
 
 
-def generate_loaded(chapter, data, hashes, pin, md_cap, verified):
+def generate_loaded(chapter, data, hashes, pin, md_cap, verified, check_src):
     """(json text, md text) for one chapter from loaded inputs. main runs check_pins and verify_inputs first and passes
-    verify_inputs' record as `verified`; every other guard runs here. (The selftest calls this in-process with a stub
-    record to reach the guards that sit behind verify_world; such a page says NOT VERIFIED in its header.)"""
+    verify_inputs' record as `verified`; every other guard runs here. `data`/`hashes` are load_inputs' reading (the
+    pack is built from it); `check_src` is read_inputs_for_check's separate reading of the same files (the pack is
+    checked against it). (The selftest calls this in-process with a stub record to reach the guards that sit behind
+    verify_world; such a page says NOT VERIFIED in its header.)"""
     pack = build_pack(chapter, data, hashes, pin, sha256_lf(os.path.abspath(__file__)), verified)
-    expected, problems = expected_selection(chapter, data)
+    expected, problems = expected_selection(chapter, check_src)
     refuse_incomplete(problems + check_complete(pack, expected), chapter)
     md = render_within_cap(pack, md_cap)
     refuse_incomplete(check_md_complete(pack, md, expected, md_cap), chapter)
@@ -1562,6 +1624,8 @@ def main(argv=None):
     ap.add_argument("--check", action="store_true", help="compare with the files in --out; write nothing")
     ap.add_argument("--decomp", help="the pinned decomp clone verify_world reads (default: its own default)")
     ap.add_argument("--verify-world", default=VERIFY_WORLD, help="the verifier (default ai_player/gates/verify_world.py)")
+    ap.add_argument("--verify-timeout", type=float, default=VERIFY_TIMEOUT_S,
+                    help="seconds verify_world may take before the run refuses (default %d)" % VERIFY_TIMEOUT_S)
     args = ap.parse_args(argv)
     pin = read_pin(args.pin)
     data, hashes = load_inputs(args.world, args.seasoned)
@@ -1570,15 +1634,17 @@ def main(argv=None):
         ap.error("name at least one chapter, or --all")
     try:
         check_pins(data, pin)
-        verified = verify_inputs(args.world, args.decomp, args.verify_world)
+        verified = verify_inputs(args.world, args.decomp, args.verify_world, args.verify_timeout)
     except PackError as exc:
         print("REFUSED: %s" % exc, file=sys.stderr)
         return 2
+    # the checking side reads the files again with its own loader (never load_inputs' dict: fix round 3)
+    check_src = read_inputs_for_check(args.world, args.seasoned)
     # every chapter is generated (and checked) in memory first, so a refusal writes NOTHING, not a partial set
     made = []
     for n in chapters:
         try:
-            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified))
+            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified, check_src))
         except PackError as exc:
             print("REFUSED ch%d: %s" % (n, exc), file=sys.stderr)
             return 2

@@ -43,6 +43,15 @@ because its checks compared a line's START. The arms, each FAULT + CONTROL:
   W3 recall   milestones.json's hand-recon'd `trainers` table must be fully contained in the ch1-4 packs. FAULT: JOSH's
               object removed from a scratch maps.json: recall on the pack built from it falls (in-process), and the
               real run refuses that world through verify_world. The milestone -> chapter mapping is the identity.
+  R3 reader   (round 3) the check reads the input files with its OWN loader (read_inputs_for_check), never load_inputs'
+              dict. FAULT: copies of the generator with the round-2 re-verify's six shared-reader mutants planted in
+              load_inputs (Winona's and Roxanne's last mon a level low, ROUTE120<->121 and ROUTE119<->FORTREE dropped,
+              KATE_AND_JOY read as single, CUT's badge read as BADGE02) each exit 2 naming it, nothing written; a pack
+              whose header hash differs from the file is named. CONTROL: the real reader passes (the `all` arm).
+  R3 timeout  FAULT: a verify_world that hangs makes the generator exit 2 naming --verify-timeout's bound, nothing
+              written. CONTROL: the real verifier under an explicit timeout passes.
+  R3 bool     FAULT: deep_diff names True vs 1 (and the reverse, and False vs 0), and a real pack whose double flag is
+              written as 1 is named. CONTROL: equal values of one type give no finding.
   CRLF, routekeys, absent, hashes, empty chapter, pin, unknown area map, unknown trainer, extra entry field, non-normal
               wild rows, the one-way claims and --check: as before (each FAULT + CONTROL). The guards verify_world now
               answers first (area map, trainer, route keys, Wallace's label, the redirected warp, the entry field) are
@@ -96,7 +105,7 @@ STUB_VERIFIED = {"by": "ai_player/gates/verify_world.py", "verifier_sha256": "0"
 #: guard -> (the exact text of its call in the generator, the text a call-deleting mutant puts there)
 MUTANTS = {
     "check_pins": ("        check_pins(data, pin)\n", "        pass\n"),
-    "verify_inputs": ("        verified = verify_inputs(args.world, args.decomp, args.verify_world)\n",
+    "verify_inputs": ("        verified = verify_inputs(args.world, args.decomp, args.verify_world, args.verify_timeout)\n",
                       '        verified = {"by": "-", "verifier_sha256": "0" * 64, "command": "-", "exit": 0, '
                       '"result": "-"}\n'),
     "verify_inputs PASS test": ("    if p.returncode != 0 or not VERIFY_PASS.match(summary):\n", "    if False:\n"),
@@ -122,14 +131,24 @@ MUTANTS = {
     # not a deletion: each chapter written as soon as it is made (the first build's behaviour), which leaves the
     # earlier chapters on disk when a later one refuses; the F2 partial-write arm must catch it
     "write only after every chapter is made": (
-        "            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified))\n",
-        "            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified))\n"
+        "            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified, check_src))\n",
+        "            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified, check_src))\n"
         "            if not args.check:\n"
         "                os.makedirs(args.out, exist_ok=True)\n"
         "                for ext, text in ((\"json\", made[-1][1]), (\"md\", made[-1][2])):\n"
         "                    with open(os.path.join(args.out, \"ch%d.%s\" % (n, ext)), \"w\", encoding=\"utf-8\",\n"
         "                              newline=\"\\n\") as f:\n"
         "                        f.write(text)\n"),
+    # fix round 3: the check's own reader replaced by the FIRST reading (load_inputs' dict, through check_fields):
+    # the reader-plant arms must then fail, because a defect in load_inputs reaches both sides again
+    "read_inputs_for_check (the check's own reading)": (
+        "    check_src = read_inputs_for_check(args.world, args.seasoned)\n",
+        "    check_src = check_fields(data, hashes)\n"),
+    # fix round 3: the verifier's timeout deleted (a hung verifier hangs the generator); the timeout arm must fail
+    "verify_inputs timeout": ('errors="replace", timeout=timeout)', 'errors="replace")'),
+    # fix round 3: deep_diff's bool-is-not-int clause deleted (True == 1 in Python); the bool arms must fail
+    "deep_diff bool-is-not-int clause": ("    elif type(have) is not type(want) or have != want:\n",
+                                         "    elif have != want:\n"),
     # the input cross-checks inside expected_selection: each report deleted
     "problem: boss battled_on": ('problems.append("bosses.json says', '(lambda *_: None)("bosses.json says'),
     "problem: boss with no row": ('problems.append("campaign entry %s names boss',
@@ -218,6 +237,20 @@ REVERIFY_MUTANTS = {
                                                   '        out.append(("scripted_battle", "%s can be started by a trigger tile (%s); the trigger\'s var condition is NOT "\n                                       "modelled here" % (" / ".join(syms[:1]),'),
 }
 
+#: the 2026-10-22 round-2 re-verify's SHARED-READER mutants, verbatim from its reverify2-work/newmut.py: each corrupts
+#: load_inputs' dict after json.load (the files stay right, so verify_world passes). N1b, N5b and N10 survived round 2
+#: (both readings consumed that dict); N1, N5 and N6 were killed only because a selftest fixture line went missing.
+_RET = "    return data, hashes\n"
+_BOSSES = 'data["ai_player/knowledge/world/bosses.json"]["bosses"]'
+READER_MUTANTS = {
+    "N1_level_shared_reader": (_RET, "    [p.__setitem__('level', p['level'] - 1) for b in %s if b['id'] == 'TRAINER_ROXANNE_1' for p in b['party'][-1:]]\n%s" % (_BOSSES, _RET)),
+    "N5_connection_shared_reader": (_RET, "    [m.__setitem__('connections', [c for c in m['connections'] if c['map'] not in ('MAP_FORTREE_CITY', 'MAP_ROUTE119')]) for m in data['ai_player/knowledge/world/maps.json']['maps'] if m['id'] in ('MAP_ROUTE119', 'MAP_FORTREE_CITY')]\n%s" % _RET),
+    "N6_hm_badge_shared_reader": (_RET, "    [r.__setitem__('badge', 'BADGE02') for r in data['ai_player/knowledge/world/campaign.json']['field_move_badges'] if r['move'] == 'CUT']\n%s" % _RET),
+    "N1b_level_shared_reader_winona": (_RET, "    [p.__setitem__('level', p['level'] - 1) for b in %s if b['id'] == 'TRAINER_WINONA_1' for p in b['party'][-1:]]\n%s" % (_BOSSES, _RET)),
+    "N5b_connection_shared_reader_r120_r121": (_RET, "    [m.__setitem__('connections', [c for c in m['connections'] if c['map'] not in ('MAP_ROUTE120', 'MAP_ROUTE121')]) for m in data['ai_player/knowledge/world/maps.json']['maps'] if m['id'] in ('MAP_ROUTE120', 'MAP_ROUTE121')]\n%s" % _RET),
+    "N10_trainer_double_shared_reader": (_RET, "    [t.__setitem__('double', False) for t in data['ai_player/knowledge/world/trainers.json']['trainers'] if t['symbol'] == 'TRAINER_KATE_AND_JOY']\n%s" % _RET),
+}
+
 #: generator-level plants: a defect written into a scratch copy of the generator under test; the copy must exit 2
 #: naming it (the in-run checks catch a GENERATOR that drops or corrupts an item, not only a broken input)
 PLANTS = {
@@ -235,6 +268,18 @@ PLANTS = {
     "Tate and Liza rendered as a single battle (F1)": (REVERIFY_MUTANTS["R3_md_boss_double_shown_single"], [18],
                                                        "(gym_leader, single)"),
     "an HM claim naming the wrong badge (F1)": (REVERIFY_MUTANTS["C3_claim_hm_badge_wrong"], [7], "WRONG pack $.claims"),
+    # fix round 3: a defect INSIDE the first reader (load_inputs); the check's own reader of the files must name it
+    "reader: Winona's ALTARIA one level low (R3)": (READER_MUTANTS["N1b_level_shared_reader_winona"], [13],
+                                                    "WRONG boss TRAINER_WINONA_1 team"),
+    "reader: ROUTE120 <-> ROUTE121 dropped (R3)": (READER_MUTANTS["N5b_connection_shared_reader_r120_r121"], [13],
+                                                   "MISSING ring map MAP_ROUTE121"),
+    "reader: KATE_AND_JOY read as a single battle (R3)": (READER_MUTANTS["N10_trainer_double_shared_reader"], [13],
+                                                          "WRONG trainer TRAINER_KATE_AND_JOY double"),
+    "reader: Roxanne's NOSEPASS one level low (R3)": (READER_MUTANTS["N1_level_shared_reader"], [4],
+                                                      "WRONG pack $.bosses[0].party[2].level"),
+    "reader: ROUTE119 <-> FORTREE_CITY dropped (R3)": (READER_MUTANTS["N5_connection_shared_reader"], [13],
+                                                       "MISSING connection on MAP_ROUTE119"),
+    "reader: CUT's badge read as BADGE02 (R3)": (READER_MUTANTS["N6_hm_badge_shared_reader"], [4], "MISSING HM CUT"),
 }
 
 
@@ -289,11 +334,17 @@ class Runner:
     def child(self):
         return Runner(self.gen, self.work, self.shared)
 
-    def run(self, chapters, out, world=WORLD, seasoned=SEASONED, extra=(), gen=None):
+    def run(self, chapters, out, world=WORLD, seasoned=SEASONED, extra=(), gen=None, verifier=VERIFY_WORLD,
+            timeout=None):
+        """The generator as a subprocess: (exit code, stdout, stderr). With `timeout`, a run still going after that
+        many seconds is killed and returns exit code None (an arm reads that as a hang)."""
         cmd = [sys.executable, gen or self.gen] + [str(c) for c in chapters] + [
             "--world", world, "--seasoned", seasoned, "--pin", PIN, "--out", out,
-            "--verify-world", VERIFY_WORLD] + list(extra)
-        p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
+            "--verify-world", verifier] + list(extra)
+        try:
+            p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return None, "", "(killed by the selftest after %s s: the generator did not return)" % timeout
         return p.returncode, p.stdout, p.stderr
 
     def scratch(self, name, world_files=False, seasoned_files=False):
@@ -318,25 +369,27 @@ class Runner:
             return self.shared["mod"]
 
     def real_data(self):
-        """The real inputs, loaded once by the module under test (never mutated by an arm: they deep-copy)."""
+        """The real inputs as the CHECK side reads them (read_inputs_for_check, the reading expected_selection takes),
+        loaded once by the module under test (never mutated by an arm: they deep-copy)."""
         mod = self.mod()
         with self.shared["lock"]:
             if "data" not in self.shared:
-                self.shared["data"] = mod.load_inputs(WORLD, SEASONED)[0]
+                self.shared["data"] = mod.read_inputs_for_check(WORLD, SEASONED)
             return self.shared["data"]
 
     def inproc(self, chapters, world=WORLD, seasoned=SEASONED, cap=MD_CAP):
-        """generate_loaded in-process (every guard but the verification). ("ok", {c: (pack, md)}) or ("refused",
-        message); any other exception propagates (the arm fails with it)."""
+        """generate_loaded in-process (every guard but the verification), with both readings of the same folders.
+        ("ok", {c: (pack, md)}) or ("refused", message); any other exception propagates (the arm fails with it)."""
         mod = self.mod()
         data, hashes = mod.load_inputs(world, seasoned)
+        check_src = mod.read_inputs_for_check(world, seasoned)
         with open(PIN, encoding="utf-8") as f:
             pin = f.read().strip()
         try:
             mod.check_pins(data, pin)
             out = {}
             for c in chapters:
-                js, md = mod.generate_loaded(c, data, hashes, pin, cap, STUB_VERIFIED)
+                js, md = mod.generate_loaded(c, data, hashes, pin, cap, STUB_VERIFIED, check_src)
                 out[c] = (json.loads(js), md)
             return "ok", out
         except mod.PackError as exc:
@@ -1073,6 +1126,17 @@ PACK_FAULTS = [
     (1, "a trainer's sighting sight changed",
      lambda p: next(s for t in p["trainers"] for s in t["seen"] if "sight" in s).__setitem__("sight", 99) is None,
      "].sight"),
+    # fix round 3: a bool written as an int (True == 1 in Python, so only deep_diff's type test can see these)
+    (18, "Tate and Liza's double flag written as the int 1",
+     lambda p: next(b for b in p["bosses"] if b["fight"] == "TATE_AND_LIZA").__setitem__("double", 1) is None,
+     "$.bosses[0].double"),
+    (1, "AMY_AND_LIV_1's double flag written as the int 1",
+     lambda p: next(t for t in p["trainers"] if t["symbol"] == "TRAINER_AMY_AND_LIV_1").__setitem__("double", 1) is None,
+     "].double"),
+    # fix round 3: the header's source hashes are checked against the bytes the check's own reader hashed
+    (4, "trainers.json's source sha256 changed in the header",
+     lambda p: p["sources"].__setitem__("ai_player/knowledge/world/trainers.json", "0" * 64) is None,
+     "$.sources.ai_player/knowledge/world/trainers.json"),
 ]
 
 
@@ -1099,7 +1163,8 @@ def s_f1_pack(R):
             p = copy.deepcopy(packs[c])
             if mutate(p) is False:
                 return False, "the item to change was not found in ch%d" % c
-            if p == packs[c]:
+            # compared as JSON text, because True == 1 in Python and a bool-to-int change must count as a change
+            if json.dumps(p, sort_keys=True) == json.dumps(packs[c], sort_keys=True):
                 return False, "the mutation changed nothing"
             got = mod.check_complete(p, exp)
             return any(needle in x and x.startswith(("WRONG pack", "MISSING pack")) for x in got), str(got)[:300]
@@ -1229,6 +1294,54 @@ def s_crlf_packs(R):
           rc == 1 and "ch5.md" in out and "ch4.md" not in out, out.strip()[-160:])
 
 
+#: the hung verifier sleeps this long; the selftest kills a generator still running after VERIFY_HANG_OUTER_S
+VERIFY_HANG_S = 60
+VERIFY_HANG_OUTER_S = 30
+
+
+def s_verify_timeout(R):
+    """Fix round 3: verify_inputs' timeout. FAULT: a stand-in verify_world that never answers (it sleeps
+    VERIFY_HANG_S) with --verify-timeout 2 must make the generator exit 2 naming the timeout, well before the selftest's
+    own bound, writing nothing. (Before the fix the generator waited until something outside killed it.) CONTROL: the
+    real verifier under an explicit --verify-timeout passes."""
+    d = R.scratch("verify_timeout")
+    fake = os.path.join(d, "hung_verify_world.py")
+    with open(fake, "w", encoding="utf-8", newline="\n") as f:
+        f.write("import time\ntime.sleep(%d)\n" % VERIFY_HANG_S)
+    out = os.path.join(d, "out")
+    t0 = time.time()
+    rc, _, err = R.run([4], out, verifier=fake, extra=["--verify-timeout", "2"], timeout=VERIFY_HANG_OUTER_S)
+    took = time.time() - t0
+    R.arm("timeout FAULT: a verify_world that hangs (sleeps %d s) with --verify-timeout 2 -> exit 2 naming the timeout "
+          "inside the selftest's %d s bound, nothing written" % (VERIFY_HANG_S, VERIFY_HANG_OUTER_S),
+          rc == 2 and "did not finish within 2 s" in err and "REFUSED" in err and not listing(out),
+          "exit %s after %.1f s: %s" % (rc, took, err.strip()[-200:]))
+    rc, _, err = R.run([4], R.scratch("verify_timeout_control"), extra=["--verify-timeout", "60"],
+                       timeout=VERIFY_HANG_OUTER_S + 30)
+    R.arm("timeout CONTROL: the real verify_world under --verify-timeout 60 passes (chapter 4 exits 0)", rc == 0,
+          "exit %s: %s" % (rc, err.strip()[-200:]))
+
+
+def s_bool_int(R):
+    """Fix round 3: deep_diff's bool-is-not-int test. True == 1 in Python, so without it a double flag written as 1
+    (or a level written as True) compares equal. FAULT: each bool/int pair gives exactly one WRONG finding. CONTROL:
+    equal values of the same type give none. (The pack-level arms are in PACK_FAULTS: a double flag written as 1.)"""
+    def body():
+        mod = R.mod()
+        missed = []
+        for have, want in ((True, 1), (1, True), (False, 0), (0, False), ([True], [1]), ({"double": 1}, {"double": True})):
+            out = []
+            mod.deep_diff(have, want, "$.x", out)
+            if len(out) != 1 or not out[0].startswith("WRONG pack $.x"):
+                missed.append("%r vs %r -> %s" % (have, want, out))
+        noise = []
+        for v in (True, False, 1, 0, [True, 1], {"double": True, "level": 1}):
+            mod.deep_diff(v, copy.deepcopy(v), "$.x", noise)
+        return not missed and not noise, "missed %s; control findings %s" % (missed, noise)
+    R.guarded("bool FAULT: deep_diff names True vs 1, 1 vs True, False vs 0, 0 vs False (also inside a list and a "
+              "dict); CONTROL: equal values of one type give no finding", body)
+
+
 def s_check(R):
     chapters = campaign_chapters()
     rc, out, err = R.run(["--all"], PACKS, extra=["--check"])
@@ -1248,7 +1361,7 @@ def all_arms(R):
     phase1 = [s_fresh, s_again, s_hash_fault, s_crlf_input, s_empty, s_pin, s_size] + \
              [omission_scenario(i) for i in range(len(OMISSIONS))] + \
              [s_roxanne_two_files, s_no_clone, s_w3_world, s_guards_inproc, s_input_problems, s_mapping,
-              s_f1_fixtures, s_routekey_source] + [plant_scenario(n) for n in PLANTS]
+              s_f1_fixtures, s_routekey_source, s_verify_timeout, s_bool_int] + [plant_scenario(n) for n in PLANTS]
     parallel(R, phase1)
     if not R.shared.get("fresh"):
         return
