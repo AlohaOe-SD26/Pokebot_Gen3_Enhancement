@@ -38554,3 +38554,16 @@ bought balls only at fixed story points.
 - **What changed in the packs:** ch1 claim 14 now names the truck's 3 exits as one-way, and every pack's generator hash changed.
 - **Proof:** `selftest_chapter_pack.py` 136/136 PASS (13.7 s), including a new secret-base arm: a base's exit is `dynamic`, and the same exit on another map is ONE-WAY. `--all --check` PASS. The mutant run is in the commit message.
 - **Untested, disclosed:** the two check readings' secret-base exception. No pack holds a secret base, so only the generator's copy has an arm.
+
+## 2026-10-22 — The watchdog's disk alert: 60 GB of agent scratch cleared from C:; the Tier 2 cold-start fixes
+
+- **The alert:** `tools/status.py` showed the watchdog's `NEEDS YOU: free space on C: fell 10.5 GB in the last 6 h (58 -> 47 GB)`, and C: had 50.4 GB free at 5:05 AM. That is close to the bot tuner's early-archive line (`min_free_gb` 25 + margin 15 = 40 GB). Below it, O7 archives every cycle but the newest 2 at the next cycle start, which would also blur the canary's "exactly ai0024".
+- **The cause, measured:** 56.6 GB under `%TEMP%/claude/<this project>`, almost all of it this session's scratchpad. The largest folders were a checker's scratch repos (26.9 GB), the chapter-pack rounds' copies (12.5 GB) and W7's work folders (4.5 GB): mutant copies, scratch clones and synthetic repos that workflow agents create and never delete.
+- **The fix:** a script deleted only the working-copy SUBFOLDERS of each scratch item, plus the checker's repos, after checking that no running process used them except the 4:10 PM watcher. Every top-level report and script was kept. It freed about 60.7 GB, and C: has **105.6 GB free** (5:13 AM).
+- **The Tier 2 cold-start audit's fixes to 04:**
+  - the banner's 2026-10-22 stamp now names the chapter-pack tool, W7 and this cleanup;
+  - stale lines are marked HISTORY: the 2026-08-18 disk figure, the 2026-10-16 PARK, and the party-ledger sync note;
+  - "starting with A1" now says A1 is built;
+  - the "banner line 10" warning now says line 6;
+  - (0d)'s retire step gives its exact command (a dry run first).
+  - Not fixed here: the old banner section whose heading says "RETIRED HISTORY" still holds the live session ritual. That is the handoff slim-down's job (S2-1b).

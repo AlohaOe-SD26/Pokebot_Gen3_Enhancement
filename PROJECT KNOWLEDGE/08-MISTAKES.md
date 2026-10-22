@@ -24009,3 +24009,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** fact 2 was measured for SUBFOLDERS, and the spec applied it to a top-level file too. A true statement about one path was stretched to a neighbouring path that was never measured.
 - **The fix that worked:** the builder's STOP rule (the build template: "the spec contradicts the code") fired before any code was written. The coordinator moved the file into `knowledge/world/` (`06` 2026-10-22).
 - **Prevention rule:** a measured fact carries its scope (which paths, which commit). Before a spec relies on it for a NEW path, re-run the measurement on that exact path. The build template's STOP rule is the backstop, so keep it.
+
+## 2026-10-22 — ⛔ WORKFLOW AGENTS' SCRATCH COPIES FILLED 56 GB OF C:, THE BOT TUNER'S OWN DISK, IN ONE SESSION
+
+- **Symptom:** the watchdog's `NEEDS YOU: free space on C: fell 10.5 GB in the last 6 h`; C: was at 50 GB, 10 GB above the bot tuner's early-archive line.
+- **Root cause:** the stage templates and the coordinator's prompts tell agents to make every mutant, scratch clone and synthetic repo in a scratch folder. That is right for safety, but nothing ever deleted them. One session of about 30 workflow agents left 56 GB in `%TEMP%`, on the same disk the 24/7 learner fills with raw logs. The watchdog (O1, registered 6 hours earlier) caught it; nothing else would have.
+- **The fix that worked:** delete the working-copy subfolders of each finished item (reports kept), after checking no running process used them. 60.7 GB was freed.
+- **Prevention rule:** a workflow that makes scratch copies cleans them up when its item is committed, and a session checks `%TEMP%/claude` with `tools/status.py`'s disk line before starting another big fan-out. TODO, its gate: the build and verify templates gain a "delete your scratch copies before you answer" line, and `status.py` shows the scratch tree's size.

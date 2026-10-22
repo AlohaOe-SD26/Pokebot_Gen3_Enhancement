@@ -649,7 +649,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "68236436d6b975726c26de2c5295ddc4de5c1df4",
-      "chars": 23447,
+      "chars": 23670,
       "head": "**Last updated:** 2026-10-22 (S3-4 slice 1, KB2, ✅ BUILT and",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
@@ -691,6 +691,12 @@
             "asurement correction still stands, and is recorded below.)*)"
           ],
           "why": "2026-10-22 KB2 Tier 1 fixes: the banner's date and the stale-evidence state; (0d) DUE NOW; KB2 run commands"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 23447,
+          "to_chars": 23670,
+          "why": "2026-10-22 Tier 2 cold-start fixes and the disk cleanup note"
         }
       ]
     },
@@ -890,7 +896,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 62932,
+      "chars": 63263,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -967,6 +973,12 @@
           "from_chars": 62863,
           "to_chars": 62932,
           "why": "2026-10-22 the MAP_DYNAMIC wording error fixed"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 62932,
+          "to_chars": 63263,
+          "why": "2026-10-22 Tier 2 cold-start fixes and the disk cleanup note"
         }
       ]
     },
