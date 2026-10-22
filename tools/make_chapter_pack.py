@@ -38,51 +38,69 @@ WHAT IT DOES NOT HOLD, AND SAYS SO IN ITS HEADER (so an absent section is never 
   - Story-event flags (setflag/setvar in scripts): slice 2's events.json. The claims' flags are badge flags, trainer
     defeat flags and campaign.json's badge gates only.
 THE PACK IS GENERATED AND THE DECOMP WINS: its header says so, and carries the sha256 of every source file, the
-generator's own sha256, and the decomp pin, so a stale pack is visible. Hashes are taken over the file's bytes with
-CRLF normalised to LF, because this PC checks text out with CRLF (core.autocrlf) and another may not; `--check` reads
-the committed packs the same way. (`.gitattributes` also pins the packs to LF.)
+generator's own sha256, the decomp pin, and the record of the input verification (below), so a stale pack is visible.
+The .json holds each sha256 in full; the .md shows their first 16 hex digits (MD_HASH_CHARS), which pays for the
+verification line under the cap. Hashes are taken over the file's bytes with CRLF normalised to LF, because this PC
+checks text out with CRLF (core.autocrlf) and another may not; `--check` reads the committed packs the same way.
+(`.gitattributes` also pins the packs to LF.)
 
-THE 12 KB .md CAP NEVER REFUSES A CHAPTER (fix round, 2026-10-22). The .md is rendered in full; when that is over the
+THE DIVISION OF LABOUR (fix round 2, 2026-10-22). Two different failures, two different checkers:
+  1. THE INPUTS ARE WRONG OR INCOMPLETE (an extractor dropped a double battle, a badge, a connection on both sides, an
+     ordinary trainer, a warp). This tool cannot see that: the fact is absent from every file it reads, so any reading
+     of those files agrees with itself. That is ai_player/gates/verify_world.py's job: it re-reads the PINNED DECOMP by
+     its own regexes (it never imports the extractor). So the run starts it as a subprocess on the same world folder,
+     over EVERY record (never the seeded sample), before anything is generated, and REFUSES (exit 2, nothing written)
+     unless it exits 0 with `[VERIFY-WORLD] PASS: 0 mismatches (every record; ...`. A verifier that cannot run (no
+     clone at the pin) is a refusal too. The pack header's `inputs_verified` records the command, its exit code, its
+     summary line and the verifier's sha256. verify_world covers the four WORLD files only; KB1's seasoned files
+     (encounters, learnsets, species) are not re-verified by this run (their verifier is verify_seasoned.py).
+  2. THE PACK IS WRONG AGAINST ITS INPUTS (the generator dropped or changed something). That is this tool's own check:
+     expected_selection is a SECOND reading of the inputs that shares no code with build_pack, and expected_pack builds
+     the WHOLE pack from it a second time (every key but the provenance header). check_complete compares the pack with
+     it VALUE BY VALUE (deep_diff: a boss mon's moves and held item, a double flag, a connection's offset, an HM's badge,
+     every claim's full text and source) beside its older findings that name an omission in words (MISSING boss ...).
+     check_md_complete then compares the .md LINE BY LINE, every line, with render_md_check's rendering of that second
+     reading, at the summary level its own size measurements choose: so a boss line must hold every mon with species,
+     level, types, moves and held item, a double battle must say DOUBLE, a links line must list every connection and
+     warp, an HM line must name its badge, and every claim must be there in full. Never a line's start (round 1 matched
+     prefixes, and 13 mutants that corrupted real output passed it). Any finding stops the run with exit 2 naming it.
+     The same reading also cross-checks the inputs against each other (a second line of defence behind verify_world):
+     a boss an entry names with no bosses.json row; a bosses.json `battled_on` map with no object for that boss; a badge
+     won or a field move needed with no `field_move_badges` row; a connection with no connection back (all 148 at the
+     pin are mirrored); a connection or warp to a map maps.json does not hold.
+  Every chapter is generated and checked in memory before any file is written, so a refusal at chapter N of --all
+  leaves no partial set behind.
+
+THE 12 KB .md CAP NEVER REFUSES A CHAPTER (fix round 1, 2026-10-22). The .md is rendered in full; when that is over the
 cap it is rendered again with the ORDINARY trainers (single battles) summarised per map: their count, level range and
 species set, pointing to the .json for the full list. Only if that is still over, deeper levels follow one at a time
 (SUMMARY_LEVELS: wild tables without rates; warps and neighbour maps counted; trainer and wild species and neighbour
 trainers left to the .json). On the 2026-10-22 inputs chapters 9 and 11 use level 1, 14 level 2 and 13 level 4 (its
-full page is 21,164 bytes and level 1 left 15,096; it ends at 12,117). Everything load-bearing stays in full at every
-level: the bosses and their teams, the HM moves, every double battle, each area map's links line, and the
-LOAD-BEARING CLAIMS (which carry the progress flags and one-way links). check_md_complete proves that on every .md
-it writes; only a page still over the cap at the deepest level makes check_md_size stop the run.
-
-COMPLETENESS (fix round, 2026-10-22). WHY: the first build could drop a boss, an HM, a ring-map trainer or a link and
-still exit 0, and its ch4 .md said both "boss ROXANNE" and "none fought". Now every pack is checked against
-expected_selection, a SECOND reading of the inputs that shares no code with build_pack (it re-derives the ring, the
-trainers, the bosses, the links, the warp kinds, the wild rows from the slots, the HM learners and the claims each
-of those requires). Any difference, missing OR extra, stops the run with exit 2 naming it. The same reading also
-cross-checks the inputs against each other, so an item lost from one file is caught by another file that names it:
-  - a boss an entry names (`boss`, `fights`, or bosses.json `entry`) with no bosses.json row;
-  - a bosses.json `battled_on` map on the ring with no trainer object, trigger or script for that boss;
-  - a badge won in the chapter (or a field move an entry needs) with no campaign.json `field_move_badges` row;
-  - a connection with no connection back (all 148 connections in maps.json at the pin are mirrored, so a one-sided
-    one is far likelier an extraction loss than a real one-way edge; the run stops instead of publishing it);
-  - a connection or warp to a map maps.json does not hold.
-LIMIT, stated so nobody reads more into it: an ordinary trainer or a warp deleted from maps.json is named by no other
-input, so only W3 (milestones.json's table, chapters 1-4) can notice it; the checker catches a GENERATOR that drops one.
+full page is 21,034 bytes; it ends at 11,987). The load-bearing sections stay in full at every level (the bosses and
+their teams, the HM moves, every double battle, each area map's links line, the LOAD-BEARING CLAIMS), and
+check_md_complete proves it line by line (above); only a page still over the cap at the deepest level makes
+check_md_size stop the run.
 
 THE GUARDS (each stops the run with exit 2 and a message naming what it found; tools/story-dev/selftest_chapter_pack.py
 feeds each a broken input beside a healthy one, and its --mutants mode deletes each CALL in a scratch copy and must see
 a failing arm):
   check_pins             an input whose `_source` pin differs from tools/decomp.pin (a pack mixing two decomps)
+  verify_inputs          verify_world.py not exiting 0 with 0 mismatches over every record (division of labour, 1)
   refuse_empty_chapter   a chapter with no campaign entry (a typo'd chapter must not write an empty pack)
   refuse_route_keys      a key named x, y, route, path, steps or coords inside the chapter's campaign entries
   resolve_maps           an area map that maps.json does not hold
   join_trainer           a trainer symbol on a map that trainers.json does not hold
   script_label           a trainer object with neither `script` nor `label` (a battle that cannot be cited)
-  refuse_incomplete      check_complete's and check_md_complete's findings (above)
+  refuse_incomplete      check_complete's and check_md_complete's findings (division of labour, 2)
   check_md_size          a rendered .md still over the cap after summarising
 """
 import argparse
+import difflib
 import hashlib
 import json
 import os
+import re
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -91,6 +109,15 @@ WORLD_DEFAULT = os.path.join(REPO, "ai_player", "knowledge", "world")
 SEASONED_DEFAULT = os.path.join(REPO, "ai_player", "knowledge", "seasoned")
 PIN_DEFAULT = os.path.join(REPO, "tools", "decomp.pin")
 OUT_DEFAULT = os.path.join(REPO, "PROJECT KNOWLEDGE", "chapter-packs")
+#: KB2's independent verifier (regex over the raw pinned decomp; it never imports the extractor). Run, never imported.
+VERIFY_WORLD = os.path.join(REPO, "ai_player", "gates", "verify_world.py")
+#: the only summary line that lets a pack be written: zero mismatches over EVERY record (never a seeded sample)
+VERIFY_PASS = re.compile(r"^\[VERIFY-WORLD\] PASS: 0 mismatches \(every record;")
+#: the pack's provenance header: check_complete copies these from the pack (the selftest's hashes and F2 arms check
+#: them against the files); every other key is re-derived from the inputs
+PROVENANCE = ("decomp_pin", "generator", "sources", "inputs_verified")
+#: hex digits of each sha256 the .md shows (the .json keeps all 64); the room pays for the verification line
+MD_HASH_CHARS = 16
 
 #: the inputs, by the repo path the header names them by (the logical name, whatever folder they were read from)
 WORLD_FILES = ("campaign.json", "maps.json", "trainers.json", "bosses.json")
@@ -160,6 +187,44 @@ def check_pins(data, pin):
             bad.append("%s (_source %r)" % (name, src))
     if bad:
         raise PackError("input pin differs from tools/decomp.pin %s: %s" % (pin, "; ".join(bad)))
+
+
+def repo_rel(path, root=REPO):
+    """`path` relative to `root` with forward slashes, or absolute when it lies outside it (a scratch world)."""
+    p = os.path.abspath(path)
+    try:
+        rel = os.path.relpath(p, root)
+    except ValueError:  # another drive
+        return p.replace("\\", "/")
+    return p.replace("\\", "/") if rel.startswith("..") else rel.replace("\\", "/")
+
+
+def verify_inputs(world_dir, decomp=None, verifier=VERIFY_WORLD):
+    """Run ai_player/gates/verify_world.py over EVERY record of the four world files this run reads, and stop the run
+    (PackError, so exit 2 and nothing written) unless it exits 0 with a `PASS: 0 mismatches (every record; ...)` line.
+    WHY: this tool cannot see a fact missing from its own inputs (a double battle, a badge or a connection dropped by
+    the extractor is simply absent from every file it reads), while verify_world re-reads the pinned decomp by its own
+    regexes and reports exactly such omissions. `--knowledge` points its W1 withheld-field scan at the same folder, so
+    the result line depends only on these inputs. Returns the record the pack header carries. (`verifier` is a path
+    only so that a scratch copy of this file, which has no repo around it, can name the real one: the selftest's.
+    The paths the record shows are relative to the repo the verifier lives in, <repo>/ai_player/gates/.)"""
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(verifier))))
+    cmd = [sys.executable, verifier, "--data", world_dir, "--knowledge", world_dir]
+    shown = "py -3.12 %s --data %s --knowledge %s" % (repo_rel(verifier, root), repo_rel(world_dir, root),
+                                                      repo_rel(world_dir, root))
+    if decomp:
+        cmd += ["--decomp", decomp]
+        shown += " --decomp %s" % repo_rel(decomp, root)
+    p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    lines = (p.stdout or "").strip().splitlines()
+    summary = next((ln for ln in reversed(lines) if ln.startswith("[VERIFY-WORLD]")), "")
+    if p.returncode != 0 or not VERIFY_PASS.match(summary):
+        bad = [ln for ln in lines if ln.startswith("MISMATCH")]
+        tail = summary or ((p.stderr or "").strip().splitlines() or ["no output"])[-1]
+        raise PackError("the inputs did not pass ai_player/gates/verify_world.py (exit %d; `%s`): %s%s" % (
+            p.returncode, shown, tail, ("; " + " | ".join(bad[:8])) if bad else ""))
+    return {"by": repo_rel(verifier, root), "verifier_sha256": sha256_lf(verifier), "command": shown,
+            "exit": p.returncode, "result": summary}
 
 
 def campaign_chapters(data):
@@ -362,7 +427,7 @@ def hm_learners(move, learnsets):
     return hm, out
 
 
-def build_pack(chapter, data, hashes, pin, generator_sha):
+def build_pack(chapter, data, hashes, pin, generator_sha, verified):
     camp = data["ai_player/knowledge/world/campaign.json"]
     maps = data["ai_player/knowledge/world/maps.json"]
     trainers = data["ai_player/knowledge/world/trainers.json"]
@@ -442,6 +507,7 @@ def build_pack(chapter, data, hashes, pin, generator_sha):
         "decomp_pin": pin,
         "generator": {"path": "tools/make_chapter_pack.py", "sha256": generator_sha},
         "sources": dict(sorted(hashes.items())),
+        "inputs_verified": verified,
         "entries": entries,
         "maps": [map_row(m, "area") for m in area_ids] + [map_row(m, "neighbour") for m in ring_ids],
         "links": link_rows,
@@ -665,8 +731,252 @@ def expected_selection(chapter, data):
                 "bosses": exp_boss, "badges_won": won, "hms": {m: learners.get("MOVE_" + m, set()) for m in exp_hm},
                 "connections": exp_conn, "warps": exp_warps, "warps_in": exp_in, "wild": sorted(exp_wild),
                 "flash": sorted(a for a in area if mapd[a]["requires_flash"]),
-                "entries": mine}
+                "entries": mine,
+                "pack": expected_pack(chapter, data)}
     return expected, problems
+
+
+def _bare(sym):
+    """The checking side's own copy of short(): a broken short() must not hide in both readings."""
+    if not sym:
+        return sym
+    for prefix in ("MAP_", "SPECIES_", "MOVE_", "ITEM_", "TRAINER_"):
+        if sym.startswith(prefix):
+            return sym[len(prefix):]
+    return sym
+
+
+def expected_pack(chapter, data):
+    """The WHOLE pack a second time, every key build_pack writes except the PROVENANCE header, written as its own code
+    over the inputs (it calls none of build_pack, ring, links, classify_warp, trainers_on, wild, hm_learners, claims or
+    short). check_complete compares the pack with it value by value, so a boss mon's move or held item, a double flag, a
+    connection, an HM's badge or one word of a claim that differs from the inputs is a finding; and render_md_check
+    renders the .md from THIS dict, so check_md_complete compares every line of the page with the inputs.
+    Wild rows are summed from the SLOTS (build_pack reads the precomputed `rarity`). Returns None if an area map is not
+    in maps.json (resolve_maps refuses that chapter first)."""
+    world, seasoned = "ai_player/knowledge/world/", "ai_player/knowledge/seasoned/"
+    camp = data[world + "campaign.json"]
+    mapd = {m["id"]: m for m in data[world + "maps.json"]["maps"]}
+    tdata = {t["symbol"]: t for t in data[world + "trainers.json"]["trainers"]}
+    brows = data[world + "bosses.json"]["bosses"]
+    mine = [e for e in camp["entries"] if e.get("chapter") == chapter]
+    entries = [dict((k, v) for k, v in e.items() if k in ENTRY_FIELDS) for e in mine]
+    area = list(dict.fromkeys("MAP_" + a for e in mine for a in e["area"]))
+    in_area = set(area)
+    if not in_area <= set(mapd):
+        return None
+
+    touching = set()
+    for mid, m in mapd.items():
+        outs = [c["map"] for c in m["connections"]] + [w["dest_map"] for w in m["warps"]]
+        if mid in in_area:
+            touching.update(outs)
+        elif in_area.intersection(outs):
+            touching.add(mid)
+    ring_ids = sorted(x for x in touching if x in mapd and x not in in_area and x != DYNAMIC)
+    map_rows = [dict({"id": mid, "role": role}, **{k: mapd[mid][k] for k in (
+        "name", "map_type", "requires_flash", "allow_cycling", "allow_escaping", "allow_running")})
+        for role, ids in (("area", area), ("neighbour", ring_ids)) for mid in ids]
+
+    def warp_kind(src, w):
+        dest, k = w["dest_map"], w["dest_warp_id"]
+        if dest == DYNAMIC:
+            return "dynamic", "MAP_DYNAMIC: returns to the map the player came from"
+        if dest not in mapd:
+            return ("unknown", "destination is not a maps.json map")
+        arrivals = mapd[dest]["warps"]
+        if not isinstance(k, int) or not 0 <= k < len(arrivals):
+            return "asymmetric", "arrival warp %s does not exist on %s (%d warps)" % (k, _bare(dest), len(arrivals))
+        back = arrivals[k]["dest_map"]
+        if back == src or back == DYNAMIC:
+            return "two_way", None
+        return "asymmetric", "arrival warp %d on %s leads to %s, not back" % (k, _bare(dest), _bare(back))
+
+    link_rows = []
+    for a in area:
+        conns = [{"dir": c["dir"], "map": c["map"], "offset": c["offset"],
+                  "connects_back": c["map"] in mapd and any(x["map"] == a for x in mapd[c["map"]]["connections"])}
+                 for c in mapd[a]["connections"]]
+        warps = []
+        for i, w in enumerate(mapd[a]["warps"]):
+            kind, why = warp_kind(a, w)
+            warps.append({"warp": i, "x": w["x"], "y": w["y"], "dest_map": w["dest_map"],
+                          "dest_warp_id": w["dest_warp_id"], "kind": kind, "why": why})
+        link_rows.append({"map": a, "connections": conns, "warps": warps})
+    warps_in = []
+    for sid in sorted(mapd):
+        if sid in in_area:
+            continue
+        for i, w in enumerate(mapd[sid]["warps"]):
+            if w["dest_map"] in in_area:
+                kind, why = warp_kind(sid, w)
+                warps_in.append({"from": sid, "warp": i, "dest_map": w["dest_map"], "dest_warp_id": w["dest_warp_id"],
+                                 "kind": kind, "why": why})
+
+    recs = {}
+    for mid in area + ring_ids:
+        for obj in mapd[mid]["trainers"]:
+            for sym in obj["trainers"]:
+                t = tdata.get(sym)
+                if t is None:  # join_trainer refuses it
+                    continue
+                if sym not in recs:
+                    lv = [p["level"] for p in t["party"]]
+                    recs[sym] = {"symbol": sym, "id": t["id"], "name": t["name"], "class": t["class_name"],
+                                 "flag": t["flag"], "double": t["double"], "levels": lv,
+                                 "level_min": min(lv) if lv else None, "level_max": max(lv) if lv else None,
+                                 "ref": t["ref"], "species": [p["species"] for p in t["party"]], "in_area": False,
+                                 "seen": []}
+                rec = recs[sym]
+                rec["in_area"] = rec["in_area"] or mid in in_area
+                s = {"map": mid, "source": obj["source"], "script": obj.get("script") or obj.get("label")}
+                s.update((k, obj[k]) for k in ("trainer_type", "sight", "x", "y", "ref") if k in obj)
+                rec["seen"].append(s)
+    trainers = sorted(recs.values(), key=lambda r: (not r["in_area"], r["seen"][0]["map"], r["symbol"]))
+
+    fight_order = list(dict.fromkeys(f for e in mine for f in (e.get("fights") or [])))
+    entry_ids = {e["id"] for e in mine}
+    named = set(fight_order) | {e["boss"] for e in mine if e.get("boss")} | \
+        {b["fight"] for b in brows if b.get("entry") in entry_ids}
+    pos = {f: i for i, f in enumerate(fight_order)}
+    bosses = sorted((b for b in brows if b["fight"] in named), key=lambda b: (pos.get(b["fight"], len(pos)), b["id"]))
+    done, later = set(fight_order), []
+    for e in mine:
+        for f in e.get("area_bosses") or []:
+            if f in done:
+                continue
+            done.add(f)
+            vs = [b for b in brows if b["fight"] == f]
+            if vs:
+                later.append({"fight": f, "role": vs[0]["role"], "entry": vs[0]["entry"], "ids": [b["id"] for b in vs],
+                              "level_max": max(p["level"] for b in vs for p in b["party"])})
+
+    names = {s["symbol"]: s["name"] for s in data[seasoned + "species.json"]["species"]}
+    wild_rows = []
+    for row in data[seasoned + "encounters.json"]["maps"]:
+        if row.get("map") not in in_area or row.get("availability") != "normal":
+            continue
+        for meth in sorted(row["methods"]):
+            tab = row["methods"][meth]
+            agg = {}
+            for s in tab.get("slots") or []:
+                pct, lo, hi = agg.get(s["species"], (0, 999, 0))
+                agg[s["species"]] = (pct + s["chance_pct"], min(lo, s["min_level"]), max(hi, s["max_level"]))
+            mons = [{"species": sp, "name": names.get(sp, _bare(sp)), "chance_pct": v[0], "min_level": v[1],
+                     "max_level": v[2]} for sp, v in sorted(agg.items(), key=lambda kv: (-kv[1][0], kv[0]))]
+            wild_rows.append({"map": row["map"], "method": meth, "encounter_rate": tab.get("encounter_rate"),
+                              "requires": row.get("requires"), "condition": (row.get("conditions") or {}).get(meth),
+                              "species": mons})
+
+    fmb = {}
+    for r in camp["field_move_badges"]:
+        fmb[r["move"]] = r
+    badge_rows = [b["badge"] for b in bosses if b.get("badge")]
+    won = {bd["id"] for bd in badge_rows}
+    wanted = [(fm["move"], "needed by %s" % e["id"]) for e in mine for fm in (e["needs"].get("field_moves") or [])]
+    wanted += [(r["move"], "unlocked by %s, won this chapter" % r["badge"]) for r in camp["field_move_badges"]
+               if r["badge"] in won]
+    wild_species = {m["species"] for r in wild_rows for m in r["species"]}
+    hms = []
+    for mv, why in wanted:
+        rows = [(s["symbol"], t["tm"]) for s in data[seasoned + "learnsets.json"]["species"]
+                for t in s.get("tm_hm", []) if t["move"] == "MOVE_" + mv]
+        who = [sp for sp, _ in rows]
+        hms.append({"move": mv, "why": why, "hm": next((tm for _, tm in rows if tm), None),
+                    "badge": (fmb.get(mv) or {}).get("badge"), "badge_ref": (fmb.get(mv) or {}).get("ref"),
+                    "learners_count": len(who), "learners": who,
+                    "learners_met_wild_here": [sp for sp in who if sp in wild_species]})
+
+    cl = []
+
+    def add(kind, text, source):
+        cl.append({"n": len(cl) + 1, "kind": kind, "claim": text, "source": source})
+
+    for b in bosses:
+        team = ", ".join("%s Lv%d" % (_bare(p["species"]), p["level"]) +
+                         (" @%s" % _bare(p["held_item"]) if p.get("held_item") else "") for p in b["party"])
+        add("boss_team", "%s (%s, %s) %s battle: %s" % (b["fight"], _bare(b["id"]), b["role"],
+                                                        "DOUBLE" if b["double"] else "single", team), b["ref"])
+    for b in bosses:
+        if b["id"] in recs:
+            t = recs[b["id"]]
+            add("progress_flag", "%s's defeat flag is number %d (TRAINER_FLAGS_START + %d)" % (
+                _bare(b["id"]), t["flag"], t["id"]), t["ref"])
+    for bd in badge_rows:
+        add("progress_flag", "the chapter's boss sets %s (%s)" % (bd["flag"], bd["id"]), bd["ref"])
+    for e in entries:
+        nd = e["needs"]
+        for bd in nd.get("badges") or []:
+            add("progress_flag", "%s needs %s" % (e["id"], bd), (nd.get("badge_refs") or {}).get(bd))
+        for g in nd.get("badge_gates") or []:
+            add("progress_flag", "%s badge gate: %s" % (e["id"], json.dumps(g, sort_keys=True)), None)
+        for fm in nd.get("field_moves") or []:
+            add("hm_gate", "%s needs field move %s (badge %s)" % (e["id"], fm["move"], fm.get("badge")), fm.get("ref"))
+        if nd.get("double_battle") or (nd.get("party_min") or 1) > 1:
+            add("double_battle", "%s: party_min %s (%s)" % (e["id"], nd.get("party_min"), nd.get("party_min_basis")),
+                nd.get("party_min_ref"))
+    for h in hms:
+        met = ", ".join(_bare(s) for s in h["learners_met_wild_here"]) or "none"
+        add("hm_gate", "%s (%s) usable outside battle only with %s; %d species learn it, met wild here: %s" % (
+            h["move"], h["hm"], h["badge"], len(h["learners"]), met), h["badge_ref"])
+    for mid in area:
+        if mapd[mid]["requires_flash"]:
+            add("hm_gate", "%s requires Flash (dark map)" % _bare(mid), "maps.json requires_flash")
+    for t in trainers:
+        if t["double"] and t["in_area"]:
+            add("double_battle", "%s is a DOUBLE battle (%s)" % (_bare(t["symbol"]), t["class"]), t["ref"])
+    triggers = {}
+    for t in trainers:
+        key = tuple(sorted({s["script"] for s in t["seen"] if s["source"] == "coord_event"}))
+        if t["in_area"] and key:
+            triggers.setdefault(key, []).append(_bare(t["symbol"]))
+    for key, syms in triggers.items():
+        add("scripted_battle", "%s can be started by a trigger tile (%s); the trigger's var condition is NOT modelled "
+                               "here" % (" / ".join(syms), ", ".join(key)), "maps.json coord_events")
+    total = 0
+    for row in link_rows:
+        for w in row["warps"]:
+            total += 1
+            if w["kind"] in ("asymmetric", "unknown"):
+                add("one_way_warp", "%s warp %d -> %s: %s" % (_bare(row["map"]), w["warp"], _bare(w["dest_map"]),
+                                                              w["why"]), "maps.json warps")
+        for c in row["connections"]:
+            if not c["connects_back"]:
+                add("one_way_warp", "%s connects %s to %s, which has no connection back" % (
+                    _bare(row["map"]), c["dir"], _bare(c["map"])), "maps.json connections")
+    for w in warps_in:
+        total += 1
+        if w["kind"] in ("asymmetric", "unknown"):
+            add("one_way_warp", "%s warp %d -> %s: %s" % (_bare(w["from"]), w["warp"], _bare(w["dest_map"]), w["why"]),
+                "maps.json warps")
+    if not any(c["kind"] == "one_way_warp" for c in cl):
+        add("one_way_warp", "none of the %d warps touching the area maps is one-way by warp data (ledges, holes and "
+                            "scripted movement are NOT modelled)" % total, "maps.json warps")
+
+    return {"_generated": GENERATED, "_absent": ABSENT, "chapter": chapter, "entries": entries, "maps": map_rows,
+            "links": link_rows, "warps_in": warps_in, "trainers": trainers, "bosses": bosses,
+            "area_bosses_later": later, "wild": wild_rows, "hms": hms, "claims": cl}
+
+
+def deep_diff(have, want, path, out):
+    """Every leaf where `have` (the pack) differs from `want` (the second reading), as `WRONG pack <path>` findings. A
+    bool is not an int here (True == 1 in Python, and a double flag must not pass as a level)."""
+    if isinstance(have, dict) and isinstance(want, dict):
+        for k in sorted(set(have) | set(want), key=str):
+            p = "%s.%s" % (path, k)
+            if k not in have:
+                out.append("MISSING pack %s (the inputs give %s)" % (p, json.dumps(want[k])[:120]))
+            elif k not in want:
+                out.append("EXTRA pack %s (%s)" % (p, json.dumps(have[k])[:120]))
+            else:
+                deep_diff(have[k], want[k], p, out)
+    elif isinstance(have, list) and isinstance(want, list):
+        if len(have) != len(want):
+            out.append("WRONG pack %s: %d items in the pack, %d from the inputs" % (path, len(have), len(want)))
+        for i in range(min(len(have), len(want))):
+            deep_diff(have[i], want[i], "%s[%d]" % (path, i), out)
+    elif type(have) is not type(want) or have != want:
+        out.append("WRONG pack %s: pack %s, inputs %s" % (path, json.dumps(have)[:160], json.dumps(want)[:160]))
 
 
 def check_complete(pack, expected):
@@ -765,52 +1075,258 @@ def check_complete(pack, expected):
     if not odd:
         total = sum(len(ws) for ws in expected["warps"].values()) + len(expected["warps_in"])
         need("one_way_warp", "none of the %d warps" % total)
+
+    # and then EVERY value: the findings above name an omission in words; this one compares the whole pack (each boss
+    # mon's moves and held item, each claim's full text, each connection's offset ...) with expected_pack
+    if expected.get("pack") is None:
+        out.append("MISSING the second reading of the inputs (expected_pack returned nothing)")
+    else:
+        deep_diff(pack, with_provenance(expected["pack"], pack), "$", out)
     return out
 
 
-def check_md_complete(pack, md):
-    """The .md must carry every LOAD-BEARING item of the pack in full, in either rendering: each boss with its whole
-    team in order, each HM move, each double battle (with its defeat flag), each area map's links line, and every
-    claim verbatim; in a full rendering every area trainer by name and flag, in a summarised one each map's count.
-    It must never say 'none fought' when the chapter has a boss. Returns the findings."""
+def with_provenance(xp, pack):
+    """The second reading plus the pack's PROVENANCE header (hashes, pin, generator, verification: the selftest's
+    hashes and F2 arms check those against the files). A header key the pack lacks stays absent from the pack and
+    present here, so deep_diff names it."""
+    full = dict(xp)
+    for k in PROVENANCE:
+        full[k] = pack.get(k, "(absent from the pack)")
+    return full
+
+
+def render_md_check(xp, level, full_size):
+    """The .md a SECOND time, from expected_pack's dict (plus the pack's provenance header), section by section. It is
+    render_md's page by contract, written as separate code so a dropped move, a blanked links line or a wrong word in
+    either renderer makes the two pages differ. Change the page's wording in BOTH (the CONTROL arm fails until then)."""
+    n = xp["chapter"]
+
+    def head():
+        vf = xp["inputs_verified"]
+        ok = isinstance(vf, dict) and bool(VERIFY_PASS.match(vf.get("result", "")))
+        rows = ["| `%s` | `%s` |" % (k, v[:MD_HASH_CHARS]) for k, v in xp["sources"].items()]
+        return (["# Chapter %d pack (generated)" % n, "", "> " + xp["_generated"], ">"] +
+                ["> - " + x for x in xp["_absent"]] +
+                ["", "Decomp pin: `%s`. Generator: `%s` sha256 `%s`." % (
+                    xp["decomp_pin"], xp["generator"]["path"], xp["generator"]["sha256"][:MD_HASH_CHARS]), "",
+                 "Inputs verified first by `%s` (sha256 `%s`) over every record of the four world files read: exit "
+                 "%s, %s. Its command and result line are in ch%d.json `inputs_verified`." % (
+                     vf["by"], vf["verifier_sha256"][:MD_HASH_CHARS], vf["exit"],
+                     "0 mismatches" if ok else "NOT VERIFIED", n), "",
+                 "| source | sha256 (first %d; all 64 in ch%d.json) |" % (MD_HASH_CHARS, n), "|---|---|"] + rows)
+
+    def entries():
+        out = ["## Entries"]
+        for e in xp["entries"]:
+            nd = e["needs"]
+            band = nd.get("level_band") or {}
+            needs = list(nd.get("badges") or []) + [f["move"] for f in (nd.get("field_moves") or [])]
+            out.append("- **%s** (order %d) area %s; boss %s; party_min %s; types ahead %s; level band %s-%s%s" % (
+                e["id"], e["order"], ", ".join(e["area"]), e["boss"] or "-", nd.get("party_min"),
+                "/".join(nd.get("types_ahead") or []) or "-", band.get("low"), band.get("high"),
+                ("; needs " + ", ".join(needs)) if needs else ""))
+        return out
+
+    def links():
+        out = ["## Maps and links"]
+        rows = {m["id"]: m for m in xp["maps"]}
+        for row in xp["links"]:
+            m = rows[row["map"]]
+            tags = [m["map_type"][len("MAP_TYPE_"):].lower() if m["map_type"].startswith("MAP_TYPE_")
+                    else m["map_type"].lower()]
+            tags += ["FLASH"] * bool(m["requires_flash"]) + ["no running"] * (not m["allow_running"])
+            conns = [_bare(c["map"]) for c in row["connections"]]
+            conn_text = ", ".join("%s %s%s" % (c["dir"], name, "" if c["connects_back"] else " (NO WAY BACK)")
+                                  for c, name in zip(row["connections"], conns)) or "-"
+            dests, count, odd = [], {}, {}
+            for w in row["warps"]:
+                if w["dest_map"] not in count:
+                    dests.append(w["dest_map"])
+                count[w["dest_map"]] = count.get(w["dest_map"], 0) + 1
+                odd[w["dest_map"]] = odd.get(w["dest_map"], 0) + (w["kind"] in ("asymmetric", "unknown"))
+            if not dests:
+                warp_text = "-"
+            elif level >= 3:
+                n_odd = sum(odd.values())
+                warp_text = "%d to %d map%s%s" % (len(row["warps"]), len(dests), "s" if len(dests) != 1 else "",
+                                                  (" (%d ONE-WAY?)" % n_odd) if n_odd else "")
+            else:
+                warp_text = ", ".join(_bare(d) + ((" x%d" % count[d]) if count[d] > 1 else "") +
+                                      ((" (%d ONE-WAY?)" % odd[d]) if odd[d] else "") for d in dests)
+            out.append("- **%s** (%s). Connections: %s. Warps: %s." % (_bare(row["map"]), ", ".join(tags), conn_text,
+                                                                        warp_text))
+        ring = [_bare(m["id"]) for m in xp["maps"] if m["role"] == "neighbour"]
+        out.append("- Neighbours (one ring, %d): %s" % (len(ring), ("listed in ch%d.json `maps`" % n) if level >= 3
+                                                         else (", ".join(ring) or "-")))
+        return out
+
+    def trainers():
+        out = ["## Trainers"]
+        if level == 0:
+            out.append("EVERY trainer on the area maps, whether or not this chapter fights them (compare the levels "
+                       "with the entries' level band). Area maps: name, class, single/DOUBLE, sight, levels, team, "
+                       "defeat flag number.")
+        else:
+            out.append("%s (level %d; the full page is %d bytes): %s. Doubles, bosses, HMs, links and claims stay in "
+                       "full; everything is in ch%d.json." % (SUMMARY_MARK, level, full_size,
+                                                              "; ".join(SUMMARY_LEVELS[1:level + 1]), n))
+        ordinary, outer = {}, {}
+        for t in xp["trainers"]:
+            first = _bare(t["seen"][0]["map"])
+            if not t["in_area"]:
+                outer.setdefault(first, []).append(t)
+                continue
+            if level and not t["double"]:
+                ordinary.setdefault(first, []).append(t)
+                continue
+            s0 = t["seen"][0]
+            seen_as = ("sight %s" % s0["sight"]) if "sight" in s0 else \
+                ("a " + SEEN_AS.get(s0["source"], s0["source"]))
+            out.append("- %s `%s` %s, %s, %s, Lv %s (%s), flag %d, on %s" % (
+                t["name"] or "-", _bare(t["symbol"]), t["class"], "DOUBLE" if t["double"] else "single", seen_as,
+                "/".join(map(str, t["levels"])), " ".join(_bare(s) for s in t["species"]), t["flag"],
+                ", ".join(sorted({_bare(s["map"]) for s in t["seen"]}))))
+        for mp in sorted(ordinary):
+            ts = ordinary[mp]
+            lv = [x for t in ts for x in t["levels"]]
+            out.append("- %s: %d ordinary trainer%s, Lv %s-%s%s" % (
+                mp, len(ts), "s" if len(ts) != 1 else "", min(lv) if lv else "-", max(lv) if lv else "-",
+                "" if level >= 4 else ", species %s" % (" ".join(sorted({_bare(x) for t in ts for x in t["species"]}))
+                                                        or "-")))
+        if outer:
+            out.append("")
+            if level >= 4:
+                lv = [x for ts in outer.values() for t in ts for x in t["levels"]]
+                dbl = [_bare(t["symbol"]) for ts in outer.values() for t in ts if t["double"]]
+                out.append("Neighbour maps: %d trainers on %d maps, Lv %s-%s%s" % (
+                    sum(map(len, outer.values())), len(outer), min(lv) if lv else "-", max(lv) if lv else "-",
+                    ("; DOUBLE " + ", ".join(dbl)) if dbl else ""))
+            elif level:
+                out.append("Neighbour maps (trainer count, Lv min-max, doubles by name):")
+                for mp in sorted(outer):
+                    lv = [x for t in outer[mp] for x in t["levels"]]
+                    dbl = [_bare(t["symbol"]) for t in outer[mp] if t["double"]]
+                    out.append("- %s: %d, Lv %s-%s%s" % (mp, len(outer[mp]), min(lv) if lv else "-",
+                                                         max(lv) if lv else "-",
+                                                         ("; DOUBLE " + ", ".join(dbl)) if dbl else ""))
+            else:
+                out.append("Neighbour maps (name, Lv min-max, D = double):")
+                for mp in sorted(outer):
+                    out.append("- %s: %s" % (mp, ", ".join("%s %s-%s%s" % (
+                        _bare(t["symbol"]), t["level_min"], t["level_max"], " D" if t["double"] else "")
+                        for t in outer[mp])))
+        return out
+
+    def bosses():
+        out = ["## Bosses"]
+        if not xp["bosses"]:
+            out.append("- none fought in this chapter's entries")
+        for b in xp["bosses"]:
+            battle = "DOUBLE" if b["double"] else "single"
+            out.append("- **%s** `%s` (%s, %s)%s, %s:" % (b["fight"], _bare(b["id"]), b["role"], battle,
+                                                         (" badge " + b["badge"]["id"]) if b.get("badge") else "",
+                                                         b["ref"]))
+            for p in b["party"]:
+                out.append("  - %s Lv%d [%s] %s%s" % (_bare(p["species"]), p["level"], "/".join(p.get("types") or []),
+                                                      " ".join(_bare(mv) for mv in (p.get("moves") or [])),
+                                                      (" @" + _bare(p["held_item"])) if p.get("held_item") else ""))
+        if xp["area_bosses_later"]:
+            out.append("- Battled on these maps in a LATER entry: " + ", ".join(
+                "%s (%s, %d variant%s, top Lv %d)" % (r["fight"], r["entry"], len(r["ids"]),
+                                                      "s" if len(r["ids"]) != 1 else "", r["level_max"])
+                for r in xp["area_bosses_later"]))
+        return out
+
+    def wild():
+        out = ["## Wild encounters (area maps, normal play)"]
+        rows = xp["wild"]
+        if not rows:
+            return out + ["- no wild table on the area maps"]
+        if level >= 4:
+            return out + ["- %d tables on %s: in ch%d.json `wild` (species, rates and levels)" % (
+                len(rows), ", ".join(sorted({_bare(r["map"]) for r in rows})), n)]
+
+        def tag(r):
+            return (" REQUIRES %s" % r["requires"] if r["requires"] else "") + \
+                (" IF %s" % r["condition"] if r["condition"] else "")
+        if level >= 2:
+            per = {}
+            for r in rows:
+                sp = r["species"]
+                per.setdefault(_bare(r["map"]), []).append("%s%s %s L%s-%s" % (
+                    r["method"], tag(r), " ".join(m["name"] for m in sp),
+                    min(m["min_level"] for m in sp) if sp else "-", max(m["max_level"] for m in sp) if sp else "-"))
+            return out + ["- %s: %s" % (mp, "; ".join(per[mp])) for mp in sorted(per)]
+        return out + ["- %s %s (rate %s)%s: %s" % (_bare(r["map"]), r["method"], r["encounter_rate"], tag(r), ", ".join(
+            "%s %d%% L%d-%d" % (m["name"], m["chance_pct"], m["min_level"], m["max_level"]) for m in r["species"]))
+            for r in rows]
+
+    def hms():
+        out = ["## HM moves"]
+        if not xp["hms"]:
+            out.append("- no field move is needed by, or unlocked in, this chapter (campaign.json needs.field_moves; "
+                       "badges won)")
+        for h in xp["hms"]:
+            out.append("- %s (%s, badge %s, %s): %s. %d species learn it; met wild here: %s" % (
+                h["move"], h["hm"], h["badge"], h["badge_ref"], h["why"], h["learners_count"],
+                ", ".join(_bare(s) for s in h["learners_met_wild_here"]) or "none"))
+        return out
+
+    def claim_lines():
+        return ["## LOAD-BEARING CLAIMS (for the adversarial agent: refute each against the pinned decomp)"] + [
+            "%d. [%s] %s" % (c["n"], c["kind"], c["claim"]) + ((" (source: %s)" % c["source"]) if c["source"] else "")
+            for c in xp["claims"]]
+
+    page = []
+    for part in (head, entries, links, trainers, bosses, wild, hms, claim_lines):
+        page += part() + [""]
+    return "\n".join(page)
+
+
+def expected_md(xp, cap):
+    """render_md_check at the least summarised level that fits `cap`, chosen by its OWN size measurements (the same
+    rule as render_within_cap, so a wrong level choice in either is a difference too)."""
+    full = render_md_check(xp, 0, None)
+    size = len(full.encode("utf-8"))
+    md, level = full, 0
+    while len(md.encode("utf-8")) > cap and level + 1 < len(SUMMARY_LEVELS):
+        level += 1
+        md = render_md_check(xp, level, size)
+    return md
+
+
+def check_md_complete(pack, md, expected, cap):
+    """The .md, EVERY line of it, against the second rendering of the second reading (render_md_check over
+    expected_pack): so a boss line must hold every mon with its species, level, types, moves and held item; a double
+    battle must say DOUBLE; a links line must list every connection and warp; an HM line must name its badge; each
+    claim must hold its full text and source; and a summarised page must summarise at the same level with the same
+    counts and species. Compares whole lines, never a line's start. Returns the findings, each naming the section."""
     out = []
-    lines = md.split("\n")
-    summarised = SUMMARY_MARK in md
     if pack["bosses"] and "none fought" in md:
         out.append("md says 'none fought' but the pack has %d boss row(s)" % len(pack["bosses"]))
-    for b in pack["bosses"]:
-        head = [i for i, ln in enumerate(lines) if ln.startswith("- **%s** `%s` " % (b["fight"], short(b["id"])))]
-        if len(head) != 1:
-            out.append("md boss %s: %d header lines (want 1)" % (b["id"], len(head)))
+    if expected.get("pack") is None:
+        return out + ["md cannot be checked: no second reading of the inputs"]
+    want = expected_md(with_provenance(expected["pack"], pack), cap).split("\n")
+    have = md.split("\n")
+
+    def section(lines, i):
+        for ln in reversed(lines[:i + 1]):
+            if ln.startswith("## "):
+                return ln[3:].split(" (")[0]
+        return "header"
+
+    for op, h1, h2, w1, w2 in difflib.SequenceMatcher(None, have, want, autojunk=False).get_opcodes():
+        if op == "equal":
             continue
-        team = lines[head[0] + 1: head[0] + 1 + len(b["party"])]
-        for k, p in enumerate(b["party"]):
-            want = "  - %s Lv%d " % (short(p["species"]), p["level"])
-            if k >= len(team) or not team[k].startswith(want):
-                out.append("md boss %s mon %d (%s) missing or out of order" % (b["id"], k + 1, want.strip()))
-    for h in pack["hms"]:
-        if not any(ln.startswith("- %s (%s, badge " % (h["move"], h["hm"])) for ln in lines):
-            out.append("md HM %s missing" % h["move"])
-    for m in pack["maps"]:
-        if m["role"] == "area" and not any(ln.startswith("- **%s** (" % short(m["id"])) for ln in lines):
-            out.append("md links line for %s missing" % m["id"])
-    for t in pack["trainers"]:
-        named = any("`%s`" % short(t["symbol"]) in ln and "flag %d," % t["flag"] in ln for ln in lines)
-        if t["in_area"] and (t["double"] or not summarised) and not named:
-            out.append("md trainer %s (flag %d%s) missing" % (t["symbol"], t["flag"], ", DOUBLE" if t["double"] else ""))
-    if summarised:
-        per_map = {}
-        for t in pack["trainers"]:
-            if t["in_area"] and not t["double"]:
-                mp = short(t["seen"][0]["map"])
-                per_map[mp] = per_map.get(mp, 0) + 1
-        for mp, n in sorted(per_map.items()):
-            if not any(ln.startswith("- %s: %d ordinary trainer" % (mp, n)) for ln in lines):
-                out.append("md summary line for %s (%d ordinary trainers) missing" % (mp, n))
-    for c in pack["claims"]:
-        text = "%d. [%s] %s" % (c["n"], c["kind"], c["claim"])
-        if not any(ln.startswith(text) for ln in lines):
-            out.append("md claim %d [%s] missing" % (c["n"], c["kind"]))
+        for k in range(max(h2 - h1, w2 - w1)):
+            hi, wi = h1 + k, w1 + k
+            if hi < h2 and wi < w2:
+                out.append("md [%s] line %d: the .md has %r, the inputs give %r" % (
+                    section(want, wi), hi + 1, have[hi][:200], want[wi][:200]))
+            elif wi < w2:
+                out.append("md [%s] MISSING line: %r" % (section(want, wi), want[wi][:200]))
+            else:
+                out.append("md [%s] EXTRA line %d: %r" % (section(have, hi), hi + 1, have[hi][:200]))
     return out
 
 
@@ -841,12 +1357,18 @@ def render_md(pack, summary_of=None, level=0):
         a("> - " + line)
     a("")
     a("Decomp pin: `%s`. Generator: `%s` sha256 `%s`." % (pack["decomp_pin"], pack["generator"]["path"],
-                                                          pack["generator"]["sha256"]))
+                                                          pack["generator"]["sha256"][:MD_HASH_CHARS]))
+    vf = pack["inputs_verified"]
     a("")
-    a("| source | sha256 |")
+    a("Inputs verified first by `%s` (sha256 `%s`) over every record of the four world files read: exit %s, %s. Its "
+      "command and result line are in ch%d.json `inputs_verified`." % (
+          vf["by"], vf["verifier_sha256"][:MD_HASH_CHARS], vf["exit"],
+          "0 mismatches" if VERIFY_PASS.match(vf["result"]) else "NOT VERIFIED", n))
+    a("")
+    a("| source | sha256 (first %d; all 64 in ch%d.json) |" % (MD_HASH_CHARS, n))
     a("|---|---|")
     for k, v in pack["sources"].items():
-        a("| `%s` | `%s` |" % (k, v))
+        a("| `%s` | `%s` |" % (k, v[:MD_HASH_CHARS]))
     a("")
     a("## Entries")
     for e in pack["entries"]:
@@ -1015,14 +1537,15 @@ def dump_json(pack):
     return json.dumps(pack, indent=1, sort_keys=False, ensure_ascii=False) + "\n"
 
 
-def generate_loaded(chapter, data, hashes, pin, md_cap):
-    """(json text, md text) for one chapter from loaded inputs (main runs check_pins first); every other guard runs
-    here."""
-    pack = build_pack(chapter, data, hashes, pin, sha256_lf(os.path.abspath(__file__)))
+def generate_loaded(chapter, data, hashes, pin, md_cap, verified):
+    """(json text, md text) for one chapter from loaded inputs. main runs check_pins and verify_inputs first and passes
+    verify_inputs' record as `verified`; every other guard runs here. (The selftest calls this in-process with a stub
+    record to reach the guards that sit behind verify_world; such a page says NOT VERIFIED in its header.)"""
+    pack = build_pack(chapter, data, hashes, pin, sha256_lf(os.path.abspath(__file__)), verified)
     expected, problems = expected_selection(chapter, data)
     refuse_incomplete(problems + check_complete(pack, expected), chapter)
     md = render_within_cap(pack, md_cap)
-    refuse_incomplete(check_md_complete(pack, md), chapter)
+    refuse_incomplete(check_md_complete(pack, md, expected, md_cap), chapter)
     check_md_size(md, md_cap)
     return dump_json(pack), md
 
@@ -1037,6 +1560,8 @@ def main(argv=None):
     ap.add_argument("--out", default=OUT_DEFAULT)
     ap.add_argument("--md-cap", type=int, default=MD_CAP_DEFAULT, help="bytes (default 12 KB)")
     ap.add_argument("--check", action="store_true", help="compare with the files in --out; write nothing")
+    ap.add_argument("--decomp", help="the pinned decomp clone verify_world reads (default: its own default)")
+    ap.add_argument("--verify-world", default=VERIFY_WORLD, help="the verifier (default ai_player/gates/verify_world.py)")
     args = ap.parse_args(argv)
     pin = read_pin(args.pin)
     data, hashes = load_inputs(args.world, args.seasoned)
@@ -1045,16 +1570,20 @@ def main(argv=None):
         ap.error("name at least one chapter, or --all")
     try:
         check_pins(data, pin)
+        verified = verify_inputs(args.world, args.decomp, args.verify_world)
     except PackError as exc:
         print("REFUSED: %s" % exc, file=sys.stderr)
         return 2
-    drift = 0
+    # every chapter is generated (and checked) in memory first, so a refusal writes NOTHING, not a partial set
+    made = []
     for n in chapters:
         try:
-            js, md = generate_loaded(n, data, hashes, pin, args.md_cap)
+            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified))
         except PackError as exc:
             print("REFUSED ch%d: %s" % (n, exc), file=sys.stderr)
             return 2
+    drift = 0
+    for n, js, md in made:
         for ext, text in (("json", js), ("md", md)):
             path = os.path.join(args.out, "ch%d.%s" % (n, ext))
             if args.check:

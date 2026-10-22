@@ -8,46 +8,47 @@ and a CONTROL (the healthy path passes).
                                                                             # the generator must fail some arm
 
 It lives in tools/story-dev/ so run_gates.py finds it like every other suite; the generator stays in tools/ and is
-run as a subprocess (and, for the arms that test its check functions directly, loaded from its file path), so a
-mutant copy is exercised exactly like the real one.
+run as a subprocess (and, for the arms that test its functions directly, loaded from its file path), so a mutant copy
+is exercised exactly like the real one. The scenarios run in parallel threads (each generator run starts
+verify_world, about 0.8 s), and the arms print in a fixed order at the end.
 
-INTENT: a chapter pack is what an agent reads instead of re-doing a chapter's recon, so a pack that silently drops a
-trainer, a boss, an HM or a link, hides that a section is missing, or carries a stale hash is worse than no pack.
-The first build passed 29 arms while chapters 19 and 24 crashed, four chapters could not fit the cap, and 24 of 24
-omission and logic mutants survived (the 2026-10-22 verify). The arms, each FAULT + CONTROL:
-  all         CONTROL every campaign chapter (24) generates, each passing its completeness check and the 12 KB cap.
-  F1 shapes   a trainer object carries `script` (object, trigger) or `label` (map-script battle: Wallace, the Space
-              Center): CONTROL a fixture of each shape gives its label, and the real ch19/ch24 packs cite the labels;
-              FAULT an object with neither is refused naming its map, by the function and by the generator.
-  F2 size     CONTROL every .md <= 12 KB and at least one chapter needed summarising; a forced summary of ch4 still
-              holds every load-bearing item. FAULT: a summarised .md with one load-bearing item removed (a boss mon,
-              a double battle, a claim, an HM, a links line, a summary line) or with 'none fought' added is caught by
-              check_md_complete; a cap no load-bearing part fits (2000) still refuses, naming the cap.
-  F3 complete CONTROL check_complete finds nothing on real packs. FAULT (pack level): one item per category removed
-              from a real pack (boss, area/ring trainer, levels, double flag, species, ring map, connection, warp, warp
-              in, HM, wild row, a claim of each kind) is named. FAULT (input level, a scratch world): a boss row, a boss
-              trainer's object on an area map and on a ring map, the field-move row of a badge won and of a needed
-              move, either side of a connection, and a warp to a missing map each make the run exit 2 naming EXACTLY
-              that one finding (an exact count, so a second, wrong finding fails the arm). An ORDINARY trainer or a
-              warp deleted from maps.json is named by no other input: only W3 (ch1-4) sees that. FAULT (generator level): a copy
-              of the generator that drops ring trainers, a boss mon from the .md, the HMs or the boss claims exits 2.
-  W3 recall   (the spec's real control for A5) milestones.json's hand-recon'd `trainers` table must be fully contained
-              in the packs for chapters 1-4 (symbol + id, defeat flag in JSON and named with it in the .md, levels in
-              order). FAULT: JOSH's object removed from a scratch maps.json makes recall fall. The milestone -> chapter
-              mapping is the identity; FAULT: one chapter changed is reported. Extras are printed, not hidden.
-  CRLF        CONTROL a CRLF copy of an input hashes as its LF original; CRLF copies of the packs pass --check.
-              FAULT: a CRLF copy with one changed byte still fails --check (the normalisation hides line ends only).
-  routekeys   CONTROL no x/y/route/path/steps/coords key in any pack's entries; ROUTE_KEYS (read with ast) equals
-              extract_world.py's. FAULT: a scratch copy with one key dropped is reported; a key planted in a dict and
-              one inside a LIST in a ch4 entry each exit 2 naming the path.
-  others      absent (header names every missing section), hashes (each source's own, the generator's own, two runs
-              identical: a determinism check, not a replication; one changed source changes exactly its hash), empty
-              chapter, pin, unknown area map, unknown trainer, extra entry field not carried, non-normal wild rows not
-              carried, the one-way claim (ch3's counted "none of N", and a redirected Petalburg Woods warp named), and
-              --check (committed packs pass; an edited copy fails).
---mutants deletes each guard's CALL and applies the verify's 24 omission/logic mutants, each in a scratch copy; the
-selftest run against that copy must fail. Nothing here writes outside --work; the committed packs and ai_player/ are
-only read.
+INTENT: a chapter pack is what an agent reads instead of re-doing a chapter's recon, so a pack that silently drops or
+corrupts a trainer, a boss, an HM or a link, hides that a section is missing, or carries a stale hash is worse than no
+pack. The first build passed 29 arms while chapters 19 and 24 crashed; the second passed 81 while 13 mutants that
+corrupt real output (a boss losing its ace, Tate and Liza shown as a single battle, a links line blanked) survived,
+because its checks compared a line's START. The arms, each FAULT + CONTROL:
+  all         CONTROL every campaign chapter (24) generates, each passing its completeness checks and the 12 KB cap.
+  F1 content  (round 2) the pack is compared VALUE BY VALUE with a second reading of the inputs (expected_pack), and
+              the .md LINE BY LINE with a second rendering of it. FAULT (pack): a boss mon's held item or move, Tate and
+              Liza's double flag, a connection's offset, an HM's badge, a claim's tail each changed in a real pack are
+              named. FAULT (.md): a held item, a mon's moves, DOUBLE, one connection, a claim's last word, an HM's badge,
+              an entry's needs, a summary's species each changed in a real page are named, beside the old removals
+              (a boss mon, a double line, a claim, an HM line, a links line, a summary line, 'none fought' added).
+              FAULT (generator): copies with the verify's mutants planted (a boss claim's last mon, a held item, a
+              links line, Tate and Liza single, an HM's badge) exit 2. CONTROL: no finding on any real pack or page.
+  F2 inputs   (round 2) the generator runs ai_player/gates/verify_world.py over every record first and refuses unless
+              it reports 0 mismatches. FAULT: the verify's three omissions (an area DOUBLE battle, Roxanne's badge, a
+              connection removed on BOTH sides) and three more (an ordinary trainer, a warp, Roxanne gone from two
+              files) in scratch worlds each exit 2 naming verify_world and the record, writing nothing; a decomp
+              folder that is no pinned clone exits 2; a refusal at chapter 13 of --all writes no earlier chapter.
+              CONTROL: every pack header records the verification, and verify_world run here gives the same line.
+  F1 shapes   a trainer object carries `script` (object, trigger) or `label` (map-script battle): CONTROL a fixture of
+              each shape and the real ch19/ch24 packs; FAULT an object with neither is refused naming its map.
+  F2 size     CONTROL every .md <= 12 KB, at least one chapter summarised, a forced summary of ch4 passes; FAULT a cap
+              no load-bearing part fits (2000) refuses naming the cap.
+  F3 complete CONTROL check_complete finds nothing on real packs. FAULT (pack level): one item per category removed is
+              named. FAULT (input level, in-process so verify_world does not answer first): a boss row, a boss
+              trainer's object on an area and on a ring map, the field-move row of a badge won and of a needed move,
+              either side of a connection, a warp to a missing map each give EXACTLY one finding naming it.
+  W3 recall   milestones.json's hand-recon'd `trainers` table must be fully contained in the ch1-4 packs. FAULT: JOSH's
+              object removed from a scratch maps.json: recall on the pack built from it falls (in-process), and the
+              real run refuses that world through verify_world. The milestone -> chapter mapping is the identity.
+  CRLF, routekeys, absent, hashes, empty chapter, pin, unknown area map, unknown trainer, extra entry field, non-normal
+              wild rows, the one-way claims and --check: as before (each FAULT + CONTROL). The guards verify_world now
+              answers first (area map, trainer, route keys, Wallace's label, the redirected warp, the entry field) are
+              driven in-process through generate_loaded, which runs every guard but the verification.
+--mutants deletes each guard's CALL and applies the verify's 24 + 15 mutants, each in a scratch copy; the selftest run
+against that copy must fail. Nothing here writes outside --work; the committed packs and ai_player/ are only read.
 """
 import argparse
 import ast
@@ -62,6 +63,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -74,6 +76,7 @@ PIN = os.path.join(REPO, "tools", "decomp.pin")
 PACKS = os.path.join(REPO, "PROJECT KNOWLEDGE", "chapter-packs")
 MILESTONES = os.path.join(REPO, "ai_player", "knowledge", "milestones.json")
 EXTRACT_WORLD = os.path.join(REPO, "ai_player", "gates", "extract_world.py")
+VERIFY_WORLD = os.path.join(REPO, "ai_player", "gates", "verify_world.py")
 W3_CHAPTERS = (1, 2, 3, 4)
 MD_CAP = 12 * 1024
 ROUTE_KEYS = ("x", "y", "route", "path", "steps", "coords")
@@ -85,10 +88,18 @@ SOURCES = {"ai_player/knowledge/world/" + n: os.path.join(WORLD, n)
            for n in ("campaign.json", "maps.json", "trainers.json", "bosses.json")}
 SOURCES.update({"ai_player/knowledge/seasoned/" + n: os.path.join(SEASONED, n)
                 for n in ("encounters.json", "learnsets.json", "species.json")})
+#: what the in-process arms pass as the verification record (generate_loaded runs every guard but the verification)
+STUB_VERIFIED = {"by": "ai_player/gates/verify_world.py", "verifier_sha256": "0" * 64,
+                 "command": "(selftest, in-process: verify_world not run)", "exit": None,
+                 "result": "NOT RUN (in-process selftest arm)"}
 
 #: guard -> (the exact text of its call in the generator, the text a call-deleting mutant puts there)
 MUTANTS = {
     "check_pins": ("        check_pins(data, pin)\n", "        pass\n"),
+    "verify_inputs": ("        verified = verify_inputs(args.world, args.decomp, args.verify_world)\n",
+                      '        verified = {"by": "-", "verifier_sha256": "0" * 64, "command": "-", "exit": 0, '
+                      '"result": "-"}\n'),
+    "verify_inputs PASS test": ("    if p.returncode != 0 or not VERIFY_PASS.match(summary):\n", "    if False:\n"),
     "refuse_empty_chapter": ("    refuse_empty_chapter(raw, chapter)\n", "    pass\n"),
     "refuse_route_keys": ("    refuse_route_keys(raw)\n", "    pass\n"),
     "resolve_maps": ('resolve_maps(e["area"], maps_by_id)', '["MAP_" + n for n in e["area"]]'),
@@ -100,9 +111,25 @@ MUTANTS = {
                       '            hashes[rel + name] = "0" * 64\n'),
     "refuse_incomplete(check_complete)": ("    refuse_incomplete(problems + check_complete(pack, expected), chapter)\n",
                                           "    pass\n"),
-    "refuse_incomplete(check_md_complete)": ("    refuse_incomplete(check_md_complete(pack, md), chapter)\n",
-                                             "    pass\n"),
+    "refuse_incomplete(check_md_complete)": (
+        "    refuse_incomplete(check_md_complete(pack, md, expected, md_cap), chapter)\n", "    pass\n"),
+    "deep_diff (the value-by-value pack check)": (
+        '        deep_diff(pack, with_provenance(expected["pack"], pack), "$", out)\n', "        pass\n"),
+    "expected_md (the line-by-line page check)": (
+        '    want = expected_md(with_provenance(expected["pack"], pack), cap).split("\\n")\n',
+        '    want = md.split("\\n")\n'),
     "render_within_cap summary": ("        md = render_md(pack, summary_of=full, level=level)\n", "        pass\n"),
+    # not a deletion: each chapter written as soon as it is made (the first build's behaviour), which leaves the
+    # earlier chapters on disk when a later one refuses; the F2 partial-write arm must catch it
+    "write only after every chapter is made": (
+        "            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified))\n",
+        "            made.append((n,) + generate_loaded(n, data, hashes, pin, args.md_cap, verified))\n"
+        "            if not args.check:\n"
+        "                os.makedirs(args.out, exist_ok=True)\n"
+        "                for ext, text in ((\"json\", made[-1][1]), (\"md\", made[-1][2])):\n"
+        "                    with open(os.path.join(args.out, \"ch%d.%s\" % (n, ext)), \"w\", encoding=\"utf-8\",\n"
+        "                              newline=\"\\n\") as f:\n"
+        "                        f.write(text)\n"),
     # the input cross-checks inside expected_selection: each report deleted
     "problem: boss battled_on": ('problems.append("bosses.json says', '(lambda *_: None)("bosses.json says'),
     "problem: boss with no row": ('problems.append("campaign entry %s names boss',
@@ -159,13 +186,55 @@ VERIFIER_MUTANTS = {
                                  '    for bd in []:\n        out.append(("progress_flag"'),
 }
 
+#: the 2026-10-22 RE-verify's 15 render/claim mutants, verbatim from its reverify-work/newmut.py (13 of them survived
+#: round 1's generator AND selftest; R6 and C5 were already caught)
+REVERIFY_MUTANTS = {
+    "R1_md_boss_moves_dropped": ('" ".join(short(m) for m in p.get("moves") or []),\n                                         (" @"',
+                                 '"",\n                                         (" @"'),
+    "R2_md_boss_held_item_dropped": ('(" @" + short(p["held_item"])) if p.get("held_item") else ""))\n    if pack["area_bosses_later"]',
+                                     '""))\n    if pack["area_bosses_later"]'),
+    "R3_md_boss_double_shown_single": ('                                            "DOUBLE" if b["double"] else "single",\n',
+                                       '                                            "single",\n'),
+    "R4_md_links_connections_blanked": ('        a("- **%s** (%s). Connections: %s. Warps: %s." % (short(m["id"]), ", ".join(flags), conns, warps))',
+                                        '        a("- **%s** (%s). Connections: %s. Warps: %s." % (short(m["id"]), ", ".join(flags), "-", warps))'),
+    "R5_md_links_warps_blanked": ('        a("- **%s** (%s). Connections: %s. Warps: %s." % (short(m["id"]), ", ".join(flags), conns, warps))',
+                                  '        a("- **%s** (%s). Connections: %s. Warps: %s." % (short(m["id"]), ", ".join(flags), conns, "-"))'),
+    "R6_md_trainer_double_shown_single": ('short(t["symbol"]), t["class"], "DOUBLE" if t["double"] else "single",',
+                                          'short(t["symbol"]), t["class"], "single",'),
+    "R7_md_entries_needs_dropped": ('            if (nd.get("badges") or nd.get("field_moves")) else ""))', '            if 0 else ""))'),
+    "R8_md_hm_met_wild_none": ('            ", ".join(short(s) for s in h["learners_met_wild_here"]) or "none"))\n    a("")\n    a("## LOAD',
+                               '            "none"))\n    a("")\n    a("## LOAD'),
+    "R9_md_flash_flag_dropped": ('        if m["requires_flash"]:\n            flags.append("FLASH")', '        if 0:\n            flags.append("FLASH")'),
+    "R10_md_summary_species_wrong": ('                "" if level >= 4 else ", species " + (" ".join(sp) or "-")))',
+                                     '                "" if level >= 4 else ", species -"))'),
+    "C1_claim_boss_team_last_mon_dropped": ('                         for p in b["party"])\n        out.append(("boss_team"',
+                                            '                         for p in b["party"][:-1])\n        out.append(("boss_team"'),
+    "C2_claim_boss_double_shown_single": ('            b["fight"], short(b["id"]), b["role"], "DOUBLE" if b["double"] else "single", team), b["ref"]))',
+                                          '            b["fight"], short(b["id"]), b["role"], "single", team), b["ref"]))'),
+    "C3_claim_hm_badge_wrong": ('            h["move"], h["hm"], h["badge"], h["learners_count"],', '            h["move"], h["hm"], "BADGE01", h["learners_count"],'),
+    "C4_claim_hm_met_wild_none": ('            h["move"], h["hm"], h["badge"], h["learners_count"],\n            ", ".join(short(s) for s in h["learners_met_wild_here"]) or "none")',
+                                  '            h["move"], h["hm"], h["badge"], h["learners_count"],\n            "none")'),
+    "C5_claim_scripted_battle_names_first_only": ('        out.append(("scripted_battle", "%s can be started by a trigger tile (%s); the trigger\'s var condition is NOT "\n                                       "modelled here" % (" / ".join(syms),',
+                                                  '        out.append(("scripted_battle", "%s can be started by a trigger tile (%s); the trigger\'s var condition is NOT "\n                                       "modelled here" % (" / ".join(syms[:1]),'),
+}
+
 #: generator-level plants: a defect written into a scratch copy of the generator under test; the copy must exit 2
-#: naming it (the in-run completeness checks catch a GENERATOR that drops an item, not only a broken input)
+#: naming it (the in-run checks catch a GENERATOR that drops or corrupts an item, not only a broken input)
 PLANTS = {
-    "ring trainers dropped": (VERIFIER_MUTANTS["OM1_ring_trainers_dropped"], "MISSING trainer"),
-    "last boss mon dropped from the .md": (VERIFIER_MUTANTS["OM12_boss_party_last_mon_dropped"], "md boss"),
-    "HMs emptied": (VERIFIER_MUTANTS["OM4_hms_dropped"], "MISSING HM"),
-    "boss_team claims dropped": (VERIFIER_MUTANTS["OM8_boss_team_claims_dropped"], "MISSING claim [boss_team]"),
+    "ring trainers dropped": (VERIFIER_MUTANTS["OM1_ring_trainers_dropped"], [4, 13], "MISSING trainer"),
+    "last boss mon dropped from the .md": (VERIFIER_MUTANTS["OM12_boss_party_last_mon_dropped"], [4, 13],
+                                           "md [Bosses]"),
+    "HMs emptied": (VERIFIER_MUTANTS["OM4_hms_dropped"], [4, 13], "MISSING HM"),
+    "boss_team claims dropped": (VERIFIER_MUTANTS["OM8_boss_team_claims_dropped"], [4, 13], "MISSING claim [boss_team]"),
+    "boss_team claim losing its last mon (F1)": (REVERIFY_MUTANTS["C1_claim_boss_team_last_mon_dropped"], [4],
+                                                 "WRONG pack $.claims[0].claim"),
+    "boss held items dropped from the .md (F1)": (REVERIFY_MUTANTS["R2_md_boss_held_item_dropped"], [4],
+                                                  "md [Bosses] line"),
+    "links lines' connections blanked (F1)": (REVERIFY_MUTANTS["R4_md_links_connections_blanked"], [13],
+                                              "md [Maps and links] line"),
+    "Tate and Liza rendered as a single battle (F1)": (REVERIFY_MUTANTS["R3_md_boss_double_shown_single"], [18],
+                                                       "(gym_leader, single)"),
+    "an HM claim naming the wrong badge (F1)": (REVERIFY_MUTANTS["C3_claim_hm_badge_wrong"], [7], "WRONG pack $.claims"),
 }
 
 
@@ -205,14 +274,25 @@ def findings_count(err):
     return int(m.group(1)) if m else None
 
 
+def listing(folder):
+    return sorted(os.listdir(folder)) if os.path.isdir(folder) else []
+
+
 class Runner:
-    def __init__(self, gen, work):
+    """Arms are collected per Runner; `child()` gives a scenario its own list, merged in a fixed order at the end."""
+
+    def __init__(self, gen, work, shared=None):
         self.gen, self.work = gen, work
         self.results = []
+        self.shared = shared if shared is not None else {"lock": threading.Lock()}
+
+    def child(self):
+        return Runner(self.gen, self.work, self.shared)
 
     def run(self, chapters, out, world=WORLD, seasoned=SEASONED, extra=(), gen=None):
         cmd = [sys.executable, gen or self.gen] + [str(c) for c in chapters] + [
-            "--world", world, "--seasoned", seasoned, "--pin", PIN, "--out", out] + list(extra)
+            "--world", world, "--seasoned", seasoned, "--pin", PIN, "--out", out,
+            "--verify-world", VERIFY_WORLD] + list(extra)
         p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
         return p.returncode, p.stdout, p.stderr
 
@@ -230,9 +310,40 @@ class Runner:
                         shutil.copyfile(os.path.join(src, n), os.path.join(d, sub, n))
         return d
 
+    def mod(self):
+        """The generator under test as a module, loaded once (shared by the scenarios)."""
+        with self.shared["lock"]:
+            if "mod" not in self.shared:
+                self.shared["mod"] = import_generator(self.gen)
+            return self.shared["mod"]
+
+    def real_data(self):
+        """The real inputs, loaded once by the module under test (never mutated by an arm: they deep-copy)."""
+        mod = self.mod()
+        with self.shared["lock"]:
+            if "data" not in self.shared:
+                self.shared["data"] = mod.load_inputs(WORLD, SEASONED)[0]
+            return self.shared["data"]
+
+    def inproc(self, chapters, world=WORLD, seasoned=SEASONED, cap=MD_CAP):
+        """generate_loaded in-process (every guard but the verification). ("ok", {c: (pack, md)}) or ("refused",
+        message); any other exception propagates (the arm fails with it)."""
+        mod = self.mod()
+        data, hashes = mod.load_inputs(world, seasoned)
+        with open(PIN, encoding="utf-8") as f:
+            pin = f.read().strip()
+        try:
+            mod.check_pins(data, pin)
+            out = {}
+            for c in chapters:
+                js, md = mod.generate_loaded(c, data, hashes, pin, cap, STUB_VERIFIED)
+                out[c] = (json.loads(js), md)
+            return "ok", out
+        except mod.PackError as exc:
+            return "refused", str(exc)
+
     def arm(self, name, ok, detail=""):
         self.results.append((name, bool(ok), detail))
-        print("%s  %s%s" % ("PASS" if ok else "FAIL", name, ("  -- " + str(detail)[:300]) if detail else ""))
 
     def guarded(self, name, fn):
         """An arm whose body may raise (for instance on a generator without the function under test): a raise FAILS."""
@@ -241,6 +352,24 @@ class Runner:
         except Exception as exc:  # noqa: BLE001 - any exception is the arm failing, with its text
             ok, detail = False, "%s: %s" % (type(exc).__name__, exc)
         self.arm(name, ok, detail)
+
+
+def parallel(R, scenarios):
+    """Run each scenario(child) in its own thread; merge their arms into R in the listed order. A scenario that
+    raises becomes a FAIL arm naming it."""
+    kids = [R.child() for _ in scenarios]
+
+    def go(fn, kid):
+        try:
+            fn(kid)
+        except Exception as exc:  # noqa: BLE001
+            kid.arm("scenario %s ran" % fn.__name__, False, "%s: %s" % (type(exc).__name__, exc))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(scenarios))) as ex:
+        for f in [ex.submit(go, fn, kid) for fn, kid in zip(scenarios, kids)]:
+            f.result()
+    for kid in kids:
+        R.results.extend(kid.results)
 
 
 # ---------------------------------------------------------------- W3 recall
@@ -339,86 +468,72 @@ def campaign_chapters():
     return sorted({e["chapter"] for e in load(os.path.join(WORLD, "campaign.json"))["entries"]})
 
 
-# ---------------------------------------------------------------- the arms
-def all_arms(R):
-    ms = load(MILESTONES)
-    camp = load(os.path.join(WORLD, "campaign.json"))
+def edit_world(d, name, fn):
+    """Apply fn to the scratch copy of world/<name>; returns fn's result (whether the item to break was found)."""
+    path = os.path.join(d, "world", name)
+    obj = load(path)
+    ok = fn(obj)
+    save(obj, path)
+    return ok
+
+
+# ---------------------------------------------------------------- input edits shared by several arms
+def drop_object(map_id, sym):
+    """`sym` removed from every trainer object on the map (an object left with no trainer is removed)."""
+    def fn(obj):
+        m = next(x for x in obj["maps"] if x["id"] == map_id)
+        hit = sum(sym in o["trainers"] for o in m["trainers"])
+        for o in m["trainers"]:
+            o["trainers"] = [s for s in o["trainers"] if s != sym]
+        m["trainers"] = [o for o in m["trainers"] if o["trainers"]]
+        return hit >= 1
+    return fn
+
+
+def drop_conn(src, dst):
+    def fn(obj):
+        m = next(x for x in obj["maps"] if x["id"] == src)
+        n = len(m["connections"])
+        m["connections"] = [c for c in m["connections"] if c["map"] != dst]
+        return len(m["connections"]) == n - 1
+    return fn
+
+
+def drop_boss(sym):
+    def fn(obj):
+        n = len(obj["bosses"])
+        obj["bosses"] = [b for b in obj["bosses"] if b["id"] != sym]
+        return len(obj["bosses"]) == n - 1
+    return fn
+
+
+# ---------------------------------------------------------------- phase 1: scenarios that need no generated pack
+def s_fresh(R):
     chapters = campaign_chapters()
     fresh = R.scratch("fresh")
     rc, out, err = R.run(["--all"], fresh)
     last = (err or out).strip().splitlines()[-1:] or [""]
-    R.arm("all CONTROL: every campaign chapter (%d: %s-%s) generates from the real inputs, each passing its "
-          "completeness check and the cap" % (len(chapters), chapters[0], chapters[-1]),
+    R.shared["fresh"] = fresh if rc == 0 else None
+    R.arm("all CONTROL: every campaign chapter (%d: %s-%s) generates from the real inputs, verified by verify_world, "
+          "each passing its completeness checks and the cap" % (len(chapters), chapters[0], chapters[-1]),
           rc == 0 and len(chapters) >= 24 and all(os.path.isfile(os.path.join(fresh, "ch%d.md" % c)) for c in chapters),
           last[0])
-    if rc != 0:
-        return
-    packs, mds = read_packs(fresh, chapters)
 
-    f1_arms(R, packs)
-    f2_arms(R, packs, mds)
-    f3_arms(R, packs)
 
-    # W3 recall
-    w3p = {c: packs[c] for c in W3_CHAPTERS}
-    w3m = {c: mds[c] for c in W3_CHAPTERS}
-    h, t, miss, extras = recall(w3p, w3m, ms)
-    R.arm("W3 CONTROL: recall on freshly generated ch1-4 packs is 100%% (%d/%d facts, %d table trainers)" % (
-        h, t, len(ms["trainers"])), h == t and t == 3 * len(ms["trainers"]) and t > 0, "; ".join(miss[:3]))
-    for c in W3_CHAPTERS:
-        print("      extras ch%d (pack trainers on area maps the table does not list): %d %s" % (
-            c, len(extras[c]), ", ".join(x.replace("TRAINER_", "") for x in extras[c])))
-    if all(os.path.isfile(os.path.join(PACKS, "ch%d.%s" % (c, x))) for c in chapters for x in ("json", "md")):
-        cp, cm = read_packs(PACKS, W3_CHAPTERS)
-        h2, t2, miss2, _ = recall(cp, cm, ms)
-        R.arm("W3 CONTROL: recall on the COMMITTED packs is 100%% (%d/%d)" % (h2, t2), h2 == t2 and t2 > 0,
-              "; ".join(miss2[:3]))
-    else:
-        R.arm("W3 CONTROL: the committed packs exist for every chapter", False, "missing under %s" % PACKS)
-    d = R.scratch("w3_fault", world_files=True)
-    maps = load(os.path.join(d, "world", "maps.json"))
-    gym = next(m for m in maps["maps"] if m["id"] == "MAP_RUSTBORO_CITY_GYM")
-    before = len(gym["trainers"])
-    gym["trainers"] = [o for o in gym["trainers"] if o["trainers"] != ["TRAINER_JOSH"]]
-    save(maps, os.path.join(d, "world", "maps.json"))
-    rc, _, err = R.run(W3_CHAPTERS, os.path.join(d, "out"), world=os.path.join(d, "world"))
-    if rc == 0:
-        fp, fm = read_packs(os.path.join(d, "out"), W3_CHAPTERS)
-        h3, t3, miss3, _ = recall(fp, fm, ms)
-        R.arm("W3 FAULT: JOSH's object removed from a scratch maps.json -> recall falls (%d/%d) naming JOSH" % (h3, t3),
-              before - len(gym["trainers"]) == 1 and h3 < t3 and any("JOSH" in x for x in miss3),
-              "; ".join(miss3[:2]))
-    else:
-        R.arm("W3 FAULT: the scratch generation ran", False, err.strip()[-200:])
-    errs = chapter_mapping_errors(ms, camp)
-    R.arm("W3 mapping CONTROL: every milestone id is a campaign entry of the SAME chapter (%d milestones)" % len(
-        ms["milestones"]), not errs and len(ms["milestones"]) == 20, "; ".join(errs[:3]))
-    bad = json.loads(json.dumps(ms))
-    bad["milestones"][-1]["chapter"] = 5
-    R.arm("W3 mapping FAULT: one milestone's chapter changed is reported",
-          any(bad["milestones"][-1]["id"] in x for x in chapter_mapping_errors(bad, camp)))
-
-    # absent sections
-    R.arm("absent CONTROL: every generated header names the absent sections and that the decomp wins",
-          all(absent_ok(mds[c], packs[c]) for c in chapters))
-    cut = "\n".join(line for line in mds[4].split("\n") if ABSENT_MARKERS[0] not in line)
-    R.arm("absent FAULT: a .md with the items line removed is caught", not absent_ok(cut, packs[4]))
-
-    # hashes
-    exp = {k: sha256_lf(p) for k, p in SOURCES.items()}
-    R.arm("hashes CONTROL: every pack's source sha256 equals the file's own (7 sources)",
-          all(packs[c]["sources"] == exp for c in chapters) and len(exp) == 7)
-    R.arm("hashes CONTROL: the generator sha256 is the generator's own",
-          all(packs[c]["generator"]["sha256"] == sha256_lf(R.gen) for c in chapters))
+def s_again(R):
     again = R.scratch("again")
-    R.run(["--all"], again)
-    same = all(open(os.path.join(fresh, "ch%d.%s" % (c, x)), "rb").read() ==
-               open(os.path.join(again, "ch%d.%s" % (c, x)), "rb").read() for c in chapters for x in ("json", "md"))
-    R.arm("hashes CONTROL: two runs give identical bytes (a determinism check, not a replication)", same)
+    rc, _, err = R.run(["--all"], again)
+    R.shared["again"] = again if rc == 0 else None
+    if rc != 0:
+        R.arm("hashes CONTROL: the second --all run (for the determinism arm) ran", False, err.strip()[-200:])
+
+
+def s_hash_fault(R):
     d = R.scratch("hash_fault", world_files=True)
     with open(os.path.join(d, "world", "trainers.json"), "ab") as f:
         f.write(b"\n")
     rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
+    exp = {k: sha256_lf(p) for k, p in SOURCES.items()}
     if rc == 0:
         hp = load(os.path.join(d, "out", "ch4.json"))["sources"]
         k = "ai_player/knowledge/world/trainers.json"
@@ -428,19 +543,30 @@ def all_arms(R):
     else:
         R.arm("hashes FAULT: the scratch generation ran", False, err.strip()[-200:])
 
-    crlf_arms(R, fresh, chapters, exp)
 
-    # empty chapter
+def s_crlf_input(R):
+    d = R.scratch("crlf_input", world_files=True)
+    p = os.path.join(d, "world", "trainers.json")
+    to_crlf(os.path.join(WORLD, "trainers.json"), p)
+    with open(p, "rb") as f:
+        n_crlf = f.read().count(b"\r\n")
+    rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
+    h = load(os.path.join(d, "out", "ch4.json"))["sources"].get("ai_player/knowledge/world/trainers.json") if rc == 0 \
+        else None
+    R.arm("CRLF CONTROL: a CRLF copy of trainers.json (%d CRLF) hashes as its LF original in the pack header" % n_crlf,
+          n_crlf > 1000 and rc == 0 and h == sha256_lf(os.path.join(WORLD, "trainers.json")), err.strip()[-160:])
+
+
+def s_empty(R):
     d = R.scratch("empty")
     rc, _, err = R.run([99], d)
     R.arm("empty FAULT: chapter 99 exits 2 naming it and writes nothing",
           rc == 2 and "chapter 99" in err and not os.listdir(d), err.strip()[-160:])
-    rc, _, _ = R.run([4], R.scratch("empty_control"))
-    R.arm("empty CONTROL: chapter 4 exits 0", rc == 0)
+    rc, _, err = R.run([4], R.scratch("empty_control"))
+    R.arm("empty CONTROL: chapter 4 exits 0", rc == 0, err.strip()[-160:])
 
-    routekey_arms(R, packs, chapters)
 
-    # pin
+def s_pin(R):
     d = R.scratch("pin_fault", world_files=True)
     tj = load(os.path.join(d, "world", "trainers.json"))
     tj["_source"] = "pret/pokeemerald@" + "0" * 40
@@ -448,44 +574,9 @@ def all_arms(R):
     rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
     R.arm("pin FAULT: one input's _source pin changed exits 2 naming trainers.json",
           rc == 2 and "trainers.json" in err and "pin" in err, err.strip()[-200:])
-    with open(PIN, encoding="utf-8") as f:
-        pin = f.read().strip()
-    R.arm("pin CONTROL: the real inputs pass and every pack names tools/decomp.pin (%s)" % pin[:12],
-          all(packs[c]["decomp_pin"] == pin for c in chapters) and len(pin) == 40)
 
-    # unknown area map, unknown trainer
-    d = R.scratch("area_fault", world_files=True)
-    cj = load(os.path.join(d, "world", "campaign.json"))
-    e4 = next(e for e in cj["entries"] if e["chapter"] == 4)
-    e4["area"] = [a + "_RENAMED" for a in e4["area"]]
-    save(cj, os.path.join(d, "world", "campaign.json"))
-    rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
-    R.arm("areamap FAULT: a renamed area map exits 2 naming it", rc == 2 and "RUSTBORO_CITY_GYM_RENAMED" in err,
-          err.strip()[-200:])
-    d = R.scratch("trainer_fault", world_files=True)
-    mj = load(os.path.join(d, "world", "maps.json"))
-    gym = next(m for m in mj["maps"] if m["id"] == "MAP_RUSTBORO_CITY_GYM")
-    gym["trainers"][0]["trainers"] = ["TRAINER_NOBODY_AT_ALL"]
-    save(mj, os.path.join(d, "world", "maps.json"))
-    rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
-    R.arm("trainer FAULT: an unknown trainer symbol on a map exits 2 naming it",
-          rc == 2 and "TRAINER_NOBODY_AT_ALL" in err, err.strip()[-200:])
-    camp_area = {c: {"MAP_" + a for e in camp["entries"] if e["chapter"] == c for a in e["area"]} for c in chapters}
-    R.arm("areamap/trainer CONTROL: each pack's area maps are exactly its entries' areas, and each has trainers",
-          all({m["id"] for m in packs[c]["maps"] if m["role"] == "area"} == camp_area[c] and packs[c]["trainers"]
-              for c in chapters))
 
-    # an entry field outside the allowlist is not carried (CM4)
-    d = R.scratch("entry_field", world_files=True)
-    cj = load(os.path.join(d, "world", "campaign.json"))
-    next(e for e in cj["entries"] if e["chapter"] == 4)["private_note"] = "never copy me"
-    save(cj, os.path.join(d, "world", "campaign.json"))
-    rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
-    carried = rc == 0 and any("private_note" in e for e in load(os.path.join(d, "out", "ch4.json"))["entries"])
-    R.arm("entries FAULT: a field outside ENTRY_FIELDS planted in a ch4 entry is not carried into the pack",
-          rc == 0 and not carried, err.strip()[-200:] or ("carried" if carried else ""))
-
-    # non-normal wild rows are not carried (CM3)
+def s_wild_avail(R):
     d = R.scratch("wild_avail", seasoned_files=True)
     ej = load(os.path.join(d, "seasoned", "encounters.json"))
     n104 = 0
@@ -496,45 +587,247 @@ def all_arms(R):
     save(ej, os.path.join(d, "seasoned", "encounters.json"))
     rc, _, err = R.run([3], os.path.join(d, "out"), seasoned=os.path.join(d, "seasoned"))
     rows = [r for r in load(os.path.join(d, "out", "ch3.json"))["wild"] if r["map"] == "MAP_ROUTE104"] if rc == 0 else None
+    real = load(os.path.join(R.shared["fresh"], "ch3.json")) if R.shared.get("fresh") else {"wild": []}
     R.arm("wild FAULT: Route104's rows (%d) marked not-normal in a scratch encounters.json leave the ch3 pack; "
           "CONTROL: the real ch3 pack has them" % n104,
-          n104 >= 1 and rc == 0 and rows == [] and any(r["map"] == "MAP_ROUTE104" for r in packs[3]["wild"]),
+          n104 >= 1 and rc == 0 and rows == [] and any(r["map"] == "MAP_ROUTE104" for r in real["wild"]),
           err.strip()[-200:])
 
-    # claims: the one-way warp claim is not vacuous
-    ow = [c["claim"] for c in packs[3]["claims"] if c["kind"] == "one_way_warp"]
-    R.arm("claims CONTROL: ch3's warps are all two-way, said as a counted 'none of N' claim",
-          len(ow) == 1 and ow[0].startswith("none of the ") and int(ow[0].split()[3]) > 0, str(ow))
-    d = R.scratch("claims_fault", world_files=True)
-    mj = load(os.path.join(d, "world", "maps.json"))
-    woods = next(m for m in mj["maps"] if m["id"] == "MAP_PETALBURG_WOODS")
-    woods["warps"][0]["dest_map"] = "MAP_ROUTE102"
-    save(mj, os.path.join(d, "world", "maps.json"))
-    rc, _, err = R.run([3], os.path.join(d, "out"), world=os.path.join(d, "world"))
-    ow = [c["claim"] for c in load(os.path.join(d, "out", "ch3.json"))["claims"]
-          if c["kind"] == "one_way_warp"] if rc == 0 else []
-    R.arm("claims FAULT: Petalburg Woods' arrival warp 0 redirected -> one-way claims name ROUTE104 -> PETALBURG_WOODS",
-          any(c.startswith("ROUTE104 warp") and "PETALBURG_WOODS" in c for c in ow)
-          and not any(c.startswith("none of") for c in ow), (err or str(ow[:2]))[-200:])
 
-    # --check
-    rc, out, _ = R.run(["--all"], PACKS, extra=["--check"])
-    R.arm("check CONTROL: --check on the committed packs (every chapter) exits 0", rc == 0,
-          (out.strip().splitlines()[-1:] or [""])[0])
-    d = R.scratch("check_fault")
-    for c in chapters:
-        for x in ("json", "md"):
-            shutil.copyfile(os.path.join(fresh, "ch%d.%s" % (c, x)), os.path.join(d, "ch%d.%s" % (c, x)))
-    with open(os.path.join(d, "ch4.md"), "a", encoding="utf-8", newline="\n") as f:
-        f.write("hand edit\n")
-    rc, out, _ = R.run(["--all"], d, extra=["--check"])
-    R.arm("check FAULT: an edited pack copy makes --check exit 1 naming it", rc == 1 and "ch4.md" in out)
+def s_size(R):
+    rc, _, err = R.run([4], R.scratch("size_fault"), extra=["--md-cap", "2000"])
+    R.arm("F2 FAULT: a cap the load-bearing part cannot fit (2000) still refuses with exit 2 naming the cap",
+          rc == 2 and "cap" in err, err.strip()[-160:])
 
 
-def f1_arms(R, packs):
-    """F1: a trainer object carries `script` or `label`; neither is refused naming its map."""
+#: F2 input omissions: (name, chapters, file, edit, the record verify_world must name)
+OMISSIONS = [
+    ("an area DOUBLE battle (AMY_AND_LIV_1 on ROUTE103, ch1) removed", [1], "maps.json",
+     drop_object("MAP_ROUTE103", "TRAINER_AMY_AND_LIV_1"), "MAP_ROUTE103"),
+    ("Roxanne's badge key removed from bosses.json (ch4 loses CUT and the BADGE01 claim)", [4], "bosses.json",
+     lambda o: next(b for b in o["bosses"] if b["id"] == "TRAINER_ROXANNE_1").pop("badge", None) is not None,
+     "TRAINER_ROXANNE_1"),
+    ("ROUTE119 <-> FORTREE_CITY removed on BOTH sides (ch13)", [13], "maps.json",
+     lambda o: drop_conn("MAP_ROUTE119", "MAP_FORTREE_CITY")(o) and drop_conn("MAP_FORTREE_CITY", "MAP_ROUTE119")(o),
+     "MAP_ROUTE119"),
+    ("an ORDINARY trainer (GREG on ROUTE119, ch13) removed", [13], "maps.json",
+     drop_object("MAP_ROUTE119", "TRAINER_GREG"), "MAP_ROUTE119"),
+    ("FORTREE_CITY's last warp removed (ch13)", [13], "maps.json",
+     lambda o: bool(next(m for m in o["maps"] if m["id"] == "MAP_FORTREE_CITY")["warps"].pop()), "MAP_FORTREE_CITY"),
+]
+
+
+def omission_scenario(i):
+    name, chapters, fname, fn, needle = OMISSIONS[i]
+
+    def scenario(R):
+        d = R.scratch("f2_omission_%d" % i, world_files=True)
+        found = edit_world(d, fname, fn)
+        out = os.path.join(d, "out")
+        rc, _, err = R.run(chapters, out, world=os.path.join(d, "world"))
+        R.arm("F2 FAULT (input): %s -> exit 2 naming verify_world and %s, nothing written" % (name, needle),
+              found and rc == 2 and "verify_world" in err and needle in err and "MISMATCH" in err and not listing(out),
+              (err.strip()[-300:] or "exit %d" % rc))
+    scenario.__name__ = "omission_%d" % i
+    return scenario
+
+
+def s_roxanne_two_files(R):
+    d = R.scratch("f2_roxanne_two_files", world_files=True)
+    ok1 = edit_world(d, "campaign.json", lambda o: [e.update(boss=None, fights=[]) for e in o["entries"]
+                                                    if e["id"] == "ch4_roxanne"] != [])
+    ok2 = edit_world(d, "bosses.json", drop_boss("TRAINER_ROXANNE_1"))
+    out = os.path.join(d, "out")
+    rc, _, err = R.run([4], out, world=os.path.join(d, "world"))
+    R.arm("F2 FAULT (input): Roxanne removed from campaign.json AND bosses.json -> exit 2 naming verify_world, "
+          "nothing written", ok1 and ok2 and rc == 2 and "verify_world" in err and "ROXANNE" in err and not listing(out),
+          err.strip()[-300:] or "exit %d" % rc)
+
+
+def s_no_clone(R):
+    d = R.scratch("f2_no_clone")
+    empty = os.path.join(d, "not_a_clone")
+    os.makedirs(empty)
+    out = os.path.join(d, "out")
+    rc, _, err = R.run([4], out, extra=["--decomp", empty])
+    R.arm("F2 FAULT: a decomp folder that is no pinned clone (verify_world refuses, exit 2) -> exit 2 naming "
+          "verify_world, nothing written", rc == 2 and "verify_world" in err and "REFUSED" in err and not listing(out),
+          err.strip()[-300:])
+
+
+def s_w3_world(R):
+    """W3 FAULT: the pack built from a world without JOSH's object misses him (in-process, because the real run now
+    refuses that world through verify_world, which is the other half of this arm)."""
+    ms = load(MILESTONES)
+    d = R.scratch("w3_fault", world_files=True)
+    found = edit_world(d, "maps.json", drop_object("MAP_RUSTBORO_CITY_GYM", "TRAINER_JOSH"))
+
+    def body():
+        status, got = R.inproc(W3_CHAPTERS, world=os.path.join(d, "world"))
+        if status != "ok":
+            return False, "in-process generation refused: %s" % got[:200]
+        h3, t3, miss3, _ = recall({c: got[c][0] for c in got}, {c: got[c][1] for c in got}, ms)
+        return found and h3 < t3 and any("JOSH" in x for x in miss3), "%d/%d %s" % (h3, t3, "; ".join(miss3[:2]))
+    R.guarded("W3 FAULT: JOSH's object removed from a scratch maps.json -> recall on the pack built from it falls, "
+              "naming JOSH", body)
+    out = os.path.join(d, "out")
+    rc, _, err = R.run(W3_CHAPTERS, out, world=os.path.join(d, "world"))
+    R.arm("W3 FAULT: the real run on that world exits 2 through verify_world naming MAP_RUSTBORO_CITY_GYM, nothing "
+          "written", rc == 2 and "verify_world" in err and "MAP_RUSTBORO_CITY_GYM" in err and not listing(out),
+          err.strip()[-200:])
+
+
+def s_guards_inproc(R):
+    """The guards behind verify_world, each driven in-process through generate_loaded on a broken scratch world."""
+    def world_case(name, fname, fn, chapters, check):
+        d = R.scratch("inproc_" + re.sub(r"\W+", "_", name), world_files=True)
+        found = edit_world(d, fname, fn)
+
+        def body():
+            status, got = R.inproc(chapters, world=os.path.join(d, "world"))
+            ok, detail = check(status, got)
+            return found and ok, detail
+        R.guarded(name, body)
+
+    def refused(*needles):
+        def check(status, got):
+            return status == "refused" and all(n in got for n in needles), str(got)[:300]
+        return check
+
+    def rename_area(o):
+        e4 = next(e for e in o["entries"] if e["chapter"] == 4)
+        e4["area"] = [a + "_RENAMED" for a in e4["area"]]
+        return True
+    world_case("areamap FAULT: a renamed area map is refused naming it (in-process)", "campaign.json", rename_area,
+               [4], refused("RUSTBORO_CITY_GYM_RENAMED"))
+
+    def unknown_trainer(o):
+        gym = next(m for m in o["maps"] if m["id"] == "MAP_RUSTBORO_CITY_GYM")
+        gym["trainers"][0]["trainers"] = ["TRAINER_NOBODY_AT_ALL"]
+        return True
+    world_case("trainer FAULT: an unknown trainer symbol on a map is refused naming it (in-process)", "maps.json",
+               unknown_trainer, [4], refused("TRAINER_NOBODY_AT_ALL"))
+
+    def private(o):
+        next(e for e in o["entries"] if e["chapter"] == 4)["private_note"] = "never copy me"
+        return True
+    world_case("entries FAULT: a field outside ENTRY_FIELDS planted in a ch4 entry is not carried (in-process)",
+               "campaign.json", private, [4],
+               lambda s, g: (s == "ok" and not any("private_note" in e for e in g[4][0]["entries"]), str(g)[:200]))
+
+    def no_label(o):
+        room = next(m for m in o["maps"] if m["id"] == "MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM")
+        obj = next(x for x in room["trainers"] if x["trainers"] == ["TRAINER_WALLACE"])
+        return obj.pop("label", None) is not None
+    world_case("F1 FAULT: Wallace's `label` removed -> ch24 is refused naming the Champion's room (in-process)",
+               "maps.json", no_label, [24], refused("MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM"))
+
+    def woods(o):
+        next(m for m in o["maps"] if m["id"] == "MAP_PETALBURG_WOODS")["warps"][0]["dest_map"] = "MAP_ROUTE102"
+        return True
+
+    def one_way(s, g):
+        if s != "ok":
+            return False, str(g)[:200]
+        ow = [c["claim"] for c in g[3][0]["claims"] if c["kind"] == "one_way_warp"]
+        return (any(c.startswith("ROUTE104 warp") and "PETALBURG_WOODS" in c for c in ow)
+                and not any(c.startswith("none of") for c in ow)), str(ow[:2])
+    world_case("claims FAULT: Petalburg Woods' arrival warp 0 redirected -> one-way claims name ROUTE104 -> "
+               "PETALBURG_WOODS (in-process)", "maps.json", woods, [3], one_way)
+    for name, plant, want in (
+            ("in a dict (needs.route)", lambda e: e["needs"].__setitem__("route", ["RUSTBORO_CITY"]), "needs.route"),
+            ("inside a LIST (needs.badge_gates[0].steps)",
+             lambda e: e["needs"].__setitem__("badge_gates", [{"steps": 3}]), "badge_gates[0].steps")):
+        e4_id = next(e for e in load(os.path.join(WORLD, "campaign.json"))["entries"] if e["chapter"] == 4)["id"]
+
+        def plant_it(o, plant=plant):
+            plant(next(e for e in o["entries"] if e["chapter"] == 4))
+            return True
+        world_case("routekeys FAULT: a route key planted %s in a ch4 entry is refused naming it (in-process)" % name,
+                   "campaign.json", plant_it, [4], refused(want, e4_id))
+
+
+def s_input_problems(R):
+    """F3 input level: an item lost from one input, named by another, gives EXACTLY that one finding (in-process:
+    the real run refuses these worlds through verify_world before the cross-checks speak)."""
+    def input_fault(name, chapter, fname, fn, needles):
+        d = R.scratch("f3_" + re.sub(r"\W+", "_", name), world_files=True)
+        found = edit_world(d, fname, fn)
+
+        def body():
+            status, got = R.inproc([chapter], world=os.path.join(d, "world"))
+            n = findings_count(got) if status == "refused" else None
+            return found and status == "refused" and n == 1 and all(x in got for x in needles), str(got)[-300:]
+        R.guarded("F3 FAULT (input, in-process): %s -> ch%d is refused with exactly 1 finding naming it" % (
+            name, chapter), body)
+
+    def drop_fmb(move):
+        def fn(obj):
+            n = len(obj["field_move_badges"])
+            obj["field_move_badges"] = [r for r in obj["field_move_badges"] if r["move"] != move]
+            return len(obj["field_move_badges"]) == n - 1
+        return fn
+
+    def warp_nowhere(obj):
+        next(x for x in obj["maps"] if x["id"] == "MAP_RUSTBORO_CITY_GYM")["warps"][0]["dest_map"] = "MAP_NOWHERE_AT_ALL"
+        return True
+
+    input_fault("boss row ROXANNE_1 removed from bosses.json", 4, "bosses.json", drop_boss("TRAINER_ROXANNE_1"),
+                ["ROXANNE", "bosses.json has no row"])
+    input_fault("ROXANNE_1's object removed from the Gym (an area map)", 4, "maps.json",
+                drop_object("MAP_RUSTBORO_CITY_GYM", "TRAINER_ROXANNE_1"),
+                ["TRAINER_ROXANNE_1", "MAP_RUSTBORO_CITY_GYM"])
+    input_fault("BRENDAN_RUSTBORO_MUDKIP's object removed from RUSTBORO_CITY (a ring map)", 4, "maps.json",
+                drop_object("MAP_RUSTBORO_CITY", "TRAINER_BRENDAN_RUSTBORO_MUDKIP"),
+                ["TRAINER_BRENDAN_RUSTBORO_MUDKIP", "MAP_RUSTBORO_CITY"])
+    input_fault("CUT's field_move_badges row removed (a badge won here)", 4, "campaign.json", drop_fmb("CUT"),
+                ["BADGE01", "field_move_badges"])
+    input_fault("SURF's field_move_badges row removed (a field move an entry needs)", 13, "campaign.json",
+                drop_fmb("SURF"), ["ch13_route118 needs field move SURF", "no row"])
+    input_fault("ROUTE103's connection to ROUTE110 removed (the area side)", 1, "maps.json",
+                drop_conn("MAP_ROUTE103", "MAP_ROUTE110"), ["MAP_ROUTE110 connects", "MAP_ROUTE103"])
+    input_fault("ROUTE110's connection to ROUTE103 removed (the ring side)", 1, "maps.json",
+                drop_conn("MAP_ROUTE110", "MAP_ROUTE103"), ["MAP_ROUTE103 connects", "MAP_ROUTE110 has no connection back"])
+    input_fault("the Gym's warp 0 sent to a map maps.json does not hold", 4, "maps.json", warp_nowhere,
+                ["MAP_NOWHERE_AT_ALL"])
+
+
+def plant_scenario(name):
+    (old, new), chapters, needle = PLANTS[name]
+
+    def scenario(R):
+        with open(R.gen, encoding="utf-8") as f:
+            src = f.read()
+        if src.count(old) != 1:
+            R.arm("F3/F1 FAULT (generator): %s" % name, False, "plant text occurs %d times (want 1)" % src.count(old))
+            return
+        d = R.scratch("plant_" + re.sub(r"\W+", "_", name))
+        g = os.path.join(d, "make_chapter_pack.py")
+        with open(g, "w", encoding="utf-8", newline="\n") as f:
+            f.write(src.replace(old, new))
+        out = os.path.join(d, "out")
+        rc, _, err = R.run(chapters, out, gen=g)
+        R.arm("F3/F1 FAULT (generator): a copy whose %s exits 2 naming it, nothing written" % name,
+              rc == 2 and needle in err and "Traceback" not in err and not listing(out), err.strip()[-240:])
+    scenario.__name__ = "plant " + name
+    return scenario
+
+
+def s_mapping(R):
+    ms = load(MILESTONES)
+    camp = load(os.path.join(WORLD, "campaign.json"))
+    errs = chapter_mapping_errors(ms, camp)
+    R.arm("W3 mapping CONTROL: every milestone id is a campaign entry of the SAME chapter (%d milestones)" % len(
+        ms["milestones"]), not errs and len(ms["milestones"]) == 20, "; ".join(errs[:3]))
+    bad = json.loads(json.dumps(ms))
+    bad["milestones"][-1]["chapter"] = 5
+    R.arm("W3 mapping FAULT: one milestone's chapter changed is reported",
+          any(bad["milestones"][-1]["id"] in x for x in chapter_mapping_errors(bad, camp)))
+
+
+def s_f1_fixtures(R):
     def fixture():
-        mod = import_generator(R.gen)
+        mod = R.mod()
         maps_by_id = {"MAP_FIX": {"trainers": [
             {"source": "object", "object": 1, "script": "Fix_EventScript_Obj", "trainer_type": "TRAINER_TYPE_NORMAL",
              "sight": 2, "x": 1, "y": 1, "trainers": ["TRAINER_A"]},
@@ -548,7 +841,7 @@ def f1_arms(R, packs):
     R.guarded("F1 CONTROL: a fixture object with `script` and one with `label` each give their script", fixture)
 
     def neither():
-        mod = import_generator(R.gen)
+        mod = R.mod()
         maps_by_id = {"MAP_FIX": {"trainers": [{"source": "script", "ref": "x", "trainers": ["TRAINER_A"]}]}}
         tby = {"TRAINER_A": {"id": 1, "name": "A", "class_name": "C", "double": False, "flag": 1001,
                              "party": [{"species": "SPECIES_X", "level": 5}], "ref": "r"}}
@@ -559,109 +852,264 @@ def f1_arms(R, packs):
         return False, "no PackError"
     R.guarded("F1 FAULT: a fixture object with neither `script` nor `label` raises PackError naming its map", neither)
 
+
+def s_routekey_source(R):
+    with open(EXTRACT_WORLD, encoding="utf-8") as f:
+        ew = assigned_tuple(f.read(), "ROUTE_KEYS")
+    with open(R.gen, encoding="utf-8") as f:
+        gsrc = f.read()
+    gk = assigned_tuple(gsrc, "ROUTE_KEYS")
+    R.arm("routekeys CONTROL: the generator's ROUTE_KEYS equal extract_world.py's (read with ast)",
+          ew == gk == ROUTE_KEYS, "%s %s" % (ew, gk))
+    bad_src = gsrc.replace('ROUTE_KEYS = ("x", "y", "route", "path", "steps", "coords")',
+                           'ROUTE_KEYS = ("x", "y", "route", "path", "steps")', 1)
+    tricky = 'ROUTE_KEYS = ("x",  # a comment with a ) in it\n    "y")\n'
+    R.arm("routekeys FAULT: a scratch copy of the generator with 'coords' dropped differs from extract_world.py's; "
+          "a multi-line tuple with ')' in a comment reads as both its keys",
+          bad_src != gsrc and assigned_tuple(bad_src, "ROUTE_KEYS") != ew and
+          assigned_tuple(tricky, "ROUTE_KEYS") == ("x", "y"), str(assigned_tuple(bad_src, "ROUTE_KEYS")))
+
+
+# ---------------------------------------------------------------- phase 2: scenarios that read the fresh packs
+def fresh_packs(R):
+    chapters = campaign_chapters()
+    return chapters, read_packs(R.shared["fresh"], chapters)
+
+
+def s_w3_control(R):
+    ms = load(MILESTONES)
+    chapters, (packs, mds) = fresh_packs(R)
+    h, t, miss, extras = recall({c: packs[c] for c in W3_CHAPTERS}, {c: mds[c] for c in W3_CHAPTERS}, ms)
+    R.arm("W3 CONTROL: recall on freshly generated ch1-4 packs is 100%% (%d/%d facts, %d table trainers; extras "
+          "adjudicated in the report: %s)" % (h, t, len(ms["trainers"]), {c: len(extras[c]) for c in extras}),
+          h == t and t == 3 * len(ms["trainers"]) and t > 0, "; ".join(miss[:3]))
+    if all(os.path.isfile(os.path.join(PACKS, "ch%d.%s" % (c, x))) for c in chapters for x in ("json", "md")):
+        cp, cm = read_packs(PACKS, W3_CHAPTERS)
+        h2, t2, miss2, _ = recall(cp, cm, ms)
+        R.arm("W3 CONTROL: recall on the COMMITTED packs is 100%% (%d/%d)" % (h2, t2), h2 == t2 and t2 > 0,
+              "; ".join(miss2[:3]))
+    else:
+        R.arm("W3 CONTROL: the committed packs exist for every chapter", False, "missing under %s" % PACKS)
+
+
+def s_header_arms(R):
+    chapters, (packs, mds) = fresh_packs(R)
+    R.arm("absent CONTROL: every generated header names the absent sections and that the decomp wins",
+          all(absent_ok(mds[c], packs[c]) for c in chapters))
+    cut = "\n".join(line for line in mds[4].split("\n") if ABSENT_MARKERS[0] not in line)
+    R.arm("absent FAULT: a .md with the items line removed is caught", not absent_ok(cut, packs[4]))
+    exp = {k: sha256_lf(p) for k, p in SOURCES.items()}
+    R.arm("hashes CONTROL: every pack's source sha256 equals the file's own (7 sources)",
+          all(packs[c]["sources"] == exp for c in chapters) and len(exp) == 7)
+    R.arm("hashes CONTROL: the generator sha256 is the generator's own",
+          all(packs[c]["generator"]["sha256"] == sha256_lf(R.gen) for c in chapters))
+    again = R.shared.get("again")
+    same = bool(again) and all(
+        open(os.path.join(R.shared["fresh"], "ch%d.%s" % (c, x)), "rb").read() ==
+        open(os.path.join(again, "ch%d.%s" % (c, x)), "rb").read() for c in chapters for x in ("json", "md"))
+    R.arm("hashes CONTROL: two runs give identical bytes (a determinism check, not a replication)", same)
+    with open(PIN, encoding="utf-8") as f:
+        pin = f.read().strip()
+    R.arm("pin CONTROL: the real inputs pass and every pack names tools/decomp.pin (%s)" % pin[:12],
+          all(packs[c]["decomp_pin"] == pin for c in chapters) and len(pin) == 40)
+    camp = load(os.path.join(WORLD, "campaign.json"))
+    camp_area = {c: {"MAP_" + a for e in camp["entries"] if e["chapter"] == c for a in e["area"]} for c in chapters}
+    R.arm("areamap/trainer CONTROL: each pack's area maps are exactly its entries' areas, and each has trainers",
+          all({m["id"] for m in packs[c]["maps"] if m["role"] == "area"} == camp_area[c] and packs[c]["trainers"]
+              for c in chapters))
+    hits = [h for c in chapters for h in route_keys(packs[c]["entries"])]
+    R.arm("routekeys CONTROL: no x/y/route/path/steps/coords key in any pack's campaign entries", not hits, str(hits[:3]))
+    ow = [c["claim"] for c in packs[3]["claims"] if c["kind"] == "one_way_warp"]
+    R.arm("claims CONTROL: ch3's warps are all two-way, said as a counted 'none of N' claim",
+          len(ow) == 1 and ow[0].startswith("none of the ") and int(ow[0].split()[3]) > 0, str(ow))
     want = {(19, "TRAINER_MAXIE_MOSSDEEP"): "MossdeepCity_SpaceCenter_2F_EventScript_MaxieTrainer",
             (24, "TRAINER_WALLACE"): "EverGrandeCity_ChampionsRoom_EventScript_Wallace"}
     got = {k: [s.get("script") for t in packs[k[0]]["trainers"] if t["symbol"] == k[1] for s in t["seen"]]
            for k in want}
     R.arm("F1 CONTROL: the real ch19 and ch24 packs cite the map-script battles by their labels (Maxie, Wallace)",
           all(got[k] == [v] for k, v in want.items()), str(got))
-    d = R.scratch("f1_fault", world_files=True)
-    mj = load(os.path.join(d, "world", "maps.json"))
-    room = next(m for m in mj["maps"] if m["id"] == "MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM")
-    obj = next(o for o in room["trainers"] if o["trainers"] == ["TRAINER_WALLACE"])
-    had = obj.pop("label", None)
-    save(mj, os.path.join(d, "world", "maps.json"))
-    rc, _, err = R.run([24], os.path.join(d, "out"), world=os.path.join(d, "world"))
-    R.arm("F1 FAULT: Wallace's `label` removed in a scratch maps.json -> ch24 exits 2 naming the Champion's room",
-          had and rc == 2 and "MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM" in err and "Traceback" not in err,
-          err.strip()[-200:])
 
 
-def f2_arms(R, packs, mds):
-    """F2: the cap never refuses a chapter; a summarised .md keeps every load-bearing item."""
-    sizes = {c: len(mds[c].encode("utf-8")) for c in mds}
-    summ = sorted(c for c in mds if "SUMMARISED to fit the cap" in mds[c])
+def s_f2_verified(R):
+    """F2 CONTROL: every header records the verification, and verify_world run here prints the same line."""
+    chapters, (packs, mds) = fresh_packs(R)
+    p = subprocess.run([sys.executable, VERIFY_WORLD, "--data", WORLD, "--knowledge", WORLD], capture_output=True,
+                       text=True, encoding="utf-8")
+    line = next((ln for ln in reversed(p.stdout.strip().splitlines()) if ln.startswith("[VERIFY-WORLD]")), "")
+    rec = [packs[c].get("inputs_verified") or {} for c in chapters]
+    ok = p.returncode == 0 and line.startswith("[VERIFY-WORLD] PASS: 0 mismatches (every record;") and all(
+        r.get("result") == line and r.get("exit") == 0 and r.get("by") == "ai_player/gates/verify_world.py" and
+        r.get("verifier_sha256") == sha256_lf(VERIFY_WORLD) and
+        r.get("command") == "py -3.12 ai_player/gates/verify_world.py --data ai_player/knowledge/world --knowledge "
+                            "ai_player/knowledge/world" for r in rec) and \
+        all("verified first by `ai_player/gates/verify_world.py`" in mds[c] and "exit 0, 0 mismatches" in mds[c]
+            for c in chapters)
+    R.arm("F2 CONTROL: every pack header records verify_world's command and its PASS line over every record, and "
+          "verify_world run here prints the same line", ok, line[:200] if not ok else "")
+
+
+def s_f2_partial(R):
+    """F2: a refusal late in --all writes no earlier chapter (every chapter is made in memory first)."""
+    chapters, (packs, mds) = fresh_packs(R)
+    sizes = {c: len(mds[c].encode("utf-8")) for c in chapters}
+    deepest = [c for c in chapters if "SUMMARISED to fit the cap (level %d" % 4 in mds[c]]
+    c = max(deepest, key=lambda x: sizes[x]) if deepest else None
+    if c is None or c == chapters[0]:
+        R.arm("F2 FAULT: a chapter at the deepest summary level exists past the first (to refuse late in --all)", False,
+              str(deepest))
+        return
+    out = R.scratch("f2_partial")
+    rc, _, err = R.run(["--all"], out, extra=["--md-cap", str(sizes[c] - 1)])
+    R.arm("F2 FAULT: --all with the cap one byte under ch%d's deepest page refuses at ch%d (exit 2) and writes NO "
+          "earlier chapter" % (c, c), rc == 2 and ("REFUSED ch%d" % c) in err and not listing(out),
+          (err.strip()[-200:] or "exit %d, wrote %s" % (rc, listing(out)[:4])))
+
+
+def s_f2_size(R):
+    chapters, (packs, mds) = fresh_packs(R)
+    sizes = {c: len(mds[c].encode("utf-8")) for c in chapters}
+    summ = sorted(c for c in chapters if "SUMMARISED to fit the cap" in mds[c])
     R.arm("F2 CONTROL: every .md <= %d bytes (largest ch%d, %d) and at least one chapter was summarised (%s)" % (
-        MD_CAP, max(sizes, key=sizes.get), max(sizes.values()), summ),
-          all(s <= MD_CAP for s in sizes.values()) and summ)
-    for c in summ:
-        print("      ch%d summarised: %s" % (c, re.search(r"SUMMARISED to fit the cap \(level \d", mds[c]).group(0)))
-
-    def control():
-        mod = import_generator(R.gen)
-        bad = {c: mod.check_md_complete(packs[c], mds[c]) for c in mds}
-        bad = {c: v for c, v in bad.items() if v}
-        return not bad, str(bad)[:300]
-    R.guarded("F2 CONTROL: check_md_complete finds nothing on every generated .md (%d)" % len(mds), control)
-
-    def fault(c, name, mutate, needle):
-        def body():
-            mod = import_generator(R.gen)
-            lines = mds[c].split("\n")
-            new = mutate(lines)
-            if new is None:
-                return False, "the planted item was not found in ch%d.md" % c
-            got = mod.check_md_complete(packs[c], "\n".join(new))
-            return any(needle in x for x in got), str(got)[:300]
-        R.guarded("F2 FAULT: summarised ch%d.md with %s is caught" % (c, name), body)
-
-    def drop(pred):
-        def m(lines):
-            idx = [i for i, ln in enumerate(lines) if pred(ln)]
-            return None if not idx else lines[:idx[0]] + lines[idx[0] + 1:]
-        return m
-
-    c13 = 13 if 13 in summ else (summ[0] if summ else 13)
-    boss = packs[c13]["bosses"][-1] if packs[c13]["bosses"] else None
-    last_mon = ("  - %s Lv%d " % (boss["party"][-1]["species"][8:], boss["party"][-1]["level"])) if boss else "\0"
-    fault(c13, "the last boss's last mon removed", lambda ls: (
-        None if not boss else
-        (lambda i: ls[:i] + ls[i + 1:])(max(i for i, ln in enumerate(ls) if ln.startswith(last_mon)))), "md boss")
-    dbl = next((t for t in packs[c13]["trainers"] if t["in_area"] and t["double"]), None)
-    fault(c13, "a DOUBLE battle line removed", drop(lambda ln: dbl and "`%s`" % dbl["symbol"][8:] in ln and
-                                                   "DOUBLE" in ln), "md trainer")
-    fault(c13, "a claim removed", drop(lambda ln: ln.startswith("3. [")), "md claim 3")
-    hm = packs[c13]["hms"][0]["move"] if packs[c13]["hms"] else "\0"
-    fault(c13, "an HM line removed", drop(lambda ln: ln.startswith("- %s (" % hm)), "md HM")
-    fault(c13, "an area map's links line removed", drop(lambda ln: ln.startswith("- **ROUTE119** (")),
-          "md links line")
-    fault(c13, "a per-map summary line removed", drop(lambda ln: re.match(r"- [A-Z0-9_]+: \d+ ordinary trainer", ln)),
-          "md summary line")
-    fault(c13, "'none fought' added", lambda ls: ls + ["- none fought in this chapter's entries"], "none fought")
-
-    # a forced summary of a small chapter still holds every load-bearing item, and fits
-    full4 = len(mds[4].encode("utf-8"))
+        MD_CAP, max(sizes, key=sizes.get), max(sizes.values()), summ), all(s <= MD_CAP for s in sizes.values()) and summ)
+    full4 = sizes[4]
     d = R.scratch("f2_force")
     rc, out, err = R.run([4], d, extra=["--md-cap", str(full4 - 1)])
     md4 = open(os.path.join(d, "ch4.md"), encoding="utf-8").read() if rc == 0 else ""
     R.arm("F2 CONTROL: ch4 with the cap one byte under its full size is summarised, fits, and passes its own "
-          "completeness check (exit 0)", rc == 0 and "SUMMARISED to fit the cap" in md4 and
+          "completeness checks (exit 0)", rc == 0 and "SUMMARISED to fit the cap" in md4 and
           len(md4.encode("utf-8")) < full4, (err or out).strip()[-200:])
-    rc, _, err = R.run([4], R.scratch("size_fault"), extra=["--md-cap", "2000"])
-    R.arm("F2 FAULT: a cap the load-bearing part cannot fit (2000) still refuses with exit 2 naming the cap",
-          rc == 2 and "cap" in err, err.strip()[-160:])
 
 
-def f3_arms(R, packs):
-    """F3: the pack is checked against an independent selection; an omission is named and stops the run."""
+def line_edit(pred, fn):
+    """A page mutation: the FIRST line matching pred replaced by fn(line) (None = the line removed); None if no line
+    matches or the edit changes nothing (so an arm can never pass on a no-op)."""
+    def m(lines):
+        idx = [i for i, ln in enumerate(lines) if pred(ln)]
+        if not idx:
+            return None
+        new = fn(lines[idx[0]])
+        if new == lines[idx[0]]:
+            return None
+        return lines[:idx[0]] + ([] if new is None else [new]) + lines[idx[0] + 1:]
+    return m
+
+
+#: F1 page faults: (chapter, what, mutation of the page's lines, the finding's needle). Each changes ONE thing inside a
+#: line whose start stays intact: the first build's prefix checks passed every one of these.
+MD_FAULTS = [
+    (4, "Roxanne's NOSEPASS losing its held item (@ORAN_BERRY)",
+     line_edit(lambda ln: ln.startswith("  - NOSEPASS Lv15 ") and "@" in ln, lambda ln: ln.rsplit(" @", 1)[0]),
+     "md [Bosses] line"),
+    (1, "a rival mon losing its moves",
+     line_edit(lambda ln: ln.startswith("  - TREECKO Lv5 [GRASS] "), lambda ln: "  - TREECKO Lv5 [GRASS] "),
+     "md [Bosses] line"),
+    (18, "Tate and Liza's header saying single",
+     line_edit(lambda ln: ln.startswith("- **TATE_AND_LIZA** ") and "DOUBLE" in ln,
+               lambda ln: ln.replace("DOUBLE", "single")), "md [Bosses] line"),
+    (1, "AMY_AND_LIV_1's trainer line saying single",
+     line_edit(lambda ln: "`AMY_AND_LIV_1`" in ln and "DOUBLE" in ln, lambda ln: ln.replace("DOUBLE", "single")),
+     "md [Trainers] line"),
+    (13, "ROUTE119's links line losing FORTREE_CITY",
+     line_edit(lambda ln: ln.startswith("- **ROUTE119** (") and "FORTREE_CITY" in ln,
+               lambda ln: re.sub(r",? ?\w+ FORTREE_CITY", "", ln, count=1)), "md [Maps and links] line"),
+    (7, "FLASH's HM line naming BADGE01",
+     line_edit(lambda ln: ln.startswith("- FLASH (") and "badge BADGE02" in ln,
+               lambda ln: ln.replace("badge BADGE02", "badge BADGE01")), "md [HM moves] line"),
+    (13, "claim 1's last word changed",
+     line_edit(lambda ln: ln.startswith("1. ["), lambda ln: ln[:-1] + ("X" if ln[-1] != "X" else "Y")),
+     "md [LOAD-BEARING CLAIMS] line"),
+    (10, "an entry losing its needs",
+     line_edit(lambda ln: ln.startswith("- **ch10_") and "; needs " in ln, lambda ln: ln.split("; needs ")[0]),
+     "md [Entries] line"),
+    (9, "a summary line's species emptied",
+     line_edit(lambda ln: re.match(r"- [A-Z0-9_]+: \d+ ordinary trainers?, Lv \d+-\d+, species \w", ln) is not None,
+               lambda ln: ln.split(", species ")[0] + ", species -"), "md [Trainers] line"),
+    # the first round's removals, still caught
+    (13, "the last boss's last mon removed",
+     lambda ls: (lambda i: ls[:i] + ls[i + 1:])(max(i for i, ln in enumerate(ls) if ln.startswith("  - "))),
+     "md [Bosses]"),
+    (13, "a DOUBLE battle line removed", line_edit(lambda ln: ln.startswith("- ") and "`" in ln and ", DOUBLE, " in ln,
+                                                   lambda ln: None), "md [Trainers]"),
+    (13, "claim 3 removed", line_edit(lambda ln: ln.startswith("3. ["), lambda ln: None), "md [LOAD-BEARING CLAIMS]"),
+    (13, "an HM line removed", line_edit(lambda ln: ln.startswith("- SURF ("), lambda ln: None), "md [HM moves]"),
+    (13, "an area map's links line removed", line_edit(lambda ln: ln.startswith("- **ROUTE119** ("), lambda ln: None),
+     "md [Maps and links]"),
+    (13, "a per-map summary line removed",
+     line_edit(lambda ln: re.match(r"- [A-Z0-9_]+: \d+ ordinary trainer", ln) is not None, lambda ln: None),
+     "md [Trainers]"),
+    (13, "'none fought' added", lambda ls: ls + ["- none fought in this chapter's entries"], "none fought"),
+]
+
+
+def boss_mon(c, fight, k):
+    def get(p):
+        b = next(b for b in p["bosses"] if b["fight"] == fight)
+        return b["party"][k]
+    return get
+
+
+#: F1 pack faults: (chapter, what, mutation of a deep copy of the real pack (False = the item was not found), needle)
+PACK_FAULTS = [
+    (4, "Roxanne's NOSEPASS losing its held item",
+     lambda p: boss_mon(4, "ROXANNE", -1)(p).pop("held_item", None) is not None, "$.bosses[0].party["),
+    (4, "Roxanne's last mon's first move changed",
+     lambda p: bool(boss_mon(4, "ROXANNE", -1)(p)["moves"]) and boss_mon(4, "ROXANNE", -1)(p)["moves"].__setitem__(
+         0, "MOVE_SPLASH") is None, "].moves[0]"),
+    (18, "Tate and Liza's double flag cleared",
+     lambda p: next(b for b in p["bosses"] if b["fight"] == "TATE_AND_LIZA").__setitem__("double", False) is None,
+     "$.bosses[0].double"),
+    (13, "ROUTE119's first connection offset changed",
+     lambda p: bool(next(r for r in p["links"] if r["map"] == "MAP_ROUTE119")["connections"]) and next(
+         r for r in p["links"] if r["map"] == "MAP_ROUTE119")["connections"][0].__setitem__("offset", 99) is None,
+     "].connections[0].offset"),
+    (7, "FLASH's badge changed in the HM section", lambda p: next(h for h in p["hms"] if h["move"] == "FLASH")
+     .__setitem__("badge", "BADGE01") is None, "].badge"),
+    (4, "the boss_team claim losing its last mon (text only)",
+     lambda p: next(c for c in p["claims"] if c["kind"] == "boss_team").__setitem__(
+         "claim", next(c for c in p["claims"] if c["kind"] == "boss_team")["claim"].rsplit(", ", 1)[0]) is None,
+     "$.claims[0].claim"),
+    (13, "a claim's source changed", lambda p: p["claims"][0].__setitem__("source", "src/nowhere.c:1") is None,
+     "$.claims[0].source"),
+    (1, "a trainer's sighting sight changed",
+     lambda p: next(s for t in p["trainers"] for s in t["seen"] if "sight" in s).__setitem__("sight", 99) is None,
+     "].sight"),
+]
+
+
+def s_f1_pack(R):
+    chapters, (packs, mds) = fresh_packs(R)
+
     def control():
-        mod = import_generator(R.gen)
-        data, hashes = mod.load_inputs(WORLD, SEASONED)
+        mod = R.mod()
+        data = R.real_data()
         bad = {}
-        for c in sorted(packs):
+        for c in chapters:
             exp, problems = mod.expected_selection(c, data)
             got = problems + mod.check_complete(packs[c], exp)
             if got:
                 bad[c] = got[:2]
         return not bad, str(bad)[:300]
-    R.guarded("F3 CONTROL: expected_selection + check_complete find nothing on all %d real packs" % len(packs), control)
+    R.guarded("F3/F1 CONTROL: expected_selection + check_complete find nothing on all %d real packs (every value "
+              "compared)" % len(chapters), control)
 
-    # pack level: one item per category removed from a real pack
+    for c, what, mutate, needle in PACK_FAULTS:
+        def body(c=c, mutate=mutate, needle=needle):
+            mod = R.mod()
+            exp, _ = mod.expected_selection(c, R.real_data())
+            p = copy.deepcopy(packs[c])
+            if mutate(p) is False:
+                return False, "the item to change was not found in ch%d" % c
+            if p == packs[c]:
+                return False, "the mutation changed nothing"
+            got = mod.check_complete(p, exp)
+            return any(needle in x and x.startswith(("WRONG pack", "MISSING pack")) for x in got), str(got)[:300]
+        R.guarded("F1 FAULT (pack): ch%d %s is named (%s)" % (c, what, needle), body)
+
+    # the first round's per-category removals, still named in words
     def pack_fault(c, name, mutate, needle):
         def body():
-            mod = import_generator(R.gen)
-            data, _ = mod.load_inputs(WORLD, SEASONED)
-            exp, _problems = mod.expected_selection(c, data)
+            mod = R.mod()
+            exp, _problems = mod.expected_selection(c, R.real_data())
             p = copy.deepcopy(packs[c])
             if mutate(p) is False:
                 return False, "the item to remove was not found in ch%d" % c
@@ -736,115 +1184,40 @@ def f3_arms(R, packs):
     pack_fault(3, "the counted 'none of N' warp claim removed", drop_claim("one_way_warp", "none of the"),
                "none of the")
 
-    # input level: an item lost from one input, named by another, must stop the run with exactly that finding
-    def input_fault(name, chapter, edit, needles, seasoned=False):
-        d = R.scratch("f3_" + re.sub(r"\W+", "_", name), world_files=not seasoned, seasoned_files=seasoned)
-        found = edit(d)
-        rc, _, err = R.run([chapter], os.path.join(d, "out"),
-                           world=os.path.join(d, "world") if not seasoned else WORLD,
-                           seasoned=os.path.join(d, "seasoned") if seasoned else SEASONED)
-        n = findings_count(err)
-        R.arm("F3 FAULT (input): %s -> ch%d exits 2 with exactly 1 finding naming it" % (name, chapter),
-              found and rc == 2 and n == 1 and all(x in err for x in needles), err.strip()[-300:])
 
-    def edit_json(name, fn):
-        def e(d):
-            path = os.path.join(d, "world", name)
-            obj = load(path)
-            ok = fn(obj)
-            save(obj, path)
-            return ok
-        return e
+def s_f1_md(R):
+    chapters, (packs, mds) = fresh_packs(R)
 
-    def drop_boss(obj):
-        n = len(obj["bosses"])
-        obj["bosses"] = [b for b in obj["bosses"] if b["id"] != "TRAINER_ROXANNE_1"]
-        return len(obj["bosses"]) == n - 1
-
-    def drop_object(map_id, sym):
-        """`sym` removed from every trainer object on the map (an object left with no trainer is removed)."""
-        def fn(obj):
-            m = next(x for x in obj["maps"] if x["id"] == map_id)
-            hit = sum(sym in o["trainers"] for o in m["trainers"])
-            for o in m["trainers"]:
-                o["trainers"] = [s for s in o["trainers"] if s != sym]
-            m["trainers"] = [o for o in m["trainers"] if o["trainers"]]
-            return hit >= 1
-        return fn
-
-    def drop_fmb(move):
-        def fn(obj):
-            n = len(obj["field_move_badges"])
-            obj["field_move_badges"] = [r for r in obj["field_move_badges"] if r["move"] != move]
-            return len(obj["field_move_badges"]) == n - 1
-        return fn
-
-    def drop_conn(src, dst):
-        def fn(obj):
-            m = next(x for x in obj["maps"] if x["id"] == src)
-            n = len(m["connections"])
-            m["connections"] = [c for c in m["connections"] if c["map"] != dst]
-            return len(m["connections"]) == n - 1
-        return fn
-
-    def warp_nowhere(obj):
-        m = next(x for x in obj["maps"] if x["id"] == "MAP_RUSTBORO_CITY_GYM")
-        m["warps"][0]["dest_map"] = "MAP_NOWHERE_AT_ALL"
-        return True
-
-    input_fault("boss row ROXANNE_1 removed from bosses.json", 4, edit_json("bosses.json", drop_boss),
-                ["ROXANNE", "bosses.json has no row"])
-    input_fault("ROXANNE_1's object removed from the Gym (an area map)", 4,
-                edit_json("maps.json", drop_object("MAP_RUSTBORO_CITY_GYM", "TRAINER_ROXANNE_1")),
-                ["TRAINER_ROXANNE_1", "MAP_RUSTBORO_CITY_GYM"])
-    input_fault("BRENDAN_RUSTBORO_MUDKIP's object removed from RUSTBORO_CITY (a ring map)", 4,
-                edit_json("maps.json", drop_object("MAP_RUSTBORO_CITY", "TRAINER_BRENDAN_RUSTBORO_MUDKIP")),
-                ["TRAINER_BRENDAN_RUSTBORO_MUDKIP", "MAP_RUSTBORO_CITY"])
-    input_fault("CUT's field_move_badges row removed (a badge won here)", 4, edit_json("campaign.json", drop_fmb("CUT")),
-                ["BADGE01", "field_move_badges"])
-    input_fault("SURF's field_move_badges row removed (a field move an entry needs)", 13,
-                edit_json("campaign.json", drop_fmb("SURF")), ["ch13_route118 needs field move SURF", "no row"])
-    input_fault("ROUTE103's connection to ROUTE110 removed (the area side)", 1,
-                edit_json("maps.json", drop_conn("MAP_ROUTE103", "MAP_ROUTE110")),
-                ["MAP_ROUTE110 connects", "MAP_ROUTE103"])
-    input_fault("ROUTE110's connection to ROUTE103 removed (the ring side)", 1,
-                edit_json("maps.json", drop_conn("MAP_ROUTE110", "MAP_ROUTE103")),
-                ["MAP_ROUTE103 connects", "MAP_ROUTE110 has no connection back"])
-    input_fault("the Gym's warp 0 sent to a map maps.json does not hold", 4, edit_json("maps.json", warp_nowhere),
-                ["MAP_NOWHERE_AT_ALL"])
-
-    # generator level: a copy of the generator under test with a planted omission exits 2 naming it
-    with open(R.gen, encoding="utf-8") as f:
-        src = f.read()
-    for name, ((old, new), needle) in PLANTS.items():
-        d = R.scratch("f3_plant_" + re.sub(r"\W+", "_", name))
-        if src.count(old) != 1:
-            R.arm("F3 FAULT (generator): %s" % name, False, "plant text occurs %d times (want 1)" % src.count(old))
-            continue
-        g = os.path.join(d, "make_chapter_pack.py")
-        with open(g, "w", encoding="utf-8", newline="\n") as f:
-            f.write(src.replace(old, new))
-        rc, _, err = R.run([4, 13], os.path.join(d, "out"), gen=g)
-        R.arm("F3 FAULT (generator): a copy whose %s exits 2 naming it" % name,
-              rc == 2 and needle in err and "Traceback" not in err, err.strip()[-200:])
+    def control():
+        mod = R.mod()
+        data = R.real_data()
+        bad = {}
+        for c in chapters:
+            exp, _ = mod.expected_selection(c, data)
+            got = mod.check_md_complete(packs[c], mds[c], exp, MD_CAP)
+            if got:
+                bad[c] = got[:2]
+        return not bad, str(bad)[:300]
+    R.guarded("F1/F2 CONTROL: check_md_complete finds nothing on every generated .md (%d; every line compared)" %
+              len(chapters), control)
+    for c, what, mutate, needle in MD_FAULTS:
+        def body(c=c, mutate=mutate, needle=needle):
+            mod = R.mod()
+            exp, _ = mod.expected_selection(c, R.real_data())
+            new = mutate(mds[c].split("\n"))
+            if new is None:
+                return False, "the line to change was not found in ch%d.md (or the edit changed nothing)" % c
+            got = mod.check_md_complete(packs[c], "\n".join(new), exp, MD_CAP)
+            return any(needle in x for x in got), str(got)[:300]
+        R.guarded("F1 FAULT (.md): ch%d.md with %s is named (%s)" % (c, what, needle), body)
 
 
-def crlf_arms(R, fresh, chapters, exp):
-    """The CRLF normalisation (inputs and --check) has arms that can fail."""
-    d = R.scratch("crlf_input", world_files=True)
-    p = os.path.join(d, "world", "trainers.json")
-    to_crlf(os.path.join(WORLD, "trainers.json"), p)
-    with open(p, "rb") as f:
-        n_crlf = f.read().count(b"\r\n")
-    rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
-    h = load(os.path.join(d, "out", "ch4.json"))["sources"].get("ai_player/knowledge/world/trainers.json") if rc == 0 \
-        else None
-    R.arm("CRLF CONTROL: a CRLF copy of trainers.json (%d CRLF) hashes as its LF original in the pack header" % n_crlf,
-          n_crlf > 1000 and rc == 0 and h == exp["ai_player/knowledge/world/trainers.json"], err.strip()[-160:])
+def s_crlf_packs(R):
+    chapters = campaign_chapters()
     d = R.scratch("crlf_packs")
     for c in chapters:
         for x in ("json", "md"):
-            to_crlf(os.path.join(fresh, "ch%d.%s" % (c, x)), os.path.join(d, "ch%d.%s" % (c, x)))
+            to_crlf(os.path.join(R.shared["fresh"], "ch%d.%s" % (c, x)), os.path.join(d, "ch%d.%s" % (c, x)))
     rc, out, _ = R.run(["--all"], d, extra=["--check"])
     R.arm("CRLF CONTROL: CRLF copies of every pack pass --check", rc == 0, (out.strip().splitlines()[-1:] or [""])[0])
     with open(os.path.join(d, "ch5.md"), "rb") as f:
@@ -856,48 +1229,44 @@ def crlf_arms(R, fresh, chapters, exp):
           rc == 1 and "ch5.md" in out and "ch4.md" not in out, out.strip()[-160:])
 
 
-def routekey_arms(R, packs, chapters):
-    hits = [h for c in chapters for h in route_keys(packs[c]["entries"])]
-    R.arm("routekeys CONTROL: no x/y/route/path/steps/coords key in any pack's campaign entries", not hits, str(hits[:3]))
-    with open(EXTRACT_WORLD, encoding="utf-8") as f:
-        ew = assigned_tuple(f.read(), "ROUTE_KEYS")
-    with open(R.gen, encoding="utf-8") as f:
-        gsrc = f.read()
-    gk = assigned_tuple(gsrc, "ROUTE_KEYS")
-    R.arm("routekeys CONTROL: the generator's ROUTE_KEYS equal extract_world.py's (read with ast)",
-          ew == gk == ROUTE_KEYS, "%s %s" % (ew, gk))
-    bad_src = gsrc.replace('ROUTE_KEYS = ("x", "y", "route", "path", "steps", "coords")',
-                           'ROUTE_KEYS = ("x", "y", "route", "path", "steps")', 1)
-    tricky = 'ROUTE_KEYS = ("x",  # a comment with a ) in it\n    "y")\n'
-    R.arm("routekeys FAULT: a scratch copy of the generator with 'coords' dropped differs from extract_world.py's; "
-          "a multi-line tuple with ')' in a comment reads as both its keys",
-          bad_src != gsrc and assigned_tuple(bad_src, "ROUTE_KEYS") != ew and
-          assigned_tuple(tricky, "ROUTE_KEYS") == ("x", "y"), str(assigned_tuple(bad_src, "ROUTE_KEYS")))
-    for name, plant, want in (
-            ("in a dict (needs.route)", lambda e: e["needs"].__setitem__("route", ["RUSTBORO_CITY"]), "needs.route"),
-            ("inside a LIST (needs.badge_gates[0].steps)",
-             lambda e: e["needs"].__setitem__("badge_gates", [{"steps": 3}]), "badge_gates[0].steps")):
-        d = R.scratch("route_fault_" + want.replace(".", "_").replace("[", "_").replace("]", ""), world_files=True)
-        cj = load(os.path.join(d, "world", "campaign.json"))
-        e4 = next(e for e in cj["entries"] if e["chapter"] == 4)
-        plant(e4)
-        save(cj, os.path.join(d, "world", "campaign.json"))
-        rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
-        R.arm("routekeys FAULT: a route key planted %s in a ch4 entry exits 2 naming it" % name,
-              rc == 2 and want in err and e4["id"] in err, err.strip()[-200:])
+def s_check(R):
+    chapters = campaign_chapters()
+    rc, out, err = R.run(["--all"], PACKS, extra=["--check"])
+    R.arm("check CONTROL: --check on the committed packs (every chapter) exits 0", rc == 0,
+          (out.strip().splitlines()[-1:] or [""])[0] + err.strip()[-160:])
+    d = R.scratch("check_fault")
+    for c in chapters:
+        for x in ("json", "md"):
+            shutil.copyfile(os.path.join(R.shared["fresh"], "ch%d.%s" % (c, x)), os.path.join(d, "ch%d.%s" % (c, x)))
+    with open(os.path.join(d, "ch4.md"), "a", encoding="utf-8", newline="\n") as f:
+        f.write("hand edit\n")
+    rc, out, _ = R.run(["--all"], d, extra=["--check"])
+    R.arm("check FAULT: an edited pack copy makes --check exit 1 naming it", rc == 1 and "ch4.md" in out)
+
+
+def all_arms(R):
+    phase1 = [s_fresh, s_again, s_hash_fault, s_crlf_input, s_empty, s_pin, s_size] + \
+             [omission_scenario(i) for i in range(len(OMISSIONS))] + \
+             [s_roxanne_two_files, s_no_clone, s_w3_world, s_guards_inproc, s_input_problems, s_mapping,
+              s_f1_fixtures, s_routekey_source] + [plant_scenario(n) for n in PLANTS]
+    parallel(R, phase1)
+    if not R.shared.get("fresh"):
+        return
+    parallel(R, [s_w3_control, s_header_arms, s_f2_verified, s_f2_partial, s_f2_size, s_f1_pack, s_f1_md,
+                 s_crlf_packs, s_check, s_wild_avail])
 
 
 # ---------------------------------------------------------------- mutants
 def run_mutants(gen, work, jobs):
-    """Each mutant (a guard's CALL deleted, or one of the verify's 24) in a scratch copy; the selftest against that
-    copy must FAIL (exit 1). Run `jobs` at a time; each copy has its own scratch folder."""
+    """Each mutant (a guard's CALL deleted, or one of the verifies' 24 + 15) in a scratch copy; the selftest against
+    that copy must FAIL (exit 1). Run `jobs` at a time; each copy has its own scratch folder."""
     with open(gen, encoding="utf-8") as f:
         src = f.read()
     todo, rows = [], []
-    for group, table in (("guard", MUTANTS), ("verify", VERIFIER_MUTANTS)):
+    for group, table in (("guard", MUTANTS), ("verify", VERIFIER_MUTANTS), ("reverify", REVERIFY_MUTANTS)):
         for name, (old, new) in table.items():
             n = src.count(old)
-            if n != 1:
+            if n != 1 or old == new:
                 rows.append(("%s %s" % (group, name), False, "the mutant text occurs %d times (want 1)" % n))
                 continue
             d = os.path.join(work, "mutants", re.sub(r"\W+", "_", "%s_%s" % (group, name)))
@@ -927,7 +1296,7 @@ def main(argv=None):
     ap.add_argument("--generator", default=GEN_DEFAULT)
     ap.add_argument("--work", default=None, help="scratch folder (default: a temp folder, removed after)")
     ap.add_argument("--mutants", action="store_true")
-    ap.add_argument("--jobs", type=int, default=8, help="mutants run at a time (default 8)")
+    ap.add_argument("--jobs", type=int, default=6, help="mutants run at a time (default 6)")
     ap.add_argument("--skip-committed", action="store_true",
                     help="(used by --mutants) leave out the arms that compare with the committed packs")
     args = ap.parse_args(argv)
@@ -953,6 +1322,9 @@ def main(argv=None):
     finally:
         if tmp:
             shutil.rmtree(tmp, ignore_errors=True)
+    for name, ok, detail in R.results:
+        detail = " / ".join(str(detail).split("\n"))
+        print("%s  %s%s" % ("PASS" if ok else "FAIL", name, ("  -- " + detail[:300]) if detail else ""))
     bad = [r for r in R.results if not r[1]]
     print("SELFTEST chapter_pack: %d/%d arms PASS (%.1f s)" % (len(R.results) - len(bad), len(R.results),
                                                                time.time() - t0))

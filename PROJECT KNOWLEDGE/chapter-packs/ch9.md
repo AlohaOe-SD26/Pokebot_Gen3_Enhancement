@@ -6,17 +6,19 @@
 > - NOT INCLUDED YET: A6's measured traps (top wall, level at first loss and at win, whiteouts; source 'bot corpus'): chapter_priors.json is not generated. No measured section means NOT MEASURED, never 'no traps here'.
 > - NOT INCLUDED YET: story-event flags (setflag/setvar in map scripts; slice 2's events.json). The flags below are badge flags, trainer defeat flags and campaign.json badge gates only.
 
-Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_chapter_pack.py` sha256 `68fe7248ab2de38fec3e1938961e77a9d3597e7360aca0c7c91d3f774ff067df`.
+Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_chapter_pack.py` sha256 `4749fb0548c7f1aa`.
 
-| source | sha256 |
+Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `c62b2bd89313d5c7`) over every record of the four world files read: exit 0, 0 mismatches. Its command and result line are in ch9.json `inputs_verified`.
+
+| source | sha256 (first 16; all 64 in ch9.json) |
 |---|---|
-| `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf2339127c0a944df0937624cf90f5a074ad43802b615d5c966ad8ad` |
-| `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a4deeaef5e1e5516b8f01ba92de577219b7ccab6f987ff4db` |
-| `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb6791d4b42b9aa1f198bcc744765181dba89d51f6387c4605ed` |
-| `ai_player/knowledge/world/bosses.json` | `30e65ffaf2e0b9cc559c2fe8cfb77afcef0f5c0fa88df98492a9a38f471041eb` |
-| `ai_player/knowledge/world/campaign.json` | `351e27e53115aef9e702eaa4961d169fcca7d15b3d02e14aaeb703c2301e78fa` |
-| `ai_player/knowledge/world/maps.json` | `c6292bcf29fc02d36b55a87436f8e7c621762920c00c6cb1751d123a0067e9b7` |
-| `ai_player/knowledge/world/trainers.json` | `2f329852a38e14168ad312746ac01bf3529008a16b7c60f3579783ab7e78fe17` |
+| `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf233912` |
+| `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a` |
+| `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb67` |
+| `ai_player/knowledge/world/bosses.json` | `30e65ffaf2e0b9cc` |
+| `ai_player/knowledge/world/campaign.json` | `351e27e53115aef9` |
+| `ai_player/knowledge/world/maps.json` | `c6292bcf29fc02d3` |
+| `ai_player/knowledge/world/trainers.json` | `2f329852a38e1416` |
 
 ## Entries
 - **ch9_rival_route110** (order 29) area SLATEPORT_CITY, ROUTE110; boss RIVAL_ROUTE_110; party_min 1; types ahead FIGHTING/FIRE/FLYING/GRASS/GROUND/WATER; level band 18-20
@@ -31,7 +33,7 @@ Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_c
 - Neighbours (one ring, 25): MAUVILLE_CITY_BIKE_SHOP, MAUVILLE_CITY_GAME_CORNER, MAUVILLE_CITY_HOUSE1, MAUVILLE_CITY_HOUSE2, MAUVILLE_CITY_MART, MAUVILLE_CITY_POKEMON_CENTER_1F, NEW_MAUVILLE_ENTRANCE, ROUTE103, ROUTE109, ROUTE110_SEASIDE_CYCLING_ROAD_NORTH_ENTRANCE, ROUTE110_SEASIDE_CYCLING_ROAD_SOUTH_ENTRANCE, ROUTE110_TRICK_HOUSE_ENTRANCE, ROUTE111, ROUTE117, ROUTE118, ROUTE134, SLATEPORT_CITY_BATTLE_TENT_LOBBY, SLATEPORT_CITY_HARBOR, SLATEPORT_CITY_HOUSE, SLATEPORT_CITY_MART, SLATEPORT_CITY_NAME_RATERS_HOUSE, SLATEPORT_CITY_OCEANIC_MUSEUM_1F, SLATEPORT_CITY_POKEMON_CENTER_1F, SLATEPORT_CITY_POKEMON_FAN_CLUB, SLATEPORT_CITY_STERNS_SHIPYARD_1F
 
 ## Trainers
-SUMMARISED to fit the cap (level 1; the full page is 15078 bytes): ordinary (single-battle) trainers counted per map with level range and species. Doubles, bosses, HMs, links and claims stay in full; everything is in ch9.json.
+SUMMARISED to fit the cap (level 1; the full page is 14946 bytes): ordinary (single-battle) trainers counted per map with level range and species. Doubles, bosses, HMs, links and claims stay in full; everything is in ch9.json.
 - MAUVILLE_CITY: 1 ordinary trainer, Lv 16-16, species RALTS
 - MAUVILLE_CITY_GYM: 6 ordinary trainers, Lv 17-24, species ELECTRIKE GULPIN ILLUMISE MAGNEMITE MAGNETON MANECTRIC MEDITITE VOLBEAT VOLTORB ZIGZAGOON
 - ROUTE110: 20 ordinary trainers, Lv 6-20, species ABRA ARON COMBUSKEN ELECTRIKE GROVYLE LOMBRE MAGNEMITE MARSHTOMP MINUN NUZLEAF PLUSLE SLUGMA TENTACOOL VOLTORB WAILMER WINGULL

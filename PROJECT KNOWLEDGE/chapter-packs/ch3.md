@@ -6,17 +6,19 @@
 > - NOT INCLUDED YET: A6's measured traps (top wall, level at first loss and at win, whiteouts; source 'bot corpus'): chapter_priors.json is not generated. No measured section means NOT MEASURED, never 'no traps here'.
 > - NOT INCLUDED YET: story-event flags (setflag/setvar in map scripts; slice 2's events.json). The flags below are badge flags, trainer defeat flags and campaign.json badge gates only.
 
-Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_chapter_pack.py` sha256 `68fe7248ab2de38fec3e1938961e77a9d3597e7360aca0c7c91d3f774ff067df`.
+Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_chapter_pack.py` sha256 `4749fb0548c7f1aa`.
 
-| source | sha256 |
+Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `c62b2bd89313d5c7`) over every record of the four world files read: exit 0, 0 mismatches. Its command and result line are in ch3.json `inputs_verified`.
+
+| source | sha256 (first 16; all 64 in ch3.json) |
 |---|---|
-| `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf2339127c0a944df0937624cf90f5a074ad43802b615d5c966ad8ad` |
-| `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a4deeaef5e1e5516b8f01ba92de577219b7ccab6f987ff4db` |
-| `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb6791d4b42b9aa1f198bcc744765181dba89d51f6387c4605ed` |
-| `ai_player/knowledge/world/bosses.json` | `30e65ffaf2e0b9cc559c2fe8cfb77afcef0f5c0fa88df98492a9a38f471041eb` |
-| `ai_player/knowledge/world/campaign.json` | `351e27e53115aef9e702eaa4961d169fcca7d15b3d02e14aaeb703c2301e78fa` |
-| `ai_player/knowledge/world/maps.json` | `c6292bcf29fc02d36b55a87436f8e7c621762920c00c6cb1751d123a0067e9b7` |
-| `ai_player/knowledge/world/trainers.json` | `2f329852a38e14168ad312746ac01bf3529008a16b7c60f3579783ab7e78fe17` |
+| `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf233912` |
+| `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a` |
+| `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb67` |
+| `ai_player/knowledge/world/bosses.json` | `30e65ffaf2e0b9cc` |
+| `ai_player/knowledge/world/campaign.json` | `351e27e53115aef9` |
+| `ai_player/knowledge/world/maps.json` | `c6292bcf29fc02d3` |
+| `ai_player/knowledge/world/trainers.json` | `2f329852a38e1416` |
 
 ## Entries
 - **ch3_route104** (order 16) area PETALBURG_CITY, ROUTE104; boss -; party_min 1; types ahead GROUND/ROCK; level band 12-15
