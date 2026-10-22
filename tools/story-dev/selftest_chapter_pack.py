@@ -6,6 +6,19 @@ and a CONTROL (the healthy path passes).
     py -3.12 tools/story-dev/selftest_chapter_pack.py --work DIR            # scratch folder (default: temp, removed)
     py -3.12 tools/story-dev/selftest_chapter_pack.py --mutants --work DIR  # also: every mutant in a scratch copy of
                                                                             # the generator must fail some arm
+    py -3.12 tools/story-dev/selftest_chapter_pack.py --decomp DIR          # the pinned decomp clone to use
+
+EXIT: 0 every arm ran and passed; 1 an arm that RAN failed; 4 WARN: no arm failed, but the real-data arms were SKIPPED
+because this machine has no pinned decomp clone ("real-data arms SKIPPED: no pinned decomp clone; not a pass").
+WHY A THIRD STATE: every real generator run starts ai_player/gates/verify_world.py, which re-reads the PINNED decomp
+and refuses without it, so on a machine with no clone those arms cannot pass; failing them would turn run_gates red for
+a reason that is not a defect, and passing them silently would be a vacuous gate. So the clone is looked for FIRST,
+the way verify_world and tools/decomp_lookup.py look (--decomp, else env POKEBOT_DECOMP, else the sibling
+../_decomp/pokeemerald, whose `git rev-parse HEAD` must EQUAL tools/decomp.pin): without it the arms that need no clone
+(the in-process guards, the fixtures, the pin and no-clone refusals, the hung-verifier timeout, deep_diff's bool test
+and the WARN arms below) still run, every other scenario is listed as SKIP, and the exit is 4 unless a run arm failed
+(then 1: a skip never hides a failure). run_gates lists this file in WARN_OK, so a 4 is counted OUT of the passing gates
+and named, never as a pass.
 
 It lives in tools/story-dev/ so run_gates.py finds it like every other suite; the generator stays in tools/ and is
 run as a subprocess (and, for the arms that test its functions directly, loaded from its file path), so a mutant copy
@@ -52,6 +65,12 @@ because its checks compared a line's START. The arms, each FAULT + CONTROL:
               written. CONTROL: the real verifier under an explicit timeout passes.
   R3 bool     FAULT: deep_diff names True vs 1 (and the reverse, and False vs 0), and a real pack whose double flag is
               written as 1 is named. CONTROL: equal values of one type give no finding.
+  WARN path   (the run_gates follow-up) this file's own exit, by running it as a child with --no-warn-arms. FAULT: env
+              POKEBOT_DECOMP at an empty folder exits 4 with every clone-free arm PASS and no real-data arm run, and
+              so do --decomp at an empty folder and POKEBOT_DECOMP at a git checkout whose HEAD is not the pin (this
+              repo, read only); a failing clone-free arm (deep_diff's bool clause deleted in a
+              generator copy) with no clone exits 1, never 4. CONTROL (real-data): --decomp at the real clone wins
+              over an empty POKEBOT_DECOMP, so the child runs every arm and exits 0.
   CRLF, routekeys, absent, hashes, empty chapter, pin, unknown area map, unknown trainer, extra entry field, non-normal
               wild rows, the one-way claims and --check: as before (each FAULT + CONTROL). The guards verify_world now
               answers first (area map, trainer, route keys, Wallace's label, the redirected warp, the entry field) are
@@ -82,6 +101,13 @@ GEN_DEFAULT = os.path.join(TOOLS, "make_chapter_pack.py")
 WORLD = os.path.join(REPO, "ai_player", "knowledge", "world")
 SEASONED = os.path.join(REPO, "ai_player", "knowledge", "seasoned")
 PIN = os.path.join(REPO, "tools", "decomp.pin")
+#: where verify_world (DEFAULT_DECOMP) and tools/decomp_lookup.py look when neither --decomp nor POKEBOT_DECOMP is given
+DEFAULT_DECOMP = os.path.normpath(os.path.join(REPO, "..", "_decomp", "pokeemerald"))
+#: run_gates' WARN_EXIT: "ran, but could not verify" (see EXIT in the docstring)
+WARN_EXIT = 4
+WARN_TEXT = "real-data arms SKIPPED: no pinned decomp clone; not a pass"
+#: bound on one child run of this file (the WARN arms); a full child run takes about 7 s
+WARN_CHILD_TIMEOUT_S = 300
 PACKS = os.path.join(REPO, "PROJECT KNOWLEDGE", "chapter-packs")
 MILESTONES = os.path.join(REPO, "ai_player", "knowledge", "milestones.json")
 EXTRACT_WORLD = os.path.join(REPO, "ai_player", "gates", "extract_world.py")
@@ -321,6 +347,27 @@ def findings_count(err):
 
 def listing(folder):
     return sorted(os.listdir(folder)) if os.path.isdir(folder) else []
+
+
+def decomp_clone(explicit=None):
+    """(root, None) when the pinned decomp clone is on this machine, else (None, why).
+    Looked for exactly where the generator's verifier looks (ai_player/gates/verify_world.py `pinned_root`, and
+    tools/decomp_lookup.py `candidate_path`): `explicit` (--decomp), else env POKEBOT_DECOMP, else the sibling
+    ../_decomp/pokeemerald; it counts only if `git rev-parse HEAD` there EQUALS tools/decomp.pin, so a folder that is
+    no clone, a clone at another commit, or an empty folder that sits inside some other git repository (rev-parse then
+    answers with THAT repo's HEAD) is "no clone". WHY a copy and not an import of verify_world: this decides only
+    whether to run the real-data arms; those arms then run the real verifier, which applies its own check."""
+    root = explicit or os.environ.get("POKEBOT_DECOMP") or DEFAULT_DECOMP
+    with open(PIN, encoding="utf-8") as f:
+        pin = f.read().strip()
+    try:  # a missing folder needs no test of its own: git -C fails there, so HEAD is None
+        r = subprocess.run(["git", "-C", root, "rev-parse", "HEAD"], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return None, "git rev-parse HEAD failed under %s (%s)" % (root, exc)
+    head = r.stdout.strip() if r.returncode == 0 else None
+    if head != pin:
+        return None, "%s is not a clone at the pinned %s (HEAD %s)" % (root, pin, head)
+    return root, None
 
 
 class Runner:
@@ -625,6 +672,7 @@ def s_pin(R):
     tj["_source"] = "pret/pokeemerald@" + "0" * 40
     save(tj, os.path.join(d, "world", "trainers.json"))
     rc, _, err = R.run([4], os.path.join(d, "out"), world=os.path.join(d, "world"))
+    # check_pins runs BEFORE verify_world, so this arm needs no clone (it runs in a WARN run too)
     R.arm("pin FAULT: one input's _source pin changed exits 2 naming trainers.json",
           rc == 2 and "trainers.json" in err and "pin" in err, err.strip()[-200:])
 
@@ -710,7 +758,8 @@ def s_no_clone(R):
 
 def s_w3_world(R):
     """W3 FAULT: the pack built from a world without JOSH's object misses him (in-process, because the real run now
-    refuses that world through verify_world, which is the other half of this arm)."""
+    refuses that world through verify_world, which is the other half of this arm: s_w3_world_real, which needs the
+    pinned clone while this half does not)."""
     ms = load(MILESTONES)
     d = R.scratch("w3_fault", world_files=True)
     found = edit_world(d, "maps.json", drop_object("MAP_RUSTBORO_CITY_GYM", "TRAINER_JOSH"))
@@ -723,10 +772,17 @@ def s_w3_world(R):
         return found and h3 < t3 and any("JOSH" in x for x in miss3), "%d/%d %s" % (h3, t3, "; ".join(miss3[:2]))
     R.guarded("W3 FAULT: JOSH's object removed from a scratch maps.json -> recall on the pack built from it falls, "
               "naming JOSH", body)
+
+
+def s_w3_world_real(R):
+    """The real-data half of s_w3_world (split from it so the in-process half runs without a clone): the generator
+    run on the same broken world is refused by verify_world, which reads the pinned decomp."""
+    d = R.scratch("w3_fault_real", world_files=True)
+    found = edit_world(d, "maps.json", drop_object("MAP_RUSTBORO_CITY_GYM", "TRAINER_JOSH"))
     out = os.path.join(d, "out")
     rc, _, err = R.run(W3_CHAPTERS, out, world=os.path.join(d, "world"))
     R.arm("W3 FAULT: the real run on that world exits 2 through verify_world naming MAP_RUSTBORO_CITY_GYM, nothing "
-          "written", rc == 2 and "verify_world" in err and "MAP_RUSTBORO_CITY_GYM" in err and not listing(out),
+          "written", found and rc == 2 and "verify_world" in err and "MAP_RUSTBORO_CITY_GYM" in err and not listing(out),
           err.strip()[-200:])
 
 
@@ -1302,8 +1358,8 @@ VERIFY_HANG_OUTER_S = 30
 def s_verify_timeout(R):
     """Fix round 3: verify_inputs' timeout. FAULT: a stand-in verify_world that never answers (it sleeps
     VERIFY_HANG_S) with --verify-timeout 2 must make the generator exit 2 naming the timeout, well before the selftest's
-    own bound, writing nothing. (Before the fix the generator waited until something outside killed it.) CONTROL: the
-    real verifier under an explicit --verify-timeout passes."""
+    own bound, writing nothing. (Before the fix the generator waited until something outside killed it.) This half needs
+    no decomp clone. CONTROL (s_verify_timeout_control): the real verifier under an explicit --verify-timeout passes."""
     d = R.scratch("verify_timeout")
     fake = os.path.join(d, "hung_verify_world.py")
     with open(fake, "w", encoding="utf-8", newline="\n") as f:
@@ -1316,6 +1372,11 @@ def s_verify_timeout(R):
           "inside the selftest's %d s bound, nothing written" % (VERIFY_HANG_S, VERIFY_HANG_OUTER_S),
           rc == 2 and "did not finish within 2 s" in err and "REFUSED" in err and not listing(out),
           "exit %s after %.1f s: %s" % (rc, took, err.strip()[-200:]))
+
+
+def s_verify_timeout_control(R):
+    """The CONTROL half of s_verify_timeout (split from it because the real verifier needs the pinned clone, and the
+    FAULT half, a stand-in verifier, does not)."""
     rc, _, err = R.run([4], R.scratch("verify_timeout_control"), extra=["--verify-timeout", "60"],
                        timeout=VERIFY_HANG_OUTER_S + 30)
     R.arm("timeout CONTROL: the real verify_world under --verify-timeout 60 passes (chapter 4 exits 0)", rc == 0,
@@ -1357,16 +1418,123 @@ def s_check(R):
     R.arm("check FAULT: an edited pack copy makes --check exit 1 naming it", rc == 1 and "ch4.md" in out)
 
 
-def all_arms(R):
-    phase1 = [s_fresh, s_again, s_hash_fault, s_crlf_input, s_empty, s_pin, s_size] + \
-             [omission_scenario(i) for i in range(len(OMISSIONS))] + \
-             [s_roxanne_two_files, s_no_clone, s_w3_world, s_guards_inproc, s_input_problems, s_mapping,
-              s_f1_fixtures, s_routekey_source, s_verify_timeout, s_bool_int] + [plant_scenario(n) for n in PLANTS]
-    parallel(R, phase1)
+# ---------------------------------------------------------------- the WARN path (this file's own exit)
+#: one arm of each clone-free scenario, by the start of its name: a WARN child must print each of these as PASS
+WARN_CHILD_MUST_PASS = ("pin FAULT", "F2 FAULT: a decomp folder that is no pinned clone",
+                        "W3 FAULT: JOSH's object removed", "areamap FAULT", "F3 FAULT (input, in-process)",
+                        "W3 mapping CONTROL", "F1 CONTROL: a fixture", "routekeys CONTROL", "timeout FAULT",
+                        "bool FAULT")
+#: arms that need the clone: a WARN child must print none of them (it SKIPPED their scenarios)
+WARN_CHILD_MUST_SKIP = ("all CONTROL", "timeout CONTROL", "W3 FAULT: the real run", "check CONTROL",
+                        "F2 FAULT (input)", "empty FAULT")
+
+
+def run_self(R, d, name, env_decomp=None, extra=(), gen=None):
+    """This file as a child (--no-warn-arms, so it does not recurse), its own work folder under `d`:
+    (exit code, stdout). env_decomp=None leaves POKEBOT_DECOMP as this process has it; a path sets it."""
+    env = dict(os.environ)
+    if env_decomp is not None:
+        env["POKEBOT_DECOMP"] = env_decomp
+    cmd = [sys.executable, os.path.abspath(__file__), "--generator", gen or R.gen, "--work", os.path.join(d, name),
+           "--no-warn-arms"] + list(extra)
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", env=env, timeout=WARN_CHILD_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return None, "(killed after %d s: the child did not return)" % WARN_CHILD_TIMEOUT_S
+    return p.returncode, p.stdout
+
+
+def warn_shape(out):
+    """'' when a child's output is a proper WARN run (the WARN line, no FAIL, every clone-free arm PASS, no real-data
+    arm printed), else what is wrong."""
+    lines = out.splitlines()
+    bad = []
+    if not any(ln.startswith("WARN: " + WARN_TEXT) for ln in lines):
+        bad.append("no 'WARN: %s' line" % WARN_TEXT)
+    bad += ["a FAIL: " + ln[:120] for ln in lines if ln.startswith("FAIL")][:2]
+    bad += ["no PASS of '%s'" % a for a in WARN_CHILD_MUST_PASS if not any(ln.startswith("PASS  " + a) for ln in lines)]
+    bad += ["a real-data arm ran: '%s'" % a for a in WARN_CHILD_MUST_SKIP
+            if any(ln[6:].startswith(a) for ln in lines if ln[:4] in ("PASS", "FAIL"))]
+    return "; ".join(bad)
+
+
+def s_warn_path(R):
+    """This file's own WARN path, run as children against an EMPTY folder (no clone). WHY in-file: run_gates counts a
+    4 from this gate as "ran but could not verify", so the line between 4 (skipped, nothing failed), 1 (something that
+    ran failed) and 0 must itself be tested, or the third state silently widens into a pass. Clone-free, so it runs on
+    every machine."""
+    d = R.scratch("warn_path")
+    empty = os.path.join(d, "empty_decomp")
+    os.makedirs(empty)
+    with open(R.gen, encoding="utf-8") as f:
+        src = f.read()
+    old, new = MUTANTS["deep_diff bool-is-not-int clause"]
+    broken = os.path.join(d, "make_chapter_pack.py")
+    with open(broken, "w", encoding="utf-8", newline="\n") as f:
+        f.write(src.replace(old, new))
+    jobs = {"env": dict(name="env_empty", env_decomp=empty),
+            "flag": dict(name="flag_empty", extra=["--decomp", empty]),
+            # a git checkout at ANOTHER commit (this repo, read only): a clone, but not at the pin
+            "commit": dict(name="wrong_commit", env_decomp=REPO),
+            "fail": dict(name="fail_empty", env_decomp=empty, gen=broken)}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(jobs)) as ex:
+        futs = {k: ex.submit(run_self, R, d, **v) for k, v in jobs.items()}
+        got = {k: f.result() for k, f in futs.items()}
+    rc, out = got["env"]
+    why = warn_shape(out)
+    R.arm("WARN FAULT: env POKEBOT_DECOMP at an empty folder -> exit 4, every clone-free arm PASS, no real-data arm run",
+          rc == WARN_EXIT and not why, "exit %s: %s" % (rc, why or out.strip()[-160:]))
+    rc, out = got["flag"]
+    why = warn_shape(out)
+    R.arm("WARN FAULT: --decomp at an empty folder (it wins over the environment) -> exit 4 the same way",
+          rc == WARN_EXIT and not why, "exit %s: %s" % (rc, why or out.strip()[-160:]))
+    rc, out = got["commit"]
+    why = warn_shape(out)
+    R.arm("WARN FAULT: POKEBOT_DECOMP at a git checkout whose HEAD is not tools/decomp.pin (this repo) -> exit 4 the "
+          "same way", rc == WARN_EXIT and not why, "exit %s: %s" % (rc, why or out.strip()[-160:]))
+    rc, out = got["fail"]
+    R.arm("WARN FAULT: a clone-free arm failing (deep_diff's bool clause deleted in a generator copy) with no clone -> "
+          "exit 1, never 4", src.count(old) == 1 and rc == 1 and any(ln.startswith("FAIL  bool FAULT")
+                                                                     for ln in out.splitlines()),
+          "exit %s: %s" % (rc, out.strip()[-200:]))
+
+
+def s_warn_explicit_decomp(R):
+    """CONTROL of the WARN path (real-data: it needs the clone). --decomp at the real clone must win over an EMPTY
+    POKEBOT_DECOMP for the WHOLE child run: the child finds the clone, hands it to every generator run (through
+    POKEBOT_DECOMP, which verify_world reads), runs every arm and exits 0. Without that hand-off the generator runs
+    would read the empty folder and fail."""
+    d = R.scratch("warn_control")
+    empty = os.path.join(d, "empty_decomp")
+    os.makedirs(empty)
+    rc, out = run_self(R, d, "flag_real", env_decomp=empty, extra=["--decomp", R.shared["clone"]])
+    lines = out.splitlines()
+    ran = [a for a in WARN_CHILD_MUST_SKIP if any(ln.startswith("PASS  " + a) for ln in lines)]
+    R.arm("WARN CONTROL: --decomp at the real clone with POKEBOT_DECOMP empty -> exit 0, the real-data arms run, no SKIP",
+          rc == 0 and ran == list(WARN_CHILD_MUST_SKIP) and not any(ln.startswith(("SKIP", "WARN")) for ln in lines),
+          "exit %s, real-data arms seen %s: %s" % (rc, ran, out.strip()[-160:]))
+
+
+def all_arms(R, clone=True, warn_arms=True):
+    """Run the scenarios; return the names of those SKIPPED. `clone` False (no pinned decomp clone here): only the
+    clone-free scenarios run, and every other one is returned as skipped (main then exits 4 unless an arm failed).
+    `warn_arms` False (a child of the WARN arms, or a mutant run): the WARN arms themselves are left out."""
+    free = [s_pin, s_no_clone, s_w3_world, s_guards_inproc, s_input_problems, s_mapping, s_f1_fixtures,
+            s_routekey_source, s_verify_timeout, s_bool_int] + ([s_warn_path] if warn_arms else [])
+    real = [s_fresh, s_again, s_hash_fault, s_crlf_input, s_empty, s_size] + \
+           [omission_scenario(i) for i in range(len(OMISSIONS))] + \
+           [s_roxanne_two_files, s_w3_world_real, s_verify_timeout_control] + [plant_scenario(n) for n in PLANTS] + \
+           ([s_warn_explicit_decomp] if warn_arms else [])
+    phase2 = [s_w3_control, s_header_arms, s_f2_verified, s_f2_partial, s_f2_size, s_f1_pack, s_f1_md,
+              s_crlf_packs, s_check, s_wild_avail]
+    if not clone:
+        parallel(R, free)
+        return [fn.__name__ for fn in real + phase2]
+    parallel(R, real + free)
     if not R.shared.get("fresh"):
-        return
-    parallel(R, [s_w3_control, s_header_arms, s_f2_verified, s_f2_partial, s_f2_size, s_f1_pack, s_f1_md,
-                 s_crlf_packs, s_check, s_wild_avail])
+        return []
+    parallel(R, phase2)
+    return []
 
 
 # ---------------------------------------------------------------- mutants
@@ -1393,8 +1561,10 @@ def run_mutants(gen, work, jobs):
 
     def one(item):
         label, path, d = item
+        # --no-warn-arms: a mutant is a defect in the GENERATOR; the WARN arms test this file's own exit and would
+        # only double each mutant's run
         p = subprocess.run([sys.executable, os.path.abspath(__file__), "--generator", path,
-                            "--work", os.path.join(d, "run"), "--skip-committed"],
+                            "--work", os.path.join(d, "run"), "--skip-committed", "--no-warn-arms"],
                            capture_output=True, text=True, encoding="utf-8")
         fails = [ln for ln in p.stdout.splitlines() if ln.startswith("FAIL")]
         return label, p.returncode == 1 and bool(fails), (fails[0][:150] if fails else "NOT CAUGHT")
@@ -1412,36 +1582,59 @@ def main(argv=None):
     ap.add_argument("--jobs", type=int, default=6, help="mutants run at a time (default 6)")
     ap.add_argument("--skip-committed", action="store_true",
                     help="(used by --mutants) leave out the arms that compare with the committed packs")
+    ap.add_argument("--decomp", default=None,
+                    help="the pinned decomp clone (default: env POKEBOT_DECOMP, else ../_decomp/pokeemerald)")
+    ap.add_argument("--no-warn-arms", action="store_true",
+                    help="(used by the WARN arms and --mutants) leave out the arms that run this file as a child")
     args = ap.parse_args(argv)
     t0 = time.time()
+    # the clone is looked for FIRST: without it the real-data scenarios are skipped and the exit is WARN (4), not FAIL
+    clone, no_clone_why = decomp_clone(args.decomp)
+    if clone and args.decomp:
+        # every generator run (and verify_world inside it) must read the clone this run found, not its own default
+        os.environ["POKEBOT_DECOMP"] = os.path.abspath(clone)
     tmp = None
     work = args.work
     if work is None:
         tmp = work = tempfile.mkdtemp(prefix="chapter_pack_selftest_")
     os.makedirs(work, exist_ok=True)
     R = Runner(os.path.abspath(args.generator), os.path.abspath(work))
+    R.shared["clone"] = clone
+    skipped = []
     try:
-        if args.skip_committed:
+        if args.skip_committed and clone:
             # A mutant's output differs from the committed packs by construction (its own sha256 is in the header),
             # so --check would "catch" every mutant vacuously. The mutant's own output stands in for the committed
             # packs instead, and a mutant must be caught by an arm that tests BEHAVIOUR.
             global PACKS
             PACKS = R.scratch("stand-in-packs")
             R.run(["--all"], PACKS)
-        all_arms(R)
+        skipped = all_arms(R, clone=bool(clone), warn_arms=not args.no_warn_arms)
         if args.mutants:
-            for name, ok, detail in run_mutants(R.gen, R.work, args.jobs):
-                R.arm("MUTANT %s is caught" % name, ok, detail)
+            if clone:
+                for name, ok, detail in run_mutants(R.gen, R.work, args.jobs):
+                    R.arm("MUTANT %s is caught" % name, ok, detail)
+            else:
+                skipped.append("--mutants")  # each mutant is judged by the real-data arms
     finally:
         if tmp:
             shutil.rmtree(tmp, ignore_errors=True)
     for name, ok, detail in R.results:
         detail = " / ".join(str(detail).split("\n"))
         print("%s  %s%s" % ("PASS" if ok else "FAIL", name, ("  -- " + detail[:300]) if detail else ""))
+    for name in skipped:
+        print("SKIP  %s (needs the pinned decomp clone)" % name)
     bad = [r for r in R.results if not r[1]]
-    print("SELFTEST chapter_pack: %d/%d arms PASS (%.1f s)" % (len(R.results) - len(bad), len(R.results),
-                                                               time.time() - t0))
-    return 1 if bad else 0
+    print("SELFTEST chapter_pack: %d/%d arms PASS%s (%.1f s)" % (
+        len(R.results) - len(bad), len(R.results),
+        ", %d scenarios SKIPPED" % len(skipped) if skipped else "", time.time() - t0))
+    if bad:
+        return 1  # an arm that RAN failed: a skip never turns that into a WARN
+    if skipped:
+        print("no clone: %s" % no_clone_why)
+        print("WARN: " + WARN_TEXT)
+        return WARN_EXIT
+    return 0
 
 
 if __name__ == "__main__":

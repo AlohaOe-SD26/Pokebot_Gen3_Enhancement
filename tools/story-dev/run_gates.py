@@ -107,7 +107,7 @@ ADVISORY: frozenset[str] = frozenset({
 #: suite, but it is counted OUT of the passing enforcing gates and named in the closing line, so the headline carries
 #: the caveat. Any other non-zero exit from these gates is still a FAIL.
 WARN_EXIT = 4
-WARN_OK: frozenset[str] = frozenset({"selftest_facts_ledger.py", "selftest_experience.py"})
+WARN_OK: frozenset[str] = frozenset({"selftest_facts_ledger.py", "selftest_experience.py", "selftest_chapter_pack.py"})
 
 #: The standing suite. `slow=True` means it boots a ROM/emulator and takes real time.
 GATES: list[tuple[str, bool]] = [
@@ -1321,6 +1321,15 @@ GATES: list[tuple[str, bool]] = [
     # (2026-10-21): 187 checks; 75 + 22 + 7 call-deleting mutants caught (1 control, 1 equivalent). No ROM; ~20-40 s.
     # ‼ APPENDED AT THE END.
     ("selftest_lint_docs.py", False),
+    # spec S3-4 A5 (`ai-research-notes/2026-10-19-BUILD-SPECS-step-3.md`): `tools/make_chapter_pack.py` builds a chapter
+    # pack (map links, trainers, bosses, encounters, HM learners, a load-bearing claims list) from KB1 + KB2 for AGENTS,
+    # never for the AI's play code. It runs `verify_world.py` first and refuses on any mismatch, and checks its own pack
+    # with a second reader that shares no function with the first. WHY: the chapter 3-4 recon cost about 16M tokens across
+    # 9 agents, most of it facts now in KB1/KB2. 130 arms, FAULT + CONTROL each (recall 42/42 against milestones.json on
+    # chapters 1-4, omissions and reader bugs refused, the 12 KB cap summarising rather than refusing); 66 generator
+    # mutants caught over three review rounds. Exit 4 = WARN (in WARN_OK): no pinned decomp clone, so its real-data arms
+    # were SKIPPED; never a pass. No ROM; ~13 s. ‼ APPENDED AT THE END.
+    ("selftest_chapter_pack.py", False),
 ]
 
 

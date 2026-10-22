@@ -38532,3 +38532,15 @@ bought balls only at fixed story points.
   - **Known limits:** the wall rule compares cumulative shares, so it rarely moves. A consult_log that keeps refusing writes turns the consult off with a learner.log line and no ATTENTION. A hand-edited huge `forced_days` disables the weekly force.
   - **Four review rounds:** round 4's prompts were rendered from the templates and its verify read PASS.
   - **On its first cycle end:** 30 of the clone's 35 notes move to the archive (lossless, measured on a copy), and the first consult always goes ahead (no baseline yet).
+
+## 2026-10-22 — W7 on chapter packs 1-4: no false claim; the pack selftest becomes a run_gates gate (155) with a WARN path (S3-4 A5)
+
+- **W7, the adversarial pass:** one refuting recon agent per pack (the recon template), each against the pinned decomp (HEAD checked: `731ad5bf`). It found NO FALSE claim: ch1 13 TRUE and 1 true only with a caveat, ch2 1, ch3 4, ch4 5.
+  - **The one wording error, ch1 claim 14:** "no one-way warps", but the truck's 3 exits go to `MAP_DYNAMIC` and nothing warps back. A generator fix is queued.
+  - **The missing load-bearing facts** are mostly story flags, scripted doors, forced or optional scripted battles, and Wally's tutorial battle. They are slice 2 territory (NEEDS DESIGN), and the packs' headers already say scripted events are absent. They become that design's first input.
+  - The notes are in `PROJECT KNOWLEDGE/ai-research-notes/2026-10-22-W7-chapter-packs/` (an index plus 4 reports, each verdict with its decomp line).
+- **The selftest's WARN path:** `tools/story-dev/selftest_chapter_pack.py` finds the pinned clone the way `verify_world` does (`--decomp`, `POKEBOT_DECOMP`, the sibling `../_decomp/pokeemerald` at the pin).
+  - Without it, the clone-free arms still run, and the exit is 4 (WARN), or 1 if any of them failed.
+  - With the real clone: 130/130 PASS (12.4 s), exit 0. An empty `POKEBOT_DECOMP`: 30/30 PASS with 40 scenarios skipped, exit 4.
+  - Mutants: 8 of 9 caught. The ninth deletes the final `return 1`, which no arm inside a file can catch: that is true of every selftest here, and run_gates reads the exit code.
+- **Registered:** `run_gates.py` now has 155 entries = 151 ENFORCING + 4 ADVISORY, 141 needing no ROM. `selftest_chapter_pack.py` is in `WARN_OK`, and `selftest_run_gates_warn.py` passes (5 checks).

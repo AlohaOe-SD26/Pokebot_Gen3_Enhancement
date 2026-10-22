@@ -49,7 +49,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
-      "chars": 4168,
+      "chars": 4192,
       "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
       "tails": [
         "ntrols, one temp-folder factory, Python hooks, determinism)."
@@ -84,6 +84,12 @@
           "from_chars": 4145,
           "to_chars": 4214,
           "why": "2026-10-22 the chapter-pack tool recorded in A5's filing line and #28-seasoned-player"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 4168,
+          "to_chars": 4192,
+          "why": "2026-10-22 W7 on chapters 1-4 recorded"
         }
       ]
     },
@@ -884,7 +890,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 62605,
+      "chars": 62863,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -949,6 +955,12 @@
           "from_chars": 62374,
           "to_chars": 62757,
           "why": "2026-10-22 O6+O7 deployed, the watchdog registered, O5 on main"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 62605,
+          "to_chars": 62863,
+          "why": "2026-10-22 W7 done; the pack selftest is a gate; the MAP_DYNAMIC fix queued"
         }
       ]
     },

@@ -1,0 +1,19 @@
+# W7 ch3 adversarial pass (pinned decomp 731ad5bf, clone HEAD checked = tools/decomp.pin) [MEASURED]
+
+decomp_lookup ask "Petalburg Woods grunt trigger" / "Route 104 rival optional battle": NO PRIOR RULING OR FACT FOUND [MEASURED]
+
+## FALSE claims
+None.
+
+## Per claim
+1. TRUE [READ] src/data/trainers.h:5800 `[TRAINER_GINA_AND_MIA_1] =`; :5807 `.doubleBattle = TRUE,`; data/maps/Route104/scripts.inc:966 `trainerbattle_double TRAINER_GINA_AND_MIA_1, Route104_Text_GinaIntro, Route104_Text_GinaDefeat, Route104_Text_GinaNotEnoughMons` (also :973 for Mia).
+2. TRUE [READ] data/maps/PetalburgWoods/map.json coord_events (26,23) and (27,23), var VAR_PETALBURG_WOODS_STATE == 0 -> PetalburgWoods_EventScript_DevonResearcherLeft/Right; data/maps/PetalburgWoods/scripts.inc:23 and :51 `trainerbattle_no_intro TRAINER_GRUNT_PETALBURG_WOODS, PetalburgWoods_Text_YoureKiddingMe`; :92 `setvar VAR_PETALBURG_WOODS_STATE, 1` (after the battle). src/data/trainers.h:131 `.doubleBattle = FALSE,`; src/data/trainer_parties.h:106-107 `.lvl = 9,` `.species = SPECIES_POOCHYENA,`.
+3. TRUE as worded [READ] data/maps/Route104/map.json trigger (17,51) VAR_ROUTE104_STATE==1 -> Route104_EventScript_RivalTrigger; data/maps/RustboroCity/map.json triggers (12..19,53) VAR_RUSTBORO_CITY_STATE==7 -> RustboroCity_EventScript_RivalTrigger0-7; battles at Route104/scripts.inc:155,161,167,221,227,233 (`trainerbattle_no_intro TRAINER_MAY_RUSTBORO_TREECKO, Route104_Text_MayDefeat` etc.), selected by `switch VAR_STARTER_MON` (Route104/scripts.inc:138-140 `case 0, Route104_EventScript_BattleMayTreecko` ...).
+4. TRUE [MEASURED] python over all data/maps/*/map.json: 70 warps on or into PETALBURG_CITY/ROUTE104/PETALBURG_WOODS/RUSTBORO_CITY; every one's destination warp points back to the source map (output "total 70", no ONEWAY lines).
+
+## MISSING load-bearing facts
+M1. The Petalburg Woods grunt battle is FORCED on the first south->north traversal, not merely "can be started". [MEASURED] BFS over LAYOUT_PETALBURG_WOODS collision (blockdata bits 10-11) from the south warps (16/17,38),(36/37,38), with tiles (26,23),(27,23) removed, reaches neither north warp (14,5),(15,5): the trigger pair spans the only corridor (rows 20-23, x 26-27). The script is lockall with no YES/NO (PetalburgWoods/scripts.inc:4-23). [MEASURED] Route104 layout rows 31-37 are solid collision, so the south half (Petalburg side) reaches the north half (Rustboro side) by land only through the woods warps (Route104 (10/11,30) and (10/11,38)); the down connection is ROUTE105 (water). Ledges/elevation not modelled (they can only restrict further).
+M2. The rival battles of claim 3 are OPTIONAL (YES/NO prompt): Route104/scripts.inc:107 `msgbox Route104_Text_MayMinesDecentLetsBattle, MSGBOX_YESNO` (also :129, :192, :200); RustboroCity/scripts.inc:744 `msgbox RustboroCity_Text_MayPassedBrineyWantToBattle, MSGBOX_YESNO` (also :753, :811, :819). [READ]
+M3. Their gating vars are set only after Devon Corp 3F (a later chapter): RustboroCity_DevonCorp_3F/scripts.inc:68 `setvar VAR_RUSTBORO_CITY_STATE, 6`; RustboroCity/scripts.inc:33 `setvar VAR_ROUTE104_STATE, 1`; :88 `setvar VAR_RUSTBORO_CITY_STATE, 7`. Consistent with the pack putting RIVAL_RUSTBORO in ch5. [READ]
+M4. GINA & MIA need 2 usable party members (trainerbattle_double's NotEnoughMons text, Route104/scripts.inc:966); the entries say party_min 1, so with 1 mon that battle does not occur. A nuance, not an error. [READ + INFERRED]
+M5. PetalburgCity has coord triggers (ShowGymToPlayer0-3 at (8,10..13), VAR_PETALBURG_CITY_STATE==0; Scott0-3 at (4,10..13), VAR_SCOTT_PETALBURG_ENCOUNTER==0) [READ map.json]; whether either blocks or battles: UNKNOWN (scripts not read; names suggest neither). No CUT_TREE / BREAKABLE_ROCK objects and no other trainer-type objects beyond the pack's list on the four area maps [MEASURED], consistent with "no field move needed".
