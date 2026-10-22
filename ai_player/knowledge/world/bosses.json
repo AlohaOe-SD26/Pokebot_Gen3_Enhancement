@@ -14,7 +14,7 @@
    "species.json": "244a970b1aeacb6791d4b42b9aa1f198bcc744765181dba89d51f6387c4605ed",
    "learnsets.json": "83115ad6b9b4747a4deeaef5e1e5516b8f01ba92de577219b7ccab6f987ff4db"
   },
-  "campaign_skeleton.json": "9ea7869f9eaf67354839f3be4be767c3f2a0ec89256ad2368771a2776c578522"
+  "campaign_skeleton.json": "483b246e125de9a0d5894b916fb334b0f4dcc47bde993e9abb567fa3d7bf402c"
  },
  "_measured": "null: A6's chapter_priors.json (spec S3-3) is not generated yet (it waits for the AI's loader); when it is, this block is copied from it and labelled source: 'bot corpus'",
  "_excluded": {
@@ -26,7 +26,8 @@
  },
  "_notes": {
   "fight": "groups a boss's variants (a rival's gender and starter); campaign.json's boss names a fight",
-  "order": "the campaign skeleton's order of the fight's first entry (null: not in the campaign)",
+  "order": "DERIVED: the order of the first campaign entry whose `fights` hold this fight (the entry's boss, or the other opponent of a multi battle that its area's scripts set up: TRAINER_BATTLE_SET_TRAINER_A/B); null: no entry fights it (a boss of the post-game, or of an area no entry visits)",
+  "entry": "the id of that entry (null with order)",
   "badge": "read from the gym leader's defeat script (setflag FLAG_BADGEnn_GET)"
  },
  "count": 57,
@@ -37,6 +38,7 @@
    "name": "MATT",
    "role": "team_admin",
    "order": 52,
+   "entry": "ch17_aqua_hideout",
    "double": false,
    "party": [
     {
@@ -84,6 +86,7 @@
    "name": "SHELLY",
    "role": "team_admin",
    "order": 42,
+   "entry": "ch13_weather_institute",
    "double": false,
    "party": [
     {
@@ -131,6 +134,7 @@
    "name": "SHELLY",
    "role": "team_admin",
    "order": 56,
+   "entry": "ch20_shelly_seafloor",
    "double": false,
    "party": [
     {
@@ -178,6 +182,7 @@
    "name": "ARCHIE",
    "role": "team_leader",
    "order": 57,
+   "entry": "ch20_archie",
    "double": false,
    "party": [
     {
@@ -240,6 +245,7 @@
    "name": "SIDNEY",
    "role": "elite_four",
    "order": 62,
+   "entry": "ch24_sidney",
    "double": false,
    "party": [
     {
@@ -336,6 +342,7 @@
    "name": "PHOEBE",
    "role": "elite_four",
    "order": 63,
+   "entry": "ch24_phoebe",
    "double": false,
    "party": [
     {
@@ -430,6 +437,7 @@
    "name": "GLACIA",
    "role": "elite_four",
    "order": 64,
+   "entry": "ch24_glacia",
    "double": false,
    "party": [
     {
@@ -526,6 +534,7 @@
    "name": "DRAKE",
    "role": "elite_four",
    "order": 65,
+   "entry": "ch24_drake",
    "double": false,
    "party": [
     {
@@ -623,6 +632,7 @@
    "name": "ROXANNE",
    "role": "gym_leader",
    "order": 20,
+   "entry": "ch4_roxanne",
    "double": false,
    "party": [
     {
@@ -698,6 +708,7 @@
    "name": "BRAWLY",
    "role": "gym_leader",
    "order": 26,
+   "entry": "ch7_brawly",
    "double": false,
    "party": [
     {
@@ -772,6 +783,7 @@
    "name": "WATTSON",
    "role": "gym_leader",
    "order": 31,
+   "entry": "ch9_wattson",
    "double": false,
    "party": [
     {
@@ -861,6 +873,7 @@
    "name": "FLANNERY",
    "role": "gym_leader",
    "order": 38,
+   "entry": "ch11_flannery",
    "double": false,
    "party": [
     {
@@ -951,6 +964,7 @@
    "name": "NORMAN",
    "role": "gym_leader",
    "order": 39,
+   "entry": "ch12_norman",
    "double": false,
    "party": [
     {
@@ -1039,6 +1053,7 @@
    "name": "WINONA",
    "role": "gym_leader",
    "order": 45,
+   "entry": "ch13_winona",
    "double": false,
    "party": [
     {
@@ -1147,6 +1162,7 @@
    "name": "TATE&LIZA",
    "role": "gym_leader",
    "order": 53,
+   "entry": "ch18_tate_and_liza",
    "double": true,
    "party": [
     {
@@ -1241,6 +1257,7 @@
    "name": "JUAN",
    "role": "gym_leader",
    "order": 60,
+   "entry": "ch22_juan",
    "double": false,
    "party": [
     {
@@ -1350,6 +1367,7 @@
    "name": "WALLACE",
    "role": "champion",
    "order": 66,
+   "entry": "ch24_wallace",
    "double": false,
    "party": [
     {
@@ -1461,7 +1479,8 @@
    "id": "TRAINER_TABITHA_MOSSDEEP",
    "name": "TABITHA",
    "role": "team_admin",
-   "order": null,
+   "order": 54,
+   "entry": "ch19_space_center",
    "double": false,
    "party": [
     {
@@ -1524,6 +1543,7 @@
    "name": "WALLY",
    "role": "rival",
    "order": 61,
+   "entry": "ch23_victory_road",
    "double": false,
    "party": [
     {
@@ -1615,6 +1635,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 9,
+   "entry": "ch1_rival_route103",
    "double": false,
    "party": [
     {
@@ -1645,6 +1666,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 29,
+   "entry": "ch9_rival_route110",
    "double": false,
    "party": [
     {
@@ -1706,6 +1728,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 43,
+   "entry": "ch13_rival_route119",
    "double": false,
    "party": [
     {
@@ -1767,6 +1790,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 9,
+   "entry": "ch1_rival_route103",
    "double": false,
    "party": [
     {
@@ -1797,6 +1821,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 29,
+   "entry": "ch9_rival_route110",
    "double": false,
    "party": [
     {
@@ -1860,6 +1885,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 43,
+   "entry": "ch13_rival_route119",
    "double": false,
    "party": [
     {
@@ -1923,6 +1949,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 9,
+   "entry": "ch1_rival_route103",
    "double": false,
    "party": [
     {
@@ -1953,6 +1980,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 29,
+   "entry": "ch9_rival_route110",
    "double": false,
    "party": [
     {
@@ -2015,6 +2043,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 43,
+   "entry": "ch13_rival_route119",
    "double": false,
    "party": [
     {
@@ -2077,6 +2106,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 9,
+   "entry": "ch1_rival_route103",
    "double": false,
    "party": [
     {
@@ -2107,6 +2137,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 29,
+   "entry": "ch9_rival_route110",
    "double": false,
    "party": [
     {
@@ -2168,6 +2199,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 43,
+   "entry": "ch13_rival_route119",
    "double": false,
    "party": [
     {
@@ -2229,6 +2261,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 9,
+   "entry": "ch1_rival_route103",
    "double": false,
    "party": [
     {
@@ -2259,6 +2292,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 29,
+   "entry": "ch9_rival_route110",
    "double": false,
    "party": [
     {
@@ -2322,6 +2356,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 43,
+   "entry": "ch13_rival_route119",
    "double": false,
    "party": [
     {
@@ -2385,6 +2420,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 9,
+   "entry": "ch1_rival_route103",
    "double": false,
    "party": [
     {
@@ -2415,6 +2451,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 29,
+   "entry": "ch9_rival_route110",
    "double": false,
    "party": [
     {
@@ -2477,6 +2514,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 43,
+   "entry": "ch13_rival_route119",
    "double": false,
    "party": [
     {
@@ -2539,6 +2577,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 23,
+   "entry": "ch5_rival_rustboro",
    "double": false,
    "party": [
     {
@@ -2587,6 +2626,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 23,
+   "entry": "ch5_rival_rustboro",
    "double": false,
    "party": [
     {
@@ -2635,6 +2675,7 @@
    "name": "TABITHA",
    "role": "team_admin",
    "order": 35,
+   "entry": "ch11_tabitha_chimney",
    "double": false,
    "party": [
     {
@@ -2711,6 +2752,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 23,
+   "entry": "ch5_rival_rustboro",
    "double": false,
    "party": [
     {
@@ -2757,6 +2799,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 23,
+   "entry": "ch5_rival_rustboro",
    "double": false,
    "party": [
     {
@@ -2805,6 +2848,7 @@
    "name": "MAXIE",
    "role": "team_leader",
    "order": 50,
+   "entry": "ch15_maxie_hideout",
    "double": false,
    "party": [
     {
@@ -2867,6 +2911,7 @@
    "name": "MAXIE",
    "role": "team_leader",
    "order": 36,
+   "entry": "ch11_maxie_chimney",
    "double": false,
    "party": [
     {
@@ -2929,6 +2974,7 @@
    "name": "WALLY",
    "role": "rival",
    "order": 30,
+   "entry": "ch9_wally_mauville",
    "double": false,
    "party": [
     {
@@ -2961,6 +3007,7 @@
    "name": "WALLY",
    "role": "rival",
    "order": null,
+   "entry": null,
    "double": false,
    "party": [
     {
@@ -3056,6 +3103,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 47,
+   "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
     {
@@ -3132,6 +3180,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 47,
+   "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
     {
@@ -3210,6 +3259,7 @@
    "name": "BRENDAN",
    "role": "rival",
    "order": 47,
+   "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
     {
@@ -3287,6 +3337,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 47,
+   "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
     {
@@ -3363,6 +3414,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 47,
+   "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
     {
@@ -3441,6 +3493,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 47,
+   "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
     {
@@ -3518,6 +3571,7 @@
    "name": "TABITHA",
    "role": "team_admin",
    "order": 49,
+   "entry": "ch15_tabitha_hideout",
    "double": false,
    "party": [
     {
@@ -3595,6 +3649,7 @@
    "name": "MAXIE",
    "role": "team_leader",
    "order": 54,
+   "entry": "ch19_space_center",
    "double": false,
    "party": [
     {
@@ -3657,6 +3712,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 23,
+   "entry": "ch5_rival_rustboro",
    "double": false,
    "party": [
     {
@@ -3705,6 +3761,7 @@
    "name": "MAY",
    "role": "rival",
    "order": 23,
+   "entry": "ch5_rival_rustboro",
    "double": false,
    "party": [
     {
@@ -3751,6 +3808,7 @@
    "name": "STEVEN",
    "role": "rival",
    "order": null,
+   "entry": null,
    "double": false,
    "party": [
     {

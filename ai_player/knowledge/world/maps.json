@@ -987,7 +987,63 @@
   "data/maps/VictoryRoad_B1F/scripts.inc": "2fac670176f7800065676385c51afec0ab89ccd7b52a29c078eb91eee58d2a48",
   "data/maps/VictoryRoad_B2F/map.json": "fc0e3ab323da7961396e543badb684dd001f95511934bbcdce25aa9c90e199f8",
   "data/maps/VictoryRoad_B2F/scripts.inc": "bdbd7056349583af3432bfb5afd1a780031150a5d268413932ee51fc8da4ad77",
-  "data/scripts/item_ball_scripts.inc": "266959f7086072bed5cd7d8c3ac4536d1c0cdeff04d1c8b948425c97082b4e1f"
+  "data/scripts/abnormal_weather.inc": "52a2cb4d3378dade3e9c91a4dda240ae11af35d9840cd1a67a46653a75b73da7",
+  "data/scripts/apprentice.inc": "d67e0b98d5908f8512dd50a5508b7ecdeec90da67fa08d3d00c2fc34a0546515",
+  "data/scripts/battle_pike.inc": "2261e99a4366123bddb5e98faff2045ff589662d007bf1a7004fd87bc3d16966",
+  "data/scripts/berry_blender.inc": "a75211f0c037752143b8a010d1137fb0e6dd6a4d1d58f31c31a4f655415c5630",
+  "data/scripts/berry_tree.inc": "7b44c4075b6bff90ef808aea2041c48e0cb9db705a514ce7f80a4bae13ec530a",
+  "data/scripts/cable_club.inc": "a574e2f4b5471100049942fa945e73e107357e436b0a10034e1b569d531e2519",
+  "data/scripts/cave_hole.inc": "c85d74c304a15d090fa720361e4c7d3befe8ff5b15ab40b6a051eefde8f940af",
+  "data/scripts/cave_of_origin.inc": "a9fa2439e294c99935583555e9d0f952d13be334cdd8f046b8975c2837e6d046",
+  "data/scripts/check_furniture.inc": "3b343c12cbfa865f857ce4ffbe024191050df06b116a8bf88af3cba188574fe9",
+  "data/scripts/contest_hall.inc": "3e67bb134d7495ac02c598d20f3c3168845b439d31236c80a2be6ca828d48e9f",
+  "data/scripts/day_care.inc": "5c66aaa0d7e83cff000bbd0f232908fbba48f3e29cd0a622545d06a7ede4c125",
+  "data/scripts/elite_four.inc": "0a756276b2d5795eb593ba2dfc3e853775339b04604d5b4568a03390b56f0149",
+  "data/scripts/field_move_scripts.inc": "8039498ebd1da0bc0a760fb46e0b989e2fc61304f09910315faa0b450c08ba12",
+  "data/scripts/field_poison.inc": "bb73b7800102dfcbdf60e2ff969232696fad9e516af7f0825bc9ae5487b051d8",
+  "data/scripts/flash.inc": "b6743c0594ee7a8d65bc718c4762039311ff816b2241734546f68cddf04b4be2",
+  "data/scripts/gabby_and_ty.inc": "a061e41969bc40d8149c728d2c660050df6f5d2265e7e7f27af784183e999e27",
+  "data/scripts/gift_altering_cave.inc": "b78e73a4657bad8fe2f8f62b2f3d891be834797c8a0f17e13b6951ecca6aa585",
+  "data/scripts/gift_aurora_ticket.inc": "c0ae4e3467e36b8cb225c5103b3231ad172dd0383860607fbe9eb9efc3627cca",
+  "data/scripts/gift_battle_card.inc": "6e04251e950ffe3c2326798b3aee7ad357a4530b392b8b02456fbd4fb6adf31b",
+  "data/scripts/gift_mystic_ticket.inc": "b51650c7605dcb4b0a3e06ab2743b65fb218ef093eb4760ce720b5257c784a38",
+  "data/scripts/gift_old_sea_map.inc": "5b33b47d03e1c164a67cbd0627f9aceb2ce4bbf1d1c38ac2e731b34b17b3449f",
+  "data/scripts/gift_pichu.inc": "fd7c0873584ecf8a9e421f0f202648316d3bf94d481873e7733066473b461759",
+  "data/scripts/gift_stamp_card.inc": "9e26f63127b814cc46c0e4bd937f874261cc639ef2b345736a0efc9630bbd9c4",
+  "data/scripts/gift_trainer.inc": "f2ad968b8d4c99d59e632ddfc9bfbeda622fb429e1599d04d157e9fb3c9ed23a",
+  "data/scripts/hall_of_fame.inc": "e9ede32a613d1da03f151f120ae3d49bd09ec95f8132ef1f1501c83931244cdf",
+  "data/scripts/interview.inc": "b09f1ecbd304835bfb7b6571ffeadd2bd5dbbd20a1b0a50182f8e4efd0cacc22",
+  "data/scripts/item_ball_scripts.inc": "266959f7086072bed5cd7d8c3ac4536d1c0cdeff04d1c8b948425c97082b4e1f",
+  "data/scripts/kecleon.inc": "25fc72e8b9f041fa2cd32fa61b0ce2a7a5bc621f6cb1d87e16ba3958aa92fe1e",
+  "data/scripts/lilycove_lady.inc": "fec9e5f096db3b1e4e70c8bf290ef951fbdca66b29bb8be324db5b2cdc359aec",
+  "data/scripts/mauville_man.inc": "58541e9f09e52e41cd9ca526a41f584d8b6ca1872cc5a5846b4dbd4b917a8719",
+  "data/scripts/move_tutors.inc": "30bab5a357c810e563c6f5374267350e4e79cdd2fc169c59e6bf861cdcdc4c5e",
+  "data/scripts/movement.inc": "0d78c1ff325b75cdb7c1189449e5bdf1d3ea9ab875cceae4981e9a6aaf734757",
+  "data/scripts/new_game.inc": "ae15429e8f9ffbf469e5e67cd11d8fcd04cdb96b06bf99bd1b223a74c7080ce8",
+  "data/scripts/obtain_item.inc": "44bafbf27bedd42c5fd7f9a9be4fbe92e6bebc2e834498bd4495c8ad4b51fa5b",
+  "data/scripts/pc.inc": "535817f965af705d4edd6c1761b62bcf6adda19cb301a4e65b25d11142ce5a02",
+  "data/scripts/pc_transfer.inc": "3e3542f3c897bcaea0acd49da3c4bffdf7dab56f243f675af058852089d30c0d",
+  "data/scripts/pkmn_center_nurse.inc": "4f46be81746e05ce3f44c832e1d43e3830781917f90b27e388e4f73bf21f025b",
+  "data/scripts/players_house.inc": "a10b6d5c0e4e07a20c23f5bef25a2f177b2ed34152f42cc32ec749cd92891f38",
+  "data/scripts/prof_birch.inc": "169a3d296932f3e70a952ee3b15714ffe3f9f15dc3fe47496259ce890227b0b9",
+  "data/scripts/profile_man.inc": "ddd541fa24eb62423fd71b3e2386427838bfa505a7a7fd7d4ffadf5e4169a9d8",
+  "data/scripts/questionnaire.inc": "cb5d0746f5f3830287d9b53e61dbf1f1b68aeb6261377990136a0a22f3c539cf",
+  "data/scripts/record_mix.inc": "864660f8455efbcdf9931610d3fadaa8c6e846703c9eb87b346dd0ea269bd0af",
+  "data/scripts/repel.inc": "150faff41f7b7f4befc7107cb52d3cdd3df95bf1f18c7617a38c6ad189e61227",
+  "data/scripts/rival_graphics.inc": "a5be53f5d6b0313fd4b22d976f9a684ee7bca5144f8a0e292bb023e1207a8eff",
+  "data/scripts/roulette.inc": "0397494eb267f478b82f0c972dbc69c7e3435a92393414dae4d262c7469d1c28",
+  "data/scripts/safari_zone.inc": "b5e78db840a10f74ca884492be231ad5bd291a81187bdf1465f857cc30868f74",
+  "data/scripts/secret_base.inc": "90366260f7bb0727e035d6a085ed956af18f79a21659d17971124dfb1b865cce",
+  "data/scripts/secret_power_tm.inc": "5472d71eb5d8c2536a365d0e0af31d13d70e512a6614541af3661612ac7f74b1",
+  "data/scripts/set_gym_trainers.inc": "1d0a734013e45956e29a24a90718741fe6a33cc3c296ab7bf2edff440913e64a",
+  "data/scripts/shared_secret_base.inc": "d3771db9914eb4e0babf6cc30ed3ec9f86904932a5f2d9e371af6a444e0d8f6c",
+  "data/scripts/std_msgbox.inc": "4bc58c865d3d2241777bba7ee03d76fa820653fd50d737ed0c4f5b30a71627da",
+  "data/scripts/surf.inc": "e7111afed6533221b1f3a5798b58cdd59bdf71a22631d184dfc0ce6c3232bb0c",
+  "data/scripts/test_signpost.inc": "aeea5fe8cb559aae0fa1fca3d74585c5fe10199dc2d91a48d362002bb205bbe2",
+  "data/scripts/trainer_battle.inc": "85cf84ba68d96ffa8815aa56a3b85d83febc1002d3d4e4c44de2daf051dc219e",
+  "data/scripts/trainer_hill.inc": "3507dd29aaf6c17782d4804dee9c7383b5e413fcb4c9608ea75e8b7426aa0a6e",
+  "data/scripts/trainer_script.inc": "eb9bbd64c3d345637a0741b83f24e86e228bc12100010f192d27ce71ed6304bf",
+  "data/scripts/tv.inc": "f399fa5588e63e59ed8430d1e4ab174ebdeb5697e27ffeb7ffa4146612182f1e"
  },
  "_kind": "static game knowledge (USER RULING 40)",
  "_made_by": "ai_player/gates/extract_world.py",
@@ -995,7 +1051,7 @@
  "_not_in_this_slice": "items_gifts.json and events.json (spec S3-4 slice 2, NEEDS DESIGN): gifts, marts, TM gifts and scripted events are NOT here, so an absent list is not 'none'; tools/make_chapter_pack.py and its W7 adversarial pass are the next slice",
  "_reader": "no loader reads this file yet; check_fairness.py does not glob knowledge/world (fact 2), and nothing in ai_player's play code may read it until a loader and a KNOWLEDGE_FIELDS classification exist",
  "_notes": {
-  "trainers": "objects and coord events joined to the trainerbattle lines reachable from their script label (goto/call/branch targets in the label's file, the map's own scripts.inc or the one that defines the label); source 'script' lists the battles of the map's file that no event reaches",
+  "trainers": "objects and coord events joined to the trainerbattle lines reachable from their script label (goto/call/branch targets in the label's file, the map's own scripts.inc, else the map script or the shared data/scripts/*.inc file that defines the label); source 'script' lists the battles of the map's file that no event reaches",
   "item_balls": "object events whose script is a finditem label of data/scripts/item_ball_scripts.inc",
   "coordinates": "kept (USER RULING 45): tiles, sight ranges, doors"
  },
@@ -18050,6 +18106,84 @@
     },
     {
      "source": "object",
+     "object": 13,
+     "script": "GabbyAndTy_EventScript_TyBattle1",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 14,
+     "y": 86,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_1"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 14,
+     "script": "GabbyAndTy_EventScript_GabbyBattle1",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 13,
+     "y": 86,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_1"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 21,
+     "script": "GabbyAndTy_EventScript_GabbyBattle4",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 13,
+     "y": 86,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_4"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 22,
+     "script": "GabbyAndTy_EventScript_TyBattle4",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 14,
+     "y": 86,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_4"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 23,
+     "script": "GabbyAndTy_EventScript_GabbyBattle6",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 13,
+     "y": 86,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_6"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 24,
+     "script": "GabbyAndTy_EventScript_TyBattle6",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 14,
+     "y": 86,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_6"
+     ]
+    },
+    {
+     "source": "object",
      "object": 28,
      "script": "Route111_EventScript_Irene",
      "trainer_type": "TRAINER_TYPE_NORMAL",
@@ -19958,6 +20092,84 @@
     },
     {
      "source": "object",
+     "object": 5,
+     "script": "GabbyAndTy_EventScript_GabbyBattle2",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 33,
+     "y": 8,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_2"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 6,
+     "script": "GabbyAndTy_EventScript_TyBattle2",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 34,
+     "y": 8,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_2"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 8,
+     "script": "GabbyAndTy_EventScript_GabbyBattle5",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 33,
+     "y": 8,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_5"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 9,
+     "script": "GabbyAndTy_EventScript_TyBattle5",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 34,
+     "y": 8,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_5"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 10,
+     "script": "GabbyAndTy_EventScript_GabbyBattle6",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 33,
+     "y": 8,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_6"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 11,
+     "script": "GabbyAndTy_EventScript_TyBattle6",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 34,
+     "y": 8,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_6"
+     ]
+    },
+    {
+     "source": "object",
      "object": 14,
      "script": "Route118_EventScript_Rose",
      "trainer_type": "TRAINER_TYPE_NORMAL",
@@ -20728,6 +20940,58 @@
      "elevation": 5,
      "trainers": [
       "TRAINER_JEFFREY_1"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 17,
+     "script": "GabbyAndTy_EventScript_TyBattle3",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 37,
+     "y": 5,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_3"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 18,
+     "script": "GabbyAndTy_EventScript_GabbyBattle3",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 36,
+     "y": 5,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_3"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 19,
+     "script": "GabbyAndTy_EventScript_GabbyBattle6",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 36,
+     "y": 5,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_6"
+     ]
+    },
+    {
+     "source": "object",
+     "object": 20,
+     "script": "GabbyAndTy_EventScript_TyBattle6",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 37,
+     "y": 5,
+     "elevation": 3,
+     "trainers": [
+      "TRAINER_GABBY_AND_TY_6"
      ]
     },
     {

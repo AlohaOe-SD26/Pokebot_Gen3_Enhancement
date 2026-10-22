@@ -13,10 +13,16 @@
  "_reader": "no loader reads this file yet; check_fairness.py does not glob knowledge/world (fact 2), and nothing in ai_player's play code may read it until a loader and a KNOWLEDGE_FIELDS classification exist",
  "_also_uses": "bosses.json and maps.json (their _files)",
  "_inputs": {
-  "campaign_skeleton.json": "9ea7869f9eaf67354839f3be4be767c3f2a0ec89256ad2368771a2776c578522",
+  "campaign_skeleton.json": "483b246e125de9a0d5894b916fb334b0f4dcc47bde993e9abb567fa3d7bf402c",
   "milestones.json": "0ccf61930edfad75b335e40e6f10aedc6c265dad2acbe53b04fe65a6135ea0ed"
  },
  "_measured": "null: A6's chapter_priors.json (spec S3-3) is not generated yet (it waits for the AI's loader); when it is, this block is copied from it and labelled source: 'bot corpus'",
+ "_notes": {
+  "fights": "DERIVED: the entry's boss fight, then the other opponent of a multi battle its area's scripts set up (TRAINER_BATTLE_SET_TRAINER_A/B in one scripts.inc); the level band and types_ahead span them all",
+  "area_bosses": "DERIVED: every boss fight battled by a trainerbattle line in the area maps' scripts (their own scripts.inc and the labels their events name); information, not the entry's fights",
+  "badge_gates": "a badge need cited through a gate line (Norman's VAR_PETALBURG_GYM_STATE) in the same defeat-script label as the badge's setflag line (setflag_ref)",
+  "party_min_ref": "the line party_min rests on (null for a single battle)"
+ },
  "field_move_badges": [
   {
    "move": "CUT",
@@ -104,24 +110,30 @@
     "INSIDE_OF_TRUCK"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -136,24 +148,30 @@
     "LITTLEROOT_TOWN"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -169,24 +187,30 @@
     "LITTLEROOT_TOWN_MAYS_HOUSE_1F"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -201,24 +225,30 @@
     "LITTLEROOT_TOWN_MAYS_HOUSE_2F"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -235,24 +265,30 @@
     "LITTLEROOT_TOWN_BRENDANS_HOUSE_2F"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -267,24 +303,30 @@
     "ROUTE101"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -298,24 +340,30 @@
     "ROUTE101"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -329,24 +377,30 @@
     "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -363,24 +417,34 @@
     "ROUTE103"
    ],
    "boss": "RIVAL_ROUTE_103",
+   "fights": [
+    "RIVAL_ROUTE_103"
+   ],
+   "area_bosses": [
+    "RIVAL_ROUTE_103"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_103",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_103"
+    ],
     "level_band": {
      "low": 5,
      "high": 5,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_103)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_103)"
     },
     "money_checkpoint": null
    },
@@ -395,23 +459,31 @@
     "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_ROUTE_103"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -426,23 +498,29 @@
     "OLDALE_TOWN"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -457,23 +535,29 @@
     "ROUTE102"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -488,23 +572,29 @@
     "PETALBURG_CITY"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -519,23 +609,31 @@
     "PETALBURG_CITY_GYM"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "NORMAN"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -550,23 +648,31 @@
     "PETALBURG_CITY_GYM"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "NORMAN"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -581,23 +687,31 @@
     "ROUTE104"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_RUSTBORO"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -611,23 +725,29 @@
     "PETALBURG_WOODS"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -642,23 +762,31 @@
     "RUSTBORO_CITY"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_RUSTBORO"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -672,23 +800,31 @@
     "RUSTBORO_CITY_GYM"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "ROXANNE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -702,23 +838,33 @@
     "RUSTBORO_CITY_GYM"
    ],
    "boss": "ROXANNE",
+   "fights": [
+    "ROXANNE"
+   ],
+   "area_bosses": [
+    "ROXANNE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "GROUND",
      "ROCK"
     ],
-    "types_ahead_of": "ROXANNE",
+    "types_ahead_of": [
+     "ROXANNE"
+    ],
     "level_band": {
      "low": 12,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json ROXANNE)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ROXANNE)"
     },
     "money_checkpoint": null
    },
@@ -734,13 +880,19 @@
     "RUSTURF_TUNNEL"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_RUSTBORO"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
@@ -748,11 +900,13 @@
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_RUSTBORO",
+    "types_ahead_of": [
+     "RIVAL_RUSTBORO"
+    ],
     "level_band": {
      "low": 13,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json RIVAL_RUSTBORO, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_RUSTBORO, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -769,13 +923,19 @@
     "RUSTBORO_CITY_DEVON_CORP_3F"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_RUSTBORO"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
@@ -783,11 +943,13 @@
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_RUSTBORO",
+    "types_ahead_of": [
+     "RIVAL_RUSTBORO"
+    ],
     "level_band": {
      "low": 13,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json RIVAL_RUSTBORO, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_RUSTBORO, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -802,13 +964,21 @@
     "ROUTE104"
    ],
    "boss": "RIVAL_RUSTBORO",
+   "fights": [
+    "RIVAL_RUSTBORO"
+   ],
+   "area_bosses": [
+    "RIVAL_RUSTBORO"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
@@ -816,11 +986,13 @@
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_RUSTBORO",
+    "types_ahead_of": [
+     "RIVAL_RUSTBORO"
+    ],
     "level_band": {
      "low": 13,
      "high": 15,
-     "basis": "decomp boss top level (bosses.json RIVAL_RUSTBORO)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_RUSTBORO)"
     },
     "money_checkpoint": null
    },
@@ -836,23 +1008,31 @@
     "DEWFORD_TOWN"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_RUSTBORO"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
      "PSYCHIC"
     ],
-    "types_ahead_of": "BRAWLY",
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
     "level_band": {
      "low": 16,
      "high": 19,
-     "basis": "decomp boss top level (bosses.json BRAWLY, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -870,23 +1050,29 @@
     "GRANITE_CAVE_STEVENS_ROOM"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
      "PSYCHIC"
     ],
-    "types_ahead_of": "BRAWLY",
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
     "level_band": {
      "low": 16,
      "high": 19,
-     "basis": "decomp boss top level (bosses.json BRAWLY, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -901,23 +1087,33 @@
     "DEWFORD_TOWN_GYM"
    ],
    "boss": "BRAWLY",
+   "fights": [
+    "BRAWLY"
+   ],
+   "area_bosses": [
+    "BRAWLY"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
      "PSYCHIC"
     ],
-    "types_ahead_of": "BRAWLY",
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
     "level_band": {
      "low": 16,
      "high": 19,
-     "basis": "decomp boss top level (bosses.json BRAWLY)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY)"
     },
     "money_checkpoint": null
    },
@@ -933,13 +1129,17 @@
     "SLATEPORT_CITY"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
@@ -949,11 +1149,13 @@
      "GROUND",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_110",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_110"
+    ],
     "level_band": {
      "low": 18,
      "high": 20,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_110, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_110, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -969,13 +1171,17 @@
     "SLATEPORT_CITY_OCEANIC_MUSEUM_2F"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
@@ -985,11 +1191,13 @@
      "GROUND",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_110",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_110"
+    ],
     "level_band": {
      "low": 18,
      "high": 20,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_110, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_110, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1004,13 +1212,21 @@
     "ROUTE110"
    ],
    "boss": "RIVAL_ROUTE_110",
+   "fights": [
+    "RIVAL_ROUTE_110"
+   ],
+   "area_bosses": [
+    "RIVAL_ROUTE_110"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
@@ -1020,11 +1236,13 @@
      "GROUND",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_110",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_110"
+    ],
     "level_band": {
      "low": 18,
      "high": 20,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_110)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_110)"
     },
     "money_checkpoint": null
    },
@@ -1039,22 +1257,33 @@
     "MAUVILLE_CITY"
    ],
    "boss": "WALLY_MAUVILLE",
+   "fights": [
+    "WALLY_MAUVILLE"
+   ],
+   "area_bosses": [
+    "RIVAL_ROUTE_110",
+    "WALLY_MAUVILLE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "PSYCHIC"
     ],
-    "types_ahead_of": "WALLY_MAUVILLE",
+    "types_ahead_of": [
+     "WALLY_MAUVILLE"
+    ],
     "level_band": {
      "low": 16,
      "high": 16,
-     "basis": "decomp boss top level (bosses.json WALLY_MAUVILLE)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json WALLY_MAUVILLE)"
     },
     "money_checkpoint": null
    },
@@ -1069,23 +1298,34 @@
     "MAUVILLE_CITY_GYM"
    ],
    "boss": "WATTSON",
+   "fights": [
+    "WATTSON"
+   ],
+   "area_bosses": [
+    "WALLY_MAUVILLE",
+    "WATTSON"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "ELECTRIC",
      "STEEL"
     ],
-    "types_ahead_of": "WATTSON",
+    "types_ahead_of": [
+     "WATTSON"
+    ],
     "level_band": {
      "low": 20,
      "high": 24,
-     "basis": "decomp boss top level (bosses.json WATTSON)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json WATTSON)"
     },
     "money_checkpoint": null
    },
@@ -1100,13 +1340,19 @@
     "MAUVILLE_CITY_HOUSE1"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "WALLY_MAUVILLE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -1115,11 +1361,13 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "TABITHA_MT_CHIMNEY",
+    "types_ahead_of": [
+     "TABITHA_MT_CHIMNEY"
+    ],
     "level_band": {
      "low": 18,
      "high": 22,
-     "basis": "decomp boss top level (bosses.json TABITHA_MT_CHIMNEY, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json TABITHA_MT_CHIMNEY, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1137,6 +1385,8 @@
     "FALLARBOR_TOWN"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [
      {
@@ -1155,9 +1405,11 @@
       "src/party_menu.c:122"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -1166,11 +1418,13 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "TABITHA_MT_CHIMNEY",
+    "types_ahead_of": [
+     "TABITHA_MT_CHIMNEY"
+    ],
     "level_band": {
      "low": 18,
      "high": 22,
-     "basis": "decomp boss top level (bosses.json TABITHA_MT_CHIMNEY, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json TABITHA_MT_CHIMNEY, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1186,13 +1440,17 @@
     "METEOR_FALLS_1F_1R"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -1201,11 +1459,13 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "TABITHA_MT_CHIMNEY",
+    "types_ahead_of": [
+     "TABITHA_MT_CHIMNEY"
+    ],
     "level_band": {
      "low": 18,
      "high": 22,
-     "basis": "decomp boss top level (bosses.json TABITHA_MT_CHIMNEY, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json TABITHA_MT_CHIMNEY, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1222,13 +1482,22 @@
     "MT_CHIMNEY"
    ],
    "boss": "TABITHA_MT_CHIMNEY",
+   "fights": [
+    "TABITHA_MT_CHIMNEY"
+   ],
+   "area_bosses": [
+    "MAXIE_MT_CHIMNEY",
+    "TABITHA_MT_CHIMNEY"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -1237,11 +1506,13 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "TABITHA_MT_CHIMNEY",
+    "types_ahead_of": [
+     "TABITHA_MT_CHIMNEY"
+    ],
     "level_band": {
      "low": 18,
      "high": 22,
-     "basis": "decomp boss top level (bosses.json TABITHA_MT_CHIMNEY)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json TABITHA_MT_CHIMNEY)"
     },
     "money_checkpoint": null
    },
@@ -1255,13 +1526,22 @@
     "MT_CHIMNEY"
    ],
    "boss": "MAXIE_MT_CHIMNEY",
+   "fights": [
+    "MAXIE_MT_CHIMNEY"
+   ],
+   "area_bosses": [
+    "MAXIE_MT_CHIMNEY",
+    "TABITHA_MT_CHIMNEY"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -1270,11 +1550,13 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "MAXIE_MT_CHIMNEY",
+    "types_ahead_of": [
+     "MAXIE_MT_CHIMNEY"
+    ],
     "level_band": {
      "low": 24,
      "high": 25,
-     "basis": "decomp boss top level (bosses.json MAXIE_MT_CHIMNEY)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json MAXIE_MT_CHIMNEY)"
     },
     "money_checkpoint": null
    },
@@ -1290,23 +1572,32 @@
     "LAVARIDGE_TOWN"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "MAXIE_MT_CHIMNEY",
+    "TABITHA_MT_CHIMNEY"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GROUND"
     ],
-    "types_ahead_of": "FLANNERY",
+    "types_ahead_of": [
+     "FLANNERY"
+    ],
     "level_band": {
      "low": 24,
      "high": 29,
-     "basis": "decomp boss top level (bosses.json FLANNERY, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json FLANNERY, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1322,23 +1613,33 @@
     "LAVARIDGE_TOWN_GYM_B1F"
    ],
    "boss": "FLANNERY",
+   "fights": [
+    "FLANNERY"
+   ],
+   "area_bosses": [
+    "FLANNERY"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIRE",
      "GROUND"
     ],
-    "types_ahead_of": "FLANNERY",
+    "types_ahead_of": [
+     "FLANNERY"
+    ],
     "level_band": {
      "low": 24,
      "high": 29,
-     "basis": "decomp boss top level (bosses.json FLANNERY)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json FLANNERY)"
     },
     "money_checkpoint": null
    },
@@ -1353,6 +1654,12 @@
     "PETALBURG_CITY_GYM"
    ],
    "boss": "NORMAN",
+   "fights": [
+    "NORMAN"
+   ],
+   "area_bosses": [
+    "NORMAN"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [
@@ -1363,30 +1670,55 @@
     ],
     "badge_refs": {
      "BADGE01": [
-      "data/maps/RustboroCity_Gym/scripts.inc:24"
+      "data/maps/RustboroCity_Gym/scripts.inc:19"
      ],
      "BADGE02": [
-      "data/maps/DewfordTown_Gym/scripts.inc:153"
+      "data/maps/DewfordTown_Gym/scripts.inc:151"
      ],
      "BADGE03": [
-      "data/maps/MauvilleCity_Gym/scripts.inc:96"
+      "data/maps/MauvilleCity_Gym/scripts.inc:94"
      ],
      "BADGE04": [
-      "data/maps/LavaridgeTown_Gym_1F/scripts.inc:64"
+      "data/maps/LavaridgeTown_Gym_1F/scripts.inc:62"
      ]
     },
+    "badge_gates": [
+     {
+      "badge": "BADGE01",
+      "ref": "data/maps/RustboroCity_Gym/scripts.inc:24",
+      "setflag_ref": "data/maps/RustboroCity_Gym/scripts.inc:19"
+     },
+     {
+      "badge": "BADGE02",
+      "ref": "data/maps/DewfordTown_Gym/scripts.inc:153",
+      "setflag_ref": "data/maps/DewfordTown_Gym/scripts.inc:151"
+     },
+     {
+      "badge": "BADGE03",
+      "ref": "data/maps/MauvilleCity_Gym/scripts.inc:96",
+      "setflag_ref": "data/maps/MauvilleCity_Gym/scripts.inc:94"
+     },
+     {
+      "badge": "BADGE04",
+      "ref": "data/maps/LavaridgeTown_Gym_1F/scripts.inc:64",
+      "setflag_ref": "data/maps/LavaridgeTown_Gym_1F/scripts.inc:62"
+     }
+    ],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "NORMAL"
     ],
-    "types_ahead_of": "NORMAN",
+    "types_ahead_of": [
+     "NORMAN"
+    ],
     "level_band": {
      "low": 27,
      "high": 31,
-     "basis": "decomp boss top level (bosses.json NORMAN)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json NORMAN)"
     },
     "money_checkpoint": null
    },
@@ -1401,23 +1733,29 @@
     "PETALBURG_CITY_WALLYS_HOUSE"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "WATER"
     ],
-    "types_ahead_of": "SHELLY_WEATHER_INSTITUTE",
+    "types_ahead_of": [
+     "SHELLY_WEATHER_INSTITUTE"
+    ],
     "level_band": {
      "low": 28,
      "high": 28,
-     "basis": "decomp boss top level (bosses.json SHELLY_WEATHER_INSTITUTE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json SHELLY_WEATHER_INSTITUTE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1432,12 +1770,16 @@
     "ROUTE118"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "WALLY_MAUVILLE"
+   ],
    "needs": {
     "field_moves": [
      {
       "move": "SURF",
       "badge": "BADGE05",
-      "ref": "src/field_control_avatar.c:450",
+      "ref": "src/party_menu.c:124",
       "rule_ref": "src/party_menu.c:3725",
       "need_basis": "story-bot chapter 13 opens the Surf arc at Route 118 (12-STORYMODE-DESIGN.md 'the Surf arc: Mauville -> Route 118/119'); a person crosses Route 118's river by Surf (UNVERIFIED by the decomp)"
      }
@@ -1447,22 +1789,26 @@
     ],
     "badge_refs": {
      "BADGE05": [
-      "src/field_control_avatar.c:450"
+      "src/party_menu.c:124"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "WATER"
     ],
-    "types_ahead_of": "SHELLY_WEATHER_INSTITUTE",
+    "types_ahead_of": [
+     "SHELLY_WEATHER_INSTITUTE"
+    ],
     "level_band": {
      "low": 28,
      "high": 28,
-     "basis": "decomp boss top level (bosses.json SHELLY_WEATHER_INSTITUTE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json SHELLY_WEATHER_INSTITUTE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1479,23 +1825,34 @@
     "ROUTE119_WEATHER_INSTITUTE_2F"
    ],
    "boss": "SHELLY_WEATHER_INSTITUTE",
+   "fights": [
+    "SHELLY_WEATHER_INSTITUTE"
+   ],
+   "area_bosses": [
+    "RIVAL_ROUTE_119",
+    "SHELLY_WEATHER_INSTITUTE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "WATER"
     ],
-    "types_ahead_of": "SHELLY_WEATHER_INSTITUTE",
+    "types_ahead_of": [
+     "SHELLY_WEATHER_INSTITUTE"
+    ],
     "level_band": {
      "low": 28,
      "high": 28,
-     "basis": "decomp boss top level (bosses.json SHELLY_WEATHER_INSTITUTE)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json SHELLY_WEATHER_INSTITUTE)"
     },
     "money_checkpoint": null
    },
@@ -1509,13 +1866,21 @@
     "ROUTE119"
    ],
    "boss": "RIVAL_ROUTE_119",
+   "fights": [
+    "RIVAL_ROUTE_119"
+   ],
+   "area_bosses": [
+    "RIVAL_ROUTE_119"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
@@ -1525,11 +1890,13 @@
      "GROUND",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_ROUTE_119",
+    "types_ahead_of": [
+     "RIVAL_ROUTE_119"
+    ],
     "level_band": {
      "low": 29,
      "high": 31,
-     "basis": "decomp boss top level (bosses.json RIVAL_ROUTE_119)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_119)"
     },
     "money_checkpoint": null
    },
@@ -1545,13 +1912,19 @@
     "ROUTE120"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_ROUTE_119"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DRAGON",
@@ -1561,11 +1934,13 @@
      "STEEL",
      "WATER"
     ],
-    "types_ahead_of": "WINONA",
+    "types_ahead_of": [
+     "WINONA"
+    ],
     "level_band": {
      "low": 29,
      "high": 33,
-     "basis": "decomp boss top level (bosses.json WINONA, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json WINONA, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1580,10 +1955,17 @@
     "FORTREE_CITY_GYM"
    ],
    "boss": "WINONA",
+   "fights": [
+    "WINONA"
+   ],
+   "area_bosses": [
+    "WINONA"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [
      {
       "item": "ITEM_DEVON_SCOPE",
@@ -1592,6 +1974,7 @@
     ],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DRAGON",
@@ -1601,11 +1984,13 @@
      "STEEL",
      "WATER"
     ],
-    "types_ahead_of": "WINONA",
+    "types_ahead_of": [
+     "WINONA"
+    ],
     "level_band": {
      "low": 29,
      "high": 33,
-     "basis": "decomp boss top level (bosses.json WINONA)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json WINONA)"
     },
     "money_checkpoint": null
    },
@@ -1621,13 +2006,19 @@
     "LILYCOVE_CITY"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_LILYCOVE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
@@ -1637,11 +2028,13 @@
      "GROUND",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_LILYCOVE",
+    "types_ahead_of": [
+     "RIVAL_LILYCOVE"
+    ],
     "level_band": {
      "low": 31,
      "high": 34,
-     "basis": "decomp boss top level (bosses.json RIVAL_LILYCOVE, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_LILYCOVE, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1655,13 +2048,21 @@
     "LILYCOVE_CITY"
    ],
    "boss": "RIVAL_LILYCOVE",
+   "fights": [
+    "RIVAL_LILYCOVE"
+   ],
+   "area_bosses": [
+    "RIVAL_LILYCOVE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FIGHTING",
@@ -1671,11 +2072,13 @@
      "GROUND",
      "WATER"
     ],
-    "types_ahead_of": "RIVAL_LILYCOVE",
+    "types_ahead_of": [
+     "RIVAL_LILYCOVE"
+    ],
     "level_band": {
      "low": 31,
      "high": 34,
-     "basis": "decomp boss top level (bosses.json RIVAL_LILYCOVE)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_LILYCOVE)"
     },
     "money_checkpoint": null
    },
@@ -1692,12 +2095,14 @@
     "MT_PYRE_SUMMIT"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [
      {
       "move": "SURF",
       "badge": "BADGE05",
-      "ref": "src/field_control_avatar.c:450",
+      "ref": "src/party_menu.c:124",
       "rule_ref": "src/party_menu.c:3725",
       "need_basis": "Mt. Pyre stands in the sea of Route 122 (story-bot chapter 14 recon, 12-STORYMODE-DESIGN.md; UNVERIFIED by the decomp)"
      }
@@ -1707,12 +2112,14 @@
     ],
     "badge_refs": {
      "BADGE05": [
-      "src/field_control_avatar.c:450"
+      "src/party_menu.c:124"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -1721,11 +2128,13 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "TABITHA_MAGMA_HIDEOUT",
+    "types_ahead_of": [
+     "TABITHA_MAGMA_HIDEOUT"
+    ],
     "level_band": {
      "low": 26,
      "high": 33,
-     "basis": "decomp boss top level (bosses.json TABITHA_MAGMA_HIDEOUT, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json TABITHA_MAGMA_HIDEOUT, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1745,10 +2154,18 @@
     "MAGMA_HIDEOUT_4F"
    ],
    "boss": "TABITHA_MAGMA_HIDEOUT",
+   "fights": [
+    "TABITHA_MAGMA_HIDEOUT"
+   ],
+   "area_bosses": [
+    "MAXIE_MAGMA_HIDEOUT",
+    "TABITHA_MAGMA_HIDEOUT"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [
      {
       "item": "ITEM_MAGMA_EMBLEM",
@@ -1757,6 +2174,7 @@
     ],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -1765,11 +2183,13 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "TABITHA_MAGMA_HIDEOUT",
+    "types_ahead_of": [
+     "TABITHA_MAGMA_HIDEOUT"
+    ],
     "level_band": {
      "low": 26,
      "high": 33,
-     "basis": "decomp boss top level (bosses.json TABITHA_MAGMA_HIDEOUT)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json TABITHA_MAGMA_HIDEOUT)"
     },
     "money_checkpoint": null
    },
@@ -1783,13 +2203,22 @@
     "MAGMA_HIDEOUT_4F"
    ],
    "boss": "MAXIE_MAGMA_HIDEOUT",
+   "fights": [
+    "MAXIE_MAGMA_HIDEOUT"
+   ],
+   "area_bosses": [
+    "MAXIE_MAGMA_HIDEOUT",
+    "TABITHA_MAGMA_HIDEOUT"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -1798,11 +2227,13 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "MAXIE_MAGMA_HIDEOUT",
+    "types_ahead_of": [
+     "MAXIE_MAGMA_HIDEOUT"
+    ],
     "level_band": {
      "low": 37,
      "high": 39,
-     "basis": "decomp boss top level (bosses.json MAXIE_MAGMA_HIDEOUT)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json MAXIE_MAGMA_HIDEOUT)"
     },
     "money_checkpoint": null
    },
@@ -1817,24 +2248,30 @@
     "SLATEPORT_CITY_HARBOR"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "FLYING",
      "POISON"
     ],
-    "types_ahead_of": "MATT",
+    "types_ahead_of": [
+     "MATT"
+    ],
     "level_band": {
      "low": 34,
      "high": 34,
-     "basis": "decomp boss top level (bosses.json MATT, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json MATT, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -1851,12 +2288,19 @@
     "AQUA_HIDEOUT_B2F"
    ],
    "boss": "MATT",
+   "fights": [
+    "MATT"
+   ],
+   "area_bosses": [
+    "MATT",
+    "RIVAL_LILYCOVE"
+   ],
    "needs": {
     "field_moves": [
      {
       "move": "SURF",
       "badge": "BADGE05",
-      "ref": "src/field_control_avatar.c:450",
+      "ref": "src/party_menu.c:124",
       "rule_ref": "src/party_menu.c:3725",
       "need_basis": "the hideout's entrance is in Lilycove's bay (story-bot chapter 15/16 notes, 12-STORYMODE-DESIGN.md; UNVERIFIED by the decomp)"
      }
@@ -1866,23 +2310,27 @@
     ],
     "badge_refs": {
      "BADGE05": [
-      "src/field_control_avatar.c:450"
+      "src/party_menu.c:124"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "FLYING",
      "POISON"
     ],
-    "types_ahead_of": "MATT",
+    "types_ahead_of": [
+     "MATT"
+    ],
     "level_band": {
      "low": 34,
      "high": 34,
-     "basis": "decomp boss top level (bosses.json MATT)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json MATT)"
     },
     "money_checkpoint": null
    },
@@ -1898,12 +2346,18 @@
     "MOSSDEEP_CITY_GYM"
    ],
    "boss": "TATE_AND_LIZA",
+   "fights": [
+    "TATE_AND_LIZA"
+   ],
+   "area_bosses": [
+    "TATE_AND_LIZA"
+   ],
    "needs": {
     "field_moves": [
      {
       "move": "SURF",
       "badge": "BADGE05",
-      "ref": "src/field_control_avatar.c:450",
+      "ref": "src/party_menu.c:124",
       "rule_ref": "src/party_menu.c:3725",
       "need_basis": "Mossdeep is an island town reached over the sea routes (UNVERIFIED by the decomp)"
      }
@@ -1913,12 +2367,14 @@
     ],
     "badge_refs": {
      "BADGE05": [
-      "src/field_control_avatar.c:450"
+      "src/party_menu.c:124"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 2,
-    "party_min_basis": "decomp: TRAINER_TATE_AND_LIZA_1 has doubleBattle = TRUE (its block, src/data/trainers.h:3256)",
+    "party_min_basis": "decomp: TRAINER_TATE_AND_LIZA_1 has doubleBattle = TRUE (party_min_ref is its block)",
+    "party_min_ref": "src/data/trainers.h:3256",
     "double_battle": true,
     "types_ahead": [
      "FLYING",
@@ -1926,11 +2382,13 @@
      "PSYCHIC",
      "ROCK"
     ],
-    "types_ahead_of": "TATE_AND_LIZA",
+    "types_ahead_of": [
+     "TATE_AND_LIZA"
+    ],
     "level_band": {
      "low": 41,
      "high": 42,
-     "basis": "decomp boss top level (bosses.json TATE_AND_LIZA)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json TATE_AND_LIZA)"
     },
     "money_checkpoint": null
    },
@@ -1946,13 +2404,23 @@
     "MOSSDEEP_CITY_SPACE_CENTER_2F"
    ],
    "boss": "MAXIE_MOSSDEEP",
+   "fights": [
+    "MAXIE_MOSSDEEP",
+    "TABITHA_MOSSDEEP"
+   ],
+   "area_bosses": [
+    "MAXIE_MOSSDEEP",
+    "TABITHA_MOSSDEEP"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
-    "party_min_basis": "multi battle beside STEVEN against MAXIE and TABITHA; recon, decomp UNVERIFIED: 20-POST-FORTREE-RECON.md 4.6 says the player brings 1-3 mons (GetMinBattleEntries() = 1); the cited line is where the game asks the player to choose them (data/maps/MossdeepCity_SpaceCenter_2F/scripts.inc:228)",
+    "party_min_basis": "multi battle beside STEVEN against MAXIE and TABITHA; recon, decomp UNVERIFIED: 20-POST-FORTREE-RECON.md 4.6 says the player brings 1-3 mons (GetMinBattleEntries() = 1); the cited line is where the game asks the player to choose them",
+    "party_min_ref": "data/maps/MossdeepCity_SpaceCenter_2F/scripts.inc:228",
     "double_battle": true,
     "types_ahead": [
      "DARK",
@@ -1961,11 +2429,14 @@
      "GROUND",
      "POISON"
     ],
-    "types_ahead_of": "MAXIE_MOSSDEEP",
+    "types_ahead_of": [
+     "MAXIE_MOSSDEEP",
+     "TABITHA_MOSSDEEP"
+    ],
     "level_band": {
-     "low": 42,
+     "low": 36,
      "high": 44,
-     "basis": "decomp boss top level (bosses.json MAXIE_MOSSDEEP)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json MAXIE_MOSSDEEP + TABITHA_MOSSDEEP)"
     },
     "money_checkpoint": null
    },
@@ -1980,23 +2451,29 @@
     "MOSSDEEP_CITY_STEVENS_HOUSE"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "WATER"
     ],
-    "types_ahead_of": "SHELLY_SEAFLOOR_CAVERN",
+    "types_ahead_of": [
+     "SHELLY_SEAFLOOR_CAVERN"
+    ],
     "level_band": {
      "low": 37,
      "high": 37,
-     "basis": "decomp boss top level (bosses.json SHELLY_SEAFLOOR_CAVERN, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json SHELLY_SEAFLOOR_CAVERN, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -2015,12 +2492,18 @@
     "SEAFLOOR_CAVERN_ROOM3"
    ],
    "boss": "SHELLY_SEAFLOOR_CAVERN",
+   "fights": [
+    "SHELLY_SEAFLOOR_CAVERN"
+   ],
+   "area_bosses": [
+    "SHELLY_SEAFLOOR_CAVERN"
+   ],
    "needs": {
     "field_moves": [
      {
       "move": "DIVE",
       "badge": "BADGE07",
-      "ref": "src/field_control_avatar.c:465",
+      "ref": "src/party_menu.c:126",
       "rule_ref": "src/party_menu.c:3725",
       "need_basis": "the cavern's entrance is under Route 128's sea (UNVERIFIED by the decomp)"
      }
@@ -2030,22 +2513,26 @@
     ],
     "badge_refs": {
      "BADGE07": [
-      "src/field_control_avatar.c:465"
+      "src/party_menu.c:126"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "WATER"
     ],
-    "types_ahead_of": "SHELLY_SEAFLOOR_CAVERN",
+    "types_ahead_of": [
+     "SHELLY_SEAFLOOR_CAVERN"
+    ],
     "level_band": {
      "low": 37,
      "high": 37,
-     "basis": "decomp boss top level (bosses.json SHELLY_SEAFLOOR_CAVERN)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json SHELLY_SEAFLOOR_CAVERN)"
     },
     "money_checkpoint": null
    },
@@ -2064,6 +2551,12 @@
     "SEAFLOOR_CAVERN_ROOM9"
    ],
    "boss": "ARCHIE",
+   "fights": [
+    "ARCHIE"
+   ],
+   "area_bosses": [
+    "ARCHIE"
+   ],
    "needs": {
     "field_moves": [
      {
@@ -2093,9 +2586,11 @@
       "src/party_menu.c:122"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -2103,11 +2598,13 @@
      "POISON",
      "WATER"
     ],
-    "types_ahead_of": "ARCHIE",
+    "types_ahead_of": [
+     "ARCHIE"
+    ],
     "level_band": {
      "low": 41,
      "high": 43,
-     "basis": "decomp boss top level (bosses.json ARCHIE)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json ARCHIE)"
     },
     "money_checkpoint": null
    },
@@ -2126,12 +2623,14 @@
     "CAVE_OF_ORIGIN_B1F"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [
      {
       "move": "DIVE",
       "badge": "BADGE07",
-      "ref": "src/field_control_avatar.c:465",
+      "ref": "src/party_menu.c:126",
       "rule_ref": "src/party_menu.c:3725",
       "need_basis": "Sootopolis has zero map connections and no inbound warp; it is reached by Dive (20-POST-FORTREE-RECON.md 4.8, recon)"
      }
@@ -2141,12 +2640,14 @@
     ],
     "badge_refs": {
      "BADGE07": [
-      "src/field_control_avatar.c:465"
+      "src/party_menu.c:126"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -2155,11 +2656,13 @@
      "ICE",
      "WATER"
     ],
-    "types_ahead_of": "JUAN",
+    "types_ahead_of": [
+     "JUAN"
+    ],
     "level_band": {
      "low": 41,
      "high": 46,
-     "basis": "decomp boss top level (bosses.json JUAN, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json JUAN, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -2181,13 +2684,17 @@
     "SKY_PILLAR_TOP"
    ],
    "boss": null,
+   "fights": [],
+   "area_bosses": [],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -2196,11 +2703,13 @@
      "ICE",
      "WATER"
     ],
-    "types_ahead_of": "JUAN",
+    "types_ahead_of": [
+     "JUAN"
+    ],
     "level_band": {
      "low": 41,
      "high": 46,
-     "basis": "decomp boss top level (bosses.json JUAN, the boss ahead)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json JUAN, the fights ahead)"
     },
     "money_checkpoint": null
    },
@@ -2216,13 +2725,21 @@
     "SOOTOPOLIS_CITY_GYM_B1F"
    ],
    "boss": "JUAN",
+   "fights": [
+    "JUAN"
+   ],
+   "area_bosses": [
+    "JUAN"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
@@ -2231,11 +2748,13 @@
      "ICE",
      "WATER"
     ],
-    "types_ahead_of": "JUAN",
+    "types_ahead_of": [
+     "JUAN"
+    ],
     "level_band": {
      "low": 41,
      "high": 46,
-     "basis": "decomp boss top level (bosses.json JUAN)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json JUAN)"
     },
     "money_checkpoint": null
    },
@@ -2253,12 +2772,19 @@
     "VICTORY_ROAD_B2F"
    ],
    "boss": "WALLY_VR_1",
+   "fights": [
+    "WALLY_VR_1"
+   ],
+   "area_bosses": [
+    "WALLY_VR_1",
+    "WALLY_VR_2"
+   ],
    "needs": {
     "field_moves": [
      {
       "move": "WATERFALL",
       "badge": "BADGE08",
-      "ref": "src/field_control_avatar.c:455",
+      "ref": "src/party_menu.c:127",
       "rule_ref": "src/party_menu.c:3725",
       "need_basis": "Ever Grande City's waterfall (UNVERIFIED by the decomp)"
      },
@@ -2284,7 +2810,7 @@
     ],
     "badge_refs": {
      "BADGE08": [
-      "src/field_control_avatar.c:455"
+      "src/party_menu.c:127"
      ],
      "BADGE04": [
       "src/party_menu.c:123"
@@ -2293,9 +2819,11 @@
       "src/party_menu.c:122"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DRAGON",
@@ -2307,11 +2835,13 @@
      "PSYCHIC",
      "STEEL"
     ],
-    "types_ahead_of": "WALLY_VR_1",
+    "types_ahead_of": [
+     "WALLY_VR_1"
+    ],
     "level_band": {
      "low": 41,
      "high": 45,
-     "basis": "decomp boss top level (bosses.json WALLY_VR_1)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json WALLY_VR_1)"
     },
     "money_checkpoint": null
    },
@@ -2326,6 +2856,12 @@
     "EVER_GRANDE_CITY_SIDNEYS_ROOM"
    ],
    "boss": "SIDNEY",
+   "fights": [
+    "SIDNEY"
+   ],
+   "area_bosses": [
+    "SIDNEY"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [
@@ -2336,20 +2872,24 @@
       "data/maps/EverGrandeCity_PokemonLeague_1F/scripts.inc:57"
      ]
     },
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "GRASS",
      "WATER"
     ],
-    "types_ahead_of": "SIDNEY",
+    "types_ahead_of": [
+     "SIDNEY"
+    ],
     "level_band": {
      "low": 46,
      "high": 49,
-     "basis": "decomp boss top level (bosses.json SIDNEY)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json SIDNEY)"
     },
     "money_checkpoint": null
    },
@@ -2363,23 +2903,33 @@
     "EVER_GRANDE_CITY_PHOEBES_ROOM"
    ],
    "boss": "PHOEBE",
+   "fights": [
+    "PHOEBE"
+   ],
+   "area_bosses": [
+    "PHOEBE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DARK",
      "GHOST"
     ],
-    "types_ahead_of": "PHOEBE",
+    "types_ahead_of": [
+     "PHOEBE"
+    ],
     "level_band": {
      "low": 48,
      "high": 51,
-     "basis": "decomp boss top level (bosses.json PHOEBE)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json PHOEBE)"
     },
     "money_checkpoint": null
    },
@@ -2393,23 +2943,33 @@
     "EVER_GRANDE_CITY_GLACIAS_ROOM"
    ],
    "boss": "GLACIA",
+   "fights": [
+    "GLACIA"
+   ],
+   "area_bosses": [
+    "GLACIA"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "ICE",
      "WATER"
     ],
-    "types_ahead_of": "GLACIA",
+    "types_ahead_of": [
+     "GLACIA"
+    ],
     "level_band": {
      "low": 50,
      "high": 53,
-     "basis": "decomp boss top level (bosses.json GLACIA)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json GLACIA)"
     },
     "money_checkpoint": null
    },
@@ -2423,13 +2983,21 @@
     "EVER_GRANDE_CITY_DRAKES_ROOM"
    ],
    "boss": "DRAKE",
+   "fights": [
+    "DRAKE"
+   ],
+   "area_bosses": [
+    "DRAKE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "DRAGON",
@@ -2437,11 +3005,13 @@
      "GROUND",
      "WATER"
     ],
-    "types_ahead_of": "DRAKE",
+    "types_ahead_of": [
+     "DRAKE"
+    ],
     "level_band": {
      "low": 52,
      "high": 55,
-     "basis": "decomp boss top level (bosses.json DRAKE)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json DRAKE)"
     },
     "money_checkpoint": null
    },
@@ -2456,13 +3026,21 @@
     "EVER_GRANDE_CITY_HALL_OF_FAME"
    ],
    "boss": "WALLACE",
+   "fights": [
+    "WALLACE"
+   ],
+   "area_bosses": [
+    "WALLACE"
+   ],
    "needs": {
     "field_moves": [],
     "badges": [],
     "badge_refs": {},
+    "badge_gates": [],
     "key_items": [],
     "party_min": 1,
     "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
     "double_battle": false,
     "types_ahead": [
      "FLYING",
@@ -2471,11 +3049,13 @@
      "POISON",
      "WATER"
     ],
-    "types_ahead_of": "WALLACE",
+    "types_ahead_of": [
+     "WALLACE"
+    ],
     "level_band": {
      "low": 55,
      "high": 58,
-     "basis": "decomp boss top level (bosses.json WALLACE)"
+     "basis": "decomp boss party levels, lowest and highest (bosses.json WALLACE)"
     },
     "money_checkpoint": null
    },

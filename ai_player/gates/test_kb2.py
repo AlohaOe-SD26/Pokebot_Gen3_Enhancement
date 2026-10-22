@@ -34,11 +34,30 @@ repository (FrozenTree, provenance.py G1, watches it): every file a test writes 
                     the decomp, the label-closure bound, an unpinned decomp).
   NotReadTests      no play code names a world file, and check_fairness's knowledge glob does not see world/ (FAULT:
                     campaign.json copied to the knowledge top level is flagged).
+The 2026-10-22 verify's REFIX (its F1-F3 and its 22 guard-deleting mutants):
+  CitationTests     F1: every `file:line` must sit on a line that HOLDS its token (move + badge flag, badge flag,
+                    `[TRAINER_X]`, the party array, the item, Norman's gate in its badge's label); FAULT: 15 citations
+                    moved to unrelated lines (the verify's `src/party_menu.c:2` first), a missing file and a citation in
+                    a place no rule covers, each reported on its record; the extractor refuses a gate outside the label.
+  TabithaTests      F2: TRAINER_TABITHA_MOSSDEEP is ch19's (order, entry, fights, band 36-44, types), DERIVED from the
+                    Space Center's SET_TRAINER_A/B pair; FAULT: her order nulled, ROXANNE's order 20 -> 3, ch4's band low
+                    12 -> 2, a fight / an area boss / a type / a key item / a field move / a badge dropped; the extractor
+                    refuses a half multi battle and a fight off the entry's area.
+  GabbyTests        F3: Gabby and Ty's six fights (data/scripts/gabby_and_ty.inc) are on Routes 111/118/120; FAULT: one
+                    removed from Route 118 is reported there and in the totals; a Lavaridge B1F battle dropped is
+                    reported on 1F, whose file holds it; a coord event's battle dropped is reported.
+  FieldFaultTests   one FAULT per field check of the verifier (flag, rematch_of, party_shape, sight, map header, role,
+                    rematches, double/party_min, types, order, boss double), all in one verify run.
+  ExtractorGuardFaultTests  an empty party array, an id with no block, a member of the wrong shape, the flag base gone;
+                    W4b's no-giver branch; the plural `ivs` in both scans.
+  PinTests          a clone at ANOTHER commit (a .git whose HEAD is not the pin) is refused by both programs; CONTROL:
+                    the same folder at the pin is accepted.
 """
 import copy
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -75,15 +94,61 @@ ROOT = None
 D = None
 OBJS = None
 RAW = None
+SCRIPTS = None
 MILESTONES = json.loads((KNOWLEDGE / "milestones.json").read_text(encoding="utf-8"))
 
 
 def setUpModule():
-    global ROOT, D, OBJS, RAW
+    global ROOT, D, OBJS, RAW, SCRIPTS
     ROOT = ew.resolve_decomp()  # no pinned clone: every test ERRORS (a loud failure, never a silent skip or pass)
     D = ew.Decomp(ROOT)
     OBJS = ew.build_all(D)
     RAW = vw.raw(ROOT)
+    SCRIPTS = ew.map_scripts(D)
+
+
+def fake_clone(tmp, head):
+    """A folder git reads as a repository whose HEAD is `head` (a detached sha): a clone at ANOTHER commit for the pin
+    test, made without any git command that writes."""
+    for sub in ("objects", "refs"):
+        os.makedirs(os.path.join(tmp, ".git", sub), exist_ok=True)
+    with open(os.path.join(tmp, ".git", "HEAD"), "w", encoding="utf-8") as f:
+        f.write(head + "\n")
+    return tmp
+
+
+def verify_lines(change):
+    """The verifier's full report on a deep copy of the committed data after `change(data)`."""
+    data = vw.load(str(WORLD))
+    change(data)
+    rep, _ = vw.verify(RAW, data, MILESTONES, None)
+    return rep.lines
+
+
+def assert_reported(test, lines, expected):
+    """Each (record line prefix, substring) is on a line of the report: the check that owns it fired."""
+    for prefix, sub in expected:
+        hit = [ln for ln in lines if ln.startswith(prefix + ":")]
+        test.assertTrue(hit and sub in hit[0], "%s / %r not reported; lines: %s" % (prefix, sub, [ln[:300] for ln in lines]))
+
+
+def entry(data, eid):
+    """One campaign entry of verify_world's data dict (keyed 'campaign') or of the campaign object itself."""
+    return next(e for e in data.get("campaign", data)["entries"] if e["id"] == eid)
+
+
+def boss(data, bid):
+    return next(b for b in data["bosses"]["bosses"] if b["id"] == bid)
+
+
+def trainer(data, sym):
+    """One trainer of verify_world's data dict (keyed 'trainers') or of the trainers object itself."""
+    ts = data["trainers"]
+    return next(t for t in (ts["trainers"] if isinstance(ts, dict) else ts) if t["symbol"] == sym)
+
+
+def map_rec(data, mid):
+    return next(m for m in data["maps"]["maps"] if m["id"] == mid)
 
 
 class OverlayDecomp(ew.Decomp):
@@ -110,11 +175,11 @@ def scratch_skeleton(change):
     return sk
 
 
-def campaign_of(sk):
+def campaign_of(sk, scripts=None):
     o = OBJS
     maps, bosses = o["maps.json"]["maps"], o["bosses.json"]["bosses"]
     return ew.build_campaign(D, sk, MILESTONES, maps, bosses, o["trainers.json"]["trainers"],
-                             o["campaign.json"]["field_move_badges"])
+                             o["campaign.json"]["field_move_badges"], scripts if scripts is not None else SCRIPTS)
 
 
 def serial(obj):
@@ -149,7 +214,7 @@ class W1WithheldTests(unittest.TestCase):
                 rec = data["trainers"][265]
                 (rec["party"][0] if where == "party" else rec)[key] = 0
                 p.write_text(json.dumps(data), encoding="utf-8")
-                _, hits = vw.withheld_scan(str(Path(tmp) / "k"))
+                _, hits = vw.withheld_scan(str(Path(tmp) / "k" / "world"))  # each spelling; the CLI arms scan the tree
                 self.assertEqual(len(hits), 1, (key, hits))
                 self.assertIn(key, hits[0][1])
             for tree, want in ((str(Path(tmp) / "k"), 1), (str(KNOWLEDGE), 0)):  # the CLI scans: FAULT, then CONTROL
@@ -201,6 +266,7 @@ class W2PlantTests(unittest.TestCase):
         rep, _ = vw.verify(RAW, vw.load(str(WORLD)), MILESTONES, None)
         self.assertEqual(rep.lines, [])
         self.assertEqual(rep.counts["trainers"], 855)
+        self.assertGreater(rep.counts["citations"], 2000)  # every citation of the four files was checked
 
     def _one(self, change, prefix, also=None):
         data = vw.load(str(WORLD))
@@ -212,10 +278,15 @@ class W2PlantTests(unittest.TestCase):
             self.assertTrue(rep.lines[1].startswith(also), rep.lines)
 
     def test_more_faults(self):
-        def item(data):
+        def item(data):  # the map's exact item-ball list and the item record both see it
             m = next(m for m in data["maps"]["maps"] if m["item_balls"])
             m["item_balls"][0]["item"] = "ITEM_MASTER_BALL"
-        self._one(item, "MISMATCH item")
+        self._one(item, "MISMATCH map", also="MISMATCH item")
+
+        def invented_ball(data):  # an item ball the decomp does not have: only the exact list sees it
+            m = next(m for m in data["maps"]["maps"] if m["item_balls"])
+            m["item_balls"].append(dict(m["item_balls"][0], x=999))
+        self._one(invented_ball, "MISMATCH map")
 
         def badge(data):
             next(b for b in data["bosses"]["bosses"] if b["fight"] == "NORMAN")["badge"]["id"] = "BADGE04"
@@ -242,7 +313,7 @@ class W2PlantTests(unittest.TestCase):
         def dup_party(data):
             ts = data["trainers"]["trainers"]
             ts[2]["party_ref"] = ts[1]["party_ref"]
-        self._one(dup_party, "MISMATCH totals parties")
+        self._one(dup_party, "MISMATCH trainer", also="MISMATCH totals parties")  # its citation and the count
 
         def late_badge(data):  # W4b re-derived: Norman needing Winona's badge
             e = next(e for e in data["campaign"]["entries"] if e["id"] == "ch12_norman")
@@ -259,7 +330,7 @@ class W2PlantTests(unittest.TestCase):
 
         def milestone(data):
             data["campaign"]["entries"][0]["chapter"] = 2
-        self._one(milestone, "MISMATCH campaign milestones")
+        self._one(milestone, "MISMATCH campaign milestones", also="MISMATCH campaign ch1_intro")  # + the skeleton's
 
         def hidden(data):
             m = next(m for m in data["maps"]["maps"] if m["hidden_items"])
@@ -288,6 +359,332 @@ class W2PlantTests(unittest.TestCase):
             m = next(m for m in data["maps"]["maps"] if m["warps"])
             m["warps"][0]["dest_warp_id"] = 99
         self._has(warp, "MISMATCH map")
+
+
+def shift(ref, by):
+    rel, n = ref.rsplit(":", 1)
+    return "%s:%d" % (rel, int(n) + by)
+
+
+def var_conditional_outside(rel, label):
+    """'rel:N' of the first `call_if/goto_if VAR_...` line of `rel` whose label is not `label` (a real conditional of
+    the same file, so only the same-label rule can reject it)."""
+    cur = None
+    for i, ln in enumerate(raw_text(rel).split("\n"), 1):
+        m = re.match(r"^([A-Za-z_]\w*)::?\s*$", ln)
+        if m:
+            cur = m.group(1)
+        elif cur != label and re.match(r"^\s*(call|goto)_if\w*\s+VAR_\w+", ln):
+            return "%s:%d" % (rel, i)
+    raise AssertionError("no VAR conditional outside %s in %s" % (label, rel))
+
+
+class CitationTests(unittest.TestCase):
+    """F1 (the 2026-10-22 verify): a citation is checked for what its line SAYS, not merely that the line exists."""
+
+    def test_the_verify_demos_are_mismatches(self):
+        """FAULT: the verify's own four fields (a badge ref, a field move's ref and rule_ref, a boss's badge ref) moved
+        to `src/party_menu.c:2` (an #include). be63abd1's verifier reported 0 mismatches for each."""
+        def change(data):
+            entry(data, "ch12_norman")["needs"]["badge_refs"]["BADGE01"][0] = "src/party_menu.c:2"
+            entry(data, "ch13_route118")["needs"]["field_moves"][0]["ref"] = "src/party_menu.c:2"
+            entry(data, "ch13_route118")["needs"]["field_moves"][0]["rule_ref"] = "src/party_menu.c:2"
+            boss(data, "TRAINER_WATTSON_1")["badge"]["ref"] = "src/party_menu.c:2"
+        assert_reported(self, verify_lines(change), [
+            ("MISMATCH campaign ch12_norman", "src/party_menu.c:2"),
+            ("MISMATCH campaign ch13_route118", "src/party_menu.c:2 (ref)"),
+            ("MISMATCH campaign ch13_route118", "src/party_menu.c:2 (rule_ref)"),
+            ("MISMATCH boss TRAINER_WATTSON_1", "src/party_menu.c:2"),
+        ])
+
+    def test_moved_citations_are_mismatches(self):
+        """FAULT: each citation moved to a line that does not hold its token is reported on its record's line.
+        (On be63abd1's verifier the first of these, Norman's BADGE01 -> src/party_menu.c:2, gave 0 mismatches.)"""
+        gate_elsewhere = var_conditional_outside("data/maps/DewfordTown_Gym/scripts.inc",
+                                                 "DewfordTown_Gym_EventScript_BrawlyDefeated")
+        custom = next((b["id"], i) for b in OBJS["bosses.json"]["bosses"] for i, p in enumerate(b["party"])
+                      if p["moves_source"].startswith("custom"))
+
+        def change(data):
+            nor = entry(data, "ch12_norman")["needs"]
+            nor["badge_refs"]["BADGE01"][0] = "src/party_menu.c:2"                      # the verify's own demo
+            nor["badge_gates"][1]["ref"] = gate_elsewhere                                 # a VAR conditional, wrong label
+            entry(data, "ch13_route118")["needs"]["field_moves"][0]["ref"] = "src/party_menu.c:120"  # CUT's line
+            entry(data, "ch14_mt_pyre")["needs"]["field_moves"][0]["rule_ref"] = "src/party_menu.c:2"
+            entry(data, "ch18_tate_and_liza")["needs"]["party_min_ref"] = boss(data, "TRAINER_ROXANNE_1")["ref"]
+            rox = boss(data, "TRAINER_ROXANNE_1")
+            rox["badge"]["ref"] = shift(rox["badge"]["ref"], 1)
+            tate = boss(data, "TRAINER_TATE_AND_LIZA_1")
+            tate["notes"][0] = re.sub(r"trainers\.h:\d+", "trainers.h:%s" % rox["ref"].rsplit(":", 1)[1],
+                                      tate["notes"][0])
+            boss(data, custom[0])["party"][custom[1]]["moves_source"] = "custom (src/data/trainer_parties.h:1)"
+            boss(data, "TRAINER_WATTSON_1")["ref"] = "src/nope.c:5"
+            trainer(data, "TRAINER_SAWYER_1")["ref"] = trainer(data, "TRAINER_RICK")["ref"]
+            trainer(data, "TRAINER_CALVIN_1")["party_ref"] = trainer(data, "TRAINER_RICK")["party_ref"]
+            sc = next(t for t in map_rec(data, "MAP_MOSSDEEP_CITY_SPACE_CENTER_2F")["trainers"] if t["source"] == "script")
+            champ = next(t for t in map_rec(data, "MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM")["trainers"]
+                         if t["source"] == "script")
+            champ["label"], champ["ref"] = sc["label"], sc["ref"]      # a true label line, of ANOTHER map's file
+            sc["ref"] = shift(sc["ref"], 1)
+            win, brawly = boss(data, "TRAINER_WINONA_1"), boss(data, "TRAINER_BRAWLY_1")
+            win["badge"] = dict(brawly["badge"])                        # a true setflag line, of ANOTHER gym's file
+            fms = {r["move"]: r for r in data["campaign"]["field_move_badges"]}
+            fms["SURF"]["move_ref"] = fms["FLY"]["move_ref"]
+            fms["WATERFALL"]["ref"] = "src/party_menu.c:2"
+            fms["DIVE"]["rule_ref"] = "src/party_menu.c:2"
+            fms["DIVE"]["overworld_ref"] = "src/party_menu.c:2"
+            data["trainers"]["trainers"][0]["comment"] = "see src/party_menu.c:120"     # a place no rule covers
+        lines = verify_lines(change)
+        assert_reported(self, lines, [
+            ("MISMATCH campaign ch12_norman", "src/party_menu.c:2 (BADGE01[])"),
+            ("MISMATCH campaign ch12_norman", "%s (ref): the line is not in the label" % gate_elsewhere),
+            ("MISMATCH campaign ch13_route118", "src/party_menu.c:120 (ref)"),
+            ("MISMATCH campaign ch14_mt_pyre", "src/party_menu.c:2 (rule_ref)"),
+            ("MISMATCH campaign ch18_tate_and_liza", "(party_min_ref): the line is no block"),
+            ("MISMATCH boss TRAINER_ROXANNE_1", "(ref): the line does not hold ['setflag FLAG_BADGE01_GET']"),
+            ("MISMATCH boss TRAINER_TATE_AND_LIZA_1", "is not in TRAINER_TATE_AND_LIZA_1's trainers.h block"),
+            ("MISMATCH boss %s" % custom[0], "src/data/trainer_parties.h:1 (moves_source)"),
+            ("MISMATCH boss TRAINER_WATTSON_1", "src/nope.c:5 cites no line"),
+            ("MISMATCH trainer TRAINER_SAWYER_1", "(ref): the line does not hold ['[TRAINER_SAWYER_1]']"),
+            ("MISMATCH trainer TRAINER_CALVIN_1", "(party_ref)"),
+            ("MISMATCH map MAP_MOSSDEEP_CITY_SPACE_CENTER_2F", "(ref): the line is not the label"),
+            ("MISMATCH map MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM", "is not the map's own scripts.inc"),
+            ("MISMATCH boss TRAINER_WINONA_1", "is not the file that battles TRAINER_WINONA_1"),
+            ("MISMATCH field_move SURF", "(move_ref)"),
+            ("MISMATCH field_move WATERFALL", "src/party_menu.c:2 (ref)"),
+            ("MISMATCH field_move DIVE", "src/party_menu.c:2 (rule_ref)"),
+            ("MISMATCH field_move DIVE", "src/party_menu.c:2 (overworld_ref)"),
+            ("MISMATCH citation trainers/trainers[]/comment", "no citation rule covers"),
+        ])
+
+    def test_every_citation_holds_its_token(self):
+        """CONTROL: the real files' citations all pass; the field moves cite the enum line that names move and badge."""
+        rep, _ = vw.verify(RAW, vw.load(str(WORLD)), MILESTONES, None)
+        self.assertEqual(rep.lines, [])
+        for e in OBJS["campaign.json"]["entries"]:
+            for fm in e["needs"]["field_moves"]:
+                line = vw.line_at(RAW, fm["ref"])
+                self.assertIn("FIELD_MOVE_" + fm["move"], line)
+                self.assertIn("FLAG_%s_GET" % fm["badge"], line)
+            for b, refs in e["needs"]["badge_refs"].items():
+                for ref in refs:
+                    self.assertIn("FLAG_%s_GET" % b, vw.line_at(RAW, ref))
+
+    def test_extractor_refuses_a_gate_outside_the_badge_label(self):
+        """The generator's own guard: Norman's gate line must share the defeat-script label of the badge's setflag."""
+        def far_gate(es):
+            next(e for e in es if e["id"] == "ch12_norman")["needs"]["badges"][0]["gate_needle"] = \
+                "RustboroCity_Gym_EventScript_GiveRockTomb::"
+        with self.assertRaises(ew.Refused) as cm:
+            campaign_of(scratch_skeleton(far_gate))
+        self.assertIn("BADGE01's gate line", str(cm.exception))
+
+
+class TabithaTests(unittest.TestCase):
+    """F2: a boss's campaign membership and order are DERIVED from the area's trainerbattle lines (the Space Center's
+    TRAINER_BATTLE_SET_TRAINER_A/B pair), never left null by hand."""
+
+    def test_tabitha_is_fought_in_ch19(self):
+        """CONTROL (on be63abd1 her order was null and ch19's band was Maxie's 42-44 alone)."""
+        tab = next(b for b in OBJS["bosses.json"]["bosses"] if b["id"] == "TRAINER_TABITHA_MOSSDEEP")
+        e = entry(OBJS["campaign.json"], "ch19_space_center")
+        self.assertEqual(tab["order"], e["order"])
+        self.assertEqual(tab.get("entry"), "ch19_space_center")
+        self.assertEqual(e["fights"], ["MAXIE_MOSSDEEP", "TABITHA_MOSSDEEP"])
+        both = [p for sym in ("TRAINER_MAXIE_MOSSDEEP", "TRAINER_TABITHA_MOSSDEEP")
+                for p in trainer(OBJS["trainers.json"], sym)["party"]]
+        band = e["needs"]["level_band"]
+        self.assertEqual((band["low"], band["high"]), (min(p["level"] for p in both), max(p["level"] for p in both)))
+        self.assertLess(band["low"], 42)  # her L36-40 party is inside the band
+        self.assertTrue(set(t for p in tab["party"] for t in p["types"]) <= set(e["needs"]["types_ahead"]))
+        self.assertEqual(e["needs"]["types_ahead_of"], ["MAXIE_MOSSDEEP", "TABITHA_MOSSDEEP"])
+        nulls = sorted(b["id"] for b in OBJS["bosses.json"]["bosses"] if b["order"] is None)
+        self.assertEqual(nulls, ["TRAINER_STEVEN", "TRAINER_WALLY_VR_2"])  # fought in no entry: post-game
+        self.assertIn("WALLY_VR_2", entry(OBJS["campaign.json"], "ch23_victory_road")["area_bosses"])
+
+    def test_the_verify_demos_are_mismatches(self):
+        """FAULT: the verify's two demos (ROXANNE order 20 -> 3; ch4's band low 12 -> 2), each 0 mismatches on be63abd1."""
+        def change(data):
+            boss(data, "TRAINER_ROXANNE_1")["order"] = 3
+            entry(data, "ch4_roxanne")["needs"]["level_band"]["low"] = 2
+        assert_reported(self, verify_lines(change), [("MISMATCH boss TRAINER_ROXANNE_1", "order"),
+                                                     ("MISMATCH campaign ch4_roxanne", "level_band 2..15")])
+
+    def test_verifier_catches_membership_band_and_dropped_needs(self):
+        """FAULT: the verify's F2 demos (ROXANNE order 20 -> 3, ch4's band low 12 -> 2) and the membership itself."""
+        def change(data):
+            boss(data, "TRAINER_TABITHA_MOSSDEEP")["order"] = None
+            boss(data, "TRAINER_ROXANNE_1")["order"] = 3
+            entry(data, "ch4_roxanne")["needs"]["level_band"]["low"] = 2
+            entry(data, "ch19_space_center")["fights"] = ["MAXIE_MOSSDEEP"]
+            entry(data, "ch23_victory_road")["area_bosses"].remove("WALLY_VR_2")
+            entry(data, "ch7_brawly")["needs"]["types_ahead"].pop()
+            entry(data, "ch13_winona")["needs"]["key_items"] = []
+            entry(data, "ch10_fallarbor")["needs"]["field_moves"] = []
+            n = entry(data, "ch24_sidney")["needs"]
+            n["badges"], n["badge_refs"] = [], {}
+        assert_reported(self, verify_lines(change), [
+            ("MISMATCH boss TRAINER_TABITHA_MOSSDEEP", "order/entry None/"),
+            ("MISMATCH boss TRAINER_ROXANNE_1", "order/entry 3/"),
+            ("MISMATCH campaign ch4_roxanne", "level_band 2..15"),
+            ("MISMATCH campaign ch19_space_center", "fights ['MAXIE_MOSSDEEP'] != re-derived"),
+            ("MISMATCH campaign ch23_victory_road", "area_bosses"),
+            ("MISMATCH campaign ch7_brawly", "types_ahead"),
+            ("MISMATCH campaign ch13_winona", "key items [] != the skeleton's"),
+            ("MISMATCH campaign ch10_fallarbor", "field moves [] != the skeleton's"),
+            ("MISMATCH campaign ch24_sidney", "badges [] != the skeleton's needs"),
+        ])
+
+    def test_extractor_guards_the_pair_and_the_area(self):
+        """FAULT: a half multi battle (Tabitha's SET_TRAINER_B line gone) and a fight off the entry's area are refused."""
+        rel = "data/maps/MossdeepCity_SpaceCenter_2F/scripts.inc"
+        half = dict(SCRIPTS)
+        half[rel] = "\n".join(ln for ln in SCRIPTS[rel].split("\n") if "TRAINER_TABITHA_MOSSDEEP" not in ln)
+        with self.assertRaises(ew.Refused) as cm:
+            campaign_of(scratch_skeleton(lambda es: None), scripts=half)
+        self.assertIn("multi battle", str(cm.exception))
+
+        def off_area(es):
+            e = next(e for e in es if e["id"] == "ch19_space_center")
+            e["area"] = [a for a in e["area"] if a != "MOSSDEEP_CITY_SPACE_CENTER_2F"]
+        with self.assertRaises(ew.Refused) as cm:
+            campaign_of(scratch_skeleton(off_area))
+        self.assertIn("not battled on its area maps", str(cm.exception))
+        self.assertEqual(len(campaign_of(scratch_skeleton(lambda es: None))), len(OBJS["campaign.json"]["entries"]))
+
+
+class GabbyTests(unittest.TestCase):
+    """F3: every trainer a map object's script battles is on that map, whichever file holds the battle line."""
+    WANT = {1: {"MAP_ROUTE111"}, 2: {"MAP_ROUTE118"}, 3: {"MAP_ROUTE120"}, 4: {"MAP_ROUTE111"}, 5: {"MAP_ROUTE118"},
+            6: {"MAP_ROUTE111", "MAP_ROUTE118", "MAP_ROUTE120"}}
+
+    def test_gabby_and_ty_are_on_their_maps(self):
+        """CONTROL (on be63abd1 all six were on no map): data/scripts/gabby_and_ty.inc's battles, joined to the
+        Route 111/118/120 objects that name them."""
+        on = {}
+        for m in OBJS["maps.json"]["maps"]:
+            for t in m["trainers"]:
+                for tid in t["trainers"]:
+                    if tid.startswith("TRAINER_GABBY_AND_TY_"):
+                        self.assertEqual(t["source"], "object")
+                        on.setdefault(int(tid[-1]), set()).add(m["id"])
+        self.assertEqual(on, self.WANT)
+
+    def test_verifier_counts_each_map_battle(self):
+        """FAULT: one trainer removed from the objects of its map is reported on that map and in the totals; a
+        battle of a map's own file carried by a neighbouring floor is reported when that floor drops it."""
+        def change(data):
+            for t in map_rec(data, "MAP_ROUTE118")["trainers"]:
+                if "TRAINER_GABBY_AND_TY_2" in t["trainers"]:
+                    t["trainers"].remove("TRAINER_GABBY_AND_TY_2")
+            b1f = map_rec(data, "MAP_LAVARIDGE_TOWN_GYM_B1F")
+            self.dropped = b1f["trainers"][0]["trainers"].pop(0)
+        lines = verify_lines(change)
+        assert_reported(self, lines, [
+            ("MISMATCH map MAP_ROUTE118", "not on this map: ['TRAINER_GABBY_AND_TY_2']"),
+            ("MISMATCH totals map battles", "'TRAINER_GABBY_AND_TY_2'"),
+            ("MISMATCH map MAP_LAVARIDGE_TOWN_GYM_1F", "on none of its maps: ['%s']" % self.dropped),
+        ])
+
+    def test_coord_event_battles_are_checked(self):
+        """FAULT: a coord event's battle (Petalburg Woods' grunt) dropped from maps.json is reported."""
+        def change(data):
+            ce = next(t for t in map_rec(data, "MAP_PETALBURG_WOODS")["trainers"] if t["source"] == "coord_event")
+            ce["trainers"] = []
+        assert_reported(self, verify_lines(change), [("MISMATCH map MAP_PETALBURG_WOODS", "trainer coord_event")])
+
+
+class FieldFaultTests(unittest.TestCase):
+    """The verify's per-field mutants: each check of the verifier has a FAULT that only it reports."""
+
+    def test_each_field_check_fires(self):
+        def change(data):
+            trainer(data, "TRAINER_RICK")["flag"] += 1
+            trainer(data, "TRAINER_ROXANNE_2")["rematch_of"] = "TRAINER_NONE"
+            trainer(data, "TRAINER_TIANA")["party_shape"] = "ItemCustomMoves"
+            obj = next(t for t in map_rec(data, "MAP_ROUTE104")["trainers"] if t["source"] == "object")
+            obj["sight"] += 1
+            map_rec(data, "MAP_ROUTE103")["map_type"] = "MAP_TYPE_UNDERWATER"
+            boss(data, "TRAINER_BRAWLY_1")["role"] = "rival"
+            boss(data, "TRAINER_ROXANNE_1")["rematches"].pop()
+            entry(data, "ch18_tate_and_liza")["needs"]["double_battle"] = False
+            boss(data, "TRAINER_WATTSON_1")["party"][0]["types"] = ["FIRE"]
+            entry(data, "ch2_oldale")["order"] = 99
+            b = boss(data, "TRAINER_FLANNERY_1")
+            b["double"] = not b["double"]
+        assert_reported(self, verify_lines(change), [
+            ("MISMATCH trainer TRAINER_RICK", "flag "),
+            ("MISMATCH trainer TRAINER_ROXANNE_2", "rematch_of 'TRAINER_NONE'"),
+            ("MISMATCH trainer TRAINER_TIANA", "party_shape 'ItemCustomMoves'"),
+            ("MISMATCH map MAP_ROUTE104", "type/sight differ"),
+            ("MISMATCH map MAP_ROUTE103", "map_type 'MAP_TYPE_UNDERWATER'"),
+            ("MISMATCH boss TRAINER_BRAWLY_1", "role 'rival'"),
+            ("MISMATCH boss TRAINER_ROXANNE_1", "rematches differ"),
+            ("MISMATCH campaign ch18_tate_and_liza", "double_battle/party_min False/2"),
+            ("MISMATCH boss TRAINER_WATTSON_1", "slot 1"),
+            ("MISMATCH campaign ch2_oldale", "order 99 at position 11"),
+            ("MISMATCH boss TRAINER_FLANNERY_1", "double differs"),
+        ])
+
+
+class ExtractorGuardFaultTests(unittest.TestCase):
+    """The verify's extractor mutants: each guard refuses a broken decomp file read through an overlay."""
+
+    def _refused(self, rel, old, new, needle):
+        text = raw_text(rel)
+        self.assertEqual(text.count(old), 1, old)
+        with self.assertRaises(ew.Refused) as cm:
+            ew.build_trainers(OverlayDecomp(ROOT, {rel: text.replace(old, new, 1)}))
+        self.assertIn(needle, str(cm.exception))
+
+    def test_guards_refuse(self):
+        tp = raw_text("src/data/trainer_parties.h")
+        start = tp.index("sParty_Sawyer1[] = {")
+        body_end = tp.index("\n};", start)
+        self._refused("src/data/trainer_parties.h", tp[start:body_end + 3], "sParty_Sawyer1[] = {\n};",
+                      "has no members")                                                     # an empty party array
+        self._refused("include/constants/opponents.h", "#define TRAINER_SAWYER_1 ",
+                      "#define TRAINER_PHANTOM_ZZ          999\n#define TRAINER_SAWYER_1 ",
+                      "no trainers.h block")                                                # an id with no block
+        member = tp[start:body_end].split(".lvl", 1)
+        self._refused("src/data/trainer_parties.h", tp[start:body_end],
+                      member[0] + ".heldItem = ITEM_NONE,\n    .lvl" + member[1],
+                      "does not have its shape's fields")                                   # a member of the wrong shape
+        self._refused("include/constants/flags.h", "#define TRAINER_FLAGS_START ",
+                      "#define TRAINER_FLAGS_START_RENAMED ", "TRAINER_FLAGS_START")        # the flag base is gone
+        ew.build_trainers(OverlayDecomp(ROOT, {}))                                          # CONTROL
+
+    def test_w4b_no_giver_and_plural_iv(self):
+        entries = OBJS["campaign.json"]["entries"]
+        award = {b["fight"]: b["badge"]["id"] for b in OBJS["bosses.json"]["bosses"] if "badge" in b}
+        award.pop("ROXANNE")
+        with self.assertRaises(ew.Refused) as cm:
+            ew.check_badge_order(entries, award)
+        self.assertIn("BADGE01, which no entry's boss awards", str(cm.exception))
+        for key in ("ivs", "IVs", "iv", "aiFlags", "AI_flags"):
+            self.assertEqual(len(ew.withheld_keys({"party": [{key: 1}]})), 1, key)
+            self.assertEqual(len(vw.withheld_hits_in({"party": [{key: 1}]})), 1, key)
+
+
+class PinTests(unittest.TestCase):
+    """The pin is compared, not only looked up: a clone at ANOTHER commit is refused by both programs."""
+
+    def test_another_commit_is_refused(self):
+        pin = Path(ew.PIN_FILE).read_text(encoding="utf-8").strip()
+        other = ("0" if pin[0] != "0" else "1") + pin[1:]
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_clone(tmp, pin)  # CONTROL: the same folder at the pinned commit is accepted
+            self.assertEqual(ew.resolve_decomp(tmp), tmp)
+            self.assertEqual(vw.pinned_root(tmp), tmp)
+            fake_clone(tmp, other)
+            with self.assertRaises(ew.Refused) as cm:
+                ew.resolve_decomp(tmp)
+            self.assertIn(other, str(cm.exception))
+            with self.assertRaises(vw.Refused):
+                vw.pinned_root(tmp)
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                self.assertEqual(vw.main(["--decomp", tmp]), 2)
 
 
 def recall(maps, trainers):

@@ -14,11 +14,18 @@ under `ai_player/knowledge/world/`:
   bosses.json    L2: every gym leader, Elite Four member, Champion, rival fight, Magma/Aqua leader and admin that a map
                  script battles; each party with moves (custom, or the game's default moveset derived from KB1's
                  learnsets) and types (KB1 species, marked derived_from); the gym leaders' badges read from their
-                 defeat scripts; `measured` is null (A6's chapter_priors.json is not generated yet).
+                 defeat scripts; `order`/`entry` DERIVED from the campaign's fights (Tabitha at the Space Center is
+                 ch19's, as Maxie's multi-battle partner); `measured` is null (A6's chapter_priors.json is not
+                 generated yet).
   maps.json      every map folder: header fields, connections, warps (coordinates kept: RULING 45), trainers joined to
-                 their trainerbattle lines (tile and sight range kept: RULING 45), item balls and hidden items.
+                 their trainerbattle lines wherever the label lives (the map scripts or data/scripts/*.inc: Gabby and
+                 Ty) (tile and sight range kept: RULING 45), item balls and hidden items.
   campaign.json  L1: the hand-authored skeleton (gates/campaign_skeleton.json: ids, order, chapters, areas, bosses) with
-                 every `needs` field filled from the data above. Never routes, coordinates or step lists (W6).
+                 every `needs` field filled from the data above, each entry's `fights` (its boss + a multi-battle
+                 partner) and `area_bosses` (every boss its area maps' scripts battle) derived from the decomp. Never
+                 routes, coordinates or step lists (W6). Every citation names a line that HOLDS its token (the field
+                 move's enum line names the move and its badge flag; a badge line names the badge flag), which
+                 verify_world.py checks line by line.
 WHY HERE AND NOT AT THE KNOWLEDGE TOP LEVEL: check_fairness.py globs `knowledge/*.json` (not recursive) and fails on a
 file with no KNOWLEDGE_FIELDS schema. Nothing may read these files until a loader and that classification exist (a
 separate, graded step), so all four live in the unglobbed `world/` folder (coordinator decision A, 2026-10-21).
@@ -43,7 +50,11 @@ and a scratch mutant that deletes each CALL is caught):
   check_area_maps      W4  an area map the skeleton names is not in maps.json
   check_bosses             a skeleton boss that is no bosses.json fight; a key item that items.h does not define
   cite_line                a skeleton citation whose line is not in the decomp
+  check_badge_gate         a badge need's gate line (Norman's VAR_PETALBURG_GYM_STATE) outside its setflag's label
+  check_multi_pairs        a multi-battle file without exactly one SET_TRAINER_A and one SET_TRAINER_B opponent
+  check_fights_in_area     an entry's fight (its boss or a multi-battle partner) not battled on its area maps
   check_badge_order    W4b a needed badge that no EARLIER entry's boss awards
+  resolve_decomp           a decomp whose HEAD is not the pin (a clone at another commit, or no git repository)
   refuse_route_keys    W6  a key named x, y, route, path, steps or coords in campaign.json
 The decomp is read ONLY from the pinned local clone (tools/decomp.pin), never `gh api`; verify_world.py re-derives the
 outputs by its own regex reading of the raw text and never imports this file.
@@ -102,6 +113,12 @@ STALL_MOVES = ("MOVE_REST", "MOVE_DOUBLE_TEAM", "MOVE_MINIMIZE", "MOVE_PROTECT",
 #: the trainerbattle macros' argument index of the post-defeat script (asm/macros/event.inc:788 and :800)
 EVENT_SCRIPT_ARG = {"trainerbattle_single": 3, "trainerbattle_double": 4}
 REMATCH_MACROS = ("trainerbattle_rematch", "trainerbattle_rematch_double")
+#: a multi battle's two opponents (include/constants/battle_setup.h:14-15): src/battle_tower.c:2126-2128 configures the
+#: SET_TRAINER_A label and then the SET_TRAINER_B label for ONE battle (the Space Center's beside Steven)
+MULTI_A, MULTI_B = "TRAINER_BATTLE_SET_TRAINER_A", "TRAINER_BATTLE_SET_TRAINER_B"
+#: the shared script library: an object event may name a label defined here, not in its map's scripts.inc (Gabby and
+#: Ty's battles are data/scripts/gabby_and_ty.inc, named by objects on Routes 111, 118 and 120)
+SCRIPT_LIBRARY = "data/scripts"
 NOT_IN_SLICE = ("items_gifts.json and events.json (spec S3-4 slice 2, NEEDS DESIGN): gifts, marts, TM gifts and scripted "
                 "events are NOT here, so an absent list is not 'none'; tools/make_chapter_pack.py and its W7 adversarial "
                 "pass are the next slice")
@@ -418,12 +435,22 @@ def map_folders(d):
     return sorted(f for f in os.listdir(base) if os.path.isfile(os.path.join(base, f, "map.json")))
 
 
+def library_scripts(d):
+    """The shared script files (data/scripts/*.inc), sorted: the labels an object may name outside its own map."""
+    base = os.path.join(d.root, *SCRIPT_LIBRARY.split("/"))
+    return ["%s/%s" % (SCRIPT_LIBRARY, f) for f in sorted(os.listdir(base)) if f.endswith(".inc")]
+
+
 def build_maps(d):
     """Every map folder's record. Pass 1 joins each object and coord event to the battles its script reaches; a script
-    label that is not in the map's own scripts.inc is found in the file that defines it (the Lavaridge gym's B1F
-    trainers and Mt. Pyre 4F/5F keep their scripts in the neighbouring floor's file). Pass 2 lists, under the map that
-    owns each scripts.inc, the battles of that file no event reached (source 'script'), so every trainerbattle line of
-    every map script appears in maps.json exactly where the file puts it."""
+    label that is not in the map's own scripts.inc is found in the file that defines it: another map's file (the
+    Lavaridge gym's B1F trainers and Mt. Pyre 4F/5F keep their scripts in the neighbouring floor's file) or the shared
+    library data/scripts/*.inc (Gabby and Ty, whose trainerbattle_double lines are in gabby_and_ty.inc). WHY the
+    library too: a trainer that a map object battles must be on that map, whichever file holds the battle line (the
+    2026-10-22 verify found the six Gabby and Ty fights on no map). Map files are searched before the library, so a map
+    label always wins. Pass 2 lists, under the map that owns each scripts.inc, the battles of that file no event
+    reached (source 'script'), so every trainerbattle line of every map script appears in maps.json exactly where the
+    file puts it."""
     balls = item_ball_scripts(d)
     folders = map_folders(d)
     files = {}
@@ -432,6 +459,9 @@ def build_maps(d):
         if os.path.isfile(os.path.join(d.root, rel)):
             labels = script_labels(d.read(rel))
             files[rel] = (labels, label_trainers(labels))
+    for rel in library_scripts(d):
+        labels = script_labels(d.read(rel))
+        files[rel] = (labels, label_trainers(labels))
     home = {}
     for rel, (labels, _) in files.items():
         for lab in labels:
@@ -675,7 +705,7 @@ def build_bosses(d, trainers, blocks, maps, scripts, seasoned_dir):
                 notes.append("%s (slot %d) carries %s: a stall set (its moves, %s)"
                              % (row["species"][len("SPECIES_"):], slot, " + ".join(stall), row["moves_source"]))
         rec = {"fight": fight_of(t["symbol"], rematches), "id": t["symbol"], "name": t["name"], "role": role,
-               "order": None, "double": t["double"], "party": party, "rematches": sorted(rematches.get(t["symbol"], [])),
+               "order": None, "entry": None, "double": t["double"], "party": party, "rematches": sorted(rematches.get(t["symbol"], [])),
                "battled_on": sorted(battled[t["symbol"]]), "types_derived_from": "KB1 species.json (types)",
                "notes": notes, "measured": None, "ref": t["ref"]}
         if role == "gym_leader":
@@ -731,7 +761,94 @@ def check_badge_order(entries, badge_award):
                               % (e["id"], e["order"], b, giver["id"], giver["order"]))
 
 
-def build_campaign(d, skeleton, milestones, maps, bosses, trainers, fm_table):
+def multi_partners(scripts):
+    """{trainer: [the other opponent]} of every multi battle: a scripts.inc whose trainerbattle lines set
+    TRAINER_BATTLE_SET_TRAINER_A and _B (the Space Center's Maxie and Tabitha, MossdeepCity_SpaceCenter_2F/scripts.inc
+    :315 and :319). check_multi_pairs runs first, so each such file holds exactly one A and one B."""
+    out = {}
+    for rel, (a, b) in multi_lines(scripts).items():
+        out.setdefault(a[0], []).append(b[0])
+        out.setdefault(b[0], []).append(a[0])
+    return out
+
+
+def multi_lines(scripts):
+    """{file: ([A trainers], [B trainers])} of every scripts.inc with a SET_TRAINER_A or SET_TRAINER_B line."""
+    out = {}
+    for rel, text in sorted(scripts.items()):
+        for code in text.split("\n"):
+            bl = battle_line(code.split("@", 1)[0])
+            if bl and bl[1] and bl[1][0] in (MULTI_A, MULTI_B):
+                out.setdefault(rel, ([], []))[0 if bl[1][0] == MULTI_A else 1].append(battle_trainer(bl[1]))
+    return {rel: (a, b) for rel, (a, b) in out.items()}
+
+
+def check_multi_pairs(scripts):
+    """GUARD: a file that sets up a multi battle names exactly one SET_TRAINER_A and one SET_TRAINER_B opponent. WHY:
+    the pairing is what puts the second opponent (Tabitha at the Space Center) into the entry's fights, its level band
+    and its types; a half pair would silently drop her again (the 2026-10-22 verify's F2)."""
+    for rel, (a, b) in multi_lines(scripts).items():
+        if len(a) != 1 or len(b) != 1:
+            raise Refused("%s sets up a multi battle with %d SET_TRAINER_A and %d SET_TRAINER_B opponents, not 1 and 1"
+                          % (rel, len(a), len(b)))
+
+
+def area_battles(maps, scripts, area):
+    """Every trainer battled on the entry's area maps: maps.json's trainers of each area map (its objects' and coord
+    events' joins, and the battles of its own scripts.inc no event reached) plus every trainerbattle line of each area
+    map's own scripts.inc (a battle reached from another map's object is still in this file)."""
+    by_id = {m["id"]: m for m in maps}
+    out = set()
+    for name in area:
+        mp = by_id["MAP_" + name]
+        out |= {tid for t in mp["trainers"] for tid in t["trainers"]}
+        text = scripts.get("data/maps/%s/scripts.inc" % (mp.get("shared_scripts_map") or mp["name"]), "")
+        for code in text.split("\n"):
+            bl = battle_line(code.split("@", 1)[0])
+            if bl and battle_trainer(bl[1]):
+                out.add(battle_trainer(bl[1]))
+    return out
+
+
+def check_fights_in_area(entry_id, fights, area_bosses):
+    """GUARD: an entry's fights (its boss and that boss's multi-battle partner) are battled on the entry's own area
+    maps. WHY: the membership is read from the area's trainerbattle lines; a fight that is not there means the skeleton's
+    boss or area is wrong, and its level band and types would describe a battle the entry does not hold."""
+    missing = [f for f in fights if f not in area_bosses]
+    if missing:
+        raise Refused("entry %s: its fights %s are not battled on its area maps (area bosses %s)"
+                      % (entry_id, missing, area_bosses))
+
+
+def same_label(text, n1, n2):
+    """True when lines n1 and n2 of a script file are in the same label's body."""
+    owner = {}
+    for lab, v in script_labels(text).items():
+        for n, _ in v["body"]:
+            owner[n] = lab
+    return owner.get(n1) is not None and owner.get(n1) == owner.get(n2)
+
+
+def check_badge_gate(entry_id, badge, d, rel, badge_ref, gate_ref):
+    """GUARD: a badge need cited through a gate (Norman: each of four gyms' defeat scripts sets its badge, then calls
+    `call_if_eq VAR_PETALBURG_GYM_STATE, 6`) has its gate line in the SAME label as the badge's setflag line. WHY: the
+    gate line does not name the badge; only its place in the defeat script ties it to that badge."""
+    n1, n2 = int(badge_ref.rsplit(":", 1)[1]), int(gate_ref.rsplit(":", 1)[1])
+    if not same_label(d.read(rel), n1, n2):
+        raise Refused("entry %s: %s's gate line %s is not in the label of its setflag line %s"
+                      % (entry_id, badge, gate_ref, badge_ref))
+
+
+def build_campaign(d, skeleton, milestones, maps, bosses, trainers, fm_table, scripts=None):
+    """The L1 entries. Each entry's FIGHTS are derived, not typed: the skeleton's boss plus the other opponent of a
+    multi battle (multi_partners) that the area's scripts set up beside it; check_fights_in_area requires every fight
+    to be battled on the entry's area maps. `area_bosses` lists every boss fight whose battle is on the area maps (the
+    verifier re-reads it independently); it is information, not the entry's fights (Petalburg's gym is a ch2 area,
+    long before Norman is fought). The level band and the types ahead span every variant of every fight."""
+    if scripts is None:
+        scripts = map_scripts(d)
+    check_multi_pairs(scripts)
+    partners = multi_partners(scripts)
     entries = skeleton["entries"]
     check_milestone_ids(entries, milestones)
     map_ids = {m["id"] for m in maps}
@@ -745,54 +862,81 @@ def build_campaign(d, skeleton, milestones, maps, bosses, trainers, fm_table):
     fm_by_move = {r["move"]: r for r in fm_table}
     badge_award = {f: v[0]["badge"]["id"] for f, v in fights.items() if "badge" in v[0]}
     by_sym = {t["symbol"]: t for t in trainers}
+    fight_of_id = {b["id"]: b["fight"] for b in bosses}
     out = []
     for k, e in enumerate(entries, 1):
         sk = e.get("needs") or {}
+        area_bosses = sorted({fight_of_id[t] for t in area_battles(maps, scripts, e["area"]) if t in fight_of_id})
+        own = entry_fights(e.get("boss"), fights, partners, fight_of_id)
+        check_fights_in_area(e["id"], own, area_bosses)
         field_moves = []
         for fm in sk.get("field_moves", []):
             row = fm_by_move.get(fm["move"])
             if row is None:
                 raise Refused("entry %s: %s is not a badge-gated field move" % (e["id"], fm["move"]))
-            field_moves.append({"move": fm["move"], "badge": row["badge"],
-                                "ref": row.get("overworld_ref") or row["ref"], "rule_ref": row["rule_ref"],
-                                "need_basis": fm["basis"]})
-        badge_refs = {}
+            # the party menu's enum line: it names the field move AND its badge flag (src/party_menu.c:120-127)
+            field_moves.append({"move": fm["move"], "badge": row["badge"], "ref": row["ref"],
+                                "rule_ref": row["rule_ref"], "need_basis": fm["basis"]})
+        badge_refs, badge_gates = {}, []
         for b in sk.get("badges", []):
-            badge_refs.setdefault(b["badge"], []).append(cite_line(d, b["file"], b["needle"]))
+            ref = cite_line(d, b["file"], b["needle"])
+            badge_refs.setdefault(b["badge"], []).append(ref)
+            if b.get("gate_needle"):
+                gate = cite_line(d, b["file"], b["gate_needle"])
+                check_badge_gate(e["id"], b["badge"], d, b["file"], ref, gate)
+                badge_gates.append({"badge": b["badge"], "ref": gate, "setflag_ref": ref})
         for fm in field_moves:
             badge_refs.setdefault(fm["badge"], []).append(fm["ref"])
         key_items = [{"item": ki["item"], "ref": cite_line(d, ki["file"], ki["needle"])} for ki in sk.get("key_items", [])]
-        variants = fights.get(e.get("boss"), [])
+        variants = [v for f in own for v in fights[f]]
         battle = e.get("battle")
         if battle:
             double = bool(battle["double_battle"])
             party_min = battle["party_min"]
-            party_basis = "%s; %s (%s)" % (battle["kind"], battle["basis"], cite_line(d, battle["file"], battle["needle"]))
+            party_basis = "%s; %s" % (battle["kind"], battle["basis"])
+            party_ref = cite_line(d, battle["file"], battle["needle"])
         elif any(v["double"] for v in variants):
             dv = next(v for v in variants if v["double"])
             double, party_min = True, 2
-            party_basis = "decomp: %s has doubleBattle = TRUE (its block, %s)" % (dv["id"], by_sym[dv["id"]]["ref"])
+            party_basis = "decomp: %s has doubleBattle = TRUE (party_min_ref is its block)" % dv["id"]
+            party_ref = by_sym[dv["id"]]["ref"]
         else:
             double, party_min = False, 1
             party_basis = "a single battle (or none): one able mon is enough to start it"
+            party_ref = None
         ahead = next((x for x in entries[k - 1:] if x.get("boss")), None)
-        ahead_variants = fights.get(ahead["boss"], []) if ahead else []
+        ahead_fights = entry_fights(ahead["boss"], fights, partners, fight_of_id) if ahead else []
+        ahead_variants = [v for f in ahead_fights for v in fights[f]]
         types_ahead = sorted({ty for v in ahead_variants for p in v["party"] for ty in p["types"]})
-        # the level band of the boss ahead (this entry's own, or the next one's): a map's other trainers are not used,
-        # because a map is often visited long before its trainers are fought (Petalburg's gym in chapter 2)
+        # the level band of the fights ahead (this entry's own, or the next boss entry's): a map's other trainers are
+        # not used, because a map is often visited long before its trainers are fought (Petalburg's gym in chapter 2)
         levels = [p["level"] for v in ahead_variants for p in v["party"]]
         band = {"low": min(levels), "high": max(levels),
-                "basis": "decomp boss top level (bosses.json %s%s)" % (ahead["boss"], "" if variants else ", the boss ahead")} \
-            if levels else None
+                "basis": "decomp boss party levels, lowest and highest (bosses.json %s%s)"
+                         % (" + ".join(ahead_fights), "" if own else ", the fights ahead")} if levels else None
         out.append({"id": e["id"], "chapter": e["chapter"], "order": k, "area": list(e["area"]), "boss": e.get("boss"),
+                    "fights": own, "area_bosses": area_bosses,
                     "needs": {"field_moves": field_moves, "badges": sorted(badge_refs), "badge_refs": badge_refs,
-                              "key_items": key_items, "party_min": party_min, "party_min_basis": party_basis,
+                              "badge_gates": badge_gates, "key_items": key_items, "party_min": party_min,
+                              "party_min_basis": party_basis, "party_min_ref": party_ref,
                               "double_battle": double, "types_ahead": types_ahead,
-                              "types_ahead_of": ahead["boss"] if ahead else None, "level_band": band,
+                              "types_ahead_of": ahead_fights, "level_band": band,
                               "money_checkpoint": None},
                     "measured": None})
     check_badge_order(out, badge_award)
     return out
+
+
+def entry_fights(boss, fights, partners, fight_of_id):
+    """[the skeleton's boss fight, then each multi-battle partner's fight] ([] for an entry with no boss)."""
+    if boss is None:
+        return []
+    own = [boss]
+    for v in fights[boss]:
+        for p in partners.get(v["id"], []):
+            if p in fight_of_id and fight_of_id[p] not in own:
+                own.append(fight_of_id[p])
+    return own
 
 
 # ---------------------------------------------------------------- run
@@ -823,14 +967,16 @@ def build_all(d, skeleton_path=SKELETON_DEFAULT, seasoned_dir=SEASONED_DEFAULT, 
     fm_table = field_move_table(d)
     skeleton, sk_sha = load_json(skeleton_path)
     milestones, ms_sha = load_json(milestones_path)
-    campaign = build_campaign(d, skeleton, milestones, maps, bosses, trainers, fm_table)
+    campaign = build_campaign(d, skeleton, milestones, maps, bosses, trainers, fm_table, scripts)
     stage["campaign"] = set(d.used) - stage["trainers"] - stage["maps"] - stage["bosses"]
-    order = {}
-    for e in campaign:
-        if e["boss"]:
-            order.setdefault(e["boss"], e["order"])
+    order, entry_of = {}, {}
+    for e in campaign:  # DERIVED membership: the first entry whose fights hold the boss's fight
+        for f in e["fights"]:
+            order.setdefault(f, e["order"])
+            entry_of.setdefault(f, e["id"])
     for b in bosses:
         b["order"] = order.get(b["fight"])
+        b["entry"] = entry_of.get(b["fight"])
     kind ="static game knowledge (USER RULING 40)"
     out = {
         "trainers.json": dict(header(d, kind, stage["trainers"]), _withheld=list(WITHHELD_FIELDS),
@@ -851,14 +997,19 @@ def build_all(d, skeleton_path=SKELETON_DEFAULT, seasoned_dir=SEASONED_DEFAULT, 
                             _measured=MEASURED_NULL,
                             _excluded={"ids": excluded, "why": "a boss-class trainer that no map script battles"},
                             _notes={"fight": "groups a boss's variants (a rival's gender and starter); campaign.json's "
-                                             "boss names a fight", "order": "the campaign skeleton's order of the "
-                                             "fight's first entry (null: not in the campaign)",
+                                             "boss names a fight",
+                                    "order": "DERIVED: the order of the first campaign entry whose `fights` hold this "
+                                             "fight (the entry's boss, or the other opponent of a multi battle that its "
+                                             "area's scripts set up: TRAINER_BATTLE_SET_TRAINER_A/B); null: no entry "
+                                             "fights it (a boss of the post-game, or of an area no entry visits)",
+                                    "entry": "the id of that entry (null with order)",
                                     "badge": "read from the gym leader's defeat script (setflag FLAG_BADGEnn_GET)"},
                             count=len(bosses), bosses=bosses),
         "maps.json": dict(header(d, kind, stage["maps"]),
                           _notes={"trainers": "objects and coord events joined to the trainerbattle lines reachable "
                                               "from their script label (goto/call/branch targets in the label's file, "
-                                              "the map's own scripts.inc or the one that defines the label); source "
+                                              "the map's own scripts.inc, else the map script or the shared "
+                                              "data/scripts/*.inc file that defines the label); source "
                                               "'script' lists the battles of the map's file that no event reaches",
                                   "item_balls": "object events whose script is a finditem label of "
                                                 "data/scripts/item_ball_scripts.inc",
@@ -868,7 +1019,18 @@ def build_all(d, skeleton_path=SKELETON_DEFAULT, seasoned_dir=SEASONED_DEFAULT, 
     out["campaign.json"] = dict(header(d, "the campaign manifest (L1): skeleton order + decomp-derived needs",
                                        stage["campaign"], {"campaign_skeleton.json": sk_sha, "milestones.json": ms_sha},
                                        also="bosses.json and maps.json (their _files)"),
-                                _measured=MEASURED_NULL, field_move_badges=fm_table, count=len(campaign), entries=campaign)
+                                _measured=MEASURED_NULL,
+                                _notes={"fights": "DERIVED: the entry's boss fight, then the other opponent of a multi "
+                                                  "battle its area's scripts set up (TRAINER_BATTLE_SET_TRAINER_A/B "
+                                                  "in one scripts.inc); the level band and types_ahead span them all",
+                                        "area_bosses": "DERIVED: every boss fight battled by a trainerbattle line in "
+                                                       "the area maps' scripts (their own scripts.inc and the labels "
+                                                       "their events name); information, not the entry's fights",
+                                        "badge_gates": "a badge need cited through a gate line (Norman's "
+                                                       "VAR_PETALBURG_GYM_STATE) in the same defeat-script label as "
+                                                       "the badge's setflag line (setflag_ref)",
+                                        "party_min_ref": "the line party_min rests on (null for a single battle)"},
+                                field_move_badges=fm_table, count=len(campaign), entries=campaign)
     return out
 
 
