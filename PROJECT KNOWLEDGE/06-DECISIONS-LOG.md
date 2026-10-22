@@ -9632,3 +9632,10 @@ on all three questions:
 - **Input integrity is `verify_world.py`'s job, so the pack tool runs it first and refuses on any mismatch.** Rejected: having the pack tool detect missing input data itself; it cannot, because no other input names an ordinary trainer or a warp.
 - **The pack's self-check reads the input files with its OWN loader.** Rejected: one shared reader, the same "a check that shares its input with the thing it checks is not a check" shape that `02` records for `archive_doc_block`; it recurred here and the round-3 verify found it.
 - **Packs exist for every campaign chapter (1-24)**, generated and committed. They are read by agents (recon), never by the AI's play code.
+
+## 2026-10-22 — Technical decisions of O5, the consult novelty gate (Claude's calls)
+
+- **A paid call is impossible unless it is already counted:** a reservation row is appended to `consult_log.jsonl` BEFORE `claude` runs, and the outcome row is never counted. Rejected: writing the row after the call, under which a log that could be read but not appended to let a paid call go out every cycle (verify round 3), and a killed learner left the call uncounted.
+- **The gate fails OPEN on its own errors and CLOSED only for one cycle when the reservation cannot be written.** The consult is advisory, so a broken gate must not silence it for good, and a broken log must not let calls go uncounted.
+- **The wall rule stays as specced, with its measured limit recorded.** On cumulative shares it never fired in 21 replayed consults. Rejected for now: a windowed rule, which is a design change with its own replay.
+- **O5 ships as its own restart, after O6+O7's was confirmed.** It deploys at the same boundary as the canary's first archive, which the OLD process does before updating, so the two stay attributable.

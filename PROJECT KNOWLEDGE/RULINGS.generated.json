@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "50b3a996bc4de25d8aa4cc64e7ccb834be68a987",
+ "source_sha1_lf": "486f72d421f44c1ca838c3ee0f260d4e4bf70c6c",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 326,
+  "sections": 327,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5103,6 +5103,19 @@
    "line_start": 9629,
    "line_end": 9634,
    "title": "2026-10-22 — Technical decisions of the chapter-pack tool, A5 (Claude's calls)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-22-d95db5",
+   "date": "2026-10-22",
+   "line_start": 9636,
+   "line_end": 9641,
+   "title": "2026-10-22 — Technical decisions of O5, the consult novelty gate (Claude's calls)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],

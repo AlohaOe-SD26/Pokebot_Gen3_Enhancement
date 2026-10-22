@@ -14,7 +14,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
-      "chars": 2915,
+      "chars": 2954,
       "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
       "tails": [
         "ty`, `wt/boxfirst`) stay parked until the user resumes them."
@@ -37,13 +37,19 @@
           "from_chars": 2783,
           "to_chars": 2915,
           "why": "2026-10-22 KB2 slice 1 recorded in #28-aiagent-v2 and #28-seasoned-player"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 2915,
+          "to_chars": 2954,
+          "why": "2026-10-22 O6+O7 deployed, O5's restart next"
         }
       ]
     },
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
-      "chars": 4214,
+      "chars": 4168,
       "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
       "tails": [
         "ntrols, one temp-folder factory, Python hooks, determinism)."
@@ -637,7 +643,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "68236436d6b975726c26de2c5295ddc4de5c1df4",
-      "chars": 23463,
+      "chars": 23447,
       "head": "**Last updated:** 2026-10-22 (S3-4 slice 1, KB2, ✅ BUILT and",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
@@ -725,7 +731,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "c65b58bd2aafaf32b6cb7a55334a43ef53060cfb",
-      "chars": 2042,
+      "chars": 2031,
       "head": "| box | ▶ **2026-10-21: the BOT TUNER (`ai-agent/`, 24/7 lea",
       "tails": [
         "adder length, and record deepest-chapter-at-death instead. |"
@@ -822,7 +828,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "22de0320e7193594fd0c510866689af7b5e3b02a",
-      "chars": 16308,
+      "chars": 16110,
       "head": "| **if stopped mid-task** | ✅ **2026-10-21, 4:08 PM: (0a) CO",
       "tails": [
         "noting this is 'the row a resuming session reads FIRST'.)* |"
@@ -846,6 +852,12 @@
           "from_chars": 16249,
           "to_chars": 16308,
           "why": "2026-10-21 Tier 1 fix: the live-system line no longer commands (0c)"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 16103,
+          "to_chars": 16110,
+          "why": "2026-10-22 Tier 1 fixes: past tense for O6+O7 and the watchdog, ai0041 in the STATE row, O5 on main"
         }
       ]
     },
@@ -872,7 +884,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 62374,
+      "chars": 62605,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -931,6 +943,12 @@
           "from_chars": 62111,
           "to_chars": 62374,
           "why": "2026-10-22 the chapter-pack tool built; W7 and its run_gates registration open"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 62374,
+          "to_chars": 62757,
+          "why": "2026-10-22 O6+O7 deployed, the watchdog registered, O5 on main"
         }
       ]
     },

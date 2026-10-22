@@ -3,10 +3,10 @@
 ## ONE-PAGE SUMMARY (2026-10-19, round 4): the top 15 in build order (step = "The order" below; sizes = new code + tests lines)
 1. **O3** ✅ DEPLOYED 2026-10-21 4:08 PM (the canary K=17 runs; `archive-check` after ai0041) compress each cycle's raw logs, never delete. (its deadline, before ai0024 was pruned, is MET: the canary archives ai0024 at the end of ai0041). Step 1; 85 + 95.
 2. **O4** ✅ BUILT 2026-10-21 (its nightly task REGISTERED 2026-10-21, the restore drill passed) nightly backup of `data/` and `findings/` off C: (every game exists once, on a 96 %-full drive). Step 1; 120 + 90.
-3. **O6 + O7** ✅ BUILT 2026-10-21 (pushed; restarts at the end of ai0040, about 4:08 AM 2026-10-22) an ops-ledger row per cycle and an early-prune margin; its OWN learner restart after O3's (`06` 2026-10-21; this line said "one restart with O3" until then). Step 1; 55 + 60.
+3. **O6 + O7** ✅ DEPLOYED 2026-10-22 4:09:58 AM an ops-ledger row per cycle and an early-prune margin; its OWN learner restart after O3's (`06` 2026-10-21; this line said "one restart with O3" until then). Step 1; 55 + 60.
 4. **P3** ✅ BUILT 2026-10-21 `usage_audit.py` and `cost-ledger.jsonl`: every saving in this file is an estimate until it exists. Step 1; 230 + 130.
 5. **A1 + D3** one-call `status.py` with the AI-frontier line (convenience and safety, not tokens). Step 1; 170 + 90.
-6. **O1** ✅ BUILT 2026-10-21 (its task not registered yet) session-free watchdog, notifying on a change; the scheduled tasks are approved (USER RULING 42). Step 1; 285 + 150.
+6. **O1** ✅ BUILT 2026-10-21, its task ✅ REGISTERED 2026-10-22 4:10 AM (USER RULING 43) session-free watchdog, notifying on a change; the scheduled tasks are approved (USER RULING 42). Step 1; 285 + 150.
 7. **N3 + P9** ✅ BUILT 2026-10-21 (tools only: the R8 ratchet, the sweep, the README split; nothing applied yet; the 60 KB handoff needs S2-1b, `06`) byte and line budgets; split the 514 KB `ai_player/README.md` (cold start about 100k to 15k, est.). Step 2; 315 + 260.
 8. **P11 + P1 + N6 + P10** ✅ DONE 2026-10-21 (two review rounds; E1's in-flight folder decided, `06`): stage templates (deliver A3 and E1): READ LIST, STOP, WAIT RULE, a model per stage. Step 2; 280 + 140.
 9. **KB1 merge (S3-1), then N2 + P5 (S3-2)** (KB1 merged 2026-10-21, `3a85d759`; the S3-2 half ✅ BUILT 2026-10-21): merge between graded rounds; rulings index, facts ledger, pinned-decomp lookup. Step 3; 60 + about 310 + 150.

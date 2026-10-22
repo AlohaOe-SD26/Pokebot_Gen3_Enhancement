@@ -38516,3 +38516,19 @@ bought balls only at fixed story points.
   - The W7 adversarial pass per pack (one refuting agent per chapter) has NOT run.
   - The selftest is NOT in `run_gates.py` yet. It needs the pinned decomp, so it must first exit WARN (4) without one and join `WARN_OK`. Until then, a reader that dropped a whole chapter's entries is caught only by running the selftest by hand.
   - KB1's files are not re-verified by the pack run.
+
+## 2026-10-22 — O6+O7 DEPLOYED (4:09:58 AM); the watchdog task registered and run; O5 brought onto main (it restarts at the end of ai0041)
+
+- **O6+O7 deployed.** The clone's `learner.log`: `[04:08:59 AM] ai0040: batch exit 0; 54 runs logged, 42 scored`, `[04:09:25 AM] update: a76879b8 -> 33e0803c`, `[04:09:58 AM] code changed (319d8d3394e2 -> 11c31ef1b18f) and test_agent.py passes: restarting into it`, and ai0041 started at 4:10 AM with 12 lanes. The end of ai0040 archived nothing, as the canary K=17 predicts (17 unpruned).
+- **The watchdog registered (USER RULING 43).** The clone's installer did a dry run (backup REPLACE, watchdog CREATE), then `-Apply` at 4:10 AM. `Get-ScheduledTask` shows both Ready. A manual `Start-ScheduledTask` at 4:11 AM gave result 0, and the Desktop `LEARNER-STATUS.txt` reads: learner running, cycle ai0041 started, backup ok 3.2 h ago (`learner-data-20261022-0100.zip`, the 1:00 AM task, result 0), Z: 181 GB free, C: 58 GB free, no held cycles. It also notes that Windows has a restart pending.
+- **O5 on main:** the branch's two commits were cherry-picked as `0146b71d` and `5e93f857`; `ai-agent/test_agent.py` ALL PASS (265 checks, 35.9 s) on main, with the canary K=17 intact.
+  - **What O5 does** (spec S2-2), in order: enabled, then the daily cap, then the waiting-proposals cap, then NOVELTY, then claude.
+    - A consult goes ahead only when the top 3 changed, a wall moved 3 points, 150 new runs arrived, or 7 days passed. It fails OPEN on any digest or state error.
+    - A skip writes `data/consult_skips.jsonl`, never the cap.
+    - Every PAID call is first reserved as a counted row in `consult_log.jsonl`; a failed reservation skips the call.
+    - `DEVELOPER-NOTES.md` rolls: the newest 5 stay, older ones move verbatim to `DEVELOPER-NOTES-ARCHIVE.md`, and a repeat note collapses to one line.
+    - Proposals expire (TTL / duplicate) into `inbox/expired/` with a `.why.txt`.
+  - **Measured replay** (a recompute over the clone's copied history): the gate would have skipped 13 of 36 cycles. 22 of 23 go decisions were "the top 3 changed"; the wall and 150-run rules never fired.
+  - **Known limits:** the wall rule compares cumulative shares, so it rarely moves. A consult_log that keeps refusing writes turns the consult off with a learner.log line and no ATTENTION. A hand-edited huge `forced_days` disables the weekly force.
+  - **Four review rounds:** round 4's prompts were rendered from the templates and its verify read PASS.
+  - **On its first cycle end:** 30 of the clone's 35 notes move to the archive (lossless, measured on a copy), and the first consult always goes ahead (no baseline yet).
