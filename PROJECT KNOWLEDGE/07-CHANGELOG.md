@@ -38568,3 +38568,11 @@ bought balls only at fixed story points.
   - (0d)'s retire step gives its exact command (a dry run first).
   - Not fixed here: the old banner section whose heading says "RETIRED HISTORY" still holds the live session ritual. That is the handoff slim-down's job (S2-1b).
 - **Prevention (the same day):** every stage template's scratch rule now ends "before your final answer, DELETE the copies, clones and repos you made there (keep only your report or verdict file)" (build@2, doc-check@3, recon@3, sweep-analysis@2, verify@3; `lint_templates.py` CLEAN, `selftest_workflows.py` ALL PASS).
+
+## 2026-10-22 — The 2026-10-21 AI-player evidence retired (housekeeping, `04` (0d))
+
+- **What:** `py -3.12 ai_player/gates/prune_evidence.py --retire 53e0c26e7812db47-2267aecf --apply` at 5:24 AM, after a dry run. The 2026-10-22 full-lane run superseded these files. Nothing graded or regression ran at the time.
+  - 7 cited files (the 2026-10-21 regression trio with their summaries, and `step11-REVERT`) moved to `ai_player/evidence/archive/53e0c26e7812db47-2267aecf/`.
+  - 8 uncited files were indexed in `archive/INDEX.md` and deleted, each recoverable with the `git show` line printed beside it. They were the 2026-10-21 `step2/3/4/52-REVERT` files at the top level and their copies in `archive/53e0c26e7812db47-08392c98/`.
+- **Checked after:** `regression_due.py` names only what it named before: units and revert_safety_gates for the doc files, and rate_step5 and live_step5, which are step 5.3's graded run. `test_evidence.py` PASS.
+- **Not changed, disclosed:** `provenance.py --check-evidence` still FAILS. It went from 222 to 211 top-level files of other trees, almost all from 2026-10-16. They include step 5.2's graded evidence (`2026-10-16-step52-RATE`, `-CH2M`), which `rate_step5` and `live_step5` are still measured against. They are retired when step 5.3's graded run replaces them.
