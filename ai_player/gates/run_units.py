@@ -15,9 +15,10 @@ call-site census against HEAD (`call_census`), the person-fair data door (`check
 (Spec S4-1, recon Q4) A HUNG SUITE NO LONGER KILLS THE RUNNER. `subprocess.run(..., timeout=3600)` raised
 `TimeoutExpired` out of the loop, so a hung suite ended the runner with no evidence written at all, and on Windows the
 kill it made reached only the direct child (a grandchild holding the output pipe could keep it waiting). `run_command`
-(shared with `run_regression.py`) writes the output to temporary files instead of pipes, and on a timeout kills the WHOLE
-process tree (`taskkill /T /F`); the suite is recorded `TIMEOUT` (a FAIL) and the run goes on to its verdict and its
-evidence. `--timeout` sets the per-suite limit (default 3600 s)."""
+(ONE runner: it hands each command to `run_regression.run_command`) writes the output to temporary files instead of
+pipes, and on a timeout kills EVERY process the suite started (Windows: a Job Object, which also reaches a grandchild
+whose parent already exited; elsewhere its process group); the suite is recorded `TIMEOUT` (a FAIL) and the run goes on
+to its verdict and its evidence. `--timeout` sets the per-suite limit (default 3600 s)."""
 
 from __future__ import annotations
 
@@ -26,7 +27,6 @@ import os
 import signal
 import subprocess
 import sys
-import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -90,32 +90,12 @@ def kill_tree(pid: int) -> None:
 
 
 def run_command(argv: list[str], cwd: Path, timeout: float, env: dict | None = None) -> Ran:
-    """Run `argv` to its end or to `timeout` seconds. The output goes to temporary FILES, not pipes, so a killed suite's
-    grandchild that still holds a handle can never keep this waiting; on a timeout the whole tree is killed. Never
-    raises for the command's sake: a command that cannot start comes back with `error` set."""
-    start = time.monotonic()
-    extra = {} if os.name == "nt" else {"start_new_session": True}
-    with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-        try:
-            process = subprocess.Popen(argv, cwd=str(cwd), stdout=out, stderr=err, stdin=subprocess.DEVNULL, env=env,
-                                       **extra)
-        except OSError as error:
-            return Ran(None, "", time.monotonic() - start, error=f"{type(error).__name__}: {error}")
-        timed_out = False
-        try:
-            code: int | None = process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            kill_tree(process.pid)
-            try:
-                process.wait(timeout=30)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-            code, timed_out = None, True
-        out.seek(0)
-        err.seek(0)
-        text = (out.read() + err.read()).decode("utf-8", "replace")
-    return Ran(code, text, time.monotonic() - start, timed_out)
+    """Run `argv` to its end or to `timeout` seconds through the ONE suite runner, `run_regression.run_command`.
+    (S4-1 verify round 2) This file used to keep its own copy, which killed with `taskkill /T` and so missed a
+    grandchild whose parent had already exited (verifier F5); two runners meant one of them could keep the old gap.
+    The import is lazy because run_regression imports this module (for `Ran` and `kill_tree`)."""
+    from ai_player.gates.run_regression import run_command as shared_runner
+    return shared_runner(argv, cwd, timeout, env)
 
 
 def digest() -> str:

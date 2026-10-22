@@ -38,22 +38,52 @@ suite_map glob matches: a partial run never clears `units`. Each file is written
 earlier tree's file is archived with its summary) and has its `<stem>.summary.json` beside it; the UNITS file's summary
 is the whole run's.
 
-SHARDING (P7). test_check_purity's methods are read from the module's own AST (`test_methods`, never a typed list) and
-balanced longest-first over shards by the measured table `run_regression_times.json`; a method missing from the table
-still runs. `plan_shards` refuses a plan that drops or repeats a method, and a sharded suite whose shards ran another
-number of tests than the plan named is FAIL. The ROUND3 method (about 61 s) is the floor; its subTests are not split.
+SHARDING (P7). The tests of a sharded module (test_check_purity) are the ones UNITTEST'S OWN LOADER collects
+(`loader_names`: `TestLoader().loadTestsFromModule` on the module, imported in a fresh interpreter so a broken module
+fails loudly), never a typed list and never a reading of the source. (S4-1 fix round, verifier F1: the first build read
+the AST, which missed an aliased method, a TestCase imported under another name, an IsolatedAsyncioTestCase and a class
+under an `if`, so a sharded module with two failing tests in such classes read PASS.) They are balanced longest-first over
+shards by the measured table `run_regression_times.json`; a test missing from the table still runs. Before anything runs,
+`plan_shards` checks that the shards name EXACTLY the loader's list (`check_partition`); on any mismatch, or when the
+loader cannot read the module, the module runs UNSHARDED and its row says so (`ran UNSHARDED: <why>`). A sharded suite
+whose shards ran another number of tests than the plan named is FAIL. The ROUND3 method (about 61 s) is the floor; its
+subTests are not split.
+
+A TIMEOUT KILLS EVERYTHING THE SUITE STARTED (S4-1 fix round, verifier F5). `taskkill /T` walks parent links, so it
+misses a grandchild whose parent has already exited. On Windows every suite therefore starts SUSPENDED, is put in its
+own Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, and only then resumes (`_Job`, `run_command`): every process it
+starts is in the job from birth. A timeout terminates the job; and when the suite ends normally the job is closed, so
+a leftover process of a FINISHED suite dies too (it could otherwise write into the tree after the suite's frozen-tree
+check). Elsewhere: a new session and `killpg`.
+
+KNOWN LIMITS (said, not fixed; the S4-1 verify's weak proofs):
+  - A covered file OUTSIDE the hook scope that a suite edits and then restores within that suite is not seen: the
+    `covers:` digests are content digests, and the content is back. Inside the hook scope FrozenTree sees the rewrite.
+  - unittest-kind and line-kind suites do not read `NOT CAUGHT` / `PREDICTION WRONG` words: their own output can carry
+    them legitimately (test_run_regression prints its revert-word fixtures). Only revert-kind suites FAIL on them.
+  - disk_budget is a REPORT: `DISK BUDGET: REFUSED ...` reads PASS (its line proves it ran to its end). A suite whose
+    every test was skipped reads `PASS (N skipped)`, as the spec says.
+  - The refusal probe sees a driver launched as `<path>/rate_*.py` / `live_*.py` or `-m <pkg>.rate_*` / `live_*`; one
+    launched through `-c`, `runpy` or a renamed copy is not seen.
+  - A test class defined INSIDE a module's `if __name__ == "__main__":` block is invisible to the loader (the module is
+    imported, not run); a sharded run would skip it.
+  - regression_due picks the newest same-date `*-units.txt` by mtime (its pre-existing `newest_evidence` rule): a
+    copy that preserved an older file's mtime can make `units` read DUE although this runner's file is fresh.
+  - Elsewhere than Windows there is no job object: a grandchild that left the process group survives a timeout.
+  - `run_units.run_command` hands every command to `run_command` here (verify round 2): there is ONE suite runner, so
+    the serial unit runner has the same timeout kill as this one.
 """
 
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import math
 import os
 import re
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from collections.abc import Callable, Iterable
@@ -80,8 +110,10 @@ EXIT_PASS, EXIT_FAIL, EXIT_REFUSED = 0, 1, 2
 SUMMARY_CAP = 4096
 DEFAULT_WORKERS = 6
 DEFAULT_TIMEOUT = 3600.0
-#: a suite whose measured time x this exceeds the default timeout gets that instead (revert_step3: 2,014 s -> 5,035 s)
-TIMEOUT_FACTOR = 2.5
+#: a suite whose measured time x this exceeds the default timeout gets that instead (revert_step3: 2,014 s -> 7,049 s).
+#: 3.5, not the first build's 2.5: the first real --full run (2026-10-21, beside the bot tuner's 12 lanes) took 4,339 s,
+#: 86 % of 2.5x; 3.5x leaves that run at 62 %.
+TIMEOUT_FACTOR = 3.5
 GRADED = "graded / needs the ROM: run it deliberately"
 GRADED_DRIVERS = ("rate_step3", "rate_step4", "rate_step5", "live_step0", "live_step1", "live_step2", "live_step3",
                   "live_step4", "live_step5")
@@ -100,8 +132,14 @@ RV_MUTANT = re.compile(r"^\[(?P<name>[^\]\n]+)\] (?!CONTROL\b).*-> (?P<word>CAUG
                        r"\(redundant alone\)|NOT CAUGHT|as predicted|PREDICTION WRONG)$", re.M)
 RV_CONTROL = re.compile(r"^\[[^\]\n]+\] CONTROL\b.*-> (?P<word>PASS|FAIL)$", re.M)
 RV_NO_RESULT = re.compile(r"^\[[^\]\n]+\] (?:[^\n]*?: )?NO RESULT: ", re.M)
-#: the mutant words that FAIL a revert driver (exact: "NOT CAUGHT, as predicted (redundant alone)" is a pass)
-RV_BAD_WORDS = ("NOT CAUGHT", "PREDICTION WRONG")
+#: (S4-1 fix round, verifier F6) the words that FAIL a revert driver, ANYWHERE in ANY line, in any spacing and with any
+#: suffix ("-> NOT CAUGHT (copy timed out)", a trailing space, two spaces): the first build matched them only in the
+#: `$`-anchored RV_MUTANT form, so a variant line read PASS. The one exemption is a line that IS the exact pass form
+#: "-> NOT CAUGHT, as predicted (redundant alone)" (RV_MUTANT, whole line). Upper case only: the drivers print the words
+#: in capitals, and a lower-case "not caught" is prose (a docstring, a test name). This is applied to revert-kind suites
+#: ONLY: a unittest or line suite's own output can carry the words legitimately (test_run_regression prints these very
+#: fixtures), and those suites are read by their own verdict lines.
+RV_ANY_BAD = re.compile(r"NOT\s+CAUGHT|PREDICTION\s+WRONG")
 #: the provenance backstop's amended line (any driver), and a Python traceback
 FROZEN_FAIL = re.compile(r"^FROZEN TREE: FAIL\b", re.M)
 TRACEBACK = re.compile(r"^Traceback \(most recent call last\):$", re.M)
@@ -125,7 +163,8 @@ LINE_RULES: dict[str, tuple[str, str | None]] = {
 def verdict_rules() -> dict[str, re.Pattern]:
     """Every compiled verdict regex by name (`--list` prints them; the tests run each on positives and negatives)."""
     rules = {"unittest Ran": UT_RAN, "unittest OK": UT_OK, "unittest FAILED": UT_FAILED, "revert OVERALL": RV_OVERALL,
-             "revert mutant": RV_MUTANT, "revert CONTROL": RV_CONTROL, "revert NO RESULT": RV_NO_RESULT,
+             "revert mutant": RV_MUTANT, "revert bad word": RV_ANY_BAD, "revert CONTROL": RV_CONTROL,
+             "revert NO RESULT": RV_NO_RESULT,
              "frozen-tree FAIL": FROZEN_FAIL, "traceback": TRACEBACK}
     for name, (good, bad) in LINE_RULES.items():
         rules[f"{name} PASS"] = re.compile(good, re.M)
@@ -216,7 +255,8 @@ def classify(kind: str, name: str, code: int | None, text: str, timed_out: bool 
         unit = "mutants"
         mutants = list(RV_MUTANT.finditer(text))
         count = len(mutants)
-        bad = ([m.group(0) for m in mutants if m.group("word") in RV_BAD_WORDS]
+        redundant = {m.group(0) for m in mutants if m.group("word").startswith("NOT CAUGHT, as predicted")}
+        bad = ([l for l in text.splitlines() if RV_ANY_BAD.search(l) and l not in redundant]
                + [m.group(0) for m in RV_CONTROL.finditer(text) if m.group("word") == "FAIL"]
                + _lines(RV_NO_RESULT, text))
         words = [m.group("word") for m in RV_OVERALL.finditer(text)]
@@ -253,34 +293,66 @@ class PlanError(ValueError):
     pass
 
 
-def test_methods(module: Path) -> list[str]:
-    """Every `Class.test_method` unittest would run from `module`, read from its AST (never a typed list): each class
-    that inherits (directly, or through classes of the module) from a `TestCase`, with its own and its in-module bases'
-    `test*` methods."""
-    tree = ast.parse(module.read_text(encoding="utf-8"))
-    classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
+#: Run in a FRESH interpreter by `loader_names`: import the module as `py <module>.py` would see it (its folder first on
+#: sys.path; under its own name, so its `if __name__ == "__main__":` block does not run), let unittest's own loader
+#: collect it, and print one marked JSON line. `names` are what a shard passes on the command line (`<attribute>.<test>`,
+#: resolved by `unittest.main` against the module, exactly as `loadTestsFromModule` walks `dir(module)`); `named_ids` are
+#: their test ids, which must equal the loader's `ids` or the names do not describe what unittest would run.
+_LOADER = r'''
+import importlib.util, json, sys, unittest
+from pathlib import Path
+path = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(path.parent))
+spec = importlib.util.spec_from_file_location(path.stem, path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[path.stem] = module
+spec.loader.exec_module(module)
+loader = unittest.TestLoader()
+def flat(suite):
+    for test in suite:
+        if isinstance(test, unittest.TestSuite):
+            yield from flat(test)
+        else:
+            yield test
+ids = sorted(test.id() for test in flat(loader.loadTestsFromModule(module)))
+names, named_ids = [], []
+for attr in dir(module):
+    obj = getattr(module, attr)
+    if isinstance(obj, type) and issubclass(obj, unittest.TestCase) and obj not in (unittest.TestCase,
+                                                                                     unittest.FunctionTestCase):
+        for test in flat(loader.loadTestsFromTestCase(obj)):
+            names.append(attr + "." + test._testMethodName)
+            named_ids.append(test.id())
+print("\n" + MARK + json.dumps({"ids": ids, "names": names, "named_ids": sorted(named_ids)}))
+'''
+_LOADER_MARK = "@@RUN_REGRESSION_LOADER@@ "
 
-    def base_names(node: ast.ClassDef) -> list[str]:
-        return [b.attr if isinstance(b, ast.Attribute) else b.id for b in node.bases
-                if isinstance(b, (ast.Attribute, ast.Name))]
 
-    def is_case(name: str, seen: frozenset = frozenset()) -> bool:
-        if name == "TestCase":
-            return True
-        node = classes.get(name)
-        return node is not None and name not in seen and any(is_case(b, seen | {name}) for b in base_names(node))
-
-    def own(name: str, seen: frozenset = frozenset()) -> list[str]:
-        node = classes.get(name)
-        if node is None or name in seen:
-            return []
-        found = [f.name for f in node.body if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))
-                 and f.name.startswith("test")]
-        for base in base_names(node):
-            found += [m for m in own(base, seen | {name}) if m not in found]
-        return found
-
-    return [f"{name}.{method}" for name in classes if is_case(name) for method in own(name)]
+def loader_names(module: Path, cwd: Path = REPO, timeout: float = 120.0) -> list[str]:
+    """The `<attribute>.<test>` name of EVERY test `unittest.TestLoader().loadTestsFromModule` collects from `module`
+    (S4-1 fix round, verifier F1: the loader is the source of truth, not the source text). Imported in a subprocess, so
+    a broken module fails LOUDLY (PlanError with its traceback's tail) and never half-imports into this process. Raises
+    PlanError when the module cannot be imported, when the loader collects tests the names cannot reproduce (a
+    `load_tests` hook, say), or when it has no tests."""
+    try:
+        done = subprocess.run([sys.executable, "-c", _LOADER.replace("MARK", repr(_LOADER_MARK), 1), str(module)],
+                              cwd=str(cwd), capture_output=True, timeout=timeout,
+                              env={**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    except (OSError, subprocess.SubprocessError) as error:
+        raise PlanError(f"unittest's loader could not be run on {module.name}: {type(error).__name__}: {error}")
+    out = done.stdout.decode("utf-8", "replace")
+    # the marked line is the loader script's LAST act: it is there only when the import and the collection succeeded
+    marked = [l[len(_LOADER_MARK):] for l in out.splitlines() if l.startswith(_LOADER_MARK)]
+    if not marked:
+        tail = [l for l in (out + done.stderr.decode("utf-8", "replace")).splitlines() if l.strip()][-2:]
+        raise PlanError(f"unittest's loader could not import {module.name} (exit {done.returncode}): {' | '.join(tail)}")
+    data = json.loads(marked[-1])
+    if data["named_ids"] != data["ids"]:
+        only = sorted(set(data["ids"]) ^ set(data["named_ids"]))[:3]
+        raise PlanError(f"unittest's loader collects tests that cannot be named one by one (a load_tests hook?): {only}")
+    if not data["names"]:
+        raise PlanError(f"{module.name} has no test methods")
+    return list(data["names"])
 
 
 def check_partition(methods: Iterable[str], shards: list[list[str]]) -> None:
@@ -306,10 +378,12 @@ def _assign(methods: list[str], cost: dict[str, float], n: int) -> list[list[str
     return shards
 
 
-def plan_shards(module: Path, times: dict[str, float], workers: int, default: float = 2.0) -> list[list[str]]:
-    """The shards of `module`'s test methods: as many as its total time over its longest method (the floor), at most
-    `workers`, balanced by `times` (a method missing there costs `default`). Checked to be a partition."""
-    methods = test_methods(module)
+def plan_shards(module: Path, times: dict[str, float], workers: int, default: float = 2.0,
+                names: list[str] | None = None, cwd: Path = REPO) -> list[list[str]]:
+    """The shards of `module`'s tests (`names`, default: `loader_names`, unittest's own list): as many as their total
+    time over the longest (the floor), at most `workers`, balanced by `times` (a test missing there costs `default`).
+    Checked to be EXACTLY the loader's list before anything runs (`check_partition`; PlanError otherwise)."""
+    methods = list(names) if names is not None else loader_names(module, cwd)
     if not methods:
         raise PlanError(f"{module.name} has no test methods")
     cost = {m: float(times.get(m, default)) for m in methods}
@@ -328,6 +402,10 @@ class Job:
     timeout: float
     shard: int | None = None
     methods: tuple[str, ...] = ()
+    #: how many tests this job must report (a shard: its methods); None = not checked (an unsharded run)
+    planned: int | None = None
+    #: said on the suite's row (a sharded suite that ran UNSHARDED, and why)
+    note: str = ""
 
 
 @dataclass
@@ -362,7 +440,8 @@ class Row:
             return {"name": self.name, "status": NOT_RUN, "note": self.note}
         return {"name": self.name, "status": self.status, "exit": self.exit, "seconds": round(self.seconds, 1),
                 "tests": self.tests, "skipped": self.skipped, "failing": [f[:200] for f in self.failing[:3]]
-                + ([f"(+{len(self.failing) - 3} more)"] if len(self.failing) > 3 else []), "shards": self.shards}
+                + ([f"(+{len(self.failing) - 3} more)"] if len(self.failing) > 3 else []), "shards": self.shards,
+                **({"note": self.note[:200]} if self.note else {})}
 
 
 @dataclass
@@ -395,13 +474,150 @@ def jobs_for(suites: list[Suite], cfg: Config) -> list[Job]:
             module = Path(suite.command[0])
             per = cfg.times.get(suite.name, {})
             default = float(cfg.times.get("default_method_s", 2.0))
-            for i, methods in enumerate(plan_shards(module, per, cfg.workers, default)):
+            try:
+                shards = plan_shards(module, per, cfg.workers, default, cwd=cfg.repo)
+            except PlanError as why:
+                # the plan cannot be proven to be what unittest would run: run what unittest would run, and say so
+                est = float(measured.get(suite.name, sum(per.values()) or cfg.times.get("default_suite_s", 5.0)))
+                out.append(Job(suite, [sys.executable, *suite.command], est, timeout,
+                               note=f"ran UNSHARDED: {str(why)[:300]}"))
+                continue
+            for i, methods in enumerate(shards):
                 est = sum(float(per.get(m, default)) for m in methods) + 1
-                out.append(Job(suite, [sys.executable, *suite.command, *methods], est, cfg.timeout, i, tuple(methods)))
+                out.append(Job(suite, [sys.executable, *suite.command, *methods], est, cfg.timeout, i, tuple(methods),
+                               planned=len(methods)))
         else:
             est = float(measured.get(suite.name, cfg.times.get("default_suite_s", 5.0)))
             out.append(Job(suite, [sys.executable, *suite.command], est, timeout))
     return sorted(out, key=lambda j: -j.estimate)
+
+
+CREATE_SUSPENDED = 0x00000004
+JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+_JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9
+
+
+class _Job:
+    """(S4-1 fix round, verifier F5) A Windows Job Object that kills every process in it when it is closed
+    (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE). A process put in it passes membership on to every process it starts, so
+    `kill()` (TerminateJobObject) reaches a grandchild whose parent has already exited, which `taskkill /T` (it walks
+    parent links) cannot. Raises OSError when the job cannot be made or a process cannot join it."""
+
+    def __init__(self) -> None:
+        import ctypes
+        from ctypes import wintypes
+
+        class Basic(ctypes.Structure):
+            _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                        ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                        ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                        ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
+                        ("SchedulingClass", wintypes.DWORD)]
+
+        class Io(ctypes.Structure):
+            _fields_ = [(n, ctypes.c_uint64) for n in ("ReadOperationCount", "WriteOperationCount",
+                                                         "OtherOperationCount", "ReadTransferCount",
+                                                         "WriteTransferCount", "OtherTransferCount")]
+
+        class Extended(ctypes.Structure):
+            _fields_ = [("BasicLimitInformation", Basic), ("IoInfo", Io), ("ProcessMemoryLimit", ctypes.c_size_t),
+                        ("JobMemoryLimit", ctypes.c_size_t), ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                        ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+        # private DLL objects: their argtypes never clash with another module's use of ctypes.windll
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        self._ntdll = ctypes.WinDLL("ntdll")
+        k32.CreateJobObjectW.restype = wintypes.HANDLE
+        k32.CreateJobObjectW.argtypes = (wintypes.LPVOID, wintypes.LPCWSTR)
+        k32.SetInformationJobObject.argtypes = (wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD)
+        k32.AssignProcessToJobObject.argtypes = (wintypes.HANDLE, wintypes.HANDLE)
+        k32.TerminateJobObject.argtypes = (wintypes.HANDLE, wintypes.UINT)
+        k32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        self._ntdll.NtResumeProcess.argtypes = (wintypes.HANDLE,)
+        self._ntdll.NtResumeProcess.restype = ctypes.c_long
+        self._k32, self._ctypes = k32, ctypes
+        self.handle = k32.CreateJobObjectW(None, None)
+        if not self.handle:
+            raise ctypes.WinError(ctypes.get_last_error())
+        info = Extended()
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not k32.SetInformationJobObject(self.handle, _JOB_OBJECT_EXTENDED_LIMIT_INFORMATION, ctypes.byref(info),
+                                           ctypes.sizeof(info)):
+            error = ctypes.WinError(ctypes.get_last_error())
+            self.close()
+            raise error
+
+    def adopt(self, process: subprocess.Popen) -> None:
+        """Put a process started with CREATE_SUSPENDED in the job, THEN let it run: it can start nothing outside it."""
+        handle = int(process._handle)  # noqa: SLF001 - Popen's own process handle (Windows)
+        if not self._k32.AssignProcessToJobObject(self.handle, handle):
+            raise self._ctypes.WinError(self._ctypes.get_last_error())
+        status = self._ntdll.NtResumeProcess(handle)
+        if status != 0:
+            raise OSError(f"NtResumeProcess failed with NTSTATUS {status & 0xFFFFFFFF:#010x}")
+
+    def kill(self) -> None:
+        """Terminate every process in the job now."""
+        if self.handle:
+            self._k32.TerminateJobObject(self.handle, 1)
+
+    def close(self) -> None:
+        """Close the job (idempotent): KILL_ON_JOB_CLOSE ends whatever is still in it."""
+        if self.handle:
+            handle, self.handle = self.handle, None
+            self._k32.CloseHandle(handle)
+
+
+def run_command(argv: list[str], cwd: Path, timeout: float, env: dict | None = None) -> run_units.Ran:
+    """Run one suite command to its end or to `timeout` seconds (`run_units.run_command`'s contract: output to temporary
+    FILES, never pipes; never raises for the command's sake). (S4-1 fix round, verifier F5) On Windows the command runs
+    in its own `_Job` from birth, so a TIMEOUT kills every process it started, an orphaned grandchild too, and a leftover
+    process of a suite that ended normally dies when the job closes. A job that cannot be made, or a process that
+    cannot join it, comes back with `error` set (CRASH): a suite whose processes could not be bounded is not run."""
+    start = time.monotonic()
+    job = None
+    if os.name == "nt":
+        try:
+            job = _Job()
+        except OSError as error:
+            return run_units.Ran(None, "", time.monotonic() - start, error=f"no job object: {error}")
+    extra = {"creationflags": CREATE_SUSPENDED} if job else {"start_new_session": True}
+    try:
+        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+            try:
+                process = subprocess.Popen(argv, cwd=str(cwd), stdout=out, stderr=err, stdin=subprocess.DEVNULL,
+                                           env=env, **extra)
+            except OSError as error:
+                return run_units.Ran(None, "", time.monotonic() - start, error=f"{type(error).__name__}: {error}")
+            if job:
+                try:
+                    job.adopt(process)
+                except OSError as error:
+                    process.kill()
+                    process.wait()
+                    return run_units.Ran(None, "", time.monotonic() - start,
+                                         error=f"the suite could not be held in a job object: {error}")
+            timed_out = False
+            try:
+                code: int | None = process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                if job:
+                    job.kill()
+                else:
+                    run_units.kill_tree(process.pid)
+                try:
+                    process.wait(timeout=30)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                code, timed_out = None, True
+            out.seek(0)
+            err.seek(0)
+            text = (out.read() + err.read()).decode("utf-8", "replace")
+    finally:
+        if job:
+            job.close()
+    return run_units.Ran(code, text, time.monotonic() - start, timed_out)
 
 
 def running_drivers() -> list[tuple[int, str]]:
@@ -421,7 +637,10 @@ def running_drivers() -> list[tuple[int, str]]:
     return drivers_in(rows)
 
 
-DRIVER = re.compile(r"(?<![A-Za-z0-9_])(?:rate|live)_[A-Za-z0-9_]+\.py(?![A-Za-z0-9_])")
+#: a `rate_*.py` / `live_*.py` file on the command line, or (S4-1 fix round, a verify weak proof) a module run as
+#: `-m [pkg.]rate_*` / `-m [pkg.]live_*` (`py -m ai_player.gates.rate_step5`: no `.py` appears on that command line)
+DRIVER = re.compile(r"(?<![A-Za-z0-9_])(?:rate|live)_[A-Za-z0-9_]+\.py(?![A-Za-z0-9_])"
+                    r"|(?:^|\s)-m\s*[\"']?(?:[A-Za-z0-9_]+\.)*(?:rate|live)_[A-Za-z0-9_]+(?![A-Za-z0-9_.])")
 
 
 def drivers_in(rows: Iterable[tuple[int, str]]) -> list[tuple[int, str]]:
@@ -500,7 +719,7 @@ def run(suites: list[Suite], not_run: list[tuple[str, str]], cfg: Config) -> int
 
     def one(job: Job) -> Done:
         started = time.strftime("%H:%M:%S")
-        ran = run_units.run_command(job.argv, cfg.repo, job.timeout, env=env)
+        ran = run_command(job.argv, cfg.repo, job.timeout, env=env)
         reading = classify(job.suite.kind, job.suite.name, ran.code, ran.text, ran.timed_out, ran.error, job.timeout)
         label = job.suite.name if job.shard is None else f"{job.suite.name} shard {job.shard + 1}"
         moved = watch.check(f"after {label}")
@@ -550,16 +769,18 @@ def merge(suites: list[Suite], finished: list[Done]) -> list[Row]:
             failing = [f"{MID_RUN}: {moved[0][:300]}"] + failing
         counts = [d.reading.tests for d in mine if d.reading.tests is not None]
         tests = sum(counts) if counts else None
-        if suite.sharded and status == PASS:
-            planned = sum(len(d.job.methods) for d in mine)
-            if tests != planned:
-                status, failing = FAIL, [f"the shards ran {tests} tests; the plan named {planned} methods"]
+        planned = [d.job.planned for d in mine]
+        if status == PASS and None not in planned:
+            if tests != sum(planned):
+                status, failing = FAIL, [f"the shards ran {tests} tests; the plan named {sum(planned)} methods"]
         codes = [d.ran.code for d in mine]
+        sharded = mine[0].job.shard is not None
         rows.append(Row(suite.name, status, next((c for c in codes if c != 0), codes[0]),
                         max(d.ran.seconds for d in mine), tests, sum(d.reading.skipped for d in mine), failing,
-                        len(mine) if suite.sharded else None, mine[0].reading.unit, suite.group,
+                        len(mine) if sharded else None, mine[0].reading.unit, suite.group,
+                        note=next((d.job.note for d in mine if d.job.note), ""),
                         output=[(f"shard {d.job.shard + 1}/{len(mine)}: {' '.join(d.job.methods)}"
-                                 if suite.sharded else "", d.ran.text) for d in mine]))
+                                 if sharded else "", d.ran.text) for d in mine]))
     return rows
 
 
@@ -569,7 +790,8 @@ def console_line(row: Row) -> str:
     key = f"{row.tests} {row.unit}" if row.tests is not None else "-"
     shards = f", {row.shards} shards" if row.shards else ""
     more = f"  -- {row.failing[0][:160]}" if row.failing else ""
-    return f"  {row.word():<17} {row.name:<26} {row.seconds:7.1f} s  {key}{shards}{more}"
+    note = f"  [{row.note[:200]}]" if row.note else ""
+    return f"  {row.word():<17} {row.name:<26} {row.seconds:7.1f} s  {key}{shards}{note}{more}"
 
 
 # ---------------------------------------------------------------------------------------------- summary + evidence
@@ -648,6 +870,7 @@ def write_evidence(rows: list[Row], cfg: Config, watch: TreeWatch, verdict_line:
             text.append(f"== {row.name}: {row.word()} (exit {row.exit}, {row.seconds:.1f} s, "
                         f"{row.tests if row.tests is not None else '-'} {row.unit}"
                         f"{f', {row.shards} shards' if row.shards else ''}){appendix}")
+            text += [f"   note: {row.note}"] if row.note else []
             text += [f"   failing: {f}" for f in row.failing[:3]]
             for title, raw in row.output:
                 if title:
@@ -705,9 +928,12 @@ def main(argv: list[str] | None = None) -> int:
         for s in known:
             print(f"{s.name:<26} {s.kind:<9} group {s.group:<20} {'quick+full' if s.name in QUICK else 'full'}"
                   f"{'  (sharded)' if s.sharded else ''}")
-        for i, shard in enumerate(plan_shards(GATES / "test_check_purity.py", times.get("test_check_purity", {}),
-                                              args.workers, float(times.get("default_method_s", 2.0)))):
-            print(f"test_check_purity shard {i + 1}: {shard}")
+        try:
+            for i, shard in enumerate(plan_shards(GATES / "test_check_purity.py", times.get("test_check_purity", {}),
+                                                  args.workers, float(times.get("default_method_s", 2.0)))):
+                print(f"test_check_purity shard {i + 1}: {shard}")
+        except PlanError as why:
+            print(f"test_check_purity would run UNSHARDED: {why}")
         for driver in GRADED_DRIVERS:
             print(f"{driver:<26} NOT-RUN: {GRADED}")
         for rule, pattern in verdict_rules().items():
