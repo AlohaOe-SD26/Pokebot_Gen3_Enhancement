@@ -38706,3 +38706,8 @@ bought balls only at fixed story points.
   - **B:** the re-grade of step 5 on held-out seeds.
 - **WHY A2 measures before it decides:** the critic MEASURED that a curiosity yield over game windows is likely vacuous. GREEDY is 85.9 % productive against the real code's 90.2 %, and BEELINE has no curiosity at all. A threshold chosen before the numbers could therefore pass or fail for no real reason.
 - **Next:** the first build is stage A1 (queue item 3 in `04`).
+
+## 2026-10-22 — The full regression lane PASSED on the stage 2a commit
+
+- `py -3.12 ai_player/gates/run_regression.py --full --evidence`, run detached on `0ac3e5c2` from 1:57 PM: `REGRESSION: PASS (full, 25 suites, 4333.7 s wall)` at 3:09 PM. The re-written evidence files (`ai_player/evidence/2026-10-22-regression-*` and the step REVERT files) are committed with this entry.
+- `04`'s STATE row and its resume point no longer say the lane is due.
