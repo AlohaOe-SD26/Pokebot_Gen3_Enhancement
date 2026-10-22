@@ -96,7 +96,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "448e82459ab2f888c49ef35ea3e91208dfcc55d7",
-      "chars": 1440,
+      "chars": 1554,
       "head": "- [ ] ⭐ `#28-seasoned-player` — **KB1 MERGED 2026-10-21 (`3a",
       "tails": [
         "loors stand (no stall, no loafing, no beeline, no speedrun)."
@@ -113,6 +113,12 @@
           "from_chars": 1414,
           "to_chars": 1440,
           "why": "2026-10-22 the chapter-pack tool recorded in A5's filing line and #28-seasoned-player"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 1440,
+          "to_chars": 1554,
+          "why": "2026-10-22 the event-script census done (P5 pair with 04)"
         }
       ]
     },
@@ -896,7 +902,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 63263,
+      "chars": 63552,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -979,6 +985,12 @@
           "from_chars": 62932,
           "to_chars": 63263,
           "why": "2026-10-22 Tier 2 cold-start fixes and the disk cleanup note"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 63263,
+          "to_chars": 63552,
+          "why": "2026-10-22 the event-script census done (KB2 slice 2 prerequisite)"
         }
       ]
     },

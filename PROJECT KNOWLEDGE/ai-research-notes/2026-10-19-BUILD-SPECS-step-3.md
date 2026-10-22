@@ -413,7 +413,7 @@ the pack generator and the AI's knowledge come from the same files (round 3's "t
   trainer objects `{script, trainer_type, sight, x, y}` joined to `trainers.json` through the `trainerbattle_*` line in
   `scripts.inc`, item balls and hidden items (`bg_events` of type `hidden_item`).
 - ⛔ **NEEDS DESIGN (critic), slice 2, not build-ready:** `items_gifts.json` and `events.json` below have a control (W2's 20 item
-  records) but NO fault arm, and their input shapes are unmeasured. Before any parser: (1) a census of every distinct `scripts.inc`
+  records) but NO fault arm, and their input shapes are unmeasured. Before any parser: (1) [✅ DONE 2026-10-22: `tools/scripts_census.py`, note `2026-10-22-KB2-slice2-scripts-census.md`, 0 UNPARSED; the item balls are in the SHARED `data/scripts/item_ball_scripts.inc`] a census of every distinct `scripts.inc`
   command with its count on the pinned clone, written down; (2) a fault arm per file, at least W2 plants (e) one field item moved
   to another map and (f) one `setflag` dropped from a script, each reported by the independent verifier; (3) for `events.json`, the
   rule that flag NAMES are static knowledge only: the AI may never READ a flag live (RULING 40 hidden state), and the

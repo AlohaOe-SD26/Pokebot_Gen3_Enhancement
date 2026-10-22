@@ -107,7 +107,8 @@ ADVISORY: frozenset[str] = frozenset({
 #: suite, but it is counted OUT of the passing enforcing gates and named in the closing line, so the headline carries
 #: the caveat. Any other non-zero exit from these gates is still a FAIL.
 WARN_EXIT = 4
-WARN_OK: frozenset[str] = frozenset({"selftest_facts_ledger.py", "selftest_experience.py", "selftest_chapter_pack.py"})
+WARN_OK: frozenset[str] = frozenset({"selftest_facts_ledger.py", "selftest_experience.py", "selftest_chapter_pack.py",
+                                     "selftest_scripts_census.py"})
 
 #: The standing suite. `slow=True` means it boots a ROM/emulator and takes real time.
 GATES: list[tuple[str, bool]] = [
@@ -1330,6 +1331,16 @@ GATES: list[tuple[str, bool]] = [
     # mutants caught over three review rounds. Exit 4 = WARN (in WARN_OK): no pinned decomp clone, so its real-data arms
     # were SKIPPED; never a pass. No ROM; ~13 s. ‼ APPENDED AT THE END.
     ("selftest_chapter_pack.py", False),
+    # KB2 slice 2's first prerequisite (`ai-research-notes/2026-10-19-BUILD-SPECS-step-3.md`, the NEEDS DESIGN block):
+    # `tools/scripts_census.py` counts EVERY line of the event scripts at the pinned decomp (map scripts and the shared
+    # data/scripts/*.inc) as comment / preprocessor / label / directive / command, and exits 1 while any line is
+    # UNPARSED. WHY: a parser built on remembered shapes misses the unremembered ones; the first run found `#ifdef
+    # BUGFIX` blocks and C comments nobody had listed, and the item balls in the SHARED item_ball_scripts.inc, not the
+    # map scripts the spec named. A1 self-test CONTROL + FAULT, A2 pin refusal FAULT, A3 the real census (0 UNPARSED).
+    # 5 of 6 call-deleting mutants caught; the survivor (main ignoring the verdict) is inert on the real tree, and a
+    # pin-bypass flag to test it was rejected. Exit 4 = WARN (in WARN_OK): no pinned clone. No ROM; ~5 s.
+    # ‼ APPENDED AT THE END.
+    ("selftest_scripts_census.py", False),
 ]
 
 

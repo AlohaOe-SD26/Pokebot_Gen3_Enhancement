@@ -38589,3 +38589,18 @@ bought balls only at fixed story points.
   - It corrects the earlier brief: `rate_step5.py:1690` forces a FAIL when there are no detours, not a PASS.
 - **Order:** B1 is backlog item 12, after item 7's handoff slim-down (S2-1b) and item 11's slice 2. This recon is input for its spec, which goes with step 5.3's graded round.
 - **Also:** backlog item 5 (A1 + D3, `tools/status.py`) is marked ✅ BUILT 2026-10-20. The Tier 2 cold-start audit found it unmarked while the tool existed and ran.
+
+## 2026-10-22 — KB2 slice 2's first prerequisite: the event-script census (`tools/scripts_census.py`, gate 156)
+
+- **WHY:** the slice-2 spec (`2026-10-19-BUILD-SPECS-step-3.md`, the NEEDS DESIGN block) says no parser for `items_gifts.json` or `events.json` may be written before "a census of every distinct `scripts.inc` command with its count on the pinned clone, written down". A parser built on remembered shapes misses the shapes nobody remembered.
+- **What:** `tools/scripts_census.py` classifies every non-blank line of `data/maps/*/scripts.inc` and of the shared `data/scripts/*.inc` at the pinned decomp. Each line is a comment, a preprocessor line, a label, a directive or a command, and commands are counted by their first token. Any other line is UNPARSED, which exits 1 and names the line. The pin check is `decomp_lookup.py`'s, so a clone at another commit is refused (exit 2). The output is `ai-research-notes/2026-10-22-KB2-slice2-scripts-census.md`: map scripts are 468 files, 68,951 lines, 405 distinct commands; shared scripts are 57 files, 11,424 lines, 226 commands. **0 UNPARSED.** Re-running gives byte-identical output, which is a determinism check, not a replication.
+- **What the census found that the spec did not say:**
+  - The first run had 30 UNPARSED lines of two unlisted shapes: `#ifdef BUGFIX` / `UBFIX` blocks (12 places) and one-line C comments. The vanilla ROM is built WITHOUT these switches, so a parser must keep the `#ifndef` / `#else` side. Every block is listed in the census.
+  - The item balls are NOT in the map scripts. `finditem` occurs once in `data/maps/*/scripts.inc` but 165 times in the shared `data/scripts/item_ball_scripts.inc`, which map objects reach through their `script` field. A parser reading only the map scripts, as the spec worded it, would have found about 1 item ball in about 166.
+  - Checked, NOT a bug: 11 raw `trainerbattle` lines (Lavaridge Gym's buried trainers, the Maxie/Tabitha double) carry the trainer in the 2nd argument. Slice 1's `battle_trainer` skips `TRAINER_BATTLE_*`, and `maps.json` lists COLE, GERALD, AXLE and the rest.
+- **Gate:** `tools/story-dev/selftest_scripts_census.py`, appended to `run_gates.py` (156 entries; the quick subset is 142). It is in WARN_OK, and exit 4 means no pinned clone, never a pass.
+  - A1: the census self-test, CONTROL plus FAULT (a planted unparsable line is named and turns the verdict to exit 1).
+  - A2: the pin-refusal FAULT.
+  - A3: the real census, which must have 0 UNPARSED.
+  - Mutants: 5 of 6 call-deleting mutants are caught (verdict, preprocessor kind, C comment clause, pin check, the unparsed record). The survivor, `main` ignoring the verdict, is inert on the real tree, which has 0 UNPARSED. Testing it needed a pin-bypass flag, which was rejected because it would weaken the pin rule.
+- **Next:** slice 2's design, after S2-1b (the handoff slim-down, backlog item 7's open half), by the top-15 order.
