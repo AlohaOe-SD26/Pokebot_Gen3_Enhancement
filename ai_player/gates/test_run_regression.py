@@ -27,7 +27,10 @@ broken: the guard must fire) and a CONTROL arm (the healthy path passes):
   T6 summary         schema 1, valid JSON, <= 4 KB with 40 failing suites (lists truncated with a count); `overall` agrees
                      with the console line. (F3) A run missing a unit suite writes a PARTIAL/QUICK file, never `-units`.
   T7 pairing         keep_earlier and prune_evidence --retire move a `.txt`'s `.summary.json` with it; (F4) write_evidence
-                     archives an earlier tree's file (and its summary) before writing over its name.
+                     archives an earlier tree's file (and its summary) before writing over its name. (#28-evidence-
+                     identity) On a throw-away repo: "earlier tree" by IDENTITY from the run's own covers:units line: a
+                     clean run after a scoped commit archives the earlier commit's clean file (the measured bug); a
+                     same-tree or docs-only re-run, or a commit landing mid-run, does not.
   T8 scope           a `covers:<suite>` code line reads `ok` in regression_due on a throw-away git repo; a covered edit is
                      DUE, an uncovered one stays ok; a `covers:` label of an unknown suite is DUE.
   T9 run_units       a suite past its timeout is recorded TIMEOUT, the runner finishes and writes its evidence.
@@ -57,6 +60,7 @@ sys.path.insert(0, str(REPO / "tools" / "workflows"))
 
 from ai_player.gates import prune_evidence, run_regression as rr  # noqa: E402
 from ai_player.gates.provenance import glob_regex, keep_earlier, suite_line, summary_of  # noqa: E402
+from ai_player.gates.test_evidence import ThrowawayRepo  # noqa: E402
 
 SLEEP = 0.6
 OLD, NEW = "8b742931d35fa205", "0123456789abcdef"
@@ -822,7 +826,8 @@ class PairingTests(unittest.TestCase):
         text = "the run 2026-10-21-regression-units.txt passed"
         moves, candidates = prune_evidence.retire_plan(folder, folder / "archive", OLD, text)
         self.assertEqual(sorted(s.name for s, _ in moves), sorted([cited_txt.name, summary_of(cited_txt).name]))
-        self.assertTrue(all(t.parent == folder / "archive" / OLD for _, t in moves))
+        # (#28-evidence-identity) into the file's archive key `<digest>-<HEAD>`, its summary with it
+        self.assertTrue(all(t.parent == folder / "archive" / f"{OLD}-abc1234" for _, t in moves))
         self.assertEqual(sorted(p.name for p in candidates), sorted([uncited_txt.name, summary_of(uncited_txt).name]))
         self.assertNotIn(summary_of(other), candidates)
         self.assertTrue(prune_evidence.cited(summary_of(cited_txt), text))
@@ -837,11 +842,60 @@ class PairingTests(unittest.TestCase):
         cfg, _ = config(folder, ["a"])
         rr.write_evidence(rows, cfg, rr.TreeWatch(cfg), "FROZEN TREE: PASS", "REGRESSION: PASS (full, 1 suites, 1 s wall)",
                           "PASS", "2026-10-21T00:00:00", 1.0)
-        kept = folder / "evidence" / "archive" / OLD / old.name
+        kept = folder / "evidence" / "archive" / f"{OLD}-abc1234" / old.name
         self.assertTrue(kept.is_file(), "the earlier tree's evidence was written over, not archived")
         self.assertIn("THE EARLIER TREE'S RUN", kept.read_text(encoding="utf-8"))
         self.assertTrue(summary_of(kept).is_file(), "its summary did not go with it")
         self.assertIn("AI PLAYER REGRESSION", old.read_text(encoding="utf-8"))
+
+
+class EvidenceIdentityTests(ThrowawayRepo):
+    """(#28-evidence-identity) `write_evidence`'s keep_earlier call decides "an earlier tree" by IDENTITY, from the RUN's
+    own `covers:units` code line, on a throw-away git repo (test_evidence.ThrowawayRepo; never the real evidence folder).
+    The measured bug: S4-1's second full run, clean on HEAD 08392c98, wrote over the clean run of HEAD d10caa5e."""
+
+    def run_once(self, watch: rr.TreeWatch | None = None) -> Path:
+        cfg = rr.Config(repo=self.repo, lane="full", workers=1, timeout=30.0, times={}, evidence=self.ev,
+                        probe=lambda: [], watch_scope=("ai_player",), scopes={"units": (self.SUITE, self.MAP_EXCLUDE)},
+                        command="test", date="2026-10-21", printer=lambda _: None, unit_names=("a",))
+        rows = [rr.Row("a", "PASS", 0, 1.0, 3, 0, [], group="units")]
+        rr.write_evidence(rows, cfg, watch or rr.TreeWatch(cfg), "FROZEN TREE: PASS", "REGRESSION: PASS", "PASS",
+                          "2026-10-21T00:00:00", 1.0)
+        return self.ev / "2026-10-21-regression-units.txt"
+
+    def watch(self) -> rr.TreeWatch:
+        return rr.TreeWatch(rr.Config(repo=self.repo, evidence=self.ev, watch_scope=("ai_player",),
+                                      scopes={"units": (self.SUITE, self.MAP_EXCLUDE)}, printer=lambda _: None))
+
+    def archived(self) -> list[str]:
+        root = self.ev / "archive"
+        return sorted(p.relative_to(root).as_posix() for p in root.rglob("*.txt")) if root.is_dir() else []
+
+    def test_control_a_rerun_of_the_same_tree_rewrites_its_own_file(self) -> None:
+        path = self.run_once()
+        self.assertIn("covers:units clean at HEAD", path.read_text(encoding="utf-8"))
+        self.run_once()
+        self.commit("B: docs only", **{"ai_player/notes.md": "docs\n"})
+        self.run_once()
+        self.assertEqual(self.archived(), [], "the same code under test was archived as another tree")
+
+    def test_the_measured_bug_a_clean_run_after_a_scoped_commit_archives_the_earlier_commits_file(self) -> None:
+        from ai_player.gates.provenance import CLEAN_DIGEST
+
+        self.run_once()
+        a = self.head()
+        self.commit("B", **{"ai_player/mode.py": "MODE = 2\n"})
+        self.run_once()
+        self.assertEqual(self.archived(), [f"{CLEAN_DIGEST}-{a}/2026-10-21-regression-units.txt"])
+
+    def test_the_identity_is_the_runs_own_line_not_the_tree_at_write_time(self) -> None:
+        """The run's code line names the tree it TESTED (taken at its start): a commit landing before the write (the
+        frozen tree FAILs that run anyway) must not make the run archive the file of the very tree it ran on."""
+        self.run_once()
+        watch = self.watch()  # the run starts on A
+        self.commit("B", **{"ai_player/mode.py": "MODE = 2\n"})
+        self.run_once(watch)
+        self.assertEqual(self.archived(), [], "the identity was read from the tree at write time, not the run's line")
 
 
 class PartialRunTests(unittest.TestCase):

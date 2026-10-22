@@ -3,7 +3,8 @@
     py -3.12 ai_player/gates/provenance.py        prints the line for this tree (to compare with an evidence file)
     py -3.12 ai_player/gates/provenance.py --check-evidence
                                                   (the step-3.1 verifier's second round) every evidence file at the top of
-                                                  ai_player/evidence/ names THIS tree's digest (exit 0), or which do not
+                                                  ai_player/evidence/ is THIS tree's (exit 0; by identity, see
+                                                  #28-evidence-identity below), or which are not and why
     py -3.12 ai_player/gates/provenance.py --snapshot          (the step-5.1 verifier's second round) keep this tree in
                                                   ai_player/evidence/trees/<digest>.zip (the graded drivers do it themselves)
     py -3.12 ai_player/gates/provenance.py --compare A B       the files two kept trees (digests or zip paths) differ in
@@ -45,6 +46,25 @@ two older labels (`ai_player/`, `ai_player/ + hook`) record less than any suite 
 imports `glob_regex` and `suite_covers` from this module, and `run_regression.py` writes the line with `suite_line`, so the
 writer and the checker cannot disagree about which files a digest covers. And an evidence file's `<stem>.summary.json`
 travels with it: `keep_earlier` moves the pair.
+
+(#28-evidence-identity, 2026-10-21) EVIDENCE IDENTITY = THE CODE UNDER TEST, NOT THE DIFF FROM HEAD. The digest says only
+how a tree differs from ITS HEAD, so a CLEAN tree's digest (`CLEAN_DIGEST`, an empty diff) is the same at EVERY commit:
+`keep_earlier` compared digests alone, read the evidence of HEAD d10caa5e as "the same tree" on HEAD 08392c98 and wrote
+over it (S4-1's second full run). An evidence file's identity (`code_identity`) is now (its LABEL, a hash of
+`git ls-tree -r <its HEAD>` over exactly that label's scope with the digest's exclusions (`scope_hash`), its digest); the
+working tree's (`tree_identity`) is the same with the current HEAD and the current digest. So two commits with the same
+files in scope and the same uncommitted diff are the SAME tree (a docs-only commit leaves evidence of the `ai_player/`
+labels current; a `covers:<suite>` label whose suite READS docs goes stale on a docs commit, by design), and a change to
+a scoped file that git can see, committed or not, is a DIFFERENT tree. Two kinds of change git does not show are NOT
+seen (the independent verify, 2026-10-21): an edit to a file marked assume-unchanged / skip-worktree, and a gitignored
+file inside the scope; `regression_due.py`'s `unwatched_files` reports the first as "unproven", and the purity gate
+(rule e) covers the ignored `__pycache__`. A diff that is later committed unchanged reads as a DIFFERENT tree (the
+earlier evidence is archived, never lost: the safe direction). The code-line FORMAT is unchanged: an old file's identity
+is computed from its own HEAD and label, and a HEAD git does not have (or a label whose scope is not known) gives NO
+identity, which is never "the same tree". `keep_earlier`, `check_evidence` and `prune_evidence --retire` decide by it,
+and an archive folder is named `archive_key` (`<digest>-<HEAD>`), so two clean trees of different commits never share
+a folder. `code_digest` stays the ONE reader of the digest (G6): `code_fields` reads the HEAD and label from the SAME
+line `code_digest` reads.
 """
 
 from __future__ import annotations
@@ -200,7 +220,8 @@ def provenance(repo: Path = REPO, scope: Iterable[str] = PACKAGE_SCOPE, label: s
 
 #: (the step-3.1 verifier's second round: "Older evidence files still sit in ai_player/evidence with other digests ... a
 #: literal reading of 'every evidence file' would not hold") the evidence folder's TOP LEVEL is the evidence of the tree as
-#: it stands; files of earlier trees live in `evidence/archive/<their digest>/` (kept, never rewritten).
+#: it stands; files of earlier trees live in `evidence/archive/<their digest>-<their HEAD>/` (`archive_key`; before
+#: #28-evidence-identity `<their digest>/`) (kept, never rewritten).
 EVIDENCE = REPO / "ai_player" / "evidence"
 _DIGEST_MARK = "working-tree digest sha256:"
 #: (build step 5.2, G6) an evidence file's CODE LINE: at the start of a line, after an optional bracketed tag
@@ -242,35 +263,197 @@ def file_digest(path: Path) -> str | None:
 
 
 def evidence_digests(folder: Path = EVIDENCE) -> dict[str, str | None]:
-    """Each top-level evidence file -> the 16-hex digest its code line names (`code_digest`: the one reader), or None."""
+    """Each top-level evidence file -> the 16-hex digest its code line names (`code_digest`: the one reader), or None.
+    (#28-evidence-identity) A digest alone is NOT a tree's identity (a clean tree's is the same at every commit): what
+    decides "the same tree" is `evidence_identities` / `code_identity`."""
     return {path.name: file_digest(path) for path in sorted(folder.glob("*.txt"))}
 
 
-def keep_earlier(path: Path, current: str | None = None, folder: Path = EVIDENCE) -> Path | None:
+# ---------------------------------------------------------------------- #28-evidence-identity
+#: The digest of an EMPTY difference from HEAD: what every clean tree's code line carries, at EVERY commit and in every
+#: scope. Why a digest alone cannot identify a tree.
+CLEAN_DIGEST = tree_digest(b"", {})[:16]
+#: The scope each code-line LABEL digests (`line(head, label, ...)`; live_step0 prints "ai_player/ + hook"); a
+#: `covers:<suite>` label is the suite's scope in `SUITE_MAP` (`label_member`).
+LABEL_SCOPES = {"ai_player/": PACKAGE_SCOPE, "ai_player/ + hook": HOOK_SCOPE}
+#: `EXCLUDED` (git pathspecs) as globs over repo-relative paths, for filtering a `git ls-tree` listing (ls-tree takes no
+#: `:(exclude)` magic). The same three rules, so a scope's listing holds exactly the files its digest can see.
+EXCLUDED_GLOBS = ("ai_player/evidence/**", "**/*.md", f"{LEDGER_PATH}*")
+#: Where a `covers:<suite>` label's suite lives, relative to the repository (run_regression and regression_due read it).
+SUITE_MAP = "tools/workflows/suite_map.json"
+_HEAD_RE = re.compile(r"\bHEAD ([0-9a-f]{7,40})\b")
+_LABEL_RE = re.compile(r"\bHEAD [0-9a-f]{7,40}; (?P<label>.+?) (?:clean at HEAD|has UNCOMMITTED changes)")
+_SCOPE_HASHES: dict[tuple[str, str, str], str | None] = {}
+_IDENTITY_LOCK = threading.Lock()
+
+
+def code_fields(text: str) -> tuple[str | None, str | None, str | None]:
+    """(digest, HEAD, label), ALL read from ONE code line: the first line `code_digest` reads a digest from (G6: the digest
+    is read by `code_digest` itself; this only adds that same line's HEAD and label, never another line's, which could
+    pair one run's digest with another run's HEAD). (None, None, None) when no code line names a digest."""
+    # (`match`, not `found`: revert_safety_gates S17 mutates `code_digest`'s loop line, which must stay unique)
+    for match in CODE_LINE.finditer(text):
+        digest = code_digest(match.group(0))
+        if digest:
+            head, label = _HEAD_RE.search(match["rest"]), _LABEL_RE.search(match["rest"])
+            return digest, head.group(1) if head else None, label["label"] if label else None
+    return None, None, None
+
+
+def archive_key(text: str) -> str | None:
+    """The `archive/<key>/` folder an evidence text is kept in: `<digest>-<HEAD>` (the HEAD as its code line writes it),
+    so two clean trees of different commits (one digest) never share a folder; the bare digest for a code line with no
+    HEAD; None for no digest (`keep_earlier` uses `no-digest`)."""
+    digest, head, _ = code_fields(text)
+    if digest is None:
+        return None
+    return f"{digest}-{head}" if head else digest
+
+
+def label_member(label: str, repo: Path = REPO):
+    """The rule `path -> bool` for the files a code line's LABEL digests, or None when the label's scope is not known (an
+    old or foreign label: then nothing can be called the same tree). `ai_player/` and `ai_player/ + hook`: their
+    `LABEL_SCOPES` pathspecs less `EXCLUDED_GLOBS`; `covers:<suite>`: `suite_covers` with `SUITE_MAP`'s exclude (the very
+    rule `suite_trees` digests by)."""
+    if label in LABEL_SCOPES:
+        scope = LABEL_SCOPES[label]
+
+        def member(path: str) -> bool:
+            return (any(path == s or path.startswith(s.rstrip("/") + "/") for s in scope)
+                    and not glob_matches(path, EXCLUDED_GLOBS))
+        return member
+    if label.startswith(COVERS_LABEL):
+        import json
+
+        try:
+            smap = json.loads((Path(repo) / SUITE_MAP).read_text(encoding="utf-8"))
+            suite, excluded = smap["suites"][label[len(COVERS_LABEL):]], tuple(smap.get("exclude", ()))
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        return lambda path: suite_covers(path, suite, excluded)
+    return None
+
+
+def scope_hash(repo: Path, head: str, label: str) -> str | None:
+    """sha256 over `git ls-tree -r <head>`'s entries (mode, type, blob, path) of the files `label` digests: WHAT the
+    committed code in scope is, whatever commit holds it. None when git does not have `head` (an unknown commit: never
+    "the same tree") or the label's scope is not known. Read-only git; cached per (repository, head, label) for the
+    process (a commit's tree never changes)."""
+    key = (str(Path(repo).resolve()), head, label)
+    with _IDENTITY_LOCK:
+        if key in _SCOPE_HASHES:
+            return _SCOPE_HASHES[key]
+    member = label_member(label, repo)
+    value = None
+    if member is not None:
+        try:
+            # `<head>^{commit}`: a sha git does not have, or one that is not a commit, fails here
+            listing = _git(repo, "ls-tree", "-r", "-z", "--full-tree", f"{head}^{{commit}}")
+        except subprocess.CalledProcessError:
+            listing = None  # an UNKNOWN commit: no identity, never "the same tree"
+        if listing is not None:
+            digest = hashlib.sha256()
+            for entry in listing.split(b"\0"):  # ls-tree's own (path) order: deterministic for a commit
+                path = entry.partition(b"\t")[2].decode("utf-8", "replace")
+                if path and member(path):
+                    digest.update(entry + b"\0")
+            value = digest.hexdigest()
+    with _IDENTITY_LOCK:
+        _SCOPE_HASHES[key] = value
+    return value
+
+
+def code_identity(text: str, repo: Path = REPO) -> tuple[str, str, str] | None:
+    """An evidence text's identity (label, `scope_hash` at its HEAD, digest), from its code line (`code_fields`), or None:
+    no digest, no HEAD, a label of no known scope, or a HEAD git does not have. None is never equal to anything a caller
+    compares it with: `keep_earlier` then archives, `check_evidence` calls the file not current."""
+    digest, head, label = code_fields(text)
+    if not (digest and head and label):
+        return None
+    try:
+        scoped = scope_hash(repo, head, label)
+    except Exception:  # noqa: BLE001 - git unreadable: no identity, never "the same tree"
+        return None
+    return None if scoped is None else (label, scoped, digest)
+
+
+def label_digest(repo: Path, label: str) -> str | None:
+    """The 16-hex digest a code line of `label` carries for the working tree NOW (`read_tree` or `suite_trees`, the
+    functions the producers write it with), or None (an unknown label). Raises on a git failure."""
+    if label in LABEL_SCOPES:
+        _, diff, untracked, _ = read_tree(repo, LABEL_SCOPES[label])
+        return tree_digest(diff, untracked)[:16]
+    if label.startswith(COVERS_LABEL):
+        import json
+
+        smap = json.loads((Path(repo) / SUITE_MAP).read_text(encoding="utf-8"))
+        suite = smap["suites"].get(label[len(COVERS_LABEL):])
+        return None if suite is None else suite_digest(repo, suite, tuple(smap.get("exclude", ())))
+    return None
+
+
+def tree_identity(label: str, repo: Path = REPO, digest: str | None = None) -> tuple[str, str, str] | None:
+    """The working tree's identity under `label`: (label, `scope_hash` at the current HEAD, `digest`, default the label's
+    digest now: `label_digest`). None when git cannot be read or the label's scope is not known."""
+    try:
+        head = _git(repo, "rev-parse", "HEAD").decode().strip()
+        digest = digest if digest is not None else label_digest(repo, label)
+        scoped = scope_hash(repo, head, label)
+    except Exception:  # noqa: BLE001
+        return None
+    return None if digest is None or scoped is None else (label, scoped, digest)
+
+
+def evidence_identities(folder: Path = EVIDENCE, repo: Path = REPO) -> dict[str, tuple[str, str, str] | None]:
+    """Each top-level evidence file -> its `code_identity` (None: no identity, see there)."""
+    return {path.name: code_identity(path.read_text(encoding="utf-8", errors="replace"), repo)
+            for path in sorted(folder.glob("*.txt"))}
+
+
+def keep_earlier(path: Path, current: str | None = None, folder: Path = EVIDENCE, repo: Path = REPO,
+                 code: str | None = None) -> Path | None:
     """(step 4.1 round 3, the step-4.1 verifier: "Evidence-policy order broken ... `--retire` ran after round 2's graded
     chains had started, so 12 top-level evidence files of the never-committed tree 8b742931d35fa205 ... were overwritten.
     They are unrecoverable") Called by EVERY evidence writer just before it writes `path`: when a file is already there, at
-    the top level of the evidence folder, and its code line names ANOTHER tree's digest than `current` (default: this
-    tree's), it is MOVED to `archive/<that digest>/` first (a name already taken there gets the next free `.N` suffix), so a
-    graded run can no longer write over an earlier tree's evidence, whatever the order of the round's steps. A file of no
+    the top level of the evidence folder, and its code line names ANOTHER tree than the one being written (by identity,
+    below), it is MOVED to `archive/<its digest>-<its HEAD>/` first (a name already taken there gets the next free `.N`
+    suffix), so a graded run can no longer write over an earlier tree's evidence, whatever the order of the round's steps.
+    A file of no
     digest goes to `archive/no-digest/`. Returns where it went (None: nothing to keep). `gates/prune_evidence.py` then
     keeps, indexes or packs it by the archive policy. (Spec S4-1, recon Q2) Its sibling `<stem>.summary.json` (written by
     `run_regression.py`) goes WITH it (`move_summary`): moving only the `.txt` let the next run overwrite the earlier
-    tree's summary, the one file a builder reads instead of the log."""
+    tree's summary, the one file a builder reads instead of the log.
+
+    (#28-evidence-identity) "ANOTHER tree" is decided by IDENTITY (`code_identity`), never by the digest alone: a clean
+    tree's digest is the same at every commit, and comparing digests wrote over HEAD d10caa5e's evidence on HEAD 08392c98.
+    The file is left in place only when its identity EQUALS this tree's: `code` (the writer's own code line, no "code: "
+    prefix: its HEAD, label and digest, as run_regression passes its `covers:<suite>` line) when given; else this tree
+    under the FILE's label (a writer rewrites its own file name, so its label), with `current` as the digest when given
+    (default: that label's digest now). No identity on either side (no code line, a HEAD git does not have, a label of no
+    known scope, an "unknown (...)" writer line) is never equal: the file is archived, which loses nothing. It goes to
+    `archive/<archive_key>/` = `<digest>-<HEAD>`."""
     import shutil
 
-    if current is None and folder.resolve() == EVIDENCE.resolve():
+    if current is None and code is None and folder.resolve() == EVIDENCE.resolve():
         # (build step 5.2, G1) THE BACKSTOP: a real driver's write (tests pass `current`): the tree must not have moved
         # since the process's first code line
         _backstop(path)
     if path.parent.resolve() != folder.resolve() or not path.is_file():
         return None
-    if current is None:
-        current = line_digest(provenance())
-    digest = file_digest(path)
-    if digest is not None and digest == current:
-        return None
-    target_dir = folder / "archive" / (digest or "no-digest")
+    if current is None and code is None and Path(repo).resolve() == REPO:
+        # (G1) as `provenance()` did here before: a driver's first record-keeping call starts the process's watch
+        try:
+            watch()
+        except Exception:  # noqa: BLE001
+            pass
+    text = path.read_text(encoding="utf-8", errors="replace")
+    digest = code_digest(text)
+    mine = code_identity(text, repo)
+    if mine is not None:
+        now = code_identity(f"code: {code}", repo) if code is not None else tree_identity(mine[0], repo, current)
+        if now == mine:
+            return None
+    target_dir = folder / "archive" / (archive_key(text) or "no-digest")
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / path.name
     suffix = 1
@@ -386,13 +569,28 @@ def compare_trees(a: Path, b: Path) -> tuple[str, str, list[str]]:
 
 
 def check_evidence(folder: Path = EVIDENCE, repo: Path = REPO) -> tuple[bool, str]:
-    """(ok, report): every top-level evidence file names the CURRENT tree's digest."""
-    now = line_digest(provenance(repo))
-    found = evidence_digests(folder)
-    other = {name: digest for name, digest in found.items() if digest != now}
-    report = (f"{len(found)} evidence files at the top of {folder.name}/; {len(found) - len(other)} name this tree's digest "
-              f"{now}; other: {len(other)} {sorted(other.items())[:12]}")
-    return bool(found) and now is not None and not other, report
+    """(ok, report): every top-level evidence file is THIS tree's evidence: its `code_identity` equals this tree's
+    `tree_identity` under the file's own label. (#28-evidence-identity) Not by digest: a clean tree's digest is the same at
+    every commit, so the digest check called an older commit's clean-tree evidence current. A file of no identity (see
+    `code_identity`) is never current; the report says why each other file is not."""
+    found = evidence_identities(folder, repo)
+    now: dict[str, tuple[str, str, str] | None] = {}
+    other: dict[str, str] = {}
+    for name, ident in found.items():
+        if ident is None:
+            digest, head, label = code_fields((folder / name).read_text(encoding="utf-8", errors="replace"))
+            other[name] = ("no code line with a digest" if digest is None else f"no identity ({digest}, HEAD {head}, "
+                           f"label {label!r}: no HEAD, an unknown label or a commit git does not have)")
+            continue
+        label = ident[0]
+        if label not in now:
+            now[label] = tree_identity(label, repo)
+        if ident != now[label]:
+            other[name] = f"another tree ({ident[2]}, label {label!r})"
+    report = (f"{len(found)} evidence files at the top of {folder.name}/; {len(found) - len(other)} are this tree's (identity: "
+              f"the label's files at HEAD + the digest; this tree's digests {sorted((l, i[2] if i else None) for l, i in now.items())}); "
+              f"other: {len(other)} {sorted(other.items())[:12]}")
+    return bool(found) and not other, report
 
 
 # ---------------------------------------------------------------------- G1: the frozen-tree watch (build step 5.2)

@@ -599,7 +599,8 @@ class EvidenceReaderTests(Scratch):
         self.assertEqual(file_digest(path), DIGEST)
         self.assertEqual(prune_evidence.digest_of(path), DIGEST)
         kept = keep_earlier(path, "0123456789abcdef", self.root)
-        self.assertEqual(kept.parent.name, DIGEST, "archived under its digest, never no-digest")
+        # (#28-evidence-identity) the folder is the archive key `<digest>-<HEAD>`: still its digest, never no-digest
+        self.assertEqual(kept.parent.name, f"{DIGEST}-b029673d", "archived under its digest, never no-digest")
 
     def test_fault_the_old_12_line_reader_misses_it_or_reads_the_mention(self) -> None:
         def old_reader(text: str) -> str | None:  # provenance.evidence_digests before G6, verbatim

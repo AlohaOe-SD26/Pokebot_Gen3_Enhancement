@@ -4,12 +4,14 @@ verification copies (they remain in git history)").
 
     py -3.12 ai_player/gates/prune_evidence.py                  (a DRY RUN: what would be kept, indexed, deleted)
     py -3.12 ai_player/gates/prune_evidence.py --apply
-    py -3.12 ai_player/gates/prune_evidence.py --retire DIGEST [--apply]
+    py -3.12 ai_player/gates/prune_evidence.py --retire DIGEST|DIGEST-HEAD [--apply]
     py -3.12 ai_player/gates/prune_evidence.py --reindex        (step 4.1 round 2: every line's size and sha256 from its blob)
 
 THE POLICY (`ai_player/evidence/archive/README.md` states it for readers):
   * `evidence/` (top level) holds the evidence of the CURRENT tree only (`provenance.py --check-evidence`).
-  * `evidence/archive/<digest>/` holds ONLY the files of earlier trees that a document or a commit message CITES BY NAME
+  * `evidence/archive/<digest>/` (#28-evidence-identity: new folders are `<digest>-<HEAD>/`, `provenance.archive_key`, so
+    two clean trees of different commits, which carry ONE digest, never share a folder) holds ONLY the files of earlier
+    trees that a document or a commit message CITES BY NAME
     (`CITING`: the project's docs, the AI player's README and gates, and `git log`'s messages). A folder named as a whole
     ("archived in evidence/archive/<digest>/") is not a citation of each file in it.
   * Every other file of an earlier tree is listed, one line each, in `evidence/archive/INDEX.md` (its path, the size and
@@ -21,6 +23,9 @@ THE POLICY (`ai_player/evidence/archive/README.md` states it for readers):
   * `--retire DIGEST`: before a round's final runs rewrite the top level, the top-level files of the tree DIGEST (their
     `code:` line names it) are handled the same way: a cited one is MOVED to `archive/DIGEST/`, the rest indexed and deleted;
     (step 4.1 round 2) one git does not hold as it is (a tree never committed) is MOVED there too, kept and said.
+    (#28-evidence-identity) The selector is a bare digest or an archive key `<digest>-<HEAD>` (`key_of`), and each file
+    goes to `archive/<its own key>/`. A bare CLEAN digest (an empty diff: every clean tree's, at every commit) is
+    REFUSED: it names no one tree and would retire this tree's clean evidence with the earlier commit's.
   * (step 4.1 round 3, the verifier: "the archive is back to 9.8 MB ... 115 files ... kept wholesale"; "the
     prune_evidence.py gap with the `[VERIFY] code:` prefix is not fixed") an UNCITED file of a tree git does not hold (at the
     top level being retired, or already in the archive) is PACKED into its tree folder's `uncited.zip` (`pack`: every member
@@ -55,7 +60,8 @@ if str(REPO) not in sys.path:
 #: pattern and the reader are `provenance`'s, the ONE reader `evidence_digests` and `keep_earlier` use too: this file read
 #: the first 4000 characters and that one the first 12 lines, so a file whose command is a multi-line `-c` script (its code
 #: line on line 32) had a digest for one and none for the other.
-from ai_player.gates.provenance import CODE_LINE, SUMMARY_SUFFIX, code_digest, file_digest, summary_of  # noqa: E402,F401
+from ai_player.gates.provenance import (CLEAN_DIGEST, CODE_LINE, SUMMARY_SUFFIX, archive_key, code_digest,  # noqa: E402,F401
+                                        file_digest, summary_of)
 #: (step 4.1 round 3, the verifier: "the archive is back to 9.8 MB ... The 115 files (8.2 MB) of the never-committed tree
 #: 8b742931d35fa205 are kept wholesale, against the 'cited by name only' policy") the uncited files of a tree git does not
 #: hold (never committed) are PACKED into this one compressed file in their tree's folder, one INDEX line each (their size
@@ -66,6 +72,26 @@ PACK_NAME = "uncited.zip"
 def digest_of(path: Path) -> str | None:
     """The 16-hex digest the file's code line names (`provenance.file_digest`, the one reader), or None."""
     return file_digest(path)
+
+
+def key_of(path: Path) -> str | None:
+    """(#28-evidence-identity) The archive folder name the file's code line gives (`provenance.archive_key`:
+    `<digest>-<HEAD>`), the one `keep_earlier` archives it under, or None (no digest). A `<stem>.summary.json` has no
+    code line: it takes its `<stem>.txt`'s key, so the pair lands in one folder."""
+    if path.name.endswith(SUMMARY_SUFFIX):
+        path = path.with_name(path.name[:-len(SUMMARY_SUFFIX)] + ".txt")
+        if not path.is_file():
+            return None
+    return archive_key(path.read_text(encoding="utf-8", errors="replace"))
+
+
+def retire_matches(path: Path, selector: str) -> bool:
+    """Does `--retire SELECTOR` name this file's tree? An archive key matches exactly; a bare digest matches the digest.
+    Raises SystemExit for the bare CLEAN digest: it is every clean tree's at every commit, so it names no one tree."""
+    if selector == CLEAN_DIGEST:
+        raise SystemExit(f"--retire {selector}: that is the digest of EVERY clean tree, at every commit; name the tree by "
+                         f"its archive key <digest>-<HEAD> (`provenance.archive_key`) instead")
+    return selector == (key_of(path) if "-" in selector else digest_of(path))
 
 
 def pack(folder: Path, files: list[Path]) -> list[str]:
@@ -127,15 +153,16 @@ def retire_plan(evidence: Path, archive: Path, digest: str, text: str) -> tuple[
     """(moves, candidates) of `--retire DIGEST`: each top-level `.txt` whose code line names DIGEST is MOVED to
     `archive/DIGEST/` when cited, else becomes a candidate (indexed and deleted, or packed). (Spec S4-1, recon Q2) Its
     sibling `<stem>.summary.json` follows it into the SAME bucket, so a retired `.txt` never leaves its summary orphaned
-    at the top level (the old loop globbed `*.txt` only)."""
+    at the top level (the old loop globbed `*.txt` only). (#28-evidence-identity) `digest` is the selector
+    `retire_matches` reads (a bare digest or an archive key), and a moved file goes to `archive/<its own key_of>/`."""
     moves: list[tuple[Path, Path]] = []
     candidates: list[Path] = []
     for path in sorted(evidence.glob("*.txt")):
-        if digest_of(path) != digest:
+        if not retire_matches(path, digest):
             continue
         pair = [path] + [s for s in (summary_of(path),) if s.is_file()]
         if cited(path, text):
-            moves += [(p, archive / digest / p.name) for p in pair]
+            moves += [(p, archive / (key_of(path) or digest) / p.name) for p in pair]
         else:
             candidates += pair
     return moves, candidates
@@ -211,7 +238,8 @@ def main() -> int:
         pass
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--apply", action="store_true", help="move and delete (default: a dry run)")
-    parser.add_argument("--retire", help="the digest of the tree whose TOP-LEVEL evidence is retired first")
+    parser.add_argument("--retire", help="the digest, or the archive key <digest>-<HEAD>, of the tree whose TOP-LEVEL "
+                                         "evidence is retired first (a clean tree's bare digest is refused)")
     parser.add_argument("--reindex", action="store_true", help="recompute every INDEX line's size and sha256 from its blob")
     args = parser.parse_args()
     if args.reindex:
@@ -233,7 +261,8 @@ def main() -> int:
             # (step 4.1 round 2) a retired tree's top-level file git does not hold as it is (untracked, or changed against
             # HEAD: a tree never committed) cannot be indexed and deleted: (round 3) it is PACKED into its tree's folder's
             # `uncited.zip`, so the top level holds the current tree's evidence only (`provenance.py --check-evidence`)
-            packs.setdefault(ARCHIVE / args.retire, []).append(path)
+            # (#28-evidence-identity) into its OWN tree's folder (`key_of`), the one keep_earlier would archive it under
+            packs.setdefault(ARCHIVE / (key_of(path) or args.retire), []).append(path)
             continue
         if not ok and path.parent.parent == ARCHIVE:
             # (round 3) an archived file of a tree git does not hold, cited by nothing: PACKED (one INDEX line), not kept

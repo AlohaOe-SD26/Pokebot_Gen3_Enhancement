@@ -35,7 +35,9 @@ for that suite (`provenance.suite_line`, the same function regression_due recomp
 The four revert drivers with no suite there (step11, step2, step3, step4) go into the units file's appendix. A run that
 did not run every unit suite (--quick, --only) writes `<date>-regression-quick.txt` / `-partial.txt` instead, names no
 suite_map glob matches: a partial run never clears `units`. Each file is written through `provenance.keep_earlier` (an
-earlier tree's file is archived with its summary) and has its `<stem>.summary.json` beside it; the UNITS file's summary
+earlier tree's file is archived with its summary; #28-evidence-identity: "earlier tree" by IDENTITY, given this run's own
+`covers:<suite>` code line, never by the digest alone, which is the same for every clean tree) and has its
+`<stem>.summary.json` beside it; the UNITS file's summary
 is the whole run's.
 
 SHARDING (P7). The tests of a sharded module (test_check_purity) are the ones UNITTEST'S OWN LOADER collects
@@ -97,7 +99,7 @@ if str(REPO) not in sys.path:
 
 from ai_player.gates import run_units  # noqa: E402
 from ai_player.gates.provenance import (EVIDENCE, HOOK_SCOPE, MID_RUN, FrozenTree, keep_earlier,  # noqa: E402
-                                        line, line_digest, suite_trees, summary_of, tree_digest)
+                                        line, suite_trees, summary_of, tree_digest)
 
 GATES = Path(__file__).resolve().parent
 TIMES = GATES / "run_regression_times.json"
@@ -885,7 +887,10 @@ def write_evidence(rows: list[Row], cfg: Config, watch: TreeWatch, verdict_line:
                                            and not verdict_line.startswith("FROZEN TREE: FAIL") else FAIL)
         summary = {"schema": 1, "lane": cfg.lane, "started": started, "wall_s": round(wall, 1), "code_line": code,
                    "overall": g_overall, "suites": [r.summary() for r in chosen]}
-        keep_earlier(path, current=line_digest(code) or "unknown", folder=folder)
+        # (#28-evidence-identity) by identity: this run's own `covers:<suite>` line (its HEAD, label and digest), so a
+        # clean run on a newer commit with a changed covered file archives the earlier commit's file instead of writing
+        # over it; an "unknown (...)" line has no identity and always archives
+        keep_earlier(path, folder=folder, repo=cfg.repo, code=code)
         path.write_text("\n".join(text) + "\n", encoding="utf-8")
         target = summary_of(path)
         # LF only and the newline inside the cap: the FILE is at most SUMMARY_CAP bytes on Windows too

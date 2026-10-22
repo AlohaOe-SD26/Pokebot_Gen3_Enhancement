@@ -1,7 +1,14 @@
 # Evidence of earlier trees: the archive policy
 
 `ai_player/evidence/` holds, at its top level, the evidence of the CURRENT working tree only: every file there names the
-tree's digest in its `code:` line, and `py -3.12 ai_player/gates/provenance.py --check-evidence` fails otherwise.
+tree in its `code:` line, and `py -3.12 ai_player/gates/provenance.py --check-evidence` fails otherwise.
+
+> **Since 2026-10-21 (`#28-evidence-identity`): a tree is identified by the CODE UNDER TEST, not by its digest alone.**
+> The digest describes only the diff from a commit, so a clean tree's digest is the same at every commit. A file's
+> identity is now (its label, its label's committed files at its HEAD, its digest), and a NEW archive folder is named
+> `<digest>-<HEAD>` (`provenance.archive_key`), so two clean trees of different commits never share one. The folders
+> below named by a bare digest were written before that and keep their names. Where the text below says "tree digest",
+> read "tree identity" for any file archived from 2026-10-21 on.
 
 ## The policy (step 4.1, 2026-10-09: the step-4 review's item 9, "the archive is 54 MB")
 
