@@ -52,6 +52,16 @@ The 2026-10-22 verify's REFIX (its F1-F3 and its 22 guard-deleting mutants):
                     W4b's no-giver branch; the plural `ivs` in both scans.
   PinTests          a clone at ANOTHER commit (a .git whose HEAD is not the pin) is refused by both programs; CONTROL:
                     the same folder at the pin is accepted.
+Slice 2, stage 2a (items_gifts.json, extract_items.py): S2OutputTests, S2RuleTests (R-4..R-7), S2VerifierTests (every
+plant (e)..(q) on its own one line), S2GuardTests, TFairTests; and its FIX ROUND 1 (the 2a verifier's F1-F6):
+  S2FixRound1Tests  F1 `repeatable` only when nothing after the gift moves state (FAULT: a setflag planted after the Lava
+                    Cookie lady); F2 no fall-through out of a data table (round 0: 427 such edges); F3 a menu's arms are
+                    one choice (FAULT: the same arms behind no menu); F4 every CHOOSER_OF cite holds its token (FAULT:
+                    each line off by one, a moved C file refuses the build); F5 story gates on the own var stay (FAULT:
+                    a second setter of the SS Ticket's value outside the Hall of Fame unwords it); F6 the lottery's
+                    words, the Mirage Tower's map condition, the Petalburg mart's setter by reference.
+  S2VerifierFixTests the daily regex (both forms, set and unset); a golden cite moved off its line is reported; each
+                    rule check (a1-a4) fires on a record the golden list does not hold.
 """
 import copy
 import io
@@ -88,7 +98,7 @@ CHAPTER_OF = {
 }
 #: what a reader of the world files would have to write (`world/` alone is not one: the AI's own `ai_player/world/`
 #: package is named in comments and paths all over the play code)
-PLAY_NAMES = ("knowledge/world", "trainers.json", "bosses.json", "maps.json", "campaign.json")
+PLAY_NAMES = ("knowledge/world", "trainers.json", "bosses.json", "maps.json", "campaign.json", "items_gifts.json")
 
 ROOT = None
 D = None
@@ -204,7 +214,7 @@ class W1WithheldTests(unittest.TestCase):
         n, hits = vw.withheld_scan(str(KNOWLEDGE))
         self.assertEqual(hits, [])
         world = sorted(p.name for p in WORLD.glob("*.json"))
-        self.assertEqual(world, sorted(ew.OUTPUTS))
+        self.assertEqual(world, sorted(ew.OUTPUTS + (ei.OUT_NAME,)))  # slice 1's four + stage 2a's items_gifts
         self.assertGreaterEqual(n, len(list(KNOWLEDGE.rglob("*.json"))))
         with tempfile.TemporaryDirectory() as tmp:
             shutil.copytree(KNOWLEDGE, Path(tmp) / "k", ignore=shutil.ignore_patterns("*.py", "__pycache__"))
@@ -1006,6 +1016,1120 @@ class NotReadTests(unittest.TestCase):
             problems, _ = schema_problems(k)
             self.assertEqual(len(problems), 1)
             self.assertIn("campaign.json", problems[0])
+
+
+# ---------------------------------------------------------------- slice 2, stage 2a: items_gifts.json
+import check_fairness as cf  # noqa: E402
+import extract_items as ei  # noqa: E402
+
+_S2 = {}
+
+
+def s2():
+    """(the fresh items_gifts object, the build's parts) at the pin, built once (about 3 s)."""
+    if not _S2:
+        _S2["obj"], _S2["res"] = ei.build_all(ew.Decomp(ROOT), str(WORLD / "maps.json"))
+    return _S2["obj"], _S2["res"]
+
+
+def items_copy():
+    return copy.deepcopy(s2()[0])
+
+
+def gift(obj, prefix):
+    return next(g for g in obj["gifts"] if g["id"].startswith(prefix))
+
+
+def w7_acceptance(obj):
+    """W7's two items_gifts facts (recon-data Q7 rows 5 and 16), as failures: Birch's five Poke Balls (lab :519 /
+    :527, no own flag) and TM39 Rock Tomb (after Roxanne, in her gym).
+    ‼ ROW 16 IS NOT MET FOR THE AI SINCE FIX ROUND 3 (a coordinator ruling is pending, fix3b-report.md): the fact
+    'missable on a full bag and re-offered' was `until_received`; the round-3 SOLE-WRITER rule (fix-spec-3 item 1)
+    cannot re-check a trainer flag (TRAINER_ROXANNE_1 is set by the battle, not by a named writer), so the record is
+    `unknown`. What this pins is the honest current shape: `unknown`, never `once` (which would tell the AI a lost
+    TM is gone), with the until_received evidence kept under dev.blocked_by (the gift's own setflag at :31)."""
+    bad = []
+    balls = [g for g in obj["gifts"] if g["ref"] in ("data/maps/LittlerootTown_ProfessorBirchsLab/scripts.inc:519",
+                                                      "data/maps/LittlerootTown_ProfessorBirchsLab/scripts.inc:527")]
+    if len(balls) != 2 or any(g["what"] != "ITEM_POKE_BALL" for g in balls):
+        bad.append("row 5: Birch's Poke Balls %s" % [(g["id"], g["what"]) for g in balls])
+    rt = [g for g in obj["gifts"] if g["what"] == "ITEM_TM_ROCK_TOMB"]
+    if not rt or rt[0]["repeat"] != "unknown" or "Roxanne" not in (rt[0]["when"] or "").title() or \
+            rt[0]["maps"] != ["MAP_RUSTBORO_CITY_GYM"] or \
+            rt[0]["dev"].get("blocked_by") != ["FLAG_RECEIVED_TM_ROCK_TOMB = set (data/maps/RustboroCity_Gym/scripts.inc:31)"]:
+        bad.append("row 16: Rock Tomb %s" % [(g["repeat"], g["when"], g["maps"]) for g in rt])
+    return bad
+
+
+class S2OutputTests(unittest.TestCase):
+    """--check: the committed file is byte-identical to a fresh extraction (a determinism check, not a replication)."""
+
+    def test_committed_equals_fresh(self):
+        self.assertEqual((WORLD / ei.OUT_NAME).read_bytes(), serial(s2()[0]))
+        bad = items_copy()
+        bad["gifts"][0]["repeat"] = "daily" if bad["gifts"][0]["repeat"] != "daily" else "once"
+        self.assertNotEqual((WORLD / ei.OUT_NAME).read_bytes(), serial(bad))
+
+    def test_check_cli(self):
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(ei.main(["--check"]), 0)
+            with tempfile.TemporaryDirectory() as tmp:
+                bad = items_copy()
+                bad["marts"][0]["lists"][0]["items"].pop()
+                Path(tmp, ei.OUT_NAME).write_bytes(serial(bad))
+                self.assertEqual(ei.main(["--check", "--out", tmp]), 1)
+
+    def test_counts_re_measured(self):
+        """The recon's counts at the pin (2026-10-22 notes), re-measured: 176 reachable gift lines (145 giveitem + 13
+        givedecoration + 7 givemon + 1 giveegg in the map scripts, 10 shared giveitem once the Eon Ticket is excluded),
+        58 TM/HM rows each with a source, 37 mart lists, 5 dead lines, 10 excluded."""
+        obj, res = s2()
+        self.assertEqual(len(obj["gifts"]), 176)
+        self.assertEqual(len(obj["tm_hm"]), 58)
+        self.assertTrue(all(row["sources"] for row in obj["tm_hm"]))
+        self.assertEqual(sum(len(m["lists"]) for m in obj["marts"]), 37)
+        self.assertEqual(len(obj["dead"]), 5)
+        self.assertEqual(len(obj["excluded"]), 10)
+        self.assertLess(res["max_closure"] * 2, ei.MAX_CLOSURE, "the closure bound has lost its margin")
+
+
+class S2RuleTests(unittest.TestCase):
+    """R-4..R-7 on the whole output, each with a FAULT beside the CONTROL; the extractor's door refuses each."""
+
+    def test_r4_keys_only_under_dev(self):
+        obj = items_copy()
+        self.assertEqual(ei.dev_key_hits(obj), [])
+        self.assertEqual(vw.s2_key_hits(obj), [])
+        for plant in ("flag", "flags", "var", "vars"):
+            bad = items_copy()
+            bad["gifts"][3][plant] = "FLAG_RECEIVED_TM_ROCK_TOMB"
+            self.assertTrue(ei.dev_key_hits(bad), plant)
+            self.assertTrue(vw.s2_key_hits(bad), plant)
+            self.assertRaises(ei.Refused, ei.refuse_dev_keys, bad)
+        bad = items_copy()
+        bad["marts"][0]["lists"][0]["when"] = "after FLAG_BADGE03_GET"
+        self.assertRaises(ei.Refused, ei.refuse_dev_keys, bad)
+
+    def test_r5_names_from_the_decomp(self):
+        obj = items_copy()
+        defined = ei.defined_names(ew.Decomp(ROOT))
+        ei.check_dev_names(obj, defined)
+        self.assertIn("FLAG_TEMP_SKIP_GABBY_INTERVIEW", defined)  # an alias emerald.txt lacks is still a real name
+        bad = items_copy()
+        bad["gifts"][0]["dev"]["flags"].append("FLAG_HIDE_FALLORBOR_POKEMON_CENTER_LANETTE")  # emerald.txt's spelling
+        self.assertRaises(ei.Refused, ei.check_dev_names, bad, defined)
+
+    def test_r6_r7_and_the_door(self):
+        d = ew.Decomp(ROOT)
+        defined = ei.defined_names(d)
+        ei.refuse_all(items_copy(), defined)
+        for where, key in ((("gifts", 0), "x"), (("marts", 0), "route"), (("gifts", 1), "iv"), (("gifts", 2), "aiFlags")):
+            bad = items_copy()
+            bad[where[0]][where[1]][key] = 1
+            self.assertRaises(ei.Refused, ei.refuse_all, bad, defined)
+            with tempfile.TemporaryDirectory() as tmp:
+                self.assertRaises(ei.Refused, ei.write_output, tmp, bad, d)
+                self.assertFalse(os.path.exists(os.path.join(tmp, ei.OUT_NAME)))
+
+    def test_dead_and_excluded_are_named(self):
+        obj = items_copy()
+        dead = {x["label"] for x in obj["dead"]}
+        self.assertEqual(dead, {"AquaHideout_B2F_EventScript_ItemMasterBall", "Route119_EventScript_ItemMaxElixir",
+                                "Route119_EventScript_ItemNestBall", "MossdeepCity_StevensHouse_EventScript_DiveItemBall",
+                                "LilycoveCity_ContestLobby_EventScript_SetDebug"})
+        self.assertIn("IsContestDebugActive", next(x["why"] for x in obj["dead"] if "SetDebug" in x["label"]))
+        ex = {x["ref"].split(":")[0] for x in obj["excluded"]}
+        self.assertTrue({"data/scripts/gift_pichu.inc", "data/scripts/cable_club.inc",
+                         "data/scripts/obtain_item.inc"} <= ex, ex)
+        self.assertFalse({x["ref"] for x in obj["dead"] + obj["excluded"]} & {g["ref"] for g in obj["gifts"]})
+        bad = items_copy()
+        bad["dead"] = bad["dead"][1:]
+        rep = vw.Report()
+        vw.verify_items(ROOT, bad, vw.load(str(WORLD))["maps"], rep)
+        self.assertTrue(any(ln.startswith("MISMATCH items dead:") for ln in rep.lines), rep.lines)
+
+    def test_w7_acceptance(self):
+        self.assertEqual(w7_acceptance(items_copy()), [])
+        bad = items_copy()
+        gift(bad, "RustboroCity_Gym_EventScript_GiveRockTomb")["repeat"] = "once"
+        self.assertTrue(w7_acceptance(bad))
+        bad = items_copy()
+        bad["gifts"] = [g for g in bad["gifts"] if not g["ref"].endswith("ProfessorBirchsLab/scripts.inc:519")]
+        self.assertTrue(w7_acceptance(bad))
+
+    def test_conditions_that_matter(self):
+        """The recon's conditionality table, as the output says it: daily, weekly + friendship, one of two fossils,
+        a random berry range, the lottery's C table, an unresolvable prize kept 'unknown', words never invented."""
+        obj = items_copy()
+        self.assertEqual(gift(obj, "LilycoveCity_EventScript_BerryGentleman")["repeat"], "daily")
+        ret = gift(obj, "PacifidlogTown_House2_EventScript_GiveReturn")
+        # fix round 3 (item 3): an untabled special on the way in (GetDaysUntilPacifidlogTMAvailable) makes `when` null
+        self.assertEqual((ret["repeat"], ret["when"]), ("weekly", None))
+        self.assertEqual(next(w["dev"]["unworded"] for w in obj["_when_null"] if w["id"] == ret["id"]),
+                         ["a special on the way in that SPECIAL_EFFECTS does not table: "
+                          "GetDaysUntilPacifidlogTMAvailable"])
+        self.assertEqual(gift(obj, "MirageTower_4F_EventScript_RootFossil")["exclusive_with"],
+                         ["MirageTower_4F_EventScript_ClawFossil:1"])
+        self.assertEqual(gift(obj, "LilycoveCity_DepartmentStore_1F_EventScript_LotteryClerk")["what"]["one_of"],
+                         ["ITEM_EXP_SHARE", "ITEM_MASTER_BALL", "ITEM_MAX_REVIVE", "ITEM_PP_UP"])
+        self.assertEqual(gift(obj, "LilycoveCity_PokemonCenter_1F_EventScript_GivePrize")["what"]["one_of"], "unknown")
+        nulls = {w["id"] for w in obj["_when_null"]}
+        self.assertTrue(all((g["when"] is None) == (g["id"] in nulls) for g in obj["gifts"]))
+        self.assertFalse(any(isinstance(g["what"], str) and g["what"].startswith("VAR_") for g in obj["gifts"]))
+        marts = {m["id"]: m for m in obj["marts"]}
+        th = marts["TrainerHill_Entrance_EventScript_Clerk"]["lists"]
+        self.assertEqual(th[0]["when"], "before entering the Hall of Fame")
+
+
+class S2VerifierTests(unittest.TestCase):
+    """verify_world's stage-2a reading: CONTROL 0 mismatches on the real file; each plant (e) (g) (h) (h2) (i) (j)
+    (k), and fix round 1's (l)..(q), reported on exactly its own ONE line, (g) being the dead label a finditem
+    recount would AGREE with."""
+
+    def test_control_and_plants(self):
+        rep = vw.Report()
+        vw.verify_items(ROOT, vw.load_items(str(WORLD)), vw.load(str(WORLD))["maps"], rep)
+        self.assertEqual(rep.lines, [])
+        self.assertEqual(rep.counts.get("items_gift_lines"), 176)
+        for name in vw.S2_PLANTS:
+            ok, lines, prefix = vw.s2_plant_result(ROOT, str(WORLD), name)
+            self.assertTrue(ok, "%s: %s not in %s" % (name, prefix, lines))
+
+    def test_verifier_shares_no_function(self):
+        src = (HERE / "verify_world.py").read_text(encoding="utf-8")
+        self.assertNotRegex(src, r"^\s*(import|from)\s+extract_items", "the verifier must not import the extractor")
+
+
+class S2GuardTests(unittest.TestCase):
+    """Each guard of extract_items refuses its broken input (a scratch input, never the clone)."""
+
+    def test_guards_refuse(self):
+        d = ew.Decomp(ROOT)
+        ev, gf = ei.script_files(d)
+        ei.check_sources(d, ev, gf)
+        self.assertRaises(ei.Refused, ei.check_sources, d, [f for f in ev if "Route104/" not in f], gf)
+        self.assertRaises(ei.Refused, ei.vanilla_lines, "#ifdef DEBUG\n\tend\n#endif\n", "x.inc")
+        self.assertEqual(len(ei.vanilla_lines("#ifdef BUGFIX\n\tA\n#else\n\tB\n#endif\n", "x.inc")), 6)
+
+        class Fake:
+            def read(self, rel):
+                return "Dup::\n\tend\nDup::\n\tend\n"
+        self.assertRaises(ei.Refused, ei.parse_labels, Fake(), ["a.inc"])
+        labels = {"A": {"file": "a", "line": 1, "body": [], "next": None}}
+        roots = [{"label": "Missing_Label", "map": "MAP_X", "giver": {"kind": "object"}, "object_flag": None}]
+        self.assertRaises(ei.Refused, ei.check_map_scripts, roots, labels)
+        chain = {"L%d" % i: [("L%d" % (i + 1), "goto", 1, None, None)] for i in range(ei.MAX_CLOSURE + 5)}
+        self.assertRaises(ei.Refused, ei.closure, chain, "L0")
+
+        class G:
+            labels = {"List": {"file": "a", "line": 1, "body": [(2, ".2byte ITEM_POTION")], "next": None}}
+        self.assertRaises(ei.Refused, ei.mart_items, G(), "List")
+        G.labels["List"]["body"].append((3, "pokemartlistend"))
+        self.assertEqual(ei.mart_items(G(), "List"), ["ITEM_POTION"])
+        maps_doc = json.loads((WORLD / "maps.json").read_text(encoding="utf-8"))
+        ei.check_maps_json(maps_doc, d.sha)
+        self.assertRaises(ei.Refused, ei.check_maps_json, dict(maps_doc, _source="pret/pokeemerald@0000"), d.sha)
+
+    def test_build_refuses(self):
+        """The guards' CALLS inside the build: each broken decomp file (an overlay) or input makes build_all refuse."""
+        maps_path = str(WORLD / "maps.json")
+        ev = raw_text("data/event_scripts.s")
+        r104 = raw_text("data/maps/Route104/scripts.inc")
+        # each refusal must come from ITS guard (the message names it): a later guard refusing the same broken input
+        # would otherwise hide a deleted call (the first mutant round: check_sources' call survived that way)
+        cases = {
+            "neither data/event_scripts.s nor": {
+                "data/event_scripts.s": ev.replace('\t.include "data/maps/Route104/scripts.inc"\n', "")},
+            "map.json scripts that are no label": {
+                "data/maps/Route104/map.json": raw_text("data/maps/Route104/map.json").replace(
+                    '"Route104_EventScript_Boy2"', '"Route104_EventScript_NoSuchLabel"')},
+            "R-4": {"data/maps/Route104/scripts.inc": r104.replace(
+                "giveitem ITEM_TM_BULLET_SEED", "giveitem FLAG_RECEIVED_TM_BULLET_SEED")},
+        }
+        for needle, over in cases.items():
+            self.assertNotEqual(list(over.values())[0], raw_text(list(over)[0]), needle)
+            self.assertRaisesRegex(ei.Refused, re.escape(needle), ei.build_all, OverlayDecomp(ROOT, over), maps_path)
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = json.loads((WORLD / "maps.json").read_text(encoding="utf-8"))
+            doc["_source"] = "pret/pokeemerald@0000000"
+            Path(tmp, "maps.json").write_text(json.dumps(doc), encoding="utf-8")
+            shutil.copy(WORLD / "trainers.json", Path(tmp, "trainers.json"))
+            self.assertRaisesRegex(ei.Refused, "maps.json is from", ei.build_all, ew.Decomp(ROOT),
+                                   str(Path(tmp, "maps.json")))
+        defined = ei.defined_names(ew.Decomp(ROOT))
+        for needle, plant in (("R-4", {"flag": "FLAG_X"}), ("R-5", {"dev": {"flags": ["FLAG_NO_SUCH_FLAG"]}})):
+            bad = items_copy()
+            bad["gifts"][5].update(plant)
+            self.assertRaisesRegex(ei.Refused, needle, ei.refuse_all, bad, defined)
+
+    def test_constant_branch_is_pruned(self):
+        obj, res = s2()
+        self.assertEqual([p[2] for p in res["graph"].pruned], ["IsContestDebugActive"])
+        self.assertFalse(any("ContestLobby_EventScript_SetDebug" in p["id"] for p in obj["purchases"]))
+
+
+def fake_graph(text):
+    """An extract_items Graph over one synthetic script file (rooted at its first label, an object on MAP_X)."""
+    class Fake:
+        def read(self, rel):
+            return text
+    labels = ei.parse_labels(Fake(), ["x.inc"])
+    edges = ei.build_edges(labels)
+    first = next(iter(labels))
+    roots = [{"label": first, "map": "MAP_X", "cond": None, "object_flag": None, "hidden": False,
+              "giver": {"map": "MAP_X", "kind": "object", "object": 1, "local_id": 1, "graphics": "G"}}]
+    return ei.Graph(None, labels, edges, roots, {})
+
+
+def no_condition_over_tests(obj):
+    """Records whose `when` says 'no condition' while dev.tests is not empty (F5: never)."""
+    recs = obj["gifts"] + obj["purchases"] + [lst for m in obj["marts"] for lst in m["lists"]]
+    return [r.get("id", r.get("label")) for r in recs if r["when"] == "no condition beyond `repeat`" and r["dev"]["tests"]]
+
+
+class S2FixRound1Tests(unittest.TestCase):
+    """FIX ROUND 1 of stage 2a (the verifier's F1-F6), each a FAULT beside its CONTROL:
+    F1 `repeatable` only on positive evidence (nothing after the gift moves state); F2 no fall-through out of a data
+    table; F3 rule E, the arms of one menu are one choice; F4 every CHOOSER_OF entry cited to a line holding its token
+    (the Favor Lady is `random`); F5 a test on the own var is a story gate unless it is the once-guard; F6 the lottery's
+    words, the Mirage Tower's map condition, the Petalburg mart's setter by reference."""
+
+    def test_fresh_build_passes_the_verifier(self):
+        """The independent verifier (rules a1-a4 + the golden list) over a FRESH extraction, not the committed file: a
+        semantic check of the build itself (the --check byte comparison is only a determinism check)."""
+        rep = vw.Report()
+        vw.verify_items(ROOT, items_copy(), vw.load(str(WORLD))["maps"], rep)
+        self.assertEqual(rep.lines, [])
+        bad = items_copy()  # FAULT: the fresh build with HM Fly said repeatable
+        gift(bad, "Route119_EventScript_GiveFlyHM")["repeat"] = "repeatable"
+        rep = vw.Report()
+        vw.verify_items(ROOT, bad, vw.load(str(WORLD))["maps"], rep)
+        self.assertEqual(len(rep.lines), 1)
+
+    def test_f1_repeat_on_positive_evidence(self):
+        """Updated in fix round 3 (stage 3b): round 1's `after_gift` is gone; `repeatable` now rests on evidence()'s
+        open path or a cited re-arm (dev.repeat_why / dev.rearm), and the strict sole-writer rule moved many records
+        to `unknown` (fix-spec-3: 'more unknown is the expected, correct cost'). Counts re-measured at the pin."""
+        obj, res = s2()
+        counts = {}
+        for x in obj["gifts"]:
+            counts[x["repeat"]] = counts.get(x["repeat"], 0) + 1
+        self.assertEqual(counts, {"once": 28, "repeatable": 11, "until_received": 41, "daily": 27, "weekly": 2,
+                                  "unknown": 67})
+        for x in obj["gifts"]:  # CONTROL: every repeatable gift says WHY: an open path, or a re-arm it cites
+            if x["repeat"] == "repeatable":
+                why = x["dev"].get("repeat_why") or ""
+                self.assertTrue(why.startswith("a path stays open") or (x["dev"].get("rearm") and "re-arm" in why),
+                                (x["id"], why))
+        want = {"PetalburgCity_WallysHouse_EventScript_GiveHMSurf:1": "unknown",       # VAR_PETALBURG_CITY_STATE: 3 writers
+                "Route119_EventScript_GiveFlyHM:1": "once",                            # VAR_ROUTE119_STATE, sole at :144
+                "PetalburgCity_Gym_EventScript_GiveFacade:1": "unknown",               # VAR_PETALBURG_GYM_STATE: addvar elsewhere
+                "LittlerootTown_ProfessorBirchsLab_EventScript_MayGivePokeBalls:1": "unknown",
+                "Route111_EventScript_GiveSecretPower:1": "until_received",            # removeobject VAR_LAST_TALKED
+                "DesertUnderpass_EventScript_GiveClawFossil:1": "unknown",             # its hide flag has other writers
+                "SlateportCity_PokemonFanClub_EventScript_GiveRedScarf:1": "unknown",  # its flag, also set before the gift
+                "SlateportCity_Harbor_EventScript_DeepSeaTooth:1": "until_received"}   # the one Scanner, handed over
+        self.assertEqual({k: gift(obj, k)["repeat"] for k in want}, want)
+        notes = {x["id"]: x["dev"] for x in obj["_notes"]["repeat_unknown"]}
+        self.assertEqual(sorted(notes), sorted(x["id"] for x in obj["gifts"] if x["repeat"] == "unknown"))
+        self.assertEqual(gift(obj, "SlateportCity_Harbor_EventScript_DeepSeaTooth")["dev"]["blocked_by"],
+                         ["ITEM:ITEM_SCANNER = sub 1 (data/maps/SlateportCity_Harbor/scripts.inc:337)"])
+        # FAULT (s2_faulted F-writer): `setvar VAR_ROUTE119_STATE, 0` planted after the Lava Cookie lady's giveitem, a
+        # write her path does not test but Route 119's coord events read: her gift is no longer `repeatable`
+        self.assertEqual(gift(obj, "MtChimney_EventScript_LavaCookieLady")["repeat"], "repeatable")
+        self.assertEqual(gift(s2_faulted(), "MtChimney_EventScript_LavaCookieLady")["repeat"], "unknown")
+
+    def test_f2_no_fall_out_of_a_table(self):
+        obj, res = s2()
+        g = res["graph"]
+        falls = [(s, t) for s, outs in g.edges.items() for t, k, *_ in outs if k == "fall"
+                 and any(c.startswith(".") for _, c in g.labels[s]["body"])]
+        self.assertEqual(falls, [])  # round 0: 427 (every map_script / map_script_2 table and MapScripts list)
+        lab = lambda *body: {"body": list(enumerate(body, 1))}  # noqa: E731
+        self.assertFalse(ei.falls_through(lab("map_script_2 VAR_X, 4, L", ".2byte 0")))
+        self.assertFalse(ei.falls_through(lab("map_script MAP_SCRIPT_ON_FRAME_TABLE, L")))
+        self.assertFalse(ei.falls_through(lab("msgbox T", "end")))
+        self.assertFalse(ei.falls_through(lab(".string \"x$\"")))
+        self.assertTrue(ei.falls_through(lab("msgbox T", "setflag FLAG_X")))  # FAULT side: a command runs on
+        self.assertTrue(ei.falls_through(lab()))
+        for gid, test in (("PetalburgCity_WallysHouse_EventScript_GiveHMSurf:1", "VAR_PETALBURG_CITY_STATE eq 4"),
+                          ("MossdeepCity_StevensHouse_EventScript_StevenGivesDive:1", "VAR_STEVENS_HOUSE_STATE eq 1"),
+                          ("RustboroCity_DevonCorp_3F_EventScript_MeetPresident:1", "VAR_DEVON_CORP_3F_STATE eq 0")):
+            self.assertIn(test, gift(obj, gid)["dev"]["tests"])
+            self.assertIsNone(gift(obj, gid)["when"])
+        for gid in ("Route114_EventScript_Man:1", "Route118_EventScript_ReceiveGoodRod:1"):
+            self.assertEqual([x["kind"] for x in gift(obj, gid)["giver"]], ["object"], gid)
+
+    def test_f3_menu_arms_are_one_choice(self):
+        obj = s2()[0]
+        pairs = (("SlateportCity_Harbor_EventScript_DeepSeaTooth:1", "SlateportCity_Harbor_EventScript_DeepSeaScale:1"),
+                 ("MauvilleCity_BikeShop_EventScript_GetMachBike:1", "MauvilleCity_BikeShop_EventScript_GetAcroBike:1"))
+        for a, b in pairs:
+            self.assertEqual((gift(obj, a)["exclusive_with"], gift(obj, b)["exclusive_with"]), ([b], [a]))
+        # fix round 2 (item 5): the four Trick House tents are ONE prize (EXCLUSIVE_CITED): each excludes the other three
+        tents = ["Route110_Trick%s_EventScript_Give%sTent:1" % (w, c) for w in ("HouseEnd", "HouseEntrance")
+                 for c in ("Red", "Blue")]
+        for t in tents:
+            self.assertEqual(gift(obj, t)["exclusive_with"], sorted(set(tents) - {t}), t)
+        text = ("Menu::\n\tmultichoice 0, 0, MULTI_TENT, TRUE\n\tswitch VAR_RESULT\n\tcase 0, GiveA\n\tgoto GiveB\n"
+                "GiveA::\n\tgiveitem ITEM_POTION\n\treturn\nGiveB::\n\tgiveitem ITEM_ANTIDOTE\n\treturn\n")
+
+        def run(txt, repeat):
+            gifts = [{"id": "GiveA:1", "what": {"one_of": "unknown", "chosen_by": "unknown"}, "repeat": repeat,
+                      "exclusive_with": []},
+                     {"id": "GiveB:1", "what": "ITEM_ANTIDOTE", "repeat": repeat, "exclusive_with": []}]
+            ei.menu_exclusive(gifts, fake_graph(txt), {"GiveA": [gifts[0]], "GiveB": [gifts[1]]})
+            return [x["exclusive_with"] for x in gifts], gifts[0]["what"]["chosen_by"]
+        self.assertEqual(run(text, "once"), ([["GiveB:1"], ["GiveA:1"]], "choice"))  # CONTROL: case arm vs default goto
+        self.assertEqual(run(text, "repeatable"), ([[], []], "choice"))  # both repeatable: the menu can be opened again
+        self.assertEqual(run(text.replace("multichoice 0, 0, MULTI_TENT, TRUE", "msgbox T, MSGBOX_DEFAULT"), "once"),
+                         ([[], []], "unknown"))                           # FAULT: no menu, so no choice either
+
+    def test_f4_every_chooser_is_cited(self):
+        d = ew.Decomp(ROOT)
+        cites = ei.table_cites()
+        self.assertEqual({e.split(" ", 1)[1] for e, _, _ in cites if e.startswith("CHOOSER_OF")}, set(ei.CHOOSER_OF))
+
+        def unheld(table):
+            out = []
+            for entry_, where, token in table:
+                rel, n = where.rsplit(":", 1)
+                lines = raw_text(rel).split("\n")
+                if int(n) > len(lines) or token not in lines[int(n) - 1]:
+                    out.append(entry_)
+            return out
+        self.assertEqual(unheld(cites), [])  # CONTROL: each cite opened at the pin holds its token
+        moved = [(e, "%s:%d" % (w.rsplit(":", 1)[0], int(w.rsplit(":", 1)[1]) + 1), t) for e, w, t in cites]
+        self.assertEqual(len(unheld(moved)), len(cites))  # FAULT: every line number off by one is refused
+        ei.check_cites(d)
+        saved = ei.CHOOSER_CITED["FavorLadyGetPrize"]
+        try:
+            ei.CHOOSER_CITED["FavorLadyGetPrize"] = ("random", ("src/lilycove_lady.c:134", "Random()"))
+            self.assertRaisesRegex(ei.Refused, "FavorLadyGetPrize", ei.check_cites, d)
+        finally:
+            ei.CHOOSER_CITED["FavorLadyGetPrize"] = saved
+        rel = "src/lottery_corner.c"  # FAULT through the build: the cited file moves by one line
+        self.assertRaisesRegex(ei.Refused, "cited table lines", ei.build_all,
+                               OverlayDecomp(ROOT, {rel: "\n" + raw_text(rel)}), str(WORLD / "maps.json"))
+        self.assertEqual(ei.CHOOSER_OF["FavorLadyGetPrize"], "random")
+        self.assertEqual(gift(s2()[0], "LilycoveCity_PokemonCenter_1F_EventScript_FavorLadyPrize")["what"]["chosen_by"],
+                         "random")
+
+    def test_f5_story_gates_stay(self):
+        obj = s2()[0]
+        ss = gift(obj, "PlayersHouse_1F_EventScript_GetSSTicketAndSeeLatiTV")
+        self.assertEqual((ss["when"], ss["dev"]["tests"]),
+                         ("after entering the Hall of Fame", ["VAR_LITTLEROOT_HOUSES_STATE_MAY eq 3"]))
+        nulls = {w["id"] for w in obj["_when_null"]}
+        for n in range(1, 8):
+            th = gift(obj, "Route110_TrickHouseEnd_EventScript_CompletedPuzzle%d" % n)
+            self.assertEqual(th["dev"]["tests"], ["VAR_TRICK_HOUSE_LEVEL eq %d" % (n - 1)])
+            self.assertTrue(th["when"] is None and th["id"] in nulls)
+        # fix round 2: each path's conditions in dev.path_tests (they differ); none is common, and `when` is null
+        rus = gift(obj, "RusturfTunnel_EventScript_ClearTunnelScene")
+        self.assertEqual((rus["dev"]["tests"], rus["dev"]["path_tests"], rus["when"]),
+                         ([], [["VAR_RUSTURF_TUNNEL_STATE eq 4"], ["VAR_RUSTURF_TUNNEL_STATE eq 5"]], None))
+        self.assertEqual(no_condition_over_tests(obj), [])
+        bad = items_copy()
+        bad["gifts"][0]["when"], bad["gifts"][0]["dev"]["tests"] = "no condition beyond `repeat`", ["VAR_X eq 1"]
+        self.assertEqual(len(no_condition_over_tests(bad)), 1)
+        info = {"own_values": ["1"]}
+        self.assertTrue(ei.is_once_guard(("var", "V", "ne", "1"), "V", info))       # flipped by the gift's own write
+        self.assertTrue(ei.is_once_guard(("var", "V", "lt", "2"), "V", {"own_values": ["2"]}))
+        self.assertTrue(ei.is_once_guard(("flag", "F", False), "F", None))
+        self.assertFalse(ei.is_once_guard(("var", "V", "eq", "4"), "V", {"own_values": ["5"]}))  # a value set elsewhere
+        self.assertFalse(ei.is_once_guard(("var", "V", "eq", "0"), "V", info))      # eq is kept (the Letter)
+        self.assertFalse(ei.is_once_guard(("var", "V", "ne", "1"), "V", {"own_values": None}))  # a relative write
+        self.assertFalse(ei.is_once_guard(("var", "W", "ne", "1"), "V", info))      # another var
+        # FAULT: a second setter of the value 3, outside the Hall of Fame: the setter rule no longer words it
+        rel = "data/maps/InsideOfTruck/scripts.inc"
+        old = "setvar VAR_LITTLEROOT_HOUSES_STATE_MAY, 1"
+        self.assertIn(old, raw_text(rel))
+        bad, _ = ei.build_all(OverlayDecomp(ROOT, {rel: raw_text(rel).replace(old, old[:-1] + "3")}),
+                              str(WORLD / "maps.json"))
+        self.assertIsNone(gift(bad, "PlayersHouse_1F_EventScript_GetSSTicketAndSeeLatiTV")["when"])
+
+    def test_f6_records_the_ai_could_misread(self):
+        obj = s2()[0]
+        lot = gift(obj, "LilycoveCity_DepartmentStore_1F_EventScript_LotteryClerk")["what"]
+        self.assertEqual(lot["chosen_by"], "draw")
+        self.assertIn("most draws win nothing", lot["words"])
+        self.assertNotIn("words", ei.DEV_KEYS)  # an AI-facing key (a `note` would be developer-only)
+        nulls = {w["id"]: w["dev"]["unworded"] for w in obj["_when_null"]}
+        for gid in ("MirageTower_4F_EventScript_RootFossil:1", "MirageTower_4F_EventScript_ClawFossil:1"):
+            g = gift(obj, gid)
+            self.assertIsNone(g["when"])
+            self.assertIn("src/mirage_tower.c:328", g["dev"]["map_condition"]["refs"])
+            self.assertTrue(any("coin flip" in u for u in nulls[gid]))
+        self.assertNotIn("map_condition", gift(obj, "DesertUnderpass_EventScript_GiveClawFossil")["dev"])  # CONTROL
+        marts = {m["id"]: m for m in obj["marts"]}
+        exp = next(x for x in marts["PetalburgCity_Mart_EventScript_Clerk"]["lists"]
+                   if x["label"] == "PetalburgCity_Mart_Pokemart_Expanded")
+        setter = next(x for x in exp["dev"]["setters"] if x["ref"] == "data/event_scripts.s:678")
+        self.assertEqual(sorted(x["ref"].split("/")[2] for x in setter["reached_by"]),
+                         ["DewfordTown_Gym", "LavaridgeTown_Gym_1F", "MauvilleCity_Gym", "RustboroCity_Gym"])
+        self.assertTrue(all(x["test"] == "VAR_PETALBURG_GYM_STATE eq 6" for x in setter["reached_by"]))
+        self.assertIsNone(exp["when"])  # words only from a rule: none covers VAR_PETALBURG_GYM_STATE 6
+        basic = next(x for x in marts["PetalburgCity_Mart_EventScript_Clerk"]["lists"]
+                     if x["label"] == "PetalburgCity_Mart_Pokemart_Basic")
+        self.assertNotIn("setters", basic["dev"])  # CONTROL: the basic list tests no flag set
+
+
+class S2VerifierFixTests(unittest.TestCase):
+    """F7: the verifier now reads repeat, when, chosen_by, one_of and exclusive_with (rules + a golden list read off the
+    decomp by hand, its cites checked at verify time), and its daily guard regex takes every conditional form."""
+
+    def test_daily_regex(self):
+        for ok in ("goto_if_set FLAG_DAILY_X, L", "call_if_set FLAG_DAILY_X, L", "goto_if_unset FLAG_DAILY_X, L",
+                   "call_if_unset FLAG_DAILY_LILYCOVE_RECEIVED_BERRY, L"):
+            self.assertTrue(vw.S2_DAILY.search(ok), ok)
+        for no in ("setflag FLAG_DAILY_X", "goto_if_set FLAG_RECEIVED_X, L", "goto_if_eq VAR_DAILY_X, 1, L",
+                   "call_if_set FLAG_DAILYX, L"):
+            self.assertFalse(vw.S2_DAILY.search(no), no)
+
+    def test_golden_cites_fail_loudly(self):
+        self.assertGreaterEqual(len(vw.S2_GOLDEN), 20)
+        self.assertTrue(all(e["cites"] for e in vw.S2_GOLDEN))
+        saved = copy.deepcopy(vw.S2_GOLDEN)
+        try:
+            e = next(x for x in vw.S2_GOLDEN if x.get("id") == "LilycoveCity_EventScript_BerryGentleman:1")
+            e["cites"][0] = ("data/maps/LilycoveCity/scripts.inc:38", e["cites"][0][1])  # a moved pin
+            rep = vw.Report()
+            vw.verify_items(ROOT, vw.load_items(str(WORLD)), vw.load(str(WORLD))["maps"], rep)
+            self.assertEqual(len(rep.lines), 1)
+            self.assertIn("golden cite data/maps/LilycoveCity/scripts.inc:38 no longer holds", rep.lines[0])
+        finally:
+            vw.S2_GOLDEN[:] = saved
+
+    def test_each_rule_fires(self):
+        """One FAULT per rule check, on records the golden list does NOT hold (so the RULE is what fires)."""
+        items = vw.load_items(str(WORLD))
+        golden = {e.get("id") for e in vw.S2_GOLDEN}
+        cases = (("FortreeCity_Gym_EventScript_GiveAerialAce:1", "repeat", "repeatable",
+                  "runs after it"),                                           # a1 (Birch's balls became golden: round 2)
+                 ("Route110_TrickHouseEntrance_EventScript_GiveBlueTent:1", "exclusive_with", [],
+                  "exclusive_with lacks the sibling"),                       # a2
+                 ("Route116_EventScript_GiveRepeatBall:1", "giver",
+                  [{"map": "MAP_ROUTE116", "kind": "map_script"}], "no map_script / map_script_2 entry"),  # a3
+                 ("Route120_EventScript_GiveBerry:1", "what", {"one_of": ["ITEM_FIGY_BERRY"]}, "needs one_of"))  # a4
+        for gid, key, val, needle in cases:
+            self.assertNotIn(gid, golden)
+            bad = copy.deepcopy(items)
+            next(g for g in bad["gifts"] if g["id"] == gid)[key] = val
+            rep = vw.Report()
+            vw.verify_items(ROOT, bad, vw.load(str(WORLD))["maps"], rep)
+            self.assertEqual(len(rep.lines), 1, rep.lines)
+            self.assertTrue(rep.lines[0].startswith("MISMATCH items gift %s:" % gid) and needle in rep.lines[0],
+                            rep.lines)
+
+
+_S2F = {}
+
+
+def s2_faulted():
+    """ONE extraction with SEVEN independent faults planted at once, built once (about 9 s) and shared by the fix-round
+    2/3 tests. Each fault touches records the others leave alone, and each test reads only its own fault's records, so
+    one build serves as every FAULT arm that must go through the whole extractor (a fresh build per fault would cost
+    9 s each, again for every mutant of the mutant run):
+      F-rearm    REARM without the 8 Shoal Cave entries (the salt and shells lose their cited daily re-arm);
+      F-writer   an overlay adds `setvar VAR_ROUTE119_STATE, 0` right after the Lava Cookie's giveitem
+                 (data/maps/MtChimney/scripts.inc:98-99, so the new line is :100): a writer of HM Fly's blocking var
+                 outside its continuation, and a write the Lava Cookie's path does not test but Route 119 reads;
+      F-castform MAP_CONDITIONS without Route119_WeatherInstitute_2F;
+      F-weekly   SPECIAL_EFFECTS without SetPacifidlogTMReceivedDay (on the Pacifidlog TMs' continuation);
+      F-seedot   SPECIAL_EFFECTS without CompareSeedotSize (on Big Seedot's way in; Big Lotad is the control);
+      F-room     checkitem moved from POSSESSION to ROOM_PRODUCERS (round 1's bug: owning an item counted as room);
+      F-tents    EXCLUSIVE_CITED emptied (the Trick House tents lose their cited one-prize link).
+    The tables are restored in `finally`, whatever the build does."""
+    if not _S2F:
+        rel = "data/maps/MtChimney/scripts.inc"
+        old = "\tgiveitem ITEM_LAVA_COOKIE\n\tgoto_if_eq VAR_RESULT, FALSE, MtChimney_EventScript_BagIsFull\n"
+        text = raw_text(rel)
+        assert text.count(old) == 1, "the Lava Cookie lines moved"
+        tables = (ei.REARM, ei.MAP_CONDITIONS, ei.SPECIAL_EFFECTS, ei.POSSESSION, ei.ROOM_PRODUCERS)
+        saved = [dict(t) for t in tables] + [list(ei.EXCLUSIVE_CITED)]
+        try:
+            for k in [k for k in ei.REARM if k.startswith("FLAG_RECEIVED_SHOAL_")]:
+                del ei.REARM[k]
+            del ei.MAP_CONDITIONS["Route119_WeatherInstitute_2F"]
+            del ei.SPECIAL_EFFECTS["SetPacifidlogTMReceivedDay"]
+            del ei.SPECIAL_EFFECTS["CompareSeedotSize"]
+            ei.ROOM_PRODUCERS["checkitem"] = ei.POSSESSION.pop("checkitem")
+            ei.EXCLUSIVE_CITED[:] = []
+            over = {rel: text.replace(old, old + "\tsetvar VAR_ROUTE119_STATE, 0\n")}
+            _S2F["obj"], _ = ei.build_all(OverlayDecomp(ROOT, over), str(WORLD / "maps.json"))
+        finally:
+            for t, keep in zip(tables, saved):
+                t.clear()
+                t.update(keep)
+            ei.EXCLUSIVE_CITED[:] = saved[-1]
+    return _S2F["obj"]
+
+
+class Ctx:
+    """The two things holds_at_start / is_once_guard read off a build's Context: the graph (its Decomp) and the flags
+    EventScript_ResetAllMapFlags sets at new game."""
+
+    def __init__(self):
+        self.g = s2()[1]["graph"]
+        self.hidden0 = ei.hidden_at_start(self.g.labels)
+
+
+_CTX = {}
+
+
+def real_ctx():
+    """A build's own Context over the fresh graph (its writer index built on first use): the sole-writer rule's inputs
+    for the function-level tests (the build keeps its Context local). Built once."""
+    if not _CTX:
+        g = s2()[1]["graph"]
+        ctx = ei.Context(g, ei.read_maps(g.d), set(), json.loads((WORLD / "maps.json").read_text(encoding="utf-8")))
+        ctx.hidden0 = ei.hidden_at_start(g.labels)
+        _CTX["ctx"] = ctx
+    return _CTX["ctx"]
+
+
+class Swap:
+    """Set `obj.name = value` for a `with` block, put back after (a rule turned off, a table entry removed)."""
+
+    def __init__(self, obj, name, value):
+        self.obj, self.name, self.value = obj, name, value
+
+    def __enter__(self):
+        self.saved = getattr(self.obj, self.name)
+        setattr(self.obj, self.name, self.value)
+
+    def __exit__(self, *exc):
+        setattr(self.obj, self.name, self.saved)
+
+
+def plant_ok(name):
+    return vw.s2_plant_result(ROOT, str(WORLD), name)[0]
+
+
+#: round 2's Favor Lady words (fix2-items_gifts.json), false in solo play: the FAULT arm of favor_words_ok
+FAVOR_ROUND2 = ("the lady in the Lilycove Pokemon Center is the Favor Lady; it is the 5th item of hers you have given "
+                "that she liked (her single best item counts as all 5); it is an item she likes")
+
+
+def favor_words_ok(when):
+    """Fix-spec-3 item 4: the Favor Lady's words true for SOLO play. She takes ONE item (src/lilycove_lady.c:237 sets
+    COMPLETED on every item given), so the words must say so and name her single favourite, and never describe a
+    count of liked items (5th / all 5 / five), which only record mixing could make possible."""
+    return bool(when) and "she takes only one" in when and "single favourite" in when and \
+        not re.search(r"\b5th\b|\ball 5\b|\bfive\b", when)
+
+
+class S2FixRound23Tests(unittest.TestCase):
+    """FIX ROUNDS 2 AND 3 of stage 2a (fix-spec-2 items 1-7, fix-spec-3 items 1-7), one test per item, each a FAULT
+    beside its CONTROL, plus the Johto starter ball (round 2's surviving mutant M11). The FAULT arms that need the
+    whole extractor share ONE faulted build (s2_faulted); the rest break the rule at the function it lives in. WHY:
+    three rounds each closed their verifier's failures and each next verifier found a new wrong value; a value the
+    tests do not pin, a later edit can silently change."""
+
+    # ---------------------------------------------------------------- fix-spec-2
+    def test_r2_1_blocking_writer_and_known_answers(self):
+        """F2-1: `repeatable` needs an open path or a cited re-arm; `until_received` is decided by the gift's own
+        result test before its blocking writer (Cozmo: `goto_if_eq VAR_RESULT, FALSE` at :20, a call at :22, the
+        setflag at :23). Known answers: the Glass Workshop flute and decor re-armed by their own :195 / :285, the
+        Contest Hall Luxury Ball by contest_hall.inc:181, the Deep Sea pair blocked by the one Scanner, the Favor Lady
+        never repeatable. (Beldum's round-2 answer `until_received` is now `unknown`: the golden list keeps its truth.)"""
+        obj = s2()[0]
+        for gid in ("Route113_GlassWorkshop_EventScript_GiveGlassFlute:1",
+                    "Route113_GlassWorkshop_EventScript_GiveGlassDecor:1"):
+            g = gift(obj, gid)
+            self.assertEqual((g["repeat"], [r["ref"] for r in g["dev"]["rearm"]]),
+                             ("repeatable", ["data/maps/Route113_GlassWorkshop/scripts.inc:195",
+                                             "data/maps/Route113_GlassWorkshop/scripts.inc:285"]), gid)
+        hall = gift(obj, "ContestHall_EventScript_GiveLuxuryBall")
+        self.assertEqual(hall["repeat"], "repeatable")
+        self.assertIn("data/scripts/contest_hall.inc:181", [r["ref"] for r in hall["dev"]["rearm"]])
+        for gid in ("SlateportCity_Harbor_EventScript_DeepSeaTooth:1", "SlateportCity_Harbor_EventScript_DeepSeaScale:1"):
+            self.assertEqual(gift(obj, gid)["repeat"], "until_received", gid)
+        cozmo = gift(obj, "FallarborTown_CozmosHouse_EventScript_PlayerHasMeteorite")
+        self.assertEqual((cozmo["repeat"], cozmo["dev"]["blocked_by"]),
+                         ("until_received", ["FLAG_RECEIVED_TM_RETURN = set "
+                                             "(data/maps/FallarborTown_CozmosHouse/scripts.inc:23)"]))
+        self.assertNotEqual(gift(obj, "LilycoveCity_PokemonCenter_1F_EventScript_FavorLadyPrize")["repeat"],
+                            "repeatable")
+        # FAULT: F-writer, a write of a var Route 119 reads, after the Lava Cookie: no open path is proven any more
+        self.assertEqual(gift(obj, "MtChimney_EventScript_LavaCookieLady")["dev"]["repeat_why"],
+                         "a path stays open after the gift (nothing it tests is changed)")
+        self.assertEqual(gift(s2_faulted(), "MtChimney_EventScript_LavaCookieLady")["repeat"], "unknown")
+
+    def test_r2_2_no_condition_needs_an_ungated_path(self):
+        """F2-2: 'no condition' only when SOME path has no condition at all; two paths with DIFFERENT gates are worded
+        'either (A) or (B)' (round 1 intersected them and printed 'no condition' for 7 records)."""
+        obj = s2()[0]
+        for g in obj["gifts"]:  # CONTROL: every 'no condition' record has a path whose condition set is empty
+            if g["when"] == "no condition beyond `repeat`":
+                self.assertEqual(g["dev"]["tests"], [], g["id"])
+                self.assertTrue(not g["dev"].get("path_tests") or [] in g["dev"]["path_tests"], g["id"])
+        for gid in ("RustboroCity_EventScript_ReturnGoods:1", "SootopolisCity_EventScript_KiriGiveBerry:1",
+                    "Route120_EventScript_StevenGiveDeconScope:1", "PetalburgCity_Gym_EventScript_GiveFacade:1",
+                    "Route119_WeatherInstitute_2F_EventScript_ReceiveCastform:1",
+                    "LilycoveCity_PokemonCenter_1F_EventScript_FavorLadyPrize:1",
+                    "LilycoveCity_PokemonCenter_1F_EventScript_GivePrize:1"):
+            self.assertNotEqual(gift(obj, gid)["when"], "no condition beyond `repeat`", gid)
+        p1 = [(("flag", "FLAG_BADGE01_GET", True), "x.inc:1")]
+        p2 = [(("flag", "FLAG_BADGE02_GET", True), "x.inc:2")]
+        self.assertEqual(ei.when_of([p1, p2], None, {})[0], "either (after badge 1) or (after badge 2)")
+        # FAULT: round 1's rule (the intersection of the paths' tests) finds nothing common: it said 'no condition'
+        self.assertEqual(ei.common_tests([p1, p2]), set())
+        self.assertEqual(ei.when_of([p1, p2, []], None, {})[0], "no condition beyond `repeat`")  # an ungated path
+
+    def test_r2_3_possession_is_a_condition(self):
+        """F2-3: owning an item, money or coins is a CONDITION worded from the item's display name and count, never
+        bag room (ROOM_PRODUCERS keeps only the room measures, each cited)."""
+        obj = s2()[0]
+        for gid, words in (("MauvilleCity_House2_EventScript_AcceptTrade:1", "needs 1 Harbor Mail"),
+                           ("ShoalCave_LowTideEntranceRoom_EventScript_ShellBellExpert:1", "needs 4 Shoal Salt"),
+                           ("ShoalCave_LowTideEntranceRoom_EventScript_ShellBellExpert:1", "needs 4 Shoal Shell"),
+                           ("FallarborTown_CozmosHouse_EventScript_PlayerHasMeteorite:1", "needs 1 Meteorite"),
+                           ("SlateportCity_Harbor_EventScript_DeepSeaTooth:1", "needs 1 Scanner"),
+                           ("MtChimney_EventScript_LavaCookieLady:1", "needs at least 200 money")):
+            self.assertIn(words, gift(obj, gid)["when"] or "", gid)
+        self.assertFalse(set(ei.ROOM_PRODUCERS) & set(ei.POSSESSION))
+        cited = {e for e, _, _ in ei.table_cites()}
+        self.assertTrue({"ROOM_PRODUCERS " + k for k in ei.ROOM_PRODUCERS} <= cited)
+        self.assertTrue({"POSSESSION " + k for k in ei.POSSESSION} <= cited)
+        # FAULT: F-room, checkitem counted as room: the Coin Case's Harbor Mail trade reads 'no condition' again
+        self.assertEqual(gift(s2_faulted(), "MauvilleCity_House2_EventScript_AcceptTrade")["when"],
+                         "no condition beyond `repeat`")
+
+    def test_r2_4_specials_table(self):
+        """F2-4: every special on a gift's trigger path or continuation is in the CITED SPECIAL_EFFECTS table (a kind
+        from the five), and one missing on the continuation makes `repeat` unknown (the weekly Pacifidlog TMs)."""
+        obj = s2()[0]
+        cited = {e for e, _, _ in ei.table_cites()}
+        for k, v in ei.SPECIAL_EFFECTS.items():
+            self.assertIn(v[0], ("inert", "result", "resource", "writes", "record"), k)
+            self.assertIn("SPECIAL_EFFECTS " + k, cited)
+        for gid in ("PacifidlogTown_House2_EventScript_GiveReturn:1", "PacifidlogTown_House2_EventScript_GiveFrustration:1"):
+            self.assertEqual(gift(obj, gid)["repeat"], "weekly", gid)
+        for mon in ("Seedot", "Lotad"):  # the size records: SPECIALVAR_WORDS + LINE_WORDS give every word
+            g = gift(obj, "SootopolisCity_LotadAndSeedotHouse_EventScript_Big%s" % mon)
+            self.assertEqual((g["repeat"], g["when"]), (
+                "repeatable", "you show him a %s bigger than the biggest one he has seen (each bigger one sets a new "
+                              "record); you show him one of your Pokemon" % mon), mon)
+        # FAULT: F-weekly, SetPacifidlogTMReceivedDay untabled on the continuation: `repeat` unknown, the why names it
+        for gid in ("PacifidlogTown_House2_EventScript_GiveReturn:1", "PacifidlogTown_House2_EventScript_GiveFrustration:1"):
+            g = gift(s2_faulted(), gid)
+            self.assertEqual(g["repeat"], "unknown", gid)
+            self.assertIn("SetPacifidlogTMReceivedDay", g["dev"]["repeat_why"], gid)
+
+    def test_r2_5_alternatives(self):
+        """F2-5: one gift of two by a chooser fixed at new game (gender: Lavaridge's Go-Goggles, Birch's Poke Balls;
+        trainer ID: the Favor Lady vs the Quiz Lady) are exclusive_with each other (rule G); the four Trick House tents
+        are one prize (EXCLUSIVE_CITED)."""
+        obj = s2()[0]
+        for a, b in (("LavaridgeTown_EventScript_MayGiveGoGoggles:1", "LavaridgeTown_EventScript_BrendanGiveGoGoggles:1"),
+                     ("LittlerootTown_ProfessorBirchsLab_EventScript_MayGivePokeBalls:1",
+                      "LittlerootTown_ProfessorBirchsLab_EventScript_BrendanGivePokeBalls:1"),
+                     ("LilycoveCity_PokemonCenter_1F_EventScript_FavorLadyPrize:1",
+                      "LilycoveCity_PokemonCenter_1F_EventScript_GivePrize:1")):
+            self.assertEqual((gift(obj, a)["exclusive_with"], gift(obj, b)["exclusive_with"]), ([b], [a]))
+
+        def fixed(v1, v2):
+            gs = [{"id": "G%d:1" % i, "maps": ["MAP_X"], "exclusive_with": [],
+                   "_conds": [[(("var", "VAR_RESULT", "eq", v), "gender")]]} for i, v in ((1, v1), (2, v2))]
+            ei.link_fixed_choosers(gs)
+            return [g["exclusive_with"] for g in gs]
+        self.assertEqual(fixed("MALE", "FEMALE"), [["G2:1"], ["G1:1"]])  # CONTROL
+        self.assertEqual(fixed("MALE", "MALE"), [[], []])                 # FAULT side: one value, no alternative
+        # FAULT: F-tents, EXCLUSIVE_CITED emptied: the End's Red Tent keeps only its menu sibling
+        self.assertEqual(gift(s2_faulted(), "Route110_TrickHouseEnd_EventScript_GiveRedTent")["exclusive_with"],
+                         ["Route110_TrickHouseEnd_EventScript_GiveBlueTent:1"])
+
+    def test_r2_6_no_fall_after_a_jump(self):
+        """F2-6: a label whose last command never continues (NEVER_CONTINUES, each cited to src/scrcmd.c) does not fall
+        into the next label (round 1: 5 phantom edges out of trainer_battle.inc's gotopostbattlescript); the scrolling
+        menu is a menu producer (the Glass Workshop's choice)."""
+        g = s2()[1]["graph"]
+        enders = [s for s, outs in g.edges.items() for t, k, *_ in outs if k == "fall" and g.labels[s]["body"]
+                  and ei.cmd(g.labels[s]["body"][-1][1])[0] in ei.NEVER_CONTINUES]
+        self.assertEqual(enders, [])
+        self.assertTrue(set(ei.NEVER_CONTINUES) <= set(ei.TERMINATORS))
+        self.assertEqual(gift(s2()[0], "Route113_GlassWorkshop_EventScript_GiveGlassFlute")["what"]["chosen_by"],
+                         "choice")
+        text = "A::\n\tgotopostbattlescript\nB::\n\tgiveitem ITEM_POTION\n\tend\n"
+        falls = lambda gr: [t for t, k, *_ in gr.edges["A"] if k == "fall"]  # noqa: E731
+        self.assertEqual(falls(fake_graph(text)), [])                       # CONTROL
+        with Swap(ei, "TERMINATORS", tuple(x for x in ei.TERMINATORS if x != "gotopostbattlescript")):
+            self.assertEqual(falls(fake_graph(text)), ["B"])                # FAULT: the round-1 phantom edge
+
+    def test_r2_7_verifier_rules_a5_a8(self):
+        """F2-7: the verifier's rules a5-a8 each report their own plant on one line, and turning a rule's function off
+        silences exactly that plant (a5, a6 live in s2_rules_round2; a8 in s2_gender)."""
+        for name in ("a5", "a6", "a7", "a8"):
+            self.assertTrue(plant_ok(name), name)                           # CONTROL
+        with Swap(vw, "s2_gender", lambda *a: None):
+            self.assertFalse(plant_ok("a8"))                                # FAULT: the gender rule off
+            self.assertTrue(plant_ok("a5"))
+        with Swap(vw, "s2_rules_round2", lambda *a, **k: None):
+            self.assertEqual([plant_ok(n) for n in ("a5", "a6", "a8")], [False, False, True])
+
+    # ---------------------------------------------------------------- fix-spec-3
+    def test_r3_1_sole_writer(self):
+        """S3-1: `once` / `until_received` only when the blocking flag/var has NO writer anywhere but the gift's own
+        continuation; a cited REARM entry decides `daily` (the 8 Shoal Cave gifts, src/clock.c:53 ->
+        src/field_specials.c:1420 -> ShoalCave_LowTideEntranceRoom:22, :82-90); any other writer -> `unknown`. The
+        round-2 'spent' shortcut (one_shot) is gone."""
+        obj = s2()[0]
+        shoal = [g for g in obj["gifts"] if g["id"].startswith(("ShoalCave_LowTideInnerRoom_EventScript_Shoal",
+                                                                 "ShoalCave_LowTideStairsRoom_EventScript_Shoal",
+                                                                 "ShoalCave_LowTideLowerRoom_EventScript_Shoal"))]
+        self.assertEqual(len(shoal), 8)
+        for g in shoal:
+            self.assertEqual(g["repeat"], "daily", g["id"])
+            self.assertIn("src/clock.c:53", [r["ref"] for r in g["dev"]["rearm"]], g["id"])
+            self.assertIn("Shell Bell man", g["when"], g["id"])
+        lobby = gift(obj, "LilycoveCity_ContestLobby_EventScript_GiveLuxuryBallAtCounter")
+        self.assertEqual((lobby["repeat"], lobby["dev"]["other_writers"]),
+                         ("unknown", ["VAR_CONTEST_PRIZE_PICKUP: setvar at data/scripts/contest_hall.inc:1105"]))
+        exp = gift(obj, "RustboroCity_DevonCorp_3F_EventScript_GiveExpShare")
+        self.assertEqual(exp["dev"]["c_uses"],
+                         ["FLAG_RECEIVED_EXP_SHARE named by C code at src/pokenav_match_call_data.c:183"])
+        self.assertNotIn("written by", exp["dev"]["repeat_why"])
+        self.assertFalse(hasattr(ei, "one_shot"))
+        # the sole-writer rule's hand tables are cited like every other (check_cites holds each token at the pin)
+        cited = {e for e, _, _ in ei.table_cites()}
+        want = ({"WRITER_CMDS " + k for k in ei.WRITER_CMDS} | {"REARM " + k for k in ei.REARM} |
+                {"C_RANGES " + r[0] for r in ei.C_RANGES} | {"CITED_READS " + k for k in ei.CITED_READS} |
+                {"REMOVEOBJECT_SETS", "TRAINER_FLAG_SET", "TRAINER_FLAG_CLEAR", "TEMP_CLEAR"})
+        self.assertEqual(want - cited, set())
+        for g in obj["gifts"]:  # every asserted once / until_received names what blocks it
+            if g["repeat"] in ("once", "until_received"):
+                self.assertTrue(g["dev"].get("blocked_by"), g["id"])
+                self.assertNotIn("other_writers", g["dev"], g["id"])
+        fly = gift(obj, "Route119_EventScript_GiveFlyHM")
+        self.assertEqual((fly["repeat"], fly["dev"]["blocked_by"]),
+                         ("once", ["VAR_ROUTE119_STATE = set 1 (data/maps/Route119/scripts.inc:144)"]))
+        bad = s2_faulted()
+        # FAULT: F-rearm, no REARM entry: the Shoal salt is `unknown` (its clearflag at :82 is an outside writer),
+        # never round 2's until_received
+        salt = gift(bad, "ShoalCave_LowTideInnerRoom_EventScript_ShoalSalt1")
+        self.assertEqual(salt["repeat"], "unknown")
+        self.assertIn("FLAG_RECEIVED_SHOAL_SALT_1: clearflag at data/maps/ShoalCave_LowTideEntranceRoom/scripts.inc:82",
+                      salt["dev"]["other_writers"])
+        # FAULT: F-writer, a second writer of HM Fly's blocking var (MtChimney:100): no longer sole, so `unknown`
+        fly = gift(bad, "Route119_EventScript_GiveFlyHM")
+        self.assertEqual(fly["repeat"], "unknown")
+        self.assertIn("VAR_ROUTE119_STATE: setvar at data/maps/MtChimney/scripts.inc:100", fly["dev"]["other_writers"])
+
+    def test_r3_2_once_guard_holds_at_start(self):
+        """S3-2: a test on a value the gift writes is its once-guard only if it HOLDS at new game (flag clear, var 0).
+        The lottery's owed prize, `goto_if_ne VAR_POKELOT_PRIZE_ITEM, ITEM_NONE` (LilycoveCity_DepartmentStore_1F
+        /scripts.inc:12), fails at 0 = ITEM_NONE: a precondition, so the record is not 'no condition'."""
+        prize = gift(s2()[0], "LilycoveCity_DepartmentStore_1F_EventScript_GivePrizeFromEarlier")
+        self.assertEqual((prize["when"], prize["dev"]["tests"]), (None, ["VAR_POKELOT_PRIZE_ITEM ne ITEM_NONE"]))
+        ctx = Ctx()
+        owed = ("var", "VAR_POKELOT_PRIZE_ITEM", "ne", "ITEM_NONE")
+        self.assertIs(ei.holds_at_start(owed, ctx), False)
+        self.assertIs(ei.holds_at_start(("var", "V", "lt", "6"), ctx), True)
+        self.assertIs(ei.holds_at_start(("flag", "FLAG_RECEIVED_TM_RETURN", False), ctx), True)
+        hidden = sorted(ctx.hidden0)[0]
+        self.assertIs(ei.holds_at_start(("flag", hidden, False), ctx), False)  # set at new game: unset fails
+        info = {"own_values": ["ITEM_NONE"]}
+        self.assertFalse(ei.is_once_guard(owed, "VAR_POKELOT_PRIZE_ITEM", info, ctx))  # CONTROL: kept as a condition
+        with Swap(ei, "holds_at_start", lambda c, ctx=None: True):
+            self.assertTrue(ei.is_once_guard(owed, "VAR_POKELOT_PRIZE_ITEM", info, ctx))  # FAULT: round 2 dropped it
+
+    def test_r3_3_specials_enforced(self):
+        """S3-3: an untabled special on the way in makes `when` null and forbids the open-path `repeatable` (unless a
+        cited REARM entry re-arms the record: the Contest Hall); QuizLadyRecordCustomQuizData is a writer
+        (src/lilycove_lady.c:553-554 stores the player's ID, read at :383), not inert."""
+        obj = s2()[0]
+        for g in obj["gifts"]:
+            if g["dev"].get("untabled_specials_on_the_way"):
+                self.assertIsNone(g["when"], g["id"])
+                self.assertTrue(g["repeat"] != "repeatable" or g["id"] == "ContestHall_EventScript_GiveLuxuryBall:1",
+                                g["id"])
+        self.assertEqual(gift(obj, "SlateportCity_EventScript_TryBuyBerryPowderItem")["repeat"], "unknown")
+        self.assertEqual(ei.SPECIAL_EFFECTS["QuizLadyRecordCustomQuizData"][:3],
+                         ("writes", "STATE_QUIZ_AUTHOR", "QUIZ_AUTHOR_PLAYER"))
+        bad = s2_faulted()
+        # FAULT: F-seedot, CompareSeedotSize untabled on Big Seedot's way in: `when` null, no repeatable
+        seedot = gift(bad, "SootopolisCity_LotadAndSeedotHouse_EventScript_BigSeedot")
+        self.assertEqual((seedot["when"], seedot["dev"]["untabled_specials_on_the_way"]), (None, ["CompareSeedotSize"]))
+        self.assertNotEqual(seedot["repeat"], "repeatable")
+        self.assertEqual(gift(bad, "SootopolisCity_LotadAndSeedotHouse_EventScript_BigLotad")["repeat"],
+                         "repeatable")  # CONTROL inside the faulted build: Lotad's special is still tabled
+
+    def test_r3_4_favor_lady_solo(self):
+        """S3-4: the Favor Lady's words say what solo play allows: ONE item (src/lilycove_lady.c:237), and only her
+        single best item wins the prize (:250-251)."""
+        when = gift(s2()[0], "LilycoveCity_PokemonCenter_1F_EventScript_FavorLadyPrize")["when"]
+        self.assertTrue(favor_words_ok(when), when)                                # CONTROL
+        self.assertFalse(favor_words_ok(FAVOR_ROUND2))                             # FAULT: round 2's 5-item words
+        self.assertIn("src/lilycove_lady.c:237",
+                      [c for c, _ in ei.SPECIALVAR_WORDS[("IsFavorLadyThresholdMet", "1")][1:]])
+
+    def test_r3_5_latest_producer(self):
+        """S3-5: VAR_RESULT is attributed to its LATEST producer. Cozmo's test at :17 reads the yes/no answer of the
+        callee (`call_if_unset` / `call_if_set FLAG_TEMP_2` at :15-16, both ending in MSGBOX_YESNO, :30 / :34), not the
+        checkitem at :8; his `when` names the Meteorite and his hidden start. The Quiz Lady's null is accepted."""
+        obj, res = s2()
+        g = res["graph"]
+        lab = "FallarborTown_CozmosHouse_EventScript_PlayerHasMeteorite"
+        self.assertEqual(gift(obj, lab)["when"], "the giver is not there at first: they appear later in the story; "
+                                                 "needs 1 Meteorite")
+        self.assertIsNone(gift(obj, "LilycoveCity_PokemonCenter_1F_EventScript_GivePrize")["when"])
+        self.assertEqual(g.producer("FallarborTown_CozmosHouse_EventScript_ProfCozmo", 9, "VAR_RESULT"),
+                         ("cmd", "checkitem", "ITEM_METEORITE", "1"))
+        self.assertEqual(g.producer(lab, 17, "VAR_RESULT"), ("cmd", "yesno"))   # CONTROL
+        with Swap(g, "callee_producer", lambda lab_, var: None):
+            self.assertNotEqual(g.producer(lab, 17, "VAR_RESULT"), ("cmd", "yesno"))  # FAULT: the callee unread
+
+    def test_r3_6_castform_behind_aqua(self):
+        """S3-6: Castform's scientist stands behind Team Aqua until Shelly is beaten (Route119_WeatherInstitute_2F
+        /scripts.inc:6, :12, :42, :60): a cited MAP_CONDITIONS entry, so `when` is null, never 'no condition'."""
+        cast = gift(s2()[0], "Route119_WeatherInstitute_2F_EventScript_ReceiveCastform")
+        self.assertIsNone(cast["when"])
+        self.assertEqual(cast["dev"]["map_condition"]["refs"],
+                         ["data/maps/Route119_WeatherInstitute_2F/scripts.inc:%d" % n for n in (6, 12, 42, 60)])
+        bad = gift(s2_faulted(), "Route119_WeatherInstitute_2F_EventScript_ReceiveCastform")
+        self.assertEqual(bad["when"], "no condition beyond `repeat`")  # FAULT: F-castform, round 2's answer
+        self.assertNotIn("map_condition", bad["dev"])
+
+    def test_r3_7_verifier_sole_writer_scan(self):
+        """S3-7: the verifier's own whole-decomp scans: a7 (sole writer), a9 (a false-at-start precondition), a10 (an
+        unread special), the daily re-arm (d3) and the golden `other_writer` (gw) each report their plant on one line
+        and fall silent with their function off; S2_HAVE reads money / coins / decorations; S2_ROOMISH never counts a
+        yes/no box as room; the golden list holds the five records fix-spec-3 names; S2_SPECIALS is load-bearing
+        (without SetPacifidlogTMReceivedDay the two weekly Pacifidlog TMs are mismatches: stage 3a's VM4g arm)."""
+        rep = vw.Report()
+        vw.verify_items(ROOT, vw.load_items(str(WORLD)), vw.load(str(WORLD))["maps"], rep)
+        self.assertEqual(rep.lines, [])                                              # CONTROL
+        for name in ("a7s", "a9", "a10", "d3", "gw"):
+            self.assertTrue(plant_ok(name), name)
+        golden = {e.get("id") for e in vw.S2_GOLDEN}
+        self.assertTrue({"ShoalCave_LowTideInnerRoom_EventScript_ShoalSalt1:1",
+                         "LilycoveCity_DepartmentStore_1F_EventScript_GivePrizeFromEarlier:1",
+                         "LilycoveCity_ContestLobby_EventScript_GiveLuxuryBallAtCounter:1",
+                         "FallarborTown_CozmosHouse_EventScript_PlayerHasMeteorite:1",
+                         "Route119_WeatherInstitute_2F_EventScript_ReceiveCastform:1"} <= golden)
+        for ok in ("checkmoney 200", "checkcoins 1", "checkdecor DECOR_PRETTY_CHAIR", "checkitem ITEM_SCANNER, 1"):
+            self.assertTrue(vw.S2_HAVE.match(ok), ok)
+        for no in ("msgbox T, MSGBOX_YESNO", "yesnobox 20, 8"):
+            self.assertFalse(vw.S2_ROOMISH.match(no), no)
+        self.assertTrue(vw.S2_ROOMISH.match("checkitemspace ITEM_POTION, 1"))
+        with Swap(vw, "s2_rules_round2", lambda *a, **k: None):                     # FAULT: a7 / a9 / a10 off
+            self.assertEqual([plant_ok(n) for n in ("a7s", "a9", "a10")], [False, False, False])
+        with Swap(vw, "s2_golden", lambda *a: None):                                # FAULT: the golden check off
+            self.assertFalse(plant_ok("gw"))
+        saved = vw.S2_SPECIALS.pop("SetPacifidlogTMReceivedDay")
+        try:                                                                         # FAULT: VM4g
+            rep = vw.Report()
+            vw.verify_items(ROOT, vw.load_items(str(WORLD)), vw.load(str(WORLD))["maps"], rep)
+        finally:
+            vw.S2_SPECIALS["SetPacifidlogTMReceivedDay"] = saved
+        self.assertEqual(len(rep.lines), 2, rep.lines)
+        self.assertTrue(all("PacifidlogTown_House2" in ln and "runs after the gift" in ln for ln in rep.lines))
+
+    # ---------------------------------------------------------------- stage 3b strengthening (the mutant run)
+    def test_dev_evidence_pins(self):
+        """The developer evidence behind `repeat` (dev.other_writers, c_uses, rearm, tests), pinned where a deleted
+        call changes ONLY it (the first mutant run of stage 3b: E10, E11, E22, E48, E49, E51, E56, E59, E60 changed
+        these and nothing AI-facing). A wrong why is how round 2's verifier found the Exp Share's untrue 'written by'."""
+        obj = s2()[0]
+        scarf = gift(obj, "SlateportCity_PokemonFanClub_EventScript_GiveRedScarf")["dev"]
+        self.assertEqual(scarf["other_writers"][0],  # the implied call_if test makes its own flag a blocker (E10)
+                         "FLAG_RECEIVED_RED_SCARF: setflag at data/maps/SlateportCity_PokemonFanClub/scripts.inc:76")
+        self.assertEqual(scarf["c_uses"], ["VAR_TEMP_1 named by C code at src/field_tasks.c:114",  # aliases (E51)
+                                           "VAR_TEMP_1 named by C code at src/record_mixing.c:975",
+                                           "VAR_TEMP_1 named by C code at src/record_mixing.c:982"])
+        self.assertEqual(gift(obj, "DewfordTown_Gym_EventScript_GiveBulkUp")["dev"]["other_writers"],  # E11
+                         ["TRAINER:TRAINER_BRAWLY_1: not a flag or var name, so no whole-decomp scan can re-check it"])
+        self.assertEqual(gift(obj, "MauvilleCity_BikeShop_EventScript_GetMachBike")["dev"]["tests"],
+                         ["VAR_RESULT eq FALSE"])  # norm (E22)
+        berry = gift(obj, "LilycoveCity_EventScript_BerryGentleman")["dev"]  # the daily C range decides (E48, E49, E56)
+        self.assertEqual((berry["rearm"], berry.get("blocked_by")),
+                         ([{"ref": "src/event_data.c:52", "writes": "FLAG_DAILY_LILYCOVE_RECEIVED_BERRY"}], None))
+        self.assertEqual(gift(obj, "LilycoveCity_DepartmentStore_1F_EventScript_LotteryClerk")["dev"]["other_writers"],
+                         ["FLAG_DAILY_PICKED_LOTO_TICKET: setflag at data/maps/LilycoveCity_DepartmentStore_1F"
+                          "/scripts.inc:16", "FLAG_DAILY_PICKED_LOTO_TICKET: written by C (daily flags, "
+                                             "src/event_data.c:52)"])  # ranges_of (E60)
+        bad = copy.deepcopy(scarf)  # FAULT side of the pins: the same comparison over a changed list fails
+        bad["other_writers"] = bad["other_writers"][1:]
+        self.assertNotEqual(bad["other_writers"][0], scarf["other_writers"][0])
+
+    def test_extractor_units(self):
+        """Function-level FAULT / CONTROL arms for extractor calls whose deletion changes no record at the pin (the
+        first mutant run's survivors): each arm runs the function on an input where the call decides."""
+        g = s2()[1]["graph"]
+        ctx = real_ctx()
+        wi = ctx.writer_index()
+        # E44: an ITEM: blocker is sole only when the item has ONE source (the Scanner), never the Potion
+        self.assertEqual((ei.sole_writer(ctx, "ITEM:ITEM_POTION", set())["sole"],
+                          ei.sole_writer(ctx, "ITEM:ITEM_SCANNER", set())["sole"]), (False, True))
+        # E46 / E85: a CITED_READS entry (a C line read to be a pure read) takes that line out of the C mentions and
+        # puts its cite into table_cites; CITED_READS is empty at the pin, so this plants one (the Exp Share's table)
+        exp = gift(s2()[0], "RustboroCity_DevonCorp_3F_EventScript_GiveExpShare")
+        lab, ln = exp["id"].rsplit(":", 1)[0], int(exp["ref"].rsplit(":", 1)[1])
+        own = ei.continuation_refs(g, lab, ln)
+        self.assertFalse(ei.sole_writer(ctx, "FLAG_RECEIVED_EXP_SHARE", own)["sole"])          # CONTROL
+        read = {"FLAG_RECEIVED_EXP_SHARE": [("src/pokenav_match_call_data.c:183", "FLAG_RECEIVED_EXP_SHARE")]}
+        with Swap(ei, "CITED_READS", read):
+            self.assertTrue(ei.sole_writer(ctx, "FLAG_RECEIVED_EXP_SHARE", own)["sole"])       # the read is cited
+            self.assertIn("CITED_READS FLAG_RECEIVED_EXP_SHARE", {e for e, _, _ in ei.table_cites()})
+        # E54 / E55: removeobject writes the hide flag (VAR_LAST_TALKED: the talked-to giver; another var: any object)
+        self.assertIn(("data/scripts/secret_power_tm.inc:55", "removeobject"),
+                      wi.script["FLAG_HIDE_ROUTE_111_SECRET_POWER_MAN"])
+        self.assertTrue(any(("data/scripts/players_house.inc:418", "removeobject") in v for v in wi.script.values()))
+        # E57 / E58 / E56: the C ranges by prefix, by object and by id range
+        self.assertIn("hidden item flags", [k for k, _, _ in wi.ranges_of("FLAG_HIDDEN_ITEM_ABANDONED_SHIP_RM_1_KEY")])
+        self.assertIn("objects removed by C", [k for k, _, _ in wi.ranges_of("FLAG_HIDE_BIRTH_ISLAND_DEOXYS_TRIANGLE")])
+        self.assertEqual(wi.ranges_of("FLAG_DAILY_APPRENTICE_LEAVES"),
+                         [("daily flags", "daily", "src/event_data.c:52")])
+        self.assertEqual(wi.aliases("FLAG_TEMP_1"), ["FLAG_TEMP_1", "FLAG_TEMP_SKIP_GABBY_INTERVIEW"])
+        # E14 / E15b: a flag no script reads but C names is NOT inert; one nothing names is
+        self.assertEqual((ctx.inert("FLAG_ADDED_MATCH_CALL_TO_POKENAV", set()), ctx.inert("FLAG_UNUSED_0x020", set())),
+                         (False, True))
+        # E64: blockers re-armed by DIFFERENT cited rules (one daily, one on every map entry) leave `repeat` unknown,
+        # never one of them picked. No record at the pin has that shape, so sole_writer is stubbed on a real record
+        # with two blockers (the Trick House End's Red Tent: its hide flag and VAR_TRICK_HOUSE_LEVEL)
+        tent = gift(s2()[0], "Route110_TrickHouseEnd_EventScript_GiveRedTent")
+        lab, ln = tent["id"].rsplit(":", 1)[0], int(tent["ref"].rsplit(":", 1)[1])
+
+        def stub(decides):
+            return lambda ctx_, s, own_: {"sole": False, "others": [], "c": [], "ranges": [], "words": None,
+                                          "cites": ["x.inc:1"], "decides": decides(s)}
+        with Swap(ei, "sole_writer", stub(lambda s: "daily")):                          # CONTROL: one rule decides
+            self.assertEqual(ei.evidence(g, lab, ln, "giveitem", g.paths_to(lab, ln), ctx)["repeat"], "daily")
+        with Swap(ei, "sole_writer", stub(lambda s: "daily" if s.startswith("FLAG_") else "repeatable")):
+            out = ei.evidence(g, lab, ln, "giveitem", g.paths_to(lab, ln), ctx)
+            self.assertEqual((out["repeat"], out["why"]), ("unknown", "its blocked paths are re-armed differently "
+                                                                      "(daily, repeatable)"))
+        # E35: an answer shaped by a loop cut is not memoised: asked again from outside the loop, a label's paths are
+        # the same as on a fresh graph (a memoised cut answer would lack the way in through the loop's head)
+        loop = ("R::\n\tgoto M\nM::\n\tgoto_if_eq VAR_X, 1, G\n\tgoto M2\nM2::\n\tgoto M\n"
+                "G::\n\tgiveitem ITEM_POTION\n\tend\n")
+        fresh = fake_graph(loop).paths_to("M2", 7)
+        warm = fake_graph(loop)
+        warm.paths_to("G", 9)
+        self.assertEqual(warm.paths_to("M2", 7), fresh)
+        self.assertTrue(fresh)
+        # E74: a test on a non-own blocked var that FAILS at new game is no once-guard (it is a precondition)
+        owed = ("var", "VAR_POKELOT_PRIZE_ITEM", "ne", "ITEM_NONE")
+        self.assertFalse(ei.once_guard(owed, "x", {"VAR_POKELOT_PRIZE_ITEM": 0}, ctx.hidden0, None, ctx))
+        self.assertTrue(ei.once_guard(("var", "VAR_POKELOT_PRIZE_ITEM", "lt", "1"), "x", {"VAR_POKELOT_PRIZE_ITEM": 0},
+                                      ctx.hidden0, None, ctx))
+        # E31: a test fed by one of two specials, one per way in (the Quiz Lady's question / answer screens,
+        # lilycove_lady.inc:190 / :195), reads "one of them" (a synthetic copy of that shape)
+        fg = fake_graph("R::\n\tgoto_if_eq VAR_0x8004, 0, S1\n\tgoto S2\nS1::\n\tspecial QuizLadyShowQuizQuestion\n"
+                        "\tgoto C\nS2::\n\tspecial QuizLadyGetPlayerAnswer\n\tgoto C\nC::\n"
+                        "\tgoto_if_eq VAR_RESULT, 1, D\n\tend\nD::\n\tend\n")
+        self.assertEqual(fg.producer("C", 11, "VAR_RESULT"),
+                         ("special", "QuizLadyGetPlayerAnswer|QuizLadyShowQuizQuestion"))
+        # E75: a plain `call` hands on its callee's last producer (a yes/no box)
+        fg = fake_graph("A::\n\tcall B\n\tgoto_if_eq VAR_RESULT, 1, C\n\tend\nB::\n\tmsgbox T, MSGBOX_YESNO\n\treturn\n"
+                        "C::\n\tend\n")
+        self.assertEqual(fg.producer("A", 3, "VAR_RESULT"), ("cmd", "yesno"))
+        # E43: the gift's continuation runs on through a fall into the next label
+        fg = fake_graph("A::\n\tgiveitem ITEM_POTION\nB::\n\tsetflag FLAG_X\n\tend\n")
+        self.assertIn("x.inc:4", ei.continuation_refs(fg, "A", 2))
+        # E05: a result writer after the gift ends the gift's own result: the test after it is not the gift's
+        fg = fake_graph("A::\n\tgiveitem ITEM_POTION\n\tcheckitemspace ITEM_POTION, 1\n"
+                        "\tgoto_if_eq VAR_RESULT, FALSE, B\n\tend\nB::\n\tend\n")
+        self.assertEqual([w["fail"] for w in ei.gift_ways(fg, "A", 2, "giveitem", None)[0]], [False, False])
+        fg = fake_graph("A::\n\tgiveitem ITEM_POTION\n\tgoto_if_eq VAR_RESULT, FALSE, B\n\tend\nB::\n\tend\n")
+        self.assertEqual(sorted(w["fail"] for w in ei.gift_ways(fg, "A", 2, "giveitem", None)[0]), [False, True])
+
+    def test_verifier_units(self):
+        """Function-level and plant FAULT / CONTROL arms for verifier checks the 26 plants do not reach (the first
+        mutant run's survivors): its own whole-decomp tables, s2_false_at_start, s2_cont's fall, the golden list's
+        when_has / why_has, the table-cite call, and a7's ITEM: and non-name blockers."""
+        s = vw.s2_raw(ROOT)
+        t = vw.s2_sole_tables(s, ROOT)
+        self.assertIn("data/maps/MtPyre_Exterior/scripts.inc:10", t["writers"]["VAR_TEMP_1"])            # V13
+        self.assertIn("data/scripts/secret_power_tm.inc:55", t["writers"]["FLAG_HIDE_ROUTE_111_SECRET_POWER_MAN"])  # V14
+        self.assertEqual(vw.s2_names_of(t, "FLAG_TEMP_1"), ["FLAG_TEMP_1", "FLAG_TEMP_SKIP_GABBY_INTERVIEW"])  # V17
+        self.assertIn("FLAG_DAILY_APPRENTICE_LEAVES", t["daily"])                                            # V18
+        self.assertIn("FLAG_HIDE_LITTLEROOT_TOWN_BIRCHS_LAB_POKEBALL_CYNDAQUIL", t["start"])                 # V19
+        self.assertEqual(vw.s2_outside_writers(s, ROOT, "FLAG_RECEIVED_EXP_SHARE", set()),            # V20
+                         ["script data/maps/RustboroCity_DevonCorp_3F/scripts.inc:162",
+                          "C src/pokenav_match_call_data.c:183"])
+        self.assertIn("C range daily flags (src/event_data.c:52)",                                          # V21, V22
+                      vw.s2_outside_writers(s, ROOT, "FLAG_DAILY_APPRENTICE_LEAVES", set()))
+        self.assertIn("C range objects removed by C (src/field_effect.c:3734)",                             # V23
+                      vw.s2_outside_writers(s, ROOT, "FLAG_HIDE_BIRTH_ISLAND_DEOXYS_TRIANGLE", set()))
+        self.assertIn("MAP_PETALBURG_CITY hidden", vw.s2_item_sources(s, ROOT, "ITEM_RARE_CANDY"))      # V24
+        fs = lambda c: vw.s2_false_at_start(s, ROOT, c)  # noqa: E731
+        self.assertIs(fs(("object", "FLAG_HIDE_LITTLEROOT_TOWN_BIRCHS_LAB_POKEBALL_CYNDAQUIL", True, "o")), True)  # V25
+        self.assertIs(fs(("goto_if_set FLAG_RECEIVED_TM_RETURN, L", "FLAG_RECEIVED_TM_RETURN", True, "w")), True)  # V26
+        self.assertIs(fs(("goto_if_eq VAR_X, 0, L", "VAR_X", False, "w")), True)                           # V27
+        self.assertIs(fs(("goto_if_eq VAR_X, 0, L", "VAR_X", True, "w")), False)
+        self.assertIs(fs(("map_script_2 VAR_X, 1, L", "VAR_X", True, "w")), True)                          # V28
+        # V30: the Quiz Lady's prize runs off its label into the next one: s2_cont follows the fall
+        name = "LilycoveCity_PokemonCenter_1F_EventScript_GivePrize"
+        n = int(gift(s2()[0], name)["ref"].rsplit(":", 1)[1])
+        full = vw.s2_cont(s, name, n)
+        saved = s["fwd"]
+        try:
+            s["fwd"] = {k: [(w, m) for w, m in v if m != 10 ** 9] for k, v in saved.items()}
+            self.assertLess(len(vw.s2_cont(s, name, n)), len(full))  # FAULT: no fall, fewer lines
+        finally:
+            s["fwd"] = saved
+
+        def lines_for(change):
+            items = vw.load_items(str(WORLD))
+            change({g["id"]: g for g in items["gifts"]})
+            rep = vw.Report()
+            vw.verify_items(ROOT, items, vw.load(str(WORLD))["maps"], rep)
+            return rep.lines
+
+        def tooth_when(gs):
+            gs["SlateportCity_Harbor_EventScript_DeepSeaTooth:1"]["when"] = "after badge 7"
+        self.assertTrue(any("lacks 'Scanner'" in ln for ln in lines_for(tooth_when)))                      # V41
+
+        def tomb_why(gs):
+            gs["RustboroCity_Gym_EventScript_GiveRockTomb:1"]["dev"]["repeat_why"] = "x"
+        self.assertTrue(any("dev.repeat_why 'x' lacks" in ln for ln in lines_for(tomb_why)))               # V34
+
+        def item_blocker(gs):  # V03: an ITEM: blocker with many sources
+            gs["MauvilleCity_House2_EventScript_AcceptTrade:1"]["dev"]["blocked_by"] = ["ITEM:ITEM_POTION = sub 1 (x)"]
+        self.assertTrue(any("ITEM:ITEM_POTION has" in ln and "sources" in ln for ln in lines_for(item_blocker)))
+
+        def trainer_blocker(gs):  # V05: a blocker that is no flag or var
+            gs["MauvilleCity_House2_EventScript_AcceptTrade:1"]["dev"]["blocked_by"] = ["TRAINER:TRAINER_ROXANNE_1 = x"]
+        self.assertTrue(any("is no flag or var a scan can check" in ln for ln in lines_for(trainer_blocker)))
+        saved = vw.S2_SPECIALS["ShakeCamera"]
+        try:                                                                                                # V35
+            vw.S2_SPECIALS["ShakeCamera"] = ("src/field_specials.c:1471", saved[1])
+            self.assertTrue(any("table S2_SPECIALS ShakeCamera" in ln for ln in lines_for(lambda gs: None)))
+        finally:
+            vw.S2_SPECIALS["ShakeCamera"] = saved
+
+    def test_johto_starter_giver_hidden(self):
+        """Round 2's M11: a Johto starter ball's `when` is 'the giver is not there at first' (its ball is hidden at new
+        game, data/scripts/new_game.inc), and its own var's `lt 6` test (LittlerootTown_ProfessorBirchsLab
+        /scripts.inc:287, flipped by :363 `setvar VAR_DEX_UPGRADE_JOHTO_STARTER_STATE, 6`) is the once-guard, dropped
+        from dev.tests. That decision needs the gift's own written values (own_writes): without them it is kept."""
+        obj = s2()[0]
+        for mon in ("CYNDAQUIL", "TOTODILE", "CHIKORITA"):
+            g = gift(obj, "LittlerootTown_ProfessorBirchsLab_EventScript_Give%s" % mon.capitalize())
+            self.assertEqual((g["when"], g["dev"]["tests"], g["dev"]["own"]),
+                             ("the giver is not there at first: they appear later in the story",
+                              ["FLAG_HIDE_LITTLEROOT_TOWN_BIRCHS_LAB_POKEBALL_%s unset" % mon],
+                              "VAR_DEX_UPGRADE_JOHTO_STARTER_STATE"), mon)
+        ctx, own = Ctx(), "VAR_DEX_UPGRADE_JOHTO_STARTER_STATE"
+        guard = ("var", own, "lt", "6")
+        self.assertTrue(ei.is_once_guard(guard, own, {"own_values": ["6"]}, ctx))   # CONTROL
+        self.assertFalse(ei.is_once_guard(guard, own, {}, ctx))                    # FAULT: no own values (M11)
+
+
+class TFairTests(unittest.TestCase):
+    """T-FAIR (spec S3-4 slice 2): check_fairness.developer_keys() still refuses `flag` with the new file present. If a
+    KNOWLEDGE_FIELDS entry ever classifies a flag path `ai`, `flag` leaves the set and B2 stops refusing x['flag']
+    everywhere (milestones.json included). The loader item must add `dev` as developer and extend this test."""
+
+    def test_flag_stays_developer(self):
+        self.assertIn("flag", cf.developer_keys())
+        self.assertTrue((WORLD / ei.OUT_NAME).exists())
+        fields = copy.deepcopy(cf.KNOWLEDGE_FIELDS)
+        fields["items_gifts.json"] = {"gifts.[].flag": (cf.AI, "a FAULT: a flag classified ai", True)}
+        self.assertNotIn("flag", cf.developer_keys(fields))
 
 
 if __name__ == "__main__":

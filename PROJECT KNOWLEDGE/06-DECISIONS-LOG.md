@@ -9683,3 +9683,21 @@ on all three questions:
 - **Done now, cheaply:** the `## Done` section's warning said THREE open items sit under it. The recon counted at least 25 (51 open boxes). The warning now says so, citing the recon, without moving any block.
 - **Resume when:** the story bot resumes, or R3's 4,400-line budget blocks real work. Today new 03 text goes into existing lines, with `--rewaive`.
 - **Rejected:** building it now by stubbing open items (the 2026-08-22 ruling); a done-items-only move (22 % of the bytes, and 97 of them carry live text).
+
+## 2026-10-22 — KB2 extraction asserts only what an independent exhaustive scan re-checks; `unknown` accepted over fix-spec-2's Beldum answer
+
+- **Decision (the coordinator's technical call; it binds stage 2b and every later KB2 file):**
+  - The extractor writes a value for the AI only from one of two sources.
+  - (1) A pattern that an independent whole-decomp scan can re-check on EVERY record. `once` and `until_received` need a SOLE writer of the blocking flag or var. That means scripts, every `src/` mention, and C range clears. A once-guard must also hold at new game. A special with no table entry gives `when: null` and repeat `unknown`. A possession check (`checkitem`) is a condition, not bag room.
+  - (2) A small CITED hand table (`REARM`, `SPECIAL_EFFECTS` with 68 entries, `CHOOSER_OF`, `MAP_CONDITIONS`). Every cite (path:line plus token) is checked at build time and again at verify time.
+  - Anything else is `unknown` or `when: null`, and is listed in the file's `_notes`.
+- **Ruling inside it:** the strict sole-writer rule overrides fix-spec-2's named answer for Mossdeep's Beldum. The decomp says `until_received`: `hall_of_fame.inc:21` re-shows the ball only while it was never received. But a writer of the blocking flag exists outside the gift's own continuation (the record's `dev.other_writers`), and the scan cannot show that it never re-arms. So `unknown` is ACCEPTED for Beldum, for Rock Tomb (Roxanne's TM; W7 row 16's acceptance pin was loosened to `unknown` and says so in its docstring) and for the other records the rule moved (62 moved from `once` or `until_received`, 13 of them golden "known answers"). The golden list keeps the hand-read value as `truth` beside `unknown`, so a later refinement is checked against it.
+- **WHY:**
+  - Three adversarial verify rounds each closed their own failures and each found a NEW wrong value in a record nobody had looked at (`08` 2026-10-22). The hunt over 176 gift records did not converge, at about 2.3M agent tokens for rounds 0-2.
+  - Every wrong value came from the same shape: a value asserted from the ABSENCE of something the extractor never looked for (a re-arming writer, a special's effect, a trigger-level condition, a possession check), or from a reachability shortcut.
+  - Round 3 asserted only what an independent exhaustive scan re-checks, plus the cited tables. The final verifier then ran exhaustive scans over EVERY record and found NO wrong value the AI would read. All 519 table and golden cites hold at the pin.
+  - `unknown` is honest and cheap. The AI is a SEASONED player (USER RULING 40) and knows these gifts. A wrong `once` or `until_received` is worse: it tells the AI something false.
+- **Rejected:**
+  - (a) Relaxing the rule by reachability reasoning ("this other writer ran before the gift, so the gift is once"). That shortcut (`one_shot`, the "spent" rule) produced round 2's wrong values.
+  - (b) A fourth round now for a polarity refinement: "a writer that writes ONLY the blocking value cannot re-arm". It is mechanically checkable and would recover the gym TMs, the dolls, the bikes and the fossils. DEFERRED as a low-priority follow-up (04 queue item 5), not refused: it is the right next refinement if the AI ever misses those records.
+- **Known weak proofs, said plainly in `07` 2026-10-22:** two verifier rules (h2 and gw-cite) can be deleted with every plant and test green; the `s2_merge` guard is inert at the pin; a Trick House hide flag is treated as a blocker although `addobject` ignores it (9 records, values still true); two physical gates nobody worded (the Slateport museum fee, Shoal Cave low tide).

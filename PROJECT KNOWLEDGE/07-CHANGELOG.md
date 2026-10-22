@@ -38663,3 +38663,46 @@ bought balls only at fixed story points.
 - **Deferred** (`06` 2026-10-22): a slim 03 would have to stub OPEN items, which the 2026-08-22 ruling forbids, and 03 is not a whole session-start read.
 - `04` queue: item 1 is now KB2 slice 2. `03`, `02` and the backlog name part 2 DEFERRED.
 - `03`'s `## Done` warning is corrected: at least 25 open items sit under it, not three.
+
+## 2026-10-22 — KB2 slice 2, STAGE 2a DONE: `items_gifts.json` (S3-4, backlog item 11), verified after four rounds
+
+- **What:** the AI's item and gift facts are now extracted from the pinned decomp (`C:/Remote Projects/_decomp/pokeemerald`, `tools/decomp.pin`) into `ai_player/knowledge/world/items_gifts.json`. Nothing reads it yet (the AI's loader is not built).
+  - **Content:** 176 gift lines, 33 marts in 37 mart lists, 58 TM/HM rows, 13 purchases, 5 dead, 10 excluded.
+  - **Values over the 176 gifts:** `repeat` = once 28, until_received 41, daily 27, repeatable 11, weekly 2, unknown 67. `when` = "no condition beyond `repeat`" 39, worded 39, null 98. The nulls and unknowns are listed in the file's `_notes`.
+- **WHY:** KB2 slice 2 (backlog item 11) gives the SEASONED player (USER RULING 40) static game knowledge of what can be found, bought and received, and under what condition. Its spec is `ai-research-notes/2026-10-22-BUILD-SPEC-S3-4-slice2.md`.
+- **Files:**
+  - NEW `ai_player/gates/extract_items.py`: the stage-2a extractor. `--check` compares the committed file with a fresh extraction.
+  - NEW `ai_player/knowledge/world/items_gifts.json`: generated.
+  - CHANGED `ai_player/gates/verify_world.py`: an independent verifier that shares no function with the extractor. It adds KB2 slice 2's rules a1-a10 plus d3, gw and gender checks; a golden list of 40 cited hand-read entries; 26 planted faults, each reported on exactly one line; its own whole-decomp sole-writer scan; and a re-check of every hand-table cite at verify time.
+  - CHANGED `ai_player/gates/test_kb2.py`: 89 tests.
+  - The 48 files of `PROJECT KNOWLEDGE/chapter-packs/` regenerated. Their provenance lines embed `verify_world.py`'s sha256; nothing else changed.
+  - New notes (builder reports): `ai-research-notes/2026-10-22-KB2-slice2-stage2a-values-report.md` (counts; the cited tables REARM, ranges and SPECIAL_EFFECTS; known answers) and `-stage2a-tests-report.md` (tests and mutants).
+- **Proof (the real lines):**
+  - `extract_items.py --check` -> "CHECK OK". ⚠ That is a DETERMINISM check, not a replication.
+  - `verify_world.py` -> "PASS: 0 mismatches" (golden 40); `verify_world.py --selftest` -> "SELFTEST PASS"; `test_kb2.py` -> "Ran 89 tests ... OK".
+  - Mutants: 132 call-deleting mutants, 130 caught. The 2 explained survivors are a dead branch (`Context.c_named`, writes_only) and the verifier's `s2_merge` call, which changes no record at the pin.
+  - `make_chapter_pack.py --all --check` -> "CHECK: PASS"; `run_regression.py --quick` -> "REGRESSION: PASS (quick, 14 suites)"; `run_gates.py --quick` -> "ALL 140 ENFORCING GATES PASS" (142 of 156 gates; the 14 ROM gates are not in `--quick`).
+  - The final adversarial verifier's own exhaustive scans over EVERY record found NO wrong value the AI would read. All 519 table and golden cites hold at the pin. Its one wording finding (the a7/a10 docstring named `s2_after`; the code scans `s2_cont`) was fixed.
+- **Four rounds (agent tokens; total about 3.6M, about 10 % of the user's week):**
+  - Round 0, build + verify, 0.67M. REFIX: `repeatable` used as a default; a phantom fall-through out of data tables; menu choices unlinked; the Favor Lady's prize called a choice; own-var story gates dropped.
+  - Fix round 1, 0.76M. REFIX: a re-arm missed (the Glass Workshop flute and the Contest Hall Luxury Ball read `once`); `checkitem` counted as bag room (the Coin Case and Shell Bell read "no condition"); partial gates printed "no condition".
+  - Fix round 2, 0.87M (the builder hit its 150-call cap). REFIX: the 8 Shoal Cave salt and shell gifts read `until_received` though they come back daily; the owed lottery prize read "no condition"; Favor Lady words impossible in solo play.
+  - Fix round 3, 1.29M (two builders and one verifier): PASS on values.
+- **The decision and the mistake:** `06` 2026-10-22 "KB2 extraction asserts only what an independent exhaustive scan re-checks; `unknown` accepted over fix-spec-2's Beldum answer" (62 records moved from `once` or `until_received` to `unknown`, 13 of them golden "known answers", Beldum and Rock Tomb among them). `08` 2026-10-22 "an extractor asserted facts from absence and from reachability shortcuts". Rejected and deferred: a polarity refinement ("a writer that writes ONLY the blocking value cannot re-arm"), which would recover the gym TMs, the dolls, the bikes and the fossils (04 queue item 5).
+- **Known limits (weak proofs, not wrong values):**
+  - Verifier rules h2 and gw-cite can be deleted with every plant and test still green.
+  - The `s2_merge` guard is inert at the pin.
+  - A Trick House hide flag is treated as a blocker although `addobject` ignores it (9 records; the values are still true).
+  - Physical gates nobody worded: the Slateport museum fee and Shoal Cave low tide.
+  - `extract_items.py --check` is determinism, not replication.
+- **Next:** stage 2b, `events.json`, from the same spec's 2b section. It REUSES `extract_items.py`'s label parser, edge builder and path walk, and is bound by the `06` 2026-10-22 principle. The full regression lane is DUE again, because this commit changes `ai_player/gates/` (test_kb2, verify_world, extract_items); it is started right after the commit, and its result goes in the next commit.
+
+## 2026-10-22 — Step 5.3's build spec FILED (B1 + N8's grader half), revised after one adversarial critic
+
+- **Filed:** `ai-research-notes/2026-10-22-BUILD-SPEC-step5.3-B1-N8.md`, revised after one adversarial critic, `ai-research-notes/2026-10-22-step5.3-spec-critic.md`. Both are NOTES. Nothing is built.
+- **The spec is staged:**
+  - **A1:** typed, honest, hashed checks. No change in what is measured.
+  - **A2:** the checks read the game, then a measurement-only development sweep. The coordinator then decides each B1-debt row from the numbers.
+  - **B:** the re-grade of step 5 on held-out seeds.
+- **WHY A2 measures before it decides:** the critic MEASURED that a curiosity yield over game windows is likely vacuous. GREEDY is 85.9 % productive against the real code's 90.2 %, and BEELINE has no curiosity at all. A threshold chosen before the numbers could therefore pass or fail for no real reason.
+- **Next:** the first build is stage A1 (queue item 3 in `04`).

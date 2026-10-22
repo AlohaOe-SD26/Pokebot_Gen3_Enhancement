@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "c3870a7e10187dbcf6d0d31172c49c1bc3820560",
+ "source_sha1_lf": "195cb858874869c4a6930bb7808977885eb7f7fc",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 329,
+  "sections": 330,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5142,6 +5142,19 @@
    "line_start": 9668,
    "line_end": 9685,
    "title": "2026-10-22 — S2-1b part 2 (the `03-PUNCH-LIST.md` slim-down) DEFERRED after its recon; the queue reorders to KB2 slice 2 first",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-22-60ce7d",
+   "date": "2026-10-22",
+   "line_start": 9687,
+   "line_end": 9703,
+   "title": "2026-10-22 — KB2 extraction asserts only what an independent exhaustive scan re-checks; `unknown` accepted over fix-spec-2's Beldum answer",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],
