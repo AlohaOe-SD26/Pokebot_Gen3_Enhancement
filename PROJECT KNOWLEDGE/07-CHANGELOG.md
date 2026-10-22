@@ -38435,3 +38435,9 @@ bought balls only at fixed story points.
 - **Proof:** test_evidence 27 OK; `run_units.py` OVERALL: PASS; `run_regression.py --quick` PASS (14 suites, 15.1 s). `--check-evidence` on the real tree: 6 of 217 files current against HEAD (by digest alone it said 10, some wrongly).
 - **Untested, disclosed:** the `watch()` call `keep_earlier` keeps (V7), and `prune_evidence`'s pack key (V9).
 - This closes the OPEN item in the S4-1 entry above ("A PRE-EXISTING evidence bug ... OPEN; next fix").
+
+## 2026-10-21 — The AI player's full regression lane on the fixed evidence identity: PASS, and the old evidence archived (S4-1, #28-evidence-identity)
+
+- `run_regression.py --full --evidence` on `2267aecf`: `REGRESSION: PASS (full, 24 suites, 4295.5 s wall)` (9:33 PM to 10:45 PM; revert_step3 4,295 s). Its evidence is committed in `37a4c2a7`.
+- **The identity fix worked on real data:** the previous run's 11 files (on `08392c98`) were MOVED to `ai_player/evidence/archive/53e0c26e7812db47-08392c98/` before this run wrote its own. Under the old digest-only identity they had been overwritten in place.
+- `regression_due.py` afterwards: ok units, ok revert_step5, ok revert_safety_gates. A commit that changes only evidence or docs keeps them current, because the identity is the code under test.

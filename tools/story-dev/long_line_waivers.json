@@ -612,7 +612,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "6bb82211422407fedabce93214bee38bac58d7fe",
-      "chars": 23358,
+      "chars": 23353,
       "head": "**Last updated:** 2026-10-21 (⭐ **STEP 1 BUILT AND REVIEWED ",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
@@ -834,7 +834,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 61301,
+      "chars": 61480,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -863,6 +863,12 @@
           "from_chars": 60738,
           "to_chars": 61446,
           "why": "2026-10-21 Tier 1 fixes: (0d) the evidence-identity fix as its own queue item; A2's caveat; step 5.3 points at B1 + N8"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 61301,
+          "to_chars": 61480,
+          "why": "2026-10-21 10:45 PM: the full lane re-ran and passed; (0d) records it"
         }
       ]
     },
