@@ -38711,3 +38711,11 @@ bought balls only at fixed story points.
 
 - `py -3.12 ai_player/gates/run_regression.py --full --evidence`, run detached on `0ac3e5c2` from 1:57 PM: `REGRESSION: PASS (full, 25 suites, 4333.7 s wall)` at 3:09 PM. The re-written evidence files (`ai_player/evidence/2026-10-22-regression-*` and the step REVERT files) are committed with this entry.
 - `04`'s STATE row and its resume point no longer say the lane is due.
+
+## 2026-10-22 — The live-system watch DONE: O5 restarted, the archive canary PASSED, `keep_raw_cycles` lowered to 4
+
+- **O5 (the consult novelty gate) is live.** The clone's `learner.log`: "[04:10:31 PM] ai0041: batch exit 0; 54 runs logged, 42 scored", "[04:11:17 PM] ai0024: archived: 306 files (230 stored, 76 dup_of a batch file), 2469 MB -> 96.7 MB", "[04:11:20 PM] update: 33e0803c -> fd50f394", "[04:11:57 PM] code changed (11c31ef1b18f -> 9aae60451ad1) and test_agent.py passes: restarting into it". ai0042 started at 4:11 PM.
+- **The canary (O3, K=17) PASSED.** The end of ai0041 archived exactly ai0024, as K=17 predicted, and `py -3.12 learner.py archive-check` in the clone's `ai-agent/` (read-only) printed `OK ai0024 306 101355997`.
+- **Changed:** `ai-agent/config.json` `keep_raw_cycles` 17 -> 4, with a dated note. It reaches the tuner by this push, at the next cycle boundary (about 4:11 AM 2026-10-23); at most 3 cycles archive per boundary (`max_archives_per_prune`), so the older cycles drain over a few boundaries.
+- **Still to confirm:** after O5's first cycle end, the clone's `DEVELOPER-NOTES.md` keeps 5 entries and moves the rest to `DEVELOPER-NOTES-ARCHIVE.md` (expected, lossless; `04` resume point).
+- `tools/status.py` also printed "Windows has a restart pending": the tuner stops while the PC restarts and starts again at logon.

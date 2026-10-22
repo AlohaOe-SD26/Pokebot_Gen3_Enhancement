@@ -95,7 +95,7 @@ end, then scores it.
    - where runs end, with hints from `05-KNOWN-ISSUES.md`;
    - questions for Claude.
 6. **Ask Claude** (`consult.py`; ON since 2026-10-03, at most 2 calls a day; see below).
-7. **Archive** (backlog O3, built 2026-10-21). The newest `keep_raw_cycles` cycles (20) keep their raw logs as
+7. **Archive** (backlog O3, built 2026-10-21). The newest `keep_raw_cycles` cycles (4 since 2026-10-22; `config.json`) keep their raw logs as
    files. Each older cycle is zipped to `runs/<tag>/raw.zip`, with `raw.manifest.json` listing every file's name,
    size and CRC32. The zip holds BOTH halves of the cycle:
    - `batch/...`: the cycle's `runs/<tag>/batch/` (measured 1.3-1.7 GB);
