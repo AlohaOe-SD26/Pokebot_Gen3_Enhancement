@@ -23995,3 +23995,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** both numbers were predicted from a proxy (the source text; an idle machine's timings) where the authority could be asked directly (`unittest.TestLoader` decides what runs; a run under the real load decides the wall time). The recon had even measured the busy-machine slowdown (1.5x for the units), and the spec did not carry it to the longest suite.
 - **The fix that worked** (`08392c98`): the shard list comes from the loader, and its union is checked against the loader before running; revert_step3's timeout is 3.5x its serial time; the measured 72 minutes is recorded (`06`).
 - **Prevention rule:** when a tool must match what another program will do (which tests run, how long a run takes), ask that program or measure under the real conditions. A static model of it is a guess, and a wrong guess about which tests run reads as PASS.
+
+## 2026-10-21 — ⛔ A FINGERPRINT OF A DIFF WAS USED AS A FINGERPRINT OF THE CODE: EVERY CLEAN TREE LOOKED THE SAME
+
+- **Symptom:** S4-1's second full run, on a newer commit, OVERWROTE the first run's evidence (`keep_earlier` called the two "the same tree"). `--check-evidence` could call an older commit's evidence current.
+- **Root cause:** provenance's digest is sha256 over `git diff HEAD` of the scope plus the untracked files: it says how a tree differs FROM ITS HEAD. Every clean tree has the same empty diff, so every clean commit carried the same digest, and the tools compared digests alone. It had held since step 2.1 because most graded runs happened on DIRTY trees. The B1 recon measured the constant digest the same day, before the run that showed the damage.
+- **The fix that worked** (`91042698`): the identity is (label, the label's committed files at the line's HEAD, the digest), computed from the existing code line.
+- **Prevention rule:** an identity must be a function of the THING it identifies. A diff identifies a change relative to a base, so it must never be compared without its base. Test every identity with the case "same diff, different base".

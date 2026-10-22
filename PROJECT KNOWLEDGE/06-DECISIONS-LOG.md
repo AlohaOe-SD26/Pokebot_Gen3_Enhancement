@@ -9608,3 +9608,12 @@ on all three questions:
 - **ONE suite runner:** `run_units.run_command` delegates to `run_regression.run_command`. Rejected: two copies (verify round 2: the second kept the old gap and a false docstring).
 - **The full lane's real cost is accepted:** about 72 min of wall time under the bot tuner's 12 lanes, because revert_step3 (the floor) runs about 2x slower under contention. Its timeout is 3.5x its serial time (it used 86 % of 2.5x). Rejected: running the full lane serially (no faster: revert_step3 still dominates) and dropping revert_step3 from the lane (its 94 mutants are the step-3 world's only revert proof).
 - **N8's grader half waits for step 5.3 with B1:** typed `Check` statuses and the forced-PASS sites in rate_step5 change the graded step-5 grader and re-grade it.
+
+## 2026-10-21 — Evidence identity = the code under test (#28-evidence-identity; Claude's call)
+
+- **An evidence file's identity is (label, the label's committed files at its HEAD, its diff digest), computed from its existing code line.** Rejected:
+  - HEAD + digest, under which every docs-only commit would make all evidence stale;
+  - a new code-line format, under which 216 old files would need rewriting or a second reader, against G6;
+  - the digest alone (the bug).
+- **What git cannot see is documented, not chased:** an assume-unchanged / skip-worktree edit, or a gitignored file inside the scope, keeps the identity. `regression_due.py` reports the first as unproven, and the purity gate covers ignored caches.
+- **A diff later committed unchanged reads as ANOTHER tree.** The earlier evidence is archived, never lost: the safe direction.

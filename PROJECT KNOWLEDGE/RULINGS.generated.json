@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "fed029f12d5afb38e38a698e53bef08c9756c07e",
+ "source_sha1_lf": "212be637df109adf05f6da13e37696fb13c88848",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 322,
+  "sections": 324,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5054,6 +5054,34 @@
      "text": "- ⛔ **Do not re-ask** whether the AI sees the bot's species choices, or whether it knows trainer positions and sight ranges."
     }
    ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-1eff0e",
+   "date": "2026-10-21",
+   "line_start": 9602,
+   "line_end": 9610,
+   "title": "2026-10-21 — Technical decisions of S4-1, the regression runner (Claude's calls)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-21-20a928",
+   "date": "2026-10-21",
+   "line_start": 9612,
+   "line_end": 9619,
+   "title": "2026-10-21 — Evidence identity = the code under test (#28-evidence-identity; Claude's call)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-evidence-identity"
+   ],
+   "ki": [],
+   "donot": [],
    "cues": []
   }
  ]

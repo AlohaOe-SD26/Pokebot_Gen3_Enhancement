@@ -38410,3 +38410,28 @@ bought balls only at fixed story points.
   - regression_due's newest-file rule is by mtime;
   - outside Windows there is no job object.
 - **Out of scope** (with B1 at step 5.3): typed `Check` statuses inside the graders, the forced-PASS "(reported)" sites in rate_step5, and summaries from the live/rate drivers themselves.
+
+## 2026-10-21 — `#28-evidence-identity`: evidence is identified by the code UNDER TEST, not by the diff from HEAD (queue (0d))
+
+- **Commit** `91042698`. Files:
+  - `ai_player/gates/provenance.py`: `code_identity`, `tree_identity`, `scope_hash`, `archive_key`;
+  - `ai_player/gates/prune_evidence.py`;
+  - `ai_player/gates/run_regression.py`;
+  - `ai_player/gates/test_evidence.py`: identity tests (1)-(7);
+  - `ai_player/gates/test_run_regression.py`, `ai_player/gates/test_safety_gates.py`: arms kept true;
+  - `ai_player/evidence/archive/README.md`.
+- **The bug** (found by S4-1's second full run):
+  - A code line's digest describes only the diff from its HEAD, so a CLEAN tree carries the same empty-diff digest at every commit.
+  - `keep_earlier` read d10caa5e's evidence as "the same tree" on 08392c98 and wrote over it. It was committed (`3cb9f91a`), so nothing is lost.
+  - `--check-evidence` could call an older commit's evidence current.
+- **The fix:**
+  - An evidence file's identity is (its label, a hash of `git ls-tree -r <its HEAD>` over that label's scope with the digest's exclusions, its digest).
+  - The working tree's identity is the same, at the current HEAD.
+  - A docs-only commit leaves `ai_player/` evidence current; any change git can see to a scoped file makes another tree.
+  - New archive folders are `<digest>-<HEAD>`.
+  - The code-line FORMAT is unchanged: an old file's identity is computed from its own HEAD, and an unknown commit is never "the same tree".
+  - `code_digest` stays the one reader of the code line (G6).
+- **Review:** one adversarial verify (rendered templates). It re-created the bug on a throw-away repo (the old code overwrites, the new code archives), and 22 of its 24 identity scenarios gave the expected answer. Its one FAILURE was the docstring's "any change" claim: an assume-unchanged edit and a gitignored file inside the scope are not seen, and the docstring now says so. Its surviving mutants V1 (the scope-hash cache keyed without the label) and V13 (covers:<suite>'s digest ignoring suite_map's exclude) gained arms (6) and (7), each shown to FAIL on its mutant and PASS on the real code.
+- **Proof:** test_evidence 27 OK; `run_units.py` OVERALL: PASS; `run_regression.py --quick` PASS (14 suites, 15.1 s). `--check-evidence` on the real tree: 6 of 217 files current against HEAD (by digest alone it said 10, some wrongly).
+- **Untested, disclosed:** the `watch()` call `keep_earlier` keeps (V7), and `prune_evidence`'s pack key (V9).
+- This closes the OPEN item in the S4-1 entry above ("A PRE-EXISTING evidence bug ... OPEN; next fix").

@@ -612,7 +612,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "6bb82211422407fedabce93214bee38bac58d7fe",
-      "chars": 23275,
+      "chars": 23358,
       "head": "**Last updated:** 2026-10-21 (⭐ **STEP 1 BUILT AND REVIEWED ",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
@@ -635,6 +635,12 @@
           "from_chars": 23129,
           "to_chars": 23275,
           "why": "2026-10-21 USER RULING 43: the watchdog approved; registered after the clone's next fast-forward"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 23275,
+          "to_chars": 23358,
+          "why": "2026-10-21 (0d) done: the banner points at (0d) and the stale AI-player evidence"
         }
       ]
     },
@@ -828,7 +834,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 61446,
+      "chars": 61301,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"

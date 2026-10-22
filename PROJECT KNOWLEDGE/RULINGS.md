@@ -65,10 +65,12 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 322 sections (newest first)
+## All 324 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-21-20a928` | 9612 |  |  | 2026-10-21 — Evidence identity = the code under test (#28-evidence-identity; Claude's call) |
+| `2026-10-21-1eff0e` | 9602 |  |  | 2026-10-21 — Technical decisions of S4-1, the regression runner (Claude's calls) |
 | `2026-10-21-bd628b` | 9593 | 45 | DO-NOT-REOPEN | 2026-10-21 — USER RULING 45 (S3-4's two other user items): the AI does NOT see which species the bot chose; it DOES know trainers' positions and sight ranges |
 | `2026-10-21-3b21a7` | 9582 | 44 | DO-NOT-REOPEN | 2026-10-21 — USER RULING 44 (the S3-4 boss-knowledge question): the AI KNOWS each boss Pokémon's held item; it does NOT know their exact stats (IVs, hidden stat |
 | `2026-10-21-d1e589` | 9575 | 43 | DO-NOT-REOPEN | 2026-10-21 — USER RULING 43 (the watchdog's human check): the test toast arrived; a brief window flash every 30 minutes is fine; the monitor stays off |
