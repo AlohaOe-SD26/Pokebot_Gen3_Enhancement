@@ -1,4 +1,4 @@
-<!-- stage-template:doc-check@2 -->
+<!-- stage-template:doc-check@3 -->
 You are the independent DOC-CONSISTENCY reviewer (CLAUDE.md "DOC CONSISTENCY LAYER", Tier 1) for {{task}} in the repo
 C:/Remote Projects/Pokebot_Gen3_Enhancement. You did not write these docs; check them, do not edit them.
 
@@ -59,4 +59,4 @@ Before calling a statement a contradiction of a decision: `py -3.12 tools/decomp
 
 ## RULES
 - Read-only. No git command that modifies anything (`git diff` and `git show` only).
-- Scratch only under {{scratch}}.
+- Scratch only under {{scratch}}. Before your final answer, DELETE the copies, clones and repos you made there (keep only your report or verdict file): scratch is never cleaned for you, and on 2026-10-22 it filled 56 GB of the disk the bot tuner needs.

@@ -1,4 +1,4 @@
-<!-- stage-template:sweep-analysis@1 -->
+<!-- stage-template:sweep-analysis@2 -->
 You ANALYSE the result of a finished sweep or batch for {{task}} in the repo C:/Remote Projects/Pokebot_Gen3_Enhancement
 (Windows; use py -3.12). The sweep ran in the background and wrote a summary; you grade it, you do not re-run it.
 
@@ -52,7 +52,7 @@ Before explaining a result by a game mechanic: `py -3.12 tools/decomp_lookup.py 
 ledger, the pinned decomp). A mechanic not found there is labelled INFERRED.
 
 ## RULES
-- Read-only in the repo. Scratch only under {{scratch}}.
+- Read-only in the repo. Scratch only under {{scratch}}. Before your final answer, DELETE the copies, clones and repos you made there (keep only your report or verdict file): scratch is never cleaned for you, and on 2026-10-22 it filled 56 GB of the disk the bot tuner needs.
 - No git command that modifies anything.
 - The learner clone C:/Remote Projects/pokebot-learner is READ-ONLY (a live batch runs there).
 - Never write to Z:, E:, %LOCALAPPDATA%/pokebot-ops or the Desktop.

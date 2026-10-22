@@ -1,4 +1,4 @@
-<!-- stage-template:build@1 -->
+<!-- stage-template:build@2 -->
 You are the BUILDER for {{task}} in the repo C:/Remote Projects/Pokebot_Gen3_Enhancement (Windows; use py -3.12).
 
 ## GOAL
@@ -59,5 +59,5 @@ pinned decomp; exit 3 = nothing found). A ruling's do-not line is final (CLAUDE.
 - No git command that modifies anything (no add, commit, checkout, restore, stash, reset); the coordinator commits.
 - The learner clone C:/Remote Projects/pokebot-learner is READ-ONLY (a live batch runs there).
 - Never write to Z:, E:, %LOCALAPPDATA%/pokebot-ops or the Desktop.
-- Mutants and experiments run only in scratch copies under {{scratch}}.
+- Mutants and experiments run only in scratch copies under {{scratch}}. Before your final answer, DELETE the copies, clones and repos you made there (keep only your report or verdict file): scratch is never cleaned for you, and on 2026-10-22 it filled 56 GB of the disk the bot tuner needs.
 - Never edit tools/story-dev/run_gates.py; report the exact registration line instead.

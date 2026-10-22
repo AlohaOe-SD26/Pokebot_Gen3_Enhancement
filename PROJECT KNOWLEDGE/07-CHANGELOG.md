@@ -38567,3 +38567,4 @@ bought balls only at fixed story points.
   - the "banner line 10" warning now says line 6;
   - (0d)'s retire step gives its exact command (a dry run first).
   - Not fixed here: the old banner section whose heading says "RETIRED HISTORY" still holds the live session ritual. That is the handoff slim-down's job (S2-1b).
+- **Prevention (the same day):** every stage template's scratch rule now ends "before your final answer, DELETE the copies, clones and repos you made there (keep only your report or verdict file)" (build@2, doc-check@3, recon@3, sweep-analysis@2, verify@3; `lint_templates.py` CLEAN, `selftest_workflows.py` ALL PASS).
