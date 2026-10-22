@@ -6,7 +6,7 @@
 > - NOT INCLUDED YET: A6's measured traps (top wall, level at first loss and at win, whiteouts; source 'bot corpus'): chapter_priors.json is not generated. No measured section means NOT MEASURED, never 'no traps here'.
 > - NOT INCLUDED YET: story-event flags (setflag/setvar in map scripts; slice 2's events.json). The flags below are badge flags, trainer defeat flags and campaign.json badge gates only.
 
-Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_chapter_pack.py` sha256 `cf70a344bc12db37e251b57d1c299f7f3b0873e3c23c65361b005b048ff85219`.
+Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_chapter_pack.py` sha256 `68fe7248ab2de38fec3e1938961e77a9d3597e7360aca0c7c91d3f774ff067df`.
 
 | source | sha256 |
 |---|---|

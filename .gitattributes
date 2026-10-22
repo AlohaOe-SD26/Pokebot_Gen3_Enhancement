@@ -11,3 +11,6 @@ ai_player/knowledge/seasoned/*.json text eol=lf
 # KB2 slice 1 (spec S3-4): the same rule for the world files (trainers, bosses, maps and campaign.json, which lives in
 # world/ so check_fairness's non-recursive knowledge/*.json glob does not see it before a loader exists)
 ai_player/knowledge/world/*.json text eol=lf
+# A5 chapter packs (spec S3-4): make_chapter_pack.py writes LF and its header hashes are LF-normalised; this keeps the
+# committed bytes LF on every machine, so a pack's bytes and its --check do not depend on core.autocrlf
+"PROJECT KNOWLEDGE/chapter-packs/*" text eol=lf
