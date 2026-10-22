@@ -38656,3 +38656,10 @@ bought balls only at fixed story points.
   - Fix round 1 closed them and the coordinator's queue ruling. Verify 2 found 3 residuals: a deletable banner clause, a stale comment, and the backlog named without its file. The coordinator fixed and re-proved those.
 - **Proof:** three independent lossless checks; `run_gates.py --quick` "ALL 140 ENFORCING GATES PASS" (verify 2); lint_docs, audit_doc_consistency, audit_handoff_invariants (and `--self-test`), lint_templates and selftest_workflows all pass after the final edits.
 - **Next:** S2-1b part 2 (`03-PUNCH-LIST.md`, about 697 KB, 4,400 of 4,400 lines), its own spec and recon first.
+
+## 2026-10-22 — S2-1b part 2 recon filed and the item DEFERRED (`06`); the queue reorders to KB2 slice 2 first
+
+- Three read-only recon agents mapped `03-PUNCH-LIST.md`: 697 KB and 4,400 lines. Live AI-era work is about 7 %; open and `[~]` parked story items are about 65 % of the bytes; 97 of 179 `[x]` items still carry live text; the user's own lists are about 30 KB. The notes are `ai-research-notes/2026-10-22-S2-1b-part2-recon-{tools,content,adversarial}.md`.
+- **Deferred** (`06` 2026-10-22): a slim 03 would have to stub OPEN items, which the 2026-08-22 ruling forbids, and 03 is not a whole session-start read.
+- `04` queue: item 1 is now KB2 slice 2. `03`, `02` and the backlog name part 2 DEFERRED.
+- `03`'s `## Done` warning is corrected: at least 25 open items sit under it, not three.

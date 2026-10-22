@@ -65,10 +65,11 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 328 sections (newest first)
+## All 329 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-22-8000d8` | 9668 |  |  | 2026-10-22 — S2-1b part 2 (the `03-PUNCH-LIST.md` slim-down) DEFERRED after its recon; the queue reorders to KB2 slice 2 first |
 | `2026-10-22-23d549` | 9643 |  |  | 2026-10-22 — S2-1b (the handoff slim-down): SNAPSHOT, THEN REWRITE; and the queue order after it |
 | `2026-10-22-d95db5` | 9636 |  |  | 2026-10-22 — Technical decisions of O5, the consult novelty gate (Claude's calls) |
 | `2026-10-22-bce135` | 9629 |  |  | 2026-10-22 — Technical decisions of the chapter-pack tool, A5 (Claude's calls) |

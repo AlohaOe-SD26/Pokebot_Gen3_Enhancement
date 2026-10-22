@@ -9664,3 +9664,22 @@ on all three questions:
   - A new numbered snapshot file: it would make the asymmetric 04/28 pair a trio.
   - Condensing the live lines without a snapshot: it would not be verbatim, and loss could not be proved.
   - Doing slice 2 before 03's trim: against the backlog's order.
+
+## 2026-10-22 — S2-1b part 2 (the `03-PUNCH-LIST.md` slim-down) DEFERRED after its recon; the queue reorders to KB2 slice 2 first
+
+- **Decision (the coordinator's technical call; it revises this morning's queue ruling, same date):** part 2 is not built now. KB2 slice 2 (backlog item 11, spec ready) becomes queue item 1, then step 5.3.
+- **WHY (three read-only recon agents, filed as `ai-research-notes/2026-10-22-S2-1b-part2-recon-{tools,content,adversarial}.md`):**
+  - (1) Live AI-era work is about 7 % of 03 (5 open items, about 10.7 KB). By bytes, open items are 48 % and `[~]` items 17 %; DONE items are only 22 %, and 97 of the 179 `[x]` items still carry do-nots, pending checks or pointers to open work. So a slim 03 must STUB open, parked story-bot items. That is "trimming live content", which `06` 2026-08-22 PASS 5 forbids ("reclaim budget by ARCHIVING VERBATIM, never by trimming live content"), even with a verbatim snapshot. It was right for 04, where the live items were carried in full.
+  - (2) The user's own lists (03:2942, 3012, 3047, 3070, 3196, 3230, 3246, 3281, 3302; about 30 KB) encode the user's order and cull rights, and must stay verbatim.
+  - (3) 03 is not a whole session-start read: the kit hook prints its first five `- [ ]` lines. So the per-session saving that justified part 1 is small here.
+  - (4) The archive choice is unsettled. `archive_sweep.py` reserves `32-PUNCH-LIST-ARCHIVE.md`, while every earlier 03 retirement went to 28, and part 1 rejected a new numbered file for 04.
+- **Open design questions for whoever resumes it:**
+  - stubs versus the 2026-08-22 ruling (or a by-KIND split, the parked story backlog in its own current-state file);
+  - 28 versus a new 32, and which byte form each lossless check compares (03 is LF in git and CRLF in the tree);
+  - the 37 `[~]` items;
+  - `probe_closed_item_refs.py` goes vacuous (34 closed items today, about 0 after);
+  - `wrapup.md:8` and 03:3-4 tell sessions to move done items into a Done section in 03;
+  - the session brief shows whichever five open lines come first.
+- **Done now, cheaply:** the `## Done` section's warning said THREE open items sit under it. The recon counted at least 25 (51 open boxes). The warning now says so, citing the recon, without moving any block.
+- **Resume when:** the story bot resumes, or R3's 4,400-line budget blocks real work. Today new 03 text goes into existing lines, with `--rewaive`.
+- **Rejected:** building it now by stubbing open items (the 2026-08-22 ruling); a done-items-only move (22 % of the bytes, and 97 of them carry live text).
