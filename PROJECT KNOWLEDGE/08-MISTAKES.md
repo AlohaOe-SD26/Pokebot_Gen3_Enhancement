@@ -23986,3 +23986,12 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** 285 KB of 04 sit in 18 mega-lines inside `##` sections, the banner and the state table. 04 has 6 `###` headings, and the 4 closed ones were already pointers. The spec named a target and a mechanism without measuring how many of the file's bytes the mechanism's selection could reach. The round-1 check found it, after the build.
 - **The fix that worked:** the tools ship as built (the ratchet, the sweep for 03/05, the README split), and the 60 KB target moves to its own design, S2-1b (`06` 2026-10-21).
 - **Prevention rule:** a spec that sets a size or count target for a tool first measures, on the real file, how much of it the tool's selection can reach. A target the mechanism cannot reach is a design gap, and it is found before the build.
+
+## 2026-10-21 — ⛔ S4-1'S SPEC PREDICTED FROM PROXIES WHERE IT COULD HAVE ASKED THE REAL THING: THE TEST LIST FROM AN AST, THE WALL TIME FROM SERIAL TIMES
+
+- **Symptom:**
+  - The spec told the builder to plan `test_check_purity`'s shards from its AST. The independent verify then made a sharded module with two failing tests read PASS, with tests written in shapes the AST walk did not see (an aliased method, a TestCase imported under another name, `IsolatedAsyncioTestCase`, a class under an `if`).
+  - The spec also estimated the full lane at about 35 minutes from the serial times. It took 72: revert_step3, the floor, ran 2.15x slower beside the other suites and the bot tuner's 12 lanes, and reached 86 % of its timeout.
+- **Root cause:** both numbers were predicted from a proxy (the source text; an idle machine's timings) where the authority could be asked directly (`unittest.TestLoader` decides what runs; a run under the real load decides the wall time). The recon had even measured the busy-machine slowdown (1.5x for the units), and the spec did not carry it to the longest suite.
+- **The fix that worked** (`08392c98`): the shard list comes from the loader, and its union is checked against the loader before running; revert_step3's timeout is 3.5x its serial time; the measured 72 minutes is recorded (`06`).
+- **Prevention rule:** when a tool must match what another program will do (which tests run, how long a run takes), ask that program or measure under the real conditions. A static model of it is a guess, and a wrong guess about which tests run reads as PASS.

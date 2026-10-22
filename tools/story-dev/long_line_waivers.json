@@ -37,7 +37,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
-      "chars": 4055,
+      "chars": 4145,
       "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
       "tails": [
         "ntrols, one temp-folder factory, Python hooks, determinism)."
@@ -54,6 +54,18 @@
           "from_chars": 3973,
           "to_chars": 4055,
           "why": "2026-10-21 USER RULING 43: the watchdog approved"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 4055,
+          "to_chars": 4084,
+          "why": "2026-10-21 S4-1 paperwork: A2 built"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 4084,
+          "to_chars": 4145,
+          "why": "2026-10-21 Tier 1 fix: A2's caveat (N8's grader half waits for 5.3)"
         }
       ]
     },
@@ -816,7 +828,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 60256,
+      "chars": 61446,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -833,6 +845,18 @@
           "from_chars": 60031,
           "to_chars": 60256,
           "why": "2026-10-21 USER RULING 43: the watchdog approved; registered after the clone's next fast-forward"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 60256,
+          "to_chars": 60738,
+          "why": "2026-10-21 S4-1 paperwork: A2+P7 built; the evidence-identity bug is the next fix"
+        },
+        {
+          "date": "2026-10-21",
+          "from_chars": 60738,
+          "to_chars": 61446,
+          "why": "2026-10-21 Tier 1 fixes: (0d) the evidence-identity fix as its own queue item; A2's caveat; step 5.3 points at B1 + N8"
         }
       ]
     },

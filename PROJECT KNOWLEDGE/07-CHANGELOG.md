@@ -38365,3 +38365,48 @@ bought balls only at fixed story points.
 - **First backup** (the clone's copy, run by hand): `OK learner-data-20261021-1620.zip: 113 files, 10,815,854 bytes raw -> 1,245,913 bytes zipped; runs.jsonl 2640 lines`.
 - **Restore drill:** `backup_learner.py --restore-check Z:/pokebot-backups/learner/learner-data-20261021-1620.zip --into <empty scratch folder>` printed `OK restore-check ...: 113 files restored ..., every sha256 matches, every .jsonl parses; runs.jsonl 2640 lines; state.json has 38 cycles` (exit 0).
 - **Not registered:** the watchdog (O1). After the clone's next fast-forward its installer also holds that task, and `-Apply` registers every task in its table, so the next `-Apply` waits for the user's `watchdog.ps1 -TestToast` check.
+
+## 2026-10-21 — S4-1: `run_regression.py`, the agent-free regression runner for the AI player (spec S4-1; backlog A2 + P7 + N8's runner half)
+
+- **Commits:** `dc674f7e` (the spec and its recon note), `d10caa5e` (the build), `3cb9f91a` (the first full run's evidence), `08392c98` (the fix round), and this one (the paperwork and the second full run's evidence). Every stage prompt was RENDERED from `tools/workflows/templates/` (recon, build, verify), the first real use of the templates.
+- **What it does:** `py -3.12 ai_player/gates/run_regression.py --quick | --full [--workers N] [--evidence] [--only NAME ...]`.
+  - It runs the AI player's NON-graded suites in parallel and types each one PASS / FAIL / VACUOUS / TIMEOUT / CRASH / NOT-RUN.
+  - It writes a `.summary.json` (at most 4 KB) beside each evidence file, so an agent reads the summary and not the raw logs.
+  - It never runs a `rate_*` or `live_*` driver, and it refuses to start while one runs (the seed ledger).
+  - It fails when the tree changes mid-run. A timeout kills every process the suite started (a Windows Job Object).
+  - `test_check_purity` is sharded from `unittest`'s own loader.
+  - Its evidence carries the `covers:<suite>` scope label, so `tools/workflows/regression_due.py` can say `ok` at last.
+- **Measured:**
+  - `--quick`: 14 suites PASS in 6.0-6.3 s (the target was 25 s; 13 of them ran serially in about 17 s, recon Q3).
+  - The first `--full` run (on `d10caa5e`): `REGRESSION: PASS (full, 24 suites, 4339.4 s wall)`; revert_step3 took 4,339 s of it, against 2,014 s serial on 2026-10-16.
+  - The second `--full` run (on `08392c98`): `REGRESSION: PASS (full, 24 suites, 4309.3 s wall)`; revert_step3 PASS in 4,308 s.
+  - Afterwards `regression_due.py` reads `ok` for units, revert_step5 and revert_safety_gates, the first time any suite could read `ok`.
+- **Reviews:**
+  - **Verify round 1:** REFIX with 6 FAILURES:
+    - the AST shard planner missed test shapes, so a sharded module with failing tests read PASS;
+    - five guards were untested;
+    - a timeout left an orphaned grandchild alive;
+    - a revert `NOT CAUGHT` line in another format read PASS.
+  - **The fix round** closed them: loader-based shards, a Job Object, guard arms, and revert-line matching in any form.
+  - **Verify round 2:** confirmed those fixed (34 mutants: all caught except 2 equivalent and 1 on the non-Windows path), and left one. `run_units.py` claimed a shared runner but kept its own taskkill-only copy. The coordinator closed it: `run_units.run_command` now delegates to the one runner, with a T9 arm whose FAULT was shown on the old body.
+- **Also fixed:**
+  - `provenance.keep_earlier` and `prune_evidence --retire` move a sibling `.summary.json`;
+  - `snapshot_tree` writes via a temp name;
+  - `run_units.py` survives a hung suite (TIMEOUT, then its evidence);
+  - `suite_map.json`'s rate_step5 `_run` and `_doc`;
+  - the recon template returns its report inline when the harness refuses the file (recon@2).
+- **Proof:** `test_run_regression.py` 48 tests OK (about 3 s, in run_units' SUITES); `run_units.py` OVERALL PASS.
+- ⚠ **A PRE-EXISTING evidence bug, exposed by the second run (OPEN; next fix, `04` queue):**
+  - A clean tree's code line carries the empty-diff digest `53e0c26e7812db47` at EVERY commit.
+  - So `provenance.keep_earlier` saw the d10caa5e run's evidence as "the same tree" and OVERWROTE it, where it should have archived it.
+  - Nothing is lost: that evidence is committed in `3cb9f91a`.
+  - The same identity-by-digest-alone may make `--check-evidence` call an older commit's clean-tree evidence current.
+  - `regression_due.py` is not fooled: it diffs the evidence's commit against HEAD.
+  - The B1 recon flagged the shape the same day (`2026-10-21-B1-recon.md` claim 5).
+- **Known limits** (its docstring):
+  - a test class inside a module's `__main__` block is invisible to the loader;
+  - a process created through WMI escapes the job;
+  - the `-m` refusal pattern can false-refuse on a `git commit -m "live_..."`;
+  - regression_due's newest-file rule is by mtime;
+  - outside Windows there is no job object.
+- **Out of scope** (with B1 at step 5.3): typed `Check` statuses inside the graders, the forced-PASS "(reported)" sites in rate_step5, and summaries from the live/rate drivers themselves.

@@ -9598,3 +9598,13 @@ on all three questions:
 - **The user, 2026-10-21 (after 4:56 PM):** "Whatever you recommend".
 - **So, for S3-4:** the bot's species choices stay OUT of the AI-facing statistics, and `maps.json` KEEPS each trainer's tile and sight range (and each door's position). Both were the spec's defaults, so no build change follows.
 - ⛔ **Do not re-ask** whether the AI sees the bot's species choices, or whether it knows trainer positions and sight ranges.
+
+## 2026-10-21 — Technical decisions of S4-1, the regression runner (Claude's calls)
+
+- **The runner records the scope regression_due checks:** a `covers:<suite>` code-line label, its digest computed by ONE function both tools call. This is the "producer records a wider scope" remedy regression_due's own docstring named. Rejected: changing the live/rate drivers' scope labels, which are graded code (with B1 at 5.3).
+- **Graded and ROM suites are never run by it, and it refuses to start while a `rate_*`/`live_*` driver runs:** test_safety_gates compares the seed ledger's bytes, and a sweep writes it. Rejected: a lock file, which a crashed sweep would leave behind.
+- **Shards come from `unittest.TestLoader`, in a subprocess, and their union is checked against it before running.** On any mismatch the module runs unsharded and the output says so. Rejected: the spec's AST planner (verify round 1 F1: it missed aliased methods, renamed TestCase imports, async cases and classes under an `if`, and a missed failing test read PASS).
+- **A timeout kills through a Windows Job Object:** the suite is created suspended and joined before it runs, with KILL_ON_JOB_CLOSE. Rejected: `taskkill /T`, which misses a grandchild whose parent already exited (verify round 1 F5).
+- **ONE suite runner:** `run_units.run_command` delegates to `run_regression.run_command`. Rejected: two copies (verify round 2: the second kept the old gap and a false docstring).
+- **The full lane's real cost is accepted:** about 72 min of wall time under the bot tuner's 12 lanes, because revert_step3 (the floor) runs about 2x slower under contention. Its timeout is 3.5x its serial time (it used 86 % of 2.5x). Rejected: running the full lane serially (no faster: revert_step3 still dominates) and dropping revert_step3 from the lane (its 94 mutants are the step-3 world's only revert proof).
+- **N8's grader half waits for step 5.3 with B1:** typed `Check` statuses and the forced-PASS sites in rate_step5 change the graded step-5 grader and re-grade it.

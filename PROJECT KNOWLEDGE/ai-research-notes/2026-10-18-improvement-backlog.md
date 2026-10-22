@@ -13,7 +13,7 @@
 10. **A6 (S3-3)** ✅ DONE 2026-10-21 (two review rounds; `chapter_priors.json` waits for the AI's loader): experience records from the bot's games, a script; run it first in step 3 if O3 is late. Step 3; 260 + 200.
 11. **A5 + L1 + L2 (S3-4)** ONE generator; slice 1 (trainers, bosses, maps, campaign) build-ready, slice 2 (items, events) NEEDS DESIGN. Step 3; 700 + 250.
 12. **B1 (+R13)** Goodhart gate: grader thresholds the AI cannot import or reach. Step 4; est. 80 + 80. ⚠ RE-SCOPED 2026-10-21 by recon (`2026-10-21-B1-recon.md`): the import half is ALREADY enforced (check_purity rule (c)); the real gap is that the AI copies the grader's numbers and part of the grade is read from the AI's own record, so B1 changes the step-5 grader and RE-GRADES step 5: spec it with the next graded round (5.3).
-13. **A2 (agent-free half) + P7** `run_regression.py`, summary files, a `--quick` lane. Step 4; est. 250 + 150. SPECCED 2026-10-21 as S4-1 (`2026-10-21-BUILD-SPEC-S4-1-A2-P7.md`, from `2026-10-21-A2-P7-recon.md`); N8's grader half goes with B1 at step 5.3.
+13. **A2 (agent-free half) + P7** `run_regression.py`, summary files, a `--quick` lane. Step 4; est. 250 + 150. ✅ BUILT 2026-10-21 as S4-1 (`07`; two verify rounds; spec `2026-10-21-BUILD-SPEC-S4-1-A2-P7.md`, from `2026-10-21-A2-P7-recon.md`); N8's grader half goes with B1 at step 5.3.
 14. **E2 + O8** per-game recording; torn-write resilience and a crash-loop breaker. Step 5; est. 150 + 150.
 15. **R5, then R1 + R2 (+DP1, DP2, L3 a-b)** free screen, then save/CONTINUE and a memory that survives a kill; DECIDE EARLY. Step 6; est. 300 + 200.
 
@@ -52,7 +52,7 @@ cost and risk, and its priority.
 - **Benefit:** a check-in becomes one call. This is convenience, not tokens (the main chat is about 3 % of usage; P3 will say). It prints the AI frontier, so build D3's one line with it in step 1. **Cost:** small. **Risk:** none (read-only).
 
 **A2. SUMMARY-FIRST suites, and a regression SCRIPT.**
-- **Evidence:** the 5.1 and 5.2 builders spent 32-50 % reading raw logs, but over 980 transcripts evidence and log reads are 2.2 % and suite output 7.6 % (Round 2, angle 2). UNPROVEN until P3; build the agent-free `run_regression.py` half first.
+- **Evidence:** the 5.1 and 5.2 builders spent 32-50 % reading raw logs, but over 980 transcripts evidence and log reads are 2.2 % and suite output 7.6 % (Round 2, angle 2). UNPROVEN until P3; build the agent-free `run_regression.py` half first (✅ that half BUILT 2026-10-21 as S4-1).
 - **What:**
   - Every live, rate and revert suite also writes `<evidence>.summary.json`: the verdict, the failing checks, the key
     numbers and the tree digest, in 2 KB or less. Agents are told and tooled to read the summary, and to `grep` the
@@ -187,7 +187,7 @@ logon autostart already worked on 2026-10-17: boot at 3:57 PM, the learner at 4:
    start reads, and the 53 % of context weight held by long agents, with no game code.
 3. **The KB1 merge and N2 + P5** (the lookup), then **A6** and **A5**: progress accelerators built from data. **L1 + L2's schema**
    joins A5's generator here (round 3: one generator for the packs and the AI's knowledge; two would be rework). Specced as S3-1 to S3-4 in `2026-10-19-BUILD-SPECS-step-3.md`; A6 goes first if O3 is late.
-4. **A2 (agent-free half first) with R3 + N8 + R4, P7, P2,** with **B1-B5, N1, N4, N10** in the lean setup (the 5.2 review's gate items too).
+4. **A2 (agent-free half first; ✅ BUILT 2026-10-21 as S4-1 with P7 and N8's runner half) with R3 + N8 + R4, P7, P2,** with **B1-B5, N1, N4, N10** in the lean setup (the 5.2 review's gate items too).
 5. **`#28-trainer-autonomy` plus `#28-trainer-improvements`** (the learner), with **E2, O8, N11 + O9, then O2, O10**.
 6. **Step 5.3, then chapters 3-4,** on **D1, D2** and **R6, R5, R1 + R2, R8 + R9, R12** (R13's rule written before any
    AI-tuner mode), with **R7, R11** during chapters 3-4. **DP1 + DP2 and L3 (a)-(b) land WITH R1 + R2**, before its first
