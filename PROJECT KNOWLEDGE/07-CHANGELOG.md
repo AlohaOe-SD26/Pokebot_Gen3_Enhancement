@@ -38577,3 +38577,15 @@ bought balls only at fixed story points.
 - **Checked after:** `regression_due.py` names only what it named before: units and revert_safety_gates for the doc files, and rate_step5 and live_step5, which are step 5.3's graded run. `test_evidence.py` PASS.
 - **Not changed, disclosed:** `provenance.py --check-evidence` still FAILS. It went from 222 to 211 top-level files of other trees, almost all from 2026-10-16. They include step 5.2's graded evidence (`2026-10-16-step52-RATE`, `-CH2M`), which `rate_step5` and `live_step5` are still measured against. They are retired when step 5.3's graded run replaces them.
 - **Correction:** the retirement ran at **5:18:30 AM**, the archive folder's creation time. The "5:24 AM" above was written without a clock reading.
+
+## 2026-10-22 — B1's grader recon filed (a note, read-only); backlog item 5 marked built
+
+- **What:** one read-only recon agent (the recon@3 template, about 5 minutes) mapped the step-5 grader, check by check: each check's bound, its computing lines, and every input tagged GAME or AI. It ran no rate_* or live_* driver and did not write the seed ledger. Filed as `ai-research-notes/2026-10-22-B1-grader-recon.md`, a NOTE.
+- **Headline (unverified until B1's spec checks it):**
+  - The newest graded sweep has 67 checks: 15 forced PASS and 52 graded. 9 of the graded checks are judged from the game alone.
+  - Every curiosity check takes its time windows from the AI's own log (`goal_spans`).
+  - `goals.py` computes the grader's own yield rule (8 tiles, 20 per 1,000 frames) to decide whether a goal is done.
+  - The seed ledger's registered hash covers none of the AI constants the grader imports (`ERRANDS`, `ERRAND_KINDS`, `ASIDE`, `MAX_LOSSES`).
+  - It corrects the earlier brief: `rate_step5.py:1690` forces a FAIL when there are no detours, not a PASS.
+- **Order:** B1 is backlog item 12, after item 7's handoff slim-down (S2-1b) and item 11's slice 2. This recon is input for its spec, which goes with step 5.3's graded round.
+- **Also:** backlog item 5 (A1 + D3, `tools/status.py`) is marked ✅ BUILT 2026-10-20. The Tier 2 cold-start audit found it unmarked while the tool existed and ran.
