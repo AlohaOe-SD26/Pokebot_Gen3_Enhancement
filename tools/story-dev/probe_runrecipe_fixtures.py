@@ -34,13 +34,23 @@ still legitimately runnable — it is the un-healed arm of a measured A/B. "Supe
 point" and "must never be run" are different claims, and conflating them would break a real recipe.
 
     cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_runrecipe_fixtures.py
-    POKEBOT_RECIPEGATE_FAULT=1 ...   # fault arm: also scan COMMENT lines, which MUST make it fail
-Exit 0 if every runnable recipe names a live fixture; 1 otherwise.
+    POKEBOT_RECIPEGATE_FAULT=1 ...   # fault arm: scan a SYNTHETIC handoff whose recipe names a DEAD fixture; MUST exit 1
+Exit 0 if every runnable recipe names a live fixture; 1 otherwise; 2 if the fault arm cannot be built (the manifest
+marks no fixture dead, so there is nothing to plant).
+
+⛔ WHY THE FAULT ARM SCANS A SYNTHETIC FILE (S2-1b fix round 1, 2026-10-22). It used to scan the REAL handoff's comment
+lines too, and it failed only because a fence COMMENT there named the dead `post_grind_L60.ss1`. The S2-1b slim-down
+moved every story recipe out of `04-HANDOFF.md` (to the snapshot in `28-HANDOFF-ARCHIVE.md`), and the arm then exited 0:
+a registered gate that could no longer fail (CLAUDE.md rule 6). Now the arm writes a throwaway handoff to a temp folder
+holding ONE fenced, RUNNABLE recipe that names a fixture `FIXTURES.md5` marks dead, and scans that, so it fails through
+the same dead-marker check the real scan uses, whatever the real handoff holds. The real scan is unchanged.
 """
 import os
 import pathlib
 import re
+import shutil
 import sys
+import tempfile
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -72,14 +82,13 @@ def manifest_rows() -> dict:
     return rows
 
 
-def recipe_lines(scan_comments: bool) -> list:
-    """The lines of every fenced block in the handoff, as (lineno, text).
+def recipe_lines(handoff: pathlib.Path = HANDOFF) -> list:
+    """The RUNNABLE lines of every fenced block in `handoff`, as (lineno, text).
 
-    ⛔ RUNNABLE lines only unless the fault arm is set: a `#` line is documentation, and the
-    corrected block documents the dead fixture BY NAME.
+    ⛔ A `#` line is documentation, and the corrected block documents the dead fixture BY NAME.
     """
     out, in_fence = [], False
-    for n, raw in enumerate(HANDOFF.read_text(encoding="utf-8").splitlines(), start=1):
+    for n, raw in enumerate(handoff.read_text(encoding="utf-8").splitlines(), start=1):
         if raw.lstrip().startswith("```"):
             in_fence = not in_fence
             continue
@@ -88,10 +97,24 @@ def recipe_lines(scan_comments: bool) -> list:
         text = raw.strip()
         if not text:
             continue
-        if text.startswith("#") and not scan_comments:
+        if text.startswith("#"):
             continue
         out.append((n, text))
     return out
+
+
+def write_fault_handoff(folder: pathlib.Path, rows: dict) -> pathlib.Path | None:
+    """Write the fault arm's SYNTHETIC handoff into `folder`: one fenced block with ONE runnable recipe that names
+    the first fixture the manifest marks dead. Returns its path, or None when no row is marked dead (then there is
+    nothing to plant, and the arm must say so rather than pass)."""
+    dead = sorted(name for name, (_, note) in rows.items() if any(m in note.upper() for m in DEAD_MARKERS))
+    if not dead:
+        return None
+    path = folder / "04-HANDOFF.md"
+    path.write_text("# synthetic handoff (fault arm)\n\n```\n"
+                    f"PYTHONUTF8=1 py -3.12 -u story_harness.py {dead[0]} --driver ch24grind --frames 1000\n"
+                    "```\n", encoding="utf-8")
+    return path
 
 
 def main() -> int:
@@ -99,11 +122,24 @@ def main() -> int:
     print(BAR)
     print("  GATE — runnable recipes in 04-HANDOFF.md must not name a DEAD fixture")
     if fault:
-        print("  ⚠ FAULT ARM: comment lines are being scanned too; this MUST fail.")
+        print("  ⚠ FAULT ARM: scanning a SYNTHETIC handoff whose recipe names a DEAD fixture; this MUST exit 1.")
     print(BAR)
 
     rows = manifest_rows()
-    lines = recipe_lines(scan_comments=fault)
+    scratch = None
+    handoff = HANDOFF
+    if fault:
+        scratch = pathlib.Path(tempfile.mkdtemp(prefix="recipegate-fault-"))
+        handoff = write_fault_handoff(scratch, rows)
+        if handoff is None:
+            shutil.rmtree(scratch, ignore_errors=True)
+            print("  ‼ FAULT ARM CANNOT BE BUILT: FIXTURES.md5 marks no fixture dead, so there is nothing to plant.")
+            return 2
+    try:
+        lines = recipe_lines(handoff)
+    finally:
+        if scratch is not None:
+            shutil.rmtree(scratch, ignore_errors=True)
     named, failures, warnings = {}, [], []
     for n, text in lines:
         for name in SS1.findall(text):

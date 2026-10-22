@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "486f72d421f44c1ca838c3ee0f260d4e4bf70c6c",
+ "source_sha1_lf": "5abd00fbc4be9481e24e090d91e8eeed5622b51d",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 327,
+  "sections": 328,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5116,6 +5116,19 @@
    "line_start": 9636,
    "line_end": 9641,
    "title": "2026-10-22 — Technical decisions of O5, the consult novelty gate (Claude's calls)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-22-23d549",
+   "date": "2026-10-22",
+   "line_start": 9643,
+   "line_end": 9666,
+   "title": "2026-10-22 — S2-1b (the handoff slim-down): SNAPSHOT, THEN REWRITE; and the queue order after it",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],

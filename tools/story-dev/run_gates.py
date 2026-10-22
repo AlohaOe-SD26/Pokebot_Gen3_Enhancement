@@ -618,7 +618,8 @@ GATES: list[tuple[str, bool]] = [
     # recipe, whose own adjacent comment already said "NOT A REPRO ANY MORE" while the command
     # stayed executable for nine days). ‼ It scans RUNNABLE lines only — the fixed block names the
     # dead fixture in a WARNING, and a gate that fired on its own fix would teach people to bypass
-    # it; `POKEBOT_RECIPEGATE_FAULT=1` scans comments too and MUST fail. ⚠ "Named but unpinned" is
+    # it; `POKEBOT_RECIPEGATE_FAULT=1` scans a SYNTHETIC handoff whose runnable recipe names a DEAD fixture and
+    # MUST fail (since 2026-10-22: the slim 04 names no story fixture, so the old comment-scan arm passed). ⚠ "Named but unpinned" is
     # REPORTED, not blocking — a different gap, pre-dating this gate.
     ("probe_runrecipe_fixtures.py", False),
     # ⭐⭐ #62 — `KI-74` IN BOTH DIRECTIONS, ON ONE MAP AT ONE INSTANT. The ENTRY tiles read

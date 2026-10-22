@@ -38630,3 +38630,29 @@ bought balls only at fixed story points.
   - A naive verifier would miss a planted DEAD label.
   - A fairness-gate gap: a `flag` key classified AI-visible would leave `developer_keys()`.
   - Of W7's 20 missing facts: 13 belong to `events.json`, 3 to `items_gifts.json`, 3 to slice 1, and 5 are not derivable from scripts.
+
+## 2026-10-22 — S2-1b part 1: the handoff slimmed from 403 KB to about 60 KB (snapshot to 28, then a rewrite from the live material)
+
+- **What:**
+  - `04-HANDOFF.md` is now 61,775 B on disk (CRLF; under its lint ceiling), 259 lines, longest line 1,046 chars, with NO long-line waiver.
+  - The old file (403,577 B) is the last block of `28-HANDOFF-ARCHIVE.md`, byte for byte, under "# HANDOFF SNAPSHOT — 2026-10-22".
+  - The new 04 has, in order: line 6 `**Last updated:**`, WHAT THIS IS (rewritten TRUE: the AI player, the bot tuner, the parked story bot), `## If stopped mid-task` (a real section: the Project Kit's session-start hook now injects the live-system watch, which it never could while the item was a table row), STATE, NEXT ACTIONS with exactly one `➡➡➡` line and an explicit order, the rules that bind every session, the parked story bot's live rules (each quoted with its old line number), and HOW TO RUN / TEST (the live recipes, plus the learner status, `tools/status.py`, and the sync, preflight and `run_gates.py --quick` ritual).
+- **Dependents:**
+  - `00-README.md` describes the new shape (P4).
+  - `doc-check` template@4: its READ-LIST notes describe the new shape.
+  - `/wrapup` and `/checkpoint`: P1-P5, and the real mid-task section.
+  - `selftest_workflows.py` T-2b: its FAULT arms run on a SYNTHETIC old-shape handoff, and a MIRROR pair (banner-only and queue-only small ranges) makes every clause of the guard non-deletable. 3 of 3 call-deleting mutants are caught, and it reports ALL PASS (320 checks).
+  - `probe_runrecipe_fixtures.py`: its fault arm scans a synthetic handoff that names a DEAD fixture. Fault exit 1, control exit 0. The old arm relied on a dead fixture in the old 04's fences and went vacuous.
+  - `run_gates.py`: that gate's comment.
+  - `lint_docs --rewaive` dropped 04's 28 stale waivers, and `--ratchet` lowered its ceiling.
+- **Rounds:**
+  - Build: the build template.
+  - Verify 1 (an adversarial completeness hunt plus a cold-start check): 5 FAILURES.
+    - A false "rule" saying the bot had never finished the game; the tuner shows 323 Champions in 2,062 scored runs.
+    - A stale check count.
+    - A deletable queue clause.
+    - A registered gate that could no longer fail.
+    - Four dropped live caveats.
+  - Fix round 1 closed them and the coordinator's queue ruling. Verify 2 found 3 residuals: a deletable banner clause, a stale comment, and the backlog named without its file. The coordinator fixed and re-proved those.
+- **Proof:** three independent lossless checks; `run_gates.py --quick` "ALL 140 ENFORCING GATES PASS" (verify 2); lint_docs, audit_doc_consistency, audit_handoff_invariants (and `--self-test`), lint_templates and selftest_workflows all pass after the final edits.
+- **Next:** S2-1b part 2 (`03-PUNCH-LIST.md`, about 697 KB, 4,400 of 4,400 lines), its own spec and recon first.

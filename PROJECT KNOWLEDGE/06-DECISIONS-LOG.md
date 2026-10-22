@@ -9639,3 +9639,28 @@ on all three questions:
 - **The gate fails OPEN on its own errors and CLOSED only for one cycle when the reservation cannot be written.** The consult is advisory, so a broken gate must not silence it for good, and a broken log must not let calls go uncounted.
 - **The wall rule stays as specced, with its measured limit recorded.** On cumulative shares it never fired in 21 replayed consults. Rejected for now: a windowed rule, which is a design change with its own replay.
 - **O5 ships as its own restart, after O6+O7's was confirmed.** It deploys at the same boundary as the canary's first archive, which the OLD process does before updating, so the two stay attributable.
+
+## 2026-10-22 — S2-1b (the handoff slim-down): SNAPSHOT, THEN REWRITE; and the queue order after it
+
+- **Decision (the coordinator's technical call; the order follows the user's "backlog top-15 order"):** `04-HANDOFF.md` was slimmed from 403 KB to about 60 KB in two steps. The spec is `ai-research-notes/2026-10-22-BUILD-SPEC-S2-1b-handoff-slim.md`.
+  - (1) The WHOLE old file was appended byte for byte to the end of `28-HANDOFF-ARCHIVE.md`, under one snapshot heading naming HEAD `95f8abed`.
+  - (2) 04 was rewritten from the LIVE material only. That covers the AI player, the bot tuner, the session rules, a real `## If stopped mid-task` section, and every live story-bot rule quoted with its old line number.
+- **WHY:** three read-only recon agents (`2026-10-22-S2-1b-recon-*.md`) measured it. The live pieces alone (the banner 24 KB, the STATE table 72 KB, the `➡➡➡` line 64 KB) were about 160 KB, each a mega-line mixing the present with months of history. So no verbatim move of whole lines or sections could reach 60 KB, and `archive_sweep.py` had moved 0 B.
+- **How it keeps the earlier rulings:**
+  - Ruling 2026-08-22 PASS 5 (archive verbatim, never trim live content): every byte is in 28, and an adversarial completeness verify hunted the rewrite for any LIVE item it dropped. It found 4 caveats and 1 false "rule"; all were fixed.
+  - Ruling 2026-08-28 (no "part N of M"; split by KIND): no new numbered file; history goes to 28, its established home.
+  - The rows pinned by rulings stay: the stash row (2026-08-13), the drift row with its "do not flip line endings" advice (2026-09-15), and the cloud note (2026-10-15).
+- **Proof:**
+  - Lossless: three independent scripts (the builder's, the verifier's, the coordinator's) show that 28 at HEAD is an untouched prefix, that the old 04 follows it byte for byte with nothing after it, and that one flipped byte is detected.
+  - All gates pass, including `run_gates.py --quick` ("ALL 140 ENFORCING GATES PASS").
+  - Two verify rounds plus a cold-start check.
+- **The queue after it (the coordinator's ruling, in the backlog's order), as 04 now states it:**
+  - (1) S2-1b part 2, the `03-PUNCH-LIST.md` slim-down, the last open half of backlog item 7, by the same method and with its own spec first;
+  - (2) KB2 slice 2 stage 2a then 2b (item 11; spec `2026-10-22-BUILD-SPEC-S3-4-slice2.md`, READY);
+  - (3) step 5.3, B1 + N8's grader half (items 12-13; recon `2026-10-22-B1-grader-recon.md`);
+  - (4) the rest of the top 15.
+- **Rejected:**
+  - Splitting the mega-lines in place: refused by R3, 899 + 208 lines.
+  - A new numbered snapshot file: it would make the asymmetric 04/28 pair a trio.
+  - Condensing the live lines without a snapshot: it would not be verbatim, and loss could not be proved.
+  - Doing slice 2 before 03's trim: against the backlog's order.

@@ -16,7 +16,10 @@ was shown to FAIL against the 72b75a45 copy of tools/workflows/ and to pass on t
   T-2b (fix round) the 30 KB rule measures what is READ: a range over 30 KB, a ranged path that does not exist, a
       range past the end, `./` / `x/../` / backslash spellings of a DO-NOT-READ path, a missing anchor -> fail; an
       anchored range resolves (lint and render). doc-check's REAL READ-LIST reads the handoff's banner AND its NEXT
-      ACTIONS heading, each range under 30 KB (FAULT: the old `1-120` range misses the queue and is 74 KB).
+      ACTIONS heading, each range under 30 KB (FAULT: the old `1-120` range misses the queue and is over 30 KB on a
+      SYNTHETIC handoff of the pre-slim shape, it was 74 KB on the real file before the S2-1b slim-down; and a range
+      that reads BOTH halves but weighs over 30 KB fails too; and a SMALL range, `1-7`, that reads the banner but
+      not the queue fails, the one arm where the missing queue is the only cause).
   T-3 FAULT `MODEL: mid` with no proof -> fail; a proof missing one planted id, a proof whose control has a finding,
       only 2 plants, 3 plants of 2 kinds, a proof for another template version, a MODEL that disagrees with models.json,
       and `verify` moved to mid even WITH a valid proof -> fail. CONTROL: 3 plants of 3 kinds all found and a clean
@@ -358,6 +361,21 @@ def handoff_reads_ok(text: str, repo: Path) -> tuple[bool, str]:
     return ok, f"read {sorted(seen)}; range bytes {sizes}"
 
 
+def _old_shape_handoff(root: Path) -> None:
+    """Write `root/PROJECT KNOWLEDGE/04-HANDOFF.md` in the PRE-SLIM shape that the 72b75a45 READ-LIST was written
+    against: a 24 KB `**Last updated:**` banner on line 6, filler so that lines 1-120 weigh about 47 KB, and the
+    `## ⏭ NEXT ACTIONS` heading at line 337 (as in the real file before S2-1b). It keeps T-2b's FAULT arm about the
+    template's ranges, independent of whatever size the real handoff has today."""
+    lines = ["# Handoff", "> synthetic", "> old shape", "", "**Repository:** x",
+             "**Last updated:** 2026-10-21 " + "x" * 24_000]
+    lines += [f"filler line {i} " + "y" * 190 for i in range(7, 337)]
+    lines += ["## ⏭ NEXT ACTIONS, IN ORDER", "", ">    ➡➡➡ START HERE item 0"]
+    lines += [f"queue line {i}" for i in range(340, 400)]
+    path = root / "PROJECT KNOWLEDGE" / "04-HANDOFF.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def t2b() -> None:
     m = models()
     tmp = Path(tempfile.mkdtemp(prefix="swf-t2b-"))
@@ -395,10 +413,50 @@ def t2b() -> None:
         ok, why = handoff_reads_ok(template("doc-check"), REPO)
         check("T-2b CONTROL doc-check's REAL READ-LIST reads the handoff banner AND its NEXT ACTIONS heading, each "
               "range <= 30 KB", ok, why)
+        # ⛔ The FAULT arm runs on a SYNTHETIC handoff of the OLD shape, not on the real 04 (S2-1b, 2026-10-22). It
+        # used the real 04, so its verdict depended on that file's size. MEASURED on the slimmed 04: lines 1-120 now
+        # CONTAIN the NEXT ACTIONS heading and weigh about 36 KB, so the old `not ok` still held, but only because of
+        # the size, no longer because the queue is missed (the reason the arm names); a few KB less and it turns red
+        # for a reason unrelated to the template. Hence the synthetic file and the reason check (`'queue'` unread,
+        # a range over 30 KB). The CONTROL above stays on the real 04.
+        synth = tmp / "synth-repo"
+        _old_shape_handoff(synth)
+        ok, why = handoff_reads_ok(template("doc-check"), synth)
+        check("T-2b CONTROL doc-check's REAL READ-LIST reads both halves of the synthetic OLD-shape handoff too (so the "
+              "FAULT arm below is not vacuous: the synthetic file HAS a reachable banner and queue)", ok, why)
         old = replace_field(template("doc-check"), "READ-LIST",
                             "- `PROJECT KNOWLEDGE/04-HANDOFF.md:1-120` the banner and the queue head")
-        ok, why = handoff_reads_ok(old, REPO)
-        check("T-2b FAULT the 72b75a45 READ-LIST `04-HANDOFF.md:1-120` misses the queue (and is over 30 KB)", not ok, why)
+        ok, why = handoff_reads_ok(old, synth)
+        sizes = [int(x) for x in re.findall(r"\d+", why.split("range bytes", 1)[-1])]
+        check("T-2b FAULT the 72b75a45 READ-LIST `04-HANDOFF.md:1-120` misses the queue (and is over 30 KB) on a "
+              "handoff of the old shape", not ok and "'queue'" not in why and any(s > 30_000 for s in sizes), why)
+        wide = replace_field(template("doc-check"), "READ-LIST",
+                             "- `PROJECT KNOWLEDGE/04-HANDOFF.md:1-340` the banner and the queue head, in one range")
+        ok, why = handoff_reads_ok(wide, synth)
+        check("T-2b FAULT a READ-LIST range that reads BOTH halves but weighs over 30 KB (`1-340` on the old shape) fails",
+              not ok and "'banner', 'queue'" in why, why)
+        # ⛔ The arm that makes the guard's QUEUE clause load-bearing (S2-1b fix round 1, 2026-10-22). Every FAULT above
+        # that misses the queue is ALSO over 30 KB, so with the queue clause deleted (`ok = "banner" in seen and ...`)
+        # they still failed on SIZE and the whole suite stayed green (the verifier's mutant). This range is SMALL
+        # (lines 1-7, about 24 KB here) and reads the banner only, so the missing queue is the ONLY thing that can
+        # make it fail; the check asserts that, so a size failure cannot pass for it.
+        banner_only = replace_field(template("doc-check"), "READ-LIST",
+                                    "- `PROJECT KNOWLEDGE/04-HANDOFF.md:1-7` the banner only, the queue is not read")
+        ok, why = handoff_reads_ok(banner_only, synth)
+        sizes = [int(x) for x in re.findall(r"\d+", why.split("range bytes", 1)[-1])]
+        check("T-2b FAULT a SMALL READ-LIST range that reads the banner but misses the queue (`1-7`, under 30 KB) fails",
+              not ok and "'banner'" in why and "'queue'" not in why and bool(sizes)
+              and all(s <= 30_000 for s in sizes), why)
+        # (2026-10-22, the fix round's verifier) the MIRROR arm: a small range that reads the QUEUE but misses the
+        # banner. Without it the guard's banner clause could be deleted (`ok = "queue" in seen and ...`) with every
+        # check green, exactly as the queue clause could before the arm above existed.
+        queue_only = replace_field(template("doc-check"), "READ-LIST",
+                                   "- `PROJECT KNOWLEDGE/04-HANDOFF.md:@## ⏭ NEXT ACTIONS+5` the queue only, no banner")
+        ok, why = handoff_reads_ok(queue_only, synth)
+        sizes = [int(x) for x in re.findall(r"\d+", why.split("range bytes", 1)[-1])]
+        check("T-2b FAULT a SMALL READ-LIST range that reads the queue but misses the banner (`@## ⏭ NEXT ACTIONS+5`) "
+              "fails", not ok and "'queue'" in why and "'banner'" not in why and bool(sizes)
+              and all(s <= 30_000 for s in sizes), why)
         text = _read_list_template("- `anch.md:@## QUEUE HEAD+5` the queue head\n- `small.md`")
         vals = values_for("build", tmp)
         out = render.render(text, vals, "build", tmp)

@@ -1,4 +1,4 @@
-<!-- stage-template:doc-check@3 -->
+<!-- stage-template:doc-check@4 -->
 You are the independent DOC-CONSISTENCY reviewer (CLAUDE.md "DOC CONSISTENCY LAYER", Tier 1) for {{task}} in the repo
 C:/Remote Projects/Pokebot_Gen3_Enhancement. You did not write these docs; check them, do not edit them.
 
@@ -17,11 +17,11 @@ the handoff's queue reflects the claim:
 A finding without both quotes is DISCARDED.
 
 ## READ-LIST
-- `PROJECT KNOWLEDGE/04-HANDOFF.md:1-7` the banner (P1's first half; line 6 alone is over 20 KB)
+- `PROJECT KNOWLEDGE/04-HANDOFF.md:1-7` the banner (P1's first half; line 6 is the one-sentence `**Last updated:**`)
 - `PROJECT KNOWLEDGE/04-HANDOFF.md:@## ⏭ NEXT ACTIONS+47` the NEXT ACTIONS queue head, item 0 included (P1's second
-  half): 47 lines from the line `grep -n "^## ⏭ NEXT ACTIONS"` finds. The live `>    ➡➡➡ START HERE` line just
-  below it is one line of about 60 KB: find it with `grep -n "^>    ➡➡➡"` and Read only that line (offset = its
-  number, limit 1), never a range around it.
+  half): 47 lines from the line `grep -n "^## ⏭ NEXT ACTIONS"` finds. The live `>    ➡➡➡ START HERE` line is the
+  short line just below that heading (`grep -n "^>    ➡➡➡"`). Since S2-1b (2026-10-22) no line of 04 passes 1,200
+  characters and the history is in `28-HANDOFF-ARCHIVE.md`, but read these ranges, never the whole file.
 - `PROJECT KNOWLEDGE/00-README.md:1-80` the reading order
 {{extra_reads?}}
 

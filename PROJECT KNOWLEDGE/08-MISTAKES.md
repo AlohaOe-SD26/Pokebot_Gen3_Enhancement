@@ -24024,3 +24024,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** the AI-player era runs its own gates (`run_units`, `run_regression`) and each item ran only the gates it touched. Nobody ran the whole standing suite after a change outside `tools/story-dev/`. Both gates did exactly their job, turning red on a NEW unprefixed env name and on a hardcoded path, but nobody looked.
 - **The fix that worked:** read the failing line before touching anything (CLAUDE.md rule 4). Both failures were real and small, one line each. See `07` 2026-10-22.
 - **Prevention rule:** an item that adds or changes code anywhere runs `cd tools/story-dev && PYTHONUTF8=1 py -3.12 run_gates.py --quick` (about 4 minutes, background) before its commit, and quotes the `FAILED: n of N` or PASS line in the commit message. A suite nobody runs is not a gate.
+
+## 2026-10-22 — ⛔ A GATE'S FAULT ARM THAT RELIES ON A FAULT LIVING IN A REAL DOCUMENT GOES VACUOUS WHEN THE DOCUMENT IS CLEANED
+
+- **Symptom:** after the handoff slim-down, `probe_runrecipe_fixtures.py`'s fault switch exited 0. It had "failed" only because the OLD 04 happened to name a dead fixture (`post_grind_L60.ss1`) in a fence comment. `selftest_workflows` T-2b had the same shape: its FAULT arm used the REAL 04 and failed only while that file was over 30 KB. Two guard clauses were then deletable with every check green, and two verify rounds were needed to close both.
+- **Root cause:** the fault arm borrowed its fault from live data instead of planting it. When the data was fixed, the arm silently proved nothing. A "fixed" document is exactly when a gate must keep working.
+- **The fix that worked:** each arm now plants its own fault in a SYNTHETIC file in a temp dir. Each guard clause gets its own small arm (banner-only, queue-only, over-size), so deleting any one clause turns the suite red, which was proven by call-deleting mutants.
+- **Prevention rule:** a FAULT arm plants its fault in a synthetic input it owns. A fault arm that reads a real repo document is a bug, even while it passes.
