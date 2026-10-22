@@ -24002,3 +24002,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** provenance's digest is sha256 over `git diff HEAD` of the scope plus the untracked files: it says how a tree differs FROM ITS HEAD. Every clean tree has the same empty diff, so every clean commit carried the same digest, and the tools compared digests alone. It had held since step 2.1 because most graded runs happened on DIRTY trees. The B1 recon measured the constant digest the same day, before the run that showed the damage.
 - **The fix that worked** (`91042698`): the identity is (label, the label's committed files at the line's HEAD, the digest), computed from the existing code line.
 - **Prevention rule:** an identity must be a function of the THING it identifies. A diff identifies a change relative to a base, so it must never be compared without its base. Test every identity with the case "same diff, different base".
+
+## 2026-10-22 — ⛔ S3-4'S SPEC GENERALISED A MEASURED FACT PAST WHAT WAS MEASURED ("THE FOLDERS ARE NOT GLOBBED")
+
+- **Symptom:** the spec placed `campaign.json` at `ai_player/knowledge/` and said `check_fairness` would not see it ("the folders are not globbed", fact 2). The builder's probe showed `check_fairness.py:207-216` globs `knowledge/*.json` and flags it, which would have failed run_units and the quick lane.
+- **Root cause:** fact 2 was measured for SUBFOLDERS, and the spec applied it to a top-level file too. A true statement about one path was stretched to a neighbouring path that was never measured.
+- **The fix that worked:** the builder's STOP rule (the build template: "the spec contradicts the code") fired before any code was written. The coordinator moved the file into `knowledge/world/` (`06` 2026-10-22).
+- **Prevention rule:** a measured fact carries its scope (which paths, which commit). Before a spec relies on it for a NEW path, re-run the measurement on that exact path. The build template's STOP rule is the backstop, so keep it.

@@ -11,7 +11,7 @@
 8. **P11 + P1 + N6 + P10** ✅ DONE 2026-10-21 (two review rounds; E1's in-flight folder decided, `06`): stage templates (deliver A3 and E1): READ LIST, STOP, WAIT RULE, a model per stage. Step 2; 280 + 140.
 9. **KB1 merge (S3-1), then N2 + P5 (S3-2)** (KB1 merged 2026-10-21, `3a85d759`; the S3-2 half ✅ BUILT 2026-10-21): merge between graded rounds; rulings index, facts ledger, pinned-decomp lookup. Step 3; 60 + about 310 + 150.
 10. **A6 (S3-3)** ✅ DONE 2026-10-21 (two review rounds; `chapter_priors.json` waits for the AI's loader): experience records from the bot's games, a script; run it first in step 3 if O3 is late. Step 3; 260 + 200.
-11. **A5 + L1 + L2 (S3-4)** ONE generator; slice 1 (trainers, bosses, maps, campaign) build-ready, slice 2 (items, events) NEEDS DESIGN. Step 3; 700 + 250.
+11. **A5 + L1 + L2 (S3-4)** ONE generator; slice 1 (trainers, bosses, maps, campaign) ✅ BUILT and verified 2026-10-22 (`07`; `ai_player/knowledge/world/`), slice 2 (items, events) NEEDS DESIGN. Step 3; 700 + 250.
 12. **B1 (+R13)** Goodhart gate: grader thresholds the AI cannot import or reach. Step 4; est. 80 + 80. ⚠ RE-SCOPED 2026-10-21 by recon (`2026-10-21-B1-recon.md`): the import half is ALREADY enforced (check_purity rule (c)); the real gap is that the AI copies the grader's numbers and part of the grade is read from the AI's own record, so B1 changes the step-5 grader and RE-GRADES step 5: spec it with the next graded round (5.3).
 13. **A2 (agent-free half) + P7** `run_regression.py`, summary files, a `--quick` lane. Step 4; est. 250 + 150. ✅ BUILT 2026-10-21 as S4-1 (`07`; two verify rounds; spec `2026-10-21-BUILD-SPEC-S4-1-A2-P7.md`, from `2026-10-21-A2-P7-recon.md`); N8's grader half goes with B1 at step 5.3.
 14. **E2 + O8** per-game recording; torn-write resilience and a crash-loop breaker. Step 5; est. 150 + 150.
@@ -398,7 +398,7 @@ with D1-D3) and `03-long-horizon.md` (L1-L12). Angle 1 became `2026-10-19-BUILD-
   KB1 slices) **Evidence:** the goal manager knows 20 milestones, all in chapters 1-4; 2026-08-05's full party with no Surf learner
   cut the finish rate 52.0 % to 15.8 %. **What:** per milestone NEEDS and gates (HM and badge, party size, the types ahead, money,
   level band), never routes; per boss the party, levels, moves, single or double, and a `measured` field labelled bot data; a
-  `--plant` verifier. ⚠ **RULING 40 boundary:** boss HELD ITEMS and STATS stay out until the user rules them static knowledge.
+  `--plant` verifier. ⚠ **RULING 40 boundary:** boss HELD ITEMS and STATS stay out until the user rules them static knowledge (RULED 2026-10-21, USER RULING 44: held items ALLOWED, exact stats and AI flags withheld).
 
 ### B. Design now, build with the chapter (chapter 5 on)
 

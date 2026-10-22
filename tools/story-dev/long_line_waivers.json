@@ -14,7 +14,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
-      "chars": 2783,
+      "chars": 2915,
       "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
       "tails": [
         "ty`, `wt/boxfirst`) stay parked until the user resumes them."
@@ -31,6 +31,12 @@
           "from_chars": 2757,
           "to_chars": 2783,
           "why": "2026-10-21 Tier 1 fix: the backup task marked registered in the NEXT line"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 2783,
+          "to_chars": 2915,
+          "why": "2026-10-22 KB2 slice 1 recorded in #28-aiagent-v2 and #28-seasoned-player"
         }
       ]
     },
@@ -72,12 +78,19 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "448e82459ab2f888c49ef35ea3e91208dfcc55d7",
-      "chars": 1263,
+      "chars": 1414,
       "head": "- [ ] ⭐ `#28-seasoned-player` — **KB1 MERGED 2026-10-21 (`3a",
       "tails": [
         "loors stand (no stall, no loafing, no beeline, no speedrun)."
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-10-22",
+          "from_chars": 1263,
+          "to_chars": 1414,
+          "why": "2026-10-22 KB2 slice 1 recorded in #28-aiagent-v2 and #28-seasoned-player"
+        }
+      ]
     },
     {
       "file": "03-PUNCH-LIST.md",
@@ -611,9 +624,9 @@
     },
     {
       "file": "04-HANDOFF.md",
-      "sha1": "6bb82211422407fedabce93214bee38bac58d7fe",
-      "chars": 23353,
-      "head": "**Last updated:** 2026-10-21 (⭐ **STEP 1 BUILT AND REVIEWED ",
+      "sha1": "68236436d6b975726c26de2c5295ddc4de5c1df4",
+      "chars": 23477,
+      "head": "**Last updated:** 2026-10-22 (S3-4 slice 1, KB2, ✅ BUILT and",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
       ],
@@ -641,6 +654,19 @@
           "from_chars": 23275,
           "to_chars": 23358,
           "why": "2026-10-21 (0d) done: the banner points at (0d) and the stale AI-player evidence"
+        },
+        {
+          "date": "2026-10-22",
+          "from_sha1": "6bb82211422407fedabce93214bee38bac58d7fe",
+          "from_chars": 23353,
+          "to_chars": 23477,
+          "from_tails": [
+            "asurement correction still stands, and is recorded below.)*)"
+          ],
+          "to_tails": [
+            "asurement correction still stands, and is recorded below.)*)"
+          ],
+          "why": "2026-10-22 KB2 Tier 1 fixes: the banner's date and the stale-evidence state; (0d) DUE NOW; KB2 run commands"
         }
       ]
     },
@@ -834,7 +860,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 61480,
+      "chars": 61915,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -869,6 +895,18 @@
           "from_chars": 61301,
           "to_chars": 61480,
           "why": "2026-10-21 10:45 PM: the full lane re-ran and passed; (0d) records it"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 61480,
+          "to_chars": 61769,
+          "why": "2026-10-22 KB2 slice 1 built: the step-3 line of the queue"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 61769,
+          "to_chars": 61915,
+          "why": "2026-10-22 KB2 Tier 1 fixes: the banner's date and the stale-evidence state; (0d) DUE NOW; KB2 run commands"
         }
       ]
     },

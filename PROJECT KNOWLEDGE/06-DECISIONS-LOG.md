@@ -9617,3 +9617,11 @@ on all three questions:
   - the digest alone (the bug).
 - **What git cannot see is documented, not chased:** an assume-unchanged / skip-worktree edit, or a gitignored file inside the scope, keeps the identity. `regression_due.py` reports the first as unproven, and the purity gate covers ignored caches.
 - **A diff later committed unchanged reads as ANOTHER tree.** The earlier evidence is archived, never lost: the safe direction.
+
+## 2026-10-22 — Technical decisions of S3-4 slice 1, KB2 (Claude's calls)
+
+- **`campaign.json` lives in `ai_player/knowledge/world/` with the other KB2 files.** Rejected: the spec's top-level path, which `check_fairness` globs and would flag as unclassified. The spec's intent is that nothing is read or checked until a loader and a `KNOWLEDGE_FIELDS` classification exist, and a schema now would have pre-empted that later, graded step.
+- **`TRAINER_NONE` (`.partySize = 0`) is the one trainer exempt from W5's "party >= 1", by name.** Any other empty party fails.
+- **A campaign entry's `fights` are derived from the `trainerbattle` lines of its area's scripts** (the skeleton's boss plus a multi-battle partner), and `area_bosses` (every boss the area's scripts battle) is kept apart. Rejected: "every boss in an area's scripts is in that entry", which would put Norman in ch2_dad.
+- **The Space Center multi battle's `party_min` is 1, marked recon / decomp UNVERIFIED.** Recon 4.6 says 1-3 Pokémon; the spec's 3 was a reading of it.
+- **test_kb2 stays out of the `--quick` lane** (about 15 s against its 5 s bar); it runs in every `run_units` and `--full`.

@@ -38441,3 +38441,46 @@ bought balls only at fixed story points.
 - `run_regression.py --full --evidence` on `2267aecf`: `REGRESSION: PASS (full, 24 suites, 4295.5 s wall)` (9:33 PM to 10:45 PM; revert_step3 4,295 s). Its evidence is committed in `37a4c2a7`.
 - **The identity fix worked on real data:** the previous run's 11 files (on `08392c98`) were MOVED to `ai_player/evidence/archive/53e0c26e7812db47-08392c98/` before this run wrote its own. Under the old digest-only identity they had been overwritten in place.
 - `regression_due.py` afterwards: ok units, ok revert_step5, ok revert_safety_gates. A commit that changes only evidence or docs keeps them current, because the identity is the code under test.
+
+## 2026-10-22 — S3-4 slice 1 ("KB2"): trainers, bosses (L2), maps and the campaign manifest (L1) from the pinned decomp, verified; nothing reads them yet (spec S3-4; USER RULINGS 44-45; backlog A5 + L1 + L2)
+
+- **Commits:** `be63abd1` (the build) and `636b94f6` (its verify round). Both stage prompts were rendered from `tools/workflows/templates/`.
+- **Files:**
+  - `ai_player/gates/extract_world.py` (imports `Decomp` from `extract_seasoned.py`; `--check`);
+  - `ai_player/gates/verify_world.py`, the INDEPENDENT verifier (raw-text regex, never imports the extractor; `--seed`, `--selftest`, `--plant`);
+  - `ai_player/gates/campaign_skeleton.json` (the hand-authored order and ids);
+  - `ai_player/gates/test_kb2.py` (46 tests, about 15 s, in run_units' SUITES), plus `ai_player/gates/run_units.py` and `.gitattributes`;
+  - the outputs `ai_player/knowledge/world/{trainers,bosses,maps,campaign}.json`.
+- **What the outputs hold:**
+  - 855 trainers, all four party shapes parsed; `heldItem` ALLOWED, `iv` and `aiFlags` WITHHELD (RULING 44).
+  - 57 bosses, each with derived types. The `measured` block is `null` until A6's `chapter_priors.json` exists.
+  - 518 maps with connections, warps, trainer objects (tile and sight, RULING 45), and item balls and hidden items.
+  - 66 campaign entries whose `needs` (field moves with the badge and its cited line, badges, `party_min`, double battles, types ahead, the level band) come from data. No routes or coordinates (W6).
+  - Slice 2 (`items_gifts.json`, `events.json`) and the chapter-pack tool are NOT built (NEEDS DESIGN / the next slice).
+- **The first build attempt STOPPED, correctly (the template's STOP rule), before writing code.** The spec put `campaign.json` at the knowledge top level, where `check_fairness.py:207-216` globs `knowledge/*.json` and flags an unclassified file. The coordinator moved it into `knowledge/world/` with the other three.
+- **Verify round 1 (REFIX, 3 FAILURES):**
+  - the verifier's citation check only tested that a line is non-empty;
+  - Tabitha's Space Center fight was outside the campaign;
+  - Gabby & Ty appeared on no map.
+  - Also, 21 of the verifier's 22 guard mutants left test_kb2 green.
+- **The fix round:**
+  - each cited line must hold its token;
+  - an entry's fights are derived from its area's `trainerbattle` lines (Tabitha in ch19, order 54, band 36..44);
+  - every battled trainer is on its map;
+  - test_kb2 kills all 22 of those mutants, and 29 more.
+- **Re-verify:** PASS (refix). Checked:
+  - 20 new trainers and 10 new maps, plus a join over all 518 maps, with 0 differences;
+  - all 2,042 citations hold their token;
+  - all 543 battled trainers are on a map.
+- **Proof:**
+  - `verify_world` gives 0 mismatches, and `--plant` reports exactly its 4 plants;
+  - W3 recall is 14/14 against `milestones.json`;
+  - `audit_flag_names` finds all 282 flags valid;
+  - `run_units.py` OVERALL PASS (345 s); `run_regression.py --quick` PASS.
+- **Weak proofs left:**
+  - 17 verifier checks and one extractor check have no fault arm (each fires on an aimed fault);
+  - `CITE_RE` ignores paths outside its five folders (there are none in the data);
+  - a boss's `battled_on` and name are not cross-checked;
+  - the withheld-field scan matches whole keys only;
+  - "no play code reads these files" is a text search.
+- **Hand-authored, UNVERIFIED until the W7 pass of the next slice:** the field-move needs past chapter 4, and the Space Center's `party_min: 1` (recon 4.6 says 1-3 Pokémon; the spec said 3).

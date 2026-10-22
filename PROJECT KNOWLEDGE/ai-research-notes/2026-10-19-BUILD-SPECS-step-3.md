@@ -381,6 +381,13 @@ right; they feed a prior (L4, L5, L10), not a policy. **Size:** medium: about 26
 
 ## S3-4. A5 CHAPTER PACKS with L1 (campaign manifest) and L2 (boss book): ONE generator, "KB2"
 
+> **Status 2026-10-22: SLICE 1 BUILT** (`07` 2026-10-22). As built, it differs from this text in four ways (`06`):
+> - `campaign.json` lives in `ai_player/knowledge/world/`, not the knowledge top level (`check_fairness` globs `knowledge/*.json`; fact 2 holds for subfolders only, `08`);
+> - `TRAINER_NONE` is exempt from W5's "party >= 1";
+> - an entry's fights are derived from its area's `trainerbattle` lines;
+> - the Space Center's `party_min` is 1 (recon: 1-3).
+> Slice 2 and the pack tool are not built.
+
 **One generator, two verified layers.** KB1 covers species, moves, learnsets and encounters. KB2 adds what A5 needs: trainers and
 bosses, maps and links, items and gifts, scripted events. L1 and L2 are views of KB2 plus a hand skeleton and A6's priors, so
 the pack generator and the AI's knowledge come from the same files (round 3's "two generators would be rework").

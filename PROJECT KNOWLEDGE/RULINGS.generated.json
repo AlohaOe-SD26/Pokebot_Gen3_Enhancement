@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "212be637df109adf05f6da13e37696fb13c88848",
+ "source_sha1_lf": "af4227c0ad1c3697f8ad592168532a1e9a0182bc",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 324,
+  "sections": 325,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5080,6 +5080,19 @@
    "slugs": [
     "#28-evidence-identity"
    ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-22-74ca34",
+   "date": "2026-10-22",
+   "line_start": 9621,
+   "line_end": 9627,
+   "title": "2026-10-22 — Technical decisions of S3-4 slice 1, KB2 (Claude's calls)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
    "ki": [],
    "donot": [],
    "cues": []
