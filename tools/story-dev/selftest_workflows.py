@@ -74,6 +74,9 @@ was shown to FAIL against the 72b75a45 copy of tools/workflows/ and to pass on t
       same on an uncovered file; the flag cleared.
   T-7n every suite DUE only as unproven (outside the recorded scope) prints ONE NOTE naming the remedy. CONTROL: one
       suite ok, or one suite changed -> no NOTE.
+  T-7c (spec S4-1) a `covers:<suite>` code line (run_regression.py's): ok on its own tree, including a dirty one; DUE on
+      an edit of a covered file outside ai_player/, and after a dirty file is restored; an unknown suite's label is
+      DUE. CONTROL: an uncovered edit; the old `ai_player/` label reads unproven.
   T-8 the MARKER, through usage_audit's OWN parser (`usage_audit.scan_file`, imported read-only): an agent whose first
       prompt is a rendered template (bare, inside the harness's indented "computed task" framing, and after the
       harness's USER-REQUEST relay) is TEMPLATED; the same prompt without the marker, and a prompt that only mentions
@@ -1182,6 +1185,49 @@ def t7_scope() -> None:
         shutil.rmtree(repo, ignore_errors=True)
 
 
+def t7_covers() -> None:
+    """(spec S4-1) the `covers:<suite>` label run_regression.py writes: its digest is over EXACTLY the suite's covered
+    files (`provenance.suite_line`, the function regression_due recomputes), so nothing it covers is outside it."""
+    from ai_player.gates.provenance import suite_line
+
+    repo = _new_repo("swf-t7c-", {"ai_player/__init__.py": "", "ai_player/a.py": "A = 1\n", "sandbox/m.py": "M = 1\n",
+                                  "other.py": "O = 1\n"})
+    try:
+        units = {"evidence": ["*-units.txt"], "covers": ["ai_player/**", "sandbox/**"]}
+        smap = {"evidence_dir": "ai_player/evidence", "exclude": EXCLUDE, "suites": {"units": units}}
+
+        def evidence(name: str, label: str = "units") -> None:
+            _evidence(repo, name, "", "", text=f"TITLE\ncode: {suite_line(repo, label, units, EXCLUDE)}\n")
+
+        _evidence(repo, "2026-11-01-x-units.txt", _head(repo), rd.CLEAN_DIGEST, label=PKG)
+        r = _rows(repo, smap)
+        check("T-7c CONTROL (the old producer) `ai_player/` evidence for a suite covering sandbox/ is DUE unproven",
+              r["units"][0] and r["units"][1].startswith("unproven"), r["units"][1])
+        evidence("2026-11-02-x-units.txt")
+        r = _rows(repo, smap)
+        check("T-7c a fresh `covers:units` code line on a clean tree reads ok", r["units"][0] is False, r["units"][1])
+        (repo / "other.py").write_text("O = 2\n", encoding="utf-8")
+        r = _rows(repo, smap)
+        check("T-7c CONTROL an uncovered edit leaves it ok", r["units"][0] is False, r["units"][1])
+        (repo / "sandbox/m.py").write_text("M = 2\n", encoding="utf-8")
+        r = _rows(repo, smap)
+        check("T-7c FAULT an edit of a covered file OUTSIDE ai_player/ makes it DUE, naming the file",
+              r["units"][0] and "sandbox/m.py" in r["units"][1], r["units"][1])
+        evidence("2026-11-03-x-units.txt")
+        r = _rows(repo, smap)
+        check("T-7c CONTROL `covers:units` evidence of THIS dirty tree (same digest, same scope) -> ok",
+              r["units"][0] is False, r["units"][1])
+        (repo / "sandbox/m.py").write_text("M = 1\n", encoding="utf-8")
+        r = _rows(repo, smap)
+        check("T-7c FAULT ... and once the file is restored, that evidence is DUE", r["units"][0], r["units"][1])
+        evidence("2026-11-04-x-units.txt", label="nosuch")
+        r = _rows(repo, smap)
+        check("T-7c FAULT a `covers:` label naming a suite the map lacks is an unknown scope (DUE)",
+              r["units"][0] and "unknown scope label" in r["units"][1], r["units"][1])
+    finally:
+        shutil.rmtree(repo, ignore_errors=True)
+
+
 def t7_paths() -> None:
     """(fix round, E1 + E3 + E5) moves, non-ASCII names, ignored files."""
     repo = _new_repo("swf-t7p-", {"ai_player/__init__.py": "", "ai_player/gates/g.py": "G = 1\n",
@@ -1522,7 +1568,7 @@ def t8() -> None:
 def main() -> int:
     for name, fn in (("T-1", t1), ("T-2", t2), ("T-2b", t2b), ("T-2c", t2c), ("T-3", t3), ("T-4", t4), ("T-4b", t4b),
                      ("T-5", t5), ("T-5b", t5b), ("T-5c", t5c), ("T-6", t6), ("T-6b", t6b), ("T-6c", t6c), ("T-7", t7),
-                     ("T-7s", t7_scope), ("T-7p", t7_paths), ("T-7i", t7_imports), ("T-7l", t7_lines),
+                     ("T-7s", t7_scope), ("T-7c", t7_covers), ("T-7p", t7_paths), ("T-7i", t7_imports), ("T-7l", t7_lines),
                      ("T-7r", t7_reads), ("T-7f", t7_flags), ("T-7n", t7_note), ("T-8", t8)):
         guarded(name, fn)
     bad = [r for r in RESULTS if not r[1]]

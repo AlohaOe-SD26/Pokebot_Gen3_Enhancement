@@ -34,14 +34,17 @@ the files it covers; this tool reads every suite's NEWEST evidence file and deci
                                     LOOK AT (`git update-index --assume-unchanged` / `--skip-worktree`: the `h`/`S`
                                     flags and their lower-case forms in `git ls-files -v`), whose edits neither the
                                     diff nor the digest sees (round 2, 2026-10-21). The remedy for (a) is a driver
-                                    that records the wider scope (`provenance(scope=...)`), never a looser rule here.
+                                    that records the wider scope (`covers:<suite>`, below), never a looser rule here.
   ok   same tree / untouched        otherwise. "ok" means NOT STALE; it says nothing about whether that run passed.
-'ok' IS UNREACHABLE TODAY (round 2, 2026-10-21, measured): every suite of the shipped map covers files outside both
-scope labels the evidence producers write (sandbox-pokebot/modules/**, ai-agent/scoring.py; units and
-revert_safety_gates also the documents check_lessons reads, which provenance's digest leaves out by design), so every
-suite reads DUE `unproven` even on a clean tree with fresh evidence, and the CLI says so in ONE NOTE line. That is
-the honest answer, not a bug of this tool: it cannot clear what the evidence does not record. The remedy is a producer
-recording a wider scope; changing the producers is outside this tool (decided 2026-10-21).
+THE `covers:<suite>` LABEL (spec S4-1, 2026-10-21). Round 2 measured that 'ok' was UNREACHABLE: every suite of the
+shipped map covers files outside both older labels (`ai_player/`, `ai_player/ + hook`: sandbox-pokebot/modules/**,
+ai-agent/scoring.py, and for units and revert_safety_gates the documents check_lessons reads, which provenance's digest
+leaves out by design), so every suite read DUE `unproven` even on a clean tree with fresh evidence (the CLI still says
+so in ONE NOTE line when that is the case). `ai_player/gates/run_regression.py` now writes a code line labelled
+`covers:<suite>`, whose digest is `provenance.suite_digest` over EXACTLY that suite's covered files (`suite_covers`:
+its `covers` less the map's `exclude`, plus its `reads`); this tool recomputes the same function, so such evidence can
+read "ok", and the files it covers are never "outside" it. A `covers:` label naming a suite the map lacks is an
+unknown scope (DUE), never a guess.
 WHAT A SUITE COVERS. `covers` (code globs, less the map's `exclude`) plus `reads`: the NON-CODE files its driver reads
 (MEASURED 2026-10-21 by scanning the files each driver runs: check_lessons reads ai_player/LESSONS.md, the README
 tree, 06/07/08, a review note and CLAUDE.md; ledger_check and test_safety_gates read ai_player/gates/ledger.json;
@@ -71,7 +74,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import functools
 import json
 import re
 import subprocess
@@ -84,7 +86,10 @@ REPO = HERE.parent.parent
 MAP = HERE / "suite_map.json"
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
-from ai_player.gates.provenance import (CODE_LINE, HOOK_SCOPE, PACKAGE_SCOPE, code_digest, read_tree,  # noqa: E402
+#: (spec S4-1) the glob rule, `suite_covers` and the `covers:<suite>` digest live in provenance, ONE copy for this tool
+#: and for the producer that writes that label (ai_player/gates/run_regression.py)
+from ai_player.gates.provenance import (CODE_LINE, COVERS_LABEL, HOOK_SCOPE, PACKAGE_SCOPE, code_digest,  # noqa: E402
+                                        glob_matches as matches, glob_regex, read_tree, suite_covers, suite_digest,
                                         tree_digest, tree_files)
 
 for _s in (sys.stdout, sys.stderr):
@@ -108,45 +113,16 @@ CACHE_RE = re.compile(r"(?:^|/)(?:__pycache__|\.pytest_cache)(?:/|$)|\.py[co]$")
 RECORDS_ONLY = " records only "
 #: (round 2) printed ONCE when every suite is DUE only because its evidence records too narrow a scope.
 ALL_UNPROVEN_NOTE = ("NOTE every suite is DUE only as `unproven`: each covers files outside the scope its evidence "
-                     "records (`ai_player/` or `ai_player/ + hook`), so 'ok' is unreachable with today's evidence "
-                     "producers. Nothing here is known to be stale; the remedy is a producer that records a wider "
-                     "scope (`provenance(scope=...)`), never a looser rule in this tool.")
+                     "records (`ai_player/` or `ai_player/ + hook`), so 'ok' is unreachable with that evidence. "
+                     "Nothing here is known to be stale; the remedy is a producer that records a wider "
+                     "scope (`py -3.12 ai_player/gates/run_regression.py --full` writes `covers:<suite>` evidence), "
+                     "never a looser rule in this tool.")
 #: The folders ai_player's own `sys.path` entries add, in the order a top-level import name is resolved.
 IMPORT_ROOTS = ("", "sandbox-pokebot", "ai-agent")
 
 
 class MapError(ValueError):
     pass
-
-
-@functools.lru_cache(maxsize=None)
-def glob_regex(glob: str) -> re.Pattern:
-    """A repo-relative path glob: `**/` = zero or more folders, `**` = anything, `*` = within one folder, `?` = one
-    character. Case-sensitive, like git paths."""
-    out, i = "", 0
-    while i < len(glob):
-        if glob.startswith("**/", i):
-            out, i = out + "(?:.*/)?", i + 3
-        elif glob.startswith("**", i):
-            out, i = out + ".*", i + 2
-        elif glob[i] == "*":
-            out, i = out + "[^/]*", i + 1
-        elif glob[i] == "?":
-            out, i = out + "[^/]", i + 1
-        else:
-            out, i = out + re.escape(glob[i]), i + 1
-    return re.compile(out + r"\Z")
-
-
-def matches(path: str, globs) -> bool:
-    return any(glob_regex(g).match(path) for g in globs)
-
-
-def suite_covers(path: str, suite: dict, excluded) -> bool:
-    """Does `suite` cover `path`? Its `covers` less the map's `exclude`, PLUS its `reads` (non-code files its driver
-    reads), which `exclude` never removes."""
-    return ((matches(path, suite.get("covers", [])) and not matches(path, excluded))
-            or matches(path, suite.get("reads", [])))
 
 
 def unwatched_files(repo: Path) -> set[str]:
@@ -395,8 +371,12 @@ def assess(repo: Path, smap: dict) -> list[tuple[str, bool, str]]:
 
     def current(scope) -> str:
         if scope not in digests:
-            _, diff, untracked, _ = read_tree(repo, scope)
-            digests[scope] = tree_digest(diff, untracked)[:16]
+            if isinstance(scope, str):
+                # (spec S4-1) a `covers:<suite>` label: that suite's own covered files, by provenance's one function
+                digests[scope] = suite_digest(repo, smap["suites"][scope], excluded)
+            else:
+                _, diff, untracked, _ = read_tree(repo, scope)
+                digests[scope] = tree_digest(diff, untracked)[:16]
         return digests[scope]
 
     out = []
@@ -410,11 +390,23 @@ def assess(repo: Path, smap: dict) -> list[tuple[str, bool, str]]:
             out.append((name, True, f"no provenance in {ev.name} (no code line with both a digest and a HEAD)"))
             continue
         scope = LABEL_SCOPES.get(label or "")
+        if scope is None and (label or "").startswith(COVERS_LABEL) and label[len(COVERS_LABEL):] in smap["suites"]:
+            # (spec S4-1) the digest covers exactly the named suite's covered files (`provenance.suite_covers`)
+            scope = label[len(COVERS_LABEL):]
         if scope is None:
             out.append((name, True, f"unknown scope label {label!r} in {ev.name}: which files its digest covers is "
                                     f"not known"))
             continue
-        globs = scope_globs(scope)
+        if isinstance(scope, str):
+            recorded = smap["suites"][scope]
+
+            def inside(path: str, _suite=recorded) -> bool:
+                return suite_covers(path, _suite, excluded)
+        else:
+            globs = scope_globs(scope)
+
+            def inside(path: str, _globs=globs) -> bool:
+                return in_scope(path, _globs)
         try:
             full = _git(repo, "rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}").strip()
         except subprocess.CalledProcessError:
@@ -439,12 +431,12 @@ def assess(repo: Path, smap: dict) -> list[tuple[str, bool, str]]:
                 continue
             changed |= dirty
         if same_tree:
-            changed = {f for f in changed if not in_scope(f, globs)}
+            changed = {f for f in changed if not inside(f)}
         hit = sorted(f for f in changed if suite_covers(f, suite, excluded))
         if hit:
             out.append((name, True, f"changed since {ev.name} ({commit}): {_sample(hit, 5)}"))
             continue
-        outside = [f for f in files if suite_covers(f, suite, excluded) and not in_scope(f, globs)]
+        outside = [f for f in files if suite_covers(f, suite, excluded) and not inside(f)]
         hidden = [f for f in ignored if suite_covers(f, suite, excluded) and not CACHE_RE.search(f)
                   and not matches(f, environment)]
         if outside or hidden:

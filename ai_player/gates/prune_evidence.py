@@ -55,7 +55,7 @@ if str(REPO) not in sys.path:
 #: pattern and the reader are `provenance`'s, the ONE reader `evidence_digests` and `keep_earlier` use too: this file read
 #: the first 4000 characters and that one the first 12 lines, so a file whose command is a multi-line `-c` script (its code
 #: line on line 32) had a digest for one and none for the other.
-from ai_player.gates.provenance import CODE_LINE, code_digest, file_digest  # noqa: E402,F401
+from ai_player.gates.provenance import CODE_LINE, SUMMARY_SUFFIX, code_digest, file_digest, summary_of  # noqa: E402,F401
 #: (step 4.1 round 3, the verifier: "the archive is back to 9.8 MB ... The 115 files (8.2 MB) of the never-committed tree
 #: 8b742931d35fa205 are kept wholesale, against the 'cited by name only' policy") the uncited files of a tree git does not
 #: hold (never committed) are PACKED into this one compressed file in their tree's folder, one INDEX line each (their size
@@ -114,8 +114,31 @@ def citing_text() -> str:
 
 
 def cited(path: Path, text: str) -> bool:
-    """A file is CITED when its name (or its name without `.txt`) appears in a citing document or a commit message."""
+    """A file is CITED when its name (or its name without `.txt`) appears in a citing document or a commit message.
+    (Spec S4-1, recon Q2) A `<stem>.summary.json` is cited when its `.txt` is: documents cite the evidence file, and a
+    summary judged on its own name alone was deleted or packed away from the `.txt` it summarises."""
+    if path.name.endswith(SUMMARY_SUFFIX):
+        stem = path.name[:-len(SUMMARY_SUFFIX)]
+        return path.name in text or f"{stem}.txt" in text or stem in text
     return path.name in text or (path.suffix == ".txt" and path.stem in text)
+
+
+def retire_plan(evidence: Path, archive: Path, digest: str, text: str) -> tuple[list[tuple[Path, Path]], list[Path]]:
+    """(moves, candidates) of `--retire DIGEST`: each top-level `.txt` whose code line names DIGEST is MOVED to
+    `archive/DIGEST/` when cited, else becomes a candidate (indexed and deleted, or packed). (Spec S4-1, recon Q2) Its
+    sibling `<stem>.summary.json` follows it into the SAME bucket, so a retired `.txt` never leaves its summary orphaned
+    at the top level (the old loop globbed `*.txt` only)."""
+    moves: list[tuple[Path, Path]] = []
+    candidates: list[Path] = []
+    for path in sorted(evidence.glob("*.txt")):
+        if digest_of(path) != digest:
+            continue
+        pair = [path] + [s for s in (summary_of(path),) if s.is_file()]
+        if cited(path, text):
+            moves += [(p, archive / digest / p.name) for p in pair]
+        else:
+            candidates += pair
+    return moves, candidates
 
 
 def safe_to_delete(path: Path) -> tuple[bool, str]:
@@ -198,13 +221,7 @@ def main() -> int:
     moves: list[tuple[Path, Path]] = []
     candidates: list[Path] = []
     if args.retire:
-        for path in sorted(EVIDENCE.glob("*.txt")):
-            if digest_of(path) != args.retire:
-                continue
-            if cited(path, text):
-                moves.append((path, ARCHIVE / args.retire / path.name))
-            else:
-                candidates.append(path)
+        moves, candidates = retire_plan(EVIDENCE, ARCHIVE, args.retire, text)
     candidates += sorted(p for p in ARCHIVE.rglob("*") if p.is_file() and p.name not in ("README.md", "INDEX.md", PACK_NAME))
     keep, delete, held, packs = [], [], [], {}
     for path in candidates:

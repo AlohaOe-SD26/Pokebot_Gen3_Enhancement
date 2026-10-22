@@ -36,11 +36,21 @@ only READS (rev-parse, diff, ls-files).
                     of a process starts its watch (`watch`), and `keep_earlier`, which every evidence writer calls just
                     before it writes, checks it; a driver that did not seal its own verdict has its evidence file AMENDED at
                     exit with the FAIL line and its exit code forced to 1 (`_amend_at_exit`).
+
+(Spec S4-1, 2026-10-21) THE `covers:<suite>` SCOPE. `suite_trees` digests exactly the files ONE suite of
+`tools/workflows/suite_map.json` covers (its `covers` less the map's `exclude`, plus its `reads`), so an evidence file whose
+code line says `covers:<suite>` records the WHOLE scope `tools/workflows/regression_due.py` checks for that suite. WHY: the
+two older labels (`ai_player/`, `ai_player/ + hook`) record less than any suite covers, so regression_due could never say
+`ok` (its docstring: "the remedy is a producer recording a wider scope"). The glob rules live HERE, once: regression_due
+imports `glob_regex` and `suite_covers` from this module, and `run_regression.py` writes the line with `suite_line`, so the
+writer and the checker cannot disagree about which files a digest covers. And an evidence file's `<stem>.summary.json`
+travels with it: `keep_earlier` moves the pair.
 """
 
 from __future__ import annotations
 
 import atexit
+import functools
 import hashlib
 import os
 import re
@@ -93,6 +103,83 @@ def read_tree(repo: Path, scope: Iterable[str] = PACKAGE_SCOPE) -> tuple[str, by
     names = [n for n in _git(repo, "ls-files", "--others", "--exclude-standard", "-z", *paths).decode("utf-8").split("\0") if n]
     untracked = {name: (repo / name).read_bytes() for name in names if (repo / name).is_file()}
     return head, diff, untracked, changed
+
+
+#: (spec S4-1) the code-line LABEL of a suite's whole scope: `covers:<suite name in suite_map.json>`
+COVERS_LABEL = "covers:"
+
+
+@functools.lru_cache(maxsize=None)
+def glob_regex(glob: str) -> re.Pattern:
+    """A repo-relative path glob: `**/` = zero or more folders, `**` = anything, `*` = within one folder, `?` = one
+    character. Case-sensitive, like git paths. (Spec S4-1: moved here from regression_due, which imports it, so the
+    `covers:<suite>` digest and regression_due's coverage test use ONE glob rule.)"""
+    out, i = "", 0
+    while i < len(glob):
+        if glob.startswith("**/", i):
+            out, i = out + "(?:.*/)?", i + 3
+        elif glob.startswith("**", i):
+            out, i = out + ".*", i + 2
+        elif glob[i] == "*":
+            out, i = out + "[^/]*", i + 1
+        elif glob[i] == "?":
+            out, i = out + "[^/]", i + 1
+        else:
+            out, i = out + re.escape(glob[i]), i + 1
+    return re.compile(out + r"\Z")
+
+
+def glob_matches(path: str, globs: Iterable[str]) -> bool:
+    return any(glob_regex(g).match(path) for g in globs)
+
+
+def suite_covers(path: str, suite: Mapping, excluded: Iterable[str]) -> bool:
+    """Does `suite` (a suite_map entry) cover `path`? Its `covers` less the map's `exclude`, PLUS its `reads` (non-code
+    files its driver reads), which `exclude` never removes."""
+    return ((glob_matches(path, suite.get("covers", [])) and not glob_matches(path, excluded))
+            or glob_matches(path, suite.get("reads", [])))
+
+
+def _git_names(repo: Path, *args: str) -> list[str]:
+    """The paths of a NUL-separated (`-z`) git listing, never C-quoted (`core.quotepath=false`)."""
+    out = subprocess.run(["git", "-c", "core.quotepath=false", *args], cwd=str(repo), capture_output=True, timeout=60,
+                         check=True).stdout
+    return [n for n in out.decode("utf-8", "replace").split("\0") if n]
+
+
+def suite_trees(repo: Path, suites: Mapping[str, Mapping], excluded: Iterable[str]
+                ) -> dict[str, tuple[str, bytes, dict[str, bytes], int]]:
+    """(Spec S4-1) For each suite: (short HEAD, `git diff HEAD --binary` of the changed files it COVERS, its covered
+    untracked files, how many changed files it covers): what `tree_digest` digests for a `covers:<suite>` code line. One
+    listing of the changed and untracked files serves every suite. Read-only git. Raises on a git failure."""
+    excluded = tuple(excluded)
+    head = _git(repo, "rev-parse", "--short", "HEAD").decode().strip()
+    changed = sorted(set(_git_names(repo, "diff", "HEAD", "--name-only", "--no-renames", "-z")))
+    others = sorted(set(_git_names(repo, "ls-files", "--others", "--exclude-standard", "-z")))
+    out = {}
+    for name, suite in suites.items():
+        mine = [p for p in changed if suite_covers(p, suite, excluded)]
+        diff = b"".join(_git(repo, "diff", "HEAD", "--binary", "--no-renames", "--",
+                             *[f":(literal){p}" for p in mine[at:at + 100]]) for at in range(0, len(mine), 100))
+        untracked = {p: (repo / p).read_bytes() for p in others
+                     if suite_covers(p, suite, excluded) and (repo / p).is_file()}
+        out[name] = (head, diff, untracked, len(mine))
+    return out
+
+
+def suite_digest(repo: Path, suite: Mapping, excluded: Iterable[str]) -> str:
+    """The 16-hex digest a `covers:<suite>` code line carries for this tree (`suite_trees`, `tree_digest`)."""
+    _, diff, untracked, _ = suite_trees(repo, {"_": suite}, excluded)["_"]
+    return tree_digest(diff, untracked)[:16]
+
+
+def suite_line(repo: Path, name: str, suite: Mapping, excluded: Iterable[str]) -> str:
+    """The CODE line (no "code: " prefix) of a `covers:<name>` scope; never raises (a failure is said in the line)."""
+    try:
+        head, diff, untracked, changed = suite_trees(repo, {name: suite}, excluded)[name]
+        return line(head, COVERS_LABEL + name, diff, untracked, changed)
+    except Exception as error:  # noqa: BLE001
+        return f"unknown ({type(error).__name__}: {error})"
 
 
 def provenance(repo: Path = REPO, scope: Iterable[str] = PACKAGE_SCOPE, label: str = "ai_player/") -> str:
@@ -167,7 +254,9 @@ def keep_earlier(path: Path, current: str | None = None, folder: Path = EVIDENCE
     tree's), it is MOVED to `archive/<that digest>/` first (a name already taken there gets the next free `.N` suffix), so a
     graded run can no longer write over an earlier tree's evidence, whatever the order of the round's steps. A file of no
     digest goes to `archive/no-digest/`. Returns where it went (None: nothing to keep). `gates/prune_evidence.py` then
-    keeps, indexes or packs it by the archive policy."""
+    keeps, indexes or packs it by the archive policy. (Spec S4-1, recon Q2) Its sibling `<stem>.summary.json` (written by
+    `run_regression.py`) goes WITH it (`move_summary`): moving only the `.txt` let the next run overwrite the earlier
+    tree's summary, the one file a builder reads instead of the log."""
     import shutil
 
     if current is None and folder.resolve() == EVIDENCE.resolve():
@@ -188,12 +277,44 @@ def keep_earlier(path: Path, current: str | None = None, folder: Path = EVIDENCE
     while target.exists():
         if target.read_bytes() == path.read_bytes():
             path.unlink()
+            move_summary(path, target)
             return target
         target = target_dir / f"{path.stem}.{suffix}{path.suffix}"
         suffix += 1
     shutil.move(str(path), str(target))
+    move_summary(path, target)
     print(f"[EVIDENCE] kept the earlier tree's {path.name} (code {digest or 'no digest'}): {target.relative_to(folder).as_posix()}")
     return target
+
+
+#: (spec S4-1) the compact verdict `run_regression.py` writes beside an evidence `.txt`: `<stem>.summary.json`
+SUMMARY_SUFFIX = ".summary.json"
+
+
+def summary_of(path: Path) -> Path:
+    """The `<stem>.summary.json` that belongs to evidence file `path`."""
+    return path.with_name(path.stem + SUMMARY_SUFFIX)
+
+
+def move_summary(source: Path, target: Path) -> Path | None:
+    """(Spec S4-1) Move `source`'s summary to sit beside `target` (the `.txt` just moved there), so the pair is never split.
+    An identical summary already there absorbs it; a different one takes the next free `<target stem>.N.summary.json`.
+    Returns where it went (None: there was none)."""
+    import shutil
+
+    summary = summary_of(source)
+    if not summary.is_file():
+        return None
+    dest, n = summary_of(target), 1
+    while dest.exists():
+        if dest.read_bytes() == summary.read_bytes():
+            summary.unlink()
+            return dest
+        dest = target.with_name(f"{target.stem}.{n}{SUMMARY_SUFFIX}")
+        n += 1
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(summary), str(dest))
+    return dest
 
 
 #: (the step-5.1 verifier's second round: "the claim that dee96b and a883634 differ only in gates and comments cannot be
@@ -206,7 +327,10 @@ TREES = EVIDENCE / "trees"
 
 def snapshot_tree(repo: Path = REPO, folder: Path | None = None) -> Path | None:
     """Keep this tree (`TREES`): `HEAD`, `diff.patch` and `untracked/<path>` in `<digest>.zip`, once per digest. Returns
-    the zip's path (None if git could not be read: the run goes on, its code line says why)."""
+    the zip's path (None if git could not be read: the run goes on, its code line says why). (Spec S4-1, recon Q3(d)) The
+    zip is written under a name of its own (`<digest>.<pid>.<thread>.tmp`) and `os.replace`d into place, so two drivers
+    keeping the same digest at once (a parallel regression) can never interleave their bytes in one file: each replace
+    is whole, and both write the same content."""
     import zipfile
 
     folder = folder or TREES
@@ -218,11 +342,22 @@ def snapshot_tree(repo: Path = REPO, folder: Path | None = None) -> Path | None:
     if target.is_file():
         return target
     folder.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as kept:
-        kept.writestr("HEAD", head)
-        kept.writestr("diff.patch", diff)
-        for name, data in sorted(untracked.items()):
-            kept.writestr(f"untracked/{name}", data)
+    temp = folder / f"{target.stem}.{os.getpid()}.{threading.get_ident()}.tmp"
+    try:
+        with zipfile.ZipFile(temp, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as kept:
+            kept.writestr("HEAD", head)
+            kept.writestr("diff.patch", diff)
+            for name, data in sorted(untracked.items()):
+                kept.writestr(f"untracked/{name}", data)
+        try:
+            os.replace(temp, target)
+        except OSError:
+            # (Windows) another writer's replace holds the target open: its copy is the same tree
+            if not target.is_file():
+                raise
+    finally:
+        if temp.exists():
+            temp.unlink()
     return target
 
 
