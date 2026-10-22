@@ -38484,3 +38484,9 @@ bought balls only at fixed story points.
   - the withheld-field scan matches whole keys only;
   - "no play code reads these files" is a text search.
 - **Hand-authored, UNVERIFIED until the W7 pass of the next slice:** the field-move needs past chapter 4, and the Space Center's `party_min: 1` (recon 4.6 says 1-3 Pokémon; the spec said 3).
+
+## 2026-10-22 — The AI player's full regression lane on KB2's code: PASS (25 suites)
+
+- `run_regression.py --full --evidence` on `df1cc900`: `REGRESSION: PASS (full, 25 suites, 4282.3 s wall)`, from 12:52 AM to 2:04 AM. test_kb2 was included (46 tests, 17.8 s); revert_step3 took 4,282 s.
+- `regression_due.py` afterwards reads ok for units, revert_step5 and revert_safety_gates. The evidence is the `2026-10-22-regression-*` files and the revert drivers' `2026-10-22-step*-REVERT.txt`.
+- The 2026-10-21 files at the evidence top level now name another tree. `prune_evidence.py --retire` moves them at a calm time.

@@ -625,7 +625,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "68236436d6b975726c26de2c5295ddc4de5c1df4",
-      "chars": 23477,
+      "chars": 23463,
       "head": "**Last updated:** 2026-10-22 (S3-4 slice 1, KB2, ✅ BUILT and",
       "tails": [
         "asurement correction still stands, and is recorded below.)*)"
@@ -860,7 +860,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 61915,
+      "chars": 62111,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -907,6 +907,12 @@
           "from_chars": 61769,
           "to_chars": 61915,
           "why": "2026-10-22 KB2 Tier 1 fixes: the banner's date and the stale-evidence state; (0d) DUE NOW; KB2 run commands"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 61915,
+          "to_chars": 62111,
+          "why": "2026-10-22 2:04 AM: the full lane passed on KB2's code"
         }
       ]
     },
