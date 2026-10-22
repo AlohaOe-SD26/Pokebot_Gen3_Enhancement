@@ -699,3 +699,120 @@ Preprocessor lines (the vanilla ROM is built without `BUGFIX`/`UBFIX`: a parser 
 | `.include` | 2 |
 | `.byte` | 1 |
 
+## event_scripts.s (`data/event_scripts.s`): 1 files
+
+- lines: 973 non-blank = 180 commands + 72 labels + 657 directives + 6 comments + 58 preprocessor + **0 UNPARSED**
+- distinct commands: 39; distinct directives: 6
+
+Preprocessor lines (the vanilla ROM is built without `BUGFIX`/`UBFIX`: a parser keeps the `#ifndef` / `#else` side):
+
+- `data/event_scripts.s:1: #include "config.h"`
+- `data/event_scripts.s:2: #include "constants/global.h"`
+- `data/event_scripts.s:3: #include "constants/apprentice.h"`
+- `data/event_scripts.s:4: #include "constants/battle.h"`
+- `data/event_scripts.s:5: #include "constants/battle_arena.h"`
+- `data/event_scripts.s:6: #include "constants/battle_dome.h"`
+- `data/event_scripts.s:7: #include "constants/battle_factory.h"`
+- `data/event_scripts.s:8: #include "constants/battle_frontier.h"`
+- `data/event_scripts.s:9: #include "constants/battle_palace.h"`
+- `data/event_scripts.s:10: #include "constants/battle_pike.h"`
+- `data/event_scripts.s:11: #include "constants/battle_pyramid.h"`
+- `data/event_scripts.s:12: #include "constants/battle_setup.h"`
+- `data/event_scripts.s:13: #include "constants/battle_tent.h"`
+- `data/event_scripts.s:14: #include "constants/battle_tower.h"`
+- `data/event_scripts.s:15: #include "constants/berry.h"`
+- `data/event_scripts.s:16: #include "constants/cable_club.h"`
+- `data/event_scripts.s:17: #include "constants/coins.h"`
+- `data/event_scripts.s:18: #include "constants/comparison_operators.h"`
+- `data/event_scripts.s:19: #include "constants/contest.h"`
+- `data/event_scripts.s:20: #include "constants/daycare.h"`
+- `data/event_scripts.s:21: #include "constants/decorations.h"`
+- `data/event_scripts.s:22: #include "constants/easy_chat.h"`
+- `data/event_scripts.s:23: #include "constants/event_objects.h"`
+- `data/event_scripts.s:24: #include "constants/event_object_movement.h"`
+- `data/event_scripts.s:25: #include "constants/field_effects.h"`
+- `data/event_scripts.s:26: #include "constants/field_poison.h"`
+- `data/event_scripts.s:27: #include "constants/field_specials.h"`
+- `data/event_scripts.s:28: #include "constants/field_tasks.h"`
+- `data/event_scripts.s:29: #include "constants/field_weather.h"`
+- `data/event_scripts.s:30: #include "constants/flags.h"`
+- `data/event_scripts.s:31: #include "constants/frontier_util.h"`
+- `data/event_scripts.s:32: #include "constants/game_stat.h"`
+- `data/event_scripts.s:33: #include "constants/item.h"`
+- `data/event_scripts.s:34: #include "constants/items.h"`
+- `data/event_scripts.s:35: #include "constants/heal_locations.h"`
+- `data/event_scripts.s:36: #include "constants/layouts.h"`
+- `data/event_scripts.s:37: #include "constants/lilycove_lady.h"`
+- `data/event_scripts.s:38: #include "constants/map_scripts.h"`
+- `data/event_scripts.s:39: #include "constants/maps.h"`
+- `data/event_scripts.s:40: #include "constants/mauville_old_man.h"`
+- `data/event_scripts.s:41: #include "constants/metatile_labels.h"`
+- `data/event_scripts.s:42: #include "constants/moves.h"`
+- `data/event_scripts.s:43: #include "constants/party_menu.h"`
+- `data/event_scripts.s:44: #include "constants/pokemon.h"`
+- `data/event_scripts.s:45: #include "constants/pokemon_size_record.h"`
+- `data/event_scripts.s:46: #include "constants/roulette.h"`
+- `data/event_scripts.s:47: #include "constants/script_menu.h"`
+- `data/event_scripts.s:48: #include "constants/secret_bases.h"`
+- `data/event_scripts.s:49: #include "constants/songs.h"`
+- `data/event_scripts.s:50: #include "constants/sound.h"`
+- `data/event_scripts.s:51: #include "constants/species.h"`
+- `data/event_scripts.s:52: #include "constants/trade.h"`
+- `data/event_scripts.s:53: #include "constants/trainer_hill.h"`
+- `data/event_scripts.s:54: #include "constants/trainers.h"`
+- `data/event_scripts.s:55: #include "constants/tv.h"`
+- `data/event_scripts.s:56: #include "constants/union_room.h"`
+- `data/event_scripts.s:57: #include "constants/vars.h"`
+- `data/event_scripts.s:58: #include "constants/weather.h"`
+
+| command | lines | files |
+|---|---:|---:|
+| `setflag` | 27 | 1 |
+| `return` | 26 | 1 |
+| `end` | 16 | 1 |
+| `clearflag` | 15 | 1 |
+| `setvar` | 10 | 1 |
+| `msgbox` | 9 | 1 |
+| `fadescreen` | 6 | 1 |
+| `call` | 5 | 1 |
+| `delay` | 5 | 1 |
+| `special` | 5 | 1 |
+| `fadescreenswapbuffers` | 4 | 1 |
+| `goto_if_unset` | 4 | 1 |
+| `release` | 4 | 1 |
+| `removeobject` | 4 | 1 |
+| `walk_right` | 4 | 1 |
+| `applywaitmovement` | 3 | 1 |
+| `goto_if_eq` | 3 | 1 |
+| `playfanfare` | 3 | 1 |
+| `waitfanfare` | 3 | 1 |
+| `walk_slow_right` | 3 | 1 |
+| `call_if_eq` | 2 | 1 |
+| `step_end` | 2 | 1 |
+| `bufferitemname` | 1 | 1 |
+| `bufferspeciesname` | 1 | 1 |
+| `copyvar` | 1 | 1 |
+| `dotimebasedevents` | 1 | 1 |
+| `fadedefaultbgm` | 1 | 1 |
+| `goto` | 1 | 1 |
+| `goto_if_set` | 1 | 1 |
+| `hideplayer` | 1 | 1 |
+| `lockall` | 1 | 1 |
+| `message` | 1 | 1 |
+| `playbgm` | 1 | 1 |
+| `releaseall` | 1 | 1 |
+| `removeitem` | 1 | 1 |
+| `setweather` | 1 | 1 |
+| `showplayer` | 1 | 1 |
+| `waitmessage` | 1 | 1 |
+| `walk_up` | 1 | 1 |
+
+| directive | lines |
+|---|---:|
+| `.include` | 556 |
+| `.string` | 64 |
+| `.4byte` | 33 |
+| `.set` | 2 |
+| `.purgem` | 1 |
+| `.section` | 1 |
+

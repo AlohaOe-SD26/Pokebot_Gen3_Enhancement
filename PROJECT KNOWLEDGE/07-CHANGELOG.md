@@ -38611,3 +38611,22 @@ bought balls only at fixed story points.
 - **`repro_x4_headless.py` F5, red since 2026-10-07.** The AI player's plugin `sandbox-pokebot/plugins/custom_modes/ai_player_mode.py:46` reads `AI_PLAYER_PACKAGE_ROOT`, and the D6 source scan rightly turned red: "every unprefixed env name the build reads is stripped (a NEW one turns this red) — ['AI_PLAYER_PACKAGE_ROOT']". **Fix:** `x4_headless.STRIP_UNPREFIXED` gains it. Only `py -3.12 -m ai_player run` should set it, and a value inherited from a shell that ran the AI could point a bot lane at another checkout's package. F5's strip test now plants it and asserts it is removed. The strip applies to `--arms` batch lanes only.
 - **`probe_no_hardcoded_repo.py` H1, red since 2026-10-21.** `selftest_usage_audit.py:123` held the main checkout's path as a literal in synthetic test data. **Fix:** `R` is derived from the file's own location. The labels depend only on the folder and suffix under `R`, and the selftest still passes ALL 94.
 - **Proof:** the same three gates were red in that suite run and exit 0 after the fix, with the tree otherwise unchanged (`probe_no_hardcoded_repo`, `repro_x4_headless`, `selftest_usage_audit`).
+
+## 2026-10-22 — CORRECTION to this morning's census entry, and KB2 slice 2's design recon filed (two notes)
+
+- **The census missed a third home of script code.** The slice-2 recon (adversarial and data angles, two read-only agents) found that `data/event_scripts.s` also holds inline scripts. It has 37 `setflag`/`setvar` lines, among them the only `setflag FLAG_PETALBURG_MART_EXPANDED_ITEMS` (`:678` at the pin). A grep of every `.s`/`.inc` under `data/` for script commands outside the two globs finds that file and no other. "0 UNPARSED" was true; "every event-script line" was NOT.
+  - `tools/scripts_census.py` now has a third table, `data/event_scripts.s`: 973 lines, 39 distinct commands, **0 UNPARSED**.
+  - Gate A3 requires all three tables BY NAME.
+  - A new call-deleting mutant that drops the third table is caught. The tally is 6 of 7 (the same inert survivor).
+  - The census note is regenerated.
+- **"12 places" in this morning's census entry is WRONG: there are 11 `#ifdef`/`#ifndef` BUGFIX/UBFIX blocks** in the map and shared scripts (8 + 3). The recon counted 11, and the census note lists every one. None changes an item, gift or flag (recon).
+- **Filed:** `ai-research-notes/2026-10-22-KB2-slice2-recon-data.md` and `-adversarial.md`, both NOTES. Their load-bearing claims for the slice-2 spec, unverified until it checks them:
+  - Slice 1's `maps.json` ALREADY holds the 162 item balls and 112 hidden items, matching the decomp. Of the 165 `finditem` labels, 3 are dead, and 60 ball-looking objects are not items.
+  - Most flags have no `setflag` line: C code or the object's own flag sets them.
+  - 15 `giveitem` lines take a variable, and many gifts are conditional (random, daily, friendship, gender, starter, either/or).
+  - Marts change only by a script choosing another list: Oldale, Petalburg, Rustboro, Trainer Hill.
+  - Story progress also moves through `addvar`, `clearflag`, `settrainerflag` and scripted `warp`.
+  - The spec's "limit to `emerald.txt`" rule would drop 9 REAL flags; `emerald.txt` misspells Lanette's flag.
+  - A naive verifier would miss a planted DEAD label.
+  - A fairness-gate gap: a `flag` key classified AI-visible would leave `developer_keys()`.
+  - Of W7's 20 missing facts: 13 belong to `events.json`, 3 to `items_gifts.json`, 3 to slice 1, and 5 are not derivable from scripts.

@@ -10,7 +10,9 @@ Arms (FAULT + CONTROL each):
   A1 the census's own self-test: CONTROL a clean temp tree (every kind counted, preprocessor lines listed by file:line,
      0 UNPARSED) and FAULT one planted unparsable line (exit 1, named by file:line)
   A2 the pin refusal: FAULT a folder that is not a clone is REFUSED (exit 2); its CONTROL is A3 running at all
-  A3 the real census at the pinned clone: exit 0 and 0 UNPARSED in both tables
+  A3 the real census at the pinned clone: exit 0 and 0 UNPARSED in all THREE tables, each named (map scripts,
+     shared scripts, and `data/event_scripts.s`, the third home of script code a slice-2 recon found the first
+     version missing: dropping a table turns A3 red)
 Exit 0 PASS, 1 FAIL, 4 WARN (no pinned clone: A3 SKIPPED, never a pass). No ROM; ~5 s.
 """
 from __future__ import annotations
@@ -60,9 +62,10 @@ def main() -> int:
             text = out.read_text(encoding="utf-8") if out.exists() else ""
         stats = [line for line in p.stderr.splitlines() if line.startswith("CENSUS ")]
         print("\n".join(stats))
-        clean = (p.returncode == 0 and len(stats) == 2 and all(s.endswith(" 0 UNPARSED") for s in stats)
-                 and text.count("**0 UNPARSED**") == 2)
-        results.append(("A3 the real census at the pin: exit 0, 0 UNPARSED in both tables", clean))
+        names = [s.split(":")[0] for s in stats]
+        clean = (p.returncode == 0 and names == ["CENSUS map scripts", "CENSUS shared scripts", "CENSUS event_scripts.s"]
+                 and all(s.endswith(" 0 UNPARSED") for s in stats) and text.count("**0 UNPARSED**") == 3)
+        results.append(("A3 the real census at the pin: exit 0, 0 UNPARSED in all three named tables", clean))
 
     for label, ok in results:
         print(("PASS  " if ok else "FAIL  ") + label)

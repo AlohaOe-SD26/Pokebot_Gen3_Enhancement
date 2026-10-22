@@ -39,7 +39,11 @@ import decomp_lookup as dl  # noqa: E402  (one pin check for every decomp reader
 LABEL = re.compile(r"[A-Za-z_][A-Za-z0-9_]*::?(\s*@.*)?")
 DIRECTIVE = re.compile(r"\.[A-Za-z0-9_]+\b")
 COMMAND = re.compile(r"([a-z_][a-z0-9_]*)\b")
-GROUPS = (("map scripts", "data/maps/*/scripts.inc"), ("shared scripts", "data/scripts/*.inc"))
+#: `data/event_scripts.s` is the third home of script code (2026-10-22, the slice-2 recon): besides its `.include`s it
+#: holds inline scripts, e.g. the only `setflag FLAG_PETALBURG_MART_EXPANDED_ITEMS` (`:678` at the pin). A census of
+#: only the first two globs is complete for "0 UNPARSED" but NOT for "every event-script line".
+GROUPS = (("map scripts", "data/maps/*/scripts.inc"), ("shared scripts", "data/scripts/*.inc"),
+          ("event_scripts.s", "data/event_scripts.s"))
 
 
 def classify(line: str) -> tuple[str, str | None]:
