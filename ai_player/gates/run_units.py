@@ -61,6 +61,9 @@ SUITES: dict[str, tuple[list[str], int]] = {
     "disk_budget": ([str(GATES / "disk_budget.py")], 2),
     # spec S4-1: the regression runner's own fault tests (fake suites in temp folders; under 5 s)
     "test_run_regression": ([str(GATES / "test_run_regression.py")], 2),
+    # spec S3-4 slice 1 (KB2): the world files' extractor, its independent verifier and W1-W8 (about 10 s; the pinned
+    # decomp clone is required: without it every test ERRORS, never a silent pass)
+    "test_kb2": ([str(GATES / "test_kb2.py")], 2),
 }
 
 

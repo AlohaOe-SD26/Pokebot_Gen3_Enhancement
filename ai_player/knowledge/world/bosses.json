@@ -1,0 +1,3863 @@
+{
+ "_source": "pret/pokeemerald@731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
+ "_files": {
+  "src/pokemon.c": "3607b9aca9c3c02b3d0bbe0117fe00ac8a4f4baeca2161fdf19c56156f3434dd"
+ },
+ "_kind": "static game knowledge (USER RULING 40)",
+ "_made_by": "ai_player/gates/extract_world.py",
+ "_slice": "spec S3-4 slice 1 (KB2)",
+ "_not_in_this_slice": "items_gifts.json and events.json (spec S3-4 slice 2, NEEDS DESIGN): gifts, marts, TM gifts and scripted events are NOT here, so an absent list is not 'none'; tools/make_chapter_pack.py and its W7 adversarial pass are the next slice",
+ "_reader": "no loader reads this file yet; check_fairness.py does not glob knowledge/world (fact 2), and nothing in ai_player's play code may read it until a loader and a KNOWLEDGE_FIELDS classification exist",
+ "_also_uses": "trainers.json and maps.json (their _files: parties, the map scripts' battles)",
+ "_inputs": {
+  "kb1": {
+   "species.json": "244a970b1aeacb6791d4b42b9aa1f198bcc744765181dba89d51f6387c4605ed",
+   "learnsets.json": "83115ad6b9b4747a4deeaef5e1e5516b8f01ba92de577219b7ccab6f987ff4db"
+  },
+  "campaign_skeleton.json": "9ea7869f9eaf67354839f3be4be767c3f2a0ec89256ad2368771a2776c578522"
+ },
+ "_measured": "null: A6's chapter_priors.json (spec S3-3) is not generated yet (it waits for the AI's loader); when it is, this block is copied from it and labelled source: 'bot corpus'",
+ "_excluded": {
+  "ids": [
+   "TRAINER_LEAF",
+   "TRAINER_RED"
+  ],
+  "why": "a boss-class trainer that no map script battles"
+ },
+ "_notes": {
+  "fight": "groups a boss's variants (a rival's gender and starter); campaign.json's boss names a fight",
+  "order": "the campaign skeleton's order of the fight's first entry (null: not in the campaign)",
+  "badge": "read from the gym leader's defeat script (setflag FLAG_BADGEnn_GET)"
+ },
+ "count": 57,
+ "bosses": [
+  {
+   "fight": "MATT",
+   "id": "TRAINER_MATT",
+   "name": "MATT",
+   "role": "team_admin",
+   "order": 52,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 34,
+     "moves": [
+      "MOVE_ODOR_SLEUTH",
+      "MOVE_ROAR",
+      "MOVE_SWAGGER",
+      "MOVE_SCARY_FACE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_GOLBAT",
+     "level": 34,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_BITE",
+      "MOVE_WING_ATTACK",
+      "MOVE_CONFUSE_RAY"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "POISON",
+      "FLYING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_AQUA_HIDEOUT_B2F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:364"
+  },
+  {
+   "fight": "SHELLY_WEATHER_INSTITUTE",
+   "id": "TRAINER_SHELLY_WEATHER_INSTITUTE",
+   "name": "SHELLY",
+   "role": "team_admin",
+   "order": 42,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_CARVANHA",
+     "level": 28,
+     "moves": [
+      "MOVE_FOCUS_ENERGY",
+      "MOVE_SCARY_FACE",
+      "MOVE_CRUNCH",
+      "MOVE_SCREECH"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 28,
+     "moves": [
+      "MOVE_BITE",
+      "MOVE_ODOR_SLEUTH",
+      "MOVE_ROAR",
+      "MOVE_SWAGGER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE119_WEATHER_INSTITUTE_2F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:388"
+  },
+  {
+   "fight": "SHELLY_SEAFLOOR_CAVERN",
+   "id": "TRAINER_SHELLY_SEAFLOOR_CAVERN",
+   "name": "SHELLY",
+   "role": "team_admin",
+   "order": 56,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SHARPEDO",
+     "level": 37,
+     "moves": [
+      "MOVE_SCARY_FACE",
+      "MOVE_CRUNCH",
+      "MOVE_SCREECH",
+      "MOVE_SLASH"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 37,
+     "moves": [
+      "MOVE_ROAR",
+      "MOVE_SWAGGER",
+      "MOVE_SCARY_FACE",
+      "MOVE_TAKE_DOWN"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_SEAFLOOR_CAVERN_ROOM3"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:400"
+  },
+  {
+   "fight": "ARCHIE",
+   "id": "TRAINER_ARCHIE",
+   "name": "ARCHIE",
+   "role": "team_leader",
+   "order": 57,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 41,
+     "moves": [
+      "MOVE_ROAR",
+      "MOVE_SWAGGER",
+      "MOVE_SCARY_FACE",
+      "MOVE_TAKE_DOWN"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_CROBAT",
+     "level": 41,
+     "moves": [
+      "MOVE_BITE",
+      "MOVE_WING_ATTACK",
+      "MOVE_CONFUSE_RAY",
+      "MOVE_AIR_CUTTER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "POISON",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_SHARPEDO",
+     "level": 43,
+     "moves": [
+      "MOVE_SCREECH",
+      "MOVE_SLASH",
+      "MOVE_TAUNT",
+      "MOVE_SWAGGER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "DARK"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_SEAFLOOR_CAVERN_ROOM9"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:412"
+  },
+  {
+   "fight": "SIDNEY",
+   "id": "TRAINER_SIDNEY",
+   "name": "SIDNEY",
+   "role": "elite_four",
+   "order": 62,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 46,
+     "held_item": null,
+     "moves": [
+      "MOVE_ROAR",
+      "MOVE_DOUBLE_EDGE",
+      "MOVE_SAND_ATTACK",
+      "MOVE_CRUNCH"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3215)",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_SHIFTRY",
+     "level": 48,
+     "held_item": null,
+     "moves": [
+      "MOVE_TORMENT",
+      "MOVE_DOUBLE_TEAM",
+      "MOVE_SWAGGER",
+      "MOVE_EXTRASENSORY"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3215)",
+     "types": [
+      "GRASS",
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_CACTURNE",
+     "level": 46,
+     "held_item": null,
+     "moves": [
+      "MOVE_LEECH_SEED",
+      "MOVE_FAINT_ATTACK",
+      "MOVE_NEEDLE_ARM",
+      "MOVE_COTTON_SPORE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3215)",
+     "types": [
+      "GRASS",
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_CRAWDAUNT",
+     "level": 48,
+     "held_item": null,
+     "moves": [
+      "MOVE_SURF",
+      "MOVE_SWORDS_DANCE",
+      "MOVE_STRENGTH",
+      "MOVE_FACADE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3215)",
+     "types": [
+      "WATER",
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_ABSOL",
+     "level": 49,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_AERIAL_ACE",
+      "MOVE_ROCK_SLIDE",
+      "MOVE_SWORDS_DANCE",
+      "MOVE_SLASH"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3215)",
+     "types": [
+      "DARK"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_EVER_GRANDE_CITY_SIDNEYS_ROOM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3136"
+  },
+  {
+   "fight": "PHOEBE",
+   "id": "TRAINER_PHOEBE",
+   "name": "PHOEBE",
+   "role": "elite_four",
+   "order": 63,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_DUSCLOPS",
+     "level": 48,
+     "held_item": null,
+     "moves": [
+      "MOVE_SHADOW_PUNCH",
+      "MOVE_CONFUSE_RAY",
+      "MOVE_CURSE",
+      "MOVE_PROTECT"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3253)",
+     "types": [
+      "GHOST"
+     ]
+    },
+    {
+     "species": "SPECIES_BANETTE",
+     "level": 49,
+     "held_item": null,
+     "moves": [
+      "MOVE_SHADOW_BALL",
+      "MOVE_GRUDGE",
+      "MOVE_WILL_O_WISP",
+      "MOVE_FAINT_ATTACK"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3253)",
+     "types": [
+      "GHOST"
+     ]
+    },
+    {
+     "species": "SPECIES_SABLEYE",
+     "level": 50,
+     "held_item": null,
+     "moves": [
+      "MOVE_SHADOW_BALL",
+      "MOVE_DOUBLE_TEAM",
+      "MOVE_NIGHT_SHADE",
+      "MOVE_FAINT_ATTACK"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3253)",
+     "types": [
+      "DARK",
+      "GHOST"
+     ]
+    },
+    {
+     "species": "SPECIES_BANETTE",
+     "level": 49,
+     "held_item": null,
+     "moves": [
+      "MOVE_SHADOW_BALL",
+      "MOVE_PSYCHIC",
+      "MOVE_THUNDERBOLT",
+      "MOVE_FACADE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3253)",
+     "types": [
+      "GHOST"
+     ]
+    },
+    {
+     "species": "SPECIES_DUSCLOPS",
+     "level": 51,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_SHADOW_BALL",
+      "MOVE_ICE_BEAM",
+      "MOVE_ROCK_SLIDE",
+      "MOVE_EARTHQUAKE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3253)",
+     "types": [
+      "GHOST"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_EVER_GRANDE_CITY_PHOEBES_ROOM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3148"
+  },
+  {
+   "fight": "GLACIA",
+   "id": "TRAINER_GLACIA",
+   "name": "GLACIA",
+   "role": "elite_four",
+   "order": 64,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SEALEO",
+     "level": 50,
+     "held_item": null,
+     "moves": [
+      "MOVE_ENCORE",
+      "MOVE_BODY_SLAM",
+      "MOVE_HAIL",
+      "MOVE_ICE_BALL"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3291)",
+     "types": [
+      "ICE",
+      "WATER"
+     ]
+    },
+    {
+     "species": "SPECIES_GLALIE",
+     "level": 50,
+     "held_item": null,
+     "moves": [
+      "MOVE_LIGHT_SCREEN",
+      "MOVE_CRUNCH",
+      "MOVE_ICY_WIND",
+      "MOVE_ICE_BEAM"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3291)",
+     "types": [
+      "ICE"
+     ]
+    },
+    {
+     "species": "SPECIES_SEALEO",
+     "level": 52,
+     "held_item": null,
+     "moves": [
+      "MOVE_ATTRACT",
+      "MOVE_DOUBLE_EDGE",
+      "MOVE_HAIL",
+      "MOVE_BLIZZARD"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3291)",
+     "types": [
+      "ICE",
+      "WATER"
+     ]
+    },
+    {
+     "species": "SPECIES_GLALIE",
+     "level": 52,
+     "held_item": null,
+     "moves": [
+      "MOVE_SHADOW_BALL",
+      "MOVE_EXPLOSION",
+      "MOVE_HAIL",
+      "MOVE_ICE_BEAM"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3291)",
+     "types": [
+      "ICE"
+     ]
+    },
+    {
+     "species": "SPECIES_WALREIN",
+     "level": 53,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_SURF",
+      "MOVE_BODY_SLAM",
+      "MOVE_ICE_BEAM",
+      "MOVE_SHEER_COLD"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3291)",
+     "types": [
+      "ICE",
+      "WATER"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_EVER_GRANDE_CITY_GLACIAS_ROOM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3160"
+  },
+  {
+   "fight": "DRAKE",
+   "id": "TRAINER_DRAKE",
+   "name": "DRAKE",
+   "role": "elite_four",
+   "order": 65,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SHELGON",
+     "level": 52,
+     "held_item": null,
+     "moves": [
+      "MOVE_ROCK_TOMB",
+      "MOVE_DRAGON_CLAW",
+      "MOVE_PROTECT",
+      "MOVE_DOUBLE_EDGE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3329)",
+     "types": [
+      "DRAGON"
+     ]
+    },
+    {
+     "species": "SPECIES_ALTARIA",
+     "level": 54,
+     "held_item": null,
+     "moves": [
+      "MOVE_DOUBLE_EDGE",
+      "MOVE_DRAGON_BREATH",
+      "MOVE_DRAGON_DANCE",
+      "MOVE_AERIAL_ACE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3329)",
+     "types": [
+      "DRAGON",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_KINGDRA",
+     "level": 53,
+     "held_item": null,
+     "moves": [
+      "MOVE_SMOKESCREEN",
+      "MOVE_DRAGON_DANCE",
+      "MOVE_SURF",
+      "MOVE_BODY_SLAM"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3329)",
+     "types": [
+      "WATER",
+      "DRAGON"
+     ]
+    },
+    {
+     "species": "SPECIES_FLYGON",
+     "level": 53,
+     "held_item": null,
+     "moves": [
+      "MOVE_FLAMETHROWER",
+      "MOVE_CRUNCH",
+      "MOVE_DRAGON_BREATH",
+      "MOVE_EARTHQUAKE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3329)",
+     "types": [
+      "GROUND",
+      "DRAGON"
+     ]
+    },
+    {
+     "species": "SPECIES_SALAMENCE",
+     "level": 55,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_FLAMETHROWER",
+      "MOVE_DRAGON_CLAW",
+      "MOVE_ROCK_SLIDE",
+      "MOVE_CRUNCH"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3329)",
+     "types": [
+      "DRAGON",
+      "FLYING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_EVER_GRANDE_CITY_DRAKES_ROOM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3172"
+  },
+  {
+   "fight": "ROXANNE",
+   "id": "TRAINER_ROXANNE_1",
+   "name": "ROXANNE",
+   "role": "gym_leader",
+   "order": 20,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_GEODUDE",
+     "level": 12,
+     "held_item": null,
+     "moves": [
+      "MOVE_TACKLE",
+      "MOVE_DEFENSE_CURL",
+      "MOVE_ROCK_THROW",
+      "MOVE_ROCK_TOMB"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3367)",
+     "types": [
+      "ROCK",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_GEODUDE",
+     "level": 12,
+     "held_item": null,
+     "moves": [
+      "MOVE_TACKLE",
+      "MOVE_DEFENSE_CURL",
+      "MOVE_ROCK_THROW",
+      "MOVE_ROCK_TOMB"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3367)",
+     "types": [
+      "ROCK",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_NOSEPASS",
+     "level": 15,
+     "held_item": "ITEM_ORAN_BERRY",
+     "moves": [
+      "MOVE_BLOCK",
+      "MOVE_HARDEN",
+      "MOVE_TACKLE",
+      "MOVE_ROCK_TOMB"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3367)",
+     "types": [
+      "ROCK"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_ROXANNE_2",
+    "TRAINER_ROXANNE_3",
+    "TRAINER_ROXANNE_4",
+    "TRAINER_ROXANNE_5"
+   ],
+   "battled_on": [
+    "MAP_RUSTBORO_CITY_GYM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3184",
+   "badge": {
+    "id": "BADGE01",
+    "flag": "FLAG_BADGE01_GET",
+    "ref": "data/maps/RustboroCity_Gym/scripts.inc:19"
+   }
+  },
+  {
+   "fight": "BRAWLY",
+   "id": "TRAINER_BRAWLY_1",
+   "name": "BRAWLY",
+   "role": "gym_leader",
+   "order": 26,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MACHOP",
+     "level": 16,
+     "held_item": null,
+     "moves": [
+      "MOVE_KARATE_CHOP",
+      "MOVE_LOW_KICK",
+      "MOVE_SEISMIC_TOSS",
+      "MOVE_BULK_UP"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3391)",
+     "types": [
+      "FIGHTING"
+     ]
+    },
+    {
+     "species": "SPECIES_MEDITITE",
+     "level": 16,
+     "held_item": null,
+     "moves": [
+      "MOVE_FOCUS_PUNCH",
+      "MOVE_LIGHT_SCREEN",
+      "MOVE_REFLECT",
+      "MOVE_BULK_UP"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3391)",
+     "types": [
+      "FIGHTING",
+      "PSYCHIC"
+     ]
+    },
+    {
+     "species": "SPECIES_MAKUHITA",
+     "level": 19,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_ARM_THRUST",
+      "MOVE_VITAL_THROW",
+      "MOVE_REVERSAL",
+      "MOVE_BULK_UP"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3391)",
+     "types": [
+      "FIGHTING"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_BRAWLY_2",
+    "TRAINER_BRAWLY_3",
+    "TRAINER_BRAWLY_4",
+    "TRAINER_BRAWLY_5"
+   ],
+   "battled_on": [
+    "MAP_DEWFORD_TOWN_GYM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3196",
+   "badge": {
+    "id": "BADGE02",
+    "flag": "FLAG_BADGE02_GET",
+    "ref": "data/maps/DewfordTown_Gym/scripts.inc:151"
+   }
+  },
+  {
+   "fight": "WATTSON",
+   "id": "TRAINER_WATTSON_1",
+   "name": "WATTSON",
+   "role": "gym_leader",
+   "order": 31,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_VOLTORB",
+     "level": 20,
+     "held_item": null,
+     "moves": [
+      "MOVE_ROLLOUT",
+      "MOVE_SPARK",
+      "MOVE_SELF_DESTRUCT",
+      "MOVE_SHOCK_WAVE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3415)",
+     "types": [
+      "ELECTRIC"
+     ]
+    },
+    {
+     "species": "SPECIES_ELECTRIKE",
+     "level": 20,
+     "held_item": null,
+     "moves": [
+      "MOVE_SHOCK_WAVE",
+      "MOVE_LEER",
+      "MOVE_QUICK_ATTACK",
+      "MOVE_HOWL"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3415)",
+     "types": [
+      "ELECTRIC"
+     ]
+    },
+    {
+     "species": "SPECIES_MAGNETON",
+     "level": 22,
+     "held_item": null,
+     "moves": [
+      "MOVE_SUPERSONIC",
+      "MOVE_SHOCK_WAVE",
+      "MOVE_THUNDER_WAVE",
+      "MOVE_SONIC_BOOM"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3415)",
+     "types": [
+      "ELECTRIC",
+      "STEEL"
+     ]
+    },
+    {
+     "species": "SPECIES_MANECTRIC",
+     "level": 24,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_QUICK_ATTACK",
+      "MOVE_THUNDER_WAVE",
+      "MOVE_SHOCK_WAVE",
+      "MOVE_HOWL"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3415)",
+     "types": [
+      "ELECTRIC"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_WATTSON_2",
+    "TRAINER_WATTSON_3",
+    "TRAINER_WATTSON_4",
+    "TRAINER_WATTSON_5"
+   ],
+   "battled_on": [
+    "MAP_MAUVILLE_CITY_GYM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3208",
+   "badge": {
+    "id": "BADGE03",
+    "flag": "FLAG_BADGE03_GET",
+    "ref": "data/maps/MauvilleCity_Gym/scripts.inc:94"
+   }
+  },
+  {
+   "fight": "FLANNERY",
+   "id": "TRAINER_FLANNERY_1",
+   "name": "FLANNERY",
+   "role": "gym_leader",
+   "order": 38,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_NUMEL",
+     "level": 24,
+     "held_item": null,
+     "moves": [
+      "MOVE_OVERHEAT",
+      "MOVE_TAKE_DOWN",
+      "MOVE_MAGNITUDE",
+      "MOVE_SUNNY_DAY"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3446)",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 24,
+     "held_item": null,
+     "moves": [
+      "MOVE_OVERHEAT",
+      "MOVE_SMOG",
+      "MOVE_LIGHT_SCREEN",
+      "MOVE_SUNNY_DAY"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3446)",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_CAMERUPT",
+     "level": 26,
+     "held_item": null,
+     "moves": [
+      "MOVE_OVERHEAT",
+      "MOVE_TACKLE",
+      "MOVE_SUNNY_DAY",
+      "MOVE_ATTRACT"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3446)",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_TORKOAL",
+     "level": 29,
+     "held_item": "ITEM_WHITE_HERB",
+     "moves": [
+      "MOVE_OVERHEAT",
+      "MOVE_SUNNY_DAY",
+      "MOVE_BODY_SLAM",
+      "MOVE_ATTRACT"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3446)",
+     "types": [
+      "FIRE"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_FLANNERY_2",
+    "TRAINER_FLANNERY_3",
+    "TRAINER_FLANNERY_4",
+    "TRAINER_FLANNERY_5"
+   ],
+   "battled_on": [
+    "MAP_LAVARIDGE_TOWN_GYM_1F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3220",
+   "badge": {
+    "id": "BADGE04",
+    "flag": "FLAG_BADGE04_GET",
+    "ref": "data/maps/LavaridgeTown_Gym_1F/scripts.inc:62"
+   }
+  },
+  {
+   "fight": "NORMAN",
+   "id": "TRAINER_NORMAN_1",
+   "name": "NORMAN",
+   "role": "gym_leader",
+   "order": 39,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SPINDA",
+     "level": 27,
+     "held_item": null,
+     "moves": [
+      "MOVE_TEETER_DANCE",
+      "MOVE_PSYBEAM",
+      "MOVE_FACADE",
+      "MOVE_ENCORE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3477)",
+     "types": [
+      "NORMAL"
+     ]
+    },
+    {
+     "species": "SPECIES_VIGOROTH",
+     "level": 27,
+     "held_item": null,
+     "moves": [
+      "MOVE_SLASH",
+      "MOVE_FACADE",
+      "MOVE_ENCORE",
+      "MOVE_FAINT_ATTACK"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3477)",
+     "types": [
+      "NORMAL"
+     ]
+    },
+    {
+     "species": "SPECIES_LINOONE",
+     "level": 29,
+     "held_item": null,
+     "moves": [
+      "MOVE_SLASH",
+      "MOVE_BELLY_DRUM",
+      "MOVE_FACADE",
+      "MOVE_HEADBUTT"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3477)",
+     "types": [
+      "NORMAL"
+     ]
+    },
+    {
+     "species": "SPECIES_SLAKING",
+     "level": 31,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_COUNTER",
+      "MOVE_YAWN",
+      "MOVE_FACADE",
+      "MOVE_FAINT_ATTACK"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3477)",
+     "types": [
+      "NORMAL"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_NORMAN_2",
+    "TRAINER_NORMAN_3",
+    "TRAINER_NORMAN_4",
+    "TRAINER_NORMAN_5"
+   ],
+   "battled_on": [
+    "MAP_PETALBURG_CITY_GYM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3232",
+   "badge": {
+    "id": "BADGE05",
+    "flag": "FLAG_BADGE05_GET",
+    "ref": "data/maps/PetalburgCity_Gym/scripts.inc:369"
+   }
+  },
+  {
+   "fight": "WINONA",
+   "id": "TRAINER_WINONA_1",
+   "name": "WINONA",
+   "role": "gym_leader",
+   "order": 45,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SWABLU",
+     "level": 29,
+     "held_item": null,
+     "moves": [
+      "MOVE_PERISH_SONG",
+      "MOVE_MIRROR_MOVE",
+      "MOVE_SAFEGUARD",
+      "MOVE_AERIAL_ACE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3508)",
+     "types": [
+      "NORMAL",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_TROPIUS",
+     "level": 29,
+     "held_item": null,
+     "moves": [
+      "MOVE_SUNNY_DAY",
+      "MOVE_AERIAL_ACE",
+      "MOVE_SOLAR_BEAM",
+      "MOVE_SYNTHESIS"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3508)",
+     "types": [
+      "GRASS",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_PELIPPER",
+     "level": 30,
+     "held_item": null,
+     "moves": [
+      "MOVE_WATER_GUN",
+      "MOVE_SUPERSONIC",
+      "MOVE_PROTECT",
+      "MOVE_AERIAL_ACE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3508)",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_SKARMORY",
+     "level": 31,
+     "held_item": null,
+     "moves": [
+      "MOVE_SAND_ATTACK",
+      "MOVE_FURY_ATTACK",
+      "MOVE_STEEL_WING",
+      "MOVE_AERIAL_ACE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3508)",
+     "types": [
+      "STEEL",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_ALTARIA",
+     "level": 33,
+     "held_item": "ITEM_ORAN_BERRY",
+     "moves": [
+      "MOVE_EARTHQUAKE",
+      "MOVE_DRAGON_BREATH",
+      "MOVE_DRAGON_DANCE",
+      "MOVE_AERIAL_ACE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3508)",
+     "types": [
+      "DRAGON",
+      "FLYING"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_WINONA_2",
+    "TRAINER_WINONA_3",
+    "TRAINER_WINONA_4",
+    "TRAINER_WINONA_5"
+   ],
+   "battled_on": [
+    "MAP_FORTREE_CITY_GYM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:3244",
+   "badge": {
+    "id": "BADGE06",
+    "flag": "FLAG_BADGE06_GET",
+    "ref": "data/maps/FortreeCity_Gym/scripts.inc:34"
+   }
+  },
+  {
+   "fight": "TATE_AND_LIZA",
+   "id": "TRAINER_TATE_AND_LIZA_1",
+   "name": "TATE&LIZA",
+   "role": "gym_leader",
+   "order": 53,
+   "double": true,
+   "party": [
+    {
+     "species": "SPECIES_CLAYDOL",
+     "level": 41,
+     "held_item": null,
+     "moves": [
+      "MOVE_EARTHQUAKE",
+      "MOVE_ANCIENT_POWER",
+      "MOVE_PSYCHIC",
+      "MOVE_LIGHT_SCREEN"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3546)",
+     "types": [
+      "GROUND",
+      "PSYCHIC"
+     ]
+    },
+    {
+     "species": "SPECIES_XATU",
+     "level": 41,
+     "held_item": null,
+     "moves": [
+      "MOVE_PSYCHIC",
+      "MOVE_SUNNY_DAY",
+      "MOVE_CONFUSE_RAY",
+      "MOVE_CALM_MIND"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3546)",
+     "types": [
+      "PSYCHIC",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LUNATONE",
+     "level": 42,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_LIGHT_SCREEN",
+      "MOVE_PSYCHIC",
+      "MOVE_HYPNOSIS",
+      "MOVE_CALM_MIND"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3546)",
+     "types": [
+      "ROCK",
+      "PSYCHIC"
+     ]
+    },
+    {
+     "species": "SPECIES_SOLROCK",
+     "level": 42,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_SUNNY_DAY",
+      "MOVE_SOLAR_BEAM",
+      "MOVE_PSYCHIC",
+      "MOVE_FLAMETHROWER"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3546)",
+     "types": [
+      "ROCK",
+      "PSYCHIC"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_TATE_AND_LIZA_2",
+    "TRAINER_TATE_AND_LIZA_3",
+    "TRAINER_TATE_AND_LIZA_4",
+    "TRAINER_TATE_AND_LIZA_5"
+   ],
+   "battled_on": [
+    "MAP_MOSSDEEP_CITY_GYM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [
+    "a double battle: two of its mons are out at once (src/data/trainers.h:3263 doubleBattle = TRUE)"
+   ],
+   "measured": null,
+   "ref": "src/data/trainers.h:3256",
+   "badge": {
+    "id": "BADGE07",
+    "flag": "FLAG_BADGE07_GET",
+    "ref": "data/maps/MossdeepCity_Gym/scripts.inc:66"
+   }
+  },
+  {
+   "fight": "JUAN",
+   "id": "TRAINER_JUAN_1",
+   "name": "JUAN",
+   "role": "gym_leader",
+   "order": 60,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_LUVDISC",
+     "level": 41,
+     "held_item": null,
+     "moves": [
+      "MOVE_WATER_PULSE",
+      "MOVE_ATTRACT",
+      "MOVE_SWEET_KISS",
+      "MOVE_FLAIL"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3577)",
+     "types": [
+      "WATER"
+     ]
+    },
+    {
+     "species": "SPECIES_WHISCASH",
+     "level": 41,
+     "held_item": null,
+     "moves": [
+      "MOVE_RAIN_DANCE",
+      "MOVE_WATER_PULSE",
+      "MOVE_AMNESIA",
+      "MOVE_EARTHQUAKE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3577)",
+     "types": [
+      "WATER",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_SEALEO",
+     "level": 43,
+     "held_item": null,
+     "moves": [
+      "MOVE_ENCORE",
+      "MOVE_BODY_SLAM",
+      "MOVE_AURORA_BEAM",
+      "MOVE_WATER_PULSE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3577)",
+     "types": [
+      "ICE",
+      "WATER"
+     ]
+    },
+    {
+     "species": "SPECIES_CRAWDAUNT",
+     "level": 43,
+     "held_item": null,
+     "moves": [
+      "MOVE_WATER_PULSE",
+      "MOVE_CRABHAMMER",
+      "MOVE_TAUNT",
+      "MOVE_LEER"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3577)",
+     "types": [
+      "WATER",
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_KINGDRA",
+     "level": 46,
+     "held_item": "ITEM_CHESTO_BERRY",
+     "moves": [
+      "MOVE_WATER_PULSE",
+      "MOVE_DOUBLE_TEAM",
+      "MOVE_ICE_BEAM",
+      "MOVE_REST"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:3577)",
+     "types": [
+      "WATER",
+      "DRAGON"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_JUAN_2",
+    "TRAINER_JUAN_3",
+    "TRAINER_JUAN_4",
+    "TRAINER_JUAN_5"
+   ],
+   "battled_on": [
+    "MAP_SOOTOPOLIS_CITY_GYM_1F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [
+    "KINGDRA (slot 5) carries DOUBLE_TEAM + REST: a stall set (its moves, custom (src/data/trainer_parties.h:3577))"
+   ],
+   "measured": null,
+   "ref": "src/data/trainers.h:3268",
+   "badge": {
+    "id": "BADGE08",
+    "flag": "FLAG_BADGE08_GET",
+    "ref": "data/maps/SootopolisCity_Gym_1F/scripts.inc:97"
+   }
+  },
+  {
+   "fight": "WALLACE",
+   "id": "TRAINER_WALLACE",
+   "name": "WALLACE",
+   "role": "champion",
+   "order": 66,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_WAILORD",
+     "level": 57,
+     "held_item": null,
+     "moves": [
+      "MOVE_RAIN_DANCE",
+      "MOVE_WATER_SPOUT",
+      "MOVE_DOUBLE_EDGE",
+      "MOVE_BLIZZARD"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:4414)",
+     "types": [
+      "WATER"
+     ]
+    },
+    {
+     "species": "SPECIES_TENTACRUEL",
+     "level": 55,
+     "held_item": null,
+     "moves": [
+      "MOVE_TOXIC",
+      "MOVE_HYDRO_PUMP",
+      "MOVE_SLUDGE_BOMB",
+      "MOVE_ICE_BEAM"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:4414)",
+     "types": [
+      "WATER",
+      "POISON"
+     ]
+    },
+    {
+     "species": "SPECIES_LUDICOLO",
+     "level": 56,
+     "held_item": null,
+     "moves": [
+      "MOVE_GIGA_DRAIN",
+      "MOVE_SURF",
+      "MOVE_LEECH_SEED",
+      "MOVE_DOUBLE_TEAM"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:4414)",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_WHISCASH",
+     "level": 56,
+     "held_item": null,
+     "moves": [
+      "MOVE_EARTHQUAKE",
+      "MOVE_SURF",
+      "MOVE_AMNESIA",
+      "MOVE_HYPER_BEAM"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:4414)",
+     "types": [
+      "WATER",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_GYARADOS",
+     "level": 56,
+     "held_item": null,
+     "moves": [
+      "MOVE_DRAGON_DANCE",
+      "MOVE_EARTHQUAKE",
+      "MOVE_HYPER_BEAM",
+      "MOVE_SURF"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:4414)",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_MILOTIC",
+     "level": 58,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_RECOVER",
+      "MOVE_SURF",
+      "MOVE_ICE_BEAM",
+      "MOVE_TOXIC"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:4414)",
+     "types": [
+      "WATER"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:4024"
+  },
+  {
+   "fight": "TABITHA_MOSSDEEP",
+   "id": "TRAINER_TABITHA_MOSSDEEP",
+   "name": "TABITHA",
+   "role": "team_admin",
+   "order": null,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_CAMERUPT",
+     "level": 36,
+     "moves": [
+      "MOVE_FOCUS_ENERGY",
+      "MOVE_TAKE_DOWN",
+      "MOVE_AMNESIA",
+      "MOVE_ROCK_SLIDE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 38,
+     "moves": [
+      "MOVE_ROAR",
+      "MOVE_SWAGGER",
+      "MOVE_SCARY_FACE",
+      "MOVE_TAKE_DOWN"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_GOLBAT",
+     "level": 40,
+     "moves": [
+      "MOVE_BITE",
+      "MOVE_WING_ATTACK",
+      "MOVE_CONFUSE_RAY",
+      "MOVE_AIR_CUTTER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "POISON",
+      "FLYING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_MOSSDEEP_CITY_SPACE_CENTER_2F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6172"
+  },
+  {
+   "fight": "WALLY_VR_1",
+   "id": "TRAINER_WALLY_VR_1",
+   "name": "WALLY",
+   "role": "rival",
+   "order": 61,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_ALTARIA",
+     "level": 44,
+     "moves": [
+      "MOVE_AERIAL_ACE",
+      "MOVE_SAFEGUARD",
+      "MOVE_DRAGON_BREATH",
+      "MOVE_DRAGON_DANCE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:6751)",
+     "types": [
+      "DRAGON",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_DELCATTY",
+     "level": 43,
+     "moves": [
+      "MOVE_SING",
+      "MOVE_ASSIST",
+      "MOVE_CHARM",
+      "MOVE_FAINT_ATTACK"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:6751)",
+     "types": [
+      "NORMAL"
+     ]
+    },
+    {
+     "species": "SPECIES_ROSELIA",
+     "level": 44,
+     "moves": [
+      "MOVE_MAGICAL_LEAF",
+      "MOVE_LEECH_SEED",
+      "MOVE_GIGA_DRAIN",
+      "MOVE_TOXIC"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:6751)",
+     "types": [
+      "GRASS",
+      "POISON"
+     ]
+    },
+    {
+     "species": "SPECIES_MAGNETON",
+     "level": 41,
+     "moves": [
+      "MOVE_SUPERSONIC",
+      "MOVE_THUNDERBOLT",
+      "MOVE_TRI_ATTACK",
+      "MOVE_SCREECH"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:6751)",
+     "types": [
+      "ELECTRIC",
+      "STEEL"
+     ]
+    },
+    {
+     "species": "SPECIES_GARDEVOIR",
+     "level": 45,
+     "moves": [
+      "MOVE_DOUBLE_TEAM",
+      "MOVE_CALM_MIND",
+      "MOVE_PSYCHIC",
+      "MOVE_FUTURE_SIGHT"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:6751)",
+     "types": [
+      "PSYCHIC"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_VICTORY_ROAD_1F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6232"
+  },
+  {
+   "fight": "RIVAL_ROUTE_103",
+   "id": "TRAINER_BRENDAN_ROUTE_103_MUDKIP",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 9,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TREECKO",
+     "level": 5,
+     "moves": [
+      "MOVE_POUND",
+      "MOVE_LEER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE103"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6244"
+  },
+  {
+   "fight": "RIVAL_ROUTE_110",
+   "id": "TRAINER_BRENDAN_ROUTE_110_MUDKIP",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 29,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 18,
+     "moves": [
+      "MOVE_YAWN",
+      "MOVE_SMOG",
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_WINGULL",
+     "level": 18,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_WATER_GUN",
+      "MOVE_SUPERSONIC",
+      "MOVE_WING_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_GROVYLE",
+     "level": 20,
+     "moves": [
+      "MOVE_ABSORB",
+      "MOVE_QUICK_ATTACK",
+      "MOVE_FURY_CUTTER",
+      "MOVE_PURSUIT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE110"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6256"
+  },
+  {
+   "fight": "RIVAL_ROUTE_119",
+   "id": "TRAINER_BRENDAN_ROUTE_119_MUDKIP",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 43,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 29,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW",
+      "MOVE_HARDEN",
+      "MOVE_AMNESIA"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_PELIPPER",
+     "level": 29,
+     "moves": [
+      "MOVE_WING_ATTACK",
+      "MOVE_SUPERSONIC",
+      "MOVE_MIST",
+      "MOVE_PROTECT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_GROVYLE",
+     "level": 31,
+     "moves": [
+      "MOVE_FURY_CUTTER",
+      "MOVE_PURSUIT",
+      "MOVE_SCREECH",
+      "MOVE_LEAF_BLADE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE119"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6268"
+  },
+  {
+   "fight": "RIVAL_ROUTE_103",
+   "id": "TRAINER_BRENDAN_ROUTE_103_TREECKO",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 9,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TORCHIC",
+     "level": 5,
+     "moves": [
+      "MOVE_SCRATCH",
+      "MOVE_GROWL"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE103"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6280"
+  },
+  {
+   "fight": "RIVAL_ROUTE_110",
+   "id": "TRAINER_BRENDAN_ROUTE_110_TREECKO",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 29,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_WINGULL",
+     "level": 18,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_WATER_GUN",
+      "MOVE_SUPERSONIC",
+      "MOVE_WING_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 18,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_COMBUSKEN",
+     "level": 20,
+     "moves": [
+      "MOVE_FOCUS_ENERGY",
+      "MOVE_EMBER",
+      "MOVE_DOUBLE_KICK",
+      "MOVE_PECK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "FIGHTING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE110"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6292"
+  },
+  {
+   "fight": "RIVAL_ROUTE_119",
+   "id": "TRAINER_BRENDAN_ROUTE_119_TREECKO",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 43,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_PELIPPER",
+     "level": 29,
+     "moves": [
+      "MOVE_WING_ATTACK",
+      "MOVE_SUPERSONIC",
+      "MOVE_MIST",
+      "MOVE_PROTECT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 29,
+     "moves": [
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER",
+      "MOVE_FAKE_OUT",
+      "MOVE_FURY_SWIPES"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_COMBUSKEN",
+     "level": 31,
+     "moves": [
+      "MOVE_DOUBLE_KICK",
+      "MOVE_PECK",
+      "MOVE_SAND_ATTACK",
+      "MOVE_BULK_UP"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "FIGHTING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE119"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6304"
+  },
+  {
+   "fight": "RIVAL_ROUTE_103",
+   "id": "TRAINER_BRENDAN_ROUTE_103_TORCHIC",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 9,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MUDKIP",
+     "level": 5,
+     "moves": [
+      "MOVE_TACKLE",
+      "MOVE_GROWL"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE103"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6316"
+  },
+  {
+   "fight": "RIVAL_ROUTE_110",
+   "id": "TRAINER_BRENDAN_ROUTE_110_TORCHIC",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 29,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 18,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 18,
+     "moves": [
+      "MOVE_YAWN",
+      "MOVE_SMOG",
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_MARSHTOMP",
+     "level": 20,
+     "moves": [
+      "MOVE_WATER_GUN",
+      "MOVE_BIDE",
+      "MOVE_MUD_SHOT",
+      "MOVE_FORESIGHT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE110"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6328"
+  },
+  {
+   "fight": "RIVAL_ROUTE_119",
+   "id": "TRAINER_BRENDAN_ROUTE_119_TORCHIC",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 43,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 29,
+     "moves": [
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER",
+      "MOVE_FAKE_OUT",
+      "MOVE_FURY_SWIPES"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 29,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW",
+      "MOVE_HARDEN",
+      "MOVE_AMNESIA"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_MARSHTOMP",
+     "level": 31,
+     "moves": [
+      "MOVE_MUD_SHOT",
+      "MOVE_FORESIGHT",
+      "MOVE_MUD_SPORT",
+      "MOVE_TAKE_DOWN"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE119"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6340"
+  },
+  {
+   "fight": "RIVAL_ROUTE_103",
+   "id": "TRAINER_MAY_ROUTE_103_MUDKIP",
+   "name": "MAY",
+   "role": "rival",
+   "order": 9,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TREECKO",
+     "level": 5,
+     "moves": [
+      "MOVE_POUND",
+      "MOVE_LEER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE103"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6352"
+  },
+  {
+   "fight": "RIVAL_ROUTE_110",
+   "id": "TRAINER_MAY_ROUTE_110_MUDKIP",
+   "name": "MAY",
+   "role": "rival",
+   "order": 29,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_WINGULL",
+     "level": 18,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_WATER_GUN",
+      "MOVE_SUPERSONIC",
+      "MOVE_WING_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 18,
+     "moves": [
+      "MOVE_YAWN",
+      "MOVE_SMOG",
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_GROVYLE",
+     "level": 20,
+     "moves": [
+      "MOVE_ABSORB",
+      "MOVE_QUICK_ATTACK",
+      "MOVE_FURY_CUTTER",
+      "MOVE_PURSUIT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE110"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6364"
+  },
+  {
+   "fight": "RIVAL_ROUTE_119",
+   "id": "TRAINER_MAY_ROUTE_119_MUDKIP",
+   "name": "MAY",
+   "role": "rival",
+   "order": 43,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 29,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW",
+      "MOVE_HARDEN",
+      "MOVE_AMNESIA"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 29,
+     "moves": [
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER",
+      "MOVE_FAKE_OUT",
+      "MOVE_FURY_SWIPES"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_GROVYLE",
+     "level": 31,
+     "moves": [
+      "MOVE_FURY_CUTTER",
+      "MOVE_PURSUIT",
+      "MOVE_SCREECH",
+      "MOVE_LEAF_BLADE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE119"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6376"
+  },
+  {
+   "fight": "RIVAL_ROUTE_103",
+   "id": "TRAINER_MAY_ROUTE_103_TREECKO",
+   "name": "MAY",
+   "role": "rival",
+   "order": 9,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TORCHIC",
+     "level": 5,
+     "moves": [
+      "MOVE_SCRATCH",
+      "MOVE_GROWL"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE103"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6388"
+  },
+  {
+   "fight": "RIVAL_ROUTE_110",
+   "id": "TRAINER_MAY_ROUTE_110_TREECKO",
+   "name": "MAY",
+   "role": "rival",
+   "order": 29,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_WINGULL",
+     "level": 18,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_WATER_GUN",
+      "MOVE_SUPERSONIC",
+      "MOVE_WING_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 18,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_COMBUSKEN",
+     "level": 20,
+     "moves": [
+      "MOVE_FOCUS_ENERGY",
+      "MOVE_EMBER",
+      "MOVE_DOUBLE_KICK",
+      "MOVE_PECK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "FIGHTING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE110"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6400"
+  },
+  {
+   "fight": "RIVAL_ROUTE_119",
+   "id": "TRAINER_MAY_ROUTE_119_TREECKO",
+   "name": "MAY",
+   "role": "rival",
+   "order": 43,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_PELIPPER",
+     "level": 29,
+     "moves": [
+      "MOVE_WING_ATTACK",
+      "MOVE_SUPERSONIC",
+      "MOVE_MIST",
+      "MOVE_PROTECT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 29,
+     "moves": [
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER",
+      "MOVE_FAKE_OUT",
+      "MOVE_FURY_SWIPES"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_COMBUSKEN",
+     "level": 31,
+     "moves": [
+      "MOVE_DOUBLE_KICK",
+      "MOVE_PECK",
+      "MOVE_SAND_ATTACK",
+      "MOVE_BULK_UP"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "FIGHTING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE119"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6412"
+  },
+  {
+   "fight": "RIVAL_ROUTE_103",
+   "id": "TRAINER_MAY_ROUTE_103_TORCHIC",
+   "name": "MAY",
+   "role": "rival",
+   "order": 9,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MUDKIP",
+     "level": 5,
+     "moves": [
+      "MOVE_TACKLE",
+      "MOVE_GROWL"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE103"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6424"
+  },
+  {
+   "fight": "RIVAL_ROUTE_110",
+   "id": "TRAINER_MAY_ROUTE_110_TORCHIC",
+   "name": "MAY",
+   "role": "rival",
+   "order": 29,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 18,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 18,
+     "moves": [
+      "MOVE_YAWN",
+      "MOVE_SMOG",
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_MARSHTOMP",
+     "level": 20,
+     "moves": [
+      "MOVE_WATER_GUN",
+      "MOVE_BIDE",
+      "MOVE_MUD_SHOT",
+      "MOVE_FORESIGHT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE110"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6436"
+  },
+  {
+   "fight": "RIVAL_ROUTE_119",
+   "id": "TRAINER_MAY_ROUTE_119_TORCHIC",
+   "name": "MAY",
+   "role": "rival",
+   "order": 43,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_LOMBRE",
+     "level": 29,
+     "moves": [
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER",
+      "MOVE_FAKE_OUT",
+      "MOVE_FURY_SWIPES"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 29,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW",
+      "MOVE_HARDEN",
+      "MOVE_AMNESIA"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_MARSHTOMP",
+     "level": 31,
+     "moves": [
+      "MOVE_MUD_SHOT",
+      "MOVE_FORESIGHT",
+      "MOVE_MUD_SPORT",
+      "MOVE_TAKE_DOWN"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE119"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:6448"
+  },
+  {
+   "fight": "RIVAL_RUSTBORO",
+   "id": "TRAINER_BRENDAN_RUSTBORO_TREECKO",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 23,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_LOTAD",
+     "level": 13,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_TORCHIC",
+     "level": 15,
+     "moves": [
+      "MOVE_SCRATCH",
+      "MOVE_GROWL",
+      "MOVE_FOCUS_ENERGY",
+      "MOVE_EMBER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE104",
+    "MAP_RUSTBORO_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7108"
+  },
+  {
+   "fight": "RIVAL_RUSTBORO",
+   "id": "TRAINER_BRENDAN_RUSTBORO_MUDKIP",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 23,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_WINGULL",
+     "level": 13,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_WATER_GUN",
+      "MOVE_SUPERSONIC",
+      "MOVE_WING_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_TREECKO",
+     "level": 15,
+     "moves": [
+      "MOVE_POUND",
+      "MOVE_LEER",
+      "MOVE_ABSORB",
+      "MOVE_QUICK_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE104",
+    "MAP_RUSTBORO_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7120"
+  },
+  {
+   "fight": "TABITHA_MT_CHIMNEY",
+   "id": "TRAINER_TABITHA_MT_CHIMNEY",
+   "name": "TABITHA",
+   "role": "team_admin",
+   "order": 35,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_NUMEL",
+     "level": 18,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_TACKLE",
+      "MOVE_EMBER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_POOCHYENA",
+     "level": 20,
+     "moves": [
+      "MOVE_HOWL",
+      "MOVE_SAND_ATTACK",
+      "MOVE_BITE",
+      "MOVE_ODOR_SLEUTH"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_NUMEL",
+     "level": 22,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_TACKLE",
+      "MOVE_EMBER",
+      "MOVE_MAGNITUDE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_ZUBAT",
+     "level": 22,
+     "moves": [
+      "MOVE_SUPERSONIC",
+      "MOVE_ASTONISH",
+      "MOVE_BITE",
+      "MOVE_WING_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "POISON",
+      "FLYING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_MT_CHIMNEY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7168"
+  },
+  {
+   "fight": "RIVAL_RUSTBORO",
+   "id": "TRAINER_BRENDAN_RUSTBORO_TORCHIC",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 23,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 13,
+     "moves": [
+      "MOVE_YAWN",
+      "MOVE_SMOG",
+      "MOVE_EMBER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_MUDKIP",
+     "level": 15,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_MUD_SLAP",
+      "MOVE_WATER_GUN",
+      "MOVE_BIDE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE104",
+    "MAP_RUSTBORO_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7192"
+  },
+  {
+   "fight": "RIVAL_RUSTBORO",
+   "id": "TRAINER_MAY_RUSTBORO_MUDKIP",
+   "name": "MAY",
+   "role": "rival",
+   "order": 23,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_WINGULL",
+     "level": 13,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_WATER_GUN",
+      "MOVE_SUPERSONIC",
+      "MOVE_WING_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_TREECKO",
+     "level": 15,
+     "moves": [
+      "MOVE_POUND",
+      "MOVE_LEER",
+      "MOVE_ABSORB",
+      "MOVE_QUICK_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE104",
+    "MAP_RUSTBORO_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7204"
+  },
+  {
+   "fight": "MAXIE_MAGMA_HIDEOUT",
+   "id": "TRAINER_MAXIE_MAGMA_HIDEOUT",
+   "name": "MAXIE",
+   "role": "team_leader",
+   "order": 50,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 37,
+     "moves": [
+      "MOVE_ROAR",
+      "MOVE_SWAGGER",
+      "MOVE_SCARY_FACE",
+      "MOVE_TAKE_DOWN"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_CROBAT",
+     "level": 38,
+     "moves": [
+      "MOVE_BITE",
+      "MOVE_WING_ATTACK",
+      "MOVE_CONFUSE_RAY",
+      "MOVE_AIR_CUTTER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "POISON",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_CAMERUPT",
+     "level": 39,
+     "moves": [
+      "MOVE_TAKE_DOWN",
+      "MOVE_AMNESIA",
+      "MOVE_ROCK_SLIDE",
+      "MOVE_EARTHQUAKE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_MAGMA_HIDEOUT_4F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7216"
+  },
+  {
+   "fight": "MAXIE_MT_CHIMNEY",
+   "id": "TRAINER_MAXIE_MT_CHIMNEY",
+   "name": "MAXIE",
+   "role": "team_leader",
+   "order": 36,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 24,
+     "moves": [
+      "MOVE_SAND_ATTACK",
+      "MOVE_BITE",
+      "MOVE_ODOR_SLEUTH",
+      "MOVE_ROAR"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_ZUBAT",
+     "level": 24,
+     "moves": [
+      "MOVE_SUPERSONIC",
+      "MOVE_ASTONISH",
+      "MOVE_BITE",
+      "MOVE_WING_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "POISON",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_CAMERUPT",
+     "level": 25,
+     "moves": [
+      "MOVE_TACKLE",
+      "MOVE_EMBER",
+      "MOVE_MAGNITUDE",
+      "MOVE_FOCUS_ENERGY"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_MT_CHIMNEY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7228"
+  },
+  {
+   "fight": "WALLY_MAUVILLE",
+   "id": "TRAINER_WALLY_MAUVILLE",
+   "name": "WALLY",
+   "role": "rival",
+   "order": 30,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_RALTS",
+     "level": 16,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_CONFUSION",
+      "MOVE_DOUBLE_TEAM",
+      "MOVE_TELEPORT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "PSYCHIC"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_MAUVILLE_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7876"
+  },
+  {
+   "fight": "WALLY_VR_2",
+   "id": "TRAINER_WALLY_VR_2",
+   "name": "WALLY",
+   "role": "rival",
+   "order": null,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_ALTARIA",
+     "level": 47,
+     "moves": [
+      "MOVE_AERIAL_ACE",
+      "MOVE_SAFEGUARD",
+      "MOVE_DRAGON_BREATH",
+      "MOVE_DRAGON_DANCE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:8754)",
+     "types": [
+      "DRAGON",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_DELCATTY",
+     "level": 46,
+     "moves": [
+      "MOVE_SING",
+      "MOVE_ASSIST",
+      "MOVE_CHARM",
+      "MOVE_FAINT_ATTACK"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:8754)",
+     "types": [
+      "NORMAL"
+     ]
+    },
+    {
+     "species": "SPECIES_ROSELIA",
+     "level": 47,
+     "moves": [
+      "MOVE_MAGICAL_LEAF",
+      "MOVE_LEECH_SEED",
+      "MOVE_GIGA_DRAIN",
+      "MOVE_TOXIC"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:8754)",
+     "types": [
+      "GRASS",
+      "POISON"
+     ]
+    },
+    {
+     "species": "SPECIES_MAGNETON",
+     "level": 44,
+     "moves": [
+      "MOVE_SUPERSONIC",
+      "MOVE_THUNDERBOLT",
+      "MOVE_TRI_ATTACK",
+      "MOVE_SCREECH"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:8754)",
+     "types": [
+      "ELECTRIC",
+      "STEEL"
+     ]
+    },
+    {
+     "species": "SPECIES_GARDEVOIR",
+     "level": 48,
+     "moves": [
+      "MOVE_DOUBLE_TEAM",
+      "MOVE_CALM_MIND",
+      "MOVE_PSYCHIC",
+      "MOVE_FUTURE_SIGHT"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:8754)",
+     "types": [
+      "PSYCHIC"
+     ]
+    }
+   ],
+   "rematches": [
+    "TRAINER_WALLY_VR_3",
+    "TRAINER_WALLY_VR_4",
+    "TRAINER_WALLY_VR_5"
+   ],
+   "battled_on": [
+    "MAP_VICTORY_ROAD_1F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7888"
+  },
+  {
+   "fight": "RIVAL_LILYCOVE",
+   "id": "TRAINER_BRENDAN_LILYCOVE_MUDKIP",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 47,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TROPIUS",
+     "level": 31,
+     "moves": [
+      "MOVE_STOMP",
+      "MOVE_SWEET_SCENT",
+      "MOVE_WHIRLWIND",
+      "MOVE_MAGICAL_LEAF"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 32,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW",
+      "MOVE_HARDEN",
+      "MOVE_AMNESIA"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_PELIPPER",
+     "level": 32,
+     "moves": [
+      "MOVE_WING_ATTACK",
+      "MOVE_SUPERSONIC",
+      "MOVE_MIST",
+      "MOVE_PROTECT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_GROVYLE",
+     "level": 34,
+     "moves": [
+      "MOVE_FURY_CUTTER",
+      "MOVE_PURSUIT",
+      "MOVE_SCREECH",
+      "MOVE_LEAF_BLADE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_LILYCOVE_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7936"
+  },
+  {
+   "fight": "RIVAL_LILYCOVE",
+   "id": "TRAINER_BRENDAN_LILYCOVE_TREECKO",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 47,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TROPIUS",
+     "level": 31,
+     "moves": [
+      "MOVE_STOMP",
+      "MOVE_SWEET_SCENT",
+      "MOVE_WHIRLWIND",
+      "MOVE_MAGICAL_LEAF"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_PELIPPER",
+     "level": 32,
+     "moves": [
+      "MOVE_WING_ATTACK",
+      "MOVE_SUPERSONIC",
+      "MOVE_MIST",
+      "MOVE_PROTECT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LUDICOLO",
+     "level": 32,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_COMBUSKEN",
+     "level": 34,
+     "moves": [
+      "MOVE_PECK",
+      "MOVE_SAND_ATTACK",
+      "MOVE_BULK_UP",
+      "MOVE_QUICK_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "FIGHTING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_LILYCOVE_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7948"
+  },
+  {
+   "fight": "RIVAL_LILYCOVE",
+   "id": "TRAINER_BRENDAN_LILYCOVE_TORCHIC",
+   "name": "BRENDAN",
+   "role": "rival",
+   "order": 47,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TROPIUS",
+     "level": 31,
+     "moves": [
+      "MOVE_STOMP",
+      "MOVE_SWEET_SCENT",
+      "MOVE_WHIRLWIND",
+      "MOVE_MAGICAL_LEAF"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LUDICOLO",
+     "level": 32,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 32,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW",
+      "MOVE_HARDEN",
+      "MOVE_AMNESIA"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_MARSHTOMP",
+     "level": 34,
+     "moves": [
+      "MOVE_MUD_SHOT",
+      "MOVE_FORESIGHT",
+      "MOVE_MUD_SPORT",
+      "MOVE_TAKE_DOWN"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_LILYCOVE_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7960"
+  },
+  {
+   "fight": "RIVAL_LILYCOVE",
+   "id": "TRAINER_MAY_LILYCOVE_MUDKIP",
+   "name": "MAY",
+   "role": "rival",
+   "order": 47,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TROPIUS",
+     "level": 31,
+     "moves": [
+      "MOVE_STOMP",
+      "MOVE_SWEET_SCENT",
+      "MOVE_WHIRLWIND",
+      "MOVE_MAGICAL_LEAF"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 32,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW",
+      "MOVE_HARDEN",
+      "MOVE_AMNESIA"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_PELIPPER",
+     "level": 32,
+     "moves": [
+      "MOVE_WING_ATTACK",
+      "MOVE_SUPERSONIC",
+      "MOVE_MIST",
+      "MOVE_PROTECT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_GROVYLE",
+     "level": 34,
+     "moves": [
+      "MOVE_FURY_CUTTER",
+      "MOVE_PURSUIT",
+      "MOVE_SCREECH",
+      "MOVE_LEAF_BLADE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_LILYCOVE_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7972"
+  },
+  {
+   "fight": "RIVAL_LILYCOVE",
+   "id": "TRAINER_MAY_LILYCOVE_TREECKO",
+   "name": "MAY",
+   "role": "rival",
+   "order": 47,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TROPIUS",
+     "level": 31,
+     "moves": [
+      "MOVE_STOMP",
+      "MOVE_SWEET_SCENT",
+      "MOVE_WHIRLWIND",
+      "MOVE_MAGICAL_LEAF"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_PELIPPER",
+     "level": 32,
+     "moves": [
+      "MOVE_WING_ATTACK",
+      "MOVE_SUPERSONIC",
+      "MOVE_MIST",
+      "MOVE_PROTECT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LUDICOLO",
+     "level": 32,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_COMBUSKEN",
+     "level": 34,
+     "moves": [
+      "MOVE_PECK",
+      "MOVE_SAND_ATTACK",
+      "MOVE_BULK_UP",
+      "MOVE_QUICK_ATTACK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "FIGHTING"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_LILYCOVE_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7984"
+  },
+  {
+   "fight": "RIVAL_LILYCOVE",
+   "id": "TRAINER_MAY_LILYCOVE_TORCHIC",
+   "name": "MAY",
+   "role": "rival",
+   "order": 47,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TROPIUS",
+     "level": 31,
+     "moves": [
+      "MOVE_STOMP",
+      "MOVE_SWEET_SCENT",
+      "MOVE_WHIRLWIND",
+      "MOVE_MAGICAL_LEAF"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "GRASS",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_LUDICOLO",
+     "level": 32,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_SLUGMA",
+     "level": 32,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_ROCK_THROW",
+      "MOVE_HARDEN",
+      "MOVE_AMNESIA"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_MARSHTOMP",
+     "level": 34,
+     "moves": [
+      "MOVE_MUD_SHOT",
+      "MOVE_FORESIGHT",
+      "MOVE_MUD_SPORT",
+      "MOVE_TAKE_DOWN"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_LILYCOVE_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:7996"
+  },
+  {
+   "fight": "TABITHA_MAGMA_HIDEOUT",
+   "id": "TRAINER_TABITHA_MAGMA_HIDEOUT",
+   "name": "TABITHA",
+   "role": "team_admin",
+   "order": 49,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_NUMEL",
+     "level": 26,
+     "moves": [
+      "MOVE_TACKLE",
+      "MOVE_EMBER",
+      "MOVE_MAGNITUDE",
+      "MOVE_FOCUS_ENERGY"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    },
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 28,
+     "moves": [
+      "MOVE_BITE",
+      "MOVE_ODOR_SLEUTH",
+      "MOVE_ROAR",
+      "MOVE_SWAGGER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_ZUBAT",
+     "level": 30,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_BITE",
+      "MOVE_WING_ATTACK",
+      "MOVE_CONFUSE_RAY"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "POISON",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_CAMERUPT",
+     "level": 33,
+     "moves": [
+      "MOVE_FOCUS_ENERGY",
+      "MOVE_TAKE_DOWN",
+      "MOVE_AMNESIA",
+      "MOVE_ROCK_SLIDE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_MAGMA_HIDEOUT_4F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:8788"
+  },
+  {
+   "fight": "MAXIE_MOSSDEEP",
+   "id": "TRAINER_MAXIE_MOSSDEEP",
+   "name": "MAXIE",
+   "role": "team_leader",
+   "order": 54,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_MIGHTYENA",
+     "level": 42,
+     "moves": [
+      "MOVE_SWAGGER",
+      "MOVE_SCARY_FACE",
+      "MOVE_TAKE_DOWN",
+      "MOVE_TAUNT"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "DARK"
+     ]
+    },
+    {
+     "species": "SPECIES_CROBAT",
+     "level": 43,
+     "moves": [
+      "MOVE_WING_ATTACK",
+      "MOVE_CONFUSE_RAY",
+      "MOVE_AIR_CUTTER",
+      "MOVE_MEAN_LOOK"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "POISON",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_CAMERUPT",
+     "level": 44,
+     "moves": [
+      "MOVE_TAKE_DOWN",
+      "MOVE_AMNESIA",
+      "MOVE_ROCK_SLIDE",
+      "MOVE_EARTHQUAKE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE",
+      "GROUND"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_MOSSDEEP_CITY_SPACE_CENTER_2F"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:8812"
+  },
+  {
+   "fight": "RIVAL_RUSTBORO",
+   "id": "TRAINER_MAY_RUSTBORO_TREECKO",
+   "name": "MAY",
+   "role": "rival",
+   "order": 23,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_LOTAD",
+     "level": 13,
+     "moves": [
+      "MOVE_ASTONISH",
+      "MOVE_GROWL",
+      "MOVE_ABSORB",
+      "MOVE_NATURE_POWER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_TORCHIC",
+     "level": 15,
+     "moves": [
+      "MOVE_SCRATCH",
+      "MOVE_GROWL",
+      "MOVE_FOCUS_ENERGY",
+      "MOVE_EMBER"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE104",
+    "MAP_RUSTBORO_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:9220"
+  },
+  {
+   "fight": "RIVAL_RUSTBORO",
+   "id": "TRAINER_MAY_RUSTBORO_TORCHIC",
+   "name": "MAY",
+   "role": "rival",
+   "order": 23,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_TORKOAL",
+     "level": 13,
+     "moves": [
+      "MOVE_EMBER",
+      "MOVE_SMOG",
+      "MOVE_CURSE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "FIRE"
+     ]
+    },
+    {
+     "species": "SPECIES_MUDKIP",
+     "level": 15,
+     "moves": [
+      "MOVE_GROWL",
+      "MOVE_MUD_SLAP",
+      "MOVE_WATER_GUN",
+      "MOVE_BIDE"
+     ],
+     "moves_source": "default moveset, derived_from KB1 learnsets.json level_up by the rule of src/pokemon.c:2991",
+     "types": [
+      "WATER"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_ROUTE104",
+    "MAP_RUSTBORO_CITY"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:9232"
+  },
+  {
+   "fight": "STEVEN",
+   "id": "TRAINER_STEVEN",
+   "name": "STEVEN",
+   "role": "rival",
+   "order": null,
+   "double": false,
+   "party": [
+    {
+     "species": "SPECIES_SKARMORY",
+     "level": 77,
+     "held_item": null,
+     "moves": [
+      "MOVE_TOXIC",
+      "MOVE_AERIAL_ACE",
+      "MOVE_SPIKES",
+      "MOVE_STEEL_WING"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:11598)",
+     "types": [
+      "STEEL",
+      "FLYING"
+     ]
+    },
+    {
+     "species": "SPECIES_CLAYDOL",
+     "level": 75,
+     "held_item": null,
+     "moves": [
+      "MOVE_REFLECT",
+      "MOVE_LIGHT_SCREEN",
+      "MOVE_ANCIENT_POWER",
+      "MOVE_EARTHQUAKE"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:11598)",
+     "types": [
+      "GROUND",
+      "PSYCHIC"
+     ]
+    },
+    {
+     "species": "SPECIES_AGGRON",
+     "level": 76,
+     "held_item": null,
+     "moves": [
+      "MOVE_THUNDER",
+      "MOVE_EARTHQUAKE",
+      "MOVE_SOLAR_BEAM",
+      "MOVE_DRAGON_CLAW"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:11598)",
+     "types": [
+      "STEEL",
+      "ROCK"
+     ]
+    },
+    {
+     "species": "SPECIES_CRADILY",
+     "level": 76,
+     "held_item": null,
+     "moves": [
+      "MOVE_GIGA_DRAIN",
+      "MOVE_ANCIENT_POWER",
+      "MOVE_INGRAIN",
+      "MOVE_CONFUSE_RAY"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:11598)",
+     "types": [
+      "ROCK",
+      "GRASS"
+     ]
+    },
+    {
+     "species": "SPECIES_ARMALDO",
+     "level": 76,
+     "held_item": null,
+     "moves": [
+      "MOVE_WATER_PULSE",
+      "MOVE_ANCIENT_POWER",
+      "MOVE_AERIAL_ACE",
+      "MOVE_SLASH"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:11598)",
+     "types": [
+      "ROCK",
+      "BUG"
+     ]
+    },
+    {
+     "species": "SPECIES_METAGROSS",
+     "level": 78,
+     "held_item": "ITEM_SITRUS_BERRY",
+     "moves": [
+      "MOVE_EARTHQUAKE",
+      "MOVE_PSYCHIC",
+      "MOVE_METEOR_MASH",
+      "MOVE_SHADOW_BALL"
+     ],
+     "moves_source": "custom (src/data/trainer_parties.h:11598)",
+     "types": [
+      "STEEL",
+      "PSYCHIC"
+     ]
+    }
+   ],
+   "rematches": [],
+   "battled_on": [
+    "MAP_METEOR_FALLS_STEVENS_CAVE"
+   ],
+   "types_derived_from": "KB1 species.json (types)",
+   "notes": [],
+   "measured": null,
+   "ref": "src/data/trainers.h:9652"
+  }
+ ]
+}
