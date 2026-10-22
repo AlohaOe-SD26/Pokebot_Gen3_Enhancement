@@ -9625,3 +9625,10 @@ on all three questions:
 - **A campaign entry's `fights` are derived from the `trainerbattle` lines of its area's scripts** (the skeleton's boss plus a multi-battle partner), and `area_bosses` (every boss the area's scripts battle) is kept apart. Rejected: "every boss in an area's scripts is in that entry", which would put Norman in ch2_dad.
 - **The Space Center multi battle's `party_min` is 1, marked recon / decomp UNVERIFIED.** Recon 4.6 says 1-3 Pokémon; the spec's 3 was a reading of it.
 - **test_kb2 stays out of the `--quick` lane** (about 15 s against its 5 s bar); it runs in every `run_units` and `--full`.
+
+## 2026-10-22 — Technical decisions of the chapter-pack tool, A5 (Claude's calls)
+
+- **A pack never refuses for size.** Over the 12 KB cap, the .md keeps every load-bearing item in full and summarises ordinary trainers per map, pointing to the .json. Rejected: refusing the chapter (4 of 24 chapters had no pack), and raising the cap (the cap is the reason the pack is cheap to read).
+- **Input integrity is `verify_world.py`'s job, so the pack tool runs it first and refuses on any mismatch.** Rejected: having the pack tool detect missing input data itself; it cannot, because no other input names an ordinary trainer or a warp.
+- **The pack's self-check reads the input files with its OWN loader.** Rejected: one shared reader, the same "a check that shares its input with the thing it checks is not a check" shape that `02` records for `archive_doc_block`; it recurred here and the round-3 verify found it.
+- **Packs exist for every campaign chapter (1-24)**, generated and committed. They are read by agents (recon), never by the AI's play code.

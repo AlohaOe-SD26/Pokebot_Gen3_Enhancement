@@ -386,7 +386,7 @@ right; they feed a prior (L4, L5, L10), not a policy. **Size:** medium: about 26
 > - `TRAINER_NONE` is exempt from W5's "party >= 1";
 > - an entry's fights are derived from its area's `trainerbattle` lines;
 > - the Space Center's `party_min` is 1 (recon: 1-3).
-> Slice 2 and the pack tool are not built.
+> Slice 2 is not built. The pack tool IS built (2026-10-22, `07`): it runs `verify_world` first, checks its own pack with a separate reader, summarises big chapters instead of refusing them, and has packs for all 24 chapters; its W7 pass has not run.
 
 **One generator, two verified layers.** KB1 covers species, moves, learnsets and encounters. KB2 adds what A5 needs: trainers and
 bosses, maps and links, items and gifts, scripted events. L1 and L2 are views of KB2 plus a hand skeleton and A6's priors, so

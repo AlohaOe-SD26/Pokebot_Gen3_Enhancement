@@ -43,7 +43,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
-      "chars": 4145,
+      "chars": 4214,
       "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
       "tails": [
         "ntrols, one temp-folder factory, Python hooks, determinism)."
@@ -72,13 +72,19 @@
           "from_chars": 4084,
           "to_chars": 4145,
           "why": "2026-10-21 Tier 1 fix: A2's caveat (N8's grader half waits for 5.3)"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 4145,
+          "to_chars": 4214,
+          "why": "2026-10-22 the chapter-pack tool recorded in A5's filing line and #28-seasoned-player"
         }
       ]
     },
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "448e82459ab2f888c49ef35ea3e91208dfcc55d7",
-      "chars": 1414,
+      "chars": 1440,
       "head": "- [ ] ⭐ `#28-seasoned-player` — **KB1 MERGED 2026-10-21 (`3a",
       "tails": [
         "loors stand (no stall, no loafing, no beeline, no speedrun)."
@@ -89,6 +95,12 @@
           "from_chars": 1263,
           "to_chars": 1414,
           "why": "2026-10-22 KB2 slice 1 recorded in #28-aiagent-v2 and #28-seasoned-player"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 1414,
+          "to_chars": 1440,
+          "why": "2026-10-22 the chapter-pack tool recorded in A5's filing line and #28-seasoned-player"
         }
       ]
     },
@@ -860,7 +872,7 @@
     {
       "file": "04-HANDOFF.md",
       "sha1": "8d2f25bce5fa1a438601ebbaefbb3ee30b2e0433",
-      "chars": 62111,
+      "chars": 62374,
       "head": ">    ➡➡➡ ⭐ **2026-10-03 (~1 PM): THE STRATEGY REVIEW IS SETT",
       "tails": [
         "TE IS UNMEASURED BY ANY OF THIS — WALLACE WAS BEATEN ONCE.**"
@@ -913,6 +925,12 @@
           "from_chars": 61915,
           "to_chars": 62111,
           "why": "2026-10-22 2:04 AM: the full lane passed on KB2's code"
+        },
+        {
+          "date": "2026-10-22",
+          "from_chars": 62111,
+          "to_chars": 62374,
+          "why": "2026-10-22 the chapter-pack tool built; W7 and its run_gates registration open"
         }
       ]
     },

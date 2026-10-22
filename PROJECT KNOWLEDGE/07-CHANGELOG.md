@@ -38490,3 +38490,29 @@ bought balls only at fixed story points.
 - `run_regression.py --full --evidence` on `df1cc900`: `REGRESSION: PASS (full, 25 suites, 4282.3 s wall)`, from 12:52 AM to 2:04 AM. test_kb2 was included (46 tests, 17.8 s); revert_step3 took 4,282 s.
 - `regression_due.py` afterwards reads ok for units, revert_step5 and revert_safety_gates. The evidence is the `2026-10-22-regression-*` files and the revert drivers' `2026-10-22-step*-REVERT.txt`.
 - The 2026-10-21 files at the evidence top level now name another tree. `prune_evidence.py --retire` moves them at a calm time.
+
+## 2026-10-22 — S3-4's chapter-pack tool (A5): `tools/make_chapter_pack.py` and packs for all 24 chapters, three verify rounds (spec S3-4)
+
+- **Commits:** `2bbd4fd3` (the build), `5c1af8d0`, `a2113186` and `39b53bb7` (fix rounds 1-3). All stage prompts were rendered from the templates.
+- **Files:** `tools/make_chapter_pack.py`, `tools/story-dev/selftest_chapter_pack.py` (125 arms, about 7 s; `--mutants` 191/191), `.gitattributes` (`eol=lf` for the packs), and `PROJECT KNOWLEDGE/chapter-packs/ch1..ch24.{json,md}`.
+- **What a pack is:**
+  - For chapter N, the campaign entries' area maps plus one ring of neighbours, and their links (one-sided or unknown links stop the run).
+  - The trainers there, with tile and sight in the .json, singles and doubles, and level ranges.
+  - The chapter's bosses with their full teams (species, level, moves, held item).
+  - The area's normal-play encounters (KB1), and who learns each HM the entries need.
+  - A LOAD-BEARING CLAIMS list for an adversarial agent.
+  - A header with every source's sha256, the generator's own hash, the decomp pin, verify_world's command and result, and an explicit note that items, gifts, marts, scripted events and A6's measured traps are NOT included yet.
+  - The .md is at most 12 KB. A big chapter keeps every load-bearing section in full and summarises ordinary trainers per map, pointing to the .json.
+- **How it guards itself:**
+  - It runs `verify_world.py` first and refuses unless it reports 0 mismatches. That catches data missing from its inputs, which no other input names.
+  - It checks every load-bearing value of its own pack against a second rendering made by a separate reader of the input files, which shares no function with the first.
+  - W3 recall is 42/42 for chapters 1-4 against `milestones.json`.
+- **Verify rounds:**
+  - **Round 1:** a crash on `label`-keyed trainer objects (chapters 19 and 24); the 12 KB cap refusing 4 chapters; omissions passing (24 mutants).
+  - **Round 2:** the checks read line STARTS, not content (13 mutants); input omissions exited 0.
+  - **Round 3:** the two readings shared one loader, so a reader bug passed both.
+  - The round-3 re-verify reads PASS (refix).
+- **Open:**
+  - The W7 adversarial pass per pack (one refuting agent per chapter) has NOT run.
+  - The selftest is NOT in `run_gates.py` yet. It needs the pinned decomp, so it must first exit WARN (4) without one and join `WARN_OK`. Until then, a reader that dropped a whole chapter's entries is caught only by running the selftest by hand.
+  - KB1's files are not re-verified by the pack run.
