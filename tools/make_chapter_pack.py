@@ -19,7 +19,15 @@ WHAT A PACK HOLDS, FOR CHAPTER N:
             coordinates or step lists: L1's rule, W6; refuse_route_keys stops the run if one appears)
   maps      the entries' `area` maps, plus ONE RING of neighbours: every map an area map connects or warps to, and every
             map that connects or warps into an area map (MAP_DYNAMIC is the game's "back where you came from", no map)
-  links     each area map's connections and warps, each warp classified by whether its arrival warp leads back
+  links     each area map's connections and warps, each warp classified by whether its arrival warp leads back.
+            A warp to MAP_DYNAMIC has no arrival warp to read: the game sends the player to the "dynamic warp" it
+            recorded. A warp records one when the player ARRIVES on a MAP_DYNAMIC warp of that map
+            (field_control_avatar.c SetupWarp, at the pin), and C code records one for a secret base
+            (src/secret_base.c:450; `C_RECORDED_RETURN`). So a MAP_DYNAMIC warp is `dynamic` (it leads back) when
+            some maps.json warp arrives on a MAP_DYNAMIC warp of its map or the map is a secret base, and `one_way`
+            otherwise: then only a script sets where it goes and no warp leads back in (the truck's three exits to
+            Littleroot; W7, claim 14).
+            A `one_way` warp is a ONE-WAY claim like an asymmetric one.
   trainers  every trainer battled on those maps (maps.json, joined to trainers.json) by a sighted object, a trigger
             tile, or a map script (a script battle carries a `label`, the others a `script`; script_label takes either):
             single or double, sight, party levels min..max (and the full list), species, the defeat flag NUMBER
@@ -140,6 +148,10 @@ ROUTE_KEYS = ("x", "y", "route", "path", "steps", "coords")
 #: the campaign-entry fields a pack copies; anything else in an entry is not carried
 ENTRY_FIELDS = ("id", "chapter", "order", "area", "boss", "fights", "area_bosses", "needs", "measured")
 DYNAMIC = "MAP_DYNAMIC"
+#: maps whose MAP_DYNAMIC exits lead back although no maps.json warp arrives on them: C code records the way back
+#: (src/secret_base.c:450 at the pin sets the dynamic warp when the player enters a secret base; the W7 verify of the
+#: one-way rule, 2026-10-22). A plain prefix test on purpose: every secret base map is MAP_SECRET_BASE_*.
+C_RECORDED_RETURN = ("MAP_SECRET_BASE_",)
 #: maps.json trainer `source` values that are not a sighted object
 SEEN_AS = {"coord_event": "trigger tile", "script": "map-script battle"}
 #: the line that opens a summarised trainers section (check_md_complete reads the mode from it)
@@ -348,9 +360,29 @@ def ring(area_ids, maps_by_id):
     return sorted((out - area) & set(maps_by_id))
 
 
+def dynamic_origins(src_id, maps_by_id):
+    """The maps whose warps ARRIVE on a MAP_DYNAMIC warp of `src_id`: the only arrivals that make a MAP_DYNAMIC exit
+    of `src_id` lead back. WHY: a MAP_DYNAMIC warp has no destination in the map data; the game sends the player to
+    the dynamic warp it recorded, and SetupWarp (field_control_avatar.c, at the pin) records one only when the player
+    warps onto a map's MAP_DYNAMIC warp. With no such arrival the destination is whatever a script set (the truck's
+    `setdynamicwarp MAP_LITTLEROOT_TOWN`), and no warp leads back in: W7 found ch1 calling the truck's exits
+    reciprocal because the old rule called every MAP_DYNAMIC warp `dynamic` unchecked."""
+    own = maps_by_id[src_id]["warps"]
+    out = set()
+    for mid, m in maps_by_id.items():
+        for w in m["warps"]:
+            k = w["dest_warp_id"]
+            if w["dest_map"] == src_id and isinstance(k, int) and 0 <= k < len(own) and own[k]["dest_map"] == DYNAMIC:
+                out.add(mid)
+    return sorted(out)
+
+
 def classify_warp(src_id, warp, maps_by_id):
     dest = warp["dest_map"]
     if dest == DYNAMIC:
+        if not dynamic_origins(src_id, maps_by_id) and not src_id.startswith(C_RECORDED_RETURN):
+            return "one_way", ("ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of %s, so no warp records a "
+                               "way back (a script sets this destination) and no warp leads back in" % short(src_id))
         return "dynamic", "MAP_DYNAMIC: returns to the map the player came from"
     if dest not in maps_by_id:
         return "unknown", "destination is not a maps.json map"
@@ -592,7 +624,7 @@ def claims(pack, badges_won, maps_by_id):
     for row in pack["links"]:
         for w in row["warps"]:
             n_warps += 1
-            if w["kind"] in ("asymmetric", "unknown"):
+            if w["kind"] in ("asymmetric", "unknown", "one_way"):
                 out.append(("one_way_warp", "%s warp %d -> %s: %s" % (short(row["map"]), w["warp"],
                                                                       short(w["dest_map"]), w["why"]), "maps.json warps"))
         for c in row["connections"]:
@@ -601,7 +633,7 @@ def claims(pack, badges_won, maps_by_id):
                     short(row["map"]), c["dir"], short(c["map"])), "maps.json connections"))
     for w in pack["warps_in"]:
         n_warps += 1
-        if w["kind"] in ("asymmetric", "unknown"):
+        if w["kind"] in ("asymmetric", "unknown", "one_way"):
             out.append(("one_way_warp", "%s warp %d -> %s: %s" % (short(w["from"]), w["warp"], short(w["dest_map"]),
                                                                   w["why"]), "maps.json warps"))
     if not any(c[0] == "one_way_warp" for c in out):
@@ -758,10 +790,18 @@ def expected_selection(chapter, chk):
                                 "in the pinned decomp is mirrored)" % (m["id"], c["dir"], c["map"], c["map"], m["id"]))
 
     # warps: every warp of an area map and every warp into one, each with its kind
+    edges_w = [(m["id"], w["dest_map"], w["dest_warp_id"]) for m in every_map for w in m["warps"]]
+
     def kind_of(src, w):
         target = w["dest_map"]
         if target == DYNAMIC:
-            return "dynamic"
+            # the check's own reading of the MAP_DYNAMIC rule (dynamic_origins): it leads back only when some warp
+            # arrives on a MAP_DYNAMIC warp of `src` (the arrival that records a way back); otherwise ONE-WAY
+            mine_w = mapd[src]["warps"]
+            arrivals_on_dyn = [x for x in edges_w if x[1] == src and isinstance(x[2], int)
+                               and 0 <= x[2] < len(mine_w) and mine_w[x[2]]["dest_map"] == DYNAMIC]
+            # (secret bases: C code records the way back, src/secret_base.c:450)
+            return "dynamic" if arrivals_on_dyn or src.startswith(C_RECORDED_RETURN) else "one_way"
         if target not in mapd:
             return "unknown"
         arrivals = mapd[target]["warps"]
@@ -841,6 +881,14 @@ def expected_pack(chapter, chk):
     def warp_kind(src, w):
         dest, k = w["dest_map"], w["dest_warp_id"]
         if dest == DYNAMIC:
+            # its own copy of the MAP_DYNAMIC rule (classify_warp / dynamic_origins), never a call to it
+            own = mapd[src]["warps"]
+            recorded = any(x["dest_map"] == src and isinstance(x["dest_warp_id"], int)
+                           and 0 <= x["dest_warp_id"] < len(own) and own[x["dest_warp_id"]]["dest_map"] == DYNAMIC
+                           for o in mapd.values() for x in o["warps"])
+            if not recorded and not src.startswith(C_RECORDED_RETURN):
+                return "one_way", ("ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of %s, so no warp records "
+                                   "a way back (a script sets this destination) and no warp leads back in" % _bare(src))
             return "dynamic", "MAP_DYNAMIC: returns to the map the player came from"
         if dest not in mapd:
             return ("unknown", "destination is not a maps.json map")
@@ -997,7 +1045,7 @@ def expected_pack(chapter, chk):
     for row in link_rows:
         for w in row["warps"]:
             total += 1
-            if w["kind"] in ("asymmetric", "unknown"):
+            if w["kind"] in ("asymmetric", "unknown", "one_way"):
                 add("one_way_warp", "%s warp %d -> %s: %s" % (_bare(row["map"]), w["warp"], _bare(w["dest_map"]),
                                                               w["why"]), "maps.json warps")
         for c in row["connections"]:
@@ -1006,7 +1054,7 @@ def expected_pack(chapter, chk):
                     _bare(row["map"]), c["dir"], _bare(c["map"])), "maps.json connections")
     for w in warps_in:
         total += 1
-        if w["kind"] in ("asymmetric", "unknown"):
+        if w["kind"] in ("asymmetric", "unknown", "one_way"):
             add("one_way_warp", "%s warp %d -> %s: %s" % (_bare(w["from"]), w["warp"], _bare(w["dest_map"]), w["why"]),
                 "maps.json warps")
     if not any(c["kind"] == "one_way_warp" for c in cl):
@@ -1125,9 +1173,9 @@ def check_complete(pack, expected):
         if want["in_area"] and any(src == "coord_event" for _m, src, _c in want["sightings"]):
             need("scripted_battle", short(sym))
     odd = [("%s warp %d -> %s" % (short(a), i, short(d))) for a, ws in sorted(expected["warps"].items())
-           for i, d, _k, kind in ws if kind in ("asymmetric", "unknown")]
+           for i, d, _k, kind in ws if kind in ("asymmetric", "unknown", "one_way")]
     odd += ["%s warp %d -> %s" % (short(s), i, short(d)) for s, i, d, kind in expected["warps_in"]
-            if kind in ("asymmetric", "unknown")]
+            if kind in ("asymmetric", "unknown", "one_way")]
     odd += ["%s connects %s to %s, which has no connection back" % (short(a), dr, short(m))
             for a, cs in sorted(expected["connections"].items()) for dr, m, back in cs if not back]
     for text in odd:
@@ -1203,7 +1251,7 @@ def render_md_check(xp, level, full_size):
                 if w["dest_map"] not in count:
                     dests.append(w["dest_map"])
                 count[w["dest_map"]] = count.get(w["dest_map"], 0) + 1
-                odd[w["dest_map"]] = odd.get(w["dest_map"], 0) + (w["kind"] in ("asymmetric", "unknown"))
+                odd[w["dest_map"]] = odd.get(w["dest_map"], 0) + (w["kind"] in ("asymmetric", "unknown", "one_way"))
             if not dests:
                 warp_text = "-"
             elif level >= 3:
@@ -1449,7 +1497,7 @@ def render_md(pack, summary_of=None, level=0):
         for w in row["warps"]:
             g = groups.setdefault(w["dest_map"], {"n": 0, "odd": 0})
             g["n"] += 1
-            g["odd"] += w["kind"] in ("asymmetric", "unknown")
+            g["odd"] += w["kind"] in ("asymmetric", "unknown", "one_way")
         if level >= 3:
             odd = sum(g["odd"] for g in groups.values())
             warps = "%d to %d map%s%s" % (len(row["warps"]), len(groups), "" if len(groups) == 1 else "s",

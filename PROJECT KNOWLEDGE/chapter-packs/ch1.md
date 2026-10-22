@@ -6,7 +6,7 @@
 > - NOT INCLUDED YET: A6's measured traps (top wall, level at first loss and at win, whiteouts; source 'bot corpus'): chapter_priors.json is not generated. No measured section means NOT MEASURED, never 'no traps here'.
 > - NOT INCLUDED YET: story-event flags (setflag/setvar in map scripts; slice 2's events.json). The flags below are badge flags, trainer defeat flags and campaign.json badge gates only.
 
-Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_chapter_pack.py` sha256 `b4694bf7e638c210`.
+Decomp pin: `731ad5bfd6e6f265508d0efcca0ba42f9dcf5881`. Generator: `tools/make_chapter_pack.py` sha256 `c71578b24c1da903`.
 
 Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `c62b2bd89313d5c7`) over every record of the four world files read: exit 0, 0 mismatches. Its command and result line are in ch1.json `inputs_verified`.
 
@@ -33,7 +33,7 @@ Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `c62b2bd89313
 - **ch1_pokedex** (order 10) area ROUTE103, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB; boss -; party_min 1; types ahead GROUND/ROCK; level band 12-15
 
 ## Maps and links
-- **INSIDE_OF_TRUCK** (indoor, no running). Connections: -. Warps: DYNAMIC x3.
+- **INSIDE_OF_TRUCK** (indoor, no running). Connections: -. Warps: DYNAMIC x3 (3 ONE-WAY?).
 - **LITTLEROOT_TOWN** (town). Connections: up ROUTE101. Warps: LITTLEROOT_TOWN_MAYS_HOUSE_1F, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB.
 - **LITTLEROOT_TOWN_BRENDANS_HOUSE_1F** (indoor, no running). Connections: -. Warps: LITTLEROOT_TOWN x2, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F.
 - **LITTLEROOT_TOWN_MAYS_HOUSE_1F** (indoor, no running). Connections: -. Warps: LITTLEROOT_TOWN x2, LITTLEROOT_TOWN_MAYS_HOUSE_2F.
@@ -105,4 +105,6 @@ Neighbour maps (name, Lv min-max, D = double):
 11. [progress_flag] MAY_ROUTE_103_TORCHIC's defeat flag is number 1815 (TRAINER_FLAGS_START + 535) (source: src/data/trainers.h:6424)
 12. [progress_flag] MAY_ROUTE_103_TREECKO's defeat flag is number 1812 (TRAINER_FLAGS_START + 532) (source: src/data/trainers.h:6388)
 13. [double_battle] AMY_AND_LIV_1 is a DOUBLE battle (TWINS) (source: src/data/trainers.h:5776)
-14. [one_way_warp] none of the 30 warps touching the area maps is one-way by warp data (ledges, holes and scripted movement are NOT modelled) (source: maps.json warps)
+14. [one_way_warp] INSIDE_OF_TRUCK warp 0 -> DYNAMIC: ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in (source: maps.json warps)
+15. [one_way_warp] INSIDE_OF_TRUCK warp 1 -> DYNAMIC: ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in (source: maps.json warps)
+16. [one_way_warp] INSIDE_OF_TRUCK warp 2 -> DYNAMIC: ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in (source: maps.json warps)

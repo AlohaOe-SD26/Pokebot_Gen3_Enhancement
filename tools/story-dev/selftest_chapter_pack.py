@@ -71,6 +71,14 @@ because its checks compared a line's START. The arms, each FAULT + CONTROL:
               repo, read only); a failing clone-free arm (deep_diff's bool clause deleted in a
               generator copy) with no clone exits 1, never 4. CONTROL (real-data): --decomp at the real clone wins
               over an empty POKEBOT_DECOMP, so the child runs every arm and exits 0.
+  DYN         (W7 claim 14, 2026-10-22: ch1 said "none of the 30 warps is one-way" while the truck's 3 exits to
+              MAP_DYNAMIC lead nowhere back) a MAP_DYNAMIC warp leads back only when a maps.json warp ARRIVES on a
+              MAP_DYNAMIC warp of its map; otherwise it is a ONE-WAY claim naming map and warp. FAULT: an extra
+              MAP_DYNAMIC warp on the Rustboro Gym nothing arrives on is claimed one-way; the old ch1 pack and a ch1
+              page without the truck's ONE-WAY mark are named by the check. CONTROL: with a warp arriving on it, it is
+              `dynamic` and unclaimed; real ch1 claims exactly the truck's 3 exits and none of its 27 two-way warps.
+              Clone-free (in-process). --mutants deletes the rule's call in each reading and the `one_way` kind from
+              each claim/page path.
   CRLF, routekeys, absent, hashes, empty chapter, pin, unknown area map, unknown trainer, extra entry field, non-normal
               wild rows, the one-way claims and --check: as before (each FAULT + CONTROL). The guards verify_world now
               answers first (area map, trainer, route keys, Wallace's label, the redirected warp, the entry field) are
@@ -193,6 +201,29 @@ MUTANTS = {
                                               'connection to'),
     "problem: link to a missing map": ('problems.append("maps.json: %s links to',
                                        '(lambda *_: None)("maps.json: %s links to'),
+    # W7 claim 14 (2026-10-22): the MAP_DYNAMIC one-way rule, the CALL deleted in each of the three readings and the
+    # `one_way` kind dropped from each place that turns a kind into a claim or a page mark; the DYN arms must fail
+    "dynamic_origins (generator: MAP_DYNAMIC one-way rule)": (
+        "        if not dynamic_origins(src_id, maps_by_id) and not src_id.startswith(C_RECORDED_RETURN):\n",
+        "        if False:\n"),
+    "secret-base exception (generator: C_RECORDED_RETURN)": (
+        " and not src_id.startswith(C_RECORDED_RETURN):\n", ":\n"),
+    "one_way kind claimed (generator claims)": (
+        '            if w["kind"] in ("asymmetric", "unknown", "one_way"):\n                out.append(("one_way_warp"',
+        '            if w["kind"] in ("asymmetric", "unknown"):\n                out.append(("one_way_warp"'),
+    "MAP_DYNAMIC rule (check: expected_selection kind_of)": (
+        '            return "dynamic" if arrivals_on_dyn or src.startswith(C_RECORDED_RETURN) else "one_way"\n',
+        '            return "dynamic"\n'),
+    "MAP_DYNAMIC rule (check: expected_pack warp_kind)": (
+        "            if not recorded and not src.startswith(C_RECORDED_RETURN):\n", "            if False:\n"),
+    "one_way kind needed (check_complete)": (
+        'for i, d, _k, kind in ws if kind in ("asymmetric", "unknown", "one_way")]',
+        'for i, d, _k, kind in ws if kind in ("asymmetric", "unknown")]'),
+    "one_way kind marked on the page (render_md)": (
+        '            g["odd"] += w["kind"] in ("asymmetric", "unknown", "one_way")\n',
+        '            g["odd"] += w["kind"] in ("asymmetric", "unknown")\n'),
+    "one_way kind marked on the page (render_md_check)": (
+        '+ (w["kind"] in ("asymmetric", "unknown", "one_way"))', '+ (w["kind"] in ("asymmetric", "unknown"))'),
 }
 
 #: the 2026-10-22 verify's 24 mutants, verbatim from its verify-work/vmut.py (all 24 survived the first build's selftest)
@@ -901,6 +932,149 @@ def s_input_problems(R):
                 ["MAP_NOWHERE_AT_ALL"])
 
 
+#: the truck's exits as W7 measured them (claim 14, work1/warps.py over every decomp map.json at the pin): 30 warps
+#: touch ch1's area maps, 27 reciprocal, the 3 INSIDE_OF_TRUCK -> MAP_DYNAMIC exits one-way
+TRUCK_ONE_WAY = ["INSIDE_OF_TRUCK warp %d -> DYNAMIC: ONE-WAY" % i for i in range(3)]
+OLD_NONE_CLAIM = ("none of the 30 warps touching the area maps is one-way by warp data (ledges, holes and scripted "
+                  "movement are NOT modelled)")
+
+
+def s_dynamic_warps(R):
+    """DYN (W7 claim 14, 2026-10-22): a warp to MAP_DYNAMIC leads back only when some maps.json warp ARRIVES on a
+    MAP_DYNAMIC warp of its map (the arrival on which the game records the way back); otherwise it is ONE-WAY and
+    must be a claim naming its map and warp. Clone-free: everything runs in-process (the check reads the files itself).
+      FAULT world   an extra MAP_DYNAMIC warp on the Rustboro Gym (ch4), the Gym still entered only onto its ordinary
+                    warp 0: the pack names it ONE-WAY (and so no 'none of N' claim). This also separates the rule from
+                    the looser "some map warps in at all", which would call it two-way.
+      CONTROL world the same warp plus a RUSTBORO_CITY warp arriving ON it: `dynamic`, not claimed one-way, and the
+                    arriving warp is two-way.
+      real ch1      CONTROL + FAULT on the real inputs: exactly the truck's 3 exits are one-way claims, of 30 warps,
+                    and the other 27 (two-way) are named by no claim.
+      old ch1 pack  FAULT: the pack the generator wrote before this rule (truck exits `dynamic`, 'none of the 30
+                    warps') is refused by the check, naming the missing truck claim and the truck's warp kinds; and a
+                    page whose truck links line lost its ONE-WAY mark is named by check_md_complete."""
+    gym = "MAP_RUSTBORO_CITY_GYM"
+    real_maps = load(os.path.join(WORLD, "maps.json"))["maps"]
+    n_gym = len(next(m for m in real_maps if m["id"] == gym)["warps"])  # the index the planted warp gets
+    label = "RUSTBORO_CITY_GYM warp %d -> DYNAMIC" % n_gym
+
+    def plant(arrival_too):
+        def fn(o):
+            g = next(m for m in o["maps"] if m["id"] == gym)
+            g["warps"].append(dict(g["warps"][0], dest_map="MAP_DYNAMIC", dest_warp_id=0))
+            if arrival_too:
+                city = next(m for m in o["maps"] if m["id"] == "MAP_RUSTBORO_CITY")
+                city["warps"].append(dict(city["warps"][0], dest_map=gym, dest_warp_id=n_gym))
+            # vacuity guard: the Gym IS warped into in both worlds (onto ordinary warps), so the FAULT world tests the
+            # arrival-on-a-DYNAMIC-warp rule, not merely "nothing warps in"
+            return len(g["warps"]) == n_gym + 1 and any(w["dest_map"] == gym and w["dest_warp_id"] != n_gym
+                                                        for m in o["maps"] for w in m["warps"])
+        return fn
+
+    def world(name, arrival_too, judge):
+        d = R.scratch("dyn_" + re.sub(r"\W+", "_", name), world_files=True)
+        found = edit_world(d, "maps.json", plant(arrival_too))
+
+        def body():
+            status, got = R.inproc([4], world=os.path.join(d, "world"))
+            if status != "ok":
+                return False, "refused: %s" % str(got)[:300]
+            p = got[4][0]
+            kind = next(r for r in p["links"] if r["map"] == gym)["warps"][n_gym]["kind"]
+            ow = [c["claim"] for c in p["claims"] if c["kind"] == "one_way_warp"]
+            ok, why = judge(p, kind, ow, [c for c in ow if c.startswith(label)])
+            return found and ok, "planted %s; kind %s; %s; one-way claims %s" % (found, kind, why, ow[:3])
+        R.guarded(name, body)
+
+    world("DYN FAULT: an extra MAP_DYNAMIC warp on the Rustboro Gym that no warp arrives on is claimed ONE-WAY, "
+          "naming the Gym and the warp (in-process)", False,
+          lambda p, kind, ow, named: (kind == "one_way" and len(named) == 1 and ": ONE-WAY: " in named[0]
+                                      and not any(c.startswith("none of") for c in ow), "named %s" % named))
+    world("DYN CONTROL: the same MAP_DYNAMIC warp with a RUSTBORO_CITY warp arriving on it is `dynamic`, not claimed "
+          "one-way, and the arriving warp is two-way (in-process)", True,
+          lambda p, kind, ow, named: (kind == "dynamic" and not named and any(
+              w["from"] == "MAP_RUSTBORO_CITY" and w["dest_warp_id"] == n_gym and w["kind"] == "two_way"
+              for w in p["warps_in"]), "named %s" % named))
+
+    def ch1():
+        status, got = R.inproc([1])
+        if status != "ok":
+            return None, "refused: %s" % str(got)[:300]
+        return got[1], ""
+
+    def real_ch1():
+        pm, why = ch1()
+        if pm is None:
+            return False, why
+        p = pm[0]
+        ow = [c["claim"] for c in p["claims"] if c["kind"] == "one_way_warp"]
+        warps = [(r["map"], w["warp"], w["kind"]) for r in p["links"] for w in r["warps"]] + \
+                [(w["from"], w["warp"], w["kind"]) for w in p["warps_in"]]
+        two_way = [(m, i) for m, i, k in warps if k == "two_way"]
+        # CONTROL: no reciprocal warp is called one-way (its "<MAP> warp <i> ->" opens no claim)
+        called = [(m, i) for m, i in two_way if any(c.startswith("%s warp %d ->" % (m[len("MAP_"):], i)) for c in ow)]
+        ok = (len(ow) == 3 and all(any(c.startswith(t) for c in ow) for t in TRUCK_ONE_WAY)
+              and len(warps) == 30 and len(two_way) == 27 and not called)
+        return ok, "%d warps, %d two-way, two-way called one-way %s, one-way claims %s" % (
+            len(warps), len(two_way), called, [c[:40] for c in ow])
+    R.guarded("DYN CONTROL+FAULT (real ch1, in-process): exactly the truck's 3 MAP_DYNAMIC exits are ONE-WAY claims; "
+              "of 30 warps the 27 two-way ones are named by no claim (W7 claim 14's measured counts)", real_ch1)
+
+    def old_pack():
+        pm, why = ch1()
+        if pm is None:
+            return False, why
+        mod = R.mod()
+        exp, problems = mod.expected_selection(1, R.real_data())
+        p = copy.deepcopy(pm[0])
+        flipped = 0
+        for r in p["links"]:
+            for w in r["warps"]:
+                if w["dest_map"] == "MAP_DYNAMIC" and w["kind"] == "one_way":
+                    w["kind"], w["why"] = "dynamic", "MAP_DYNAMIC: returns to the map the player came from"
+                    flipped += 1
+        keep = [c for c in p["claims"] if not (c["kind"] == "one_way_warp" and "INSIDE_OF_TRUCK" in c["claim"])]
+        dropped = len(p["claims"]) - len(keep)
+        keep.append({"n": 0, "kind": "one_way_warp", "claim": OLD_NONE_CLAIM, "source": "maps.json warps"})
+        for i, c in enumerate(keep):
+            c["n"] = i + 1
+        p["claims"] = keep
+        got = problems + mod.check_complete(p, exp)
+        need = ["MISSING claim [one_way_warp] containing 'INSIDE_OF_TRUCK warp 0 -> DYNAMIC'",
+                "warp on MAP_INSIDE_OF_TRUCK"]
+        ok = flipped == 3 and dropped == 3 and all(any(n in x for x in got) for n in need)
+        return ok, "flipped %d, dropped %d; %s" % (flipped, dropped, str(got)[:300])
+    R.guarded("DYN FAULT (ch1, in-process): the old pack (truck exits `dynamic`, 'none of the 30 warps ... one-way') "
+              "is named by check_complete: the missing truck claim and the truck's warp kinds", old_pack)
+
+    def secret_base():
+        """(the W7 verify of the one-way rule, 2026-10-22) C code records the way back from a secret base
+        (src/secret_base.c:450), so its MAP_DYNAMIC exit is `dynamic` although no maps.json warp arrives on it; the
+        same shape on any other map stays ONE-WAY (the truck's rule)."""
+        mod = R.mod()
+        exit_w = {"dest_map": "MAP_DYNAMIC", "dest_warp_id": 0}
+        maps = {"MAP_SECRET_BASE_RED_CAVE1": {"id": "MAP_SECRET_BASE_RED_CAVE1", "warps": [exit_w]},
+                "MAP_SOME_ROOM": {"id": "MAP_SOME_ROOM", "warps": [exit_w]}}
+        base = mod.classify_warp("MAP_SECRET_BASE_RED_CAVE1", exit_w, maps)[0]
+        room = mod.classify_warp("MAP_SOME_ROOM", exit_w, maps)[0]
+        return base == "dynamic" and room == "one_way", "secret base %s, other map %s" % (base, room)
+    R.guarded("DYN CONTROL (in-process): a secret base's MAP_DYNAMIC exit is `dynamic` (C code records the way back); "
+              "FAULT: the same exit on another map is ONE-WAY", secret_base)
+
+    def old_page():
+        pm, why = ch1()
+        if pm is None:
+            return False, why
+        mod = R.mod()
+        exp, _ = mod.expected_selection(1, R.real_data())
+        pack, md = pm
+        cut = md.replace("Warps: DYNAMIC x3 (3 ONE-WAY?).", "Warps: DYNAMIC x3.")
+        got = mod.check_md_complete(pack, cut, exp, MD_CAP)
+        return cut != md and bool(got) and not mod.check_md_complete(pack, md, exp, MD_CAP), str(got)[:300]
+    R.guarded("DYN FAULT (ch1 .md, in-process): the truck's links line without its '(3 ONE-WAY?)' mark is named by "
+              "check_md_complete (CONTROL: the real page gives no finding)", old_page)
+
+
 def plant_scenario(name):
     (old, new), chapters, needle = PLANTS[name]
 
@@ -1519,7 +1693,7 @@ def all_arms(R, clone=True, warn_arms=True):
     """Run the scenarios; return the names of those SKIPPED. `clone` False (no pinned decomp clone here): only the
     clone-free scenarios run, and every other one is returned as skipped (main then exits 4 unless an arm failed).
     `warn_arms` False (a child of the WARN arms, or a mutant run): the WARN arms themselves are left out."""
-    free = [s_pin, s_no_clone, s_w3_world, s_guards_inproc, s_input_problems, s_mapping, s_f1_fixtures,
+    free = [s_pin, s_no_clone, s_w3_world, s_guards_inproc, s_input_problems, s_dynamic_warps, s_mapping, s_f1_fixtures,
             s_routekey_source, s_verify_timeout, s_bool_int] + ([s_warn_path] if warn_arms else [])
     real = [s_fresh, s_again, s_hash_fault, s_crlf_input, s_empty, s_size] + \
            [omission_scenario(i) for i in range(len(OMISSIONS))] + \

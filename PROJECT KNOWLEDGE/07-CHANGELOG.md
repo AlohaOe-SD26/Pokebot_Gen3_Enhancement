@@ -38544,3 +38544,13 @@ bought balls only at fixed story points.
   - With the real clone: 130/130 PASS (12.4 s), exit 0. An empty `POKEBOT_DECOMP`: 30/30 PASS with 40 scenarios skipped, exit 4.
   - Mutants: 8 of 9 caught. The ninth deletes the final `return 1`, which no arm inside a file can catch: that is true of every selftest here, and run_gates reads the exit code.
 - **Registered:** `run_gates.py` now has 155 entries = 151 ENFORCING + 4 ADVISORY, 141 needing no ROM. `selftest_chapter_pack.py` is in `WARN_OK`, and `selftest_run_gates_warn.py` passes (5 checks).
+
+## 2026-10-22 — The chapter packs' MAP_DYNAMIC rule: the truck's exits are one-way; a secret base's exits lead back (W7 ch1 claim 14)
+
+- **The fix** (`tools/make_chapter_pack.py`, all three readings: the generator's `classify_warp`, and the check's `kind_of` and `warp_kind`, each its own copy):
+  - A warp to `MAP_DYNAMIC` leads back only when a maps.json warp ARRIVES on a `MAP_DYNAMIC` warp of its map, where the game records the way back (field_control_avatar.c SetupWarp), or when the map is a secret base, where C code records it (src/secret_base.c:450; `C_RECORDED_RETURN`). Otherwise it is a ONE-WAY claim.
+  - The build used a rendered build template, and its builder again ended its turn waiting for a background run, with no report.
+  - The independent verify found all 24 packs correct, with exactly the truck's 3 exits one-way and no two-way warp called one-way. It also found one latent FAILURE: the docstring and the claim text said the game records "no way back", which is false for secret bases. No pack holds a secret base. The coordinator fixed the code, the docstring and the claim wording.
+- **What changed in the packs:** ch1 claim 14 now names the truck's 3 exits as one-way, and every pack's generator hash changed.
+- **Proof:** `selftest_chapter_pack.py` 136/136 PASS (13.7 s), including a new secret-base arm: a base's exit is `dynamic`, and the same exit on another map is ONE-WAY. `--all --check` PASS. The mutant run is in the commit message.
+- **Untested, disclosed:** the two check readings' secret-base exception. No pack holds a secret base, so only the generator's copy has an arm.

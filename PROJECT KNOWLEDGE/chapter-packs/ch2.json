@@ -9,7 +9,7 @@
  "decomp_pin": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
  "generator": {
   "path": "tools/make_chapter_pack.py",
-  "sha256": "b4694bf7e638c21062fbab3f7dddfe7397e043c947a0414159ad851ec4334fdc"
+  "sha256": "c71578b24c1da9036993b99db42cacdb37cfd8a76dd1692d7ffc830be327a446"
  },
  "sources": {
   "ai_player/knowledge/seasoned/encounters.json": "33532fcacf2339127c0a944df0937624cf90f5a074ad43802b615d5c966ad8ad",

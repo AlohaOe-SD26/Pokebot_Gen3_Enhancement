@@ -9,7 +9,7 @@
  "decomp_pin": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
  "generator": {
   "path": "tools/make_chapter_pack.py",
-  "sha256": "b4694bf7e638c21062fbab3f7dddfe7397e043c947a0414159ad851ec4334fdc"
+  "sha256": "c71578b24c1da9036993b99db42cacdb37cfd8a76dd1692d7ffc830be327a446"
  },
  "sources": {
   "ai_player/knowledge/seasoned/encounters.json": "33532fcacf2339127c0a944df0937624cf90f5a074ad43802b615d5c966ad8ad",
@@ -599,8 +599,8 @@
      "y": 1,
      "dest_map": "MAP_DYNAMIC",
      "dest_warp_id": "WARP_ID_DYNAMIC",
-     "kind": "dynamic",
-     "why": "MAP_DYNAMIC: returns to the map the player came from"
+     "kind": "one_way",
+     "why": "ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in"
     },
     {
      "warp": 1,
@@ -608,8 +608,8 @@
      "y": 2,
      "dest_map": "MAP_DYNAMIC",
      "dest_warp_id": "WARP_ID_DYNAMIC",
-     "kind": "dynamic",
-     "why": "MAP_DYNAMIC: returns to the map the player came from"
+     "kind": "one_way",
+     "why": "ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in"
     },
     {
      "warp": 2,
@@ -617,8 +617,8 @@
      "y": 3,
      "dest_map": "MAP_DYNAMIC",
      "dest_warp_id": "WARP_ID_DYNAMIC",
-     "kind": "dynamic",
-     "why": "MAP_DYNAMIC: returns to the map the player came from"
+     "kind": "one_way",
+     "why": "ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in"
     }
    ]
   },
@@ -2653,7 +2653,19 @@
   {
    "n": 14,
    "kind": "one_way_warp",
-   "claim": "none of the 30 warps touching the area maps is one-way by warp data (ledges, holes and scripted movement are NOT modelled)",
+   "claim": "INSIDE_OF_TRUCK warp 0 -> DYNAMIC: ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in",
+   "source": "maps.json warps"
+  },
+  {
+   "n": 15,
+   "kind": "one_way_warp",
+   "claim": "INSIDE_OF_TRUCK warp 1 -> DYNAMIC: ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in",
+   "source": "maps.json warps"
+  },
+  {
+   "n": 16,
+   "kind": "one_way_warp",
+   "claim": "INSIDE_OF_TRUCK warp 2 -> DYNAMIC: ONE-WAY: no maps.json warp arrives on a MAP_DYNAMIC warp of INSIDE_OF_TRUCK, so no warp records a way back (a script sets this destination) and no warp leads back in",
    "source": "maps.json warps"
   }
  ]
