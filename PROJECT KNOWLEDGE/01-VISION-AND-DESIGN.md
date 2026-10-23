@@ -435,8 +435,8 @@ it.
   - more knobs, aimed at the walls the learner measures;
   - then a decision layer that chooses in-game, not only per run.
 
-### KB2, the AI player's world knowledge (`ai_player/knowledge/world/`; USER RULING 40; slice 1 and stage 2a built 2026-10-22, stage 2b not built)
-  - **Purpose:** the AI is a SEASONED player, so it is given what a person who knows Emerald knows, as STATIC game data. Slice 1 is trainers, bosses, maps and the campaign order. Slice 2 stage 2a is items, gifts and marts (`items_gifts.json`); stage 2b (scripted events) is next.
+### KB2, the AI player's world knowledge (`ai_player/knowledge/world/`; USER RULING 40; slice 1 and slice 2 built 2026-10-22)
+  - **Purpose:** the AI is a SEASONED player, so it is given what a person who knows Emerald knows, as STATIC game data. Slice 1 is trainers, bosses, maps and the campaign order. Slice 2 stage 2a is items, gifts and marts (`items_gifts.json`); stage 2b is scripted events, which labels change persistent state, what they change and what gates them (`events.json`). Both are built.
   - **Rule:** the data is extracted from the pinned decomp and re-read by an independent verifier. A value is written only where an independent exhaustive scan or a cited table backs it; otherwise it says `unknown` (`06` 2026-10-22). It is never live hidden state, and nothing reads it until the AI's loader exists. The mechanics are in `02-ARCHITECTURE.md`.
 
 ### Still future

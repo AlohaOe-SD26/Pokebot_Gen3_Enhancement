@@ -6,7 +6,9 @@
                                                               #   (+ every boss, the field-move table, the campaign,
                                                               #   every citation of the four files)
     py -3.12 ai_player/gates/verify_world.py --plant          # W2: four planted errors must be reported, and only them
-    py -3.12 ai_player/gates/verify_world.py --selftest       # the plant arm, its control, and the W1 / W6 scans' arms
+    py -3.12 ai_player/gates/verify_world.py --plant f        # one slice-2 plant (S2_PLANTS: items_gifts.json, stage 2a;
+                                                              #   EV_PLANTS: events.json, stage 2b), on its one line
+    py -3.12 ai_player/gates/verify_world.py --selftest       # the plant arms, their controls, and the W1 / W6 scans' arms
     exit 0 = clean (with --plant: exactly the four plants), 1 = a mismatch, 2 = refused (no pinned clone)
 
 WHY A SECOND READING (spec S3-4, the KB1 pattern): an extractor that misreads the decomp writes its misreading with
@@ -871,7 +873,10 @@ def s2_strip(text):
         if s.startswith("#") or (keep and not all(keep)):
             out.append("")
             continue
-        out.append(line if s.startswith(".string") else re.split(r"@|//", line, 1)[0].rstrip())
+        # stage 2b: a one-line `/* ... */` comment goes too (data/scripts/cable_club.inc:687 `/* Never used */`); kept,
+        # it was the LAST line of the label above it, so that label 'fell' into the next one
+        out.append(line if s.startswith(".string") else
+                   re.split(r"@|//", re.sub(r"/\*.*?\*/", "", line), 1)[0].rstrip())
     return out
 
 
@@ -925,8 +930,16 @@ def s2_raw(root):
                             at.setdefault(w, []).append((name, n))
                             fwd.setdefault(name, []).append((w, n))
             prev = line
-        cmds = [ln for _, ln in lab["lines"] if not ln.startswith(".")]
-        last = lab["lines"][-1][1] if lab["lines"] else ""
+        # stage 2b fix round 1 (item 2): a label's flow ENDS at its first command that never continues; the lines
+        # after it (no label between) never run, so only the live part decides the fall. Reading the LAST line made
+        # FallarborTown_BattleTentBattleRoom/scripts.inc:122-123 (`goto`, then a dead `waitstate`) "fall".
+        flow = []
+        for _, ln in lab["lines"]:
+            flow.append(ln)
+            if not ln.startswith(".") and ln.split()[0] in S2_ENDS:
+                break
+        cmds = [ln for ln in flow if not ln.startswith(".")]
+        last = flow[-1] if flow else ""
         falls = not lab["lines"] or (cmds and not last.startswith(".") and last.split()[0] not in S2_ENDS)
         if falls and name in nxt:
             mentioned_by.setdefault(nxt[name], set()).add(name)
@@ -2357,6 +2370,725 @@ def s2_plant_result(root, data_dir, name):
     return len(rep.lines) == 1 and rep.lines[0].startswith(prefix), rep.lines, prefix
 
 
+# ---------------------------------------------------------------- slice 2, stage 2b: events.json
+# A SECOND READING of extract_events.py's output. It shares no function with extract_events.py or extract_items.py and
+# never imports them: labels come from s2_raw's own split of the raw text, reachability from s2_owner's BACKWARD walk
+# over word mentions (the extractor walks FORWARD over a parsed edge graph), persistence from its own evaluation of
+# flags.h / vars.h, `.set` aliases from its own regex, and "conditional" from a BLACKLIST of lines that can stop the rest
+# of a label (the extractor proves certainty from a WHITELIST). Each rule below owns one plant (EV_PLANTS), and the
+# rules have disjoint domains (membership vs. the records both sides hold), so deleting one rule turns only its own
+# plant red.
+EV_FILE = "events.json"
+#: (rule, plant): ev_member (b2 a dead label promoted into labels; b2m a live label left out); ev_ops (f) one setflag
+#: dropped (the spec's plant); ev_maps (b1 a label moved to another map; b1c a C-only label without reached_from);
+#: ev_cond (b3 a change after a special said certain; b3c a change after a call whose callee can end the script said
+#: certain; b3a a conditional change without dev.after); ev_r3 (b8) the vanilla
+#: copyvar value said 1; ev_trig (b4) a coord trigger dropped; ev_gatewords (b5 gate words with no cite; b5c a cite
+#: line moved; b5n a null gate not listed); ev_gatecands (b6) a gate candidate dropped; ev_r4 (k2) a bare `flag` key;
+#: ev_r6 (b9) a route key; ev_dead (b7) a dead label left out of `dead`; ev_effect (b10 effect words on a flag change;
+#: b10w a warp's words naming another map; b10t a trainer change's words naming another trainer)
+#: fix round 1 adds: ev_trig_how (b4f a `goto` caller's trigger said to FALL in), ev_trig_src (b4s a called trigger
+#: re-pointed at another label), ev_trig_map (b4m a coord trigger moved to another map), ev_matchcall (b11 a Match Call
+#: registration naming another trainer), ev_effect Match Call branch (b10m its words naming another trainer)
+EV_PLANTS = ("f", "b1", "b1c", "b2", "b2m", "b3", "b3a", "b3c", "b4", "b5", "b5c", "b5n", "b6", "b7", "b8", "b9", "b10",
+             "b10w", "b10t", "k2", "b4f", "b4s", "b4m", "b11", "b10m")
+EV_WARPS = ("warp", "warpsilent", "warpdoor", "warphole", "warpteleport", "warpmossdeepgym", "warpspinenter",
+            "warpwhitefade")
+EV_VAR_OPS = ("setvar", "addvar", "subvar", "copyvar", "setorcopyvar")
+#: a line that may keep the REST of its label from running: a jump, a stop, a battle, a warp, a C special. A call is
+#: judged by its callee's forward mentions (ev_callee_stops). A certain change after one of these is a mismatch.
+EV_DIVERT = re.compile(r"^(?:goto_if_\w+|goto|case|end|return|endram|returnram|gotostd|vgoto|gotopostbattlescript|"
+                       r"gotobeatenscript|trainerbattle\w*|special|specialvar|dowildbattle|dotrainerbattle|warp\w*|"
+                       r"startcontest|playslotmachine|trywondercardscript)$")
+EV_STOPS = re.compile(r"^(?:end|endram|returnram|gotostd|vgoto|gotopostbattlescript|gotobeatenscript|trainerbattle\w*|"
+                      r"special|specialvar|dowildbattle|dotrainerbattle|warp\w*|startcontest|playslotmachine|"
+                      r"trywondercardscript)$")
+#: the ops whose `effect` may carry words (a cited template filled from a join), nothing else
+EV_WORDED_OPS = ("settrainerflag", "cleartrainerflag", "warp")
+_EV = {}
+
+
+def ev_eval(expr, names):
+    """The verifier's own #define evaluator: hex, decimal, names, + - * / % ( ) (integer division)."""
+    expr = re.sub(r"//.*|/\*.*?\*/", "", expr).strip()
+    toks = re.findall(r"0x[0-9A-Fa-f]+|\d+|[A-Za-z_]\w*|[()+\-*/%]", expr)
+    if "".join(toks) != expr.replace(" ", "").replace("\t", ""):
+        raise ValueError(expr)
+    out = []
+    for t in toks:
+        if re.fullmatch(r"0x[0-9A-Fa-f]+|\d+", t):
+            out.append(str(int(t, 0)))
+        elif re.fullmatch(r"[A-Za-z_]\w*", t):
+            out.append(str(names[t]))
+        else:
+            out.append("//" if t == "/" else t)
+    return int(eval("".join(out), {"__builtins__": {}}, {}))  # noqa: S307 (tokens validated above)
+
+
+def ev_ids(r):
+    """{name: id} of every #define in flags.h and vars.h, resolved in rounds (the verifier's own), with the
+    rematches.h enum and opponents.h counts the flag bounds use (FLAGS_COUNT hangs off the trainer flags)."""
+    ids = {}
+    body = re.search(r"enum\s*\{(.*?)\}", r["rd"]("include/constants/rematches.h"), re.S).group(1)
+    nxt = 0
+    for m in re.finditer(r"^\s*(\w+)\s*(?:=\s*([^,/\n]+))?,?", re.sub(r"//[^\n]*", "", body), re.M):
+        nxt = ev_eval(m.group(2), ids) if m.group(2) else nxt
+        ids[m.group(1)] = nxt
+        nxt += 1
+    pend = []
+    for rel in ("include/constants/opponents.h", "include/constants/flags.h", "include/constants/vars.h"):
+        pend += re.findall(r"^#define[ \t]+(\w+)[ \t]+([^\n]+?)[ \t]*$", r["rd"](rel), re.M)
+    for _ in range(10):
+        left = []
+        for k, v in pend:
+            try:
+                ids[k] = ev_eval(v, ids)
+            except (KeyError, ValueError, SyntaxError):
+                left.append((k, v))
+        pend = left
+    return ids
+
+
+def ev_saved(ids, ns, name):
+    """False when `name` is not saved story state (temp, special or past the save's flags), else True; None when the
+    name has no id (an unknown token)."""
+    v = ids.get(name)
+    if v is None:
+        return None
+    if ns == "flag":
+        return not (ids["TEMP_FLAGS_START"] <= v <= ids["TEMP_FLAGS_END"] or v >= ids["SPECIAL_FLAGS_START"] or
+                    v >= ids["FLAGS_COUNT"])
+    return not (ids["TEMP_VARS_START"] <= v <= ids["TEMP_VARS_END"] or v >= ids["SPECIAL_VARS_START"])
+
+
+def ev_live(lab):
+    """The lines of a label that can run: none after a line that never continues (S2_ENDS), with no label between."""
+    out = []
+    for n, ln in lab["lines"]:
+        out.append((n, ln))
+        if ln.split()[0] in S2_ENDS:
+            break
+    return out
+
+
+def ev_matchcall_macro(r):
+    """The special that the `register_matchcall` macro runs, read from the macro's own body in asm/macros/event.inc
+    (fix round 1, item 4: the macro hides a saved-state write). None when the macro has no `special` line."""
+    m = re.search(r"\.macro register_matchcall\b(.*?)\.endm", r["rd"]("asm/macros/event.inc"), re.S)
+    sp = re.search(r"^\s*special\s+(\w+)", m.group(1), re.M) if m else None
+    return sp.group(1) if sp else None
+
+
+def ev_rematch_first(r):
+    """The FIRST trainer of every gRematchTable row (src/battle_setup.c `REMATCH(t1, ...)`): the only trainers whose
+    Match Call flag SetMatchCallRegisteredFlag sets (src/pokenav_match_call_data.c:746, :1159)."""
+    return set(re.findall(r"=\s*REMATCH\(\s*(TRAINER_\w+)", r["rd"]("src/battle_setup.c")))
+
+
+def ev_op(word, parts, aliases, ids, matchcall=None):
+    """(op, target, value) of one op line, 'drop' for a write that is not saved state, or None when not an op.
+    `register_matchcall` is the special its macro body runs (`matchcall`, read by ev_matchcall_macro)."""
+    if word == "register_matchcall" and matchcall:
+        return ("special", matchcall, None)
+    if word.startswith("trainerbattle"):
+        if len(parts) > 1 and parts[1] in ("TRAINER_BATTLE_PYRAMID", "TRAINER_BATTLE_HILL"):
+            return ("trainerbattle", None, None)
+        t = next((p for p in parts[1:] if p.startswith("TRAINER_") and not p.startswith("TRAINER_BATTLE_")), None)
+        return ("trainerbattle", t, None)
+    if word in ("settrainerflag", "cleartrainerflag"):
+        return (word, parts[1], None)
+    if word == "special":
+        return ("special", parts[1], None)
+    if word == "specialvar":
+        return ("special", parts[2] if len(parts) > 2 else None, None)
+    if word in EV_WARPS:
+        return ("warp", parts[1], None)
+    if word in ("setflag", "clearflag"):
+        x = aliases.get(parts[1], parts[1])
+        return "drop" if ev_saved(ids, "flag", x) is False else (word, x, None)
+    if word in EV_VAR_OPS:
+        x = aliases.get(parts[1], parts[1])
+        if ev_saved(ids, "var", x) is False:
+            return "drop"
+        src = aliases.get(parts[2], parts[2]) if len(parts) > 2 else None
+        if word == "setorcopyvar":
+            word = "copyvar" if src and src.startswith("VAR_") else "setvar"
+        return (word, x, None if word == "copyvar" else src)
+    return None
+
+
+def ev_raw(root):
+    """The verifier's own tables for stage 2b, read once per root."""
+    if root in _EV:
+        return _EV[root]
+    s, r = s2_raw(root), raw(root)
+    ids = ev_ids(r)
+    aliases = {}
+    for text in s["files"].values():
+        aliases.update(dict(re.findall(r"^\s*\.set\s+(\w+)\s*,\s*((?:FLAG|VAR)_\w+)\s*$", text, re.M)))
+    # R-3: a label every mention of which is a branch right after `specialvar VAR_RESULT, ShouldDistributeEonTicket`
+    # (the record-mixing Eon Ticket)
+    after_eon = set()  # (label, line) of each line right after such a specialvar
+    for name, lab in s["labs"].items():
+        for (_, a), (n, _) in zip(lab["lines"], lab["lines"][1:]):
+            if a.startswith("specialvar VAR_RESULT, ShouldDistributeEonTicket"):
+                after_eon.add((name, n))
+    eon = {tgt for tgt, ms_ in s["at"].items() if ms_ and all((src, n) in after_eon for src, n in ms_)}
+    mapkinds = {}  # label -> the map.json event kinds naming it as their script
+    mapsites = {}  # label -> {(kind, map id)} of those events (fix round 1, item 3: the trigger's MAP)
+    for mid, (folder, text) in r["maps"].items():
+        for sec, kind in (("object_events", "talk"), ("coord_events", "coord"), ("bg_events", "sign")):
+            for o in objects_of(text, sec):
+                if sec == "coord_events" and jfield(o, "type") != "trigger":
+                    continue
+                if sec == "bg_events" and jfield(o, "type") != "sign":
+                    continue
+                if jfield(o, "script"):
+                    mapkinds.setdefault(jfield(o, "script"), set()).add(kind)
+                    mapsites.setdefault(jfield(o, "script"), set()).add((kind, mid))
+    matchcall = ev_matchcall_macro(r)
+    want, dead, dead_lines = {}, set(), set()
+    for name, lab in s["labs"].items():
+        live = ev_live(lab)
+        live_n = {n for n, _ in live}
+        ops, any_op = [], False
+        for n, ln in lab["lines"]:
+            parts = ln.replace(",", " ").split()
+            op = ev_op(parts[0], parts, aliases, ids, matchcall)
+            if op is None:
+                continue
+            if n not in live_n:
+                dead_lines.add("%s:%d" % (lab["file"], n))
+                continue
+            any_op = True
+            if op != "drop":
+                ops.append(op + ("%s:%d" % (lab["file"], n),))
+        if not any_op or name in eon:
+            continue
+        maps, c, _ = s2_owner(s, name)
+        if not maps and not c:
+            dead.add(name)
+        elif ops:
+            want[name] = ops
+    _EV[root] = {"s": s, "r": r, "ids": ids, "aliases": aliases, "want": want, "dead": dead,
+                 "dead_lines": dead_lines, "eon": eon, "callee": {}, "mapkinds": mapkinds, "mapsites": mapsites,
+                 "matchcall": matchcall, "rematch_first": ev_rematch_first(r)}
+    return _EV[root]
+
+
+def ev_fwd(s, start):
+    """Every label the forward MENTIONS of `start` reach (itself included)."""
+    seen, todo = set(), [start]
+    while todo:
+        x = todo.pop()
+        if x in seen or x not in s["labs"]:
+            continue
+        seen.add(x)
+        todo += [y for y, _ in s["fwd"].get(x, ())]
+    return seen
+
+
+def ev_callee_stops(e, lab):
+    """Can a call into `lab` end the script or start a battle, a warp or a special before it returns?"""
+    if lab not in e["callee"]:
+        e["callee"][lab] = any(EV_STOPS.match(ln.split()[0]) for x in ev_fwd(e["s"], lab)
+                               for _, ln in e["s"]["labs"][x]["lines"])
+    return e["callee"][lab]
+
+
+def ev_reached(s, name):
+    maps, c, _ = s2_owner(s, name)
+    return bool(maps or c)
+
+
+def ev_kinds(e, name):
+    """The verifier's own set of DIRECT trigger kinds of a label."""
+    s = e["s"]
+    kinds = set(e["mapkinds"].get(name, ()))
+    ms = set(s["ms_of"].values())
+    for src, n in s["at"].get(name, ()):
+        if not ev_reached(s, src):
+            continue
+        line = dict(s["labs"][src]["lines"]).get(n, "")
+        w = line.split()[0] if line else ""
+        if src in ms and w == "map_script":
+            kinds.add("map_script")
+        elif w == "map_script_2":
+            kinds.add("map_script")
+        elif w.startswith("trainerbattle") and re.search(r"\bTRAINER_(?!BATTLE_)\w+", line):
+            kinds.add("battle")
+        else:
+            kinds.add("called")
+    if name in s["c_words"]:
+        kinds.add("C")
+    return kinds
+
+
+def ev_how(line, n):
+    """How a mention at line n of its label enters the target (fix round 1, item 3): `fall` (the fall-through mark,
+    n = 10**9), goto / call, goto_if / call_if (any `goto_if_*` / `call_if_*`), case, else `ref` (a table entry or any
+    other operand)."""
+    if n == 10 ** 9:
+        return "fall"
+    w = line.split()[0] if line else ""
+    if w in ("goto", "call", "case"):
+        return w
+    m = re.match(r"(goto|call)_if_\w+$", w)
+    return m.group(1) + "_if" if m else "ref"
+
+
+def ev_trigs(e, name):
+    """The verifier's own DIRECT triggers of a label WITH their targets (fix round 1, item 3), as three sets:
+    src {(kind, the calling / table / battle label)}, how {calling label: {how}} of the called ones, maps {(kind,
+    map id or the tuple of map ids)} of talk / coord / sign / map_script. A map_script's maps are the maps whose
+    <map>_MapScripts names it (a map_script_2 table: the maps whose MapScripts names the table)."""
+    s = e["s"]
+    src, how, maps = set(), {}, set()
+    for kind, mid in e["mapsites"].get(name, ()):
+        src.add((kind, None))
+        maps.add((kind, mid))
+    if "ms_maps" not in e:  # read once per root
+        ms = {}
+        for mid, lab in s["ms_of"].items():
+            ms.setdefault(lab, set()).add(mid)
+        table_ms = {}  # table label -> {MapScripts label naming it in a map_script line}
+        for lab in ms:
+            for _, ln in s["labs"].get(lab, {"lines": []})["lines"]:
+                p = ln.replace(",", " ").split()
+                if p[0] == "map_script" and len(p) > 2:
+                    table_ms.setdefault(p[2], set()).add(lab)
+        e["ms_maps"], e["table_ms"] = ms, table_ms
+    ms, table_ms = e["ms_maps"], e["table_ms"]
+    # `at` leaves out a label's mentions of ITSELF (the ownership walk needs no loops); a loop back into itself
+    # (`goto <self>`) is still a way in, so its own lines are read here
+    selfs = [(name, n) for n, ln in s["labs"].get(name, {"lines": []})["lines"]
+             if not ln.startswith(".string") and name in re.findall(r"[A-Za-z_]\w*", ln)]
+    for at, n in list(s["at"].get(name, ())) + selfs:
+        if not ev_reached(s, at):
+            continue
+        line = dict(s["labs"][at]["lines"]).get(n, "")
+        w = line.split()[0] if line else ""
+        if at in ms and w == "map_script":
+            src.add(("map_script", at))
+            maps.add(("map_script", tuple(sorted(ms[at]))))
+        elif w == "map_script_2":
+            src.add(("map_script", at))
+            for owner in table_ms.get(at, ()):
+                maps.add(("map_script", tuple(sorted(ms[owner]))))
+        elif w.startswith("trainerbattle") and re.search(r"\bTRAINER_(?!BATTLE_)\w+", line):
+            src.add(("battle", at))
+        else:
+            src.add(("called", at))
+            how.setdefault(at, set()).add(ev_how(line, n))
+    if name in s["c_words"]:
+        src.add(("C", None))
+    return src, how, maps
+
+
+def ev_out_trigs(s, rec):
+    """The same three sets read from an output record (a map_script / battle source label from its dev.ref line)."""
+    src, how, maps = set(), {}, set()
+    for t in rec["trigger"]:
+        k = t["kind"]
+        if k in ("talk", "coord", "sign"):
+            src.add((k, None))
+            maps.add((k, t.get("map")))
+        elif k == "map_script":
+            src.add((k, s2_label_at(s, (t.get("dev") or {}).get("ref") or "")))
+            maps.add((k, tuple(t.get("maps") or ())))
+        elif k == "battle":
+            src.add((k, s2_label_at(s, (t.get("dev") or {}).get("ref") or "")))
+        elif k == "called":
+            src.add((k, t.get("by")))
+            how.setdefault(t.get("by"), set()).add(t.get("how"))
+        else:
+            src.add((k, None))
+    return src, how, maps
+
+
+def ev_mc_line(r, ch):
+    """The trainer a change's own line registers when that line (read at the pin, never from dev.cmd) is a
+    `register_matchcall`; None otherwise."""
+    line = line_at(r, (ch.get("dev") or {}).get("ref") or "x:0") or ""
+    m = re.match(r"\s*register_matchcall\s+(\w+)", line)
+    return m.group(1) if m else None
+
+
+def ev_out_ops(rec):
+    out = []
+    for c in rec["changes"]:
+        d = c.get("dev") or {}
+        if c["op"] in ("setflag", "clearflag"):
+            t = (d.get("flags") or [None])[0]
+        elif c["op"] in ("setvar", "addvar", "subvar", "copyvar"):
+            t = (d.get("vars") or [None])[0]
+        elif c["op"] in ("trainerbattle", "settrainerflag", "cleartrainerflag"):
+            t = c.get("trainer")
+        elif c["op"] == "special":
+            t = c.get("name")
+        else:
+            t = c.get("map")
+        v = d.get("value") if c["op"] in ("setvar", "addvar", "subvar") else None
+        out.append((c["op"], t, v, d.get("ref")))
+    return out
+
+
+def ev_candidates(e):
+    """The verifier's own gate candidates: {(label, kind)}. steer: a map.json coord trigger whose script's forward
+    mentions move the player and hold no saved write, warp or story line; locked: a goto_if on saved state (or a
+    trainer's defeat) whose target's mentions end with no warp / saved write / story line, while what follows the
+    test in its label reaches a warp."""
+    s, r, ids, aliases = e["s"], e["r"], e["ids"], e["aliases"]
+
+    def prof(starts):
+        moves = writes = warp = story = ends = 0
+        for x in set().union(*[ev_fwd(s, st) for st in starts]) if starts else ():
+            for _, ln in s["labs"][x]["lines"]:
+                p = ln.replace(",", " ").split()
+                w = p[0]
+                if w in ("applymovement", "applywaitmovement") and len(p) > 1 and \
+                        p[1] in ("LOCALID_PLAYER", "OBJ_EVENT_ID_PLAYER"):
+                    moves += 1
+                if w in ("setflag", "clearflag") and len(p) > 1 and ev_saved(ids, "flag", aliases.get(p[1], p[1])):
+                    writes += 1
+                if w in EV_VAR_OPS and len(p) > 1 and ev_saved(ids, "var", aliases.get(p[1], p[1])):
+                    writes += 1
+                if w in EV_WARPS:
+                    warp += 1
+                if re.match(r"trainerbattle|givemon|giveegg|giveitem|givedecoration|removeobject|special", w):
+                    story += 1
+                if w == "end":
+                    ends += 1
+        return moves, writes, warp, story, ends
+    out = set()
+    coord = set()
+    for mid, (folder, text) in r["maps"].items():
+        for o in objects_of(text, "coord_events"):
+            if jfield(o, "type") == "trigger" and jfield(o, "script") in s["labs"]:
+                coord.add(jfield(o, "script"))
+    for lab in coord:
+        mv, wr, wp, st, _ = prof([lab])
+        if mv and not wr and not wp and not st:
+            out.add((lab, "steer"))
+    for name, lab in s["labs"].items():
+        if not ev_reached(s, name):
+            continue
+        lines = lab["lines"]
+        for i, (n, ln) in enumerate(lines):
+            m = re.match(r"goto_if_(set|unset|defeated|not_defeated|lt|eq|gt|le|ge|ne)\s+(\w+),(?:.*,)?\s*(\w+)$", ln)
+            if not m or m.group(3) not in s["labs"]:
+                continue
+            kind, x = m.group(1), m.group(2)
+            if kind in ("set", "unset"):
+                ok = ev_saved(ids, "flag", aliases.get(x, x))
+            elif kind in ("defeated", "not_defeated"):
+                ok = True
+            else:
+                ok = ev_saved(ids, "var", aliases.get(x, x))
+            if not ok:
+                continue
+            _, wr, wp, st, en = prof([m.group(3)])
+            if wr or wp or st or not en:
+                continue
+            rest = [ln2 for _, ln2 in lines[i + 1:]]
+            later = [w for ln2 in rest for w in re.findall(r"[A-Za-z_]\w*", ln2) if w in s["labs"]]
+            if any(ln2.split()[0] in EV_WARPS for ln2 in rest) or prof(later)[2]:
+                out.add((name, "locked"))
+    return out
+
+
+def verify_events(root, ev, data, rep):
+    """Every check of events.json (stage 2b). Mismatches go to `rep` (kind 'events'), one line per record."""
+    e = ev_raw(root)
+    s, r, want = e["s"], e["r"], e["want"]
+
+    def prob(key, what):
+        rep.mismatch("events", key, what)
+    out = {x["label"]: x for x in ev["labels"]}
+    # ev_member: the set of labels (a dead or temp-only label promoted, a live one left out)
+    for name in sorted(set(out) - set(want)):
+        prob("label %s" % name, "not a reachable label with a saved-state change (the verifier's reading)")
+    for name in sorted(set(want) - set(out)):
+        prob("label %s" % name, "a reachable label with saved-state changes has no record")
+    rep.seen("events_labels", len(want))
+    tnames = {t["symbol"]: t["name"] for t in data["trainers"]["trainers"]}
+    for name in sorted(set(out) & set(want)):
+        rec, key = out[name], "label %s" % name
+        # ev_ops: the changes, in order (op, target, value for set/add/sub)
+        got = [x[:3] for x in ev_out_ops(rec)]
+        exp = [x[:3] for x in want[name]]
+        if got != exp:
+            prob(key, "changes %s, the label's lines give %s" % (got[:6], exp[:6]))
+        # ev_maps: R-2 by the backward walk
+        maps, c, _ = s2_owner(s, name)
+        if rec["maps"] != sorted(maps) or (not maps and rec.get("reached_from") != "C"):
+            prob(key, "maps %s, the backward walk finds %s%s" % (rec["maps"], sorted(maps), " (C only)" if c else ""))
+        # ev_cond: a change said certain must have no line before it that can stop the label
+        lines = ev_live(s["labs"][name])
+        for ch in rec["changes"]:
+            ref = (ch.get("dev") or {}).get("ref") or ""
+            n = int(ref.rsplit(":", 1)[1]) if ref.rsplit(":", 1)[-1].isdigit() else 0
+            if ch.get("conditional") is False:
+                for n2, ln in lines:
+                    if n2 >= n:
+                        break
+                    p = ln.replace(",", " ").split()
+                    if EV_DIVERT.match(p[0]) or (re.match(r"call(_if_\w+)?$", p[0]) and ev_callee_stops(e, p[-1])):
+                        prob(key, "the change at %s is said certain, but %s:%d (%s) can stop the label before it"
+                             % (ref, s["labs"][name]["file"], n2, ln))
+                        break
+            elif ch.get("conditional") is not True or not (ch.get("dev") or {}).get("after"):
+                prob(key, "the change at %s is conditional without dev.after (or conditional is not a bool)" % ref)
+        # ev_r3: a copyvar from a literal below the vars reads through NULL in vanilla
+        for ch in rec["changes"]:
+            if ch["op"] == "copyvar":
+                line = line_at(r, ch["dev"]["ref"]) or ""
+                p = line.strip().replace(",", " ").split()
+                lit = len(p) > 2 and re.fullmatch(r"0x[0-9A-Fa-f]+|\d+", p[2]) and int(p[2], 0) < e["ids"]["VARS_START"]
+                if lit and ch["dev"].get("value") != "unknown (vanilla copyvar bug, scrcmd.c:371)":
+                    prob(key, "copyvar at %s copies var id %s: vanilla reads NULL (R-3), the value says %r"
+                         % (ch["dev"]["ref"], p[2], ch["dev"].get("value")))
+        # ev_trig: the DIRECT trigger kinds
+        kinds = {t["kind"] for t in rec["trigger"]}
+        mine = ev_kinds(e, name)
+        if kinds != mine:
+            prob(key, "trigger kinds %s, the verifier's reading %s" % (sorted(kinds), sorted(mine)))
+        else:
+            # fix round 1, item 3: the trigger TARGETS, checked only when the kinds agree (so a dropped kind is the
+            # kinds check's alone). Three disjoint checks: the source labels, the `how` of each shared caller, and
+            # the maps. A wrong `by`, a phantom `fall`, a trigger on the wrong map each turn exactly one of them red.
+            got_src, got_how, got_maps = ev_out_trigs(s, rec)
+            my_src, my_how, my_maps = ev_trigs(e, name)
+            # ev_trig_src: who triggers it (calling / table / battle label)
+            if got_src != my_src:
+                prob(key, "trigger sources: extra %s, missing %s (the verifier's reading)"
+                     % (sorted(got_src - my_src, key=str)[:4], sorted(my_src - got_src, key=str)[:4]))
+            # ev_trig_how: how each caller both sides name enters it (a `fall` from a label that stops is phantom)
+            for by in sorted(set(got_how) & set(my_how)):
+                if got_how[by] != my_how[by]:
+                    prob(key, "called by %s how %s, the verifier's reading %s"
+                         % (by, sorted(got_how[by]), sorted(my_how[by])))
+            # ev_trig_map: the map(s) of each talk / coord / sign / map_script trigger
+            if got_maps != my_maps:
+                prob(key, "trigger maps: extra %s, missing %s (the verifier's reading)"
+                     % (sorted(got_maps - my_maps, key=str)[:4], sorted(my_maps - got_maps, key=str)[:4]))
+        # ev_effect: words only on the worded ops, and they name the joined trainer / map
+        for ch in rec["changes"]:
+            if ch.get("effect") is None:
+                continue
+            mc = ev_mc_line(r, ch)
+            if mc is not None:
+                # fix round 1, item 4: a register_matchcall line's words name the trainer ITS LINE registers
+                if tnames.get(mc, "\0").lower() not in ch["effect"].lower():
+                    prob(key, "Match Call effect %r does not name the trainer %s of %s"
+                         % (ch["effect"], mc, (ch.get("dev") or {}).get("ref")))
+            elif ch["op"] not in EV_WORDED_OPS:
+                prob(key, "effect words on a %s change (%s): words are never written from a name"
+                     % (ch["op"], (ch.get("dev") or {}).get("ref")))
+            elif ch["op"] == "warp":
+                mname = re.search(r'"name": "(\w+)"', r["maps"].get(ch.get("map"), ("", ""))[1] or "")
+                if not mname or mname.group(1) not in ch["effect"]:
+                    prob(key, "warp effect %r does not name the map %s" % (ch["effect"], ch.get("map")))
+            elif ch["op"] in ("settrainerflag", "cleartrainerflag") and \
+                    tnames.get(ch.get("trainer"), "\0").lower() not in ch["effect"].lower():
+                prob(key, "effect %r does not name the trainer %s" % (ch["effect"], ch.get("trainer")))
+        # ev_matchcall (fix round 1, item 4): every change made by a register_matchcall line is the special the
+        # macro runs, names the trainer of its line, and that trainer heads a rematch row (else no flag is written)
+        for ch in rec["changes"]:
+            mc = ev_mc_line(r, ch)
+            if mc is None:
+                continue
+            if ch["op"] != "special" or ch.get("name") != e["matchcall"] or ch.get("trainer") != mc:
+                prob(key, "Match Call change at %s is %s %s trainer %s; the line registers %s (special %s)"
+                     % (ch["dev"].get("ref"), ch["op"], ch.get("name"), ch.get("trainer"), mc, e["matchcall"]))
+            elif mc not in e["rematch_first"]:
+                prob(key, "Match Call change at %s: %s heads no gRematchTable row, so no flag is set"
+                     % (ch["dev"].get("ref"), mc))
+        rep.seen("events_matchcall", sum(1 for ch in rec["changes"] if ev_mc_line(r, ch) is not None))
+    # ev_dead: the dead split (labels nothing reaches, and op lines after a stop)
+    dl = {x["label"] for x in ev["dead"] if "line" not in x}
+    dline = {x["line"] for x in ev["dead"] if "line" in x}
+    if dl != e["dead"] or dline != e["dead_lines"]:
+        prob("dead", "labels missing %s extra %s; lines missing %s extra %s" % (
+            sorted(e["dead"] - dl)[:5], sorted(dl - e["dead"])[:5], sorted(e["dead_lines"] - dline)[:5],
+            sorted(dline - e["dead_lines"])[:5]))
+    rep.seen("events_dead", len(e["dead"]))
+    # ev_gatewords: words only with cites, every cite true at the pin; a null gate is listed
+    nulls = set(ev.get("_gates_when_null") or [])
+    for gt in ev["gates"]:
+        key = "gate %s" % gt["label"]
+        cites = (gt.get("dev") or {}).get("cites") or []
+        if gt.get("when") is None:
+            if gt["label"] not in nulls:
+                prob(key, "when is null but the gate is not listed in _gates_when_null")
+            continue
+        if not cites:
+            prob(key, "worded with no cited hand-table lines (words are never generated)")
+        for cite in cites:
+            where, _, token = cite.partition(" ")
+            line = line_at(r, where)
+            if line is None or token not in line:
+                prob(key, "cite %s does not hold %r at the pin" % (where, token))
+    rep.seen("events_gates", len(ev["gates"]))
+    # ev_gatecands: the candidate set by the verifier's own reading
+    got = {(gt["label"], gt["kind"]) for gt in ev["gates"]}
+    mine = ev_candidates(e)
+    if got != mine:
+        prob("gates", "candidates missing %s, extra %s" % (sorted(mine - got)[:5], sorted(got - mine)[:5]))
+    # ev_r4 / ev_r6 over the whole file
+    hits = s2_key_hits(ev)
+    if hits:
+        prob("R-4", "flag/var names outside dev: %s" % hits[:5])
+    rk = route_keys(ev)
+    if rk:
+        prob("R-6", "route keys %s" % rk[:5])
+
+
+def ev_plant(ev, name):
+    """Apply one stage-2b plant to `ev` (in memory); returns the report prefix it must produce."""
+    by = {x["label"]: x for x in ev["labels"]}
+    if name == "f":  # the spec's (f): one setflag dropped from an events label
+        rec = by["RustboroCity_Gym_EventScript_RoxanneDefeated"]
+        rec["changes"] = [c for c in rec["changes"] if (c["dev"].get("flags") or [""])[0] != "FLAG_BADGE01_GET"]
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b1":  # a label moved to another map
+        rec = by["Route103_EventScript_RivalEnd"]
+        rec["maps"] = ["MAP_ROUTE101"]
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b1c":  # a label only C reaches loses its reached_from
+        rec = next(x for x in ev["labels"] if x.get("reached_from") == "C")
+        rec.pop("reached_from")
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b2m":  # a live label left out
+        ev["labels"] = [x for x in ev["labels"] if x["label"] != "Route103_EventScript_RivalEnd"]
+        return "MISMATCH events label Route103_EventScript_RivalEnd:"
+    if name == "b3c":  # a change after a call into a callee that can END the script said certain (Oldale's
+        # Common_EventScript_SetupRivalGfxId ends when neither gender branch is taken: data/scripts/rival_graphics.inc:5)
+        rec = by["OldaleTown_OnTransition"]
+        ch = next(c for c in rec["changes"] if c["op"] == "setflag")
+        ch["conditional"] = False
+        ch["dev"].pop("after", None)
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b3a":  # a conditional change that no longer names the lines that make it so
+        rec = by["PetalburgCity_EventScript_WallyTutorial"]
+        ch = next(c for c in rec["changes"] if c["op"] == "setvar")
+        ch["dev"].pop("after")
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b5n":  # a null-worded gate left out of _gates_when_null
+        ev["_gates_when_null"] = [x for x in ev["_gates_when_null"]
+                                  if x != "LittlerootTown_EventScript_NeedPokemonTriggerLeft"]
+        return "MISMATCH events gate LittlerootTown_EventScript_NeedPokemonTriggerLeft:"
+    if name == "b10w":  # a warp's words name another map
+        rec = by["PetalburgCity_EventScript_WallyTutorial"]
+        ch = next(c for c in rec["changes"] if c["op"] == "warp")
+        ch["effect"] = "you are moved to LittlerootTown"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b10t":  # a trainer-flag change's words name another trainer
+        rec = by["RustboroCity_Gym_SetGymTrainers"]
+        ch = next(c for c in rec["changes"] if c["op"] == "settrainerflag")
+        ch["effect"] = "Leader Wallace now counts as beaten"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b2":  # a DEAD RS leftover promoted (MossdeepCity_Gym/scripts.inc:112 'functionally unused')
+        lab = s2_raw_any()["labs"]["MossdeepCity_Gym_EventScript_Switch1"]
+        n = next(n for n, ln in lab["lines"] if ln.startswith("setflag"))
+        ev["labels"].append({"label": "MossdeepCity_Gym_EventScript_Switch1", "maps": ["MAP_MOSSDEEP_CITY_GYM"],
+                             "trigger": [{"kind": "called", "by": "MossdeepCity_Gym_EventScript_Switch2"}],
+                             "changes": [{"op": "setflag", "effect": None, "conditional": False,
+                                          "dev": {"flags": ["FLAG_MOSSDEEP_GYM_SWITCH_1"],
+                                                  "ref": "%s:%d" % (lab["file"], n)}}],
+                             "ref": "%s:%d" % (lab["file"], lab["line"])})
+        return "MISMATCH events label MossdeepCity_Gym_EventScript_Switch1:"
+    if name == "b3":  # a change after a special said certain (the Wally tutorial's state)
+        rec = by["PetalburgCity_EventScript_WallyTutorial"]
+        ch = next(c for c in rec["changes"] if c["op"] == "setvar")
+        ch["conditional"] = False
+        ch["dev"].pop("after", None)
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b4":  # a coord trigger dropped
+        rec = by["PetalburgWoods_EventScript_DevonResearcherLeft"]
+        rec["trigger"] = [t for t in rec["trigger"] if t["kind"] != "coord"]
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b4f":  # fix round 1: a phantom FALL (a `goto` caller said to fall in; the stage-2b failure's shape)
+        rec = by["Route103_EventScript_RivalEnd"]
+        t = next(t for t in rec["trigger"] if t.get("by") == "Route103_EventScript_RivalExitFacingNorth")
+        t["how"] = "fall"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b4s":  # fix round 1: a called trigger re-pointed at the wrong source label
+        rec = by["Route103_EventScript_RivalEnd"]
+        t = next(t for t in rec["trigger"] if t.get("by") == "Route103_EventScript_RivalExitFacingSouth")
+        t["by"] = "Route101_EventScript_BirchsBag"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b4m":  # fix round 1: a coord trigger moved to the wrong map
+        rec = by["PetalburgWoods_EventScript_DevonResearcherLeft"]
+        next(t for t in rec["trigger"] if t["kind"] == "coord")["map"] = "MAP_ROUTE101"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b11":  # fix round 1: a Match Call registration said to register another trainer
+        rec = by["Route104_EventScript_RegisterHaley"]
+        next(c for c in rec["changes"] if c["op"] == "special")["trainer"] = "TRAINER_WINSTON_1"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b10m":  # fix round 1: a Match Call registration's words name another trainer
+        rec = by["Route104_EventScript_RegisterWinston"]
+        next(c for c in rec["changes"] if c["op"] == "special")["effect"] = "LASS HALEY is registered in your Match Call"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name in ("b5", "b5c"):
+        gts = {g["label"]: g for g in ev["gates"]}
+        if name == "b5":  # words invented for a candidate the hand table does not hold
+            gt = gts["LittlerootTown_EventScript_NeedPokemonTriggerLeft"]
+            gt["when"] = "Littleroot's north exit is blocked until you have a Pokemon"
+        else:  # a cited line moved
+            gt = gts["OldaleTown_EventScript_BlockedPath"]
+            where, _, token = gt["dev"]["cites"][-1].partition(" ")
+            rel, n = where.rsplit(":", 1)
+            gt["dev"]["cites"][-1] = "%s:%d %s" % (rel, int(n) + 1, token)
+        return "MISMATCH events gate %s:" % gt["label"]
+    if name == "b6":  # a gate candidate dropped
+        ev["gates"] = [g for g in ev["gates"] if g["label"] != "LilycoveCity_CoveLilyMotel_1F_EventScript_BlockingTV"]
+        ev["_gates_when_null"] = [x for x in ev["_gates_when_null"]
+                                  if x != "LilycoveCity_CoveLilyMotel_1F_EventScript_BlockingTV"]
+        return "MISMATCH events gates:"
+    if name == "b7":  # a dead label left out of `dead`
+        ev["dead"] = [x for x in ev["dead"] if x["label"] != "MossdeepCity_Gym_EventScript_Switch1"]
+        return "MISMATCH events dead:"
+    if name == "b8":  # the vanilla copyvar NULL read said to store 1 (the UBFIX side)
+        rec = next(x for x in ev["labels"] for c in x["changes"]
+                   if c["op"] == "copyvar" and c["dev"].get("value", "").startswith("unknown (vanilla"))
+        ch = next(c for c in rec["changes"] if c["op"] == "copyvar" and c["dev"].get("value", "").startswith("unknown"))
+        ch["dev"]["value"] = "1"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "b9":  # a route key
+        by["Route103_EventScript_RivalEnd"]["trigger"][0]["x"] = 9
+        return "MISMATCH events R-6:"
+    if name == "b10":  # effect words on a flag change (words from a flag NAME)
+        rec = by["RustboroCity_Gym_EventScript_RoxanneDefeated"]
+        ch = next(c for c in rec["changes"] if (c["dev"].get("flags") or [""])[0] == "FLAG_BADGE01_GET")
+        ch["effect"] = "you receive badge 1"
+        return "MISMATCH events label %s:" % rec["label"]
+    if name == "k2":  # a flag name copied out of `dev` to a bare `flag` key
+        rec = by["Route103_EventScript_RivalEnd"]
+        ch = next(c for c in rec["changes"] if c["op"] == "setflag")
+        ch["flag"] = ch["dev"]["flags"][0]
+        return "MISMATCH events R-4:"
+    raise KeyError(name)
+
+
+def load_events(data_dir):
+    p = os.path.join(data_dir, EV_FILE)
+    if not os.path.exists(p):
+        return None
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def ev_plant_result(root, data_dir, name):
+    """(ok, lines, prefix): ok iff the plant is reported on exactly ONE line, its own, and nothing else is."""
+    ev, data = load_events(data_dir), load(data_dir)
+    s2_raw(root)
+    prefix = ev_plant(ev, name)
+    rep = Report()
+    verify_events(root, ev, data, rep)
+    return len(rep.lines) == 1 and rep.lines[0].startswith(prefix), rep.lines, prefix
+
+
 # ---------------------------------------------------------------- the run
 def load(data_dir):
     out = {}
@@ -2479,6 +3211,14 @@ def selftest(r, data_dir, milestones, seed):
         for name in S2_PLANTS:
             ok, lines, prefix = s2_plant_result(root, data_dir, name)
             results.append(("S2 FAULT (%s): %s reported" % (name, prefix.strip(":")), ok))
+    if load_events(data_dir) is not None:
+        rep3 = Report()
+        verify_events(root, load_events(data_dir), load(data_dir), rep3)
+        results.append(("EV CONTROL: events.json, %d mismatches (%s)" % (len(rep3.lines), rep3.counts),
+                        not rep3.lines))
+        for name in EV_PLANTS:
+            ok, lines, prefix = ev_plant_result(root, data_dir, name)
+            results.append(("EV FAULT (%s): %s reported" % (name, prefix.strip(":")), ok))
     for name, good in results:
         print("[%s] %s" % ("PASS" if good else "FAIL", name))
     return all(g for _, g in results)
@@ -2489,8 +3229,9 @@ def main(argv=None):
     ap.add_argument("--decomp")
     ap.add_argument("--data", default=DATA_DEFAULT)
     ap.add_argument("--seed", type=int)
-    ap.add_argument("--plant", nargs="?", const="w2", choices=("w2",) + S2_PLANTS,
-                    help="w2 (alone: slice 1's four plants) or one stage-2a plant of items_gifts.json")
+    ap.add_argument("--plant", nargs="?", const="w2", choices=("w2",) + S2_PLANTS + EV_PLANTS,
+                    help="w2 (alone: slice 1's four plants), one stage-2a plant of items_gifts.json, or one "
+                         "stage-2b plant of events.json")
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--knowledge", default=KNOWLEDGE, help="the tree W1 scans (default ai_player/knowledge)")
     a = ap.parse_args(argv)
@@ -2500,8 +3241,8 @@ def main(argv=None):
     except Refused as exc:
         print("[VERIFY-WORLD] REFUSED:", exc)
         return 2
-    if a.plant in S2_PLANTS:
-        ok, lines, prefix = s2_plant_result(root, a.data, a.plant)
+    if a.plant in S2_PLANTS or a.plant in EV_PLANTS:
+        ok, lines, prefix = (s2_plant_result if a.plant in S2_PLANTS else ev_plant_result)(root, a.data, a.plant)
         for ln in lines:
             print(ln)
         print("[VERIFY-WORLD] PLANT %s %s: %s reported (%d lines)" % (a.plant, "PASS" if ok else "FAIL",
@@ -2526,6 +3267,9 @@ def main(argv=None):
     items = load_items(a.data)
     if items is not None:
         verify_items(root, items, data["maps"], rep)  # stage 2a: always every record (it is one file)
+    events = load_events(a.data)
+    if events is not None:
+        verify_events(root, events, data, rep)  # stage 2b: always every record
     lines = rep.lines
     for ln in lines:
         print(ln)

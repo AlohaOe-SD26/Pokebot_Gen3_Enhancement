@@ -62,6 +62,20 @@ plant (e)..(q) on its own one line), S2GuardTests, TFairTests; and its FIX ROUND
                     words, the Mirage Tower's map condition, the Petalburg mart's setter by reference.
   S2VerifierFixTests the daily regex (both forms, set and unset); a golden cite moved off its line is reported; each
                     rule check (a1-a4) fires on a record the golden list does not hold.
+Slice 2, stage 2b (events.json, extract_events.py; spec S3-4 "STAGE 2b"), each a FAULT beside its CONTROL:
+  S2bOutputTests    the committed file equals a fresh build (a DETERMINISM check, left out of the mutant run).
+  S2bBuildTests     the FRESH build (not the committed file) passes the independent verifier; W7's 13 events facts
+                    (recon Q7 rows 1, 3-12, 14, 15) are findable by map and label; R-4..R-7 over the whole output; the
+                    dead / excluded lists named; the re-measured counts and the values no verifier rule reads (trigger
+                    dev evidence, copyvar sources, facility battles, warphole words); --check's comparison.
+  S2bGuardTests     every guard refuses its broken input AND its call inside the build fires (check_sources, check_cites
+                    per table, check_map_scripts, check_joins, check_gate_table's two clauses, check_maps_json,
+                    refuse_all in build_all and at the door); an op line planted after `end` is listed dead.
+  S2bUnitTests      change_of's branches, Persist's ranges, the SAFE whitelist, callee_returns / diverts, live_body,
+                    persistent_test, set_aliases, on synthetic inputs where the call decides.
+  S2bVerifierTests  verify_world's stage-2b reading: CONTROL 0 on the real file; each EV plant on exactly its own line;
+                    its own units (ev_eval, ev_ids vs the extractor's ids, ev_saved, ev_live, ev_op, s2_strip's comment
+                    removal, the candidate set); the CLI and selftest wiring; it imports no extractor.
 """
 import copy
 import io
@@ -98,7 +112,8 @@ CHAPTER_OF = {
 }
 #: what a reader of the world files would have to write (`world/` alone is not one: the AI's own `ai_player/world/`
 #: package is named in comments and paths all over the play code)
-PLAY_NAMES = ("knowledge/world", "trainers.json", "bosses.json", "maps.json", "campaign.json", "items_gifts.json")
+PLAY_NAMES = ("knowledge/world", "trainers.json", "bosses.json", "maps.json", "campaign.json", "items_gifts.json",
+              "events.json")
 
 ROOT = None
 D = None
@@ -214,7 +229,8 @@ class W1WithheldTests(unittest.TestCase):
         n, hits = vw.withheld_scan(str(KNOWLEDGE))
         self.assertEqual(hits, [])
         world = sorted(p.name for p in WORLD.glob("*.json"))
-        self.assertEqual(world, sorted(ew.OUTPUTS + (ei.OUT_NAME,)))  # slice 1's four + stage 2a's items_gifts
+        # slice 1's four + stage 2a's items_gifts + stage 2b's events
+        self.assertEqual(world, sorted(ew.OUTPUTS + (ei.OUT_NAME, xe.OUT_NAME)))
         self.assertGreaterEqual(n, len(list(KNOWLEDGE.rglob("*.json"))))
         with tempfile.TemporaryDirectory() as tmp:
             shutil.copytree(KNOWLEDGE, Path(tmp) / "k", ignore=shutil.ignore_patterns("*.py", "__pycache__"))
@@ -1021,6 +1037,7 @@ class NotReadTests(unittest.TestCase):
 # ---------------------------------------------------------------- slice 2, stage 2a: items_gifts.json
 import check_fairness as cf  # noqa: E402
 import extract_items as ei  # noqa: E402
+import extract_events as xe  # noqa: E402
 
 _S2 = {}
 
@@ -1755,8 +1772,12 @@ class S2FixRound23Tests(unittest.TestCase):
         text = "A::\n\tgotopostbattlescript\nB::\n\tgiveitem ITEM_POTION\n\tend\n"
         falls = lambda gr: [t for t, k, *_ in gr.edges["A"] if k == "fall"]  # noqa: E731
         self.assertEqual(falls(fake_graph(text)), [])                       # CONTROL
-        with Swap(ei, "TERMINATORS", tuple(x for x in ei.TERMINATORS if x != "gotopostbattlescript")):
-            self.assertEqual(falls(fake_graph(text)), ["B"])                # FAULT: the round-1 phantom edge
+        # FAULT: the round-1 phantom edge. Since stage 2b fix round 1, falls_through also stops at the FIRST
+        # NEVER_CONTINUES command, so the fault takes gotopostbattlescript out of BOTH lists (TERMINATORS is built from
+        # NEVER_CONTINUES at import)
+        with Swap(ei, "TERMINATORS", tuple(x for x in ei.TERMINATORS if x != "gotopostbattlescript")), \
+                Swap(ei, "NEVER_CONTINUES", {k: v for k, v in ei.NEVER_CONTINUES.items() if k != "gotopostbattlescript"}):
+            self.assertEqual(falls(fake_graph(text)), ["B"])
 
     def test_r2_7_verifier_rules_a5_a8(self):
         """F2-7: the verifier's rules a5-a8 each report their own plant on one line, and turning a rule's function off
@@ -2119,6 +2140,958 @@ class S2FixRound23Tests(unittest.TestCase):
         self.assertFalse(ei.is_once_guard(guard, own, {}, ctx))                    # FAULT: no own values (M11)
 
 
+# ---------------------------------------------------------------- slice 2, stage 2b: events.json
+Refused = xe.Refused
+_EVB = {}
+
+
+def ev_build():
+    """(the FRESH events object, the build's parts) at the pin, built once per process (about 50 s: entry_tests walks
+    every known path into 2278 labels). The semantic tests read THIS, never the committed file, so an extractor change
+    is judged by what it builds now; only S2bOutputTests compares it with the committed bytes."""
+    if not _EVB:
+        _EVB["obj"], _EVB["res"] = xe.build_all(ew.Decomp(ROOT), str(WORLD / "maps.json"))
+    return _EVB["obj"], _EVB["res"]
+
+
+def ev_copy():
+    return json.loads(json.dumps(ev_build()[0]))
+
+
+def ev_by(obj):
+    return {r["label"]: r for r in obj["labels"]}
+
+
+def ev_stub_tests(g, name):
+    """entry_tests stubbed (no path walk): a guard's FAULT build reaches its guard in seconds, not 50 s. Used ONLY by
+    builds whose assertions never read dev.tests."""
+    return {"tests": [], "paths": 0, "paths_known": 0, "collapsed": False}
+
+
+def ev_fast(d=None, maps_path=None):
+    with Swap(xe, "entry_tests", ev_stub_tests):
+        return xe.build_all(d or ew.Decomp(ROOT), maps_path or str(WORLD / "maps.json"))
+
+
+_EVF = {}
+#: the overlay of ev_faulted: an op line planted after Route 103's RivalEnd `end` (:139), with no label between
+EV_DEAD_OLD = "\treleaseall\n\tend\n\nRoute103_Movement_RivalExitFacingNorth1:"
+EV_DEAD_NEW = "\treleaseall\n\tend\n\tsetflag FLAG_DEFEATED_RIVAL_ROUTE103\n\nRoute103_Movement_RivalExitFacingNorth1:"
+
+
+def ev_faulted():
+    """ONE fast build over an overlay that plants `setflag FLAG_DEFEATED_RIVAL_ROUTE103` right after RivalEnd's `end`
+    (data/maps/Route103/scripts.inc:139, so the new line is :140). It must be listed in `dead` with its line and never
+    kept as a change. WHY a planted input: no label at the pin has an op line after a stop (0 such lines), so without
+    it the dead-lines loop and live_body's stop could be deleted with no record changing."""
+    if not _EVF:
+        rel = "data/maps/Route103/scripts.inc"
+        text = raw_text(rel)
+        assert text.count(EV_DEAD_OLD) == 1, "Route 103's RivalEnd lines moved"
+        _EVF["obj"], _ = ev_fast(OverlayDecomp(ROOT, {rel: text.replace(EV_DEAD_OLD, EV_DEAD_NEW)}))
+    return _EVF["obj"]
+
+
+def ev_target(c):
+    """What a change acts on, read by the TEST (not the verifier's ev_out_ops): the flag, var, special, map or trainer."""
+    d = c["dev"]
+    if c["op"] in ("setflag", "clearflag"):
+        return (d.get("flags") or [None])[0]
+    if c["op"] in ("setvar", "addvar", "subvar", "copyvar"):
+        return (d.get("vars") or [None])[0]
+    if c["op"] == "special":
+        return c.get("name")
+    if c["op"] == "warp":
+        return c.get("map")
+    return c.get("trainer")
+
+
+def ev_has(by, lab, mp, op, target, line, value=None, conditional=None):
+    """A change (op, target) at line `line` of label `lab` (any label when None) on map `mp`, with the value and the
+    certainty asked for (None = not asked)."""
+    recs = [by[lab]] if lab in by else ([] if lab else list(by.values()))
+    return any(mp in r["maps"] and c["op"] == op and ev_target(c) == target and
+               c["dev"].get("ref", "").endswith(":%d" % line) and
+               (value is None or c["dev"].get("value") == value) and
+               (conditional is None or c.get("conditional") is conditional)
+               for r in recs for c in r["changes"])
+
+
+def ev_trig(by, lab):
+    return (by.get(lab) or {}).get("trigger") or []
+
+
+#: W7 row 11's rival battles: May / Brendan x the three starters, on Route 104 and in Rustboro (12 labels)
+EV_RIVAL_LABELS = ["%s_EventScript_Battle%s%s" % (pre, who, mon) for pre in ("Route104", "RustboroCity")
+                   for who in ("May", "Brendan") for mon in ("Treecko", "Torchic", "Mudkip")]
+#: W7 row 6's four `addvar VAR_PETALBURG_GYM_STATE, 1` lines (one per badge that counts), cited by GATE_WORDS
+EV_GYM_ADDVARS = (("MAP_RUSTBORO_CITY_GYM", "RustboroCity_Gym", 21), ("MAP_DEWFORD_TOWN_GYM", "DewfordTown_Gym", 152),
+                  ("MAP_MAUVILLE_CITY_GYM", "MauvilleCity_Gym", 95), ("MAP_LAVARIDGE_TOWN_GYM_1F", "LavaridgeTown_Gym_1F", 63))
+
+
+def ev_w7(obj):
+    """W7's events.json facts as failures ('row N: ...'; [] when all hold), each findable by MAP and LABEL with the
+    values recon-data Q7 cites. The spec names "rows 1, 4-12, 14, 15" and "13 facts": that list is TWELVE rows; the
+    thirteenth is row 3, which Q7 itself assigns to events.json (`special ChooseStarter`, Route101/scripts.inc:223).
+    Rows 2, 13 and 16-20 are not events.json facts (Q7 gives them to C, slice 1 or items_gifts.json)."""
+    by = ev_by(obj)
+    gates = {g["label"]: g for g in obj["gates"]}
+    bad = []
+
+    def need(row, ok, what):
+        if not ok:
+            bad.append("row %d: %s" % (row, what))
+    lab_map, lab = "MAP_LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB", "LittlerootTown_ProfessorBirchsLab_EventScript_%s"
+    # 1 the Route 103 rival battle's end (Route103/scripts.inc:131-134), every change certain
+    for op, t, n, v in (("setvar", "VAR_BIRCH_LAB_STATE", 131, "4"), ("setflag", "FLAG_DEFEATED_RIVAL_ROUTE103", 133, None),
+                        ("setvar", "VAR_OLDALE_RIVAL_STATE", 134, "1")):
+        need(1, ev_has(by, "Route103_EventScript_RivalEnd", "MAP_ROUTE103", op, t, n, v, False), "RivalEnd %s %s" % (op, t))
+    # 3 the starter is chosen by talking to Birch's bag on Route 101 (:223 special ChooseStarter)
+    need(3, ev_has(by, "Route101_EventScript_BirchsBag", "MAP_ROUTE101", "special", "ChooseStarter", 223) and
+         any(t["kind"] == "talk" for t in ev_trig(by, "Route101_EventScript_BirchsBag")), "BirchsBag ChooseStarter")
+    # 4 Oldale's west exit: a WORDED steer gate on VAR_OLDALE_TOWN_STATE; the lab's writes that open it (:510, :511);
+    # Oldale's own setter (:15), reached only when FLAG_ADVENTURE_STARTED is set (:10)
+    g = gates.get("OldaleTown_EventScript_BlockedPath") or {}
+    need(4, g.get("maps") == ["MAP_OLDALE_TOWN"] and g.get("kind") == "steer" and "Pokedex" in (g.get("when") or "") and
+         (g.get("dev") or {}).get("vars") == ["VAR_OLDALE_TOWN_STATE"], "the Oldale west gate %r" % g.get("when"))
+    need(4, ev_has(by, lab % "GivePokedex", lab_map, "setflag", "FLAG_ADVENTURE_STARTED", 510) and
+         ev_has(by, lab % "GivePokedex", lab_map, "setvar", "VAR_OLDALE_TOWN_STATE", 511, "1"), "the lab opens it")
+    need(4, ev_has(by, "OldaleTown_EventScript_SetOldaleState", "MAP_OLDALE_TOWN", "setvar", "VAR_OLDALE_TOWN_STATE",
+                   15, "1") and any((t.get("dev") or {}).get("test") == "FLAG_ADVENTURE_STARTED set"
+                                    for t in ev_trig(by, "OldaleTown_EventScript_SetOldaleState")), "Oldale's setter")
+    # 5 the Pokedex flag (lab :537)
+    need(5, ev_has(by, lab % "ReceivePokedex", lab_map, "setflag", "FLAG_SYS_POKEDEX_GET", 537, None, False), "Pokedex")
+    # 6 Petalburg Gym's Speed / Accuracy doors: worded, locked on VAR_PETALBURG_GYM_STATE lt 6; +1 per counted badge
+    for door in ("SpeedRoomDoor", "AccuracyRoomDoor"):
+        g = gates.get("PetalburgCity_Gym_EventScript_" + door) or {}
+        need(6, g.get("maps") == ["MAP_PETALBURG_CITY_GYM"] and g.get("kind") == "locked" and
+             "four badges" in (g.get("when") or "") and
+             (g.get("dev") or {}).get("tests") == ["VAR_PETALBURG_GYM_STATE lt 6"], "the %s gate" % door)
+    for mp, folder, n in EV_GYM_ADDVARS:
+        need(6, any(ev_has(by, r["label"], mp, "addvar", "VAR_PETALBURG_GYM_STATE", n, "1") for r in obj["labels"]
+                    if r["ref"].startswith("data/maps/%s/" % folder)), "%s addvar :%d" % (folder, n))
+    # 7 a scripted warp: the Wally tutorial moves you into the Gym (:52); the three warp commands the recon counted
+    wally = "PetalburgCity_EventScript_WallyTutorial"
+    need(7, ev_has(by, wally, "MAP_PETALBURG_CITY", "warp", "MAP_PETALBURG_CITY_GYM", 52) and
+         any(c["op"] == "warp" and "PetalburgCity_Gym" in (c.get("effect") or "") for c in by.get(wally, {}).get(
+             "changes", [])), "the Wally tutorial's warp")
+    cmds = {c["dev"].get("cmd") for r in obj["labels"] for c in r["changes"] if c["op"] == "warp"}
+    need(7, {"warp", "warpdoor", "warpsilent"} <= cmds, "warp commands %s" % sorted(c for c in cmds if c))
+    # 8 the tutorial battle is a special (:40)
+    need(8, ev_has(by, wally, "MAP_PETALBURG_CITY", "special", "StartWallyTutorialBattle", 40), "Wally's battle")
+    # 9 the four Petalburg steer triggers, worded
+    for i in range(4):
+        g = gates.get("PetalburgCity_EventScript_ShowGymToPlayer%d" % i) or {}
+        need(9, g.get("maps") == ["MAP_PETALBURG_CITY"] and g.get("kind") == "steer" and g.get("when"),
+             "ShowGymToPlayer%d" % i)
+    # 10 the Petalburg Woods grunt: two coord triggers on VAR_PETALBURG_WOODS_STATE, the battle (:23 / :51), its end (:92)
+    for side, n in (("Left", 23), ("Right", 51)):
+        lb = "PetalburgWoods_EventScript_DevonResearcher" + side
+        need(10, ev_has(by, lb, "MAP_PETALBURG_WOODS", "trainerbattle", "TRAINER_GRUNT_PETALBURG_WOODS", n) and
+             any(t["kind"] == "coord" and (t.get("dev") or {}).get("vars") == ["VAR_PETALBURG_WOODS_STATE"]
+                 for t in ev_trig(by, lb)), "the grunt (%s)" % side)
+    need(10, ev_has(by, "PetalburgWoods_EventScript_RemoveDevonResearcher", "MAP_PETALBURG_WOODS", "setvar",
+                    "VAR_PETALBURG_WOODS_STATE", 92, "1"), "RemoveDevonResearcher")
+    # 11 the rival battles are optional: a YES answer two labels up is on every known path (dev.tests)
+    for lb in EV_RIVAL_LABELS:
+        r = by.get(lb) or {}
+        need(11, ("MAP_ROUTE104" if lb.startswith("Route104") else "MAP_RUSTBORO_CITY") in r.get("maps", []) and
+             any(c["op"] == "trainerbattle" for c in r.get("changes", [])) and
+             "VAR_RESULT eq YES (answer)" in (r.get("dev") or {}).get("tests", []), lb)
+    # 12 the rival's gating vars are set only after Devon Corp 3F (:68), then Rustboro (:33, :88)
+    need(12, ev_has(by, "RustboroCity_DevonCorp_3F_EventScript_MeetPresident", "MAP_RUSTBORO_CITY_DEVON_CORP_3F", "setvar",
+                    "VAR_RUSTBORO_CITY_STATE", 68, "6"), "MeetPresident")
+    need(12, ev_has(by, "RustboroCity_EventScript_ScientistAddMatchCall", "MAP_RUSTBORO_CITY", "setvar",
+                    "VAR_ROUTE104_STATE", 33, "1"), "ScientistAddMatchCall")
+    need(12, ev_has(by, "RustboroCity_EventScript_MatchCallTutorial", "MAP_RUSTBORO_CITY", "setvar",
+                    "VAR_RUSTBORO_CITY_STATE", 88, "7"), "MatchCallTutorial")
+    # 14 the badge marks Roxanne's gym trainers beaten (set_gym_trainers.inc:14-16), in words naming each one
+    for t, n in (("TRAINER_JOSH", 14), ("TRAINER_TOMMY", 15), ("TRAINER_MARC", 16)):
+        sg = by.get("RustboroCity_Gym_SetGymTrainers") or {}
+        need(14, ev_has(by, "RustboroCity_Gym_SetGymTrainers", "MAP_RUSTBORO_CITY_GYM", "settrainerflag", t, n) and
+             any(ev_target(c) == t and t.split("_", 1)[1] in (c.get("effect") or "") and "beaten" in c["effect"]
+                 for c in sg.get("changes", [])), t)
+    # 15 Roxanne's defeat (RustboroCity_Gym/scripts.inc:18, :20, :21), certain, after her battle
+    rox = "RustboroCity_Gym_EventScript_RoxanneDefeated"
+    for op, t, n, v in (("setflag", "FLAG_DEFEATED_RUSTBORO_GYM", 18, None), ("setvar", "VAR_RUSTBORO_CITY_STATE", 20, "1"),
+                        ("addvar", "VAR_PETALBURG_GYM_STATE", 21, "1")):
+        need(15, ev_has(by, rox, "MAP_RUSTBORO_CITY_GYM", op, t, n, v, False), "RoxanneDefeated %s %s" % (op, t))
+    need(15, any(t["kind"] == "battle" and t.get("trainer") == "TRAINER_ROXANNE_1" for t in ev_trig(by, rox)),
+         "Roxanne's battle trigger")
+    return bad
+
+
+def ev_change(obj, lab, line):
+    """The change of label `lab` at `line`; with lab None, the change whose ref is exactly `line` (a path:line)."""
+    if lab is None:
+        return next(c for r in obj["labels"] for c in r["changes"] if c["dev"]["ref"] == line)
+    return next(c for c in ev_by(obj)[lab]["changes"] if c["dev"]["ref"].endswith(":%d" % line))
+
+
+#: one FAULT per W7 row: (row, the change that breaks only that row's fact)
+EV_W7_FAULTS = (
+    (1, lambda o: ev_by(o)["Route103_EventScript_RivalEnd"]["changes"].pop(2)),
+    (3, lambda o: ev_by(o)["Route101_EventScript_BirchsBag"].__setitem__("maps", ["MAP_ROUTE102"])),
+    (4, lambda o: next(g for g in o["gates"] if g["label"] == "OldaleTown_EventScript_BlockedPath").__setitem__(
+        "when", None)),
+    (5, lambda o: o.__setitem__("labels", [r for r in o["labels"] if not r["label"].endswith("ReceivePokedex")])),
+    (6, lambda o: ev_change(o, None, "data/maps/DewfordTown_Gym/scripts.inc:152")["dev"].__setitem__("value", "2")),
+    (7, lambda o: ev_change(o, "PetalburgCity_EventScript_WallyTutorial", 52).__setitem__("effect", None)),
+    (8, lambda o: ev_change(o, "PetalburgCity_EventScript_WallyTutorial", 40).__setitem__("name", "StartWallyBattle")),
+    (9, lambda o: next(g for g in o["gates"] if g["label"] == "PetalburgCity_EventScript_ShowGymToPlayer2").__setitem__(
+        "kind", "locked")),
+    (10, lambda o: ev_by(o)["PetalburgWoods_EventScript_DevonResearcherRight"].__setitem__("trigger", [])),
+    (11, lambda o: ev_by(o)["RustboroCity_EventScript_BattleBrendanMudkip"]["dev"]["tests"].remove(
+        "VAR_RESULT eq YES (answer)")),
+    (12, lambda o: ev_change(o, "RustboroCity_EventScript_MatchCallTutorial", 88)["dev"].__setitem__("value", "6")),
+    (14, lambda o: ev_change(o, "RustboroCity_Gym_SetGymTrainers", 15).__setitem__("effect", None)),
+    (15, lambda o: ev_change(o, "RustboroCity_Gym_EventScript_RoxanneDefeated", 18).__setitem__("conditional", True)),
+)
+
+
+class S2bOutputTests(unittest.TestCase):
+    """--check: the committed file is byte-identical to a fresh extraction. A DETERMINISM check, not a replication, and
+    the one class the mutant run leaves out (a byte comparison catches every output change, so it would hide which
+    SEMANTIC test pins a value)."""
+
+    def test_committed_equals_fresh(self):
+        self.assertEqual((WORLD / xe.OUT_NAME).read_bytes(), serial(ev_build()[0]))
+        bad = ev_copy()
+        bad["gates"][0]["kind"] = "locked" if bad["gates"][0]["kind"] != "locked" else "steer"
+        self.assertNotEqual((WORLD / xe.OUT_NAME).read_bytes(), serial(bad))
+
+
+class S2bBuildTests(unittest.TestCase):
+    """The FRESH build's content: the verifier's verdict on it, W7, R-4..R-7, the dead / excluded lists, the counts and
+    the values no verifier rule reads. Each FAULT is a copy with one fact broken."""
+
+    def test_fresh_build_passes_the_verifier(self):
+        """The independent verifier over a FRESH extraction, not the committed file: a semantic check of the build itself
+        (S2bOutputTests' byte comparison is only a determinism check)."""
+        rep = vw.Report()
+        vw.verify_events(ROOT, ev_build()[0], vw.load(str(WORLD)), rep)
+        self.assertEqual(rep.lines, [])
+        self.assertEqual((rep.counts.get("events_labels"), rep.counts.get("events_dead"), rep.counts.get("events_gates"),
+                          rep.counts.get("events_matchcall")), (2300, 54, 32, 76))  # fix round 1: +22 Match Call labels
+        bad = ev_copy()  # FAULT: the fresh build with one certain setflag dropped
+        bad_rec = ev_by(bad)["Route103_EventScript_RivalEnd"]
+        bad_rec["changes"] = [c for c in bad_rec["changes"] if c["op"] != "setflag"]
+        rep = vw.Report()
+        vw.verify_events(ROOT, bad, vw.load(str(WORLD)), rep)
+        self.assertEqual(len(rep.lines), 1, rep.lines)
+        self.assertTrue(rep.lines[0].startswith("MISMATCH events label Route103_EventScript_RivalEnd:"), rep.lines)
+
+    def test_w7_acceptance(self):
+        self.assertEqual(ev_w7(ev_build()[0]), [])
+        for row, fault in EV_W7_FAULTS:
+            bad = ev_copy()
+            fault(bad)
+            got = ev_w7(bad)
+            self.assertTrue(got and all(x.startswith("row %d:" % row) for x in got), (row, got))
+
+    def test_counts_re_measured(self):
+        """Builder A's measured counts at the pin (2026-10-22 report), re-measured on the fresh build: the changes by op
+        and how many are conditional, the trigger kinds with their dev evidence, the excluded groups, the dead split.
+        FIX ROUND 1 moved these pins, each for a stated reason: the 76 register_matchcall lines are now `special` changes
+        (special 1390 -> 1466, 54 of them conditional: 727 -> 781), 22 labels whose ONLY change is one became records
+        (labels 2278 -> 2300; their 12 called triggers carry a flag test, 128 -> 140, and 10 are battles, 97 -> 107),
+        and the 2 phantom `fall` triggers are gone (called with only a ref, 962 -> 960)."""
+        import collections
+        obj, res = ev_build()
+        self.assertEqual(obj["_notes"]["counts"], {"labels": 2300, "changes": 3849, "conditional": 1447, "gates": 32,
+                                                   "gates_worded": 20, "dead": 54})
+        ch = [c for r in obj["labels"] for c in r["changes"]]
+        self.assertEqual(dict(collections.Counter(c["op"] for c in ch)), {
+            "special": 1466, "setflag": 806, "trainerbattle": 652, "setvar": 436, "clearflag": 237, "warp": 140,
+            "settrainerflag": 57, "copyvar": 24, "addvar": 20, "subvar": 7, "cleartrainerflag": 4})
+        self.assertEqual(dict(collections.Counter(c["op"] for c in ch if c["conditional"])), {
+            "special": 781, "setflag": 298, "setvar": 141, "clearflag": 109, "warp": 81, "trainerbattle": 14,
+            "copyvar": 10, "subvar": 7, "addvar": 6})
+        self.assertTrue(all((c["conditional"] is True) == bool(c["dev"].get("after")) for c in ch))
+        trig = collections.Counter((t["kind"], tuple(sorted((t.get("dev") or {})))) for r in obj["labels"]
+                                   for t in r["trigger"])
+        self.assertEqual(dict(trig), {
+            ("called", ("ref", "test", "vars")): 1148, ("called", ("ref",)): 960, ("talk", ()): 715,
+            ("map_script", ("ref", "test", "vars")): 251, ("talk", ("flags", "test")): 171,
+            ("called", ("flags", "ref", "test")): 140, ("map_script", ("ref",)): 104, ("battle", ("ref",)): 107,
+            ("C", ("ref",)): 65, ("sign", ()): 54, ("coord", ("test", "vars")): 51, ("coord", ("test",)): 1,
+            ("called", ("ref", "test")): 1})
+        self.assertEqual(dict(collections.Counter(t["map_script"] for r in obj["labels"] for t in r["trigger"]
+                                                  if t["kind"] == "map_script")),
+                         {"on_frame": 245, "on_transition": 80, "on_resume": 21, "on_warp_into_map": 6,
+                          "on_return_to_field": 2, "on_load": 1})
+        self.assertEqual([(x["what"], x["count"], x.get("by_command")) for x in obj["excluded"]], [
+            ("writes to not a save flag (id past FLAGS_COUNT)", 1, {"setflag": 1}),
+            ("writes to special flags (not saved)", 39, {"clearflag": 21, "setflag": 18}),
+            ("writes to special vars (scratch registers, the script result included; not saved)", 1107,
+             {"addvar": 52, "copyvar": 121, "setorcopyvar": 10, "setvar": 919, "subvar": 5}),
+            ("writes to temp flags (cleared on every map entry)", 44, {"clearflag": 2, "setflag": 42}),
+            ("writes to temp vars (cleared on every map entry)", 518, {"addvar": 32, "copyvar": 17, "setvar": 469}),
+            ("mystery gift scripts (data/mystery_gift.s includes)", 19, None),
+            ("the Eon Ticket distribution (record mixing)", 1, None)])
+        self.assertEqual(sum(1 for r in obj["labels"] if r.get("reached_from") == "C"), 96)
+        self.assertEqual(sum(1 for r in obj["labels"] if r["dev"]["paths_known"] == 0), 96)
+        self.assertEqual(sum(1 for r in obj["labels"] if r["dev"]["collapsed"]), 54)
+        self.assertLess(res["max_closure"] * 2, ei.MAX_CLOSURE, "the closure bound has lost its margin")
+        bad = ev_copy()  # FAULT: the same counter over a copy with one change made conditional differs
+        next(c for r in bad["labels"] for c in r["changes"] if not c["conditional"])["conditional"] = True
+        self.assertNotEqual(sum(1 for r in bad["labels"] for c in r["changes"] if c["conditional"]), 1447)
+
+    def test_values_no_rule_reads(self):
+        """Values the verifier does not re-derive, pinned on records that hold them: each trigger kind's dev evidence,
+        copyvar's source and the R-3 value, the facility battles' null trainer, warphole's null words, the trainer-flag
+        words, the C-only records' C line, the pruned branch's dead why."""
+        obj = ev_build()[0]
+        by = ev_by(obj)
+        self.assertEqual(ev_trig(by, "Route101_EventScript_BirchsBag")[0]["dev"]["flags"],
+                         ["FLAG_HIDE_ROUTE_101_BIRCH_STARTERS_BAG"])                                    # talk + hide flag
+        self.assertEqual(ev_trig(by, "PetalburgWoods_EventScript_DevonResearcherLeft")[0]["dev"],
+                         {"test": "VAR_PETALBURG_WOODS_STATE eq 0", "vars": ["VAR_PETALBURG_WOODS_STATE"]})  # coord
+        self.assertEqual(ev_trig(by, "EventScript_SetBrineyLocation_House")[0]["dev"]["flags"],
+                         ["FLAG_HIDE_ROUTE_104_MR_BRINEY_BOAT"])                                        # called on a flag
+        self.assertEqual(ev_trig(by, "Route104_EventScript_BattleMayTreecko")[0]["dev"]["vars"], ["VAR_STARTER_MON"])
+        wt = ev_trig(by, "PetalburgCity_EventScript_WallyTutorial")[0]
+        self.assertEqual((wt["kind"], wt["maps"], wt["dev"]["vars"]),
+                         ("map_script", ["MAP_PETALBURG_CITY"], ["VAR_PETALBURG_CITY_STATE"]))
+        self.assertEqual(by["OldaleTown_OnTransition"]["trigger"][0]["map_script"], "on_transition")
+        cv = [c for r in obj["labels"] for c in r["changes"] if c["op"] == "copyvar"]
+        self.assertEqual(sum(1 for c in cv if c["dev"].get("from") and c["dev"]["vars"][1:] == [c["dev"]["from"]]), 20)
+        self.assertEqual(sorted(c["dev"]["ref"] for c in cv if c["dev"].get("value") == xe.COPYVAR_BUG), [
+            "data/maps/LilycoveCity_LilycoveMuseum_2F/scripts.inc:78", "data/maps/SkyPillar_2F/scripts.inc:12",
+            "data/maps/SkyPillar_4F/scripts.inc:12", "data/scripts/cave_hole.inc:9"])
+        tb = [(r["label"], c["dev"]["why"]) for r in obj["labels"] for c in r["changes"]
+              if c["op"] == "trainerbattle" and c["trainer"] is None]
+        self.assertEqual([x for x, _ in tb], ["BattlePyramid_TrainerBattle", "TrainerHill_EventScript_TrainerBattle"])
+        self.assertTrue(all(w.startswith("a facility battle") for _, w in tb))
+        holes = [c for r in obj["labels"] for c in r["changes"] if c.get("dev", {}).get("cmd") == "warphole"]
+        self.assertEqual([(c["map"], c["effect"]) for c in holes],
+                         [("MAP_SOOTOPOLIS_CITY_GYM_B1F", None), ("MAP_UNDEFINED", None)])
+        tf = [c for r in obj["labels"] for c in r["changes"] if c["op"] in ("settrainerflag", "cleartrainerflag")]
+        self.assertTrue(all(c["effect"] == xe.EFFECT_WORDS[c["op"]][0].format(name=c["name"]) for c in tf))
+        conly = by["EventScript_MoveMrBrineyToHouse"]
+        self.assertEqual((conly["reached_from"], conly["maps"], conly["c_ref"][:4]), ("C", [], "src/"))
+        why = next(x["why"] for x in obj["dead"] if x["label"] == "LilycoveCity_ContestLobby_EventScript_SetDebug")
+        self.assertIn("IsContestDebugActive", why)
+        self.assertEqual(sum(1 for r in obj["labels"] for c in r["changes"] if c["op"] == "warp" and c["effect"]),
+                         EV_WORDED_WARPS)
+
+    def test_rules_r4_to_r7(self):
+        """R-4..R-7 over the WHOLE fresh output (CONTROL), and each rule broken on a one-record object (FAULT), refused
+        by refuse_all and found by the verifier's own R-4 scan; the door to disk writes nothing it refuses."""
+        obj = ev_build()[0]
+        d = ew.Decomp(ROOT)
+        defined = ei.defined_names(d)
+        self.assertEqual(ei.dev_key_hits(obj), [])
+        self.assertEqual(vw.s2_key_hits(obj), [])
+        xe.refuse_all(obj, defined)
+        rec = ev_by(obj)["Route103_EventScript_RivalEnd"]
+        gate = next(g for g in obj["gates"] if g["label"] == "OldaleTown_EventScript_BlockedPath")
+
+        def small(change, of=rec, key="labels"):
+            o = {key: [copy.deepcopy(of)]}
+            change(o[key][0])
+            return o
+        xe.refuse_all(small(lambda r: None), defined)  # CONTROL of the small shape
+        for plant in ("flag", "flags", "var", "vars"):
+            bad = small(lambda r: r["changes"][2].__setitem__(plant, "FLAG_DEFEATED_RIVAL_ROUTE103"))
+            self.assertRaisesRegex(Refused, "R-4", xe.refuse_all, bad, defined)
+            self.assertTrue(vw.s2_key_hits(bad), plant)
+        bad = small(lambda g: g.__setitem__("when", "after FLAG_ADVENTURE_STARTED"), gate, "gates")
+        self.assertRaisesRegex(Refused, "R-4", xe.refuse_all, bad, defined)
+        bad = small(lambda r: r["changes"][2]["dev"]["flags"].append("FLAG_HIDE_FALLORBOR_POKEMON_CENTER_LANETTE"))
+        self.assertRaisesRegex(Refused, "R-5", xe.refuse_all, bad, defined)
+        for key, needle in (("x", "R-6"), ("route", "R-6"), ("iv", ""), ("aiFlags", "")):
+            bad = small(lambda r: r["trigger"][0].__setitem__(key, 1))
+            self.assertRaisesRegex(Refused, needle, xe.refuse_all, bad, defined)
+            with tempfile.TemporaryDirectory() as tmp:
+                self.assertRaises(Refused, xe.write_output, tmp, bad, d)
+                self.assertFalse(os.path.exists(os.path.join(tmp, xe.OUT_NAME)))
+        with tempfile.TemporaryDirectory() as tmp:  # CONTROL of the door: the real output goes through
+            xe.write_output(tmp, obj, d)
+            self.assertTrue(os.path.exists(os.path.join(tmp, xe.OUT_NAME)))
+
+    def test_dead_and_excluded_are_named(self):
+        obj = ev_build()[0]
+        dead = {x["label"] for x in obj["dead"]}
+        self.assertTrue({"MossdeepCity_Gym_EventScript_Switch1", "LilycoveCity_ContestLobby_EventScript_SetDebug",
+                         "EventScript_CableClub_SetVarResult1"} <= dead, sorted(dead)[:10])
+        self.assertTrue(all(x["why"] and x["ref"] for x in obj["dead"]))
+        self.assertFalse(dead & {r["label"] for r in obj["labels"]})
+        self.assertEqual([x["label"] for x in obj["excluded"][-1]["labels"]], ["CableClub_EventScript_DistributeEonTicket"])
+        self.assertNotIn("CableClub_EventScript_DistributeEonTicket", {r["label"] for r in obj["labels"]})
+        self.assertIn("data/scripts/gift_pichu.inc", obj["excluded"][-2]["files"])
+        self.assertTrue(all(x["count"] > 0 and x["what"] and x["why"] for x in obj["excluded"]))
+        bad = ev_copy()  # FAULT: one dead label left out is reported by the verifier
+        bad["dead"] = [x for x in bad["dead"] if x["label"] != "EventScript_CableClub_SetVarResult1"]
+        rep = vw.Report()
+        vw.verify_events(ROOT, bad, vw.load(str(WORLD)), rep)
+        self.assertTrue(any(ln.startswith("MISMATCH events dead:") for ln in rep.lines), rep.lines)
+
+    def test_check_cli_compare(self):
+        """main --check's comparison (exit 0 same, 1 different or missing), with `run` swapped for the cached build so
+        the arm costs no second 50 s extraction. The CONTROL compares against a file written from the same object, so
+        this tests the COMPARISON, not the committed file (that is S2bOutputTests' job)."""
+        obj = ev_build()[0]
+        d = ew.Decomp(ROOT)
+
+        def fake_run(root, out, maps=None):
+            xe.write_output(out, obj, d)
+            return obj
+        with Swap(xe, "run", fake_run), redirect_stdout(io.StringIO()), tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, xe.OUT_NAME).write_bytes(serial(obj))
+            self.assertEqual(xe.main(["--check", "--out", tmp]), 0)
+            bad = ev_copy()
+            bad["gates"][0]["when"] = "x"
+            Path(tmp, xe.OUT_NAME).write_bytes(serial(bad))
+            self.assertEqual(xe.main(["--check", "--out", tmp]), 1)
+            self.assertEqual(xe.main(["--check", "--out", os.path.join(tmp, "none")]), 1)
+
+
+#: warps with words (a cited warp command whose map maps.json names); measured at the pin
+EV_WORDED_WARPS = 138
+
+
+def ev_moved(cite):
+    """(path:line, token) with the line moved one down: a cite that no longer holds its token."""
+    return (shift(cite[0], 1), cite[1])
+
+
+class S2bGuardTests(unittest.TestCase):
+    """Each guard of extract_events refuses its broken input (CONTROL: the real input passes), and each guard's CALL
+    inside the build fires: the build is made over the broken input and must refuse with THAT guard's message (a later
+    guard refusing the same input would hide a deleted call; 2a's first mutant round)."""
+
+    def test_table_cites_each_table(self):
+        d = ew.Decomp(ROOT)
+        xe.check_cites(d)
+        self.assertEqual({e.split(" ")[0] for e, _, _ in xe.table_cites()},
+                         {"GATE_WORDS", "EFFECT_WORDS", "WARP_CMDS", "PERSIST_RANGES", "FLAGS_COUNT", "COPYVAR_BUG",
+                          "PLACEHOLDER_BATTLES"})
+        gw = dict(xe.GATE_WORDS)
+        e = gw["OldaleTown_EventScript_BlockedPath"]
+        gw["OldaleTown_EventScript_BlockedPath"] = (e[0], ev_moved(e[1])) + e[2:]
+        ew_ = dict(xe.EFFECT_WORDS)
+        ew_["settrainerflag"] = (ew_["settrainerflag"][0], ev_moved(ew_["settrainerflag"][1]))
+        wc = dict(xe.WARP_CMDS)
+        wc["warpdoor"] = ev_moved(wc["warpdoor"])
+        pr = [list(x) for x in xe.PERSIST_RANGES]
+        pr[2][4] = ev_moved(pr[2][4])
+        ph = dict(xe.PLACEHOLDER_BATTLES)
+        ph["TRAINER_BATTLE_HILL"] = ev_moved(ph["TRAINER_BATTLE_HILL"])
+        for name, value, needle in (("GATE_WORDS", gw, "GATE_WORDS OldaleTown_EventScript_BlockedPath"),
+                                    ("EFFECT_WORDS", ew_, "EFFECT_WORDS settrainerflag"),
+                                    ("WARP_CMDS", wc, "WARP_CMDS warpdoor"),
+                                    ("PERSIST_RANGES", [tuple(x) for x in pr], "PERSIST_RANGES temp vars"),
+                                    ("FLAGS_COUNT_CITE", ev_moved(xe.FLAGS_COUNT_CITE), "FLAGS_COUNT"),
+                                    ("COPYVAR_CITES", (ev_moved(xe.COPYVAR_CITES[0]),) + xe.COPYVAR_CITES[1:],
+                                     "COPYVAR_BUG"),
+                                    ("PLACEHOLDER_BATTLES", ph, "PLACEHOLDER_BATTLES TRAINER_BATTLE_HILL")):
+            with Swap(xe, name, value):
+                self.assertRaisesRegex(Refused, re.escape(needle), xe.check_cites, d)
+
+    def test_gate_table_both_clauses(self):
+        g = ev_build()[1]["graph"]
+        cands = xe.gate_candidates(g, xe.Persist(g.d))
+        xe.check_gate_table(cands)
+        self.assertEqual({(c[0], c[1]) for c in cands}, {(x["label"], x["kind"]) for x in ev_build()[0]["gates"]})
+        no_oldale = [c for c in cands if c[0] != "OldaleTown_EventScript_BlockedPath"]
+        self.assertRaisesRegex(Refused, "OldaleTown_EventScript_BlockedPath", xe.check_gate_table, no_oldale)
+        twice = cands + [c for c in cands if c[0] == "OldaleTown_EventScript_BlockedPath"]
+        self.assertRaisesRegex(Refused, "OldaleTown_EventScript_BlockedPath", xe.check_gate_table, twice)
+
+    def test_check_joins(self):
+        obj = ev_build()[0]
+        names = {t["symbol"]: t["name"] for t in OBJS["trainers.json"]["trainers"]}
+        xe.check_joins(obj["labels"], names)
+        names.pop("TRAINER_GRUNT_PETALBURG_WOODS")
+        self.assertRaisesRegex(Refused, "TRAINER_GRUNT_PETALBURG_WOODS", xe.check_joins, obj["labels"], names)
+
+    def test_build_refuses(self):
+        """The guards' CALLS inside build / build_all, each over its broken input (fast builds: entry_tests stubbed)."""
+        maps_path = str(WORLD / "maps.json")
+        ev = raw_text("data/event_scripts.s")
+        overlays = {
+            "neither data/event_scripts.s nor": {
+                "data/event_scripts.s": ev.replace('\t.include "data/maps/Route104/scripts.inc"\n', "")},
+            "map.json scripts that are no label": {
+                "data/maps/Route104/map.json": raw_text("data/maps/Route104/map.json").replace(
+                    '"Route104_EventScript_Boy2"', '"Route104_EventScript_NoSuchLabel"')},
+        }
+        for needle, over in overlays.items():
+            self.assertNotEqual(list(over.values())[0], raw_text(list(over)[0]), needle)
+            self.assertRaisesRegex(Refused, re.escape(needle), ev_fast, OverlayDecomp(ROOT, over), maps_path)
+        e = xe.GATE_WORDS["OldaleTown_EventScript_BlockedPath"]
+        moved = dict(xe.GATE_WORDS, OldaleTown_EventScript_BlockedPath=(e[0], ev_moved(e[1])) + e[2:])
+        with Swap(xe, "GATE_WORDS", moved):
+            self.assertRaisesRegex(Refused, "cited table lines", ev_fast)
+        extra = dict(xe.GATE_WORDS, Route103_EventScript_RivalEnd=(
+            "words", ("data/maps/Route103/scripts.inc:133", "setflag FLAG_DEFEATED_RIVAL_ROUTE103")))
+        with Swap(xe, "GATE_WORDS", extra):
+            self.assertRaisesRegex(Refused, "GATE_WORDS labels that are not exactly one", ev_fast)
+        with tempfile.TemporaryDirectory() as tmp:
+            shutil.copy(WORLD / "maps.json", Path(tmp, "maps.json"))
+            tr = json.loads((WORLD / "trainers.json").read_text(encoding="utf-8"))
+            tr["trainers"] = [t for t in tr["trainers"] if t["symbol"] != "TRAINER_GRUNT_PETALBURG_WOODS"]
+            Path(tmp, "trainers.json").write_text(json.dumps(tr), encoding="utf-8")
+            self.assertRaisesRegex(Refused, "trainers the scripts name that trainers.json lacks", ev_fast, None,
+                                   str(Path(tmp, "maps.json")))
+            doc = json.loads((WORLD / "maps.json").read_text(encoding="utf-8"))
+            doc["_source"] = "pret/pokeemerald@0000000"
+            Path(tmp, "maps.json").write_text(json.dumps(doc), encoding="utf-8")
+            self.assertRaisesRegex(Refused, "maps.json is from", ev_fast, None, str(Path(tmp, "maps.json")))
+        res = dict(ev_build()[1])
+        res["labels"] = copy.deepcopy(res["labels"][:3])
+        res["labels"][0]["flag"] = "FLAG_X"
+        with Swap(xe, "build", lambda d, mj, names: res):
+            self.assertRaisesRegex(Refused, "R-4", xe.build_all, ew.Decomp(ROOT), maps_path)
+        res["labels"][0].pop("flag")
+        with Swap(xe, "build", lambda d, mj, names: res):  # CONTROL: the same short result passes
+            self.assertEqual(len(xe.build_all(ew.Decomp(ROOT), maps_path)[0]["labels"]), 3)
+
+    def test_dead_line_after_end(self):
+        """An op line after `end` (ev_faulted's overlay) is listed in `dead` with its line, and is no change. CONTROL:
+        the real build has no such line."""
+        self.assertEqual([x for x in ev_build()[0]["dead"] if "line" in x], [])
+        obj = ev_faulted()
+        self.assertEqual([x for x in obj["dead"] if "line" in x], [{
+            "label": "Route103_EventScript_RivalEnd", "ref": "data/maps/Route103/scripts.inc:129",
+            "line": "data/maps/Route103/scripts.inc:140", "command": "setflag",
+            "why": "after `end` (data/maps/Route103/scripts.inc:139) in the same label: this line never runs"}])
+        self.assertEqual([c["dev"]["ref"].rsplit(":", 1)[1] for c in ev_by(obj)["Route103_EventScript_RivalEnd"]["changes"]],
+                         ["131", "132", "133", "134", "135"])
+
+
+def ev_unit_ctx():
+    d = ew.Decomp(ROOT)
+    return {"persist": xe.Persist(d), "names": {"TRAINER_JOSH": "YOUNGSTER JOSH"},
+            "alias": {"MYFLAG": "FLAG_TEMP_1", "MYVAR": "VAR_TEMP_0", "SRC": "VAR_BIRCH_LAB_STATE"},
+            "map_names": {"MAP_ROUTE101": "Route101"}}
+
+
+class S2bUnitTests(unittest.TestCase):
+    """Function-level FAULT / CONTROL arms on synthetic inputs where the branch decides, for branches no record at the
+    pin exercises (a flag alias, a saved specialvar result, a warp id, an unnamed trainer, a closure past the bound)
+    and for the ones the verifier does not re-derive."""
+
+    def test_change_of_branches(self):
+        ctx = ev_unit_ctx()
+        lab = {"file": "x.inc", "line": 1, "body": []}
+
+        def co(mn, *args):
+            return xe.change_of(ctx, lab, 5, mn, list(args))
+        self.assertEqual(co("setflag", "FLAG_ADVENTURE_STARTED")[0]["dev"], {"flags": ["FLAG_ADVENTURE_STARTED"],
+                                                                             "ref": "x.inc:5"})
+        self.assertEqual(co("setflag", "MYFLAG"), (None, ("temp flags (cleared on every map entry)", "FLAG_TEMP_1")))
+        self.assertEqual(co("setvar", "MYVAR", "1")[1][1], "VAR_TEMP_0")
+        self.assertEqual(co("setvar", "VAR_RESULT", "1")[1][0][:12], "special vars")
+        self.assertEqual(co("copyvar", "VAR_OLDALE_TOWN_STATE", "SRC")[0]["dev"],
+                         {"vars": ["VAR_OLDALE_TOWN_STATE", "VAR_BIRCH_LAB_STATE"], "ref": "x.inc:5",
+                          "from": "VAR_BIRCH_LAB_STATE"})
+        self.assertEqual(co("copyvar", "VAR_OLDALE_TOWN_STATE", "1")[0]["dev"]["value"], xe.COPYVAR_BUG)
+        self.assertEqual(co("copyvar", "VAR_OLDALE_TOWN_STATE", "0x4050")[0]["dev"]["value"],
+                         "unknown (copied from var id 0x4050)")
+        self.assertEqual((co("setorcopyvar", "VAR_OLDALE_TOWN_STATE", "VAR_BIRCH_LAB_STATE")[0]["op"],
+                          co("setorcopyvar", "VAR_OLDALE_TOWN_STATE", "3")[0]["op"],
+                          co("setorcopyvar", "VAR_OLDALE_TOWN_STATE", "3")[0]["dev"]["value"]), ("copyvar", "setvar", "3"))
+        self.assertEqual(co("settrainerflag", "TRAINER_JOSH")[0]["effect"], "YOUNGSTER JOSH now counts as beaten")
+        self.assertEqual(co("cleartrainerflag", "TRAINER_TOMMY")[0]["effect"], None)  # not in names: no words
+        self.assertEqual(co("specialvar", "VAR_OLDALE_TOWN_STATE", "GetX")[0]["dev"]["vars"], ["VAR_OLDALE_TOWN_STATE"])
+        self.assertNotIn("vars", co("specialvar", "VAR_RESULT", "GetX")[0]["dev"])
+        self.assertEqual(co("specialvar", "VAR_RESULT", "GetX")[0]["name"], "GetX")
+        w = [co("warp", "MAP_ROUTE101", *a)[0] for a in (("1",), ("2", "3", "4"), ("5", "6"))]
+        self.assertEqual([x["warp_id"] for x in w], [1, 2, None])
+        self.assertEqual(w[0]["effect"], "you are moved to Route101")
+        self.assertEqual((co("warphole", "MAP_ROUTE101")[0]["effect"], co("warp", "MAP_UNDEFINED")[0]["effect"]),
+                         (None, None))
+        tb = co("trainerbattle", "TRAINER_BATTLE_PYRAMID", "TRAINER_PHILLIP", "0", "T", "T")[0]
+        self.assertEqual(tb["trainer"], None)
+        self.assertIn("TRAINER_BATTLE_PYRAMID", tb["dev"]["why"])
+        self.assertEqual(co("trainerbattle_single", "TRAINER_JOSH", "A", "B")[0]["name"], "YOUNGSTER JOSH")
+
+    def test_persist_ranges(self):
+        p = xe.Persist(ew.Decomp(ROOT))
+        self.assertEqual([p.dropped(ns, n) for ns, n in (
+            ("flag", "FLAG_TEMP_1"), ("flag", "FLAG_HIDE_MAP_NAME_POPUP"), ("var", "VAR_TEMP_0"), ("var", "VAR_RESULT"),
+            ("flag", "VAR_0x8005"), ("flag", "FLAG_ADVENTURE_STARTED"), ("var", "VAR_BIRCH_LAB_STATE"),
+            ("flag", "NO_SUCH_NAME"))], [
+            "temp flags (cleared on every map entry)", "special flags (not saved)",
+            "temp vars (cleared on every map entry)",
+            "special vars (scratch registers, the script result included; not saved)",
+            "not a save flag (id past FLAGS_COUNT)", None, None, None])
+
+    def test_safe_callee_and_diverts(self):
+        g = fake_graph("A::\n\tcall B\n\tsetflag FLAG_X\n\tend\nB::\n\tsetvar VAR_Y, 1\n\tgoto_if_eq VAR_Y, 1, C\n"
+                       "\treturn\nC::\n\treturn\nD::\n\tspecial Foo\n\treturn\nE::\n\tend\n")
+        self.assertEqual((xe.safe_line("bufferspeciesname"), xe.safe_line("msgbox"), xe.safe_line("special")),
+                         (True, True, False))
+        self.assertEqual([xe.callee_returns(g, x, {}) for x in "BCDE"], [True, True, False, False])
+        with Swap(ei, "MAX_CLOSURE", 0):  # a closure past the bound is not proven (Refused -> False, never raised)
+            self.assertIs(xe.callee_returns(g, "B", {}), False)
+        self.assertEqual([xe.diverts(g, mn, a, {}) for mn, a in (
+            ("call", ["B"]), ("call", ["D"]), ("call_if_eq", ["VAR_X", "1", "B"]), ("call_if_eq", ["VAR_X", "1", "E"]),
+            ("special", ["Foo"]), ("msgbox", ["T"]), ("bufferspeciesname", ["0", "X"]))],
+            [False, True, False, True, True, False, False])
+
+    def test_live_body(self):
+        g = fake_graph("A::\n\tsetflag FLAG_X\n\tend\n\tsetflag FLAG_Y\nB::\n\tend\n")
+        live, dead = xe.live_body(g.labels["A"])
+        self.assertEqual(([x[0] for x in live], [(x[0], x[2]) for x in dead]), ([2, 3], [(4, ("end", 3))]))
+        live, dead = xe.live_body(g.labels["B"])
+        self.assertEqual(dead, [])
+
+    def test_gate_candidate_patterns(self):
+        """gate_candidates on a synthetic graph where each clause decides (the first mutant run: deleting the steer
+        warp/story clauses, the locked target's warp/story/end clauses, the reachable filter or profile's story count
+        changed no candidate at the pin). CONTROL: S1 (a coord trigger that only steps the player) and L1 (a goto_if
+        on a saved flag whose target only talks and ends, while the label's own way on warps) are the only candidates.
+        Each other label breaks exactly one clause: S2 warps, S3 gives an item, L2's target warps, L3's target gives an
+        item, L4's target returns instead of ending, U1 is L1's shape that nothing reaches."""
+        text = ("S1::\n\tapplymovement LOCALID_PLAYER, M\n\twaitmovement 0\n\tend\n"
+                "S2::\n\tapplymovement LOCALID_PLAYER, M\n\twarp MAP_ROUTE101, 1\n\tend\n"
+                "S3::\n\tapplymovement LOCALID_PLAYER, M\n\tgiveitem ITEM_POTION\n\tend\n")
+        for i, tgt in ((1, "\tmsgbox X\n\tend\n"), (2, "\twarp MAP_ROUTE102, 1\n\tend\n"),
+                       (3, "\tgiveitem ITEM_POTION\n\tend\n"), (4, "\tmsgbox X\n\treturn\n")):
+            text += "L%d::\n\tgoto_if_set FLAG_ADVENTURE_STARTED, T%d\n\twarp MAP_ROUTE101, 1\n\tend\nT%d::\n%s" % (
+                i, i, i, tgt)
+        text += "U1::\n\tgoto_if_set FLAG_ADVENTURE_STARTED, T1\n\twarp MAP_ROUTE101, 1\n\tend\nM::\n\tstep_end\n"
+
+        class Fake:
+            def read(self, rel):
+                return text
+        labels = ei.parse_labels(Fake(), ["x.inc"])
+        roots = []
+        for lab in ("S1", "S2", "S3", "L1", "L2", "L3", "L4"):
+            kind = "coord" if lab[0] == "S" else "object"
+            roots.append({"label": lab, "map": "MAP_X", "cond": ("var", "VAR_ROUTE101_STATE", "eq", "0") if
+                          kind == "coord" else None, "object_flag": None, "hidden": False,
+                          "giver": {"map": "MAP_X", "kind": kind, "object": 1, "local_id": 1, "graphics": "G"}})
+        g = ei.Graph(None, labels, ei.build_edges(labels), roots, {})
+        cands = xe.gate_candidates(g, xe.Persist(ew.Decomp(ROOT)))
+        self.assertEqual(sorted((c[0], c[1]) for c in cands), [("L1", "locked"), ("S1", "steer")])
+        self.assertFalse(g.reachable("U1"))
+
+    def test_persistent_test_and_aliases(self):
+        p = xe.Persist(ew.Decomp(ROOT))
+        self.assertEqual([xe.persistent_test(c, p) for c in (
+            ("trainer", "TRAINER_ROXANNE_1", True), ("flag", "FLAG_ADVENTURE_STARTED", True), ("flag", "FLAG_TEMP_1", True),
+            ("var", "VAR_RESULT", "eq", "1"), ("var", "VAR_BIRCH_LAB_STATE", "eq", "1"),
+            ("flag", "TRAINER_FLAGS_START", True), None)], [True, True, False, False, True, False, False])
+        self.assertIn("TRAINER_FLAGS_START", p.ids)  # the regex arm's input is a real, saved, non-FLAG_ name
+
+        class Fake:
+            def read(self, rel):
+                return ".set FOO, VAR_0x8009\n.set BAR, FLAG_TEMP_1\n.set BAZ, 5\n"
+        self.assertEqual(xe.set_aliases(Fake(), ["a.inc"]), {"FOO": "VAR_0x8009", "BAR": "FLAG_TEMP_1"})
+        self.assertEqual(xe.ms_word("MAP_SCRIPT_ON_FRAME_TABLE"), "on_frame")
+
+
+class S2bVerifierTests(unittest.TestCase):
+    """verify_world's stage-2b reading: CONTROL 0 on the real file; each EV plant on exactly its own ONE line; its own
+    units where no plant reaches; the CLI and selftest wiring."""
+
+    def test_control_and_plants(self):
+        rep = vw.Report()
+        vw.verify_events(ROOT, vw.load_events(str(WORLD)), vw.load(str(WORLD)), rep)
+        self.assertEqual(rep.lines, [])
+        self.assertEqual(rep.counts.get("events_labels"), 2300)
+        self.assertEqual(len(vw.EV_PLANTS), 25)  # fix round 1: + b4f b4s b4m b11 b10m
+        for name in vw.EV_PLANTS:
+            ok, lines, prefix = vw.ev_plant_result(ROOT, str(WORLD), name)
+            self.assertTrue(ok, "%s: %s not in %s" % (name, prefix, lines))
+
+    def test_verifier_units(self):
+        self.assertEqual(vw.ev_eval("0x10 + 2*3", {}), 22)
+        self.assertEqual(vw.ev_eval("A / 2 // a comment", {"A": 7}), 3)
+        self.assertEqual(vw.ev_eval("0x7FFFFFFFFFFFFFFF / 1", {}), 0x7FFFFFFFFFFFFFFF)  # integer, not float, division
+        self.assertRaises(ValueError, vw.ev_eval, "1;2", {})
+        ids = vw.ev_ids(vw.raw(ROOT))
+        mine = ei.name_ids(ew.Decomp(ROOT))  # the extractor's ids, read independently: the bounds must agree
+        for n in ("TEMP_FLAGS_START", "TEMP_FLAGS_END", "SPECIAL_FLAGS_START", "SPECIAL_FLAGS_END", "TEMP_VARS_START",
+                  "TEMP_VARS_END", "SPECIAL_VARS_START", "SPECIAL_VARS_END", "FLAGS_COUNT", "VARS_START",
+                  "FLAG_REGISTERED_ROSE"):  # the last needs rematches.h's enum (TRAINER_REGISTERED_FLAGS_START + id)
+            self.assertEqual(ids[n], mine[n], n)
+        # a flag id past FLAGS_COUNT but below the special range is no save flag (only the FLAGS_COUNT clause says so;
+        # the special-flags clause is implied by it, since SPECIAL_FLAGS_START 0x4000 > FLAGS_COUNT 0x960)
+        self.assertIs(vw.ev_saved(dict(ids, FLAG_PAST=ids["FLAGS_COUNT"]), "flag", "FLAG_PAST"), False)
+        self.assertGreater(ids["SPECIAL_FLAGS_START"], ids["FLAGS_COUNT"])
+        self.assertEqual([vw.ev_saved(ids, ns, n) for ns, n in (
+            ("flag", "FLAG_TEMP_1"), ("flag", "FLAG_HIDE_MAP_NAME_POPUP"), ("flag", "VAR_0x8005"),
+            ("flag", "FLAG_ADVENTURE_STARTED"), ("var", "VAR_TEMP_0"), ("var", "VAR_RESULT"),
+            ("var", "VAR_BIRCH_LAB_STATE"), ("var", "NO_SUCH_NAME"))], [False, False, False, True, False, False, True, None])
+        self.assertEqual(vw.ev_live({"lines": [(1, "setflag FLAG_X"), (2, "end"), (3, "setflag FLAG_Y")]}),
+                         [(1, "setflag FLAG_X"), (2, "end")])
+
+        def op(line, aliases=None):
+            p = line.replace(",", " ").split()
+            return vw.ev_op(p[0], p, aliases or {}, ids)
+        self.assertEqual([op("setorcopyvar VAR_OLDALE_TOWN_STATE, VAR_BIRCH_LAB_STATE"),
+                          op("setorcopyvar VAR_OLDALE_TOWN_STATE, 3"), op("specialvar VAR_RESULT, GetX"),
+                          op("trainerbattle TRAINER_BATTLE_PYRAMID, TRAINER_PHILLIP, 0, T, T"),
+                          op("setvar NUM_OPPONENTS, 1", {"NUM_OPPONENTS": "VAR_0x8009"}), op("msgbox T"),
+                          op("setflag MYFLAG", {"MYFLAG": "FLAG_TEMP_1"}),
+                          op("setorcopyvar VAR_OLDALE_TOWN_STATE, SRC", {"SRC": "VAR_BIRCH_LAB_STATE"})],
+                         [("copyvar", "VAR_OLDALE_TOWN_STATE", None), ("setvar", "VAR_OLDALE_TOWN_STATE", "3"),
+                          ("special", "GetX", None), ("trainerbattle", None, None), "drop", None, "drop",
+                          ("copyvar", "VAR_OLDALE_TOWN_STATE", None)])
+        out = vw.s2_strip("L::\n\tend\n\t/* Never used */\nM::\n\tend\n")
+        self.assertFalse(any("/*" in ln for ln in out), out)
+        self.assertEqual(len(out), 6)  # one output line per input line (the comment line kept, emptied)
+
+    def test_reach_and_story_clauses(self):
+        """Verifier clauses that changed nothing at the pin (the first mutant run: V36, V46, V54), each on a planted copy
+        of the real reading. ev_kinds: a mention from a label nothing reaches (a dead label) adds no `called` kind.
+        ev_candidates: a story line (giveitem) in a steer trigger's script ends it being a steer; a label with the
+        locked shape that nothing reaches is no candidate. CONTROL: the unplanted reading."""
+        e = vw.ev_raw(ROOT)
+        s = e["s"]
+        bag, dead = "Route101_EventScript_BirchsBag", "EventScript_CableClub_SetVarResult1"
+        self.assertEqual(vw.ev_kinds(e, bag), {"talk"})
+        s2 = dict(s, at=dict(s["at"]), labs=dict(s["labs"]), owner=dict(s["owner"]))
+        s2["at"][bag] = list(s["at"].get(bag, ())) + [(dead, s["labs"][dead]["lines"][0][0])]
+        e2 = dict(e, s=s2)
+        self.assertEqual(vw.ev_kinds(e2, bag), {"talk"})
+        base = vw.ev_candidates(e)
+        steer = ("OldaleTown_EventScript_BlockedPath", "steer")
+        self.assertIn(steer, base)
+        lab = s["labs"][steer[0]]
+        s2["labs"][steer[0]] = dict(lab, lines=list(lab["lines"][:-1]) + [(9998, "giveitem ITEM_POTION")] +
+                                    list(lab["lines"][-1:]))
+        s2["labs"]["ZZ_Unreached"] = {"file": "x.inc", "line": 1, "lines": [
+            (2, "goto_if_set FLAG_ADVENTURE_STARTED, ZZ_Talk"), (3, "warp MAP_ROUTE101, 1"), (4, "end")]}
+        s2["labs"]["ZZ_Talk"] = {"file": "x.inc", "line": 5, "lines": [(6, "msgbox X"), (7, "end")]}
+        self.assertFalse(vw.ev_reached(s2, "ZZ_Unreached"))
+        self.assertEqual(vw.ev_candidates(e2), base - {steer})
+
+    def test_dead_lines_reading(self):
+        """The verifier's own dead-line reading (ev_raw over s2_raw's labels): an op line after `end` is a dead line and
+        never a wanted op. No label at the pin has one, so s2_raw is swapped for a copy whose RivalEnd gains the line
+        ev_faulted plants (data/maps/Route103/scripts.inc:140); CONTROL: the real reading has none."""
+        self.assertEqual(vw.ev_raw(ROOT)["dead_lines"], set())
+        real = vw.s2_raw(ROOT)
+        lab = real["labs"]["Route103_EventScript_RivalEnd"]
+        planted = dict(real, labs=dict(real["labs"]))
+        planted["labs"]["Route103_EventScript_RivalEnd"] = dict(
+            lab, lines=list(lab["lines"]) + [(140, "setflag FLAG_DEFEATED_RIVAL_ROUTE103")])
+        saved = dict(vw._EV)
+        try:
+            vw._EV.clear()
+            with Swap(vw, "s2_raw", lambda root: planted):
+                e = vw.ev_raw(ROOT)
+            self.assertEqual(e["dead_lines"], {"data/maps/Route103/scripts.inc:140"})
+            self.assertEqual(len(e["want"]["Route103_EventScript_RivalEnd"]), 5)
+        finally:
+            vw._EV.clear()
+            vw._EV.update(saved)
+
+    def test_cli_and_selftest_wiring(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            self.assertEqual(vw.main(["--plant", "f"]), 0)
+        self.assertIn("PLANT f PASS: MISMATCH events label RustboroCity_Gym_EventScript_RoxanneDefeated", buf.getvalue())
+        with tempfile.TemporaryDirectory() as tmp:  # the full run reads events.json: CONTROL 0, FAULT (f) exits 1
+            for p in WORLD.glob("*.json"):
+                shutil.copy(p, Path(tmp, p.name))
+            for want in (0, 1):
+                buf = io.StringIO()
+                with redirect_stdout(buf):
+                    self.assertEqual(vw.main(["--data", tmp]), want, buf.getvalue()[-600:])
+                self.assertIn("'events_labels': 2300", buf.getvalue())
+                ev = vw.load_events(tmp)
+                vw.ev_plant(ev, "f")
+                Path(tmp, xe.OUT_NAME).write_text(json.dumps(ev), encoding="utf-8")
+            self.assertIn("MISMATCH events label RustboroCity_Gym_EventScript_RoxanneDefeated", buf.getvalue())
+        with Swap(vw, "S2_PLANTS", ()), Swap(vw, "EV_PLANTS", ("f",)):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                self.assertTrue(vw.selftest(vw.raw(ROOT), str(WORLD), MILESTONES, vw.DEFAULT_SEED))
+            self.assertIn("[PASS] EV CONTROL: events.json, 0 mismatches", buf.getvalue())
+            self.assertIn("[PASS] EV FAULT (f)", buf.getvalue())
+            with Swap(vw, "ev_plant_result", lambda *a: (False, [], "x")), redirect_stdout(io.StringIO()):
+                self.assertFalse(vw.selftest(vw.raw(ROOT), str(WORLD), MILESTONES, vw.DEFAULT_SEED))
+
+    def test_verifier_shares_no_function(self):
+        src = (HERE / "verify_world.py").read_text(encoding="utf-8")
+        self.assertNotRegex(src, r"(?m)^\s*(import|from)\s+extract_(events|items)", "the verifier imports no extractor")
+
+
+#: stage 2b fix round 1, item 1: the only two labels in the decomp whose live body ends in a jump followed by a DEAD
+#: line (the verifier's whole-decomp scan): (the label that jumps, the label after it, its `goto` line, the dead line)
+FIX1_KNOWN = (("FallarborTown_BattleTentBattleRoom_EventScript_ContinueChallenge",
+               "FallarborTown_BattleTentBattleRoom_EventScript_WarpToLobbyWon",
+               "data/maps/FallarborTown_BattleTentBattleRoom/scripts.inc", 122, 123),
+              ("BattleFrontier_BattleArenaBattleRoom_EventScript_ContinueChallenge",
+               "BattleFrontier_BattleArenaBattleRoom_EventScript_ReturnToLobbyWon",
+               "data/maps/BattleFrontier_BattleArenaBattleRoom/scripts.inc", 185, 186))
+
+
+def mc_lines():
+    """{path:line: trainer} of every `register_matchcall` line under data/ at the pin, read by the TEST from the raw
+    files (never through either reader)."""
+    out = {}
+    for p in sorted(Path(ROOT, "data").rglob("*")):
+        if p.suffix in (".inc", ".s"):
+            for n, line in enumerate(p.read_bytes().decode("utf-8").split("\n"), 1):
+                m = re.match(r"\s*register_matchcall\s+(\w+)", line)
+                if m:
+                    out["%s:%d" % (p.relative_to(ROOT).as_posix(), n)] = m.group(1)
+    return out
+
+
+class S2bFixRound1Tests(unittest.TestCase):
+    """Stage 2b FIX ROUND 1 (fix-spec-2b1): (1) no fall after a jump in the extractor's edge builder, (2) the same rule
+    written independently in the verifier, (3) the verifier compares each trigger's TARGET, (4) register_matchcall is a
+    persistent change. Each test has a CONTROL on the real build and a FAULT with the rule broken."""
+
+    def test_fix1_no_fall_after_a_jump(self):
+        lab = lambda *body: {"body": list(enumerate(body, 1))}  # noqa: E731
+        self.assertFalse(ei.falls_through(lab("goto X", "waitstate")))           # CONTROL: the jump ends the flow
+        self.assertTrue(ei.falls_through(lab("msgbox T", "waitstate")))           # CONTROL: no jump, a command runs on
+        with Swap(ei, "NEVER_CONTINUES", {}):                                     # FAULT: the last-line reading only
+            self.assertTrue(ei.falls_through(lab("goto X", "waitstate")))
+        text = "A::\n\tgoto C\n\twaitstate\nB::\n\tsetflag FLAG_ADVENTURE_STARTED\n\tend\nC::\n\tend\n"
+        falls = lambda gr: [t for t, k, *_ in gr.edges["A"] if k == "fall"]  # noqa: E731
+        self.assertEqual(falls(fake_graph(text)), [])
+        with Swap(ei, "NEVER_CONTINUES", {}):
+            self.assertEqual(falls(fake_graph(text)), ["B"])
+        # the whole real graph: no fall edge out of a label whose body holds a never-continuing command
+        g = ev_build()[1]["graph"]
+        bad = [s for s, outs in g.edges.items() for t, k, *_ in outs if k == "fall"
+               and any(ei.cmd(c)[0] in ei.NEVER_CONTINUES for _, c in g.labels[s]["body"])]
+        self.assertEqual(bad, [])
+        self.assertGreater(sum(1 for outs in g.edges.values() for _, k, *_ in outs if k == "fall"), 0)
+        # the known answers (decomp lines read here): the jump, then the dead line; no `fall` trigger, other triggers stay
+        by = ev_by(ev_build()[0])
+        for src, tgt, rel, jump, dead in FIX1_KNOWN:
+            lines = raw_text(rel).split("\n")
+            self.assertTrue(lines[jump - 1].strip().startswith("goto "), lines[jump - 1])
+            self.assertEqual(lines[dead - 1].strip(), "waitstate")
+            self.assertEqual(next(x.strip() for x in lines[dead:] if x.strip()), tgt + "::")  # no label between
+            trig = by[tgt]["trigger"]
+            self.assertFalse([t for t in trig if t.get("by") == src], trig)
+            self.assertTrue(trig)
+            self.assertFalse([e for e in g.edges[src] if e[1] == "fall"])
+
+    def test_fix2_verifier_fall_rule(self):
+        """The verifier's own reading (s2_raw): no fall mention out of a label with an S2_ENDS command before its last
+        line, over every label; the two known answers. FAULT: the stage-2b phantom put back into a fresh copy is
+        reported, which needs this rule (with the old last-line rule the verifier read the same phantom and agreed)."""
+        s = vw.s2_raw(ROOT)
+        falls = [(tgt, src) for tgt, ms_ in s["at"].items() for src, n in ms_ if n == 10 ** 9]
+        self.assertGreater(len(falls), 0)
+        bad = [(t, src) for t, src in falls
+               if any(ln.split()[0] in vw.S2_ENDS for _, ln in s["labs"][src]["lines"][:-1] if not ln.startswith("."))]
+        self.assertEqual(bad, [])
+        for src, tgt, *_ in FIX1_KNOWN:
+            self.assertNotIn((src, 10 ** 9), s["at"].get(tgt, []))
+            self.assertTrue(s["at"].get(tgt))
+        obj = ev_copy()
+        for src, tgt, rel, _, dead in FIX1_KNOWN:
+            ev_by(obj)[tgt]["trigger"].append({"kind": "called", "by": src, "how": "fall",
+                                               "dev": {"ref": "%s:%d" % (rel, dead)}})
+        rep = vw.Report()
+        vw.verify_events(ROOT, obj, vw.load(str(WORLD)), rep)
+        self.assertEqual(sorted(rep.lines), sorted(
+            "MISMATCH events label %s: trigger sources: extra [('called', '%s')], missing [] (the verifier's reading)"
+            % (tgt, src) for src, tgt, *_ in FIX1_KNOWN))
+
+    def test_fix3_trigger_targets(self):
+        """ev_trig_src / ev_trig_how / ev_trig_map: CONTROL 0 on the fresh build; each plant reported by ITS check's
+        words only (the other two are silent on it); ev_how and the self-loop read."""
+        rep = vw.Report()
+        vw.verify_events(ROOT, ev_build()[0], vw.load(str(WORLD)), rep)
+        self.assertEqual(rep.lines, [])
+        tags = {"b4f": " how ['", "b4s": "trigger sources:", "b4m": "trigger maps:"}  # each check's own words
+        needles = {"b4f": "RivalExitFacingNorth how ['fall'], the verifier's reading ['goto']",
+                   "b4s": "extra [('called', 'Route101_EventScript_BirchsBag')]",
+                   "b4m": "extra [('coord', 'MAP_ROUTE101')], missing [('coord', 'MAP_PETALBURG_WOODS')]"}
+        for name, tag in tags.items():
+            ok, lines, _ = vw.ev_plant_result(ROOT, str(WORLD), name)
+            self.assertTrue(ok, lines)
+            self.assertIn(needles[name], lines[0])
+            self.assertEqual([t for t in tags.values() if t in lines[0]], [tag], (name, lines))
+        self.assertEqual([vw.ev_how(ln, n) for ln, n in (
+            ("goto X", 1), ("call X", 1), ("goto_if_set FLAG_X, X", 1), ("call_if_eq VAR_X, 1, X", 1), ("case 1, X", 1),
+            (".4byte X", 1), ("trainerbattle_single TRAINER_X, A, B, X", 1), ("", 10 ** 9), ("gotostd X", 1))],
+            ["goto", "call", "goto_if", "call_if", "case", "ref", "ref", "fall", "ref"])
+        e = vw.ev_raw(ROOT)
+        loop = "EventScript_DoTVShow"  # it jumps back into itself: a way in that `at` (no self-mentions) leaves out
+        self.assertIn(loop, vw.ev_trigs(e, loop)[1])
+        self.assertIn(("called", loop), vw.ev_out_trigs(e["s"], ev_by(ev_build()[0])[loop])[0])
+        wt = ev_by(ev_build()[0])["PetalburgCity_EventScript_WallyTutorial"]  # a map_script_2 row: table label + maps
+        src, _, maps = vw.ev_out_trigs(e["s"], wt)
+        self.assertEqual((src, maps), vw.ev_trigs(e, wt["label"])[::2])
+        self.assertIn(("map_script", ("MAP_PETALBURG_CITY",)), maps)
+
+    def test_fix4_matchcall_is_a_change(self):
+        """Every register_matchcall line at the pin (76, read here from the raw files) is a `special
+        SetMatchCallRegisteredFlag` change naming its trainer, in line order within its label, worded from the cited
+        template; check_matchcall refuses a trainer that heads no rematch row; the verifier checks it on every record."""
+        want = mc_lines()
+        self.assertEqual((len(want), len(set(want.values()))), (76, 64))
+        obj = ev_build()[0]
+        names = {t["symbol"]: ("%s %s" % (t.get("class_name") or "", t["name"])).strip()
+                 for t in OBJS["trainers.json"]["trainers"]}
+        got = {}
+        for r in obj["labels"]:
+            refs = [int(c["dev"]["ref"].rsplit(":", 1)[1]) for c in r["changes"]]
+            self.assertEqual(refs, sorted(refs), r["label"])  # in order with the label's other changes
+            for c in r["changes"]:
+                if c["dev"].get("cmd") == "register_matchcall":
+                    got[c["dev"]["ref"]] = c
+        self.assertEqual(set(got), set(want))
+        for ref_, c in got.items():
+            self.assertEqual((c["op"], c["name"], c["trainer"], c["effect"]),
+                             ("special", "SetMatchCallRegisteredFlag", want[ref_],
+                              "%s is registered in your Match Call" % names[want[ref_]]), ref_)
+        # the extractor's unit and its guard (CONTROL / FAULT)
+        ctx = dict(ev_unit_ctx(), rematch_first={"TRAINER_JOSH": "REMATCH_JOSH"})
+        lab = {"file": "x.inc", "line": 1, "body": []}
+        rec, drop = xe.change_of(ctx, lab, 5, "register_matchcall", ["TRAINER_JOSH"])
+        self.assertEqual((rec, drop), ({"op": "special", "name": "SetMatchCallRegisteredFlag", "trainer": "TRAINER_JOSH",
+                                        "effect": "YOUNGSTER JOSH is registered in your Match Call",
+                                        "dev": {"cmd": "register_matchcall", "ref": "x.inc:5"}}, None))
+        self.assertRaisesRegex(Refused, "TRAINER_TOMMY at x.inc:5: the trainer heads no gRematchTable row",
+                               xe.change_of, ctx, lab, 5, "register_matchcall", ["TRAINER_TOMMY"])
+        firsts = xe.rematch_first(ew.Decomp(ROOT))
+        self.assertEqual(len(firsts), 78)
+        self.assertIn("TRAINER_ROSE_1", firsts)
+        self.assertNotIn("TRAINER_ROSE_2", firsts)
+        # the guards' CALLS inside the build: a row whose first id is not the one the script registers, and no table
+        rel = "src/battle_setup.c"
+        text = raw_text(rel)
+        haley = "[REMATCH_HALEY] = REMATCH(TRAINER_HALEY_1,"
+        self.assertEqual(text.count(haley), 1)
+        self.assertRaisesRegex(Refused, "register_matchcall TRAINER_HALEY_1 at data/maps/Route104/scripts.inc",
+                               ev_fast, OverlayDecomp(ROOT, {rel: text.replace(haley, haley.replace("_1,", "_2,"))}))
+        self.assertRaisesRegex(Refused, "no gRematchTable row read", ev_fast,
+                               OverlayDecomp(ROOT, {rel: text.replace("= REMATCH(", "= NOT_A_ROW(")}))
+        # the verifier: its own macro reading, its rematch clause (a planted reading), ev_op, ev_mc_line
+        r = vw.raw(ROOT)
+        self.assertEqual(vw.ev_matchcall_macro(r), "SetMatchCallRegisteredFlag")
+        self.assertEqual(vw.ev_rematch_first(r), set(firsts))
+        ids = vw.ev_ids(r)
+        p = "register_matchcall TRAINER_HALEY_1".split()
+        self.assertEqual(vw.ev_op(p[0], p, {}, ids, "SetMatchCallRegisteredFlag"),
+                         ("special", "SetMatchCallRegisteredFlag", None))
+        self.assertIsNone(vw.ev_op(p[0], p, {}, ids))  # no macro reading: not an op
+        self.assertEqual(vw.ev_mc_line(r, {"dev": {"ref": "data/maps/Route104/scripts.inc:874"}}), "TRAINER_HALEY_1")
+        self.assertIsNone(vw.ev_mc_line(r, {"dev": {"ref": "data/maps/Route104/scripts.inc:873"}}))
+        e = vw.ev_raw(ROOT)
+        saved = e["rematch_first"]
+        try:
+            e["rematch_first"] = saved - {"TRAINER_HALEY_1"}
+            rep = vw.Report()
+            vw.verify_events(ROOT, ev_build()[0], vw.load(str(WORLD)), rep)
+            self.assertEqual(len(rep.lines), 2, rep.lines)  # RegisterHaley and RegisterHaleyAfterBattle
+            self.assertTrue(all("TRAINER_HALEY_1 heads no gRematchTable row" in ln for ln in rep.lines), rep.lines)
+        finally:
+            e["rematch_first"] = saved
+        for name, needle in (("b11", "the line registers TRAINER_HALEY_1"),
+                             ("b10m", "Match Call effect 'LASS HALEY is registered")):
+            ok, lines, _ = vw.ev_plant_result(ROOT, str(WORLD), name)
+            self.assertTrue(ok and needle in lines[0], lines)
+
+
 class TFairTests(unittest.TestCase):
     """T-FAIR (spec S3-4 slice 2): check_fairness.developer_keys() still refuses `flag` with the new file present. If a
     KNOWLEDGE_FIELDS entry ever classifies a flag path `ai`, `flag` leaves the set and B2 stops refusing x['flag']
@@ -2127,9 +3100,11 @@ class TFairTests(unittest.TestCase):
     def test_flag_stays_developer(self):
         self.assertIn("flag", cf.developer_keys())
         self.assertTrue((WORLD / ei.OUT_NAME).exists())
-        fields = copy.deepcopy(cf.KNOWLEDGE_FIELDS)
-        fields["items_gifts.json"] = {"gifts.[].flag": (cf.AI, "a FAULT: a flag classified ai", True)}
-        self.assertNotIn("flag", cf.developer_keys(fields))
+        self.assertTrue((WORLD / xe.OUT_NAME).exists())  # stage 2b: still `flag` with events.json present
+        for name, path in (("items_gifts.json", "gifts.[].flag"), ("events.json", "labels.[].changes.[].flag")):
+            fields = copy.deepcopy(cf.KNOWLEDGE_FIELDS)
+            fields[name] = {path: (cf.AI, "a FAULT: a flag classified ai", True)}
+            self.assertNotIn("flag", cf.developer_keys(fields), name)
 
 
 if __name__ == "__main__":

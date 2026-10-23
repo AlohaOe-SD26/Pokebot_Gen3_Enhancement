@@ -22,10 +22,10 @@
  },
  "inputs_verified": {
   "by": "ai_player/gates/verify_world.py",
-  "verifier_sha256": "33bd6e354dc7cb23f493fa3d6c5168c0c9c6ef203215745e212bdd52d82fd30f",
+  "verifier_sha256": "bf3cc8ad096082ed870826a1aa2b32eb567f26e6e7edd227f58a496e90795640",
   "command": "py -3.12 ai_player/gates/verify_world.py --data ai_player/knowledge/world --knowledge ai_player/knowledge/world",
   "exit": 0,
-  "result": "[VERIFY-WORLD] PASS: 0 mismatches (every record; checked {'bosses': 57, 'campaign': 66, 'citations': 2042, 'field_moves': 8, 'items': 274, 'items_dead': 5, 'items_eon_excluded': 1, 'items_gift_lines': 176, 'items_golden': 40, 'items_mart_lists': 37, 'map_battles': 543, 'maps': 518, 'trainers': 855}; W1 scanned 5 knowledge files)"
+  "result": "[VERIFY-WORLD] PASS: 0 mismatches (every record; checked {'bosses': 57, 'campaign': 66, 'citations': 2042, 'events_dead': 54, 'events_gates': 32, 'events_labels': 2300, 'events_matchcall': 76, 'field_moves': 8, 'items': 274, 'items_dead': 5, 'items_eon_excluded': 1, 'items_gift_lines': 176, 'items_golden': 40, 'items_mart_lists': 37, 'map_battles': 543, 'maps': 518, 'trainers': 855}; W1 scanned 6 knowledge files)"
  },
  "entries": [
   {

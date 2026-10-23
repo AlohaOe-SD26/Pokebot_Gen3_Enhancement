@@ -38719,3 +38719,33 @@ bought balls only at fixed story points.
 - **Changed:** `ai-agent/config.json` `keep_raw_cycles` 17 -> 4, with a dated note. It reaches the tuner by this push, at the next cycle boundary (about 4:11 AM 2026-10-23); at most 3 cycles archive per boundary (`max_archives_per_prune`), so the older cycles drain over a few boundaries.
 - **Still to confirm:** after O5's first cycle end, the clone's `DEVELOPER-NOTES.md` keeps 5 entries and moves the rest to `DEVELOPER-NOTES-ARCHIVE.md` (expected, lossless; `04` resume point).
 - `tools/status.py` also printed "Windows has a restart pending": the tuner stops while the PC restarts and starts again at logon.
+
+## 2026-10-22 — KB2 slice 2, STAGE 2b DONE: `events.json` (S3-4, backlog item 11); KB2 SLICE 2 IS COMPLETE
+
+- **What:** the AI's scripted-event facts (which script labels change persistent state, what they change and in what order, and the gates on them) are extracted from the pinned decomp (`C:/Remote Projects/_decomp/pokeemerald`, `tools/decomp.pin`) into `ai_player/knowledge/world/events.json`. With stage 2a (`items_gifts.json`, committed earlier today as `0ac3e5c2`) this COMPLETES KB2 slice 2. Nothing reads either file until the AI's loader exists.
+  - **Content:** 2,300 labels that change persistent state; 3,849 changes, kept in order, 1,447 of them conditional; the 76 Match Call registrations (`register_matchcall` lines) are listed as changes; 32 gates, of which 20 are worded from a cited hand table of 20 entries and 12 are `when: null` (listed in `_gates_when_null`); 54 dead labels; 7 excluded groups.
+- **WHY:** KB2 slice 2 (backlog item 11) gives the SEASONED player (USER RULING 40) static game knowledge of what the game's scripts do to the world and what they need first. Its spec is `ai-research-notes/2026-10-22-BUILD-SPEC-S3-4-slice2.md` (the 2b section). It is built under the `06` 2026-10-22 principle from the start: assert only what an independent exhaustive scan re-checks, or a cited table (path:line + token), else `unknown` / `null`.
+- **Files:**
+  - NEW `ai_player/gates/extract_events.py`: the stage-2b extractor at the pinned decomp. It REUSES `extract_items.py`'s label parser, edge builder and path walk. `--check` compares the committed file with a fresh extraction (about 50 s).
+  - NEW `ai_player/knowledge/world/events.json`: generated.
+  - CHANGED `ai_player/gates/extract_items.py`: `falls_through` only (see the mistake below). A label's flow now ends at its FIRST never-continuing command, not its last line. `items_gifts.json` is BYTE-IDENTICAL after the change.
+  - CHANGED `ai_player/gates/verify_world.py`: the independent stage-2b verifier. It has its own decomp reading, rules with one plant each, and compares every trigger by kind, source label, map and how. `--selftest` now prints 59 PASS lines (54 fault arms and 5 controls; the slice-2 plants are 26 for stage 2a and 25 for stage 2b).
+  - CHANGED `ai_player/gates/test_kb2.py`: 118 tests (about 167 s).
+  - The 48 files of `PROJECT KNOWLEDGE/chapter-packs/` regenerated (provenance lines only: they embed `verify_world.py`'s sha256).
+  - New notes (builder reports): `ai-research-notes/2026-10-22-KB2-slice2-stage2b-values-report.md`, `-stage2b-tests-report.md` and `-stage2b-fix-report.md`.
+- **Proof (the real lines):**
+  - `extract_events.py --check` -> OK; `extract_items.py --check` -> OK (`items_gifts.json` unchanged). ⚠ Both are DETERMINISM checks, not replications.
+  - `verify_world.py` -> 0 mismatches; `verify_world.py --selftest` -> "SELFTEST PASS"; `test_kb2.py` -> "Ran 118 tests ... OK".
+  - Mutants: stage 2b 190, of which 187 caught and 3 explained as equivalent at the pin; fix round 27, all caught.
+  - `make_chapter_pack.py --all --check` -> PASS; `run_regression.py --quick` -> PASS; `run_gates.py --quick` -> "ALL 140 ENFORCING GATES PASS" (the 14 ROM gates are not in `--quick`).
+  - The final verifier's own whole-decomp parser found 0 triggers that `events.json` has and its reading does not produce, over all 2,300 records. All 13 W7 events facts hold (the spec listed rows 1, 4-12, 14 and 15, which is 12 rows, as "13"; row 3, ChooseStarter, was added to make 13).
+- **Two rounds (agent tokens; total about 1.7M, against about 3.6M for stage 2a's four):**
+  - Round 0, build + verify, 1.13M (two builders and one exhaustive verifier). ONE wrong value: 2 phantom `fall` triggers (`FallarborTown_BattleTentBattleRoom/scripts.inc:122-123` and `BattleFrontier_BattleArenaBattleRoom/scripts.inc:185-186`: a `goto` followed by a dead `waitstate`).
+  - Fix round 1, 0.56M. Both phantoms fixed; the verifier now compares trigger TARGETS (it compared only kinds); the 76 `register_matchcall` lines listed as changes.
+- **The mistake:** `08` 2026-10-22 "an independent verifier written from the same spec shared the extractor's misconception": `falls_through` read only a label's LAST line, and the separately written verifier made the same mistake, so it reported 0 mismatches. The final verifier's own parser caught it.
+- **Known limits (weak proofs, not wrong values; every current value is correct by the verifier's scan):**
+  - The verifier does not catch a wrong battle trainer, talk object, map-script type, duplicate trigger or null Match Call wording.
+  - 5 triggers come from lines after a `warp` + `waitstate`, a block the decomp itself comments as unreachable.
+  - `seteventmon` is not listed as a change (named in the file's `_notes`).
+  - `test_kb2.py` runs only in the full regression lane, in neither `--quick` lane.
+- **Next:** step 5.3 STAGE A1 (`ai-research-notes/2026-10-22-BUILD-SPEC-step5.3-B1-N8.md`). The full regression lane is DUE again, because this commit changes `ai_player/gates/` (extract_events, extract_items, verify_world, test_kb2); it is started right after the commit, and its result goes in the next commit.

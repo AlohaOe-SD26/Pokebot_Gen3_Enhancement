@@ -829,9 +829,16 @@ def falls_through(lab):
     `.byte 0`, `.string`...) is data, and a `map_script` / `map_script_2` table is a table: neither is executed, so
     neither falls into the next label. Round 0 skipped directives when finding the last statement, so ~160
     `map_script_2` tables 'fell' into the script after them; that phantom path erased HM Surf's real trigger
-    (PetalburgCity_WallysHouse/scripts.inc:16) and gave the Route 114 berry man a `map_script` giver."""
+    (PetalburgCity_WallysHouse/scripts.inc:16) and gave the Route 114 berry man a `map_script` giver.
+    STAGE 2b FIX ROUND 1, item 1: the FIRST never-continuing command (NEVER_CONTINUES) ends the label's flow, wherever
+    it sits; the lines after it are dead (no label between, so nothing can jump to them) and never make a fall edge.
+    WHY: reading only the LAST line made two labels whose live body ends in `goto` followed by a dead `waitstate`
+    'fall' into the next label (FallarborTown_BattleTentBattleRoom/scripts.inc:122-123,
+    BattleFrontier_BattleArenaBattleRoom/scripts.inc:185-186): phantom `how: fall` triggers in events.json."""
     if not lab["body"]:
         return True
+    if any(cmd(c)[0] in NEVER_CONTINUES for _, c in lab["body"]):
+        return False
     last = lab["body"][-1][1]
     if last.startswith(".") or any(cmd(c)[0] in ("map_script", "map_script_2") for _, c in lab["body"]):
         return False
