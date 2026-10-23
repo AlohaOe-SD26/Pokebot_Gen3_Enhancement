@@ -4,6 +4,10 @@ Built 2026-10-15 (build step 5.2, G7) from the research note
 `PROJECT KNOWLEDGE/ai-research-notes/2026-10-15-ch34-recon/06-lessons-draft.md`, which is a NOTE: every line here was re-checked
 against the code it names. `gates/check_lessons.py` (run by `run_units.py`) FAILS when a lesson's **Enforced** line names a
 gate, test, mutant, bound or file that does not exist, or when an **Origin** quote is not found in the document it cites.
+(Build step 5.3, A1-4) An **Enforced** line may name a step-5 grader CHECK by its id (`R5.*`, `L5.*`, the table in
+`gates/grader_checks.py`), and it must be one that COUNTS in the verdict (GRADED or HONESTY). A REPORTED or DIAGNOSTIC check,
+or a bound only such checks read, enforces nothing: it goes on the lesson's optional **Reported** line, which the checker
+resolves the other way.
 
 **How the list stays living.**
 * **Add:** a new mistake (an `08-MISTAKES.md` entry, or a round's "found and fixed") adds a lesson here, or extends one, in
@@ -122,8 +126,9 @@ and `CLAUDE` (`CLAUDE.md`).
 
 ### PF-3. A metric is a claim only once it FAILS its control, and the control must be able to fail.
 - **Origin:** 2026-10-15, 08 "THE CONTROL COULD NOT FAIL" (a control made by deleting the behaviour proves only that the deletion works). Build step 5.2 measured two more ways a control cannot fail, both in development before any graded run: the LOAF control was productive in 80 % of its frames under the first yield rule (README "with the 8 tiles alone the LOAF control"), and a control that removes only the NEW mechanism stays inside the bound when OLDER code bounds the same thing (README "5.1's navigator already ended ONE stretch by its novelty window"). Measure every control's failure in development; a control embodies the DEFECT, with every bound on it removed.
-- **Status:** PARTIAL (build step 5.2: the three curiosity controls)
-- **Enforced:** `rate_step5:BOUNDS.FREE_CONTROL_FAILS_MIN`, `rate_step5:BOUNDS.CH2_OFF_UNDER_MIN`, `rate_step5:PLANS.LOAF`, `rate_step5:PLANS.BLOCKED`, `rate_step5:PLANS.GREEDY`, `rate_step5:BOUNDS.LOAF_FAILS_RUNS_MIN`, `rate_step5:BOUNDS.GREEDY_FAILS_MIN`, `rate_step5:BOUNDS.BLOCKED_HITS_MIN`, `gates/rate_step5.py::step52_verdicts`.
+- **Status:** PARTIAL (build step 5.2: the three curiosity controls). Corrected 2026-10-23 (build step 5.3, A1-4): only LOAF's and BLOCKED's checks COUNT in the verdict. The beeline's and CH2_OFF's share controls are REPORTED (5.2 P2) and GREEDY's spacing control is DIAGNOSTIC (5.3 A1-1, no game form), so those controls fail no counted check; they were listed as Enforced, which overstated them.
+- **Enforced:** `rate_step5:PLANS.LOAF`, `rate_step5:PLANS.BLOCKED`, `rate_step5:BOUNDS.LOAF_FAILS_RUNS_MIN`, `rate_step5:BOUNDS.BLOCKED_HITS_MIN`, `R5.LOAF`, `R5.BLOCKED`, `gates/rate_step5.py::step52_verdicts`.
+- **Reported:** (counted by no verdict) `rate_step5:BOUNDS.FREE_CONTROL_FAILS_MIN`, `rate_step5:BOUNDS.CH2_OFF_UNDER_MIN`, `rate_step5:BOUNDS.GREEDY_FAILS_MIN`, `R5.BEELINE_FAILS_FREE`, `R5.CH2_OFF_UNDER`, `R5.GREEDY` (the GREEDY plan still plays).
 - **Needs:** a meta-test: every `BOUNDS` key declares its control and separation, or is labelled FLOOR or REPORTED.
 - **Retires:** when the meta-test exists.
 
@@ -192,8 +197,9 @@ and `CLAUDE` (`CLAUDE.md`).
 
 ### PF-14. Never let the agent's own target be the quantity the grader measures; grade the OUTCOME the behaviour exists to produce.
 - **Origin:** 2026-10-15, 08 "THE AI AIMED AT THE GRADER'S OWN QUANTITY"; REVIEW "THE CH2 FLOOR IS PARTLY THE AI'S OWN TARGET". Build step 5.2 removed the quota (README "No quota: boredom raises the odds, the dice decide"), grades curiosity by its YIELD and SPACING, and REPORTS the shares of frames 5.1's quotas aimed at (README "Graded by YIELD and SPACING, not by a share of frames"). ⚠ Measured in the same round: when development runs fell under the old share floor, the first move was to lower a personality TASTE (`bored_frames`) toward it, the very pattern this lesson forbids; it was restored. A share floor that is still graded invites that tuning every time a run falls under it.
-- **Status:** PARTIAL (build step 5.2: the quota gone, the yield graded against LOAF, the shares reported)
-- **Enforced:** `ai_player/personality.py::Errands`, `revert_step5:G154`, `revert_step5:G155`, `rate_step5:BOUNDS.YIELD_RATE_MIN`, `rate_step5:BOUNDS.SPACING_ROW_MAX`, `gates/rate_step5.py::game_yield`, `gates/rate_step5.py::P2_REPORTED`, `revert_step5:G266`.
+- **Status:** PARTIAL (build step 5.2: the quota gone, the yield graded against LOAF, the shares reported). Corrected 2026-10-23 (build step 5.3, A1-4): SPACING is DIAGNOSTIC since 5.3 A1-1 (it has no game form), so curiosity is graded by its YIELD alone. A share of frames is REPORTED by its KIND (`grader_checks.CHECKS`), so the mutants that broke the old text match, `revert_step5` G266 (`p2_reported`'s call deleted) and G267 (its HELD line), are RETIRED with `p2_reported`. The same path's deletions are now caught by `test_step53_a1.py` and `test_goals.py` (below).
+- **Enforced:** `ai_player/personality.py::Errands`, `revert_step5:G154`, `revert_step5:G155`, `rate_step5:BOUNDS.YIELD_RATE_MIN`, `R5.LOAF`, `R5.NO_LOAFING`, `gates/rate_step5.py::game_yield`, `gates/rate_step5.py::P2_REPORTED`, `gates/grader_checks.py::verdict_row`, `gates/test_step53_a1.py::TypedSweepTests`, `gates/test_goals.py::SecondRoundTests.test_the_shares_of_frames_are_reported_not_graded`.
+- **Reported:** (counted by no verdict) `rate_step5:BOUNDS.SPACING_ROW_MAX`, `R5.SPACED`, `R5.CH1_INTENT_MIX`, `R5.CH1_FREE`, `R5.CH2_INTENT_MIX`, `R5.CH2_FREE`.
 - **Needs:** a gate that refuses a brain constant or quota computed on a graded quantity (the errand share).
 - **Retires:** when that gate exists.
 
@@ -211,8 +217,9 @@ and `CLAUDE` (`CLAUDE.md`).
 
 ### PF-17. A rule that ENDS a run (or a goal) is a claim about every state: develop it on the game's opening, not only on the stuck state it was built for.
 - **Origin:** 2026-10-15, README "three of four CHAPTER-1 runs gave up inside the moving truck" (the out-of-ideas rule as first built, step52vdev1).
-- **Status:** PARTIAL
-- **Enforced:** `rate_step5:BOUNDS.OUT_OF_IDEAS_LED_MAX`, `rate_step5:BOUNDS.CH1_REACHED_MIN`, `revert_step5:G317`.
+- **Status:** PARTIAL. Corrected 2026-10-23 (build step 5.3, A1-4): the out-of-ideas check (`R5.OUT_OF_IDEAS`) reads only the AI's own end reason and is DIAGNOSTIC since 5.3 A1-1, so its bound is reported, not counted. A run that gives up too early is counted by the POKéDEX reach rate.
+- **Enforced:** `rate_step5:BOUNDS.CH1_REACHED_MIN`, `R5.CH1_REACHED`, `revert_step5:G317`.
+- **Reported:** (counted by no verdict) `rate_step5:BOUNDS.OUT_OF_IDEAS_LED_MAX`, `R5.OUT_OF_IDEAS`.
 - **Needs:** a unit test that plays every END rule of the play loop over the recorded opening of a run (the truck, the first house), and fails if one fires.
 - **Retires:** when that test is in `test_goals.py`.
 
@@ -277,8 +284,9 @@ and `CLAUDE` (`CLAUDE.md`).
 
 ### PL-8. Play like a person, never a speedrun (RULING 32).
 - **Origin:** 2026-10-03, 07 "USER RULING 32".
-- **Status:** PARTIAL
-- **Enforced:** `rate_step5:BOUNDS.FREE_RUN_MIN`, `rate_step5:BOUNDS.SLOWER_THAN_BEELINE_MIN`, `rate_step5:BOUNDS.MIX_MIN`.
+- **Status:** PARTIAL. Corrected 2026-10-23 (build step 5.3, A1-4): the share floors (the curiosity the story did not need, the intent mix) are REPORTED since 5.2 P2, so "never a speedrun" is counted only by the time against the beeline; it was listed as Enforced by the floors, which overstated them. (Both time checks still read the AI's own spans: B1 DEBT, paid in stage A2.)
+- **Enforced:** `rate_step5:BOUNDS.SLOWER_THAN_BEELINE_MIN`, `R5.NO_SPEEDRUN`, `R5.NO_SPEEDRUN_DICE`.
+- **Reported:** (counted by no verdict) `rate_step5:BOUNDS.FREE_RUN_MIN`, `rate_step5:BOUNDS.MIX_MIN`, `R5.CH1_FREE`, `R5.CH1_INTENT_MIX`.
 - **Needs:** PF-14: the floor is partly the AI's own aim, so the separation from a control that CAN fail carries the claim.
 - **Retires:** never.
 
@@ -334,7 +342,8 @@ and `CLAUDE` (`CLAUDE.md`).
 ### PL-17. With no lead, it heads for what is left anywhere it knows, and with nothing left anywhere it gives the run up; it never walks the same streets for the patience.
 - **Origin:** 2026-10-15, README "THE NOHINTS PUSHING" (20 of 20 graded runs, 31,676-62,012 frames of pressing with nothing new by the AI's record).
 - **Status:** GATED (build step 5.2, the verifier's round)
-- **Enforced:** `ai_player/brain/goals.py::lost_intent`, `ai_player/brain/goals.py::lost_way`, `ai_player/brain/goals.py::worth_going`, `ai_player/brain/goals.py::shut_in`, `revert_step5:G284`, `revert_step5:G285`, `revert_step5:G286`, `revert_step5:G287`, `revert_step5:G288`, `revert_step5:G290`, `revert_step5:G291`, `revert_step5:G300`, `revert_step5:G301`, `revert_step5:G307`, `revert_step5:G317`, `rate_step5:BOUNDS.OUT_OF_IDEAS_LED_MAX`, `rate_step5:BOUNDS.PUSH_MAX`.
+- **Enforced:** `ai_player/brain/goals.py::lost_intent`, `ai_player/brain/goals.py::lost_way`, `ai_player/brain/goals.py::worth_going`, `ai_player/brain/goals.py::shut_in`, `revert_step5:G284`, `revert_step5:G285`, `revert_step5:G286`, `revert_step5:G287`, `revert_step5:G288`, `revert_step5:G290`, `revert_step5:G291`, `revert_step5:G300`, `revert_step5:G301`, `revert_step5:G307`, `revert_step5:G317`, `rate_step5:BOUNDS.PUSH_MAX`, `R5.PUSHING`.
+- **Reported:** (counted by no verdict since build step 5.3 A1-1, corrected 2026-10-23 in A1-4: the AI's own end reason is DIAGNOSTIC) `rate_step5:BOUNDS.OUT_OF_IDEAS_LED_MAX`, `R5.OUT_OF_IDEAS`.
 - **Retires:** the prose, once chapters 3-4 are graded under it.
 
 ## D. Environment: host clock, disk, deployment clone

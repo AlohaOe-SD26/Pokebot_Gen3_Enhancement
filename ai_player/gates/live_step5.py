@@ -22,7 +22,8 @@ THE ARMS
                      Catcher, Trainer), target `ch1_pokedex`. CLAIMS (pre-registered in `PREDICTED`): the POKéDEX flag set
                      (RECEIVED_POKEDEX_FROM_BIRCH, SYS_POKEDEX_GET, ADVENTURE_STARTED) and the rival's (DEFEATED_RIVAL_ROUTE103)
                      and the clock's (SET_WALL_CLOCK); the starter named is the party's first Pokemon, the player's own (OT);
-                     the name and gender in the save are the intro's intent recomputed here from `personality.py`; TRAINED
+                     the name and gender in the save are the intro's intent AS THE RUN TOLD IT (its intro line; build
+                     step 5.3: a HONESTY check, no longer recomputed by calling the AI's own chooser); TRAINED
                      BEFORE THE RIVAL: at least `T` training steps in its TRAINING roams for the rival before its rival
                      milestone (the roams a rest or an item ball stopped included) and at least `N` wild battles WON inside
                      them (the step-5 verifier's round 2: won anywhere between the starter and the rival, an arm that never
@@ -71,6 +72,13 @@ in the seed ledger before the graded sweep.
 The fault arms (no training before the rival; no hints; the rest rule's fix removed; the MAX_LOSSES stop and the loop's
 count removed; and 5.2's LOAF, BLOCKED and GREEDY controls) are the seed sweep's (`gates/rate_step5.py` NOTRAIN, NOHINTS, DEADREST, STOP, STOPDEAD): a win RATE and a
 slowdown are frequency claims, which a sweep answers (CLAUDE.md rule 9).
+(Build step 5.3, stage A1: B1 and N8) EVERY check above is TYPED (`gates/grader_checks.py`: an id `L5.*`, a kind, a status,
+its inputs). The arm's verdict is PASS iff every GRADED and HONESTY check passes. The name and gender and the told wild
+battles are HONESTY (the AI's word against the game). The 5.2 checks by the AI's own record (NO LOAFING, CURIOSITY SPACED,
+THE PUSHING PROPERTY, THE ASK STEP) and the CH1 arms' pooled spins and rest occasions are DIAGNOSTIC: printed, never
+counted; the sweep grades the game's side of them. Every other check that reads the AI's log is GRADED and listed as B1
+debt (`gates/b1_debt.json`). This driver imports no value from the AI's code (the G-3 rule, `check_grader_imports.py`,
+checked before any arm is played).
 """
 
 from __future__ import annotations
@@ -78,7 +86,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import random
 import re
 import shutil
 import subprocess
@@ -94,16 +101,19 @@ if str(REPO) not in sys.path:
 from ai_player.gates.live_step2 import check_purity, classify_a, clean_env, run_json  # noqa: E402
 from ai_player.gates.disk_budget import prune_runs  # noqa: E402
 from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance, snapshot_tree, watch  # noqa: E402
-from ai_player.gates.rate_step5 import (  # noqa: E402
-    BOUNDS, aside_streaks, await_stretches, curiosity_rows, curiosity_streaks, intent_mix, push_ai, roam_breaches,
-    told_before, train_steps_min, training_windows,
+from ai_player.gates.grader_checks import (  # noqa: E402
+    Check, as_check, evidence_lines, grade, verdict as typed_verdict,
 )
-from ai_player.hands.dialogue import GENERIC_BUSY  # noqa: E402
+# (build step 5.3, A1-2, G-3) GENERIC_BUSY is the grader-owned copy (`rate_step5`), no longer the AI's `hands.dialogue`;
+# the intro's intent comes from the run's OWN record (`logged_intent`), no longer from calling the AI's chooser
+from ai_player.gates.rate_step5 import (  # noqa: E402
+    BOUNDS, GENERIC_BUSY, MAP_DATA, aside_streaks, await_stretches, curiosity_rows, curiosity_streaks, intent_mix,
+    map_keys, push_ai, roam_breaches, told_before, train_steps_min, training_windows,
+)
 from ai_player.host import launcher  # noqa: E402
 from ai_player.options import (  # noqa: E402
     ENV_BRAIN, ENV_CLOCK, ENV_PERSONALITY, ENV_SEED, ENV_STARTER, ENV_TARGET, ENV_WORLD,
 )
-from ai_player.personality import choose_gender, choose_name, pick_personality  # noqa: E402
 
 GATES = Path(__file__).resolve().parent
 EVIDENCE_DIR = REPO / "ai_player" / "evidence"
@@ -175,7 +185,8 @@ class Run:
     after: dict | None = None
     state_mtime: float | None = None
     start_state: Path | None = None
-    checks: list[tuple[bool, str]] = field(default_factory=list)
+    #: (build step 5.3, A1-1) TYPED checks (`grader_checks.Check`; each still reads as `(status is PASS, text)`)
+    checks: list[Check] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     measures: dict = field(default_factory=dict)
     #: (build step 5.1) the `read` records of the run(s) this one continues (their pages are in its world memory)
@@ -183,12 +194,20 @@ class Run:
     #: (the step-5.1 verifier's round) the world memory this run started from (a continuing arm's), or None
     world_in: Path | None = None
 
-    def check(self, ok: bool, text: str) -> None:
-        self.checks.append((bool(ok), text))
+    def check(self, ok: bool, text: str, check_id: str | None = None, n: int = 1, floor: int = 1) -> None:
+        """(Build step 5.3, A1-1) One check of this arm, TYPED: `check_id` from `grader_checks.CHECKS` (its kind and inputs
+        come from there); `n` what it examined (one run, unless a count is given), `floor` the fewest it may examine. A call
+        with no id (`live_step2.check_purity`, which this stage may not edit) is typed by its text's title, and refused
+        when no title fits (`as_check`)."""
+        if check_id is None:
+            self.checks.append(as_check((bool(ok), text), "L5"))
+        else:
+            self.checks.append(grade(check_id, bool(ok), text, n, floor))
 
     @property
     def passed(self) -> bool:
-        return bool(self.checks) and all(ok for ok, _ in self.checks)
+        """(Build step 5.3) THE VERDICT by kind: every GRADED and HONESTY check PASS; a DIAGNOSTIC one never counts."""
+        return typed_verdict(self.checks) == "PASS"
 
     @property
     def presses(self) -> list[dict]:
@@ -333,13 +352,20 @@ def check_after_is_this_run(run: Run) -> None:
               f"the state graded is the one THIS run wrote: written "
               f"{'%.1fs after the run started' % (run.state_mtime - run.started) if run.state_mtime else 'NEVER'}; frame "
               f"{frame} == start {start_frame} + {frames} real frames (+-{FRAME_SLACK}); md5 {after.get('state_md5')} "
-              f"(start {before_md5 or '-: a fresh boot'})")
+              f"(start {before_md5 or '-: a fresh boot'})", "L5.THIS_RUN")
 
 
 def check_hands(run: Run) -> None:
+    """The AI's hands and goals by its OWN record (a launcher run has no second path while it plays). (Build step 5.3,
+    A1-1) Typed: each check reads the AI's action log, so the GRADED ones are B1 debt (`b1_debt.json`); loafing, spacing,
+    pushing and the ask step (5.2's AI-only checks) are DIAGNOSTIC: the sweep grades the game's side of them. (A1 fix
+    round, ruling F4) the catch-all, the go goals after their page and the asides coming back are DIAGNOSTIC like their
+    sweep twins (R5.CH1_CATCH_ALL, R5.GO_AFTER_PAGE, R5.ASIDE_BACK): those properties have no game form, so no debt row
+    for them could ever be paid; the evidence lists them as no longer graded."""
     presses = run.presses
     no_gate = [p for p in presses if not p.get("reason")]
-    run.check(bool(presses) and not no_gate, f"{len(presses)} presses in the action log, every one with its gate (without: {len(no_gate)})")
+    run.check(bool(presses) and not no_gate, f"THE PRESSES: {len(presses)} presses in the action log, every one with its gate "
+                                             f"(without: {len(no_gate)})", "L5.PRESS_GATES", len(presses))
     kinds: dict[str, int] = {}
     menus: dict[str, int] = {}
     wrong = []
@@ -352,16 +378,18 @@ def check_hands(run: Run) -> None:
         if not ok:
             wrong.append((press["frame"], kind, str(press["reason"])[:60], (press.get("digest") or "")[:90]))
     run.check(not wrong, f"EVERY A press is a WAIT, a MENU confirm or a TALK by its look: {dict(sorted(kinds.items()))}, "
-                         f"the menus {dict(sorted(menus.items()))}; any other: {wrong[:4] or 'none'}")
+                         f"the menus {dict(sorted(menus.items()))}; any other: {wrong[:4] or 'none'}", "L5.A_KINDS")
     blind = [p for p in presses if "NONE" in str(p.get("reason"))]
-    run.check(not blind, f"no press without the eyes asked (a 'NONE' gate): {len(blind)}")
+    run.check(not blind, f"no press without the eyes asked (a 'NONE' gate): {len(blind)}", "L5.BLIND")
     idle = [r for r in run.records if r.get("decision") == "watch"]
     generic = [(r["frame"], r["reason"]) for r in idle if str(r.get("reason", "")).startswith(GENERIC_BUSY)]
-    run.check(not generic, f"{len(idle)} stretches standing still, NONE under the catch-all {GENERIC_BUSY!r}: {generic[:3] or 'none'}")
+    run.check(not generic, f"THE CATCH-ALL: {len(idle)} stretches standing still, NONE under the catch-all "
+                           f"{GENERIC_BUSY!r}: {generic[:3] or 'none'}", "L5.CATCH_ALL")
     goals = [r for r in run.records if r.get("decision") == "goal"]
     empty = [r for r in goals if not str(r.get("reason", "")).strip()]
     run.check(bool(goals) and not empty, f"NEVER WITHOUT A GOAL: {len(goals)} goals chosen, each with its reason (without: "
-                                         f"{len(empty)}); kinds {count(r['action'] for r in goals)}")
+                                         f"{len(empty)}); kinds {count(r['action'] for r in goals)}", "L5.HAS_GOAL",
+              len(goals))
     # (build step 5.1, the step-5 verifier's FAILURE: a stall of 600-1,200 frames under a NAMED reason passed the check
     # above) THE STALL PROPERTY: no screen waited for a press `AWAIT_MAX` frames or more with none, by the AI's own record of
     # every look (`hands/waiting.py`), whatever reason it gave meanwhile
@@ -373,11 +401,12 @@ def check_hands(run: Run) -> None:
     run.check(not over and bool(noted), f"THE STALL PROPERTY (its record of every look): the longest a screen waited for a "
                                         f"press with none {longest} frames (bound under {BOUNDS['AWAIT_MAX']}, whatever the "
                                         f"reason); {len(awaits)} stretches of 60 or more; over the bound: {over or 'none'}; "
-                                        f"its end record {(noted[0].get('extra') or {}).get('waits') if noted else 'MISSING'}")
+                                        f"its end record {(noted[0].get('extra') or {}).get('waits') if noted else 'MISSING'}",
+              "L5.STALL", len(noted))
     # (the pages of the run it continues count as read before its first frame: its world memory carries them)
     bad = told_before([{**r, "frame": -1} for r in run.earlier] + run.records)
     run.check(not bad, f"EVERY GO GOAL WITH A MAP CAME AFTER THE PAGE THAT TOLD IT (its read records, and the "
-                       f"{len(run.earlier)} pages of the run it continues): off {bad or 'none'}")
+                       f"{len(run.earlier)} pages of the run it continues): off {bad or 'none'}", "L5.GO_AFTER_PAGE")
     # (build step 5.2, PRODUCTIVE CURIOSITY) a curiosity goal counts by what it BROUGHT: in a launcher run by the AI's own
     # record of it (its END record's yield: the tiles its memory learned, a map, an item, a catch, words, a talk); the
     # game's second path is the sweep's (`rate_step5.py` curiosity_rows)
@@ -390,7 +419,8 @@ def check_hands(run: Run) -> None:
               f"NO LOAFING (its record of what each curiosity goal brought): {loaf} frames of curiosity that brought "
               f"nothing, its own time outside battles (bound <= {BOUNDS['LOAF_FRAMES_MAX']}); {made} frames that brought "
               f"something; by goal (kind, frame, "
-              f"frames, productive) {[(r['kind'], r['frame'], r['frames'], int(r['ai'])) for r in curious][:12]}")
+              f"frames, productive) {[(r['kind'], r['frame'], r['frames'], int(r['ai'])) for r in curious][:12]}",
+              "L5.NO_LOAFING", len(curious), None)
     # (its own names: the stall property's `longest` above is its measures' await_max; the 5.2 live arms first reported
     # this streak's frames under that name)
     rows = curiosity_streaks(run.records)
@@ -399,18 +429,19 @@ def check_hands(run: Run) -> None:
     run.check(most <= BOUNDS["SPACING_ROW_MAX"],
               f"CURIOSITY SPACED: at most {most} curiosity goals in a row (bound <= {BOUNDS['SPACING_ROW_MAX']}); (reported) "
               f"the longest streak {row_frames} frames; streaks of 2+ (first frame, goals, frames) "
-              f"{[s for s in rows if s[1] >= 2][:6] or 'none'}")
+              f"{[s for s in rows if s[1] >= 2][:6] or 'none'}", "L5.SPACED", len(rows), None)
     pushed = push_ai(run.records)
     run.check(pushed < BOUNDS["PUSH_MAX"], f"THE PUSHING PROPERTY (its record of every look, `hands/waiting.py` PushWatch): "
                                            f"the longest free stretch of pressing that brought nothing new {pushed} frames "
-                                           f"(bound under {BOUNDS['PUSH_MAX']}); the game's second path is the sweep's")
+                                           f"(bound under {BOUNDS['PUSH_MAX']}); the game's second path is the sweep's",
+              "L5.PUSHING", 1, None)
     detours = [(r["frame"], r.get("place"), r["said_reached"]) for r in curious if r["kind"] == "detour"]
     run.notes.append(f"(reported) its detours (frame, place, said reached): {detours or 'none'}; the GAME's word on them is the "
                      f"sweep's (a launcher run has no second path while it plays)")
     asked = [r.get("frame") for r in run.records if r.get("decision") == "goal" and "to ask at" in str(r.get("reason"))
              and "nothing was said" in str(r.get("reason"))]
     run.check(not asked, f"THE ASK STEP WALKS TO ITS HOUSE ONLY WHEN TOLD (no 'to ask at ... nothing was said'): off "
-                         f"{asked or 'none'}")
+                         f"{asked or 'none'}", "L5.ASK_STEP", 1, None)
     run.measures.update({"loaf_frames": loaf, "productive_frames": made, "streak_goals": most, "streak_frames": row_frames,
                          "push_ai": pushed, "detours": detours})
     # (the step-5.1 verifier's second round) honest: a goal's frames end at its END record (a goal dropped for a scene no
@@ -434,7 +465,7 @@ def check_hands(run: Run) -> None:
     long_ = [s for s in streaks if s[2] > BOUNDS["ASIDE_STREAK_MAX"]]
     run.check(not long_, f"A STORY GOAL PUT ASIDE COMES BACK: its streaks of asides (goal, first frame, frames, asides) "
                          f"{streaks or 'none (not exercised in this run)'} (each <= {BOUNDS['ASIDE_STREAK_MAX']} frames); "
-                         f"over it: {long_ or 'none'}")
+                         f"over it: {long_ or 'none'}", "L5.ASIDE_BACK")
     run.measures.update({"await_max": longest, "intent_mix": mix, "asides": streaks})
 
 
@@ -464,9 +495,9 @@ def check_new_places(run: Run) -> None:
             named.append((r.get("frame"), found.group(1)))
     old = [(frame, const) for frame, const in named if const in known]
     # (build step 5.2, the step-5.1 review's finding 6: CH1M said "a new place, OLDALE_TOWN" after healing there twice) nor
-    # a map it had LEFT earlier in this run (its own record of its map changes: the navigator's MAP records)
-    from ai_player.gates.rate_step5 import map_keys
-    keys = map_keys(str(run.run_dir / "world.jsonl")) if run.run_dir is not None else {}
+    # a map it had LEFT earlier in this run (its own record of its map changes: the navigator's MAP records). (Build step
+    # 5.3, A1-1) a const's key from the framework's `MapRSE` (`rate_step5.map_keys`), no longer from its world.jsonl
+    keys = map_keys(MAP_DATA)
     left = [(t[0], t[1]) for t in (((r.get("extra") or {}).get("transition")) for r in run.records
                                    if r.get("decision") == "world") if t]
     again = [(frame, const) for frame, const in named
@@ -476,7 +507,7 @@ def check_new_places(run: Run) -> None:
               f"world memory it started from had not stood on ({len(known)} known at the start"
               f"{': ' + str(sorted(known)[:8]) if known else ': a New Game'}) and that it had not LEFT earlier in the run "
               f"(its record of {len(left)} map changes); a known one called new: {old or 'none'}; one left before: "
-              f"{again or 'none'}")
+              f"{again or 'none'}", "L5.NEW_PLACE")
 
 
 def count(values) -> dict:
@@ -528,7 +559,7 @@ def check_rest_rule(run: Run) -> None:
     rests = [r for r in run.records if r.get("decision") == "roam" and "rest:" in str((r.get("extra") or {}).get("stopped"))]
     run.check(not breaches, f"THE REST RULE (its log): battles a roam played after one that ended under the personality's "
                             f"heal_below: {len(breaches)} {breaches[:3]} (bound 0), over {occasions} such ends; roams stopped "
-                            f"by a rest {len(rests)}")
+                            f"by a rest {len(rests)}", "L5.REST_RULE")
     run.measures.update({"rest_breaches": len(breaches), "rest_occasions": occasions, "rests": len(rests)})
 
 
@@ -554,23 +585,33 @@ def check_own_report(run: Run, fight: str | None) -> None:
     run.check(bool(note) and note.get("losses") == len(lost) == len(told),
               f"ITS END LINE'S LOSSES ({note.get('losses')}) == the battles its log records as lost ({len(lost)}: "
               f"{[r.get('frame') for r in lost]}) == the play loop's told losses ({len(told)}: "
-              f"{[str(r.get('reason'))[:40] for r in told]})")
+              f"{[str(r.get('reason'))[:40] for r in told]})", "L5.OWN_LOSSES")
     if fight is None:
         return
     prep = (note.get("fight_prep") or {}).get(fight) or {}
     wild, won = training_battles(run, fight)
     run.check(prep.get("wild") == wild and prep.get("won") == won and wild > 0,
               f"ITS END LINE'S TRAINING ({fight}: {prep}) == its log's wild battles in its training roams for it: met {wild}, "
-              f"won {won} (and more than 0: the count the verifier found always 0)")
+              f"won {won} (and more than 0: the count the verifier found always 0)", "L5.OWN_TRAINING")
 
 
-def intent_of(arm: Arm) -> tuple[str, str]:
-    """The intro's gender and name for this arm, recomputed from `personality.py` (the brain's CHOICES stream: the
-    personality the run names takes no draw)."""
-    choices = random.Random(f"{arm.seed}:choices")
-    personality = pick_personality(choices, arm.seed, arm.env.get(ENV_PERSONALITY))
-    gender, _ = choose_gender(choices, personality)
-    return gender, choose_name(choices, gender)
+#: the intro's own told line (`skills/intro.py` play_intro: "intro: personality P (...): gender G (...), name 'N' (...)")
+INTRO_TELL = re.compile(r"^intro: personality \S+ .*?: gender (?P<gender>[A-Z]+) .*?, name (?P<q>['\"])(?P<name>.*?)(?P=q) ")
+
+
+def logged_intent(run: Run) -> tuple[str | None, str | None]:
+    """(Build step 5.3, A1-2: G-3, "L:566-573's intent from the launcher run's own record") The intro's gender and name as
+    the run ITSELF told them (its action log's intro tell line), the AI's word that the HONESTY check `L5.NAME_GENDER`
+    judges against the game's save block 2. Before 5.3 the grader RECOMPUTED them by calling the AI's own chooser
+    (`personality.pick_personality` / `choose_gender` / `choose_name`): the expected value was the code under test.
+    (None, None): the run told no intent (the check then fails: the AI's word is missing)."""
+    for record in run.records:
+        if record.get("decision") != "tell":
+            continue
+        found = INTRO_TELL.match(str(record.get("reason") or ""))
+        if found:
+            return found.group("gender"), found.group("name")
+    return None, None
 
 
 # ---------------------------------------------------------------------- graders
@@ -580,7 +621,8 @@ def grade_common(run: Run, target: str) -> None:
     check_hands(run)
     frames = ((run.verdict or {}).get("counters") or {}).get("real_frames")
     bound = PREDICTED[run.arm.name]["frames_max"]
-    run.check(isinstance(frames, int) and frames <= bound, f"BOUNDED: {frames} real frames <= the pre-registered {bound}")
+    run.check(isinstance(frames, int) and frames <= bound, f"BOUNDED: {frames} real frames <= the pre-registered {bound}",
+              "L5.BOUNDED")
     run.measures["frames"] = frames
     run.measures["goals"] = count(r["action"] for r in run.records if r.get("decision") == "goal")
 
@@ -591,20 +633,24 @@ def grade_CH1(run: Run) -> None:
     m = marks(after)
     proofs = {name: m.get(name) for name in ("RECEIVED_POKEDEX_FROM_BIRCH", "SYS_POKEDEX_GET", "ADVENTURE_STARTED",
                                              "DEFEATED_RIVAL_ROUTE103", "SET_WALL_CLOCK", "RESCUED_BIRCH", "SYS_POKEMON_GET")}
-    run.check(all(proofs.values()), f"THE GAME (save block 1, the harness's own read): {proofs}")
-    gender, name = intent_of(arm)
-    run.check((after or {}).get("name") == name and (after or {}).get("gender_name") == gender,
+    run.check(all(proofs.values()), f"THE GAME (save block 1, the harness's own read): {proofs}", "L5.CH1_PROOFS")
+    # (build step 5.3, A1-2) HONESTY: the AI's OWN told intent judged against the game's save block 2 (no longer the
+    # intent recomputed by calling the AI's chooser)
+    gender, name = logged_intent(run)
+    run.check(name is not None and (after or {}).get("name") == name and (after or {}).get("gender_name") == gender,
               f"THE GAME (save block 2): name {(after or {}).get('name')!r} gender {(after or {}).get('gender_name')} == the intro's "
-              f"intent {name!r} {gender} (recomputed from personality.py for seed {arm.seed})")
+              f"intent {name!r} {gender} (as the run itself told it, its intro line; seed {arm.seed})", "L5.NAME_GENDER",
+              1 if name is not None else 0)
     party = (after or {}).get("party_exp") or []
     owner = {row[0]: row[1] for row in (after or {}).get("party_ot") or []}
     starter = arm.env[ENV_STARTER]
     first = party[0] if party else None
     run.check(first is not None and first[1].upper() == starter and owner.get(first[0]) == (after or {}).get("player_tid"),
               f"THE GAME (the framework's party decoder): the first Pokemon {first} is the {starter} the run named, its OT "
-              f"{owner.get(first[0]) if first else None} == the player's {(after or {}).get('player_tid')}")
+              f"{owner.get(first[0]) if first else None} == the player's {(after or {}).get('player_tid')}", "L5.STARTER_OT")
     balls = (after or {}).get("balls") or {}
-    run.check(sum(balls.values()) >= 5, f"THE GAME (the bag): POKé BALLS {balls} (the rival's 5 after the POKéDEX)")
+    run.check(sum(balls.values()) >= 5, f"THE GAME (the bag): POKé BALLS {balls} (the rival's 5 after the POKéDEX)",
+              "L5.BALLS")
     rival = milestone_frame(run, "ch1_rival_route103")
     starter_done = milestone_frame(run, "ch1_starter")
     # (the step-5 verifier's round 2: "wild battles WON between the starter and the rival" is met by an arm that never
@@ -626,13 +672,14 @@ def grade_CH1(run: Run) -> None:
               f"and {won_training} wild battles WON inside them (>= {want['wild_won']}; of {met_training} met there). "
               f"Reported, not a training check: between its starter milestone at f{starter_done} and the rival, "
               f"{count(r['extra'].get('outcome') for r in fought)} of the {len(fought)} wild battles there; "
-              f"{len(wild_before)} met before the rival in all")
+              f"{len(wild_before)} met before the rival in all", "L5.TRAINED")
     check_rest_rule(run)
     check_own_report(run, "ch1_rival_route103")
     told = len(wild_battles(run))
     game = stats(after).get("wild_battles")
+    # (build step 5.3) HONESTY: the AI's told count judged against the game's counter
     run.check(told == game, f"THE GAME AGREES WITH ITS COUNT: its told wild battles in all {told} == GAME_STAT_WILD_BATTLES "
-                            f"{game} (the harness's own read of save block 1's counters)")
+                            f"{game} (the harness's own read of save block 1's counters)", "L5.TOLD_WILD")
     all_steps = sum((r.get("extra") or {}).get("steps", 0) for r in roams(run))
     spins = sum((r.get("extra") or {}).get("spins", 0) for r in roams(run))
     ratio = spins / all_steps if all_steps else 1.0
@@ -640,7 +687,7 @@ def grade_CH1(run: Run) -> None:
     # spins TOGETHER under 2 % of their training steps (`main`); a per-run "< 2 %" fails 2 spins in 100 steps
     run.check(all_steps > 0 and spins <= SPINS_PER_RUN, f"ROAMING, NOT SPINNING: {spins} spins over {all_steps} training "
                                                         f"steps = {ratio:.4f} (at most {SPINS_PER_RUN} spins in a run; the CH1 "
-                                                        f"arms together under 2 %: the overall line)")
+                                                        f"arms together under 2 %: the overall line)", "L5.SPINS")
     run.measures.update({"rival_frame": rival, "train_steps_before": steps, "wild_before": len(wild_before),
                          "wild_won_training": won_training, "wild_met_training": met_training,
                          "wild_won_starter_to_rival": sum(1 for r in fought if r["extra"].get("outcome") == "won"),
@@ -654,7 +701,7 @@ def grade_CH2(run: Run) -> None:
     m = marks(after)
     run.check(m.get("HIDE_PETALBURG_CITY_WALLYS_MOM") == 1 and (m.get("VAR_PETALBURG_GYM_STATE") or 0) >= 2,
               f"THE GAME: WALLY's tutorial: HIDE_PETALBURG_CITY_WALLYS_MOM {m.get('HIDE_PETALBURG_CITY_WALLYS_MOM')}, "
-              f"VAR_PETALBURG_GYM_STATE {m.get('VAR_PETALBURG_GYM_STATE')} (>= 2)")
+              f"VAR_PETALBURG_GYM_STATE {m.get('VAR_PETALBURG_GYM_STATE')} (>= 2)", "L5.CH2_WALLY")
     want = PREDICTED[run.arm.name]
     caught = stats(after).get("captures", 0) - stats(before).get("captures", 0)
     pids_before = {row[0] for row in (before or {}).get("party_exp") or []} | {row[0] for row in (before or {}).get("boxes") or []}
@@ -663,17 +710,17 @@ def grade_CH2(run: Run) -> None:
     new += [row for row in (after or {}).get("boxes") or [] if row[0] not in pids_before and row[1] == tid]
     run.check(caught >= want["caught"] and len(new) >= want["caught"],
               f"CAUGHT: GAME_STAT_POKEMON_CAPTURES +{caught} and {len(new)} new PIDs with the player's OT {tid}: {new} "
-              f"(>= {want['caught']})")
+              f"(>= {want['caught']})", "L5.CAUGHT")
     heals = stats(after).get("used_pokecenter", 0) - stats(before).get("used_pokecenter", 0)
-    run.check(heals >= want["heals"], f"HEALED: GAME_STAT_USED_POKECENTER +{heals} (>= {want['heals']})")
+    run.check(heals >= want["heals"], f"HEALED: GAME_STAT_USED_POKECENTER +{heals} (>= {want['heals']})", "L5.HEALED")
     picked = [name for name, value in items(after).items() if value and not items(before).get(name)]
-    run.check(len(picked) >= want["items"], f"ITEMS: item-ball flags newly set {picked} (>= {want['items']})")
+    run.check(len(picked) >= want["items"], f"ITEMS: item-ball flags newly set {picked} (>= {want['items']})", "L5.ITEMS")
     check_rest_rule(run)
     check_own_report(run, None)
     bought = tells(run, "done; POKé BALL in the bag")
     run.check(bool(bought), f"SHOPPED (its told purchase): {[str(r['reason'])[:120] for r in bought[:2]]}; money "
                             f"{(before or {}).get('money')} -> {(after or {}).get('money')}, balls {(before or {}).get('balls')} -> "
-                            f"{(after or {}).get('balls')}")
+                            f"{(after or {}).get('balls')}", "L5.SHOPPED")
     run.measures.update({"caught": caught, "heals": heals, "items": picked, "game_stats": stats(after)})
 
 
@@ -684,7 +731,7 @@ GRADERS = {"CH1T": grade_CH1, "CH1C": grade_CH1, "CH1M": grade_CH1, "CH2": grade
 def write_evidence(run: Run, code: str, tag: str) -> Path:
     out = EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-{tag}-{run.arm.name}.txt"
     keep_earlier(out)
-    lines = [f"AI PLAYER BUILD STEP 5.2 (PRODUCTIVE CURIOSITY) - LIVE PROOF - ARM {run.arm.name}: {run.arm.title} "
+    lines = [f"AI PLAYER BUILD STEP 5.3 (TYPED CHECKS, stage A1) - LIVE PROOF - ARM {run.arm.name}: {run.arm.title} "
              f"(seed {run.arm.seed}: a NEW trajectory, never played by an arm or a sweep; one sample on the host's clock)",
              f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}", f"code: {code}",
              f"start: {'a real New Game (--fresh)' if run.arm.fresh else f'the end state of arm {run.arm.state_from}: {run.start_state}'}",
@@ -692,8 +739,9 @@ def write_evidence(run: Run, code: str, tag: str) -> Path:
              f"env: {' '.join(f'{k}={v}' for k, v in sorted({ENV_BRAIN: 'play', ENV_SEED: str(run.arm.seed), **run.arm.env}.items()))}",
              f"exit code: {run.exit_code}   elapsed: {run.elapsed:.1f}s   run dir: {run.run_dir}",
              f"VERDICT: {'PASS' if run.passed else 'FAIL'}",
-             "checks (pre-registered in ai_player/gates/live_step5.py's docstring and PREDICTED; each quotes both values):"]
-    lines += [f"  [{'PASS' if ok else 'FAIL'}] {text}" for ok, text in run.checks]
+             "checks (pre-registered in ai_player/gates/live_step5.py's docstring and PREDICTED; each quotes both values; "
+             "build step 5.3: typed, id kind n/floor inputs, a DIAGNOSTIC one never counts):"]
+    lines += evidence_lines(run.checks)
     lines.append(f"measures: {json.dumps(run.measures, ensure_ascii=False)}")
     lines += [f"note: {note}" for note in run.notes]
     milestones = [str(r.get("reason")) for r in tells(run, "MILESTONE ")]
@@ -739,6 +787,12 @@ def main() -> int:
     args = parser.parse_args()
     wanted = [a.strip() for a in args.arms.split(",") if a.strip()]
     arms = [arm for arm in ARMS if arm.name in wanted]
+    # (build step 5.3, A1-2, G-3) no arm is played while a grader takes a value from the AI's code
+    from ai_player.gates.rate_step5 import grader_imports_line
+    import_line = grader_imports_line()
+    print(f"[LIVE5] {import_line}", flush=True)
+    if not import_line.startswith("GRADER IMPORTS: PASS"):
+        return 2
     code = tree_provenance(REPO)
     print(f"[LIVE5] code: {code}", flush=True)
     # (build step 5.2, G1) the frozen-tree watch (started by the code line): checked around every arm, sealed at OVERALL
@@ -757,28 +811,34 @@ def main() -> int:
         GRADERS[arm.name](run)
         run.check(tree.check(f"after arm {arm.name}"),
                   f"FROZEN TREE: the files of the code under test did not change while this arm played "
-                  f"({tree.moves[-1][:300] if tree.moves else 'unchanged'})")
+                  f"({tree.moves[-1][:300] if tree.moves else 'unchanged'})", "L5.FROZEN")
         path = write_evidence(run, code, args.evidence_tag)
         results.append(run)
         print(f"[LIVE5] arm {arm.name}: {'PASS' if run.passed else 'FAIL'} ({run.elapsed:.0f}s) -> {path}", flush=True)
-        for ok, text in run.checks:
-            if not ok:
-                print(f"    [FAIL] {text[:400]}", flush=True)
+        for check in run.checks:
+            if check.status != "PASS":
+                print(f"    [{check.status}] {check.id} {check.kind}"
+                      f"{' (never counts)' if check.kind in ('DIAGNOSTIC', 'REPORTED') else ''}: {check.text[:400]}",
+                      flush=True)
     left = leftover_processes()
     print(f"[LIVE5] leftover emulator processes: {left or 'none'}", flush=True)
     chapter_1 = [r for r in results if r.arm.name.startswith("CH1")]
     spins = sum(r.measures.get("spins") or 0 for r in chapter_1)
     steps = sum(r.measures.get("roam_steps") or 0 for r in chapter_1)
-    pooled_ok = not chapter_1 or (steps > 0 and spins / steps < 0.02)
     occasions = sum(r.measures.get("rest_occasions") or 0 for r in chapter_1)
-    rest_ok = not chapter_1 or occasions >= 1
     if chapter_1:
-        print(f"[LIVE5] the CH1 arms' spins together: {spins} over {steps} training steps = "
-              f"{(spins / steps if steps else 1.0):.4f} (< 0.02): {'PASS' if pooled_ok else 'FAIL'}", flush=True)
-        print(f"[LIVE5] the CH1 arms' occasions for the rest rule together (a battle in a roam that ended under the "
-              f"personality's heal_below): {occasions} (>= 1, so the rule's check is not vacuous): "
-              f"{'PASS' if rest_ok else 'FAIL'}; rests {[r.measures.get('rests') for r in chapter_1]}", flush=True)
-    passed = all(run.passed for run in results) and not left and pooled_ok and rest_ok and len(results) == len(arms)
+        # (build step 5.3, A1-1) the CH1 arms' pooled spins and rest occasions are DIAGNOSTIC: printed, never counted (both
+        # read the AI's own roam and battle records; the sweep grades the game's side)
+        pooled = [grade("L5.POOLED_SPINS", steps > 0 and spins / steps < 0.02,
+                        f"the CH1 arms' spins together: {spins} over {steps} training steps = "
+                        f"{(spins / steps if steps else 1.0):.4f} (< 0.02)", steps, 1),
+                  grade("L5.REST_OCCASIONS", occasions >= 1,
+                        f"the CH1 arms' occasions for the rest rule together (a battle in a roam that ended under the "
+                        f"personality's heal_below): {occasions} (>= 1, so the rule's check is not vacuous); rests "
+                        f"{[r.measures.get('rests') for r in chapter_1]}", occasions)]
+        for line in evidence_lines(pooled):
+            print(f"[LIVE5] {line.strip()}", flush=True)
+    passed = all(run.passed for run in results) and not left and len(results) == len(arms)
     # (build step 5.2, G1) the frozen-tree watch seals the overall verdict
     overall, frozen_line = tree.seal("PASS" if passed else "FAIL")
     print(f"[LIVE5] {frozen_line}", flush=True)

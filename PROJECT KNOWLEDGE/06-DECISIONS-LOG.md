@@ -9701,3 +9701,13 @@ on all three questions:
   - (a) Relaxing the rule by reachability reasoning ("this other writer ran before the gift, so the gift is once"). That shortcut (`one_shot`, the "spent" rule) produced round 2's wrong values.
   - (b) A fourth round now for a polarity refinement: "a writer that writes ONLY the blocking value cannot re-arm". It is mechanically checkable and would recover the gym TMs, the dolls, the bikes and the fossils. DEFERRED as a low-priority follow-up (04 queue item 5), not refused: it is the right next refinement if the AI ever misses those records.
 - **Known weak proofs, said plainly in `07` 2026-10-22:** two verifier rules (h2 and gw-cite) can be deleted with every plant and test green; the `s2_merge` guard is inert at the pin; a Trick House hide flag is treated as a blocker although `addobject` ignores it (9 records, values still true); two physical gates nobody worded (the Slateport museum fee, Shoal Cave low tide).
+
+## 2026-10-23 — Technical decisions of step 5.3 stage A1 (Claude's calls)
+
+- **D1. R5.LEFT_NOT_NEW and R5.CH2_NEW_PLACE keep the honest n (the draws judged) and are WAIVED, each with a reason.** The evidence still prints them `VACUOUS (WAIVED)`, never PASS.
+  - **WHY:** each is an ABSENCE guard (it judges each "a new place" draw), the look-around draw is the AI's optional choice, and the spec says A1 must change no outcome.
+  - **Rejected:** (a) n = the runs. It prints PASS on zero judged draws, which overstates the evidence. (b) No waiver. It fails a healthy sweep for the AI's choice not to look around.
+  - **Kept distinct:** a run that did not happen is not an absence of a draw. Stage B decides whether a sweep must exercise such draws (coverage) and then removes the waivers.
+- **D2. The live twins L5.CATCH_ALL, L5.ASIDE_BACK and L5.GO_AFTER_PAGE are DIAGNOSTIC, like their rate twins (#6, #26, #27).** The spec says these properties have no game form, so a debt row could never be paid. Rejected: GRADED plus a debt row (builder A's conservative default).
+- **D3. L5.PURITY_ENDED declares inputs `harness` and `ai`, and is a debt row.** Its A2 plan is the harness's own stop record (did the HARNESS stop it, on the frame budget or the wall clock), never the brain's text. WHY: the check reads `exit_reason`, which for a clean exit is the brain's own text.
+- **D4. The ledger hash also covers `hands_harness`, `live_step2`, `probe_presses` and `probe_eyes`.** The fix-round verifier found them to be verdict inputs that were unhashed. Consequence, intended: any edit to a hashed file, even a docstring, invalidates a registration made before it.

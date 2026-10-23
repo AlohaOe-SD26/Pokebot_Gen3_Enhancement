@@ -157,6 +157,7 @@ LINE_RULES: dict[str, tuple[str, str | None]] = {
     "call_census": (r"^CALL-SITE CENSUS: PASS$", r"^CALL-SITE CENSUS: FAIL$"),
     "check_fairness": (r"^PERSON-FAIR DATA DOOR: PASS \(\d+ breaches\)$", r"^PERSON-FAIR DATA DOOR: FAIL\b"),
     "check_lessons": (r"^LESSONS CHECK: PASS \(\d+ problems\)$", r"^LESSONS CHECK: FAIL\b"),
+    "check_grader_imports": (r"^GRADER IMPORTS: PASS\b", r"^GRADER IMPORTS: FAIL\b"),
     # a REPORT: it always exits 0 (recon Q1); its line proves it ran to its end
     "disk_budget": (r"^DISK BUDGET: \S", None),
 }
@@ -203,7 +204,10 @@ EVIDENCE_NAMES = {"units": "regression-units", "revert_step5": "regression-step5
                   "revert_safety_gates": "regression-revert-gates"}
 QUICK = ("check_purity", "test_eyes", "test_hands", "test_battle", "test_evidence", "extract_knowledge_check",
          "test_goals", "extract_milestones_check", "ledger_check", "call_census", "check_fairness", "check_lessons",
-         "disk_budget", "test_run_regression")
+         "disk_budget", "test_run_regression",
+         # build step 5.3 stage A1 (registered after the A1 fix round: before it, neither ran in any lane). The G-3
+         # rule runs twice: the CLI, and test_step53_a1's GraderImportTests.test_the_tree_as_it_stands_passes
+         "test_step53_a1", "check_grader_imports")
 
 
 def all_suites() -> list[Suite]:

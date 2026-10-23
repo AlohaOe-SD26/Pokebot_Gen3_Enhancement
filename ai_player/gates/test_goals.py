@@ -2009,11 +2009,24 @@ class VerifierRoundTests(unittest.TestCase):
         short = row(5, "play: stuck: no progress for 161095 frames", 2, 900, 245000)
 
         def verdict(rows):
-            return next(ok for ok, text in step51_verdicts({"LOSE3": rows}) if text.startswith("LOSE3"))
+            # (build step 5.3, A1-4) by its check ID, no longer by a text prefix; each row carries the MAX_LOSSES the
+            # harness recorded the run playing with (`play_harness.play`), which LOSE3 grades by since A1-2
+            return check_by_id(step51_verdicts({"LOSE3": [{**r, "max_losses": MAX_LOSSES} for r in rows]}),
+                               "R5.LOSE3").status == "PASS"
 
         self.assertTrue(verdict(reached + [short]))  # FAULT half: graded as before, the short run failed it
         self.assertFalse(verdict([row(1, "play: stopped: not finished", 3, 1000, 1000 + STOP_WITHIN + 1)] + reached))
         self.assertFalse(verdict(reached[:1] + [short, short, short]))  # the arm must reach a third loss
+
+
+def check_by_id(results, check_id: str):
+    """(Build step 5.3, A1-4) the ONE typed check `check_id` among a grader's results (`grader_checks.Check`): the tests
+    find a check by its stable id, no longer by the start of its text (a reworded line moved no test before, and a
+    rewording that matched two checks picked the first)."""
+    found = [check for check in results if getattr(check, "id", None) == check_id]
+    if len(found) != 1:
+        raise AssertionError(f"{check_id}: {len(found)} checks with this id among {[getattr(c, 'id', c) for c in results]}")
+    return found[0]
 
 
 class _Draws:
@@ -2643,11 +2656,6 @@ class SecondRoundTests(unittest.TestCase):
         self.assertIn("its first POKé BALLS", goal.reason)
         self.assertNotEqual(route102(2).kind, "catch")
 
-    def test_the_graders_curiosity_is_the_goal_managers(self):
-        from ai_player.brain.goals import CURIOSITY_KINDS as BRAIN
-        from ai_player.gates.rate_step5 import CURIOSITY_KINDS as GRADER
-        self.assertEqual(BRAIN, GRADER)
-
     def test_the_chapter2_checks(self):
         """The sweep's chapter 2 (`rate_step5.chapter2_verdicts`): the floor in EVERY run, the beeline under it."""
         from ai_player.gates.rate_step5 import BOUNDS, chapter2_verdicts
@@ -2657,37 +2665,47 @@ class SecondRoundTests(unittest.TestCase):
                     "reason": "play: done", "mix": {"errand_share": share, "free_share": free}, "old_places": [],
                     "place_draws": 2, "losses_game": 0, "time_wally": {"outside_nb": 50000 if plan == "CH2" else 40000}}
 
-        def verdict(rows, start):
-            return next(ok for ok, text in chapter2_verdicts(rows) if text.startswith(start))
+        def verdict(rows, check_id):
+            # (build step 5.3, A1-4) by its check ID; the check's OWN outcome (a REPORTED share's: its old bound's)
+            return check_by_id(chapter2_verdicts(rows), check_id).status == "PASS"
 
         good = {"CH2": [row(1, 0.4), row(2, 0.35)], "CH2_OFF": [row(1, 0.1, 0.0, plan="CH2_OFF"),
                                                                  row(2, 0.2, 0.0, plan="CH2_OFF")]}
-        self.assertTrue(verdict(good, "CH2: THE INTENT MIX"))
-        self.assertFalse(verdict({**good, "CH2": [row(1, 0.4), row(2, BOUNDS["MIX_MIN"] - 0.01)]}, "CH2: THE INTENT MIX"))
-        self.assertTrue(verdict(good, "CH2_OFF"))
-        self.assertFalse(verdict({**good, "CH2_OFF": [row(1, 0.5, 0.0, plan="CH2_OFF")] * 2}, "CH2_OFF"))
-        self.assertTrue(verdict(good, "CH2: NO SPEEDRUN"))
-        self.assertFalse(verdict({**good, "CH2": [row(1, 0.4, wally=False)] * 2}, "CH2: WALLY"))
+        self.assertTrue(verdict(good, "R5.CH2_INTENT_MIX"))
+        self.assertFalse(verdict({**good, "CH2": [row(1, 0.4), row(2, BOUNDS["MIX_MIN"] - 0.01)]}, "R5.CH2_INTENT_MIX"))
+        self.assertTrue(verdict(good, "R5.CH2_OFF_UNDER"))
+        self.assertFalse(verdict({**good, "CH2_OFF": [row(1, 0.5, 0.0, plan="CH2_OFF")] * 2}, "R5.CH2_OFF_UNDER"))
+        self.assertTrue(verdict(good, "R5.CH2_NOBATTLE"))
+        self.assertFalse(verdict({**good, "CH2": [row(1, 0.4, wally=False)] * 2}, "R5.CH2_WALLY"))
 
     def test_the_shares_of_frames_are_reported_not_graded(self):
         """(build step 5.2, P2: "grade YIELD and SPACING, not share of frames") the sweep's verdicts REPORT every check of a
         share of frames (`rate_step5.P2_REPORTED`), saying whether its old bound held; any other check stays graded."""
-        from ai_player.gates import rate_step5
-        made = [(False, "CH2: THE INTENT MIX, a FLOOR in EVERY chapter-2 run ..."), (False, "CH2: WALLY's tutorial ..."),
-                (True, "THE INTENT MIX (CH1): the share ..."), (False, "THE BEELINE FAILS THE CURIOSITY BOUND: ...")]
+        from ai_player.gates import grader_checks, rate_step5
+        # (build step 5.3, A1-4) the sub-verdicts are TYPED checks found by id: "reported" is a KIND, no longer a prefix
+        made = [grader_checks.grade("R5.CH2_INTENT_MIX", False, "CH2: THE INTENT MIX, a FLOOR in EVERY chapter-2 run ...", 2),
+                grader_checks.grade("R5.CH2_WALLY", False, "CH2: WALLY's tutorial ...", 2, 1),
+                grader_checks.grade("R5.CH1_INTENT_MIX", True, "THE INTENT MIX (CH1): the share ...", 2),
+                grader_checks.grade("R5.BEELINE_FAILS_FREE", False, "THE BEELINE FAILS THE CURIOSITY BOUND: ...", 2)]
         with mock.patch.object(rate_step5, "stop_verdicts", lambda rows: []), \
                 mock.patch.object(rate_step5, "step51_verdicts", lambda rows: made[2:]), \
                 mock.patch.object(rate_step5, "chapter2_verdicts", lambda rows: made[:2]), \
                 mock.patch.object(rate_step5, "step52_verdicts", lambda rows: []):
             results = rate_step5.verdicts({}, {})
-        def by(part: str) -> tuple[bool, str]:
-            return next((ok, text) for ok, text in results if part in text)
 
-        self.assertEqual(by("CH2: THE INTENT MIX")[0], True)  # FAULT half: graded, and the run FAILS
-        self.assertIn("the old bound did NOT hold", by("CH2: THE INTENT MIX")[1])
-        self.assertIn("the old bound HELD", by("THE INTENT MIX (CH1)")[1])
-        self.assertEqual(by("CH2: WALLY")[0], False)  # graded as before
-        self.assertTrue(by("THE BEELINE FAILS")[0])
+        def by(check_id: str):
+            return check_by_id(results, check_id)
+
+        self.assertEqual(by("R5.CH2_INTENT_MIX")[0], True)  # FAULT half: graded, and the run FAILS
+        self.assertEqual(by("R5.CH2_INTENT_MIX").kind, grader_checks.REPORTED)
+        self.assertIn("the old bound did NOT hold", by("R5.CH2_INTENT_MIX")[1])
+        self.assertIn("the old bound HELD", by("R5.CH1_INTENT_MIX")[1])
+        self.assertEqual(by("R5.CH2_WALLY")[0], False)  # graded as before
+        self.assertTrue(by("R5.BEELINE_FAILS_FREE")[0])
+        self.assertEqual(grader_checks.verdict(results), "FAIL")  # WALLY's failure alone fails the sweep
+        # P2_REPORTED is exactly the REPORTED checks that keep their 5.2 bound's verdict, all seven
+        self.assertEqual(set(rate_step5.P2_REPORTED), {key for key, spec in grader_checks.CHECKS.items()
+                                                        if spec.kind == grader_checks.REPORTED and spec.old_bound})
         self.assertEqual(len(rate_step5.P2_REPORTED), 7)
 
 
@@ -4020,7 +4038,7 @@ class GraderYieldTests(unittest.TestCase):
         self.assertEqual([(r["talks_ai"], r["talked_ai"], r["talked_game"]) for r in rows],
                          [(True, False, True), (True, True, True)])
         real = {"CH1": [self.row("CH1", 1, talks_ai=2, talks_apart=[(1000, "cha", 0, 1)])], "CH2": [self.row("CH2", 1)]}
-        line = next(text for _, text in step52_verdicts(real) if text.startswith("(reported) THE TWO PATHS ON THE TALKS"))
+        line = check_by_id(step52_verdicts(real), "R5.TALKS_PATHS").text  # (build step 5.3, A1-4) by its id
         self.assertIn("in 1 of 2", line)
         self.assertIn("('CH1', 1, 1000, 'cha', 0, 1)", line)  # FAULT half: nothing reported apart
 
@@ -4051,7 +4069,8 @@ class GraderYieldTests(unittest.TestCase):
         records = [{"decision": "goal", "action": "explore", "frame": 100, "reason": "a new place, OLDALE_TOWN: a person"},
                    {"decision": "goal", "action": "explore", "frame": 900, "reason": "a new place, OLDALE_TOWN: a person"}]
         data = {"places": {"stays": [[0, "0:16"], [50, "0:9"], [400, "0:16"], [800, "0:9"]]}}
-        with mock.patch("ai_player.gates.rate_step5.map_keys", lambda world_file: {"OLDALE_TOWN": "0:9"}):
+        # (build step 5.3, A1-2/A1-4) the keys are the framework's map table (`map_keys(MAP_DATA)`), no world file
+        with mock.patch("ai_player.gates.rate_step5.map_keys", lambda source=None: {"OLDALE_TOWN": "0:9"}):
             self.assertEqual(new_place_left_before(records, data, 0), [(900, "OLDALE_TOWN")])  # its second stay
 
     def row(self, plan, seed, **more):
@@ -4059,7 +4078,9 @@ class GraderYieldTests(unittest.TestCase):
                 "productive_frames": 3600, "loaf_frames": 400, "seeing_frames": 3000, "seeing_productive": 2600,
                 "yield_agree": 0, "detours": [(1, ["0:9", 1, 1, "f"], 1, 1)],
                 "streak_goals": 2, "streak_frames": 3000, "push_ai": 900, "push_game": 950, "push_game_at": [0, 0],
-                "person_blocks": 0, "left_called_new": [], "ask_nothing_said": 0, "places_samples": 100}
+                "person_blocks": 0, "left_called_new": [], "ask_nothing_said": 0, "places_samples": 100,
+                # (build step 5.3, A1-4) the draws #61 judged: its sample count (none judged is VACUOUS)
+                "left_judged": 1, "left_skipped": 0}
         return {**base, **more}
 
     def test_the_step52_verdicts_and_their_controls(self):
@@ -4071,39 +4092,41 @@ class GraderYieldTests(unittest.TestCase):
                     "BLOCKED": [self.row("BLOCKED", 1, person_blocks=5, push_ai=BOUNDS["PUSH_MAX"] + 9,
                                          push_game=BOUNDS["PUSH_MAX"] + 9), self.row("BLOCKED", 2)]}
 
-        def check(rows, prefix: str) -> bool:
-            results = step52_verdicts(rows)
-            found = [ok for ok, text in results if text.startswith(prefix)]
-            self.assertEqual(len(found), 1, (prefix, [text[:40] for _, text in results]))
-            return found[0]
+        def check(rows, check_id: str) -> bool:
+            # (build step 5.3, A1-4) the check by its ID, its OWN outcome (PASS), whatever its kind
+            return check_by_id(step52_verdicts(rows), check_id).status == "PASS"
 
         results = step52_verdicts({**real, **controls})
-        self.assertTrue(all(ok for ok, _ in results), [text[:120] for ok, text in results if not ok])
-        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, loaf_frames=7500)], **controls}, "NO LOAFING"))
-        self.assertFalse(check({**real, **controls, "LOAF": [self.row("LOAF", 1)]}, "LOAF ("))  # a control that holds
-        self.assertFalse(check({**real, "CH2": [self.row("CH2", 1, streak_goals=6)], **controls}, "CURIOSITY SPACED"))
+        self.assertTrue(all(c.status == "PASS" for c in results), [c.text[:120] for c in results if c.status != "PASS"])
+        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, loaf_frames=7500)], **controls}, "R5.NO_LOAFING"))
+        self.assertFalse(check({**real, **controls, "LOAF": [self.row("LOAF", 1)]}, "R5.LOAF"))  # a control that holds
+        self.assertFalse(check({**real, "CH2": [self.row("CH2", 1, streak_goals=6)], **controls}, "R5.SPACED"))
         self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, detours=[(1, ["0:9", 1, 1, "f"], 1, 0)])], **controls},
-                               "THE DETOUR'S WORD IS TRUE"))
+                               "R5.DETOUR_WORD"))
         pushed = {**real, "CH1": [self.row("CH1", 1, push_ai=BOUNDS["PUSH_MAX"], push_game=10)], **controls}
-        self.assertFalse(check(pushed, "THE PUSHING PROPERTY"))
-        self.assertFalse(check(pushed, "THE TWO PATHS AGREE on the pushing"))
-        self.assertFalse(check({**real, **controls, "BLOCKED": [self.row("BLOCKED", 1)]}, "BLOCKED ("))  # never reached
+        self.assertFalse(check(pushed, "R5.PUSHING"))
+        self.assertFalse(check(pushed, "R5.PUSH_PATHS_AGREE"))
+        self.assertFalse(check({**real, **controls, "BLOCKED": [self.row("BLOCKED", 1)]}, "R5.BLOCKED"))  # never reached
         self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, seeing_frames=4000, seeing_productive=1000)],
-                                "CH2": real["CH2"], **controls}, "CH1: CURIOSITY BY YIELD"))
+                                "CH2": real["CH2"], **controls}, "R5.CH1_YIELD"))
+        # (build step 5.3, A1-4) #61 by the draws it JUDGED: none judged is VACUOUS (it saw nothing), not a PASS
+        self.assertEqual(check_by_id(step52_verdicts({**real, **controls}), "R5.LEFT_NOT_NEW").status, "PASS")
+        unjudged = {plan: [{**r, "left_judged": 0} for r in rows] for plan, rows in {**real, **controls}.items()}
+        self.assertEqual(check_by_id(step52_verdicts(unjudged), "R5.LEFT_NOT_NEW").status, "VACUOUS")
         # (step52dev3) the arrival share counts the detours that CHOSE a place: one that found none walked nowhere (FAULT
         # halves: counted as failures to arrive, 3 of 7; and a run whose placed detours did not arrive passes)
         nowhere = [(1, None, 0, 0), (2, None, 0, 0), (4, None, 0, 0), (5, None, 0, 0), (3, ["0:9", 1, 1, "f"], 1, 1)]
         self.assertTrue(check({**real, "CH1": [self.row("CH1", 1, detours=nowhere)], "CH2": real["CH2"], **controls},
-                              "DETOURS THAT ARRIVE"))
+                              "R5.DETOURS_ARRIVE"))
         short = [(1, ["0:9", 1, 1, "f"], 0, 0), (2, ["0:9", 2, 2, "f"], 0, 0), (3, ["0:9", 3, 3, "f"], 1, 1)]
         self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, detours=short)], "CH2": [self.row("CH2", 1, detours=[])],
-                                **controls}, "DETOURS THAT ARRIVE"))
+                                **controls}, "R5.DETOURS_ARRIVE"))
         # (step52dev2) graded on the curiosity that SEES: a run whose looks loafed while its chats talked FAILS it
         self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, seeing_productive=500)], "CH2": real["CH2"],
-                                **controls}, "CH1: CURIOSITY BY YIELD"))
+                                **controls}, "R5.CH1_YIELD"))
         # LOAF whose looks brought something does not fail its check (FAULT half: graded on all its curiosity)
         self.assertFalse(check({**real, **controls, "LOAF": [self.row("LOAF", s, loaf_frames=BOUNDS["LOAF_FRAMES_MAX"] + 1)
-                                                             for s in (1, 2)]}, "LOAF ("))
+                                                             for s in (1, 2)]}, "R5.LOAF"))
 
     def test_the_game_side_recorder_of_places(self):
         """`play_harness.PlaceRecorder` (the framework's reads stood in for by `place_now`): new tiles of the screen's

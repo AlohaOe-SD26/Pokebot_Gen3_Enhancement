@@ -1137,12 +1137,11 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
     "G265": (CAUGHT, "a training or catching roam is handed no hooks at all (`roam_hooks`'s call deleted)",
              [(GOALS, "            self.roam_hooks(hunt=goal.kind == \"catch\")\n", "            pass  # MUTANT G265\n")],
              ["ProductiveTests.test_a_catch_goal_asks_the_hunt_rule_and_training_does_not"]),
-    "G266": (CAUGHT, "the sweep grades the shares of frames again (`p2_reported`'s call deleted)",
-             [(RATE5, "    return p2_reported(out)\n", "    return out  # MUTANT G266\n")],
-             ["SecondRoundTests.test_the_shares_of_frames_are_reported_not_graded"]),
-    "G267": (CAUGHT, "a reported share's line does not say whether its old bound held",
-             [(RATE5, "                   f\"{'HELD' if ok else 'did NOT hold'}) {text}\")", "                   f\"HELD) {text}\")  # MUTANT G267")],
-             ["SecondRoundTests.test_the_shares_of_frames_are_reported_not_graded"]),
+    # G266 and G267 RETIRED (build step 5.3, A1-4; `LESSONS.md` PF-14): both broke `p2_reported`, the function that forced
+    # the 5.2 shares of frames to PASS by their text, and it is gone. A share is now a REPORTED check by KIND
+    # (`grader_checks.CHECKS`), never counted, and its old bound's verdict is printed by `grader_checks.verdict_row`. A
+    # deletion of that path's calls is caught by `test_step53_a1.py` (test_the_evidence_lines,
+    # test_the_sweeps_verdict_is_the_typed_rule) and SecondRoundTests.test_the_shares_of_frames_are_reported_not_graded.
     # (found by the pushing property, step52dev6, seed 1049: a walk to grass seen past OLDALE's edge flip-flopped across
     # ROUTE 101 and LITTLEROOT for 3,313 frames)
     "G268": (CAUGHT, "a walk to a tile walks on after it left the tile's map (`left_the_map`'s call deleted)",

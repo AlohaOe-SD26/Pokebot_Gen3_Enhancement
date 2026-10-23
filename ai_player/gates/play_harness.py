@@ -653,7 +653,7 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
          faults: set[str], clock: str | None, world_in: str | None, recorder: StoryRecorder | None,
          seen_in: str | None = None) -> dict:
     from ai_player.host.eyes import FrameworkEyes
-    from ai_player.mode import BrainSettings, HandsBrain
+    from ai_player.mode import MAX_LOSSES, BrainSettings, HandsBrain
     from ai_player.options import DEFAULT_MART_COUNT, DEFAULT_MART_ITEM, HandsOptions
 
     emulator = context.emulator
@@ -695,7 +695,11 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
             "reason": reason, "frames": count, "seconds": round(time.monotonic() - started, 1), "presses": controls.presses,
             "lines": lines, "report": brain.play_report, "actions": str(run_dir / "actions.jsonl"),
             "world_file": str(run_dir / "world.jsonl"), "waits_game": waits.result(), "places": places_result,
-            "seen_file": str(seen_file)}
+            "seen_file": str(seen_file),
+            # (build step 5.3, A1-2) the play loop's MAX_LOSSES this run played with (the copy's own `mode.py`: 1 in a STOP
+            # plan's copy), recorded by the HARNESS, which runs the AI anyway: the grader reads it here and imports nothing
+            # from the AI (`rate_step5` LOSE3, the G-3 rule)
+            "max_losses": MAX_LOSSES}
 
 
 def run(state: Path | None, seed: int, frames: int, personality: str | None, starter: str | None, target: str,

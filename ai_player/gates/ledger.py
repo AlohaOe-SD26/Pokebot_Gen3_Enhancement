@@ -20,6 +20,12 @@ written here, and:
     (CLAUDE.md rule 8);
   * the entry is written when the run STARTS (status "started": a crash still spends the seeds) and completed at its end
     (status "done", the verdict, the evidence file).
+(Build step 5.3, A1-3: the step-5.3 critic's Q5 item 7, "a verdict function can change between `--register` and the run")
+the numbers a graded run is compared by now include the sha256 of the CHECK CODE (`rate_step5.HASHED_FILES`: the grader,
+the live grader, the harness, the screen window, the check table) and of the files a verdict reads (the mark set, the item
+flags, the B1 debt and waiver lists, the map table), the mutant edit texts and the harness's parameters. This module's rule
+is unchanged (`begin` refuses a graded run whose numbers sha differs from its registration); what it compares now covers the
+code. `test_step53_a1.LedgerHashTests` registers a range, edits the check code, and sees the run refused.
 The ledger is a RECORD, not the code under test: `provenance.py` leaves it out of the working-tree digest and the frozen-tree
 watch (a graded run writes it at its start and end). Writes go through a lock file beside it (`ledger.json.lock`).
 """

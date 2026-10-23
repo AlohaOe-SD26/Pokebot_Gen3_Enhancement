@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "195cb858874869c4a6930bb7808977885eb7f7fc",
+ "source_sha1_lf": "32ab2db6a959aebd429600734754339f447135ab",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 330,
+  "sections": 331,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5155,6 +5155,19 @@
    "line_start": 9687,
    "line_end": 9703,
    "title": "2026-10-22 — KB2 extraction asserts only what an independent exhaustive scan re-checks; `unknown` accepted over fix-spec-2's Beldum answer",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-23-633c48",
+   "date": "2026-10-23",
+   "line_start": 9705,
+   "line_end": 9713,
+   "title": "2026-10-23 — Technical decisions of step 5.3 stage A1 (Claude's calls)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],

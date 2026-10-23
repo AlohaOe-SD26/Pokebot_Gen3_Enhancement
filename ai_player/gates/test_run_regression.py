@@ -1092,6 +1092,9 @@ POSITIVE = {
     "check_fairness PASS": ["PERSON-FAIR DATA DOOR: PASS (0 breaches)"],
     "check_fairness FAIL": ["PERSON-FAIR DATA DOOR: FAIL (2 breaches)"],
     "check_lessons PASS": ["LESSONS CHECK: PASS (0 problems)"], "check_lessons FAIL": ["LESSONS CHECK: FAIL (1 problems)"],
+    "check_grader_imports PASS": ["GRADER IMPORTS: PASS (G-3: rate_step5, live_step5 take no value from the AI's code, "
+                                  "directly or through a gates module)"],
+    "check_grader_imports FAIL": ["GRADER IMPORTS: FAIL (G-3)"],
     "disk_budget PASS": ["DISK BUDGET: C:\\ 30.0 GB free (a sweep needs 30 GB to start)"],
 }
 NEGATIVE = {
@@ -1121,6 +1124,8 @@ NEGATIVE = {
     "check_fairness FAIL": ["PERSON-FAIR DATA DOOR: PASS (0 breaches)"],
     "check_lessons PASS": ["LESSONS CHECK: FAIL (1 problems)", "LESSONS LESSONS.md: 54 lessons"],
     "check_lessons FAIL": ["LESSONS CHECK: PASS (0 problems)"],
+    "check_grader_imports PASS": ["GRADER IMPORTS: FAIL (G-3)", "GRADER IMPORTS: could not run (x)"],
+    "check_grader_imports FAIL": ["GRADER IMPORTS: PASS (G-3: rate_step5, live_step5 take no value from the AI's code)"],
     "disk_budget PASS": ["%TEMP%/ai_* folders: 19288 (`--temp` for their sizes)", "DISK BUDGET:"],
 }
 

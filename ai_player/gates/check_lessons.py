@@ -14,6 +14,12 @@ deleted, a typo) tells the next agent a mistake is impossible when nothing stops
       `mod:KEY` (a MUTANTS or SUITES key of `gates/mod.py`) and `mod:DICT.KEY` (a key of that module's dict literal);
     and any other backticked token there that LOOKS like a reference (a "/", ".py", "::" or "word:word") must resolve too,
     so a typo fails instead of being skipped;
+      (build step 5.3, A1-4) a CHECK ID of the step-5 graders (`R5.CH1_REACHED`, `L5.BALLS`): a check of
+      `gates/grader_checks.py` CHECKS whose kind COUNTS in a verdict (GRADED or HONESTY); and a `rate_step5:BOUNDS.KEY` that
+      only checks which never count read (`grader_checks.UNGRADED_BOUNDS`) does NOT resolve there: a REPORTED or
+      DIAGNOSTIC measure enforces nothing, and calling it Enforced was the overstatement A1-4 corrected (PF-3, PF-14, PL-8);
+  * an optional **Reported** line names the measures a lesson leans on that the verdict does NOT count: each check id
+    there must be a check that never counts, each `rate_step5:BOUNDS.KEY` an ungraded bound (the same lists, the other way);
   * PROSE ONLY and PARTIAL lessons have a **Needs** line (the gate they need);
   * every gate of build step 5.2 (`REQUIRED`) is named by some lesson's Enforced line.
 MENTIONS NEVER FIRE: only the Enforced line's references are resolved. A gate named in a title, a rule, an Origin or a Needs
@@ -88,8 +94,50 @@ def _dict_keys(node: ast.AST) -> set[str]:
     return set()
 
 
+#: (build step 5.3, A1-4) a check id of the step-5 graders (`gates/grader_checks.py` CHECKS)
+CHECK_ID = re.compile(r"[RL]5\.[A-Z0-9_]+")
+BOUND_TOKEN = re.compile(r"rate_step5:BOUNDS\.(?P<key>[A-Za-z_0-9]+)")
+
+
+def grader_table():
+    """`gates/grader_checks.py` of THIS package (the copy's, in a mutant copy): its CHECKS, COUNTED and UNGRADED_BOUNDS."""
+    if str(REPO) not in sys.path:
+        sys.path.insert(0, str(REPO))
+    from ai_player.gates import grader_checks
+
+    return grader_checks
+
+
+def resolve_typed(token: str, field: str) -> str | None:
+    """(Build step 5.3, A1-4) the check-id and ungraded-bound rules for a token on the `field` line ("Enforced" or
+    "Reported"): None when it obeys them (or they do not apply to it), else why not."""
+    table = grader_table()
+    bound = BOUND_TOKEN.fullmatch(token)
+    if CHECK_ID.fullmatch(token):
+        spec = table.CHECKS.get(token)
+        if spec is None:
+            return f"no check {token} in gates/grader_checks.py CHECKS"
+        counts = spec.kind in table.COUNTED
+        if field == "Enforced" and not counts:
+            return (f"{token} is {spec.kind}: it never counts in a verdict, so it enforces nothing (name it on the "
+                    f"Reported line)")
+        if field == "Reported" and counts:
+            return f"{token} is {spec.kind}: it counts in the verdict (name it on the Enforced line)"
+        return None
+    if bound and field == "Enforced" and bound["key"] in table.UNGRADED_BOUNDS:
+        return (f"BOUNDS.{bound['key']} is read only by checks that never count {list(table.UNGRADED_BOUNDS[bound['key']])} "
+                f"(REPORTED or DIAGNOSTIC): it enforces nothing (name it on the Reported line)")
+    if bound and field == "Reported" and bound["key"] not in table.UNGRADED_BOUNDS:
+        return f"BOUNDS.{bound['key']} is read by a check that counts (name it on the Enforced line)"
+    if field == "Reported" and not bound:
+        return f"a Reported line names check ids and `rate_step5:BOUNDS.KEY` bounds only, not {token!r}"
+    return None
+
+
 def resolve(token: str) -> str | None:
     """None when the reference resolves, else why not."""
+    if CHECK_ID.fullmatch(token):
+        return None  # (build step 5.3) a check id: `resolve_typed` judges it against the grader's table
     if "::" in token:
         file, _, name = token.partition("::")
     else:
@@ -140,7 +188,7 @@ def resolve(token: str) -> str | None:
 
 def looks_like_reference(token: str) -> bool:
     return ("/" in token or token.endswith((".py", ".ps1", ".json", ".md")) or "::" in token
-            or re.fullmatch(r"[a-z_0-9]+:[A-Za-z_0-9.]+", token) is not None)
+            or re.fullmatch(r"[a-z_0-9]+:[A-Za-z_0-9.]+", token) is not None or CHECK_ID.fullmatch(token) is not None)
 
 
 def parse(text: str) -> list[dict]:
@@ -211,10 +259,17 @@ def check(text: str, documents: dict[str, Path | tuple[Path, ...]] = DOCUMENTS,
                 problems.append(f"{tag}: {status} but its Enforced line names no gate, test, mutant or file")
             for token in tokens:
                 why = resolve(token)
+                if why is None and (CHECK_ID.fullmatch(token) or BOUND_TOKEN.fullmatch(token)):
+                    why = resolve_typed(token, "Enforced")
                 if why is not None:
                     problems.append(f"{tag}: Enforced names `{token}`: {why}")
                 else:
                     named.add(token)
+        # (build step 5.3, A1-4) the measures a lesson leans on that the verdict does not count, each resolved too
+        for token in TICKED.findall(fields.get("Reported", "")):
+            why = resolve(token) or resolve_typed(token, "Reported")
+            if why is not None:
+                problems.append(f"{tag}: Reported names `{token}`: {why}")
     for gate in required:
         if not any(n == gate or n.startswith(gate + ".") or n.startswith(gate + "::") for n in named):
             problems.append(f"the gate `{gate}` is named by no lesson's Enforced line")
