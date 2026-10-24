@@ -68,6 +68,13 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # GraderImportTests.test_the_tree_as_it_stands_passes runs the G-3 rule (no grader takes a value from the AI's code)
     # on the tree as it stands, so this suite enforces G-3 too
     "test_step53_a1": ([str(GATES / "test_step53_a1.py")], 2),
+    # build step 5.3, stage A2: the A1 carry-overs and the five game reads' logic (offline, about 2 s; its
+    # LiveKnownAnswerTests skip unless POKEBOT_A2_LIVE=1, which needs the ROM)
+    "test_step53_a2": ([str(GATES / "test_step53_a2.py")], 2),
+    # build step 5.3, stage A2 (builder 2): the measurement of a kept development sweep (`measure_step5.py`) on synthetic
+    # run folders with known answers, its decision table over every b1_debt.json id, and the G-3 rule for it (offline,
+    # under 1 s)
+    "test_measure_step5": ([str(GATES / "test_measure_step5.py")], 2),
     # build step 5.3, stage A1-2: the G-3 gate's own CLI (the two graders import no AI value, directly or through a
     # gates module; under 2 s)
     "check_grader_imports": ([str(GATES / "check_grader_imports.py")], 1),

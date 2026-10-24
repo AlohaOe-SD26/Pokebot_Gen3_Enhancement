@@ -62,26 +62,68 @@ TRAINER_IDS = (322, 280, 617, 631, 754, 753, 529, 532, 535, 520, 523, 526, 318, 
                600)
 
 
+def press_context() -> tuple[str | None, str | None, int | None, int | None]:
+    """(Build step 5.3, stage A2, read iii) The player's FACING and position at a press, by the framework's own reads
+    (`modules.player.get_player_avatar`: the player object's `facing_direction`, map and coordinates), never the AI's eyes:
+    (facing, "group:number", x, y), all None off the OVERWORLD (a battle's or a menu's press turns nobody). RAISES when the
+    framework cannot be read (the caller counts it)."""
+    from modules.memory import get_game_state
+    from modules.player import get_player_avatar
+
+    if get_game_state().name != "OVERWORLD":
+        return None, None, None, None
+    avatar = get_player_avatar()
+    group, number = avatar.map_group_and_number
+    x, y = avatar.local_coordinates
+    return str(avatar.facing_direction), f"{int(group)}:{int(number)}", int(x), int(y)
+
+
 class HarnessControls:
     """The brain's `Controls` on the throwaway emulator, with `host/controller.py`'s semantics: `tap` presses for
     one frame and leaves one released; `hold` holds until released, even if interrupted; one frame per `yield`
-    (the harness runs the frame after each `next`)."""
+    (the harness runs the frame after each `next`).
+
+    (Build step 5.3, stage A2, read iii) THE PRESS LOG: besides the count `presses` (what `WaitRecorder` and
+    `PlaceRecorder` compare), every press is logged as `[frame, button, kind, frames, facing, map, x, y]`: the EMULATOR's
+    frame counter when the press went down (`get_frame_count`), the button, "tap" or "hold" and the frames held (1 for a
+    tap), and the player's facing and position at that moment by the framework (`press_context`; None off the overworld).
+    WHY: the step-5 grade counted spins and presses from the AI's OWN roam reports (B1 debt: `b1_debt.json` R5.CH1_SPINS, L5.SPINS); with the
+    facing beside each press, a facing change with no move between two presses (a turn on the spot, a SPIN) is countable
+    from the GAME (`play_harness.spins_of`). A read that fails is counted in `log_errors` and its fields logged None, never
+    a crash of the run."""
 
     def __init__(self, emulator) -> None:
         self.emulator = emulator
         self.presses = 0
+        self.log: list[list] = []
+        self.log_errors = 0
+
+    def _log(self, button: str, kind: str, frames: int) -> None:
+        try:
+            frame = int(self.emulator.get_frame_count())
+        except Exception:  # noqa: BLE001 - an emulator without a counter: logged None, counted
+            frame = None
+            self.log_errors += 1
+        try:
+            facing, where, x, y = press_context()
+        except Exception:  # noqa: BLE001 - the framework unreadable this frame (or absent): logged None, counted
+            facing = where = x = y = None
+            self.log_errors += 1
+        self.log.append([frame, button, kind, frames, facing, where, x, y])
 
     def wait(self, frames: int):
         for _ in range(frames):
             yield
 
     def tap(self, button: str):
+        self._log(button, "tap", 1)
         self.emulator.press_button(button)
         self.presses += 1
         yield
         yield
 
     def hold(self, button: str, frames: int):
+        self._log(button, "hold", frames)
         self.emulator.hold_button(button)
         self.presses += 1
         try:

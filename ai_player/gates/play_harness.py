@@ -31,6 +31,18 @@ trains in 6 of 10 seeds, so no GAME count told training from none): the same sam
 step counter) every time it changed, [frame, steps]. `gates/rate_step5.py` reads it, and the battles above, inside the
 windows the AI's log says it was ROAMING TO TRAIN: the steps the GAME counted and the wild battles the GAME says were won
 there. An arm that never trains has no such window, so both are 0.
+
+THE GAME READS (build step 5.3, stage A2: the B1 debt is paid from the GAME, so first the game must be read; recorded in the
+PLAY json's `game_reads` and in `READS_FILE`, NOT graded: stage A2 measures, the coordinator decides each debt row from the
+numbers, stage B grades): (i) the party's HP at each battle's start, ONE start per battle (latched on the game's own
+`gMain.inBattle`, so a visit to the in-battle BAG or PARTY menu does not start the same battle again), and at each
+battle's end (`StoryRecorder` battle_starts and each battle's `party`); (ii) the tile type under the player at every position change, so the steps in tall grass
+(`TileRecorder`); (iii) a press log with the player's facing and position at each press (`HarnessControls.log`), so a
+turn on the spot is countable (`spins_of`); (iv) the frame equality, `frame0 + the harness's frames == the emulator's
+count at the end` (`frame_check`: a mismatch prints a HARNESS FAIL line); (v) who ended the run, the harness's frame
+budget or the AI's own return, from the harness's loop and never the brain's text (`harness_stop`). Each read is made by
+the harness from memory, the emulator or the framework's map and player objects, never derived from the AI's records
+(USER RULING 35; `06` 2026-10-23 D3). Their known answers, both ways, are `gates/test_step53_a2.py` LiveKnownAnswerTests.
 """
 
 from __future__ import annotations
@@ -128,6 +140,152 @@ def party_now() -> list | None:
         return None
 
 
+def game_state_now() -> str:
+    """(Build step 5.3, stage A2) The game's state by the framework's own read (`modules.memory.get_game_state`: the main
+    callback), e.g. "OVERWORLD" or "BATTLE"."""
+    from modules.memory import get_game_state
+
+    return get_game_state().name
+
+
+#: (build step 5.3, stage A2 fix round, read i) `include/main.h` struct Main: the byte at 0x439 holds the bit-fields
+#: oamLoadDisabled:1, inBattle:1, anyLinkBattlerHasFrontierPass:1 (GCC on the ARM fills them from bit 0), so inBattle is bit 1
+GMAIN_BATTLE_BYTE, IN_BATTLE_BIT = 0x439, 1 << 1
+
+
+def battle_flag_now() -> bool:
+    """(Build step 5.3, stage A2 fix round, read i) The GAME's own "a battle is on": `gMain.inBattle`, by the framework's
+    symbol read. pret/pokeemerald sets it TRUE in `CB2_InitBattleInternal` (`src/battle_main.c`) as every battle begins,
+    and sets it FALSE only as the battle ENDS (`ReturnFromBattleToOverworld`, `FreeRestoreBattleData`, the controllers'
+    `SetBattleEndCallbacks` and the link ends, and `reload_save.c`). The in-battle BAG and PARTY menus leave it set (the
+    party menu reads it there, `src/party_menu.c`), while the framework's game state reads BAG_MENU or PARTY_MENU for them
+    (`modules/memory.py`: CB2_BAGMENURUN, CB2_UPDATEPARTYMENU) and BATTLE again on the way back. WHY: the step-5.3 A2
+    verifier MEASURED two starts for one wild battle after a bag visit (the second with mid-fight HP) when a start was
+    "BATTLE after a sample that was not"; this flag is what tells "the same battle, back from a menu" from "a new one"."""
+    from modules.memory import read_symbol
+
+    return bool(read_symbol("gMain", GMAIN_BATTLE_BYTE, 1)[0] & IN_BATTLE_BIT)
+
+
+#: (build step 5.3, stage A2, read ii) the framework's name of the metatile behaviour of tall grass
+#: (`modules/map.py` `_get_tile_type_name`, MB_TALL_GRASS), where wild battles are met
+TALL_GRASS = "Tall Grass"
+
+
+def tile_now() -> tuple[str, int, int] | None:
+    """(Build step 5.3, stage A2, read ii) The player's ("group:number", x, y) on the OVERWORLD by the framework's player
+    object (`modules.player.get_player_avatar`), or None off it."""
+    if game_state_now() != "OVERWORLD":
+        return None
+    from modules.player import get_player_avatar
+
+    avatar = get_player_avatar()
+    group, number = avatar.map_group_and_number
+    x, y = avatar.local_coordinates
+    return f"{int(group)}:{int(number)}", int(x), int(y)
+
+
+def tile_type_now() -> str:
+    """(Build step 5.3, stage A2, read ii) The metatile behaviour under the player by the framework's map read
+    (`modules.map.get_map_data_for_current_position().tile_type`, `modules/map.py`), e.g. `TALL_GRASS` or "Normal"."""
+    from modules.map import get_map_data_for_current_position
+
+    return str(get_map_data_for_current_position().tile_type)
+
+
+class TileRecorder:
+    """(Build step 5.3, stage A2, read ii) THE GRASS STEPS by the game. Every frame (cheap: the player object's position,
+    which the framework reads from the object events), and ONLY when the position changed (the costly map read): the tile
+    type under the player, recorded as `[frame, "group:number", x, y, tile type]`. The run's first position is `start`
+    (where it began, no step); a warp is a change like any other (its tile is the door's or the arrival's, never grass).
+    WHY every frame: a running or cycling step takes 8 frames (`STEP_RATE`), so the places recorder's 10-frame samples can
+    skip a tile, and "steps in tall grass" (the step-5.3 critic's Q1: NOTRAIN won 3+ wild battles before the rival in 13 of
+    18 seeds, so battles won do not tell training from none) needs every tile entered. Recorded, not graded."""
+
+    def __init__(self) -> None:
+        self.frame = 0
+        self.errors = 0
+        self.start: list | None = None
+        self.steps: list[list] = []
+        self._at: tuple | None = None
+
+    def after_frame(self) -> None:
+        self.frame += 1
+        try:
+            where = tile_now()
+        except Exception:  # noqa: BLE001 - a read between screens: try again next frame
+            self.errors += 1
+            return
+        if where is None or where == self._at:
+            return
+        self._at = where
+        try:
+            tile = tile_type_now()
+        except Exception:  # noqa: BLE001 - logged None, counted
+            tile = None
+            self.errors += 1
+        record = [self.frame, *where, tile]
+        if self.start is None:
+            self.start = record
+        else:
+            self.steps.append(record)
+
+    def result(self) -> dict:
+        return {"every": 1, "start": self.start, "steps": self.steps, "moves": len(self.steps),
+                "grass_steps": sum(1 for step in self.steps if step[4] == TALL_GRASS), "errors": self.errors}
+
+
+def spins_of(log: list[list]) -> dict:
+    """(Build step 5.3, stage A2, read iii) From the press log (`HarnessControls.log`, `[frame, button, kind, frames,
+    facing, map, x, y]`): between each two presses read on the overworld, a SPIN when the facing changed and the position
+    did not (a turn on the spot), a MOVE when the position changed. Counted from the GAME's facing and position, never the
+    AI's roam reports. Presses off the overworld (facing None) neither count nor break a pair's comparison."""
+    spins = moves = 0
+    previous = None
+    for press in log:
+        if press[4] is None:
+            continue
+        if previous is not None:
+            if press[5:8] != previous[5:8]:
+                moves += 1
+            elif press[4] != previous[4]:
+                spins += 1
+        previous = press
+    return {"spins": spins, "moves": moves}
+
+
+def frame_check(frame0: int | None, harness_frames: int, recorder_frames: int | None, frame_end: int | None) -> dict:
+    """(Build step 5.3, stage A2, read iv) THE FRAME EQUALITY: the emulator's own frame counter before the play loop
+    (`frame0`) plus the frames the HARNESS ran (`harness_frames`, its `run_single_frame` calls) must equal the counter at
+    the end, and the story recorder must have seen every one of those frames (`recorder_frames`, None when there is no
+    recorder). WHY: every game read of the run is stamped with the recorder's frame; a frame run by anyone else (the AI's
+    code calling the emulator, a load) would shift every stamp silently. A mismatch is a visible harness FAIL
+    (`frame_check_line`), recorded in the PLAY json, never fixed up."""
+    equal = (frame0 is not None and frame_end is not None and frame0 + harness_frames == frame_end
+             and (recorder_frames is None or recorder_frames == harness_frames))
+    return {"frame0": frame0, "frame_end": frame_end, "harness_frames": harness_frames, "recorder_frames": recorder_frames,
+            "equal": bool(equal)}
+
+
+def frame_check_line(check: dict) -> str | None:
+    """The harness FAIL line for a frame check that does not hold (None when it holds)."""
+    if check["equal"]:
+        return None
+    return (f"HARNESS FAIL: the frame count does not add up: frame0 {check['frame0']} + the harness's "
+            f"{check['harness_frames']} frames != the emulator's {check['frame_end']} at the end (the recorder saw "
+            f"{check['recorder_frames']})")
+
+
+def harness_stop(ai_returned: bool, frames_run: int, frame_budget: int) -> dict:
+    """(Build step 5.3, stage A2, read v; `06` 2026-10-23 D3) WHO ENDED THE RUN, from the harness's OWN counters, never the
+    brain's text: "ai" when the AI's play generator returned (StopIteration: whatever reason it gave, which stays in
+    `reason`), "harness" when the harness's loop ran out of its frame budget first. This in-process harness has no wall
+    clock of its own (`wall_clock_seconds` None): the sweep's subprocess timeout kills it with no PLAY line at all."""
+    return {"by": "ai" if ai_returned else "harness",
+            "cause": "the AI's play loop returned" if ai_returned else "the harness's frame budget ran out",
+            "frames_run": frames_run, "frame_budget": frame_budget, "wall_clock_seconds": None}
+
+
 class StoryRecorder:
     """Every `every` frames: the marks and the counters by the second path; each change recorded with its frame.
 
@@ -160,6 +318,18 @@ class StoryRecorder:
         #: curiosity goal BROUGHT, by the game (`gates/rate_step5.py` game_yield)
         self.captures: list[list[int]] = []
         self.item_flags: list[list[int]] = []
+        #: (build step 5.3, stage A2, read i) THE PARTY'S HP AT EACH BATTLE'S START, ONE START PER BATTLE: [frame, party]
+        #: at the battle's first sample whose game state is BATTLE (`party_now`: [species, level, HP, max HP] per member,
+        #: None when the party could not be read). Every battle END above carries its own `party` the same way. WHY: "the
+        #: party's HP when a battle began" and "what a battle left" were the AI's own battle records (B1 debt R5.REST_RULE
+        #: and L5.REST_RULE); these are the GAME's. Recorded, not graded (stage A2 measures before stage B decides).
+        self.battle_starts: list[list] = []
+        #: THE LATCH (the A2 fix round): True from a battle's recorded start until a sample reads the game's
+        #: `gMain.inBattle` clear (`battle_flag_now`), so the BATTLE state coming back from the in-battle BAG or PARTY menu
+        #: is the SAME battle, never a new start (MEASURED by the A2 verifier: 18 extra starts in 4 CH2/CH2_OFF smoke runs,
+        #: each with mid-fight HP). None before the first readable sample: a run that BEGINS inside a battle records no
+        #: start for that battle (it did not start there).
+        self.in_battle: bool | None = None
 
     def after_frame(self) -> None:
         self.frame += 1
@@ -168,12 +338,23 @@ class StoryRecorder:
         try:
             now = story_truth(self.context, guard=True)
             outcome, flags = battle_now()
+            fighting = game_state_now() == "BATTLE"
+            battle_on = battle_flag_now()
         except Exception:  # noqa: BLE001 - the save blocks move between screens: try again next time
             self.errors += 1
             return
+        if self.in_battle is None:
+            self.in_battle = fighting or battle_on  # the run's first sample: a battle already on did not start here
+        elif fighting and self.in_battle is False:
+            self.battle_starts.append([self.frame, party_now()])  # the battle's FIRST BATTLE sample: its one start
+            self.in_battle = True
+        elif self.in_battle and not fighting and not battle_on:
+            self.in_battle = False  # the game says the battle is over: the next BATTLE sample is a new battle
         if self.outcome == 0 and outcome != 0:
             self.battles.append({"f": self.frame, "outcome": outcome, "result": OUTCOMES.get(outcome, str(outcome)),
-                                 "trainer": bool(flags & BATTLE_TYPE_TRAINER), "stats": now["stats"]})
+                                 "trainer": bool(flags & BATTLE_TYPE_TRAINER), "stats": now["stats"],
+                                 # (build step 5.3, stage A2, read i) the party's HP the battle LEFT, by the game
+                                 "party": party_now()})
         self.outcome = outcome
         self._step_sample(now["stats"]["steps"])
         for timeline, value in ((self.captures, now["stats"]["captures"]), (self.item_flags, sum(now["items"].values()))):
@@ -208,7 +389,7 @@ class StoryRecorder:
     def result(self) -> dict:
         return {"every": self.every, "changes": self.changes, "errors": self.errors, "frames": self.frame,
                 "last": self.last, "blips": self.blips, "battles": self.battles, "steps": self.steps,
-                "captures": self.captures, "item_flags": self.item_flags}
+                "captures": self.captures, "item_flags": self.item_flags, "battle_starts": self.battle_starts}
 
 
 #: (build step 5.1) THE WAITS by a second path, test side: the tasks that poll a button THEMSELVES (a yes/no, a menu with a
@@ -638,6 +819,17 @@ TEXTS_FILE = "seen_texts.json"
 #: (the verifier's second round: "a row-level recount needs the %TEMP% run folders" and the rows were clipped) the
 #: second path's whole record of a run (`PlaceRecorder.result`), beside its action log, for a recount
 PLACES_FILE = "places.json"
+#: (build step 5.3, stage A2) the five game reads of a run (the PLAY json's `game_reads`), beside its places
+READS_FILE = "game_reads.json"
+
+
+def frame_count(emulator) -> int | None:
+    """(Build step 5.3, stage A2, read iv) The emulator's own frame counter (`get_frame_count`), or None when it has
+    none (the frame check then reads not-equal: no count is no proof)."""
+    try:
+        return int(emulator.get_frame_count())
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def read_texts(seen_path: str | None) -> set:
@@ -669,28 +861,59 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
     waits = WaitRecorder(controls)
     # (build step 5.2) THE PLACES by the second path: the tiles the game's screen showed, the maps, the texts, the pushing
     places = PlaceRecorder(controls, seen=read_seen(seen_in), pages=read_texts(seen_in))
+    # (build step 5.3, stage A2, read ii) the tile under the player at every position change
+    tiles = TileRecorder()
     started = time.monotonic()
     steps = brain.play(controls, FrameworkEyes())
     reason, count = "harness: the brain overran its budget", 0
+    budget = frames + 11
+    # (build step 5.3, stage A2, read iv) the emulator's own frame counter before the loop, and the frames THIS loop runs
+    frame0 = frame_count(emulator)
+    ran = 0
+    ai_returned = False
     # (build step 5.1: every loop bounded) at most the brain's frames and a margin: the brain ends itself within its budget
-    for count in range(frames + 11):
+    for count in range(budget):
         try:
             next(steps)
         except StopIteration as done:
             reason = done.value
+            ai_returned = True
             break
         emulator.run_single_frame()
+        ran += 1
         if recorder is not None:
             recorder.after_frame()
         waits.after_frame()
         places.after_frame()
+        tiles.after_frame()
     else:
-        count = frames + 11
+        count = budget
+    frames_game = frame_check(frame0, ran, recorder.frame if recorder is not None else None, frame_count(emulator))
+    failed = frame_check_line(frames_game)
+    if failed:
+        print(failed, flush=True)  # the visible harness FAIL (the PLAY line records it too)
+    game_reads = {
+        # (read i) the party's HP at each battle's start (one per battle) and end, by the game (`StoryRecorder`)
+        "battle_hp": {"every": recorder.every if recorder is not None else None,
+                      "starts": recorder.battle_starts if recorder is not None else [],
+                      "ends": [[b["f"], b["result"], b["trainer"], b.get("party")] for b in recorder.battles]
+                      if recorder is not None else []},
+        # (read ii) the tile type at every position change
+        "tiles": tiles.result(),
+        # (read iii) every press with the facing and position at it, and what the GAME's facing makes of them
+        "presses": {"count": controls.presses, "log": controls.log, "errors": controls.log_errors, **spins_of(controls.log)},
+        # (read iv) the frame equality
+        "frames": frames_game,
+        # (read v) who ended the run, by the harness's own counters
+        "stop": harness_stop(ai_returned, count, budget),
+    }
     places_result = places.result()
     seen_file = run_dir / SEEN_FILE
     seen_file.write_text(json.dumps(sorted(":".join(str(v) for v in tile) for tile in places.seen)), encoding="utf-8")
     (run_dir / TEXTS_FILE).write_text(json.dumps(sorted(places.pages), ensure_ascii=False), encoding="utf-8")
     (run_dir / PLACES_FILE).write_text(json.dumps(places_result, ensure_ascii=False), encoding="utf-8")
+    # (build step 5.3, stage A2) the five game reads beside the places, so a kept run folder (`--keep-runs`) holds them
+    (run_dir / READS_FILE).write_text(json.dumps(game_reads, ensure_ascii=False), encoding="utf-8")
     return {"seed": seed, "personality": personality, "starter": starter, "target": target, "faults": sorted(faults),
             "reason": reason, "frames": count, "seconds": round(time.monotonic() - started, 1), "presses": controls.presses,
             "lines": lines, "report": brain.play_report, "actions": str(run_dir / "actions.jsonl"),
@@ -699,7 +922,10 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
             # (build step 5.3, A1-2) the play loop's MAX_LOSSES this run played with (the copy's own `mode.py`: 1 in a STOP
             # plan's copy), recorded by the HARNESS, which runs the AI anyway: the grader reads it here and imports nothing
             # from the AI (`rate_step5` LOSE3, the G-3 rule)
-            "max_losses": MAX_LOSSES}
+            "max_losses": MAX_LOSSES,
+            # (build step 5.3, stage A2) THE GAME READS, each made by the harness from the game (memory, the emulator, the
+            # framework's map and player objects), never from the AI's records: RECORDED, not graded (`READS_FILE`)
+            "game_reads": game_reads}
 
 
 def run(state: Path | None, seed: int, frames: int, personality: str | None, starter: str | None, target: str,

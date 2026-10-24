@@ -20,6 +20,8 @@ deleted, a typo) tells the next agent a mistake is impossible when nothing stops
       DIAGNOSTIC measure enforces nothing, and calling it Enforced was the overstatement A1-4 corrected (PF-3, PF-14, PL-8);
   * an optional **Reported** line names the measures a lesson leans on that the verdict does NOT count: each check id
     there must be a check that never counts, each `rate_step5:BOUNDS.KEY` an ungraded bound (the same lists, the other way);
+    (build step 5.3, stage A2 carry-over 5) a check id written WITHOUT backticks on either line is judged by the same
+    rules (`bare_ids`), so leaving the backticks off cannot slip a DIAGNOSTIC check onto an Enforced line;
   * PROSE ONLY and PARTIAL lessons have a **Needs** line (the gate they need);
   * every gate of build step 5.2 (`REQUIRED`) is named by some lesson's Enforced line.
 MENTIONS NEVER FIRE: only the Enforced line's references are resolved. A gate named in a title, a rule, an Origin or a Needs
@@ -186,6 +188,15 @@ def resolve(token: str) -> str | None:
     return None
 
 
+def bare_ids(line: str) -> list[str]:
+    """(Build step 5.3, stage A2 carry-over 5) The check ids (`CHECK_ID`) a line names OUTSIDE backticks: the line with every
+    backticked span removed, then every id not glued to a word character, a dot or a slash before it, nor to a word
+    character or a ".word" after it (so `XR5.A` and a path like `gates/R5.A_B` name none, while "R5.A." at the end of a
+    sentence names R5.A). A backticked id is left to the ticked-token rules."""
+    outside = re.sub(r"`[^`]*`", " ", line)
+    return re.findall(r"(?<![\w./])[RL]5\.[A-Z0-9_]+(?!\w|\.\w)", outside)
+
+
 def looks_like_reference(token: str) -> bool:
     return ("/" in token or token.endswith((".py", ".ps1", ".json", ".md")) or "::" in token
             or re.fullmatch(r"[a-z_0-9]+:[A-Za-z_0-9.]+", token) is not None or CHECK_ID.fullmatch(token) is not None)
@@ -253,6 +264,16 @@ def check(text: str, documents: dict[str, Path | tuple[Path, ...]] = DOCUMENTS,
             problems.append(f"{tag}: a RETIRED lesson needs its Retired line (the date and the gate)")
         if status in ("PROSE ONLY", "PARTIAL") and not fields.get("Needs"):
             problems.append(f"{tag}: a {status} lesson names the gate it Needs")
+        # (build step 5.3, stage A2 carry-over 5) a check id written WITHOUT backticks on an Enforced or Reported line used
+        # to be ignored (only backticked tokens were references), so "Enforced: R5.SPACED" escaped the rule that a
+        # DIAGNOSTIC check enforces nothing. Each bare id is resolved by the same rules as a backticked one (`bare_ids`)
+        for field in ("Enforced", "Reported"):
+            for token in bare_ids(fields.get(field, "")):
+                why = resolve_typed(token, field)
+                if why is not None:
+                    problems.append(f"{tag}: {field} names {token} (without backticks): {why}")
+                elif field == "Enforced" and status in ("GATED", "PARTIAL"):
+                    named.add(token)
         if status in ("GATED", "PARTIAL"):
             tokens = [t for t in TICKED.findall(fields.get("Enforced", "")) if looks_like_reference(t)]
             if not tokens:

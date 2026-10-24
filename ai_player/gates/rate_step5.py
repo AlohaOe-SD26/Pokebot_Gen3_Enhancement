@@ -139,6 +139,12 @@ from ai_player.gates.provenance import keep_earlier, provenance, snapshot_tree  
 HARNESS = Path(__file__).resolve().parent / "play_harness.py"
 #: (build step 5.2) the seed ledger's family of this sweep (its successors grade the same story on the same seeds)
 LEDGER_FAMILY = "story"
+#: (build step 5.3, stage A2) the file in each run folder holding that run's whole PLAY record and its plan and seed
+#: (`run_one`), what `measure_step5.py` reads from a kept sweep
+RUN_FILE = "run.json"
+#: (build step 5.3, the A2 fix round) the stage of the step-5.3 build this grader is, named on the sweep's evidence header
+#: (`main`): A2 records the game reads and grades none of them (stage B grades)
+GRADER_STAGE = "stage A2"
 #: (build step 5.2, G1 and G5) the sweep's frozen-tree watch and its run folders' root, set by `main` (None: a run made
 #: outside a sweep, by a test or another driver, gets its own temporary folder and no watch)
 _TREE = None
@@ -635,6 +641,11 @@ def run_one(plan: str, seed: int, frames: int, target: str, root: Path = REPO, b
         return {"plan": plan, "seed": seed, "base": base, "_folder": str(folder),
                 "error": (text + result.stderr.decode("utf-8", errors="replace"))[-2000:]}
     data = json.loads(line[5:])
+    # (build step 5.3, stage A2, builder 2) the run's WHOLE PLAY record, with which plan and seed it was, beside its logs:
+    # `measure_step5.py` reads a kept folder (`--keep-runs`) and needs the story recorder's marks, captures and item flags,
+    # which no other file of the folder holds (the record was only in this process's memory). Recorded, never graded.
+    (folder / RUN_FILE).write_text(json.dumps({"plan": plan, "seed": seed, "base": base, "personality": personality,
+                                               "starter": starter, "play": data}, ensure_ascii=False), encoding="utf-8")
     actions = []
     path = folder / "actions.jsonl"
     if path.is_file():
@@ -648,6 +659,12 @@ def run_one(plan: str, seed: int, frames: int, target: str, root: Path = REPO, b
                     world_in=(start or {}).get("_world"), seen_in=(start or {}).get("_seen"))
     # (build step 5.3, A1-1: critic Q1 on #40) the run's frame budget: a run that ended under it ended by itself
     row["budget"] = frames
+    # (build step 5.3, stage A2) RECORDED, never graded: who ended the run by the harness's own counters, and whether the
+    # frame count added up (a HARNESS FAIL line in the harness's output when it did not); the full reads stay in the
+    # run folder's `play_harness.READS_FILE` for the measurement sweep
+    reads = data.get("game_reads") or {}
+    row["harness_stop"] = (reads.get("stop") or {}).get("by")
+    row["frames_equal"] = (reads.get("frames") or {}).get("equal")
     row.update({"_end_state": data.get("saved_end"), "_world": data.get("world_file"), "_folder": str(folder),
                 "_reads": earlier + [r for r in actions if r.get("decision") == "read"], "_seen": data.get("seen_file")})
     return {**row, "base": base} if base else row
@@ -1540,6 +1557,21 @@ def summarise(plan: str, rows: list[dict]) -> dict:
             "rest_breaches": sum(len(r["rest_breaches"]) for r in ok), "roam_low_ends": sum(r["roam_low_ends"] for r in ok)}
 
 
+def plans_played(rows: dict[str, list[dict]]) -> Check:
+    """(Build step 5.3, stage A2 carry-over 2) EVERY PLAN PLAYED: n = the plans the sweep was asked for (the keys of
+    `rows`, one per plan named); it FAILS naming each plan none of whose rows played (every row errored, or it has no row
+    at all: no seed of its personality, or no phase-1 loss to replay). WHY: most plans' checks are written over the rows
+    that PLAYED and return nothing, or something vacuous a waiver covers, when none did; measured by the stage-A1
+    verifiers, a plan whose rows ALL errored still let the sweep PASS for 13 of 18 plans. Read from the harness's own row
+    errors (`run_one`), never the AI's record."""
+    unplayed = sorted(plan for plan, plan_rows in rows.items() if not any("error" not in r for r in plan_rows))
+    detail = {plan: (len(rows[plan]), str((rows[plan][0] if rows[plan] else {}).get("error") or "no row")[:80])
+              for plan in unplayed}
+    return grade("R5.PLANS_PLAYED", not unplayed,
+                 f"EVERY PLAN PLAYED (at least one run of each plan asked for ended with a PLAY line): plans {len(rows)}; "
+                 f"none played (plan: rows, the first error) {detail or 'none'}", len(rows), 1)
+
+
 def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Check]:
     """EVERY check of the sweep, typed (`grader_checks`, build step 5.3 A1-1), in the VERDICT view (`verdict_row`: each
     row's bool says whether it lets the verdict pass; `typed_verdict` is the verdict). Each COUNTED check (GRADED or
@@ -1547,7 +1579,7 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Chec
     verdict unless `grader_waivers.json` waives it; a waived one still prints VACUOUS). A DIAGNOSTIC or REPORTED check
     never counts and may give no floor: such a check that saw nothing can print PASS (e.g. R5.ASIDE_BACK with no aside, n
     0, floor "-"), which says nothing about the verdict."""
-    out = []
+    out = [plans_played(rows)]
     ch1 = summary.get("CH1")
     if ch1:
         n = ch1["runs"]
@@ -1865,10 +1897,18 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
     left = [(r["plan"], r["seed"], r["left_called_new"][:2]) for r in real if r["left_called_new"]]
     judged = sum(r.get("left_judged") or 0 for r in real)
     skipped = sum(r.get("left_skipped") or 0 for r in real)
-    out.append(grade("R5.LEFT_NOT_NEW", not left,
+    # (build step 5.3, stage A2 carry-over 1) "NO DRAW" is not "A DRAW NOT JUDGED": n is the draws MADE (judged + skipped),
+    # so only a sweep with no draw at all reads VACUOUS (and is waived); a run whose draws were ALL skipped (the game's
+    # stays could judge none of them: a harness that stopped recording stays would turn this guard off silently) FAILS,
+    # named on its own segment of the line, and no waiver covers a FAIL
+    unjudged = [(r["plan"], r["seed"], r.get("left_skipped")) for r in real
+                if (r.get("left_skipped") or 0) > 0 and not (r.get("left_judged") or 0)]
+    out.append(grade("R5.LEFT_NOT_NEW", not left and not unjudged,
                      f"A PLACE IT HAS LEFT IS NO NEW PLACE (the GAME's stays: a look-around draw on a map stood on in an "
-                          f"earlier stay of the run): off {left or 'none'}; draws judged {judged}, skipped {skipped} (a "
-                          f"const with no MapRSE key, or a draw before the first stay)", judged, 1))
+                          f"earlier stay of the run): off {left or 'none'}; draws made {judged + skipped}: judged {judged}, "
+                          f"skipped {skipped} (a const with no MapRSE key, or a draw before the first stay); DRAWS MADE BUT "
+                          f"NOT JUDGED (a run whose every draw was skipped: a FAIL, never waived) {unjudged or 'none'}",
+                     judged + skipped, 1))
     asked = [(r["plan"], r["seed"], r["ask_nothing_said"]) for r in real if r["ask_nothing_said"]]
     out.append(grade("R5.ASK_STEP", not asked,
                      f"THE ASK STEP WALKS TO ITS HOUSE ONLY WHEN TOLD (no 'to ask at ... nothing was said'): off "
@@ -1943,12 +1983,20 @@ def chapter2_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
                      f"CH2: CURIOSITY THE STORY DID NOT NEED in EVERY chapter-2 run {dict(sorted(free.items()))} "
                            f"(bound >= {BOUNDS['FREE_RUN_MIN']}); under: {short or 'none'}", len(played)))
     old = [(r["seed"], r["old_places"][:2]) for r in played if r["old_places"]]
-    out.append(grade("R5.CH2_NEW_PLACE", not old,
+    # (build step 5.3, stage A2 carry-over 1) "NO DRAW" is not "A DRAW NOT JUDGED": n is the draws MADE, so only a sweep
+    # whose chapter-2 runs drew no 'a new place' look round reads VACUOUS (and is waived); a run that drew one its chapter
+    # 1's seen tiles could not judge (`grade_run` place_draws_judged 0: that chapter 1 left no seen file, `known is None`)
+    # FAILS, named on its own segment of the line: a harness that stopped writing the seen file would otherwise turn this
+    # guard off silently, under the waiver
+    unjudged = [(r["seed"], r["place_draws"] - (r.get("place_draws_judged") or 0)) for r in played
+                if r["place_draws"] > (r.get("place_draws_judged") or 0)]
+    out.append(grade("R5.CH2_NEW_PLACE", not old and not unjudged,
                      f"CH2: A NEW PLACE IS NEW (every look-around draw names a map its chapter 1 had the player stand on by "
                          f"the GAME's screen, the seen tiles' maps, not the AI's world memory): draws "
-                         f"{[(r['seed'], r['place_draws']) for r in played]}, judged {sum(r.get('place_draws_judged') or 0 for r in played)} "
-                         f"(a run whose chapter 1 left no seen tiles is not judged); a known one called new: {old or 'none'}",
-                     sum(r.get("place_draws_judged") or 0 for r in played), 1))
+                         f"{[(r['seed'], r['place_draws']) for r in played]}, judged {sum(r.get('place_draws_judged') or 0 for r in played)}; "
+                         f"a known one called new: {old or 'none'}; DRAWS MADE BUT NOT JUDGED (a run whose chapter 1 left no "
+                         f"seen tiles: a FAIL, never waived) (seed, draws) {unjudged or 'none'}",
+                     sum(r["place_draws"] for r in played), 1))
     whiteouts = sum(r["losses_game"] for r in played)
     out.append(grade("R5.CH2_WHITEOUTS", whiteouts <= BOUNDS["CH2_WHITEOUTS_MAX"],
                 f"CH2: the game's whiteouts over the chapter-2 runs together {whiteouts} (bound <= "
@@ -2415,8 +2463,9 @@ def main() -> int:
         print(line, flush=True)
         lines.append(line)
 
-    # (build step 5.3: the header names the step whose grader this is; the typed checks are 5.3's)
-    say(f"AI PLAYER BUILD STEP 5.3 (TYPED CHECKS, stage A1) - THE SEED SWEEP: plans {plans}, seeds {seeds[0]}-{seeds[-1]}, "
+    # (build step 5.3: the header names the step AND the stage whose grader this is: `GRADER_STAGE`; the A2 fix round found
+    # the A2 smoke's evidence still headed "stage A1")
+    say(f"AI PLAYER BUILD STEP 5.3 (TYPED CHECKS, {GRADER_STAGE}) - THE SEED SWEEP: plans {plans}, seeds {seeds[0]}-{seeds[-1]}, "
         f"frames {args.frames}, game clock {GAME_CLOCK}, wall clock set {WALL_CLOCK}")
     say(f"pre-registered bounds: {json.dumps(BOUNDS)}; SMALL_PATIENCE {SMALL_PATIENCE}")
     say(f"code: {code}")

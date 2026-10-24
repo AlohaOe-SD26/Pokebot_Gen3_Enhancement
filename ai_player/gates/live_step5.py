@@ -79,6 +79,10 @@ THE PUSHING PROPERTY, THE ASK STEP) and the CH1 arms' pooled spins and rest occa
 counted; the sweep grades the game's side of them. Every other check that reads the AI's log is GRADED and listed as B1
 debt (`gates/b1_debt.json`). This driver imports no value from the AI's code (the G-3 rule, `check_grader_imports.py`,
 checked before any arm is played).
+(Build step 5.3, stage A2) The purity checks of `live_step2.check_purity` carry a real sample count and floor
+(`PURITY_SAMPLES`: a run that left nothing to judge reads VACUOUS, not merely FAIL), and every arm RECORDS who ended it from
+the harness's own counters, never the brain's text (`harness_stop`: the driver's own kill, the launcher's wall clock, the
+frame budget, or the AI's own exit; the evidence's HARNESS STOP line). Recorded, not graded.
 """
 
 from __future__ import annotations
@@ -98,11 +102,13 @@ REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from ai_player.gates.live_step2 import check_purity, classify_a, clean_env, run_json  # noqa: E402
+from ai_player.gates.live_step2 import (  # noqa: E402
+    BREACH_COUNTERS, check_purity, classify_a, clean_env, hands_line, run_json,
+)
 from ai_player.gates.disk_budget import prune_runs  # noqa: E402
 from ai_player.gates.provenance import keep_earlier, provenance as tree_provenance, snapshot_tree, watch  # noqa: E402
 from ai_player.gates.grader_checks import (  # noqa: E402
-    Check, as_check, evidence_lines, grade, verdict as typed_verdict,
+    Check, CheckError, as_check, evidence_lines, grade, verdict as typed_verdict,
 )
 # (build step 5.3, A1-2, G-3) GENERIC_BUSY is the grader-owned copy (`rate_step5`), no longer the AI's `hands.dialogue`;
 # the intro's intent comes from the run's OWN record (`logged_intent`), no longer from calling the AI's chooser
@@ -193,16 +199,20 @@ class Run:
     earlier: list[dict] = field(default_factory=list)
     #: (the step-5.1 verifier's round) the world memory this run started from (a continuing arm's), or None
     world_in: Path | None = None
+    #: (build step 5.3, stage A2, read v) this DRIVER killed the run's process tree at its own wall clock (`run_arm`)
+    driver_killed: bool = False
 
     def check(self, ok: bool, text: str, check_id: str | None = None, n: int = 1, floor: int = 1) -> None:
         """(Build step 5.3, A1-1) One check of this arm, TYPED: `check_id` from `grader_checks.CHECKS` (its kind and inputs
         come from there); `n` what it examined (one run, unless a count is given), `floor` the fewest it may examine. A call
         with no id (`live_step2.check_purity`, which this stage may not edit) is typed by its text's title, and refused
-        when no title fits (`as_check`)."""
+        when no title fits (`as_check`). (Build step 5.3, stage A2 carry-over 4) such a check then gets its REAL sample
+        count and floor from `PURITY_SAMPLES` (what it judged in this run), so it CAN read VACUOUS; an untyped id with no
+        sample rule there is refused (`purity_sample`): no counting check reaches the verdict with n/floor "-"."""
         if check_id is None:
-            self.checks.append(as_check((bool(ok), text), "L5"))
-        else:
-            self.checks.append(grade(check_id, bool(ok), text, n, floor))
+            check_id = as_check((bool(ok), text), "L5").id
+            n, floor = purity_sample(self, check_id)
+        self.checks.append(grade(check_id, bool(ok), text, n, floor))
 
     @property
     def passed(self) -> bool:
@@ -216,6 +226,86 @@ class Run:
     @property
     def outcome(self) -> str:
         return ((self.verdict or {}).get("facts") or {}).get("exit_reason") or ""
+
+
+def _counters(run: Run) -> dict:
+    return (run.verdict or {}).get("counters") or {}
+
+
+def _facts(run: Run) -> dict:
+    return (run.verdict or {}).get("facts") or {}
+
+
+def _pad_presses(run: Run) -> int:
+    found = re.search(r"presses=(\d+)", hands_line(run, "[AI-HANDS] outcome="))
+    return int(found.group(1)) if found else 0
+
+
+#: (build step 5.3, stage A2 carry-over 4) THE PURITY CHECKS' SAMPLES. `live_step2.check_purity` (outside this stage's
+#: files) gives its checks no count, so before A2 the eight L5.PURITY_* checks reached the verdict with n/floor "-" and could
+#: never read VACUOUS: a run that left no verdict file, no gate line or no presses read FAIL at best, and a check with
+#: nothing to judge could not say so. Each now carries what it JUDGED in this run, by the same inputs its text reads:
+#: check id -> (run -> n, floor).
+PURITY_SAMPLES = {
+    # the launcher's gate lines found in the run's output
+    "L5.PURITY_GATE": (lambda run: sum(1 for line in run.stdout.splitlines() if line.startswith("[AI-GATE] exit=")), 1),
+    # the instrument's verdict files read (0 or 1)
+    "L5.PURITY_CLEAN": (lambda run: int("verdict" in (run.verdict or {})), 1),
+    # the AI pad's own presses compared with the instrument's door count
+    "L5.PURITY_PRESSES": (_pad_presses, 1),
+    # the frames the instrument counted in the main loop
+    "L5.PURITY_FRAMES": (lambda run: int(_counters(run).get("real_frames") or 0), 1),
+    # the breach counters the verdict file holds, of the ones the check reads (all of them must be there)
+    "L5.PURITY_BREACHES": (lambda run: sum(1 for key in BREACH_COUNTERS if key in _counters(run)), len(BREACH_COUNTERS)),
+    # the verdict file's exit code read (0 or 1)
+    "L5.PURITY_ENDED": (lambda run: int("exit_code" in _facts(run)), 1),
+    # the verdict file's exit reason read (0 or 1)
+    "L5.PURITY_OUTCOME": (lambda run: int(bool(_facts(run).get("exit_reason"))), 1),
+    # the verdict file's package root read (0 or 1)
+    "L5.PURITY_PACKAGE": (lambda run: int("package_root" in _facts(run)), 1),
+}
+
+
+def purity_sample(run: Run, check_id: str) -> tuple[int, int]:
+    """(Build step 5.3, stage A2 carry-over 4) The sample count and floor of a check that came with no id (`Run.check`),
+    from `PURITY_SAMPLES`. RAISES `CheckError` for an id with no rule: a new untyped check must say what it judges."""
+    rule = PURITY_SAMPLES.get(check_id)
+    if rule is None:
+        raise CheckError(f"{check_id}: an untyped check with no sample rule (`live_step5.PURITY_SAMPLES`): it would reach "
+                         f"the verdict with n/floor '-'")
+    count, floor = rule
+    return int(count(run)), int(floor)
+
+
+#: (build step 5.3, stage A2, read v) the exit codes the LAUNCHER's side gives a run it stopped (never the brain's
+#: reason text): `host/launcher.py` WALL_CLOCK_EXIT 124 (its hard kill at the wall clock; `host/session.py`'s guard uses
+#: the same code at the soft deadline), and `host/lifecycle.py` EXIT_FRAME_BUDGET 4 (`host/session.py` _on_frame: more
+#: frames passed than the budget). A grader-owned copy of the 4 (G-3: the grader imports `host.launcher` only), TIED to
+#: lifecycle's value by `test_step53_a2.LiveStopTests.test_the_frame_budget_exit_is_lifecycles_own` (it reads lifecycle
+#: as TEXT, importing nothing, and goes red the day the two differ: a stale copy would read a frame-budget stop as "other")
+FRAME_BUDGET_EXIT = 4
+
+
+def harness_stop(run: Run) -> dict:
+    """(Build step 5.3, stage A2, read v; `06` 2026-10-23 D3) WHO ENDED THIS LAUNCHER RUN, from the harness's own counters,
+    never the brain's text: this driver's own wall clock (it killed the process tree, `Run.driver_killed`), the launcher's
+    wall clock (exit code `launcher.WALL_CLOCK_EXIT`), the frame budget (exit code `FRAME_BUDGET_EXIT`), or the AI's own
+    exit (exit code 0: the run ended with its verdict written and no stop by the harness). Any other code (a crash, a purity
+    breach, a park) is "other". The instrument's frame count and the elapsed time sit beside it. Recorded in the arm's
+    measures and evidence, NOT graded (stage A2)."""
+    code = run.exit_code
+    if run.driver_killed:
+        by, cause = "harness", "the driver's own wall clock (process tree killed)"
+    elif code == launcher.WALL_CLOCK_EXIT:
+        by, cause = "harness", f"the launcher's wall clock (exit code {code})"
+    elif code == FRAME_BUDGET_EXIT:
+        by, cause = "harness", f"the frame budget (exit code {code})"
+    elif code == 0:
+        by, cause = "ai", "the AI exited by itself (exit code 0)"
+    else:
+        by, cause = "other", f"exit code {code}"
+    return {"by": by, "cause": cause, "exit_code": code, "real_frames": _counters(run).get("real_frames"),
+            "frame_budget": run.arm.frames, "elapsed_seconds": round(run.elapsed, 1), "wall_clock_seconds": run.arm.wall}
 
 
 def play_env(personality: str, starter: str | None, target: str, **extra: str) -> dict[str, str]:
@@ -299,10 +389,13 @@ def run_arm(arm: Arm, build_root: Path, carried: dict[str, tuple[Path, Path, lis
         launcher.kill_tree(proc)
         raw_out, _ = proc.communicate()
         raw_out = (raw_out or b"") + b"\n[DRIVER] the run overran the driver's own wall clock; process tree killed\n"
+        run.driver_killed = True
     run.elapsed = time.monotonic() - began
     run.exit_code = proc.returncode if proc.returncode is not None else -9
     run.stdout = raw_out.decode("utf-8", errors="replace")
     run.verdict = launcher.read_verdict(run.run_dir)
+    # (build step 5.3, stage A2, read v) who ended the run, by the harness's own counters: recorded, not graded
+    run.measures["harness_stop"] = harness_stop(run)
     actions = run.run_dir / "actions.jsonl"
     if actions.is_file():
         for line in actions.read_text(encoding="utf-8").splitlines():
@@ -738,6 +831,8 @@ def write_evidence(run: Run, code: str, tag: str) -> Path:
              f"command: {' '.join(run.command)}",
              f"env: {' '.join(f'{k}={v}' for k, v in sorted({ENV_BRAIN: 'play', ENV_SEED: str(run.arm.seed), **run.arm.env}.items()))}",
              f"exit code: {run.exit_code}   elapsed: {run.elapsed:.1f}s   run dir: {run.run_dir}",
+             # (build step 5.3, stage A2, read v) RECORDED, not graded
+             f"HARNESS STOP: {json.dumps(run.measures.get('harness_stop') or harness_stop(run), ensure_ascii=False)}",
              f"VERDICT: {'PASS' if run.passed else 'FAIL'}",
              "checks (pre-registered in ai_player/gates/live_step5.py's docstring and PREDICTED; each quotes both values; "
              "build step 5.3: typed, id kind n/floor inputs, a DIAGNOSTIC one never counts):"]

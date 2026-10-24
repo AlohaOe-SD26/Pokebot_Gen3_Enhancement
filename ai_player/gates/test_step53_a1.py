@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import sys
 import tempfile
 import types
@@ -317,7 +318,7 @@ class CheckRuleTests(unittest.TestCase):
                 finally:
                     sys.modules.pop(name, None)
 
-            with self.assertRaisesRegex(ValueError, "R5.NO_LOAFING: a GRADED check that reads an AI input") as raised:
+            with self.assertRaisesRegex(ValueError, re.escape("R5.NO_LOAFING: a GRADED check that reads an AI input")) as raised:
                 load(patched, "grader_checks_patched")  # FAULT (the patched module's own CheckError, a ValueError)
             self.assertEqual(type(raised.exception).__name__, "CheckError")
             load(source.replace('DEBT_FILE = GATES / "b1_debt.json"', f"DEBT_FILE = Path({str(gc.DEBT_FILE)!r})"),
@@ -1039,7 +1040,7 @@ class SurvivingMutantTests(unittest.TestCase):
         for key in ("R5.CH1_REACHED", "R5.LOSSES_AGREE", "R5.CH1_WILD_WON"):  # GRADED, HONESTY, REPORTED
             with self.subTest(key):
                 table = {**gc.CHECKS, key: dataclasses.replace(gc.CHECKS[key], dropped="a property nobody grades")}
-                with self.assertRaisesRegex(gc.CheckError, f"{key}: a dropped property on a"):  # FAULT
+                with self.assertRaisesRegex(gc.CheckError, re.escape(f"{key}: a dropped property on a")):  # FAULT
                     gc.validate(table, gc.DEBT, gc.WAIVERS)
         # why it matters: the evidence calls a dropped check "DIAGNOSTIC since 5.3 A1", which would be false of these
         table = {**gc.CHECKS, "R5.SPACED": dataclasses.replace(gc.CHECKS["R5.SPACED"], dropped="still a DIAGNOSTIC")}
@@ -1048,7 +1049,7 @@ class SurvivingMutantTests(unittest.TestCase):
     def test_m18_no_title_is_the_start_of_another_of_its_grader(self):
         gc.validate(gc.CHECKS, gc.DEBT, gc.WAIVERS)  # CONTROL
         extra = gc._spec(gc.GRADED, "game", "CH1: the POKéDEX")  # the start of R5.CH1_REACHED's title
-        with self.assertRaisesRegex(gc.CheckError, "title is the start of R5.CH1_REACHED's"):  # FAULT
+        with self.assertRaisesRegex(gc.CheckError, re.escape("title is the start of R5.CH1_REACHED's")):  # FAULT
             gc.validate({**gc.CHECKS, "R5.CH1_SHORT": extra}, gc.DEBT, gc.WAIVERS)
         # CONTROL: the same title in the OTHER grader is no clash (R5.SPACED and L5.SPACED already share one)
         self.assertEqual(gc.CHECKS["R5.SPACED"].title, gc.CHECKS["L5.SPACED"].title)
@@ -1059,12 +1060,14 @@ class SurvivingMutantTests(unittest.TestCase):
         self.assertEqual(gc.as_check((True, "CH1: the POKéDEX reached (by the game's flag) in 4 of 4"), "R5").id,
                          "R5.CH1_REACHED")
 
-    def test_m42_the_new_place_n_is_the_draws_judged_not_the_runs(self):
+    def test_m42_the_new_place_n_is_the_draws_made_not_the_runs(self):
+        """(Stage A2 carry-over 1 changed this row on purpose) n is the draws MADE, never the runs; draws made but none
+        judged (chapter 1 left no seen tiles) is no longer a waived VACUOUS but a FAIL (`test_step53_a2` JudgedDrawTests)."""
         rows = sweep()
         for r in rows["CH2"]:
             r.update(place_draws=2, place_draws_judged=0)  # draws made, none judged: chapter 1 left no seen tiles
         check = check_of(grade_sweep(rows), "R5.CH2_NEW_PLACE")
-        self.assertEqual((check.status, check.n), (gc.VACUOUS, 0))  # FAULT arm of the n: 4 runs, 0 judged
+        self.assertEqual((check.status, check.n), (gc.FAIL, 8))  # FAULT arm: 4 runs x 2 draws made, none judged
         check = check_of(grade_sweep(sweep()), "R5.CH2_NEW_PLACE")
         self.assertEqual((check.status, check.n), (gc.PASS, 8))  # CONTROL: 4 runs x 2 judged draws (not 4 runs)
 
@@ -1147,7 +1150,7 @@ class PurityInputTests(unittest.TestCase):
     def test_the_construction_rule_refuses_the_ai_input_without_its_debt(self):
         text = "ended by itself: exit_reason='play: done' exit_code=0 process=0 real_frames=100 (budget 2)"
         without = {k: v for k, v in gc.DEBT.items() if k != "L5.PURITY_ENDED"}
-        with self.assertRaisesRegex(gc.CheckError, "L5.PURITY_ENDED: a GRADED check that reads an AI input"):  # FAULT
+        with self.assertRaisesRegex(gc.CheckError, re.escape("L5.PURITY_ENDED: a GRADED check that reads an AI input")):  # FAULT
             gc.Check("L5.PURITY_ENDED", gc.GRADED, gc.PASS, None, None, {"harness", "ai"}, text, debt=without)
         with self.assertRaises(gc.CheckError):  # FAULT: the table without the debt row refuses at validation
             gc.validate(gc.CHECKS, without, gc.WAIVERS)
@@ -1207,8 +1210,10 @@ class EvidenceWordingTests(unittest.TestCase):
         finally:
             driver.doCleanups()  # its temporary evidence folder
         first = evidence.splitlines()[0]
-        self.assertTrue(first.startswith("AI PLAYER BUILD STEP 5.3 (TYPED CHECKS, stage A1) - THE SEED SWEEP"), first)
+        # (the A2 fix round, F5) the CURRENT stage: the A2 smoke's evidence still read "stage A1"
+        self.assertTrue(first.startswith("AI PLAYER BUILD STEP 5.3 (TYPED CHECKS, stage A2) - THE SEED SWEEP"), first)
         self.assertNotIn("BUILD STEP 5.2", first)
+        self.assertNotIn("stage A1", first)
 
     def test_a_dropped_check_may_print_pass_on_nothing_and_a_counted_one_may_not(self):
         """`verdicts()`'s docstring, as corrected (F5b)."""

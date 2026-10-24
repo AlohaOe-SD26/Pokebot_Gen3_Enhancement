@@ -3329,3 +3329,11 @@ even on the hard-plateau path, which skips that test (H14 run 5 held Vital Throw
 **Fix direction:** identity from the first `[hb]` after the choosing line, the stale `[BADGE]` lines skipped before the
 new game, and a gate row on a stale-boot log. Re-grade step 14 with the fixed tools; that grade is still EXPLORATORY
 unless the user rules otherwise.
+
+## KI-123 — ⚠ OPEN (filed 2026-10-24; low impact; a gate-driver defect, found while building step 5.3 stage A2, not caused by it): a mutant-driver FILTER that matches no mutant exits 0 with "OVERALL: PASS", so `--help` reads as a pass over zero mutants (`#28-aiagent-v2`)
+**Measured** (2026-10-24; `ai_player/gates/revert_step5.py` and `ai_player/gates/revert_safety_gates.py`):
+- `py -3.12 ai_player/gates/revert_step5.py --help` takes `--help` as a mutant FILTER, runs nothing, and prints "0 mutants ... of 342 ... OVERALL: PASS".
+- `py -3.12 ai_player/gates/revert_safety_gates.py --help` does the same ("of 0", `OVERALL: PASS`).
+- So a filter that matches no mutant (a typo, `--help`) reports a vacuous PASS.
+- Impact is low: `run_regression.py` runs both drivers with no argument, so a lane is unaffected. The risk is a person or an agent that runs a driver with a mistyped filter and reads the PASS.
+**Fix direction (later, not started):** a filter that matches no mutant must exit non-zero saying so, in both drivers, with a fault (a filter matching nothing exits non-zero and says so) and a control (a filter matching one mutant still passes).

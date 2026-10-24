@@ -162,6 +162,8 @@ CHECKS: dict[str, Spec] = {
     "R5.ASK_STEP": _spec(DIAGNOSTIC, A, "THE ASK STEP WALKS TO ITS HOUSE", "#62",
                          dropped="the ask step never walks with nothing said (the AI's goal reasons)"),
     "R5.PLACES_READ": _spec(GRADED, G, "THE GAME'S PLACES (second path) were read", "#63"),
+    # (build step 5.3, stage A2 carry-over 2) the harness's row errors: no plan of the sweep can hide by never playing
+    "R5.PLANS_PLAYED": _spec(GRADED, H, "EVERY PLAN PLAYED", "A2 carry-over 2"),
     "R5.OUT_OF_IDEAS": _spec(DIAGNOSTIC, A, "OUT OF IDEAS ONLY WITH NO LEAD", "#64",
                              dropped="no led run ends 'out of ideas' (the AI's reason)"),
     "R5.NOHINTS_IDEAS": _spec(REPORTED, A, "(reported) NOHINTS (no hint ever used)", "#65"),
