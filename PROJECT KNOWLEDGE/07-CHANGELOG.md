@@ -38800,3 +38800,8 @@ bought balls only at fixed story points.
 - **The tuner.** The first keep-4 prune ran at the end of ai0043. At 4:14-4:15 PM it archived ai0026 (1,877 MB to 72.3 MB), ai0027 (2,094 MB to 78.1 MB) and ai0028 (1,272 MB to 47.1 MB), then stopped at the cap ("3 archive(s) this boundary (max_archives_per_prune); the rest wait for the next one"). ai0044 started at 4:15:20 PM with 12 lanes. The older cycles drain at later boundaries.
 - **Cost.** The A1 fix round's cost-ledger row (`s53-stage-a1-fix`) is appended with this entry. This repair was coordinator-made (no agents). Weekly usage about 65.8 % at 5:15 PM.
 - **Next:** the full lane re-runs on this commit (detached, 72-100 min); STAGE A2 only after its result is recorded.
+
+## 2026-10-23 — The full regression lane PASSED on the step 5.3 A1 lane-fix commit d6cc5704 (punch-list #28-aiagent-v2)
+
+- **Result.** `REGRESSION: PASS (full, 27 suites, 4849.1 s wall)` at 6:46 PM on `d6cc5704` (started 5:25 PM): the 21 units and the six revert drivers all PASS, including revert_safety_gates (23 mutants, 622.9 s; the control that failed on `f29701bb` is green), revert_step5 (342 mutants), revert_step3 (94), revert_step4 (62), revert_step2 (44) and revert_step11 (14). FROZEN TREE PASS (files digest 1620342c1adfe431). Evidence: `ai_player/evidence/2026-10-23-regression-*` and the five `2026-10-23-step*-REVERT.txt`, rewritten by this run; the failed run's files are kept in `ai_player/evidence/archive/53e0c26e7812db47-f29701bb/`.
+- **Next:** step 5.3 STAGE A2 (`04` queue item 3: the A1 carry-overs, then game reads, a measurement-only development sweep, and the coordinator's ruling on each of the 39 B1-debt rows).
