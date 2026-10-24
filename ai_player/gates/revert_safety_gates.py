@@ -167,6 +167,14 @@ print("RESULT " + json.dumps({"ran": result.testsRun, "bad": bad, "module": test
 def make_copy(edits: list[tuple[str, str, str]]) -> Path:
     root = Path(tempfile.mkdtemp(prefix="ai_player_step52_mutant_"))
     shutil.copytree(REPO / "ai_player", root / "ai_player", ignore=shutil.ignore_patterns("__pycache__", "evidence", "*.ss1"))
+    # (step 5.3 A1 lane fix) rate_step5.main() hashes every file in HASHED_FILES before it refuses a run, and one of them
+    # (the framework's map_data.py) lives outside the package: copy each such file, read from the list itself, so a file
+    # added to the hash later cannot make the unchanged copy (S0) error again
+    from ai_player.gates.rate_step5 import HASHED_FILES
+    for relative in HASHED_FILES:
+        if not relative.startswith("ai_player/"):
+            (root / relative).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(REPO / relative, root / relative)
     for relative, old, new in edits:
         path = root / "ai_player" / relative
         text = path.read_text(encoding="utf-8")
