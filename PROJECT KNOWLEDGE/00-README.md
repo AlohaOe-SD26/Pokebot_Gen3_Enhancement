@@ -6,7 +6,7 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 ## Reading order
 | # | File | What it tells you | Type |
 |---|------|-------------------|------|
-| 1 | `04-HANDOFF.md` | Where we are RIGHT NOW + what's next — ⚠ **start at the single `➡➡➡ START HERE` marker** (`grep -n '^>    ➡➡➡' 04-HANDOFF.md`). Since 2026-10-22 (S2-1b) it holds CURRENT STATE only, about 60 KB: a one-sentence `**Last updated:**` on line 6, WHAT THIS IS, `## If stopped mid-task` (the resume point the session-start hook injects), STATE, NEXT ACTIONS, the rules that bind every session, the parked story bot's live rules, HOW TO RUN / TEST. Its history, and the full pre-slim file, are in `28` | current-state |
+| 1 | `04-HANDOFF.md` | Where we are RIGHT NOW + what's next — ⚠ **start at the single `➡➡➡ START HERE` marker** (`grep -n '^>    ➡➡➡' 04-HANDOFF.md`). Since 2026-10-22 (S2-1b) it holds CURRENT STATE only, about 66 KB: a one-sentence `**Last updated:**` on line 6, WHAT THIS IS, `## If stopped mid-task` (the resume point the session-start hook injects), STATE, NEXT ACTIONS, the rules that bind every session, the parked story bot's live rules, HOW TO RUN / TEST. Its history, and the full pre-slim file, are in `28` | current-state |
 | 2 | `14-AGENT-PLAYBOOK.md` | **HOW to work on this excellently** — tools, debugging method, story-mapping method, faithfulness rules, bug patterns | reference |
 | 3 | `01-VISION-AND-DESIGN.md` | What this program is for; intent of each part | current-state |
 | 4 | `02-ARCHITECTURE.md` | How it's built; how to run it | current-state |

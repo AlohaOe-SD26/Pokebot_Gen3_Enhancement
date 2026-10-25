@@ -1,4 +1,5 @@
 # BUILD SPEC step 5.3: B1 (the Goodhart gate) + N8's grader half (typed checks), 2026-10-22
+> **2026-10-24: stage A2's decision addendum (all 39 `b1_debt.json` rows decided from ledger #39; DECIDED 2026-10-24 after two critic rounds, its open items carried to the re-sourcing build) is `2026-10-24-step5.3-A2-decision-addendum.md`, beside this file.**
 
 > The coordinator's spec, REVISED after one adversarial critic (`2026-10-22-step5.3-spec-critic.md`, filed beside
 > this file; its MEASURED rows are cited below as "critic Qn"). Inputs: `2026-10-21-B1-recon.md` (the gap is the

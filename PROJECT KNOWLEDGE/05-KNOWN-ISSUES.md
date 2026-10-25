@@ -3337,3 +3337,13 @@ unless the user rules otherwise.
 - So a filter that matches no mutant (a typo, `--help`) reports a vacuous PASS.
 - Impact is low: `run_regression.py` runs both drivers with no argument, so a lane is unaffected. The risk is a person or an agent that runs a driver with a mistyped filter and reads the PASS.
 **Fix direction (later, not started):** a filter that matches no mutant must exit non-zero saying so, in both drivers, with a fault (a filter matching nothing exits non-zero and says so) and a control (a filter matching one mutant still passes).
+
+## KI-124 — ⚠ OPEN (filed 2026-10-24; seen in ONE development run, frequency not measured; an AI-PLAYER defect, found by the step 5.3 A2 sweep, not caused by it): the AI learns a repeating scripted scene one TILE at a time, so Petalburg City's "rookie TRAINER" scene replayed three times in CH2 seed 1311 (`#28-aiagent-v2`)
+**Measured** (2026-10-24; the step 5.3 A2 development sweep, ledger #39, `step53a2sweep`, run folder `ai_step5_CH2_1311_*`; `ai-research-notes/2026-10-24-step5.3-A2-decision-addendum.md`, investigation (iii)):
+- In CH2 seed 1311 (Trainer) the AI walked into PETALBURG CITY's "rookie TRAINER" scene three times, from (8, 10), (8, 13) and (8, 11). Each time it marked only the tile it had stepped from as "not stepped on again".
+- The pinned decomp (`_decomp/pokeemerald` at 731ad5b, `data/maps/PetalburgCity/map.json` `coord_events`) has FOUR trigger tiles, (8, 10) to (8, 13), running `PetalburgCity_EventScript_ShowGymToPlayer0` to `3`, all under `VAR_PETALBURG_CITY_STATE` 0. The shared script sets no variable, so the scene replays from every one of the four tiles until the story moves on. The AI had met it from 3 of the 4 tiles; (8, 12) was still unlearned.
+- Cost in that run: most of a 2,352-frame detour that brought 1 tile (the run's 4,430 frames against R5.NO_LOAFING's 4,000 were a 1,942-frame roam, a 136-frame detour and that detour).
+- Evidence: that run's `actions.jsonl` (the memory note at the detour's start, the note at f291431, the await records at f291791-293406).
+**Not measured:** how often it happens. The run was found because it was the one real-plan run that failed R5.NO_LOAFING, whose AI-windowed total the addendum re-sources to the game's push read (this run reads 760 frames there and passes), so the defect is NOT what that check will grade.
+**Fix direction (not decided here):** an AI-side design question; the AI's play code is outside the step 5.3 spec.
+**Evidence:** the records are quoted in the addendum's investigation (iii); the run folder (`ai_step5_CH2_1311_*`) is in `%TEMP%` on the user's PC only.
