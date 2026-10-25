@@ -41,7 +41,7 @@ THE ARMS
                      VAR_PETALBURG_GYM_STATE >= 2 (WALLY's tutorial played); at least 2 new species CAUGHT (the game's
                      GAME_STAT_POKEMON_CAPTURES and new PIDs with the player's OT); at least 1 nurse heal (the game's
                      GAME_STAT_USED_POKECENTER); at least 1 item ball picked up (its FLAG_ITEM_* set); POKé BALLS bought
-                     (its told purchase, the money and the bag by the second path).
+                     (its told purchase; the game's purchase counter GAME_STAT_SHOPPED by the second path).
   CH2T, CH2M         (build step 5.1) a second and (the step-5.1 verifier's round) a THIRD chapter 2: from CH1T's end (Story,
                      seed 11) and CH1M's (Trainer, seed 13), each from the save ITS OWN chapter-1 run made; CH2M's claims
                      were registered before any run of its trajectory (`PREDICTED`).
@@ -76,9 +76,19 @@ slowdown are frequency claims, which a sweep answers (CLAUDE.md rule 9).
 its inputs). The arm's verdict is PASS iff every GRADED and HONESTY check passes. The name and gender and the told wild
 battles are HONESTY (the AI's word against the game). The 5.2 checks by the AI's own record (NO LOAFING, CURIOSITY SPACED,
 THE PUSHING PROPERTY, THE ASK STEP) and the CH1 arms' pooled spins and rest occasions are DIAGNOSTIC: printed, never
-counted; the sweep grades the game's side of them. Every other check that reads the AI's log is GRADED and listed as B1
-debt (`gates/b1_debt.json`). This driver imports no value from the AI's code (the G-3 rule, `check_grader_imports.py`,
-checked before any arm is played).
+counted; the sweep grades the game's side of them. This driver imports no value from the AI's code (the G-3 rule,
+`check_grader_imports.py`, checked before any arm is played).
+(Build step 5.3, the RE-SOURCING build, the A2 decision addendum's rows 16-19 and 28-39) NO check of this driver that
+counts reads the AI any more except as the claim half of a HONESTY check (USER RULING 35; `b1_debt.json` holds no L5 row):
+the pad's press and frame counts are HONESTY against the instrument (the AMENDMENT to A1-1: a HONESTY truth half may be the
+harness); the brain's outcome is HONESTY against the game's proof of the target, both ways (`check_outcome`); "it shopped"
+is GRADED by the game's own purchase counter alone (L5.SHOPPED_GAME: GAME_STAT_SHOPPED rose; the fix round replaced the
+money-and-bag form, which misjudged a run that threw more balls than it bought or won prize money) and the told purchases
+are HONESTY against it (no claim is a waived VACUOUS); who ended the run is REPORTED from the harness's stop record (`ended_check`); and the checks of the AI's
+own trace (its presses' gates, A kinds, blind presses, goals, waits, new places, training, rest rule, end line, spins) are
+DIAGNOSTIC. So the purity line above is graded as: the pad's counts honest, the brain's claim honest, the run's end
+recorded. The game-only achievement checks (CAUGHT, HEALED, ITEMS, SHOPPED_GAME) are GRADED with no sweep control under the
+re-sourcing plan's rule (e): each has a known-answer fault test both ways and a caught mutant (`test_step53_rs.py`).
 (Build step 5.3, stage A2) The purity checks of `live_step2.check_purity` carry a real sample count and floor
 (`PURITY_SAMPLES`: a run that left nothing to judge reads VACUOUS, not merely FAIL), and every arm RECORDS who ended it from
 the harness's own counters, never the brain's text (`harness_stop`: the driver's own kill, the launcher's wall clock, the
@@ -211,6 +221,11 @@ class Run:
         sample rule there is refused (`purity_sample`): no counting check reaches the verdict with n/floor "-"."""
         if check_id is None:
             check_id = as_check((bool(ok), text), "L5").id
+            if check_id == "L5.PURITY_ENDED":
+                # (build step 5.3, the RE-SOURCING build, item 10) re-made from the HARNESS's own stop record: the
+                # untyped check read the brain's `exit_reason`, which the AI writes
+                self.checks.append(ended_check(self, text))
+                return
             n, floor = purity_sample(self, check_id)
         self.checks.append(grade(check_id, bool(ok), text, n, floor))
 
@@ -257,10 +272,9 @@ PURITY_SAMPLES = {
     "L5.PURITY_FRAMES": (lambda run: int(_counters(run).get("real_frames") or 0), 1),
     # the breach counters the verdict file holds, of the ones the check reads (all of them must be there)
     "L5.PURITY_BREACHES": (lambda run: sum(1 for key in BREACH_COUNTERS if key in _counters(run)), len(BREACH_COUNTERS)),
-    # the verdict file's exit code read (0 or 1)
-    "L5.PURITY_ENDED": (lambda run: int("exit_code" in _facts(run)), 1),
-    # the verdict file's exit reason read (0 or 1)
-    "L5.PURITY_OUTCOME": (lambda run: int(bool(_facts(run).get("exit_reason"))), 1),
+    # (build step 5.3, the RE-SOURCING build, items 10 and 12) L5.PURITY_ENDED and L5.PURITY_OUTCOME have no rule here any
+    # more: the first is re-made from the harness's stop record (`ended_check`), the second graded as HONESTY once the
+    # game's proofs are read (`check_outcome`); an untyped check of either id reaching `purity_sample` is refused
     # the verdict file's package root read (0 or 1)
     "L5.PURITY_PACKAGE": (lambda run: int("package_root" in _facts(run)), 1),
 }
@@ -306,6 +320,79 @@ def harness_stop(run: Run) -> dict:
         by, cause = "other", f"exit code {code}"
     return {"by": by, "cause": cause, "exit_code": code, "real_frames": _counters(run).get("real_frames"),
             "frame_budget": run.arm.frames, "elapsed_seconds": round(run.elapsed, 1), "wall_clock_seconds": run.arm.wall}
+
+
+def ended_check(run: Run, purity_text: str) -> Check:
+    """(Build step 5.3, the RE-SOURCING build, item 10: the A2 decision addendum's row 28) L5.PURITY_ENDED, REPORTED: who
+    ended the run by the HARNESS's own stop record (`harness_stop`: this driver's kill, the launcher's wall clock, the frame
+    budget, the AI's own exit, or other), PASS iff `by: ai`. It replaces `live_step2.check_purity`'s check of the same id,
+    which read the verdict file's `exit_reason`: for a clean exit that is the BRAIN's own reason, so the AI's text could flip
+    it (06 2026-10-23 D3). WHY REPORTED and not GRADED: every one of ledger #39's 154 runs reads `by: ai`, so no control in
+    a sweep fails the read (METHOD: no third rule rescues a binary harness record); it is printed and never counts. Its read
+    is guarded by known-answer unit tests, one per stop cause (`test_step53_rs.PurityEndedTests`). The old check's text,
+    the brain's reason included, stays in the line as diagnostic text only; n is 1 (the harness always knows its own exit)."""
+    stop = harness_stop(run)
+    return grade("L5.PURITY_ENDED", stop["by"] == "ai",
+                 f"ended by itself (REPORTED, never counted: the HARNESS's own stop record) by {stop['by']}: {stop['cause']}; "
+                 f"real_frames {stop['real_frames']} (budget {stop['frame_budget']}); (diagnostic, NOT read: "
+                 f"`check_purity`'s line, the brain's own reason in it) {purity_text}", 1)
+
+
+def outcome_claim(run: Run, target: str) -> bool | None:
+    """(Re-sourcing build item 12) The brain's CLAIM about the game in its exit reason: True for "<brain>: done: <target>
+    reached", False for any other reason (a stop: stuck, out of ideas, a reason naming another target), None when the AI
+    made no claim: no reason in the verdict file, or the run was not ended by the AI (`harness_stop`: the reason of a run the
+    harness stopped or that crashed is not the AI's word)."""
+    reason = _facts(run).get("exit_reason") or ""
+    if not reason or harness_stop(run)["by"] != "ai":
+        return None
+    return reason == f"{run.arm.brain}: done: {target} reached"
+
+
+def check_outcome(run: Run, target: str, proof: bool, proof_text: str) -> None:
+    """(Build step 5.3, the RE-SOURCING build, item 12: the A2 decision addendum's row 18) L5.PURITY_OUTCOME, HONESTY: the
+    brain's exit reason is a claim about the game, judged BOTH WAYS against the game's proof of the target (`proof`:
+    L5.CH1_PROOFS' save-block flags for chapter 1, L5.CH2_WALLY's for chapter 2, the harness's own reads). A claim of
+    "reached" with no proof is a lie, and so is a proof under a stop reason ("stuck" while the game shows the target).
+    Before 5.3 it compared the reason with the wanted string alone (the AI's text against a constant: B1 debt). n is the
+    claims made (`outcome_claim`: 0 when the AI made none, which is VACUOUS and fails the verdict, unwaived)."""
+    claim = outcome_claim(run, target)
+    reason = _facts(run).get("exit_reason") or ""
+    run.check(claim is not None and claim == proof,
+              f"the brain's outcome {reason!r} claims the target {target} "
+              f"{'REACHED' if claim else 'NOT reached' if claim is not None else '(no claim: no reason, or the AI did not end the run)'}"
+              f"; THE GAME's proof of it (the harness's own reads) {'HOLDS' if proof else 'does NOT hold'} ({proof_text}): "
+              f"{'they agree' if claim == proof else 'they DISAGREE (a lie)'}", "L5.PURITY_OUTCOME",
+              0 if claim is None else 1, 1)
+
+
+def balls_total(truth: dict | None) -> int | None:
+    """The POKé BALLS of every kind in the bag by the game (`truth_of`'s `balls`), None when the read is missing."""
+    balls = (truth or {}).get("balls")
+    return sum(balls.values()) if isinstance(balls, dict) else None
+
+
+def shop_count(truth: dict | None) -> int | None:
+    """The game's own count of purchases, GAME_STAT_SHOPPED (`play_harness.STATS` "shopped", read from save block 1 by the
+    harness), None when the read is missing (a truth made before the fix round read no such counter)."""
+    value = stats(truth).get("shopped")
+    return value if isinstance(value, int) else None
+
+
+def game_shopped(before: dict | None, after: dict | None) -> dict:
+    """(Build step 5.3, the RE-SOURCING build, item 13: the re-sourcing plan's (c), REDEFINED in the fix round) "IT SHOPPED"
+    BY THE GAME alone: the game's own purchase counter GAME_STAT_SHOPPED ROSE from the run's start (`Run.before`, the truth
+    of its start state) to its end (`Run.after`), both read by the harness (`truth_of`), no AI input. The game raises it
+    once per purchase, as the money is taken (`src/shop.c` BuyMenuSubtractMoney, pinned decomp 731ad5b).
+    WHY not the money and the bag (the first form: money fell AND POKé BALLS rose): it misjudged both ways. A run that buys
+    5 balls and throws 7, or wins more prize money than it spends, read "did not shop"; a run that lost money at a whiteout
+    and picked up an item-ball POKé BALL read "shopped". The money and the balls are still printed (text only).
+    `read` is False when either counter read is missing (nothing to judge)."""
+    count0, count1 = shop_count(before), shop_count(after)
+    read = count0 is not None and count1 is not None
+    return {"read": read, "count": (count0, count1), "money": ((before or {}).get("money"), (after or {}).get("money")),
+            "balls": (balls_total(before), balls_total(after)), "bought": (count1 - count0) if read else None,
+            "shopped": read and count1 > count0}
 
 
 def play_env(personality: str, starter: str | None, target: str, **extra: str) -> dict[str, str]:
@@ -709,7 +796,10 @@ def logged_intent(run: Run) -> tuple[str | None, str | None]:
 
 # ---------------------------------------------------------------------- graders
 def grade_common(run: Run, target: str) -> None:
-    check_purity(run, f"done: {target} reached")
+    # (build step 5.3, the RE-SOURCING build, item 12) no wanted outcome is passed: `check_purity` then makes no check of
+    # the brain's outcome against a constant string, and each grader judges that claim against the GAME's proof once it has
+    # read it (`check_outcome`)
+    check_purity(run, None)
     check_after_is_this_run(run)
     check_hands(run)
     frames = ((run.verdict or {}).get("counters") or {}).get("real_frames")
@@ -727,6 +817,7 @@ def grade_CH1(run: Run) -> None:
     proofs = {name: m.get(name) for name in ("RECEIVED_POKEDEX_FROM_BIRCH", "SYS_POKEDEX_GET", "ADVENTURE_STARTED",
                                              "DEFEATED_RIVAL_ROUTE103", "SET_WALL_CLOCK", "RESCUED_BIRCH", "SYS_POKEMON_GET")}
     run.check(all(proofs.values()), f"THE GAME (save block 1, the harness's own read): {proofs}", "L5.CH1_PROOFS")
+    check_outcome(run, "ch1_pokedex", all(proofs.values()), "L5.CH1_PROOFS' flags")
     # (build step 5.3, A1-2) HONESTY: the AI's OWN told intent judged against the game's save block 2 (no longer the
     # intent recomputed by calling the AI's chooser)
     gender, name = logged_intent(run)
@@ -792,9 +883,10 @@ def grade_CH2(run: Run) -> None:
     before, after = run.before, run.after
     grade_common(run, "ch2_wally")
     m = marks(after)
-    run.check(m.get("HIDE_PETALBURG_CITY_WALLYS_MOM") == 1 and (m.get("VAR_PETALBURG_GYM_STATE") or 0) >= 2,
-              f"THE GAME: WALLY's tutorial: HIDE_PETALBURG_CITY_WALLYS_MOM {m.get('HIDE_PETALBURG_CITY_WALLYS_MOM')}, "
-              f"VAR_PETALBURG_GYM_STATE {m.get('VAR_PETALBURG_GYM_STATE')} (>= 2)", "L5.CH2_WALLY")
+    wally = m.get("HIDE_PETALBURG_CITY_WALLYS_MOM") == 1 and (m.get("VAR_PETALBURG_GYM_STATE") or 0) >= 2
+    run.check(wally, f"THE GAME: WALLY's tutorial: HIDE_PETALBURG_CITY_WALLYS_MOM {m.get('HIDE_PETALBURG_CITY_WALLYS_MOM')}, "
+                     f"VAR_PETALBURG_GYM_STATE {m.get('VAR_PETALBURG_GYM_STATE')} (>= 2)", "L5.CH2_WALLY")
+    check_outcome(run, "ch2_wally", wally, "L5.CH2_WALLY's flag and var")
     want = PREDICTED[run.arm.name]
     caught = stats(after).get("captures", 0) - stats(before).get("captures", 0)
     pids_before = {row[0] for row in (before or {}).get("party_exp") or []} | {row[0] for row in (before or {}).get("boxes") or []}
@@ -810,10 +902,21 @@ def grade_CH2(run: Run) -> None:
     run.check(len(picked) >= want["items"], f"ITEMS: item-ball flags newly set {picked} (>= {want['items']})", "L5.ITEMS")
     check_rest_rule(run)
     check_own_report(run, None)
+    # (build step 5.3, the RE-SOURCING build, item 13: the re-sourcing plan's (c)) "IT SHOPPED" is GRADED BY THE GAME alone
+    # (an ACHIEVEMENT check under the plan's rule (e): its null, a run in which nothing was bought, is built directly by its
+    # known-answer fault test); n 0 (a missing purchase-counter read, before or after) is VACUOUS, unwaived
+    shop = game_shopped(before, after)
+    run.check(shop["shopped"], f"SHOPPED, BY THE GAME (its own purchase counter GAME_STAT_SHOPPED, read by the harness, no "
+                               f"AI input): {shop['count'][0]} -> {shop['count'][1]} (must RISE); (text only) money "
+                               f"{shop['money'][0]} -> {shop['money'][1]}, POKé BALLS {shop['balls'][0]} -> {shop['balls'][1]}",
+              "L5.SHOPPED_GAME", int(shop["read"]), 1)
+    # its TOLD purchases are HONESTY, each judged by that same game read; none told is VACUOUS (no claim, no lie), WAIVED
+    # (`grader_waivers.json`): "it shopped" is graded above, never by the AI's word
     bought = tells(run, "done; POKé BALL in the bag")
-    run.check(bool(bought), f"SHOPPED (its told purchase): {[str(r['reason'])[:120] for r in bought[:2]]}; money "
-                            f"{(before or {}).get('money')} -> {(after or {}).get('money')}, balls {(before or {}).get('balls')} -> "
-                            f"{(after or {}).get('balls')}", "L5.SHOPPED")
+    run.check(shop["shopped"], f"SHOPPED (its told purchase): {len(bought)} told {[str(r['reason'])[:120] for r in bought[:2]]}; "
+                               f"each must be true by THE GAME (its purchase counter rose): {shop['count'][0]} -> "
+                               f"{shop['count'][1]}: {'TRUE' if shop['shopped'] else 'NOT shown by the game'}",
+              "L5.SHOPPED", len(bought), 1)
     run.measures.update({"caught": caught, "heals": heals, "items": picked, "game_stats": stats(after)})
 
 

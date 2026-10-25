@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "32ab2db6a959aebd429600734754339f447135ab",
+ "source_sha1_lf": "9abcc2217bf9fc55c6e163411e7a1fc5b3835138",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 331,
+  "sections": 333,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5168,6 +5168,34 @@
    "line_start": 9705,
    "line_end": 9713,
    "title": "2026-10-23 — Technical decisions of step 5.3 stage A1 (Claude's calls)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-24-eba575",
+   "date": "2026-10-24",
+   "line_start": 9715,
+   "line_end": 9738,
+   "title": "2026-10-24 — Step 5.3 A2's decision addendum: the 39 B1-debt rows decided",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-124"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-25-467d45",
+   "date": "2026-10-25",
+   "line_start": 9740,
+   "line_end": 9752,
+   "title": "2026-10-25 — Step 5.3's re-sourcing plan: the addendum's open items decided",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],

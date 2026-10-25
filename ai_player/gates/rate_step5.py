@@ -108,6 +108,18 @@ REPORTED by kind, no longer forced to PASS by their text. THE GRADER OWNS ITS VA
 ASIDE and GENERIC_BUSY are its own copies, and MAX_LOSSES is the harness's record of the run. A chapter-2 draw's known places
 are the maps chapter 1's GAME screen stood on, and a map's key comes from the framework's `MapRSE`. PATIENCE_OLD is graded by
 the game: it ended early without the POKéDEX.
+(Build step 5.3, the RE-SOURCING build, item 14: the A2 decision addendum's rows 20-27) the spins, the rest rule and
+DEADREST, the two seed divergences, the raw time to the POKéDEX and the two curiosity yields are REPORTED: each prints its
+GAME form (spins per move from the press log, wild battles started under heal_below, the stood-tile and map-order distances,
+the raw frames to the POKéDEX flag, the slice yield) with its controls beside it (`reported_form`), because no control
+separates that form on the development sweep (ledger #39). Their status is the old check's own outcome on its AI form,
+printed as diagnostic text and never counted.
+(The re-sourcing FIX round, items 5, 8, 9 and 16(b)) the pushing and loafing checks and chapter 2's no-speedrun time are
+graded by the GAME alone: R5.PUSHING, R5.BLOCKED, R5.NO_LOAFING and R5.LOAF on `PlaceRecorder.push` (the longest free
+stretch of pressing that brought nothing new), R5.CH2_NOBATTLE on the frames to WALLY's var less the game's battle frames.
+BLOCKED's reach (the AI's idle reasons) is the DIAGNOSTIC R5.BLOCKED_REACH. R5.PUSH_PATHS_AGREE (HONESTY) compares the two
+paths' VERDICTS at each graded push bound within the game path's sampling band, because the two longest stretches are
+often different stretches. With these, no GRADED check reads the AI: `gates/b1_debt.json` is empty.
 """
 
 from __future__ import annotations
@@ -369,6 +381,21 @@ BOUNDS = {
     # is kept below only as the floor of `train_steps_min`
     "CH1_TRAIN_STEPS_MIN": 60,
     "CH1_TRAIN_STEPS_SHARE": 0.9,
+    # (build step 5.3, the RE-SOURCING build, item 1: `2026-10-24-step5.3-A2-decision-addendum.md` row 1 and the plan
+    # `2026-10-25-step5.3-resourcing-plan.md` (a)) THE TRAINED CHECK BY THE GAME ALONE: the steps onto TALL GRASS between
+    # the starter's mark and the rival's flag (the harness's tile read, `game_reads.tiles`), judged by the personality the
+    # HARNESS assigned the seed. CANDIDATES from the addendum's stage-B table (development ledger #39, seeds 1307-1318);
+    # stage B may move each only within those margins, then registers it. The three keys above (and CH1_WILD_WON_MIN)
+    # are no longer graded: the AI's training windows they judged are printed as diagnostic text.
+    # Story: an absolute floor in EVERY Story run (CH1 102-177, NOTRAIN 23-38, the lowest training arm 99)
+    "TRAINED_GRASS_STORY_MIN": 70,
+    # Trainer and Catcher: PAIRED with NOTRAIN on the same seed (a Trainer training arm walked 139 against NOTRAIN's 151, a
+    # Catcher walks grass to catch): CH1 / NOTRAIN pooled over the personality's seeds at least this (dev 2.116 and 1.298)
+    "TRAINED_RATIO_TRAINER_MIN": 1.3,
+    "TRAINED_RATIO_CATCHER_MIN": 1.1,
+    # ... and CH1 strictly above NOTRAIN in at least this share of those seeds: 50 %, not the addendum's 60 % (plan (a): at
+    # the honest UNPAIRED Catcher rate 13 of 16, 60 % falsely fails 8.4-12.7 % of 6-7 held-out seeds, 50 % 1.3-2.7 %)
+    "TRAINED_SHARE_MIN": 0.5,
     # (the step-5 verifier's round) the game's WHITEOUTS (battles LOST) over all the CH1 seeds together at most this: the
     # development sweeps measured 3 in 9 (step5dev6, step5dev7: every one a wild battle met at 2-5 HP, six of them on a walk
     # home that could not find the house) and 0 in 9 once the way home was known (step5dev8)
@@ -417,7 +444,11 @@ BOUNDS = {
     # 13,512-29,504 frames, the training stints 53,553-63,537 frames): the real rule reaches the POKéDEX in at least this
     # share, the step-5 rule stops 'no progress' in at least this share, at least once WHILE TRAINING (measured 3 of 3 and
     # 3 of 3, each stop with a training session the last goal)
-    "PATIENCE_REACHED_MIN": 0.8,
+    # (build step 5.3, the re-sourcing build, item 7: addendum row 10) 0.8 -> 0.6, a CANDIDATE: graded now on the dex half
+    # alone; at the plausible p 0.875 (24 of 24 Trainer runs of the arms with their curiosity and training intact) 0.8
+    # falsely fails 16.7 % (6 held-out seeds, 5 needed) and 21.5 % (7 seeds, 6 needed), 0.6 2.9-4.6 % (the 11-15 % once
+    # written here is the p 0.9 figure: the re-sourcing fix round's F6); PATIENCE_OLD's 0 of 4 fails it by 60 points
+    "PATIENCE_REACHED_MIN": 0.6,
     "PATIENCE_OLD_STOPS_MIN": 0.8,
     # ---- THE VERIFIER'S ROUND OF STEP 5.1 (2026-10-14), PRE-REGISTERED from the development sweeps of this round's AI code
     # (step51vdev1: seeds 1-9, CH1, ERRANDS_OFF, STALL3, LOSE3, before the look-around debt and the 6-tile detour;
@@ -445,7 +476,10 @@ BOUNDS = {
     # 9, the per-seed ratio's spread 0.035 and 0.076; the first round's code on 401-410, recounted, 1.065 with 8 of 10;
     # while the frames outside the needs WITH the battles measured 1.078 and 0.995: the old bound below 1.0 in one of five
     # samples, so it is kept, pre-registered, and its failure would be the grass's dice, which this check removes)
-    "NOBATTLE_RATIO_MIN": 1.02,
+    # (build step 5.3, the re-sourcing build, item 4: addendum row 8) 1.02 -> 1.05, a CANDIDATE: the quantity is now the
+    # GAME's (frames to the POKéDEX flag less the game's battle frames), dev pooled 1.124, slower in 11 of 12; the
+    # pseudo-null (arms whose edit is not curiosity: DEADREST 0.977, STALL1 1.028, STALL2 1.021) sits under it (plan (d))
+    "NOBATTLE_RATIO_MIN": 1.05,
     "NOBATTLE_SEEDS_MIN": 0.6,
     # THE ERRANDS DIFFER BY SEED: their decisions in order (`curiosity_sequence`), mean edit distance over the pairs of
     # CH1 runs of one personality at least this (measured in step51vdev2 0.739 and 0.664; the control has none: 0)
@@ -455,9 +489,11 @@ BOUNDS = {
     # under way then runs out its LOOK_AROUND_FRAMES (2,400), with room for one battle met in it (one more 2,400). The
     # live CH2 arm of step 5.1's first round measured 10 asides in a row, about 32,000 frames
     "ASIDE_STREAK_MAX": 10_800,
-    # LOSE3 (CORRECTED after the graded sweep on 501-520, see `step51_verdicts`): the arm reaches the game's third loss in
-    # at least this share of its runs (measured: 3 of 3 in development, 5 of 6 on 501-520)
-    "LOSE3_REACH_MIN": 0.6,
+    # LOSE3: (build step 5.3, the re-sourcing build, item 6, plan (b)) the runs that reached the game's MAX_LOSSES-th loss
+    # are the check's n, and it is VACUOUS (a FAIL, never waived) under this FLOOR, a COUNT of runs. It was a SHARE of the
+    # runs (0.6) under the same key, which LESSONS PF-4 names (the reach floor): reaching the cap is COVERAGE (the mutant's battles are dice: 3 of 4 in development), and at p 0.75 the share
+    # falsely failed 17-24 % of 6-7 held-out seeds; a floor of 2 falsely fails 0.1-0.5 %
+    "LOSE3_REACH_MIN": 2,
     # ---- THE STEP-5.1 VERIFIER'S SECOND ROUND (2026-10-14): CHAPTER 2 in the sweep (`CHAPTER2`, `chapter2_verdicts`).
     # PRE-REGISTERED 2026-10-15 from the round's development sweeps (step51wdev1, seeds 31-39, before the fixes it found;
     # step51wdev2, seeds 41-49, and step51wdev3, seeds 51-59, the AI code graded but for the nurse's give-way and the
@@ -479,7 +515,11 @@ BOUNDS = {
     # ... and NO SPEEDRUN in chapter 2 without the grass's dice: the AI's own frames to WALLY outside the needs and the
     # battles, CH2 over CH2_OFF pooled at least this, CH2 the slower in at least this share of the paired seeds (measured
     # 1.491 with 9 of 9 and 1.369 with 8 of 9: the bound well under both)
-    "CH2_NOBATTLE_RATIO_MIN": 1.15,
+    # (build step 5.3, the re-sourcing build, item 5: addendum row 11) 1.15 -> 1.05, a CANDIDATE: the quantity is now the
+    # GAME's (frames to WALLY's tutorial, VAR_PETALBURG_GYM_STATE 2, less the game's battle frames before it), dev pooled
+    # 1.155, CH2 slower in 11 of 12 (0.808-1.309): the old 1.15 left a 0.005 margin. CH2_OFF against itself is 1.0 BY
+    # CONSTRUCTION and no pseudo-null exists (only CH2 and CH2_OFF reach WALLY), so the margin is the real code's own spread
+    "CH2_NOBATTLE_RATIO_MIN": 1.05,
     "CH2_NOBATTLE_SEEDS_MIN": 0.7,
     # ---- BUILD STEP 5.2, PRODUCTIVE CURIOSITY (the step-5.1 adversarial review, 2026-10-15: "it LOAFS"). Every number below
     # is PRE-REGISTERED from the development sweeps of this round (README "Build step 5.2"), BEFORE the graded sweep on NEW
@@ -504,7 +544,13 @@ BOUNDS = {
     # step52dev4: two catching roams that met only known POKéMON, 25,003 frames, were 80-87 % battles, which are the game
     # played, not loafing, so the battles are taken out, and a catching roam gives the hunt up, `brain/goals.py`
     # HUNT_FRUITLESS) ...
-    "LOAF_FRAMES_MAX": 4000,
+    # (build step 5.3, the re-sourcing build, item 9: addendum rows 14-15) THE QUANTITY CHANGED, 4000 -> 3000, a CANDIDATE:
+    # it bounds the GAME's longest free stretch of pressing that brought nothing new (`PlaceRecorder.push`, the row's
+    # `push_game`), no longer the AI-windowed total. Dev (ledger #39): every real-plan run at or under 1,910 (margin
+    # 1,090); LOAF over it in 3 of 12 (4,640, 4,030, 3,120). Preferred over 4,000 because at 4,000 LOAF's second failing run
+    # (4,030) sits inside the game path's sampling bias (the same stretch read 3,950 by the AI's path) and the held-out
+    # chance that LOAF shows nothing rises to 2.6-17.5 %. CH2 1311's old FAIL (4,430 AI-windowed) is a game push of 760
+    "LOAF_FRAMES_MAX": 3000,
     # ... while the LOAF control (`EXTRA_EDITS` LOAF: looks round and detours among tiles it has stood on) is under
     # YIELD_RATE_MIN pooled (its looks' own yield: step52dev6 0.31, dev3 0.09 recounted) and over that bound in at least
     # this many of its runs (the per-run bound CAN fail). (First pre-set as a SHARE, 0.5 of the runs, from the span frames;
@@ -542,9 +588,21 @@ BOUNDS = {
     # ... and the BLOCKED control is over it, by both paths, in at least this many of its runs that MET someone standing in
     # the way of a curiosity walk at least BLOCKED_REACH_HITS times (`person_blocks`), and such a run happens in at least
     # BLOCKED_REACH_MIN of its runs (the control must REACH the state it tests: PF-4)
+    # (build step 5.3, the re-sourcing build, item 8: addendum row 13) the REACH (BLOCKED_REACH_HITS, BLOCKED_REACH_MIN:
+    # someone in the way, by the AI's idle reasons) no longer gates R5.BLOCKED: it is the DIAGNOSTIC R5.BLOCKED_REACH, which
+    # says WHY the arm fails; R5.BLOCKED itself is graded on the game's push alone (BLOCKED_HITS_MIN runs at or over PUSH_MAX)
     "BLOCKED_REACH_HITS": 3,
     "BLOCKED_HITS_MIN": 1,
     "BLOCKED_REACH_MIN": 0.1,
+    # (build step 5.3, the re-sourcing FIX round, item 16(b): R5.PUSH_PATHS_AGREE) THE TWO PATHS' VERDICTS against each graded
+    # push bound (PUSH_MAX and LOAF_FRAMES_MAX) agree, except where BOTH values sit within this share of the bound, where the
+    # game path's sampling (one 10-frame sample per free/not-free transition) can flip a verdict. MEASURED on ledger #39's
+    # 154 kept folders: the two paths' longest stretches are the same stretch in only 86 of 152 runs, so stretches cannot be
+    # matched; but every run with either path >= 2,000 frames (8 non-BLOCKED runs) differs by -15.4 % to +7.7 %, the five
+    # LOAF runs near a bound by 0.2-2.5 % (LOAF 1310: 3,950 against 4,030, the one verdict split at 4,000; none at 3,000).
+    # With a 5 % band (or 10 %) no split remains at either bound; a disagreement far from the bound (one path at the bound,
+    # the other 10) still splits
+    "PUSH_AGREE_BAND": 0.05,
     # ---- BUILD STEP 5.2, THE VERIFIER'S ROUND (2026-10-15): its two failures (the NOHINTS pushing, 20 of 20 graded runs on
     # 901-920; loafing credited as a talk, 127 chats that heard nothing new) are graded by the checks above, unchanged; what
     # changed is the AI and the game's yield of a talk (a message the game never showed before). One new check, set while
@@ -718,6 +776,64 @@ def trained_by_game(row: dict) -> bool:
     WON."""
     return (row.get("game_train_steps") or 0) >= train_steps_min_run(row) \
         and (row.get("game_train_won") or 0) >= BOUNDS["CH1_WILD_WON_MIN"]
+
+
+def story_floor(rows: list[dict]) -> list[tuple[int, int]]:
+    """(Re-sourcing build item 1, addendum row 1(a)) The Story runs whose GAME grass steps before the rival are under
+    `TRAINED_GRASS_STORY_MIN`, as (seed, steps): an absolute floor in EVERY Story run. Rows without a rival's flag (no grass
+    value) are not judged."""
+    return [(r["seed"], r["grass_before_rival"]) for r in rows if r.get("personality") == "Story"
+            and r.get("grass_before_rival") is not None and r["grass_before_rival"] < BOUNDS["TRAINED_GRASS_STORY_MIN"]]
+
+
+def paired_rule(rows: list[dict], notrain: list[dict], personality: str) -> dict:
+    """(Re-sourcing build item 1, addendum row 1(b)/(c) and the plan's (a)) `personality`'s runs of `rows` PAIRED with
+    NOTRAIN's run on the same seed, by the GAME's grass steps before the rival: the pooled ratio rows/NOTRAIN at least that
+    personality's `TRAINED_RATIO_*_MIN`, and rows strictly above NOTRAIN in at least `TRAINED_SHARE_MIN` of the pairs. WHY
+    paired: a Trainer training arm walked 139 against NOTRAIN's 151 on another seed, and a Catcher walks grass to catch,
+    so no absolute floor separates them (W1). `ok` is True when the personality has no judged run (nothing to judge), and
+    False when it has runs but no pair (an unjudgeable personality never passes). NOTRAIN against itself fails BY
+    CONSTRUCTION (ratio 1.0, never strictly above itself): that is no evidence of separation (METHOD, W7)."""
+    need = BOUNDS[f"TRAINED_RATIO_{personality.upper()}_MIN"]
+    by_no = {r["seed"]: r["grass_before_rival"] for r in notrain if r.get("grass_before_rival") is not None}
+    mine = [r for r in rows if r.get("personality") == personality and r.get("grass_before_rival") is not None]
+    pairs = [(r["seed"], r["grass_before_rival"], by_no[r["seed"]]) for r in mine if r["seed"] in by_no]
+    a, b = sum(p[1] for p in pairs), sum(p[2] for p in pairs)
+    pooled = (a / b if b else (float("inf") if a else 0.0)) if pairs else None
+    above = [p[0] for p in pairs if p[1] > p[2]]
+    ok = not mine or (bool(pairs) and pooled >= need and len(above) >= BOUNDS["TRAINED_SHARE_MIN"] * len(pairs))
+    return {"personality": personality, "runs": len(mine), "pairs": pairs, "pooled": None if pooled is None else round(pooled, 3),
+            "above": len(above), "unpaired": [r["seed"] for r in mine if r["seed"] not in by_no], "need": need, "ok": ok}
+
+
+def on_game_tiles(rows: list[dict]) -> list[dict]:
+    """(Re-sourcing build item 3) The rows with `_tiles` replaced by the GAME's stood tiles (`_stood`, `game_stood`), so
+    `off_beeline` (unchanged) counts the game's tiles; a row without `_stood` counts no tile (never the AI's)."""
+    return [{**r, "_tiles": set(r.get("_stood") or ())} for r in rows]
+
+
+#: (re-sourcing build item 4, the plan's (d)) the arms printed as the pseudo-null of R5.NO_SPEEDRUN_DICE: each differs from
+#: CH1 in a knob that does NOT change the time spent on curiosity (the rest rule, a wait at the starter's bag, waits on
+#: scenes). LOAF, GREEDY and NOHINTS are excluded: their edit IS the curiosity or the story's leads, the measured quantity
+PSEUDO_NULLS = ("DEADREST", "STALL1", "STALL2")
+
+
+def no_battle_pairs(rows: list[dict], control: list[dict], key: str) -> list[tuple[int, int, int, float]]:
+    """(Re-sourcing build items 4-5) (seed, rows' no-battle frames, control's, ratio) for every seed both reached, by the
+    GAME (`frames_to_mark` under `key`: "dex_game" or "wally_game")."""
+    by = {r["seed"]: (r.get(key) or {}).get("no_battle") for r in control if "error" not in r}
+    out = []
+    for r in rows:
+        mine, theirs = (r.get(key) or {}).get("no_battle"), by.get(r["seed"])
+        if "error" not in r and mine and theirs:
+            out.append((r["seed"], mine, theirs, round(mine / theirs, 3)))
+    return out
+
+
+def no_battle_pooled(rows: list[dict], base: list[dict], key: str) -> float | None:
+    """The pooled ratio of `rows` over `base` on the game's no-battle frames (the pseudo-null's printed number)."""
+    pairs = no_battle_pairs(rows, base, key)
+    return round(sum(p[1] for p in pairs) / sum(p[2] for p in pairs), 3) if pairs else None
 
 
 def stop_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
@@ -1022,11 +1138,274 @@ def position_at(places: dict | None, frame: int) -> tuple[str, int, int] | None:
     return where
 
 
+# ------------------------------------------------------------------- (build step 5.3, the RE-SOURCING build) GAME READS
+#: the tile type the harness's tile read writes for tall grass (`play_harness.TileRecorder`, `modules/map.py` tile_type)
+TALL_GRASS = "Tall Grass"
+
+
+def tile_positions(data: dict) -> list[tuple[int, str, int, int]]:
+    """Where the GAME had the player, as (recorder frame, map "group:number", x, y) at every position change: the harness's
+    TILE read (`game_reads.tiles`: its start and every step, exact frames) when the run has one, else the places recorder's
+    moves (sampled every 10 frames). WHY the tile read first: an arrival in the last frames of a goal can be sampled by the
+    places recorder only after the goal ended (investigation (i) of the A2 decision addendum)."""
+    tiles = (data.get("game_reads") or {}).get("tiles") or {}
+    if tiles.get("steps") or tiles.get("start"):
+        out = [tuple(tiles["start"][:4])] if tiles.get("start") else []
+        return out + [tuple(step[:4]) for step in tiles.get("steps") or ()]
+    return [tuple(move[:4]) for move in (data.get("places") or {}).get("moves") or ()]
+
+
+def stood_during(data: dict, first: int, last: int) -> set[tuple[str, int, int]]:
+    """(Re-sourcing build item 16(a)) Every tile the GAME had the player stand on at ANY frame of [first, last]: where it
+    stood at `first` and every position it reached up to `last`. Never a frame after `last`: the A2 sweep's NOTRAIN 1318
+    detour stood at its place when it ended and a scene moved the player off 19 frames later, which the old lookup at
+    `last + YIELD_SLACK` read as "not reached" (investigation (i))."""
+    out: set[tuple[str, int, int]] = set()
+    where = None
+    for frame, stay, x, y in tile_positions(data):
+        if frame > last:
+            break
+        if frame <= first:
+            where = (stay, x, y)
+        else:
+            out.add((stay, x, y))
+    if where is not None:
+        out.add(where)
+    return out
+
+
+def game_stood(data: dict) -> set[str]:
+    """(Re-sourcing build item 3) Every tile the GAME had the player stand on in the run, as "group:number x,y": the places
+    recorder's moves, the tile read's steps and its start (the measure's `stood`, `measure_step5.py`). It replaces the AI's
+    world memory (`visited_tiles`) in OFF THE BEELINE."""
+    tiles = (data.get("game_reads") or {}).get("tiles") or {}
+    rows = [m[1:4] for m in (data.get("places") or {}).get("moves") or ()]
+    rows += [s[1:4] for s in tiles.get("steps") or ()]
+    if tiles.get("start"):
+        rows.append(tiles["start"][1:4])
+    return {f"{stay} {x},{y}" for stay, x, y in rows}
+
+
+def change_frame_game(data: dict, name: str, value: int = 1) -> int | None:
+    """The recorder frame of a story mark's first confirmed change to at least `value` (`StoryRecorder.changes`)."""
+    return next((c["f"] for c in (data.get("story") or {}).get("changes") or []
+                 if c.get("mark") == name and (c.get("to") or 0) >= value), None)
+
+
+def grass_before_rival(data: dict) -> int | None:
+    """(Re-sourcing build item 1) The steps onto TALL GRASS between the starter's mark (VAR_BIRCH_LAB_STATE 2) and the
+    rival's flag, by the harness's tile read (`game_reads.tiles`); None: no rival's flag, or no tile read in the run (the
+    measure's `grass_before_rival`, so the development numbers are this quantity)."""
+    rival = change_frame_game(data, "DEFEATED_RIVAL_ROUTE103")
+    steps = ((data.get("game_reads") or {}).get("tiles") or {}).get("steps")
+    if rival is None or steps is None:
+        return None
+    since = change_frame_game(data, "VAR_BIRCH_LAB_STATE", 2) or 0
+    return sum(1 for step in steps if step[4] == TALL_GRASS and since < step[0] <= rival)
+
+
+def grass_stint(data: dict) -> int | None:
+    """The training STINT by the game: frames from the first to the last tall-grass step between the starter's mark and the
+    rival's flag (the run's end without one). REPORTED text beside R5.PATIENCE only (addendum row 10: NOTRAIN, which never
+    trains, is over 40,000 in 3 of 12, so no bound on it separates)."""
+    story = data.get("story") or {}
+    until = change_frame_game(data, "DEFEATED_RIVAL_ROUTE103") or int(story.get("frames") or data.get("frames") or 0)
+    since = change_frame_game(data, "VAR_BIRCH_LAB_STATE", 2) or 0
+    frames = [s[0] for s in ((data.get("game_reads") or {}).get("tiles") or {}).get("steps") or ()
+              if s[4] == TALL_GRASS and since < s[0] <= until]
+    return frames[-1] - frames[0] if frames else None
+
+
+def battle_frames_before(data: dict, frame: int) -> int:
+    """The GAME's battle frames before `frame`: the places recorder's battle stretches, each sample standing for its period."""
+    places = data.get("places") or {}
+    every = int(places.get("every") or 10)
+    return sum(max(0, min(frame, b + every) - max(0, a)) for a, b in places.get("battles") or ())
+
+
+def frames_to_mark(data: dict, name: str, value: int = 1) -> dict | None:
+    """(Re-sourcing build item 4) Frames to a story mark's change BY THE GAME and the same less the game's battle frames
+    before it (`no_battle`); None: never reached. A run the AI ends AT its target can end before the recorder confirms the
+    change (measured on the A2 smoke, CH2 seed 1303): then the run's END is the frame (`at_end`), but only when the end marks
+    hold it and the start marks did not (the measure's `to_mark`)."""
+    frame, at_end = change_frame_game(data, name, value), False
+    if frame is None:
+        ended = ((data.get("story_truth") or {}).get("marks") or {}).get(name) or 0
+        began = ((data.get("start_story") or {}).get("marks") or {}).get(name) or 0
+        if ended >= value > began:
+            frame, at_end = int((data.get("story") or {}).get("frames") or data.get("frames") or 0), True
+    if frame is None:
+        return None
+    return {"frame": frame, "no_battle": frame - battle_frames_before(data, frame), "at_end": at_end}
+
+
+# ------------------------------------------------- (build step 5.3, the RE-SOURCING build, item 14) THE REPORTED GAME FORMS
+# The A2 decision addendum's rows 20-27 are REPORTED: each has a GAME form, printed with its controls beside it, and no
+# control separates that form on the development sweep (ledger #39), so nothing is bounded by it. These reads are the
+# measure's own (`measure_step5.py` game_spins, battles_below, map_order, slices: that module imports this one, so they are
+# ported here, and `test_step53_rs.ReportedFormTests` holds each port equal to the measure's on the same run).
+#: the slice of the game's slice yield, frames (the measure's `SLICE`: the grader's yield rate is per 1,000 frames)
+SLICE_FRAMES = 1000
+
+
+def spins_by_game(data: dict) -> tuple[int, int] | None:
+    """(Row 20) The game's spins and moves from the harness's press log (`game_reads.presses`, `play_harness.spins_of`: a
+    turn on the spot between two overworld presses is a spin, a changed position a move); None without the read."""
+    presses = (data.get("game_reads") or {}).get("presses") or {}
+    if not isinstance(presses.get("spins"), int) or not isinstance(presses.get("moves"), int):
+        return None
+    return presses["spins"], presses["moves"]
+
+
+def battles_alternate(starts: list, ends: list) -> bool:
+    """The battle starts and ends ALTERNATE in frame order (start, end, ..., at most one start left open; a start and an end
+    at one frame put the start first): only then is each start one battle (the measure's `alternate`)."""
+    events = sorted([(s[0], 0) for s in starts] + [(e[0], 1) for e in ends])
+    return all(kind == index % 2 for index, (_, kind) in enumerate(events))
+
+
+def started_under_heal(data: dict, personality: str | None) -> int | None:
+    """(Rows 21-22) The WILD battles the game recorded STARTED with the party under the run's own personality's heal_below
+    (`game_reads.battle_hp`, read i: the party's HP at each battle start; a start is a trainer's when the first battle end
+    at or after it says so). None: no read, or its starts and ends do not alternate (a start counted twice would inflate
+    it: the measure's `battles_below`, its `below_own`). A start whose party could not be read is not counted."""
+    hp = (data.get("game_reads") or {}).get("battle_hp")
+    if not isinstance(hp, dict):
+        return None
+    starts, ends = hp.get("starts") or [], sorted(hp.get("ends") or [], key=lambda e: e[0])
+    if not battles_alternate(starts, ends):
+        return None
+    heal = ERRANDS.get(personality or "Story", ERRANDS["Story"]).heal_below
+    under = 0
+    for frame, party in starts:
+        end = next((e for e in ends if e[0] >= frame), None)
+        if end is not None and end[2]:
+            continue
+        total = sum(m[3] for m in party or ())
+        if total and sum(m[2] for m in party) / total < heal:
+            under += 1
+    return under
+
+
+def map_order(data: dict) -> list[str]:
+    """(Row 24) The maps the game had the player enter, in order (the places recorder's stays): the goal sequence's nearest
+    game analog (the measure's `map_order`)."""
+    return [stay for _, stay in (data.get("places") or {}).get("stays") or ()]
+
+
+def _rose(timeline: list | None, start: int, end: int) -> bool:
+    """A [frame, value] timeline ROSE inside [start, end): a sample there holds more than the one before it."""
+    before = None
+    for frame, value in timeline or ():
+        if frame >= end:
+            break
+        if frame >= start and before is not None and value > before:
+            return True
+        before = value
+    return False
+
+
+def slice_yield(data: dict) -> dict | None:
+    """(Rows 26-27) THE GAME's SLICE YIELD: the run cut into `SLICE_FRAMES` slices of the recorder's clock; a slice with no
+    battle frame is CALM, and a calm slice is PRODUCTIVE when the game shows `YIELD_TILES`+ new tiles or a map first stood
+    on, a page read, a capture or an item ball in it (the measure's `slices` / `slice_counts`). No AI window is read: the
+    critic's Q3 asked whether a yield over GAME windows separates the curiosity from LOAF at all, and on ledger #39 it does
+    not (10 of 12, a 4.1 % margin), which is why rows 26-27 are REPORTED. None: a run with no frames."""
+    places, story = data.get("places") or {}, data.get("story") or {}
+    end = int(story.get("frames") or data.get("frames") or 0)
+    if end <= 0:
+        return None
+    every = int(places.get("every") or 10)
+    battles = [(a, b + every) for a, b in places.get("battles") or ()]
+    stays = places.get("stays") or []
+    first: dict[str, int] = {}
+    for frame, stay in stays:
+        if stay != stays[0][1]:
+            first.setdefault(stay, frame)
+    calm = made = 0
+    for k in range(-(-end // SLICE_FRAMES)):
+        a, b = k * SLICE_FRAMES, min(end, (k + 1) * SLICE_FRAMES)
+        if sum(max(0, min(b, y) - max(a, x)) for x, y in battles) > 0:
+            continue
+        calm += 1
+        tiles = sum(n for frame, n in places.get("new_tiles") or () if a <= frame < b)
+        made += bool(tiles >= YIELD_TILES or any(a <= frame < b for frame in first.values())
+                     or any(a <= t[0] < b and len(t) > 2 and bool(t[2]) for t in places.get("texts") or ())
+                     or _rose(story.get("captures"), a, b) or _rose(story.get("item_flags"), a, b))
+    return {"calm": calm, "productive": made, "yield": round(made / calm, 4) if calm else None}
+
+
+def pairs_divergence(rows: list[dict], key: str) -> list[float]:
+    """(Rows 23-24) Per pair of runs of ONE personality: the Jaccard distance of their GAME stood tiles (`key` "_stood") or
+    the normalized edit distance of their map order (`key` "_maps") (the measure's `_pairs_divergence`)."""
+    out = []
+    for i, a in enumerate(rows):
+        for b in rows[i + 1:]:
+            if a.get("personality") != b.get("personality") or key not in a or key not in b:
+                continue
+            if key == "_stood":
+                union = set(a[key]) | set(b[key])
+                out.append(round(1 - len(set(a[key]) & set(b[key])) / len(union), 3) if union else 0.0)
+            else:
+                out.append(round(edit_distance(a[key], b[key]) / max(len(a[key]), len(b[key]), 1), 3))
+    return out
+
+
+def mean_of(values: list) -> float | None:
+    values = [v for v in values if v is not None]
+    return round(sum(values) / len(values), 3) if values else None
+
+
+def pooled_spins(runs: list[dict]) -> float | None:
+    """The game's spins over its moves, pooled over `runs` (None: no move read)."""
+    reads = [r["spins_game"] for r in runs if r.get("spins_game")]
+    moves = sum(m for _, m in reads)
+    return round(sum(s for s, _ in reads) / moves, 4) if moves else None
+
+
+def pooled_slices(runs: list[dict]) -> float | None:
+    """The game's slice yield pooled over `runs`: productive calm slices over calm slices (None: no calm slice)."""
+    reads = [r["slices_game"] for r in runs if r.get("slices_game")]
+    calm = sum(s["calm"] for s in reads)
+    return round(sum(s["productive"] for s in reads) / calm, 4) if calm else None
+
+
+def game_runs(rows: dict[str, list[dict]], plan: str) -> list[dict]:
+    return [r for r in rows.get(plan, []) if "error" not in r]
+
+
+def reported_form(rows: dict[str, list[dict]], row_no: int, what: str, plans: tuple[str, ...], value, pooled) -> str:
+    """(Re-sourcing build item 14) The tail every REPORTED row of the addendum's rows 20-27 carries after its own text: WHY
+    it is REPORTED, then its GAME form `what` per plan (the real code with each control beside it): `value(run)` per seed
+    and `pooled(runs)`. Its status (the old check's own outcome on its AI form) is DIAGNOSTIC text: it never counts."""
+    parts = []
+    for plan in plans:
+        runs = game_runs(rows, plan)
+        parts.append(f"{plan} {[(r['seed'], value(r)) for r in runs]} pooled {pooled(runs)}" if runs
+                     else f"{plan} not in this sweep")
+    return (f" || (REPORTED since the 5.3 re-sourcing, never counted: no control separates its GAME form on the development "
+            f"sweep, A2 decision addendum row {row_no}; the status is the old check's own outcome on its AI form, DIAGNOSTIC "
+            f"text) THE GAME: {what}, per seed with the controls beside it: {'; '.join(parts)}")
+
+
+def paired_dex(rows: dict[str, list[dict]]) -> str:
+    """(Row 25) The RAW frames to the POKéDEX by the game's flag (`dex_game`), CH1 paired with the beeline by seed: pooled
+    CH1/ERRANDS_OFF and the seeds CH1 was the slower in."""
+    off = {r["seed"]: (r.get("dex_game") or {}).get("frame") for r in game_runs(rows, "ERRANDS_OFF")}
+    pairs = [(r["seed"], (r.get("dex_game") or {}).get("frame"), off.get(r["seed"])) for r in game_runs(rows, "CH1")]
+    pairs = [p for p in pairs if p[1] and p[2]]
+    if not pairs:
+        return "no seed reached by both CH1 and ERRANDS_OFF"
+    return (f"(seed, CH1, ERRANDS_OFF) {pairs}; pooled CH1/ERRANDS_OFF {round(sum(p[1] for p in pairs) / sum(p[2] for p in pairs), 3)}"
+            f", CH1 the slower in {sum(1 for p in pairs if p[1] > p[2])} of {len(pairs)}")
+
+
 def curiosity_rows(actions: list[dict], data: dict, offset: int) -> list[dict]:
     """(build step 5.2, the step-5.1 review's findings 1 and 3) Every CURIOSITY goal of a run that the story did not need,
     with what it brought by the AI's own record (its END record's `yield`) and by the GAME (`game_yield` over its span, the
     AI's frames less `offset`); for a DETOUR, the place it chose (its yield's `place`), whether it SAID it reached it (its
-    outcome: "reached ...") and whether the GAME had the player standing there when it ended (`position_at`)."""
+    outcome: "reached ...") and whether the GAME had the player standing there when it ended (`stood_during` over
+    [end - YIELD_SLACK, end], since the re-sourcing build's item 16(a))."""
     ends = {}
     goal_frames: list[int] = []
     for r in actions:
@@ -1055,8 +1434,12 @@ def curiosity_rows(actions: list[dict], data: dict, offset: int) -> list[dict]:
         if span["kind"] == "detour":
             place = mine.get("place")
             said = str(end.get("reason") or "").startswith("reached")
-            stood = position_at(places, stop + YIELD_SLACK)
-            there = bool(place) and stood is not None and stood[0] == place[0] and (stood[1], stood[2]) == (place[1], place[2])
+            # (build step 5.3, the re-sourcing build, item 16(a)) ARRIVED when the game had the player on the place at any
+            # frame of [stop - YIELD_SLACK, stop] (the tile read's exact frames), never at a frame AFTER the end: the old
+            # lookup at stop + YIELD_SLACK read a scene moving the player off 19 frames later as "not reached" (A2's
+            # NOTRAIN 1318, investigation (i))
+            stood = stood_during(data, stop - YIELD_SLACK, stop)
+            there = bool(place) and (place[0], place[1], place[2]) in stood
             row.update({"place": place, "said_reached": said, "game_reached": there,
                         "game": game["productive"] and there})
         rows.append(row)
@@ -1078,6 +1461,24 @@ def curiosity_streaks(actions: list[dict]) -> list[tuple[int, int, int]]:
     if streak:
         out.append((streak[0]["frame"], len(streak), streak[-1]["frame"] + streak[-1]["frames"] - streak[0]["frame"]))
     return out
+
+
+def game_loafed(row: dict) -> bool:
+    """(Re-sourcing build item 9, addendum rows 14-15) The run loafed in one unbroken stretch BY THE GAME: its longest free
+    stretch of pressing that brought nothing new (`push_game`, `PlaceRecorder.push`) at or over LOAF_FRAMES_MAX. The one read
+    of R5.NO_LOAFING (every real run must be under) and R5.LOAF (its control must reach it); never the AI's windows."""
+    return (row.get("push_game") or 0) >= BOUNDS["LOAF_FRAMES_MAX"]
+
+
+def push_apart(ai: int, game: int, bound: int) -> bool:
+    """(The re-sourcing FIX round, item 16(b)) True when the two paths' VERDICTS against `bound` DISAGREE: one at or over it,
+    the other under, unless BOTH values lie within PUSH_AGREE_BAND of the bound, where the game path's sampling (one
+    10-frame sample per free/not-free transition; LOAF 1310 read 3,950 by the AI and 4,030 by the game, the same 391
+    presses) can flip a verdict. A disagreement far from the bound (one path at it, the other 10) is apart."""
+    if (ai >= bound) == (game >= bound):
+        return False
+    band = BOUNDS["PUSH_AGREE_BAND"] * bound
+    return not (abs(ai - bound) <= band and abs(game - bound) <= band)
 
 
 def push_ai(actions: list[dict]) -> int:
@@ -1501,6 +1902,17 @@ def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, 
         "time_wally": time_to_dex(actions, CH2_TARGET, since_start=True), "place_draws": len(named), "old_places": old_places,
         # (build step 5.3) the draws the GAME half could judge (0 when the run it went on from left no seen tiles)
         "place_draws_judged": len(named) if known is not None else 0,
+        # (build step 5.3, the RE-SOURCING build) THE GAME READS the re-sourced checks grade by, never the AI's records: the
+        # tall-grass steps before the rival (item 1), the training stint (item 7's REPORTED text), the tiles stood on (item
+        # 3) and the frames to the POKéDEX and to WALLY's tutorial, each less the game's battle frames (item 4; WALLY's for
+        # item 5, R5.CH2_NOBATTLE, built in the fix round)
+        "grass_before_rival": grass_before_rival(data), "grass_stint": grass_stint(data), "_stood": game_stood(data),
+        "dex_game": frames_to_mark(data, "RECEIVED_POKEDEX_FROM_BIRCH"),
+        "wally_game": frames_to_mark(data, "VAR_PETALBURG_GYM_STATE", 2),
+        # (the RE-SOURCING build, item 14) the GAME forms the REPORTED rows 20-27 print beside their controls (counted by
+        # no verdict): spins and moves, wild battles started under heal_below, the map order, the slice yield
+        "spins_game": spins_by_game(data), "under_heal_game": started_under_heal(data, personality),
+        "_maps": map_order(data), "slices_game": slice_yield(data),
         "train_span": train_span, "last_goal": spans_all[-1]["kind"] if spans_all else None,
         "trains": len(trains),
         "await_ai_max": max((a["frames"] for a in awaits), default=0),
@@ -1590,18 +2002,29 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Chec
                     f"CH1: the rival beaten at the FIRST try (the game's trainer-battle counter) in {ch1['first_try']} of {n} "
                     f"(bound >= {BOUNDS['CH1_FIRST_TRY_MIN']:.0%})", n, 1))
         beaten = [r for r in rows["CH1"] if r.get("rival_beaten")]
-        low = [(r["seed"], r["game_train_won"], r["game_train_steps"], r["train_steps_before_rival"]) for r in beaten
-               if not trained_by_game(r) or r["train_steps_before_rival"] < train_steps_min_run(r)]
-        out.append(grade("R5.CH1_TRAINED", bool(beaten) and not low,
-                    f"CH1: every seed that beat the rival TRAINED first, BY THE GAME inside the windows its log says it "
-                    f"roamed to train before the rival's flag (the step-5 verifier's round 2): the game's step counter rose "
-                    f"at least the re-derived minimum of the personality it played as (the step-5.1 verifier's round: "
-                    f"{ {p: train_steps_min(p) for p in PERSONALITIES} }; a run that DRIFTED during the rival's milestone: "
-                    f"the lowest of those it played as) (seed, base, played as, bound, the game's steps) "
-                    f"{[(r['seed'], r['personality'][0], ''.join(p[0] for p in r.get('rival_actives') or []), train_steps_min_run(r), r['game_train_steps']) for r in beaten]} and the game says "
-                    f">= {BOUNDS['CH1_WILD_WON_MIN']} wild battles were WON there {[r['game_train_won'] for r in beaten]} "
-                    f"(windows {[r['train_windows'] for r in beaten]}); and its roam reports say as many training steps "
-                    f"{[r['train_steps_before_rival'] for r in beaten]}; short: {low or 'none'}", len(beaten), 1))
+        # (build step 5.3, the RE-SOURCING build, item 1) BY THE GAME ALONE: the tall-grass steps before the rival (the
+        # harness's tile read) by the personality the HARNESS assigned the seed; Story by an absolute floor, Trainer and
+        # Catcher PAIRED with NOTRAIN (`story_floor`, `paired_rule`). The AI's training windows, its rival judge and its roam
+        # steps are printed as DIAGNOSTIC text only (they were the B1 debt: the grader judging training inside the AI's
+        # own windows)
+        judged = [r for r in beaten if r.get("grass_before_rival") is not None]
+        untrained = [r for r in rows.get("NOTRAIN", []) if "error" not in r]
+        short = story_floor(judged)
+        paired = [paired_rule(judged, untrained, p) for p in ("Trainer", "Catcher")]
+        out.append(grade("R5.CH1_TRAINED", bool(judged) and not short and all(p["ok"] for p in paired),
+                    f"CH1: every seed that beat the rival TRAINED first, BY THE GAME: the steps onto TALL GRASS between the "
+                    f"starter's mark and the rival's flag (the harness's tile read), by the personality the harness assigned "
+                    f"(seed, personality, steps) {[(r['seed'], r['personality'][0], r['grass_before_rival']) for r in judged]}; "
+                    f"Story: >= {BOUNDS['TRAINED_GRASS_STORY_MIN']} in EVERY run, under it {short or 'none'}; Trainer and "
+                    f"Catcher PAIRED with NOTRAIN on the same seed (pooled CH1/NOTRAIN >= the personality's bound, CH1 above "
+                    f"in >= {BOUNDS['TRAINED_SHARE_MIN']:.0%} of the pairs; NOTRAIN's own ratio is 1.0 BY CONSTRUCTION, no "
+                    f"evidence of separation): "
+                    f"{[(p['personality'], p['pairs'], p['pooled'], p['need'], p['above'], 'unpaired', p['unpaired'], 'ok' if p['ok'] else 'FAIL') for p in paired]}; "
+                    f"no grass read (not judged) {[r['seed'] for r in beaten if r.get('grass_before_rival') is None] or 'none'}; "
+                    f"(diagnostic, NOT graded: the AI's training windows {[r.get('train_windows') for r in beaten]}, the "
+                    f"game's steps inside them {[r.get('game_train_steps') for r in beaten]}, its roam reports' steps "
+                    f"{[r.get('train_steps_before_rival') for r in beaten]}, its rival judge "
+                    f"{[r.get('rival_judge') for r in beaten]})", len(judged), 1))
         out.append(grade("R5.CH1_WILD_WON", True,
                          f"CH1 (reported): wild battles WON anywhere between the starter's mark and the rival's flag (the "
                           f"game's outcomes; NOT a training check: walks win battles too) "
@@ -1620,7 +2043,11 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Chec
         out.append(grade("R5.CH1_SPINS", pooled < BOUNDS["CH1_SPIN_MAX"] and not heavy,
                     f"CH1: the back-and-forth spins over the seeds together {spins} in {steps} training steps ({pooled:.2%}, "
                     f"bound under {BOUNDS['CH1_SPIN_MAX']:.0%}), per seed {[r.get('spins') for r in graded]} (bound "
-                    f"{BOUNDS['CH1_SPINS_PER_SEED']} each; over it {heavy or 'none'})", steps, 1))
+                    f"{BOUNDS['CH1_SPINS_PER_SEED']} each; over it {heavy or 'none'})"
+                    + reported_form(rows, 20, "spins per move by the harness's press log (a turn on the spot between two "
+                                    "overworld presses is a spin; no spin control exists, and the game counts ordinary "
+                                    "turning in every plan)", ("CH1", "LOAF", "GREEDY", "BLOCKED"),
+                                    lambda r: r.get("spins_game"), pooled_spins), steps, 1))
         out.append(grade("R5.CH1_CATCH_ALL", ch1["generic_idle"] <= CODE_BOUNDS["CATCH_ALL_MAX"],
                          f"CH1: no stretch standing still under the catch-all reason: {ch1['generic_idle']} (bound <= "
                          f"{CODE_BOUNDS['CATCH_ALL_MAX']})", len(graded), 1))
@@ -1635,7 +2062,11 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Chec
                     f"CH1: THE REST RULE: battles a training or catching roam played after one that ended under the "
                     f"personality's heal_below {ch1['rest_breaches']} (bound <= {CODE_BOUNDS['REST_BREACHES_MAX']}), over {ch1['roam_low_ends']} such ends (the "
                     f"occasions; bound >= 1: not vacuous): "
-                    f"{[(r['seed'], r['rest_breaches'][:2]) for r in graded if r['rest_breaches']] or 'none'}",
+                    f"{[(r['seed'], r['rest_breaches'][:2]) for r in graded if r['rest_breaches']] or 'none'}"
+                    + reported_form(rows, 21, "wild battles STARTED with the party under the run's own heal_below (the "
+                                    "game's party HP at each battle start; the real code's walk to a POKéMON CENTER crosses "
+                                    "grass, so it is never 0)", ("CH1", "DEADREST"), lambda r: r.get("under_heal_game"),
+                                    lambda runs: sum(r.get("under_heal_game") or 0 for r in runs)),
                     ch1["roam_low_ends"], 1))
         # the recorder saw every battle end (its count of ends == the game's battle counter, or one fewer if a battle was
         # under way when the run ended): the battle numbers above rest on it
@@ -1672,16 +2103,22 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Chec
         # (the step-5 verifier's round 2: "won >= 3 before the rival" was met by NOTRAIN in 6 of 10 seeds) the game-side
         # TRAINED check must tell the arms apart: it passes for every CH1 seed that beat the rival (above) and FAILS for
         # every NOTRAIN seed (no training window: the game counted nothing there)
-        passed = [(r["seed"], r["game_train_steps"], r["game_train_won"]) for r in untrained if trained_by_game(r)]
-        trained = [r for r in rows["CH1"] if "error" not in r and r.get("rival_beaten")]
-        out.append(grade("R5.NOTRAIN_TRAINED_CHECK", bool(untrained) and not passed,
-                    f"THE TRAINED CHECK TELLS TRAINING FROM NONE (by the game): it passes for "
-                    f"{sum(1 for r in trained if trained_by_game(r))} of {len(trained)} CH1 seeds and for {len(passed)} of "
-                    f"{len(untrained)} NOTRAIN seeds (bound 0): NOTRAIN's training windows "
-                    f"{[r['train_windows'] for r in untrained]}, the game's steps there "
-                    f"{[r['game_train_steps'] for r in untrained]}, wild battles won there "
-                    f"{[r['game_train_won'] for r in untrained]} (while it WON {no['wild_won_before_rival']} wild battles "
-                    f"before the rival elsewhere: the count the old check used)", len(untrained), 1))
+        # (build step 5.3, the RE-SOURCING build, item 1) the control arm of R5.CH1_TRAINED on the same GAME read: every
+        # NOTRAIN Story run falls UNDER the Story floor (n = those runs). Its Trainer and Catcher halves fail by
+        # construction (ratio 1.0 to itself), which proves nothing about separation and is printed, not counted
+        no_story = [r for r in untrained if r.get("personality") == "Story" and r.get("grass_before_rival") is not None]
+        passed = [(r["seed"], r["grass_before_rival"]) for r in no_story if not story_floor([r])]
+        self_paired = [paired_rule(untrained, untrained, p) for p in ("Trainer", "Catcher")]
+        out.append(grade("R5.NOTRAIN_TRAINED_CHECK", bool(no_story) and not passed,
+                    f"THE TRAINED CHECK TELLS TRAINING FROM NONE (by the game's tall-grass steps before the rival): "
+                    f"NOTRAIN's Story runs at or over the Story floor {BOUNDS['TRAINED_GRASS_STORY_MIN']} {len(passed)} of "
+                    f"{len(no_story)} (bound 0): (seed, steps) {[(r['seed'], r['grass_before_rival']) for r in no_story]}; "
+                    f"its Trainer and Catcher halves fail BY CONSTRUCTION (NOTRAIN/NOTRAIN pooled "
+                    f"{[(p['personality'], p['pooled']) for p in self_paired]}: no evidence of separation, addendum W7); "
+                    f"(reported) NOTRAIN's grass steps by personality "
+                    f"{[(r['seed'], r['personality'][0], r.get('grass_before_rival')) for r in untrained]}; it WON "
+                    f"{no['wild_won_before_rival']} wild battles before the rival (the count the step-5 check used)",
+                    len(no_story), 1))
 
         def mean(values: list) -> float | None:
             values = [v for v in values if v is not None]
@@ -1722,7 +2159,11 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Chec
                     f"{dead['rest_breaches']} battles played on under heal_below over {dead['roam_low_ends']} occasions "
                     f"(bound > {CODE_BOUNDS['DEADREST_BREACHES_OVER']}: the check sees the dead fix) vs CH1 "
                     f"{ch1['rest_breaches']} (bound <= {CODE_BOUNDS['REST_BREACHES_MAX']}); seeds {hit or 'none'}; the "
-                    f"game's whiteouts {sum(dead['losses_game'])} vs CH1 {sum(ch1['losses_game'])} (reported)",
+                    f"game's whiteouts {sum(dead['losses_game'])} vs CH1 {sum(ch1['losses_game'])} (reported)"
+                    + reported_form(rows, 22, "wild battles STARTED under heal_below (the control of row 21, which is not "
+                                    "registered: a control of an unregistered check has nothing to fail)",
+                                    ("DEADREST", "CH1"), lambda r: r.get("under_heal_game"),
+                                    lambda runs: sum(r.get("under_heal_game") or 0 for r in runs)),
                     dead["runs"] - dead["errors"], 1))
     if ch1 and summary.get("NOHINTS"):
         nh = summary["NOHINTS"]
@@ -1789,21 +2230,35 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         rate = made / seeing if seeing else 0.0
         curious = sum(r["curious_frames"] for r in runs)
         pooled = sum(r["productive_frames"] for r in runs) / curious if curious else 0.0
-        out.append(grade(f"R5.{plan}_YIELD", seeing > 0 and rate >= BOUNDS["YIELD_RATE_MIN"],
-                    f"{plan}: CURIOSITY BY YIELD (the GAME's second path: a look round's or a detour's span showed "
+        # (the re-sourcing fix round) the two ids are LITERALS, so `test_step53_a1.bound_readers` can attribute
+        # YIELD_RATE_MIN to these two REPORTED checks: R5.LOAF no longer reads it, and an f-string id reads as "?" (counted)
+        held = seeing > 0 and rate >= BOUNDS["YIELD_RATE_MIN"]
+        text = (f"{plan}: CURIOSITY BY YIELD (the GAME's second path: a look round's or a detour's span showed "
                     f"{YIELD_TILES}+ new tiles and {YIELD_TILE_RATE} per 1,000 frames outside battles, or a map first stood "
                     f"on, a capture, an item ball, a talk; a detour only where it stood at its place): {made} of {seeing} "
                     f"frames of looking round and detours brought something, {rate:.1%} pooled (bound >= "
                     f"{BOUNDS['YIELD_RATE_MIN']:.0%}); by run (seed, productive, all) "
                     f"{[(r['seed'], r['seeing_productive'], r['seeing_frames']) for r in runs]}; (reported) all its "
-                    f"curiosity {pooled:.1%} of {curious} frames", seeing, 1))
-    loafing = [(r["plan"], r["seed"], r["loaf_frames"]) for r in real if r["loaf_frames"] > BOUNDS["LOAF_FRAMES_MAX"]]
+                    f"curiosity {pooled:.1%} of {curious} frames"
+                    + reported_form(rows, 26 if plan == "CH1" else 27,
+                                    f"the slice yield ({SLICE_FRAMES}-frame slices with no battle, productive by "
+                                    f"{YIELD_TILES}+ new tiles or a map first stood on, a page, a capture or an item ball; "
+                                    f"no AI window)", (plan,) + (("LOAF", "ERRANDS_OFF") if plan == "CH1" else ("CH2_OFF",)),
+                                    lambda r: (r.get("slices_game") or {}).get("yield"), pooled_slices))
+        out.append(grade("R5.CH1_YIELD", held, text, seeing, 1) if plan == "CH1"
+                   else grade("R5.CH2_YIELD", held, text, seeing, 1))
+    # (build step 5.3, the RE-SOURCING build, item 9: addendum row 14) BY THE GAME: the longest FREE stretch of pressing that
+    # brought nothing new (`PlaceRecorder.push`, `push_game`: no tile shown for the first time, no map first stood on, no
+    # battle) under LOAF_FRAMES_MAX in EVERY real run: loafing in one unbroken stretch. The AI-windowed total of its
+    # unproductive curiosity (`loaf_frames`, its own goal WINDOWS) is printed, never read by the verdict
+    loafing = [(r["plan"], r["seed"], r["push_game"]) for r in real if game_loafed(r)]
     out.append(grade("R5.NO_LOAFING", not loafing,
-                     f"NO LOAFING (every run of {list(REAL_PLANS)}, {len(real)} runs): the frames of curiosity that "
-                             f"brought nothing (by the game), its own time outside battles, at most "
-                             f"{BOUNDS['LOAF_FRAMES_MAX']} a run; the most {max(r['loaf_frames'] for r in real)}; over it: "
-                             f"{loafing or 'none'}; (reported) with the battles in them, the most "
-                             f"{max(r.get('loaf_frames_all', 0) for r in real)}", len(real), 1))
+                     f"NO LOAFING, BY THE GAME (every run of {list(REAL_PLANS)}, {len(real)} runs): the game's longest free "
+                             f"stretch of pressing that brought nothing new under {BOUNDS['LOAF_FRAMES_MAX']} frames a run; "
+                             f"the most {max(r['push_game'] for r in real)}; at or over it: {loafing or 'none'}; (reported, "
+                             f"never read) the AI-windowed total of curiosity that brought nothing, the most "
+                             f"{max(r['loaf_frames'] for r in real)} ({max(r.get('loaf_frames_all', 0) for r in real)} with "
+                             f"its battles)", len(real), 1))
     agree = sum(r["yield_agree"] for r in real)
     total = sum(len(r["curious"]) for r in real)
     out.append(grade("R5.YIELD_AGREE", agree == total,
@@ -1811,15 +2266,19 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
                       f"goals", total))
     loaf = good("LOAF")
     if loaf:
-        over = [r["seed"] for r in loaf if r["loaf_frames"] > BOUNDS["LOAF_FRAMES_MAX"]]
+        # (the RE-SOURCING build, item 9: addendum row 15) R5.NO_LOAFING's control on the SAME game read: LOAF's game push at
+        # or over LOAF_FRAMES_MAX in at least LOAF_FAILS_RUNS_MIN runs (the per-run bound CAN fail). The yield of its looks
+        # (inside the AI's own goal windows) and its AI-windowed loafing are printed, no longer read
+        over = [r["seed"] for r in loaf if game_loafed(r)]
         seeing = sum(r["seeing_frames"] for r in loaf)
         rate = sum(r["seeing_productive"] for r in loaf) / seeing if seeing else 0.0
-        out.append(grade("R5.LOAF", len(over) >= BOUNDS["LOAF_FAILS_RUNS_MIN"] and seeing > 0
-                         and rate < BOUNDS["YIELD_RATE_MIN"],
-                    f"LOAF (the control that CAN fail: looks round and detours among tiles it has stood on, `EXTRA_EDITS`): "
-                    f"the yield of its looks round and detours {rate:.1%} pooled of {seeing} frames (must be under "
-                    f"{BOUNDS['YIELD_RATE_MIN']:.0%}); over the per-run loafing bound in {len(over)} of {len(loaf)} runs "
-                    f"(bound >= {BOUNDS['LOAF_FAILS_RUNS_MIN']}): {dict((r['seed'], r['loaf_frames']) for r in loaf)}",
+        out.append(grade("R5.LOAF", len(over) >= BOUNDS["LOAF_FAILS_RUNS_MIN"],
+                    f"LOAF (the control that CAN fail: looks round and detours among tiles it has stood on, `EXTRA_EDITS`), "
+                    f"BY THE GAME: its longest free stretch of pressing that brought nothing new at or over "
+                    f"{BOUNDS['LOAF_FRAMES_MAX']} in {len(over)} of {len(loaf)} runs (bound >= "
+                    f"{BOUNDS['LOAF_FAILS_RUNS_MIN']}): (seed, game push) {[(r['seed'], r['push_game']) for r in loaf]}; "
+                    f"(reported, never read) the yield of its looks round and detours inside its own goal windows "
+                    f"{rate:.1%} of {seeing} frames, its AI-windowed loafing {dict((r['seed'], r['loaf_frames']) for r in loaf)}",
                     len(loaf), 1))
     off = good("ERRANDS_OFF")
     if off:
@@ -1864,33 +2323,45 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         out.append(grade("R5.DETOURS_ARRIVE", False, "DETOURS THAT ARRIVE: no detour in the real code's runs (the check "
                                                      "is vacuous)", 0, 1))
     # THE PUSHING PROPERTY, both paths, every real run; the two paths agree; BLOCKED over it where it met someone
+    # (build step 5.3, the RE-SOURCING build, item 8: addendum row 12) BY THE GAME alone: `PlaceRecorder.push` under PUSH_MAX
+    # in every real run. The AI's own record (`push_ai`) is no longer read here; the two paths' agreement is
+    # R5.PUSH_PATHS_AGREE (HONESTY) below
     bound = BOUNDS["PUSH_MAX"]
-    pushing = [(r["plan"], r["seed"], r["push_ai"], r["push_game"], r["push_game_at"]) for r in real
-               if r["push_ai"] >= bound or r["push_game"] >= bound]
+    pushing = [(r["plan"], r["seed"], r["push_game"], r["push_game_at"]) for r in real if r["push_game"] >= bound]
     out.append(grade("R5.PUSHING", not pushing,
-                     f"THE PUSHING PROPERTY (every run of {list(REAL_PLANS)}): the longest free stretch of pressing that "
-                             f"brought nothing new, by the AI's record {max(r['push_ai'] for r in real)} frames, by the "
-                             f"GAME's {max(r['push_game'] for r in real)} (bound under {bound}); over it: {pushing or 'none'}",
+                     f"THE PUSHING PROPERTY (every run of {list(REAL_PLANS)}), BY THE GAME: the longest free stretch of "
+                             f"pressing that brought nothing new, the most {max(r['push_game'] for r in real)} frames (bound "
+                             f"under {bound}); at or over it (plan, seed, game, window): {pushing or 'none'}",
                      len(real), 1))
+    # (the re-sourcing FIX round, item 16(b)) the AI's record judged against the game's, VERDICT by verdict at each graded push
+    # bound, within the game path's sampling band (`push_apart`, BOUNDS PUSH_AGREE_BAND): the two longest stretches are often
+    # different stretches (86 of 152 matched on ledger #39), so the verdicts, not the stretches, are compared
     every = [r for plan_rows in rows.values() for r in plan_rows if "error" not in r and "push_ai" in r]
-    split = [(r["plan"], r["seed"], r["push_ai"], r["push_game"]) for r in every
-             if (r["push_ai"] >= bound) != (r["push_game"] >= bound)]
+    bounds = (bound, BOUNDS["LOAF_FRAMES_MAX"])
+    split = [(r["plan"], r["seed"], r["push_ai"], r["push_game"], b) for r in every for b in bounds
+             if push_apart(r["push_ai"], r["push_game"], b)]
     out.append(grade("R5.PUSH_PATHS_AGREE", not split,
-                     f"THE TWO PATHS AGREE on the pushing verdict in {len(every) - len(split)} of {len(every)} runs; "
-                           f"apart: {split or 'none'}", len(every), 1))
+                     f"THE TWO PATHS AGREE on the pushing verdict at each graded bound {list(bounds)} (both within "
+                           f"{BOUNDS['PUSH_AGREE_BAND']:.0%} of a bound is the game path's sampling, not a disagreement) in "
+                           f"{len(every) - len({(s[0], s[1]) for s in split})} of {len(every)} runs; apart (plan, seed, "
+                           f"AI, game, bound): {split or 'none'}", len(every), 1))
     blocked = good("BLOCKED")
     if blocked:
+        # (the RE-SOURCING build, item 8: addendum row 13) graded on the GAME's push alone: at or over PUSH_MAX in at least
+        # BLOCKED_HITS_MIN runs (dev 11 of 12; 1310 met nobody, 640, and does not fail the arm). Its REACH (someone in the way,
+        # the AI's idle reasons) is the DIAGNOSTIC R5.BLOCKED_REACH, which says why it fails, not that it does
+        hit = [(r["seed"], r["push_game"]) for r in blocked if r["push_game"] >= bound]
+        out.append(grade("R5.BLOCKED", len(hit) >= BOUNDS["BLOCKED_HITS_MIN"],
+                    f"BLOCKED (the control that CAN fail: it never gives up a place it cannot get to), BY THE GAME: its "
+                    f"longest free stretch of pressing that brought nothing new at or over {bound} in {len(hit)} of "
+                    f"{len(blocked)} runs (bound >= {BOUNDS['BLOCKED_HITS_MIN']}): {hit}; all its runs (seed, game) "
+                    f"{[(r['seed'], r['push_game']) for r in blocked]}", len(blocked), 1))
         reached = [r for r in blocked if r["person_blocks"] >= BOUNDS["BLOCKED_REACH_HITS"]]
-        hit = [(r["seed"], r["push_ai"], r["push_game"]) for r in reached
-               if r["push_ai"] >= bound and r["push_game"] >= bound]
-        out.append(grade("R5.BLOCKED", len(hit) >= BOUNDS["BLOCKED_HITS_MIN"]
-                         and len(reached) >= BOUNDS["BLOCKED_REACH_MIN"] * len(blocked),
-                    f"BLOCKED (the control that CAN fail: it never gives up a place it cannot get to): it met someone in the "
-                    f"way of a curiosity walk {BOUNDS['BLOCKED_REACH_HITS']}+ times in {len(reached)} of {len(blocked)} runs "
-                    f"(bound >= {BOUNDS['BLOCKED_REACH_MIN']:.0%}: it REACHED the state tested); of them, over the pushing "
-                    f"bound by BOTH paths in {len(hit)} (bound >= {BOUNDS['BLOCKED_HITS_MIN']}): {hit}; all its runs (seed, "
-                    f"blocks, AI, game) {[(r['seed'], r['person_blocks'], r['push_ai'], r['push_game']) for r in blocked]}",
-                    len(blocked), 1))
+        out.append(grade("R5.BLOCKED_REACH", len(reached) >= BOUNDS["BLOCKED_REACH_MIN"] * len(blocked),
+                    f"BLOCKED's REACH (why it fails; the AI's idle reasons 'someone stands in the way'): it met someone in "
+                    f"the way of a curiosity walk {BOUNDS['BLOCKED_REACH_HITS']}+ times in {len(reached)} of {len(blocked)} "
+                    f"runs (bound >= {BOUNDS['BLOCKED_REACH_MIN']:.0%}); (seed, blocks, AI push) "
+                    f"{[(r['seed'], r['person_blocks'], r['push_ai']) for r in blocked]}", len(blocked), 1))
     # A KNOWN PLACE IS NEVER NEW (by the game's stays), and the ask step never walks with nothing said. (Build step 5.3,
     # critic Q1) the map's key is the framework's (`MapRSE`), no longer the AI's memory; the draws it could not judge are
     # counted (skipped), and n is the draws it JUDGED (A1-4: a sweep whose draws were all skipped saw nothing: VACUOUS)
@@ -2009,18 +2480,22 @@ def chapter2_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
                     f"(bound >= {BOUNDS['CH2_OFF_UNDER_MIN']:.0%}: the floor separates the arms in chapter 2, where no "
                     f"training fills it): {dict(sorted((r['seed'], r['mix']['errand_share']) for r in off))}; its curiosity "
                     f"the story did not need {sorted({r['mix']['free_share'] for r in off})}", len(off)))
-        by_off = {r["seed"]: r for r in off}
-        pairs = [(r, by_off[r["seed"]]) for r in played if r["seed"] in by_off and r.get("time_wally")
-                 and by_off[r["seed"]].get("time_wally")]
-        outside = [(a["seed"], a["time_wally"]["outside_nb"], b["time_wally"]["outside_nb"]) for a, b in pairs]
-        pooled = sum(x for _, x, _ in outside) / max(1, sum(y for _, _, y in outside)) if outside else 0.0
-        slower = [s for s, x, y in outside if x > y]
+        # (build step 5.3, the RE-SOURCING build, item 5: addendum row 11) BY THE GAME: the frames to WALLY's tutorial
+        # (StoryRecorder: VAR_PETALBURG_GYM_STATE 2) less the game's battle frames before it (PlaceRecorder), paired with the
+        # beeline (`no_battle_pairs` under `wally_game`). The AI's own digests (`time_to_dex` for WALLY: its milestone tell,
+        # NEED spans and battle digests) are no longer read. CH2_OFF against itself is 1.0 BY CONSTRUCTION (addendum W7) and
+        # no pseudo-null exists (only CH2 and CH2_OFF reach WALLY), which the text says
+        outside = no_battle_pairs(played, off, "wally_game")
+        pooled = sum(x[1] for x in outside) / sum(x[2] for x in outside) if outside else 0.0
+        slower = [x[0] for x in outside if x[3] > 1]
         out.append(grade("R5.CH2_NOBATTLE", bool(outside) and pooled >= BOUNDS["CH2_NOBATTLE_RATIO_MIN"]
                          and len(slower) >= BOUNDS["CH2_NOBATTLE_SEEDS_MIN"] * len(outside),
-                    f"CH2: NO SPEEDRUN, WITHOUT THE GRASS'S DICE: the AI's own frames to WALLY outside the needs and the "
-                    f"battles met on the way, CH2 over CH2_OFF pooled {round(pooled, 3)} (bound >= "
+                    f"CH2: NO SPEEDRUN, WITHOUT THE GRASS'S DICE, BY THE GAME: the frames to WALLY's tutorial by the GAME's "
+                    f"var less the GAME's battle frames before it, CH2 over CH2_OFF pooled {round(pooled, 3)} (bound >= "
                     f"{BOUNDS['CH2_NOBATTLE_RATIO_MIN']}), CH2 the slower in {len(slower)} of {len(outside)} paired seeds "
-                    f"(bound >= {BOUNDS['CH2_NOBATTLE_SEEDS_MIN']:.0%}): (seed, CH2, CH2_OFF) {outside}", len(outside), 1))
+                    f"(bound >= {BOUNDS['CH2_NOBATTLE_SEEDS_MIN']:.0%}): (seed, CH2, CH2_OFF, ratio) {outside}; the control "
+                    f"against itself is 1.0 BY CONSTRUCTION, and no pseudo-null exists (only CH2 and CH2_OFF reach WALLY)",
+                    len(outside), 1))
     return out
 
 
@@ -2038,13 +2513,17 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
     # `AWAIT_MAX` frames or more with none, by the AI's own record AND by the game's (the second path); whatever the reason
     real = [r for plan in REAL_PLANS for r in good(plan)]
     if real:
-        long_ = [(r["plan"], r["seed"], r["await_ai_max"], r["await_game_max"], r["await_ai_long"][:1]) for r in real
-                 if r["await_ai_max"] >= bound or (r["await_game_max"] or 0) >= bound]
+        # (build step 5.3, the RE-SOURCING build, item 2) graded by the GAME's path alone (the WaitRecorder); the AI's
+        # record is printed as diagnostic text, and the two paths' agreement is R5.STALL_PATHS_AGREE (HONESTY)
+        long_ = [(r["plan"], r["seed"], r["await_game_max"], r["await_ai_long"][:1]) for r in real
+                 if (r["await_game_max"] or 0) >= bound]
         out.append(grade("R5.STALL", not long_,
                          f"THE STALL PROPERTY (every run of {list(REAL_PLANS)}, {len(real)} runs): the longest a screen "
-                               f"waited for a press with none, by the AI's record {max(r['await_ai_max'] for r in real)} "
-                               f"frames, by the GAME's (second path) {max((r['await_game_max'] or 0) for r in real)} "
-                               f"(bound under {bound}, whatever reason was given); over it: {long_ or 'none'}", len(real), 1))
+                               f"waited for a press with none, by the GAME (the second path) "
+                               f"{max((r['await_game_max'] or 0) for r in real)} frames (bound under {bound}, whatever "
+                               f"reason was given); over it (plan, seed, the game's, what the AI said waited): "
+                               f"{long_ or 'none'}; (diagnostic, not graded) by the AI's record "
+                               f"{max(r['await_ai_max'] for r in real)}", len(real), 1))
         missing = [(r["plan"], r["seed"]) for r in real if not r.get("await_game_samples")]
         out.append(grade("R5.STALL_SECOND_PATH", not missing,
                          f"THE STALL PROPERTY's second path read the game in every run (samples "
@@ -2054,11 +2533,12 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         runs = good(plan)
         if not runs:
             continue
-        hit = [(r["seed"], r["await_ai_max"], r["await_game_max"]) for r in runs
-               if r["await_ai_max"] >= bound and (r["await_game_max"] or 0) >= bound]
+        # (build step 5.3, the re-sourcing build, item 2) the control fails by the GAME's path alone
+        hit = [(r["seed"], r["await_game_max"]) for r in runs if (r["await_game_max"] or 0) >= bound]
         out.append(grade(f"R5.{plan}", len(hit) >= BOUNDS["STALL_ARM_HITS_MIN"],
-                    f"{plan} (the fix REVERTED in a copy, {MUTANT_PLANS[plan]}): the stall property FAILS (both paths at or "
-                    f"over {bound}) in {len(hit)} of {len(runs)} runs (bound >= {BOUNDS['STALL_ARM_HITS_MIN']}): {hit}; "
+                    f"{plan} (the fix REVERTED in a copy, {MUTANT_PLANS[plan]}): the stall property FAILS (the GAME's path "
+                    f"at or over {bound}) in {len(hit)} of {len(runs)} runs (bound >= {BOUNDS['STALL_ARM_HITS_MIN']}): "
+                    f"(seed, the game's) {hit}; (diagnostic) the AI's record {[r['await_ai_max'] for r in runs]}; "
                     f"what waited: {[r['await_ai_long'][:1] for r in runs if r['await_ai_long']][:3]}", len(runs), 1))
     # the two paths AGREE on the verdict run by run, in every plan
     every = [r for plan_rows in rows.values() for r in plan_rows if "error" not in r and r.get("await_game_max") is not None]
@@ -2125,7 +2605,11 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
                     f"control's dice and personality meet this too, the verifier's round: the OFF-THE-BEELINE checks below "
                     f"are the errands' own): goal sequences {div['goals_mean']} "
                     f"(bound >= {BOUNDS['DIV_GOALS_MIN']}), paths {div['tiles_mean']} (bound >= {BOUNDS['DIV_TILES_MIN']}), "
-                    f"identical pairs {div['identical'] or 'none'}; pairs {[(p['seeds'], p['goals'], p['tiles']) for p in div['pairs']]}",
+                    f"identical pairs {div['identical'] or 'none'}; pairs {[(p['seeds'], p['goals'], p['tiles']) for p in div['pairs']]}"
+                    + reported_form(rows, 23, "the Jaccard distance of the GAME's stood tiles between every pair of runs of "
+                                    "one personality (its true control, a fixed-dice copy, does not exist)",
+                                    ("CH1", "ERRANDS_OFF"), lambda r: len(r.get("_stood") or ()),
+                                    lambda runs: f"mean pair distance {mean_of(pairs_divergence(runs, '_stood'))}"),
                     len(div["pairs"]), 1))
     if ch1 and off:
         # the beeline control MOVES every metric: less errand time, less divergence, and the POKéDEX sooner
@@ -2141,7 +2625,11 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         out.append(grade("R5.OFF_MOVES_DIVERGENCE", div_off["goals_mean"] is not None and div_on["goals_mean"] is not None
                     and div_on["goals_mean"] > div_off["goals_mean"],
                     f"ERRANDS_OFF MOVES THE DIVERGENCE: goal sequences {div_on['goals_mean']} (CH1) vs {div_off['goals_mean']} "
-                    f"(ERRANDS_OFF, bound: CH1 more); paths {div_on['tiles_mean']} vs {div_off['tiles_mean']} (reported)",
+                    f"(ERRANDS_OFF, bound: CH1 more); paths {div_on['tiles_mean']} vs {div_off['tiles_mean']} (reported)"
+                    + reported_form(rows, 24, "the order of maps the game had the player enter, normalized edit distance "
+                                    "between every pair of runs of one personality (the goal sequence's nearest game "
+                                    "analog)", ("CH1", "ERRANDS_OFF"), lambda r: len(r.get("_maps") or ()),
+                                    lambda runs: f"mean pair distance {mean_of(pairs_divergence(runs, '_maps'))}"),
                     min(len(div_on["pairs"]), len(div_off["pairs"])), 1))
         # (the verifier's round) the control FAILS the per-run curiosity bound: the check is not met by a beeline
         off_free = {r["seed"]: r["mix"]["free_share"] for r in off}
@@ -2151,15 +2639,17 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
                     f"the story did not need) {len(failing)} of {len(off)} (bound >= {BOUNDS['FREE_CONTROL_FAILS_MIN']:.0%}): "
                     f"{dict(sorted(off_free.items()))}", len(off)))
         # (the verifier's round) WHERE NO BEELINE WENT: the errands' own footprint, against the beeline's own spread
-        beeline = off_beeline(ch1, off)
+        # (build step 5.3, the RE-SOURCING build, item 3) on the GAME's stood tiles (`game_stood`: the places recorder's
+        # moves and the tile read), no longer the AI's world memory; `off_beeline` itself is unchanged
+        beeline = off_beeline(on_game_tiles(ch1), on_game_tiles(off))
         paired = [(seed, beeline["runs"][seed], beeline["control"][seed]) for seed in sorted(beeline["runs"])
                   if seed in beeline["control"]]
         more = [p for p in paired if p[1] > p[2]]
         pooled = (sum(p[1] for p in paired) / max(1, sum(p[2] for p in paired))) if paired else 0.0
         out.append(grade("R5.OFF_BEELINE", bool(paired) and len(more) >= BOUNDS["OFF_SEEDS_MIN"] * len(paired)
                     and pooled >= BOUNDS["OFF_RATIO_MIN"],
-                    f"OFF THE BEELINE (the tiles a run stood on that NO beeline-control run stood on; a control run against "
-                    f"the OTHER control runs, its own spread): CH1 vs ERRANDS_OFF by seed {paired}; CH1 more in "
+                    f"OFF THE BEELINE (the tiles the GAME had a run stand on that NO beeline-control run stood on; a control "
+                    f"run against the OTHER control runs, its own spread): CH1 vs ERRANDS_OFF by seed {paired}; CH1 more in "
                     f"{len(more)} of {len(paired)} (bound >= {BOUNDS['OFF_SEEDS_MIN']:.0%}), pooled {round(pooled, 2)}x "
                     f"(bound >= {BOUNDS['OFF_RATIO_MIN']}); the corridor {beeline['corridor']} tiles", len(paired), 1))
         # (the verifier's round: "the divergence comes mostly from battle dice and personality, not from the new errands")
@@ -2196,22 +2686,31 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
                     f"looked round is walked faster later. The no-speedrun claim rests on the behaviour checks above, the "
                     f"curiosity the story did not need in EVERY run and the beeline failing it); the TOTAL frames to the "
                     f"POKéDEX (reported) {round(total, 3)} {[(a['dex_frame'], b['dex_frame']) for a, b in both]}; within the "
-                    f"budget ({BOUNDS['DEX_FRAMES_MAX']}): over it {over or 'none'}", len(both), 1))
+                    f"budget ({BOUNDS['DEX_FRAMES_MAX']}): over it {over or 'none'}"
+                    + reported_form(rows, 25, f"the RAW frames to the POKéDEX by the game's flag, paired with the beeline: "
+                                              f"{paired_dex(rows)} (the battles' dice swing it; the battle-free form is "
+                                              f"R5.NO_SPEEDRUN_DICE, graded)", ("CH1", "ERRANDS_OFF"),
+                                    lambda r: (r.get("dex_game") or {}).get("frame"),
+                                    lambda runs: mean_of([(r.get("dex_game") or {}).get("frame") for r in runs])),
+                    len(both), 1))
         # (the verifier's round) THE SAME, WITHOUT THE GRASS'S DICE: outside the needs AND outside the battles met on the
         # way (`time_to_dex`), per paired seed and pooled
-        timed = [(a["seed"], a["time"], b["time"]) for a, b in pairs if a.get("time") and b.get("time")]
-        nb = [(seed, ta["outside_nb"], tb["outside_nb"], round(ta["outside_nb"] / tb["outside_nb"], 3))
-              for seed, ta, tb in timed if tb["outside_nb"]]
+        # (build step 5.3, the RE-SOURCING build, item 4) BY THE GAME: the frames to the POKéDEX flag (StoryRecorder) less
+        # the game's battle frames before it (PlaceRecorder), paired with the beeline (`no_battle_pairs`). The AI's own
+        # digests (`time_to_dex`: its milestone tell, NEED spans and battle digests) are no longer read. ERRANDS_OFF against
+        # itself is 1.0 BY CONSTRUCTION (addendum W7): the pseudo-null is printed beside it instead (plan (d))
+        nb = no_battle_pairs(ch1, off, "dex_game")
         nb_pooled = sum(x[1] for x in nb) / sum(x[2] for x in nb) if nb else 0.0
         nb_slower = [x[0] for x in nb if x[3] > 1]
+        nulls = {arm: no_battle_pooled(rows.get(arm, []), ch1, "dex_game") for arm in PSEUDO_NULLS if rows.get(arm)}
         out.append(grade("R5.NO_SPEEDRUN_DICE", bool(nb) and nb_pooled >= BOUNDS["NOBATTLE_RATIO_MIN"]
                     and len(nb_slower) >= BOUNDS["NOBATTLE_SEEDS_MIN"] * len(nb),
-                    f"NO SPEEDRUN, WITHOUT THE GRASS'S DICE: the AI's own frames to the POKéDEX outside the needs AND outside "
-                    f"the battles met on the way (its walking, talking and looking), CH1 over the beeline control pooled "
-                    f"{round(nb_pooled, 3)} (bound >= {BOUNDS['NOBATTLE_RATIO_MIN']}) and per paired seed (seed, CH1, "
-                    f"control, ratio) {nb}: CH1 the slower in {len(nb_slower)} of {len(nb)} (bound >= "
-                    f"{BOUNDS['NOBATTLE_SEEDS_MIN']:.0%}); the battles' frames outside the needs (CH1, control) "
-                    f"{[(seed, ta['battles'], tb['battles']) for seed, ta, tb in timed]}", len(nb), 1))
+                    f"NO SPEEDRUN, WITHOUT THE GRASS'S DICE: the frames to the POKéDEX by the GAME's flag less the GAME's "
+                    f"battle frames before it, CH1 over the beeline control pooled {round(nb_pooled, 3)} (bound >= "
+                    f"{BOUNDS['NOBATTLE_RATIO_MIN']}) and per paired seed (seed, CH1, control, ratio) {nb}: CH1 the slower "
+                    f"in {len(nb_slower)} of {len(nb)} (bound >= {BOUNDS['NOBATTLE_SEEDS_MIN']:.0%}); the control against "
+                    f"itself is 1.0 BY CONSTRUCTION; (reported) the pseudo-null, arms whose edit is not curiosity, over CH1 "
+                    f"pooled {nulls or 'none in this sweep'}", len(nb), 1))
     # (the verifier's round: "MAX_LOSSES 3 was never reached by an unaltered run") LOSE3: the decider made to lose its wild
     # battles once trained (a copy: a status move every turn, never a run, mutant LOSE3); the play loop's REAL MAX_LOSSES (3)
     # must end the run at the game's third loss, its report, its told losses and the game's all 3
@@ -2230,28 +2729,43 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         # its patience with 2 losses: a run that never reached a third loss tests nothing of the stop) the stop is graded on
         # every run the GAME recorded a THIRD loss in; the arm must reach one in at least LOSE3_REACH_MIN of its runs
         reached3 = [row for row in rows3 if row[4] >= MAX_LOSSES]
-        bad3 = [row for row in reached3 if not (row[1] == want and row[2] == row[3] == row[4] == MAX_LOSSES
-                                                and row[5] is not None and 0 <= row[6] - row[5] <= STOP_WITHIN)]
-        out.append(grade("R5.LOSE3", bool(reached3) and not bad3 and len(recorded) <= 1
-                         and len(reached3) >= BOUNDS["LOSE3_REACH_MIN"] * len(rows3),
+        # (build step 5.3, the RE-SOURCING build, item 6) THE GAME/HARNESS HALF, graded: every run whose game recorded the
+        # MAX_LOSSES-th loss ENDED (the harness's frames) within STOP_WITHIN of it. A game loss count OVER the cap means the
+        # run went on past it (the stop did not fire): off. n = the runs that reached the cap, floor LOSE3_REACH_MIN (a
+        # sweep where too few reached it is VACUOUS: plan (b)); the AI's word is R5.LOSE3_WORD below
+        bad3 = [row for row in reached3 if not (row[4] == MAX_LOSSES and row[5] is not None
+                                                and 0 <= row[6] - row[5] <= STOP_WITHIN)]
+        out.append(grade("R5.LOSE3", not bad3 and len(recorded) <= 1,
                     f"LOSE3 (a copy whose decider loses its wild battles once trained, mutant LOSE3; the play loop's "
                     f"MAX_LOSSES {MAX_LOSSES} untouched, as the harness recorded it {recorded or 'nowhere: the grader copy'}): "
-                    f"every run the GAME recorded a loss number {MAX_LOSSES} in "
-                    f"({len(reached3)} of {len(rows3)}, bound >= {BOUNDS['LOSE3_REACH_MIN']:.0%}) ends {want!r} within "
-                    f"{STOP_WITHIN} frames of it, its report == its told == the game's == {MAX_LOSSES}: (seed, reason, "
-                    f"report, told, game, the game's last loss, the run's end) {rows3}; off: {bad3 or 'none'}", len(rows3), 1))
+                    f"every run the GAME recorded a loss number {MAX_LOSSES} in ({len(reached3)} of {len(rows3)}; floor "
+                    f"{BOUNDS['LOSE3_REACH_MIN']} such runs, under it VACUOUS) ENDED within {STOP_WITHIN} frames of it "
+                    f"(the harness's frames), no game loss past it: (seed, the game's losses, its last loss, the run's end) "
+                    f"{[(row[0], row[4], row[5], row[6]) for row in rows3]}; off: {[row[0] for row in bad3] or 'none'}",
+                    len(reached3), BOUNDS["LOSE3_REACH_MIN"]))
+        # (the re-sourcing build, item 6) THE AI HALF, as HONESTY: in every run that reached the cap, its stop reason names
+        # the cap and its report and told losses equal the game's
+        lied = [row for row in reached3 if not (row[1] == want and row[2] == row[3] == row[4])]
+        out.append(grade("R5.LOSE3_WORD", not lied,
+                    f"LOSE3's own word: in every run the game recorded a loss number {MAX_LOSSES} in, its reason is {want!r} "
+                    f"and its report == its told losses == the game's: (seed, reason, report, told, game) "
+                    f"{[row[:5] for row in reached3]}; off: {[row[0] for row in lied] or 'none'}", len(reached3), 1))
     pat, old = good("PATIENCE"), good("PATIENCE_OLD")
-    if pat and old:
+    if pat:
+        # (build step 5.3, the RE-SOURCING build, item 7) graded on the GAME's dex half ALONE: the stint guard (the AI's
+        # `train_span`, the old not-vacuous half) is dropped from registration because no control fails a game stint
+        # (NOTRAIN, which never trains, is over 40,000 in 3 of 12: addendum row 10); the game's stint and the AI's span are
+        # printed as text. What keeps the A/B from being vacuous is R5.PATIENCE_OLD on the same seeds
         reached = [r["seed"] for r in pat if r["reached"]]
+        out.append(grade("R5.PATIENCE", len(reached) >= BOUNDS["PATIENCE_REACHED_MIN"] * len(pat),
+                    f"PATIENCE (STORY_PATIENCE {SMALL_PATIENCE} in a copy, the real rule): the POKéDEX reached (the game's "
+                    f"flag) in {len(reached)} of {len(pat)} (bound >= {BOUNDS['PATIENCE_REACHED_MIN']:.0%}); (reported) the "
+                    f"game's training stint (first to last tall-grass step before the rival, frames) "
+                    f"{ {r['seed']: r.get('grass_stint') for r in pat} }; (diagnostic) the AI's train-goal span "
+                    f"{ {r['seed']: r.get('train_span') for r in pat} }; the ends "
+                    f"{[r['reason'][:60] for r in pat if not r['reached']]}", len(pat), 1))
+    if pat and old:
         stopped = [r["seed"] for r in old if str(r["reason"]).startswith("play: stuck: no progress for")]
-        spans = {r["seed"]: r["train_span"] for r in pat}
-        long_spans = [s for s, span in spans.items() if (span or 0) > SMALL_PATIENCE]
-        out.append(grade("R5.PATIENCE", len(reached) >= BOUNDS["PATIENCE_REACHED_MIN"] * len(pat) and bool(long_spans)
-                    and all(s in reached for s in long_spans),
-                    f"PATIENCE (STORY_PATIENCE {SMALL_PATIENCE} in a copy, the real rule): the POKéDEX reached in "
-                    f"{len(reached)} of {len(pat)} (bound >= {BOUNDS['PATIENCE_REACHED_MIN']:.0%}); a TRAINING stint longer "
-                    f"than the patience (first to last train goal, frames) in seeds {long_spans} (>= 1: not vacuous), each "
-                    f"reached; spans {spans}; the ends {[r['reason'][:60] for r in pat if not r['reached']]}", len(pat), 1))
         # (build step 5.3, A1-1: critic Q1) PATIENCE_OLD is the CONTROL of the patience A/B, graded by the GAME and the
         # harness: the run ENDED EARLY (its frames under its budget) WITHOUT the POKéDEX (the game's flag); measured on ledger
         # #34 in 7 of 7 and 7 of 7. Its own word (the stop reason, the last goal a training session) is DIAGNOSTIC below.
@@ -2388,6 +2902,153 @@ def grader_imports_line() -> str:
     return report(scan())
 
 
+# ------------------------------------------------------------- (build step 5.3, the RE-SOURCING build, part C) RE-GRADE
+#: the purpose of a RE-GRADE: grading a FINISHED development sweep's kept run folders (`--keep-runs`) with the CURRENT grader,
+#: playing nothing. It is not a ledger purpose (`ledger.PURPOSES`), so it can never begin, register or finish a ledger entry.
+REGRADE = "regrade"
+#: (part C) the controls each re-sourced check is re-run with, in the REAL plan's slot: (check id, slot plan, control plan).
+#: The control's own rows stand where the real code's do and the same verdict function grades them; the control must FAIL
+#: (or read VACUOUS) the check. A check whose control is the denominator of a pairing fails it BY CONSTRUCTION, which the
+#: evidence says (addendum W7).
+CONTROL_ARMS = (("R5.CH1_TRAINED", "CH1", "NOTRAIN"), ("R5.STALL", "CH1", "STALL1"), ("R5.STALL", "CH1", "STALL2"),
+                ("R5.STALL", "CH1", "STALL3"), ("R5.OFF_BEELINE", "CH1", "ERRANDS_OFF"),
+                # (the pseudo-null arms are NOT control arms: in CH1's slot they are paired with ERRANDS_OFF, which asks
+                # whether they beat the beeline; their number against CH1 is printed in the check's own text)
+                ("R5.NO_SPEEDRUN_DICE", "CH1", "ERRANDS_OFF"), ("R5.LOSE3", "LOSE3", "STOPDEAD"),
+                ("R5.PATIENCE", "PATIENCE", "PATIENCE_OLD"),
+                # (the re-sourcing FIX round: items 5, 8 and 9) the game push's two controls, each in CH1's slot (a real
+                # plan, so R5.PUSHING and R5.NO_LOAFING judge it), and WALLY's beeline in CH2's
+                ("R5.CH2_NOBATTLE", "CH2", "CH2_OFF"), ("R5.PUSHING", "CH1", "BLOCKED"), ("R5.NO_LOAFING", "CH1", "LOAF"))
+#: the checks whose control fails by construction in its arm (the pairing's denominator)
+BY_CONSTRUCTION = {("R5.CH1_TRAINED", "NOTRAIN"), ("R5.NO_SPEEDRUN_DICE", "ERRANDS_OFF"), ("R5.CH2_NOBATTLE", "CH2_OFF")}
+
+
+def control_arms(rows: dict[str, list[dict]]) -> list[tuple[str, str, str, str]]:
+    """(Part C) Every `CONTROL_ARMS` entry whose control played: (check id, control plan, the check's status with the control
+    in the real plan's slot, its text). The slot is the only plan replaced; every other plan's rows stay (a paired check's
+    partner stays the real one, e.g. NOTRAIN for CH1_TRAINED, so NOTRAIN against NOTRAIN is the by-construction case)."""
+    out = []
+    for check_id, slot, control in CONTROL_ARMS:
+        played = [{**r, "plan": slot} for r in rows.get(control, []) if "error" not in r]
+        if not played:
+            continue
+        swapped = {**rows, slot: played}
+        summary = {plan: summarise(plan, sorted(plan_rows, key=lambda r: r["seed"])) for plan, plan_rows in swapped.items()}
+        found = [c for c in verdicts(summary, swapped) if c.id == check_id]
+        status = found[0].status if found else "ABSENT"
+        out.append((check_id, control, status, found[0].text if found else "the check was not produced"))
+    return out
+
+
+def kept_rows(root: Path, budget: int) -> dict[str, list[dict]]:
+    """(Part C) Every kept run folder under `root` (`RUN_FILE` + `actions.jsonl`) graded by `grade_run` exactly as `run_one`
+    grades a played run: chapter-1 and phase-1 rows first, then each chapter-2 row from ITS chapter-1 row (the pages that
+    run read and its seen tiles), the frame budget the sweep played with. A folder without `RUN_FILE` is reported as an
+    error row, never skipped silently."""
+    records = []
+    for folder in sorted(p for p in Path(root).iterdir() if p.is_dir()):
+        record_file = folder / RUN_FILE
+        if not record_file.is_file():
+            records.append(({"plan": "?", "seed": 0, "error": f"no {RUN_FILE} in {folder.name}"}, None, []))
+            continue
+        record = json.loads(record_file.read_text(encoding="utf-8"))
+        actions = []
+        path = folder / "actions.jsonl"
+        for raw in (path.read_text(encoding="utf-8").splitlines() if path.is_file() else []):
+            try:
+                actions.append(json.loads(raw))
+            except json.JSONDecodeError:
+                pass
+        records.append((record, folder, actions))
+    rows: dict[str, list[dict]] = {}
+    firsts: dict[tuple[str, int], dict] = {}
+    for record, folder, actions in sorted(records, key=lambda x: x[0]["plan"] in CHAPTER2):
+        if folder is None:
+            rows.setdefault("?", []).append(record)
+            continue
+        plan, seed, data = record["plan"], record["seed"], record["play"]
+        start = firsts.get((CHAPTER2[plan], seed)) if plan in CHAPTER2 else None
+        row = grade_run(plan, seed, record["personality"], record["starter"], data, actions, float(data.get("seconds") or 0),
+                        earlier=(start or {}).get("_reads") or [], world_in=(start or {}).get("_world"),
+                        seen_in=(start or {}).get("_seen"))
+        reads = data.get("game_reads") or {}
+        row.update({"budget": budget, "harness_stop": (reads.get("stop") or {}).get("by"),
+                    "frames_equal": (reads.get("frames") or {}).get("equal"), "_folder": str(folder),
+                    "_world": data.get("world_file"), "_seen": data.get("seen_file"),
+                    "_reads": ((start or {}).get("_reads") or []) + [r for r in actions if r.get("decision") == "read"]})
+        if record.get("base"):
+            row["base"] = record["base"]
+        if plan not in CHAPTER2 and not record.get("base"):
+            firsts[(plan, seed)] = row
+        rows.setdefault(plan, []).append(row)
+    return rows
+
+
+def regrade(root: Path, entry_id: int, purpose: str, budget: int, ledger_data: dict | None = None) -> tuple[list[str], str]:
+    """(Part C) A DEVELOPMENT-ONLY RE-GRADE: the kept run folders of a FINISHED development sweep graded by the CURRENT
+    grader, playing nothing. It REFUSES (`ValueError`) any purpose but `REGRADE` (a graded purpose above all: a re-grade is
+    never a graded verdict), a source entry that is not a finished DEVELOPMENT entry of this driver (a graded or replay
+    sweep's seeds are held out: nothing is tuned on them), and a root with no run folder. Returns the evidence lines, which
+    name the source ledger entry and say RE-GRADE on every verdict line, and the re-grade's verdict."""
+    if purpose != REGRADE:
+        raise ValueError(f"a re-grade is never {purpose!r}: it runs only as --purpose {REGRADE} (development numbers only)")
+    from ai_player.gates import ledger as seed_ledger
+
+    data = seed_ledger.load() if ledger_data is None else ledger_data
+    entry = next((e for e in data.get("entries") or [] if e.get("id") == entry_id), None)
+    if entry is None or entry.get("driver") != "rate_step5" or entry.get("purpose") != "development" \
+            or entry.get("status") != "done":
+        raise ValueError(f"ledger #{entry_id} is not a finished development sweep of rate_step5: {entry}")
+    rows = kept_rows(Path(root), budget)
+    if not any(plan_rows for plan, plan_rows in rows.items() if plan != "?"):
+        raise ValueError(f"no kept run folder under {root}")
+    summary = {plan: summarise(plan, sorted(plan_rows, key=lambda r: r["seed"])) for plan, plan_rows in rows.items()}
+    results = verdicts(summary, rows)
+    verdict = typed_verdict(results)
+    lines = [f"RE-GRADE (DEVELOPMENT ONLY, never a graded verdict) of ledger #{entry_id} ({entry.get('first')}-"
+             f"{entry.get('last')}, {entry.get('evidence')}): the kept run folders under {root}, graded by the CURRENT "
+             f"grader ({GRADER_STAGE}, the re-sourcing build), nothing played; frame budget {budget}",
+             f"plans re-graded: { {plan: len(plan_rows) for plan, plan_rows in sorted(rows.items())} }"]
+    lines += evidence_lines(results)
+    lines.append("CONTROL ARMS (each re-sourced check re-run with its control in the real plan's slot; it must FAIL or "
+                 "read VACUOUS; 'by construction' marks a control that is the pairing's own denominator):")
+    for check_id, control, status, text in control_arms(rows):
+        mark = " (by construction)" if (check_id, control) in BY_CONSTRUCTION else ""
+        lines.append(f"  CONTROL {check_id} with {control}: [{status}]{mark} {text[:900]}")
+    lines.append(f"RE-GRADE VERDICT: {verdict} (ledger #{entry_id}, development; NOT a graded verdict, no ledger entry "
+                 f"written)")
+    return lines, verdict
+
+
+def regrade_main(argv: list[str]) -> int:
+    """(Part C) The re-grade's own command line: `--purpose regrade --runs ROOT --ledger-entry N [--frames F]
+    [--evidence-tag T]`. It accepts no seed, no plan and no --register (argparse refuses an unknown flag: exit 2), writes
+    `<date>-<tag>-REGRADE.txt` and never a ledger entry."""
+    parser = argparse.ArgumentParser(description="RE-GRADE a finished development sweep's kept run folders (part C)")
+    parser.add_argument("--purpose", required=True, choices=(REGRADE,))
+    parser.add_argument("--runs", required=True, help="the kept sweep root (its run folders)")
+    parser.add_argument("--ledger-entry", type=int, required=True, help="the development ledger entry those runs are")
+    parser.add_argument("--frames", type=int, default=300000, help="the frame budget that sweep played with")
+    parser.add_argument("--evidence-tag", default="regrade")
+    args = parser.parse_args(argv)
+    import_line = grader_imports_line()
+    print(import_line)
+    if not import_line.startswith("GRADER IMPORTS: PASS"):
+        return 2
+    try:
+        lines, verdict = regrade(Path(args.runs), args.ledger_entry, args.purpose, args.frames)
+    except ValueError as refusal:
+        print(f"RE-GRADE: REFUSED - {refusal}")
+        return 2
+    for line in lines:
+        print(line)
+    out = EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-{args.evidence_tag}-REGRADE.txt"
+    keep_earlier(out)
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"evidence: {out}")
+    return 0 if verdict == "PASS" else 1
+
+
 def main() -> int:
     global _TREE, _FOLDERS
     try:
@@ -2403,8 +3064,14 @@ def main() -> int:
                                            "PATIENCE_OLD,LOSE3,CH2,CH2_OFF,LOAF,BLOCKED,GREEDY,STOP,STOPDEAD")
     parser.add_argument("--seeds", type=int, default=12)
     # (build step 5.2, G2: "no default --first-seed for a graded run") neither has a default
+    # (build step 5.3, the re-sourcing build, part C) a RE-GRADE has its own parser (`regrade_main`): this one, and its
+    # G2 rule that a sweep has no default --first-seed or --purpose, stay exactly as they were
+    argv = sys.argv[1:]
+    if f"--purpose={REGRADE}" in argv or any(a == "--purpose" and b == REGRADE for a, b in zip(argv, argv[1:])):
+        return regrade_main(argv)
     parser.add_argument("--purpose", required=True, choices=seed_ledger.PURPOSES,
-                        help="graded: a range REGISTERED first (--register); development; replay: seeds already played")
+                        help="graded: a range REGISTERED first (--register); development; replay: seeds already played; "
+                             "(re-grade a kept development sweep: --purpose regrade --runs ROOT --ledger-entry N)")
     parser.add_argument("--first-seed", type=int, required=True)
     parser.add_argument("--register", action="store_true",
                         help="with --purpose graded: pre-register the range and the numbers it is graded by, play nothing")

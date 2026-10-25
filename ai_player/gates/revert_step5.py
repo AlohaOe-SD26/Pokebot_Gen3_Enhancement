@@ -957,8 +957,8 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                "    seen = tiles >= 1 and (kind not in SEEING or tiles * 1000 >= YIELD_TILE_RATE * walking)  # MUTANT G214\n")],
              ["GraderYieldTests.test_the_game_says_what_a_span_brought"]),
     "G215": (CAUGHT, "the grader believes the detour's own word (the game's position never asked)",
-             [(RATE5, "            there = bool(place) and stood is not None and stood[0] == place[0] and (stood[1], stood[2]) "
-                      "== (place[1], place[2])\n",
+             # (build step 5.3, the re-sourcing build, item 16(a)) re-pointed: arrival is now judged over [stop - slack, stop]
+             [(RATE5, "            there = bool(place) and (place[0], place[1], place[2]) in stood\n",
                "            there = said  # MUTANT G215\n")],
              ["GraderYieldTests.test_the_grader_checks_a_detours_word_against_the_game"]),
     "G216": (CAUGHT, "the grader's streaks are never broken by a story goal (one streak of all curiosity)",

@@ -2663,7 +2663,10 @@ class SecondRoundTests(unittest.TestCase):
         def row(seed, share, free=0.1, wally=True, plan="CH2"):
             return {"plan": plan, "seed": seed, "personality": "Story", "wally": wally, "frames": 90000,
                     "reason": "play: done", "mix": {"errand_share": share, "free_share": free}, "old_places": [],
-                    "place_draws": 2, "losses_game": 0, "time_wally": {"outside_nb": 50000 if plan == "CH2" else 40000}}
+                    "place_draws": 2, "losses_game": 0, "time_wally": {"outside_nb": 50000 if plan == "CH2" else 40000},
+                    # (build step 5.3, the re-sourcing fix round, item 5) the GAME's frames to WALLY less its battles,
+                    # which R5.CH2_NOBATTLE now reads (`time_wally`, the AI's own digests, is no longer read)
+                    "wally_game": {"frame": 60000, "no_battle": 50000 if plan == "CH2" else 40000, "at_end": False}}
 
         def verdict(rows, check_id):
             # (build step 5.3, A1-4) by its check ID; the check's OWN outcome (a REPORTED share's: its old bound's)
@@ -2675,7 +2678,13 @@ class SecondRoundTests(unittest.TestCase):
         self.assertFalse(verdict({**good, "CH2": [row(1, 0.4), row(2, BOUNDS["MIX_MIN"] - 0.01)]}, "R5.CH2_INTENT_MIX"))
         self.assertTrue(verdict(good, "R5.CH2_OFF_UNDER"))
         self.assertFalse(verdict({**good, "CH2_OFF": [row(1, 0.5, 0.0, plan="CH2_OFF")] * 2}, "R5.CH2_OFF_UNDER"))
-        self.assertTrue(verdict(good, "R5.CH2_NOBATTLE"))
+        self.assertTrue(verdict(good, "R5.CH2_NOBATTLE"))  # CONTROL: the game's frames, CH2 1.25 x CH2_OFF
+        # (build step 5.3, the re-sourcing fix round, item 5: replaces nothing; the old line above held only the AI form's
+        # PASS on `time_wally`) FAULT: the GAME says CH2 was no slower than the beeline, whatever the AI's own digests say
+        beeline = {**good, "CH2": [{**r, "wally_game": dict(o["wally_game"])} for r, o in zip(good["CH2"], good["CH2_OFF"])]}
+        self.assertFalse(verdict(beeline, "R5.CH2_NOBATTLE"))
+        ai_only = {plan: [{**r, "wally_game": None} for r in rows] for plan, rows in good.items()}
+        self.assertEqual(check_by_id(chapter2_verdicts(ai_only), "R5.CH2_NOBATTLE").status, "VACUOUS")  # no game read
         self.assertFalse(verdict({**good, "CH2": [row(1, 0.4, wally=False)] * 2}, "R5.CH2_WALLY"))
 
     def test_the_shares_of_frames_are_reported_not_graded(self):
@@ -4086,8 +4095,11 @@ class GraderYieldTests(unittest.TestCase):
     def test_the_step52_verdicts_and_their_controls(self):
         from ai_player.gates.rate_step5 import BOUNDS, step52_verdicts
         real = {"CH1": [self.row("CH1", s) for s in (1, 2)], "CH2": [self.row("CH2", s) for s in (1, 2)]}
+        # (build step 5.3, the re-sourcing fix round, items 8 and 9) LOAF fails R5.NO_LOAFING by the GAME's push (both paths
+        # over the loafing bound, so they agree); its AI-windowed loafing and yield are no longer read
+        loafed = {"push_ai": BOUNDS["LOAF_FRAMES_MAX"] + 50, "push_game": BOUNDS["LOAF_FRAMES_MAX"] + 60}
         controls = {"LOAF": [self.row("LOAF", s, loaf_frames=BOUNDS["LOAF_FRAMES_MAX"] + 1, productive_frames=100,
-                                      seeing_productive=600) for s in (1, 2)],
+                                      seeing_productive=600, **loafed) for s in (1, 2)],
                     "GREEDY": [self.row("GREEDY", s, streak_goals=BOUNDS["SPACING_ROW_MAX"] + 2) for s in (1, 2)],
                     "BLOCKED": [self.row("BLOCKED", 1, person_blocks=5, push_ai=BOUNDS["PUSH_MAX"] + 9,
                                          push_game=BOUNDS["PUSH_MAX"] + 9), self.row("BLOCKED", 2)]}
@@ -4098,15 +4110,33 @@ class GraderYieldTests(unittest.TestCase):
 
         results = step52_verdicts({**real, **controls})
         self.assertTrue(all(c.status == "PASS" for c in results), [c.text[:120] for c in results if c.status != "PASS"])
-        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, loaf_frames=7500)], **controls}, "R5.NO_LOAFING"))
+        # (re-sourcing fix round, item 9) REPLACES "CH1 loaf_frames=7500 FAILS R5.NO_LOAFING" (the AI's windows): FAULT, the
+        # GAME's push at the bound fails it; CONTROL, CH2 1311's shape (AI-windowed 4,430 over, game push 760) PASSES
+        self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, push_ai=BOUNDS["LOAF_FRAMES_MAX"],
+                                                         push_game=BOUNDS["LOAF_FRAMES_MAX"])], **controls}, "R5.NO_LOAFING"))
+        self.assertTrue(check({**real, "CH2": [self.row("CH2", 1311, loaf_frames=4430, push_ai=760, push_game=760)],
+                               **controls}, "R5.NO_LOAFING"))
         self.assertFalse(check({**real, **controls, "LOAF": [self.row("LOAF", 1)]}, "R5.LOAF"))  # a control that holds
         self.assertFalse(check({**real, "CH2": [self.row("CH2", 1, streak_goals=6)], **controls}, "R5.SPACED"))
         self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, detours=[(1, ["0:9", 1, 1, "f"], 1, 0)])], **controls},
                                "R5.DETOUR_WORD"))
+        # (re-sourcing fix round, item 8) REPLACES "AI at the bound, game 10 FAILS R5.PUSHING": PUSHING reads the GAME alone,
+        # so that row PASSES it and FAILS the HONESTY agreement (far from the bound: a real split); the game at the bound
+        # FAILS PUSHING (FAULT)
         pushed = {**real, "CH1": [self.row("CH1", 1, push_ai=BOUNDS["PUSH_MAX"], push_game=10)], **controls}
-        self.assertFalse(check(pushed, "R5.PUSHING"))
+        self.assertTrue(check(pushed, "R5.PUSHING"))
         self.assertFalse(check(pushed, "R5.PUSH_PATHS_AGREE"))
+        game_pushed = {**real, "CH1": [self.row("CH1", 1, push_ai=BOUNDS["PUSH_MAX"], push_game=BOUNDS["PUSH_MAX"])],
+                       **controls}
+        self.assertFalse(check(game_pushed, "R5.PUSHING"))
+        self.assertTrue(check(game_pushed, "R5.PUSH_PATHS_AGREE"))
         self.assertFalse(check({**real, **controls, "BLOCKED": [self.row("BLOCKED", 1)]}, "R5.BLOCKED"))  # never reached
+        # (re-sourcing fix round, item 8) the arm is graded on the GAME's push alone: met nobody (the reach, now the
+        # DIAGNOSTIC R5.BLOCKED_REACH) but over by the game PASSES; over by the AI's record alone FAILS
+        self.assertTrue(check({**real, **controls, "BLOCKED": [self.row("BLOCKED", 1, push_game=BOUNDS["PUSH_MAX"] + 9)]},
+                              "R5.BLOCKED"))
+        self.assertFalse(check({**real, **controls, "BLOCKED": [self.row("BLOCKED", 1, person_blocks=5,
+                                                                         push_ai=BOUNDS["PUSH_MAX"] + 9)]}, "R5.BLOCKED"))
         self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, seeing_frames=4000, seeing_productive=1000)],
                                 "CH2": real["CH2"], **controls}, "R5.CH1_YIELD"))
         # (build step 5.3, A1-4) #61 by the draws it JUDGED: none judged is VACUOUS (it saw nothing), not a PASS
@@ -4124,9 +4154,12 @@ class GraderYieldTests(unittest.TestCase):
         # (step52dev2) graded on the curiosity that SEES: a run whose looks loafed while its chats talked FAILS it
         self.assertFalse(check({**real, "CH1": [self.row("CH1", 1, seeing_productive=500)], "CH2": real["CH2"],
                                 **controls}, "R5.CH1_YIELD"))
-        # LOAF whose looks brought something does not fail its check (FAULT half: graded on all its curiosity)
+        # (re-sourcing fix round, item 9) REPLACES "LOAF whose looks brought something does not fail its check" (the yield
+        # inside the AI's windows): LOAF whose AI-windowed loafing is over the bound but whose GAME push is under does not
+        # count as failing NO_LOAFING (FAULT: R5.LOAF FAILS); one LOAF run over by the game is enough (CONTROL)
         self.assertFalse(check({**real, **controls, "LOAF": [self.row("LOAF", s, loaf_frames=BOUNDS["LOAF_FRAMES_MAX"] + 1)
                                                              for s in (1, 2)]}, "R5.LOAF"))
+        self.assertTrue(check({**real, **controls, "LOAF": [self.row("LOAF", 1, **loafed), self.row("LOAF", 2)]}, "R5.LOAF"))
 
     def test_the_game_side_recorder_of_places(self):
         """`play_harness.PlaceRecorder` (the framework's reads stood in for by `place_now`): new tiles of the screen's

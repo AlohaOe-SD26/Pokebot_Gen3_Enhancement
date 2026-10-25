@@ -66,7 +66,10 @@ KNOWLEDGE = REPO / "ai_player" / "knowledge" / "milestones.json"
 SB1_FLAGS, SB1_VARS, SB1_GAME_STATS, SB2_KEY, VARS_START = 0x1270, 0x139C, 0x159C, 0xAC, 0x4000
 #: `include/constants/game_stat.h`
 STATS = {"steps": 5, "total_battles": 7, "wild_battles": 8, "trainer_battles": 9, "captures": 11, "used_pokecenter": 15,
-         "rested_at_home": 16}
+         "rested_at_home": 16,
+         # (build step 5.3, the re-sourcing fix round, R5: "it shopped" by the game) GAME_STAT_SHOPPED, raised once per
+         # purchase as the money is taken (`src/shop.c` BuyMenuSubtractMoney, pinned decomp 731ad5b)
+         "shopped": 38}
 #: (test side) every item ball's FLAG_ITEM_* on badge 1's maps (`gates/extract_milestones.py --items`)
 ITEM_FLAGS = Path(__file__).resolve().parent / "fixtures" / "item_flags.json"
 FAULTS = ("no_hints", "no_training", "no_errands")
@@ -102,7 +105,7 @@ def story_truth(context, guard: bool = False) -> dict:
     flag_bytes = bytes(emulator.read_bytes(sb1 + SB1_FLAGS, 300))
     var_bytes = bytes(emulator.read_bytes(sb1 + SB1_VARS, 0x200))
     key = int.from_bytes(bytes(emulator.read_bytes(sb2 + SB2_KEY, 4)), "little")
-    raw_stats = bytes(emulator.read_bytes(sb1 + SB1_GAME_STATS, 4 * 20))
+    raw_stats = bytes(emulator.read_bytes(sb1 + SB1_GAME_STATS, 4 * (max(STATS.values()) + 1)))
     flags, variables = tracked()
     out = {name: (flag_bytes[number // 8] >> (number % 8)) & 1 for name, number in flags.items()}
     out.update({f"VAR_{name}": int.from_bytes(var_bytes[2 * (number - VARS_START):2 * (number - VARS_START) + 2], "little")

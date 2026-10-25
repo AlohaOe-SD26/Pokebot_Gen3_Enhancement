@@ -209,7 +209,9 @@ QUICK = ("check_purity", "test_eyes", "test_hands", "test_battle", "test_evidenc
          # rule runs twice: the CLI, and test_step53_a1's GraderImportTests.test_the_tree_as_it_stands_passes
          "test_step53_a1", "check_grader_imports",
          # build step 5.3 stage A2: the carry-overs and the game reads' logic (offline); the measurement module's tests
-         "test_step53_a2", "test_measure_step5")
+         "test_step53_a2", "test_measure_step5",
+         # build step 5.3, the re-sourcing build: the re-sourced checks and the re-grade (offline)
+         "test_step53_rs")
 
 
 def all_suites() -> list[Suite]:

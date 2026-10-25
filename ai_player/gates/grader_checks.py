@@ -8,7 +8,8 @@ the code it grades). Stage A1 changes NOTHING in what is measured: it makes each
 
 A CHECK is `Check(id, kind, status, n, floor, inputs, text)`:
   kind    GRADED      counts in the verdict.
-          HONESTY     the AI's own word judged against the game; counts.
+          HONESTY     the AI's own word judged against a record it cannot write (the game, or since the 5.3 amendment
+                      to A1-1 an instrument of the harness: `honesty_halves`); counts.
           DIAGNOSTIC  printed, never counts (a property with no game form, or AI-only; listed in the evidence as a property
                       the grade no longer counts).
           REPORTED    a measure with no bound; never counts (the 5.2 P2 shares keep their OLD bound's verdict as `status`,
@@ -17,7 +18,10 @@ A CHECK is `Check(id, kind, status, n, floor, inputs, text)`:
           unless its id is waived in `grader_waivers.json` with a reason.
   inputs  a subset of {game, harness, ai}, declared HONESTLY for today's code (what the check's code reads, helpers
           included). Construction RAISES (`CheckError`) when a GRADED check names `ai` and its id is not in
-          `b1_debt.json` (the debt A2 pays down), and when a HONESTY check does not name both `ai` and `game`.
+          `b1_debt.json` (the debt A2 pays down), and when a HONESTY check does not name `ai` AND a truth half, `game` or
+          `harness` (THE AMENDMENT to spec A1-1, `06` 2026-10-24, re-sourcing build item 11: the truth half may be an
+          instrument of the harness the AI cannot write, because the only record of the presses that reached the emulator
+          is the harness's; without it the purity proof would have to leave the grade).
 THE VERDICT is PASS iff there is at least one check and every GRADED and HONESTY check is PASS, or VACUOUS with a waiver
 (`verdict`). Ids are stable and unique; every id, its kind, its inputs and the start of its text live in ONE table,
 `CHECKS`, which is validated against both json files when this module is imported (a debt entry for a check that does
@@ -61,17 +65,26 @@ class CheckError(ValueError):
 class Spec:
     """One row of `CHECKS`: the check's kind, its inputs, the START of its text (`title`), the recon row it was (`was`:
     `#n` of `2026-10-22-B1-grader-recon.md` §1, or a live_step5 line), `old_bound` for a REPORTED share of frames that keeps
-    its 5.2 bound's verdict, and `dropped`: for a check A1 made DIAGNOSTIC, the property the grade no longer counts."""
+    its 5.2 bound's verdict, and `dropped`: for a check made DIAGNOSTIC, the property the grade no longer counts, with
+    `since` the stage that made it so (A1, or the 5.3 re-sourcing build: `RESOURCING`)."""
     kind: str
     inputs: frozenset
     title: str
     was: str = ""
     old_bound: bool = False
     dropped: str = ""
+    #: the stage that made a `dropped` check DIAGNOSTIC (printed on its NO LONGER GRADED line, which must be true of it)
+    since: str = "5.3 A1"
 
 
-def _spec(kind: str, inputs: str, title: str, was: str = "", old_bound: bool = False, dropped: str = "") -> Spec:
-    return Spec(kind, frozenset(inputs.split("+")), title, was, old_bound, dropped)
+def _spec(kind: str, inputs: str, title: str, was: str = "", old_bound: bool = False, dropped: str = "",
+          since: str = "5.3 A1") -> Spec:
+    return Spec(kind, frozenset(inputs.split("+")), title, was, old_bound, dropped, since)
+
+
+#: (build step 5.3, the RE-SOURCING build, item 15) the stage named on the NO LONGER GRADED line of a check this build made
+#: DIAGNOSTIC (the A2 decision addendum's rows 29-39)
+RESOURCING = "5.3 re-sourcing"
 
 
 G, H, A = "game", "harness", "ai"
@@ -85,31 +98,35 @@ CHECKS: dict[str, Spec] = {
     # ---- rate_step5.verdicts
     "R5.CH1_REACHED": _spec(GRADED, G, "CH1: the POKéDEX reached", "#1"),
     "R5.CH1_FIRST_TRY": _spec(GRADED, G, "CH1: the rival beaten at the FIRST try", "#2"),
-    "R5.CH1_TRAINED": _spec(GRADED, G + "+" + A, "CH1: every seed that beat the rival TRAINED first", "#3"),
+    "R5.CH1_TRAINED": _spec(GRADED, G + "+" + H, "CH1: every seed that beat the rival TRAINED first", "#3"),
     "R5.CH1_WILD_WON": _spec(REPORTED, G, "CH1 (reported): wild battles WON anywhere", "#4"),
-    "R5.CH1_SPINS": _spec(GRADED, A, "CH1: the back-and-forth spins", "#5"),
+    # (build step 5.3, the RE-SOURCING build, item 14: the A2 decision addendum's rows 20-27) REPORTED: each prints its GAME
+    # quantity with its controls beside it, and no control separates that quantity on the development sweep (ledger #39),
+    # so no bound can be registered. Its status is the old check's own outcome on its AI form, printed, never counted:
+    # `ai` stays declared because the status still reads it
+    "R5.CH1_SPINS": _spec(REPORTED, A + "+" + G, "CH1: the back-and-forth spins", "#5"),
     "R5.CH1_CATCH_ALL": _spec(DIAGNOSTIC, A, "CH1: no stretch standing still under the catch-all", "#6",
                               dropped="no idle stretch under the catch-all reason (the AI's own reason labels)"),
     "R5.CH1_WHITEOUTS": _spec(GRADED, G, "CH1: the game's whiteouts", "#7"),
-    "R5.CH1_REST_RULE": _spec(GRADED, A, "CH1: THE REST RULE", "#8"),
+    "R5.CH1_REST_RULE": _spec(REPORTED, A + "+" + G, "CH1: THE REST RULE", "#8"),
     "R5.CH1_RECORDER": _spec(GRADED, G, "CH1: the recorder saw every battle end", "#9"),
     "R5.LOSSES_AGREE": _spec(HONESTY, A + "+" + G, "ALL PLANS: the AI's battles lost", "#10"),
     "R5.NOTRAIN_MECHANISM": _spec(GRADED, G, "NOTRAIN (the mechanism)", "#11"),
-    "R5.NOTRAIN_TRAINED_CHECK": _spec(GRADED, G + "+" + A, "THE TRAINED CHECK TELLS TRAINING FROM NONE", "#12"),
+    "R5.NOTRAIN_TRAINED_CHECK": _spec(GRADED, G + "+" + H, "THE TRAINED CHECK TELLS TRAINING FROM NONE", "#12"),
     "R5.NOTRAIN_LEVEL": _spec(GRADED, G, "NOTRAIN (the effect", "#13"),
     "R5.NOTRAIN_HP": _spec(REPORTED, G, "NOTRAIN (reported, not bounded): the HP share", "#14"),
     "R5.NOTRAIN_FIRST_TRY": _spec(REPORTED, G, "NOTRAIN (reported, not bounded): the rival beaten", "#15"),
-    "R5.DEADREST": _spec(GRADED, A, "DEADREST (the fix REMOVED", "#16"),
+    "R5.DEADREST": _spec(REPORTED, A + "+" + G, "DEADREST (the fix REMOVED", "#16"),
     "R5.NOHINTS_SLOWER": _spec(GRADED, G, "NOHINTS: reached", "#17"),
     # ---- rate_step5.stop_verdicts
     "R5.STOP": _spec(HONESTY, A + "+" + G + "+" + H, "STOP (MAX_LOSSES 1", "#18"),
     "R5.STOPDEAD": _spec(HONESTY, A + "+" + G + "+" + H, "STOPDEAD (MAX_LOSSES 1", "#19"),
     # ---- rate_step5.step51_verdicts
-    "R5.STALL": _spec(GRADED, A + "+" + G, "THE STALL PROPERTY (every run", "#20"),
+    "R5.STALL": _spec(GRADED, G, "THE STALL PROPERTY (every run", "#20"),
     "R5.STALL_SECOND_PATH": _spec(GRADED, G, "THE STALL PROPERTY's second path", "#21"),
-    "R5.STALL1": _spec(GRADED, A + "+" + G, "STALL1 (the fix REVERTED", "#22"),
-    "R5.STALL2": _spec(GRADED, A + "+" + G, "STALL2 (the fix REVERTED", "#23"),
-    "R5.STALL3": _spec(GRADED, A + "+" + G, "STALL3 (the fix REVERTED", "#24"),
+    "R5.STALL1": _spec(GRADED, G, "STALL1 (the fix REVERTED", "#22"),
+    "R5.STALL2": _spec(GRADED, G, "STALL2 (the fix REVERTED", "#23"),
+    "R5.STALL3": _spec(GRADED, G, "STALL3 (the fix REVERTED", "#24"),
     "R5.STALL_PATHS_AGREE": _spec(HONESTY, A + "+" + G, "THE TWO PATHS AGREE on the stall verdict", "#25"),
     "R5.ASIDE_BACK": _spec(DIAGNOSTIC, A, "A STORY GOAL PUT ASIDE COMES BACK", "#26",
                            dropped="a story goal put aside comes back within ASIDE_STREAK_MAX (the AI's goal keys only)"),
@@ -117,17 +134,20 @@ CHECKS: dict[str, Spec] = {
                               dropped="every go goal with a map came after the page that told it (the AI's read records)"),
     "R5.CH1_INTENT_MIX": _spec(REPORTED, A + "+" + G, "THE INTENT MIX (CH1)", "#28", old_bound=True),
     "R5.CH1_FREE": _spec(REPORTED, A + "+" + G, "CURIOSITY THE STORY DID NOT NEED (CH1", "#29", old_bound=True),
-    "R5.SEED_DIVERGENCE": _spec(GRADED, A, "SEED DIVERGENCE", "#30"),
+    "R5.SEED_DIVERGENCE": _spec(REPORTED, A + "+" + G, "SEED DIVERGENCE", "#30"),
     "R5.OFF_MOVES_MIX": _spec(REPORTED, A + "+" + G, "ERRANDS_OFF MOVES THE INTENT MIX", "#31", old_bound=True),
-    "R5.OFF_MOVES_DIVERGENCE": _spec(GRADED, A, "ERRANDS_OFF MOVES THE DIVERGENCE", "#32"),
+    "R5.OFF_MOVES_DIVERGENCE": _spec(REPORTED, A + "+" + G, "ERRANDS_OFF MOVES THE DIVERGENCE", "#32"),
     "R5.BEELINE_FAILS_FREE": _spec(REPORTED, A + "+" + G, "THE BEELINE FAILS THE CURIOSITY BOUND", "#33", old_bound=True),
-    "R5.OFF_BEELINE": _spec(GRADED, A, "OFF THE BEELINE", "#34"),
+    "R5.OFF_BEELINE": _spec(GRADED, G, "OFF THE BEELINE", "#34"),
     "R5.ERRANDS_DIFFER": _spec(DIAGNOSTIC, A, "THE ERRANDS DIFFER BY SEED", "#35",
                                dropped="the curiosity decisions differ by seed (the AI's goal sequence)"),
-    "R5.NO_SPEEDRUN": _spec(GRADED, G + "+" + A, "NO SPEEDRUN (the time)", "#36"),
-    "R5.NO_SPEEDRUN_DICE": _spec(GRADED, A, "NO SPEEDRUN, WITHOUT THE GRASS'S DICE", "#37"),
-    "R5.LOSE3": _spec(GRADED, A + "+" + G + "+" + H, "LOSE3 (a copy", "#38"),
-    "R5.PATIENCE": _spec(GRADED, G + "+" + A, "PATIENCE (STORY_PATIENCE", "#39"),
+    "R5.NO_SPEEDRUN": _spec(REPORTED, G + "+" + A, "NO SPEEDRUN (the time)", "#36"),
+    "R5.NO_SPEEDRUN_DICE": _spec(GRADED, G, "NO SPEEDRUN, WITHOUT THE GRASS'S DICE", "#37"),
+    "R5.LOSE3": _spec(GRADED, G + "+" + H, "LOSE3 (a copy", "#38"),
+    # (build step 5.3, the re-sourcing build, item 6) LOSE3's AI half, split from its game/harness half above: its stop
+    # reason names the cap and its report and told losses equal the game's, in every run that reached the cap
+    "R5.LOSE3_WORD": _spec(HONESTY, A + "+" + G + "+" + H, "LOSE3's own word", "#38 (its AI half)"),
+    "R5.PATIENCE": _spec(GRADED, G, "PATIENCE (STORY_PATIENCE", "#39"),
     "R5.PATIENCE_OLD": _spec(GRADED, G + "+" + H, "PATIENCE_OLD (the same", "#40 (critic Q1: by the game)"),
     "R5.PATIENCE_OLD_WORD": _spec(DIAGNOSTIC, A, "PATIENCE_OLD's own word", "#40 (its AI half)",
                                   dropped="PATIENCE_OLD stopped 'no progress for ...' WHILE TRAINING (the AI's reason and "
@@ -139,15 +159,17 @@ CHECKS: dict[str, Spec] = {
     "R5.CH2_NEW_PLACE": _spec(HONESTY, A + "+" + G, "CH2: A NEW PLACE IS NEW", "#44"),
     "R5.CH2_WHITEOUTS": _spec(GRADED, G, "CH2: the game's whiteouts", "#45"),
     "R5.CH2_OFF_UNDER": _spec(REPORTED, A + "+" + G, "CH2_OFF (the beeline control's chapter 2)", "#46", old_bound=True),
-    "R5.CH2_NOBATTLE": _spec(GRADED, A, "CH2: NO SPEEDRUN, WITHOUT THE GRASS'S DICE", "#47"),
+    # (the re-sourcing FIX round, item 5) by the game's frames to WALLY's var less its battle frames, paired with CH2_OFF
+    "R5.CH2_NOBATTLE": _spec(GRADED, G, "CH2: NO SPEEDRUN, WITHOUT THE GRASS'S DICE", "#47"),
     # ---- rate_step5.step52_verdicts
-    "R5.CH1_YIELD": _spec(GRADED, G + "+" + A, "CH1: CURIOSITY BY YIELD", "#48"),
-    "R5.CH2_YIELD": _spec(GRADED, G + "+" + A, "CH2: CURIOSITY BY YIELD", "#49"),
-    "R5.NO_LOAFING": _spec(GRADED, G + "+" + A, "NO LOAFING", "#50"),
+    "R5.CH1_YIELD": _spec(REPORTED, G + "+" + A, "CH1: CURIOSITY BY YIELD", "#48"),
+    "R5.CH2_YIELD": _spec(REPORTED, G + "+" + A, "CH2: CURIOSITY BY YIELD", "#49"),
+    # (the re-sourcing FIX round, item 9) NO_LOAFING and its control LOAF on the game's push (`PlaceRecorder.push`) alone
+    "R5.NO_LOAFING": _spec(GRADED, G, "NO LOAFING", "#50"),
     "R5.YIELD_AGREE": _spec(DIAGNOSTIC, A + "+" + G, "(reported) the AI's own word on its curiosity's yield", "#51",
                             dropped="the AI's yield verdict agrees with the game's (true by construction while the AI "
                                     "computes the grader's own 8/20 rule)"),
-    "R5.LOAF": _spec(GRADED, G + "+" + A, "LOAF (the control", "#52"),
+    "R5.LOAF": _spec(GRADED, G, "LOAF (the control", "#52"),
     "R5.OFF_REPORTED": _spec(REPORTED, G + "+" + A, "(reported) ERRANDS_OFF, the beeline", "#53"),
     "R5.SPACED": _spec(DIAGNOSTIC, A, "CURIOSITY SPACED", "#54",
                        dropped="at most SPACING_ROW_MAX curiosity goals in a row (goal KINDS: no game form)"),
@@ -155,9 +177,16 @@ CHECKS: dict[str, Spec] = {
                        dropped="the GREEDY control over the spacing bound (goal KINDS: no game form)"),
     "R5.DETOURS_ARRIVE": _spec(HONESTY, A + "+" + G, "DETOURS THAT ARRIVE", "#56"),
     "R5.DETOUR_WORD": _spec(HONESTY, A + "+" + G, "THE DETOUR'S WORD IS TRUE", "#57"),
-    "R5.PUSHING": _spec(GRADED, A + "+" + G, "THE PUSHING PROPERTY (every run", "#58"),
+    # (the re-sourcing FIX round, item 8) PUSHING and its control BLOCKED on the game's push alone; the AI's record is judged
+    # against it by PUSH_PATHS_AGREE (HONESTY, the two paths' verdicts within the game path's sampling band, item 16(b));
+    # BLOCKED's reach (the AI's idle reasons) is DIAGNOSTIC
+    "R5.PUSHING": _spec(GRADED, G, "THE PUSHING PROPERTY (every run", "#58"),
     "R5.PUSH_PATHS_AGREE": _spec(HONESTY, A + "+" + G, "THE TWO PATHS AGREE on the pushing verdict", "#59"),
-    "R5.BLOCKED": _spec(GRADED, A + "+" + G, "BLOCKED (the control", "#60"),
+    "R5.BLOCKED": _spec(GRADED, G, "BLOCKED (the control", "#60"),
+    "R5.BLOCKED_REACH": _spec(DIAGNOSTIC, A, "BLOCKED's REACH", "#60 (its reach)",
+                              dropped="the BLOCKED arm REACHED the state it tests (someone in the way of a curiosity walk "
+                                      "BLOCKED_REACH_HITS+ times, by the AI's idle reasons); R5.BLOCKED is graded on the "
+                                      "game's push alone", since=RESOURCING),
     "R5.LEFT_NOT_NEW": _spec(HONESTY, A + "+" + G, "A PLACE IT HAS LEFT IS NO NEW PLACE", "#61"),
     "R5.ASK_STEP": _spec(DIAGNOSTIC, A, "THE ASK STEP WALKS TO ITS HOUSE", "#62",
                          dropped="the ask step never walks with nothing said (the AI's goal reasons)"),
@@ -172,28 +201,45 @@ CHECKS: dict[str, Spec] = {
     # ---- live_step5 (and the purity checks of `live_step2.check_purity`, which it calls)
     "L5.PURITY_GATE": _spec(GRADED, H, "the launcher gated the real package", "live_step2 check_purity"),
     "L5.PURITY_CLEAN": _spec(GRADED, H, "verdict file: verdict=", "live_step2 check_purity"),
-    "L5.PURITY_PRESSES": _spec(GRADED, A + "+" + H, "ai_presses=", "live_step2 check_purity"),
-    "L5.PURITY_FRAMES": _spec(GRADED, A + "+" + H, "the AI pad's own frame count", "live_step2 check_purity"),
+    # (build step 5.3, the RE-SOURCING build, item 11: addendum rows 16-17, RULING rows) HONESTY under THE AMENDMENT to A1-1
+    # (`honesty_halves`): the AI pad's own counts (its claim) against the instrument's counts at the emulator's door (a
+    # harness record the AI cannot write); the proof that the AI played only through its own pad (USER RULING 35)
+    "L5.PURITY_PRESSES": _spec(HONESTY, A + "+" + H, "ai_presses=", "live_step2 check_purity"),
+    "L5.PURITY_FRAMES": _spec(HONESTY, A + "+" + H, "the AI pad's own frame count", "live_step2 check_purity"),
     "L5.PURITY_BREACHES": _spec(GRADED, H, "every breach counter 0", "live_step2 check_purity"),
     # (A1 fix round, the stage-A1 verifier's failure 3) `exit_reason` is the HARNESS's text only when it stopped the run on
-    # its frame budget or its wall clock; for a clean exit it is the BRAIN's own reason (`host/lifecycle.py` writes the
-    # reason the play loop returned), so the AI's text can flip this check: it reads `ai` (B1 debt; A2: the end cause from
-    # the harness's own record)
-    "L5.PURITY_ENDED": _spec(GRADED, H + "+" + A, "ended by itself", "live_step2 check_purity"),
-    "L5.PURITY_OUTCOME": _spec(GRADED, A, "the brain's outcome", "live_step2 check_purity"),
+    # its frame budget or its wall clock; for a clean exit it is the BRAIN's own reason, so the AI's text could flip this
+    # check. (Build step 5.3, the RE-SOURCING build, item 10: addendum row 28) REPORTED from the HARNESS's own stop record
+    # alone (`live_step5.harness_stop`): every one of ledger #39's 154 runs reads `by: ai`, so no control in a sweep fails it
+    # and it is printed, never counted; its read is guarded by known-answer unit tests (`test_step53_rs.PurityEndedTests`)
+    "L5.PURITY_ENDED": _spec(REPORTED, H, "ended by itself", "live_step2 check_purity"),
+    # (the RE-SOURCING build, item 12: addendum row 18) HONESTY: the brain's exit reason is a CLAIM about the game ("done:
+    # <target> reached" or a stop), judged BOTH WAYS against the game's proof of the target (L5.CH1_PROOFS / L5.CH2_WALLY's
+    # reads), by `live_step5.check_outcome`
+    "L5.PURITY_OUTCOME": _spec(HONESTY, A + "+" + G, "the brain's outcome", "live_step2 check_purity"),
     "L5.PURITY_PACKAGE": _spec(GRADED, H, "the verdict file names the package that ran", "live_step2 check_purity"),
     "L5.THIS_RUN": _spec(GRADED, H + "+" + G, "the state graded is the one THIS run wrote", "L:332"),
-    "L5.PRESS_GATES": _spec(GRADED, A, "THE PRESSES:", "L:342"),
-    "L5.A_KINDS": _spec(GRADED, A, "EVERY A press is a WAIT", "L:354"),
-    "L5.BLIND": _spec(GRADED, A, "no press without the eyes asked", "L:357"),
+    "L5.PRESS_GATES": _spec(DIAGNOSTIC, A, "THE PRESSES:", "L:342",
+                            dropped="every press of a live arm has its gate (the AI's own decision trace; addendum row 29, a RULING row: no game form in a launcher run)",
+                            since=RESOURCING),
+    "L5.A_KINDS": _spec(DIAGNOSTIC, A, "EVERY A press is a WAIT", "L:354",
+                        dropped="every A press of a live arm is a wait, a menu confirm or a talk by its look (the AI's own trace; row 30, a RULING row)",
+                        since=RESOURCING),
+    "L5.BLIND": _spec(DIAGNOSTIC, A, "no press without the eyes asked", "L:357",
+                      dropped="no press of a live arm without its eyes asked (the AI's own trace; row 31, a RULING row)",
+                      since=RESOURCING),
     # (A1 fix round, the coordinator's ruling F4) the live twins of R5.CH1_CATCH_ALL, R5.ASIDE_BACK and R5.GO_AFTER_PAGE
     # are DIAGNOSTIC like them: the spec says these properties have NO game form, so a B1 debt row for them could never be
     # paid (a launcher run has no second path while it plays)
     "L5.CATCH_ALL": _spec(DIAGNOSTIC, A, "THE CATCH-ALL:", "L:360",
                           dropped="a live arm's idle stretches under the catch-all reason (the AI's own reason labels; no "
                                   "game form, as R5.CH1_CATCH_ALL)"),
-    "L5.HAS_GOAL": _spec(GRADED, A, "NEVER WITHOUT A GOAL", "L:363"),
-    "L5.STALL": _spec(GRADED, A, "THE STALL PROPERTY (its record", "L:373"),
+    "L5.HAS_GOAL": _spec(DIAGNOSTIC, A, "NEVER WITHOUT A GOAL", "L:363",
+                         dropped="a live arm always had a goal with a reason (the AI's own goal records; row 32, a RULING row)",
+                         since=RESOURCING),
+    "L5.STALL": _spec(DIAGNOSTIC, A, "THE STALL PROPERTY (its record", "L:373",
+                      dropped="a live arm's screen waits by its own record of every look (row 33: a launcher run has no WaitRecorder; the sweep's R5.STALL grades the game's)",
+                      since=RESOURCING),
     "L5.GO_AFTER_PAGE": _spec(DIAGNOSTIC, A, "EVERY GO GOAL WITH A MAP CAME AFTER THE PAGE", "L:379",
                               dropped="a live arm's go goals after the page that told them (the AI's read records; no game "
                                       "form, as R5.GO_AFTER_PAGE)"),
@@ -206,7 +252,9 @@ CHECKS: dict[str, Spec] = {
                         dropped="a live arm's pushing by its own record (the sweep grades both paths)"),
     "L5.ASK_STEP": _spec(DIAGNOSTIC, A, "THE ASK STEP WALKS TO ITS HOUSE", "L:412",
                          dropped="a live arm's ask step (the AI's goal reasons)"),
-    "L5.NEW_PLACE": _spec(GRADED, A, "A NEW PLACE IS NEW", "L:474"),
+    "L5.NEW_PLACE": _spec(DIAGNOSTIC, A, "A NEW PLACE IS NEW", "L:474",
+                          dropped="a live arm's look-around draws name a map new to its own world memory (row 34: no game half in a launcher run; the sweep's R5.CH2_NEW_PLACE and R5.LEFT_NOT_NEW are the HONESTY checks)",
+                          since=RESOURCING),
     "L5.ASIDE_BACK": _spec(DIAGNOSTIC, A, "A STORY GOAL PUT ASIDE COMES BACK", "L:435",
                            dropped="a live arm's story goal put aside comes back within ASIDE_STREAK_MAX (the AI's goal "
                                    "keys; no game form, as R5.ASIDE_BACK)"),
@@ -215,17 +263,32 @@ CHECKS: dict[str, Spec] = {
     "L5.NAME_GENDER": _spec(HONESTY, A + "+" + G, "THE GAME (save block 2)", "L:596"),
     "L5.STARTER_OT": _spec(GRADED, G + "+" + H, "THE GAME (the framework's party decoder)", "L:603"),
     "L5.BALLS": _spec(GRADED, G, "THE GAME (the bag)", "L:607"),
-    "L5.TRAINED": _spec(GRADED, A, "TRAINED BEFORE THE RIVAL", "L:623"),
-    "L5.REST_RULE": _spec(GRADED, A, "THE REST RULE (its log)", "L:529"),
-    "L5.OWN_LOSSES": _spec(GRADED, A, "ITS END LINE'S LOSSES", "L:554"),
-    "L5.OWN_TRAINING": _spec(GRADED, A, "ITS END LINE'S TRAINING", "L:562"),
+    "L5.TRAINED": _spec(DIAGNOSTIC, A, "TRAINED BEFORE THE RIVAL", "L:623",
+                        dropped="a live arm's training before the rival inside its own roam windows (row 35: no grass read in a launcher run; the sweep's R5.CH1_TRAINED grades the game's tall-grass steps)",
+                        since=RESOURCING),
+    "L5.REST_RULE": _spec(DIAGNOSTIC, A, "THE REST RULE (its log)", "L:529",
+                          dropped="a live arm's rest rule by its own battle log (row 36: no party HP at battle ends in a launcher run, and no game form of it separates, row 21)",
+                          since=RESOURCING),
+    "L5.OWN_LOSSES": _spec(DIAGNOSTIC, A, "ITS END LINE'S LOSSES", "L:554",
+                           dropped="a live arm's end line, log and told losses agree (AI against AI; row 37: the launcher's truth read has no battle outcomes; the sweep's R5.LOSSES_AGREE is the HONESTY check)",
+                           since=RESOURCING),
+    "L5.OWN_TRAINING": _spec(DIAGNOSTIC, A, "ITS END LINE'S TRAINING", "L:562",
+                             dropped="a live arm's end line's training counts equal its log's (AI against AI; row 38: no game counterpart in a launcher run)",
+                             since=RESOURCING),
     "L5.TOLD_WILD": _spec(HONESTY, A + "+" + G, "THE GAME AGREES WITH ITS COUNT", "L:634"),
-    "L5.SPINS": _spec(GRADED, A, "ROAMING, NOT SPINNING", "L:641"),
+    "L5.SPINS": _spec(DIAGNOSTIC, A, "ROAMING, NOT SPINNING", "L:641",
+                      dropped="a live arm's spins by its own roam reports (row 39: no press log with facing in a launcher run, and no spin control exists, row 20)",
+                      since=RESOURCING),
     "L5.CH2_WALLY": _spec(GRADED, G, "THE GAME: WALLY's tutorial", "L:655"),
     "L5.CAUGHT": _spec(GRADED, G, "CAUGHT:", "L:664"),
     "L5.HEALED": _spec(GRADED, G, "HEALED:", "L:668"),
     "L5.ITEMS": _spec(GRADED, G, "ITEMS:", "L:670"),
-    "L5.SHOPPED": _spec(GRADED, A, "SHOPPED (its told purchase)", "L:674"),
+    # (build step 5.3, the RE-SOURCING build, item 13 and the plan's (c)) "it shopped" is GRADED by the GAME alone
+    # (L5.SHOPPED_GAME: money fell AND POKé BALLS rose from the run's start to its end, `truth_of`), an ACHIEVEMENT check
+    # under the plan's rule (e); the AI's told purchases are HONESTY, each judged by that same game read, and a run that
+    # told none reads VACUOUS, waived (`grader_waivers.json`): an AI that shops without saying so is not lying
+    "L5.SHOPPED": _spec(HONESTY, A + "+" + G, "SHOPPED (its told purchase)", "L:674"),
+    "L5.SHOPPED_GAME": _spec(GRADED, G, "SHOPPED, BY THE GAME", "re-sourcing plan (c)"),
     "L5.FROZEN": _spec(GRADED, H, "FROZEN TREE", "L:758"),
     "L5.POOLED_SPINS": _spec(DIAGNOSTIC, A, "the CH1 arms' spins together", "L:769-777",
                              dropped="the CH1 arms' spins pooled under 2 % of their roam steps (the AI's roam reports)"),
@@ -240,8 +303,21 @@ CHECKS: dict[str, Spec] = {
 #: moves its own checks; tightening a graded bound fails the sweep). ASIDE_STREAK_MAX joined it in the A1 fix round, when
 #: its live reader `L5.ASIDE_BACK` became DIAGNOSTIC like `R5.ASIDE_BACK` (ruling F4); a key read by one counting check and
 #: one that does not count (LOAF_FRAMES_MAX: R5.NO_LOAFING GRADED, L5.NO_LOAFING DIAGNOSTIC) stays out.
+#: (The re-sourcing build, item 14) six more joined it when their only readers became REPORTED (the A2 decision addendum's
+#: rows 20, 23 and 25): the spins' two bounds, the seed divergence's two, and NO SPEEDRUN's time ratio and dex budget.
+#: (The re-sourcing FIX round, items 8 and 9) three more: BLOCKED's reach (its two bounds, now read only by the DIAGNOSTIC
+#: R5.BLOCKED_REACH) and YIELD_RATE_MIN (R5.LOAF no longer reads its yield; the two REPORTED yields are its only readers).
 UNGRADED_BOUNDS: dict[str, tuple[str, ...]] = {
     "ASIDE_STREAK_MAX": ("R5.ASIDE_BACK", "L5.ASIDE_BACK"),
+    "BLOCKED_REACH_HITS": ("R5.BLOCKED_REACH",),
+    "BLOCKED_REACH_MIN": ("R5.BLOCKED_REACH",),
+    "YIELD_RATE_MIN": ("R5.CH1_YIELD", "R5.CH2_YIELD"),
+    "CH1_SPIN_MAX": ("R5.CH1_SPINS",),
+    "CH1_SPINS_PER_SEED": ("R5.CH1_SPINS",),
+    "DEX_FRAMES_MAX": ("R5.NO_SPEEDRUN",),
+    "DIV_GOALS_MIN": ("R5.SEED_DIVERGENCE",),
+    "DIV_TILES_MIN": ("R5.SEED_DIVERGENCE",),
+    "SLOWER_THAN_BEELINE_MIN": ("R5.NO_SPEEDRUN",),
     "CH2_OFF_UNDER_MIN": ("R5.CH2_OFF_UNDER",),
     "CURIOSITY_MIN": ("R5.CH1_INTENT_MIX",),
     "CUR_DIV_MIN": ("R5.ERRANDS_DIFFER",),
@@ -290,10 +366,19 @@ def rule_problems(check_id: str, kind: str, inputs: frozenset, debt: dict) -> li
         problems.append(f"{check_id}: inputs {sorted(inputs)} must be a non-empty subset of {sorted(INPUTS)}")
     if kind == GRADED and AI in inputs and check_id not in debt:
         problems.append(f"{check_id}: a GRADED check that reads an AI input must be listed in b1_debt.json")
-    if kind == HONESTY and not {AI, GAME} <= inputs:
-        problems.append(f"{check_id}: a HONESTY check judges the AI's word against the game: it must name both ai and "
-                        f"game, not {sorted(inputs)}")
+    if kind == HONESTY and not honesty_halves(inputs):
+        problems.append(f"{check_id}: a HONESTY check judges the AI's word against a record it cannot write: it must name "
+                        f"ai and a truth half (game or harness), not {sorted(inputs)}")
     return problems
+
+
+def honesty_halves(inputs: frozenset) -> bool:
+    """(Re-sourcing build item 11: THE AMENDMENT to spec A1-1, logged in `06` 2026-10-24) A HONESTY check's two halves: the
+    AI's claim (`ai`) AND a truth half the AI cannot write, the GAME or (the amendment) an instrument of the HARNESS. WHY
+    the harness counts as truth: L5.PURITY_PRESSES and L5.PURITY_FRAMES judge the AI pad's own counts against the
+    instrument's count at the emulator's door, the only record of the presses that reached the game; the game itself has
+    no press count. A check naming only `ai`, or only the truth halves, is no HONESTY check."""
+    return AI in inputs and bool(inputs & {GAME, HARNESS})
 
 
 def validate(checks: dict[str, Spec], debt: dict, waivers: dict) -> None:
@@ -437,5 +522,5 @@ def evidence_lines(checks, waivers: dict | None = None, debt: dict | None = None
         spec = CHECKS[c.id]
         if spec.dropped and c.id not in dropped:
             dropped.append(c.id)
-            lines.append(f"NO LONGER GRADED {c.id} ({c.status}, DIAGNOSTIC since 5.3 A1): {spec.dropped}")
+            lines.append(f"NO LONGER GRADED {c.id} ({c.status}, DIAGNOSTIC since {spec.since}): {spec.dropped}")
     return lines

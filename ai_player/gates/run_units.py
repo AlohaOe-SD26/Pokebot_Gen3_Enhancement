@@ -71,6 +71,9 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # build step 5.3, stage A2: the A1 carry-overs and the five game reads' logic (offline, about 2 s; its
     # LiveKnownAnswerTests skip unless POKEBOT_A2_LIVE=1, which needs the ROM)
     "test_step53_a2": ([str(GATES / "test_step53_a2.py")], 2),
+    # build step 5.3, the re-sourcing build (builder 1): the re-sourced checks graded by the game or the harness alone,
+    # each with its fault and control, and the development-only re-grade (offline, under 1 s)
+    "test_step53_rs": ([str(GATES / "test_step53_rs.py")], 2),
     # build step 5.3, stage A2 (builder 2): the measurement of a kept development sweep (`measure_step5.py`) on synthetic
     # run folders with known answers, its decision table over every b1_debt.json id, and the G-3 rule for it (offline,
     # under 1 s)

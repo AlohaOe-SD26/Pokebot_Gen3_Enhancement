@@ -152,14 +152,20 @@ def healthy_purity_run() -> l5.Run:
 class PuritySampleTests(unittest.TestCase):
     def test_every_purity_check_carries_its_real_count_and_passes(self):
         run = healthy_purity_run()
-        l5.check_purity(run, "done: ch1_pokedex reached")
+        # (the 5.3 re-sourcing build, items 10 and 12) as `grade_common` calls it: no wanted outcome; the outcome is judged
+        # against the game's proof (`check_outcome`); L5.PURITY_ENDED is REPORTED from the harness's stop record (n 1, no
+        # floor: a check that never counts)
+        l5.check_purity(run, None)
+        l5.check_outcome(run, "ch1_pokedex", True, "the synthetic proof")
         found = {c.id: c for c in run.checks}
         self.assertEqual(set(found), set(PURITY))
         for key in PURITY:
             check = found[key]
             self.assertIsInstance(check.n, int, key)  # CONTROL: no n/floor "-" any more
-            self.assertIsInstance(check.floor, int, key)
+            if key != "L5.PURITY_ENDED":
+                self.assertIsInstance(check.floor, int, key)
             self.assertEqual(check.status, gc.PASS, (key, check.n, check.floor, check.text))
+        self.assertEqual((found["L5.PURITY_ENDED"].kind, found["L5.PURITY_ENDED"].n), (gc.REPORTED, 1))
         self.assertEqual((found["L5.PURITY_PRESSES"].n, found["L5.PURITY_FRAMES"].n), (10, 900))
         self.assertEqual((found["L5.PURITY_BREACHES"].n, found["L5.PURITY_BREACHES"].floor),
                          (len(l5.BREACH_COUNTERS), len(l5.BREACH_COUNTERS)))
@@ -167,9 +173,12 @@ class PuritySampleTests(unittest.TestCase):
 
     def test_a_run_that_left_nothing_to_judge_reads_vacuous_not_fail(self):
         run = live_run()  # no gate line, no verdict file, no hands line
-        l5.check_purity(run, "done: ch1_pokedex reached")
+        l5.check_purity(run, None)
+        l5.check_outcome(run, "ch1_pokedex", True, "the synthetic proof")
         statuses = {c.id: (c.status, c.n) for c in run.checks}
-        self.assertEqual(statuses, {key: (gc.VACUOUS, 0) for key in PURITY})  # FAULT: nothing judged, said so
+        # FAULT: nothing judged, said so; (the 5.3 re-sourcing build) except who ended the run, which the harness always
+        # knows (exit code 0 here: `by: ai`), REPORTED and never counted
+        self.assertEqual(statuses, {**{key: (gc.VACUOUS, 0) for key in PURITY}, "L5.PURITY_ENDED": (gc.PASS, 1)})
         self.assertFalse(run.passed)  # VACUOUS fails the verdict (no purity check is waived)
         lines = gc.evidence_lines(run.checks)
         self.assertTrue(any(x.startswith("  [VACUOUS] L5.PURITY_CLEAN GRADED n/floor 0/1 ") for x in lines), lines[:3])

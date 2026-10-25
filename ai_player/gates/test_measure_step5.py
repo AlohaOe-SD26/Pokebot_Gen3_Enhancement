@@ -293,12 +293,20 @@ def measured(plan: str, seed: int, **values) -> dict:
 
 class TableTests(unittest.TestCase):
     def test_every_debt_id_has_a_rule_and_an_id_without_one_raises(self):
-        """CONTROL: the real `b1_debt.json` (39 ids) gets 39 rows whose counts add up to 39. FAULT: an id with no rule
+        """CONTROL: the real `b1_debt.json` (39 ids at A2; 5 since the re-sourcing build) gets one row per id, whose counts
+        add up to the ids. FAULT: an id with no rule
         raises (a new debt row must get its measurement, never a silent hole)."""
         rows, counts = ms.decision_table({})
         self.assertEqual((len(rows), sum(counts.values())), (len(ms.debt_ids()), len(ms.debt_ids())))
-        self.assertEqual(len(ms.debt_ids()), 39)
-        self.assertEqual(sorted(ms.debt_ids()), sorted(ms.ROW_RULES))
+        # (build step 5.3, the re-sourcing build) the debt shrinks as rows are re-sourced (39 at A2's measurement; builder
+        # 1 removed 10, builder 2 another 24: the 5 left are the addendum's items 5, 8 and 9, not built): every id STILL in
+        # the debt has its rule; a rule for a row already paid stays (A2's record)
+        # (the re-sourcing FIX round) the last 5 left too (items 5, 8 and 9 built): the live debt is EMPTY, so the CONTROL
+        # of one row per id is held on A2's own 39 ids as well (it would be vacuous on an empty debt alone)
+        self.assertEqual(len(ms.debt_ids()), 0)
+        self.assertLessEqual(set(ms.debt_ids()), set(ms.ROW_RULES))
+        rows, counts = ms.decision_table({}, list(ms.ROW_RULES))
+        self.assertEqual((len(rows), sum(counts.values())), (39, 39))
         with self.assertRaisesRegex(KeyError, r"no measurement rule in measure_step5\.ROW_RULES: \['R5\.NEW_DEBT'\]"):
             ms.decision_table({}, ms.debt_ids() + ["R5.NEW_DEBT"])
 
@@ -423,8 +431,10 @@ class TableTests(unittest.TestCase):
         self.assertTrue(ms.ROW_RULES["R5.SEED_DIVERGENCE"](far)["verdict"].startswith("NO NUMBER"))
 
     def test_ruling_rows_print_ruling_and_the_counts_add_up(self):
-        """The plans that are a coordinator's ruling print RULING whatever was measured (6 of them)."""
-        rows, counts = ms.decision_table({})
+        """The plans that are a coordinator's ruling print RULING whatever was measured (6 of them). (The re-sourcing build)
+        on A2's own 39 ids, every rule's id (`ROW_RULES`): those six rows have left the live debt, which this test of the
+        measurement's rules must not depend on."""
+        rows, counts = ms.decision_table({}, list(ms.ROW_RULES))
         self.assertEqual(sorted(r["id"] for r in rows if r["verdict"] == "RULING"),
                          sorted(["L5.PURITY_PRESSES", "L5.PURITY_FRAMES", "L5.PRESS_GATES", "L5.A_KINDS", "L5.BLIND",
                                  "L5.HAS_GOAL"]))
@@ -443,9 +453,13 @@ class TableTests(unittest.TestCase):
         text = out.getvalue()
         self.assertEqual(code, 0)
         for needle in ("THE REAL CODE'S BASE RATE", "PLAN CH1:", "PLAN NOTRAIN:", "GAPS", "CH1 - NOTRAIN grass_before_rival: "
-                       "pairs [(1, 2, 0, 2)]", "R5.CH1_TRAINED: SEPARATES", "DECISION TABLE COUNTS:"):
+                       "pairs [(1, 2, 0, 2)]", "DECISION TABLE COUNTS:"):
             self.assertIn(needle, text)
-        self.assertEqual(sum(saved["counts"].values()), 39)
+        # (the re-sourcing FIX round) the live debt is EMPTY, so the table has no row (its rules are held on A2's 39 ids by
+        # test_ruling_rows_print_ruling_and_the_counts_add_up); the needle that named the last debt row is gone
+        self.assertNotIn("R5.CH2_NOBATTLE: NO NUMBER", text)
+        # (the re-sourcing build) one row per id still in the debt (R5.CH1_TRAINED left it: re-sourced to the grass read)
+        self.assertEqual(sum(saved["counts"].values()), len(ms.debt_ids()))
 
     def test_main_prints_no_number_for_a_run_whose_starts_and_ends_do_not_alternate(self):
         """(The A2 fix round) end to end: the CH2 run's line and its plan line read NO NUMBER for the HP-fraction quantity

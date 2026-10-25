@@ -68,8 +68,15 @@ def row(plan: str, seed: int, personality: str = "Story", **more) -> dict:
         loaf_frames=400, loaf_frames_all=500, yield_agree=1, curious=[("exp", 1, 1, 1, 1, 9)],
         detours=[(1, ["0:9", 1, 1], 1, 1)], streak_goals=2, streak_frames=3000, push_ai=900, push_game=950,
         push_game_at=[0, 0], person_blocks=0, left_called_new=[], left_judged=2, left_skipped=0, ask_nothing_said=0,
-        places_samples=100, out_of_ideas=False, chats_idle=[], text_errors=0, talks_ai=0, talks_apart=[])
+        places_samples=100, out_of_ideas=False, chats_idle=[], text_errors=0, talks_ai=0, talks_apart=[],
+        # (build step 5.3, the re-sourcing build) the GAME reads the re-sourced checks grade by: tall-grass steps before
+        # the rival (over the Story floor 70; NOTRAIN's are 30 below), the training stint, the frames to the POKéDEX less
+        # the game's battles (ERRANDS_OFF's are 80,000 below: 1.25 slower), WALLY's (none in chapter 1)
+        grass_before_rival=150, grass_stint=50000, dex_game={"frame": 140000, "no_battle": 100000, "at_end": False},
+        wally_game=None)
     base.update(more)
+    # the GAME's stood tiles (`game_stood`) are the same tiles as the row's `_tiles` unless a test gives its own
+    base.setdefault("_stood", set(base["_tiles"]))
     return base
 
 
@@ -82,10 +89,11 @@ def sweep() -> dict[str, list[dict]]:
     # one CH1 run lost a battle: phase 2's STOP plans have a run to replay
     out["CH1"][0].update(losses_game=1, losses_ai=1, losses_told=1, first_loss_f=5000, last_loss_f=5000)
     out["NOTRAIN"] = [row("NOTRAIN", s, p, wild_won_before_rival=2, game_train_steps=0, game_train_won=0, train_windows=0,
-                          level_at_rival=7) for s, p in people.items()]
+                          level_at_rival=7, grass_before_rival=30) for s, p in people.items()]
     out["NOHINTS"] = [row("NOHINTS", s, p, reached=s % 2 == 0, out_of_ideas=s % 2 == 1) for s, p in people.items()]
     out["DEADREST"] = [row("DEADREST", s, p, rest_breaches=[(1, "f1 ended at 3/20", "won")]) for s, p in people.items()]
     out["ERRANDS_OFF"] = [row("ERRANDS_OFF", s, p, dex_frame=120000, time={"outside_nb": 60000, "battles": 5000},
+                              dex_game={"frame": 120000, "no_battle": 80000, "at_end": False},
                               mix={"errand_share": 0.4, "curiosity_share": 0.0, "kinds": ["train"], "free_share": 0.0,
                                    "free_frames": 0, "story_own": [], "frames": {"train": 30000}},
                               _sequence=["go@A", "train@C", "go@E", f"go@F{s}"], _tiles={"CORRIDOR 1,1", "CORRIDOR 2,2",
@@ -101,12 +109,17 @@ def sweep() -> dict[str, list[dict]]:
     out["CH2"] = [row("CH2", s, p, wally=True, frames=90000, place_draws=2, place_draws_judged=2,
                       mix={"errand_share": 0.4, "curiosity_share": 0.2, "kinds": ["explore"], "free_share": 0.1,
                            "free_frames": 9000, "story_own": [], "frames": {"explore": 9000}},
-                      time_wally={"outside_nb": 50000}) for s, p in people.items()]
+                      time_wally={"outside_nb": 50000},
+                      # (the re-sourcing fix round, item 5) the GAME's frames to WALLY less its battles: 1.25 x CH2_OFF's
+                      wally_game={"frame": 60000, "no_battle": 50000, "at_end": False}) for s, p in people.items()]
     out["CH2_OFF"] = [row("CH2_OFF", s, p, wally=True, mix={"errand_share": 0.1, "curiosity_share": 0.0, "kinds": [],
                                                           "free_share": 0.0, "free_frames": 0, "story_own": [],
                                                           "frames": {}},
-                          time_wally={"outside_nb": 40000}) for s, p in people.items()]
-    out["LOAF"] = [row("LOAF", s, p, loaf_frames=BOUNDS["LOAF_FRAMES_MAX"] + 1, seeing_productive=600)
+                          time_wally={"outside_nb": 40000}, wally_game={"frame": 50000, "no_battle": 40000, "at_end": False})
+                      for s, p in people.items()]
+    # (the re-sourcing fix round, item 9) LOAF fails R5.NO_LOAFING by the GAME's push (both paths over: the paths agree)
+    out["LOAF"] = [row("LOAF", s, p, loaf_frames=BOUNDS["LOAF_FRAMES_MAX"] + 1, seeing_productive=600,
+                       push_ai=BOUNDS["LOAF_FRAMES_MAX"] + 50, push_game=BOUNDS["LOAF_FRAMES_MAX"] + 60)
                    for s, p in people.items()]
     out["BLOCKED"] = [row("BLOCKED", 1, person_blocks=5, push_ai=BOUNDS["PUSH_MAX"] + 9, push_game=BOUNDS["PUSH_MAX"] + 9),
                       row("BLOCKED", 2)]
@@ -181,7 +194,8 @@ class TypedSweepTests(unittest.TestCase):
         spaced = by_id(results)["R5.SPACED"][0]
         self.assertEqual(spaced.status, gc.FAIL)
         self.assertEqual(gc.verdict(results), "PASS")  # CONTROL: a DIAGNOSTIC failure never counts
-        rows["CH1"][1]["loaf_frames"] = BOUNDS["LOAF_FRAMES_MAX"] + 1  # NO LOAFING: GRADED (B1 debt)
+        # NO LOAFING: GRADED (by the game's push since the re-sourcing fix round)
+        rows["CH1"][1].update(push_ai=BOUNDS["LOAF_FRAMES_MAX"], push_game=BOUNDS["LOAF_FRAMES_MAX"])
         results = grade_sweep(rows)
         self.assertEqual(by_id(results)["R5.NO_LOAFING"][0].status, gc.FAIL)
         self.assertEqual(gc.verdict(results), "FAIL")  # FAULT
@@ -219,7 +233,7 @@ class TypedSweepTests(unittest.TestCase):
 
         folder = Path(tempfile.mkdtemp(prefix="a1main_"))
         self.addCleanup(lambda: __import__("shutil").rmtree(folder, ignore_errors=True))
-        argv = ["rate_step5.py", "--purpose", "development", "--first-seed", "1", "--seeds", "4", "--plans", "CH1",
+        argv = ["rate_step5.py", "--purpose", "development", "--first-seed", "1", "--seeds", "4", "--plans", ",".join(rows),
                 "--workers", "1", "--evidence-tag", "a1test"]
         with mock.patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()), \
                 mock.patch.object(disk_budget, "preflight", lambda: (True, "DISK: (faked)")), \
@@ -239,17 +253,20 @@ class TypedSweepTests(unittest.TestCase):
 
     def test_the_sweeps_verdict_is_the_typed_rule(self):
         """The driver's own VERDICT line is `grader_checks.verdict` (a GRADED failure fails it, a DIAGNOSTIC one does not)."""
-        rows = {"CH1": sweep()["CH1"]}
+        # (the re-sourcing build) NOTRAIN beside CH1: R5.CH1_TRAINED judges its Trainer and Catcher seeds PAIRED with
+        # NOTRAIN, and a personality with runs but no pair never passes
+        rows = {"CH1": sweep()["CH1"], "NOTRAIN": sweep()["NOTRAIN"]}
         code, evidence = self.drive_main(rows)
         self.assertEqual(code, 0, [line for line in evidence.splitlines() if line.startswith("  [") and "[PASS]" not in line])
         self.assertIn("VERDICT: PASS", evidence)  # CONTROL
         self.assertIn("  [PASS] R5.CH1_REACHED GRADED n/floor 4/1 inputs game: ", evidence)
-        self.assertIn("B1 DEBT R5.NO_LOAFING", evidence)
+        # (the re-sourcing fix round) the debt is EMPTY: no GRADED check reads the AI, so no B1 DEBT line is printed
+        self.assertNotIn("B1 DEBT ", evidence)
         rows["CH1"][1]["streak_goals"] = BOUNDS["SPACING_ROW_MAX"] + 3  # DIAGNOSTIC: printed, not counted
         code, evidence = self.drive_main(rows)
         self.assertEqual(code, 0)
         self.assertIn("  [FAIL] R5.SPACED DIAGNOSTIC", evidence)
-        rows["CH1"][1]["loaf_frames"] = BOUNDS["LOAF_FRAMES_MAX"] + 1  # GRADED: fails the sweep
+        rows["CH1"][1].update(push_ai=BOUNDS["LOAF_FRAMES_MAX"], push_game=BOUNDS["LOAF_FRAMES_MAX"])  # GRADED: fails it
         code, evidence = self.drive_main(rows)
         self.assertEqual(code, 1)  # FAULT
         self.assertIn("VERDICT: FAIL", evidence)
@@ -278,10 +295,12 @@ class CheckRuleTests(unittest.TestCase):
         gc.Check("X.TWO", gc.GRADED, gc.PASS, 1, 1, {"game"}, "t", debt={})  # CONTROL: no AI input, no debt needed
 
     def test_a_honesty_check_names_both_halves(self):
-        for inputs in ({"ai"}, {"game"}, {"ai", "harness"}):
+        # (the 5.3 re-sourcing build, item 11: THE AMENDMENT to A1-1) the truth half is the game OR the harness
+        for inputs in ({"ai"}, {"game"}, {"harness"}, {"game", "harness"}):
             with self.assertRaises(gc.CheckError, msg=inputs):  # FAULT
                 gc.Check("X.H", gc.HONESTY, gc.PASS, 1, 1, inputs, "t", debt={})
         gc.Check("X.H", gc.HONESTY, gc.PASS, 1, 1, {"ai", "game"}, "t", debt={})  # CONTROL
+        gc.Check("X.H", gc.HONESTY, gc.PASS, 1, 1, {"ai", "harness"}, "t", debt={})  # CONTROL: the amendment
 
     def test_unknown_kinds_inputs_and_statuses_refuse(self):
         for kind, status, inputs in (("GRADE", gc.PASS, {"game"}), (gc.GRADED, "OK", {"game"}),
@@ -290,10 +309,12 @@ class CheckRuleTests(unittest.TestCase):
                 gc.Check("X.K", kind, status, 1, 1, inputs, "t", debt={})
 
     def test_the_table_and_the_files_agree_both_ways(self):
-        gc.validate(gc.CHECKS, gc.DEBT, gc.WAIVERS)  # CONTROL: as they stand
-        missing = {k: v for k, v in gc.DEBT.items() if k != "R5.NO_LOAFING"}
+        gc.validate(gc.CHECKS, gc.DEBT, gc.WAIVERS)  # CONTROL: as they stand (the debt EMPTY since the re-sourcing fix round)
+        self.assertEqual(gc.DEBT, {})
+        reads_ai = {**gc.CHECKS, "R5.ZZ_SYNTHETIC": gc._spec(gc.GRADED, "game+ai", "ZZ SYNTHETIC")}
         with self.assertRaises(gc.CheckError):  # FAULT: a GRADED AI-reading check not in the debt
-            gc.validate(gc.CHECKS, missing, gc.WAIVERS)
+            gc.validate(reads_ai, gc.DEBT, gc.WAIVERS)
+        gc.validate(reads_ai, {"R5.ZZ_SYNTHETIC": {"ai_input": "x", "plan": "y"}}, gc.WAIVERS)  # CONTROL: listed
         with self.assertRaises(gc.CheckError):  # FAULT: a stale debt entry (a GAME check)
             gc.validate(gc.CHECKS, {**gc.DEBT, "R5.CH1_REACHED": {"ai_input": "x", "plan": "y"}}, gc.WAIVERS)
         with self.assertRaises(gc.CheckError):  # FAULT: a waiver for no check
@@ -302,13 +323,16 @@ class CheckRuleTests(unittest.TestCase):
     def test_the_import_itself_validates(self):
         """The module refuses to load with a debt file that misses a check (the call at import, not just the function)."""
         source = (Path(gc.__file__)).read_text(encoding="utf-8")
+        # (the re-sourcing fix round: the debt is EMPTY) the FAULT is now the table's side: R5.NO_LOAFING patched back to
+        # reading the AI, with the real (empty) debt file. The stale-entry side is the second fault below
         with tempfile.TemporaryDirectory() as folder:
             bad = Path(folder) / "debt.json"
             debt = json.loads(gc.DEBT_FILE.read_text(encoding="utf-8"))
-            debt["debt"].pop("R5.NO_LOAFING")
+            self.assertEqual(debt["debt"], {})
             bad.write_text(json.dumps(debt), encoding="utf-8")
-            patched = source.replace('DEBT_FILE = GATES / "b1_debt.json"', f"DEBT_FILE = Path({str(bad)!r})")
-            self.assertNotEqual(patched, source)
+            patched = source.replace('DEBT_FILE = GATES / "b1_debt.json"', f"DEBT_FILE = Path({str(bad)!r})").replace(
+                '"R5.NO_LOAFING": _spec(GRADED, G,', '"R5.NO_LOAFING": _spec(GRADED, G + "+" + A,')
+            self.assertEqual(patched.count('"R5.NO_LOAFING": _spec(GRADED, G + "+" + A,'), 1)
             def load(text: str, name: str) -> None:
                 module = types.ModuleType(name)
                 module.__file__ = gc.__file__
@@ -321,6 +345,11 @@ class CheckRuleTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, re.escape("R5.NO_LOAFING: a GRADED check that reads an AI input")) as raised:
                 load(patched, "grader_checks_patched")  # FAULT (the patched module's own CheckError, a ValueError)
             self.assertEqual(type(raised.exception).__name__, "CheckError")
+            stale = Path(folder) / "stale.json"
+            stale.write_text(json.dumps({"debt": {"R5.NO_LOAFING": {"ai_input": "x", "plan": "y"}}}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, re.escape("b1_debt.json lists 'R5.NO_LOAFING', which is not a GRADED")):
+                load(source.replace('DEBT_FILE = GATES / "b1_debt.json"', f"DEBT_FILE = Path({str(stale)!r})"),
+                     "grader_checks_stale")  # FAULT: a paid debt left in the file
             load(source.replace('DEBT_FILE = GATES / "b1_debt.json"', f"DEBT_FILE = Path({str(gc.DEBT_FILE)!r})"),
                  "grader_checks_good")  # CONTROL
 
@@ -483,7 +512,10 @@ class OwnedValueTests(unittest.TestCase):
     def test_lose3_grades_the_harness_recorded_max_losses(self):
         self.assertTrue(self.lose3(max_losses=4))  # CONTROL: the copy played with 4, the harness says so
         self.assertFalse(self.lose3(max_losses=3))  # FAULT: the run's stop text disagrees with the recorded limit
-        rows = [row("LOSE3", 2, "Catcher", max_losses=3), row("LOSE3", 5, "Catcher", max_losses=4)]
+        # (the re-sourcing build) both runs reached their cap, so the check has its floor of samples: the disagreeing
+        # records alone fail it (a sweep where none reached the cap is VACUOUS, which fails the verdict too)
+        rows = [row("LOSE3", 2, "Catcher", max_losses=3, losses_game=3, last_loss_f=1000, frames=1600),
+                row("LOSE3", 5, "Catcher", max_losses=4, losses_game=4, last_loss_f=1000, frames=1600)]
         self.assertEqual(next(c for c in rs.step51_verdicts({"LOSE3": rows}) if c.id == "R5.LOSE3").status, gc.FAIL)
 
     def patience(self, **more) -> str:
@@ -787,7 +819,9 @@ class UngradedBoundTests(unittest.TestCase):
         # CONTROL: a bound read by counting checks and by one that does not count (R5.NO_LOAFING and R5.LOAF GRADED,
         # L5.NO_LOAFING DIAGNOSTIC) is not in the table. (Before the A1 fix round this control was ASIDE_STREAK_MAX, read by
         # a GRADED L5.ASIDE_BACK; ruling F4 made that check DIAGNOSTIC, so the bound is now ungraded and in the table.)
-        self.assertEqual(readers["LOAF_FRAMES_MAX"], {"R5.NO_LOAFING", "R5.LOAF", "L5.NO_LOAFING"})
+        # (the re-sourcing fix round) its readers now include R5.PUSH_PATHS_AGREE (HONESTY: the paths' verdicts at each push
+        # bound) and the helper `game_loafed` ("?", taken as counted)
+        self.assertEqual(readers["LOAF_FRAMES_MAX"], {"R5.NO_LOAFING", "R5.LOAF", "R5.PUSH_PATHS_AGREE", "L5.NO_LOAFING", "?"})
         self.assertNotIn("LOAF_FRAMES_MAX", gc.UNGRADED_BOUNDS)
         self.assertEqual(set(gc.UNGRADED_BOUNDS["ASIDE_STREAK_MAX"]), {"R5.ASIDE_BACK", "L5.ASIDE_BACK"})
 
@@ -797,7 +831,8 @@ class UngradedBoundTests(unittest.TestCase):
         before = {c.id: c.status for c in healthy}
         for key, ids in gc.UNGRADED_BOUNDS.items():
             value = BOUNDS[key]
-            tight = 10 ** 9 if key.endswith("_MIN") else -10 ** 9
+            # (the re-sourcing fix round) BLOCKED_REACH_HITS is a minimum too (blocks met at least this many times)
+            tight = 10 ** 9 if key.endswith(("_MIN", "_HITS")) else -10 ** 9
             with self.subTest(key), mock.patch.dict(BOUNDS, {key: tight}):
                 edited = grade_sweep(sweep())
                 self.assertEqual(gc.verdict(edited), "PASS", key)  # it counts in no verdict
@@ -978,7 +1013,11 @@ class AbsenceWaiverTests(unittest.TestCase):
     ABSENCE = {"R5.LEFT_NOT_NEW", "R5.CH2_NEW_PLACE"}
 
     def test_the_waiver_file_waives_exactly_the_two_absence_guards(self):
-        self.assertEqual(set(gc.WAIVERS), self.ABSENCE)
+        # (the 5.3 re-sourcing build, item 13: the re-sourcing plan's (c)) and L5.SHOPPED's no-claim VACUOUS, whose game
+        # achievement is graded apart (`test_step53_rs.ShoppedTests`): nothing else is waived
+        self.assertEqual(set(gc.WAIVERS), self.ABSENCE | {"L5.SHOPPED"})
+        self.assertIn("L5.SHOPPED_GAME", gc.WAIVERS["L5.SHOPPED"]["reason"])
+        self.assertEqual(gc.CHECKS["L5.SHOPPED"].kind, gc.HONESTY)
         for key in self.ABSENCE:
             reason = gc.WAIVERS[key]["reason"]
             self.assertIn("ABSENCE", reason, key)
@@ -1101,7 +1140,11 @@ def purity_run(exit_reason: str = "play: done: ch1_pokedex reached", pad: str = 
     counters.update(ai_presses=10, real_frames=100, foreign_presses=foreign_presses)
     run.verdict = {"verdict": "CLEAN", "counters": counters,
                    "facts": {"exit_reason": exit_reason, "exit_code": 0, "package_root": str(live_step2.REPO)}}
-    live_step2.check_purity(run, "done: ch1_pokedex reached")
+    # (the 5.3 re-sourcing build, items 10 and 12) as `live_step5.grade_common` calls it: no wanted outcome (the outcome is
+    # HONESTY against the game's proof, `check_outcome`, here a proof that holds); L5.PURITY_ENDED is re-made from the
+    # harness's stop record
+    live_step2.check_purity(run, None)
+    ls.check_outcome(run, "ch1_pokedex", True, "the synthetic proof")
     return {c.id: c.status for c in run.checks}
 
 
@@ -1124,38 +1167,42 @@ def undeclared_ai_inputs() -> list[str]:
 
 
 class PurityInputTests(unittest.TestCase):
-    """(A1 fix round, F3: the stage-A1 verifier's failure 3) L5.PURITY_ENDED reads `exit_reason`, which for a clean exit
-    is the BRAIN's text: its declared inputs name `ai`, it is B1 debt (A2: the end cause from the harness's own record),
-    and no check whose status the AI's own text can move may declare its inputs without `ai`."""
+    """(A1 fix round, F3: the stage-A1 verifier's failure 3) L5.PURITY_ENDED read `exit_reason`, which for a clean exit is
+    the BRAIN's text, so it declared `ai` and was B1 debt. (The 5.3 re-sourcing build, item 10) it is now REPORTED from the
+    harness's own stop record, so the AI's text no longer moves it; and still no check whose status the AI's own text can
+    move may declare its inputs without `ai` (L5.PURITY_OUTCOME, HONESTY, is moved by it and declares it)."""
 
     def test_the_healthy_run_passes_every_purity_check(self):
         healthy = purity_run()
         self.assertEqual(set(healthy.values()), {gc.PASS}, healthy)  # CONTROL: the fixture is healthy
         self.assertEqual(purity_run(foreign_presses=1)["L5.PURITY_BREACHES"], gc.FAIL)  # a harness-only change
 
-    def test_the_ais_reason_flips_the_ended_check_which_declares_ai(self):
+    def test_the_ais_reason_no_longer_moves_the_ended_check(self):
         moved = purity_run(exit_reason="wall-clock: the brain's own reason text")
-        self.assertEqual(moved["L5.PURITY_ENDED"], gc.FAIL)  # the AI's text alone moves it (the verifier's case)
-        self.assertEqual(gc.CHECKS["L5.PURITY_ENDED"].inputs, frozenset({"harness", "ai"}))
-        self.assertIn("L5.PURITY_ENDED", gc.DEBT)
-        self.assertIn("HARNESS's own record", gc.DEBT["L5.PURITY_ENDED"]["plan"])
+        self.assertEqual(moved["L5.PURITY_ENDED"], gc.PASS)  # the AI's text alone no longer moves it (exit code 0)
+        self.assertEqual(moved["L5.PURITY_OUTCOME"], gc.FAIL)  # the AI's claim of a stop under the game's proof: a lie
+        self.assertEqual((gc.CHECKS["L5.PURITY_ENDED"].kind, gc.CHECKS["L5.PURITY_ENDED"].inputs),
+                         (gc.REPORTED, frozenset({"harness"})))
+        self.assertNotIn("L5.PURITY_ENDED", gc.DEBT)  # its debt row left with the re-sourcing
         self.assertEqual(undeclared_ai_inputs(), [])  # CONTROL: every check the AI's text moves declares ai
 
     def test_a_check_declared_without_ai_that_the_ais_text_moves_is_found(self):
         import dataclasses
-        harness_only = dataclasses.replace(gc.CHECKS["L5.PURITY_ENDED"], inputs=frozenset({"harness"}))
-        with mock.patch.dict(gc.CHECKS, {"L5.PURITY_ENDED": harness_only}):
-            self.assertEqual(undeclared_ai_inputs(), ["L5.PURITY_ENDED"])  # FAULT: the stage-A1 declaration
+        game_only = dataclasses.replace(gc.CHECKS["L5.PURITY_OUTCOME"], kind=gc.REPORTED, inputs=frozenset({"game"}))
+        with mock.patch.dict(gc.CHECKS, {"L5.PURITY_OUTCOME": game_only}):
+            self.assertEqual(undeclared_ai_inputs(), ["L5.PURITY_OUTCOME"])  # FAULT: the outcome declared without ai
 
     def test_the_construction_rule_refuses_the_ai_input_without_its_debt(self):
         text = "ended by itself: exit_reason='play: done' exit_code=0 process=0 real_frames=100 (budget 2)"
-        without = {k: v for k, v in gc.DEBT.items() if k != "L5.PURITY_ENDED"}
-        with self.assertRaisesRegex(gc.CheckError, re.escape("L5.PURITY_ENDED: a GRADED check that reads an AI input")):  # FAULT
-            gc.Check("L5.PURITY_ENDED", gc.GRADED, gc.PASS, None, None, {"harness", "ai"}, text, debt=without)
-        with self.assertRaises(gc.CheckError):  # FAULT: the table without the debt row refuses at validation
-            gc.validate(gc.CHECKS, without, gc.WAIVERS)
-        built = gc.Check("L5.PURITY_ENDED", gc.GRADED, gc.PASS, None, None, {"harness", "ai"}, text)  # CONTROL
-        self.assertEqual(built.inputs, frozenset({"harness", "ai"}))
+        with self.assertRaisesRegex(gc.CheckError, re.escape("L5.PURITY_ENDED: a GRADED check that reads an AI input")):
+            # FAULT: the stage-A1 declaration (GRADED, harness + ai) is refused now that its debt row has left the file
+            gc.Check("L5.PURITY_ENDED", gc.GRADED, gc.PASS, None, None, {"harness", "ai"}, text)
+        with self.assertRaises(gc.CheckError):  # FAULT: the table re-typed back to it refuses at validation
+            import dataclasses
+            gc.validate({**gc.CHECKS, "L5.PURITY_ENDED": dataclasses.replace(
+                gc.CHECKS["L5.PURITY_ENDED"], kind=gc.GRADED, inputs=frozenset({"harness", "ai"}))}, gc.DEBT, gc.WAIVERS)
+        built = gc.Check("L5.PURITY_ENDED", gc.REPORTED, gc.PASS, 1, None, {"harness"}, text)  # CONTROL: as re-typed
+        self.assertEqual(built.inputs, frozenset({"harness"}))
 
 
 class LiveTwinTests(unittest.TestCase):
@@ -1196,12 +1243,19 @@ class EvidenceWordingTests(unittest.TestCase):
     and #44's game half is exercised INSIDE `grade_run` from a chapter-1 seen-tiles file in `PlaceRecorder`'s format."""
 
     def test_a_b1_debt_line_prints_its_plan_once(self):
-        lines = [line for line in gc.evidence_lines(grade_sweep(sweep())) if line.startswith("B1 DEBT ")]
-        self.assertTrue(lines)
+        # (the re-sourcing fix round) the real debt is EMPTY: the real sweep prints no B1 DEBT line, and the printing rule
+        # is held on a synthetic debt row (a GRADED check reading the AI, listed with its plan)
+        self.assertEqual([line for line in gc.evidence_lines(grade_sweep(sweep())) if line.startswith("B1 DEBT ")], [])
+        debt = {"R5.ZZ_SYNTHETIC": {"ai_input": "its goal windows", "plan": "A2 decided: re-source to the game's push"}}
+        made = gc.Check("R5.ZZ_SYNTHETIC", gc.GRADED, gc.PASS, 1, 1, {"game", "ai"}, "t", debt=debt)
+        with mock.patch.dict(gc.CHECKS, {"R5.ZZ_SYNTHETIC": gc._spec(gc.GRADED, "game+ai", "ZZ SYNTHETIC")}):
+            lines = [line for line in gc.evidence_lines(grade_sweep(sweep()) + [made], debt=debt)
+                     if line.startswith("B1 DEBT ")]
+        self.assertEqual(len(lines), 1)
         for line in lines:
             check_id = line.split()[2]
             self.assertNotIn("A2: A2:", line)  # FAULT shape (the stage-A1 smoke's 13 lines)
-            self.assertTrue(line.endswith(f"; plan: {gc.DEBT[check_id]['plan']}"), line)  # CONTROL: the plan, verbatim
+            self.assertTrue(line.endswith(f"; plan: {debt[check_id]['plan']}"), line)  # CONTROL: the plan, verbatim
 
     def test_the_sweeps_header_names_step_5_3(self):
         driver = TypedSweepTests("test_the_sweeps_verdict_is_the_typed_rule")

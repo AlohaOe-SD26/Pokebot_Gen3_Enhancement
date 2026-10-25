@@ -187,6 +187,7 @@ what it was pointed at.** None was carelessness; all were plausible readings of 
 * ⛔ **A MUTANT ANCHOR IS A SUBSTRING: WHEN NEW CODE LANDS IN A FILE AN OLD GATE MUTATES, RUN THE OLD GATE FIRST**
   (added 2026-09-30, 08). Five phrases of the 10b code repeated 9b anchors at a deeper indent; 9b's mutants could not
   run until the new code was reworded.
+* ⛔ **RUN EVERY MUTANT WITH FRESH BYTECODE** (added 2026-10-25, `08` 2026-10-25): a same-size mutant written within one second of the original can run the cached `.pyc`, so a CAUGHT or SURVIVED verdict can be the old code's; set `PYTHONDONTWRITEBYTECODE=1` (`py -B`) and leave no `__pycache__` in the scratch copy.
 * ⛔ **READ THE INPUT-DIMENSION TABLE BACK FROM THE ROWS** (added 2026-09-30, 08). The 10b gate's header named values
   no row set; 23 mutants passed through them. For each value, grep the row that sets it before the first run.
 * ⛔ **TIME A NEW GATE AGAINST ITS SUITE TIMEOUT BEFORE REGISTERING IT** (added 2026-09-30, 08). `run_gates.py` kills
