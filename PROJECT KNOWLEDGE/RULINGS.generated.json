@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "9abcc2217bf9fc55c6e163411e7a1fc5b3835138",
+ "source_sha1_lf": "0bce73b25924c3d742137dbfbd24027aab08795f",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 333,
+  "sections": 334,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5196,6 +5196,19 @@
    "line_start": 9740,
    "line_end": 9752,
    "title": "2026-10-25 — Step 5.3's re-sourcing plan: the addendum's open items decided",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-25-11c24a",
+   "date": "2026-10-25",
+   "line_start": 9754,
+   "line_end": 9758,
+   "title": "2026-10-25 — Step 5.3's grader: a MISSING game read is left out of a check and named, never counted as a value",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],

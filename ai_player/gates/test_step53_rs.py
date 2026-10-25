@@ -392,6 +392,18 @@ class RegradeTests(unittest.TestCase):
                 rs.main()
             self.assertEqual(done.exception.code, 2)
 
+    def test_a_missing_game_push_read_is_none_never_zero(self):
+        # (the small weak proofs, 2026-10-25) FAULT: a run with no `places.push` read was given push_game 0, which passed
+        # the push checks silently; it is None now (left out of their n and named)
+        actions = [{"decision": "goal", "action": "go", "frame": 0}]
+        play = self.play()
+        del play["places"]["push"]
+        missing = rs.grade_run("CH1", 1307, "Catcher", "TREECKO", play, actions, 2.0)
+        self.assertEqual((missing["push_game"], missing["push_game_at"]), (None, None))
+        # CONTROL: a read of no stretch at all is a real 0, not a missing read
+        play["places"]["push"] = {"longest": [0, 0, 0, 0]}
+        self.assertEqual(rs.grade_run("CH1", 1307, "Catcher", "TREECKO", play, actions, 2.0)["push_game"], 0)
+
     def test_the_cli_regrades_a_kept_root_and_writes_regrade_evidence(self):
         from ai_player.gates import ledger
 
@@ -483,6 +495,10 @@ class NoSpeedrunHalvesTests(unittest.TestCase):
         self.assertEqual(self.check([160000, 160000, 80000, 80000]), gc.FAIL)  # FAULT: pooled 1.5, 2 ties, 2 of 4
         self.assertEqual(self.check([160000, 160000, 80100, 80000]), gc.PASS)  # CONTROL: one tie broken, 3 of 4
 
+    def test_slower_by_the_frames_not_the_rounded_ratio(self):
+        # (the small weak proofs, 2026-10-25) 80,010 against 80,000 is slower, though its ratio rounds to 1.0 for print
+        self.assertEqual(self.check([160000, 160000, 80010, 80010]), gc.PASS)  # was FAIL: 2 of 4 by the rounded ratio
+
 
 class Ch2NoBattleTests(unittest.TestCase):
     """Item 5: R5.CH2_NOBATTLE by the GAME's frames to WALLY's var less its battle frames, paired with CH2_OFF; the AI's own
@@ -509,6 +525,10 @@ class Ch2NoBattleTests(unittest.TestCase):
         self.assertEqual(self.check([80000, 80000, 40000, 40000]), gc.FAIL)  # FAULT: pooled 1.5, 2 ties, 2 of 4
         self.assertEqual(self.check([80000, 80000, 40100, 40100]), gc.PASS)  # CONTROL: the ties broken, 4 of 4
 
+    def test_slower_by_the_frames_not_the_rounded_ratio(self):
+        # (the small weak proofs, 2026-10-25) 40,010 against 40,000 is slower, though its ratio rounds to 1.0 for print
+        self.assertEqual(self.check([80000, 80000, 40010, 40010]), gc.PASS)  # was FAIL: 2 of 4 by the rounded ratio
+
     def test_the_ais_digests_are_no_longer_read(self):
         rows = dex_rows([46200] * 4, [40000] * 4, "wally_game", ("CH2", "CH2_OFF"))
         for r in rows["CH2"]:
@@ -532,6 +552,21 @@ class PushLoafTests(unittest.TestCase):
 
     def results(self, plan: str, rows_of_plan: list[dict]) -> list:
         return rs.step52_verdicts({**sweep(), plan: rows_of_plan})
+
+    def test_a_missing_game_push_read_is_left_out_and_named(self):
+        # (the small weak proofs, 2026-10-25) a run with no game push read is left out of each push check's n and named in
+        # its text, never counted as 0; with every read missing each push check reads VACUOUS (and nothing raises)
+        one = [row("NOHINTS", 1, push_ai=10, push_game=None)] + sweep()["NOHINTS"][1:]
+        results = self.results("NOHINTS", one)
+        for check in ("R5.PUSHING", "R5.NO_LOAFING"):
+            found = next(c for c in results if c.id == check)
+            self.assertEqual(found.status, gc.PASS)  # CONTROL: the other runs are still judged
+            self.assertIn("('NOHINTS', 1)", found.text)
+            self.assertEqual(found.n, next(c for c in rs.step52_verdicts(sweep()) if c.id == check).n - 1)
+        none = {plan: [dict(r, push_game=None, push_game_at=None) for r in plan_rows] for plan, plan_rows in sweep().items()}
+        results = rs.step52_verdicts(none)
+        for check in ("R5.PUSHING", "R5.NO_LOAFING", "R5.LOAF", "R5.BLOCKED", "R5.PUSH_PATHS_AGREE"):
+            self.assertEqual(status(results, check), gc.VACUOUS, check)  # FAULT: before, a missing read passed as 0
 
     def test_no_loafing_by_the_game(self):
         bound = BOUNDS["LOAF_FRAMES_MAX"]

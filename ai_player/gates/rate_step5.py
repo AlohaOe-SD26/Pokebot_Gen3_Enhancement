@@ -551,6 +551,10 @@ BOUNDS = {
     # (4,030) sits inside the game path's sampling bias (the same stretch read 3,950 by the AI's path) and the held-out
     # chance that LOAF shows nothing rises to 2.6-17.5 %. CH2 1311's old FAIL (4,430 AI-windowed) is a game push of 760
     "LOAF_FRAMES_MAX": 3000,
+    # (the small weak proofs, 2026-10-25) the launcher's DIAGNOSTIC L5.NO_LOAFING still bounds the AI-WINDOWED total (its
+    # record of what each curiosity goal brought), a different quantity from LOAF_FRAMES_MAX's game push: it keeps that
+    # quantity's old bound, 4000, under its own name. DIAGNOSTIC: printed, never graded
+    "LOAF_AI_FRAMES_MAX": 4000,
     # ... while the LOAF control (`EXTRA_EDITS` LOAF: looks round and detours among tiles it has stood on) is under
     # YIELD_RATE_MIN pooled (its looks' own yield: step52dev6 0.31, dev3 0.09 recounted) and over that bound in at least
     # this many of its runs (the per-run bound CAN fail). (First pre-set as a SHARE, 0.5 of the runs, from the span frames;
@@ -1470,6 +1474,14 @@ def game_loafed(row: dict) -> bool:
     return (row.get("push_game") or 0) >= BOUNDS["LOAF_FRAMES_MAX"]
 
 
+def push_read(rows: list[dict]) -> tuple[list[dict], list[tuple]]:
+    """(The small weak proofs, 2026-10-25) The rows WITH a game push read, and (plan, seed) of those without one. A push
+    check counts only the first in its n and lists the second in its text, so a missing read is never a silent 0 (every
+    read missing: n 0, VACUOUS)."""
+    return ([r for r in rows if r.get("push_game") is not None],
+            [(r.get("plan"), r.get("seed")) for r in rows if r.get("push_game") is None])
+
+
 def push_apart(ai: int, game: int, bound: int) -> bool:
     """(The re-sourcing FIX round, item 16(b)) True when the two paths' VERDICTS against `bound` DISAGREE: one at or over it,
     the other under, unless BOTH values lie within PUSH_AGREE_BAND of the bound, where the game path's sampling (one
@@ -1863,7 +1875,9 @@ def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, 
     curious = curiosity_rows(actions, data, offset)
     unproductive = {row["frame"] for row in curious if not row["game"]}
     streaks = curiosity_streaks(actions)
-    push_game = ((data.get("places") or {}).get("push") or {}).get("longest") or [0, 0, 0, 0]
+    # (the small weak proofs, 2026-10-25) a MISSING game push read is None, never 0: such a run is left out of the push
+    # checks' n and listed (`push_read`), so it cannot pass them silently; a read of no stretch at all stays 0
+    push_game = ((data.get("places") or {}).get("push") or {}).get("longest")
     return {
         "curious": [(r["kind"][:3], r["frame"], r["frames"], int(r["ai"]), int(r["game"]), r["tiles_game"]) for r in curious],
         "curious_frames": sum(r["frames"] for r in curious),
@@ -1879,7 +1893,8 @@ def grade_run(plan: str, seed: int, personality: str, starter: str, data: dict, 
                     if r["kind"] == "detour"],
         "streak_goals": max((s[1] for s in streaks), default=0), "streak_frames": max((s[2] for s in streaks), default=0),
         "streaks_long": [s for s in streaks if s[1] >= 3][:4],
-        "push_ai": push_ai(actions), "push_game": push_game[2], "push_game_at": push_game[:2],
+        "push_ai": push_ai(actions), "push_game": push_game[2] if push_game else None,
+        "push_game_at": push_game[:2] if push_game else None,
         "person_blocks": person_blocks(actions),
         "left_called_new": left_bad, "left_judged": left_judged, "left_skipped": left_skipped,
         "ask_nothing_said": sum(1 for r in actions if r.get("decision") == "goal" and "to ask at" in str(r.get("reason"))
@@ -2251,14 +2266,17 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
     # brought nothing new (`PlaceRecorder.push`, `push_game`: no tile shown for the first time, no map first stood on, no
     # battle) under LOAF_FRAMES_MAX in EVERY real run: loafing in one unbroken stretch. The AI-windowed total of its
     # unproductive curiosity (`loaf_frames`, its own goal WINDOWS) is printed, never read by the verdict
-    loafing = [(r["plan"], r["seed"], r["push_game"]) for r in real if game_loafed(r)]
+    pushed, unread = push_read(real)
+    loafing = [(r["plan"], r["seed"], r["push_game"]) for r in pushed if game_loafed(r)]
     out.append(grade("R5.NO_LOAFING", not loafing,
-                     f"NO LOAFING, BY THE GAME (every run of {list(REAL_PLANS)}, {len(real)} runs): the game's longest free "
+                     f"NO LOAFING, BY THE GAME (every run of {list(REAL_PLANS)}, {len(pushed)} runs with the game's push "
+                             f"read; without it, left out: {unread or 'none'}): the game's longest free "
                              f"stretch of pressing that brought nothing new under {BOUNDS['LOAF_FRAMES_MAX']} frames a run; "
-                             f"the most {max(r['push_game'] for r in real)}; at or over it: {loafing or 'none'}; (reported, "
+                             f"the most {max((r['push_game'] for r in pushed), default=None)}; at or over it: "
+                             f"{loafing or 'none'}; (reported, "
                              f"never read) the AI-windowed total of curiosity that brought nothing, the most "
                              f"{max(r['loaf_frames'] for r in real)} ({max(r.get('loaf_frames_all', 0) for r in real)} with "
-                             f"its battles)", len(real), 1))
+                             f"its battles)", len(pushed), 1))
     agree = sum(r["yield_agree"] for r in real)
     total = sum(len(r["curious"]) for r in real)
     out.append(grade("R5.YIELD_AGREE", agree == total,
@@ -2270,6 +2288,7 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         # or over LOAF_FRAMES_MAX in at least LOAF_FAILS_RUNS_MIN runs (the per-run bound CAN fail). The yield of its looks
         # (inside the AI's own goal windows) and its AI-windowed loafing are printed, no longer read
         over = [r["seed"] for r in loaf if game_loafed(r)]
+        loaf_read, loaf_unread = push_read(loaf)
         seeing = sum(r["seeing_frames"] for r in loaf)
         rate = sum(r["seeing_productive"] for r in loaf) / seeing if seeing else 0.0
         out.append(grade("R5.LOAF", len(over) >= BOUNDS["LOAF_FAILS_RUNS_MIN"],
@@ -2278,8 +2297,9 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
                     f"{BOUNDS['LOAF_FRAMES_MAX']} in {len(over)} of {len(loaf)} runs (bound >= "
                     f"{BOUNDS['LOAF_FAILS_RUNS_MIN']}): (seed, game push) {[(r['seed'], r['push_game']) for r in loaf]}; "
                     f"(reported, never read) the yield of its looks round and detours inside its own goal windows "
-                    f"{rate:.1%} of {seeing} frames, its AI-windowed loafing {dict((r['seed'], r['loaf_frames']) for r in loaf)}",
-                    len(loaf), 1))
+                    f"{rate:.1%} of {seeing} frames, its AI-windowed loafing {dict((r['seed'], r['loaf_frames']) for r in loaf)}; "
+                    f"no game push read (left out): {loaf_unread or 'none'}",
+                    len(loaf_read), 1))
     off = good("ERRANDS_OFF")
     if off:
         out.append(grade("R5.OFF_REPORTED", True,
@@ -2327,16 +2347,17 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
     # in every real run. The AI's own record (`push_ai`) is no longer read here; the two paths' agreement is
     # R5.PUSH_PATHS_AGREE (HONESTY) below
     bound = BOUNDS["PUSH_MAX"]
-    pushing = [(r["plan"], r["seed"], r["push_game"], r["push_game_at"]) for r in real if r["push_game"] >= bound]
+    pushing = [(r["plan"], r["seed"], r["push_game"], r["push_game_at"]) for r in pushed if r["push_game"] >= bound]
     out.append(grade("R5.PUSHING", not pushing,
                      f"THE PUSHING PROPERTY (every run of {list(REAL_PLANS)}), BY THE GAME: the longest free stretch of "
-                             f"pressing that brought nothing new, the most {max(r['push_game'] for r in real)} frames (bound "
-                             f"under {bound}); at or over it (plan, seed, game, window): {pushing or 'none'}",
-                     len(real), 1))
+                             f"pressing that brought nothing new, the most {max((r['push_game'] for r in pushed), default=None)} "
+                             f"frames (bound under {bound}); at or over it (plan, seed, game, window): {pushing or 'none'}; "
+                             f"no game push read (left out): {unread or 'none'}",
+                     len(pushed), 1))
     # (the re-sourcing FIX round, item 16(b)) the AI's record judged against the game's, VERDICT by verdict at each graded push
     # bound, within the game path's sampling band (`push_apart`, BOUNDS PUSH_AGREE_BAND): the two longest stretches are often
     # different stretches (86 of 152 matched on ledger #39), so the verdicts, not the stretches, are compared
-    every = [r for plan_rows in rows.values() for r in plan_rows if "error" not in r and "push_ai" in r]
+    every, _ = push_read([r for plan_rows in rows.values() for r in plan_rows if "error" not in r and "push_ai" in r])
     bounds = (bound, BOUNDS["LOAF_FRAMES_MAX"])
     split = [(r["plan"], r["seed"], r["push_ai"], r["push_game"], b) for r in every for b in bounds
              if push_apart(r["push_ai"], r["push_game"], b)]
@@ -2350,12 +2371,14 @@ def step52_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         # (the RE-SOURCING build, item 8: addendum row 13) graded on the GAME's push alone: at or over PUSH_MAX in at least
         # BLOCKED_HITS_MIN runs (dev 11 of 12; 1310 met nobody, 640, and does not fail the arm). Its REACH (someone in the way,
         # the AI's idle reasons) is the DIAGNOSTIC R5.BLOCKED_REACH, which says why it fails, not that it does
-        hit = [(r["seed"], r["push_game"]) for r in blocked if r["push_game"] >= bound]
+        blocked_read, blocked_unread = push_read(blocked)
+        hit = [(r["seed"], r["push_game"]) for r in blocked_read if r["push_game"] >= bound]
         out.append(grade("R5.BLOCKED", len(hit) >= BOUNDS["BLOCKED_HITS_MIN"],
                     f"BLOCKED (the control that CAN fail: it never gives up a place it cannot get to), BY THE GAME: its "
                     f"longest free stretch of pressing that brought nothing new at or over {bound} in {len(hit)} of "
-                    f"{len(blocked)} runs (bound >= {BOUNDS['BLOCKED_HITS_MIN']}): {hit}; all its runs (seed, game) "
-                    f"{[(r['seed'], r['push_game']) for r in blocked]}", len(blocked), 1))
+                    f"{len(blocked_read)} runs (bound >= {BOUNDS['BLOCKED_HITS_MIN']}): {hit}; all its runs (seed, game) "
+                    f"{[(r['seed'], r['push_game']) for r in blocked]}; no game push read (left out): "
+                    f"{blocked_unread or 'none'}", len(blocked_read), 1))
         reached = [r for r in blocked if r["person_blocks"] >= BOUNDS["BLOCKED_REACH_HITS"]]
         out.append(grade("R5.BLOCKED_REACH", len(reached) >= BOUNDS["BLOCKED_REACH_MIN"] * len(blocked),
                     f"BLOCKED's REACH (why it fails; the AI's idle reasons 'someone stands in the way'): it met someone in "
@@ -2487,7 +2510,7 @@ def chapter2_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         # no pseudo-null exists (only CH2 and CH2_OFF reach WALLY), which the text says
         outside = no_battle_pairs(played, off, "wally_game")
         pooled = sum(x[1] for x in outside) / sum(x[2] for x in outside) if outside else 0.0
-        slower = [x[0] for x in outside if x[3] > 1]
+        slower = [x[0] for x in outside if x[1] > x[2]]  # the frames, not the ratio rounded for print (small weak proofs)
         out.append(grade("R5.CH2_NOBATTLE", bool(outside) and pooled >= BOUNDS["CH2_NOBATTLE_RATIO_MIN"]
                          and len(slower) >= BOUNDS["CH2_NOBATTLE_SEEDS_MIN"] * len(outside),
                     f"CH2: NO SPEEDRUN, WITHOUT THE GRASS'S DICE, BY THE GAME: the frames to WALLY's tutorial by the GAME's "
@@ -2701,7 +2724,7 @@ def step51_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
         # itself is 1.0 BY CONSTRUCTION (addendum W7): the pseudo-null is printed beside it instead (plan (d))
         nb = no_battle_pairs(ch1, off, "dex_game")
         nb_pooled = sum(x[1] for x in nb) / sum(x[2] for x in nb) if nb else 0.0
-        nb_slower = [x[0] for x in nb if x[3] > 1]
+        nb_slower = [x[0] for x in nb if x[1] > x[2]]  # the frames, not the ratio rounded for print (small weak proofs)
         nulls = {arm: no_battle_pooled(rows.get(arm, []), ch1, "dex_game") for arm in PSEUDO_NULLS if rows.get(arm)}
         out.append(grade("R5.NO_SPEEDRUN_DICE", bool(nb) and nb_pooled >= BOUNDS["NOBATTLE_RATIO_MIN"]
                     and len(nb_slower) >= BOUNDS["NOBATTLE_SEEDS_MIN"] * len(nb),

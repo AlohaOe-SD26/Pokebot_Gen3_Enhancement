@@ -309,6 +309,7 @@ CHECKS: dict[str, Spec] = {
 #: R5.BLOCKED_REACH) and YIELD_RATE_MIN (R5.LOAF no longer reads its yield; the two REPORTED yields are its only readers).
 UNGRADED_BOUNDS: dict[str, tuple[str, ...]] = {
     "ASIDE_STREAK_MAX": ("R5.ASIDE_BACK", "L5.ASIDE_BACK"),
+    "LOAF_AI_FRAMES_MAX": ("L5.NO_LOAFING",),  # (the small weak proofs, 2026-10-25) the AI-windowed total's own bound
     "BLOCKED_REACH_HITS": ("R5.BLOCKED_REACH",),
     "BLOCKED_REACH_MIN": ("R5.BLOCKED_REACH",),
     "YIELD_RATE_MIN": ("R5.CH1_YIELD", "R5.CH2_YIELD"),

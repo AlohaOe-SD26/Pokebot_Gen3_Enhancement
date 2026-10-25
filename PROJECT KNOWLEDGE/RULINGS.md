@@ -65,10 +65,11 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 333 sections (newest first)
+## All 334 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-25-11c24a` | 9754 |  |  | 2026-10-25 — Step 5.3's grader: a MISSING game read is left out of a check and named, never counted as a value |
 | `2026-10-25-467d45` | 9740 |  |  | 2026-10-25 — Step 5.3's re-sourcing plan: the addendum's open items decided |
 | `2026-10-24-eba575` | 9715 |  |  | 2026-10-24 — Step 5.3 A2's decision addendum: the 39 B1-debt rows decided |
 | `2026-10-23-633c48` | 9705 |  |  | 2026-10-23 — Technical decisions of step 5.3 stage A1 (Claude's calls) |

@@ -63,7 +63,7 @@ failing, the cited by name and the newest 12 kept; `--keep-runs` keeps all).
 (Build step 5.2, PRODUCTIVE CURIOSITY, the step-5.1 adversarial review: "it LOAFS") every arm plays a NEW trajectory: its
 seed is `LIVE_SEEDS` (14, 15, 16 in 5.2's first graded round; 17, 18, 19 since its verifier's round: never a live arm's seed
 before, nor in a development sweep the docs list), so a 5.2 arm is a new trajectory, never a replay of 5.1's (seeds 11-13). And EVERY arm also, by the AI's own record (the game's second path of each is the sweep's): NO
-LOAFING (the frames of curiosity goals whose END record says they brought nothing, at most `LOAF_FRAMES_MAX`); CURIOSITY
+LOAFING (the frames of curiosity goals whose END record says they brought nothing, at most `LOAF_AI_FRAMES_MAX`); CURIOSITY
 SPACED (at most `SPACING_ROW_MAX` curiosity goals in a row; the streak's frames reported); THE PUSHING PROPERTY (the longest
 free overworld stretch of pressing that brought no new tile or map, `hands/waiting.py` PushWatch, under `PUSH_MAX`); THE
 ASK STEP never walks to its house with nothing said; A PLACE IT HAS LEFT IS NO NEW PLACE (a look-around draw on a map it
@@ -595,9 +595,10 @@ def check_hands(run: Run) -> None:
     mix = intent_mix(run.records, idle)
     loaf = sum(row["walking_ai"] for row in curious if not row["ai"])  # its own time, outside battles (step52dev4)
     made = sum(row["frames"] for row in curious if row["ai"])
-    run.check(loaf <= BOUNDS["LOAF_FRAMES_MAX"],
+    # (the small weak proofs, 2026-10-25) its own bound: LOAF_FRAMES_MAX now bounds the GAME's push, another quantity
+    run.check(loaf <= BOUNDS["LOAF_AI_FRAMES_MAX"],
               f"NO LOAFING (its record of what each curiosity goal brought): {loaf} frames of curiosity that brought "
-              f"nothing, its own time outside battles (bound <= {BOUNDS['LOAF_FRAMES_MAX']}); {made} frames that brought "
+              f"nothing, its own time outside battles (bound <= {BOUNDS['LOAF_AI_FRAMES_MAX']}); {made} frames that brought "
               f"something; by goal (kind, frame, "
               f"frames, productive) {[(r['kind'], r['frame'], r['frames'], int(r['ai'])) for r in curious][:12]}",
               "L5.NO_LOAFING", len(curious), None)

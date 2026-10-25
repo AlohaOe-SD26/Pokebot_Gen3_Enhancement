@@ -821,8 +821,12 @@ class UngradedBoundTests(unittest.TestCase):
         # a GRADED L5.ASIDE_BACK; ruling F4 made that check DIAGNOSTIC, so the bound is now ungraded and in the table.)
         # (the re-sourcing fix round) its readers now include R5.PUSH_PATHS_AGREE (HONESTY: the paths' verdicts at each push
         # bound) and the helper `game_loafed` ("?", taken as counted)
-        self.assertEqual(readers["LOAF_FRAMES_MAX"], {"R5.NO_LOAFING", "R5.LOAF", "R5.PUSH_PATHS_AGREE", "L5.NO_LOAFING", "?"})
+        # (the small weak proofs, 2026-10-25) and no longer L5.NO_LOAFING: the AI-windowed total has its own bound,
+        # LOAF_AI_FRAMES_MAX (the old 4000), read by that DIAGNOSTIC alone and so in the table
+        self.assertEqual(readers["LOAF_FRAMES_MAX"], {"R5.NO_LOAFING", "R5.LOAF", "R5.PUSH_PATHS_AGREE", "?"})
         self.assertNotIn("LOAF_FRAMES_MAX", gc.UNGRADED_BOUNDS)
+        self.assertEqual(readers["LOAF_AI_FRAMES_MAX"], {"L5.NO_LOAFING"})
+        self.assertEqual(BOUNDS["LOAF_AI_FRAMES_MAX"], 4000)
         self.assertEqual(set(gc.UNGRADED_BOUNDS["ASIDE_STREAK_MAX"]), {"R5.ASIDE_BACK", "L5.ASIDE_BACK"})
 
     def test_tightening_an_ungraded_bound_moves_its_checks_but_not_the_verdict(self):
@@ -838,6 +842,11 @@ class UngradedBoundTests(unittest.TestCase):
                 self.assertEqual(gc.verdict(edited), "PASS", key)  # it counts in no verdict
                 moved = {c.id for c in edited if c.status != before.get(c.id)}
                 rate_ids = {i for i in ids if i.startswith("R5.")}
+                if not rate_ids:
+                    # (the small weak proofs, 2026-10-25) a bound only a launcher check reads cannot move the sweep; its
+                    # reader is held by the table test above. Exactly one such bound exists, so a new one is not missed
+                    self.assertEqual(key, "LOAF_AI_FRAMES_MAX")
+                    continue
                 self.assertTrue(moved & rate_ids, f"{key} (= {value}) -> {tight} moved none of {rate_ids}: not read?")
         # CONTROL: a GRADED bound tightened the same way fails the sweep
         with mock.patch.dict(BOUNDS, {"LOAF_FAILS_RUNS_MIN": 10 ** 9}):
