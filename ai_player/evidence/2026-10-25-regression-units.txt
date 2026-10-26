@@ -1,6 +1,6 @@
 AI PLAYER REGRESSION - full lane, evidence group `units` (gates/run_regression.py, spec S4-1)
-date: 2026-10-25 13:22:27
-code: HEAD 26a5da1b; covers:units clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-10-25 17:06:55
+code: HEAD 5730da77; covers:units clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 command: py -3.12 ai_player/gates/run_regression.py --full --evidence
 Each section is one suite: the runner's typed status, then the suite's raw output (indented).
 
@@ -59,14 +59,14 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_every_round3_rule_fires (__main__.NewRuleTests.test_every_round3_rule_fires) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 1 test in 85.533s
+    | Ran 1 test in 85.518s
     | 
     | OK
    -- shard 2/5: VerifierProbeTests.test_every_verifier_probe_is_caught
     | test_every_verifier_probe_is_caught (__main__.VerifierProbeTests.test_every_verifier_probe_is_caught) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 1 test in 81.420s
+    | Ran 1 test in 81.111s
     | 
     | OK
    -- shard 3/5: FileRuleTests.test_e_forged_timestamp_cache_fails_and_really_loads FileRuleTests.test_e_genuine_caches_pass FileRuleTests.test_e_source_hidden_in_pycache_fails NewRuleTests.test_a_framework_shadowing_a_library_fails NewRuleTests.test_e_extension_module_fails NewRuleTests.test_e_pycache_without_source_is_not_a_finding NewRuleTests.test_every_step01_rule_fires PinTests.test_g_brain_lists_must_agree
@@ -84,7 +84,7 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_g_brain_lists_must_agree (__main__.PinTests.test_g_brain_lists_must_agree) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 8 tests in 63.820s
+    | Ran 8 tests in 64.464s
     | 
     | OK
    -- shard 4/5: FileRuleTests.test_e_a_coding_cookie_cannot_hide_code FileRuleTests.test_e_link_inside_the_package_fails LegitimateCodeTests.test_ordinary_code_on_every_allowed_surface_passes MentionTests.test_mentions_in_comments_docstrings_and_strings_do_not_fire NewRuleTests.test_a_denylist_backstops_an_overbroad_door NewRuleTests.test_every_new_rule_fires NewRuleTests.test_the_host_folder_is_not_a_library_name PinTests.test_g_every_backstop_module_is_watched_live PinTests.test_g_instrument_change_fails
@@ -104,7 +104,7 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_g_instrument_change_fails (__main__.PinTests.test_g_instrument_change_fails) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 9 tests in 65.175s
+    | Ran 9 tests in 65.005s
     | 
     | OK
    -- shard 5/5: ControlTests.test_control_real_package_passes ControlTests.test_control_unchanged_copy_passes ControlTests.test_zero_files_is_a_failure_not_a_pass FileRuleTests.test_e_any_other_file_in_pycache_fails FileRuleTests.test_e_forged_unchecked_hash_cache_fails_and_really_loads FileRuleTests.test_e_stale_cache_is_not_a_finding NewRuleTests.test_a_discovered_root_is_a_framework_import NewRuleTests.test_a_package_folder_named_like_the_standard_library_fails NewRuleTests.test_e_sourceless_bytecode_fails VerifierProbeTests.test_every_second_verifier_probe_is_caught
@@ -125,11 +125,11 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_every_second_verifier_probe_is_caught (__main__.VerifierProbeTests.test_every_second_verifier_probe_is_caught) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 10 tests in 63.469s
+    | Ran 10 tests in 63.828s
     | 
     | OK
 
-== test_host: PASS (exit 0, 19.4 s, 20 tests)
+== test_host: PASS (exit 0, 19.7 s, 20 tests)
     | test_every_attack_is_refused_and_counted (__main__.CounterAttackTests.test_every_attack_is_refused_and_counted) ... ok
     | test_without_the_guards_the_attacks_get_through (__main__.CounterAttackTests.test_without_the_guards_the_attacks_get_through)
     | MUTANT: the instance guard, the store's counts-only-grow check, and (round 3) the registry's ... ok
@@ -163,7 +163,7 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | MUTANT: the registry's AND the store's caller checks reverted (the fix of this note, whole): ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 20 tests in 19.289s
+    | Ran 20 tests in 19.557s
     | 
     | OK
 
@@ -260,11 +260,11 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_the_decomps_states (__main__.WaitRuleTests.test_the_decomps_states) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 56 tests in 0.836s
+    | Ran 56 tests in 0.859s
     | 
     | OK
 
-== test_hands: PASS (exit 0, 1.8 s, 57 tests)
+== test_hands: PASS (exit 0, 1.9 s, 57 tests)
     | test_fault_blind_count_never_confirms (__main__.ClockTests.test_fault_blind_count_never_confirms) ... ok
     | test_hold_frames_follow_the_decomp (__main__.ClockTests.test_hold_frames_follow_the_decomp) ... ok
     | test_sets_the_time_and_says_yes (__main__.ClockTests.test_sets_the_time_and_says_yes) ... ok
@@ -338,11 +338,11 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_the_clock_question_opens_on_no_and_the_ai_says_yes (__main__.YesNoTests.test_the_clock_question_opens_on_no_and_the_ai_says_yes) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 57 tests in 1.538s
+    | Ran 57 tests in 1.569s
     | 
     | OK
 
-== test_world: PASS (exit 0, 78.2 s, 132 tests)
+== test_world: PASS (exit 0, 78.4 s, 132 tests)
     | test_every_candidate_is_a_seen_walkable_tile (__main__.ApproachTests.test_every_candidate_is_a_seen_walkable_tile) ... ok
     | test_fault_the_stand_tile_not_checked_gives_an_unseen_target (__main__.ApproachTests.test_fault_the_stand_tile_not_checked_gives_an_unseen_target) ... ok
     | test_a_detour_is_one_tile_aside_at_most (__main__.BendTests.test_a_detour_is_one_tile_aside_at_most) ... ok
@@ -543,7 +543,7 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_the_window_is_the_screen (__main__.WindowTests.test_the_window_is_the_screen) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 132 tests in 77.875s
+    | Ran 132 tests in 78.065s
     | 
     | OK
 
@@ -691,19 +691,19 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_worth_is_type_stab_power_and_hit (__main__.ValueTests.test_worth_is_type_stab_power_and_hit) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 107 tests in 0.927s
+    | Ran 107 tests in 0.930s
     | 
     | OK
 
 == test_evidence: PASS (exit 0, 12.0 s, 27 tests)
-    | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-263e362/2026-10-21-regression-units.txt
-    | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-d53804c/2026-10-21-regression-units.txt
-    | [EVIDENCE] kept the earlier tree's 2026-10-21-step1-A.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-d074471/2026-10-21-step1-A.txt
-    | [EVIDENCE] kept the earlier tree's 2026-10-21-step1-B.txt (code 4dbf270cbb05c175): archive/4dbf270cbb05c175-d074471/2026-10-21-step1-B.txt
+    | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-09b8cdc/2026-10-21-regression-units.txt
+    | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-c0a1525/2026-10-21-regression-units.txt
+    | [EVIDENCE] kept the earlier tree's 2026-10-21-step1-A.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-bb17c42/2026-10-21-step1-A.txt
+    | [EVIDENCE] kept the earlier tree's 2026-10-21-step1-B.txt (code 4dbf270cbb05c175): archive/4dbf270cbb05c175-bb17c42/2026-10-21-step1-B.txt
     | [EVIDENCE] kept the earlier tree's 2026-10-21-step1-C.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-deadbee1/2026-10-21-step1-C.txt
-    | [EVIDENCE] kept the earlier tree's x.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-3da73b2/x.txt
-    | [EVIDENCE] kept the earlier tree's y.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-3da73b2/y.txt
-    | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-3da73b2/2026-10-21-regression-units.txt
+    | [EVIDENCE] kept the earlier tree's x.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-a6a3a21/x.txt
+    | [EVIDENCE] kept the earlier tree's y.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-a6a3a21/y.txt
+    | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-47bbd09/2026-10-21-regression-units.txt
     | [EVIDENCE] kept the earlier tree's y.txt (code no digest): archive/no-digest/y.txt
     | [EVIDENCE] kept the earlier tree's x.txt (code 8b742931d35fa205): archive/8b742931d35fa205-7a70a445/x.txt
     | [EVIDENCE] kept the earlier tree's x.txt (code 8b742931d35fa205): archive/8b742931d35fa205-7a70a445/x.1.txt
@@ -739,7 +739,7 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_this_tree_is_kept_and_its_digest_recomputed_from_the_zip (__main__.SnapshotTests.test_this_tree_is_kept_and_its_digest_recomputed_from_the_zip) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 27 tests in 11.883s
+    | Ran 27 tests in 11.789s
     | 
     | OK
 
@@ -755,14 +755,14 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     |   _names word chars = "\\w'’"
     | ........................................................................................................................................................................................................................
     | ----------------------------------------------------------------------
-    | Ran 216 tests in 1.855s
+    | Ran 216 tests in 1.878s
     | 
     | OK
 
 == extract_milestones_check: PASS (exit 0, 0.2 s, 1 lines)
     | [MILESTONES] ai_player\knowledge\milestones.json is up to date
 
-== test_safety_gates: PASS (exit 0, 28.5 s, 48 tests)
+== test_safety_gates: PASS (exit 0, 33.2 s, 48 tests)
     | [EVIDENCE] kept the earlier tree's 2026-10-15-step01-G.txt (code d3d34871df0ac077): archive/d3d34871df0ac077-b029673d/2026-10-15-step01-G.txt
     | test_a_comment_or_docstring_change_is_no_change (__main__.CallCensusTests.test_a_comment_or_docstring_change_is_no_change) ... ok
     | test_a_mutant_covers_only_the_site_its_anchor_holds (__main__.CallCensusTests.test_a_mutant_covers_only_the_site_its_anchor_holds) ... ok
@@ -816,14 +816,14 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_each_driver_calls_its_guards_where_they_belong (__main__.WiringTests.test_each_driver_calls_its_guards_where_they_belong) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 48 tests in 28.198s
+    | Ran 48 tests in 32.818s
     | 
     | OK
 
 == ledger_check: PASS (exit 0, 0.1 s, 1 lines)
     | LEDGER ledger.json: 39 entries; well formed -> PASS
 
-== call_census: PASS (exit 0, 1.0 s, 1 lines)
+== call_census: PASS (exit 0, 1.1 s, 1 lines)
     | CALL-SITE CENSUS since HEAD: 0 AI files changed, 0 functions or added calls, 0 sites; 0 MISSING
     | CALL-SITE CENSUS: PASS
 
@@ -831,16 +831,16 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | 23 files (deciding code and loaders); 6 flag doors, each with its purpose; knowledge key paths by kind {'ai': 7133, 'developer': 74, 'hidden': 3860, 'meta': 32}; developer-only keys ['decomp', 'flag', 'line', 'measured', 'note', 'state', 'taught_by', 'x', 'y']; hidden keys ['attack', 'base', 'catch_rate', 'defense', 'exp_yield', 'growth', 'hp', 'sp_attack', 'sp_defense', 'speed']
     | PERSON-FAIR DATA DOOR: PASS (0 breaches)
 
-== check_lessons: PASS (exit 0, 7.6 s, 1 lines)
+== check_lessons: PASS (exit 0, 7.4 s, 1 lines)
     | LESSONS LESSONS.md: 54 lessons, by status {'GATED': 32, 'PARTIAL': 16, 'PROSE ONLY': 6}
     | LESSONS CHECK: PASS (0 problems)
 
 == disk_budget: PASS (exit 0, 0.1 s, 1 lines)
-    | DISK BUDGET: C:\ 86.1 GB free (a sweep needs 30 GB to start)
-    | %TEMP%/ai_* folders: 3752 (`--temp` for their sizes)
+    | DISK BUDGET: C:\ 85.2 GB free (a sweep needs 30 GB to start)
+    | %TEMP%/ai_* folders: 3794 (`--temp` for their sizes)
 
 == test_run_regression: PASS (exit 0, 5.3 s, 51 tests)
-    | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-9e8d245/2026-10-21-regression-units.txt
+    | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-763371b/2026-10-21-regression-units.txt
     | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 8b742931d35fa205): archive/8b742931d35fa205-abc1234/2026-10-21-regression-units.txt
     | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 8b742931d35fa205): archive/8b742931d35fa205-abc1234/2026-10-21-regression-units.1.txt
     | [EVIDENCE] kept the earlier tree's 2026-10-21-regression-units.txt (code 8b742931d35fa205): archive/8b742931d35fa205-abc1234/2026-10-21-regression-units.txt
@@ -931,11 +931,11 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | test_t6_fault_forty_failing_suites_stay_under_4_kb_with_counts (__main__.SummaryTests.test_t6_fault_forty_failing_suites_stay_under_4_kb_with_counts) ... ok
     | 
     | ----------------------------------------------------------------------
-    | Ran 51 tests in 5.120s
+    | Ran 51 tests in 5.153s
     | 
     | OK
 
-== test_kb2: PASS (exit 0, 286.9 s, 118 tests)
+== test_kb2: PASS (exit 0, 309.7 s, 118 tests)
     | 
     |   W3 extras on the chapter 1-4 maps (listed for adjudication, not hidden): ['TRAINER_AMY_AND_LIV_1', 'TRAINER_ANDREW', 'TRAINER_DAISY', 'TRAINER_ISABELLE', 'TRAINER_MARCOS', 'TRAINER_MIGUEL_1', 'TRAINER_PETE', 'TRAINER_RHETT', 'TRAINER_ALEXIA', 'TRAINER_BERKE', 'TRAINER_GEORGE', 'TRAINER_JODY', 'TRAINER_MARY', 'TRAINER_NORMAN_1', 'TRAINER_PARKER', 'TRAINER_RANDALL', 'TRAINER_BILLY', 'TRAINER_BRENDAN_RUSTBORO_MUDKIP', 'TRAINER_BRENDAN_RUSTBORO_TORCHIC', 'TRAINER_BRENDAN_RUSTBORO_TREECKO', 'TRAINER_CINDY_1', 'TRAINER_DARIAN', 'TRAINER_GINA_AND_MIA_1', 'TRAINER_HALEY_1', 'TRAINER_IVAN', 'TRAINER_JAMES_1', 'TRAINER_LYLE', 'TRAINER_MAY_RUSTBORO_MUDKIP', 'TRAINER_MAY_RUSTBORO_TORCHIC', 'TRAINER_MAY_RUSTBORO_TREECKO', 'TRAINER_WINSTON_1', 'TRAINER_MARC']
     | .........................C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\verify_world.py:911: ResourceWarning: unclosed file <_io.TextIOWrapper name='C:\\Remote Projects\\_decomp\\pokeemerald\\src\\AgbRfu_LinkManager.c' mode='r' encoding='utf-8'>
@@ -6404,62 +6404,62 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | ......................C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_items.py:3410: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\ai_player\\knowledge\\world\\items_gifts.json'>
     |   same = os.path.exists(mine) and open(mine, "rb").read() == open(os.path.join(tmp, OUT_NAME), "rb").read()
     | ResourceWarning: Enable tracemalloc to get the object allocation traceback
-    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_items.py:3410: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmpj5o4z5jh\\items_gifts.json'>
+    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_items.py:3410: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmpd9ih17f9\\items_gifts.json'>
     |   same = os.path.exists(mine) and open(mine, "rb").read() == open(os.path.join(tmp, OUT_NAME), "rb").read()
     | ResourceWarning: Enable tracemalloc to get the object allocation traceback
-    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_items.py:3410: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmpfhvy378x\\items_gifts.json'>
+    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_items.py:3410: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmp_dbm50ty\\items_gifts.json'>
     |   same = os.path.exists(mine) and open(mine, "rb").read() == open(os.path.join(tmp, OUT_NAME), "rb").read()
     | ResourceWarning: Enable tracemalloc to get the object allocation traceback
-    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_items.py:3410: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmpofnfcwh3\\items_gifts.json'>
+    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_items.py:3410: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmp7i_7xxhg\\items_gifts.json'>
     |   same = os.path.exists(mine) and open(mine, "rb").read() == open(os.path.join(tmp, OUT_NAME), "rb").read()
     | ResourceWarning: Enable tracemalloc to get the object allocation traceback
-    | ..............C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_events.py:881: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmpg9unt2cf\\events.json'>
+    | ..............C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_events.py:881: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmp_r_soj22\\events.json'>
     |   same = os.path.exists(mine) and open(mine, "rb").read() == open(os.path.join(tmp, OUT_NAME), "rb").read()
     | ResourceWarning: Enable tracemalloc to get the object allocation traceback
-    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_events.py:881: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmpat3z9cuj\\events.json'>
+    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_events.py:881: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmpmoyppqld\\events.json'>
     |   same = os.path.exists(mine) and open(mine, "rb").read() == open(os.path.join(tmp, OUT_NAME), "rb").read()
     | ResourceWarning: Enable tracemalloc to get the object allocation traceback
-    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_events.py:881: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmpc62g_tku\\events.json'>
+    | C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\gates\extract_events.py:881: ResourceWarning: unclosed file <_io.BufferedReader name='C:\\Users\\Ripto\\AppData\\Local\\Temp\\tmp2h61o7c6\\events.json'>
     |   same = os.path.exists(mine) and open(mine, "rb").read() == open(os.path.join(tmp, OUT_NAME), "rb").read()
     | ResourceWarning: Enable tracemalloc to get the object allocation traceback
     | .........................................................
     | ----------------------------------------------------------------------
-    | Ran 118 tests in 286.193s
+    | Ran 118 tests in 308.996s
     | 
     | OK
 
-== test_step53_a1: PASS (exit 0, 11.2 s, 69 tests)
+== test_step53_a1: PASS (exit 0, 12.3 s, 69 tests)
     | .....................................................................
     | ----------------------------------------------------------------------
-    | Ran 69 tests in 10.986s
+    | Ran 69 tests in 12.018s
     | 
     | OK
 
 == test_step53_a2: PASS (5 skipped) (exit 0, 1.2 s, 34 tests)
     | ......sssss.......................
     | ----------------------------------------------------------------------
-    | Ran 34 tests in 0.978s
+    | Ran 34 tests in 0.937s
     | 
     | OK (skipped=5)
 
-== test_step53_rs: PASS (exit 0, 0.8 s, 91 tests)
-    | ...........................................................................................
+== test_step53_rs: PASS (exit 0, 0.9 s, 95 tests)
+    | ...............................................................................................
     | ----------------------------------------------------------------------
-    | Ran 91 tests in 0.568s
+    | Ran 95 tests in 0.621s
     | 
     | OK
 
-== test_measure_step5: PASS (exit 0, 0.6 s, 28 tests)
+== test_measure_step5: PASS (exit 0, 0.7 s, 28 tests)
     | ............................
     | ----------------------------------------------------------------------
-    | Ran 28 tests in 0.359s
+    | Ran 28 tests in 0.466s
     | 
     | OK
 
 == check_grader_imports: PASS (exit 0, 0.3 s, 1 lines)
     | GRADER IMPORTS: PASS (G-3: rate_step5, live_step5 take no value from the AI's code, directly or through a gates module)
 
-== revert_step3: PASS (exit 0, 5583.2 s, 94 mutants) (appendix: a revert driver with no suite of its own in suite_map.json)
+== revert_step3: PASS (exit 0, 5082.8 s, 94 mutants) (appendix: a revert driver with no suite of its own in suite_map.json)
     | [W0] CONTROL, the unchanged copy: 132 tests, failing none (ran the copy: True) -> PASS
     | [W1] BROKEN: a ledge may be entered from any side (`step_from`: the jump direction not checked). Predicted CAUGHT by ['PlannerTests.test_walls_people_ledges_and_warps']. The copy ran 132 tests (the copy); failing: {'PlannerTests.test_walls_people_ledges_and_warps': 'FAIL'} -> CAUGHT
     | [W2] BROKEN: a warp or a door is a walkable tile (walked THROUGH on the way somewhere: `TileFact.walkable`). Predicted CAUGHT by ['PlannerTests.test_walls_people_ledges_and_warps']. The copy ran 132 tests (the copy); failing: {'PlannerTests.test_walls_people_ledges_and_warps': 'FAIL'} -> CAUGHT
@@ -6557,9 +6557,10 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [W98] BROKEN: finding 7: a detour's tile any tile 1 or 2 from the way's middle (two aside and straight back). Predicted CAUGHT by ['BendTests.test_a_detour_is_one_tile_aside_at_most']. The copy ran 132 tests (the copy); failing: {'BendTests.test_a_detour_is_one_tile_aside_at_most': 'FAIL'} -> CAUGHT
     | 93 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted (each with its reason), of 94
     | OVERALL: PASS
+    | [EVIDENCE] kept the earlier tree's 2026-10-25-step3-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-26a5da1b/2026-10-25-step3-REVERT.txt
     | evidence: ai_player\evidence\2026-10-25-step3-REVERT.txt 
 
-== revert_step2: PASS (exit 0, 105.4 s, 44 mutants) (appendix: a revert driver with no suite of its own in suite_map.json)
+== revert_step2: PASS (exit 0, 107.8 s, 44 mutants) (appendix: a revert driver with no suite of its own in suite_map.json)
     | [H0] CONTROL, the unchanged copy: 57 tests, failing none (ran the copy: True) -> PASS
     | [H1] BROKEN: advance() does not stop at a menu (the choice is the caller's). Predicted CAUGHT by ['DialogueTests.test_a_only_on_waits_and_never_on_the_choice']. The copy ran 57 tests (the copy); failing: {'DialogueTests.test_a_only_on_waits_and_never_on_the_choice': 'FAIL', 'DialogueTests.test_each_page_is_read_after_it_has_printed': 'FAIL', 'FadeTests.test_the_intro_waits_out_a_fade_before_start': 'FAIL', 'NameQuestionTests.test_a_question_naming_another_name_is_answered_no': 'FAIL', 'NameQuestionTests.test_an_unreadable_question_relies_on_the_keyboard': 'FAIL', 'SubSkillFailureTests.test_the_intro_reports_each_failure_at_once': 'FAIL', 'SubSkillFailureTests.test_the_mart_reports_a_failed_choice_at_once': 'FAIL', 'SubSkillFailureTests.test_the_nurse_reports_a_failed_yes_no_at_once': 'FAIL'} -> CAUGHT
     | [H2-outer] BROKEN: advance()'s FIRST wait check (the look that starts the reading) removed. Predicted CAUGHT by ['DialogueTests.test_each_page_is_read_after_it_has_printed']. The copy ran 57 tests (the copy); failing: {'DialogueTests.test_each_page_is_read_after_it_has_printed': 'FAIL', 'StallTests.test_a_scene_the_eyes_name_is_watched_longer': 'FAIL', 'StallTests.test_an_unknown_prompt_is_stuck_after_300_frames': 'FAIL'} -> CAUGHT
@@ -6607,9 +6608,10 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [HF7] BROKEN: the clock ignores a 'correct time?' it could not answer (item 6). Predicted CAUGHT by ['SubSkillFailureTests.test_the_clock_reports_a_failed_yes_no_at_once']. The copy ran 57 tests (the copy); failing: {'SubSkillFailureTests.test_the_clock_reports_a_failed_yes_no_at_once': 'FAIL'} -> CAUGHT
     | 39 mutants CAUGHT as predicted, 5 REDUNDANT ALONE as predicted (each with its reason), of 44
     | OVERALL: PASS
+    | [EVIDENCE] kept the earlier tree's 2026-10-25-step2-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-26a5da1b/2026-10-25-step2-REVERT.txt
     | evidence: ai_player\evidence\2026-10-25-step2-REVERT.txt
 
-== revert_step11: PASS (exit 0, 23.9 s, 14 mutants) (appendix: a revert driver with no suite of its own in suite_map.json)
+== revert_step11: PASS (exit 0, 24.5 s, 14 mutants) (appendix: a revert driver with no suite of its own in suite_map.json)
     | [R0] CONTROL, the unchanged copy: 56 tests, failing none (ran the copy: True) -> PASS
     | [R1] finding 1 Wally: REVERTED to a [CATCH] on gBattleOutcome == Caught alone (the step-1 rule: `if outcome == "Caught":`). Predicted to fail: ['CatchTests.test_wally_tutorial_is_not_a_player_catch', 'CatchTests.test_someone_elses_pokemon_is_not_the_players_catch']. The copy ran 56 tests (the copy); failing: {'CatchTests.test_someone_elses_pokemon_is_not_the_players_catch': 'FAIL', 'CatchTests.test_wally_tutorial_is_not_a_player_catch': 'FAIL'} -> CAUGHT
     | [R2a] finding 2 stale foe: REVERTED to the foe of the battle's FIRST look (the step-1 `battle = start.battle`). Predicted to fail: ['BattleLineTests.test_the_foe_is_refreshed_on_every_in_battle_look']. The copy ran 56 tests (the copy); failing: {'BattleLineTests.test_a_foe_not_out_yet_is_refreshed_when_it_is': 'FAIL', 'BattleLineTests.test_the_foe_is_refreshed_on_every_in_battle_look': 'FAIL'} -> CAUGHT
@@ -6626,9 +6628,10 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [R5c] finding 5 torn slot (host): REVERTED to the host returns the slots it could read when one is torn (a party one Pokemon short). Predicted to fail: ['PartyNoneTests.test_a_torn_slot_makes_the_whole_party_none']. The copy ran 56 tests (the copy); failing: {'PartyNoneTests.test_a_torn_slot_makes_the_whole_party_none': 'FAIL'} -> CAUGHT
     | [R6] finding 6 script wait: REVERTED to neither the status nor the mode checked: a finished script's leftover WaitForAorBPress reads as waiting (each check alone refuses it; the live arm SW-X1 removes both too). Predicted to fail: ['ScriptWaitTests.test_the_rule']. The copy ran 56 tests (the copy); failing: {'ScriptWaitTests.test_the_rule': 'FAIL'} -> CAUGHT
     | OVERALL: PASS
+    | [EVIDENCE] kept the earlier tree's 2026-10-25-step11-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-26a5da1b/2026-10-25-step11-REVERT.txt
     | evidence: ai_player\evidence\2026-10-25-step11-REVERT.txt
 
-== revert_step4: PASS (exit 0, 95.2 s, 62 mutants) (appendix: a revert driver with no suite of its own in suite_map.json)
+== revert_step4: PASS (exit 0, 96.7 s, 62 mutants) (appendix: a revert driver with no suite of its own in suite_map.json)
     | [B0] CONTROL, the unchanged copy: 107 tests, failing none (ran the copy: True) -> PASS
     | [B1] BROKEN: the type chart ignored in a move's worth (every matchup x1). Predicted CAUGHT by ['TypeTests.test_the_effective_move_is_chosen', 'ValueTests.test_worth_is_type_stab_power_and_hit']. The copy ran 107 tests (the copy); failing: {'ChoiceTests.test_about_equal_moves_are_both_drawn_a_clear_winner_always': 'FAIL', 'DoubleTests.test_a_spread_move_is_halved': 'FAIL', 'DoubleTests.test_the_move_is_aimed_at_the_foe_it_hurts_most': 'FAIL', 'RecoilTests.test_miss_recoil_and_self_ko_are_charged': 'FAIL', 'SkillTests.test_a_refused_move_is_not_chosen_again_that_turn': 'FAIL', 'TypeTests.test_the_choice_says_what_the_type_chart_changed': 'FAIL', 'TypeTests.test_the_effective_move_is_chosen': 'FAIL', 'UnusableTests.test_a_refused_move_is_out_until_the_next_turn': 'FAIL', 'ValueTests.test_worth_is_type_stab_power_and_hit': 'FAIL'} -> CAUGHT
     | [B2] BROKEN: STAB ignored. Predicted CAUGHT by ['ValueTests.test_worth_is_type_stab_power_and_hit']. The copy ran 107 tests (the copy); failing: {'DoubleTests.test_a_spread_move_is_halved': 'FAIL', 'RecoilTests.test_miss_recoil_and_self_ko_are_charged': 'FAIL', 'RecordedRecoilTests.test_fault_overkill_take_down_at_full_hp_and_at_20_percent_never_when_its_recoil_would_faint_it': 'FAIL', 'RecordedRecoilTests.test_fault_the_step4_rule_overcharges_it_at_20_percent': 'FAIL', 'ValueTests.test_worth_is_type_stab_power_and_hit': 'FAIL'} -> CAUGHT
@@ -6694,6 +6697,7 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [B62] BROKEN: the bar's drop after its move not remembered as a hit SEEN. Predicted CAUGHT by ['HiddenInfoTests.test_the_hit_it_saw_is_the_bars_drop_after_its_move']. The copy ran 107 tests (the copy); failing: {'HiddenInfoTests.test_the_hit_it_saw_is_the_bars_drop_after_its_move': 'FAIL'} -> CAUGHT
     | 62 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 62
     | OVERALL: PASS
+    | [EVIDENCE] kept the earlier tree's 2026-10-25-step4-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-26a5da1b/2026-10-25-step4-REVERT.txt
     | evidence: ai_player\evidence\2026-10-25-step4-REVERT.txt
 
 NOT-RUN rate_step3: graded / needs the ROM: run it deliberately
@@ -6706,5 +6710,5 @@ NOT-RUN live_step3: graded / needs the ROM: run it deliberately
 NOT-RUN live_step4: graded / needs the ROM: run it deliberately
 NOT-RUN live_step5: graded / needs the ROM: run it deliberately
 
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (35 checks of 184 files, files digest b56d45351d85a887); the covers digests of revert_safety_gates, revert_step5, units did not move either
-REGRESSION: PASS (full, 30 suites, 5584.0 s wall)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (35 checks of 184 files, files digest 98e643a0de2585c9); the covers digests of revert_safety_gates, revert_step5, units did not move either
+REGRESSION: PASS (full, 30 suites, 5083.7 s wall)
