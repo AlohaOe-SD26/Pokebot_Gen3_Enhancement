@@ -35,6 +35,7 @@ broken: the guard must fire) and a CONTROL arm (the healthy path passes):
                      DUE, an uncovered one stays ok; a `covers:` label of an unknown suite is DUE.
   T9 run_units       a suite past its timeout is recorded TIMEOUT, the runner finishes and writes its evidence.
   RX regexes         every verdict regex matches its positives (real tails quoted in the recon) and none of its negatives.
+  T10 filter         (KI-123) a revert driver's mutant filter naming no mutant (a typo, `--help`) REFUSES, exit 2.
 The slow runs start together in `setUpModule` (threads), so the file's wall time is about the longest of them.
 """
 
@@ -1143,6 +1144,36 @@ class RegexTests(unittest.TestCase):
             for text in NEGATIVE[name]:
                 with self.subTest(rule=name, negative=text):
                     self.assertIsNone(pattern.search(text))
+
+
+class RevertFilterTests(unittest.TestCase):
+    """T10 (KI-123, 2026-10-26): a revert driver's mutant filter that names no mutant REFUSES (exit 2, nothing run or
+    written); it used to run 0 mutants and print OVERALL: PASS over nothing."""
+
+    def test_the_words_that_name_no_mutant(self):
+        from ai_player.gates.provenance import unknown_mutants
+
+        known, valued = ("G1", "G2"), ("--workers", "--evidence-tag")
+        self.assertEqual(unknown_mutants(["--help"], known, valued), ["--help"])  # FAULT
+        self.assertEqual(unknown_mutants(["G1,ZZ"], known, valued), ["ZZ"])  # FAULT: a typo among real names
+        self.assertEqual(unknown_mutants(["G1", "extra"], known, valued), ["extra"])  # FAULT: a stray word
+        self.assertEqual(unknown_mutants([], known, valued), [])  # CONTROL: no filter, every mutant
+        self.assertEqual(unknown_mutants(["G1,G2", "--workers", "4"], known, valued), [])  # CONTROL
+        self.assertEqual(unknown_mutants(["--evidence-tag", "t", "G2"], known, valued), [])  # CONTROL: an option's value
+
+    def test_both_drivers_refuse_help_before_running_anything(self):
+        import contextlib
+        import io
+        from unittest import mock
+
+        from ai_player.gates import revert_safety_gates, revert_step5
+
+        for module in (revert_step5, revert_safety_gates):
+            printed = io.StringIO()
+            with self.subTest(module.__name__), mock.patch.object(sys, "argv", ["driver", "--help"]), \
+                    contextlib.redirect_stdout(printed):
+                self.assertEqual(module.main(), 2)
+                self.assertIn("REFUSED: no mutant named ['--help']", printed.getvalue())
 
 
 if __name__ == "__main__":

@@ -410,6 +410,24 @@ def evidence_identities(folder: Path = EVIDENCE, repo: Path = REPO) -> dict[str,
             for path in sorted(folder.glob("*.txt"))}
 
 
+def unknown_mutants(argv: list[str], mutants: Iterable[str], valued: tuple[str, ...]) -> list[str]:
+    """(KI-123, 2026-10-26) The words of a revert driver's argument list that name no mutant: every name in its filter
+    (the first word that is no option and no option's value, split on commas) that `mutants` lacks, and any further
+    such word. A typo or `--help` must make the driver REFUSE; it used to run 0 mutants and print OVERALL: PASS."""
+    words, skip = [], False
+    for arg in argv:
+        if skip:
+            skip = False
+        elif arg in valued:
+            skip = True
+        else:
+            words.append(arg)
+    if not words:
+        return []
+    known = set(mutants)
+    return sorted(name for name in words[0].split(",") if name not in known) + words[1:]
+
+
 def keep_earlier(path: Path, current: str | None = None, folder: Path = EVIDENCE, repo: Path = REPO,
                  code: str | None = None) -> Path | None:
     """(step 4.1 round 3, the step-4.1 verifier: "Evidence-policy order broken ... `--retire` ran after round 2's graded

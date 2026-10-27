@@ -205,6 +205,14 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
+    # (KI-123, 2026-10-26) a filter naming no mutant (a typo, `--help`) REFUSES before anything runs or is written
+    from ai_player.gates.provenance import unknown_mutants
+
+    unknown = unknown_mutants(sys.argv[1:], MUTANTS, ("--workers", "--evidence"))
+    if unknown:
+        print(f"REFUSED: no mutant named {unknown} ({len(MUTANTS)} exist; usage: revert_safety_gates.py "
+              f"[NAME[,NAME...]] [--workers N] [--evidence FILE]); nothing was run")
+        return 2
     argv = list(sys.argv[1:])
     workers, evidence = 1, None
     if "--workers" in argv:

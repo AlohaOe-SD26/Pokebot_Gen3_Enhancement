@@ -1560,6 +1560,14 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
+    # (KI-123, 2026-10-26) a filter naming no mutant (a typo, `--help`) REFUSES before anything runs or is written
+    from ai_player.gates.provenance import unknown_mutants
+
+    unknown = unknown_mutants(sys.argv[1:], MUTANTS, ("--workers", "--evidence-tag"))
+    if unknown:
+        print(f"REFUSED: no mutant named {unknown} ({len(MUTANTS)} exist; usage: revert_step5.py [NAME[,NAME...]] "
+              f"[--workers N] [--evidence-tag TAG]); nothing was run")
+        return 2
     from ai_player.gates.provenance import snapshot_tree
 
     out = ["AI PLAYER BUILD STEP 5.1 - MUTANT PROOF OF THE STORY PLAYER (gates/revert_step5.py: G1-G52 step 5's, G53-G106 "
