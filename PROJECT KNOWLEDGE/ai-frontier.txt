@@ -1,1 +1,1 @@
-AI frontier: chapter 2 (WALLY's tutorial) from a real New Game; reached 2026-10-14, re-proven 2026-10-16
+AI frontier: chapter 2 (WALLY's tutorial) from a real New Game; reached 2026-10-14, re-proven 2026-10-16 and on held-out graded seeds 2026-10-27 (ledger #42, R5.CH2_WALLY 20/1; that sweep's verdict was FAIL on 3 of 38 counted checks, none the chapter-2 reach: KI-125, KI-126)

@@ -3348,3 +3348,17 @@ unless the user rules otherwise.
 **Not measured:** how often it happens. The run was found because it was the one real-plan run that failed R5.NO_LOAFING, whose AI-windowed total is now re-sourced to the game's push read (2026-10-25, `07`) (this run reads 760 frames there and passes), so the defect is NOT what that check grades.
 **Fix direction (not decided here):** an AI-side design question; the AI's play code is outside the step 5.3 spec.
 **Evidence:** the records are quoted in the addendum's investigation (iii); the run folder (`ai_step5_CH2_1311_*`) is in `%TEMP%` on the user's PC only.
+
+## KI-125 — ⚠ OPEN (filed 2026-10-27; seen in ONE graded run, frequency not measured; an AI-PLAYER defect, found by the step 5.3 graded sweep, not caused by it): the AI paced one row of OLDALE TOWN for most of a 3,080-frame stretch with a 1-HP lead, until its goal budget ran out (`#28-aiagent-v2`)
+
+**Measured** (2026-10-27; the graded sweep ledger #42, run NOHINTS 963, kept folder under `%TEMP%/ai_sweep_step5_step53b_oa33hwff` on the user's PC; `ai-research-notes/2026-10-27-step5.3-stageB-graded-result.md`): the game's longest free stretch of pressing that brought nothing new was 3,080 frames (R5.NO_LOAFING's bound is under 3,000; the real code's development worst was 1,910). The AI shuttled along row y=11 of OLDALE TOWN, x 3-9, 19 reversals (Right 131, Left 123 presses), toward a frontier at (-7, 11), while its Torchic was L6 at 1 of 21 HP, until the 9,000-frame goal budget ran out at f85079. The AI's own record of the same stretch is 2,998 frames.
+
+**Not measured:** how often it happens; why the goal neither reached the frontier nor turned to healing.
+**Fix direction (not decided here):** an AI-side question for the next AI-player step; the grader caught it as designed, so nothing in the grader changes.
+
+## KI-126 — ⚠ OPEN (filed 2026-10-27; seen in ONE graded run; cause NOT determined): the AI's push record and the game's split at a map change (R5.PUSH_PATHS_AGREE, LOAF 961) (`#28-aiagent-v2`)
+
+**Measured** (2026-10-27; ledger #42, run LOAF 961; `ai-research-notes/2026-10-27-step5.3-stageB-graded-result.md`): at the 4,000-frame bound the game path read 3,910 and the AI path 4,292 (past the 5 % band edge, 4,200); one disagreement in 275 runs (154 of 154 agreed on the development sweeps). The game closed the stretch at f133180 on stepping into LITTLEROOT TOWN (36 tiles shown for the first time); the AI-path record kept the same stretch open to the run's end at f140181.
+
+**Not determined:** whether the AI's own push record misses new tiles shown at a map change, or the grader's reading of the AI's records (`rate_step5.push_ai`) does. LOAF is a control plan (`EXTRA_EDITS`), so the run is a mutant copy; whether the real code shows the same split is not known.
+**Fix direction (not decided here):** read the two definitions side by side on this run folder first.

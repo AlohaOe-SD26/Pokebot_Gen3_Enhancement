@@ -65,10 +65,11 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 336 sections (newest first)
+## All 337 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-27-ec688e` | 9773 |  |  | 2026-10-27 — Step 5.3's graded result is FAIL on 3 of 38 counted checks: accepted as information, not retuned; step 5.3 is done |
 | `2026-10-27-0ab496` | 9767 |  |  | 2026-10-27 — Step 5.3 stage B step 3: the final bounds are the re-sourcing build's candidates, all 20 kept |
 | `2026-10-27-0bc932` | 9760 |  |  | 2026-10-27 — Step 5.3 stage B step 1: phase 2's STOP and STOPDEAD also replay LOSE3's runs; a re-grade judges phase 2 by the rule its sweep was played under |
 | `2026-10-25-11c24a` | 9754 |  |  | 2026-10-25 — Step 5.3's grader: a MISSING game read is left out of a check and named, never counted as a value |

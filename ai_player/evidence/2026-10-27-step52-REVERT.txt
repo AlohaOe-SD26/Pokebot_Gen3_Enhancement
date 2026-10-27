@@ -1,7 +1,7 @@
 AI PLAYER BUILD STEP 5.1 - MUTANT PROOF OF THE STORY PLAYER (gates/revert_step5.py: G1-G52 step 5's, G53-G106 step 5.1's, G107-G126 the step-5.1 verifier's second round's)
-date: 2026-10-27 07:42:44
-code: HEAD c0676255; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:05863e23fe068456 over git diff HEAD (2 files, 15794 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
-tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\05863e23fe068456.zip (the step-5.1 verifier's second round)
+date: 2026-10-27 08:50:03
+code: HEAD 5a9e22f4; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\53e0c26e7812db47.zip (the step-5.1 verifier's second round)
 Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted tests of gates/test_goals.py fail.
 
 [G0] CONTROL, the unchanged copy: 216 tests, failing none (ran the copy: True) -> PASS
@@ -349,5 +349,5 @@ Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted t
 [G317] BROKEN: a player SHUT IN (no way out known: the moving truck) is out of ideas (`shut_in`'s call deleted). Predicted CAUGHT by ['VerifierRound52Tests.test_a_walk_with_no_lead_heads_for_what_is_left_and_else_is_out_of_ideas']. The copy ran 216 tests (the copy); failing: {'VerifierRound52Tests.test_a_walk_with_no_lead_heads_for_what_is_left_and_else_is_out_of_ideas': 'FAIL'} -> CAUGHT
 
 340 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 342
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (344 checks of 184 files, files digest ae801e7241e1a1de)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (344 checks of 184 files, files digest 22a24887361db6e6)
 OVERALL: PASS
