@@ -82,7 +82,9 @@ def row(plan: str, seed: int, personality: str = "Story", **more) -> dict:
 
 def sweep() -> dict[str, list[dict]]:
     """Every plan of the default sweep, on four seeds (two personalities, so every divergence check has pairs), each row
-    healthy: the 5.2 grader (`git show a9df8b38:ai_player/gates/rate_step5.py`) passes all 67 of its checks on it."""
+    healthy: the 5.2 grader (`git show a9df8b38:ai_player/gates/rate_step5.py`) passed all 67 of its checks on it until
+    step 5.3 stage B step 1 (2026-10-27) added the phase-2 replays of LOSE3's runs, which that grader (LOSE3 in its
+    `NO_PHASE2`) counts as unexpected: its R5.STOP/STOPDEAD read FAIL on this sweep, the current grader's PASS."""
     people = {1: "Story", 2: "Story", 3: "Catcher", 4: "Catcher"}
     out: dict[str, list[dict]] = {}
     out["CH1"] = [row("CH1", s, p) for s, p in people.items()]
@@ -128,6 +130,14 @@ def sweep() -> dict[str, list[dict]]:
                        first_loss_f=5000, frames=6000)]
     out["STOPDEAD"] = [row("STOPDEAD", 1, base="CH1", reason="play: done", losses_game=1, losses_ai=0, losses_told=0,
                            first_loss_f=5000, frames=5000 + rs.STOP_WITHIN + 1000)]
+    # (step 5.3 stage B step 1, 2026-10-27) phase 2 replays LOSE3's runs too (LOSE3 left `NO_PHASE2`): each LOSE3 run above
+    # gets its STOP replay (stops at its first loss, the harness's max_losses 1) and its STOPDEAD replay (the count removed:
+    # it goes on losing, report and told 0)
+    out["STOP"] += [row("STOP", s, "Catcher", base="LOSE3", reason=rs.STOP_REASON, losses_game=1, losses_ai=1, losses_told=1,
+                        first_loss_f=600, last_loss_f=600, frames=1800, max_losses=1) for s in (2, 5)]
+    out["STOPDEAD"] += [row("STOPDEAD", s, "Catcher", base="LOSE3", reason="play: stuck: no progress for 120000 frames",
+                            losses_game=4, losses_ai=0, losses_told=0, first_loss_f=600, last_loss_f=9000, frames=130000,
+                            max_losses=1) for s in (2, 5)]
     return out
 
 
@@ -1120,10 +1130,14 @@ class SurvivingMutantTests(unittest.TestCase):
         self.assertEqual((check.status, check.n), (gc.PASS, 8))  # CONTROL: 4 runs x 2 judged draws (not 4 runs)
 
     def test_m45_stop_n_is_the_runs_with_a_loss(self):
+        # (step 5.3 stage B step 1, 2026-10-27) the healthy sweep's phase-1 losses are CH1 1 (natural) and LOSE3 2 and 5
+        # (forced; LOSE3 left `NO_PHASE2`), each replayed: n = 3
         check = check_of(grade_sweep(sweep()), "R5.STOP")
-        self.assertEqual((check.status, check.n), (gc.PASS, 1))  # CONTROL: one phase-1 run lost, replayed
+        self.assertEqual((check.status, check.n), (gc.PASS, 3))  # CONTROL: three phase-1 runs lost, each replayed
         rows = sweep()
         rows["CH1"][0].update(losses_game=0, losses_ai=0, losses_told=0, first_loss_f=None, last_loss_f=None)
+        del rows["LOSE3"]
+        rows["STOP"], rows["STOPDEAD"] = [], []
         check = check_of(grade_sweep(rows), "R5.STOP")
         self.assertEqual((check.status, check.n), (gc.VACUOUS, 0))  # FAULT arm: no run with a loss, nothing to replay
         rows = sweep()
@@ -1131,7 +1145,7 @@ class SurvivingMutantTests(unittest.TestCase):
         rows["STOP"].append(row("STOP", 2, base="CH1", reason=rs.STOP_REASON, losses_game=1, losses_ai=1, losses_told=1,
                                 first_loss_f=5000, frames=6000))
         check = check_of(grade_sweep(rows), "R5.STOP")
-        self.assertEqual((check.status, check.n), (gc.PASS, 2))  # CONTROL: n counts them
+        self.assertEqual((check.status, check.n), (gc.PASS, 4))  # CONTROL: n counts them
 
 
 def purity_run(exit_reason: str = "play: done: ch1_pokedex reached", pad: str = "presses=5 frames=100",

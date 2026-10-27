@@ -42,7 +42,9 @@ THE PLANS (each seed: a personality and a starter drawn by the seed number, so e
            played on under heal_below that the real code no longer plays (CLAUDE.md rule 8: an arm with the fix removed)
   STOP, STOPDEAD  PHASE 2 (`STOP_PLANS`): every run above that the GAME recorded a battle lost in, replayed with MAX_LOSSES
            1 in a copy: STOP must end at that loss with the loop's reason; STOPDEAD (the loop's count also removed,
-           revert_step5 G46: the verifier's V6) must not, and its report says 0 losses where the game lost
+           revert_step5 G46: the verifier's V6) must not, and its report says 0 losses where the game lost. (Stage B step
+           1, 2026-10-27) LOSE3's runs (below) are replayed too, beside every natural loss (`phase2_lost`): a sweep with
+           no natural loss still gives both their runs, and R5.LOSE3's control STOPDEAD its own
   ERRANDS_OFF  (build step 5.1) FAULT `no_errands`: the BEELINE control: no look-around, detour, new-map stop, chat or
            catching roam. The intent mix, the seed divergence and the frames to the POKéDEX must all move against CH1
   STALL1, STALL2  (build step 5.1) the step-5 verifier's two stalls RE-INTRODUCED in copies (`MUTANT_PLANS`): the stall
@@ -204,9 +206,25 @@ MUTANT_PLANS = {"DEADREST": ["G36"], "STALL1": ["G53"], "STALL2": ["G55", "G56",
                 "STALL3": ["STALL3"], "LOSE3": ["LOSE3"],
                 # (build step 5.2) the three controls of productive curiosity (`EXTRA_EDITS`)
                 "LOAF": ["LOAF"], "BLOCKED": ["BLOCKED"], "GREEDY": ["GREEDY"]}
-#: (the verifier's round) plans whose losses are the fault itself: never replayed by the phase-2 STOP plans; (the second
-#: round) nor the chapter-2 plans (a STOP replay starts from a New Game); (build step 5.2) nor the curiosity controls
-NO_PHASE2 = ("LOSE3", "CH2", "CH2_OFF", "LOAF", "BLOCKED", "GREEDY")
+#: the plans whose runs the phase-2 STOP plans NEVER replay (`phase2_lost`): (the second round) the chapter-2 plans (a STOP
+#: replay starts from a New Game); (build step 5.2) the curiosity controls.
+#: (build step 5.3 stage B step 1, DECISION 2026-10-27, `ai-research-notes/2026-10-26-stageB-stop-runs-design.md`) LOSE3
+#: LEFT this list. It was put here in step 5.1 as "plans whose losses are the fault itself", with no recorded reason; once
+#: natural losses became rare (0 in 48 seeds, ledger #40) R5.STOP and R5.STOPDEAD could get NO run in a graded sweep and
+#: R5.LOSE3's control STOPDEAD could not reach its floor of 2. LOSE3's mutant edits only the battle DECIDER, upstream of the
+#: game's loss; the stop under test (the loop's count of the game's losses, its tell, its end) is the real code's, and it
+#: never reads why a battle was lost. So a STOP replay of a LOSE3 run still proves the stop, and a STOPDEAD replay of one is
+#: still the arm with the count removed. Natural-loss replays stay in (`phase2_lost`), and the checks count replays by
+#: source (`FORCED_LOSS_PLANS`).
+NO_PHASE2 = ("CH2", "CH2_OFF", "LOAF", "BLOCKED", "GREEDY")
+#: (stage B step 1) the phase-1 plans whose losses a MUTANT forces (LOSE3: the decider's status move every wild turn): the
+#: STOP plans replay their runs too, and R5.STOP / R5.STOPDEAD print how many replays are FORCED and how many NATURAL, so a
+#: sweep whose stop was exercised only on forced wild losses says so (the decision's coverage rule)
+FORCED_LOSS_PLANS = ("LOSE3",)
+#: (stage B step 1, 2026-10-27) the first development ledger entry whose phase 2 replayed FORCED_LOSS_PLANS' runs (#41,
+#: seeds 1367-1384). A RE-GRADE of an earlier entry judges phase 2 by the rule that sweep was played under (natural losses
+#: only), so a sweep played before the rule is not failed for replays it was never asked to play (`regrade`)
+FORCED_REPLAYS_FROM_ENTRY = 41
 #: (build step 5.1) the plans of the REAL code (no fault, no mutant): the stall property, the goal-after-page check and
 #: the losses must hold in each
 REAL_PLANS = ("CH1", "NOTRAIN", "NOHINTS", "ERRANDS_OFF", "CH2", "CH2_OFF")
@@ -840,15 +858,36 @@ def no_battle_pooled(rows: list[dict], base: list[dict], key: str) -> float | No
     return round(sum(p[1] for p in pairs) / sum(p[2] for p in pairs), 3) if pairs else None
 
 
-def stop_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
+def phase2_lost(rows: dict[str, list[dict]], forced: bool = True) -> list[tuple[str, int]]:
+    """(Build step 5.3 stage B step 1) THE ONE RULE for which phase-1 runs the STOP plans replay, as (plan, seed), sorted:
+    every played run (no error) of a phase-1 plan (`PLANS`) outside `NO_PHASE2` whose GAME recorded a battle lost. `main`
+    plays exactly these and `stop_verdicts` grades against exactly these, so the two cannot drift apart (before this they
+    were two copies of one expression). The natural losses of the real code's plans and the forced losses of
+    `FORCED_LOSS_PLANS` (LOSE3) are both in it: a sweep with no natural loss still gives the STOP plans their runs.
+    `forced` False (only a RE-GRADE of a sweep played before the rule, `FORCED_REPLAYS_FROM_ENTRY`) leaves the forced ones
+    out, the rule that sweep was played under."""
+    return sorted((r["plan"], r["seed"]) for plan, plan_rows in rows.items() if plan in PLANS and plan not in NO_PHASE2
+                  and (forced or plan not in FORCED_LOSS_PLANS)
+                  for r in plan_rows if "error" not in r and r["losses_game"])
+
+
+def stop_verdicts(rows: dict[str, list[dict]], forced: bool = True) -> list[Check]:
     """PHASE 2 (`STOP_PLANS`): the MAX_LOSSES stop, end to end in the game, and the arm with the loop's count removed.
-    (Build step 5.3) HONESTY checks: the AI's reason and counts judged against the game's losses and the harness's frames."""
+    (Build step 5.3) HONESTY checks: the AI's reason and counts judged against the game's losses and the harness's frames.
+    (Stage B step 1) n = `phase2_lost`, natural and forced (LOSE3) losses alike; the replays played must be EXACTLY those
+    runs, by identity (base plan, seed), not by count; the text counts them by source (the decision's coverage rule)."""
     out: list[Check] = []
     if "STOP" not in rows and "STOPDEAD" not in rows:
         return out
-    bases = {(r["plan"], r["seed"]): r for plan, plan_rows in rows.items() if plan in PLANS and plan not in NO_PHASE2
+    bases = {(r["plan"], r["seed"]): r for plan, plan_rows in rows.items() if plan in PLANS
              for r in plan_rows if "error" not in r}
-    lost = sorted(key for key, r in bases.items() if r["losses_game"])
+    lost = phase2_lost(rows, forced)
+    rule = "" if forced else ("; a RE-GRADE of a sweep played before LOSE3's runs were replayed (FORCED_REPLAYS_FROM_ENTRY "
+                              f"{FORCED_REPLAYS_FROM_ENTRY}): its forced losses are not expected")
+    forced = [key for key in lost if key[0] in FORCED_LOSS_PLANS]
+    only = " (the stop exercised on forced wild losses ONLY)" if lost and len(forced) == len(lost) else ""
+    source = (f"by source: {len(lost) - len(forced)} NATURAL (the real decider lost), {len(forced)} FORCED by "
+              f"{'/'.join(FORCED_LOSS_PLANS)}'s decider{only}{rule}")
     for plan in ("STOP", "STOPDEAD"):
         if plan not in rows:
             continue
@@ -879,9 +918,14 @@ def stop_verdicts(rows: dict[str, list[dict]]) -> list[Check]:
                     f"going on past {STOP_WITHIN} frames, its report and told losses 0 while the game lost (the ALL PLANS "
                     f"check would catch it)")
         # (build step 5.3) n = phase 1's runs with a loss: none is VACUOUS (it was a FAIL "NONE (not exercised)")
-        out.append(grade(f"R5.{plan}", bool(lost) and len(played) == len(lost) and not bad,
-                    f"{text}: phase 1's runs with a loss {lost or 'NONE (not exercised)'}; played {len(played)}: {lines}; "
-                    f"off: {bad or 'none'}", len(lost), 1))
+        # (stage B step 1) the replays are matched to those runs by IDENTITY (base plan, seed): a missing replay and an
+        # extra one no longer net out to the right count (CLAUDE.md rule 3)
+        replayed = sorted((r.get("base"), r["seed"]) for r in played)
+        out.append(grade(f"R5.{plan}", bool(lost) and replayed == lost and not bad,
+                    f"{text}: phase 1's runs with a loss {lost or 'NONE (not exercised)'} ({source}); played "
+                    f"{len(played)}: {lines}; not replayed: {sorted(set(lost) - set(replayed)) or 'none'}; replayed "
+                    f"without a phase-1 loss: {sorted(set(replayed) - set(lost)) or 'none'}; off: {bad or 'none'}",
+                    len(lost), 1))
     return out
 
 
@@ -1999,7 +2043,7 @@ def plans_played(rows: dict[str, list[dict]]) -> Check:
                  f"none played (plan: rows, the first error) {detail or 'none'}", len(rows), 1)
 
 
-def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Check]:
+def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]], forced: bool = True) -> list[Check]:
     """EVERY check of the sweep, typed (`grader_checks`, build step 5.3 A1-1), in the VERDICT view (`verdict_row`: each
     row's bool says whether it lets the verdict pass; `typed_verdict` is the verdict). Each COUNTED check (GRADED or
     HONESTY) gives its sample count and floor, so a counted check that saw nothing reads VACUOUS, never PASS (and FAILS the
@@ -2190,7 +2234,7 @@ def verdicts(summary: dict[str, dict], rows: dict[str, list[dict]]) -> list[Chec
                                   f"reached, frames {sum(h for _, h in both) if both else '-'} vs CH1 "
                                   f"{sum(c for c, _ in both) if both else '-'}; its ends {nh['reasons']} (bound "
                                   f"NOHINTS_SLOWER {BOUNDS['NOHINTS_SLOWER']}: fewer reached, or later)", nh["runs"], 1))
-    out += stop_verdicts(rows)
+    out += stop_verdicts(rows, forced)  # `forced` False only in a re-grade of a sweep played before the rule
     out += step51_verdicts(rows)
     out += chapter2_verdicts(rows)
     out += step52_verdicts(rows)
@@ -2946,7 +2990,7 @@ CONTROL_ARMS = (("R5.CH1_TRAINED", "CH1", "NOTRAIN"), ("R5.STALL", "CH1", "STALL
 BY_CONSTRUCTION = {("R5.CH1_TRAINED", "NOTRAIN"), ("R5.NO_SPEEDRUN_DICE", "ERRANDS_OFF"), ("R5.CH2_NOBATTLE", "CH2_OFF")}
 
 
-def control_arms(rows: dict[str, list[dict]]) -> list[tuple[str, str, str, str]]:
+def control_arms(rows: dict[str, list[dict]], forced: bool = True) -> list[tuple[str, str, str, str]]:
     """(Part C) Every `CONTROL_ARMS` entry whose control played: (check id, control plan, the check's status with the control
     in the real plan's slot, its text). The slot is the only plan replaced; every other plan's rows stay (a paired check's
     partner stays the real one, e.g. NOTRAIN for CH1_TRAINED, so NOTRAIN against NOTRAIN is the by-construction case)."""
@@ -2957,7 +3001,7 @@ def control_arms(rows: dict[str, list[dict]]) -> list[tuple[str, str, str, str]]
             continue
         swapped = {**rows, slot: played}
         summary = {plan: summarise(plan, sorted(plan_rows, key=lambda r: r["seed"])) for plan, plan_rows in swapped.items()}
-        found = [c for c in verdicts(summary, swapped) if c.id == check_id]
+        found = [c for c in verdicts(summary, swapped, forced) if c.id == check_id]
         status = found[0].status if found else "ABSENT"
         out.append((check_id, control, status, found[0].text if found else "the check was not produced"))
     return out
@@ -3026,16 +3070,21 @@ def regrade(root: Path, entry_id: int, purpose: str, budget: int, ledger_data: d
     if not any(plan_rows for plan, plan_rows in rows.items() if plan != "?"):
         raise ValueError(f"no kept run folder under {root}")
     summary = {plan: summarise(plan, sorted(plan_rows, key=lambda r: r["seed"])) for plan, plan_rows in rows.items()}
-    results = verdicts(summary, rows)
+    # (stage B step 1) phase 2 is judged by the rule the sweep was PLAYED under: an entry before
+    # FORCED_REPLAYS_FROM_ENTRY replayed natural losses only, so LOSE3's forced ones are not expected of it
+    forced = entry_id >= FORCED_REPLAYS_FROM_ENTRY
+    results = verdicts(summary, rows, forced)
     verdict = typed_verdict(results)
     lines = [f"RE-GRADE (DEVELOPMENT ONLY, never a graded verdict) of ledger #{entry_id} ({entry.get('first')}-"
              f"{entry.get('last')}, {entry.get('evidence')}): the kept run folders under {root}, graded by the CURRENT "
              f"grader ({GRADER_STAGE}, the re-sourcing build), nothing played; frame budget {budget}",
-             f"plans re-graded: { {plan: len(plan_rows) for plan, plan_rows in sorted(rows.items())} }"]
+             f"plans re-graded: { {plan: len(plan_rows) for plan, plan_rows in sorted(rows.items())} }",
+             f"phase 2 judged by the rule this sweep was played under: LOSE3's forced losses replayed: "
+             f"{'yes' if forced else 'no (an entry before #' + str(FORCED_REPLAYS_FROM_ENTRY) + ')'}"]
     lines += evidence_lines(results)
     lines.append("CONTROL ARMS (each re-sourced check re-run with its control in the real plan's slot; it must FAIL or "
                  "read VACUOUS; 'by construction' marks a control that is the pairing's own denominator):")
-    for check_id, control, status, text in control_arms(rows):
+    for check_id, control, status, text in control_arms(rows, forced):
         mark = " (by construction)" if (check_id, control) in BY_CONSTRUCTION else ""
         lines.append(f"  CONTROL {check_id} with {control}: [{status}]{mark} {text[:900]}")
     lines.append(f"RE-GRADE VERDICT: {verdict} (ledger #{entry_id}, development; NOT a graded verdict, no ledger entry "
@@ -3196,8 +3245,8 @@ def main() -> int:
         # PHASE 2 (`STOP_PLANS`): the runs the GAME recorded a loss in, replayed with MAX_LOSSES 1 (and without the loop's
         # count): chosen by the game's own record of phase 1, before they run
         stops = [plan for plan in plans if plan in STOP_PLANS]
-        lost = sorted((r["plan"], r["seed"]) for plan in plans if plan in PLANS and plan not in NO_PHASE2
-                      for r in rows[plan] if "error" not in r and r["losses_game"])
+        # (stage B step 1) the ONE rule `stop_verdicts` grades against: natural losses and LOSE3's forced ones alike
+        lost = phase2_lost(rows)
         if stops:
             say(f"PHASE 2: the runs of phase 1 the game recorded a battle LOST in: {lost or 'none'}; plans {stops}")
         for stop in stops:

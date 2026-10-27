@@ -2696,7 +2696,7 @@ class SecondRoundTests(unittest.TestCase):
                 grader_checks.grade("R5.CH2_WALLY", False, "CH2: WALLY's tutorial ...", 2, 1),
                 grader_checks.grade("R5.CH1_INTENT_MIX", True, "THE INTENT MIX (CH1): the share ...", 2),
                 grader_checks.grade("R5.BEELINE_FAILS_FREE", False, "THE BEELINE FAILS THE CURIOSITY BOUND: ...", 2)]
-        with mock.patch.object(rate_step5, "stop_verdicts", lambda rows: []), \
+        with mock.patch.object(rate_step5, "stop_verdicts", lambda rows, forced=True: []), \
                 mock.patch.object(rate_step5, "step51_verdicts", lambda rows: made[2:]), \
                 mock.patch.object(rate_step5, "chapter2_verdicts", lambda rows: made[:2]), \
                 mock.patch.object(rate_step5, "step52_verdicts", lambda rows: []):

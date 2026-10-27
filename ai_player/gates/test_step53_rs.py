@@ -36,6 +36,13 @@ THE FIX ROUND (the verifier's failures F1-F6 and weak proofs; every mutant run w
                           fails R5.PLANS_PLAYED), V27 (CONTROL_ARMS exactly), V7 (pooled_slices).
   ShopCounterReadTests    R5: `play_harness.story_truth` reads GAME_STAT_SHOPPED (index 38).
   (ShoppedTests above carries R5's ball-throw, prize-money and whiteout arms and F5's missing-read guards.)
+STAGE B STEP 1 (2026-10-27, where the STOP checks get their runs; the DECISION in
+`ai-research-notes/2026-10-26-stageB-stop-runs-design.md`):
+  StopRunsTests      phase 2 replays LOSE3's runs beside every natural loss (`phase2_lost`); a sweep with NO natural loss
+                     gives R5.STOP and R5.STOPDEAD their runs (VACUOUS before); the natural replays unchanged; the replays
+                     matched by identity; the texts count replays by source; R5.LOSE3's control arm FAILS on 2+ STOPDEAD runs.
+  StopRunsMainTests  `main` plays those replays (nothing played: the runners faked), each in a copy with LOSE3's mutant and
+                     the STOP plan's edits.
 """
 
 from __future__ import annotations
@@ -357,6 +364,24 @@ class RegradeTests(unittest.TestCase):
             lines, _ = rs.regrade(Path(root), 39, rs.REGRADE, 300000, self.LEDGER)  # CONTROL
         self.assertTrue(lines[0].startswith("RE-GRADE (DEVELOPMENT ONLY") and "ledger #39" in lines[0])
         self.assertTrue(lines[-1].startswith("RE-GRADE VERDICT: ") and "ledger #39" in lines[-1])
+
+    def test_phase_2_is_judged_by_the_rule_the_sweep_was_played_under(self):
+        # (stage B step 1's verifier: a re-grade of ledger #39 read FAIL for LOSE3 replays that sweep never played) an
+        # entry before FORCED_REPLAYS_FROM_ENTRY is re-graded with `forced` False, a later one with True
+        ledger = {"entries": [dict(self.LEDGER["entries"][0]),
+                              dict(self.LEDGER["entries"][0], id=rs.FORCED_REPLAYS_FROM_ENTRY)]}
+        seen = []
+        real = rs.verdicts
+        with tempfile.TemporaryDirectory() as root, \
+                mock.patch.object(rs, "verdicts", lambda s, r, forced=True: seen.append(forced) or real(s, r, forced)):
+            self.kept(Path(root))
+            lines, _ = rs.regrade(Path(root), 39, rs.REGRADE, 300000, ledger)
+            self.assertEqual(seen[0], False)  # FAULT arm of the old behaviour: #39 judged by the new rule
+            self.assertTrue(any("LOSE3's forced losses replayed: no" in line for line in lines))
+            seen.clear()
+            lines, _ = rs.regrade(Path(root), rs.FORCED_REPLAYS_FROM_ENTRY, rs.REGRADE, 300000, ledger)
+            self.assertEqual(seen[0], True)  # CONTROL: a sweep played under the rule is judged by it
+            self.assertTrue(any("LOSE3's forced losses replayed: yes" in line for line in lines))
 
     def test_an_empty_root_refuses(self):
         with tempfile.TemporaryDirectory() as root, self.assertRaisesRegex(ValueError, "no kept run folder"):
@@ -1161,6 +1186,240 @@ class DebtTests(unittest.TestCase):
             with self.subTest(key), self.assertRaisesRegex(gc.CheckError, re.escape(f"{key}: a GRADED check")):
                 gc.validate(reads_ai, gc.DEBT, gc.WAIVERS)  # FAULT
             gc.validate(reads_ai, {key: {"ai_input": "x", "plan": "y"}}, gc.WAIVERS)  # CONTROL
+
+
+# ====================================================== STAGE B STEP 1 (2026-10-27): where the STOP checks get their runs
+#: LOSE3's plan list before stage B step 1: LOSE3 was in `NO_PHASE2` (the "before the change" arm of these tests)
+OLD_NO_PHASE2 = ("LOSE3",) + rs.NO_PHASE2
+#: the Catcher seeds among 1-6 (`plan_of`): LOSE3 plays only there (`PLAN_PERSONALITY`)
+CATCHER = (2, 5)
+
+
+def lose3_base(seed: int) -> dict:
+    """A phase-1 LOSE3 run that reached its third loss (the harness's max_losses 3)."""
+    return row("LOSE3", seed, "Catcher", reason="play: stuck: 3 battles lost (MAX_LOSSES 3)", losses_game=3, losses_ai=3,
+               losses_told=3, first_loss_f=600, last_loss_f=1000, frames=1600, max_losses=3)
+
+
+def stop_replay(seed: int, base: str = "LOSE3", first: int = 600) -> dict:
+    """STOP's replay (CAP1): it ends at its first loss, its report, told and game losses 1, the harness's max_losses 1."""
+    return row("STOP", seed, "Catcher", base=base, reason=rs.STOP_REASON, losses_game=1, losses_ai=1, losses_told=1,
+               first_loss_f=first, last_loss_f=first, frames=first + 1200, max_losses=1)
+
+
+def dead_replay(seed: int, base: str = "LOSE3", first: int = 600, losses: int = 4) -> dict:
+    """STOPDEAD's replay (CAP1 + G46): the loop's count removed, so it never stops on its losses and goes on (LOSE3's
+    decider keeps losing: the game's losses past the cap), its report and told losses 0."""
+    return row("STOPDEAD", seed, "Catcher", base=base, reason="play: stuck: no progress for 120000 frames",
+               losses_game=losses, losses_ai=0, losses_told=0, first_loss_f=first, last_loss_f=first + 8000,
+               frames=first + 130000, max_losses=1)
+
+
+def no_natural_loss(replays: bool = True) -> dict[str, list[dict]]:
+    """A sweep with NO natural loss (the shape of ledger #40): CH1 on seeds 1-6 never lost; LOSE3 on the Catcher seeds lost
+    3 times each (forced); with `replays`, phase 2's STOP and STOPDEAD replays of exactly those LOSE3 runs."""
+    out = {"CH1": [row("CH1", s, rs.plan_of(s)[0]) for s in range(1, 7)], "LOSE3": [lose3_base(s) for s in CATCHER]}
+    out["STOP"] = [stop_replay(s) for s in CATCHER] if replays else []
+    out["STOPDEAD"] = [dead_replay(s) for s in CATCHER] if replays else []
+    return out
+
+
+def check_of(rows, check_id: str):
+    found = [c for c in rs.stop_verdicts(rows) + rs.step51_verdicts(rows) if c.id == check_id]
+    assert len(found) == 1, (check_id, [c.id for c in found])
+    return found[0]
+
+
+class StopRunsTests(unittest.TestCase):
+    """Stage B step 1 (`ai-research-notes/2026-10-26-stageB-stop-runs-design.md`, DECISION 2026-10-27, option B): phase 2's
+    STOP and STOPDEAD replay LOSE3's runs too (LOSE3 left `NO_PHASE2`), beside every natural loss, through ONE rule
+    (`phase2_lost`) that `main` plays and `stop_verdicts` grades; the replays are matched by identity; the texts count
+    replays by source. Mutants (each run in a scratch copy with fresh bytecode): LOSE3 back into `NO_PHASE2`; `main`'s
+    `phase2_lost` call deleted; `stop_verdicts`' `phase2_lost` call deleted; the identity match back to a count."""
+
+    def test_a_sweep_with_no_natural_loss_gives_stop_and_stopdead_their_runs(self):
+        rows = no_natural_loss()
+        self.assertEqual(rs.phase2_lost(rows), [("LOSE3", 2), ("LOSE3", 5)])
+        for check_id in ("R5.STOP", "R5.STOPDEAD"):
+            check = check_of(rows, check_id)
+            self.assertEqual((check.status, check.n), (gc.PASS, 2), check.text)  # CONTROL: both have their runs
+        # FAULT (before the change): LOSE3 in NO_PHASE2, so phase 2 chose nothing and played nothing: both VACUOUS
+        with mock.patch.object(rs, "NO_PHASE2", OLD_NO_PHASE2):
+            before = no_natural_loss(replays=False)
+            self.assertEqual(rs.phase2_lost(before), [])
+            for check_id in ("R5.STOP", "R5.STOPDEAD"):
+                check = check_of(before, check_id)
+                self.assertEqual((check.status, check.n), (gc.VACUOUS, 0), check.text)
+
+    def test_the_natural_loss_replays_are_unchanged(self):
+        # CONTROL: on the healthy sweep the natural losses the OLD rule chose are all still chosen, in the same order,
+        # and the only new ones are LOSE3's
+        rows = sweep()
+        rows["DEADREST"][2].update(losses_game=1, losses_ai=1, losses_told=1, first_loss_f=7000, last_loss_f=7000)
+        with mock.patch.object(rs, "NO_PHASE2", OLD_NO_PHASE2):
+            old = rs.phase2_lost(rows)
+        new = rs.phase2_lost(rows)
+        self.assertEqual(old, [("CH1", 1), ("DEADREST", 3)])
+        self.assertEqual([k for k in new if k[0] not in rs.FORCED_LOSS_PLANS], old)
+        self.assertEqual([k for k in new if k[0] in rs.FORCED_LOSS_PLANS], [("LOSE3", 2), ("LOSE3", 5)])
+        # the never-replayed plans stay out: a chapter-2 or curiosity-control run that lost is not chosen
+        rows["CH2"][0].update(losses_game=1)
+        rows["LOAF"][0].update(losses_game=1)
+        self.assertEqual(rs.phase2_lost(rows), new)
+        # the real code's R5.STOP passes and R5.STOPDEAD reads as the control it is, natural and forced replays together
+        rows = sweep()
+        for check_id in ("R5.STOP", "R5.STOPDEAD"):
+            check = check_of(rows, check_id)
+            self.assertEqual((check.status, check.n), (gc.PASS, 3), check.text)
+        # FAULT: a STOPDEAD replay that STOPPED (the count not removed) fails it; a STOP replay that went on fails STOP
+        stopped = sweep()
+        stopped["STOPDEAD"][1] = {**stop_replay(2), "plan": "STOPDEAD"}
+        self.assertEqual(check_of(stopped, "R5.STOPDEAD").status, gc.FAIL)
+        went_on = sweep()
+        went_on["STOP"][2] = {**dead_replay(5), "plan": "STOP"}
+        self.assertEqual(check_of(went_on, "R5.STOP").status, gc.FAIL)
+
+    def test_a_sweep_played_before_the_rule_is_judged_by_its_own_rule(self):
+        # (stage B step 1's verifier) a sweep played with LOSE3 kept out of phase 2: its LOSE3 runs lost and were never
+        # replayed. The new rule FAILS it for replays it was never asked to play; its own rule (`forced` False) does not
+        rows = no_natural_loss(replays=False)
+        for check_id in ("R5.STOP", "R5.STOPDEAD"):
+            self.assertEqual(check_of(rows, check_id).status, gc.FAIL)  # the new rule on an old sweep
+            old = [c for c in rs.stop_verdicts(rows, forced=False) if c.id == check_id][0]
+            self.assertEqual((old.status, old.n), (gc.VACUOUS, 0), old.text)  # its own rule: nothing it had to replay
+            self.assertIn("RE-GRADE of a sweep played before", old.text)
+        self.assertEqual(rs.phase2_lost(rows, forced=False), [])
+        self.assertEqual(rs.phase2_lost(no_natural_loss()), [("LOSE3", 2), ("LOSE3", 5)])  # CONTROL: the default
+        # and through the whole grader, as `regrade` calls it: `verdicts` hands `forced` on to the stop checks
+        summary = {plan: rs.summarise(plan, sorted(plan_rows, key=lambda r: r["seed"])) for plan, plan_rows in rows.items()}
+        whole = {c.id: c.status for c in rs.verdicts(summary, rows, False)}
+        self.assertEqual((whole["R5.STOP"], whole["R5.STOPDEAD"]), (gc.VACUOUS, gc.VACUOUS))
+
+    def test_the_replays_are_matched_by_identity_not_count(self):
+        # FAULT: LOSE3 5's replay is missing and a run that never lost (CH1 3) was replayed instead: the COUNT is right
+        # (2 of 2), the identity is not
+        rows = no_natural_loss()
+        for plan in ("STOP", "STOPDEAD"):
+            rows[plan] = [r for r in rows[plan] if r["seed"] != 5] + [
+                {**(stop_replay if plan == "STOP" else dead_replay)(3, base="CH1"), "personality": "Trainer"}]
+            check = check_of(rows, f"R5.{plan}")
+            self.assertEqual((check.status, check.n), (gc.FAIL, 2), check.text)
+            self.assertIn("not replayed: [('LOSE3', 5)]", check.text)
+            self.assertIn("replayed without a phase-1 loss: [('CH1', 3)]", check.text)
+        # CONTROL: the right runs, in any order, pass
+        rows = no_natural_loss()
+        rows["STOP"].reverse()
+        self.assertEqual(check_of(rows, "R5.STOP").status, gc.PASS)
+
+    def test_the_texts_count_the_replays_by_source(self):
+        text = check_of(no_natural_loss(), "R5.STOP").text
+        self.assertIn("by source: 0 NATURAL (the real decider lost), 2 FORCED by LOSE3's decider (the stop exercised on "
+                      "forced wild losses ONLY)", text)
+        text = check_of(sweep(), "R5.STOPDEAD").text
+        self.assertIn("by source: 1 NATURAL (the real decider lost), 2 FORCED by LOSE3's decider)", text)
+
+    def test_lose3s_control_arm_fails_with_two_or_more_stopdead_runs(self):
+        def arm(rows):
+            found = [a for a in rs.control_arms(rows) if a[:2] == ("R5.LOSE3", "STOPDEAD")]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        rows = no_natural_loss()
+        self.assertEqual(check_of(rows, "R5.LOSE3").status, gc.PASS)  # CONTROL: the real cap stops LOSE3 itself
+        _, _, state, text = arm(rows)
+        self.assertEqual(state, gc.FAIL, text)  # the control FAILS, on its own 2 runs (floor 2)
+        self.assertIn("(2 of 2; floor 2 such runs", text)
+        self.assertIn("off: [2, 5]", text)
+        # FAULT (before the change): with no natural loss STOPDEAD played nothing, so the control arm did not even run;
+        # with ONE natural loss (ledger #39's DEADREST 1314) it read VACUOUS, 1 run against the floor of 2
+        with mock.patch.object(rs, "NO_PHASE2", OLD_NO_PHASE2):
+            self.assertEqual([a for a in rs.control_arms(no_natural_loss(replays=False)) if a[0] == "R5.LOSE3"], [])
+            one = no_natural_loss(replays=False)
+            one["CH1"][0].update(losses_game=1, losses_ai=1, losses_told=1, first_loss_f=5000, last_loss_f=5000)
+            one["STOPDEAD"] = [dead_replay(1, base="CH1", first=5000, losses=1)]
+            self.assertEqual(arm(one)[2], gc.VACUOUS)
+
+
+class StopRunsMainTests(unittest.TestCase):
+    """`main` plays phase 2 from `phase2_lost`: a sweep with no natural loss replays LOSE3's runs in both STOP plans, each in
+    a copy with LOSE3's mutant AND the STOP plan's edits (nothing played: `run_chain`, `run_one` and `copy_with` faked)."""
+
+    def drive(self, rows: dict[str, list[dict]]) -> tuple[int, str, list, list]:
+        import io
+        from contextlib import redirect_stdout
+
+        from ai_player.gates import disk_budget, ledger, provenance
+
+        class Tree:
+            stats, digest, moved, moves = {}, "d", False, []
+
+            def check(self, label):
+                return True
+
+            def seal(self, verdict):
+                return verdict, "FROZEN TREE: unchanged (faked)"
+
+        class Folders:
+            def __init__(self, tag):
+                pass
+
+            def tidy(self, failing, keep_all=False):
+                return "SWEEP FOLDERS: (faked)"
+
+        played, made = [], []
+
+        def chain(plan, seed, frames, target, root, chapter2):
+            return [dict(r) for r in rows[plan] if r["seed"] == seed]
+
+        def one(plan, seed, frames, target, root, base):
+            played.append((plan, base, seed))
+            return dict(next(r for r in rows[plan] if r["seed"] == seed and r.get("base") == base))
+
+        def copy(names):
+            made.append(list(names))
+            return Path(tempfile.gettempdir()) / f"stopruns_fake_copy_{len(made)}"  # never created; rmtree ignores it
+
+        folder = Path(tempfile.mkdtemp(prefix="stopruns_"))
+        self.addCleanup(lambda: __import__("shutil").rmtree(folder, ignore_errors=True))
+        argv = ["rate_step5.py", "--purpose", "development", "--first-seed", "1", "--seeds", "6", "--plans",
+                "CH1,LOSE3,STOP,STOPDEAD", "--workers", "1", "--evidence-tag", "stopruns"]
+        with mock.patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()), \
+                mock.patch.object(disk_budget, "preflight", lambda: (True, "DISK: (faked)")), \
+                mock.patch.object(disk_budget, "SweepFolders", Folders), \
+                mock.patch.object(provenance, "watch", lambda repo, explicit=True: Tree()), \
+                mock.patch.object(provenance, "line_digest", lambda code: "x"), \
+                mock.patch.object(ledger, "begin", lambda *a, **k: ({"id": 0}, ["LEDGER: (faked)"])), \
+                mock.patch.object(ledger, "finish", lambda *a, **k: None), \
+                mock.patch.object(rs, "provenance", lambda repo: "code (faked)"), \
+                mock.patch.object(rs, "snapshot_tree", lambda repo: "(faked)"), \
+                mock.patch.object(rs, "keep_earlier", lambda out: None), \
+                mock.patch.object(rs, "EVIDENCE_DIR", folder), mock.patch.object(rs, "REPO", folder), \
+                mock.patch.object(rs, "run_chain", chain), mock.patch.object(rs, "run_one", one), \
+                mock.patch.object(rs, "copy_with", copy), \
+                mock.patch.object(rs, "_FOLDERS", None), mock.patch.object(rs, "_TREE", None):
+            # (the verifier's weak proof) `main` sets the module globals `_FOLDERS` and `_TREE`: patched, so the fakes do
+            # not leak into later tests in the same process
+            code = rs.main()
+        evidence = next(folder.glob("*-stopruns-RATE.txt")).read_text(encoding="utf-8")
+        return code, evidence, sorted(played), made
+
+    def test_a_sweep_with_no_natural_loss_plays_lose3s_replays(self):
+        code, evidence, played, made = self.drive(no_natural_loss())
+        self.assertEqual(played, [("STOP", "LOSE3", 2), ("STOP", "LOSE3", 5), ("STOPDEAD", "LOSE3", 2),
+                                  ("STOPDEAD", "LOSE3", 5)])
+        self.assertEqual(made, [["LOSE3"], ["LOSE3", "CAP1"], ["LOSE3", "CAP1", "G46"]])
+        self.assertIn("PHASE 2: the runs of phase 1 the game recorded a battle LOST in: [('LOSE3', 2), ('LOSE3', 5)]; "
+                      "plans ['STOP', 'STOPDEAD']", evidence)
+        for check_id in ("R5.STOP", "R5.STOPDEAD"):
+            self.assertIn(f"  [PASS] {check_id} HONESTY n/floor 2/1 ", evidence)
+        # (the verdict itself is not asserted: CH1 without NOTRAIN cannot pass R5.CH1_TRAINED's pairing, by design)
+        # FAULT (before the change): LOSE3 in NO_PHASE2, nothing replayed, both VACUOUS, the verdict FAIL
+        with mock.patch.object(rs, "NO_PHASE2", OLD_NO_PHASE2):
+            code, evidence, played, made = self.drive(no_natural_loss())
+        self.assertEqual(played, [])
+        self.assertIn("PHASE 2: the runs of phase 1 the game recorded a battle LOST in: none", evidence)
+        for check_id in ("R5.STOP", "R5.STOPDEAD"):
+            self.assertIn(f"  [VACUOUS] {check_id} HONESTY n/floor 0/1 ", evidence)
 
 
 if __name__ == "__main__":
