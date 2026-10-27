@@ -378,6 +378,12 @@ ASIDE = "aside:"
 #: the PLAY json, `play_harness.play`: the value the run actually played with) (source: `ai_player/mode.py` MAX_LOSSES)
 MAX_LOSSES_DEFAULT = 3
 #: PRE-REGISTERED (module docstring): set from the development sweeps (named in the README's step-5 section).
+#: (build step 5.3 STAGE B step 3, 2026-10-27, `ai-research-notes/2026-10-27-step5.3-stageB-bounds.md`) EVERY bound the
+#: re-sourced checks read is now FINAL. Each re-sourcing candidate was re-judged on DEVELOPMENT numbers only (the re-grades
+#: of ledger #39, #40 and #41: seeds 1307-1384) and KEPT: every one sits between the real code's worst development number
+#: and its named control's nearest, with both margins in that note, and no paired ratio is under 1.03. None was moved,
+#: because none had to be: a bound is not tightened toward the real code to look stricter, nor loosened toward a control.
+#: `test_step53_rs.StageBBoundsTests` pins each value and its placement. Nothing is retuned on the held-out seeds (961 up).
 BOUNDS = {
     "CH1_REACHED_MIN": 0.8,  # at least this share of the CH1 seeds reach the POKéDEX within the budget
     "CH1_FIRST_TRY_MIN": 0.8,  # ... and beat the rival at the first try
@@ -402,8 +408,10 @@ BOUNDS = {
     # (build step 5.3, the RE-SOURCING build, item 1: `2026-10-24-step5.3-A2-decision-addendum.md` row 1 and the plan
     # `2026-10-25-step5.3-resourcing-plan.md` (a)) THE TRAINED CHECK BY THE GAME ALONE: the steps onto TALL GRASS between
     # the starter's mark and the rival's flag (the harness's tile read, `game_reads.tiles`), judged by the personality the
-    # HARNESS assigned the seed. CANDIDATES from the addendum's stage-B table (development ledger #39, seeds 1307-1318);
-    # stage B may move each only within those margins, then registers it. The three keys above (and CH1_WILD_WON_MIN)
+    # HARNESS assigned the seed. The addendum's stage-B candidates (development ledger #39, seeds 1307-1318), FINAL at
+    # stage B step 3 (2026-10-27), unchanged: the Story floor 70 sits 32 under CH1's lowest Story run (102) and 32 over
+    # NOTRAIN's highest (38); the paired ratios 0.816 (Trainer) and 0.198 (Catcher) under CH1's pooled, 0.3 and 0.1 over the
+    # by-construction 1.0, and 0.07 or more over the 1.03 floor. The three keys above (and CH1_WILD_WON_MIN)
     # are no longer graded: the AI's training windows they judged are printed as diagnostic text.
     # Story: an absolute floor in EVERY Story run (CH1 102-177, NOTRAIN 23-38, the lowest training arm 99)
     "TRAINED_GRASS_STORY_MIN": 70,
@@ -462,7 +470,8 @@ BOUNDS = {
     # 13,512-29,504 frames, the training stints 53,553-63,537 frames): the real rule reaches the POKéDEX in at least this
     # share, the step-5 rule stops 'no progress' in at least this share, at least once WHILE TRAINING (measured 3 of 3 and
     # 3 of 3, each stop with a training session the last goal)
-    # (build step 5.3, the re-sourcing build, item 7: addendum row 10) 0.8 -> 0.6, a CANDIDATE: graded now on the dex half
+    # (build step 5.3, the re-sourcing build, item 7: addendum row 10) 0.8 -> 0.6, FINAL at stage B (2026-10-27, kept):
+    # graded now on the dex half
     # alone; at the plausible p 0.875 (24 of 24 Trainer runs of the arms with their curiosity and training intact) 0.8
     # falsely fails 16.7 % (6 held-out seeds, 5 needed) and 21.5 % (7 seeds, 6 needed), 0.6 2.9-4.6 % (the 11-15 % once
     # written here is the p 0.9 figure: the re-sourcing fix round's F6); PATIENCE_OLD's 0 of 4 fails it by 60 points
@@ -494,7 +503,8 @@ BOUNDS = {
     # 9, the per-seed ratio's spread 0.035 and 0.076; the first round's code on 401-410, recounted, 1.065 with 8 of 10;
     # while the frames outside the needs WITH the battles measured 1.078 and 0.995: the old bound below 1.0 in one of five
     # samples, so it is kept, pre-registered, and its failure would be the grass's dice, which this check removes)
-    # (build step 5.3, the re-sourcing build, item 4: addendum row 8) 1.02 -> 1.05, a CANDIDATE: the quantity is now the
+    # (build step 5.3, the re-sourcing build, item 4: addendum row 8) 1.02 -> 1.05, FINAL at stage B (2026-10-27, kept;
+    # 0.074 under the real pooled 1.124, 0.022 over the highest pseudo-null 1.028): the quantity is now the
     # GAME's (frames to the POKéDEX flag less the game's battle frames), dev pooled 1.124, slower in 11 of 12; the
     # pseudo-null (arms whose edit is not curiosity: DEADREST 0.977, STALL1 1.028, STALL2 1.021) sits under it (plan (d))
     "NOBATTLE_RATIO_MIN": 1.05,
@@ -533,7 +543,8 @@ BOUNDS = {
     # ... and NO SPEEDRUN in chapter 2 without the grass's dice: the AI's own frames to WALLY outside the needs and the
     # battles, CH2 over CH2_OFF pooled at least this, CH2 the slower in at least this share of the paired seeds (measured
     # 1.491 with 9 of 9 and 1.369 with 8 of 9: the bound well under both)
-    # (build step 5.3, the re-sourcing build, item 5: addendum row 11) 1.15 -> 1.05, a CANDIDATE: the quantity is now the
+    # (build step 5.3, the re-sourcing build, item 5: addendum row 11) 1.15 -> 1.05, FINAL at stage B (2026-10-27, kept;
+    # 0.105 under the real pooled 1.155, 0.05 over the by-construction 1.0): the quantity is now the
     # GAME's (frames to WALLY's tutorial, VAR_PETALBURG_GYM_STATE 2, less the game's battle frames before it), dev pooled
     # 1.155, CH2 slower in 11 of 12 (0.808-1.309): the old 1.15 left a 0.005 margin. CH2_OFF against itself is 1.0 BY
     # CONSTRUCTION and no pseudo-null exists (only CH2 and CH2_OFF reach WALLY), so the margin is the real code's own spread
@@ -562,7 +573,10 @@ BOUNDS = {
     # step52dev4: two catching roams that met only known POKéMON, 25,003 frames, were 80-87 % battles, which are the game
     # played, not loafing, so the battles are taken out, and a catching roam gives the hunt up, `brain/goals.py`
     # HUNT_FRUITLESS) ...
-    # (build step 5.3, the re-sourcing build, item 9: addendum rows 14-15) THE QUANTITY CHANGED, 4000 -> 3000, a CANDIDATE:
+    # (build step 5.3, the re-sourcing build, item 9: addendum rows 14-15) THE QUANTITY CHANGED, 4000 -> 3000, FINAL at
+    # stage B (2026-10-27): 3,000 over 4,000 (the addendum's row-14 choice), because the chance that NONE of a 20-seed
+    # sweep's LOAF runs fails it is 0.3 % at LOAF's development rate 3 of 12 (2.6 % at 4,000, 2 of 12), while the six real
+    # plans' 72 runs of #39 reach 1,910 at most (and the 48 DEADREST runs of #40, a rest-rule mutant, 2,050):
     # it bounds the GAME's longest free stretch of pressing that brought nothing new (`PlaceRecorder.push`, the row's
     # `push_game`), no longer the AI-windowed total. Dev (ledger #39): every real-plan run at or under 1,910 (margin
     # 1,090); LOAF over it in 3 of 12 (4,640, 4,030, 3,120). Preferred over 4,000 because at 4,000 LOAF's second failing run
@@ -2987,7 +3001,9 @@ CONTROL_ARMS = (("R5.CH1_TRAINED", "CH1", "NOTRAIN"), ("R5.STALL", "CH1", "STALL
                 # plan, so R5.PUSHING and R5.NO_LOAFING judge it), and WALLY's beeline in CH2's
                 ("R5.CH2_NOBATTLE", "CH2", "CH2_OFF"), ("R5.PUSHING", "CH1", "BLOCKED"), ("R5.NO_LOAFING", "CH1", "LOAF"))
 #: the checks whose control fails by construction in its arm (the pairing's denominator)
-BY_CONSTRUCTION = {("R5.CH1_TRAINED", "NOTRAIN"), ("R5.NO_SPEEDRUN_DICE", "ERRANDS_OFF"), ("R5.CH2_NOBATTLE", "CH2_OFF")}
+BY_CONSTRUCTION = {("R5.CH1_TRAINED", "NOTRAIN"), ("R5.NO_SPEEDRUN_DICE", "ERRANDS_OFF"), ("R5.CH2_NOBATTLE", "CH2_OFF"),
+                   # (stage B step 3, 2026-10-27) ERRANDS_OFF is OFF_BEELINE's own denominator too: against itself 1.0
+                   ("R5.OFF_BEELINE", "ERRANDS_OFF")}
 
 
 def control_arms(rows: dict[str, list[dict]], forced: bool = True) -> list[tuple[str, str, str, str]]:

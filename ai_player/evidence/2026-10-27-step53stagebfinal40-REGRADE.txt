@@ -1,0 +1,8 @@
+RE-GRADE (DEVELOPMENT ONLY, never a graded verdict) of ledger #40 (1319-1366, ai_player/evidence/2026-10-25-step53stopcov-RATE.txt): the kept run folders under C:\Users\Ripto\AppData\Local\Temp\ai_sweep_step5_step53stopcov_7p6iw9wt, graded by the CURRENT grader (stage A2, the re-sourcing build), nothing played; frame budget 300000
+plans re-graded: {'DEADREST': 48}
+phase 2 judged by the rule this sweep was played under: LOSE3's forced losses replayed: no (an entry before #41)
+  [PASS] R5.PLANS_PLAYED GRADED n/floor 1/1 inputs harness: EVERY PLAN PLAYED (at least one run of each plan asked for ended with a PLAY line): plans 1; none played (plan: rows, the first error) none
+  [PASS] R5.LOSSES_AGREE HONESTY n/floor 48/1 inputs ai+game: ALL PLANS: the AI's battles lost (its report) == its TOLD losses (the loop's lines) == the game's (gBattleOutcome LOST) in 48 of 48 runs; the game's losses by plan {'DEADREST': 0}; off (plan, seed, report, told, game): none
+  [PASS] R5.STALL_PATHS_AGREE HONESTY n/floor 48/1 inputs ai+game: THE TWO PATHS AGREE on the stall verdict (AI record vs the game's) in 48 of 48 runs; apart: none
+CONTROL ARMS (each re-sourced check re-run with its control in the real plan's slot; it must FAIL or read VACUOUS; 'by construction' marks a control that is the pairing's own denominator):
+RE-GRADE VERDICT: PASS (ledger #40, development; NOT a graded verdict, no ledger entry written)

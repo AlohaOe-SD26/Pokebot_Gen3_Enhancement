@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "bfb325bb42541a2ac914d82d3c145ea09efb2c3e",
+ "source_sha1_lf": "5d4f90b608694792ab8963714b09eb81ac4c6346",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 335,
+  "sections": 336,
   "donot_candidates": 24,
   "sections_naming_user_rulings": 39
  },
@@ -5222,6 +5222,19 @@
    "line_start": 9760,
    "line_end": 9765,
    "title": "2026-10-27 — Step 5.3 stage B step 1: phase 2's STOP and STOPDEAD also replay LOSE3's runs; a re-grade judges phase 2 by the rule its sweep was played under",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-27-0ab496",
+   "date": "2026-10-27",
+   "line_start": 9767,
+   "line_end": 9771,
+   "title": "2026-10-27 — Step 5.3 stage B step 3: the final bounds are the re-sourcing build's candidates, all 20 kept",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],

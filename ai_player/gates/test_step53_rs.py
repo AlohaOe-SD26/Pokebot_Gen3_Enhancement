@@ -43,6 +43,10 @@ STAGE B STEP 1 (2026-10-27, where the STOP checks get their runs; the DECISION i
                      matched by identity; the texts count replays by source; R5.LOSE3's control arm FAILS on 2+ STOPDEAD runs.
   StopRunsMainTests  `main` plays those replays (nothing played: the runners faked), each in a copy with LOSE3's mutant and
                      the STOP plan's edits.
+STAGE B STEP 3 (2026-10-27, the FINAL bounds; `ai-research-notes/2026-10-27-step5.3-stageB-bounds.md`):
+  StageBBoundsTests  every graded bound the re-sourced checks read PINNED at its final value (`STAGE_B_FINAL`), each placed
+                     between the real code's worst development number and its control's nearest (`STAGE_B_PLACED`), no
+                     paired ratio under 1.03; LOAF_FRAMES_MAX on ledger #39's numbers through the verdict code.
 """
 
 from __future__ import annotations
@@ -568,6 +572,9 @@ class Ch2NoBattleTests(unittest.TestCase):
         arms = {(c, k): s for c, k, s, _ in rs.control_arms(sweep())}
         self.assertEqual(arms[("R5.CH2_NOBATTLE", "CH2_OFF")], gc.FAIL)
         self.assertIn(("R5.CH2_NOBATTLE", "CH2_OFF"), rs.BY_CONSTRUCTION)
+        # (stage B step 3) the beeline in CH1's slot is OFF_BEELINE's own denominator: it fails by construction, labelled
+        self.assertEqual(arms[("R5.OFF_BEELINE", "ERRANDS_OFF")], gc.FAIL)
+        self.assertIn(("R5.OFF_BEELINE", "ERRANDS_OFF"), rs.BY_CONSTRUCTION)
 
 
 class PushLoafTests(unittest.TestCase):
@@ -1420,6 +1427,103 @@ class StopRunsMainTests(unittest.TestCase):
         self.assertIn("PHASE 2: the runs of phase 1 the game recorded a battle LOST in: none", evidence)
         for check_id in ("R5.STOP", "R5.STOPDEAD"):
             self.assertIn(f"  [VACUOUS] {check_id} HONESTY n/floor 0/1 ", evidence)
+
+
+#: (STAGE B step 3, 2026-10-27) the FINAL value of every graded bound the re-sourced checks read, as stage B set it from
+#: development numbers alone (`ai-research-notes/2026-10-27-step5.3-stageB-bounds.md`); STOP_WITHIN is a module constant
+STAGE_B_FINAL = {"TRAINED_GRASS_STORY_MIN": 70, "TRAINED_RATIO_TRAINER_MIN": 1.3, "TRAINED_RATIO_CATCHER_MIN": 1.1,
+                 "TRAINED_SHARE_MIN": 0.5, "AWAIT_MAX": 300, "STALL_ARM_HITS_MIN": 1, "OFF_SEEDS_MIN": 0.6,
+                 "OFF_RATIO_MIN": 1.3, "NOBATTLE_RATIO_MIN": 1.05, "NOBATTLE_SEEDS_MIN": 0.6, "LOSE3_REACH_MIN": 2,
+                 "PATIENCE_REACHED_MIN": 0.6, "CH2_NOBATTLE_RATIO_MIN": 1.05, "CH2_NOBATTLE_SEEDS_MIN": 0.7,
+                 "PUSH_MAX": 4000, "BLOCKED_HITS_MIN": 1, "LOAF_FRAMES_MAX": 3000, "LOAF_FAILS_RUNS_MIN": 1,
+                 "PUSH_AGREE_BAND": 0.05, "STOP_WITHIN": 6000}
+#: (key, the real code's WORST development number, the named control's NEAREST, the real code's side): "low" = the real
+#: code is under the bound and the control at or over it (control <= ... the real code < bound <= control); "high" = the
+#: real code at or over it and the control under it (control < bound <= real). Ledger #39's re-grade unless noted:
+STAGE_B_PLACED = (
+    ("TRAINED_GRASS_STORY_MIN", 102, 38, "high"),  # CH1 Story 102-177; NOTRAIN Story 23-38
+    ("TRAINED_RATIO_TRAINER_MIN", 2.116, 1.0, "high"),  # CH1/NOTRAIN pooled; NOTRAIN/NOTRAIN 1.0 by construction
+    ("TRAINED_RATIO_CATCHER_MIN", 1.298, 1.0, "high"),
+    ("AWAIT_MAX", 150, 600, "low"),  # the real plans' 72 runs (and #40/#41) 150; STALL1's lowest failing run 600
+    ("OFF_RATIO_MIN", 2.23, 1.0, "high"),  # the beeline against itself (leave-one-out) pools to exactly 1.0
+    ("NOBATTLE_RATIO_MIN", 1.124, 1.028, "high"),  # the highest pseudo-null (STALL1/CH1), over the 1.0 by construction
+    ("CH2_NOBATTLE_RATIO_MIN", 1.155, 1.0, "high"),  # no pseudo-null reaches WALLY
+    ("PATIENCE_REACHED_MIN", 1.0, 0.0, "high"),  # PATIENCE 4 of 4; PATIENCE_OLD 0 of 4
+    ("PUSH_MAX", 1910, 156790, "low"),  # the real plans' longest; BLOCKED's lowest failing run
+    ("LOAF_FRAMES_MAX", 1910, 3120, "low"),  # LOAF's lowest failing run (of 4,640, 4,030, 3,120)
+    ("STOP_WITHIN", 684, 63486, "low"))  # LOSE3/STOP's slowest end after the cap (#41); STOPDEAD's nearest (#39, 1314)
+#: the paired ratio bounds: none under the largest pseudo-null shift measured (addendum stage-B rules, W7)
+STAGE_B_PAIRED = ("TRAINED_RATIO_TRAINER_MIN", "TRAINED_RATIO_CATCHER_MIN", "OFF_RATIO_MIN", "NOBATTLE_RATIO_MIN",
+                  "CH2_NOBATTLE_RATIO_MIN")
+PAIRED_FLOOR = 1.03
+
+
+class StageBBoundsTests(unittest.TestCase):
+    """STAGE B step 3 (2026-10-27): the FINAL bounds, PINNED, and each PLACED between the real code and its control on the
+    development numbers it was set from. WHY: until `--register` hashes them, nothing holds a value where stage B put it;
+    a later edit that loosens a bound toward a control (or past the real code) would only show in a graded FAIL or never.
+    A pin follows its value and is never weaker (the build's rule). FAULT arms: a moved value is named; a value placed
+    outside its development margins, or a paired bound under 1.03, is refused. CONTROL: the module's values pass all three."""
+
+    @staticmethod
+    def values() -> dict:
+        return {**{k: BOUNDS[k] for k in STAGE_B_FINAL if k in BOUNDS}, "STOP_WITHIN": rs.STOP_WITHIN}
+
+    @staticmethod
+    def drift(values: dict) -> dict:
+        """Every stage-B key whose value differs from its pin, as key -> (pinned, now); a missing key is a drift too."""
+        return {k: (v, values.get(k)) for k, v in STAGE_B_FINAL.items() if values.get(k) != v}
+
+    @staticmethod
+    def misplaced(values: dict) -> list:
+        """Every placed key whose value is NOT strictly between its control and the real code (the real code on its side)."""
+        out = []
+        for key, real, control, side in STAGE_B_PLACED:
+            value = values.get(key)
+            inside = value is not None and (real < value <= control if side == "low" else control < value <= real)
+            if not inside:
+                out.append((key, value, real, control))
+        return out
+
+    @staticmethod
+    def under_floor(values: dict) -> list:
+        return [k for k in STAGE_B_PAIRED if values.get(k) is None or values[k] < PAIRED_FLOOR]
+
+    def test_the_final_values_are_pinned(self):
+        self.assertEqual(self.drift(self.values()), {})  # CONTROL
+        self.assertEqual(set(STAGE_B_FINAL) - set(self.values()), set())  # every pinned key exists
+        with mock.patch.dict(BOUNDS, {"LOAF_FRAMES_MAX": 4000, "CH2_NOBATTLE_RATIO_MIN": 1.15}):  # FAULT: two moved
+            self.assertEqual(self.drift(self.values()), {"LOAF_FRAMES_MAX": (3000, 4000),
+                                                         "CH2_NOBATTLE_RATIO_MIN": (1.05, 1.15)})
+        with mock.patch.object(rs, "STOP_WITHIN", 60000):  # FAULT: the module constant moved
+            self.assertEqual(self.drift(self.values()), {"STOP_WITHIN": (6000, 60000)})
+
+    def test_each_value_sits_between_the_real_code_and_its_control(self):
+        self.assertEqual(self.misplaced(self.values()), [])  # CONTROL
+        # FAULT: LOAF past its lowest failing run (it would pass a LOAF run of 3,120), the stall bound under the real
+        # code's 150, the no-speedrun ratio under the highest pseudo-null
+        moved = {**self.values(), "LOAF_FRAMES_MAX": 3200, "AWAIT_MAX": 150, "NOBATTLE_RATIO_MIN": 1.028}
+        self.assertEqual([m[0] for m in self.misplaced(moved)], ["AWAIT_MAX", "NOBATTLE_RATIO_MIN", "LOAF_FRAMES_MAX"])
+        self.assertEqual([m[0] for m in self.misplaced({})], [p[0] for p in STAGE_B_PLACED])  # nothing read: all refused
+
+    def test_no_paired_bound_is_under_the_floor(self):
+        self.assertEqual(self.under_floor(self.values()), [])  # CONTROL
+        self.assertEqual(self.under_floor({**self.values(), "TRAINED_RATIO_CATCHER_MIN": 1.02}),
+                         ["TRAINED_RATIO_CATCHER_MIN"])  # FAULT
+
+    def test_the_development_numbers_grade_as_the_note_says(self):
+        """The final LOAF_FRAMES_MAX on ledger #39's own numbers through the verdict code, R5.NO_LOAFING being the row whose
+        control sits nearest its bound (LOAF's 3,120, 120 over it): the real code's worst runs PASS, LOAF's three failing
+        runs FAIL, and so does the nearest alone. (The full re-grade, every row and control, is the note's evidence.)"""
+        def graded(plan_rows: dict, check_id: str) -> str:
+            return status(grade_sweep({**sweep(), **plan_rows}), check_id)
+        real = [row("CH1", s, p, push_game=g, push_ai=g) for s, (p, g) in
+                {1307: ("Catcher", 1290), 1308: ("Trainer", 1450), 1309: ("Story", 1910)}.items()]
+        loaf = [row("CH1", s, p, push_game=g, push_ai=g) for s, (p, g) in
+                {1307: ("Catcher", 4640), 1310: ("Catcher", 4030), 1313: ("Catcher", 3120)}.items()]
+        self.assertEqual(graded({"CH1": real}, "R5.NO_LOAFING"), gc.PASS)  # CONTROL: the real code's worst, 1,910
+        self.assertEqual(graded({"CH1": loaf}, "R5.NO_LOAFING"), gc.FAIL)  # FAULT: LOAF's three failing runs
+        self.assertEqual(graded({"CH1": loaf[2:]}, "R5.NO_LOAFING"), gc.FAIL)  # ... and its nearest one alone (3,120)
 
 
 if __name__ == "__main__":

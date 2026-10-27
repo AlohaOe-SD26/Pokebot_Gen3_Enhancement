@@ -1,6 +1,6 @@
 # Step 5.3 stage B prep: where the stop checks get their runs (2026-10-26)
 
-> **STATUS: a coordinator DESIGN NOTE for stage B's plan. NOT BUILT, nothing changed in code.** Stage B's plan decides it
+> **STATUS: DECIDED and BUILT 2026-10-27 (the DECISION section below; `07` 2026-10-27, commit c0676255).** First a coordinator design note: stage B's plan decides it
 > (with a critic) and builds it before anything registers. Written at the end of the week's budget so that stage B can
 > start from it after the Wednesday 2026-10-28 reset.
 
