@@ -38941,3 +38941,8 @@ bought balls only at fixed story points.
 - **Counted checks:** 38 (GRADED and HONESTY), 35 PASS, 3 FAIL: R5.NO_LOAFING (NOHINTS 963, 3,080 against under 3,000: KI-125), R5.PUSH_PATHS_AGREE (LOAF 961, AI 4,292 against game 3,910 at 4,000: KI-126), R5.NOTRAIN_TRAINED_CHECK (NOTRAIN Story 961, 75 grass steps against the 70 floor, the run lost the rival twice, and a comparison agent's reading of its kept folder puts the steps in travel goals, retracing: a limit of the check, as read). Non-counting: R5.CH2_INTENT_MIX (REPORTED) and R5.YIELD_AGREE (DIAGNOSTIC, 744 of 751) read FAIL. Chapter 2 holds: R5.CH2_WALLY PASS 20/1. The old graded #34 (old grader) read PASS on all 67 of its lines; the row-by-row comparison is `ai-research-notes/2026-10-27-step5.3-stageB-graded-result.md` (by a comparison agent from the evidence and the kept folders).
 - **Decision (`06` 2026-10-27):** information, never retuned on these seeds; step 5.3 is DONE. KI-125 and KI-126 filed.
 - **Next:** queue item 4 (the backlog's items 14-15: E2 + O8, R5, R1 + R2).
+
+## 2026-10-27 — USER RULINGS 46 and 47 recorded: 'it shopped' is any purchase; the cloud credit is measured first, then used or shelved (punch-list #28-aiagent-v2)
+
+- **46:** the launcher's achievement means any purchase; `L5.SHOPPED_GAME` already counts any; the HONESTY check `L5.SHOPPED` will judge every told purchase, not only balls (a small change, queued before the next live_step5 grade).
+- **47:** one small cloud job right after the 2026-10-28 weekly reset decides whether the $250 credit or the weekly meter pays; then use it through 2026-11-01 or shelve it. `06` 2026-10-27 holds both; 04's cloud line and item 3's note point to them.

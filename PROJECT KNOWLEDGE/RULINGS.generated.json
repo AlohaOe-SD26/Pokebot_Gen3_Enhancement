@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "65ca79d1e8e18bd53c7c050e42b1f6a4d94fb619",
+ "source_sha1_lf": "13020b22afd3547d325d06e53ec280a8f705e4cf",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 337,
+  "sections": 339,
   "donot_candidates": 24,
-  "sections_naming_user_rulings": 39
+  "sections_naming_user_rulings": 41
  },
  "sections": [
   {
@@ -5255,6 +5255,36 @@
     "KI-125",
     "KI-126"
    ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-27-94e439",
+   "date": "2026-10-27",
+   "line_start": 9778,
+   "line_end": 9783,
+   "title": "2026-10-27 — USER RULING 46: the launcher's \"it shopped\" means ANY purchase, not only POKé BALLs",
+   "rulings": [
+    46
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-27-5b5b7d",
+   "date": "2026-10-27",
+   "line_start": 9785,
+   "line_end": 9790,
+   "title": "2026-10-27 — USER RULING 47: use the $250 cloud credit before it expires (2026-11-04) if a cloud job is billed to it; measure that first, and shelve it if the weekly meter pays or the setup costs too much",
+   "rulings": [
+    47
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
    "donot": [],
    "cues": []
   }
