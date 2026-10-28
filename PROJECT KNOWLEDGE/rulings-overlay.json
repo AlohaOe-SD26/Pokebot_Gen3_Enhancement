@@ -437,6 +437,17 @@
    },
    "do_not_reopen": "Whether cloud jobs can be paid from the user's $250 credit (no: the weekly plan pays, measured and documented 2026-10-28); the cloud phase stays shelved unless the user re-opens it.",
    "reason": "06 2026-10-28: \"the ruling's own rule: 'If the WEEKLY meter pays: shelve it'\" and \"Do not re-open without the user.\""
+  },
+  "2026-10-28-abc2b6": {
+   "title": "2026-10-28 — USER RULING 48: games that finish before a crash COUNT toward the tuner's ranking; the 12 games lost on 2026-10-17 (ai0031) are NOT added back",
+   "candidates": {
+    "fc7985b7": "marker"
+   },
+   "ruling_key": "48@2026-10-28",
+   "do_not_reopen": "Whether games recovered from a crashed tuner cycle count toward the strategy ranking (yes) and whether ai0031's 12 games lost on 2026-10-17 are backfilled (no), for E2 + O8 (2026-10-28).",
+   "reason": "06 USER RULING 48: \"Do not re-ask whether crash-recovered games count (yes) or whether ai0031's games are backfilled (no).\"",
+   "status": "ACTIVE",
+   "topics": "crash recovery journal games.jsonl ranking backfill ai0031 power cut E2 O8 learner tuner"
   }
  }
 }

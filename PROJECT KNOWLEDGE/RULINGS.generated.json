@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "ab7a7214daf04bd237ff503cca7a413aa2f51ff1",
+ "source_sha1_lf": "0af96331ab4113611e359a4c0694326ef94d8763",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 341,
-  "donot_candidates": 25,
-  "sections_naming_user_rulings": 42
+  "sections": 342,
+  "donot_candidates": 26,
+  "sections_naming_user_rulings": 43
  },
  "sections": [
   {
@@ -5322,6 +5322,27 @@
    "slugs": [],
    "ki": [],
    "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-28-abc2b6",
+   "date": "2026-10-28",
+   "line_start": 9807,
+   "line_end": 9812,
+   "title": "2026-10-28 — USER RULING 48: games that finish before a crash COUNT toward the tuner's ranking; the 12 games lost on 2026-10-17 (ai0031) are NOT added back",
+   "rulings": [
+    48
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "fc7985b7",
+     "line": 9812,
+     "text": "- **Do not re-ask** whether crash-recovered games count (yes) or whether ai0031's games are backfilled (no)."
+    }
+   ],
    "cues": []
   }
  ]
