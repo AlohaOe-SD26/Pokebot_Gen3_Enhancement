@@ -244,7 +244,9 @@ LEARNER_PATHS = {"RUNS": "runs", "PROFILES": "profiles", "DATA": "data", "FINDIN
                  "PUBLISHED": "published", "RUNS_FILE": "data/runs.jsonl", "CYCLES_FILE": "data/cycles.jsonl",
                  "STATE_FILE": "data/state.json", "LOCK": "data/agent.lock", "LOG": "data/learner.log",
                  "OPS_FILE": "data/ops.jsonl",
-                 "STOP": "STOP", "ATTENTION": "findings/ATTENTION.md", "DEPLOYMENT": "DEPLOYMENT"}
+                 "STOP": "STOP", "ATTENTION": "findings/ATTENTION.md", "DEPLOYMENT": "DEPLOYMENT",
+                 # O8 (spec 2026-10-28): state.json's backup and the crash-loop counter
+                 "STATE_BAK": "data/state.json.bak", "CRASH_FILE": "data/crashes.json"}
 #: The only learner Path globals allowed to stay real: the code folders it READS (code, config.json, the bot).
 CODE_ROOTS = {"AI", "REPO", "STORY_DEV"}
 #: ISOLATION ON BY DEFAULT (O3 review finding 3): `main()` points every learner path here BEFORE the first test, so a
@@ -486,7 +488,15 @@ SANDBOX_ATTRS = ("free_gb", "REPLACE_WAIT_S", "REPLACE_TRIES", "_copy_member", "
                  "prune", "batch_command", "now", "CPU_SAMPLE_S", "SIZE_WALK_CAP_S", "_ops_row", "_CpuSampler",
                  "append_jsonl", "write_ops_row",
                  # the O6/O7 review fixes: the pinned and stepping clocks, the walk's check interval, a raising O7
-                 "time", "SIZE_WALK_CHECK_EVERY", "early_archive")
+                 "time", "SIZE_WALK_CHECK_EVERY", "early_archive",
+                 # E2 + O8 (spec 2026-10-28: test_o8_torn, test_o8_state, test_o8_breaker, test_e2_journal)
+                 "update_checkout", "tests_pass", "code_signature", "JOURNAL_POLL_S", "JOURNAL_STABLE_S", "_fsync",
+                 "_os_replace_bak", "_LOCK_HELD", "CRASH_LIMIT", "_note_crash", "_clear_crashes", "_crash_update",
+                 "_paused", "_on_crash", "repair_jsonl", "load_jsonl", "_newest_started_cycle", "recover_records",
+                 "_unseen", "_journal_records", "journal_games", "_guarded", "_arms_since", "_load_plan", "_read_arms",
+                 "_tag_profiles", "log", "batch_running", "finish_cycle", "load_state", "save_state",
+                 # the E2 + O8 review round: the write recorder, a failing ATTENTION write, the journal's drop
+                 "_atomic_write", "attention", "_drop_journal")
 #: The real learner attributes, captured at import, before any test patches one.
 O3_REAL = {k: getattr(learner, k) for k in SANDBOX_ATTRS}
 
@@ -2970,6 +2980,1333 @@ def test_o5_round4(tmp: Path) -> None:
           new.startswith("consult: exit 0") and len(calls) == 1, new)
 
 
+# ------------------------------------------- E2 + O8 (spec 2026-10-28): the game journal, torn writes, the breaker
+# The REF_* functions are VERBATIM copies of the learner's code before E2 + O8. A FAULT arm runs one of them on the
+# same file (or patches the guard away) and must fail its check; that is what proves the new guard is what bites.
+def REF_load_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
+def REF_append_jsonl(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as fh:
+        for r in rows:
+            fh.write(json.dumps(r, default=str) + "\n")
+
+
+def REF_load_state() -> dict:
+    if learner.STATE_FILE.exists():
+        return json.loads(learner.STATE_FILE.read_text(encoding="utf-8"))
+    return {"cycle": 0, "cycles": [], "current": None, "failures": 0}
+
+
+def REF_parse_batch(batch_dir: Path, source: str) -> list[dict]:
+    batch_dir = Path(batch_dir)
+    meta = json.loads((batch_dir / "ARMS.json").read_text(encoding="utf-8"))
+    arms = json.loads(meta["arms_text"])["arms"]
+    records = []
+    for i, lane in enumerate(meta["lanes"]):
+        logs = sorted((batch_dir / f"L{i + 1:02d}" / "debug-logs").glob("*.log"))
+        for j, path in enumerate(logs):
+            rec = scoring.parse_log(path)
+            last_in_lane = j == len(logs) - 1
+            rec["complete"] = bool(rec["champion"] or not last_in_lane or rec["derails"] >= scoring.DERAIL_CAP)
+            rec["usable"] = rec["complete"] and rec["starter"] is not None
+            rec.update(source=source, batch=meta.get("stamp"), batch_dir=str(batch_dir),
+                       code_commit=meta.get("code_commit"), lane=i + 1, lane_starter=lane.get("starter"),
+                       arm=lane.get("arm"), genome=scoring.genome_of_env(arms[lane["arm"]]))
+            records.append(rec)
+    return records
+
+
+def canon(rec: dict) -> dict:
+    """A record as it reads back from JSONL, so records compare field for field."""
+    return json.loads(json.dumps(rec, default=str))
+
+
+def ref_rows(batch: Path, tag: str) -> list[dict]:
+    """REF_parse_batch's rows of the copied logs in `batch`, with genome_id, as today's finish_cycle appends them."""
+    out = REF_parse_batch(batch, tag)
+    for r in out:
+        r["genome_id"] = brain.genome_id(r["genome"])
+    return [canon(r) for r in out]
+
+
+def by_key(rows: list[dict]) -> dict:
+    return {(r.get("lane"), r.get("log")): canon(r) for r in rows}
+
+
+def run_keys(rows: list[dict]) -> list[tuple]:
+    return sorted((r.get("source"), r.get("batch"), r.get("lane"), r.get("log")) for r in rows)
+
+
+def journal_fixture(root: Path, tag: str = "ai0007", copies: bool = False, started: str | None = None,
+                    profile_tag: str = "x") -> tuple[Path, dict]:
+    """A cycle as a live batch leaves it: `runs/<tag>/batch/ARMS.json` (lanes named endless-<profile_tag>-H1-mudkip /
+    -H2-torchic, `started` when given) and make_batch's logs in the LANE PROFILES. `copies`: the batch runner's copies
+    in batch/Lnn/debug-logs too (the normal end), else none (a machine that died mid-cycle)."""
+    tpl = make_batch(root / f"tpl-{tag}")
+    batch = learner.RUNS / tag / "batch"
+    batch.mkdir(parents=True)
+    meta = json.loads((tpl / "ARMS.json").read_text(encoding="utf-8"))
+    for ln, name in zip(meta["lanes"], (f"endless-{profile_tag}-H1-mudkip", f"endless-{profile_tag}-H2-torchic")):
+        ln["profile"] = name
+    if started is not None:
+        meta["started"] = started
+    (batch / "ARMS.json").write_text(json.dumps(meta), encoding="utf-8")
+    for i, ln in enumerate(meta["lanes"]):
+        src = tpl / f"L{i + 1:02d}" / "debug-logs"
+        dst = learner.PROFILES / ln["profile"] / "debug-logs"
+        dst.mkdir(parents=True)
+        age_logs(src)
+        for f in sorted(src.glob("*.log")):
+            shutil.copy2(f, dst / f.name)
+            if copies:
+                (batch / f"L{i + 1:02d}" / "debug-logs").mkdir(parents=True, exist_ok=True)
+                shutil.copy2(f, batch / f"L{i + 1:02d}" / "debug-logs" / f.name)
+    return batch, meta
+
+
+def age_logs(folder: Path, seconds: float = 30.0) -> None:
+    """Back-date every log in `folder` by `seconds`, as a finished game's log is. WHY: on Windows a file written a
+    moment ago can carry an mtime a few ms AHEAD of time.time() (two clocks), so with a stable window of 0 it was
+    not yet journal-able: J9 failed 1 run in 8 under parallel load (measured 2026-10-28). Production's window is
+    120 s, so this is a fixture fact, not a learner bug."""
+    t = time.time() - seconds
+    for f in folder.glob("*.log"):
+        os.utime(f, (t, t))
+
+
+def copy_profiles_into(batch: Path, meta: dict) -> None:
+    """What `collect_logs` would have copied at the end: every profile log into batch/Lnn/debug-logs."""
+    for i, ln in enumerate(meta["lanes"]):
+        dst = batch / f"L{i + 1:02d}" / "debug-logs"
+        dst.mkdir(parents=True, exist_ok=True)
+        for f in sorted((learner.PROFILES / ln["profile"] / "debug-logs").glob("*.log")):
+            shutil.copy2(f, dst / f.name)
+
+
+def journal_keys(tag: str) -> list[tuple]:
+    path = learner.RUNS / tag / learner.JOURNAL
+    return [(r["rec"]["lane"], r["rec"]["log"]) for r in learner.load_jsonl(path)] if path.exists() else []
+
+
+def loop_box(root: Path, **cfg_over) -> dict:
+    """Inside an O3Sandbox: what every check that drives `loop()` needs (spec §4). The deployment marker in the temp
+    dir; load_config = DEFAULTS + auto_update False, wait_if_other_bots_running False, lanes 8 (+ `cfg_over`); sleeps
+    end the loop; update_checkout, tests_pass and code_signature are ALWAYS spies (the real tests_pass would run this
+    suite inside itself; the real update would run git in the clone); run_cycle records and returns True."""
+    learner.DEPLOYMENT.parent.mkdir(parents=True, exist_ok=True)
+    learner.DEPLOYMENT.write_text("", encoding="utf-8")
+    cfg = dict(learner.DEFAULTS, auto_update=False, wait_if_other_bots_running=False, lanes=8)
+    cfg.update(cfg_over)
+    spy = {"update": 0, "tests": 0, "run": 0, "sig": "sig-A", "tests_ok": True, "cfg": cfg}
+
+    def update() -> str:
+        spy["update"] += 1
+        return ""
+
+    def tests() -> bool:
+        spy["tests"] += 1
+        return spy["tests_ok"]
+
+    learner.load_config = lambda: dict(spy["cfg"])
+    learner.sleep_unless_stopped = lambda m: False
+    learner.update_checkout = update
+    learner.tests_pass = tests
+    learner.code_signature = lambda folder=None: spy["sig"]
+    def one_cycle(*a) -> bool:  # records the call and plants STOP, so a loop that wrongly reaches it still ENDS
+        spy["run"] += 1
+        learner.STOP.write_text("", encoding="utf-8")
+        return True
+
+    learner.run_cycle = one_cycle
+    return spy
+
+
+def run_loop(single: bool = False) -> object:
+    try:
+        rc, _ = captured(lambda: learner.loop(single=single))
+    except Exception as exc:  # noqa: BLE001 - an exception escaping loop() is what a FAULT arm must be able to see
+        rc = f"RAISED {exc!r}"
+    return rc
+
+
+GOOD_STATE = {"cycle": 0, "cycles": [], "current": None, "failures": 0, "parser_version": scoring.PARSER_VERSION}
+
+
+def break_state() -> None:
+    """Both state.json and its backup torn: load_state raises StateUnreadable."""
+    learner.STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    learner.STATE_FILE.write_bytes(b'{"cycle": 3, "cyc')
+    learner.STATE_BAK.write_bytes(b'{"cyc')
+
+
+def record_atomic_writes() -> list[str]:
+    """Wrap learner._atomic_write (restored by O3Sandbox) so each file name written through it is recorded: the list
+    proves a durable file went through the .tmp + fsync + replace path, not a plain write_text (review round)."""
+    names: list[str] = []
+    real = O3_REAL["_atomic_write"]
+
+    def rec(path: Path, payload, bak: bool = False) -> None:
+        names.append(Path(path).name)
+        real(path, payload, bak=bak)
+
+    learner._atomic_write = rec
+    return names
+
+
+ROWS3 =[{"tag": f"r{i}", "v": i, "s": "café"} for i in range(3)]
+FRAGMENT = b'{"tag": "r3", "v'
+
+
+def test_o8_torn(tmp: Path) -> None:
+    """O8: a torn JSONL line is skipped and moved to `<file>.bad`, never a stop."""
+    # T1 a torn tail: load, repair, repair again ------------------------------------------------------------------
+    with O3Sandbox(tmp / "t1"):
+        p = learner.DATA / "runs.jsonl"
+        REF_append_jsonl(p, ROWS3)
+        good = p.read_bytes()
+        with open(p, "ab") as fh:
+            fh.write(FRAGMENT)
+        try:
+            REF_load_jsonl(p)
+            fault = "loaded"
+        except ValueError:
+            fault = "RAISED"
+        rows = learner.load_jsonl(p)
+        t1_syncs: list[int] = []
+        learner._fsync = lambda fd: t1_syncs.append(fd) or O3_REAL["_fsync"](fd)
+        r1 = learner.repair_jsonl(p, learner.MAX_BAD_LINES)
+        learner._fsync = O3_REAL["_fsync"]
+        bad = learner.load_jsonl(p.with_name("runs.jsonl.bad"))
+        after1, bad1 = p.read_bytes(), p.with_name("runs.jsonl.bad").read_bytes()
+        r2 = learner.repair_jsonl(p, learner.MAX_BAD_LINES)
+        check("T1 FAULT: today's load_jsonl RAISES on a torn tail", fault == "RAISED", fault)
+        check("T1 a torn tail: load returns the 3 good rows; repair moves the fragment to runs.jsonl.bad and rewrites "
+              "the 3 rows byte for byte; a second repair moves nothing",
+              rows == ROWS3 and r1 == "repaired" and after1 == good and len(bad) == 1
+              and bad[0]["text"] == FRAGMENT.decode() and bad[0]["line"] == 4 and r2 == "clean"
+              and p.read_bytes() == good and p.with_name("runs.jsonl.bad").read_bytes() == bad1,
+              (len(rows), r1, r2, bad))
+        check("T1 the repair forces BOTH writes onto the disk: the .bad file and the rewritten file (2 fsyncs)",
+              len(t1_syncs) == 2, len(t1_syncs))
+
+    # T2 an append after a torn tail -------------------------------------------------------------------------------
+    with O3Sandbox(tmp / "t2"):
+        new = {"tag": "r9", "v": 9}
+        out = {}
+        for arm, append in (("REF", REF_append_jsonl), ("guarded", learner.append_jsonl)):
+            p = learner.DATA / f"{arm}.jsonl"
+            REF_append_jsonl(p, ROWS3)
+            with open(p, "ab") as fh:
+                fh.write(FRAGMENT)
+            append(p, [new])
+            out[arm] = learner.load_jsonl(p)
+        check("T2 FAULT: today's append glues the new row onto the torn fragment: only 3 rows readable",
+              len(out["REF"]) == 3 and new not in out["REF"], len(out["REF"]))
+        check("T2 the newline guard: the appended row stays a line of its own: 4 rows readable",
+              out["guarded"] == ROWS3 + [new], len(out["guarded"]))
+
+    # T3 more than MAX_BAD_LINES: refused, the file untouched; through loop(): ATTENTION, return 0 -------------------
+    with O3Sandbox(tmp / "t3"):
+        spy = loop_box(tmp / "t3")
+        learner.save_state(dict(GOOD_STATE))
+        REF_append_jsonl(learner.RUNS_FILE, ROWS3)
+        with open(learner.RUNS_FILE, "ab") as fh:
+            fh.write(b"".join(b'{"half' + bytes([65 + k]) + b"\n" for k in range(5)))
+        before = learner.RUNS_FILE.read_bytes()
+        r = learner.repair_jsonl(learner.RUNS_FILE, learner.MAX_BAD_LINES)
+        same = learner.RUNS_FILE.read_bytes() == before and not learner.RUNS_FILE.with_name("runs.jsonl.bad").exists()
+        rc = run_loop()
+        text = learner.ATTENTION.read_text(encoding="utf-8") if learner.ATTENTION.exists() else ""
+        check("T3 5 bad lines in runs.jsonl: repair returns 'refused' and leaves the file byte-unchanged; loop() writes "
+              "ATTENTION (restore from the nightly backup) and returns 0 without starting a cycle",
+              r == "refused" and same and rc == 0 and "runs.jsonl" in text and "nightly backup" in text
+              and spy["run"] == 0 and learner.RUNS_FILE.read_bytes() == before, (r, same, rc, text[:200]))
+
+    # T3b exactly MAX_BAD_LINES: the boundary is still a torn write, repaired ----------------------------------------
+    with O3Sandbox(tmp / "t3b"):
+        REF_append_jsonl(learner.RUNS_FILE, ROWS3)
+        good = learner.RUNS_FILE.read_bytes()
+        with open(learner.RUNS_FILE, "ab") as fh:
+            fh.write(b"".join(b'{"half' + bytes([65 + k]) + b"\n" for k in range(learner.MAX_BAD_LINES)))
+        r = learner.repair_jsonl(learner.RUNS_FILE, learner.MAX_BAD_LINES)
+        side = learner.RUNS_FILE.with_name("runs.jsonl.bad")
+        check(f"T3b exactly MAX_BAD_LINES ({learner.MAX_BAD_LINES}) bad lines: repaired (the limit is 'more than'), "
+              f"all {learner.MAX_BAD_LINES} moved to runs.jsonl.bad, the good lines kept byte for byte",
+              r == "repaired" and side.exists() and len(learner.load_jsonl(side)) == learner.MAX_BAD_LINES
+              and learner.RUNS_FILE.read_bytes() == good, r)
+
+    # T4 a torn cycles.jsonl tail through a whole real cycle --------------------------------------------------------
+    template = tmp / "t4-template"
+    make_batch(template)
+    cfg = dict(learner.DEFAULTS, keep_raw_cycles=1, max_archives_per_prune=3)
+    t4 = {}
+    for arm in ("REF", "guarded"):
+        with O3Sandbox(tmp / f"t4-{arm}"):
+            O3Sandbox.state([])
+            REF_append_jsonl(learner.CYCLES_FILE, [{"source": "cycle", "tag": "ai0000", "runs": 0}])
+            with open(learner.CYCLES_FILE, "ab") as fh:
+                fh.write(b'{"source": "cycle", "tag": "ai00')
+            if arm == "REF":
+                learner.load_jsonl = REF_load_jsonl
+            ok, newest = drive_cycle(template / "batch", cfg)
+            learner.load_jsonl = O3_REAL["load_jsonl"]
+            t4[arm] = (ok, scored(ok, newest, "ai0001"),
+                       [c for c in learner.load_jsonl(learner.CYCLES_FILE) if c.get("tag") == "ai0001"])
+    check("T4 FAULT: with today's load_jsonl a torn cycles.jsonl tail RAISES out of the cycle (today: ok False, "
+          "failures + 1, a false 'no scored runs' ATTENTION after 3)", str(t4["REF"][0]).startswith("RAISED"),
+          t4["REF"][0])
+    check("T4 a torn cycles.jsonl tail: run_cycle returns True, the cycle is scored, and its new cycles.jsonl row is "
+          "readable", t4["guarded"][0] is True and t4["guarded"][1] and len(t4["guarded"][2]) == 1, t4["guarded"])
+
+    # T5 the startup repair, through the real loop() -----------------------------------------------------------------
+    t5 = {}
+    for arm in ("no repair", "guarded"):
+        with O3Sandbox(tmp / f"t5-{arm.replace(' ', '-')}"):
+            loop_box(tmp)
+            learner.save_state(dict(GOOD_STATE))
+            REF_append_jsonl(learner.RUNS_FILE, ROWS3)
+            good = learner.RUNS_FILE.read_bytes()
+            with open(learner.RUNS_FILE, "ab") as fh:
+                fh.write(FRAGMENT)
+            learner.STOP.write_text("", encoding="utf-8")
+            if arm == "no repair":
+                learner.repair_jsonl = lambda path, limit: "clean"
+            rc = run_loop()
+            side = learner.RUNS_FILE.with_name("runs.jsonl.bad")
+            t5[arm] = (rc, side.exists() and learner.load_jsonl(side)[0]["text"] == FRAGMENT.decode(),
+                       learner.RUNS_FILE.read_bytes() == good)
+    check("T5 FAULT: with the startup repair call deleted, the fragment stays (no runs.jsonl.bad)",
+          not t5["no repair"][1], t5["no repair"])
+    check("T5 loop() repairs runs.jsonl at start: returns 0 (STOP), runs.jsonl.bad holds the fragment, runs.jsonl = the "
+          "good lines byte for byte", t5["guarded"] == (0, True, True), t5["guarded"])
+
+    # T6 games.jsonl: journal mode moves EVERY bad line, never an ATTENTION or a stop --------------------------------
+    t6 = {}
+    for arm in ("runs mode", "journal mode"):
+        with O3Sandbox(tmp / f"t6-{arm.replace(' ', '-')}"):
+            learner.JOURNAL_STABLE_S = 0.0
+            batch, _ = journal_fixture(tmp / f"t6-{arm.replace(' ', '-')}")
+            jpath = learner.RUNS / "ai0007" / learner.JOURNAL
+            jpath.write_bytes(b"".join(b'{"bad' + bytes([65 + k]) + b"\n" for k in range(5)))
+            if arm == "runs mode":
+                real = O3_REAL["repair_jsonl"]
+                learner.repair_jsonl = lambda path, limit: real(path, learner.MAX_BAD_LINES)
+            try:
+                n = learner.journal_games("ai0007", batch, set())
+            except BaseException as exc:  # noqa: BLE001 - a SystemExit here would be the failure this guards
+                n = f"RAISED {exc!r}"
+            side = jpath.with_name(learner.JOURNAL + ".bad")
+            t6[arm] = (n, len(learner.load_jsonl(side)) if side.exists() else 0, learner.ATTENTION.exists(),
+                       sorted(k for k in journal_keys("ai0007")))
+    check("T6 FAULT: a journal repaired in runs mode is refused (5 > 3): the bad lines are NOT moved",
+          t6["runs mode"][1] == 0, t6["runs mode"])
+    check("T6 games.jsonl with 5 bad lines: all 5 moved to games.jsonl.bad, no ATTENTION, no exit, and a-0, a-1 are "
+          "still journaled", t6["journal mode"] == (2, 5, False, [(1, "a-0.log"), (1, "a-1.log")]), t6["journal mode"])
+
+    # T-C a healthy CRLF file: nothing changes -----------------------------------------------------------------------
+    with O3Sandbox(tmp / "tc"):
+        p = learner.DATA / "runs.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"".join(json.dumps(r).encode() + b"\r\n" for r in ROWS3))
+        st0 = p.stat().st_mtime_ns
+        bytes0 = p.read_bytes()
+        good, bad = learner._split_jsonl(bytes0)
+        loaded, ref = learner.load_jsonl(p), REF_load_jsonl(p)
+        r = learner.repair_jsonl(p, learner.MAX_BAD_LINES)
+        unchanged = p.read_bytes() == bytes0 and p.stat().st_mtime_ns == st0 and not p.with_name("runs.jsonl.bad").exists()
+        q1, q2 = learner.DATA / "a.jsonl", learner.DATA / "b.jsonl"
+        q1.write_bytes(bytes0)
+        q2.write_bytes(bytes0)
+        fsyncs = []
+        learner._fsync = lambda fd: fsyncs.append(fd) or O3_REAL["_fsync"](fd)
+        learner.append_jsonl(q1, [{"tag": "new", "v": 1.5}])
+        REF_append_jsonl(q2, [{"tag": "new", "v": 1.5}])
+        check("T-C CONTROL: a healthy CRLF file ending \\r\\n: 0 bad lines, load = today's load, repair is a no-op (no "
+              ".bad, same bytes and mtime), an append writes the same bytes as today's, and it is fsynced",
+              not bad and len(good) == 3 and loaded == ref == ROWS3 and r == "clean" and unchanged
+              and q1.read_bytes() == q2.read_bytes() and len(fsyncs) == 1, (len(bad), r, unchanged, len(fsyncs)))
+
+
+def test_o8_state(tmp: Path) -> None:
+    """O8: an unreadable state.json is restored from its backup ONLY when the backup is provably current."""
+    good = dict(GOOD_STATE, cycle=5, cycles=[{"tag": "ai0005"}], design_next=3)
+    valid = json.dumps(good, indent=1).encode()
+    # Every restore fixture holds the NORMAL case's boundary (review F1): cycle 5 was started (runs/ai0005 and its lane
+    # profile exist), so the newest started cycle EQUALS the backup's cycle. A `<` -> `<=` slip would refuse it.
+    contents = {"ST1 0 bytes": (b"", "RAISES"), "ST2 the first half": (valid[:len(valid) // 2], "RAISES"),
+                "ST3 4 KB of NUL": (b"\0" * 4096, "RAISES"),
+                "ST4 valid JSON, not a state (a list)": (b"[1, 2]", "returns a list"),
+                "ST4b a dict with no `cycles`": (b"{}", "returns a dict that is not a state"),
+                "ST4c a `cycle` that is not an int": (b'{"cycle": "5", "cycles": []}',
+                                                       "returns a dict that is not a state")}
+
+    def started_cycle_5() -> None:
+        (learner.RUNS / "ai0005").mkdir(parents=True)
+        (learner.PROFILES / "endless-ai0005-H1-mudkip").mkdir(parents=True)
+
+    for label, (bad, want_fault) in contents.items():
+        with O3Sandbox(tmp / label.split()[0]):
+            learner.save_state(good)
+            started_cycle_5()
+            bak = learner.STATE_BAK.read_bytes()
+            learner.STATE_FILE.write_bytes(bad)
+            learner._LOCK_HELD = True
+            try:
+                ref = REF_load_state()
+                fault = ("returns a list" if isinstance(ref, list) else "returns a dict that is not a state"
+                         if isinstance(ref, dict) else f"returns {type(ref).__name__}")
+            except ValueError:
+                fault = "RAISES"
+            boundary = learner._newest_started_cycle()[0] == good["cycle"]
+            try:
+                got = learner.load_state()
+            except learner.StateUnreadable as exc:
+                got = f"StateUnreadable: {exc}"
+            aside = learner.STATE_FILE.with_name("state.json.bad.1")
+            ok = got == good and learner.STATE_FILE.read_bytes() == bak and aside.exists() and aside.read_bytes() == bad
+            check(f"{label}: FAULT today's load_state {want_fault}; guarded, with the backup's cycle 5 EQUAL to the "
+                  f"newest started cycle (runs/ai0005): the backup's dict is returned, state.json restored, the bad "
+                  f"file kept as state.json.bad.1", fault == want_fault and boundary and ok,
+                  (fault, boundary, ok, got if not ok else ""))
+
+    with O3Sandbox(tmp / "st5"):
+        learner._LOCK_HELD = True
+        learner.STATE_FILE.parent.mkdir(parents=True)
+        learner.STATE_FILE.write_bytes(b"{torn")
+        learner.STATE_BAK.write_bytes(b"\0" * 10)
+        try:
+            out = learner.load_state()
+        except learner.StateUnreadable as exc:
+            out = f"StateUnreadable: {exc}"
+        check("ST5 both state.json and its backup unreadable -> StateUnreadable, never a fresh {'cycle': 0}",
+              isinstance(out, str) and out.startswith("StateUnreadable"), out)
+
+    with O3Sandbox(tmp / "st6"):
+        learner.save_state(good)
+        started_cycle_5()
+        learner.STATE_FILE.unlink()
+        learner._LOCK_HELD = True
+        ref = REF_load_state()
+        try:
+            got = learner.load_state()
+        except learner.StateUnreadable as exc:
+            got = f"StateUnreadable: {exc}"
+        check("ST6 state.json MISSING, backup good: FAULT today returns a fresh cycle 0 (51 cycles of history dropped); "
+              "guarded: the backup (cycle 5, = the newest started) is restored", ref.get("cycle") == 0 and got == good
+              and learner.STATE_FILE.read_bytes() == learner.STATE_BAK.read_bytes(), (ref.get("cycle"), got))
+
+    with O3Sandbox(tmp / "st7"):
+        learner.save_state(good)
+        learner.STATE_FILE.write_bytes(b"{torn")
+        learner._LOCK_HELD = False
+        got = learner.load_state()
+        check("ST7 a process that does NOT hold the lock reads the backup in memory and moves nothing",
+              got == good and learner.STATE_FILE.read_bytes() == b"{torn"
+              and not learner.STATE_FILE.with_name("state.json.bad.1").exists(), got)
+
+    st8 = {}
+    for arm in ("no runs check", "guarded"):
+        with O3Sandbox(tmp / f"st8-{arm.replace(' ', '-')}"):
+            learner.save_state(dict(good, cycle=47))
+            (learner.RUNS / "ai0053").mkdir(parents=True)
+            learner.STATE_FILE.write_bytes(b'{"cycle": 53, "cyc')
+            bak = learner.STATE_BAK.read_bytes()
+            learner._LOCK_HELD = True
+            if arm == "no runs check":
+                learner._newest_started_cycle = lambda: (0, "")
+            try:
+                out = learner.load_state()
+            except learner.StateUnreadable as exc:
+                out = str(exc)
+            st8[arm] = (out, learner.STATE_FILE.read_bytes() == b'{"cycle": 53, "cyc'
+                        and learner.STATE_BAK.read_bytes() == bak
+                        and not learner.STATE_FILE.with_name("state.json.bad.1").exists())
+    check("ST8 FAULT: without the runs check a STALE backup (cycle 47 while runs/ai0053 exists) is restored",
+          isinstance(st8["no runs check"][0], dict) and st8["no runs check"][0]["cycle"] == 47, st8["no runs check"])
+    check("ST8 a stale backup is refused: StateUnreadable names '47' and 'ai0053', and nothing is renamed or rewritten",
+          isinstance(st8["guarded"][0], str) and "47" in st8["guarded"][0] and "ai0053" in st8["guarded"][0]
+          and st8["guarded"][1], st8["guarded"])
+
+    # ST8b only the LANE PROFILE survives (runs/ai0053 gone): the profile half of the check -------------------------
+    def runs_only() -> tuple[int, str]:  # the FAULT: `_newest_started_cycle` reading runs/ alone
+        import re
+        nums = [int(m.group(1)) for m in (re.fullmatch(r"ai(\d+)", p.name) for p in learner.RUNS.iterdir()) if m] \
+            if learner.RUNS.is_dir() else []
+        return (max(nums), f"ai{max(nums):04d}") if nums else (0, "")
+
+    st8b = {}
+    for arm in ("runs only", "guarded"):
+        with O3Sandbox(tmp / f"st8b-{arm.replace(' ', '-')}"):
+            learner.save_state(dict(good, cycle=47))
+            (learner.PROFILES / "endless-ai0053-H1-mudkip").mkdir(parents=True)
+            learner.STATE_FILE.write_bytes(b'{"cycle": 53, "cyc')
+            learner._LOCK_HELD = True
+            if arm == "runs only":
+                learner._newest_started_cycle = runs_only
+            try:
+                out = learner.load_state()
+            except learner.StateUnreadable as exc:
+                out = str(exc)
+            st8b[arm] = (out, learner.STATE_FILE.read_bytes() == b'{"cycle": 53, "cyc')
+    check("ST8b FAULT: reading runs/ alone, a stale backup (cycle 47) is restored when only endless-ai0053-* is left",
+          isinstance(st8b["runs only"][0], dict) and st8b["runs only"][0].get("cycle") == 47, st8b["runs only"])
+    check("ST8b only the lane profile endless-ai0053-H1-mudkip proves cycle 53 started: the backup is refused, naming "
+          "it, and state.json is left as it was", isinstance(st8b["guarded"][0], str)
+          and "endless-ai0053-H1-mudkip" in st8b["guarded"][0] and st8b["guarded"][1], st8b["guarded"])
+
+    # ST10 the REAL lock decides who restores (the tests above set _LOCK_HELD by hand) ------------------------------
+    st10 = {}
+    for arm in ("flag not set", "guarded"):
+        with O3Sandbox(tmp / f"st10-{arm.replace(' ', '-')}"):
+            learner.save_state(good)
+            learner._LOCK_HELD = False
+            if arm == "flag not set":  # the FAULT: a lock taken without the flag (the lock file alone)
+                learner.LOCK.write_text(str(os.getpid()))
+                why = None
+            else:
+                why = learner.acquire_lock()
+            learner.STATE_FILE.write_bytes(b"{torn")
+            got = learner.load_state()
+            restored = learner.STATE_FILE.read_bytes() == learner.STATE_BAK.read_bytes()
+            learner.release_lock()
+            learner.STATE_FILE.write_bytes(b"{torn again")
+            got2 = learner.load_state()
+            untouched = learner.STATE_FILE.read_bytes() == b"{torn again"
+            st10[arm] = (why, got == good, restored, got2 == good, untouched, learner.LOCK.exists())
+    check("ST10 FAULT: a lock file without the holder flag: the backup is used in memory only, state.json stays torn",
+          st10["flag not set"][:3] == (None, True, False), st10["flag not set"])
+    check("ST10 the real acquire_lock: the holder restores state.json from the backup; after the real release_lock "
+          "the same tear is read from the backup in memory and NOTHING is restored or moved",
+          st10["guarded"] == (None, True, True, True, True, False), st10["guarded"])
+
+    # ST11 `learner.py status` with an unreadable state says so instead of a traceback ------------------------------
+    with O3Sandbox(tmp / "st11"):
+        break_state()
+        try:
+            rc, out = captured(learner.cmd_status)
+        except Exception as exc:  # noqa: BLE001 - a traceback here is the failure this checks for
+            rc, out = f"RAISED {exc!r}", ""
+        check("ST11 `status` with state.json and its backup both unreadable: prints 'STATE UNREADABLE', the rest of the "
+              "status, and returns 0", rc == 0 and "STATE UNREADABLE: " in out and "crashes in a row: 0" in out,
+              (rc, out[:200]))
+
+    st9 = {}
+    for arm in ("unguarded", "guarded"):
+        with O3Sandbox(tmp / f"st9-{arm}"):
+            learner.save_state(good)
+
+            def locked(src, dst):
+                raise PermissionError("simulated: the nightly backup holds state.json.bak open")
+
+            learner._os_replace_bak = locked
+            new = dict(good, cycle=6)
+            try:
+                if arm == "unguarded":  # today's shape of a second write, with no guard around the backup
+                    text = json.dumps(new, indent=1, default=str)
+                    learner._atomic_write(learner.STATE_FILE, text)
+                    learner._atomic_write(learner.STATE_BAK, text, bak=True)
+                else:
+                    learner.save_state(new)
+                res = "returned"
+            except PermissionError:
+                res = "RAISED"
+            st9[arm] = (res, json.loads(learner.STATE_FILE.read_text(encoding="utf-8")).get("cycle"),
+                        "state.json.bak could not be written" in log_text())
+    check("ST9 FAULT: an unguarded backup write makes the save RAISE after state.json was already replaced",
+          st9["unguarded"][0] == "RAISED", st9["unguarded"])
+    check("ST9 the backup's replace locked on every try: save_state returns, state.json holds the new state, a log "
+          "line names the failure", st9["guarded"] == ("returned", 6, True), st9["guarded"])
+
+    with O3Sandbox(tmp / "stc"):
+        fresh = learner.load_state()
+        syncs = []
+        learner._fsync = lambda fd: syncs.append(fd) or O3_REAL["_fsync"](fd)
+        learner.save_state(good)
+        check("ST-C CONTROL: no files -> a fresh state; a save then loads back as saved, the backup equals state.json, "
+              "and both were fsynced", fresh == {"cycle": 0, "cycles": [], "current": None, "failures": 0}
+              and learner.load_state() == good and learner.STATE_BAK.read_bytes() == learner.STATE_FILE.read_bytes()
+              and len(syncs) == 2, (fresh, len(syncs)))
+
+
+def ref_on_crash(single: bool, started_sig: str) -> int:
+    """The crash handler with no guards: what an unguarded breaker would be."""
+    n = learner._note_crash(traceback_text())
+    learner.log(f"learner CRASHED ({n} of {learner.CRASH_LIMIT} in a row)")
+    return 1
+
+
+def traceback_text() -> str:
+    import traceback
+    return traceback.format_exc()
+
+
+def test_o8_breaker(tmp: Path) -> None:
+    """O8: after CRASH_LIMIT crashes in a row the learner stops and writes ATTENTION.md; while crash-looping it fetches
+    pushed code. Every check drives the REAL loop() inside a sandbox (loop_box)."""
+    # BK1 five crashes in a row -------------------------------------------------------------------------------------
+    bk1 = {}
+    for arm in ("no limit", "guarded"):
+        with O3Sandbox(tmp / f"bk1-{arm.replace(' ', '-')}"):
+            spy = loop_box(tmp)
+            break_state()
+            if arm == "no limit":
+                learner.CRASH_LIMIT = 10 ** 6
+            writes = record_atomic_writes()
+            rcs = [run_loop() for _ in range(5)]
+            text = learner.ATTENTION.read_text(encoding="utf-8") if learner.ATTENTION.exists() else ""
+            bk1[arm] = (rcs, text, log_text().count("learner CRASHED"),
+                        log_text().count("Traceback (most recent call last)"),
+                        learner.crash_count(), spy["update"], sorted(set(writes)))
+    check("BK1 FAULT: with no limit, 5 crashes write no ATTENTION and the retries go on",
+          bk1["no limit"][0] == [1] * 5 and not bk1["no limit"][1], bk1["no limit"][0])
+    rcs, text, n_crash, n_tb, count, n_upd, writes = bk1["guarded"]
+    check("BK1 state.json and its backup both bad: loop() returns 1,1,1,1,0; ATTENTION says 'crashed 5 times' and names "
+          "StateUnreadable; 5 tracebacks in learner.log; the count is reset to 0",
+          rcs == [1, 1, 1, 1, 0] and "crashed 5 times" in text and "StateUnreadable" in text and n_crash == 5
+          and n_tb == 5 and count == 0, (rcs, text[:160], n_crash, n_tb, count))
+    check("BK1 with auto_update OFF the crash handler never fetches (0 updates); the counter and ATTENTION.md are both "
+          "written atomically (through _atomic_write)", n_upd == 0 and {"crashes.json", "ATTENTION.md"} <= set(writes),
+          (n_upd, writes))
+
+    # BK2 config.json unreadable -------------------------------------------------------------------------------------
+    with O3Sandbox(tmp / "bk2"):
+        spy = loop_box(tmp)
+        learner.save_state(dict(GOOD_STATE))
+
+        def broken_config() -> dict:
+            raise ValueError("simulated: config.json is half written")
+
+        learner.load_config = broken_config
+        rc = run_loop()
+        check("BK2 load_config raising is counted the same way (1 of 5) and no update is attempted: the update step's "
+              "OWN guard says so ('config.json is unreadable'); its failure never reaches the handler's outer guard",
+              rc == 1 and learner.crash_count() == 1 and spy["update"] == 0 and "1 of 5 in a row" in log_text()
+              and "config.json is unreadable" in log_text() and "update step failed" not in log_text(),
+              (rc, learner.crash_count(), spy["update"]))
+
+    # BK2b the update step raising PAST its config guard (code_signature: a .py vanished mid-fast-forward) -----------
+    with O3Sandbox(tmp / "bk2b"):
+        spy = loop_box(tmp, auto_update=True)
+        break_state()
+        sig_calls: list[int] = []
+
+        def sig_then_raise(folder=None) -> str:
+            sig_calls.append(1)
+            if len(sig_calls) > 1:
+                raise FileNotFoundError("simulated: a learner .py vanished mid-fast-forward")
+            return "sig-A"
+
+        learner.code_signature = sig_then_raise
+        sig_calls.append(1)  # as in loop(): the start's signature was already read
+        try:
+            learner._crash_update("sig-A")
+            direct = "returned"
+        except FileNotFoundError:
+            direct = "RAISED"
+        sig_calls.clear()
+        rc = run_loop()
+        check("BK2b FAULT: the update step itself RAISES here (so the handler's own guard is load-bearing); guarded: "
+              "loop() returns 1, the crash is counted (1), the log names the failed update step",
+              direct == "RAISED" and rc == 1 and learner.crash_count() == 1
+              and "the crash handler's update step failed (FileNotFoundError" in log_text(), (direct, rc))
+
+    # BK3 a launched batch resets the count --------------------------------------------------------------------------
+    template = tmp / "bk3-template"
+    make_batch(template)
+    bk3 = {}
+    for arm in ("no reset", "guarded"):
+        with O3Sandbox(tmp / f"bk3-{arm.replace(' ', '-')}"):
+            spy = loop_box(tmp)
+            break_state()
+            first = [run_loop() for _ in range(3)]
+            if arm == "no reset":
+                learner._clear_crashes = lambda: None
+            learner.save_state(dict(GOOD_STATE))
+            learner.run_cycle = O3_REAL["run_cycle"]  # the REAL run_cycle (loop_box stubbed it for the loop runs)
+            ok, newest = drive_cycle(template / "batch", dict(learner.DEFAULTS, keep_raw_cycles=1))
+            learner.load_config = lambda: dict(spy["cfg"])
+            learner.run_cycle = lambda *a: learner.STOP.write_text("", encoding="utf-8") or True  # ends a loop
+            break_state()
+            second = [run_loop() for _ in range(4)]
+            bk3[arm] = (first, ok is True, second, learner.ATTENTION.exists(), learner.crash_count())
+    check("BK3 FAULT: with the reset patched out, 3 + 2 crashes reach the limit: ATTENTION at the 2nd of the 4",
+          bk3["no reset"][2][:2] == [1, 0] and bk3["no reset"][3], bk3["no reset"])
+    check("BK3 3 crashes, then a batch is LAUNCHED (the real run_cycle), then 4 crashes: no ATTENTION, count 4",
+          bk3["guarded"] == ([1, 1, 1], True, [1, 1, 1, 1], False, 4), bk3["guarded"])
+
+    # BK4 / BK4b the crash handler fetches a pushed fix ----------------------------------------------------------------
+    bk4 = {}
+    for arm, tests_ok, no_step, new_code in (("no update step", True, True, True), ("fix passes", True, False, True),
+                                             ("fix fails its tests", False, False, True),
+                                             ("nothing new", True, False, False)):
+        with O3Sandbox(tmp / f"bk4-{arm.replace(' ', '-')}"):
+            spy = loop_box(tmp, auto_update=True)
+            spy["tests_ok"] = tests_ok
+            break_state()
+
+            def fetched() -> str:
+                spy["update"] += 1
+                if new_code:
+                    spy["sig"] = "sig-B"  # the fast-forward brought new code
+                    return "update: aaaa -> bbbb"
+                return ""  # nothing new on origin/main
+
+            learner.update_checkout = fetched
+            if no_step:
+                learner._crash_update = lambda started_sig: None
+            rc = run_loop()
+            text = learner.ATTENTION.read_text(encoding="utf-8") if learner.ATTENTION.exists() else ""
+            bk4[arm] = (rc, spy["update"], text, learner.crash_count(), spy["tests"])
+    check("BK4 FAULT: a handler without the update step returns 1 (a pushed fix would never arrive)",
+          bk4["no update step"][0] == 1 and bk4["no update step"][1] == 0, bk4["no update step"])
+    check("BK4 a pushed fix: the crash handler fast-forwards (once), sees new code whose tests pass and returns 3 "
+          "(restart into it); no ATTENTION; the count is kept at 1",
+          bk4["fix passes"] == (3, 1, "", 1, 1), bk4["fix passes"])
+    rc, n_upd, text, count, _ = bk4["fix fails its tests"]
+    check("BK4b the fetched update FAILS test_agent.py: return 0, ATTENTION says so, the count is reset",
+          rc == 0 and n_upd == 1 and "FAILS test_agent.py" in text and count == 0, bk4["fix fails its tests"])
+    check("BK4c CONTROL: the fetch brings nothing new (same code signature): no test run, no restart, no ATTENTION; "
+          "returns 1 (the 10-minute retry) with the count at 1", bk4["nothing new"] == (1, 1, "", 1, 0),
+          bk4["nothing new"])
+
+    # BK5 ATTENTION is checked FIRST ------------------------------------------------------------------------------------
+    bk5 = {}
+    for arm in ("checked late", "guarded"):
+        with O3Sandbox(tmp / f"bk5-{arm.replace(' ', '-')}"):
+            loop_box(tmp)
+            break_state()
+            before = (learner.STATE_FILE.read_bytes(), learner.STATE_BAK.read_bytes())
+            learner.FINDINGS.mkdir(parents=True, exist_ok=True)
+            learner.ATTENTION.write_text("planted", encoding="utf-8")
+            if arm == "checked late":
+                learner._paused = lambda: False
+            rc = run_loop()
+            bk5[arm] = (rc, learner.crash_count(), (learner.STATE_FILE.read_bytes(), learner.STATE_BAK.read_bytes())
+                        == before and not list(learner.DATA.glob("state.json.bad*")))
+    check("BK5 FAULT: ATTENTION checked only inside the cycle loop: the crash path runs first (returns 1, count 1)",
+          bk5["checked late"][:2] == (1, 1), bk5["checked late"])
+    check("BK5 ATTENTION.md planted + a bad state: returns 0 at once, the count unchanged, no state file touched",
+          bk5["guarded"] == (0, 0, True), bk5["guarded"])
+
+    # BK6 the handler's own write and log both fail ---------------------------------------------------------------------
+    bk6 = {}
+    for arm in ("unguarded", "guarded"):
+        with O3Sandbox(tmp / f"bk6-{arm}"):
+            loop_box(tmp)
+            break_state()
+            learner.CRASH_FILE.mkdir(parents=True)  # crashes.json cannot be written (a folder is in its place)
+            real_log = O3_REAL["log"]
+
+            def failing_log(msg: str) -> None:
+                if "CRASHED" in msg:
+                    raise OSError("simulated: learner.log cannot be written (disk full)")
+                real_log(msg)
+
+            learner.log = failing_log
+            if arm == "unguarded":
+                learner._on_crash = ref_on_crash
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                rc = run_loop()
+            bk6[arm] = (rc, err.getvalue())
+    check("BK6 FAULT: an unguarded handler lets its own failure escape loop()",
+          str(bk6["unguarded"][0]).startswith("RAISED"), bk6["unguarded"][0])
+    check("BK6 the crash count AND the log both unwritable: returns 1 (today's 10-minute retry) and stderr names the "
+          "crash", bk6["guarded"][0] == 1 and "learner CRASHED" in bk6["guarded"][1]
+          and "StateUnreadable" in bk6["guarded"][1], (bk6["guarded"][0], bk6["guarded"][1][:200]))
+
+    # BK7 a clean exit in between: the crashes are no longer "in a row" -------------------------------------------------
+    bk7 = {}
+    for arm in ("no clean-exit clear", "guarded", "restart, no clean-exit clear", "guarded restart"):
+        with O3Sandbox(tmp / f"bk7-{arm.replace(' ', '-').replace(',', '')}"):
+            loop_box(tmp)
+            if "no clean-exit clear" in arm:
+                learner._clear_crashes = lambda: None
+            break_state()
+            first = [run_loop() for _ in range(3)]
+            learner.save_state(dict(GOOD_STATE))
+            if "restart" in arm:  # the clean run is a RESTART into new code (exit 3): new code whose tests pass
+                sigs: list[int] = []
+                learner.code_signature = lambda folder=None: sigs.append(1) or ("sig-A" if len(sigs) == 1 else "sig-B")
+                clean = run_loop()
+                learner.code_signature = lambda folder=None: "sig-A"
+            else:
+                learner.STOP.write_text("", encoding="utf-8")
+                clean = run_loop()
+                learner.STOP.unlink()
+            break_state()
+            second = [run_loop() for _ in range(4)]
+            bk7[arm] = (first, clean, second, learner.ATTENTION.exists())
+    check("BK7 FAULT: without the clean-exit clear, 3 crashes + a STOP + 4 crashes reach the limit (ATTENTION)",
+          bk7["no clean-exit clear"][3], bk7["no clean-exit clear"])
+    check("BK7 3 crashes, a clean STOP run (returns 0), then 4 crashes: no ATTENTION",
+          bk7["guarded"] == ([1, 1, 1], 0, [1, 1, 1, 1], False), bk7["guarded"])
+    check("BK7 FAULT (restart): without the clear, 3 crashes + a restart into new code (exit 3) + 4 crashes reach "
+          "the limit", bk7["restart, no clean-exit clear"][1] == 3 and bk7["restart, no clean-exit clear"][3],
+          bk7["restart, no clean-exit clear"])
+    check("BK7 3 crashes, a clean RESTART into new code (returns 3), then 4 crashes: no ATTENTION (exit 3 is clean too)",
+          bk7["guarded restart"] == ([1, 1, 1], 3, [1, 1, 1, 1], False), bk7["guarded restart"])
+
+    # BK8 the counter keeps the FIRST crash's time ------------------------------------------------------------------------
+    with O3Sandbox(tmp / "bk8"):
+        clock = iter(f"T{k}" for k in range(1, 100))
+        learner.now = lambda: next(clock)
+        writes = record_atomic_writes()
+        ns = [learner._note_crash(f"E{k}") for k in range(3)]
+        d = json.loads(learner.CRASH_FILE.read_text(encoding="utf-8"))
+        check("BK8 three crashes: count 1,2,3; `first` stays the first crash's time, `last` and `last_error` move on; "
+              "each count is written atomically (3 crashes.json writes through _atomic_write; _clear_crashes is not "
+              "called here, so these are the counter's own)",
+              ns == [1, 2, 3] and (d["count"], d["first"], d["last"], d["last_error"]) == (3, "T1", "T3", "E2")
+              and writes == ["crashes.json"] * 3, (ns, d, writes))
+
+    # BK9 the 5th crash cannot write ATTENTION.md: retry as before, never a silent stop ------------------------------------
+    with O3Sandbox(tmp / "bk9"):
+        loop_box(tmp)
+        break_state()
+
+        def attention_fails(reason: str) -> None:
+            raise OSError("simulated: findings/ cannot be written")
+
+        learner.attention = attention_fails
+        rcs = [run_loop() for _ in range(5)]
+        check("BK9 the 5th crash's ATTENTION write fails: loop() returns 1 (the retry, no traceback escapes), the log "
+              "says so, and the count is NOT reset (5), so the next crash tries again",
+              rcs == [1] * 5 and "could not write ATTENTION.md" in log_text() and learner.crash_count() == 5
+              and not learner.ATTENTION.exists(), (rcs, learner.crash_count()))
+
+    # BK-C healthy -------------------------------------------------------------------------------------------------------
+    with O3Sandbox(tmp / "bkc"):
+        spy = loop_box(tmp)
+        learner.save_state(dict(GOOD_STATE))
+        learner.STOP.write_text("", encoding="utf-8")
+        rc = run_loop()
+        healthy = (rc, "CRASHED" in log_text(), learner.ATTENTION.exists(), learner.crash_count(), spy["update"])
+        learner.STOP.unlink()
+        break_state()
+        once = run_loop(single=True)
+        check("BK-C CONTROL: a healthy state + STOP returns 0 with no crash, no ATTENTION, count 0; a crash in `once` "
+              "returns 1 and is NOT counted", healthy == (0, False, False, 0, 0) and once == 1
+              and learner.crash_count() == 0 and "once: not counted" in log_text(), (healthy, once))
+
+
+FAKE_BATCH_LONG = ("import shutil\nshutil.copytree(ARGS[0], ARGS[1])\nt = time.time()\n"
+                   "while alive() and time.time() - t < 0.8:\n    time.sleep(0.02)\n"
+                   "Path(ARGS[1], 'ENDED').write_text('1')\n")
+
+
+def drive_cycle_long(template: Path, cfg: dict) -> tuple[object, dict]:
+    """drive_cycle with a fake batch that lives 0.8 s and marks its end (batch/ENDED), so the journal's polls can be
+    seen to happen WHILE it runs."""
+    def command(plan: dict, cdir: Path) -> list[str]:
+        return [sys.executable, "-c", CHILD_PRELUDE + FAKE_BATCH_LONG, str(os.getpid()), "20", str(template),
+                str(cdir / "batch")]
+    learner.batch_command = command
+    learner.load_config = lambda: cfg
+    try:
+        ok, _ = captured(lambda: learner.run_cycle(cfg, learner.load_state(), 8))
+    except Exception as exc:  # noqa: BLE001
+        ok = f"RAISED {exc!r}"
+    cycles = learner.load_state()["cycles"]
+    return ok, (cycles[-1] if cycles else {})
+
+
+def test_e2_journal(tmp: Path) -> None:
+    """E2: every finished game is journaled while the batch runs, and a cycle whose batch never copied its logs (the
+    machine died) is recovered from the lane profiles + the journal by today's rules."""
+    A0, A1, A2 = (1, "a-0.log"), (1, "a-1.log"), (1, "a-2.log")
+
+    # J1 two polls; a new log makes the previous newest journal-able --------------------------------------------------
+    with O3Sandbox(tmp / "j1"):
+        learner.JOURNAL_STABLE_S = 0.0
+        batch, meta = journal_fixture(tmp / "j1")
+        n1 = learner.journal_games("ai0007", batch, set())
+        n2 = learner.journal_games("ai0007", batch, set())  # a fresh `known`: a restarted learner reloads the journal
+        first = journal_keys("ai0007")
+        prof = learner.PROFILES / meta["lanes"][0]["profile"] / "debug-logs"
+        shutil.copy2(prof / "a-2.log", prof / "a-3.log")
+        n3 = learner.journal_games("ai0007", batch, set())
+        check("J1 two polls journal only a-0, a-1 (never a lane's newest a-2 / b-1), no duplicate; a new a-3 makes a-2 "
+              "journal-able at the next poll", (n1, n2, n3) == (2, 0, 1) and first == [A0, A1]
+              and journal_keys("ai0007") == [A0, A1, A2], (n1, n2, n3, journal_keys("ai0007")))
+        # a-2 is the game with NO end (make_batch's censored log): journaled once it is not the newest, it is a
+        # FINISHED game, so its record is uncensored (complete), exactly as parse_batch judges a non-last log
+        a2 = [r["rec"] for r in learner.load_jsonl(learner.RUNS / "ai0007" / learner.JOURNAL)
+              if r["rec"]["log"] == "a-2.log"]
+        ref_a2 = scoring.lane_record(meta, json.loads(meta["arms_text"])["arms"], 0, meta["lanes"][0],
+                                     prof / "a-2.log", False, "ai0007", batch)
+        ref_a2["genome_id"] = brain.genome_id(ref_a2["genome"])
+        check("J1 a journaled game is never censored: a-2 (no Champion, no 5th derail) is journaled complete + usable, "
+              "= lane_record(last_in_lane=False)", len(a2) == 1 and a2[0]["complete"] is True and a2[0]["usable"] is True
+              and canon(a2[0]) == canon(ref_a2), [(r["complete"], r["usable"]) for r in a2])
+        # J1b ONE `known` across polls, as _run_batch passes it: a game added at one poll is not added at the next
+        known: set = set()
+        n4 = learner.journal_games("ai0007", batch, known)  # loads a-0, a-1, a-2 into `known`; a-3 is the newest
+        shutil.copy2(prof / "a-2.log", prof / "a-4.log")
+        n5 = learner.journal_games("ai0007", batch, known)  # a-3 is journal-able now
+        n6 = learner.journal_games("ai0007", batch, known)
+        keys = journal_keys("ai0007")
+        check("J1b one `known` set across three polls (as _run_batch keeps it): 0, then a-3 once, then 0; the journal "
+              "holds each key once", (n4, n5, n6) == (0, 1, 0) and keys == [A0, A1, A2, (1, "a-3.log")],
+              (n4, n5, n6, keys))
+
+    # J2 the stable window -------------------------------------------------------------------------------------------
+    j2 = {}
+    for arm, window in (("window 0", 0.0), ("window 120 s", 120.0)):
+        with O3Sandbox(tmp / f"j2-{window:.0f}"):
+            learner.JOURNAL_STABLE_S = window
+            batch, _ = journal_fixture(tmp / f"j2-{window:.0f}")
+            j2[arm] = (learner.journal_games("ai0007", batch, set()), journal_keys("ai0007"))
+    check("J2 FAULT: with a stable window of 0, logs modified just now are journaled", j2["window 0"][0] == 2,
+          j2["window 0"])
+    check("J2 logs modified within JOURNAL_STABLE_S (120 s) are NOT journaled yet", j2["window 120 s"] == (0, []),
+          j2["window 120 s"])
+
+    # J3 a journal record IS today's record --------------------------------------------------------------------------
+    with O3Sandbox(tmp / "j3"):
+        learner.JOURNAL_STABLE_S = 0.0
+        batch, _ = journal_fixture(tmp / "j3", copies=True)
+        learner.journal_games("ai0007", batch, set())
+        ref = by_key(ref_rows(batch, "ai0007"))
+        jr = [canon(r["rec"]) for r in learner.load_jsonl(learner.RUNS / "ai0007" / learner.JOURNAL)]
+        check("J3 each journal record equals today's parse_batch record of the copied log (+ genome_id), every field",
+              len(jr) == 2 and all(r == ref[(r["lane"], r["log"])] for r in jr),
+              [k for k in (r for r in jr) if k != ref.get((k["lane"], k["log"]))][:1])
+        # J3b a key written twice (e.g. two learners journaling one batch): the FIRST record is the one used
+        jpath = learner.RUNS / "ai0007" / learner.JOURNAL
+        rows = learner.load_jsonl(jpath)
+        dup = json.loads(json.dumps(rows[0]))
+        dup["rec"]["frames"] = -1
+        learner.append_jsonl(jpath, [dup])
+        recs = learner._journal_records(jpath)
+        check("J3b a (lane, log) journaled twice: _journal_records returns it ONCE, the first line's record",
+              len(recs) == 2 and [canon(r) for r in recs] == [canon(r["rec"]) for r in rows], [r.get("frames") for r in recs])
+        # J5c the runs.jsonl dedupe also holds WITHIN one call (a list carrying one key twice is appended once)
+        r0 = dict(recs[0], source="ai0007")
+        learner.append_jsonl(learner.RUNS_FILE, [{"source": "other", "lane": 9, "log": "z.log"}])
+        unseen = learner._unseen([r0, dict(r0), {"source": "other", "lane": 9, "log": "z.log"}])
+        check("J5c _unseen: a key twice in the same list is kept once, a key already in runs.jsonl not at all",
+              len(unseen) == 1 and unseen[0] is r0, len(unseen))
+
+    # J4 / J5 a kill mid-cycle, then a re-adopt (a death between the append and the save) -----------------------------
+    def j4(root: Path, fault: str | None) -> dict:
+        with O3Sandbox(root):
+            learner.JOURNAL_STABLE_S = 0.0
+            learner.load_config = lambda: dict(learner.DEFAULTS)
+            learner.batch_running = lambda d, cmds=None: False
+            batch, meta = journal_fixture(root)
+            learner.journal_games("ai0007", batch, set())
+            jpath = learner.RUNS / "ai0007" / learner.JOURNAL
+            with open(jpath, "ab") as fh:
+                fh.write(b'{"journaled": "x", "rec": {"lane": 1, "lo')  # the power cut tore the journal's tail
+            plan = {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": ["p.json"]}
+            (learner.RUNS / "ai0007" / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+            learner.INBOX.mkdir(parents=True)
+            (learner.INBOX / "p.json").write_text("{}", encoding="utf-8")
+            learner.save_state(dict(GOOD_STATE, cycle=7, current={"tag": "ai0007"}))
+            pre = (learner.STATE_FILE.read_bytes(), jpath.read_bytes())
+            if fault == "no recovery":
+                learner.recover_records = lambda tag, b: ([], None)
+            if fault == "no dedupe":
+                learner._unseen = lambda recs: recs
+            out = captured(lambda: learner.adopt_unfinished(dict(learner.DEFAULTS)))[0]
+            rows = learner.load_jsonl(learner.RUNS_FILE)
+            res = {"out": out, "rows": rows, "keys": run_keys(rows), "state": learner.load_state(),
+                   "done": (learner.INBOX / "done" / "p.json").exists(), "journal_gone": not jpath.exists(),
+                   "bad": learner.load_jsonl(jpath.with_name(learner.JOURNAL + ".bad"))}
+            copy_profiles_into(batch, meta)  # the logs as collect_logs would have copied them
+            res["ref"] = ref_rows(batch, "ai0007")
+            # J5: a death between the runs.jsonl append and save_state: the pre-adopt state.json and journal are back
+            shutil.rmtree(batch / "L01")
+            shutil.rmtree(batch / "L02")
+            learner.STATE_FILE.write_bytes(pre[0])
+            learner.STATE_BAK.write_bytes(pre[0])
+            jpath.write_bytes(pre[1])
+            out2 = captured(lambda: learner.adopt_unfinished(dict(learner.DEFAULTS)))[0]
+            res["out2"], res["keys2"] = out2, run_keys(learner.load_jsonl(learner.RUNS_FILE))
+            res["cycle_rows"] = [c for c in learner.load_jsonl(learner.CYCLES_FILE) if c.get("tag") == "ai0007"]
+            return res
+
+    r = j4(tmp / "j4-fault", "no recovery")
+    check("J4 FAULT: with recovery patched out, a kill mid-cycle scores 0 rows (ai0031 on 2026-10-17)",
+          r["rows"] == [] and r["out"] is False, (r["out"], len(r["rows"])))
+    r = j4(tmp / "j4", None)
+    cyc = r["state"]["cycles"][-1] if r["state"]["cycles"] else {}
+    check("J4 a kill mid-cycle: adopt's rows = today's parse_batch over the profile logs as collect_logs would copy "
+          "them, row for row; 3 usable; `recovered` set; the tested proposal moved to done/; the torn journal tail in "
+          "games.jsonl.bad; the journal deleted after the save",
+          r["out"] is True and len(r["rows"]) == 4 and by_key(r["rows"]) == by_key(r["ref"])
+          and sum(x["usable"] for x in r["rows"]) == 3 and cyc.get("recovered") == "2 from lane profiles, 2 from the "
+          "journal" and cyc.get("exit") == "adopted" and r["done"] and r["journal_gone"] and len(r["bad"]) == 1,
+          (r["out"], len(r["rows"]), cyc.get("recovered"), r["done"], r["journal_gone"], len(r["bad"])))
+    check("J5 recovery re-adopt (a death between the append and the save): runs.jsonl's key set = J4's, each key once; "
+          "ONE cycles.jsonl row", r["keys2"] == r["keys"] and len(set(r["keys2"])) == 4
+          and len(r["cycle_rows"]) == 1, (len(r["keys2"]), len(r["cycle_rows"])))
+    r = j4(tmp / "j5-fault", "no dedupe")
+    check("J5 FAULT: with the dedupe patched out, the re-adopt appends every key twice",
+          len(r["keys2"]) == 8 and len(set(r["keys2"])) == 4, len(r["keys2"]))
+
+    # J5b the NORMAL path re-adopted -----------------------------------------------------------------------------------
+    j5b = {}
+    for arm in ("no dedupe", "guarded"):
+        with O3Sandbox(tmp / f"j5b-{arm.replace(' ', '-')}"):
+            learner.load_config = lambda: dict(learner.DEFAULTS)
+            learner.batch_running = lambda d, cmds=None: False
+            batch, _ = journal_fixture(tmp / f"j5b-{arm.replace(' ', '-')}", copies=True)
+            plan = {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": []}
+            (learner.RUNS / "ai0007" / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+            learner.save_state(dict(GOOD_STATE, cycle=7, current={"tag": "ai0007"}))
+            pre = learner.STATE_FILE.read_bytes()
+            if arm == "no dedupe":
+                learner._unseen = lambda recs: recs
+            captured(lambda: learner.adopt_unfinished(dict(learner.DEFAULTS)))
+            k1 = run_keys(learner.load_jsonl(learner.RUNS_FILE))
+            learner.STATE_FILE.write_bytes(pre)
+            learner.STATE_BAK.write_bytes(pre)
+            captured(lambda: learner.adopt_unfinished(dict(learner.DEFAULTS)))
+            j5b[arm] = (k1, run_keys(learner.load_jsonl(learner.RUNS_FILE)),
+                        len([c for c in learner.load_jsonl(learner.CYCLES_FILE) if c.get("tag") == "ai0007"]))
+    check("J5b FAULT: with the dedupe patched out, a normal re-adopt appends each key twice",
+          len(j5b["no dedupe"][1]) == 8, len(j5b["no dedupe"][1]))
+    check("J5b normal re-adopt (copied logs): the key set = the first adopt's, each once; one cycle row",
+          j5b["guarded"][1] == j5b["guarded"][0] and len(j5b["guarded"][0]) == 4 and j5b["guarded"][2] == 1, j5b["guarded"])
+
+    # J6 the profiles are gone: the journal alone ------------------------------------------------------------------------
+    with O3Sandbox(tmp / "j6"):
+        learner.JOURNAL_STABLE_S = 0.0
+        batch, meta = journal_fixture(tmp / "j6", copies=True)
+        learner.journal_games("ai0007", batch, set())
+        ref = by_key(ref_rows(batch, "ai0007"))
+        for ln in meta["lanes"]:
+            shutil.rmtree(learner.PROFILES / ln["profile"])
+        recs, how = learner.recover_records("ai0007", batch)
+        check("J6 the lane profiles deleted: recovery gives the journal's records only (a-0, a-1, equal to today's)",
+              sorted(by_key(recs)) == [A0, A1] and all(canon(x) == ref[(x["lane"], x["log"])] for x in recs)
+              and how == "0 from lane profiles, 2 from the journal", (sorted(by_key(recs)), how))
+
+    # J7 the normal path through the REAL run_cycle -----------------------------------------------------------------------
+    template = tmp / "j7-template"
+    make_batch(template)
+    cfg = dict(learner.DEFAULTS, keep_raw_cycles=1, max_archives_per_prune=3)
+    j7 = {}
+    for arm in ("altered", "guarded"):
+        with O3Sandbox(tmp / f"j7-{arm}"):
+            learner.JOURNAL_POLL_S, learner.JOURNAL_STABLE_S = 0.05, 0.0
+            O3Sandbox.state([])
+            meta = json.loads((template / "batch" / "ARMS.json").read_text(encoding="utf-8"))
+            for i, ln in enumerate(meta["lanes"]):  # the lanes write their logs into their profiles while they run
+                dst = learner.PROFILES / ln["profile"] / "debug-logs"
+                dst.mkdir(parents=True)
+                for f in sorted((template / "batch" / f"L{i + 1:02d}" / "debug-logs").glob("*.log")):
+                    shutil.copy2(f, dst / f.name)
+                age_logs(dst)
+            seen: list[tuple] = []
+            real_append = O3_REAL["append_jsonl"]
+
+            def spy(path: Path, rows: list[dict]) -> None:
+                if path.name == learner.JOURNAL:
+                    ended = (path.parent / "batch" / "ENDED").exists()
+                    seen.extend((r["rec"]["lane"], r["rec"]["log"], ended) for r in rows)
+                real_append(path, rows)
+
+            learner.append_jsonl = spy
+            if arm == "altered":
+                real_finish = O3_REAL["finish_cycle"]
+
+                def altered_finish(cfg_, state, plan, rc, ops=None):
+                    jpath = learner.RUNS / plan["tag"] / learner.JOURNAL
+                    lines = [json.loads(x) for x in jpath.read_text(encoding="utf-8").splitlines() if x.strip()]
+                    for row in lines:
+                        if row["rec"]["log"] == "a-1.log":
+                            row["rec"]["frames"] += 1
+                    jpath.write_text("".join(json.dumps(x) + "\n" for x in lines), encoding="utf-8")
+                    return real_finish(cfg_, state, plan, rc, ops)
+
+                learner.finish_cycle = altered_finish
+            writes = record_atomic_writes()
+            ok, newest = drive_cycle_long(template / "batch", cfg)
+            rows = learner.load_jsonl(learner.RUNS_FILE)
+            j7[arm] = {"ok": ok, "scored": scored(ok, newest, "ai0001"), "seen": seen, "log": log_text(),
+                       "writes": sorted(set(writes)),
+                       "same": by_key(rows) == by_key(ref_rows(learner.RUNS / "ai0001" / "batch", "ai0001")),
+                       "gone": not (learner.RUNS / "ai0001" / learner.JOURNAL).exists(), "exit": newest.get("exit")}
+    g = j7["guarded"]
+    during = sorted({(lane, name) for lane, name, ended in g["seen"] if not ended})
+    check("J7 FAULT: one journal record altered before the compare -> the line says '1 of 2' and names its key",
+          "game journal: 1 of 2 journaled games match the batch's records; DIFFERENT: L01/a-1.log" in j7["altered"]["log"],
+          [x for x in j7["altered"]["log"].splitlines() if "game journal:" in x and "match" in x])
+    check("J7 the normal path (real run_cycle): a-0 and a-1 were journaled WHILE the batch ran; the rows = today's "
+          "parse_batch of the copied batch; the compare line says '2 of 2'; the journal is deleted; the cycle is scored",
+          during == [A0, A1] and len(g["seen"]) == 2 and g["same"] and g["scored"] and g["gone"] and g["exit"] == 0
+          and "game journal: 2 of 2 journaled games match the batch's records" in g["log"],
+          (during, len(g["seen"]), g["same"], g["scored"], g["gone"], g["ok"]))
+    check("J7 run_cycle writes arms.json, plan.json and state.json (+ its backup) atomically (through _atomic_write)",
+          {"arms.json", "plan.json", "state.json", "state.json.bak"} <= set(g["writes"]), g["writes"])
+
+    # J8 an old-code cycle: copied logs, no games.jsonl -------------------------------------------------------------------
+    with O3Sandbox(tmp / "j8"):
+        learner.load_config = lambda: dict(learner.DEFAULTS)
+        learner.batch_running = lambda d, cmds=None: False
+        batch, _ = journal_fixture(tmp / "j8", copies=True)
+        (learner.RUNS / "ai0007" / "plan.json").write_text(json.dumps(
+            {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": []}), encoding="utf-8")
+        learner.save_state(dict(GOOD_STATE, cycle=7, current={"tag": "ai0007"}))
+        out = captured(lambda: learner.adopt_unfinished(dict(learner.DEFAULTS)))[0]
+        rows = learner.load_jsonl(learner.RUNS_FILE)
+        cyc = learner.load_state()["cycles"][-1]
+        check("J8 CONTROL: adopting an old-code cycle (copied logs, no games.jsonl) records exactly today's rows, no "
+              "`recovered`, and the compare line says 0 of 0", out is True and rows == ref_rows(batch, "ai0007")
+              and "recovered" not in cyc and "game journal: 0 of 0" in log_text(), (out, len(rows), cyc))
+
+    # J9 the swap: the journal's whole parse beats a profile log cut by the crash -----------------------------------------
+    j9 = {}
+    for arm in ("no swap", "guarded"):
+        with O3Sandbox(tmp / f"j9-{arm.replace(' ', '-')}"):
+            learner.JOURNAL_STABLE_S = 0.0
+            batch, meta = journal_fixture(tmp / f"j9-{arm.replace(' ', '-')}")
+            learner.journal_games("ai0007", batch, set())
+            whole = {(x["rec"]["lane"], x["rec"]["log"]): canon(x["rec"])
+                     for x in learner.load_jsonl(learner.RUNS / "ai0007" / learner.JOURNAL)}
+            cut = learner.PROFILES / meta["lanes"][0]["profile"] / "debug-logs" / "a-1.log"
+            cut.write_bytes(b"\n".join(cut.read_bytes().split(b"\n")[:3]))  # the power cut lost its last lines
+            if arm == "no swap":
+                learner._journal_records = lambda path: []
+            recs, _ = learner.recover_records("ai0007", batch)
+            copy_profiles_into(batch, meta)
+            j9[arm] = (by_key(recs).get(A1), whole.get(A1), by_key(ref_rows(batch, "ai0007")).get(A1))
+    got, whole, ref = j9["no swap"]
+    check("J9 FAULT: with the swap removed, a-1's row is the CUT log's (= today's parse of the cut log)",
+          got == ref and got != whole, (got or {}).get("losses"))
+    got, whole, ref = j9["guarded"]
+    check("J9 a-1's profile log cut by the crash: its row is the journal's whole record, which differs from today's "
+          "parse of the cut log", got == whole and got != ref and whole["losses"] == {"NORMAN": 2},
+          ((got or {}).get("losses"), (ref or {}).get("losses")))
+
+    # J10 the adopt wait journals ------------------------------------------------------------------------------------------
+    j10 = {}
+    for arm in ("no adopt journal", "guarded"):
+        with O3Sandbox(tmp / f"j10-{arm.replace(' ', '-')}"):
+            learner.JOURNAL_STABLE_S = 0.0
+            learner.load_config = lambda: dict(learner.DEFAULTS)
+            batch, _ = journal_fixture(tmp / f"j10-{arm.replace(' ', '-')}")
+            (learner.RUNS / "ai0007" / "plan.json").write_text(json.dumps(
+                {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": []}), encoding="utf-8")
+            learner.save_state(dict(GOOD_STATE, cycle=7, current={"tag": "ai0007"}))
+            polls, appended = [], []
+            learner.batch_running = lambda d, cmds=None: len(polls) < 2
+            learner.sleep_unless_stopped = lambda m: polls.append(m) or True
+            real_append = O3_REAL["append_jsonl"]
+            learner.append_jsonl = lambda p, rows: (appended.extend(
+                (r["rec"]["lane"], r["rec"]["log"], len(polls)) for r in rows) if p.name == learner.JOURNAL else None,
+                real_append(p, rows))[-1]
+            if arm == "no adopt journal":
+                learner.journal_games = lambda tag, b, known: 0
+            out = captured(lambda: learner.adopt_unfinished(dict(learner.DEFAULTS)))[0]
+            j10[arm] = (out, len(polls), sorted((lane, name) for lane, name, n in appended if n < 2))
+    check("J10 FAULT: with the adopt-loop journal call removed, nothing is journaled before scoring",
+          j10["no adopt journal"][2] == [], j10["no adopt journal"])
+    check("J10 adopt_unfinished journals a-0, a-1 during its waiting polls (batch_running True for 2 polls)",
+          j10["guarded"] == (True, 2, [A0, A1]), j10["guarded"])
+
+    # J10b the adopt wait's journal call RAISING: the wait and the scoring go on -----------------------------------------
+    j10b = {}
+    for arm in ("no guard", "guarded"):
+        with O3Sandbox(tmp / f"j10b-{arm.replace(' ', '-')}"):
+            learner.JOURNAL_STABLE_S = 0.0
+            learner.load_config = lambda: dict(learner.DEFAULTS)
+            batch, _ = journal_fixture(tmp / f"j10b-{arm.replace(' ', '-')}")
+            (learner.RUNS / "ai0007" / "plan.json").write_text(json.dumps(
+                {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": []}), encoding="utf-8")
+            learner.save_state(dict(GOOD_STATE, cycle=7, current={"tag": "ai0007"}))
+            polls, tries = [], []
+            learner.batch_running = lambda d, cmds=None: len(polls) < 2
+            learner.sleep_unless_stopped = lambda m: polls.append(m) or True
+
+            def journal_raises(tag, b, known):
+                tries.append(tag)
+                raise RuntimeError("simulated: the journal failed")
+
+            learner.journal_games = journal_raises
+            if arm == "no guard":
+                learner._guarded = lambda what, fn: fn()
+            try:
+                out = captured(lambda: learner.adopt_unfinished(dict(learner.DEFAULTS)))[0]
+            except RuntimeError as exc:
+                out = f"RAISED {exc!r}"
+            j10b[arm] = (out, len(polls), len(tries), "game journal FAILED" in log_text(),
+                         len(learner.load_jsonl(learner.RUNS_FILE)))
+    check("J10b FAULT: with the adopt loop's guard removed, a raising journal call RAISES out of adopt_unfinished",
+          str(j10b["no guard"][0]).startswith("RAISED"), j10b["no guard"])
+    check("J10b the journal raising at both waiting polls: adopt waits both polls, logs the failure, then scores the "
+          "cycle from the lane profiles (returns True, 4 rows)", j10b["guarded"] == (True, 2, 2, True, 4),
+          j10b["guarded"])
+
+    # J11 nothing new may kill the batch --------------------------------------------------------------------------------------
+    j11 = {}
+    for arm in ("no guards", "guarded"):
+        with O3Sandbox(tmp / f"j11-{arm.replace(' ', '-')}"):
+            learner.JOURNAL_POLL_S = 0.05
+            O3Sandbox.state([])
+            attempts = []
+
+            def raising_journal(tag, b, known):
+                attempts.append(tag)
+                raise RuntimeError("simulated: the journal failed")
+
+            real_log = O3_REAL["log"]
+
+            def log_fails_in_handler(msg: str) -> None:
+                if "FAILED" in msg:
+                    raise OSError("simulated: learner.log cannot be written")
+                real_log(msg)
+
+            def raising_clear() -> None:
+                attempts.append("clear")
+                raise OSError("simulated: crashes.json cannot be written")
+
+            learner.journal_games = raising_journal
+            learner._clear_crashes = raising_clear  # the reset right after Popen fails too
+            learner.log = log_fails_in_handler
+            if arm == "no guards":
+                learner._guarded = lambda what, fn: fn()
+            ok, newest = drive_cycle_long(template / "batch", cfg)
+            learner.log = real_log
+            j11[arm] = (ok, scored(ok, newest, "ai0001"), newest.get("exit"),
+                        (attempts.count("clear"), len(attempts) - attempts.count("clear")),
+                        (learner.RUNS / "ai0001" / "batch" / "ENDED").exists())
+    check("J11 FAULT: with the guards removed, a journal failure RAISES out of run_cycle and the batch is killed",
+          str(j11["no guards"][0]).startswith("RAISED") and not j11["no guards"][4], j11["no guards"])
+    ok, sc, ex, n_att, ended = j11["guarded"]
+    check("J11 journal_games AND the crash-count reset raising, with log() raising in their handler: run_cycle returns "
+          "True, the cycle is scored, the fake batch ran to its end (exit 0)",
+          ok is True and sc and ex == 0 and n_att[0] == 1 and n_att[1] >= 1 and ended, j11["guarded"])
+
+    # J12 the start filter ------------------------------------------------------------------------------------------------------
+    j12 = {}
+    started = (dt.datetime.now() - dt.timedelta(seconds=60)).isoformat(timespec="seconds")
+    for arm in ("no filter", "guarded"):
+        with O3Sandbox(tmp / f"j12-{arm.replace(' ', '-')}"):
+            learner.JOURNAL_STABLE_S = 0.0
+            batch, meta = journal_fixture(tmp / f"j12-{arm.replace(' ', '-')}", started=started)
+            stale = learner.PROFILES / meta["lanes"][0]["profile"] / "debug-logs" / "a-00.log"
+            shutil.copy2(stale.with_name("a-1.log"), stale)
+            t_old = dt.datetime.fromisoformat(started).timestamp() - 3600
+            os.utime(stale, (t_old, t_old))
+            if arm == "no filter":
+                learner._arms_since = lambda m: None
+            learner.journal_games("ai0007", batch, set())
+            recs, _ = learner.recover_records("ai0007", batch)
+            j12[arm] = (journal_keys("ai0007"), sorted(by_key(recs)))
+    check("J12 FAULT: with the start filter removed, a profile log from an hour before the batch is journaled and "
+          "recovered", (1, "a-00.log") in j12["no filter"][0] and (1, "a-00.log") in j12["no filter"][1], j12["no filter"])
+    check("J12 a log older than ARMS.json `started` is neither journaled nor recovered; CONTROL: the fresh logs are",
+          j12["guarded"] == ([A0, A1], [A0, A1, A2, (2, "b-1.log")]), j12["guarded"])
+
+    # J12b the slack: a log the batch runner's collect_logs WOULD copy (mtime >= its start - 5 s) is kept ----------------
+    j12b = {}
+    for arm in ("no slack", "guarded"):
+        with O3Sandbox(tmp / f"j12b-{arm.replace(' ', '-')}"):
+            learner.JOURNAL_STABLE_S = 0.0
+            batch, meta = journal_fixture(tmp / f"j12b-{arm.replace(' ', '-')}", started=started)
+            edge = learner.PROFILES / meta["lanes"][0]["profile"] / "debug-logs" / "a-00.log"
+            shutil.copy2(edge.with_name("a-1.log"), edge)
+            t_edge = dt.datetime.fromisoformat(started).timestamp() - 3  # 3 s before `started`: inside the 5 s
+            os.utime(edge, (t_edge, t_edge))
+            if arm == "no slack":
+                learner._arms_since = lambda m: dt.datetime.fromisoformat(str(m["started"])).timestamp()
+            learner.journal_games("ai0007", batch, set())
+            recs, _ = learner.recover_records("ai0007", batch)
+            j12b[arm] = ((1, "a-00.log") in journal_keys("ai0007"), (1, "a-00.log") in by_key(recs))
+    check("J12b FAULT: with no slack, a log modified 3 s before `started` (collect_logs copies it) is dropped",
+          j12b["no slack"] == (False, False), j12b["no slack"])
+    check("J12b a log modified 3 s before ARMS.json `started` (within collect_logs' 5 s) is journaled and recovered",
+          j12b["guarded"] == (True, True), j12b["guarded"])
+
+    # J13 an unreadable plan.json / ARMS.json -------------------------------------------------------------------------------------
+    j13 = {}
+    for arm in ("REF", "no rebuild", "guarded"):
+        with O3Sandbox(tmp / f"j13-{arm.replace(' ', '-')}"):
+            learner.load_config = lambda: dict(learner.DEFAULTS)
+            learner.batch_running = lambda d, cmds=None: False
+            batch, meta = journal_fixture(tmp / f"j13-{arm.replace(' ', '-')}", profile_tag="ai0007")
+            (learner.PROFILES / "endless-ai00070-H1-mudkip").mkdir(parents=True)  # another cycle's: never ours
+            cdir = learner.RUNS / "ai0007"
+            (cdir / "plan.json").write_text('{"tag": "ai0007", "lan', encoding="utf-8")
+            learner.save_state(dict(GOOD_STATE, cycle=7, current={"tag": "ai0007"}))
+            if arm == "REF":
+                learner._load_plan = lambda c: json.loads((c / "plan.json").read_text(encoding="utf-8"))
+                learner._read_arms = lambda b: json.loads((b / "ARMS.json").read_text(encoding="utf-8"))
+            if arm == "no rebuild":
+                learner._tag_profiles = lambda tag: []
+            try:
+                a = captured(lambda: learner.adopt_unfinished(dict(learner.DEFAULTS)))[0]
+            except Exception as exc:  # noqa: BLE001
+                a = f"RAISED {exc!r}"
+            res_a = (a, (cdir / "plan.json.bad").exists(), learner.load_state().get("current"))
+            (batch / "ARMS.json").write_text(json.dumps(meta)[:40], encoding="utf-8")
+            plan = {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": []}
+            try:
+                b = captured(lambda: learner.finish_cycle(dict(learner.DEFAULTS), learner.load_state(), plan, 0))[0]
+                created = learner.load_state()["cycles"][-1]["created"]
+            except Exception as exc:  # noqa: BLE001
+                b, created = f"RAISED {exc!r}", []
+            j13[arm] = (res_a, b, sorted(Path(p).name for p in created))
+    check("J13 FAULT: today's code RAISES on a half-written plan.json (adopt) and ARMS.json (finish)",
+          str(j13["REF"][0][0]).startswith("RAISED") and str(j13["REF"][1]).startswith("RAISED"), j13["REF"])
+    check("J13 FAULT: without the rebuild, an unreadable ARMS.json leaves `created` without the lane profiles (never "
+          "archived: a disk leak)", j13["no rebuild"][2] == ["batch"], j13["no rebuild"][2])
+    want = ["batch", "endless-ai0007-H1-mudkip", "endless-ai0007-H2-torchic"]
+    check("J13 (a) a half-written plan.json: moved to plan.json.bad, `current` cleared, adopt returns None; (b) a "
+          "half-written ARMS.json at finish: it returns, and `created` = batch + exactly this cycle's two profiles",
+          j13["guarded"] == ((None, True, None), False, want), j13["guarded"])
+
+    # J13b journal_games with a half-written ARMS.json journals nothing and never raises ----------------------------------
+    with O3Sandbox(tmp / "j13b"):
+        learner.JOURNAL_STABLE_S = 0.0
+        batch, meta = journal_fixture(tmp / "j13b")
+        (batch / "ARMS.json").write_text(json.dumps(meta)[:40], encoding="utf-8")
+        try:
+            n = learner.journal_games("ai0007", batch, set())
+        except Exception as exc:  # noqa: BLE001
+            n = f"RAISED {exc!r}"
+        check("J13b journal_games with a half-written ARMS.json: returns 0, writes no games.jsonl, raises nothing",
+              n == 0 and not (learner.RUNS / "ai0007" / learner.JOURNAL).exists(), n)
+
+    # J14 the journal is KEPT when the cycle recorded fewer games than it holds (review F4) ------------------------------
+    j14 = {}
+    for arm in ("always delete", "guarded"):
+        with O3Sandbox(tmp / f"j14-{arm.replace(' ', '-')}"):
+            learner.JOURNAL_STABLE_S = 0.0
+            learner.load_config = lambda: dict(learner.DEFAULTS)
+            batch, _ = journal_fixture(tmp / f"j14-{arm.replace(' ', '-')}")
+            learner.journal_games("ai0007", batch, set())
+            jpath = learner.RUNS / "ai0007" / learner.JOURNAL
+            before = jpath.read_bytes()
+            learner.save_state(dict(GOOD_STATE, cycle=7, current={"tag": "ai0007"}))
+
+            def recovery_fails(tag, b):
+                raise RuntimeError("simulated: the recovery failed")
+
+            learner.recover_records = recovery_fails
+            if arm == "always delete":  # the E2 build's drop: unconditional
+                learner._drop_journal = lambda tag: (learner.RUNS / tag / learner.JOURNAL).unlink(missing_ok=True)
+            plan = {"tag": "ai0007", "lanes": 8, "arms": {"A": {"genome": "x"}}, "proposal_files": []}
+            out = captured(lambda: learner.finish_cycle(dict(learner.DEFAULTS), learner.load_state(), plan, "adopted"))[0]
+            kept = jpath.with_name(learner.JOURNAL + ".kept")
+            j14[arm] = (out, len(learner.load_jsonl(learner.RUNS_FILE)), jpath.exists(),
+                        kept.exists() and kept.read_bytes() == before, "kept as games.jsonl.kept" in log_text())
+    check("J14 FAULT: the unconditional drop deletes the journal although the cycle recorded 0 of its 2 games",
+          j14["always delete"][:4] == (False, 0, False, False), j14["always delete"])
+    check("J14 the recovery failed (0 runs recorded): games.jsonl is kept byte for byte as games.jsonl.kept and the "
+          "log says so; CONTROL J4/J7: a journal whose games are all in runs.jsonl is deleted",
+          j14["guarded"] == (False, 0, False, True, True), j14["guarded"])
+
+
 def main() -> int:
     global GLOBAL_ROOT
     tmp = Path(tempfile.mkdtemp(prefix="aiagent-test-")).resolve()
@@ -2986,7 +4323,9 @@ def main() -> int:
                  lambda: test_o3_orphan(tmp / "o3orphan"), lambda: test_o3_liveness(tmp / "o3live"),
                  lambda: test_o3_lock(tmp / "o3lock"), lambda: test_o3_profiles(tmp / "o3prof"),
                  lambda: test_children(tmp / "children"), lambda: test_o6_o7(tmp / "o6o7"),
-                 lambda: test_o5(tmp / "o5"))
+                 lambda: test_o5(tmp / "o5"), lambda: test_o8_torn(tmp / "o8torn"),
+                 lambda: test_o8_state(tmp / "o8state"), lambda: test_o8_breaker(tmp / "o8bk"),
+                 lambda: test_e2_journal(tmp / "e2"))
         for i, t in enumerate(tests):
             try:
                 assert_isolated(tmp)

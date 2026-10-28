@@ -1,4 +1,4 @@
-# E2 + O8 BUILD SPEC: per-game recording and torn-write resilience for the bot tuner (spec only, NOT built)
+# E2 + O8 BUILD SPEC: per-game recording and torn-write resilience for the bot tuner (✅ BUILT 2026-10-28 to this spec: `2026-10-28-E2-O8-BUILD-EVIDENCE.md`, `06`, `07`)
 
 > **A note, not truth** (`00-READ-THIS-FIRST.md`). 2026-10-28, from four recon reports; every cited line re-read at
 > `f9fffb68` (the clone's copies match, CRLF aside). Revised the same day after one adversarial critique round (22

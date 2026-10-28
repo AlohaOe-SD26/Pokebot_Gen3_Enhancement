@@ -132,21 +132,35 @@ def genome_of_env(env: dict) -> dict:
     return {g: str(env.get(g, vals[0])) for g, (vals, _) in K.GENES.items()}
 
 
-def parse_batch(batch_dir: Path, source: str) -> list[dict]:
-    """Every run record of one finished batch. `source` labels where it came from (a cycle tag or 'ingest')."""
+def lane_record(meta: dict, arms: dict, i: int, lane: dict, path: Path, last_in_lane: bool, source: str,
+                batch_dir: Path | str) -> dict:
+    """The run record of ONE log of lane `i` (0-based; lane `Lnn` is `meta["lanes"][nn-1]`). `last_in_lane`: the
+    lane's newest log, CENSORED unless it reached the Champion or the fifth derail. Shared by `parse_batch` and the
+    learner's per-game journal (backlog E2), so both build a record in exactly the same way."""
+    rec = parse_log(path)
+    rec["complete"] = bool(rec["champion"] or not last_in_lane or rec["derails"] >= DERAIL_CAP)
+    rec["usable"] = rec["complete"] and rec["starter"] is not None
+    rec.update(source=source, batch=meta.get("stamp"), batch_dir=str(batch_dir),
+               code_commit=meta.get("code_commit"), lane=i + 1, lane_starter=lane.get("starter"),
+               arm=lane.get("arm"), genome=genome_of_env(arms[lane["arm"]]))
+    return rec
+
+
+def parse_batch(batch_dir: Path, source: str, lane_logs=None) -> list[dict]:
+    """Every run record of one finished batch. `source` labels where it came from (a cycle tag or 'ingest').
+
+    `lane_logs(i, lane) -> list[Path]`: where lane `i`'s logs are when they are NOT the copies in `Lnn/debug-logs`
+    (the learner's crash recovery reads the lane PROFILES, backlog E2). Either way each lane's logs are sorted by
+    name and its last one is judged by the same censoring rule."""
     batch_dir = Path(batch_dir)
     meta = json.loads((batch_dir / "ARMS.json").read_text(encoding="utf-8"))
     arms = json.loads(meta["arms_text"])["arms"]
     records = []
     for i, lane in enumerate(meta["lanes"]):
-        logs = sorted((batch_dir / f"L{i + 1:02d}" / "debug-logs").glob("*.log"))
+        if lane_logs is None:
+            logs = sorted((batch_dir / f"L{i + 1:02d}" / "debug-logs").glob("*.log"))
+        else:
+            logs = sorted(lane_logs(i, lane))
         for j, path in enumerate(logs):
-            rec = parse_log(path)
-            last_in_lane = j == len(logs) - 1
-            rec["complete"] = bool(rec["champion"] or not last_in_lane or rec["derails"] >= DERAIL_CAP)
-            rec["usable"] = rec["complete"] and rec["starter"] is not None
-            rec.update(source=source, batch=meta.get("stamp"), batch_dir=str(batch_dir),
-                       code_commit=meta.get("code_commit"), lane=i + 1, lane_starter=lane.get("starter"),
-                       arm=lane.get("arm"), genome=genome_of_env(arms[lane["arm"]]))
-            records.append(rec)
+            records.append(lane_record(meta, arms, i, lane, path, j == len(logs) - 1, source, batch_dir))
     return records

@@ -58,12 +58,91 @@ Run these in `C:\Remote Projects\pokebot-learner\ai-agent`, the deployment clone
 | preview the next cycle | `py -3.12 learner.py plan` (runs nothing) |
 | check the raw-log archives | `py -3.12 learner.py archive-check` (read-only, any time: one `OK`/`BAD` line per `raw.zip`, then one `HELD <tag> <reason>` line per cycle held for review; exit 1 on any BAD or HELD; the result goes to `data\archive_check.json` for `tools/status.py`) |
 | archive old raw logs now | `py -3.12 learner.py archive` is meant for when the learner is STOPPED. It refuses while the 24/7 learner holds its lock (the running learner archives at each boundary by itself). If the learner is started while a manual archive runs, it WAITS for it instead of refusing. After 120 min it gives up: it writes `findings\ATTENTION.md` with that reason and exits 2, which `run_agent.ps1` reports as "Another learner is already running" (it is not) and does not retry |
-| check the code still works | `py -3.12 test_agent.py` (offline, about 10 seconds, must say ALL PASS) |
+| check the code still works | `py -3.12 test_agent.py` (offline, about 1 minute, must say ALL PASS) |
 
-If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, delete that file, start it again.
+If it ever stops on its own, `findings\ATTENTION.md` says why. Fix the cause, delete that file, start it again
+(what to do for each reason: "When it stops itself" below).
 
 If the learner process dies mid-cycle, the batch keeps playing. The next start ADOPTS it: it waits for the batch to
 end, then scores it.
+
+## Crashes, power cuts and half-written files (backlog E2 + O8, 2026-10-28)
+
+**The game journal (E2).** While a batch runs, the learner records every game that has FINISHED in
+`runs\<tag>\games.jsonl`, about every 5 minutes (`JOURNAL_POLL_S`). One line per game: `{"journaled": <time>, "rec":
+<the exact runs.jsonl row that game will get>}`. A game counts as finished when its log is not the newest one of its
+lane and has not changed for 2 minutes (`JOURNAL_STABLE_S`). A restarted learner that is waiting for a still-running
+batch keeps journaling it.
+- At a NORMAL cycle end nothing about the scoring changes: the batch's own log copies are scored exactly as before,
+  and `learner.log` says `<tag>: game journal: N of N journaled games match the batch's records` (a mismatch names
+  the games that differ; the records are never altered). The journal is then deleted (everything is in runs.jsonl).
+  If it holds a game that runs.jsonl does not (the cycle's parse or recovery failed), it is KEPT as
+  `games.jsonl.kept` and `learner.log` says so: it may be the only whole record of those games.
+- If the MACHINE dies mid-cycle (a power cut, a shutdown), the batch runner never copies the lanes' logs into
+  `batch\`. Before 2026-10-28 the next start then recorded 0 runs for that cycle (ai0031 lost 12 finished games on
+  2026-10-17). Now it scores the games from the lane profiles (`sandbox-pokebot\profiles\endless-<tag>-*`), by
+  today's rules: each lane's newest game was cut off, so it is kept but not scored. For each game the journal holds,
+  the journal's record is used, because the journal read that log while it was whole. The cycle row says
+  `"recovered": "<n> from lane profiles, <m> from the journal"`. Like any cycle with a scored game, it counts in the
+  ranking, uses up the inbox proposals it tested and resets the failure count (USER RULING 48, U1). Old cycles are
+  NOT backfilled (U2).
+- A learner that died between writing runs.jsonl and saving state.json re-scores the same cycle at the next start;
+  rows already in runs.jsonl (same source, batch, lane and log) and an existing cycles.jsonl row are not written twice.
+
+**Half-written files (O8).** Every file the learner rewrites is written to a `.tmp`, forced onto the disk, then put
+in place; appended lines are forced onto the disk too.
+- A broken line in a `.jsonl` file is skipped (and logged) instead of stopping the learner. At each start the
+  learner moves broken lines of `data\runs.jsonl` and `data\cycles.jsonl` into `<file>.bad` (one JSON object per
+  line: when found, the file, the line number and the text) and rewrites the file without them, the good lines byte
+  for byte. More than 3 broken lines (`MAX_BAD_LINES`) is not a torn write: it repairs nothing and stops with
+  ATTENTION (restore that file from the nightly backup). A broken line in a journal goes to `games.jsonl.bad`, with no
+  limit and never a stop.
+- `data\state.json.bak` is a copy of state.json, rewritten right after every save. If state.json is unreadable or
+  missing, the backup is used ONLY when it is provably current: it must read cleanly AND its `cycle` must be at least
+  the newest cycle ever started (the highest `runs\aiNNNN` or `endless-aiNNNN-*` folder). Then the bad file is kept as
+  `state.json.bad.<k>` and state.json is restored from the backup (the newest cycle's archive flags and failure count
+  may be one save old; a lost cycle end is redone by adopt and not double counted). Otherwise the learner REFUSES
+  (`StateUnreadable`: "state.json.bak holds cycle 47 but runs\ai0053 exists") and, after 5 such starts, stops with
+  ATTENTION. A backup is stale after a rollback to code older than 2026-10-28 (that code never writes it) until the
+  first save of the new code.
+- `config.json` has no fallback: it is a human's file, and guessing is worse than stopping.
+
+**The crash-loop breaker (O8).** A crash in the learner's loop, from the moment it holds its lock and has logged
+`learner started`, is counted in `data\crashes.json` (`{count, first, last, last_error}`; kept outside state.json,
+which may be the broken file). NOT counted, and so never stopped by the breaker or reached by its update step: a
+crash before that point (an import error in the learner's own code, a failure taking the lock, reading the code
+signature or writing that first log line, e.g. a full disk). `run_agent.ps1` retries those every 10 minutes, as
+before O8; a full disk is the watchdog's to report.
+- Crashes 1-4 in a row: the learner exits 1 and `run_agent.ps1` retries 10 minutes later, as before.
+- Crash 5 (`CRASH_LIMIT`): it writes ATTENTION ("The learner crashed 5 times in a row and stopped retrying. Last
+  error: ..."), resets the count and exits 0, so the wrapper stops. The watchdog toasts "the learner paused itself"
+  within 30 minutes. About 40 minutes from the first crash.
+- While crash-looping it still fetches pushed code: if `auto_update` is on and the fetch brings new learner code, it
+  restarts into it when `test_agent.py` passes (the count is kept); if the tests fail it stops with ATTENTION instead
+  of running untested code.
+- The count resets when a batch is launched, when the breaker writes ATTENTION, and on any clean exit (STOP,
+  ATTENTION, a restart into new code). `learner.py once` crashes are never counted.
+- ATTENTION.md is checked FIRST at every start, so the logon autostart cannot restart a stopped crash loop.
+- `learner.py status` shows `crashes in a row: n`.
+
+### When it stops itself (ATTENTION.md): what to do
+
+| ATTENTION says | do this |
+|---|---|
+| "crashed 5 times in a row" | read the tracebacks in `data\learner.log`. A code change: revert it and push (it arrives at the next start, or roll back by hand below). A broken `data\state.json`: restore it from the nightly backup. Then delete ATTENTION.md and start `run_agent.ps1` |
+| "data/runs.jsonl (or cycles.jsonl) has more than 3 unreadable lines" | restore that file from the nightly backup (`tools/ops/backup_learner.py` keeps `data\`), or move the bad lines out by hand; then delete ATTENTION.md and start |
+| "the update it fetched FAILS test_agent.py" | fix or revert the code on `origin/main`, then delete ATTENTION.md and start |
+| "cycles in a row produced no scored runs" | read `data\learner.log` and the newest `runs\<tag>\x4.out.txt` |
+| a disk message | free disk space |
+
+**Manual rollback** (when the learner has already stopped, or its update step is what is broken). A normal revert
+and push arrives by itself at the next cycle boundary, or at the next crash. By hand:
+1. `git -C "C:/Remote Projects/pokebot-learner" fetch origin`
+2. `git -C "C:/Remote Projects/pokebot-learner" merge --ff-only origin/main`
+3. Delete `ai-agent\findings\ATTENTION.md`.
+4. Start `run_agent.ps1`.
+After a rollback to code older than 2026-10-28, `state.json.bak` stops being written; on a redeploy it stays stale
+until the first save, and the check above refuses it in that window.
 
 ## One cycle (12 hours by default)
 
@@ -237,6 +316,7 @@ end, then scores it.
   - The one documented exception is the boss-mode knob's `4`, which drives training the bot already runs every
     game (`06`, 2026-10-03).
 - It pauses itself, instead of retrying forever:
+  - after 5 crashes in a row (the crash-loop breaker, tests BK1-BK9 and BK-C);
   - after 3 cycles in a row with no scored runs;
   - when the disk falls below 25 GB free. It first archives every cycle but the newest (it never deletes
     without a verified archive) and stops only if that is not enough. Under 40 GB it has already been archiving
@@ -274,6 +354,7 @@ That is an interactive-session job.
 | `brain.py` | strategy choice and knob-effect estimates |
 | `report.py` | `findings/LATEST.md` |
 | `consult.py` | the optional Claude call, its novelty gate, the DEVELOPER-NOTES collapse and roll, and the one-time `--probe-context` |
-| `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune and archive safety, the ops ledger and the early archive, the consult's novelty gate, notes roll and inbox expiry) |
+| `test_agent.py` | the offline gate (scoring, choice, regression, the batch runner's own preflight, prune and archive safety, the ops ledger and the early archive, the consult's novelty gate, notes roll and inbox expiry, torn writes, the state backup, the crash-loop breaker and the game journal) |
+| `../tools/ops/replay_learner_recovery.py` | off-gate real-data check of the journal and crash recovery against the clone, read-only (RD1, RD2) |
 | `config.json` | the settings, re-read every cycle |
 | `run_agent.ps1` | the 24/7 wrapper (restarts after a crash or into updated code; stops on `STOP` or `ATTENTION.md`) |

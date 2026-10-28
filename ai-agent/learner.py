@@ -28,6 +28,12 @@ Each CYCLE:
 Resilience:
 - If the learner dies mid-cycle, the batch keeps running. The next start ADOPTS it: it waits for that batch to end,
   then scores it, so no cycle is lost.
+- Each finished game is JOURNALED within about 5 minutes of ending (`runs/<tag>/games.jsonl`, backlog E2). If the
+  MACHINE dies mid-cycle, the batch runner never copies the lanes' logs, and the next start scores the games that
+  finished before the crash from the lane profiles and the journal (`recover_records`), by today's rules.
+- A torn line in a JSONL file is skipped and moved to `<file>.bad` instead of stopping the learner; state.json keeps a
+  backup that is restored only when it is provably current (backlog O8). After CRASH_LIMIT crashes in a row the
+  learner stops itself and writes `findings/ATTENTION.md`; while crash-looping it still fetches pushed code.
 - Between cycles, if its own code has changed and `test_agent.py` passes, it exits with code 3 so the wrapper
   restarts it into the new code. If the tests fail, it keeps running the old code and says so.
 
@@ -59,6 +65,7 @@ import json
 import math
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -106,6 +113,35 @@ REPLACE_TRIES, REPLACE_WAIT_S = 5, 2.0
 LOCK_POLL_S, LOCK_WAIT_MAX_MIN = 30.0, 120.0
 _os_replace = os.replace
 _os_rename = os.rename
+#: The `.bak` copy of state.json is replaced through its OWN alias, so a test can fail the backup's replace alone (ST9)
+#: and the state.json replace keeps its exact retry count (R20).
+_os_replace_bak = os.replace
+#: Every file this learner writes as a whole is forced onto the disk before it counts as saved (backlog O8).
+_fsync = os.fsync
+
+# ------------------------------------------------------------------------------------- O8 + E2 (spec 2026-10-28)
+#: state.json's backup: the same text, written right after every save of state.json (`save_state`). It is restored ONLY
+#: when it is provably current (`load_state`); otherwise the learner stops and asks (`StateUnreadable`).
+STATE_BAK = DATA / "state.json.bak"
+#: The crash-loop breaker's counter (backlog O8): `{count, first, last, last_error}`. Kept OUTSIDE state.json, which may
+#: be the very file that is broken. Unreadable or missing counts as 0.
+CRASH_FILE = DATA / "crashes.json"
+#: After this many crashes in a row the learner stops retrying and writes findings/ATTENTION.md. A module constant,
+#: not a config key, because config.json may be the broken file.
+CRASH_LIMIT = 5
+#: At start, runs.jsonl / cycles.jsonl with MORE bad lines than this are not repaired automatically: ATTENTION.
+MAX_BAD_LINES = 3
+#: The per-game journal (backlog E2): `runs/<tag>/games.jsonl`, one line per finished game, written while the batch
+#: runs. JOURNAL_POLL_S: how often `run_cycle` (and the adopt wait) looks for newly finished games. JOURNAL_STABLE_S:
+#: a log must be unmodified this long before it is journaled.
+JOURNAL = "games.jsonl"
+JOURNAL_POLL_S = 300.0
+JOURNAL_STABLE_S = 120.0
+#: The journal's mtime filter starts this many seconds before ARMS.json's `started` (the batch runner's own copy keeps
+#: logs modified within 5 s of its start, `collect_logs`; `started` is that moment truncated to the second).
+JOURNAL_SINCE_SLACK_S = 6.0
+#: True while THIS process holds the learner's lock: only the lock holder repairs files or restores state.json.
+_LOCK_HELD = False
 
 DEFAULTS = {
     "lanes": "auto", "max_lanes": 24, "reserve_threads": 4, "reserve_ram_gb": 8, "ram_per_lane_gb": 1.5,
@@ -165,38 +201,226 @@ def load_config() -> dict:
     return cfg
 
 
+def _say(msg: str) -> None:
+    """`log`, and when even that fails (a full disk makes the log file unwritable), stderr. NEVER raises."""
+    try:
+        log(msg)
+    except Exception:  # noqa: BLE001
+        try:
+            print(f"[{now()}] {msg}", file=sys.stderr, flush=True)
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _split_jsonl(data: bytes) -> tuple[list[tuple[int, bytes, object]], list[tuple[int, bytes]]]:
+    """(good, bad) lines of a JSONL file's bytes: good = (line number, the line's exact bytes, its parsed value), bad =
+    (line number, bytes). Split on b"\\n" only; a blank or whitespace-only piece (the empty piece after the final
+    newline included) is neither good nor bad. A CRLF line keeps its b"\\r", which JSON parses as whitespace."""
+    good, bad = [], []
+    for n, piece in enumerate(data.split(b"\n"), 1):
+        if not piece.strip():
+            continue
+        try:
+            good.append((n, piece, json.loads(piece.decode("utf-8"))))
+        except ValueError:  # UnicodeDecodeError and json.JSONDecodeError are both ValueErrors
+            bad.append((n, piece))
+    return good, bad
+
+
 def load_jsonl(path: Path) -> list[dict]:
+    """Every readable row. A torn or garbled line (backlog O8) is SKIPPED and logged, never raised: before O8 one bad
+    line in runs.jsonl stopped the learner. A healthy file, CRLF included, gives exactly the rows it gave before."""
     if not path.exists():
         return []
-    return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+    good, bad = _split_jsonl(path.read_bytes())
+    if bad:
+        _say(f"{path.name}: skipped {len(bad)} unreadable line(s) (line {', '.join(str(n) for n, _ in bad[:5])}"
+             f"{', ...' if len(bad) > 5 else ''}); the learner moves them to {path.name}.bad at its next start")
+    return [row for _, _, row in good]
 
 
 def append_jsonl(path: Path, rows: list[dict]) -> None:
+    """Append rows, forced onto the disk. If the file's last byte is not a newline (a write torn by a crash or a power
+    cut), a newline goes first, so the fragment stays a line of its own and never glues onto the first new row (O8).
+    Text mode, UTF-8 and `json.dumps(r, default=str)` as before: a healthy file gets the same bytes as before."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    text = "".join(json.dumps(r, default=str) + "\n" for r in rows)
+    if text and path.is_file() and path.stat().st_size > 0:
+        with open(path, "rb") as fh:
+            fh.seek(-1, os.SEEK_END)
+            if fh.read(1) != b"\n":
+                text = "\n" + text
     with open(path, "a", encoding="utf-8") as fh:
-        for r in rows:
-            fh.write(json.dumps(r, default=str) + "\n")
+        fh.write(text)
+        fh.flush()
+        _fsync(fh.fileno())
+
+
+def _atomic_write(path: Path, payload: str | bytes, bak: bool = False) -> None:
+    """Write `path` whole or not at all: `<name>.tmp`, flushed and fsynced, then replaced over `path` (retried on a
+    transient lock, `_replace_with_retry`). Text is written in text mode (so CRLF on Windows, as `write_text` did);
+    bytes are written as they are. Windows cannot fsync a folder; NTFS journals the rename. `bak`: replace through
+    `_os_replace_bak` (state.json.bak only)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    fh = open(tmp, "wb") if isinstance(payload, bytes) else open(tmp, "w", encoding="utf-8")
+    with fh:
+        fh.write(payload)
+        fh.flush()
+        _fsync(fh.fileno())
+    _replace_with_retry(tmp, path, bak=bak)
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    _atomic_write(path, text)
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text("".join(json.dumps(r, default=str) + "\n" for r in rows), encoding="utf-8")
-    tmp.replace(path)
+    _atomic_write_text(path, "".join(json.dumps(r, default=str) + "\n" for r in rows))
 
 
-def load_state() -> dict:
-    if STATE_FILE.exists():
-        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+def repair_jsonl(path: Path, limit: int | None) -> str:
+    """Move the unreadable lines of a JSONL file to `<file>.bad` (one JSON object per bad line: found, file, line,
+    text; fsynced), then rewrite the file WITHOUT them, atomically, the good lines copied byte for byte (CRLF kept).
+    Returns "clean" (nothing to do), "repaired", "refused" (more than `limit` bad lines: nothing touched) or "failed"
+    (logged; e.g. the rewrite was blocked by an open handle: retried next time). NEVER raises, never exits.
+
+    Two modes (spec 2026-10-28 §2b): runs.jsonl / cycles.jsonl at start, by the lock holder, with limit MAX_BAD_LINES
+    (over it, `loop` writes ATTENTION: restore from the nightly backup); games.jsonl with limit None (every bad line is
+    moved, never an ATTENTION or a stop: the backup does not hold runs/, and the lane profiles are the fallback)."""
+    try:
+        if not path.is_file():
+            return "clean"
+        data = path.read_bytes()
+        good, bad = _split_jsonl(data)
+        if not bad:
+            return "clean"
+        if limit is not None and len(bad) > limit:
+            _say(f"{path.name}: {len(bad)} unreadable lines, more than {limit}: NOT repaired automatically")
+            return "refused"
+        found = now()
+        side = path.with_name(path.name + ".bad")
+        with open(side, "a", encoding="utf-8") as fh:
+            fh.write("".join(json.dumps({"found": found, "file": path.name, "line": n,
+                                         "text": piece.decode("utf-8", "replace")}) + "\n" for n, piece in bad))
+            fh.flush()
+            _fsync(fh.fileno())
+        _atomic_write(path, b"".join(piece + b"\n" for _, piece, _ in good))
+        _say(f"{path.name}: moved {len(bad)} unreadable line(s) (line {', '.join(str(n) for n, _ in bad[:5])}"
+             f"{', ...' if len(bad) > 5 else ''}) to {side.name}; {len(good)} good lines kept byte for byte")
+        return "repaired"
+    except Exception as exc:  # noqa: BLE001 - a repair that cannot run leaves the file as it was; loads skip bad lines
+        _say(f"{path.name}: repair failed ({type(exc).__name__}: {exc}); the file is left as it was and the repair is "
+             f"retried next time")
+        return "failed"
+
+
+class StateUnreadable(RuntimeError):
+    """state.json is unreadable or missing and its backup cannot be PROVEN current: the learner refuses to guess (it
+    never silently starts from a fresh state over a learner that has history)."""
+
+
+def _fresh_state() -> dict:
     return {"cycle": 0, "cycles": [], "current": None, "failures": 0}
 
 
+def _state_from(data: bytes, need_cycle: bool = True) -> dict | None:
+    """The state in `data` if it parses AND has the right shape (a dict, a list `cycles`, an int `cycle`), else None.
+    `need_cycle` False (state.json itself): a MISSING `cycle` is accepted, as before O8 (every state the learner saves
+    carries one; the archive tests save partial states); a present one must still be an int. The backup is restored
+    only with an int `cycle`, because that is what proves it current."""
+    try:
+        st = json.loads(data.decode("utf-8"))
+    except ValueError:
+        return None
+    if not (isinstance(st, dict) and isinstance(st.get("cycles"), list)):
+        return None
+    cycle = st.get("cycle")
+    if ("cycle" in st or need_cycle) and (not isinstance(cycle, int) or isinstance(cycle, bool)):
+        return None
+    return st
+
+
+def _newest_started_cycle() -> tuple[int, str]:
+    """(NNNN, name) of the highest-numbered cycle that was ever STARTED, from `runs/aiNNNN` and
+    `PROFILES/endless-aiNNNN-*` (both survive archiving); (0, "") when there is none. `run_cycle` makes its folder
+    before the save that sets `cycle`, so a state.json.bak whose `cycle` is lower is behind a started cycle."""
+    best = (0, "")
+    for root, pattern in ((RUNS, r"ai(\d+)"), (PROFILES, r"endless-ai(\d+)-.*")):
+        try:
+            names = [p.name for p in root.iterdir()] if root.is_dir() else []
+        except OSError:
+            names = []
+        for name in names:
+            m = re.fullmatch(pattern, name)
+            if m and int(m.group(1)) > best[0]:
+                best = (int(m.group(1)), name)
+    return best
+
+
+def _set_aside_state() -> str:
+    """Rename the bad state.json to `state.json.bad.<k>`, k the smallest unused integer >= 1 (never deleted)."""
+    k = 1
+    while os.path.lexists(STATE_FILE.with_name(f"{STATE_FILE.name}.bad.{k}")):
+        k += 1
+    dest = STATE_FILE.with_name(f"{STATE_FILE.name}.bad.{k}")
+    _rename_no_overwrite(STATE_FILE, dest)
+    return dest.name
+
+
+def load_state() -> dict:
+    """state.json, checked for shape. When it is unreadable or missing, its backup `state.json.bak` is used ONLY if the
+    backup is readable, has the right shape AND its `cycle` is at least the newest started cycle
+    (`_newest_started_cycle`): a backup behind a started cycle is stale (e.g. a rollback to old code, which never
+    writes the backup), and restoring it would lose that cycle. The LOCK HOLDER then sets the bad file aside as
+    `state.json.bad.<k>` and restores state.json from the backup; any other process uses the backup in memory. In
+    every other case it raises StateUnreadable naming the gap. Neither file existing = a first start: a fresh state."""
+    exists = os.path.lexists(STATE_FILE)
+    if exists:
+        try:
+            st = _state_from(STATE_FILE.read_bytes(), need_cycle=False)
+        except OSError:
+            st = None
+        if st is not None:
+            return st
+    bak_exists = os.path.lexists(STATE_BAK)
+    if not exists and not bak_exists:
+        return _fresh_state()
+    why = "data/state.json is unreadable or not a learner state" if exists else "data/state.json is missing"
+    try:
+        bak_bytes = STATE_BAK.read_bytes() if bak_exists else None
+    except OSError:
+        bak_bytes = None
+    bak = _state_from(bak_bytes) if bak_bytes is not None else None
+    if bak is None:
+        raise StateUnreadable(f"{why}, and data/state.json.bak is {'unreadable' if bak_exists else 'missing'}. "
+                              f"Restore data/state.json from the nightly backup (tools/ops/backup_learner.py).")
+    newest, name = _newest_started_cycle()
+    if bak["cycle"] < newest:
+        raise StateUnreadable(f"{why}, and data/state.json.bak holds cycle {bak['cycle']} but {name} exists: the backup "
+                              f"is older than a cycle that was started, so it is NOT restored. Restore data/state.json "
+                              f"from the nightly backup (tools/ops/backup_learner.py).")
+    if _LOCK_HELD:
+        moved = _set_aside_state() if exists else None
+        _atomic_write(STATE_FILE, bak_bytes)
+        _say(f"{why}: restored from state.json.bak (cycle {bak['cycle']}; the newest cycle's archive flags and failure "
+             f"count may be one save old)" + (f"; the bad file is kept as {moved}" if moved else ""))
+    return bak
+
+
 def save_state(state: dict) -> None:
-    """Write state.json atomically. The replace is retried on PermissionError: on Windows any process holding
-    state.json open (tools/status.py, a watchdog, an editor) makes os.replace fail for that moment."""
+    """Write state.json atomically and forced onto the disk, then the same text to state.json.bak. The replace is
+    retried on PermissionError: on Windows any process holding state.json open (tools/status.py, a watchdog, an
+    editor) makes os.replace fail for that moment. A failed BACKUP write is logged and never raised (state.json is
+    already saved; the next save rewrites the backup), so this gains no new way to raise (O8)."""
     DATA.mkdir(parents=True, exist_ok=True)
-    tmp = STATE_FILE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(state, indent=1, default=str), encoding="utf-8")
-    _replace_with_retry(tmp, STATE_FILE)
+    text = json.dumps(state, indent=1, default=str)
+    _atomic_write(STATE_FILE, text)
+    try:
+        _atomic_write(STATE_BAK, text, bak=True)
+    except Exception as exc:  # noqa: BLE001
+        _say(f"state.json.bak could not be written ({type(exc).__name__}: {exc}); state.json is saved and the next "
+             f"save rewrites the backup")
 
 
 def code_signature(folder: Path = AI) -> str:
@@ -282,7 +506,9 @@ def acquire_lock() -> str | None:
     holder = _lock_holder()
     if holder:
         return f"another learner is running (pid {holder[0]})"
+    global _LOCK_HELD
     LOCK.write_text(str(os.getpid()))
+    _LOCK_HELD = True  # only the lock holder repairs a JSONL file or restores state.json from its backup (O8)
     return None
 
 
@@ -326,6 +552,8 @@ def acquire_lock_waiting_for_archive() -> str | None:
 
 
 def release_lock() -> None:
+    global _LOCK_HELD
+    _LOCK_HELD = False
     try:
         if LOCK.exists() and LOCK.read_text().strip() == str(os.getpid()):
             LOCK.unlink()
@@ -380,10 +608,56 @@ def free_gb() -> float:
 
 
 def attention(reason: str) -> None:
-    FINDINGS.mkdir(parents=True, exist_ok=True)
-    ATTENTION.write_text(f"# The learner paused itself\n\n{now()}\n\n{reason}\n\nFix the cause, delete this file, "
-                         f"then start the learner again (`run_agent.ps1`).\n", encoding="utf-8")
+    _atomic_write_text(ATTENTION, f"# The learner paused itself\n\n{now()}\n\n{reason}\n\nFix the cause, delete this "
+                                  f"file, then start the learner again (`run_agent.ps1`).\n")
     log(f"PAUSED for attention: {reason}")
+
+
+# ------------------------------------------------------------------------------- the crash-loop breaker (backlog O8)
+def _read_crashes() -> dict:
+    """data/crashes.json, or {} when it is missing or unreadable (= a count of 0)."""
+    try:
+        d = json.loads(CRASH_FILE.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) and isinstance(d.get("count"), int) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def crash_count() -> int:
+    return max(0, int(_read_crashes().get("count", 0)))
+
+
+def _note_crash(error: str) -> int:
+    """Count one more crash in a row; returns the new count. Raises when the counter cannot be written."""
+    d = _read_crashes()
+    n = max(0, int(d.get("count", 0))) + 1
+    t = now()
+    _atomic_write_text(CRASH_FILE, json.dumps({"count": n, "first": d.get("first") if n > 1 else t, "last": t,
+                                               "last_error": error[:500]}, indent=1))
+    return n
+
+
+def _clear_crashes() -> None:
+    """Reset the crash count to 0 (a batch was launched, the breaker wrote ATTENTION, or `loop` exited cleanly). Writes
+    only when the count is not already 0. Raises when the write fails (callers guard it)."""
+    d = _read_crashes()
+    if int(d.get("count", 0)) != 0:
+        _atomic_write_text(CRASH_FILE, json.dumps({"count": 0, "first": None, "last": d.get("last"),
+                                                   "last_error": d.get("last_error"), "cleared": now()}, indent=1))
+
+
+def _guarded(what: str, fn):
+    """fn(), or None when it raises: the failure is logged (and that log is itself guarded, because `log` opens
+    learner.log unguarded and a full disk makes it raise). For the calls that run WHILE a batch runs: nothing new may
+    ever reach `run_cycle`'s kill-and-reraise, since `proc.kill` stops only the batch runner and its lanes keep going."""
+    try:
+        return fn()
+    except Exception as exc:  # noqa: BLE001
+        try:
+            log(f"{what} FAILED ({type(exc).__name__}: {exc}); the batch is not affected")
+        except Exception:  # noqa: BLE001
+            pass
+        return None
 
 
 # -------------------------------------------------------------------------------------------- ops ledger (backlog O6)
@@ -721,8 +995,8 @@ def run_cycle(cfg: dict, state: dict, lanes: int) -> bool:
     cdir.mkdir(parents=True)
     spec = {"comment": f"ai-agent cycle {tag}: " + "; ".join(f"{a}={v['label']}" for a, v in plan["arms"].items()),
             "arms": {a: v["env"] for a, v in plan["arms"].items()}}
-    (cdir / "arms.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
-    (cdir / "plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
+    _atomic_write_text(cdir / "arms.json", json.dumps(spec, indent=2))
+    _atomic_write_text(cdir / "plan.json", json.dumps(plan, indent=1))
     state["cycle"] = plan["n"]
     state["design_next"] = plan["design_next"]
     state["design_name"] = plan.get("design_name")
@@ -736,11 +1010,31 @@ def run_cycle(cfg: dict, state: dict, lanes: int) -> bool:
     ops = ops_start(state)  # the ops ledger (O6): never raises
     try:
         with open(cdir / "x4.out.txt", "w", encoding="utf-8") as out:
-            rc = subprocess.run(batch_command(plan, cdir), cwd=STORY_DEV, env=env, stdout=out,
-                                stderr=subprocess.STDOUT).returncode
+            rc = _run_batch(batch_command(plan, cdir), env, out, tag, cdir / "batch")
     finally:
         ops_batch_ended(ops)  # stops the CPU sampler even when the batch call raises
     return finish_cycle(cfg, load_state(), plan, rc, ops)
+
+
+def _run_batch(cmd: list[str], env: dict, out, tag: str, batch: Path) -> int:
+    """Run the batch runner to its end and return its exit code, journaling each finished game every JOURNAL_POLL_S
+    while it runs (backlog E2). The same as the `subprocess.run` it replaces: same args, stdout, env and cwd, and the
+    child is killed and the exception re-raised on ANY BaseException that reaches the wait. The journal call and the
+    crash-count reset are `_guarded`, so only KeyboardInterrupt/SystemExit, or `proc.wait` itself failing, can reach
+    that kill: the cases where `subprocess.run` killed before."""
+    with subprocess.Popen(cmd, cwd=STORY_DEV, env=env, stdout=out, stderr=subprocess.STDOUT) as proc:
+        try:
+            _guarded("resetting the crash count", _clear_crashes)  # a batch was launched: no longer a crash loop
+            known: set = set()
+            while True:
+                try:
+                    return proc.wait(timeout=JOURNAL_POLL_S)
+                except subprocess.TimeoutExpired:
+                    pass
+                _guarded(f"{tag}: game journal", lambda: journal_games(tag, batch, known))
+        except BaseException:
+            proc.kill()
+            raise
 
 
 def finish_cycle(cfg: dict, state: dict, plan: dict, rc, ops: dict | None = None) -> bool:
@@ -748,24 +1042,44 @@ def finish_cycle(cfg: dict, state: dict, plan: dict, rc, ops: dict | None = None
     None: its start was never measured). Last, it appends the cycle's `data/ops.jsonl` row, which never fails it."""
     tag = plan["tag"]
     batch = RUNS / tag / "batch"
-    records = []
-    if (batch / "ARMS.json").exists():
+    records, recovered = [], None
+    if _copied_logs(batch):  # the NORMAL case: the batch runner copied the lanes' logs into batch/ (as before E2)
+        if (batch / "ARMS.json").exists():
+            try:
+                records = scoring.parse_batch(batch, tag)
+            except Exception:  # a half-written batch must not kill the learner; the reason goes to the log
+                log(f"{tag}: parsing failed:\n{traceback.format_exc()}")
+        for r in records:
+            r["genome_id"] = brain.genome_id(r["genome"])
+        compare_journal(tag, records)  # read-only: one log line, the records are never altered
+    else:  # RECOVERY: no copied logs (the machine died before the batch runner's copy): the lane profiles + journal
         try:
-            records = scoring.parse_batch(batch, tag)
-        except Exception:  # a half-written batch must not kill the learner; the reason goes to the log
-            log(f"{tag}: parsing failed:\n{traceback.format_exc()}")
-    for r in records:
-        r["genome_id"] = brain.genome_id(r["genome"])
-    append_jsonl(RUNS_FILE, records)
+            records, recovered = recover_records(tag, batch)
+        except Exception:  # noqa: BLE001 - as a parse failure: logged, the cycle is recorded with what there is
+            log(f"{tag}: recovering its games from the lane profiles failed:\n{traceback.format_exc()}")
+            records = []
+    append_jsonl(RUNS_FILE, _unseen(records))  # never the same (source, batch, lane, log) twice (O8 / E2 dedupe)
     usable = sum(1 for r in records if r.get("usable"))
-    meta = json.loads((batch / "ARMS.json").read_text(encoding="utf-8")) if (batch / "ARMS.json").exists() else {}
-    created = [str(batch)] + [str(PROFILES / ln["profile"]) for ln in meta.get("lanes", [])]
+    meta = _read_arms(batch)
+    if meta is not None:
+        created = [str(batch)] + [str(PROFILES / ln["profile"]) for ln in meta.get("lanes", [])]
+    else:
+        if (batch / "ARMS.json").exists():
+            log(f"{tag}: batch/ARMS.json is unreadable: its lane profiles are found by name (endless-{tag}-*) so they "
+                f"are still archived later")
+            created = [str(batch)] + [str(p) for p in _tag_profiles(tag)]
+        else:
+            created = [str(batch)]
+        meta = {}
     t_fin = time.time()
     cycle = {"source": "cycle", "tag": tag, "finished": now(), "exit": rc, "lanes": plan["lanes"],
              "runs": len(records), "usable": usable,
              "arms_label": ", ".join(f"{a}={v['genome']}" for a, v in plan["arms"].items()),
              "code_commit": meta.get("code_commit"), "created": created, "pruned": False}
-    append_jsonl(CYCLES_FILE, [{k: v for k, v in cycle.items() if k != "created"}])
+    if recovered and records:
+        cycle["recovered"] = recovered
+    if not _cycle_row_exists(tag):  # a death between this append and save_state: the re-adopt adds no second row
+        append_jsonl(CYCLES_FILE, [{k: v for k, v in cycle.items() if k != "created"}])
     state["cycles"].append(cycle)
     state["current"] = None
     ok = usable > 0
@@ -775,7 +1089,9 @@ def finish_cycle(cfg: dict, state: dict, plan: dict, rc, ops: dict | None = None
             if (INBOX / f).exists():
                 shutil.move(str(INBOX / f), INBOX / "done" / f)
     save_state(state)
-    log(f"{tag}: batch exit {rc}; {len(records)} runs logged, {usable} scored")
+    _drop_journal(tag)
+    log(f"{tag}: batch exit {rc}; {len(records)} runs logged, {usable} scored"
+        + (f" (recovered: {recovered})" if recovered and records else ""))
     report.write(FINDINGS, load_jsonl(RUNS_FILE), load_jsonl(CYCLES_FILE), key=score_key(load_config()), status=f"after cycle {tag}")
     t_consult = time.monotonic()
     try:
@@ -787,6 +1103,225 @@ def finish_cycle(cfg: dict, state: dict, plan: dict, rc, ops: dict | None = None
     archive = prune(cfg, state)
     write_ops_row(tag, ops, cycle["finished"], t_fin, consult_s, archive)
     return ok
+
+
+# ------------------------------------------------------------------------------------ the game journal (backlog E2)
+def _copied_logs(batch: Path) -> bool:
+    """True when the batch runner copied any lane log into `batch/Lnn/debug-logs` (it does so only in its `finally`,
+    after the lanes stop: a machine that dies mid-cycle leaves none)."""
+    try:
+        return any(batch.glob("L*/debug-logs/*.log"))
+    except OSError:
+        return False
+
+
+def _read_arms(batch: Path) -> dict | None:
+    """batch/ARMS.json as a dict, or None when it is missing or unreadable (never raises)."""
+    try:
+        meta = json.loads((batch / "ARMS.json").read_text(encoding="utf-8"))
+        return meta if isinstance(meta, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def _tag_profiles(tag: str) -> list[Path]:
+    """Every lane profile the batch runner made for cycle `tag`: it names them by `--profile-tag <tag>`."""
+    try:
+        return sorted(p for p in PROFILES.glob(f"endless-{tag}-*") if p.is_dir())
+    except OSError:
+        return []
+
+
+def _arms_since(meta: dict) -> float | None:
+    """The journal's mtime floor: ARMS.json `started` minus JOURNAL_SINCE_SLACK_S, or None (no filter) when it does
+    not parse. This APPROXIMATES the batch runner's own `collect_logs` filter (mtime >= its start - 5 s; `started` is
+    that start truncated to the second), keeping a superset by up to about 2 s."""
+    try:
+        return dt.datetime.fromisoformat(str(meta["started"])).timestamp() - JOURNAL_SINCE_SLACK_S
+    except (KeyError, TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def _lane_profile_logs(lane: dict, since: float | None) -> list[Path]:
+    """A lane's debug logs in its PROFILE (`PROFILES/<profile>/debug-logs/*.log`), sorted by name, those modified
+    before `since` left out: the logs `collect_logs` would copy into batch/."""
+    prof = lane.get("profile") if isinstance(lane, dict) else None
+    if not prof:
+        return []
+    out = []
+    for p in sorted((PROFILES / str(prof) / "debug-logs").glob("*.log")):
+        try:
+            if since is None or p.stat().st_mtime >= since:
+                out.append(p)
+        except OSError:
+            continue
+    return out
+
+
+def _journal_records(path: Path) -> list[dict]:
+    """The run records in a games.jsonl. Its bad lines are first moved to games.jsonl.bad (journal mode: no limit,
+    never an ATTENTION or a stop); if even that fails, the good lines are used in memory. One record per (lane, log),
+    the first written."""
+    if not path.exists():
+        return []
+    repair_jsonl(path, None)
+    try:
+        good, _ = _split_jsonl(path.read_bytes())
+    except OSError as exc:
+        _say(f"{path.name}: unreadable ({exc!r}); the lane profiles are the fallback")
+        return []
+    out, seen = [], set()
+    for _, _, row in good:
+        rec = row.get("rec") if isinstance(row, dict) else None
+        if isinstance(rec, dict) and (rec.get("lane"), rec.get("log")) not in seen:
+            seen.add((rec.get("lane"), rec.get("log")))
+            out.append(rec)
+    return out
+
+
+def journal_games(tag: str, batch: Path, known: set) -> int:
+    """Journal every game of cycle `tag` that has FINISHED: one `runs/<tag>/games.jsonl` line per game,
+    `{"journaled": <TIME_FMT>, "rec": <record>}`, where the record is exactly the runs.jsonl row `finish_cycle` would
+    write for that log. Called every JOURNAL_POLL_S while the batch runs (and by the adopt wait). Returns how many it
+    added. `known` (lane, log) keys are loaded from the journal when empty and kept up to date.
+
+    A game has finished when its log is not the newest of its lane (the logger closes the old log before it opens the
+    next) and has not been modified for JOURNAL_STABLE_S. Logs older than ARMS.json's `started` are left out
+    (`_arms_since`). An unreadable ARMS.json journals nothing."""
+    meta = _read_arms(batch)
+    if meta is None:
+        return 0
+    arms = json.loads(meta["arms_text"])["arms"]
+    jpath = RUNS / tag / JOURNAL
+    if not known:
+        known.update((r.get("lane"), r.get("log")) for r in _journal_records(jpath))
+    since, cutoff, n = _arms_since(meta), time.time() - JOURNAL_STABLE_S, 0
+    for i, lane in enumerate(meta.get("lanes", [])):
+        for path in _lane_profile_logs(lane, since)[:-1]:  # never the newest: that game may still be running
+            if (i + 1, path.name) in known:
+                continue
+            try:
+                if path.stat().st_mtime > cutoff:
+                    continue
+            except OSError:
+                continue
+            rec = scoring.lane_record(meta, arms, i, lane, path, False, tag, batch)
+            rec["genome_id"] = brain.genome_id(rec["genome"])
+            append_jsonl(jpath, [{"journaled": now(), "rec": rec}])
+            known.add((i + 1, path.name))
+            n += 1
+    if n:
+        log(f"{tag}: game journal: {n} finished game(s) recorded ({len(known)} so far)")
+    return n
+
+
+def _canon(rec: dict) -> dict:
+    """A record as it reads back from JSONL (what the journal holds), so two records compare field for field."""
+    return json.loads(json.dumps(rec, default=str))
+
+
+def compare_journal(tag: str, records: list[dict]) -> None:
+    """NORMAL case, read-only: log how many journaled games equal the batch's own records, naming any that differ.
+    The records are never altered. NEVER raises."""
+    try:
+        journal = _journal_records(RUNS / tag / JOURNAL)
+        by_key = {(r.get("lane"), r.get("log")): _canon(r) for r in records}
+        differ = [f"L{j.get('lane'):02d}/{j.get('log')}" if isinstance(j.get("lane"), int) else str(j.get("log"))
+                  for j in journal if by_key.get((j.get("lane"), j.get("log"))) != _canon(j)]
+        log(f"{tag}: game journal: {len(journal) - len(differ)} of {len(journal)} journaled games match the batch's "
+            f"records" + (f"; DIFFERENT: {', '.join(differ[:10])}" if differ else ""))
+    except Exception as exc:  # noqa: BLE001 - a check, never a failure
+        _say(f"{tag}: game journal comparison failed ({type(exc).__name__}: {exc})")
+
+
+def recover_records(tag: str, batch: Path) -> tuple[list[dict], str]:
+    """RECOVERY case (no copied logs; before E2 such a cycle recorded nothing): the records today's code would have
+    written had the lanes' logs been copied at the crash. `parse_batch` over the lane PROFILE logs (the same mtime
+    filter as the journal), so each lane's newest log is censored by the usual rule; then, for each (lane, log) the
+    journal holds, the JOURNAL's record replaces it (the journal parsed that log while it was whole: a power cut can
+    cut a profile log's tail); journal records whose log is gone are added (the journal alone when ARMS.json is
+    unreadable). Returns (records sorted by lane and log, "<n> from lane profiles, <m> from the journal")."""
+    journal = {(r.get("lane"), r.get("log")): r for r in _journal_records(RUNS / tag / JOURNAL)}
+    meta, profile = _read_arms(batch), []
+    if meta is not None:
+        since = _arms_since(meta)
+        profile = scoring.parse_batch(batch, tag, lane_logs=lambda i, lane: _lane_profile_logs(lane, since))
+    out, n_profile = [], 0
+    for r in profile:
+        key = (r["lane"], r["log"])
+        if key in journal:
+            out.append(journal.pop(key))
+        else:
+            r["genome_id"] = brain.genome_id(r["genome"])
+            out.append(r)
+            n_profile += 1
+    out += list(journal.values())
+    out.sort(key=lambda r: (r.get("lane") if isinstance(r.get("lane"), int) else 0, str(r.get("log"))))
+    return out, f"{n_profile} from lane profiles, {len(out) - n_profile} from the journal"
+
+
+def _run_key(r: dict) -> tuple:
+    return r.get("source"), r.get("batch"), r.get("lane"), r.get("log")
+
+
+def _unseen(records: list[dict]) -> list[dict]:
+    """The records whose (source, batch, lane, log) is not already in runs.jsonl: a learner that died between the
+    runs.jsonl append and save_state re-adopts the same cycle, and must not count its games twice."""
+    have = {_run_key(r) for r in load_jsonl(RUNS_FILE)}
+    out = []
+    for r in records:
+        if _run_key(r) not in have:
+            have.add(_run_key(r))
+            out.append(r)
+    return out
+
+
+def _cycle_row_exists(tag: str) -> bool:
+    return any(isinstance(c, dict) and c.get("tag") == tag for c in load_jsonl(CYCLES_FILE))
+
+
+def _drop_journal(tag: str) -> None:
+    """After the cycle is saved, delete its games.jsonl when it is REDUNDANT: every journaled record's
+    (source, batch, lane, log) is in runs.jsonl. When any is not (the batch's parse or the recovery failed, so the
+    cycle was recorded with fewer games than the journal holds), the journal may be the only whole parse of those
+    games: it is KEPT, renamed to games.jsonl.kept (never overwritten), and the log says how many games it holds that
+    runs.jsonl does not (E2 + O8 review F4). NEVER raises."""
+    path = RUNS / tag / JOURNAL
+    try:
+        if not path.exists():
+            return
+        have = {_run_key(r) for r in load_jsonl(RUNS_FILE)}
+        missing = [r for r in _journal_records(path) if _run_key(r) not in have]
+        if not missing:
+            path.unlink(missing_ok=True)
+            return
+        dest, k = path.with_name(JOURNAL + ".kept"), 1
+        while os.path.lexists(dest):
+            dest, k = path.with_name(f"{JOURNAL}.kept.{k}"), k + 1
+        _rename_no_overwrite(path, dest)
+        _say(f"{tag}: {len(missing)} journaled game(s) are NOT in runs.jsonl (the cycle's parse or recovery failed): "
+             f"its {JOURNAL} is kept as {dest.name}")
+    except Exception as exc:  # noqa: BLE001 - housekeeping after the cycle is saved: it never fails the cycle
+        _say(f"{tag}: could not drop or keep its {JOURNAL} ({type(exc).__name__}: {exc}); it is left where it is")
+
+
+def _load_plan(cdir: Path) -> dict | None:
+    """runs/<tag>/plan.json, or None when it is unreadable: it is then moved aside to plan.json.bad (never deleted)."""
+    path = cdir / "plan.json"
+    try:
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(plan, dict) and plan.get("tag"):
+            return plan
+    except (OSError, ValueError):
+        pass
+    dest, k = cdir / "plan.json.bad", 1
+    while os.path.lexists(dest):
+        dest, k = cdir / f"plan.json.bad.{k}", k + 1
+    try:
+        _rename_no_overwrite(path, dest)
+    except OSError as exc:
+        _say(f"adopt: could not move the unreadable {path} aside ({exc!r})")
+    return None
 
 
 def roll_developer_notes(tag: str) -> None:
@@ -820,11 +1355,19 @@ def adopt_unfinished(cfg: dict) -> bool | None:
         return None
     if batch_running(cdir):
         log(f"adopt: {tag}'s batch is still running (the previous learner stopped mid-cycle); waiting for it")
+        known: set = set()
         while batch_running(cdir):
+            # the restarted learner keeps journaling the still-running batch (E2), guarded like run_cycle's call
+            _guarded(f"{tag}: game journal", lambda: journal_games(tag, cdir / "batch", known))
             if not sleep_unless_stopped(2):
                 return False
     log(f"adopt: scoring {tag}")
-    plan = json.loads((cdir / "plan.json").read_text(encoding="utf-8"))
+    plan = _load_plan(cdir)
+    if plan is None:
+        log(f"adopt: {tag}'s plan.json is unreadable (moved aside as plan.json.bad); clearing it as for a missing plan")
+        state["current"] = None
+        save_state(state)
+        return None
     return finish_cycle(cfg, state, plan, "adopted")
 
 
@@ -999,12 +1542,13 @@ def verify_archive(zpath: Path, members: list[dict]) -> str | None:
     return None
 
 
-def _replace_with_retry(src: Path, dst: Path) -> None:
+def _replace_with_retry(src: Path, dst: Path, bak: bool = False) -> None:
     """os.replace, retried REPLACE_TRIES times REPLACE_WAIT_S apart on PermissionError (a transient antivirus lock, or a
-    reader holding `dst` open). For files that MAY be replaced (state.json, archive_check.json), never for an archive."""
+    reader holding `dst` open). For files that MAY be replaced (state.json, archive_check.json), never for an archive.
+    `bak`: through `_os_replace_bak` (state.json.bak only)."""
     for attempt in range(1, REPLACE_TRIES + 1):
         try:
-            _os_replace(src, dst)
+            (_os_replace_bak if bak else _os_replace)(src, dst)
             return
         except PermissionError:
             if attempt == REPLACE_TRIES:
@@ -1427,85 +1971,183 @@ def loop(single: bool, dev: bool = False) -> int:
     if why:
         print(why)
         return 2
-    started_sig, refused_sig = code_signature(), None
+    started_sig = code_signature()
     log(f"learner started (code {started_sig})")
     try:
-        if load_state().get("parser_version") != scoring.PARSER_VERSION and not single:
-            # A parser upgrade arrived (e.g. through auto_update): re-read every retained batch once.
-            cmd_reparse()
-            st = load_state()
-            st["parser_version"] = scoring.PARSER_VERSION
-            save_state(st)
-        adopted = adopt_unfinished(load_config())
-        if adopted is False and STOP.exists():
-            return 0
-        while True:
-            if STOP.exists():
-                log("STOP file found: stopping (delete ai-agent/STOP to allow the next start)")
+        try:
+            # FIRST (O8): a paused learner stays paused. The crash path below runs before the in-loop check, so without
+            # this the logon autostart would restart a crash loop the breaker had stopped, 5 more crashes per logon.
+            if _paused():
                 return 0
-            if ATTENTION.exists():
-                log(f"{ATTENTION} exists: not starting a cycle until it is resolved and deleted")
-                return 0
-            if load_config().get("auto_update") and not single:
-                msg = update_checkout()
-                if msg:
-                    log(msg)
-            sig = code_signature()
-            if not single and sig != started_sig and sig != refused_sig:
-                if tests_pass():
-                    log(f"code changed ({started_sig} -> {sig}) and test_agent.py passes: restarting into it")
-                    return RESTART_CODE
-                refused_sig = sig
-                log(f"code changed ({sig}) but test_agent.py FAILS: keeping the running version {started_sig}")
-            cfg, state = load_config(), load_state()
-            try:
-                early_archive(cfg, state)  # O7: archive early under min_free_gb + margin, before the floor path
-            except Exception:  # noqa: BLE001 - an optional relief: its failure must never withhold a batch
-                log(f"early archive FAILED (going on to the disk check):\n{traceback.format_exc()}")
-            try:
-                room = disk_guard(cfg, state)
-            except Exception:  # noqa: BLE001 - a failed disk check must not kill the 24/7 process; start no batch
-                log(f"disk check FAILED: no batch started; trying again in {cfg['idle_wait_minutes']} min:\n"
-                    f"{traceback.format_exc()}")
-                if single or not sleep_unless_stopped(float(cfg["idle_wait_minutes"])):
-                    return 0
-                continue
-            if not room:
-                return 0
-            batches, singles = other_bots_running()
-            if not cfg["wait_if_other_bots_running"]:
-                batches = []
-            lanes, how = size_lanes(cfg, len(singles))
-            if batches or lanes < 8:
-                log(f"waiting {cfg['idle_wait_minutes']} min: " + (f"another batch is running: {batches[:3]}"
-                                                                    if batches else
-                                                                    f"only {lanes} lanes available ({how})"))
-                if single or not sleep_unless_stopped(float(cfg["idle_wait_minutes"])):
-                    return 0
-                continue
-            log(f"lanes = {lanes} ({how})" + (f"; {len(singles)} single bot(s) open, a thread reserved for each"
-                                              if singles else ""))
-            try:
-                ok = run_cycle(cfg, state, lanes)
-            except Exception:
-                log(f"cycle crashed:\n{traceback.format_exc()}")
-                state = load_state()
-                state["current"] = None
-                save_state(state)
-                ok = False
-            state = load_state()
-            state["failures"] = 0 if ok else state.get("failures", 0) + 1
-            save_state(state)
-            if state["failures"] >= int(cfg["max_consecutive_failures"]):
-                attention(f"{state['failures']} cycles in a row produced no scored runs. Read data/learner.log and "
-                          f"the newest runs/<tag>/x4.out.txt.")
-                return 0
-            if single:
-                return 0 if ok else 1
-            if not ok and not sleep_unless_stopped(10):
-                return 0
+            rc = _loop_body(single, started_sig)
+        except Exception:  # noqa: BLE001 - the crash-loop breaker (O8); KeyboardInterrupt is not counted
+            return _on_crash(single, started_sig)
+        # a CLEAN exit (STOP, ATTENTION, the disk floor, a restart into new code): crashes before it are not "in a row"
+        if rc in (0, RESTART_CODE):
+            _guarded("resetting the crash count", _clear_crashes)
+        return rc
     finally:
         release_lock()
+
+
+def _paused() -> bool:
+    """True (logged) when findings/ATTENTION.md exists: the learner does not start until a human deletes it."""
+    if ATTENTION.exists():
+        log(f"{ATTENTION} exists: not starting a cycle until it is resolved and deleted")
+        return True
+    return False
+
+
+def _on_crash(single: bool, started_sig: str) -> int:
+    """`loop` crashed (backlog O8). `once`: logged, returns 1, not counted. `run`: count it in data/crashes.json; then,
+    if `auto_update` is on, FETCH A FIX (`_crash_update`: a pushed fix or revert must be able to reach a learner that
+    crashes before its normal update point); then return 1 (`run_agent.ps1` retries in 10 minutes) until the CRASH_LIMIT-th
+    crash in a row, which writes ATTENTION.md, resets the count and returns 0 (the wrapper stops; the watchdog toasts).
+    Every step is guarded on its own; when even logging fails it prints to stderr. NEVER raises."""
+    tb = traceback.format_exc()
+    exc = sys.exc_info()[1]
+    error = f"{type(exc).__name__}: {exc}"[:500]
+    if single:
+        _say(f"learner CRASHED (once: not counted toward the crash limit):\n{tb}")
+        return 1
+    try:
+        n = _note_crash(error)
+    except Exception as exc2:  # noqa: BLE001 - cannot count: today's 10-minute retry; the watchdog sees a full disk
+        _say(f"learner CRASHED, and its crash count could not be written ({type(exc2).__name__}: {exc2}); retrying in "
+             f"10 minutes:\n{tb}")
+        return 1
+    _say(f"learner CRASHED ({n} of {CRASH_LIMIT} in a row):\n{tb}")
+    try:
+        rc = _crash_update(started_sig)
+        if rc is not None:
+            return rc
+    except Exception as exc3:  # noqa: BLE001
+        _say(f"the crash handler's update step failed ({type(exc3).__name__}: {exc3})")
+    if n < CRASH_LIMIT:
+        return 1
+    try:
+        attention(f"The learner crashed {n} times in a row and stopped retrying. Last error: {error}. Tracebacks: "
+                  f"data/learner.log. If a code change caused it, revert it and push (or roll back by hand: "
+                  f"README 'Crash loop').")
+    except Exception as exc4:  # noqa: BLE001 - no ATTENTION: retry as before rather than stop silently
+        _say(f"could not write ATTENTION.md ({type(exc4).__name__}: {exc4}); retrying in 10 minutes")
+        return 1
+    _guarded("resetting the crash count", _clear_crashes)
+    return 0
+
+
+def _crash_update(started_sig: str) -> int | None:
+    """The breaker's update step: if config.json reads and `auto_update` is on, fast-forward the clone
+    (`update_checkout`, which never raises). If the learner's code then differs from what this process started with:
+    its tests pass -> RESTART_CODE (the count is kept, so new code crashing the same way still reaches the limit);
+    they fail -> ATTENTION (the next start would run untested code), the count reset, 0. None = carry on."""
+    try:
+        cfg = load_config()
+    except Exception as exc:  # noqa: BLE001 - config.json may be the broken file: no update attempted
+        _say(f"config.json is unreadable ({type(exc).__name__}: {exc}): no update attempted")
+        return None
+    if not cfg.get("auto_update"):
+        return None
+    msg = update_checkout()
+    if msg:
+        _say(msg)
+    sig = code_signature()
+    if sig == started_sig:
+        return None
+    if tests_pass():
+        _say(f"code changed ({started_sig} -> {sig}) during a crash loop and test_agent.py passes: restarting into it")
+        return RESTART_CODE
+    attention(f"The learner crashed and the update it fetched ({sig}) FAILS test_agent.py; the next start "
+              f"would run that untested code. Fix or revert the code on origin/main, then delete this file and start "
+              f"the learner again. Tracebacks: data/learner.log.")
+    _guarded("resetting the crash count", _clear_crashes)
+    return 0
+
+
+def _loop_body(single: bool, started_sig: str) -> int:
+    """`loop`'s work once the lock is held: the startup repair (O8), the reparse, adopting an orphaned cycle, then the
+    cycles. Its exceptions go to the crash-loop breaker (`_on_crash`)."""
+    refused_sig = None
+    for path in (RUNS_FILE, CYCLES_FILE):
+        if repair_jsonl(path, MAX_BAD_LINES) == "refused":
+            attention(f"data/{path.name} has more than {MAX_BAD_LINES} unreadable lines, so the learner did not repair "
+                      f"it by itself. Restore it from the nightly backup (tools/ops/backup_learner.py keeps data/), or "
+                      f"move the bad lines out by hand.")
+            return 0
+    if load_state().get("parser_version") != scoring.PARSER_VERSION and not single:
+        # A parser upgrade arrived (e.g. through auto_update): re-read every retained batch once.
+        cmd_reparse()
+        st = load_state()
+        st["parser_version"] = scoring.PARSER_VERSION
+        save_state(st)
+    adopted = adopt_unfinished(load_config())
+    if adopted is False and STOP.exists():
+        return 0
+    while True:
+        if STOP.exists():
+            log("STOP file found: stopping (delete ai-agent/STOP to allow the next start)")
+            return 0
+        if ATTENTION.exists():
+            log(f"{ATTENTION} exists: not starting a cycle until it is resolved and deleted")
+            return 0
+        if load_config().get("auto_update") and not single:
+            msg = update_checkout()
+            if msg:
+                log(msg)
+        sig = code_signature()
+        if not single and sig != started_sig and sig != refused_sig:
+            if tests_pass():
+                log(f"code changed ({started_sig} -> {sig}) and test_agent.py passes: restarting into it")
+                return RESTART_CODE
+            refused_sig = sig
+            log(f"code changed ({sig}) but test_agent.py FAILS: keeping the running version {started_sig}")
+        cfg, state = load_config(), load_state()
+        try:
+            early_archive(cfg, state)  # O7: archive early under min_free_gb + margin, before the floor path
+        except Exception:  # noqa: BLE001 - an optional relief: its failure must never withhold a batch
+            log(f"early archive FAILED (going on to the disk check):\n{traceback.format_exc()}")
+        try:
+            room = disk_guard(cfg, state)
+        except Exception:  # noqa: BLE001 - a failed disk check must not kill the 24/7 process; start no batch
+            log(f"disk check FAILED: no batch started; trying again in {cfg['idle_wait_minutes']} min:\n"
+                f"{traceback.format_exc()}")
+            if single or not sleep_unless_stopped(float(cfg["idle_wait_minutes"])):
+                return 0
+            continue
+        if not room:
+            return 0
+        batches, singles = other_bots_running()
+        if not cfg["wait_if_other_bots_running"]:
+            batches = []
+        lanes, how = size_lanes(cfg, len(singles))
+        if batches or lanes < 8:
+            log(f"waiting {cfg['idle_wait_minutes']} min: " + (f"another batch is running: {batches[:3]}"
+                                                                if batches else
+                                                                f"only {lanes} lanes available ({how})"))
+            if single or not sleep_unless_stopped(float(cfg["idle_wait_minutes"])):
+                return 0
+            continue
+        log(f"lanes = {lanes} ({how})" + (f"; {len(singles)} single bot(s) open, a thread reserved for each"
+                                          if singles else ""))
+        try:
+            ok = run_cycle(cfg, state, lanes)
+        except Exception:
+            log(f"cycle crashed:\n{traceback.format_exc()}")
+            state = load_state()
+            state["current"] = None
+            save_state(state)
+            ok = False
+        state = load_state()
+        state["failures"] = 0 if ok else state.get("failures", 0) + 1
+        save_state(state)
+        if state["failures"] >= int(cfg["max_consecutive_failures"]):
+            attention(f"{state['failures']} cycles in a row produced no scored runs. Read data/learner.log and "
+                      f"the newest runs/<tag>/x4.out.txt.")
+            return 0
+        if single:
+            return 0 if ok else 1
+        if not ok and not sleep_unless_stopped(10):
+            return 0
 
 
 # ---------------------------------------------------------------------------------------------------------- commands
@@ -1573,7 +2215,12 @@ def cmd_plan() -> int:
 
 
 def cmd_status() -> int:
-    state, cfg = load_state(), load_config()
+    cfg = load_config()
+    try:
+        state = load_state()
+    except StateUnreadable as exc:  # say so instead of a traceback (a learner holding the lock decides what to do)
+        print(f"STATE UNREADABLE: {exc}")
+        state = {"cycle": "?", "cycles": [], "current": None, "failures": "?"}
     cur = state.get("current")
     alive = bool(cur) and batch_running(RUNS / cur["tag"])
     pid = LOCK.read_text().strip() if LOCK.exists() else None
@@ -1588,6 +2235,8 @@ def cmd_status() -> int:
     print(f"held for review: {len(held)}" + (f" ({', '.join(t for t, _ in held)}; `learner.py archive-check` says why)"
                                               if held else ""))
     print(f"STOP file: {STOP.exists()}; ATTENTION: {ATTENTION.exists()}; consult: {cfg['consult']['enabled']}")
+    print(f"crashes in a row: {crash_count()} (the learner stops itself at {CRASH_LIMIT}); state.json.bak: "
+          f"{'present' if STATE_BAK.exists() else 'none yet'}")
     print(f"findings: {FINDINGS / 'LATEST.md'}")
     return 0
 

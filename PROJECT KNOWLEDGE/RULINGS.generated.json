@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "cd509bc74b0986554be3424cd2873bce3b953399",
+ "source_sha1_lf": "43f9dc73055afb898f6e3a77de5006fcab4cea85",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 343,
-  "donot_candidates": 27,
-  "sections_naming_user_rulings": 44
+  "sections": 345,
+  "donot_candidates": 28,
+  "sections_naming_user_rulings": 45
  },
  "sections": [
   {
@@ -5362,6 +5362,44 @@
      "key": "f75ffce8",
      "line": 9819,
      "text": "- **Do not** delete `ai-agent/STOP`, re-enable the three tasks, or start the tuner until the user says to resume; do not re-ask when or how to pause."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-28-495011",
+   "date": "2026-10-28",
+   "line_start": 9821,
+   "line_end": 9830,
+   "title": "2026-10-28 — E2 + O8 built: what the journal, the recovery case, the `.bak` check and the crash-loop breaker chose, and where the build departs from its spec",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-trainer-improvements"
+   ],
+   "ki": [
+    "KI-127"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-28-77ea25",
+   "date": "2026-10-28",
+   "line_start": 9832,
+   "line_end": 9839,
+   "title": "2026-10-28 — USER RULING 50: the PARK is CANCELLED; the user continues this project, and the safe park/pause stays available for when the user asks",
+   "rulings": [
+    50
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "b6be0e6d",
+     "line": 9839,
+     "text": "- ⛔ **Do not park or pause the tuner or the project (no STOP file, no disabled task) unless the user asks; do not re-ask whether to pause.**"
     }
    ],
    "cues": []

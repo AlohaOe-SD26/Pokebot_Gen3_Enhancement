@@ -3362,3 +3362,14 @@ unless the user rules otherwise.
 
 **Not determined:** whether the AI's own push record misses new tiles shown at a map change, or the grader's reading of the AI's records (`rate_step5.push_ai`) does. LOAF is a control plan (`EXTRA_EDITS`), so the run is a mutant copy; whether the real code shows the same split is not known.
 **Fix direction (not decided here):** read the two definitions side by side on this run folder first.
+
+## KI-127 — ⚠ OPEN (filed 2026-10-28; low impact; test-gate weaknesses that predate E2 + O8, found by its review and its re-run): the bot tuner's deploy gate `test_agent.py` can fail for a reason outside the code (check R15 scans the REAL process table; check R7b can skip its own fresh cycle by clock rounding); after a failed gate the old code keeps running, and a restart would run the new code UNTESTED (`#28-trainer-improvements`)
+
+**Measured, R15** (2026-10-28, `ai-research-notes/2026-10-28-E2-O8-BUILD-EVIDENCE.md`): under parallel suite runs, other suites' stand-in lanes made R15 CONTROL fail (36 times in the mutant sweep, 3 in the review), never in a serial run. The review also saw 1 unexplained failure in about 10 sequential runs of the unmodified build (not captured; it did not recur in 6 reruns).
+
+**Measured, R7b** (the same note's §9): 1 of 31 serial suite runs and 18 of 2100 runs of its own steps failed; in all 17 instrumented failures the FIRST prune skipped the fresh cycle as busy ("... modified within the last 0 min"). `O3Sandbox` sets `QUIET_MINUTES = 0`, and Python 3.12's `time.time()` is the 15.6 ms system clock: a just-written file's mtime read later than it in 2633 of 20000 writes. Nothing is lost; production waits 60 minutes, so only the test is affected.
+
+**The gate's memory** (`learner.py` `_loop_body()`; `loop()` before E2 + O8): a refused signature is not retested in that process, and a NEW process starts from the code on disk, untested.
+
+**Why it matters now:** when round ai0053 ends (about 4:28 PM 2026-10-28) the tuner fetches E2 + O8 and runs `test_agent.py` once. **If `learner.log` then says `code changed (...) but test_agent.py FAILS: keeping the running version`:** run `py -3.12 -B test_agent.py` by hand in the clone's `ai-agent/` with no other test run going (the tuner may run); that run is the only gate. If it passes, restart the tuner (close its window, then `Start-ScheduledTask Pokebot-AI-Learner-Autostart`); if it fails, do NOT restart: fix or revert on `main`.
+**Fix direction (not decided here):** make R15 count only its own fixture's processes, or retest a refused signature once after a delay; for R7b, give the sandbox's fresh files an mtime in the past (`os.utime`) before the first prune.

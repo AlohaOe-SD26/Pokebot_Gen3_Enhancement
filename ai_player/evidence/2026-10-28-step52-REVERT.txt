@@ -1,7 +1,7 @@
 AI PLAYER BUILD STEP 5.1 - MUTANT PROOF OF THE STORY PLAYER (gates/revert_step5.py: G1-G52 step 5's, G53-G106 step 5.1's, G107-G126 the step-5.1 verifier's second round's)
-date: 2026-10-28 09:35:51
-code: HEAD f9fffb68; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:c2e0717e160b3d4f over git diff HEAD (4 files, 17232 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
-tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\c2e0717e160b3d4f.zip (the step-5.1 verifier's second round)
+date: 2026-10-28 12:01:24
+code: HEAD b23c0ae1; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\53e0c26e7812db47.zip (the step-5.1 verifier's second round)
 Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted tests of gates/test_goals.py fail.
 
 [G0] CONTROL, the unchanged copy: 216 tests, failing none (ran the copy: True) -> PASS

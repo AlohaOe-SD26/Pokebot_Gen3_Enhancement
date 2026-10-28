@@ -1,10 +1,10 @@
 AI PLAYER REGRESSION - full lane, evidence group `revert_step5` (gates/run_regression.py, spec S4-1)
-date: 2026-10-28 10:52:48
-code: HEAD f9fffb68; covers:revert_step5 has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:c2e0717e160b3d4f over git diff HEAD (4 files, 17232 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-28 13:14:04
+code: HEAD b23c0ae1; covers:revert_step5 has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:1ae39c8b09260dcf over git diff HEAD (1 files, 3134 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 command: py -3.12 ai_player/gates/run_regression.py --full
 Each section is one suite: the runner's typed status, then the suite's raw output (indented).
 
-== revert_step5: PASS (exit 0, 1125.0 s, 342 mutants)
+== revert_step5: PASS (exit 0, 1122.4 s, 342 mutants)
     | [G0] CONTROL, the unchanged copy: 216 tests, failing none (ran the copy: True) -> PASS
     | [G1] BROKEN: a milestone's VARS are not checked (only its flags). Predicted CAUGHT by ['MilestoneTests.test_vars_count_at_least', 'MilestoneTests.test_chapter_1_in_order_from_the_marks']. The copy ran 216 tests (the copy); failing: {'ExploreTests.test_curiosity_finds_an_item_ball_before_the_party': 'FAIL', 'MilestoneTests.test_chapter_1_in_order_from_the_marks': 'FAIL', 'MilestoneTests.test_the_intro_is_passed_by_its_waypoint_the_truck': 'FAIL', 'MilestoneTests.test_vars_count_at_least': 'FAIL', 'PersonFairTests.test_each_step_needs_its_own_words': 'FAIL', 'PersonFairTests.test_roxanne_is_proven_by_the_badge_alone': 'FAIL', 'SmallTests.test_milestone_lines_say_how_a_milestone_passed': 'FAIL'} -> CAUGHT
     | [G2] BROKEN: a proof NOT READ counts as done. Predicted CAUGHT by ['MilestoneTests.test_a_proof_not_read_is_never_progress']. The copy ran 216 tests (the copy); failing: {'MilestoneTests.test_a_proof_not_read_is_never_progress': 'FAIL'} -> CAUGHT
@@ -351,8 +351,9 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | 340 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 342
     | FROZEN TREE: PASS - the tree did not change from the start to the verdict (344 checks of 184 files, files digest be695791f05d6f07)
     | OVERALL: PASS
+    | [EVIDENCE] kept the earlier tree's 2026-10-28-step52-REVERT.txt (code c2e0717e160b3d4f): archive/c2e0717e160b3d4f-f9fffb68/2026-10-28-step52-REVERT.txt
     | evidence: ai_player\evidence\2026-10-28-step52-REVERT.txt
 
 
 FROZEN TREE: PASS - the tree did not change from the start to the verdict (35 checks of 184 files, files digest be695791f05d6f07); the covers digests of revert_safety_gates, revert_step5, units did not move either
-REGRESSION: PASS (full, 30 suites, 4617.7 s wall)
+REGRESSION: PASS (full, 30 suites, 4360.9 s wall)

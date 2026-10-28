@@ -456,9 +456,21 @@
    },
    "ruling_key": "49@2026-10-28",
    "do_not_reopen": "While the project is paused: do not delete the tuner's ai-agent/STOP, re-enable its three Windows tasks (Pokebot-AI-Learner-Autostart, Pokebot-Ops-Watchdog, Pokebot-Ops-Backup) or start it until the user says to resume; do not re-ask when or how to pause (2026-10-28).",
-   "reason": "06 USER RULING 49: \"Do not delete `ai-agent/STOP`, re-enable the three tasks, or start the tuner until the user says to resume; do not re-ask when or how to pause.\"",
+   "reason": "06 USER RULING 49: \"Do not delete `ai-agent/STOP`, re-enable the three tasks, or start the tuner until the user says to resume; do not re-ask when or how to pause.\" SUPERSEDED the same day by 06 USER RULING 50: \"USER RULING 49's park is cancelled, and work continues in the build order.\"",
+   "status": "SUPERSEDED",
+   "topics": "pause park resume STOP file scheduled task autostart watchdog backup learner tuner trainer windows",
+   "superseded_by": "2026-10-28-77ea25"
+  },
+  "2026-10-28-77ea25": {
+   "title": "2026-10-28 — USER RULING 50: the PARK is CANCELLED; the user continues this project, and the safe park/pause stays available for when the user asks",
+   "candidates": {
+    "b6be0e6d": "marker"
+   },
+   "ruling_key": "50@2026-10-28",
+   "do_not_reopen": "Do not park or pause the bot tuner or the project (no ai-agent/STOP file, no disabled Pokebot-* task) unless the user asks; do not re-ask whether to pause (2026-10-28).",
+   "reason": "06 USER RULING 50: \"Do not park or pause the tuner or the project (no STOP file, no disabled task) unless the user asks; do not re-ask whether to pause.\"",
    "status": "ACTIVE",
-   "topics": "pause park resume STOP file scheduled task autostart watchdog backup learner tuner trainer windows"
+   "topics": "pause park resume cancel cancelled continue STOP file scheduled task autostart watchdog backup learner tuner trainer windows"
   }
  }
 }

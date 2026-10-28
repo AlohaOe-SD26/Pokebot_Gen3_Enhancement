@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 1.1 - REVERT PROOF (gates/revert_step11.py)
-date: 2026-10-28 09:37:56
-code: HEAD f9fffb68; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:c2e0717e160b3d4f over git diff HEAD (4 files, 17232 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-10-28 12:03:24
+code: HEAD b23c0ae1; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 
 [R0] CONTROL, the unchanged copy: 56 tests, failing none (ran the copy: True) -> PASS
 [R1] finding 1 Wally: REVERTED to a [CATCH] on gBattleOutcome == Caught alone (the step-1 rule: `if outcome == "Caught":`). Predicted to fail: ['CatchTests.test_wally_tutorial_is_not_a_player_catch', 'CatchTests.test_someone_elses_pokemon_is_not_the_players_catch']. The copy ran 56 tests (the copy); failing: {'CatchTests.test_someone_elses_pokemon_is_not_the_players_catch': 'FAIL', 'CatchTests.test_wally_tutorial_is_not_a_player_catch': 'FAIL'} -> CAUGHT
