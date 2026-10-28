@@ -34,6 +34,7 @@
 | `2026-10-21-bd628b` | 9593 | Whether the AI sees which species the scripted bot chose (no) and whether it knows trainers' positions and sight ranges (yes), for S3-4 (2026-10-21). |
 | `2026-10-28-7d117a` | 9792 | Whether cloud jobs can be paid from the user's $250 credit (no: the weekly plan pays, measured and documented 2026-10-28); the cloud phase stays shelved unless the user re-opens it. |
 | `2026-10-28-abc2b6` | 9807 | Whether games recovered from a crashed tuner cycle count toward the strategy ranking (yes) and whether ai0031's 12 games lost on 2026-10-17 are backfilled (no), for E2 + O8 (2026-10-28). |
+| `2026-10-28-35b2cb` | 9814 | While the project is paused: do not delete the tuner's ai-agent/STOP, re-enable its three Windows tasks (Pokebot-AI-Learner-Autostart, Pokebot-Ops-Watchdog, Pokebot-Ops-Backup) or start it until the user says to resume; do not re-ask when or how to pause (2026-10-28). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -69,10 +70,11 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 342 sections (newest first)
+## All 343 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-28-35b2cb` | 9814 | 49 | DO-NOT-REOPEN | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch off its Windows aut |
 | `2026-10-28-abc2b6` | 9807 | 48 | DO-NOT-REOPEN | 2026-10-28 — USER RULING 48: games that finish before a crash COUNT toward the tuner's ranking; the 12 games lost on 2026-10-17 (ai0031) are NOT added back |
 | `2026-10-28-452f91` | 9799 |  |  | 2026-10-28 — L5.SHOPPED, built for ruling 46: a told purchase of ANY item, and one counted purchase per told purchase |
 | `2026-10-28-7d117a` | 9792 | 47 | DO-NOT-REOPEN | 2026-10-28 — USER RULING 47's measurement: the $250 credit did not move, and the official docs say the weekly plan pays for cloud jobs, so the cloud phase is SH |

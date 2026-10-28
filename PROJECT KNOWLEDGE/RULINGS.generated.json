@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "0af96331ab4113611e359a4c0694326ef94d8763",
+ "source_sha1_lf": "cd509bc74b0986554be3424cd2873bce3b953399",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 342,
-  "donot_candidates": 26,
-  "sections_naming_user_rulings": 43
+  "sections": 343,
+  "donot_candidates": 27,
+  "sections_naming_user_rulings": 44
  },
  "sections": [
   {
@@ -5341,6 +5341,27 @@
      "key": "fc7985b7",
      "line": 9812,
      "text": "- **Do not re-ask** whether crash-recovered games count (yes) or whether ai0031's games are backfilled (no)."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-28-35b2cb",
+   "date": "2026-10-28",
+   "line_start": 9814,
+   "line_end": 9819,
+   "title": "2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch off its Windows auto-start, and wrap up for a cold start; resume only when the user says so",
+   "rulings": [
+    49
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "f75ffce8",
+     "line": 9819,
+     "text": "- **Do not** delete `ai-agent/STOP`, re-enable the three tasks, or start the tuner until the user says to resume; do not re-ask when or how to pause."
     }
    ],
    "cues": []

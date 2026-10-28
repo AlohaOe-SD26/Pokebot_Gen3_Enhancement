@@ -448,6 +448,17 @@
    "reason": "06 USER RULING 48: \"Do not re-ask whether crash-recovered games count (yes) or whether ai0031's games are backfilled (no).\"",
    "status": "ACTIVE",
    "topics": "crash recovery journal games.jsonl ranking backfill ai0031 power cut E2 O8 learner tuner"
+  },
+  "2026-10-28-35b2cb": {
+   "title": "2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch off its Windows auto-start, and wrap up for a cold start; resume only when the user says so",
+   "candidates": {
+    "f75ffce8": "marker"
+   },
+   "ruling_key": "49@2026-10-28",
+   "do_not_reopen": "While the project is paused: do not delete the tuner's ai-agent/STOP, re-enable its three Windows tasks (Pokebot-AI-Learner-Autostart, Pokebot-Ops-Watchdog, Pokebot-Ops-Backup) or start it until the user says to resume; do not re-ask when or how to pause (2026-10-28).",
+   "reason": "06 USER RULING 49: \"Do not delete `ai-agent/STOP`, re-enable the three tasks, or start the tuner until the user says to resume; do not re-ask when or how to pause.\"",
+   "status": "ACTIVE",
+   "topics": "pause park resume STOP file scheduled task autostart watchdog backup learner tuner trainer windows"
   }
  }
 }
