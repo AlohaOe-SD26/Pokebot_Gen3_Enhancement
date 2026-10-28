@@ -428,6 +428,15 @@
    "reason": "06 USER RULING 45: \"Do not re-ask whether the AI sees the bot's species choices, or whether it knows trainer positions and sight ranges.\"",
    "status": "ACTIVE",
    "topics": "bot corpus species shares sight range trainer position maps.json S3-4 seasoned"
+  },
+  "2026-10-28-7d117a": {
+   "title": "2026-10-28 — USER RULING 47's measurement: the $250 credit did not move, and the official docs say the weekly plan pays for cloud jobs, so the cloud phase is SHELVED and the routine disabled",
+   "application_of": "2026-10-27-5b5b7d",
+   "candidates": {
+    "4148928c": "marker"
+   },
+   "do_not_reopen": "Whether cloud jobs can be paid from the user's $250 credit (no: the weekly plan pays, measured and documented 2026-10-28); the cloud phase stays shelved unless the user re-opens it.",
+   "reason": "06 2026-10-28: \"the ruling's own rule: 'If the WEEKLY meter pays: shelve it'\" and \"Do not re-open without the user.\""
   }
  }
 }

@@ -38946,3 +38946,9 @@ bought balls only at fixed story points.
 
 - **46:** the launcher's achievement means any purchase; `L5.SHOPPED_GAME` already counts any; the HONESTY check `L5.SHOPPED` will judge every told purchase, not only balls (a small change, queued before the next live_step5 grade).
 - **47:** one small cloud job right after the 2026-10-28 weekly reset decides whether the $250 credit or the weekly meter pays; then use it through 2026-11-01 or shelve it. `06` 2026-10-27 holds both; 04's cloud line and item 3's note point to them.
+
+## 2026-10-28 — USER RULING 47's measurement done: the cloud phase SHELVED, the routine disabled (punch-list #28-aiagent-v2)
+
+- One small cloud job (CH3-RECON, about 2 minutes) right after the weekly reset: the user's $250 credit did not move; the weekly meter read 0% -> 1%, which this session's own work (about 0.2%) can explain, so the meter alone did not isolate the job. The official docs say a cloud session counts toward the plan's usage limits. `06` 2026-10-28 holds the readings, the source and the decision.
+- The routine `pokebot-cloud-worker` is DISABLED (8:04 AM); the branches are kept, among them `claude/ch3-recon-ux45kq` (unchecked). 04's CLOUD line and item 3's note say so.
+- The daily upstream check: `f14ab79d`, unchanged, still parked (`40cakes repo/UPDATE-LOG.md`, 04).

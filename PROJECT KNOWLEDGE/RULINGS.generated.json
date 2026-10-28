@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "13020b22afd3547d325d06e53ec280a8f705e4cf",
+ "source_sha1_lf": "aec90525083bef940593620bb2e40f84570121b2",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 339,
-  "donot_candidates": 24,
-  "sections_naming_user_rulings": 41
+  "sections": 340,
+  "donot_candidates": 25,
+  "sections_naming_user_rulings": 42
  },
  "sections": [
   {
@@ -5286,6 +5286,27 @@
    "slugs": [],
    "ki": [],
    "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-28-7d117a",
+   "date": "2026-10-28",
+   "line_start": 9792,
+   "line_end": 9797,
+   "title": "2026-10-28 — USER RULING 47's measurement: the $250 credit did not move, and the official docs say the weekly plan pays for cloud jobs, so the cloud phase is SHELVED and the routine disabled",
+   "rulings": [
+    47
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "4148928c",
+     "line": 9797,
+     "text": "- **Rejected:** a second, larger measuring job (the documentation answers the question, and the meter's whole percents could not read a small job anyway); running the weekly limit out to see whether the credit applies after it (it could draw the user's $50 extra credit, which the user keeps for emer"
+    }
+   ],
    "cues": []
   }
  ]

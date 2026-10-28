@@ -32,6 +32,7 @@
 | `2026-10-21-d1e589` | 9575 | Whether the watchdog's toast reaches the user and whether its 30-minute window flash is acceptable (both yes, 2026-10-21; the monitor stays off). |
 | `2026-10-21-3b21a7` | 9582 | Whether the AI may know bosses' held items (yes) and their exact stats / IVs and AI flags (no), for S3-4's trainers.json (2026-10-21). Not the spec's other two items (species shares, sight ranges). |
 | `2026-10-21-bd628b` | 9593 | Whether the AI sees which species the scripted bot chose (no) and whether it knows trainers' positions and sight ranges (yes), for S3-4 (2026-10-21). |
+| `2026-10-28-7d117a` | 9792 | Whether cloud jobs can be paid from the user's $250 credit (no: the weekly plan pays, measured and documented 2026-10-28); the cloud phase stays shelved unless the user re-opens it. |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -51,6 +52,8 @@
 | 25 | `2026-09-29-33b616` | 2026-09-29 | 8057 | defines 26@2026-09-29, 27@2026-09-29; amends `2026-09-28-f65547` |
 | 39 | `2026-10-15-17dd10` | 2026-10-15 | 9386 | defines 39@2026-10-15 |
 | 39 | `2026-10-16-aaa49a` | 2026-10-16 | 9482 | applies `2026-10-15-17dd10` |
+| 47 | `2026-10-27-5b5b7d` | 2026-10-27 | 9785 | - |
+| 47 | `2026-10-28-7d117a` | 2026-10-28 | 9792 | applies `2026-10-27-5b5b7d` |
 
 ## Superseded or withdrawn
 
@@ -65,10 +68,11 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 339 sections (newest first)
+## All 340 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-28-7d117a` | 9792 | 47 | DO-NOT-REOPEN | 2026-10-28 — USER RULING 47's measurement: the $250 credit did not move, and the official docs say the weekly plan pays for cloud jobs, so the cloud phase is SH |
 | `2026-10-27-5b5b7d` | 9785 | 47 |  | 2026-10-27 — USER RULING 47: use the $250 cloud credit before it expires (2026-11-04) if a cloud job is billed to it; measure that first, and shelve it if the w |
 | `2026-10-27-94e439` | 9778 | 46 |  | 2026-10-27 — USER RULING 46: the launcher's "it shopped" means ANY purchase, not only POKé BALLs |
 | `2026-10-27-ec688e` | 9773 |  |  | 2026-10-27 — Step 5.3's graded result is FAIL on 3 of 38 counted checks: accepted as information, not retuned; step 5.3 is done |
