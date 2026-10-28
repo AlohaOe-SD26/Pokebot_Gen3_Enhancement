@@ -1,0 +1,25 @@
+USER RULING 46 (L5.SHOPPED judges told purchases of ANY item, one counted purchase each): proof, 2026-10-28 08:21 local, tree = HEAD f9fffb68 + the uncommitted change
+
+== 1. test_step53_rs.py ==
+Ran 110 tests in 1.070s
+OK
+
+== 2. mutants of the new guard (scratch copy of ai_player/, fresh bytecode; ShoppedTests) ==
+OK  CONTROL: passed ['Ran 10 tests in 0.019s', 'OK'] []
+OK  M1 ball-only match: CAUGHT ['Ran 10 tests in 0.017s', 'FAILED (failures=3)'] ['test_a_told_purchase_of_any_item_is_judged', 'test_only_a_report_whose_count_rose_claims_a_purchase', 'test_the_counter_must_rise_once_per_told_purchase']
+OK  M2 any rise passes: CAUGHT ['Ran 10 tests in 0.017s', 'FAILED (failures=1)'] ['test_the_counter_must_rise_once_per_told_purchase']
+OK  M3 every report claims: CAUGHT ['Ran 10 tests in 0.017s', 'FAILED (failures=1)'] ['test_only_a_report_whose_count_rose_claims_a_purchase']
+OK  M4 unread before claims none: CAUGHT ['Ran 10 tests in 0.017s', 'FAILED (failures=1)'] ['test_only_a_report_whose_count_rose_claims_a_purchase']
+OK  M7 unread before claims any after: CAUGHT ['Ran 10 tests in 0.019s', 'FAILED (failures=1)'] ['test_only_a_report_whose_count_rose_claims_a_purchase']
+OK  M5 unread after counted: CAUGHT ['Ran 10 tests in 0.019s', 'FAILED (errors=1)'] ['test_only_a_report_whose_count_rose_claims_a_purchase']
+OK  M6 a missing read passes: CAUGHT ['Ran 10 tests in 0.018s', 'FAILED (failures=1)'] ['test_the_counter_must_rise_once_per_told_purchase']
+ALL AS EXPECTED
+
+== 3. the compiled pattern on every real report line in ai_player/evidence and gates/fixtures ==
+pattern: 'done; (?P<item>.+?) in the bag (?P<before>\\S+) -> (?P<after>\\S+),' has control chars: False
+9 report lines, 3 distinct real reports: ['done; POKé BALL in the bag 5 -> 10, money 6680 -> 5680, listed price 200', 'done; POTION in the bag 0 -> 2, money 3000 -> 2400, listed price 300', 'done; POTION in the bag 0 -> 3, money 4084 -> 3184, listed price 300']
+143 other lines, 71 distinct (by their first 60 chars)
+ALL AS EXPECTED
+{'item': 'POKé BALL', 'before': '5', 'after': '10'}
+{'item': 'POTION', 'before': '0', 'after': '2'}
+{'item': 'POTION', 'before': '0', 'after': '3'}

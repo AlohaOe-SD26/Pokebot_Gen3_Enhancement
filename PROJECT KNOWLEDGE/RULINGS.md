@@ -68,10 +68,11 @@
 | `2026-09-17-5bafb0` | 5866 | SUPERSEDED | `2026-09-17-b69c79` | 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY |
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 
-## All 340 sections (newest first)
+## All 341 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-28-452f91` | 9799 |  |  | 2026-10-28 — L5.SHOPPED, built for ruling 46: a told purchase of ANY item, and one counted purchase per told purchase |
 | `2026-10-28-7d117a` | 9792 | 47 | DO-NOT-REOPEN | 2026-10-28 — USER RULING 47's measurement: the $250 credit did not move, and the official docs say the weekly plan pays for cloud jobs, so the cloud phase is SH |
 | `2026-10-27-5b5b7d` | 9785 | 47 |  | 2026-10-27 — USER RULING 47: use the $250 cloud credit before it expires (2026-11-04) if a cloud job is billed to it; measure that first, and shelve it if the w |
 | `2026-10-27-94e439` | 9778 | 46 |  | 2026-10-27 — USER RULING 46: the launcher's "it shopped" means ANY purchase, not only POKé BALLs |

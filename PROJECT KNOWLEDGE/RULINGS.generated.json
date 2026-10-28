@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "aec90525083bef940593620bb2e40f84570121b2",
+ "source_sha1_lf": "ab7a7214daf04bd237ff503cca7a413aa2f51ff1",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 340,
+  "sections": 341,
   "donot_candidates": 25,
   "sections_naming_user_rulings": 42
  },
@@ -5307,6 +5307,21 @@
      "text": "- **Rejected:** a second, larger measuring job (the documentation answers the question, and the meter's whole percents could not read a small job anyway); running the weekly limit out to see whether the credit applies after it (it could draw the user's $50 extra credit, which the user keeps for emer"
     }
    ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-28-452f91",
+   "date": "2026-10-28",
+   "line_start": 9799,
+   "line_end": 9805,
+   "title": "2026-10-28 — L5.SHOPPED, built for ruling 46: a told purchase of ANY item, and one counted purchase per told purchase",
+   "rulings": [],
+   "ruling_mentions": [
+    46
+   ],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
    "cues": []
   }
  ]

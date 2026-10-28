@@ -24083,3 +24083,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** Python's `.pyc` check compares the source file's modification time and size. A mutant that keeps the file's size and is written within one second of the original has the same mtime (to the second) and the same size, so the cached bytecode of the unmutated source can be reused.
 - **The fix that worked:** every mutant runs with `PYTHONDONTWRITEBYTECODE=1` (and `py -B`) and no `__pycache__` in the scratch copy: the fix round's fixer wiped every `__pycache__` before each of its 89 mutants, and its first fresh-bytecode sweep showed one survivor (B1-M13), which one new test now catches.
 - **Prevention rule:** run every mutant with `PYTHONDONTWRITEBYTECODE=1` and no `__pycache__` in the scratch copy, or a verdict may be the old code's.
+
+## 2026-10-28 — A HONESTY CHECK SAID "EACH" AND CHECKED ONE: `L5.SHOPPED` passed any number of told purchases on a single counted one
+
+- **Symptom:** building USER RULING 46 (any purchase counts), the check's own text read "each must be true by THE GAME (its purchase counter rose)", but its test was only "the counter rose": two told purchases with one made passed. Its match was ball-only, so a told POTION purchase the game never saw read VACUOUS (waived), not FAIL.
+- **Root cause:** the check compared a YES/NO fact (the counter rose) with a COUNT of claims (n told). A boolean cannot judge "each"; the sample count n only decided VACUOUS, never the verdict.
+- **The fix that worked:** the counter must rise at least once per told purchase (`shop["bought"] >= len(bought)`), with a fault test of two told and one counted, and seven caught mutants (`ai_player/evidence/2026-10-28-ruling46-SHOPPED-PROOF.txt`). The Tier 1 review then caught a second gap in the first build ("None -> 0" counted as a claim), fixed before commit.
+- **Prevention rule:** a check whose words say "each" or "every" must compare per-claim (a count against a count, or identity against identity), and its fault test must hold MORE claims than facts.

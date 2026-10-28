@@ -40,8 +40,9 @@ THE ARMS
                      (`AI_PLAYER_WORLD`): target `ch2_wally`. CLAIMS: HIDE_PETALBURG_CITY_WALLYS_MOM set and
                      VAR_PETALBURG_GYM_STATE >= 2 (WALLY's tutorial played); at least 2 new species CAUGHT (the game's
                      GAME_STAT_POKEMON_CAPTURES and new PIDs with the player's OT); at least 1 nurse heal (the game's
-                     GAME_STAT_USED_POKECENTER); at least 1 item ball picked up (its FLAG_ITEM_* set); POKé BALLS bought
-                     (its told purchase; the game's purchase counter GAME_STAT_SHOPPED by the second path).
+                     GAME_STAT_USED_POKECENTER); at least 1 item ball picked up (its FLAG_ITEM_* set); something bought
+                     (USER RULING 46: any item; the game's purchase counter GAME_STAT_SHOPPED, and its told purchases
+                     judged by it).
   CH2T, CH2M         (build step 5.1) a second and (the step-5.1 verifier's round) a THIRD chapter 2: from CH1T's end (Story,
                      seed 11) and CH1M's (Trainer, seed 13), each from the save ITS OWN chapter-1 run made; CH2M's claims
                      were registered before any run of its trajectory (`PREDICTED`).
@@ -702,6 +703,26 @@ def tells(run: Run, text: str) -> list[dict]:
     return [r for r in run.records if r.get("decision") == "tell" and text in str(r.get("reason", ""))]
 
 
+#: The hands' report at the end of a mart conversation (`hands/menus.py` mart_buy): "done; <ITEM> in the bag <before> ->
+#: <after>, money ...", said whether or not the purchase went through.
+PURCHASE_TELL = re.compile(r"done; (?P<item>.+?) in the bag (?P<before>\S+) -> (?P<after>\S+),")
+
+
+def told_purchases(run: Run) -> list[dict]:
+    """(USER RULING 46, 2026-10-27: "it shopped" is ANY purchase) The AI's TOLD purchases of ANY item: each mart report
+    whose own bag count ROSE (`after` a number above `before`; with `before` unread, `after` above 0). A report whose
+    count did not rise, or whose `after` is unread, claims no purchase. Before the ruling only "done; POKé BALL in the bag" counted, so the POTION purchases of the
+    early game (OLDALE's mart sells no ball before the POKéDEX; all 96 purchases of ledger #40) were never judged."""
+    out = []
+    for record in tells(run, " in the bag "):
+        hit = PURCHASE_TELL.search(str(record.get("reason", "")))
+        if hit is None or not hit["after"].isdigit():
+            continue
+        if int(hit["after"]) > (int(hit["before"]) if hit["before"].isdigit() else 0):
+            out.append({**record, "item": hit["item"]})
+    return out
+
+
 def milestone_frame(run: Run, milestone: str) -> int | None:
     hit = next((r for r in tells(run, f"MILESTONE {milestone} done at f")), None)
     return hit.get("frame") if hit else None
@@ -911,12 +932,15 @@ def grade_CH2(run: Run) -> None:
                                f"AI input): {shop['count'][0]} -> {shop['count'][1]} (must RISE); (text only) money "
                                f"{shop['money'][0]} -> {shop['money'][1]}, POKé BALLS {shop['balls'][0]} -> {shop['balls'][1]}",
               "L5.SHOPPED_GAME", int(shop["read"]), 1)
-    # its TOLD purchases are HONESTY, each judged by that same game read; none told is VACUOUS (no claim, no lie), WAIVED
-    # (`grader_waivers.json`): "it shopped" is graded above, never by the AI's word
-    bought = tells(run, "done; POKé BALL in the bag")
-    run.check(shop["shopped"], f"SHOPPED (its told purchase): {len(bought)} told {[str(r['reason'])[:120] for r in bought[:2]]}; "
-                               f"each must be true by THE GAME (its purchase counter rose): {shop['count'][0]} -> "
-                               f"{shop['count'][1]}: {'TRUE' if shop['shopped'] else 'NOT shown by the game'}",
+    # its TOLD purchases (of ANY item, USER RULING 46) are HONESTY, each judged by that same game read: the counter rises
+    # once per purchase, so it must have risen by at least the number told; none told is VACUOUS (no claim, no lie),
+    # WAIVED (`grader_waivers.json`): "it shopped" is graded above, never by the AI's word
+    bought = told_purchases(run)
+    shown = shop["read"] and shop["bought"] >= len(bought)
+    run.check(shown, f"SHOPPED (something bought, its told purchases): {len(bought)} told "
+                     f"{[r['item'] for r in bought]} {[str(r['reason'])[:120] for r in bought[:2]]}; each must be true "
+                     f"by THE GAME (its purchase counter rose at least once per told purchase): {shop['count'][0]} -> "
+                     f"{shop['count'][1]}: {'TRUE' if shown else 'NOT shown by the game'}",
               "L5.SHOPPED", len(bought), 1)
     run.measures.update({"caught": caught, "heals": heals, "items": picked, "game_stats": stats(after)})
 
