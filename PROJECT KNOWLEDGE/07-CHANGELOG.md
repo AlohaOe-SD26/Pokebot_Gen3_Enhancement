@@ -38992,3 +38992,10 @@ bought balls only at fixed story points.
 - **Side note:** this checkout's own `ai-agent/*.py` gives another signature (`1ffea8528d65`) only because three of its files have LF endings (git calls both checkouts clean); every file in the clone is CRLF.
 - **Cost:** two read-only watchers and the checks, seconds of local CPU; one Tier 1 reviewer (Sonnet, 208k tokens, about 13 minutes).
 - **Next:** the PARK TOOL (queue item 4; `03` `#28-trainer-improvements` (10)), then R5.
+
+## 2026-10-28 — E2 + O8's first live journal line: the bot tuner records each finished game (punch-list #28-trainer-improvements item 1)
+
+- **Seen** (the clone's `learner.log`, by a read-only watcher, session scratch `journal_watch.py`, from 4:33 PM): `[2026-10-28 05:50:19 PM] ai0054: game journal: 1 finished game(s) recorded (1 so far)`, 80 minutes into round ai0054.
+- **Checked:** `runs/ai0054/games.jsonl` holds 1 whole line that parses: `journaled` 5:50:19 PM, lane 10, log `Story_(ENDLESS_RESET)-debug-20261028-163052.log`, genome `g99766f79` (arm C); no (lane, log) twice; the count equals the log's "1 so far".
+- **Still to read** (`04` DEPLOY CHECK): at ai0054's end (about 4:30 AM 10-29), `ai0054: game journal: N of N journaled games match the batch's records`.
+- **Cost:** a read-only watcher, seconds of local CPU.
