@@ -42,6 +42,7 @@ from ai_player.brain.navigator import Navigator, Target  # noqa: E402
 from ai_player.eyes.observation import (  # noqa: E402
     BagSummary, BattleView, MonSummary, Observation, PlayerState, Progress, ScreenState, SeenObject, Tile, View,
 )
+from ai_player.hands.dialogue import busy_reason  # noqa: E402
 from ai_player.hands.pad import Hands  # noqa: E402
 from ai_player.mode import MAX_LOSSES, HandsBrain  # noqa: E402
 from ai_player.eyes.view import MILESTONE_FLAGS, MILESTONE_VARS, milestone_marks  # noqa: E402
@@ -829,14 +830,17 @@ class PlayLoopTests(unittest.TestCase):
     `STORY_PATIENCE` checked only when the player is free, both passed every test, because no test drove the play loop)
     The REAL `HandsBrain._play` loop, its goal manager real, with a goal runner and a screen that stand in for the game:
     every pursued goal loses a battle (the loop must end at MAX_LOSSES, each loss told); a screen that never frees (the
-    loop must end on STORY_PATIENCE); goals that never move the story (the same)."""
+    loop must end on STORY_PATIENCE); goals that never move the story (the same). (R5, 2026-10-28) And how a run ENDS
+    "done": on a free screen, what was on screen played out first (`test_r5_*`; `run_loop`'s `settle` stands in for
+    `play_out`, and (R5's fix round) its `frames` drives the loop through the brain's REAL frame bound, `_bounded`)."""
 
     PER_GOAL = 1000  # frames a stand-in goal takes
     PER_TRAIN = 20_000  # (build step 5.1) frames a stand-in training session takes
     PER_SCREEN = 5000  # frames a stand-in `play_out` takes on a screen that never frees
 
     def run_loop(self, screen, lose: bool = False, budget: int = 60_000, heard=(), win_training: bool = False,
-                 arrived_at: int | None = None, effect=None, personality: str = "Story"):
+                 arrived_at: int | None = None, effect=None, personality: str = "Story", settle=None,
+                 frames: int | None = None):
         from ai_player import mode as mode_module
         from ai_player.world.memory import Transition
 
@@ -887,6 +891,10 @@ class PlayLoopTests(unittest.TestCase):
 
         def play_out(hands_, nav_, why):
             screens.append(why)
+            if settle is not None:
+                # (R5) the test's own stand-in (hands, nav, why): it may free the screen, lose a battle, or stop with the
+                # screen still up
+                return (yield from settle(hands, nav, why))
             hands.pad.frames += self.PER_SCREEN
             yield
             return "stuck: a screen that does not end"
@@ -895,8 +903,12 @@ class PlayLoopTests(unittest.TestCase):
         brain.options = types.SimpleNamespace(target="ch1_pokedex", fault_no_hints=False, fault_no_training=False,
                                               fault_no_errands=False, starter=None, clock=None)
         brain.navigator, brain.world, brain.seed, brain._say, brain.play_report = nav, world, 5, (lambda line: None), None
+        # (R5's fix round, R5-F1) the run's frame budget: with `frames`, the loop is driven through the brain's REAL bound
+        # (`HandsBrain._bounded`, as `play` drives `_skill`), one frame per `yield`; without it, a budget no test reaches
+        brain.settings = types.SimpleNamespace(frames=frames if frames is not None else 10 ** 9)
         with mock.patch.object(mode_module, "GoalRunner", Runner), mock.patch.object(mode_module, "play_out", play_out):
-            reason = drive(brain._play(hands, types.SimpleNamespace(name=personality)), budget)
+            game = brain._play(hands, types.SimpleNamespace(name=personality))
+            reason = drive(game if frames is None else brain._bounded(game, hands), budget)
         return reason, hands, pursued, screens, brain.play_report
 
     def free_screen(self) -> Observation:
@@ -1041,6 +1053,511 @@ class PlayLoopTests(unittest.TestCase):
         dropped = [g for g in report["goals"] if g.get("ok") is None]
         self.assertEqual(dropped, [])  # FAULT half (SETTLE_FREE 1): a goal chosen at f10, then dropped or pursued
         self.assertGreater(hands.starts[0], 5000)
+
+    # ---- (R5, backlog item R5 "a FREE-SCREEN precondition", 2026-10-28) "done" waits for a free screen, through the real
+    # loop: before R5 the run ended "done" on the pass's look, whatever was on screen (`mode.py` `_settle_before_done`,
+    # `_end_screen`; mutants G347-G351). (R5's fix round, 2026-10-28: the adversarial review's findings R5-F1, F2, F4, F5,
+    # F6 and the independent sweep's 13 survivors S04-S56, each asserted below; mutants G352-G371)
+    R5_WHY = "ch1_pokedex reached: what is on screen first"
+
+    def r5_looks(self) -> tuple[Observation, Observation]:
+        """A look PAST the target (every chapter-1 proof holds: ch1_pokedex reached) on a FREE screen, and the same look
+        with a TEXT BOX up (a script runs and waits for A: MOM's upstairs line after FLAG_SET_WALL_CLOCK)."""
+        free = look(ch1_through("ch2_oldale"), party=[mon(9)], const="ROUTE101")
+        boxed = replace(free, screen=replace(free.screen, text_box_open=True, waits_for_button=True, script_running=True,
+                                             text="MOM: How do you like your new room?"))
+        return free, boxed
+
+    @staticmethod
+    def r5_notes(hands, decision: str) -> list[tuple]:
+        return [note for note in hands.notes if note[0] == decision]
+
+    @staticmethod
+    def r5_end_line(hands) -> str:
+        return [line for line in hands.told if line.startswith("[AI-GOALS] the end (")][0]
+
+    @staticmethod
+    def r5_boxed(seen: Observation) -> Observation:
+        return replace(seen, screen=replace(seen.screen, text_box_open=True, waits_for_button=True, script_running=True,
+                                            text="a scene's text"))
+
+    def test_r5_done_plays_out_the_screen_first(self):
+        """U1 FAULT: the target's proof holds on a look with a TEXT BOX up: what is on screen is played out (`play_out`)
+        BEFORE the run ends, the end is on a free screen, and the reason is EXACTLY "done: <target> reached" (the string
+        `gates/live_step5.py`'s HONESTY check compares); the end record says free and played out. FAULT half (G347, the
+        settle's call deleted; G352, its play-out deleted): `play_out` is never called and the run ends with the box up.
+        (R5's fix round, the sweep's S26 and S45) the settle's frames, the play-out's and the pause's, are in its record
+        and in the end record."""
+        free, boxed = self.r5_looks()
+        state = {"freed": False}
+
+        def settle(hands, nav, why):  # play_out's stand-in: presses through the box (200 frames), then the screen is free
+            hands.pad.frames += 200
+            yield
+            state["freed"] = True
+            return None
+
+        reason, hands, pursued, screens, report = self.run_loop(lambda frames: free if state["freed"] else boxed,
+                                                               budget=5000, settle=settle)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual(screens, [self.R5_WHY])  # played out once, before the end
+        self.assertEqual(pursued, [])  # and no goal: the target was reached
+        end = report["end_screen"]
+        self.assertEqual((end["free"], end["held_by"], end["played_out"], end["settle_stop"]), (True, None, True, None))
+        pause = hands.pad.think_frames()
+        self.assertEqual(hands.pad.frames, 200 + pause)  # REACH: the play-out and one pause, nothing else
+        self.assertEqual((report["settle"]["frames"], end["settle_frames"]), (200 + pause, 200 + pause))  # S26, S45
+        self.assertEqual(self.r5_notes(hands, "end")[-1][3]["end_screen"], end)  # in the end note too
+        self.assertEqual(self.r5_notes(hands, "end_screen"), [])  # a settled end has nothing to SAY
+        self.assertIn("the screen at the end free (played out first", self.r5_end_line(hands))
+
+    def test_r5_done_on_a_free_screen_plays_nothing_out(self):
+        """U1 CONTROL: the target's proof holds on a FREE look that stays free: "done" with the same exact reason, `play_out`
+        NOT called, no press, and nothing but the decision's pause passes (the pad's frames ARE the pause: the look before
+        stopping, `test_r5_one_free_look_before_an_arrival_scene_is_not_a_free_screen` says why); `played_out` False. (The
+        spec's "no frame passes" became "only the pause passes": the deviation is in the R5 build report.) (R5's fix
+        round, the sweep's S46) the pause is in the end record."""
+        free, _ = self.r5_looks()
+
+        def never(hands, nav, why):
+            raise AssertionError(f"play_out on a free screen: {why}")
+            yield  # noqa: unreachable - a generator, as play_out is
+
+        reason, hands, pursued, screens, report = self.run_loop(free, budget=2000, settle=never)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual((screens, pursued, hands.pad.presses), ([], [], 0))
+        pause = hands.pad.think_frames()
+        self.assertEqual(hands.pad.frames, pause)  # the one pause, nothing else
+        self.assertEqual((report["settle"]["played"], report["settle"]["paused"], report["settle"]["frames"]),
+                         (0, pause, pause))
+        end = report["end_screen"]
+        self.assertEqual((end["free"], end["held_by"], end["played_out"], end["paused"], end["passed"]),
+                         (True, None, False, pause, []))  # S46: the pause in the end record
+
+    def test_r5_a_screen_that_will_not_free_still_ends_done_and_says_so(self):
+        """U2 FAULT: `play_out` stops with the box still up (its own bound reached): the run STILL ends with exactly "done:
+        <target> reached" (the game's proof holds; "stuck" over a proof that holds is a lie, `live_step5.py` HONESTY), the
+        screen is played out ONCE (a stop is not retried: LESSONS PL-3), and the unsettled end is SAID: one told line with
+        the stop and what holds the screen, one "end_screen" note with them (and its target, frame and play-outs), the
+        settle's record and the end record NOT free with what holds it, and the end line naming it. FAULT half (G347:
+        no play-out, nothing said; G353: nothing said). (R5's fix round, the sweep's S27, S35, S53 and S55)"""
+        _, boxed = self.r5_looks()
+        stop = f"stuck: 12 scenes and battles in a row after {self.R5_WHY}"
+
+        def stays(hands, nav, why):
+            hands.pad.frames += 300
+            yield
+            return stop
+
+        reason, hands, pursued, screens, report = self.run_loop(boxed, budget=5000, settle=stays)
+        self.assertEqual(reason, "done: ch1_pokedex reached")  # never "stuck"
+        self.assertEqual(screens, [self.R5_WHY])
+        held = busy_reason(boxed)
+        self.assertTrue(held)  # REACH FLOOR: the box is held by something the hands can name
+        said = [line for line in hands.told if "reached, but the screen did not free" in line]
+        self.assertEqual(len(said), 1, hands.told[-5:])
+        self.assertIn(stop, said[0])
+        self.assertTrue(said[0].endswith(f"held by: {held}"), said[0])  # S35: what holds it, said
+        noted = self.r5_notes(hands, "end_screen")
+        self.assertEqual([(note[1], note[2], note[3]["stop"]) for note in noted], [("not free", held, stop)])  # S35
+        extra = noted[0][3]
+        self.assertEqual((extra.get("target"), extra.get("frame"), extra.get("played")), ("ch1_pokedex", boxed.frame, 1))
+        self.assertIs(report["settle"]["free"], False)  # S27
+        end = report["end_screen"]
+        self.assertEqual((end["free"], end["played_out"], end["settle_stop"]), (False, True, stop))
+        self.assertEqual(end["held_by"], held)  # what holds it, in the hands' own words
+        self.assertIn(f"the screen at the end NOT free ({held})", self.r5_end_line(hands))  # S55
+
+    def test_r5_one_free_look_before_an_arrival_scene_is_not_a_free_screen(self):
+        """(R5, the MEASURED case: the R5 fixture probe's ch2_dad runs, development seeds 5301 and 5302, on the tree before
+        R5) the target's proof holds on a look that is free for ONE frame (a warp's exit releases the player), and a scene
+        locks the screen on the next (WALLY's tutorial, PETALBURG CITY's ON_FRAME script): the decision's pause sees it
+        begin, the scene is played out, the pause after it finds the screen free, and the run ends "done" there. FAULT half
+        (G349, the pause and its look deleted): "done" on the one free look, the scene never played."""
+        free, boxed = self.r5_looks()
+        state = {"freed": False}
+
+        def screen(frames: int) -> Observation:
+            return free if frames == 0 or state["freed"] else boxed  # free on the end frame only, then the scene
+
+        def settle(hands, nav, why):
+            hands.pad.frames += 3000  # the tutorial, played through
+            yield
+            state["freed"] = True
+            return None
+
+        reason, hands, pursued, screens, report = self.run_loop(screen, budget=5000, settle=settle)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual(screens, [self.R5_WHY])
+        pause = hands.pad.think_frames()
+        self.assertEqual((report["settle"]["played"], report["settle"]["paused"]), (1, 2 * pause))  # before and after
+        end = report["end_screen"]
+        self.assertEqual((end["free"], end["played_out"]), (True, True))
+
+    def test_r5_the_measured_ch2_dad_chain_takes_three_rounds(self):
+        """(R5's fix round, the review's R5-F2 and the sweep's S23) the MEASURED chain (every R5 A/B run on the held-out
+        ch2_dad seeds took THREE pauses, `review/settle_rounds.out`): the target's proof holds on a look free for ONE frame
+        (DAD's warp exit); WALLY's tutorial begins on the next (the first pause finds it) and is played out; its own warp
+        back frees the player for one frame and the gym's return scene begins (the second pause finds it) and is played
+        out; the third pause finds the gym free. Three rounds, two play-outs, the end FREE. FAULT half (G354,
+        `DONE_SETTLE_ROUNDS` 2, which every other test allowed): the settle ends after the second pause, "done" on a screen
+        NOT free, the failure the A/B graded the OLD arm on."""
+        free, boxed = self.r5_looks()
+        state = {"outs": 0, "free_at": 0}
+
+        def screen(frames: int) -> Observation:
+            if state["outs"] == 0:
+                return free if frames == 0 else boxed  # the warp's exit, then WALLY's tutorial
+            if state["outs"] == 1:
+                return free if frames == state["free_at"] else boxed  # the warp back to the gym, then its return scene
+            return free
+
+        def settle(hands, nav, why):
+            hands.pad.frames += 1000
+            yield
+            state["outs"] += 1
+            state["free_at"] = hands.pad.frames
+            return None
+
+        reason, hands, pursued, screens, report = self.run_loop(screen, budget=10_000, settle=settle)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        pause = hands.pad.think_frames()
+        self.assertEqual(screens, [self.R5_WHY, self.R5_WHY])  # both scenes played out
+        self.assertEqual((report["settle"]["played"], report["settle"]["paused"]), (2, 3 * pause))  # three rounds
+        self.assertTrue(report["end_screen"]["free"], report["end_screen"])  # FAULT half (2 rounds): NOT free
+        self.assertEqual(self.r5_notes(hands, "end_screen"), [])
+
+    def test_r5_the_settle_is_bounded(self):
+        """(R5, LESSONS PL-4) a screen that frees after each play-out and is busy again after each pause (a chain of scenes
+        that never ends) ends the settle after `DONE_SETTLE_ROUNDS` play-outs: the run still ends "done" (the proof holds),
+        on a screen NOT free, and says so. FAULT half (G351, the bound removed): the settle never ends (the drive's budget
+        runs out). (R5's fix round, the sweep's S54) no play-out STOPPED here (each returned None), so the told line says
+        why the screen is not free in its own words: "(a scene still plays)"."""
+        from ai_player.mode import DONE_SETTLE_ROUNDS
+        free, boxed = self.r5_looks()
+        state = {"free_at": None}
+
+        def screen(frames: int) -> Observation:
+            return free if state["free_at"] == frames else boxed  # free only on the frame a play-out ended
+
+        def settle(hands, nav, why):
+            hands.pad.frames += 100
+            yield
+            state["free_at"] = hands.pad.frames
+            return None
+
+        reason, hands, pursued, screens, report = self.run_loop(screen, budget=5000, settle=settle)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual(len(screens), DONE_SETTLE_ROUNDS)
+        self.assertEqual(report["settle"]["played"], DONE_SETTLE_ROUNDS)
+        self.assertIsNone(report["settle"]["stop"])  # REACH: no play-out stopped
+        self.assertFalse(report["end_screen"]["free"])
+        self.assertEqual(len(self.r5_notes(hands, "end_screen")), 1)
+        said = [line for line in hands.told if "reached, but the screen did not free" in line]
+        self.assertEqual(len(said), 1)
+        self.assertIn("(a scene still plays)", said[0])  # S54 (with the fallback gone it says "(None)")
+
+    def test_r5_every_milestone_passed_a_box_is_played_out_first(self):
+        """(R5's fix round, the sweep's S04) the OTHER half of the settle's condition: past the LAST required milestone
+        (ch4_roxanne's badge) the goal manager reads NO milestone (`brain/goals.py` milestone returns (len, None)), and a run
+        ends through `milestone is None`: a box up there is played out first just the same. FAULT half (G355, the settle
+        skipped when no milestone is read): "done" at once with the box up."""
+        every = {name: 1 for name, _ in MILESTONE_FLAGS}
+        every.update({name: 0xFFFF for name, _ in MILESTONE_VARS})
+        free = look(every, party=[mon(9)], const="ROUTE101")
+        index, milestone = manager().milestone(free, visited_in(world_with("LITTLEROOT_TOWN", "ROUTE101",
+                                                                           current="ROUTE101")))
+        self.assertIsNone(milestone, f"reach floor: milestone {getattr(milestone, 'id', None)} at index {index}")
+        boxed = self.r5_boxed(free)
+        state = {"freed": False}
+
+        def settle(hands, nav, why):
+            hands.pad.frames += 200
+            yield
+            state["freed"] = True
+            return None
+
+        reason, hands, pursued, screens, report = self.run_loop(lambda frames: free if state["freed"] else boxed,
+                                                               budget=5000, settle=settle)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual(screens, [self.R5_WHY])  # played out first
+        self.assertEqual((report["end_screen"]["free"], report["end_screen"]["played_out"]), (True, True))
+
+    @staticmethod
+    def r5_long_scene(frames_long: int, state: dict):
+        """play_out's stand-in for the frame budget's tests: ONE frame per `yield`, as the real pad hands them on (and as
+        `_bounded` counts them), then the screen is free."""
+        def settle(hands, nav, why):
+            for _ in range(frames_long):
+                hands.pad.frames += 1
+                yield
+            state["freed"] = True
+            return None
+        return settle
+
+    def test_r5_the_frame_budget_never_cuts_a_reached_target_short_of_its_end(self):
+        """(R5's fix round, the review's R5-F1, through the brain's REAL bound `_bounded`) the target's proof holds with a
+        box up and what is on screen takes LONGER than the frames the run's budget has left: the settle stops while
+        `DONE_BUDGET_MARGIN` frames are left, SAYS so (a told line, an "end_screen" note "budget") and the run ends with
+        exactly "done: <target> reached" and its end record, NOT free with what holds it. FAULT half (G356, the play-out
+        handed on with no budget guard, the R5 build's code): the bound cuts it and the run ends "stopped: not finished
+        within 500 frames" with no end record, no end note and no line saying the target was reached, which live_step5's
+        HONESTY check reads as a lie (the review's probe, `review/probe_budget_settle.out`); G371: the cut not said.
+        CONTROL: the same play-out with room in the budget plays out to its end, free, and says nothing of a budget."""
+        from ai_player.mode import DONE_BUDGET_MARGIN
+        free, boxed = self.r5_looks()
+        state = {"freed": False}
+        reason, hands, _, screens, report = self.run_loop(lambda frames: free if state["freed"] else boxed, budget=20_000,
+                                                          settle=self.r5_long_scene(2000, state), frames=500)
+        self.assertEqual(reason, "done: ch1_pokedex reached")  # FAULT half: "stopped: not finished within 500 frames"
+        self.assertEqual(screens, [self.R5_WHY])  # REACH: the play-out began ...
+        self.assertFalse(state["freed"])  # ... and was cut, not finished
+        self.assertEqual(hands.pad.frames, 500 - DONE_BUDGET_MARGIN)
+        self.assertFalse(any("did not finish" in line for line in hands.told))  # the brain's own bound never fired
+        record, end = report["settle"], report["end_screen"]
+        self.assertEqual((record["budget"], record["played"], record["paused"]), (True, 1, 0))
+        self.assertIn("frame budget ran out", record["stop"])
+        self.assertEqual((end["free"], end["held_by"], end["settle_stop"]), (False, busy_reason(boxed), record["stop"]))
+        said = [line for line in hands.told if "but the run's frame budget ran out" in line]
+        self.assertEqual(len(said), 1, hands.told[-4:])
+        self.assertIn(f"held by: {busy_reason(boxed)}", said[0])
+        self.assertEqual([note[1] for note in self.r5_notes(hands, "end_screen")], ["budget"])
+        self.assertEqual(self.r5_notes(hands, "end")[-1][1:3], ("done", "ch1_pokedex reached"))
+        # CONTROL: room in the budget: played out to its end, free, no budget said
+        state = {"freed": False}
+        reason, hands, _, screens, report = self.run_loop(lambda frames: free if state["freed"] else boxed, budget=20_000,
+                                                          settle=self.r5_long_scene(2000, state), frames=5000)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertTrue(state["freed"])
+        self.assertEqual((report["settle"]["budget"], report["settle"]["stop"], report["end_screen"]["free"]),
+                         (False, None, True))
+        self.assertEqual(hands.pad.frames, 2000 + hands.pad.think_frames())
+        self.assertEqual(self.r5_notes(hands, "end_screen"), [])
+        self.assertFalse(any("frame budget" in line for line in hands.told))
+
+    def test_r5_the_frame_budget_cuts_the_decisions_pause_too(self):
+        """(R5's fix round, R5-F1, through `_bounded`) the play-out ends with ONE frame of the budget's room left and the
+        screen free, and the budget ends inside the decision's pause: the pause is cut, the run ends exactly "done", on a
+        free screen, and the cut is said. FAULT half (G357, the pause handed on with no budget guard): "stopped: not
+        finished within 2003 frames"."""
+        from ai_player.mode import DONE_BUDGET_MARGIN
+        free, boxed = self.r5_looks()
+        state = {"freed": False}
+        limit = 2001  # the play-out's 2000 frames, then one of the pause
+        reason, hands, _, screens, report = self.run_loop(lambda frames: free if state["freed"] else boxed, budget=20_000,
+                                                          settle=self.r5_long_scene(2000, state),
+                                                          frames=limit + DONE_BUDGET_MARGIN)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertTrue(state["freed"])  # REACH: the play-out finished ...
+        self.assertEqual((report["settle"]["budget"], report["settle"]["paused"]), (True, limit - 2000))  # ... the pause cut
+        self.assertEqual(hands.pad.frames, limit)
+        self.assertTrue(report["end_screen"]["free"])
+        said = [line for line in hands.told if "but the run's frame budget ran out" in line]
+        self.assertEqual(len(said), 1, hands.told[-4:])
+        self.assertIn("on a screen that is free", said[0])
+        self.assertEqual([(note[1], note[2]) for note in self.r5_notes(hands, "end_screen")], [("budget", "free")])
+
+    def test_r5_a_box_before_the_target_is_the_loops_own_and_the_loop_goes_on(self):
+        """U3 CONTROL (R5's second call site, before a goal is chosen after a milestone, holds already: the spec's D7): the
+        story moved to the TARGET's milestone, not past it, on a look with a box up: the loop's own path plays it out
+        (`play_out` with ITS reason, "<milestone>: what is on screen"), the next goal is chosen only after it, no settle runs
+        and the run does not end "done". FAULT half: a settle that also ran short of the target would play it out with
+        R5's reason instead."""
+        _, boxed = self.r5_looks()
+        before = look(ch1_through("ch1_pokedex"), party=[mon(9)], const="ROUTE101")
+        boxed_before = replace(before, screen=boxed.screen)
+        state = {"freed_at": None}
+
+        def settle(hands, nav, why):
+            hands.pad.frames += 200
+            yield
+            state["freed_at"] = hands.pad.frames
+            return None
+
+        reason, hands, pursued, screens, report = self.run_loop(
+            lambda frames: before if state["freed_at"] is not None else boxed_before, budget=60_000, settle=settle)
+        self.assertEqual(len(screens), 1, screens)
+        self.assertTrue(screens[0].endswith(": what is on screen"), screens)  # the loop's own play-out ...
+        self.assertNotEqual(screens[0], self.R5_WHY)  # ... not R5's
+        self.assertTrue(pursued, reason)  # the loop went on to its goals,
+        self.assertGreater(hands.starts[0], state["freed_at"])  # chosen only after the screen was played out
+        self.assertNotIn("settle", report)
+        self.assertFalse(reason.startswith("done"), reason)
+
+    def test_r5_every_end_records_its_screen(self):
+        """U5: a "stuck" end records the screen it ends on too: the patience's end on a screen that never frees reads NOT
+        free with what holds it (and no settle fields: the settle is "done"'s), in the report and the end note; CONTROL:
+        the MAX_LOSSES end on a free screen reads free. FAULT half (G348, the record's call deleted): no record."""
+        base = self.free_screen()
+        stuck = replace(base, screen=replace(base.screen, text_box_open=True, waits_for_button=True, script_running=True,
+                                             text="..."))
+        reason, hands, _, _, report = self.run_loop(stuck, budget=20_000)
+        self.assertTrue(reason.startswith("stuck: no progress for"), reason)
+        end = report["end_screen"]
+        self.assertEqual((end["free"], end["held_by"]), (False, busy_reason(stuck)))
+        self.assertNotIn("played_out", end)
+        self.assertEqual(self.r5_notes(hands, "end")[-1][3]["end_screen"], end)
+        reason, hands, _, _, report = self.run_loop(self.free_screen(), lose=True)
+        self.assertTrue(reason.startswith(f"stuck: {MAX_LOSSES} battles lost"), reason)
+        self.assertEqual((report["end_screen"]["free"], report["end_screen"]["held_by"]), (True, None))
+
+    def test_r5_a_stuck_end_reads_the_screen_as_it_is_at_the_end(self):
+        """(R5's fix round, the sweep's S37) the end record takes a FRESH look: a play-out (the loop's own, short of the
+        target) loses the run's last allowed battle and the whiteout frees the screen; the run ends at MAX_LOSSES on the
+        next pass, and its end record reads the screen as it is THEN (free), not as the loop's last look saw it before the
+        play-out (the box). FAULT half (G360, `_end_screen` reads `hands.last`): NOT free. (Here the stand-in play-out
+        takes no look of its own; live, `play_out`'s own looks narrow the gap: not measured.)"""
+        base = self.free_screen()  # short of the target: the loop's own play-out path
+        boxed = self.r5_boxed(base)
+        state = {"freed": False}
+
+        def lose_all(hands, nav, why):
+            hands.pad.frames += 100
+            yield
+            nav.battle_log.extend((hands.pad.frames, "trainer", "lost") for _ in range(MAX_LOSSES))
+            state["freed"] = True  # the whiteout ends the scene: the screen is FREE at the end
+            return "stuck: the battle was lost (the party fainted: the player whited out)"
+
+        reason, hands, _, screens, report = self.run_loop(lambda frames: base if state["freed"] else boxed, budget=5000,
+                                                          settle=lose_all)
+        self.assertTrue(reason.startswith(f"stuck: {MAX_LOSSES} battles lost"), reason)
+        self.assertEqual(len(screens), 1)  # REACH: the loop's own play-out ran once and brought the losses
+        self.assertNotEqual(screens[0], self.R5_WHY)
+        self.assertEqual((report["end_screen"]["free"], report["end_screen"]["held_by"]), (True, None))
+
+    def test_r5_the_end_record_carries_the_end_frame(self):
+        """(R5's fix round, the sweep's S40) the end record's frame is the END look's: on a screen whose frame moves with
+        the pad's frames, a "done" end after the pause records 1000 + the pad's frames at the end. FAULT half (G365, the
+        frame dropped): None."""
+        free, _ = self.r5_looks()
+        reason, hands, _, _, report = self.run_loop(lambda frames: replace(free, frame=1000 + frames), budget=2000)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertGreater(hands.pad.frames, 0)  # REACH: the pause moved the frame
+        self.assertEqual(report["end_screen"]["frame"], 1000 + hands.pad.frames)
+
+    def test_r5_the_end_look_closes_the_wait_record(self):
+        """(R5's fix round, the sweep's S56: the ORDER R5 chose, now pinned) the end look comes BEFORE the wait watcher
+        closes its stretch, so frames that passed after the loop's last look with a box waiting for a press reach the wait
+        record: the loop's own play-out waits 100 frames with the box up and no press, then loses the run's last allowed
+        battle; the run ends at MAX_LOSSES and its wait record holds the 100 frames. FAULT half (G361, the end record read
+        after the watchers close): the stretch closes at the last look, 0. CONTROL: on a "done" end the settle's last look
+        is at the end's frame, so there the end look adds nothing (a play-out of 300 frames that stops with the box up:
+        the wait is the play-out's 300, in either order)."""
+        base = self.free_screen()
+        boxed = self.r5_boxed(base)
+
+        def lose_all(hands, nav, why):  # 100 frames with the box up and no press, then MAX_LOSSES: the run ends
+            hands.pad.frames += 100
+            yield
+            nav.battle_log.extend((hands.pad.frames, "trainer", "lost") for _ in range(MAX_LOSSES))
+            return "stuck: the battle was lost (the party fainted: the player whited out)"
+
+        reason, hands, _, screens, report = self.run_loop(lambda frames: replace(boxed, frame=1000 + frames), budget=5000,
+                                                          settle=lose_all)
+        self.assertTrue(reason.startswith(f"stuck: {MAX_LOSSES} battles lost"), reason)  # REACH
+        self.assertEqual(report["end_screen"]["frame"], 1100)  # the end look, 100 frames after the pass's
+        self.assertEqual(report["waits"]["longest"], 100)  # FAULT half: 0
+        # CONTROL: a "done" end whose settle stopped with the box up: its last look IS the end's frame
+        _, past = self.r5_looks()
+
+        def stays(hands, nav, why):
+            hands.pad.frames += 300
+            yield
+            return "stuck: a stand-in stop"
+
+        reason, hands, _, _, report = self.run_loop(lambda frames: replace(past, frame=1000 + frames), budget=5000,
+                                                    settle=stays)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual((report["end_screen"]["frame"], report["waits"]["longest"]), (1300, 300))
+
+    def test_r5_a_battle_the_settle_lost_is_counted(self):
+        """(R5) the settle before "done" can play a battle (a trainer's, a scene's): a loss there is counted as the loop
+        counts its own (`_count_losses`: told, in the report), so the end record agrees with the battle log; the run still
+        ends "done" (the proof holds). FAULT half (G350, the settle's count deleted): the end tells "the loop counted 0
+        battles lost, but the battle log holds 1". (R5's fix round) It is also the CONTROL of
+        `test_r5_the_last_allowed_loss_inside_the_settle_ends_it`: one loss, under MAX_LOSSES, and the settle goes on to
+        its pause."""
+        free, boxed = self.r5_looks()
+        state = {"freed": False}
+
+        def lose(hands, nav, why):
+            hands.pad.frames += 2000
+            yield
+            nav.battle_log.append((hands.pad.frames, "trainer", "lost"))
+            state["freed"] = True
+            return "stuck: the battle was lost (the party fainted: the player whited out)"
+
+        reason, hands, _, screens, report = self.run_loop(lambda frames: free if state["freed"] else boxed, budget=5000,
+                                                          settle=lose)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual(report["losses"], 1)
+        self.assertTrue(any(line.startswith(f"a battle was LOST (1 of at most {MAX_LOSSES})") for line in hands.told))
+        self.assertFalse(any("the loop counted" in line for line in hands.told), hands.told[-4:])
+        self.assertEqual(report["settle"]["paused"], hands.pad.think_frames())  # CONTROL (R5-F5): the settle went on
+
+    def test_r5_the_last_allowed_loss_inside_the_settle_ends_it(self):
+        """(R5's fix round, the review's R5-F5) a play-out inside the settle loses the run's LAST allowed battle (the
+        whiteout frees the screen for a moment, then words follow: MOM's, the nurse's): the settle ends AT ONCE, no pause
+        and no second play-out (the run fights no battle past MAX_LOSSES: rate_step5's R5.LOSE3, "no game loss past it"),
+        its stop the loop's own MAX_LOSSES reason, the losses counted and told; and the run still ends exactly "done:
+        <target> reached" (the proof holds: a stop reason over it is the lie the spec's D3 rejects). FAULT half (G358, the
+        settle deaf to the MAX_LOSSES stop, the R5 build's code): it pauses, finds the words and plays them out, again and
+        again to its bound. CONTROL: `test_r5_a_battle_the_settle_lost_is_counted` (one loss, under the limit)."""
+        free, boxed = self.r5_looks()
+        state = {"outs": 0, "free_at": None}
+
+        def screen(frames: int) -> Observation:
+            if state["outs"] == 0:
+                return boxed  # the battle's scene
+            return free if frames == state["free_at"] else boxed  # free for a moment after the whiteout, then words
+
+        def lose_all(hands, nav, why):
+            hands.pad.frames += 2000
+            yield
+            if state["outs"] == 0:
+                nav.battle_log.extend((hands.pad.frames, "trainer", "lost") for _ in range(MAX_LOSSES))
+            state["outs"] += 1
+            state["free_at"] = hands.pad.frames
+            return "stuck: the battle was lost (the party fainted: the player whited out)" if state["outs"] == 1 else None
+
+        reason, hands, _, screens, report = self.run_loop(screen, budget=10_000, settle=lose_all)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual(report["losses"], MAX_LOSSES)
+        self.assertEqual(sum(1 for line in hands.told if line.startswith("a battle was LOST (")), MAX_LOSSES)
+        self.assertEqual(screens, [self.R5_WHY])  # FAULT half: a second play-out after the pause found the words
+        record = report["settle"]
+        self.assertEqual((record["played"], record["paused"]), (1, 0))
+        self.assertEqual(record["stop"], f"{MAX_LOSSES} battles lost (MAX_LOSSES {MAX_LOSSES})")
+        self.assertEqual(report["end_screen"]["settle_stop"], record["stop"])
+        self.assertTrue(report["end_screen"]["free"])  # the whiteout's free moment: nothing left to say
+        self.assertFalse(any("the loop counted" in line for line in hands.told))
+
+    def test_r5_the_settle_names_the_milestones_its_screens_passed(self):
+        """(R5's fix round, the review's R5-F6) what is played out after the target can carry the story further (the R5
+        A/B's held-out ch2_dad runs ended past ch2_wally: WALLY's tutorial sets its proof): the milestones passed meanwhile
+        are named, told, in the settle's record, the end record and the end line, while the loop's own milestone record
+        (`report["milestones"]` and the MILESTONE lines, which the graders read) is left as the loop made it. FAULT half
+        (G359, the passed milestones not read): an empty list. CONTROL: a settle that passes nothing names nothing (U1
+        CONTROL's `passed` [])."""
+        _, boxed = self.r5_looks()  # the story AT ch2_oldale, past the target ch1_pokedex
+        later = look({**ch1_through("ch2_oldale"), "VISITED_OLDALE_TOWN": 1}, party=[mon(9)], const="ROUTE101")
+        state = {"freed": False}
+
+        def settle(hands, nav, why):
+            hands.pad.frames += 500
+            yield
+            state["freed"] = True
+            return None
+
+        reason, hands, _, screens, report = self.run_loop(lambda frames: later if state["freed"] else boxed, budget=5000,
+                                                          settle=settle)
+        self.assertEqual(reason, "done: ch1_pokedex reached")
+        self.assertEqual(screens, [self.R5_WHY])  # REACH: the screen was played out, and the story moved meanwhile
+        self.assertEqual((report["settle"]["passed"], report["end_screen"]["passed"]), (["ch2_oldale"], ["ch2_oldale"]))
+        self.assertIn("the story passed ch2_oldale meanwhile", self.r5_end_line(hands))
+        self.assertTrue(any("it passed ch2_oldale while it was played out" in line for line in hands.told))
+        self.assertNotIn("ch2_oldale", [m["id"] for m in report["milestones"]])  # the loop's own record, untouched
+        self.assertFalse(any(line.startswith("[AI-GOALS] MILESTONE ch2_oldale") for line in hands.told))
 
 
 def mode_module_patience() -> int:

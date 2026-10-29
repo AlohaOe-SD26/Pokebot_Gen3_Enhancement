@@ -1,0 +1,487 @@
+AI PLAYER BACKLOG R5 (a free screen before "done") - THE FIXTURE PROBE on the PRE-R5 tree: seed ledger #43 (development seeds 5301-5304; 5304 not played)
+The R5 builder's probe (build spec section 4, compute the discriminator first): does a run end "done" with the screen NOT free, by the harness's own held free read (probe_end_screen.py, never the AI's nav_free)? Answer: ch1_clock no (2 of 2), ch2_dad YES (2 of 2: a one-frame free read before WALLY's tutorial). The R5-tree runs on these seeds are REPLAYS, ledger #47, in 2026-10-28-r5ab-AB.txt.
+code: HEAD 714084b0; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+assembled: 2026-10-28 11:23:53 PM (Los Angeles), by R5's fix round, from the session scratch s53/r5/ (nothing re-run); free read committed as ai_player/gates/probe_end_screen.py, sha256 d5c6095b58c6e345576881b4a4fa569d777f6e891fd3467152ab94db262adc55 (checked)
+
+######## THE VERDICT, THE CONCLUSION AND THE FREE READ'S SELFTEST
+
+==== s53/r5/build/probe/SUMMARY.txt (sha256 19e5732a18ff7e4847582f93eb6dba374f23b68d280d518c5957fea0f413d6b0, 5048 bytes; LF text sha256 7a2205999e4792c73c7bca4e50147afe23d019ec69d3be17642610db123b043c) ====
+R5 probe runs: harness read at the frame the brain returned, then 10 frames with no input (free_held = free on all 11); 'input' = a tapped direction turned the player in a throwaway copy of that frame
+
+== runs: PRE-R5 tree, REAL New Game (the fixture probe)
+  ch1_clock_5301: seed 5301 target ch1_clock (Trainer/TORCHIC) | reason 'play: done: ch1_clock reached' | frames 16485 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | 
+  ch1_clock_5302: seed 5302 target ch1_clock (Story/TREECKO) | reason 'play: done: ch1_clock reached' | frames 16329 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | 
+  ch2_dad_5301: seed 5301 target ch2_dad (Trainer/TORCHIC) | reason 'play: done: ch2_dad reached' | frames 251736 | free_at_return True free_held False first_not_free 1 | input False | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | next change: frame +1 status 0 lock 1 | 
+  ch2_dad_5302: seed 5302 target ch2_dad (Story/TREECKO) | reason 'play: done: ch2_dad reached' | frames 199479 | free_at_return True free_held False first_not_free 1 | input False | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | next change: frame +1 status 0 lock 1 | 
+
+== devab: development A/B from the probe's ch2_dad end states (old = pre-R5 tree, new = R5 tree)
+  new_5301: seed 5301 target ch2_dad (Trainer/TORCHIC) | reason 'play: done: ch2_dad reached' | frames 10997 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | settle {'played': 2, 'paused': 112, 'frames': 10997, 'stop': None, 'free': True} | 
+  new_5301_rounds4_superseded: seed 5301 target ch2_dad (Trainer/TORCHIC) | reason 'play: done: ch2_dad reached' | frames 10997 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | settle {'played': 2, 'paused': 112, 'frames': 10997, 'stop': None, 'free': True} | superseded (an earlier R5 tree, DONE_SETTLE_ROUNDS 4)
+  new_5302: seed 5302 target ch2_dad (Story/TREECKO) | reason 'play: done: ch2_dad reached' | frames 11078 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | settle {'played': 2, 'paused': 102, 'frames': 11078, 'stop': None, 'free': True} | 
+  new_5302_rounds4_superseded: seed 5302 target ch2_dad (Story/TREECKO) | reason 'play: done: ch2_dad reached' | frames 11078 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | settle {'played': 2, 'paused': 102, 'frames': 11078, 'stop': None, 'free': True} | superseded (an earlier R5 tree, DONE_SETTLE_ROUNDS 4)
+  old_5301: seed 5301 target ch2_dad (Trainer/TORCHIC) | reason 'play: done: ch2_dad reached' | frames 0 | free_at_return True free_held False first_not_free 1 | input False | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | next change: frame +1 status 0 lock 1 | 
+  old_5302: seed 5302 target ch2_dad (Story/TREECKO) | reason 'play: done: ch2_dad reached' | frames 0 | free_at_return True free_held False first_not_free 1 | input False | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | next change: frame +1 status 0 lock 1 | 
+
+== arms: REAL New Game controls (old = pre-R5 tree, new = R5 tree)
+  new_ch1_clock_5301: seed 5301 target ch1_clock (Trainer/TORCHIC) | reason 'play: done: ch1_clock reached' | frames 16502 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | settle {'played': 0, 'paused': 17, 'frames': 17, 'stop': None, 'free': True} | 
+  new_ch1_clock_5302: seed 5302 target ch1_clock (Story/TREECKO) | reason 'play: done: ch1_clock reached' | frames 16345 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | settle {'played': 0, 'paused': 16, 'frames': 16, 'stop': None, 'free': True} | 
+  new_ch1_pokedex_5303: seed 5303 target ch1_pokedex (Catcher/TORCHIC) | reason 'play: done: ch1_pokedex reached' | frames 125990 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | settle {'played': 0, 'paused': 26, 'frames': 26, 'stop': None, 'free': True} | 
+  old_ch1_pokedex_5303: seed 5303 target ch1_pokedex (Catcher/TORCHIC) | reason 'play: done: ch1_pokedex reached' | frames 125964 | free_at_return True free_held True first_not_free None | input True | AI nav_free at end True | at return: status 2 lock 0 box 0 cb2 CB2_Overworld | 
+
+==== s53/r5/build/probe/PROBE-CONCLUSION.md (sha256 be440e1f3f70a148f237e722f2b555ce83bbba4b28d82f5a00d2d07e5877113c, 6875 bytes; LF text sha256 be440e1f3f70a148f237e722f2b555ce83bbba4b28d82f5a00d2d07e5877113c) ====
+# R5 fixture probe: conclusion (builder, 2026-10-28, 9:04 PM to 9:31 PM Los Angeles time)
+
+**Verdict: NOT vacuous at `ch2_dad`. `ch1_clock` is vacuous.** On the pre-R5 tree, both `ch2_dad` runs from a real New
+Game ended `play: done: ch2_dad reached` on a screen that was free for exactly ONE frame. On the next frame WALLY's tutorial
+was running, and the game took no input. **The AI's own `nav_free` read that frame as free**, so the spec's settle, which
+runs only `if not nav_free(look)`, would NOT have changed these ends (see the build report, deviation 1).
+
+Every number below is copied from `SUMMARY.txt` (generated by `summarize.py` from the saved `PROBE` lines and `play.json`
+files) or from the named `.out` file.
+
+## How it was measured
+
+- **Driver.** `probe_end_screen.py run`. It runs the AI's play brain in-process, the way `ai_player/gates/play_harness.py`
+  `play` does: from `--fresh` (the title screen; the AI plays the intro itself), the cartridge clock pinned to
+  `rate_step5.GAME_CLOCK` and the wall clock set to `WALL_CLOCK`, with the personality and starter of `rate_step5.plan_of`.
+  It runs on a FROZEN copy of the pre-R5 `ai_player/` (`tree_pre/`, HEAD `714084b0`; `diff -rq` showed it identical to
+  the worktree before any edit). The emulator stops on the frame the brain returned: `play`'s loop breaks before
+  `run_single_frame`.
+- **The harness's own free read** (`game_screen`; it never uses the AI's `nav_free`, per PF-19). FREE means all of:
+  - `gMain.callback2 == CB2_Overworld` (raw RAM against the symbol table);
+  - `sGlobalScriptContextStatus == 2` (CONTEXT_SHUTDOWN);
+  - `sLockFieldControls == 0`;
+  - `sFieldMessageBoxMode == 0` and text printer 0 inactive.
+
+  It is read on the end frame and on each of 10 more frames run with NO input. `free_held` means free on all 11.
+- **A behavioural check** (`accepts_input`). In a throwaway copy of the end frame's state, the harness taps the direction
+  opposite the player's facing and runs 12 frames. The game took input if and only if the facing changed.
+- **Seeds.** Development seeds 5301-5304 were written in the worktree's seed ledger BEFORE any run: entry #43, family
+  `story`, purpose `development` (`ledger_begin.out`). The entry was closed with its verdict (`ledger_finish.out`). Seed
+  5304 was not played.
+
+## The free read can fail and pass (`selftest.out`, exit 0, `SELFTEST VERDICT: PASS`)
+
+The selftest has five cases. Each one is confirmed by the behavioural check.
+
+| Case | Read | Game took input? |
+|---|---|---|
+| `clock_room.ss1`, 30 frames in | free (status 2, lock 0) | yes (turned) |
+| "The clock is stopped" box, waiting for A | NOT free (status 0, lock 1, box 2, printer 0 active) | no |
+| MOM's "How do you like your room" box, with `FLAG_SET_WALL_CLOCK` = 1 | NOT free | no |
+| After MOM's scene, played out with A pressed only when the game waited for it | free | yes |
+| `route101_south.ss1`, 30 frames in | free | yes |
+
+The selftest's trace: the flag was first read set 331 frames after the harness began playing on from the "clock is
+stopped" box, with status 0 and lock 1 (not free). MOM's text waited 245 frames after that, and the screen freed 804
+frames after that.
+
+## The runs (pre-R5 tree, REAL New Game)
+
+| Run | End reason | Frames | Free at return | Free held | Next frame | Game took input | AI `nav_free` |
+|---|---|---|---|---|---|---|---|
+| `ch1_clock` 5301 | done: ch1_clock reached | 16,485 | True | True | free | yes | True |
+| `ch1_clock` 5302 | done: ch1_clock reached | 16,329 | True | True | free | yes | True |
+| `ch2_dad` 5301 | done: ch2_dad reached | 251,736 | True | **False** | +1: status 0, lock 1 | **no** | True |
+| `ch2_dad` 5302 | done: ch2_dad reached | 199,479 | True | **False** | +1: status 0, lock 1 | **no** | True |
+
+- **`ch1_clock` is vacuous.** The clock is set inside a `use` goal (`talk_to`, then `play_out`), which presses through
+  MOM's text before the loop reads the mark. Both logs read `goal use done: talked` before `MILESTONE ch1_clock done`.
+- **`ch2_dad` is not vacuous.** The sequence in both runs:
+  1. The `talk` goal to DAD returns `talked`.
+  2. The world memory logs `MAP PETALBURG_CITY_GYM -> PETALBURG_CITY ... (a scene, f251697)` for 5301 and `f199440` for
+     5302.
+  3. `MILESTONE ch2_dad done` comes 39 frames later (f251736 and f199479), on the warp exit's one free frame.
+- **WALLY's tutorial starts on the next frame.** `film_end.py` on 5302's end state (`runs/ch2_dad_5302/film.out`) shows
+  frame +1 with status 0 and lock 1. The screenshots `film/after_001.png`, `after_060.png` and `after_300.png` show the
+  player outside the gym, then WALLY's walk.
+- **The pinned decomp agrees.** `data/maps/PetalburgCity/scripts.inc` lists `PetalburgCity_OnFrame` with
+  `map_script_2 VAR_PETALBURG_CITY_STATE, 2, PetalburgCity_EventScript_WallyTutorial`. This confirms 03-game-facts
+  section 4.3 (d)'s prediction live.
+- **Not used as evidence:** the end-frame screenshots (`end_screen.png`) of both `ch2_dad` runs are black. Frame +1 shows
+  the city.
+
+**Stopped at the first non-vacuous target, as instructed.** `ch1_birch` and `ch1_starter` were not run.
+
+## Development A/B on this fixture (NOT the live proof)
+
+Both trees were started from each pre-R5 run's own end state (the one free frame) and its `world.jsonl`, with target
+`ch2_dad` (`devab/`).
+
+| Arm | Seed | End reason | Frames | Free held | Game took input | Settle |
+|---|---|---|---|---|---|---|
+| OLD (pre-R5) | 5301 | done: ch2_dad reached | 0 | False (+1: status 0, lock 1) | no | none |
+| OLD (pre-R5) | 5302 | done: ch2_dad reached | 0 | False (+1: status 0, lock 1) | no | none |
+| NEW (R5) | 5301 | done: ch2_dad reached | 10,997 | True | yes | played 2, paused 112 |
+| NEW (R5) | 5302 | done: ch2_dad reached | 11,078 | True | yes | played 2, paused 102 |
+
+- **Why two play-outs, not one.** NEW's first pause finds the tutorial. The tutorial's own warp back to the gym frees the
+  player for one frame before the gym's return scene (the gym's own ON_FRAME script), so the second pause finds that.
+  The third pause finds the gym free, after DAD's "Head for RUSTBORO CITY" speech.
+- NEW's end has `VAR_PETALBURG_GYM_STATE` = 2.
+- **Superseded runs.** The `*_rounds4_superseded` folders are the same runs on an earlier R5 tree (`DONE_SETTLE_ROUNDS`
+  4). They gave identical numbers.
+
+## Controls (REAL New Game, development)
+
+| Run | Frames | Free | Settle |
+|---|---|---|---|
+| NEW `ch1_clock` 5301 | 16,502 (= 16,485 + the 17-frame pause) | yes | played 0 |
+| NEW `ch1_clock` 5302 | 16,345 (= 16,329 + 16) | yes | played 0 |
+| OLD `ch1_pokedex` 5303 | 125,964 | yes | none |
+| NEW `ch1_pokedex` 5303 | 125,990 (= 125,964 + 26) | yes | played 0 |
+
+The trajectories before "done" match frame for frame. Each NEW/OLD pair is ONE trajectory, replayed (CLAUDE.md rule 8):
+this is a determinism check, not a replication.
+
+==== s53/r5/build/probe/selftest.out (sha256 e6021e0ebfd5f7dc9e60feb1cf9c7f1a492eff9b168323b588681ddf2d480bd7, 4710 bytes; LF text sha256 ba5adeca72a74ba52172554045e84dcbef0976d6ad560633257081f3ee0da1ff) ====
+started 09:03:54 PM
+SELFTEST {"cases": [{"case": "clock_room.ss1, 30 frames in, no input: free", "expect_free": true, "flag_set_wall_clock": 0, "frame": 12684, "read": {"free_at_return": true, "free_held": true, "first_not_free": null, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Left", "pressed": "Right", "facing_after": "Right", "turned": true}, "message_pages": "(not shown: the buffer holds the LAST message, stale on a free screen)", "ok": true}, {"case": "the wall clock's 'The clock is stopped' text box, waiting for A (no input)", "expect_free": false, "flag_set_wall_clock": 0, "frame": 12796, "read": {"free_at_return": false, "free_held": false, "first_not_free": 0, "after": 10, "held_buttons_released": 0, "at_return": {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 2, "printer0_active": 1, "printer0_state": 2, "fade": false}, "changes": [[0, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 2, "printer0_active": 1, "printer0_state": 2, "fade": false}]]}, "accepts_input": {"facing_before": "Up", "pressed": "Down", "facing_after": "Up", "turned": false}, "message_pages": ["The clock is stopped…", "Better set it and start it!"], "ok": true}, {"case": "MOM's 'How do you like your room' text box, FLAG_SET_WALL_CLOCK set, waiting for A", "expect_free": false, "flag_set_wall_clock": 1, "frame": 13372, "read": {"free_at_return": false, "free_held": false, "first_not_free": 0, "after": 10, "held_buttons_released": 0, "at_return": {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 2, "printer0_active": 1, "printer0_state": 2, "fade": false}, "changes": [[0, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 2, "printer0_active": 1, "printer0_state": 2, "fade": false}]]}, "accepts_input": {"facing_before": "Right", "pressed": "Left", "facing_after": "Right", "turned": false}, "message_pages": ["MOM: Rowan, how do you like your new room?", "Good! Everything’s put away neatly!", "They finished moving everything in downstairs, too.", "POKéMON movers are so convenient!"], "ok": true}, {"case": "after MOM's scene, played out with A only on a wait: free", "expect_free": true, "flag_set_wall_clock": 1, "frame": 14206, "read": {"free_at_return": true, "free_held": true, "first_not_free": null, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Right", "pressed": "Left", "facing_after": "Left", "turned": true}, "message_pages": "(not shown: the buffer holds the LAST message, stale on a free screen)", "ok": true}, {"case": "route101_south.ss1, 30 frames in, no input: free", "expect_free": true, "flag_set_wall_clock": 1, "frame": 66913, "read": {"free_at_return": true, "free_held": true, "first_not_free": null, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Up", "pressed": "Down", "facing_after": "Down", "turned": true}, "message_pages": "(not shown: the buffer holds the LAST message, stale on a free screen)", "ok": true}], "trace": [{"clock_text_waits_after_frames": 88}, {"flag_set_after_frames": 331, "screen_when_flag_first_read_set": {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}}, {"mom_text_waits_after_frames": 245}, {"free_after_frames": 804}], "ok": true}
+SELFTEST VERDICT: PASS
+exit=0
+ended 09:03:57 PM
+
+######## THE LEDGER (#43, begun before the first run)
+
+==== s53/r5/build/probe/ledger_begin.out (sha256 1fe4399f395f254b5e5bccd2d9f7d6e9dc9a66127321846ab4253319d91a7b85, 1283 bytes; LF text sha256 81c824441aca78b0a33cab66ff577f8dc2fc9b3bf73bfe1c1a78d2904fa7f0cc) ====
+ledger file: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ab039e6b-79e-1\ai_player\gates\ledger.json
+code: HEAD 714084b0; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+SEED LEDGER: DEVELOPMENT, seeds 5301-5304 (ledger entry #43): NOT a graded result; these seeds can never be graded now
+ENTRY {"id": 43, "family": "story", "driver": "r5_probe", "purpose": "development", "first": 5301, "last": 5304, "status": "started", "registered": null, "bounds_sha256": "59c9e7d33768ef030be15114127636afa6645a656aee5125ae2076f181e638c6", "tree": "53e0c26e7812db47", "started": "2026-10-28 21:04:43", "ended": null, "verdict": null, "evidence": null, "note": "R5 fixture probe (backlog R5, the free-screen precondition; build spec section 4, compute the discriminator first): does a run end \"done\" with the screen NOT free? AI_PLAYER_TARGET ch1_clock first (then ch2_dad, ch1_birch, ch1_starter while vacuous), the in-process play_harness play from --fresh, the cartridge clock pinned (rate_step5 GAME_CLOCK), on the PRE-R5 tree (HEAD 714084b0, a frozen copy of ai_player/), read at the end by the harness's own game-side free read (probe_end_screen.py, never the AI's nav_free). Development: not graded, never held-out."}
+exit=0
+
+==== s53/r5/build/probe/ledger_note.txt (sha256 6f4bc20cc80a77e185c5a7117665cbd6e6f1a45e05dca1e1de8601c3aee38ea6, 561 bytes; LF text sha256 6f4bc20cc80a77e185c5a7117665cbd6e6f1a45e05dca1e1de8601c3aee38ea6) ====
+R5 fixture probe (backlog R5, the free-screen precondition; build spec section 4, compute the discriminator first): does a run end "done" with the screen NOT free? AI_PLAYER_TARGET ch1_clock first (then ch2_dad, ch1_birch, ch1_starter while vacuous), the in-process play_harness play from --fresh, the cartridge clock pinned (rate_step5 GAME_CLOCK), on the PRE-R5 tree (HEAD 714084b0, a frozen copy of ai_player/), read at the end by the harness's own game-side free read (probe_end_screen.py, never the AI's nav_free). Development: not graded, never held-out.
+
+==== s53/r5/build/probe/ledger_verdict.txt (sha256 f70523991dfab1950bbb5d5fa62cbc83efacbef524fe867139341914f5f020d2, 800 bytes; LF text sha256 f70523991dfab1950bbb5d5fa62cbc83efacbef524fe867139341914f5f020d2) ====
+DEVELOPMENT, not graded. NOT VACUOUS at ch2_dad: on the pre-R5 tree, ch1_clock seeds 5301 and 5302 ended done on a FREE screen (the harness's own read held 10 frames; a tapped direction turned the player), while ch2_dad seeds 5301 and 5302 ended done on a ONE-frame free read 39 frames after DAD's warp to PETALBURG CITY: on the next frame WALLY's tutorial runs (script status 0, field controls locked) and the game takes no input, though the AI's own nav_free reads that frame free. R5 development checks on the same seeds: from those end states the pre-R5 tree ends done at once (not free) and the R5 tree ends done after playing the tutorial out (10,997 and 11,078 frames, free); R5 on ch1_clock 5301/5302 and ch1_pokedex 5303 (both trees) ends free with nothing played out. Seed 5304 not played.
+
+==== s53/r5/build/probe/ledger_finish.out (sha256 84906f2ba96f334925700637dfb0bb69bac718414da83f3ce760a04ea2c23a94, 950 bytes; LF text sha256 bee5481ac864e637f5492b22f1d20409938be3c288d4c3e4af8f85dd69f602cc) ====
+ledger file: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ab039e6b-79e-1\ai_player\gates\ledger.json
+finished entry #43: DEVELOPMENT, not graded. NOT VACUOUS at ch2_dad: on the pre-R5 tree, ch1_clock seeds 5301 and 5302 ended done on a FREE screen (the harness's own read held 10 frames; a tapped direction turned the player), while ch2_dad seeds 5301 and 5302 ended done on a ONE-frame free read 39 frames after DAD's warp to PETALBURG CITY: on the next frame WALLY's tutorial runs (script status 0, field controls locked) and the game takes no input, though the AI's own nav_free reads that frame free. R5 development checks on the same seeds: from those end states the pre-R5 tree ends done at once (not free) and the R5 tree ends done after playing the tutorial out (10,997 and 11,078 frames, free); R5 on ch1_clock 5301/5302 and ch1_pokedex 5303 (both trees) ends free with nothing played out. Seed 5304 not played.
+exit=0
+
+######## THE RUNS ON THE PRE-R5 TREE (REAL New Games: the fixture probe)
+
+==== s53/r5/build/probe/runs/ch1_clock_5301/probe.out (sha256 696cfe79286c03eed743404b36be81e5a0dd1c0105affbdf87a8af68df615b6f, 4967 bytes; LF text sha256 4459b3a959470b80c26a658ff9b993fad2a384d652998555f7af0d3f29096db4) ====
+started 09:04:57 PM (LA)
+PROBE {"seed": 5301, "target": "ch1_clock", "personality": "Trainer", "starter": "TORCHIC", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\tree_pre", "reason": "play: done: ch1_clock reached", "frames": 16485, "seconds": 18.0, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 16485, "frame_budget": 300011, "wall_clock_seconds": null}, "end_screen": {"free_at_return": true, "free_held": true, "first_not_free": null, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Left", "pressed": "Right", "facing_after": "Right", "turned": true}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["MOM: Wren, how do you like your new room?", "Good! Everything’s put away neatly!", "They finished moving everything in downstairs, too.", "POKéMON movers are so convenient!", "Oh, you should make sure that everything’s all there on your desk."], "screenshot": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch1_clock_5301\\end_screen.png", "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch1_clock_5301\\end_state.ss1", "end_state_md5": "57c01f442474825f5ce90fd48895a4af", "end_map": [1, 3], "end_pos": [3, 2], "end_game_state": "OVERWORLD", "marks_at_end": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "VAR_LITTLEROOT_INTRO_STATE": 6}, "milestones": ["ch1_intro", "ch1_truck", "ch1_mom", "ch1_clock"], "last_lines": ["[AI-HANDS] [AI-GOALS] goal use: Set the wall clock in the player's room: the new wall clock on the wall of the player's room at (3, 1) (milestone ch1_clock, personality Trainer)", "[AI-WORLD] intent 'walk to (3, 2)': budget 4000 frames; on LITTLEROOT_TOWN_MAYS_HOUSE_2F at (1, 2); 900 tiles known on 4 maps", "[AI-WORLD] go to the goto at (3, 2): walk to (3, 2) (score 0.0)", "[AI-HANDS] [AI-GOALS] goal use done: talked", "[AI-HANDS] [AI-GOALS] MILESTONE ch1_clock done at f16485 (Set the wall clock in the player's room): SET_WALL_CLOCK=1", "[AI-HANDS] [AI-GOALS] the story is at ch1_rival_house (Next door: meet the rival in the rival's house); proofs now: VAR_LITTLEROOT_RIVAL_STATE=0 (>= 3)", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] [AI-GOALS] the end (done: ch1_clock reached); milestones ['ch1_intro', 'ch1_truck', 'ch1_mom', 'ch1_clock']; before the fights {}; roams 0, heals [], shopping [], items [], battles lost 0, personality [], favourite Heracross; progress resets 4; waits on a press {'stretches': 76, 'longest': 150, 'longest_at': 2481, 'longest_what': 'a text waits for a press (text printer 0 CLEAR)', 'noted': 38}; pressing with nothing new {'stretches': 19, 'longest': 86, 'longest_at': 9558, 'longest_presses': 2, 'noted': 0}; curiosity that brought nothing {'goals': 1, 'frames': 39}", "[AI-WORLD] memory at the end: 4 maps (INSIDE_OF_TRUCK 202 tiles 0 bumped, LITTLEROOT_TOWN 217 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 301 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 202 tiles 0 bumped), 922 tiles learned, 8 warp links, 0 connections, 3 map changes", "[AI-WORLD] navigator: 16 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 6 scenes, 5 decisions (0 detours, 0 carried on); 4 maps, 922 tiles learned", "[AI-HANDS] outcome='done: ch1_clock reached' presses=114 frames=16485 looks=10038 records=442", "[AI-HANDS] presses by gate: {'A:clock reads 10': 1, 'A:gender cursor on 1': 1, 'A:keyboard': 5, 'A:main_menu cursor on 0': 1, 'A:script waitbuttonpress': 5, 'A:talk': 1, 'A:task Task_NewGameBirchSpeech_WaitPressBe': 1, 'A:text printer 0 CLEAR': 29, 'A:text printer 0 SCROLL_START': 6, 'A:yes_no cursor on 0': 2, 'Down:gender cursor on 0': 1, 'Down:keyboard': 4, 'Left:keep walking left': 4, 'Left:keyboard': 4, 'Left:walk left': 4, 'Right:keep walking right': 7, 'Right:keyboard': 5, 'Right:use the warp at': 4, 'Right:walk right': 7, 'Select:keyboard': 1, 'Start:keyboard': 1, \"Start:the intro movie / the title's animation\": 2, 'Start:the title screen': 1, 'Up:keep walking up': 4, 'Up:keyboard': 2, 'Up:turn up to face the sign at': 1, 'Up:use the door at': 4, 'Up:walk up': 5, 'Up:yes_no cursor on 1': 1}"]}
+exit=0
+ended 09:05:17 PM (LA)
+
+==== s53/r5/build/probe/runs/ch1_clock_5302/probe.out (sha256 d45ee97443c6583773a9d4ce25bc78f5d0b09a16cc354cdc4f77dc8afd5213e9, 4939 bytes; LF text sha256 5c864b565ccb507a09514df4a109c4bed649e1658ce45d05d2fdfd6d9f84ca62) ====
+started 09:04:58 PM (LA)
+PROBE {"seed": 5302, "target": "ch1_clock", "personality": "Story", "starter": "TREECKO", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\tree_pre", "reason": "play: done: ch1_clock reached", "frames": 16329, "seconds": 17.6, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 16329, "frame_budget": 300011, "wall_clock_seconds": null}, "end_screen": {"free_at_return": true, "free_held": true, "first_not_free": null, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Right", "pressed": "Left", "facing_after": "Left", "turned": true}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["MOM: Kai, how do you like your new room?", "Good! Everything’s put away neatly!", "They finished moving everything in downstairs, too.", "POKéMON movers are so convenient!", "Oh, you should make sure that everything’s all there on your desk."], "screenshot": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch1_clock_5302\\end_screen.png", "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch1_clock_5302\\end_state.ss1", "end_state_md5": "761109d1644c7a415ed60bffd2803007", "end_map": [1, 1], "end_pos": [5, 2], "end_game_state": "OVERWORLD", "marks_at_end": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "VAR_LITTLEROOT_INTRO_STATE": 6}, "milestones": ["ch1_intro", "ch1_truck", "ch1_mom", "ch1_clock"], "last_lines": ["[AI-HANDS] [AI-GOALS] goal use: Set the wall clock in the player's room: the new wall clock on the wall of the player's room at (5, 1) (milestone ch1_clock, personality Story)", "[AI-WORLD] intent 'walk to (5, 2)': budget 4000 frames; on LITTLEROOT_TOWN_BRENDANS_HOUSE_2F at (7, 2); 854 tiles known on 4 maps", "[AI-WORLD] go to the goto at (5, 2): walk to (5, 2) (score 0.0)", "[AI-HANDS] [AI-GOALS] goal use done: talked", "[AI-HANDS] [AI-GOALS] MILESTONE ch1_clock done at f16329 (Set the wall clock in the player's room): SET_WALL_CLOCK=1", "[AI-HANDS] [AI-GOALS] the story is at ch1_rival_house (Next door: meet the rival in the rival's house); proofs now: VAR_LITTLEROOT_RIVAL_STATE=0 (>= 3)", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] [AI-GOALS] the end (done: ch1_clock reached); milestones ['ch1_intro', 'ch1_truck', 'ch1_mom', 'ch1_clock']; before the fights {}; roams 0, heals [], shopping [], items [], battles lost 0, personality [], favourite Slakoth; progress resets 4; waits on a press {'stretches': 72, 'longest': 150, 'longest_at': 2506, 'longest_what': 'a text waits for a press (text printer 0 CLEAR)', 'noted': 38}; pressing with nothing new {'stretches': 14, 'longest': 111, 'longest_at': 9445, 'longest_presses': 2, 'noted': 0}; curiosity that brought nothing {'goals': 1, 'frames': 30}", "[AI-WORLD] memory at the end: 4 maps (INSIDE_OF_TRUCK 202 tiles 0 bumped, LITTLEROOT_TOWN 217 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 255 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 202 tiles 0 bumped), 876 tiles learned, 8 warp links, 0 connections, 3 map changes", "[AI-WORLD] navigator: 8 steps, 0 bumps, 0 people in the way, 2 exits used, 0 battles, 6 scenes, 4 decisions (1 detours, 0 carried on); 4 maps, 876 tiles learned", "[AI-HANDS] outcome='done: ch1_clock reached' presses=94 frames=16329 looks=9972 records=415", "[AI-HANDS] presses by gate: {'A:clock reads 10': 1, 'A:gender cursor on 0': 1, 'A:keyboard': 4, 'A:main_menu cursor on 0': 1, 'A:script waitbuttonpress': 5, 'A:talk': 1, 'A:task Task_NewGameBirchSpeech_WaitPressBe': 1, 'A:text printer 0 CLEAR': 29, 'A:text printer 0 SCROLL_START': 6, 'A:yes_no cursor on 0': 2, 'Down:keyboard': 2, 'Left:keep walking left': 2, 'Left:keyboard': 4, 'Left:walk left': 2, 'Right:keep walking right': 1, 'Right:keyboard': 6, 'Right:use the warp at': 4, 'Right:walk right': 1, 'Select:keyboard': 1, 'Start:keyboard': 1, \"Start:the intro movie / the title's animation\": 2, 'Start:the title screen': 1, 'Up:keep walking up': 4, 'Up:keyboard': 1, 'Up:turn up to face the sign at': 1, 'Up:use the door at': 4, 'Up:walk up': 5, 'Up:yes_no cursor on 1': 1}"]}
+exit=0
+ended 09:05:17 PM (LA)
+
+==== s53/r5/build/probe/runs/ch2_dad_5301/probe.out (sha256 68cfaa42167bb64d21ad1e879c638503c99bec50fc62fa6bb6050e71d438abb3, 8940 bytes; LF text sha256 9a21cc8997a771ef3ab6c0e04305d895b129a13f111cbc2dd1f2fab72a14e52d) ====
+started 09:06:21 PM (LA)
+PROBE {"seed": 5301, "target": "ch2_dad", "personality": "Trainer", "starter": "TORCHIC", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\tree_pre", "reason": "play: done: ch2_dad reached", "frames": 251736, "seconds": 349.3, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 251736, "frame_budget": 600011, "wall_clock_seconds": null}, "end_screen": {"free_at_return": true, "free_held": false, "first_not_free": 1, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}], [1, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Down", "pressed": "Up", "facing_after": "Down", "turned": false}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["Wren… Would you really come with me?"], "screenshot": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5301\\end_screen.png", "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5301\\end_state.ss1", "end_state_md5": "aa84424595ed27a219489bf86539c411", "end_map": [0, 0], "end_pos": [15, 9], "end_game_state": "OVERWORLD", "marks_at_end": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 1}, "milestones": ["ch1_intro", "ch1_truck", "ch1_mom", "ch1_clock", "ch1_rival_house", "ch1_birch", "ch1_starter", "ch1_lab", "ch1_rival_route103", "ch1_pokedex", "ch2_oldale", "ch2_route102", "ch2_petalburg", "ch2_dad"], "last_lines": ["[AI-WORLD] intent 'walk to (4, 108)': budget 4000 frames; on PETALBURG_CITY_GYM at (4, 111); 8015 tiles known on 17 maps", "[AI-WORLD] go to the goto at (4, 108): walk to (4, 108) (score 0.0)", "[AI-HANDS] [AI-GOALS] goal talk done: talked", "[AI-WORLD] MAP PETALBURG_CITY_GYM -> PETALBURG_CITY at (15, 8): the warp at (4, 111) (a scene, f251697); 796 tiles of it known", "[AI-HANDS] [AI-GOALS] MILESTONE ch2_dad done at f251736 (DAD at the PETALBURG GYM: talk to him (WALLY walks in)): HIDE_PETALBURG_CITY_WALLYS_MOM=1", "[AI-HANDS] [AI-GOALS] the story is at ch2_wally (WALLY's catching tutorial, back in the gym); proofs now: VAR_PETALBURG_GYM_STATE=1 (>= 2)", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] [AI-GOALS] the end (done: ch2_dad reached); milestones ['ch1_intro', 'ch1_truck', 'ch1_mom', 'ch1_clock', 'ch1_rival_house', 'ch1_birch', 'ch1_starter', 'ch1_lab', 'ch1_rival_route103', 'ch1_pokedex', 'ch2_oldale', 'ch2_route102', 'ch2_petalburg', 'ch2_dad']; before the fights {'ch1_rival_route103': {'steps': 172, 'sessions': 2, 'wild': 9, 'won': 9, 'rests': 1, 'ready': True, 'why_ready': 'trained', 'judged_by': 'Trainer', 'min_steps': 150}, 'ch1_pokedex': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}, 'ch2_route102': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}, 'ch2_petalburg': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}, 'ch2_dad': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}}; roams 4, heals ['healed', 'healed', 'healed'], shopping [\"POKé BALL x5: POKé BALL is not for sale here: ('POTION', 'ANTIDOTE', 'PARLYZ HEAL', 'AWAKENING', 'CANCEL'); POTION x2: bought\", \"POKé BALL x5: POKé BALL is not for sale here: ('POTION', 'ANTIDOTE', 'PARLYZ HEAL', 'AWAKENING', 'CANCEL'); POTION x2: bought\", 'POKé BALL x5: bought; POTION x2: bought'], items [\"ROUTE102 (11, 15): picked up: 'Wren put away the POTION in the ITEMS POCKET.'; balls + healing items 14 -> 15\"], battles lost 0, personality [], favourite Heracross; progress resets 29; waits on a press {'stretches': 799, 'longest': 150, 'longest_at': 2481, 'longest_what': 'a text waits for a press (text printer 0 CLEAR)', 'noted': 364}; pressing with nothing new {'stretches': 663, 'longest': 1308, 'longest_at': 115902, 'longest_presses': 135, 'noted': 5}; curiosity that brought nothing {'goals': 5, 'frames': 8874}", "[AI-WORLD] memory at the end: 17 maps (INSIDE_OF_TRUCK 202 tiles 0 bumped, LITTLEROOT_TOWN 803 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 308 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 228 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 371 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 273 tiles 0 bumped, ROUTE101 874 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 288 tiles 0 bumped, OLDALE_TOWN 759 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 248 tiles 0 bumped, ROUTE103 581 tiles 0 bumped, OLDALE_TOWN_MART 219 tiles 0 bumped, OLDALE_TOWN_HOUSE2 214 tiles 0 bumped, ROUTE102 1449 tiles 0 bumped, OLDALE_TOWN_HOUSE1 237 tiles 0 bumped, PETALBURG_CITY 796 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 8060 tiles learned, 35 warp links, 17 connections, 56 map changes", "[AI-WORLD] navigator: 1616 steps, 0 bumps, 6 people in the way, 32 exits used, 51 battles, 65 scenes, 315 decisions (18 detours, 84 carried on); 17 maps, 8060 tiles learned", "[AI-HANDS] outcome='done: ch2_dad reached' presses=4247 frames=251736 looks=165242 records=10238", "[AI-HANDS] presses by gate: {'A:bag cursor on 0': 3, 'A:bag_action cursor on 0': 3, 'A:battle level-up stats box': 16, 'A:battle_action cursor on 0': 87, 'A:battle_action cursor on 1': 3, 'A:battle_action cursor on 3': 6, 'A:battle_move cursor on 0': 55, 'A:battle_move cursor on 1': 5, 'A:battle_move cursor on 2': 3, 'A:battle_move cursor on 3': 23, 'A:battle_yes_no cursor on 1': 6, 'A:choose_starter cursor on 1': 1, 'A:clock reads 10': 1, 'A:gender cursor on 1': 1, 'A:keyboard': 5, 'A:main_menu cursor on 0': 1, 'A:mart_buy cursor on 0': 3, 'A:mart_buy cursor on 1': 1, 'A:mart_menu cursor on 0': 6, 'A:mart_menu cursor on 2': 6, 'A:mart_quantity reads x2, the number wante': 3, 'A:mart_quantity reads x5, the number wante': 1, 'A:script waitbuttonpress': 80, 'A:talk': 24, 'A:task Task_HandleCaughtMonPageInput': 3, 'A:task Task_NewGameBirchSpeech_WaitPressBe': 1, 'A:task Task_ReturnToItemListAfterItemPurch': 4, 'A:text printer 0 CLEAR': 307, 'A:text printer 0 SCROLL_START': 17, 'A:text printer 0 WAIT': 5, 'A:yes_no cursor on 0': 11, 'A:yes_no cursor on 1': 1, 'B:battle': 1, 'B:the item list is open': 7, 'Down:battle_action cursor on 1': 6, 'Down:battle_move cursor on 0': 3, 'Down:battle_move cursor on 1': 18, 'Down:battle_yes_no cursor on 0': 6, 'Down:gender cursor on 0': 1, 'Down:keep walking down': 343, 'Down:keyboard': 4, 'Down:mart_buy cursor on 0': 1, 'Down:mart_menu cursor on 0': 6, 'Down:mart_menu cursor on 1': 6, 'Down:roam down': 54, 'Down:turn down to face the item_ball': 1, 'Down:use the warp at': 56, 'Down:walk down': 308, 'Down:yes_no cursor on 0': 1, 'Left:battle_move cursor on 1': 2, 'Left:keep walking left': 474, 'Left:keyboard': 4, 'Left:roam left': 67, 'Left:walk left': 425, 'Right:bag': 1, 'Right:battle_action cursor on 0': 9, 'Right:battle_move cursor on 0': 21, 'Right:battle_move cursor on 2': 9, 'Right:keep walking right': 385, 'Right:keyboard': 5, 'Right:roam right': 85, 'Right:turn right to face the npc': 1, 'Right:use the warp at': 4, 'Right:walk right': 308, 'Select:keyboard': 1, 'Start:keyboard': 1, \"Start:the intro movie / the title's animation\": 2, 'Start:the title screen': 1, 'Up:keep walking up': 421, 'Up:keyboard': 2, 'Up:mart_quantity reads x1, wanted x2': 3, 'Up:mart_quantity reads x1, wanted x5': 1, 'Up:mart_quantity reads x2, wanted x5': 1, 'Up:mart_quantity reads x3, wanted x5': 1, 'Up:mart_quantity reads x4, wanted x5': 1, 'Up:roam up': 57, 'Up:turn up to face the npc': 8, 'Up:turn up to face the sign at': 1, 'Up:use the door at': 42, 'Up:walk up': 389, 'Up:yes_no cursor on 1': 1}"]}
+exit=0
+ended 09:12:12 PM (LA)
+
+==== s53/r5/build/probe/runs/ch2_dad_5302/probe.out (sha256 dd841fe48f2592f10cdabbe0b18af756a89466056178291853d56a81a8ce9ea9, 8622 bytes; LF text sha256 11b4e13e3afaf8bb8d0cb87e6c01f0c1816967014aa2d32bdf84f3c0d5431f37) ====
+started 09:06:22 PM (LA)
+PROBE {"seed": 5302, "target": "ch2_dad", "personality": "Story", "starter": "TREECKO", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\tree_pre", "reason": "play: done: ch2_dad reached", "frames": 199479, "seconds": 268.7, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 199479, "frame_budget": 600011, "wall_clock_seconds": null}, "end_screen": {"free_at_return": true, "free_held": false, "first_not_free": 1, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}], [1, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Down", "pressed": "Up", "facing_after": "Down", "turned": false}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["Kai… Would you really come with me?"], "screenshot": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5302\\end_screen.png", "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5302\\end_state.ss1", "end_state_md5": "9d6efe18f1a70cd921b70b2c923768c7", "end_map": [0, 0], "end_pos": [15, 9], "end_game_state": "OVERWORLD", "marks_at_end": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "TRAINER_MAY_ROUTE_103_TREECKO": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 1}, "milestones": ["ch1_intro", "ch1_truck", "ch1_mom", "ch1_clock", "ch1_rival_house", "ch1_birch", "ch1_starter", "ch1_lab", "ch1_rival_route103", "ch1_pokedex", "ch2_oldale", "ch2_route102", "ch2_petalburg", "ch2_dad"], "last_lines": ["[AI-WORLD] intent 'walk to (4, 108)': budget 4000 frames; on PETALBURG_CITY_GYM at (4, 111); 7107 tiles known on 15 maps", "[AI-WORLD] go to the goto at (4, 108): walk to (4, 108) (score 0.0)", "[AI-HANDS] [AI-GOALS] goal talk done: talked", "[AI-WORLD] MAP PETALBURG_CITY_GYM -> PETALBURG_CITY at (15, 8): the warp at (4, 111) (a scene, f199440); 788 tiles of it known", "[AI-HANDS] [AI-GOALS] MILESTONE ch2_dad done at f199479 (DAD at the PETALBURG GYM: talk to him (WALLY walks in)): HIDE_PETALBURG_CITY_WALLYS_MOM=1", "[AI-HANDS] [AI-GOALS] the story is at ch2_wally (WALLY's catching tutorial, back in the gym); proofs now: VAR_PETALBURG_GYM_STATE=1 (>= 2)", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] [AI-GOALS] the end (done: ch2_dad reached); milestones ['ch1_intro', 'ch1_truck', 'ch1_mom', 'ch1_clock', 'ch1_rival_house', 'ch1_birch', 'ch1_starter', 'ch1_lab', 'ch1_rival_route103', 'ch1_pokedex', 'ch2_oldale', 'ch2_route102', 'ch2_petalburg', 'ch2_dad']; before the fights {'ch1_rival_route103': {'steps': 127, 'sessions': 3, 'wild': 13, 'won': 13, 'rests': 3, 'ready': True, 'why_ready': 'trained', 'judged_by': 'Story', 'min_steps': 80}, 'ch1_pokedex': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}, 'ch2_route102': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}, 'ch2_petalburg': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}, 'ch2_dad': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}}; roams 5, heals ['healed', 'healed', 'healed', 'healed'], shopping [\"POKé BALL x5: POKé BALL is not for sale here: ('POTION', 'ANTIDOTE', 'PARLYZ HEAL', 'AWAKENING', 'CANCEL'); POTION x2: bought\", \"POKé BALL x5: POKé BALL is not for sale here: ('POTION', 'ANTIDOTE', 'PARLYZ HEAL', 'AWAKENING', 'CANCEL'); POTION x2: bought\", 'POKé BALL x5: bought; POTION x2: bought'], items [], battles lost 0, personality [], favourite Slakoth; progress resets 27; waits on a press {'stretches': 628, 'longest': 150, 'longest_at': 2506, 'longest_what': 'a text waits for a press (text printer 0 CLEAR)', 'noted': 295}; pressing with nothing new {'stretches': 519, 'longest': 1753, 'longest_at': 120868, 'longest_presses': 227, 'noted': 5}; curiosity that brought nothing {'goals': 1, 'frames': 30}", "[AI-WORLD] memory at the end: 15 maps (INSIDE_OF_TRUCK 202 tiles 0 bumped, LITTLEROOT_TOWN 756 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 303 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 218 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 306 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 357 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 245 tiles 0 bumped, ROUTE101 839 tiles 0 bumped, OLDALE_TOWN 743 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 260 tiles 0 bumped, ROUTE103 610 tiles 0 bumped, OLDALE_TOWN_MART 231 tiles 0 bumped, ROUTE102 1084 tiles 0 bumped, PETALBURG_CITY 788 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 7152 tiles learned, 28 warp links, 21 connections, 58 map changes", "[AI-WORLD] navigator: 1154 steps, 0 bumps, 4 people in the way, 32 exits used, 27 battles, 60 scenes, 139 decisions (19 detours, 101 carried on); 15 maps, 7152 tiles learned", "[AI-HANDS] outcome='done: ch2_dad reached' presses=3114 frames=199479 looks=130835 records=7436", "[AI-HANDS] presses by gate: {'A:bag cursor on 0': 2, 'A:bag_action cursor on 0': 2, 'A:battle level-up stats box': 12, 'A:battle_action cursor on 0': 66, 'A:battle_action cursor on 1': 2, 'A:battle_action cursor on 3': 2, 'A:battle_move cursor on 0': 49, 'A:battle_move cursor on 2': 14, 'A:battle_move cursor on 3': 3, 'A:battle_yes_no cursor on 1': 5, 'A:choose_starter cursor on 0': 1, 'A:clock reads 10': 1, 'A:gender cursor on 0': 1, 'A:keyboard': 4, 'A:main_menu cursor on 0': 1, 'A:mart_buy cursor on 0': 3, 'A:mart_buy cursor on 1': 1, 'A:mart_menu cursor on 0': 6, 'A:mart_menu cursor on 2': 6, 'A:mart_quantity reads x2, the number wante': 3, 'A:mart_quantity reads x5, the number wante': 1, 'A:script waitbuttonpress': 72, 'A:talk': 22, 'A:task Task_HandleCaughtMonPageInput': 2, 'A:task Task_NewGameBirchSpeech_WaitPressBe': 1, 'A:task Task_ReturnToItemListAfterItemPurch': 4, 'A:text printer 0 CLEAR': 240, 'A:text printer 0 SCROLL_START': 16, 'A:text printer 0 WAIT': 5, 'A:yes_no cursor on 0': 12, 'A:yes_no cursor on 1': 1, 'B:the item list is open': 8, 'Down:battle_action cursor on 1': 2, 'Down:battle_move cursor on 0': 13, 'Down:battle_move cursor on 1': 3, 'Down:battle_yes_no cursor on 0': 5, 'Down:keep walking down': 254, 'Down:keyboard': 2, 'Down:mart_buy cursor on 0': 1, 'Down:mart_menu cursor on 0': 6, 'Down:mart_menu cursor on 1': 6, 'Down:roam down': 36, 'Down:use the warp at': 56, 'Down:walk down': 232, 'Down:yes_no cursor on 0': 1, 'Left:battle_move cursor on 3': 2, 'Left:choose_starter cursor on 1': 1, 'Left:keep walking left': 325, 'Left:keyboard': 4, 'Left:roam left': 49, 'Left:walk left': 283, 'Right:bag': 1, 'Right:battle_action cursor on 0': 4, 'Right:battle_move cursor on 0': 3, 'Right:keep walking right': 249, 'Right:keyboard': 6, 'Right:roam right': 59, 'Right:use the warp at': 4, 'Right:walk right': 199, 'Select:keyboard': 1, 'Start:keyboard': 1, \"Start:the intro movie / the title's animation\": 2, 'Start:the title screen': 1, 'Up:battle_move cursor on 2': 3, 'Up:keep walking up': 325, 'Up:keyboard': 1, 'Up:mart_quantity reads x1, wanted x2': 3, 'Up:mart_quantity reads x1, wanted x5': 1, 'Up:mart_quantity reads x2, wanted x5': 1, 'Up:mart_quantity reads x3, wanted x5': 1, 'Up:mart_quantity reads x4, wanted x5': 1, 'Up:roam up': 37, 'Up:turn up to face the npc': 6, 'Up:turn up to face the sign at': 1, 'Up:use the door at': 42, 'Up:walk up': 312, 'Up:yes_no cursor on 1': 1}"]}
+exit=0
+ended 09:10:52 PM (LA)
+
+==== s53/r5/build/probe/runs/ch2_dad_5302/film.out (sha256 663c2b6e052e75d1f74e0a4ba0a08371ba329b6fb89c5d9c81026cd5255ba627, 703 bytes; LF text sha256 01f3e4ea640da3c8389b1afc9300b7c067bfdb43df6acc6fb3cc36e5bb7797b8) ====
+FRAME {"after": 0, "game_free": true, "status": 2, "lock": 0, "box": 0, "printer0": 0, "fade": false, "ai_nav_free": true, "ai_busy": null, "ai_fading": false, "text": null}
+FRAME {"after": 1, "game_free": false, "status": 0, "lock": 1, "box": 0, "printer0": 0, "fade": false, "ai_nav_free": false, "ai_busy": "watching: a scene plays (a script runs, the controls are locked)", "ai_fading": false, "text": null}
+FILM 301 frames; changes printed above; screenshots at [1, 2, 3, 5, 10, 20, 40, 60, 90, 120, 200, 300] in C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r5\build\probe\runs\ch2_dad_5302\film
+exit=0
+
+######## THE PRE-R5 TREE FROM THOSE END STATES, AND ITS ch1_pokedex CONTROL (seed 5303)
+
+==== s53/r5/build/probe/devab/old_5301/probe.out (sha256 c5621d7226d66015511f77452676c77a5dd421f892f5346ee818bc5cc9e66fbf, 6849 bytes; LF text sha256 62806166de503f88e5a3cc92a00dfcf978a0d758828bc3e5879c3a2c9b2a3fe7) ====
+started 09:23:25 PM (LA)
+arm=old tree=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/tree_pre start_state=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/runs/ch2_dad_5301/end_state.ss1 world_in=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/runs/ch2_dad_5301/run/world.jsonl
+PROBE {"seed": 5301, "target": "ch2_dad", "personality": "Trainer", "starter": "TORCHIC", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\tree_pre", "reason": "play: done: ch2_dad reached", "frames": 0, "seconds": 0.3, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 0, "frame_budget": 120011, "wall_clock_seconds": null}, "end_screen": {"free_at_return": true, "free_held": false, "first_not_free": 1, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}], [1, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Down", "pressed": "Up", "facing_after": "Down", "turned": false}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["Wren… Would you really come with me?"], "screenshot": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\devab\\old_5301\\end_screen.png", "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\devab\\old_5301\\end_state.ss1", "end_state_md5": "149f4d37160fbf55f2e66203fdfe0c79", "end_map": [0, 0], "end_pos": [15, 9], "end_game_state": "OVERWORLD", "marks_at_end": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 1}, "milestones": [], "last_lines": ["[AI-HANDS] brain=play seed=5301 (given) personality=Trainer (named by the run) faults=ungated_a:False,blind_count:False frames=120000", "[AI-WORLD] memory from the last snapshot of C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5301\\run\\world.jsonl: 17 maps (PETALBURG_CITY 796 tiles 0 bumped, OLDALE_TOWN 759 tiles 0 bumped, ROUTE101 874 tiles 0 bumped, ROUTE102 1449 tiles 0 bumped, ROUTE103 581 tiles 0 bumped, LITTLEROOT_TOWN 803 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 371 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 273 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 308 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 228 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 288 tiles 0 bumped, INSIDE_OF_TRUCK 202 tiles 0 bumped, OLDALE_TOWN_HOUSE1 237 tiles 0 bumped, OLDALE_TOWN_HOUSE2 214 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 248 tiles 0 bumped, OLDALE_TOWN_MART 219 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 8060 tiles learned, 35 warp links, 17 connections, 56 map changes; goal -; personality Trainer (weights Weights(frontier=1.0, road=2.0, door=0.8, back=0.15, grass=2.5, people=1.5, away=0.1, grass_cost=0.0))", "[AI-HANDS] play brain: target ch2_dad (DAD at the PETALBURG GYM: talk to him (WALLY walks in)); personality Trainer (errands Errands(train_margin=3, train_min_steps=150, train_session=150, catch_seek=0.45, catch_roam_steps=80, balls_low=5, balls_buy=5, heal_below=0.45, chat=0.3, potions_buy=2, look_around=0.7, look_frames=3600, detour=0.45, detour_frames=1500, bored_frames=10000)); favourite Pokemon Heracross (the shiny hunt is deferred); starter TORCHIC (the Trainer's taste {'TREECKO': 0.3, 'TORCHIC': 0.4, 'MUDKIP': 0.3}); faults no_hints:False,no_training:False,no_errands:False", "[AI-HANDS] [AI-GOALS] the story is at ch2_wally (WALLY's catching tutorial, back in the gym); proofs now: VAR_PETALBURG_GYM_STATE=1 (>= 2)", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] [AI-GOALS] the end (done: ch2_dad reached); milestones []; before the fights {}; roams 0, heals [], shopping [], items [], battles lost 0, personality [], favourite Heracross; progress resets 0; waits on a press {'stretches': 0, 'longest': 0, 'longest_at': None, 'longest_what': None, 'noted': 0}; pressing with nothing new {'stretches': 0, 'longest': 0, 'longest_at': None, 'longest_presses': None, 'noted': 0}; curiosity that brought nothing {'goals': 0, 'frames': 0}", "[AI-WORLD] memory at the end: 17 maps (PETALBURG_CITY 796 tiles 0 bumped, OLDALE_TOWN 759 tiles 0 bumped, ROUTE101 874 tiles 0 bumped, ROUTE102 1449 tiles 0 bumped, ROUTE103 581 tiles 0 bumped, LITTLEROOT_TOWN 803 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 371 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 273 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 308 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 228 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 288 tiles 0 bumped, INSIDE_OF_TRUCK 202 tiles 0 bumped, OLDALE_TOWN_HOUSE1 237 tiles 0 bumped, OLDALE_TOWN_HOUSE2 214 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 248 tiles 0 bumped, OLDALE_TOWN_MART 219 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 8060 tiles learned, 35 warp links, 17 connections, 56 map changes", "[AI-WORLD] navigator: 0 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 17 maps, 8060 tiles learned", "[AI-HANDS] outcome='done: ch2_dad reached' presses=0 frames=0 looks=4 records=9", "[AI-HANDS] presses by gate: {}"]}
+exit=0
+ended 09:23:27 PM (LA)
+
+==== s53/r5/build/probe/devab/old_5302/probe.out (sha256 1b6e2489367491e529ddaf703f065d5fcd561472293eba2fccc675d7f6669fb0, 6675 bytes; LF text sha256 6ed03687ca941b2164c231dd5cb422ba3190b23808d020ca0132458c374ccd03) ====
+started 09:23:24 PM (LA)
+arm=old tree=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/tree_pre start_state=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/runs/ch2_dad_5302/end_state.ss1 world_in=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/runs/ch2_dad_5302/run/world.jsonl
+PROBE {"seed": 5302, "target": "ch2_dad", "personality": "Story", "starter": "TREECKO", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\tree_pre", "reason": "play: done: ch2_dad reached", "frames": 0, "seconds": 0.3, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 0, "frame_budget": 120011, "wall_clock_seconds": null}, "end_screen": {"free_at_return": true, "free_held": false, "first_not_free": 1, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}], [1, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Down", "pressed": "Up", "facing_after": "Down", "turned": false}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["Kai… Would you really come with me?"], "screenshot": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\devab\\old_5302\\end_screen.png", "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\devab\\old_5302\\end_state.ss1", "end_state_md5": "7ed49d5dc7d516c79d169353375eab3b", "end_map": [0, 0], "end_pos": [15, 9], "end_game_state": "OVERWORLD", "marks_at_end": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "TRAINER_MAY_ROUTE_103_TREECKO": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 1}, "milestones": [], "last_lines": ["[AI-HANDS] brain=play seed=5302 (given) personality=Story (named by the run) faults=ungated_a:False,blind_count:False frames=120000", "[AI-WORLD] memory from the last snapshot of C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5302\\run\\world.jsonl: 15 maps (PETALBURG_CITY 788 tiles 0 bumped, OLDALE_TOWN 743 tiles 0 bumped, ROUTE101 839 tiles 0 bumped, ROUTE102 1084 tiles 0 bumped, ROUTE103 610 tiles 0 bumped, LITTLEROOT_TOWN 756 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 303 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 218 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 357 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 245 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 306 tiles 0 bumped, INSIDE_OF_TRUCK 202 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 260 tiles 0 bumped, OLDALE_TOWN_MART 231 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 7152 tiles learned, 28 warp links, 21 connections, 58 map changes; goal -; personality Story (weights Weights(frontier=1.0, road=4.0, door=0.8, back=0.15, grass=0.0, people=0.0, away=0.3, grass_cost=2.0))", "[AI-HANDS] play brain: target ch2_dad (DAD at the PETALBURG GYM: talk to him (WALLY walks in)); personality Story (errands Errands(train_margin=1, train_min_steps=80, train_session=100, catch_seek=0.3, catch_roam_steps=60, balls_low=4, balls_buy=5, heal_below=0.6, chat=0.18, potions_buy=2, look_around=0.55, look_frames=3000, detour=0.35, detour_frames=1200, bored_frames=12000)); favourite Pokemon Slakoth (the shiny hunt is deferred); starter TORCHIC (the Story's taste {'TREECKO': 0.3, 'TORCHIC': 0.35, 'MUDKIP': 0.35}); faults no_hints:False,no_training:False,no_errands:False", "[AI-HANDS] [AI-GOALS] the story is at ch2_wally (WALLY's catching tutorial, back in the gym); proofs now: VAR_PETALBURG_GYM_STATE=1 (>= 2)", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] [AI-GOALS] the end (done: ch2_dad reached); milestones []; before the fights {}; roams 0, heals [], shopping [], items [], battles lost 0, personality [], favourite Slakoth; progress resets 0; waits on a press {'stretches': 0, 'longest': 0, 'longest_at': None, 'longest_what': None, 'noted': 0}; pressing with nothing new {'stretches': 0, 'longest': 0, 'longest_at': None, 'longest_presses': None, 'noted': 0}; curiosity that brought nothing {'goals': 0, 'frames': 0}", "[AI-WORLD] memory at the end: 15 maps (PETALBURG_CITY 788 tiles 0 bumped, OLDALE_TOWN 743 tiles 0 bumped, ROUTE101 839 tiles 0 bumped, ROUTE102 1084 tiles 0 bumped, ROUTE103 610 tiles 0 bumped, LITTLEROOT_TOWN 756 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 303 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 218 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 357 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 245 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 306 tiles 0 bumped, INSIDE_OF_TRUCK 202 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 260 tiles 0 bumped, OLDALE_TOWN_MART 231 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 7152 tiles learned, 28 warp links, 21 connections, 58 map changes", "[AI-WORLD] navigator: 0 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 15 maps, 7152 tiles learned", "[AI-HANDS] outcome='done: ch2_dad reached' presses=0 frames=0 looks=4 records=9", "[AI-HANDS] presses by gate: {}"]}
+exit=0
+ended 09:23:26 PM (LA)
+
+==== s53/r5/build/probe/arms/old_ch1_pokedex_5303/probe.out (sha256 0f61af28a95141b34e0c0dfd92ad1a6a55a0c4b55eadf841286bd62499d1afcb, 7858 bytes; LF text sha256 d07ed45d26cda5135795ca5e133d0511e5961da71b903e2d40591dc69f991360) ====
+started 09:26:40 PM (LA)
+arm=old tree=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/tree_pre fresh New Game
+PROBE {"seed": 5303, "target": "ch1_pokedex", "personality": "Catcher", "starter": "TORCHIC", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\tree_pre", "reason": "play: done: ch1_pokedex reached", "frames": 125964, "seconds": 272.5, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 125964, "frame_budget": 300011, "wall_clock_seconds": null}, "end_screen": {"free_at_return": true, "free_held": true, "first_not_free": null, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Right", "pressed": "Left", "facing_after": "Left", "turned": true}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["BRENDAN: You know it’s more fun to have a whole bunch of POKéMON.", "I’m going to explore all over the place to find different POKéMON.", "If I find any cool POKéMON, you bet I’ll try to get them with POKé BALLS."], "screenshot": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\arms\\old_ch1_pokedex_5303\\end_screen.png", "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\arms\\old_ch1_pokedex_5303\\end_state.ss1", "end_state_md5": "8a8fd15557c11e0a175ee67ba6d9024b", "end_map": [1, 4], "end_pos": [6, 5], "end_game_state": "OVERWORLD", "marks_at_end": {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 1, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5}, "milestones": ["ch1_intro", "ch1_truck", "ch1_mom", "ch1_clock", "ch1_rival_house", "ch1_birch", "ch1_starter", "ch1_lab", "ch1_rival_route103", "ch1_pokedex", "ch2_oldale"], "last_lines": ["[AI-WORLD] go to the route at (7, 17) then use it pressing up: it leads toward the goal (1 link(s) known) (score 81.2)", "[AI-WORLD] MAP LITTLEROOT_TOWN -> LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB at (6, 12): the warp at (7, 16) (the AI, f119450); 270 tiles of it known", "[AI-HANDS] [AI-GOALS] goal go done: done: travel to LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB (861 steps, 0 bumps, 4 people in the way, 22 exits used, 19 battles, 42 scenes, 123 decisions (10 detours, 61 carried on); 12 maps, 5078 tiles learned)", "[AI-HANDS] [AI-GOALS] MILESTONE ch1_pokedex done at f125964 (Back to the lab: the POKéDEX from PROF. BIRCH): RECEIVED_POKEDEX_FROM_BIRCH=1, SYS_POKEDEX_GET=1, ADVENTURE_STARTED=1", "[AI-HANDS] [AI-GOALS] MILESTONE ch2_oldale done at f125964 (OLDALE TOWN (its mart sells POKé BALLS once the adventure has started)): VISITED_OLDALE_TOWN=1", "[AI-HANDS] [AI-GOALS] the story is at ch2_route102 (West of Oldale: ROUTE 102 and its trainers (open once the adventure has started)); proofs now: VISITED_PETALBURG_CITY=0", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] [AI-GOALS] the end (done: ch1_pokedex reached); milestones ['ch1_intro', 'ch1_truck', 'ch1_mom', 'ch1_clock', 'ch1_rival_house', 'ch1_birch', 'ch1_starter', 'ch1_lab', 'ch1_rival_route103', 'ch1_pokedex', 'ch2_oldale']; before the fights {'ch1_rival_route103': {'steps': 100, 'sessions': 1, 'wild': 7, 'won': 7, 'rests': 1, 'ready': True, 'why_ready': 'trained', 'judged_by': 'Catcher', 'min_steps': 100}, 'ch1_pokedex': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0, 'ready': False}}; roams 1, heals ['healed', 'healed'], shopping [\"POKé BALL x10: POKé BALL is not for sale here: ('POTION', 'ANTIDOTE', 'PARLYZ HEAL', 'AWAKENING', 'CANCEL'); POTION x1: bought\", \"POKé BALL x10: POKé BALL is not for sale here: ('POTION', 'ANTIDOTE', 'PARLYZ HEAL', 'AWAKENING', 'CANCEL'); POTION x1: bought\"], items [], battles lost 0, personality [], favourite Linoone; progress resets 16; waits on a press {'stretches': 394, 'longest': 150, 'longest_at': 2471, 'longest_what': 'a text waits for a press (text printer 0 CLEAR)', 'noted': 198}; pressing with nothing new {'stretches': 370, 'longest': 1354, 'longest_at': 50809, 'longest_presses': 134, 'noted': 5}; curiosity that brought nothing {'goals': 0, 'frames': 0}", "[AI-WORLD] memory at the end: 12 maps (INSIDE_OF_TRUCK 202 tiles 0 bumped, LITTLEROOT_TOWN 799 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 319 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 219 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 364 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 239 tiles 0 bumped, ROUTE101 876 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 270 tiles 0 bumped, OLDALE_TOWN 716 tiles 0 bumped, ROUTE103 597 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 247 tiles 0 bumped, OLDALE_TOWN_MART 230 tiles 0 bumped), 5078 tiles learned, 26 warp links, 9 connections, 37 map changes", "[AI-WORLD] navigator: 861 steps, 0 bumps, 4 people in the way, 22 exits used, 19 battles, 44 scenes, 123 decisions (10 detours, 61 carried on); 12 maps, 5078 tiles learned", "[AI-HANDS] outcome='done: ch1_pokedex reached' presses=2239 frames=125964 looks=78966 records=5097", "[AI-HANDS] presses by gate: {'A:battle level-up stats box': 8, 'A:battle_action cursor on 0': 35, 'A:battle_action cursor on 3': 6, 'A:battle_move cursor on 0': 34, 'A:battle_move cursor on 1': 1, 'A:choose_starter cursor on 1': 1, 'A:clock reads 10': 1, 'A:gender cursor on 1': 1, 'A:keyboard': 5, 'A:main_menu cursor on 0': 1, 'A:mart_buy cursor on 0': 2, 'A:mart_menu cursor on 0': 4, 'A:mart_menu cursor on 2': 4, 'A:mart_quantity reads x1, the number wante': 2, 'A:script waitbuttonpress': 47, 'A:talk': 17, 'A:task Task_NewGameBirchSpeech_WaitPressBe': 1, 'A:task Task_ReturnToItemListAfterItemPurch': 2, 'A:text printer 0 CLEAR': 162, 'A:text printer 0 SCROLL_START': 15, 'A:text printer 0 WAIT': 1, 'A:yes_no cursor on 0': 8, 'A:yes_no cursor on 1': 1, 'B:the item list is open': 4, 'Down:battle_action cursor on 1': 6, 'Down:gender cursor on 0': 1, 'Down:keep walking down': 226, 'Down:keyboard': 4, 'Down:mart_menu cursor on 0': 4, 'Down:mart_menu cursor on 1': 4, 'Down:roam down': 22, 'Down:turn down to face the npc': 1, 'Down:use the warp at': 36, 'Down:walk down': 219, 'Down:yes_no cursor on 0': 1, 'Left:battle_move cursor on 1': 1, 'Left:keep walking left': 198, 'Left:keyboard': 4, 'Left:roam left': 26, 'Left:walk left': 177, 'Right:battle_action cursor on 0': 6, 'Right:battle_move cursor on 0': 1, 'Right:keep walking right': 186, 'Right:keyboard': 5, 'Right:roam right': 37, 'Right:use the warp at': 4, 'Right:walk right': 156, 'Select:keyboard': 1, 'Start:keyboard': 1, \"Start:the intro movie / the title's animation\": 2, 'Start:the title screen': 1, 'Up:keep walking up': 247, 'Up:keyboard': 2, 'Up:roam up': 22, 'Up:turn up to face the npc': 2, 'Up:turn up to face the sign at': 1, 'Up:use the door at': 32, 'Up:walk up': 239, 'Up:yes_no cursor on 1': 1}"]}
+exit=0
+ended 09:31:14 PM (LA)
+
+######## THE SCRIPTS (the free read itself is committed: ai_player/gates/probe_end_screen.py)
+
+==== s53/r5/build/probe/run_probe.sh (sha256 32026f42c82140a83edcfd0b1ab34d9a094e89d273376b800da5d0e38668e008, 907 bytes; LF text sha256 32026f42c82140a83edcfd0b1ab34d9a094e89d273376b800da5d0e38668e008) ====
+#!/usr/bin/env bash
+# One R5 fixture-probe run on the FROZEN pre-R5 copy: run_probe.sh SEED TARGET [FRAMES]
+# Output: probe/runs/<target>_<seed>/probe.out (the PROBE line, the exit code, the 12-hour LA start/end times).
+P="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe"
+W="C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ab039e6b-79e-1"
+SEED="$1"; TARGET="$2"; FRAMES="${3:-300000}"
+OUT="$P/runs/${TARGET}_${SEED}"
+mkdir -p "$OUT"
+cd "$P" || exit 9
+{
+  date "+started %I:%M:%S %p (LA)"
+  AI_PLAYER_BUILD_ROOT="$W/sandbox-pokebot" PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 timeout 7200 \
+    py -3.12 probe_end_screen.py run --root "$P/tree_pre" --seed "$SEED" --target "$TARGET" --frames "$FRAMES" --out "$OUT"
+  echo "exit=$?"
+  date "+ended %I:%M:%S %p (LA)"
+} > "$OUT/probe.out" 2>&1
+
+==== s53/r5/build/probe/run_devab.sh (sha256 2c1f0ff19b6918ad985bc3f40434e53401a67f8c0855953ef9df3aca4ff80f80, 1334 bytes; LF text sha256 2c1f0ff19b6918ad985bc3f40434e53401a67f8c0855953ef9df3aca4ff80f80) ====
+#!/usr/bin/env bash
+# R5 DEVELOPMENT A/B on the measured fixture (NOT the orchestrator's live proof): run_devab.sh ARM SEED
+# ARM is old (tree_pre, HEAD 714084b0) or new (tree_new, the R5 worktree code). It starts the play brain, target ch2_dad,
+# from the PRE-R5 probe run's own end state for SEED (the one free frame before WALLY's tutorial) and that run's world
+# memory, and reads the end screen with the harness's own free read.
+P="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe"
+W="C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ab039e6b-79e-1"
+ARM="$1"; SEED="$2"
+TREE="$P/tree_pre"; [ "$ARM" = "new" ] && TREE="$P/tree_new"
+SRC="$P/runs/ch2_dad_${SEED}"
+OUT="$P/devab/${ARM}_${SEED}"
+mkdir -p "$OUT"
+cd "$P" || exit 9
+{
+  date "+started %I:%M:%S %p (LA)"
+  echo "arm=$ARM tree=$TREE start_state=$SRC/end_state.ss1 world_in=$SRC/run/world.jsonl"
+  AI_PLAYER_BUILD_ROOT="$W/sandbox-pokebot" PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 timeout 3600 \
+    py -3.12 probe_end_screen.py run --root "$TREE" --seed "$SEED" --target ch2_dad --frames 120000 \
+      --state "$SRC/end_state.ss1" --world-in "$SRC/run/world.jsonl" --out "$OUT"
+  echo "exit=$?"
+  date "+ended %I:%M:%S %p (LA)"
+} > "$OUT/probe.out" 2>&1
+
+==== s53/r5/build/probe/run_arm.sh (sha256 2afa6e5202aa49b0988dab8db275b3397e27c0455737fc79789626dc940869f2, 1038 bytes; LF text sha256 2afa6e5202aa49b0988dab8db275b3397e27c0455737fc79789626dc940869f2) ====
+#!/usr/bin/env bash
+# One R5 probe run from a REAL New Game on a chosen arm: run_arm.sh ARM SEED TARGET [FRAMES]
+# ARM is old (tree_pre, HEAD 714084b0) or new (tree_new, the R5 code). Output: probe/arms/<arm>_<target>_<seed>/probe.out
+P="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe"
+W="C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ab039e6b-79e-1"
+ARM="$1"; SEED="$2"; TARGET="$3"; FRAMES="${4:-300000}"
+TREE="$P/tree_pre"; [ "$ARM" = "new" ] && TREE="$P/tree_new"
+OUT="$P/arms/${ARM}_${TARGET}_${SEED}"
+mkdir -p "$OUT"
+cd "$P" || exit 9
+{
+  date "+started %I:%M:%S %p (LA)"
+  echo "arm=$ARM tree=$TREE fresh New Game"
+  AI_PLAYER_BUILD_ROOT="$W/sandbox-pokebot" PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 timeout 7200 \
+    py -3.12 probe_end_screen.py run --root "$TREE" --seed "$SEED" --target "$TARGET" --frames "$FRAMES" --out "$OUT"
+  echo "exit=$?"
+  date "+ended %I:%M:%S %p (LA)"
+} > "$OUT/probe.out" 2>&1
+
+==== s53/r5/build/probe/ledger_dev.py (sha256 7ea4cbcb4c620b36e1557e001c65b06d2e329756d3f963fed9b3ba1118276481, 2424 bytes; LF text sha256 7ea4cbcb4c620b36e1557e001c65b06d2e329756d3f963fed9b3ba1118276481) ====
+"""R5 fixture probe: write its DEVELOPMENT seed range in the worktree's seed ledger (`ai_player/gates/ledger.py`) BEFORE
+playing it, and close the entry after (ai_player/README.md: every sweep of the story family is written there).
+
+    py -3.12 ledger_dev.py --repo WORKTREE begin --first N --last M --note TEXT
+    py -3.12 ledger_dev.py --repo WORKTREE finish --id N --verdict TEXT --evidence PATH
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo", type=Path, required=True)
+    sub = parser.add_subparsers(dest="mode", required=True)
+    begin = sub.add_parser("begin")
+    begin.add_argument("--first", type=int, required=True)
+    begin.add_argument("--last", type=int, required=True)
+    begin.add_argument("--note-file", type=Path, required=True, help="a file holding the entry's note (USER RULING 29)")
+    finish = sub.add_parser("finish")
+    finish.add_argument("--id", type=int, required=True)
+    finish.add_argument("--verdict-file", type=Path, required=True, help="a file holding the verdict text")
+    finish.add_argument("--evidence", required=True)
+    args = parser.parse_args()
+    sys.path.insert(0, str(args.repo.resolve()))
+    from ai_player.gates import ledger
+    from ai_player.gates.provenance import line_digest, provenance
+    from ai_player.gates.rate_step5 import GAME_CLOCK, WALL_CLOCK
+
+    print(f"ledger file: {ledger.LEDGER}")
+    if args.mode == "begin":
+        numbers = {"driver": "r5_probe (probe_end_screen.py run)", "game_clock": GAME_CLOCK, "wall_clock": WALL_CLOCK,
+                   "after_frames": 10, "frames_ch1": 300000}
+        code = provenance(args.repo.resolve())
+        note = " ".join(args.note_file.read_text(encoding="utf-8").split())
+        entry, lines = ledger.begin("story", "r5_probe", "development", args.first, args.last,
+                                    ledger.numbers_sha256(numbers), line_digest(code), note=note)
+        print("code: " + code)
+        print("\n".join(lines))
+        print("ENTRY " + json.dumps(entry, ensure_ascii=False))
+        return 0
+    verdict = " ".join(args.verdict_file.read_text(encoding="utf-8").split())
+    ledger.finish(args.id, verdict, args.evidence)
+    print(f"finished entry #{args.id}: {verdict}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+==== s53/r5/build/probe/summarize.py (sha256 4f35d34a7c70a0a615c72d1d879df19a2a564dee918cb6dfd81c08a540177a94, 2463 bytes; LF text sha256 4f35d34a7c70a0a615c72d1d879df19a2a564dee918cb6dfd81c08a540177a94) ====
+"""One table of every R5 probe run, copied from the saved PROBE lines and play.json files (never from memory).
+
+    py -3.12 summarize.py  ->  prints the table (save it as probe/SUMMARY.txt)"""
+
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+GROUPS = [("runs", "PRE-R5 tree, REAL New Game (the fixture probe)"),
+          ("devab", "development A/B from the probe's ch2_dad end states (old = pre-R5 tree, new = R5 tree)"),
+          ("arms", "REAL New Game controls (old = pre-R5 tree, new = R5 tree)")]
+
+print("R5 probe runs: harness read at the frame the brain returned, then 10 frames with no input "
+      "(free_held = free on all 11); 'input' = a tapped direction turned the player in a throwaway copy of that frame")
+for group, title in GROUPS:
+    print(f"\n== {group}: {title}")
+    for folder in sorted((HERE / group).iterdir()):
+        out = folder / "probe.out"
+        if not out.is_file():
+            continue
+        text = out.read_text(encoding="utf-8", errors="replace")
+        line = next((l for l in text.splitlines() if l.startswith("PROBE {")), None)
+        if line is None:
+            print(f"  {folder.name}: NO PROBE LINE")
+            continue
+        data = json.loads(line[len("PROBE "):])
+        screen = data["end_screen"]
+        play = json.loads((folder / "play.json").read_text(encoding="utf-8"))
+        report = play.get("report") or {}
+        settle = report.get("settle")
+        at = screen["at_return"]
+        nxt = screen["changes"][1][1] if len(screen["changes"]) > 1 else None
+        print(f"  {folder.name}: seed {data['seed']} target {data['target']} ({data['personality']}/{data['starter']}) | "
+              f"reason {data['reason']!r} | frames {data['frames']} | free_at_return {screen['free_at_return']} "
+              f"free_held {screen['free_held']} first_not_free {screen['first_not_free']} | input {data['accepts_input'].get('turned')} "
+              f"| AI nav_free at end {data['ai_eyes_for_the_record']['nav_free']} | at return: status {at['script_status']} "
+              f"lock {at['lock']} box {at['box_mode']} cb2 {at['callback2']}"
+              + (f" | next change: frame +{screen['changes'][1][0]} status {nxt['script_status']} lock {nxt['lock']}" if nxt else "")
+              + (f" | settle {settle}" if settle is not None else "")
+              + f" | {('superseded (an earlier R5 tree, DONE_SETTLE_ROUNDS 4)' if 'superseded' in folder.name else '')}")
+
+==== s53/r5/build/probe/show_probe.py (sha256 cecca6d33c9b8bd454779f195c00b2ff1b46398de36b2ea4ac31f4b87374e2e4, 1882 bytes; LF text sha256 cecca6d33c9b8bd454779f195c00b2ff1b46398de36b2ea4ac31f4b87374e2e4) ====
+"""Print the key fields of probe runs' PROBE lines: show_probe.py OUT_DIR [OUT_DIR ...]"""
+
+import json
+import sys
+from pathlib import Path
+
+for folder in sys.argv[1:]:
+    text = (Path(folder) / "probe.out").read_text(encoding="utf-8", errors="replace")
+    line = next((l for l in text.splitlines() if l.startswith("PROBE {")), None)
+    print(f"===== {folder}")
+    if line is None:
+        print(text[-3000:])
+        continue
+    data = json.loads(line[len("PROBE "):])
+    screen = data["end_screen"]
+    print(f"seed {data['seed']} target {data['target']} ({data['personality']}, {data['starter']}): reason {data['reason']!r}; "
+          f"frames {data['frames']}; {data['seconds']} s; stop {data['stop']}")
+    print(f"END SCREEN (harness read): free_at_return {screen['free_at_return']}, free_held {screen['free_held']} "
+          f"(first_not_free {screen['first_not_free']} of {screen['after']} more frames, no input; held buttons released "
+          f"{screen['held_buttons_released']})")
+    print(f"  at return: {screen['at_return']}")
+    print(f"  changes: {screen['changes']}")
+    print(f"  the game takes input (a tapped direction turns the player): {data['accepts_input']}")
+    print(f"  the AI's own eyes (for the record): {data['ai_eyes_for_the_record']}")
+    print(f"  message pages: {data['message_pages']}")
+    print(f"  end map {data['end_map']} pos {data['end_pos']} state {data['end_game_state']}; milestones {data['milestones']}")
+    print(f"  marks set at end: {data['marks_at_end']}")
+    print("  last lines:")
+    for entry in data["last_lines"]:
+        print("    " + entry[:400])
+    print(f"  end state {data['end_state']} md5 {data['end_state_md5']}; screenshot {data['screenshot']}")
+    for extra in ("exit=", "started", "ended"):
+        print("  " + next((l for l in text.splitlines() if l.startswith(extra)), f"(no {extra} line)"))
+
+==== s53/r5/build/probe/film_end.py (sha256 2bd2f0f8a879e5c0ad9cf4dd00117d14d5287a0519f52457e78f4ff36ffbaa55, 3047 bytes; LF text sha256 2bd2f0f8a879e5c0ad9cf4dd00117d14d5287a0519f52457e78f4ff36ffbaa55) ====
+"""R5 probe: what follows a run's END frame, frame by frame, with NO input (test side).
+
+    py -3.12 film_end.py --root ROOT --state END_STATE --out DIR [--frames N]
+
+Loads the end state a probe run saved (the frame the brain returned), then runs N frames with no input, printing for each
+frame the harness's own free read (`probe_end_screen.game_screen`) beside the AI's own eyes (`nav_free`, `busy_reason`,
+`fading`, FOR THE RECORD ONLY), and saving a screenshot at a few frames. The frame index 1 is the first frame RUN after the
+end frame (a loaded state shows nothing until a frame is drawn)."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+
+def main() -> int:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--state", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--frames", type=int, default=120)
+    args = parser.parse_args()
+    from probe_end_screen import boot_at, game_screen
+
+    context = boot_at(args.root.resolve())
+    from ai_player.brain.navigator import nav_free
+    from ai_player.hands.dialogue import busy_reason
+    from ai_player.host.eyes import FrameworkEyes
+
+    emulator = context.emulator
+    emulator.load_save_state(args.state.read_bytes())
+    eyes = FrameworkEyes()
+    args.out.mkdir(parents=True, exist_ok=True)
+    shots = {1, 2, 3, 5, 10, 20, 40, 60, 90, 120, 200, 300}
+    rows = []
+    previous = None
+    for frame in range(0, args.frames + 1):
+        if frame > 0:
+            emulator.run_single_frame()
+        read = game_screen()
+        seen = eyes.look()
+        row = {"after": frame, "game_free": read["free"], "status": read["script_status"], "lock": read["lock"],
+               "box": read["box_mode"], "printer0": read["printer0_active"], "fade": read["fade"],
+               "ai_nav_free": nav_free(seen), "ai_busy": None if nav_free(seen) else busy_reason(seen),
+               "ai_fading": seen.screen.fading, "text": (seen.screen.text or "")[:60] if seen.screen.text else None}
+        key = {k: v for k, v in row.items() if k != "after"}
+        if key != previous:
+            print("FRAME " + json.dumps(row, ensure_ascii=False), flush=True)
+            previous = key
+        rows.append(row)
+        if frame in shots:
+            try:
+                emulator.get_screenshot().save(args.out / f"after_{frame:03d}.png")
+            except Exception as error:  # noqa: BLE001
+                print(f"(no screenshot at {frame}: {error})")
+    (args.out / "film.json").write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+    print(f"FILM {len(rows)} frames; changes printed above; screenshots at {sorted(shots)} in {args.out}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+

@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "ef6be952cbbf2886a78d965f5900d4d878aa0779",
+ "source_sha1_lf": "9ba3109f9ca5693c2027001805b181172a71bfff",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 346,
+  "sections": 347,
   "donot_candidates": 28,
   "sections_naming_user_rulings": 46
  },
@@ -5413,6 +5413,19 @@
    "rulings": [
     50
    ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-29-d6802c",
+   "date": "2026-10-29",
+   "line_start": 9855,
+   "line_end": 9869,
+   "title": "2026-10-29 — R5 (a free screen before \"done\"): what the settle chose, the rulings on the build's open questions, and where the build departs from its spec",
+   "rulings": [],
    "ruling_mentions": [],
    "slugs": [],
    "ki": [],

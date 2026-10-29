@@ -11,7 +11,10 @@ the bot is hard-coded.
 Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md` (sections 10
 and 11 win over 2-9) and `ai-agent/HUMAN-PLAY-DESIGN.md`.
 
-**Where it is now: build step 5.2, the verifier's SECOND round** (section "Step 5.2, the verifier's second round
+**Where it is now: backlog R5, a FREE SCREEN before "done"** (section "A free screen before 'done' (backlog R5, 2026-10-29)" below; tree `07ea150c30288b24`). A run whose target is reached plays out what is on screen before it
+ends, and every "done" and "stuck" end records its screen. Live A/B on held-out seeds 5361-5364 (ledger #49): PASS, 4 of 4.
+
+**Before that, build step 5.2, the verifier's SECOND round** (section "Step 5.2, the verifier's second round
 (2026-10-16)" below; final tree `7c385bbd906e0866`). Its one failure is fixed in the GAME's second path, the test side:
 a talk is new only with a PAGE the game never showed (OLDALE's footprints man's talk, the last two pages of his own scene,
 had been credited 20 times), the run's opening screen is no goal's yield, and both recorders read a wait by the
@@ -730,6 +733,52 @@ step-0.1 runs of 2026-10-07 (no digest line: they predate `provenance.py`) were 
 (`evidence/archive/no-digest/2026-10-07-step2-<ARM>.txt`, "archived in `evidence/archive/<digest>/`") now lead to
 `evidence/archive/INDEX.md`, where each such file has one line with the `git show <commit>:<path>` that prints it (git
 keeps every one: the tool deletes a file only when git tracks it unchanged).
+
+## A free screen before "done" (backlog R5, 2026-10-29)
+
+WHY. The play loop ended a run "done" on the pass's look, whatever was on screen: the target's proof can flip while a
+scene still plays. A person finishes what is on screen before putting the game down, and backlog R1's save is possible
+only on a free screen. MEASURED first (ledger #43, the tree before R5): `AI_PLAYER_TARGET=ch2_dad` ended "done" on a
+ONE-frame free read. DAD's warp to PETALBURG CITY frees the player for one frame, and WALLY's tutorial (the city's
+ON_FRAME script) locks the controls on the next. The AI's own `nav_free` reads that frame free.
+
+WHAT (`mode.py`):
+* `_settle_before_done`, called when the target's proof holds, before the done check (its two lines unchanged): at
+  most `DONE_SETTLE_ROUNDS` (6) rounds. A screen that is not free is PLAYED OUT (`play_out`), and the battles it lost
+  are counted (`_count_losses`). A free look gets the decision's pause (`Pacing.think`, 14-45 frames) and one more
+  look: one free look is not a free screen (LESSONS PL-18). A play-out that leaves the screen busy ends the settle.
+* The run still ends exactly `done: <target> reached` (`gates/live_step5.py`'s HONESTY check compares it). An end
+  that did not free is SAID: a tell, an `end_screen` note and the end record.
+* `_settle_frames`: the settle's frames are budget-aware. It stops while `DONE_BUDGET_MARGIN` (2) frames of
+  `settings.frames` are left and says so, so the budget never cuts a reached target into "stopped" (PL-19). A
+  MAX_LOSSES-th loss inside the settle ends it at once.
+* `_end_screen`: every end through `_play_end` ("done" and "stuck") records its screen in `report["end_screen"]`,
+  the end line and the end note: `free`
+  (`nav_free`), `held_by` and `frame`; for "done" also `played_out`, `settle_frames`, `paused`, `settle_stop` and
+  `passed` (the milestones the story passed meanwhile: a `ch2_dad` run's settle plays WALLY's tutorial and passes
+  `ch2_wally`). It is a guard for the reader, never evidence: it read every OLD end of the A/B free.
+  `report["milestones"]` is unchanged.
+
+THE PROOF:
+* Live A/B on the FINAL tree `07ea150c30288b24` (ledger #49; held-out seeds 5361-5364; target `ch2_dad` from a REAL
+  New Game, in-process, the clock pinned; OLD = revert mutant G347): PASS, 4 of 4 seeds counted. OLD ended "done"
+  with the screen NOT held free (the harness's own read over 10 more frames, and a tapped direction not taken). NEW
+  ended free in PETALBURG CITY GYM after 10,977-11,022 more frames, with the same exact strings. The PF-17 control
+  (#50, `ch1_pokedex`, seed 5365) ended free, the settle only its 35-frame pause. The first A/B (#45 and #46, tree
+  `29a5dc81286162ff`, before the fix round) also passed 4 of 4. Evidence: `evidence/2026-10-29-r5ab2-AB.txt`,
+  `2026-10-28-r5ab-AB.txt`, `2026-10-28-r5probe-PROBE.txt` and `2026-10-28-r5fix-REPLAY.txt`.
+* `gates/test_goals.py`: 233 tests, 17 of them R5's (`test_r5_*`; each guard has a FAULT test and a CONTROL). Revert mutants
+  G347-G373 are all CAUGHT; the full `revert_step5` reads 367 + 2 of 369.
+* The free read, `gates/probe_end_screen.py`: `run` plays one game and reads its end; `selftest` checks 5 cases (2
+  not free, 3 free), each confirmed by a tapped direction. TEST SIDE; it needs the emulator and the ROM, and no lane
+  runs it. `py -3.12 ai_player/gates/probe_end_screen.py selftest --root <repo> --fixtures ai_player/gates/fixtures
+  --out <dir>`, or `run --root <a frozen copy> --seed N --target T --out <dir> [--frames F]`.
+
+KNOWN LIMITS. The budget's cut and a capped loss inside the settle are proven in the unit harness only. A settle can
+end past a later milestone (`passed` names it). A run cut by the frame budget in ordinary play ("stopped: not finished
+within N frames", made by `_bounded`) still has no end record. rate_step5's R5.LOSE3_WORD and R5.STOP would expect the stop string
+where a capped loss inside a settle reads "done" (unreachable on today's targets; `06` 2026-10-29, D9). Decisions:
+`PROJECT KNOWLEDGE/06-DECISIONS-LOG.md` 2026-10-29; the build: `ai-research-notes/2026-10-28-R5-BUILD-REPORT.md`.
 
 ## Productive curiosity (build step 5.2)
 

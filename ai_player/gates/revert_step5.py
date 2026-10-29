@@ -1033,6 +1033,189 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                "                                      f\"training, level, new map, catch, item or heal; since "
                "{milestone.title})\")\n")],
              ["PlayLoopTests.test_patience_ends_goals_that_never_move_the_story"]),
+    # (R5, backlog item R5 "a FREE-SCREEN precondition", 2026-10-28) "done" waits for a free screen: each new call of the
+    # settle before "done" and of the end record, DELETED (LESSONS PF-2; the call census lists their sites)
+    "G347": (CAUGHT, "the run ends \"done\" on the pass's look whatever is on screen (the settle's call deleted)",
+             [(MODE, "                yield from self._settle_before_done(hands, nav, look, options.target, report)\n",
+               "                pass  # MUTANT G347\n")],
+             ["PlayLoopTests.test_r5_done_plays_out_the_screen_first",
+              "PlayLoopTests.test_r5_a_screen_that_will_not_free_still_ends_done_and_says_so",
+              "PlayLoopTests.test_r5_one_free_look_before_an_arrival_scene_is_not_a_free_screen"]),
+    "G348": (CAUGHT, "no end records the screen it ends on (`_end_screen`'s call deleted)",
+             [(MODE, "        screen = report[\"end_screen\"] = self._end_screen(hands, report, kind)\n",
+               "        screen = report[\"end_screen\"] = {}  # MUTANT G348\n")],
+             ["PlayLoopTests.test_r5_every_end_records_its_screen",
+              "PlayLoopTests.test_r5_done_on_a_free_screen_plays_nothing_out"]),
+    "G349": (CAUGHT, "one free look is taken for a free screen (the settle's decision pause and its second look deleted)",
+             # (R5's fix round) re-anchored on the pause block as the fix round wrote it (its frames handed on through
+             # `_settle_frames`, its budget cut said): the same deletion, the pause and the look after it
+             [(MODE, "            pause, before = hands.pad.think_frames(), hands.pad.frames\n"
+                     "            ended, _ = yield from self._settle_frames(hands, hands.pad.idle(\n"
+                     "                pause, f\"deciding to stop here, {target} reached: does a scene begin?\"))\n"
+                     "            paused += hands.pad.frames - before\n"
+                     "            look = hands.look()\n"
+                     "            if not ended:\n"
+                     "                cut, stop = True, f\"the run's frame budget ran out ({self.settings.frames} frames)\"\n"
+                     "                break\n"
+                     "            if nav_free(look):\n"
+                     "                break\n",
+               "            break  # MUTANT G349\n")],
+             ["PlayLoopTests.test_r5_one_free_look_before_an_arrival_scene_is_not_a_free_screen",
+              "PlayLoopTests.test_r5_done_on_a_free_screen_plays_nothing_out"]),
+    "G350": (CAUGHT, "a battle the settle before \"done\" lost is not counted (the settle's `_count_losses` call deleted)",
+             # (R5's fix round) re-anchored: the count's result is now read (the MAX_LOSSES stop, R5-F5)
+             [(MODE, "                lost = self._count_losses(hands, nav, report)\n",
+               "                lost = None  # MUTANT G350\n")],
+             ["PlayLoopTests.test_r5_a_battle_the_settle_lost_is_counted",
+              "PlayLoopTests.test_r5_the_last_allowed_loss_inside_the_settle_ends_it"]),
+    "G351": (CAUGHT, "the settle before \"done\" is unbounded (LESSONS PL-4: `DONE_SETTLE_ROUNDS` not applied)",
+             [(MODE, "        for _ in range(DONE_SETTLE_ROUNDS):\n", "        while True:  # MUTANT G351\n")],
+             ["PlayLoopTests.test_r5_the_settle_is_bounded"]),
+    # (R5's FIX ROUND, 2026-10-28) the adversarial review's findings (R5-F1, F2, F4, F5, F6) and the independent mutant
+    # sweep's 13 survivors (S04-S56), each now caught by its own assertion of `test_goals.py` PlayLoopTests (`test_r5_*`)
+    "G352": (CAUGHT, "the screen is never played out before \"done\" (the settle's `play_out` call deleted: the review's RV1)",
+             [(MODE, "                ended, stop = yield from self._settle_frames(hands, play_out(hands, nav,\n"
+                     "                                                                             f\"{target} reached: "
+                     "what is on screen first\"))\n",
+               "                ended, stop = True, None  # MUTANT G352\n")],
+             ["PlayLoopTests.test_r5_done_plays_out_the_screen_first",
+              "PlayLoopTests.test_r5_a_screen_that_will_not_free_still_ends_done_and_says_so",
+              "PlayLoopTests.test_r5_one_free_look_before_an_arrival_scene_is_not_a_free_screen",
+              "PlayLoopTests.test_r5_the_measured_ch2_dad_chain_takes_three_rounds",
+              "PlayLoopTests.test_r5_every_milestone_passed_a_box_is_played_out_first"]),
+    "G353": (CAUGHT, "an end on a screen that did not free is not SAID (the settle's tell and note deleted: the review's RV2)",
+             [(MODE, "            hands.tell(f\"[AI-GOALS] {target} reached, but the screen did not free",
+               "            (f\"[AI-GOALS] {target} reached, but the screen did not free"),
+              (MODE, "            hands.note(\"end_screen\", \"not free\", held, {",
+               "            (\"end_screen\", \"not free\", held, {")],
+             ["PlayLoopTests.test_r5_a_screen_that_will_not_free_still_ends_done_and_says_so",
+              "PlayLoopTests.test_r5_the_settle_is_bounded"]),
+    "G354": (CAUGHT, "the settle's bound below the MEASURED chain's three rounds (`DONE_SETTLE_ROUNDS` 2: the review's R5-F2, "
+                     "the sweep's S23)",
+             [(MODE, "DONE_SETTLE_ROUNDS = 6\n", "DONE_SETTLE_ROUNDS = 2  # MUTANT G354\n")],
+             ["PlayLoopTests.test_r5_the_measured_ch2_dad_chain_takes_three_rounds"]),
+    "G355": (CAUGHT, "no settle when no milestone is read (every required one passed: the sweep's S04)",
+             [(MODE, "            if milestone is None or index > target:\n"
+                     "                # (R5, backlog item R5: a FREE SCREEN",
+               "            if milestone is not None and index > target:  # MUTANT G355\n"
+               "                # (R5, backlog item R5: a FREE SCREEN")],
+             ["PlayLoopTests.test_r5_every_milestone_passed_a_box_is_played_out_first"]),
+    "G356": (CAUGHT, "the frame budget cuts a reached target's play-out into \"stopped\" (the play-out handed on with no "
+                     "budget guard: the review's R5-F1)",
+             [(MODE, "                ended, stop = yield from self._settle_frames(hands, play_out(hands, nav,\n"
+                     "                                                                             f\"{target} reached: "
+                     "what is on screen first\"))\n",
+               "                ended, stop = True, (yield from play_out(hands, nav, f\"{target} reached: what is on screen "
+               "first\"))  # MUTANT G356\n")],
+             ["PlayLoopTests.test_r5_the_frame_budget_never_cuts_a_reached_target_short_of_its_end"]),
+    "G357": (CAUGHT, "the frame budget cuts a reached target's decision pause into \"stopped\" (the pause handed on with no "
+                     "budget guard: R5-F1)",
+             [(MODE, "            ended, _ = yield from self._settle_frames(hands, hands.pad.idle(\n"
+                     "                pause, f\"deciding to stop here, {target} reached: does a scene begin?\"))\n",
+               "            ended, _ = True, (yield from hands.pad.idle(pause, f\"deciding to stop here, {target} reached: "
+               "does a scene begin?\"))  # MUTANT G357\n")],
+             ["PlayLoopTests.test_r5_the_frame_budget_cuts_the_decisions_pause_too"]),
+    "G358": (CAUGHT, "the settle fights on past MAX_LOSSES (its count's stop not heard: the review's R5-F5)",
+             [(MODE, "                if lost is not None:\n                    stop = lost\n                    break\n",
+               "                pass  # MUTANT G358\n")],
+             ["PlayLoopTests.test_r5_the_last_allowed_loss_inside_the_settle_ends_it"]),
+    "G359": (CAUGHT, "the milestones the settle's screens passed are not read (the review's R5-F6)",
+             [(MODE, "        passed = between(first, look) if between is not None else []\n",
+               "        passed = []  # MUTANT G359\n")],
+             ["PlayLoopTests.test_r5_the_settle_names_the_milestones_its_screens_passed"]),
+    "G360": (CAUGHT, "the end record reads the hands' LAST look, not a fresh one (the sweep's S37)",
+             [(MODE, "        seen = hands.look()\n        free = nav_free(seen)\n",
+               "        seen = hands.last  # MUTANT G360\n        free = nav_free(seen)\n")],
+             ["PlayLoopTests.test_r5_a_stuck_end_reads_the_screen_as_it_is_at_the_end"]),
+    "G361": (CAUGHT, "the end record is read AFTER the wait and push watchers close (the sweep's S56: R5's order unpinned)",
+             [(MODE, "        screen = report[\"end_screen\"] = self._end_screen(hands, report, kind)\n"
+                     "        # the losses are the LOOP's count (`_count_losses`, at the top of every pass and, since R5, after "
+                     "each screen the\n"
+                     "        # settle before \"done\" plays out), never recounted here: every way out of the loop leaves it "
+                     "after that count, with\n"
+                     "        # no battle in between, so a recount could only HIDE a loop that stopped counting (the step-5 "
+                     "verifier's round 2:\n"
+                     "        # with the loop's call removed, this recount made the sweep's \"the AI's battles lost == the "
+                     "game's\" pass 40 of 40).\n"
+                     "        # A disagreement is told, not mended.\n"
+                     "        logged = battles_lost(runner.nav.battle_log)\n"
+                     "        if logged != report[\"losses\"]:\n"
+                     "            hands.tell(f\"the loop counted {report['losses']} battles lost, but the battle log holds "
+                     "{logged}\")\n"
+                     "        waits = getattr(self, \"_waits\", None)\n"
+                     "        if waits is not None:\n"
+                     "            waits.finish()\n"
+                     "            report[\"waits\"] = waits.summary()\n"
+                     "        pushes = getattr(self, \"_pushes\", None)\n"
+                     "        if pushes is not None:\n"
+                     "            # (build step 5.2) the longest free stretch of presses that brought nothing new\n"
+                     "            pushes.wind_up()\n"
+                     "            report[\"pushes\"] = pushes.push_report()\n",
+               "        logged = battles_lost(runner.nav.battle_log)\n"
+               "        if logged != report[\"losses\"]:\n"
+               "            hands.tell(f\"the loop counted {report['losses']} battles lost, but the battle log holds {logged}\")\n"
+               "        waits = getattr(self, \"_waits\", None)\n"
+               "        if waits is not None:\n"
+               "            waits.finish()\n"
+               "            report[\"waits\"] = waits.summary()\n"
+               "        pushes = getattr(self, \"_pushes\", None)\n"
+               "        if pushes is not None:\n"
+               "            pushes.wind_up()\n"
+               "            report[\"pushes\"] = pushes.push_report()\n"
+               "        screen = report[\"end_screen\"] = self._end_screen(hands, report, kind)  # MUTANT G361\n")],
+             ["PlayLoopTests.test_r5_the_end_look_closes_the_wait_record"]),
+    "G362": (CAUGHT, "the settle's record of its frames is always 0 (the sweep's S26)",
+             [(MODE, "\"frames\": hands.pad.frames - began, \"stop\": stop,", "\"frames\": 0, \"stop\": stop,")],
+             ["PlayLoopTests.test_r5_done_plays_out_the_screen_first",
+              "PlayLoopTests.test_r5_done_on_a_free_screen_plays_nothing_out"]),
+    "G363": (CAUGHT, "the settle's record always says the screen freed (the sweep's S27)",
+             [(MODE, "\"free\": free, \"budget\": cut,", "\"free\": True, \"budget\": cut,")],
+             ["PlayLoopTests.test_r5_a_screen_that_will_not_free_still_ends_done_and_says_so"]),
+    "G364": (CAUGHT, "what holds the screen is not said when it did not free (`busy_reason` not read: the sweep's S35)",
+             [(MODE, "            held = busy_reason(look)\n"
+                     "            hands.tell(f\"[AI-GOALS] {target} reached, but the screen did not free",
+               "            held = None  # MUTANT G364\n"
+               "            hands.tell(f\"[AI-GOALS] {target} reached, but the screen did not free")],
+             ["PlayLoopTests.test_r5_a_screen_that_will_not_free_still_ends_done_and_says_so"]),
+    "G365": (CAUGHT, "the end record has no frame (the sweep's S40)",
+             [(MODE, "\"frame\": seen.frame}", "\"frame\": None}")],
+             ["PlayLoopTests.test_r5_the_end_record_carries_the_end_frame",
+              "PlayLoopTests.test_r5_the_end_look_closes_the_wait_record"]),
+    "G366": (CAUGHT, "the end record has no settle frames (the sweep's S45)",
+             [(MODE, "settle_frames=settle.get(\"frames\", 0)", "settle_frames=0")],
+             ["PlayLoopTests.test_r5_done_plays_out_the_screen_first"]),
+    "G367": (CAUGHT, "the end record has no pause (the sweep's S46)",
+             [(MODE, "paused=settle.get(\"paused\", 0)", "paused=0")],
+             ["PlayLoopTests.test_r5_done_on_a_free_screen_plays_nothing_out"]),
+    "G368": (CAUGHT, "the \"end_screen\" note of a screen that did not free has no target, frame or play-outs (the sweep's "
+                     "S53)",
+             [(MODE, "\"not free\", held, {\"target\": target, \"stop\": stop, \"frame\": look.frame,\n"
+                     "                                                        \"played\": played})",
+               "\"not free\", held, {\"stop\": stop})  # MUTANT G368")],
+             ["PlayLoopTests.test_r5_a_screen_that_will_not_free_still_ends_done_and_says_so"]),
+    "G369": (CAUGHT, "an unsettled end with no play-out stop says \"(None)\" (the told line's own words dropped: the sweep's "
+                     "S54)",
+             [(MODE, "{stop or 'a scene still plays'}", "{stop}")],
+             ["PlayLoopTests.test_r5_the_settle_is_bounded"]),
+    "G370": (CAUGHT, "the end LINE says NOT free without what holds the screen (the sweep's S55)",
+             [(MODE, "'NOT free (' + str(screen.get('held_by')) + ')'", "'NOT free'")],
+             ["PlayLoopTests.test_r5_a_screen_that_will_not_free_still_ends_done_and_says_so"]),
+    "G371": (CAUGHT, "the frame budget's cut of the settle is not SAID (its tell and note deleted: R5-F1)",
+             [(MODE, "            hands.tell(f\"[AI-GOALS] {target} reached, but the run's frame budget ran out",
+               "            (f\"[AI-GOALS] {target} reached, but the run's frame budget ran out"),
+              (MODE, "            hands.note(\"end_screen\", \"budget\", held or \"free\", {",
+               "            (\"end_screen\", \"budget\", held or \"free\", {")],
+             ["PlayLoopTests.test_r5_the_frame_budget_never_cuts_a_reached_target_short_of_its_end",
+              "PlayLoopTests.test_r5_the_frame_budget_cuts_the_decisions_pause_too"]),
+    "G372": (CAUGHT, "the milestones the settle's screens passed are not told (the tell deleted: R5-F6)",
+             [(MODE, "            hands.tell(f\"[AI-GOALS] what was on screen after {target} took the story further",
+               "            (f\"[AI-GOALS] what was on screen after {target} took the story further")],
+             ["PlayLoopTests.test_r5_the_settle_names_the_milestones_its_screens_passed"]),
+    "G373": (CAUGHT, "the play loop gives the settle no reader of the story's milestones (`_passed_between` not set: R5-F6)",
+             [(MODE, "        self._passed_between = lambda first, then: [m.id for m in story.milestones[max(current(first), "
+                     "0):current(then)]]\n",
+               "        pass  # MUTANT G373\n")],
+             ["PlayLoopTests.test_r5_the_settle_names_the_milestones_its_screens_passed"]),
     # found by the round's development sweep step52dev2
     "G229": (CAUGHT, "a goal starts from the LAST intent's walls (seed 1010: PROF. BIRCH's walls kept into the rival's milestone)",
              [(GOALS, "            nav.scene_walls = {key: set(tiles) for key, tiles in nav.carried_scene_walls.items()}\n",

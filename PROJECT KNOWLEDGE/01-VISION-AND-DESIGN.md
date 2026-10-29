@@ -444,6 +444,10 @@ it.
   - **Purpose:** the AI is a SEASONED player, so it is given what a person who knows Emerald knows, as STATIC game data. Slice 1 is trainers, bosses, maps and the campaign order. Slice 2 stage 2a is items, gifts and marts (`items_gifts.json`); stage 2b is scripted events, which labels change persistent state, what they change and what gates them (`events.json`). Both are built.
   - **Rule:** the data is extracted from the pinned decomp and re-read by an independent verifier. A value is written only where an independent exhaustive scan or a cited table backs it; otherwise it says `unknown` (`06` 2026-10-22). It is never live hidden state, and nothing reads it until the AI's loader exists. The mechanics are in `02-ARCHITECTURE.md`.
 
+### How the AI player ENDS a run (`ai_player/mode.py`; backlog R5, built 2026-10-29)
+  - **Purpose:** a person finishes what is on screen before putting the game down, and a save (backlog R1) is possible only on a free screen. So a run whose target is reached ends only after the settle: the screen is played out and a short pause finds it still free, or the end SAYS it did not free (at most 6 rounds; the frame budget or a capped loss also ends it).
+  - **Rule:** the end reason stays exactly "done: <target> reached" (an honest claim about the game), an end that could not free is said, and every "done" and "stuck" end records the screen it ends on. Mechanics: `ai_player/README.md`; decisions: `06` 2026-10-29.
+
 ### Still future
 - Further custom features as the punch list dictates; each gets a section here when built.
 

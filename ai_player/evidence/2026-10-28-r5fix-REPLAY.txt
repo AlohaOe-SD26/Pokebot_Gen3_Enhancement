@@ -1,0 +1,446 @@
+AI PLAYER BACKLOG R5 (a free screen before "done") - R5's FIX ROUND: the determinism REPLAY of the A/B's measured path on the FIXED tree (seed ledger #48, a replay of development seed 5301)
+VERDICT: on that path the fixed tree takes the live A/B's trajectory exactly (both arms' end states byte-identical to #44's), so the fix changed the settle only off it (the frame budget's end, a MAX_LOSSES-th loss inside the settle) and in its records (compare_replay.out below).
+code: HEAD 714084b0; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:07ea150c30288b24 over git diff HEAD (4 files, 79599 bytes) and 1 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+assembled: 2026-10-28 11:26:26 PM (Los Angeles), by R5's fix round, from the session scratch s53/r5/ (nothing re-run); the free read the driver imports: s53/r5/ab/probe_end_screen.py, sha256 d5c6095b58c6e345576881b4a4fa569d777f6e891fd3467152ab94db262adc55 (= ai_player/gates/probe_end_screen.py)
+
+######## THE LEDGER (#48 begun before the runs) AND THE TREES
+
+==== s53/r5/fix/replay/ledger_begin_replay.out (sha256 f57688a888667472f522247f844b57c9fe0761de7a8071d13733d86c227e8994, 5296 bytes; LF text sha256 ae59eac9a77a264a4e15d5d53365ac48c78368f00fefb15559670c78005caacf) ====
+11:24:25 PM (LA)
+ledger file: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ab039e6b-79e-1\ai_player\gates\ledger.json
+numbers {"ab_probe_sha256": "ea1928a306966ac7dcb233c24f8664f1269f9c8044fd1a0c760a37d5e5a7563a", "after_frames": 10, "arms": {"NEW": "fix/replay/trees/new_FIX: the FIXED worktree's ai_player", "OLD": "fix/replay/trees/old_FIX_G347: the FIXED worktree's ai_player with revert mutant G347"}, "driver": "r5_fix_replay (s53/r5/ab/ab_probe.py run, unchanged; in-process play_harness.play)", "expect": "a determinism check of the fix on the A/B's path: NEW takes #44's NEW trajectory (10,997 frames, the settle played 2 and paused 112, the END held free, input taken); OLD ends at once NOT held free", "frames": 120000, "free_read_sha256": "d5c6095b58c6e345576881b4a4fa569d777f6e891fd3467152ab94db262adc55", "game_clock": "2026-10-14T10:00", "seeds": [5301, 5301], "start": "the R5 probe's saved ch2_dad_5301 end state + world.jsonl (s53/r5/build/probe/runs/ch2_dad_5301), as ledger #44's instrument check", "target": "ch2_dad", "tree_digests": {"NEW": "d12674bbff18d170", "OLD": "eb56335c6ffdb814", "how": "make_fix_trees.py digest (sha256 over each file's path and sha256, 16 hex) of fix/replay/trees/new_FIX/ai_player and old_FIX_G347/ai_player (make_fix_trees.out)"}, "wall_clock": "10:00"}
+numbers sha256 0ffdec95387fd6c775ed026d534718dfbc8832ac027da1ff82ec49205ef589a8
+code: HEAD 714084b0; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:07ea150c30288b24 over git diff HEAD (4 files, 79599 bytes) and 1 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+SEED LEDGER: a REPLAY of seeds 5301-5301 (ledger entry #48), already played in ["#43 development story seeds 5301-5304 (done, tree 53e0c26e7812db47, DEVELOPMENT, not graded. NOT VACUOUS at ch2_dad: on the pre-R5 tree (this entry's tree), ch1_clock seeds 5301 and 5302 ended done on a FREE screen (the harness's own read held 10 frames; a tapped direction turned the player), while ch2_dad seeds 5301 and 5302 ended done on a ONE-frame free read 39 frames after DAD's warp to PETALBURG CITY: on the next frame WALLY's tutorial runs (script status 0, field controls locked) and the game takes no input, though the AI's own nav_free reads that frame free. Also on the pre-R5 tree: from those two ch2_dad end states it ends done at once, NOT free (0 frames), and ch1_pokedex seed 5303 ends done on a free screen. Seed 5304 not played. (R5's fix round, 2026-10-28, the adversarial review's R5-F7: the runs of the R5 tree on these seeds, which this verdict reported before, are REPLAYS on another tree and are now entry #47.))", "#44 replay story seeds 5301 (done, tree 29a5dc81286162ff, REPLAY, not a measurement (the A/B driver's instrument check, development seed 5301 from the R5 probe's saved ch2_dad_5301 end state and world memory): OLD (R5 + G347) decided done at pad frame 0 (_play_end, emulator frame 251736) and ended at once, its end state byte-identical to that loop-top state (md5 149f4d37160fbf55), END not held free (first_not_free 1), a tapped direction not taken, the AI's own nav_free True; NEW (R5) decided done on the same loop top (_settle_before_done, pad frame 0, look frame 251736, the same state md5) and ended 'done: ch2_dad reached' after 10,997 frames (settle played 2, paused 112: the builder's devab new_5301 numbers exactly), END held free, input taken. Grader selftest PASS, 12 of 12 cases (s53/r5/ab/selftest.out).)", "#47 replay story seeds 5301-5303 (done, tree 29a5dc81286162ff, REPLAY, not a measurement (RECORDED AFTER THE FACT, see the note): the R5 build's development checks on the R5 tree 29a5dc81286162ff, on seeds #43 had played: from the pre-R5 runs' saved ch2_dad end states, seeds 5301 and 5302 ended 'done: ch2_dad reached' after playing WALLY's tutorial and the gym's return scene out (10,997 and 11,078 frames; the settle played 2 and paused 112 and 102 frames), the END held free and input taken; from REAL New Games, ch1_clock seeds 5301 and 5302 ended done free (the settle paused 17 and 16 frames, played 0) and ch1_pokedex seed 5303 ended done free (paused 26, played 0). The same seeds and starts on the pre-R5 tree are #43's.)"]: a REPLAY, never a second measurement (CLAUDE.md rule 8)
+ENTRY {"id": 48, "family": "story", "driver": "r5_fix_replay", "purpose": "replay", "first": 5301, "last": 5301, "status": "started", "registered": null, "bounds_sha256": "0ffdec95387fd6c775ed026d534718dfbc8832ac027da1ff82ec49205ef589a8", "tree": "07ea150c30288b24", "started": "2026-10-28 23:24:26", "ended": null, "verdict": null, "evidence": null, "note": "R5's FIX ROUND determinism REPLAY (not a measurement, CLAUDE.md rule 8) of development seed 5301 (#43), the design of #44's instrument check: both arms' frozen trees made from the FIXED worktree (the review's findings and the sweep's survivors fixed), started from the R5 probe's saved ch2_dad_5301 end state and world memory. Question: did the fix change what the settle does on the path the live A/B measured? It changed the settle's code only on paths that A/B never reached (the frame budget's end, a MAX_LOSSES-th loss) and its end record's fields; this replay checks that by the frames.", "replays": [43, 44, 47]}
+exit=0
+
+==== s53/r5/fix/replay/make_fix_trees.out (sha256 d77846bd1893b0dbc805388959242acd50e48e0eb91c0fca29aa382fc56407ef, 278 bytes; LF text sha256 cffd1c001155f7b46cc1c6770eb2cc9e56f56b931c8dc9b9c023e606f6a1a0ed) ====
+new_FIX: 169 files, digest d12674bbff18d170, from ai_player_step5_mutant_xe_8w1bk
+old_FIX_G347: 169 files, digest eb56335c6ffdb814, from ai_player_step5_mutant_5wfxwwma
+NEW_FIX vs the worktree's ai_player/: IDENTICAL
+OLD_FIX_G347 vs NEW_FIX: differ in ['mode.py']
+TREES OK
+
+==== s53/r5/fix/replay/trees.json (sha256 9187c8348d741958c23f37cb6dce23c54bccb5c2cc6a2d4ecb3fd0b03da326d4, 226 bytes; LF text sha256 9187c8348d741958c23f37cb6dce23c54bccb5c2cc6a2d4ecb3fd0b03da326d4) ====
+{"NEW": "d12674bbff18d170", "OLD": "eb56335c6ffdb814", "how": "make_fix_trees.py digest (sha256 over each file's path and sha256, 16 hex) of fix/replay/trees/new_FIX/ai_player and old_FIX_G347/ai_player (make_fix_trees.out)"}
+
+######## THE TWO RUNS (the A/B's driver unchanged, from the R5 probe's saved ch2_dad_5301 state)
+
+==== s53/r5/fix/replay/old_ch2_dad_5301/probe.out (sha256 ed7a0d4eb38633b1d5c7609a83ff67e24a21ad2d34f1d1a3870d6dff0722893a, 8394 bytes; LF text sha256 92f5e7384a63c958009d78ba6ddf0c9f5f1e96d86f9fc82cd999f83aa52a5680) ====
+started 11:24:47 PM (LA)
+group=fix-replay arm=old tree=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/fix/replay/trees/old_FIX_G347 seed=5301 target=ch2_dad frames=120000 start=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/runs/ch2_dad_5301/end_state.ss1 world=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/runs/ch2_dad_5301/run/world.jsonl
+PROBE {"seed": 5301, "target": "ch2_dad", "personality": "Trainer", "starter": "TORCHIC", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\fix\\replay\\trees\\old_FIX_G347", "frames_budget": 120000, "start": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5301\\end_state.ss1", "reason": "play: done: ch2_dad reached", "frames": 0, "seconds": 0.1, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 0, "frame_budget": 120011, "wall_clock_seconds": null}, "end_emulator_frame": 251736, "play_end": {"kind": "done", "why": "ch2_dad reached", "returned": "done: ch2_dad reached", "emulator_frame": 251736, "pad_frames": 0}, "wrapper_calls": [{"where": "_play_end", "emulator_frame": 251736, "pad_frames": 0, "look_frame": null, "ai_nav_free_on_its_look": null, "held_inputs": 0}], "wrapped": ["_play_end", "_settle_before_done"], "outcome_line": "[AI-HANDS] outcome='done: ch2_dad reached' presses=0 frames=0 looks=5 records=9", "ai_end_screen": {"free": true, "held_by": null, "frame": 251736, "played_out": false, "settle_frames": 0, "paused": 0, "settle_stop": null, "passed": []}, "ai_settle": null, "end_screen": {"free_at_return": true, "free_held": false, "first_not_free": 1, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}], [1, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Down", "pressed": "Up", "facing_after": "Down", "turned": false}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "end_proof": {"values": {"HIDE_PETALBURG_CITY_WALLYS_MOM": 1}, "holds": true}, "message_pages": ["Wren… Would you really come with me?"], "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\fix\\replay\\old_ch2_dad_5301\\end_state.ss1", "end_state_md5": "149f4d37160fbf55f2e66203fdfe0c79", "end_map": [0, 0], "end_pos": [15, 9], "end_game_state": "OVERWORLD", "reach": {"at": {"where": "_play_end", "emulator_frame": 251736, "pad_frames": 0, "look_frame": null, "ai_nav_free_on_its_look": null, "held_inputs": 0}, "state_md5": "149f4d37160fbf55f2e66203fdfe0c79", "same_bytes_as_end_state": true, "proof": {"values": {"HIDE_PETALBURG_CITY_WALLYS_MOM": 1}, "holds": true}, "screen": {"free_at_return": true, "free_held": false, "first_not_free": 1, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}], [1, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Down", "pressed": "Up", "facing_after": "Down", "turned": false}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["Wren… Would you really come with me?"]}, "milestones": [], "last_lines": ["[AI-HANDS] brain=play seed=5301 (given) personality=Trainer (named by the run) faults=ungated_a:False,blind_count:False frames=120000", "[AI-WORLD] memory from the last snapshot of C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5301\\run\\world.jsonl: 17 maps (PETALBURG_CITY 796 tiles 0 bumped, OLDALE_TOWN 759 tiles 0 bumped, ROUTE101 874 tiles 0 bumped, ROUTE102 1449 tiles 0 bumped, ROUTE103 581 tiles 0 bumped, LITTLEROOT_TOWN 803 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 371 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 273 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 308 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 228 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 288 tiles 0 bumped, INSIDE_OF_TRUCK 202 tiles 0 bumped, OLDALE_TOWN_HOUSE1 237 tiles 0 bumped, OLDALE_TOWN_HOUSE2 214 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 248 tiles 0 bumped, OLDALE_TOWN_MART 219 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 8060 tiles learned, 35 warp links, 17 connections, 56 map changes; goal -; personality Trainer (weights Weights(frontier=1.0, road=2.0, door=0.8, back=0.15, grass=2.5, people=1.5, away=0.1, grass_cost=0.0))", "[AI-HANDS] play brain: target ch2_dad (DAD at the PETALBURG GYM: talk to him (WALLY walks in)); personality Trainer (errands Errands(train_margin=3, train_min_steps=150, train_session=150, catch_seek=0.45, catch_roam_steps=80, balls_low=5, balls_buy=5, heal_below=0.45, chat=0.3, potions_buy=2, look_around=0.7, look_frames=3600, detour=0.45, detour_frames=1500, bored_frames=10000)); favourite Pokemon Heracross (the shiny hunt is deferred); starter TORCHIC (the Trainer's taste {'TREECKO': 0.3, 'TORCHIC': 0.4, 'MUDKIP': 0.3}); faults no_hints:False,no_training:False,no_errands:False", "[AI-HANDS] [AI-GOALS] the story is at ch2_wally (WALLY's catching tutorial, back in the gym); proofs now: VAR_PETALBURG_GYM_STATE=1 (>= 2)", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] [AI-GOALS] the end (done: ch2_dad reached); milestones []; before the fights {}; roams 0, heals [], shopping [], items [], battles lost 0, personality [], favourite Heracross; progress resets 0; waits on a press {'stretches': 0, 'longest': 0, 'longest_at': None, 'longest_what': None, 'noted': 0}; pressing with nothing new {'stretches': 0, 'longest': 0, 'longest_at': None, 'longest_presses': None, 'noted': 0}; curiosity that brought nothing {'goals': 0, 'frames': 0}; the screen at the end free (nothing to play out, the settle 0 frames)", "[AI-WORLD] memory at the end: 17 maps (PETALBURG_CITY 796 tiles 0 bumped, OLDALE_TOWN 759 tiles 0 bumped, ROUTE101 874 tiles 0 bumped, ROUTE102 1449 tiles 0 bumped, ROUTE103 581 tiles 0 bumped, LITTLEROOT_TOWN 803 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 371 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 273 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 308 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 228 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 288 tiles 0 bumped, INSIDE_OF_TRUCK 202 tiles 0 bumped, OLDALE_TOWN_HOUSE1 237 tiles 0 bumped, OLDALE_TOWN_HOUSE2 214 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 248 tiles 0 bumped, OLDALE_TOWN_MART 219 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 8060 tiles learned, 35 warp links, 17 connections, 56 map changes", "[AI-WORLD] navigator: 0 steps, 0 bumps, 0 people in the way, 0 exits used, 0 battles, 0 scenes, 0 decisions (0 detours, 0 carried on); 17 maps, 8060 tiles learned", "[AI-HANDS] outcome='done: ch2_dad reached' presses=0 frames=0 looks=5 records=9", "[AI-HANDS] presses by gate: {}"]}
+exit=0
+ended 11:24:49 PM (LA)
+
+==== s53/r5/fix/replay/new_ch2_dad_5301/probe.out (sha256 f6a9a25640cee55841377211ebf7d932d6112a0c13a58543eecae7f3e616eb6b, 9332 bytes; LF text sha256 e85b18dc108b381a22969081d69a4f782154ed728cbba8993f7406467856bd08) ====
+started 11:24:49 PM (LA)
+group=fix-replay arm=new tree=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/fix/replay/trees/new_FIX seed=5301 target=ch2_dad frames=120000 start=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/runs/ch2_dad_5301/end_state.ss1 world=C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5/build/probe/runs/ch2_dad_5301/run/world.jsonl
+PROBE {"seed": 5301, "target": "ch2_dad", "personality": "Trainer", "starter": "TORCHIC", "root": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\fix\\replay\\trees\\new_FIX", "frames_budget": 120000, "start": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5301\\end_state.ss1", "reason": "play: done: ch2_dad reached", "frames": 10997, "seconds": 15.5, "stop": {"by": "ai", "cause": "the AI's play loop returned", "frames_run": 10997, "frame_budget": 120011, "wall_clock_seconds": null}, "end_emulator_frame": 262733, "play_end": {"kind": "done", "why": "ch2_dad reached", "returned": "done: ch2_dad reached", "emulator_frame": 262733, "pad_frames": 10997}, "wrapper_calls": [{"where": "_settle_before_done", "emulator_frame": 251736, "pad_frames": 0, "look_frame": 251736, "ai_nav_free_on_its_look": true, "held_inputs": 0}, {"where": "_play_end", "emulator_frame": 262733, "pad_frames": 10997, "look_frame": null, "ai_nav_free_on_its_look": null, "held_inputs": 0}], "wrapped": ["_play_end", "_settle_before_done"], "outcome_line": "[AI-HANDS] outcome='done: ch2_dad reached' presses=21 frames=10997 looks=8311 records=183", "ai_end_screen": {"free": true, "held_by": null, "frame": 262733, "played_out": true, "settle_frames": 10997, "paused": 112, "settle_stop": null, "passed": ["ch2_wally"]}, "ai_settle": {"played": 2, "paused": 112, "frames": 10997, "stop": null, "free": true, "budget": false, "passed": ["ch2_wally"]}, "end_screen": {"free_at_return": true, "free_held": true, "first_not_free": null, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Up", "pressed": "Down", "facing_after": "Down", "turned": true}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "end_proof": {"values": {"HIDE_PETALBURG_CITY_WALLYS_MOM": 1}, "holds": true}, "message_pages": ["DAD: Now…", "Wren, if you want to become a strong TRAINER, here’s my advice.", "Head for RUSTBORO CITY beyond this town.", "There, you should challenge the GYM LEADER, ROXANNE.", "After her, go on to other POKéMON GYMS and defeat their LEADERS.", "Collect BADGES from them, understood?"], "end_state": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\fix\\replay\\new_ch2_dad_5301\\end_state.ss1", "end_state_md5": "c31ea9d86a9d74c2736f8b85631c58bf", "end_map": [8, 1], "end_pos": [4, 108], "end_game_state": "OVERWORLD", "reach": {"at": {"where": "_settle_before_done", "emulator_frame": 251736, "pad_frames": 0, "look_frame": 251736, "ai_nav_free_on_its_look": true, "held_inputs": 0}, "state_md5": "149f4d37160fbf55f2e66203fdfe0c79", "same_bytes_as_end_state": false, "proof": {"values": {"HIDE_PETALBURG_CITY_WALLYS_MOM": 1}, "holds": true}, "screen": {"free_at_return": true, "free_held": false, "first_not_free": 1, "after": 10, "held_buttons_released": 0, "at_return": {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}, "changes": [[0, {"free": true, "callback2": "CB2_Overworld", "overworld": true, "script_status": 2, "lock": 0, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}], [1, {"free": false, "callback2": "CB2_Overworld", "overworld": true, "script_status": 0, "lock": 1, "box_mode": 0, "printer0_active": 0, "printer0_state": 0, "fade": false}]]}, "accepts_input": {"facing_before": "Down", "pressed": "Up", "facing_after": "Down", "turned": false}, "ai_eyes_for_the_record": {"nav_free": true, "busy_reason": null, "text": null}, "message_pages": ["Wren… Would you really come with me?"]}, "milestones": [], "last_lines": ["[AI-HANDS] brain=play seed=5301 (given) personality=Trainer (named by the run) faults=ungated_a:False,blind_count:False frames=120000", "[AI-WORLD] memory from the last snapshot of C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r5\\build\\probe\\runs\\ch2_dad_5301\\run\\world.jsonl: 17 maps (PETALBURG_CITY 796 tiles 0 bumped, OLDALE_TOWN 759 tiles 0 bumped, ROUTE101 874 tiles 0 bumped, ROUTE102 1449 tiles 0 bumped, ROUTE103 581 tiles 0 bumped, LITTLEROOT_TOWN 803 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 371 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 273 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 308 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 228 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 288 tiles 0 bumped, INSIDE_OF_TRUCK 202 tiles 0 bumped, OLDALE_TOWN_HOUSE1 237 tiles 0 bumped, OLDALE_TOWN_HOUSE2 214 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 248 tiles 0 bumped, OLDALE_TOWN_MART 219 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 8060 tiles learned, 35 warp links, 17 connections, 56 map changes; goal -; personality Trainer (weights Weights(frontier=1.0, road=2.0, door=0.8, back=0.15, grass=2.5, people=1.5, away=0.1, grass_cost=0.0))", "[AI-HANDS] play brain: target ch2_dad (DAD at the PETALBURG GYM: talk to him (WALLY walks in)); personality Trainer (errands Errands(train_margin=3, train_min_steps=150, train_session=150, catch_seek=0.45, catch_roam_steps=80, balls_low=5, balls_buy=5, heal_below=0.45, chat=0.3, potions_buy=2, look_around=0.7, look_frames=3600, detour=0.45, detour_frames=1500, bored_frames=10000)); favourite Pokemon Heracross (the shiny hunt is deferred); starter TORCHIC (the Trainer's taste {'TREECKO': 0.3, 'TORCHIC': 0.4, 'MUDKIP': 0.3}); faults no_hints:False,no_training:False,no_errands:False", "[AI-HANDS] [AI-GOALS] the story is at ch2_wally (WALLY's catching tutorial, back in the gym); proofs now: VAR_PETALBURG_GYM_STATE=1 (>= 2)", "[AI-WORLD] the story moved on: 0 ping-pong(s) and 0 place(s) it could not get to forgotten", "[AI-HANDS] battle: over: caught (gBattleOutcome 7); party [('Torchic', 13, 27, 37), ('Wurmple', 4, 18, 18), ('Zigzagoon', 3, 5, 16), ('Lotad', 4, 4, 17)]", "[AI-WORLD] battle 1: caught", "[AI-HANDS] [AI-GOALS] what was on screen after ch2_dad took the story further: it passed ch2_wally while it was played out (the run still ends at its target)", "[AI-HANDS] [AI-GOALS] the end (done: ch2_dad reached); milestones []; before the fights {}; roams 0, heals [], shopping [], items [], battles lost 0, personality [], favourite Heracross; progress resets 0; waits on a press {'stretches': 21, 'longest': 150, 'longest_at': 252437, 'longest_what': 'a text waits for a press (text printer 0 SCROLL_START)', 'noted': 17}; pressing with nothing new {'stretches': 1, 'longest': 39, 'longest_at': 258286, 'longest_presses': 15, 'noted': 0}; curiosity that brought nothing {'goals': 0, 'frames': 0}; the screen at the end free (played out first, the settle 10997 frames; the story passed ch2_wally meanwhile)", "[AI-WORLD] memory at the end: 17 maps (PETALBURG_CITY 806 tiles 0 bumped, OLDALE_TOWN 759 tiles 0 bumped, ROUTE101 874 tiles 0 bumped, ROUTE102 1453 tiles 0 bumped, ROUTE103 581 tiles 0 bumped, LITTLEROOT_TOWN 803 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 371 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_2F 273 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_1F 308 tiles 0 bumped, LITTLEROOT_TOWN_MAYS_HOUSE_2F 228 tiles 0 bumped, LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB 288 tiles 0 bumped, INSIDE_OF_TRUCK 202 tiles 0 bumped, OLDALE_TOWN_HOUSE1 237 tiles 0 bumped, OLDALE_TOWN_HOUSE2 214 tiles 0 bumped, OLDALE_TOWN_POKEMON_CENTER_1F 248 tiles 0 bumped, OLDALE_TOWN_MART 219 tiles 0 bumped, PETALBURG_CITY_GYM 210 tiles 0 bumped), 8074 tiles learned, 37 warp links, 17 connections, 58 map changes", "[AI-WORLD] navigator: 0 steps, 0 bumps, 0 people in the way, 0 exits used, 1 battles, 2 scenes, 0 decisions (0 detours, 0 carried on); 17 maps, 8074 tiles learned", "[AI-HANDS] outcome='done: ch2_dad reached' presses=21 frames=10997 looks=8311 records=183", "[AI-HANDS] presses by gate: {'A:script waitbuttonpress': 6, 'A:text printer 0 CLEAR': 14, 'A:text printer 0 SCROLL_START': 1}"]}
+exit=0
+ended 11:25:06 PM (LA)
+
+######## THE COMPARISON WITH #44 AND THE VERDICT
+
+==== s53/r5/fix/replay/compare_replay.out (sha256 238d98e296b3947ccc1eb9eb2eedf17cef1af15a913bd13ca72493d546338786, 2696 bytes; LF text sha256 91351d8ba51b5a680f91ff1bd2a55e321423aeb7280be54ffe40c80f5f158ede) ====
+== OLD arm: the FIXED tree (#48) vs the A/B's R5 tree (#44)
+  reason: SAME
+      fix: "play: done: ch2_dad reached"
+  frames: SAME
+      fix: 0
+  end_emulator_frame: SAME
+      fix: 251736
+  end_state_md5: SAME
+      fix: "149f4d37160fbf55f2e66203fdfe0c79"
+  end_map: SAME
+      fix: [0, 0]
+  end_pos: SAME
+      fix: [15, 9]
+  end_free_at_return: SAME
+      fix: true
+  end_free_held: SAME
+      fix: false
+  end_first_not_free: SAME
+      fix: 1
+  input_taken: SAME
+      fix: false
+  loop_top: SAME
+      fix: {"where": "_play_end", "pad_frames": 0, "look_frame": null, "ai_nav_free_on_its_look": null}
+  loop_top_state_md5: SAME
+      fix: "149f4d37160fbf55f2e66203fdfe0c79"
+  loop_top_free_held: SAME
+      fix: false
+  ai_settle: see below
+      fix: null
+      #44: null
+  ai_end_screen: see below
+      fix: {"free": true, "held_by": null, "frame": 251736, "played_out": false, "settle_frames": 0, "paused": 0, "settle_stop": null, "passed": []}
+      #44: {"free": true, "held_by": null, "frame": 251736, "settled": false, "settle_frames": 0, "paused": 0, "settle_stop": null}
+  milestones: SAME
+      fix: []
+== NEW arm: the FIXED tree (#48) vs the A/B's R5 tree (#44)
+  reason: SAME
+      fix: "play: done: ch2_dad reached"
+  frames: SAME
+      fix: 10997
+  end_emulator_frame: SAME
+      fix: 262733
+  end_state_md5: SAME
+      fix: "c31ea9d86a9d74c2736f8b85631c58bf"
+  end_map: SAME
+      fix: [8, 1]
+  end_pos: SAME
+      fix: [4, 108]
+  end_free_at_return: SAME
+      fix: true
+  end_free_held: SAME
+      fix: true
+  end_first_not_free: SAME
+      fix: null
+  input_taken: SAME
+      fix: true
+  loop_top: SAME
+      fix: {"where": "_settle_before_done", "pad_frames": 0, "look_frame": 251736, "ai_nav_free_on_its_look": true}
+  loop_top_state_md5: SAME
+      fix: "149f4d37160fbf55f2e66203fdfe0c79"
+  loop_top_free_held: SAME
+      fix: false
+  ai_settle: see below
+      fix: {"played": 2, "paused": 112, "frames": 10997, "stop": null, "free": true, "budget": false, "passed": ["ch2_wally"]}
+      #44: {"played": 2, "paused": 112, "frames": 10997, "stop": null, "free": true}
+  ai_end_screen: see below
+      fix: {"free": true, "held_by": null, "frame": 262733, "played_out": true, "settle_frames": 10997, "paused": 112, "settle_stop": null, "passed": ["ch2_wally"]}
+      #44: {"free": true, "held_by": null, "frame": 262733, "settled": true, "settle_frames": 10997, "paused": 112, "settle_stop": null}
+  milestones: SAME
+      fix: []
+
+TRAJECTORY KEYS (reason, frames, end frame, end state md5, map, position, the held free read, the input check, the loop top and its state): ALL THE SAME in both arms
+
+==== s53/r5/fix/replay/verdict_48.txt (sha256 5e0e174af3a3e2ef9ddbd5f7d9476b156114c79de3fc1d8d789463fe82521462, 1234 bytes; LF text sha256 5e0e174af3a3e2ef9ddbd5f7d9476b156114c79de3fc1d8d789463fe82521462) ====
+REPLAY, not a measurement (CLAUDE.md rule 8: one trajectory, replayed): R5's fix round's determinism check on the path the live A/B measured, seed 5301 from the R5 probe's saved ch2_dad_5301 end state and world memory (#44's design), both arms on frozen copies of the FIXED tree 07ea150c30288b24, the A/B's driver ab_probe.py unchanged. OLD (the fixed tree with G347) decided done at pad frame 0 (_play_end) and ended at once, its end state byte-identical to #44's OLD (md5 149f4d37160fbf55), the END not held free (first_not_free 1), a tapped direction not taken. NEW decided done on the same loop top (_settle_before_done, look frame 251736, the AI's nav_free True there) and ended 'done: ch2_dad reached' after 10,997 frames, its end state byte-identical to #44's NEW (md5 c31ea9d86a9d74c2), the END held free, input taken. Its settle record holds #44's numbers (played 2, paused 112, frames 10,997, stop None, free True) plus the fix round's fields (budget False, passed ['ch2_wally']); the end record's `settled` is now `played_out` (True). On this path the fixed tree takes the A/B's trajectory exactly: the fix changed the settle only off it (the frame budget's end, a MAX_LOSSES-th loss inside the settle) and in its records.
+
+==== s53/r5/fix/replay/evidence_48.txt (sha256 aebf91b902d37e5c41ccc22047747fb70f52904e5449ee9e37c3b26567ef2162, 174 bytes; LF text sha256 aebf91b902d37e5c41ccc22047747fb70f52904e5449ee9e37c3b26567ef2162) ====
+ai_player/evidence/2026-10-28-r5fix-REPLAY.txt (assembled verbatim by R5's fix round from the session scratch s53/r5/fix/replay/; the runs' save states stay in that scratch)
+
+==== s53/r5/fix/replay/ledger_finish_replay.out (sha256 325ba8258e80555f7813ec314521492baaab37333df5de0c905aacfd13e5f14f, 1586 bytes; LF text sha256 5956e40d33d3e1e2ebe6c9d4aba5a5b57d941bed67508fc3669867ecb3c705fc) ====
+11:26:06 PM (LA)
+ledger file: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ab039e6b-79e-1\ai_player\gates\ledger.json
+evidence: ai_player/evidence/2026-10-28-r5fix-REPLAY.txt (assembled verbatim by R5's fix round from the session scratch s53/r5/fix/replay/; the runs' save states stay in that scratch)
+finished entry #48: REPLAY, not a measurement (CLAUDE.md rule 8: one trajectory, replayed): R5's fix round's determinism check on the path the live A/B measured, seed 5301 from the R5 probe's saved ch2_dad_5301 end state and world memory (#44's design), both arms on frozen copies of the FIXED tree 07ea150c30288b24, the A/B's driver ab_probe.py unchanged. OLD (the fixed tree with G347) decided done at pad frame 0 (_play_end) and ended at once, its end state byte-identical to #44's OLD (md5 149f4d37160fbf55), the END not held free (first_not_free 1), a tapped direction not taken. NEW decided done on the same loop top (_settle_before_done, look frame 251736, the AI's nav_free True there) and ended 'done: ch2_dad reached' after 10,997 frames, its end state byte-identical to #44's NEW (md5 c31ea9d86a9d74c2), the END held free, input taken. Its settle record holds #44's numbers (played 2, paused 112, frames 10,997, stop None, free True) plus the fix round's fields (budget False, passed ['ch2_wally']); the end record's `settled` is now `played_out` (True). On this path the fixed tree takes the A/B's trajectory exactly: the fix changed the settle only off it (the frame budget's end, a MAX_LOSSES-th loss inside the settle) and in its records.
+exit=0
+
+######## THE SCRIPTS
+
+==== s53/r5/fix/replay/run_replay.sh (sha256 398870fb7a0ce73318bf7b8064e62a14e30ee49c4478555755dd713237bc1fe2, 1729 bytes; LF text sha256 398870fb7a0ce73318bf7b8064e62a14e30ee49c4478555755dd713237bc1fe2) ====
+#!/usr/bin/env bash
+# R5 FIX ROUND determinism replay (ledger #48): run_replay.sh ARM   (ARM: new = trees/new_FIX, old = trees/old_FIX_G347)
+# The A/B's own driver (s53/r5/ab/ab_probe.py, UNCHANGED, run from its folder as run_ab.sh runs it) on the FIXED tree, seed
+# 5301, target ch2_dad, from the R5 probe's saved ch2_dad_5301 end state and world memory (#44's design), frames 120000.
+# Output: fix/replay/<arm>_ch2_dad_5301/probe.out (the PROBE line, the exit code, the 12-hour LA start/end times).
+R5="C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r5"
+W="C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ab039e6b-79e-1"
+ARM="$1"
+case "$ARM" in
+  old) TREE="$R5/fix/replay/trees/old_FIX_G347" ;;
+  new) TREE="$R5/fix/replay/trees/new_FIX" ;;
+  *) echo "ARM must be old or new"; exit 9 ;;
+esac
+SRC="$R5/build/probe/runs/ch2_dad_5301"
+OUT="$R5/fix/replay/${ARM}_ch2_dad_5301"
+if [ -e "$OUT/probe.out" ]; then echo "$OUT/probe.out exists: refusing to replay twice into one folder"; exit 9; fi
+mkdir -p "$OUT"
+cd "$R5/ab" || exit 9
+for v in $(env | grep -o '^AI_PLAYER_[A-Z0-9_]*'); do unset "$v"; done
+{
+  date "+started %I:%M:%S %p (LA)"
+  echo "group=fix-replay arm=$ARM tree=$TREE seed=5301 target=ch2_dad frames=120000 start=$SRC/end_state.ss1 world=$SRC/run/world.jsonl"
+  AI_PLAYER_BUILD_ROOT="$W/sandbox-pokebot" PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 timeout 1800 \
+    py -3.12 ab_probe.py run --root "$TREE" --seed 5301 --target ch2_dad --frames 120000 --out "$OUT" \
+      --state "$SRC/end_state.ss1" --world-in "$SRC/run/world.jsonl"
+  echo "exit=$?"
+  date "+ended %I:%M:%S %p (LA)"
+} > "$OUT/probe.out" 2>&1
+
+==== s53/r5/fix/replay/make_fix_trees.py (sha256 c96adc2f152a46ee62f7a2ec2a45bdc0d1562a69fcc26c6af79da8491fb69caa, 2670 bytes; LF text sha256 c96adc2f152a46ee62f7a2ec2a45bdc0d1562a69fcc26c6af79da8491fb69caa) ====
+"""R5 FIX ROUND, the determinism REPLAY's two frozen trees, made with the worktree's OWN `revert_step5.make_copy` (as the A/B's
+`make_trees.py` made its arms), `tempfile.tempdir` pointed at this folder's `trees/` so nothing lands in the worktree:
+NEW_FIX = the fixed worktree's `ai_player/` (no edit), OLD_FIX = the same with revert mutant G347 (the settle's call deleted),
+exactly as `revert_step5.py` applies it. Checks: NEW_FIX equals the worktree's `ai_player/` file by file (the copy's own
+ignores aside), and OLD_FIX differs from NEW_FIX in `mode.py` only.
+
+    py -3.12 -B make_fix_trees.py <worktree>
+"""
+from __future__ import annotations
+
+import hashlib
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+worktree = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(worktree))
+from ai_player.gates import revert_step5 as rs  # noqa: E402
+
+IGNORED = {"__pycache__", "evidence"}
+
+
+def files_of(root: Path) -> dict[str, bytes]:
+    out = {}
+    for path in sorted(root.rglob("*")):
+        rel = path.relative_to(root).as_posix()
+        if path.is_file() and not (set(rel.split("/")) & IGNORED) and not rel.endswith(".ss1"):
+            out[rel] = path.read_bytes()
+    return out
+
+
+def digest(files: dict[str, bytes]) -> str:
+    sha = hashlib.sha256()
+    for rel, data in sorted(files.items()):
+        sha.update(rel.encode() + b"\0" + hashlib.sha256(data).digest())
+    return sha.hexdigest()[:16]
+
+
+trees = HERE / "trees"
+trees.mkdir(exist_ok=True)
+tempfile.tempdir = str(trees)
+made = {}
+for name, edits in (("new_FIX", []), ("old_FIX_G347", rs.MUTANTS["G347"][2])):
+    target = trees / name
+    if target.exists():
+        raise SystemExit(f"REFUSED: {target} exists (a frozen tree is made once)")
+    root = rs.make_copy(edits)
+    root.rename(target)
+    made[name] = files_of(target / "ai_player")
+    print(f"{name}: {len(made[name])} files, digest {digest(made[name])}, from {root.name}")
+live = files_of(worktree / "ai_player")
+new_vs_live = sorted(set(live) ^ set(made["new_FIX"])) + sorted(r for r in live if r in made["new_FIX"]
+                                                                  and live[r] != made["new_FIX"][r])
+print(f"NEW_FIX vs the worktree's ai_player/: {'IDENTICAL' if not new_vs_live else 'DIFFERS: ' + str(new_vs_live[:10])}")
+old_vs_new = sorted(r for r in set(made["new_FIX"]) | set(made["old_FIX_G347"])
+                    if made["new_FIX"].get(r) != made["old_FIX_G347"].get(r))
+print(f"OLD_FIX_G347 vs NEW_FIX: differ in {old_vs_new}")
+ok = not new_vs_live and old_vs_new == ["mode.py"]
+print("TREES OK" if ok else "TREES NOT OK")
+sys.exit(0 if ok else 1)
+
+==== s53/r5/fix/replay/compare_replay.py (sha256 2225931d85e27d1451a65e04133387f019405e22ca6d3b6dce24ed02e30ffb7b, 2922 bytes; LF text sha256 2225931d85e27d1451a65e04133387f019405e22ca6d3b6dce24ed02e30ffb7b) ====
+"""Compare the fix round's determinism replay (#48, the FIXED tree) with the A/B's instrument check (#44, the R5 tree of the
+live A/B) arm by arm, from their saved PROBE lines. A replay is ONE trajectory replayed (CLAUDE.md rule 8): this is a
+determinism check of the fix on the A/B's measured path, never a second measurement.
+
+    py -3.12 compare_replay.py      (writes compare_replay.out beside it)
+"""
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+AB = HERE.parent.parent / "ab" / "hookcheck"
+KEYS = ("reason", "frames", "end_emulator_frame", "end_state_md5", "end_map", "end_pos")
+
+
+def probe(path: Path) -> dict:
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("PROBE "):
+            return json.loads(line[6:])
+    raise SystemExit(f"no PROBE line in {path}")
+
+
+def view(row: dict) -> dict:
+    reach = row.get("reach") or {}
+    return {**{k: row.get(k) for k in KEYS},
+            "end_free_at_return": row["end_screen"]["free_at_return"], "end_free_held": row["end_screen"]["free_held"],
+            "end_first_not_free": row["end_screen"]["first_not_free"], "input_taken": row["accepts_input"].get("turned"),
+            "loop_top": {k: (reach.get("at") or {}).get(k) for k in ("where", "pad_frames", "look_frame",
+                                                                    "ai_nav_free_on_its_look")},
+            "loop_top_state_md5": reach.get("state_md5"),
+            "loop_top_free_held": (reach.get("screen") or {}).get("free_held"),
+            "ai_settle": row.get("ai_settle"), "ai_end_screen": row.get("ai_end_screen"),
+            "milestones": row.get("milestones")}
+
+
+lines = []
+same_all = True
+for arm in ("old", "new"):
+    fix, ab = view(probe(HERE / f"{arm}_ch2_dad_5301" / "probe.out")), view(probe(AB / f"{arm}_ch2_dad_5301" / "probe.out"))
+    lines.append(f"== {arm.upper()} arm: the FIXED tree (#48) vs the A/B's R5 tree (#44)")
+    for key in fix:
+        same = fix[key] == ab[key]
+        if key in ("ai_settle", "ai_end_screen"):
+            same = None  # the record's FIELDS changed in the fix round (said below), so compared by hand
+        lines.append(f"  {key}: {'SAME' if same else 'differs' if same is False else 'see below'}")
+        lines.append(f"      fix: {json.dumps(fix[key], ensure_ascii=False)}")
+        if same is not True:
+            lines.append(f"      #44: {json.dumps(ab[key], ensure_ascii=False)}")
+        if key not in ("ai_settle", "ai_end_screen", "milestones"):
+            same_all &= bool(same)
+lines.append("")
+lines.append(f"TRAJECTORY KEYS (reason, frames, end frame, end state md5, map, position, the held free read, the input check, "
+             f"the loop top and its state): {'ALL THE SAME in both arms' if same_all else 'A DIFFERENCE: see above'}")
+(HERE / "compare_replay.out").write_text("\n".join(lines) + "\n", encoding="utf-8")
+print("\n".join(lines))
+
+==== s53/r5/fix/fix_ledger.py (sha256 b3d7afd4e9d142369a943b3c0df3b3001fc29d7b9635442a41179ac7668936d9, 11092 bytes; LF text sha256 b3d7afd4e9d142369a943b3c0df3b3001fc29d7b9635442a41179ac7668936d9) ====
+"""R5 FIX ROUND: the seed ledger's corrections and the determinism replay's entry, through the ledger's OWN functions and lock
+(`ai_player/gates/ledger.py`), on the WORKTREE's ledger only.
+
+    py -3.12 -B fix_ledger.py --repo WORKTREE correct        the review's R5-F3 and R5-F7: #43's verdict reworded to the
+                                                              pre-R5 tree's runs and pointed at a committed evidence file;
+                                                              #44-#46 pointed at the committed A/B evidence file; #47 written,
+                                                              a REPLAY entry for the builder's R5-tree runs on seeds 5301-5303,
+                                                              RECORDED AFTER THE FACT (said in its note)
+    py -3.12 -B fix_ledger.py --repo WORKTREE begin-replay    the determinism replay (seed 5301 from the saved ch2_dad_5301
+                                                              state, both arms on the FIXED tree): `ledger.begin` purpose
+                                                              "replay" BEFORE it is played
+    py -3.12 -B fix_ledger.py --repo WORKTREE finish --id N --verdict-file F --evidence TEXT
+
+Every field written is printed. Refuses `correct` unless #43-#46 read exactly as the A/B left them (their ids, drivers,
+seeds and trees) and no #47 exists.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+SCRATCH = HERE.parent  # s53/r5
+PROBE_EVIDENCE = "ai_player/evidence/2026-10-28-r5probe-PROBE.txt"
+AB_EVIDENCE = "ai_player/evidence/2026-10-28-r5ab-AB.txt"
+
+V43 = ("DEVELOPMENT, not graded. NOT VACUOUS at ch2_dad: on the pre-R5 tree (this entry's tree), ch1_clock seeds 5301 and "
+       "5302 ended done on a FREE screen (the harness's own read held 10 frames; a tapped direction turned the player), while "
+       "ch2_dad seeds 5301 and 5302 ended done on a ONE-frame free read 39 frames after DAD's warp to PETALBURG CITY: on the "
+       "next frame WALLY's tutorial runs (script status 0, field controls locked) and the game takes no input, though the "
+       "AI's own nav_free reads that frame free. Also on the pre-R5 tree: from those two ch2_dad end states it ends done at "
+       "once, NOT free (0 frames), and ch1_pokedex seed 5303 ends done on a free screen. Seed 5304 not played. (R5's fix "
+       "round, 2026-10-28, the adversarial review's R5-F7: the runs of the R5 tree on these seeds, which this verdict "
+       "reported before, are REPLAYS on another tree and are now entry #47.)")
+E43 = (f"{PROBE_EVIDENCE} (assembled verbatim by R5's fix round from the session scratch s53/r5/build/probe/; the runs' "
+       f"save states and screenshots stay in that scratch)")
+E_AB = (f"{AB_EVIDENCE} (assembled verbatim by R5's fix round from the session scratch s53/r5/ab/; the runs' save states and "
+        f"screenshots stay in that scratch)")
+V47 = ("REPLAY, not a measurement (RECORDED AFTER THE FACT, see the note): the R5 build's development checks on the R5 tree "
+       "29a5dc81286162ff, on seeds #43 had played: from the pre-R5 runs' saved ch2_dad end states, seeds 5301 and 5302 ended "
+       "'done: ch2_dad reached' after playing WALLY's tutorial and the gym's return scene out (10,997 and 11,078 frames; the "
+       "settle played 2 and paused 112 and 102 frames), the END held free and input taken; from REAL New Games, ch1_clock "
+       "seeds 5301 and 5302 ended done free (the settle paused 17 and 16 frames, played 0) and ch1_pokedex seed 5303 ended "
+       "done free (paused 26, played 0). The same seeds and starts on the pre-R5 tree are #43's.")
+N47 = ("R5's fix round (2026-10-28, the adversarial review's R5-F7: 'ledger.py:19 says such runs are replays, written and "
+       "reported as a replay') RECORDED this entry AFTER THE FACT: the R5 builder played these runs between 9:25:50 PM and "
+       "9:31:05 PM under #43's development entry, whose tree is the pre-R5 one, and no replay entry was begun for them; started and "
+       "ended are the runs' own first start and last end, from their probe.out files. Driver: the builder's "
+       "probe_end_screen.py run (committed by the fix round as ai_player/gates/probe_end_screen.py, byte-identical, sha256 "
+       "d5c6095b58c6e345...), in-process, the clock pinned (rate_step5 GAME_CLOCK), on a frozen copy of the R5 tree. Two "
+       "earlier devab runs on seeds 5301 and 5302 were made on an intermediate R5 tree (2736e5bb787f9e67, DONE_SETTLE_ROUNDS "
+       "4) with the same numbers; they are superseded, not counted here, and that tree's kept zip is not committed.")
+
+
+def numbers_47() -> dict:
+    return {"driver": "r5_probe (probe_end_screen.py run), the R5 builder's development checks on the R5 tree",
+            "free_read_sha256": "d5c6095b58c6e345576881b4a4fa569d777f6e891fd3467152ab94db262adc55",
+            "game_clock": "2026-10-14T10:00", "wall_clock": "10:00", "after_frames": 10,
+            "runs": {"devab new 5301/5302": "from s53/r5/build/probe/runs/ch2_dad_<seed>/end_state.ss1 + run/world.jsonl, "
+                                            "frames 120000",
+                     "arms new ch1_clock 5301/5302, ch1_pokedex 5303": "REAL New Game, frames 300000"},
+            "tree": "29a5dc81286162ff"}
+
+
+def replay_numbers(trees: dict) -> dict:
+    ab = SCRATCH / "ab"
+    return {"driver": "r5_fix_replay (s53/r5/ab/ab_probe.py run, unchanged; in-process play_harness.play)",
+            "ab_probe_sha256": hashlib.sha256((ab / "ab_probe.py").read_bytes()).hexdigest(),
+            "free_read_sha256": hashlib.sha256((ab / "probe_end_screen.py").read_bytes()).hexdigest(),
+            "target": "ch2_dad", "frames": 120000, "after_frames": 10, "game_clock": "2026-10-14T10:00",
+            "wall_clock": "10:00", "seeds": [5301, 5301], "tree_digests": trees,
+            "start": "the R5 probe's saved ch2_dad_5301 end state + world.jsonl (s53/r5/build/probe/runs/ch2_dad_5301), "
+                     "as ledger #44's instrument check",
+            "arms": {"OLD": "fix/replay/trees/old_FIX_G347: the FIXED worktree's ai_player with revert mutant G347",
+                     "NEW": "fix/replay/trees/new_FIX: the FIXED worktree's ai_player"},
+            "expect": "a determinism check of the fix on the A/B's path: NEW takes #44's NEW trajectory (10,997 frames, the "
+                      "settle played 2 and paused 112, the END held free, input taken); OLD ends at once NOT held free"}
+
+
+REPLAY_NOTE = ("R5's FIX ROUND determinism REPLAY (not a measurement, CLAUDE.md rule 8) of development seed 5301 (#43), the "
+               "design of #44's instrument check: both arms' frozen trees made from the FIXED worktree (the review's "
+               "findings and the sweep's survivors fixed), started from the R5 probe's saved ch2_dad_5301 end state and "
+               "world memory. Question: did the fix change what the settle does on the path the live A/B measured? It "
+               "changed the settle's code only on paths that A/B never reached (the frame budget's end, a MAX_LOSSES-th "
+               "loss) and its end record's fields; this replay checks that by the frames.")
+
+
+def main() -> int:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo", type=Path, required=True)
+    parser.add_argument("mode", choices=("correct", "begin-replay", "finish"))
+    parser.add_argument("--id", type=int)
+    parser.add_argument("--verdict-file", type=Path)
+    parser.add_argument("--evidence")
+    parser.add_argument("--evidence-file", type=Path, help="a file holding the evidence text (prose never passes the shell)")
+    parser.add_argument("--trees-json", type=Path)
+    args = parser.parse_args()
+    sys.path.insert(0, str(args.repo.resolve()))
+    from ai_player.gates import ledger
+    from ai_player.gates.provenance import line_digest, provenance
+
+    print(f"ledger file: {ledger.LEDGER}")
+    if args.mode == "finish":
+        verdict = " ".join(args.verdict_file.read_text(encoding="utf-8").split())
+        evidence = (" ".join(args.evidence_file.read_text(encoding="utf-8").split()) if args.evidence_file is not None
+                    else args.evidence)
+        ledger.finish(args.id, verdict, evidence)
+        print(f"evidence: {evidence}")
+        print(f"finished entry #{args.id}: {verdict}")
+        return 0
+    if args.mode == "begin-replay":
+        trees = json.loads(args.trees_json.read_text(encoding="utf-8"))
+        numbers = replay_numbers(trees)
+        bounds = ledger.numbers_sha256(numbers)
+        code = provenance(args.repo.resolve())
+        print("numbers " + json.dumps(numbers, ensure_ascii=False, sort_keys=True))
+        print(f"numbers sha256 {bounds}")
+        print("code: " + code)
+        entry, lines = ledger.begin("story", "r5_fix_replay", "replay", 5301, 5301, bounds, line_digest(code),
+                                    note=REPLAY_NOTE)
+        print("\n".join(lines))
+        print("ENTRY " + json.dumps(entry, ensure_ascii=False))
+        return 0
+    with ledger._locked(ledger.LEDGER):
+        data = ledger.load(ledger.LEDGER)
+        entries = data["entries"]
+        by_id = {e["id"]: e for e in entries}
+        expect = {43: ("r5_probe", 5301, 5304, "53e0c26e7812db47"), 44: ("r5_ab_hookcheck", 5301, 5301, "29a5dc81286162ff"),
+                  45: ("r5_ab", 5351, 5354, "29a5dc81286162ff"), 46: ("r5_ab_control", 5355, 5355, "29a5dc81286162ff")}
+        for number, (driver, first, last, tree) in expect.items():
+            entry = by_id.get(number)
+            if entry is None or (entry["driver"], entry["first"], entry["last"], entry["tree"]) != (driver, first, last, tree):
+                raise SystemExit(f"REFUSED: entry #{number} is not as the A/B left it: {entry}")
+        if 47 in by_id or max(by_id) != 46:
+            raise SystemExit(f"REFUSED: the ledger's last entry is #{max(by_id)}, not #46")
+        by_id[43].update(verdict=V43, evidence=E43)
+        for number in (44, 45, 46):
+            by_id[number]["evidence"] = E_AB
+        entries.append({"id": 47, "family": "story", "driver": "r5_probe", "purpose": "replay", "first": 5301, "last": 5303,
+                        "status": "done", "registered": None, "bounds_sha256": ledger.numbers_sha256(numbers_47()),
+                        "tree": "29a5dc81286162ff", "started": "2026-10-28 21:25:50", "ended": "2026-10-28 21:31:05",
+                        "verdict": V47, "evidence": E_AB, "note": N47, "replays": [43]})
+        problems = ledger.check(data)
+        if problems:
+            raise SystemExit(f"REFUSED: the corrected ledger would not be well formed: {problems}")
+        ledger._save(data, ledger.LEDGER)
+    for number in (43, 44, 45, 46, 47):
+        print("ENTRY " + json.dumps(next(e for e in entries if e["id"] == number), ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+

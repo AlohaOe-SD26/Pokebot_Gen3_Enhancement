@@ -348,6 +348,18 @@ and `CLAUDE` (`CLAUDE.md`).
 - **Reported:** (counted by no verdict since build step 5.3 A1-1, corrected 2026-10-23 in A1-4: the AI's own end reason is DIAGNOSTIC) `rate_step5:BOUNDS.OUT_OF_IDEAS_LED_MAX`, `R5.OUT_OF_IDEAS`.
 - **Retires:** the prose, once chapters 3-4 are graded under it.
 
+### PL-18. One free look is not a free screen: a run ends "done" only after what is on screen is played out and a pause finds it still free.
+- **Origin:** 2026-10-29, 08 "ONE FREE LOOK IS NOT A FREE SCREEN".
+- **Status:** GATED (backlog R5)
+- **Enforced:** `ai_player/mode.py::DONE_SETTLE_ROUNDS`, `ai_player/mode.py::HandsBrain._settle_before_done`, `revert_step5:G347`, `revert_step5:G349`, `revert_step5:G352`, `revert_step5:G354`, `revert_step5:G355`.
+- **Retires:** the prose.
+
+### PL-19. Frames spent after the decision to end are budget-aware: the run's frame budget never turns a reached target into "stopped".
+- **Origin:** 2026-10-29, 08 "turns a reached target into an unrecorded stop".
+- **Status:** GATED (backlog R5's fix round)
+- **Enforced:** `ai_player/mode.py::DONE_BUDGET_MARGIN`, `ai_player/mode.py::HandsBrain._settle_frames`, `revert_step5:G356`, `revert_step5:G357`, `revert_step5:G371`.
+- **Retires:** the prose.
+
 ## D. Environment: host clock, disk, deployment clone
 
 ### EN-1. A launcher run's cartridge clock is the HOST's: live arms differ by time of day and cannot be replayed.

@@ -72,10 +72,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 346 sections (newest first)
+## All 347 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-29-d6802c` | 9855 |  |  | 2026-10-29 — R5 (a free screen before "done"): what the settle chose, the rulings on the build's open questions, and where the build departs from its spec |
 | `2026-10-28-f8ae9d` | 9841 | 50 |  | 2026-10-28 — The park tool (USER RULING 50): how `tools/ops/park_tuner.py` parks and resumes the bot tuner, and where it departs from its spec |
 | `2026-10-28-77ea25` | 9832 | 50 | DO-NOT-REOPEN | 2026-10-28 — USER RULING 50: the PARK is CANCELLED; the user continues this project, and the safe park/pause stays available for when the user asks |
 | `2026-10-28-495011` | 9821 |  |  | 2026-10-28 — E2 + O8 built: what the journal, the recovery case, the `.bak` check and the crash-loop breaker chose, and where the build departs from its spec |

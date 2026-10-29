@@ -119,6 +119,22 @@ SETTLE_FREE = 30
 #: decision's thinking pause, 14 frames: a run's frame budget bounds it long before this).
 STILL_PASSES_MAX = 50
 PLAY_PASSES_MAX = 100_000
+#: (R5, backlog item R5 "a FREE-SCREEN precondition", 2026-10-28) the rounds the settle before "done" takes at most
+#: (`HandsBrain._settle_before_done`): each round plays out a screen that is not free and then takes the decision's pause
+#: and one more look. The measured case took THREE (the R5 build's development check from the fixture probe's ch2_dad end
+#: states, seeds 5301 and 5302): the first pause finds WALLY's tutorial beginning; the tutorial's own warp back to the gym
+#: frees the player for one frame before the gym's return scene, which the second pause finds; the third finds the gym
+#: free. Six leave room for a longer chain and still bound the settle (LESSONS PL-4). (R5's fix round) Every NEW run of the
+#: R5 live A/B (held-out seeds 5351-5354) took the same three pauses (the adversarial review's settle_rounds.out), and
+#: `test_r5_the_measured_ch2_dad_chain_takes_three_rounds` pins it: with 2 rounds (G354) that chain ends NOT free.
+DONE_SETTLE_ROUNDS = 6
+#: (R5's fix round, the review's finding R5-F1) the frames of the run's budget (`settings.frames`) the settle before "done"
+#: always leaves: it hands on a frame only while more than this many are left, then stops and SAYS so, and the run ends
+#: "done" (its proof holds). Without it a settle longer than what was left was cut by the brain's own bound (`_bounded`)
+#: into "stopped: not finished within N frames" with no end record, no "end" note and no line saying the target was
+#: reached, and `gates/live_step5.py`'s HONESTY check read that stop over a proof that holds as a lie. `_bounded` needs ONE
+#: frame to see the run return (it resumes the skill once per frame); the second is slack.
+DONE_BUDGET_MARGIN = 2
 #: (the step-5.1 verifier's second round) what played between two goals, as the goal manager's balance counts it: the story's
 BETWEEN_GOALS = Goal("scene", "what played between two goals (a scene, the settling)")
 
@@ -354,7 +370,8 @@ class HandsBrain:
         (`skills/story.py` answer_question), its MENUS (PROF. BIRCH's bag, the wall clock) and the battle decider. The
         seeded streams are its own (`<seed>:story`, `<seed>:goals`, `<seed>:drift`, `<seed>:battle`), so no earlier brain's
         draws move. Ends "done: <milestone> ..." when the marks prove `AI_PLAYER_TARGET`, or with a reason (the frame budget,
-        no milestone for `STORY_PATIENCE` frames, `MAX_LOSSES` battles lost)."""
+        no milestone for `STORY_PATIENCE` frames, `MAX_LOSSES` battles lost). (R5) "Done" comes after what is on screen has
+        been played out (`_settle_before_done`), and every end records the screen it ends on (`_end_screen`)."""
         options, nav, world = self.options, self.navigator, self.world
         seed = self.seed
         story_rng = random.Random(f"{seed}:story")
@@ -412,6 +429,12 @@ class HandsBrain:
         def current(seen: Observation) -> int:
             return manager.milestone(seen, visited)[0] if seen.progress is not None and seen.progress.marks else last[0]
 
+        # (R5's fix round, the review's finding R5-F6) the milestones the story passed from one look to a later one, by the
+        # loop's own read (`current`): the settle before "done" names the ones its screens passed (`_settle_before_done`;
+        # a ch2_dad run's settle plays WALLY's tutorial, ch2_wally's proof). Kept as a field, as `_waits` is, so the
+        # settle's signature (which the R5 A/B's recording wrapper calls) stays as it was
+        self._passed_between = lambda first, then: [m.id for m in story.milestones[max(current(first), 0):current(then)]]
+
         last: list = [-1, None]  # the last milestone read from marks (index, milestone): kept while marks are not read
         changed_at = hands.pad.frames
         progress: dict = {}  # (build step 5.1) the last progress snapshot (`_progress`)
@@ -454,6 +477,12 @@ class HandsBrain:
                 hands.tell(f"[AI-GOALS] progress: {'; '.join(moved)}: the story's patience counts from here "
                            f"(it had waited {hands.pad.frames - changed_at} frames)")
                 changed_at = hands.pad.frames
+            if milestone is None or index > target:
+                # (R5, backlog item R5: a FREE SCREEN before "done") the target's proof is read on this pass's look, and it
+                # can flip while the screen is still busy (a scene, a box, the frame before an arrival scene): what is on
+                # screen is played out first and the run ends "done" just below whatever that brought, an unsettled end
+                # SAID (`_settle_before_done`; the end record, `_end_screen`)
+                yield from self._settle_before_done(hands, nav, look, options.target, report)
             if milestone is None or index > target:
                 return self._play_end(hands, story, manager, runner, report, "done", f"{options.target} reached")
             if milestone.steps and milestone.steps[0].do == "intro" and (look.player is None
@@ -644,11 +673,138 @@ class HandsBrain:
             hands.tell(f"[AI-GOALS] the story is at {milestone.id} ({milestone.title}); proofs now: {milestone.proofs(marks)}")
             hands.note("milestone", milestone.id, milestone.title, {"index": index, "frame": look.frame})
 
+    def _settle_before_done(self, hands: Hands, nav: Navigator, look: Observation, target: str,
+                            report: dict) -> Generator[None, None, None]:
+        """(R5, backlog item R5 "a FREE-SCREEN precondition", 2026-10-28; the recon `ai-research-notes/2026-10-28-R5-recon-
+        {code,record,game}.md`) The run is about to end "done": the target's proof holds on this pass's look. But a proof can
+        flip while the screen is still busy (FLAG_SET_WALL_CLOCK before MOM's upstairs text, ROXANNE's badge before TM39's),
+        and a goal can hand the loop back mid-screen (`play_out` giving up, `talk_to`'s "talked; then ...", a walk's stop
+        read before the screen). A person finishes what is on screen before putting the game down, and a save (backlog R1)
+        is possible only on a free screen. So, at most `DONE_SETTLE_ROUNDS` times:
+          * a screen that is not free is PLAYED OUT (`play_out`: it presses through waiting text, LESSONS PL-1, within its
+            own bound, PL-4), and the battles it lost are counted as the loop counts them (`_count_losses`), so the end
+            record agrees with the battle log; a play-out that leaves the screen busy ends the settle (PL-3: not retried);
+          * a free screen gets the decision's pause that every goal gets (`_play`'s thinking pause) and one more look: ONE
+            free look is not a free SCREEN. MEASURED 2026-10-28 (the R5 fixture probe, development seeds 5301 and 5302,
+            target ch2_dad, on the tree before R5): DAD's scene ends with a warp to PETALBURG CITY, the warp's exit frees
+            the player for ONE frame (the AI's own `nav_free` reads that frame free), and WALLY's tutorial (the city's
+            ON_FRAME script) locks the controls on the very next frame: both runs ended "done" there, the game taking no
+            input. (The tutorial's own warp back to the gym does the same before the gym's return scene: the settle's
+            second pause finds it, `DONE_SETTLE_ROUNDS`.)
+        The run then ends "done" whatever the settle brought: the game's proof holds, and a stop reason over a proof that
+        holds would be a lie (`gates/live_step5.py`'s HONESTY check compares the exact "done: <target> reached"). A screen
+        that did not free is SAID instead (PL-3): told, noted ("end_screen") and in the end record (`_end_screen`). What
+        the settle did is `report["settle"]`. On a free look that stays free it presses nothing and plays nothing out: only
+        the pause passes.
+        (R5's fix round, the adversarial review's findings) Three more ends of the settle, each SAID, each still "done":
+          * THE FRAME BUDGET (R5-F1): every frame of the settle is handed on through `_settle_frames`, which stops while
+            `DONE_BUDGET_MARGIN` frames of `settings.frames` are left, so the brain's own bound never cuts a run whose
+            target is reached into "stopped" with no end record; a cut is told and noted ("end_screen", "budget");
+          * MAX_LOSSES (R5-F5): a play-out that loses the run's last allowed battle ends the settle at once (no pause, no
+            further play-out: the run fights no battle past MAX_LOSSES), its stop the loop's own MAX_LOSSES reason;
+          * the milestones the story passed while the screen was played out (R5-F6; a ch2_dad run's settle plays WALLY's
+            tutorial, ch2_wally's proof) are told and kept in `report["settle"]["passed"]` and the end record. They are not
+            added to `report["milestones"]` or told as MILESTONE lines, which the graders read."""
+        began, played, paused, stop, cut, first = hands.pad.frames, 0, 0, None, False, look
+        for _ in range(DONE_SETTLE_ROUNDS):
+            if not nav_free(look):
+                played += 1
+                ended, stop = yield from self._settle_frames(hands, play_out(hands, nav,
+                                                                             f"{target} reached: what is on screen first"))
+                lost = self._count_losses(hands, nav, report)
+                look = hands.look()
+                if not ended:
+                    cut, stop = True, f"the run's frame budget ran out ({self.settings.frames} frames)"
+                    break
+                if lost is not None:
+                    stop = lost
+                    break
+                if not nav_free(look):
+                    break
+            pause, before = hands.pad.think_frames(), hands.pad.frames
+            ended, _ = yield from self._settle_frames(hands, hands.pad.idle(
+                pause, f"deciding to stop here, {target} reached: does a scene begin?"))
+            paused += hands.pad.frames - before
+            look = hands.look()
+            if not ended:
+                cut, stop = True, f"the run's frame budget ran out ({self.settings.frames} frames)"
+                break
+            if nav_free(look):
+                break
+        free = nav_free(look)
+        between = getattr(self, "_passed_between", None)
+        passed = between(first, look) if between is not None else []
+        report["settle"] = {"played": played, "paused": paused, "frames": hands.pad.frames - began, "stop": stop,
+                            "free": free, "budget": cut, "passed": passed}
+        if passed:
+            hands.tell(f"[AI-GOALS] what was on screen after {target} took the story further: it passed {', '.join(passed)} "
+                       f"while it was played out (the run still ends at its target)")
+        if cut:
+            held = None if free else busy_reason(look)
+            hands.tell(f"[AI-GOALS] {target} reached, but the run's frame budget ran out while what is on screen was played "
+                       f"out ({self.settings.frames - hands.pad.frames} frames left): the run ends here, on a screen "
+                       f"{'that is free' if free else 'held by: ' + str(held)}")
+            hands.note("end_screen", "budget", held or "free", {"target": target, "stop": stop, "frame": look.frame,
+                                                                 "played": played})
+        elif not free:
+            held = busy_reason(look)
+            hands.tell(f"[AI-GOALS] {target} reached, but the screen did not free ({stop or 'a scene still plays'}): the run "
+                       f"ends here, on a screen held by: {held}")
+            hands.note("end_screen", "not free", held, {"target": target, "stop": stop, "frame": look.frame,
+                                                        "played": played})
+
+    def _settle_frames(self, hands: Hands, work: Generator[None, None, object]) -> Generator[None, None, tuple]:
+        """(R5's fix round, R5-F1) Hand on `work`'s frames (a play-out, the decision's pause) for the settle before "done",
+        one per `yield` as `_bounded` drives them, while more than `DONE_BUDGET_MARGIN` frames of the run's budget are
+        left (the pad counts every frame it hands on, `hands/pad.py` `_count`). (True, its result) when `work` ended;
+        (False, None) when the budget's end came first: `work` is then CLOSED, as `_bounded` closes a skill (a held button
+        is released), and the run goes on to its end with no frame passing."""
+        limit = self.settings.frames - DONE_BUDGET_MARGIN
+        try:
+            while hands.pad.frames < limit:
+                try:
+                    next(work)
+                except StopIteration as done:
+                    return True, done.value
+                yield
+            return False, None
+        finally:
+            work.close()
+
+    @staticmethod
+    def _end_screen(hands: Hands, report: dict, kind: str) -> dict:
+        """(R5) The screen at the run's END, by one more look (a read at the same frame: no frame passes): whether it is
+        free (`nav_free`, the loop's own test), what holds it (`busy_reason`) and the frame; for a "done" end also what
+        the settle before it did (`_settle_before_done`): `played_out`, whether it had to PLAY a screen out (the pause
+        alone is not one: R5's fix round renamed it from `settled`, which read as "the screen settled", the review's
+        R5-F6), its frames, its pause, the last play-out's stop (or the budget's, or MAX_LOSSES') and the milestones the
+        story passed meanwhile. Recorded at EVERY end (the report, the end line, the end note): a guard for the reader,
+        never evidence (the recon's verifier: "keep it as a guard, never as evidence"), and no grader counts it. The look
+        is a FRESH one (`hands.look()`, never `hands.last`: a play-out can end the run with the screen changed since the
+        loop's last look, the MAX_LOSSES end after a whiteout)."""
+        seen = hands.look()
+        free = nav_free(seen)
+        screen = {"free": free, "held_by": None if free else busy_reason(seen), "frame": seen.frame}
+        if kind == "done":
+            settle = report.get("settle") or {}
+            screen.update(played_out=bool(settle.get("played")), settle_frames=settle.get("frames", 0),
+                          paused=settle.get("paused", 0), settle_stop=settle.get("stop"), passed=settle.get("passed", []))
+        return screen
+
     def _play_end(self, hands: Hands, story, manager, runner, report, kind: str, why: str) -> str:
-        # the losses are the LOOP's count (`_count_losses`, at the top of every pass), never recounted here: every way out
-        # of the loop leaves it after that pass's count, with no battle in between, so a recount could only HIDE a loop
-        # that stopped counting (the step-5 verifier's round 2: with the loop's call removed, this recount made the
-        # sweep's "the AI's battles lost == the game's" pass 40 of 40). A disagreement is told, not mended.
+        # (R5) the screen the run ends on, read FIRST (one more look at the same frame, so the wait and push watchers close
+        # their stretches after it): into the report, the end line and the end note (`_end_screen`). (R5's fix round, the
+        # sweep's S56, now pinned by `test_r5_the_end_look_closes_the_wait_record`) The order is ON PURPOSE: frames that
+        # passed after the loop's last look with a box waiting for a press (a play-out that ended the run at MAX_LOSSES)
+        # really passed, and the wait record must reach the end, not stop at the last look (`hands/waiting.py`; the
+        # push record's history: "a run cut off by its frame budget never ENDS its last stretch"). On a "done" end the
+        # settle's last look is at the end's frame, so the end look adds nothing there.
+        screen = report["end_screen"] = self._end_screen(hands, report, kind)
+        # the losses are the LOOP's count (`_count_losses`, at the top of every pass and, since R5, after each screen the
+        # settle before "done" plays out), never recounted here: every way out of the loop leaves it after that count, with
+        # no battle in between, so a recount could only HIDE a loop that stopped counting (the step-5 verifier's round 2:
+        # with the loop's call removed, this recount made the sweep's "the AI's battles lost == the game's" pass 40 of 40).
+        # A disagreement is told, not mended.
         logged = battles_lost(runner.nav.battle_log)
         if logged != report["losses"]:
             hands.tell(f"the loop counted {report['losses']} battles lost, but the battle log holds {logged}")
@@ -667,7 +823,12 @@ class HandsBrain:
                    f"{runner.picked}, battles lost {report['losses']}, personality {manager.state.history}, favourite "
                    f"{manager.state.favourite}; progress resets {len(report.get('progress') or [])}; waits on a press "
                    f"{report.get('waits')}; pressing with nothing new {report.get('pushes')}; curiosity that brought "
-                   f"nothing {manager.memory.idle}")
+                   f"nothing {manager.memory.idle}; the screen at the end "
+                   f"{'free' if screen.get('free') else 'NOT free (' + str(screen.get('held_by')) + ')'}"
+                   + (f" ({'played out first' if screen.get('played_out') else 'nothing to play out'}, the settle "
+                      f"{screen.get('settle_frames')} frames"
+                      f"{'; the story passed ' + ', '.join(screen['passed']) + ' meanwhile' if screen.get('passed') else ''})"
+                      if kind == "done" else ""))
         hands.note("end", kind, why, {"milestones": report["milestones"], "fight_prep": prep, "roams": runner.roams,
                                       "heals": runner.heals, "shopping": runner.shopping, "items": runner.picked,
                                       "losses": report["losses"], "drift": manager.state.history,
@@ -678,7 +839,9 @@ class HandsBrain:
                                                   for m, maps in manager.memory.blocked.items() if any(maps.values())},
                                       "exhausted": dict(manager.memory.exhausted), "spent": dict(manager.memory.spent),
                                       "seen_levels": dict(manager.memory.seen_levels),
-                                      "no_balls": dict(manager.memory.no_balls), "home_heals": manager.memory.home_heals})
+                                      "no_balls": dict(manager.memory.no_balls), "home_heals": manager.memory.home_heals,
+                                      # (R5) the screen the run ended on (`_end_screen`)
+                                      "end_screen": screen})
         return f"{kind}: {why}"
 
     # ------------------------------------------------------------------ build step 4: battles
