@@ -39069,3 +39069,9 @@ bought balls only at fixed story points.
 - **The test:** `selftest_usage_audit.py` U13: the refusal (exit 2, the ledger byte-identical); a FAULT arm (the same filtered count appended without the refusal gives each older workflow a zero rev 2); a CONTROL (`--append` alone runs and appends nothing to an unchanged ledger). 97 checks ALL PASS. With the refusal cut out of the source in memory (session scratch `uaguard_arms.py`; the repo untouched), U13's refusal check FAILS and the zero rows come back; the same runner with the source as it is: ALL PASS.
 - **Pre-commit** (4:16 to 4:31 AM, before this line was written): `run_gates.py --quick` `ALL 141 ENFORCING GATES PASS` (+2 advisory probes; 851 s); `run_regression.py --quick` `REGRESSION: PASS (quick, 19 suites)`; `regression_due.py`: units and revert_safety_gates DUE on these 07 and 08 entries alone (both read 07/08), so the full lane runs after the commit; Tier 0 PASS; Tier 1 (one independent reviewer, Haiku) PASS, no findings.
 - **Cost:** local CPU only.
+
+## 2026-10-29 — E2 + O8's DEPLOY CHECK ✅ CLOSED: the first full round on the new code journaled every game (backlog item 14; punch-list #28-trainer-improvements (1))
+
+- **The read:** at round ai0054's end (4:30 AM) the bot tuner's log (`C:/Remote Projects/pokebot-learner/ai-agent/data/learner.log`) said `ai0054: game journal: 42 of 42 journaled games match the batch's records`, on the same second as `ai0054: batch exit 0; 54 runs logged, 42 scored`: every game the round scored was also in the per-game journal, and none differed. The session's read-only watcher (`compare_watch.py`, scratch) exited 0.
+- **What it closes:** the last open read of the DEPLOY CHECK in `04` (the restart into the new code and the first journal line, 5:50:19 PM 2026-10-28, were verified then: `07` 2026-10-28).
+- **Cost:** a read-only log watcher, local CPU only.
