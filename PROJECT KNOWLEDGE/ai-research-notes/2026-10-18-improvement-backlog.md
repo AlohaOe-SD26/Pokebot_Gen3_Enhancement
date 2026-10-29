@@ -292,6 +292,10 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
   `_Memory` is not carried (`brain/goals.py:62`); at x1 an hour is 216,000 frames. **What:** `save_game` and CONTINUE read
   by their words, saving only on a free screen (R5); one `memory.jsonl` (full lines plus deltas) stamped with play time, so
   a resume loads memory NOT NEWER than its save. UNVERIFIED first: does mGBA flush the save before a kill? No save-scum.
+  **Recon 2026-10-29 (NOTES, read, not measured):** `2026-10-29-R1R2-recon-{game,host,code,record,refute}.md`. The `.sav`
+  is a mapped file the game writes byte by byte, flushed 16 frames after the last write, so a process kill should keep a
+  finished save; one save's write takes about 133 frames or more, and a kill DURING it tears it: the previous save loads,
+  or, for a FIRST save, none (so the kill proof needs two saves: refute W1). Probes M1 + KM and M2 settle it live.
 - **R8 + R9 (+ P13). AI-MADE STATES for repro and for the next chapter.** (A; needs R2, R3) **Evidence:** a stuck verdict
   costs the whole run again (a 59,204-frame stretch surfaced only in a 20-run sweep); a chapter-3 run from a bot save "has
   never heard DAD" (recon Gap 9). **What:** the HOST keeps the last 3 states and copies out `stuck-<code>.ss1` for
