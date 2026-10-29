@@ -303,7 +303,7 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
   **USER RULINGS 51 and 52 (2026-10-29, `06`):** the AI saves like a person (a Pokémon Center, before a
   gym leader, after a big story moment) and never reloads to undo a loss. DEFERRED until the AI fully
   works (ruling 52): a save in front of a stationary legendary (Rayquaza, the Regis), reloaded only after
-  a catch that failed for want of Poké Balls.
+  a catch that failed for want of Poké Balls. **Build spec:** `2026-10-29-R1R2-BUILD-SPEC.md` (2026-10-29).
 - **R8 + R9 (+ P13). AI-MADE STATES for repro and for the next chapter.** (A; needs R2, R3) **Evidence:** a stuck verdict
   costs the whole run again (a 59,204-frame stretch surfaced only in a 20-run sweep); a chapter-3 run from a bot save "has
   never heard DAD" (recon Gap 9). **What:** the HOST keeps the last 3 states and copies out `stuck-<code>.ss1` for
