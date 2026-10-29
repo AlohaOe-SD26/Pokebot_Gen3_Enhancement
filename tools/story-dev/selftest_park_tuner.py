@@ -157,6 +157,10 @@ from pathlib import Path
 os.environ["PARK_TUNER_SELFTEST"] = "1"  # THE TEST GUARD (spec 3.4): set before the tool is loaded, never unset
 
 ROOT = Path(__file__).resolve().parent.parent.parent
+#: (2026-10-29, run_gates' probe_no_hardcoded_repo H1) THIS checkout's path as a Windows command line writes it: the
+#: fixtures' "another checkout", whose lanes, windows and tool runs are never the clone's tuner. From the main checkout it
+#: is the main checkout, as the literal it replaces was; from a worktree it is that worktree (still not the clone).
+CHECKOUT_WIN = str(ROOT).replace("/", "\\")
 TOOL_PATH = ROOT / "tools" / "ops" / "park_tuner.py"
 LEARNER_PY = ROOT / "ai-agent" / "learner.py"
 BACKUP_PY = ROOT / "tools" / "ops" / "backup_learner.py"
@@ -245,8 +249,8 @@ SHAPES = {  # the live tree of 2026-10-28 (build spec section 2), verbatim but f
     "watchdog_py": (51001, 51000, "py.exe", 'py -3.12 -B "' + REAL + '\\tools\\ops\\watchdog.py"'),
     "backup_task": (51100, 1500, "pyw.exe", '"C:\\Windows\\pyw.exe" -3.12 -B "' + REAL
                     + '\\tools\\ops\\backup_learner.py"'),
-    "tool_main": (51200, 1600, "py.exe", '"C:\\Windows\\py.exe" -3.12 "C:\\Remote Projects\\Pokebot_Gen3_Enhancement'
-                  '\\tools\\ops\\park_tuner.py" park --apply'),
+    "tool_main": (51200, 1600, "py.exe", '"C:\\Windows\\py.exe" -3.12 "' + CHECKOUT_WIN
+                  + '\\tools\\ops\\park_tuner.py" park --apply'),
     "tool_clone": (51201, 1600, "python.exe", PY + ' "' + REAL + '\\tools\\ops\\park_tuner.py" status'),
     "park_watch": (51300, 1600, "python.exe", PY + ' "C:\\Users\\me\\scratch\\park_watch.py" --live --deadline x'),
 }
@@ -856,7 +860,7 @@ def t_m(tmp: Path) -> None:
     check("M lane and batch counts from the real shapes: 12 lanes, 1 batch",
           len(TOOL.lane_processes(got)) == 12 and len(TOOL.batch_processes(got)) == 1, "")
     main_lane = {"ProcessId": 70001, "ParentProcessId": 1, "Name": "python.exe",
-                 "CommandLine": lane_cmd(1, "C:\\Remote Projects\\Pokebot_Gen3_Enhancement")}
+                 "CommandLine": lane_cmd(1, CHECKOUT_WIN)}
     sibling = {"ProcessId": 70002, "ParentProcessId": 1, "Name": "python.exe",
                "CommandLine": lane_cmd(2, "C:\\Remote Projects\\pokebot-learner-old")}
     me = {"ProcessId": os.getpid(), "ParentProcessId": 10588, "Name": "python.exe", "CommandLine": PY + " learner.py run"}
@@ -869,7 +873,7 @@ def t_m(tmp: Path) -> None:
           and not TOOL.pid_is_learner(None, tuner), "")
     wins = TOOL.window_processes(tuner + others, paths)
     other_win = {"ProcessId": 70003, "ParentProcessId": 1, "Name": "powershell.exe", "CommandLine":
-                 '"powershell.exe" -NoExit -File "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\ai-agent\\run_agent.ps1"'}
+                 '"powershell.exe" -NoExit -File "' + CHECKOUT_WIN + '\\ai-agent\\run_agent.ps1"'}
     check("M CONTROL the clone's -NoExit run_agent.ps1 window is found; FAULT another checkout's window is not",
           [w["ProcessId"] for w in wins] == [10588] and not TOOL.window_processes([other_win], paths), str(wins))
     dev_shell = {"ProcessId": 46000, "ParentProcessId": 1, "Name": "powershell.exe", "CommandLine": "powershell.exe"}

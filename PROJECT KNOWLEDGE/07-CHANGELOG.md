@@ -39010,3 +39010,10 @@ bought balls only at fixed story points.
 - **Not done:** no `--apply` has run live (forbidden without the user's word). The first real park and resume should be watched.
 - **Cost:** the build workflow, 4 agents, 2.30M subagent tokens, about 3 h 52 min; my checks, local CPU only (the selftest 3 times, the 32-minute mutant re-run, the live controls).
 - **Next:** R5 (queue item 4).
+
+## 2026-10-29 — `run_gates.py --quick` is GREEN again: it was RED on two gates since 2026-10-28 3:03 PM (`c69ee31e`), a byte-order mark in the park evidence note and the main checkout's path in the park tool's selftest (punch-list #28-trainer-improvements items 1 and 10)
+
+- **Found:** R5's pre-commit `run_gates.py --quick` (12:45-1:00 AM): `FAILED: 2 of 143`. `probe_doc_control_chars.py`: `2026-10-28-PARK-EVIDENCE.md:282 col 41 U+FEFF` (from `c69ee31e`: the note's copy of the scratch watcher strips a BOM with the literal character). `probe_no_hardcoded_repo.py` H1: `tools/story-dev/selftest_park_tuner.py` lines 248, 859 and 872 named the main checkout in code (from `16ddb8bc`). Neither commit had run the suite; its last recorded PASS is step 5.3 stage B's (2026-10-27).
+- **Fixed:** the note's `.lstrip("<U+FEFF>")` is written `.lstrip("\ufeff")`, the same Python. The selftest builds "another checkout" from its own `ROOT` (`CHECKOUT_WIN`), which from the main checkout gives exactly the three strings the literals held (checked: SAME, SAME, SAME), so the park tool's 263 checks and its 173 mutants' verdicts stand.
+- **Proof:** `probe_no_hardcoded_repo.py` PASS; `probe_doc_control_chars.py` exit 0; `selftest_park_tuner.py` ALL PASS (263 checks, 0 failed); the other 141 gates of that run had passed on the same tree.
+- **Cost:** local CPU only.

@@ -279,7 +279,7 @@ def _ps(command: str, timeout: float = 180) -> subprocess.CompletedProcess:
     full = "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false; " + command
     r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", full], capture_output=True,
                        text=True, encoding="utf-8", errors="replace", timeout=timeout)
-    r.stdout = (r.stdout or "").lstrip("﻿")
+    r.stdout = (r.stdout or "").lstrip("\ufeff")
     return r
 
 
