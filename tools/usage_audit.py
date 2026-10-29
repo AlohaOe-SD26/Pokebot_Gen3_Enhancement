@@ -63,7 +63,7 @@ just because the classifier moved its buckets (same_numbers), so compare `catego
 classifier. `--calibrate` appends one calibration row there.
 
 Run:  py -3.12 tools/usage_audit.py                     the ~30-line report over everything
-      py -3.12 tools/usage_audit.py --append            ... and append the ledger rows
+      py -3.12 tools/usage_audit.py --append            ... and append the ledger rows (never with --since: refused)
       py -3.12 tools/usage_audit.py --session <id> [--since 2026-10-21T11:00:00Z]   ONE line for one session
       py -3.12 tools/usage_audit.py --calibrate 150 37  record a (measured ie Mtok, weekly meter %) pair
 """
@@ -989,6 +989,12 @@ def main(argv=None) -> int:
     ap.add_argument("--calibrate", nargs=2, type=float, metavar=("IE_MTOK", "PERCENT"))
     args = ap.parse_args(argv)
     ledger = Path(args.ledger)
+    if args.append and args.since:
+        # a count from --since on differs from every older workflow's row, so each would gain a NEWER revision holding
+        # only that window's usage (zero for them), and readers take the newest revision (08-MISTAKES 2026-10-29)
+        print("usage_audit: --append refuses --since: it would append each older workflow's usage counted from that "
+              "time on as its newest revision, which readers then take as its cost. Run --append without --since.")
+        return 2
     if args.calibrate:
         row = {"kind": "calibration", "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                "ie_mtok": args.calibrate[0], "percent": args.calibrate[1]}

@@ -36,6 +36,9 @@ confidence. So each counting rule below has a FAULT arm (the rule broken -> the 
      inside the computed-task framing, and after the user-request relay; a prompt that only MENTIONS the marker, a
      marker for a role with no template, and a marker with text after it on line 1 do not (each a FAULT arm for the
      substring test that preceded it); a relay with no computed task is untemplated, never unknown.
+  U13 --append refuses --since (2026-10-29): exit 2 with the ledger byte-identical; FAULT: the same time-filtered
+     count appended without the refusal gives every older workflow a zero rev-2 row (readers take the newest rev);
+     CONTROL: --append alone still runs and appends nothing to an unchanged ledger.
   U7 (NOT a gate; `--real`): the REAL transcript folder, read-only: all four share tables (by object and by
      command, all agents and subagents) sum to 100 +/- 0.5 and the round-2 reference numbers print beside this run's.
 
@@ -358,6 +361,23 @@ def selftest() -> None:
         run_cli("--root", str(proj), "--ledger", str(ledger), "--append")
         check("U5 CONTROL: an unchanged re-run appends nothing", len(ua.read_ledger(ledger)) == 2,
               str(len(ua.read_ledger(ledger))))
+
+        # U13 --append refuses --since (08-MISTAKES 2026-10-29: 135 zero rows were appended over the real ledger)
+        ledger_bytes = ledger.read_bytes()
+        code, out = run_cli("--root", str(proj), "--ledger", str(ledger), "--append", "--since", "2030-01-01T00:00:00")
+        check("U13 --append with --since is REFUSED (exit 2) and the ledger stays byte-identical",
+              code == 2 and ledger.read_bytes() == ledger_bytes and "refuses --since" in out, f"{code} {out[:200]}")
+        harm = root / "harm" / "cost-ledger.jsonl"
+        harm.parent.mkdir()
+        harm.write_bytes(ledger_bytes)
+        agents, _, root_of = ua.load(ua.project_roots([str(proj)]), None, ua.parse_ts("2030-01-01T00:00:00"))
+        added, _, _ = ua.append_ledger(ua.ledger_rows(agents, root_of), harm, False)
+        zeroed = [r for r in ua.read_ledger(harm) if r["rev"] == 2 and r["ie_mtok"] == 0]
+        check("U13 FAULT: the same filtered count appended without the refusal gives each old workflow a zero rev 2",
+              added == 2 and len(zeroed) == 2, f"added {added}, zeroed {len(zeroed)}")
+        code, out = run_cli("--root", str(proj), "--ledger", str(ledger), "--append")
+        check("U13 CONTROL: --append alone runs (exit 0) and appends nothing to an unchanged ledger",
+              code == 0 and ledger.read_bytes() == ledger_bytes, out.splitlines()[-1])
         # rows written by classifier 1 (no `objects`, no `classifier`, other `categories`) must not be re-appended
         # when only the classifier moved their buckets: a classifier change is not new usage
         old_fmt = root / "ledger-old" / "cost-ledger.jsonl"

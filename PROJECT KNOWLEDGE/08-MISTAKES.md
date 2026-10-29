@@ -24141,3 +24141,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** `extract_world.load_json` hashed raw bytes, and its two hand-made inputs carry no `eol` attribute. KB1's line-end rule (`.gitattributes` `text eol=lf`) was applied to the OUTPUTS only. It is the same class as 2026-09-15 ("NORMALISE LINE ENDINGS BEFORE JUDGING A DIFF"): this repo's `core.autocrlf` is true, so a file's bytes depend on who wrote it.
 - **The fix that worked:** fold the line ends inside the hash (`07` 2026-10-29), as `rate_step5.file_sha256` and `make_chapter_pack.py` already did, and regenerate the headers it changed.
 - **Prevention rule:** a hash that a committed file records is taken over the text with its line ends made "\n", never over raw bytes, unless the file is binary or carries an `eol` attribute. Prove it with a copy written the other way (the test does).
+
+## 2026-10-29 — A READING FILTER ON A WRITING RUN: `usage_audit.py --append --since` gave 135 older workflows a zero revision in the cost ledger (caught before commit)
+
+- **Symptom:** `usage_audit.py --since 2026-10-28T12:00:00 --append` (the `--since` I use for this week's estimate, plus `--append` to record the week's workflows) printed "appended 141 rows"; 135 were rev-2 rows for OLDER workflows, each with `calls 0, ie_mtok 0.0`.
+- **Root cause:** `--since` limits which responses are counted, and `--append` appends a workflow's row whenever its numbers differ from its newest row. A window's count differs for every workflow outside the window, so each gained a newer revision holding the window's usage, zero, and readers take the newest revision. The tool accepted the combination without a word.
+- **The fix that worked:** the committed ledger written back, then `--append` alone (6 rows); `--append` now refuses `--since` (exit 2), held by selftest U13 with a FAULT arm and a CONTROL (`07` 2026-10-29).
+- **Prevention rule:** a tool that APPENDS revisions must refuse every option that changes what it counts; before a write flag, read what the other flags on the same line do to the numbers it will write.
