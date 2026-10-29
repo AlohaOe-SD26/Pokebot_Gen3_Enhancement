@@ -1,5 +1,6 @@
 > **Committed 2026-10-29** by the orchestrating session, VERBATIM below this box, from the session scratch `s53/r1r2recon/01-game.md` (sha256 `7cd68da60d67e4f1`). Backlog R1 + R2's recon (save, CONTINUE, a memory that survives a kill), angle 1, THE GAME (the pinned decomp): a read-only Claude subagent's NOTE, never truth (the authoritative docs and the code win). Nothing in it was measured live. R1 + R2's build waits for the user's two save answers (`04` item 4).
 > ⚠ **The adversary's verdict** (`2026-10-29-R1R2-recon-refute.md` section 2): nothing here was found WRONG. Two corrections: the save dialog's shape (a4) follows RAM that a `.ss1` carries (gSaveFileStatus, gDifferentSaveFile), not the cartridge on disk, as section 1.4 says and section 0 does not; and a6's write length is closed at about 133 frames or more (its C1: arithmetic over mGBA 0.10.2's source, not yet measured).
+> ⚠ **MEASURED 2026-10-29** (`2026-10-29-R1R2-PROBE-REPORT.md`): a6's write takes 256-261 frames, not "about 133 frames or more" (only the lower bound holds), and a kill inside its first sector leaves no error page.
 
 # R1 + R2 recon, angle 1: THE GAME (save, title, CONTINUE), read from the pinned decomp
 

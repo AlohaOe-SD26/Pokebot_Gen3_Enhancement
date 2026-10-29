@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "15d7b332b4bdf25f240d30ecdd88a7f53a00b79b",
+ "source_sha1_lf": "e9f2c06a3b9048c6af1aa266c8f984ea480b820e",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 348,
+  "sections": 349,
   "donot_candidates": 28,
   "sections_naming_user_rulings": 46
  },
@@ -5438,6 +5438,19 @@
    "line_start": 9871,
    "line_end": 9876,
    "title": "2026-10-29 — KB2's input hashes ignore line ends: folded in the hash, not fixed by an `eol` attribute",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-29-753e92",
+   "date": "2026-10-29",
+   "line_start": 9878,
+   "line_end": 9882,
+   "title": "2026-10-29 — R1 + R2's save/kill probe: a TEST-SIDE tool in no lane, and what it hands R1's design (WHEN the AI saves is not decided here)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],

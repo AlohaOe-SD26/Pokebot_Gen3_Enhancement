@@ -72,10 +72,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 348 sections (newest first)
+## All 349 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-29-753e92` | 9878 |  |  | 2026-10-29 — R1 + R2's save/kill probe: a TEST-SIDE tool in no lane, and what it hands R1's design (WHEN the AI saves is not decided here) |
 | `2026-10-29-92e464` | 9871 |  |  | 2026-10-29 — KB2's input hashes ignore line ends: folded in the hash, not fixed by an `eol` attribute |
 | `2026-10-29-d6802c` | 9855 |  |  | 2026-10-29 — R5 (a free screen before "done"): what the settle chose, the rulings on the build's open questions, and where the build departs from its spec |
 | `2026-10-28-f8ae9d` | 9841 | 50 |  | 2026-10-28 — The park tool (USER RULING 50): how `tools/ops/park_tuner.py` parks and resumes the bot tuner, and where it departs from its spec |

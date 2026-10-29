@@ -1,5 +1,6 @@
 > **Committed 2026-10-29** by the orchestrating session, VERBATIM below this box, from the session scratch `s53/r1r2recon/05-refute.md` (sha256 `33efdd35f58305a2`). Backlog R1 + R2's recon (save, CONTINUE, a memory that survives a kill), angle 5, THE ADVERSARY (it was told to find the errors in angles 1-4): a read-only Claude subagent's NOTE, never truth (the authoritative docs and the code win). Nothing in it was measured live. R1 + R2's build waits for the user's two save answers (`04` item 4).
 > **Its own limits:** every closure here is a reading, an offline parse or arithmetic (C1's 133 frames is arithmetic over mGBA's source; C5 is an offline parse of the committed fixtures); none of section 8's probes was run. Its verdicts are a second note, not proof: where it and a note disagree, the cited source decides.
+> ⚠ **MEASURED 2026-10-29** (`2026-10-29-R1R2-PROBE-REPORT.md`): C1's 133 frames is REFUTED (256-261 measured), so the dialogue stall bound's headroom is about 1.15x, not 2.3x; W1 holds (a torn FIRST save leaves no save), and the "erased" page shows only once the write's first sector is complete.
 
 # R1 + R2 recon, ANGLE 5: THE ADVERSARY (errors found in notes 01-04)
 

@@ -734,6 +734,33 @@ step-0.1 runs of 2026-10-07 (no digest line: they predate `provenance.py`) were 
 `evidence/archive/INDEX.md`, where each such file has one line with the `git show <commit>:<path>` that prints it (git
 keeps every one: the tool deletes a file only when git tracks it unchanged).
 
+## The save/kill probe (backlog R1 + R2's prerequisite, 2026-10-29)
+
+Before the AI saves its game and CONTINUES it (R1 + R2, which waits for the user's two answers), the probe MEASURES what
+a save does in frames and what a process kill at each point leaves for the next process. TEST SIDE: nothing in the AI
+imports it; it needs the emulator, the ROM and a framework copy with `mgba/`, and no lane runs it (`06` 2026-10-29).
+
+* `gates/probe_save_kill.py`: a parent and two children. Child A, the saver, saves with a FILE-BACKED cartridge on a
+  throwaway profile under `--out` (the fixture `gates/fixtures/route101_south.ss1`, test-side presses, each question
+  read by its words) and is killed by its own PID at a chosen frame; child B, the continuer, boots the same profile cold,
+  reads any error page by its words, takes CONTINUE and reads the game's truth on a held free screen. The FILE verdict
+  ports the game's `GetSaveValidStatus` (pinned decomp `src/save.c`), with "+ERROR" for a broken other slot and "+MIXED"
+  for a loaded slot whose 14 sector counters differ.
+  `py -3.12 -B ai_player/gates/probe_save_kill.py selftest [--fault no_checksum|no_identity|ignore_pages|ignore_counters]`
+  (offline, seconds: 26 cases, and each fault FAILS), or, with `AI_PLAYER_BUILD_ROOT` naming the framework copy,
+  `run --root <repo> --fixtures ai_player/gates/fixtures --out <dir> [--arms NAME,...] [--km-first N,...]
+  [--km-second N,...] [--km-third N,...]` (every arm: about 3 minutes).
+* What it measured: a save's flash write takes 256-261 frames; mGBA flushes the file 16 frames after the last write; a
+  kill after the write keeps the new save even before the flush; a kill during the write loses that save (a first save
+  leaves none and the game offers NEW GAME only; a later one falls back to the save before it, with the game's
+  "corrupted" page), and before the write's first sector is complete (18-19 frames) no page appears at all. Evidence:
+  `evidence/2026-10-29-r1probe-PROBE.txt` (the build and fix rounds) and `evidence/2026-10-29-r1probe-FINAL.txt` (every
+  check re-run on the committed text); the report: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-29-R1R2-PROBE-REPORT.md`.
+
+KNOWN LIMITS. One fixture and one text speed; the fixture's party is one Pokemon on one map, so only the tile and the play
+time tell the saves apart; no power cut; no fourth save; kills land between frames; MIXED's file is CRAFTED by the
+parent (a kill cannot make one in order).
+
 ## A free screen before "done" (backlog R5, 2026-10-29)
 
 WHY. The play loop ended a run "done" on the pass's look, whatever was on screen: the target's proof can flip while a
