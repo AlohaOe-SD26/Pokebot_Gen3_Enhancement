@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "43f9dc73055afb898f6e3a77de5006fcab4cea85",
+ "source_sha1_lf": "ef6be952cbbf2886a78d965f5900d4d878aa0779",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 345,
+  "sections": 346,
   "donot_candidates": 28,
-  "sections_naming_user_rulings": 45
+  "sections_naming_user_rulings": 46
  },
  "sections": [
   {
@@ -5402,6 +5402,21 @@
      "text": "- ⛔ **Do not park or pause the tuner or the project (no STOP file, no disabled task) unless the user asks; do not re-ask whether to pause.**"
     }
    ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-28-f8ae9d",
+   "date": "2026-10-28",
+   "line_start": 9841,
+   "line_end": 9853,
+   "title": "2026-10-28 — The park tool (USER RULING 50): how `tools/ops/park_tuner.py` parks and resumes the bot tuner, and where it departs from its spec",
+   "rulings": [
+    50
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
    "cues": []
   }
  ]

@@ -1342,6 +1342,16 @@ GATES: list[tuple[str, bool]] = [
     # pin-bypass flag to test it was rejected. Exit 4 = WARN (in WARN_OK): no pinned clone. No ROM; ~5 s.
     # ‼ APPENDED AT THE END.
     ("selftest_scripts_census.py", False),
+    # USER RULING 50's park tool (`ai-research-notes/2026-10-28-PARK-TOOL-BUILD-SPEC.md`): `tools/ops/park_tuner.py`
+    # status / park / resume for the bot tuner, each a dry run unless --apply. WHY: a park by hand is eight ordered steps
+    # on a 24/7 process, and one out of order loses a round, strands the tuner or switches the nightly backup off for
+    # good. The tool must never switch a task OFF before a verified stop, never switch the backup OFF before a verified
+    # backup, never start the tuner while STOP exists or a task is OFF, and this selftest must never touch the real
+    # machine (PARK_TUNER_SELFTEST=1 makes every changing call raise; a tripwire on processes records nothing). FAULT +
+    # CONTROL each; test X reads ai-agent/learner.py's own source, so a learner that rewords a log line the tool waits
+    # for turns this RED on purpose (update the tool's pattern with it). 173 mutants: 172 caught, 1 proved equivalent.
+    # No ROM; ~8 s. ‼ APPENDED AT THE END.
+    ("selftest_park_tuner.py", False),
 ]
 
 

@@ -52,7 +52,7 @@ Run these in `C:\Remote Projects\pokebot-learner\ai-agent`, the deployment clone
 |---|---|
 | start it 24/7 | `.\run_agent.ps1` (keep the window open; the PC must not sleep) |
 | after a reboot or power cut | it starts ITSELF 2 minutes after the user logs on: Task Scheduler task `Pokebot-AI-Learner-Autostart` (added 2026-10-15). A second start is harmless: the learner holds a lock, and the wrapper stops on exit code 2 (tested live). It returns by itself after a power cut only if the PC powers back on (BIOS "restore on AC power loss") and logs in (Windows auto-login), which is the user's choice. When training ends, DISABLE it, never delete it: `Disable-ScheduledTask -TaskName Pokebot-AI-Learner-Autostart`; re-enable it with `Enable-ScheduledTask -TaskName Pokebot-AI-Learner-Autostart` |
-| stop it cleanly | create a file named `STOP` here: `New-Item STOP`. The running cycle finishes first, up to 12 hours |
+| stop it cleanly | create a file named `STOP` here: `New-Item STOP`. The running cycle finishes first, up to 12 hours. To PARK it (its three tasks off too, after a verified backup), only when the user asks: `py -3.12 tools/ops/park_tuner.py park --apply` from the main checkout (`PROJECT KNOWLEDGE/04-HANDOFF.md` PARK) |
 | see where it is | `py -3.12 learner.py status` |
 | see what it learned | open `findings\LATEST.md` (rewritten after every cycle) |
 | preview the next cycle | `py -3.12 learner.py plan` (runs nothing) |

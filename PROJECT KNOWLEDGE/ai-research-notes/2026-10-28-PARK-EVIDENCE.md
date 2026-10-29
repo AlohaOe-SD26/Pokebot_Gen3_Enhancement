@@ -2,9 +2,9 @@
 
 > **A record, not a spec.** USER RULING 49 scheduled a park for the end of round ai0053; USER RULING 50 cancelled it
 > at 2:26 PM by deleting the STOP file, and the watcher took its cancel exit (30) and changed nothing (`06`, `07`
-> 2026-10-28). Kept so the park can be repeated when the user asks: `04` PARK is the procedure, and section 5 is the
-> watcher's source (copy it out; it is not on a path) until the park tool, `03` `#28-trainer-improvements` (10),
-> replaces it.
+> 2026-10-28). ✅ **REPLACED the same day by the park tool, `tools/ops/park_tuner.py`** (`03`
+> `#28-trainer-improvements` (10); `04` PARK; `06` 2026-10-28): park and resume with it, and do not copy the watcher
+> out. Section 5 stays as the record of the watcher the tool's park step was ported from.
 
 ## Contents
 1. The watcher's report (`park_report.json`)

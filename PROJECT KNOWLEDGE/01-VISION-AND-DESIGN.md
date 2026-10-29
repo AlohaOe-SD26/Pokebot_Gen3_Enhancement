@@ -430,6 +430,11 @@ it.
     exception, `06` 2026-10-03);
   - delete anything it did not create;
   - compete with another batch.
+- **Parking it (USER RULINGS 49 and 50):** only when the user asks, with `tools/ops/park_tuner.py` (built 2026-10-28).
+  A park lets the running round finish and be recorded, then switches the tuner's three scheduled tasks off: the
+  nightly backup last, and only after a verified final backup. `resume` reverses it. The tool never stops the
+  learner, a batch or a lane, and never deletes a task; the one thing it ends is `resume`'s old, proven-idle tuner
+  window.
 - **Next stages:**
   - Claude consults: ON since 2026-10-03 (read-only, capped, at most 2 a day);
   - more knobs, aimed at the walls the learner measures;
