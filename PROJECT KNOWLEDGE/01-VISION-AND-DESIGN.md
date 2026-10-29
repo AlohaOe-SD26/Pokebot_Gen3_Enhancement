@@ -448,6 +448,10 @@ it.
   - **Purpose:** a person finishes what is on screen before putting the game down, and a save (backlog R1) is possible only on a free screen. So a run whose target is reached ends only after the settle: the screen is played out and a short pause finds it still free, or the end SAYS it did not free (at most 6 rounds; the frame budget or a capped loss also ends it).
   - **Rule:** the end reason stays exactly "done: <target> reached" (an honest claim about the game), an end that could not free is said, and every "done" and "stuck" end records the screen it ends on. Mechanics: `ai_player/README.md`; decisions: `06` 2026-10-29.
 
+### How the AI player SAVES (backlog R1 + R2; USER RULINGS 51 and 52, 2026-10-29; its build is next)
+  - **Purpose:** a person saves at natural moments and lives with what follows. The AI saves LIKE A PERSON (USER RULING 51): at a Pokémon Center, before a gym leader, and after a big story moment, and only on a free screen (R5). If its process is killed, the next run CONTINUEs from the cartridge's own save through the title screen, as a person would, and the AI's memory goes back to that save.
+  - **Rule:** it never reloads a save to undo a lost battle (USER RULING 52); a whiteout is played on. The one exception, a save in front of a stationary legendary (Rayquaza, the Regis) reloaded after a catch that ran out of Poké Balls, is DEFERRED until the AI fully works. Measured mechanics: `ai-research-notes/2026-10-29-R1R2-PROBE-REPORT.md`; rulings: `06` 2026-10-29.
+
 ### Still future
 - Further custom features as the punch list dictates; each gets a section here when built.
 

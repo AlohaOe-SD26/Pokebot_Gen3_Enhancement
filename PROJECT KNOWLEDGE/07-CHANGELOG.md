@@ -39102,3 +39102,9 @@ bought balls only at fixed story points.
 - **After it** (before this entry): `regression_due.py` reads units, revert_step5 and revert_safety_gates ok (same tree); rate_step5 and live_step5 DUE, as before.
 - **Evidence:** `ai_player/evidence/2026-10-29-regression-{units,step5-revert,revert-gates}.txt` with their `.summary.json`, and the drivers' own `2026-10-29-step{11,2,3,4,52}-REVERT.txt`, all now this lane's. The lane kept `c061efe5`'s lane files of the same names (committed in `58fb387d`) under `ai_player/evidence/archive/53e0c26e7812db47-c061efe5/` (11 files).
 - **Cost:** local CPU only (73 minutes).
+
+## 2026-10-29 — USER RULINGS 51 and 52 recorded: R1 + R2's two questions answered; R1 + R2 is unblocked (backlog item 15; punch-list #28-aiagent-v2)
+
+- **The rulings** (`06` 2026-10-29, the user's words verbatim there): 51, the AI saves LIKE A PERSON (at a Pokémon Center, before a gym leader, after a big story moment); 52, it never reloads a save to undo a lost battle, and the one exception the user named (a save in front of a stationary legendary, reloaded after a catch that ran out of Poké Balls) is DEFERRED until the AI fully works. The technical reading beside them in `06` (Claude's call): a CONTINUE after an external kill is not a reload; the AI never ends or restarts its own process.
+- **Updated:** `01` (a section: how the AI player SAVES), `04` (the resume point and queue item 4: next is R1 + R2's build spec, then its build), the backlog (its top-15 line and the R1 + R2 entry, with the deferred exception), the rulings index (`RULINGS.md`, `RULINGS.generated.json`, regenerated).
+- **Cost:** local only.
