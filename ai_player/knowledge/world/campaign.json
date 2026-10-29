@@ -14,7 +14,7 @@
  "_also_uses": "bosses.json and maps.json (their _files)",
  "_inputs": {
   "campaign_skeleton.json": "483b246e125de9a0d5894b916fb334b0f4dcc47bde993e9abb567fa3d7bf402c",
-  "milestones.json": "0ccf61930edfad75b335e40e6f10aedc6c265dad2acbe53b04fe65a6135ea0ed"
+  "milestones.json": "3320eed0dcb8ed44543d73957825f529cd1f3c6e43e8e6cf4b08d7cdd74c9538"
  },
  "_measured": "null: A6's chapter_priors.json (spec S3-3) is not generated yet (it waits for the AI's loader); when it is, this block is copied from it and labelled source: 'bot corpus'",
  "_notes": {

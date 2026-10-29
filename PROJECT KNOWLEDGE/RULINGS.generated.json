@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "9ba3109f9ca5693c2027001805b181172a71bfff",
+ "source_sha1_lf": "15d7b332b4bdf25f240d30ecdd88a7f53a00b79b",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 347,
+  "sections": 348,
   "donot_candidates": 28,
   "sections_naming_user_rulings": 46
  },
@@ -5425,6 +5425,19 @@
    "line_start": 9855,
    "line_end": 9869,
    "title": "2026-10-29 — R5 (a free screen before \"done\"): what the settle chose, the rulings on the build's open questions, and where the build departs from its spec",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-29-92e464",
+   "date": "2026-10-29",
+   "line_start": 9871,
+   "line_end": 9876,
+   "title": "2026-10-29 — KB2's input hashes ignore line ends: folded in the hash, not fixed by an `eol` attribute",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [],

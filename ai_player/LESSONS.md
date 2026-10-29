@@ -110,6 +110,12 @@ and `CLAUDE` (`CLAUDE.md`).
 - **Needs:** an AST gate over the AI and the gate code that flags a local rebound to a value of another kind (a count, then a flag) inside one function.
 - **Retires:** when that gate is in `run_units.py`.
 
+### PR-14. A hash a committed file records is taken over text with its line ends made "\n", never over raw bytes.
+- **Origin:** 2026-10-29, 08 "RECORDED ITS INPUTS' RAW-BYTE HASHES".
+- **Status:** GATED (2026-10-29)
+- **Enforced:** `ai_player/gates/extract_world.py::load_json`, `ai_player/gates/rate_step5.py::file_sha256`, `ai_player/gates/test_kb2.py::OutputsTests.test_input_hashes_do_not_depend_on_line_ends`.
+- **Retires:** the prose, once every hash a committed file records goes through one helper.
+
 ## B. Proofs: property not label, call-deleting mutants, independent reads, held-out seeds, pre-registration
 
 ### PF-1. Grade the PROPERTY, never the label the code chose for itself.

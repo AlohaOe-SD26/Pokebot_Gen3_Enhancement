@@ -39037,3 +39037,13 @@ bought balls only at fixed story points.
 - **After it** (before this entry): `regression_due.py` reads units, revert_step5 and revert_safety_gates ok (same tree), rate_step5 and live_step5 DUE.
 - **Evidence:** `ai_player/evidence/2026-10-29-regression-{units,step5-revert,revert-gates}.txt` with their `.summary.json`, and the drivers' own `2026-10-29-step{11,2,3,4,52}-REVERT.txt`.
 - **Cost:** local CPU only (73 minutes).
+
+## 2026-10-29 — KB2's world files no longer depend on this checkout's line ends: `extract_world.py` hashes its inputs with the line ends folded (punch-list #28-seasoned-player, backlog item 11)
+
+- **The defect** (R5's entry above, "found on the way"): `test_kb2`'s committed-files check and `extract_world.py --check` passed only with THIS checkout's line ends, because the world files' headers recorded the RAW-byte sha256 of `campaign_skeleton.json` (LF here) and `milestones.json` (CRLF here), neither of which has an `eol` attribute.
+- **Measured first** (session scratch `kb2_eol_ab.py`: copies of the main checkout's `ai_player/` with `--check` run in each): with ANOTHER checkout's line ends (the skeleton CRLF, the milestones file LF), the old code read `[KB2] CHECK FAILED, differ/missing: bosses.json, campaign.json`, exit 1; with this checkout's own, `CHECK OK`. After the fix: `CHECK OK` in both, and in the main checkout.
+- **The fix:** `extract_world.load_json` hashes the text with its line ends made "\n" (`06` 2026-10-29). Regenerated: `campaign.json`, one line (its `milestones.json` hash, `0ccf6193` to `3320eed0`; `bosses.json` is unchanged, the skeleton being LF here), and the 24 chapter packs, one line in each of their 48 files (their digest of `campaign.json`); `make_chapter_pack.py --all --check` PASS.
+- **The test:** `test_kb2` `OutputsTests.test_input_hashes_do_not_depend_on_line_ends`: a CRLF and an LF copy, whose bytes differ, hash the SAME (FAULT half), one more byte hashes differently (CONTROL), and the committed headers hold `load_json`'s hashes of the real inputs. It PASSES on the fixed code and FAILS with the fold reverted (scratch copies, `new_test_arms.py`). LESSONS PR-14.
+- **Pre-commit** (2:33 to 2:48 AM, before this line was written): `run_gates.py --quick` `ALL 141 ENFORCING GATES PASS` (+2 advisory probes); `run_regression.py --quick` `REGRESSION: PASS (quick, 19 suites)`; Tier 0 PASS; Tier 1 (one independent reviewer, Haiku) PASS, no findings.
+- **Not done:** the full regression lane (it runs right after this commit).
+- **Cost:** local CPU only.

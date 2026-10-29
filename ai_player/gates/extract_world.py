@@ -651,9 +651,14 @@ def default_moveset(level_up, level):
 
 
 def load_json(path):
+    """An input's data and the sha256 the world files' headers record for it, taken over its text with the line ends made
+    "\\n" (2026-10-29): `gates/campaign_skeleton.json` and `knowledge/milestones.json` have no `eol` attribute, so git
+    checks them out with this computer's line ends, and a raw-byte hash made `--check` (and test_kb2) FAIL on any checkout
+    whose line ends differ from the one that last extracted (measured: a worktree here, `core.autocrlf` true, read the
+    skeleton CRLF). The same rule as `rate_step5.file_sha256` and `tools/make_chapter_pack.py`."""
     with open(path, "rb") as f:
         raw = f.read()
-    return json.loads(raw.decode("utf-8")), hashlib.sha256(raw).hexdigest()
+    return json.loads(raw.decode("utf-8")), hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
 
 
 def build_bosses(d, trainers, blocks, maps, scripts, seasoned_dir):

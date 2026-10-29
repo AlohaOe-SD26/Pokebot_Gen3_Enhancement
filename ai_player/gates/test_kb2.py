@@ -7,7 +7,9 @@ test can pass vacuously. The decomp-built objects are made ONCE (about a second)
 a scratch skeleton, a scratch map.json read through an overlay, a deep copy of an output. Nothing is written inside the
 repository (FrozenTree, provenance.py G1, watches it): every file a test writes goes to a temp folder.
 
-  OutputsTests      the committed files are byte-identical to a fresh extraction (FAULT: one changed value differs).
+  OutputsTests      the committed files are byte-identical to a fresh extraction (FAULT: one changed value differs); an
+                    input's recorded hash ignores its line ends (2026-10-29; FAULT: a CRLF and an LF copy, whose raw bytes
+                    differ, must hash the same).
   W1WithheldTests   WITHHELD_FIELDS is ("iv", "aiFlags") in both files; the scan of EVERY knowledge JSON (the library
                     and verify_world's CLI) finds a planted iv / aiFlags / ai_flags / IVs and nothing in the real tree;
                     heldItem is ALLOWED (USER RULING 44); the extractor's one door to disk refuses a withheld key.
@@ -218,6 +220,31 @@ class OutputsTests(unittest.TestCase):
         bad = copy.deepcopy(OBJS["bosses.json"])
         bad["bosses"][0]["party"][0]["level"] += 1
         self.assertNotEqual((WORLD / "bosses.json").read_bytes(), serial(bad))
+
+    def test_input_hashes_do_not_depend_on_line_ends(self):
+        """(2026-10-29) an input's recorded sha256 is taken with its line ends made "\\n": `campaign_skeleton.json` and
+        `milestones.json` have no `eol` attribute, so another checkout's git writes their line ends its own way, and a
+        raw-byte hash made the committed headers differ there (measured: a CRLF skeleton, an LF milestones file).
+        FAULT: the raw bytes of a CRLF and an LF copy hash differently; `load_json` hashes them the SAME. CONTROL: one
+        byte more hashes differently. And the committed headers hold `load_json`'s hashes of the real inputs."""
+        text = Path(ew.SKELETON_DEFAULT).read_bytes().replace(b"\r\n", b"\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            lf, crlf, more = (Path(tmp) / name for name in ("lf.json", "crlf.json", "more.json"))
+            lf.write_bytes(text)
+            crlf.write_bytes(text.replace(b"\n", b"\r\n"))
+            more.write_bytes(text + b" ")
+            self.assertNotEqual(lf.read_bytes(), crlf.read_bytes())  # the two copies really differ in bytes
+            data_lf, sha_lf = ew.load_json(lf)
+            data_crlf, sha_crlf = ew.load_json(crlf)
+            self.assertEqual(data_lf, data_crlf)
+            self.assertEqual(sha_lf, sha_crlf)  # FAULT half: a raw-byte hash would differ here
+            self.assertNotEqual(sha_lf, ew.load_json(more)[1])  # CONTROL: other content, another hash
+        skeleton_sha = ew.load_json(ew.SKELETON_DEFAULT)[1]
+        milestones_sha = ew.load_json(ew.MILESTONES_DEFAULT)[1]
+        campaign = json.loads((WORLD / "campaign.json").read_text(encoding="utf-8"))
+        bosses = json.loads((WORLD / "bosses.json").read_text(encoding="utf-8"))
+        self.assertEqual(campaign["_inputs"], {"campaign_skeleton.json": skeleton_sha, "milestones.json": milestones_sha})
+        self.assertEqual(bosses["_inputs"]["campaign_skeleton.json"], skeleton_sha)
 
 
 class W1WithheldTests(unittest.TestCase):
