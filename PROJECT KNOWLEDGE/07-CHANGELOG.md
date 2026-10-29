@@ -39030,3 +39030,10 @@ bought balls only at fixed story points.
 - **Not done:** the full regression lane (it runs right after this commit and gates the next item); `rate_step5` and `live_step5` (DUE: a graded sweep and the live launcher); no live run of the budget's cut or a capped loss inside the settle (unit harness only); the census does not trace calls inside an added function (`06`).
 - **Cost:** the workflow, 5 agents, 2.36M subagent tokens, 786 tool calls, about 3 h 5 min (8:53 PM to 11:58 PM); my checks and the A/B re-run, local CPU (9 runs, about 9 minutes); one Tier 1 reviewer.
 - **Next:** R1 + R2 (save and CONTINUE). It waits for the user's two answers, asked 2026-10-28 at 5:27 PM: when the AI saves, and whether it may reload a save to undo a lost battle.
+
+## 2026-10-29 — R5's full regression lane PASSED on its commit `083dda7b` (backlog R5; punch-list #28-aiagent-v2)
+
+- **Run:** `py -3.12 ai_player/gates/run_regression.py --full --evidence`, detached, 1:10:57 to 2:23:59 AM: `REGRESSION: PASS (full, 30 suites, 4361.9 s wall)`; FROZEN TREE PASS (the covers digests of revert_safety_gates, revert_step5 and units did not move). Every unit suite PASS, among them test_goals (233 tests) and test_kb2 (118; in the main checkout, whose line ends its defect fits: R5's entry above); the revert drivers PASS: step5 369 mutants, safety gates 23, step3 94, step4 62, step2 44, step11 14. The rate_* and live_* drivers are NOT-RUN by design (graded, the ROM).
+- **After it** (before this entry): `regression_due.py` reads units, revert_step5 and revert_safety_gates ok (same tree), rate_step5 and live_step5 DUE.
+- **Evidence:** `ai_player/evidence/2026-10-29-regression-{units,step5-revert,revert-gates}.txt` with their `.summary.json`, and the drivers' own `2026-10-29-step{11,2,3,4,52}-REVERT.txt`.
+- **Cost:** local CPU only (73 minutes).
