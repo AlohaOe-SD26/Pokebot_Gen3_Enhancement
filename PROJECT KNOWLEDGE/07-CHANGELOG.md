@@ -39047,3 +39047,10 @@ bought balls only at fixed story points.
 - **Pre-commit** (2:33 to 2:48 AM, before this line was written): `run_gates.py --quick` `ALL 141 ENFORCING GATES PASS` (+2 advisory probes); `run_regression.py --quick` `REGRESSION: PASS (quick, 19 suites)`; Tier 0 PASS; Tier 1 (one independent reviewer, Haiku) PASS, no findings.
 - **Not done:** the full regression lane (it runs right after this commit).
 - **Cost:** local CPU only.
+
+## 2026-10-29 — KB2's line-end fix: its full regression lane PASSED on `7d89fe07` (backlog item 11; punch-list #28-seasoned-player)
+
+- **Run:** `py -3.12 ai_player/gates/run_regression.py --full --evidence`, detached, 2:50:04 to 4:04 AM: `REGRESSION: PASS (full, 30 suites, 4477.2 s wall)`; FROZEN TREE PASS (35 checks of 185 files; the covers digests of revert_safety_gates, revert_step5 and units did not move). Every unit suite PASS, among them test_kb2 (119 tests, the new line-end test among them) and test_goals (233); the revert drivers PASS: step5 369 mutants, safety gates 23, step3 94, step4 62, step2 44, step11 14. The rate_* and live_* drivers are NOT-RUN by design (graded, the ROM).
+- **After it** (before this entry): `regression_due.py` reads units, revert_step5 and revert_safety_gates ok (same tree), rate_step5 and live_step5 DUE.
+- **Evidence:** `ai_player/evidence/2026-10-29-regression-{units,step5-revert,revert-gates}.txt` with their `.summary.json`, and the drivers' own `2026-10-29-step{11,2,3,4,52}-REVERT.txt`, all now this lane's. The lane kept R5's lane files of the same names (committed in `dc8bcbf7`) under `ai_player/evidence/archive/53e0c26e7812db47-083dda7b/` (11 files).
+- **Cost:** local CPU only (75 minutes).

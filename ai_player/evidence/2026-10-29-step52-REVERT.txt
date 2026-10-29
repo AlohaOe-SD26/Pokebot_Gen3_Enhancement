@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 5.1 - MUTANT PROOF OF THE STORY PLAYER (gates/revert_step5.py: G1-G52 step 5's, G53-G106 step 5.1's, G107-G126 the step-5.1 verifier's second round's)
-date: 2026-10-29 01:10:59
-code: HEAD 083dda7b; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-10-29 02:50:06
+code: HEAD 7d89fe07; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\53e0c26e7812db47.zip (the step-5.1 verifier's second round)
 Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted tests of gates/test_goals.py fail.
 
@@ -376,5 +376,5 @@ Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted t
 [G317] BROKEN: a player SHUT IN (no way out known: the moving truck) is out of ideas (`shut_in`'s call deleted). Predicted CAUGHT by ['VerifierRound52Tests.test_a_walk_with_no_lead_heads_for_what_is_left_and_else_is_out_of_ideas']. The copy ran 233 tests (the copy); failing: {'VerifierRound52Tests.test_a_walk_with_no_lead_heads_for_what_is_left_and_else_is_out_of_ideas': 'FAIL'} -> CAUGHT
 
 367 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 369
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (371 checks of 185 files, files digest 373b010ccc908dbb)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (371 checks of 185 files, files digest 07cca4792f7d60a5)
 OVERALL: PASS
