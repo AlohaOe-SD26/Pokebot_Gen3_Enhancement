@@ -39127,3 +39127,11 @@ bought balls only at fixed story points.
 - **Report:** `ai-research-notes/2026-10-29-R1R2-BUILD-REPORT.md` (the build report verbatim, after the orchestrator's checks). Decisions: `06` 2026-10-29. Mistakes: `08` 2026-10-29 (two).
 - **Cost:** the workflows `r1r2-build` (51.96 Mtok input-equivalent) and `r1r2-verify-fixed` (2.89 Mtok), `cost-ledger.jsonl`.
 - **Next:** R1 + R2's follow-up (`04` item 4).
+
+## 2026-10-29 — the full regression lane PASSED on f4412116, R1 + R2's commit (backlog item 15; punch-list #28-aiagent-v2)
+
+- **Run:** `py -3.12 ai_player/gates/run_regression.py --full --evidence`, detached, 5:18:51 to 6:38 PM 2026-10-29: `REGRESSION: PASS (full, 33 suites, 4770.9 s wall)`, the first lane with `revert_r1`. It ran because `regression_due` read units, revert_step5, revert_r1 (never run) and revert_safety_gates DUE on R1 + R2's code.
+- **Every unit suite PASS** (test_saving 132 tests, test_goals 254, test_world 132, test_kb2 119, test_host 21) and **every revert driver PASS** (revert_r1 468 mutants, revert_step5 402, revert_step3 94, revert_step4 62, revert_step2 44, revert_safety_gates 23, revert_step11 14); FROZEN TREE PASS (38 checks of 196 files, files digest 1eb7c9bb5ff02089). rate_* and live_* NOT-RUN by design.
+- **regression_due right after it:** units, revert_step5, revert_r1 and revert_safety_gates ok; rate_step5 and live_step5 DUE, as before this item (`live_step5`'s next run is a re-baseline, `06` 2026-10-29).
+- **Evidence:** `ai_player/evidence/2026-10-29-regression-{units,step5-revert,revert-gates,r1-revert}.txt` (each with its `.summary.json`), the drivers' own `2026-10-29-step{2,3,4,11,52}-REVERT.txt` and `2026-10-29-r1-REVERT.txt`; f36c9451's lane files of the same names are kept under `archive/53e0c26e7812db47-f36c9451/` (11 files, the lane's keep-earlier rule).
+- **Cost:** local CPU only (80 minutes).
