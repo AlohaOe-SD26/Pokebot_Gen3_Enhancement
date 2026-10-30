@@ -130,9 +130,14 @@ from ai_player.eyes.observation import (
 from ai_player.eyes.screens import (
     BATTLE_SCRIPT_WAITS,
     BATTLE_YES_NO_OPCODES,
+    ERROR_PAGE_PRINTER,
+    ERROR_PAGE_TASKS,
+    SAVE_DIALOG_CALLBACKS,
+    SAVE_MENU_CALLBACKS,
     SCENE_CALLBACKS,
     decode_text,
     read_ui,
+    save_dialog_wait,
     scene_of,
     task_wait,
 )
@@ -222,7 +227,16 @@ _SMENU_TASKS = frozenset({
     "Task_NewGameBirchSpeech_SlideOutOldGenderSprite", "Task_NewGameBirchSpeech_SlideInNewGenderSprite",
     # BUILD STEP 5 (`eyes/screens.py`): "Do you choose this POKéMON?", a CreateYesNoMenu polled through sMenu
     "Task_HandleConfirmStarterInput",
+    # R1 (`eyes/screens.py` module docstring): the save dialog's YES/NO runs inside the start menu's task, through sMenu
+    "Task_ShowStartMenu",
 })
+#: R1: struct SaveBlock2 playTimeHours (u16) @0x0E, playTimeMinutes (u8) @0x10 (`include/global.h:514-515`); 3 bytes, so the
+#: seconds @0x11 and the VBlanks @0x12 are never read (build spec E5).
+PLAY_TIME_OFFSET, PLAY_TIME_BYTES = 0x0E, 3
+#: R1: the start menu's own tasks (`src/start_menu.c`): building it, and running its input and the save dialog.
+_START_MENU_TASKS = frozenset({"StartMenuTask", "Task_ShowStartMenu"})
+#: R1: the main menu's tasks during which it is on screen (`eyes/screens.py` UI_TASKS "main_menu").
+_MAIN_MENU_TASKS = frozenset({"Task_HandleMainMenuInput", "Task_HighlightSelectedMainMenuItem"})
 #: `src/shop.c` struct MartInfo: itemList @8, itemCount @0xC (u16), martType @0xF; struct ShopData:
 #: tilemapBuffers[4][0x400] (0x2000 bytes), totalCost @0x2000, itemsShowed @0x2004, selectedRow @0x2006,
 #: scrollOffset @0x2008, maxQuantity @0x200A.
@@ -320,6 +334,14 @@ def _ewram_bytes(address: int, length: int) -> bytes:
     return context.emulator.read_bytes(address, length)
 
 
+def _play_time() -> tuple[int, int]:
+    """R1 (build spec E5): the game's play time as (hours, minutes), from SaveBlock2 through the doors `_marks` uses (`read_symbol`
+    for the save block's pointer, `context.emulator.read_bytes` for 3 bytes). Seconds and VBlanks are never read."""
+    save_block_2 = _u32(read_symbol("gSaveBlock2Ptr", size=4), 0)
+    raw = bytes(context.emulator.read_bytes(save_block_2 + PLAY_TIME_OFFSET, PLAY_TIME_BYTES))
+    return _u16(raw, 0), raw[2]
+
+
 def _marks() -> tuple[tuple[str, int], ...]:
     """BUILD STEP 5: the MILESTONE MARKS (`eyes/view.py` MILESTONE_FLAGS, MILESTONE_VARS): save block 1's flag bytes and var
     bytes, read as TWO plain ranges through the doors this file already has (`read_symbol` for the save block's pointer,
@@ -343,6 +365,7 @@ class FrameworkEyes:
         self._attributes: dict[int, bytes] = {}
         self._maps: dict[tuple[int, int], tuple] = {}
         self._scene_callbacks: dict[int, str] | None = None  # STEP 2.1: address (thumb bit off) -> symbol name
+        self._save_callbacks: dict[int, str] | None = None  # R1: the same, for the start menu's and the save's callbacks
 
     # ------------------------------------------------------------------ the one public call
     def look(self) -> Observation:
@@ -448,8 +471,11 @@ class FrameworkEyes:
         fading = self._guarded("palette fade", problems, lambda: bool(
             read_symbol("gPaletteFade", PALETTE_FADE_ACTIVE_BYTE, 1)[0] & PALETTE_FADE_ACTIVE_BIT))
         ui = self._guarded("menu cursor", problems, lambda: self._ui(game_state, task_data, bool(fading)))
+        if reason is None and ui is not None and ui.kind == "save_dialog":
+            # R1: the save error page's A, which no text printer shows (`eyes/screens.py` save_dialog_wait)
+            reason = self._guarded("save wait", problems, self._save_wait)
         shown = reason is not None or ui is not None or text_box_mode != 0
-        text = self._guarded("text", problems, lambda: self._text(shown))
+        text = self._guarded("text", problems, lambda: self._text(shown, tasks))
         status = self._guarded("script status", problems, lambda: read_symbol("sGlobalScriptContextStatus", size=1)[0])
         locked = self._guarded("field controls", problems, lambda: read_symbol("sLockFieldControls", size=1)[0])
         callback = self._guarded("main callback", problems, self._callback_name)
@@ -478,6 +504,32 @@ class FrameworkEyes:
             return "NULL"
         return self._scene_callbacks.get(address & ~1)
 
+    def _save_callback(self, symbol: str) -> str | None:
+        """R1 (build spec E1): `gMenuCallback` or `sSaveDialogCallback` NAMED, the way `_callback_name` names `gMain.callback2`:
+        a fixed table of the start menu's and the save dialog's functions (`eyes/screens.py` SAVE_MENU_CALLBACKS,
+        SAVE_DIALOG_CALLBACKS), resolved ONCE with `get_symbol` (a symbol-table lookup), the thumb bit off. A value the
+        table does not hold (an item's fade, a NULL) is None."""
+        if self._save_callbacks is None:
+            found: dict[int, str] = {}
+            for name in SAVE_MENU_CALLBACKS + SAVE_DIALOG_CALLBACKS:
+                try:
+                    found[get_symbol(name)[0] & ~1] = name
+                except Exception:  # noqa: BLE001 - a function this ROM's symbol table does not name
+                    continue
+            self._save_callbacks = found
+        address = _u32(read_symbol(symbol, size=4), 0)
+        return self._save_callbacks.get(address & ~1) if address else None
+
+    def _save_wait(self) -> str | None:
+        """R1: the save error page's A (`eyes/screens.py` save_dialog_wait): `sSaveDialogCallback` named, and `sSaveDialogTimer`
+        read only when it is `SaveReturnErrorCallback`."""
+        if self._save_callback("gMenuCallback") != "SaveCallback":
+            return None
+        callback = self._save_callback("sSaveDialogCallback")
+        if callback != "SaveReturnErrorCallback":
+            return None
+        return save_dialog_wait(callback, read_symbol("sSaveDialogTimer", size=1)[0])
+
     # ------------------------------------------------------------------ build step 2: menus, cursors, text
     def _ui(self, game_state: str, tasks: dict[str, bytes], fading: bool = False):
         """The bytes `eyes/screens.py` read_ui needs for the menu that is open, read only for THAT menu (its
@@ -499,10 +551,21 @@ class FrameworkEyes:
                 raw["shop"] = {"row": _u16(shop, 0), "scroll": _u16(shop, 2), "max_quantity": shop[4]}
             if "Task_BuyMenu" in tasks:
                 raw["mart_items"], raw["mart_prices"] = self._mart_items()
-        if "StartMenuTask" in tasks:
+        if tasks.keys() & _START_MENU_TASKS:
             count = min(read_symbol("sNumStartMenuActions", size=1)[0], 9)
             actions = read_symbol("sCurrentStartMenuActions", 0, 9)
             raw["start_menu"] = {"cursor": read_symbol("sStartMenuCursorPos", size=1)[0], "actions": list(actions[:count])}
+            # R1 (build spec E1; `eyes/screens.py` _start_menu_view): the callbacks only under `Task_ShowStartMenu` past its
+            # first frame, the save's only while `gMenuCallback` is SaveCallback: a stale value is never read as input
+            show = tasks.get("Task_ShowStartMenu")
+            if show is not None and "StartMenuTask" not in tasks and _s16(show, 0) != 0:
+                raw["menu_callback"] = self._save_callback("gMenuCallback")
+                if raw["menu_callback"] == "SaveCallback":
+                    raw["save_callback"] = self._save_callback("sSaveDialogCallback")
+        if tasks.keys() & _MAIN_MENU_TASKS:
+            # R1 (build spec E6): the CONTINUE window's TIME, the loaded save's playTimeHours / playTimeMinutes
+            # (`src/main_menu.c` MainMenu_FormatSavegameTime); `eyes/screens.py` uses it only when the menu offers CONTINUE
+            raw["save_time"] = _play_time()
         if game_state == "NAMING_SCREEN" or "Task_NamingScreen" in tasks:
             raw["naming"] = self._naming(tasks)
         if game_state == "BAG_MENU":
@@ -699,7 +762,7 @@ class FrameworkEyes:
         return names, prices
 
     @staticmethod
-    def _text(shown: bool) -> str | None:
+    def _text(shown: bool, tasks: frozenset = frozenset()) -> str | None:
         """The message on screen, decoded by the AI's own charmap (`eyes/screens.py`).
           * While a printer is ACTIVE (a waiting one first): as far as it has printed, up to its next character
             (`currentChar`): from the start of `gStringVar4` (field, intro and shop messages are expanded there
@@ -714,8 +777,16 @@ class FrameworkEyes:
             there, measured 2026-10-07).
           * Otherwise None.
         ‼ Limit: with no printer active, "the last message" can be an OLD one when a menu opens with no
-        message of its own (the start menu): `text` is what was printed last, not proof it is still drawn."""
+        message of its own (the start menu): `text` is what was printed last, not proof it is still drawn.
+          * R1 (build spec E4): while a main-menu ERROR PAGE's task runs (`eyes/screens.py` ERROR_PAGE_TASKS), the
+            page is PRINTER 7's (`src/main_menu.c` CreateMainMenuErrorWindow), a ROM string: once it has printed,
+            printer 0's pointer is stale (it is not that page's), so the last message is printer 7's string."""
         raw = read_symbol("sTextPrinters", 0, TEXT_PRINTER_SIZE * TEXT_PRINTER_COUNT)
+        if tasks & frozenset(ERROR_PAGE_TASKS):
+            at = ERROR_PAGE_PRINTER * TEXT_PRINTER_SIZE
+            pointer = _u32(raw, at)
+            if ROM_START <= pointer < ROM_END:
+                return _rom_string(pointer)
         buffers = (get_symbol("gStringVar4"), get_symbol("gDisplayedStringBattle"))
         candidates = []
         for index in range(TEXT_PRINTER_COUNT):
@@ -1045,6 +1116,7 @@ class FrameworkEyes:
             owned_dex=owned,
             flags=tuple((name, bool(get_event_flag(name))) for name, _ in STORY_FLAGS),
             marks=_marks(),
+            play_time=_play_time(),  # R1 (build spec E5): hours and minutes only
         )
 
     # ------------------------------------------------------------------ battle

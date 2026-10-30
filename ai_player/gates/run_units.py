@@ -81,6 +81,11 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # build step 5.3, stage A1-2: the G-3 gate's own CLI (the two graders import no AI value, directly or through a
     # gates module; under 2 s)
     "check_grader_imports": ([str(GATES / "check_grader_imports.py")], 1),
+    # R1 + R2 (build spec 2026-10-29 section 7): saving, continuing and the memory file (offline, about 7 s; its host-eyes
+    # tests need the framework: `AI_PLAYER_TEST_SUPPORT_ROOT` names its folder when this tree has none), and the paths
+    # gate (DP1: no machine path in the AI's code but its one resolver; under 1 s)
+    "test_saving": ([str(GATES / "test_saving.py")], 2),
+    "check_paths": ([str(GATES / "check_paths.py")], 1),
 }
 
 

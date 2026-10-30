@@ -45,7 +45,7 @@ from ai_player.hands.menus import answer_yes_no, choose, type_name
 from ai_player.hands.pad import Hands
 from ai_player.personality import Personality, choose_gender, choose_name
 
-__all__ = ["INPUT_WAIT_BUDGET", "INTRO_MENU_STEPS", "TRUCK_MAP", "in_truck", "name_in_question", "play_intro"]
+__all__ = ["INPUT_WAIT_BUDGET", "INTRO_MENU_STEPS", "TRUCK_MAP", "in_truck", "name_in_question", "play_intro", "skip_title"]
 
 #: The truck's map (`MAP_INSIDE_OF_TRUCK`, the framework's map table names it so).
 TRUCK_MAP = "INSIDE_OF_TRUCK"
@@ -98,18 +98,7 @@ def play_intro(hands: Hands, personality: Personality) -> Generator[None, None, 
             return f"intro: {outcome}"
         kind = outcome.split(":", 1)[1]
         if kind in ("intro_movie", "title"):
-            look = yield from _until_it_takes_input(hands, kind)
-            if look is None:
-                continue  # it ended by itself (the movie runs into the title): look again
-            what = "the intro movie / the title's animation: any key skips it" if kind == "intro_movie" else \
-                "the title screen: Task_TitleScreenPhase3 takes START"
-            yield from hands.pad.idle(hands.pad.think_frames(), "the intro plays; a person skips it" if kind == "intro_movie"
-                                      else "the title screen: PRESS START")
-            look = hands.look()
-            ui = look.screen.ui
-            if ui is not None and ui.kind == kind and ui.accepts_input:
-                yield from hands.pad.press("Start", "skip the intro" if kind == "intro_movie" else "start the game",
-                                           f"{what} (it takes input: no fade runs)")
+            yield from skip_title(hands, kind)
         elif kind == "main_menu":
             if not (yield from choose(hands, "main_menu", "NEW GAME", "a new game")):
                 return "intro: NEW GAME could not be chosen on the main menu"
@@ -137,6 +126,28 @@ def play_intro(hands: Hands, personality: Personality) -> Generator[None, None, 
         else:
             return f"intro: an unexpected {kind} on screen"
     return "intro: too many menus"
+
+
+def skip_title(hands: Hands, kind: str) -> Generator[None, None, bool]:
+    """The intro movie or the title (`kind`), skipped with START as a person does: wait until it takes input (no fade
+    runs), look at it for a moment, and press START only if the look right before the press still shows it taking input.
+    True when START was pressed; False when the screen went away first (the movie runs into the title: look again).
+    R1 (build spec section 3 (b), continue_game step 1): moved here from `play_intro` unchanged, so the continue skill
+    (`skills/saving.py`) skips the title exactly as the intro does."""
+    look = yield from _until_it_takes_input(hands, kind)
+    if look is None:
+        return False  # it ended by itself (the movie runs into the title): look again
+    what = "the intro movie / the title's animation: any key skips it" if kind == "intro_movie" else \
+        "the title screen: Task_TitleScreenPhase3 takes START"
+    yield from hands.pad.idle(hands.pad.think_frames(), "the intro plays; a person skips it" if kind == "intro_movie"
+                              else "the title screen: PRESS START")
+    look = hands.look()
+    ui = look.screen.ui
+    if ui is not None and ui.kind == kind and ui.accepts_input:
+        yield from hands.pad.press("Start", "skip the intro" if kind == "intro_movie" else "start the game",
+                                   f"{what} (it takes input: no fade runs)")
+        return True
+    return False
 
 
 def _until_it_takes_input(hands: Hands, kind: str) -> Generator[None, None, Observation | None]:

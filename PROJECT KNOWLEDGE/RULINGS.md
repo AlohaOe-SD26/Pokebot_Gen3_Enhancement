@@ -72,10 +72,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 350 sections (newest first)
+## All 351 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-29-47a9a5` | 9893 |  |  | 2026-10-29 — R1 + R2 BUILT: the AI saves like a person, CONTINUEs after a kill, and its memory survives it (the build's decisions) |
 | `2026-10-29-eb1c46` | 9884 | 51, 52 |  | 2026-10-29 — USER RULINGS 51 and 52: the AI saves like a person, and never reloads to undo a loss (one later exception, deferred: a stationary legendary's faile |
 | `2026-10-29-753e92` | 9878 |  |  | 2026-10-29 — R1 + R2's save/kill probe: a TEST-SIDE tool in no lane, and what it hands R1's design (WHEN the AI saves is not decided here) |
 | `2026-10-29-92e464` | 9871 |  |  | 2026-10-29 — KB2's input hashes ignore line ends: folded in the hash, not fixed by an `eol` attribute |

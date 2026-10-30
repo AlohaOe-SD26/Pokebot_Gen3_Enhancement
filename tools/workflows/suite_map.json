@@ -21,6 +21,13 @@
       "covers": ["ai_player/**", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py", "sandbox-pokebot/modules/**",
                  "ai-agent/scoring.py", "ai-agent/knowledge.py"]
     },
+    "revert_r1": {
+      "_run": "py -3.12 ai_player/gates/revert_r1.py",
+      "_note": "R1 + R2 (build spec 2026-10-29 section 6, added 2026-10-29): runs test_saving and test_goals (and, for its gate and controller mutants, test_check_purity, test_safety_gates and test_host classes) in a copy of ai_player/, so it covers what revert_step5 covers; its data file ai_player/gates/revert_r1_mutants.json is code it reads (under ai_player/**). Its own evidence is <date>-r1-REVERT.txt, the regression runner's <date>-regression-r1-revert.txt.",
+      "evidence": ["*-r1-revert.txt"],
+      "covers": ["ai_player/**", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py", "sandbox-pokebot/modules/**",
+                 "ai-agent/scoring.py", "ai-agent/knowledge.py"]
+    },
     "revert_safety_gates": {
       "_run": "py -3.12 ai_player/gates/revert_safety_gates.py",
       "evidence": ["*-revert-gates.txt"],

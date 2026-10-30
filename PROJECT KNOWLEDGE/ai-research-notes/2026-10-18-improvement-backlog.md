@@ -15,9 +15,9 @@
 12. **B1 (+R13)** Goodhart gate: grader thresholds the AI cannot import or reach. Step 4; est. 80 + 80. ✅ SPEC READY 2026-10-22 (step 5.3, B1 + N8's grader half): `2026-10-22-BUILD-SPEC-step5.3-B1-N8.md`, revised after one adversarial critic (`2026-10-22-step5.3-spec-critic.md`); staged A1, A2, B; A1 ✅ DONE 2026-10-23 (`07`), A2 ✅ DONE 2026-10-24 (`07`), the re-sourcing build ✅ DONE 2026-10-25 (`07`); stage B DONE 2026-10-27: graded sweep ledger #42 FAIL on 3 of 38 counted checks, information (`07`); step 5.3 DONE. ⚠ RE-SCOPED 2026-10-21 by recon (`2026-10-21-B1-recon.md`): the import half is ALREADY enforced (check_purity rule (c)); the real gap is that the AI copies the grader's numbers and part of the grade is read from the AI's own record, so B1 changes the step-5 grader and RE-GRADES step 5: spec it with the next graded round (5.3; done: the spec above). The grader's data path is MAPPED, check by check, in `2026-10-22-B1-grader-recon.md` (a note): 52 graded checks, 9 judged from the game alone. Every curiosity check takes its time windows from the AI's own log, the AI's `goals.py` computes the grader's yield rule, and the seed ledger's hash does not cover the AI constants the grader imports.
 13. **A2 (agent-free half) + P7** `run_regression.py`, summary files, a `--quick` lane. Step 4; est. 250 + 150. ✅ BUILT 2026-10-21 as S4-1 (`07`; two verify rounds; spec `2026-10-21-BUILD-SPEC-S4-1-A2-P7.md`, from `2026-10-21-A2-P7-recon.md`); N8's grader half: its typed checks ✅ BUILT 2026-10-23 (step 5.3 A1); the drivers' own summaries were NOT built with B1 (still open).
 14. **E2 + O8** ✅ BUILT 2026-10-28 (DEPLOYED that day, 4:30 PM; its first live journal line 5:50 PM; its DEPLOY CHECK ✅ CLOSED 2026-10-29, 42 of 42 match; `07`; evidence `2026-10-28-E2-O8-BUILD-EVIDENCE.md`) per-game recording; torn-write resilience and a crash-loop breaker. Step 5; est. 150 + 150.
-15. **R5** ✅ BUILT 2026-10-29 (`07`; `2026-10-28-R5-BUILD-REPORT.md`; held-out A/B PASS 4 of 4, ledger #49), **then R1 + R2 (+DP1, DP2, L3 a-b)** free screen, then save/CONTINUE and a memory that survives a kill; DECIDE EARLY. The user's two save answers are USER RULINGS 51-52 (`06` 2026-10-29). Step 6; est. 300 + 200.
+15. **R5** ✅ BUILT 2026-10-29 (`07`; `2026-10-28-R5-BUILD-REPORT.md`; held-out A/B PASS 4 of 4, ledger #49), **then R1 + R2 (+DP1, DP2, L3 a-b)** ✅ BUILT 2026-10-29 (`07`; `2026-10-29-R1R2-BUILD-REPORT.md`; held-out live proof PASS, ledger #53, re-checked on #54-#56) free screen, then save/CONTINUE and a memory that survives a kill; DECIDE EARLY. The user's two save answers are USER RULINGS 51-52 (`06` 2026-10-29). Step 6; est. 300 + 200.
 
-Also now: C1 as a checklist line. S3-4's boss held items are ANSWERED (USER RULING 44: allowed; exact stats withheld); its two other "needs the user" items are ANSWERED too (USER RULING 45: species shares out, sight ranges kept). Item 15's R1 + R2 no longer waits on the user: its two save answers are USER RULINGS 51-52 (`06` 2026-10-29); nothing else in the top 15 does. (O4's disk, O1's and O4's scheduled tasks and O3's "keep compressed logs forever" are ANSWERED, USER RULING 42 in `06`.) Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
+Also now: C1 as a checklist line. S3-4's boss held items are ANSWERED (USER RULING 44: allowed; exact stats withheld); its two other "needs the user" items are ANSWERED too (USER RULING 45: species shares out, sight ranges kept). Item 15's R1 + R2 is ✅ BUILT (2026-10-29); its U1 and U2 are open for the user with interim answers built (`06` 2026-10-29); nothing else in the top 15 waits on the user. (O4's disk, O1's and O4's scheduled tasks and O3's "keep compressed logs forever" are ANSWERED, USER RULING 42 in `06`.) Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
 
 The user asked for improvements that make the work cheaper on usage without losing progress, results or rigor,
 drawn from everything that went wrong. Each item names the EVIDENCE that motivates it, the expected benefit, the
@@ -304,6 +304,9 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
   gym leader, after a big story moment) and never reloads to undo a loss. DEFERRED until the AI fully
   works (ruling 52): a save in front of a stationary legendary (Rayquaza, the Regis), reloaded only after
   a catch that failed for want of Poké Balls. **Build spec:** `2026-10-29-R1R2-BUILD-SPEC.md` (2026-10-29).
+  **✅ BUILT 2026-10-29** (`07`; `2026-10-29-R1R2-BUILD-REPORT.md`; decisions `06` 2026-10-29): the held-out live
+  proof PASSED (ledger #53) and was re-checked on #54-#56. Open: the review's four NITs (the next item)
+  and the user's U1 and U2 (interim answers built).
 - **R8 + R9 (+ P13). AI-MADE STATES for repro and for the next chapter.** (A; needs R2, R3) **Evidence:** a stuck verdict
   costs the whole run again (a 59,204-frame stretch surfaced only in a 20-run sweep); a chapter-3 run from a bot save "has
   never heard DAD" (recon Gap 9). **What:** the HOST keeps the last 3 states and copies out `stuck-<code>.ss1` for
@@ -346,12 +349,15 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
 - **R7. A GET-UNSTUCK LADDER, deploy mode only.** (B; needs R1, R3, R6) 98 goals in a row ended "stuck: ping-pong" in the
   5.2 NOHINTS arm, and a give-up exits after 33 minutes (`mode.py:471-472`). Person-fair rungs, each coded with a fault
   arm; the graded mode keeps its strict end, and a sweep fails when the last rung's rate passes a bound.
+  NARROWED by ruling 52 (`06` 2026-10-29): no rung may quit and CONTINUE from the AI's own save (a chosen quit,
+  then a continue, is a reload, and the launcher refuses it).
 
 ### C. Nice to have
 
 - **R14** a static progress page for the user from a run folder (milestones in x1 time, map trail, party, the run card).
   **R15** an AI supervisor that relaunches from its save on benign exits (`host/lifecycle.py:48-60`) and stops when one
-  code recurs at one frame twice. **P12** a Python `UserPromptSubmit` hook that, past about 400k of exact context, suggests
+  code recurs at one frame twice. NARROWED by ruling 52 (`06` 2026-10-29): it may relaunch only after a KILLED
+  or INVOLUNTARY end, never after a CHOSEN, NOT CLEAN or (until U2) BUDGET end. **P12** a Python `UserPromptSubmit` hook that, past about 400k of exact context, suggests
   a fresh session (C: the main chat is about 3 % of usage; hook rule S7 applies). **N12** a KI exposure table by call site
   when the bot resumes (KI-84). **N13** one `stop_runs` with a STOP file (`FrozenTree` covers the AI drivers already).
 

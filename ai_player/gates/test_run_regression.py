@@ -1097,6 +1097,9 @@ POSITIVE = {
                                   "directly or through a gates module)"],
     "check_grader_imports FAIL": ["GRADER IMPORTS: FAIL (G-3)"],
     "disk_budget PASS": ["DISK BUDGET: C:\\ 30.0 GB free (a sweep needs 30 GB to start)"],
+    # R1 + R2: the paths gate
+    "check_paths PASS": ["PATHS GATE: PASS (46 files, 0 findings)"],
+    "check_paths FAIL": ["PATHS GATE: FAIL (46 files, 2 findings)"],
 }
 NEGATIVE = {
     "unittest Ran": ["  Ran 3 tests in 1s", "Ran tests", "Ran 3 tests in 1s and more"],
@@ -1128,6 +1131,9 @@ NEGATIVE = {
     "check_grader_imports PASS": ["GRADER IMPORTS: FAIL (G-3)", "GRADER IMPORTS: could not run (x)"],
     "check_grader_imports FAIL": ["GRADER IMPORTS: PASS (G-3: rate_step5, live_step5 take no value from the AI's code)"],
     "disk_budget PASS": ["%TEMP%/ai_* folders: 19288 (`--temp` for their sizes)", "DISK BUDGET:"],
+    # a PASS with findings is no PASS; a FAIL line is no PASS
+    "check_paths PASS": ["PATHS GATE: PASS (46 files, 1 findings)", "PATHS GATE: FAIL (46 files, 2 findings)"],
+    "check_paths FAIL": ["PATHS GATE: PASS (46 files, 0 findings)"],
 }
 
 

@@ -24148,3 +24148,17 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** `--since` limits which responses are counted, and `--append` appends a workflow's row whenever its numbers differ from its newest row. A window's count differs for every workflow outside the window, so each gained a newer revision holding the window's usage, zero, and readers take the newest revision. The tool accepted the combination without a word.
 - **The fix that worked:** the committed ledger written back, then `--append` alone (6 rows); `--append` now refuses `--since` (exit 2), held by selftest U13 with a FAULT arm and a CONTROL (`07` 2026-10-29).
 - **Prevention rule:** a tool that APPENDS revisions must refuse every option that changes what it counts; before a write flag, read what the other flags on the same line do to the numbers it will write.
+
+## 2026-10-29 — A KILL ARM THAT COULD NOT FAIL: R1's K-BETWEEN, at the spec's midpoint between two saves, was vacuous on every seed
+
+- **Symptom:** the spec's K-BETWEEN (kill halfway between save 1's end and save 2's start; check 3: the restored memory holds nothing newer than save 1) counted on 0 of 2 development seeds and on 0, 1 and 0 of 4 held-out seeds (#53-#55).
+- **Root cause:** at that midpoint the AI had stood on no map it had not stood on before save 1 (it walked between LITTLEROOT, its house and ROUTE 101), so nothing newer existed to be wrongly restored and check 3 held by construction. The spec chose the kill point by the clock between the saves, not by what the AI had done by then.
+- **The fix that worked:** the kill rule 'new' (halfway between the first frame the AI stands on a map new since save 1, from the same seed's CONTROL, and save 2's START); a planted "memory newer" fault fails check 3 there; the midpoint stays as a diagnostic arm; every verdict line names the rule (`06` 2026-10-29).
+- **Prevention rule:** before registering an arm, show on development seeds that the thing its check looks for EXISTS at the kill point (its discriminator is non-empty); choose a kill point by the state the run reached, never by a fixed position (`CLAUDE.md` rule 4).
+
+## 2026-10-29 — A RECORD WRITTEN BEFORE THE EVENT IT RECORDS: R1's save line held the memory as of the save BEFORE it (found by review; no live arm could see it)
+
+- **Symptom:** after a CONTINUE from save k, the restored `last_save` was save k-1 and `saved_for` lacked the gym approach, so before a gym leader the AI would save again at once (breaking the 3-minute rule and "once per approach"); 0 of 57 save lines in #53 and #54 held their own save.
+- **Root cause:** the save line is written at the write's START (`on_writing`, D5), but the policy records the save only at the SAVED page (`on_saved`), so each payload was built from the state before the save it describes. Every live arm's continuer stopped before it could save again (2,620 frames, below the 3,600 a save needs), so no live check could see it.
+- **The fix that worked:** `SavePolicy.saved_state` returns exactly what `record_save` will set, and `_save` builds the payload with it applied; a play-loop test (a continue from a leader save makes no second save before the talk) and a unit test pin it; live, #55: 58 of 58 save lines hold their own save.
+- **Prevention rule:** a record written before its event completes is built from the state AS IT WILL BE after the event, and a round-trip test restores it and asserts the record's own identity (the restored `last_save.id` equals the line's id).

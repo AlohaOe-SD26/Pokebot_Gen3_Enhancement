@@ -4,7 +4,11 @@
                                              [--starter S] [--target MILESTONE] [--fault no_hints|no_training]
                                              [--game-clock YYYY-MM-DDTHH:MM] [--clock HH:MM] [--world-in world.jsonl]
                                              [--save-end PATH] [--run-dir DIR] [--every N]
+                                             [--profile-dir DIR [--memory FILE [--continue]]]
     prints one line: PLAY {json}
+    (R1 + R2, build spec 2026-10-29 section 5) `--profile-dir` boots a throwaway profile with a FILE-BACKED cartridge save,
+    `--memory` hands the brain its memory file (it then saves through the game's dialog), `--continue` continues that
+    cartridge's save from power-on in place of `--fresh` (`memory_options`). `gates/live_r1.py` drives these.
 
 WHY: a run through the real launcher is the PROOF (purity, `gates/live_step5.py`); this harness runs the SAME brain
 (`ai_player.mode.HandsBrain`, brain "play") on the framework's emulator in-process (`gates/hands_harness.py` HarnessControls:
@@ -403,12 +407,57 @@ class StoryRecorder:
 INPUT_TASKS = ("Task_HandleYesNoInput", "Task_HandleConfirmStarterInput", "Task_HandleStarterChooseInput",
                "Task_HandleMultichoiceInput", "Task_HandleMultichoiceGridInput", "Task_ShopMenu", "Task_BuyMenu",
                "Task_BuyHowManyDialogueHandleInput", "Task_SetClock_HandleInput", "Task_SetClock_HandleConfirmInput",
-               "Task_CallYesOrNoCallback", "StartMenuTask", "Task_HandleMainMenuInput",
+               "Task_CallYesOrNoCallback", "Task_HandleMainMenuInput",
                "Task_NewGameBirchSpeech_ProcessNameYesNoMenu", "Task_NewGameBirchSpeech_ChooseGender",
                "Task_ReturnToItemListAfterItemPurchase", "Task_HandleCaughtMonPageInput",
                # (build step 5.1, the verifier's round: battles covered) the party menu's list and its action menu (a
                # Pokemon sent in, in a battle or on the field) and the bag's list (a ball thrown, an item used)
                "Task_HandleChooseMonInput", "Task_HandleSelectionMenuInput", "Task_BagMenu_HandleInput")
+#: R1 (build spec 2026-10-29 E7, finding F7): the START MENU is no longer an INPUT_TASKS name. `StartMenuTask` only BUILDS the
+#: menu (pret/pokeemerald `src/start_menu.c` CreateStartMenuTask / InitStartMenuStep: no input), and `Task_ShowStartMenu` runs
+#: the menu's input AND the whole save dialog (its 256-261-frame flash write included, which polls nothing): the precise rule,
+#: by the harness's OWN symbol reads, is `start_menu_input` (never the AI's eyes).
+START_MENU_INPUT_CALLBACK = "HandleStartMenuInput"
+SAVE_MENU_CALLBACK = "SaveCallback"
+SAVE_INPUT_CALLBACKS = ("SaveConfirmInputCallback", "SaveOverwriteInputCallback")
+
+
+def start_menu_input(tasks: set | frozenset | dict, show_data0: int | None, menu_callback: str | None,
+                     save_callback: str | None) -> str | None:
+    """R1 (E7): does the START MENU or the SAVE's yes/no poll the pad now? `tasks` the active task names, `show_data0`
+    `Task_ShowStartMenu`'s data[0], the two callbacks NAMED (None when not one of the start menu's). The menu takes input
+    only under `Task_ShowStartMenu` past its first frame (data[0] 0 sets `gMenuCallback` and polls nothing, `:566-573`) with
+    `gMenuCallback == HandleStartMenuInput`; the save's yes/no only under `SaveCallback` with one of the two input callbacks
+    (`:984-1084`). Neither callback is ever cleared, so a stale one under `StartMenuTask`, or after the task, is no wait."""
+    if "Task_ShowStartMenu" not in tasks or "StartMenuTask" in tasks or not show_data0:
+        return None
+    if menu_callback == START_MENU_INPUT_CALLBACK:
+        return "Task_ShowStartMenu (HandleStartMenuInput)"
+    if menu_callback == SAVE_MENU_CALLBACK and save_callback in SAVE_INPUT_CALLBACKS:
+        return f"Task_ShowStartMenu (SaveCallback: {save_callback})"
+    return None
+
+
+def start_menu_input_now(tasks) -> str | None:
+    """`start_menu_input` by the harness's own reads: the task list (`modules.tasks.TaskList`), `gMenuCallback` and
+    `sSaveDialogCallback` by symbol, each compared with the address `modules.game.get_symbol` gives the name (thumb bit off)."""
+    from modules.game import get_symbol
+    from modules.memory import read_symbol
+
+    show = tasks["Task_ShowStartMenu"]
+    if show is None:
+        return None
+
+    def named(symbol: str, names: tuple[str, ...]) -> str | None:
+        address = int.from_bytes(bytes(read_symbol(symbol, 0, 4)), "little") & ~1
+        return next((name for name in names if address and get_symbol(name)[0] & ~1 == address), None)
+
+    present = {name for name in ("Task_ShowStartMenu", "StartMenuTask") if tasks[name] is not None}
+    menu = named("gMenuCallback", (START_MENU_INPUT_CALLBACK, SAVE_MENU_CALLBACK))
+    save = named("sSaveDialogCallback", SAVE_INPUT_CALLBACKS) if menu == SAVE_MENU_CALLBACK else None
+    return start_menu_input(present, show.data_value(0), menu, save)
+
+
 #: (build step 5.1, the verifier's round) the player's battle controller POLLING THE PAD (`src/battle_controller_player.c`):
 #: the action menu, the move grid, a target (a double battle), the moves' reordering, the yes/no ("Use next POKéMON?")
 BATTLE_INPUT_CALLBACKS = ("HandleInputChooseAction", "HandleInputChooseMove", "HandleInputChooseTarget",
@@ -499,6 +548,9 @@ def waits_now() -> str | None:
     for name in INPUT_TASKS:
         if name in tasks:
             return name
+    menu = start_menu_input_now(tasks)  # R1 (E7): the start menu and the save's yes/no, by the precise rule
+    if menu is not None:
+        return menu
     state = get_game_state().name
     if state == "BATTLE":
         battlers = read_symbol("gBattlersCount", size=1)[0]
@@ -844,9 +896,27 @@ def read_texts(seen_path: str | None) -> set:
     return set(json.loads(path.read_text(encoding="utf-8"))) if path.is_file() else set()
 
 
+def memory_options(memory: Path | None, continue_game: bool) -> dict:
+    """(R1 + R2, build spec 2026-10-29 sections 3 (e) and 5) The `HandsOptions` fields a run with a memory file gets from
+    the harness, as the launcher would give them (`host/launcher.py` cmd_run): the memory file, a continue, what the cart
+    held (D17: `continued` for a continue; `empty` otherwise, as `--fresh` and `--state` empty it), and `host` "harness"
+    (the session line's: this side has no lifecycle, so D12 (a) judges a harness session by its `end` line alone). A run
+    WITHOUT a memory file gets none of them: the brain's options are then exactly the pre-R1 harness's (D14)."""
+    if memory is None:
+        if continue_game:
+            raise ValueError("--continue needs --memory (a continue restores the memory of the save it continues)")
+        return {}
+    return {"memory_file": Path(memory), "continue_game": bool(continue_game),
+            "cart": "continued" if continue_game else "empty", "host": "harness"}
+
+
 def play(context, seed: int, frames: int, run_dir: Path, personality: str | None, starter: str | None, target: str,
          faults: set[str], clock: str | None, world_in: str | None, recorder: StoryRecorder | None,
-         seen_in: str | None = None) -> dict:
+         seen_in: str | None = None, memory: Path | None = None, continue_game: bool = False,
+         watch=None) -> dict:
+    """`memory` / `continue_game` (R1 + R2): `memory_options`. `watch` (TEST SIDE, `gates/live_r1.py`): a callable given
+    the harness's controls, returning recorders whose `after_frame()` runs after every frame, after the harness's own (a
+    watcher may BLOCK there: the live proof's kill point, with no frame in flight)."""
     from ai_player.host.eyes import FrameworkEyes
     from ai_player.mode import MAX_LOSSES, BrainSettings, HandsBrain
     from ai_player.options import DEFAULT_MART_COUNT, DEFAULT_MART_ITEM, HandsOptions
@@ -857,10 +927,11 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
                            mart_count=DEFAULT_MART_COUNT, clock=clock_value, fault_ungated_a=False, fault_blind_count=False,
                            world_in=Path(world_in) if world_in else None, target=target, starter=starter,
                            fault_no_hints="no_hints" in faults, fault_no_training="no_training" in faults,
-                           fault_no_errands="no_errands" in faults)
+                           fault_no_errands="no_errands" in faults, **memory_options(memory, continue_game))
     lines: list[str] = []
     brain = HandsBrain(BrainSettings(frames=frames), lines.append, options)
     controls = HarnessControls(emulator)
+    watchers = list(watch(controls)) if watch is not None else []
     waits = WaitRecorder(controls)
     # (build step 5.2) THE PLACES by the second path: the tiles the game's screen showed, the maps, the texts, the pushing
     places = PlaceRecorder(controls, seen=read_seen(seen_in), pages=read_texts(seen_in))
@@ -889,6 +960,8 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
         waits.after_frame()
         places.after_frame()
         tiles.after_frame()
+        for watcher in watchers:
+            watcher.after_frame()
     else:
         count = budget
     frames_game = frame_check(frame0, ran, recorder.frame if recorder is not None else None, frame_count(emulator))
@@ -933,8 +1006,19 @@ def play(context, seed: int, frames: int, run_dir: Path, personality: str | None
 
 def run(state: Path | None, seed: int, frames: int, personality: str | None, starter: str | None, target: str,
         faults: set[str], game_clock: str | None, clock: str | None, world_in: str | None, run_dir: Path,
-        save_end: Path | None, every: int, checkpoints: Path | None = None, seen_in: str | None = None) -> dict:
-    context = boot(PROFILE)
+        save_end: Path | None, every: int, checkpoints: Path | None = None, seen_in: str | None = None,
+        profile_dir: Path | None = None, memory: Path | None = None, continue_game: bool = False, watch=None) -> dict:
+    """`profile_dir` (R1 + R2, the live proof): boot on that throwaway profile FOLDER with the framework's FILE-BACKED
+    cartridge save (`probe_save_kill.boot_profile`: `current_save.sav` read and written, as a real run's), instead of the
+    in-memory fixture profile; the caller made it and owns it. `memory`, `continue_game`, `watch`: `play`."""
+    if continue_game and (state is not None or profile_dir is None):
+        raise ValueError("--continue boots a profile's cartridge save from power-on: it needs --profile-dir and no --state")
+    if profile_dir is not None:
+        from ai_player.gates.probe_save_kill import boot_profile
+
+        context = boot_profile(Path(profile_dir), file_backed=True)
+    else:
+        context = boot(PROFILE)
     emulator = context.emulator
     if state is not None:
         emulator.load_save_state(state.read_bytes())
@@ -943,7 +1027,7 @@ def run(state: Path | None, seed: int, frames: int, personality: str | None, sta
     start = story_truth(context) if state is not None else None
     recorder = StoryRecorder(context, every, checkpoints)
     result = play(context, seed, frames, run_dir, personality, starter, target, faults, clock, world_in, recorder,
-                  seen_in)
+                  seen_in, memory, continue_game, watch)
     result["story"] = recorder.result()
     result["truth"] = truth(context)
     result["story_truth"] = story_truth(context)
@@ -985,8 +1069,17 @@ def main() -> int:
     parser.add_argument("--every", type=int, default=30, help="frames between two second-path reads of the story")
     parser.add_argument("--checkpoints", type=Path, help="(development) save the state at every milestone mark's change here")
     parser.add_argument("--seen-in", help="(build step 5.2) the seen_tiles.json of the run this one goes on from")
+    parser.add_argument("--profile-dir", type=Path, help="(R1 + R2) boot on this throwaway profile folder with a FILE-BACKED "
+                                                         "cartridge save (the caller made it)")
+    parser.add_argument("--memory", type=Path, help="(R1 + R2) the game's memory.jsonl (the profile's AppPaths path): the "
+                                                    "brain saves through the game's dialog and keeps it")
+    parser.add_argument("--continue", dest="continue_game", action="store_true",
+                        help="(R1 + R2) CONTINUE the cartridge save from power-on (needs --profile-dir and --memory)")
     args = parser.parse_args()
-    if args.state is None and not args.fresh:
+    if args.continue_game:
+        if args.state is not None or args.fresh or args.profile_dir is None or args.memory is None:
+            parser.error("--continue needs --profile-dir and --memory, and no --state or --fresh")
+    elif args.state is None and not args.fresh:
         parser.error("--state PATH or --fresh")
     faults = {f.strip() for f in args.fault.split(",") if f.strip()}
     unknown = faults - set(FAULTS)
@@ -994,7 +1087,8 @@ def main() -> int:
         parser.error(f"unknown faults {sorted(unknown)}: {FAULTS}")
     run_dir = args.run_dir or Path(tempfile.mkdtemp(prefix="ai_play_"))
     result = run(args.state, args.seed, args.frames, args.personality, args.starter, args.target, faults, args.game_clock,
-                 args.clock, args.world_in, run_dir, args.save_end, args.every, args.checkpoints, args.seen_in)
+                 args.clock, args.world_in, run_dir, args.save_end, args.every, args.checkpoints, args.seen_in,
+                 args.profile_dir, args.memory, args.continue_game)
     print("PLAY " + json.dumps(result, ensure_ascii=False), flush=True)
     return 0
 

@@ -21,6 +21,7 @@ real driver to show the harm (a choice made by the default instead of by intent)
 from __future__ import annotations
 
 from collections.abc import Callable, Generator
+from dataclasses import replace
 
 from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import page_text
@@ -117,8 +118,11 @@ def seen_now(look: Observation) -> tuple:
     """Everything the eyes see in one look, without WHEN (the frame) and what the look cost (and its problems,
     which say what could not be read, not what is on screen): the screen (menu, wait, text as printed, fade,
     scene), the player, the window and the people in it, the party, the bag, the progress, the battle. Two looks
-    with equal `seen_now` show a person the same thing (step 2.1's stall detector compares them)."""
-    return (look.screen, look.player, look.view, look.party, look.bag, look.progress, look.battle,
+    with equal `seen_now` show a person the same thing (step 2.1's stall detector compares them).
+    R1 (build spec D18): the progress is compared WITHOUT its play time: the play time is not on the screen the AI watches,
+    and a minute tick would reset `advance`'s stall counter."""
+    progress = look.progress if look.progress is None else replace(look.progress, play_time=None)
+    return (look.screen, look.player, look.view, look.party, look.bag, progress, look.battle,
             look.last_battle_outcome, look.storage)
 
 

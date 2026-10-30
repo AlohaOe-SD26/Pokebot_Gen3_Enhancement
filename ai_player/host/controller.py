@@ -36,6 +36,13 @@ BUTTONS = frozenset({"A", "B", "Select", "Start", "Right", "Left", "Up", "Down",
 MAX_ACTION_FRAMES = 60 * 60 * 10  # ten minutes of game time
 
 
+#: USER RULING 52 in code (build spec 2026-10-29 D12 (b)): START and SELECT are never held together with any other button.
+#: Every reset or erase combination needs one of them with others: the soft reset A+B+START+SELECT (`src/main.c:135-137`),
+#: the title's clear-save, clock and berry combinations (B+SELECT and more, `src/title_screen.c:39-41`). B held with a
+#: direction (running) stays allowed. Nothing in the AI holds two buttons today (`hands/pad.py`: every press is one hold).
+_ALONE = frozenset({"Start", "Select"})
+
+
 class ControllerError(ValueError):
     pass
 
@@ -56,6 +63,15 @@ class Controller:
     def __init__(self) -> None:
         self.frames_advanced = 0
         self.presses = 0
+        #: (R1, D12 (b)) the buttons this controller holds down right now (a `hold` under way)
+        self.held: set[str] = set()
+
+    def _check_together(self, button: str) -> None:
+        """(R1, D12 (b)) Refuse a press that would put START or SELECT down together with any other button."""
+        down = self.held | {button}
+        if len(down) > 1 and down & _ALONE:
+            raise ControllerError(f"refused: {sorted(down)} together; START and SELECT are never held with another "
+                                  f"button (a reset or erase combination: USER RULING 52)")
 
     def wait(self, frames: int) -> Generator[None, None, None]:
         """Let `frames` frames pass without touching any button."""
@@ -67,6 +83,7 @@ class Controller:
     def tap(self, button: str) -> Generator[None, None, None]:
         """Press `button` for one frame, then leave it released for one frame (2 frames in all)."""
         _check_button(button)
+        self._check_together(button)
         context.emulator.press_button(button)
         self.presses += 1
         yield from self.wait(2)
@@ -75,11 +92,14 @@ class Controller:
         """Hold `button` down for `frames` frames, and always release it, even if interrupted."""
         _check_button(button)
         _check_frames(frames)
+        self._check_together(button)
         context.emulator.hold_button(button)
+        self.held.add(button)
         self.presses += 1
         try:
             yield from self.wait(frames)
         finally:
+            self.held.discard(button)
             context.emulator.release_button(button)
 
 

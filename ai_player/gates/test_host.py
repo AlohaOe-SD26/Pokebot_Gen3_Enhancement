@@ -776,6 +776,64 @@ class GuardedObjectTests(unittest.TestCase):
                 self.assertEqual(result["outcomes"][label], "ACCEPTED; counted=False", result)
 
 
+class ControllerTogetherTests(unittest.TestCase):
+    """(R1 + R2, build spec 2026-10-29 D12 (b): USER RULING 52) The REAL controller (`host/controller.py`) refuses START or
+    SELECT held together with any other button, so no reset or erase combination can be pressed (the soft reset
+    A+B+START+SELECT, the title's B+SELECT combinations). It runs here with a FAKE framework (`modules.context`, whose
+    emulator records the buttons down) and a fake instrument's `seal_module`, loaded under a private name, so the test
+    needs no emulator; the controller's own code is the file's."""
+
+    def load(self):
+        import importlib.util
+        import types
+        from unittest import mock
+
+        down: set[str] = set()
+        emulator = types.SimpleNamespace(press_button=lambda button: None, hold_button=down.add,
+                                         release_button=down.discard)
+        context_module = types.ModuleType("modules.context")
+        context_module.context = types.SimpleNamespace(emulator=emulator)
+        instrument = types.ModuleType("ai_player.host.attribution")
+        instrument.seal_module = lambda name: None
+        fakes = {"modules": types.ModuleType("modules"), "modules.context": context_module,
+                 "ai_player.host.attribution": instrument}
+        with mock.patch.dict(sys.modules, fakes):
+            spec = importlib.util.spec_from_file_location("controller_under_test", REPO / "ai_player" / "host" / "controller.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        return module, down
+
+    @staticmethod
+    def drive(generator, frames: int) -> None:
+        for _ in range(frames):
+            next(generator)
+
+    def test_start_or_select_never_with_another_button(self) -> None:
+        module, down = self.load()
+        controller = module.Controller()
+        # FAULT: A held, then a tap of START (the soft reset's start); B held, then SELECT (the title's erase combinations)
+        for held, other in (("A", "Start"), ("B", "Select"), ("Start", "A"), ("Select", "B")):
+            with self.subTest(held=held, other=other):
+                holding = controller.hold(held, 30)
+                self.drive(holding, 2)
+                with self.assertRaises(module.ControllerError):
+                    self.drive(controller.tap(other), 1)
+                with self.assertRaises(module.ControllerError):
+                    self.drive(controller.hold(other, 5), 1)
+                holding.close()
+                self.assertEqual(down, set())  # the held button was released
+                self.assertEqual(controller.held, set())
+        # CONTROL: B held with a direction (running) is allowed; one button after another is allowed; START alone is
+        holding = controller.hold("B", 30)
+        self.drive(holding, 2)
+        self.drive(controller.tap("Up"), 2)
+        holding.close()
+        for button in ("Start", "A", "Select", "B"):
+            self.drive(controller.tap(button), 2)
+        self.drive(controller.hold("Start", 3), 3)
+        self.assertEqual(controller.held, set())
+
+
 def _harness_main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--harness", required=True, choices=sorted(HARNESSES))

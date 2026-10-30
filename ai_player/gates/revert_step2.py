@@ -191,12 +191,12 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
             [("eyes/screens.py", "    if ui is not None and ui.accepts_input and raw.get(\"fading\"):\n", "    if False:  # MUTANT HFD\n")],
             ["FadeTests.test_nothing_takes_input_while_a_fade_runs", "FadeTests.test_the_intro_waits_out_a_fade_before_start"]),
     "HFG": (CAUGHT, "the intro's START gate does not check the screen takes input (item 4)",
-            [("skills/intro.py", "            if ui is not None and ui.kind == kind and ui.accepts_input:\n",
-              "            if ui is not None and ui.kind == kind:  # MUTANT HFG\n")],
+            [("skills/intro.py", "    if ui is not None and ui.kind == kind and ui.accepts_input:\n",
+              "    if ui is not None and ui.kind == kind:  # MUTANT HFG\n")],
             ["FadeTests.test_the_intro_waits_out_a_fade_before_start"]),
     "HFW": (REDUNDANT, "the intro does not wait for the movie or the title to take input before its 'think' (item 4)",
-            [("skills/intro.py", "            look = yield from _until_it_takes_input(hands, kind)\n",
-              "            look = hands.look()  # MUTANT HFW\n")],
+            [("skills/intro.py", "    look = yield from _until_it_takes_input(hands, kind)\n",
+              "    look = hands.look()  # MUTANT HFW\n")],
             "the START gate re-checks `accepts_input` on its own look after the 'think' (HFG is that check, and it is "
             "caught), so without the wait no START lands in a fade either: the AI only goes round the intro's loop once "
             "more per fade, spending one of its INTRO_MENU_STEPS turns. The wait stays: it names the stretch it watches "

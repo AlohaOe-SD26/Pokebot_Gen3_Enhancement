@@ -50,27 +50,37 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ai_player import MODE_NAME
+from ai_player.game_memory import MemoryBook, MemoryFileError, read_book
 from ai_player.options import ENV_FRAMES, ENV_PACKAGE_ROOT, ENV_RUN_DIR, ENV_WALL_DEADLINE, VERDICT_FILE_NAME
+from ai_player.paths import AppPaths
 
 __all__ = [
+    "END_CLASSES",
     "ENV_BUILD_ROOT",
     "GATE_REFUSED_EXIT",
+    "LAUNCHES_SCHEMA",
     "NO_VERDICT_EXIT",
     "PROFILE_MARKER",
     "UNTRUSTED_ENV",
     "WALL_CLOCK_EXIT",
     "ChildResult",
+    "ContinueCheck",
     "GateRun",
     "LaunchError",
+    "archive_memory",
     "bot_command",
     "check_package_resolution",
     "child_env",
+    "classify_end",
     "ensure_profile",
     "force_http_off",
     "hook_path",
     "kill_tree",
+    "memory_check",
     "package_root",
+    "read_launches",
     "read_verdict",
+    "record_launch",
     "resolve_build_root",
     "run_child",
     "run_gate",
@@ -176,15 +186,43 @@ def ensure_profile(build_root: Path, name: str, template: str | None = None) -> 
     return path, f"[AI-RUN] profile {name} created (metadata.yml copied from '{donor_dir.name}')"
 
 
-def seed_profile(profile_dir: Path, state: Path | None, fresh: bool) -> str:
+def seed_profile(profile_dir: Path, state: Path | None, fresh: bool, continue_game: bool = False,
+                 game: AppPaths | None = None) -> str:
     """Put the profile's game state where the run needs it. Returns a log line.
 
     `fresh`: no state and no cartridge save, so the game boots to the title screen and New Game.
     `state`: the fixture becomes `current_state.ss1`, which the emulator loads at startup, and the
     cartridge save is emptied so nothing from an older run leaks in.
     Neither touches a profile that the launcher did not create.
+
+    (R1 + R2, build spec 2026-10-29 D10, D11) `game`: the AI's files of this game (`paths.py` AppPaths).
+    `continue_game` (`--continue`): the cartridge save is the truth, so `current_state.ss1` is DELETED (a state is tied
+    to the build and carries RAM: a person's game is its save) and `current_save.sav` is kept; the AI plays the title
+    itself. It needs the marker and a cartridge save (`memory_check` has already judged the memory file). `fresh` and
+    `state` ARCHIVE an existing memory file (and `launches.jsonl`) into `retired/` (`archive_memory`: renamed, never
+    deleted or rewritten). A start with NO flag on a game that has a memory file is REFUSED: it would load the last clean
+    close's `.ss1` beside a newer cartridge save (two truths about one game).
     """
+    if continue_game:
+        if state is not None or fresh:
+            raise LaunchError("--continue cannot be given with --state or --fresh")
+        if not (profile_dir / PROFILE_MARKER).is_file():
+            raise LaunchError(f"refusing to continue in {profile_dir.name}: it was not created by ai_player "
+                              f"(no {PROFILE_MARKER})")
+        cart = profile_dir / SAVE_FILE
+        if not cart.is_file() or cart.stat().st_size == 0:
+            raise LaunchError(f"--continue needs the cartridge save {SAVE_FILE} in {profile_dir.name}, and there is none")
+        dropped = profile_dir / STATE_FILE
+        had = dropped.exists()
+        if had:
+            dropped.unlink()
+        return (f"[AI-RUN] state: CONTINUE ({STATE_FILE} {'removed' if had else 'absent'}; {SAVE_FILE} kept, "
+                f"{cart.stat().st_size} bytes): the AI plays the title and continues its save")
     if state is None and not fresh:
+        if game is not None and game.memory_jsonl.exists():
+            raise LaunchError(f"{profile_dir.name} holds the AI's memory of a game ({game.memory_jsonl}): start it with "
+                              f"--continue, or archive it with --fresh or --state (a start with no flag would load the last "
+                              f"clean close's {STATE_FILE} beside a newer cartridge save)")
         return "[AI-RUN] state: resuming whatever the profile already holds"
     if state is not None and fresh:
         raise LaunchError("--state and --fresh are mutually exclusive")
@@ -193,6 +231,7 @@ def seed_profile(profile_dir: Path, state: Path | None, fresh: bool) -> str:
             f"refusing to change game state in {profile_dir.name}: it was not created by ai_player "
             f"(no {PROFILE_MARKER}); use a new profile name"
         )
+    archived = archive_memory(game) if game is not None else []
     for stale in (profile_dir / STATE_FILE, profile_dir / SAVE_FILE):
         if stale.exists():
             stale.unlink()
@@ -201,12 +240,221 @@ def seed_profile(profile_dir: Path, state: Path | None, fresh: bool) -> str:
         # Shutdown backups of earlier runs of this disposable profile; the emulator never auto-loads them.
         for backup in states_dir.glob("*.ss1"):
             backup.unlink()
+    told = f"; the AI's memory archived: {', '.join(archived)}" if archived else ""
     if state is None:
-        return "[AI-RUN] state: FRESH (no current_state.ss1, no current_save.sav) -> title screen / New Game"
+        return f"[AI-RUN] state: FRESH (no current_state.ss1, no current_save.sav) -> title screen / New Game{told}"
     if not state.is_file():
         raise LaunchError(f"state file not found: {state}")
     shutil.copy2(state, profile_dir / STATE_FILE)
-    return f"[AI-RUN] state: seeded from {state.name} md5={md5_of(state)} -> {STATE_FILE}"
+    return f"[AI-RUN] state: seeded from {state.name} md5={md5_of(state)} -> {STATE_FILE}{told}"
+
+
+# ---------------------------------------------------------------------- R1 + R2: the AI's memory of a game, and ruling 52
+#: (D20) `launches.jsonl`'s schema (its header line, D9: a NEWER one is refused, the file left as it is)
+LAUNCHES_SCHEMA = 1
+#: (D12 (a)) how the newest session of a memory file ended -> may it be continued. KILLED: no verdict and no launcher line
+#: (the operator, the OS, a power cut). INVOLUNTARY: the process ended without the AI choosing it. CHOSEN: the AI ended the
+#: run (`play: done:` / `play: stuck:`). BUDGET: the frame budget or the wall clock (interim, pending the user's U2). NOT
+#: CLEAN: a purity or framework end. UNKNOWN: the session's run folder is gone and no launcher line names it.
+END_CLASSES = ("KILLED", "INVOLUNTARY", "CHOSEN", "BUDGET", "NOT CLEAN", "UNKNOWN")
+_INVOLUNTARY = ("crash", "frame-budget", "parked-manual", "abandoned", "interrupted", "interrupted-unresponsive")
+
+
+@dataclass(frozen=True)
+class ContinueCheck:
+    """What `memory_check` found: `ok` (a continue may start), `why` (the sentence it prints), the newest save line, how
+    the newest session ended (`END_CLASSES`) and the battles lost after the newest save (D12 (e))."""
+
+    ok: bool
+    why: str
+    newest: dict | None = None
+    end_class: str | None = None
+    undone: int = 0
+
+
+def read_launches(path: Path) -> list[dict]:
+    """The `launch_end` lines of a `launches.jsonl` (read only; [] when there is none). A NEWER schema raises
+    `LaunchError` with the file left as it is (D9); an unreadable line raises too (it is the launcher's own file)."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return []
+    lines = [line for line in text.splitlines() if line.strip()]
+    out: list[dict] = []
+    for number, raw in enumerate(lines, 1):
+        try:
+            line = json.loads(raw)
+        except ValueError as error:
+            raise LaunchError(f"{path}: line {number} cannot be read ({error})") from error
+        if number == 1:
+            version = line.get("schema_version") if isinstance(line, dict) and line.get("kind") == "header" else None
+            if not isinstance(version, int):
+                raise LaunchError(f"{path}: the first line is not a launches header")
+            if version > LAUNCHES_SCHEMA:
+                raise LaunchError(f"{path} was written by a newer program (schema {version}; this launcher reads "
+                                  f"{LAUNCHES_SCHEMA}): refused, the file is left as it is")
+            continue
+        if isinstance(line, dict) and line.get("kind") == "launch_end":
+            out.append(line)
+    return out
+
+
+def record_launch(game: AppPaths, run_dir: Path, result: ChildResult, verdict: dict | None) -> dict:
+    """(D20) Append how this child ended to the game's `launches.jsonl` (its header first, for a new file): the exit
+    code, whether the LAUNCHER hard-killed it at its wall clock, whether Ctrl+C interrupted it, and the verdict file's
+    `exit_reason` (None: the child left no verdict). If the launcher itself is killed it writes nothing, which reads as
+    KILLED, as it should."""
+    facts = (verdict or {}).get("facts") or {}
+    line = {"kind": "launch_end", "run_dir": str(run_dir), "exit_code": int(result.exit_code),
+            "hard_kill": bool(result.killed and not result.interrupted), "interrupted": bool(result.interrupted),
+            "exit_reason": facts.get("exit_reason") if verdict is not None else None,
+            "ended": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    path = game.launches_jsonl
+    path.parent.mkdir(parents=True, exist_ok=True)
+    new = not path.exists() or path.stat().st_size == 0
+    with open(path, "a", encoding="utf-8") as handle:
+        if new:
+            handle.write(json.dumps({"kind": "header", "schema_version": LAUNCHES_SCHEMA}) + "\n")
+        handle.write(json.dumps(line, ensure_ascii=True) + "\n")
+    return line
+
+
+def archive_memory(game: AppPaths) -> list[str]:
+    """(D10) Move the game's `memory.jsonl` and `launches.jsonl` into `retired/` (`AppPaths.retired_path`: renamed,
+    never deleted, never overwritten). Returns what was moved, as `<name> -> <archive>`."""
+    moved: list[str] = []
+    for path in (game.memory_jsonl, game.launches_jsonl):
+        if not path.exists():
+            continue
+        target = game.retired_path(path.name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        path.rename(target)
+        moved.append(f"{path.name} -> {target}")
+    return moved
+
+
+def classify_end(book: MemoryBook, launches: list[dict]) -> tuple[str, str, bool]:
+    """(D12 (a)) How the NEWEST session of the memory file ended: (class, in words, may it be continued). From three
+    records, in this order of trust: the LAUNCHER's own line for the session's `run_dir` (`launches.jsonl`), else the
+    run's verdict file (`purity.json`, written only by `lifecycle.finish`: an external kill leaves none), and the AI's own
+    `end` line, which adds only whether the end came right after a save (`at_save`). A harness session (no lifecycle) is
+    judged by its `end` line alone. CHOSEN and BUDGET are refused unless `at_save`, and refused with no `end` line (fail
+    closed); a run folder that is gone with no launcher line is UNKNOWN (refused: a kill cannot be told from a choice).
+    (R1 fix round, review R-2) A CHOSEN end of a continue that STOPPED BEFORE IT RESTORED ANYTHING (a bound or a failed
+    read, `_stopped_before_restore`) is looked THROUGH: the session before it decides, since that continue changed nothing
+    a later one could undo. Without this a timeout made the game impossible ever to continue again."""
+    session = book.last_session()
+    if session is None:
+        return "UNKNOWN", "the memory file names no session", False
+    sessions = book.sessions()
+    for _ in range(len(sessions)):  # bounded: each pass steps one session back
+        kind, words, allowed, reason = _classify_session(book, session, launches)
+        earlier = _session_before(sessions, session)
+        if kind != "CHOSEN" or earlier is None or not _stopped_before_restore(book, session, reason):
+            return kind, words, allowed
+        session = earlier
+    return "UNKNOWN", "the memory file's sessions could not be followed back", False
+
+
+#: the play brain's end when its continue stopped (`mode.py` HandsBrain._continue), without the `play: ` in front
+_CONTINUE_STOPPED = "stuck: the continue stopped:"
+
+
+def _session_before(sessions: list[dict], session: dict) -> dict | None:
+    at = next((i for i, item in enumerate(sessions) if item is session), None)
+    return sessions[at - 1] if at else None
+
+
+def _stopped_before_restore(book: MemoryBook, session: dict, reason: str | None) -> bool:
+    """(R1 fix round, review R-2) Session `session` was a CONTINUE that stopped before it restored anything: the host's
+    own record of its end (`reason`: the launcher line's or the verdict's, or the `end` line's for a harness session) is
+    the continue's stop; the AI's `end` line says `stopped_before_restore` (a bound or a failed read, not one of the
+    spec's stops) and not chosen; it continued no save (`continued_from` None); and no `save` or `lost` line follows its
+    session line (it played nothing)."""
+    end = book.end_of(session["n"])
+    if session.get("how") != "continue" or session.get("continued_from") is not None or end is None:
+        return False
+    if not end.get("stopped_before_restore") or end.get("chosen"):
+        return False
+    texts = [str(reason or ""), str(end.get("reason") or "")]
+    if not all((text[len("play: "):] if text.startswith("play: ") else text).startswith(_CONTINUE_STOPPED)
+               for text in texts):
+        return False
+    at = next(i for i, line in enumerate(book.lines) if line is session)
+    return not any(line["kind"] in ("save", "lost") for line in book.lines[at + 1:])
+
+
+def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> tuple[str, str, bool, str | None]:
+    """How session `session` ended (`classify_end`'s table, one session), and the reason it was judged by."""
+    end = book.end_of(session["n"])
+    at_save = bool(end is not None and end.get("at_save"))
+    after = " right after a save" if at_save else ""
+    if session.get("host") == "harness":
+        if end is None:
+            return "KILLED", f"harness session {session['n']} has no end line: it was killed", True, None
+        # a continue stopped before its restore is judged as the chosen end it is, then looked through (classify_end)
+        chosen = end.get("chosen") or end.get("stopped_before_restore")
+        kind = "CHOSEN" if chosen else "BUDGET" if end.get("budget") else "INVOLUNTARY"
+        allowed = kind == "INVOLUNTARY" or at_save
+        return kind, f"harness session {session['n']} ended '{end.get('reason')}'{after}", allowed, end.get("reason")
+    run_dir = session.get("run_dir")
+    line = next((item for item in reversed(launches) if item.get("run_dir") == run_dir), None) if run_dir else None
+    if line is not None:
+        if line.get("interrupted"):
+            return "INVOLUNTARY", f"session {session['n']} was interrupted (Ctrl+C reached the launcher)", True, None
+        if line.get("hard_kill"):
+            return ("BUDGET", f"session {session['n']} was killed by the launcher at its wall clock{after}", at_save,
+                    None)
+        reason = line.get("exit_reason")
+    elif run_dir and Path(run_dir).is_dir():
+        verdict = read_verdict(Path(run_dir))
+        reason = ((verdict or {}).get("facts") or {}).get("exit_reason") if verdict is not None else None
+        if verdict is None:
+            return ("KILLED", f"session {session['n']} left no verdict file and no launcher line: killed from outside",
+                    True, None)
+    else:
+        return ("UNKNOWN", f"session {session['n']}'s run folder {run_dir} is gone and no launcher line names it: a kill "
+                           f"cannot be told from a chosen end", False, None)
+    if reason is None:
+        return "KILLED", f"session {session['n']}'s child left no verdict: killed from outside", True, None
+    reason = str(reason)
+    if reason in _INVOLUNTARY:
+        return "INVOLUNTARY", f"session {session['n']} ended '{reason}'", True, reason
+    if reason.startswith(("play: done:", "play: stuck:")):
+        kind = "CHOSEN"
+    elif reason.startswith("play: stopped:") or reason == "wall-clock":
+        kind = "BUDGET"
+    else:
+        return "NOT CLEAN", f"session {session['n']} ended '{reason}'", False, reason
+    if end is None:
+        return (kind, f"session {session['n']} ended '{reason}' with no end line of the AI's (refused: fail closed)", False,
+                reason)
+    return kind, f"session {session['n']} ended '{reason}'{after}", at_save, reason
+
+
+def memory_check(game: AppPaths) -> ContinueCheck:
+    """(D11, D12) May this game be CONTINUED? Reads `memory.jsonl` and `launches.jsonl` read only: a newer schema is
+    refused (the files left byte-identical), a memory file with no save line is refused, and how the newest session ended
+    decides (`classify_end`). Also counts the battles lost after the newest save, which the continue undoes (D12 (e))."""
+    try:
+        book = read_book(game.memory_jsonl)
+    except MemoryFileError as error:
+        return ContinueCheck(False, f"the memory file cannot be continued: {error}")
+    if book is None:
+        return ContinueCheck(False, f"there is no memory file to continue ({game.memory_jsonl})")
+    newest = book.newest_save()
+    if newest is None:
+        return ContinueCheck(False, "the memory file holds no save line: nothing to continue")
+    try:
+        launches = read_launches(game.launches_jsonl)
+    except LaunchError as error:
+        return ContinueCheck(False, str(error), newest)
+    kind, words, allowed = classify_end(book, launches)
+    undone = len(book.undone_losses(newest["id"]) or [])
+    if not allowed:
+        return ContinueCheck(False, f"a continue would reload after a {kind} end ({words}): USER RULING 52",
+                             newest, kind, undone)
+    return ContinueCheck(True, words, newest, kind, undone)
 
 
 def bot_command(build_root: Path, profile: str) -> list[str]:

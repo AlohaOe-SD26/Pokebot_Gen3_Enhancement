@@ -37,16 +37,21 @@ from __future__ import annotations
 import random
 import time
 from collections.abc import Callable, Generator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 from ai_player.brain.battle import BattleFaults, BattleMind, needs_rest
+from ai_player.brain.saving import SavePolicy, own_cart
 from ai_player.brain.explore import explore_intent, goto_intent, weights_for
 from ai_player.brain.goals import (
     CURIOSITY_KINDS, Goal, GoalManager, GoalRunner, battles_lost, goal_yield, party_share, yield_snapshot,
 )
 from ai_player.brain.navigator import Navigator, nav_free
 from ai_player.eyes.observation import Observation
+from ai_player.game_memory import (
+    MemoryFileError, MemoryWriter, MonRegistry, battle_part, build_payload, goals_part, party_of, personality_part,
+    read_book, restore, restore_battle, restore_goals, restore_personality, where_of,
+)
 from ai_player.hands.dialogue import advance, busy_reason, player_free, talk
 from ai_player.hands.waiting import BattleClock, PushWatch, WaitWatch
 from ai_player.hands.menus import local_clock, mart_buy, nurse_heal, set_clock
@@ -61,6 +66,7 @@ from ai_player.skills.clock import set_wall_clock
 from ai_player.skills.flee import in_battle
 from ai_player.skills.intro import play_intro
 from ai_player.skills.roam_train import roam_train
+from ai_player.skills.saving import SAVE_CLOSE_BUDGET, SAVE_WRITE_BUDGET, continue_game, save_game
 from ai_player.skills.story import answer_question, choose_starter as choose_starter_in_bag, leave_shop, play_out
 from ai_player.world.memory import WorldMemory, read_world
 
@@ -137,6 +143,9 @@ DONE_SETTLE_ROUNDS = 6
 DONE_BUDGET_MARGIN = 2
 #: (the step-5.1 verifier's second round) what played between two goals, as the goal manager's balance counts it: the story's
 BETWEEN_GOALS = Goal("scene", "what played between two goals (a scene, the settling)")
+#: (R1, build spec 2026-10-29 D13) the frames the play loop waits, pressing nothing, on a save page it meets outside the save
+#: skill (a guard against a skill bug: with the skill as built it should never fire): the write and the close together
+SAVE_PAGE_WAIT = SAVE_WRITE_BUDGET + SAVE_CLOSE_BUDGET
 
 
 class Controls(Protocol):
@@ -266,6 +275,22 @@ class WatcherBrain:
                 f"min={costs[0]:.2f}ms max={costs[-1]:.2f}ms records={self._actions.records}")
 
 
+class _RebasedEyes:
+    """(R2, build spec 2026-10-29 D7) THE FRAME BASE of a continue run: every look's `frame` is the emulator's plus `base`
+    (`MemoryBook.frame_base`: 1 + the largest frame stamp in the memory file), so every stamp the restored memory carries
+    stays in the PAST after the cold boot (the emulator's counter starts at 0 again: a door found closed is retried only
+    `CLOSED_RETRY_FRAMES` after its stamp, which a counter restarted at 0 would not reach for that long). The base is 0 in
+    every run that is not a continue, and then the eyes are not wrapped at all (T6)."""
+
+    def __init__(self, eyes: Eyes, base: int) -> None:
+        self.inner = eyes
+        self.base = base
+
+    def look(self) -> Observation:
+        seen = self.inner.look()
+        return replace(seen, frame=seen.frame + self.base)
+
+
 class HandsBrain:
     """BUILD STEP 2: plays ONE skill with the AI's own hands (`ai_player/hands/`, `ai_player/skills/`) and gives
     up with the skill's outcome as its reason: `intro` (fresh boot to the truck), `nurse` (heal at the nurse in
@@ -284,7 +309,30 @@ class HandsBrain:
     MEMORY (`world/memory.py`), told every look the hands take, started empty or from a previous run's
     `world.jsonl` (`AI_PLAYER_WORLD`), and written to `<run_dir>/world.jsonl` (one snapshot line at every map change
     and at the end); `[AI-WORLD]` lines go into the run's log. The navigator's path noise and detours come from the
-    CHOICES stream."""
+    CHOICES stream.
+
+    R1 + R2 (build spec 2026-10-29): with a memory file (`AI_PLAYER_MEMORY`, D14) the play brain SAVES through the game's
+    own dialog at USER RULING 51's moments (`brain/saving.py`, `skills/saving.py` save_game), keeps `memory.jsonl`
+    (`game_memory.py`: a save line at the START of each write, `lost` lines, its `end` line), and with
+    `AI_PLAYER_CONTINUE` CONTINUES the game from the title itself (`skills/saving.py` continue_game), restoring its memory
+    AS OF the save the game loaded, never newer. A run without a memory file behaves exactly as before R1."""
+
+    #: (R1 + R2) the memory file's state, at its pre-R1 values: a brain built without `__init__` (the play-loop tests) and a
+    #: run without a memory file keep them (`_open_memory` sets them per run)
+    _memory_path = None
+    _saving = False
+    _continuing = False
+    _frame_base = 0
+    _book = None
+    _writer = None
+    _policy = None
+    _registry = None
+    _continued = None
+    _saves_made = 0
+    _at_save_presses = None
+    _continue_may_retry = False
+    _kept = None
+    _choices = None
 
     def __init__(self, settings: BrainSettings, say: Callable[[str], None], options: HandsOptions) -> None:
         self.settings = settings
@@ -306,20 +354,33 @@ class HandsBrain:
         choices = random.Random(f"{self.seed}:choices")
         pacing = random.Random(f"{self.seed}:pacing")
         faults = Faults(ungated_a=options.fault_ungated_a, blind_count=options.fault_blind_count)
+        # (R1 + R2) the game's memory file, read FIRST: a newer one is refused before anything is pressed or written
+        refused = self._open_memory()
+        if self._frame_base:
+            eyes = _RebasedEyes(eyes, self._frame_base)
         hands = Hands(eyes, controls, pacing, choices, self.actions, self._say, faults)
-        personality = pick_personality(choices, self.seed, options.personality)
+        personality = pick_personality(choices, self.seed, self._remembered_personality() or options.personality)
         self._say(f"[AI-HANDS] brain={options.brain} seed={self.seed} ({'given' if options.seed is not None else 'from the clock'}) "
                   f"personality={personality.name} ({personality.chosen_by}) faults=ungated_a:{faults.ungated_a},"
                   f"blind_count:{faults.blind_count} frames={self.settings.frames}")
-        if options.brain in WORLD_BRAINS:
+        if self._memory_path is not None:
+            self._say(f"[AI-HANDS] memory={self._memory_path} saving={self._saving} continue={self._continuing} "
+                      f"frame_base={self._frame_base} cart={getattr(options, 'cart', None)} "
+                      f"refused={refused or '-'}")
+        self._choices = choices
+        if options.brain in WORLD_BRAINS and not self._continuing:
             self._start_world(hands, choices, personality.name)
         first = hands.look()
         self.actions.record(first, decision="start", action=options.brain, reason="the first look", full=True,
                             extra={"seed": self.seed, "personality": personality.name})
-        outcome = yield from self._bounded(self._skill(hands, personality), hands)
+        if refused is not None:
+            outcome = refused
+        else:
+            outcome = yield from self._bounded(self._skill(hands, personality), hands)
         hands.pad.finish()
         last = hands.look()
         self.actions.record(last, decision="end", action=options.brain, reason=outcome, full=True)
+        self._end_memory(hands, outcome, last)
         if self.world is not None:
             self._save_world("the end of the run")
             self._say(f"[AI-WORLD] memory at the end: {self._memory_line()}")
@@ -355,11 +416,281 @@ class HandsBrain:
         if options.brain == "battle":
             return (yield from self._battles(hands, personality.name))
         if options.brain == "play":
+            if self._continuing:
+                return (yield from self._continue(hands, personality))
             return (yield from self._play(hands, personality))
         raise ValueError(f"no hands skill named {options.brain!r}")
 
+    # ------------------------------------------------------------------ R1 + R2: the memory file, saving, continuing
+    def _open_memory(self) -> str | None:
+        """(R1 + R2, build spec section 3 (e)) The play brain's memory file (`HandsOptions.memory_file`), read once before
+        anything is pressed. Sets whether this run SAVES (a memory file and not the no-save CONTROL, D14) and CONTINUES
+        (D11), and the frame base of a continue (D7). Returns the run's end reason when the file refuses the run, else
+        None:
+          * a NEWER schema (D9): refused, the file left byte-identical (nothing of this run is ever written to it);
+          * a file that cannot be read (no header, a broken middle line): refused;
+          * a continue with no save line to continue;
+          * a NEW game on a game that already has a memory file: refused (only a continue adds to a memory file; the
+            launcher's `--fresh` and `--state` archive it first, D10)."""
+        options = self.options
+        path = getattr(options, "memory_file", None) if options.brain == "play" else None
+        self._memory_path = path
+        self._continuing = path is not None and bool(getattr(options, "continue_game", False))
+        self._saving = path is not None and not getattr(options, "fault_no_save", False)
+        if path is None or not (self._saving or self._continuing):
+            return None
+        try:
+            self._book = read_book(path)
+        except MemoryFileError as error:
+            self._saving = self._continuing = False
+            if error.kind == "newer":
+                return f"stuck: the memory file was written by a newer program ({error})"
+            return f"stuck: the memory file cannot be used ({error})"
+        if self._continuing:
+            if self._book is None or not self._book.saves():
+                self._saving = self._continuing = False
+                return f"stuck: there is no save in the memory file to continue ({path})"
+            self._frame_base = self._book.frame_base()
+        elif self._book is not None:
+            self._saving = False
+            return (f"stuck: this game already has a memory file ({path}): only a continue adds to it (the launcher's "
+                    f"--fresh or --state archives it first)")
+        return None
+
+    def _remembered_personality(self) -> str | None:
+        """(R2) A continue plays on with the personality its game began with (the memory file's header)."""
+        if not self._continuing or self._book is None:
+            return None
+        return (self._book.header_line.get("identity") or {}).get("personality")
+
+    def _session(self, how: str, cart: str | None, **more) -> dict:
+        """(R2) This run's `session` line (`game_memory.py`): how it began, who started it, where its logs are, what the
+        cart held (D17: `kept` when nobody said), its frame base."""
+        options = self.options
+        run_dir = getattr(options, "run_dir", None)
+        return {"how": how, "host": getattr(options, "host", "launcher"), "run_dir": str(run_dir) if run_dir else None,
+                "cart": cart or "kept", "frame_base": self._frame_base, "started": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                **more}
+
+    def _game_name(self) -> str:
+        """(R2) The header's `game`: the profile the memory file belongs to and when the game began."""
+        path = self._memory_path
+        folder = path.parent.parent.name if path.parent.name == "ai_player" else path.parent.name
+        return f"{folder}|{time.strftime('%Y-%m-%dT%H:%M:%S')}"
+
+    def _continue(self, hands: Hands, personality) -> Generator[None, None, str]:
+        """(R1 + R2, build spec section 3 (b), (c) and (f)) CONTINUE the game from power-on (`skills/saving.py`
+        continue_game: never NEW GAME), then restore the memory AS OF the save the game loaded (`game_memory.py` restore),
+        and play on. Right after the restore and BEFORE the first look of the continued game, the RESTORE RECORD is
+        written (finding F2): the `session` line (with `restored_maps`) and a `world.jsonl` snapshot "restored from save
+        <id>" (the live proof grades the memory the brain ACTS on from these). A continue that STOPS writes its session
+        line and ends the run "stuck" through the play loop's own end (so the end record and a CHOSEN `end` line are
+        written: no later continue). (R1 fix round, review R-2) A stop on a bound or a failed read (`may_retry`: nothing
+        restored, nothing played) ends the same way, but its `end` line says `stopped_before_restore` and is not chosen,
+        so a later continue may try again (the launcher looks through it to the session before)."""
+        book = self._book
+        result = yield from continue_game(hands, book, "continue the saved game")
+        self._continued = result
+        if not result.continued:
+            self._continue_may_retry = bool(result.may_retry)
+            self._writer = MemoryWriter(self._memory_path, book, header=None,
+                                        session=self._session("continue", "continued", continued_from=None,
+                                                              page=result.page, verified=False))
+            self._writer.write_session()
+            self._start_world(hands, self._choices, personality.name)
+            return (yield from self._play(hands, personality, stop=f"the continue stopped: {result.why}"))
+        record = result.record
+        restored = restore(book, record["id"])
+        self._writer = MemoryWriter(self._memory_path, book, header=None,
+                                    session=self._session("continue", "continued", continued_from=record["id"],
+                                                          page=result.page, verified=result.arrival,
+                                                          restored_maps=restored.restored_maps, losses=restored.losses))
+        written = self._writer.write_session()
+        self._start_world(hands, self._choices, personality.name, restored.world)
+        self._save_world(f"restored from save {record['id']}")
+        hands.note("restore", "memory", f"restored from save {record['id']}",
+                   {"save": record["id"], "maps": restored.restored_maps, "losses": restored.losses,
+                    "frame_base": self._frame_base, "newest": result.newest, "page": result.page_kind})
+        hands.tell(f"[AI-SAVE] continued save {record['id']}: its memory restored as of that save "
+                   f"({len(restored.restored_maps)} maps, {restored.losses} battles lost so far); frame base "
+                   f"{self._frame_base}")
+        if not written:
+            return (yield from self._play(hands, personality, stop="the memory of this continue could not be written"))
+        return (yield from self._play(hands, personality, restored=restored))
+
+    def _start_saving(self, hands: Hands, manager, state, mind, runner, starter: str, report: dict) -> None:
+        """(R1, build spec section 3 (d)) With a memory file: the save POLICY over the goal manager's memory (its state lives
+        there, so a continue restores it), the save goal's player (`runner.saver`, this brain's `_save`), the run's frames
+        left for the policy, and the Pokemon REGISTRY by PID (L3 (a)-(b), a hands watcher). A new game's writer is made
+        here; it writes nothing before the first save (no save, no file)."""
+        if not self._saving:
+            return
+        report["saves"] = []
+        if self._registry is None:
+            self._registry = MonRegistry()
+        self._kept = (manager, state, mind)
+        if self._writer is None:
+            identity = {"seed": self.seed, "personality": state.base, "favourite": state.favourite, "starter": starter,
+                        "gender": None, "name": None}
+            self._writer = MemoryWriter(self._memory_path, None, header={"game": self._game_name(), "identity": identity},
+                                        session=self._session("new game", getattr(self.options, "cart", None)))
+        self._policy = SavePolicy(manager.memory, hands.tell)
+        manager.saving = self._policy
+        manager.frames_left = lambda: self._frames_left(hands)
+        runner.saver = lambda goal: self._save(hands, goal.reason, report)
+        nav = self.navigator
+        registry = self._registry
+        hands.watchers.append(lambda seen: registry.observe(
+            seen, caught=bool(nav.battle_log) and nav.battle_log[-1][2] == "caught"))
+
+    def _frames_left(self, hands: Hands) -> int:
+        """The run's frames left (`settings.frames`, the bound `_bounded` keeps), as the pad counts them."""
+        return self.settings.frames - hands.pad.frames
+
+    def _payload(self, report: dict, saving: dict) -> dict:
+        """(R2) A save's memory: the world memory, the goal manager's KEEP fields, the personality, the battle mind, the
+        registry, the battles lost so far (`game_memory.py` build_payload). `saving`: what THIS save makes of the save
+        policy's fields (`SavePolicy.saved_state`), so the memory as of the save already counts the save itself (R1 fix
+        round, review R-1: built before the SAVED page records it, the line held the save before it)."""
+        manager, state, mind = self._kept
+        goals = goals_part(replace(manager.memory, **saving))
+        return build_payload(world=self.world.to_dict(), goals=goals, personality=personality_part(state),
+                             battle=battle_part(mind), mons=self._registry.to_dict(), losses=report["losses"])
+
+    def _save(self, hands: Hands, why: str, report: dict) -> Generator[None, None, str]:
+        """(R1) SAVE through the game's own dialog (`skills/saving.py` save_game). At the first look with the whole SAVING
+        page (the START of the write, D5) the save's line is appended to the memory file; on the SAVED page the `saved`
+        line follows and the policy records the save (every due satisfied). OVERWRITE is answered YES only when the cart
+        is this game's own (D17, `own_cart`). Returns the skill's outcome ("saved...", "not saved: ...", "stuck: ...")."""
+        writer, policy = self._writer, self._policy
+        pending: dict = {}
+
+        def on_writing(stamp, look: Observation) -> bool:
+            if stamp is None:
+                hands.tell("[AI-SAVE] the play time was not read on the SAVING page: no memory line for this save")
+                return False
+            if writer.header is not None and look.player is not None:
+                writer.header["identity"]["gender"] = look.player.gender
+            saving = policy.saved_state(stamp, look.frame, writer.next_id, why)
+            line = writer.write_save(play_time=stamp, frame=look.frame, where=where_of(look), party=party_of(look), why=why,
+                                     payload=self._payload(report, saving))
+            pending.update(written=line, stamp=stamp, frame=look.frame)
+            hands.tell(f"[AI-SAVE] save {line.id}'s memory line ({'full' if line.full else 'a delta'}, {line.size} bytes) "
+                       f"at play time {stamp[0]}:{stamp[1]:02d}: {'written' if line.reached else 'NOT WRITTEN'}")
+            return line.reached
+
+        def on_saved(look: Observation) -> None:
+            line = pending.get("written")
+            if line is None:
+                return
+            if line.reached:
+                writer.write_saved(line.id, look.frame)
+            # the save's own frame (the start of its write, its memory line's `frame`): the policy then remembers exactly
+            # what the save's memory line says it will (R1 fix round, review R-1)
+            policy.record_save(pending["stamp"], pending["frame"], line.id, why)
+
+        outcome = yield from save_game(hands, why, own_cart(getattr(self.options, "cart", None), self._saves_made > 0),
+                                       lambda: self._frames_left(hands), on_writing, on_saved)
+        if outcome.startswith("saved"):
+            self._saves_made += 1
+            self._at_save_presses = hands.pad.presses
+        line = pending.get("written")
+        report.setdefault("saves", []).append({"why": why, "outcome": outcome, "id": line.id if line else None,
+                                               "full": line.full if line else None, "size": line.size if line else None,
+                                               "pad_frames": hands.pad.frames})
+        hands.note("save", "outcome", outcome, {"why": why, "id": line.id if line else None})
+        return outcome
+
+    def _save_before_done(self, hands: Hands, report: dict) -> Generator[None, None, None]:
+        """(R1, build spec section 3 (d), T8) THE END SAVE: the run is about to end "done" (R5's settle has played the
+        screen out). A save that is DUE is made now, if the settled screen is free and the policy may save (the play time,
+        the 3-minute gap, the frames). Its frames are handed on through `_settle_frames`, as the settle's are: the brain's
+        own bound never cuts it. What it did is `report["end_save"]` and the end record's `saved_at_end`."""
+        policy = self._policy
+        if policy is None:
+            return
+        here = self.world.here() if self.world is not None else None
+        due = policy.due_now(here.const if here is not None else None)
+        if due is None:
+            return
+        look = hands.look()
+        if not (report.get("settle") or {}).get("free"):
+            why = "the screen at the end is not free"
+        else:
+            ok, why = policy.may_save(look, self._frames_left(hands) - DONE_BUDGET_MARGIN)
+            why = None if ok else why
+        if why is not None:
+            hands.tell(f"[AI-SAVE] no save before putting the game down ({due['why']}): {why}")
+            report["end_save"] = {"saved": False, "outcome": f"not saved: {why}"}
+            return
+        ended, outcome = yield from self._settle_frames(
+            hands, self._save(hands, f"before putting the game down: {due['why']}", report))
+        if not ended:
+            outcome = "not saved: the run's frame budget ran out"
+        report["end_save"] = {"saved": str(outcome).startswith("saved"), "outcome": outcome}
+
+    def _after_milestones(self, ids: list[str]) -> None:
+        """(R1, D3, D18) The milestones just passed, by their IDS only, to the save policy (a big story moment)."""
+        if self._policy is not None and ids:
+            self._policy.after_milestones(ids)
+
+    def _after_heal(self, goal: Goal, ok: bool) -> None:
+        """(R1, D3) A heal goal ended: at a POKéMON CENTER a save is due (the policy reads where it healed)."""
+        if self._policy is None or goal.kind != "heal":
+            return
+        here = self.world.here() if self.world is not None else None
+        self._policy.after_heal(goal, ok, here.const if here is not None else None)
+
+    def _lost_line(self, hands: Hands) -> Callable[[], object] | None:
+        """(R1, D12 (e)) What `_count_losses` calls at each battle lost: a `lost` line in the memory file (None: no file)."""
+        writer = self._writer
+        if writer is None:
+            return None
+        return lambda: writer.write_lost(hands.look())
+
+    def _end_memory(self, hands: Hands, outcome: str, last: Observation) -> None:
+        """(R1, D12 (a)) The memory file's `end` line, for every play-brain run that keeps one: `chosen` (done or stuck),
+        `budget` (stopped), `at_save` (the last thing the run did was a successful save: no press since it)."""
+        writer = self._writer
+        if writer is None:
+            return
+        at_save = self._at_save_presses is not None and hands.pad.presses == self._at_save_presses
+        if writer.write_end(outcome, at_save, last.frame, self._continue_may_retry) is False:
+            hands.tell("[AI-SAVE] the memory file's end line did not reach the file")
+        for problem in writer.problems:
+            hands.tell(f"[AI-SAVE] memory file: {problem}")
+
+    def _save_screen(self, hands: Hands, kind: str, why: str) -> Generator[None, None, bool]:
+        """(R1, build spec D13) A save screen the play loop met OUTSIDE the save skill (the navigator's `on_menu`): the
+        loop NEVER presses on a save page. A `save_dialog` (the write, a page) is waited out with no press, at most
+        `SAVE_PAGE_WAIT` frames (True once it has gone; False, told: left unhandled). A save question or a START menu that
+        takes input is closed with B (a B on the question is NO), told. With the skill as built none of this should fire:
+        it guards against a skill bug."""
+        if kind == "save_dialog":
+            start = hands.pad.frames
+            while hands.pad.frames - start < SAVE_PAGE_WAIT:
+                look = hands.look()
+                ui = look.screen.ui
+                if ui is None or ui.kind != "save_dialog":
+                    hands.tell(f"{why}: a save page the loop met went away after {hands.pad.frames - start} frames, with "
+                               f"no press")
+                    return True
+                yield from hands.pad.busy("a save page is on screen: no press (DON'T TURN OFF THE POWER)")
+            hands.tell(f"{why}: a save page stayed {SAVE_PAGE_WAIT} frames: left unhandled, with no press")
+            hands.note("save_screen", "unhandled", kind, {"frames": hands.pad.frames - start})
+            return False
+        look = hands.look()
+        ui = look.screen.ui
+        if ui is not None and ui.kind == kind and ui.accepts_input:
+            what = "the save question: B is NO" if kind == "save_yes_no" else "a START menu left open: B closes it"
+            hands.tell(f"{why}: {what}")
+            yield from hands.pad.press("B", why, f"{kind} takes input; {what}")
+            return True
+        yield from hands.pad.busy(busy_reason(look))
+        return True
+
     # ------------------------------------------------------------------ build step 5: the story
-    def _play(self, hands: Hands, personality) -> Generator[None, None, str]:
+    def _play(self, hands: Hands, personality, restored=None, stop: str | None = None) -> Generator[None, None, str]:
         """BUILD STEP 5, the PLAY brain: the AI plays the STORY itself (design draft §2.3 "goal manager", §6; USER RULING 37:
         badge 1 in 4 chapters, human pacing, never idle). At every decision the goal manager (`brain/goals.py`) reads where
         the story is from the eyes' milestone marks (`knowledge/story.py`) and chooses ONE goal with a logged reason: the
@@ -371,7 +702,10 @@ class HandsBrain:
         seeded streams are its own (`<seed>:story`, `<seed>:goals`, `<seed>:drift`, `<seed>:battle`), so no earlier brain's
         draws move. Ends "done: <milestone> ..." when the marks prove `AI_PLAYER_TARGET`, or with a reason (the frame budget,
         no milestone for `STORY_PATIENCE` frames, `MAX_LOSSES` battles lost). (R5) "Done" comes after what is on screen has
-        been played out (`_settle_before_done`), and every end records the screen it ends on (`_end_screen`)."""
+        been played out (`_settle_before_done`), and every end records the screen it ends on (`_end_screen`).
+        (R1 + R2) `restored`: a continue's memory as of its save (`game_memory.Restored`): the goal manager's KEEP fields,
+        the personality, the battle mind, the registry and the battles lost so far start from it (D16, T5). `stop`: the run
+        ends "stuck" with it at once, through the loop's own end (a continue that stopped)."""
         options, nav, world = self.options, self.navigator, self.world
         seed = self.seed
         story_rng = random.Random(f"{seed}:story")
@@ -379,6 +713,11 @@ class HandsBrain:
         state.favourite = choose_favourite(story_rng)
         starter, starter_why = choose_starter(story_rng, personality.name, options.starter)
         mind = BattleMind(personality.name, random.Random(f"{seed}:battle"), "travel", BattleFaults())
+        if restored is not None:
+            # (R2, D16) the personality and the battle mind as of the save (the drift starts afresh)
+            restore_personality(state, restored.personality)
+            restore_battle(mind, restored.battle)
+            self._registry = restored.mons
         nav.battler = lambda: play_battle(hands, mind, f"battle ({mind.purpose})")
         nav.answer = answer_question
         nav.on_menu = lambda kind, why: self._story_menu(hands, kind, why, starter)
@@ -386,6 +725,8 @@ class HandsBrain:
         story = load_story(look.player.gender if look.player is not None else None)
         manager = GoalManager(story, state, random.Random(f"{seed}:goals"), hints_off=options.fault_no_hints,
                               train_off=options.fault_no_training, errands_off=options.fault_no_errands)
+        if restored is not None:
+            manager.memory = restore_goals(manager.memory, restored.goals)  # (R2, D16) what it remembers, as of the save
         manager.memory.landmarks = world.landmarks  # the doors it recognised live in the world memory: a later run has them
         # (build step 5.2, the verifier's round) so do the people who have spoken to it (never chatted with again); and the
         # navigator keeps a warp's ping-pong past its intent and marks what the reach shows no way to (the earlier brains
@@ -419,6 +760,11 @@ class HandsBrain:
                                      # (the step-5.1 verifier's second round) the goal manager's own count of its time
                                      # (`brain/goals.py` spent): a report only since build step 5.2
                                      "spent": manager.memory.spent}
+        if restored is not None:
+            # (R2, T5) the battles lost so far, as of the save: MAX_LOSSES counts across processes; new ones on top
+            report["losses"] = report["restored_losses"] = restored.losses
+        # (R1) with a memory file: the save policy, the save goal's player, the registry (`_start_saving`)
+        self._start_saving(hands, manager, state, mind, runner, starter, report)
         self._waits = waits
         self._pushes = pushes
         ended: list = [None]  # (the second round) the pad's frames when the last goal ended (what played after it: a scene)
@@ -439,6 +785,9 @@ class HandsBrain:
         changed_at = hands.pad.frames
         progress: dict = {}  # (build step 5.1) the last progress snapshot (`_progress`)
         still, last_frames = 0, -1
+        if stop is not None:
+            return self._play_end(hands, story, manager, runner, report, "stuck", stop)
+        lost_line = self._lost_line(hands)
         for _ in range(PLAY_PASSES_MAX):
             # (build step 5.1) a bound on passes that let no frame pass: never a loop that does nothing
             still = still + 1 if hands.pad.frames == last_frames else 0
@@ -450,7 +799,7 @@ class HandsBrain:
             # or a scene on screen): until the step-5 verifier's round of 2026-10-14 only the second kind was counted, so a
             # run that whited out twice while training reported "battles lost 0" and MAX_LOSSES could not fire
             # (`gates/test_goals.py` PlayLoopTests drives this loop to its MAX_LOSSES end; mutant G46 removes this call)
-            stop = self._count_losses(hands, nav, report)
+            stop = self._count_losses(hands, nav, report, lost_line)
             if stop is not None:
                 return self._play_end(hands, story, manager, runner, report, "stuck", stop)
             look = hands.look()
@@ -483,12 +832,18 @@ class HandsBrain:
                 # screen is played out first and the run ends "done" just below whatever that brought, an unsettled end
                 # SAID (`_settle_before_done`; the end record, `_end_screen`)
                 yield from self._settle_before_done(hands, nav, look, options.target, report)
+                # (R1, T8) a save that is due is made before the game is put down, on the settled screen
+                yield from self._save_before_done(hands, report)
             if milestone is None or index > target:
                 return self._play_end(hands, story, manager, runner, report, "done", f"{options.target} reached")
             if milestone.steps and milestone.steps[0].do == "intro" and (look.player is None
                                                                          or look.screen.game_state != "OVERWORLD"):
                 if any(goal["kind"] == "intro" for goal in report["goals"]):
                     return self._play_end(hands, story, manager, runner, report, "stuck", "the New Game intro again")
+                if self._continued is not None:
+                    # (R1, build spec 3 (e)) a CONTINUED game never plays the New Game intro: it never starts a new game
+                    return self._play_end(hands, story, manager, runner, report, "stuck",
+                                          "the title screen in a continued game: it never starts a New Game")
                 outcome = yield from play_intro(hands, personality)
                 report["goals"].append({"kind": "intro", "outcome": outcome, "frame": look.frame})
                 if not outcome.startswith("in the truck"):
@@ -559,6 +914,8 @@ class HandsBrain:
             if goal.kind in CURIOSITY_KINDS and not made["productive"]:
                 ok = False
             manager.outcome(goal, ok)
+            # (R1, D3) a heal at a POKéMON CENTER makes a save due
+            self._after_heal(goal, ok)
             if goal.kind == "train":
                 report["won_training"] += sum(1 for _, _, result in nav.battle_log[battles:] if result in ("won", "caught"))
             report["goals"].append({"kind": goal.kind, "key": goal.key, "ok": ok, "frames": hands.pad.frames - began,
@@ -574,6 +931,10 @@ class HandsBrain:
             hands.note("goal_end", goal.kind, outcome[:200], {"ok": ok, "frames": hands.pad.frames - began, "key": goal.key,
                                                              "story_moved": moved_story, "yield": made})
             ended[0] = hands.pad.frames
+            if goal.kind == "save" and outcome.startswith("stuck:"):
+                # (R1, build spec 3 (b)) a save dialog that could not be closed, a write that never ended, or a save the
+                # memory could not record: the run ends here (never left to `play_out`, never pressed through)
+                return self._play_end(hands, story, manager, runner, report, "stuck", outcome[len("stuck: "):])
         return self._play_end(hands, story, manager, runner, report, "stuck", f"{PLAY_PASSES_MAX} passes of the play loop")
 
     @staticmethod
@@ -624,15 +985,18 @@ class HandsBrain:
         return moved
 
     @staticmethod
-    def _count_losses(hands: Hands, nav: Navigator, report: dict) -> str | None:
+    def _count_losses(hands: Hands, nav: Navigator, report: dict, on_lost: Callable[[], object] | None = None) -> str | None:
         """The play brain's count of battles LOST (`brain/goals.py` battles_lost over every battle the navigator's battler
         played, inside a goal or in a scene alike) into `report["losses"]`, each new one told; the end reason once
-        `MAX_LOSSES` were lost, else None."""
-        lost = battles_lost(nav.battle_log)
+        `MAX_LOSSES` were lost, else None. (R1 + R2) A continue's battles lost before its save (`restored_losses`, T5) are
+        counted first, the new ones on top; `on_lost` is told each new one (the memory file's `lost` line, D12 (e))."""
+        lost = report.get("restored_losses", 0) + battles_lost(nav.battle_log)
         while report["losses"] < lost:
             report["losses"] += 1
             hands.tell(f"a battle was LOST ({report['losses']} of at most {MAX_LOSSES}): the party whited out; it goes on "
                        f"from where the game put it")
+            if on_lost is not None:
+                on_lost()
         if report["losses"] >= MAX_LOSSES:
             return f"{report['losses']} battles lost (MAX_LOSSES {MAX_LOSSES})"
         return None
@@ -648,6 +1012,9 @@ class HandsBrain:
         if kind in ("mart_buy", "mart_menu"):
             # (build step 5.1) a mart's list or menu left open (an item not on the list stops `mart_buy` there): left
             return (yield from leave_shop(hands, self.navigator, why)) == "left"
+        if kind in ("save_dialog", "save_yes_no", "start_menu"):
+            # (R1, D13) a save screen met outside the save skill: never an A on it (`_save_screen`)
+            return (yield from self._save_screen(hands, kind, why))
         return False
 
     def _milestone_line(self, hands: Hands, look: Observation, story, last: list, index: int, milestone, report,
@@ -669,6 +1036,8 @@ class HandsBrain:
                 report["milestones"].append({"id": passed.id, "frame": look.frame, "pad_frames": hands.pad.frames,
                                              "proofs": passed.proofs(marks), "how": "done" if proven else how.split(" (")[0]})
                 hands.tell(f"[AI-GOALS] MILESTONE {passed.id} {how} at f{look.frame} ({passed.title}): {passed.proofs(marks)}")
+            # (R1, D3, D18) after a big story moment a save is due: only the milestone IDS reach the save policy
+            self._after_milestones([passed.id for passed in story.milestones[max(last[0], 0):index]])
         if milestone is not None:
             hands.tell(f"[AI-GOALS] the story is at {milestone.id} ({milestone.title}); proofs now: {milestone.proofs(marks)}")
             hands.note("milestone", milestone.id, milestone.title, {"index": index, "frame": look.frame})
@@ -711,7 +1080,7 @@ class HandsBrain:
                 played += 1
                 ended, stop = yield from self._settle_frames(hands, play_out(hands, nav,
                                                                              f"{target} reached: what is on screen first"))
-                lost = self._count_losses(hands, nav, report)
+                lost = self._count_losses(hands, nav, report, self._lost_line(hands))
                 look = hands.look()
                 if not ended:
                     cut, stop = True, f"the run's frame budget ran out ({self.settings.frames} frames)"
@@ -789,6 +1158,9 @@ class HandsBrain:
             settle = report.get("settle") or {}
             screen.update(played_out=bool(settle.get("played")), settle_frames=settle.get("frames", 0),
                           paused=settle.get("paused", 0), settle_stop=settle.get("stop"), passed=settle.get("passed", []))
+            if "end_save" in report:
+                # (R1, T8) whether the end save was made (only a run that keeps a memory file and had a save due)
+                screen["saved_at_end"] = bool(report["end_save"].get("saved"))
         return screen
 
     def _play_end(self, hands: Hands, story, manager, runner, report, kind: str, why: str) -> str:
@@ -805,7 +1177,7 @@ class HandsBrain:
         # no battle in between, so a recount could only HIDE a loop that stopped counting (the step-5 verifier's round 2:
         # with the loop's call removed, this recount made the sweep's "the AI's battles lost == the game's" pass 40 of 40).
         # A disagreement is told, not mended.
-        logged = battles_lost(runner.nav.battle_log)
+        logged = report.get("restored_losses", 0) + battles_lost(runner.nav.battle_log)
         if logged != report["losses"]:
             hands.tell(f"the loop counted {report['losses']} battles lost, but the battle log holds {logged}")
         waits = getattr(self, "_waits", None)
@@ -936,12 +1308,16 @@ class HandsBrain:
         return (yield from nav.handle(look, f"the battle with the person at {tile}"))
 
     # ------------------------------------------------------------------ build step 3: the world
-    def _start_world(self, hands: Hands, choices: random.Random, personality: str) -> None:
+    def _start_world(self, hands: Hands, choices: random.Random, personality: str, restored: dict | None = None) -> None:
         """The memory (empty, or a previous run's, `AI_PLAYER_WORLD`), told every look the hands take, and the
-        navigator over it (the CHOICES stream: its path noise and detours never shift with the pacing)."""
+        navigator over it (the CHOICES stream: its path noise and detours never shift with the pacing). (R2) `restored`:
+        a continue's world memory AS OF its save (`game_memory.py` restore), never a world file's last line (D19)."""
         options = self.options
         world = read_world(options.world_in) if options.world_in is not None else None
         source = f"the last snapshot of {options.world_in}" if world is not None else "nothing (a new memory)"
+        if restored is not None:
+            world = WorldMemory.from_dict(restored)
+            source = "the save it continued (memory.jsonl, as of that save)"
         self.world = world if world is not None else WorldMemory()
         hands.watchers.append(self.world.observe)
         weights = weights_for(personality)

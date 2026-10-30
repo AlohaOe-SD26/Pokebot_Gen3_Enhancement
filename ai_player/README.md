@@ -289,7 +289,7 @@ the registry and the counter stores answer only the instrument's own file: `XK`,
 From the repo root (the folder that contains `ai_player/`):
 
 ```
-py -3.12 -m ai_player run --profile NAME [--frames N] [--wall-seconds S] [--fresh | --state PATH]
+py -3.12 -m ai_player run --profile NAME [--frames N] [--wall-seconds S] [--fresh | --state PATH | --continue]
                           [--run-dir DIR] [--allow-ungated]
 ```
 
@@ -309,6 +309,15 @@ py -3.12 -m ai_player run --profile NAME [--frames N] [--wall-seconds S] [--fres
   title screen and New Game; `--state PATH` copies a save state to `current_state.ss1`, which the
   emulator loads at startup (`modules/libmgba.py`, `LibmgbaEmulator.__init__`). Both refuse to touch
   a profile without the marker, so a person's own profile is never changed;
+* (R1 + R2) **every run has its game's memory file**, `memory.jsonl`, beside the cartridge save (`paths.py`
+  `AppPaths`: `<build root>/profiles/NAME/ai_player/`, or `$AI_PLAYER_HOME/games/NAME/`). `--fresh` and `--state`
+  first ARCHIVE it (and `launches.jsonl`) into `retired/`, renamed, never deleted; a run with none of the three
+  flags beside an existing memory file is refused. `--continue` continues the AI's game after a kill: it deletes
+  `current_state.ss1`, keeps `current_save.sav`, and the AI plays the title screen itself ("Saving and CONTINUE"
+  below). It is refused unless the last run ended without the AI choosing it (killed, crashed, interrupted) or
+  right after a save (USER RULING 52; `host/launcher.py` `memory_check`, `classify_end`), and it prints what it
+  continues and how many lost battles it undoes. After the child, the launcher appends how it ended to
+  `launches.jsonl`;
 * starts `sandbox-pokebot/pokebot.py NAME -m "AI Player" -s 0 -na -hl` (the batch runner's flags:
   unthrottled, muted, headless) in a child process, with `PYTHONPATH`, `PYTHONHOME`,
   `PYTHONPYCACHEPREFIX` and `PYTHONSTARTUP` removed from its environment (they would load code from
@@ -461,7 +470,8 @@ WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3
 | `host/isolation.py` | removes every framework listener the AI does not own, owns `modules.main.get_bot_listeners` (the rebuild door) while the AI runs, restores both on exit |
 | `host/attribution.py` | the instrument: counts inputs, writes, loads, clock changes, frames and bot-code calls by origin, audits the sinks, that isolation held and that it saw every main-loop frame, writes the verdict file, seals the host modules, provides `Guarded`, arms the exit watchdog, and holds the FRAME FENCE (no thread but the finishing one runs a frame while the run is being finished) |
 | `host/lifecycle.py` | the single exit door (single-entry across threads); exit codes |
-| `host/launcher.py` | the CLI side (launcher process): the gate, the profile, HTTP off, the child process, the wall clocks, the verdict file |
+| `host/launcher.py` | the CLI side (launcher process): the gate, the profile, HTTP off, the child process, the wall clocks, the verdict file; R1 + R2: `--continue`, `memory_check`, `classify_end` and `launches.jsonl` |
+| `brain/saving.py`, `skills/saving.py`, `game_memory.py`, `paths.py` | R1 + R2 (2026-10-29): WHEN to save (`SavePolicy`, USER RULING 51); the save and CONTINUE skills through the game's own dialogs; the memory file `memory.jsonl` (restored as of the save a CONTINUE loads; the PID registry); where a game's files live (`AppPaths`) |
 | `options.py`, `runlog.py` | run options from the environment; the AI's own log and its action log file (`RecordFile`) |
 | `evidence/` | every live and mutant proof's evidence file of the CURRENT tree, at the top level (each names its tree: `provenance.py --check-evidence`; since 2026-10-21 a tree is the code UNDER TEST, not the digest alone, `#28-evidence-identity`); since step 4.1 the archive keeps only the earlier trees' files a document or a commit message CITES, in `evidence/archive/<digest>/` (`<digest>-<HEAD>/` for a folder made from 2026-10-21 on), and lists every other one in `evidence/archive/INDEX.md` (its `git show` line: it stays in git history); the policy is `archive/README.md`, applied by `gates/prune_evidence.py` |
 | `gates/` | TEST SIDE: the purity gate and its fault tests, the host unit tests, the live proof drivers (`live_step0.py`, `live_step1.py`, `live_step2.py`), the eyes' unit tests (`test_eyes.py`) and ground-truth probe (`probe_eyes.py`), step 1.1's played scenarios (`probe_step11.py`) and revert proof (`revert_step11.py`), step 2's hands unit tests (`test_hands.py`), mutant proof (`revert_step2.py`) and in-process harness (`hands_harness.py`: the same brain on a throwaway emulator, its recorder, and `truth`, the second-path read of a saved state), step 2.1's press-behaviour probe (`probe_presses.py`: every A, START, B and SELECT press of a skill checked against the game in forks of its frame) and the evidence's code line (`provenance.py`: HEAD and a digest of the working tree), a state inspector, the four fixture builders (`make_trainer_fixture.py`, `make_defeat_text_fixture.py`, `make_mart_fixture.py`, `make_clock_fixture.py`: each PLAYS a save to the state it needs and prints what it did; `fixtures/` holds the results, their build printouts and the screens the eyes recorded, `hands_recorded_*.json`), the console-signal helper; step 3's world unit tests (`test_world.py`: a grid model of the overworld), mutant proof (`revert_step3.py`), live proof (`live_step3.py`), seed sweep (`rate_step3.py`), the GAME'S ANSWER to where the player stands (`game_answer.py`: by its behaviour, from a saved state) and fixture builder (`make_step3_fixtures.py`: `house_2f_clockset.ss1`, `route101_south.ss1` and its `route101_south.world.jsonl`, `route101_xp.ss1` and its `route101_xp.world.jsonl`, and since step 3.1 `littleroot_twin.ss1`); `hands_harness.py` also runs the world brains and its `truth` now reads save block 1's `pos`, the game's own step and battle counters and each party Pokemon's PID and total experience (`party_exp`); step 3.1's gate-side screen window as literals (`window.py`) and the ROM's warp table against the exits the eyes see by their look (`exit_looks.py`); its verifier's second round: every read of the real eyes against every map's warp array, with three plants (`warp_reads.py`); step 4's knowledge extractor (`extract_knowledge.py`: the bot's data in, `knowledge/*.json` out, `--check`) and its check against pret/pokeemerald (`verify_knowledge.py`, `--plant` its fault half), the battle unit tests (`test_battle.py`), mutant proof (`revert_step4.py`), live proof (`live_step4.py`), seed sweep (`rate_step4.py`) and fixture builder (`make_step4_fixtures.py`: `geodude_grovyle.ss1`, `learn_r116.ss1`, `faint_r116.ss1`, `rival_r103.ss1`, each PLAYED by the AI's own battle brain, and `recoil_r102.look.json`, the AI's own look in a real battle); `hands_harness.py battle` and its `truth` now also read each party Pokemon's moves and OT id, the player's id, `gBattleOutcome`, the trainers' defeated flags and the PC boxes; the step-4 verifier's second round: `make_step32_fixtures.py` (`house_2f_bumps.world.jsonl`, `littleroot_closed.world.jsonl`: the AI's own memories with ONE thing planted, test side, for the live arms FORGET and REOPEN); step 4.1: `make_step41_fixtures.py` (`rival_rustboro.ss1`, `heal_r103.ss1`, `switch_joey.ss1`, `run_r116.ss1`: the party order changed by START-menu presses, every walk, purchase and battle before the saved frame the AI's own goto, mart and battle brains or a named test-side press) and the evidence archive's policy (`prune_evidence.py`); step 5: the milestone extractor and its check against pret/pokeemerald (`extract_milestones.py`: `--check`, `--verify`, `--verify --plant` its fault half, `--wild`, `--items` the item balls' flags for the grader, `fixtures/item_flags.json`), the in-process story harness and its second-path recorder (`play_harness.py`), the goal unit tests (`test_goals.py`), mutant proof (`revert_step5.py`), live proof (`live_step5.py`) and seed sweep (`rate_step5.py`) |
@@ -652,6 +662,7 @@ Read inside the AI's own code, never set on the happy path:
 |---|---|---|
 | `AI_PLAYER_FAULT_KEEP_LISTENERS=1` | skip listener removal | B (wild battle), BT (trainer battle), W (cheats plugin on) |
 | `AI_PLAYER_FAULT_RAISE=1` | the brain raises after 30 steps | C |
+| `AI_PLAYER_FAULT_NO_SAVE=1` | R1 + R2's CONTROL: with a memory file, the play loop never saves (the old loop) | `test_goals` `test_r1_fault_no_save_is_the_old_loop` |
 | `AI_PLAYER_FAULT_MANUAL=1` | a listener raises; `main.py` switches to Manual | M |
 | `AI_PLAYER_FAULT_HANG=1` | the brain blocks the main thread (bounded at 300 s) | T2 (hard wall clock) |
 | `AI_PLAYER_FAULT_NO_REBIND=1` | isolation does not take the framework's rebuild door | RLX, M1 |
@@ -734,9 +745,61 @@ step-0.1 runs of 2026-10-07 (no digest line: they predate `provenance.py`) were 
 `evidence/archive/INDEX.md`, where each such file has one line with the `git show <commit>:<path>` that prints it (git
 keeps every one: the tool deletes a file only when git tracks it unchanged).
 
+## Saving and CONTINUE (backlog R1 + R2, 2026-10-29)
+
+WHY. A person saves at natural moments and lives with what follows, and a run that is killed (the operator, the OS, a
+crash) must not lose its game. USER RULING 51: the AI saves at a Pokémon Center, before a gym leader and after a big
+story moment. USER RULING 52: it never reloads a save to undo a loss (`PROJECT KNOWLEDGE/06-DECISIONS-LOG.md`
+2026-10-29).
+
+WHAT:
+* `brain/saving.py` `SavePolicy` decides WHEN: after a heal at a POKéMON CENTER, right before the talk to a gym leader
+  on that gym's map (once per approach), and after a milestone in `BIG_MOMENTS` (one constant; the user's U1 is open);
+  never twice within `SAVE_MIN_MINUTES` (3) of play time, never while hurt. A save is goal kind `save`, chosen by the
+  goal manager (`brain/goals.py`).
+* `skills/saving.py` `save_game` saves through the game's own dialog: START on a free screen, SAVE by the cursor, each
+  question read by its words before it is answered (CONFIRM: YES; OVERWRITE: YES only on the AI's own cart; a question
+  it cannot read: NO), nothing pressed during the write, "saved" only from the SAVED page; an ERROR page is read and
+  closed.
+* `game_memory.py` keeps `memory.jsonl` (schema 1; full lines and deltas): at the first look that shows the whole
+  SAVING page, one `save` line stamped with the play time (hours and minutes); then `saved`, `lost` and `end` lines. Its
+  restore table (spec D16) says what a continue keeps (who the AI is, what it learned) and resets (per-process state).
+  `MonRegistry` keys the AI's Pokemon by PID.
+* `skills/saving.py` `continue_game`, after `--continue` ("Run it" above): the title, any error page read by its words,
+  the CONTINUE window's TIME matched to a save line (within 1 minute), CONTINUE, then the arrival checked (map, tile,
+  party by PID and species); `mode.py` `_continue` then restores the memory AS OF THAT SAVE. It STOPS, and says so, when
+  the save is gone, when there is no CONTINUE, or when the TIME or the arrival does not match: it never starts a NEW
+  GAME on its own. Every continue tells how many lost battles it undoes.
+* Ruling 52 in code: the launcher (a continue refused after a CHOSEN or NOT CLEAN end), the purity gate (`exit`, `quit`,
+  `SystemExit` and `KeyboardInterrupt` refused in the play loop) and the controller (START or SELECT held with any other
+  button raises `ControllerError`). A whiteout is played on.
+
+THE PROOF. `gates/live_r1.py` (TEST SIDE, no lane; it needs the emulator and the ROM; its commands are in its docstring):
+a child plays a real game from New Game and is killed by PID at a chosen frame, and a second child continues the frozen
+cart. Arms: CONTROL, K-AFTER (after save 2), K-INSIDE (inside save 2's write), K-SILENT (in that write's silent first
+frames), K-FIRST (inside save 1's write), K-BETWEEN (between the saves; kill rule 'new', `06`), LAUNCH (the real
+launcher), and three OLD arms on revert mutants. Graded on held-out seeds 5451-5454 (ledger #53): PASS, 24 of 24
+discriminators; re-run independently on 5461-5464 (#54), after the review's fixes on 5471-5474 (#55), and independently
+on 5481-5484 (#56). Evidence: `evidence/2026-10-29-r1live-HELDOUT.txt`, `2026-10-29-r1live-FIXROUND.txt`
+and `2026-10-29-r1live-VERIFY.txt`. Units: `gates/test_saving.py` (132 tests) and `test_goals.py`'s `test_r1_*`;
+`gates/revert_r1.py` (468 mutants, in the full lane); the eyes' own check `gates/probe_save_eyes.py`; the paths gate
+`gates/check_paths.py`.
+
+MEASURED (development, 6 seeds, 30 saves): a write takes 254-266 frames; START to a free screen 907-1,603 frames;
+6.3-8.9 saves per game hour (12 of 30 at OLDALE's centre, 18 after a big moment); a continue reaches the main menu in
+400-825 frames and arrives 130-159 frames after its CONTINUE press.
+
+KNOWN LIMITS (the next item; `06` 2026-10-29): the purity gate's exit rule misses `raise GeneratorExit` and `except
+BaseException`, and a refused START/SELECT press ends as a crash that may be continued (N-1); fairness RULE C sees
+attribute reads of the play time only (N-2); `read_book` decodes with errors='replace' (N-4); no live arm saves after a
+continue (N-3) or stops a continue on a bound (R-2's look-through is proven offline). The gym-leader save is unit-tested
+only. The independent verification's V2-1, V2-2, V2-5 and V2-6 are in the same item. The user's U1 and U2 are open (interim: the spec's moment list; after a time-limit end, a continue only if it ended
+right after a save). `live_step5`'s next run is a re-baseline: every launcher run now saves. The build:
+`PROJECT KNOWLEDGE/ai-research-notes/2026-10-29-R1R2-BUILD-REPORT.md`.
+
 ## The save/kill probe (backlog R1 + R2's prerequisite, 2026-10-29)
 
-Before the AI saves its game and CONTINUES it (R1 + R2, which waits for the user's two answers), the probe MEASURES what
+Before R1 + R2 was built (the section above), the probe MEASURED what
 a save does in frames and what a process kill at each point leaves for the next process. TEST SIDE: nothing in the AI
 imports it; it needs the emulator, the ROM and a framework copy with `mgba/`, and no lane runs it (`06` 2026-10-29).
 

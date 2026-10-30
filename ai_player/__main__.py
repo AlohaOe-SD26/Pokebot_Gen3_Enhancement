@@ -26,7 +26,9 @@ import time
 from pathlib import Path
 
 from ai_player import MODE_NAME
-from ai_player.options import ALL_SWITCHES, VERDICT_FILE_NAME
+from ai_player.options import (
+    ALL_SWITCHES, ENV_CART, ENV_CONTINUE, ENV_HOST, ENV_MEMORY, ENV_WORLD, VERDICT_FILE_NAME,
+)
 from ai_player.host.launcher import (
     GATE_REFUSED_EXIT,
     NO_VERDICT_EXIT,
@@ -38,14 +40,17 @@ from ai_player.host.launcher import (
     child_env,
     ensure_profile,
     force_http_off,
+    memory_check,
     package_root,
     read_verdict,
+    record_launch,
     resolve_build_root,
     run_child,
     run_gate,
     seed_profile,
     soft_deadline_margin,
 )
+from ai_player.paths import AppPaths, PathsError
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -58,7 +63,11 @@ def _parser() -> argparse.ArgumentParser:
     seed = run.add_mutually_exclusive_group()
     seed.add_argument("--fresh", action="store_true", help="wipe the profile's game state: boot to New Game")
     seed.add_argument("--state", type=Path, help="seed the profile from this save state (.ss1)")
-    run.add_argument("--build-root", help="the framework folder holding pokebot.py (default: ../sandbox-pokebot)")
+    seed.add_argument("--continue", dest="continue_game", action="store_true",
+                      help="continue the AI's game from its cartridge save after a kill: the .ss1 is dropped, the AI "
+                           "plays the title itself (refused after an end the AI chose: USER RULING 52)")
+    run.add_argument("--build-root",
+                     help="the framework folder holding pokebot.py (default: host/launcher.py resolve_build_root's dev default)")
     run.add_argument("--template-profile", help="profile to copy metadata.yml from when creating one")
     run.add_argument("--run-dir", type=Path, help="where this run's ai_player.log and purity.json go (default: inside the profile)")
     run.add_argument(
@@ -136,13 +145,33 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 2
     if not _gate(build_root, args.allow_ungated):
         return GATE_REFUSED_EXIT
+    continuing = bool(getattr(args, "continue_game", False))
     try:
         profile_dir, profile_note = ensure_profile(build_root, args.profile, args.template_profile)
-        state_note = seed_profile(profile_dir, args.state.resolve() if args.state else None, args.fresh)
+        # (R1 + R2, D8) the AI's files of this game, beside its cartridge save
+        game = AppPaths.for_profile(args.profile, build_root)
+        check = None
+        if continuing:
+            # (D19) a continued game's memory is its save's: no world file beside it
+            if os.environ.get(ENV_WORLD, "").strip():
+                raise LaunchError(f"--continue refused: {ENV_WORLD} is set, and the memory of a continued game is its "
+                                  f"save's")
+            # (D11, D12 (a)) the memory file, judged BEFORE anything in the profile changes
+            check = memory_check(game)
+            if not check.ok:
+                raise LaunchError(f"--continue refused: {check.why}")
+        state_note = seed_profile(profile_dir, args.state.resolve() if args.state else None, args.fresh,
+                                  continue_game=continuing, game=game)
         http_note = force_http_off(profile_dir)
-    except (LaunchError, OSError) as error:
+    except (LaunchError, OSError, PathsError) as error:
         print(f"[AI-RUN] cannot start: {error}", flush=True)
         return 2
+    if check is not None:
+        # (D12 (e)) every continue says what it undoes
+        newest = check.newest
+        state_note += (f"\n[AI-RUN] state: CONTINUE (current_state.ss1 removed; memory {game.memory_jsonl}, its newest "
+                       f"save {newest['play_time'][0]}:{newest['play_time'][1]:02d}; the last run ended: "
+                       f"{check.end_class} ({check.why}); this continue undoes {check.undone} battles lost after that save)")
 
     run_dir = (args.run_dir or profile_dir / "ai_player_runs" / time.strftime("%Y%m%d-%H%M%S")).resolve()
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -151,6 +180,14 @@ def cmd_run(args: argparse.Namespace) -> int:
         stale.unlink()  # a verdict file must come from THIS run
     cmd = bot_command(build_root, args.profile)
     env = child_env(args.frames, run_dir, args.wall_seconds)
+    # (R1 + R2, D8, D11, D17) every run gets its game's memory file and what the cart held when it began; only a
+    # --continue gets the continue switch (never inherited from the launcher's own environment)
+    env[ENV_MEMORY] = str(game.memory_jsonl)
+    env[ENV_CART] = "continued" if continuing else ("empty" if args.fresh or args.state else "kept")
+    env[ENV_HOST] = "launcher"
+    env.pop(ENV_CONTINUE, None)
+    if continuing:
+        env[ENV_CONTINUE] = "1"
     try:
         package_note = check_package_resolution(build_root, env)
     except (LaunchError, OSError, subprocess.SubprocessError) as error:
@@ -172,7 +209,13 @@ def cmd_run(args: argparse.Namespace) -> int:
     print(f"[AI-RUN] run_dir={run_dir}", flush=True)
     print(f"[AI-RUN] command={' '.join(cmd)}", flush=True)
 
+    print(f"[AI-RUN] memory={env[ENV_MEMORY]} cart={env[ENV_CART]} continue={'yes' if continuing else 'no'}", flush=True)
     result = run_child(cmd, build_root, env, args.wall_seconds, run_dir / "stdout.txt")
+    # (R1, D20) how the child ended, in the launcher's own record beside the memory file
+    try:
+        record_launch(game, run_dir, result, read_verdict(run_dir))
+    except OSError as error:
+        print(f"[AI-RUN] could not record the launch's end in {game.launches_jsonl}: {error}", flush=True)
     if result.interrupted:
         print(
             f"[AI-RUN] INTERRUPTED: Ctrl+C reached the launcher; killed process tree pids={result.killed_pids} "

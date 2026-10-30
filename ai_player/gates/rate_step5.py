@@ -372,6 +372,9 @@ class GraderErrands(NamedTuple):
 ERRANDS = {"Catcher": GraderErrands(100, 0.5), "Story": GraderErrands(80, 0.6), "Trainer": GraderErrands(150, 0.45)}
 #: the goal kinds the intent mix counts as errands (source: `ai_player/brain/goals.py` ERRAND_KINDS)
 ERRAND_KINDS = ("heal", "find_center", "shop", "train", "catch", "pick_up", "chat", "explore", "detour")
+#: (R1 + R2, T4) the save goal's kind (source: `ai_player/brain/goals.py` GoalRunner.pursue's `save` branch): out of the
+#: intent mix's total, reported apart (`intent_mix` save_frames)
+SAVE_KIND = "save"
 #: the goal key prefix of a goal put aside for a story goal (source: `ai_player/brain/goals.py` ASIDE)
 ASIDE = "aside:"
 #: the play loop's battles-lost stop, used only for a row that does not carry the HARNESS's record of it (`max_losses` in
@@ -1091,8 +1094,14 @@ def intent_mix(actions: list[dict], unproductive: set | None = None) -> dict:
     1: "`intent_mix` counts curiosity frames by goal kind, not by what the goal produced") `unproductive`: the frames (the
     goal records' frames) of the curiosity goals that BROUGHT nothing (`curiosity_rows`: by the GAME in the sweep, by the
     AI's own record in a live run): their frames are IDLE (`idle_frames`), neither errand nor curiosity, though still in
-    the total. (5.3 A1-2) ERRAND_KINDS is the grader-owned copy."""
-    spans = goal_spans(actions)
+    the total. (5.3 A1-2) ERRAND_KINDS is the grader-owned copy.
+    (R1 + R2, build spec 2026-10-29 section 7, T4; the fix round's review R-4) A SAVE goal (kind `SAVE_KIND`, only in a
+    run that keeps a memory file) is the player's bookkeeping, neither an errand nor the story's step: its spans leave the
+    TOTAL (and `frames`, `goals`) and are reported apart, `save_frames` and `save_goals`. Left in, they would lower the
+    errand share with no change in behaviour. A no-op for every run without a save goal."""
+    every = goal_spans(actions)
+    spans = [s for s in every if s["kind"] != SAVE_KIND]
+    saves = [s for s in every if s["kind"] == SAVE_KIND]
     frames: dict[str, int] = {}
     for span in spans:
         frames[span["kind"]] = frames.get(span["kind"], 0) + span["frames"]
@@ -1110,14 +1119,15 @@ def intent_mix(actions: list[dict], unproductive: set | None = None) -> dict:
                and unproductive is not None and s["frame"] in unproductive)
     curious, free, errand = curious - idle, free - idle, errand - idle
     count = sum(1 for s in spans if s["kind"] in ERRAND_KINDS)
-    between = sum(s["gap"] for s in spans)
+    between = sum(s["gap"] for s in every)  # what the loop played after a save goal ended is between goals too
     return {"frames": dict(sorted(frames.items())), "errand_share": round(errand / total, 4) if total else 0.0,
             # (reported, not bounded) the same with the scenes the loop played between goals counted as the story's time
             "errand_share_with_scenes": round(errand / (total + between), 4) if total + between else 0.0,
             "errand_frames": errand, "curiosity_share": round(curious / total, 4) if total else 0.0,
             "free_share": round(free / total, 4) if total else 0.0, "free_frames": free, "story_own": story_own,
             "errand_goals": count, "goals": len(spans), "between_goals": between, "idle_frames": idle,
-            "total_frames": total, "kinds": sorted({s["kind"] for s in spans if s["kind"] in ERRAND_KINDS})}
+            "total_frames": total, "kinds": sorted({s["kind"] for s in spans if s["kind"] in ERRAND_KINDS}),
+            "save_frames": sum(s["frames"] for s in saves), "save_goals": len(saves)}
 
 
 # ---------------------------------------------------------------------- build step 5.2: productive curiosity

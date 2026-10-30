@@ -42,7 +42,8 @@ PACKAGE = REPO / "ai_player"
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 #: the registries of revert mutants (module in ai_player.gates, its dict of name -> (prediction, what, edits, ...))
-MUTANT_SOURCES = ("revert_step5",)
+#: (R1 + R2, build stage 4) `revert_r1` too: R1's census sites are closed by its mutants (orchestrator ruling 4)
+MUTANT_SOURCES = ("revert_step5", "revert_r1")
 WAIVERS = Path(__file__).resolve().parent / "census_waivers.json"
 WAIVER_MIN = 20
 #: never the AI code: the test side and the run output

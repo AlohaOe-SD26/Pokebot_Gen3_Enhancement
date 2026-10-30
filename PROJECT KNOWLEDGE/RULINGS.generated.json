@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "5416a2602a60b2b7ccff38ee2da9213fc490c45b",
+ "source_sha1_lf": "f3343e8de4aba3480cb171a40ef4fbbe9a689aae",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 350,
+  "sections": 351,
   "donot_candidates": 28,
   "sections_naming_user_rulings": 47
  },
@@ -5468,6 +5468,19 @@
     51,
     52
    ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-29-47a9a5",
+   "date": "2026-10-29",
+   "line_start": 9893,
+   "line_end": 9902,
+   "title": "2026-10-29 — R1 + R2 BUILT: the AI saves like a person, CONTINUEs after a kill, and its memory survives it (the build's decisions)",
+   "rulings": [],
    "ruling_mentions": [],
    "slugs": [],
    "ki": [],

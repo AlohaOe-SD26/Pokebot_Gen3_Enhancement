@@ -2,7 +2,8 @@
 
     py -3.12 ai_player/gates/run_regression.py [--quick | --full] [--workers N] [--evidence] [--only NAME ...] [--list]
         --quick   the per-edit lane (target <= 25 s wall): the fast unit suites, in parallel; evidence only with --evidence
-        --full    (the default) every unit suite (test_check_purity SHARDED by test method) and the six revert drivers,
+        --full    (the default) every unit suite (test_check_purity SHARDED by test method) and the revert drivers (six;
+                  seven since R1 + R2 added revert_r1),
                   in parallel up to --workers (default 6); always writes its evidence
         exit 0 PASS; 1 FAIL / VACUOUS / TIMEOUT / CRASH; 2 refused (a rate_*/live_* driver is running, or a bad
         argument): nothing is run and nothing is written
@@ -158,6 +159,8 @@ LINE_RULES: dict[str, tuple[str, str | None]] = {
     "check_fairness": (r"^PERSON-FAIR DATA DOOR: PASS \(\d+ breaches\)$", r"^PERSON-FAIR DATA DOOR: FAIL\b"),
     "check_lessons": (r"^LESSONS CHECK: PASS \(\d+ problems\)$", r"^LESSONS CHECK: FAIL\b"),
     "check_grader_imports": (r"^GRADER IMPORTS: PASS\b", r"^GRADER IMPORTS: FAIL\b"),
+    # R1 + R2 (DP1): the paths gate's own last line
+    "check_paths": (r"^PATHS GATE: PASS \(\d+ files, 0 findings\)$", r"^PATHS GATE: FAIL\b"),
     # a REPORT: it always exits 0 (recon Q1); its line proves it ran to its end
     "disk_budget": (r"^DISK BUDGET: \S", None),
 }
@@ -198,10 +201,12 @@ def _kind(name: str) -> str:
                      f"would read CRASH on every run)")
 
 
-REVERTS = ("revert_step3", "revert_safety_gates", "revert_step5", "revert_step2", "revert_step11", "revert_step4")
+REVERTS = ("revert_step3", "revert_safety_gates", "revert_step5", "revert_step2", "revert_step11", "revert_step4",
+           # R1 + R2 (build spec 2026-10-29 section 6): saving, continuing, the memory file, and their call-census sites
+           "revert_r1")
 #: evidence group -> the file stem it writes (`<date>-<stem>.txt`): each must match its suite's glob in suite_map.json
 EVIDENCE_NAMES = {"units": "regression-units", "revert_step5": "regression-step5-revert",
-                  "revert_safety_gates": "regression-revert-gates"}
+                  "revert_safety_gates": "regression-revert-gates", "revert_r1": "regression-r1-revert"}
 QUICK = ("check_purity", "test_eyes", "test_hands", "test_battle", "test_evidence", "extract_knowledge_check",
          "test_goals", "extract_milestones_check", "ledger_check", "call_census", "check_fairness", "check_lessons",
          "disk_budget", "test_run_regression",
@@ -211,11 +216,13 @@ QUICK = ("check_purity", "test_eyes", "test_hands", "test_battle", "test_evidenc
          # build step 5.3 stage A2: the carry-overs and the game reads' logic (offline); the measurement module's tests
          "test_step53_a2", "test_measure_step5",
          # build step 5.3, the re-sourcing build: the re-sourced checks and the re-grade (offline)
-         "test_step53_rs")
+         "test_step53_rs",
+         # R1 + R2 (build spec 2026-10-29 section 7): saving, continuing and the memory file; the paths gate (offline)
+         "test_saving", "check_paths")
 
 
 def all_suites() -> list[Suite]:
-    """run_units' SUITES (the unit suites) and the six revert drivers, every one with a verdict rule."""
+    """run_units' SUITES (the unit suites) and the revert drivers (`REVERTS`), every one with a verdict rule."""
     out = [Suite(name, tuple(command), _kind(name), sharded=name == "test_check_purity")
            for name, (command, _) in run_units.SUITES.items()]
     for name in REVERTS:
@@ -923,7 +930,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     lane = parser.add_mutually_exclusive_group()
     lane.add_argument("--quick", action="store_true", help="the fast unit suites only (the per-edit lane)")
-    lane.add_argument("--full", action="store_true", help="every unit suite (sharded) and the six reverts (default)")
+    lane.add_argument("--full", action="store_true", help="every unit suite (sharded) and the revert drivers (default)")
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
     parser.add_argument("--evidence", action="store_true", help="write the evidence and summaries (--full always does)")
     parser.add_argument("--only", nargs="+", metavar="NAME", help="run only these suites of the lane")

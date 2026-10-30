@@ -10,7 +10,8 @@ and healed on FLAG_RESCUED_BIRCH), and the knowledge files carry DEVELOPER data 
 trainer ids and flags, the bot's teaching sources) that nothing stopped the AI from reading. Chapters 3-4 bring the most
 developer-only data yet. So:
 
-RULE A, THE FLAG DOOR. In the DECIDING code (`DECIDING`: brain/, skills/, hands/, world/, mode.py, personality.py) the game's
+RULE A, THE FLAG DOOR. In the DECIDING code (`DECIDING`: brain/, skills/, hands/, world/, mode.py, personality.py and, since
+R2, game_memory.py, whose restored memory the brain decides from) the game's
 flags (`FLAG_FIELDS`: `.marks` and `.flags` of anything but the object's own `self`/`cls`, also through `getattr` with a
 constant name) and the door function `marks_of` may be read ONLY where `FLAG_DOORS` declares it, each with its PURPOSE:
 milestone detection (the memory of events the player LIVED THROUGH) and novelty (a story event that just happened counts as
@@ -28,6 +29,11 @@ before it lands. Then:
   B3  the deciding code may not read a species' hidden facts (`HIDDEN_ATTRIBUTES`: base stats, catch rate, experience,
       growth) from a `species_fact(...)` value, directly or through a name bound to one in the same function, and may
       never name `.catch_rate`, `.exp_yield` or `.growth` at all.
+
+RULE C, THE PLAY TIME (R1 + R2, build spec 2026-10-29 D18). The game's play time (`Progress.play_time`) is not on the
+screen the AI watches (a person sees it on the trainer card, the save window and CONTINUE), so in the deciding code only
+the save code reads it (`PLAY_TIME_DOORS`, each with its purpose): the save and continue skill, the save policy, the
+memory file. A door no read goes through is stale, as RULE A's are.
 
 MENTIONS NEVER FIRE: the AST has no comments; a string statement (a docstring) is skipped, and so is the text of an
 f-string; a string counts only when its WHOLE value is the name; a dict DISPLAY's keys are not reads; `self.flags` is the
@@ -53,7 +59,7 @@ from pathlib import Path
 
 PACKAGE = Path(__file__).resolve().parents[1]
 #: the AI's DECIDING code (folders and files of the package)
-DECIDING = ("brain", "skills", "hands", "world", "mode.py", "personality.py")
+DECIDING = ("brain", "skills", "hands", "world", "mode.py", "personality.py", "game_memory.py")
 #: the knowledge LOADERS: file -> the knowledge files it may name and read
 LOADERS = {
     "knowledge/story.py": ("milestones.json",),
@@ -80,10 +86,23 @@ FLAG_DOORS: list[tuple[str, str, str, str]] = [
     ("mode.py", "HandsBrain._play.current", "marks",
      "MILESTONE DETECTION: the milestone now, once the marks are read"),
     ("mode.py", "HandsBrain._milestone_line", "marks",
-     "MILESTONE DETECTION: the log's MILESTONE line (passed, its proofs): events the player lived through"),
+     "MILESTONE DETECTION: the log's MILESTONE line (passed, its proofs): events the player lived through; and (R1, D18) "
+     "the save after a big story moment (USER RULING 51): only milestone ids reach `brain/saving.py`"),
     ("brain/navigator.py", "Novelty._flags", "flags",
      "NOVELTY: a story flag that just turned on is an event the player just lived through (progress for the intent's "
      "clock); it never chooses where to go"),
+]
+#: RULE C (R1 + R2, build spec 2026-10-29 D18): the game's PLAY TIME (`Progress.play_time`, hours and minutes) is not on the
+#: screen the AI watches: a person sees it on the trainer card, the save window and CONTINUE. So in the deciding code only
+#: these may READ it (`.play_time` of anything but `self`/`cls`, or `getattr(x, "play_time")`): (file, function qualname
+#: or "*" for the whole file, its PURPOSE). A door's nested functions are inside it. `hands/dialogue.py` seen_now DROPS it
+#: (`replace(progress, play_time=None)`: a keyword, no read), so it needs no door.
+PLAY_TIME_FIELD = "play_time"
+PLAY_TIME_DOORS: list[tuple[str, str, str]] = [
+    ("skills/saving.py", "*", "THE SAVE AND THE CONTINUE: the stamp read on the SAVING page (what the game writes into the "
+                              "save), checked through the write; the CONTINUE window's TIME"),
+    ("brain/saving.py", "*", "WHEN TO SAVE: 3 game minutes between saves (`SAVE_MIN_MINUTES`); no save without the play time"),
+    ("game_memory.py", "*", "THE MEMORY FILE: every line's stamp, so a continue matches the save the game loaded"),
 ]
 #: a game flag's or var's constant name; a trainer's flag is named by the milestone proofs (`TRAINER_JOSH`): a bare
 #: `TRAINER_` prefix is no flag (`skills/flee.py` exports TRAINER_OUT_OF_SCOPE, a refusal's name)
@@ -322,6 +341,15 @@ def files_of(package: Path, parts) -> list[Path]:
     return out
 
 
+def time_door(rel: str, qualname: str) -> tuple[str, str] | None:
+    """(RULE C) The PLAY_TIME_DOORS entry (file, function) that lets function `qualname` of file `rel` read the play time,
+    or None. A door's nested functions are inside it; "*" is the whole file."""
+    for file, function, _ in PLAY_TIME_DOORS:
+        if file == rel and (function == "*" or qualname == function or qualname.startswith(function + ".")):
+            return file, function
+    return None
+
+
 def scan_file(rel: str, source: str, flag_names: set[str], dev_keys: set[str], hid_keys: set[str],
               knowledge_files: set[str], used: set | None = None) -> list[str]:
     """The rule breaches of one file (relative POSIX path `rel` in the package); `used` collects the doors read through."""
@@ -361,6 +389,19 @@ def scan_file(rel: str, source: str, flag_names: set[str], dev_keys: set[str], h
                            f"from on-screen facts only; a new purpose is a reviewed entry of FLAG_DOORS")
             elif field is not None and used is not None:
                 used.add((rel, here, field))
+            # RULE C (R1, D18): the game's play time, read only through its doors
+            reads_time = (isinstance(node, ast.Attribute) and node.attr == PLAY_TIME_FIELD and isinstance(node.ctx, ast.Load)
+                          and not (isinstance(node.value, ast.Name) and node.value.id in ("self", "cls")))
+            reads_time = reads_time or (isinstance(node, ast.Call) and _call_name(node) in ("getattr", "hasattr")
+                                        and len(node.args) >= 2 and isinstance(node.args[1], ast.Constant)
+                                        and node.args[1].value == PLAY_TIME_FIELD)
+            if reads_time:
+                door = time_door(rel, here)
+                if door is None:
+                    out.append(f"C  {where(node)}: reads the game's PLAY TIME outside its doors (PLAY_TIME_DOORS): it is "
+                               f"not on the screen the AI watches; only the save code may read it")
+                elif used is not None:
+                    used.add(("time", door[0], door[1]))
             if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in skipped \
                     and (_FLAG_NAME.fullmatch(node.value) or node.value in flag_names):
                 out.append(f"A  {where(node)}: names the game flag {node.value!r}: a hidden flag's name has no business in "
@@ -414,6 +455,10 @@ def check(package: Path = PACKAGE) -> tuple[bool, list[str], str]:
         if (file, qualname, what) not in used:
             problems.append(f"FLAG_DOORS: the door ({file}, {qualname}, {what}) is read by nothing: a stale door (remove "
                             f"it, or the read moved: review where)")
+    for file, function, _ in PLAY_TIME_DOORS:
+        if ("time", file, function) not in used:
+            problems.append(f"PLAY_TIME_DOORS: the door ({file}, {function}) reads no play time: a stale door (remove it, "
+                            f"or the read moved: review where)")
     summary = (f"{scanned} files (deciding code and loaders); {len(FLAG_DOORS)} flag doors, each with its purpose; "
                f"knowledge key paths by kind {dict(sorted(counts.items()))}; developer-only keys {sorted(dev_keys)}; "
                f"hidden keys {sorted(hid_keys)}")

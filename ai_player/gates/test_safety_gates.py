@@ -474,6 +474,30 @@ class FairnessTests(Scratch):
                   "        return self.marks, self.flags, f'measured {x} FLAG_ {v}', shown\n")
         self.assertEqual(self.scan(source), [])
 
+    def test_the_play_time_is_read_only_through_its_doors(self) -> None:
+        """(R1 + R2, build spec D18, RULE C) The game's play time is no screen fact: only the save code reads it. FAULT: a
+        planted `.play_time` read (and its `getattr` form) in the goal manager fails, and so does a door no read goes
+        through (stale); CONTROL: a docstring or comment mention, `self.play_time`, the keyword that DROPS it (`seen_now`'s
+        `replace(progress, play_time=None)`) and a read inside a door pass, and the real package passes."""
+        for source in ("def errand(look):\n    return look.progress.play_time[0] > 2\n",
+                       "def errand(look):\n    return getattr(look.progress, 'play_time')\n"):
+            with self.subTest(source=source):
+                found = self.scan(source, rel="brain/goals.py")
+                self.assertTrue([f for f in found if f.startswith("C ")], found)
+        mentions = ('"""It never reads look.progress.play_time."""\n# progress.play_time\n\n\n'
+                    "class Clock:\n    def __init__(self):\n        self.play_time = None\n\n"
+                    "    def read(self):\n        return self.play_time\n\n\n"
+                    "def drop(progress):\n    return replace(progress, play_time=None)\n")
+        self.assertEqual(self.scan(mentions, rel="brain/goals.py"), [])
+        self.assertEqual(self.scan("def policy(look):\n    return look.progress.play_time\n", rel="brain/saving.py"), [])
+        ok, problems, _ = check_fairness.check()
+        self.assertTrue(ok, problems)
+        stale = check_fairness.PLAY_TIME_DOORS + [("mode.py", "HandsBrain._nowhere", "a door nothing reads through")]
+        with mock.patch.object(check_fairness, "PLAY_TIME_DOORS", stale):
+            ok, problems, _ = check_fairness.check()
+        self.assertFalse(ok)
+        self.assertTrue(any("HandsBrain._nowhere" in p and "stale" in p for p in problems), problems)
+
     def test_an_unclassified_knowledge_key_fails_and_the_real_files_pass(self) -> None:
         knowledge = self.root / "knowledge"
         shutil.copytree(REPO / "ai_player" / "knowledge", knowledge, ignore=shutil.ignore_patterns("__pycache__", "*.py"))

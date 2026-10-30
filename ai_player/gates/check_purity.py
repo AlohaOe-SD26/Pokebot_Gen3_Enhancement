@@ -26,8 +26,9 @@ FILE ROLES
   brain       `mode.py`: a play-loop file that is framework-FREE: no door into the framework, and it
               may not import the host side (rule c). It sees the game only through abstract
               interfaces, so a standalone build can keep it unchanged (finding 10 of the step-0 review).
-  launcher    `__main__.py` and `host/launcher.py`: run in the LAUNCHER process, never inside
-              the framework. Rules (a) imports, (b), (c), (d), (e) apply; library surfaces and (f) do not.
+  launcher    `__main__.py`, `host/launcher.py` and (R1 + R2, D8) `paths.py`, the one resolver of the AI's user
+              data: run in the LAUNCHER process, never inside the framework. Rules (a) imports, (b), (c), (d),
+              (e) apply; library surfaces and (f) do not.
   instrument  `host/attribution.py`: a play-loop file that must name the state-changing
               functions and use reflection to wrap and count them, so (b), (d) and (f) do not apply
               to it. In exchange its exact bytes are pinned (rule g): every change is a reviewed change.
@@ -63,6 +64,11 @@ RULES
     the emulator, or advances frames (`STATE_CHANGING_NAMES`), as a call, an attribute, a name, an
     import, a `match` class-pattern attribute, a `getattr` constant or a string whose whole value is
     the name. The button functions (`INPUT_NAMES`) may be named only in `host/controller.py`.
+    (R1 + R2, build spec 2026-10-29 D12 (c): USER RULING 52, the AI never ends or restarts its own process) `sys.exit` is
+    on the surface of the lifecycle only (`host/lifecycle.py`; the launcher's `__main__.py` is not judged by surfaces), and
+    the builtin names `exit`, `quit`, `SystemExit` and `KeyboardInterrupt` (`PLAY_LOOP_EXIT_NAMES`) are refused in every
+    PLAY-LOOP file (`PLAY_LOOP_PARTS`: brain/, skills/, hands/, world/, eyes/, mode.py, personality.py, game_memory.py,
+    options.py), raised or caught.
 (c) SIDES. The play loop may not import the test side (`ai_player.gates`) or the launcher side,
     the launcher side may not import the framework, and the brain (`mode.py`) may not import the
     host side (`ai_player.host`).
@@ -153,8 +159,8 @@ TEST_SIDE_DIR = "gates/"
 TEST_SIDE_MODULE = "ai_player.gates"
 HOST_DIR = "host/"
 HOST_MODULE = "ai_player.host"
-LAUNCHER_FILES = frozenset({"__main__.py", "host/launcher.py"})
-LAUNCHER_MODULES = frozenset({"ai_player.__main__", "ai_player.host.launcher"})
+LAUNCHER_FILES = frozenset({"__main__.py", "host/launcher.py", "paths.py"})
+LAUNCHER_MODULES = frozenset({"ai_player.__main__", "ai_player.host.launcher", "ai_player.paths"})
 INSTRUMENT = "host/attribution.py"
 CONTROLLER = "host/controller.py"
 ISOLATION = "host/isolation.py"
@@ -165,6 +171,17 @@ EYES = "host/eyes.py"
 RUNLOG = "runlog.py"
 #: The brain: framework-free, and it may not import the host side (rule c).
 BRAIN_FILES = frozenset({"mode.py"})
+#: (R1 + R2, D12 (c)) THE PLAY LOOP proper (the deciding code, its eyes and its memory): no file of it may end or restart
+#: its own process (USER RULING 52: a continue happens only when the host restarts a KILLED run). Folders end in "/".
+PLAY_LOOP_PARTS = ("brain/", "skills/", "hands/", "world/", "eyes/", "mode.py", "personality.py", "game_memory.py",
+                   "options.py")
+#: The builtins that end the process or catch its end (`sys.exit` is a library surface: the lifecycle's only).
+PLAY_LOOP_EXIT_NAMES = frozenset({"exit", "quit", "SystemExit", "KeyboardInterrupt"})
+
+
+def in_play_loop(key: str) -> bool:
+    """(R1, D12 (c)) Is the file `key` (relative to ai_player/) part of the play loop proper?"""
+    return any(key == part or (part.endswith("/") and key.startswith(part)) for part in PLAY_LOOP_PARTS)
 
 ANY_FILE = None
 
@@ -428,7 +445,8 @@ LIBRARIES: dict[str, Library] = {
     "sys": Library(
         ANY_FILE,
         {
-            "exit": ANY_FILE,
+            # (R1, D12 (c)) the lifecycle's `finish` only (it narrowed from every file; the launcher is not judged here)
+            "exit": frozenset({LIFECYCLE}),
             "stdout": ANY_FILE,
             "stderr": ANY_FILE,
             "version_info": ANY_FILE,
@@ -1153,6 +1171,9 @@ class _FileScanner(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> None:
         name = node.id
         self._check_name_text(node, name, "uses the name")
+        if name in PLAY_LOOP_EXIT_NAMES and isinstance(node.ctx, ast.Load) and in_play_loop(self.key):
+            self.fail(node, "b", f"uses `{name}`: the play loop never ends or restarts its own process, and never catches "
+                      f"its end (USER RULING 52; the lifecycle ends the run when the brain RETURNS its reason)")
         if not self.exempt:
             if name in ATTRIBUTE_READERS:
                 self._check_attribute_reader(node)

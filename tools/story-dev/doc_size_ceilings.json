@@ -14,10 +14,18 @@
       "raised": []
     },
     "02-ARCHITECTURE.md": {
-      "ceiling": 70345,
+      "ceiling": 70972,
       "headroom": 8192,
       "target": null,
-      "raised": []
+      "raised": [
+        {
+          "date": "2026-10-29",
+          "field": "ceiling",
+          "from": 70345,
+          "to": 70972,
+          "why": "R1 + R2 (2026-10-29): 02 must describe its four new AI-player modules, the launcher's --continue and its lane gates (CLAUDE.md section 2: 02 stays true to the code); 627 bytes after cutting that line to its essentials"
+        }
+      ]
     },
     "03-PUNCH-LIST.md": {
       "ceiling": 699459,

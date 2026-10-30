@@ -8,7 +8,8 @@
     "test_safety_gates": 21, "ledger_check": 1, "call_census": 1, "check_fairness": 2, "check_lessons": 4,
     "disk_budget": 1, "test_run_regression": 4,
     "revert_step3": 2014, "revert_safety_gates": 326, "revert_step5": 237, "revert_step2": 114, "revert_step11": 25,
-    "revert_step4": 23
+    "revert_step4": 23,
+    "test_saving": 9, "check_paths": 1, "revert_r1": 917
   },
   "test_check_purity": {
     "ControlTests.test_control_real_package_passes": 1.8,

@@ -44,6 +44,11 @@ import check_purity  # noqa: E402  (test-side: imported by path, the package nee
 REAL_PACKAGE = check_purity.PACKAGE_DIR
 REAL_HOOK = check_purity.DEFAULT_HOOK
 REAL_BUILD_ROOT = check_purity.DEFAULT_BUILD_ROOT
+if not REAL_HOOK.is_file() and os.environ.get("AI_PLAYER_TEST_SUPPORT_ROOT"):
+    # (R1 + R2, build stage 4) a COPY of the package (`gates/revert_r1.py`'s mutants run this file there) has no framework
+    # beside it: the hook and the build root are the support root's, as `test_saving.py` finds them
+    REAL_BUILD_ROOT = Path(os.environ["AI_PLAYER_TEST_SUPPORT_ROOT"]) / "sandbox-pokebot"
+    REAL_HOOK = REAL_BUILD_ROOT / "plugins" / "custom_modes" / "ai_player_mode.py"
 
 # (id, file relative to ai_player/ or None for the hook, "new" | "append" | "hook", source, rule that must fire there)
 VERIFIER_PROBES: list[tuple[str, str | None, str, str, str]] = [
@@ -747,6 +752,41 @@ class LegitimateCodeTests(GateTestCase):
             planted = [str(v) for v in result.violations if "brain_ok.py" in v.file]
             self.assertEqual(planted, [], "ordinary code fired the gate")
             self.assertTrue(result.passed, check_purity.report(result))
+
+
+#: (R1 + R2, build spec 2026-10-29 D12 (c): USER RULING 52) the play loop may not end, restart or catch the end of its own
+#: process: each plant must fail by the rule named, IN the planted file
+EXIT_PROBES: list[tuple[str, str | None, str, str, str]] = [
+    ("X01 sys.exit in brain/", "brain/exit_plant.py", "new", "import sys\n\n\ndef give_up():\n    sys.exit(0)\n", "a"),
+    ("X02 raise SystemExit in brain/", "brain/exit_plant.py", "new", "def give_up():\n    raise SystemExit(2)\n", "b"),
+    ("X03 the exit() builtin in skills/", "skills/exit_plant.py", "new", "def give_up():\n    exit()\n", "b"),
+    ("X04 the quit() builtin in mode.py", "mode.py", "append", "\n\ndef _give_up():\n    quit()\n", "b"),
+    ("X05 except KeyboardInterrupt in game_memory.py", "game_memory.py", "append",
+     "\n\ndef _keep_going(step):\n    try:\n        step()\n    except KeyboardInterrupt:\n        return None\n", "b"),
+    ("X06 SystemExit caught in options.py", "options.py", "append",
+     "\n\ndef _never_end(step):\n    try:\n        step()\n    except SystemExit:\n        return None\n", "b"),
+]
+
+
+class PlayLoopExitTests(GateTestCase):
+    def test_the_play_loop_cannot_exit(self) -> None:
+        """FAULT: each plant of `EXIT_PROBES` fails by its rule in its own file. CONTROL: the same words in a docstring, a
+        comment or a sentence pass; the lifecycle keeps its `sys.exit` and the launcher its `KeyboardInterrupt` (the real
+        package passes, with both files scanned)."""
+        for probe in EXIT_PROBES:
+            with self.subTest(probe[0]):
+                self.run_probe(probe)
+        mention = ('"""It never calls sys.exit(), exit() or quit(), and never raises SystemExit or catches\n'
+                   'KeyboardInterrupt."""\n\n# sys.exit(1); raise SystemExit; except KeyboardInterrupt\n'
+                   'WHY = "SystemExit and KeyboardInterrupt belong to the host"\n')
+        with planted_copy("brain/exit_mention.py", "new", mention) as (package, hook):
+            result = check_purity.scan(package, hook, REAL_BUILD_ROOT)
+            self.assertEqual([v for v in result.violations if "exit_mention" in v.file], [], check_purity.report(result))
+            self.assertTrue(result.passed, check_purity.report(result))
+            self.assertIn("host/lifecycle.py", result.scanned)
+            self.assertIn("host/launcher.py", result.scanned)
+        self.assertIn("sys.exit(code)", (REAL_PACKAGE / "host" / "lifecycle.py").read_text(encoding="utf-8"))
+        self.assertIn("except KeyboardInterrupt", (REAL_PACKAGE / "host" / "launcher.py").read_text(encoding="utf-8"))
 
 
 class MentionTests(GateTestCase):

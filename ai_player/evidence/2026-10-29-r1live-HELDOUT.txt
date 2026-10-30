@@ -1,0 +1,1382 @@
+AI PLAYER BACKLOG R1 + R2 - THE LIVE PROOF ON HELD-OUT SEEDS ("kill, CONTINUE, same PIDs and tile"), build spec 2026-10-29 section 5 and section 8 step 7 (first half): LIVE R1 VERDICT: PASS, WITH K-BETWEEN UNDER THE SUBSTITUTED KILL RULE 'new', NOT THE SPEC'S MIDPOINT (the midpoint arm K-BETWEEN-MID counted 0 of 4: vacuous; under the spec's own rule the verdict would be INCONCLUSIVE; the substitution is the orchestrator's ruling 5, `06` 2026-10-29) [this clause amended at commit, 2026-10-29: the ruling was given] [headline amended in the build's fix round, review R-5; the run and the TEXT of every line below are unchanged, but the amendment also made every line end LF (426 lines were CRLF; this note says so since the commit, review V2-3); this file was sha256 fe0952f65fbfc5f0 before the amendment. This run is on the code BEFORE the fix round: see 2026-10-29-r1live-FIXROUND.txt for the arms re-run on the fixed code]
+WHAT: the AI saves through the game's own dialog, is killed, and continues its own save; each arm graded by the harness's own reads (the second path), never by the AI's word. Ten graded arms on the held-out seeds 5451-5454: CONTROL, K-AFTER, K-INSIDE, K-SILENT, K-FIRST, K-BETWEEN (kill rule "new"), LAUNCH (the real launcher, -m ai_player run --continue), and the OLD arms K-INSIDE-OLD and K-SILENT-OLD (child B with mutant R1-M, on the SAME frozen cart and memory as their NEW twin) and LAUNCH-OLD (the launcher with mutant S27). K-BETWEEN-MID (the spec's literal midpoint) ran as a DIAGNOSTIC arm, never in the verdict.
+RESULT: every graded arm counted on 4 of 4 seeds (floor 3); every counted NEW arm passed every check; every counted OLD arm showed its difference; 24 of 24 discriminators differ. K-BETWEEN-MID counted on 0 of 4 (NEW empty at the midpoint kill: vacuous, as measured in step 6).
+code: HEAD 67c73a0f; ai_player/ has UNCOMMITTED changes (the code under test is the working tree of build worktree wf_ad737c3f-1d5-1): working-tree digest sha256:58b988ce9788bb54 over git diff HEAD (26 files, 223414 bytes) and 10 untracked files, the SAME digest at the ledger's begin (2:47:18 PM) and after the run (2:58 PM) (recompute: py -3.12 ai_player/gates/provenance.py)
+driver: ai_player/gates/live_r1.py sha256 (LF) d330c6df921023b5b0ff9d25bd51e3aec6d8ebba81ad0a056162f4528639ce69, 1952 lines (hashed into the registered numbers with play_harness.py, probe_save_kill.py, probe_end_screen.py, knowledge/milestones.json and the fixture route101_south.ss1)
+held-out: ledger entry #53 (family story, driver live_r1, purpose graded, seeds 5451-5454) REGISTERED 2026-10-29 2:47:06 PM with the registered numbers sha256 815c82b44e8706f9c073f28ee399b13fd696a763eb12e220f861f29416f197e4, BEFORE any of these seeds ran (no earlier entry named them); begun 2:47:18 PM with the same sha256; finished with the verdict below. The arms ran 2:47:26 PM to 2:57:44 PM.
+one trajectory per seed: every child A arm of a seed replays the same New Game up to its kill (CLAUDE.md rule 8); its determinism lines (section 8) show S1's and S2's START and e3 frames equal to the CONTROL's on every arm and seed. Identical output across those arms is a determinism check, never a replication.
+deviations from the spec, said here because the verdict rests on them: (1) K-BETWEEN's graded kill rule is "new" (halfway between the first frame child A stands on a map of its CONTROL's NEW and S2's START), not the spec's midpoint, which step 6 measured vacuous (and section 8 shows vacuous again on all 4 held-out seeds); (2) every throwaway profile is under the run's --out (builder note 1), and LAUNCH runs the real launcher with --build-root = a MIRROR build root under --out (junctions to the main checkout's sandbox-pokebot modules, plugins, mgba, roms; its own profiles, logs, cache and an empty .git so the bot's stock updater stays off); (3) LAUNCH runs the PLAY brain with child B's plan (AI_PLAYER_BRAIN=play, seed, personality, starter, target, clock), as live_step5.py launches it, and its grader checks brain=play (a rehearsal launched the placeholder brain first: discarded before the registration, section 15).
+rehearsal (not evidence of the verdict): ledger entry #52, a REPLAY of development seeds 5405-5406, rehearsed the arms step 6 did not (K-AFTER, the OLD arms, LAUNCH, LAUNCH-OLD); its rows plus step 6's are the selftest's recorded data (section 1).
+assembled: 2026-10-29 02:59:41 PM (Los Angeles), from session scratch s53/r1build/build/s6-graded/ (nothing re-run here; each section is a saved output copied verbatim)
+
+######## 1. THE SELFTEST (clean on recorded data, then each planted fault)
+
+==== THE SELFTEST (clean on recorded data, then each planted fault): selftest-final.out (sha256 7b14d54196a69655fd56342ac6ec799299d235dcdcbefa8950838ebddfb9b37e, 6502 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py selftest --all --rows C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/../s5-dev/live/rows C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/rehearsal/rows
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:04 PM
+----
+==== SELFTEST (clean)
+  [ok] R1-M is revert_r1's S20 + S22, edit for edit: got [["skills/saving.py", "    record = book.match_time(time)\n", "    record = book.newest_save()\n"], ["skills/saving.py", "    if seen != remembered:\n", "    if False:\n"]]
+  [ok] LAUNCH-OLD's mutant is revert_r1's S27, edit for edit: got [["host/launcher.py", "        if had:\n            dropped.unlink()\n", "        if False:\n            dropped.unlink()\n"]]
+  [ok] recorded K-INSIDE-5405: counted and passing: got [true, true]
+  [ok] recorded K-INSIDE-5406: counted and passing: got [true, true]
+  [ok] recorded K-SILENT-5405: counted and passing: got [true, true]
+  [ok] recorded K-SILENT-5406: counted and passing: got [true, true]
+  [ok] recorded K-FIRST-5405: counted and passing: got [true, true]
+  [ok] recorded K-FIRST-5406: counted and passing: got [true, true]
+  [ok] recorded K-BETWEEN-NEW-5405: counted and passing: got [true, true]
+  [ok] recorded K-BETWEEN-NEW-5406: counted and passing: got [true, true]
+  [ok] recorded K-AFTER-5405: counted and passing: got [true, true]
+  [ok] recorded K-BETWEEN-5405 (the spec's midpoint): NOT counted (NEW empty at the kill: vacuous): got [false, []]
+  [ok] recorded K-BETWEEN-5406 (the spec's midpoint): NOT counted (NEW empty at the kill: vacuous): got [false, []]
+  [ok] recorded CONTROL-5405: counted and passing (FILE = the newest save): got [true, true]
+  [ok] recorded CONTROL-5406: counted and passing (FILE = the newest save): got [true, true]
+  [ok] recorded K-INSIDE-OLD-5405 (R1-M): its twin's reach, the mutant ran, and it SHOWS the difference (check 3 FAILS): got [true, true, true, false]
+  [ok] recorded K-SILENT-OLD-5405 (R1-M): its twin's reach, the mutant ran, and it SHOWS the difference (check 3 FAILS): got [true, true, true, false]
+  [ok] recorded LAUNCH-5405: counted and passing (a cold boot, the title, CONTINUE, CLEAN, save 2): got [true, true]
+  [ok] recorded LAUNCH-OLD-5405 (S27): SHOWS the fixture's overworld first: got [true, true]
+  [ok] FAULT INPUT the arrival one tile off: check 2 FAILS: got false
+  [ok] FAULT INPUT K-FIRST pressed Down after the main menu took input: check 4 FAILS: got false
+  [ok] FAULT INPUT child B's first map change ENTERS a NEW map (F2): check 3 reads the RESTORE snapshot and passes: got true
+  [ok] FAULT INPUT a save at no ruling-51 moment: CONTROL's check 6 FAILS: got false
+  [ok] FAULT INPUT LAUNCH's first look is an OVERWORLD: the cold-boot check FAILS: got false
+  [ok] CONTROL every arm counted and good on 4 seeds: PASS: got "PASS"
+  [ok] FAULT INPUT K-FIRST counts on 2 of 4 (below the floor): INCONCLUSIVE, never PASS: got "INCONCLUSIVE"
+  [ok] FAULT INPUT K-INSIDE does not count on seed 4: K-INSIDE-OLD does not count there either: got [1, 2, 3]
+  [ok] FAULT INPUT a counted OLD arm shows no difference: FAIL: got "FAIL"
+  [ok] FAULT INPUT a counted NEW arm fails a check: FAIL: got "FAIL"
+SELFTEST VERDICT: PASS (29 of 29 cases as expected)
+==== SELFTEST FAULT new_empty: NEW computed empty
+  [WRONG] recorded K-INSIDE-5405: counted and passing: got [false, null], expected [true, true]
+  [WRONG] recorded K-INSIDE-5406: counted and passing: got [false, null], expected [true, true]
+  [WRONG] recorded K-SILENT-5405: counted and passing: got [false, null], expected [true, true]
+  [WRONG] recorded K-SILENT-5406: counted and passing: got [false, null], expected [true, true]
+  [WRONG] recorded K-BETWEEN-NEW-5405: counted and passing: got [false, null], expected [true, true]
+  [WRONG] recorded K-BETWEEN-NEW-5406: counted and passing: got [false, null], expected [true, true]
+  [WRONG] recorded K-AFTER-5405: counted and passing: got [false, null], expected [true, true]
+  [WRONG] recorded K-INSIDE-OLD-5405 (R1-M): its twin's reach, the mutant ran, and it SHOWS the difference (check 3 FAILS): got [false, true, false, false], expected [true, true, true, false]
+  [WRONG] recorded K-SILENT-OLD-5405 (R1-M): its twin's reach, the mutant ran, and it SHOWS the difference (check 3 FAILS): got [false, true, false, false], expected [true, true, true, false]
+  [WRONG] FAULT INPUT child B's first map change ENTERS a NEW map (F2): check 3 reads the RESTORE snapshot and passes: got false, expected true
+SELFTEST VERDICT (fault new_empty): FAIL (19 of 29 cases as expected)
+==== SELFTEST FAULT tile_ignored: the identity compare ignores the tile
+  [WRONG] FAULT INPUT the arrival one tile off: check 2 FAILS: got true, expected false
+SELFTEST VERDICT (fault tile_ignored): FAIL (28 of 29 cases as expected)
+==== SELFTEST FAULT menu_census_ignored: the press census ignores the main menu
+  [WRONG] FAULT INPUT K-FIRST pressed Down after the main menu took input: check 4 FAILS: got true, expected false
+SELFTEST VERDICT (fault menu_census_ignored): FAIL (28 of 29 cases as expected)
+==== SELFTEST FAULT first_map_change: check 3 reads child B's first map-change snapshot, not the restore snapshot
+  [WRONG] FAULT INPUT child B's first map change ENTERS a NEW map (F2): check 3 reads the RESTORE snapshot and passes: got false, expected true
+SELFTEST VERDICT (fault first_map_change): FAIL (28 of 29 cases as expected)
+==== SELFTEST FAULT old_without_twin: an OLD arm graded as counted while its NEW twin is not
+  [WRONG] FAULT INPUT K-INSIDE does not count on seed 4: K-INSIDE-OLD does not count there either: got [1, 2, 3, 4], expected [1, 2, 3]
+SELFTEST VERDICT (fault old_without_twin): FAIL (28 of 29 cases as expected)
+==== SELFTEST FAULT floor_ignored: the verdict rule returns PASS below a floor
+  [WRONG] FAULT INPUT K-FIRST counts on 2 of 4 (below the floor): INCONCLUSIVE, never PASS: got "PASS", expected "INCONCLUSIVE"
+SELFTEST VERDICT (fault floor_ignored): FAIL (28 of 29 cases as expected)
+SELFTEST: the clean run PASSES (29 cases) and 6 of 6 planted faults FAIL as they must -> PASS
+
+END: 2026-10-29 02:47:05 PM
+SECONDS: 1.1
+EXIT CODE: 0
+
+######## 2. THE REGISTERED NUMBERS
+
+==== THE REGISTERED NUMBERS: ledger-numbers.out (sha256 80d084b476baf272ee4f262435a2ffa013f5d2f7673a335bff6a0f57e778ad24, 5486 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py ledger numbers
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: []
+START: 2026-10-29 02:47:05 PM
+----
+{
+ "family": "story",
+ "driver": "live_r1",
+ "seeds": [
+  5451,
+  5454
+ ],
+ "target": "ch1_pokedex",
+ "frames_a": 330000,
+ "game_clock": "2026-10-14T10:00",
+ "wall_clock": "10:00",
+ "kills": {
+  "K-AFTER": "S2.e4+40",
+  "K-INSIDE": "S2.e3+130",
+  "K-SILENT": "S2.e3+9",
+  "K-FIRST": "S1.e3+128",
+  "K-BETWEEN": "between"
+ },
+ "between_rule": "new",
+ "diagnostic": {
+  "K-BETWEEN-MID": "K-BETWEEN under the spec's literal midpoint rule: reported, never in the verdict"
+ },
+ "child_a_timeout": 1200,
+ "child_b_timeout": 300,
+ "child_b_frames": 2620,
+ "continue_budget": 1700,
+ "arrival_budget": 320,
+ "moment_frames": 110,
+ "after": 10,
+ "proof_every": 10,
+ "active_frames": 4000,
+ "idle_flash_every": 60,
+ "big_moments": [
+  "ch1_lab",
+  "ch1_rival_route103",
+  "ch1_pokedex",
+  "ch2_wally",
+  "ch3_woods",
+  "ch4_roxanne"
+ ],
+ "expected": {
+  "CONTROL": "no kill; FILE = the newest save; every save at a ruling-51 moment (check 6) and on a held free screen 3+ game minutes after the last (check 5); the run ends done at ch1_pokedex with its end save made",
+  "K-AFTER": "S2.e4+40; FILE S2; no page; CONTINUE; arrival = S2's truth; restored = save 2 and holds ALL of NEW",
+  "K-INSIDE": "S2.e3+130; FILE S1+ERROR if a new sector of save 2 is complete at the kill (else S1); the CORRUPTED page read; CONTINUE; arrival = S1; restored = save 1 and holds NO map of NEW; S2's line in the file first",
+  "K-SILENT": "S2.e3+9; counts only with 0 new sectors at the kill and S2's line written before it; FILE S1; no page; TIME match; arrival = S1; restored = save 1 and holds NO map of NEW",
+  "K-FIRST": "S1.e3+128; FILE CORRUPT if a new sector of save 1 is complete at the kill (else EMPTY); the ERASED page read; stops 'the save is gone'; the main menu took input and saw zero presses",
+  "K-BETWEEN": "rule 'new' from the same seed's CONTROL, with the determinism line; FILE S1; no page; arrival = S1; restored = save 1 and holds NO map of NEW (NEW up to the kill)",
+  "LAUNCH": "K-AFTER's frozen copy + the fixture as current_state.ss1, through -m ai_player run --continue: the first look a cold boot (not OVERWORLD, emulator frame < 300), the intro or title before CONTINUE, CONTINUE, purity CLEAN, the session line continued save 2",
+  "K-INSIDE-OLD": "K-INSIDE's frozen copy, child B with R1-M: shows the restored memory holds a map of NEW (newer than the save), continued_from = save 2, check 3 FAILS",
+  "K-SILENT-OLD": "K-SILENT's frozen copy, child B with R1-M: the same difference as K-INSIDE-OLD",
+  "LAUNCH-OLD": "LAUNCH with mutant S27: the first look is the ROUTE101 overworld (0,16) at an emulator frame >= 66883"
+ },
+ "graded_arms": [
+  "CONTROL",
+  "K-AFTER",
+  "K-INSIDE",
+  "K-SILENT",
+  "K-FIRST",
+  "K-BETWEEN",
+  "LAUNCH",
+  "K-INSIDE-OLD",
+  "K-SILENT-OLD",
+  "LAUNCH-OLD"
+ ],
+ "old_of": {
+  "K-INSIDE-OLD": "K-INSIDE",
+  "K-SILENT-OLD": "K-SILENT",
+  "LAUNCH-OLD": "LAUNCH"
+ },
+ "floor": 3,
+ "counting": "an arm COUNTS on a seed when (1) its FILE equals the expectation from its own record, NEW is not empty where check 3 needs it, check 7 holds where it applies, child A reached the kill (K-SILENT: 0 new sectors at it; K-BETWEEN: its determinism line); an OLD arm only when its NEW twin counts there and its child B ran the mutant copy; LAUNCH and LAUNCH-OLD when K-AFTER's FILE was S2; CONTROL when child A ran to its own end",
+ "verdict_rule": "(spec section 5 \"Counting, floors and the one verdict\") PASS: every graded arm counts on >= FLOOR seeds, every\n    counted NEW arm passes every check, and every counted OLD arm shows its difference. FAIL: a counted NEW arm fails a\n    check, or a counted OLD arm does not show its difference. INCONCLUSIVE: nothing failed but an arm is below its floor\n    (never reported as a PASS). An OLD arm counts on a seed only when its NEW twin counts there.",
+ "r1m_edits": [
+  [
+   "skills/saving.py",
+   "    record = book.match_time(time)\n",
+   "    record = book.newest_save()\n"
+  ],
+  [
+   "skills/saving.py",
+   "    if seen != remembered:\n",
+   "    if False:\n"
+  ]
+ ],
+ "s27_edits": [
+  [
+   "host/launcher.py",
+   "        if had:\n            dropped.unlink()\n",
+   "        if False:\n            dropped.unlink()\n"
+  ]
+ ],
+ "fixture_md5": "81bf318a1532c5364f60064530f9984b",
+ "fixture_frame": 66883,
+ "fixture_map": "(0,16)",
+ "cold_boot_frames": 300,
+ "launch_wall": 300,
+ "launch_timeout": 480,
+ "files": {
+  "ai_player/gates/live_r1.py": "d330c6df921023b5b0ff9d25bd51e3aec6d8ebba81ad0a056162f4528639ce69",
+  "ai_player/gates/play_harness.py": "5ad15875ea9f66b87aae908d3d2b776e28581769fb8293389048f58a90f6ab82",
+  "ai_player/gates/probe_save_kill.py": "627dc2d7a37589436ac4f2b2829c5e79cad788efc5da1a9f03c7eef131ab9eae",
+  "ai_player/gates/probe_end_screen.py": "d5c6095b58c6e345576881b4a4fa569d777f6e891fd3467152ab94db262adc55",
+  "ai_player/knowledge/milestones.json": "3320eed0dcb8ed44543d73957825f529cd1f3c6e43e8e6cf4b08d7cdd74c9538",
+  "ai_player/gates/fixtures/route101_south.ss1": "93045f5f54683d2eb35d32b69f116b8c6d1f6f753b798a48ab0dc5d58048d2ed"
+ }
+}
+REGISTERED NUMBERS sha256 815c82b44e8706f9c073f28ee399b13fd696a763eb12e220f861f29416f197e4
+
+END: 2026-10-29 02:47:05 PM
+SECONDS: 0.2
+EXIT CODE: 0
+
+######## 3. THE REGISTRATION (before any held-out seed ran)
+
+==== THE REGISTRATION (before any held-out seed ran): ledger-register.out (sha256 d22907517c9bacab2522d32accaef6f95aefda7df922501aebdc10bf334ff46a, 1229 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py ledger register --note-file C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/note-register.txt
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: []
+START: 2026-10-29 02:47:05 PM
+----
+REGISTERED numbers sha256 815c82b44e8706f9c073f28ee399b13fd696a763eb12e220f861f29416f197e4
+ENTRY {"id": 53, "family": "story", "driver": "live_r1", "purpose": "graded", "first": 5451, "last": 5454, "status": "registered", "registered": "2026-10-29 14:47:06", "bounds_sha256": "815c82b44e8706f9c073f28ee399b13fd696a763eb12e220f861f29416f197e4", "tree": null, "started": null, "ended": null, "verdict": null, "evidence": null, "note": "R1 + R2 build spec 2026-10-29 section 5: the live proof's held-out arms, GRADED (CONTROL, K-AFTER, K-INSIDE, K-SILENT, K-FIRST, K-BETWEEN rule new, LAUNCH, and the OLD arms K-INSIDE-OLD, K-SILENT-OLD with mutant R1-M and LAUNCH-OLD with mutant S27; K-BETWEEN-MID diagnostic only); floor 3 of 4; registered by build stage 6 BEFORE any of these seeds ran"}
+
+END: 2026-10-29 02:47:06 PM
+SECONDS: 0.2
+EXIT CODE: 0
+
+######## 4. THE LANE CENSUS AND HYGIENE before the run
+
+==== THE LANE CENSUS AND HYGIENE before the run: hygiene-before-heldout.out (sha256 4d78be2ed6ae938506b59c2e30ae251ab5832bab3f8bf3be503b2b53f09ca0ae, 451 bytes) ====
+lane census (run_regression, run_gates, revert_*, rate_step5, live_step5): 0 []
+main checkout sandbox-pokebot: 33105 files, 0 modified since 2:30 PM []
+main checkout ai_player: 916 files, 0 modified since 2:30 PM []
+stage processes alive: 1 [[50796, 'C:\\Program Files\\Git\\usr\\bin\\tail.exe -n +1 -f C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf8']]
+checked 2026-10-29 02:47:17 PM
+
+######## 5. THE LEDGER BEGIN
+
+==== THE LEDGER BEGIN: ledger-begin.out (sha256 ac482254a13565ad076e622596f0140362e717948324f674f9e7be56d3eea1f9, 1496 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py ledger begin --purpose graded
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: []
+START: 2026-10-29 02:47:17 PM
+----
+HEAD 67c73a0f; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:58b988ce9788bb54 over git diff HEAD (26 files, 223414 bytes) and 10 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+SEED LEDGER: GRADED, HELD-OUT seeds 5451-5454 (ledger entry #53), REGISTERED 2026-10-29 14:47:06 with the bounds sha256 815c82b44e8706f9; this run's bounds sha256 815c82b44e8706f9 (the same); no other entry of family 'story' names any of these seeds
+ENTRY {"id": 53, "family": "story", "driver": "live_r1", "purpose": "graded", "first": 5451, "last": 5454, "status": "started", "registered": "2026-10-29 14:47:06", "bounds_sha256": "815c82b44e8706f9c073f28ee399b13fd696a763eb12e220f861f29416f197e4", "tree": "58b988ce9788bb54", "started": "2026-10-29 14:47:18", "ended": null, "verdict": null, "evidence": null, "note": "R1 + R2 build spec 2026-10-29 section 5: the live proof's held-out arms, GRADED (CONTROL, K-AFTER, K-INSIDE, K-SILENT, K-FIRST, K-BETWEEN rule new, LAUNCH, and the OLD arms K-INSIDE-OLD, K-SILENT-OLD with mutant R1-M and LAUNCH-OLD with mutant S27; K-BETWEEN-MID diagnostic only); floor 3 of 4; registered by build stage 6 BEFORE any of these seeds ran"}
+
+END: 2026-10-29 02:47:18 PM
+SECONDS: 0.5
+EXIT CODE: 0
+
+######## 6. THE RUN PLAN (44 jobs)
+
+==== THE RUN PLAN (44 jobs): heldout-plan.out (sha256 34693fb8a97fcf1f016621b615b758ad07cf0ec49fc28b3cb8f04f816439437b, 32335 bytes) ====
+PLAN heldout: 44 jobs, at most 10 at once, out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout (02:47:26 PM)
+  start CONTROL-5451 (02:47:26 PM)
+  start K-AFTER-5451 (02:47:26 PM)
+  start K-INSIDE-5451 (02:47:26 PM)
+  start K-SILENT-5451 (02:47:26 PM)
+  start K-FIRST-5451 (02:47:26 PM)
+  start CONTROL-5452 (02:47:26 PM)
+  start K-AFTER-5452 (02:47:26 PM)
+  start K-INSIDE-5452 (02:47:26 PM)
+  start K-SILENT-5452 (02:47:26 PM)
+  start K-FIRST-5452 (02:47:26 PM)
+K-FIRST-5452.out: exit 0; last line: LIVE ARM {"arm": "K-FIRST", "seed": 5452, "kill": "S1.e3+128", "file": "CORRUPT", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-FIRST-5452.json"}
+  done K-FIRST-5452: exit 0 (02:48:54 PM)
+  start CONTROL-5453 (02:48:54 PM)
+K-FIRST-5451.out: exit 0; last line: LIVE ARM {"arm": "K-FIRST", "seed": 5451, "kill": "S1.e3+128", "file": "CORRUPT", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-FIRST-5451.json"}
+  done K-FIRST-5451: exit 0 (02:48:56 PM)
+  start K-AFTER-5453 (02:48:56 PM)
+K-SILENT-5452.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT", "seed": 5452, "kill": "S2.e3+9", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-5452.json"}
+K-INSIDE-5452.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE", "seed": 5452, "kill": "S2.e3+130", "file": "S1+ERROR", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-5452.json"}
+  done K-INSIDE-5452: exit 0 (02:49:48 PM)
+  done K-SILENT-5452: exit 0 (02:49:48 PM)
+  start K-INSIDE-5453 (02:49:48 PM)
+  start K-SILENT-5453 (02:49:48 PM)
+K-AFTER-5452.out: exit 0; last line: LIVE ARM {"arm": "K-AFTER", "seed": 5452, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-AFTER-5452.json"}
+  done K-AFTER-5452: exit 0 (02:49:50 PM)
+  start K-FIRST-5453 (02:49:50 PM)
+K-SILENT-5451.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT", "seed": 5451, "kill": "S2.e3+9", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-5451.json"}
+K-AFTER-5451.out: exit 0; last line: LIVE ARM {"arm": "K-AFTER", "seed": 5451, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-AFTER-5451.json"}
+  done K-AFTER-5451: exit 0 (02:50:12 PM)
+  done K-SILENT-5451: exit 0 (02:50:12 PM)
+  start CONTROL-5454 (02:50:12 PM)
+  start K-AFTER-5454 (02:50:12 PM)
+K-INSIDE-5451.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE", "seed": 5451, "kill": "S2.e3+130", "file": "S1+ERROR", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-5451.json"}
+  done K-INSIDE-5451: exit 0 (02:50:14 PM)
+  start K-INSIDE-5454 (02:50:14 PM)
+CONTROL-5452.out: exit 0; last line: LIVE CONTROL {"seed": 5452, "word": "RESULT", "reason": "play: done: ch1_pokedex reached", "saves": [[1, 44856, 45326, 45586, 45771, 1], [2, 71731, 72504, 72763, 72949, 2], [3, 88939, 89737, 89992, 90177, 3], [4, 104534, 105341, 105606, 105791, 4]], "NEW": ["0:10", "2:2"], "seconds": 205.8, "file": "S4", "counted": true, "pass": true, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\CONTROL-5452.json"}
+  done CONTROL-5452: exit 0 (02:50:54 PM)
+  start K-SILENT-5454 (02:50:54 PM)
+K-FIRST-5453.out: exit 0; last line: LIVE ARM {"arm": "K-FIRST", "seed": 5453, "kill": "S1.e3+128", "file": "CORRUPT", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-FIRST-5453.json"}
+  done K-FIRST-5453: exit 0 (02:51:20 PM)
+  start K-FIRST-5454 (02:51:20 PM)
+K-AFTER-5453.out: exit 0; last line: LIVE ARM {"arm": "K-AFTER", "seed": 5453, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-AFTER-5453.json"}
+  done K-AFTER-5453: exit 0 (02:51:38 PM)
+  start K-INSIDE-OLD-5451 (02:51:38 PM)
+K-INSIDE-OLD-5451.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5451, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-OLD-5451.json"}
+  done K-INSIDE-OLD-5451: exit 0 (02:51:46 PM)
+  start K-SILENT-OLD-5451 (02:51:46 PM)
+K-SILENT-OLD-5451.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5451, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-OLD-5451.json"}
+  done K-SILENT-OLD-5451: exit 0 (02:51:54 PM)
+  start LAUNCH-5451 (02:51:54 PM)
+LAUNCH-5451.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH", "seed": 5451, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 82762, "frame_base": 82762, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f82762 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-5451.json"}
+  done LAUNCH-5451: exit 0 (02:52:08 PM)
+  start LAUNCH-OLD-5451 (02:52:08 PM)
+LAUNCH-OLD-5451.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5451, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 149645, "frame_base": 82762, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f149645 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=3.79ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-OLD-5451.json"}
+  done LAUNCH-OLD-5451: exit 0 (02:52:22 PM)
+  start K-BETWEEN-5452 (02:52:22 PM)
+K-INSIDE-5453.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE", "seed": 5453, "kill": "S2.e3+130", "file": "S1+ERROR", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-5453.json"}
+  done K-INSIDE-5453: exit 0 (02:52:28 PM)
+  start K-BETWEEN-MID-5452 (02:52:28 PM)
+K-SILENT-5453.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT", "seed": 5453, "kill": "S2.e3+9", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-5453.json"}
+  done K-SILENT-5453: exit 0 (02:52:30 PM)
+  start K-INSIDE-OLD-5452 (02:52:30 PM)
+K-INSIDE-OLD-5452.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5452, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-OLD-5452.json"}
+  done K-INSIDE-OLD-5452: exit 0 (02:52:38 PM)
+  start K-SILENT-OLD-5452 (02:52:38 PM)
+K-SILENT-OLD-5452.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5452, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-OLD-5452.json"}
+  done K-SILENT-OLD-5452: exit 0 (02:52:46 PM)
+  start LAUNCH-5452 (02:52:46 PM)
+K-FIRST-5454.out: exit 0; last line: LIVE ARM {"arm": "K-FIRST", "seed": 5454, "kill": "S1.e3+128", "file": "CORRUPT", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-FIRST-5454.json"}
+  done K-FIRST-5454: exit 0 (02:52:48 PM)
+  start LAUNCH-OLD-5452 (02:52:48 PM)
+LAUNCH-OLD-5452.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5452, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 139383, "frame_base": 72500, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f139383 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=3.87ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-OLD-5452.json"}
+LAUNCH-5452.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH", "seed": 5452, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 72500, "frame_base": 72500, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f72500 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-5452.json"}
+  done LAUNCH-5452: exit 0 (02:53:02 PM)
+  done LAUNCH-OLD-5452: exit 0 (02:53:02 PM)
+  start K-INSIDE-OLD-5453 (02:53:02 PM)
+  start K-SILENT-OLD-5453 (02:53:02 PM)
+K-INSIDE-OLD-5453.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5453, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-OLD-5453.json"}
+K-SILENT-OLD-5453.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5453, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-OLD-5453.json"}
+  done K-INSIDE-OLD-5453: exit 0 (02:53:10 PM)
+  done K-SILENT-OLD-5453: exit 0 (02:53:10 PM)
+  start LAUNCH-5453 (02:53:10 PM)
+  start LAUNCH-OLD-5453 (02:53:10 PM)
+LAUNCH-OLD-5453.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5453, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 146672, "frame_base": 79789, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f146672 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.73ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-OLD-5453.json"}
+  done LAUNCH-OLD-5453: exit 0 (02:53:22 PM)
+LAUNCH-5453.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH", "seed": 5453, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 79789, "frame_base": 79789, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f79789 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-5453.json"}
+  done LAUNCH-5453: exit 0 (02:53:24 PM)
+K-AFTER-5454.out: exit 0; last line: LIVE ARM {"arm": "K-AFTER", "seed": 5454, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-AFTER-5454.json"}
+  done K-AFTER-5454: exit 0 (02:53:28 PM)
+  start LAUNCH-5454 (02:53:28 PM)
+  start LAUNCH-OLD-5454 (02:53:28 PM)
+K-INSIDE-5454.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE", "seed": 5454, "kill": "S2.e3+130", "file": "S1+ERROR", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-5454.json"}
+CONTROL-5453.out: exit 0; last line: LIVE CONTROL {"seed": 5453, "word": "RESULT", "reason": "play: done: ch1_pokedex reached", "saves": [[1, 45624, 46090, 46354, 46535, 1], [2, 78769, 79526, 79788, 79969, 2], [3, 106438, 107216, 107475, 107657, 3], [4, 122039, 122808, 123062, 123243, 4], [5, 137395, 138228, 138491, 138672, 5]], "NEW": ["0:10", "2:2"], "seconds": 275.0, "file": "S5", "counted": true, "pass": true, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\CONTROL-5453.json"}
+  done CONTROL-5453: exit 0 (02:53:30 PM)
+  done K-INSIDE-5454: exit 0 (02:53:30 PM)
+  start K-BETWEEN-5453 (02:53:30 PM)
+  start K-BETWEEN-MID-5453 (02:53:30 PM)
+  start K-INSIDE-OLD-5454 (02:53:30 PM)
+K-INSIDE-OLD-5454.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5454, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-OLD-5454.json"}
+  done K-INSIDE-OLD-5454: exit 0 (02:53:38 PM)
+CONTROL-5451.out: exit 0; last line: LIVE CONTROL {"seed": 5451, "word": "RESULT", "reason": "play: done: ch1_pokedex reached", "saves": [[1, 46810, 47304, 47567, 47752, 1], [2, 81958, 82766, 83032, 83218, 2], [3, 107732, 108497, 108756, 108941, 3], [4, 153163, 153940, 154199, 154384, 4], [5, 167281, 168102, 168366, 168551, 5], [6, 179417, 180161, 180415, 180600, 6], [7, 194611, 195413, 195676, 195861, 7]], "NEW": ["0:10", "2:2"], "seconds": 372.8, "file": "S7", "counted": true, "pass": true, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\CONTROL-5451.json"}
+LAUNCH-OLD-5454.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5454, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 166582, "frame_base": 99699, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f166582 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.29ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-OLD-5454.json"}
+  done CONTROL-5451: exit 0 (02:53:40 PM)
+  done LAUNCH-OLD-5454: exit 0 (02:53:40 PM)
+  start K-BETWEEN-5451 (02:53:40 PM)
+  start K-BETWEEN-MID-5451 (02:53:40 PM)
+LAUNCH-5454.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH", "seed": 5454, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 99699, "frame_base": 99699, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f99699 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-5454.json"}
+  done LAUNCH-5454: exit 0 (02:53:42 PM)
+K-SILENT-5454.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT", "seed": 5454, "kill": "S2.e3+9", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-5454.json"}
+  done K-SILENT-5454: exit 0 (02:54:08 PM)
+  start K-SILENT-OLD-5454 (02:54:08 PM)
+K-SILENT-OLD-5454.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5454, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-OLD-5454.json"}
+  done K-SILENT-OLD-5454: exit 0 (02:54:16 PM)
+K-BETWEEN-MID-5452.out: exit 0; last line: LIVE ARM {"arm": "K-BETWEEN", "seed": 5452, "kill": "F58751", "file": "S1", "counted": false, "pass": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-MID-5452.json"}
+  done K-BETWEEN-MID-5452: exit 0 (02:54:18 PM)
+K-BETWEEN-5452.out: exit 0; last line: LIVE ARM {"arm": "K-BETWEEN", "seed": 5452, "kill": "F70584", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-5452.json"}
+  done K-BETWEEN-5452: exit 0 (02:54:28 PM)
+K-BETWEEN-MID-5453.out: exit 0; last line: LIVE ARM {"arm": "K-BETWEEN", "seed": 5453, "kill": "F62652", "file": "S1", "counted": false, "pass": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-MID-5453.json"}
+  done K-BETWEEN-MID-5453: exit 0 (02:55:14 PM)
+CONTROL-5454.out: exit 0; last line: LIVE CONTROL {"seed": 5454, "word": "RESULT", "reason": "play: done: ch1_pokedex reached", "saves": [[1, 45343, 45827, 46091, 46276, 1], [2, 98895, 99703, 99964, 100149, 2], [3, 142066, 142841, 143102, 143287, 3], [4, 153600, 154392, 154647, 154832, 4], [5, 168906, 169718, 169983, 170168, 5]], "NEW": ["0:10", "0:18", "2:2"], "seconds": 303.3, "file": "S5", "counted": true, "pass": true, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\CONTROL-5454.json"}
+  done CONTROL-5454: exit 0 (02:55:16 PM)
+  start K-BETWEEN-5454 (02:55:16 PM)
+  start K-BETWEEN-MID-5454 (02:55:16 PM)
+K-BETWEEN-MID-5451.out: exit 0; last line: LIVE ARM {"arm": "K-BETWEEN", "seed": 5451, "kill": "F64855", "file": "S1", "counted": false, "pass": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-MID-5451.json"}
+  done K-BETWEEN-MID-5451: exit 0 (02:55:26 PM)
+K-BETWEEN-5453.out: exit 0; last line: LIVE ARM {"arm": "K-BETWEEN", "seed": 5453, "kill": "F77589", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-5453.json"}
+  done K-BETWEEN-5453: exit 0 (02:55:40 PM)
+K-BETWEEN-5451.out: exit 0; last line: LIVE ARM {"arm": "K-BETWEEN", "seed": 5451, "kill": "F80725", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-5451.json"}
+  done K-BETWEEN-5451: exit 0 (02:55:52 PM)
+K-BETWEEN-MID-5454.out: exit 0; last line: LIVE ARM {"arm": "K-BETWEEN", "seed": 5454, "kill": "F72585", "file": "S1", "counted": false, "pass": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-MID-5454.json"}
+  done K-BETWEEN-MID-5454: exit 0 (02:57:02 PM)
+K-BETWEEN-5454.out: exit 0; last line: LIVE ARM {"arm": "K-BETWEEN", "seed": 5454, "kill": "F97313", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-5454.json"}
+  done K-BETWEEN-5454: exit 0 (02:57:42 PM)
+PLAN DONE: 44 jobs, exit codes not 0: none (02:57:44 PM, 619 s)
+
+######## 7. EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code)
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): CONTROL-5451.out (sha256 912e5119620c4eb42fdc8f0b178c3eb2bb10641470fd8a40f6d9a284092e9772, 1130 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py control --seed 5451 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE CONTROL {"seed": 5451, "word": "RESULT", "reason": "play: done: ch1_pokedex reached", "saves": [[1, 46810, 47304, 47567, 47752, 1], [2, 81958, 82766, 83032, 83218, 2], [3, 107732, 108497, 108756, 108941, 3], [4, 153163, 153940, 154199, 154384, 4], [5, 167281, 168102, 168366, 168551, 5], [6, 179417, 180161, 180415, 180600, 6], [7, 194611, 195413, 195676, 195861, 7]], "NEW": ["0:10", "2:2"], "seconds": 372.8, "file": "S7", "counted": true, "pass": true, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\CONTROL-5451.json"}
+
+END: 2026-10-29 02:53:39 PM
+SECONDS: 373.1
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): CONTROL-5452.out (sha256 74f168a3b816938b89f2325eeba67242f45c9a107645b674ac0744f9a5ea5631, 1006 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py control --seed 5452 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE CONTROL {"seed": 5452, "word": "RESULT", "reason": "play: done: ch1_pokedex reached", "saves": [[1, 44856, 45326, 45586, 45771, 1], [2, 71731, 72504, 72763, 72949, 2], [3, 88939, 89737, 89992, 90177, 3], [4, 104534, 105341, 105606, 105791, 4]], "NEW": ["0:10", "2:2"], "seconds": 205.8, "file": "S4", "counted": true, "pass": true, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\CONTROL-5452.json"}
+
+END: 2026-10-29 02:50:52 PM
+SECONDS: 206.2
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): CONTROL-5453.out (sha256 e3397f10bcad2eb928b36ed5594af1499f51c73074f11d1385cc23afb75d6f92, 1050 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py control --seed 5453 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:48:54 PM
+----
+LIVE CONTROL {"seed": 5453, "word": "RESULT", "reason": "play: done: ch1_pokedex reached", "saves": [[1, 45624, 46090, 46354, 46535, 1], [2, 78769, 79526, 79788, 79969, 2], [3, 106438, 107216, 107475, 107657, 3], [4, 122039, 122808, 123062, 123243, 4], [5, 137395, 138228, 138491, 138672, 5]], "NEW": ["0:10", "2:2"], "seconds": 275.0, "file": "S5", "counted": true, "pass": true, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\CONTROL-5453.json"}
+
+END: 2026-10-29 02:53:29 PM
+SECONDS: 275.4
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): CONTROL-5454.out (sha256 de7872fb7bcbffa4264976a3a75f2e25bac0670a5b21122dbef7807ed925223e, 1059 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py control --seed 5454 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:50:12 PM
+----
+LIVE CONTROL {"seed": 5454, "word": "RESULT", "reason": "play: done: ch1_pokedex reached", "saves": [[1, 45343, 45827, 46091, 46276, 1], [2, 98895, 99703, 99964, 100149, 2], [3, 142066, 142841, 143102, 143287, 3], [4, 153600, 154392, 154647, 154832, 4], [5, 168906, 169718, 169983, 170168, 5]], "NEW": ["0:10", "0:18", "2:2"], "seconds": 303.3, "file": "S5", "counted": true, "pass": true, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\CONTROL-5454.json"}
+
+END: 2026-10-29 02:55:16 PM
+SECONDS: 303.6
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-AFTER-5451.out (sha256 6ac5e1314a3da149685d29222bca1b747a506e97595cd82ae192294295a52a06, 1026 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-AFTER --seed 5451 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE ARM {"arm": "K-AFTER", "seed": 5451, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-AFTER-5451.json"}
+
+END: 2026-10-29 02:50:11 PM
+SECONDS: 165.5
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-AFTER-5452.out (sha256 a5be8ae03338fa89a10d45f2f312ecf9fe974c17d3929540b88cd2b90495d0d9, 1026 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-AFTER --seed 5452 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE ARM {"arm": "K-AFTER", "seed": 5452, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-AFTER-5452.json"}
+
+END: 2026-10-29 02:49:49 PM
+SECONDS: 143.3
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-AFTER-5453.out (sha256 83b518697e2be13575ccffccff764f718e03c11e153d0311b0b65dbe49b654ae, 1026 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-AFTER --seed 5453 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:48:56 PM
+----
+LIVE ARM {"arm": "K-AFTER", "seed": 5453, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-AFTER-5453.json"}
+
+END: 2026-10-29 02:51:37 PM
+SECONDS: 161.6
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-AFTER-5454.out (sha256 c7a16d8f200012b480d846b56684121ea5edddf376996e08d60f84bd22f20a92, 1026 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-AFTER --seed 5454 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:50:12 PM
+----
+LIVE ARM {"arm": "K-AFTER", "seed": 5454, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-AFTER-5454.json"}
+
+END: 2026-10-29 02:53:27 PM
+SECONDS: 195.5
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-BETWEEN-5451.out (sha256 d880b762876d04265c949fd8e07596087612e50039c44fb1c5871f16800a818a, 1256 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-BETWEEN --seed 5451 --between-from C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\CONTROL-5451.json --between-rule new --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:40 PM
+----
+LIVE ARM {"arm": "K-BETWEEN", "seed": 5451, "kill": "F80725", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-5451.json"}
+
+END: 2026-10-29 02:55:51 PM
+SECONDS: 130.3
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-BETWEEN-5452.out (sha256 818fd40884bdc19d33db7ff86ca17ecce336afd33a8475e8d699ad29a4fbb638, 1256 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-BETWEEN --seed 5452 --between-from C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\CONTROL-5452.json --between-rule new --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:52:22 PM
+----
+LIVE ARM {"arm": "K-BETWEEN", "seed": 5452, "kill": "F70584", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-5452.json"}
+
+END: 2026-10-29 02:54:28 PM
+SECONDS: 126.1
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-BETWEEN-5453.out (sha256 169f1fd834d842a8052fe6ae711cc6f3940ddc86cc9cd43a006427d5f9752521, 1256 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-BETWEEN --seed 5453 --between-from C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\CONTROL-5453.json --between-rule new --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:30 PM
+----
+LIVE ARM {"arm": "K-BETWEEN", "seed": 5453, "kill": "F77589", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-5453.json"}
+
+END: 2026-10-29 02:55:40 PM
+SECONDS: 129.4
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-BETWEEN-5454.out (sha256 47d3cd2c7ea82307eb5e963c662e754304dd906a682499f749e211c4c5d64fe9, 1256 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-BETWEEN --seed 5454 --between-from C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\CONTROL-5454.json --between-rule new --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:55:16 PM
+----
+LIVE ARM {"arm": "K-BETWEEN", "seed": 5454, "kill": "F97313", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-5454.json"}
+
+END: 2026-10-29 02:57:40 PM
+SECONDS: 144.1
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-BETWEEN-MID-5451.out (sha256 a948157676281254797a34b616d9f4635761b49528a3fe11081f2a3b346694c5, 1287 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-BETWEEN --tag K-BETWEEN-MID --seed 5451 --between-from C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\CONTROL-5451.json --between-rule midpoint --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:40 PM
+----
+LIVE ARM {"arm": "K-BETWEEN", "seed": 5451, "kill": "F64855", "file": "S1", "counted": false, "pass": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-MID-5451.json"}
+
+END: 2026-10-29 02:55:25 PM
+SECONDS: 104.8
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-BETWEEN-MID-5452.out (sha256 1be3bd12df4ed25a78d5e9b3d4c238cd490ecf2ab5d8ffb5b4f754df9302a33f, 1287 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-BETWEEN --tag K-BETWEEN-MID --seed 5452 --between-from C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\CONTROL-5452.json --between-rule midpoint --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:52:28 PM
+----
+LIVE ARM {"arm": "K-BETWEEN", "seed": 5452, "kill": "F58751", "file": "S1", "counted": false, "pass": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-MID-5452.json"}
+
+END: 2026-10-29 02:54:18 PM
+SECONDS: 109.8
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-BETWEEN-MID-5453.out (sha256 cad90c35813792fe847e550203970b7ac8eaff13b659fa18953674fa6ed0e053, 1287 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-BETWEEN --tag K-BETWEEN-MID --seed 5453 --between-from C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\CONTROL-5453.json --between-rule midpoint --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:30 PM
+----
+LIVE ARM {"arm": "K-BETWEEN", "seed": 5453, "kill": "F62652", "file": "S1", "counted": false, "pass": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-MID-5453.json"}
+
+END: 2026-10-29 02:55:13 PM
+SECONDS: 102.5
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-BETWEEN-MID-5454.out (sha256 da05c29622a2b60e0ec61a9831aad722f9eb4a1d40ff610cb11e9ad1d12a9b81, 1287 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-BETWEEN --tag K-BETWEEN-MID --seed 5454 --between-from C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\CONTROL-5454.json --between-rule midpoint --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:55:16 PM
+----
+LIVE ARM {"arm": "K-BETWEEN", "seed": 5454, "kill": "F72585", "file": "S1", "counted": false, "pass": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-BETWEEN-MID-5454.json"}
+
+END: 2026-10-29 02:57:02 PM
+SECONDS: 105.8
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-FIRST-5451.out (sha256 748f5facf6cbd6d3b969a6a0cb59dcbfd49e704daa7ec44a26aaa901aeec0eb0, 1071 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-FIRST --seed 5451 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE ARM {"arm": "K-FIRST", "seed": 5451, "kill": "S1.e3+128", "file": "CORRUPT", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-FIRST-5451.json"}
+
+END: 2026-10-29 02:48:55 PM
+SECONDS: 89.1
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-FIRST-5452.out (sha256 fd325c58c353e4a1ee2c45d0f27d95955e896c39e00ecd1e61996f60a34b60fd, 1071 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-FIRST --seed 5452 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE ARM {"arm": "K-FIRST", "seed": 5452, "kill": "S1.e3+128", "file": "CORRUPT", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-FIRST-5452.json"}
+
+END: 2026-10-29 02:48:53 PM
+SECONDS: 87.0
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-FIRST-5453.out (sha256 5f3641368a98e415866344b6e919f566574fb8c14da7947cee45f7862d41ec80, 1071 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-FIRST --seed 5453 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:49:50 PM
+----
+LIVE ARM {"arm": "K-FIRST", "seed": 5453, "kill": "S1.e3+128", "file": "CORRUPT", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-FIRST-5453.json"}
+
+END: 2026-10-29 02:51:19 PM
+SECONDS: 88.7
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-FIRST-5454.out (sha256 db49add1b112365fece93617d28066da1e31d7e4ac225bc513aa2018c01843ce, 1071 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-FIRST --seed 5454 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:51:20 PM
+----
+LIVE ARM {"arm": "K-FIRST", "seed": 5454, "kill": "S1.e3+128", "file": "CORRUPT", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-FIRST-5454.json"}
+
+END: 2026-10-29 02:52:48 PM
+SECONDS: 87.8
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-INSIDE-5451.out (sha256 e864903c30687c51a707722f28e2c3e403c415a58f4f7ebfec7f56d5b957739b, 1036 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-INSIDE --seed 5451 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE ARM {"arm": "K-INSIDE", "seed": 5451, "kill": "S2.e3+130", "file": "S1+ERROR", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-5451.json"}
+
+END: 2026-10-29 02:50:12 PM
+SECONDS: 166.1
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-INSIDE-5452.out (sha256 df6ee0e329579958942a65238feca292cc68285fb226cf064d0c959850ce93cf, 1036 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-INSIDE --seed 5452 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE ARM {"arm": "K-INSIDE", "seed": 5452, "kill": "S2.e3+130", "file": "S1+ERROR", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-5452.json"}
+
+END: 2026-10-29 02:49:46 PM
+SECONDS: 140.4
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-INSIDE-5453.out (sha256 e66a392c77cb85e0c7e98902cf0694d58155a5e846233b14e529576d1563f42e, 1036 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-INSIDE --seed 5453 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:49:48 PM
+----
+LIVE ARM {"arm": "K-INSIDE", "seed": 5453, "kill": "S2.e3+130", "file": "S1+ERROR", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-5453.json"}
+
+END: 2026-10-29 02:52:27 PM
+SECONDS: 159.4
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-INSIDE-5454.out (sha256 cb0ba78c98a98cdca8af3c77a78480e844ec57af01138f3dc8e0c0e431e2a0d2, 1036 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-INSIDE --seed 5454 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:50:14 PM
+----
+LIVE ARM {"arm": "K-INSIDE", "seed": 5454, "kill": "S2.e3+130", "file": "S1+ERROR", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-5454.json"}
+
+END: 2026-10-29 02:53:28 PM
+SECONDS: 194.5
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-INSIDE-OLD-5451.out (sha256 2ca515acc560b4d6cba552123c0dfc3562e0e099a27b844dff637965c4ab34ee, 1221 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-INSIDE-5451.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:51:38 PM
+----
+LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5451, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-OLD-5451.json"}
+
+END: 2026-10-29 02:51:45 PM
+SECONDS: 7.0
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-INSIDE-OLD-5452.out (sha256 4b2937f4291fd4fbd60c6908baa1c82d411abc3b8df43459202e23d63b38bc1b, 1221 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-INSIDE-5452.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:52:30 PM
+----
+LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5452, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-OLD-5452.json"}
+
+END: 2026-10-29 02:52:37 PM
+SECONDS: 6.8
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-INSIDE-OLD-5453.out (sha256 94a050eb949b309768e2ed73f19824ab82dc73cf4de912f65f3ad2c75d6a585b, 1221 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-INSIDE-5453.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:02 PM
+----
+LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5453, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-OLD-5453.json"}
+
+END: 2026-10-29 02:53:09 PM
+SECONDS: 6.6
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-INSIDE-OLD-5454.out (sha256 09fba78359ac9f2d267f4de5a426288ccbd725bef23a89849dfe0b7615d16a3a, 1221 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-INSIDE-5454.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:30 PM
+----
+LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5454, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-INSIDE-OLD-5454.json"}
+
+END: 2026-10-29 02:53:37 PM
+SECONDS: 6.7
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-SILENT-5451.out (sha256 7389c8973cca4ba48c7162622d613697f955925d5d02f76a52e66a20b10558ed, 1028 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-SILENT --seed 5451 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE ARM {"arm": "K-SILENT", "seed": 5451, "kill": "S2.e3+9", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-5451.json"}
+
+END: 2026-10-29 02:50:11 PM
+SECONDS: 165.0
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-SILENT-5452.out (sha256 ebfebb08e8af9f6cccef9d084b769ec94f74d276cf6d9547c34722f20fd64e72, 1028 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-SILENT --seed 5452 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:47:26 PM
+----
+LIVE ARM {"arm": "K-SILENT", "seed": 5452, "kill": "S2.e3+9", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-5452.json"}
+
+END: 2026-10-29 02:49:46 PM
+SECONDS: 140.2
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-SILENT-5453.out (sha256 6b3a6f270ef4a0317bdfbbbc796773a25d11c5487fc2055db196db7c46115c9c, 1028 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-SILENT --seed 5453 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:49:48 PM
+----
+LIVE ARM {"arm": "K-SILENT", "seed": 5453, "kill": "S2.e3+9", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-5453.json"}
+
+END: 2026-10-29 02:52:29 PM
+SECONDS: 161.2
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-SILENT-5454.out (sha256 4e98e2cd870e68de3c9a2fdd00856b852ad51470f149c2cbdc73a71808c58c0f, 1028 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-SILENT --seed 5454 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:50:54 PM
+----
+LIVE ARM {"arm": "K-SILENT", "seed": 5454, "kill": "S2.e3+9", "file": "S1", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-5454.json"}
+
+END: 2026-10-29 02:54:07 PM
+SECONDS: 192.6
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-SILENT-OLD-5451.out (sha256 34b6b9419ac346156b9a2436ed49e157ca4be3a69bce3900b0f7b4a5d0daff43, 1221 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-SILENT-5451.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:51:46 PM
+----
+LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5451, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-OLD-5451.json"}
+
+END: 2026-10-29 02:51:53 PM
+SECONDS: 7.2
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-SILENT-OLD-5452.out (sha256 9cc0881ca96b8522af0519ad36a6e458f09aa4238be4eea6954bca030bf7f858, 1221 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-SILENT-5452.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:52:38 PM
+----
+LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5452, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-OLD-5452.json"}
+
+END: 2026-10-29 02:52:45 PM
+SECONDS: 7.3
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-SILENT-OLD-5453.out (sha256 2664a00da9bbd388a9744ea1a30f38fe03b827dbc54a8dadf75b36186b8061cd, 1221 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-SILENT-5453.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:02 PM
+----
+LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5453, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-OLD-5453.json"}
+
+END: 2026-10-29 02:53:09 PM
+SECONDS: 7.1
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): K-SILENT-OLD-5454.out (sha256 44bb05f6e49d1d5d024688026c3d5405a7aa9500e85e158ba17eb7e7ba4fdbf1, 1221 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-SILENT-5454.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:54:08 PM
+----
+LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5454, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\K-SILENT-OLD-5454.json"}
+
+END: 2026-10-29 02:54:15 PM
+SECONDS: 6.4
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): LAUNCH-5451.out (sha256 b27a8a62a81cb78b8866e2fa28f1afe0dad9905495114b0f57297ef1ffd43b09, 1313 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-AFTER-5451.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:51:54 PM
+----
+LIVE ARM {"arm": "LAUNCH", "seed": 5451, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 82762, "frame_base": 82762, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f82762 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-5451.json"}
+
+END: 2026-10-29 02:52:07 PM
+SECONDS: 12.6
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): LAUNCH-5452.out (sha256 8bc62917a1546547af45525c1584c91e3d1d06bd40b5e7e73f5aa4ea9cac08df, 1313 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-AFTER-5452.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:52:46 PM
+----
+LIVE ARM {"arm": "LAUNCH", "seed": 5452, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 72500, "frame_base": 72500, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f72500 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-5452.json"}
+
+END: 2026-10-29 02:53:00 PM
+SECONDS: 14.1
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): LAUNCH-5453.out (sha256 9ce1b3706715bd6188aaf986b731177aae505834d4d210f0fbc10d80eed2388f, 1313 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-AFTER-5453.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:10 PM
+----
+LIVE ARM {"arm": "LAUNCH", "seed": 5453, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 79789, "frame_base": 79789, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f79789 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-5453.json"}
+
+END: 2026-10-29 02:53:22 PM
+SECONDS: 12.3
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): LAUNCH-5454.out (sha256 3ab3b9b35277835cc240d5d6cf4df23ba31a65d9eedf291ff0433da80a8c555b, 1313 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-AFTER-5454.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:28 PM
+----
+LIVE ARM {"arm": "LAUNCH", "seed": 5454, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 99699, "frame_base": 99699, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f99699 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-5454.json"}
+
+END: 2026-10-29 02:53:40 PM
+SECONDS: 12.1
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): LAUNCH-OLD-5451.out (sha256 db3f28c0747182cd229e52afcd7342f1e6404b45678530d8290df7714adae7ed, 1429 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-AFTER-5451.json --old --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:52:08 PM
+----
+LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5451, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 149645, "frame_base": 82762, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f149645 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=3.79ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-OLD-5451.json"}
+
+END: 2026-10-29 02:52:20 PM
+SECONDS: 12.0
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): LAUNCH-OLD-5452.out (sha256 4f03feb2ca87d61448b357ad6aafb7c3f43da54510d710e4fa78a5a59fb2e4e0, 1429 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-AFTER-5452.json --old --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:52:48 PM
+----
+LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5452, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 139383, "frame_base": 72500, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f139383 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=3.87ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-OLD-5452.json"}
+
+END: 2026-10-29 02:53:00 PM
+SECONDS: 12.0
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): LAUNCH-OLD-5453.out (sha256 7df2bc9117e8e036a48a8fcf6e7188d18d792e0fb6eef7c016f30b6391445379, 1429 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-AFTER-5453.json --old --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:10 PM
+----
+LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5453, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 146672, "frame_base": 79789, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f146672 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.73ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-OLD-5453.json"}
+
+END: 2026-10-29 02:53:22 PM
+SECONDS: 11.8
+EXIT CODE: 0
+
+==== EACH JOB'S OUTPUT (runcmd: the command, its start, end and exit code): LAUNCH-OLD-5454.out (sha256 9f032d9e69ee2d5b77eb32c2d14b67937a94a978547f5c3c08788f9bd6bd4c20, 1429 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout\rows\K-AFTER-5454.json --old --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:53:28 PM
+----
+LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5454, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 166582, "frame_base": 99699, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f166582 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.29ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\heldout\\rows\\LAUNCH-OLD-5454.json"}
+
+END: 2026-10-29 02:53:40 PM
+SECONDS: 11.9
+EXIT CODE: 0
+
+######## 8. THE ONE VERDICT (per-arm table, every check, determinism lines, discriminators)
+
+==== THE ONE VERDICT (per-arm table, every check, determinism lines, discriminators): verdict.out (sha256 40a969bca1b684240fae5e9ffcbae92a226b11cfcefac253d482c0d5ef4427e9, 22848 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py verdict --out C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/heldout
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: []
+START: 2026-10-29 02:57:51 PM
+----
+LIVE R1 ARMS (seeds 5451-5454; floor 3 of 4; K-BETWEEN rule 'new')
+  CONTROL        counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  K-AFTER        counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  K-INSIDE       counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  K-SILENT       counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  K-FIRST        counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  K-BETWEEN      counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  LAUNCH         counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  K-INSIDE-OLD   counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  K-SILENT-OLD   counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  LAUNCH-OLD     counted 4/4 floor met   5451:ok 5452:ok 5453:ok 5454:ok
+  K-BETWEEN-MID  counted 0/4 DIAGNOSTIC  5451:- 5452:- 5453:- 5454:-
+ARM {"arm": "CONTROL", "seed": 5451, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"done_at_target": true, "end_save_made": true, "5_free_and_gap": true, "6_moments": true, "1_file_newest": true}}
+ARM {"arm": "K-AFTER", "seed": 5451, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-BETWEEN", "seed": 5451, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-BETWEEN-MID", "seed": 5451, "counted": false, "pass": null, "old_shows": null, "why": "its reach conditions do not hold (FILE, NEW, check 7, K-SILENT's 0 sectors, or the determinism line)", "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-FIRST", "seed": 5451, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-INSIDE", "seed": 5451, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-INSIDE-OLD", "seed": 5451, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-SILENT", "seed": 5451, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-SILENT-OLD", "seed": 5451, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "LAUNCH", "seed": 5451, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}}
+ARM {"arm": "LAUNCH-OLD", "seed": 5451, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}}
+ARM {"arm": "CONTROL", "seed": 5452, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"done_at_target": true, "end_save_made": true, "5_free_and_gap": true, "6_moments": true, "1_file_newest": true}}
+ARM {"arm": "K-AFTER", "seed": 5452, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-BETWEEN", "seed": 5452, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-BETWEEN-MID", "seed": 5452, "counted": false, "pass": null, "old_shows": null, "why": "its reach conditions do not hold (FILE, NEW, check 7, K-SILENT's 0 sectors, or the determinism line)", "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-FIRST", "seed": 5452, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-INSIDE", "seed": 5452, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-INSIDE-OLD", "seed": 5452, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-SILENT", "seed": 5452, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-SILENT-OLD", "seed": 5452, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "LAUNCH", "seed": 5452, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}}
+ARM {"arm": "LAUNCH-OLD", "seed": 5452, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}}
+ARM {"arm": "CONTROL", "seed": 5453, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"done_at_target": true, "end_save_made": true, "5_free_and_gap": true, "6_moments": true, "1_file_newest": true}}
+ARM {"arm": "K-AFTER", "seed": 5453, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-BETWEEN", "seed": 5453, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-BETWEEN-MID", "seed": 5453, "counted": false, "pass": null, "old_shows": null, "why": "its reach conditions do not hold (FILE, NEW, check 7, K-SILENT's 0 sectors, or the determinism line)", "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-FIRST", "seed": 5453, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-INSIDE", "seed": 5453, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-INSIDE-OLD", "seed": 5453, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-SILENT", "seed": 5453, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-SILENT-OLD", "seed": 5453, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "LAUNCH", "seed": 5453, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}}
+ARM {"arm": "LAUNCH-OLD", "seed": 5453, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}}
+ARM {"arm": "CONTROL", "seed": 5454, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"done_at_target": true, "end_save_made": true, "5_free_and_gap": true, "6_moments": true, "1_file_newest": true}}
+ARM {"arm": "K-AFTER", "seed": 5454, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-BETWEEN", "seed": 5454, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-BETWEEN-MID", "seed": 5454, "counted": false, "pass": null, "old_shows": null, "why": "its reach conditions do not hold (FILE, NEW, check 7, K-SILENT's 0 sectors, or the determinism line)", "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-FIRST", "seed": 5454, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": null, "3_memory": null, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}}
+ARM {"arm": "K-INSIDE", "seed": 5454, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-INSIDE-OLD", "seed": 5454, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-SILENT", "seed": 5454, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "K-SILENT-OLD", "seed": 5454, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}}
+ARM {"arm": "LAUNCH", "seed": 5454, "counted": true, "pass": true, "old_shows": null, "why": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}}
+ARM {"arm": "LAUNCH-OLD", "seed": 5454, "counted": true, "pass": null, "old_shows": true, "why": null, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}}
+DETERMINISM {"seed": 5451, "arm": "K-AFTER", "events": {"S1": [46810, 47304], "S2": [81958, 82766]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5451, "arm": "K-INSIDE", "events": {"S1": [46810, 47304], "S2": [81958, 82766]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5451, "arm": "K-SILENT", "events": {"S1": [46810, 47304], "S2": [81958, 82766]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5451, "arm": "K-FIRST", "events": {"S1": [46810, 47304]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5451, "arm": "K-BETWEEN", "events": {"S1": [46810, 47304]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5451, "arm": "K-BETWEEN-MID", "events": {"S1": [46810, 47304]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5452, "arm": "K-AFTER", "events": {"S1": [44856, 45326], "S2": [71731, 72504]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5452, "arm": "K-INSIDE", "events": {"S1": [44856, 45326], "S2": [71731, 72504]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5452, "arm": "K-SILENT", "events": {"S1": [44856, 45326], "S2": [71731, 72504]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5452, "arm": "K-FIRST", "events": {"S1": [44856, 45326]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5452, "arm": "K-BETWEEN", "events": {"S1": [44856, 45326]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5452, "arm": "K-BETWEEN-MID", "events": {"S1": [44856, 45326]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5453, "arm": "K-AFTER", "events": {"S1": [45624, 46090], "S2": [78769, 79526]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5453, "arm": "K-INSIDE", "events": {"S1": [45624, 46090], "S2": [78769, 79526]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5453, "arm": "K-SILENT", "events": {"S1": [45624, 46090], "S2": [78769, 79526]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5453, "arm": "K-FIRST", "events": {"S1": [45624, 46090]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5453, "arm": "K-BETWEEN", "events": {"S1": [45624, 46090]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5453, "arm": "K-BETWEEN-MID", "events": {"S1": [45624, 46090]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5454, "arm": "K-AFTER", "events": {"S1": [45343, 45827], "S2": [98895, 99703]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5454, "arm": "K-INSIDE", "events": {"S1": [45343, 45827], "S2": [98895, 99703]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5454, "arm": "K-SILENT", "events": {"S1": [45343, 45827], "S2": [98895, 99703]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5454, "arm": "K-FIRST", "events": {"S1": [45343, 45827]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5454, "arm": "K-BETWEEN", "events": {"S1": [45343, 45827]}, "same_as_control": true, "differ": []}
+DETERMINISM {"seed": 5454, "arm": "K-BETWEEN-MID", "events": {"S1": [45343, 45827]}, "same_as_control": true, "differ": []}
+DISCRIMINATOR {"seed": 5451, "pair": "K-INSIDE / K-INSIDE-OLD", "NEW": ["0:10", "2:2"], "NEW maps restored": [[], ["0:10", "2:2"]], "continued_from": [1, 2], "CONTINUE TIME shown / the save stamps": [["CONTINUE TIME 0:10"], [[0, 10], [0, 20]]], "differ": true}
+DISCRIMINATOR {"seed": 5451, "pair": "K-SILENT / K-SILENT-OLD", "NEW": ["0:10", "2:2"], "NEW maps restored": [[], ["0:10", "2:2"]], "continued_from": [1, 2], "CONTINUE TIME shown / the save stamps": [["CONTINUE TIME 0:10"], [[0, 10], [0, 20]]], "differ": true}
+DISCRIMINATOR {"seed": 5451, "pair": "K-AFTER / K-INSIDE (the kill after the write vs inside it)", "FILE": ["S2", "S1+ERROR"], "continued_from": [2, 1], "differ": true}
+DISCRIMINATOR {"seed": 5451, "pair": "LAUNCH / LAUNCH-OLD (the .ss1 dropped vs kept)", "first look (state, emulator frame)": [["UNKNOWN", 0], ["OVERWORLD", 66883]], "differ": true}
+DISCRIMINATOR {"seed": 5451, "pair": "K-FIRST / CONTROL (the first save's write cut vs complete)", "FILE": ["CORRUPT", "S7"], "differ": true}
+DISCRIMINATOR {"seed": 5451, "pair": "K-BETWEEN (NEW at the kill vs the restored memory)", "NEW": ["0:10", "2:2"], "restored_maps": ["0:16", "0:9", "1:0", "1:1", "1:2", "1:3", "1:4", "25:40"], "differ": true}
+DISCRIMINATOR {"seed": 5452, "pair": "K-INSIDE / K-INSIDE-OLD", "NEW": ["0:10", "2:2"], "NEW maps restored": [[], ["0:10", "2:2"]], "continued_from": [1, 2], "CONTINUE TIME shown / the save stamps": [["CONTINUE TIME 0:10"], [[0, 10], [0, 17]]], "differ": true}
+DISCRIMINATOR {"seed": 5452, "pair": "K-SILENT / K-SILENT-OLD", "NEW": ["0:10", "2:2"], "NEW maps restored": [[], ["0:10", "2:2"]], "continued_from": [1, 2], "CONTINUE TIME shown / the save stamps": [["CONTINUE TIME 0:10"], [[0, 10], [0, 17]]], "differ": true}
+DISCRIMINATOR {"seed": 5452, "pair": "K-AFTER / K-INSIDE (the kill after the write vs inside it)", "FILE": ["S2", "S1+ERROR"], "continued_from": [2, 1], "differ": true}
+DISCRIMINATOR {"seed": 5452, "pair": "LAUNCH / LAUNCH-OLD (the .ss1 dropped vs kept)", "first look (state, emulator frame)": [["UNKNOWN", 0], ["OVERWORLD", 66883]], "differ": true}
+DISCRIMINATOR {"seed": 5452, "pair": "K-FIRST / CONTROL (the first save's write cut vs complete)", "FILE": ["CORRUPT", "S4"], "differ": true}
+DISCRIMINATOR {"seed": 5452, "pair": "K-BETWEEN (NEW at the kill vs the restored memory)", "NEW": ["0:10", "2:2"], "restored_maps": ["0:16", "0:9", "1:0", "1:1", "1:2", "1:3", "1:4", "25:40"], "differ": true}
+DISCRIMINATOR {"seed": 5453, "pair": "K-INSIDE / K-INSIDE-OLD", "NEW": ["0:10", "2:2"], "NEW maps restored": [[], ["0:10", "2:2"]], "continued_from": [1, 2], "CONTINUE TIME shown / the save stamps": [["CONTINUE TIME 0:10"], [[0, 10], [0, 19]]], "differ": true}
+DISCRIMINATOR {"seed": 5453, "pair": "K-SILENT / K-SILENT-OLD", "NEW": ["0:10", "2:2"], "NEW maps restored": [[], ["0:10", "2:2"]], "continued_from": [1, 2], "CONTINUE TIME shown / the save stamps": [["CONTINUE TIME 0:10"], [[0, 10], [0, 19]]], "differ": true}
+DISCRIMINATOR {"seed": 5453, "pair": "K-AFTER / K-INSIDE (the kill after the write vs inside it)", "FILE": ["S2", "S1+ERROR"], "continued_from": [2, 1], "differ": true}
+DISCRIMINATOR {"seed": 5453, "pair": "LAUNCH / LAUNCH-OLD (the .ss1 dropped vs kept)", "first look (state, emulator frame)": [["UNKNOWN", 0], ["OVERWORLD", 66883]], "differ": true}
+DISCRIMINATOR {"seed": 5453, "pair": "K-FIRST / CONTROL (the first save's write cut vs complete)", "FILE": ["CORRUPT", "S5"], "differ": true}
+DISCRIMINATOR {"seed": 5453, "pair": "K-BETWEEN (NEW at the kill vs the restored memory)", "NEW": ["0:10", "2:2"], "restored_maps": ["0:16", "0:9", "1:0", "1:1", "1:2", "1:3", "1:4", "25:40"], "differ": true}
+DISCRIMINATOR {"seed": 5454, "pair": "K-INSIDE / K-INSIDE-OLD", "NEW": ["0:10", "0:18", "2:2"], "NEW maps restored": [[], ["0:10", "0:18", "2:2"]], "continued_from": [1, 2], "CONTINUE TIME shown / the save stamps": [["CONTINUE TIME 0:10"], [[0, 10], [0, 24]]], "differ": true}
+DISCRIMINATOR {"seed": 5454, "pair": "K-SILENT / K-SILENT-OLD", "NEW": ["0:10", "0:18", "2:2"], "NEW maps restored": [[], ["0:10", "0:18", "2:2"]], "continued_from": [1, 2], "CONTINUE TIME shown / the save stamps": [["CONTINUE TIME 0:10"], [[0, 10], [0, 24]]], "differ": true}
+DISCRIMINATOR {"seed": 5454, "pair": "K-AFTER / K-INSIDE (the kill after the write vs inside it)", "FILE": ["S2", "S1+ERROR"], "continued_from": [2, 1], "differ": true}
+DISCRIMINATOR {"seed": 5454, "pair": "LAUNCH / LAUNCH-OLD (the .ss1 dropped vs kept)", "first look (state, emulator frame)": [["UNKNOWN", 0], ["OVERWORLD", 66883]], "differ": true}
+DISCRIMINATOR {"seed": 5454, "pair": "K-FIRST / CONTROL (the first save's write cut vs complete)", "FILE": ["CORRUPT", "S5"], "differ": true}
+DISCRIMINATOR {"seed": 5454, "pair": "K-BETWEEN (NEW at the kill vs the restored memory)", "NEW": ["0:10", "0:18", "2:2"], "restored_maps": ["0:16", "0:9", "1:0", "1:1", "1:2", "1:3", "1:4", "25:40"], "differ": true}
+PER ARM {"CONTROL": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "K-AFTER": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "K-INSIDE": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "K-SILENT": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "K-FIRST": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "K-BETWEEN": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "LAUNCH": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "K-INSIDE-OLD": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "K-SILENT-OLD": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}, "LAUNCH-OLD": {"counted": [5451, 5452, 5453, 5454], "failed": [], "floor_met": true}}
+LIVE R1 VERDICT: PASS (failing: none; below the floor: none; discriminators that differ: 24 of 24)
+
+END: 2026-10-29 02:57:52 PM
+SECONDS: 0.5
+EXIT CODE: 0
+
+######## 9. THE ARMS' NUMBERS (kill frames, new sectors at the kill, FILE, S2's line against e3, wall times)
+
+==== THE ARMS' NUMBERS (kill frames, new sectors at the kill, FILE, S2's line against e3, wall times): arm-table.out (sha256 32bf86bafc8203370895715722d7e599623b03edb39b5f930c4d9baadb2cb861, 19360 bytes) ====
+COMMAND: py -3.12 C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/arm_table.py C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/heldout
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement
+ENV: []
+START: 2026-10-29 02:58:09 PM
+----
+{"seed": 5451, "arm": "CONTROL", "saves": 7, "reason": "play: done: ch1_pokedex reached", "end_save": {"saved": true, "outcome": "saved"}, "whys": ["a save: a big story moment: ch1_lab", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: a big story moment: ch1_rival_route103", "before putting the game down: a big story moment: ch1_pokedex"], "seconds": 372.8, "file": "S7"}
+{"seed": 5451, "arm": "K-AFTER", "kill": "S2.e4+40", "kill_frame": 83072, "new_sectors_at_kill": null, "file": "S2", "s2_e3": 82766, "s2_line_frame": 82761, "s2_line_minus_e3": -5, "a_seconds": 159.2, "b_seconds": 6.0, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5451, "arm": "K-INSIDE", "kill": "S2.e3+130", "kill_frame": 82896, "new_sectors_at_kill": 6, "file": "S1+ERROR", "s2_e3": 82766, "s2_line_frame": 82761, "s2_line_minus_e3": -5, "a_seconds": 160.1, "b_seconds": 5.7, "b_reason": "play: stopped: not finished within 2620 frames", "pages": ["The save file is corrupted. The previous save file will be loaded."], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5451, "arm": "K-SILENT", "kill": "S2.e3+9", "kill_frame": 82775, "new_sectors_at_kill": 0, "file": "S1", "s2_e3": 82766, "s2_line_frame": 82761, "s2_line_minus_e3": -5, "a_seconds": 158.2, "b_seconds": 6.4, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5451, "arm": "K-FIRST", "kill": "S1.e3+128", "kill_frame": 47432, "new_sectors_at_kill": 6, "file": "CORRUPT", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 86.3, "b_seconds": 2.5, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "pages": ["The save file has been erased due to corruption or damage."], "determinism": null, "rule": null, "NEW": [], "mutant_ran": null}
+{"seed": 5451, "arm": "K-BETWEEN", "kill": "F80725", "kill_frame": 80725, "new_sectors_at_kill": null, "file": "S1", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 125.1, "b_seconds": 4.8, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": true, "rule": "new", "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5451, "arm": "K-BETWEEN-MID", "kill": "F64855", "kill_frame": 64855, "new_sectors_at_kill": null, "file": "S1", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 99.4, "b_seconds": 5.0, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": true, "rule": "midpoint", "NEW": [], "mutant_ran": null}
+{"seed": 5451, "arm": "K-INSIDE-OLD", "kill": "S2.e3+130", "kill_frame": 82896, "new_sectors_at_kill": 6, "file": "S1+ERROR", "s2_e3": 82766, "s2_line_frame": 82761, "s2_line_minus_e3": -5, "a_seconds": null, "b_seconds": 6.5, "b_reason": "play: stopped: not finished within 2620 frames", "pages": ["The save file is corrupted. The previous save file will be loaded."], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": true}
+{"seed": 5451, "arm": "K-SILENT-OLD", "kill": "S2.e3+9", "kill_frame": 82775, "new_sectors_at_kill": 0, "file": "S1", "s2_e3": 82766, "s2_line_frame": 82761, "s2_line_minus_e3": -5, "a_seconds": null, "b_seconds": 6.7, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": true}
+{"seed": 5451, "arm": "LAUNCH", "exit": 0, "seconds": 12.2, "first_look": {"log_frame": 82762, "frame_base": 82762, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f82762 other party=? problems=1 cost=0.05ms"}, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "old_shows": null}
+{"seed": 5451, "arm": "LAUNCH-OLD", "exit": 0, "seconds": 11.3, "first_look": {"log_frame": 149645, "frame_base": 82762, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f149645 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=3.79ms"}, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "old_shows": true}
+{"seed": 5452, "arm": "CONTROL", "saves": 4, "reason": "play: done: ch1_pokedex reached", "end_save": {"saved": true, "outcome": "saved"}, "whys": ["a save: a big story moment: ch1_lab", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: a big story moment: ch1_rival_route103", "before putting the game down: a big story moment: ch1_pokedex"], "seconds": 205.8, "file": "S4"}
+{"seed": 5452, "arm": "K-AFTER", "kill": "S2.e4+40", "kill_frame": 72803, "new_sectors_at_kill": null, "file": "S2", "s2_e3": 72504, "s2_line_frame": 72499, "s2_line_minus_e3": -5, "a_seconds": 135.7, "b_seconds": 7.2, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5452, "arm": "K-INSIDE", "kill": "S2.e3+130", "kill_frame": 72634, "new_sectors_at_kill": 7, "file": "S1+ERROR", "s2_e3": 72504, "s2_line_frame": 72499, "s2_line_minus_e3": -5, "a_seconds": 134.1, "b_seconds": 5.9, "b_reason": "play: stopped: not finished within 2620 frames", "pages": ["The save file is corrupted. The previous save file will be loaded."], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5452, "arm": "K-SILENT", "kill": "S2.e3+9", "kill_frame": 72513, "new_sectors_at_kill": 0, "file": "S1", "s2_e3": 72504, "s2_line_frame": 72499, "s2_line_minus_e3": -5, "a_seconds": 133.8, "b_seconds": 6.0, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5452, "arm": "K-FIRST", "kill": "S1.e3+128", "kill_frame": 45454, "new_sectors_at_kill": 7, "file": "CORRUPT", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 84.0, "b_seconds": 2.6, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "pages": ["The save file has been erased due to corruption or damage."], "determinism": null, "rule": null, "NEW": [], "mutant_ran": null}
+{"seed": 5452, "arm": "K-BETWEEN", "kill": "F70584", "kill_frame": 70584, "new_sectors_at_kill": null, "file": "S1", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 120.8, "b_seconds": 5.0, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": true, "rule": "new", "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5452, "arm": "K-BETWEEN-MID", "kill": "F58751", "kill_frame": 58751, "new_sectors_at_kill": null, "file": "S1", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 104.2, "b_seconds": 5.2, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": true, "rule": "midpoint", "NEW": [], "mutant_ran": null}
+{"seed": 5452, "arm": "K-INSIDE-OLD", "kill": "S2.e3+130", "kill_frame": 72634, "new_sectors_at_kill": 7, "file": "S1+ERROR", "s2_e3": 72504, "s2_line_frame": 72499, "s2_line_minus_e3": -5, "a_seconds": null, "b_seconds": 6.2, "b_reason": "play: stopped: not finished within 2620 frames", "pages": ["The save file is corrupted. The previous save file will be loaded."], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": true}
+{"seed": 5452, "arm": "K-SILENT-OLD", "kill": "S2.e3+9", "kill_frame": 72513, "new_sectors_at_kill": 0, "file": "S1", "s2_e3": 72504, "s2_line_frame": 72499, "s2_line_minus_e3": -5, "a_seconds": null, "b_seconds": 6.7, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": true}
+{"seed": 5452, "arm": "LAUNCH", "exit": 0, "seconds": 13.6, "first_look": {"log_frame": 72500, "frame_base": 72500, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f72500 other party=? problems=1 cost=0.05ms"}, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "old_shows": null}
+{"seed": 5452, "arm": "LAUNCH-OLD", "exit": 0, "seconds": 11.4, "first_look": {"log_frame": 139383, "frame_base": 72500, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f139383 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=3.87ms"}, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "old_shows": true}
+{"seed": 5453, "arm": "CONTROL", "saves": 5, "reason": "play: done: ch1_pokedex reached", "end_save": {"saved": true, "outcome": "saved"}, "whys": ["a save: a big story moment: ch1_lab", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: a big story moment: ch1_rival_route103", "before putting the game down: a big story moment: ch1_pokedex"], "seconds": 275.0, "file": "S5"}
+{"seed": 5453, "arm": "K-AFTER", "kill": "S2.e4+40", "kill_frame": 79828, "new_sectors_at_kill": null, "file": "S2", "s2_e3": 79526, "s2_line_frame": 79521, "s2_line_minus_e3": -5, "a_seconds": 155.4, "b_seconds": 5.8, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5453, "arm": "K-INSIDE", "kill": "S2.e3+130", "kill_frame": 79656, "new_sectors_at_kill": 7, "file": "S1+ERROR", "s2_e3": 79526, "s2_line_frame": 79521, "s2_line_minus_e3": -5, "a_seconds": 153.7, "b_seconds": 5.4, "b_reason": "play: stopped: not finished within 2620 frames", "pages": ["The save file is corrupted. The previous save file will be loaded."], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5453, "arm": "K-SILENT", "kill": "S2.e3+9", "kill_frame": 79535, "new_sectors_at_kill": 0, "file": "S1", "s2_e3": 79526, "s2_line_frame": 79521, "s2_line_minus_e3": -5, "a_seconds": 155.0, "b_seconds": 5.9, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5453, "arm": "K-FIRST", "kill": "S1.e3+128", "kill_frame": 46218, "new_sectors_at_kill": 6, "file": "CORRUPT", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 85.8, "b_seconds": 2.5, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "pages": ["The save file has been erased due to corruption or damage."], "determinism": null, "rule": null, "NEW": [], "mutant_ran": null}
+{"seed": 5453, "arm": "K-BETWEEN", "kill": "F77589", "kill_frame": 77589, "new_sectors_at_kill": null, "file": "S1", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 124.4, "b_seconds": 4.6, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": true, "rule": "new", "NEW": ["0:10", "2:2"], "mutant_ran": null}
+{"seed": 5453, "arm": "K-BETWEEN-MID", "kill": "F62652", "kill_frame": 62652, "new_sectors_at_kill": null, "file": "S1", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 97.3, "b_seconds": 4.8, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": true, "rule": "midpoint", "NEW": [], "mutant_ran": null}
+{"seed": 5453, "arm": "K-INSIDE-OLD", "kill": "S2.e3+130", "kill_frame": 79656, "new_sectors_at_kill": 7, "file": "S1+ERROR", "s2_e3": 79526, "s2_line_frame": 79521, "s2_line_minus_e3": -5, "a_seconds": null, "b_seconds": 6.1, "b_reason": "play: stopped: not finished within 2620 frames", "pages": ["The save file is corrupted. The previous save file will be loaded."], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": true}
+{"seed": 5453, "arm": "K-SILENT-OLD", "kill": "S2.e3+9", "kill_frame": 79535, "new_sectors_at_kill": 0, "file": "S1", "s2_e3": 79526, "s2_line_frame": 79521, "s2_line_minus_e3": -5, "a_seconds": null, "b_seconds": 6.6, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "2:2"], "mutant_ran": true}
+{"seed": 5453, "arm": "LAUNCH", "exit": 0, "seconds": 11.8, "first_look": {"log_frame": 79789, "frame_base": 79789, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f79789 other party=? problems=1 cost=0.05ms"}, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "old_shows": null}
+{"seed": 5453, "arm": "LAUNCH-OLD", "exit": 0, "seconds": 11.2, "first_look": {"log_frame": 146672, "frame_base": 79789, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f146672 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.73ms"}, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "old_shows": true}
+{"seed": 5454, "arm": "CONTROL", "saves": 5, "reason": "play: done: ch1_pokedex reached", "end_save": {"saved": true, "outcome": "saved"}, "whys": ["a save: a big story moment: ch1_lab", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: it healed at the POK�MON CENTER (OLDALE_TOWN_POKEMON_CENTER_1F)", "a save: a big story moment: ch1_rival_route103", "before putting the game down: a big story moment: ch1_pokedex"], "seconds": 303.3, "file": "S5"}
+{"seed": 5454, "arm": "K-AFTER", "kill": "S2.e4+40", "kill_frame": 100004, "new_sectors_at_kill": null, "file": "S2", "s2_e3": 99703, "s2_line_frame": 99698, "s2_line_minus_e3": -5, "a_seconds": 189.7, "b_seconds": 5.5, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "0:18", "2:2"], "mutant_ran": null}
+{"seed": 5454, "arm": "K-INSIDE", "kill": "S2.e3+130", "kill_frame": 99833, "new_sectors_at_kill": 7, "file": "S1+ERROR", "s2_e3": 99703, "s2_line_frame": 99698, "s2_line_minus_e3": -5, "a_seconds": 189.2, "b_seconds": 4.9, "b_reason": "play: stopped: not finished within 2620 frames", "pages": ["The save file is corrupted. The previous save file will be loaded."], "determinism": null, "rule": null, "NEW": ["0:10", "0:18", "2:2"], "mutant_ran": null}
+{"seed": 5454, "arm": "K-SILENT", "kill": "S2.e3+9", "kill_frame": 99712, "new_sectors_at_kill": 0, "file": "S1", "s2_e3": 99703, "s2_line_frame": 99698, "s2_line_minus_e3": -5, "a_seconds": 187.1, "b_seconds": 5.2, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "0:18", "2:2"], "mutant_ran": null}
+{"seed": 5454, "arm": "K-FIRST", "kill": "S1.e3+128", "kill_frame": 45955, "new_sectors_at_kill": 6, "file": "CORRUPT", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 84.9, "b_seconds": 2.5, "b_reason": "play: stuck: the continue stopped: the save is gone: The save file has been erased due to corruption or damage.", "pages": ["The save file has been erased due to corruption or damage."], "determinism": null, "rule": null, "NEW": [], "mutant_ran": null}
+{"seed": 5454, "arm": "K-BETWEEN", "kill": "F97313", "kill_frame": 97313, "new_sectors_at_kill": null, "file": "S1", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 139.2, "b_seconds": 4.5, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": true, "rule": "new", "NEW": ["0:10", "0:18", "2:2"], "mutant_ran": null}
+{"seed": 5454, "arm": "K-BETWEEN-MID", "kill": "F72585", "kill_frame": 72585, "new_sectors_at_kill": null, "file": "S1", "s2_e3": null, "s2_line_frame": null, "s2_line_minus_e3": null, "a_seconds": 101.0, "b_seconds": 4.5, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": true, "rule": "midpoint", "NEW": [], "mutant_ran": null}
+{"seed": 5454, "arm": "K-INSIDE-OLD", "kill": "S2.e3+130", "kill_frame": 99833, "new_sectors_at_kill": 7, "file": "S1+ERROR", "s2_e3": 99703, "s2_line_frame": 99698, "s2_line_minus_e3": -5, "a_seconds": null, "b_seconds": 6.2, "b_reason": "play: stopped: not finished within 2620 frames", "pages": ["The save file is corrupted. The previous save file will be loaded."], "determinism": null, "rule": null, "NEW": ["0:10", "0:18", "2:2"], "mutant_ran": true}
+{"seed": 5454, "arm": "K-SILENT-OLD", "kill": "S2.e3+9", "kill_frame": 99712, "new_sectors_at_kill": 0, "file": "S1", "s2_e3": 99703, "s2_line_frame": 99698, "s2_line_minus_e3": -5, "a_seconds": null, "b_seconds": 5.9, "b_reason": "play: stopped: not finished within 2620 frames", "pages": [], "determinism": null, "rule": null, "NEW": ["0:10", "0:18", "2:2"], "mutant_ran": true}
+{"seed": 5454, "arm": "LAUNCH", "exit": 0, "seconds": 11.7, "first_look": {"log_frame": 99699, "frame_base": 99699, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f99699 other party=? problems=1 cost=0.05ms"}, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "old_shows": null}
+{"seed": 5454, "arm": "LAUNCH-OLD", "exit": 0, "seconds": 11.2, "first_look": {"log_frame": 166582, "frame_base": 99699, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f166582 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.29ms"}, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "old_shows": true}
+
+END: 2026-10-29 02:58:09 PM
+SECONDS: 0.1
+EXIT CODE: 0
+
+######## 10. THE LEDGER FINISH
+
+==== THE LEDGER FINISH: ledger-finish.out (sha256 89322223a44d80975c4fa6c47ef65aa66c5f4a1f4f4499b366200d07d93d9bf2, 522 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py ledger finish --id 53 --verdict-file C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/verdict-graded.txt --evidence ai_player/evidence/2026-10-29-r1live-HELDOUT.txt
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: []
+START: 2026-10-29 02:58:24 PM
+----
+FINISHED #53
+
+END: 2026-10-29 02:58:24 PM
+SECONDS: 0.2
+EXIT CODE: 0
+
+######## 11. THE LEDGER CHECK
+
+==== THE LEDGER CHECK: ledger-check.out (sha256 1f6a7abdcdfb1f9faeac5fdfdcb75cf1d6afd90bb2ddf5d38a8b46297693e556, 288 bytes) ====
+COMMAND: py -3.12 ai_player/gates/ledger.py --check
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: []
+START: 2026-10-29 02:58:24 PM
+----
+LEDGER ledger.json: 53 entries; well formed -> PASS
+
+END: 2026-10-29 02:58:24 PM
+SECONDS: 0.1
+EXIT CODE: 0
+
+######## 12. HYGIENE after the run
+
+==== HYGIENE after the run: hygiene-end.out (sha256 58a1d7480e838b3ce783a4188f1e0418d5c90852eedd50e1b7604674ccbcf8c8, 275 bytes) ====
+lane census (run_regression, run_gates, revert_*, rate_step5, live_step5): 0 []
+main checkout sandbox-pokebot: 33105 files, 0 modified since 2:30 PM []
+main checkout ai_player: 916 files, 0 modified since 2:30 PM []
+stage processes alive: 0 []
+checked 2026-10-29 02:58:41 PM
+
+######## 13. REHEARSAL ledger 52 begin
+
+==== REHEARSAL ledger 52 begin: ledger-replay-begin.out (sha256 d2ec056068220996febc6ad0e81dc19cea1e1a1c28e1f15bf312bd6aa2f92cc4, 3660 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py ledger begin --purpose replay --first 5405 --last 5406 --note-file C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/note-replay.txt
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: []
+START: 2026-10-29 02:39:20 PM
+----
+HEAD 67c73a0f; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:e17fcedd3efe6ed2 over git diff HEAD (26 files, 223414 bytes) and 10 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+SEED LEDGER: a REPLAY of seeds 5405-5406 (ledger entry #52), already played in ["#51 development story seeds 5401-5406 (done, tree c77f688089877bfa, DEVELOPMENT, not graded (R1 + R2 build spec section 8 step 6, build stage 5; driver ai_player/gates/live_r1.py, in-process, file-backed throwaway profiles under s53/r1build/build/s5-dev/live, target ch1_pokedex, frames 330000, clocks pinned 2026-10-14T10:00 / 10:00). (a) seed 5401, no --memory: the pre-R1 tree (HEAD 67c73a0f) and the R1 tree gave IDENTICAL decisions, presses and frames (6,083 records, 2,606 presses, 163,462 frames, 'done: ch1_pokedex reached'), on the stage-4 tree and again on this stage's final tree; the only raw differences were the eyes' wall-clock cost text in 2 reasons and R1's progress.play_time in the full observations; the same compare against the R1 run WITH --memory differs at the first save's START (f45883), so it is not vacuous. (b) seeds 5401-5406 with --memory: every run ended 'done: ch1_pokedex reached' with its end save made; 4-6 saves a run (3-5 before ch1_pokedex), 6.3-8.9 saves per game hour; every save began on a held free screen, at a ruling-51 moment (12 centre saves at OLDALE's centre at full HP, 18 big-moment saves 12-55 frames after the proof turned true); write e4-e3 254-266 frames, first sector at e3+16..18, the AI's save line at e3-5 or e3-4 (before the clock's freeze, its stamp equal to the RAM truth's hours and minutes on all 30 saves); NEW non-empty on all 6 seeds. (c) seeds 5405-5406, live_r1's grader: K-INSIDE (FILE S1+ERROR, 7 sectors at the kill), K-SILENT (FILE S1, 0 sectors, the S2 line 14 frames before the kill), K-FIRST (FILE CORRUPT, 6 sectors) counted and passed on both seeds, child B re-run with the set budgets passed too; K-BETWEEN with the spec's midpoint rule was NOT counted on either seed (NEW empty at the kill: its memory check cannot fail); with the alternative rule (halfway between the first NEW map and S2's START) it counted and passed on both. Set from these runs: CONTINUE_BUDGET 1700 and ARRIVAL_BUDGET 320 (2x the AI's widest 825 / 159), check 6's MOMENT_FRAMES 110, child timeouts 1200 / 300 s (the floors). Evidence: s53/r1build/build/s5-dev/ (BUILD-REPORT.md stage 5 section).)"]: a REPLAY, never a second measurement (CLAUDE.md rule 8)
+ENTRY {"id": 52, "family": "story", "driver": "live_r1", "purpose": "replay", "first": 5405, "last": 5406, "status": "started", "registered": null, "bounds_sha256": "1e0b5aab4962667bec3e0b470bf81ee8542c2264098fd04152146be1146217d8", "tree": "e17fcedd3efe6ed2", "started": "2026-10-29 14:39:21", "ended": null, "verdict": null, "evidence": null, "note": "R1 + R2 build stage 6: REHEARSAL of step 7's new arms (K-AFTER's child A, the OLD arms with mutant R1-M on step 6's frozen sets, LAUNCH and LAUNCH-OLD through the real launcher) and the selftest's recorded data; a replay of development seeds, never a measurement", "replays": [51]}
+
+END: 2026-10-29 02:39:21 PM
+SECONDS: 0.5
+EXIT CODE: 0
+
+######## 14. REHEARSAL plan
+
+==== REHEARSAL plan: rehearsal-plan.out (sha256 2165dd5c59e7670e9ee5636620e0b418a6009af8b90765da2d38099315f0b893, 5977 bytes) ====
+PLAN rehearsal: 8 jobs, at most 8 at once, out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal (02:39:52 PM)
+  start K-AFTER-5405 (02:39:52 PM)
+  start K-INSIDE-OLD-5405 (02:39:52 PM)
+  start K-SILENT-OLD-5405 (02:39:52 PM)
+  start K-AFTER-5406 (02:39:52 PM)
+  start K-INSIDE-OLD-5406 (02:39:52 PM)
+  start K-SILENT-OLD-5406 (02:39:52 PM)
+K-INSIDE-OLD-5406.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5406, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-INSIDE-OLD-5406.json"}
+K-INSIDE-OLD-5405.out: exit 0; last line: LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5405, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-INSIDE-OLD-5405.json"}
+  done K-INSIDE-OLD-5405: exit 0 (02:39:58 PM)
+  done K-INSIDE-OLD-5406: exit 0 (02:39:58 PM)
+K-SILENT-OLD-5406.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5406, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-SILENT-OLD-5406.json"}
+K-SILENT-OLD-5405.out: exit 0; last line: LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5405, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-SILENT-OLD-5405.json"}
+  done K-SILENT-OLD-5405: exit 0 (02:40:00 PM)
+  done K-SILENT-OLD-5406: exit 0 (02:40:00 PM)
+K-AFTER-5406.out: exit 0; last line: LIVE ARM {"arm": "K-AFTER", "seed": 5406, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-AFTER-5406.json"}
+  done K-AFTER-5406: exit 0 (02:41:56 PM)
+K-AFTER-5405.out: exit 0; last line: LIVE ARM {"arm": "K-AFTER", "seed": 5405, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-AFTER-5405.json"}
+  done K-AFTER-5405: exit 0 (02:42:18 PM)
+  start LAUNCH-5405 (02:42:18 PM)
+  start LAUNCH-OLD-5405 (02:42:18 PM)
+LAUNCH-OLD-5405.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5405, "exit": 0, "counted": true, "pass": null, "old_shows": false, "checks": {"cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": null, "frame_base": 0, "emulator_frame": null, "game_state": null, "digest": null}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-OLD-5405.json"}
+LAUNCH-5405.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH", "seed": 5405, "exit": 0, "counted": true, "pass": false, "old_shows": null, "checks": {"cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": null, "frame_base": 0, "emulator_frame": null, "game_state": null, "digest": null}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-5405.json"}
+  done LAUNCH-5405: exit 0 (02:42:26 PM)
+  done LAUNCH-OLD-5405: exit 0 (02:42:26 PM)
+PLAN DONE: 8 jobs, exit codes not 0: none (02:42:28 PM, 156 s)
+
+######## 15. REHEARSAL LAUNCH plan (after the placeholder-brain attempt was discarded)
+
+==== REHEARSAL LAUNCH plan (after the placeholder-brain attempt was discarded): rehearsal-launch-plan.out (sha256 5b4fb15e7933b70eb3a4366d3da335fc198ca054debf0b4d8c536f6589580e29, 3679 bytes) ====
+PLAN launch: 4 jobs, at most 4 at once, out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal (02:43:31 PM)
+  start LAUNCH-5405 (02:43:31 PM)
+  start LAUNCH-OLD-5405 (02:43:31 PM)
+  start LAUNCH-5406 (02:43:31 PM)
+  start LAUNCH-OLD-5406 (02:43:31 PM)
+LAUNCH-OLD-5405.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5405, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 165194, "frame_base": 98311, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f165194 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.10ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-OLD-5405.json"}
+LAUNCH-OLD-5406.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5406, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 147939, "frame_base": 81056, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f147939 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.04ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-OLD-5406.json"}
+LAUNCH-5406.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH", "seed": 5406, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 81056, "frame_base": 81056, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f81056 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-5406.json"}
+LAUNCH-5405.out: exit 0; last line: LIVE ARM {"arm": "LAUNCH", "seed": 5405, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 98311, "frame_base": 98311, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f98311 other party=? problems=1 cost=0.06ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-5405.json"}
+  done LAUNCH-5405: exit 0 (02:43:41 PM)
+  done LAUNCH-OLD-5405: exit 0 (02:43:41 PM)
+  done LAUNCH-5406: exit 0 (02:43:41 PM)
+  done LAUNCH-OLD-5406: exit 0 (02:43:41 PM)
+PLAN DONE: 4 jobs, exit codes not 0: none (02:43:43 PM, 12 s)
+
+######## 16. REHEARSAL job outputs
+
+==== REHEARSAL job outputs: K-AFTER-5405.out (sha256 29142578ad15747de1837c9e61b1143537643c7bf1e8930d96a398a65d3f28d0, 1030 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-AFTER --seed 5405 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:39:52 PM
+----
+LIVE ARM {"arm": "K-AFTER", "seed": 5405, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-AFTER-5405.json"}
+
+END: 2026-10-29 02:42:17 PM
+SECONDS: 145.5
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: K-AFTER-5406.out (sha256 6a699fd658eb2795365f8215a5c05ce9ca7493eefbae13591aa93e5e7274033d, 1030 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py arm --arm K-AFTER --seed 5406 --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:39:52 PM
+----
+LIVE ARM {"arm": "K-AFTER", "seed": 5406, "kill": "S2.e4+40", "file": "S2", "counted": true, "pass": true, "checks": {"1_file": true, "2_identity": true, "3_memory": true, "3_restored_save": true, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": null}, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-AFTER-5406.json"}
+
+END: 2026-10-29 02:41:55 PM
+SECONDS: 123.9
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: K-INSIDE-OLD-5405.out (sha256 28019ec3dcc00cbc69e8a8e1ea7df8ed2220a8a97de88914fb5b68c775042d62, 1219 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s5-dev\live\rows\K-INSIDE-5405.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:39:52 PM
+----
+LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5405, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-INSIDE-OLD-5405.json"}
+
+END: 2026-10-29 02:39:57 PM
+SECONDS: 5.9
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: K-INSIDE-OLD-5406.out (sha256 f91a68870acac17cc54a0879f745355cd3bcfefceb25d67c8aeb24bd2cb07e63, 1219 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s5-dev\live\rows\K-INSIDE-5406.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:39:52 PM
+----
+LIVE ARM {"arm": "K-INSIDE-OLD", "seed": 5406, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-INSIDE-OLD-5406.json"}
+
+END: 2026-10-29 02:39:57 PM
+SECONDS: 5.8
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: K-SILENT-OLD-5405.out (sha256 332edbc9a760f47018b15426fea473a8cd39fa7da1b2a1d86782cb5178cd1dcb, 1219 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s5-dev\live\rows\K-SILENT-5405.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:39:52 PM
+----
+LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5405, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-SILENT-OLD-5405.json"}
+
+END: 2026-10-29 02:39:58 PM
+SECONDS: 6.2
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: K-SILENT-OLD-5406.out (sha256 ae0fc60e37183e304de8cc788e9bf6e952de636ed9f432c9ec10031789b8d5fe, 1219 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py old --twin-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s5-dev\live\rows\K-SILENT-5406.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:39:52 PM
+----
+LIVE ARM {"arm": "K-SILENT-OLD", "seed": 5406, "mutant_ran": true, "counted": true, "old_shows": true, "checks": {"1_file": true, "2_identity": true, "3_memory": false, "3_restored_save": false, "4_actions": true, "5_free_and_gap": true, "6_moments": true, "7_s2_line_first": true}, "result": null, "b_reason": "play: stopped: not finished within 2620 frames", "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\K-SILENT-OLD-5406.json"}
+
+END: 2026-10-29 02:39:58 PM
+SECONDS: 6.2
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: LAUNCH-5405.out (sha256 28fb1d710df9dcb2fb973fbbee22455b0ad43566f4525e41a98d46b8eb89b61a, 1319 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal\rows\K-AFTER-5405.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:43:31 PM
+----
+LIVE ARM {"arm": "LAUNCH", "seed": 5405, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 98311, "frame_base": 98311, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f98311 other party=? problems=1 cost=0.06ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-5405.json"}
+
+END: 2026-10-29 02:43:41 PM
+SECONDS: 10.0
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: LAUNCH-5406.out (sha256 c6650113d353845e4581cd651b6f69a8ef81cfe0701d28c253109e8e9d08e8ad, 1318 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal\rows\K-AFTER-5406.json --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:43:31 PM
+----
+LIVE ARM {"arm": "LAUNCH", "seed": 5406, "exit": 0, "counted": true, "pass": true, "old_shows": null, "checks": {"brain_is_play": true, "cold_boot_first_look": true, "title_before_continue": true, "continue_pressed": true, "purity_clean": true, "session_continued_save_2": true}, "first_look": {"log_frame": 81056, "frame_base": 81056, "emulator_frame": 0, "game_state": "UNKNOWN", "digest": "f81056 other party=? problems=1 cost=0.05ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-5406.json"}
+
+END: 2026-10-29 02:43:41 PM
+SECONDS: 9.9
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: LAUNCH-OLD-5405.out (sha256 4c3965b9d2d0cd879b072b6fe8a6c18fd8817c27d0e7a1126587b9e5bf228e7a, 1434 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal\rows\K-AFTER-5405.json --old --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:43:31 PM
+----
+LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5405, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 165194, "frame_base": 98311, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f165194 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.10ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-OLD-5405.json"}
+
+END: 2026-10-29 02:43:41 PM
+SECONDS: 9.7
+EXIT CODE: 0
+
+==== REHEARSAL job outputs: LAUNCH-OLD-5406.out (sha256 d851c19751dbe46e55b77f02c0e3df7817fe78c15b3f228599b9678648679a41, 1434 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py launch --from-row C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal\rows\K-AFTER-5406.json --old --out C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\r1build\build\s6-graded\rehearsal
+CWD: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_BUILD_ROOT']
+START: 2026-10-29 02:43:31 PM
+----
+LIVE ARM {"arm": "LAUNCH-OLD", "seed": 5406, "exit": 0, "counted": true, "pass": null, "old_shows": true, "checks": {"brain_is_play": true, "cold_boot_first_look": false, "title_before_continue": false, "continue_pressed": false, "purity_clean": true, "session_continued_save_2": false}, "first_look": {"log_frame": 147939, "frame_base": 81056, "emulator_frame": 66883, "game_state": "OVERWORLD", "digest": "f147939 overworld ROUTE 101(0,16) xy=(11,19) facing=up walking party=[Mudkip:L8 19/28] sees=[] dex=1/6 money=3300 badges=0 cost=2.04ms"}, "result": null, "row": "C:\\Users\\Ripto\\AppData\\Local\\Temp\\claude\\C--Remote-Projects-Pokebot-Gen3-Enhancement\\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\\scratchpad\\s53\\r1build\\build\\s6-graded\\rehearsal\\rows\\LAUNCH-OLD-5406.json"}
+
+END: 2026-10-29 02:43:41 PM
+SECONDS: 9.7
+EXIT CODE: 0
+
+######## 17. REHEARSAL ledger 52 finish
+
+==== REHEARSAL ledger 52 finish: ledger-replay-finish.out (sha256 e78df54fd3e50a4d06cd0925488edfb831b4724b3bbf5dbd88f8dfc45dc0bb52, 531 bytes) ====
+COMMAND: py -3.12 -B ai_player/gates/live_r1.py ledger finish --id 52 --verdict-file C:/Users/Ripto/AppData/Local/Temp/claude/C--Remote-Projects-Pokebot-Gen3-Enhancement/2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8/scratchpad/s53/r1build/build/s6-graded/verdict-replay.txt --evidence "s53/r1build/build/s6-graded/rehearsal (session scratch)"
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: []
+START: 2026-10-29 02:46:46 PM
+----
+FINISHED #52
+
+END: 2026-10-29 02:46:46 PM
+SECONDS: 0.2
+EXIT CODE: 0
+
+######## 18. THE QUICK LANE (with AI_PLAYER_TEST_SUPPORT_ROOT, as stage 5 ran it)
+
+==== THE QUICK LANE (with AI_PLAYER_TEST_SUPPORT_ROOT, as stage 5 ran it): run_regression-quick.out (sha256 b2d347d20422250bfc35b6f6f6fa220944621ef1d3ac9dd91f1203b254ddf872, 3712 bytes) ====
+COMMAND: py -3.12 -X utf8 ai_player/gates/run_regression.py --quick
+CWD: C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_ad737c3f-1d5-1
+ENV: ['AI_PLAYER_TEST_SUPPORT_ROOT', 'PYTHONIOENCODING']
+START: 2026-10-29 02:45:51 PM
+----
+  PASS              check_purity                   2.5 s  1 lines
+  PASS              test_eyes                      1.2 s  56 tests
+  PASS              test_hands                     1.9 s  57 tests
+  PASS              test_battle                    1.2 s  107 tests
+  PASS              test_evidence                 11.8 s  27 tests
+  PASS              extract_knowledge_check        0.1 s  3 lines
+  PASS              test_goals                     2.9 s  251 tests
+  PASS              extract_milestones_check       0.2 s  1 lines
+  PASS              ledger_check                   0.1 s  1 lines
+  PASS              call_census                   33.1 s  1 lines
+  PASS              check_fairness                 1.3 s  1 lines
+  PASS              check_lessons                  8.0 s  1 lines
+  PASS              disk_budget                    0.1 s  1 lines
+  PASS              test_run_regression            5.5 s  53 tests
+  PASS              test_step53_a1                 9.8 s  69 tests
+  PASS (5 skipped)  test_step53_a2                 1.4 s  34 tests
+  PASS              test_step53_rs                 2.0 s  110 tests
+  PASS              test_measure_step5             0.6 s  28 tests
+  PASS              check_grader_imports           0.3 s  1 lines
+  PASS              test_saving                    9.0 s  127 tests
+  PASS              check_paths                    0.5 s  1 lines
+  NOT-RUN           rate_step3                 graded / needs the ROM: run it deliberately
+  NOT-RUN           rate_step4                 graded / needs the ROM: run it deliberately
+  NOT-RUN           rate_step5                 graded / needs the ROM: run it deliberately
+  NOT-RUN           live_step0                 graded / needs the ROM: run it deliberately
+  NOT-RUN           live_step1                 graded / needs the ROM: run it deliberately
+  NOT-RUN           live_step2                 graded / needs the ROM: run it deliberately
+  NOT-RUN           live_step3                 graded / needs the ROM: run it deliberately
+  NOT-RUN           live_step4                 graded / needs the ROM: run it deliberately
+  NOT-RUN           live_step5                 graded / needs the ROM: run it deliberately
+  NOT-RUN           test_check_purity          not in the --quick lane
+  NOT-RUN           test_host                  not in the --quick lane
+  NOT-RUN           test_world                 not in the --quick lane
+  NOT-RUN           test_safety_gates          not in the --quick lane
+  NOT-RUN           test_kb2                   not in the --quick lane
+  NOT-RUN           revert_step3               not in the --quick lane
+  NOT-RUN           revert_safety_gates        not in the --quick lane
+  NOT-RUN           revert_step5               not in the --quick lane
+  NOT-RUN           revert_step2               not in the --quick lane
+  NOT-RUN           revert_step11              not in the --quick lane
+  NOT-RUN           revert_step4               not in the --quick lane
+  NOT-RUN           revert_r1                  not in the --quick lane
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (22 checks of 196 files, files digest f57977551b40e7b4); the covers digests of units did not move either
+REGRESSION: PASS (quick, 21 suites, 43.7 s wall)
+evidence: none written (--evidence writes it; --full always does)
+
+END: 2026-10-29 02:46:35 PM
+SECONDS: 44.2
+EXIT CODE: 0
+

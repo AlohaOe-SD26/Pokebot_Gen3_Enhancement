@@ -20,11 +20,13 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import json
 import os
 import random
 import re
 import sys
+import tempfile
 import types
 import unittest
 from dataclasses import replace
@@ -840,11 +842,12 @@ class PlayLoopTests(unittest.TestCase):
 
     def run_loop(self, screen, lose: bool = False, budget: int = 60_000, heard=(), win_training: bool = False,
                  arrived_at: int | None = None, effect=None, personality: str = "Story", settle=None,
-                 frames: int | None = None):
+                 frames: int | None = None, setup=None, play_kwargs: dict | None = None, patches: dict | None = None,
+                 world=None):
         from ai_player import mode as mode_module
         from ai_player.world.memory import Transition
 
-        world = world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101", heard=heard)
+        world = world if world is not None else world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101", heard=heard)
         if arrived_at is not None:  # (build step 5.1) a map change landed at this frame (a scene's, say)
             world.transitions.append(Transition(arrived_at, "0:1", "0:2", "warp", "scene", (7, 15), (6, 5), None))
         nav = types.SimpleNamespace(battle_log=[], take_changes=lambda: [], stats=types.SimpleNamespace(steps=0), world=world,
@@ -864,10 +867,15 @@ class PlayLoopTests(unittest.TestCase):
                 self.nav = nav_
                 self.manager = manager_
                 self.roams, self.heals, self.shopping, self.picked = [], [], [], []
+                self.saver = None  # (R1) set by the play brain when it keeps a memory file, as on the real GoalRunner
 
             def pursue(self, goal, milestone, index, current):
                 pursued.append(goal.kind)
                 hands.starts.append(hands.pad.frames)
+                if goal.kind == "save" and self.saver is not None:
+                    # (R1) the real GoalRunner's save branch (`brain/goals.py` pursue): the play brain's own save
+                    outcome = yield from self.saver(goal)
+                    return outcome.startswith("saved"), outcome
                 if effect is not None:  # (build step 5.2) what the goal brings, as the world memory sees it
                     result = effect(goal, world, self)
                     if result is not None:  # the goal's own (ok, outcome)
@@ -906,9 +914,16 @@ class PlayLoopTests(unittest.TestCase):
         # (R5's fix round, R5-F1) the run's frame budget: with `frames`, the loop is driven through the brain's REAL bound
         # (`HandsBrain._bounded`, as `play` drives `_skill`), one frame per `yield`; without it, a budget no test reaches
         brain.settings = types.SimpleNamespace(frames=frames if frames is not None else 10 ** 9)
-        with mock.patch.object(mode_module, "GoalRunner", Runner), mock.patch.object(mode_module, "play_out", play_out):
-            game = brain._play(hands, types.SimpleNamespace(name=personality))
+        if setup is not None:  # (R1) the brain's memory file and what else a test sets before the loop
+            setup(brain, hands)
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(mode_module, "GoalRunner", Runner))
+            stack.enter_context(mock.patch.object(mode_module, "play_out", play_out))
+            for name, value in (patches or {}).items():
+                stack.enter_context(mock.patch.object(mode_module, name, value))
+            game = brain._play(hands, types.SimpleNamespace(name=personality), **(play_kwargs or {}))
             reason = drive(game if frames is None else brain._bounded(game, hands), budget)
+        self.last_brain = brain
         return reason, hands, pursued, screens, brain.play_report
 
     def free_screen(self) -> Observation:
@@ -1558,6 +1573,696 @@ class PlayLoopTests(unittest.TestCase):
         self.assertTrue(any("it passed ch2_oldale while it was played out" in line for line in hands.told))
         self.assertNotIn("ch2_oldale", [m["id"] for m in report["milestones"]])  # the loop's own record, untouched
         self.assertFalse(any(line.startswith("[AI-GOALS] MILESTONE ch2_oldale") for line in hands.told))
+
+    # ---- (R1 + R2, build stage 4: build spec 2026-10-29 sections 3 (c)-(d), 4) THE SAVE WIRING, through the REAL loop:
+    # `save_game` stands in for the game's dialog (`r1_saver`: the write's first look calls `on_writing`, 400 frames, then
+    # `on_saved`); the memory file is REAL (`game_memory.py`, in a temporary folder). Mutants G374-G392 (revert_step5).
+    def r1_setup(self, folder: Path, saving: bool = True, cart: str = "empty", writer=None):
+        """The brain's memory file, as `_open_memory` sets it for a run that keeps one (D14); `saving` False is the
+        no-save CONTROL's state (`AI_PLAYER_FAULT_NO_SAVE`)."""
+        def setup(brain, hands) -> None:
+            brain.options.cart, brain.options.host, brain.options.run_dir = cart, "harness", None
+            brain._memory_path = folder / "ai_player" / "memory.jsonl"
+            brain._saving = saving
+            if writer is not None:
+                brain._writer = writer(brain)
+        return setup
+
+    @staticmethod
+    def r1_timed(seen: Observation, play_time) -> Observation:
+        return replace(seen, progress=replace(seen.progress, play_time=play_time))
+
+    @staticmethod
+    def r1_saver(calls: list):
+        def fake_save_game(hands, why, cart_is_own, frames_left, on_writing, on_saved):
+            seen = hands.look()
+            calls.append({"why": why, "own": cart_is_own, "left": frames_left(), "pad": hands.pad.frames})
+            written = on_writing(seen.progress.play_time, seen)
+            hands.pad.frames += 400
+            yield
+            on_saved(hands.look())
+            hands.pad.presses += 3
+            return "saved" if written is not False else "stuck: the memory of this save could not be written (the game saved)"
+        return fake_save_game
+
+    def r1_moment_looks(self) -> tuple[Observation, Observation]:
+        """The story AT ch1_lab (play time 0:10), then past it (0:20): ch1_lab, a big story moment, is passed."""
+        before = self.r1_timed(look(ch1_through("ch1_lab"), party=[mon(6)], const="ROUTE101"), (0, 10))
+        after = self.r1_timed(look(ch1_through("ch1_rival_route103"), party=[mon(6)], const="ROUTE101"), (0, 20))
+        return before, after
+
+    def test_r1_a_save_goal_after_a_big_moment(self):
+        """D3 through the loop: ch1_lab passed (`_milestone_line` -> `after_milestones`, ids only) makes a save due; the
+        next decision's block 1b chooses a `save` goal; the runner plays it through the brain's `_save`; the save's line is
+        in the memory file (its header and session line first), stamped with the SAVING look's play time, and the policy
+        records it (no second save). FAULT half (the no-save CONTROL's state): no save goal, no file."""
+        from ai_player.game_memory import read_book
+
+        before, after = self.r1_moment_looks()
+        with tempfile.TemporaryDirectory(prefix="ai_r1_loop_") as tmp:
+            folder = Path(tmp)
+            calls: list = []
+            reason, hands, pursued, _, report = self.run_loop(lambda frames: before if frames < 1500 else after,
+                                                              budget=20_000, setup=self.r1_setup(folder),
+                                                              patches={"save_game": self.r1_saver(calls)})
+            self.assertEqual(pursued.count("save"), 1, pursued)
+            self.assertEqual(len(calls), 1)
+            self.assertIn("ch1_lab", calls[0]["why"])
+            self.assertTrue(calls[0]["own"])  # an `empty` cart is this game's own (D17)
+            self.assertIsInstance(calls[0]["left"], int)  # the run's frames left, for the skill's commit check
+            self.assertGreater(calls[0]["left"], 10 ** 8)
+            book = read_book(folder / "ai_player" / "memory.jsonl")
+            self.assertEqual([line["kind"] for line in book.lines], ["header", "session", "save", "saved"])
+            save = book.saves()[0]
+            self.assertEqual((save["id"], save["play_time"], save["full"]), (1, [0, 20], True))
+            self.assertEqual(save["party"], [{"pid": "00000001", "species": "Mudkip"}])
+            self.assertEqual(save["where"], {"map": "ROUTE101", "tile": [10, 10]})
+            # the payload's parts (D16): the goal manager's KEEP fields, the personality, the battle mind
+            memory = save["memory"]
+            self.assertEqual(sorted(memory["world"]["maps"]), ["0:1", "0:2"])  # the world memory, by its maps
+            self.assertIn("talked", memory["goals"])
+            self.assertEqual(memory["personality"]["base"], "Story")
+            self.assertEqual(set(memory["battle"]), {"wishes", "met", "wild_met"})
+            self.assertTrue(book.header_line["game"].startswith(f"{folder.name}|"), book.header_line)
+            # L3 (a)-(b): the registry, filled by the brain's watcher, is in the payload: the party's PID, its species
+            self.assertEqual({pid: (entry["species"], entry["how"]) for pid, entry in save["memory"]["mons"].items()},
+                             {"00000001": ("Mudkip", "starter")})
+            self.assertEqual(report["saves"][0]["outcome"], "saved")
+            self.assertEqual(self.last_brain._policy.goal_memory.last_save["id"], 1)
+            # a save is counted apart (T4): its decision's pause and its 400 frames
+            self.assertEqual(report["spent"].get("save"), hands.pad.think_frames() + 400)
+            self.assertTrue(reason.startswith("stuck: no progress"), reason)
+        with tempfile.TemporaryDirectory(prefix="ai_r1_loop_") as tmp:
+            calls = []
+            _, _, pursued, _, report = self.run_loop(lambda frames: before if frames < 1500 else after, budget=20_000,
+                                                     setup=self.r1_setup(Path(tmp), saving=False),
+                                                     patches={"save_game": self.r1_saver(calls)})
+            self.assertNotIn("save", pursued)
+            self.assertEqual(calls, [])
+            self.assertFalse((Path(tmp) / "ai_player" / "memory.jsonl").exists())
+            self.assertNotIn("saves", report)
+
+    def test_r1_a_save_goal_after_a_center_heal(self):
+        """D3 through the loop: a heal goal that HEALED at a POKéMON CENTER (`_after_heal` -> the policy) makes a save due,
+        and the next decision, on the centre's map with the party healed, saves there. FAULT half: a heal goal that did
+        NOT heal (the party healed some other way meanwhile) makes no due and no save."""
+        hurt = self.r1_timed(look(ch1_through("ch1_rival_route103"), party=[mon(6, hp=2)], const="ROUTE101"), (0, 10))
+        healthy = self.r1_timed(look(ch1_through("ch1_rival_route103"), party=[mon(6)], const="ROUTE101"), (0, 20))
+        for center, saves in ((True, 1), (False, 0)):
+            with self.subTest(center=center), tempfile.TemporaryDirectory(prefix="ai_r1_heal_") as tmp:
+                world = world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101", center_from="ROUTE101")
+                inside = next(key for key, memory in world.maps.items() if memory.const.endswith("POKEMON_CENTER_1F"))
+                state = {"healed": False}
+
+                def effect(goal, world_, runner, center=center):
+                    if goal.kind != "heal":
+                        return None
+                    world_._last.key = inside  # noqa: SLF001 - test side: it walked into the place it heals at
+                    state["healed"] = True
+                    return (True, "healed") if center else (False, "the nurse was not reached")
+
+                calls: list = []
+                _, _, pursued, _, _ = self.run_loop(lambda frames: healthy if state["healed"] else hurt, budget=20_000,
+                                                    effect=effect, world=world, setup=self.r1_setup(Path(tmp)),
+                                                    patches={"save_game": self.r1_saver(calls)})
+                self.assertEqual(pursued[0], "heal", pursued[:3])
+                self.assertEqual(len(calls), saves, pursued[:5])
+                if saves:
+                    self.assertEqual(pursued[1], "save")  # the decision right after the heal, in the centre
+                    self.assertIn("POKéMON CENTER", calls[0]["why"])
+
+    def test_r1_fault_no_save_is_the_old_loop(self):
+        """D14's A/B at the loop: the no-save CONTROL with a memory file plays EXACTLY the pre-R1 loop (no memory file):
+        the same goals, the same frames, the same lines; with saving on, the same story differs by its save."""
+        before, after = self.r1_moment_looks()
+        script = lambda frames: before if frames < 1500 else after  # noqa: E731
+        runs = []
+        for setup in (None, "control", "saving"):
+            with tempfile.TemporaryDirectory(prefix="ai_r1_ab_") as tmp:
+                chosen = None if setup is None else self.r1_setup(Path(tmp), saving=setup == "saving")
+                reason, hands, pursued, _, _ = self.run_loop(script, budget=20_000, setup=chosen,
+                                                             patches={"save_game": self.r1_saver([])})
+                runs.append((reason, pursued, hands.pad.frames, [l for l in hands.told if "MILESTONE" not in l]))
+        self.assertEqual(runs[0], runs[1])
+        self.assertNotEqual(runs[0][1], runs[2][1])
+
+    def test_r1_no_save_goal_while_hurt(self):
+        """Block 1b waits while the party is hurt (a person heals first); healthy, the same due is a save goal. The hurt
+        party is at 40% (under every personality's `heal_below`, above `needs_rest`'s third) with no place to heal known:
+        block 1 returns NO heal goal, so only the hurt guard keeps the save back (G375)."""
+        from ai_player.brain.saving import SavePolicy
+
+        mgr = manager()
+        mgr.saving, mgr.frames_left = SavePolicy(mgr.memory), lambda: 10 ** 6
+        mgr.saving.after_milestones(["ch1_lab"])
+        world = world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101")
+        healthy = self.r1_timed(look(ch1_through("ch1_rival_route103"), party=[mon(6)]), (0, 20))
+        hurt = replace(healthy, party=(mon(6, hp=8),))
+        index, milestone = mgr.milestone(healthy, visited_in(world))
+        self.assertTrue(mgr.hurt(hurt))
+        self.assertNotIn(mgr.next_goal(hurt, world, milestone, index).kind, ("save", "heal", "find_center"))
+        goal = mgr.next_goal(healthy, world, milestone, index)
+        self.assertEqual((goal.kind, goal.key), ("save", "save:moment"))
+        # CONTROL: without a save policy (no memory file) the healthy decision is never a save
+        plain = manager()
+        self.assertNotEqual(plain.next_goal(healthy, world, milestone, index).kind, "save")
+
+    def test_r1_a_save_before_the_leader_takes_the_story_goals_place(self):
+        """Block 8's wiring: when the story goal is the TALK, the policy is asked (`before_leader`, with the story goal)
+        and its save goal comes in the talk's place; any other story goal is returned as it is."""
+        from ai_player.brain.goals import Goal
+        from ai_player.brain.saving import SaveChoice
+
+        asked: list = []
+
+        class Policy:
+            def next_save(self, look_, here, left):
+                return None
+
+            def before_leader(self, look_, world_, milestone_, step, story_goal, left):
+                asked.append((story_goal.kind, left))
+                return SaveChoice("leader", "a save: right before the leader", "save:leader:ch4_roxanne", "ch4_roxanne") \
+                    if story_goal.kind == "talk" else None
+
+        mgr = manager()
+        mgr.saving, mgr.frames_left = Policy(), lambda: 4321
+        world = world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101")
+        seen = self.r1_timed(look(ch1_through("ch1_rival_route103"), party=[mon(6)]), (0, 20))
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        for kind, expect in (("talk", "save"), ("go", "go")):
+            with mock.patch.object(mgr, "_story_goal", lambda *a, kind=kind: Goal(kind, "the story", milestone.id,
+                                                                                  key=f"{kind}:x")):
+                self.assertEqual(mgr.next_goal(seen, world, milestone, index).kind, expect)
+        self.assertEqual(asked, [("talk", 4321), ("go", 4321)])  # with the run's frames left
+
+    def test_r1_the_end_save_when_due(self):
+        """T8: the target (ch1_pokedex, a big moment) reached: after the settle, the due save is made before "done"; the
+        end record says `saved_at_end`. CONTROL (too few frames left in the run's budget): no save, SAID, still "done"."""
+        from ai_player.game_memory import read_book
+
+        at_target = self.r1_timed(look(ch1_through("ch1_pokedex"), party=[mon(9)], const="ROUTE101"), (0, 10))
+        past = self.r1_timed(look(ch1_through("ch2_oldale"), party=[mon(9)], const="ROUTE101"), (0, 20))
+        script = lambda frames: at_target if frames < 1500 else past  # noqa: E731
+        with tempfile.TemporaryDirectory(prefix="ai_r1_end_") as tmp:
+            calls: list = []
+            reason, hands, pursued, _, report = self.run_loop(script, budget=20_000, setup=self.r1_setup(Path(tmp)),
+                                                              patches={"save_game": self.r1_saver(calls)})
+            self.assertEqual(reason, "done: ch1_pokedex reached")
+            self.assertEqual(len(calls), 1)
+            self.assertNotIn("save", pursued)  # the end save, not a goal
+            self.assertIn("ch1_pokedex", calls[0]["why"])
+            self.assertTrue(report["end_save"]["saved"])
+            self.assertTrue(report["end_screen"]["saved_at_end"])
+            self.assertGreaterEqual(calls[0]["pad"], report["settle"]["frames"])  # after the settle's pause
+            self.assertEqual(len(read_book(Path(tmp) / "ai_player" / "memory.jsonl").saves()), 1)
+        with tempfile.TemporaryDirectory(prefix="ai_r1_end_") as tmp:
+            calls = []
+            reason, hands, _, _, report = self.run_loop(script, budget=20_000, setup=self.r1_setup(Path(tmp)),
+                                                        patches={"save_game": self.r1_saver(calls)}, frames=4000)
+            self.assertEqual(reason, "done: ch1_pokedex reached")
+            self.assertEqual(calls, [])
+            self.assertFalse(report["end_save"]["saved"])
+            self.assertFalse(report["end_screen"]["saved_at_end"])
+            self.assertTrue(any("no save before putting the game down" in line for line in hands.told), hands.told[-5:])
+
+    def test_r1_an_unwritten_save_line_ends_the_run(self):
+        """Section 3 (c): a save line that did not reach the file ends the run "stuck" right after the save (a save the
+        memory does not know would stop the next continue). CONTROL: the line reached it, the run goes on."""
+        from ai_player.game_memory import MemoryWriter
+
+        before, after = self.r1_moment_looks()
+
+        def broken(brain):
+            writer = MemoryWriter(brain._memory_path, None, header={"game": "t", "identity": {}},
+                                  session=brain._session("new game", "empty"))
+            writer.records = types.SimpleNamespace(written=0, append=lambda record: None, path=brain._memory_path)
+            return writer
+
+        with tempfile.TemporaryDirectory(prefix="ai_r1_unwritten_") as tmp:
+            reason, _, pursued, _, _ = self.run_loop(lambda frames: before if frames < 1500 else after, budget=20_000,
+                                                     setup=self.r1_setup(Path(tmp), writer=broken),
+                                                     patches={"save_game": self.r1_saver([])})
+            self.assertEqual(reason, "stuck: the memory of this save could not be written (the game saved)")
+            self.assertEqual(pursued[-1], "save")
+
+    def test_r1_the_loss_count_is_restored_and_each_loss_is_a_line(self):
+        """T5 and D12 (e): a continue whose save had 2 battles lost ends at the FIRST new loss (MAX_LOSSES 3), and each
+        loss is a `lost` line. FAULT half: with no restore the same loop loses MAX_LOSSES battles of its own."""
+        from ai_player.brain.goals import _Memory
+        from ai_player.game_memory import MemoryWriter, MonRegistry, goals_part, read_book
+
+        restored = types.SimpleNamespace(personality={"base": "Story", "favourite": "ZIGZAGOON", "history": [], "draws": 3},
+                                         battle={"wishes": {}, "met": {"MAY": 1}, "wild_met": 5}, mons=MonRegistry(),
+                                         goals=goals_part(_Memory(talked={"0:1|9"})), losses=2)
+        with tempfile.TemporaryDirectory(prefix="ai_r1_losses_") as tmp:
+            def writer(brain):
+                made = MemoryWriter(brain._memory_path, None, header={"game": "t", "identity": {}},
+                                    session=brain._session("new game", "empty"))
+                made.write_save(play_time=(0, 5), frame=1, where={"map": "ROUTE101", "tile": [10, 10]}, party=[],
+                                why="a test", payload={"world": {}, "losses": 2})
+                return made
+
+            reason, hands, pursued, _, report = self.run_loop(self.r1_timed(self.free_screen(), (0, 30)), lose=True,
+                                                              setup=self.r1_setup(Path(tmp), writer=writer),
+                                                              play_kwargs={"restored": restored})
+            self.assertEqual(reason, f"stuck: {MAX_LOSSES} battles lost (MAX_LOSSES {MAX_LOSSES})")
+            self.assertEqual(len(pursued), 1)
+            self.assertEqual(report["losses"], MAX_LOSSES)
+            self.assertFalse(any("the loop counted" in line for line in hands.told))
+            lost = [line for line in read_book(Path(tmp) / "ai_player" / "memory.jsonl").lines if line["kind"] == "lost"]
+            self.assertEqual([(line["after_save"], line["play_time"]) for line in lost], [(1, [0, 30])])
+            # D16: what it remembers, its personality and its battle mind, as of the save
+            kept_manager, kept_state, kept_mind = self.last_brain._kept
+            self.assertIn("0:1|9", kept_manager.memory.talked)
+            self.assertEqual((kept_state.draws, kept_state.favourite), (3, "ZIGZAGOON"))
+            self.assertEqual((kept_mind.wild_met, kept_mind.met), (5, {"MAY": 1}))
+            self.assertIs(self.last_brain._registry, restored.mons)
+        reason, _, pursued, _, _ = self.run_loop(self.free_screen(), lose=True)
+        self.assertEqual(len(pursued), MAX_LOSSES)
+
+    def test_r1_continue_mode_never_plays_the_intro(self):
+        """Section 3 (e): a CONTINUED game that meets the title never plays the New Game intro: the run ends "stuck".
+        FAULT half: the same title in a new game plays the intro."""
+        title = replace(look(), player=None, progress=None)
+        intro: list = []
+
+        def fake_intro(hands, personality):
+            intro.append(hands.pad.frames)
+            hands.pad.frames += 10
+            yield
+            return "the intro did not finish"
+
+        reason, *_ = self.run_loop(title, budget=2000, patches={"play_intro": fake_intro},
+                                   setup=lambda brain, hands: setattr(brain, "_continued", object()))
+        self.assertEqual(intro, [])
+        self.assertIn("never starts a New Game", reason)
+        reason, *_ = self.run_loop(title, budget=2000, patches={"play_intro": fake_intro})
+        self.assertEqual(len(intro), 1)
+
+    def r1_menu_hands(self, script):
+        """Hands whose pad also PRESSES (recorded), for `_story_menu`'s save screens."""
+        hands = _LoopHands(script)
+        hands.pressed = []
+
+        def press(button, why, gate):
+            hands.pressed.append((button, gate))
+            hands.pad.frames += 2
+            yield
+            yield
+
+        hands.pad.press = press
+        return hands
+
+    def test_r1_a_save_dialog_met_by_the_loop_gets_no_press(self):
+        """D13 (finding F6): a save page the loop meets (`on_menu` -> `_story_menu`) is waited out with NO press: 400 still
+        frames of a write and the run goes on once it has gone (True); one that never goes is left unhandled after
+        `SAVE_PAGE_WAIT` frames (False), still with no press. CONTROL: an unknown menu is not the loop's (False at once)."""
+        from ai_player.eyes.observation import MenuView
+        from ai_player.mode import SAVE_PAGE_WAIT
+
+        page = replace(self.free_screen(), screen=replace(self.free_screen().screen,
+                                                          ui=MenuView("save_dialog", accepts_input=False),
+                                                         text="SAVING… DON'T TURN OFF THE POWER."))
+        brain = HandsBrain.__new__(HandsBrain)
+        hands = self.r1_menu_hands(lambda frames: page if frames < 400 else self.free_screen())
+        self.assertTrue(drive(brain._story_menu(hands, "save_dialog", "a scene", "MUDKIP"), 1000))
+        self.assertEqual(hands.pressed, [])
+        self.assertGreaterEqual(hands.pad.frames, 400)
+        hands = self.r1_menu_hands(page)
+        self.assertFalse(drive(brain._story_menu(hands, "save_dialog", "a scene", "MUDKIP"), 5000))
+        self.assertEqual(hands.pressed, [])
+        self.assertGreaterEqual(hands.pad.frames, SAVE_PAGE_WAIT)
+        self.assertFalse(drive(brain._story_menu(self.r1_menu_hands(page), "a_menu_nobody_knows", "x", "MUDKIP")))
+
+    def test_r1_a_start_menu_left_open_is_closed(self):
+        """D13: a START menu (or a save question) left open and TAKING INPUT is closed with ONE B, told. CONTROL: one
+        that does not take input (being built) gets no press."""
+        from ai_player.eyes.observation import MenuView
+
+        base = self.free_screen()
+        for kind in ("start_menu", "save_yes_no"):
+            with self.subTest(kind):
+                menu = replace(base, screen=replace(base.screen, ui=MenuView(kind, ("YES", "NO"), 0, True)))
+                hands = self.r1_menu_hands(menu)
+                brain = HandsBrain.__new__(HandsBrain)
+                self.assertTrue(drive(brain._story_menu(hands, kind, "a scene", "MUDKIP")))
+                self.assertEqual([button for button, _ in hands.pressed], ["B"])
+                self.assertTrue(any("B" in line for line in hands.told))
+        building = replace(base, screen=replace(base.screen, ui=MenuView("start_menu", ("SAVE",), 0, False)))
+        hands = self.r1_menu_hands(building)
+        self.assertTrue(drive(HandsBrain.__new__(HandsBrain)._story_menu(hands, "start_menu", "a scene", "MUDKIP")))
+        self.assertEqual(hands.pressed, [])
+
+    def test_r1_the_runner_plays_a_save_goal_through_its_saver(self):
+        """`GoalRunner.pursue`'s save branch: the play brain's saver plays it; "saved" is done, anything else not; with no
+        saver (no memory file) no save is played."""
+        from ai_player.brain.goals import Goal, GoalRunner
+
+        runner = GoalRunner(None, None, None, None, lambda line: None)
+        goal = Goal("save", "a save: a test", "ch1_lab", key="save:moment")
+        self.assertEqual(drive(runner.pursue(goal, None, 0, None)), (False, "no way to save: the run keeps no memory file"))
+        played: list = []
+
+        def saver(outcome):
+            def play(given):
+                played.append(given)
+                yield
+                return outcome
+            return play
+
+        runner.saver = saver("saved")
+        self.assertEqual(drive(runner.pursue(goal, None, 0, None)), (True, "saved"))
+        runner.saver = saver("not saved: a saved file it does not know")
+        self.assertEqual(drive(runner.pursue(goal, None, 0, None))[0], False)
+        self.assertEqual(played, [goal, goal])
+
+    def test_r1_a_continue_from_a_leader_save_makes_no_second_save_before_the_talk(self):
+        """(R1 fix round, review R-1) The save right before ROXANNE is made by the REAL `HandsBrain._save` (its memory line
+        written at the START of the write, the policy's record on the SAVED page; `save_game` stands in for the dialog),
+        then CONTINUED: the memory as of that save (`game_memory.restore`, `restore_goals`) remembers THAT save as its last
+        (`last_save` id 1, equal to the live one) and the approach as saved for, so the goal manager's block 8 returns the
+        TALK, not a second save, at once (the 3-minute rule) and 30 game minutes later (D3: once per approach). FAULT (the
+        code before the fix): the line held the save before it (none here) and no `saved_for`, so the continued game saved
+        again at once. CONTROL: a NEW approach (it left the gym and came back) does save again, so the rule is live."""
+        from ai_player import mode as mode_module
+        from ai_player.brain.goals import Goal, GoalManager
+        from ai_player.brain.saving import SavePolicy
+        from ai_player.game_memory import MemoryWriter, MonRegistry, read_book, restore, restore_goals
+        from ai_player.world.memory import Transition
+
+        def gym(world: WorldMemory, entries) -> WorldMemory:
+            world.transitions = [Transition(frame, "0:1", "0:2", "warp", "ai", (5, 5), (5, 10), None) for frame in entries]
+            world._last.key, world._last.xy = "0:2", (5, 10)  # noqa: SLF001 - test side: it stands in the gym
+            return world
+
+        def decide(mgr: GoalManager, world: WorldMemory, play_time) -> str:
+            seen = self.r1_timed(look(ch1_through("ch1_rival_route103"), party=[mon(9)], const="RUSTBORO_CITY_GYM",
+                                      frame=9000), play_time)
+            milestone = next(m for m in mgr.story.milestones if m.id == "ch4_roxanne")
+            talk = Goal("talk", "talk to the leader of RUSTBORO_CITY_GYM", milestone.id, map="RUSTBORO_CITY_GYM",
+                        key="talk:ch4_roxanne")
+            with mock.patch.object(mgr, "_story_goal", lambda *a: talk):
+                return mgr.next_goal(seen, world, milestone, mgr.story.milestones.index(milestone)).kind
+
+        def policy_for(mgr: GoalManager) -> None:
+            mgr.saving, mgr.frames_left = SavePolicy(mgr.memory), lambda: 10 ** 6
+
+        live = manager(errands_off=True, train_off=True, hints_off=True)
+        policy_for(live)
+        world = gym(world_with("RUSTBORO_CITY", "RUSTBORO_CITY_GYM"), (5000,))
+        self.assertEqual(decide(live, world, (1, 0)), "save")  # REACH: the save right before the leader is chosen
+        with tempfile.TemporaryDirectory(prefix="ai_r1_leader_") as tmp:
+            path = Path(tmp) / "game" / "ai_player" / "memory.jsonl"
+            brain = HandsBrain.__new__(HandsBrain)
+            brain.options, brain.settings, brain.world = types.SimpleNamespace(cart="empty"), types.SimpleNamespace(
+                frames=10 ** 9), world
+            brain._registry, brain._policy = MonRegistry(), live.saving
+            brain._kept = (live, types.SimpleNamespace(base="Story", favourite="X", history=[], draws=0),
+                           types.SimpleNamespace(wishes={}, met={}, wild_met=0))
+            brain._writer = MemoryWriter(path, None, header={"game": "t", "identity": {}},
+                                         session={"how": "new game", "host": "harness", "run_dir": None, "cart": "empty"})
+            hands = _LoopHands(self.r1_timed(look(ch1_through("ch1_rival_route103"), party=[mon(9)],
+                                                  const="RUSTBORO_CITY_GYM", frame=9000), (1, 0)))
+            calls: list = []
+            with mock.patch.object(mode_module, "save_game", self.r1_saver(calls)):
+                outcome = drive(brain._save(hands, "a save: right before the leader", {"losses": 0}))
+            self.assertEqual((outcome, len(calls)), ("saved", 1))
+            self.assertEqual(decide(live, world, (1, 1)), "talk")  # the live game: saved for this approach
+            book = read_book(path)
+            restored = restore(book, 1)
+            again = manager(errands_off=True, train_off=True, hints_off=True)
+            again.memory = restore_goals(again.memory, restored.goals)
+            policy_for(again)
+            continued = gym(WorldMemory.from_dict(restored.world), (5000,))
+            self.assertEqual([t.frame for t in continued.transitions], [5000])  # the approach, as of the save
+            self.assertEqual(decide(again, continued, (1, 0)), "talk")  # FAULT (before the fix): "save", at once
+            self.assertEqual(decide(again, continued, (1, 30)), "talk")  # D3: once per approach
+            self.assertEqual(again.memory.last_save, live.memory.last_save)  # the memory AS OF save 1 knows save 1
+            self.assertEqual(again.memory.last_save["id"], book.saves()[-1]["id"])
+            self.assertEqual(again.memory.last_save["frame"], book.saves()[-1]["frame"])
+            self.assertEqual(again.memory.saved_for, {"ch4_roxanne": 5000})
+            self.assertEqual(decide(again, gym(continued, (5000, 12000)), (1, 30)), "save")  # CONTROL: a new approach
+
+
+class _StepEyes:
+    """Eyes for `HandsBrain.play`: `seen` at a frame that rises by one per look (the emulator's counter)."""
+
+    def __init__(self, seen: Observation) -> None:
+        self.seen = seen
+        self.looks = 0
+
+    def look(self) -> Observation:
+        self.looks += 1
+        return replace(self.seen, frame=self.seen.frame + self.looks)
+
+
+class R1PlayTests(unittest.TestCase):
+    """(R1 + R2, build stage 4: build spec 2026-10-29 sections 3 (c), (e)) `HandsBrain.play` with a memory file, its
+    skill stood in (`_skill`, `_play`, `continue_game` patched) and the memory file REAL: a newer file refuses the run
+    byte-identical; a new game on a game that has a memory file is refused; the no-save CONTROL never reads it; the `end`
+    line says chosen / budget / at_save; a CONTINUE restores the memory AS OF its save, writes the restore record (the
+    session line, the world snapshot) BEFORE the play loop's first look, plays on the restored world, and its eyes carry
+    the FRAME BASE (D7); a continue that stops ends "stuck" with its session line and a chosen end line."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp(prefix="ai_r1_play_"))
+        self.addCleanup(__import__("shutil").rmtree, self.tmp, True)
+        self.memory_file = self.tmp / "game" / "ai_player" / "memory.jsonl"
+        self.seen = replace(look(ch1_through("ch1_rival_route103"), party=[mon(6)], const="ROUTE101"), frame=100)
+
+    def options(self, **extra):
+        from ai_player.options import HandsOptions
+
+        base = dict(brain="play", run_dir=self.tmp / "run", seed=7, personality="Story", mart_item="x", mart_count=1,
+                    clock=None, fault_ungated_a=False, fault_blind_count=False, memory_file=self.memory_file, cart="empty",
+                    host="harness")
+        base.update(extra)
+        return HandsOptions(**base)
+
+    def play(self, eyes=None, frames: int = 5000, **extra) -> tuple[str, HandsBrain, list[str]]:
+        from ai_player.mode import BrainSettings
+
+        told: list[str] = []
+        brain = HandsBrain(BrainSettings(frames=frames), told.append, self.options(**extra))
+        reason = drive(brain.play(_Controls(), eyes or _StepEyes(self.seen)), 20_000)
+        return reason, brain, told
+
+    def a_game(self, losses: int = 0) -> dict:
+        """A memory file of one new game with one save (world, goals, losses), as a run writes it."""
+        from ai_player.brain.goals import _Memory
+        from ai_player.game_memory import MemoryWriter, build_payload, goals_part
+
+        world = world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101")
+        payload = build_payload(world=world.to_dict(), goals=goals_part(_Memory(talked={"0:1|3"})),
+                                personality={"base": "Story", "favourite": "ZIGZAGOON", "history": [], "draws": 2},
+                                battle={"wishes": {}, "met": {"MAY": 1}, "wild_met": 4}, mons={}, losses=losses)
+        writer = MemoryWriter(self.memory_file, None,
+                              header={"game": "t|x", "identity": {"seed": 7, "personality": "Trainer", "favourite": "X",
+                                                                  "starter": "MUDKIP", "gender": "BOY", "name": None}},
+                              session={"how": "new game", "host": "harness", "run_dir": None, "cart": "empty"})
+        written = writer.write_save(play_time=(0, 20), frame=5000, where={"map": "ROUTE101", "tile": [10, 10]},
+                                    party=[{"pid": "00000001", "species": "Mudkip"}], why="a test save", payload=payload)
+        self.assertTrue(written.reached)
+        return payload
+
+    def test_r1_a_newer_memory_file_refuses_the_run_byte_identical(self):
+        self.a_game()
+        text = self.memory_file.read_bytes().replace(b'"schema_version":1', b'"schema_version":2', 1)
+        self.memory_file.write_bytes(text)
+        with mock.patch.object(HandsBrain, "_skill", side_effect=AssertionError("the skill must not run")):
+            reason, _, _ = self.play()
+        self.assertTrue(reason.startswith("play: stuck: the memory file was written by a newer program"), reason)
+        self.assertEqual(self.memory_file.read_bytes(), text)
+        with mock.patch.object(HandsBrain, "_skill", side_effect=AssertionError("the skill must not run")):
+            reason, _, _ = self.play(continue_game=True, cart="continued")
+        self.assertIn("newer program", reason)
+        self.assertEqual(self.memory_file.read_bytes(), text)
+
+    def fake_skill(self, press_after: bool = False, outcome: str = "done: ch1_pokedex reached"):
+        def skill(brain, hands, personality):
+            from ai_player.game_memory import MemoryWriter
+
+            brain._writer = MemoryWriter(brain._memory_path, None, header={"game": "t", "identity": {}},
+                                         session=brain._session("new game", "empty"))
+            brain._writer.write_save(play_time=(0, 9), frame=hands.look().frame, where={"map": "R", "tile": [1, 1]},
+                                     party=[], why="x", payload={"world": {}})
+            brain._at_save_presses = hands.pad.presses
+            if press_after:
+                yield from hands.pad.press("B", "after the save", "a test")
+            yield from hands.pad.idle(2, "a test")
+            return outcome
+        return skill
+
+    def test_r1_the_end_line_says_chosen_budget_and_at_save(self):
+        from ai_player.game_memory import read_book
+
+        with mock.patch.object(HandsBrain, "_skill", self.fake_skill()):
+            reason, brain, _ = self.play()
+        self.assertEqual(reason, "play: done: ch1_pokedex reached")
+        self.assertIsNotNone(brain.world)  # a new game's world memory is started before its skill (not a continue)
+        end = read_book(self.memory_file).end_of(1)
+        self.assertEqual((end["chosen"], end["budget"], end["at_save"]), (True, False, True))
+        self.memory_file.unlink()
+        with mock.patch.object(HandsBrain, "_skill", self.fake_skill(press_after=True,
+                                                                     outcome="stopped: not finished within 5000 frames")):
+            self.play()
+        end = read_book(self.memory_file).end_of(1)
+        self.assertEqual((end["chosen"], end["budget"], end["at_save"]), (False, True, False))  # a press after the save
+
+    def test_r1_a_new_game_on_an_existing_memory_is_refused(self):
+        self.a_game()
+        text = self.memory_file.read_bytes()
+        with mock.patch.object(HandsBrain, "_skill", side_effect=AssertionError("the skill must not run")):
+            reason, _, _ = self.play()
+        self.assertIn("already has a memory file", reason)
+        self.assertEqual(self.memory_file.read_bytes(), text)
+        # CONTROL: the no-save CONTROL never even reads it (the pre-R1 loop): the skill runs
+        with mock.patch.object(HandsBrain, "_skill", self.fake_skill_plain()):
+            reason, brain, _ = self.play(fault_no_save=True)
+        self.assertEqual(reason, "play: done: x")
+        self.assertEqual((brain._saving, brain._book, brain._writer), (False, None, None))
+        self.assertEqual(self.memory_file.read_bytes(), text)
+
+    @staticmethod
+    def fake_skill_plain():
+        def skill(brain, hands, personality):
+            yield from hands.pad.idle(2, "a test")
+            return "done: x"
+        return skill
+
+    def test_r1_a_continue_restores_as_of_its_save_before_the_first_look(self):
+        from ai_player.game_memory import read_book
+        from ai_player.skills.saving import ContinueResult
+        from ai_player import mode as mode_module
+
+        payload = self.a_game(losses=1)
+        book_before = read_book(self.memory_file)
+        base = book_before.frame_base()
+        seen: dict = {}
+
+        def fake_continue(hands, book, why):
+            seen["frame"] = hands.look().frame
+            yield from hands.pad.idle(2, "the title")
+            return ContinueResult("continued", "continued the save of 0:20", record=book.save(1), newest=True,
+                                  arrival={"where": {"map": "ROUTE101", "tile": [10, 10]}, "party": []})
+
+        def fake_play(brain, hands, personality, restored=None, stop=None):
+            seen["restored"], seen["stop"] = restored, stop
+            seen["kinds"] = [line["kind"] for line in read_book(brain._memory_path).lines]
+            seen["world_lines"] = len((brain.options.run_dir / "world.jsonl").read_text(encoding="utf-8").splitlines())
+            seen["maps"] = sorted(brain.world.maps)
+            seen["looks"] = hands.looks
+            yield from hands.pad.idle(2, "a test")
+            return "stopped: a test"
+
+        eyes = _StepEyes(self.seen)
+        with mock.patch.object(mode_module, "continue_game", fake_continue), \
+                mock.patch.object(HandsBrain, "_play", fake_play):
+            reason, brain, told = self.play(eyes=eyes, continue_game=True, cart="continued", personality=None)
+        self.assertEqual(reason, "play: stopped: a test")
+        self.assertGreaterEqual(seen["frame"], base + 1)  # D7: the emulator's frame plus the base
+        self.assertEqual(base, 5001)
+        self.assertIsNone(seen["stop"])
+        self.assertEqual(seen["restored"].losses, 1)
+        self.assertEqual(seen["restored"].goals["talked"], payload["goals"]["talked"])
+        self.assertEqual(seen["kinds"], ["header", "session", "save", "session"])  # the restore record, before the loop
+        self.assertEqual(seen["world_lines"], 1)  # the "restored from save 1" snapshot
+        self.assertEqual(seen["maps"], sorted(payload["world"]["maps"]))  # the restored world, not a new one
+        book = read_book(self.memory_file)
+        session = book.last_session()
+        self.assertEqual((session["how"], session["continued_from"], session["frame_base"], session["losses"]),
+                         ("continue", 1, base, 1))
+        self.assertEqual(session["restored_maps"], sorted(payload["world"]["maps"]))
+        self.assertEqual(book.end_of(session["n"])["budget"], True)
+        # the restore's own record in the action log: the save and the maps it restored
+        actions = [json.loads(line) for line in (self.tmp / "run" / "actions.jsonl").read_text(encoding="utf-8").splitlines()]
+        restore_note = next(r for r in actions if r.get("decision") == "restore")
+        self.assertEqual((restore_note["extra"]["save"], restore_note["extra"]["maps"]), (1, sorted(payload["world"]["maps"])))
+        self.assertTrue(any("personality=Trainer" in line for line in told))  # the header's personality (a continue)
+
+    def test_r1_a_continue_whose_restore_record_is_not_written_ends_stuck(self):
+        from ai_player.game_memory import MemoryWriter
+        from ai_player.skills.saving import ContinueResult
+        from ai_player import mode as mode_module
+
+        self.a_game()
+
+        def fake_continue(hands, book, why):
+            yield from hands.pad.idle(2, "the title")
+            return ContinueResult("continued", "continued", record=book.save(1), newest=True, arrival={})
+
+        def fake_play(brain, hands, personality, restored=None, stop=None):
+            yield from hands.pad.idle(2, "a test")
+            return f"stuck: {stop}" if stop else "stopped: played on"
+
+        with mock.patch.object(mode_module, "continue_game", fake_continue), \
+                mock.patch.object(HandsBrain, "_play", fake_play), \
+                mock.patch.object(MemoryWriter, "write_session", lambda writer, **updates: False):
+            reason, _, _ = self.play(continue_game=True, cart="continued")
+        self.assertEqual(reason, "play: stuck: the memory of this continue could not be written")
+
+    def test_r1_a_continue_that_stops_ends_stuck_with_a_chosen_end(self):
+        from ai_player.game_memory import read_book
+        from ai_player.skills.saving import ContinueResult
+        from ai_player import mode as mode_module
+
+        self.a_game()
+
+        def fake_continue(hands, book, why):
+            yield from hands.pad.idle(2, "the title")
+            return ContinueResult("stopped", "the save is gone: the main menu offers no CONTINUE")
+
+        with mock.patch.object(mode_module, "continue_game", fake_continue):
+            reason, brain, _ = self.play(continue_game=True, cart="continued")
+        self.assertEqual(reason, "play: stuck: the continue stopped: the save is gone: the main menu offers no CONTINUE")
+        book = read_book(self.memory_file)
+        self.assertEqual((book.last_session()["how"], book.last_session()["continued_from"]), ("continue", None))
+        end = book.end_of(book.last_session()["n"])
+        self.assertEqual((end["chosen"], end["at_save"]), (True, False))  # so no later continue (D12 (a))
+        # the stop's session line is written when the continue stops, before the play loop runs
+        seen: list = []
+
+        def fake_play(brain, hands, personality, restored=None, stop=None):
+            seen.append([line["kind"] for line in read_book(brain._memory_path).lines])
+            yield from hands.pad.idle(2, "a test")
+            return f"stuck: {stop}"
+
+        self.memory_file.unlink()
+        self.a_game()
+        with mock.patch.object(mode_module, "continue_game", fake_continue), mock.patch.object(HandsBrain, "_play", fake_play):
+            self.play(continue_game=True, cart="continued")
+        self.assertEqual(seen, [["header", "session", "save", "session"]])
+
+    def test_r1_a_continue_that_stops_on_a_bound_is_not_a_chosen_end(self):
+        """(R1 fix round, review R-2) A continue that STOPS on a bound or a failed read (`may_retry`: here no main menu in
+        time) restored and played nothing: it still ends "stuck" through the loop's own end, but its `end` line says
+        `stopped_before_restore` and is NOT chosen, so the launcher may let a later continue try again (it looks through
+        to the session before: a harness session with no end line, killed). FAULT half: the spec's own stop (the save
+        gone, not retryable) stays a CHOSEN end and the launcher refuses the next continue."""
+        from ai_player.game_memory import read_book
+        from ai_player.host.launcher import classify_end
+        from ai_player.skills.saving import ContinueResult
+        from ai_player import mode as mode_module
+
+        for why, retry, chosen, allowed in (
+                ("the main menu did not come within 1700 frames of power-on", True, False, True),
+                ("the save is gone: the main menu offers no CONTINUE", False, True, False)):
+            with self.subTest(why):
+                self.memory_file.unlink(missing_ok=True)
+                self.a_game()
+
+                def fake_continue(hands, book, why_, why=why, retry=retry):
+                    yield from hands.pad.idle(2, "the title")
+                    return ContinueResult("stopped", why, may_retry=retry)
+
+                with mock.patch.object(mode_module, "continue_game", fake_continue):
+                    reason, _, _ = self.play(continue_game=True, cart="continued")
+                self.assertEqual(reason, f"play: stuck: the continue stopped: {why}")
+                book = read_book(self.memory_file)
+                end = book.end_of(book.last_session()["n"])
+                self.assertEqual((end["chosen"], end["stopped_before_restore"], end["at_save"]), (chosen, retry, False))
+                kind, words, ok = classify_end(book, [])
+                self.assertEqual(ok, allowed, words)
 
 
 def mode_module_patience() -> int:
@@ -3033,6 +3738,27 @@ class SecondRoundTests(unittest.TestCase):
         late = [dict(r, frame=15500 + END_SLACK + 1) if r["decision"] == "milestone" and r["frame"] == 15500 else r
                 for r in records]
         self.assertEqual(intent_mix(late)["story_own"], [])
+
+    def test_a_save_goal_is_out_of_the_errand_share(self):
+        """(R1 + R2, build spec section 7 T4; the fix round's review R-4) A SAVE goal is the player's bookkeeping, neither an
+        errand nor the story's step: its frames leave the intent mix's TOTAL and are reported apart (`save_frames`,
+        `save_goals`). FAULT half (the save left in the total): the errand share would fall from 0.5 to 0.3333 with no
+        change in the errands. CONTROL: the same goals with no save give the same share, and `save_frames` 0."""
+        from ai_player.gates.rate_step5 import SAVE_KIND, intent_mix
+
+        base = [{"decision": "goal", "action": "go", "frame": 0}, {"decision": "goal_end", "action": "go", "frame": 1000},
+                {"decision": "goal", "action": "chat", "frame": 1000},
+                {"decision": "goal_end", "action": "chat", "frame": 2000}]
+        plain = intent_mix(base + [{"decision": "watch", "frame": 2000}])
+        saved = intent_mix(base + [{"decision": "goal", "action": SAVE_KIND, "frame": 2000},
+                                   {"decision": "goal_end", "action": SAVE_KIND, "frame": 3000},
+                                   {"decision": "watch", "frame": 3400}])
+        self.assertEqual(SAVE_KIND, "save")
+        self.assertEqual((plain["errand_share"], plain["save_frames"], plain["save_goals"]), (0.5, 0, 0))
+        self.assertEqual((saved["errand_share"], saved["total_frames"], saved["goals"]), (0.5, 2000, 2))
+        self.assertEqual((saved["save_frames"], saved["save_goals"]), (1000, 1))
+        self.assertNotIn(SAVE_KIND, saved["frames"])
+        self.assertEqual(saved["between_goals"], 400)  # what the loop played after the save is still between goals
 
     # ---- found by the round's development sweep (step51wdev1, seeds 31-39)
     def test_a_door_seen_across_a_maps_edge_is_not_that_maps(self):

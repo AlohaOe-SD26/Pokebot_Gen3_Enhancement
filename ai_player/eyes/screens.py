@@ -67,6 +67,28 @@ it starts on 1); while the cursor slides (`Task_MoveStarterChooseCursor`, `Task_
 (`Task_StarterChoose`, `Task_WaitForStarterSprite`, `Task_AskConfirmStarter`) the screen takes no input. "Do you choose this
 POKéMON?" is a YES/NO made by `CreateYesNoMenu` and polled by `Task_HandleConfirmStarterInput` through
 `Menu_ProcessInputNoWrapClearOnChoose`: the cursor in `sMenu`, as every other yes/no here.
+
+R1 (the AI saves its game; build spec 2026-10-29, section 3 (a), E1-E6), each rule from the pinned decomp:
+  * THE START MENU AND THE SAVE DIALOG: THE TASK DECIDES FIRST (`_start_menu_view`). `ShowStartMenu` makes a task that
+    runs `StartMenuTask` while the menu is BUILT (`src/start_menu.c` CreateStartMenuTask / InitStartMenuStep) and then
+    `Task_ShowStartMenu`, which on its first frame (data[0] 0) sets `gMenuCallback = HandleStartMenuInput` and from then on
+    calls `gMenuCallback()` every frame (`:561-580`). The save dialog runs INSIDE that task: A on SAVE sets
+    `gMenuCallback` to `StartMenuSaveCallback`, then `SaveStartCallback` (`InitSave`), then `SaveCallback`, which runs
+    `sSaveDialogCallback` (`:721-729`, `:809-831`); its question callbacks `SaveConfirmInputCallback` and
+    `SaveOverwriteInputCallback` poll the YES/NO through `sMenu` (`:984-1084`). NEITHER callback is ever cleared: a B on
+    the menu leaves `gMenuCallback` at `HandleStartMenuInput` after the task is gone (`:629-634`), a NO leaves
+    `sSaveDialogCallback` at an input callback (`:1024-1028`, `:1070-1074`), and a successful save leaves both. So a
+    callback is read only while `Task_ShowStartMenu` runs and only once its data[0] is past 0, and the save callback only
+    while `gMenuCallback` is `SaveCallback`: a stale value never reads as "takes input".
+  * the save's YES/NO is its own kind, `save_yes_no`, never `yes_no`, so no scene's answer rule can answer it; every other
+    frame of the dialog (a page printing, the write, "saved the game.") is a `save_dialog` that takes no input, its words
+    the `text` (`host/eyes.py` _text, printer 0) and a paragraph's wait the text printer's own (`ScreenState.waits_for_button`).
+    The one wait no printer shows: `SaveReturnErrorCallback` with `sSaveDialogTimer` at 0 polls `JOY_HELD(A_BUTTON)`
+    (`SaveErrorTimer`, `:964-976`): `save_dialog_wait`.
+  * THE MAIN MENU's ERROR PAGES (`src/main_menu.c:649-660`, `:723-737`) print on window 7 by printer 7
+    (`CreateMainMenuErrorWindow`); while their task runs the page is printer 7's string (`ERROR_PAGE_TASKS`, `host/eyes.py`).
+  * THE CONTINUE WINDOW's TIME: `MainMenu_FormatSavegameTime` draws `playTimeHours:playTimeMinutes` of the save the boot
+    loaded (`:2147-2152`): the main menu's view carries it (`hours`, `minutes`) when it offers CONTINUE (tMenuType >= 1).
 """
 
 from __future__ import annotations
@@ -84,6 +106,8 @@ __all__ = [
     "BATTLE_YES_NO_OPCODES",
     "CHARMAP",
     "CLOSE_BAG",
+    "ERROR_PAGE_PRINTER",
+    "ERROR_PAGE_TASKS",
     "PARTY_MENU_ACTIONS",
     "GENDER_OPTIONS",
     "KEYBOARD_COLUMNS",
@@ -91,6 +115,9 @@ __all__ = [
     "MAIN_MENU_OPTIONS",
     "NAMING_STATE_HANDLE_INPUT",
     "PARAGRAPH",
+    "SAVE_DIALOG_CALLBACKS",
+    "SAVE_INPUT_CALLBACKS",
+    "SAVE_MENU_CALLBACKS",
     "SCENE_CALLBACKS",
     "SCENE_STATES",
     "SCENE_TASKS",
@@ -106,6 +133,7 @@ __all__ = [
     "key_position",
     "page_text",
     "read_ui",
+    "save_dialog_wait",
     "scene_of",
     "task_wait",
 ]
@@ -225,7 +253,8 @@ UI_TASKS: dict[str, str] = {
     "Task_BuyMenu": "mart_buy",  # src/shop.c (the item list)
     "Task_BuyHowManyDialogueHandleInput": "mart_quantity",  # src/shop.c ("How many?")
     "Task_SetClock_HandleInput": "clock",  # src/wallclock.c
-    "StartMenuTask": "start_menu",  # src/start_menu.c (runs HandleStartMenuInput)
+    "StartMenuTask": "start_menu",  # src/start_menu.c (BUILDS the menu; R1: takes no input, `_start_menu_view`)
+    "Task_ShowStartMenu": "start_menu",  # src/start_menu.c (R1: runs gMenuCallback: the menu's input, the save dialog)
     "Task_HandleMainMenuInput": "main_menu",  # src/main_menu.c
     "Task_HighlightSelectedMainMenuItem": "main_menu",
     "Task_TitleScreenPhase3": "title",  # src/title_screen.c: A or START goes to the main menu
@@ -313,6 +342,66 @@ TASK_WAITS: dict[str, str] = {
     # (`Cmd_displaydexinfo` -> DisplayCaughtMonDexPage) and waits `if (JOY_NEW(A_BUTTON | B_BUTTON))`
     "Task_HandleCaughtMonPageInput": "A or B",  # src/pokedex.c
 }
+
+
+#: R1 (module docstring): the main menu's error pages are printed by text printer 7 (`src/main_menu.c` CreateMainMenuErrorWindow:
+#: `AddTextPrinterParameterized(7, ...)`), and these tasks wait on them (`Task_WaitForSaveFileErrorWindow`: "The save file has
+#: been erased..." or "The save file is corrupted..."; `Task_WaitForBatteryDryErrorWindow`: "The internal battery has run dry").
+ERROR_PAGE_TASKS = ("Task_WaitForSaveFileErrorWindow", "Task_WaitForBatteryDryErrorWindow")
+ERROR_PAGE_PRINTER = 7
+#: R1: the values of `gMenuCallback` the start menu's rule names (`src/start_menu.c`, every one a ROM function the symbol table
+#: names; `host/eyes.py` resolves them ONCE with `get_symbol`, the thumb bit off). Any other value is "another callback" (an
+#: item's fade, the Pokedex opening): the menu takes no input.
+SAVE_MENU_CALLBACKS = ("HandleStartMenuInput", "StartMenuSaveCallback", "SaveStartCallback", "SaveCallback")
+#: R1: the values of `sSaveDialogCallback` (`src/start_menu.c:937-1159`), read only while `gMenuCallback` is SaveCallback.
+SAVE_DIALOG_CALLBACKS = ("SaveConfirmSaveCallback", "SaveYesNoCallback", "SaveConfirmInputCallback", "SaveFileExistsCallback",
+                         "SaveConfirmOverwriteDefaultNoCallback", "SaveConfirmOverwriteCallback", "SaveOverwriteInputCallback",
+                         "SaveSavingMessageCallback", "SaveDoSaveCallback", "SaveSuccessCallback",
+                         "SaveReturnSuccessCallback", "SaveErrorCallback", "SaveReturnErrorCallback")
+#: R1: the save dialog's callbacks that poll its YES/NO (`Menu_ProcessInputNoWrapClearOnChoose`, the cursor in `sMenu`).
+SAVE_INPUT_CALLBACKS = ("SaveConfirmInputCallback", "SaveOverwriteInputCallback")
+
+
+def save_dialog_wait(save_callback: str | None, timer: int | None) -> str | None:
+    """R1: the one wait of the save dialog no text printer shows: after "Save error." has printed, `SaveReturnErrorCallback`
+    counts `sSaveDialogTimer` down and then takes A HELD (`src/start_menu.c` SaveErrorTimer: `else if (JOY_HELD(A_BUTTON))`)."""
+    if save_callback == "SaveReturnErrorCallback" and timer == 0:
+        return "task Task_ShowStartMenu (A: the save error page, SaveReturnErrorCallback)"
+    return None
+
+
+def _start_menu_view(tasks: Mapping[str, bytes], raw: Mapping[str, object]) -> MenuView:
+    """R1 (module docstring; build spec E1): the start menu and the save dialog, THE TASK DECIDING FIRST, then the callbacks:
+      1. `StartMenuTask` runs (the menu is being built): the menu, taking no input, whatever `gMenuCallback` says;
+      2. `Task_ShowStartMenu` on its first frame (data[0] 0, before it sets `gMenuCallback`): the same;
+      3. `gMenuCallback` is `HandleStartMenuInput`: the menu, taking input;
+      4. `StartMenuSaveCallback` or `SaveStartCallback` (the two frames before `InitSave`): a save_dialog, no input;
+      5. `SaveCallback` with a question's input callback: `save_yes_no`, its cursor `sMenu`'s, taking input;
+      6. `SaveCallback`, any other save callback: a save_dialog, no input (its words are the `text`);
+      7. any other `gMenuCallback` (an item's fade): the menu, taking no input."""
+    start = raw.get("start_menu")
+    options: tuple[str, ...] = ()
+    cursor = None
+    if isinstance(start, dict):
+        options = tuple(START_MENU_ACTIONS[a] if a < len(START_MENU_ACTIONS) else f"action{a}" for a in start["actions"])
+        cursor = start["cursor"]
+    menu_view = MenuView(kind="start_menu", options=options, cursor=cursor, accepts_input=False)
+    if "StartMenuTask" in tasks or "Task_ShowStartMenu" not in tasks:
+        return menu_view  # rule 1 (and a reader that saw neither task: never "takes input")
+    if _s16(tasks["Task_ShowStartMenu"], 0) == 0:
+        return menu_view  # rule 2
+    callback = raw.get("menu_callback")
+    if callback == "HandleStartMenuInput":
+        return replace(menu_view, accepts_input=isinstance(start, dict))  # rule 3 (no options read: not "takes input")
+    if callback in ("StartMenuSaveCallback", "SaveStartCallback"):
+        return MenuView(kind="save_dialog", accepts_input=False)  # rule 4
+    if callback == "SaveCallback":
+        menu = raw.get("menu")
+        if raw.get("save_callback") in SAVE_INPUT_CALLBACKS and isinstance(menu, (bytes, bytearray)):
+            cursor = _s8(menu[2])
+            return MenuView(kind="save_yes_no", options=YES_NO, cursor=cursor if cursor in (0, 1) else None)  # rule 5
+        return MenuView(kind="save_dialog", accepts_input=False)  # rule 6
+    return menu_view  # rule 7
 
 
 def task_wait(tasks: Iterable[str]) -> str | None:
@@ -554,8 +643,12 @@ def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, obje
         if kind == "main_menu":
             menu_type = _s16(data, 0)
             options = MAIN_MENU_OPTIONS.get(menu_type, ())
+            # R1 (E6): the CONTINUE window's TIME, when the menu offers CONTINUE (tMenuType >= 1): `host/eyes.py` reads
+            # SaveBlock2's playTimeHours / playTimeMinutes, the two fields `MainMenu_FormatSavegameTime` draws
+            saved = raw.get("save_time") if menu_type >= 1 else None
+            hours, minutes = saved if isinstance(saved, tuple) and len(saved) == 2 else (None, None)
             return MenuView(kind=kind, options=options, cursor=_s16(data, 2),
-                            accepts_input=task == "Task_HandleMainMenuInput")
+                            accepts_input=task == "Task_HandleMainMenuInput", hours=hours, minutes=minutes)
         if kind == "title":
             return MenuView(kind=kind, options=("PRESS START",), cursor=0)
         if kind == "clock":
@@ -574,12 +667,7 @@ def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, obje
             max_quantity = shop["max_quantity"] if isinstance(shop, dict) else None
             return MenuView(kind=kind, quantity=_s16(data, 2), max_quantity=max_quantity)
         if kind == "start_menu":
-            start = raw.get("start_menu")
-            if isinstance(start, dict):
-                actions = start["actions"]
-                options = tuple(START_MENU_ACTIONS[a] if a < len(START_MENU_ACTIONS) else f"action{a}" for a in actions)
-                return MenuView(kind=kind, options=options, cursor=start["cursor"])
-            return MenuView(kind=kind, accepts_input=False)
+            return _start_menu_view(tasks, raw)  # R1: the task decides first, then the callbacks (E1)
     for task, kind in sorted(UI_BUSY_TASKS.items()):  # STEP 2.1: on screen, not taking input
         if task in tasks:
             if kind == "choose_starter":  # BUILD STEP 5: the same task, its cursor in its own data[0]

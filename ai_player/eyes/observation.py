@@ -257,6 +257,11 @@ class Progress:
     #: each flag 0 or 1, each var its value; what the goal manager reads the story's progress from. () = not read. Kept apart
     #: from `flags` (the navigator's novelty), so no earlier step's walk changes.
     marks: tuple[tuple[str, int], ...] = ()
+    #: R1 (build spec 2026-10-29, E5): the game's PLAY TIME as (hours, minutes), the two fields the game itself shows (the save
+    #: window, the CONTINUE window, the trainer card): SaveBlock2 playTimeHours @0x0E (u16) and playTimeMinutes @0x10
+    #: (`include/global.h`). Seconds and VBlanks are never read (live hidden state no screen shows). None = not read. Who may
+    #: read it is the build spec's D18 (`hands/dialogue.py` seen_now drops it, so a minute tick is not "the screen changed").
+    play_time: tuple[int, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -299,7 +304,7 @@ class MenuView:
 
     kind: str  # yes_no, gender, main_menu, start_menu, multichoice, mart_menu, mart_buy, mart_quantity,
     #            naming, clock, bag, party, title, intro_movie; build step 3: battle_action; build step 4: battle_move,
-    #            battle_yes_no, move_forget, party_action, bag_action (`eyes/screens.py` read_ui)
+    #            battle_yes_no, move_forget, party_action, bag_action; R1: save_yes_no, save_dialog (`eyes/screens.py` read_ui)
     options: tuple[str, ...] = ()  # top to bottom, as shown ("" where the name is not known)
     cursor: int | None = None  # the highlighted option (an index into `options`), or the bag / party row
     #: False while the thing is not taking input yet (a window still opening, a page swapping, the clock's hand
@@ -309,8 +314,8 @@ class MenuView:
     cursor_xy: tuple[int, int] | None = None  # naming: (column, row); column == the page's count = the buttons
     text: str | None = None  # naming: what is typed so far
     max_chars: int | None = None  # naming
-    hours: int | None = None  # clock
-    minutes: int | None = None  # clock
+    hours: int | None = None  # clock; R1 (E6): main_menu, the CONTINUE window's TIME (hours)
+    minutes: int | None = None  # clock; R1 (E6): main_menu, the CONTINUE window's TIME (minutes)
     quantity: int | None = None  # mart_quantity: "x NN"
     max_quantity: int | None = None  # mart_quantity: what the money (or the bag) allows
     prices: tuple[int, ...] = ()  # mart_buy: each item's price, as the list shows it

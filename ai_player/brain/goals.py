@@ -494,6 +494,15 @@ class _Memory:
     #: on any map it knows that it could get to (`travel_intent(lost=True)`): the next decision gives the run up
     #: (`next_goal`, "out of ideas") if nothing new has been seen since
     lost_end: tuple | None = None
+    #: (R1, `brain/saving.py` SavePolicy: its whole state lives here, so a continue restores it with the rest, D16) milestone
+    #: id -> the frame of the map change onto the gym it saved before the leader for (one save per APPROACH; None: the run
+    #: began on the gym map)
+    saved_for: dict[str, int | None] = field(default_factory=dict)
+    #: (R1) its last save: {"id", "play_time": [h, m], "frame", "why"} (the 3-game-minute gap, `SAVE_MIN_MINUTES`)
+    last_save: dict | None = None
+    #: (R1) the save that is DUE: {"kind": center / moment / leader, "why", "map", "milestone", "entered", "told"}; the newest
+    #: reason wins, one save satisfies it (a per-process clock: RESET by a continue)
+    save_due: dict | None = None
 
 
 def marks_of(look: Observation) -> dict[str, int] | None:
@@ -918,6 +927,10 @@ class GoalManager:
         #: (build step 5.1) where a draw that chose NO errand is told (the play brain sets its `tell`): a reason is logged
         #: for every draw, made or not, so the rates can be read from the log
         self.say: Callable[[str], None] | None = None
+        #: (R1, build spec 2026-10-29 D2/D3) WHEN to save (`brain/saving.py` SavePolicy over this manager's memory) and the
+        #: run's frames left; set by the play brain only when it keeps a memory file (D14), else None: no save goal ever
+        self.saving = None
+        self.frames_left: Callable[[], int] | None = None
 
     def _say(self, line: str) -> None:
         if self.say is not None:
@@ -974,6 +987,10 @@ class GoalManager:
         alike) or the story's; a curiosity goal in which the story moved on (the rival's POKé BALL picked up plays the
         rival's scene) is the story's, as the graders count it (`gates/rate_step5.py` intent_mix)."""
         if frames <= 0 or not self.memory.decided_with_party:
+            return
+        if goal.kind == "save":
+            # (R1, build spec T4) a save is the player's bookkeeping, neither an errand nor the story's: counted apart
+            self.memory.spent["save"] = self.memory.spent.get("save", 0) + frames
             return
         errand = goal.kind in ERRAND_KINDS and not (story_moved and goal.kind in CURIOSITY_KINDS)
         self.memory.spent["errand" if errand else "story"] += frames
@@ -1224,6 +1241,13 @@ class GoalManager:
                     # heal LOOKS for one: a POKéMON CENTER's red roof, out of the tall grass
                     return Goal("find_center", f"{why}: it knows no place to heal yet: looking for a POKéMON CENTER (its "
                                                f"red roof), out of the tall grass", milestone.id, key="find_center")
+        # 1b. SAVE (R1, USER RULING 51; build spec 2026-10-29 D2, D3): a save DUE after a heal at a POKéMON CENTER or a big
+        # story moment, once it MAY save (`brain/saving.py`: the play time read, 3 game minutes since its last save, frames
+        # left, a free screen); a person heals at the centre first, then saves there (never while hurt: the due waits). Only
+        # with a memory file (D14)
+        saving = None if hurt else self._save_goal(look, here_const, milestone)
+        if saving is not None:
+            return saving
         # 2. SHOP: by what the mart's LIST showed (build step 5.1, review #4: step 5 shopped once FLAG_ADVENTURE_STARTED was
         # set, a flag no player sees): a mart whose list had no POKé BALLS is tried again only once the story moved on
         balls = look.bag.ball_total if look.bag is not None else 0
@@ -1361,6 +1385,11 @@ class GoalManager:
                                    f"see that it could get to on any of the "
                                    f"{sum(1 for memory in world.maps.values() if memory.visits)} maps it knows, nothing "
                                    f"new since, and no hint it goes by names where to go", milestone.id, key="give_up")
+        # (R1, finding m2) RIGHT BEFORE A GYM LEADER: the story goal is the talk to a leader the game names, on that step's
+        # gym map, and no save was made in this approach to the gym: a save goal in its place (`brain/saving.py`)
+        leader = self._leader_save(look, world, milestone, step, goal)
+        if leader is not None:
+            return leader
         if (goal.kind == "go" and goal.map is not None and curious and here is not None
                 and OUTDOOR.match(here_const or "") and f"{world.current}|{milestone.id}" not in self.memory.detoured
                 and goal.key.startswith("go:") and not must_rest):
@@ -1374,6 +1403,29 @@ class GoalManager:
             self._say(f"[AI-GOALS] on the way to {goal.map}: no detour on {here_const} this time (draw {draw:.2f} >= "
                       f"{odds:.2f}, {odds_why})")
         return goal
+
+    def _run_frames_left(self) -> int:
+        """(R1) The run's frames left, as the play brain counts them (`frames_left`); unbounded when it is not told."""
+        return self.frames_left() if self.frames_left is not None else 10 ** 9
+
+    def _save_goal(self, look: Observation, here_const: str | None, milestone: Milestone) -> Goal | None:
+        """(R1) Block 1b: a `save` goal for a centre's or a big moment's due, when the policy may save now (None without a
+        memory file, `saving`); a save that failed `FAIL_LIMIT` times waits `COOLDOWN_DECISIONS` like any goal."""
+        if self.saving is None:
+            return None
+        choice = self.saving.next_save(look, here_const, self._run_frames_left())
+        if choice is None or not self._allowed(choice.key):
+            return None
+        return Goal("save", choice.reason, milestone.id, key=choice.key)
+
+    def _leader_save(self, look: Observation, world, milestone: Milestone, step: Step | None, goal: Goal) -> Goal | None:
+        """(R1) Block 8: a `save` goal in the story goal's place, right before the talk to a gym leader (`before_leader`)."""
+        if self.saving is None:
+            return None
+        choice = self.saving.before_leader(look, world, milestone, step, goal, self._run_frames_left())
+        if choice is None or not self._allowed(choice.key):
+            return None
+        return Goal("save", choice.reason, milestone.id, key=choice.key)
 
     def story_step(self, look: Observation, world, milestone: Milestone) -> Step | None:
         """The milestone's step to do now: the first whose work is not visibly done (`ask`: its words heard; `go`: the
@@ -1785,11 +1837,21 @@ class GoalRunner:
         self.picked: list[str] = []
         self.heals: list[str] = []
         self.shopping: list[str] = []
+        #: (R1) how a `save` goal is played: the play brain's own save (`mode.py` HandsBrain._save, which owns the memory
+        #: file): a generator of the save's outcome; None (no memory file) and no save goal is ever chosen
+        self.saver: Callable[[Goal], Generator[None, None, str]] | None = None
 
     def pursue(self, goal: Goal, milestone: Milestone, index: int, current: Callable[[Observation], int]) -> Generator[None, None, tuple[bool, str]]:
         """`_pursue` the goal; (build step 5.1) a person whose Pokemon is HURT keeps out of the tall grass on ANY walk, not
         only the walk to heal (`HURT_GRASS_COST`; never while training or catching, which ARE the grass), its own taste
         restored after."""
+        if goal.kind == "save":
+            # (R1, build spec 2026-10-29 section 3 (d)) the save goal is the play brain's (it owns the memory file): "saved"
+            # only on the game's SAVED page; a "stuck:" outcome ends the run (the play loop's own check)
+            if self.saver is None:
+                return False, "no way to save: the run keeps no memory file"
+            outcome = yield from self.saver(goal)
+            return outcome.startswith("saved"), outcome
         nav = self.nav
         own = getattr(nav, "grass_cost", None)
         hurt = (own is not None and goal.kind not in ("train", "catch", "heal")

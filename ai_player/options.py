@@ -75,6 +75,13 @@ __all__ = [
     "ENV_WALL_DEADLINE",
     "ENV_WATCH_EVERY",
     "ENV_WORLD",
+    "ENV_MEMORY",
+    "ENV_CONTINUE",
+    "ENV_CART",
+    "ENV_FAULT_NO_SAVE",
+    "ENV_HOST",
+    "CARTS",
+    "HOSTS",
     "HandsOptions",
     "RunOptions",
     "parse_tiles",
@@ -230,6 +237,22 @@ ENV_FAULT_NO_TRAINING = "AI_PLAYER_FAULT_NO_TRAINING"
 #: roam (`brain/goals.py` errands_off): the ERRANDS_OFF arm the intent mix, the seed divergence and the no-speedrun bound
 #: must tell apart from the real code.
 ENV_FAULT_NO_ERRANDS = "AI_PLAYER_FAULT_NO_ERRANDS"
+#: R1 + R2 (build spec 2026-10-29 section 3 (e); D8, D11, D14, D17): the game's memory file (`memory.jsonl`,
+#: `game_memory.py`), resolved by the LAUNCHER (`paths.py` AppPaths) and handed over here. The play brain saves through the
+#: game's own dialog whenever it is given one (D14); a run without it behaves exactly as before R1.
+ENV_MEMORY = "AI_PLAYER_MEMORY"
+#: "1": this run CONTINUES the game on the cartridge from the title (`--continue`, D11): the AI plays the title itself.
+ENV_CONTINUE = "AI_PLAYER_CONTINUE"
+#: D17: what the cartridge held when the run began: `empty` (--fresh or --state emptied it), `continued`, `kept` (no flag).
+ENV_CART = "AI_PLAYER_CART"
+#: CONTROL (R1, D14): a memory file is given, but the AI never saves and keeps no memory file: the pre-R1 loop.
+ENV_FAULT_NO_SAVE = "AI_PLAYER_FAULT_NO_SAVE"
+#: Who started the play brain, for the memory file's `session` line: `launcher` (the default) or `harness` (the in-process
+#: test side, which has no lifecycle: D12 (a) classifies a harness session by its `end` line alone).
+ENV_HOST = "AI_PLAYER_HOST"
+#: The values `AI_PLAYER_CART` and `AI_PLAYER_HOST` may take (= `game_memory.py` CARTS and HOSTS; a test pins them equal).
+CARTS = ("empty", "continued", "kept")
+HOSTS = ("launcher", "harness")
 
 #: Every fault and control switch (the launcher prints the ones that are set).
 ALL_SWITCHES = (
@@ -238,7 +261,7 @@ ALL_SWITCHES = (
     ENV_FAULT_IGNORE_TYPES, ENV_FAULT_IGNORE_RECOIL, ENV_FAULT_UNCAPPED_RECOIL, ENV_FAULT_FORGET_FIELD,
     ENV_FAULT_IGNORE_REFUSAL, ENV_FAULT_OVERKILL, ENV_FAULT_SHIFT_FAINTED, ENV_FAULT_FORGET_UNUSABLE,
     ENV_FAULT_NO_CATCH_STATUS, ENV_FAULT_IGNORE_PP, ENV_FAULT_FORGET_SHIFT, ENV_FAULT_NO_HINTS, ENV_FAULT_NO_TRAINING,
-    ENV_FAULT_NO_ERRANDS,
+    ENV_FAULT_NO_ERRANDS, ENV_FAULT_NO_SAVE,
 )
 
 DEFAULT_FRAMES = 3000
@@ -369,6 +392,25 @@ class HandsOptions:
     fault_no_training: bool = False
     # BUILD STEP 5.1
     fault_no_errands: bool = False
+    # R1 + R2 (build spec 2026-10-29, section 3 (e)): the memory file, a continue, what the cart held, the no-save CONTROL,
+    # and who started the brain; defaults so a caller that names only the earlier fields behaves exactly as before R1
+    memory_file: Path | None = None
+    continue_game: bool = False
+    cart: str | None = None
+    fault_no_save: bool = False
+    host: str = "launcher"
+
+    def __post_init__(self) -> None:
+        # D19: a continued game's memory is its save's, and nothing else's: a world file beside a continue is an error
+        if self.continue_game and self.world_in is not None:
+            raise ValueError(f"{ENV_WORLD} cannot be given with {ENV_CONTINUE}: the memory of a continued game is its "
+                             f"save's (the memory file), never another world file")
+        if self.continue_game and self.memory_file is None:
+            raise ValueError(f"{ENV_CONTINUE} needs {ENV_MEMORY}: a continue restores the memory of the save it continues")
+        if self.cart is not None and self.cart not in CARTS:
+            raise ValueError(f"{ENV_CART} must be one of {CARTS}, got {self.cart!r}")
+        if self.host not in HOSTS:
+            raise ValueError(f"{ENV_HOST} must be one of {HOSTS}, got {self.host!r}")
 
     @classmethod
     def from_env(cls) -> "HandsOptions":
@@ -391,6 +433,7 @@ class HandsOptions:
         if not 1 <= steps <= 5000:
             raise ValueError(f"{ENV_ROAM_STEPS} must be 1..5000, got {steps}")
         raw_world = os.environ.get(ENV_WORLD, "").strip()
+        raw_memory = os.environ.get(ENV_MEMORY, "").strip()
         raw_intent = os.environ.get(ENV_INTENT_FRAMES, "").strip()
         raw_battles = os.environ.get(ENV_BATTLES, "").strip()
         battles = int(raw_battles) if raw_battles else DEFAULT_BATTLES
@@ -434,6 +477,11 @@ class HandsOptions:
             fault_no_hints=_flag(ENV_FAULT_NO_HINTS),
             fault_no_training=_flag(ENV_FAULT_NO_TRAINING),
             fault_no_errands=_flag(ENV_FAULT_NO_ERRANDS),
+            memory_file=Path(raw_memory) if raw_memory else None,
+            continue_game=_flag(ENV_CONTINUE),
+            cart=os.environ.get(ENV_CART, "").strip() or None,
+            fault_no_save=_flag(ENV_FAULT_NO_SAVE),
+            host=os.environ.get(ENV_HOST, "").strip() or "launcher",
         )
 
 
