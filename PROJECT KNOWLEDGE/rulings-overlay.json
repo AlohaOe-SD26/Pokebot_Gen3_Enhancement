@@ -488,6 +488,17 @@
    "application_of": "2026-10-29-2afa57",
    "reason": "06 2026-10-30 \"U2a BUILT\": builds USER RULING 53's U2 (a time- or frame-limit end may be continued, every continue tells what it drops); the time save before the limit is deferred to U2b by the orchestrator's scope cut.",
    "status": "ACTIVE"
+  },
+  "2026-10-30-c2a92b": {
+   "title": "2026-10-30 — USER RULING 54: the 24/7 trainer is to TRAIN THE AI PLAYER ITSELF, nonstop, chapter by chapter (or as Claude designs it), because the AI has been stuck in the first chapters for weeks",
+   "candidates": {
+    "d6edffa7": "marker"
+   },
+   "ruling_key": "54@2026-10-30",
+   "do_not_reopen": "Do not re-ask whether the 24/7 trainer (ai-agent/ learner) should train the AI player itself, nonstop, chapter by chapter: it should (2026-10-30).",
+   "reason": "06 USER RULING 54: \"⛔ Do not re-ask whether the 24/7 trainer should train the AI player: it should.\"",
+   "status": "ACTIVE",
+   "topics": "trainer learner tuner train the AI player nonstop per chapter curriculum knobs R12 loader progress stuck"
   }
  }
 }

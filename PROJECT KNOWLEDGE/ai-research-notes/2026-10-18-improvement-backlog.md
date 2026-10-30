@@ -348,6 +348,8 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
   more than once. Per-fight losses, party and levels (persisted by R2) drive training and leads, graded by game counters.
 - **R12. An AI KNOB REGISTRY, the prerequisite to tuning the AI.** (B; sharpens D2) About 129 constants, 15 "taste", no
   override path. `knobs.py` with range and trade; a gate that defaults equal today's literals; grader bounds never knobs.
+  **NEXT (USER RULING 54, `06` 2026-10-30):** with the AI's loader, it lets the 24/7 trainer train the AI player itself,
+  nonstop, chapter by chapter (the AI trainer).
 - **R7. A GET-UNSTUCK LADDER, deploy mode only.** (B; needs R1, R3, R6) 98 goals in a row ended "stuck: ping-pong" in the
   5.2 NOHINTS arm, and a give-up exits after 33 minutes (`mode.py:471-472`). Person-fair rungs, each coded with a fault
   arm; the graded mode keeps its strict end, and a sweep fails when the last rung's rate passes a bound.

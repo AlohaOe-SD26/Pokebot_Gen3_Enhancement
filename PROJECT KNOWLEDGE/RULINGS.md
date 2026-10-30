@@ -37,6 +37,7 @@
 | `2026-10-28-35b2cb` | 9814 | While the project is paused: do not delete the tuner's ai-agent/STOP, re-enable its three Windows tasks (Pokebot-AI-Learner-Autostart, Pokebot-Ops-Watchdog, Pokebot-Ops-Backup) or start it until the user says to resume; do not re-ask when or how to pause (2026-10-28). |
 | `2026-10-28-77ea25` | 9832 | Do not park or pause the bot tuner or the project (no ai-agent/STOP file, no disabled Pokebot-* task) unless the user asks; do not re-ask whether to pause (2026-10-28). |
 | `2026-10-29-2afa57` | 9904 | Do not re-ask U1 (the AI's big-moment save list: as built), U2 (a session ended by its time or frame limit may be continued from its last save: YES) or the reset question (a refused reset combination ends that game for good) (2026-10-29). |
+| `2026-10-30-c2a92b` | 9942 | Do not re-ask whether the 24/7 trainer (ai-agent/ learner) should train the AI player itself, nonstop, chapter by chapter: it should (2026-10-30). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -75,10 +76,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 355 sections (newest first)
+## All 356 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-30-c2a92b` | 9942 | 54 | DO-NOT-REOPEN | 2026-10-30 — USER RULING 54: the 24/7 trainer is to TRAIN THE AI PLAYER ITSELF, nonstop, chapter by chapter (or as Claude designs it), because the AI has been s |
 | `2026-10-30-297528` | 9935 |  |  | 2026-10-30 — U2a's verification findings V1-V3 fixed; an old launch line with no instrument record fails closed |
 | `2026-10-30-cc5521` | 9927 | 53 |  | 2026-10-30 — U2a BUILT: a session ended by its time or frame limit may be continued (USER RULING 53), judged by the host's own record, and every continue tells  |
 | `2026-10-30-b8f22e` | 9916 |  |  | 2026-10-30 — R1 + R2's FOLLOW-UP BUILT: the build's decisions (two STOPs ruled on, the CHAIN kill rule, what was deferred to U2's build) |

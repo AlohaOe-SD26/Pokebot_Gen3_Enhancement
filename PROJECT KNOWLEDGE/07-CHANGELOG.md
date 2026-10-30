@@ -39215,3 +39215,10 @@ bought balls only at fixed story points.
 - **Made by** the workflow `u2b-design` (3 agents, 5.73 Mtok): a designer, one adversarial critic (11 findings, 2 MAJOR), a reviser (all applied).
 - **Open for the user:** whether sessions run on the frame budget with the wall clock as a backstop (the recommendation), or a later U2c also saves before a wall-clock limit.
 - **Next:** U2b's build, after the weekly usage resets (`04` item 4).
+
+## 2026-10-30 — USER RULING 54 recorded: the 24/7 trainer is to train the AI player itself; the AI trainer goes first, then U2b (punch-list #28-aiagent-v2)
+
+- **The ruling** (`06` 2026-10-30, the user's words verbatim there): the trainer's round-the-clock machine time goes to the AI PLAYER, trained nonstop, chapter by chapter or as Claude designs it, with the AI's loader and its settings registry (backlog R12) built for that, ahead of chapters 3-4. The user's concern stands as a goal: the AI has been at chapter 2 since 2026-10-14.
+- **Sequencing (Claude's call):** the AI trainer first, then U2b (its spec stays filed).
+- **Updated:** `04` (the stamp, the resume point, queue item 4), the backlog (R12), the rulings index.
+- **Cost:** local only.

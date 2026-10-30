@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "11756617569a509f2061e1290a99af8b8529588a",
+ "source_sha1_lf": "52e9924c70215f610070c6faa7b788ad64351d7c",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 355,
-  "donot_candidates": 29,
-  "sections_naming_user_rulings": 49
+  "sections": 356,
+  "donot_candidates": 30,
+  "sections_naming_user_rulings": 50
  },
  "sections": [
   {
@@ -5547,6 +5547,27 @@
    "slugs": [],
    "ki": [],
    "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-30-c2a92b",
+   "date": "2026-10-30",
+   "line_start": 9942,
+   "line_end": 9948,
+   "title": "2026-10-30 — USER RULING 54: the 24/7 trainer is to TRAIN THE AI PLAYER ITSELF, nonstop, chapter by chapter (or as Claude designs it), because the AI has been stuck in the first chapters for weeks",
+   "rulings": [
+    54
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "d6edffa7",
+     "line": 9948,
+     "text": "- ⛔ Do not re-ask whether the 24/7 trainer should train the AI player: it should."
+    }
+   ],
    "cues": []
   }
  ]
