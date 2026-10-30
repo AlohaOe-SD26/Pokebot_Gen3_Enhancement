@@ -2562,20 +2562,73 @@ class LauncherContinueTests(unittest.TestCase):
         `EXIT_WATCHDOG_SECONDS`; a Ctrl+C on the launcher in that window kills a process whose verdict is already written.
         FAULT: `interrupted` with `reset-refused` (process 130, instrument 9) is NOT CLEAN; with `play: done:` not at a
         save it is CHOSEN, refused (mutant U4c, the interrupted row first whatever the verdict, judges both INVOLUNTARY,
-        allowed). CONTROL: `interrupted` with no verdict, or with the host's own `interrupted` / `interrupted-unresponsive`
-        verdict, is INVOLUNTARY, allowed; the same `reset-refused` with no interrupt is NOT CLEAN."""
+        allowed). (U2a verification V1) FAULT: a brain that RETURNED `interrupted` / `interrupted-unresponsive` (the
+        instrument's code 0) and then met a Ctrl+C is NOT CLEAN, refused: the words count only with their host code, D3
+        (mutant U4d, the row's pre-V1 allow-list of the two words, judges both INVOLUNTARY, allowed). CONTROL:
+        `interrupted` with no verdict is the interrupted row; with the host's own `interrupted` / `interrupted-unresponsive`
+        verdict (130) it is INVOLUNTARY by the verdict's row, allowed; the same `reset-refused` with no interrupt is NOT
+        CLEAN."""
         found = self.judged(launch=dict(reason="reset-refused", interrupted=True, process=130))
         self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
         found = self.judged(end=("done: x reached", False),
                             launch=dict(reason="play: done: x reached", interrupted=True, process=130))
         self.assertEqual((found.ok, found.end_class), (False, "CHOSEN"), found.why)
-        for reason in (None, "interrupted", "interrupted-unresponsive"):
-            with self.subTest(control=reason):
+        for reason in ("interrupted", "interrupted-unresponsive"):
+            with self.subTest(forged=reason):
+                found = self.judged(end=("done: x reached", False),
+                                    launch=dict(reason=reason, code=0, process=130, interrupted=True))
+                self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+                self.assertIn("with the instrument's exit code 0, not the host's 130: the brain's own text", found.why)
+            with self.subTest(host=reason):
                 found = self.judged(launch=dict(reason=reason, code=130, interrupted=True))
                 self.assertEqual((found.ok, found.end_class), (True, "INVOLUNTARY"), found.why)
-                self.assertIn("was interrupted (Ctrl+C reached the launcher)", found.why)
+                self.assertIn(f"ended '{reason}'", found.why)
+        found = self.judged(launch=dict(reason=None, code=130, interrupted=True))
+        self.assertEqual((found.ok, found.end_class), (True, "INVOLUNTARY"), found.why)
+        self.assertIn("was interrupted (Ctrl+C reached the launcher)", found.why)
         found = self.judged(launch=dict(reason="reset-refused"))
         self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+
+    def test_an_older_line_reads_the_instruments_code_from_its_verdict_file(self) -> None:
+        """(U2a verification V3) A 417df790 launcher line has no `verdict_code`, and its PROCESS code is the launcher's own
+        after a Ctrl+C (130, `run_child`) or a hard kill (124), never the child's. D3 judges a host reason by the
+        instrument's record, so such a line reads the instrument's code from the run's verdict file (`facts.exit_code`,
+        D3's other path), and the words say which code they used. FAULT: an OLD line, interrupted or hard-killed, whose
+        run's verdict file holds a REAL host `crash` (2) is INVOLUNTARY, allowed, and a real `wall-clock` (124, CLEAN) is
+        BUDGET, allowed, the words naming the verdict file's code (mutant U9b, the file not read: the process code makes
+        each NOT CLEAN for good). FAULT: the words name the code they used: the verdict file's 0 for a forged `crash`, and
+        with NO verdict file "the process's exit code 130 ... cannot be shown to be a host end", never "the instrument's"
+        (mutant U9c, one sentence for every source). CONTROL: a new line's `verdict_code` decides over the verdict file
+        (a forged `crash`, code 0, whose file says 2, is NOT CLEAN); an old line not interrupted with no verdict file falls
+        back to its process code (D3's 417df790 fallback: `crash` 2 is INVOLUNTARY)."""
+        for what, launch in (("interrupted", dict(reason="crash", process=130, interrupted=True, old=True)),
+                             ("hard kill", dict(reason="crash", process=124, hard=True, old=True))):
+            with self.subTest(old_line=what):
+                found = self.judged(file=dict(reason="crash"), end=("done: x reached", False), launch=launch)
+                self.assertEqual((found.ok, found.end_class), (True, "INVOLUNTARY"), found.why)
+                self.assertIn(f"(the process exited {launch['process']}; the run's verdict file recorded 2)", found.why)
+        found = self.judged(file=dict(reason="wall-clock"), end=("done: x reached", False),
+                            launch=dict(reason="wall-clock", process=130, interrupted=True, old=True))
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        self.assertIn("the run's verdict file recorded 124", found.why)
+        # the words name the code they used
+        found = self.judged(file=dict(reason="crash", exit_code=0), end=("done: x reached", False),
+                            launch=dict(reason="crash", process=130, interrupted=True, old=True))
+        self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+        self.assertIn("with the instrument's exit code 0 (from the run's verdict file), not the host's 2", found.why)
+        found = self.judged(end=("done: x reached", False),
+                            launch=dict(reason="crash", process=130, interrupted=True, old=True))
+        self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+        self.assertIn("with the process's exit code 130 (a launcher line without the instrument's code, and no verdict "
+                      "file), not the host's 2: it cannot be shown to be a host end", found.why)
+        self.assertNotIn("the instrument's exit code 130", found.why)
+        # CONTROL: the new line's own code decides; an old line with no file falls back to its process code
+        found = self.judged(file=dict(reason="crash"), end=("done: x reached", False),
+                            launch=dict(reason="crash", code=0, process=130, interrupted=True))
+        self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+        found = self.judged(end=("done: x reached", False), launch=dict(reason="crash", process=2, old=True))
+        self.assertEqual((found.ok, found.end_class), (True, "INVOLUNTARY"), found.why)
+        self.assertEqual(found.why, "session 1 ended 'crash'")
 
     def test_a_budget_end_needs_a_clean_verdict(self) -> None:
         """(U2 spec D3b, F-U2-3) `lifecycle.finish` replaces the reason with `purity-*` only for code 0, so a
@@ -2807,6 +2860,47 @@ class LauncherContinueTests(unittest.TestCase):
         code, env, out = self.run_cli("--continue")
         self.assertIsNotNone(env, out)
         self.assertIn("this continue drops: session(s) 2", out)
+
+    def test_u2_the_drop_offsets_a_save_inside_a_continued_session(self) -> None:
+        """(U2a verification V2) `_host_frames` for the save's OWN session is the launcher line's `real_frames` less the
+        save's offset into that session, `since - frame_base`. Every other fixture's own session has base 0, where
+        `since - base` equals `since`, so the `- base` term passed by construction. FAULT: a save made INSIDE a
+        continued session (base `BASE_FRAME + 1001`, the save 999 frames in) whose host count (2700) differs from the
+        AI's end line (2620): the host's frames are 2700 - 999 = 1701 beside the AI's 1621 (mutant HM3, the base
+        dropped, gives 2700 - since, below zero; HM1, the AI's own end line, gives 1621). CONTROL: the save's own
+        session with base 0 is counted from the save's frame (`real - since`), the case HM3 cannot change."""
+        # CONTROL: base 0, the save at BASE_FRAME + 1000, the host count BASE_FRAME + 9000
+        run_dir = self.runs / "own0"
+        self.memory(run_dir=run_dir, end=("stopped: not finished within 9000 frames", False))
+        self.launch_line(run_dir, "play: stopped: not finished within 9000 frames", frames=BASE_FRAME + 9000,
+                         real=BASE_FRAME + 9000)
+        book = read_book(self.game.memory_jsonl)
+        self.assertEqual(book.last_session().get("frame_base"), 0)
+        drop = self.check().dropped
+        self.assertEqual((drop["host_frames"], drop["host_sessions"]), (8000, [[1, 8000]]))
+        # FAULT: save 2 made inside session 2, a continue of save 1 with base BASE_FRAME + 1001
+        self.game.memory_jsonl.unlink()
+        self.memory(run_dir=self.runs / "first")
+        base = BASE_FRAME + 1001
+        later = self.runs / "later"
+        writer = MemoryWriter(self.game.memory_jsonl, read_book(self.game.memory_jsonl), header=None,
+                              session={"how": "continue", "host": "launcher", "run_dir": str(later), "cart": "continued",
+                                       "continued_from": 1, "frame_base": base})
+        writer.write_session(verified=True)
+        self.assertTrue(write_save(writer, 2, payload_of(WORLDS[0])).reached)  # frame BASE_FRAME + 2000
+        writer.write_end(self.STOP_2620, False, base + 2620,
+                         look=party_look(PARTY_MONS, frame=base + 2620, play_time=(0, 25)))
+        self.launch_line(later, self.STOP_2620, frames=2620, real=2700)
+        found = self.check()
+        self.assertEqual((found.ok, found.end_class, found.newest["id"]), (True, "BUDGET", 2), found.why)
+        drop = found.dropped
+        offset = BASE_FRAME + 2000 - base
+        self.assertEqual(offset, 999)
+        self.assertEqual(([s["n"] for s in drop["sessions"]], [s["own"] for s in drop["sessions"]],
+                          drop["sessions"][0]["since"]), ([2], [True], BASE_FRAME + 2000))
+        self.assertEqual((drop["frames"], drop["host_frames"], drop["host_sessions"]),
+                         (2620 - offset, 2700 - offset, [[2, 2700 - offset]]))
+        self.assertIn(f"{2700 - offset:,} frames by the host's count", self.launcher.drop_words(drop))
 
     def test_the_continue_tells_the_losses_it_undoes(self) -> None:
         self.memory(losses=2)

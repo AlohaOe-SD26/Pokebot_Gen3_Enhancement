@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "9a12737afd8ec7cac94e5e09ca0e284d41e5767a",
+ "source_sha1_lf": "11756617569a509f2061e1290a99af8b8529588a",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 354,
+  "sections": 355,
   "donot_candidates": 29,
   "sections_naming_user_rulings": 49
  },
@@ -5530,6 +5530,19 @@
    "rulings": [
     53
    ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-30-297528",
+   "date": "2026-10-30",
+   "line_start": 9935,
+   "line_end": 9940,
+   "title": "2026-10-30 — U2a's verification findings V1-V3 fixed; an old launch line with no instrument record fails closed",
+   "rulings": [],
    "ruling_mentions": [],
    "slugs": [],
    "ki": [],

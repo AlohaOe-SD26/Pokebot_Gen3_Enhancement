@@ -391,9 +391,16 @@ MUTANTS: dict[str, tuple] = {
               "        if line.get(\"hard_kill\"):  # MUTANT U4b\n")],
             [LCT + "test_a_hard_kill_is_judged_by_its_verdict_first"], ("test_saving",)),
     "U4c": (CAUGHT, "U2a fix round F1: the interrupted row before the verdict (the pre-fix order)",
-            [(LAUNCHER, "        if line.get(\"interrupted\") and line.get(\"exit_reason\") in (None, \"interrupted\", "
-                        "\"interrupted-unresponsive\"):\n",
+            # (U2a verification V1: re-anchored on the row as V1 left it; the same rule broken)
+            [(LAUNCHER, "        if line.get(\"interrupted\") and line.get(\"exit_reason\") is None:\n",
               "        if line.get(\"interrupted\"):  # MUTANT U4c\n")],
+            [LCT + "test_an_interrupt_is_judged_by_its_verdict_first"], ("test_saving",)),
+    "U4d": (CAUGHT, "U2a verification V1: the interrupted row allow-lists the WORDS `interrupted` / "
+                    "`interrupted-unresponsive` (F1's row, the code never checked: a brain-returned word plus a Ctrl+C "
+                    "believed)",
+            [(LAUNCHER, "        if line.get(\"interrupted\") and line.get(\"exit_reason\") is None:\n",
+              "        if line.get(\"interrupted\") and line.get(\"exit_reason\") in (None, \"interrupted\", "
+              "\"interrupted-unresponsive\"):  # MUTANT U4d\n")],
             [LCT + "test_an_interrupt_is_judged_by_its_verdict_first"], ("test_saving",)),
     # (U2a fix round F3) a NEW host end in KEYWORD form, every existing end kept: the pre-fix pin skipped the call and its
     # set-equality check still held, so only the keyword-aware pin catches it (a RE-CODED existing end is caught either
@@ -425,6 +432,30 @@ MUTANTS: dict[str, tuple] = {
            [(LAUNCHER, "        code = line.get(\"verdict_code\") if line.get(\"verdict_code\") is not None else process\n",
              "        code = process  # MUTANT U9\n")],
            [LCT + "test_a_host_reason_needs_its_host_code"], ("test_saving",)),
+    # (U2a verification V3) a 417df790 line (no `verdict_code`) reads the instrument's code from the run's verdict file;
+    # U9b also DELETES the census's new `read_verdict` call site in `_classify_session`
+    "U9b": (CAUGHT, "U2a verification V3: an older line's verdict file not read (the process code, the launcher's own 130 "
+                    "or 124, judges a real host end NOT CLEAN for good)",
+            [(LAUNCHER, "            filed = read_verdict(Path(run_dir)) if run_dir and Path(run_dir).is_dir() else None\n",
+              "            filed = None  # MUTANT U9b\n")],
+            [LCT + "test_an_older_line_reads_the_instruments_code_from_its_verdict_file"], ("test_saving",)),
+    # (U2a verification V3) the census counts every `read_verdict` call of `_classify_session` once U9b's is added: the
+    # verdict-file path's own read (no launcher line) deleted reads as a kill (KILLED, allowed) for any verdict
+    "U9e": (CAUGHT, "U2a verification V3 (census): the verdict-file path's `read_verdict` call deleted (a session with "
+                    "no launcher line judged KILLED whatever its verdict file says)",
+            [(LAUNCHER, "        verdict = read_verdict(Path(run_dir))\n", "        verdict = None  # MUTANT U9e\n")],
+            [LCT + "test_a_host_reason_needs_its_host_code"], ("test_saving",)),
+    "U9c": (CAUGHT, "U2a verification V3: one NOT CLEAN sentence for every code source (the process code called the "
+                    "instrument's)",
+            [(LAUNCHER, "        if source == \"process\":  # (V3) no record of the instrument's: the process code only, "
+                        "and the words say so\n",
+              "        if False:  # MUTANT U9c\n")],
+            [LCT + "test_an_older_line_reads_the_instruments_code_from_its_verdict_file"], ("test_saving",)),
+    "U9d": (CAUGHT, "U2a verification V3: the mismatch told as \"the instrument recorded\" whatever recorded it",
+            [(LAUNCHER, "    recorded = \"the instrument recorded\" if source == \"instrument\" else \"the run's verdict file "
+                        "recorded\"\n",
+              "    recorded = \"the instrument recorded\"  # MUTANT U9d\n")],
+            [LCT + "test_an_older_line_reads_the_instruments_code_from_its_verdict_file"], ("test_saving",)),
     "U10": (CAUGHT, "U2 D3b: a BUDGET end's CLEAN check skipped (a BREACH wall-clock continued)",
             [(LAUNCHER, "        if clean != \"CLEAN\":\n", "        if False:  # MUTANT U10\n")],
             [LCT + "test_a_budget_end_needs_a_clean_verdict"], ("test_saving",)),
@@ -447,7 +478,13 @@ MUTANTS: dict[str, tuple] = {
                     "launcher line's `real_frames` (the host's count)",
             [(LAUNCHER, "        per.append(real - (entry[\"since\"] - base) if entry.get(\"own\") else real)\n",
               "        per.append(entry[\"frames\"])  # MUTANT HM1\n")],
-            [LCT + "test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save"], ("test_saving",)),
+            [LCT + "test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save",
+             LCT + "test_u2_the_drop_offsets_a_save_inside_a_continued_session"], ("test_saving",)),
+    "HM3": (CAUGHT, "U2a verification V2: the own session's offset without its `frame_base` (`real - since`: right only "
+                    "for a session whose base is 0)",
+            [(LAUNCHER, "        per.append(real - (entry[\"since\"] - base) if entry.get(\"own\") else real)\n",
+              "        per.append(real - entry[\"since\"] if entry.get(\"own\") else real)  # MUTANT HM3\n")],
+            [LCT + "test_u2_the_drop_offsets_a_save_inside_a_continued_session"], ("test_saving",)),
     "D3m": (CAUGHT, "U2 D13: `end_line` without `play_time` / `where`",
             [("game_memory.py", "    line[\"play_time\"] = _stamp_of(look) if look is not None else None\n"
                                 "    line[\"where\"] = where_of(look) if look is not None else None\n", "")],

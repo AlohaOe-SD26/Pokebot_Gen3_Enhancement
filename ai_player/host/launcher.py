@@ -467,7 +467,9 @@ def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> 
     """How session `session` ended (`judge_end`'s table, one session), and the reason it was judged by. (U2 spec
     2026-10-30 D1-D4) Judged by the HOST's record: a launcher line naming the session's `run_dir` decides whatever the
     AI-written session line says about `host` (D4); a hard kill WITH a verdict is judged by its verdict (D3a); a host end
-    reason counts only with its host exit code, from the instrument's record (D3); `play: stopped:` is BUDGET only when the
+    reason counts only with its host exit code, from the instrument's record (D3: the line's `verdict_code`, else the run's
+    verdict file, else the process code, the words naming which; U2a verification V3); an interrupted line is the
+    interrupted row only with NO verdict (V1); `play: stopped:` is BUDGET only when the
     host's frame count reached its budget (D2); a BUDGET end needs a CLEAN verdict (D3b) and is then allowed (ruling 53)."""
     end = book.end_of(session["n"])
     at_save = bool(end is not None and end.get("at_save"))
@@ -489,8 +491,10 @@ def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> 
     if line is not None:
         # (U2a fix round, F1: D3a's rule for its sibling row) a child may finish and then linger up to
         # EXIT_WATCHDOG_SECONDS; a Ctrl+C in that window kills a process whose verdict is already written, so an
-        # interrupted line WITH a verdict of its own is judged by that verdict (a `reset-refused` stays NOT CLEAN)
-        if line.get("interrupted") and line.get("exit_reason") in (None, "interrupted", "interrupted-unresponsive"):
+        # interrupted line WITH a verdict of its own is judged by that verdict (a `reset-refused` stays NOT CLEAN).
+        # (U2a verification V1) That includes the host's own `interrupted` / `interrupted-unresponsive`: they count only
+        # with their host code (D3, below), so a brain that RETURNED the word (code 0) is NOT CLEAN with a Ctrl+C too
+        if line.get("interrupted") and line.get("exit_reason") is None:
             return "INVOLUNTARY", f"session {session['n']} was interrupted (Ctrl+C reached the launcher)", True, None
         if line.get("hard_kill") and line.get("exit_reason") is None:
             return ("BUDGET", f"session {session['n']} was killed by the launcher at its wall clock{after}: a stuck run, "
@@ -499,6 +503,16 @@ def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> 
         reason = line.get("exit_reason")
         process = line.get("exit_code")
         code = line.get("verdict_code") if line.get("verdict_code") is not None else process
+        # (U2a verification V3) a 417df790 line has no `verdict_code`: the instrument's code is then read where D3's
+        # other path reads it, the run's verdict file (`facts.exit_code`), because the line's PROCESS code is the
+        # launcher's own after a Ctrl+C (130) or a hard kill (124), never the child's. Only without that file does the
+        # process code stand (D3's 417df790 fallback), and the words say which code was used
+        source = "instrument" if line.get("verdict_code") is not None else "process"
+        if source == "process":
+            filed = read_verdict(Path(run_dir)) if run_dir and Path(run_dir).is_dir() else None
+            filed_code = (filed.get("facts") or {}).get("exit_code") if isinstance(filed, dict) else None
+            if filed_code is not None:
+                code, source = filed_code, "verdict file"
         clean = line.get("verdict") if line.get("verdict") is not None else _verdict_word(run_dir)
         ran_out = _ran_out(line)
     elif run_dir and Path(run_dir).is_dir():
@@ -508,6 +522,7 @@ def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> 
             return ("KILLED", f"session {session['n']} left no verdict file and no launcher line: killed from outside",
                     True, None)
         code = (verdict.get("facts") or {}).get("exit_code")
+        source = "instrument"
         clean = verdict.get("verdict")
     else:
         return ("UNKNOWN", f"session {session['n']}'s run folder {run_dir} is gone and no launcher line names it: a kill "
@@ -515,11 +530,18 @@ def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> 
     if reason is None:
         return "KILLED", f"session {session['n']}'s child left no verdict: killed from outside", True, None
     reason = str(reason)
-    told = (f" (the process exited {process}; the instrument recorded {code})"
+    recorded = "the instrument recorded" if source == "instrument" else "the run's verdict file recorded"
+    told = (f" (the process exited {process}; {recorded} {code})"
             if process is not None and code is not None and process != code else "")
     if reason in _HOST_CODES and code != _HOST_CODES[reason]:
-        return ("NOT CLEAN", f"session {session['n']} ended '{reason}' with the instrument's exit code {code}, not the "
-                             f"host's {_HOST_CODES[reason]}: the brain's own text, never a host end{told}", False, reason)
+        if source == "process":  # (V3) no record of the instrument's: the process code only, and the words say so
+            return ("NOT CLEAN", f"session {session['n']} ended '{reason}' with the process's exit code {code} (a "
+                                 f"launcher line without the instrument's code, and no verdict file), not the host's "
+                                 f"{_HOST_CODES[reason]}: it cannot be shown to be a host end", False, reason)
+        whose = "" if source == "instrument" else " (from the run's verdict file)"
+        return ("NOT CLEAN", f"session {session['n']} ended '{reason}' with the instrument's exit code {code}{whose}, "
+                             f"not the host's {_HOST_CODES[reason]}: the brain's own text, never a host end{told}", False,
+                reason)
     if reason in _INVOLUNTARY:
         return "INVOLUNTARY", f"session {session['n']} ended '{reason}'{told}", True, reason
     words = f"session {session['n']} ended '{reason}'"

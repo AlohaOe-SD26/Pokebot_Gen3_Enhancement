@@ -690,3 +690,141 @@ None fired:
 ### Files
 - **Evidence:** `ai_player/evidence/2026-10-30-u2a-VERIFY.txt` in the worktree (451,246 bytes, sha256 `8b34f799...`). It holds every saved output verbatim, including my scripts.
 - **Stage folder:** `s53/u2/build/verify-rerun/`. The plan's output is in `verify/`.
+
+# The verification's V1-V3 fixed (ledger #67, seeds 5691-5694)
+
+> Hand-back section, verbatim (workflow `u2a-fix-v`, filed 2026-10-30).
+
+## U2a V1-V3 fix (ledger #67, seeds 5691-5694), 2026-10-30, 8:07 to 10:05 AM LA time
+
+**Worktree:** `wf_f1f4e70c-011-1`, on HEAD 9fbb9235 plus uncommitted changes. I made no git writes and wrote nothing to the main checkout. Its sandbox-pokebot had 0 paths newer than an 8:00 AM marker, checked both after the live run and at the end.
+
+### Reproduced first
+Outputs are in `s53/u2/fixv/repro/`.
+- **V1:** `FAULT forged 'interrupted' code 0, Ctrl+C: ok=True class=INVOLUNTARY` (the same for `interrupted-unresponsive`).
+- **V2:** a copy with mutant HM3 ran `Ran 54 tests ... OK`, so HM3 survived.
+- **V3:** `OLD line, interrupted, real host 'crash' (verdict file code 2): ok=False class=NOT CLEAN ... the instrument's exit code 130`. The hard-kill sibling reproduced the same way (124).
+
+### The fixes
+All code changes are in `host/launcher.py` `_classify_session`.
+- **V1:**
+  - The interrupted row now takes only `exit_reason is None`.
+  - The two interrupted words then count only with their host code 130, through D3.
+  - Result: a forged word plus Ctrl+C is NOT CLEAN, and the host's own 130 verdict stays INVOLUNTARY.
+- **V3:**
+  - A line with no `verdict_code` now reads `facts.exit_code` from the run's verdict file.
+  - Only with no verdict file does the process code stand.
+  - Every sentence names its source: "the run's verdict file recorded 2", or "with the process's exit code 130 (a launcher line without the instrument's code, and no verdict file) ... it cannot be shown to be a host end".
+- **V2:** test-side only. A save made inside a continued session now pins the `- base` term:
+  - FAULT: the host count is 1701 while the AI's is 1621.
+  - CONTROL: with base 0 the host count is 8000.
+- After the fix, every probe gives the expected class (`repro_*_after.out`). The HM3 copy now fails the new test.
+
+### Mutants in `revert_r1`
+All were predicted and all were CAUGHT.
+- **U4d:** F1's allow-list of the two words.
+- **U4c:** re-anchored on the new row.
+- **HM3:** the own-session offset without `frame_base`. HM1's prediction now includes the new test too.
+- **U9b:** the verdict file is not read.
+- **U9c:** one sentence for every code source.
+- **U9d:** the mismatch is always told as "the instrument recorded".
+- **U9e:** the census's new `read_verdict` site.
+
+The first full pass failed on one row: F014's anchor (a docstring line I had re-wrapped) no longer applied. I restored that line, F014 then passed, and I re-ran all three revert drivers on the final tree.
+
+### Final tree: each check's verbatim last line
+- **test_saving:** `Ran 151 tests ... OK`
+- **test_goals:** `Ran 257 tests ... OK`
+- **test_host** (whole; support root = main checkout): `Ran 37 tests ... OK`
+- **test_safety_gates:** `Ran 50 tests ... OK`
+- **check_purity:** `VERDICT: PASS`
+- **check_fairness:** `PERSON-FAIR DATA DOOR: PASS (0 breaches)`
+- **call_census:** `... 3 sites; 0 MISSING` / `CALL-SITE CENSUS: PASS`. No new waiver.
+- **revert_r1 FULL:** `555 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 556 run (556 defined)` / `OVERALL: PASS`
+- **revert_step5:** `400 ... CAUGHT, 2 REDUNDANT ALONE ... of 402` / `OVERALL: PASS`
+- **revert_safety_gates:** `23 mutants CAUGHT as predicted, of 23` / `OVERALL: PASS`
+- **quick lane:** `REGRESSION: PASS (quick, 21 suites, 20.7 s wall)`
+
+### The live round (#67)
+- **Timing:** the plan started after the main checkout's full lane ended (9:16:38 AM).
+- **Seed check:** 5691-5694 were unused.
+  - The first pass found 43 hits in seed context, none of them a seed: the spec's spare-range allocation, document line ranges, and a count in a recorded curiosity entry.
+  - The second pass adds three pinned rules, with 12 of 12 classifier plants correct.
+  - Its FAULT arm on 5681-5684 reports USED, as it must.
+- **Registration:** registered at 9:16:54 AM and begun at 9:17:00 AM, on tree 13b8aeee14a28226 (the same after the run).
+- **The plan:** 80 jobs, the same plan as #65 and #66. It ran from 9:17:06 to 9:30:23 AM with every exit code 0.
+- **Verdict:** `LIVE R1 VERDICT: PASS ... (failing: none; below the floor: none; discriminators that differ: 44 of 44)`
+  - All 19 graded arms counted 4 of 4, CHAIN included.
+  - 24 determinism lines match CONTROL.
+  - Both OLD twins under mutant U0 refused 4 of 4.
+  - No STOP rule fired.
+- **V2 ran live:** every U2-WALL drop is a save inside the continued session 2, so its host count is real_frames − (since − base): 17,781 / 12,830 / 32,671 / 17,148 (`own-base.out`).
+- **Ledger:** `FINISHED #67`, then `67 entries; well formed -> PASS`.
+- **Evidence:** `ai_player/evidence/2026-10-30-u2a-FIXV.txt`. Raw outputs for an independent re-grade are under `s53/u2/fixv/live/` (plan/rows, runs, logs) and `s53/u2/fixv/offline/`.
+
+### Open
+- **Unit-proven only:** V1's row and V3's older-line path. No live arm reaches them.
+- **Decision for 06:** an old line with no verdict file and a mismatched host reason now fails closed as NOT CLEAN, which is permanent for that game.
+- **Leave out of the commit:** the stale tree zips 9e44a073… and 8f23c8d0…, and the archive folder 9e44a073…-9fbb9235.
+- **Not edited:** V4 stays as recorded. The PROJECT KNOWLEDGE documents were left for the orchestrator.
+
+# The independent check of that fix (a re-grade of #67's outputs)
+
+> Hand-back section, verbatim (workflow `u2a-fix-v`, filed 2026-10-30).
+
+## Independent check of U2a's V1-V3 fix (worktree wf_f1f4e70c-011-1, 10:06-10:25 AM LA, 2026-10-30)
+
+**Verdict: PASS. No MAJOR or MINOR findings; three NITs. My re-grade AGREES with the fixer on all 80 (arm, seed) cells and all 19 arms.** I wrote none of this code and edited nothing in the worktree. Outputs are under `scratchpad/s53/u2/fixv/check/`.
+
+### 1. FAULT tests on copies: they fail on the pre-fix code and pass on the fix
+I made two copies: `copies/prefix`, which is HEAD 9fbb9235's `launcher.py` with the fixed tests, and `copies/fixed`.
+- **Pre-fix copy** (`prefix.out`): `Ran 3 tests ... FAILED (failures=7)`.
+  - **V1:** the forged `interrupted` / `interrupted-unresponsive` subtests fail with `(True, 'INVOLUNTARY') != (False, 'NOT CLEAN')`.
+  - **V3:** the old-line subtests (interrupted, hard kill, wall-clock) fail with `(False, 'NOT CLEAN') != (True, 'INVOLUNTARY'/'BUDGET')`.
+  - **V2:** its test passes on the pre-fix code, as it should. V2 adds a test, not a code change, and its fault is mutant HM3.
+- **Fixed copy** (`fixed.out`): `Ran 3 tests ... OK`.
+- **The fixer's mutants, run in my copy** (`fixer-mutants.out`): R0 PASS (435 tests). U4c, U4d, U9, U9b, U9c, U9d, U9e, HM1 and HM3 are all CAUGHT as predicted: `9 mutants CAUGHT as predicted ... OVERALL: PASS`.
+- **HM3 against HEAD's old tests:** it adds no failure beyond R0's two message-text failures, so it survived there. This confirms V2's premise.
+- **My own mutants** (`my-mutants.out`, whole test_saving each):
+
+| Fix | Mutant | What it breaks | Result |
+|---|---|---|---|
+| V1 | MV1a | the row keyed on `not verdict_code` | CAUGHT |
+| V1 | MV1b | a legitimate no-verdict Ctrl+C refused | CAUGHT |
+| V1 | MV1c | `interrupted` dropped from `_HOST_CODES` | CAUGHT |
+| V1 | MV1d | the row prefix-allows `interrupted*` words | CAUGHT |
+| V3 | MV3a | the file overrides a new line's `verdict_code` | CAUGHT |
+| V3 | MV3b | the file's code read from the wrong key | CAUGHT |
+| V3 | MV3c | `if filed_code:` (a file code of 0 treated as absent) | CAUGHT |
+| V3 | MV3d | the source not updated, so the words are wrong | CAUGHT |
+| V2 | MV2a | `real-(since+base)` | CAUGHT |
+| V2 | MV2c | `real-base` | CAUGHT |
+| V2 | MV2b | base taken from the newest session | **SURVIVED** (NIT N1) |
+
+### 2. Adversarial read of the diff
+I found no new route to a reload that USER RULINGS 52-53 forbid.
+- **V1:** the row narrows (`launcher.py:497`, `exit_reason is None`). Every verdict-bearing interrupt now goes through D3's code check.
+  - The host's real `interrupted` / `interrupted-unresponsive` always finishes with code 130 (`session.py:262,309`, `EXIT_INTERRUPTED`). It is not purity-rewritten, because only code 0 is rewritten (`lifecycle.py:164`). So it stays INVOLUNTARY. This is shown by the `host=` subtests and by probe E5, a hard kill after `interrupted-unresponsive`.
+  - The brain cannot pick its code: `session.py:344` calls `give_up(str(reason), EXIT_OK)`.
+- **V3:** it reads only the run's own `purity.json`, the record D3's line-less path already trusts. It only replaces the process code on lines without `verdict_code`. A new line's code still decides (MV3a is caught).
+- **One legitimate end is newly refused:** an old line that is interrupted or hard-killed and whose run folder is gone. It is now a permanent NOT CLEAN. I agree with failing closed, because a folder gone with no launcher line is UNKNOWN anyway. It still needs a 06 ruling, since it departs from the review's suggested fix text.
+
+### 3. Re-grade of #67 (seeds 5691-5694) with my own instrument
+- **Instrument:** U2a's `build/rerun` instrument, copied, with `W` pointed at this worktree. Fault-tested first: 89 of 89 plants caught on #63's 5654 and on #67's 5692 and 5693. On 5651, 5691 and 5694 the only two misses are the known seed-shape skips. Frozen at 10:13 AM (`instrument-frozen.out`).
+- **My verdict:** `MY VERDICT (5691-5694): PASS (failing: none; below the floor: none; my discriminators that differ: 44 of 44)`.
+- **Against the fixer's grader:** `ARM-BY-ARM: 80 of 80 (arm, seed) cells AGREE` and `PER-ARM TABLE: 19 of 19 graded arms AGREE`.
+- **Arm by arm, I AGREE with every one:**
+  - The NEW arms each counted 4 of 4 and passed: CONTROL, K-AFTER, K-INSIDE, K-SILENT, K-FIRST, K-BETWEEN, LAUNCH, CHAIN, R2-RETRY, U2-BUDGET, U2-WALL.
+  - The OLD arms each counted 4 of 4 and showed their difference: K-INSIDE-OLD, K-SILENT-OLD, LAUNCH-OLD, CHAIN-OLD, CHAIN-R1-OLD, R2-RETRY-OLD, U2-BUDGET-OLD, U2-WALL-OLD.
+  - K-BETWEEN-MID counted 0 of 4. It is diagnostic only.
+- **The README's claim that V2's term ran live** (`wall-base.out`): U2-WALL's own session 2 had frame_base 94300, 68798, 92743 and 81987. My hand-computed `real - (save.frame - base)` (17781, 12830, 32671, 17148) equals the reported `host_frames`. HM3 would have given a negative count on every seed.
+- **Seeds registered before they ran** (`seed-order.out`):
+  - Ledger #67 was registered at 9:16:54 AM and begun at 9:17:00 AM. The plan started at 9:17:06 AM, and its oldest output file was created at 9:17:07 AM; 0 files predate the registration.
+  - No other entry in the worktree, main or tuner-clone ledgers overlaps 5691-5694.
+  - My name scan of the s53 tree found 0 artifacts named for 5691-5694. Its FAULT arm (5681-5684, used by #66) found 467 names, so the scan can see a used range.
+  - Code identity: the digest is 13b8aeee14a28226 now, at the run's begin, and after the run.
+
+### NITs (each quoted with file:line in the findings)
+- **N1:** MV2b survives. Every fixture's own session is the newest one (`launcher.py:617`).
+- **N2:** V3's sentence says "no verdict file" when the file is present but unreadable (`launcher.py:539`; probe E1).
+- **N3:** a non-dict `facts` in an old line's verdict file now raises an AttributeError instead of refusing in words (`launcher.py:513`; probe E2). The same pattern already exists on the line-less path (E3).

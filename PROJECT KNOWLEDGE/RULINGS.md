@@ -75,10 +75,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 354 sections (newest first)
+## All 355 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-30-297528` | 9935 |  |  | 2026-10-30 — U2a's verification findings V1-V3 fixed; an old launch line with no instrument record fails closed |
 | `2026-10-30-cc5521` | 9927 | 53 |  | 2026-10-30 — U2a BUILT: a session ended by its time or frame limit may be continued (USER RULING 53), judged by the host's own record, and every continue tells  |
 | `2026-10-30-b8f22e` | 9916 |  |  | 2026-10-30 — R1 + R2's FOLLOW-UP BUILT: the build's decisions (two STOPs ruled on, the CHAIN kill rule, what was deferred to U2's build) |
 | `2026-10-29-2afa57` | 9904 | 53 | DO-NOT-REOPEN | 2026-10-29 — USER RULING 53: the user approved the open asks and left the three open design questions to Claude's recommendations (U1 the list as built; U2 YES, |

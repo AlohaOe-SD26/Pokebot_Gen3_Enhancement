@@ -39184,3 +39184,12 @@ bought balls only at fixed story points.
 - **Evidence:** `ai_player/evidence/2026-10-30-regression-*` and the drivers' own `2026-10-30-*-REVERT.txt`, rewritten; the 417df790 lane's files of the same names are kept under `archive/53e0c26e7812db47-417df790/` (14 files, the keep-earlier rule).
 - **Also:** a usage calibration row in `cost-ledger.jsonl` (the user's meter read 79 % at about 337 Mtok input-equivalent; `usage_audit.py --calibrate`).
 - **Cost:** local CPU only (92 minutes).
+
+## 2026-10-30 — U2a's verification findings V1-V3 fixed (backlog item 15; punch-list #28-aiagent-v2)
+
+- **What:** `host/launcher.py` `_classify_session`: a verdict `interrupted` word counts only with its host code (V1); a pre-U2a launch line reads the instrument's code from its verdict file and every sentence names its source (V3); a test pins the drop's base term (V2). Tests in `gates/test_saving.py`; mutants U4c, U4d, U9b-U9e and HM3 in `gates/revert_r1.py`, all CAUGHT.
+- **Proof:** live #67 (5691-5694) PASS, 44 of 44 discriminators, every graded arm 4 of 4; an independent re-grade AGREES. `revert_r1` 555 + 1 of 556, `revert_step5` 400 + 2 of 402, `revert_safety_gates` 23 of 23, `call_census` 0 MISSING. On `main`: `test_host` 37 OK, quick lane PASS, `run_gates.py --quick`: `ALL 141 ENFORCING GATES PASS  (881.5s total)   [+2 ADVISORY probe(s) — run, NOT gated]`.
+- **Decision:** an old launch line with no instrument record left fails closed (`06`). **Open:** NITs N1-N3 (`06`).
+- **Files:** `ai_player/host/launcher.py`, `gates/test_saving.py`, `gates/revert_r1.py`, `gates/ledger.json` (#67), `ai_player/README.md`; evidence `2026-10-30-u2a-FIXV.txt`, `2026-10-30-u2fixv-REVERT.txt` and the tree zips they name; the U2a build report (two sections appended).
+- **Cost:** the workflow `u2a-fix-v` (2 agents, 6.84 Mtok), `cost-ledger.jsonl`.
+- **Next:** U2b, the save just before the limit (`04` item 4).
