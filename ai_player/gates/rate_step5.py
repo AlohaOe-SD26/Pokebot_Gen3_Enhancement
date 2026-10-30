@@ -1521,9 +1521,13 @@ def curiosity_rows(actions: list[dict], data: dict, offset: int) -> list[dict]:
 def curiosity_streaks(actions: list[dict]) -> list[tuple[int, int, int]]:
     """(build step 5.2, the step-5.1 review's finding 2: "it ran six curiosity goals in a row") Every STREAK of curiosity
     goals with no story or need goal between (a goal dropped for a scene neither ends nor joins one; a curiosity goal the
-    story moved on in is the story's): (first frame, goals in it, frames from its first goal's start to its last's end)."""
+    story moved on in is the story's): (first frame, goals in it, frames from its first goal's start to its last's end).
+    (R1 + R2 follow-up, spec D6, from T4) A SAVE neither ends nor joins a streak: its frames stay inside the streak's
+    span, as the AI's own clock counts them."""
     out, streak = [], []
     for span in goal_spans(actions):
+        if span["kind"] == SAVE_KIND:
+            continue
         if span["kind"] in CURIOSITY_KINDS and not span["story_moved"]:
             streak.append(span)
             continue
@@ -1646,8 +1650,9 @@ def aside_streaks(actions: list[dict]) -> list[tuple[str, int, int, int]]:
     """(the step-5.1 verifier's round: "in CH2, 10 look_around goals in a row (about 32,000 frames) passed while the walk to
     PETALBURG waited out its cooldown") Every STREAK of goals put aside for one story goal (the goal manager's `aside:` key,
     `brain/goals.py` ASIDE): (the story goal's key, the first aside's frame, the frames until the next goal that is not that
-    aside, how many asides in a row). (5.3 A1-2) ASIDE is the grader-owned copy."""
-    spans = goal_spans(actions)
+    aside, how many asides in a row). (5.3 A1-2) ASIDE is the grader-owned copy. (R1 + R2 follow-up, spec D6, from T4) A
+    SAVE neither ends nor joins a streak (its frames stay inside the streak's span)."""
+    spans = [s for s in goal_spans(actions) if s["kind"] != SAVE_KIND]
     out, i = [], 0
     while i < len(spans):
         key = spans[i]["key"]

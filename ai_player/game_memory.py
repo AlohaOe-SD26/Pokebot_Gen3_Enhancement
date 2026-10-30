@@ -34,8 +34,8 @@ A SAVE'S `memory` is a FULL payload (`build_payload`: the world memory, the goal
 the battle mind's wishes and meetings, the Pokemon registry, the loss count) when the save has no parent or `FULL_EVERY`
 deltas already follow the last full line of its chain; otherwise a DELTA against its PARENT's rebuilt payload
 (`{"set": [[path, value], ...], "del": [path, ...]}`). After a continue from save k the next save's parent is k, so the
-lines of an abandoned branch are never on a chain again. A torn last line is ignored (and told); any other unreadable
-line refuses the file; a NEWER schema is refused with the file left byte-identical (D9).
+lines of an abandoned branch are never on a chain again. A torn last line is ignored (and told); any other unreadable or
+non-ASCII line (every line is written with `ensure_ascii=True`, so one means a corrupted byte) refuses the file; a NEWER schema is refused with the file left byte-identical (D9).
 
 WHAT A CONTINUE RESTORES (D16, `GOAL_KEEP` / `GOAL_RESET` / `GOAL_IN_WORLD`): what a person would REMEMBER at the save
 (whom it talked to, the items it tried, the places it looked round, its fight preparation, ...) is kept; a process's
@@ -480,7 +480,7 @@ def end_line(session: int, reason: str, at_save: bool, frame: int, stopped_befor
     (R1 fix round, review R-2) `stopped_before_restore`: a CONTINUE that stopped on a bound or a failed read
     (`ContinueResult.may_retry`) before it restored or played anything. Such an end is NOT chosen: it changed nothing a
     later continue could undo, and the launcher looks through it to the session before (`host/launcher.py`
-    classify_end). The spec's own stops (the save gone, a TIME it does not remember, an arrival that differs) stay
+    judge_end). The spec's own stops (the save gone, a TIME it does not remember, an arrival that differs) stay
     chosen."""
     text = reason[len("play: "):] if reason.startswith("play: ") else reason
     held = bool(stopped_before_restore) and text.startswith("stuck:")
@@ -633,9 +633,14 @@ class MemoryBook:
 
 def read_book(path) -> MemoryBook | None:
     """The memory file at `path` (read only; never changed), or None when there is none. Raises `MemoryFileError`:
-    "newer" when the header's schema is newer than `SCHEMA_VERSION`, "no_header", "unreadable" for any broken line but
-    a torn last one (or a cut line a later `torn` line acknowledges)."""
+    "newer" when the header's schema is newer than `SCHEMA_VERSION`, "no_header", "unreadable" for any unreadable or
+    non-ASCII line but a torn last one (or a cut line a later `torn` line acknowledges). (R1 + R2 follow-up, spec D4) Every
+    line is written with `ensure_ascii=True`, so a non-ASCII character in a line means a corrupted byte: that line is
+    unparsable."""
     try:
+        # errors="replace" ON PURPOSE (spec D4): a strict decode would raise UnicodeDecodeError past the MemoryFileError
+        # contract, and one bad byte in a torn LAST line would refuse the whole file; the per-line ASCII check below
+        # refuses a corrupted middle line instead
         with open(path, "r", encoding="utf-8", errors="replace") as handle:
             text = handle.read()
     except FileNotFoundError:
@@ -647,7 +652,7 @@ def read_book(path) -> MemoryBook | None:
     if not parts:
         raise MemoryFileError("no_header", f"{path} is empty: a memory file begins with its header")
     try:
-        first = json.loads(parts[0])
+        first = json.loads(parts[0]) if parts[0].isascii() else None  # (D4) a non-ASCII header is no header
     except ValueError:
         first = None
     if isinstance(first, dict) and first.get("kind") == "header":
@@ -664,6 +669,9 @@ def read_book(path) -> MemoryBook | None:
     acknowledged = 0
     parsed: list = []
     for text_line in parts:
+        if not text_line.isascii():
+            parsed.append(None)  # (D4) a non-ASCII line is a corrupted one: unparsable
+            continue
         try:
             parsed.append(json.loads(text_line))
         except ValueError:

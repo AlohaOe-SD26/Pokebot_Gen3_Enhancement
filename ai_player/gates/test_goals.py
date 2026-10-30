@@ -2240,7 +2240,7 @@ class R1PlayTests(unittest.TestCase):
         to the session before: a harness session with no end line, killed). FAULT half: the spec's own stop (the save
         gone, not retryable) stays a CHOSEN end and the launcher refuses the next continue."""
         from ai_player.game_memory import read_book
-        from ai_player.host.launcher import classify_end
+        from ai_player.host.launcher import judge_end
         from ai_player.skills.saving import ContinueResult
         from ai_player import mode as mode_module
 
@@ -2261,8 +2261,8 @@ class R1PlayTests(unittest.TestCase):
                 book = read_book(self.memory_file)
                 end = book.end_of(book.last_session()["n"])
                 self.assertEqual((end["chosen"], end["stopped_before_restore"], end["at_save"]), (chosen, retry, False))
-                kind, words, ok = classify_end(book, [])
-                self.assertEqual(ok, allowed, words)
+                judgement = judge_end(book, [])
+                self.assertEqual(judgement.allowed, allowed, judgement.words)
 
 
 def mode_module_patience() -> int:
@@ -3491,6 +3491,29 @@ class SecondRoundTests(unittest.TestCase):
         self.assertEqual(mgr.memory.curious_row, 0)
         mgr.after_goal(Goal("pick_up", "x"), {"productive": True}, 3500, "ch1_rival_house", story_moved=True)
         self.assertEqual((mgr.memory.curious_row, mgr.memory.curious_since), (0, 2500))  # the rival's POKé BALL: the story's
+
+    def test_a_save_neither_ends_nor_joins_a_curiosity_row(self):
+        """(R1 + R2 follow-up, spec D6: the verification's V2-6; T4: a save is "neither an errand nor the story's step")
+        FAULT (mutant V6a; the old code): curiosity, curiosity, SAVE leaves the row at 2, so the next goal may not be one of
+        curiosity (`curious_ok()` False); the old code reset it to 0 (True), letting C C save C C through `CURIOUS_ROW_MAX`.
+        CONTROL: curiosity, curiosity, a story goal resets the row to 0 (unchanged); a save after it leaves 0."""
+        from ai_player.brain.goals import CURIOUS_ROW_MAX, Goal
+        self.assertEqual(CURIOUS_ROW_MAX, 2)  # the case below is built on a row of two
+        mgr = self.bored_manager(since=5000)
+        mgr.after_goal(Goal("chat", "x"), {"productive": False, "frames": 300}, 2000, "ch1_rival_route103")
+        mgr.after_goal(Goal("explore", "x"), {"productive": False, "frames": 300}, 2500, "ch1_rival_route103")
+        self.assertEqual((mgr.memory.curious_row, mgr.curious_ok()), (2, False))
+        self.assertIsNone(mgr.after_goal(Goal("save", "a heal at a POKéMON CENTER"), {"frames": 300}, 3000,
+                                         "ch1_rival_route103"))
+        self.assertEqual((mgr.memory.curious_row, mgr.curious_ok()), (2, False))  # FAULT half: (0, True)
+        # CONTROL: a story goal ends the row; a save after it leaves it ended
+        mgr = self.bored_manager(since=5000)
+        mgr.after_goal(Goal("chat", "x"), {"productive": False, "frames": 300}, 2000, "ch1_rival_route103")
+        mgr.after_goal(Goal("explore", "x"), {"productive": False, "frames": 300}, 2500, "ch1_rival_route103")
+        mgr.after_goal(Goal("go", "x"), {"productive": False}, 3000, "ch1_rival_route103")
+        self.assertEqual((mgr.memory.curious_row, mgr.curious_ok()), (0, True))
+        mgr.after_goal(Goal("save", "a heal at a POKéMON CENTER"), {"frames": 300}, 3500, "ch1_rival_route103")
+        self.assertEqual(mgr.memory.curious_row, 0)
 
     def oldale(self, mgr: GoalManager, draw: float = 0.99, frontier: bool = True, people=()) -> Goal:
         mgr.rng = _Draws(draw)
@@ -5300,6 +5323,32 @@ class GraderYieldTests(unittest.TestCase):
         records = [{"decision": "goal", "action": k, "frame": 1000 * i} for i, k in enumerate(kinds)]
         records.append({"decision": "watch", "frame": 9000})
         self.assertEqual(curiosity_streaks(records), [(1000, 3, 3000), (5000, 1, 1000), (7000, 1, 2000)])
+
+    def test_a_save_neither_ends_nor_joins_a_grader_streak(self):
+        """(R1 + R2 follow-up, spec D6; T4) The grader treats a SAVE as the AI does: transparent. FAULT (mutants V6b, V6c):
+        chat, explore, SAVE, detour, chat is ONE curiosity streak of 4 (the save's frames inside its span), not two of 2;
+        aside, aside, SAVE, aside is ONE aside streak of 3, not two. CONTROL: a STORY goal between still makes two
+        curiosity streaks."""
+        from ai_player.brain.goals import ASIDE
+        from ai_player.gates.rate_step5 import aside_streaks, curiosity_streaks
+
+        def goals(kinds):
+            records = [{"decision": "goal", "action": k, "frame": 1000 * i} for i, k in enumerate(kinds)]
+            return records + [{"decision": "watch", "frame": 1000 * len(kinds)}]
+
+        self.assertEqual(curiosity_streaks(goals(["go", "chat", "explore", "save", "detour", "chat", "go"])),
+                         [(1000, 4, 5000)])  # FAULT half: [(1000, 2, 2000), (4000, 2, 2000)]
+        self.assertEqual(curiosity_streaks(goals(["go", "chat", "explore", "go", "detour", "chat", "go"])),
+                         [(1000, 2, 2000), (4000, 2, 2000)])  # CONTROL
+        aside = {"key": f"{ASIDE}go:PETALBURG_CITY"}
+        records = [{"decision": "goal", "action": "go", "frame": 0, "extra": {"key": "go:PETALBURG_CITY"}},
+                   {"decision": "goal", "action": "look_around", "frame": 1000, "extra": aside},
+                   {"decision": "goal", "action": "look_around", "frame": 2000, "extra": aside},
+                   {"decision": "goal", "action": "save", "frame": 3000, "extra": {"key": "save:a heal"}},
+                   {"decision": "goal", "action": "look_around", "frame": 4000, "extra": aside},
+                   {"decision": "goal", "action": "go", "frame": 5000, "extra": {"key": "go:PETALBURG_CITY"}},
+                   {"decision": "watch", "frame": 6000}]
+        self.assertEqual(aside_streaks(records), [("go:PETALBURG_CITY", 1000, 4000, 3)])  # FAULT half: two streaks
 
     def test_the_grader_reads_pushing_and_person_blocks(self):
         from ai_player.gates.rate_step5 import person_blocks, push_ai

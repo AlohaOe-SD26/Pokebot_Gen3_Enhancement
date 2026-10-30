@@ -478,18 +478,62 @@ class FairnessTests(Scratch):
         """(R1 + R2, build spec D18, RULE C) The game's play time is no screen fact: only the save code reads it. FAULT: a
         planted `.play_time` read (and its `getattr` form) in the goal manager fails, and so does a door no read goes
         through (stale); CONTROL: a docstring or comment mention, `self.play_time`, the keyword that DROPS it (`seen_now`'s
-        `replace(progress, play_time=None)`) and a read inside a door pass, and the real package passes."""
+        `replace(progress, play_time=None)`) and a read inside a door pass, and the real package passes. (R1 + R2
+        follow-up, spec D3) FAULT: the review's F2 (subscript), F3 (`asdict`), F7 (`.get`), F8 (match class keyword), F9
+        (`astuple`), F11 (match mapping), a named constant, `attrgetter` and F12 (a positional class pattern, refused as
+        RULE C and A even inside a door); CONTROL: a dict display's key, a docstring, an f-string's text, and inside a door
+        the subscript and `case Progress(play_time=t)`."""
         for source in ("def errand(look):\n    return look.progress.play_time[0] > 2\n",
                        "def errand(look):\n    return getattr(look.progress, 'play_time')\n"):
             with self.subTest(source=source):
                 found = self.scan(source, rel="brain/goals.py")
                 self.assertTrue([f for f in found if f.startswith("C ")], found)
+        # (R1 + R2 follow-up, spec D3: the review's N-2) FAULT: the other forms that read it, each in the goal manager
+        plants = {
+            "F2 a subscript": "def errand(memory):\n    return memory.last_save['play_time']\n",
+            "F3 asdict": "from dataclasses import asdict\n\n\ndef errand(look):\n    return asdict(look.progress)['x']\n",
+            "F3b dataclasses.asdict": "import dataclasses\n\n\ndef errand(look):\n    return dataclasses.asdict(look.progress)\n",
+            "F7 a .get": "def errand(memory):\n    return memory.last_save.get('play_time')\n",
+            "F8 a match class keyword": "def errand(look):\n    match look.progress:\n        case object(play_time=t):\n"
+                                        "            return t\n",
+            "F9 astuple": "from dataclasses import astuple\n\n\ndef errand(look):\n    return astuple(look.progress)[-1]\n",
+            "F11 a match mapping key": "def errand(line):\n    match line:\n        case {'play_time': t}:\n            return t\n",
+            "a named constant": "FIELD = 'play_time'\n\n\ndef errand(line):\n    return line[FIELD]\n",
+            "attrgetter": "from operator import attrgetter\n\n\ndef errand(look):\n    return attrgetter('play_time')(look.progress)\n",
+            "F12 a positional class pattern": "def errand(look):\n    match look.progress:\n"
+                                              "        case Progress(_, _, _, _, _, _, _, t):\n            return t\n",
+        }
+        for label, source in plants.items():
+            with self.subTest(plant=label):
+                found = self.scan(source, rel="brain/goals.py")
+                self.assertTrue([f for f in found if f.startswith("C ")], found)
+        # D3 (d): a positional class pattern is refused INSIDE a door too, and as RULE A as well (flags and marks)
+        positional = plants["F12 a positional class pattern"]
+        for rel in ("brain/goals.py", "brain/saving.py"):
+            with self.subTest(positional_in=rel):
+                found = self.scan(positional, rel=rel)
+                self.assertTrue([f for f in found if f.startswith("C ") and "POSITION" in f], found)
+                self.assertTrue([f for f in found if f.startswith("A ") and "POSITION" in f], found)
         mentions = ('"""It never reads look.progress.play_time."""\n# progress.play_time\n\n\n'
                     "class Clock:\n    def __init__(self):\n        self.play_time = None\n\n"
                     "    def read(self):\n        return self.play_time\n\n\n"
                     "def drop(progress):\n    return replace(progress, play_time=None)\n")
         self.assertEqual(self.scan(mentions, rel="brain/goals.py"), [])
+        # CONTROL: a dict display's key builds a dict (no read); a docstring and an f-string's text are mentions
+        controls = {
+            "a dict display key": "def build(t):\n    return {'play_time': t}\n",
+            "a docstring": "def build(t):\n    \"\"\"play_time\"\"\"\n    return t\n",
+            "an f-string's text": "def build(t):\n    return f'play_time {t}'\n",
+            "a keyword that drops it": "def drop(progress):\n    return replace(progress, play_time=None)\n",
+        }
+        for label, source in controls.items():
+            with self.subTest(control=label):
+                self.assertEqual(self.scan(source, rel="brain/goals.py"), [])
+        # CONTROL: inside a door, the attribute, the subscript and the match class keyword pass
         self.assertEqual(self.scan("def policy(look):\n    return look.progress.play_time\n", rel="brain/saving.py"), [])
+        self.assertEqual(self.scan(plants["F2 a subscript"], rel="brain/saving.py"), [])
+        self.assertEqual(self.scan(plants["F8 a match class keyword"].replace("object(", "Progress("),
+                                   rel="brain/saving.py"), [])
         ok, problems, _ = check_fairness.check()
         self.assertTrue(ok, problems)
         stale = check_fairness.PLAY_TIME_DOORS + [("mode.py", "HandsBrain._nowhere", "a door nothing reads through")]
@@ -497,6 +541,37 @@ class FairnessTests(Scratch):
             ok, problems, _ = check_fairness.check()
         self.assertFalse(ok)
         self.assertTrue(any("HandsBrain._nowhere" in p and "stale" in p for p in problems), problems)
+
+    def test_vars_and_named_getattr_are_purity_s(self) -> None:
+        """(R1 + R2 follow-up, spec D3: THE TWO-GATE COVER) RULE C does not judge `vars(...)` or a `getattr` with a
+        non-constant name, because the PURITY gate's rule (d) refuses both in the whole AI package. FAULT: each, planted in
+        brain/, fails `check_purity.scan` rule (d) (and passes RULE C, which is why the cover is the purity gate's).
+        CONTROL: the real package passes both gates."""
+        from ai_player.gates import check_purity
+
+        hook, build_root = check_purity.DEFAULT_HOOK, check_purity.DEFAULT_BUILD_ROOT
+        if not hook.is_file() and os.environ.get("AI_PLAYER_TEST_SUPPORT_ROOT"):
+            # a COPY of the package (revert_r1's mutants) has no framework beside it: the support root's, as test_check_purity
+            build_root = Path(os.environ["AI_PLAYER_TEST_SUPPORT_ROOT"]) / "sandbox-pokebot"
+            hook = build_root / "plugins" / "custom_modes" / "ai_player_mode.py"
+        # (the name is built, so RULE C's constant form cannot see it: only the purity gate can)
+        plants = {"vars": "def errand(look):\n    return vars(look.progress)\n",
+                  "a named getattr": "FIELD = 'play' + '_time'\n\n\ndef errand(look):\n    return getattr(look.progress, FIELD)\n"}
+        for label, source in plants.items():
+            with self.subTest(plant=label):
+                self.assertFalse([f for f in self.scan(source, rel="brain/goals.py") if f.startswith("C ")],
+                                 "RULE C is not this form's gate")
+                package = self.root / label.replace(" ", "_") / "ai_player"
+                shutil.copytree(REPO / "ai_player", package, ignore=shutil.ignore_patterns("__pycache__", "evidence",
+                                                                                           "fixtures"))
+                (package / "brain" / "time_plant.py").write_text(source, encoding="utf-8")
+                result = check_purity.scan(package, hook if hook.is_file() else None, build_root)
+                hits = [v for v in result.violations if v.rule == "d" and "time_plant.py" in v.file]
+                self.assertTrue(hits, check_purity.report(result))
+        ok, problems, _ = check_fairness.check()
+        self.assertTrue(ok, problems)
+        real = check_purity.scan(check_purity.PACKAGE_DIR, hook if hook.is_file() else None, build_root)
+        self.assertTrue(real.passed, check_purity.report(real))
 
     def test_an_unclassified_knowledge_key_fails_and_the_real_files_pass(self) -> None:
         knowledge = self.root / "knowledge"

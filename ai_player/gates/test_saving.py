@@ -568,6 +568,41 @@ class MemoryFileTests(unittest.TestCase):
             read_book(self.path)
         self.assertEqual(caught.exception.kind, "unreadable")
 
+    def test_a_non_ascii_middle_line_is_refused(self) -> None:
+        """(R1 + R2 follow-up, spec D4: the review's N-4) Every line is written with `ensure_ascii=True`, so a non-ASCII
+        character in a line is a corrupted byte. FAULT (mutant M14): a `0xFF` byte inside a middle line's string (it
+        decodes to U+FFFD, the JSON still parses, and the file used to be ACCEPTED with changed content) -> refused
+        "unreadable"; a valid UTF-8 `é` in a middle line -> refused; a non-ASCII header -> "no_header". CONTROL: the clean
+        file reads; a `0xFF` in a torn LAST line is ignored (`torn` set, D6), and once a continue's writer acknowledges
+        it the next read accepts the file."""
+        write_save(self.new_writer(), 1, payload_of(WORLDS[0]))
+        clean = self.path.read_bytes()
+        # the session line's free-text `run_dir` (a field no line check judges, so only the ASCII check can refuse it)
+        free = b'"run_dir":"run"'
+        self.assertEqual(clean.count(free), 1)
+        self.assertEqual([line["kind"] for line in read_book(self.path).lines], ["header", "session", "save"])  # CONTROL
+        for label, corrupted, kind in (
+                ("a 0xFF byte in the middle line", clean.replace(free, b'"run_dir":"r\xffn"'), "unreadable"),
+                ("a UTF-8 e-acute in the middle line", clean.replace(free, '"run_dir":"rén"'.encode("utf-8")), "unreadable"),
+                # (the header's own kind kept: only its game string carries the byte, so the old code read the header)
+                ("a non-ASCII header", clean.replace(b"ai-test|", b"ai-t\xffst|", 1), "no_header")):
+            with self.subTest(label):
+                self.path.write_bytes(corrupted)
+                with self.assertRaises(MemoryFileError) as caught:
+                    read_book(self.path)
+                self.assertEqual(caught.exception.kind, kind)
+        # CONTROL: a 0xFF byte in a torn LAST line is ignored, then acknowledged by the next session's writer
+        fragment = b'{"kind":"lost","fr\xffme":12'
+        self.path.write_bytes(clean + fragment)
+        book = read_book(self.path)
+        self.assertIsNotNone(book.torn)
+        self.assertEqual([s["id"] for s in book.saves()], [1])
+        follow = MemoryWriter(self.path, book, header=None, session=session("continue", continued_from=1))
+        self.assertTrue(follow.write_session(verified=True, restored_maps=["0:9"]))
+        again = read_book(self.path)
+        self.assertEqual((again.torn, again.acknowledged), (None, 1))
+        self.assertEqual([s["n"] for s in again.sessions()], [1, 2])
+
     def test_the_next_session_ends_and_acknowledges_a_torn_line(self) -> None:
         writer = self.new_writer()
         write_save(writer, 1, payload_of(WORLDS[0]))
@@ -2083,6 +2118,11 @@ class LauncherContinueTests(unittest.TestCase):
                                                                   "exit_reason": None}, True, "KILLED"),
             ("a launcher line with the verdict's reason", None, ("done: x reached", False),
              {"hard_kill": False, "interrupted": False, "exit_reason": "play: done: x reached"}, False, "CHOSEN"),
+            # (R1 + R2 follow-up, spec D2: USER RULING 52) the controller refused a reset or erase combination: NOT CLEAN
+            # (refused), from the verdict file and from the launcher's line; mutant L13 (INVOLUNTARY) allows both
+            ("a reset or erase combination refused", "reset-refused", None, None, False, "NOT CLEAN"),
+            ("a launcher line, reset refused", None, None,
+             {"hard_kill": False, "interrupted": False, "exit_reason": "reset-refused"}, False, "NOT CLEAN"),
         ]
         for what, reason, end, launch, allowed, kind in cases:
             with self.subTest(what):
@@ -2182,6 +2222,42 @@ class LauncherContinueTests(unittest.TestCase):
                               reason="stuck: the continue stopped: the save is gone: x")
         self.assertEqual((self.check().ok, self.check().end_class), (False, "CHOSEN"), self.check().why)
 
+    def test_the_look_through_is_counted_and_told(self) -> None:
+        """(R1 + R2 follow-up, spec D5: the verification's V2-5) Each continue the launcher looks through is COUNTED and
+        TOLD, never capped. FAULT halves (mutants FX8, FX9): after 1, 5 and 50 stopped continues the words say `looked
+        through N` and name the NEWEST stop's reason, `memory_check(...).looked_through` is N, and `judge_end` lists the
+        stopped sessions newest first. CONTROL: with no stop, no "looked through" in the words and `looked_through` 0."""
+        newest_reason = "stuck: the continue stopped: the continued game did not reach a free overworld within 160 frames"
+        for stops in (1, 5, 50):
+            with self.subTest(stops=stops):
+                self.game.memory_jsonl.unlink(missing_ok=True)
+                self.game.launches_jsonl.unlink(missing_ok=True)
+                kill = self.runs / f"kill-{stops}"
+                kill.mkdir(parents=True, exist_ok=True)
+                self.memory(run_dir=kill)
+                for n in range(stops):
+                    self.stopped_continue(self.runs / f"stop-{stops}-{n}",
+                                          reason=newest_reason if n == stops - 1 else None)
+                found = self.check()
+                self.assertEqual((found.ok, found.end_class), (True, "KILLED"), found.why)
+                self.assertIn(f"looked through {stops} continue(s) that stopped before restoring anything", found.why)
+                self.assertIn(f"the newest: 'play: {newest_reason}'", found.why)
+                self.assertEqual(found.looked_through, stops)
+                judgement = self.launcher.judge_end(read_book(self.game.memory_jsonl),
+                                                    self.launcher.read_launches(self.game.launches_jsonl))
+                numbers = [n for n, _ in judgement.looked_through]
+                self.assertEqual(numbers, list(range(stops + 1, 1, -1)))  # sessions stops+1 .. 2, newest first
+                self.assertEqual(judgement.looked_through[0][1], f"play: {newest_reason}")
+        # CONTROL: no stopped continue, nothing looked through
+        self.game.memory_jsonl.unlink(missing_ok=True)
+        self.game.launches_jsonl.unlink(missing_ok=True)
+        self.runs.joinpath("plain").mkdir(parents=True, exist_ok=True)
+        self.memory(run_dir=self.runs / "plain")
+        found = self.check()
+        self.assertTrue(found.ok, found.why)
+        self.assertNotIn("looked through", found.why)
+        self.assertEqual(found.looked_through, 0)
+
     def test_the_continue_tells_the_losses_it_undoes(self) -> None:
         self.memory(losses=2)
         self.runs.joinpath("r1").mkdir(parents=True)
@@ -2223,6 +2299,26 @@ class LauncherContinueTests(unittest.TestCase):
         self.assertEqual(self.game.launches_jsonl.read_bytes(), launches)
         self.game.launches_jsonl.unlink()
         self.assertTrue(self.check().ok)  # CONTROL
+
+    def test_an_unreadable_launches_file_is_refused(self) -> None:
+        """(R1 + R2 follow-up, spec D7: the R-EXCEPT audit's one defect) FAULT (mutant L14): a `0xFF` byte in
+        `launches.jsonl` used to escape `read_launches` as a raw UnicodeDecodeError (past `memory_check` and the CLI's
+        handler: a traceback, not the refusal sentence); now `memory_check` returns `ok False` with "cannot be read", no
+        exception, and the file is left byte-identical. CONTROL: the same file without the byte is allowed, as before."""
+        self.memory()
+        self.runs.joinpath("r1").mkdir(parents=True)
+        clean = (json.dumps({"kind": "header", "schema_version": 1}) + "\n"
+                 + json.dumps({"kind": "launch_end", "run_dir": str(self.runs / "other"), "exit_code": 0,
+                               "hard_kill": False, "interrupted": False, "exit_reason": None}) + "\n").encode("ascii")
+        self.game.launches_jsonl.write_bytes(clean)
+        found = self.check()
+        self.assertTrue(found.ok, found.why)  # CONTROL
+        corrupted = clean.replace(b"other", b"oth\xffr")
+        self.game.launches_jsonl.write_bytes(corrupted)
+        found = self.check()  # no exception: the refusal sentence
+        self.assertFalse(found.ok)
+        self.assertIn("cannot be read", found.why)
+        self.assertEqual(self.game.launches_jsonl.read_bytes(), corrupted)
 
     def test_fresh_archives_the_memory(self) -> None:
         launcher = self.launcher
@@ -2853,6 +2949,86 @@ class CensusSiteTests(unittest.TestCase):
         with mock.patch.object(context, "emulator", memory, create=True):
             ui = FrameworkEyes()._ui("MAIN_MENU", {"Task_HandleMainMenuInput": task(1, 0)})
         self.assertEqual((ui.options[0], ui.hours, ui.minutes), ("CONTINUE", 2, 5))
+
+
+class LiveR1HeadlineTests(unittest.TestCase):
+    """(R1 + R2 follow-up, spec part (j): the verification's V2-1 and V2-2; CLAUDE.md session discipline 2, the headline
+    carries the caveat) `gates/live_r1.py`'s verdict LINE, offline: when K-BETWEEN is graded under a substituted kill rule,
+    the line says how the spec's midpoint arm (K-BETWEEN-MID) fared, its PASSES as well as its count, and names the
+    failing seeds; `verdict_line` is the one place the printed line and `verdict.json`'s `headline` come from. FAULT halves
+    (mutants LV1, LV2): the line without the caveat; a caveat that counts the midpoint's seeds but not its passes. CONTROL:
+    under the spec's own midpoint rule there is no caveat."""
+
+    SEEDS = [1, 2, 3, 4]
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        from ai_player.gates import live_r1
+
+        cls.live = live_r1
+
+    def table(self, mid: dict) -> dict:
+        """Every graded arm counted and good on the four seeds, and K-BETWEEN-MID as `mid` says."""
+        live = self.live
+        out = {(name, seed): {"counted": True, "pass": True if name not in live.OLD_OF else None,
+                              "old_shows": True if name in live.OLD_OF else None}
+               for name in live.GRADED_ARMS for seed in self.SEEDS}
+        out.update({("K-BETWEEN-MID", seed): dict(value) for seed, value in mid.items()})
+        return out
+
+    def line(self, summaries: dict) -> str:
+        return self.live.verdict_line(self.live.verdict_of(summaries, self.SEEDS), summaries, self.SEEDS, [])
+
+    def test_the_caveat_counts_the_midpoint_passes_and_names_its_failing_seeds(self) -> None:
+        live = self.live
+        self.assertNotEqual(live.BETWEEN_RULE, "midpoint", "the caveat case needs the substituted rule (orchestrator ruling 5)")
+        failing = self.table({seed: {"counted": True, "pass": False} for seed in self.SEEDS})
+        caveat = live.between_caveat(failing, self.SEEDS)
+        self.assertIn("counted 4 of 4; passed 0 of 4; FAILING on seeds [1, 2, 3, 4]; orchestrator ruling 5)", caveat)
+        mixed = self.table({1: {"counted": True, "pass": True}, 2: {"counted": True, "pass": False},
+                            3: {"counted": True, "pass": True}, 4: {"counted": False}})
+        self.assertIn("counted 3 of 4; passed 2 of 3; FAILING on seeds [2]; orchestrator ruling 5)",
+                      live.between_caveat(mixed, self.SEEDS))
+        vacuous = self.table({seed: {"counted": False} for seed in self.SEEDS})
+        self.assertIn("counted 0 of 4: vacuous; passed 0 of 0; orchestrator ruling 5)",
+                      live.between_caveat(vacuous, self.SEEDS))
+        passing = self.table({seed: {"counted": True, "pass": True} for seed in self.SEEDS})
+        self.assertNotIn("FAILING", live.between_caveat(passing, self.SEEDS))
+
+    def test_a_midpoint_counted_below_the_floor_is_not_called_vacuous(self) -> None:
+        """(fix round, review RV-2) The midpoint counted on 2 of 4 seeds (under the floor of 3) and passed both, as on #58:
+        the line says 'below the floor' and never 'vacuous', which is kept for counted 0. FAULT half (mutant LV3): the old
+        rule `len(counted) < FLOOR` calls it vacuous. CONTROL: counted 0 is still 'vacuous'; counted 3 and 4 carry no word."""
+        live = self.live
+        some = self.table({1: {"counted": True, "pass": True}, 2: {"counted": False}, 3: {"counted": False},
+                           4: {"counted": True, "pass": True}})
+        caveat = live.between_caveat(some, self.SEEDS)
+        self.assertIn("counted 2 of 4: below the floor; passed 2 of 2; orchestrator ruling 5)", caveat)
+        self.assertNotIn("vacuous", caveat)
+        self.assertNotIn("vacuous", self.line(some))
+        none = self.table({seed: {"counted": False} for seed in self.SEEDS})
+        self.assertIn("counted 0 of 4: vacuous; passed 0 of 0;", live.between_caveat(none, self.SEEDS))
+        three = self.table({1: {"counted": True, "pass": True}, 2: {"counted": True, "pass": True},
+                            3: {"counted": True, "pass": True}, 4: {"counted": False}})
+        self.assertIn("counted 3 of 4; passed 3 of 3; orchestrator ruling 5)", live.between_caveat(three, self.SEEDS))
+        every = self.table({seed: {"counted": True, "pass": True} for seed in self.SEEDS})
+        self.assertIn("counted 4 of 4; passed 4 of 4; orchestrator ruling 5)", live.between_caveat(every, self.SEEDS))
+
+    def test_the_verdict_line_carries_the_caveat(self) -> None:
+        live = self.live
+        failing = self.table({seed: {"counted": True, "pass": False} for seed in self.SEEDS})
+        expected = (f"LIVE R1 VERDICT: PASS{live.between_caveat(failing, self.SEEDS)} (failing: none; below the floor: "
+                    f"none; discriminators that differ: 0 of 0)")
+        self.assertEqual(self.line(failing), expected)
+        self.assertIn("FAILING on seeds [1, 2, 3, 4]", self.line(failing))
+        # FAULT half: a line built without the caveat is told apart by the same comparison
+        with mock.patch.object(live, "between_caveat", lambda summaries, seeds: ""):
+            self.assertNotEqual(self.line(failing), expected)
+        # CONTROL: under the spec's own midpoint rule there is no caveat at all
+        with mock.patch.object(live, "BETWEEN_RULE", "midpoint"):
+            self.assertEqual(live.between_caveat(failing, self.SEEDS), "")
+            self.assertEqual(self.line(failing), "LIVE R1 VERDICT: PASS (failing: none; below the floor: none; "
+                                                 "discriminators that differ: 0 of 0)")
 
 
 if __name__ == "__main__":

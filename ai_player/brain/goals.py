@@ -1064,7 +1064,11 @@ class GoalManager:
         the story moved on in, the rival's POKé BALL, is the story's), the BOREDOM clock (only a PRODUCTIVE curiosity goal,
         `goal_yield`, resets it), and what an UNPRODUCTIVE one marks so it is not tried again: a look round EXHAUSTS its
         map for the milestone, a detour that did not get there BLOCKS its place. What it brought is told (`say`); returns
-        what was marked."""
+        what was marked. (R1 + R2 follow-up, spec D6: the verification's V2-6) A SAVE neither ends nor joins a row: it is
+        bookkeeping, "neither an errand nor the story's step" (spec T4), so curiosity, save, curiosity is one row."""
+        if goal.kind == "save":
+            # (D6) transparent: a reset by bookkeeping would let C C save C C through CURIOUS_ROW_MAX
+            return None
         if goal.kind not in CURIOSITY_KINDS or story_moved:
             self.memory.curious_row = 0
             return None

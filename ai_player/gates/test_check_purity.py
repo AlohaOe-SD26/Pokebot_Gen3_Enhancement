@@ -765,7 +765,72 @@ EXIT_PROBES: list[tuple[str, str | None, str, str, str]] = [
      "\n\ndef _keep_going(step):\n    try:\n        step()\n    except KeyboardInterrupt:\n        return None\n", "b"),
     ("X06 SystemExit caught in options.py", "options.py", "append",
      "\n\ndef _never_end(step):\n    try:\n        step()\n    except SystemExit:\n        return None\n", "b"),
+    # (R1 + R2 follow-up, spec 2026-10-29 D1: N-1) the forms that discard, swallow or hold back an exit WITHOUT naming one
+    # of the four names above: each passed the HEAD gate (measured, `s53/r1f/probe_gates.out`, `mine/probe_plants_all.out`)
+    ("X07 raise GeneratorExit in brain/", "brain/exit_plant.py", "new", "def give_up():\n    raise GeneratorExit\n", "b"),
+    ("X08 except BaseException in skills/", "skills/exit_plant.py", "new",
+     "def keep(step):\n    try:\n        step()\n    except BaseException:\n        return None\n", "b"),
+    ("X09 except (ValueError, BaseException) in mode.py", "mode.py", "append",
+     "\n\ndef _keep(step):\n    try:\n        step()\n    except (ValueError, BaseException):\n        return None\n", "b"),
+    ("X10 except* BaseException in hands/", "hands/exit_plant.py", "new",
+     "def keep(step):\n    try:\n        step()\n    except* BaseException:\n        pass\n", "b"),
+    ("X11 a BaseExceptionGroup subclass in world/", "world/exit_plant.py", "new",
+     "class Stop(BaseExceptionGroup):\n    pass\n", "b"),
+    ("X12 a bare except in game_memory.py", "game_memory.py", "append",
+     "\n\ndef _keep(step):\n    try:\n        step()\n    except:\n        return None\n", "b"),
+    ("X13 finally: return in brain/", "brain/exit_plant.py", "new",
+     "def keep(step):\n    try:\n        step()\n    finally:\n        return None\n", "b"),
+    ("X14 finally: break in a loop that encloses the try, in skills/", "skills/exit_plant.py", "new",
+     "def keep(steps):\n    for step in steps:\n        try:\n            step()\n        finally:\n            break\n", "b"),
+    ("X15 a class defining __exit__ in hands/", "hands/exit_plant.py", "new",
+     "class Keep:\n    def __enter__(self):\n        return self\n\n    def __exit__(self, kind, value, trace):\n"
+     "        return True\n", "b"),
+    ("X16 contextlib.ExitStack with a swallowing callback in brain/", "brain/exit_plant.py", "new",
+     "import contextlib\n\n\ndef keep(step):\n    with contextlib.ExitStack() as stack:\n        stack.push(lambda *e: True)\n"
+     "        step()\n", "b"),
+    ("X17 finally: yield from controls.wait(1) in skills/", "skills/exit_plant.py", "new",
+     "def keep(controls, step):\n    try:\n        yield from step()\n    finally:\n        yield from controls.wait(1)\n", "b"),
+    ("X18 return inside a for loop inside a finally, in hands/", "hands/exit_plant.py", "new",
+     "def keep(step, items):\n    try:\n        step()\n    finally:\n        for item in items:\n            return item\n", "b"),
+    ("X19 ExitStack imported under another name in brain/", "brain/exit_plant.py", "new",
+     "from contextlib import ExitStack as Stack\n\n\ndef keep(step):\n    with Stack() as stack:\n        step()\n", "b"),
+    ("X20 finally: break in a nested loop's else, in skills/", "skills/exit_plant.py", "new",
+     "def keep(steps, items):\n    for step in steps:\n        try:\n            step()\n        finally:\n"
+     "            for item in items:\n                pass\n            else:\n                break\n", "b"),
 ]
+
+#: (D1) CONTROL for X07-X20: the same words as mentions, the narrow forms that are fine, and the scopes a `finally` may hold
+EXIT_FORMS_CONTROL = '''\
+"""GeneratorExit, BaseException, BaseExceptionGroup, ExitStack and AsyncExitStack are the host's; never `except:`,
+`finally: return`, `finally: yield` or `def __exit__` here."""
+
+# raise GeneratorExit; except BaseException: pass; contextlib.ExitStack(); finally: return None; def __exit__
+WHY = "BaseException, BaseExceptionGroup and ExitStack belong to the host"
+
+
+def keep(step, items):
+    try:
+        step()
+    except ValueError:
+        return None
+    finally:
+        def later():
+            yield 1
+            return 2
+
+        for item in items:
+            if item:
+                break
+            continue
+        while items:
+            break
+        _ = later
+    return items
+
+
+def exit_menu(menu):
+    return menu.exit_menu()
+'''
 
 
 class PlayLoopExitTests(GateTestCase):
@@ -787,6 +852,13 @@ class PlayLoopExitTests(GateTestCase):
             self.assertIn("host/launcher.py", result.scanned)
         self.assertIn("sys.exit(code)", (REAL_PACKAGE / "host" / "lifecycle.py").read_text(encoding="utf-8"))
         self.assertIn("except KeyboardInterrupt", (REAL_PACKAGE / "host" / "launcher.py").read_text(encoding="utf-8"))
+        # (R1 + R2 follow-up, D1) CONTROL for X07-X20: mentions, `except ValueError:`, `def exit_menu`, and a `finally`
+        # holding a nested def (with a return and a yield) and loops with their own break/continue, all pass
+        with planted_copy("brain/exit_forms_control.py", "new", EXIT_FORMS_CONTROL) as (package, hook):
+            result = check_purity.scan(package, hook, REAL_BUILD_ROOT)
+            self.assertEqual([str(v) for v in result.violations if "exit_forms_control" in v.file], [],
+                             check_purity.report(result))
+            self.assertTrue(result.passed, check_purity.report(result))
 
 
 class MentionTests(GateTestCase):

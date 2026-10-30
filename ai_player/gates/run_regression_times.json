@@ -1,5 +1,5 @@
 {
-  "_doc": "run_regression.py's MEASURED time table (spec S4-1). `suites`: wall seconds of each suite run alone, from the recon note 2026-10-21-A2-P7-recon.md Q1 (the quiet run 2026-10-21-kb1-fix-units.txt for the units; date line to mtime for the reverts; revert_safety_gates and revert_step5 the larger of their two runs). They order the work longest-first (revert_step3 starts FIRST: it is the wall floor) and give a suite whose TIMEOUT_FACTOR (3.5x since the S4-1 fix round: the first real --full run took 4,339 s for revert_step3, 86 % of 2.5x) exceeds the default timeout a longer one. `test_check_purity`: each test method run alone and serially, measured 2026-10-21 by the S4-1 builder (sum 260.5 s, the recon's 265 s quiet); it balances the shards. A method missing here (a new test) is planned at `default_method_s` and still runs: the planner names the tests unittest's own loader collects from the module (`loader_names`), never this table.",
+  "_doc": "run_regression.py's MEASURED time table (spec S4-1). `suites`: wall seconds of each suite run alone, from the recon note 2026-10-21-A2-P7-recon.md Q1 (the quiet run 2026-10-21-kb1-fix-units.txt for the units; date line to mtime for the reverts; revert_safety_gates and revert_step5 the larger of their two runs; revert_r1 its full run alone, 1166.9 s with 514 mutants, measured 2026-10-29 by the R1 + R2 follow-up's second fix round (review RV-4: the 917 it replaced was below both measured runs; the full lane's run on f4412116, 468 mutants, took 1153.7 s)). They order the work longest-first (revert_step3 starts FIRST: it is the wall floor) and give a suite whose TIMEOUT_FACTOR (3.5x since the S4-1 fix round: the first real --full run took 4,339 s for revert_step3, 86 % of 2.5x) exceeds the default timeout a longer one. `test_check_purity`: each test method run alone and serially, measured 2026-10-21 by the S4-1 builder (sum 260.5 s, the recon's 265 s quiet); it balances the shards. A method missing here (a new test) is planned at `default_method_s` and still runs: the planner names the tests unittest's own loader collects from the module (`loader_names`), never this table.",
   "default_method_s": 2.0,
   "default_suite_s": 5.0,
   "suites": {
@@ -9,7 +9,7 @@
     "disk_budget": 1, "test_run_regression": 4,
     "revert_step3": 2014, "revert_safety_gates": 326, "revert_step5": 237, "revert_step2": 114, "revert_step11": 25,
     "revert_step4": 23,
-    "test_saving": 9, "check_paths": 1, "revert_r1": 917
+    "test_saving": 9, "check_paths": 1, "revert_r1": 1167
   },
   "test_check_purity": {
     "ControlTests.test_control_real_package_passes": 1.8,

@@ -33,7 +33,14 @@ before it lands. Then:
 RULE C, THE PLAY TIME (R1 + R2, build spec 2026-10-29 D18). The game's play time (`Progress.play_time`) is not on the
 screen the AI watches (a person sees it on the trainer card, the save window and CONTINUE), so in the deciding code only
 the save code reads it (`PLAY_TIME_DOORS`, each with its purpose): the save and continue skill, the save policy, the
-memory file. A door no read goes through is stale, as RULE A's are.
+memory file. A door no read goes through is stale, as RULE A's are. A READ is (R1 + R2 follow-up, spec D3): `.play_time`
+of anything but `self`/`cls`; `getattr`/`hasattr` with the constant name; the constant key `'play_time'` wherever it stands
+(a subscript, a `.get`, a match-mapping key, a named constant, `attrgetter`'s argument) but a dict display's key; a match
+class pattern's keyword `play_time=`; and a whole-object copy (`asdict`, `astuple`). And in ALL deciding code, doors
+included, a class pattern with POSITIONAL sub-patterns (`case Progress(_, ..., t)`) is refused as RULE C and RULE A both: it
+reads fields by position through `__match_args__`. THE TWO-GATE COVER: `vars(...)` and a `getattr` with a non-constant name
+are not judged here because the PURITY gate's rule (d) already refuses them in the whole AI package (`check_purity.py`
+REFLECTION_NAMES, and getattr only as `getattr(obj, 'constant name')`); the launcher runs that gate before every launch.
 
 MENTIONS NEVER FIRE: the AST has no comments; a string statement (a docstring) is skipped, and so is the text of an
 f-string; a string counts only when its WHOLE value is the name; a dict DISPLAY's keys are not reads; `self.flags` is the
@@ -94,10 +101,13 @@ FLAG_DOORS: list[tuple[str, str, str, str]] = [
 ]
 #: RULE C (R1 + R2, build spec 2026-10-29 D18): the game's PLAY TIME (`Progress.play_time`, hours and minutes) is not on the
 #: screen the AI watches: a person sees it on the trainer card, the save window and CONTINUE. So in the deciding code only
-#: these may READ it (`.play_time` of anything but `self`/`cls`, or `getattr(x, "play_time")`): (file, function qualname
+#: these may READ it (`.play_time` of anything but `self`/`cls`, `getattr(x, "play_time")`, and the forms of the module
+#: docstring's RULE C, spec D3): (file, function qualname
 #: or "*" for the whole file, its PURPOSE). A door's nested functions are inside it. `hands/dialogue.py` seen_now DROPS it
 #: (`replace(progress, play_time=None)`: a keyword, no read), so it needs no door.
 PLAY_TIME_FIELD = "play_time"
+#: (RULE C, spec D3 (c)) a whole-object copy of a dataclass carries every field, the play time among them
+WHOLE_COPY_CALLS = ("asdict", "astuple")
 PLAY_TIME_DOORS: list[tuple[str, str, str]] = [
     ("skills/saving.py", "*", "THE SAVE AND THE CONTINUE: the stamp read on the SAVING page (what the game writes into the "
                               "save), checked through the write; the CONTINUE window's TIME"),
@@ -364,6 +374,14 @@ def scan_file(rel: str, source: str, flag_names: set[str], dev_keys: set[str], h
     def where(node: ast.AST) -> str:
         return f"{rel}:{getattr(node, 'lineno', '?')} ({owner.get(id(node), '<module>')})"
 
+    # (RULE C, spec D3 (a)) the 'play_time' constants that are NOT reads: a dict display's keys (they build a dict, they
+    # read nothing) and getattr/hasattr's own name argument (that call is judged as the read)
+    time_keys_built: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Dict):
+            time_keys_built.update(id(key) for key in node.keys if key is not None)
+        if isinstance(node, ast.Call) and _call_name(node) in ("getattr", "hasattr") and len(node.args) >= 2:
+            time_keys_built.add(id(node.args[1]))
     # B3's tracked names: a name bound to a species_fact(...) value, per function
     fact_names: dict[str, set[str]] = {}
     for node in ast.walk(tree):
@@ -395,6 +413,17 @@ def scan_file(rel: str, source: str, flag_names: set[str], dev_keys: set[str], h
             reads_time = reads_time or (isinstance(node, ast.Call) and _call_name(node) in ("getattr", "hasattr")
                                         and len(node.args) >= 2 and isinstance(node.args[1], ast.Constant)
                                         and node.args[1].value == PLAY_TIME_FIELD)
+            # (R1 + R2 follow-up, spec D3 (a)-(c)) the other forms that read it: the constant key 'play_time' wherever it
+            # stands (a subscript, a .get, a match-mapping key, a named constant, attrgetter's argument) but a dict
+            # display's key, a docstring or f-string text, and getattr's own argument (counted above); a match class
+            # pattern's keyword `play_time=`; a whole-object copy (`asdict`, `astuple`) carries it
+            if isinstance(node, ast.Constant) and node.value == PLAY_TIME_FIELD and id(node) not in skipped \
+                    and id(node) not in time_keys_built:
+                reads_time = True
+            if isinstance(node, ast.MatchClass) and PLAY_TIME_FIELD in node.kwd_attrs:
+                reads_time = True
+            if isinstance(node, ast.Call) and _call_name(node) in WHOLE_COPY_CALLS:
+                reads_time = True
             if reads_time:
                 door = time_door(rel, here)
                 if door is None:
@@ -402,6 +431,14 @@ def scan_file(rel: str, source: str, flag_names: set[str], dev_keys: set[str], h
                                f"not on the screen the AI watches; only the save code may read it")
                 elif used is not None:
                     used.add(("time", door[0], door[1]))
+            # (R1 + R2 follow-up, spec D3 (d)) a class pattern with POSITIONAL sub-patterns reads the class's fields by
+            # position through `__match_args__` (Progress's play_time, flags and marks among them): refused in ALL
+            # deciding code, doors included, as RULE C and RULE A both
+            if isinstance(node, ast.MatchClass) and node.patterns:
+                out.append(f"C  {where(node)}: matches a class by POSITION: it reads its fields through __match_args__ "
+                           f"(the play time, the flags and the marks among them); name the attributes")
+                out.append(f"A  {where(node)}: matches a class by POSITION: it reads its fields through __match_args__ "
+                           f"(the flags and the marks among them); name the attributes")
             if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in skipped \
                     and (_FLAG_NAME.fullmatch(node.value) or node.value in flag_names):
                 out.append(f"A  {where(node)}: names the game flag {node.value!r}: a hidden flag's name has no business in "

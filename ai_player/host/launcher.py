@@ -65,16 +65,17 @@ __all__ = [
     "WALL_CLOCK_EXIT",
     "ChildResult",
     "ContinueCheck",
+    "EndJudgement",
     "GateRun",
     "LaunchError",
     "archive_memory",
     "bot_command",
     "check_package_resolution",
     "child_env",
-    "classify_end",
     "ensure_profile",
     "force_http_off",
     "hook_path",
+    "judge_end",
     "kill_tree",
     "memory_check",
     "package_root",
@@ -255,7 +256,9 @@ LAUNCHES_SCHEMA = 1
 #: (D12 (a)) how the newest session of a memory file ended -> may it be continued. KILLED: no verdict and no launcher line
 #: (the operator, the OS, a power cut). INVOLUNTARY: the process ended without the AI choosing it. CHOSEN: the AI ended the
 #: run (`play: done:` / `play: stuck:`). BUDGET: the frame budget or the wall clock (interim, pending the user's U2). NOT
-#: CLEAN: a purity or framework end. UNKNOWN: the session's run folder is gone and no launcher line names it.
+#: CLEAN: a purity or framework end, and (R1 + R2 follow-up, spec D2) `reset-refused`: the controller refused a reset or
+#: erase combination (USER RULING 52), so the reset it blocked must never get its reload. NOT CLEAN is permanent for that
+#: game (only `--fresh`). UNKNOWN: the session's run folder is gone and no launcher line names it.
 END_CLASSES = ("KILLED", "INVOLUNTARY", "CHOSEN", "BUDGET", "NOT CLEAN", "UNKNOWN")
 _INVOLUNTARY = ("crash", "frame-budget", "parked-manual", "abandoned", "interrupted", "interrupted-unresponsive")
 
@@ -263,13 +266,15 @@ _INVOLUNTARY = ("crash", "frame-budget", "parked-manual", "abandoned", "interrup
 @dataclass(frozen=True)
 class ContinueCheck:
     """What `memory_check` found: `ok` (a continue may start), `why` (the sentence it prints), the newest save line, how
-    the newest session ended (`END_CLASSES`) and the battles lost after the newest save (D12 (e))."""
+    the newest session ended (`END_CLASSES`), the battles lost after the newest save (D12 (e)) and (R1 + R2 follow-up,
+    spec D5) how many continues that stopped before restoring anything the judgement looked through."""
 
     ok: bool
     why: str
     newest: dict | None = None
     end_class: str | None = None
     undone: int = 0
+    looked_through: int = 0
 
 
 def read_launches(path: Path) -> list[dict]:
@@ -279,6 +284,8 @@ def read_launches(path: Path) -> list[dict]:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError:
         return []
+    except UnicodeDecodeError as error:  # (R1 + R2 follow-up, spec D7) a corrupted byte: refused with words, never a traceback
+        raise LaunchError(f"{path} cannot be read: it is not UTF-8 ({error})") from error
     lines = [line for line in text.splitlines() if line.strip()]
     out: list[dict] = []
     for number, raw in enumerate(lines, 1):
@@ -333,7 +340,18 @@ def archive_memory(game: AppPaths) -> list[str]:
     return moved
 
 
-def classify_end(book: MemoryBook, launches: list[dict]) -> tuple[str, str, bool]:
+@dataclass(frozen=True)
+class EndJudgement:
+    """What `judge_end` found: the class (`END_CLASSES`), in words, may it be continued, and (R1 + R2 follow-up, spec D5)
+    every continue it LOOKED THROUGH, newest first, as (session number, the reason it was judged by)."""
+
+    kind: str
+    words: str
+    allowed: bool
+    looked_through: tuple[tuple[int, str], ...] = ()
+
+
+def judge_end(book: MemoryBook, launches: list[dict]) -> EndJudgement:
     """(D12 (a)) How the NEWEST session of the memory file ended: (class, in words, may it be continued). From three
     records, in this order of trust: the LAUNCHER's own line for the session's `run_dir` (`launches.jsonl`), else the
     run's verdict file (`purity.json`, written only by `lifecycle.finish`: an external kill leaves none), and the AI's own
@@ -342,18 +360,29 @@ def classify_end(book: MemoryBook, launches: list[dict]) -> tuple[str, str, bool
     closed); a run folder that is gone with no launcher line is UNKNOWN (refused: a kill cannot be told from a choice).
     (R1 fix round, review R-2) A CHOSEN end of a continue that STOPPED BEFORE IT RESTORED ANYTHING (a bound or a failed
     read, `_stopped_before_restore`) is looked THROUGH: the session before it decides, since that continue changed nothing
-    a later one could undo. Without this a timeout made the game impossible ever to continue again."""
+    a later one could undo. Without this a timeout made the game impossible ever to continue again.
+    (R1 + R2 follow-up, spec D5: the verification's V2-5) Each look-through is COUNTED and TOLD: the words gain "(looked
+    through N continue(s) that stopped before restoring anything; the newest: '<reason>')", and `looked_through` lists
+    them, so whoever retries can bound its retries. There is NO cap here: this is a pure function of the files, so a
+    refusal after K stops would be PERMANENT for the game (only `--fresh`), and a stopped continue restores and plays
+    nothing, so a run of them cannot undo anything (ruling 52 holds). (It replaces the 3-tuple `classify_end`, which no AI
+    code would have called any more: an uncalled function the call-site census refuses.)"""
     session = book.last_session()
     if session is None:
-        return "UNKNOWN", "the memory file names no session", False
+        return EndJudgement("UNKNOWN", "the memory file names no session", False)
     sessions = book.sessions()
+    looked: list[tuple[int, str]] = []
     for _ in range(len(sessions)):  # bounded: each pass steps one session back
         kind, words, allowed, reason = _classify_session(book, session, launches)
         earlier = _session_before(sessions, session)
         if kind != "CHOSEN" or earlier is None or not _stopped_before_restore(book, session, reason):
-            return kind, words, allowed
+            if looked:
+                words += (f" (looked through {len(looked)} continue(s) that stopped before restoring anything; the "
+                          f"newest: '{looked[0][1]}')")
+            return EndJudgement(kind, words, allowed, tuple(looked))
+        looked.append((session["n"], str(reason)))
         session = earlier
-    return "UNKNOWN", "the memory file's sessions could not be followed back", False
+    return EndJudgement("UNKNOWN", "the memory file's sessions could not be followed back", False, tuple(looked))
 
 
 #: the play brain's end when its continue stopped (`mode.py` HandsBrain._continue), without the `play: ` in front
@@ -385,14 +414,14 @@ def _stopped_before_restore(book: MemoryBook, session: dict, reason: str | None)
 
 
 def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> tuple[str, str, bool, str | None]:
-    """How session `session` ended (`classify_end`'s table, one session), and the reason it was judged by."""
+    """How session `session` ended (`judge_end`'s table, one session), and the reason it was judged by."""
     end = book.end_of(session["n"])
     at_save = bool(end is not None and end.get("at_save"))
     after = " right after a save" if at_save else ""
     if session.get("host") == "harness":
         if end is None:
             return "KILLED", f"harness session {session['n']} has no end line: it was killed", True, None
-        # a continue stopped before its restore is judged as the chosen end it is, then looked through (classify_end)
+        # a continue stopped before its restore is judged as the chosen end it is, then looked through (judge_end)
         chosen = end.get("chosen") or end.get("stopped_before_restore")
         kind = "CHOSEN" if chosen else "BUDGET" if end.get("budget") else "INVOLUNTARY"
         allowed = kind == "INVOLUNTARY" or at_save
@@ -435,7 +464,8 @@ def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> 
 def memory_check(game: AppPaths) -> ContinueCheck:
     """(D11, D12) May this game be CONTINUED? Reads `memory.jsonl` and `launches.jsonl` read only: a newer schema is
     refused (the files left byte-identical), a memory file with no save line is refused, and how the newest session ended
-    decides (`classify_end`). Also counts the battles lost after the newest save, which the continue undoes (D12 (e))."""
+    decides (`judge_end`). Also counts the battles lost after the newest save, which the continue undoes (D12 (e)), and
+    (spec D5) how many stopped continues the judgement looked through."""
     try:
         book = read_book(game.memory_jsonl)
     except MemoryFileError as error:
@@ -449,12 +479,14 @@ def memory_check(game: AppPaths) -> ContinueCheck:
         launches = read_launches(game.launches_jsonl)
     except LaunchError as error:
         return ContinueCheck(False, str(error), newest)
-    kind, words, allowed = classify_end(book, launches)
+    judgement = judge_end(book, launches)
+    kind, words, allowed = judgement.kind, judgement.words, judgement.allowed
+    looked = len(judgement.looked_through)
     undone = len(book.undone_losses(newest["id"]) or [])
     if not allowed:
         return ContinueCheck(False, f"a continue would reload after a {kind} end ({words}): USER RULING 52",
-                             newest, kind, undone)
-    return ContinueCheck(True, words, newest, kind, undone)
+                             newest, kind, undone, looked)
+    return ContinueCheck(True, words, newest, kind, undone, looked)
 
 
 def bot_command(build_root: Path, profile: str) -> list[str]:

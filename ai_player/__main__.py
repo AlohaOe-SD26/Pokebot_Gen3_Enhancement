@@ -171,7 +171,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         newest = check.newest
         state_note += (f"\n[AI-RUN] state: CONTINUE (current_state.ss1 removed; memory {game.memory_jsonl}, its newest "
                        f"save {newest['play_time'][0]}:{newest['play_time'][1]:02d}; the last run ended: "
-                       f"{check.end_class} ({check.why}); this continue undoes {check.undone} battles lost after that save)")
+                       f"{check.end_class} ({check.why}); this continue undoes {check.undone} battles lost after that save"
+                       + (f"; looked through {check.looked_through} stopped continue(s)" if check.looked_through else "")
+                       + ")")
 
     run_dir = (args.run_dir or profile_dir / "ai_player_runs" / time.strftime("%Y%m%d-%H%M%S")).resolve()
     run_dir.mkdir(parents=True, exist_ok=True)

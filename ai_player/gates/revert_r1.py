@@ -13,7 +13,10 @@ every suite any mutant runs. A mutant whose predicted list is empty is CAUGHT by
 
 THE MUTANTS, three kinds:
   * the spec's (section 6), hand-written below (`MUTANTS`): the launcher and the host (S27, S33-S37, S39, L*), the purity
-    gate (S40), the fairness gate (S46), the options (S35b);
+    gate (S40), the fairness gate (S46), the options (S35b); and the R1 + R2 FOLLOW-UP's (its spec's section 6: S40c-g,
+    S46c-f, L11-L18, M14, FX8, FX9, V6a-c, LV1, LV2; its fix round's ORDER and LV3; its second fix round's (verification VR-1) reorders of the guard's ends,
+    ORDER-INT/AB/PARK/BUDGET and INT/AB/PARK/BUDGET/WALL-FIRST; the reset_refusal harness's need the framework, which a copy finds
+    through `AI_PLAYER_TEST_SUPPORT_ROOT`, orchestrator ruling 9);
   * the build's earlier stages' (stages 1-3: S1-S26, S28-S32, S38, S41-S45, R3, X*, M*, N*), whose anchors and
     predictions were proven in those stages' scratch scripts, kept in `revert_r1_mutants.json` (`origin` says which);
   * the CALL-SITE CENSUS's (`gates/call_census.py`, LESSONS PF-2: "for every new hook, write the mutant that deletes its
@@ -55,25 +58,32 @@ PURITY, FAIRNESS = "gates/check_purity.py", "gates/check_fairness.py"
 PURITY_TEST = "test_check_purity:PlayLoopExitTests"
 FAIRNESS_TEST = "test_safety_gates:FairnessTests"
 HOST_TEST = "test_host:ControllerTogetherTests"
+#: (R1 + R2 follow-up) the reset_refusal harness's tests: the REAL Session in a harness process, which needs the framework
+#: (`AI_PLAYER_TEST_SUPPORT_ROOT` names it for a copy: test_host passes that one variable to its harness, ruling 9)
+RESET_TEST = "test_host:ResetRefusalTests"
+SESSION = "host/session.py"
+RRT = "ResetRefusalTests."
 LCT = "LauncherContinueTests."
 
 #: name -> (prediction, the rule that is broken, [edits (file, anchor, replacement)], [tests that MUST fail] or the reason
 #: (REDUNDANT), the suites it runs). The spec's hand-written mutants; `revert_r1_mutants.json` adds the rest (`_load`).
 MUTANTS: dict[str, tuple] = {
-    "R0": (CONTROL, "nothing: the unchanged copy", [], [], DEFAULT_SUITES + (PURITY_TEST, FAIRNESS_TEST, HOST_TEST)),
+    "R0": (CONTROL, "nothing: the unchanged copy", [], [],
+           DEFAULT_SUITES + (PURITY_TEST, FAIRNESS_TEST, HOST_TEST, RESET_TEST)),
     # ---------------------------------------------------------------- the launcher and the host (spec section 6)
     "S27": (CAUGHT, "`--continue` keeps the .ss1 (also the live proof's LAUNCH-OLD)",
             [(LAUNCHER, "        if had:\n            dropped.unlink()\n", "        if False:\n            dropped.unlink()\n")],
             [LCT + "test_continue_removes_the_ss1_and_keeps_the_sav", LCT + "test_the_cart_is_told"], ("test_saving",)),
     "S33": (CAUGHT, "the end classes collapsed to the draft's \"no chosen end line -> allowed\" (findings M1, M2)",
+            # (R1 + R2 follow-up: re-anchored on `judge_end`, which replaced `classify_end`; the same rule broken)
             [(LAUNCHER, "    session = book.last_session()\n    if session is None:\n"
-                        "        return \"UNKNOWN\", \"the memory file names no session\", False\n",
+                        "        return EndJudgement(\"UNKNOWN\", \"the memory file names no session\", False)\n",
               "    session = book.last_session()\n    if session is None:\n"
-              "        return \"UNKNOWN\", \"the memory file names no session\", False\n"
+              "        return EndJudgement(\"UNKNOWN\", \"the memory file names no session\", False)\n"
               "    drafted = book.end_of(session[\"n\"])  # MUTANT S33\n"
               "    if drafted is None or not drafted.get(\"chosen\") or drafted.get(\"at_save\"):\n"
-              "        return \"KILLED\", \"MUTANT S33\", True\n"
-              "    return \"CHOSEN\", \"MUTANT S33\", False\n")],
+              "        return EndJudgement(\"KILLED\", \"MUTANT S33\", True)\n"
+              "    return EndJudgement(\"CHOSEN\", \"MUTANT S33\", False)\n")],
             [LCT + "test_the_end_classes"], ("test_saving",)),
     "S34": (CAUGHT, "the launcher's `launch_end` line not written (finding M2)",
             [(MAIN, "        record_launch(game, run_dir, result, read_verdict(run_dir))\n", "        pass  # MUTANT S34\n")],
@@ -103,11 +113,178 @@ MUTANTS: dict[str, tuple] = {
              [(PURITY, "        if name in PLAY_LOOP_EXIT_NAMES and isinstance(node.ctx, ast.Load) and in_play_loop(self.key):\n",
                "        if False:  # MUTANT S40b\n")],
              ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
+    # ---------------------------------------------------------------- the R1 + R2 follow-up (spec 2026-10-29 section 6)
+    "S40c": (CAUGHT, "N-1: `GeneratorExit`, `BaseException`, `BaseExceptionGroup`, `ExitStack` and `AsyncExitStack` out of "
+                     "the play loop's exit names (back to the four)",
+             [(PURITY, "\"KeyboardInterrupt\",\n                                  \"GeneratorExit\", \"BaseException\", "
+                       "\"BaseExceptionGroup\", \"ExitStack\", \"AsyncExitStack\"})\n",
+               "\"KeyboardInterrupt\"})  # MUTANT S40c\n")],
+             ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
+    "S40d": (CAUGHT, "N-1: a bare `except:` allowed in the play loop",
+             [(PURITY, "        if node.type is None and in_play_loop(self.key):\n", "        if False:  # MUTANT S40d\n")],
+             ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
+    "S40e": (CAUGHT, "N-1: a `return`, `break` or `continue` in a `finally` allowed in the play loop",
+             [(PURITY, "        if isinstance(node, ast.Return) or (isinstance(node, (ast.Break, ast.Continue)) and not in_loop):\n",
+               "        if False:  # MUTANT S40e\n")],
+             ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
+    "S40f": (CAUGHT, "N-1: `def __exit__`/`__aexit__` allowed in the play loop",
+             [(PURITY, "        if node.name in EXIT_METHODS and in_play_loop(self.key):\n", "        if False:  # MUTANT S40f\n")],
+             ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
+    "S40g": (CAUGHT, "N-1: a `yield`, `yield from` or `await` in a `finally` allowed in the play loop",
+             [(PURITY, "        if isinstance(node, (ast.Yield, ast.YieldFrom, ast.Await)):\n", "        if False:  # MUTANT S40g\n")],
+             ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
+    "L11": (CAUGHT, "N-1 (D2): a refused reset or erase combination never latches the controller",
+            [(CONTROLLER, "            self._refused = message\n", "            pass  # MUTANT L11\n")],
+            ["ControllerTogetherTests.test_a_refusal_latches_the_controller",
+             RRT + "test_a_refused_press_ends_the_run_on_the_next_frame",
+             RRT + "test_a_refused_press_the_brain_catches_still_ends_the_run",
+             RRT + "test_a_refused_press_then_a_brain_crash_ends_reset_refused"], (HOST_TEST, RESET_TEST)),
+    "L12": (CAUGHT, "N-1 (D2): the latch's first statement removed (a press after a refusal goes through)",
+            [(CONTROLLER, "        if self._refused is not None:\n", "        if False:  # MUTANT L12\n")],
+            ["ControllerTogetherTests.test_a_refusal_latches_the_controller"], (HOST_TEST,)),
+    "L13": (CAUGHT, "N-1 (D2): `reset-refused` classed INVOLUNTARY (the blocked reset gets its reload)",
+            [(LAUNCHER, "_INVOLUNTARY = (\"crash\", \"frame-budget\", \"parked-manual\", \"abandoned\", \"interrupted\", "
+                        "\"interrupted-unresponsive\")\n",
+              "_INVOLUNTARY = (\"crash\", \"frame-budget\", \"parked-manual\", \"abandoned\", \"interrupted\", "
+              "\"interrupted-unresponsive\", \"reset-refused\")  # MUTANT L13\n")],
+            [LCT + "test_the_end_classes"], ("test_saving",)),
+    "L14": (CAUGHT, "R-EXCEPT (D7): `read_launches`'s UnicodeDecodeError clause removed (a raw traceback, not a refusal)",
+            [(LAUNCHER, "    except UnicodeDecodeError as error:  # (R1 + R2 follow-up, spec D7) a corrupted byte: refused "
+                        "with words, never a traceback\n        raise LaunchError(f\"{path} cannot be read: it is not UTF-8 "
+                        "({error})\") from error\n", "")],
+            [LCT + "test_an_unreadable_launches_file_is_refused"], ("test_saving",)),
+    "M14": (CAUGHT, "N-4 (D4): `read_book`'s ASCII check removed (both places: the header and the lines)",
+            [("game_memory.py", "        first = json.loads(parts[0]) if parts[0].isascii() else None  # (D4) a non-ASCII "
+                                "header is no header\n", "        first = json.loads(parts[0])  # MUTANT M14\n"),
+             ("game_memory.py", "        if not text_line.isascii():\n", "        if False:  # MUTANT M14\n")],
+            ["MemoryFileTests.test_a_non_ascii_middle_line_is_refused"], ("test_saving",)),
+    "L15": (CAUGHT, "N-1 (D2): the guard's `_on_frame` never ends a latched run",
+            [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n",
+              "        self.frames_seen += 1\n        pass  # MUTANT L15\n")],
+            [RRT + "test_a_refused_press_ends_the_run_on_the_next_frame",
+             RRT + "test_a_refused_press_the_brain_catches_still_ends_the_run"], (RESET_TEST,)),
+    "L16": (CAUGHT, "N-1 (D2): a brain crash or stray exit after a refusal ends as a crash or stray-exit, not reset-refused",
+            [(SESSION, "                self._end_if_refused()  # a crash or a stray exit after a refused press is the refusal "
+                       "(spec D2)\n",
+              "                pass  # MUTANT L16\n")],
+            [RRT + "test_a_refused_press_then_a_brain_crash_ends_reset_refused",
+             RRT + "test_a_refused_press_then_a_stray_exit_ends_reset_refused"], (RESET_TEST,)),
+    "L18": (CAUGHT, "N-1 (D2): a brain that RETURNS after a refusal ends brain-returned, not reset-refused",
+            [(SESSION, "                    self._end_if_refused()  # the brain returned right after a refused press "
+                       "(spec D2)\n",
+              "                    pass  # MUTANT L18\n")],
+            [RRT + "test_a_refused_press_then_the_brain_returns_ends_reset_refused"], (RESET_TEST,)),
+    "ORDER": (CAUGHT, "N-1 (D2; fix round, review RV-1): `_on_frame` checks the latch AFTER the abandoned / parked / budget / "
+                      "wall-clock ends, so a refused reset followed by a discarded or switched mode ends INVOLUNTARY (a "
+                      "continue allowed) instead of reset-refused",
+              [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n",
+                "        self.frames_seen += 1\n"),
+               (SESSION, "            self.lifecycle.finish(\"wall-clock\", EXIT_WALL_CLOCK)\n",
+                "            self.lifecycle.finish(\"wall-clock\", EXIT_WALL_CLOCK)\n"
+                "        self._end_if_refused()  # MUTANT ORDER\n")],
+              [RRT + "test_a_refused_press_then_the_mode_is_discarded_ends_reset_refused",
+               RRT + "test_a_refused_press_then_the_mode_switched_ends_reset_refused",
+               # (second fix round, verification VR-1) the interrupt and the every-end-due cases catch it too
+               RRT + "test_a_refused_press_then_an_interrupt_ends_reset_refused",
+               RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    # (second fix round, verification VR-1) EVERY reorder of the guard's ends: ORDER-<X> moves the latch check to just
+    # after end X's finish; <X>-FIRST copies end X's check AHEAD of the latch. Before VR-1's tests, ORDER-INT, INT-FIRST,
+    # BUDGET-FIRST and WALL-FIRST survived every ResetRefusalTests case (interrupted, frame-budget and wall-clock all let
+    # the launcher continue: INVOLUNTARY or BUDGET); the every-end-due case catches all nine.
+    "ORDER-INT": (CAUGHT, "N-1 (D2; VR-1): `_on_frame` checks the latch just AFTER the interrupt's end, so a refused reset "
+                          "followed by a Ctrl+C ends interrupted/130 (INVOLUNTARY: a continue allowed)",
+                  [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n", "        self.frames_seen += 1\n"),
+                   (SESSION, "            self.lifecycle.finish(\"interrupted\", EXIT_INTERRUPTED)\n",
+                    "            self.lifecycle.finish(\"interrupted\", EXIT_INTERRUPTED)\n"
+                    "        self._end_if_refused()  # MUTANT ORDER-INT\n")],
+                  [RRT + "test_a_refused_press_then_an_interrupt_ends_reset_refused",
+                   RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "ORDER-AB": (CAUGHT, "N-1 (D2; VR-1): `_on_frame` checks the latch just AFTER the abandoned end",
+                 [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n", "        self.frames_seen += 1\n"),
+                  (SESSION, "            self.lifecycle.finish(\"abandoned\", EXIT_PARKED)\n",
+                   "            self.lifecycle.finish(\"abandoned\", EXIT_PARKED)\n"
+                   "        self._end_if_refused()  # MUTANT ORDER-AB\n")],
+                 [RRT + "test_a_refused_press_then_an_interrupt_ends_reset_refused",
+                  RRT + "test_a_refused_press_then_the_mode_is_discarded_ends_reset_refused",
+                  RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "ORDER-PARK": (CAUGHT, "N-1 (D2; VR-1): `_on_frame` checks the latch just AFTER the parked-manual end",
+                   [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n", "        self.frames_seen += 1\n"),
+                    (SESSION, "            self.lifecycle.finish(\"parked-manual\", EXIT_PARKED)\n",
+                     "            self.lifecycle.finish(\"parked-manual\", EXIT_PARKED)\n"
+                     "        self._end_if_refused()  # MUTANT ORDER-PARK\n")],
+                   [RRT + "test_a_refused_press_then_an_interrupt_ends_reset_refused",
+                    RRT + "test_a_refused_press_then_the_mode_is_discarded_ends_reset_refused",
+                    RRT + "test_a_refused_press_then_the_mode_switched_ends_reset_refused",
+                    RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "ORDER-BUDGET": (CAUGHT, "N-1 (D2; VR-1): `_on_frame` checks the latch just AFTER the frame-budget end",
+                     [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n",
+                       "        self.frames_seen += 1\n"),
+                      (SESSION, "            self.lifecycle.finish(\"frame-budget\", EXIT_FRAME_BUDGET)\n",
+                       "            self.lifecycle.finish(\"frame-budget\", EXIT_FRAME_BUDGET)\n"
+                       "        self._end_if_refused()  # MUTANT ORDER-BUDGET\n")],
+                     [RRT + "test_a_refused_press_then_an_interrupt_ends_reset_refused",
+                      RRT + "test_a_refused_press_then_the_mode_is_discarded_ends_reset_refused",
+                      RRT + "test_a_refused_press_then_the_mode_switched_ends_reset_refused",
+                      RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "INT-FIRST": (CAUGHT, "N-1 (D2; VR-1): the interrupt's check put AHEAD of the latch in `_on_frame`",
+                  [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n",
+                    "        self.frames_seen += 1\n        if self.interrupted is not None:\n"
+                    "            self.lifecycle.finish(\"interrupted\", EXIT_INTERRUPTED)  # MUTANT INT-FIRST\n"
+                    "        self._end_if_refused()\n")],
+                  [RRT + "test_a_refused_press_then_an_interrupt_ends_reset_refused",
+                   RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "AB-FIRST": (CAUGHT, "N-1 (D2; VR-1): the abandoned check put AHEAD of the latch in `_on_frame`",
+                 [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n",
+                   "        self.frames_seen += 1\n        if self.lifecycle.abandoned:\n"
+                   "            self.lifecycle.finish(\"abandoned\", EXIT_PARKED)  # MUTANT AB-FIRST\n"
+                   "        self._end_if_refused()\n")],
+                 [RRT + "test_a_refused_press_then_the_mode_is_discarded_ends_reset_refused",
+                  RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "PARK-FIRST": (CAUGHT, "N-1 (D2; VR-1): the mode-switch check put AHEAD of the latch in `_on_frame`",
+                   [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n",
+                     "        self.frames_seen += 1\n        if context.bot_mode != MODE_NAME:\n"
+                     "            self.lifecycle.finish(\"parked-manual\", EXIT_PARKED)  # MUTANT PARK-FIRST\n"
+                     "        self._end_if_refused()\n")],
+                   [RRT + "test_a_refused_press_then_the_mode_switched_ends_reset_refused",
+                    RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "BUDGET-FIRST": (CAUGHT, "N-1 (D2; VR-1): the frame-budget check put AHEAD of the latch in `_on_frame` (frame-budget is "
+                             "INVOLUNTARY: a continue allowed)",
+                     [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n",
+                       "        self.frames_seen += 1\n        if self.frames_seen > self.frame_cap:\n"
+                       "            self.lifecycle.finish(\"frame-budget\", EXIT_FRAME_BUDGET)  # MUTANT BUDGET-FIRST\n"
+                       "        self._end_if_refused()\n")],
+                     [RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "WALL-FIRST": (CAUGHT, "N-1 (D2; VR-1): the wall-clock check put AHEAD of the latch in `_on_frame` (wall-clock is a "
+                           "BUDGET end: a continue allowed after a save)",
+                   [(SESSION, "        self.frames_seen += 1\n        self._end_if_refused()\n",
+                     "        self.frames_seen += 1\n        if self.options.wall_deadline is not None and time.time() >= "
+                     "self.options.wall_deadline:\n"
+                     "            self.lifecycle.finish(\"wall-clock\", EXIT_WALL_CLOCK)  # MUTANT WALL-FIRST\n"
+                     "        self._end_if_refused()\n")],
+                   [RRT + "test_every_other_end_due_on_the_same_frame_still_ends_reset_refused"], (RESET_TEST,)),
+    "L17": (CAUGHT, "N-1 (D2): `held` hands out the controller's own mutable set (the brain can empty it)",
+            [(CONTROLLER, "        return frozenset(self._held)\n", "        return self._held  # MUTANT L17\n")],
+            ["ControllerTogetherTests.test_the_held_set_cannot_be_changed_from_outside"], (HOST_TEST,)),
     "S46": (CAUGHT, "the play time read anywhere in the deciding code (D18: RULE C's door not asked)",
             [(FAIRNESS, "                if door is None:\n", "                if False:  # MUTANT S46\n")],
             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
     "S46b": (CAUGHT, "a stale play-time door passes (RULE C's stale check deleted)",
              [(FAIRNESS, "        if (\"time\", file, function) not in used:\n", "        if False:  # MUTANT S46b\n")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    "S46c": (CAUGHT, "N-2 (D3 (a)): RULE C's constant key form off (`x['play_time']`, `.get('play_time')`, a match mapping)",
+             [(FAIRNESS, "            if isinstance(node, ast.Constant) and node.value == PLAY_TIME_FIELD",
+               "            if False and isinstance(node, ast.Constant) and node.value == PLAY_TIME_FIELD")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    "S46d": (CAUGHT, "N-2 (D3 (b)): RULE C's match class keyword form off (`case Progress(play_time=t)`)",
+             [(FAIRNESS, "            if isinstance(node, ast.MatchClass) and PLAY_TIME_FIELD in node.kwd_attrs:\n",
+               "            if False:  # MUTANT S46d\n")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    "S46e": (CAUGHT, "N-2 (D3 (c)): RULE C's whole-object copy form off (`asdict`, `astuple`)",
+             [(FAIRNESS, "            if isinstance(node, ast.Call) and _call_name(node) in WHOLE_COPY_CALLS:\n",
+               "            if False:  # MUTANT S46e\n")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    "S46f": (CAUGHT, "N-2 (D3 (d)): a class pattern with positional sub-patterns allowed in deciding code",
+             [(FAIRNESS, "            if isinstance(node, ast.MatchClass) and node.patterns:\n", "            if False:  # MUTANT S46f\n")],
              ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
     # ---------------------------------------------------------------- the launcher's other guards (this stage's own)
     "L1": (CAUGHT, "a NEWER launches.jsonl accepted",
@@ -171,6 +348,45 @@ MUTANTS: dict[str, tuple] = {
             [(LAUNCHER, "    texts = [str(reason or \"\"), str(end.get(\"reason\") or \"\")]\n",
               "    texts = [str(end.get(\"reason\") or \"\")]  # MUTANT FX5\n")],
             [LCT + "test_a_continue_that_stopped_before_its_restore_is_looked_through"], ("test_saving",)),
+    "CH1": (CAUGHT, "N-3 (D11; orchestrator ruling 2): a continued writer chains its first save to the NEWEST save line "
+                    "(the abandoned branch), not to the save it continued (also the live proof's CHAIN-OLD)",
+            [("game_memory.py",
+              "        self.parent: int | None = continued if book is not None and isinstance(continued, int) else None\n",
+              "        self.parent: int | None = book.newest_save()['id'] if book is not None and isinstance(continued, int) "
+              "else None  # MUTANT CH1\n")],
+            ["MemoryFileTests.test_rebuild_follows_the_parent_across_a_continue"], ("test_saving",)),
+    "V6a": (CAUGHT, "V2-6 (D6): `after_goal`'s save return removed (a save resets the curiosity row)",
+            [("brain/goals.py", "        if goal.kind == \"save\":\n            # (D6) transparent: a reset by bookkeeping would let "
+                                "C C save C C through CURIOUS_ROW_MAX\n            return None\n", "")],
+            ["test_a_save_neither_ends_nor_joins_a_curiosity_row"], ("test_goals",)),
+    "V6b": (CAUGHT, "V2-6 (D6): the grader's `curiosity_streaks` counts a save as a break",
+            [("gates/rate_step5.py", "        if span[\"kind\"] == SAVE_KIND:\n            continue\n", "")],
+            ["test_a_save_neither_ends_nor_joins_a_grader_streak"], ("test_goals",)),
+    "V6c": (CAUGHT, "V2-6 (D6): the grader's `aside_streaks` counts a save as a break",
+            [("gates/rate_step5.py", "    spans = [s for s in goal_spans(actions) if s[\"kind\"] != SAVE_KIND]\n",
+              "    spans = goal_spans(actions)  # MUTANT V6c\n")],
+            ["test_a_save_neither_ends_nor_joins_a_grader_streak"], ("test_goals",)),
+    "LV1": (CAUGHT, "V2-1: `live_r1.verdict_line` omits the K-BETWEEN caveat (the headline without its caveat)",
+            [("gates/live_r1.py", "    return (f\"LIVE R1 VERDICT: {result['verdict']}{between_caveat(summaries, seeds)} (failing: \"\n",
+              "    return (f\"LIVE R1 VERDICT: {result['verdict']} (failing: \"  # MUTANT LV1\n")],
+            ["LiveR1HeadlineTests.test_the_verdict_line_carries_the_caveat"], ("test_saving",)),
+    "LV2": (CAUGHT, "V2-2: `live_r1.between_caveat` counts the midpoint arm's seeds but ignores whether they passed",
+            [("gates/live_r1.py", "    passed = [seed for seed in counted if mid[seed].get(\"pass\")]\n",
+              "    passed = list(counted)  # MUTANT LV2\n")],
+            ["LiveR1HeadlineTests.test_the_caveat_counts_the_midpoint_passes_and_names_its_failing_seeds",
+             "LiveR1HeadlineTests.test_the_verdict_line_carries_the_caveat"], ("test_saving",)),
+    "LV3": (CAUGHT, "fix round, review RV-2: `live_r1.between_caveat` calls a midpoint that counted on SOME seeds (under the "
+                    "floor) 'vacuous' (the headline contradicting itself: 'counted 2 of 4: vacuous; passed 2 of 2')",
+            [("gates/live_r1.py", "    shortfall = \": vacuous\" if not counted else (\": below the floor\" if len(counted) < "
+                                  "FLOOR else \"\")\n",
+              "    shortfall = \": vacuous\" if len(counted) < FLOOR else \"\"  # MUTANT LV3\n")],
+            ["LiveR1HeadlineTests.test_a_midpoint_counted_below_the_floor_is_not_called_vacuous"], ("test_saving",)),
+    "FX8": (CAUGHT, "V2-5 (D5): `judge_end` drops the look-through's count and reason from its words",
+            [(LAUNCHER, "            if looked:\n", "            if False:  # MUTANT FX8\n")],
+            [LCT + "test_the_look_through_is_counted_and_told"], ("test_saving",)),
+    "FX9": (CAUGHT, "V2-5 (D5): `memory_check` leaves `looked_through` 0",
+            [(LAUNCHER, "    looked = len(judgement.looked_through)\n", "    looked = 0  # MUTANT FX9\n")],
+            [LCT + "test_the_look_through_is_counted_and_told"], ("test_saving",)),
     "FX6": (CAUGHT, "R-2: the spec's own stop (the save gone) marked retryable",
             [("skills/saving.py", "        return _stopped(hands, f\"the save is gone: {gone}\", page_words, page_kind)\n",
               "        return _stopped(hands, f\"the save is gone: {gone}\", page_words, page_kind, retry=True)  # MUTANT FX6\n")],

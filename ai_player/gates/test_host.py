@@ -58,7 +58,13 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-BUILD_ROOT = REPO / "sandbox-pokebot"
+#: (R1 + R2 follow-up, orchestrator ruling 9) The folder holding the framework (`sandbox-pokebot/`, with its `mgba`): a
+#: COPY of the package (`gates/revert_r1.py`'s mutants run this file there) or a worktree has none of its own, so
+#: `AI_PLAYER_TEST_SUPPORT_ROOT` names it when it is set, as `test_battle.py` and `test_eyes.py` find it. Without the
+#: variable the build root is this repository's, exactly as before. `run_harness_raw` passes that ONE variable on.
+SUPPORT_ENV = "AI_PLAYER_TEST_SUPPORT_ROOT"
+SUPPORT = Path(os.environ.get(SUPPORT_ENV) or REPO)
+BUILD_ROOT = SUPPORT / "sandbox-pokebot"
 HOOK = BUILD_ROOT / "plugins" / "custom_modes" / "ai_player_mode.py"
 RESULT_TAG = "HARNESS-RESULT "
 
@@ -459,7 +465,194 @@ def harness_guarded_attacks(root: Path) -> dict:
     return {"outcomes": outcomes, "controls": controls, "instrument_tampered": counters.instrument_tampered}
 
 
+#: the reset_refusal harness's cases (`harness_reset_refusal`): those that set the latch, and their CONTROLs
+REFUSAL_LATCHED = ("on_frame", "caught", "crash", "returned", "stray", "abandoned", "parked", "interrupted", "all_due")
+REFUSAL_CASES = REFUSAL_LATCHED + ("control_a", "control_b", "control_returned", "control_stray", "control_abandoned",
+                                   "control_parked", "control_interrupted", "control_all_due")
+#: (fix round, review RV-1; second fix round, verification VR-1) the cases where ANOTHER end is due on the same frame as
+#: the latch: main.py discarded the mode (GeneratorExit -> `lifecycle.note_abandoned()`), the framework switched the bot
+#: mode, a Ctrl+C reached `_on_signal`, or (`all_due`) all of those AND the frame budget AND the wall-clock deadline at
+#: once; then the guard's `_on_frame()`
+REFUSAL_OTHER_END = ("abandoned", "control_abandoned", "parked", "control_parked", "interrupted", "control_interrupted",
+                     "all_due", "control_all_due")
+#: (VR-1) which cases make which other end due before the guard's frame
+REFUSAL_ABANDON = ("abandoned", "control_abandoned", "all_due", "control_all_due")
+REFUSAL_SWITCH = ("parked", "control_parked", "all_due", "control_all_due")
+REFUSAL_SIGNAL = ("interrupted", "control_interrupted", "all_due", "control_all_due")
+REFUSAL_ALL_DUE = ("all_due", "control_all_due")
+#: (VR-1) every end `_on_frame` can reach besides the latch's, with its exit code: the `all_due` cases make each one due
+REFUSAL_OTHER_ENDS = {"interrupted": 130, "abandoned": 3, "parked-manual": 3, "frame-budget": 4, "wall-clock": 124}
+#: (VR-1) the `all_due` cases' wall-clock deadline, this many seconds after the Session is built: long enough for the
+#: budget's pre-frames to run first (a pre-frame past the deadline would end the run there, which the test reports)
+REFUSAL_DEADLINE_S = 3.0
+#: the cases that drive `session.run()` (the brain's own end), not the guard's `_on_frame()`
+REFUSAL_RUN = ("crash", "control_b", "returned", "control_returned", "stray", "control_stray")
+#: the bound on `session.run()`'s steps in the crash cases (the fault switch raises at step 30)
+REFUSAL_RUN_STEPS = 2000
+
+
+def harness_reset_refusal(root: Path, extra: str) -> dict:
+    """(R1 + R2 follow-up, spec D2 and section 4's `reset_refusal`; orchestrator ruling 8) A REAL Session (no `start()`: a
+    harness has no emulator, and `start()` reaches the instrument's install, which needs one), its REAL controller and
+    lifecycle, and a FAKE emulator on the framework's `context` that records every button call. `extra` is
+    `<case>|<run dir>`; the cases:
+      on_frame   A held, then a tap of START, whose error the HARNESS catches; then the guard's `_on_frame()`;
+      caught     the same, with the tap inside a brain-like `try: ... except Exception: pass`, and the frame driven
+                 through the session's guard LISTENER (`session.guard.handle_frame`, the framework's own path);
+      crash      the latch set as in on_frame, then `session.run()` driven with next(), with the EXISTING fault switch
+                 `AI_PLAYER_FAULT_RAISE=1` set in this process (the brain raises after 30 steps: README "Fault and
+                 control switches", arm C);
+      returned   the latch set as in on_frame, then `session.run()` with a brain that RETURNS after one step (the
+                 placeholder brain's `play` replaced in this process: the brain that caught the refusal and quit);
+      stray      the same with a brain that raises SystemExit after one step (a stray exit);
+      control_a  CONTROL: START alone, then B held with a tap of Up; then `_on_frame()` must return (no end);
+      control_b  CONTROL: `crash` with NO latch: the brain's fault must end the run crash/2;
+      control_returned, control_stray  CONTROLs: `returned` and `stray` with NO latch (brain-returned/5, stray-exit/2);
+      abandoned  (fix round, review RV-1) the latch set as in on_frame, then `session.run()` one step and `close()` (main.py
+                 discarding the mode: GeneratorExit, so the lifecycle notes `abandoned`); then the guard's `_on_frame()`;
+      parked     the latch set, then the framework's bot mode switched away from the AI's; then `_on_frame()`;
+      control_abandoned, control_parked  CONTROLs: the same with NO latch (abandoned/3, parked-manual/3): those ends are
+                 INVOLUNTARY, which the launcher allows a continue after, so the latch must be checked FIRST.
+      interrupted  (second fix round, verification VR-1) the latch set, then a Ctrl+C reaches `session._on_signal(2, None)`
+                 before the next frame (`interrupted` is INVOLUNTARY too); then `_on_frame()`;
+      all_due    (VR-1) EVERY other end due on the guard's frame at once: `AI_PLAYER_FRAMES=1` and a wall-clock deadline
+                 `REFUSAL_DEADLINE_S` ahead, the frame budget's pre-frames (`frame_cap` calls of `_on_frame()`, nothing
+                 due yet), the latch, the mode discarded (as `abandoned`), the bot mode switched, the Ctrl+C, then a wait
+                 (bounded) until the deadline has passed; then `_on_frame()`. It pins "the latch is checked FIRST"
+                 against every reorder of the guard's ends, not only the ones a single-end case reaches;
+      control_interrupted, control_all_due  CONTROLs: the same with NO latch (interrupted/130; one of the other ends).
+    Each case runs in its own process (the lifecycle ends the process). Returns the exit code (None: no end), the verdict
+    file's reason and verdict, the fake's calls, the controller's `refused` and the session's lifecycle lines."""
+    import types
+
+    case, _, run_dir = extra.partition("|")
+    if case not in REFUSAL_CASES:
+        raise SystemExit(f"reset_refusal: unknown case {case!r}")
+    sys.path.insert(0, str(BUILD_ROOT))
+    sys.path.append(str(root))
+    os.environ["AI_PLAYER_RUN_DIR"] = run_dir
+    if case in ("crash", "control_b"):
+        os.environ["AI_PLAYER_FAULT_RAISE"] = "1"
+    import time
+
+    if case in REFUSAL_ALL_DUE:
+        os.environ["AI_PLAYER_FRAMES"] = "1"  # the frame budget is then 1 + the grace: reachable with pre-frames
+        os.environ["AI_PLAYER_WALL_DEADLINE"] = repr(time.time() + REFUSAL_DEADLINE_S)
+    from modules.context import context
+
+    from ai_player import MODE_NAME
+
+    if case in ("returned", "control_returned", "stray", "control_stray"):
+        import ai_player.mode as mode_module
+
+        def returning(self, controls, eyes):
+            yield from controls.wait(1)
+            return None
+
+        def straying(self, controls, eyes):
+            yield from controls.wait(1)
+            raise SystemExit(0)
+
+        mode_module.Brain.play = returning if "returned" in case else straying
+
+    calls: list[list[str]] = []
+    context.emulator = types.SimpleNamespace(press_button=lambda button: calls.append(["press", button]),
+                                             hold_button=lambda button: calls.append(["hold", button]),
+                                             release_button=lambda button: calls.append(["release", button]))
+    context.bot_mode = MODE_NAME
+    from ai_player.host.session import Session
+    from ai_player.options import RunOptions
+
+    session = Session(RunOptions.from_env(), None)
+    controller = session.controller
+    out: dict = {"case": case, "loaded_from": sys.modules["ai_player"].__file__, "refused_error": None, "steps": 0,
+                 "exit_code": None, "escaped": None, "on_frame_returned": False, "frame_cap": session.frame_cap,
+                 "pre_frames": 0, "interrupted_set": None, "due": None}
+    holding = None
+    try:
+        if case in REFUSAL_ALL_DUE:
+            # (VR-1) the frame budget's pre-frames, before the latch and before any other end is due: each returns
+            for _ in range(session.frame_cap):
+                session._on_frame()
+                out["pre_frames"] = session.frames_seen
+        if case in REFUSAL_LATCHED:
+            holding = controller.hold("A", 10)
+            next(holding)
+            if case == "caught":
+                def brain_like():
+                    try:
+                        yield from controller.tap("Start")
+                    except Exception:  # noqa: BLE001 - the brain swallowing the refusal is the case under test
+                        pass
+
+                for _ in brain_like():
+                    pass
+            else:
+                try:
+                    next(controller.tap("Start"))
+                except Exception as error:  # noqa: BLE001
+                    out["refused_error"] = f"{type(error).__name__}: {error}"
+        elif case == "control_a":
+            for _ in controller.tap("Start"):
+                pass
+            holding = controller.hold("B", 10)
+            next(holding)
+            for _ in controller.tap("Up"):
+                pass
+        out["refused"] = controller.refused
+        if case in REFUSAL_ABANDON:
+            steps = session.run()
+            next(steps)  # one brain step (the default brain waits a frame; a latched controller still allows waits)
+            out["steps"] = 1
+            steps.close()  # main.py discards the mode: GeneratorExit -> `lifecycle.note_abandoned()`
+            out["abandoned_noted"] = bool(session.lifecycle.abandoned)
+        if case in REFUSAL_SWITCH:
+            context.bot_mode = "Manual"  # the framework switched the bot mode before the next frame
+        if case in REFUSAL_SIGNAL:
+            session._on_signal(2, None)  # a Ctrl+C before the next frame (the handler only sets the flag)
+            out["interrupted_set"] = session.interrupted == 2
+        if case in REFUSAL_ALL_DUE:
+            deadline = session.options.wall_deadline
+            for _ in range(int(REFUSAL_DEADLINE_S / 0.05) + 40):  # bounded: at most the deadline plus 2 s
+                if time.time() >= deadline:
+                    break
+                time.sleep(0.05)
+            # what is due on the guard's next frame, read (never written) from the session
+            out["due"] = {"interrupted": session.interrupted is not None, "abandoned": bool(session.lifecycle.abandoned),
+                          "parked-manual": context.bot_mode != MODE_NAME,
+                          "frame-budget": session.frames_seen + 1 > session.frame_cap,
+                          "wall-clock": time.time() >= deadline}
+        if case in REFUSAL_OTHER_END:
+            session._on_frame()
+            out["on_frame_returned"] = True
+        elif case in REFUSAL_RUN:
+            steps = session.run()
+            for step in range(1, REFUSAL_RUN_STEPS + 1):
+                out["steps"] = step
+                next(steps)
+        elif case == "caught":
+            # the frame through the framework's own path: the AI's guard LISTENER, which calls the session's `_on_frame`
+            session.guard.handle_frame(MODE_NAME, None)
+            out["on_frame_returned"] = True
+        else:
+            session._on_frame()
+            out["on_frame_returned"] = True
+    except SystemExit as stop:
+        out["exit_code"] = stop.code
+    except BaseException as other:  # noqa: BLE001
+        out["escaped"] = f"{type(other).__name__}: {other}"
+    verdict_path = Path(run_dir) / "purity.json"
+    verdict = json.loads(verdict_path.read_text(encoding="utf-8")) if verdict_path.is_file() else None
+    log_path = Path(run_dir) / "ai_player.log"
+    log = log_path.read_text(encoding="utf-8", errors="replace") if log_path.is_file() else ""
+    out.update({"exit_reason": ((verdict or {}).get("facts") or {}).get("exit_reason"),
+                "verdict": (verdict or {}).get("verdict"), "calls": calls,
+                "lifecycle_lines": [line for line in log.splitlines() if "[AI-LIFECYCLE]" in line][:6]})
+    return out
+
+
 HARNESSES = {
+    "reset_refusal": lambda root, extra: harness_reset_refusal(root, extra),
     "hook_path": lambda root, extra: harness_hook_path(root, extra),
     "debug_refusal": lambda root, extra: harness_debug_refusal(root, Path(extra)),
     "peek_threads": lambda root, extra: harness_peek_threads(root),
@@ -478,8 +671,8 @@ def run_harness_raw(name: str, root: Path, extra: str = "") -> tuple[int, str, d
     done = subprocess.run(
         [sys.executable, str(Path(__file__).resolve()), "--harness", name, "--root", str(root), "--extra", extra],
         cwd=str(BUILD_ROOT), capture_output=True, text=True, timeout=180,
-        env={**{k: v for k, v in os.environ.items() if not k.startswith("AI_PLAYER_")}, "PYTHONUTF8": "1",
-             "PYTHONDONTWRITEBYTECODE": "1"},
+        env={**{k: v for k, v in os.environ.items() if not k.startswith("AI_PLAYER_") or k == SUPPORT_ENV},
+             "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"},
     )
     result = partial = None
     for line in done.stdout.splitlines():
@@ -789,8 +982,17 @@ class ControllerTogetherTests(unittest.TestCase):
         from unittest import mock
 
         down: set[str] = set()
-        emulator = types.SimpleNamespace(press_button=lambda button: None, hold_button=down.add,
-                                         release_button=down.discard)
+        self.calls: list[tuple[str, str]] = []  # every call the controller made on the fake emulator, in order
+
+        def record(kind: str, then):
+            def call(button: str) -> None:
+                self.calls.append((kind, button))
+                if then is not None:
+                    then(button)
+            return call
+
+        emulator = types.SimpleNamespace(press_button=record("press", None), hold_button=record("hold", down.add),
+                                         release_button=record("release", down.discard))
         context_module = types.ModuleType("modules.context")
         context_module.context = types.SimpleNamespace(emulator=emulator)
         instrument = types.ModuleType("ai_player.host.attribution")
@@ -809,11 +1011,13 @@ class ControllerTogetherTests(unittest.TestCase):
             next(generator)
 
     def test_start_or_select_never_with_another_button(self) -> None:
+        """(R1 + R2 follow-up, spec D2) Restructured: one FRESH controller per case, because a refusal now latches the
+        controller (it would refuse the next case's presses for a reason that is not the case's)."""
         module, down = self.load()
-        controller = module.Controller()
         # FAULT: A held, then a tap of START (the soft reset's start); B held, then SELECT (the title's erase combinations)
         for held, other in (("A", "Start"), ("B", "Select"), ("Start", "A"), ("Select", "B")):
             with self.subTest(held=held, other=other):
+                controller = module.Controller()
                 holding = controller.hold(held, 30)
                 self.drive(holding, 2)
                 with self.assertRaises(module.ControllerError):
@@ -823,7 +1027,9 @@ class ControllerTogetherTests(unittest.TestCase):
                 holding.close()
                 self.assertEqual(down, set())  # the held button was released
                 self.assertEqual(controller.held, set())
-        # CONTROL: B held with a direction (running) is allowed; one button after another is allowed; START alone is
+        # CONTROL, on its own fresh controller: B held with a direction (running) is allowed; one button after another
+        # is allowed; START alone is
+        controller = module.Controller()
         holding = controller.hold("B", 30)
         self.drive(holding, 2)
         self.drive(controller.tap("Up"), 2)
@@ -832,6 +1038,238 @@ class ControllerTogetherTests(unittest.TestCase):
             self.drive(controller.tap(button), 2)
         self.drive(controller.hold("Start", 3), 3)
         self.assertEqual(controller.held, set())
+        self.assertIsNone(controller.refused)
+
+    def test_a_refusal_latches_the_controller(self) -> None:
+        """(R1 + R2 follow-up, spec D2: USER RULING 52) FAULT: A held, then a tap of START is refused with NO press of
+        START, `refused` is set, and from then on every press is refused before it touches a button (`tap("B")`,
+        `hold("Up", 2)`), while `wait(3)` still lets 3 frames pass (the host ends the run on its next frame). CONTROL: a
+        FRESH controller taps START alone, then holds B with a tap of Up: no error, `refused` stays None."""
+        module, down = self.load()
+        controller = module.Controller()
+        holding = controller.hold("A", 30)
+        self.drive(holding, 1)
+        with self.assertRaises(module.ControllerError):
+            self.drive(controller.tap("Start"), 1)
+        self.assertIsNotNone(controller.refused, "the refusal must latch the controller")
+        self.assertIn("together", controller.refused)
+        self.assertNotIn(("press", "Start"), self.calls)
+        self.assertNotIn(("hold", "Start"), self.calls)
+        before = list(self.calls)
+        with self.assertRaises(module.ControllerError) as tap_b:
+            self.drive(controller.tap("B"), 1)
+        with self.assertRaises(module.ControllerError):
+            self.drive(controller.hold("Up", 2), 1)
+        self.assertIn("earlier", str(tap_b.exception))
+        self.assertEqual(self.calls, before, "a press after a refusal must touch no button")
+        frames = controller.frames_advanced
+        self.drive(controller.wait(3), 3)
+        self.assertEqual(controller.frames_advanced, frames + 3)
+        holding.close()
+        self.assertEqual(down, set())
+        # CONTROL: a fresh controller, START alone, then B held with Up
+        controller = module.Controller()
+        self.drive(controller.tap("Start"), 2)
+        holding = controller.hold("B", 10)
+        self.drive(holding, 1)
+        self.drive(controller.tap("Up"), 2)
+        holding.close()
+        self.assertIsNone(controller.refused)
+        self.assertIn(("press", "Start"), self.calls)
+        self.assertIn(("press", "Up"), self.calls)
+
+    def test_the_held_set_cannot_be_changed_from_outside(self) -> None:
+        """(R1 + R2 follow-up, spec D2) FAULT: `controller.held` is a frozenset (no `clear`), `controller.held = set()`
+        and `controller.refused = None` raise AttributeError, and a brain-side plant that empties `controls._held` (or
+        resets `controls._refused`) fails the purity gate's rule (d). CONTROL: `held` reports A while a hold of A runs and
+        is empty after it; the same plant through the public `controls.held` READ passes the gate."""
+        module, _ = self.load()
+        controller = module.Controller()
+        holding = controller.hold("A", 10)
+        self.drive(holding, 1)
+        self.assertIsInstance(controller.held, frozenset)
+        self.assertFalse(hasattr(controller.held, "clear"))
+        self.assertEqual(controller.held, {"A"})
+        with self.assertRaises(AttributeError):
+            controller.held = set()
+        with self.assertRaises(AttributeError):
+            controller.refused = None
+        holding.close()
+        self.assertEqual(controller.held, frozenset())
+        # the purity gate: the private attributes are refused outside the controller's own file (rule (d))
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import check_purity
+
+        hook = HOOK if HOOK.is_file() else None
+        plants = {"held": ("def plant(controls):\n    controls._held.clear()\n", "d"),
+                  "refused": ("def plant(controls):\n    controls._refused = None\n", "d"),
+                  "CONTROL": ("def plant(controls):\n    return sorted(controls.held)\n", None)}
+        for label, (source, rule) in plants.items():
+            with self.subTest(plant=label), tempfile.TemporaryDirectory(prefix="ai_player_held_plant_") as tmp:
+                package = Path(tmp) / "ai_player"
+                shutil.copytree(REPO / "ai_player", package, ignore=shutil.ignore_patterns("__pycache__", "evidence", "fixtures"))
+                (package / "brain" / "held_plant.py").write_text(source, encoding="utf-8")
+                result = check_purity.scan(package, hook, BUILD_ROOT)
+                hits = [v for v in result.violations if "held_plant.py" in v.file]
+                if rule is None:
+                    self.assertEqual(hits, [], check_purity.report(result))
+                else:
+                    self.assertTrue([v for v in hits if v.rule == rule], check_purity.report(result))
+
+
+class ResetRefusalTests(unittest.TestCase):
+    """(R1 + R2 follow-up, spec D2 and section 4: USER RULING 52) A refused reset or erase combination ENDS THE RUN
+    `reset-refused` (exit 9), through the HOST, whatever the brain did with the error: the REAL Session, controller and
+    lifecycle in a harness process (`harness_reset_refusal`; a fake emulator records the buttons), each case in its own
+    process. The launcher classes that end NOT CLEAN (`test_saving` `LauncherContinueTests.test_the_end_classes`)."""
+
+    def _run(self, case: str, root: Path = REPO) -> dict:
+        run_dir = Path(tempfile.mkdtemp(prefix="ai_player_reset_refusal_"))
+        self.addCleanup(shutil.rmtree, run_dir, True)
+        result = run_harness("reset_refusal", root, f"{case}|{run_dir}")
+        self.assertTrue(str(result["loaded_from"]).startswith(str(root)), f"the harness ran another package: {result}")
+        return result
+
+    def assert_reset_refused(self, result: dict) -> None:
+        self.assertIsNone(result["escaped"], result)
+        self.assertEqual((result["exit_code"], result["exit_reason"]), (9, "reset-refused"), result)
+        self.assertEqual(result["verdict"], "UNVERIFIED", result)  # no frame was audited (as test_debug_mode_... accepts)
+        self.assertTrue(result["refused"], result)
+        self.assertFalse([call for call in result["calls"] if call[1] == "Start"], f"START must never be pressed: {result}")
+        self.assertTrue(any("refused a reset or erase combination" in line for line in result["lifecycle_lines"]), result)
+
+    def test_a_refused_press_ends_the_run_on_the_next_frame(self) -> None:
+        """Case (1). FAULT half (mutant L15, the `_on_frame` call removed): the frame returns and the run plays on."""
+        result = self._run("on_frame")
+        self.assertIn("ControllerError", str(result["refused_error"]), result)
+        self.assertFalse(result["on_frame_returned"], result)
+        self.assert_reset_refused(result)
+
+    def test_a_refused_press_the_brain_catches_still_ends_the_run(self) -> None:
+        """Case (2): the brain catches the refusal (`except Exception: pass`); the next frame, through the guard LISTENER
+        the framework calls (`session.guard.handle_frame`), still ends the run."""
+        result = self._run("caught")
+        self.assertFalse(result["on_frame_returned"], result)
+        self.assert_reset_refused(result)
+
+    def test_a_refused_press_then_a_brain_crash_ends_reset_refused(self) -> None:
+        """Case (3) (orchestrator ruling 8): the latch set, then the brain crashes (`AI_PLAYER_FAULT_RAISE=1`, at step 31)
+        before any frame reached the guard: the run ends reset-refused/9, not crash/2 (mutant L16 makes it crash/2)."""
+        result = self._run("crash")
+        self.assertLess(result["steps"], REFUSAL_RUN_STEPS, result)
+        self.assert_reset_refused(result)
+
+    def test_a_refused_press_then_the_brain_returns_ends_reset_refused(self) -> None:
+        """The latch set, then the brain RETURNS (it caught the refusal and quit) before a frame reached the guard: the
+        run ends reset-refused/9, not brain-returned/5 (its CONTROL: `control_returned`)."""
+        result = self._run("returned")
+        self.assertLess(result["steps"], REFUSAL_RUN_STEPS, result)
+        self.assert_reset_refused(result)
+
+    def test_a_refused_press_then_a_stray_exit_ends_reset_refused(self) -> None:
+        """The latch set, then the brain raises SystemExit by itself: the run ends reset-refused/9, not stray-exit/2."""
+        result = self._run("stray")
+        self.assertLess(result["steps"], REFUSAL_RUN_STEPS, result)
+        self.assert_reset_refused(result)
+
+    def test_a_refused_press_then_the_mode_is_discarded_ends_reset_refused(self) -> None:
+        """(fix round, review RV-1) The latch set, then main.py discards the mode (GeneratorExit: the lifecycle notes
+        `abandoned`) before the next frame: that frame ends reset-refused/9, not abandoned/3, because the guard checks the
+        latch FIRST (spec D2). `abandoned` is INVOLUNTARY, so the launcher would allow a continue past the blocked reset.
+        FAULT half (mutant ORDER: the latch checked after the other ends): abandoned/3. CONTROL: `control_abandoned`."""
+        result = self._run("abandoned")
+        self.assertTrue(result["abandoned_noted"], result)
+        self.assertFalse(result["on_frame_returned"], result)
+        self.assert_reset_refused(result)
+
+    def test_a_refused_press_then_the_mode_switched_ends_reset_refused(self) -> None:
+        """(fix round, review RV-1) The latch set, then the framework switches the bot mode before the next frame: that frame
+        ends reset-refused/9, not parked-manual/3 (INVOLUNTARY too). FAULT half (mutant ORDER): parked-manual/3. CONTROL:
+        `control_parked`."""
+        result = self._run("parked")
+        self.assertFalse(result["on_frame_returned"], result)
+        self.assert_reset_refused(result)
+
+    def test_a_refused_press_then_an_interrupt_ends_reset_refused(self) -> None:
+        """(second fix round, verification VR-1) The latch set, then a Ctrl+C reaches `_on_signal` before the next frame:
+        that frame ends reset-refused/9, not interrupted/130. `interrupted` is INVOLUNTARY (launcher `_INVOLUNTARY`), so
+        the launcher would allow a continue past the blocked reset (USER RULINGS 52 and 53). FAULT half (mutants ORDER-INT,
+        the latch checked just after the interrupt's end, and INT-FIRST, the interrupt's check put ahead of it):
+        interrupted/130; both SURVIVED every earlier ResetRefusalTests case. CONTROL: `control_interrupted`."""
+        result = self._run("interrupted")
+        self.assertTrue(result["interrupted_set"], result)
+        self.assertFalse(result["on_frame_returned"], result)
+        self.assert_reset_refused(result)
+
+    def test_every_other_end_due_on_the_same_frame_still_ends_reset_refused(self) -> None:
+        """(VR-1) The latch set, and on the SAME frame every other end `_on_frame` can reach is due: the Ctrl+C, the mode
+        discarded, the bot mode switched, the frame budget passed and the wall-clock deadline passed. The run ends
+        reset-refused/9, which pins "the latch is checked FIRST" against EVERY reorder of the guard's ends, not only those
+        a single-end case reaches (mutants ORDER, ORDER-INT/AB/PARK/BUDGET and INT/AB/PARK/BUDGET/WALL-FIRST; BUDGET-FIRST
+        and WALL-FIRST are caught by this test alone). The harness proves each end due (`due`, read from the session just
+        before the frame). CONTROL: `control_all_due`."""
+        result = self._run("all_due")
+        self.assertEqual(result["pre_frames"], result["frame_cap"], f"the budget's pre-frames did not all run: {result}")
+        self.assertEqual(result["due"], dict.fromkeys(REFUSAL_OTHER_ENDS, True), f"an end was not due: {result}")
+        self.assertTrue(result["abandoned_noted"] and result["interrupted_set"], result)
+        self.assertEqual(result["steps"], 1, result)
+        self.assertFalse(result["on_frame_returned"], result)
+        self.assert_reset_refused(result)
+
+    def test_control_an_interrupt_or_every_end_due_without_a_refusal(self) -> None:
+        """CONTROLs for VR-1: the same two cases with NO latch. The interrupt ends interrupted/130, and with every end due
+        the run ends in ONE of those ends (whichever the guard checks first; which one is not this test's business), so
+        the two cases above reach the other ends' checks and their reset-refused is the latch's doing (checked first)."""
+        result = self._run("control_interrupted")
+        self.assertIsNone(result["escaped"], result)
+        self.assertIsNone(result["refused"], result)
+        self.assertTrue(result["interrupted_set"], result)
+        self.assertEqual((result["exit_code"], result["exit_reason"]), (130, "interrupted"), result)
+        result = self._run("control_all_due")
+        self.assertIsNone(result["escaped"], result)
+        self.assertIsNone(result["refused"], result)
+        self.assertEqual(result["pre_frames"], result["frame_cap"], result)
+        self.assertEqual(result["due"], dict.fromkeys(REFUSAL_OTHER_ENDS, True), result)
+        self.assertIn(result["exit_reason"], REFUSAL_OTHER_ENDS, result)
+        self.assertEqual(result["exit_code"], REFUSAL_OTHER_ENDS[result["exit_reason"]], result)
+
+    def test_control_a_discarded_or_switched_mode_without_a_refusal(self) -> None:
+        """CONTROLs for RV-1: the same two cases with NO latch end as before, abandoned/3 and parked-manual/3, so the two
+        cases above reach the other end's check and their reset-refused is the latch's doing (checked first)."""
+        for case, expected in (("control_abandoned", (3, "abandoned")), ("control_parked", (3, "parked-manual"))):
+            with self.subTest(case):
+                result = self._run(case)
+                self.assertIsNone(result["escaped"], result)
+                self.assertIsNone(result["refused"], result)
+                self.assertEqual((result["exit_code"], result["exit_reason"]), expected, result)
+                if case == "control_abandoned":
+                    self.assertTrue(result["abandoned_noted"], result)
+
+    def test_control_the_brain_returns_or_exits_without_a_refusal(self) -> None:
+        """CONTROLs: the same brains with NO latch end as before: brain-returned/5 and stray-exit/2."""
+        for case, expected in (("control_returned", (5, "brain-returned")), ("control_stray", (2, "stray-exit"))):
+            with self.subTest(case):
+                result = self._run(case)
+                self.assertIsNone(result["escaped"], result)
+                self.assertIsNone(result["refused"], result)
+                self.assertEqual((result["exit_code"], result["exit_reason"]), expected, result)
+
+    def test_control_no_refusal_no_end(self) -> None:
+        """CONTROL (a): START alone, then B held with Up: nothing refused, and the frame returns (no end, no verdict)."""
+        result = self._run("control_a")
+        self.assertIsNone(result["escaped"], result)
+        self.assertIsNone(result["refused"], result)
+        self.assertTrue(result["on_frame_returned"], result)
+        self.assertEqual((result["exit_code"], result["exit_reason"]), (None, None), result)
+        self.assertIn(["press", "Start"], result["calls"], result)
+
+    def test_control_a_brain_crash_without_a_refusal_is_a_crash(self) -> None:
+        """CONTROL (b): case (3) with NO latch ends crash/2, so case (3)'s reset-refused is the latch's doing."""
+        result = self._run("control_b")
+        self.assertIsNone(result["escaped"], result)
+        self.assertIsNone(result["refused"], result)
+        self.assertEqual((result["exit_code"], result["exit_reason"]), (2, "crash"), result)
+        self.assertLess(result["steps"], REFUSAL_RUN_STEPS, result)
 
 
 def _harness_main() -> int:

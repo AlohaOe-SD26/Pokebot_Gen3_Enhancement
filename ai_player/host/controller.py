@@ -63,15 +63,37 @@ class Controller:
     def __init__(self) -> None:
         self.frames_advanced = 0
         self.presses = 0
-        #: (R1, D12 (b)) the buttons this controller holds down right now (a `hold` under way)
-        self.held: set[str] = set()
+        #: (R1, D12 (b)) the buttons this controller holds down right now (a `hold` under way). PRIVATE (R1 + R2
+        #: follow-up, spec D2): it is the together-check's own input, and a public set let the brain `clear()` it to slip
+        #: a combination past the check. The purity gate's rule (d) refuses `controls._held` outside this file.
+        self._held: set[str] = set()
+        #: (R1 + R2 follow-up, spec D2) the LATCH: the first refused reset or erase combination, in words. Once it is set,
+        #: nothing more is pressed, and the host (`host/session.py` `_end_if_refused`) ends the run `reset-refused`.
+        self._refused: str | None = None
+
+    @property
+    def held(self) -> frozenset[str]:
+        """The buttons held down right now, as a copy the caller cannot change (spec D2)."""
+        return frozenset(self._held)
+
+    @property
+    def refused(self) -> str | None:
+        """Why the controller refused a reset or erase combination (None: it never did). Read only (spec D2)."""
+        return self._refused
 
     def _check_together(self, button: str) -> None:
-        """(R1, D12 (b)) Refuse a press that would put START or SELECT down together with any other button."""
-        down = self.held | {button}
+        """(R1, D12 (b)) Refuse a press that would put START or SELECT down together with any other button. (R1 + R2
+        follow-up, spec D2) A refusal LATCHES the controller: every later press is refused before it touches a button,
+        whatever the brain did with the error, and the host ends the run on its next frame (`session.py`)."""
+        if self._refused is not None:
+            raise ControllerError("refused: the controller refused a reset or erase combination earlier; nothing more is "
+                                  "pressed")
+        down = self._held | {button}
         if len(down) > 1 and down & _ALONE:
-            raise ControllerError(f"refused: {sorted(down)} together; START and SELECT are never held with another "
-                                  f"button (a reset or erase combination: USER RULING 52)")
+            message = (f"refused: {sorted(down)} together; START and SELECT are never held with another "
+                       f"button (a reset or erase combination: USER RULING 52)")
+            self._refused = message
+            raise ControllerError(message)
 
     def wait(self, frames: int) -> Generator[None, None, None]:
         """Let `frames` frames pass without touching any button."""
@@ -94,12 +116,12 @@ class Controller:
         _check_frames(frames)
         self._check_together(button)
         context.emulator.hold_button(button)
-        self.held.add(button)
+        self._held.add(button)
         self.presses += 1
         try:
             yield from self.wait(frames)
         finally:
-            self.held.discard(button)
+            self._held.discard(button)
             context.emulator.release_button(button)
 
 

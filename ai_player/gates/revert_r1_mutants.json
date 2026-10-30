@@ -5936,15 +5936,15 @@
    "origin": "build stage 4 (scratch gen_census_mutants.py: one mutant per call-census site)"
   },
   {
-   "name": "C230",
-   "what": "the call of classify_end at host/launcher.py:404 in memory_check [call] deleted (deletes the call)",
-   "site": "host/launcher.py:404 in memory_check [call]",
-   "callee": "host/launcher.py:classify_end",
+   "name": "C230b",
+   "what": "the call of judge_end at host/launcher.py in memory_check [call] deleted (deletes the call) [C230 regenerated: R1 + R2 follow-up, spec D5 / section 6's name map C230 -> C230b; C230 deleted the classify_end call this line replaced]",
+   "site": "host/launcher.py in memory_check [call] (judge_end)",
+   "callee": "host/launcher.py:judge_end",
    "edits": [
     [
      "host/launcher.py",
-     "    kind, words, allowed = classify_end(book, launches)\n",
-     "    kind, words, allowed = None\n"
+     "    judgement = judge_end(book, launches)\n",
+     "    judgement = None\n"
     ]
    ],
    "expected": [
@@ -5955,7 +5955,7 @@
     "test_saving",
     "test_goals"
    ],
-   "origin": "build stage 4 (scratch gen_census_mutants.py: one mutant per call-census site)"
+   "origin": "R1 + R2 follow-up (spec 2026-10-29 section 6): C230 regenerated against the judge_end call in memory_check, the same predicted tests"
   },
   {
    "name": "C231",
@@ -8680,8 +8680,8 @@
    "edits": [
     [
      "host/launcher.py",
-     "    \"\"\"How session `session` ended (`classify_end`'s table, one session), and the reason it was judged by.\"\"\"\n    end = book.end_of(session[\"n\"])\n",
-     "    \"\"\"How session `session` ended (`classify_end`'s table, one session), and the reason it was judged by.\"\"\"\n    end = None\n"
+     "    \"\"\"How session `session` ended (`judge_end`'s table, one session), and the reason it was judged by.\"\"\"\n    end = book.end_of(session[\"n\"])\n",
+     "    \"\"\"How session `session` ended (`judge_end`'s table, one session), and the reason it was judged by.\"\"\"\n    end = None\n"
     ]
    ],
    "expected": [
@@ -9284,6 +9284,217 @@
     "test_goals"
    ],
    "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers)"
+  },
+  {
+   "name": "RF01",
+   "what": "the call of held at mode.py:1115 in HandsBrain._settle_before_done [ref] deleted (deletes the reference)",
+   "site": "mode.py:1115 in HandsBrain._settle_before_done [ref]",
+   "callee": "host/controller.py:Controller.held",
+   "edits": [
+    [
+     "mode.py",
+     "                       f\"{'that is free' if free else 'held by: ' + str(held)}\")\n",
+     "                       f\"{'that is free' if free else 'held by: ' + str(None)}\")\n"
+    ]
+   ],
+   "expected": [
+    "PlayLoopTests.test_r5_the_frame_budget_never_cuts_a_reached_target_short_of_its_end"
+   ],
+   "suites": [
+    "test_saving",
+    "test_goals"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "RF02",
+   "what": "the call of refused at brain/battle.py:782 in BattleMind.refuse [read] deleted (deletes the reference)",
+   "site": "brain/battle.py:782 in BattleMind.refuse [read]",
+   "callee": "host/controller.py:Controller.refused",
+   "edits": [
+    [
+     "brain/battle.py",
+     "        self.refused[pid] = words\n",
+     "        None[pid] = words\n"
+    ]
+   ],
+   "expected": [
+    "FieldTests.test_a_refused_member_is_not_chosen_again_until_the_next_turn",
+    "SkillTests.test_a_battle_resumed_on_the_refusal_reads_it_and_sends_another",
+    "SkillTests.test_a_refused_switch_goes_back_to_the_battles_menu_and_fights",
+    "SkillTests.test_fault_forget_field_is_refused_and_read_and_another_goes_in"
+   ],
+   "suites": [
+    "test_battle",
+    "test_goals"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "RF03",
+   "what": "the call of refused at brain/battle.py:1317 in BattleMind.better_member [ref] deleted (deletes the reference)",
+   "site": "brain/battle.py:1317 in BattleMind.better_member [ref]",
+   "callee": "host/controller.py:Controller.refused",
+   "edits": [
+    [
+     "brain/battle.py",
+     "               | set(self.refused))\n",
+     "               | set(None))\n"
+    ]
+   ],
+   "expected": [
+    "OpenerTests.test_never_a_status_move_when_it_is_not_safe",
+    "ShiftTests.test_a_yes_is_carried_into_the_party_menu",
+    "ShiftTests.test_the_question_is_about_the_incoming_species_named_in_the_words",
+    "SkillTests.test_a_potion_is_given_and_its_message_read",
+    "SkillTests.test_a_refused_switch_goes_back_to_the_battles_menu_and_fights",
+    "SkillTests.test_a_switch_by_pid_through_shift"
+   ],
+   "suites": [
+    "test_battle",
+    "test_goals"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "RF04",
+   "what": "the call of refused at brain/battle.py:1365 in BattleMind.replacement [ref] deleted (deletes the reference)",
+   "site": "brain/battle.py:1365 in BattleMind.replacement [ref]",
+   "callee": "host/controller.py:Controller.refused",
+   "edits": [
+    [
+     "brain/battle.py",
+     "        out = set(standing) | self.sent_since | set(self.refused)\n",
+     "        out = set(standing) | self.sent_since | set(None)\n"
+    ]
+   ],
+   "expected": [
+    "AnswerTests.test_the_questions",
+    "FieldTests.test_a_double_battles_partner_faints_the_one_still_standing_is_not_sent",
+    "FieldTests.test_a_refused_member_is_not_chosen_again_until_the_next_turn",
+    "FieldTests.test_a_single_battles_replacement_is_matched_against_the_remembered_foe",
+    "FieldTests.test_both_fell_the_second_choice_is_not_the_first",
+    "FieldTests.test_fault_forget_field_sends_the_one_still_standing"
+   ],
+   "suites": [
+    "test_battle",
+    "test_goals"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "RF05",
+   "what": "the call of refused at brain/battle.py:1393 in BattleMind.replacement [read] deleted (deletes the reference)",
+   "site": "brain/battle.py:1393 in BattleMind.replacement [read]",
+   "callee": "host/controller.py:Controller.refused",
+   "edits": [
+    [
+     "brain/battle.py",
+     "        field += [f\"{pid:08x} refused ({words})\" for pid, words in self.refused.items()]\n",
+     "        field += [f\"{pid:08x} refused ({words})\" for pid, words in None.items()]\n"
+    ]
+   ],
+   "expected": [
+    "AnswerTests.test_the_questions",
+    "FieldTests.test_a_double_battles_partner_faints_the_one_still_standing_is_not_sent",
+    "FieldTests.test_a_refused_member_is_not_chosen_again_until_the_next_turn",
+    "FieldTests.test_a_single_battles_replacement_is_matched_against_the_remembered_foe",
+    "FieldTests.test_both_fell_the_second_choice_is_not_the_first",
+    "FieldTests.test_fault_forget_field_sends_the_one_still_standing"
+   ],
+   "suites": [
+    "test_battle",
+    "test_goals"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "RF06",
+   "what": "the call of refused at host/session.py:297 in Session._end_if_refused [read] deleted (deletes the reference)",
+   "site": "host/session.py:297 in Session._end_if_refused [read]",
+   "callee": "host/controller.py:Controller.refused",
+   "edits": [
+    [
+     "host/session.py",
+     "        why = self.controller.refused\n",
+     "        why = None\n"
+    ]
+   ],
+   "expected": [
+    "ResetRefusalTests.test_a_refused_press_ends_the_run_on_the_next_frame",
+    "ResetRefusalTests.test_a_refused_press_the_brain_catches_still_ends_the_run",
+    "ResetRefusalTests.test_a_refused_press_then_a_brain_crash_ends_reset_refused",
+    "ResetRefusalTests.test_a_refused_press_then_a_stray_exit_ends_reset_refused",
+    "ResetRefusalTests.test_a_refused_press_then_the_brain_returns_ends_reset_refused"
+   ],
+   "suites": [
+    "test_host:ResetRefusalTests"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "RF07",
+   "what": "the call of _on_frame at host/isolation.py:62 in GuardListener.handle_frame [call] deleted (deletes the call)",
+   "site": "host/isolation.py:62 in GuardListener.handle_frame [call]",
+   "callee": "host/session.py:Session._on_frame",
+   "edits": [
+    [
+     "host/isolation.py",
+     "        self._on_frame()\n",
+     "        pass\n"
+    ]
+   ],
+   "expected": [
+    "ResetRefusalTests.test_a_refused_press_the_brain_catches_still_ends_the_run"
+   ],
+   "suites": [
+    "test_host:ResetRefusalTests"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "RF08",
+   "what": "the call of _on_frame at host/session.py:157 in Session.__init__ [ref] deleted (deletes the reference)",
+   "site": "host/session.py:157 in Session.__init__ [ref]",
+   "callee": "host/session.py:Session._on_frame",
+   "edits": [
+    [
+     "host/session.py",
+     "        self.guard = GuardListener(self._on_frame)\n",
+     "        self.guard = GuardListener(None)\n"
+    ]
+   ],
+   "expected": [
+    "ResetRefusalTests.test_a_refused_press_the_brain_catches_still_ends_the_run"
+   ],
+   "suites": [
+    "test_host:ResetRefusalTests"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "RF09",
+   "what": "the call of _steps at host/session.py:341 in Session.run [call] deleted (deletes the call)",
+   "site": "host/session.py:341 in Session.run [call]",
+   "callee": "host/session.py:Session._steps",
+   "edits": [
+    [
+     "host/session.py",
+     "            reason = yield from self._steps(self.brain.play(self.controller, self.eyes))\n",
+     "            reason = None\n"
+    ]
+   ],
+   "expected": [
+    "ResetRefusalTests.test_a_refused_press_then_a_brain_crash_ends_reset_refused",
+    "ResetRefusalTests.test_a_refused_press_then_a_stray_exit_ends_reset_refused",
+    "ResetRefusalTests.test_a_refused_press_then_the_brain_returns_ends_reset_refused",
+    "ResetRefusalTests.test_control_a_brain_crash_without_a_refusal_is_a_crash",
+    "ResetRefusalTests.test_control_the_brain_returns_or_exits_without_a_refusal"
+   ],
+   "suites": [
+    "test_host:ResetRefusalTests"
+   ],
+   "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
   }
  ]
 }

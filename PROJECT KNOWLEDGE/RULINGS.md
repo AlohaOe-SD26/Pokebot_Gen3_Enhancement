@@ -73,10 +73,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 352 sections (newest first)
+## All 353 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-30-b8f22e` | 9916 |  |  | 2026-10-30 — R1 + R2's FOLLOW-UP BUILT: the build's decisions (two STOPs ruled on, the CHAIN kill rule, what was deferred to U2's build) |
 | `2026-10-29-2afa57` | 9904 | 53 | DO-NOT-REOPEN | 2026-10-29 — USER RULING 53: the user approved the open asks and left the three open design questions to Claude's recommendations (U1 the list as built; U2 YES, |
 | `2026-10-29-47a9a5` | 9893 |  |  | 2026-10-29 — R1 + R2 BUILT: the AI saves like a person, CONTINUEs after a kill, and its memory survives it (the build's decisions) |
 | `2026-10-29-eb1c46` | 9884 | 51, 52 |  | 2026-10-29 — USER RULINGS 51 and 52: the AI saves like a person, and never reloads to undo a loss (one later exception, deferred: a stationary legendary's faile |

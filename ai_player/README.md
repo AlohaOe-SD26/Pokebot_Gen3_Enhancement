@@ -315,7 +315,7 @@ py -3.12 -m ai_player run --profile NAME [--frames N] [--wall-seconds S] [--fres
   flags beside an existing memory file is refused. `--continue` continues the AI's game after a kill: it deletes
   `current_state.ss1`, keeps `current_save.sav`, and the AI plays the title screen itself ("Saving and CONTINUE"
   below). It is refused unless the last run ended without the AI choosing it (killed, crashed, interrupted) or
-  right after a save (USER RULING 52; `host/launcher.py` `memory_check`, `classify_end`), and it prints what it
+  right after a save (USER RULING 52; `host/launcher.py` `memory_check`, `judge_end`), and it prints what it
   continues and how many lost battles it undoes. After the child, the launcher appends how it ended to
   `launches.jsonl`;
 * starts `sandbox-pokebot/pokebot.py NAME -m "AI Player" -s 0 -na -hl` (the batch runner's flags:
@@ -470,7 +470,7 @@ WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3
 | `host/isolation.py` | removes every framework listener the AI does not own, owns `modules.main.get_bot_listeners` (the rebuild door) while the AI runs, restores both on exit |
 | `host/attribution.py` | the instrument: counts inputs, writes, loads, clock changes, frames and bot-code calls by origin, audits the sinks, that isolation held and that it saw every main-loop frame, writes the verdict file, seals the host modules, provides `Guarded`, arms the exit watchdog, and holds the FRAME FENCE (no thread but the finishing one runs a frame while the run is being finished) |
 | `host/lifecycle.py` | the single exit door (single-entry across threads); exit codes |
-| `host/launcher.py` | the CLI side (launcher process): the gate, the profile, HTTP off, the child process, the wall clocks, the verdict file; R1 + R2: `--continue`, `memory_check`, `classify_end` and `launches.jsonl` |
+| `host/launcher.py` | the CLI side (launcher process): the gate, the profile, HTTP off, the child process, the wall clocks, the verdict file; R1 + R2: `--continue`, `memory_check`, `judge_end` and `launches.jsonl` |
 | `brain/saving.py`, `skills/saving.py`, `game_memory.py`, `paths.py` | R1 + R2 (2026-10-29): WHEN to save (`SavePolicy`, USER RULING 51); the save and CONTINUE skills through the game's own dialogs; the memory file `memory.jsonl` (restored as of the save a CONTINUE loads; the PID registry); where a game's files live (`AppPaths`) |
 | `options.py`, `runlog.py` | run options from the environment; the AI's own log and its action log file (`RecordFile`) |
 | `evidence/` | every live and mutant proof's evidence file of the CURRENT tree, at the top level (each names its tree: `provenance.py --check-evidence`; since 2026-10-21 a tree is the code UNDER TEST, not the digest alone, `#28-evidence-identity`); since step 4.1 the archive keeps only the earlier trees' files a document or a commit message CITES, in `evidence/archive/<digest>/` (`<digest>-<HEAD>/` for a folder made from 2026-10-21 on), and lists every other one in `evidence/archive/INDEX.md` (its `git show` line: it stays in git history); the policy is `archive/README.md`, applied by `gates/prune_evidence.py` |
@@ -696,6 +696,10 @@ Read inside the AI's own code, never set on the happy path:
 | (a COPY) | step 5.1: `STORY_PATIENCE` 40,000 (`PATIENCE_SMALL`), alone and with the step-5 rule back (G67: only a milestone resets it) | the sweep's PATIENCE, PATIENCE_OLD (`rate_step5.py`, the Trainer's seeds) |
 | (a COPY) | step 5.1, the verifier's round: the battle skill waits 600 frames at the action menu before it acts (`STALL3`: a battle's wait for a press, which the second path did not read until this round) | the sweep's STALL3 (`rate_step5.py`, the Story's seeds) |
 | (a COPY) | step 5.1, the verifier's round: once its battler is L7, the decider uses its status move (slot 1) every turn of a wild battle and never runs (`LOSE3`): the play loop's real `MAX_LOSSES` (3) must end the run | the sweep's LOSE3 (`rate_step5.py`, the Catcher's seeds) |
+| (a COPY) | R1 + R2 follow-up: `skills/saving.py` `ARRIVAL_BUDGET` 57 (`live_r1.R2_STOP_EDITS`; floor of half the narrowest CONTINUE-to-arrival measured in development #57, 115 frames), so a continue STOPS on its arrival bound | R2-RETRY's step 1 (`live_r1.py r2`, through the REAL launcher) |
+| (a COPY) | R1 + R2 follow-up: mutant CH1, a continued writer chains its first save to the NEWEST save line (`live_r1.CH1_EDITS` = `revert_r1` CH1) | CHAIN-OLD (`live_r1.py chain --old CHAIN-OLD`) |
+| (a COPY) | R1 + R2 follow-up: mutant FX1, a save line's goals built from the state BEFORE the save (`live_r1.FX1_EDITS` = `revert_r1` FX1) | CHAIN-R1-OLD (`live_r1.py chain --old CHAIN-R1-OLD`) |
+| (a COPY) | R1 + R2 follow-up: mutant FX3, the launcher never looks through a continue that stopped before its restore (`live_r1.FX3_EDITS` = `revert_r1` FX3) | R2-RETRY-OLD (`live_r1.py r2 --old`) |
 | `AI_PLAYER_FAULT_UNGATED_A=1` | the dialogue driver presses A on its cadence with no wait gate and never stops for a menu (step 2) | XU (live_step2) |
 | `AI_PLAYER_FAULT_BLIND_COUNT=1` | the menu driver moves every cursor by a count from the top, without reading it (step 2); since step 2.1 it still waits for a menu to take input before its A (it is blind to the CURSOR only: an A dropped in the gender menu's sprite slide now ends the intro, the review's item 6) | XBN, XBC (live_step2) |
 | (a COPY of the package, not a switch) | step 2.1: the eyes' TASK_WAITS list a timer task (`Task_NewGameBirchSpeech_WaitToShowBirch`) as a wait | XTW (live_step2): the press-behaviour probe must flag every A pressed on it |
@@ -772,7 +776,13 @@ WHAT:
   GAME on its own. Every continue tells how many lost battles it undoes.
 * Ruling 52 in code: the launcher (a continue refused after a CHOSEN or NOT CLEAN end), the purity gate (`exit`, `quit`,
   `SystemExit` and `KeyboardInterrupt` refused in the play loop) and the controller (START or SELECT held with any other
-  button raises `ControllerError`). A whiteout is played on.
+  button raises `ControllerError`). A whiteout is played on. (R1 + R2 follow-up, spec D2) A refused combination LATCHES
+  the controller: nothing more is pressed, and the host ends the run on its next frame (or as soon as the brain
+  returns, crashes or exits) with `exit_reason` `reset-refused` (exit 9). The frame checks the latch FIRST, before any
+  other end due on it, so a discarded or switched mode after a refusal is still `reset-refused`, never the INVOLUNTARY
+  `abandoned` or `parked-manual` (fix round, review RV-1; mutant ORDER). The launcher classes `reset-refused` NOT CLEAN,
+  so no continue is allowed: NOT CLEAN is permanent for that game (only `--fresh`). The controller's held-button set is
+  private (`held` is a read-only copy), so the brain cannot empty it to slip a combination past the check.
 
 THE PROOF. `gates/live_r1.py` (TEST SIDE, no lane; it needs the emulator and the ROM; its commands are in its docstring):
 a child plays a real game from New Game and is killed by PID at a chosen frame, and a second child continues the frozen
@@ -781,21 +791,45 @@ frames), K-FIRST (inside save 1's write), K-BETWEEN (between the saves; kill rul
 launcher), and three OLD arms on revert mutants. Graded on held-out seeds 5451-5454 (ledger #53): PASS, 24 of 24
 discriminators; re-run independently on 5461-5464 (#54), after the review's fixes on 5471-5474 (#55), and independently
 on 5481-5484 (#56). Evidence: `evidence/2026-10-29-r1live-HELDOUT.txt`, `2026-10-29-r1live-FIXROUND.txt`
-and `2026-10-29-r1live-VERIFY.txt`. Units: `gates/test_saving.py` (132 tests) and `test_goals.py`'s `test_r1_*`;
-`gates/revert_r1.py` (468 mutants, in the full lane); the eyes' own check `gates/probe_save_eyes.py`; the paths gate
-`gates/check_paths.py`.
+and `2026-10-29-r1live-VERIFY.txt`. Units: `gates/test_saving.py` (138 tests) and `test_goals.py`'s `test_r1_*`;
+`test_host.py`'s `ControllerTogetherTests` and `ResetRefusalTests` (the latch, through the REAL Session in a harness
+process); `gates/revert_r1.py` (514 mutants, in the full lane); the eyes' own check `gates/probe_save_eyes.py`; the
+paths gate `gates/check_paths.py`.
 
 MEASURED (development, 6 seeds, 30 saves): a write takes 254-266 frames; START to a free screen 907-1,603 frames;
 6.3-8.9 saves per game hour (12 of 30 at OLDALE's centre, 18 after a big moment); a continue reaches the main menu in
 400-825 frames and arrives 130-159 frames after its CONTINUE press.
 
-KNOWN LIMITS (the next item; `06` 2026-10-29): the purity gate's exit rule misses `raise GeneratorExit` and `except
-BaseException`, and a refused START/SELECT press ends as a crash that may be continued (N-1); fairness RULE C sees
-attribute reads of the play time only (N-2); `read_book` decodes with errors='replace' (N-4); no live arm saves after a
-continue (N-3) or stops a continue on a bound (R-2's look-through is proven offline). The gym-leader save is unit-tested
-only. The independent verification's V2-1, V2-2, V2-5 and V2-6 are in the same item. USER RULING 53 answered the user's U1 (the moment list as built) and U2 (a time-limit end may be continued; until
-its build, right after this follow-up, a continue follows only an end right after a save). `live_step5`'s next run is a re-baseline: every launcher run now saves. The build:
-`PROJECT KNOWLEDGE/ai-research-notes/2026-10-29-R1R2-BUILD-REPORT.md`.
+THE FOLLOW-UP (R1 + R2's NITs and V2 findings, offline parts; spec 2026-10-29 "R1 + R2 FOLLOW-UP"): the purity gate's
+play-loop exit rule also refuses `GeneratorExit`, `BaseException`, `BaseExceptionGroup`, `ExitStack`/`AsyncExitStack`, a
+bare `except:`, a `return`/`yield`/`await` (and an outer `break`/`continue`) in a `finally`, and `def __exit__` (N-1); a
+refused START/SELECT combination latches the controller and ends the run `reset-refused`, NOT CLEAN (N-1, above);
+fairness RULE C also sees the `'play_time'` key, a match pattern's `play_time=`, `asdict`/`astuple`, and refuses a
+positional class pattern (N-2); `read_book` refuses a non-ASCII middle line (N-4); `read_launches` refuses a non-UTF-8
+file with its sentence (R-EXCEPT); the launcher counts and tells each continue it looks through (V2-5, `judge_end`); a
+save neither ends nor joins a curiosity or aside streak, for the AI and the grader (V2-6); `live_r1`'s verdict line
+counts the midpoint arm's passes (V2-1, V2-2), and calls it 'vacuous' only when it counted on no seed ('below the
+floor' when it counted on some; fix round, review RV-2).
+Two live arms joined the proof. CHAIN, on K-SILENT's frozen cart: child B continues save 1, plays on and saves again,
+and is killed once it stands on a map new to its LATEST save; child C continues B's save. B's first post-continue save
+line chains to the save it continued, never to the abandoned newest line (OLD arm CHAIN-OLD, mutant CH1), every line
+carries its own `last_save` (CHAIN-R1-OLD, FX1), and C's memory is restored as of B's save. R2-RETRY: a continue run
+through the real launcher on a copy whose `ARRIVAL_BUDGET` is 57 stops on its arrival bound, and the next continue,
+judged by the real launcher, is allowed and arrives at the save (OLD arm R2-RETRY-OLD, FX3: refused). Graded on held-out
+seeds 5551-5554 (ledger #58): PASS, CHAIN on 3 of 4 (on 5554 the AI reached the POKéDEX before standing on a map new to
+its latest save); re-run independently on 5561-5564 (#59), after the review's fixes on 5571-5574 (#60), and
+independently on 5581-5584 (#61). Evidence: `evidence/2026-10-29-r1f-HELDOUT.txt`, `-RERUN.txt`, `-FIXROUND.txt`,
+`-VERIFY.txt`.
+
+KNOWN LIMITS (`06` 2026-10-30): the restored `last_save` has never been exercised live (no continued run met a save
+moment within 3 game minutes of its save; unit-proven); the gym-leader save is unit-tested only; FX5's guard is
+unit-proven only; a save's stamp is to the minute, so two saves in one game minute would make the save C continues
+ambiguous (never seen). Next, U2's build (USER RULING 53): a session ended by its time or frame limit may be continued
+from its last save, and the AI saves before its frame budget runs out; until then a continue follows only an end right
+after a save. With it: RV-3 (CHAIN's budgets were measured at 6 parallel jobs and are graded at 12), RV-5 (fairness rule
+D3 (d) refuses `case int(n)`, which reads nothing) and RV-7 (the purity gate does not refuse a `raise` in a `finally`).
+`live_step5`'s next run is a re-baseline: every launcher run now saves. The builds:
+`PROJECT KNOWLEDGE/ai-research-notes/2026-10-29-R1R2-BUILD-REPORT.md` and `2026-10-29-R1F-BUILD-REPORT.md`.
 
 ## The save/kill probe (backlog R1 + R2's prerequisite, 2026-10-29)
 

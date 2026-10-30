@@ -101,6 +101,10 @@ INTERRUPT_POLL_SECONDS = 0.25
 #: The interrupt watch's own bound: it stops watching after this long (a week).
 INTERRUPT_WATCH_MAX_SECONDS = 7 * 24 * 60 * 60
 
+#: (R1 + R2 follow-up, spec D2: USER RULING 52) the end reason when the controller refused a reset or erase combination.
+#: Exit 9 (`EXIT_REFUSED`, as `refused-debug-mode`); the launcher classes it NOT CLEAN (`host/launcher.py` END_CLASSES).
+_RESET_REFUSED = "reset-refused"
+
 #: The session of this process. A list changed in place, because the module is sealed.
 _ACTIVE: list = []
 
@@ -284,9 +288,22 @@ class Session(Guarded):
         self.lifecycle.finish("isolation-lost", EXIT_PURITY_BREACH)
 
     # ------------------------------------------------------------------ the guard (every frame)
+    def _end_if_refused(self) -> None:
+        """(R1 + R2 follow-up, spec D2: USER RULING 52) If the controller refused a reset or erase combination (its LATCH,
+        `host/controller.py`), end the run `reset-refused` (exit 9), which the launcher classes NOT CLEAN, so no continue
+        can reload past the reset the controller blocked. Called by the HOST, outside the brain's stack: first on every
+        frame, and where the brain returns, crashes or exits by itself. WHY not inside the refused press: an exit raised
+        there runs through the brain's own generator stack, where a `finally` or a context manager could hold it back."""
+        why = self.controller.refused
+        if why is not None:
+            self.log.line(f"[AI-LIFECYCLE] the controller refused a reset or erase combination: {why} (USER RULING 52); "
+                          f"ending the run")
+            self.lifecycle.finish(_RESET_REFUSED, EXIT_REFUSED)
+
     def _on_frame(self) -> None:
         """Runs once per frame from the AI's own listener, even while the AI's generator is starved."""
         self.frames_seen += 1
+        self._end_if_refused()
         if self.interrupted is not None:
             self.log.line(f"[AI-LIFECYCLE] interrupted by signal {self.interrupted} (Ctrl+C / Ctrl+Break); ending the run with a verdict")
             self.lifecycle.finish("interrupted", EXIT_INTERRUPTED)
@@ -341,19 +358,31 @@ class Session(Guarded):
     def _steps(self, steps: Generator[None, None, str]) -> Generator[None, None, str | None]:
         """Drive the brain one frame at a time, re-asserting isolation between frames. Returns the
         brain's give-up reason (None when it returned without one). The live driver's PLANT arms hook
-        in here, once per step, with `self` (so a plant runs inside the AI's play loop)."""
+        in here, once per step, with `self` (so a plant runs inside the AI's play loop).
+        (R1 + R2 follow-up, spec D2: USER RULING 52) After a refused reset or erase combination (the controller's latch)
+        the run ends `reset-refused` HERE when the brain RETURNS, CRASHES or EXITS BY ITSELF before the next frame reaches
+        the guard (`_end_if_refused`; the guard's `_on_frame` checks it first on every frame). These checks live here, not
+        in `run`, so `run` itself is unchanged; a GeneratorExit (main.py discarding the mode) passes untouched, and the
+        lifecycle's own exit (`finishing`) is never replaced."""
         step = 0
         try:
             while True:
                 try:
                     next(steps)
                 except StopIteration as done:
+                    self._end_if_refused()  # the brain returned right after a refused press (spec D2)
                     return done.value
                 note = self.isolation.enforce()
                 if note:
                     self.log.line(note)
                 yield
                 step += 1
+        except GeneratorExit:
+            raise
+        except BaseException:  # noqa: BLE001 - re-raised; only a refusal turns it into a recorded ending first
+            if not self.lifecycle.finishing:
+                self._end_if_refused()  # a crash or a stray exit after a refused press is the refusal (spec D2)
+            raise
         finally:
             steps.close()
 

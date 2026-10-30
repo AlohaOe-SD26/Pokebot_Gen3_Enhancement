@@ -69,6 +69,13 @@ RULES
     the builtin names `exit`, `quit`, `SystemExit` and `KeyboardInterrupt` (`PLAY_LOOP_EXIT_NAMES`) are refused in every
     PLAY-LOOP file (`PLAY_LOOP_PARTS`: brain/, skills/, hands/, world/, eyes/, mode.py, personality.py, game_memory.py,
     options.py), raised or caught.
+    (R1 + R2 follow-up, spec 2026-10-29 D1: N-1) The same files also may not name `GeneratorExit`, `BaseException`,
+    `BaseExceptionGroup`, `ExitStack` or `AsyncExitStack` (as a name, an attribute such as `contextlib.ExitStack`, or an
+    imported name), write a bare `except:`, reach a `return`, `yield`, `yield from` or `await` from a `finally` body (a
+    nested def, lambda or class is its own scope), reach a `break` or `continue` from a `finally` body outside a loop
+    nested in it, or define `__exit__`/`__aexit__`. Each discards, swallows or holds back an exit in flight without
+    naming any exit class: a `return` in a `finally` drops the exception being raised, a `yield` there hands the caller
+    a frame after the exit began, and an `__exit__` or an `ExitStack` callback that returns True swallows it.
 (c) SIDES. The play loop may not import the test side (`ai_player.gates`) or the launcher side,
     the launcher side may not import the framework, and the brain (`mode.py`) may not import the
     host side (`ai_player.host`).
@@ -175,8 +182,20 @@ BRAIN_FILES = frozenset({"mode.py"})
 #: its own process (USER RULING 52: a continue happens only when the host restarts a KILLED run). Folders end in "/".
 PLAY_LOOP_PARTS = ("brain/", "skills/", "hands/", "world/", "eyes/", "mode.py", "personality.py", "game_memory.py",
                    "options.py")
-#: The builtins that end the process or catch its end (`sys.exit` is a library surface: the lifecycle's only).
-PLAY_LOOP_EXIT_NAMES = frozenset({"exit", "quit", "SystemExit", "KeyboardInterrupt"})
+#: The builtins that end the process or catch its end (`sys.exit` is a library surface: the lifecycle's only). (R1 + R2
+#: follow-up, D1) Also the classes that catch an exit without naming it (`BaseException`, `BaseExceptionGroup`), the one
+#: that ends a generator (`GeneratorExit`), and the context managers whose callbacks can swallow one (`ExitStack`).
+PLAY_LOOP_EXIT_NAMES = frozenset({"exit", "quit", "SystemExit", "KeyboardInterrupt",
+                                  "GeneratorExit", "BaseException", "BaseExceptionGroup", "ExitStack", "AsyncExitStack"})
+#: (D1) The exit names also judged as an ATTRIBUTE (`contextlib.ExitStack`) and as an imported name (`from contextlib import
+#: ExitStack as S`): the classes only. `.exit` and `.quit` are ordinary method names on other objects; `sys.exit` is rule (a)'s.
+PLAY_LOOP_EXIT_CLASSES = PLAY_LOOP_EXIT_NAMES - {"exit", "quit"}
+#: (D1) In a `finally` body: what discards or holds back the exception in flight. A nested def, lambda or class is its own
+#: scope; a loop nested in the `finally` owns its own `break` and `continue` (not its `return`).
+FINALLY_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
+FINALLY_LOOPS = (ast.For, ast.AsyncFor, ast.While)
+#: (D1) A class that defines one of these can swallow whatever passes through its `with` (by returning True).
+EXIT_METHODS = frozenset({"__exit__", "__aexit__"})
 
 
 def in_play_loop(key: str) -> bool:
@@ -1094,6 +1113,8 @@ class _FileScanner(ast.NodeVisitor):
         for alias in node.names:
             shown = f"from {shown_base} import {alias.name}" + (f" as {alias.asname}" if alias.asname else "")
             self._check_name_text(node, alias.name, "imports")
+            if alias.name in PLAY_LOOP_EXIT_CLASSES and in_play_loop(self.key):
+                self._fail_exit(node, f"imports `{alias.name}`")
             if base == "__future__":
                 continue
             if alias.name == "*":
@@ -1190,6 +1211,51 @@ class _FileScanner(ast.NodeVisitor):
             elif binding.kind == "library":
                 self._check_library_use(node, binding)
         self.generic_visit(node)
+
+    # ------------------------------------------------------------------ (b): the play loop's own end (R1 + R2 follow-up, D1)
+    def _fail_exit(self, node: ast.AST, what: str) -> None:
+        self.fail(node, "b", f"{what}: the play loop never discards, swallows or holds back the end of its own process "
+                  f"(USER RULING 52; the lifecycle ends the run when the brain RETURNS its reason)")
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        if node.type is None and in_play_loop(self.key):
+            self._fail_exit(node, "a bare `except:` catches the process's end")
+        self.generic_visit(node)
+
+    def visit_Try(self, node: ast.Try) -> None:
+        if in_play_loop(self.key):
+            for statement in node.finalbody:
+                self._check_finally(statement, in_loop=False)
+        self.generic_visit(node)
+
+    visit_TryStar = visit_Try
+
+    def _check_finally(self, node: ast.AST, in_loop: bool) -> None:
+        """A `return`, `yield`, `yield from` or `await` reached from a `finally` body (not through a nested scope), and a
+        `break` or `continue` reached the same way outside a loop nested in it, discard or hold back the exit in flight."""
+        if isinstance(node, FINALLY_SCOPES):
+            return
+        if isinstance(node, ast.Return) or (isinstance(node, (ast.Break, ast.Continue)) and not in_loop):
+            self._fail_exit(node, f"a `{type(node).__name__.lower()}` in a `finally` discards the exit in flight")
+        if isinstance(node, (ast.Yield, ast.YieldFrom, ast.Await)):
+            self._fail_exit(node, "a `yield` or `await` in a `finally` holds back the exit in flight (its caller gets "
+                            "a frame after the end began)")
+        if isinstance(node, FINALLY_LOOPS):
+            # the loop's own body owns its break/continue; its `else`, target, iterable and test do not
+            for child in node.body:
+                self._check_finally(child, in_loop=True)
+            for child in [*node.orelse, *(getattr(node, field) for field in ("target", "iter", "test") if hasattr(node, field))]:
+                self._check_finally(child, in_loop)
+            return
+        for child in ast.iter_child_nodes(node):
+            self._check_finally(child, in_loop)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        if node.name in EXIT_METHODS and in_play_loop(self.key):
+            self._fail_exit(node, f"defines `{node.name}`, which can swallow whatever passes through its `with`")
+        self.generic_visit(node)
+
+    visit_AsyncFunctionDef = visit_FunctionDef
 
     def _check_attribute_reader(self, node: ast.Name) -> None:
         parent = self.parents.get(node)
@@ -1299,6 +1365,8 @@ class _FileScanner(ast.NodeVisitor):
         attribute = node.attr
         self._check_name_text(node, attribute, "uses the attribute")
         self._check_attribute(node, attribute, node.value, "uses")
+        if attribute in PLAY_LOOP_EXIT_CLASSES and isinstance(node.ctx, ast.Load) and in_play_loop(self.key):
+            self._fail_exit(node, f"uses `.{attribute}`")
         if not self.exempt and attribute in FORMAT_METHODS:
             self._check_format(node)
         if self.judges_effects and not self.writes_files:
