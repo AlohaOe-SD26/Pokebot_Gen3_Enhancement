@@ -305,8 +305,8 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
   works (ruling 52): a save in front of a stationary legendary (Rayquaza, the Regis), reloaded only after
   a catch that failed for want of Poké Balls. **Build spec:** `2026-10-29-R1R2-BUILD-SPEC.md` (2026-10-29).
   **✅ BUILT 2026-10-29** (`07`; `2026-10-29-R1R2-BUILD-REPORT.md`; decisions `06` 2026-10-29): the held-out live
-  proof PASSED (ledger #53) and was re-checked on #54-#56. Open: the review's four NITs (the next item)
-  and the user's U1 and U2 (interim answers built).
+  proof PASSED (ledger #53) and was re-checked on #54-#56. Open: the review's four NITs (the next item;
+  spec `2026-10-29-R1F-BUILD-SPEC.md`) and the user's U1 and U2 (interim answers built).
 - **R8 + R9 (+ P13). AI-MADE STATES for repro and for the next chapter.** (A; needs R2, R3) **Evidence:** a stuck verdict
   costs the whole run again (a 59,204-frame stretch surfaced only in a 20-run sweep); a chapter-3 run from a bot save "has
   never heard DAD" (recon Gap 9). **What:** the HOST keeps the last 3 states and copies out `stuck-<code>.ss1` for
