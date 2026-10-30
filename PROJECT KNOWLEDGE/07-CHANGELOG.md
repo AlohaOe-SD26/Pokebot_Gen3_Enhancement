@@ -39160,3 +39160,10 @@ bought balls only at fixed story points.
 - **Report:** `ai-research-notes/2026-10-29-R1F-BUILD-REPORT.md`. Decisions: `06` 2026-10-30. Mistakes: `08` 2026-10-30.
 - **Cost:** the workflows `r1f-build` (22.69 Mtok input-equivalent) and `r1f-fix2` (2.41 Mtok), `cost-ledger.jsonl`.
 - **Next:** U2's build (USER RULING 53; `04` item 4).
+
+## 2026-10-30 — the full regression lane PASSED on 417df790, R1 + R2's follow-up (backlog item 15; punch-list #28-aiagent-v2)
+
+- **Run:** `py -3.12 ai_player/gates/run_regression.py --full --evidence`, detached, 12:28:38 to 1:49 AM 2026-10-30: `REGRESSION: PASS (full, 33 suites, 4833.4 s wall)`. It ran because `regression_due` read units, revert_step5, revert_r1 and revert_safety_gates DUE on the follow-up's code.
+- **Every unit suite PASS** (test_saving 138 tests, test_goals 256, test_host 37, test_kb2 119) and **every revert driver PASS** (revert_r1 514 mutants, revert_step5 402, and the rest); FROZEN TREE PASS (38 checks of 196 files, files digest 3d260705d66cbba0). rate_* and live_* NOT-RUN by design.
+- **Evidence:** `ai_player/evidence/2026-10-30-regression-{units,step5-revert,revert-gates,r1-revert}.txt` (each with its `.summary.json`) and the drivers' own `2026-10-30-step{2,3,4,11,52}-REVERT.txt` and `2026-10-30-r1-REVERT.txt` (new names: the 2026-10-29 lane's files stay).
+- **Cost:** local CPU only (81 minutes).
