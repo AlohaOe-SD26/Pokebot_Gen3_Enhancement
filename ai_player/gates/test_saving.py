@@ -57,6 +57,7 @@ BUILD STAGE 4 (spec section 8 step 5: the loop, the options, the launcher, the c
 
 from __future__ import annotations
 
+import ast
 import dataclasses
 import json
 import os
@@ -873,6 +874,78 @@ class MemoryFileTests(unittest.TestCase):
         book = read_book(self.path)
         self.assertEqual(book.end_of(1)["at_save"], True)
         self.assertIsNone(book.end_of(2))
+        # (U2 spec D13) FAULT (mutant D3m): the end line carries the last look's play time and place, for the launcher's
+        # drop sentence; CONTROL: without a look they are None, and an end line written before U2 (without them) reads
+        last = party_look([mon(1, "TREECKO")], frame=99, map_const="OLDALE_TOWN", tile=(7, 8), play_time=(0, 19))
+        line = end_line(2, "stopped: not finished within 3000 frames", False, 99, look=last)
+        self.assertEqual((line["play_time"], line["where"]), ([0, 19], {"map": "OLDALE_TOWN", "tile": [7, 8]}))
+        self.assertEqual((end_line(2, "done: x", True, 99)["play_time"], end_line(2, "done: x", True, 99)["where"]),
+                         (None, None))
+        self.assertTrue(writer.write_end("stopped: x", False, BASE_FRAME + 6000, look=last))
+        self.assertEqual(read_book(self.path).lines[-1]["play_time"], [0, 19])
+        old = {key: value for key, value in end_line(1, "done: x", True, BASE_FRAME + 7000).items()
+               if key not in ("play_time", "where")}
+        with open(self.path, "a", encoding="ascii") as handle:
+            handle.write(json.dumps(old) + "\n")
+        self.assertEqual(read_book(self.path).end_of(1)["frame"], BASE_FRAME + 7000)
+
+    def test_u2_dropped_after(self) -> None:
+        """(U2 spec 2026-10-30 D13) What a continue from a save DROPS, over ONE set of sessions. FAULT halves: a session
+        ended by the wall clock (NO end line) that played after the save is "not recorded" (None), never 0 or a later
+        stamp (mutant D1m reports 0); `at_end` comes from the NEWEST session's own end line only (D5m takes an older end
+        line of the file); after two continues from one save only the NEWEST session is counted, for frames and lost
+        alike (D6m, cumulative, counts both). CONTROL: a session that ended right at its save drops 0 frames; the save's
+        own session counts from the save's frame."""
+        late = party_look([mon(1, "TREECKO")], frame=BASE_FRAME + 4000, play_time=(0, 23))
+
+        def fresh(end: bool) -> None:
+            self.path.unlink(missing_ok=True)
+            writer = self.new_writer()
+            write_save(writer, 1, payload_of(WORLDS[0]), play_time=(0, 20))  # frame BASE_FRAME + 1000
+            if end:
+                writer.write_end("stopped: not finished within 4000 frames", False, BASE_FRAME + 4000, look=late)
+
+        def follow(base: int, end_frame: int | None, lost: bool = False, stamp=(0, 22)) -> None:
+            writer = MemoryWriter(self.path, read_book(self.path), header=None,
+                                  session=session("continue", continued_from=1, frame_base=base))
+            writer.write_session(verified=True)
+            if lost:
+                writer.write_lost(party_look([mon(1, "TREECKO")], frame=base + 10))
+            if end_frame is not None:
+                writer.write_end("stopped: x", False, end_frame,
+                                 look=party_look([mon(1, "TREECKO")], frame=end_frame, play_time=stamp))
+
+        # CONTROL: nothing continued yet: the save's own session, from the save's frame to its end line
+        fresh(end=True)
+        drop = read_book(self.path).dropped_after(1)
+        self.assertEqual(([s["n"] for s in drop["sessions"]], drop["frames"], drop["at_save"], drop["at_end"],
+                          drop["lost"]), ([1], 3000, [0, 20], [0, 23], 0))
+        # FAULT (D1m): the save's own session ended by the wall clock (no end line): not recorded, never 0
+        fresh(end=False)
+        drop = read_book(self.path).dropped_after(1)
+        self.assertEqual((drop["sessions"][0]["frames"], drop["frames"], drop["at_end"]), (None, None, None))
+        # FAULT (D1m, D5m): a continue from save 1 ended by the wall clock: the set is that session alone, its frames not
+        # recorded, and `at_end` None although session 1 has an end line
+        fresh(end=True)
+        follow(BASE_FRAME + 4001, None)
+        drop = read_book(self.path).dropped_after(1)
+        self.assertEqual(([s["n"] for s in drop["sessions"]], drop["frames"], drop["at_end"]), ([2], None, None))
+        # FAULT (D6m): two continues from save 1, each losing a battle: only the newest (session 3) is dropped now
+        fresh(end=True)
+        follow(BASE_FRAME + 4001, BASE_FRAME + 6001, lost=True)
+        follow(BASE_FRAME + 6002, BASE_FRAME + 6502, lost=True, stamp=(0, 21))
+        drop = read_book(self.path).dropped_after(1)
+        self.assertEqual(([s["n"] for s in drop["sessions"]], drop["frames"], drop["at_end"], drop["lost"]),
+                         ([3], 500, [0, 21], 1))
+        self.assertEqual(drop["lost"], len(read_book(self.path).undone_losses(1)))  # the same live history
+        # CONTROL: a session that ended right at its save drops 0 frames
+        self.path.unlink()
+        writer = self.new_writer()
+        write_save(writer, 1, payload_of(WORLDS[0]))
+        writer.write_end("done: x", True, BASE_FRAME + 1000)
+        self.assertEqual(read_book(self.path).dropped_after(1)["frames"], 0)
+        # a save not in the live history: None
+        self.assertIsNone(read_book(self.path).dropped_after(9))
 
     def test_a_lost_line_per_loss_and_the_losses_a_continue_undoes(self) -> None:
         writer = self.new_writer()
@@ -1787,6 +1860,42 @@ class ContinueSkillTests(unittest.TestCase):
         self.assertEqual(result.undone, ())
         self.assertFalse(any("undoes" in line for line in result.lines))
 
+    def test_u2_the_continue_tells_its_drop_and_no_map(self) -> None:
+        """(U2 spec 2026-10-30 D13: USER RULING 53) The AI's own after-arrival line tells what the continue DROPS, from
+        the memory file's own record (`MemoryBook.dropped_after`): the frames of play after the save (or "not recorded"
+        when a session ended without its end line) and the battles undone, and `ContinueResult.dropped` carries exactly
+        those two numbers. NO play time and NO map of the dropped play (D19, ruling 40): the line names neither the end
+        line's place nor its play time. CONTROL: a session that ended right at its save drops 0 frames."""
+        follow = MemoryWriter(self.path, self.book, header=None,
+                              session=session("continue", continued_from=2, frame_base=BASE_FRAME + 5000))
+        follow.write_session()
+        follow.write_lost(party_look([mon(0xABCD, "TREECKO")], frame=BASE_FRAME + 5300))
+        follow.write_end("stopped: not finished within 700 frames", False, BASE_FRAME + 5700,
+                         look=party_look([mon(0xABCD, "TREECKO")], frame=BASE_FRAME + 5700, map_const="OLDALE_TOWN",
+                                         play_time=(0, 29)))
+        result, said, _ = self.run_continue(ContinueModel(time=(0, 26)), read_book(self.path))
+        self.assertTrue(result.continued, result.why)
+        self.assertEqual(result.dropped, {"frames": 700, "lost": 1})
+        drop_line = next(line for line in result.lines if "drops" in line)
+        self.assertEqual(drop_line, "this continue drops 700 frames of play after save 2, and 1 battle(s) lost")
+        self.assertTrue(any(drop_line in line for line in said))
+        for hidden in ("OLDALE_TOWN", "0:29", "0:26", "ROUTE"):
+            self.assertNotIn(hidden, drop_line)
+        # a continue of save 2 that the wall clock ended (no end line): "not recorded", never 0
+        follow = MemoryWriter(self.path, read_book(self.path), header=None,
+                              session=session("continue", continued_from=2, frame_base=BASE_FRAME + 5701))
+        follow.write_session()
+        result, *_ = self.run_continue(ContinueModel(time=(0, 26)), read_book(self.path))
+        self.assertEqual(result.dropped, {"frames": None, "lost": 0})
+        self.assertTrue(any("its frames not recorded" in line for line in result.lines), result.lines)
+        # CONTROL: the save's own session ended right at its save: 0 frames dropped
+        self.path.unlink()
+        writer = MemoryWriter(self.path, None, header=HEADER, session=session())
+        write_save(writer, 1, payload_of(WORLDS[0]), play_time=(0, 26))
+        writer.write_end("done: x", True, BASE_FRAME + 1000)
+        result, *_ = self.run_continue(ContinueModel(time=(0, 26)), read_book(self.path))
+        self.assertEqual(result.dropped, {"frames": 0, "lost": 0})
+
     def test_the_title_is_skipped_only_while_it_takes_input(self) -> None:
         model = ContinueModel(time=(0, 26))
         result, *_ = self.run_continue(model)
@@ -1987,6 +2096,96 @@ class PolicyTests(unittest.TestCase):
 PARTY_MONS = [mon(0xABCD, "TREECKO")]
 
 
+def host_end_sites(files: dict[str, str]) -> tuple[list[tuple[str, object, str]], list[str]]:
+    """(U2 spec D3, THE PIN) Every host end in `files` (`host/session.py` and `host/lifecycle.py`, name -> source): each
+    `<x>.finish(<reason>, <code>)` and `<x>.crash(...)` (`lifecycle.crash` finishes "crash" with EXIT_CRASH), its reason
+    and code resolved through the files' module constants (`_RESET_REFUSED`, `EXIT_*`). Returns ((reason, code, where)
+    for each site, the problems): a reason that is in neither of the launcher's tables, a `_HOST_CODES` reason finished
+    with another code, or a reason or code that does not resolve outside the brain's own door (`lifecycle.give_up`).
+    (U2a fix round, F3) The reason and the code are read from the positional arguments OR the keywords `reason=` /
+    `code=` (`Lifecycle.finish(self, reason, code)`); a `.finish` call of any other shape (`*args`, `**kwargs`, another
+    keyword, a missing argument) is a problem, never skipped; the WHOLE module is walked (a call outside any function is
+    a site too, its function `<module>`)."""
+    from ai_player.host import launcher
+
+    trees = {name: ast.parse(text) for name, text in files.items()}
+    constants: dict[str, object] = {}
+    for tree in trees.values():
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) \
+                    and isinstance(node.value, ast.Constant):
+                constants[node.targets[0].id] = node.value.value
+
+    unresolved = object()
+
+    def resolve(node: ast.AST) -> object:
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Name) and node.id in constants:
+            return constants[node.id]
+        return unresolved
+
+    def arguments(call: ast.Call) -> tuple[ast.AST, ast.AST] | None:
+        """`finish(reason, code)`'s two argument nodes, positional or by keyword; None for any other call shape."""
+        if any(isinstance(arg, ast.Starred) for arg in call.args) or len(call.args) > 2:
+            return None
+        named = {keyword.arg: keyword.value for keyword in call.keywords}
+        if None in named or set(named) - {"reason", "code"}:
+            return None
+        bound = dict(zip(("reason", "code"), call.args))
+        if set(bound) & set(named):
+            return None
+        bound.update(named)
+        return (bound["reason"], bound["code"]) if set(bound) == {"reason", "code"} else None
+
+    def owners(tree: ast.Module) -> dict[int, str]:
+        """Each node's innermost enclosing function name (`<module>` outside any)."""
+        found: dict[int, str] = {}
+        todo: list[tuple[ast.AST, str]] = [(tree, "<module>")]
+        while todo:
+            node, owner = todo.pop()
+            for child in ast.iter_child_nodes(node):
+                inner = child.name if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else owner
+                found[id(child)] = inner
+                todo.append((child, inner))
+        return found
+
+    ends: list[tuple[str, object, str]] = []
+    problems: list[str] = []
+    for name, tree in trees.items():
+        owner_of = owners(tree)
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in ("finish", "crash")):
+                continue
+            function = owner_of.get(id(node), "<module>")
+            where = f"{name}:{node.lineno} ({function})"
+            door = name == "lifecycle.py" and function == "give_up"
+            if node.func.attr == "crash":
+                reason, code = "crash", constants.get("EXIT_CRASH")
+            else:
+                pair = arguments(node)
+                if pair is None:
+                    if not door:
+                        problems.append(f"{where}: a .finish call whose reason and code cannot be read: "
+                                        f"{ast.unparse(node)}")
+                    continue
+                reason, code = resolve(pair[0]), resolve(pair[1])
+                if reason is unresolved or not isinstance(reason, str) or code is unresolved:
+                    if not door:
+                        problems.append(f"{where}: a host end whose reason or code does not resolve: "
+                                        f"{ast.unparse(node)}")
+                    continue
+            ends.append((reason, code, where))
+            if reason in launcher._HOST_CODES:
+                if code != launcher._HOST_CODES[reason]:
+                    problems.append(f"{where}: '{reason}' is finished with {code}, the launcher's table says "
+                                    f"{launcher._HOST_CODES[reason]}")
+            elif reason not in launcher._HOST_NOT_CLEAN:
+                problems.append(f"{where}: the host end '{reason}' is in neither _HOST_CODES nor _HOST_NOT_CLEAN")
+    return ends, problems
+
+
 class LauncherContinueTests(unittest.TestCase):
     """(build stage 4, spec section 3 (e), D10-D12, D17, D19, D20) THE LAUNCHER, on temporary profile folders (no
     emulator): `--continue` drops the `.ss1` and keeps the cartridge save; it is refused without a memory file, a
@@ -2032,10 +2231,55 @@ class LauncherContinueTests(unittest.TestCase):
             writer.write_end(end[0], end[1], BASE_FRAME + 9000)
         return run_dir
 
-    def verdict(self, run_dir: Path, reason: str) -> None:
+    #: (U2 spec D3) the code each host end is finished with (`host/lifecycle.py` EXIT_*, `host/session.py`), as the
+    #: instrument records it; a brain's own reason ends with 0 (`give_up`)
+    HOST_END_CODES = {"crash": 2, "frame-budget": 4, "parked-manual": 3, "abandoned": 3, "interrupted": 130,
+                      "interrupted-unresponsive": 130, "wall-clock": 124, "stray-exit": 2, "purity-breach": 6,
+                      "purity-unverified": 6, "reset-refused": 9, "brain-returned": 5, "isolation-lost": 6}
+    STOP_2620 = "play: stopped: not finished within 2620 frames"
+
+    def verdict(self, run_dir: Path, reason: str, exit_code: int | None = None, verdict: str = "CLEAN",
+                real_frames: int | None = None) -> None:
+        """The run's `purity.json` as `lifecycle.finish` writes it: the verdict word, `facts.exit_reason` and
+        `facts.exit_code` (the host's code for a host end, 0 for the brain's own reason, unless given), the counters."""
         run_dir.mkdir(parents=True, exist_ok=True)
-        (run_dir / "purity.json").write_text(json.dumps({"verdict": "CLEAN", "facts": {"exit_reason": reason}}),
-                                             encoding="utf-8")
+        code = self.HOST_END_CODES.get(reason, 0) if exit_code is None else exit_code
+        payload = {"verdict": verdict, "facts": {"exit_reason": reason, "exit_code": code}}
+        if real_frames is not None:
+            payload["counters"] = {"real_frames": real_frames}
+        (run_dir / "purity.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    def launch_line(self, run_dir: Path, reason: str | None, code: int | None = None, process: int | None = None,
+                    verdict: str | None = "CLEAN", frames: int | None = None, real: int | None = None,
+                    hard: bool = False, interrupted: bool = False, old: bool = False) -> dict:
+        """Write `launches.jsonl` with ONE `launch_end` line for `run_dir`, as `record_launch` writes it (U2 spec D2, D3):
+        `code` is the instrument's `verdict_code` (the host's code for a host end, else 0), `process` the process's
+        `exit_code` (default: the same). `old`: a 417df790 line, without the four U2 fields."""
+        code = (self.HOST_END_CODES.get(reason, 0) if reason is not None else None) if code is None else code
+        line = {"kind": "launch_end", "run_dir": str(run_dir), "exit_code": code if process is None else process,
+                "hard_kill": hard, "interrupted": interrupted, "exit_reason": reason}
+        if not old:
+            line.update({"frames": frames, "real_frames": real, "verdict": verdict if reason is not None else None,
+                         "verdict_code": code})
+        self.game.launches_jsonl.write_text(json.dumps({"kind": "header", "schema_version": 1}) + "\n"
+                                            + json.dumps(line) + "\n", encoding="utf-8")
+        return line
+
+    def judged(self, *, file: dict | None = None, end: tuple[str, bool] | None = None, launch: dict | None = None,
+               host: str = "launcher"):
+        """ONE case of the end table: a fresh memory file (one session with one save and the `end` line), the verdict
+        file `file` (kwargs of `verdict`) and the launcher's line `launch` (kwargs of `launch_line`). memory_check."""
+        self.game.memory_jsonl.unlink(missing_ok=True)
+        self.game.launches_jsonl.unlink(missing_ok=True)
+        self._case = getattr(self, "_case", 0) + 1
+        run_dir = self.runs / f"case-{self._case}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        self.memory(host=host, run_dir=run_dir, end=end)
+        if file is not None:
+            self.verdict(run_dir, **file)
+        if launch is not None:
+            self.launch_line(run_dir, **launch)
+        return self.check()
 
     def child(self, code: int = 0, killed: bool = False, interrupted: bool = False):
         return self.launcher.ChildResult(exit_code=code, elapsed=1.0, killed=killed, interrupted=interrupted)
@@ -2090,71 +2334,287 @@ class LauncherContinueTests(unittest.TestCase):
         self.assertTrue(self.check().ok, self.check().why)
 
     def test_the_end_classes(self) -> None:
-        """D12 (a), one case per row. FAULT halves: the draft's rule ("no chosen end line -> allowed") allowed a
-        `play: stopped:` end and a CHOSEN end whose end line is missing; the classes refuse both."""
+        """D12 (a), one case per row; (U2, USER RULING 53, spec 2026-10-30 D1) the table re-derived. FAULT halves: the
+        draft's rule ("no chosen end line -> allowed") allowed a `play: stopped:` end and a CHOSEN end whose end line is
+        missing; the classes refuse both. (U2) a harness `budget` end not at a save is ALLOWED (mutant U1, `at_save`,
+        refuses it); a VERIFIED launcher `stopped` not at a save is ALLOWED (U2a refuses it); the soft wall clock with its
+        code 124 and a CLEAN verdict, with no end line, is ALLOWED (U3 refuses it); the launcher's hard kill with no
+        verdict, not at a save, is REFUSED (U4, the rejected "always", allows it); U0 (the whole interim table) refuses
+        all three allowed rows. CONTROL: CHOSEN not at a save and with no end line refused; `reset-refused` NOT CLEAN;
+        UNKNOWN; KILLED; each INVOLUNTARY host end with its code allowed; a hard kill right after a save allowed."""
+        verified = dict(reason=self.STOP_2620, frames=2620, real=2620)
+        stop_end = ("stopped: not finished within 2620 frames", False)
         cases = [
-            # (what, how the run ended, the end line (reason, at_save) or None, launcher line or None, allowed, class)
+            # (what, the verdict file (kwargs) or None, the end line (reason, at_save) or None, the launcher's line
+            # (kwargs) or None, allowed, class)
             ("a kill: no verdict, no launcher line", None, None, None, True, "KILLED"),
-            ("a crash", "crash", None, None, True, "INVOLUNTARY"),
-            ("the frame budget of the session", "frame-budget", None, None, True, "INVOLUNTARY"),
-            ("interrupted", "interrupted", None, None, True, "INVOLUNTARY"),
-            ("done, not at a save", "play: done: ch1_pokedex reached", ("done: ch1_pokedex reached", False), None, False,
+            ("a crash", dict(reason="crash"), None, None, True, "INVOLUNTARY"),
+            ("the frame budget of the session", dict(reason="frame-budget"), None, None, True, "INVOLUNTARY"),
+            ("interrupted", dict(reason="interrupted"), None, None, True, "INVOLUNTARY"),
+            ("interrupted, unresponsive", dict(reason="interrupted-unresponsive"), None, None, True, "INVOLUNTARY"),
+            ("parked by hand", dict(reason="parked-manual"), None, None, True, "INVOLUNTARY"),
+            ("abandoned", dict(reason="abandoned"), None, None, True, "INVOLUNTARY"),
+            ("done, not at a save", dict(reason="play: done: ch1_pokedex reached"), ("done: ch1_pokedex reached", False),
+             None, False, "CHOSEN"),
+            ("done, right after a save", dict(reason="play: done: ch1_pokedex reached"),
+             ("done: ch1_pokedex reached", True), None, True, "CHOSEN"),
+            ("stuck, not at a save", dict(reason="play: stuck: 3 battles lost"), ("stuck: 3 battles lost", False), None,
+             False, "CHOSEN"),
+            # (U2 D2) a stop judged by the verdict file alone has no budget to compare: the brain's own choice
+            ("a stop by the verdict file only, not at a save", dict(reason=self.STOP_2620, real_frames=2620), stop_end,
+             None, False, "CHOSEN"),
+            ("a stop by the verdict file only, right after a save", dict(reason=self.STOP_2620, real_frames=2620),
+             ("stopped: not finished within 2620 frames", True), None, True, "CHOSEN"),
+            # (U2) the brain's frame budget, verified by the host's count: allowed, at a save or not (U2a, U0)
+            ("a verified launcher stop, not at a save", None, stop_end, verified, True, "BUDGET"),
+            ("a verified launcher stop, right after a save", None, ("stopped: not finished within 2620 frames", True),
+             verified, True, "BUDGET"),
+            ("a verified launcher stop, no end line", None, None, verified, True, "BUDGET"),
+            # (U2) the soft wall clock: the guard ends the run before the brain can write an end line (U3, U0)
+            ("the soft wall clock, no end line", dict(reason="wall-clock"), None, None, True, "BUDGET"),
+            ("the soft wall clock in the launcher's line, no end line", None, None, dict(reason="wall-clock"), True,
+             "BUDGET"),
+            # the launcher's hard kill with no verdict: a stuck run, a kill (ruling 53): the interim rule (U4)
+            ("the launcher's hard kill, not at a save", None, None, dict(reason=None, code=124, hard=True), False,
+             "BUDGET"),
+            ("the launcher's hard kill, right after a save", None, ("stopped: x", True),
+             dict(reason=None, code=124, hard=True), True, "BUDGET"),
+            ("a stray exit", dict(reason="stray-exit"), None, None, False, "NOT CLEAN"),
+            ("a purity breach", dict(reason="purity-breach", verdict="BREACH"), None, None, False, "NOT CLEAN"),
+            ("the brain returned no reason", dict(reason="brain-returned"), None, None, False, "NOT CLEAN"),
+            ("a CHOSEN reason with no end line", dict(reason="play: done: ch1_pokedex reached"), None, None, False,
              "CHOSEN"),
-            ("done, right after a save", "play: done: ch1_pokedex reached", ("done: ch1_pokedex reached", True), None,
-             True, "CHOSEN"),
-            ("stuck, not at a save", "play: stuck: 3 battles lost", ("stuck: 3 battles lost", False), None, False,
-             "CHOSEN"),
-            ("the brain's frame budget, not at a save", "play: stopped: not finished within 3000 frames",
-             ("stopped: not finished within 3000 frames", False), None, False, "BUDGET"),
-            ("the brain's frame budget, right after a save", "play: stopped: not finished within 3000 frames",
-             ("stopped: not finished within 3000 frames", True), None, True, "BUDGET"),
-            ("the soft wall clock", "wall-clock", None, None, False, "BUDGET"),
-            ("the launcher's hard kill", None, None, {"hard_kill": True, "interrupted": False, "exit_reason": None},
-             False, "BUDGET"),
-            ("a stray exit", "stray-exit", None, None, False, "NOT CLEAN"),
-            ("a purity breach", "purity-breach", None, None, False, "NOT CLEAN"),
-            ("a CHOSEN reason with no end line", "play: done: ch1_pokedex reached", None, None, False, "CHOSEN"),
-            ("a launcher line, no verdict (killed)", None, None, {"hard_kill": False, "interrupted": False,
-                                                                  "exit_reason": None}, True, "KILLED"),
+            ("a launcher line, no verdict (killed)", None, None, dict(reason=None), True, "KILLED"),
             ("a launcher line with the verdict's reason", None, ("done: x reached", False),
-             {"hard_kill": False, "interrupted": False, "exit_reason": "play: done: x reached"}, False, "CHOSEN"),
+             dict(reason="play: done: x reached"), False, "CHOSEN"),
             # (R1 + R2 follow-up, spec D2: USER RULING 52) the controller refused a reset or erase combination: NOT CLEAN
             # (refused), from the verdict file and from the launcher's line; mutant L13 (INVOLUNTARY) allows both
-            ("a reset or erase combination refused", "reset-refused", None, None, False, "NOT CLEAN"),
-            ("a launcher line, reset refused", None, None,
-             {"hard_kill": False, "interrupted": False, "exit_reason": "reset-refused"}, False, "NOT CLEAN"),
+            ("a reset or erase combination refused", dict(reason="reset-refused"), None, None, False, "NOT CLEAN"),
+            ("a launcher line, reset refused", None, None, dict(reason="reset-refused"), False, "NOT CLEAN"),
         ]
-        for what, reason, end, launch, allowed, kind in cases:
+        for what, file, end, launch, allowed, kind in cases:
             with self.subTest(what):
-                self.game.memory_jsonl.unlink(missing_ok=True)
-                self.game.launches_jsonl.unlink(missing_ok=True)
-                run_dir = self.runs / what.replace(" ", "_").replace(",", "").replace(":", "").replace("'", "")
-                run_dir.mkdir(parents=True, exist_ok=True)
-                self.memory(run_dir=run_dir, end=end)
-                if reason is not None:
-                    self.verdict(run_dir, reason)
-                if launch is not None:
-                    self.game.launches_jsonl.write_text(
-                        json.dumps({"kind": "header", "schema_version": 1}) + "\n"
-                        + json.dumps({"kind": "launch_end", "run_dir": str(run_dir), "exit_code": 0, **launch}) + "\n",
-                        encoding="utf-8")
-                found = self.check()
+                found = self.judged(file=file, end=end, launch=launch)
                 self.assertEqual((found.ok, found.end_class), (allowed, kind), found.why)
                 if what == "a CHOSEN reason with no end line":
                     self.assertIn("with no end line of the AI's (refused: fail closed)", found.why)
+                if found.ok and kind == "BUDGET" and "hard kill" not in what:
+                    self.assertIn("USER RULING 53: a session ended by its time or frame limit may be continued", found.why)
         # UNKNOWN: the session's run folder is gone and no launcher line names it
         self.game.memory_jsonl.unlink()
         self.game.launches_jsonl.unlink(missing_ok=True)
         self.memory(run_dir=self.runs / "gone")
         found = self.check()
         self.assertEqual((found.ok, found.end_class), (False, "UNKNOWN"), found.why)
-        # a HARNESS session is judged by its end line alone: none -> killed (allowed); a chosen one -> refused
-        self.game.memory_jsonl.unlink()
-        self.memory(host="harness", run_dir=self.runs / "gone")
-        self.assertEqual((self.check().ok, self.check().end_class), (True, "KILLED"))
-        self.game.memory_jsonl.unlink()
-        self.memory(host="harness", run_dir=self.runs / "gone", end=("done: x reached", False))
-        self.assertEqual((self.check().ok, self.check().end_class), (False, "CHOSEN"))
+        # a HARNESS session (no launcher line names its run folder) is judged by its end line alone: none -> killed
+        # (allowed); a chosen one -> refused; (U2) a budget one, not at a save -> ALLOWED (U1 refuses); another -> allowed
+        for end, allowed, kind in ((None, True, "KILLED"), (("done: x reached", False), False, "CHOSEN"),
+                                   (("stopped: not finished within 3000 frames", False), True, "BUDGET"),
+                                   (("stopped: not finished within 3000 frames", True), True, "BUDGET"),
+                                   (("a crash in the harness", False), True, "INVOLUNTARY")):
+            with self.subTest(harness=end):
+                self.game.memory_jsonl.unlink()
+                self.memory(host="harness", run_dir=self.runs / "gone", end=end)
+                found = self.check()
+                self.assertEqual((found.ok, found.end_class), (allowed, kind), found.why)
+                if kind == "BUDGET":
+                    self.assertIn("USER RULING 53", found.why)
+
+    def test_a_stop_before_the_budget_is_the_ais_own_choice(self) -> None:
+        """(U2 spec D2, F-U2-1) `play: stopped:` is the AI's own word: it counts as BUDGET only when the HOST's frame
+        count (`real_frames`, the instrument's) reached the budget the launcher gave (`frames`). FAULT: a stop at 1700 of
+        2620 real frames is CHOSEN and refused not at a save (mutant U5, `_ran_out` always True, allows it); a stop at
+        exactly 2620 of 2620 is BUDGET and allowed (U8, `>`, refuses it). CONTROL: a 417df790 line without the counts
+        reads as before (refused unless at a save; at a save allowed)."""
+        end = ("stopped: not finished within 2620 frames", False)
+        found = self.judged(end=end, launch=dict(reason=self.STOP_2620, frames=2620, real=1700))
+        self.assertEqual((found.ok, found.end_class), (False, "CHOSEN"), found.why)
+        self.assertIn("its own choice", found.why)
+        found = self.judged(end=end, launch=dict(reason=self.STOP_2620, frames=2620, real=2620))
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        found = self.judged(end=end, launch=dict(reason=self.STOP_2620, frames=2620, real=2621))
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        # CONTROL: the counts missing (a 417df790 line) or not ints: unverifiable, refused unless right after a save
+        for launch in (dict(reason=self.STOP_2620, old=True), dict(reason=self.STOP_2620, frames=None, real=2620),
+                       dict(reason=self.STOP_2620, frames=2620, real=True)):
+            with self.subTest(unverifiable=launch):
+                found = self.judged(end=end, launch=launch)
+                self.assertEqual((found.ok, found.end_class), (False, "CHOSEN"), found.why)
+                found = self.judged(end=("stopped: not finished within 2620 frames", True), launch=launch)
+                self.assertEqual((found.ok, found.end_class), (True, "CHOSEN"), found.why)
+
+    def test_the_launch_line_carries_the_counts(self) -> None:
+        """(U2 spec D2, D3, D3b) `record_launch` writes the HOST's record: `frames` (the budget the launcher gave),
+        `real_frames` (the instrument's count), `verdict` and `verdict_code` (`facts.exit_code`). FAULT (mutant U7, the
+        fields not written): a genuine stop recorded through `record_launch` reads as unverifiable and is refused.
+        CONTROL: a child that left no verdict gets all four None."""
+        run_dir = self.runs / "recorded"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        self.memory(run_dir=run_dir, end=("stopped: not finished within 2620 frames", False))
+        verdict = {"verdict": "CLEAN", "facts": {"exit_reason": self.STOP_2620, "exit_code": 0},
+                   "counters": {"real_frames": 2620}}
+        line = self.launcher.record_launch(self.game, run_dir, self.child(), verdict, frames=2620)
+        self.assertEqual((line["frames"], line["real_frames"], line["verdict"], line["verdict_code"]),
+                         (2620, 2620, "CLEAN", 0))
+        self.assertEqual(self.launcher.read_launches(self.game.launches_jsonl), [line])
+        found = self.check()
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        # CONTROL: no verdict, no counts
+        line = self.launcher.record_launch(self.game, self.runs / "other", self.child(124, killed=True), None,
+                                           frames=2620)
+        self.assertEqual((line["frames"], line["real_frames"], line["verdict"], line["verdict_code"]),
+                         (None, None, None, None))
+
+    def test_a_host_reason_needs_its_host_code(self) -> None:
+        """(U2 spec D3, F-U2-2) A host end reason counts only with its HOST code, from the instrument's record (the
+        launcher line's `verdict_code`, or the verdict file's `facts.exit_code`). FAULT: `crash`, `wall-clock`,
+        `abandoned` and `interrupted` with code 0 (the brain RETURNED the word: `give_up`) are NOT CLEAN and refused, on
+        both paths (mutant U6, the check skipped, allows them); a `wall-clock` whose instrument code is 124 while the
+        PROCESS exited 0 (a second thread's finish) is judged by the instrument and the mismatch told (U9, the process
+        code, refuses it). CONTROL: each with its host code is its class."""
+        for reason in ("crash", "wall-clock", "abandoned", "interrupted"):
+            with self.subTest(forged=reason):
+                found = self.judged(file=dict(reason=reason, exit_code=0))
+                self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+                self.assertIn("the brain's own text", found.why)
+                found = self.judged(launch=dict(reason=reason, code=0))
+                self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+            with self.subTest(host=reason):
+                kind = "BUDGET" if reason == "wall-clock" else "INVOLUNTARY"
+                found = self.judged(file=dict(reason=reason))
+                self.assertEqual((found.ok, found.end_class), (True, kind), found.why)
+                found = self.judged(launch=dict(reason=reason))
+                self.assertEqual((found.ok, found.end_class), (True, kind), found.why)
+        found = self.judged(launch=dict(reason="wall-clock", code=124, process=0))
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        self.assertIn("the process exited 0; the instrument recorded 124", found.why)
+        # CONTROL: a 417df790 line (no verdict_code) falls back to its process code, which agrees in every measured case
+        found = self.judged(launch=dict(reason="wall-clock", old=True))
+        self.assertEqual((found.ok, found.end_class), (False, "BUDGET"), found.why)  # no verdict word: the interim
+
+    def test_the_host_codes_match_the_host(self) -> None:
+        """(U2 spec D3) THE PIN: every `lifecycle.finish(<reason>, <code>)` and `lifecycle.crash` of `host/session.py`
+        and `host/lifecycle.py` (Name constants resolved) maps either into the launcher's `_HOST_CODES` with that exact
+        code or into `_HOST_NOT_CLEAN`; the brain's own door (`give_up`, its reason a parameter) is the only unresolved
+        site. FAULT: a COPY of `session.py` with a planted `finish("new-end", EXIT_PARKED)` fails. CONTROL: the real
+        files pass, and every reason of the two tables is a real host end."""
+        host = Path(self.launcher.__file__).resolve().parent
+        files = {name: (host / name).read_text(encoding="utf-8") for name in ("session.py", "lifecycle.py")}
+        ends, problems = host_end_sites(files)
+        self.assertEqual(problems, [])
+        self.assertGreaterEqual(len(ends), 14, ends)
+        reasons = {reason for reason, _, _ in ends}
+        self.assertEqual(set(self.launcher._HOST_CODES) | set(self.launcher._HOST_NOT_CLEAN), reasons)
+        planted = dict(files)
+        anchor = '            self.lifecycle.finish("frame-budget", EXIT_FRAME_BUDGET)\n'
+        self.assertEqual(planted["session.py"].count(anchor), 1)
+        planted["session.py"] = planted["session.py"].replace(
+            anchor, anchor + '        if self.frames_seen < 0:\n            self.lifecycle.finish("new-end", EXIT_PARKED)\n')
+        _, problems = host_end_sites(planted)
+        self.assertTrue(any("new-end" in p for p in problems), problems)
+        # FAULT: a host end finished with another code than the table's
+        planted["session.py"] = files["session.py"].replace('finish("wall-clock", EXIT_WALL_CLOCK)',
+                                                            'finish("wall-clock", EXIT_PARKED)')
+        _, problems = host_end_sites(planted)
+        self.assertTrue(any("wall-clock" in p for p in problems), problems)
+        # (U2a fix round, F3) FAULT: the same plants in KEYWORD form, outside any function, and in call shapes whose
+        # reason cannot be read (before the fix each of these passed the pin)
+        new_end = '        if self.frames_seen < 0:\n            self.lifecycle.finish({})\n'
+        for what, text, needle in (
+                ("keyword code", files["session.py"].replace(anchor, anchor + new_end.format('"new-end", code=EXIT_PARKED')),
+                 "new-end"),
+                ("keyword reason and code", files["session.py"].replace(
+                    anchor, anchor + new_end.format('reason="new-end", code=EXIT_PARKED')), "new-end"),
+                ("wall-clock re-coded by keyword", files["session.py"].replace(
+                    'finish("wall-clock", EXIT_WALL_CLOCK)', 'finish("wall-clock", code=EXIT_PARKED)'), "wall-clock"),
+                ("a module-level end", files["session.py"] + '\nif False:\n    _LIFE.finish("new-end", EXIT_PARKED)\n',
+                 "<module>"),
+                ("*args", files["session.py"].replace(anchor, anchor + new_end.format("*self.why")), "cannot be read"),
+                ("an unresolvable reason", files["session.py"].replace(anchor, anchor + new_end.format(
+                    "self.why, EXIT_PARKED")), "does not resolve")):
+            with self.subTest(fault=what):
+                self.assertNotEqual(text, files["session.py"])
+                _, problems = host_end_sites(dict(files, **{"session.py": text}))
+                self.assertTrue(any(needle in p for p in problems), problems)
+        # CONTROL: a real end written in keyword form with its own code still passes
+        _, problems = host_end_sites(dict(files, **{"session.py": files["session.py"].replace(
+            'finish("wall-clock", EXIT_WALL_CLOCK)', 'finish("wall-clock", code=EXIT_WALL_CLOCK)')}))
+        self.assertEqual(problems, [])
+
+    def test_a_hard_kill_is_judged_by_its_verdict_first(self) -> None:
+        """(U2 spec D3a, F-U2-5) A process may linger up to `EXIT_WATCHDOG_SECONDS` after its `finish`, past the
+        launcher's soft-to-hard margin: a hard kill WITH a verdict is judged by that verdict. FAULT: `hard_kill` with
+        `reset-refused` is NOT CLEAN; with `play: done:` not at a save it is CHOSEN, refused (mutant U4b, the hard-kill
+        row first, judges both BUDGET). CONTROL: with a `wall-clock`/124 CLEAN verdict it is BUDGET, allowed; with no
+        verdict the hard-kill row (refused not at a save)."""
+        found = self.judged(launch=dict(reason="reset-refused", hard=True))
+        self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+        found = self.judged(end=("done: x reached", False), launch=dict(reason="play: done: x reached", hard=True))
+        self.assertEqual((found.ok, found.end_class), (False, "CHOSEN"), found.why)
+        found = self.judged(launch=dict(reason="wall-clock", hard=True))
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        found = self.judged(launch=dict(reason=None, code=124, hard=True))
+        self.assertEqual((found.ok, found.end_class), (False, "BUDGET"), found.why)
+        self.assertIn("killed by the launcher at its wall clock", found.why)
+
+    def test_an_interrupt_is_judged_by_its_verdict_first(self) -> None:
+        """(U2a fix round, F1: D3a's rule for the interrupted row) A child may finish and then linger up to
+        `EXIT_WATCHDOG_SECONDS`; a Ctrl+C on the launcher in that window kills a process whose verdict is already written.
+        FAULT: `interrupted` with `reset-refused` (process 130, instrument 9) is NOT CLEAN; with `play: done:` not at a
+        save it is CHOSEN, refused (mutant U4c, the interrupted row first whatever the verdict, judges both INVOLUNTARY,
+        allowed). CONTROL: `interrupted` with no verdict, or with the host's own `interrupted` / `interrupted-unresponsive`
+        verdict, is INVOLUNTARY, allowed; the same `reset-refused` with no interrupt is NOT CLEAN."""
+        found = self.judged(launch=dict(reason="reset-refused", interrupted=True, process=130))
+        self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+        found = self.judged(end=("done: x reached", False),
+                            launch=dict(reason="play: done: x reached", interrupted=True, process=130))
+        self.assertEqual((found.ok, found.end_class), (False, "CHOSEN"), found.why)
+        for reason in (None, "interrupted", "interrupted-unresponsive"):
+            with self.subTest(control=reason):
+                found = self.judged(launch=dict(reason=reason, code=130, interrupted=True))
+                self.assertEqual((found.ok, found.end_class), (True, "INVOLUNTARY"), found.why)
+                self.assertIn("was interrupted (Ctrl+C reached the launcher)", found.why)
+        found = self.judged(launch=dict(reason="reset-refused"))
+        self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+
+    def test_a_budget_end_needs_a_clean_verdict(self) -> None:
+        """(U2 spec D3b, F-U2-3) `lifecycle.finish` replaces the reason with `purity-*` only for code 0, so a
+        `wall-clock` finish (124) keeps its reason under a BREACH verdict. FAULT: `wall-clock` 124 with a BREACH verdict
+        is NOT CLEAN (mutant U10, the check skipped, allows it), on both paths; a verified stop with an UNVERIFIED verdict
+        is NOT CLEAN too. CONTROL: the same CLEAN is allowed; a `crash` with an UNVERIFIED verdict stays INVOLUNTARY
+        (unchanged: the stated limit)."""
+        for verdict in ("BREACH", "UNVERIFIED"):
+            with self.subTest(verdict=verdict):
+                found = self.judged(file=dict(reason="wall-clock", verdict=verdict))
+                self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+                found = self.judged(launch=dict(reason="wall-clock", verdict=verdict))
+                self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+                found = self.judged(launch=dict(reason=self.STOP_2620, frames=2620, real=2620, verdict=verdict))
+                self.assertEqual((found.ok, found.end_class), (False, "NOT CLEAN"), found.why)
+        found = self.judged(file=dict(reason="wall-clock"))
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        found = self.judged(file=dict(reason="crash", verdict="UNVERIFIED"))
+        self.assertEqual((found.ok, found.end_class), (True, "INVOLUNTARY"), found.why)
+        # a 417df790 launcher line has no verdict word: the run's verdict file gives it (CLEAN allowed, BREACH NOT CLEAN);
+        # with neither, the interim rule (refused with no end line)
+        for verdict, allowed, kind in (("CLEAN", True, "BUDGET"), ("BREACH", False, "NOT CLEAN")):
+            with self.subTest(old_line_with_file=verdict):
+                found = self.judged(file=dict(reason="wall-clock", verdict=verdict), launch=dict(reason="wall-clock",
+                                                                                                 old=True))
+                self.assertEqual((found.ok, found.end_class), (allowed, kind), found.why)
+
+    def test_a_launcher_run_is_judged_by_its_line_whatever_host_says(self) -> None:
+        """(U2 spec D4, F-U2-4) The session line's `host` is AI-written (`mode.py`): a launcher line naming the session's
+        run folder decides. FAULT: a session line saying `harness` whose run folder a launcher line names, its end line
+        `stopped:` and the host's count 1700 of 2620, is CHOSEN and refused (mutant U11, the host field first, judges
+        it by the end line: BUDGET, allowed). CONTROL: a genuine harness session (no launcher line) gets the harness
+        rows."""
+        end = ("stopped: not finished within 2620 frames", False)
+        found = self.judged(host="harness", end=end, launch=dict(reason=self.STOP_2620, frames=2620, real=1700))
+        self.assertEqual((found.ok, found.end_class), (False, "CHOSEN"), found.why)
+        found = self.judged(host="harness", end=end)
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        self.assertIn("harness session", found.why)
 
     STOPPED = "stuck: the continue stopped: the main menu did not come within 1700 frames of power-on"
 
@@ -2257,6 +2717,96 @@ class LauncherContinueTests(unittest.TestCase):
         self.assertTrue(found.ok, found.why)
         self.assertNotIn("looked through", found.why)
         self.assertEqual(found.looked_through, 0)
+
+    def world_file(self, run_dir: Path, maps: dict[str, int]) -> None:
+        """A `world.jsonl` whose LAST snapshot names `maps` (const -> first_frame); an older snapshot before it names
+        another map, which must never be read (the last snapshot is the run's)."""
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        def snapshot(named: dict[str, int]) -> str:
+            return json.dumps({"maps": {f"k{i}": {"key": f"k{i}", "const": const, "first_frame": first}
+                                        for i, (const, first) in enumerate(named.items())}})
+
+        (run_dir / "world.jsonl").write_text(snapshot({"OLDER_SNAPSHOT_ONLY": 10 ** 9}) + "\n" + snapshot(maps) + "\n",
+                                             encoding="utf-8")
+
+    def test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save(self) -> None:
+        """(U2 spec 2026-10-30 D13: USER RULING 53, "every such continue tells what it drops") `memory_check`'s
+        `dropped`: FAULT halves: `host_frames` is the launcher line's `real_frames` (the HOST's count), less the save's
+        offset into its own session; the maps named are those first stood on AFTER the save (a map whose `first_frame` is
+        at or before the save's frame is not named: mutant D2m names it); no world file is "not known", never "none".
+        CONTROL: a continued session's world file with one new map names exactly it; the operator's sentence says it."""
+        # the save's own session (nothing continued yet): a launcher session, its save at BASE_FRAME + 1000 (base 0)
+        run_dir = self.runs / "own"
+        self.memory(run_dir=run_dir, end=("stopped: not finished within 9000 frames", False))
+        self.launch_line(run_dir, "play: stopped: not finished within 9000 frames", frames=BASE_FRAME + 9000,
+                         real=BASE_FRAME + 9000)
+        self.world_file(run_dir, {"ROUTE101": BASE_FRAME + 999, "AT_THE_SAVE": BASE_FRAME + 1000,
+                                  "OLDALE_TOWN": BASE_FRAME + 1001})
+        found = self.check()
+        self.assertTrue(found.ok, found.why)
+        drop = found.dropped
+        self.assertEqual(([s["n"] for s in drop["sessions"]], drop["frames"], drop["host_frames"]), ([1], 8000, 8000))
+        self.assertEqual(drop["maps"], ["OLDALE_TOWN"])
+        # no world file: not known
+        (run_dir / "world.jsonl").unlink()
+        self.assertIsNone(self.check().dropped["maps"])
+        self.assertIn("not known", self.launcher.drop_words(self.check().dropped))
+        # a CONTINUE of save 1 that ran out its frame budget: the set is that session; the host's count; its new map
+        self.game.memory_jsonl.unlink()
+        self.memory(run_dir=self.runs / "first")
+        base = BASE_FRAME + 1001
+        later = self.runs / "later"
+        writer = MemoryWriter(self.game.memory_jsonl, read_book(self.game.memory_jsonl), header=None,
+                              session={"how": "continue", "host": "launcher", "run_dir": str(later), "cart": "continued",
+                                       "continued_from": 1, "frame_base": base})
+        writer.write_session(verified=True)
+        writer.write_end(self.STOP_2620, False, base + 2620,
+                         look=party_look(PARTY_MONS, frame=base + 2620, play_time=(0, 21)))
+        self.launch_line(later, self.STOP_2620, frames=2620, real=2620)
+        self.world_file(later, {"LITTLEROOT_TOWN": BASE_FRAME + 900, "OLDALE_TOWN_MART": base + 400})
+        found = self.check()
+        self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+        drop = found.dropped
+        self.assertEqual(([s["n"] for s in drop["sessions"]], drop["frames"], drop["host_frames"], drop["maps"],
+                          drop["at_end"]), ([2], 2620, 2620, ["OLDALE_TOWN_MART"], [0, 21]))
+        words = self.launcher.drop_words(drop)
+        for part in ("session(s) 2", "2,620 frames by the host's count", "2,620 frames by the AI's record",
+                     "at save 1", "to 0:21 at session 2's end", "OLDALE_TOWN_MART", "the AI's own record"):
+            self.assertIn(part, words)
+        # (U2a fix round, F2) FAULT halves where the HOST's count and the AI's record DIFFER, so a `host_frames` taken
+        # from the AI's own end line (mutant HM1) cannot pass by construction: a continue killed at its wall clock with
+        # NO end line (the case the host's count exists for) gives the host's 5000 and the AI's "not recorded"; a
+        # continue whose end line says 2620 while the instrument counted 2700 gives the host's 2700 beside the AI's 2620
+        for what, real, end_at, expected in (("wall clock, no end line", 5000, None, (5000, None)),
+                                             ("an end line the host's count disagrees with", 2700, 2620, (2700, 2620))):
+            with self.subTest(differ=what):
+                self.game.memory_jsonl.unlink()
+                self.game.launches_jsonl.unlink(missing_ok=True)
+                self.memory(run_dir=self.runs / "first")
+                cut = self.runs / f"cut-{real}"
+                writer = MemoryWriter(self.game.memory_jsonl, read_book(self.game.memory_jsonl), header=None,
+                                      session={"how": "continue", "host": "launcher", "run_dir": str(cut),
+                                               "cart": "continued", "continued_from": 1, "frame_base": base})
+                writer.write_session(verified=True)
+                if end_at is None:
+                    self.launch_line(cut, "wall-clock", frames=400000, real=real)
+                else:
+                    writer.write_end(self.STOP_2620, False, base + end_at,
+                                     look=party_look(PARTY_MONS, frame=base + end_at, play_time=(0, 21)))
+                    self.launch_line(cut, self.STOP_2620, frames=2620, real=real)
+                found = self.check()
+                self.assertEqual((found.ok, found.end_class), (True, "BUDGET"), found.why)
+                drop = found.dropped
+                self.assertEqual(([s["n"] for s in drop["sessions"]], drop["host_frames"], drop["frames"]),
+                                 ([2], *expected))
+                self.assertEqual(drop["host_sessions"], [[2, real]])
+                self.assertIn(f"{real:,} frames by the host's count", self.launcher.drop_words(drop))
+        # the CLI prints it on a --continue
+        (self.profile / self.launcher.SAVE_FILE).write_bytes(b"\x01" * 64)
+        code, env, out = self.run_cli("--continue")
+        self.assertIsNotNone(env, out)
+        self.assertIn("this continue drops: session(s) 2", out)
 
     def test_the_continue_tells_the_losses_it_undoes(self) -> None:
         self.memory(losses=2)

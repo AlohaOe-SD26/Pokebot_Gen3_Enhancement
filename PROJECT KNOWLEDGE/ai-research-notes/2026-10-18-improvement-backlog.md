@@ -306,7 +306,8 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
   a catch that failed for want of Poké Balls. **Build spec:** `2026-10-29-R1R2-BUILD-SPEC.md` (2026-10-29).
   **✅ BUILT 2026-10-29** (`07`; `2026-10-29-R1R2-BUILD-REPORT.md`; decisions `06` 2026-10-29): the held-out live
   proof PASSED (ledger #53) and was re-checked on #54-#56. Its follow-up ✅ BUILT 2026-10-30 (`07`;
-  `2026-10-29-R1F-BUILD-REPORT.md`). Next: U2's build (USER RULING 53: a time-limit end may be continued).
+  `2026-10-29-R1F-BUILD-REPORT.md`). U2a ✅ BUILT 2026-10-30 (`07`; a time-limit end may be
+  continued, USER RULING 53); next its open V1-V3 and U2b, the save before the limit.
 - **R8 + R9 (+ P13). AI-MADE STATES for repro and for the next chapter.** (A; needs R2, R3) **Evidence:** a stuck verdict
   costs the whole run again (a 59,204-frame stretch surfaced only in a 20-run sweep); a chapter-3 run from a bot save "has
   never heard DAD" (recon Gap 9). **What:** the HOST keeps the last 3 states and copies out `stuck-<code>.ss1` for

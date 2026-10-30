@@ -38,6 +38,7 @@ from ai_player.host.launcher import (
     bot_command,
     check_package_resolution,
     child_env,
+    drop_words,
     ensure_profile,
     force_http_off,
     memory_check,
@@ -174,6 +175,8 @@ def cmd_run(args: argparse.Namespace) -> int:
                        f"{check.end_class} ({check.why}); this continue undoes {check.undone} battles lost after that save"
                        + (f"; looked through {check.looked_through} stopped continue(s)" if check.looked_through else "")
                        + ")")
+        # (U2 spec D13: USER RULING 53) every continue tells what it drops
+        state_note += f"\n[AI-RUN] {drop_words(check.dropped)}"
 
     run_dir = (args.run_dir or profile_dir / "ai_player_runs" / time.strftime("%Y%m%d-%H%M%S")).resolve()
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -213,9 +216,10 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     print(f"[AI-RUN] memory={env[ENV_MEMORY]} cart={env[ENV_CART]} continue={'yes' if continuing else 'no'}", flush=True)
     result = run_child(cmd, build_root, env, args.wall_seconds, run_dir / "stdout.txt")
-    # (R1, D20) how the child ended, in the launcher's own record beside the memory file
+    # (R1, D20) how the child ended, in the launcher's own record beside the memory file; (U2 spec D2) with the frame
+    # budget it was given, so a `play: stopped:` end is believed only from the host's own count
     try:
-        record_launch(game, run_dir, result, read_verdict(run_dir))
+        record_launch(game, run_dir, result, read_verdict(run_dir), frames=args.frames)
     except OSError as error:
         print(f"[AI-RUN] could not record the launch's end in {game.launches_jsonl}: {error}", flush=True)
     if result.interrupted:

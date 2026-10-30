@@ -55,6 +55,27 @@ THE R1 + R2 FOLLOW-UP'S ARMS (its spec, `s53/r1f/SPEC.md` section 5, with the or
     (`R2_STOP_EDITS`), so the continue STOPS on that bound; the next continue (`child_b`, the REAL tree) must be allowed,
     looking through the stopped one, and arrive at S2. R2-RETRY-OLD runs that next continue on mutant FX3 (no
     look-through): refused, class CHOSEN, the memory file byte-identical.
+
+U2a'S ARMS (U2 spec 2026-10-30 section 5, as the orchestrator's rulings 1-5 of 2026-10-30 cut it to U2a: USER RULING 53,
+"a session ended by its time or frame limit may be continued from its last save ... and every such continue tells what
+it drops"; no time save, no U2-TIME):
+  * U2-BUDGET: LAUNCH's own end (a REAL-launcher `play: stopped: not finished within 2620 frames`, not at a save: 2,620
+    frames cannot hold a save) is frozen (`frozen_after`) and continued by a child C of the REAL tree (`child_b`). Graded
+    by the HOST's record (`grade_u2budget`, checks B1-B3): the launcher line's `real_frames` == `frames` == 2620, exit 0,
+    verdict CLEAN; `memory_check` allows it, class BUDGET, with ruling 53's clause; the drop it tells
+    (`ContinueCheck.dropped`) is exactly LAUNCH's session, its `host_frames` the launcher line's `real_frames` (the
+    instrument's count, never the memory file's), its `at_save` S2's RAM play time, its maps those LAUNCH's world file
+    shows new to that session; C arrives at S2's truth; C's session line repeats the drop's frames and battles (the AI's
+    word, a label check). U2-BUDGET-OLD runs child C from mutant U0's tree (the interim table): refused, class BUDGET,
+    the memory file byte-identical.
+  * U2-WALL: a copy of K-AFTER's frozen set in a mirror build root; step 1 is the REAL launcher's `run --continue` with
+    `--frames U2_WALL_FRAMES --wall-seconds U2_WALL_SECONDS` and the target `U2_WALL_TARGET` (out of reach in the wall),
+    which ends on the HOST's soft wall clock (`wall-clock`, code 124, no end line of the AI's); it is frozen; step 2 is
+    child C (REAL tree). Graded by `grade_u2wall` (W1-W2; W3 reported): allowed, class BUDGET, the drop's AI frames "not
+    recorded" and its `host_frames` the launcher line's count less the newest save's offset into its own session; C
+    arrives at the save the cart's FILE holds (the probe's parser), and its `continued_from` is S2's line, or (when the
+    FILE's counter rose in step 1) the ONE save line whose stamp, place, tile and party equal the FILE's (identity, not
+    the stamp alone). U2-WALL-OLD: step 2 only, from U0's tree: refused, class BUDGET, memory byte-identical.
 """
 
 from __future__ import annotations
@@ -109,8 +130,8 @@ CENTER_SUFFIX = "POKEMON_CENTER_1F"
 KNOWLEDGE = REPO / "ai_player" / "knowledge" / "milestones.json"
 
 # ------------------------------------------------------------------ step 7: the held-out run (spec section 5)
-#: the held-out graded seeds (the R1 + R2 follow-up's spec section 5.6: #58), registered BEFORE any of them runs
-HELD_OUT = (5551, 5554)
+#: the held-out graded seeds (U2 spec 2026-10-30 section 5.7, D18: #63), registered BEFORE any of them runs
+HELD_OUT = (5651, 5654)
 #: (spec section 5 "Floors") every graded arm must COUNT on at least this many of the 4 held-out seeds
 FLOOR = 3
 #: K-BETWEEN's GRADED kill rule. The spec's literal midpoint (halfway between S1.e7 and S2.e1) was measured VACUOUS on both
@@ -121,9 +142,10 @@ FLOOR = 3
 BETWEEN_RULE = "new"
 #: the graded arms (spec section 5's table). An OLD arm is graded by the difference it exists to show, and counts on a seed
 #: only when its NEW twin counts there.
-ARMS_NEW = ("CONTROL", "K-AFTER", "K-INSIDE", "K-SILENT", "K-FIRST", "K-BETWEEN", "LAUNCH", "CHAIN", "R2-RETRY")
+ARMS_NEW = ("CONTROL", "K-AFTER", "K-INSIDE", "K-SILENT", "K-FIRST", "K-BETWEEN", "LAUNCH", "CHAIN", "R2-RETRY",
+            "U2-BUDGET", "U2-WALL")
 OLD_OF = {"K-INSIDE-OLD": "K-INSIDE", "K-SILENT-OLD": "K-SILENT", "LAUNCH-OLD": "LAUNCH", "CHAIN-OLD": "CHAIN",
-          "CHAIN-R1-OLD": "CHAIN", "R2-RETRY-OLD": "R2-RETRY"}
+          "CHAIN-R1-OLD": "CHAIN", "R2-RETRY-OLD": "R2-RETRY", "U2-BUDGET-OLD": "U2-BUDGET", "U2-WALL-OLD": "U2-WALL"}
 GRADED_ARMS = ARMS_NEW + tuple(OLD_OF)
 DIAGNOSTIC_ARMS = {"K-BETWEEN-MID": "K-BETWEEN under the spec's literal midpoint rule: reported, never in the verdict"}
 #: mutant R1-M (spec section 5): "restore the newest save line, with no TIME match and no arrival check" (the pre-R2 rule
@@ -157,14 +179,22 @@ CHAIN_BUDGET_BASE = 2020
 #: in development #57 step 5 (b) re-run under ruling 11 (s53/r1f/build/s2b-live-dev/measure-chain.out; measuring caps
 #: 120,000 frames and 1,800 s, never reached): arrival -> kill 33,964-63,812 frames on all six seeds (5505 widest, anchored
 #: on B's save 2), child B wall 61.9-105.4 s, so frames = 2020 + 2 x 63,812 and the timeout = max(300, 2 x 105.4) = 300 s
-CHAIN_B_FRAMES = CHAIN_BUDGET_BASE + 2 * 63812
-CHAIN_B_TIMEOUT = 300
+#: (U2 spec D14, RV-3: RE-SET after development #62, which ran at 12 jobs at once beside the bot tuner's 12 lanes with the
+#: measuring caps 250,000 frames and 900 s, never reached) CHAIN's child B in ONE unit, arrival -> kill, every recorded
+#: round re-read (s53/u2/build/s2-live-dev/measure-rv3.out): widest 120,137 frames (#60, CHAIN-5574; #62's widest
+#: 105,768, 5604), widest wall 230.5 s (#62, 5604), so frames = 2020 + 2 x 120,137 and the timeout = max(300, 2 x 230.5)
+CHAIN_B_FRAMES = CHAIN_BUDGET_BASE + 2 * 120137
+CHAIN_B_TIMEOUT = 461
 #: (spec section 5.5; orchestrator rulings 5 and 13) the OLD B arms' frames and wall time (killed at their own first save's
 #: e4 + 40), SET at 2x the widest measured in development #57 step 5 (c) (s53/r1f/build/s2-live-dev/measure-chain.out):
 #: arrival -> kill 15,755-45,363 frames over all 12 OLD child Bs (both OLD arms, 5501-5506), wall 39.5-105.4 s, so
 #: frames = 2020 + 2 x 45,363 and the timeout = max(300, 2 x 105.4) = 300 s
-CHAIN_OLD_FRAMES = CHAIN_BUDGET_BASE + 2 * 45363
-CHAIN_OLD_TIMEOUT = 300
+#: (U2 spec D14, RV-3: RE-SET after development #62, as CHAIN's above) the OLD B arms, arrival -> kill over all 56 killed
+#: OLD child Bs of #57-#62: widest 71,959 frames (#62, CHAIN-OLD and CHAIN-R1-OLD 5601; before #62 the widest was 48,716,
+#: so #62 alone would have left 1.29x against the old 92,746), widest wall 161.3 s (#62, CHAIN-OLD 5601), so frames =
+#: 2020 + 2 x 71,959 and the timeout = max(300, 2 x 161.3)
+CHAIN_OLD_FRAMES = CHAIN_BUDGET_BASE + 2 * 71959
+CHAIN_OLD_TIMEOUT = 323
 #: the OLD B arms' kill: child B's OWN first save's e4 + 40 (orchestrator ruling 3)
 CHAIN_OLD_KILL = "S1.e4+40"
 #: (spec D9, section 5.5) R2-RETRY step 1's arrival bound in its COPY: floor(the narrowest arrival measured in development /
@@ -175,6 +205,31 @@ R2_STOP_ARRIVAL: int | None = 57
 #: the R2-STOP copy's ONE edit (`skills/saving.py` ARRIVAL_BUDGET)
 R2_STOP_EDITS = (("skills/saving.py", "ARRIVAL_BUDGET = 320\n",
                   f"ARRIVAL_BUDGET = {R2_STOP_ARRIVAL}  # R2-STOP COPY (live_r1.py R2-RETRY step 1)\n"),)
+# ------------------------------------------------------------------ U2a's arms (U2 spec 2026-10-30 section 5, U2a cut)
+#: U2-BUDGET-OLD's and U2-WALL-OLD's tree: mutant U0, every frame-budget and soft-wall row of the launcher's judgement back
+#: to the interim (`at_save` only; refused with no end line). The SAME edits as revert_r1's U0 (the selftest checks it)
+U2_OLD_EDITS = (("host/launcher.py", "        allowed = kind == \"INVOLUNTARY\" or kind == \"BUDGET\" or at_save\n",
+                 "        allowed = kind == \"INVOLUNTARY\" or at_save  # MUTANT U0\n"),
+                ("host/launcher.py", "    if kind == \"BUDGET\" and clean is not None:\n",
+                 "    if kind == \"BUDGET\" and False:  # MUTANT U0\n"))
+#: U2-WALL step 1's wall clock (spec 5.6: max(240, 2 x the widest launcher-start-to-arrival wall + 60 s); the launcher's
+#: soft-to-hard margin is then 24 s, above the instrument's EXIT_WATCHDOG_SECONDS 20). SET by development #62
+#: (s53/u2/build/s2-live-dev/measure-u2.out): the launcher's start to the continue's restore snapshot took 8.0-8.6 s (the
+#: parent's 0.5 s poll of the action log), so max(240, 2 x 8.6 + 60) = 240; every step 1 ended wall-clock / 124 / CLEAN
+#: with no hard kill, 218.7 s after its start, having played 80,259-122,266 of its 400,000 frames
+U2_WALL_SECONDS = 240
+#: U2-WALL step 1's frame budget: never reached in the wall (STOP if a development run ends on it)
+U2_WALL_FRAMES = 400000
+#: U2-WALL step 1's target: out of reach in the wall, so the run plays until the soft wall clock ends it
+U2_WALL_TARGET = "ch4_roxanne"
+#: the parent's own timeout over U2-WALL step 1 (the gate and the launcher's start-up included)
+U2_TIMEOUT = U2_WALL_SECONDS + 180
+#: LAUNCH's frame budget (the K arms' child B budget, `skills/saving.py` CONTINUE_BUDGET + ARRIVAL_BUDGET + 600) and the
+#: exit reason its budget end must carry for U2-BUDGET to count (the selftest checks the sum)
+LAUNCH_FRAMES = 2620
+U2_STOP_REASON = f"play: stopped: not finished within {LAUNCH_FRAMES} frames"
+#: (U2 spec D1) the clause every allowed BUDGET judgement carries (the grader's own copy of the launcher's words)
+U2_CLAUSE = "USER RULING 53: a session ended by its time or frame limit may be continued from its last save"
 #: LAUNCH's stale state: the fixture planted as `current_state.ss1` (the probe's and live_step3's route101_south.ss1)
 FIXTURE = REPO / "ai_player" / "gates" / "fixtures" / "route101_south.ss1"
 FIXTURE_MD5 = "81bf318a1532c5364f60064530f9984b"
@@ -211,6 +266,14 @@ FAULTS = {
     "lookthrough_ignored": "R2-RETRY's check R1 skips the look-through's words (the count and the stopped continue's reason)",
     "n_rule_first_save": "CHAIN's grader re-derives rule N from B's FIRST save only, never re-anchoring on a later save (the "
                          "rule before orchestrator ruling 11)",
+    # (U2a, spec section (l))
+    "u2_drop_ignored": "U2-BUDGET's check B1 skips the drop (ContinueCheck.dropped)",
+    "u2_drop_self_graded": "U2-BUDGET's check B1 grades the drop's frames against the memory file (the AI's end line) "
+                           "instead of the host's count (the launcher line's real_frames)",
+    "u2_stop_unverified": "U2-BUDGET's reach skips the host's count (real_frames == frames == 2620)",
+    "u2_wall_no_code": "U2-WALL's reach skips the instrument's exit code (verdict_code 124)",
+    "u2_wall_stamp_only": "U2-WALL's check W2 matches the save line by its stamp (H:MM) alone, without its place, tile "
+                          "and party",
 }
 #: (selftest) the follow-up's recorded DEVELOPMENT rows (#57, seeds 5501-5506: s53/r1f/build/s2-live-dev/dev/rows, and
 #: CHAIN re-run under orchestrator ruling 11 in s53/r1f/build/s2b-live-dev/dev/rows) the selftest grades: CHAIN counted
@@ -218,7 +281,18 @@ FAULTS = {
 SELFTEST_ROWS = {"chain_pass": ("CHAIN-5502", "CHAIN-5504", "CHAIN-5501", "CHAIN-5503", "CHAIN-5505", "CHAIN-5506"),
                  "chain_reanchored": ("CHAIN-5501", "CHAIN-5503", "CHAIN-5505", "CHAIN-5506"),
                  "chain_old": ("CHAIN-OLD-5502", "CHAIN-R1-OLD-5502", "CHAIN-OLD-5504", "CHAIN-R1-OLD-5504"),
-                 "r2_pass": ("R2-RETRY-5501", "R2-RETRY-5502"), "r2_old": ("R2-RETRY-OLD-5501", "R2-RETRY-OLD-5502")}
+                 "r2_pass": ("R2-RETRY-5501", "R2-RETRY-5502"), "r2_old": ("R2-RETRY-OLD-5501", "R2-RETRY-OLD-5502"),
+                 # (U2a) development #62's rows (seeds 5601-5606: s53/u2/build/s2-live-dev/dev/rows)
+                 # (U2-BUDGET-5603 first: its drop names a map, OLDALE_TOWN_MART, so the planted map case is not the
+                 # only one where the maps half has something to compare)
+                 "u2budget_pass": ("U2-BUDGET-5603", "U2-BUDGET-5601", "U2-BUDGET-5602", "U2-BUDGET-5604",
+                                   "U2-BUDGET-5605", "U2-BUDGET-5606"),
+                 "u2budget_old": ("U2-BUDGET-OLD-5601", "U2-BUDGET-OLD-5602", "U2-BUDGET-OLD-5603", "U2-BUDGET-OLD-5604",
+                                  "U2-BUDGET-OLD-5605", "U2-BUDGET-OLD-5606"),
+                 "u2wall_pass": ("U2-WALL-5601", "U2-WALL-5602", "U2-WALL-5603", "U2-WALL-5604", "U2-WALL-5605",
+                                 "U2-WALL-5606"),
+                 "u2wall_old": ("U2-WALL-OLD-5601", "U2-WALL-OLD-5602", "U2-WALL-OLD-5603", "U2-WALL-OLD-5604",
+                                "U2-WALL-OLD-5605", "U2-WALL-OLD-5606")}
 
 
 def plan_of(seed: int) -> tuple[str, str]:
@@ -843,7 +917,9 @@ def child_b(args) -> int:
 
     out = {"memory_check": {"ok": check.ok, "why": check.why, "end_class": check.end_class, "undone": check.undone,
                             "newest": (check.newest or {}).get("id"),
-                            "looked_through": getattr(check, "looked_through", None)},
+                            "looked_through": getattr(check, "looked_through", None),
+                            # (U2 spec D13, D17) what the continue tells it drops, whole (None in a tree before U2)
+                            "dropped": getattr(check, "dropped", None)},
            # WHICH continue skill this child ran (an OLD arm's mutant copy, or the tree under test): its file and sha256
            "skills_saving": sha(saving_skill),
            # (R1 + R2 follow-up) the launcher, the memory module and the play loop this child imported (an OLD arm's mutant)
@@ -886,6 +962,12 @@ def child_b(args) -> int:
     if len(watchers) > 1:
         out["save_watch"] = watchers[1].result()  # the kill rule was never reached: the child ran to its own end
     out["frames_budget"] = frames
+    # (U2-WALL's W2) the framework's names of the boot read's map (the save the power-on read loaded) and the arrival's,
+    # so a save line's `where.map` (a name) can be compared with the cart's map (numbers)
+    for key in ("boot", "arrival"):
+        place = (out.get(key) or {}).get("map")
+        out[f"{key}_map_const"] = map_const(f"{place[0]}:{place[1]}") if isinstance(place, list) and len(place) == 2 \
+            else None
     out["play"] = {k: result.get(k) for k in ("reason", "frames", "seconds", "presses")}
     out["play"]["lines_save"] = [line for line in result.get("lines") or [] if "[AI-SAVE]" in line or "continue:" in line]
     print("RESULT " + json.dumps(out, ensure_ascii=False), flush=True)
@@ -1619,6 +1701,17 @@ def cmd_launch(args) -> int:
         row["memory_after"] = [{k: v for k, v in json.loads(x).items() if k != "memory"}
                                for x in game.memory_jsonl.read_text(encoding="utf-8").splitlines() if x.strip()] \
             if game.memory_jsonl.exists() else []
+        # (U2 spec D17) the HOST's record of this end (the launcher's line, the verdict's counters) and the set as the end
+        # left it (`frozen_after`): U2-BUDGET continues a copy of it
+        purity = json.loads((run_dir / "purity.json").read_text(encoding="utf-8")) \
+            if (run_dir / "purity.json").is_file() else None
+        row["launch"]["launches"] = [json.loads(x) for x in game.launches_jsonl.read_text(encoding="utf-8").splitlines()
+                                     if x.strip()] if game.launches_jsonl.exists() else []
+        row["launch"]["purity"] = None if purity is None else {
+            "verdict": purity.get("verdict"), "real_frames": (purity.get("counters") or {}).get("real_frames"),
+            "exit_code": (purity.get("facts") or {}).get("exit_code"),
+            "exit_reason": (purity.get("facts") or {}).get("exit_reason")}
+        row["frozen_after"] = freeze_profile(ctx, f"{name}-after-{seed}", profile, game.game_dir)
         row["grade"] = grade_launch(row)
     row["ended"] = now()
     out = ctx["out"] / "rows" / f"{name}-{seed}.json"
@@ -2222,6 +2315,428 @@ def grade_r2(row: dict) -> dict:
     return {"checks": checks, "notes": notes, "counted": counted, "pass": counted and all(checks.values()) if counted else None}
 
 
+# ------------------------------------------------------------------ U2a's arms: U2-BUDGET and U2-WALL (U2 spec section 5)
+def launch_line(launches: list[dict], run_dir: str | None) -> dict | None:
+    """The launcher's `launch_end` line for one run folder (the newest naming it), read test side."""
+    if not run_dir:
+        return None
+    return next((x for x in reversed(launches or []) if x.get("kind") == "launch_end" and x.get("run_dir") == run_dir),
+                None)
+
+
+def session_of(lines: list[dict], run_dir: str | None) -> dict | None:
+    """The memory file's session line for one run folder (the newest naming it), read test side."""
+    if not run_dir:
+        return None
+    return next((x for x in reversed(lines) if x.get("kind") == "session" and x.get("run_dir") == run_dir), None)
+
+
+def session_tail(lines: list[dict], session: dict | None) -> list[dict]:
+    """The lines a session wrote after its session line (up to the next session line), read test side."""
+    at = next((i for i, x in enumerate(lines) if x is session), None) if session is not None else None
+    if at is None:
+        return []
+    out = []
+    for line in lines[at + 1:]:
+        if line.get("kind") == "session":
+            break
+        out.append(line)
+    return out
+
+
+def last_world_maps(run_dir: str | None) -> dict | None:
+    """A run's LAST whole `world.jsonl` snapshot's maps (the AI's own record), or None without a readable world file."""
+    path = Path(run_dir) / "world.jsonl" if run_dir else None
+    if path is None or not path.is_file():
+        return None
+    for raw in reversed(path.read_text(encoding="utf-8").splitlines()):
+        try:
+            snapshot = json.loads(raw)
+        except ValueError:
+            continue
+        return snapshot.get("maps") or {} if isinstance(snapshot, dict) else None
+    return None
+
+
+def run_launcher(ctx: dict, root: Path, mirror: Path, profile_name: str, folder: Path, label: str, frames: int,
+                 wall: int, timeout: int, target: str, seed: int, watch_arrival: bool = False) -> dict:
+    """The REAL launcher (`-m ai_player run --continue`) on a mirror build root's profile, from the tree at `root`, with
+    the play brain and the seed's plan (as `cmd_launch` and `cmd_r2` launch it). Bounded: the parent waits `timeout`
+    seconds, then kills the launcher's tree by PID (only processes it started). `watch_arrival`: the parent polls the
+    run's action log while it waits and records the wall seconds from the launcher's start to the restore snapshot (the
+    continue's arrival, then its restore: U2-WALL's launcher-start-to-arrival wall, spec 5.6)."""
+    import subprocess
+
+    from ai_player.options import ENV_BRAIN, ENV_CLOCK, ENV_PERSONALITY, ENV_SEED, ENV_STARTER, ENV_TARGET
+
+    run_dir = folder / f"{label}_run"
+    cmd = [sys.executable, "-B", "-m", "ai_player", "run", "--profile", profile_name, "--continue", "--frames",
+           str(frames), "--wall-seconds", str(wall), "--build-root", str(mirror), "--run-dir", str(run_dir)]
+    log = folder / f"{label}_launcher.out"
+    personality, starter = plan_of(seed)
+    env = child_env(mirror)
+    env.update({ENV_BRAIN: "play", ENV_SEED: str(seed), ENV_PERSONALITY: personality, ENV_TARGET: target,
+                ENV_CLOCK: WALL_CLOCK})
+    if starter:
+        env[ENV_STARTER] = starter
+    began = time.monotonic()
+    arrival_wall = None
+    killed: list = []
+    with open(log, "wb") as handle:
+        proc = subprocess.Popen(cmd, cwd=str(root), env=env, stdout=handle, stderr=subprocess.STDOUT)
+        while proc.poll() is None:  # bounded: `timeout` seconds, then the kill
+            if time.monotonic() - began > timeout:
+                killed = kill_tree(proc)
+                break
+            if watch_arrival and arrival_wall is None and (run_dir / "actions.jsonl").is_file():
+                try:
+                    text = (run_dir / "actions.jsonl").read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    text = ""
+                if '"reason":"restored from save' in text.replace(": ", ":"):
+                    arrival_wall = round(time.monotonic() - began, 1)
+            time.sleep(0.5)
+        code = proc.wait(60)
+    text = log.read_text(encoding="utf-8", errors="replace")
+    purity = json.loads((run_dir / "purity.json").read_text(encoding="utf-8")) if (run_dir / "purity.json").is_file() \
+        else None
+    return {"cmd": cmd, "cwd": str(root), "pid": proc.pid, "exit": code, "killed": killed, "target": target,
+            "seconds": round(time.monotonic() - began, 1), "arrival_wall": arrival_wall, "log": str(log),
+            "run_dir": str(run_dir), "frames": frames, "wall_seconds": wall,
+            "lines": [x for x in text.splitlines() if x.startswith(("[AI-RUN]", "[AI-GATE]", "[AI-START]", "[AI-EXIT]"))],
+            "purity": None if purity is None else {
+                "verdict": purity.get("verdict"), "real_frames": (purity.get("counters") or {}).get("real_frames"),
+                "exit_code": (purity.get("facts") or {}).get("exit_code"),
+                "exit_reason": (purity.get("facts") or {}).get("exit_reason")}}
+
+
+def u2_old_shows(row: dict, child: dict, frozen_sha: str | None, after_sha: str | None) -> dict:
+    """(U2-BUDGET-OLD, U2-WALL-OLD) The OLD arm's difference: mutant U0's launcher ran (its sha256 is the copy's), the
+    continue was REFUSED with class BUDGET, and the frozen memory file is byte-identical before the check, after it and
+    after the child."""
+    mutant = (row.get("mutant") or {}).get("sha256") or {}
+    ran = ((child or {}).get("launcher_sha") or {}).get("sha256")
+    check = (child or {}).get("memory_check") or {}
+    same = frozen_sha is not None and frozen_sha == ((child or {}).get("frozen_memory") or {}).get("sha256_before") \
+        == ((child or {}).get("frozen_memory") or {}).get("sha256_after_check") == after_sha
+    return {"mutant_ran": ran is not None and ran == mutant.get("host/launcher.py"), "refused": check.get("ok") is False,
+            "class_budget": check.get("end_class") == "BUDGET", "memory_byte_identical": bool(same)}
+
+
+def cmd_u2budget(args) -> int:
+    """U2-BUDGET / U2-BUDGET-OLD (U2 spec 5.1, D17): child C on its own copy of LAUNCH's `frozen_after` (the set its REAL
+    launcher's `play: stopped:` end left), from the REAL tree, or (`--old`) from mutant U0's tree."""
+    ctx = ctx_of(args)
+    source = Path(args.from_row)
+    launch = json.loads(source.read_text(encoding="utf-8"))
+    if launch.get("arm") != "LAUNCH":
+        raise SystemExit("U2-BUDGET runs on LAUNCH's row")
+    name = "U2-BUDGET-OLD" if args.old else "U2-BUDGET"
+    seed = launch["seed"]
+    row: dict = {"arm": name, "name": name, "seed": seed, "launch_row": str(source), "launch": launch, "started": now()}
+    if not launch.get("frozen_after"):
+        row["result"] = "NOT RUN: LAUNCH left no frozen set after its run"
+    else:
+        frozen = Path(launch["frozen_after"]["dir"])
+        row["frozen_memory_sha256"] = hashlib.sha256((frozen / "memory.jsonl").read_bytes()).hexdigest() \
+            if (frozen / "memory.jsonl").exists() else None
+        root = REPO
+        if args.old:
+            root, row["mutant"] = mutant_tree(ctx["out"], f"U0-{name}-{seed}", U2_OLD_EDITS)
+        run = run_continue_child(ctx, row, frozen, "c", root)
+        row["child_c"], row["c"], row["c_memory"], row["c_run"] = run["child"], run["result"], run["memory"], run["run_dir"]
+        row["memory_sha256_after"] = run["memory_sha256_after"]
+        row["grade"] = grade_u2budget(row)
+    row["ended"] = now()
+    out = ctx["out"] / "rows" / f"{name}-{seed}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(row, ensure_ascii=False), encoding="utf-8")
+    g = row.get("grade") or {}
+    print("LIVE ARM " + json.dumps({"arm": name, "seed": seed, "counted": g.get("counted"), "pass": g.get("pass"),
+                                    "old_shows": g.get("old_shows"), "checks": g.get("checks"), "result": row.get("result"),
+                                    "memory_check": {k: v for k, v in ((row.get("c") or {}).get("memory_check") or {})
+                                                     .items() if k != "dropped"}, "row": str(out)}, ensure_ascii=False),
+          flush=True)
+    return 0
+
+
+def grade_u2budget(row: dict) -> dict:
+    """U2-BUDGET's checks B1-B3 and U2-BUDGET-OLD's difference (U2 spec 5.2). Both COUNT when LAUNCH counted on the seed
+    (K-AFTER's FILE was S2) AND LAUNCH's own record shows: its launcher line's `exit_reason` starts with
+    `U2_STOP_REASON`, `exit_code` 0, `verdict_code` 0, `verdict` CLEAN, `real_frames` == `frames` == LAUNCH_FRAMES (the
+    HOST's count); its session continued S2; its end line `budget` True and `at_save` False; the frozen-after cart is
+    K-AFTER's frozen cart byte for byte (no write: the end was not right after a save); no save line after its session
+    line. The OLD arm also needs its U0 copy to have run (its twin U2-BUDGET must count too: `verdict_of`)."""
+    launch = row.get("launch") or {}
+    lrun = launch.get("launch") or {}
+    after = launch.get("frozen_after") or {}
+    lines = memory_lines(Path(after["dir"]) / "memory.jsonl") if after.get("dir") and \
+        (Path(after["dir"]) / "memory.jsonl").exists() else []
+    launches = [json.loads(x) for x in (Path(after["dir"]) / "launches.jsonl").read_text(encoding="utf-8").splitlines()
+                if x.strip()] if after.get("dir") and (Path(after["dir"]) / "launches.jsonl").exists() else []
+    line = launch_line(launches, lrun.get("run_dir"))
+    session = session_of(lines, lrun.get("run_dir"))
+    tail = session_tail(lines, session)
+    end = next((x for x in tail if x.get("kind") == "end"), None)
+    s2_id = launch.get("s2_line_id")
+    kafter = json.loads(Path(launch["kafter_row"]).read_text(encoding="utf-8")) if launch.get("kafter_row") and \
+        Path(launch["kafter_row"]).is_file() else {}
+    kafter_cart = ((kafter.get("frozen") or {}).get("files") or {}).get("current_save.sav")
+    launch_grade = grade_launch(launch) if launch.get("launch") else {"counted": False}
+    host_count = FAULT == "u2_stop_unverified" or (
+        line is not None and line.get("real_frames") == line.get("frames") == LAUNCH_FRAMES
+        and isinstance(line.get("real_frames"), int))
+    reach = {"launch_counted": bool(launch_grade.get("counted")),
+             "launcher_line_is_the_budget_stop": line is not None and str(line.get("exit_reason") or "").startswith(
+                 U2_STOP_REASON) and line.get("exit_code") == 0 and line.get("verdict_code") == 0
+             and line.get("verdict") == "CLEAN" and line.get("hard_kill") is False,
+             "host_count_reached_the_budget": host_count,
+             "session_continued_s2": session is not None and s2_id is not None and session.get("continued_from") == s2_id,
+             "end_line_budget_not_at_save": end is not None and end.get("budget") is True and end.get("at_save") is False,
+             "cart_unwritten": kafter_cart is not None and (after.get("files") or {}).get("current_save.sav") == kafter_cart,
+             "no_save_after_the_session": session is not None and not any(x.get("kind") == "save" for x in tail)}
+    notes: dict = {"reach": reach, "launcher_line": line, "session": session, "end": end, "s2_id": s2_id}
+    c = row.get("c") or {}
+    check = c.get("memory_check") or {}
+    counted = all(reach.values())
+    if row["arm"] == "U2-BUDGET-OLD":
+        shows = u2_old_shows(row, c, row.get("frozen_memory_sha256"), row.get("memory_sha256_after"))
+        notes.update(old=shows, memory_check={k: v for k, v in check.items() if k != "dropped"})
+        notes["mutant_ran"] = shows["mutant_ran"]
+        return {"checks": {}, "notes": notes, "counted": counted and shows["mutant_ran"], "pass": None,
+                "old_shows": all(shows.values())}
+    dropped = check.get("dropped") or {}
+    words = str(check.get("why") or "")
+    # the drop, by the grader's own reads: the set is exactly LAUNCH's session; the host's count is the launcher line's
+    # `real_frames` (FAULT u2_drop_self_graded: the AI's end line instead); the save's play time is S2's RAM truth; the
+    # battles are the lost lines LAUNCH's session wrote; the maps are those LAUNCH's world file holds that its restore
+    # did not (new to that session)
+    ai_frames = (end["frame"] - session["frame_base"]) if end is not None and session is not None and \
+        isinstance(end.get("frame"), int) and isinstance(session.get("frame_base"), int) else None
+    want_host = ai_frames if FAULT == "u2_drop_self_graded" else (line or {}).get("real_frames")
+    s2_truth = ((kafter.get("a") or {}).get("truths") or {}).get("S2") or {}
+    world = last_world_maps(lrun.get("run_dir"))
+    restored = set((session or {}).get("restored_maps") or [])
+    new = sorted(str(m.get("const")) for key, m in (world or {}).items() if key not in restored) if world is not None \
+        else None
+    lost = sum(1 for x in tail if x.get("kind") == "lost")
+    drop = {"save_is_s2": dropped.get("save") == s2_id and s2_id is not None,
+            "set_is_launchs_session": [s.get("n") for s in dropped.get("sessions") or []] == [(session or {}).get("n")],
+            "host_frames_is_the_hosts_count": want_host is not None and dropped.get("host_frames") == want_host,
+            "at_save_is_s2s_ram_play_time": bool(s2_truth.get("play_time"))
+            and dropped.get("at_save") == list(s2_truth["play_time"][:2]),
+            "lost_is_the_sessions_lost_lines": dropped.get("lost") == lost,
+            "maps_are_new_to_the_session": new is not None and sorted(dropped.get("maps") or []) == new
+            and dropped.get("maps") is not None}
+    allowed = check.get("ok") is True and check.get("end_class") == "BUDGET" and check.get("looked_through") == 0 \
+        and U2_CLAUSE in words
+    checks = {"B1_allowed": allowed and (FAULT == "u2_drop_ignored" or (bool(dropped) and all(drop.values())))}
+    notes.update(memory_check=check, B1_drop=drop, ai_frames=ai_frames, new_maps=new, lost_lines=lost,
+                 boot_offset=(dropped.get("frames") - dropped["host_frames"]) if isinstance(dropped.get("frames"), int)
+                 and isinstance(dropped.get("host_frames"), int) else None)
+    session_c = next((x for x in reversed(row.get("c_memory") or []) if x.get("kind") == "session"), None)
+    same = same_identity(c.get("arrival") or {}, c.get("boot"), s2_truth) if s2_truth else {}
+    facts = continue_facts(c)
+    checks["B2_arrival"] = session_c is not None and session_c.get("how") == "continue" and s2_id is not None \
+        and session_c.get("continued_from") == s2_id and bool(same) and all(same.values()) and all(facts.values())
+    # B3 (the AI's word, a label check only): C's session line repeats the drop's frames and battles
+    told = (session_c or {}).get("dropped")
+    checks["B3_ai_word"] = isinstance(told, dict) and bool(dropped) and told.get("frames") == dropped.get("frames") \
+        and told.get("lost") == dropped.get("lost")
+    notes.update(continued_from=(session_c or {}).get("continued_from"), same=same, ai_told=told, **facts)
+    return {"checks": checks, "notes": notes, "counted": counted, "pass": counted and all(checks.values()) if counted else None}
+
+
+def cmd_u2wall(args) -> int:
+    """U2-WALL (U2 spec 5.1, D17): step 1 is the REAL launcher's `run --continue` of K-AFTER's frozen copy in a mirror
+    build root, from the REAL tree, with `U2_WALL_FRAMES`, `U2_WALL_SECONDS` and the target `U2_WALL_TARGET`, so it ends on
+    the HOST's soft wall clock; its cart, memory and launches are frozen; step 2 is child C (REAL tree) on a copy of them.
+    `--old`: U2-WALL-OLD, step 2 only, on U2-WALL's frozen set, from mutant U0's tree."""
+    from ai_player.paths import AppPaths
+
+    ctx = ctx_of(args)
+    source = Path(args.from_row)
+    base = json.loads(source.read_text(encoding="utf-8"))
+    if args.old:
+        if base.get("arm") != "U2-WALL":
+            raise SystemExit("U2-WALL-OLD runs on U2-WALL's row")
+        name, seed = "U2-WALL-OLD", base["seed"]
+        row: dict = {"arm": name, "name": name, "seed": seed, "twin_row": str(source), "started": now()}
+        for key in ("kafter_row", "kafter_file", "kafter_counter", "s2_line_id", "s2_truth", "step1", "frozen_step1",
+                    "file_step1"):
+            row[key] = base.get(key)
+        if not base.get("frozen_step1"):
+            row["result"] = "NOT RUN: U2-WALL's step 1 left no frozen set"
+        else:
+            frozen = Path(base["frozen_step1"]["dir"])
+            row["frozen_memory_sha256"] = hashlib.sha256((frozen / "memory.jsonl").read_bytes()).hexdigest()
+            root, row["mutant"] = mutant_tree(ctx["out"], f"U0-{name}-{seed}", U2_OLD_EDITS)
+            run = run_continue_child(ctx, row, frozen, "c", root)
+            row["child_c"], row["c"], row["c_memory"], row["c_run"] = run["child"], run["result"], run["memory"], \
+                run["run_dir"]
+            row["memory_sha256_after"] = run["memory_sha256_after"]
+            row["grade"] = grade_u2wall(row)
+    else:
+        if base.get("arm") != "K-AFTER":
+            raise SystemExit("U2-WALL runs on K-AFTER's row")
+        name, seed = "U2-WALL", base["seed"]
+        saves = (base.get("a") or {}).get("saves") or []
+        row = {"arm": name, "name": name, "seed": seed, "kafter_row": str(source),
+               "kafter_file": (base.get("file") or {}).get("verdict"),
+               "kafter_counter": ((base.get("file") or {}).get("parse") or {}).get("counter"),
+               "s2_line_id": (saves[1].get("line") or {}).get("id") if len(saves) > 1 else None,
+               "s2_truth": ((base.get("a") or {}).get("truths") or {}).get("S2"), "started": now()}
+        if (base.get("child_a") or {}).get("word") != "READY" or not base.get("frozen"):
+            row["result"] = "NOT RUN: K-AFTER's child A did not reach its kill"
+        else:
+            mirror = mirror_build_root(ctx, f"{name}-{seed}")
+            profile_name = f"ai-r1live-u2-wall-{seed}"
+            profile = make_profile(mirror, profile_name, ctx["donor"])
+            game = AppPaths.for_profile(profile_name, mirror, home="")
+            game.game_dir.mkdir(parents=True)
+            for item in Path(base["frozen"]["dir"]).iterdir():
+                shutil.copy2(item, profile / item.name if item.name.endswith(".sav") else game.game_dir / item.name)
+            folder = ctx["out"] / "runs" / f"{name}-{seed}"
+            folder.mkdir(parents=True, exist_ok=True)
+            step1 = run_launcher(ctx, REPO, mirror, profile_name, folder, "step1", U2_WALL_FRAMES, U2_WALL_SECONDS,
+                                 U2_TIMEOUT, U2_WALL_TARGET, seed, watch_arrival=True)
+            step1["launches"] = [json.loads(x) for x in game.launches_jsonl.read_text(encoding="utf-8").splitlines()
+                                 if x.strip()] if game.launches_jsonl.exists() else []
+            step1["memory_after"] = [{k: v for k, v in x.items() if k != "memory"} for x in memory_lines(game.memory_jsonl)] \
+                if game.memory_jsonl.exists() else []
+            row["step1"] = step1
+            row["frozen_step1"] = freeze_profile(ctx, f"{name}-step1-{seed}", profile, game.game_dir)
+            cart = Path(row["frozen_step1"]["dir"]) / "current_save.sav"
+            row["file_step1"] = {"parse": brief(parse_image(cart.read_bytes()))} if cart.exists() else None
+            row["frozen_memory_sha256"] = hashlib.sha256((Path(row["frozen_step1"]["dir"]) / "memory.jsonl")
+                                                         .read_bytes()).hexdigest()
+            run = run_continue_child(ctx, row, Path(row["frozen_step1"]["dir"]), "c", REPO)
+            row["child_c"], row["c"], row["c_memory"], row["c_run"] = run["child"], run["result"], run["memory"], \
+                run["run_dir"]
+            row["memory_sha256_after"] = run["memory_sha256_after"]
+            row["grade"] = grade_u2wall(row)
+    row["ended"] = now()
+    out = ctx["out"] / "rows" / f"{name}-{seed}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(row, ensure_ascii=False), encoding="utf-8")
+    g = row.get("grade") or {}
+    print("LIVE ARM " + json.dumps({"arm": name, "seed": seed, "counted": g.get("counted"), "pass": g.get("pass"),
+                                    "old_shows": g.get("old_shows"), "checks": g.get("checks"), "result": row.get("result"),
+                                    "step1_exit": (row.get("step1") or {}).get("exit"),
+                                    "step1_seconds": (row.get("step1") or {}).get("seconds"),
+                                    "memory_check": {k: v for k, v in ((row.get("c") or {}).get("memory_check") or {})
+                                                     .items() if k != "dropped"}, "row": str(out)}, ensure_ascii=False),
+          flush=True)
+    return 0
+
+
+def wall_expected_line(lines: list[dict], parse: dict | None, kafter_counter, s2_id, c: dict) -> dict:
+    """(U2-WALL's W2) The save line child C must continue, from the FILE (the probe's parser on the frozen cart): S2's line
+    when the FILE's counter is K-AFTER's (no save of step 1 complete on the cart), else the ONE save line whose stamp is
+    the FILE's play time (H:MM) AND whose place (the framework's name of the FILE's map, read by child C's own boot read),
+    tile and party PIDs are the FILE's (identity, not the stamp alone: FAULT u2_wall_stamp_only)."""
+    loaded = (parse or {}).get("loaded") or {}
+    counter = (parse or {}).get("counter")
+    if counter is not None and kafter_counter is not None and counter == kafter_counter:
+        return {"rule": "the FILE's counter is K-AFTER's: S2's line", "id": s2_id, "matches": [s2_id]}
+    stamp = list(loaded["play_time"][:2]) if loaded.get("play_time") else None
+    const = (c or {}).get("boot_map_const")
+    matches = []
+    for line in lines:
+        if line.get("kind") != "save" or stamp is None or line.get("play_time") != stamp:
+            continue
+        where = line.get("where") or {}
+        pids = [p.get("pid") for p in line.get("party") or []]
+        if FAULT == "u2_wall_stamp_only" or (const is not None and where.get("map") == const
+                                             and list(where.get("tile") or []) == list(loaded.get("pos") or [])
+                                             and pids == list(loaded.get("pids") or [])):
+            matches.append(line["id"])
+    return {"rule": "the FILE's counter rose: the save line with the FILE's stamp, place, tile and party", "stamp": stamp,
+            "const": const, "id": matches[0] if len(matches) == 1 else None, "matches": matches}
+
+
+def grade_u2wall(row: dict) -> dict:
+    """U2-WALL's checks W1-W2 (W3 reported) and U2-WALL-OLD's difference (U2 spec 5.2). Both COUNT when K-AFTER's FILE
+    was S2 and step 1's own record shows: its launcher line's `exit_reason` `wall-clock` with the instrument's code 124
+    (`verdict_code`), verdict CLEAN and no hard kill; its session continued S2; no end line for that session (the soft wall
+    clock ends the run before the brain writes one). The OLD arm also needs its U0 copy to have run."""
+    step1 = row.get("step1") or {}
+    frozen = (row.get("frozen_step1") or {}).get("dir")
+    lines = memory_lines(Path(frozen) / "memory.jsonl") if frozen and (Path(frozen) / "memory.jsonl").exists() else []
+    launches = [json.loads(x) for x in (Path(frozen) / "launches.jsonl").read_text(encoding="utf-8").splitlines()
+                if x.strip()] if frozen and (Path(frozen) / "launches.jsonl").exists() else []
+    line = launch_line(launches, step1.get("run_dir"))
+    session = session_of(lines, step1.get("run_dir"))
+    tail = session_tail(lines, session)
+    s2_id = row.get("s2_line_id")
+    code_ok = FAULT == "u2_wall_no_code" or (line is not None and line.get("verdict_code") == 124)
+    reach = {"kafter_file_s2": row.get("kafter_file") == "S2",
+             "launcher_line_is_the_soft_wall_clock": line is not None and line.get("exit_reason") == "wall-clock"
+             and line.get("verdict") == "CLEAN" and line.get("hard_kill") is False,
+             "instrument_code_124": code_ok,
+             "session_continued_s2": session is not None and s2_id is not None and session.get("continued_from") == s2_id,
+             "no_end_line": session is not None and not any(x.get("kind") == "end" for x in tail)}
+    saves_step1 = [{k: x.get(k) for k in ("id", "parent", "play_time", "frame", "where", "why")}
+                   for x in tail if x.get("kind") == "save"]
+    pace = round(line["real_frames"] / step1["seconds"], 1) if line is not None and isinstance(line.get("real_frames"), int) \
+        and step1.get("seconds") else None
+    notes: dict = {"reach": reach, "launcher_line": line, "session": session, "s2_id": s2_id,
+                   "step1": {k: step1.get(k) for k in ("exit", "seconds", "arrival_wall", "killed", "frames",
+                                                        "wall_seconds", "target", "purity")}}
+    c = row.get("c") or {}
+    check = c.get("memory_check") or {}
+    counted = all(reach.values())
+    if row["arm"] == "U2-WALL-OLD":
+        shows = u2_old_shows(row, c, row.get("frozen_memory_sha256"), row.get("memory_sha256_after"))
+        notes.update(old=shows, memory_check={k: v for k, v in check.items() if k != "dropped"})
+        notes["mutant_ran"] = shows["mutant_ran"]
+        return {"checks": {}, "notes": notes, "counted": counted and shows["mutant_ran"], "pass": None,
+                "old_shows": all(shows.values())}
+    dropped = check.get("dropped") or {}
+    words = str(check.get("why") or "")
+    # W1: allowed (class BUDGET, ruling 53's clause); the drop: the AI's frames NOT recorded (no end line), its
+    # `host_frames` the launcher line's `real_frames` less the newest save's offset into step 1's session when that save
+    # is step 1's own, `at_end` None, the set exactly step 1's session
+    newest = max((x for x in lines if x.get("kind") == "save"), key=lambda x: x["id"], default=None)
+    own = newest is not None and any(x is newest for x in tail)
+    offset = (newest["frame"] - session["frame_base"]) if own and isinstance(session.get("frame_base"), int) else 0
+    want_host = line["real_frames"] - offset if line is not None and isinstance(line.get("real_frames"), int) else None
+    drop = {"save_is_the_newest_line": newest is not None and dropped.get("save") == newest["id"],
+            "set_is_step1s_session": [s.get("n") for s in dropped.get("sessions") or []] == [(session or {}).get("n")],
+            "ai_frames_not_recorded": "frames" in dropped and dropped.get("frames") is None,
+            "host_frames_is_the_hosts_count": want_host is not None and dropped.get("host_frames") == want_host,
+            "at_end_not_recorded": "at_end" in dropped and dropped.get("at_end") is None}
+    checks = {"W1_allowed": check.get("ok") is True and check.get("end_class") == "BUDGET" and U2_CLAUSE in words
+              and bool(dropped) and all(drop.values())}
+    notes.update(memory_check=check, W1_drop=drop, newest_save=(newest or {}).get("id"), newest_is_step1s=own,
+                 offset=offset)
+    # W2: C's arrival is the FILE's content (the probe's parser on the frozen cart, re-read here), CONTINUE, no NEW GAME,
+    # no page; C continued the save line the FILE holds, by identity
+    cart = Path(frozen) / "current_save.sav" if frozen else None
+    parse = brief(parse_image(cart.read_bytes())) if cart is not None and cart.exists() else \
+        (row.get("file_step1") or {}).get("parse")
+    loaded = (parse or {}).get("loaded") or {}
+    arrival, boot = c.get("arrival") or {}, c.get("boot") or {}
+    same = {"pids": bool(loaded) and arrival.get("pids") == loaded.get("pids"),
+            "map": bool(loaded) and arrival.get("map") == loaded.get("map"),
+            "pos": bool(loaded) and arrival.get("pos") == loaded.get("pos"),
+            "play_time_at_boot": bool(loaded) and boot.get("play_time") == loaded.get("play_time")}
+    expected = wall_expected_line(lines, parse, row.get("kafter_counter"), s2_id, c)
+    session_c = next((x for x in reversed(row.get("c_memory") or []) if x.get("kind") == "session"), None)
+    facts = continue_facts(c)
+    checks["W2_arrival"] = all(same.values()) and all(facts.values()) and session_c is not None \
+        and expected["id"] is not None and session_c.get("continued_from") == expected["id"]
+    notes.update(W2={"same": same, "expected": expected, "continued_from": (session_c or {}).get("continued_from"),
+                     "file": {"counter": (parse or {}).get("counter"), "loaded": loaded}, **facts})
+    # W3 (REPORTED, never graded): did step 1 save before the wall (the cart's counter rose), its saves and their whys;
+    # its wall pace (the host's frames a second); the launcher-start-to-arrival wall
+    notes["W3"] = {"counter_rose": (parse or {}).get("counter") is not None and row.get("kafter_counter") is not None
+                   and parse["counter"] > row["kafter_counter"], "saves_in_step1": saves_step1,
+                   "pace_frames_per_second": pace, "arrival_wall": step1.get("arrival_wall"),
+                   "real_frames": (line or {}).get("real_frames")}
+    return {"checks": checks, "notes": notes, "counted": counted, "pass": counted and all(checks.values()) if counted else None}
+
+
 # ------------------------------------------------------------------ step 7: the one verdict
 def load_row(out: Path, name: str, seed: int) -> dict | None:
     path = out / "rows" / f"{name}-{seed}.json"
@@ -2242,6 +2757,10 @@ def summary_of(name: str, row: dict | None) -> dict:
         g = grade_chain(row)
     elif name in ("R2-RETRY", "R2-RETRY-OLD"):
         g = grade_r2(row)
+    elif name in ("U2-BUDGET", "U2-BUDGET-OLD"):
+        g = grade_u2budget(row)
+    elif name in ("U2-WALL", "U2-WALL-OLD"):
+        g = grade_u2wall(row)
     else:
         g = grade(row)
     s = {"counted": g["counted"], "pass": g.get("pass"), "old_shows": g.get("old_shows"), "checks": g["checks"],
@@ -2262,6 +2781,15 @@ def summary_of(name: str, row: dict | None) -> dict:
     if not s["counted"] and "why" not in s and name in ("R2-RETRY", "R2-RETRY-OLD"):
         s["why"] = ("its reach conditions do not hold (K-AFTER's FILE S2; step 1 stopped on its arrival bound, continued "
                     f"nothing, played nothing; the CONTINUE pressed): {g['notes'].get('reach')}")
+    if name in ("U2-BUDGET-OLD", "U2-WALL-OLD") and not g["notes"].get("mutant_ran"):
+        s.update(counted=False, why="its child did not run mutant U0's copy (the launcher's sha256 differs)")
+    if not s["counted"] and "why" not in s and name in ("U2-BUDGET", "U2-BUDGET-OLD"):
+        s["why"] = ("its reach conditions do not hold (LAUNCH counted; its launcher line the budget stop with real_frames "
+                    f"== frames == {LAUNCH_FRAMES}, exit 0, code 0, CLEAN; it continued S2; its end line budget, not at a "
+                    f"save; the cart unwritten; no save after it): {g['notes'].get('reach')}")
+    if not s["counted"] and "why" not in s and name in ("U2-WALL", "U2-WALL-OLD"):
+        s["why"] = ("its reach conditions do not hold (K-AFTER's FILE S2; step 1's launcher line wall-clock, code 124, "
+                    f"CLEAN, no hard kill; it continued S2; no end line): {g['notes'].get('reach')}")
     if not s["counted"] and "why" not in s:
         s["why"] = "its reach conditions do not hold (FILE, NEW, check 7, K-SILENT's 0 sectors, or the determinism line)"
     return s
@@ -2391,6 +2919,16 @@ def discriminators(out: Path, seeds, summaries: dict) -> list[dict]:
                                   (r2old.get("memory_check") or {}).get("end_class")],
                       "both_counted": bool(get("R2-RETRY").get("counted")) and bool(get("R2-RETRY-OLD").get("counted")),
                       "differ": None not in values and values[0] != values[1]})
+        # (U2a, spec 5.4) the U2 table against the interim's (mutant U0): memory_check.ok [True, False]
+        for new, old, what in (("U2-BUDGET", "U2-BUDGET-OLD", "a real-launcher frame-budget end, not at a save"),
+                               ("U2-WALL", "U2-WALL-OLD", "a real-launcher soft wall-clock end, no end line")):
+            a, b = get(new).get("notes") or {}, get(old).get("notes") or {}
+            values = [(a.get("memory_check") or {}).get("ok"), (b.get("memory_check") or {}).get("ok")]
+            found.append({"seed": seed, "pair": f"{new} / {old} (memory_check.ok: {what})", "values": values,
+                          "classes": [(a.get("memory_check") or {}).get("end_class"),
+                                      (b.get("memory_check") or {}).get("end_class")],
+                          "both_counted": bool(get(new).get("counted")) and bool(get(old).get("counted")),
+                          "differ": None not in values and values[0] != values[1]})
     return found
 
 
@@ -2503,6 +3041,24 @@ EXPECTED = {
                 "CONTINUE, no NEW GAME, no page; R3 step 1's purity CLEAN",
     "R2-RETRY-OLD": "R2-RETRY's frozen set after step 1, step 2 from the FX3 copy: refused, class CHOSEN, the memory file "
                     "byte-identical",
+    "U2-BUDGET": f"LAUNCH's frozen-after set (its REAL launcher's '{U2_STOP_REASON}' end, not at a save), child C (REAL "
+                 "tree): B1 allowed, class BUDGET, nothing looked through, ruling 53's clause in the words, and the drop "
+                 "(ContinueCheck.dropped) exactly LAUNCH's session, host_frames = the launcher line's real_frames, at_save "
+                 "= S2's RAM play time, lost = LAUNCH's lost lines, maps = those LAUNCH's last world snapshot holds that its "
+                 "restore did not; B2 C continued S2 and arrived at S2's truth, CONTINUE, no NEW GAME, no page; B3 (the "
+                 "AI's word, a label check) C's session line repeats the drop's frames and lost",
+    "U2-BUDGET-OLD": "LAUNCH's frozen-after set, child C from mutant U0's tree (the interim table): refused, class BUDGET, "
+                     "the memory file byte-identical",
+    "U2-WALL": f"K-AFTER's frozen copy in a mirror build root; step 1 the REAL launcher --continue --frames "
+               f"{U2_WALL_FRAMES} --wall-seconds {U2_WALL_SECONDS} with target {U2_WALL_TARGET} ends on the soft wall "
+               "clock (wall-clock, code 124, CLEAN, no hard kill, no end line); step 2 child C (REAL tree): W1 allowed, "
+               "class BUDGET, ruling 53's clause, the drop's AI frames not recorded, at_end not recorded, host_frames = "
+               "the launcher line's real_frames less the newest save's offset into step 1's session; W2 C's arrival and "
+               "boot play time = the FILE's content (the probe's parser), CONTINUE, no NEW GAME, no page, and C continued "
+               "S2's line, or (the FILE's counter rose) the ONE save line whose stamp, place, tile and party are the "
+               "FILE's; W3 reported",
+    "U2-WALL-OLD": "U2-WALL's frozen set after step 1, step 2 from mutant U0's tree: refused (no end line, fail closed), "
+                   "class BUDGET, the memory file byte-identical",
 }
 COUNTING = ("an arm COUNTS on a seed when (1) its FILE equals the expectation from its own record, NEW is not empty where "
             "check 3 needs it, check 7 holds where it applies, child A reached the kill (K-SILENT: 0 new sectors at it; "
@@ -2512,7 +3068,14 @@ COUNTING = ("an arm COUNTS on a seed when (1) its FILE equals the expectation fr
             "S_k's e4 came before the kill with no START since it, the watcher's kill is that rule's, and NEW_B_pre is "
             "not empty (CHAIN-OLD and CHAIN-R1-OLD: K-SILENT counted, B killed after its "
             "first save's e4, the mutant ran); R2-RETRY and R2-RETRY-OLD when K-AFTER's FILE was S2 and step 1 stopped "
-            "on its arrival bound (the launcher's line), continued nothing, played nothing, and pressed CONTINUE")
+            "on its arrival bound (the launcher's line), continued nothing, played nothing, and pressed CONTINUE; "
+            "U2-BUDGET and U2-BUDGET-OLD when LAUNCH counted and LAUNCH's own record shows its launcher line's budget "
+            f"stop ('{U2_STOP_REASON}', exit 0, the instrument's code 0, CLEAN, no hard kill) with real_frames == frames "
+            f"== {LAUNCH_FRAMES} (the HOST's count), its session continued S2, its end line budget and not at a save, the "
+            "frozen-after cart K-AFTER's byte for byte, and no save line after its session line; U2-WALL and U2-WALL-OLD "
+            "when K-AFTER's FILE was S2 and step 1's launcher line is wall-clock with the instrument's code 124, CLEAN, "
+            "no hard kill, its session continued S2 and wrote no end line; each U2 OLD arm also when its child ran mutant "
+            "U0's copy")
 
 
 def registered_numbers(seeds: tuple[int, int] = HELD_OUT) -> dict:
@@ -2538,6 +3101,11 @@ def registered_numbers(seeds: tuple[int, int] = HELD_OUT) -> dict:
             "chain_old_kill": CHAIN_OLD_KILL, "chain_old_timeout": CHAIN_OLD_TIMEOUT,
             "chain_budget_base": CHAIN_BUDGET_BASE, "n_kill_frames": N_KILL_FRAMES, "rule_n": SaveWatch._rule_n.__doc__,
             "rule_n_replay": replay_rule_n.__doc__,
+            # (U2a, spec 5.6: every new number before the held-out registration)
+            "u2_old_edits": U2_OLD_EDITS, "u2_wall_seconds": U2_WALL_SECONDS, "u2_wall_frames": U2_WALL_FRAMES,
+            "u2_wall_target": U2_WALL_TARGET, "u2_timeout": U2_TIMEOUT, "launch_frames": LAUNCH_FRAMES,
+            "u2_stop_reason": U2_STOP_REASON, "u2_clause": U2_CLAUSE, "u2_budget_rule": grade_u2budget.__doc__,
+            "u2_wall_rule": grade_u2wall.__doc__, "u2_wall_line_rule": wall_expected_line.__doc__,
             "files": {name: file_sha256(REPO / name) for name in HASHED_FILES}}
 
 
@@ -2808,6 +3376,118 @@ def selftest(rows_dirs: list[Path]) -> dict:
     check = planted["b"]["memory_check"]
     check["why"] = str(check.get("why", "")).split(" (looked through")[0]
     case("FAULT INPUT step 2's words do not tell the look-through: R1 FAILS", grade_r2(planted)["checks"]["R1_allowed"], False)
+    # 2c. (U2a) the OLD arms' mutant is revert_r1's U0, edit for edit; LAUNCH's budget is the K arms' child B budget
+    case("the live U0 edit is revert_r1's U0, edit for edit", [tuple(e) for e in U2_OLD_EDITS],
+         [tuple(e) for e in MUTANTS["U0"][2]])
+    case("LAUNCH_FRAMES is CONTINUE_BUDGET + ARRIVAL_BUDGET + 600", LAUNCH_FRAMES, CONTINUE_BUDGET + ARRIVAL_BUDGET + 600)
+    for key in SELFTEST_ROWS["u2budget_pass"]:
+        g = grade_u2budget(need(key))
+        case(f"recorded {key}: counted and passing (B1-B3)", [g["counted"], g["pass"]], [True, True])
+    for key in SELFTEST_ROWS["u2budget_old"]:
+        g = grade_u2budget(need(key))
+        case(f"recorded {key} (U0): the mutant ran and it SHOWS the refusal (BUDGET, the file byte-identical)",
+             [g["counted"], g["notes"]["mutant_ran"], g["old_shows"]], [True, True, True])
+    for key in SELFTEST_ROWS["u2wall_pass"]:
+        g = grade_u2wall(need(key))
+        case(f"recorded {key}: counted and passing (W1-W2)", [g["counted"], g["pass"]], [True, True])
+    for key in SELFTEST_ROWS["u2wall_old"]:
+        g = grade_u2wall(need(key))
+        case(f"recorded {key} (U0): the mutant ran and it SHOWS the refusal (BUDGET, the file byte-identical)",
+             [g["counted"], g["notes"]["mutant_ran"], g["old_shows"]], [True, True, True])
+    temp = Path(tempfile.mkdtemp(prefix="live_r1_selftest_"))
+    try:
+        def planted_set(source: Path, label: str, edit_launches=None, edit_memory=None) -> str:
+            """A COPY of a frozen set with its launcher record and / or memory file edited (the recorded set unchanged)."""
+            folder = temp / f"{label}-{len(cases)}"
+            shutil.copytree(source, folder)
+            if edit_launches is not None:
+                lines = [json.loads(x) for x in (folder / "launches.jsonl").read_text(encoding="utf-8").splitlines()
+                         if x.strip()]
+                for line in lines:
+                    if line.get("kind") == "launch_end":
+                        edit_launches(line)
+                (folder / "launches.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines), encoding="utf-8")
+            if edit_memory is not None:
+                lines = memory_lines(folder / "memory.jsonl")
+                for line in lines:
+                    edit_memory(line)
+                (folder / "memory.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines), encoding="utf-8")
+            return str(folder)
+
+        # U2-BUDGET's reach: the launcher line's host count short of the budget (an early `stopped:`): NOT counted
+        key = SELFTEST_ROWS["u2budget_pass"][0]
+        row = need(key)
+        after = Path(row["launch"]["frozen_after"]["dir"])
+        planted = copy.deepcopy(row)
+        planted["launch"]["frozen_after"]["dir"] = planted_set(after, "early", edit_launches=lambda x: x.update(
+            real_frames=LAUNCH_FRAMES - 620))
+        case(f"FAULT INPUT {key}: LAUNCH's launcher line counts {LAUNCH_FRAMES - 620} real frames of {LAUNCH_FRAMES} (an "
+             "early stop): NOT counted", grade_u2budget(planted)["counted"], False)
+        # B1: the drop told for an off-by-one save (the line before S2): B1 FAILS
+        planted = copy.deepcopy(row)
+        planted["c"]["memory_check"]["dropped"]["save"] = row["launch"]["s2_line_id"] - 1
+        case(f"FAULT INPUT {key}: the drop names save {row['launch']['s2_line_id'] - 1}, not S2: B1 FAILS",
+             grade_u2budget(planted)["checks"]["B1_allowed"], False)
+        # B1: a map the restore already held, told as new: B1 FAILS
+        planted = copy.deepcopy(row)
+        restored = (session_of(memory_lines(after / "memory.jsonl"), row["launch"]["launch"]["run_dir"]) or {}).get(
+            "restored_maps") or ["0:0"]
+        planted["c"]["memory_check"]["dropped"]["maps"] = list(planted["c"]["memory_check"]["dropped"].get("maps") or []) \
+            + ["MAP_ALREADY_RESTORED_" + restored[0]]
+        case(f"FAULT INPUT {key}: the drop names a map LAUNCH's world file does not hold as new: B1 FAILS",
+             grade_u2budget(planted)["checks"]["B1_allowed"], False)
+        # B1: the drop's host count is the AI's record (its end line moved 50 frames on; host_frames told from it): FAILS
+        planted = copy.deepcopy(row)
+        launch_run = row["launch"]["launch"]["run_dir"]
+        sessions = [x for x in memory_lines(after / "memory.jsonl") if x.get("kind") == "session"
+                    and x.get("run_dir") == launch_run]
+        n = sessions[-1]["n"] if sessions else None
+        planted["launch"]["frozen_after"]["dir"] = planted_set(after, "selfcount", edit_memory=lambda x: x.update(
+            frame=x["frame"] + 50) if x.get("kind") == "end" and x.get("session") == n else None)
+        ai = grade_u2budget(planted)["notes"]["ai_frames"]
+        planted["c"]["memory_check"]["dropped"]["host_frames"] = ai
+        case(f"FAULT INPUT {key}: the drop's host_frames is the AI's end-line count ({ai}), not the launcher line's "
+             f"real_frames: B1 FAILS", grade_u2budget(planted)["checks"]["B1_allowed"], False)
+        # B3: C's session line tells a different drop (the AI's word): B3 FAILS
+        planted = copy.deepcopy(row)
+        for line in planted["c_memory"]:
+            if line.get("kind") == "session" and isinstance(line.get("dropped"), dict):
+                line["dropped"] = {**line["dropped"], "lost": (line["dropped"].get("lost") or 0) + 1}
+        case(f"FAULT INPUT {key}: C's session line tells one more battle lost than the drop: B3 FAILS",
+             grade_u2budget(planted)["checks"]["B3_ai_word"], False)
+        # U2-WALL's reach: the launcher line's wall-clock with the instrument's code 0 (the brain's text): NOT counted
+        key = SELFTEST_ROWS["u2wall_pass"][0]
+        row = need(key)
+        step1 = Path(row["frozen_step1"]["dir"])
+        planted = copy.deepcopy(row)
+        planted["frozen_step1"]["dir"] = planted_set(step1, "code0", edit_launches=lambda x: x.update(verdict_code=0))
+        case(f"FAULT INPUT {key}: step 1's wall-clock line carries the instrument's code 0 (the brain's text): NOT "
+             "counted", grade_u2wall(planted)["counted"], False)
+        # W1: the drop told for an off-by-one save, and a host count one frame off: W1 FAILS (each)
+        planted = copy.deepcopy(row)
+        planted["c"]["memory_check"]["dropped"]["save"] = planted["c"]["memory_check"]["dropped"]["save"] - 1
+        case(f"FAULT INPUT {key}: the drop names the save line before the newest: W1 FAILS",
+             grade_u2wall(planted)["checks"]["W1_allowed"], False)
+        planted = copy.deepcopy(row)
+        planted["c"]["memory_check"]["dropped"]["host_frames"] = (planted["c"]["memory_check"]["dropped"].get(
+            "host_frames") or 0) + 1
+        case(f"FAULT INPUT {key}: the drop's host_frames one frame off the launcher line's count: W1 FAILS",
+             grade_u2wall(planted)["checks"]["W1_allowed"], False)
+        # W2: the save line C continued keeps its stamp but its tile is not the FILE's: the identity match finds no line
+        # (the stamp alone would still find it). Where step 1 saved nothing onto the cart, K-AFTER's counter is planted
+        # one lower so the rule reads the FILE's own save line (S2's) by identity
+        planted = copy.deepcopy(row)
+        clean = grade_u2wall(row)["notes"]["W2"]["expected"]
+        if clean["rule"].startswith("the FILE's counter is K-AFTER's"):
+            planted["kafter_counter"] = row["kafter_counter"] - 1
+        wanted = clean["id"]
+        planted["frozen_step1"]["dir"] = planted_set(step1, "tile", edit_memory=lambda x: x.update(
+            where={**x["where"], "tile": [x["where"]["tile"][0] + 1, x["where"]["tile"][1]]})
+            if x.get("kind") == "save" and x.get("id") == wanted else None)
+        case(f"FAULT INPUT {key}: the FILE's save line (id {wanted}) keeps its stamp but its tile is one off: W2 FAILS "
+             "(identity, not the stamp alone)", grade_u2wall(planted)["checks"]["W2_arrival"], False)
+    finally:
+        shutil.rmtree(temp, ignore_errors=True)
     # 3. the verdict rule on planted summaries (4 seeds)
     seeds = (1, 2, 3, 4)
 
@@ -2985,7 +3665,9 @@ def cmd_grade(args) -> int:
     for path in args.rows:
         row = json.loads(Path(path).read_text(encoding="utf-8"))
         grader = grade_control if row["arm"] == "CONTROL" else grade_launch if row["arm"].startswith("LAUNCH") else \
-            grade_chain if row["arm"].startswith("CHAIN") else grade_r2 if row["arm"].startswith("R2-RETRY") else grade
+            grade_chain if row["arm"].startswith("CHAIN") else grade_r2 if row["arm"].startswith("R2-RETRY") else \
+            grade_u2budget if row["arm"].startswith("U2-BUDGET") else grade_u2wall if row["arm"].startswith("U2-WALL") \
+            else grade
         row["grade"] = grader(row)
         print("GRADE " + json.dumps({"arm": row["arm"], "seed": row["seed"], **row["grade"]}, ensure_ascii=False))
     return 0
@@ -3024,6 +3706,16 @@ def main() -> int:
     p.add_argument("--old", choices=("CHAIN-OLD", "CHAIN-R1-OLD"))
     p.add_argument("--build-root")
     p = sub.add_parser("r2", help="R2-RETRY on a K-AFTER row (or --old: R2-RETRY-OLD on an R2-RETRY row)")
+    p.add_argument("--from-row", required=True)
+    p.add_argument("--out", required=True)
+    p.add_argument("--old", action="store_true")
+    p.add_argument("--build-root")
+    p = sub.add_parser("u2budget", help="U2-BUDGET on a LAUNCH row (or --old: U2-BUDGET-OLD on the same LAUNCH row)")
+    p.add_argument("--from-row", required=True)
+    p.add_argument("--out", required=True)
+    p.add_argument("--old", action="store_true")
+    p.add_argument("--build-root")
+    p = sub.add_parser("u2wall", help="U2-WALL on a K-AFTER row (or --old: U2-WALL-OLD on a U2-WALL row)")
     p.add_argument("--from-row", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--old", action="store_true")
@@ -3085,6 +3777,10 @@ def main() -> int:
         return cmd_chain(args)
     if args.cmd == "r2":
         return cmd_r2(args)
+    if args.cmd == "u2budget":
+        return cmd_u2budget(args)
+    if args.cmd == "u2wall":
+        return cmd_u2wall(args)
     if args.cmd == "verdict":
         return cmd_verdict(args)
     if args.cmd == "ledger":

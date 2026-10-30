@@ -821,15 +821,68 @@ its latest save); re-run independently on 5561-5564 (#59), after the review's fi
 independently on 5581-5584 (#61). Evidence: `evidence/2026-10-29-r1f-HELDOUT.txt`, `-RERUN.txt`, `-FIXROUND.txt`,
 `-VERIFY.txt`.
 
+U2a (USER RULING 53's U2, its first part; spec 2026-10-30, the orchestrator's scope cut: BUILT; the graded held-out
+round #63 PASSED, its independent re-run #64 AGREED, and the review's fix round #65 PASSED; caveats in "Proof so
+far"). WHY: a person who switches the game off without saving goes back to the last save, so a session that
+ended on its TIME OR FRAME LIMIT may be continued from its last save, and every such continue tells what it drops.
+* THE CONTINUE RULE (`host/launcher.py` `_classify_session`, spec D1-D4). A BUDGET end is now ALLOWED, end line or not:
+  the brain's `play: stopped:` (its frame budget) and the host's soft `wall-clock`. Judged by the HOST's record, as
+  defence in depth: a `play: stopped:` counts only when the instrument's own `real_frames` reached the `frames` the
+  launcher gave (`_ran_out`; both now in the `launch_end` line), else it is the AI's own choice, CHOSEN (D2); a host
+  reason (`crash`, `wall-clock`, ...) counts only with its host exit code from the instrument's record (`verdict_code`,
+  or the verdict file's `facts.exit_code`; `_HOST_CODES`, pinned by a unit test to every `lifecycle.finish` of the host),
+  else it is the brain's text and NOT CLEAN (D3); a BUDGET end needs a CLEAN verdict (D3b); a hard kill WITH a verdict
+  is judged by its verdict (D3a), and so is a Ctrl+C on the launcher that lands after the child wrote its verdict (the
+  fix round's F1: a `reset-refused` stays NOT CLEAN; only an interrupt with no verdict, or the host's own `interrupted`
+  verdict, is INVOLUNTARY); the D3 pin reads `finish` calls in keyword form too and walks the whole module (F3); a
+  launcher line naming the session's run folder decides whatever the AI-written
+  session line says about `host` (D4). The launcher's hard kill with NO verdict is a stuck run, a kill: ruling 53's "(not
+  a crash and not a kill)" keeps it at the interim rule (allowed only right after a save). CHOSEN, NOT CLEAN (permanent),
+  UNKNOWN and KILLED are unchanged. A `launches.jsonl` line written before U2 (no counts) reads as before.
+* WHAT A CONTINUE DROPS (spec D13). `game_memory.py` `MemoryBook.dropped_after` counts over ONE set of sessions (those
+  from the latest continue of the save, or the save's own session from the save on, with every session after them): the
+  frames each played by its own `end` line ("not recorded" when it has none: a wall-clock end writes none), the play
+  time at the save and at the newest session's end, and the battles undone. The `end` line now carries its last look's
+  `play_time` and `where`, for the launcher only. The launcher (`memory_check` -> `ContinueCheck.dropped`, printed by
+  `cmd_run` through `drop_words`) adds the HOST's frame count per session (`real_frames`) and the maps first stood on in
+  the dropped play (`dropped_maps`, from each session's `world.jsonl`: the AI's own record; "not known" without one). The
+  AI's own continue line and its session line's `dropped` tell the frames and the battles only: never a play time or a
+  map (D19, ruling 40). Measured: on all 128 recorded REAL-tree launcher rows, the AI's `end.frame - frame_base` equals the
+  host's `real_frames` exactly.
+* RV-7 (D16): the purity gate also refuses a `raise` or an `assert` reached from a `finally` in the play loop (a try
+  nested in the `finally` is no shelter). RV-5 (D15): fairness rule D3 (d) no longer refuses `case int(n)`: a
+  self-matching builtin with ONE positional sub-pattern, its name bound nowhere in the module by any binding form, and
+  `builtins` touched by no AI-side module. Every other positional class pattern stays refused.
+* Proof so far: unit FAULT and CONTROL halves in `gates/test_saving.py` (`LauncherContinueTests`, `MemoryFileTests`,
+  `ContinueSkillTests`), `test_goals.py` (`R1PlayTests`), `test_check_purity.py` (X21-X24) and `test_safety_gates.py`;
+  `gates/revert_r1.py` mutants U0-U12, U4b, U4c, HM1, D1m-D6m, S40h, S40i, S46g-S46k and the census's U2C01-U2C07
+  (F008, F014, F016 and F017 re-anchored). The live arms are in `gates/live_r1.py` (`u2budget`, `u2wall`, each with
+  `--old` on mutant U0). Development #62 (5601-5606, never graded); then the GRADED held-out round #63 (5651-5654)
+  PASSED (`evidence/2026-10-30-u2a-HELDOUT.txt`), its independent re-run #64 (5661-5664) AGREED
+  (`2026-10-30-u2a-RERUN.txt`), and the review's fix round #65 (5671-5674, after F1 changed the launcher) PASSED
+  (`2026-10-30-u2a-FIXROUND.txt`): every arm met the floor of 3 of 4, 42 of 44 discriminators differ, U2-BUDGET and
+  U2-WALL passed 4 of 4 in each round and their OLD twins showed the refusal 4 of 4. CAVEATS, carried: CHAIN counted 3
+  of 4 in each round (its fourth seed's child B reached `ch1_pokedex` before rule N: the known shape); W2's branch
+  where the FILE's counter does not rise never ran live (selftest plants only); the HOST drop sentence printed live only
+  in its "not counted" form (every real-launcher continue followed a harness kill: the counted form is unit-proven and
+  rendered from live `ContinueCheck.dropped`); F1's row (a Ctrl+C after the verdict) is unit-proven only.
+  RV-3 re-set CHAIN's budgets from #57-#62 (`CHAIN_B_FRAMES` 242,294, 461 s; `CHAIN_OLD_FRAMES` 145,938, 323 s).
+  Not in U2a: the time save before the limit (its two stages, the cut, the wall-pace knowledge: U2b, redesigned against
+  measured play).
+
 KNOWN LIMITS (`06` 2026-10-30): the restored `last_save` has never been exercised live (no continued run met a save
 moment within 3 game minutes of its save; unit-proven); the gym-leader save is unit-tested only; FX5's guard is
 unit-proven only; a save's stamp is to the minute, so two saves in one game minute would make the save C continues
-ambiguous (never seen). Next, U2's build (USER RULING 53): a session ended by its time or frame limit may be continued
-from its last save, and the AI saves before its frame budget runs out; until then a continue follows only an end right
-after a save. With it: RV-3 (CHAIN's budgets were measured at 6 parallel jobs and are graded at 12), RV-5 (fairness rule
-D3 (d) refuses `case int(n)`, which reads nothing) and RV-7 (the purity gate does not refuse a `raise` in a `finally`).
-`live_step5`'s next run is a re-baseline: every launcher run now saves. The builds:
-`PROJECT KNOWLEDGE/ai-research-notes/2026-10-29-R1R2-BUILD-REPORT.md` and `2026-10-29-R1F-BUILD-REPORT.md`.
+ambiguous (never seen). (U2a) The host-record rules are DEFENCE IN DEPTH, not a seal: a brain that wanted a reload could
+still raise (a real `crash`, INVOLUNTARY: R1 + R2's accepted limit) or idle until its frame budget or the soft wall clock
+genuinely runs out; each such route costs the whole remaining session, never nothing, and no AI code does any of it. A
+brain that blocks without frames reaches only the hard kill, which stays refused unless right after a save. A `crash` or
+other INVOLUNTARY host end whose verdict is not CLEAN stays continuable (D3b covers BUDGET ends only). The harness's
+BUDGET row rests on its end line (the test host has no lifecycle). No time save exists yet (U2b), so a session ended by
+its limit loses the play since its last save, which the continue tells. Open after U2a (`06` 2026-10-30): its verification's
+V1-V3 (MINOR, in the host-record layer). `live_step5`'s next run is a re-baseline: every launcher run now
+saves. The builds: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-29-R1R2-BUILD-REPORT.md` and
+`2026-10-29-R1F-BUILD-REPORT.md` and `2026-10-30-U2A-BUILD-REPORT.md`.
 
 ## The save/kill probe (backlog R1 + R2's prerequisite, 2026-10-29)
 

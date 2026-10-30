@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "0d97b729aa3ef239b1368ab72c0b1c7d4d7a7a77",
+ "source_sha1_lf": "9a12737afd8ec7cac94e5e09ca0e284d41e5767a",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 353,
+  "sections": 354,
   "donot_candidates": 29,
-  "sections_naming_user_rulings": 48
+  "sections_naming_user_rulings": 49
  },
  "sections": [
   {
@@ -5515,6 +5515,21 @@
    "line_end": 9925,
    "title": "2026-10-30 — R1 + R2's FOLLOW-UP BUILT: the build's decisions (two STOPs ruled on, the CHAIN kill rule, what was deferred to U2's build)",
    "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-30-cc5521",
+   "date": "2026-10-30",
+   "line_start": 9927,
+   "line_end": 9933,
+   "title": "2026-10-30 — U2a BUILT: a session ended by its time or frame limit may be continued (USER RULING 53), judged by the host's own record, and every continue tells what it drops; the time save is U2b",
+   "rulings": [
+    53
+   ],
    "ruling_mentions": [],
    "slugs": [],
    "ki": [],

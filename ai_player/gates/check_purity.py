@@ -76,6 +76,8 @@ RULES
     nested in it, or define `__exit__`/`__aexit__`. Each discards, swallows or holds back an exit in flight without
     naming any exit class: a `return` in a `finally` drops the exception being raised, a `yield` there hands the caller
     a frame after the exit began, and an `__exit__` or an `ExitStack` callback that returns True swallows it.
+    (U2 spec 2026-10-30 D16, RV-7) Nor may they reach a `raise` or an `assert` from a `finally` body (the same scope
+    rule; a `try` nested in the `finally` is no shelter): a raise there, or a failing assert, REPLACES the exit in flight.
 (c) SIDES. The play loop may not import the test side (`ai_player.gates`) or the launcher side,
     the launcher side may not import the framework, and the brain (`mode.py`) may not import the
     host side (`ai_player.host`).
@@ -1232,7 +1234,8 @@ class _FileScanner(ast.NodeVisitor):
 
     def _check_finally(self, node: ast.AST, in_loop: bool) -> None:
         """A `return`, `yield`, `yield from` or `await` reached from a `finally` body (not through a nested scope), and a
-        `break` or `continue` reached the same way outside a loop nested in it, discard or hold back the exit in flight."""
+        `break` or `continue` reached the same way outside a loop nested in it, discard or hold back the exit in flight;
+        a `raise` or an `assert` reached the same way replaces it (U2 spec D16)."""
         if isinstance(node, FINALLY_SCOPES):
             return
         if isinstance(node, ast.Return) or (isinstance(node, (ast.Break, ast.Continue)) and not in_loop):
@@ -1240,6 +1243,11 @@ class _FileScanner(ast.NodeVisitor):
         if isinstance(node, (ast.Yield, ast.YieldFrom, ast.Await)):
             self._fail_exit(node, "a `yield` or `await` in a `finally` holds back the exit in flight (its caller gets "
                             "a frame after the end began)")
+        if isinstance(node, (ast.Raise, ast.Assert)):
+            # U2 spec 2026-10-30 D16 (RV-7): a raise (or a failing assert, which raises AssertionError) reached from a
+            # `finally` body REPLACES the exit in flight, exactly as a `return` discards it; a try nested in the
+            # `finally` is no shelter (its handlers and body are reached from the `finally` too)
+            self._fail_exit(node, "a `raise` (or a failing `assert`) in a `finally` replaces the exit in flight")
         if isinstance(node, FINALLY_LOOPS):
             # the loop's own body owns its break/continue; its `else`, target, iterable and test do not
             for child in node.body:

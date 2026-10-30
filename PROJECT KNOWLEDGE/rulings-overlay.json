@@ -482,6 +482,12 @@
    "reason": "06 USER RULING 53: \"⛔ Do not re-ask U1, U2 or the reset question.\"",
    "status": "ACTIVE",
    "topics": "save saving big moments BIG_MOMENTS continue time limit frame budget wall clock BUDGET reset soft reset NOT CLEAN worktree R1 R2 follow-up"
+  },
+  "2026-10-30-cc5521": {
+   "title": "2026-10-30 — U2a BUILT: a session ended by its time or frame limit may be continued (USER RULING 53), judged by the host's own record, and every continue tells what it drops; the time save is U2b",
+   "application_of": "2026-10-29-2afa57",
+   "reason": "06 2026-10-30 \"U2a BUILT\": builds USER RULING 53's U2 (a time- or frame-limit end may be continued, every continue tells what it drops); the time save before the limit is deferred to U2b by the orchestrator's scope cut.",
+   "status": "ACTIVE"
   }
  }
 }

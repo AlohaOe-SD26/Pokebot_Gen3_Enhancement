@@ -15,11 +15,13 @@ report FR2/FR5) is why the TIME, and not the error page, decides.
 THE FILE (schema 1, `SCHEMA_VERSION`; one JSON object per line, append-only, never rewritten):
     header   {"kind", "schema_version", "game", "identity"}: written with the FIRST save line (no save, no file)
     session  {"kind", "n", "started", "how", "host", "run_dir", "cart", "frame_base", "continued_from", "page",
-              "verified", "restored_maps", "losses"}: at a session's first save, a continue's restore, or a STOP
+              "verified", "restored_maps", "losses"}: at a session's first save, a continue's restore, or a STOP; (U2 spec
+              D13) a continue's line also `dropped` {"frames" (None: not recorded), "lost"}: what it told it drops
     save     {"kind", "id", "parent", "full", "play_time", "frame", "where", "party", "why", "memory"}
     saved    {"kind", "id", "frame"}: the SAVED page was read (nothing depends on it)
     lost     {"kind", "frame", "play_time", "where", "after_save"}: a battle lost (D12 (e))
-    end      {"kind", "session", "reason", "chosen", "budget", "at_save", "frame", "stopped_before_restore"}
+    end      {"kind", "session", "reason", "chosen", "budget", "at_save", "frame", "stopped_before_restore", "play_time",
+              "where"} (the last two since U2, D13: the last look's, for the launcher's drop sentence)
     torn    {"kind", "length"}: written by the next session before its first line, when the file ended in a line a kill
              cut short; it names that line's length, so the line it acknowledges is skipped and no OTHER broken line is
 CODE OVER SPEC (the builder's notes, said where): the spec's codec tags are `__set__` / `__tuple__` / `__dict__`; a
@@ -48,6 +50,11 @@ that PID: evolution keeps the PID), where and when it was first seen in the part
 
 FRAMES (D7): in a continue run the brain's frames are the emulator's plus `MemoryBook.frame_base()`, 1 + the largest
 frame stamp in the file, so every carried stamp stays in the past after a cold boot (the emulator's counter starts at 0).
+(U2 spec 2026-10-30 1.4, corrected) The stamps are NOT monotonic across sessions in every case: only `save`, `saved`,
+`lost` and `end` lines carry a frame, and a session ended by the soft wall clock or a hard kill writes no `end` line, so
+its last stamp can be its save's own and the next session's base lands inside the frames it played. A count of the
+frames a continue drops is therefore built PER SESSION from that session's own `end` line (`MemoryBook.dropped_after`;
+"not recorded" without one), and the launcher adds the HOST's own count (`host/launcher.py` memory_check).
 """
 
 from __future__ import annotations
@@ -473,7 +480,8 @@ def restore(book: "MemoryBook", save_id: int) -> Restored:
                     losses=int(payload.get("losses") or 0))
 
 
-def end_line(session: int, reason: str, at_save: bool, frame: int, stopped_before_restore: bool = False) -> dict:
+def end_line(session: int, reason: str, at_save: bool, frame: int, stopped_before_restore: bool = False,
+             look=None) -> dict:
     """The `end` line (D12 (a)): `chosen` = the AI ended the run (`done:` or `stuck:`), `budget` = the frame budget
     ended it (`stopped:`), `at_save` = the last thing the run did was a successful save. `reason` is the play brain's
     outcome, with or without the `play: ` its end line puts in front.
@@ -481,12 +489,19 @@ def end_line(session: int, reason: str, at_save: bool, frame: int, stopped_befor
     (`ContinueResult.may_retry`) before it restored or played anything. Such an end is NOT chosen: it changed nothing a
     later continue could undo, and the launcher looks through it to the session before (`host/launcher.py`
     judge_end). The spec's own stops (the save gone, a TIME it does not remember, an arrival that differs) stay
-    chosen."""
+    chosen.
+    (U2 spec 2026-10-30 D13) `play_time` and `where` of the run's LAST look (`look`; None without one): written for the
+    launcher's drop sentence (`host/launcher.py` memory_check), which says from which play time to which a continue
+    drops; the AI never reads them back (D19: a continued game's memory is its save's). A line without them (schema 1,
+    written before U2) still reads."""
     text = reason[len("play: "):] if reason.startswith("play: ") else reason
     held = bool(stopped_before_restore) and text.startswith("stuck:")
-    return {"kind": "end", "session": int(session), "reason": reason,
+    line = {"kind": "end", "session": int(session), "reason": reason,
             "chosen": text.startswith(("done:", "stuck:")) and not held, "budget": text.startswith("stopped:"),
             "at_save": bool(at_save), "frame": int(frame), "stopped_before_restore": held}
+    line["play_time"] = _stamp_of(look) if look is not None else None
+    line["where"] = where_of(look) if look is not None else None
+    return line
 
 
 # ------------------------------------------------------------------ reading
@@ -629,6 +644,45 @@ class MemoryBook:
         if at is None:
             return None
         return [event[1] for event in events[at + 1:] if event[0] == "lost"]
+
+    def dropped_after(self, save_id: int) -> dict | None:
+        """(U2 spec 2026-10-30 D13) What a continue from save `save_id` DROPS, over ONE set of sessions: the sessions from
+        the LATEST one that continued this save, or (when nothing has continued it yet) the save's own session from the
+        save on, with every session after them. These are the events THIS continue undoes; earlier drops were told by
+        earlier continues. Frames, battles and (launcher-side) maps are all counted over this set; `lost` is
+        `undone_losses`, which walks the same live history. Returns None when the save is not in the live history, else
+        `{"save", "sessions": [{"n", "run_dir", "own", "since", "frames"}], "frames", "at_save", "at_end", "lost"}`:
+        a session's `frames` is its own `end` line's frame minus its `since` (its `frame_base`; for the save's own
+        session the save's frame), None ("not recorded") when it has NO end line, never derived from a later session's
+        stamps; `frames` is their sum (None if any is not recorded); `at_save` the save's play time and `at_end` the
+        play time of the NEWEST session's own end line (None without one). The AI may read `frames` and `lost` only: a
+        play time or a place of the dropped play is not what a person who switched off remembers (D19, ruling 40)."""
+        undone = self.undone_losses(save_id)
+        if undone is None:
+            return None
+        save = self.save(save_id)
+        at = next(i for i, line in enumerate(self.lines) if line is save)
+        sessions = [(i, line) for i, line in enumerate(self.lines) if line["kind"] == "session"]
+        continued = [i for i, line in sessions if i > at and line.get("how") == "continue"
+                     and line.get("continued_from") == save_id]
+        own = next((line for i, line in reversed(sessions) if i < at), None)
+        if continued:
+            chosen = [line for i, line in sessions if i >= continued[-1]]
+        else:
+            chosen = ([own] if own is not None else []) + [line for i, line in sessions if i > at]
+        entries = []
+        for session in chosen:
+            end = self.end_of(session["n"])
+            since = save["frame"] if session is own else session.get("frame_base")
+            frames = None if end is None or not isinstance(since, int) else int(end["frame"]) - since
+            entries.append({"n": session["n"], "run_dir": session.get("run_dir"), "own": session is own, "since": since,
+                            "frames": frames})
+        newest_end = self.end_of(chosen[-1]["n"]) if chosen else None
+        counted = [entry["frames"] for entry in entries]
+        return {"save": save_id, "sessions": entries,
+                "frames": sum(counted) if entries and None not in counted else None,
+                "at_save": list(save["play_time"]), "at_end": newest_end.get("play_time") if newest_end else None,
+                "lost": len(undone)}
 
 
 def read_book(path) -> MemoryBook | None:
@@ -820,5 +874,6 @@ class MemoryWriter:
         return self._line({"kind": "lost", "frame": int(look.frame), "play_time": _stamp_of(look), "where": where_of(look),
                            "after_save": self.parent})
 
-    def write_end(self, reason: str, at_save: bool, frame: int, stopped_before_restore: bool = False) -> bool | None:
-        return self._line(end_line(self.session["n"], reason, at_save, frame, stopped_before_restore))
+    def write_end(self, reason: str, at_save: bool, frame: int, stopped_before_restore: bool = False,
+                  look=None) -> bool | None:
+        return self._line(end_line(self.session["n"], reason, at_save, frame, stopped_before_restore, look))

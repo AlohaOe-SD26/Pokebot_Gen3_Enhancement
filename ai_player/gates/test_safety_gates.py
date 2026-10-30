@@ -482,7 +482,10 @@ class FairnessTests(Scratch):
         follow-up, spec D3) FAULT: the review's F2 (subscript), F3 (`asdict`), F7 (`.get`), F8 (match class keyword), F9
         (`astuple`), F11 (match mapping), a named constant, `attrgetter` and F12 (a positional class pattern, refused as
         RULE C and A even inside a door); CONTROL: a dict display's key, a docstring, an f-string's text, and inside a door
-        the subscript and `case Progress(play_time=t)`."""
+        the subscript and `case Progress(play_time=t)`. (U2 spec 2026-10-30 D15, RV-5) FAULT: `int` rebound by an
+        assignment, a parameter, `case ... as int`, `except ... as int` or `import builtins` (here or in another module of
+        the package), and `case int(a, b)` / `case int(n, real=1)`, keep `case int(...)` refused (mutants S46g, S46h);
+        CONTROL: `case int(n)`, `case str(s)` and `case tuple(t)` pass, and so does the real package."""
         for source in ("def errand(look):\n    return look.progress.play_time[0] > 2\n",
                        "def errand(look):\n    return getattr(look.progress, 'play_time')\n"):
             with self.subTest(source=source):
@@ -514,6 +517,49 @@ class FairnessTests(Scratch):
                 found = self.scan(positional, rel=rel)
                 self.assertTrue([f for f in found if f.startswith("C ") and "POSITION" in f], found)
                 self.assertTrue([f for f in found if f.startswith("A ") and "POSITION" in f], found)
+        # (U2 spec 2026-10-30 D15, RV-5) FAULT: a builtin's NAME rebound by any binding form makes `case int(t)` read a
+        # class's first field (measured: `case type() as int` then `case int(t)` returns Progress's first field,
+        # `s53/u2/review_proof/probe_matchas.out`), and a builtin pattern with two sub-patterns or a keyword is no
+        # self-match: each stays refused as C and A (S46g removes the rebinding check; S46h collects `ast.Name` only)
+        rebound = {
+            "int = Progress": "from ai_player.eyes.observation import Progress\nint = Progress\n\n\ndef errand(look):\n"
+                              "    match look.progress:\n        case int(t):\n            return t\n",
+            "def f(int)": "def errand(look, int):\n    match look.progress:\n        case int(t):\n            return t\n",
+            "case type() as int": "def errand(look):\n    match type(look.progress):\n        case type() as int:\n"
+                                  "            pass\n    match look.progress:\n        case int(t):\n            return t\n",
+            "except E as int": "def errand(look, step):\n    try:\n        step()\n    except ValueError as int:\n"
+                               "        pass\n    match look.progress:\n        case int(t):\n            return t\n",
+            "import builtins": "import builtins\n\n\ndef errand(look):\n    match look.progress:\n        case int(t):\n"
+                               "            return t\n",
+            "case int(a, b)": "def errand(look):\n    match look.progress:\n        case int(a, b):\n            return a\n",
+            "case int(x=1)": "def errand(look):\n    match look.progress:\n        case int(n, real=1):\n            return n\n",
+        }
+        for label, source in rebound.items():
+            with self.subTest(rebound=label):
+                found = self.scan(source, rel="brain/goals.py")
+                self.assertTrue([f for f in found if f.startswith("C ") and "POSITION" in f], found)
+                self.assertTrue([f for f in found if f.startswith("A ") and "POSITION" in f], found)
+        # CONTROL: a self-matching builtin with ONE sub-pattern, its name the builtin's, reads nothing and passes
+        for builtin in ("int", "str", "tuple"):
+            with self.subTest(self_match=builtin):
+                source = f"def errand(x):\n    match x:\n        case {builtin}(v):\n            return v\n    return None\n"
+                self.assertEqual(self.scan(source, rel="brain/goals.py"), [])
+        # FAULT (package-wide): `builtins.int = ...` in ANY AI-side module rebinds it for every module
+        self.assertTrue([f for f in check_fairness.scan_file("brain/goals.py", "def errand(x):\n    match x:\n"
+                                                             "        case int(v):\n            return v\n",
+                                                             self.flag_names, self.dev, self.hidden, self.names,
+                                                             builtins_shared=True) if "POSITION" in f])
+        package = self.root / "pkg_rv5"
+        shutil.copytree(REPO / "ai_player", package, ignore=shutil.ignore_patterns("__pycache__", "evidence", "fixtures",
+                                                                                   "gates"))
+        (package / "brain" / "plant_rv5.py").write_text("def errand(x):\n    match x:\n        case int(v):\n"
+                                                        "            return v\n    return None\n", encoding="utf-8")
+        ok, problems, _ = check_fairness.check(package)
+        self.assertTrue(ok, problems)  # CONTROL: the self-match alone, in a real package copy, passes
+        (package / "world" / "plant_builtins.py").write_text("import builtins\n\nbuiltins.int = object\n", encoding="utf-8")
+        ok, problems, _ = check_fairness.check(package)
+        self.assertFalse(ok)  # FAULT: another module rebinds the builtin for every module
+        self.assertTrue(any("plant_rv5.py" in p and "POSITION" in p for p in problems), problems)
         mentions = ('"""It never reads look.progress.play_time."""\n# progress.play_time\n\n\n'
                     "class Clock:\n    def __init__(self):\n        self.play_time = None\n\n"
                     "    def read(self):\n        return self.play_time\n\n\n"

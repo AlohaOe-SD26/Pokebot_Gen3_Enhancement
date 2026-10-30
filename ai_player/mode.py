@@ -505,6 +505,8 @@ class HandsBrain:
                                     session=self._session("continue", "continued", continued_from=record["id"],
                                                           page=result.page, verified=result.arrival,
                                                           restored_maps=restored.restored_maps, losses=restored.losses))
+        # (U2 spec D13) the session line says what this continue told it drops: frames (None: not recorded) and battles
+        self._writer.session["dropped"] = result.dropped
         written = self._writer.write_session()
         self._start_world(hands, self._choices, personality.name, restored.world)
         self._save_world(f"restored from save {record['id']}")
@@ -655,7 +657,8 @@ class HandsBrain:
         if writer is None:
             return
         at_save = self._at_save_presses is not None and hands.pad.presses == self._at_save_presses
-        if writer.write_end(outcome, at_save, last.frame, self._continue_may_retry) is False:
+        # (U2 spec D13) the last look's play time and place go into the end line, for the launcher's drop sentence only
+        if writer.write_end(outcome, at_save, last.frame, self._continue_may_retry, look=last) is False:
             hands.tell("[AI-SAVE] the memory file's end line did not reach the file")
         for problem in writer.problems:
             hands.tell(f"[AI-SAVE] memory file: {problem}")

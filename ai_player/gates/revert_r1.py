@@ -86,7 +86,9 @@ MUTANTS: dict[str, tuple] = {
               "    return EndJudgement(\"CHOSEN\", \"MUTANT S33\", False)\n")],
             [LCT + "test_the_end_classes"], ("test_saving",)),
     "S34": (CAUGHT, "the launcher's `launch_end` line not written (finding M2)",
-            [(MAIN, "        record_launch(game, run_dir, result, read_verdict(run_dir))\n", "        pass  # MUTANT S34\n")],
+            # (U2 spec section 6) re-anchored on the call with its `frames` (D2); the same rule broken, the same test
+            [(MAIN, "        record_launch(game, run_dir, result, read_verdict(run_dir), frames=args.frames)\n",
+              "        pass  # MUTANT S34\n")],
             [LCT + "test_every_run_gets_the_memory_path_and_the_cart"], ("test_saving",)),
     "S35": (CAUGHT, "`AI_PLAYER_WORLD` accepted by the launcher in continue mode (finding m4)",
             [(MAIN, "            if os.environ.get(ENV_WORLD, \"\").strip():\n", "            if False:  # MUTANT S35\n")],
@@ -132,6 +134,15 @@ MUTANTS: dict[str, tuple] = {
              ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
     "S40g": (CAUGHT, "N-1: a `yield`, `yield from` or `await` in a `finally` allowed in the play loop",
              [(PURITY, "        if isinstance(node, (ast.Yield, ast.YieldFrom, ast.Await)):\n", "        if False:  # MUTANT S40g\n")],
+             ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
+    # ---------------------------------------------------------------- U2 (spec 2026-10-30 section 6; U2a scope)
+    "S40h": (CAUGHT, "U2 D16 (RV-7): a `raise` in a `finally` allowed in the play loop (the Raise rule off)",
+             [(PURITY, "        if isinstance(node, (ast.Raise, ast.Assert)):\n",
+               "        if isinstance(node, (ast.Assert,)):  # MUTANT S40h\n")],
+             ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
+    "S40i": (CAUGHT, "U2 D16 (RV-7): an `assert` in a `finally` allowed in the play loop (the Assert rule off)",
+             [(PURITY, "        if isinstance(node, (ast.Raise, ast.Assert)):\n",
+               "        if isinstance(node, (ast.Raise,)):  # MUTANT S40i\n")],
              ["PlayLoopExitTests.test_the_play_loop_cannot_exit"], (PURITY_TEST,)),
     "L11": (CAUGHT, "N-1 (D2): a refused reset or erase combination never latches the controller",
             [(CONTROLLER, "            self._refused = message\n", "            pass  # MUTANT L11\n")],
@@ -284,7 +295,31 @@ MUTANTS: dict[str, tuple] = {
                "            if False:  # MUTANT S46e\n")],
              ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
     "S46f": (CAUGHT, "N-2 (D3 (d)): a class pattern with positional sub-patterns allowed in deciding code",
-             [(FAIRNESS, "            if isinstance(node, ast.MatchClass) and node.patterns:\n", "            if False:  # MUTANT S46f\n")],
+             [(FAIRNESS, "            if isinstance(node, ast.MatchClass) and node.patterns and not _self_match(node, bound, "
+                         "builtins_touched):\n", "            if False:  # MUTANT S46f\n")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    # (U2 spec 2026-10-30 D15, RV-5) the self-matching builtin's exception, each of its conditions broken; S46i-S46k are the
+    # builder's own (the `builtins` conditions and the one-sub-pattern / no-keyword conditions, each a guard of D15)
+    "S46g": (CAUGHT, "U2 D15 (RV-5): the self-match exception ignores a REBOUND builtin name (`int = Progress`)",
+             [(FAIRNESS, "and not node.kwd_patterns and node.cls.id not in bound and not builtins_touched)\n",
+               "and not node.kwd_patterns and not builtins_touched)  # MUTANT S46g\n")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    "S46h": (CAUGHT, "U2 D15 (RV-5): the binding pre-pass collects `ast.Name` stores only (`case type() as int` passes)",
+             [(FAIRNESS, "        bound.update(_other_bindings(node))\n", "        pass  # MUTANT S46h\n")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    "S46i": (CAUGHT, "U2 D15 (RV-5): a module that imports `builtins` keeps the self-match exception",
+             [(FAIRNESS, "    builtins_touched = builtins_shared or _touches_builtins(tree)\n",
+               "    builtins_touched = builtins_shared  # MUTANT S46i\n")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    "S46j": (CAUGHT, "U2 D15 (RV-5): `builtins.int = X` in ANOTHER module of the package not seen by `check`",
+             [(FAIRNESS, "                              builtins_shared=bool(shared))\n",
+               "                              builtins_shared=False)  # MUTANT S46j\n")],
+             ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
+    "S46k": (CAUGHT, "U2 D15 (RV-5): the self-match exception takes any number of sub-patterns and keywords",
+             [(FAIRNESS, "    return (isinstance(node.cls, ast.Name) and node.cls.id in SELF_MATCHING_BUILTINS and len(node.patterns) == 1\n"
+                         "            and not node.kwd_patterns ",
+               "    return (isinstance(node.cls, ast.Name) and node.cls.id in SELF_MATCHING_BUILTINS  # MUTANT S46k\n"
+               "            and True ")],
              ["FairnessTests.test_the_play_time_is_read_only_through_its_doors"], (FAIRNESS_TEST,)),
     # ---------------------------------------------------------------- the launcher's other guards (this stage's own)
     "L1": (CAUGHT, "a NEWER launches.jsonl accepted",
@@ -321,10 +356,116 @@ MUTANTS: dict[str, tuple] = {
            [(LAUNCHER, "    if newest is None:\n        return ContinueCheck(False, \"the memory file holds no save line",
              "    if False:  # MUTANT L9\n        return ContinueCheck(False, \"the memory file holds no save line")],
            [LCT + "test_continue_refused_without_memory"], ("test_saving",)),
-    "L10": (CAUGHT, "a CHOSEN or BUDGET end with no `end` line allowed (fail open)",
+    # (U2 spec section 6, a RULE CHANGE) the no-end-line refusal now holds for CHOSEN (and a BUDGET end whose launcher line
+    # carries no verdict word, the interim's), never for a verified BUDGET end; the anchor is unchanged (it is that refusal)
+    "L10": (CAUGHT, "a CHOSEN end with no `end` line allowed (fail open)",
             [(LAUNCHER, "    if end is None:\n        return (kind, f\"session {session['n']} ended '{reason}' with no end line",
               "    if False:  # MUTANT L10\n        return (kind, f\"session {session['n']} ended '{reason}' with no end line")],
             [LCT + "test_the_end_classes"], ("test_saving",)),
+    # ---------------------------------------------------------------- U2 (spec 2026-10-30 section 6, U2a): the launcher table
+    "U0": (CAUGHT, "U2: every frame-budget and soft-wall row back to the interim (`at_save` only; refused with no end line); "
+                   "also the live U2-BUDGET-OLD and U2-WALL-OLD trees",
+           [(LAUNCHER, "        allowed = kind == \"INVOLUNTARY\" or kind == \"BUDGET\" or at_save\n",
+             "        allowed = kind == \"INVOLUNTARY\" or at_save  # MUTANT U0\n"),
+            (LAUNCHER, "    if kind == \"BUDGET\" and clean is not None:\n",
+             "    if kind == \"BUDGET\" and False:  # MUTANT U0\n")],
+           [LCT + "test_the_end_classes"], ("test_saving",)),
+    "U1": (CAUGHT, "U2: the harness BUDGET row back to `at_save`",
+           [(LAUNCHER, "        allowed = kind == \"INVOLUNTARY\" or kind == \"BUDGET\" or at_save\n",
+             "        allowed = kind == \"INVOLUNTARY\" or at_save  # MUTANT U1\n")],
+           [LCT + "test_the_end_classes"], ("test_saving",)),
+    "U2a": (CAUGHT, "U2: the verified `stopped` row back to `at_save`",
+            [(LAUNCHER, "    if kind == \"BUDGET\" and clean is not None:\n",
+              "    if kind == \"BUDGET\" and clean is not None and reason == \"wall-clock\":  # MUTANT U2a\n")],
+            [LCT + "test_the_end_classes"], ("test_saving",)),
+    "U3": (CAUGHT, "U2: `wall-clock` with no end line refused again",
+           [(LAUNCHER, "    if kind == \"BUDGET\" and clean is not None:\n",
+             "    if kind == \"BUDGET\" and clean is not None and (end is not None or reason != \"wall-clock\"):  # MUTANT U3\n")],
+           [LCT + "test_the_end_classes"], ("test_saving",)),
+    "U4": (CAUGHT, "U2: the launcher's hard kill with no verdict allowed always (the rejected design)",
+           [(LAUNCHER, "f\"a kill (USER RULING 53: not a time limit; continued only right after a save)\", at_save,\n",
+             "f\"a kill (USER RULING 53: not a time limit; continued only right after a save)\", True,  # MUTANT U4\n")],
+           [LCT + "test_the_end_classes"], ("test_saving",)),
+    "U4b": (CAUGHT, "U2 D3a: the hard-kill row before the verdict (HEAD's order)",
+            [(LAUNCHER, "        if line.get(\"hard_kill\") and line.get(\"exit_reason\") is None:\n",
+              "        if line.get(\"hard_kill\"):  # MUTANT U4b\n")],
+            [LCT + "test_a_hard_kill_is_judged_by_its_verdict_first"], ("test_saving",)),
+    "U4c": (CAUGHT, "U2a fix round F1: the interrupted row before the verdict (the pre-fix order)",
+            [(LAUNCHER, "        if line.get(\"interrupted\") and line.get(\"exit_reason\") in (None, \"interrupted\", "
+                        "\"interrupted-unresponsive\"):\n",
+              "        if line.get(\"interrupted\"):  # MUTANT U4c\n")],
+            [LCT + "test_an_interrupt_is_judged_by_its_verdict_first"], ("test_saving",)),
+    # (U2a fix round F3) a NEW host end in KEYWORD form, every existing end kept: the pre-fix pin skipped the call and its
+    # set-equality check still held, so only the keyword-aware pin catches it (a RE-CODED existing end is caught either
+    # way, by the set check, so it would not discriminate the fix)
+    "U12": (CAUGHT, "U2a fix round F3: a new host end added in KEYWORD form (`finish(\"new-end\", code=EXIT_PARKED)`), "
+                    "outside both launcher tables",
+            [(SESSION, "            self.lifecycle.finish(\"frame-budget\", EXIT_FRAME_BUDGET)\n",
+              "            self.lifecycle.finish(\"frame-budget\", EXIT_FRAME_BUDGET)\n"
+              "        if self.frames_seen < 0:  # MUTANT U12\n"
+              "            self.lifecycle.finish(\"new-end\", code=EXIT_PARKED)\n")],
+            [LCT + "test_the_host_codes_match_the_host"], ("test_saving",)),
+    "U5": (CAUGHT, "U2 D2: `_ran_out` always True (a `play: stopped:` believed from the AI's own word)",
+           [(LAUNCHER, "    frames = (line or {}).get(\"frames\")\n    real = (line or {}).get(\"real_frames\")\n",
+             "    return True  # MUTANT U5\n")],
+           [LCT + "test_a_stop_before_the_budget_is_the_ais_own_choice"], ("test_saving",)),
+    "U6": (CAUGHT, "U2 D3: the host-code check skipped (the brain's text `crash`/`wall-clock` believed)",
+           [(LAUNCHER, "    if reason in _HOST_CODES and code != _HOST_CODES[reason]:\n", "    if False:  # MUTANT U6\n")],
+           [LCT + "test_a_host_reason_needs_its_host_code"], ("test_saving",)),
+    "U7": (CAUGHT, "U2 D2: `record_launch` omits the four fields (frames, real_frames, verdict, verdict_code)",
+           [(LAUNCHER, "            \"frames\": frames if verdict is not None else None,\n"
+                       "            \"real_frames\": counters.get(\"real_frames\") if verdict is not None else None,\n"
+                       "            \"verdict\": verdict.get(\"verdict\") if verdict is not None else None,\n"
+                       "            \"verdict_code\": facts.get(\"exit_code\") if verdict is not None else None,\n", "")],
+           [LCT + "test_the_launch_line_carries_the_counts"], ("test_saving",)),
+    "U8": (CAUGHT, "U2 D2: `_ran_out` uses `>` (a stop at exactly its budget read as early)",
+           [(LAUNCHER, "    return frames > 0 and real >= frames\n", "    return frames > 0 and real > frames  # MUTANT U8\n")],
+           [LCT + "test_a_stop_before_the_budget_is_the_ais_own_choice"], ("test_saving",)),
+    "U9": (CAUGHT, "U2 D3: the code judged by the PROCESS `exit_code`, not the instrument's `verdict_code`",
+           [(LAUNCHER, "        code = line.get(\"verdict_code\") if line.get(\"verdict_code\") is not None else process\n",
+             "        code = process  # MUTANT U9\n")],
+           [LCT + "test_a_host_reason_needs_its_host_code"], ("test_saving",)),
+    "U10": (CAUGHT, "U2 D3b: a BUDGET end's CLEAN check skipped (a BREACH wall-clock continued)",
+            [(LAUNCHER, "        if clean != \"CLEAN\":\n", "        if False:  # MUTANT U10\n")],
+            [LCT + "test_a_budget_end_needs_a_clean_verdict"], ("test_saving",)),
+    "U11": (CAUGHT, "U2 D4: the harness branch chosen by the AI-written session `host` first",
+            [(LAUNCHER, "    if line is None and session.get(\"host\") == \"harness\":\n",
+              "    if session.get(\"host\") == \"harness\":  # MUTANT U11\n")],
+            [LCT + "test_a_launcher_run_is_judged_by_its_line_whatever_host_says"], ("test_saving",)),
+    # ---------------------------------------------------------------- U2 (spec 2026-10-30 section 6, U2a): what a continue drops
+    "D1m": (CAUGHT, "U2 D13: `dropped_after` reports 0 (the latest stamp) for a session with no end line",
+            [("game_memory.py", "            frames = None if end is None or not isinstance(since, int) else "
+                                "int(end[\"frame\"]) - since\n",
+              "            frames = 0 if end is None or not isinstance(since, int) else int(end[\"frame\"]) - since  "
+              "# MUTANT D1m\n")],
+            ["MemoryFileTests.test_u2_dropped_after"], ("test_saving",)),
+    "D2m": (CAUGHT, "U2 D13: `dropped_maps` drops the `first_frame` filter (maps known before the save named as dropped)",
+            [(LAUNCHER, "            if (first > since) if entry.get(\"own\") else (first >= since):\n",
+              "            if True:  # MUTANT D2m\n")],
+            [LCT + "test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save"], ("test_saving",)),
+    "HM1": (CAUGHT, "U2a fix round F2: `_host_frames` takes each session's frames from the AI's own end line, not the "
+                    "launcher line's `real_frames` (the host's count)",
+            [(LAUNCHER, "        per.append(real - (entry[\"since\"] - base) if entry.get(\"own\") else real)\n",
+              "        per.append(entry[\"frames\"])  # MUTANT HM1\n")],
+            [LCT + "test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save"], ("test_saving",)),
+    "D3m": (CAUGHT, "U2 D13: `end_line` without `play_time` / `where`",
+            [("game_memory.py", "    line[\"play_time\"] = _stamp_of(look) if look is not None else None\n"
+                                "    line[\"where\"] = where_of(look) if look is not None else None\n", "")],
+            ["MemoryFileTests.test_the_end_line_says_chosen_budget_and_at_save"], ("test_saving",)),
+    "D4m": (CAUGHT, "U2 D13: the continued session line's `dropped` not written",
+            [("mode.py", "        self._writer.session[\"dropped\"] = result.dropped\n", "        pass  # MUTANT D4m\n")],
+            ["R1PlayTests.test_u2_the_ais_continue_tells_the_drop_and_no_map"], ("test_goals",)),
+    "D5m": (CAUGHT, "U2 D13: `at_end` from the newest end line in the FILE, not the newest dropped session's",
+            [("game_memory.py", "        newest_end = self.end_of(chosen[-1][\"n\"]) if chosen else None\n",
+              "        newest_end = next((line for line in reversed(self.lines) if line[\"kind\"] == \"end\"), None)  "
+              "# MUTANT D5m\n")],
+            ["MemoryFileTests.test_u2_dropped_after"], ("test_saving",)),
+    "D6m": (CAUGHT, "U2 D13: the drop set is cumulative (every session after the save, not after its latest continue)",
+            [("game_memory.py", "        if continued:\n            chosen = [line for i, line in sessions if i >= "
+                                "continued[-1]]\n",
+              "        if False:  # MUTANT D6m\n            chosen = [line for i, line in sessions if i >= "
+              "continued[-1]]\n")],
+            ["MemoryFileTests.test_u2_dropped_after"], ("test_saving",)),
     # ---------------------------------------------------------------- the fix round (the adversarial review's R-1, R-2, R-4)
     "FX1": (CAUGHT, "R-1: a save's memory line built from the policy's state BEFORE the save (the save not in it)",
             [("mode.py", "        goals = goals_part(replace(manager.memory, **saving))\n",

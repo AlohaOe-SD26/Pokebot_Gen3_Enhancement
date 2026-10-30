@@ -38,7 +38,11 @@ of anything but `self`/`cls`; `getattr`/`hasattr` with the constant name; the co
 (a subscript, a `.get`, a match-mapping key, a named constant, `attrgetter`'s argument) but a dict display's key; a match
 class pattern's keyword `play_time=`; and a whole-object copy (`asdict`, `astuple`). And in ALL deciding code, doors
 included, a class pattern with POSITIONAL sub-patterns (`case Progress(_, ..., t)`) is refused as RULE C and RULE A both: it
-reads fields by position through `__match_args__`. THE TWO-GATE COVER: `vars(...)` and a `getattr` with a non-constant name
+reads fields by position through `__match_args__`. (U2 spec 2026-10-30 D15, RV-5) The one exception reads nothing: a
+self-matching builtin (`SELF_MATCHING_BUILTINS`: `case int(n)`, `case str(s)`) with exactly ONE positional sub-pattern and
+no keyword, where the module binds that name NOWHERE by any binding form (an assignment or `del`, a parameter, a def or
+class name, an import alias, a match capture `as`/`*`/`**`, `except ... as`, `global`/`nonlocal`, a walrus, a type
+parameter) and no AI-side module touches `builtins` (an import, the string, `__builtins__`). THE TWO-GATE COVER: `vars(...)` and a `getattr` with a non-constant name
 are not judged here because the PURITY gate's rule (d) already refuses them in the whole AI package (`check_purity.py`
 REFLECTION_NAMES, and getattr only as `getattr(obj, 'constant name')`); the launcher runs that gate before every launch.
 
@@ -340,6 +344,75 @@ def _call_name(node: ast.Call) -> str | None:
     return None
 
 
+#: (U2 spec 2026-10-30 D15, RV-5) the builtins whose class pattern with ONE positional sub-pattern matches the SUBJECT
+#: itself (`case int(n)` binds n to the subject, by CPython's `Py_TPFLAGS_` self-matching rule): it reads no field
+#: through `__match_args__`, so D3 (d) does not refuse it while the name is the builtin's
+SELF_MATCHING_BUILTINS = frozenset({"bool", "bytearray", "bytes", "dict", "float", "frozenset", "int", "list", "set", "str",
+                                    "tuple"})
+_TYPE_PARAMS = tuple(getattr(ast, name) for name in ("TypeVar", "ParamSpec", "TypeVarTuple") if hasattr(ast, name))
+
+
+def _other_bindings(node: ast.AST) -> list[str]:
+    """(D15) The names a node binds by a form that is NOT an `ast.Name` store: a parameter (`*args`/`**kw` and a lambda's
+    included), a def or class name, an import alias, a match capture (`case ... as n`, `*rest`, `**rest`), an `except ...
+    as n`, a `global`/`nonlocal` declaration, and a type parameter. (A walrus target is an `ast.Name` store.)"""
+    if isinstance(node, ast.arg):
+        return [node.arg]
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return [node.name]
+    if isinstance(node, ast.alias):
+        return [(node.asname or node.name).split(".")[0]]
+    if isinstance(node, (ast.MatchAs, ast.MatchStar)):
+        return [node.name] if node.name else []
+    if isinstance(node, ast.MatchMapping):
+        return [node.rest] if node.rest else []
+    if isinstance(node, ast.ExceptHandler):
+        return [node.name] if node.name else []
+    if isinstance(node, (ast.Global, ast.Nonlocal)):
+        return list(node.names)
+    if _TYPE_PARAMS and isinstance(node, _TYPE_PARAMS):
+        return [node.name]
+    return []
+
+
+def _bound_names(tree: ast.AST) -> set[str]:
+    """(D15) Every name the module binds ANYWHERE, by every binding form: a builtin's name bound here (`int = Progress`,
+    `def f(int)`, `case type() as int`, `except E as int`, ...) is no longer the builtin, so its class pattern may read a
+    class's first field."""
+    bound: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bound.add(node.id)
+        bound.update(_other_bindings(node))
+    return bound
+
+
+def _touches_builtins(tree: ast.AST) -> bool:
+    """(D15) Does the module import the `builtins` module, or name it (as a string or `__builtins__`)? `builtins.int =
+    Progress` rebinds the builtin for EVERY module, so such a module (and, through `check`, any package holding one) gets
+    no self-matching exception."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(a.name.split(".")[0] == "builtins" for a in node.names):
+            return True
+        if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "builtins":
+            return True
+        if isinstance(node, ast.Name) and node.id == "__builtins__":
+            return True
+        if isinstance(node, ast.Attribute) and node.attr == "__builtins__":
+            return True
+        if isinstance(node, ast.Constant) and node.value in ("builtins", "__builtins__"):
+            return True
+    return False
+
+
+def _self_match(node: ast.MatchClass, bound: set[str], builtins_touched: bool) -> bool:
+    """(U2 spec D15, RV-5) `case int(n)`: a self-matching builtin's bare name, exactly ONE positional sub-pattern and no
+    keyword, the name bound nowhere in the module, and `builtins` untouched: it matches the subject itself and reads
+    nothing. Every other positional class pattern stays refused."""
+    return (isinstance(node.cls, ast.Name) and node.cls.id in SELF_MATCHING_BUILTINS and len(node.patterns) == 1
+            and not node.kwd_patterns and node.cls.id not in bound and not builtins_touched)
+
+
 def files_of(package: Path, parts) -> list[Path]:
     out: list[Path] = []
     for part in parts:
@@ -361,11 +434,15 @@ def time_door(rel: str, qualname: str) -> tuple[str, str] | None:
 
 
 def scan_file(rel: str, source: str, flag_names: set[str], dev_keys: set[str], hid_keys: set[str],
-              knowledge_files: set[str], used: set | None = None) -> list[str]:
-    """The rule breaches of one file (relative POSIX path `rel` in the package); `used` collects the doors read through."""
+              knowledge_files: set[str], used: set | None = None, builtins_shared: bool = False) -> list[str]:
+    """The rule breaches of one file (relative POSIX path `rel` in the package); `used` collects the doors read through.
+    `builtins_shared`: another module of the package touches `builtins` (`check` says so), so no D3 (d) exception."""
     tree = ast.parse(source)
     owner = _owners(tree)
     skipped = _skipped_strings(tree)
+    # (U2 spec D15) the names this module binds anywhere, and whether `builtins` is touched (here or in the package)
+    bound = _bound_names(tree)
+    builtins_touched = builtins_shared or _touches_builtins(tree)
     deciding = rel in DECIDING or rel.split("/")[0] in DECIDING
     loader = rel in LOADERS
     doors = {(f, q, w) for f, q, w, _ in FLAG_DOORS}
@@ -433,10 +510,11 @@ def scan_file(rel: str, source: str, flag_names: set[str], dev_keys: set[str], h
                     used.add(("time", door[0], door[1]))
             # (R1 + R2 follow-up, spec D3 (d)) a class pattern with POSITIONAL sub-patterns reads the class's fields by
             # position through `__match_args__` (Progress's play_time, flags and marks among them): refused in ALL
-            # deciding code, doors included, as RULE C and RULE A both
-            if isinstance(node, ast.MatchClass) and node.patterns:
+            # deciding code, doors included, as RULE C and RULE A both. (U2 spec 2026-10-30 D15, RV-5) Except a
+            # self-matching builtin's `case int(n)` (one sub-pattern, the name bound nowhere): it reads nothing
+            if isinstance(node, ast.MatchClass) and node.patterns and not _self_match(node, bound, builtins_touched):
                 out.append(f"C  {where(node)}: matches a class by POSITION: it reads its fields through __match_args__ "
-                           f"(the play time, the flags and the marks among them); name the attributes")
+                           f"(on Progress: the play time, the flags and the marks); name the attributes")
                 out.append(f"A  {where(node)}: matches a class by POSITION: it reads its fields through __match_args__ "
                            f"(the flags and the marks among them); name the attributes")
             if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in skipped \
@@ -483,10 +561,16 @@ def check(package: Path = PACKAGE) -> tuple[bool, list[str], str]:
     names = {p.name for p in knowledge.glob("*.json")}
     scanned = 0
     used: set[tuple[str, str, str]] = set()
+    # (U2 spec D15) `builtins.int = X` in ANY AI-side module rebinds the builtin for every module: the package's
+    # self-matching exception then holds nowhere (the test side, `gates/`, never runs in the AI's process)
+    shared = sorted(p.relative_to(package).as_posix() for p in package.rglob("*.py")
+                    if not {"__pycache__", "gates", "evidence"} & set(p.relative_to(package).parts)
+                    and _touches_builtins(ast.parse(p.read_text(encoding="utf-8"))))
     for path in sorted(set(files_of(package, (*DECIDING, *LOADERS)))):
         rel = path.relative_to(package).as_posix()
         scanned += 1
-        problems += scan_file(rel, path.read_text(encoding="utf-8"), flag_names, dev_keys, hid_keys, names, used)
+        problems += scan_file(rel, path.read_text(encoding="utf-8"), flag_names, dev_keys, hid_keys, names, used,
+                              builtins_shared=bool(shared))
     # a door no read goes through any more is STALE: it would let a new read into that function silently
     for file, qualname, what, _ in FLAG_DOORS:
         if (file, qualname, what) not in used:

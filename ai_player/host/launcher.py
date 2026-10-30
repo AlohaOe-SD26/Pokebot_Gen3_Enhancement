@@ -72,6 +72,8 @@ __all__ = [
     "bot_command",
     "check_package_resolution",
     "child_env",
+    "drop_words",
+    "dropped_maps",
     "ensure_profile",
     "force_http_off",
     "hook_path",
@@ -255,19 +257,36 @@ def seed_profile(profile_dir: Path, state: Path | None, fresh: bool, continue_ga
 LAUNCHES_SCHEMA = 1
 #: (D12 (a)) how the newest session of a memory file ended -> may it be continued. KILLED: no verdict and no launcher line
 #: (the operator, the OS, a power cut). INVOLUNTARY: the process ended without the AI choosing it. CHOSEN: the AI ended the
-#: run (`play: done:` / `play: stuck:`). BUDGET: the frame budget or the wall clock (interim, pending the user's U2). NOT
-#: CLEAN: a purity or framework end, and (R1 + R2 follow-up, spec D2) `reset-refused`: the controller refused a reset or
-#: erase combination (USER RULING 52), so the reset it blocked must never get its reload. NOT CLEAN is permanent for that
-#: game (only `--fresh`). UNKNOWN: the session's run folder is gone and no launcher line names it.
+#: run (`play: done:` / `play: stuck:`, and (U2 D2) a `play: stopped:` the host's count cannot show ran out its budget).
+#: BUDGET: the session's time or frame limit: the brain's frame budget (`play: stopped:`, believed only when the HOST's
+#: own frame count reached the budget the launcher gave) and the HOST's soft wall clock (`wall-clock`, code 124). (U2,
+#: USER RULING 53, spec 2026-10-30 D1) a BUDGET end may be continued from the last save, like a person who switches off
+#: without saving, when its verdict is CLEAN (D3b); the LAUNCHER's hard kill with no verdict is a stuck run, and ruling 53's
+#: "(not a crash and not a kill)" keeps it at the interim rule (allowed only right after a save). A host end reason counts
+#: only with its HOST exit code (`_HOST_CODES`, D3): the brain's own text never borrows one. NOT CLEAN: a purity or
+#: framework end, and (R1 + R2 follow-up, spec D2) `reset-refused`: the controller refused a reset or erase combination
+#: (USER RULING 52), so the reset it blocked must never get its reload. NOT CLEAN is permanent for that game (only
+#: `--fresh`). UNKNOWN: the session's run folder is gone and no launcher line names it.
 END_CLASSES = ("KILLED", "INVOLUNTARY", "CHOSEN", "BUDGET", "NOT CLEAN", "UNKNOWN")
 _INVOLUNTARY = ("crash", "frame-budget", "parked-manual", "abandoned", "interrupted", "interrupted-unresponsive")
+#: (U2 spec D3) the host's own end reasons and the exit code each is finished with (`host/lifecycle.py` EXIT_*, every
+#: `lifecycle.finish` of `host/session.py` and `host/lifecycle.py`; pinned by `test_the_host_codes_match_the_host`). A
+#: brain that RETURNS one of these words ends with code 0 (`give_up`), so the word alone proves nothing.
+_HOST_CODES = {"crash": 2, "frame-budget": 4, "parked-manual": 3, "abandoned": 3, "interrupted": 130,
+               "interrupted-unresponsive": 130, "wall-clock": 124}
+#: (U2 spec D3) the host's other end reasons: each is NOT CLEAN whatever its code (the pin maps every host end to one set)
+_HOST_NOT_CLEAN = ("stray-exit", "brain-returned", "isolation-lost", "mode-restarted", "refused-debug-mode",
+                   "refused-http-server", "reset-refused")
+#: (U2) every allowed BUDGET judgement says why
+_RULING_53 = "(USER RULING 53: a session ended by its time or frame limit may be continued from its last save)"
 
 
 @dataclass(frozen=True)
 class ContinueCheck:
     """What `memory_check` found: `ok` (a continue may start), `why` (the sentence it prints), the newest save line, how
     the newest session ended (`END_CLASSES`), the battles lost after the newest save (D12 (e)) and (R1 + R2 follow-up,
-    spec D5) how many continues that stopped before restoring anything the judgement looked through."""
+    spec D5) how many continues that stopped before restoring anything the judgement looked through, and (U2 spec D13)
+    what the continue DROPS (`dropped`: `MemoryBook.dropped_after` plus the host's counts and the maps, or None)."""
 
     ok: bool
     why: str
@@ -275,6 +294,7 @@ class ContinueCheck:
     end_class: str | None = None
     undone: int = 0
     looked_through: int = 0
+    dropped: dict | None = None
 
 
 def read_launches(path: Path) -> list[dict]:
@@ -306,15 +326,25 @@ def read_launches(path: Path) -> list[dict]:
     return out
 
 
-def record_launch(game: AppPaths, run_dir: Path, result: ChildResult, verdict: dict | None) -> dict:
+def record_launch(game: AppPaths, run_dir: Path, result: ChildResult, verdict: dict | None,
+                  frames: int | None = None) -> dict:
     """(D20) Append how this child ended to the game's `launches.jsonl` (its header first, for a new file): the exit
     code, whether the LAUNCHER hard-killed it at its wall clock, whether Ctrl+C interrupted it, and the verdict file's
     `exit_reason` (None: the child left no verdict). If the launcher itself is killed it writes nothing, which reads as
-    KILLED, as it should."""
+    KILLED, as it should. (U2 spec D2, D3, D3b) Also the HOST's record the judgement needs: `frames` (the `--frames` the
+    launcher gave the child), the instrument's `real_frames` (its own frame count, which AI code cannot write), the
+    `verdict` and the instrument's `verdict_code` (the code `lifecycle.finish` wrote; the process's `exit_code` can differ
+    when a second thread finishes). Each is None without a verdict. The schema stays 1: the fields are additive, and a
+    line without them reads as an unverifiable record (the interim's rule)."""
     facts = (verdict or {}).get("facts") or {}
+    counters = (verdict or {}).get("counters") or {}
     line = {"kind": "launch_end", "run_dir": str(run_dir), "exit_code": int(result.exit_code),
             "hard_kill": bool(result.killed and not result.interrupted), "interrupted": bool(result.interrupted),
             "exit_reason": facts.get("exit_reason") if verdict is not None else None,
+            "frames": frames if verdict is not None else None,
+            "real_frames": counters.get("real_frames") if verdict is not None else None,
+            "verdict": verdict.get("verdict") if verdict is not None else None,
+            "verdict_code": facts.get("exit_code") if verdict is not None else None,
             "ended": time.strftime("%Y-%m-%dT%H:%M:%S")}
     path = game.launches_jsonl
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -355,9 +385,12 @@ def judge_end(book: MemoryBook, launches: list[dict]) -> EndJudgement:
     """(D12 (a)) How the NEWEST session of the memory file ended: (class, in words, may it be continued). From three
     records, in this order of trust: the LAUNCHER's own line for the session's `run_dir` (`launches.jsonl`), else the
     run's verdict file (`purity.json`, written only by `lifecycle.finish`: an external kill leaves none), and the AI's own
-    `end` line, which adds only whether the end came right after a save (`at_save`). A harness session (no lifecycle) is
-    judged by its `end` line alone. CHOSEN and BUDGET are refused unless `at_save`, and refused with no `end` line (fail
-    closed); a run folder that is gone with no launcher line is UNKNOWN (refused: a kill cannot be told from a choice).
+    `end` line, which adds only whether the end came right after a save (`at_save`). A harness session (no lifecycle, and
+    no launcher line names its run folder) is judged by its `end` line alone. CHOSEN is refused unless `at_save`, and
+    refused with no `end` line (fail closed). (U2, USER RULING 53, spec 2026-10-30 D1) A BUDGET end (the frame budget by
+    the host's count, the soft wall clock with its host code) with a CLEAN verdict is ALLOWED, end line or not; the
+    launcher's hard kill with no verdict keeps the interim rule (`at_save`). A run folder that is gone with no launcher line
+    is UNKNOWN (refused: a kill cannot be told from a choice).
     (R1 fix round, review R-2) A CHOSEN end of a continue that STOPPED BEFORE IT RESTORED ANYTHING (a bound or a failed
     read, `_stopped_before_restore`) is looked THROUGH: the session before it decides, since that continue changed nothing
     a later one could undo. Without this a timeout made the game impossible ever to continue again.
@@ -413,52 +446,104 @@ def _stopped_before_restore(book: MemoryBook, session: dict, reason: str | None)
     return not any(line["kind"] in ("save", "lost") for line in book.lines[at + 1:])
 
 
+def _ran_out(line: dict | None) -> bool:
+    """(U2 spec D2) Did the session's frame budget really run out, by the HOST's count? The launcher's line holds the
+    `frames` it gave the child and the instrument's `real_frames` (which AI code cannot write, gate rule f): both ints and
+    `real_frames >= frames`. A line without them (a 417df790 launcher's) cannot show it: False."""
+    frames = (line or {}).get("frames")
+    real = (line or {}).get("real_frames")
+    if not all(isinstance(value, int) and not isinstance(value, bool) for value in (frames, real)):
+        return False
+    return frames > 0 and real >= frames
+
+
+def _verdict_word(run_dir: str | None) -> str | None:
+    """The run's verdict word (`purity.json` `verdict`), or None when there is no readable verdict file."""
+    verdict = read_verdict(Path(run_dir)) if run_dir and Path(run_dir).is_dir() else None
+    return verdict.get("verdict") if isinstance(verdict, dict) else None
+
+
 def _classify_session(book: MemoryBook, session: dict, launches: list[dict]) -> tuple[str, str, bool, str | None]:
-    """How session `session` ended (`judge_end`'s table, one session), and the reason it was judged by."""
+    """How session `session` ended (`judge_end`'s table, one session), and the reason it was judged by. (U2 spec
+    2026-10-30 D1-D4) Judged by the HOST's record: a launcher line naming the session's `run_dir` decides whatever the
+    AI-written session line says about `host` (D4); a hard kill WITH a verdict is judged by its verdict (D3a); a host end
+    reason counts only with its host exit code, from the instrument's record (D3); `play: stopped:` is BUDGET only when the
+    host's frame count reached its budget (D2); a BUDGET end needs a CLEAN verdict (D3b) and is then allowed (ruling 53)."""
     end = book.end_of(session["n"])
     at_save = bool(end is not None and end.get("at_save"))
     after = " right after a save" if at_save else ""
-    if session.get("host") == "harness":
+    run_dir = session.get("run_dir")
+    line = next((item for item in reversed(launches) if item.get("run_dir") == run_dir), None) if run_dir else None
+    if line is None and session.get("host") == "harness":
         if end is None:
             return "KILLED", f"harness session {session['n']} has no end line: it was killed", True, None
         # a continue stopped before its restore is judged as the chosen end it is, then looked through (judge_end)
         chosen = end.get("chosen") or end.get("stopped_before_restore")
         kind = "CHOSEN" if chosen else "BUDGET" if end.get("budget") else "INVOLUNTARY"
-        allowed = kind == "INVOLUNTARY" or at_save
-        return kind, f"harness session {session['n']} ended '{end.get('reason')}'{after}", allowed, end.get("reason")
-    run_dir = session.get("run_dir")
-    line = next((item for item in reversed(launches) if item.get("run_dir") == run_dir), None) if run_dir else None
+        allowed = kind == "INVOLUNTARY" or kind == "BUDGET" or at_save
+        limit = f" {_RULING_53}" if kind == "BUDGET" else ""
+        return (kind, f"harness session {session['n']} ended '{end.get('reason')}'{after}{limit}", allowed,
+                end.get("reason"))
+    process = None
+    ran_out = False
     if line is not None:
-        if line.get("interrupted"):
+        # (U2a fix round, F1: D3a's rule for its sibling row) a child may finish and then linger up to
+        # EXIT_WATCHDOG_SECONDS; a Ctrl+C in that window kills a process whose verdict is already written, so an
+        # interrupted line WITH a verdict of its own is judged by that verdict (a `reset-refused` stays NOT CLEAN)
+        if line.get("interrupted") and line.get("exit_reason") in (None, "interrupted", "interrupted-unresponsive"):
             return "INVOLUNTARY", f"session {session['n']} was interrupted (Ctrl+C reached the launcher)", True, None
-        if line.get("hard_kill"):
-            return ("BUDGET", f"session {session['n']} was killed by the launcher at its wall clock{after}", at_save,
+        if line.get("hard_kill") and line.get("exit_reason") is None:
+            return ("BUDGET", f"session {session['n']} was killed by the launcher at its wall clock{after}: a stuck run, "
+                              f"a kill (USER RULING 53: not a time limit; continued only right after a save)", at_save,
                     None)
         reason = line.get("exit_reason")
+        process = line.get("exit_code")
+        code = line.get("verdict_code") if line.get("verdict_code") is not None else process
+        clean = line.get("verdict") if line.get("verdict") is not None else _verdict_word(run_dir)
+        ran_out = _ran_out(line)
     elif run_dir and Path(run_dir).is_dir():
         verdict = read_verdict(Path(run_dir))
         reason = ((verdict or {}).get("facts") or {}).get("exit_reason") if verdict is not None else None
         if verdict is None:
             return ("KILLED", f"session {session['n']} left no verdict file and no launcher line: killed from outside",
                     True, None)
+        code = (verdict.get("facts") or {}).get("exit_code")
+        clean = verdict.get("verdict")
     else:
         return ("UNKNOWN", f"session {session['n']}'s run folder {run_dir} is gone and no launcher line names it: a kill "
                            f"cannot be told from a chosen end", False, None)
     if reason is None:
         return "KILLED", f"session {session['n']}'s child left no verdict: killed from outside", True, None
     reason = str(reason)
+    told = (f" (the process exited {process}; the instrument recorded {code})"
+            if process is not None and code is not None and process != code else "")
+    if reason in _HOST_CODES and code != _HOST_CODES[reason]:
+        return ("NOT CLEAN", f"session {session['n']} ended '{reason}' with the instrument's exit code {code}, not the "
+                             f"host's {_HOST_CODES[reason]}: the brain's own text, never a host end{told}", False, reason)
     if reason in _INVOLUNTARY:
-        return "INVOLUNTARY", f"session {session['n']} ended '{reason}'", True, reason
+        return "INVOLUNTARY", f"session {session['n']} ended '{reason}'{told}", True, reason
+    words = f"session {session['n']} ended '{reason}'"
     if reason.startswith(("play: done:", "play: stuck:")):
         kind = "CHOSEN"
-    elif reason.startswith("play: stopped:") or reason == "wall-clock":
+    elif reason == "wall-clock":
         kind = "BUDGET"
+    elif reason.startswith("play: stopped:") and ran_out:
+        kind = "BUDGET"
+    elif reason.startswith("play: stopped:"):
+        kind = "CHOSEN"
+        words += (" before the host's count showed its frame budget run out (or with no launcher line that can show "
+                  "it): its own choice (U2 spec D2)")
     else:
-        return "NOT CLEAN", f"session {session['n']} ended '{reason}'", False, reason
+        return "NOT CLEAN", f"{words}{told}", False, reason
+    if kind == "BUDGET" and clean is not None:
+        if clean != "CLEAN":
+            return ("NOT CLEAN", f"{words} with a purity verdict of {clean}, not CLEAN: a time or frame limit is "
+                                 f"continued only after a CLEAN run (U2 spec D3b){told}", False, reason)
+        return kind, f"{words}{after}{told} {_RULING_53}", True, reason
     if end is None:
         return (kind, f"session {session['n']} ended '{reason}' with no end line of the AI's (refused: fail closed)", False,
                 reason)
-    return kind, f"session {session['n']} ended '{reason}'{after}", at_save, reason
+    return kind, f"{words}{after}{told}", at_save, reason
 
 
 def memory_check(game: AppPaths) -> ContinueCheck:
@@ -483,10 +568,96 @@ def memory_check(game: AppPaths) -> ContinueCheck:
     kind, words, allowed = judgement.kind, judgement.words, judgement.allowed
     looked = len(judgement.looked_through)
     undone = len(book.undone_losses(newest["id"]) or [])
+    # (U2 spec 2026-10-30 D13: USER RULING 53, "every such continue tells what it drops") the AI's record of the drop, with
+    # the HOST's frame count per session and the maps first stood on in the dropped play (the AI's own world record)
+    dropped = book.dropped_after(newest["id"])
+    if dropped is not None:
+        dropped = {**dropped, **_host_frames(book, dropped, launches)}
+        dropped["maps"] = dropped_maps(book, dropped["sessions"])
     if not allowed:
         return ContinueCheck(False, f"a continue would reload after a {kind} end ({words}): USER RULING 52",
-                             newest, kind, undone, looked)
-    return ContinueCheck(True, words, newest, kind, undone, looked)
+                             newest, kind, undone, looked, dropped)
+    return ContinueCheck(True, words, newest, kind, undone, looked, dropped)
+
+
+def _host_frames(book: MemoryBook, dropped: dict, launches: list[dict]) -> dict:
+    """(U2 spec D13) The HOST's count of the frames each dropped session played: its launcher line's `real_frames` (the
+    instrument's own count), less, for the save's own session, the save's offset into it (`since - frame_base`: the
+    brain's frames are the emulator's plus its base, measured equal to `real_frames` on every recorded LAUNCH row). None
+    for a session without a launcher line or without the count (a harness session, a 417df790 line). Returns
+    `{"host_frames": the sum or None, "host_sessions": [n -> its count]}`."""
+    per: list[int | None] = []
+    for entry in dropped["sessions"]:
+        session = next((line for line in book.sessions() if line["n"] == entry["n"]), {})
+        run_dir = entry.get("run_dir")
+        line = next((item for item in reversed(launches) if item.get("run_dir") == run_dir), None) if run_dir else None
+        real = (line or {}).get("real_frames")
+        base = session.get("frame_base")
+        if not isinstance(real, int) or isinstance(real, bool) or not isinstance(base, int):
+            per.append(None)
+            continue
+        per.append(real - (entry["since"] - base) if entry.get("own") else real)
+    return {"host_frames": sum(per) if per and None not in per else None,
+            "host_sessions": [[entry["n"], count] for entry, count in zip(dropped["sessions"], per)]}
+
+
+def dropped_maps(book: MemoryBook, sessions: list[dict]) -> list[str] | None:
+    """(U2 spec D13; launcher-side, read only) The maps first stood on in the dropped play: in each dropped session's
+    last `<run_dir>/world.jsonl` snapshot (the AI's OWN record of where it went), the maps first stood on AFTER the
+    save's frame in the save's own session, and at or after the session's base in a later one (maps new to it). In first-stood-on order, each once. None ("not known", never "none") when a
+    session has no readable world file. The AI never reads this (D19: a continued game's memory is its save's)."""
+    found: list[tuple[int, str]] = []
+    for entry in sessions:
+        run_dir, since = entry.get("run_dir"), entry.get("since")
+        path = Path(run_dir) / "world.jsonl" if run_dir else None
+        snapshot = None
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines() if path is not None else []
+        except (OSError, UnicodeDecodeError):
+            lines = []
+        for raw in reversed(lines):  # the last whole snapshot (a kill can cut the last line short)
+            try:
+                snapshot = json.loads(raw)
+                break
+            except ValueError:
+                continue
+        if not isinstance(snapshot, dict) or not isinstance(since, int):
+            return None
+        for memory in (snapshot.get("maps") or {}).values():
+            first = memory.get("first_frame") if isinstance(memory, dict) else None
+            if not isinstance(first, int) or not memory.get("const"):
+                continue
+            if (first > since) if entry.get("own") else (first >= since):
+                found.append((first, str(memory["const"])))
+    out: list[str] = []
+    for _, const in sorted(found):
+        if const not in out:
+            out.append(const)
+    return out
+
+
+def drop_words(dropped: dict | None) -> str:
+    """(U2 spec D13) The operator's sentence for what a continue drops (`cmd_run` prints it): the sessions, the frames by
+    the host's count and by the AI's record ("not recorded" without an end line), the play time at the save and at the
+    newest session's end, the battles lost that it undoes, and the maps first stood on after the save, named as the AI's
+    own record."""
+    if dropped is None:
+        return "this continue's drop is not known: its save is not in the memory file's live history"
+    numbers = ", ".join(str(entry["n"]) for entry in dropped["sessions"]) or "none"
+    host, ai = dropped.get("host_frames"), dropped.get("frames")
+    host_said = f"{host:,} frames" if isinstance(host, int) else "not counted (no launcher line with the count)"
+    ai_said = f"{ai:,} frames" if isinstance(ai, int) else "not recorded (a session ended without its end line)"
+    times = [f"{int(stamp[0])}:{int(stamp[1]):02d}" if isinstance(stamp, list) and len(stamp) == 2 else None
+             for stamp in (dropped.get("at_save"), dropped.get("at_end"))]
+    newest = dropped["sessions"][-1]["n"] if dropped["sessions"] else None
+    ending = (f"to {times[1]} at session {newest}'s end" if times[1] is not None
+              else f"to session {newest}'s end (its play time not recorded: no end line)")
+    maps = dropped.get("maps")
+    where = (", ".join(maps) if maps else "none") if maps is not None else "not known (a session left no world file)"
+    return (f"this continue drops: session(s) {numbers} ({host_said} by the host's count; {ai_said} by the AI's "
+            f"record), from play time {times[0] or 'not recorded'} at save {dropped['save']} {ending}, "
+            f"{dropped.get('lost', 0)} battle(s) lost (undone), maps first stood on after it: {where} (the AI's own "
+            f"record, each session's world.jsonl)")
 
 
 def bot_command(build_root: Path, profile: str) -> list[str]:

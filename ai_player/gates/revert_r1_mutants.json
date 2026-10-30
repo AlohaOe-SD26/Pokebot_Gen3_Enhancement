@@ -8542,25 +8542,27 @@
   },
   {
    "name": "F008",
-   "what": "the call of end_line at game_memory.py:816 in MemoryWriter.write_end [call] deleted (deletes the call)",
-   "site": "game_memory.py:816 in MemoryWriter.write_end [call]",
+   "what": "the call of end_line at game_memory.py:879 in MemoryWriter.write_end [call] deleted (deletes the call)",
+   "site": "game_memory.py:879 in MemoryWriter.write_end [call]",
    "callee": "game_memory.py:end_line",
    "edits": [
     [
      "game_memory.py",
-     "        return self._line(end_line(self.session[\"n\"], reason, at_save, frame, stopped_before_restore))\n",
+     "        return self._line(end_line(self.session[\"n\"], reason, at_save, frame, stopped_before_restore, look))\n",
      "        return self._line(None)\n"
     ]
    ],
    "expected": [
+    "ContinueSkillTests.test_u2_the_continue_tells_its_drop_and_no_map",
     "LauncherContinueTests.test_a_continue_that_stopped_before_its_restore_is_looked_through",
-    "R1PlayTests.test_r1_a_continue_restores_as_of_its_save_before_the_first_look"
+    "LauncherContinueTests.test_a_launcher_run_is_judged_by_its_line_whatever_host_says",
+    "LauncherContinueTests.test_a_stop_before_the_budget_is_the_ais_own_choice"
    ],
    "suites": [
     "test_saving",
     "test_goals"
    ],
-   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers)"
+   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers); re-anchored by the U2 build stage 1 (spec section 6: the line changed with D13; name map: the same mutant name, the same call deleted), prediction RE-DERIVED from its first run on the new anchor"
   },
   {
    "name": "F009",
@@ -8674,25 +8676,27 @@
   },
   {
    "name": "F014",
-   "what": "the call of end_of at host/launcher.py:389 in _classify_session [call] deleted (deletes the call)",
-   "site": "host/launcher.py:389 in _classify_session [call]",
+   "what": "the call of end_of at host/launcher.py:472 in _classify_session [call] deleted (deletes the call)",
+   "site": "host/launcher.py:472 in _classify_session [call]",
    "callee": "game_memory.py:MemoryBook.end_of",
    "edits": [
     [
      "host/launcher.py",
-     "    \"\"\"How session `session` ended (`judge_end`'s table, one session), and the reason it was judged by.\"\"\"\n    end = book.end_of(session[\"n\"])\n",
-     "    \"\"\"How session `session` ended (`judge_end`'s table, one session), and the reason it was judged by.\"\"\"\n    end = None\n"
+     "    host's frame count reached its budget (D2); a BUDGET end needs a CLEAN verdict (D3b) and is then allowed (ruling 53).\"\"\"\n    end = book.end_of(session[\"n\"])\n",
+     "    host's frame count reached its budget (D2); a BUDGET end needs a CLEAN verdict (D3b) and is then allowed (ruling 53).\"\"\"\n    end = None\n"
     ]
    ],
    "expected": [
     "LauncherContinueTests.test_a_continue_that_stopped_before_its_restore_is_looked_through",
+    "LauncherContinueTests.test_a_launcher_run_is_judged_by_its_line_whatever_host_says",
+    "LauncherContinueTests.test_a_stop_before_the_budget_is_the_ais_own_choice",
     "LauncherContinueTests.test_the_end_classes"
    ],
    "suites": [
     "test_saving",
     "test_goals"
    ],
-   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers)"
+   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers); re-anchored by the U2 build stage 1 (spec section 6: the line changed with D13; name map: the same mutant name, the same call deleted), prediction RE-DERIVED from its first run on the new anchor"
   },
   {
    "name": "F015",
@@ -8718,47 +8722,51 @@
   },
   {
    "name": "F016",
-   "what": "the call of _line at game_memory.py:816 in MemoryWriter.write_end [call] deleted (deletes the call)",
-   "site": "game_memory.py:816 in MemoryWriter.write_end [call]",
+   "what": "the call of _line at game_memory.py:879 in MemoryWriter.write_end [call] deleted (deletes the call)",
+   "site": "game_memory.py:879 in MemoryWriter.write_end [call]",
    "callee": "game_memory.py:MemoryWriter._line",
    "edits": [
     [
      "game_memory.py",
-     "        return self._line(end_line(self.session[\"n\"], reason, at_save, frame, stopped_before_restore))\n",
+     "        return self._line(end_line(self.session[\"n\"], reason, at_save, frame, stopped_before_restore, look))\n",
      "        return None\n"
     ]
    ],
    "expected": [
+    "ContinueSkillTests.test_u2_the_continue_tells_its_drop_and_no_map",
     "LauncherContinueTests.test_a_continue_that_stopped_before_its_restore_is_looked_through",
-    "R1PlayTests.test_r1_a_continue_restores_as_of_its_save_before_the_first_look"
+    "LauncherContinueTests.test_a_launcher_run_is_judged_by_its_line_whatever_host_says",
+    "LauncherContinueTests.test_a_stop_before_the_budget_is_the_ais_own_choice"
    ],
    "suites": [
     "test_saving",
     "test_goals"
    ],
-   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers)"
+   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers); re-anchored by the U2 build stage 1 (spec section 6: the line changed with D13; name map: the same mutant name, the same call deleted), prediction RE-DERIVED from its first run on the new anchor"
   },
   {
    "name": "F017",
-   "what": "the call of write_end at mode.py:658 in HandsBrain._end_memory [call] deleted (deletes the call)",
-   "site": "mode.py:658 in HandsBrain._end_memory [call]",
+   "what": "the call of write_end at mode.py:661 in HandsBrain._end_memory [call] deleted (deletes the call)",
+   "site": "mode.py:661 in HandsBrain._end_memory [call]",
    "callee": "game_memory.py:MemoryWriter.write_end",
    "edits": [
     [
      "mode.py",
-     "        if writer.write_end(outcome, at_save, last.frame, self._continue_may_retry) is False:\n",
+     "        if writer.write_end(outcome, at_save, last.frame, self._continue_may_retry, look=last) is False:\n",
      "        if None is False:\n"
     ]
    ],
    "expected": [
     "R1PlayTests.test_r1_a_continue_restores_as_of_its_save_before_the_first_look",
-    "R1PlayTests.test_r1_a_continue_that_stops_ends_stuck_with_a_chosen_end"
+    "R1PlayTests.test_r1_a_continue_that_stops_ends_stuck_with_a_chosen_end",
+    "R1PlayTests.test_r1_a_continue_that_stops_on_a_bound_is_not_a_chosen_end",
+    "R1PlayTests.test_r1_the_end_line_says_chosen_budget_and_at_save"
    ],
    "suites": [
     "test_saving",
     "test_goals"
    ],
-   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers)"
+   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers); re-anchored by the U2 build stage 1 (spec section 6: the line changed with D13; name map: the same mutant name, the same call deleted), prediction RE-DERIVED from its first run on the new anchor"
   },
   {
    "name": "F018",
@@ -9495,6 +9503,156 @@
     "test_host:ResetRefusalTests"
    ],
    "origin": "R1 + R2 follow-up (scratch s53/r1f/build/s1b-offline/census/gen_rf_mutants.py, the fix round's generator: one mutant per call-census site; predictions recorded from the first run)"
+  },
+  {
+   "name": "U2C01",
+   "what": "the call of drop_words at __main__.py:179 in cmd_run [call] deleted (deletes the call)",
+   "site": "__main__.py:179 in cmd_run [call]",
+   "callee": "host/launcher.py:drop_words",
+   "edits": [
+    [
+     "__main__.py",
+     "        state_note += f\"\\n[AI-RUN] {drop_words(check.dropped)}\"\n",
+     "        pass  # MUTANT U2C01\n"
+    ]
+   ],
+   "expected": [
+    "LauncherContinueTests.test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save"
+   ],
+   "suites": [
+    "test_saving",
+    "test_goals"
+   ],
+   "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
+  },
+  {
+   "name": "U2C02",
+   "what": "the call of MemoryBook.dropped_after at host/launcher.py:570 in memory_check [call] deleted (deletes the call)",
+   "site": "host/launcher.py:570 in memory_check [call]",
+   "callee": "game_memory.py:MemoryBook.dropped_after",
+   "edits": [
+    [
+     "host/launcher.py",
+     "    dropped = book.dropped_after(newest[\"id\"])\n",
+     "    dropped = None  # MUTANT U2C02\n"
+    ]
+   ],
+   "expected": [
+    "LauncherContinueTests.test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save"
+   ],
+   "suites": [
+    "test_saving",
+    "test_goals"
+   ],
+   "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
+  },
+  {
+   "name": "U2C03",
+   "what": "the call of _host_frames at host/launcher.py:572 in memory_check [call] deleted (deletes the call)",
+   "site": "host/launcher.py:572 in memory_check [call]",
+   "callee": "host/launcher.py:_host_frames",
+   "edits": [
+    [
+     "host/launcher.py",
+     "        dropped = {**dropped, **_host_frames(book, dropped, launches)}\n",
+     "        dropped = dict(dropped)  # MUTANT U2C03\n"
+    ]
+   ],
+   "expected": [
+    "LauncherContinueTests.test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save"
+   ],
+   "suites": [
+    "test_saving",
+    "test_goals"
+   ],
+   "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
+  },
+  {
+   "name": "U2C04",
+   "what": "the call of dropped_maps at host/launcher.py:573 in memory_check [call] deleted (deletes the call)",
+   "site": "host/launcher.py:573 in memory_check [call]",
+   "callee": "host/launcher.py:dropped_maps",
+   "edits": [
+    [
+     "host/launcher.py",
+     "        dropped[\"maps\"] = dropped_maps(book, dropped[\"sessions\"])\n",
+     "        dropped[\"maps\"] = None  # MUTANT U2C04\n"
+    ]
+   ],
+   "expected": [
+    "LauncherContinueTests.test_u2_the_drop_uses_the_hosts_count_and_names_the_maps_after_the_save"
+   ],
+   "suites": [
+    "test_saving",
+    "test_goals"
+   ],
+   "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
+  },
+  {
+   "name": "U2C05",
+   "what": "the call of _ran_out at host/launcher.py:500 in _classify_session [call] deleted (deletes the call)",
+   "site": "host/launcher.py:500 in _classify_session [call]",
+   "callee": "host/launcher.py:_ran_out",
+   "edits": [
+    [
+     "host/launcher.py",
+     "        ran_out = _ran_out(line)\n",
+     "        ran_out = None  # MUTANT U2C05\n"
+    ]
+   ],
+   "expected": [
+    "LauncherContinueTests.test_a_budget_end_needs_a_clean_verdict",
+    "LauncherContinueTests.test_a_stop_before_the_budget_is_the_ais_own_choice",
+    "LauncherContinueTests.test_the_end_classes",
+    "LauncherContinueTests.test_the_launch_line_carries_the_counts"
+   ],
+   "suites": [
+    "test_saving",
+    "test_goals"
+   ],
+   "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
+  },
+  {
+   "name": "U2C06",
+   "what": "the call of _verdict_word at host/launcher.py:499 in _classify_session [call] deleted (deletes the call)",
+   "site": "host/launcher.py:499 in _classify_session [call]",
+   "callee": "host/launcher.py:_verdict_word",
+   "edits": [
+    [
+     "host/launcher.py",
+     "        clean = line.get(\"verdict\") if line.get(\"verdict\") is not None else _verdict_word(run_dir)\n",
+     "        clean = line.get(\"verdict\") if line.get(\"verdict\") is not None else None  # MUTANT U2C06\n"
+    ]
+   ],
+   "expected": [
+    "LauncherContinueTests.test_a_budget_end_needs_a_clean_verdict"
+   ],
+   "suites": [
+    "test_saving",
+    "test_goals"
+   ],
+   "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
+  },
+  {
+   "name": "U2C07",
+   "what": "the call of MemoryBook.dropped_after at skills/saving.py:624 in _on_main_menu [call] deleted (deletes the call)",
+   "site": "skills/saving.py:624 in _on_main_menu [call]",
+   "callee": "game_memory.py:MemoryBook.dropped_after",
+   "edits": [
+    [
+     "skills/saving.py",
+     "    drop = book.dropped_after(record[\"id\"])\n",
+     "    drop = None  # MUTANT U2C07\n"
+    ]
+   ],
+   "expected": [
+    "ContinueSkillTests.test_u2_the_continue_tells_its_drop_and_no_map"
+   ],
+   "suites": [
+    "test_saving",
+    "test_goals"
+   ],
+   "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
   }
  ]
 }

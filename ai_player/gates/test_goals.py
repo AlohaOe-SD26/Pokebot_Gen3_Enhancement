@@ -2180,6 +2180,38 @@ class R1PlayTests(unittest.TestCase):
         self.assertEqual((restore_note["extra"]["save"], restore_note["extra"]["maps"]), (1, sorted(payload["world"]["maps"])))
         self.assertTrue(any("personality=Trainer" in line for line in told))  # the header's personality (a continue)
 
+    def test_u2_the_ais_continue_tells_the_drop_and_no_map(self):
+        """(U2 spec 2026-10-30 D13: USER RULING 53) The continued session's line records what the continue told it
+        drops: `dropped` = the skill's `ContinueResult.dropped` (the memory file's frames after the save, or None "not
+        recorded", and the battles undone). FAULT (mutant D4m): the session line without it. No play time and no map in
+        it (D19, ruling 40). CONTROL: a continue with nothing after the save records 0 frames."""
+        from ai_player.game_memory import read_book
+        from ai_player.skills.saving import ContinueResult
+        from ai_player import mode as mode_module
+
+        for dropped in ({"frames": 700, "lost": 1}, {"frames": None, "lost": 0}, {"frames": 0, "lost": 0}):
+            with self.subTest(dropped=dropped):
+                if self.memory_file.exists():
+                    self.memory_file.unlink()
+                self.a_game()
+
+                def fake_continue(hands, book, why, dropped=dropped):
+                    yield from hands.pad.idle(2, "the title")
+                    return ContinueResult("continued", "continued the save of 0:20", record=book.save(1), newest=True,
+                                          arrival={"where": {"map": "ROUTE101", "tile": [10, 10]}, "party": []},
+                                          dropped=dict(dropped))
+
+                def fake_play(brain, hands, personality, restored=None, stop=None):
+                    yield from hands.pad.idle(2, "a test")
+                    return "stopped: a test"
+
+                with mock.patch.object(mode_module, "continue_game", fake_continue), \
+                        mock.patch.object(HandsBrain, "_play", fake_play):
+                    self.play(continue_game=True, cart="continued", personality=None)
+                session = read_book(self.memory_file).last_session()
+                self.assertEqual(session["dropped"], dropped)
+                self.assertEqual(set(session["dropped"]), {"frames", "lost"})  # never a play time or a map
+
     def test_r1_a_continue_whose_restore_record_is_not_written_ends_stuck(self):
         from ai_player.game_memory import MemoryWriter
         from ai_player.skills.saving import ContinueResult

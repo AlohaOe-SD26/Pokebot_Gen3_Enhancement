@@ -797,7 +797,38 @@ EXIT_PROBES: list[tuple[str, str | None, str, str, str]] = [
     ("X20 finally: break in a nested loop's else, in skills/", "skills/exit_plant.py", "new",
      "def keep(steps, items):\n    for step in steps:\n        try:\n            step()\n        finally:\n"
      "            for item in items:\n                pass\n            else:\n                break\n", "b"),
+    # (U2 spec 2026-10-30 D16, RV-7) a raise, or a failing assert, reached from a `finally` REPLACES the exit in flight;
+    # each passed the 417df790 gate (measured, `s53/u2/probe_rv57.out`)
+    ("X21 finally: raise ValueError(...) in skills/", "skills/exit_plant.py", "new",
+     "def keep(step):\n    try:\n        yield from step()\n    finally:\n        raise ValueError('replaced')\n", "b"),
+    ("X22 a bare finally: raise in brain/", "brain/exit_plant.py", "new",
+     "def keep(step):\n    try:\n        step()\n    finally:\n        raise\n", "b"),
+    ("X23 finally: try: f() except OSError: raise, in hands/", "hands/exit_plant.py", "new",
+     "def keep(step, f):\n    try:\n        step()\n    finally:\n        try:\n            f()\n        except OSError:\n"
+     "            raise\n", "b"),
+    ("X24 finally: assert ok, in world/", "world/exit_plant.py", "new",
+     "def keep(step, ok):\n    try:\n        step()\n    finally:\n        assert ok\n", "b"),
 ]
+
+#: (U2 spec D16) CONTROL for X21-X24: a `raise` and an `assert` in the `try` body, and in a def nested in the `finally`
+#: (its own scope), pass
+RAISE_FORMS_CONTROL = '''\
+"""finally: raise ValueError; finally: assert ok (mentions only)."""
+
+
+def keep(step, ok):
+    try:
+        assert ok
+        if not step():
+            raise ValueError("not done")
+    finally:
+        def later():
+            assert ok
+            raise ValueError("later")
+
+        _ = later
+    return ok
+'''
 
 #: (D1) CONTROL for X07-X20: the same words as mentions, the narrow forms that are fine, and the scopes a `finally` may hold
 EXIT_FORMS_CONTROL = '''\
@@ -837,7 +868,8 @@ class PlayLoopExitTests(GateTestCase):
     def test_the_play_loop_cannot_exit(self) -> None:
         """FAULT: each plant of `EXIT_PROBES` fails by its rule in its own file. CONTROL: the same words in a docstring, a
         comment or a sentence pass; the lifecycle keeps its `sys.exit` and the launcher its `KeyboardInterrupt` (the real
-        package passes, with both files scanned)."""
+        package passes, with both files scanned). (U2 spec D16) FAULT X21-X24: a raise or an assert reached from a
+        `finally` fails "b" (mutants S40h, S40i); CONTROL: the same in the `try` body and in a nested def pass."""
         for probe in EXIT_PROBES:
             with self.subTest(probe[0]):
                 self.run_probe(probe)
@@ -857,6 +889,12 @@ class PlayLoopExitTests(GateTestCase):
         with planted_copy("brain/exit_forms_control.py", "new", EXIT_FORMS_CONTROL) as (package, hook):
             result = check_purity.scan(package, hook, REAL_BUILD_ROOT)
             self.assertEqual([str(v) for v in result.violations if "exit_forms_control" in v.file], [],
+                             check_purity.report(result))
+            self.assertTrue(result.passed, check_purity.report(result))
+        # (U2 spec D16) CONTROL for X21-X24: a raise and an assert in the `try` body and in a def nested in the `finally`
+        with planted_copy("skills/raise_forms_control.py", "new", RAISE_FORMS_CONTROL) as (package, hook):
+            result = check_purity.scan(package, hook, REAL_BUILD_ROOT)
+            self.assertEqual([str(v) for v in result.violations if "raise_forms_control" in v.file], [],
                              check_purity.report(result))
             self.assertTrue(result.passed, check_purity.report(result))
 

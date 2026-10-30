@@ -482,7 +482,10 @@ class ContinueResult:
     gone while read, its TIME unreadable, CONTINUE not taken, no free arrival in time, a loop that let no frame pass, too
     many pages): nothing was restored and nothing played, so another continue undoes nothing this one did not, and the
     brain's `end` line says so (`stopped_before_restore`). False for the spec's own stops (section 3 (f): the save is
-    gone, a TIME it does not remember, an arrival that differs), which stay CHOSEN ends: no later continue."""
+    gone, a TIME it does not remember, an arrival that differs), which stay CHOSEN ends: no later continue.
+    `dropped` (U2 spec 2026-10-30 D13: USER RULING 53, "every such continue tells what it drops"): what it told it drops,
+    `{"frames": the frames of play after the save by its own record (None: not recorded), "lost": the battles undone}`;
+    never a play time or a map (D19: a continued game's memory is its save's)."""
 
     outcome: str
     why: str
@@ -495,6 +498,7 @@ class ContinueResult:
     arrived_at: int | None = None
     lines: tuple[str, ...] = ()
     may_retry: bool = False
+    dropped: dict | None = None
 
     @property
     def continued(self) -> bool:
@@ -615,6 +619,18 @@ def _on_main_menu(hands: Hands, book, why: str, look: Observation, page_words: s
         lines.append("the game said the save was corrupted: it continues the save before it")
     elif not is_newest:
         lines.append("the game continued an OLDER save than its last, with no page")
+    # (U2 spec D13) what this continue drops, by the AI's own record: the frames of play after the save (or "not
+    # recorded": a session ended by its time limit wrote no end line) and the battles undone; no play time, no map
+    drop = book.dropped_after(record["id"])
+    dropped = {"frames": drop["frames"], "lost": drop["lost"]} if drop is not None else None
+    if dropped is None:
+        lines.append(f"what this continue drops is not known: save {record['id']} is not in the memory's live history")
+    elif dropped["frames"] is None:
+        lines.append(f"this continue drops the play after save {record['id']}, its frames not recorded (a session ended "
+                     f"without its end line), and {dropped['lost']} battle(s) lost")
+    else:
+        lines.append(f"this continue drops {dropped['frames']} frames of play after save {record['id']}, and "
+                     f"{dropped['lost']} battle(s) lost")
     undone = tuple(book.undone_losses(record["id"]) or ())
     if undone:
         lines.append(f"this continue undoes {len(undone)} battle{'s' if len(undone) != 1 else ''} lost after save "
@@ -622,4 +638,4 @@ def _on_main_menu(hands: Hands, book, why: str, look: Observation, page_words: s
     for line in lines:
         hands.tell(f"continue: {line}")
     return ContinueResult("continued", lines[0], record=record, page=page_words, page_kind=page_kind, newest=is_newest,
-                          undone=undone, arrival=seen, arrived_at=arrival.frame, lines=tuple(lines))
+                          undone=undone, arrival=seen, arrived_at=arrival.frame, lines=tuple(lines), dropped=dropped)
