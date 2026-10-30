@@ -36,6 +36,7 @@
 | `2026-10-28-abc2b6` | 9807 | Whether games recovered from a crashed tuner cycle count toward the strategy ranking (yes) and whether ai0031's 12 games lost on 2026-10-17 are backfilled (no), for E2 + O8 (2026-10-28). |
 | `2026-10-28-35b2cb` | 9814 | While the project is paused: do not delete the tuner's ai-agent/STOP, re-enable its three Windows tasks (Pokebot-AI-Learner-Autostart, Pokebot-Ops-Watchdog, Pokebot-Ops-Backup) or start it until the user says to resume; do not re-ask when or how to pause (2026-10-28). |
 | `2026-10-28-77ea25` | 9832 | Do not park or pause the bot tuner or the project (no ai-agent/STOP file, no disabled Pokebot-* task) unless the user asks; do not re-ask whether to pause (2026-10-28). |
+| `2026-10-29-2afa57` | 9904 | Do not re-ask U1 (the AI's big-moment save list: as built), U2 (a session ended by its time or frame limit may be continued from its last save: YES) or the reset question (a refused reset combination ends that game for good) (2026-10-29). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -72,10 +73,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 351 sections (newest first)
+## All 352 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-29-2afa57` | 9904 | 53 | DO-NOT-REOPEN | 2026-10-29 — USER RULING 53: the user approved the open asks and left the three open design questions to Claude's recommendations (U1 the list as built; U2 YES, |
 | `2026-10-29-47a9a5` | 9893 |  |  | 2026-10-29 — R1 + R2 BUILT: the AI saves like a person, CONTINUEs after a kill, and its memory survives it (the build's decisions) |
 | `2026-10-29-eb1c46` | 9884 | 51, 52 |  | 2026-10-29 — USER RULINGS 51 and 52: the AI saves like a person, and never reloads to undo a loss (one later exception, deferred: a stationary legendary's faile |
 | `2026-10-29-753e92` | 9878 |  |  | 2026-10-29 — R1 + R2's save/kill probe: a TEST-SIDE tool in no lane, and what it hands R1's design (WHEN the AI saves is not decided here) |

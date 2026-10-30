@@ -17,7 +17,7 @@
 14. **E2 + O8** ✅ BUILT 2026-10-28 (DEPLOYED that day, 4:30 PM; its first live journal line 5:50 PM; its DEPLOY CHECK ✅ CLOSED 2026-10-29, 42 of 42 match; `07`; evidence `2026-10-28-E2-O8-BUILD-EVIDENCE.md`) per-game recording; torn-write resilience and a crash-loop breaker. Step 5; est. 150 + 150.
 15. **R5** ✅ BUILT 2026-10-29 (`07`; `2026-10-28-R5-BUILD-REPORT.md`; held-out A/B PASS 4 of 4, ledger #49), **then R1 + R2 (+DP1, DP2, L3 a-b)** ✅ BUILT 2026-10-29 (`07`; `2026-10-29-R1R2-BUILD-REPORT.md`; held-out live proof PASS, ledger #53, re-checked on #54-#56) free screen, then save/CONTINUE and a memory that survives a kill; DECIDE EARLY. The user's two save answers are USER RULINGS 51-52 (`06` 2026-10-29). Step 6; est. 300 + 200.
 
-Also now: C1 as a checklist line. S3-4's boss held items are ANSWERED (USER RULING 44: allowed; exact stats withheld); its two other "needs the user" items are ANSWERED too (USER RULING 45: species shares out, sight ranges kept). Item 15's R1 + R2 is ✅ BUILT (2026-10-29); its U1 and U2 are open for the user with interim answers built (`06` 2026-10-29); nothing else in the top 15 waits on the user. (O4's disk, O1's and O4's scheduled tasks and O3's "keep compressed logs forever" are ANSWERED, USER RULING 42 in `06`.) Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
+Also now: C1 as a checklist line. S3-4's boss held items are ANSWERED (USER RULING 44: allowed; exact stats withheld); its two other "needs the user" items are ANSWERED too (USER RULING 45: species shares out, sight ranges kept). Item 15's R1 + R2 is ✅ BUILT (2026-10-29); its U1 and U2 are ANSWERED (USER RULING 53, `06` 2026-10-29: the list as built; a time-limit end may be continued, built right after its follow-up); nothing else in the top 15 waits on the user. (O4's disk, O1's and O4's scheduled tasks and O3's "keep compressed logs forever" are ANSWERED, USER RULING 42 in `06`.) Specs: steps 1-2 in `2026-10-19-BUILD-SPECS-steps-1-2.md`, step 3 in `2026-10-19-BUILD-SPECS-step-3.md` (critiqued). A NOTE; the order below wins.
 
 The user asked for improvements that make the work cheaper on usage without losing progress, results or rigor,
 drawn from everything that went wrong. Each item names the EVIDENCE that motivates it, the expected benefit, the
@@ -306,7 +306,7 @@ theirs (a merged item carries each), so an item's full evidence is one lookup aw
   a catch that failed for want of Poké Balls. **Build spec:** `2026-10-29-R1R2-BUILD-SPEC.md` (2026-10-29).
   **✅ BUILT 2026-10-29** (`07`; `2026-10-29-R1R2-BUILD-REPORT.md`; decisions `06` 2026-10-29): the held-out live
   proof PASSED (ledger #53) and was re-checked on #54-#56. Open: the review's four NITs (the next item;
-  spec `2026-10-29-R1F-BUILD-SPEC.md`) and the user's U1 and U2 (interim answers built).
+  spec `2026-10-29-R1F-BUILD-SPEC.md`) and U2's build (USER RULING 53: a time-limit end may be continued).
 - **R8 + R9 (+ P13). AI-MADE STATES for repro and for the next chapter.** (A; needs R2, R3) **Evidence:** a stuck verdict
   costs the whole run again (a 59,204-frame stretch surfaced only in a 20-run sweep); a chapter-3 run from a bot save "has
   never heard DAD" (recon Gap 9). **What:** the HOST keeps the last 3 states and copies out `stuck-<code>.ss1` for

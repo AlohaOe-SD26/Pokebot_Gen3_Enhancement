@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "f3343e8de4aba3480cb171a40ef4fbbe9a689aae",
+ "source_sha1_lf": "0a9afdeaa9b21f0111deab1d2160193a5396c3f6",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 351,
-  "donot_candidates": 28,
-  "sections_naming_user_rulings": 47
+  "sections": 352,
+  "donot_candidates": 29,
+  "sections_naming_user_rulings": 48
  },
  "sections": [
   {
@@ -5485,6 +5485,27 @@
    "slugs": [],
    "ki": [],
    "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-29-2afa57",
+   "date": "2026-10-29",
+   "line_start": 9904,
+   "line_end": 9914,
+   "title": "2026-10-29 — USER RULING 53: the user approved the open asks and left the three open design questions to Claude's recommendations (U1 the list as built; U2 YES, a session ended by its time limit may be continued; a blocked reset ends that game for good); the five leftover worktrees removed",
+   "rulings": [
+    53
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [
+    {
+     "key": "2b67ba09",
+     "line": 9914,
+     "text": "- **Consequences:** U2 changes R1 + R2's D12 (a): a BUDGET end becomes continuable, and the AI gains a save before its frame budget runs out. It is built as its own item right AFTER R1 + R2's follow-up (whose build is running), with its own spec and proof; until then the interim (a continue only aft"
+    }
+   ],
    "cues": []
   }
  ]

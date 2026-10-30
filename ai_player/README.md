@@ -793,8 +793,8 @@ KNOWN LIMITS (the next item; `06` 2026-10-29): the purity gate's exit rule misse
 BaseException`, and a refused START/SELECT press ends as a crash that may be continued (N-1); fairness RULE C sees
 attribute reads of the play time only (N-2); `read_book` decodes with errors='replace' (N-4); no live arm saves after a
 continue (N-3) or stops a continue on a bound (R-2's look-through is proven offline). The gym-leader save is unit-tested
-only. The independent verification's V2-1, V2-2, V2-5 and V2-6 are in the same item. The user's U1 and U2 are open (interim: the spec's moment list; after a time-limit end, a continue only if it ended
-right after a save). `live_step5`'s next run is a re-baseline: every launcher run now saves. The build:
+only. The independent verification's V2-1, V2-2, V2-5 and V2-6 are in the same item. USER RULING 53 answered the user's U1 (the moment list as built) and U2 (a time-limit end may be continued; until
+its build, right after this follow-up, a continue follows only an end right after a save). `live_step5`'s next run is a re-baseline: every launcher run now saves. The build:
 `PROJECT KNOWLEDGE/ai-research-notes/2026-10-29-R1R2-BUILD-REPORT.md`.
 
 ## The save/kill probe (backlog R1 + R2's prerequisite, 2026-10-29)
