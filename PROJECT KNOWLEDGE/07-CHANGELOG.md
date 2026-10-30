@@ -39176,3 +39176,11 @@ bought balls only at fixed story points.
 - **Files:** `ai_player/__main__.py`, `game_memory.py`, `mode.py`, `host/launcher.py`, `skills/saving.py`; `gates/check_purity.py`, `check_fairness.py`, `live_r1.py`, `revert_r1.py`, `revert_r1_mutants.json`, `test_check_purity.py`, `test_goals.py`, `test_safety_gates.py`, `test_saving.py`, `ledger.json` (#62-#66); evidence `2026-10-30-u2a-{HELDOUT,RERUN,FIXROUND,VERIFY}.txt`, `2026-10-30-u2-REVERT.txt` and the tree zips they name; `ai_player/README.md`; the filed spec and build report.
 - **Cost:** `u2-spec` (5 agents, 8.26 Mtok) and `u2a-build` (8 agents, 26.99 Mtok), `cost-ledger.jsonl`.
 - **Next:** V1-V3 and U2b (`04` item 4).
+
+## 2026-10-30 — the full regression lane PASSED on 9fbb9235, U2a (backlog item 15; punch-list #28-aiagent-v2)
+
+- **Run:** `py -3.12 ai_player/gates/run_regression.py --full --evidence`, detached, 7:44:27 to 9:16 AM 2026-10-30: `REGRESSION: PASS (full, 33 suites, 5525.0 s wall)`.
+- **Every unit suite PASS** (test_saving 149 tests, test_host 37) and **every revert driver PASS** (revert_r1 550 mutants and the rest); FROZEN TREE PASS (38 checks of 196 files, files digest 9a90e0ab34293efe). rate_* and live_* NOT-RUN by design.
+- **Evidence:** `ai_player/evidence/2026-10-30-regression-*` and the drivers' own `2026-10-30-*-REVERT.txt`, rewritten; the 417df790 lane's files of the same names are kept under `archive/53e0c26e7812db47-417df790/` (14 files, the keep-earlier rule).
+- **Also:** a usage calibration row in `cost-ledger.jsonl` (the user's meter read 79 % at about 337 Mtok input-equivalent; `usage_audit.py --calibrate`).
+- **Cost:** local CPU only (92 minutes).

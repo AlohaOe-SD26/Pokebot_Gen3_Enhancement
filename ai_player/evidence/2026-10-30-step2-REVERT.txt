@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 2 - MUTANT PROOF OF THE HANDS (gates/revert_step2.py)
-date: 2026-10-30 00:28:39
-code: HEAD 417df790; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-10-30 07:44:28
+code: HEAD 9fbb9235; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 Each mutant breaks ONE check of the real code in a copy; CAUGHT = its predicted tests fail; REDUNDANT = no test fails, and the reason the check is redundant alone is stated.
 
 [H0] CONTROL, the unchanged copy: 57 tests, failing none (ran the copy: True) -> PASS
