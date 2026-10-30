@@ -1,10 +1,10 @@
 AI PLAYER REGRESSION - full lane, evidence group `revert_step5` (gates/run_regression.py, spec S4-1)
-date: 2026-10-30 09:16:33
-code: HEAD 9fbb9235; covers:revert_step5 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-10-30 12:01:50
+code: HEAD e2dae677; covers:revert_step5 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 command: py -3.12 ai_player/gates/run_regression.py --full --evidence
 Each section is one suite: the runner's typed status, then the suite's raw output (indented).
 
-== revert_step5: PASS (exit 0, 1949.2 s, 402 mutants)
+== revert_step5: PASS (exit 0, 1905.1 s, 402 mutants)
     | [G0] CONTROL, the unchanged copy: 257 tests, failing none (ran the copy: True) -> PASS
     | [G1] BROKEN: a milestone's VARS are not checked (only its flags). Predicted CAUGHT by ['MilestoneTests.test_vars_count_at_least', 'MilestoneTests.test_chapter_1_in_order_from_the_marks']. The copy ran 257 tests (the copy); failing: {'ExploreTests.test_curiosity_finds_an_item_ball_before_the_party': 'FAIL', 'MilestoneTests.test_chapter_1_in_order_from_the_marks': 'FAIL', 'MilestoneTests.test_the_intro_is_passed_by_its_waypoint_the_truck': 'FAIL', 'MilestoneTests.test_vars_count_at_least': 'FAIL', 'PersonFairTests.test_each_step_needs_its_own_words': 'FAIL', 'PersonFairTests.test_roxanne_is_proven_by_the_badge_alone': 'FAIL', 'PlayLoopTests.test_r1_a_save_goal_after_a_big_moment': 'FAIL', 'PlayLoopTests.test_r1_an_unwritten_save_line_ends_the_run': 'FAIL', 'PlayLoopTests.test_r1_fault_no_save_is_the_old_loop': 'FAIL', 'SmallTests.test_milestone_lines_say_how_a_milestone_passed': 'FAIL'} -> CAUGHT
     | [G2] BROKEN: a proof NOT READ counts as done. Predicted CAUGHT by ['MilestoneTests.test_a_proof_not_read_is_never_progress']. The copy ran 257 tests (the copy); failing: {'MilestoneTests.test_a_proof_not_read_is_never_progress': 'FAIL'} -> CAUGHT
@@ -409,11 +409,11 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [G405] BROKEN: a save's frames counted as the story's (T4: `spent["save"]` deleted). Predicted CAUGHT by ['PlayLoopTests.test_r1_a_save_goal_after_a_big_moment']. The copy ran 257 tests (the copy); failing: {'PlayLoopTests.test_r1_a_save_goal_after_a_big_moment': 'FAIL'} -> CAUGHT
     | [G406] BROKEN: the save machinery never started (`_start_saving`'s call deleted). Predicted CAUGHT by ['PlayLoopTests.test_r1_a_save_goal_after_a_big_moment', 'PlayLoopTests.test_r1_the_end_save_when_due']. The copy ran 257 tests (the copy); failing: {'PlayLoopTests.test_r1_a_save_goal_after_a_big_moment': 'FAIL', 'PlayLoopTests.test_r1_a_save_goal_after_a_center_heal (center=True)': 'FAIL', 'PlayLoopTests.test_r1_an_unwritten_save_line_ends_the_run': 'FAIL', 'PlayLoopTests.test_r1_fault_no_save_is_the_old_loop': 'FAIL', 'PlayLoopTests.test_r1_the_end_save_when_due': 'FAIL', 'PlayLoopTests.test_r1_the_loss_count_is_restored_and_each_loss_is_a_line': 'ERROR'} -> CAUGHT
     | 400 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 402
-    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (404 checks of 196 files, files digest 9a90e0ab34293efe)
+    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (404 checks of 196 files, files digest da2ece157746e8db)
     | OVERALL: PASS
-    | [EVIDENCE] kept the earlier tree's 2026-10-30-step52-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-417df790/2026-10-30-step52-REVERT.txt
+    | [EVIDENCE] kept the earlier tree's 2026-10-30-step52-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-9fbb9235/2026-10-30-step52-REVERT.txt
     | evidence: ai_player\evidence\2026-10-30-step52-REVERT.txt
 
 
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (38 checks of 196 files, files digest 9a90e0ab34293efe); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
-REGRESSION: PASS (full, 33 suites, 5525.0 s wall)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (38 checks of 196 files, files digest da2ece157746e8db); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
+REGRESSION: PASS (full, 33 suites, 4864.7 s wall)

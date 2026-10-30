@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 5.1 - MUTANT PROOF OF THE STORY PLAYER (gates/revert_step5.py: G1-G52 step 5's, G53-G106 step 5.1's, G107-G126 the step-5.1 verifier's second round's)
-date: 2026-10-30 07:44:28
-code: HEAD 9fbb9235; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-10-30 10:40:46
+code: HEAD e2dae677; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\53e0c26e7812db47.zip (the step-5.1 verifier's second round)
 Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted tests of gates/test_goals.py fail.
 
@@ -409,5 +409,5 @@ Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted t
 [G406] BROKEN: the save machinery never started (`_start_saving`'s call deleted). Predicted CAUGHT by ['PlayLoopTests.test_r1_a_save_goal_after_a_big_moment', 'PlayLoopTests.test_r1_the_end_save_when_due']. The copy ran 257 tests (the copy); failing: {'PlayLoopTests.test_r1_a_save_goal_after_a_big_moment': 'FAIL', 'PlayLoopTests.test_r1_a_save_goal_after_a_center_heal (center=True)': 'FAIL', 'PlayLoopTests.test_r1_an_unwritten_save_line_ends_the_run': 'FAIL', 'PlayLoopTests.test_r1_fault_no_save_is_the_old_loop': 'FAIL', 'PlayLoopTests.test_r1_the_end_save_when_due': 'FAIL', 'PlayLoopTests.test_r1_the_loss_count_is_restored_and_each_loss_is_a_line': 'ERROR'} -> CAUGHT
 
 400 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 402
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (404 checks of 196 files, files digest 9a90e0ab34293efe)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (404 checks of 196 files, files digest da2ece157746e8db)
 OVERALL: PASS

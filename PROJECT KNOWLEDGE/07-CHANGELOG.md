@@ -39193,3 +39193,10 @@ bought balls only at fixed story points.
 - **Files:** `ai_player/host/launcher.py`, `gates/test_saving.py`, `gates/revert_r1.py`, `gates/ledger.json` (#67), `ai_player/README.md`; evidence `2026-10-30-u2a-FIXV.txt`, `2026-10-30-u2fixv-REVERT.txt` and the tree zips they name; the U2a build report (two sections appended).
 - **Cost:** the workflow `u2a-fix-v` (2 agents, 6.84 Mtok), `cost-ledger.jsonl`.
 - **Next:** U2b, the save just before the limit (`04` item 4).
+
+## 2026-10-30 — the full regression lane PASSED on e2dae677, U2a's V1-V3 fix (backlog item 15; punch-list #28-aiagent-v2)
+
+- **Run:** `py -3.12 ai_player/gates/run_regression.py --full --evidence`, detached, 10:40:45 AM to 12:01 PM 2026-10-30: `REGRESSION: PASS (full, 33 suites, 4864.7 s wall)`.
+- **Every unit suite PASS** (test_saving 151 tests) and **every revert driver PASS** (revert_r1 556 mutants and the rest); FROZEN TREE PASS (38 checks of 196 files, files digest da2ece157746e8db). rate_* and live_* NOT-RUN by design.
+- **Evidence:** `ai_player/evidence/2026-10-30-regression-*` and the drivers' own `2026-10-30-*-REVERT.txt`, rewritten; the 9fbb9235 lane's files of the same names are kept under `archive/` by the keep-earlier rule.
+- **Cost:** local CPU only (81 minutes).
