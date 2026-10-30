@@ -39200,3 +39200,10 @@ bought balls only at fixed story points.
 - **Every unit suite PASS** (test_saving 151 tests) and **every revert driver PASS** (revert_r1 556 mutants and the rest); FROZEN TREE PASS (38 checks of 196 files, files digest da2ece157746e8db). rate_* and live_* NOT-RUN by design.
 - **Evidence:** `ai_player/evidence/2026-10-30-regression-*` and the drivers' own `2026-10-30-*-REVERT.txt`, rewritten; the 9fbb9235 lane's files of the same names are kept under `archive/` by the keep-earlier rule.
 - **Cost:** local CPU only (81 minutes).
+
+## 2026-10-30 — live_step5 RE-BASELINED on 81152e75 (every launcher run now saves): 5 of 6 arms PASS; CH2T FAILS on CAUGHT and SHOPPED, recorded as information (punch-list #28-aiagent-v2)
+
+- **Run:** `py -3.12 ai_player/gates/live_step5.py --evidence-tag r1base`, 1:44 to 2:05 PM 2026-10-30, the real launcher, every run now saving (R1 + R2, U2a): CH1T, CH1C, CH1M, CH2 and CH2M PASS; CH2T FAIL; FROZEN TREE PASS. Its first run since 2026-10-16.
+- **CH2T (Story, seed 17, from CH1T's end) FAILS L5.CAUGHT and L5.SHOPPED_GAME.** Its first catch goal on ROUTE 102 ended when the party fell to 57% of its HP (its heal line is 60%) before any ball was thrown; its second was cut by WALLY's scene, as on 2026-10-16. With no ball used, its restock rule (fewer than 4 balls) never fired, so it never shopped. On 2026-10-16 the same arm caught 2 and shopped once: the trajectory differs because every run now saves (the save dialogs shift the game's timing, and with it the encounters). One sample: recorded as information and never retuned (the 2026-10-27 precedent, `06`). `regression_due.py` still lists live_step5 DUE.
+- **Evidence:** `ai_player/evidence/2026-10-30-r1base-CH1T.txt`, `-CH1C.txt`, `-CH1M.txt`, `-CH2.txt`, `-CH2T.txt`, `-CH2M.txt`.
+- **Cost:** local CPU only (21 minutes).
