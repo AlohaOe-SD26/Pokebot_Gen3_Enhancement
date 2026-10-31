@@ -40,7 +40,7 @@
       "raised": []
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 289715,
+      "ceiling": 289978,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -50,6 +50,13 @@
           "from": 286507,
           "to": 289715,
           "why": "A0 (2026-10-30) found the AI's first two chapter-3 blockers, filed as KI-128 and KI-129: 05 must list open defects (CLAUDE.md section 2); the two entries are kept to their measurements"
+        },
+        {
+          "date": "2026-10-30",
+          "field": "ceiling",
+          "from": 289715,
+          "to": 289978,
+          "why": "KI-129's disk line (each ping-pong run writes a 2 GB world.jsonl, a hazard for the next batch), found by the session-end cold-start audit on 2026-10-30"
         }
       ]
     }

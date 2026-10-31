@@ -39241,3 +39241,10 @@ bought balls only at fixed story points.
 - **Caveats:** development seeds, one run per start: a probe, not a rate.
 - **Updated:** `05` (KI-128, KI-129; its R8 ceiling raised for them, recorded), `04` (the stamp, the resume point, queue item 4), `08` (the 16-day gap), `ai_player/gates/ledger.json` (#68 done).
 - **Cost:** about 16 minutes of machine time; otherwise local.
+
+## 2026-10-30 — Session-end doc fixes from the cold-start audit (Tier 2): the order after A0 (R12 after U2b), A1's disk hazard (KI-129's 2 GB `world.jsonl`), the daily upstream check (punch-list #28-aiagent-v2)
+
+- **Found by** the session-end Tier 2 audit (a cold-start agent given only `04` and `00-README`): `04`'s queue item 4 put R12 and the loader before U2b, against `06` (2026-10-30: R12 after U2b); `04` said `live_step5` had not run since 2026-10-16 (it re-baselined 2026-10-30); `03`'s `#28-aiagent-v2` named no part of the new order; three newer workflow worktrees were unlisted; and each A0 run left a 2 GB `world.jsonl` (KI-129's ping-pong writes about one world snapshot per map change), so A1's planned 36 runs could reach the learner's 25 GB disk floor.
+- **Fixed:** `04` (queue item 4's order and the disk ⚠, the START HERE line, the `live_step5` clause, the worktrees line, the daily check), `03` (one sentence), `05` (KI-129's disk line; its R8 ceiling raised again, recorded).
+- **Daily upstream check, 2026-10-30:** `upstream-pokebot/main` = `f14ab79d`, unchanged since 2026-10-26; still parked (USER RULING 2026-09-26); recorded in `40cakes repo/UPDATE-LOG.md`.
+- **Cost:** local, plus the audit agent.
