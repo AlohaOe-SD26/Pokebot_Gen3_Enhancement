@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "52e9924c70215f610070c6faa7b788ad64351d7c",
+ "source_sha1_lf": "b7150d348692dce071a4a9ff5f517afbac6d14c1",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 356,
+  "sections": 357,
   "donot_candidates": 30,
   "sections_naming_user_rulings": 50
  },
@@ -5568,6 +5568,19 @@
      "text": "- ⛔ Do not re-ask whether the 24/7 trainer should train the AI player: it should."
     }
    ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-30-ef2a3b",
+   "date": "2026-10-30",
+   "line_start": 9950,
+   "line_end": 9956,
+   "title": "2026-10-30 — The AI trainer's design: MEASURE FIRST (A0, A1), then the top blocker's skill build, then the trainer inside the learner; R12 comes after U2b",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
+   "donot": [],
    "cues": []
   }
  ]

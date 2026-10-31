@@ -76,10 +76,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 356 sections (newest first)
+## All 357 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-30-ef2a3b` | 9950 |  |  | 2026-10-30 — The AI trainer's design: MEASURE FIRST (A0, A1), then the top blocker's skill build, then the trainer inside the learner; R12 comes after U2b |
 | `2026-10-30-c2a92b` | 9942 | 54 | DO-NOT-REOPEN | 2026-10-30 — USER RULING 54: the 24/7 trainer is to TRAIN THE AI PLAYER ITSELF, nonstop, chapter by chapter (or as Claude designs it), because the AI has been s |
 | `2026-10-30-297528` | 9935 |  |  | 2026-10-30 — U2a's verification findings V1-V3 fixed; an old launch line with no instrument record fails closed |
 | `2026-10-30-cc5521` | 9927 | 53 |  | 2026-10-30 — U2a BUILT: a session ended by its time or frame limit may be continued (USER RULING 53), judged by the host's own record, and every continue tells  |

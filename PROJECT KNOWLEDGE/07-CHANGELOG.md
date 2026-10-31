@@ -39222,3 +39222,12 @@ bought balls only at fixed story points.
 - **Sequencing (Claude's call):** the AI trainer first, then U2b (its spec stays filed).
 - **Updated:** `04` (the stamp, the resume point, queue item 4), the backlog (R12), the rulings index.
 - **Cost:** local only.
+
+## 2026-10-30 — The AI TRAINER's design FILED (USER RULING 54); A0's prediction registered before A0 runs; P0, the disk drain, half found and freed (punch-list #28-aiagent-v2)
+
+- **Filed:** `ai-research-notes/2026-10-30-AI-TRAINER-DESIGN.md`, from the read-only workflow `ai-trainer-design` (a designer, one adversarial critic with 14 findings (5 MAJOR), and a reviser who checked each one). Its finding that matters most: **the AI has never been launched with a chapter-3 or chapter-4 goal.** The frontier did not stall in chapter 3; chapter 3 was never tried.
+- **The order it sets** (`06`, this date): A0 (three chapter-3 runs from the AI's own chapter-2 saves, no code), then A1 (the wide probe, whose driver becomes the trainer's runner core), then a skill build at the measured top blocker (predicted: the loader's map connections, so that Petalburg Woods is a road), then the trainer inside the learner at the weekly reset, then skill builds by its blocker list, then U2b, then R12 and tuning, then the curriculum.
+- **A0's prediction** is registered by this commit, before A0 runs (the note's box quotes it).
+- **P0, the disk:** this session's build-stage scratch (about 41 GB by file size) was deleted at 5:22 PM; free disk rose from 61.4 to 77.4 GB (+16.0 GB; the rest was hard-linked). That explains about half of the drain the design measured (91.4 to 57.8 GB over ai0049-ai0057); the other temp leftovers are listed in the note's box.
+- **Updated:** `04` (the stamp, the resume time, queue item 4), `06`, the backlog (R12), the rulings index, `cost-ledger.jsonl` (the design's row, 3.01 Mtok).
+- **Cost:** 3.01 Mtok (the workflow), plus local work.
