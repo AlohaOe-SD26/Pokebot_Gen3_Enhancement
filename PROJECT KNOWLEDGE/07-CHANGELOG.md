@@ -39261,3 +39261,12 @@ bought balls only at fixed story points.
 - **Sequencing (Claude's call):** the two chapter-3 blockers A0 found (KI-129, KI-128) are fixed first, with A0's starts as repro and proof; then A1, then the trainer in the learner.
 - **Updated:** `04` (the stamp, the resume point, START HERE, queue item 4), `06`, the trainer design's box, the rulings index.
 - **Cost:** local only.
+
+## 2026-10-31 — KI-128 and KI-129 DIAGNOSED: the build spec filed; round 1 (KI-128 + KI-129 Part A) building (punch-list #28-aiagent-v2)
+
+- **Filed:** `ai-research-notes/2026-10-31-KI128-KI129-BUILD-SPEC.md`, from the read-only workflow `ki128-ki129-diagnose` (two investigators from A0's logs and the code at `818d3706`, an adversarial critic with 11 findings (4 MAJOR), a reviser).
+- **KI-128, VERIFIED:** the recon's gap 1, at two sites in `ai_player/brain/goals.py`. `lead_toward` (about :672-704) sends a go goal toward an unseen map out of the woods, because `OUTDOOR` (:649) excludes PETALBURG_WOODS although the game itself types it a route (`MAP_TYPE_ROUTE`); then `keeps_going` (:709-719) refuses a woods door already used. Both fired in 3 of 3 A0 runs.
+- **KI-129, two variants of one gap:** the navigator's ping-pong stop counts only WARP uses, never edge crossings (`navigator.py` about :1246-1302). In A0-1 and A0-3 a pocket behind one-way ledges counts as "left to see" for the scoring reach but is unreachable for the planner; in A0-2 every road reads "seen all of" and the nearest road, the one just crossed, always wins. Measured: no such loop in 550 chapter 1-2 runs.
+- **The fix, general (no scripted route):** the game's static map types read through a declared loader (USER RULING 40), so a route-typed map such as the woods counts as open country; one reach for "can it get there?"; then (round 2) an edge ping-pong stop. Every guard with a FAULT test and a CONTROL; live proof from A0's end states, a chapter 1-2 control, and a graded held-out.
+- **Now:** round 1 is being built by the workflow `ki128-ki129a-build` in a `.claude/worktrees/` worktree (not yet on `main`), with an independent verifier.
+- **Cost:** the diagnosis workflow's row in `cost-ledger.jsonl`.
