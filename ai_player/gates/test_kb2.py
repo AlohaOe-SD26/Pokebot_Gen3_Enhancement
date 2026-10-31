@@ -1019,9 +1019,23 @@ class GuardTests(unittest.TestCase):
         self.assertEqual(os.path.normcase(ew.resolve_decomp(ROOT)), os.path.normcase(ROOT))  # CONTROL
 
 
-def names_in_play_code(package):
+def loader_allowed_names():
+    """(KI-128, 2026-10-31) {play file: the world names it may name}: a declared LOADER (`check_fairness.LOADERS`) of a
+    world file may name `knowledge/world` and that file, nothing else of the world folder."""
+    from ai_player.gates.check_fairness import LOADERS
+    out = {}
+    for loader, files in LOADERS.items():
+        world = [Path(f).name for f in files if f.startswith("world/")]
+        if world:
+            out[loader] = {"knowledge/world", *world}
+    return out
+
+
+def names_in_play_code(package, allowed=None):
     """(files scanned, [(file, name)]) of every .py of the AI package, the test side `gates/` excepted, that names a
-    world file or folder."""
+    world file or folder; a name `allowed` for that file (its declared loader's own file, `loader_allowed_names`) is no
+    hit."""
+    allowed = loader_allowed_names() if allowed is None else allowed
     hits, n = [], 0
     for p in sorted(Path(package).rglob("*.py")):
         rel = p.relative_to(package).as_posix()
@@ -1029,26 +1043,39 @@ def names_in_play_code(package):
             continue
         n += 1
         text = p.read_text(encoding="utf-8", errors="replace")
-        hits += [(rel, name) for name in PLAY_NAMES if name in text]
+        hits += [(rel, name) for name in PLAY_NAMES if name in text and name not in allowed.get(rel, ())]
     return n, hits
 
 
 class NotReadTests(unittest.TestCase):
     def test_no_play_code_names_a_world_file(self):
+        """No play code names a world file, but (KI-128) the declared loader `knowledge/atlas.py` its own one."""
+        self.assertEqual(loader_allowed_names(), {"knowledge/atlas.py": {"knowledge/world", "maps.json"}})
         n, hits = names_in_play_code(REPO / "ai_player")
         self.assertGreater(n, 20)
         self.assertEqual(hits, [])
+        self.assertIn("maps.json", (KNOWLEDGE / "atlas.py").read_text(encoding="utf-8"))  # the allowance is used
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "brain").mkdir()
-            (Path(tmp) / "brain" / "goals.py").write_text('BOOK = "knowledge/world/bosses.json"\n', encoding="utf-8")
+            (Path(tmp) / "brain" / "goals.py").write_text('BOOK = "knowledge/world/bosses.json"\nATLAS = "maps.json"\n',
+                                                          encoding="utf-8")
             (Path(tmp) / "gates").mkdir()
             (Path(tmp) / "gates" / "ok.py").write_text('X = "maps.json"\n', encoding="utf-8")
+            (Path(tmp) / "knowledge").mkdir()
+            (Path(tmp) / "knowledge" / "atlas.py").write_text('F = "knowledge/world/maps.json"\nB = "bosses.json"\n',
+                                                              encoding="utf-8")
             _, hits = names_in_play_code(tmp)
-            self.assertEqual(hits, [("brain/goals.py", "knowledge/world"), ("brain/goals.py", "bosses.json")])
+            self.assertEqual(hits, [("brain/goals.py", "knowledge/world"), ("brain/goals.py", "bosses.json"),
+                                    ("brain/goals.py", "maps.json"), ("knowledge/atlas.py", "bosses.json")])
 
     def test_check_fairness_does_not_glob_world(self):
-        from ai_player.gates.check_fairness import schema_problems
-        problems, _ = schema_problems(KNOWLEDGE)
+        """RULE B walks ONLY the world files a LOADER names (KI-128: maps.json, for `knowledge/atlas.py`); the others
+        stay unread and unchecked."""
+        from ai_player.gates.check_fairness import knowledge_files, schema_problems, world_files
+        self.assertEqual(world_files(), ["world/maps.json"])
+        walked = [name for name, _ in knowledge_files(KNOWLEDGE)]
+        self.assertEqual([n for n in walked if n.startswith("world/")], ["world/maps.json"])
+        problems, counts = schema_problems(KNOWLEDGE)
         self.assertEqual([p for p in problems if "world" in p or "campaign" in p or "trainers" in p], [])
         self.assertEqual(problems, [])
         with tempfile.TemporaryDirectory() as tmp:
@@ -1059,6 +1086,77 @@ class NotReadTests(unittest.TestCase):
             problems, _ = schema_problems(k)
             self.assertEqual(len(problems), 1)
             self.assertIn("campaign.json", problems[0])
+            # an unclassified key in a world file NO loader names is not walked (bosses.json); in maps.json it FAILS
+            boss = json.loads((k / "world" / "bosses.json").read_text(encoding="utf-8"))
+            boss["planted_secret"] = 1
+            (k / "world" / "bosses.json").write_text(json.dumps(boss), encoding="utf-8")
+            self.assertEqual(len(schema_problems(k)[0]), 1)  # still only campaign.json's
+
+    def test_k_f3_the_atlas_loader_gate(self):
+        """(KI-128, K-F3) The world loader is gated like every loader: a developer key read in `knowledge/atlas.py` FAILS
+        (B2), maps.json named in deciding code FAILS (B1), an unclassified key planted in maps.json FAILS (B); a
+        docstring MENTION of maps.json or of a flag key does not fire. And x and y stay developer-only keys (the
+        milestones' MEASURED coordinates) although maps.json's AI paths use those names."""
+        from ai_player.gates import check_fairness as cf_
+        ok, problems, summary = cf_.check(REPO / "ai_player")
+        self.assertTrue(ok, problems)
+        self.assertIn("'x', 'y'", summary)  # CONTROL: developer-only keys keep x and y
+        for key in ("flag", "script", "label", "object", "ref"):
+            self.assertIn(f"'{key}'", summary.split("developer-only keys")[1].split("hidden keys")[0], key)
+
+        def plant(edit) -> list[str]:
+            with tempfile.TemporaryDirectory() as tmp:
+                pkg = Path(tmp) / "ai_player"
+                shutil.copytree(REPO / "ai_player", pkg, ignore=shutil.ignore_patterns(
+                    "__pycache__", "evidence", "gates", "*.ss1", "eyes", "host"))
+                edit(pkg)
+                ok_, problems_, _ = cf_.check(pkg)
+                return problems_
+
+        def add(rel: str, text: str):
+            def do(pkg):
+                path = pkg / rel
+                path.write_text(path.read_text(encoding="utf-8") + text, encoding="utf-8")
+            return do
+
+        self.assertEqual(plant(lambda pkg: None), [])  # CONTROL: the copy is clean
+        found = plant(add("knowledge/atlas.py", '\n\ndef leak(entry):\n    return entry["flag"], entry.get("script")\n'))
+        self.assertEqual(sorted(f.split("key ")[1].split(" ")[0] for f in found if f.startswith("B2")),
+                         ["'flag'", "'script'"])
+        found = plant(add("brain/goals.py", '\n\nATLAS = "knowledge/world/maps.json"\n'))
+        self.assertTrue(any(f.startswith("B1") and "maps.json" in f for f in found), found)
+        mention = ('\n\ndef told():\n    """It never reads maps.json\'s x["flag"] or entry.get("script")."""\n'
+                   '    # entry["flag"], "maps.json"\n    return f"maps.json {1}"\n')
+        self.assertEqual(plant(add("knowledge/atlas.py", mention)), [])  # mentions never fire: in the loader,
+        self.assertEqual(plant(add("brain/goals.py", mention)), [])  # nor in deciding code (B1 judges values only)
+
+        def unclassified(pkg):
+            path = pkg / "knowledge" / "world" / "maps.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            data["maps"][0]["secret_route"] = "x"
+            path.write_text(json.dumps(data), encoding="utf-8")
+        found = plant(unclassified)
+        self.assertTrue(any("world/maps.json" in f and "UNCLASSIFIED" in f and "secret_route" in f for f in found), found)
+
+    def test_k_c6_the_atlas_facts_equal_the_pinned_decomp(self):
+        """(KI-128, K-C6) The atlas's facts for the woods, ROUTE 104 and RUSTBORO CITY are the pinned decomp's own:
+        PetalburgWoods is MAP_TYPE_ROUTE with warps (14, 5) and (15, 5) to Route104's warps 2 and 3, which are (10, 30)
+        and (11, 30)."""
+        from ai_player.knowledge.atlas import open_map
+        decomp = {}
+        for name in ("PetalburgWoods", "Route104", "RustboroCity"):
+            decomp[name] = json.loads(Path(ROOT, "data", "maps", name, "map.json").read_text(encoding="utf-8"))
+        maps = {m["id"]: m for m in json.loads((WORLD / "maps.json").read_text(encoding="utf-8"))["maps"]}
+        for name, const in (("PetalburgWoods", "PETALBURG_WOODS"), ("Route104", "ROUTE104"),
+                            ("RustboroCity", "RUSTBORO_CITY")):
+            self.assertEqual(maps["MAP_" + const]["map_type"], decomp[name]["map_type"], name)
+            self.assertIs(open_map(const), decomp[name]["map_type"] in ("MAP_TYPE_ROUTE", "MAP_TYPE_CITY"), name)
+        self.assertEqual(decomp["PetalburgWoods"]["map_type"], "MAP_TYPE_ROUTE")
+        woods = [(w["x"], w["y"], w["dest_map"], int(w["dest_warp_id"])) for w in decomp["PetalburgWoods"]["warp_events"]]
+        self.assertEqual(woods[:2], [(14, 5, "MAP_ROUTE104", 2), (15, 5, "MAP_ROUTE104", 3)])
+        r104 = decomp["Route104"]["warp_events"]
+        self.assertEqual([(r104[i]["x"], r104[i]["y"], r104[i]["dest_map"]) for i in (2, 3)],
+                         [(10, 30, "MAP_PETALBURG_WOODS"), (11, 30, "MAP_PETALBURG_WOODS")])
 
 
 # ---------------------------------------------------------------- slice 2, stage 2a: items_gifts.json

@@ -1,0 +1,31 @@
+KI-128 + KI-129 PART A - THE LONG RUNS OF PAW (spec 3.3) - DEVELOPMENT, NOT GRADED, NO PASS
+ledger entry #71 (development), 2026-10-31 12:55:42 to 2026-10-31 12:58:57 (this PC's clock, Los Angeles); driver s53/fix/build/fx_probe.py (live_step5.run_arm: the real launcher, its purity gate per launch)
+prediction registered BEFORE the runs: s53/fix/predictions/long.txt, sha256 5c35b758e606471551c78ca358925552542af294994dba2d96f072bf7ed791e6 (the ledger entry's bounds field); NOT committed or pushed (the orchestrator forbids commits in this round)
+arm tree digests before -> after: PAW 3c9cf424c771ecd8 -> 3c9cf424c771ecd8
+after every run its world.jsonl was summarised (streamed) and DELETED (spec section 6)
+
+RUN long-PAW-S2 seed 5922: exit 0, 71.4 s, purity CLEAN, map [0, 17] -> [0, 3], stop {"by": "ai", "cause": "the AI exited by itself (exit code 0)", "exit_code": 0, "real_frames": 37599, "frame_budget": 300000, "elapsed_seconds": 71.4, "wall_clock_seconds": 3600.0}
+  map changes {'edge': 3, 'warp': 2, 'other': 0}; edges {"PETALBURG_CITY|ROUTE102": 1, "PETALBURG_CITY|ROUTE104": 1, "ROUTE104|RUSTBORO_CITY": 1}; max same edge in one intent 1 over 21 intents; world.jsonl 6 lines, 6847420 bytes, new transitions {'connection': 3, 'warp': 2} (deleted: True)
+  E1 first ROUTE104 arrival at y < 31: {"frame": 572678, "from": "PETALBURG_WOODS", "arrival": [10, 30], "how": "MAP PETALBURG_WOODS -> ROUTE104 at (10, 30): the warp at (14, 5) (the AI, f572678); 1571 tiles of it known"}
+  E2 'first to ROUTE104' told on PETALBURG_WOODS: 0; 'first to PETALBURG_WOODS' told: 3
+  E3 max same-edge crossings within one intent: 1
+  information: VISITED_RUSTBORO_CITY 1; woods state marks {'TRAINER_GRUNT_PETALBURG_WOODS': 1, 'VAR_PETALBURG_WOODS_STATE': 1}; decide kinds {'goto': 12, 'route': 4, 'frontier': 15, 'null': 17, 'door': 1}
+RUN long-PAW-S3 seed 5923: exit 0, 172.1 s, purity CLEAN, map [0, 19] -> [0, 3], stop {"by": "ai", "cause": "the AI exited by itself (exit code 0)", "exit_code": 0, "real_frames": 95974, "frame_budget": 300000, "elapsed_seconds": 172.1, "wall_clock_seconds": 3600.0}
+  map changes {'edge': 1, 'warp': 4, 'other': 0}; edges {"ROUTE104|RUSTBORO_CITY": 1}; max same edge in one intent 1 over 21 intents; world.jsonl 6 lines, 7063444 bytes, new transitions {'connection': 1, 'warp': 4} (deleted: True)
+  E1 first ROUTE104 arrival at y < 31: {"frame": 689171, "from": "PETALBURG_WOODS", "arrival": [11, 30], "how": "MAP PETALBURG_WOODS -> ROUTE104 at (11, 30): the warp at (15, 5) (the AI, f689171); 1585 tiles of it known"}
+  E2 'first to ROUTE104' told on PETALBURG_WOODS: 0; 'first to PETALBURG_WOODS' told: 1
+  E3 max same-edge crossings within one intent: 1
+  information: VISITED_RUSTBORO_CITY 1; woods state marks {'TRAINER_GRUNT_PETALBURG_WOODS': 1, 'VAR_PETALBURG_WOODS_STATE': 1}; decide kinds {'goto': 8, 'route': 1, 'null': 49, 'grass': 92, 'frontier': 20, 'door': 3, 'people': 4}
+
+PREDICTIONS AGAINST THE RUNS (registered 12:55 PM, s53/fix/predictions/long.txt):
+  E1 (both runs: the first ROUTE104 arrival at y < 31 is the warp from PETALBURG_WOODS (14|15,5) to (10|11,30)): HELD on 2
+     of 2. S2: "MAP PETALBURG_WOODS -> ROUTE104 at (10, 30): the warp at (14, 5)" at f572678. S3: "MAP PETALBURG_WOODS ->
+     ROUTE104 at (11, 30): the warp at (15, 5)" at f689171.
+  E2 (0 "first to ROUTE104" told on PETALBURG_WOODS): HELD, 0 and 0 (A0 had 1, 0, 2 on the same starts' code without the
+     fixes, 600,000 frames).
+  E3 (no edge crossed more than 5 times in one intent): HELD, max 1 and 1 (map changes S2: 3 edge + 2 warp; S3: 1 edge +
+     4 warp).
+  Information, no claim: both runs reached RUSTBORO CITY by the game's truth (VISITED_RUSTBORO_CITY 1) and the AI ended
+     itself "done: ch3_rustboro reached": S2 at f592439 (37,599 frames of the 300,000), S3 at f714136 (95,974 frames; the
+     woods' grunt scene, ch3_woods, done at f639165 on the way). world.jsonl 6 lines each (6.8 MB and 7.1 MB), deleted.
+  S1 was not run (the registered vacuity rule). Two runs, one trajectory each: a sample of 2, not a rate.

@@ -12,6 +12,9 @@
   wild_species.json  BUILD STEP 5: the species a person can meet in the wild (the favourite Pokemon is drawn from them),
                  from pret/pokeemerald's `wild_encounters.json`
   story.py       reads milestones.json: which milestone the marks prove done, for the player's own gender's houses
+  atlas.py       (KI-128, 2026-10-31) the world folder's LOADER, its first slice: each map's STATIC map type (open country
+                 or not), and nothing else of the world files; its docstring names the one file it reads, and
+                 `gates/check_fairness.py` declares it (LOADERS) and classifies every key path of that file
 """
 
 __all__: list[str] = []

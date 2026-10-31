@@ -21,7 +21,9 @@ name has no business in deciding code.
 RULE B, THE KNOWLEDGE FILES. Every key path of every knowledge file is CLASSIFIED in `KNOWLEDGE_FIELDS` (`ai`: what a person
 knows, with its purpose; `developer`: for the developers' proofs only, with why; `hidden`: carried for the test side, never
 read by the brain; `meta`: where the file came from) and an unclassified path FAILS, so new developer data must be marked
-before it lands. Then:
+before it lands. (KI-128, 2026-10-31) The files of `knowledge/world/` are walked ONLY when a loader names one (`LOADERS`,
+`world_files`: today `world/maps.json`, for `knowledge/atlas.py`); the world files no loader names stay unread and
+unchecked. A world file's AI-visible key NAMES do not excuse the same name elsewhere (`developer_keys`). Then:
   B1  only the declared LOADERS (`LOADERS`) may name a knowledge file;
   B2  no loader and no deciding code may subscript (`x["k"]`, `x.get("k")`, `.pop`, `.setdefault`) a key that is
       DEVELOPER-ONLY (a key name that occurs in the knowledge only under developer paths: `developer_keys()`), and only a
@@ -76,6 +78,11 @@ LOADERS = {
     "knowledge/story.py": ("milestones.json",),
     "knowledge/facts.py": ("types.json", "moves.json", "species.json"),
     "personality.py": ("wild_species.json",),
+    # (KI-128, 2026-10-31) the world folder's FIRST loader: each map's static map type, and nothing else. A world file is
+    # walked by RULE B (classified, its developer keys refused) only once a loader here names it: the other world files
+    # stay unread, as the 2026-10-22 KB2 decision intended ("nothing is read or checked until a loader and a
+    # KNOWLEDGE_FIELDS classification exist")
+    "knowledge/atlas.py": ("world/maps.json",),
 }
 #: the loaders that CARRY hidden keys into a record the brain must not read (rule B2/B3): file -> hidden keys
 CARRIES = {
@@ -193,7 +200,73 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "provenance": (META, "where the file came from", True),
         "species": (AI, "the species a person can meet in the wild (the favourite is drawn from them)", True),
     },
+    # (KI-128, 2026-10-31) the first WORLD file a loader reads (`knowledge/atlas.py`: `maps[].id` and `maps[].map_type`
+    # only). Every key path is classified, the ones no loader reads too: STATIC game knowledge a seasoned player has
+    # (USER RULINGS 40 and 45: the map, its type and name, its ways out, where its trainers stand and what they see, its
+    # items) is `ai`; the decomp's script labels, flags, source references and object ids are `developer`
+    "world/maps.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "count": (META, "how many maps the file holds", True),
+        "maps": (AI, "every map of the game", False),
+        "maps[]": (AI, "one map", False),
+        "maps[].id": (AI, "its const (`MAP_PETALBURG_WOODS`): the map a person stands on", True),
+        "maps[].name": (AI, "its name", True),
+        "maps[].map_type": (AI, "its STATIC map type (route, town, city, indoor, ...): the map-name popup and the look of "
+                                "the place (RULINGS 40, 45); the atlas's one fact (KI-128)", True),
+        "maps[].region_map_section": (AI, "where it lies on the region map (the TOWN MAP)", True),
+        "maps[].allow_*": (AI, "whether a bike, an escape and running work there (a player finds out at once)", True),
+        "maps[].requires_flash": (AI, "a dark cave (seen on entering)", True),
+        "maps[].connections": (AI, "the maps beyond its edges (a guide's map; RULING 45)", True),
+        "maps[].warps": (AI, "its doors, stairs and cave mouths and where they lead (a guide's map; RULING 45)", True),
+        "maps[].trainers": (AI, "the trainers who stand on it", False),
+        "maps[].trainers[]": (AI, "one trainer", False),
+        "maps[].trainers[].x": (AI, "where the trainer stands (RULING 45: coordinates kept)", True),
+        "maps[].trainers[].y": (AI, "where the trainer stands (RULING 45: coordinates kept)", True),
+        "maps[].trainers[].elevation": (AI, "the level the trainer stands on", True),
+        "maps[].trainers[].sight": (AI, "how far the trainer sees (RULING 45: sight ranges kept)", True),
+        "maps[].trainers[].trainer_type": (AI, "whether the trainer walks up when seen", True),
+        "maps[].trainers[].trainers": (AI, "who the trainer is (a guide names them)", True),
+        "maps[].trainers[].source": (DEVELOPER, "the extractor's join (an object, a coord event, a script): its proof",
+                                     True),
+        "maps[].trainers[].object": (DEVELOPER, "the decomp's object event index: the extractor's join", True),
+        "maps[].trainers[].script": (DEVELOPER, "the decomp's script label", True),
+        "maps[].trainers[].label": (DEVELOPER, "the decomp's script label (a script-only battle)", True),
+        "maps[].trainers[].ref": (DEVELOPER, "the decomp file and line: the developers' proof", True),
+        "maps[].item_balls": (AI, "the item balls on it (a guide lists them)", False),
+        "maps[].item_balls[]": (AI, "one item ball", False),
+        "maps[].item_balls[].item": (AI, "what it holds", True),
+        "maps[].item_balls[].x": (AI, "where it lies", True),
+        "maps[].item_balls[].y": (AI, "where it lies", True),
+        "maps[].item_balls[].elevation": (AI, "the level it lies on", True),
+        "maps[].item_balls[].flag": (DEVELOPER, "its pickup FLAG: a hidden flag, never read (RULE A)", True),
+        "maps[].item_balls[].script": (DEVELOPER, "the decomp's script label", True),
+        "maps[].hidden_items": (AI, "the hidden items on it (a guide lists them)", False),
+        "maps[].hidden_items[]": (AI, "one hidden item", False),
+        "maps[].hidden_items[].item": (AI, "what it is", True),
+        "maps[].hidden_items[].x": (AI, "where it is hidden", True),
+        "maps[].hidden_items[].y": (AI, "where it is hidden", True),
+        "maps[].hidden_items[].elevation": (AI, "the level it is on", True),
+        "maps[].hidden_items[].flag": (DEVELOPER, "its pickup FLAG: a hidden flag, never read (RULE A)", True),
+        "maps[].shared_events_map": (DEVELOPER, "the decomp map whose events this map shares: the extractor's join", True),
+        "maps[].shared_scripts_map": (DEVELOPER, "the decomp map whose scripts this map shares: the extractor's join",
+                                      True),
+    },
 }
+
+
+def world_files(loaders: dict[str, tuple[str, ...]] | None = None) -> list[str]:
+    """(KI-128, 2026-10-31) The files of `knowledge/world/` that a declared LOADER names ("world/maps.json"): the only
+    world files RULE B walks. The rest stay unread and unchecked (the 2026-10-22 KB2 decision)."""
+    return sorted({name for names in (LOADERS if loaders is None else loaders).values() for name in names
+                   if name.startswith("world/")})
+
+
+def knowledge_files(knowledge: Path) -> list[tuple[str, Path]]:
+    """(name in KNOWLEDGE_FIELDS, path) of every knowledge file RULE B walks: each `*.json` of the folder itself, and each
+    world file a loader names (`world_files`) that exists."""
+    out = [(path.name, path) for path in sorted(knowledge.glob("*.json"))]
+    out += [(name, knowledge / name) for name in world_files() if (knowledge / name).is_file()]
+    return out
 
 
 # ---------------------------------------------------------------------- the knowledge schema (rule B)
@@ -241,16 +314,16 @@ def schema_problems(knowledge: Path, fields: dict[str, dict] = KNOWLEDGE_FIELDS)
     """(problems, how many key paths of each kind): every knowledge file has a schema and every path is classified."""
     problems: list[str] = []
     counts: dict[str, int] = {}
-    for path in sorted(knowledge.glob("*.json")):
-        schema = fields.get(path.name)
+    for name, path in knowledge_files(knowledge):
+        schema = fields.get(name)
         if schema is None:
-            problems.append(f"knowledge/{path.name}: a knowledge file with no schema in KNOWLEDGE_FIELDS (classify its "
+            problems.append(f"knowledge/{name}: a knowledge file with no schema in KNOWLEDGE_FIELDS (classify its "
                             f"fields: ai / developer / hidden / meta)")
             continue
         paths = sorted(set(key_paths(json.loads(path.read_text(encoding="utf-8")))))
         unclassified = [shown(p) for p in paths if classify(p, schema) is None]
         if unclassified:
-            problems.append(f"knowledge/{path.name}: {len(unclassified)} UNCLASSIFIED key paths {unclassified[:8]}: mark "
+            problems.append(f"knowledge/{name}: {len(unclassified)} UNCLASSIFIED key paths {unclassified[:8]}: mark "
                             f"each in KNOWLEDGE_FIELDS (developer data is never left unmarked)")
         for p in paths:
             found = classify(p, schema)
@@ -269,16 +342,26 @@ def developer_keys(fields: dict[str, dict] = KNOWLEDGE_FIELDS, knowledge: Path |
             keys = [s for s in p if s != "[]"]
             if not keys:
                 continue
-            (developer if found is not None and found[1][0] == DEVELOPER else elsewhere).add(keys[-1])
+            if found is not None and found[1][0] == DEVELOPER:
+                developer.add(keys[-1])
+            elif not name.startswith("world/"):
+                # (KI-128, 2026-10-31) a WORLD file's AI-visible names do not excuse a name elsewhere: the deciding code
+                # never holds a world dict (its loader answers with plain facts: `knowledge/atlas.py` open_map gives a
+                # bool), and maps.json's AI coordinates (`warps[].x`) would otherwise UN-REFUSE `x` and `y`, the
+                # developers' MEASURED coordinates of milestones.json (`looks.*.measured`; measured 2026-10-31 with this
+                # branch removed: the developer-only keys lost x and y, and test_safety_gates G4's coordinate plant
+                # `data[...]['measured'][0]['x']` was refused for 'measured' only; test_kb2 K-F3 asserts both stay)
+                elsewhere.add(keys[-1])
     return developer - elsewhere
 
 
 def _sources(fields: dict[str, dict], knowledge: Path | None) -> list[tuple[str, list[Path_]]]:
-    """(file, its key paths): the files' own paths when the folder is given, else the schema's patterns."""
+    """(file, its key paths): the files' own paths when the folder is given (the folder's `*.json` and each world file a
+    loader names, `knowledge_files`), else the schema's patterns."""
     if knowledge is None:
         return [(name, [_pattern(p) for p in schema]) for name, schema in fields.items()]
-    return [(path.name, sorted(set(key_paths(json.loads(path.read_text(encoding="utf-8"))))))
-            for path in sorted(knowledge.glob("*.json")) if path.name in fields]
+    return [(name, sorted(set(key_paths(json.loads(path.read_text(encoding="utf-8"))))))
+            for name, path in knowledge_files(knowledge) if name in fields]
 
 
 def hidden_keys(fields: dict[str, dict] = KNOWLEDGE_FIELDS, knowledge: Path | None = None) -> set[str]:
@@ -558,7 +641,8 @@ def check(package: Path = PACKAGE) -> tuple[bool, list[str], str]:
             flag_names |= {f"TRAINER_{name}" for name in done.get("trainers") or {}}
     dev_keys = developer_keys(knowledge=knowledge)
     hid_keys = hidden_keys(knowledge=knowledge)
-    names = {p.name for p in knowledge.glob("*.json")}
+    # B1's names: the folder's own files, and (KI-128) each world file a loader names, by its file name ("maps.json")
+    names = {p.name for p in knowledge.glob("*.json")} | {Path(name).name for name in world_files()}
     scanned = 0
     used: set[tuple[str, str, str]] = set()
     # (U2 spec D15) `builtins.int = X` in ANY AI-side module rebinds the builtin for every module: the package's

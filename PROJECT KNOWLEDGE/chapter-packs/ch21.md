@@ -17,7 +17,7 @@ Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `bf3cc8ad0960
 | `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb67` |
 | `ai_player/knowledge/world/bosses.json` | `30e65ffaf2e0b9cc` |
 | `ai_player/knowledge/world/campaign.json` | `18748a1bc65702a4` |
-| `ai_player/knowledge/world/maps.json` | `c6292bcf29fc02d3` |
+| `ai_player/knowledge/world/maps.json` | `ecc1cec58ee498de` |
 | `ai_player/knowledge/world/trainers.json` | `2f329852a38e1416` |
 
 ## Entries

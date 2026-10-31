@@ -430,6 +430,18 @@ def distances(memory: MapMemory, start: tuple[int, int], walls: frozenset | set,
     return out
 
 
+def in_map_walls(memory: MapMemory, walls: frozenset, target_tile: tuple[int, int] | None) -> frozenset:
+    """(build step 5.2; KI-129 Part A, 2026-10-31, factored out of `Navigator._next_step` with no change) A tile of THIS
+    map is walked to over tiles of this map: once an edge has been seen crossed (`memory.edges`), the tiles SEEN past it
+    are the next map's, and a walk through them crosses onto it. So for a target on this map (`target_tile` not past an
+    edge, or None: any tile of this map, `Navigator.cut_off`'s reach) they are walls; a target past an edge (a road)
+    still crosses it. ONE rule for "can it get there?": the planner that walks and the reach that says what is left to
+    see (`WorldMemory.promise`) agree."""
+    if memory.edges and (target_tile is None or not memory.outside(target_tile)):
+        walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy))
+    return walls
+
+
 def path_cost(memory: MapMemory, start: tuple[int, int], path: list[str] | None, walls: frozenset | set, grass_cost: float,
               noise: Callable[[tuple[int, int]], float] | None = None) -> float | None:
     """(build step 3.2) What walking `path` from `start` costs as far as the AI knows NOW (the costs `astar` plans with, no
@@ -799,7 +811,8 @@ class Navigator:
     def cut_off(self, look: Observation) -> list[tuple[int, int]]:
         """(build step 5.2, the verifier's round) The frontier tiles and unused exits of the map the player stands on that
         its reach shows NO way to (the navigator's own `distances`, over known and unknown tiles, round the scene walls and
-        what lies on the ground; never round the people, who walk on), marked in the world memory (`mark_cut_off`) so the
+        what lies on the ground; never round the people, who walk on; and, KI-129 Part A, never through the tiles seen past
+        a crossed edge, the planner's own rule, `in_map_walls`), marked in the world memory (`mark_cut_off`) so the
         map's `promise` is only what it could get to. Off unless `mark_cut` (the earlier brains)."""
         if not self.mark_cut:
             return []
@@ -807,7 +820,14 @@ class Navigator:
         if found is None:
             return []
         memory, here = found
-        reach = distances(memory, here, self.walls(memory, here) - memory.people_now, self.grass_cost)
+        # (KI-129 Part A, 2026-10-31) the reach goes over tiles of THIS map only, by the planner's own rule
+        # (`in_map_walls`): the frontier and the exits are inside the map by definition, and the planner that walks to
+        # one never plans through the tiles seen past a crossed edge. Measured on the A0-1 end memory from (39, 63) on
+        # ROUTE 104: the old reach went round through PETALBURG's tiles to the strip behind the ledge at x 32-33, y 42-47,
+        # so nothing was cut, ROUTE 104 kept "something left to see" that no walk could get to, and the walk crossed the
+        # PETALBURG edge back and forth for the rest of the run
+        walls = in_map_walls(memory, self.walls(memory, here) - memory.people_now, None)
+        reach = distances(memory, here, walls, self.grass_cost)
         cut = [xy for xy in memory.frontier() if xy not in reach]
         for xy in memory.exits():
             if self.world.link_of(memory.key, xy) is None and not any(
@@ -1156,9 +1176,8 @@ class Navigator:
         # to over tiles of this map: the tiles SEEN past an edge it has crossed are the next map's, and a plan through them
         # crosses onto it (the frontier at (25, 15) on ROUTE 103 was planned through OLDALE's tiles below the edge; on
         # OLDALE the explorer chose "the road up, back to ROUTE 103", and round again). A target past an edge (a road)
-        # still crosses it.
-        if memory.edges and not memory.outside(target.tile):
-            walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy))
+        # still crosses it. (KI-129 Part A) the rule is `in_map_walls`, shared with `cut_off`'s reach.
+        walls = in_map_walls(memory, walls, target.tile)
         if plan is not None and plan.key == target.key and plan.map == current and plan.at == here and plan.path:
             near, tile = set(), here
             for direction in plan.path[:PERSON_AHEAD]:

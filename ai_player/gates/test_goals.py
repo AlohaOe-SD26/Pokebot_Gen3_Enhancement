@@ -6136,6 +6136,239 @@ class VerifierRound52Tests(unittest.TestCase):
                 self.assertEqual(mgr.memory.lost_end, (milestone.id, world.stamp()))  # FAULT half: no stamp kept
 
 
+def _open_tile() -> TileFact:
+    """A walkable tile (no wall, no water, no ledge, no exit)."""
+    return TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (0, 0))
+
+
+def _left_to_see(world: WorldMemory, const: str, at: tuple[int, int] = (1, 1)) -> None:
+    """Give the map `const` one frontier tile (a walkable tile beside unseen ones): its `promise` is then above 0."""
+    memory = next(m for m in world.maps.values() if m.const == const)
+    memory.tiles[at] = _open_tile()
+
+
+@contextlib.contextmanager
+def _atlas_types(**override: str):
+    """(KI-128) The atlas with some maps TYPED otherwise (`MAP_TYPE_INDOOR` for the woods): the fault arm that shows the
+    map TYPE carries a rule, not the map's name."""
+    from ai_player.knowledge import atlas
+    types_now = {**atlas._types(), **override}  # noqa: SLF001 - test side
+    with mock.patch.dict(atlas._CACHE, {"types": types_now}):  # noqa: SLF001
+        yield
+
+
+#: (KI-128, K-C3) every map const the six r1base chapter 1-2 runs (2026-10-30, ai-step5-play: CH1T, CH1C, CH1M, CH2, CH2T,
+#: CH2M) stood on, from each world.jsonl's last line (s53/fix/build/r1base_consts.py; no map was known and not stood on)
+R1BASE_CONSTS = ("INSIDE_OF_TRUCK", "LITTLEROOT_TOWN", "LITTLEROOT_TOWN_BRENDANS_HOUSE_1F", "LITTLEROOT_TOWN_BRENDANS_HOUSE_2F",
+                 "LITTLEROOT_TOWN_MAYS_HOUSE_1F", "LITTLEROOT_TOWN_MAYS_HOUSE_2F", "LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB",
+                 "OLDALE_TOWN", "OLDALE_TOWN_HOUSE1", "OLDALE_TOWN_HOUSE2", "OLDALE_TOWN_MART", "OLDALE_TOWN_POKEMON_CENTER_1F",
+                 "PETALBURG_CITY", "PETALBURG_CITY_GYM", "PETALBURG_CITY_HOUSE2", "PETALBURG_CITY_POKEMON_CENTER_1F",
+                 "PETALBURG_CITY_POKEMON_CENTER_2F", "ROUTE101", "ROUTE102", "ROUTE103")
+
+
+class KI128Tests(unittest.TestCase):
+    """(KI-128, 2026-10-31: the woods are a road) In all three A0 runs (ledger #68) the AI never reached PETALBURG WOODS'
+    north half: `lead_toward` evicted it from the woods (no "look on from here" there, and the woods no lead) and
+    `keeps_going` refused the way back in, both because the woods are not NAMED like a route (`OUTDOOR`). `open_way` asks
+    the atlas's STATIC map type too (`knowledge/atlas.py`; USER RULINGS 40, 45). FAULT arms type the woods INDOOR in the
+    atlas: the predicate carries each rule, not a map's name. Mutants: `revert_step5.py` G407-G412."""
+
+    def test_k_f1_in_the_woods_with_something_left_it_looks_on_from_there(self):
+        from ai_player.brain.goals import lead_toward
+        world = world_with("ROUTE104", "PETALBURG_WOODS", current="PETALBURG_WOODS")
+        _left_to_see(world, "ROUTE104")
+        _left_to_see(world, "PETALBURG_WOODS")
+        self.assertEqual((world.promise("0:1"), world.promise("0:2")), (1, 1))
+        self.assertIsNone(lead_toward(world, "RUSTBORO_CITY"))  # FAULT (818d3706): "ROUTE104", the logged eviction
+        with _atlas_types(PETALBURG_WOODS="MAP_TYPE_INDOOR"):
+            self.assertEqual(lead_toward(world, "RUSTBORO_CITY"), "ROUTE104")  # the TYPE carries it
+
+    def test_k_f2_the_way_back_into_the_woods_is_kept_on_the_way(self):
+        from ai_player.brain.goals import keeps_going
+        world = world_with("ROUTE104", "PETALBURG_WOODS", current="ROUTE104")
+        world.warps["0:1|11,38"] = {"to": "0:2", "arrival": [17, 38], "uses": 1, "by": "ai", "inferred": False}
+        back = Target("back", (11, 39), "back to PETALBURG_WOODS", exit=(11, 38), direction="up")
+        self.assertTrue(keeps_going(world, back, "RUSTBORO_CITY"))  # FAULT (818d3706): False, the way back refused
+        with _atlas_types(PETALBURG_WOODS="MAP_TYPE_INDOOR"):
+            self.assertFalse(keeps_going(world, back, "RUSTBORO_CITY"))
+
+    def test_k_f6_told_of_the_woods_it_looks_out_in_the_open_not_in_a_building(self):
+        """(KI-128, the fourth `open_way` site) A goal map never seen that is OPEN COUNTRY (the woods) is looked for out
+        in the open, where the most is left to see, not as a building's room in its town (`lead_toward`'s first rule)."""
+        from ai_player.brain.goals import lead_toward
+        world = world_with("PETALBURG_CITY", "ROUTE104", current="PETALBURG_CITY")
+        _left_to_see(world, "ROUTE104")
+        self.assertEqual(lead_toward(world, "PETALBURG_WOODS"), "ROUTE104")  # FAULT (818d3706): None, a "building"
+        self.assertIsNone(lead_toward(world, "PETALBURG_CITY_GYM"))  # CONTROL: a room of the town it stands in
+
+    def test_k_f7_a_walk_to_a_map_never_seen_heads_first_for_the_woods(self):
+        """(the call-site census: `lead_toward`'s one site, `GoalRunner._travel`) Told of RUSTBORO from ROUTE 104 with
+        nothing left to see there and the woods unseen in part, the go walks FIRST to the woods (the lead), then on."""
+        from ai_player.brain.goals import GoalRunner
+        world = world_with("ROUTE104", "PETALBURG_WOODS", current="ROUTE104")
+        _left_to_see(world, "PETALBURG_WOODS")
+        walks: list[str] = []
+
+        def run(intent, why):
+            walks.append(intent.name)
+            yield
+            return "done (test)"
+
+        nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(20)], const="ROUTE104")), nav,
+                            manager("Catcher"), types.SimpleNamespace(purpose=""), lambda line: None)
+        drive(runner._travel("RUSTBORO_CITY", "to RUSTBORO_CITY", 9000, lambda seen: False))  # noqa: SLF001
+        self.assertEqual(walks, ["travel to PETALBURG_WOODS", "travel to RUSTBORO_CITY"])  # FAULT (818d3706): no lead
+
+    def test_k_f8_the_walk_takes_the_way_back_into_the_woods_and_refuses_a_house(self):
+        """(the census: `keeps_going`'s site in `travel_intent.choose`) Going to RUSTBORO, the walk's own choice keeps the
+        way back into the woods and refuses the way back into a house it has been in."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import travel_intent
+        world = world_with("ROUTE104", "PETALBURG_WOODS", "ROUTE104_MR_BRINEYS_HOUSE", current="ROUTE104")
+        world.warps["0:1|11,38"] = {"to": "0:2", "arrival": [17, 38], "uses": 1, "by": "ai", "inferred": False}
+        world.warps["0:1|17,50"] = {"to": "0:3", "arrival": [5, 8], "uses": 1, "by": "ai", "inferred": False}
+        house = Target("back", (17, 51), "it leads back to ROUTE104_MR_BRINEYS_HOUSE", exit=(17, 50), score=9.0)
+        woods = Target("back", (11, 39), "it leads back to PETALBURG_WOODS", exit=(11, 38), score=5.0)
+        nav = types.SimpleNamespace(choosing_on_the_move=False, world=world, rng=random.Random(1), heading=lambda: None,
+                                    where=lambda seen: (world.here(), (10, 10)))
+        with mock.patch.object(goals_module, "candidates", lambda *a, **k: [house, woods]), \
+                mock.patch.object(goals_module, "pick", lambda found, rng: max(found, key=lambda t: t.score)), \
+                mock.patch.object(goals_module, "choose_target", lambda *a, **k: Target("wander", (1, 1), "wander")):
+            chosen = travel_intent("RUSTBORO_CITY", "Catcher", 2400, lambda s: False).choose(nav, look(const="ROUTE104"))
+        self.assertEqual((chosen.kind, chosen.exit), ("back", (11, 38)))  # FAULT (818d3706): the fallback's wander
+
+    def test_k_f9_a_lost_walk_refuses_a_way_back_into_a_house(self):
+        """(the census: `keeps_going`'s site in `lost_intent`) A walk with no lead never goes back into a building it has
+        been in: with the house's door the only thing here, it heads for the map where something is left."""
+        route = [Target("route", (14, 7), "it leads toward the goal (1 link(s) known)", score=50.0, exit=(14, 6))]
+        house = [Target("back", (5, 6), "it leads back to OLDALE_TOWN_MART, where 2 thing(s) are left to see", exit=(5, 5))]
+        chosen, told = VerifierRound52Tests().lost(house, route)
+        self.assertEqual((chosen.kind, chosen.tile), ("route", (14, 7)))  # FAULT (the call deleted): back into the MART
+        self.assertEqual(told, [])
+
+    def test_k_f4_without_part_a_a_phantom_on_route104_still_wins_from_petalburg(self):
+        """(F2's case) A DOCUMENTED EXPECTATION, not a pass condition of KI-128: ROUTE 104's phantom (1 thing "left to
+        see" that no walk can get to) keeps it the lead from PETALBURG, routes before the woods. Why KI-128 never ships
+        without KI-129 Part A; `KI129PartATests.test_p_f2_*` asserts the flip."""
+        from ai_player.brain.goals import lead_toward
+        world = world_with("PETALBURG_CITY", "ROUTE104", "PETALBURG_WOODS", current="PETALBURG_CITY")
+        _left_to_see(world, "ROUTE104")
+        _left_to_see(world, "PETALBURG_WOODS")
+        self.assertEqual(world.promise("0:1"), 0)
+        self.assertEqual(lead_toward(world, "RUSTBORO_CITY"), "ROUTE104")
+
+    def test_k_c1_interiors_stay_refused_on_the_way(self):
+        from ai_player.brain.goals import keeps_going
+        for interior in ("ROUTE104_MR_BRINEYS_HOUSE", "PETALBURG_CITY_POKEMON_CENTER_1F"):
+            world = world_with("ROUTE104", interior, current="ROUTE104")
+            world.warps["0:1|17,50"] = {"to": "0:2", "arrival": [5, 8], "uses": 1, "by": "ai", "inferred": False}
+            back = Target("back", (17, 51), f"back to {interior}", exit=(17, 50), direction="up")
+            self.assertFalse(keeps_going(world, back, "RUSTBORO_CITY"), interior)
+            self.assertTrue(keeps_going(world, back, interior), interior)  # unless it is the goal
+
+    def test_k_c2_a_shop_and_the_truck_are_not_open_country(self):
+        from ai_player.brain.goals import open_way
+        from ai_player.knowledge.atlas import open_map
+        for const in ("ROUTE104_PRETTY_PETAL_FLOWER_SHOP", "INSIDE_OF_TRUCK"):
+            self.assertIs(open_map(const), False, const)  # the atlas holds it, and says no (not a fallback)
+            self.assertFalse(open_way(const), const)
+        for const in ("PETALBURG_WOODS", "ROUTE104", "RUSTBORO_CITY", "EVER_GRANDE_CITY"):
+            self.assertIs(open_map(const), True, const)
+            self.assertTrue(open_way(const), const)
+
+    def test_k_c3_chapters_1_and_2_are_inert(self):
+        from ai_player.brain.goals import OUTDOOR, open_way
+        self.assertEqual(len(R1BASE_CONSTS), 20)
+        for const in R1BASE_CONSTS:
+            self.assertEqual(open_way(const), bool(OUTDOOR.match(const)), const)
+
+    def test_k_c4_a_map_the_atlas_does_not_hold_counts_by_its_name(self):
+        from ai_player.brain.goals import open_way
+        from ai_player.knowledge.atlas import open_map
+        for const, named_open in (("ROUTE999", True), ("NOWHERE_TOWN", True), ("SOMEWHERE_NEW", False), ("", False),
+                                  (None, False)):
+            self.assertIsNone(open_map(const), const)
+            self.assertEqual(open_way(const), named_open, const)
+
+    def test_k_c5_hurt_in_the_woods_it_looks_for_no_town_centre_there(self):
+        """The heal errand's "a town has a POKéMON CENTER" still asks the NAME (`OUTDOOR`): the woods are open country but
+        no town, so a hurt party there heals at the centre it knows."""
+        def decide(mgr, world, const, number):
+            observation = look(ch2_dad_marks(), party=[mon(9, hp=8, max_hp=20)], const=const, map_number=number)
+            index, milestone = mgr.milestone(observation, visited_in(world))
+            return mgr.next_goal(observation, world, milestone, index)
+
+        world = petalburg_world()
+        world.maps["0:4"] = MapMemory("0:4", "PETALBURG_WOODS", "PETALBURG_WOODS")
+        world.maps["0:4"].visits[(1, 1)] = 1
+        world._last.key = "0:4"  # noqa: SLF001
+        goal = decide(manager("Story"), world, "PETALBURG_WOODS", 11)
+        self.assertNotEqual(goal.kind, "find_center", goal.reason)
+        self.assertEqual(goal.kind, "heal", goal.reason)
+        control = petalburg_world()  # CONTROL: in a town whose centre it has not seen, it looks there (as before)
+        self.assertEqual(decide(manager("Story"), control, "PETALBURG_CITY", 3).kind, "find_center")
+
+
+#: (KI-129 Part A, P-F1) the AI's REAL ROUTE 104 memory at the end of the A0-1 run (`make_ki129_fixture.py`)
+ROUTE104_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "route104_a01.world.jsonl"
+#: the strip behind the ledge on ROUTE 104 (x 32-33, y 42-47): seen from below, reachable only round through PETALBURG
+STRIP = [(32, 42), (33, 43), (33, 44), (33, 45), (33, 46), (33, 47)]
+
+
+class KI129PartATests(unittest.TestCase):
+    """(KI-129 Part A, 2026-10-31: one reach for "can it get there?") `Navigator.cut_off`'s reach went round through the
+    tiles seen past a crossed edge (PETALBURG's), which the planner that walks never does (`in_map_walls`), so ROUTE 104
+    kept a strip behind a ledge as "left to see" for ever and the walk crossed the PETALBURG edge back and forth. The reach
+    now uses the planner's own rule. Mutant: `revert_step5.py` G413."""
+
+    def fixture_world(self) -> WorldMemory:
+        return WorldMemory.from_dict(json.loads(ROUTE104_FIXTURE.read_text(encoding="utf-8")))
+
+    def cut_from(self, world: WorldMemory, tile: tuple[int, int]) -> list:
+        world._last.key, world._last.xy = "0:19", tile  # noqa: SLF001
+        memory = world.maps["0:19"]
+        nav = Navigator(None, world, random.Random(1), 2.0, "Catcher")
+        nav.where = lambda look_: (memory, tile)
+        nav.mark_cut = True
+        return nav.cut_off(types.SimpleNamespace(frame=1))
+
+    def test_p_f1_the_strip_behind_the_ledge_is_not_left_to_see_from_below(self):
+        world = self.fixture_world()
+        memory = world.maps["0:19"]
+        self.assertEqual((memory.const, memory.edges), ("ROUTE104", {"right": 40}))
+        self.assertEqual(len(memory.frontier()), 5)
+        self.assertEqual([xy for xy in memory.exits() if world.link_of("0:19", xy) is None], [(32, 42)])
+        self.assertEqual(world.promise("0:19"), 6)
+        self.assertEqual(sorted(self.cut_from(world, (39, 63))), STRIP)  # FAULT (818d3706): nothing cut
+        self.assertEqual(world.promise("0:19"), 0)
+
+    def test_p_c1_from_inside_the_strip_its_frontier_is_not_cut(self):
+        world = self.fixture_world()
+        self.assertEqual(self.cut_from(world, (33, 45)), [])
+        self.assertEqual(world.promise("0:19"), 6)
+
+    def test_p_f2_with_ki128_and_part_a_the_woods_are_the_lead(self):
+        """(F2/F3) KI-128 and Part A TOGETHER: from PETALBURG and from ROUTE 104 (39, 63), with ROUTE 104's strip cut, the
+        lead toward RUSTBORO is the woods. The Part-A-removed arm (no cut): "ROUTE104" from PETALBURG, None (look on
+        from here) on ROUTE 104: the loop A0 walked."""
+        from ai_player.brain.goals import lead_toward
+        for start in ("PETALBURG_CITY", "ROUTE104"):
+            world = self.fixture_world()
+            world.maps["0:0"] = MapMemory("0:0", "PETALBURG_CITY", "PETALBURG_CITY")
+            world.maps["0:0"].visits[(0, 13)] = 1
+            world.maps["24:11"] = MapMemory("24:11", "PETALBURG_WOODS", "PETALBURG_WOODS")
+            world.maps["24:11"].visits[(16, 38)] = 1
+            _left_to_see(world, "PETALBURG_WOODS", (16, 30))
+            self.assertGreater(world.promise("24:11"), 0)
+            world._last.key = "0:0" if start == "PETALBURG_CITY" else "0:19"  # noqa: SLF001
+            self.assertEqual(lead_toward(world, "RUSTBORO_CITY"), "ROUTE104" if start == "PETALBURG_CITY" else None,
+                             start)  # the Part-A-removed arm
+            self.cut_from(world, (39, 63))
+            world._last.key = "0:0" if start == "PETALBURG_CITY" else "0:19"  # noqa: SLF001
+            self.assertEqual(lead_toward(world, "RUSTBORO_CITY"), "PETALBURG_WOODS", start)  # FAULT (818d3706): None
+
+
 def _unused_tile() -> Tile:  # keeps the builder import honest (a Tile is what View rows hold)
     return Tile(0, 0, 0, 0, 0, 0, "NORMAL", 0, 3, False, False, None, False, None, False, False, False)
 

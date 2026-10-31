@@ -146,6 +146,7 @@ from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import page_text
 from ai_player.hands.dialogue import player_free
 from ai_player.hands.pad import Hands
+from ai_player.knowledge.atlas import open_map
 from ai_player.knowledge.story import Milestone, Step, Story
 from ai_player.personality import PersonalityState
 from ai_player.world.memory import DIRECTIONS, moved
@@ -644,9 +645,25 @@ def roam_numbers(outcome: str) -> dict | None:
     return {key: int(value) for key, value in zip(keys, found.groups()) if value is not None}
 
 
-#: A map a person sees the NAME of when they walk onto it (a town, a city, a route: the map-name popup), as opposed to an
-#: interior: where a person looks for a way on to somewhere they have not been.
+#: A map NAMED like a town, a city or a route, as opposed to an interior. (KI-128, 2026-10-31) This is a NAME pattern, and
+#: it is narrower than "a map a person sees the name of when they walk onto it": PETALBURG_WOODS (a route by its map type,
+#: a forest a person walks through) and EVER_GRANDE_CITY (the second underscore) fit that class and miss the pattern.
+#: `open_way` is the predicate that matches the class; this pattern stays where a NAME is what counts (the errands: a
+#: "town" whose centre is looked for, a new outdoor map to look round, the curiosity and detour rules).
 OUTDOOR = re.compile(r"^(ROUTE\d+|[A-Z]+_(TOWN|CITY))$")
+
+
+def open_way(const: str | None) -> bool:
+    """(KI-128, 2026-10-31) Is map `const` OPEN COUNTRY, a place a person walks through on the way somewhere (a route, a
+    town, a city, an ocean route, a forest such as PETALBURG WOODS), as opposed to an interior? Named like one (`OUTDOOR`),
+    or so by its STATIC map type, which a person knows from the map-name popup, the look of the place and a guide's map
+    (USER RULINGS 40 and 45: static game knowledge; `knowledge/atlas.py` open_map, None for a map the atlas does not hold,
+    which then counts by its name alone). Used ONLY where the woods were measured to break the walk on (KI-128): where an
+    open goal is looked for (`lead_toward`) and which ways back a walk may take (`keeps_going`). WHY: in all three A0 runs
+    the AI never reached the woods' north half: `lead_toward` evicted it from the woods (no early return there, the woods
+    no lead) and `keeps_going` refused the way back in, so it walked ROUTE 104's south and PETALBURG's edge for the rest of
+    the run."""
+    return bool(OUTDOOR.match(const or "")) or open_map(const) is True
 
 
 def world_distance(world, key: str) -> int:
@@ -670,13 +687,13 @@ def world_distance(world, key: str) -> int:
 
 
 def lead_toward(world, goal_const: str | None) -> str | None:
-    """Heading for a map it has NOT been to (`goal_const` unknown to its memory): the outdoor map it HAS been to where the
-    most is left to see (`WorldMemory.promise`: frontier, exits not used, roads), routes before towns, nearer first; None
+    """Heading for a map it has NOT been to (`goal_const` unknown to its memory): the open map (`open_way`: a town, a route,
+    the woods; KI-128) it HAS been to where the most is left to see (`WorldMemory.promise`: frontier, exits not used, roads), routes before towns, nearer first; None
     when the goal is known, or nothing promising is known. A person who is told "ROUTE 103" and has seen only Littleroot
     and part of ROUTE 101 walks on up ROUTE 101, not into the houses."""
     if goal_const is not None and any(memory.const == goal_const for memory in world.maps.values()):
         return None
-    if goal_const is not None and not OUTDOOR.match(goal_const):
+    if goal_const is not None and not open_way(goal_const):
         # a building's room: found in its own TOWN (the name says which: "PETALBURG GYM" is in PETALBURG CITY), so a person
         # who has been to that town walks there first (measured 2026-10-14, the chapter-2 development run c2b: told of
         # the gym while catching on ROUTE 102, it explored ROUTE 102's grass for two 9000-frame budgets); found inside, by
@@ -688,12 +705,12 @@ def lead_toward(world, goal_const: str | None) -> str | None:
         there = here is not None and (here.const == town or str(here.const or "").startswith(f"{town}_"))
         return town if town is not None and not there else None
     here = world.here()
-    if here is not None and OUTDOOR.match(here.const or "") and world.promise(here.key) > 0:
+    if here is not None and open_way(here.const) and world.promise(here.key) > 0:
         return None  # out in the open with something left to see here: look on from here
     options = []
     for key, memory in world.maps.items():
         const = memory.const or ""
-        if not OUTDOOR.match(const) or not memory.visits or key == world.current:
+        if not open_way(const) or not memory.visits or key == world.current:
             continue
         promise = world.promise(key)
         if promise <= 0:
@@ -707,8 +724,8 @@ ON_THE_MAP = ("frontier", "grass", "people", "wander")
 
 
 def keeps_going(world, target: Target, goal_map: str | None, stay: bool = False) -> bool:
-    """`travel_intent`'s rule: a way BACK into a building already visited (an interior, not a town or a route, and not
-    the goal itself) is no option for someone going somewhere; every other place is. `stay`: someone SEARCHING this map
+    """`travel_intent`'s rule: a way BACK into a building already visited (an interior, not open country, `open_way`: a
+    town, a route, the woods; and not the goal itself) is no option for someone going somewhere; every other place is. `stay`: someone SEARCHING this map
     (for the rival on ROUTE 103, the nurse at the back of the centre) keeps to places on it."""
     if stay:
         return target.kind in ON_THE_MAP
@@ -716,7 +733,7 @@ def keeps_going(world, target: Target, goal_map: str | None, stay: bool = False)
         return True
     link = world.link_of(world.current, target.exit)
     inside = world.maps.get(link.get("to")) if link else None
-    return inside is None or bool(OUTDOOR.match(inside.const or "")) or inside.const == goal_map
+    return inside is None or open_way(inside.const) or inside.const == goal_map
 
 
 def worth_going(target: Target) -> bool:

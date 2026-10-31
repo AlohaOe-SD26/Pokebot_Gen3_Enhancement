@@ -14,7 +14,7 @@
       "raised": []
     },
     "02-ARCHITECTURE.md": {
-      "ceiling": 70972,
+      "ceiling": 71281,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -24,6 +24,13 @@
           "from": 70345,
           "to": 70972,
           "why": "R1 + R2 (2026-10-29): 02 must describe its four new AI-player modules, the launcher's --continue and its lane gates (CLAUDE.md section 2: 02 stays true to the code); 627 bytes after cutting that line to its essentials"
+        },
+        {
+          "date": "2026-10-31",
+          "field": "ceiling",
+          "from": 70972,
+          "to": 71281,
+          "why": "The atlas loader (2026-10-31, KI-128): a new AI-player module, the first static-knowledge loader; 02 stays true to the code (CLAUDE.md section 2)"
         }
       ]
     },
@@ -40,7 +47,7 @@
       "raised": []
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 289978,
+      "ceiling": 291246,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -57,6 +64,13 @@
           "from": 289715,
           "to": 289978,
           "why": "KI-129's disk line (each ping-pong run writes a 2 GB world.jsonl, a hazard for the next batch), found by the session-end cold-start audit on 2026-10-30"
+        },
+        {
+          "date": "2026-10-31",
+          "field": "ceiling",
+          "from": 289978,
+          "to": 291246,
+          "why": "Round 1 of KI-128/KI-129 (2026-10-31): KI-128 fixed on development runs and KI-129 Part A built; their headers and one body line each record it (CLAUDE.md section 2, pair P2)"
         }
       ]
     }

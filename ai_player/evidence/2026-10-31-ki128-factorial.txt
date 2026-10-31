@@ -1,0 +1,103 @@
+KI-128 + KI-129 PART A - THE FACTORIAL (spec s53/fix/SPEC.md 3.2) - DEVELOPMENT, NOT GRADED, NO PASS
+ledger entry #70 (development, seeds 5911-5913), 2026-10-31 12:44:10 to 2026-10-31 12:47:48 (this PC's clock, Los Angeles); driver s53/fix/build/fx_probe.py (the A0 driver's method: live_step5.run_arm, the real launcher and its purity gate per launch)
+prediction registered BEFORE the runs: s53/fix/predictions/factorial.txt, sha256 3da176e4964c0764fd32c24b38c2503416c83d3a11ffcad35b2d9c6e67e8173c (the ledger entry's bounds field); NOT committed or pushed (the orchestrator forbids commits in this round)
+arm trees (stage/arm-<A>/ai_player: 818d3706 from a git-archive zip, the arm's files laid over from the worktree), digest before -> after: PA af9a118ca144fc34 -> af9a118ca144fc34; PAW 3c9cf424c771ecd8 -> 3c9cf424c771ecd8; W dcb9339891c7506a -> dcb9339891c7506a; none 16a130f4d2230a4c -> 16a130f4d2230a4c
+starts: S1 A0-1 end (ROUTE104 (39,63), Catcher), S2 A0-2 end (ROUTE102 (0,7), Story), S3 A0-3 end (ROUTE104 (39,63), Trainer), each with the LAST line of its own world.jsonl (s53/fix/starts/manifest.json, sha256)
+10,000 frames each; after every run its world.jsonl was summarised (streamed) and DELETED (spec section 6)
+
+PER RUN (D1 = a back/route/door decide among the first 20 on ROUTE104 whose reason names PETALBURG_WOODS; D2 = crossings of the start's edge; D3 = N of the first PETALBURG 'road left ... N thing(s) left to see'):
+  none S1: exit 0, purity CLEAN, map [0, 19] -> [0, 19], D1 False, D2 196, D3 1, map changes {'edge': 196, 'warp': 0, 'other': 0}, edges {'PETALBURG_CITY|ROUTE104': 196}, max same edge in one intent 62, 'first to PETALBURG_WOODS' told 0, world.jsonl 197 lines 229421523 bytes (deleted: True)
+        D1's record: null
+        (supplementary, not registered) first back/route/door decide at a woods door: null
+  PA   S1: exit 0, purity CLEAN, map [0, 19] -> [24, 11], D1 True, D2 0, D3 None, map changes {'edge': 0, 'warp': 1, 'other': 0}, edges {}, max same edge in one intent 0, 'first to PETALBURG_WOODS' told 0, world.jsonl 2 lines 2285025 bytes (deleted: True)
+        D1's record: {"frame": 482458, "kind": "back", "target": [11, 39], "exit": [11, 38], "score": -44.5, "reason": "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see", "player": [39, 63]}
+        (supplementary, not registered) first back/route/door decide at a woods door: {"frame": 482458, "kind": "back", "target": [11, 39], "exit": [11, 38], "score": -44.5, "reason": "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see", "player": [39, 63]}
+  W    S1: exit 0, purity CLEAN, map [0, 19] -> [24, 11], D1 True, D2 0, D3 None, map changes {'edge': 0, 'warp': 1, 'other': 0}, edges {}, max same edge in one intent 0, 'first to PETALBURG_WOODS' told 0, world.jsonl 2 lines 2287977 bytes (deleted: True)
+        D1's record: {"frame": 482273, "kind": "back", "target": [11, 39], "exit": [11, 38], "score": -45.45, "reason": "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see", "player": [39, 63]}
+        (supplementary, not registered) first back/route/door decide at a woods door: {"frame": 482273, "kind": "back", "target": [11, 39], "exit": [11, 38], "score": -45.45, "reason": "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see", "player": [39, 63]}
+  PAW  S1: exit 0, purity CLEAN, map [0, 19] -> [24, 11], D1 True, D2 0, D3 None, map changes {'edge': 0, 'warp': 1, 'other': 0}, edges {}, max same edge in one intent 0, 'first to PETALBURG_WOODS' told 1, world.jsonl 2 lines 2288983 bytes (deleted: True)
+        D1's record: {"frame": 486390, "kind": "back", "target": [11, 39], "exit": [11, 38], "score": -5.96, "reason": "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see", "player": [17, 46]}
+        (supplementary, not registered) first back/route/door decide at a woods door: {"frame": 482273, "kind": "route", "target": [10, 39], "exit": [10, 38], "score": 48.09, "reason": "it leads toward the goal (1 link(s) known)", "player": [39, 63]}
+  none S2: exit 0, purity CLEAN, map [0, 17] -> [0, 17], D1 False, D2 30, D3 None, map changes {'edge': 30, 'warp': 0, 'other': 0}, edges {'PETALBURG_CITY|ROUTE102': 30}, max same edge in one intent 30, 'first to PETALBURG_WOODS' told 0, world.jsonl 31 lines 34603130 bytes (deleted: True)
+        D1's record: null
+        (supplementary, not registered) first back/route/door decide at a woods door: null
+  PA   S2: exit 0, purity CLEAN, map [0, 17] -> [0, 17], D1 False, D2 30, D3 None, map changes {'edge': 30, 'warp': 0, 'other': 0}, edges {'PETALBURG_CITY|ROUTE102': 30}, max same edge in one intent 30, 'first to PETALBURG_WOODS' told 0, world.jsonl 31 lines 34603130 bytes (deleted: True)
+        D1's record: null
+        (supplementary, not registered) first back/route/door decide at a woods door: null
+  W    S2: exit 0, purity CLEAN, map [0, 17] -> [0, 19], D1 False, D2 1, D3 None, map changes {'edge': 2, 'warp': 0, 'other': 0}, edges {'PETALBURG_CITY|ROUTE102': 1, 'PETALBURG_CITY|ROUTE104': 1}, max same edge in one intent 1, 'first to PETALBURG_WOODS' told 2, world.jsonl 3 lines 3338798 bytes (deleted: True)
+        D1's record: null
+        (supplementary, not registered) first back/route/door decide at a woods door: {"frame": 563916, "kind": "route", "target": [10, 39], "exit": [10, 38], "score": 37.37, "reason": "it leads toward the goal (1 link(s) known)", "player": [39, 63]}
+  PAW  S2: exit 0, purity CLEAN, map [0, 17] -> [0, 19], D1 False, D2 1, D3 None, map changes {'edge': 2, 'warp': 0, 'other': 0}, edges {'PETALBURG_CITY|ROUTE102': 1, 'PETALBURG_CITY|ROUTE104': 1}, max same edge in one intent 1, 'first to PETALBURG_WOODS' told 2, world.jsonl 3 lines 3338798 bytes (deleted: True)
+        D1's record: null
+        (supplementary, not registered) first back/route/door decide at a woods door: {"frame": 563916, "kind": "route", "target": [10, 39], "exit": [10, 38], "score": 37.37, "reason": "it leads toward the goal (1 link(s) known)", "player": [39, 63]}
+  none S3: exit 0, purity CLEAN, map [0, 19] -> [0, 19], D1 False, D2 194, D3 2, map changes {'edge': 194, 'warp': 0, 'other': 0}, edges {'PETALBURG_CITY|ROUTE104': 194}, max same edge in one intent 62, 'first to PETALBURG_WOODS' told 0, world.jsonl 195 lines 224020143 bytes (deleted: True)
+        D1's record: null
+        (supplementary, not registered) first back/route/door decide at a woods door: null
+  PA   S3: exit 0, purity CLEAN, map [0, 19] -> [0, 10], D1 False, D2 1, D3 None, map changes {'edge': 159, 'warp': 1, 'other': 0}, edges {'PETALBURG_CITY|ROUTE104': 1, 'PETALBURG_CITY|ROUTE102': 1, 'OLDALE_TOWN|ROUTE103': 157}, max same edge in one intent 67, 'first to PETALBURG_WOODS' told 0, world.jsonl 161 lines 184542971 bytes (deleted: True)
+        D1's record: null
+        (supplementary, not registered) first back/route/door decide at a woods door: null
+  W    S3: exit 0, purity CLEAN, map [0, 19] -> [24, 11], D1 True, D2 0, D3 None, map changes {'edge': 0, 'warp': 1, 'other': 0}, edges {}, max same edge in one intent 0, 'first to PETALBURG_WOODS' told 0, world.jsonl 2 lines 2265192 bytes (deleted: True)
+        D1's record: {"frame": 618317, "kind": "back", "target": [10, 39], "exit": [10, 38], "score": -45.99, "reason": "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see", "player": [39, 63]}
+        (supplementary, not registered) first back/route/door decide at a woods door: {"frame": 618317, "kind": "back", "target": [10, 39], "exit": [10, 38], "score": -45.99, "reason": "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see", "player": [39, 63]}
+  PAW  S3: exit 0, purity CLEAN, map [0, 19] -> [24, 11], D1 False, D2 0, D3 None, map changes {'edge': 0, 'warp': 1, 'other': 0}, edges {}, max same edge in one intent 0, 'first to PETALBURG_WOODS' told 1, world.jsonl 2 lines 2265275 bytes (deleted: True)
+        D1's record: null
+        (supplementary, not registered) first back/route/door decide at a woods door: {"frame": 618317, "kind": "route", "target": [10, 39], "exit": [10, 38], "score": 47.51, "reason": "it leads toward the goal (1 link(s) known)", "player": [39, 63]}
+
+DETERMINISM (same seed, same start, records compared; identical = one trajectory replayed, never a replication):
+  none-S2 vs PA-S2: identical True (624 vs 624 records); first difference at None: null | null
+  W-S2 vs PAW-S2: identical True (572 vs 572 records); first difference at None: null | null
+  none-S1 vs PA-S1: identical False (1545 vs 564 records); first difference at 51: ["482458", "decide", "target back (41, 62)", "the road right: it leads straight back to PETALBURG_CITY, just come from, while 1 thing(s) are left to see here"] | ["482458", "decide", "target back (11, 39)", "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see"]
+  W-S1 vs PAW-S1: identical False (583 vs 588 records); first difference at 26: ["482273", "world", "say", "intent 'travel to RUSTBORO_CITY': budget 9000 frames; on ROUTE104 at (39, 63); 12330 tiles known on 27 maps"] | ["482273", "tell", "say", "[AI-GOALS] RUSTBORO_CITY is somewhere it has not been: first to PETALBURG_WOODS, where the most is left to see"]
+  none-S3 vs PA-S3: identical False (1544 vs 1486 records); first difference at 32: ["618317", "world", "say", "intent 'travel to RUSTBORO_CITY': budget 9000 frames; on ROUTE104 at (39, 63); 12413 tiles known on 27 maps"] | ["618317", "tell", "say", "[AI-GOALS] RUSTBORO_CITY is somewhere it has not been: first to ROUTE103, where the most is left to see"]
+  W-S3 vs PAW-S3: identical False (502 vs 496 records); first difference at 32: ["618317", "world", "say", "intent 'travel to RUSTBORO_CITY': budget 9000 frames; on ROUTE104 at (39, 63); 12413 tiles known on 27 maps"] | ["618317", "tell", "say", "[AI-GOALS] RUSTBORO_CITY is somewhere it has not been: first to PETALBURG_WOODS, where the most is left to see"]
+  none-S1 vs W-S1: identical False (1545 vs 583 records); first difference at 27: ["482273", "decide", "target frontier (33, 45)", "1 unseen tile(s) beside it"] | ["482273", "decide", "target back (11, 39)", "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see"]
+  none-S3 vs W-S3: identical False (1544 vs 502 records); first difference at 33: ["618317", "decide", "target frontier (33, 43)", "1 unseen tile(s) beside it"] | ["618317", "decide", "target back (10, 39)", "it leads back to PETALBURG_WOODS, where 16 thing(s) are left to see"]
+
+PREDICTIONS AGAINST THE RUNS (each cell: the registered prediction, then what the run's own records say):
+  none S1: D1 no, pocket frontiers/door at x 32-33 y 42-47 first, D2 >= 100  ->  HELD: D1 False; first non-goto decisions
+           frontier (33,45), (33,43) ...; D2 196.
+  none S2: D2 >= 100 on ROUTE102<->PETALBURG  ->  FAILED AS A NUMBER: D2 30. Read: the go goal (and the loop, "seen all
+           of" both ways, as predicted) began only at f563033, 8,151 frames into the 10,000 (a pick_up and a catch roam
+           with 3 wild battles came first); 30 crossings in the last 1,849 frames. The loop is there; the budget was not.
+  none S3: as S1  ->  HELD: D1 False; frontier (33,43), door (32,43) first; D2 194.
+  PA   S1: D1 YES, the FIRST decision "back ... PETALBURG_WOODS" via the fallback; D2 <= 5  ->  HELD for D1 and D2 (D1
+           True, D2 0, into the woods at f484516), NOT for "the FIRST decision": six pocket decisions (5 frontiers, the
+           door (32,43)) came first, each failing; then "back (11,39) ... PETALBURG_WOODS, where 16 thing(s) are left to
+           see" (score -44.5, a back keeps_going refuses: the fallback). Part A's cut leaves `candidates` unchanged (spec
+           2.1 step 3), so the pocket targets are still offered and fail one by one.
+  PA   S2: as none  ->  HELD: records identical to none S2 (624 = 624, determinism: one trajectory replayed).
+  PA   S3: as S1  ->  FAILED: D1 False, D2 1; at f618317 "first to ROUTE103, where the most is left to see", then 157
+           crossings of OLDALE_TOWN|ROUTE103 (max 67 in one intent). This is the critic's F5 (Part A alone sends
+           lead_toward to ROUTE103 on A0-3's memory), which the spec's table cell "as S1" contradicted.
+  W    S1: as none (the road back 0.5 against the woods -45.5; F2): D1 no, D2 >= 100  ->  FAILED: D1 True, D2 0. The FIRST
+           decision after the pick_up gotos was "back (11,39) ... PETALBURG_WOODS" (score -45.45), chosen over the pocket
+           frontiers (-54.6 to -56.1); into the woods at the first event. F2's offline figure was computed with the pocket
+           targets EXCLUDED (combo_probe.py's stub nav), a state after they fail. At the first decision the pockets were
+           what none S1 chose too (so the road back was then absent or below them; candidates are not logged, so which is
+           not known), and with KI-128 the woods back outscored the pockets.
+  W    S2: D1 yes; "first to PETALBURG_WOODS" told; D2 <= 5  ->  D1 FAILED AS DEFINED (False), the rest HELD: told twice,
+           D2 1. The first ROUTE104 decision was "route (10,39): it leads toward the goal" (the woods door; the reason
+           does not NAME the woods, so the registered D1 text test is False). The run then spent its last 666 frames on
+           ROUTE104 errands (an item ball at (29,53) twice "interrupted on the way: played out", a catch roam): the go to
+           the woods ended "done" when the goal's own `done` fired on ROUTE104.
+  W    S3: as none  ->  FAILED: D1 True, D2 0, into the woods (the same first-decision mechanism as W S1).
+  PAW  S1: D1 YES from `found`; D2 <= 5  ->  HELD: D1 True (route (10,39) 48.09 first, then back (11,39) -5.96 naming the
+           woods), D2 0, into the woods.
+  PAW  S2: as W  ->  HELD (records identical to W S2: 572 = 572, one trajectory replayed), with W S2's D1 caveat.
+  PAW  S3: as S1  ->  D1 FAILED AS DEFINED (False: the first ROUTE104 decision "route (10,39): it leads toward the goal",
+           47.51, the woods door, does not name the woods), D2 0 HELD, into the woods at the first event.
+
+DISCRIMINATORS AND THE REGISTERED VACUITY RULE ("if S1 or S3 shows no PA-vs-W difference, or S2 shows no W-vs-PA
+difference, STOP: the mechanism is refuted for that start; no long runs for it"):
+  S1: PA vs W: D1 True/True, D2 0/0, both into the woods within 10,000 frames: NO DIFFERENCE. The spec's mechanism for S1
+      ("Part A is the deciding factor") is REFUTED at the first event: EACH part alone flips S1 (none loops, D2 196). ->
+      no long run on S1.
+  S2: W vs PA: D2 1 vs 30, "first to PETALBURG_WOODS" 2 vs 0, ROUTE104 reached vs not: DIFFERS (KI-128 decides S2, as
+      predicted). -> long run on S2.
+  S3: PA vs W: PA loops on OLDALE|ROUTE103 (157 crossings), W into the woods (D2 0): DIFFERS, but not as predicted: KI-128
+      is the deciding factor on S3 too, and Part A alone makes it WORSE than none (a new loop two maps east) -> long run
+      on S3.
+  Net reading (development, one trajectory per cell): KI-128 is what changes the first event on all three starts; Part A
+  alone helps S1 only and misleads S3 (F5). Part A's own discriminating case (the phantom that kept ROUTE104 a lead from
+  PETALBURG, F2/K-F4) was not reached at the first event on any start: no run here measured Part A as load-bearing in
+  PAW. The arm with Part A removed (W) matched PAW on D1/D2 on every start.

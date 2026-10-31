@@ -323,9 +323,11 @@ EXTRA_EDITS = {"CAP1": [("mode.py", "MAX_LOSSES = 3\n",
                            # the world memory's unreached frontier and the in-map plan, so the arm removes them as well)
                            ("brain/navigator.py", "                    world.mark_unreached(world.current, target.tile)\n",
                             "                    pass  # MUTANT BLOCKED\n"),
+                           # (KI-129 Part A, 2026-10-31) the rule now lives in `navigator.in_map_walls`, shared by the
+                           # planner and `cut_off`'s reach: the arm removes it from both (one rule, as the fix made it)
                            ("brain/navigator.py",
-                            "            walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy))\n",
-                            "            pass  # MUTANT BLOCKED\n")],
+                            "        walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy))\n",
+                            "        pass  # MUTANT BLOCKED\n")],
                # (build step 5.2, the review's finding 2) GREEDY: every curiosity draw passes and no cap in a row (the
                # quota's bypass, at its worst). The spacing checks must FAIL it. (The verifier's round: once a map's "left
                # to see" counted only what it could get to, GREEDY's looks round "some more" ran out, and the round's

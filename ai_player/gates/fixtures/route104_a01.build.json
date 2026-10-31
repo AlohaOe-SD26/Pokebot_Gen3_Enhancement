@@ -1,0 +1,17 @@
+{
+ "world": "ai_player/gates/fixtures/route104_a01.world.jsonl",
+ "from": "the last line of the A0-1 run's world.jsonl (ledger #68, seed 5901; sandbox-pokebot/profiles/ai-ch3-probe-1/ai_player_runs/20261030-172705-A0-1/world.jsonl)",
+ "from_sha256": "fa954a28deef989d42c97554f33dd0a993c85b1c221a466d8ec59bf6b9966257",
+ "kept": {
+  "maps": [
+   "0:19"
+  ],
+  "warps": [
+   "0:19|10,38",
+   "0:19|11,38",
+   "0:19|17,50"
+  ],
+  "connections": "the first record across ROUTE104's right edge (to PETALBURG_CITY, 0:0)"
+ },
+ "why": "KI-129 Part A, P-F1: Navigator.cut_off on the AI's real ROUTE 104 memory, from (39, 63)"
+}

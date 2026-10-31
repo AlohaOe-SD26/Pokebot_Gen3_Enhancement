@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "bc28b6694a0fac170697a92123f10c4a00ee63b2",
+ "source_sha1_lf": "2fdf430afff7569afef4265f5c34c3d15cc06535",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 359,
+  "sections": 360,
   "donot_candidates": 31,
   "sections_naming_user_rulings": 52
  },
@@ -5615,6 +5615,22 @@
    "rulings": [
     56
    ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-128",
+    "KI-129"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-31-8a3e66",
+   "date": "2026-10-31",
+   "line_start": 9975,
+   "line_end": 9981,
+   "title": "2026-10-31 — KI-128's fix reads the game's MAP TYPES through a declared loader (`ai_player/knowledge/atlas.py`), the AI player's first static-knowledge loader; KI-129 Part A gives the planner and the explorer one reach",
+   "rulings": [],
    "ruling_mentions": [],
    "slugs": [],
    "ki": [

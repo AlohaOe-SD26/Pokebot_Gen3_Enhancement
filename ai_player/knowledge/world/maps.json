@@ -1049,7 +1049,7 @@
  "_made_by": "ai_player/gates/extract_world.py",
  "_slice": "spec S3-4 slice 1 (KB2)",
  "_not_in_this_slice": "items_gifts.json and events.json (spec S3-4 slice 2, NEEDS DESIGN): gifts, marts, TM gifts and scripted events are NOT here, so an absent list is not 'none'; tools/make_chapter_pack.py and its W7 adversarial pass are the next slice",
- "_reader": "no loader reads this file yet; check_fairness.py does not glob knowledge/world (fact 2), and nothing in ai_player's play code may read it until a loader and a KNOWLEDGE_FIELDS classification exist",
+ "_reader": "read by ONE loader, ai_player/knowledge/atlas.py (KI-128): each map's id and map_type, nothing else; check_fairness.py declares it in LOADERS and classifies every key path of this file in KNOWLEDGE_FIELDS (the flags, scripts, labels and refs are developer keys no play code may read)",
  "_notes": {
   "trainers": "objects and coord events joined to the trainerbattle lines reachable from their script label (goto/call/branch targets in the label's file, the map's own scripts.inc, else the map script or the shared data/scripts/*.inc file that defines the label); source 'script' lists the battles of the map's file that no event reaches",
   "item_balls": "object events whose script is a finditem label of data/scripts/item_ball_scripts.inc",

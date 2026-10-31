@@ -124,6 +124,11 @@ NOT_IN_SLICE = ("items_gifts.json and events.json (spec S3-4 slice 2, NEEDS DESI
                 "pass are the next slice")
 READER = ("no loader reads this file yet; check_fairness.py does not glob knowledge/world (fact 2), and nothing in "
           "ai_player's play code may read it until a loader and a KNOWLEDGE_FIELDS classification exist")
+#: (KI-128, 2026-10-31) maps.json's OWN reader text: the first world file a loader reads. READER above stays the text of
+#: the files no loader reads (events.json and items_gifts.json share it through their extractors)
+MAPS_READER = ("read by ONE loader, ai_player/knowledge/atlas.py (KI-128): each map's id and map_type, nothing else; "
+               "check_fairness.py declares it in LOADERS and classifies every key path of this file in KNOWLEDGE_FIELDS "
+               "(the flags, scripts, labels and refs are developer keys no play code may read)")
 MEASURED_NULL = ("null: A6's chapter_priors.json (spec S3-3) is not generated yet (it waits for the AI's loader); when it "
                  "is, this block is copied from it and labelled source: 'bot corpus'")
 
@@ -945,13 +950,14 @@ def entry_fights(boss, fights, partners, fight_of_id):
 
 
 # ---------------------------------------------------------------- run
-def header(d, kind, files, inputs=None, also=None):
+def header(d, kind, files, inputs=None, also=None, reader=READER):
     """The provenance block: the pinned SHA and the sha256 of each decomp file THIS output's stage read (a later stage
-    that also leans on an earlier output's files says so in `_also_uses`, so 518 map files are listed once)."""
+    that also leans on an earlier output's files says so in `_also_uses`, so 518 map files are listed once). `reader`:
+    who reads the file (`READER`, shared by the files no loader reads; maps.json's own, `MAPS_READER`, since KI-128)."""
     h = {"_source": "pret/pokeemerald@" + d.sha,
          "_files": {p: d.used[p] for p in sorted(files)},
          "_kind": kind, "_made_by": MADE_BY, "_slice": "spec S3-4 slice 1 (KB2)",
-         "_not_in_this_slice": NOT_IN_SLICE, "_reader": READER}
+         "_not_in_this_slice": NOT_IN_SLICE, "_reader": reader}
     if also:
         h["_also_uses"] = also
     if inputs:
@@ -1010,7 +1016,7 @@ def build_all(d, skeleton_path=SKELETON_DEFAULT, seasoned_dir=SEASONED_DEFAULT, 
                                     "entry": "the id of that entry (null with order)",
                                     "badge": "read from the gym leader's defeat script (setflag FLAG_BADGEnn_GET)"},
                             count=len(bosses), bosses=bosses),
-        "maps.json": dict(header(d, kind, stage["maps"]),
+        "maps.json": dict(header(d, kind, stage["maps"], reader=MAPS_READER),
                           _notes={"trainers": "objects and coord events joined to the trainerbattle lines reachable "
                                               "from their script label (goto/call/branch targets in the label's file, "
                                               "the map's own scripts.inc, else the map script or the shared "
