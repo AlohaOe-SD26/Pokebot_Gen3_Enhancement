@@ -39248,3 +39248,9 @@ bought balls only at fixed story points.
 - **Fixed:** `04` (queue item 4's order and the disk ⚠, the START HERE line, the `live_step5` clause, the worktrees line, the daily check), `03` (one sentence), `05` (KI-129's disk line; its R8 ceiling raised again, recorded).
 - **Daily upstream check, 2026-10-30:** `upstream-pokebot/main` = `f14ab79d`, unchanged since 2026-10-26; still parked (USER RULING 2026-09-26); recorded in `40cakes repo/UPDATE-LOG.md`.
 - **Cost:** local, plus the audit agent.
+
+## 2026-10-31 — USER RULING 55 recorded: practice from saves allowed with a New Game test after a few; the frame budget stays the session limit; three leftover worktrees removed (punch-list #28-aiagent-v2)
+
+- **The ruling** (`06` 2026-10-31, the user's words verbatim there): (1) the AI trainer may replay a chapter from the AI's own saves for practice, but after a few practice runs it must run a NEW GAME test to check the learning connects; (2) the user left the session limit to Claude, who kept the frame budget (the guard against an endless loop, and the same game length on every PC), the clock only a backstop, so U2b is built as specified; (3) the three leftover workflow worktrees were removed after every changed file was checked against `main` (1.6 GB; branches kept).
+- **Updated:** `04` (stamp, resume time, the worktrees line, queue item 4), `06`, the boxes of `2026-10-30-AI-TRAINER-DESIGN.md` and `2026-10-30-U2B-BUILD-SPEC.md`, the rulings index.
+- **Cost:** local only.

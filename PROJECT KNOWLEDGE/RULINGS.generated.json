@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "b7150d348692dce071a4a9ff5f517afbac6d14c1",
+ "source_sha1_lf": "da7b0c74f6b61ac4d90c1ef6a3ba3e631c236eea",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 357,
-  "donot_candidates": 30,
-  "sections_naming_user_rulings": 50
+  "sections": 358,
+  "donot_candidates": 31,
+  "sections_naming_user_rulings": 51
  },
  "sections": [
   {
@@ -5581,6 +5581,29 @@
    "slugs": [],
    "ki": [],
    "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-31-911bb5",
+   "date": "2026-10-31",
+   "line_start": 9958,
+   "line_end": 9965,
+   "title": "2026-10-31 — USER RULING 55: practice runs from the AI's own saves are allowed, but a NEW GAME test must follow a few of them; the session limit is Claude's call (the frame budget, as a safety net); the three leftover worktrees removed",
+   "rulings": [
+    55
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-129"
+   ],
+   "donot": [
+    {
+     "key": "8dc0fb55",
+     "line": 9965,
+     "text": "- ⛔ Do not re-ask whether practice runs from saves are allowed (yes, with a New Game test after a few) or which limit ends a session (the frame budget; the clock is a backstop)."
+    }
+   ],
    "cues": []
   }
  ]

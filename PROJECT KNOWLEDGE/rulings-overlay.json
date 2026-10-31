@@ -499,6 +499,17 @@
    "reason": "06 USER RULING 54: \"⛔ Do not re-ask whether the 24/7 trainer should train the AI player: it should.\"",
    "status": "ACTIVE",
    "topics": "trainer learner tuner train the AI player nonstop per chapter curriculum knobs R12 loader progress stuck"
+  },
+  "2026-10-31-911bb5": {
+   "title": "2026-10-31 — USER RULING 55: practice runs from the AI's own saves are allowed, but a NEW GAME test must follow a few of them; the session limit is Claude's call (the frame budget, as a safety net); the three leftover worktrees removed",
+   "candidates": {
+    "8dc0fb55": "marker"
+   },
+   "ruling_key": "55@2026-10-31",
+   "do_not_reopen": "Do not re-ask whether the AI trainer's practice runs from the AI's own saves are allowed (yes, with a New Game test after a few), or which limit ends a session (the frame budget; the clock is a backstop) (2026-10-31).",
+   "reason": "06 USER RULING 55: \"⛔ Do not re-ask whether practice runs from saves are allowed (yes, with a New Game test after a few) or which limit ends a session (the frame budget; the clock is a backstop).\"",
+   "status": "ACTIVE",
+   "topics": "trainer practice runs saves new game test curriculum session limit frame budget wall clock U2b U2c worktrees"
   }
  }
 }

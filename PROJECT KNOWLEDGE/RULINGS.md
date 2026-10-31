@@ -38,6 +38,7 @@
 | `2026-10-28-77ea25` | 9832 | Do not park or pause the bot tuner or the project (no ai-agent/STOP file, no disabled Pokebot-* task) unless the user asks; do not re-ask whether to pause (2026-10-28). |
 | `2026-10-29-2afa57` | 9904 | Do not re-ask U1 (the AI's big-moment save list: as built), U2 (a session ended by its time or frame limit may be continued from its last save: YES) or the reset question (a refused reset combination ends that game for good) (2026-10-29). |
 | `2026-10-30-c2a92b` | 9942 | Do not re-ask whether the 24/7 trainer (ai-agent/ learner) should train the AI player itself, nonstop, chapter by chapter: it should (2026-10-30). |
+| `2026-10-31-911bb5` | 9958 | Do not re-ask whether the AI trainer's practice runs from the AI's own saves are allowed (yes, with a New Game test after a few), or which limit ends a session (the frame budget; the clock is a backstop) (2026-10-31). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -76,10 +77,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 357 sections (newest first)
+## All 358 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-31-911bb5` | 9958 | 55 | DO-NOT-REOPEN | 2026-10-31 — USER RULING 55: practice runs from the AI's own saves are allowed, but a NEW GAME test must follow a few of them; the session limit is Claude's cal |
 | `2026-10-30-ef2a3b` | 9950 |  |  | 2026-10-30 — The AI trainer's design: MEASURE FIRST (A0, A1), then the top blocker's skill build, then the trainer inside the learner; R12 comes after U2b |
 | `2026-10-30-c2a92b` | 9942 | 54 | DO-NOT-REOPEN | 2026-10-30 — USER RULING 54: the 24/7 trainer is to TRAIN THE AI PLAYER ITSELF, nonstop, chapter by chapter (or as Claude designs it), because the AI has been s |
 | `2026-10-30-297528` | 9935 |  |  | 2026-10-30 — U2a's verification findings V1-V3 fixed; an old launch line with no instrument record fails closed |
