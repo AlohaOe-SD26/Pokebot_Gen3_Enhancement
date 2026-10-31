@@ -39254,3 +39254,10 @@ bought balls only at fixed story points.
 - **The ruling** (`06` 2026-10-31, the user's words verbatim there): (1) the AI trainer may replay a chapter from the AI's own saves for practice, but after a few practice runs it must run a NEW GAME test to check the learning connects; (2) the user left the session limit to Claude, who kept the frame budget (the guard against an endless loop, and the same game length on every PC), the clock only a backstop, so U2b is built as specified; (3) the three leftover workflow worktrees were removed after every changed file was checked against `main` (1.6 GB; branches kept).
 - **Updated:** `04` (stamp, resume time, the worktrees line, queue item 4), `06`, the boxes of `2026-10-30-AI-TRAINER-DESIGN.md` and `2026-10-30-U2B-BUILD-SPEC.md`, the rulings index.
 - **Cost:** local only.
+
+## 2026-10-31 — USER RULING 56 recorded: the $50 extra credit may be spent now; the cloud-credit question re-opened (measure at a full weekly meter); KI-129 and KI-128 are fixed first, then A1 (punch-list #28-aiagent-v2)
+
+- **The ruling** (`06` 2026-10-31, the user's words verbatim there): the park point of the usage instruction is lifted this week and the $50 extra credit may be spent on the AI work; the user re-opened whether the $250 cloud credit pays once the weekly meter is full, so one small cloud job will be measured then, with the user reading the balances.
+- **Sequencing (Claude's call):** the two chapter-3 blockers A0 found (KI-129, KI-128) are fixed first, with A0's starts as repro and proof; then A1, then the trainer in the learner.
+- **Updated:** `04` (the stamp, the resume point, START HERE, queue item 4), `06`, the trainer design's box, the rulings index.
+- **Cost:** local only.

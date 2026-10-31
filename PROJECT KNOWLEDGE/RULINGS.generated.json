@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "da7b0c74f6b61ac4d90c1ef6a3ba3e631c236eea",
+ "source_sha1_lf": "bc28b6694a0fac170697a92123f10c4a00ee63b2",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 358,
+  "sections": 359,
   "donot_candidates": 31,
-  "sections_naming_user_rulings": 51
+  "sections_naming_user_rulings": 52
  },
  "sections": [
   {
@@ -5604,6 +5604,24 @@
      "text": "- ⛔ Do not re-ask whether practice runs from saves are allowed (yes, with a New Game test after a few) or which limit ends a session (the frame budget; the clock is a backstop)."
     }
    ],
+   "cues": []
+  },
+  {
+   "id": "2026-10-31-979d5c",
+   "date": "2026-10-31",
+   "line_start": 9967,
+   "line_end": 9973,
+   "title": "2026-10-31 — USER RULING 56: the $50 extra credit may be spent now, to start the AI work before the weekly reset; the user re-opens the cloud-credit question (measure it once the weekly meter is full); the two chapter-3 blockers are fixed first",
+   "rulings": [
+    56
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-128",
+    "KI-129"
+   ],
+   "donot": [],
    "cues": []
   }
  ]
