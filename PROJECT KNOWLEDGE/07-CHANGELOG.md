@@ -39278,3 +39278,10 @@ bought balls only at fixed story points.
 - **On main:** test_host 37 OK, test_goals 272 OK, test_kb2 121 OK, `run_regression.py --quick` PASS (21 suites), `ledger.py --check` PASS (75 entries).
 - **Caveats:** not graded (the held-out, the spec's section 5, is next); Part A's necessity is shown only offline (V2); the verifier's V1 (a new key under `maps[].warps[]` or `connections[]` could land unclassified) and V3 (the next `rate_step5` sweep must confirm the BLOCKED arm still fails) are follow-ups; predictions were hashed into the ledger, not pushed. `ai-frontier.txt` is NOT moved: the official frontier counts graded New Game chains only.
 - **Report:** `ai-research-notes/2026-10-31-KI128-KI129A-BUILD-REPORT.md`. **Next:** the full regression lane on this commit, then round 2 (KI-129 Part B and the graded held-out).
+
+## 2026-10-31 — the full regression lane PASSED on 17ed7794, round 1 (KI-128 + KI-129 Part A) (punch-list #28-aiagent-v2)
+
+- **Run:** `py -3.12 ai_player/gates/run_regression.py --full --evidence`, detached, 2:49 PM to 4:29 PM 2026-10-31: `REGRESSION: PASS (full, 33 suites, 6018.5 s wall)` (slower than usual: round 2's build and the bot tuner ran beside it).
+- **Every unit suite PASS** (test_goals 272 tests, test_saving 151) and **every revert driver PASS** (revert_step5 414 mutants, revert_r1 556, and the rest). rate_* and live_* NOT-RUN by design.
+- **Evidence:** `ai_player/evidence/2026-10-31-regression-*` and the drivers' own `2026-10-31-*-REVERT.txt`, rewritten; the build's own revert files of the same names are kept under `archive/8530f8418710f32a-818d3706/` by the keep-earlier rule.
+- **Cost:** local CPU only (100 minutes).

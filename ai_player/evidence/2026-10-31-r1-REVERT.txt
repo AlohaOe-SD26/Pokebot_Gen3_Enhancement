@@ -1,7 +1,7 @@
 AI PLAYER R1 + R2 - MUTANT PROOF OF SAVING, CONTINUING AND THE MEMORY FILE (gates/revert_r1.py)
-date: 2026-10-31 13:31:07
-code: HEAD 818d3706; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:8530f8418710f32a over git diff HEAD (12 files, 69115 bytes) and 4 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
-tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_94ccdf92-1e1-1\ai_player\evidence\trees\8530f8418710f32a.zip
+date: 2026-10-31 14:49:26
+code: HEAD 17ed7794; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\53e0c26e7812db47.zip
 Each mutant breaks ONE rule (or deletes ONE call the census lists) in a copy; CAUGHT = the run fails and every predicted test is among the failing ones.
 
 [R0] CONTROL, the unchanged copy: 450 tests of ['test_saving', 'test_goals', 'test_check_purity:PlayLoopExitTests', 'test_safety_gates:FairnessTests', 'test_host:ControllerTogetherTests', 'test_host:ResetRefusalTests'], failing none (ran the copy: True) -> PASS
@@ -563,5 +563,5 @@ Each mutant breaks ONE rule (or deletes ONE call the census lists) in a copy; CA
 [U2C07] BROKEN: the call of MemoryBook.dropped_after at skills/saving.py:624 in _on_main_menu [call] deleted (deletes the call) [covers skills/saving.py:624 in _on_main_menu [call]]. Predicted CAUGHT by ['ContinueSkillTests.test_u2_the_continue_tells_its_drop_and_no_map']. The copy ran 423 tests (the copy); failing: {'test_saving.ContinueSkillTests.test_u2_the_continue_tells_its_drop_and_no_map': 'FAIL'} -> CAUGHT
 
 555 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 556 run (556 defined)
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (558 checks of 200 files, files digest 0c010be9f0d4698c)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (558 checks of 200 files, files digest 4e61681c1469ee3b)
 OVERALL: PASS

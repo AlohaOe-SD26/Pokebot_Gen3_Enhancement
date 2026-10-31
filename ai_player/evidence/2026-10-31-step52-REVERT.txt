@@ -1,7 +1,7 @@
 AI PLAYER BUILD STEP 5.1 - MUTANT PROOF OF THE STORY PLAYER (gates/revert_step5.py: G1-G52 step 5's, G53-G106 step 5.1's, G107-G126 the step-5.1 verifier's second round's)
-date: 2026-10-31 13:09:27
-code: HEAD 818d3706; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:8530f8418710f32a over git diff HEAD (12 files, 69115 bytes) and 4 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
-tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_94ccdf92-1e1-1\ai_player\evidence\trees\8530f8418710f32a.zip (the step-5.1 verifier's second round)
+date: 2026-10-31 14:49:26
+code: HEAD 17ed7794; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\53e0c26e7812db47.zip (the step-5.1 verifier's second round)
 Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted tests of gates/test_goals.py fail.
 
 [G0] CONTROL, the unchanged copy: 272 tests, failing none (ran the copy: True) -> PASS
@@ -421,5 +421,5 @@ Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted t
 [G418] BROKEN: a walk with no lead takes any way back (`lost_intent`'s call of `keeps_going` deleted). Predicted CAUGHT by ['KI128Tests.test_k_f9_a_lost_walk_refuses_a_way_back_into_a_house']. The copy ran 272 tests (the copy); failing: {'KI128Tests.test_k_f9_a_lost_walk_refuses_a_way_back_into_a_house': 'FAIL'} -> CAUGHT
 
 412 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 414
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (416 checks of 200 files, files digest 0c010be9f0d4698c)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (416 checks of 200 files, files digest 4e61681c1469ee3b)
 OVERALL: PASS
