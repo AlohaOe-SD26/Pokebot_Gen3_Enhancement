@@ -24169,3 +24169,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** the rule assumed one save after the continue and then exploration. The AI's real play repeats: it heals at OLDALE's Pokémon Center and saves there again (a ruling-51 moment) before it walks anywhere new, so the "no START since that save" condition blocked the rule on the four other seeds. The arm was designed from the spec's picture of the play, not from the play.
 - **The fix that worked:** the rule re-anchors on B's LATEST completed save (`06` 2026-10-30): 6 of 6 development seeds, 3 of 4 held-out, the AI's policy untouched.
 - **Prevention rule:** a kill or measure rule over a behaviour that can REPEAT anchors on its latest occurrence, never the first; and every arm's counting condition is measured on development seeds before its held-out registration (here the spec's STOP rule did exactly that).
+
+## 2026-10-30 — The AI's frontier sat at chapter 2 for 16 days because no session ever launched it on chapter 3
+
+- **Symptom:** the AI's frontier (`ai-frontier.txt`) stayed at chapter 2 (WALLY's tutorial) from 2026-10-14 to 2026-10-30. The user: "we have been stuck at the beginning of the game in the same chapters for weeks now, the ai should have made more progress at this point!!" (USER RULING 54, `06`).
+- **Root cause:** no launch named a chapter-3 or chapter-4 goal (the AI trainer's design, section 2: no evidence file names one; 0 of 95 changelog entries from 2026-10-15 to 2026-10-30 launch one). Each session's queue put machinery first (grading, saving and continuing, lanes, the bot tuner), and no doc commanded "run chapter 3". Meanwhile the 24/7 trainer tuned the scripted bot, which never moves the AI (USER RULING 41).
+- **The fix that worked:** A0 (`07`, this date): three launcher runs, about 16 minutes of machine time, found chapter 3's first two blockers (KI-128, KI-129).
+- **Prevention rule:** when a chapter passes, run the next chapter that same week, before building machinery for it. The frontier is measured by playing it, and an untried chapter is not a stuck one.

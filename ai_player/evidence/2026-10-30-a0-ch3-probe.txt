@@ -1,0 +1,354 @@
+A0 - DEVELOPMENT PROBE, NOT GRADED, NO PASS: the AI's FIRST chapter-3 runs (the AI trainer's design, `PROJECT KNOWLEDGE/ai-research-notes/2026-10-30-AI-TRAINER-DESIGN.md`, section 4)
+date: 2026-10-30 17:43:37   HEAD ea8504f6 (tree e659cf0ed1f58dc4)   seeds 5901-5903, ledger entry #68 (development)
+setup: three launcher runs in parallel, each in its own profile, from the AI's own chapter-2 ends (r1base CH2, CH2T, CH2M) with their world memory; target ch3_rustboro; 600000 frames, 3600 s; the 12-lane bot tuner running
+PREDICTION (registered before the runs): A0 prediction (the design's section 4, registered by the commit that filed it): recon gap 1. The run ends on ROUTE104 at y > 37, with woods state 1 and the Rustboro flag clear. CONTROL: the arrival on ROUTE104 north at y < 31 would refute it.
+Each run: what the GAME says it reached (marks, read by the harness on the state the run left) and how it ended.
+
+RUN A0-1: from 20261030-135558-CH2, Catcher, seed 5901: exit 0, 773.1 s, run dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-ch3-probe-1\ai_player_runs\20261030-172705-A0-1
+  map before [8, 1]  ->  after [0, 19]
+  marks before: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 1, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "TRAINER_GRUNT_PETALBURG_WOODS": 0, "TRAINER_ROXANNE_1": 0, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 2, "VAR_PETALBURG_WOODS_STATE": 0}
+  marks after:  {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 1, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "TRAINER_GRUNT_PETALBURG_WOODS": 0, "TRAINER_ROXANNE_1": 0, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 2, "VAR_PETALBURG_WOODS_STATE": 0}
+  freshness and checks: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'harness', 'game'})", "text": "the state graded is the one THIS run wrote: written 772.9s after the run started; frame 482118 == start 241764 + 240354 real frames (+-5); md5 782fa9841920ee0e82b679a65f0286b0 (start 3c1a6acfdd8d34b7e7bd985b2c82284b)"}]
+  verdict file: {"counters": {"ai_bot_calls": 0, "ai_loads": 0, "ai_presses": 16356, "ai_unrouted_presses": 0, "ai_writes": 0, "extra_frames": 0, "foreign_loads": 0, "foreign_presses": 0, "foreign_writes": 0, "instrument_errors": 0, "instrument_tampered": 0, "isolation_lost": 0, "peek_restores": 0, "ran_after_finish": 0, "real_frames": 240354, "unattributed_inputs": 0, "unattributed_state_changes": 0}, "facts": {"exit_code": 0, "exit_reason": "play: stuck: no progress for 122359 frames (no milestone, battle won training, level, new map, catch, item or heal; since PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher)", "isolation": {"active": "n=1 types=[GuardListener] rebuild_door=AI", "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x26bdb6a0580", "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x26bdb6a0580 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=Tr
+  harness stop: {"by": "ai", "cause": "the AI exited by itself (exit code 0)", "exit_code": 0, "real_frames": 240354, "frame_budget": 600000, "elapsed_seconds": 773.1, "wall_clock_seconds": 3600.0}
+  the AI's milestones (told): [AI-GOALS] MILESTONE ch3_route104 passed as a WAYPOINT (it stood on ROUTE104; its save proofs do not hold yet) at f245268 (West of Petalburg: ROUTE 104 (south)): VAR_PETALBURG_WOODS_STATE=0 (>= 1)
+  the AI's last goals:
+    f421015 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 62 (this is 51) or frame 427015, whichever comes first; looking around
+    f423467 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 62 (this is 52) or frame 427015, whichever comes first; looking around
+    f425935 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 62 (this is 53) or frame 427015, whichever comes first; looking around
+    f427074 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.'); tried again after 6059 frames put aside (at most 6000)
+    f430202 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.')
+    f433264 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 67 (this is 56) or frame 439264, whichever comes first; looking around
+    f435726 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 67 (this is 57) or frame 439264, whichever comes first; looking around
+    f438164 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 67 (this is 58) or frame 439264, whichever comes first; looking around
+    f439333 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.'); tried again after 6069 frames put aside (at most 6000)
+    f442458 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.')
+    f445540 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 72 (this is 61) or frame 451540, whichever comes first; looking around
+    f447993 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 72 (this is 62) or frame 451540, whichever comes first; looking around
+    f450472 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 72 (this is 63) or frame 451540, whichever comes first; looking around
+    f451594 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.'); tried again after 6054 frames put aside (at most 6000)
+    f454635 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.')
+    f457669 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 77 (this is 66) or frame 463669, whichever comes first; looking around
+    f460151 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 77 (this is 67) or frame 463669, whichever comes first; looking around
+    f462599 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 77 (this is 68) or frame 463669, whichever comes first; looking around
+    f463742 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.'); tried again after 6073 frames put aside (at most 6000)
+    f466852 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.')
+    f469927 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 82 (this is 71) or frame 475927, whichever comes first; looking around
+    f472397 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 82 (this is 72) or frame 475927, whichever comes first; looking around
+    f474868 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 82 (this is 73) or frame 475927, whichever comes first; looking around
+    f475991 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.'); tried again after 6064 frames put aside (at most 6000)
+    f479088 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'Head for RUSTBORO CITY beyond this town.')
+  the end of the AI's log:
+    [AI-WORLD] go to the back at (-5, 12): the road left: it leads back to ROUTE104, where 1 thing(s) are left to see (score -2.3)
+    [AI-HEARTBEAT] frames=240000 ai_steps=239999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=16317 unattributed_inputs=0 unattributed_state_changes=0
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 62): the left edge from (0, 12) (the AI, f481773); 1373 tiles of it known
+    [AI-WORLD] go to the back at (40, 62): the road right: it leads straight back to PETALBURG_CITY, just come from, while 1 thing(s) are left to see here (score 1.3)
+    [AI-WORLD] MAP ROUTE104 -> PETALBURG_CITY at (0, 12): the right edge from (39, 62) (the AI, f481806); 1011 tiles of it known
+    [AI-WORLD] go to the back at (-1, 13): the road left: it leads back to ROUTE104, where 1 thing(s) are left to see (score -1.2)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 62): the left edge from (0, 12) (the AI, f481847); 1373 tiles of it known
+    [AI-WORLD] go to the back at (42, 61): the road right: it leads straight back to PETALBURG_CITY, just come from, while 1 thing(s) are left to see here (score -1.1)
+    [AI-WORLD] MAP ROUTE104 -> PETALBURG_CITY at (0, 12): the right edge from (39, 62) (the AI, f481905); 1011 tiles of it known
+    [AI-WORLD] go to the back at (-2, 12): the road left: it leads back to ROUTE104, where 1 thing(s) are left to see (score 0.7)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 62): the left edge from (0, 12) (the AI, f481957); 1373 tiles of it known
+    [AI-WORLD] go to the back at (40, 62): the road right: it leads straight back to PETALBURG_CITY, just come from, while 1 thing(s) are left to see here (score 1.6)
+    [AI-WORLD] MAP ROUTE104 -> PETALBURG_CITY at (0, 12): the right edge from (39, 62) (the AI, f481987); 1011 tiles of it known
+    [AI-WORLD] go to the back at (-2, 12): the road left: it leads back to ROUTE104, where 1 thing(s) are left to see (score 1.2)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 62): the left edge from (0, 12) (the AI, f482020); 1373 tiles of it known
+    [AI-WORLD] go to the back at (43, 63): the road right: it leads straight back to PETALBURG_CITY, just come from, while 1 thing(s) are left to see here (score -2.1)
+    [AI-WORLD] MAP ROUTE104 -> PETALBURG_CITY at (0, 13): the right edge from (39, 63) (the AI, f482066); 1011 tiles of it known
+    [AI-WORLD] go to the back at (-2, 12): the road left: it leads back to ROUTE104, where 1 thing(s) are left to see (score -0.9)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 63): the left edge from (0, 13) (the AI, f482118); 1373 tiles of it known
+    [AI-HANDS] [AI-GOALS] goal go not done: stuck: nothing new (no new tile, map, flag, Pokemon, item or experience) for 3002 frames, the last at f479116: none (1437 steps, 0 bumps, 11 people in the way, 31 exits used, 30 battles, 35 scenes, 2946 decisions (21 detours, 20 carried on); 27 maps, 12330 til
+    [AI-HANDS] [AI-GOALS] the end (stuck: no progress for 122359 frames (no milestone, battle won training, level, new map, catch, item or heal; since PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher)); milestones ['ch3_route104']; before the fights {'ch3_route104': {'steps': 0, 'sess
+    [AI-WORLD] memory at the end: 27 maps (PETALBURG_CITY 1011 tiles 0 bumped, OLDALE_TOWN 799 tiles 0 bumped, ROUTE101 865 tiles 0 bumped, ROUTE102 1477 tiles 0 bumped, ROUTE103 747 tiles 0 bumped, LITTLEROOT_TOWN 683 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 320 tiles 0 bumped, LITTLEROOT_TOWN
+    [AI-WORLD] navigator: 1437 steps, 0 bumps, 11 people in the way, 31 exits used, 30 battles, 35 scenes, 2946 decisions (21 detours, 20 carried on); 27 maps, 12330 tiles learned
+    [AI-HANDS] outcome='stuck: no progress for 122359 frames (no milestone, battle won training, level, new map, catch, item or heal; since PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher)' presses=8178 frames=240354 looks=92792 records=24961
+    [AI-HANDS] presses by gate: {'A:bag cursor on 0': 8, 'A:bag_action cursor on 0': 8, 'A:battle level-up stats box': 6, 'A:battle_action cursor on 0': 31, 'A:battle_action cursor on 1': 8, 'A:battle_action cursor on 3': 8, 'A:battle_move cursor on 0': 7, 'A:battle_move cursor on 2': 2, 'A:battle_move 
+    [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=16356 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=2403
+    [AI-PURITY-ORIGINS] none
+    [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-ch3-probe-1\ai_player_runs\20261030-172705-A0-1\purity.json
+    [AI-EXIT] reason=play: stuck: no progress for 122359 frames (no milestone, battle won training, level, new map, catch, item or heal; since PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher) code=0
+
+RUN A0-2: from 20261030-135912-CH2T, Story, seed 5902: exit 0, 968.5 s, run dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-ch3-probe-2\ai_player_runs\20261030-172725-A0-2
+  map before [8, 1]  ->  after [0, 17]
+  marks before: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 1, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "TRAINER_GRUNT_PETALBURG_WOODS": 0, "TRAINER_ROXANNE_1": 0, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 2, "VAR_PETALBURG_WOODS_STATE": 0}
+  marks after:  {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 1, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "TRAINER_GRUNT_PETALBURG_WOODS": 1, "TRAINER_ROXANNE_1": 0, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 2, "VAR_PETALBURG_WOODS_STATE": 1}
+  freshness and checks: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 968.3s after the run started; frame 554882 == start 209233 + 345649 real frames (+-5); md5 6cf2dd6fcffd76bed986f408be220d5a (start 0a4ab3ea290b5d3960d1b1af4fce9704)"}]
+  verdict file: {"counters": {"ai_bot_calls": 0, "ai_loads": 0, "ai_presses": 24352, "ai_unrouted_presses": 0, "ai_writes": 0, "extra_frames": 0, "foreign_loads": 0, "foreign_presses": 0, "foreign_writes": 0, "instrument_errors": 0, "instrument_tampered": 0, "isolation_lost": 0, "peek_restores": 0, "ran_after_finish": 0, "real_frames": 345649, "unattributed_inputs": 0, "unattributed_state_changes": 0}, "facts": {"exit_code": 0, "exit_reason": "play: stuck: no progress for 121823 frames (no milestone, battle won training, level, new map, catch, item or heal; since RUSTBORO CITY)", "isolation": {"active": "n=1 types=[GuardListener] rebuild_door=AI", "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x19337140780", "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x19337140780 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=True"}, "package_root": "C:\\Remote Projects\\Pokebot_Ge
+  harness stop: {"by": "ai", "cause": "the AI exited by itself (exit code 0)", "exit_code": 0, "real_frames": 345649, "frame_budget": 600000, "elapsed_seconds": 968.5, "wall_clock_seconds": 3600.0}
+  the AI's milestones (told): [AI-GOALS] MILESTONE ch3_route104 passed as a WAYPOINT (it stood on ROUTE104; its save proofs do not hold yet) at f212299 (West of Petalburg: ROUTE 104 (south)): VAR_PETALBURG_WOODS_STATE=0 (>= 1) | [AI-GOALS] MILESTONE ch3_woods done at f342743 (PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher): VAR_PETALBURG_WOODS_STATE=1 (>= 1)
+  the AI's last goals:
+    f494133 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 79 (this is 70) or frame 495231, whichever comes first; looking around meanwhile, for the 1098 frames left of the breather
+    f495266 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?'); tried again after 6035 frames put aside (at most 6000)
+    f498313 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?')
+    f501396 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 84 (this is 73) or frame 507396, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f503835 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 84 (this is 74) or frame 507396, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f506289 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 84 (this is 75) or frame 507396, whichever comes first; looking around meanwhile, for the 1107 frames left of the breather
+    f507440 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?'); tried again after 6044 frames put aside (at most 6000)
+    f510510 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?')
+    f513552 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 89 (this is 78) or frame 519552, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f516002 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 89 (this is 79) or frame 519552, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f518460 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 89 (this is 80) or frame 519552, whichever comes first; looking around meanwhile, for the 1092 frames left of the breather
+    f519572 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?'); tried again after 6020 frames put aside (at most 6000)
+    f522607 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?')
+    f525643 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 94 (this is 83) or frame 531643, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f528123 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 94 (this is 84) or frame 531643, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f530562 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 94 (this is 85) or frame 531643, whichever comes first; looking around meanwhile, for the 1081 frames left of the breather
+    f531688 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?'); tried again after 6045 frames put aside (at most 6000)
+    f534764 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?')
+    f537817 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 99 (this is 88) or frame 543817, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f540264 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 99 (this is 89) or frame 543817, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f542732 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 99 (this is 90) or frame 543817, whichever comes first; looking around meanwhile, for the 1085 frames left of the breather
+    f543885 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?'); tried again after 6068 frames put aside (at most 6000)
+    f546920 go: RUSTBORO CITY: to RUSTBORO_CITY (the game said: 'Didn’t that TEAM AQUA thug say they were after something in RUSTBORO, too?')
+    f549964 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 104 (this is 93) or frame 555964, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+    f552429 look_around: RUSTBORO CITY: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 104 (this is 94) or frame 555964, whichever comes first; looking around meanwhile, for the 2400 frames left of the breather
+  the end of the AI's log:
+    [AI-WORLD] go to the back at (30, 18): the road right: it leads back to ROUTE102, seen all of (score 1.7)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE102 at (0, 8): the right edge from (29, 18) (the AI, f554464); 1466 tiles of it known
+    [AI-WORLD] go to the back at (-1, 8): the road left: it leads back to PETALBURG_CITY, seen all of (score 1.7)
+    [AI-WORLD] MAP ROUTE102 -> PETALBURG_CITY at (29, 18): the left edge from (0, 8) (the AI, f554513); 999 tiles of it known
+    [AI-WORLD] go to the back at (31, 18): the road right: it leads back to ROUTE102, seen all of (score 0.5)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE102 at (0, 8): the right edge from (29, 18) (the AI, f554574); 1466 tiles of it known
+    [AI-WORLD] go to the back at (-1, 8): the road left: it leads back to PETALBURG_CITY, seen all of (score 0.9)
+    [AI-WORLD] MAP ROUTE102 -> PETALBURG_CITY at (29, 18): the left edge from (0, 8) (the AI, f554622); 999 tiles of it known
+    [AI-WORLD] go to the back at (32, 18): the road right: it leads back to ROUTE102, seen all of (score -0.6)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE102 at (0, 8): the right edge from (29, 18) (the AI, f554662); 1466 tiles of it known
+    [AI-WORLD] go to the back at (-3, 8): the road left: it leads back to PETALBURG_CITY, seen all of (score -0.2)
+    [AI-WORLD] MAP ROUTE102 -> PETALBURG_CITY at (29, 18): the left edge from (0, 8) (the AI, f554703); 999 tiles of it known
+    [AI-WORLD] go to the back at (31, 17): the road right: it leads back to ROUTE102, seen all of (score -0.8)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE102 at (0, 8): the right edge from (29, 18) (the AI, f554756); 1466 tiles of it known
+    [AI-WORLD] go to the back at (-1, 7): the road left: it leads back to PETALBURG_CITY, seen all of (score -0.2)
+    [AI-WORLD] MAP ROUTE102 -> PETALBURG_CITY at (29, 17): the left edge from (0, 7) (the AI, f554830); 999 tiles of it known
+    [AI-WORLD] go to the back at (32, 16): the road right: it leads back to ROUTE102, seen all of (score -1.8)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE102 at (0, 7): the right edge from (29, 17) (the AI, f554865); 1466 tiles of it known
+    [AI-WORLD] go to the back at (-1, 6): the road left: it leads back to PETALBURG_CITY, seen all of (score 0.4)
+    [AI-HANDS] [AI-GOALS] goal look_around not done: budget: 2400 frames ran out (3460 steps, 0 bumps, 67 people in the way, 33 exits used, 47 battles, 44 scenes, 2482 decisions (16 detours, 59 carried on); 27 maps, 12762 tiles learned)
+    [AI-HANDS] [AI-GOALS] the end (stuck: no progress for 121823 frames (no milestone, battle won training, level, new map, catch, item or heal; since RUSTBORO CITY)); milestones ['ch3_route104', 'ch3_woods']; before the fights {'ch3_route104': {'steps': 0, 'sessions': 0, 'wild': 0, 'won': 0, 'rests': 0
+    [AI-WORLD] memory at the end: 27 maps (PETALBURG_CITY 999 tiles 0 bumped, OLDALE_TOWN 747 tiles 0 bumped, ROUTE101 788 tiles 0 bumped, ROUTE102 1466 tiles 0 bumped, ROUTE103 663 tiles 0 bumped, LITTLEROOT_TOWN 861 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 314 tiles 0 bumped, LITTLEROOT_TOWN_
+    [AI-WORLD] navigator: 3460 steps, 0 bumps, 67 people in the way, 33 exits used, 47 battles, 44 scenes, 2482 decisions (16 detours, 59 carried on); 27 maps, 12762 tiles learned
+    [AI-HANDS] outcome='stuck: no progress for 121823 frames (no milestone, battle won training, level, new map, catch, item or heal; since RUSTBORO CITY)' presses=12176 frames=345649 looks=168482 records=28759
+    [AI-HANDS] presses by gate: {'A:bag cursor on 0': 9, 'A:bag cursor on 1': 1, 'A:bag_action cursor on 0': 10, 'A:battle level-up stats box': 8, 'A:battle_action cursor on 0': 95, 'A:battle_action cursor on 1': 10, 'A:battle_action cursor on 3': 9, 'A:battle_move cursor on 0': 43, 'A:battle_move curso
+    [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=24352 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=3456
+    [AI-PURITY-ORIGINS] none
+    [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-ch3-probe-2\ai_player_runs\20261030-172725-A0-2\purity.json
+    [AI-EXIT] reason=play: stuck: no progress for 121823 frames (no milestone, battle won training, level, new map, catch, item or heal; since RUSTBORO CITY) code=0
+
+RUN A0-3: from 20261030-140134-CH2M, Trainer, seed 5903: exit 0, 834.0 s, run dir C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-ch3-probe-3\ai_player_runs\20261030-172746-A0-3
+  map before [8, 1]  ->  after [0, 19]
+  marks before: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "TRAINER_GRUNT_PETALBURG_WOODS": 0, "TRAINER_ROXANNE_1": 0, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 2, "VAR_PETALBURG_WOODS_STATE": 0}
+  marks after:  {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TRAINER_ALLEN": 1, "TRAINER_GRUNT_PETALBURG_WOODS": 0, "TRAINER_ROXANNE_1": 0, "VAR_LITTLEROOT_INTRO_STATE": 7, "VAR_LITTLEROOT_RIVAL_STATE": 4, "VAR_BIRCH_LAB_STATE": 5, "VAR_PETALBURG_GYM_STATE": 2, "VAR_PETALBURG_WOODS_STATE": 0}
+  freshness and checks: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 833.9s after the run started; frame 618180 == start 327161 + 291019 real frames (+-5); md5 7057a671accb0cf9617110d6b7707f1a (start bb06245d9ff15b8b2d564a1673aea825)"}]
+  verdict file: {"counters": {"ai_bot_calls": 0, "ai_loads": 0, "ai_presses": 16906, "ai_unrouted_presses": 0, "ai_writes": 0, "extra_frames": 0, "foreign_loads": 0, "foreign_presses": 0, "foreign_writes": 0, "instrument_errors": 0, "instrument_tampered": 0, "isolation_lost": 0, "peek_restores": 0, "ran_after_finish": 0, "real_frames": 291019, "unattributed_inputs": 0, "unattributed_state_changes": 0}, "facts": {"exit_code": 0, "exit_reason": "play: stuck: no progress for 121704 frames (no milestone, battle won training, level, new map, catch, item or heal; since PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher)", "isolation": {"active": "n=1 types=[GuardListener] rebuild_door=AI", "entry": "n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x25461e10540", "exit": "restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_id=0x25461e10540 isolation_held_until_exit=True members_unchanged=True guard_removed=True reapplied=0 guard_restored=0 foreign_removed_later=0 rebuilds_served=0 rebuild_door_held_until_exit=True rebuild_door_restored=Tr
+  harness stop: {"by": "ai", "cause": "the AI exited by itself (exit code 0)", "exit_code": 0, "real_frames": 291019, "frame_budget": 600000, "elapsed_seconds": 834.0, "wall_clock_seconds": 3600.0}
+  the AI's milestones (told): [AI-GOALS] MILESTONE ch3_route104 passed as a WAYPOINT (it stood on ROUTE104; its save proofs do not hold yet) at f331889 (West of Petalburg: ROUTE 104 (south)): VAR_PETALBURG_WOODS_STATE=0 (>= 1)
+  the AI's last goals:
+    f557212 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 69 (this is 59) or frame 560751, whichever comes first; looking around
+    f559689 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 69 (this is 60) or frame 560751, whichever comes first; looking around
+    f560821 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?'); tried again after 6070 frames put aside (at most 60
+    f563910 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?')
+    f566986 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 74 (this is 63) or frame 572986, whichever comes first; looking around
+    f569435 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 74 (this is 64) or frame 572986, whichever comes first; looking around
+    f571871 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 74 (this is 65) or frame 572986, whichever comes first; looking around
+    f573026 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?'); tried again after 6040 frames put aside (at most 60
+    f576117 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?')
+    f579133 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 79 (this is 68) or frame 585133, whichever comes first; looking around
+    f581587 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 79 (this is 69) or frame 585133, whichever comes first; looking around
+    f584064 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 79 (this is 70) or frame 585133, whichever comes first; looking around
+    f585179 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?'); tried again after 6046 frames put aside (at most 60
+    f588298 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?')
+    f591343 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 84 (this is 73) or frame 597343, whichever comes first; looking around
+    f593800 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 84 (this is 74) or frame 597343, whichever comes first; looking around
+    f596282 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 84 (this is 75) or frame 597343, whichever comes first; looking around
+    f597390 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?'); tried again after 6047 frames put aside (at most 60
+    f600453 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?')
+    f603540 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 89 (this is 78) or frame 609540, whichever comes first; looking around
+    f605957 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 89 (this is 79) or frame 609540, whichever comes first; looking around
+    f608420 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 89 (this is 80) or frame 609540, whichever comes first; looking around
+    f609594 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?'); tried again after 6054 frames put aside (at most 60
+    f612639 go: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: to RUSTBORO_CITY (the game said: 'DAD: Hm? Aren’t you going to the POKéMON GYM in RUSTBORO CITY?')
+    f615720 look_around: PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher: the go goal (go:RUSTBORO_CITY) failed 2 times in a row: put aside until decision 94 (this is 83) or frame 621720, whichever comes first; looking around
+  the end of the AI's log:
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 63): the left edge from (0, 13) (the AI, f617828); 1355 tiles of it known
+    [AI-WORLD] go to the back at (43, 62): the road right: it leads straight back to PETALBURG_CITY, just come from, while 2 thing(s) are left to see here (score -2.1)
+    [AI-WORLD] MAP ROUTE104 -> PETALBURG_CITY at (0, 13): the right edge from (39, 63) (the AI, f617885); 993 tiles of it known
+    [AI-WORLD] go to the back at (-2, 13): the road left: it leads back to ROUTE104, where 2 thing(s) are left to see (score 1.3)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 63): the left edge from (0, 13) (the AI, f617919); 1355 tiles of it known
+    [AI-WORLD] go to the back at (40, 62): the road right: it leads straight back to PETALBURG_CITY, just come from, while 2 thing(s) are left to see here (score 0.4)
+    [AI-WORLD] MAP ROUTE104 -> PETALBURG_CITY at (0, 13): the right edge from (39, 63) (the AI, f617960); 993 tiles of it known
+    [AI-WORLD] go to the back at (-3, 12): the road left: it leads back to ROUTE104, where 2 thing(s) are left to see (score -0.7)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 63): the left edge from (0, 13) (the AI, f617998); 1355 tiles of it known
+    [AI-WORLD] go to the back at (40, 62): the road right: it leads straight back to PETALBURG_CITY, just come from, while 2 thing(s) are left to see here (score 0.5)
+    [AI-WORLD] MAP ROUTE104 -> PETALBURG_CITY at (0, 13): the right edge from (39, 63) (the AI, f618033); 993 tiles of it known
+    [AI-WORLD] go to the back at (-2, 12): the road left: it leads back to ROUTE104, where 2 thing(s) are left to see (score 0.9)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 63): the left edge from (0, 13) (the AI, f618068); 1355 tiles of it known
+    [AI-WORLD] go to the back at (41, 63): the road right: it leads straight back to PETALBURG_CITY, just come from, while 2 thing(s) are left to see here (score 0.9)
+    [AI-WORLD] MAP ROUTE104 -> PETALBURG_CITY at (0, 13): the right edge from (39, 63) (the AI, f618105); 993 tiles of it known
+    [AI-WORLD] go to the back at (-1, 13): the road left: it leads back to ROUTE104, where 2 thing(s) are left to see (score 1.9)
+    [AI-WORLD] MAP PETALBURG_CITY -> ROUTE104 at (39, 63): the left edge from (0, 13) (the AI, f618155); 1355 tiles of it known
+    [AI-WORLD] go to the back at (40, 63): the road right: it leads straight back to PETALBURG_CITY, just come from, while 2 thing(s) are left to see here (score 1.5)
+    [AI-HEARTBEAT] frames=291000 ai_steps=290999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=16906 unattributed_inputs=0 unattributed_state_changes=0
+    [AI-HANDS] [AI-GOALS] goal look_around not done: budget: 2400 frames ran out (1592 steps, 0 bumps, 9 people in the way, 31 exits used, 35 battles, 36 scenes, 2759 decisions (18 detours, 25 carried on); 27 maps, 12413 tiles learned)
+    [AI-HANDS] [AI-GOALS] the end (stuck: no progress for 121704 frames (no milestone, battle won training, level, new map, catch, item or heal; since PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher)); milestones ['ch3_route104']; before the fights {'ch3_route104': {'steps': 0, 'sess
+    [AI-WORLD] memory at the end: 27 maps (PETALBURG_CITY 993 tiles 0 bumped, OLDALE_TOWN 754 tiles 0 bumped, ROUTE101 875 tiles 0 bumped, ROUTE102 1484 tiles 0 bumped, ROUTE103 787 tiles 0 bumped, LITTLEROOT_TOWN 742 tiles 0 bumped, LITTLEROOT_TOWN_BRENDANS_HOUSE_1F 351 tiles 0 bumped, LITTLEROOT_TOWN_
+    [AI-WORLD] navigator: 1592 steps, 0 bumps, 9 people in the way, 31 exits used, 35 battles, 36 scenes, 2759 decisions (18 detours, 25 carried on); 27 maps, 12413 tiles learned
+    [AI-HANDS] outcome='stuck: no progress for 121704 frames (no milestone, battle won training, level, new map, catch, item or heal; since PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher)' presses=8453 frames=291019 looks=140294 records=25273
+    [AI-HANDS] presses by gate: {'A:bag cursor on 0': 10, 'A:bag_action cursor on 0': 10, 'A:battle level-up stats box': 4, 'A:battle_action cursor on 0': 60, 'A:battle_action cursor on 1': 10, 'A:battle_action cursor on 3': 4, 'A:battle_move cursor on 0': 21, 'A:battle_move cursor on 1': 14, 'A:battle_
+    [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=16906 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=2910
+    [AI-PURITY-ORIGINS] none
+    [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-ch3-probe-3\ai_player_runs\20261030-172746-A0-3\purity.json
+    [AI-EXIT] reason=play: stuck: no progress for 121704 frames (no milestone, battle won training, level, new map, catch, item or heal; since PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher) code=0
+
+APPENDIX: the driver that ran A0 (session scratch s53/a0/a0_probe.py, sha256 737c334854cbb1dc), verbatim. To re-run the same three starts after a fix: save it as a .py file outside the repo, pick NEW development seeds (the ledger refuses used ones; change SEED0), and run it with py -3.12 from a clean, pushed checkout.
+----------------------------------------------------------------------------------------------------
+"""A0, the AI's FIRST chapter-3 runs (the AI trainer's design, `ai-research-notes/2026-10-30-AI-TRAINER-DESIGN.md`, section 4).
+
+Three launcher runs, in parallel, each in its own disposable profile, from the AI's OWN chapter-2 ends (the 2026-10-30
+r1base arms CH2, CH2T and CH2M, each with its world memory and its chain's personality), with the target ch3_rustboro.
+DEVELOPMENT seeds 5901-5903 (one ledger entry; never graded). Each run goes through the real launcher (its purity gate per
+launch); what a run reached is read from the GAME (the harness's truth) on the state it left, freshness-checked
+(L5.THIS_RUN). Writes one evidence file and closes the ledger entry. A probe, not a guard: it has no PASS.
+
+    py -3.12 a0_probe.py            the orchestrator (refuses unless the design note is committed and pushed)
+    py -3.12 a0_probe.py --child N  one run (N = 1, 2, 3)
+"""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+REPO = Path("C:/Remote Projects/Pokebot_Gen3_Enhancement")
+sys.path.insert(0, str(REPO))
+HERE = Path(__file__).resolve().parent
+NOTE = "PROJECT KNOWLEDGE/ai-research-notes/2026-10-30-AI-TRAINER-DESIGN.md"
+RUNS = REPO / "sandbox-pokebot" / "profiles" / "ai-step5-play" / "ai_player_runs"
+STARTS = {1: ("20261030-135558-CH2", "Catcher"), 2: ("20261030-135912-CH2T", "Story"), 3: ("20261030-140134-CH2M", "Trainer")}
+SEED0 = 5900
+FRAMES = 600000
+WALL = 3600.0
+TARGET = "ch3_rustboro"
+PREDICTION = ("A0 prediction (the design's section 4, registered by the commit that filed it): recon gap 1. The run ends on "
+              "ROUTE104 at y > 37, with woods state 1 and the Rustboro flag clear. CONTROL: the arrival on ROUTE104 north at "
+              "y < 31 would refute it.")
+
+
+def git(*args: str) -> str:
+    return subprocess.run(["git", "-C", str(REPO), *args], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def child(n: int) -> None:
+    from ai_player.gates import live_step5 as L5
+    L5.PROFILE = f"ai-ch3-probe-{n}"
+    run_name, personality = STARTS[n]
+    src = RUNS / run_name
+    earlier = []
+    for line in (src / "actions.jsonl").read_text(encoding="utf-8").splitlines():
+        try:
+            earlier.append(json.loads(line))
+        except json.JSONDecodeError:
+            pass
+    arm = L5.Arm(f"A0-{n}", f"chapter 3 from {run_name}'s own end, {personality}", FRAMES, WALL,
+                 L5.play_env(personality, None, TARGET), seed=SEED0 + n, fresh=False, state_from="CH2")
+    carried = {"CH2": (src / "end_state.ss1", src / "world.jsonl", earlier)}
+    run = L5.run_arm(arm, L5.launcher.resolve_build_root(None), carried)
+    L5.check_after_is_this_run(run)
+    after = run.after or {}
+    out = {
+        "n": n, "start": run_name, "personality": personality, "seed": SEED0 + n, "exit": run.exit_code,
+        "elapsed": round(run.elapsed or 0, 1), "run_dir": str(run.run_dir), "command": run.command,
+        "verdict": run.verdict, "checks": [getattr(c, "__dict__", str(c)) for c in run.checks], "notes": run.notes,
+        "truth_keys": sorted(after.keys()), "map_before": (run.before or {}).get("map"), "map_after": after.get("map"),
+        "marks_before": L5.marks(run.before), "marks_after": L5.marks(after), "stats_after": L5.stats(after),
+        "milestones_told": [str(r.get("reason"))[:300] for r in L5.tells(run, "MILESTONE ")],
+        "goals_last": [f"f{r.get('frame')} {r.get('action')}: {str(r.get('reason'))[:220]}" for r in run.records
+                       if r.get("decision") == "goal"][-40:],
+        "log_tail": run.ai_log.splitlines()[-40:],
+        "harness_stop": run.measures.get("harness_stop"),
+    }
+    (HERE / f"a0-out-{n}.json").write_text(json.dumps(out, indent=1, ensure_ascii=False, default=str), encoding="utf-8")
+    print(f"[A0-{n}] exit {run.exit_code} elapsed {run.elapsed:.0f}s map {after.get('map')}", flush=True)
+
+
+def orchestrate() -> int:
+    from ai_player.gates import ledger
+    from ai_player.gates import live_step5 as L5
+    if not git("log", "-1", "--format=%h", "--", NOTE):
+        raise SystemExit("REFUSED: the design note (A0's registered prediction) is not committed")
+    git("fetch", "-q", "origin")
+    if git("rev-parse", "HEAD") != git("rev-parse", "origin/main"):
+        raise SystemExit("REFUSED: HEAD is not origin/main: the prediction must be pushed before A0 runs")
+    if git("status", "--porcelain"):
+        raise SystemExit("REFUSED: the checkout is not clean")
+    head = git("rev-parse", "--short", "HEAD")
+    tree = git("rev-parse", "HEAD^{tree}")[:16]
+    entry, lines = ledger.begin("story", "a0_probe", "development", SEED0 + 1, SEED0 + 3,
+                                hashlib.sha256(PREDICTION.encode("utf-8")).hexdigest(), tree,
+                                note=f"A0, the AI's first chapter-3 runs (AI trainer design 2026-10-30, section 4), HEAD "
+                                     f"{head}; the prediction's sha256 is the bounds field")
+    print("\n".join(lines), flush=True)
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+    procs = {}
+    for n in STARTS:
+        log = open(HERE / f"a0-child-{n}.log", "w", encoding="utf-8")
+        procs[n] = (subprocess.Popen([sys.executable, "-B", str(Path(__file__).resolve()), "--child", str(n)], cwd=str(REPO),
+                                     env=env, stdout=log, stderr=subprocess.STDOUT), log)
+        time.sleep(20)
+    for n, (proc, log) in procs.items():
+        proc.wait()
+        log.close()
+    results = []
+    for n in STARTS:
+        path = HERE / f"a0-out-{n}.json"
+        results.append(json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {"n": n, "missing": True})
+    ev = L5.EVIDENCE_DIR / "2026-10-30-a0-ch3-probe.txt"
+    out = [f"A0 - DEVELOPMENT PROBE, NOT GRADED, NO PASS: the AI's FIRST chapter-3 runs (the AI trainer's design, "
+           f"`{NOTE}`, section 4)",
+           f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}   HEAD {head} (tree {tree})   seeds {SEED0 + 1}-{SEED0 + 3}, "
+           f"ledger entry #{entry['id']} (development)",
+           f"setup: three launcher runs in parallel, each in its own profile, from the AI's own chapter-2 ends (r1base CH2, CH2T, "
+           f"CH2M) with their world memory; target {TARGET}; {FRAMES} frames, {WALL:g} s; the 12-lane bot tuner running",
+           f"PREDICTION (registered before the runs): {PREDICTION}",
+           "Each run: what the GAME says it reached (marks, read by the harness on the state the run left) and how it ended."]
+    for r in results:
+        out.append("")
+        if r.get("missing"):
+            out.append(f"RUN A0-{r['n']}: NO RESULT FILE (see the child log in the session scratch)")
+            continue
+        out.append(f"RUN A0-{r['n']}: from {r['start']}, {r['personality']}, seed {r['seed']}: exit {r['exit']}, "
+                   f"{r['elapsed']} s, run dir {r['run_dir']}")
+        out.append(f"  map before {json.dumps(r['map_before'], ensure_ascii=False)}  ->  after "
+                   f"{json.dumps(r['map_after'], ensure_ascii=False)}")
+        out.append(f"  marks before: {json.dumps(r['marks_before'], ensure_ascii=False)[:1500]}")
+        out.append(f"  marks after:  {json.dumps(r['marks_after'], ensure_ascii=False)[:1500]}")
+        out.append(f"  freshness and checks: {json.dumps(r['checks'], ensure_ascii=False, default=str)[:1500]}")
+        verdict = r.get("verdict") or {}
+        out.append(f"  verdict file: {json.dumps(verdict, ensure_ascii=False, default=str)[:1500]}")
+        out.append(f"  harness stop: {json.dumps(r.get('harness_stop'), ensure_ascii=False, default=str)[:600]}")
+        out.append("  the AI's milestones (told): " + " | ".join(r["milestones_told"])[:1500])
+        out.append("  the AI's last goals:")
+        out += [f"    {g}" for g in r["goals_last"][-25:]]
+        out.append("  the end of the AI's log:")
+        out += [f"    {line[:300]}" for line in r["log_tail"][-30:]]
+        out += [f"  note: {note}" for note in r["notes"]]
+    ev.write_text("\n".join(out) + "\n", encoding="utf-8")
+    reached = [r for r in results if not r.get("missing")]
+    ledger.finish(entry["id"], f"DEVELOPMENT, not graded: A0, the AI's first chapter-3 runs ({len(reached)} of 3 ran; read "
+                               f"the evidence)", str(ev.relative_to(REPO)).replace("\\", "/"))
+    print(f"[A0] evidence: {ev}", flush=True)
+    for r in reached:
+        print(f"[A0-{r['n']}] exit {r['exit']} {r['elapsed']}s map {r['map_after']} marks {json.dumps(r['marks_after'])[:600]}",
+              flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--child":
+        child(int(sys.argv[2]))
+    else:
+        sys.exit(orchestrate())
