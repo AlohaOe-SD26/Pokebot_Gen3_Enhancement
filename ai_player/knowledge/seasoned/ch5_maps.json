@@ -1,0 +1,3604 @@
+{
+ "_source": "pret/pokeemerald@731ad5bfd6e6f265508d0efcca0ba42f9dcf5881",
+ "_kind": "static game knowledge (USER RULING 40)",
+ "_made_by": "cloud job CH5-RECON",
+ "maps": {
+  "RustboroCity_DevonCorp_1F": {
+   "id": "MAP_RUSTBORO_CITY_DEVON_CORP_1F",
+   "connections": [],
+   "warps": [
+    {
+     "pos": [
+      5,
+      8
+     ],
+     "to": "MAP_RUSTBORO_CITY",
+     "to_warp": "5"
+    },
+    {
+     "pos": [
+      6,
+      8
+     ],
+     "to": "MAP_RUSTBORO_CITY",
+     "to_warp": "6"
+    },
+    {
+     "pos": [
+      14,
+      1
+     ],
+     "to": "MAP_RUSTBORO_CITY_DEVON_CORP_2F",
+     "to_warp": "0"
+    }
+   ],
+   "trainers": [],
+   "item_balls": [],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      2,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_DEVON_EMPLOYEE",
+     "script": "RustboroCity_DevonCorp_1F_EventScript_Employee",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WANDER_AROUND"
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      15,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_DEVON_EMPLOYEE",
+     "script": "RustboroCity_DevonCorp_1F_EventScript_StairGuard",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WANDER_AROUND"
+    },
+    {
+     "local_id": 3,
+     "pos": [
+      5,
+      3
+     ],
+     "gfx": "OBJ_EVENT_GFX_WOMAN_3",
+     "script": "RustboroCity_DevonCorp_1F_EventScript_Greeter",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [
+    {
+     "type": "sign",
+     "pos": [
+      3,
+      2
+     ],
+     "script": "RustboroCity_DevonCorp_1F_EventScript_ProductsDisplay"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      8,
+      2
+     ],
+     "script": "RustboroCity_DevonCorp_1F_EventScript_RocksMetalDisplay"
+    }
+   ],
+   "story_flags": [
+    "FLAG_DEVON_GOODS_STOLEN",
+    "FLAG_RECOVERED_DEVON_GOODS",
+    "FLAG_RETURNED_DEVON_GOODS"
+   ],
+   "story_vars": [],
+   "script_ops_by_label": {
+    "RustboroCity_DevonCorp_1F_OnTransition": [
+     "call_if_unset FLAG_RETURNED_DEVON_GOODS, RustboroCity_DevonCorp_1F_EventScript_BlockStairs"
+    ],
+    "RustboroCity_DevonCorp_1F_EventScript_Employee": [
+     "goto_if_set FLAG_RETURNED_DEVON_GOODS, RustboroCity_DevonCorp_1F_EventScript_GoodsRecovered",
+     "goto_if_set FLAG_DEVON_GOODS_STOLEN, RustboroCity_DevonCorp_1F_EventScript_RobberWasntBright"
+    ],
+    "RustboroCity_DevonCorp_1F_EventScript_StairGuard": [
+     "goto_if_set FLAG_RETURNED_DEVON_GOODS, RustboroCity_DevonCorp_1F_EventScript_AlwaysWelcome",
+     "goto_if_set FLAG_RECOVERED_DEVON_GOODS, RustboroCity_DevonCorp_1F_EventScript_GotRobbed",
+     "goto_if_set FLAG_DEVON_GOODS_STOLEN, RustboroCity_DevonCorp_1F_EventScript_GotRobbed"
+    ],
+    "RustboroCity_DevonCorp_1F_EventScript_Greeter": [
+     "goto_if_set FLAG_RETURNED_DEVON_GOODS, RustboroCity_DevonCorp_1F_EventScript_WelcomeToDevonCorp",
+     "goto_if_set FLAG_RECOVERED_DEVON_GOODS, RustboroCity_DevonCorp_1F_EventScript_StaffGotRobbed",
+     "goto_if_set FLAG_DEVON_GOODS_STOLEN, RustboroCity_DevonCorp_1F_EventScript_StaffGotRobbed"
+    ]
+   }
+  },
+  "RustboroCity_DevonCorp_2F": {
+   "id": "MAP_RUSTBORO_CITY_DEVON_CORP_2F",
+   "connections": [],
+   "warps": [
+    {
+     "pos": [
+      14,
+      1
+     ],
+     "to": "MAP_RUSTBORO_CITY_DEVON_CORP_1F",
+     "to_warp": "2"
+    },
+    {
+     "pos": [
+      2,
+      1
+     ],
+     "to": "MAP_RUSTBORO_CITY_DEVON_CORP_3F",
+     "to_warp": "0"
+    }
+   ],
+   "trainers": [],
+   "item_balls": [],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      6,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+     "script": "RustboroCity_DevonCorp_2F_EventScript_TalkToPokemonScientist",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP"
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      1,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+     "script": "RustboroCity_DevonCorp_2F_EventScript_BallScientist",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT"
+    },
+    {
+     "local_id": 3,
+     "pos": [
+      2,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+     "script": "RustboroCity_DevonCorp_2F_EventScript_PokenavScientist",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP_AND_LEFT"
+    },
+    {
+     "local_id": 4,
+     "pos": [
+      10,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+     "script": "RustboroCity_DevonCorp_2F_EventScript_PokemonDreamsScientist",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP"
+    },
+    {
+     "local_id": 5,
+     "pos": [
+      14,
+      8
+     ],
+     "gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+     "script": "RustboroCity_DevonCorp_2F_EventScript_FossilScientist",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP"
+    },
+    {
+     "local_id": 6,
+     "pos": [
+      14,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_SCIENTIST_1",
+     "script": "RustboroCity_DevonCorp_2F_EventScript_MatchCallScientist",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [],
+   "story_flags": [
+    "FLAG_MET_DEVON_EMPLOYEE",
+    "FLAG_RECEIVED_POKENAV",
+    "FLAG_RECEIVED_REVIVED_FOSSIL_MON"
+   ],
+   "story_vars": [
+    "VAR_FOSSIL_RESURRECTION_STATE",
+    "VAR_RESULT",
+    "VAR_RUSTBORO_CITY_STATE",
+    "VAR_TEMP_TRANSFERRED_SPECIES",
+    "VAR_WHICH_FOSSIL_REVIVED"
+   ],
+   "script_ops_by_label": {
+    "RustboroCity_DevonCorp_2F_OnTransition": [
+     "call_if_eq VAR_FOSSIL_RESURRECTION_STATE, 1, RustboroCity_DevonCorp_2F_EventScript_SetFossilReady"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_SetFossilReady": [
+     "setvar VAR_FOSSIL_RESURRECTION_STATE, 2"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_TalkToPokemonScientist": [
+     "call_if_eq VAR_FOSSIL_RESURRECTION_STATE, 1, RustboroCity_DevonCorp_2F_EventScript_SetFossilReady"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_BallScientist": [
+     "call_if_eq VAR_FOSSIL_RESURRECTION_STATE, 1, RustboroCity_DevonCorp_2F_EventScript_SetFossilReady",
+     "goto_if_set FLAG_MET_DEVON_EMPLOYEE, RustboroCity_DevonCorp_2F_EventScript_DevelopedBalls"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_PokenavScientist": [
+     "call_if_eq VAR_FOSSIL_RESURRECTION_STATE, 1, RustboroCity_DevonCorp_2F_EventScript_SetFossilReady",
+     "goto_if_set FLAG_RECEIVED_POKENAV, RustboroCity_DevonCorp_2F_EventScript_HasPokenav"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_PokemonDreamsScientist": [
+     "call_if_eq VAR_FOSSIL_RESURRECTION_STATE, 1, RustboroCity_DevonCorp_2F_EventScript_SetFossilReady"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_FossilScientist": [
+     "goto_if_eq VAR_FOSSIL_RESURRECTION_STATE, 2, RustboroCity_DevonCorp_2F_EventScript_FossilMonReady",
+     "goto_if_eq VAR_FOSSIL_RESURRECTION_STATE, 1, RustboroCity_DevonCorp_2F_EventScript_StillRegenerating",
+     "goto_if_eq VAR_RESULT, TRUE, RustboroCity_DevonCorp_2F_EventScript_NoticeRootFossil",
+     "goto_if_eq VAR_RESULT, TRUE, RustboroCity_DevonCorp_2F_EventScript_NoticeClawFossil"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_NoticeRootFossil": [
+     "goto_if_eq VAR_RESULT, NO, RustboroCity_DevonCorp_2F_EventScript_DeclineGiveFossil",
+     "goto_if_eq VAR_RESULT, TRUE, RustboroCity_DevonCorp_2F_EventScript_ChooseFossil"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_GiveRootFossil": [
+     "setvar VAR_FOSSIL_RESURRECTION_STATE, 1",
+     "setvar VAR_WHICH_FOSSIL_REVIVED, 1"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_NoticeClawFossil": [
+     "goto_if_eq VAR_RESULT, NO, RustboroCity_DevonCorp_2F_EventScript_DeclineGiveFossil",
+     "goto_if_eq VAR_RESULT, TRUE, RustboroCity_DevonCorp_2F_EventScript_ChooseFossil"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_GiveClawFossil": [
+     "setvar VAR_FOSSIL_RESURRECTION_STATE, 1",
+     "setvar VAR_WHICH_FOSSIL_REVIVED, 2"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_FossilMonReady": [
+     "goto_if_eq VAR_WHICH_FOSSIL_REVIVED, 1, RustboroCity_DevonCorp_2F_EventScript_LileepReady",
+     "goto_if_eq VAR_WHICH_FOSSIL_REVIVED, 2, RustboroCity_DevonCorp_2F_EventScript_AnorithReady"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_ReceiveLileep": [
+     "setvar VAR_TEMP_TRANSFERRED_SPECIES, SPECIES_LILEEP",
+     "goto_if_eq VAR_RESULT, MON_GIVEN_TO_PARTY, RustboroCity_DevonCorp_2F_EventScript_ReceiveLileepParty",
+     "goto_if_eq VAR_RESULT, MON_GIVEN_TO_PC, RustboroCity_DevonCorp_2F_EventScript_ReceiveLileepPC"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_ReceiveLileepParty": [
+     "goto_if_eq VAR_RESULT, NO, RustboroCity_DevonCorp_2F_EventScript_FinishReceivingLileep"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_ReceiveLileepPC": [
+     "goto_if_eq VAR_RESULT, NO, RustboroCity_DevonCorp_2F_EventScript_TransferLileepToPC"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_FinishReceivingLileep": [
+     "setvar VAR_FOSSIL_RESURRECTION_STATE, 0",
+     "setflag FLAG_RECEIVED_REVIVED_FOSSIL_MON"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_ReceiveAnorith": [
+     "setvar VAR_TEMP_TRANSFERRED_SPECIES, SPECIES_ANORITH",
+     "goto_if_eq VAR_RESULT, MON_GIVEN_TO_PARTY, RustboroCity_DevonCorp_2F_EventScript_ReceiveAnorithParty",
+     "goto_if_eq VAR_RESULT, MON_GIVEN_TO_PC, RustboroCity_DevonCorp_2F_EventScript_ReceiveAnorithPC"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_ReceiveAnorithParty": [
+     "goto_if_eq VAR_RESULT, NO, RustboroCity_DevonCorp_2F_EventScript_FinishReceivingAnorith"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_ReceiveAnorithPC": [
+     "goto_if_eq VAR_RESULT, NO, RustboroCity_DevonCorp_2F_EventScript_TransferAnorithToPC"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_FinishReceivingAnorith": [
+     "setvar VAR_FOSSIL_RESURRECTION_STATE, 0",
+     "setflag FLAG_RECEIVED_REVIVED_FOSSIL_MON"
+    ],
+    "RustboroCity_DevonCorp_2F_EventScript_MatchCallScientist": [
+     "call_if_eq VAR_FOSSIL_RESURRECTION_STATE, 1, RustboroCity_DevonCorp_2F_EventScript_SetFossilReady",
+     "goto_if_ge VAR_RUSTBORO_CITY_STATE, 6, RustboroCity_DevonCorp_2F_EventScript_WorkOnNext"
+    ]
+   }
+  },
+  "RustboroCity_DevonCorp_3F": {
+   "id": "MAP_RUSTBORO_CITY_DEVON_CORP_3F",
+   "connections": [],
+   "warps": [
+    {
+     "pos": [
+      2,
+      1
+     ],
+     "to": "MAP_RUSTBORO_CITY_DEVON_CORP_2F",
+     "to_warp": "1"
+    }
+   ],
+   "trainers": [],
+   "item_balls": [],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      17,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+     "script": "RustboroCity_DevonCorp_3F_EventScript_MrStone",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT"
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      3,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_MAN_2",
+     "script": "RustboroCity_DevonCorp_3F_EventScript_Employee",
+     "flag": "FLAG_HIDE_RUSTBORO_CITY_DEVON_CORP_3F_EMPLOYEE",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT"
+    },
+    {
+     "local_id": 3,
+     "pos": [
+      15,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_GENTLEMAN",
+     "script": "RustboroCity_DevonCorp_3F_EventScript_MrStone",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_INVISIBLE"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [
+    {
+     "type": "sign",
+     "pos": [
+      1,
+      5
+     ],
+     "script": "RustboroCity_DevonCorp_3F_EventScript_RareRocksDisplay"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      1,
+      7
+     ],
+     "script": "RustboroCity_DevonCorp_3F_EventScript_RareRocksDisplay"
+    }
+   ],
+   "story_flags": [
+    "FLAG_DELIVERED_STEVEN_LETTER",
+    "FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY",
+    "FLAG_HIDE_BRINEYS_HOUSE_PEEKO",
+    "FLAG_HIDE_ROUTE_116_WANDAS_BOYFRIEND",
+    "FLAG_HIDE_RUSTBORO_CITY_POKEMON_SCHOOL_SCOTT",
+    "FLAG_HIDE_RUSTBORO_CITY_RIVAL",
+    "FLAG_HIDE_RUSTURF_TUNNEL_WANDA",
+    "FLAG_HIDE_RUSTURF_TUNNEL_WANDAS_BOYFRIEND",
+    "FLAG_RECEIVED_EXP_SHARE",
+    "FLAG_RECEIVED_POKENAV",
+    "FLAG_RECEIVED_REPEAT_BALL",
+    "FLAG_SYS_POKENAV_GET"
+   ],
+   "story_vars": [
+    "VAR_BRINEY_LOCATION",
+    "VAR_DEVON_CORP_3F_STATE",
+    "VAR_LAST_TALKED",
+    "VAR_RESULT",
+    "VAR_RUSTBORO_CITY_STATE"
+   ],
+   "script_ops_by_label": {
+    "RustboroCity_DevonCorp_3F_OnTransition": [
+     "call_if_eq VAR_DEVON_CORP_3F_STATE, 0, RustboroCity_DevonCorp_3F_EventScript_SetEmployeePos"
+    ],
+    "RustboroCity_DevonCorp_3F_EventScript_MeetPresident": [
+     "giveitem ITEM_LETTER",
+     "setflag FLAG_SYS_POKENAV_GET",
+     "setflag FLAG_RECEIVED_POKENAV",
+     "setflag FLAG_HIDE_RUSTBORO_CITY_POKEMON_SCHOOL_SCOTT",
+     "setflag FLAG_HIDE_ROUTE_116_WANDAS_BOYFRIEND",
+     "clearflag FLAG_HIDE_RUSTURF_TUNNEL_WANDAS_BOYFRIEND",
+     "clearflag FLAG_HIDE_RUSTURF_TUNNEL_WANDA",
+     "clearflag FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY",
+     "clearflag FLAG_HIDE_BRINEYS_HOUSE_PEEKO",
+     "setvar VAR_BRINEY_LOCATION, 1",
+     "clearflag FLAG_HIDE_RUSTBORO_CITY_RIVAL",
+     "setvar VAR_DEVON_CORP_3F_STATE, 1",
+     "setvar VAR_RUSTBORO_CITY_STATE, 6"
+    ],
+    "RustboroCity_DevonCorp_3F_EventScript_MrStone": [
+     "goto_if_set FLAG_RECEIVED_EXP_SHARE, RustboroCity_DevonCorp_3F_EventScript_MrStoneAfterFavor",
+     "goto_if_set FLAG_DELIVERED_STEVEN_LETTER, RustboroCity_DevonCorp_3F_EventScript_GiveExpShare"
+    ],
+    "RustboroCity_DevonCorp_3F_EventScript_GiveExpShare": [
+     "giveitem ITEM_EXP_SHARE",
+     "goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull",
+     "setflag FLAG_RECEIVED_EXP_SHARE"
+    ],
+    "RustboroCity_DevonCorp_3F_EventScript_Employee": [
+     "goto_if_set FLAG_RECEIVED_REPEAT_BALL, RustboroCity_DevonCorp_3F_EventScript_EmployeeBalls"
+    ]
+   }
+  },
+  "Route116": {
+   "id": "MAP_ROUTE116",
+   "connections": [
+    {
+     "map": "MAP_VERDANTURF_TOWN",
+     "offset": 80,
+     "direction": "down"
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "offset": 0,
+     "direction": "left"
+    }
+   ],
+   "warps": [
+    {
+     "pos": [
+      47,
+      8
+     ],
+     "to": "MAP_RUSTURF_TUNNEL",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      38,
+      8
+     ],
+     "to": "MAP_ROUTE116_TUNNELERS_REST_HOUSE",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      65,
+      10
+     ],
+     "to": "MAP_RUSTURF_TUNNEL",
+     "to_warp": "2"
+    },
+    {
+     "pos": [
+      59,
+      13
+     ],
+     "to": "MAP_TERRA_CAVE_ENTRANCE",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      79,
+      6
+     ],
+     "to": "MAP_TERRA_CAVE_ENTRANCE",
+     "to_warp": "0"
+    }
+   ],
+   "trainers": [
+    {
+     "local_id": 3,
+     "pos": [
+      12,
+      7
+     ],
+     "gfx": "OBJ_EVENT_GFX_YOUNGSTER",
+     "script": "Route116_EventScript_Joey",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP_AND_RIGHT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_JOEY",
+     "name": "JOEY",
+     "class": "TRAINER_CLASS_YOUNGSTER",
+     "double": false,
+     "party_table": "sParty_Joey",
+     "party": [
+      {
+       "species": "SPECIES_MACHOP",
+       "level": 9
+      }
+     ]
+    },
+    {
+     "local_id": 6,
+     "pos": [
+      13,
+      17
+     ],
+     "gfx": "OBJ_EVENT_GFX_BUG_CATCHER",
+     "script": "Route116_EventScript_Jose",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_ROTATE_CLOCKWISE",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "2",
+     "trainer": "TRAINER_JOSE",
+     "name": "JOSE",
+     "class": "TRAINER_CLASS_BUG_CATCHER",
+     "double": false,
+     "party_table": "sParty_Jose",
+     "party": [
+      {
+       "species": "SPECIES_WURMPLE",
+       "level": 8
+      },
+      {
+       "species": "SPECIES_NINCADA",
+       "level": 8
+      }
+     ]
+    },
+    {
+     "local_id": 13,
+     "pos": [
+      36,
+      17
+     ],
+     "gfx": "OBJ_EVENT_GFX_HIKER",
+     "script": "Route116_EventScript_Clark",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP_AND_LEFT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_CLARK",
+     "name": "CLARK",
+     "class": "TRAINER_CLASS_HIKER",
+     "double": false,
+     "party_table": "sParty_Clark",
+     "party": [
+      {
+       "species": "SPECIES_GEODUDE",
+       "level": 8
+      }
+     ]
+    },
+    {
+     "local_id": 16,
+     "pos": [
+      26,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_LASS",
+     "script": "Route116_EventScript_Janice",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "2",
+     "trainer": "TRAINER_JANICE",
+     "name": "JANICE",
+     "class": "TRAINER_CLASS_LASS",
+     "double": false,
+     "party_table": "sParty_Janice",
+     "party": [
+      {
+       "species": "SPECIES_MARILL",
+       "level": 9
+      }
+     ]
+    },
+    {
+     "local_id": 17,
+     "pos": [
+      22,
+      16
+     ],
+     "gfx": "OBJ_EVENT_GFX_GIRL_3",
+     "script": "Route116_EventScript_Karen",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN_AND_UP",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_KAREN_1",
+     "name": "KAREN",
+     "class": "TRAINER_CLASS_SCHOOL_KID",
+     "double": false,
+     "party_table": "sParty_Karen1",
+     "party": [
+      {
+       "species": "SPECIES_SHROOMISH",
+       "level": 9
+      }
+     ]
+    },
+    {
+     "local_id": 18,
+     "pos": [
+      28,
+      8
+     ],
+     "gfx": "OBJ_EVENT_GFX_SCHOOL_KID_M",
+     "script": "Route116_EventScript_Jerry",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "4",
+     "trainer": "TRAINER_JERRY_1",
+     "name": "JERRY",
+     "class": "TRAINER_CLASS_SCHOOL_KID",
+     "double": false,
+     "party_table": "sParty_Jerry1",
+     "party": [
+      {
+       "species": "SPECIES_RALTS",
+       "level": 9
+      }
+     ]
+    },
+    {
+     "local_id": 23,
+     "pos": [
+      33,
+      8
+     ],
+     "gfx": "OBJ_EVENT_GFX_WOMAN_2",
+     "script": "Route116_EventScript_Sarah",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "1",
+     "trainer": "TRAINER_SARAH",
+     "name": "SARAH",
+     "class": "TRAINER_CLASS_LADY",
+     "double": false,
+     "party_table": "sParty_Sarah",
+     "party": [
+      {
+       "species": "SPECIES_LOTAD",
+       "level": 8
+      },
+      {
+       "species": "SPECIES_ZIGZAGOON",
+       "level": 8
+      }
+     ]
+    },
+    {
+     "local_id": 24,
+     "pos": [
+      33,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_BOY_2",
+     "script": "Route116_EventScript_Dawson",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "2",
+     "trainer": "TRAINER_DAWSON",
+     "name": "DAWSON",
+     "class": "TRAINER_CLASS_RICH_BOY",
+     "double": false,
+     "party_table": "sParty_Dawson",
+     "party": [
+      {
+       "species": "SPECIES_ZIGZAGOON",
+       "level": 8
+      },
+      {
+       "species": "SPECIES_POOCHYENA",
+       "level": 8
+      }
+     ]
+    },
+    {
+     "local_id": 27,
+     "pos": [
+      36,
+      13
+     ],
+     "gfx": "OBJ_EVENT_GFX_YOUNGSTER",
+     "script": "Route116_EventScript_Johnson",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN_AND_RIGHT",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "5",
+     "trainer": "TRAINER_JOHNSON",
+     "name": "JOHNSON",
+     "class": "TRAINER_CLASS_YOUNGSTER",
+     "double": false,
+     "party_table": "sParty_Johnson",
+     "party": [
+      {
+       "species": "SPECIES_SHROOMISH",
+       "level": 8
+      },
+      {
+       "species": "SPECIES_LOTAD",
+       "level": 8
+      }
+     ]
+    },
+    {
+     "local_id": 28,
+     "pos": [
+      42,
+      13
+     ],
+     "gfx": "OBJ_EVENT_GFX_HIKER",
+     "script": "Route116_EventScript_Devan",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "5",
+     "trainer": "TRAINER_DEVAN",
+     "name": "DEVAN",
+     "class": "TRAINER_CLASS_HIKER",
+     "double": false,
+     "party_table": "sParty_Devan",
+     "party": [
+      {
+       "species": "SPECIES_GEODUDE",
+       "level": 8
+      },
+      {
+       "species": "SPECIES_GEODUDE",
+       "level": 8
+      }
+     ]
+    }
+   ],
+   "item_balls": [
+    {
+     "local_id": 7,
+     "pos": [
+      19,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "Route116_EventScript_ItemEther",
+     "flag": "FLAG_ITEM_ROUTE_116_ETHER",
+     "item": null,
+     "item_script": "Route116_EventScript_ItemEther",
+     "item_from_script": "ITEM_ETHER",
+     "quantity": 1
+    },
+    {
+     "local_id": 8,
+     "pos": [
+      10,
+      17
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "Route116_EventScript_ItemRepel",
+     "flag": "FLAG_ITEM_ROUTE_116_REPEL",
+     "item": null,
+     "item_script": "Route116_EventScript_ItemRepel",
+     "item_from_script": "ITEM_REPEL",
+     "quantity": 1
+    },
+    {
+     "local_id": 15,
+     "pos": [
+      80,
+      8
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "Route116_EventScript_ItemHPUp",
+     "flag": "FLAG_ITEM_ROUTE_116_HP_UP",
+     "item": null,
+     "item_script": "Route116_EventScript_ItemHPUp",
+     "item_from_script": "ITEM_HP_UP",
+     "quantity": 1
+    },
+    {
+     "local_id": 20,
+     "pos": [
+      55,
+      12
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "Route116_EventScript_ItemXSpecial",
+     "flag": "FLAG_ITEM_ROUTE_116_X_SPECIAL",
+     "item": null,
+     "item_script": "Route116_EventScript_ItemXSpecial",
+     "item_from_script": "ITEM_X_SPECIAL",
+     "quantity": 1
+    },
+    {
+     "local_id": 25,
+     "pos": [
+      34,
+      7
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "Route116_EventScript_ItemPotion",
+     "flag": "FLAG_ITEM_ROUTE_116_POTION",
+     "item": null,
+     "item_script": "Route116_EventScript_ItemPotion",
+     "item_from_script": "ITEM_POTION",
+     "quantity": 1
+    }
+   ],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      18,
+      2
+     ],
+     "gfx": "OBJ_EVENT_GFX_BERRY_TREE",
+     "script": "BerryTreeScript",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_BERRY_TREE_GROWTH"
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      19,
+      2
+     ],
+     "gfx": "OBJ_EVENT_GFX_BERRY_TREE",
+     "script": "BerryTreeScript",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_BERRY_TREE_GROWTH"
+    },
+    {
+     "local_id": 4,
+     "pos": [
+      21,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_CUTTABLE_TREE",
+     "script": "EventScript_CutTree",
+     "flag": "FLAG_TEMP_11",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 5,
+     "pos": [
+      32,
+      10
+     ],
+     "gfx": "OBJ_EVENT_GFX_CUTTABLE_TREE",
+     "script": "EventScript_CutTree",
+     "flag": "FLAG_TEMP_12",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 9,
+     "pos": [
+      20,
+      2
+     ],
+     "gfx": "OBJ_EVENT_GFX_BERRY_TREE",
+     "script": "BerryTreeScript",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_BERRY_TREE_GROWTH"
+    },
+    {
+     "local_id": 10,
+     "pos": [
+      21,
+      2
+     ],
+     "gfx": "OBJ_EVENT_GFX_BERRY_TREE",
+     "script": "BerryTreeScript",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_BERRY_TREE_GROWTH"
+    },
+    {
+     "local_id": 11,
+     "pos": [
+      46,
+      9
+     ],
+     "gfx": "OBJ_EVENT_GFX_EXPERT_M",
+     "script": "Route116_EventScript_Briney",
+     "flag": "FLAG_HIDE_ROUTE_116_MR_BRINEY",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 12,
+     "pos": [
+      28,
+      11
+     ],
+     "gfx": "OBJ_EVENT_GFX_CUTTABLE_TREE",
+     "script": "EventScript_CutTree",
+     "flag": "FLAG_TEMP_13",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 14,
+     "pos": [
+      24,
+      9
+     ],
+     "gfx": "OBJ_EVENT_GFX_CUTTABLE_TREE",
+     "script": "EventScript_CutTree",
+     "flag": "FLAG_TEMP_14",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 19,
+     "pos": [
+      46,
+      11
+     ],
+     "gfx": "OBJ_EVENT_GFX_MAN_2",
+     "script": "Route116_EventScript_DevonEmployee",
+     "flag": "FLAG_HIDE_ROUTE_116_DEVON_EMPLOYEE",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 21,
+     "pos": [
+      38,
+      9
+     ],
+     "gfx": "OBJ_EVENT_GFX_BLACK_BELT",
+     "script": "Route116_EventScript_WandasBoyfriend",
+     "flag": "FLAG_HIDE_ROUTE_116_WANDAS_BOYFRIEND",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT"
+    },
+    {
+     "local_id": 22,
+     "pos": [
+      74,
+      13
+     ],
+     "gfx": "OBJ_EVENT_GFX_MANIAC",
+     "script": "Route116_EventScript_GlassesMan",
+     "flag": "FLAG_HIDE_ROUTE_116_DROPPED_GLASSES_MAN",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 26,
+     "pos": [
+      30,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_CUTTABLE_TREE",
+     "script": "EventScript_CutTree",
+     "flag": "FLAG_TEMP_15",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    }
+   ],
+   "coord_events": [
+    {
+     "x": 47,
+     "y": 9,
+     "elevation": 3,
+     "var": "VAR_ROUTE116_STATE",
+     "var_value": "1",
+     "trigger": null,
+     "script": "Route116_EventScript_BrineyTrigger"
+    }
+   ],
+   "hidden_items": [
+    {
+     "pos": [
+      22,
+      9
+     ],
+     "item": "ITEM_SUPER_POTION",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_116_SUPER_POTION"
+    },
+    {
+     "pos": [
+      70,
+      13
+     ],
+     "item": "ITEM_BLACK_GLASSES",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_116_BLACK_GLASSES"
+    }
+   ],
+   "bg_other": [
+    {
+     "type": "sign",
+     "pos": [
+      5,
+      10
+     ],
+     "script": "Route116_EventScript_RouteSignRustboro"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      48,
+      9
+     ],
+     "script": "Route116_EventScript_RusturfTunnelSign"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      40,
+      9
+     ],
+     "script": "Route116_EventScript_TunnelersRestHouseSign"
+    },
+    {
+     "type": "secret_base",
+     "pos": [
+      71,
+      4
+     ],
+     "script": null
+    },
+    {
+     "type": "secret_base",
+     "pos": [
+      79,
+      11
+     ],
+     "script": null
+    },
+    {
+     "type": "sign",
+     "pos": [
+      16,
+      12
+     ],
+     "script": "Route116_EventScript_TrainerTipsBToStopEvolution"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      29,
+      10
+     ],
+     "script": "Route116_EventScript_TrainerTipsBagHasPockets"
+    },
+    {
+     "type": "secret_base",
+     "pos": [
+      56,
+      6
+     ],
+     "script": null
+    },
+    {
+     "type": "secret_base",
+     "pos": [
+      55,
+      15
+     ],
+     "script": null
+    }
+   ],
+   "story_flags": [
+    "FLAG_DEVON_GOODS_STOLEN",
+    "FLAG_HAS_MATCH_CALL",
+    "FLAG_HIDE_RUSTBORO_CITY_DEVON_CORP_3F_EMPLOYEE",
+    "FLAG_MET_DEVON_EMPLOYEE",
+    "FLAG_RECEIVED_REPEAT_BALL",
+    "FLAG_RECOVERED_DEVON_GOODS"
+   ],
+   "story_vars": [
+    "VAR_0x8004",
+    "VAR_ABNORMAL_WEATHER_LOCATION",
+    "VAR_FACING",
+    "VAR_LAST_TALKED",
+    "VAR_RESULT",
+    "VAR_ROUTE116_STATE",
+    "VAR_SHOULD_END_ABNORMAL_WEATHER"
+   ],
+   "script_ops_by_label": {
+    "Route116_OnTransition": [
+     "call_if_set FLAG_RECOVERED_DEVON_GOODS, Route116_EventScript_SetWandasBoyfriendPos",
+     "call_if_eq VAR_SHOULD_END_ABNORMAL_WEATHER, 1, AbnormalWeather_EventScript_HideMapNamePopup",
+     "call_if_eq VAR_ABNORMAL_WEATHER_LOCATION, ABNORMAL_WEATHER_ROUTE_116_NORTH, AbnormalWeather_StartGroudonWeather",
+     "call_if_eq VAR_ABNORMAL_WEATHER_LOCATION, ABNORMAL_WEATHER_ROUTE_116_SOUTH, AbnormalWeather_StartGroudonWeather"
+    ],
+    "Route116_OnLoad": [
+     "call_if_eq VAR_ABNORMAL_WEATHER_LOCATION, ABNORMAL_WEATHER_ROUTE_116_NORTH, AbnormalWeather_EventScript_PlaceTilesRoute116North",
+     "call_if_eq VAR_ABNORMAL_WEATHER_LOCATION, ABNORMAL_WEATHER_ROUTE_116_SOUTH, AbnormalWeather_EventScript_PlaceTilesRoute116South"
+    ],
+    "Route116_EventScript_WandasBoyfriend": [
+     "goto_if_set FLAG_RECOVERED_DEVON_GOODS, Route116_EventScript_BoyfriendGruntLeftTunnel",
+     "goto_if_set FLAG_DEVON_GOODS_STOLEN, Route116_EventScript_BoyfriendGruntInTunnel"
+    ],
+    "Route116_EventScript_DevonEmployee": [
+     "goto_if_set FLAG_MET_DEVON_EMPLOYEE, Route116_EventScript_TryGiveRepeatBallAgain"
+    ],
+    "Route116_EventScript_GiveRepeatBall": [
+     "setflag FLAG_MET_DEVON_EMPLOYEE",
+     "giveitem ITEM_REPEAT_BALL",
+     "goto_if_eq VAR_RESULT, FALSE, Route116_EventScript_NoRoomForRepeatBall",
+     "call_if_eq VAR_FACING, DIR_NORTH, Route116_EventScript_DevonEmployeeExit",
+     "call_if_eq VAR_FACING, DIR_SOUTH, Route116_EventScript_DevonEmployeeExit",
+     "call_if_eq VAR_FACING, DIR_WEST, Route116_EventScript_DevonEmployeeExit",
+     "call_if_eq VAR_FACING, DIR_EAST, Route116_EventScript_DevonEmployeeExitEast",
+     "removeobject VAR_LAST_TALKED",
+     "clearflag FLAG_HIDE_RUSTBORO_CITY_DEVON_CORP_3F_EMPLOYEE",
+     "setflag FLAG_RECEIVED_REPEAT_BALL"
+    ],
+    "Route116_EventScript_Briney": [
+     "setvar VAR_ROUTE116_STATE, 2"
+    ],
+    "Route116_EventScript_BrineyTrigger": [
+     "setvar VAR_ROUTE116_STATE, 2"
+    ],
+    "Route116_EventScript_GlassesMan": [
+     "goto_if_eq VAR_RESULT, TRUE, Route116_EventScript_PlayerHasGlasses",
+     "goto_if_eq VAR_RESULT, TRUE, Route116_EventScript_FoundGlassesNotOnPlayer"
+    ],
+    "Route116_EventScript_PlayerHasGlasses": [
+     "goto_if_eq VAR_RESULT, TRUE, Route116_EventScript_FoundGlassesOnPlayer"
+    ],
+    "Route116_EventScript_GlassesManExit": [
+     "call_if_eq VAR_FACING, DIR_NORTH, Route116_EventScript_GlassesManExitNormal",
+     "call_if_eq VAR_FACING, DIR_SOUTH, Route116_EventScript_GlassesManExitNormal",
+     "call_if_eq VAR_FACING, DIR_WEST, Route116_EventScript_GlassesManExitNormal",
+     "call_if_eq VAR_FACING, DIR_EAST, Route116_EventScript_GlassesManExitEast",
+     "removeobject VAR_LAST_TALKED"
+    ],
+    "Route116_EventScript_Joey": [
+     "trainerbattle_single TRAINER_JOEY, Route116_Text_JoeyIntro, Route116_Text_JoeyDefeat"
+    ],
+    "Route116_EventScript_Jose": [
+     "trainerbattle_single TRAINER_JOSE, Route116_Text_JoseIntro, Route116_Text_JoseDefeat"
+    ],
+    "Route116_EventScript_Jerry": [
+     "trainerbattle_single TRAINER_JERRY_1, Route116_Text_JerryIntro, Route116_Text_JerryDefeat, Route116_EventScript_TryRegisterJerryAfterBattle",
+     "goto_if_eq VAR_RESULT, TRUE, Route116_EventScript_RematchJerry",
+     "setvar VAR_0x8004, TRAINER_JERRY_1",
+     "goto_if_eq VAR_RESULT, FALSE, Route116_EventScript_TryRegisterJerry"
+    ],
+    "Route116_EventScript_TryRegisterJerryAfterBattle": [
+     "goto_if_set FLAG_HAS_MATCH_CALL, Route116_EventScript_RegisterJerryAfterBattle"
+    ],
+    "Route116_EventScript_TryRegisterJerry": [
+     "goto_if_set FLAG_HAS_MATCH_CALL, Route116_EventScript_RegisterJerry"
+    ],
+    "Route116_EventScript_RematchJerry": [
+     "trainerbattle_rematch TRAINER_JERRY_1, Route116_Text_JerryRematchIntro, Route116_Text_JerryRematchDefeat"
+    ],
+    "Route116_EventScript_Clark": [
+     "trainerbattle_single TRAINER_CLARK, Route116_Text_ClarkIntro, Route116_Text_ClarkDefeat"
+    ],
+    "Route116_EventScript_Janice": [
+     "trainerbattle_single TRAINER_JANICE, Route116_Text_JaniceIntro, Route116_Text_JaniceDefeat"
+    ],
+    "Route116_EventScript_Karen": [
+     "trainerbattle_single TRAINER_KAREN_1, Route116_Text_KarenIntro, Route116_Text_KarenDefeat, Route116_EventScript_TryRegisterKarenAfterBattle",
+     "goto_if_eq VAR_RESULT, TRUE, Route116_EventScript_RematchKaren",
+     "setvar VAR_0x8004, TRAINER_KAREN_1",
+     "goto_if_eq VAR_RESULT, FALSE, Route116_EventScript_TryRegisterKaren"
+    ],
+    "Route116_EventScript_TryRegisterKarenAfterBattle": [
+     "goto_if_set FLAG_HAS_MATCH_CALL, Route116_EventScript_RegisterKarenAfterBattle"
+    ],
+    "Route116_EventScript_TryRegisterKaren": [
+     "goto_if_set FLAG_HAS_MATCH_CALL, Route116_EventScript_RegisterKaren"
+    ],
+    "Route116_EventScript_RematchKaren": [
+     "trainerbattle_rematch TRAINER_KAREN_1, Route116_Text_KarenRematchIntro, Route116_Text_KarenRematchDefeat"
+    ],
+    "Route116_EventScript_Sarah": [
+     "trainerbattle_single TRAINER_SARAH, Route116_Text_SarahIntro, Route116_Text_SarahDefeat"
+    ],
+    "Route116_EventScript_Dawson": [
+     "trainerbattle_single TRAINER_DAWSON, Route116_Text_DawsonIntro, Route116_Text_DawsonDefeat"
+    ],
+    "Route116_EventScript_Devan": [
+     "trainerbattle_single TRAINER_DEVAN, Route116_Text_DevanIntro, Route116_Text_DevanDefeat"
+    ],
+    "Route116_EventScript_Johnson": [
+     "trainerbattle_single TRAINER_JOHNSON, Route116_Text_JohnsonIntro, Route116_Text_JohnsonDefeat"
+    ]
+   }
+  },
+  "RusturfTunnel": {
+   "id": "MAP_RUSTURF_TUNNEL",
+   "connections": [],
+   "warps": [
+    {
+     "pos": [
+      4,
+      10
+     ],
+     "to": "MAP_ROUTE116",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      29,
+      16
+     ],
+     "to": "MAP_VERDANTURF_TOWN",
+     "to_warp": "4"
+    },
+    {
+     "pos": [
+      18,
+      20
+     ],
+     "to": "MAP_ROUTE116",
+     "to_warp": "2"
+    }
+   ],
+   "trainers": [
+    {
+     "local_id": 9,
+     "pos": [
+      32,
+      13
+     ],
+     "gfx": "OBJ_EVENT_GFX_HIKER",
+     "script": "RusturfTunnel_EventScript_Mike",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_MIKE_2",
+     "name": "MIKE",
+     "class": "TRAINER_CLASS_HIKER",
+     "double": false,
+     "party_table": "sParty_Mike2",
+     "party": [
+      {
+       "species": "SPECIES_GEODUDE",
+       "level": 16
+      },
+      {
+       "species": "SPECIES_GEODUDE",
+       "level": 16
+      },
+      {
+       "species": "SPECIES_MACHOP",
+       "level": 16
+      }
+     ]
+    }
+   ],
+   "item_balls": [
+    {
+     "local_id": 3,
+     "pos": [
+      3,
+      1
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "RusturfTunnel_EventScript_ItemPokeBall",
+     "flag": "FLAG_ITEM_RUSTURF_TUNNEL_POKE_BALL",
+     "item": null,
+     "item_script": "RusturfTunnel_EventScript_ItemPokeBall",
+     "item_from_script": "ITEM_POKE_BALL",
+     "quantity": 1
+    },
+    {
+     "local_id": 4,
+     "pos": [
+      30,
+      2
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "RusturfTunnel_EventScript_ItemMaxEther",
+     "flag": "FLAG_ITEM_RUSTURF_TUNNEL_MAX_ETHER",
+     "item": null,
+     "item_script": "RusturfTunnel_EventScript_ItemMaxEther",
+     "item_from_script": "ITEM_MAX_ETHER",
+     "quantity": 1
+    }
+   ],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      23,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_BLACK_BELT",
+     "script": "RusturfTunnel_EventScript_WandasBoyfriend",
+     "flag": "FLAG_HIDE_RUSTURF_TUNNEL_WANDAS_BOYFRIEND",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT"
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      24,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_BREAKABLE_ROCK",
+     "script": "EventScript_RockSmash",
+     "flag": "FLAG_HIDE_RUSTURF_TUNNEL_ROCK_1",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 5,
+     "pos": [
+      5,
+      4
+     ],
+     "gfx": "OBJ_EVENT_GFX_EXPERT_M",
+     "script": "0x0",
+     "flag": "FLAG_HIDE_RUSTURF_TUNNEL_BRINEY",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT"
+    },
+    {
+     "local_id": 6,
+     "pos": [
+      14,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+     "script": "RusturfTunnel_EventScript_Grunt",
+     "flag": "FLAG_HIDE_RUSTURF_TUNNEL_AQUA_GRUNT",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT"
+    },
+    {
+     "local_id": 7,
+     "pos": [
+      14,
+      4
+     ],
+     "gfx": "OBJ_EVENT_GFX_WINGULL",
+     "script": "RusturfTunnel_EventScript_Peeko",
+     "flag": "FLAG_HIDE_RUSTURF_TUNNEL_PEEKO",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT"
+    },
+    {
+     "local_id": 8,
+     "pos": [
+      24,
+      4
+     ],
+     "gfx": "OBJ_EVENT_GFX_BREAKABLE_ROCK",
+     "script": "EventScript_RockSmash",
+     "flag": "FLAG_HIDE_RUSTURF_TUNNEL_ROCK_2",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN"
+    },
+    {
+     "local_id": 10,
+     "pos": [
+      25,
+      4
+     ],
+     "gfx": "OBJ_EVENT_GFX_WOMAN_2",
+     "script": "RusturfTunnel_EventScript_Wanda",
+     "flag": "FLAG_HIDE_RUSTURF_TUNNEL_WANDA",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT"
+    }
+   ],
+   "coord_events": [
+    {
+     "x": 23,
+     "y": 4,
+     "elevation": 3,
+     "var": "TRIGGER_RUN_IMMEDIATELY",
+     "var_value": "0",
+     "trigger": null,
+     "script": "RusturfTunnel_EventScript_TunnelBlockagePos1"
+    },
+    {
+     "x": 9,
+     "y": 4,
+     "elevation": 3,
+     "var": "VAR_RUSTURF_TUNNEL_STATE",
+     "var_value": "2",
+     "trigger": null,
+     "script": "RusturfTunnel_EventScript_AquaGruntBackUp"
+    },
+    {
+     "x": 9,
+     "y": 5,
+     "elevation": 3,
+     "var": "VAR_RUSTURF_TUNNEL_STATE",
+     "var_value": "2",
+     "trigger": null,
+     "script": "RusturfTunnel_EventScript_AquaGruntBackUp"
+    },
+    {
+     "x": 25,
+     "y": 4,
+     "elevation": 3,
+     "var": "TRIGGER_RUN_IMMEDIATELY",
+     "var_value": "0",
+     "trigger": null,
+     "script": "RusturfTunnel_EventScript_TunnelBlockagePos2"
+    },
+    {
+     "x": 25,
+     "y": 5,
+     "elevation": 3,
+     "var": "TRIGGER_RUN_IMMEDIATELY",
+     "var_value": "0",
+     "trigger": null,
+     "script": "RusturfTunnel_EventScript_TunnelBlockagePos3"
+    }
+   ],
+   "hidden_items": [],
+   "bg_other": [],
+   "story_flags": [
+    "FLAG_DEVON_GOODS_STOLEN",
+    "FLAG_HIDE_ROUTE_116_MR_BRINEY",
+    "FLAG_RECEIVED_HM_STRENGTH",
+    "FLAG_RECOVERED_DEVON_GOODS",
+    "FLAG_TEMP_1"
+   ],
+   "story_vars": [
+    "VAR_BRINEY_HOUSE_STATE",
+    "VAR_LAST_TALKED",
+    "VAR_RUSTBORO_CITY_STATE",
+    "VAR_RUSTURF_TUNNEL_STATE",
+    "VAR_TEMP_1"
+   ],
+   "script_ops_by_label": {
+    "RusturfTunnel_OnTransition": [
+     "call_if_eq VAR_RUSTURF_TUNNEL_STATE, 2, RusturfTunnel_EventScript_SetAquaGruntAndPeekoPos"
+    ],
+    "RusturfTunnel_EventScript_WandasBoyfriend": [
+     "goto_if_set FLAG_TEMP_1, RusturfTunnel_EventScript_AlreadySpokenTo",
+     "setflag FLAG_TEMP_1"
+    ],
+    "RusturfTunnel_EventScript_ClearTunnelScene": [
+     "call_if_eq VAR_TEMP_1, 1, RusturfTunnel_EventScript_FaceWandasBoyfriend1",
+     "call_if_eq VAR_TEMP_1, 2, RusturfTunnel_EventScript_FaceWandasBoyfriend2",
+     "call_if_eq VAR_TEMP_1, 3, RusturfTunnel_EventScript_FaceWandasBoyfriend3",
+     "call_if_eq VAR_TEMP_1, 2, RusturfTunnel_EventScript_WandasBoyfriendApproachPlayer",
+     "call_if_eq VAR_TEMP_1, 3, RusturfTunnel_EventScript_WandasBoyfriendApproachPlayer",
+     "giveitem ITEM_HM_STRENGTH",
+     "setflag FLAG_RECEIVED_HM_STRENGTH",
+     "call_if_eq VAR_TEMP_1, 1, RusturfTunnel_EventScript_BoyfriendApproachWanda1",
+     "call_if_eq VAR_TEMP_1, 2, RusturfTunnel_EventScript_BoyfriendApproachWanda2",
+     "call_if_eq VAR_TEMP_1, 3, RusturfTunnel_EventScript_BoyfriendApproachWanda3",
+     "call_if_eq VAR_TEMP_1, 1, RusturfTunnel_EventScript_WandaAndBoyfriendExit1",
+     "call_if_eq VAR_TEMP_1, 2, RusturfTunnel_EventScript_WandaAndBoyfriendExit",
+     "call_if_eq VAR_TEMP_1, 3, RusturfTunnel_EventScript_WandaAndBoyfriendExit"
+    ],
+    "RusturfTunnel_EventScript_TunnelBlockagePos1": [
+     "setvar VAR_TEMP_1, 1"
+    ],
+    "RusturfTunnel_EventScript_TunnelBlockagePos2": [
+     "setvar VAR_TEMP_1, 2"
+    ],
+    "RusturfTunnel_EventScript_TunnelBlockagePos3": [
+     "setvar VAR_TEMP_1, 3"
+    ],
+    "RusturfTunnel_EventScript_AquaGruntBackUp": [
+     "setvar VAR_RUSTURF_TUNNEL_STATE, 3"
+    ],
+    "RusturfTunnel_EventScript_Grunt": [
+     "trainerbattle_no_intro TRAINER_GRUNT_RUSTURF_TUNNEL, RusturfTunnel_Text_GruntDefeat",
+     "giveitem ITEM_DEVON_GOODS",
+     "clearflag FLAG_DEVON_GOODS_STOLEN",
+     "setflag FLAG_RECOVERED_DEVON_GOODS",
+     "setvar VAR_RUSTBORO_CITY_STATE, 4",
+     "setvar VAR_BRINEY_HOUSE_STATE, 1",
+     "setflag FLAG_HIDE_ROUTE_116_MR_BRINEY"
+    ],
+    "RusturfTunnel_EventScript_Mike": [
+     "trainerbattle_single TRAINER_MIKE_2, RusturfTunnel_Text_MikeIntro, RusturfTunnel_Text_MikeDefeat"
+    ]
+   }
+  },
+  "Route104_MrBrineysHouse": {
+   "id": "MAP_ROUTE104_MR_BRINEYS_HOUSE",
+   "connections": [],
+   "warps": [
+    {
+     "pos": [
+      5,
+      8
+     ],
+     "to": "MAP_ROUTE104",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      6,
+      8
+     ],
+     "to": "MAP_ROUTE104",
+     "to_warp": "0"
+    }
+   ],
+   "trainers": [],
+   "item_balls": [],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      5,
+      3
+     ],
+     "gfx": "OBJ_EVENT_GFX_EXPERT_M",
+     "script": "Route104_MrBrineysHouse_EventScript_Briney",
+     "flag": "FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY",
+     "movement": "MOVEMENT_TYPE_WALK_SEQUENCE_DOWN_LEFT_UP_RIGHT"
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      6,
+      3
+     ],
+     "gfx": "OBJ_EVENT_GFX_WINGULL",
+     "script": "Route104_MrBrineysHouse_EventScript_Peeko",
+     "flag": "FLAG_HIDE_BRINEYS_HOUSE_PEEKO",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [],
+   "story_flags": [
+    "FLAG_DELIVERED_DEVON_GOODS",
+    "FLAG_DELIVERED_STEVEN_LETTER",
+    "FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY",
+    "FLAG_HIDE_BRINEYS_HOUSE_PEEKO",
+    "FLAG_HIDE_ROUTE_104_MR_BRINEY",
+    "FLAG_HIDE_ROUTE_104_RIVAL",
+    "FLAG_HIDE_RUSTBORO_CITY_RIVAL",
+    "FLAG_LANDMARK_MR_BRINEY_HOUSE",
+    "FLAG_MR_BRINEY_SAILING_INTRO",
+    "FLAG_RECEIVED_POKENAV"
+   ],
+   "story_vars": [
+    "VAR_BOARD_BRINEY_BOAT_STATE",
+    "VAR_BRINEY_HOUSE_STATE",
+    "VAR_RESULT",
+    "VAR_ROUTE104_STATE",
+    "VAR_RUSTBORO_CITY_STATE"
+   ],
+   "script_ops_by_label": {
+    "Route104_MrBrineysHouse_OnTransition": [
+     "setflag FLAG_LANDMARK_MR_BRINEY_HOUSE",
+     "call_if_eq VAR_BRINEY_HOUSE_STATE, 1, Route104_MrBrineysHouse_EventScript_SetBrineyPeekoPos",
+     "call_if_set FLAG_RECEIVED_POKENAV, Route104_MrBrineysHouse_EventScript_HideRustboroRival"
+    ],
+    "Route104_MrBrineysHouse_EventScript_HideRustboroRival": [
+     "setflag FLAG_HIDE_RUSTBORO_CITY_RIVAL"
+    ],
+    "Route104_MrBrineysHouse_EventScript_Briney": [
+     "call_if_unset FLAG_MR_BRINEY_SAILING_INTRO, Route104_MrBrineysHouse_EventScript_SailingIntro",
+     "goto_if_unset FLAG_DELIVERED_STEVEN_LETTER, Route104_MrBrineysHouse_EventScript_SailBothDeliveries",
+     "goto_if_unset FLAG_DELIVERED_DEVON_GOODS, Route104_MrBrineysHouse_EventScript_SailDeliverPackage"
+    ],
+    "Route104_MrBrineysHouse_EventScript_SailingIntro": [
+     "setflag FLAG_MR_BRINEY_SAILING_INTRO",
+     "goto_if_eq VAR_RESULT, NO, Route104_MrBrineysHouse_EventScript_DeclineDeliverySailing"
+    ],
+    "Route104_MrBrineysHouse_EventScript_SailBothDeliveries": [
+     "goto_if_eq VAR_RESULT, NO, Route104_MrBrineysHouse_EventScript_DeclineDeliverySailing"
+    ],
+    "Route104_MrBrineysHouse_EventScript_SailDeliverPackage": [
+     "goto_if_eq VAR_RESULT, NO, Route104_MrBrineysHouse_EventScript_DeclineDeliverySailing"
+    ],
+    "Route104_MrBrineysHouse_EventScript_SailToDewford": [
+     "setvar VAR_BOARD_BRINEY_BOAT_STATE, 1",
+     "clearflag FLAG_HIDE_ROUTE_104_MR_BRINEY",
+     "setflag FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY",
+     "setflag FLAG_HIDE_BRINEYS_HOUSE_PEEKO",
+     "setvar VAR_RUSTBORO_CITY_STATE, 8",
+     "setvar VAR_ROUTE104_STATE, 2",
+     "setflag FLAG_HIDE_RUSTBORO_CITY_RIVAL",
+     "setflag FLAG_HIDE_ROUTE_104_RIVAL",
+     "warp MAP_ROUTE104, 13, 51"
+    ]
+   }
+  },
+  "DewfordTown": {
+   "id": "MAP_DEWFORD_TOWN",
+   "connections": [
+    {
+     "map": "MAP_ROUTE106",
+     "offset": -60,
+     "direction": "up"
+    },
+    {
+     "map": "MAP_ROUTE107",
+     "offset": 0,
+     "direction": "right"
+    }
+   ],
+   "warps": [
+    {
+     "pos": [
+      3,
+      3
+     ],
+     "to": "MAP_DEWFORD_TOWN_HALL",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      2,
+      10
+     ],
+     "to": "MAP_DEWFORD_TOWN_POKEMON_CENTER_1F",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      8,
+      17
+     ],
+     "to": "MAP_DEWFORD_TOWN_GYM",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      17,
+      14
+     ],
+     "to": "MAP_DEWFORD_TOWN_HOUSE1",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      8,
+      8
+     ],
+     "to": "MAP_DEWFORD_TOWN_HOUSE2",
+     "to_warp": "0"
+    }
+   ],
+   "trainers": [],
+   "item_balls": [],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      7,
+      12
+     ],
+     "gfx": "OBJ_EVENT_GFX_WOMAN_2",
+     "script": "DewfordTown_EventScript_Woman",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WANDER_LEFT_AND_RIGHT"
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      12,
+      9
+     ],
+     "gfx": "OBJ_EVENT_GFX_EXPERT_M",
+     "script": "DewfordTown_EventScript_Briney",
+     "flag": "FLAG_HIDE_MR_BRINEY_DEWFORD_TOWN",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT"
+    },
+    {
+     "local_id": 3,
+     "pos": [
+      12,
+      14
+     ],
+     "gfx": "OBJ_EVENT_GFX_FISHERMAN",
+     "script": "DewfordTown_EventScript_OldRodFisherman",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WANDER_LEFT_AND_RIGHT"
+    },
+    {
+     "local_id": 4,
+     "pos": [
+      12,
+      8
+     ],
+     "gfx": "OBJ_EVENT_GFX_MR_BRINEYS_BOAT",
+     "script": "0x0",
+     "flag": "FLAG_HIDE_MR_BRINEY_BOAT_DEWFORD_TOWN",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN"
+    },
+    {
+     "local_id": 5,
+     "pos": [
+      1,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_BOY_1",
+     "script": "DewfordTown_EventScript_TrendyPhraseBoy",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [
+    {
+     "type": "sign",
+     "pos": [
+      10,
+      10
+     ],
+     "script": "DewfordTown_EventScript_TownSign"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      11,
+      16
+     ],
+     "script": "DewfordTown_EventScript_GymSign"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      4,
+      10
+     ],
+     "script": "Common_EventScript_ShowPokemonCenterSign"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      3,
+      10
+     ],
+     "script": "Common_EventScript_ShowPokemonCenterSign"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      2,
+      4
+     ],
+     "script": "DewfordTown_EventScript_HallSign"
+    }
+   ],
+   "story_flags": [
+    "FLAG_DELIVERED_DEVON_GOODS",
+    "FLAG_DELIVERED_STEVEN_LETTER",
+    "FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY",
+    "FLAG_HIDE_BRINEYS_HOUSE_PEEKO",
+    "FLAG_HIDE_MR_BRINEY_BOAT_DEWFORD_TOWN",
+    "FLAG_HIDE_ROUTE_104_MR_BRINEY_BOAT",
+    "FLAG_HIDE_ROUTE_109_MR_BRINEY",
+    "FLAG_HIDE_ROUTE_109_MR_BRINEY_BOAT",
+    "FLAG_RECEIVED_OLD_ROD",
+    "FLAG_VISITED_DEWFORD_TOWN"
+   ],
+   "story_vars": [
+    "VAR_0x8004",
+    "VAR_0x8008",
+    "VAR_BOARD_BRINEY_BOAT_STATE",
+    "VAR_BRINEY_LOCATION",
+    "VAR_RESULT"
+   ],
+   "script_ops_by_label": {
+    "DewfordTown_OnTransition": [
+     "setflag FLAG_VISITED_DEWFORD_TOWN"
+    ],
+    "DewfordTown_EventScript_Briney": [
+     "goto_if_unset FLAG_DELIVERED_STEVEN_LETTER, DewfordTown_EventScript_ReturnToPetalburgPrompt"
+    ],
+    "DewfordTown_EventScript_ReturnToPetalburgPrompt": [
+     "goto_if_eq VAR_RESULT, YES, DewfordTown_EventScript_SailBackToPetalburg"
+    ],
+    "DewfordTown_EventScript_OldRodFisherman": [
+     "goto_if_set FLAG_RECEIVED_OLD_ROD, DewfordTown_EventScript_HowsFishing",
+     "goto_if_eq VAR_RESULT, YES, DewfordTown_EventScript_GiveOldRod",
+     "goto_if_eq VAR_RESULT, NO, DewfordTown_EventScript_NotGettingItchToFish"
+    ],
+    "DewfordTown_EventScript_GiveOldRod": [
+     "giveitem ITEM_OLD_ROD",
+     "setflag FLAG_RECEIVED_OLD_ROD"
+    ],
+    "DewfordTown_EventScript_HowsFishing": [
+     "goto_if_eq VAR_RESULT, 0, DewfordTown_EventScript_FishingExcellent",
+     "goto_if_eq VAR_RESULT, 1, DewfordTown_EventScript_FishingNotSoGood"
+    ],
+    "DewfordTown_EventScript_SailToPetalburg": [
+     "clearflag FLAG_HIDE_BRINEYS_HOUSE_MR_BRINEY",
+     "clearflag FLAG_HIDE_BRINEYS_HOUSE_PEEKO",
+     "clearflag FLAG_HIDE_ROUTE_104_MR_BRINEY_BOAT",
+     "setflag FLAG_HIDE_MR_BRINEY_BOAT_DEWFORD_TOWN",
+     "setvar VAR_BOARD_BRINEY_BOAT_STATE, 2",
+     "warp MAP_ROUTE104_MR_BRINEYS_HOUSE, 5, 4"
+    ],
+    "DewfordTown_EventScript_SailToSlateport": [
+     "clearflag FLAG_HIDE_ROUTE_109_MR_BRINEY",
+     "clearflag FLAG_HIDE_ROUTE_109_MR_BRINEY_BOAT",
+     "setflag FLAG_HIDE_MR_BRINEY_BOAT_DEWFORD_TOWN",
+     "call_if_unset FLAG_DELIVERED_DEVON_GOODS, DewfordTown_EventScript_LandedSlateportDeliverGoods",
+     "call_if_set FLAG_DELIVERED_DEVON_GOODS, DewfordTown_EventScript_LandedSlateport"
+    ],
+    "DewfordTown_EventScript_TrendyPhraseBoy": [
+     "goto_if_eq VAR_RESULT, YES, DewfordTown_EventScript_ConfirmTrendyPhrase",
+     "goto_if_eq VAR_RESULT, NO, DewfordTown_EventScript_RejectTrendyPhrase"
+    ],
+    "DewfordTown_EventScript_RejectTrendyPhrase": [
+     "setvar VAR_0x8004, EASY_CHAT_TYPE_TRENDY_PHRASE",
+     "goto_if_eq VAR_RESULT, TRUE, DewfordTown_EventScript_GiveNewTrendyPhrase",
+     "goto_if_eq VAR_RESULT, FALSE, DewfordTown_EventScript_CancelNewTrendyPhrase"
+    ],
+    "DewfordTown_EventScript_GiveNewTrendyPhrase": [
+     "goto_if_eq VAR_0x8004, FALSE, DewfordTown_EventScript_PhraseNotTrendyEnough"
+    ]
+   }
+  },
+  "DewfordTown_Gym": {
+   "id": "MAP_DEWFORD_TOWN_GYM",
+   "connections": [],
+   "warps": [
+    {
+     "pos": [
+      5,
+      27
+     ],
+     "to": "MAP_DEWFORD_TOWN",
+     "to_warp": "2"
+    },
+    {
+     "pos": [
+      6,
+      27
+     ],
+     "to": "MAP_DEWFORD_TOWN",
+     "to_warp": "2"
+    }
+   ],
+   "trainers": [
+    {
+     "local_id": 2,
+     "pos": [
+      2,
+      18
+     ],
+     "gfx": "OBJ_EVENT_GFX_BLACK_BELT",
+     "script": "DewfordTown_Gym_EventScript_Takao",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_TAKAO",
+     "name": "TAKAO",
+     "class": "TRAINER_CLASS_BLACK_BELT",
+     "double": false,
+     "party_table": "sParty_Takao",
+     "party": [
+      {
+       "species": "SPECIES_MACHOP",
+       "level": 13
+      }
+     ]
+    },
+    {
+     "local_id": 3,
+     "pos": [
+      15,
+      3
+     ],
+     "gfx": "OBJ_EVENT_GFX_GIRL_3",
+     "script": "DewfordTown_Gym_EventScript_Jocelyn",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_JOCELYN",
+     "name": "JOCELYN",
+     "class": "TRAINER_CLASS_BATTLE_GIRL",
+     "double": false,
+     "party_table": "sParty_Jocelyn",
+     "party": [
+      {
+       "species": "SPECIES_MEDITITE",
+       "level": 13
+      }
+     ]
+    },
+    {
+     "local_id": 4,
+     "pos": [
+      12,
+      25
+     ],
+     "gfx": "OBJ_EVENT_GFX_GIRL_3",
+     "script": "DewfordTown_Gym_EventScript_Laura",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "2",
+     "trainer": "TRAINER_LAURA",
+     "name": "LAURA",
+     "class": "TRAINER_CLASS_BATTLE_GIRL",
+     "double": false,
+     "party_table": "sParty_Laura",
+     "party": [
+      {
+       "species": "SPECIES_MEDITITE",
+       "level": 13
+      }
+     ]
+    },
+    {
+     "local_id": 6,
+     "pos": [
+      7,
+      8
+     ],
+     "gfx": "OBJ_EVENT_GFX_BLACK_BELT",
+     "script": "DewfordTown_Gym_EventScript_Cristian",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_CRISTIAN",
+     "name": "CRISTIAN",
+     "class": "TRAINER_CLASS_BLACK_BELT",
+     "double": false,
+     "party_table": "sParty_Cristian",
+     "party": [
+      {
+       "species": "SPECIES_MAKUHITA",
+       "level": 13
+      }
+     ]
+    },
+    {
+     "local_id": 7,
+     "pos": [
+      16,
+      9
+     ],
+     "gfx": "OBJ_EVENT_GFX_GIRL_3",
+     "script": "DewfordTown_Gym_EventScript_Lilith",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_LILITH",
+     "name": "LILITH",
+     "class": "TRAINER_CLASS_BATTLE_GIRL",
+     "double": false,
+     "party_table": "sParty_Lilith",
+     "party": [
+      {
+       "species": "SPECIES_MEDITITE",
+       "level": 13
+      }
+     ]
+    },
+    {
+     "local_id": 8,
+     "pos": [
+      14,
+      12
+     ],
+     "gfx": "OBJ_EVENT_GFX_SAILOR",
+     "script": "DewfordTown_Gym_EventScript_Brenden",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "2",
+     "trainer": "TRAINER_BRENDEN",
+     "name": "BRENDEN",
+     "class": "TRAINER_CLASS_SAILOR",
+     "double": false,
+     "party_table": "sParty_Brenden",
+     "party": [
+      {
+       "species": "SPECIES_MACHOP",
+       "level": 13
+      }
+     ]
+    }
+   ],
+   "item_balls": [],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      4,
+      3
+     ],
+     "gfx": "OBJ_EVENT_GFX_BRAWLY",
+     "script": "DewfordTown_Gym_EventScript_Brawly",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN"
+    },
+    {
+     "local_id": 5,
+     "pos": [
+      5,
+      24
+     ],
+     "gfx": "OBJ_EVENT_GFX_MAN_2",
+     "script": "DewfordTown_Gym_EventScript_GymGuide",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [
+    {
+     "type": "sign",
+     "pos": [
+      4,
+      23
+     ],
+     "script": "DewfordTown_Gym_EventScript_LeftGymStatue"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      7,
+      23
+     ],
+     "script": "DewfordTown_Gym_EventScript_RightGymStatue"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      4,
+      24
+     ],
+     "script": "DewfordTown_Gym_EventScript_LeftGymStatue"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      7,
+      24
+     ],
+     "script": "DewfordTown_Gym_EventScript_RightGymStatue"
+    }
+   ],
+   "story_flags": [
+    "FLAG_BADGE02_GET",
+    "FLAG_DEFEATED_DEWFORD_GYM",
+    "FLAG_ENABLE_BRAWLY_MATCH_CALL",
+    "FLAG_ENABLE_ROXANNE_FIRST_CALL",
+    "FLAG_RECEIVED_TM_BULK_UP"
+   ],
+   "story_vars": [
+    "VAR_0x8000",
+    "VAR_0x8001",
+    "VAR_0x8008",
+    "VAR_PETALBURG_GYM_STATE",
+    "VAR_RESULT",
+    "VAR_ROXANNE_CALL_STEP_COUNTER"
+   ],
+   "script_ops_by_label": {
+    "DewfordTown_Gym_EventScript_SetFlashLevel": [
+     "goto_if_eq VAR_0x8000, 0, DewfordTown_Gym_EventScript_SetFlashLevel7",
+     "goto_if_eq VAR_0x8000, 1, DewfordTown_Gym_EventScript_SetFlashLevel6",
+     "goto_if_eq VAR_0x8000, 2, DewfordTown_Gym_EventScript_SetFlashLevel5",
+     "goto_if_eq VAR_0x8000, 3, DewfordTown_Gym_EventScript_SetFlashLevel4",
+     "goto_if_eq VAR_0x8000, 4, DewfordTown_Gym_EventScript_SetFlashLevel3",
+     "goto_if_eq VAR_0x8000, 5, DewfordTown_Gym_EventScript_SetFlashLevel2"
+    ],
+    "DewfordTown_Gym_EventScript_BrightenRoom": [
+     "goto_if_eq VAR_0x8000, VAR_0x8001, DewfordTown_Gym_EventScript_NoLightChange",
+     "goto_if_eq VAR_0x8000, 1, DewfordTown_Gym_EventScript_AnimateFlash1Trainer",
+     "goto_if_eq VAR_0x8000, 2, DewfordTown_Gym_EventScript_AnimateFlash2Trainers",
+     "goto_if_eq VAR_0x8000, 3, DewfordTown_Gym_EventScript_AnimateFlash3Trainers",
+     "goto_if_eq VAR_0x8000, 4, DewfordTown_Gym_EventScript_AnimateFlash4Trainers",
+     "goto_if_eq VAR_0x8000, 5, DewfordTown_Gym_EventScript_AnimateFlash5Trainers",
+     "goto_if_eq VAR_0x8000, 6, DewfordTown_Gym_EventScript_AnimateFlash6Trainers"
+    ],
+    "DewfordTown_Gym_EventScript_CountTrainersDefeated": [
+     "setvar VAR_0x8000, 0",
+     "addvar VAR_0x8000, 1"
+    ],
+    "DewfordTown_Gym_EventScript_CheckJocelyn": [
+     "addvar VAR_0x8000, 1"
+    ],
+    "DewfordTown_Gym_EventScript_CheckLaura": [
+     "addvar VAR_0x8000, 1"
+    ],
+    "DewfordTown_Gym_EventScript_CheckBrenden": [
+     "addvar VAR_0x8000, 1"
+    ],
+    "DewfordTown_Gym_EventScript_CheckCristian": [
+     "addvar VAR_0x8000, 1"
+    ],
+    "DewfordTown_Gym_EventScript_CheckLilith": [
+     "addvar VAR_0x8000, 1"
+    ],
+    "DewfordTown_Gym_EventScript_Brawly": [
+     "trainerbattle_single TRAINER_BRAWLY_1, DewfordTown_Gym_Text_BrawlyIntro, DewfordTown_Gym_Text_BrawlyDefeat, DewfordTown_Gym_EventScript_BrawlyDefeated, NO_MUSIC",
+     "goto_if_eq VAR_RESULT, TRUE, DewfordTown_Gym_EventScript_BrawlyRematch",
+     "goto_if_unset FLAG_RECEIVED_TM_BULK_UP, DewfordTown_Gym_EventScript_GiveBulkUp2"
+    ],
+    "DewfordTown_Gym_EventScript_BrawlyDefeated": [
+     "setflag FLAG_DEFEATED_DEWFORD_GYM",
+     "setflag FLAG_BADGE02_GET",
+     "addvar VAR_PETALBURG_GYM_STATE, 1",
+     "call_if_eq VAR_PETALBURG_GYM_STATE, 6, Common_EventScript_ReadyPetalburgGymForBattle",
+     "setvar VAR_0x8008, 2",
+     "setflag FLAG_ENABLE_BRAWLY_MATCH_CALL",
+     "setvar VAR_ROXANNE_CALL_STEP_COUNTER, 0",
+     "setflag FLAG_ENABLE_ROXANNE_FIRST_CALL"
+    ],
+    "DewfordTown_Gym_EventScript_GiveBulkUp": [
+     "giveitem ITEM_TM_BULK_UP",
+     "goto_if_eq VAR_RESULT, 0, Common_EventScript_BagIsFull",
+     "setflag FLAG_RECEIVED_TM_BULK_UP"
+    ],
+    "DewfordTown_Gym_EventScript_GiveBulkUp2": [
+     "giveitem ITEM_TM_BULK_UP",
+     "goto_if_eq VAR_RESULT, 0, Common_EventScript_ShowBagIsFull",
+     "setflag FLAG_RECEIVED_TM_BULK_UP"
+    ],
+    "DewfordTown_Gym_EventScript_BrawlyRematch": [
+     "trainerbattle_rematch_double TRAINER_BRAWLY_1, DewfordTown_Gym_Text_BrawlyPreRematch, DewfordTown_Gym_Text_BrawlyRematchDefeat, DewfordTown_Gym_Text_BrawlyRematchNeedTwoMons"
+    ],
+    "DewfordTown_Gym_EventScript_Takao": [
+     "trainerbattle_single TRAINER_TAKAO, DewfordTown_Gym_Text_TakaoIntro, DewfordTown_Gym_Text_TakaoDefeat, DewfordTown_Gym_EventScript_TakaoBrightenRoom"
+    ],
+    "DewfordTown_Gym_EventScript_Jocelyn": [
+     "trainerbattle_single TRAINER_JOCELYN, DewfordTown_Gym_Text_JocelynIntro, DewfordTown_Gym_Text_JocelynDefeat, DewfordTown_Gym_EventScript_JocelynBrightenRoom"
+    ],
+    "DewfordTown_Gym_EventScript_Laura": [
+     "trainerbattle_single TRAINER_LAURA, DewfordTown_Gym_Text_LauraIntro, DewfordTown_Gym_Text_LauraDefeat, DewfordTown_Gym_EventScript_LauraBrightenRoom"
+    ],
+    "DewfordTown_Gym_EventScript_Brenden": [
+     "trainerbattle_single TRAINER_BRENDEN, DewfordTown_Gym_Text_BrendenIntro, DewfordTown_Gym_Text_BrendenDefeat, DewfordTown_Gym_EventScript_BrendenBrightenRoom"
+    ],
+    "DewfordTown_Gym_EventScript_Cristian": [
+     "trainerbattle_single TRAINER_CRISTIAN, DewfordTown_Gym_Text_CristianIntro, DewfordTown_Gym_Text_CristianDefeat, DewfordTown_Gym_EventScript_CristianBrightenRoom"
+    ],
+    "DewfordTown_Gym_EventScript_Lilith": [
+     "trainerbattle_single TRAINER_LILITH, DewfordTown_Gym_Text_LilithIntro, DewfordTown_Gym_Text_LilithDefeat, DewfordTown_Gym_EventScript_LilithBrightenRoom"
+    ],
+    "DewfordTown_Gym_EventScript_GymGuide": [
+     "goto_if_set FLAG_DEFEATED_DEWFORD_GYM, DewfordTown_Gym_EventScript_GymGuidePostVictory"
+    ],
+    "DewfordTown_Gym_EventScript_LeftGymStatue": [
+     "goto_if_set FLAG_BADGE02_GET, DewfordTown_Gym_EventScript_GymStatueCertified"
+    ],
+    "DewfordTown_Gym_EventScript_RightGymStatue": [
+     "goto_if_set FLAG_BADGE02_GET, DewfordTown_Gym_EventScript_GymStatueCertified"
+    ]
+   },
+   "gym_leader": {
+    "trainer": "TRAINER_BRAWLY_1",
+    "local_id": 1,
+    "name": "BRAWLY",
+    "class": "TRAINER_CLASS_LEADER",
+    "double": false,
+    "party_table": "sParty_Brawly1",
+    "party": [
+     {
+      "species": "SPECIES_MACHOP",
+      "level": 16
+     },
+     {
+      "species": "SPECIES_MEDITITE",
+      "level": 16
+     },
+     {
+      "species": "SPECIES_MAKUHITA",
+      "level": 19
+     }
+    ]
+   }
+  },
+  "GraniteCave_1F": {
+   "id": "MAP_GRANITE_CAVE_1F",
+   "connections": [],
+   "warps": [
+    {
+     "pos": [
+      37,
+      12
+     ],
+     "to": "MAP_ROUTE106",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      35,
+      3
+     ],
+     "to": "MAP_GRANITE_CAVE_B1F",
+     "to_warp": "0"
+    },
+    {
+     "pos": [
+      17,
+      11
+     ],
+     "to": "MAP_GRANITE_CAVE_B1F",
+     "to_warp": "1"
+    },
+    {
+     "pos": [
+      5,
+      10
+     ],
+     "to": "MAP_GRANITE_CAVE_STEVENS_ROOM",
+     "to_warp": "0"
+    }
+   ],
+   "trainers": [],
+   "item_balls": [
+    {
+     "local_id": 2,
+     "pos": [
+      17,
+      7
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "GraniteCave_1F_EventScript_ItemEscapeRope",
+     "flag": "FLAG_ITEM_GRANITE_CAVE_1F_ESCAPE_ROPE",
+     "item": null,
+     "item_script": "GraniteCave_1F_EventScript_ItemEscapeRope",
+     "item_from_script": "ITEM_ESCAPE_ROPE",
+     "quantity": 1
+    }
+   ],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      36,
+      9
+     ],
+     "gfx": "OBJ_EVENT_GFX_HIKER",
+     "script": "GraniteCave_1F_EventScript_Hiker",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [],
+   "story_flags": [
+    "FLAG_RECEIVED_HM_FLASH"
+   ],
+   "story_vars": [],
+   "script_ops_by_label": {
+    "GraniteCave_1F_EventScript_Hiker": [
+     "goto_if_set FLAG_RECEIVED_HM_FLASH, GraniteCave_1F_EventScript_ReceivedFlash",
+     "giveitem ITEM_HM_FLASH",
+     "setflag FLAG_RECEIVED_HM_FLASH"
+    ]
+   }
+  },
+  "GraniteCave_StevensRoom": {
+   "id": "MAP_GRANITE_CAVE_STEVENS_ROOM",
+   "connections": [],
+   "warps": [
+    {
+     "pos": [
+      7,
+      3
+     ],
+     "to": "MAP_GRANITE_CAVE_1F",
+     "to_warp": "3"
+    }
+   ],
+   "trainers": [],
+   "item_balls": [],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      7,
+      8
+     ],
+     "gfx": "OBJ_EVENT_GFX_STEVEN",
+     "script": "GraniteCave_StevensRoom_EventScript_Steven",
+     "flag": "FLAG_HIDE_GRANITE_CAVE_STEVEN",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [],
+   "story_flags": [
+    "FLAG_DELIVERED_STEVEN_LETTER",
+    "FLAG_REGISTERED_STEVEN_POKENAV"
+   ],
+   "story_vars": [
+    "VAR_0x8004",
+    "VAR_FACING",
+    "VAR_RESULT"
+   ],
+   "script_ops_by_label": {
+    "GraniteCave_StevensRoom_EventScript_Steven": [
+     "setvar VAR_0x8004, ITEM_LETTER",
+     "setflag FLAG_DELIVERED_STEVEN_LETTER",
+     "giveitem ITEM_TM_STEEL_WING",
+     "call_if_eq VAR_RESULT, FALSE, GraniteCave_StevensRoom_EventScript_BagFull",
+     "setflag FLAG_REGISTERED_STEVEN_POKENAV",
+     "call_if_eq VAR_FACING, DIR_NORTH, GraniteCave_StevensRoom_EventScript_StevenExitNorth",
+     "call_if_eq VAR_FACING, DIR_SOUTH, GraniteCave_StevensRoom_EventScript_StevenExitSouth",
+     "call_if_eq VAR_FACING, DIR_WEST, GraniteCave_StevensRoom_EventScript_StevenExitWestEast",
+     "call_if_eq VAR_FACING, DIR_EAST, GraniteCave_StevensRoom_EventScript_StevenExitWestEast"
+    ]
+   }
+  },
+  "Route106": {
+   "id": "MAP_ROUTE106",
+   "connections": [
+    {
+     "map": "MAP_ROUTE105",
+     "offset": 0,
+     "direction": "up"
+    },
+    {
+     "map": "MAP_DEWFORD_TOWN",
+     "offset": 60,
+     "direction": "down"
+    }
+   ],
+   "warps": [
+    {
+     "pos": [
+      48,
+      16
+     ],
+     "to": "MAP_GRANITE_CAVE_1F",
+     "to_warp": "0"
+    }
+   ],
+   "trainers": [
+    {
+     "local_id": 1,
+     "pos": [
+      18,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_M",
+     "script": "Route106_EventScript_Douglas",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WALK_LEFT_AND_RIGHT",
+     "range": [
+      4,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_DOUGLAS",
+     "name": "DOUGLAS",
+     "class": "TRAINER_CLASS_SWIMMER_M",
+     "double": false,
+     "party_table": "sParty_Douglas",
+     "party": [
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 24
+      },
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 24
+      }
+     ]
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      29,
+      10
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_F",
+     "script": "Route106_EventScript_Kyla",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_KYLA",
+     "name": "KYLA",
+     "class": "TRAINER_CLASS_SWIMMER_F",
+     "double": false,
+     "party_table": "sParty_Kyla",
+     "party": [
+      {
+       "species": "SPECIES_WAILMER",
+       "level": 26
+      }
+     ]
+    },
+    {
+     "local_id": 3,
+     "pos": [
+      51,
+      14
+     ],
+     "gfx": "OBJ_EVENT_GFX_FISHERMAN",
+     "script": "Route106_EventScript_Elliot",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "4",
+     "trainer": "TRAINER_ELLIOT_1",
+     "name": "ELLIOT",
+     "class": "TRAINER_CLASS_FISHERMAN",
+     "double": false,
+     "party_table": "sParty_Elliot1",
+     "party": [
+      {
+       "species": "SPECIES_MAGIKARP",
+       "level": 10
+      },
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 7
+      },
+      {
+       "species": "SPECIES_MAGIKARP",
+       "level": 10
+      }
+     ]
+    },
+    {
+     "local_id": 4,
+     "pos": [
+      65,
+      14
+     ],
+     "gfx": "OBJ_EVENT_GFX_FISHERMAN",
+     "script": "Route106_EventScript_Ned",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_NED",
+     "name": "NED",
+     "class": "TRAINER_CLASS_FISHERMAN",
+     "double": false,
+     "party_table": "sParty_Ned",
+     "party": [
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 11
+      }
+     ]
+    }
+   ],
+   "item_balls": [
+    {
+     "local_id": 5,
+     "pos": [
+      29,
+      14
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "Route106_EventScript_ItemProtein",
+     "flag": "FLAG_ITEM_ROUTE_106_PROTEIN",
+     "item": null,
+     "item_script": "Route106_EventScript_ItemProtein",
+     "item_from_script": "ITEM_PROTEIN",
+     "quantity": 1
+    }
+   ],
+   "other_objects": [],
+   "coord_events": [],
+   "hidden_items": [
+    {
+     "pos": [
+      41,
+      11
+     ],
+     "item": "ITEM_POKE_BALL",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_106_POKE_BALL"
+    },
+    {
+     "pos": [
+      53,
+      12
+     ],
+     "item": "ITEM_STARDUST",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_106_STARDUST"
+    },
+    {
+     "pos": [
+      68,
+      15
+     ],
+     "item": "ITEM_HEART_SCALE",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_106_HEART_SCALE"
+    }
+   ],
+   "bg_other": [
+    {
+     "type": "sign",
+     "pos": [
+      59,
+      13
+     ],
+     "script": "Route106_EventScript_TrainerTipsSign"
+    }
+   ],
+   "story_flags": [],
+   "story_vars": [
+    "VAR_RESULT"
+   ],
+   "script_ops_by_label": {
+    "Route106_EventScript_Douglas": [
+     "trainerbattle_single TRAINER_DOUGLAS, Route106_Text_DouglasIntro, Route106_Text_DouglasDefeated"
+    ],
+    "Route106_EventScript_Kyla": [
+     "trainerbattle_single TRAINER_KYLA, Route106_Text_KylaIntro, Route106_Text_KylaDefeated"
+    ],
+    "Route106_EventScript_Elliot": [
+     "trainerbattle_single TRAINER_ELLIOT_1, Route106_Text_ElliotIntro, Route106_Text_ElliotDefeated, Route106_EventScript_ElliotRegisterMatchCallAfterBattle",
+     "goto_if_eq VAR_RESULT, TRUE, Route106_EventScript_ElliotRematch"
+    ],
+    "Route106_EventScript_ElliotRematch": [
+     "trainerbattle_rematch TRAINER_ELLIOT_1, Route106_Text_ElliotRematchIntro, Route106_Text_ElliotRematchDefeated"
+    ],
+    "Route106_EventScript_Ned": [
+     "trainerbattle_single TRAINER_NED, Route106_Text_NedIntro, Route106_Text_NedDefeated"
+    ]
+   }
+  },
+  "Route107": {
+   "id": "MAP_ROUTE107",
+   "connections": [
+    {
+     "map": "MAP_DEWFORD_TOWN",
+     "offset": 0,
+     "direction": "left"
+    },
+    {
+     "map": "MAP_ROUTE108",
+     "offset": 0,
+     "direction": "right"
+    }
+   ],
+   "warps": [],
+   "trainers": [
+    {
+     "local_id": 1,
+     "pos": [
+      41,
+      10
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_M",
+     "script": "Route107_EventScript_Darrin",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_ROTATE_CLOCKWISE",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_DARRIN",
+     "name": "DARRIN",
+     "class": "TRAINER_CLASS_SWIMMER_M",
+     "double": false,
+     "party_table": "sParty_Darrin",
+     "party": [
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 24
+      },
+      {
+       "species": "SPECIES_WINGULL",
+       "level": 24
+      },
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 24
+      }
+     ]
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      23,
+      11
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_M",
+     "script": "Route107_EventScript_Tony",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WALK_SEQUENCE_RIGHT_DOWN_LEFT_UP",
+     "range": [
+      6,
+      2
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "2",
+     "trainer": "TRAINER_TONY_1",
+     "name": "TONY",
+     "class": "TRAINER_CLASS_SWIMMER_M",
+     "double": false,
+     "party_table": "sParty_Tony1",
+     "party": [
+      {
+       "species": "SPECIES_CARVANHA",
+       "level": 26
+      }
+     ]
+    },
+    {
+     "local_id": 3,
+     "pos": [
+      16,
+      7
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_F",
+     "script": "Route107_EventScript_Denise",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN_AND_UP",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "5",
+     "trainer": "TRAINER_DENISE",
+     "name": "DENISE",
+     "class": "TRAINER_CLASS_SWIMMER_F",
+     "double": false,
+     "party_table": "sParty_Denise",
+     "party": [
+      {
+       "species": "SPECIES_WINGULL",
+       "level": 25
+      },
+      {
+       "species": "SPECIES_GOLDEEN",
+       "level": 25
+      }
+     ]
+    },
+    {
+     "local_id": 4,
+     "pos": [
+      50,
+      11
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_F",
+     "script": "Route107_EventScript_Beth",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WALK_IN_PLACE_UP",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "5",
+     "trainer": "TRAINER_BETH",
+     "name": "BETH",
+     "class": "TRAINER_CLASS_SWIMMER_F",
+     "double": false,
+     "party_table": "sParty_Beth",
+     "party": [
+      {
+       "species": "SPECIES_GOLDEEN",
+       "level": 26
+      }
+     ]
+    },
+    {
+     "local_id": 5,
+     "pos": [
+      33,
+      4
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_F",
+     "script": "Route107_EventScript_Lisa",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "1",
+     "trainer": "TRAINER_LISA_AND_RAY",
+     "name": "LISA & RAY",
+     "class": "TRAINER_CLASS_SIS_AND_BRO",
+     "double": true,
+     "party_table": "sParty_LisaAndRay",
+     "party": [
+      {
+       "species": "SPECIES_GOLDEEN",
+       "level": 27
+      },
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 25
+      }
+     ]
+    },
+    {
+     "local_id": 6,
+     "pos": [
+      32,
+      4
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_M_SWIMMING",
+     "script": "Route107_EventScript_Ray",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "1",
+     "trainer": "TRAINER_LISA_AND_RAY",
+     "name": "LISA & RAY",
+     "class": "TRAINER_CLASS_SIS_AND_BRO",
+     "double": true,
+     "party_table": "sParty_LisaAndRay",
+     "party": [
+      {
+       "species": "SPECIES_GOLDEEN",
+       "level": 27
+      },
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 25
+      }
+     ]
+    },
+    {
+     "local_id": 7,
+     "pos": [
+      50,
+      5
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_M",
+     "script": "Route107_EventScript_Camron",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WALK_IN_PLACE_DOWN",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "5",
+     "trainer": "TRAINER_CAMRON",
+     "name": "CAMRON",
+     "class": "TRAINER_CLASS_TRIATHLETE",
+     "double": false,
+     "party_table": "sParty_Camron",
+     "party": [
+      {
+       "species": "SPECIES_STARYU",
+       "level": 26
+      }
+     ]
+    }
+   ],
+   "item_balls": [],
+   "other_objects": [],
+   "coord_events": [],
+   "hidden_items": [],
+   "bg_other": [],
+   "story_flags": [],
+   "story_vars": [
+    "VAR_RESULT"
+   ],
+   "script_ops_by_label": {
+    "Route107_EventScript_Darrin": [
+     "trainerbattle_single TRAINER_DARRIN, Route107_Text_DarrinIntro, Route107_Text_DarrinDefeated"
+    ],
+    "Route107_EventScript_Tony": [
+     "trainerbattle_single TRAINER_TONY_1, Route107_Text_TonyIntro, Route107_Text_TonyDefeated, Route107_EventScript_TonyRegisterMatchCallAfterBattle",
+     "goto_if_eq VAR_RESULT, TRUE, Route107_EventScript_TonyRematch"
+    ],
+    "Route107_EventScript_TonyRematch": [
+     "trainerbattle_rematch TRAINER_TONY_1, Route107_Text_TonyRematchIntro, Route107_Text_TonyRematchDefeated"
+    ],
+    "Route107_EventScript_Denise": [
+     "trainerbattle_single TRAINER_DENISE, Route107_Text_DeniseIntro, Route107_Text_DeniseDefeated"
+    ],
+    "Route107_EventScript_Beth": [
+     "trainerbattle_single TRAINER_BETH, Route107_Text_BethIntro, Route107_Text_BethDefeated"
+    ],
+    "Route107_EventScript_Lisa": [
+     "trainerbattle_double TRAINER_LISA_AND_RAY, Route107_Text_LisaIntro, Route107_Text_LisaDefeated, Route107_Text_LisaNotEnoughPokemon"
+    ],
+    "Route107_EventScript_Ray": [
+     "trainerbattle_double TRAINER_LISA_AND_RAY, Route107_Text_RayIntro, Route107_Text_RayDefeated, Route107_Text_RayNotEnoughPokemon"
+    ],
+    "Route107_EventScript_Camron": [
+     "trainerbattle_single TRAINER_CAMRON, Route107_Text_CamronIntro, Route107_Text_CamronDefeated"
+    ]
+   }
+  },
+  "Route109": {
+   "id": "MAP_ROUTE109",
+   "connections": [
+    {
+     "map": "MAP_SLATEPORT_CITY",
+     "offset": 0,
+     "direction": "up"
+    },
+    {
+     "map": "MAP_ROUTE108",
+     "offset": 40,
+     "direction": "left"
+    }
+   ],
+   "warps": [
+    {
+     "pos": [
+      12,
+      5
+     ],
+     "to": "MAP_ROUTE109_SEASHORE_HOUSE",
+     "to_warp": "0"
+    }
+   ],
+   "trainers": [
+    {
+     "local_id": 3,
+     "pos": [
+      12,
+      36
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_M",
+     "script": "Route109_EventScript_David",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "5",
+     "trainer": "TRAINER_DAVID",
+     "name": "DAVID",
+     "class": "TRAINER_CLASS_SWIMMER_M",
+     "double": false,
+     "party_table": "sParty_David",
+     "party": [
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 25
+      },
+      {
+       "species": "SPECIES_CARVANHA",
+       "level": 25
+      }
+     ]
+    },
+    {
+     "local_id": 4,
+     "pos": [
+      25,
+      39
+     ],
+     "gfx": "OBJ_EVENT_GFX_SWIMMER_F",
+     "script": "Route109_EventScript_Alice",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_UP_AND_LEFT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "5",
+     "trainer": "TRAINER_ALICE",
+     "name": "ALICE",
+     "class": "TRAINER_CLASS_SWIMMER_F",
+     "double": false,
+     "party_table": "sParty_Alice",
+     "party": [
+      {
+       "species": "SPECIES_GOLDEEN",
+       "level": 24
+      },
+      {
+       "species": "SPECIES_WINGULL",
+       "level": 24
+      },
+      {
+       "species": "SPECIES_GOLDEEN",
+       "level": 24
+      }
+     ]
+    },
+    {
+     "local_id": 5,
+     "pos": [
+      15,
+      17
+     ],
+     "gfx": "OBJ_EVENT_GFX_SAILOR",
+     "script": "Route109_EventScript_Huey",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "1",
+     "trainer": "TRAINER_HUEY",
+     "name": "HUEY",
+     "class": "TRAINER_CLASS_SAILOR",
+     "double": false,
+     "party_table": "sParty_Huey",
+     "party": [
+      {
+       "species": "SPECIES_WINGULL",
+       "level": 12
+      },
+      {
+       "species": "SPECIES_MACHOP",
+       "level": 12
+      }
+     ]
+    },
+    {
+     "local_id": 6,
+     "pos": [
+      24,
+      13
+     ],
+     "gfx": "OBJ_EVENT_GFX_SAILOR",
+     "script": "Route109_EventScript_Edmond",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "6",
+     "trainer": "TRAINER_EDMOND",
+     "name": "EDMOND",
+     "class": "TRAINER_CLASS_SAILOR",
+     "double": false,
+     "party_table": "sParty_Edmond",
+     "party": [
+      {
+       "species": "SPECIES_WINGULL",
+       "level": 13
+      }
+     ]
+    },
+    {
+     "local_id": 7,
+     "pos": [
+      19,
+      10
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_M",
+     "script": "Route109_EventScript_Ricky",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_RICKY_1",
+     "name": "RICKY",
+     "class": "TRAINER_CLASS_TUBER_M",
+     "double": false,
+     "party_table": "sParty_Ricky1",
+     "party": [
+      {
+       "species": "SPECIES_ZIGZAGOON",
+       "level": 13
+      }
+     ]
+    },
+    {
+     "local_id": 8,
+     "pos": [
+      22,
+      7
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_F",
+     "script": "Route109_EventScript_Lola",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WALK_SLOWLY_IN_PLACE_RIGHT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "4",
+     "trainer": "TRAINER_LOLA_1",
+     "name": "LOLA",
+     "class": "TRAINER_CLASS_TUBER_F",
+     "double": false,
+     "party_table": "sParty_Lola1",
+     "party": [
+      {
+       "species": "SPECIES_AZURILL",
+       "level": 12
+      },
+      {
+       "species": "SPECIES_AZURILL",
+       "level": 12
+      }
+     ]
+    },
+    {
+     "local_id": 11,
+     "pos": [
+      29,
+      32
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_F",
+     "script": "Route109_EventScript_Gwen",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN_AND_UP",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_GWEN",
+     "name": "GWEN",
+     "class": "TRAINER_CLASS_TUBER_F",
+     "double": false,
+     "party_table": "sParty_Gwen",
+     "party": [
+      {
+       "species": "SPECIES_MARILL",
+       "level": 26
+      }
+     ]
+    },
+    {
+     "local_id": 12,
+     "pos": [
+      28,
+      31
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_F",
+     "script": "Route109_EventScript_Austina",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN_AND_LEFT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_AUSTINA",
+     "name": "AUSTINA",
+     "class": "TRAINER_CLASS_TUBER_F",
+     "double": false,
+     "party_table": "sParty_Austina",
+     "party": [
+      {
+       "species": "SPECIES_MARILL",
+       "level": 26
+      }
+     ]
+    },
+    {
+     "local_id": 13,
+     "pos": [
+      21,
+      56
+     ],
+     "gfx": "OBJ_EVENT_GFX_FISHERMAN",
+     "script": "Route109_EventScript_Carter",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT",
+     "range": [
+      0,
+      0
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_CARTER",
+     "name": "CARTER",
+     "class": "TRAINER_CLASS_FISHERMAN",
+     "double": false,
+     "party_table": "sParty_Carter",
+     "party": [
+      {
+       "species": "SPECIES_WAILMER",
+       "level": 25
+      },
+      {
+       "species": "SPECIES_TENTACRUEL",
+       "level": 25
+      }
+     ]
+    },
+    {
+     "local_id": 17,
+     "pos": [
+      8,
+      41
+     ],
+     "gfx": "OBJ_EVENT_GFX_WOMAN_4",
+     "script": "Route109_EventScript_Mel",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "1",
+     "trainer": "TRAINER_MEL_AND_PAUL",
+     "name": "MEL & PAUL",
+     "class": "TRAINER_CLASS_YOUNG_COUPLE",
+     "double": true,
+     "party_table": "sParty_MelAndPaul",
+     "party": [
+      {
+       "species": "SPECIES_DUSTOX",
+       "level": 27
+      },
+      {
+       "species": "SPECIES_BEAUTIFLY",
+       "level": 27
+      }
+     ]
+    },
+    {
+     "local_id": 18,
+     "pos": [
+      9,
+      41
+     ],
+     "gfx": "OBJ_EVENT_GFX_MAN_4",
+     "script": "Route109_EventScript_Paul",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "1",
+     "trainer": "TRAINER_MEL_AND_PAUL",
+     "name": "MEL & PAUL",
+     "class": "TRAINER_CLASS_YOUNG_COUPLE",
+     "double": true,
+     "party_table": "sParty_MelAndPaul",
+     "party": [
+      {
+       "species": "SPECIES_DUSTOX",
+       "level": 27
+      },
+      {
+       "species": "SPECIES_BEAUTIFLY",
+       "level": 27
+      }
+     ]
+    },
+    {
+     "local_id": 21,
+     "pos": [
+      17,
+      13
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_F",
+     "script": "Route109_EventScript_Hailey",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WALK_SLOWLY_IN_PLACE_RIGHT",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "6",
+     "trainer": "TRAINER_HAILEY",
+     "name": "HAILEY",
+     "class": "TRAINER_CLASS_TUBER_F",
+     "double": false,
+     "party_table": "sParty_Hailey",
+     "party": [
+      {
+       "species": "SPECIES_MARILL",
+       "level": 13
+      }
+     ]
+    },
+    {
+     "local_id": 22,
+     "pos": [
+      27,
+      7
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_M",
+     "script": "Route109_EventScript_Chandler",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WALK_SLOWLY_IN_PLACE_LEFT",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "4",
+     "trainer": "TRAINER_CHANDLER",
+     "name": "CHANDLER",
+     "class": "TRAINER_CLASS_TUBER_M",
+     "double": false,
+     "party_table": "sParty_Chandler",
+     "party": [
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 12
+      },
+      {
+       "species": "SPECIES_TENTACOOL",
+       "level": 12
+      }
+     ]
+    },
+    {
+     "local_id": 24,
+     "pos": [
+      17,
+      56
+     ],
+     "gfx": "OBJ_EVENT_GFX_MAN_5",
+     "script": "Route109_EventScript_Elijah",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_WALK_SLOWLY_IN_PLACE_RIGHT",
+     "range": [
+      1,
+      1
+     ],
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": "3",
+     "trainer": "TRAINER_ELIJAH",
+     "name": "ELIJAH",
+     "class": "TRAINER_CLASS_BIRD_KEEPER",
+     "double": false,
+     "party_table": "sParty_Elijah",
+     "party": [
+      {
+       "species": "SPECIES_SKARMORY",
+       "level": 25
+      },
+      {
+       "species": "SPECIES_SKARMORY",
+       "level": 25
+      }
+     ]
+    }
+   ],
+   "item_balls": [
+    {
+     "local_id": 10,
+     "pos": [
+      27,
+      46
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "Route109_EventScript_ItemPPUp",
+     "flag": "FLAG_ITEM_ROUTE_109_PP_UP",
+     "item": null,
+     "item_script": "Route109_EventScript_ItemPPUp",
+     "item_from_script": "ITEM_PP_UP",
+     "quantity": 1
+    },
+    {
+     "local_id": 23,
+     "pos": [
+      25,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_ITEM_BALL",
+     "script": "Route109_EventScript_ItemPotion",
+     "flag": "FLAG_ITEM_ROUTE_109_POTION",
+     "item": null,
+     "item_script": "Route109_EventScript_ItemPotion",
+     "item_from_script": "ITEM_POTION",
+     "quantity": 1
+    }
+   ],
+   "other_objects": [
+    {
+     "local_id": 1,
+     "pos": [
+      21,
+      26
+     ],
+     "gfx": "OBJ_EVENT_GFX_MR_BRINEYS_BOAT",
+     "script": "0x0",
+     "flag": "FLAG_HIDE_ROUTE_109_MR_BRINEY_BOAT",
+     "movement": "MOVEMENT_TYPE_FACE_UP"
+    },
+    {
+     "local_id": 2,
+     "pos": [
+      21,
+      24
+     ],
+     "gfx": "OBJ_EVENT_GFX_EXPERT_M",
+     "script": "Route109_EventScript_MrBriney",
+     "flag": "FLAG_HIDE_ROUTE_109_MR_BRINEY",
+     "movement": "MOVEMENT_TYPE_FACE_UP"
+    },
+    {
+     "local_id": 9,
+     "pos": [
+      11,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_LITTLE_GIRL",
+     "script": "Route109_EventScript_SeashoreHouseGirl",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN"
+    },
+    {
+     "local_id": 14,
+     "pos": [
+      24,
+      18
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_M",
+     "script": "Route109_EventScript_SandCastleBoy",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_RIGHT"
+    },
+    {
+     "local_id": 15,
+     "pos": [
+      25,
+      18
+     ],
+     "gfx": "OBJ_EVENT_GFX_TUBER_F",
+     "script": "Route109_EventScript_SoftSandGirl",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_LEFT"
+    },
+    {
+     "local_id": 16,
+     "pos": [
+      30,
+      32
+     ],
+     "gfx": "OBJ_EVENT_GFX_POKEFAN_F",
+     "script": "Route109_EventScript_Woman",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_FACE_DOWN"
+    },
+    {
+     "local_id": 19,
+     "pos": [
+      33,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_OLD_MAN",
+     "script": "Route109_EventScript_OldMan",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    },
+    {
+     "local_id": 20,
+     "pos": [
+      32,
+      6
+     ],
+     "gfx": "OBJ_EVENT_GFX_ZIGZAGOON_2",
+     "script": "Route109_EventScript_Zigzagoon",
+     "flag": "0",
+     "movement": "MOVEMENT_TYPE_LOOK_AROUND"
+    }
+   ],
+   "coord_events": [],
+   "hidden_items": [
+    {
+     "pos": [
+      16,
+      23
+     ],
+     "item": "ITEM_REVIVE",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_109_REVIVE"
+    },
+    {
+     "pos": [
+      33,
+      5
+     ],
+     "item": "ITEM_HEART_SCALE",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_109_HEART_SCALE_1"
+    },
+    {
+     "pos": [
+      9,
+      10
+     ],
+     "item": "ITEM_GREAT_BALL",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_109_GREAT_BALL"
+    },
+    {
+     "pos": [
+      28,
+      20
+     ],
+     "item": "ITEM_ETHER",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_109_ETHER"
+    },
+    {
+     "pos": [
+      13,
+      16
+     ],
+     "item": "ITEM_HEART_SCALE",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_109_HEART_SCALE_2"
+    },
+    {
+     "pos": [
+      8,
+      42
+     ],
+     "item": "ITEM_HEART_SCALE",
+     "flag": "FLAG_HIDDEN_ITEM_ROUTE_109_HEART_SCALE_3"
+    }
+   ],
+   "bg_other": [
+    {
+     "type": "sign",
+     "pos": [
+      15,
+      5
+     ],
+     "script": "Route109_EventScript_SeashoreHouseSign"
+    },
+    {
+     "type": "sign",
+     "pos": [
+      29,
+      10
+     ],
+     "script": "Route109_EventScript_TrainerTipsSign"
+    }
+   ],
+   "story_flags": [
+    "FLAG_DELIVERED_DEVON_GOODS",
+    "FLAG_HIDE_MR_BRINEY_BOAT_DEWFORD_TOWN",
+    "FLAG_HIDE_MR_BRINEY_DEWFORD_TOWN",
+    "FLAG_HIDE_ROUTE_109_MR_BRINEY_BOAT",
+    "FLAG_RECEIVED_SOFT_SAND"
+   ],
+   "story_vars": [
+    "VAR_0x8008",
+    "VAR_BRINEY_LOCATION",
+    "VAR_FACING",
+    "VAR_LAST_TALKED",
+    "VAR_RESULT"
+   ],
+   "script_ops_by_label": {
+    "Route109_EventScript_DoSailToDewford": [
+     "clearflag FLAG_HIDE_MR_BRINEY_BOAT_DEWFORD_TOWN",
+     "clearflag FLAG_HIDE_MR_BRINEY_DEWFORD_TOWN",
+     "setflag FLAG_HIDE_ROUTE_109_MR_BRINEY_BOAT"
+    ],
+    "Route109_EventScript_MrBriney": [
+     "goto_if_unset FLAG_DELIVERED_DEVON_GOODS, Route109_EventScript_HaveNotDeliveredDevonGood"
+    ],
+    "Route109_EventScript_HaveNotDeliveredDevonGood": [
+     "goto_if_eq VAR_RESULT, NO, Route109_EventScript_StayHere"
+    ],
+    "Route109_EventScript_SoftSandGirl": [
+     "goto_if_set FLAG_RECEIVED_SOFT_SAND, Route109_EventScript_AlreadyReceivedSoftSand",
+     "giveitem ITEM_SOFT_SAND",
+     "goto_if_eq VAR_RESULT, 0, Common_EventScript_ShowBagIsFull",
+     "setflag FLAG_RECEIVED_SOFT_SAND"
+    ],
+    "Route109_EventScript_David": [
+     "trainerbattle_single TRAINER_DAVID, Route109_Text_DavidIntro, Route109_Text_DavidDefeated"
+    ],
+    "Route109_EventScript_Alice": [
+     "trainerbattle_single TRAINER_ALICE, Route109_Text_AliceIntro, Route109_Text_AliceDefeated"
+    ],
+    "Route109_EventScript_Huey": [
+     "trainerbattle_single TRAINER_HUEY, Route109_Text_HueyIntro, Route109_Text_HueyDefeated"
+    ],
+    "Route109_EventScript_Edmond": [
+     "trainerbattle_single TRAINER_EDMOND, Route109_Text_EdmondIntro, Route109_Text_EdmondDefeated"
+    ],
+    "Route109_EventScript_Ricky": [
+     "trainerbattle_single TRAINER_RICKY_1, Route109_Text_RickyIntro, Route109_Text_RickyDefeated, Route109_EventScript_RickyRegisterMatchCallAfterBattle",
+     "goto_if_eq VAR_RESULT, TRUE, Route109_EventScript_RickyRematch"
+    ],
+    "Route109_EventScript_RickyRematch": [
+     "trainerbattle_rematch TRAINER_RICKY_1, Route109_Text_RickyRematchIntro, Route109_Text_RickyRematchDefeated"
+    ],
+    "Route109_EventScript_Lola": [
+     "trainerbattle_single TRAINER_LOLA_1, Route109_Text_LolaIntro, Route109_Text_LolaDefeated, Route109_EventScript_LolaRegisterMatchCallAfterBattle",
+     "goto_if_eq VAR_RESULT, TRUE, Route109_EventScript_LolaRematch"
+    ],
+    "Route109_EventScript_LolaRematch": [
+     "trainerbattle_rematch TRAINER_LOLA_1, Route109_Text_LolaRematchIntro, Route109_Text_LolaRematchDefeated"
+    ],
+    "Route109_EventScript_Austina": [
+     "trainerbattle_single TRAINER_AUSTINA, Route109_Text_AustinaIntro, Route109_Text_AustinaDefeated"
+    ],
+    "Route109_EventScript_Gwen": [
+     "trainerbattle_single TRAINER_GWEN, Route109_Text_GwenIntro, Route109_Text_GwenDefeated"
+    ],
+    "Route109_EventScript_Carter": [
+     "trainerbattle_single TRAINER_CARTER, Route109_Text_CarterIntro, Route109_Text_CarterDefeated"
+    ],
+    "Route109_EventScript_Paul": [
+     "trainerbattle_double TRAINER_MEL_AND_PAUL, Route109_Text_PaulIntro, Route109_Text_PaulDefeated, Route109_Text_PaulNotEnoughPokemon"
+    ],
+    "Route109_EventScript_Mel": [
+     "trainerbattle_double TRAINER_MEL_AND_PAUL, Route109_Text_MelIntro, Route109_Text_MelDefeated, Route109_Text_MelNotEnoughPokemon"
+    ],
+    "Route109_EventScript_Chandler": [
+     "trainerbattle_single TRAINER_CHANDLER, Route109_Text_ChandlerIntro, Route109_Text_ChandlerDefeated"
+    ],
+    "Route109_EventScript_Hailey": [
+     "trainerbattle_single TRAINER_HAILEY, Route109_Text_HaileyIntro, Route109_Text_HaileyDefeated"
+    ],
+    "Route109_EventScript_Elijah": [
+     "trainerbattle_single TRAINER_ELIJAH, Route109_Text_ElijahIntro, Route109_Text_ElijahDefeated"
+    ]
+   }
+  }
+ }
+}
