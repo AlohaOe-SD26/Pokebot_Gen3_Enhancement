@@ -1,17 +1,18 @@
 # MILESTONES-CH5-CH8 status (cloud job; the truth, updated after every step)
 
-Branch: claude/milestones-ch5-ch8-o0janq. Decomp: pret/pokeemerald@731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 (git clone --depth 1 https://github.com/pret/pokeemerald /tmp/pokeemerald). Wall time so far: 8 min (session clock).
+Branch: claude/milestones-ch5-ch8-o0janq. Decomp: pret/pokeemerald@731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 (git clone --depth 1 https://github.com/pret/pokeemerald /tmp/pokeemerald). Wall time so far: 9 min (session clock).
 
 ## Done
 - Step 1 (chapter 5): 8 milestones (ch5_stolen_goods, ch5_goods_employee [optional], ch5_rusturf_grunt, ch5_return_goods, ch5_devon_corp, ch5_pokenav_tutorial, ch5_rival_meet, ch5_rival_battle [optional]).
 - Step 2 (chapter 6): 3 milestones (ch6_briney_house, ch6_dewford, ch6_old_rod [optional]).
-- Step 3 (chapter 7): 5 milestones (ch7_steven, ch7_flash [optional], ch7_gym_trainers [optional], ch7_brawly, ch7_exp_share [optional]); looks added: steven, mr_stone, brawly.
+- Step 3 (chapter 7): 5 milestones (ch7_steven, ch7_flash [optional], ch7_gym_trainers [optional], ch7_brawly, ch7_exp_share [optional]).
+- Step 4 (chapter 8): 4 milestones (ch8_sail_slateport, ch8_dock, ch8_stern, ch8_scott). The DRAFT is now complete: 20 milestones, 16 trainers, 7 looks. In-memory check: merged after milestones.json, ai_player.knowledge.story.Story loads it for BOY and GIRL and walks ch4_roxanne -> ch5_stolen_goods -> ... -> ch8_scott in order.
 
 ## In progress
 - nothing
 
 ## Next
-- Step 4: chapter 8 (ch8_sail_slateport, ch8_dock, ch8_stern, ch8_scott), then Step 5: cloud/MILESTONES-REPORT.md.
+- Step 5: write cloud/MILESTONES-REPORT.md (per-chapter list with file:line sources, hints, levels, not found, uncertain, SHA, wall time), commit, push, stop.
 
 ## How a later session resumes
 1. git fetch origin claude/milestones-ch5-ch8-o0janq; check it out; read this file and `ai_player/knowledge/seasoned/milestones_ch5_ch8_DRAFT.json` (it is complete up to the last step listed under Done).

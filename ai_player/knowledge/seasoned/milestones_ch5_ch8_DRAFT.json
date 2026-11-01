@@ -22,6 +22,24 @@
    "script": "DewfordTown_Gym_EventScript_Brawly",
    "what": "BRAWLY, the DEWFORD GYM leader"
   },
+  "capt_stern": {
+   "gfx": [
+    46
+   ],
+   "decomp_const": "OBJ_EVENT_GFX_SCIENTIST_1",
+   "map": "SlateportCity_OceanicMuseum_2F",
+   "script": "SlateportCity_OceanicMuseum_2F_EventScript_CaptStern",
+   "what": "CAPT. STERN, upstairs in the OCEANIC MUSEUM"
+  },
+  "dock": {
+   "gfx": [
+    19
+   ],
+   "decomp_const": "OBJ_EVENT_GFX_MAN_1",
+   "map": "SlateportCity_SternsShipyard_1F",
+   "script": "SlateportCity_SternsShipyard_1F_EventScript_Dock",
+   "what": "DOCK, the shipwright in STERN'S SHIPYARD"
+  },
   "mr_briney": {
    "gfx": [
     21
@@ -164,6 +182,21 @@
     16,
     16,
     19
+   ]
+  },
+  "GRUNT_MUSEUM_1": {
+   "id": 20,
+   "flag": 1300,
+   "levels": [
+    15
+   ]
+  },
+  "GRUNT_MUSEUM_2": {
+   "id": 21,
+   "flag": 1301,
+   "levels": [
+    14,
+    14
    ]
   }
  },
@@ -962,6 +995,207 @@
    "taught_by": [],
    "decomp": {
     "RECEIVED_EXP_SHARE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   }
+  },
+  {
+   "id": "ch8_sail_slateport",
+   "chapter": 8,
+   "title": "Sail with MR. BRINEY from DEWFORD to SLATEPORT CITY",
+   "done": {
+    "flags": {
+     "VISITED_SLATEPORT_CITY": 2167
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "DEWFORD_TOWN",
+    "ROUTE109",
+    "SLATEPORT_CITY"
+   ],
+   "steps": [
+    {
+     "do": "talk",
+     "map": "DEWFORD_TOWN",
+     "look": "mr_briney"
+    },
+    {
+     "do": "go",
+     "map": "SLATEPORT_CITY",
+     "told": "SLATEPORT",
+     "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+    }
+   ],
+   "hint": {
+    "said": "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION. I'd just got word about you! You saved our staff not just once, but twice! I have a favor to ask of an amazing person like you. I understand that you're delivering a package to SLATEPORT's SHIPYARD. Well, on the way, could you stop off in DEWFORD TOWN? I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",
+    "words": "SLATEPORT",
+    "map": "SLATEPORT_CITY",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "MR. BRINEY only offers SLATEPORT in DEWFORD once FLAG_DELIVERED_STEVEN_LETTER is set (DewfordTown_EventScript_Briney: goto_if_unset ... ReturnToPetalburgPrompt), i.e. chapter 7's STEVEN comes first. The boat lands on ROUTE 109 (DewfordTown_EventScript_SailToSlateport, ends 'copyvar VAR_BRINEY_LOCATION'); SLATEPORT is the road north. FLAG_VISITED_SLATEPORT_CITY is set by SlateportCity_EventScript_EnterSlateport from the map's OnTransition",
+   "taught_by": [],
+   "decomp": {
+    "VISITED_SLATEPORT_CITY": "data/maps/SlateportCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch8_dock",
+   "chapter": 8,
+   "title": "STERN'S SHIPYARD: DOCK cannot use the DEVON GOODS, CAPT. STERN went off",
+   "done": {
+    "flags": {
+     "DOCK_REJECTED_DEVON_GOODS": 148
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "SLATEPORT_CITY",
+    "SLATEPORT_CITY_STERNS_SHIPYARD_1F"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "SLATEPORT_CITY_STERNS_SHIPYARD_1F",
+     "told": "SHIPYARD",
+     "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+    },
+    {
+     "do": "talk",
+     "map": "SLATEPORT_CITY_STERNS_SHIPYARD_1F",
+     "look": "dock"
+    }
+   ],
+   "hint": {
+    "said": "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION. I'd just got word about you! You saved our staff not just once, but twice! I have a favor to ask of an amazing person like you. I understand that you're delivering a package to SLATEPORT's SHIPYARD. Well, on the way, could you stop off in DEWFORD TOWN? I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",
+    "words": "SHIPYARD",
+    "map": "SLATEPORT_CITY_STERNS_SHIPYARD_1F",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "the same script (SlateportCity_SternsShipyard_1F_EventScript_Dock) also sets FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA, which hides the eleven TEAM AQUA GRUNT objects of SlateportCity map.json; the 'long line' in front of the MUSEUM is THEM. That the line physically blocks the museum door is read from the object layout and the Woman1 text switch (SlateportCity_EventScript_Woman1 changes at this flag), not run: marked uncertain in the report",
+   "taught_by": [],
+   "decomp": {
+    "DOCK_REJECTED_DEVON_GOODS": "data/maps/SlateportCity_SternsShipyard_1F/scripts.inc"
+   }
+  },
+  {
+   "id": "ch8_stern",
+   "chapter": 8,
+   "title": "OCEANIC MUSEUM: deliver the DEVON GOODS to CAPT. STERN and beat two TEAM AQUA GRUNTs",
+   "done": {
+    "flags": {
+     "DELIVERED_DEVON_GOODS": 149
+    },
+    "variables": {
+     "SLATEPORT_OUTSIDE_MUSEUM_STATE": {
+      "number": 16594,
+      "at_least": 1
+     }
+    },
+    "trainers": {
+     "GRUNT_MUSEUM_1": 1300,
+     "GRUNT_MUSEUM_2": 1301
+    }
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "SLATEPORT_CITY",
+    "SLATEPORT_CITY_OCEANIC_MUSEUM_1F",
+    "SLATEPORT_CITY_OCEANIC_MUSEUM_2F"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "SLATEPORT_CITY_OCEANIC_MUSEUM_1F",
+     "told": "MUSEUM"
+    },
+    {
+     "do": "go",
+     "map": "SLATEPORT_CITY_OCEANIC_MUSEUM_2F"
+    },
+    {
+     "do": "talk",
+     "map": "SLATEPORT_CITY_OCEANIC_MUSEUM_2F",
+     "look": "capt_stern"
+    }
+   ],
+   "hint": {
+    "said": "STERN, the fellow who built the MUSEUM, also happens to be the leader of an undersea exploration team. So, everyone calls him CAPT. STERN.",
+    "words": "MUSEUM",
+    "map": "SLATEPORT_CITY_OCEANIC_MUSEUM_1F",
+    "file": "data/maps/SlateportCity/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "GRUNT_MUSEUM_1",
+     "GRUNT_MUSEUM_2"
+    ],
+    "levels": [
+     14,
+     15
+    ],
+    "per_trainer": {
+     "GRUNT_MUSEUM_1": [
+      15
+     ],
+     "GRUNT_MUSEUM_2": [
+      14,
+      14
+     ]
+    }
+   },
+   "note": "the two GRUNT fights are scripted back to back inside CaptStern's script (trainerbattle_no_intro twice) once the player talks to him; the party is healed afterwards. The ¥50 entrance fee (SlateportCity_OceanicMuseum_1F_EventScript_PayEntranceFee) is waived when the player cannot pay and FLAG_DELIVERED_DEVON_GOODS is unset (..._EventScript_NotEnoughMoney -> AllowEntranceAnyway). Lines for CAPT. STERN's whereabouts: the DOCK says only 'went off somewhere' and the town NPCs say he 'built the MUSEUM'",
+   "taught_by": [],
+   "decomp": {
+    "DELIVERED_DEVON_GOODS": "data/maps/SlateportCity_OceanicMuseum_2F/scripts.inc",
+    "SLATEPORT_OUTSIDE_MUSEUM_STATE": "data/maps/SlateportCity_OceanicMuseum_2F/scripts.inc"
+   }
+  },
+  {
+   "id": "ch8_scott",
+   "chapter": 8,
+   "title": "SLATEPORT CITY, outside the museum: SCOTT thanks the player and registers in the POKéNAV",
+   "done": {
+    "flags": {
+     "ENABLE_SCOTT_MATCH_CALL": 215
+    },
+    "variables": {
+     "SLATEPORT_OUTSIDE_MUSEUM_STATE": {
+      "number": 16594,
+      "at_least": 2
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "SLATEPORT_CITY"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "SCOTT: Huh? I'm sure I met you somewhere before. Have I introduced myself to you? If not, my name's SCOTT. I just saw TEAM AQUA run away from here like they were stung. Let me guess--you drove them away?",
+    "words": null,
+    "map": "SLATEPORT_CITY",
+    "file": "data/maps/SlateportCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "automatic (SlateportCity_OnFrame -> SlateportCity_EventScript_ScottScene while VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE==1, set by CAPT. STERN's script); the next story beat (the rival on ROUTE 110) is chapter 9 and out of scope",
+   "taught_by": [],
+   "decomp": {
+    "ENABLE_SCOTT_MATCH_CALL": "data/maps/SlateportCity/scripts.inc",
+    "SLATEPORT_OUTSIDE_MUSEUM_STATE": "data/maps/SlateportCity/scripts.inc"
    }
   }
  ],
@@ -2327,6 +2561,245 @@
    },
    "maps": {
     "RUSTBORO_CITY_DEVON_CORP_3F": "data/maps/RustboroCity_DevonCorp_3F/map.json id"
+   },
+   "fight": null
+  },
+  "ch8_sail_slateport": {
+   "flags": {
+    "VISITED_SLATEPORT_CITY": {
+     "number": 2167,
+     "define": "include/constants/flags.h:1378",
+     "setters": [
+      {
+       "file": "data/maps/SlateportCity/scripts.inc",
+       "line": 14,
+       "text": "setflag FLAG_VISITED_SLATEPORT_CITY"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity_DevonCorp_3F/scripts.inc:193 RustboroCity_DevonCorp_3F_Text_MrStoneIHaveFavor"
+    ]
+   },
+   "maps": {
+    "DEWFORD_TOWN": "data/maps/DewfordTown/map.json id",
+    "ROUTE109": "data/maps/Route109/map.json id",
+    "SLATEPORT_CITY": "data/maps/SlateportCity/map.json id"
+   },
+   "fight": null
+  },
+  "ch8_dock": {
+   "flags": {
+    "DOCK_REJECTED_DEVON_GOODS": {
+     "number": 148,
+     "define": "include/constants/flags.h:170",
+     "setters": [
+      {
+       "file": "data/maps/SlateportCity_SternsShipyard_1F/scripts.inc",
+       "line": 15,
+       "text": "setflag FLAG_DOCK_REJECTED_DEVON_GOODS"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity_DevonCorp_3F/scripts.inc:193 RustboroCity_DevonCorp_3F_Text_MrStoneIHaveFavor"
+    ]
+   },
+   "maps": {
+    "SLATEPORT_CITY": "data/maps/SlateportCity/map.json id",
+    "SLATEPORT_CITY_STERNS_SHIPYARD_1F": "data/maps/SlateportCity_SternsShipyard_1F/map.json id"
+   },
+   "fight": null
+  },
+  "ch8_stern": {
+   "flags": {
+    "DELIVERED_DEVON_GOODS": {
+     "number": 149,
+     "define": "include/constants/flags.h:171",
+     "setters": [
+      {
+       "file": "data/maps/SlateportCity_OceanicMuseum_2F/scripts.inc",
+       "line": 72,
+       "text": "setflag FLAG_DELIVERED_DEVON_GOODS"
+      }
+     ]
+    }
+   },
+   "vars": {
+    "SLATEPORT_OUTSIDE_MUSEUM_STATE": {
+     "number": 16594,
+     "at_least": 1,
+     "define": "include/constants/vars.h:230",
+     "setters": [
+      {
+       "file": "data/maps/MauvilleCity_Gym/scripts.inc",
+       "line": 91,
+       "text": "setvar VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE, 3"
+      },
+      {
+       "file": "data/maps/SlateportCity/scripts.inc",
+       "line": 81,
+       "text": "setvar VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE, 2"
+      },
+      {
+       "file": "data/maps/SlateportCity/scripts.inc",
+       "line": 853,
+       "text": "setvar VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE, 3"
+      },
+      {
+       "file": "data/maps/SlateportCity_OceanicMuseum_2F/scripts.inc",
+       "line": 75,
+       "text": "setvar VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE, 1"
+      }
+     ]
+    }
+   },
+   "trainers": {
+    "GRUNT_MUSEUM_1": {
+     "flag": 1300,
+     "setters": [
+      {
+       "file": "data/maps/SlateportCity_OceanicMuseum_2F/scripts.inc",
+       "line": 27,
+       "text": "trainerbattle_no_intro TRAINER_GRUNT_MUSEUM_1, SlateportCity_OceanicMuseum_2F_Text_Grunt1Defeat"
+      }
+     ],
+     "id": 20,
+     "levels": [
+      15
+     ],
+     "species": [
+      "CARVANHA"
+     ],
+     "class": "TEAM_AQUA",
+     "double": false,
+     "trainers_h_line": 244,
+     "party_label": "sParty_GruntMuseum1",
+     "party_line": 218
+    },
+    "GRUNT_MUSEUM_2": {
+     "flag": 1301,
+     "setters": [
+      {
+       "file": "data/maps/SlateportCity_OceanicMuseum_2F/scripts.inc",
+       "line": 33,
+       "text": "trainerbattle_no_intro TRAINER_GRUNT_MUSEUM_2, SlateportCity_OceanicMuseum_2F_Text_Grunt2Defeat"
+      }
+     ],
+     "id": 21,
+     "levels": [
+      14,
+      14
+     ],
+     "species": [
+      "ZUBAT",
+      "CARVANHA"
+     ],
+     "class": "TEAM_AQUA",
+     "double": false,
+     "trainers_h_line": 256,
+     "party_label": "sParty_GruntMuseum2",
+     "party_line": 226
+    }
+   },
+   "hint": {
+    "sources": [
+     "data/maps/SlateportCity/scripts.inc:964 SlateportCity_Text_EveryoneCallsHimCaptStern"
+    ]
+   },
+   "maps": {
+    "SLATEPORT_CITY": "data/maps/SlateportCity/map.json id",
+    "SLATEPORT_CITY_OCEANIC_MUSEUM_1F": "data/maps/SlateportCity_OceanicMuseum_1F/map.json id",
+    "SLATEPORT_CITY_OCEANIC_MUSEUM_2F": "data/maps/SlateportCity_OceanicMuseum_2F/map.json id"
+   },
+   "fight": {
+    "GRUNT_MUSEUM_1": {
+     "id": 20,
+     "levels": [
+      15
+     ],
+     "species": [
+      "CARVANHA"
+     ],
+     "trainers_h_line": 244,
+     "party_label": "sParty_GruntMuseum1",
+     "party_line": 218
+    },
+    "GRUNT_MUSEUM_2": {
+     "id": 21,
+     "levels": [
+      14,
+      14
+     ],
+     "species": [
+      "ZUBAT",
+      "CARVANHA"
+     ],
+     "trainers_h_line": 256,
+     "party_label": "sParty_GruntMuseum2",
+     "party_line": 226
+    }
+   }
+  },
+  "ch8_scott": {
+   "flags": {
+    "ENABLE_SCOTT_MATCH_CALL": {
+     "number": 215,
+     "define": "include/constants/flags.h:237",
+     "setters": [
+      {
+       "file": "data/maps/SlateportCity/scripts.inc",
+       "line": 73,
+       "text": "setflag FLAG_ENABLE_SCOTT_MATCH_CALL"
+      }
+     ]
+    }
+   },
+   "vars": {
+    "SLATEPORT_OUTSIDE_MUSEUM_STATE": {
+     "number": 16594,
+     "at_least": 2,
+     "define": "include/constants/vars.h:230",
+     "setters": [
+      {
+       "file": "data/maps/MauvilleCity_Gym/scripts.inc",
+       "line": 91,
+       "text": "setvar VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE, 3"
+      },
+      {
+       "file": "data/maps/SlateportCity/scripts.inc",
+       "line": 81,
+       "text": "setvar VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE, 2"
+      },
+      {
+       "file": "data/maps/SlateportCity/scripts.inc",
+       "line": 853,
+       "text": "setvar VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE, 3"
+      },
+      {
+       "file": "data/maps/SlateportCity_OceanicMuseum_2F/scripts.inc",
+       "line": 75,
+       "text": "setvar VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE, 1"
+      }
+     ]
+    }
+   },
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/SlateportCity/scripts.inc:1281 SlateportCity_Text_YouDroveTeamAquaAway"
+    ]
+   },
+   "maps": {
+    "SLATEPORT_CITY": "data/maps/SlateportCity/map.json id"
    },
    "fight": null
   }
