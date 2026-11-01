@@ -24183,3 +24183,11 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** in round 1 the gate suite was started in the background right after the code was applied and BEFORE the doc edits; the docs were then written and checked only by Tier 0, which does not include `probe_promoted_pair.py`. The PASS described a tree that was not the one committed.
 - **The fix that worked:** the clause was rewritten without the KI number (it now says the woods are fixed on development runs); the gate passes; the full suite was re-run AFTER all doc edits before round 2's commit.
 - **Prevention rule:** run `run_gates.py --quick` LAST, after every doc edit of the item, and commit only the tree it passed on; a gate run that started before an edit does not cover that edit.
+
+## 2026-10-31 — Two full lanes timed out in revert_step5 because its MEASURED time in run_regression_times.json was ten days stale; the first timeout was blamed on machine load
+
+- **Symptom:** the lanes on `a869af0c` and `54ce416d` both read `REGRESSION: FAIL`, each ONLY by `revert_step5: TIMEOUT 3600.0 s`, while the same suite PASSED on the same code in two full worktree runs (with `--workers 8`).
+- **Wrong first diagnosis:** the first timeout was put down to load (a workflow was running heavy jobs beside the lane). The clean re-run, with nothing heavy beside it, timed out the same way, which refuted that.
+- **Root cause:** `run_regression.py` gives a suite `max(3600, measured x 3.5)`, and `run_regression_times.json` still held `revert_step5: 237` (2026-10-21, far fewer mutants). Round 1's lane already took 2,111 s; round 2 added mutants and two Part B tests of 2.1 s and 1.2 s that every mutant re-runs, which pushed it past the 3,600 s floor.
+- **The fix:** measure the suite alone and record the measured time in the table, as the table's own `_doc` prescribes (it was done for `revert_r1` on 2026-10-29); then a full lane.
+- **Prevention rule:** when a build adds mutants or slow tests to a revert suite, re-measure that suite and update `run_regression_times.json` in the same item; a TIMEOUT that repeats without load is a stale table, not a slow machine.

@@ -1,10 +1,10 @@
 AI PLAYER REGRESSION - full lane, evidence group `revert_safety_gates` (gates/run_regression.py, spec S4-1)
-date: 2026-10-31 20:17:41
-code: HEAD a869af0c; covers:revert_safety_gates clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-10-31 22:03:13
+code: HEAD 54ce416d; covers:revert_safety_gates clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 command: py -3.12 ai_player/gates/run_regression.py --full --evidence
 Each section is one suite: the runner's typed status, then the suite's raw output (indented).
 
-== revert_safety_gates: PASS (exit 0, 1475.6 s, 23 mutants)
+== revert_safety_gates: PASS (exit 0, 1514.4 s, 23 mutants)
     | [S0] CONTROL, the unchanged copy: 50 tests, failing none (ran the copy: True) -> PASS
     | [S1] BROKEN: G1: the watch never sees a move. Predicted CAUGHT by ['FrozenTreeTests.test_an_edit_mid_sweep_fails_the_verdict_and_stops_the_runs', 'FrozenTreeTests.test_an_added_module_fails', 'FrozenTreeTests.test_an_edit_undone_before_the_end_still_fails', 'FrozenTreeTests.test_the_backstop_fails_a_driver_that_never_seals']. The copy ran 50 tests (the copy); failing: {'FrozenTreeTests.test_an_added_module_fails': 'FAIL', 'FrozenTreeTests.test_an_edit_mid_sweep_fails_the_verdict_and_stops_the_runs': 'FAIL', 'FrozenTreeTests.test_an_edit_undone_before_the_end_still_fails': 'FAIL', 'FrozenTreeTests.test_the_backstop_fails_a_driver_that_never_seals': 'FAIL'} -> CAUGHT
     | [S2] BROKEN: G1: the sweep's CHECK before each run deleted (rate_step5.run_one). Predicted CAUGHT by ['WiringTests.test_a_sweep_checks_before_and_after_every_run']. The copy ran 50 tests (the copy); failing: {'WiringTests.test_a_sweep_checks_before_and_after_every_run': 'FAIL'} -> CAUGHT
@@ -30,9 +30,9 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [S21] BROKEN: G7: the Needs line's names (gates still to be built) are resolved too (a MENTION fires). Predicted CAUGHT by ['LessonsTests.test_the_real_lessons_list_passes']. The copy ran 50 tests (the copy); failing: {'LessonsTests.test_the_real_lessons_list_passes': 'FAIL'} -> CAUGHT
     | [S22] BROKEN: G7: an Origin quote is not looked for in its document. Predicted CAUGHT by ['LessonsTests.test_a_wrong_origin_a_gated_lesson_without_a_gate_and_a_prose_lesson_without_needs_fail']. The copy ran 50 tests (the copy); failing: {'LessonsTests.test_a_wrong_origin_a_gated_lesson_without_a_gate_and_a_prose_lesson_without_needs_fail': 'FAIL'} -> CAUGHT
     | 23 mutants CAUGHT as predicted, of 23
-    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (25 checks of 200 files, files digest c372e19918718ff8)
+    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (25 checks of 202 files, files digest 16505826955eb99e)
     | OVERALL: PASS
 
 
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (38 checks of 200 files, files digest c372e19918718ff8); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
-REGRESSION: FAIL (full, 33 suites, 5124.3 s wall)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (39 checks of 202 files, files digest 16505826955eb99e); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
+REGRESSION: FAIL (full, 34 suites, 5127.4 s wall)

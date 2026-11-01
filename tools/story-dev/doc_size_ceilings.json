@@ -47,7 +47,7 @@
       "raised": []
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 291821,
+      "ceiling": 292547,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -78,6 +78,13 @@
           "from": 291246,
           "to": 291821,
           "why": "Round 2 of KI-128/KI-129 (2026-10-31): KI-129 fixed on development runs; its header and one body line record it (pair P2)"
+        },
+        {
+          "date": "2026-10-31",
+          "field": "ceiling",
+          "from": 291821,
+          "to": 292547,
+          "why": "The KI-128/KI-129 graded held-out PASSED (2026-10-31): both headers and one body line each record it (pair P2)"
         }
       ]
     }

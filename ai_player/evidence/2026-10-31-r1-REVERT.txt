@@ -1,6 +1,6 @@
 AI PLAYER R1 + R2 - MUTANT PROOF OF SAVING, CONTINUING AND THE MEMORY FILE (gates/revert_r1.py)
-date: 2026-10-31 18:52:17
-code: HEAD a869af0c; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-10-31 20:37:46
+code: HEAD 54ce416d; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\ai_player\evidence\trees\53e0c26e7812db47.zip
 Each mutant breaks ONE rule (or deletes ONE call the census lists) in a copy; CAUGHT = the run fails and every predicted test is among the failing ones.
 
@@ -563,5 +563,5 @@ Each mutant breaks ONE rule (or deletes ONE call the census lists) in a copy; CA
 [U2C07] BROKEN: the call of MemoryBook.dropped_after at skills/saving.py:624 in _on_main_menu [call] deleted (deletes the call) [covers skills/saving.py:624 in _on_main_menu [call]]. Predicted CAUGHT by ['ContinueSkillTests.test_u2_the_continue_tells_its_drop_and_no_map']. The copy ran 432 tests (the copy); failing: {'test_saving.ContinueSkillTests.test_u2_the_continue_tells_its_drop_and_no_map': 'FAIL'} -> CAUGHT
 
 555 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 556 run (556 defined)
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (558 checks of 200 files, files digest c372e19918718ff8)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (558 checks of 202 files, files digest 16505826955eb99e)
 OVERALL: PASS
