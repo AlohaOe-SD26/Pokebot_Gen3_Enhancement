@@ -1,0 +1,320 @@
+CHAIN PROBE - DEVELOPMENT, NOT GRADED, NO PASS: three UNBROKEN New Game chains on today's code, chapter 1 to chapter 4 (ch1_pokedex, ch2_wally, ch3_rustboro, ch4_roxanne), one per personality and starter
+date: 2026-11-01 01:43:07   HEAD ef3a5712 (tree e775eeae00b1157a)   seeds 5983-5985, ledger entry #83 (development)
+setup: each chain in its own profile; each leg from the state and world memory the previous leg left (live_step5's run_arm); legs of 330,000 / 330,000 / 600,000 / 900,000 frames, 3,600 s each; the 12-lane bot tuner running
+PREDICTION (sha256 in the ledger entry, before the runs): CHAIN PROBE prediction (registered by sha256 in the ledger entry before the runs): on today's code every chain reaches ch1_pokedex, ch2_wally and ch3_rustboro (the 2026-10-30 r1base arms reached chapters 1-2 in 5 of 6 graded arms; the 2026-10-31 held-out reached Rustboro in 6 of 6 from chapter-2 saves). Chapter 4 has never been played: the 2026-10-15 recon predicts the Rustboro gym's trainers and ROXANNE's level as blockers (MAX_LOSSES 3, no training after a loss), so ch4_roxanne is predicted NOT reached in at least 2 of 3 chains.
+What the GAME says each leg reached, and how it ended:
+
+CHAIN 1: Story, TREECKO, seed 5983
+  L1 to ch1_pokedex: exit 0, 233.6 s, real frames 142362 of 330000, purity CLEAN, end map [1, 4], world.jsonl 7106636 B
+    told milestones: [AI-GOALS] MILESTONE ch1_intro passed as a WAYPOINT (it stood on INSIDE_OF_TRUCK; its save proofs do not hold yet) at f8613 (A New Game: name, gender, the moving truck): VAR_LITTLEROOT_INTRO_STATE=0 (>= 1) | [AI-GOALS] MILESTONE ch1_truck done at f9744 (Off the moving truck into LITTLEROOT TOWN): VISITED_LITTLEROOT_TOWN=1 | [AI-GOALS] MILESTONE ch1_mom done at f13804 (MOM shows the player into the new house): VAR_LITTLEROOT_INTRO_STATE=4 (>= 4) | [AI-GOALS] MILESTONE ch1_clock done at f16969 (Set the wall clock in the player's room): SET_WALL_CLOCK=1 | [AI-GOALS] MILESTONE ch1_rival_house done at f31605 (Next door: meet the rival in the rival's house): VAR_LITTLEROOT_RIVAL_STATE=3 (>= 3) | [AI-GOALS] MILESTONE ch1_birch done at f39591 (Route 101: PROF. BIRCH chased by a wild POKéMON; open his bag): RESCUED_BIRCH=1 | [AI-GOALS] MILESTONE ch1_starter done at f39591 (Choose a starter from t
+    [AI-EXIT] reason=play: done: ch1_pokedex reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 0, "HIDE_PETALBURG_CITY_WALLYS_MOM": 0, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 1, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 0, "TRAINER_RICK": 0, "TRAINER_TIANA": 0, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 233.4s after the run started; frame 142362 == start 0 + 142362 real frames (+-5); md5 6d7b9c84858b45409811a88dd51a5d7e (start -: a fresh boot)"}]
+    log: [AI-WORLD] navigator: 896 steps, 0 bumps, 0 people in the way, 28 exits used, 16 battles, 49 scenes, 112 decisions (18 detours, 43 carried on); 12 maps, 5015 tiles learned
+    log: [AI-HANDS] outcome='done: ch1_pokedex reached' presses=2379 frames=142362 looks=90482 records=5514
+    log: [AI-HANDS] presses by gate: {'A:battle level-up stats box': 8, 'A:battle_action cursor on 0': 42, 'A:battle_action cursor on 3': 3, 'A:battle_move cursor on 0': 38, 'A:battle_move cursor on 2': 4, 'A:choose_starter cursor on 0': 1, 'A:clock reads 10': 1, 'A:gender cursor on 0': 1, 'A:keyboard': 5, '
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=4758 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=14236
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-1\ai_player_runs\20261101-012501-C1L1\purity.json
+    log: [AI-EXIT] reason=play: done: ch1_pokedex reached code=0
+  L2 to ch2_wally: exit 0, 180.0 s, real frames 103422 of 330000, purity CLEAN, end map [8, 1], world.jsonl 8673086 B
+    told milestones: [AI-GOALS] MILESTONE ch2_route102 passed as a WAYPOINT (it stood on ROUTE102; its save proofs do not hold yet) at f151647 (West of Oldale: ROUTE 102 and its trainers (open once the adventure has started)): VISITED_PETALBURG_CITY=0 | [AI-GOALS] MILESTONE ch2_petalburg done at f200808 (PETALBURG CITY, where DAD runs the GYM): VISITED_PETALBURG_CITY=1 | [AI-GOALS] MILESTONE ch2_dad done at f233519 (DAD at the PETALBURG GYM: talk to him (WALLY walks in)): HIDE_PETALBURG_CITY_WALLYS_MOM=1 | [AI-GOALS] MILESTONE ch2_wally done at f244484 (WALLY's catching tutorial, back in the gym): VAR_PETALBURG_GYM_STATE=2 (>= 2)
+    [AI-EXIT] reason=play: done: ch2_wally reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 1, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 179.8s after the run started; frame 245784 == start 142362 + 103422 real frames (+-5); md5 37ed20e5c2666aeaff0875c9fddd9320 (start 6d7b9c84858b45409811a88dd51a5d7e)"}]
+    log: [AI-WORLD] navigator: 538 steps, 0 bumps, 4 people in the way, 16 exits used, 14 battles, 25 scenes, 72 decisions (5 detours, 41 carried on); 20 maps, 8353 tiles learned
+    log: [AI-HANDS] outcome='done: ch2_wally reached' presses=1457 frames=103422 looks=69820 records=3623
+    log: [AI-HANDS] presses by gate: {'A:bag cursor on 0': 3, 'A:bag_action cursor on 0': 3, 'A:battle level-up stats box': 4, 'A:battle_action cursor on 0': 33, 'A:battle_action cursor on 1': 3, 'A:battle_move cursor on 0': 21, 'A:battle_move cursor on 1': 2, 'A:battle_move cursor on 2': 3, 'A:battle_move c
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=2914 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=10342
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-1\ai_player_runs\20261101-012856-C1L2\purity.json
+    log: [AI-EXIT] reason=play: done: ch2_wally reached code=0
+  L3 to ch3_rustboro: exit 0, 281.6 s, real frames 164160 of 600000, purity CLEAN, end map [0, 3], world.jsonl 11957817 B
+    told milestones: [AI-GOALS] MILESTONE ch3_route104 passed as a WAYPOINT (it stood on ROUTE104; its save proofs do not hold yet) at f248844 (West of Petalburg: ROUTE 104 (south)): VAR_PETALBURG_WOODS_STATE=0 (>= 1) | [AI-GOALS] MILESTONE ch3_woods done at f332590 (PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher): VAR_PETALBURG_WOODS_STATE=1 (>= 1) | [AI-GOALS] MILESTONE ch3_rustboro done at f409929 (RUSTBORO CITY): VISITED_RUSTBORO_CITY=1 | [AI-GOALS] MILESTONE ch4_gym_trainers passed as OPTIONAL (not required; its proofs do not hold) at f409929 (The RUSTBORO GYM's trainers): TRAINER_JOSH=0, TRAINER_TOMMY=0
+    [AI-EXIT] reason=play: done: ch3_rustboro reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 1, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 1, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 281.4s after the run started; frame 409944 == start 245784 + 164160 real frames (+-5); md5 e46fdc118dc38e65afa043e836d56b8e (start 37ed20e5c2666aeaff0875c9fddd9320)"}]
+    log: [AI-WORLD] navigator: 1423 steps, 0 bumps, 11 people in the way, 17 exits used, 38 battles, 30 scenes, 185 decisions (12 detours, 161 carried on); 27 maps, 14224 tiles learned
+    log: [AI-HANDS] outcome='done: ch3_rustboro reached' presses=3474 frames=164160 looks=111167 records=7215
+    log: [AI-HANDS] presses by gate: {'A:bag cursor on 0': 2, 'A:bag cursor on 1': 1, 'A:bag_action cursor on 0': 3, 'A:battle level-up stats box': 12, 'A:battle_action cursor on 0': 77, 'A:battle_action cursor on 1': 3, 'A:battle_action cursor on 3': 13, 'A:battle_move cursor on 0': 39, 'A:battle_move curso
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=6948 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=16416
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-1\ai_player_runs\20261101-013159-C1L3\purity.json
+    log: [AI-EXIT] reason=play: done: ch3_rustboro reached code=0
+  L4 to ch4_roxanne: exit 0, 180.4 s, real frames 85108 of 900000, purity CLEAN, end map [11, 3], world.jsonl 17961002 B
+    told milestones: [AI-GOALS] MILESTONE ch4_roxanne done at f493768 (ROXANNE: the STONE BADGE): DEFEATED_RUSTBORO_GYM=1, BADGE01_GET=1
+    [AI-EXIT] reason=play: done: ch4_roxanne reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 1, "TRAINER_JOSH": 1, "TRAINER_TOMMY": 1, "DEFEATED_RUSTBORO_GYM": 1, "BADGE01_GET": 1, "TRAINER_MAY_ROUTE_103_TREECKO": 1, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 180.3s after the run started; frame 495052 == start 409944 + 85108 real frames (+-5); md5 32da12a73e4095b7774a6f28c1dc6ad8 (start e46fdc118dc38e65afa043e836d56b8e)"}]
+    log: [AI-WORLD] navigator: 763 steps, 0 bumps, 8 people in the way, 19 exits used, 9 battles, 24 scenes, 66 decisions (7 detours, 82 carried on); 32 maps, 17617 tiles learned
+    log: [AI-HANDS] outcome='done: ch4_roxanne reached' presses=1793 frames=85108 looks=57775 records=3553
+    log: [AI-HANDS] presses by gate: {'A:bag cursor on 0': 1, 'A:bag_action cursor on 0': 1, 'A:battle level-up stats box': 6, 'A:battle_action cursor on 0': 25, 'A:battle_action cursor on 1': 1, 'A:battle_move cursor on 0': 6, 'A:battle_move cursor on 1': 1, 'A:battle_move cursor on 2': 16, 'A:battle_move c
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=3586 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=85108
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-1\ai_player_runs\20261101-013643-C1L4\purity.json
+    log: [AI-EXIT] reason=play: done: ch4_roxanne reached code=0
+
+CHAIN 2: Catcher, TORCHIC, seed 5984
+  L1 to ch1_pokedex: exit 0, 242.3 s, real frames 147727 of 330000, purity CLEAN, end map [1, 4], world.jsonl 4687665 B
+    told milestones: [AI-GOALS] MILESTONE ch1_intro passed as a WAYPOINT (it stood on INSIDE_OF_TRUCK; its save proofs do not hold yet) at f8467 (A New Game: name, gender, the moving truck): VAR_LITTLEROOT_INTRO_STATE=0 (>= 1) | [AI-GOALS] MILESTONE ch1_truck done at f9576 (Off the moving truck into LITTLEROOT TOWN): VISITED_LITTLEROOT_TOWN=1 | [AI-GOALS] MILESTONE ch1_mom done at f13582 (MOM shows the player into the new house): VAR_LITTLEROOT_INTRO_STATE=4 (>= 4) | [AI-GOALS] MILESTONE ch1_clock done at f16703 (Set the wall clock in the player's room): SET_WALL_CLOCK=1 | [AI-GOALS] MILESTONE ch1_rival_house done at f32937 (Next door: meet the rival in the rival's house): VAR_LITTLEROOT_RIVAL_STATE=3 (>= 3) | [AI-GOALS] MILESTONE ch1_birch done at f42181 (Route 101: PROF. BIRCH chased by a wild POKéMON; open his bag): RESCUED_BIRCH=1 | [AI-GOALS] MILESTONE ch1_starter done at f42181 (Choose a starter from t
+    [AI-EXIT] reason=play: done: ch1_pokedex reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 0, "HIDE_PETALBURG_CITY_WALLYS_MOM": 0, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 1, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 0, "TRAINER_RICK": 0, "TRAINER_TIANA": 0, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'harness', 'game'})", "text": "the state graded is the one THIS run wrote: written 242.2s after the run started; frame 147727 == start 0 + 147727 real frames (+-5); md5 cec5ff4033c643b028b6d07ea9d67262 (start -: a fresh boot)"}]
+    log: [AI-WORLD] navigator: 866 steps, 0 bumps, 8 people in the way, 20 exits used, 25 battles, 46 scenes, 147 decisions (17 detours, 48 carried on); 12 maps, 4852 tiles learned
+    log: [AI-HANDS] outcome='done: ch1_pokedex reached' presses=2322 frames=147727 looks=95820 records=5705
+    log: [AI-HANDS] presses by gate: {'A:battle level-up stats box': 8, 'A:battle_action cursor on 0': 46, 'A:battle_action cursor on 3': 6, 'A:battle_move cursor on 0': 44, 'A:battle_move cursor on 1': 2, 'A:choose_starter cursor on 1': 1, 'A:clock reads 10': 1, 'A:gender cursor on 0': 1, 'A:keyboard': 4, '
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=4644 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=14772
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-2\ai_player_runs\20261101-012521-C2L1\purity.json
+    log: [AI-EXIT] reason=play: done: ch1_pokedex reached code=0
+  L2 to ch2_wally: exit 0, 222.6 s, real frames 121489 of 330000, purity CLEAN, end map [8, 1], world.jsonl 5415018 B
+    told milestones: [AI-GOALS] MILESTONE ch2_route102 passed as a WAYPOINT (it stood on ROUTE102; its save proofs do not hold yet) at f160308 (West of Oldale: ROUTE 102 and its trainers (open once the adventure has started)): VISITED_PETALBURG_CITY=0 | [AI-GOALS] MILESTONE ch2_petalburg done at f237678 (PETALBURG CITY, where DAD runs the GYM): VISITED_PETALBURG_CITY=1 | [AI-GOALS] MILESTONE ch2_dad done at f256974 (DAD at the PETALBURG GYM: talk to him (WALLY walks in)): HIDE_PETALBURG_CITY_WALLYS_MOM=1 | [AI-GOALS] MILESTONE ch2_wally done at f267926 (WALLY's catching tutorial, back in the gym): VAR_PETALBURG_GYM_STATE=2 (>= 2)
+    [AI-EXIT] reason=play: done: ch2_wally reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 1, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'harness', 'game'})", "text": "the state graded is the one THIS run wrote: written 222.4s after the run started; frame 269216 == start 147727 + 121489 real frames (+-5); md5 f0ff5df22c4f8c074890b9df2de4a51d (start cec5ff4033c643b028b6d07ea9d67262)"}]
+    log: [AI-WORLD] navigator: 805 steps, 0 bumps, 8 people in the way, 8 exits used, 31 battles, 19 scenes, 176 decisions (9 detours, 54 carried on); 16 maps, 7632 tiles learned
+    log: [AI-HANDS] outcome='done: ch2_wally reached' presses=2077 frames=121489 looks=82352 records=4981
+    log: [AI-HANDS] presses by gate: {'A:bag cursor on 0': 5, 'A:bag_action cursor on 0': 5, 'A:battle level-up stats box': 6, 'A:battle_action cursor on 0': 30, 'A:battle_action cursor on 1': 5, 'A:battle_action cursor on 3': 8, 'A:battle_move cursor on 0': 5, 'A:battle_move cursor on 1': 2, 'A:battle_move 
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=4154 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=12148
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-2\ai_player_runs\20261101-012925-C2L2\purity.json
+    log: [AI-EXIT] reason=play: done: ch2_wally reached code=0
+  L3 to ch3_rustboro: exit 0, 303.7 s, real frames 174320 of 600000, purity CLEAN, end map [0, 3], world.jsonl 9170185 B
+    told milestones: [AI-GOALS] MILESTONE ch3_route104 passed as a WAYPOINT (it stood on ROUTE104; its save proofs do not hold yet) at f272212 (West of Petalburg: ROUTE 104 (south)): VAR_PETALBURG_WOODS_STATE=0 (>= 1) | [AI-GOALS] MILESTONE ch3_woods done at f366067 (PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher): VAR_PETALBURG_WOODS_STATE=1 (>= 1) | [AI-GOALS] MILESTONE ch3_rustboro done at f443500 (RUSTBORO CITY): VISITED_RUSTBORO_CITY=1 | [AI-GOALS] MILESTONE ch4_gym_trainers passed as OPTIONAL (not required; its proofs do not hold) at f443500 (The RUSTBORO GYM's trainers): TRAINER_JOSH=0, TRAINER_TOMMY=0
+    [AI-EXIT] reason=play: done: ch3_rustboro reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 1, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 1, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'harness', 'game'})", "text": "the state graded is the one THIS run wrote: written 303.5s after the run started; frame 443536 == start 269216 + 174320 real frames (+-5); md5 11c35850c770f33f8c45799ca3ead0fa (start f0ff5df22c4f8c074890b9df2de4a51d)"}]
+    log: [AI-WORLD] navigator: 1161 steps, 0 bumps, 4 people in the way, 15 exits used, 45 battles, 28 scenes, 237 decisions (7 detours, 68 carried on); 23 maps, 12894 tiles learned
+    log: [AI-HANDS] outcome='done: ch3_rustboro reached' presses=2993 frames=174320 looks=120760 records=7144
+    log: [AI-HANDS] presses by gate: {'A:bag cursor on 0': 12, 'A:bag cursor on 2': 1, 'A:bag_action cursor on 0': 13, 'A:battle level-up stats box': 10, 'A:battle_action cursor on 0': 52, 'A:battle_action cursor on 1': 13, 'A:battle_action cursor on 3': 13, 'A:battle_move cursor on 0': 21, 'A:battle_move cu
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=5986 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=17432
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-2\ai_player_runs\20261101-013310-C2L3\purity.json
+    log: [AI-EXIT] reason=play: done: ch3_rustboro reached code=0
+  L4 to ch4_roxanne: exit 0, 69.9 s, real frames 32337 of 900000, purity CLEAN, end map [11, 3], world.jsonl 2385390 B
+    told milestones: [AI-GOALS] MILESTONE ch4_roxanne done at f474584 (ROXANNE: the STONE BADGE): DEFEATED_RUSTBORO_GYM=1, BADGE01_GET=1
+    [AI-EXIT] reason=play: done: ch4_roxanne reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 1, "TRAINER_JOSH": 1, "TRAINER_TOMMY": 1, "DEFEATED_RUSTBORO_GYM": 1, "BADGE01_GET": 1, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 1, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 0, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'harness', 'game'})", "text": "the state graded is the one THIS run wrote: written 69.8s after the run started; frame 475873 == start 443536 + 32337 real frames (+-5); md5 f148ba28989aaa93c6143af4927fb55a (start 11c35850c770f33f8c45799ca3ead0fa)"}]
+    log: [AI-WORLD] navigator: 131 steps, 0 bumps, 2 people in the way, 1 exits used, 2 battles, 5 scenes, 17 decisions (2 detours, 41 carried on); 24 maps, 14144 tiles learned
+    log: [AI-HANDS] outcome='done: ch4_roxanne reached' presses=358 frames=32337 looks=21455 records=1002
+    log: [AI-HANDS] presses by gate: {'A:battle level-up stats box': 4, 'A:battle_action cursor on 0': 6, 'A:battle_move cursor on 1': 6, 'A:battle_yes_no cursor on 1': 3, 'A:save_yes_no cursor on 0': 4, 'A:script waitbuttonpress': 7, 'A:start_menu cursor on 4': 2, 'A:talk': 3, 'A:text printer 0 CLEAR': 43, 
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=716 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=32337 
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-2\ai_player_runs\20261101-013817-C2L4\purity.json
+    log: [AI-EXIT] reason=play: done: ch4_roxanne reached code=0
+
+CHAIN 3: Trainer, MUDKIP, seed 5985
+  L1 to ch1_pokedex: exit 0, 258.0 s, real frames 154815 of 330000, purity CLEAN, end map [1, 4], world.jsonl 6194587 B
+    told milestones: [AI-GOALS] MILESTONE ch1_intro passed as a WAYPOINT (it stood on INSIDE_OF_TRUCK; its save proofs do not hold yet) at f8584 (A New Game: name, gender, the moving truck): VAR_LITTLEROOT_INTRO_STATE=0 (>= 1) | [AI-GOALS] MILESTONE ch1_truck done at f9680 (Off the moving truck into LITTLEROOT TOWN): VISITED_LITTLEROOT_TOWN=1 | [AI-GOALS] MILESTONE ch1_mom done at f13751 (MOM shows the player into the new house): VAR_LITTLEROOT_INTRO_STATE=4 (>= 4) | [AI-GOALS] MILESTONE ch1_clock done at f16937 (Set the wall clock in the player's room): SET_WALL_CLOCK=1 | [AI-GOALS] MILESTONE ch1_rival_house done at f33726 (Next door: meet the rival in the rival's house): VAR_LITTLEROOT_RIVAL_STATE=3 (>= 3) | [AI-GOALS] MILESTONE ch1_birch done at f40712 (Route 101: PROF. BIRCH chased by a wild POKéMON; open his bag): RESCUED_BIRCH=1 | [AI-GOALS] MILESTONE ch1_starter done at f40712 (Choose a starter from t
+    [AI-EXIT] reason=play: done: ch1_pokedex reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 0, "HIDE_PETALBURG_CITY_WALLYS_MOM": 0, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 1, "TRAINER_CALVIN_1": 0, "TRAINER_RICK": 0, "TRAINER_TIANA": 0, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 257.8s after the run started; frame 154815 == start 0 + 154815 real frames (+-5); md5 b3f06bc9453f56f10873f3cad12cde40 (start -: a fresh boot)"}]
+    log: [AI-WORLD] navigator: 991 steps, 0 bumps, 2 people in the way, 24 exits used, 26 battles, 45 scenes, 152 decisions (12 detours, 43 carried on); 12 maps, 4981 tiles learned
+    log: [AI-HANDS] outcome='done: ch1_pokedex reached' presses=2619 frames=154815 looks=99217 records=6135
+    log: [AI-HANDS] presses by gate: {'A:battle level-up stats box': 10, 'A:battle_action cursor on 0': 53, 'A:battle_action cursor on 3': 5, 'A:battle_move cursor on 0': 47, 'A:battle_move cursor on 1': 2, 'A:battle_move cursor on 2': 4, 'A:choose_starter cursor on 2': 1, 'A:clock reads 10': 1, 'A:gender cu
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=5238 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=15481
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-3\ai_player_runs\20261101-012541-C3L1\purity.json
+    log: [AI-EXIT] reason=play: done: ch1_pokedex reached code=0
+  L2 to ch2_wally: exit 0, 243.8 s, real frames 135368 of 330000, purity CLEAN, end map [8, 1], world.jsonl 8910011 B
+    told milestones: [AI-GOALS] MILESTONE ch2_route102 passed as a WAYPOINT (it stood on ROUTE102; its save proofs do not hold yet) at f164366 (West of Oldale: ROUTE 102 and its trainers (open once the adventure has started)): VISITED_PETALBURG_CITY=0 | [AI-GOALS] MILESTONE ch2_petalburg done at f261760 (PETALBURG CITY, where DAD runs the GYM): VISITED_PETALBURG_CITY=1 | [AI-GOALS] MILESTONE ch2_dad done at f277889 (DAD at the PETALBURG GYM: talk to him (WALLY walks in)): HIDE_PETALBURG_CITY_WALLYS_MOM=1 | [AI-GOALS] MILESTONE ch2_wally done at f288883 (WALLY's catching tutorial, back in the gym): VAR_PETALBURG_GYM_STATE=2 (>= 2)
+    [AI-EXIT] reason=play: done: ch2_wally reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 0, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 243.6s after the run started; frame 290183 == start 154815 + 135368 real frames (+-5); md5 437bb44ce8fe1161cb622c6182532c56 (start b3f06bc9453f56f10873f3cad12cde40)"}]
+    log: [AI-WORLD] navigator: 991 steps, 0 bumps, 16 people in the way, 14 exits used, 29 battles, 24 scenes, 172 decisions (9 detours, 27 carried on); 17 maps, 7733 tiles learned
+    log: [AI-HANDS] outcome='done: ch2_wally reached' presses=2503 frames=135368 looks=90573 records=5662
+    log: [AI-HANDS] presses by gate: {'A:bag cursor on 0': 6, 'A:bag_action cursor on 0': 6, 'A:battle level-up stats box': 6, 'A:battle_action cursor on 0': 41, 'A:battle_action cursor on 1': 6, 'A:battle_action cursor on 3': 3, 'A:battle_move cursor on 0': 18, 'A:battle_move cursor on 1': 2, 'A:battle_move
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=5006 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=13536
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-3\ai_player_runs\20261101-013000-C3L2\purity.json
+    log: [AI-EXIT] reason=play: done: ch2_wally reached code=0
+  L3 to ch3_rustboro: exit 0, 437.1 s, real frames 252319 of 600000, purity CLEAN, end map [0, 19], world.jsonl 20165369 B
+    told milestones: [AI-GOALS] MILESTONE ch3_route104 passed as a WAYPOINT (it stood on ROUTE104; its save proofs do not hold yet) at f316144 (West of Petalburg: ROUTE 104 (south)): VAR_PETALBURG_WOODS_STATE=0 (>= 1) | [AI-GOALS] MILESTONE ch3_woods done at f465485 (PETALBURG WOODS: the TEAM AQUA GRUNT bothering the DEVON researcher): VAR_PETALBURG_WOODS_STATE=1 (>= 1) | [AI-GOALS] MILESTONE ch3_rustboro done at f542468 (RUSTBORO CITY): VISITED_RUSTBORO_CITY=1 | [AI-GOALS] MILESTONE ch4_gym_trainers passed as OPTIONAL (not required; its proofs do not hold) at f542468 (The RUSTBORO GYM's trainers): TRAINER_JOSH=0, TRAINER_TOMMY=0
+    [AI-EXIT] reason=play: done: ch3_rustboro reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 1, "TRAINER_JOSH": 0, "TRAINER_TOMMY": 0, "DEFEATED_RUSTBORO_GYM": 0, "BADGE01_GET": 0, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 437.0s after the run started; frame 542502 == start 290183 + 252319 real frames (+-5); md5 90590dfc24271919b924de03b593b451 (start 437bb44ce8fe1161cb622c6182532c56)"}]
+    log: [AI-WORLD] navigator: 2116 steps, 0 bumps, 12 people in the way, 25 exits used, 73 battles, 35 scenes, 361 decisions (16 detours, 89 carried on); 27 maps, 14670 tiles learned
+    log: [AI-HANDS] outcome='done: ch3_rustboro reached' presses=5153 frames=252319 looks=174114 records=10932
+    log: [AI-HANDS] presses by gate: {'A:bag cursor on 0': 9, 'A:bag cursor on 1': 1, 'A:bag_action cursor on 0': 10, 'A:battle level-up stats box': 12, 'A:battle_action cursor on 0': 85, 'A:battle_action cursor on 1': 10, 'A:battle_action cursor on 3': 9, 'A:battle_move cursor on 0': 24, 'A:battle_move curs
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=10306 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=2523
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-3\ai_player_runs\20261101-013407-C3L3\purity.json
+    log: [AI-EXIT] reason=play: done: ch3_rustboro reached code=0
+  L4 to ch4_roxanne: exit 0, 97.1 s, real frames 49350 of 900000, purity CLEAN, end map [11, 3], world.jsonl 4899024 B
+    told milestones: [AI-GOALS] MILESTONE ch4_roxanne done at f590531 (ROXANNE: the STONE BADGE): DEFEATED_RUSTBORO_GYM=1, BADGE01_GET=1
+    [AI-EXIT] reason=play: done: ch4_roxanne reached code=0
+    marks after: {"VISITED_LITTLEROOT_TOWN": 1, "SET_WALL_CLOCK": 1, "RESCUED_BIRCH": 1, "SYS_POKEMON_GET": 1, "DEFEATED_RIVAL_ROUTE103": 1, "RECEIVED_POKEDEX_FROM_BIRCH": 1, "SYS_POKEDEX_GET": 1, "ADVENTURE_STARTED": 1, "VISITED_OLDALE_TOWN": 1, "VISITED_PETALBURG_CITY": 1, "HIDE_PETALBURG_CITY_WALLYS_MOM": 1, "VISITED_RUSTBORO_CITY": 1, "TRAINER_JOSH": 1, "TRAINER_TOMMY": 1, "DEFEATED_RUSTBORO_GYM": 1, "BADGE01_GET": 1, "TRAINER_MAY_ROUTE_103_TREECKO": 0, "TRAINER_MAY_ROUTE_103_TORCHIC": 0, "TRAINER_MAY_ROUTE_103_MUDKIP": 0, "TRAINER_BRENDAN_ROUTE_103_TREECKO": 0, "TRAINER_BRENDAN_ROUTE_103_TORCHIC": 0, "TRAINER_BRENDAN_ROUTE_103_MUDKIP": 1, "TRAINER_CALVIN_1": 1, "TRAINER_RICK": 1, "TRAINER_TIANA": 1, "TR
+    freshness: [{"id": "L5.THIS_RUN", "kind": "GRADED", "status": "PASS", "n": 1, "floor": 1, "inputs": "frozenset({'game', 'harness'})", "text": "the state graded is the one THIS run wrote: written 97.0s after the run started; frame 591852 == start 542502 + 49350 real frames (+-5); md5 6e45fe2478bf64895ec38b496300269e (start 90590dfc24271919b924de03b593b451)"}]
+    log: [AI-WORLD] navigator: 209 steps, 0 bumps, 4 people in the way, 5 exits used, 3 battles, 9 scenes, 35 decisions (0 detours, 31 carried on); 29 maps, 16324 tiles learned
+    log: [AI-HANDS] outcome='done: ch4_roxanne reached' presses=591 frames=49350 looks=32553 records=1579
+    log: [AI-HANDS] presses by gate: {'A:battle level-up stats box': 8, 'A:battle_action cursor on 0': 13, 'A:battle_move cursor on 0': 4, 'A:battle_move cursor on 2': 7, 'A:battle_move cursor on 3': 2, 'A:battle_target cursor on 1': 6, 'A:battle_target cursor on 3': 2, 'A:battle_yes_no cursor on 1': 2, 'A:s
+    log: [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=1182 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_finish=0 isolation_lost=0 real_frames=49350
+    log: [AI-PURITY-ORIGINS] none
+    log: [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRecorderListener,_WatchdogListener] list_i
+    log: [AI-LIFECYCLE] verdict file written: C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\ai-chain-probe-3\ai_player_runs\20261101-014127-C3L4\purity.json
+    log: [AI-EXIT] reason=play: done: ch4_roxanne reached code=0
+
+APPENDIX: the driver that ran this probe (session scratch s53/chain/chain_probe.py, sha256 9c3e53c917c1f3c9), verbatim. To re-run: save it as a .py file outside the repo, pick NEW development seeds (change SEED0; the ledger refuses used ones), and run it with py -3.12 from a clean, pushed checkout.
+----------------------------------------------------------------------------------------------------
+"""CHAIN PROBE (development, not graded): three UNBROKEN chains on today's code, each from a real New Game through chapter 1
+(ch1_pokedex), 2 (ch2_wally), 3 (ch3_rustboro) and 4 (ch4_roxanne), one per personality and starter (Story/TREECKO,
+Catcher/TORCHIC, Trainer/MUDKIP), each chain in its own disposable profile, the three in parallel. Each leg starts from the
+state AND the world memory the previous leg left (live_step5's method, `run_arm` with a carried dict). Every leg goes through
+the real launcher (purity per launch); what a leg reached is read from the GAME (truth) on the state it left, freshness-checked
+(L5.THIS_RUN). DEVELOPMENT seeds 5983-5985 (one ledger entry; the prediction's sha256 is its bounds field). No PASS.
+
+    py -3.12 chain_probe.py            the orchestrator (refuses unless HEAD is origin/main and the checkout is clean)
+    py -3.12 chain_probe.py --child N  one chain (N = 1, 2, 3)
+"""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+REPO = Path("C:/Remote Projects/Pokebot_Gen3_Enhancement")
+sys.path.insert(0, str(REPO))
+HERE = Path(__file__).resolve().parent
+CHAINS = {1: ("Story", "TREECKO"), 2: ("Catcher", "TORCHIC"), 3: ("Trainer", "MUDKIP")}
+SEED0 = 5982
+LEGS = [("L1", "ch1_pokedex", 330000), ("L2", "ch2_wally", 330000), ("L3", "ch3_rustboro", 600000),
+        ("L4", "ch4_roxanne", 900000)]
+WALL = 3600.0
+PREDICTION = ("CHAIN PROBE prediction (registered by sha256 in the ledger entry before the runs): on today's code every chain "
+              "reaches ch1_pokedex, ch2_wally and ch3_rustboro (the 2026-10-30 r1base arms reached chapters 1-2 in 5 of 6 "
+              "graded arms; the 2026-10-31 held-out reached Rustboro in 6 of 6 from chapter-2 saves). Chapter 4 has never been "
+              "played: the 2026-10-15 recon predicts the Rustboro gym's trainers and ROXANNE's level as blockers (MAX_LOSSES 3, "
+              "no training after a loss), so ch4_roxanne is predicted NOT reached in at least 2 of 3 chains.")
+
+
+def git(*args: str) -> str:
+    return subprocess.run(["git", "-C", str(REPO), *args], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def child(n: int) -> None:
+    from ai_player.gates import live_step5 as L5
+    L5.PROFILE = f"ai-chain-probe-{n}"
+    personality, starter = CHAINS[n]
+    seed = SEED0 + n
+    build_root = L5.launcher.resolve_build_root(None)
+    carried: dict = {}
+    legs_out = []
+    previous = None
+    for name, target, frames in LEGS:
+        arm_name = f"C{n}{name}"
+        env = L5.play_env(personality, starter if previous is None else None, target)
+        arm = L5.Arm(arm_name, f"chain {n} ({personality}, {starter}) leg {name}: to {target}", frames, WALL, env, seed=seed,
+                     fresh=previous is None, state_from=previous)
+        run = L5.run_arm(arm, build_root, carried)
+        L5.check_after_is_this_run(run)
+        after = run.after or {}
+        world = run.run_dir / "world.jsonl" if run.run_dir else None
+        legs_out.append({
+            "leg": name, "target": target, "frames_budget": frames, "exit": run.exit_code,
+            "elapsed": round(run.elapsed or 0, 1), "run_dir": str(run.run_dir),
+            "verdict": (run.verdict or {}).get("verdict"), "counters": (run.verdict or {}).get("counters"),
+            "fresh": [getattr(c, "__dict__", str(c)) for c in run.checks][-1:],
+            "map_after": after.get("map"), "marks_after": L5.marks(after),
+            "milestones_told": [str(r.get("reason"))[:240] for r in L5.tells(run, "MILESTONE ")],
+            "log_tail": run.ai_log.splitlines()[-14:], "harness_stop": run.measures.get("harness_stop"),
+            "world_bytes": world.stat().st_size if world and world.is_file() else None, "notes": run.notes,
+        })
+        (HERE / f"chain-out-{n}.json").write_text(json.dumps({"n": n, "personality": personality, "starter": starter,
+                                                              "seed": seed, "legs": legs_out}, indent=1, ensure_ascii=False,
+                                                             default=str), encoding="utf-8")
+        print(f"[C{n}] {name} exit {run.exit_code} {run.elapsed:.0f}s map {after.get('map')}", flush=True)
+        if arm_name not in carried:
+            print(f"[C{n}] {name} left no state and world memory to carry: the chain stops here", flush=True)
+            break
+        previous = arm_name
+
+
+def summary_line(leg: dict) -> str:
+    hs = leg.get("harness_stop") or {}
+    end = next((line for line in reversed(leg.get("log_tail") or []) if "[AI-EXIT]" in line), "")
+    return (f"  {leg['leg']} to {leg['target']}: exit {leg['exit']}, {leg['elapsed']} s, real frames {hs.get('real_frames')} "
+            f"of {leg['frames_budget']}, purity {leg['verdict']}, end map {leg['map_after']}, world.jsonl {leg['world_bytes']} B"
+            f"\n    told milestones: {' | '.join(leg['milestones_told'])[:900]}\n    {end[:400]}")
+
+
+def orchestrate() -> int:
+    from ai_player.gates import ledger
+    from ai_player.gates import live_step5 as L5
+    git("fetch", "-q", "origin")
+    if git("rev-parse", "HEAD") != git("rev-parse", "origin/main"):
+        raise SystemExit("REFUSED: HEAD is not origin/main")
+    if git("status", "--porcelain"):
+        raise SystemExit("REFUSED: the checkout is not clean")
+    head = git("rev-parse", "--short", "HEAD")
+    tree = git("rev-parse", "HEAD^{tree}")[:16]
+    entry, lines = ledger.begin("story", "chain_probe", "development", SEED0 + 1, SEED0 + 3,
+                                hashlib.sha256(PREDICTION.encode("utf-8")).hexdigest(), tree,
+                                note=f"CHAIN PROBE: three unbroken New Game chains to ch4_roxanne on HEAD {head}; the "
+                                     f"prediction's sha256 is the bounds field")
+    print("\n".join(lines), flush=True)
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+    procs = {}
+    for n in CHAINS:
+        log = open(HERE / f"chain-child-{n}.log", "w", encoding="utf-8")
+        procs[n] = (subprocess.Popen([sys.executable, "-B", str(Path(__file__).resolve()), "--child", str(n)], cwd=str(REPO),
+                                     env=env, stdout=log, stderr=subprocess.STDOUT), log)
+        time.sleep(20)
+    for n, (proc, log) in procs.items():
+        proc.wait()
+        log.close()
+    results = []
+    for n in CHAINS:
+        path = HERE / f"chain-out-{n}.json"
+        results.append(json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {"n": n, "missing": True})
+    ev = L5.EVIDENCE_DIR / f"{time.strftime('%Y-%m-%d')}-chain-probe.txt"
+    out = [f"CHAIN PROBE - DEVELOPMENT, NOT GRADED, NO PASS: three UNBROKEN New Game chains on today's code, chapter 1 to "
+           f"chapter 4 (ch1_pokedex, ch2_wally, ch3_rustboro, ch4_roxanne), one per personality and starter",
+           f"date: {time.strftime('%Y-%m-%d %H:%M:%S')}   HEAD {head} (tree {tree})   seeds {SEED0 + 1}-{SEED0 + 3}, ledger "
+           f"entry #{entry['id']} (development)",
+           "setup: each chain in its own profile; each leg from the state and world memory the previous leg left (live_step5's "
+           "run_arm); legs of 330,000 / 330,000 / 600,000 / 900,000 frames, 3,600 s each; the 12-lane bot tuner running",
+           f"PREDICTION (sha256 in the ledger entry, before the runs): {PREDICTION}",
+           "What the GAME says each leg reached, and how it ended:"]
+    for r in results:
+        out.append("")
+        if r.get("missing"):
+            out.append(f"CHAIN {r['n']}: NO RESULT FILE (see the child log in the session scratch)")
+            continue
+        out.append(f"CHAIN {r['n']}: {r['personality']}, {r['starter']}, seed {r['seed']}")
+        for leg in r["legs"]:
+            out.append(summary_line(leg))
+            out.append(f"    marks after: {json.dumps(leg['marks_after'], ensure_ascii=False)[:700]}")
+            out.append(f"    freshness: {json.dumps(leg['fresh'], ensure_ascii=False, default=str)[:500]}")
+            out += [f"    log: {line[:300]}" for line in leg["log_tail"][-8:]]
+    ev.write_text("\n".join(out) + "\n", encoding="utf-8")
+    done = sum(1 for r in results if not r.get("missing"))
+    ledger.finish(entry["id"], f"DEVELOPMENT, not graded: the chain probe ({done} of 3 chains ran; read the evidence)",
+                  str(ev.relative_to(REPO)).replace("\\", "/"))
+    print(f"[CHAIN] evidence: {ev}", flush=True)
+    for r in results:
+        if r.get("missing"):
+            continue
+        print(f"[C{r['n']}] " + "; ".join(f"{leg['leg']} {leg['target']} exit {leg['exit']} map {leg['map_after']}"
+                                         for leg in r["legs"]), flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--child":
+        child(int(sys.argv[2]))
+    else:
+        sys.exit(orchestrate())
