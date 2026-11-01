@@ -13,6 +13,15 @@
  },
  "gendered_maps": {},
  "looks": {
+  "brawly": {
+   "gfx": [
+    126
+   ],
+   "decomp_const": "OBJ_EVENT_GFX_BRAWLY",
+   "map": "DewfordTown_Gym",
+   "script": "DewfordTown_Gym_EventScript_Brawly",
+   "what": "BRAWLY, the DEWFORD GYM leader"
+  },
   "mr_briney": {
    "gfx": [
     21
@@ -22,6 +31,15 @@
    "script": "Route104_MrBrineysHouse_EventScript_Briney",
    "what": "MR. BRINEY, the old sailor (his cottage on ROUTE 104; the same figure stands at the DEWFORD and SLATEPORT landings)"
   },
+  "mr_stone": {
+   "gfx": [
+    48
+   ],
+   "decomp_const": "OBJ_EVENT_GFX_GENTLEMAN",
+   "map": "RustboroCity_DevonCorp_3F",
+   "script": "RustboroCity_DevonCorp_3F_EventScript_MrStone",
+   "what": "MR. STONE, the DEVON president, at his desk on the 3rd floor"
+  },
   "old_rod_fisherman": {
    "gfx": [
     50
@@ -30,6 +48,15 @@
    "map": "DewfordTown",
    "script": "DewfordTown_EventScript_OldRodFisherman",
    "what": "the DEWFORD fisherman who gives the OLD ROD"
+  },
+  "steven": {
+   "gfx": [
+    134
+   ],
+   "decomp_const": "OBJ_EVENT_GFX_STEVEN",
+   "map": "GraniteCave_StevensRoom",
+   "script": "GraniteCave_StevensRoom_EventScript_Steven",
+   "what": "STEVEN, in his room at the back of GRANITE CAVE"
   }
  },
  "trainers": {
@@ -86,6 +113,57 @@
    "levels": [
     13,
     15
+   ]
+  },
+  "TAKAO": {
+   "id": 179,
+   "flag": 1459,
+   "levels": [
+    13
+   ]
+  },
+  "JOCELYN": {
+   "id": 425,
+   "flag": 1705,
+   "levels": [
+    13
+   ]
+  },
+  "LAURA": {
+   "id": 426,
+   "flag": 1706,
+   "levels": [
+    13
+   ]
+  },
+  "BRENDEN": {
+   "id": 572,
+   "flag": 1852,
+   "levels": [
+    13
+   ]
+  },
+  "CRISTIAN": {
+   "id": 574,
+   "flag": 1854,
+   "levels": [
+    13
+   ]
+  },
+  "LILITH": {
+   "id": 573,
+   "flag": 1853,
+   "levels": [
+    13
+   ]
+  },
+  "BRAWLY_1": {
+   "id": 266,
+   "flag": 1546,
+   "levels": [
+    16,
+    16,
+    19
    ]
   }
  },
@@ -620,6 +698,270 @@
    "taught_by": [],
    "decomp": {
     "RECEIVED_OLD_ROD": "data/maps/DewfordTown/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_steven",
+   "chapter": 7,
+   "title": "GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN",
+   "done": {
+    "flags": {
+     "DELIVERED_STEVEN_LETTER": 189,
+     "REGISTERED_STEVEN_POKENAV": 305
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "DEWFORD_TOWN",
+    "ROUTE106",
+    "GRANITE_CAVE_1F",
+    "GRANITE_CAVE_B1F",
+    "GRANITE_CAVE_STEVENS_ROOM"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "DEWFORD_TOWN",
+     "told": "STEVEN in DEWFORD",
+     "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+    },
+    {
+     "do": "go",
+     "map": "GRANITE_CAVE_1F"
+    },
+    {
+     "do": "go",
+     "map": "GRANITE_CAVE_STEVENS_ROOM"
+    },
+    {
+     "do": "talk",
+     "map": "GRANITE_CAVE_STEVENS_ROOM",
+     "look": "steven"
+    }
+   ],
+   "hint": {
+    "said": "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION. I'd just got word about you! You saved our staff not just once, but twice! I have a favor to ask of an amazing person like you. I understand that you're delivering a package to SLATEPORT's SHIPYARD. Well, on the way, could you stop off in DEWFORD TOWN? I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",
+    "words": "STEVEN in DEWFORD",
+    "map": "DEWFORD_TOWN",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "NO line of dialogue names GRANITE CAVE: MR. STONE says 'STEVEN in DEWFORD', MR. BRINEY 'who was it now, STEVEN', and the HIKER inside the cave 'that guy who came by earlier... STEVEN'. The cave mouth is on ROUTE 106 (GRANITE_CAVE_1F warp (37,12)); STEVEN's door is the (5,10) warp on 1F and 1F's warps to B1F (a dark map, maps.json requires_flash) lead to it, so the way to his room goes through the dark B1F. Darkness shrinks the view; FLASH needs BADGE02. Whether B1F can be crossed unlit was NOT run: marked uncertain in the report. Steven hands over TM STEEL WING in the same script",
+   "taught_by": [],
+   "decomp": {
+    "DELIVERED_STEVEN_LETTER": "data/maps/GraniteCave_StevensRoom/scripts.inc",
+    "REGISTERED_STEVEN_POKENAV": "data/maps/GraniteCave_StevensRoom/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_flash",
+   "chapter": 7,
+   "title": "GRANITE CAVE 1F: the HIKER's HM FLASH",
+   "done": {
+    "flags": {
+     "RECEIVED_HM_FLASH": 109
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "GRANITE_CAVE_1F"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "GRANITE_CAVE_1F"
+    }
+   ],
+   "hint": {
+    "said": "Hey, you. It gets awfully dark ahead. It'll be tough trying to explore. That guy who came by earlier… STEVEN, I think it was. He knew how to use FLASH, so he ought to be all right, but… Well, for us HIKERS, helping out those that we meet is our motto. Here you go, I'll pass this on to you.",
+    "words": null,
+    "map": "GRANITE_CAVE_1F",
+    "file": "data/maps/GraniteCave_1F/scripts.inc"
+   },
+   "fight": null,
+   "note": "optional gift. Using FLASH outside battle needs BADGE02 (src/party_menu.c, FIELD_MOVE_FLASH), i.e. Brawly first",
+   "taught_by": [],
+   "decomp": {
+    "RECEIVED_HM_FLASH": "data/maps/GraniteCave_1F/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_gym_trainers",
+   "chapter": 7,
+   "title": "The DEWFORD GYM's trainers",
+   "done": {
+    "flags": {},
+    "variables": {},
+    "trainers": {
+     "TAKAO": 1459,
+     "JOCELYN": 1705,
+     "LAURA": 1706,
+     "BRENDEN": 1852,
+     "CRISTIAN": 1854,
+     "LILITH": 1853
+    }
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "DEWFORD_TOWN_GYM"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "DEWFORD_TOWN_GYM",
+     "told": "BRAWLY"
+    },
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "DEWFORD TOWN POKéMON GYM LEADER: BRAWLY “A big wave in fighting!”",
+    "words": "BRAWLY",
+    "map": "DEWFORD_TOWN_GYM",
+    "file": "data/maps/DewfordTown/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "TAKAO",
+     "JOCELYN",
+     "LAURA",
+     "BRENDEN",
+     "CRISTIAN",
+     "LILITH"
+    ],
+    "levels": [
+     13
+    ],
+    "per_trainer": {
+     "TAKAO": [
+      13
+     ],
+     "JOCELYN": [
+      13
+     ],
+     "LAURA": [
+      13
+     ],
+     "BRENDEN": [
+      13
+     ],
+     "CRISTIAN": [
+      13
+     ],
+     "LILITH": [
+      13
+     ]
+    }
+   },
+   "note": "optional (DewfordTown_Gym_EventScript_CountTrainersDefeated lights the dark room by the number beaten; BRAWLY can be fought without them)",
+   "taught_by": [],
+   "decomp": {}
+  },
+  {
+   "id": "ch7_brawly",
+   "chapter": 7,
+   "title": "BRAWLY: the KNUCKLE BADGE",
+   "done": {
+    "flags": {
+     "DEFEATED_DEWFORD_GYM": 1265,
+     "BADGE02_GET": 2152
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "DEWFORD_TOWN_GYM"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "DEWFORD_TOWN_GYM",
+     "told": "BRAWLY"
+    },
+    {
+     "do": "talk",
+     "map": "DEWFORD_TOWN_GYM",
+     "look": "brawly"
+    }
+   ],
+   "hint": {
+    "said": "DEWFORD TOWN POKéMON GYM LEADER: BRAWLY “A big wave in fighting!”",
+    "words": "BRAWLY",
+    "map": "DEWFORD_TOWN_GYM",
+    "file": "data/maps/DewfordTown/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "BRAWLY_1"
+    ],
+    "named": true,
+    "levels": [
+     16,
+     19
+    ],
+    "per_trainer": {
+     "BRAWLY_1": [
+      16,
+      16,
+      19
+     ]
+    }
+   },
+   "note": "BRAWLY is a trainerbattle_single with an on-defeat script (DewfordTown_Gym_EventScript_BrawlyDefeated) that sets both flags, then gives TM BULK UP. The TM's FLAG_RECEIVED_TM_BULK_UP is set in TWO places (GiveBulkUp and GiveBulkUp2, both in DewfordTown_Gym) and is skipped when the bag is full, so it is not a proof. The hint is the GYM SIGN ('LEADER: BRAWLY'); MR. STONE and the HIKER name only 'DEWFORD'S POKéMON GYM'",
+   "taught_by": [],
+   "decomp": {
+    "DEFEATED_DEWFORD_GYM": "data/maps/DewfordTown_Gym/scripts.inc",
+    "BADGE02_GET": "data/maps/DewfordTown_Gym/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_exp_share",
+   "chapter": 7,
+   "title": "Back in RUSTBORO: MR. STONE thanks the player for the LETTER (EXP. SHARE)",
+   "done": {
+    "flags": {
+     "RECEIVED_EXP_SHARE": 272
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "RUSTBORO_CITY_DEVON_CORP_3F"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "RUSTBORO_CITY_DEVON_CORP_3F"
+    },
+    {
+     "do": "talk",
+     "map": "RUSTBORO_CITY_DEVON_CORP_3F",
+     "look": "mr_stone"
+    }
+   ],
+   "hint": {
+    "said": "MR. STONE: I'm counting on you!",
+    "words": null,
+    "map": "RUSTBORO_CITY_DEVON_CORP_3F",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "optional: needs FLAG_DELIVERED_STEVEN_LETTER, then a trip back to RUSTBORO (boat to PETALBURG, walk), talking to MR. STONE (RustboroCity_DevonCorp_3F_EventScript_GiveExpShare)",
+   "taught_by": [],
+   "decomp": {
+    "RECEIVED_EXP_SHARE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
    }
   }
  ],
@@ -1618,6 +1960,373 @@
    },
    "maps": {
     "DEWFORD_TOWN": "data/maps/DewfordTown/map.json id"
+   },
+   "fight": null
+  },
+  "ch7_steven": {
+   "flags": {
+    "DELIVERED_STEVEN_LETTER": {
+     "number": 189,
+     "define": "include/constants/flags.h:211",
+     "setters": [
+      {
+       "file": "data/maps/GraniteCave_StevensRoom/scripts.inc",
+       "line": 10,
+       "text": "setflag FLAG_DELIVERED_STEVEN_LETTER"
+      }
+     ]
+    },
+    "REGISTERED_STEVEN_POKENAV": {
+     "number": 305,
+     "define": "include/constants/flags.h:331",
+     "setters": [
+      {
+       "file": "data/maps/GraniteCave_StevensRoom/scripts.inc",
+       "line": 22,
+       "text": "setflag FLAG_REGISTERED_STEVEN_POKENAV"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity_DevonCorp_3F/scripts.inc:193 RustboroCity_DevonCorp_3F_Text_MrStoneIHaveFavor"
+    ]
+   },
+   "maps": {
+    "DEWFORD_TOWN": "data/maps/DewfordTown/map.json id",
+    "ROUTE106": "data/maps/Route106/map.json id",
+    "GRANITE_CAVE_1F": "data/maps/GraniteCave_1F/map.json id",
+    "GRANITE_CAVE_B1F": "data/maps/GraniteCave_B1F/map.json id",
+    "GRANITE_CAVE_STEVENS_ROOM": "data/maps/GraniteCave_StevensRoom/map.json id"
+   },
+   "fight": null
+  },
+  "ch7_flash": {
+   "flags": {
+    "RECEIVED_HM_FLASH": {
+     "number": 109,
+     "define": "include/constants/flags.h:129",
+     "setters": [
+      {
+       "file": "data/maps/GraniteCave_1F/scripts.inc",
+       "line": 10,
+       "text": "setflag FLAG_RECEIVED_HM_FLASH"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/GraniteCave_1F/scripts.inc:20 GraniteCave_1F_Text_GetsDarkAheadHereYouGo"
+    ]
+   },
+   "maps": {
+    "GRANITE_CAVE_1F": "data/maps/GraniteCave_1F/map.json id"
+   },
+   "fight": null
+  },
+  "ch7_gym_trainers": {
+   "flags": {},
+   "vars": {},
+   "trainers": {
+    "TAKAO": {
+     "flag": 1459,
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown_Gym/scripts.inc",
+       "line": 191,
+       "text": "trainerbattle_single TRAINER_TAKAO, DewfordTown_Gym_Text_TakaoIntro, DewfordTown_Gym_Text_TakaoDefeat, DewfordTown_Gym_EventScript_TakaoBrightenRoom"
+      }
+     ],
+     "id": 179,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MACHOP"
+     ],
+     "class": "BLACK_BELT",
+     "double": false,
+     "trainers_h_line": 2152,
+     "party_label": "sParty_Takao",
+     "party_line": 2155
+    },
+    "JOCELYN": {
+     "flag": 1705,
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown_Gym/scripts.inc",
+       "line": 201,
+       "text": "trainerbattle_single TRAINER_JOCELYN, DewfordTown_Gym_Text_JocelynIntro, DewfordTown_Gym_Text_JocelynDefeat, DewfordTown_Gym_EventScript_JocelynBrightenRoom"
+      }
+     ],
+     "id": 425,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MEDITITE"
+     ],
+     "class": "BATTLE_GIRL",
+     "double": false,
+     "trainers_h_line": 5104,
+     "party_label": "sParty_Jocelyn",
+     "party_line": 5592
+    },
+    "LAURA": {
+     "flag": 1706,
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown_Gym/scripts.inc",
+       "line": 211,
+       "text": "trainerbattle_single TRAINER_LAURA, DewfordTown_Gym_Text_LauraIntro, DewfordTown_Gym_Text_LauraDefeat, DewfordTown_Gym_EventScript_LauraBrightenRoom"
+      }
+     ],
+     "id": 426,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MEDITITE"
+     ],
+     "class": "BATTLE_GIRL",
+     "double": false,
+     "trainers_h_line": 5116,
+     "party_label": "sParty_Laura",
+     "party_line": 5600
+    },
+    "BRENDEN": {
+     "flag": 1852,
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown_Gym/scripts.inc",
+       "line": 221,
+       "text": "trainerbattle_single TRAINER_BRENDEN, DewfordTown_Gym_Text_BrendenIntro, DewfordTown_Gym_Text_BrendenDefeat, DewfordTown_Gym_EventScript_BrendenBrightenRoom"
+      }
+     ],
+     "id": 572,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MACHOP"
+     ],
+     "class": "SAILOR",
+     "double": false,
+     "trainers_h_line": 6868,
+     "party_label": "sParty_Brenden",
+     "party_line": 7662
+    },
+    "CRISTIAN": {
+     "flag": 1854,
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown_Gym/scripts.inc",
+       "line": 231,
+       "text": "trainerbattle_single TRAINER_CRISTIAN, DewfordTown_Gym_Text_CristianIntro, DewfordTown_Gym_Text_CristianDefeat, DewfordTown_Gym_EventScript_CristianBrightenRoom"
+      }
+     ],
+     "id": 574,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MAKUHITA"
+     ],
+     "class": "BLACK_BELT",
+     "double": false,
+     "trainers_h_line": 6892,
+     "party_label": "sParty_Cristian",
+     "party_line": 7678
+    },
+    "LILITH": {
+     "flag": 1853,
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown_Gym/scripts.inc",
+       "line": 241,
+       "text": "trainerbattle_single TRAINER_LILITH, DewfordTown_Gym_Text_LilithIntro, DewfordTown_Gym_Text_LilithDefeat, DewfordTown_Gym_EventScript_LilithBrightenRoom"
+      }
+     ],
+     "id": 573,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MEDITITE"
+     ],
+     "class": "BATTLE_GIRL",
+     "double": false,
+     "trainers_h_line": 6880,
+     "party_label": "sParty_Lilith",
+     "party_line": 7670
+    }
+   },
+   "hint": {
+    "sources": [
+     "data/maps/DewfordTown/scripts.inc:631 DewfordTown_Text_GymSign"
+    ]
+   },
+   "maps": {
+    "DEWFORD_TOWN_GYM": "data/maps/DewfordTown_Gym/map.json id"
+   },
+   "fight": {
+    "TAKAO": {
+     "id": 179,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MACHOP"
+     ],
+     "trainers_h_line": 2152,
+     "party_label": "sParty_Takao",
+     "party_line": 2155
+    },
+    "JOCELYN": {
+     "id": 425,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MEDITITE"
+     ],
+     "trainers_h_line": 5104,
+     "party_label": "sParty_Jocelyn",
+     "party_line": 5592
+    },
+    "LAURA": {
+     "id": 426,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MEDITITE"
+     ],
+     "trainers_h_line": 5116,
+     "party_label": "sParty_Laura",
+     "party_line": 5600
+    },
+    "BRENDEN": {
+     "id": 572,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MACHOP"
+     ],
+     "trainers_h_line": 6868,
+     "party_label": "sParty_Brenden",
+     "party_line": 7662
+    },
+    "CRISTIAN": {
+     "id": 574,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MAKUHITA"
+     ],
+     "trainers_h_line": 6892,
+     "party_label": "sParty_Cristian",
+     "party_line": 7678
+    },
+    "LILITH": {
+     "id": 573,
+     "levels": [
+      13
+     ],
+     "species": [
+      "MEDITITE"
+     ],
+     "trainers_h_line": 6880,
+     "party_label": "sParty_Lilith",
+     "party_line": 7670
+    }
+   }
+  },
+  "ch7_brawly": {
+   "flags": {
+    "DEFEATED_DEWFORD_GYM": {
+     "number": 1265,
+     "define": "include/constants/flags.h:1320",
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown_Gym/scripts.inc",
+       "line": 150,
+       "text": "setflag FLAG_DEFEATED_DEWFORD_GYM"
+      }
+     ]
+    },
+    "BADGE02_GET": {
+     "number": 2152,
+     "define": "include/constants/flags.h:1360",
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown_Gym/scripts.inc",
+       "line": 151,
+       "text": "setflag FLAG_BADGE02_GET"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/DewfordTown/scripts.inc:631 DewfordTown_Text_GymSign"
+    ]
+   },
+   "maps": {
+    "DEWFORD_TOWN_GYM": "data/maps/DewfordTown_Gym/map.json id"
+   },
+   "fight": {
+    "BRAWLY_1": {
+     "id": 266,
+     "levels": [
+      16,
+      16,
+      19
+     ],
+     "species": [
+      "MACHOP",
+      "MEDITITE",
+      "MAKUHITA"
+     ],
+     "trainers_h_line": 3196,
+     "party_label": "sParty_Brawly1",
+     "party_line": 3391
+    }
+   }
+  },
+  "ch7_exp_share": {
+   "flags": {
+    "RECEIVED_EXP_SHARE": {
+     "number": 272,
+     "define": "include/constants/flags.h:298",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 162,
+       "text": "setflag FLAG_RECEIVED_EXP_SHARE"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity_DevonCorp_3F/scripts.inc:237 RustboroCity_DevonCorp_3F_Text_CountingOnYou"
+    ]
+   },
+   "maps": {
+    "RUSTBORO_CITY_DEVON_CORP_3F": "data/maps/RustboroCity_DevonCorp_3F/map.json id"
    },
    "fight": null
   }
