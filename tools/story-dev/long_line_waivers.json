@@ -14,10 +14,10 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
-      "chars": 2954,
+      "chars": 3279,
       "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
       "tails": [
-        "ty`, `wt/boxfirst`) stay parked until the user resumes them."
+        "nowhere); the graded BADGE-1 chain and A1 are still ahead.**"
       ],
       "history": [
         {
@@ -43,13 +43,25 @@
           "from_chars": 2915,
           "to_chars": 2954,
           "why": "2026-10-22 O6+O7 deployed, O5's restart next"
+        },
+        {
+          "date": "2026-11-01",
+          "from_chars": 2954,
+          "to_chars": 3279,
+          "why": "2026-11-01: one status sentence appended to the #28-aiagent-v2 headline (chapter 5 wired and probed once); a new line would break R3's 4400-line budget",
+          "from_tails": [
+            "ty`, `wt/boxfirst`) stay parked until the user resumes them."
+          ],
+          "to_tails": [
+            "nowhere); the graded BADGE-1 chain and A1 are still ahead.**"
+          ]
         }
       ]
     },
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "11a4822d546f2bfd2d6af9efab21115cad728b4d",
-      "chars": 4290,
+      "chars": 4249,
       "head": "- [ ] ⭐ `#28-trainer-improvements` — **STATUS 2026-10-21: O3",
       "tails": [
         "ntrols, one temp-folder factory, Python hooks, determinism)."
@@ -108,7 +120,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "448e82459ab2f888c49ef35ea3e91208dfcc55d7",
-      "chars": 1639,
+      "chars": 1606,
       "head": "- [ ] ⭐ `#28-seasoned-player` — **KB1 MERGED 2026-10-21 (`3a",
       "tails": [
         "loors stand (no stall, no loafing, no beeline, no speedrun)."

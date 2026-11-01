@@ -77,10 +77,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 363 sections (newest first)
+## All 364 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-01-6cfa03` | 10007 |  |  | 2026-11-01 — Chapter 5's eight milestones wired into the AI from the cloud note, after two independent checks; six choices, and what the first development probe |
 | `2026-11-01-bab294` | 9998 | 57 |  | 2026-11-01 — USER RULING 57: keep progressing on the extra credit, with the cloud kept set up; the measurement: at a full weekly meter a cloud job bills the EXT |
 | `2026-10-31-2d2d7e` | 9991 |  |  | 2026-10-31 — The KI-128/KI-129 held-out: K8.EDGE_WINDOW is REPORTED, not graded; the graded bars stay what the fix claims |
 | `2026-10-31-76810c` | 9983 |  |  | 2026-10-31 — KI-129 Part B: an edge ping-pong is a ping-pong (a sliding "nothing new" window for edges, routes exempt); an explore goal that ends in one is now  |

@@ -3,7 +3,7 @@
     py -3.12 ai_player/gates/extract_milestones.py            # writes ai_player/knowledge/milestones.json
     py -3.12 ai_player/gates/extract_milestones.py --check    # exits 1 if the written file differs from a fresh extraction
     py -3.12 ai_player/gates/extract_milestones.py --verify [--plant] [--evidence PATH]
-                                                              # every fact against pret/pokeemerald (gh api); --plant: three
+                                                              # every fact against pret/pokeemerald (gh api); --plant: seven
                                                               # facts changed in memory must be found, and nothing else
 
 WHY (USER RULING 35; design draft §3 "How the bot teaches it": "`modules/story/early_game.py` step docstrings ('STORY
@@ -14,7 +14,7 @@ bot's chapter functions whose docstrings taught each beat (`modules/story/early_
 sha256 recorded), and writes the AI's own `ai_player/knowledge/milestones.json`. It never imports the bot and the play loop
 never reads the bot: `ai_player/knowledge/story.py` reads only the JSON.
 
-WHAT A MILESTONE CARRIES (USER RULING 37 Q3: badge 1 in 4 chapters):
+WHAT A MILESTONE CARRIES (USER RULING 37 Q3: badge 1 in 4 chapters; chapter 5, RUSTBORO after the badge, added 2026-11-01):
   * `done`: the FLAGS that must be set, the VARS that must have reached a value, the TRAINERS whose defeated flag must be
     set (flag `TRAINER_FLAGS_START` 0x500 + the trainer's id): what PROVES it happened, each with its number;
   * `maps`: where it happens (a map constant as the eyes name it; `<player_house_2f>` and the like are resolved by the
@@ -34,8 +34,8 @@ VERIFY (`--verify`): through `gh api repos/pret/pokeemerald/contents/...`: every
 every proof is SET by the script file the milestone names (`setflag FLAG_X` / `setvar VAR_X, N`, or `trainerbattle* TRAINER_X`
 for a trainer); every trainer's id (`include/constants/opponents.h`) and party levels (`src/data/trainers.h` ->
 `src/data/trainer_parties.h`); every look's graphics id and metatile; and each hint's quoted words appear in the decomp text
-of the map it names. `--plant` changes three facts in memory (a flag number, a fight level, a look) and must report exactly
-those three.
+of the map it names. `--plant` changes seven facts in memory (a flag number, a fight level, a look; chapter 5: a flag number, a var value, a
+grunt's level, a step's words) and must report exactly those seven.
 """
 
 from __future__ import annotations
@@ -304,6 +304,146 @@ MILESTONES: list[dict] = [
      "taught_by": [("modules/story/early_game.py", "GOAL/END STATE: BADGE01_GET set (Stone Badge earned)")],
      "decomp": {"DEFEATED_RUSTBORO_GYM": "data/maps/RustboroCity_Gym/scripts.inc",
                 "BADGE01_GET": "data/maps/RustboroCity_Gym/scripts.inc"}},
+    # ---------------------------------------------------------------- CHAPTER 5: RUSTBORO after the badge (DEVON GOODS, POKéNAV, the rival)
+    # (2026-11-01, build: the cloud note `claude/milestones-ch5-ch8-o0janq` converted to this AUTHORED form and checked against
+    # the PINNED decomp, 731ad5bf, by two independent agents; findings applied here: the trainer proof's `decomp` script, no
+    # `map` on a hint whose words only say 'tunnel' / 'cottage', a path-independent rival proof, `taught_by`.) The ids and
+    # their order are the ones `gates/campaign_skeleton.json` carries (the W4 guard of `extract_world.py`).
+    {"id": "ch5_stolen_goods", "chapter": 5, "title": "RUSTBORO CITY: the DEVON employee is robbed by a TEAM AQUA GRUNT",
+     "done": {"vars": {"RUSTBORO_CITY_STATE": 2, "RUSTURF_TUNNEL_STATE": 2}}, "maps": ["RUSTBORO_CITY"],
+     "steps": [{"do": "follow"}],
+     "hint": {"said": "Get out! Out of the way! Wait! Pleeeaaase! Don't take my GOODS!", "words": None, "map": "RUSTBORO_CITY",
+              "file": "data/maps/RustboroCity/scripts.inc"},
+     "note": "automatic scene, but the player must WALK onto its trigger: RustboroCity_EventScript_StolenGoodsTrigger0-4 are "
+             "COORD events on x=23, y=20..24 while VAR_RUSTBORO_CITY_STATE==1 (ROXANNE's defeat script sets it), the only way "
+             "out of the gym courtyard, so leaving the gym on foot plays it. FLAG_DEVON_GOODS_STOLEN is set here but CLEARED "
+             "again in RusturfTunnel when the goods are recovered, so it is NOT a proof (it would flip back); the two vars "
+             "only move up",
+     "taught_by": [("modules/story/early_game.py", "recover_devon_goods")],
+     "decomp": {"RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc",
+                "RUSTURF_TUNNEL_STATE": "data/maps/RustboroCity/scripts.inc"}},
+    {"id": "ch5_goods_employee", "chapter": 5, "title": "The DEVON employee asks for help getting the DEVON GOODS back",
+     "done": {"flags": ["INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN"], "vars": {"RUSTBORO_CITY_STATE": 3}},
+     "maps": ["RUSTBORO_CITY"], "optional": True, "steps": [{"do": "follow"}],
+     "hint": {"said": "Oh, it's you! You're that fantastic TRAINER who helped me in PETALBURG WOODS! Help me! I was robbed by "
+                      "TEAM AQUA! I have to get the DEVON GOODS back! If I don't... I'm going to be in serious trouble.",
+              "words": "DEVON GOODS", "map": "RUSTBORO_CITY", "file": "data/maps/RustboroCity/scripts.inc"},
+     "note": "OPTIONAL: the HelpGetGoodsTrigger0-3 coord events (x=29..30, y=9..12, state 2) play it on the walk east toward "
+             "ROUTE 116 (the only way east), but RusturfTunnel sets the state to 4 whether or not it played, so it never "
+             "gates anything",
+     "taught_by": [("modules/story/early_game.py", "recover_devon_goods")],
+     "decomp": {"INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": "data/maps/RustboroCity/scripts.inc",
+                "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"}},
+    {"id": "ch5_rusturf_grunt", "chapter": 5, "title": "RUSTURF TUNNEL: beat the TEAM AQUA GRUNT and take back the DEVON GOODS",
+     "done": {"flags": ["RECOVERED_DEVON_GOODS"], "vars": {"RUSTBORO_CITY_STATE": 4, "BRINEY_HOUSE_STATE": 1},
+              "trainers": ["GRUNT_RUSTURF_TUNNEL"]},
+     "maps": ["RUSTBORO_CITY", "ROUTE116", "RUSTURF_TUNNEL"],
+     "steps": [{"do": "go", "map": "RUSTURF_TUNNEL", "told": "tunnel"}, {"do": "follow"}],
+     # (the names check, F3) the hint's words say only 'tunnel', never the map's name: no `map` (HintTests: a hint's map must
+     # be NAMED by what the game says). The brain reads only each STEP's `told`, so nothing is lost
+     "hint": {"said": "That shady character, I think he took off towards the tunnel over there.", "words": "tunnel",
+              "map": None, "file": "data/maps/RustboroCity/scripts.inc"},
+     "fight": {"trainers": ["GRUNT_RUSTURF_TUNNEL"]},  # not named: its level is learned when SEEN
+     "note": "the tunnel's west door is the ROUTE 116 warp (the only walk there is east out of RUSTBORO); the GRUNT (with "
+             "PEEKO) stands at (13,5) while VAR_RUSTURF_TUNNEL_STATE==2 and backs up at the AquaGruntBackUp coord tiles "
+             "(state 3). Scripted fight (RusturfTunnel_EventScript_Grunt: trainerbattle_no_intro): ONE POOCHYENA Lv 11. The "
+             "word 'tunnel' is said when the DEVON employee is TALKED to "
+             "(RustboroCity_Text_ShadyCharacterTookOffTowardsTunnel) and by a Rustboro boy ('goes for walks in the tunnel'); "
+             "until one is read the step explores. The tunnel's boulder scene (HM STRENGTH) is a later errand and NOT part "
+             "of this milestone",
+     "taught_by": [("modules/story/early_game.py", "recover_devon_goods")],
+     "decomp": {"RECOVERED_DEVON_GOODS": "data/maps/RusturfTunnel/scripts.inc",
+                "RUSTBORO_CITY_STATE": "data/maps/RusturfTunnel/scripts.inc",
+                "BRINEY_HOUSE_STATE": "data/maps/RusturfTunnel/scripts.inc",
+                "GRUNT_RUSTURF_TUNNEL": "data/maps/RusturfTunnel/scripts.inc"}},
+    {"id": "ch5_return_goods", "chapter": 5, "title": "Return the DEVON GOODS to the DEVON employee",
+     "done": {"flags": ["RETURNED_DEVON_GOODS"], "vars": {"RUSTBORO_CITY_STATE": 5}}, "maps": ["RUSTBORO_CITY"],
+     "steps": [{"do": "go", "map": "RUSTBORO_CITY", "told": "DEVON GOODS"}, {"do": "follow"}],
+     "hint": {"said": "Oh, it's you! You're that fantastic TRAINER who helped me in PETALBURG WOODS! Help me! I was robbed by "
+                      "TEAM AQUA! I have to get the DEVON GOODS back! If I don't... I'm going to be in serious trouble.",
+              "words": "DEVON GOODS", "map": "RUSTBORO_CITY", "file": "data/maps/RustboroCity/scripts.inc"},
+     "note": "no line of dialogue tells the player to bring the goods back: the employee's ReturnGoodsTrigger0-3 coord events "
+             "(x=30..31, y=9..12, state 4) and a talk to him (RustboroCity_EventScript_DevonEmployee1 when "
+             "FLAG_RECOVERED_DEVON_GOODS) start RustboroCity_EventScript_ReturnGoods, which gives a GREAT BALL and warps the "
+             "player to DEVON CORP 3F",
+     "taught_by": [("modules/story/early_game.py", "return_devon_goods_and_get_pokenav")],
+     "decomp": {"RETURNED_DEVON_GOODS": "data/maps/RustboroCity/scripts.inc",
+                "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"}},
+    {"id": "ch5_devon_corp", "chapter": 5, "title": "DEVON CORP 3F: MR. STONE's favor (the LETTER for STEVEN) and the POKéNAV",
+     "done": {"flags": ["RECEIVED_POKENAV", "SYS_POKENAV_GET"], "vars": {"DEVON_CORP_3F_STATE": 1, "RUSTBORO_CITY_STATE": 6}},
+     "maps": ["RUSTBORO_CITY_DEVON_CORP_3F"], "steps": [{"do": "follow"}],
+     "hint": {"said": "Our PRESIDENT would like to have a word with you. Please come with me.", "words": None,
+              "map": "RUSTBORO_CITY_DEVON_CORP_3F", "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"},
+     "note": "automatic (RustboroCity_DevonCorp_3F_EventScript_MeetPresident, an OnFrame script at VAR_DEVON_CORP_3F_STATE==0, "
+             "runs on arrival from the ReturnGoods warp): the player follows the employee, receives ITEM_LETTER (giveitem, no "
+             "flag of its own) and the POKéNAV, and the party is healed",
+     "taught_by": [("modules/story/early_game.py", "return_devon_goods_and_get_pokenav")],
+     "decomp": {"RECEIVED_POKENAV": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+                "SYS_POKENAV_GET": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+                "DEVON_CORP_3F_STATE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+                "RUSTBORO_CITY_STATE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"}},
+    {"id": "ch5_pokenav_tutorial", "chapter": 5,
+     "title": "Leaving DEVON CORP: the scientist adds MATCH CALL and the player must open the POKéNAV from the START menu",
+     "done": {"flags": ["HAS_MATCH_CALL", "ADDED_MATCH_CALL_TO_POKENAV"], "vars": {"RUSTBORO_CITY_STATE": 7, "ROUTE104_STATE": 1}},
+     "maps": ["RUSTBORO_CITY"], "steps": [{"do": "follow"}],
+     "hint": {"said": "Please select the POKéNAV.", "words": "POKéNAV", "map": "RUSTBORO_CITY",
+              "file": "data/maps/RustboroCity/scripts.inc"},
+     "note": "INTERACTIVE, NOT a cut scene, and `follow` is only the nearest honest step (there is no step kind for a menu "
+             "task): RustboroCity_EventScript_ScientistAddMatchCall runs from the OnFrame table at VAR_RUSTBORO_CITY_STATE==6 "
+             "and ends in RustboroCity_EventScript_MatchCallTutorial, a FORCED START menu where only the POKéNAV entry is "
+             "accepted (every other choice, and B, loops back to 'Please select the POKéNAV.'); then OpenPokenavForTutorial "
+             "(pokenav.c: POKENAV_MODE_FORCE_CALL_READY) keeps the player in MATCH CALL until MR. STONE is called. Only after "
+             "that does the script set VAR_RUSTBORO_CITY_STATE to 7. HAS_MATCH_CALL and ADDED_MATCH_CALL_TO_POKENAV are set "
+             "BEFORE the menu, so STATE>=7 is the real proof. The first START-menu pick in the game: whether the AI's menu "
+             "skills get through it is a QUESTION for a development probe, not a fact (RULING 35: never a state write)",
+     "taught_by": [("modules/story/early_game.py", "handle_pokenav_match_call_tutorial")],
+     "decomp": {"HAS_MATCH_CALL": "data/maps/RustboroCity/scripts.inc",
+                "ADDED_MATCH_CALL_TO_POKENAV": "data/maps/RustboroCity/scripts.inc",
+                "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc",
+                "ROUTE104_STATE": "data/maps/RustboroCity/scripts.inc"}},
+    {"id": "ch5_rival_meet", "chapter": 5, "title": "South RUSTBORO: the rival (MAY or BRENDAN) meets the player and mentions MR. BRINEY",
+     # the names check, F6: PATH-INDEPENDENT. Both encounters (RustboroCity RivalTrigger0-7, and the Route 104 second chance)
+     # set ENABLE_RIVAL_MATCH_CALL and STATE 8; only the Rustboro one sets MET_RIVAL_RUSTBORO, so that flag is no proof
+     "done": {"flags": ["ENABLE_RIVAL_MATCH_CALL"], "vars": {"RUSTBORO_CITY_STATE": 8}},
+     "maps": ["RUSTBORO_CITY", "ROUTE104"],
+     # (the names check, F4) nothing sends the player south until after the meeting: `go ROUTE104` (a map it has BEEN to, the
+     # way it came) is the nearest honest step; the trigger row y=53 is the only road there
+     "steps": [{"do": "go", "map": "ROUTE104"}, {"do": "follow"}],
+     "hint": {"said": "MAY: Oh, by the way, I passed MR. BRINEY in PETALBURG WOODS. I guess he's on his way home to his "
+                      "cottage by the sea. How's your POKéDEX coming along, {PLAYER}{KUN}? Mine's looking pretty decent! "
+                      "So... How about a little battle?", "words": "cottage", "map": None,
+              "file": "data/maps/RustboroCity/scripts.inc"},
+     # the game names this fight to the player (the rival asks for it): the named fight is attached HERE, where the scene
+     # starts, so the train-before-the-fight errand applies before the trigger row (06, 2026-11-01); the optional entry below
+     # carries it too
+     "fight": {"trainers": ["MAY_RUSTBORO_TREECKO", "MAY_RUSTBORO_TORCHIC", "MAY_RUSTBORO_MUDKIP",
+                            "BRENDAN_RUSTBORO_TREECKO", "BRENDAN_RUSTBORO_TORCHIC", "BRENDAN_RUSTBORO_MUDKIP"],
+               "named": True},
+     "note": "RivalTrigger0-7 are COORD events on y=53, x=12..19 while VAR_RUSTBORO_CITY_STATE==7 (state 7 is set on the way "
+             "out of DEVON CORP), and that row is the only way south, so the scene plays on the first walk to ROUTE 104. The "
+             "proofs are set BEFORE the battle prompt (RustboroCity/scripts.inc: setflag, setvar, THEN the yes/no): they are "
+             "true while the question is still on screen. The Route 104 second chance (Route104_EventScript_RivalTrigger, "
+             "VAR_ROUTE104_STATE==1) is a DIFFERENT script (Route104_EventScript_RivalEncounter): it sets STATE 8 and "
+             "ROUTE104_STATE 2 and the ENABLE flag but never MET_RIVAL_RUSTBORO, which is why that flag is not a proof. "
+             "Answering YES starts the optional fight (levels 13/15; the trainer is chosen by gender and VAR_STARTER_MON). "
+             "The BRENDAN (female player) text carries the same 'cottage' words",
+     "taught_by": [("modules/story/early_game.py", "fight_rustboro_rival")],
+     "decomp": {"ENABLE_RIVAL_MATCH_CALL": "data/maps/RustboroCity/scripts.inc",
+                "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"}},
+    {"id": "ch5_rival_battle", "chapter": 5, "title": "The rival's battle outside RUSTBORO (declinable)",
+     "done": {"flags": ["DEFEATED_RIVAL_RUSTBORO"]}, "maps": ["RUSTBORO_CITY", "ROUTE104"], "optional": True,
+     "steps": [{"do": "follow"}],
+     "hint": {"said": "MAY: So, what do you think? How about a little battle here?", "words": None, "map": "RUSTBORO_CITY",
+              "file": "data/maps/RustboroCity/scripts.inc"},
+     "fight": {"trainers": ["MAY_RUSTBORO_TREECKO", "MAY_RUSTBORO_TORCHIC", "MAY_RUSTBORO_MUDKIP",
+                            "BRENDAN_RUSTBORO_TREECKO", "BRENDAN_RUSTBORO_TORCHIC", "BRENDAN_RUSTBORO_MUDKIP"],
+               "named": True},
+     "note": "OPTIONAL because the battle is a YES/NO prompt (RustboroCity_Text_MayOhHaventRaisedPokemonEnough on NO) and the "
+             "rival leaves once the player sails (Route104_MrBrineysHouse sets FLAG_HIDE_RUSTBORO_CITY_RIVAL), so it can be "
+             "skipped for good. The SAME flag is set by all six variants (the trainer is chosen by the player's gender and "
+             "VAR_STARTER_MON), which is why the proof is the flag, not a trainer. Rewards: none",
+     "taught_by": [("modules/story/early_game.py", "fight_rustboro_rival")],
+     "decomp": {"DEFEATED_RIVAL_RUSTBORO": "data/maps/RustboroCity/scripts.inc"}},
 ]
 
 #: The trainers' ids (`include/constants/opponents.h`) and party levels (`src/data/trainer_parties.h`), as the decomp says:
@@ -324,6 +464,14 @@ TRAINERS: dict[str, dict] = {
     "JOSH": {"id": 320, "levels": [10], "party": "sParty_Josh"},
     "TOMMY": {"id": 321, "levels": [8, 8], "party": "sParty_Tommy"},
     "ROXANNE_1": {"id": 265, "levels": [12, 12, 15], "party": "sParty_Roxanne1"},
+    # chapter 5 (2026-11-01): the RUSTURF TUNNEL grunt and the rival outside RUSTBORO (six variants: gender x starter)
+    "GRUNT_RUSTURF_TUNNEL": {"id": 16, "levels": [11], "party": "sParty_GruntRusturfTunnel"},
+    "MAY_RUSTBORO_TREECKO": {"id": 768, "levels": [13, 15], "party": "sParty_MayRustboroTreecko"},
+    "MAY_RUSTBORO_TORCHIC": {"id": 769, "levels": [13, 15], "party": "sParty_MayRustboroTorchic"},
+    "MAY_RUSTBORO_MUDKIP": {"id": 600, "levels": [13, 15], "party": "sParty_MayRustboroMudkip"},
+    "BRENDAN_RUSTBORO_TREECKO": {"id": 592, "levels": [13, 15], "party": "sParty_BrendanRustboroTreecko"},
+    "BRENDAN_RUSTBORO_TORCHIC": {"id": 599, "levels": [13, 15], "party": "sParty_BrendanRustboroTorchic"},
+    "BRENDAN_RUSTBORO_MUDKIP": {"id": 593, "levels": [13, 15], "party": "sParty_BrendanRustboroMudkip"},
 }
 
 
@@ -680,6 +828,12 @@ def main() -> int:
         rival = next(m for m in data["milestones"] if m["id"] == "ch1_rival_route103")
         rival["fight"]["per_trainer"]["MAY_ROUTE_103_MUDKIP"] = [6]
         data["looks"]["nurse"]["gfx"] = [57]
+        # chapter 5 (2026-11-01): a flag number, a var value, a trainer's level, a step's words
+        by_id = {m["id"]: m for m in data["milestones"]}
+        by_id["ch5_rusturf_grunt"]["done"]["flags"]["RECOVERED_DEVON_GOODS"] = 144
+        by_id["ch5_return_goods"]["done"]["variables"]["RUSTBORO_CITY_STATE"]["at_least"] = 9
+        by_id["ch5_rusturf_grunt"]["fight"]["per_trainer"]["GRUNT_RUSTURF_TUNNEL"] = [12]
+        by_id["ch5_rusturf_grunt"]["steps"][0]["told"] = "tunnl"
     try:
         problems = verify(data, say)
     except Exception as error:  # noqa: BLE001
@@ -691,7 +845,12 @@ def main() -> int:
     if args.plant:
         planted = {"ch1_clock: FLAG_SET_WALL_CLOCK: ours 82, pret 81",
                    "fight: TRAINER_MAY_ROUTE_103_MUDKIP levels: ours [6], pret [5] (sParty_MayRoute103Mudkip)",
-                   "looks: nurse: ours gfx [57], pret [58] (OBJ_EVENT_GFX_NURSE)"}
+                   "looks: nurse: ours gfx [57], pret [58] (OBJ_EVENT_GFX_NURSE)",
+                   "ch5_rusturf_grunt: FLAG_RECOVERED_DEVON_GOODS: ours 144, pret 143",
+                   "ch5_return_goods: VAR_RUSTBORO_CITY_STATE is never set to 9 in data/maps/RustboroCity/scripts.inc "
+                   "(setvar values there: [2, 3, 5, 7, 8])",
+                   "fight: TRAINER_GRUNT_RUSTURF_TUNNEL levels: ours [12], pret [11] (sParty_GruntRusturfTunnel)",
+                   "ch5_rusturf_grunt: the go step's words 'tunnl' are not in data/maps/RustboroCity/scripts.inc"}
         verdict = ("PASS (the plants were found, and nothing else)" if set(problems) == planted
                    else f"FAIL (found {sorted(problems)})")
     say(f"[VERIFY] OVERALL {verdict}")

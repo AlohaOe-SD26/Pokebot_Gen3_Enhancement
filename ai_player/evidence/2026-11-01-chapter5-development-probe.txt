@@ -1,0 +1,71 @@
+CHAPTER 5 DEVELOPMENT PROBE - DEVELOPMENT, NOT GRADED, NO PASS: three launcher runs from the chain probe's chapter-4 end states (C1L4, C2L4, C3L4: the Stone Badge just earned), on the code with chapter 5's eight milestones wired in
+date: 2026-11-01 07:40:32   development seeds 5986-5988 (ledger entry #85; the smoke run, seed 5989, entry #84)
+code line at writing: HEAD 39b2612f; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:6cc6545a1622fa29 over git diff HEAD (11 files, 89523 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+code UNDER TEST: a stage copy of this worktree's ai_player/ (no evidence/, no bytecode) built before the smoke run, digest sha256:6863cf6de21ccc75.. (the orchestrator refused to start unless the stage matched it and checked it again at the end: unchanged). Edits after the stage was built: docstrings (knowledge/story.py, knowledge/__init__.py), ai_player/README.md and this evidence; ledger.json gained entries #84 and #85. Nothing else.
+setup: ONE stage under the session scratch (a mirror build root: code folders are read-only junctions to the main sandbox; its own profiles/ai-ch5-probe-N, one disposable profile per run), 3 runs in parallel, 900,000 frames and 3,600 s each, personalities Story, Catcher, Trainer, target ch5_rival_meet (the last REQUIRED chapter-5 milestone: ch5_rival_battle is optional, so a target on it would read 'done' for a fight never fought; with the rival met, the story has no required milestone left and the run ends).
+disk: 57 GB free before the stage (floor 40 GB), 60.4 GB after its deletion; the disk guard (3 GB per world.jsonl, 30 GB free) never fired. The stage was deleted with its junctions unlinked first: the main sandbox's linked folders kept their counts (modules 4461, plugins 43, mgba 44, roms 2) and no path named ai-ch5-probe exists in the main sandbox's profiles.
+PREDICTION (written before the runs; sha256 9b50156326888a6bf780b9f6ba07ad4d72ce1680ca2f77b5ad8a62205c9064a0 is the ledger entry's bounds field), verbatim:
+
+    CHAPTER 5 DEVELOPMENT PROBE - PREDICTION (written before any run; its sha256 is the ledger entry's bounds field)
+    
+    What is run: three launcher runs, one per chain of the 2026-11-01 chain probe, each from that chain's chapter-4 end state and world memory
+    (ai-chain-probe-1/2/3, run folders ending C1L4, C2L4, C3L4: the Stone Badge just earned, standing in or at the RUSTBORO GYM), personalities
+    Story, Catcher, Trainer, development seeds 5986-5988, 900,000 frames and 3,600 s each, target ch5_rival_meet (the last REQUIRED
+    chapter-5 milestone; ch5_rival_battle is optional, so a target on it would read "done" for a fight never fought). Code: this worktree's
+    ai_player with chapter 5's eight milestones (milestones.json 28 entries) on top of 39b2612f.
+    
+    What I expect, each claim read from the GAME's save at the end of the run (marks by the second path, L5.THIS_RUN freshness):
+    
+    P1. ch5_stolen_goods is proven in all 3 runs (VAR_RUSTBORO_CITY_STATE >= 2 and VAR_RUSTURF_TUNNEL_STATE >= 2): the trigger tiles x=23,
+        y=20..24 are the only way out of the gym courtyard, so any walk west plays the theft. Within the first 30,000 frames of each run.
+    P2. ch5_rusturf_grunt (RECOVERED_DEVON_GOODS and TRAINER_GRUNT_RUSTURF_TUNNEL) is proven in AT MOST 1 of the 3 runs: no scene says
+        the word 'tunnel'; it is said only when the DEVON employee is talked to, or by a Rustboro boy, so the step explores until then.
+    P3. ch5_pokenav_tutorial is passed (VAR_RUSTBORO_CITY_STATE >= 7) in 0 of 3 runs: the AI has no skill for the forced START menu
+        (choose POKeNAV) nor for MATCH CALL; a run that gets to DEVON CORP 3F ends with RECEIVED_POKENAV=1, HAS_MATCH_CALL=1 and
+        VAR_RUSTBORO_CITY_STATE = 6 (or the flags set and the state still 6).
+    P4. ch5_rival_meet is proven in 0 of 3 runs; therefore no run ends "done": every run ends stuck or at its frame budget.
+    P5. No run is lost to a purity breach (purity CLEAN in all 3), none writes a world.jsonl over 300 MB.
+    
+    How the prediction would be WRONG, so it is a prediction: P1 fails if any run has RUSTBORO_CITY_STATE < 2 at its end; P2 if 2 or more
+    runs prove the grunt; P3 if any run reaches STATE 7; P4 if any run proves ENABLE_RIVAL_MATCH_CALL with STATE 8; P5 if purity is not CLEAN.
+
+SMOKE (3,000 frames from C1L4, seed 5989, ledger #84): exit 0, 16.8 s, purity CLEAN, L5.THIS_RUN ['PASS']; it already proved ch5_stolen_goods inside 3,000 frames. (Its driver read the game's VARS as None: the truth harness names a var VAR_<NAME>; fixed before the three runs.)
+
+What the GAME says each run reached (the save the run left, read by the second path, play_harness.story_truth; L5.THIS_RUN PASS on all three):
+
+RUN C1: Story, seed 5986: exit 0, 1240.3 s, real frames 361120 of 900000, purity CLEAN, map [11, 3] -> [0, 3], world.jsonl 83454073 B (kept)
+  how it ended: [AI-EXIT] reason=play: stuck: 100000 passes of the play loop code=0
+  milestone ch5_stolen_goods done at run frame 2408 (game frame 497460)
+  milestone ch5_goods_employee passed as OPTIONAL at run frame 2408 (game frame 497460)
+  milestone ch5_rusturf_grunt done at run frame 220786 (game frame 715838)
+  milestone ch5_return_goods done at run frame 245109 (game frame 740161)
+  milestone ch5_devon_corp done at run frame 256496 (game frame 751548)
+  marks after: {"RUSTBORO_CITY_STATE": 6, "RUSTURF_TUNNEL_STATE": 3, "BRINEY_HOUSE_STATE": 1, "DEVON_CORP_3F_STATE": 1, "ROUTE104_STATE": 1, "INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": 1, "RECOVERED_DEVON_GOODS": 1, "TRAINER_GRUNT_RUSTURF_TUNNEL": 1, "RETURNED_DEVON_GOODS": 1, "RECEIVED_POKENAV": 1, "SYS_POKENAV_GET": 1, "HAS_MATCH_CALL": 1, "ADDED_MATCH_CALL_TO_POKENAV": 1, "ENABLE_RIVAL_MATCH_CALL": 0, "DEFEATED_RIVAL_RUSTBORO": 0, "DEFEATED_RUSTBORO_GYM": 1, "BADGE01_GET": 1}
+  game counters: {"steps": 6385, "total_battles": 131, "wild_battles": 107, "trainer_battles": 24, "captures": 11, "used_pokecenter": 11, "rested_at_home": 0, "shopped": 9}
+
+RUN C2: Catcher, seed 5987: exit 0, 1511.4 s, real frames 793004 of 900000, purity CLEAN, map [11, 3] -> [0, 31], world.jsonl 305986975 B (NOT kept: over 300 MB)
+  how it ended: [AI-EXIT] reason=play: stuck: no progress for 121940 frames (no milestone, battle won training, level, new map, catch, item or heal; since RUSTURF TUNNEL: beat the TEAM AQUA GRUNT and take back the DEVON GOODS) code=0
+  milestone ch5_stolen_goods done at run frame 1588 (game frame 477461)
+  milestone ch5_goods_employee passed as OPTIONAL at run frame 1588 (game frame 477461)
+  marks after: {"RUSTBORO_CITY_STATE": 3, "RUSTURF_TUNNEL_STATE": 3, "BRINEY_HOUSE_STATE": 0, "DEVON_CORP_3F_STATE": 0, "ROUTE104_STATE": 0, "INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": 1, "RECOVERED_DEVON_GOODS": 0, "TRAINER_GRUNT_RUSTURF_TUNNEL": 0, "RETURNED_DEVON_GOODS": 0, "RECEIVED_POKENAV": 0, "SYS_POKENAV_GET": 0, "HAS_MATCH_CALL": 0, "ADDED_MATCH_CALL_TO_POKENAV": 0, "ENABLE_RIVAL_MATCH_CALL": 0, "DEFEATED_RIVAL_RUSTBORO": 0, "DEFEATED_RUSTBORO_GYM": 1, "BADGE01_GET": 1}
+  game counters: {"steps": 15127, "total_battles": 375, "wild_battles": 354, "trainer_battles": 21, "captures": 16, "used_pokecenter": 6, "rested_at_home": 0, "shopped": 7}
+
+RUN C3: Trainer, seed 5988: exit 0, 1421.4 s, real frames 737833 of 900000, purity CLEAN, map [11, 3] -> [24, 4], world.jsonl 319315085 B (NOT kept: over 300 MB)
+  how it ended: [AI-EXIT] reason=play: stuck: no progress for 121597 frames (no milestone, battle won training, level, new map, catch, item or heal; since RUSTURF TUNNEL: beat the TEAM AQUA GRUNT and take back the DEVON GOODS) code=0
+  milestone ch5_stolen_goods done at run frame 1849 (game frame 593701)
+  milestone ch5_goods_employee passed as OPTIONAL at run frame 1849 (game frame 593701)
+  marks after: {"RUSTBORO_CITY_STATE": 3, "RUSTURF_TUNNEL_STATE": 3, "BRINEY_HOUSE_STATE": 0, "DEVON_CORP_3F_STATE": 0, "ROUTE104_STATE": 0, "INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": 1, "RECOVERED_DEVON_GOODS": 0, "TRAINER_GRUNT_RUSTURF_TUNNEL": 0, "RETURNED_DEVON_GOODS": 0, "RECEIVED_POKENAV": 0, "SYS_POKENAV_GET": 0, "HAS_MATCH_CALL": 0, "ADDED_MATCH_CALL_TO_POKENAV": 0, "ENABLE_RIVAL_MATCH_CALL": 0, "DEFEATED_RIVAL_RUSTBORO": 0, "DEFEATED_RUSTBORO_GYM": 1, "BADGE01_GET": 1}
+  game counters: {"steps": 14937, "total_battles": 355, "wild_battles": 335, "trainer_battles": 20, "captures": 14, "used_pokecenter": 11, "rested_at_home": 0, "shopped": 6}
+
+THE PREDICTION, claim by claim:
+  P1 RIGHT: ch5_stolen_goods proven in 3 of 3 (VAR_RUSTBORO_CITY_STATE >= 2 and VAR_RUSTURF_TUNNEL_STATE >= 2), at run frames 2,408 / 1,588 / 1,849.
+  P2 RIGHT, for a reason I did not predict: ch5_rusturf_grunt proven in exactly 1 of 3 (C1). C2 and C3 HEARD 'tunnel' from ordinary NPC lines about the tunnel, not a scene ('If the tunnel doesn't go through, then I'll just go over the top.' / 'It's no big deal if there's no tunnel. To a HIKER, mountains are roads!'), set `go RUSTURF_TUNNEL`, and both entered the tunnel (3,087 and 2,934 overworld records on it) but never fought the grunt: the step after the walk is `follow` ('it plays by itself'), and nothing steers the AI to him (he must be walked up to and talked to); C1 met him on its general exploring. After the walk, `go` was ended again and again by the story-break draw ('arrived where it takes a break from the story': 0.90) on ROUTE 116's grass (C3's log counts 225 battles by its end).
+  P3 RIGHT: ch5_pokenav_tutorial passed in 0 of 3. C1 reached DEVON CORP and ended with RECEIVED_POKENAV=1, HAS_MATCH_CALL=1, ADDED_MATCH_CALL_TO_POKENAV=1 and VAR_RUSTBORO_CITY_STATE=6 (the flags are set BEFORE the forced menu; the state moves to 7 only after the POKeNAV is used), looping on 'stuck: an unexpected multichoice on screen' until the loop's own bound ('100000 passes of the play loop').
+  P4 RIGHT: ch5_rival_meet proven in 0 of 3; every run ended 'stuck', none 'done' (C1: the multichoice loop bound at 361,120 frames; C2 and C3: the story's patience, about 122,000 frames with no progress, at 793,004 and 737,833 frames).
+  P5 HALF WRONG: purity CLEAN in 3 of 3 (right). But two world.jsonl passed 300 MB: C3 319,315,085 B and C2 305,986,975 B (C2 is 292 MiB, over 300 MB in decimal); only C1's 83,454,073 B was kept. The 900,000-frame budget is what grows the file.
+
+WHAT THIS DOES AND DOES NOT SHOW (development, three runs, one trajectory each, nothing graded):
+  * The chapter-5 DATA is read correctly by the live AI: the eyes' marks for the new flags and vars, the milestone proofs (including a trainer proof and an OPTIONAL milestone passed over) and the story order held in 3 of 3 runs, 1 run through four required milestones (stolen goods, the tunnel grunt, the goods returned, DEVON CORP and the POKeNAV) in 256,496 frames.
+  * The PokeNAV scene is a measured STOP, not a guess: the forced START menu is a multichoice the AI has no skill for (the names check's F1/F7, now seen live). No PokeNAV skill is built or claimed.
+  * `follow` is not always a cut scene: the tunnel grunt step reached its proof by chance in 1 of 3 runs.
+  * Nothing here says the AI can play chapter 5, nor that it cannot pass the tunnel with a talk step: a `talk` step needs a LOOK for the AQUA grunt (a figure id the eyes report), which would change the `looks` block, a deliberate change not made here.

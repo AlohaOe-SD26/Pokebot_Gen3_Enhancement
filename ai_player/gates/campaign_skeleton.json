@@ -1,8 +1,8 @@
 {
  "_about": "HAND-AUTHORED input of extract_world.py (spec S3-4 slice 1, L1). It fixes the campaign's ORDER (list position), ids, chapters, areas, bosses and the needs a decomp reading cannot derive. Story order is design, not decomp-derivable. The generator (extract_world.py) fills every badge, citation, level band, type list and party rule from the decomp, and REFUSES when an area map, a boss fight, an item or a cited line does not exist.",
  "_rules": [
-  "The first 20 ids are milestones.json's 20 milestones, in its order and with its chapters (W4); their areas are its maps, the gendered placeholders expanded to both houses.",
-  "Chapter numbers past 4 follow the story bot's chapter table (12-STORYMODE-DESIGN.md, teaching material read as DATA, RULING 35); they are this file's own numbering, a NOTE, not a game fact.",
+  "The first 28 ids are milestones.json's 28 milestones (chapters 1-5), in its order and with its chapters (W4); their areas are its maps (ch5_devon_corp's area also holds DEVON CORP 1F and 2F, the way in), the gendered placeholders expanded to both houses.",
+  "Chapter numbers past 5 follow the story bot's chapter table (12-STORYMODE-DESIGN.md, teaching material read as DATA, RULING 35); they are this file's own numbering, a NOTE, not a game fact.",
   "boss is a bosses.json `fight` id or null. needs.field_moves names a move and the BASIS for saying the entry needs it; the badge and its citation come from the decomp. needs.badges and needs.key_items quote a decomp line (file + needle) the generator must find. A badge's needle is a line that NAMES the badge's flag (verify_world checks each cited line holds its token); an optional gate_needle is the line of the same defeat-script label that gates on it (Norman's VAR_PETALBURG_GYM_STATE), and the generator refuses a gate outside that label. A boss's multi-battle partner is not typed here: the generator derives it from the area's scripts.",
   "NEVER routes, coordinates or step lists here (L1's rule; W6 gates campaign.json for x, y, route, path, steps, coords).",
   "Field-move and key-item needs whose basis is not a decomp line are UNVERIFIED until the chapter packs' adversarial pass (W7, the next slice)."
@@ -29,9 +29,14 @@
   {"id": "ch4_gym_trainers", "chapter": 4, "area": ["RUSTBORO_CITY_GYM"], "boss": null},
   {"id": "ch4_roxanne", "chapter": 4, "area": ["RUSTBORO_CITY_GYM"], "boss": "ROXANNE"},
 
+  {"id": "ch5_stolen_goods", "chapter": 5, "area": ["RUSTBORO_CITY"], "boss": null},
+  {"id": "ch5_goods_employee", "chapter": 5, "area": ["RUSTBORO_CITY"], "boss": null},
   {"id": "ch5_rusturf_grunt", "chapter": 5, "area": ["RUSTBORO_CITY", "ROUTE116", "RUSTURF_TUNNEL"], "boss": null},
+  {"id": "ch5_return_goods", "chapter": 5, "area": ["RUSTBORO_CITY"], "boss": null},
   {"id": "ch5_devon_corp", "chapter": 5, "area": ["RUSTBORO_CITY", "RUSTBORO_CITY_DEVON_CORP_1F", "RUSTBORO_CITY_DEVON_CORP_2F", "RUSTBORO_CITY_DEVON_CORP_3F"], "boss": null},
-  {"id": "ch5_rival_rustboro", "chapter": 5, "area": ["RUSTBORO_CITY", "ROUTE104"], "boss": "RIVAL_RUSTBORO"},
+  {"id": "ch5_pokenav_tutorial", "chapter": 5, "area": ["RUSTBORO_CITY"], "boss": null},
+  {"id": "ch5_rival_meet", "chapter": 5, "area": ["RUSTBORO_CITY", "ROUTE104"], "boss": null},
+  {"id": "ch5_rival_battle", "chapter": 5, "area": ["RUSTBORO_CITY", "ROUTE104"], "boss": "RIVAL_RUSTBORO"},
   {"id": "ch6_sail_dewford", "chapter": 6, "area": ["ROUTE104", "ROUTE104_MR_BRINEYS_HOUSE", "DEWFORD_TOWN"], "boss": null},
   {"id": "ch7_granite_cave", "chapter": 7, "area": ["DEWFORD_TOWN", "GRANITE_CAVE_1F", "GRANITE_CAVE_B1F", "GRANITE_CAVE_B2F", "GRANITE_CAVE_STEVENS_ROOM"], "boss": null},
   {"id": "ch7_brawly", "chapter": 7, "area": ["DEWFORD_TOWN", "DEWFORD_TOWN_GYM"], "boss": "BRAWLY"},

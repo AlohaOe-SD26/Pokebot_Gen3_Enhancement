@@ -754,7 +754,7 @@ def check_bosses(entries, fights, item_syms):
 
 def check_badge_order(entries, badge_award):
     """GUARD (W4b): every badge an entry needs (needs.badges and needs.field_moves[].badge) is awarded by the boss of an
-    EARLIER entry. WHY: the order is hand-authored; this is its only test past the 20 milestones."""
+    EARLIER entry. WHY: the order is hand-authored; this is its only test past the milestones (the first 28 since chapter 5, 2026-11-01)."""
     awarded_at = {}
     for e in entries:
         b = badge_award.get(e.get("boss"))

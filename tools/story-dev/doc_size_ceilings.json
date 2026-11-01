@@ -41,10 +41,25 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 66403,
+      "ceiling": 67700,
       "headroom": 8192,
       "target": 61440,
-      "raised": []
+      "raised": [
+        {
+          "date": "2026-11-01",
+          "field": "ceiling",
+          "from": 66403,
+          "to": 67400,
+          "why": "2026-11-01: chapter 5 wired and probed (resume point, START HERE, queue item 4 and the cloud-branch note carry new facts); the growth is right and archive_sweep finds no closed block of this file to move"
+        },
+        {
+          "date": "2026-11-01",
+          "field": "ceiling",
+          "from": 67400,
+          "to": 67700,
+          "why": "2026-11-01: chapter 5 wired and probed (resume point, START HERE, queue item 4, the cloud-branch note and the STATE row's full-lane verdict carry new facts); the growth is right and archive_sweep finds no closed block of this file to move"
+        }
+      ]
     },
     "05-KNOWN-ISSUES.md": {
       "ceiling": 292547,

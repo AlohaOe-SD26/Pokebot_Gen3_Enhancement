@@ -15,15 +15,20 @@ Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `bf3cc8ad0960
 | `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf233912` |
 | `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a` |
 | `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb67` |
-| `ai_player/knowledge/world/bosses.json` | `30e65ffaf2e0b9cc` |
-| `ai_player/knowledge/world/campaign.json` | `18748a1bc65702a4` |
+| `ai_player/knowledge/world/bosses.json` | `3ef0c4e273c6f7c7` |
+| `ai_player/knowledge/world/campaign.json` | `6112bbc3bc59a748` |
 | `ai_player/knowledge/world/maps.json` | `ecc1cec58ee498de` |
 | `ai_player/knowledge/world/trainers.json` | `2f329852a38e1416` |
 
 ## Entries
-- **ch5_rusturf_grunt** (order 21) area RUSTBORO_CITY, ROUTE116, RUSTURF_TUNNEL; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
-- **ch5_devon_corp** (order 22) area RUSTBORO_CITY, RUSTBORO_CITY_DEVON_CORP_1F, RUSTBORO_CITY_DEVON_CORP_2F, RUSTBORO_CITY_DEVON_CORP_3F; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
-- **ch5_rival_rustboro** (order 23) area RUSTBORO_CITY, ROUTE104; boss RIVAL_RUSTBORO; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
+- **ch5_stolen_goods** (order 21) area RUSTBORO_CITY; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
+- **ch5_goods_employee** (order 22) area RUSTBORO_CITY; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
+- **ch5_rusturf_grunt** (order 23) area RUSTBORO_CITY, ROUTE116, RUSTURF_TUNNEL; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
+- **ch5_return_goods** (order 24) area RUSTBORO_CITY; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
+- **ch5_devon_corp** (order 25) area RUSTBORO_CITY, RUSTBORO_CITY_DEVON_CORP_1F, RUSTBORO_CITY_DEVON_CORP_2F, RUSTBORO_CITY_DEVON_CORP_3F; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
+- **ch5_pokenav_tutorial** (order 26) area RUSTBORO_CITY; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
+- **ch5_rival_meet** (order 27) area RUSTBORO_CITY, ROUTE104; boss -; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
+- **ch5_rival_battle** (order 28) area RUSTBORO_CITY, ROUTE104; boss RIVAL_RUSTBORO; party_min 1; types ahead FIRE/FLYING/GRASS/WATER; level band 13-15
 
 ## Maps and links
 - **RUSTBORO_CITY** (city). Connections: up ROUTE115, down ROUTE104, right ROUTE116. Warps: RUSTBORO_CITY_GYM, RUSTBORO_CITY_FLAT1_1F, RUSTBORO_CITY_MART, RUSTBORO_CITY_POKEMON_CENTER_1F, RUSTBORO_CITY_POKEMON_SCHOOL, RUSTBORO_CITY_DEVON_CORP_1F x2, RUSTBORO_CITY_HOUSE1, RUSTBORO_CITY_CUTTERS_HOUSE, RUSTBORO_CITY_HOUSE2, RUSTBORO_CITY_FLAT2_1F, RUSTBORO_CITY_HOUSE3.
@@ -36,38 +41,18 @@ Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `bf3cc8ad0960
 - Neighbours (one ring, 19): PETALBURG_CITY, PETALBURG_WOODS, ROUTE104_MR_BRINEYS_HOUSE, ROUTE104_PRETTY_PETAL_FLOWER_SHOP, ROUTE105, ROUTE115, ROUTE116_TUNNELERS_REST_HOUSE, RUSTBORO_CITY_CUTTERS_HOUSE, RUSTBORO_CITY_FLAT1_1F, RUSTBORO_CITY_FLAT2_1F, RUSTBORO_CITY_GYM, RUSTBORO_CITY_HOUSE1, RUSTBORO_CITY_HOUSE2, RUSTBORO_CITY_HOUSE3, RUSTBORO_CITY_MART, RUSTBORO_CITY_POKEMON_CENTER_1F, RUSTBORO_CITY_POKEMON_SCHOOL, TERRA_CAVE_ENTRANCE, VERDANTURF_TOWN
 
 ## Trainers
-EVERY trainer on the area maps, whether or not this chapter fights them (compare the levels with the entries' level band). Area maps: name, class, single/DOUBLE, sight, levels, team, defeat flag number.
-- BILLY `BILLY` YOUNGSTER, single, sight 2, Lv 5/7 (ZIGZAGOON SEEDOT), flag 1599, on ROUTE104
-- CINDY `CINDY_1` LADY, single, sight 3, Lv 7 (ZIGZAGOON), flag 1394, on ROUTE104
-- DARIAN `DARIAN` FISHERMAN, single, sight 0, Lv 9 (MAGIKARP), flag 1976, on ROUTE104
+SUMMARISED to fit the cap (level 1; the full page is 12402 bytes): ordinary (single-battle) trainers counted per map with level range and species. Doubles, bosses, HMs, links and claims stay in full; everything is in ch5.json.
 - GINA & MIA `GINA_AND_MIA_1` TWINS, DOUBLE, sight 1, Lv 6/6 (SEEDOT LOTAD), flag 1763, on ROUTE104
-- HALEY `HALEY_1` LASS, single, sight 7, Lv 6/6 (LOTAD SHROOMISH), flag 1884, on ROUTE104
-- IVAN `IVAN` FISHERMAN, single, sight 0, Lv 5/6/7 (MAGIKARP MAGIKARP MAGIKARP), flag 1617, on ROUTE104
-- WINSTON `WINSTON_1` RICH BOY, single, sight 3, Lv 7 (ZIGZAGOON), flag 1416, on ROUTE104
-- CLARK `CLARK` HIKER, single, sight 3, Lv 8 (GEODUDE), flag 1911, on ROUTE116
-- DAWSON `DAWSON` RICH BOY, single, sight 2, Lv 8/8 (ZIGZAGOON POOCHYENA), flag 1974, on ROUTE116
-- DEVAN `DEVAN` HIKER, single, sight 5, Lv 8/8 (GEODUDE GEODUDE), flag 2033, on ROUTE116
-- JANICE `JANICE` LASS, single, sight 2, Lv 9 (MARILL), flag 1885, on ROUTE116
-- JERRY `JERRY_1` SCHOOL KID, single, sight 4, Lv 9 (RALTS), flag 1553, on ROUTE116
-- JOEY `JOEY` YOUNGSTER, single, sight 3, Lv 9 (MACHOP), flag 1602, on ROUTE116
-- JOHNSON `JOHNSON` YOUNGSTER, single, sight 5, Lv 8/8 (SHROOMISH LOTAD), flag 2034, on ROUTE116
-- JOSE `JOSE` BUG CATCHER, single, sight 2, Lv 8/8 (WURMPLE NINCADA), flag 1897, on ROUTE116
-- KAREN `KAREN_1` SCHOOL KID, single, sight 3, Lv 9 (SHROOMISH), flag 1560, on ROUTE116
-- SARAH `SARAH` LADY, single, sight 1, Lv 8/8 (LOTAD ZIGZAGOON), flag 1975, on ROUTE116
-- BRENDAN `BRENDAN_RUSTBORO_MUDKIP` {PKMN} TRAINER, single, sight 0, Lv 13/15 (WINGULL TREECKO), flag 1873, on ROUTE104, RUSTBORO_CITY
-- BRENDAN `BRENDAN_RUSTBORO_TORCHIC` {PKMN} TRAINER, single, sight 0, Lv 13/15 (SLUGMA MUDKIP), flag 1879, on ROUTE104, RUSTBORO_CITY
-- BRENDAN `BRENDAN_RUSTBORO_TREECKO` {PKMN} TRAINER, single, sight 0, Lv 13/15 (LOTAD TORCHIC), flag 1872, on ROUTE104, RUSTBORO_CITY
-- MAY `MAY_RUSTBORO_MUDKIP` {PKMN} TRAINER, single, sight 0, Lv 13/15 (WINGULL TREECKO), flag 1880, on ROUTE104, RUSTBORO_CITY
-- MAY `MAY_RUSTBORO_TORCHIC` {PKMN} TRAINER, single, sight 0, Lv 13/15 (TORKOAL MUDKIP), flag 2049, on ROUTE104, RUSTBORO_CITY
-- MAY `MAY_RUSTBORO_TREECKO` {PKMN} TRAINER, single, sight 0, Lv 13/15 (LOTAD TORCHIC), flag 2048, on ROUTE104, RUSTBORO_CITY
-- GRUNT `GRUNT_RUSTURF_TUNNEL` TEAM AQUA, single, sight 0, Lv 11 (POOCHYENA), flag 1296, on RUSTURF_TUNNEL
-- MIKE `MIKE_2` HIKER, single, sight 3, Lv 16/16/16 (GEODUDE GEODUDE MACHOP), flag 1915, on RUSTURF_TUNNEL
+- ROUTE104: 6 ordinary trainers, Lv 5-9, species LOTAD MAGIKARP SEEDOT SHROOMISH ZIGZAGOON
+- ROUTE116: 10 ordinary trainers, Lv 8-9, species GEODUDE LOTAD MACHOP MARILL NINCADA POOCHYENA RALTS SHROOMISH WURMPLE ZIGZAGOON
+- RUSTBORO_CITY: 6 ordinary trainers, Lv 13-15, species LOTAD MUDKIP SLUGMA TORCHIC TORKOAL TREECKO WINGULL
+- RUSTURF_TUNNEL: 2 ordinary trainers, Lv 11-16, species GEODUDE MACHOP POOCHYENA
 
-Neighbour maps (name, Lv min-max, D = double):
-- PETALBURG_WOODS: GRUNT_PETALBURG_WOODS 9-9, JAMES_1 6-6, LYLE 3-3
-- ROUTE105: ANDRES_1 25-25, BEVERLY 25-25, DOMINIK 26-26, FOSTER 25-25, IMANI 26-26, JOSUE 25-25, LUIS 26-26
-- ROUTE115: ALIX 26-26, CYNDY_1 18-18, HECTOR 18-18, HELENE 26-26, JAIDEN 26-26, KOICHI 24-28, KYRA 26-26, MARLENE 18-18, NOB_1 19-19, TIMOTHY_1 27-27
-- RUSTBORO_CITY_GYM: JOSH 10-10, MARC 8-8, ROXANNE_1 12-15, TOMMY 8-8
+Neighbour maps (trainer count, Lv min-max, doubles by name):
+- PETALBURG_WOODS: 3, Lv 3-9
+- ROUTE105: 7, Lv 25-26
+- ROUTE115: 10, Lv 18-28
+- RUSTBORO_CITY_GYM: 4, Lv 8-15
 
 ## Bosses
 - **RIVAL_RUSTBORO** `BRENDAN_RUSTBORO_MUDKIP` (rival, single), src/data/trainers.h:7120:

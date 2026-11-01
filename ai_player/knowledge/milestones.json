@@ -246,6 +246,61 @@
     12,
     15
    ]
+  },
+  "GRUNT_RUSTURF_TUNNEL": {
+   "id": 16,
+   "flag": 1296,
+   "levels": [
+    11
+   ]
+  },
+  "MAY_RUSTBORO_TREECKO": {
+   "id": 768,
+   "flag": 2048,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "MAY_RUSTBORO_TORCHIC": {
+   "id": 769,
+   "flag": 2049,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "MAY_RUSTBORO_MUDKIP": {
+   "id": 600,
+   "flag": 1880,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "BRENDAN_RUSTBORO_TREECKO": {
+   "id": 592,
+   "flag": 1872,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "BRENDAN_RUSTBORO_TORCHIC": {
+   "id": 599,
+   "flag": 1879,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "BRENDAN_RUSTBORO_MUDKIP": {
+   "id": 593,
+   "flag": 1873,
+   "levels": [
+    13,
+    15
+   ]
   }
  },
  "milestones": [
@@ -1306,6 +1361,510 @@
    "decomp": {
     "DEFEATED_RUSTBORO_GYM": "data/maps/RustboroCity_Gym/scripts.inc",
     "BADGE01_GET": "data/maps/RustboroCity_Gym/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_stolen_goods",
+   "chapter": 5,
+   "title": "RUSTBORO CITY: the DEVON employee is robbed by a TEAM AQUA GRUNT",
+   "done": {
+    "flags": {},
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 2
+     },
+     "RUSTURF_TUNNEL_STATE": {
+      "number": 16538,
+      "at_least": 2
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Get out! Out of the way! Wait! Pleeeaaase! Don't take my GOODS!",
+    "words": null,
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "automatic scene, but the player must WALK onto its trigger: RustboroCity_EventScript_StolenGoodsTrigger0-4 are COORD events on x=23, y=20..24 while VAR_RUSTBORO_CITY_STATE==1 (ROXANNE's defeat script sets it), the only way out of the gym courtyard, so leaving the gym on foot plays it. FLAG_DEVON_GOODS_STOLEN is set here but CLEARED again in RusturfTunnel when the goods are recovered, so it is NOT a proof (it would flip back); the two vars only move up",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "recover_devon_goods",
+     "line": 2860,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc",
+    "RUSTURF_TUNNEL_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_goods_employee",
+   "chapter": 5,
+   "title": "The DEVON employee asks for help getting the DEVON GOODS back",
+   "done": {
+    "flags": {
+     "INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": 159
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 3
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "RUSTBORO_CITY"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Oh, it's you! You're that fantastic TRAINER who helped me in PETALBURG WOODS! Help me! I was robbed by TEAM AQUA! I have to get the DEVON GOODS back! If I don't... I'm going to be in serious trouble.",
+    "words": "DEVON GOODS",
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "OPTIONAL: the HelpGetGoodsTrigger0-3 coord events (x=29..30, y=9..12, state 2) play it on the walk east toward ROUTE 116 (the only way east), but RusturfTunnel sets the state to 4 whether or not it played, so it never gates anything",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "recover_devon_goods",
+     "line": 2860,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": "data/maps/RustboroCity/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_rusturf_grunt",
+   "chapter": 5,
+   "title": "RUSTURF TUNNEL: beat the TEAM AQUA GRUNT and take back the DEVON GOODS",
+   "done": {
+    "flags": {
+     "RECOVERED_DEVON_GOODS": 143
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 4
+     },
+     "BRINEY_HOUSE_STATE": {
+      "number": 16528,
+      "at_least": 1
+     }
+    },
+    "trainers": {
+     "GRUNT_RUSTURF_TUNNEL": 1296
+    }
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY",
+    "ROUTE116",
+    "RUSTURF_TUNNEL"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "RUSTURF_TUNNEL",
+     "told": "tunnel"
+    },
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "That shady character, I think he took off towards the tunnel over there.",
+    "words": "tunnel",
+    "map": null,
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "GRUNT_RUSTURF_TUNNEL"
+    ],
+    "levels": [
+     11
+    ],
+    "per_trainer": {
+     "GRUNT_RUSTURF_TUNNEL": [
+      11
+     ]
+    }
+   },
+   "note": "the tunnel's west door is the ROUTE 116 warp (the only walk there is east out of RUSTBORO); the GRUNT (with PEEKO) stands at (13,5) while VAR_RUSTURF_TUNNEL_STATE==2 and backs up at the AquaGruntBackUp coord tiles (state 3). Scripted fight (RusturfTunnel_EventScript_Grunt: trainerbattle_no_intro): ONE POOCHYENA Lv 11. The word 'tunnel' is said when the DEVON employee is TALKED to (RustboroCity_Text_ShadyCharacterTookOffTowardsTunnel) and by a Rustboro boy ('goes for walks in the tunnel'); until one is read the step explores. The tunnel's boulder scene (HM STRENGTH) is a later errand and NOT part of this milestone",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "recover_devon_goods",
+     "line": 2860,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "RECOVERED_DEVON_GOODS": "data/maps/RusturfTunnel/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RusturfTunnel/scripts.inc",
+    "BRINEY_HOUSE_STATE": "data/maps/RusturfTunnel/scripts.inc",
+    "GRUNT_RUSTURF_TUNNEL": "data/maps/RusturfTunnel/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_return_goods",
+   "chapter": 5,
+   "title": "Return the DEVON GOODS to the DEVON employee",
+   "done": {
+    "flags": {
+     "RETURNED_DEVON_GOODS": 144
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 5
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "RUSTBORO_CITY",
+     "told": "DEVON GOODS"
+    },
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Oh, it's you! You're that fantastic TRAINER who helped me in PETALBURG WOODS! Help me! I was robbed by TEAM AQUA! I have to get the DEVON GOODS back! If I don't... I'm going to be in serious trouble.",
+    "words": "DEVON GOODS",
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "no line of dialogue tells the player to bring the goods back: the employee's ReturnGoodsTrigger0-3 coord events (x=30..31, y=9..12, state 4) and a talk to him (RustboroCity_EventScript_DevonEmployee1 when FLAG_RECOVERED_DEVON_GOODS) start RustboroCity_EventScript_ReturnGoods, which gives a GREAT BALL and warps the player to DEVON CORP 3F",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "return_devon_goods_and_get_pokenav",
+     "line": 2972,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "RETURNED_DEVON_GOODS": "data/maps/RustboroCity/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_devon_corp",
+   "chapter": 5,
+   "title": "DEVON CORP 3F: MR. STONE's favor (the LETTER for STEVEN) and the POKéNAV",
+   "done": {
+    "flags": {
+     "RECEIVED_POKENAV": 188,
+     "SYS_POKENAV_GET": 2146
+    },
+    "variables": {
+     "DEVON_CORP_3F_STATE": {
+      "number": 16527,
+      "at_least": 1
+     },
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 6
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY_DEVON_CORP_3F"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Our PRESIDENT would like to have a word with you. Please come with me.",
+    "words": null,
+    "map": "RUSTBORO_CITY_DEVON_CORP_3F",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "automatic (RustboroCity_DevonCorp_3F_EventScript_MeetPresident, an OnFrame script at VAR_DEVON_CORP_3F_STATE==0, runs on arrival from the ReturnGoods warp): the player follows the employee, receives ITEM_LETTER (giveitem, no flag of its own) and the POKéNAV, and the party is healed",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "return_devon_goods_and_get_pokenav",
+     "line": 2972,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "RECEIVED_POKENAV": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+    "SYS_POKENAV_GET": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+    "DEVON_CORP_3F_STATE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_pokenav_tutorial",
+   "chapter": 5,
+   "title": "Leaving DEVON CORP: the scientist adds MATCH CALL and the player must open the POKéNAV from the START menu",
+   "done": {
+    "flags": {
+     "HAS_MATCH_CALL": 303,
+     "ADDED_MATCH_CALL_TO_POKENAV": 304
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 7
+     },
+     "ROUTE104_STATE": {
+      "number": 16483,
+      "at_least": 1
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Please select the POKéNAV.",
+    "words": "POKéNAV",
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "INTERACTIVE, NOT a cut scene, and `follow` is only the nearest honest step (there is no step kind for a menu task): RustboroCity_EventScript_ScientistAddMatchCall runs from the OnFrame table at VAR_RUSTBORO_CITY_STATE==6 and ends in RustboroCity_EventScript_MatchCallTutorial, a FORCED START menu where only the POKéNAV entry is accepted (every other choice, and B, loops back to 'Please select the POKéNAV.'); then OpenPokenavForTutorial (pokenav.c: POKENAV_MODE_FORCE_CALL_READY) keeps the player in MATCH CALL until MR. STONE is called. Only after that does the script set VAR_RUSTBORO_CITY_STATE to 7. HAS_MATCH_CALL and ADDED_MATCH_CALL_TO_POKENAV are set BEFORE the menu, so STATE>=7 is the real proof. The first START-menu pick in the game: whether the AI's menu skills get through it is a QUESTION for a development probe, not a fact (RULING 35: never a state write)",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "handle_pokenav_match_call_tutorial",
+     "line": 3046,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "HAS_MATCH_CALL": "data/maps/RustboroCity/scripts.inc",
+    "ADDED_MATCH_CALL_TO_POKENAV": "data/maps/RustboroCity/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc",
+    "ROUTE104_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_rival_meet",
+   "chapter": 5,
+   "title": "South RUSTBORO: the rival (MAY or BRENDAN) meets the player and mentions MR. BRINEY",
+   "done": {
+    "flags": {
+     "ENABLE_RIVAL_MATCH_CALL": 253
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 8
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY",
+    "ROUTE104"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "ROUTE104"
+    },
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "MAY: Oh, by the way, I passed MR. BRINEY in PETALBURG WOODS. I guess he's on his way home to his cottage by the sea. How's your POKéDEX coming along, {PLAYER}{KUN}? Mine's looking pretty decent! So... How about a little battle?",
+    "words": "cottage",
+    "map": null,
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "MAY_RUSTBORO_TREECKO",
+     "MAY_RUSTBORO_TORCHIC",
+     "MAY_RUSTBORO_MUDKIP",
+     "BRENDAN_RUSTBORO_TREECKO",
+     "BRENDAN_RUSTBORO_TORCHIC",
+     "BRENDAN_RUSTBORO_MUDKIP"
+    ],
+    "named": true,
+    "levels": [
+     13,
+     15
+    ],
+    "per_trainer": {
+     "MAY_RUSTBORO_TREECKO": [
+      13,
+      15
+     ],
+     "MAY_RUSTBORO_TORCHIC": [
+      13,
+      15
+     ],
+     "MAY_RUSTBORO_MUDKIP": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_TREECKO": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_TORCHIC": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_MUDKIP": [
+      13,
+      15
+     ]
+    }
+   },
+   "note": "RivalTrigger0-7 are COORD events on y=53, x=12..19 while VAR_RUSTBORO_CITY_STATE==7 (state 7 is set on the way out of DEVON CORP), and that row is the only way south, so the scene plays on the first walk to ROUTE 104. The proofs are set BEFORE the battle prompt (RustboroCity/scripts.inc: setflag, setvar, THEN the yes/no): they are true while the question is still on screen. The Route 104 second chance (Route104_EventScript_RivalTrigger, VAR_ROUTE104_STATE==1) is a DIFFERENT script (Route104_EventScript_RivalEncounter): it sets STATE 8 and ROUTE104_STATE 2 and the ENABLE flag but never MET_RIVAL_RUSTBORO, which is why that flag is not a proof. Answering YES starts the optional fight (levels 13/15; the trainer is chosen by gender and VAR_STARTER_MON). The BRENDAN (female player) text carries the same 'cottage' words",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "fight_rustboro_rival",
+     "line": 3167,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "ENABLE_RIVAL_MATCH_CALL": "data/maps/RustboroCity/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_rival_battle",
+   "chapter": 5,
+   "title": "The rival's battle outside RUSTBORO (declinable)",
+   "done": {
+    "flags": {
+     "DEFEATED_RIVAL_RUSTBORO": 211
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "RUSTBORO_CITY",
+    "ROUTE104"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "MAY: So, what do you think? How about a little battle here?",
+    "words": null,
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "MAY_RUSTBORO_TREECKO",
+     "MAY_RUSTBORO_TORCHIC",
+     "MAY_RUSTBORO_MUDKIP",
+     "BRENDAN_RUSTBORO_TREECKO",
+     "BRENDAN_RUSTBORO_TORCHIC",
+     "BRENDAN_RUSTBORO_MUDKIP"
+    ],
+    "named": true,
+    "levels": [
+     13,
+     15
+    ],
+    "per_trainer": {
+     "MAY_RUSTBORO_TREECKO": [
+      13,
+      15
+     ],
+     "MAY_RUSTBORO_TORCHIC": [
+      13,
+      15
+     ],
+     "MAY_RUSTBORO_MUDKIP": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_TREECKO": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_TORCHIC": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_MUDKIP": [
+      13,
+      15
+     ]
+    }
+   },
+   "note": "OPTIONAL because the battle is a YES/NO prompt (RustboroCity_Text_MayOhHaventRaisedPokemonEnough on NO) and the rival leaves once the player sails (Route104_MrBrineysHouse sets FLAG_HIDE_RUSTBORO_CITY_RIVAL), so it can be skipped for good. The SAME flag is set by all six variants (the trainer is chosen by the player's gender and VAR_STARTER_MON), which is why the proof is the flag, not a trainer. Rewards: none",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "fight_rustboro_rival",
+     "line": 3167,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "DEFEATED_RIVAL_RUSTBORO": "data/maps/RustboroCity/scripts.inc"
    }
   }
  ]

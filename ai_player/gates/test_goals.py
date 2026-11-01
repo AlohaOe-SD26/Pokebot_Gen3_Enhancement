@@ -6645,6 +6645,178 @@ class KI129PartBTests(unittest.TestCase):
         self.assertTrue(toward and {t.kind for t in toward} == {"route"}, toward)  # FAULT half: routes dropped too
 
 
+def ch_proofs(upto_id: str | None, skip_optional: bool = True) -> dict[str, int]:
+    """(chapter 5, 2026-11-01) The marks of a story played up to `upto_id` (EXCLUDED; None: every milestone): each earlier
+    milestone's flags 1, trainers' defeated flags 1, vars at their `at_least`, read from `milestones.json`; every other
+    mark 0 (the whole table, as the eyes report it). An optional milestone's proofs are left out unless asked."""
+    out = {name: 0 for name, _ in MILESTONE_FLAGS}
+    out.update({name: 0 for name, _ in MILESTONE_VARS})
+    for raw in KNOWLEDGE["milestones"]:
+        if raw["id"] == upto_id:
+            return out
+        if raw["optional"] and skip_optional:
+            continue
+        out.update({name: 1 for name in raw["done"]["flags"]})
+        out.update({f"TRAINER_{name}": 1 for name in raw["done"]["trainers"]})
+        for name, info in raw["done"]["variables"].items():
+            out[name] = max(out[name], info["at_least"])
+    if upto_id is not None:
+        raise KeyError(upto_id)
+    return out
+
+
+class Chapter5Tests(unittest.TestCase):
+    """(2026-11-01) CHAPTER 5, RUSTBORO after the badge (`knowledge/milestones.json` entries 20-27, `gates/extract_milestones.py`):
+    each rule has a FAULT half (the proof or step missing / the old shape) and a CONTROL half (the real data)."""
+
+    CH5 = ["ch5_stolen_goods", "ch5_goods_employee", "ch5_rusturf_grunt", "ch5_return_goods", "ch5_devon_corp",
+           "ch5_pokenav_tutorial", "ch5_rival_meet", "ch5_rival_battle"]
+    OPTIONAL = {"ch5_goods_employee", "ch5_rival_battle"}
+
+    def test_the_eight_follow_the_badge_in_this_order(self):
+        story = load_story("BOY")
+        self.assertEqual([m.id for m in story.milestones[20:]], self.CH5)
+        self.assertEqual({m.id for m in story.milestones[20:] if m.optional}, self.OPTIONAL)
+        self.assertEqual({m.chapter for m in story.milestones[20:]}, {5})
+        self.assertEqual(story.milestones[19].id, "ch4_roxanne")  # chapters 1-4 stay where they were
+
+    def test_the_story_walks_through_the_required_ones_and_skips_the_optional(self):
+        story = load_story("BOY")
+        required = [i for i in self.CH5 if i not in self.OPTIONAL]
+        for milestone_id in required:
+            with self.subTest(milestone=milestone_id):
+                self.assertEqual(story.current(ch_proofs(milestone_id))[1].id, milestone_id)
+        # every required one proven: no milestone is current (the optional two are never required)
+        self.assertEqual(story.current(ch_proofs(None)), (len(story.milestones), None))
+        # the optional ones are never the current one, even when their own proof is the only one missing
+        self.assertEqual(story.current(ch_proofs("ch5_rusturf_grunt"))[1].id, "ch5_rusturf_grunt")  # not ch5_goods_employee
+        # FAULT half: the state after the badge alone is ch5_stolen_goods (the first), not the end
+        self.assertEqual(story.current(ch_proofs("ch5_stolen_goods"))[1].id, "ch5_stolen_goods")
+
+    def test_a_later_proof_never_makes_up_for_an_earlier_one(self):
+        story = load_story("BOY")
+        everything = ch_proofs(None)
+        broken = dict(everything, RETURNED_DEVON_GOODS=0)  # the goods were never handed back; everything after is set
+        self.assertEqual(story.current(broken)[1].id, "ch5_return_goods")
+        self.assertEqual(story.current(everything), (len(story.milestones), None))  # CONTROL
+        unread = {k: v for k, v in everything.items() if k != "RETURNED_DEVON_GOODS"}  # the mark was not READ at all
+        self.assertEqual(story.current(unread)[1].id, "ch5_return_goods")  # an unread proof is never progress
+
+    def test_the_grunt_is_proven_by_his_defeated_flag_too(self):
+        story = load_story("BOY")
+        grunt = story.milestones[story.index("ch5_rusturf_grunt")]
+        self.assertEqual(grunt.trainers, ("GRUNT_RUSTURF_TUNNEL",))
+        everything = ch_proofs(None)
+        self.assertEqual(story.current(dict(everything, TRAINER_GRUNT_RUSTURF_TUNNEL=0))[1].id, "ch5_rusturf_grunt")  # FAULT
+        self.assertEqual(story.current(everything), (len(story.milestones), None))  # CONTROL
+        self.assertEqual(story.trainer_levels["GRUNT_RUSTURF_TUNNEL"], (11,))
+
+    def test_stolen_goods_is_proven_by_the_two_states_never_the_flag_that_flips_back(self):
+        story = load_story("BOY")
+        stolen = story.milestones[story.index("ch5_stolen_goods")]
+        self.assertEqual(stolen.flags, ())  # FLAG_DEVON_GOODS_STOLEN is cleared again in RusturfTunnel: no proof
+        self.assertEqual(dict(stolen.variables), {"RUSTBORO_CITY_STATE": 2, "RUSTURF_TUNNEL_STATE": 2})
+        after = ch_proofs("ch5_stolen_goods")
+        self.assertFalse(stolen.done(after))
+        self.assertFalse(stolen.done(dict(after, RUSTBORO_CITY_STATE=2)))  # one of the two is not enough
+        self.assertTrue(stolen.done(dict(after, RUSTBORO_CITY_STATE=2, RUSTURF_TUNNEL_STATE=2)))
+
+    def test_the_pokenav_scene_is_not_passed_by_the_flags_set_before_its_menu(self):
+        """The scientist's script sets HAS_MATCH_CALL and ADDED_MATCH_CALL_TO_POKENAV BEFORE the forced START menu and
+        ROUTE104_STATE 1 at its very start; only VAR_RUSTBORO_CITY_STATE 7 (after the PokeNAV was used) proves it."""
+        story = load_story("BOY")
+        before_menu = dict(ch_proofs("ch5_pokenav_tutorial"), RUSTBORO_CITY_STATE=6, HAS_MATCH_CALL=1,
+                           ADDED_MATCH_CALL_TO_POKENAV=1, ROUTE104_STATE=1)
+        self.assertEqual(story.current(before_menu)[1].id, "ch5_pokenav_tutorial")  # FAULT: flags without the state
+        self.assertEqual(story.current(dict(before_menu, RUSTBORO_CITY_STATE=7))[1].id, "ch5_rival_meet")  # CONTROL
+        pokenav = story.milestones[story.index("ch5_pokenav_tutorial")]
+        self.assertIn("INTERACTIVE", json.dumps(KNOWLEDGE["milestones"][story.index("ch5_pokenav_tutorial")]["note"]))
+        self.assertEqual([s.do for s in pokenav.steps], ["follow"])  # no step kind exists for a menu task yet
+
+    def test_the_rival_is_met_on_either_road_the_route_104_variant_included(self):
+        """Rustboro's RivalTrigger0-7 set MET_RIVAL_RUSTBORO, ENABLE_RIVAL_MATCH_CALL and STATE 8; Route 104's second chance
+        (a different script) sets ENABLE_RIVAL_MATCH_CALL and STATE 8 and never MET_RIVAL_RUSTBORO. FAULT: the draft's proof
+        (with that flag) would never fire on the Route 104 road; CONTROL: the real proof fires on both."""
+        story = load_story("BOY")
+        meet = story.milestones[story.index("ch5_rival_meet")]
+        before = ch_proofs("ch5_rival_meet")
+        route104_road = dict(before, ENABLE_RIVAL_MATCH_CALL=1, RUSTBORO_CITY_STATE=8)
+        self.assertTrue(meet.done(route104_road))
+        self.assertEqual(story.current(route104_road), (len(story.milestones), None))
+        drafted = replace(meet, flags=(*meet.flags, "MET_RIVAL_RUSTBORO"))
+        self.assertFalse(drafted.done({**route104_road, "MET_RIVAL_RUSTBORO": 0}))  # FAULT: stuck for good
+        self.assertTrue(meet.done({**route104_road, "MET_RIVAL_RUSTBORO": 1}))  # the Rustboro road passes too
+        self.assertFalse(meet.done(dict(before, RUSTBORO_CITY_STATE=8)))  # the state alone: not met (no match call flag)
+        self.assertFalse(meet.done(dict(before, ENABLE_RIVAL_MATCH_CALL=1, RUSTBORO_CITY_STATE=7)))
+
+    def test_the_rival_battle_is_optional_and_its_trainers_have_their_levels(self):
+        story = load_story("BOY")
+        battle = story.milestones[story.index("ch5_rival_battle")]
+        meet = story.milestones[story.index("ch5_rival_meet")]
+        self.assertTrue(battle.optional and not meet.optional)
+        for name in ("MAY", "BRENDAN"):
+            for starter in ("TREECKO", "TORCHIC", "MUDKIP"):
+                self.assertEqual(story.trainer_levels[f"{name}_RUSTBORO_{starter}"], (13, 15))
+        self.assertEqual((meet.fight_levels, battle.fight_levels), ((13, 15), (13, 15)))
+        self.assertTrue(meet.fight_named and battle.fight_named)
+
+    def rival_goal(self, level: int, train_off: bool = False, known=("RUSTBORO_CITY", "ROUTE104"), prep_steps=None):
+        mgr = manager("Story", train_off=train_off)
+        world = world_with(*known, current="RUSTBORO_CITY")
+        observation = look(ch_proofs("ch5_rival_meet"), party=[mon(level, hp=40, max_hp=40)], const="RUSTBORO_CITY")
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, "ch5_rival_meet")
+        if prep_steps is not None:
+            mgr.next_goal(observation, world, milestone, index)
+            mgr.memory.fight_prep["ch5_rival_meet"]["steps"] = prep_steps
+        return mgr.next_goal(observation, world, milestone, index)
+
+    def test_it_trains_for_the_rival_before_it_crosses_the_trigger_row(self):
+        """F8's decision: the named fight sits on ch5_rival_meet (the scene starts there), so the train-before-a-fight errand
+        applies, as it does for the first rival. FAULT: under train_off it goes straight; CONTROL: a fresh party trains."""
+        trains = self.rival_goal(level=9)
+        self.assertEqual(trains.kind, "train")
+        self.assertIn(f"target L{15 + ERRANDS['Story'].train_margin}", trains.reason)
+        self.assertEqual(self.rival_goal(level=9, train_off=True).kind, "go")
+        ready = self.rival_goal(level=20, prep_steps=ERRANDS["Story"].train_min_steps)
+        self.assertEqual((ready.kind, ready.map), ("go", "ROUTE104"))
+
+    def test_the_way_south_is_a_place_it_has_been_to_never_a_guess(self):
+        """`go ROUTE104` has no `told` words: only a map the AI has BEEN to is headed for (it came from there in chapter 3).
+        FAULT: not been there -> it explores, never walks to a map it was not told of."""
+        known = self.rival_goal(level=20, train_off=True)
+        self.assertEqual((known.kind, known.map), ("go", "ROUTE104"))
+        unknown = self.rival_goal(level=20, train_off=True, known=("RUSTBORO_CITY",))
+        self.assertEqual((unknown.kind, unknown.map), ("go", None))
+
+    def test_the_tunnel_is_only_walked_to_once_it_is_said(self):
+        mgr = manager("Story", train_off=True)
+        world = world_with("RUSTBORO_CITY", "ROUTE116", current="RUSTBORO_CITY")
+        observation = look(ch_proofs("ch5_rusturf_grunt"), party=[mon(15, hp=40, max_hp=40)], const="RUSTBORO_CITY")
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, "ch5_rusturf_grunt")
+        self.assertEqual(mgr.next_goal(observation, world, milestone, index).map, None)  # nobody said 'tunnel': explores
+        world.heard = {"That shady character, I think he took off towards the tunnel over there."}
+        mgr = manager("Story", train_off=True)
+        goal = mgr.next_goal(observation, world, milestone, index)
+        self.assertEqual((goal.kind, goal.map), ("go", "RUSTURF_TUNNEL"))
+
+    def test_chapters_1_to_4_are_untouched(self):
+        """The first 20 entries, the gendered maps, the looks and the first 14 trainers are what they were before chapter 5:
+        their digests were measured on 39b2612f (the commit before chapter 5; the same digests of the 28-milestone file
+        match). A deliberate change to chapters 1-4 updates these two constants, in the open."""
+        import hashlib
+
+        def digest(parts) -> str:
+            return hashlib.sha256(json.dumps(parts, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+
+        self.assertEqual(digest(KNOWLEDGE["milestones"][:20]),
+                         "24ce2d9509b8e2d1c73b9c4b5e7b73324e847f32c2e40a455d3e4a01d9ebd2bd")
+        self.assertEqual(digest([KNOWLEDGE["gendered_maps"], KNOWLEDGE["looks"], list(KNOWLEDGE["trainers"].items())[:14]]),
+                         "de26718a062c5f1e5a47b2ffe3b90f78fbe7fe90388c533899690b6b9d23e302")
+        self.assertNotEqual(digest(KNOWLEDGE["milestones"][:21]), "24ce2d9509b8e2d1c73b9c4b5e7b73324e847f32c2e40a455d3e4a01d9ebd2bd")  # FAULT half: the digest does see a 21st entry
+
+
 def _unused_tile() -> Tile:  # keeps the builder import honest (a Tile is what View rows hold)
     return Tile(0, 0, 0, 0, 0, 0, "NORMAL", 0, 3, False, False, None, False, None, False, False, False)
 

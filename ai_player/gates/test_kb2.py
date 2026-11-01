@@ -21,7 +21,7 @@ repository (FrozenTree, provenance.py G1, watches it): every file a test writes 
   W3RecallTests     every trainer, flag and level of milestones.json's table is in trainers.json, and each trainer is
                     PLACED (an object or a coord event) on a map of its chapter in maps.json (recall 100 %; the chapter
                     mapping is CHAPTER_OF below); FAULT: Calvin's object deleted from a scratch Route102 map.json.
-  W4ConsistencyTests the first 20 campaign ids are milestones.json's; every area map resolves; every FLAG/VAR in the
+  W4ConsistencyTests the first campaign ids (as many as milestones.json has: 28 since chapter 5) are milestones.json's; every area map resolves; every FLAG/VAR in the
                     outputs is in the event-flag table audit_flag_names.py reads; FAULT: a renamed area map makes the
                     generator exit non-zero naming it; a renamed milestone id and a phantom flag are caught.
   W4bOrderTests     every needed badge is awarded by an EARLIER entry's boss; FAULT: Flannery and Norman swapped.
@@ -111,6 +111,8 @@ CHAPTER_OF = {
     2: ["CALVIN_1", "RICK", "TIANA", "ALLEN"],                         # ch2_route102 "ROUTE 102 and its trainers"
     3: ["GRUNT_PETALBURG_WOODS"],                                      # ch3_woods
     4: ["JOSH", "TOMMY", "ROXANNE_1"],                                 # ch4_gym_trainers (JOSH, TOMMY), ch4_roxanne
+    5: ["GRUNT_RUSTURF_TUNNEL", "MAY_RUSTBORO_TREECKO", "MAY_RUSTBORO_TORCHIC", "MAY_RUSTBORO_MUDKIP",
+        "BRENDAN_RUSTBORO_TREECKO", "BRENDAN_RUSTBORO_TORCHIC", "BRENDAN_RUSTBORO_MUDKIP"],  # ch5_rusturf_grunt, ch5_rival_*
 }
 #: what a reader of the world files would have to write (`world/` alone is not one: the AI's own `ai_player/world/`
 #: package is named in comments and paths all over the play code)
@@ -778,7 +780,7 @@ class W3RecallTests(unittest.TestCase):
     def test_recall_is_complete(self):
         missing, extras = recall(OBJS["maps.json"]["maps"], OBJS["trainers.json"]["trainers"])
         self.assertEqual(missing, [])
-        print("\n  W3 extras on the chapter 1-4 maps (listed for adjudication, not hidden): %s" % extras)
+        print("\n  W3 extras on the chapter 1-5 maps (listed for adjudication, not hidden): %s" % extras)
 
     def test_fault_deleted_object_lowers_recall(self):
         rel = "data/maps/Route102/map.json"
@@ -812,7 +814,9 @@ def phantom(names):
 class W4ConsistencyTests(unittest.TestCase):
     def test_ids_and_areas(self):
         entries = OBJS["campaign.json"]["entries"]
-        self.assertEqual([e["id"] for e in entries[:20]], [m["id"] for m in MILESTONES["milestones"]])
+        # (2026-11-01) the milestones' count is READ, not written: chapter 5 moved it from 20 to 28 and chapter 6 will again
+        self.assertEqual([e["id"] for e in entries[:len(MILESTONES["milestones"])]],
+                         [m["id"] for m in MILESTONES["milestones"]])
         ids = {m["id"] for m in OBJS["maps.json"]["maps"]}
         self.assertEqual([n for e in entries for n in e["area"] if "MAP_" + n not in ids], [])
 
@@ -825,7 +829,8 @@ class W4ConsistencyTests(unittest.TestCase):
         self.assertEqual(phantom(names | {"FLAG_HIDDEN_ITEM_ROUTE_999_PHANTOM"}), ["FLAG_HIDDEN_ITEM_ROUTE_999_PHANTOM"])
 
     def test_renamed_area_map_exits_non_zero_naming_it(self):
-        sk = scratch_skeleton(lambda es: es[40]["area"].__setitem__(1, "ROUTE118X"))
+        # (2026-11-01) picked by id, not by position: es[40] named the entry that was 41st before chapter 5 moved the order
+        sk = scratch_skeleton(lambda es: next(e for e in es if e["id"] == "ch13_route118")["area"].__setitem__(1, "ROUTE118X"))
         with self.assertRaises(ew.Refused) as cm:
             campaign_of(sk)
         self.assertIn("ROUTE118X", str(cm.exception))
@@ -843,6 +848,27 @@ class W4ConsistencyTests(unittest.TestCase):
             campaign_of(scratch_skeleton(lambda es: es[3].__setitem__("id", "ch1_clock_renamed")))
         with self.assertRaises(ew.Refused):
             campaign_of(scratch_skeleton(lambda es: es.__setitem__(slice(0, 2), [es[1], es[0]])))
+
+    def test_chapter_5_ids_are_guarded_too(self):
+        """(2026-11-01) FAULT: a chapter-5 skeleton id renamed, two chapter-5 entries swapped, and a chapter-5 entry dropped
+        are each REFUSED naming the milestone; CONTROL: the real skeleton (28 milestones, 8 of them chapter 5) is accepted."""
+        ch5 = [m["id"] for m in MILESTONES["milestones"] if m["chapter"] == 5]
+        self.assertEqual(len(ch5), 8)
+        campaign_of(scratch_skeleton(lambda es: None))  # CONTROL: unchanged -> no raise
+        def index(es, mid):
+            return next(i for i, e in enumerate(es) if e["id"] == mid)
+
+        with self.assertRaises(ew.Refused) as cm:
+            campaign_of(scratch_skeleton(lambda es: es[index(es, "ch5_pokenav_tutorial")].__setitem__("id", "ch5_pokenav")))
+        self.assertIn("ch5_pokenav_tutorial", str(cm.exception))
+
+        def swap(es):
+            i, j = index(es, "ch5_rival_meet"), index(es, "ch5_rival_battle")
+            es[i], es[j] = es[j], es[i]
+        with self.assertRaises(ew.Refused):
+            campaign_of(scratch_skeleton(swap))
+        with self.assertRaises(ew.Refused):
+            campaign_of(scratch_skeleton(lambda es: es.pop(index(es, "ch5_goods_employee"))))
 
 
 class W4bOrderTests(unittest.TestCase):
