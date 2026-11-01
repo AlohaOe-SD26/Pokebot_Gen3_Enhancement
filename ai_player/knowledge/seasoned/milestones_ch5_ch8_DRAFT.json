@@ -12,7 +12,26 @@
   "chapter_scope": "chapters as ai_player/knowledge/world/campaign.json defines them: 5 = DEVON GOODS / RUSTBORO, 6 = sail to DEWFORD, 7 = GRANITE CAVE + BRAWLY, 8 = sail to SLATEPORT + CAPT. STERN"
  },
  "gendered_maps": {},
- "looks": {},
+ "looks": {
+  "mr_briney": {
+   "gfx": [
+    21
+   ],
+   "decomp_const": "OBJ_EVENT_GFX_EXPERT_M",
+   "map": "Route104_MrBrineysHouse",
+   "script": "Route104_MrBrineysHouse_EventScript_Briney",
+   "what": "MR. BRINEY, the old sailor (his cottage on ROUTE 104; the same figure stands at the DEWFORD and SLATEPORT landings)"
+  },
+  "old_rod_fisherman": {
+   "gfx": [
+    50
+   ],
+   "decomp_const": "OBJ_EVENT_GFX_FISHERMAN",
+   "map": "DewfordTown",
+   "script": "DewfordTown_EventScript_OldRodFisherman",
+   "what": "the DEWFORD fisherman who gives the OLD ROD"
+  }
+ },
  "trainers": {
   "GRUNT_RUSTURF_TUNNEL": {
    "id": 16,
@@ -474,6 +493,133 @@
    "taught_by": [],
    "decomp": {
     "DEFEATED_RIVAL_RUSTBORO": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch6_briney_house",
+   "chapter": 6,
+   "title": "ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)",
+   "done": {
+    "flags": {
+     "MR_BRINEY_SAILING_INTRO": 147
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "ROUTE104",
+    "ROUTE104_MR_BRINEYS_HOUSE"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "ROUTE104_MR_BRINEYS_HOUSE",
+     "told": "cottage",
+     "file": "data/maps/RustboroCity/scripts.inc"
+    },
+    {
+     "do": "talk",
+     "map": "ROUTE104_MR_BRINEYS_HOUSE",
+     "look": "mr_briney"
+    }
+   ],
+   "hint": {
+    "said": "MAY: Oh, by the way, I passed MR. BRINEY in PETALBURG WOODS. I guess he's on his way home to his cottage by the sea. How's your POKéDEX coming along, {PLAYER}{KUN}? Mine's looking pretty decent! So… How about a little battle?",
+    "words": "cottage",
+    "map": "ROUTE104_MR_BRINEYS_HOUSE",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "FLAG_MR_BRINEY_SAILING_INTRO is set the FIRST time the player talks to MR. BRINEY, BEFORE the yes/no (Route104_MrBrineysHouse_EventScript_SailingIntro), so it proves 'talked to him', not 'sailed'. Sailing itself leaves no durable flag of its own: VAR_BOARD_BRINEY_BOAT_STATE is 1 only during the voyage and Route104_EventScript_SailToDewford resets it to 0 on landing (Route104/scripts.inc:394), so the arrival proof is the next milestone's VISITED_DEWFORD_TOWN",
+   "taught_by": [],
+   "decomp": {
+    "MR_BRINEY_SAILING_INTRO": "data/maps/Route104_MrBrineysHouse/scripts.inc"
+   }
+  },
+  {
+   "id": "ch6_dewford",
+   "chapter": 6,
+   "title": "Sail with MR. BRINEY to DEWFORD TOWN",
+   "done": {
+    "flags": {
+     "VISITED_DEWFORD_TOWN": 2161
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "ROUTE104_MR_BRINEYS_HOUSE",
+    "ROUTE104",
+    "DEWFORD_TOWN"
+   ],
+   "steps": [
+    {
+     "do": "talk",
+     "map": "ROUTE104_MR_BRINEYS_HOUSE",
+     "look": "mr_briney"
+    },
+    {
+     "do": "go",
+     "map": "DEWFORD_TOWN",
+     "told": "DEWFORD TOWN",
+     "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+    }
+   ],
+   "hint": {
+    "said": "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION. I'd just got word about you! You saved our staff not just once, but twice! I have a favor to ask of an amazing person like you. I understand that you're delivering a package to SLATEPORT's SHIPYARD. Well, on the way, could you stop off in DEWFORD TOWN? I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",
+    "words": "DEWFORD TOWN",
+    "map": "DEWFORD_TOWN",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "set by DewfordTown_OnTransition on every arrival (map load), so it is the durable proof of having landed. Boat only: the voyage starts on Route104_MrBrineysHouse_EventScript_SailToDewford (answer YES) and the player is warped to ROUTE 104 (13,51) where Route104_OnFrame runs the sail",
+   "taught_by": [],
+   "decomp": {
+    "VISITED_DEWFORD_TOWN": "data/maps/DewfordTown/scripts.inc"
+   }
+  },
+  {
+   "id": "ch6_old_rod",
+   "chapter": 6,
+   "title": "DEWFORD TOWN: the fisherman's OLD ROD",
+   "done": {
+    "flags": {
+     "RECEIVED_OLD_ROD": 257
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "DEWFORD_TOWN"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "DEWFORD_TOWN"
+    },
+    {
+     "do": "talk",
+     "map": "DEWFORD_TOWN",
+     "look": "old_rod_fisherman"
+    }
+   ],
+   "hint": {
+    "said": "This is a renowned fishing spot. Are you getting the itch to fish?",
+    "words": null,
+    "map": "DEWFORD_TOWN",
+    "file": "data/maps/DewfordTown/scripts.inc"
+   },
+   "fight": null,
+   "note": "optional gift (answer YES to 'Are you getting the itch to fish?'); gates nothing in chapters 5-8",
+   "taught_by": [],
+   "decomp": {
+    "RECEIVED_OLD_ROD": "data/maps/DewfordTown/scripts.inc"
    }
   }
  ],
@@ -1393,6 +1539,87 @@
      "party_line": 7849
     }
    }
+  },
+  "ch6_briney_house": {
+   "flags": {
+    "MR_BRINEY_SAILING_INTRO": {
+     "number": 147,
+     "define": "include/constants/flags.h:169",
+     "setters": [
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 32,
+       "text": "setflag FLAG_MR_BRINEY_SAILING_INTRO"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity/scripts.inc:1042 RustboroCity_Text_MayPassedBrineyWantToBattle"
+    ]
+   },
+   "maps": {
+    "ROUTE104": "data/maps/Route104/map.json id",
+    "ROUTE104_MR_BRINEYS_HOUSE": "data/maps/Route104_MrBrineysHouse/map.json id"
+   },
+   "fight": null
+  },
+  "ch6_dewford": {
+   "flags": {
+    "VISITED_DEWFORD_TOWN": {
+     "number": 2161,
+     "define": "include/constants/flags.h:1372",
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown/scripts.inc",
+       "line": 6,
+       "text": "setflag FLAG_VISITED_DEWFORD_TOWN"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity_DevonCorp_3F/scripts.inc:193 RustboroCity_DevonCorp_3F_Text_MrStoneIHaveFavor"
+    ]
+   },
+   "maps": {
+    "ROUTE104_MR_BRINEYS_HOUSE": "data/maps/Route104_MrBrineysHouse/map.json id",
+    "ROUTE104": "data/maps/Route104/map.json id",
+    "DEWFORD_TOWN": "data/maps/DewfordTown/map.json id"
+   },
+   "fight": null
+  },
+  "ch6_old_rod": {
+   "flags": {
+    "RECEIVED_OLD_ROD": {
+     "number": 257,
+     "define": "include/constants/flags.h:283",
+     "setters": [
+      {
+       "file": "data/maps/DewfordTown/scripts.inc",
+       "line": 84,
+       "text": "setflag FLAG_RECEIVED_OLD_ROD"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/DewfordTown/scripts.inc:686 DewfordTown_Text_GettingItchToFish"
+    ]
+   },
+   "maps": {
+    "DEWFORD_TOWN": "data/maps/DewfordTown/map.json id"
+   },
+   "fight": null
   }
  }
 }
