@@ -341,7 +341,7 @@
      ]
     }
    },
-   "note": "the tunnel entrance is the ROUTE 116 warp; the GRUNT (with PEEKO) stands at (13,5) while VAR_RUSTURF_TUNNEL_STATE==2 and backs up at the AquaGruntBackUp coord tiles (state 3). Scripted fight (RusturfTunnel_EventScript_Grunt: trainerbattle_no_intro): ONE POOCHYENA Lv 11. (The earlier CH5-REPORT's 'lvl16 GEODUDE, GEODUDE, MACHOP' is MIKE_2, the optional HIKER in the same tunnel, not the grunt.) The tunnel's far (Verdanturf) side needs ROCK SMASH and is not part of this milestone",
+   "note": "the tunnel entrance is the ROUTE 116 warp; the GRUNT (with PEEKO) stands at (13,5) while VAR_RUSTURF_TUNNEL_STATE==2 and backs up at the AquaGruntBackUp coord tiles (state 3). Scripted fight (RusturfTunnel_EventScript_Grunt: trainerbattle_no_intro): ONE POOCHYENA Lv 11. (The earlier CH5-REPORT's 'lvl16 GEODUDE, GEODUDE, MACHOP' is MIKE_2, the optional HIKER in the same tunnel, not the grunt.) The tunnel's boulder scene (RusturfTunnel_Text_YouShatteredBoulderTakeHM, FLAG_RECEIVED_HM_STRENGTH) is a later errand and NOT part of this milestone",
    "taught_by": [],
    "decomp": {
     "RECOVERED_DEVON_GOODS": "data/maps/RusturfTunnel/scripts.inc",

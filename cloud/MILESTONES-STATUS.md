@@ -1,18 +1,16 @@
 # MILESTONES-CH5-CH8 status (cloud job; the truth, updated after every step)
 
-Branch: claude/milestones-ch5-ch8-o0janq. Decomp: pret/pokeemerald@731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 (git clone --depth 1 https://github.com/pret/pokeemerald /tmp/pokeemerald). Wall time so far: 9 min (session clock).
+Branch: claude/milestones-ch5-ch8-o0janq. Decomp: pret/pokeemerald@731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 (git clone --depth 1 https://github.com/pret/pokeemerald /tmp/pokeemerald). Wall time so far: 11 min (session clock).
 
 ## Done
-- Step 1 (chapter 5): 8 milestones (ch5_stolen_goods, ch5_goods_employee [optional], ch5_rusturf_grunt, ch5_return_goods, ch5_devon_corp, ch5_pokenav_tutorial, ch5_rival_meet, ch5_rival_battle [optional]).
-- Step 2 (chapter 6): 3 milestones (ch6_briney_house, ch6_dewford, ch6_old_rod [optional]).
-- Step 3 (chapter 7): 5 milestones (ch7_steven, ch7_flash [optional], ch7_gym_trainers [optional], ch7_brawly, ch7_exp_share [optional]).
-- Step 4 (chapter 8): 4 milestones (ch8_sail_slateport, ch8_dock, ch8_stern, ch8_scott). The DRAFT is now complete: 20 milestones, 16 trainers, 7 looks. In-memory check: merged after milestones.json, ai_player.knowledge.story.Story loads it for BOY and GIRL and walks ch4_roxanne -> ch5_stolen_goods -> ... -> ch8_scott in order.
+- Steps 1-4: all four chapters drafted (20 milestones: ch5 x8, ch6 x3, ch7 x5, ch8 x4), 16 trainers, 7 looks; generator run: 0 problems; in-memory Story load test passes for BOY and GIRL.
+- Step 5: cloud/MILESTONES-REPORT.md written (per-chapter sources, hints, levels, not found, uncertain, SHA, wall time).
 
 ## In progress
 - nothing
 
 ## Next
-- Step 5: write cloud/MILESTONES-REPORT.md (per-chapter list with file:line sources, hints, levels, not found, uncertain, SHA, wall time), commit, push, stop.
+- NOTHING: the job is complete. For the owner: review the DRAFT, then decide whether to wire it into milestones.json via ai_player/gates/extract_milestones.py (not done here: new files only).
 
 ## How a later session resumes
 1. git fetch origin claude/milestones-ch5-ch8-o0janq; check it out; read this file and `ai_player/knowledge/seasoned/milestones_ch5_ch8_DRAFT.json` (it is complete up to the last step listed under Done).
