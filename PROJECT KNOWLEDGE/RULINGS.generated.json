@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "d4f3a5a499150a4e30f9d4127ffd4d4a91c66e07",
+ "source_sha1_lf": "a869fff677a32a3f1fefd16326ebb3be8ef1d4be",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 361,
+  "sections": 362,
   "donot_candidates": 31,
   "sections_naming_user_rulings": 52
  },
@@ -5650,6 +5650,22 @@
    "ruling_mentions": [],
    "slugs": [],
    "ki": [
+    "KI-129"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-31-2d2d7e",
+   "date": "2026-10-31",
+   "line_start": 9991,
+   "line_end": 9996,
+   "title": "2026-10-31 — The KI-128/KI-129 held-out: K8.EDGE_WINDOW is REPORTED, not graded; the graded bars stay what the fix claims",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
+    "KI-128",
     "KI-129"
    ],
    "donot": [],

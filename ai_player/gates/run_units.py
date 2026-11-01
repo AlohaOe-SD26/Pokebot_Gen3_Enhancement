@@ -86,6 +86,9 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # gate (DP1: no machine path in the AI's code but its one resolver; under 1 s)
     "test_saving": ([str(GATES / "test_saving.py")], 2),
     "check_paths": ([str(GATES / "check_paths.py")], 1),
+    # KI-128/KI-129's graded held-out driver (2026-10-31): every grader's FAULT and CONTROL on planted rows (offline,
+    # about 4 s)
+    "test_live_ki128": ([str(GATES / "test_live_ki128.py")], 2),
 }
 
 
