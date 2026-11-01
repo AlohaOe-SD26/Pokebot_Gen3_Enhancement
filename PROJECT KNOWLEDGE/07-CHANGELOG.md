@@ -39308,3 +39308,10 @@ bought balls only at fixed story points.
 - **The frontier:** `ai-frontier.txt` moves to chapter 3, with its caveat in the same line: each run started from the AI's own chapter-2 save of a real New Game chain made on 2026-10-30's code; one unbroken New Game-to-Rustboro run on one code version is still to be shown.
 - **The regression lane:** the clean re-run on `54ce416d` read `REGRESSION: FAIL (full, 34 suites, 5127.4 s wall)`, again ONLY `revert_step5`'s TIMEOUT at 3,600 s, this time with nothing heavy beside it, so load was not the cause (`08`, this date): the suite's measured time in `run_regression_times.json` is 237 s from 2026-10-21, so its timeout stays at the 3,600 s floor while its mutants grew to 425. Next: measure it alone and record the real time (the table's own procedure), then a full lane.
 - **Updated:** `05` (KI-128 and KI-129 proven on the graded held-out), `ai-frontier.txt`, `04`, `08`; `ai_player/gates/ledger.json` (#82 done); the lane's evidence (its FAIL record).
+
+## 2026-10-31 — revert_step5 re-measured (3,460 s alone, OVERALL PASS) and its entry in run_regression_times.json fixed: 237 -> 3460 (punch-list #28-aiagent-v2)
+
+- **Measured:** `py -3.12 ai_player/gates/revert_step5.py` alone on `131b7ec5`, 10:38-11:35 PM 2026-10-31: wall 3,460 s, `OVERALL: PASS`, FROZEN TREE PASS (425 mutants). Its evidence `ai_player/evidence/2026-10-31-step52-REVERT.txt` is rewritten (the lane's earlier file kept under `archive/` by the keep-earlier rule).
+- **Fixed:** `ai_player/gates/run_regression_times.json` `revert_step5` 237 -> 3460, its source noted in the table's `_doc` (the table's own procedure, as for `revert_r1` on 2026-10-29). The lane now gives it `max(3600, 3460 x 3.5)` = 12,110 s. `test_run_regression` 53 OK.
+- **Why it grew** (`08`, this date): 425 mutants, and two Part B tests of 2.1 s and 1.2 s that every mutant re-runs; speeding those two up would save about 20 minutes per run (a follow-up, not done).
+- **Next:** the full lane on this commit.
