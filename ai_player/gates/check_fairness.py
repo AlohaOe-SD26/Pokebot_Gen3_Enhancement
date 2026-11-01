@@ -216,8 +216,21 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "maps[].region_map_section": (AI, "where it lies on the region map (the TOWN MAP)", True),
         "maps[].allow_*": (AI, "whether a bike, an escape and running work there (a player finds out at once)", True),
         "maps[].requires_flash": (AI, "a dark cave (seen on entering)", True),
-        "maps[].connections": (AI, "the maps beyond its edges (a guide's map; RULING 45)", True),
-        "maps[].warps": (AI, "its doors, stairs and cave mouths and where they lead (a guide's map; RULING 45)", True),
+        # (the round-1 verifier's V1, 2026-10-31) warps and connections are classified LEAF BY LEAF, the containers marked
+        # without a subtree: as SUBTREE entries they classified any key planted under them, so a developer key added to
+        # a warp (`warps[].script`) passed RULE B unmarked (the verifier's gate mutant M4: PASS)
+        "maps[].connections": (AI, "the maps beyond its edges (a guide's map; RULING 45)", False),
+        "maps[].connections[]": (AI, "one edge and the map beyond it", False),
+        "maps[].connections[].dir": (AI, "which edge (up, down, left, right)", True),
+        "maps[].connections[].map": (AI, "the map beyond that edge (a guide's map)", True),
+        "maps[].connections[].offset": (AI, "how the map beyond lines up along that edge (a guide's map)", True),
+        "maps[].warps": (AI, "its doors, stairs and cave mouths and where they lead (a guide's map; RULING 45)", False),
+        "maps[].warps[]": (AI, "one door, stairway or cave mouth", False),
+        "maps[].warps[].x": (AI, "where it is (RULING 45: coordinates kept)", True),
+        "maps[].warps[].y": (AI, "where it is (RULING 45: coordinates kept)", True),
+        "maps[].warps[].elevation": (AI, "the level it is on", True),
+        "maps[].warps[].dest_map": (AI, "the map it leads to (a guide's map)", True),
+        "maps[].warps[].dest_warp_id": (AI, "which door of that map it comes out of (a guide's map)", True),
         "maps[].trainers": (AI, "the trainers who stand on it", False),
         "maps[].trainers[]": (AI, "one trainer", False),
         "maps[].trainers[].x": (AI, "where the trainer stands (RULING 45: coordinates kept)", True),

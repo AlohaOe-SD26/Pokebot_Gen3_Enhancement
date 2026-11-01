@@ -24176,3 +24176,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** no launch named a chapter-3 or chapter-4 goal (the AI trainer's design, section 2: no evidence file names one; 0 of 95 changelog entries from 2026-10-15 to 2026-10-30 launch one). Each session's queue put machinery first (grading, saving and continuing, lanes, the bot tuner), and no doc commanded "run chapter 3". Meanwhile the 24/7 trainer tuned the scripted bot, which never moves the AI (USER RULING 41).
 - **The fix that worked:** A0 (`07`, this date): three launcher runs, about 16 minutes of machine time, found chapter 3's first two blockers (KI-128, KI-129).
 - **Prevention rule:** when a chapter passes, run the next chapter that same week, before building machinery for it. The frontier is measured by playing it, and an untried chapter is not a stuck one.
+
+## 2026-10-31 — The gate suite ran BEFORE the docs were written, so round 1's commit (17ed7794) shipped a handoff clause the gates forbid
+
+- **Symptom:** round 2's pre-commit `run_gates.py --quick` read `FAILED: 1 of 143`: `probe_promoted_pair.py` found `04-HANDOFF.md:60` naming KI-128 within 300 characters of "Still open", while `05` marks KI-128 FIXED. The same clause was already in round 1's commit `17ed7794`, whose gate run had read `ALL 141 ENFORCING GATES PASS`.
+- **Root cause:** in round 1 the gate suite was started in the background right after the code was applied and BEFORE the doc edits; the docs were then written and checked only by Tier 0, which does not include `probe_promoted_pair.py`. The PASS described a tree that was not the one committed.
+- **The fix that worked:** the clause was rewritten without the KI number (it now says the woods are fixed on development runs); the gate passes; the full suite was re-run AFTER all doc edits before round 2's commit.
+- **Prevention rule:** run `run_gates.py --quick` LAST, after every doc edit of the item, and commit only the tree it passed on; a gate run that started before an edit does not cover that edit.

@@ -2356,7 +2356,9 @@ def grade_CROP(run: Run, town: Run | None) -> None:
 
 
 def grade_STUCK(run: Run) -> None:
-    grade_common(run, "explore: stuck: ping-pong:")
+    # (KI-129 Part B, 2026-10-31) the WARP's ping-pong text: the play brain's edge ping-pong ("ping-pong: the edge ...")
+    # begins with the same words and is not what this arm (the stairs) proves
+    grade_common(run, "explore: stuck: ping-pong: the warp ")
     before, after = run.before or {}, run.after or {}
     frames = ((run.verdict or {}).get("counters") or {}).get("real_frames") or 0
     run.check(0 < frames < run.arm.frames // 2, f"no hang: it gave up by itself after {frames} of {run.arm.frames} frames")

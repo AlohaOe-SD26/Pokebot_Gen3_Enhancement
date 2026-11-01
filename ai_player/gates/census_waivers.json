@@ -66,6 +66,10 @@
     {"callee": "skills/saving.py:_decide", "caller": "brain/battle.py:BattleMind.decide",
      "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is the battle mind's own `_decide`, not the save skill's question rule."},
     {"callee": "game_memory.py:MonRegistry.add_role", "caller": "*",
-     "reason": "(R1 + R2, build stage 4) UNCALLED by design: build spec D15, no role is ASSIGNED in this build (that is L3 (c)-(d)); the vocabulary and the refusal of an unknown role are tested by MemoryFileTests.test_mons_by_pid_and_species_with_roles and CensusSiteTests."}
+     "reason": "(R1 + R2, build stage 4) UNCALLED by design: build spec D15, no role is ASSIGNED in this build (that is L3 (c)-(d)); the vocabulary and the refusal of an unknown role are tested by MemoryFileTests.test_mons_by_pid_and_species_with_roles and CensusSiteTests."},
+    {"callee": "brain/explore.py:candidates.add", "caller": "*",
+     "reason": "(KI-129 Part B, 2026-10-31) `add` is `candidates`' NESTED scorer; Part B added one guard to its BODY (the drop of a tile past a ping-ponged edge), mutated by revert_step5 G422 (the guard deleted) and G423 (routes not exempt), both caught. Its own call sites inside `candidates` are unchanged since step 3; the census matches by NAME, so the other sites it lists are builtin `set.add` calls, not this function: waived, not claimed."},
+    {"callee": "brain/navigator.py:Navigator.summary", "caller": "brain/navigator.py:Navigator.run",
+     "reason": "(KI-129 Part B, 2026-10-31) `summary` only formats the walk's counts (steps, bumps, maps, tiles) at the end of an outcome's text; Part B's edge stop added one more outcome line that prints it. Deleting a call changes only the words after the reason, which no decision reads (the play loop and the graders read the outcome's prefix: 'stuck: ping-pong: the edge'), so no mutant of it can be caught: waived, not claimed."}
   ]
 }

@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "2fdf430afff7569afef4265f5c34c3d15cc06535",
+ "source_sha1_lf": "d4f3a5a499150a4e30f9d4127ffd4d4a91c66e07",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 360,
+  "sections": 361,
   "donot_candidates": 31,
   "sections_naming_user_rulings": 52
  },
@@ -5635,6 +5635,21 @@
    "slugs": [],
    "ki": [
     "KI-128",
+    "KI-129"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-10-31-76810c",
+   "date": "2026-10-31",
+   "line_start": 9983,
+   "line_end": 9989,
+   "title": "2026-10-31 — KI-129 Part B: an edge ping-pong is a ping-pong (a sliding \"nothing new\" window for edges, routes exempt); an explore goal that ends in one is now NOT done",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [
     "KI-129"
    ],
    "donot": [],

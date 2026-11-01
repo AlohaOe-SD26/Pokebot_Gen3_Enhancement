@@ -5896,7 +5896,7 @@ class VerifierRound52Tests(unittest.TestCase):
             if keep:
                 nav.ponged = {}
             outcome = drive_world(nav.run(explore_intent("TOWN", "Story", 20000), "leave the house"))
-            self.assertTrue(outcome.startswith("stuck: ping-pong"), outcome)
+            self.assertTrue(outcome.startswith("stuck: ping-pong: the warp "), outcome)  # (KI-129 B: not the edge's)
             if not keep:
                 self.assertIsNone(nav.ponged)  # the earlier brains: as before
                 continue
@@ -6367,6 +6367,282 @@ class KI129PartATests(unittest.TestCase):
             self.cut_from(world, (39, 63))
             world._last.key = "0:0" if start == "PETALBURG_CITY" else "0:19"  # noqa: SLF001
             self.assertEqual(lead_toward(world, "RUSTBORO_CITY"), "PETALBURG_WOODS", start)  # FAULT (818d3706): None
+
+
+#: (KI-129 Part B) `test_world.py` ExitTests.test_a_road_is_a_connection_with_its_offset_and_edges's town and route: both
+#: seen whole from anywhere on them, so once both are walked nothing is left to see, and every walk goes "back ..., seen
+#: all of" across their one edge
+PONG_MAPS = {"TOWN": ["####..####", "#........#", "#........#", "##########"], "ROUTE": ["#..#", "#..#", "#..#"]}
+PONG_LINKS = {("TOWN", "up"): ("ROUTE", (-3, 3)), ("ROUTE", "down"): ("TOWN", (3, -3))}
+
+
+class KI129PartBTests(unittest.TestCase):
+    """(KI-129 Part B, 2026-10-31: an edge ping-pong is a ping-pong) The ping-pong rule counted only WARP uses, so a walk
+    with nothing left on either side of an edge crossed it until the novelty window ended the intent (A0's chapter-3 runs:
+    194-196 crossings of one edge in 10,000 frames), and the next intent began again. For the play brain (`ponged` set)
+    an edge crossed `PINGPONG_USES` times from one side, nothing new since the crossing before the last (a SLIDING
+    window, the verifier's V2-1; the warps keep "since the second"), ends the intent; both sides are
+    kept (`_remember_edge_pingpong`) and the later intents drop the roads past it (`edge_ponged`, `explore.candidates`)
+    while nothing new is seen and `PONG_REST` frames have not passed; a known route toward the goal is kept. The earlier
+    brains (`ponged` None) are unchanged. Mutants: `revert_step5.py` G419-G429."""
+
+    def pong(self, seed: int = 1, ponged: bool = True, brain: str = "travel", crop: bool = True):
+        """B-F1's walk. `crop` False (`test_world.py`'s CROP fault: the eyes show the whole map and 7 tiles round it,
+        the same rectangle wherever the player stands): each map is seen whole at its first look, so after both are
+        walked NOTHING new can be seen anywhere, which the later-intent tests need (with the crop a wander to a corner
+        shows new tiles of the border round the map: news, and the rule rightly lets the edge be tried again)."""
+        from ai_player.brain.explore import explore_intent
+        from ai_player.brain.goals import travel_intent
+        from ai_player.gates.test_world import GridGame, drive as drive_world, rig
+        game = GridGame(PONG_MAPS, ("TOWN", (2, 2)), links=PONG_LINKS, crop=crop)
+        hands, nav, world, notes, _ = rig(game, seed=seed)
+        nav.mark_cut = True
+        if ponged:
+            nav.ponged = {}
+        intent = (travel_intent(None, "Story", 20000, lambda look_: False) if brain == "travel"
+                  else explore_intent(None, "Story", 20000))
+        outcome = drive_world(nav.run(intent, "the edge"), 200_000)
+        return game, nav, world, notes, outcome
+
+    @staticmethod
+    def crossings(world, since: int = 0) -> list:
+        return [t for t in world.transitions[since:] if t.how == "connection"]
+
+    def test_b_f1_an_edge_crossed_back_and_forth_for_nothing_ends_the_intent(self):
+        """B-F1. FAULT (17ed7794): "stuck: nothing new" after 72 / 84 crossings (seeds 1 / 2)."""
+        from ai_player.world.memory import OPPOSITE
+        for seed in (1, 2):
+            with self.subTest(seed=seed):
+                game, nav, world, _, outcome = self.pong(seed)
+                self.assertTrue(outcome.startswith("stuck: ping-pong: the edge "), outcome)
+                crossed = self.crossings(world)
+                self.assertLessEqual(len(crossed), 5)
+                first = crossed[0]
+                sides = {f"{first.source}|edge:{first.direction}", f"{first.target}|edge:{OPPOSITE[first.direction]}"}
+                self.assertEqual(set(nav.ponged), sides)  # FAULT half (only the source side kept): one key
+                self.assertEqual({v[0] for v in nav.ponged.values()}, {world.stamp()})
+                self.assertEqual({v[1] for v in nav.ponged.values()}, {game.frame})
+
+    def test_b_f1_news_after_the_second_crossing_does_not_free_the_edge_for_the_intent(self):
+        """B-F1's corner, CHANGED ON PURPOSE by the verifier's V2-1 (2026-10-31): seed 3's first intent sees new tiles
+        AFTER its second crossing (the last at f649). With the warps' fixed window (`frames[1]`) that intent could never
+        stop on the edge: it ran to the novelty window, 84 crossings. The edge's window now SLIDES (nothing new since the
+        crossing before the last), so it stops a few crossings after the news, and the next intent, with nothing new,
+        stops too. FAULT: the worktree before V2-1, "stuck: nothing new" after 84 crossings; 17ed7794, the same."""
+        from ai_player.brain.goals import travel_intent
+        from ai_player.gates.test_world import drive as drive_world
+        game, nav, world, _, outcome = self.pong(3)
+        self.assertTrue(outcome.startswith("stuck: ping-pong: the edge "), outcome)  # FAULT: stuck: nothing new
+        crossed = self.crossings(world)
+        self.assertGreater(crossed[1].frame, 0)
+        self.assertLessEqual(len(crossed), 7)  # FAULT: 84
+        self.assertIn("f649", outcome)  # non-vacuous: the news after the 2nd crossing is the window's start
+        since = len(world.transitions)
+        outcome = drive_world(nav.run(travel_intent(None, "Story", 20000, lambda look_: False), "again"), 200_000)
+        self.assertTrue(outcome.startswith("stuck: ping-pong: the edge "), outcome)
+        self.assertLessEqual(len(self.crossings(world, since)), 5)
+
+    def wide_walk(self, plan: list, ponged=True):
+        """V2-1's walk: B-C1's town and route wider than the view, the walk sent across their edge at the x of `plan` in
+        turn (the town's top edge, or the route's bottom). Returns (outcome, crossings, learned: frame -> tiles learned
+        by the look at that frame, the plan left)."""
+        from ai_player.brain.navigator import Intent
+        from ai_player.gates.test_world import GridGame, drive as drive_world, rig
+        wide = {"TOWN": ["#" + "." * 38 + "#"] * 3 + ["#" * 40], "ROUTE": ["#" * 40] + ["#" + "." * 38 + "#"] * 2}
+        links = {("TOWN", "up"): ("ROUTE", (0, 3)), ("ROUTE", "down"): ("TOWN", (0, -3))}
+        game = GridGame(wide, ("TOWN", (3, 1)), links=links)
+        hands, nav, world, notes, _ = rig(game)
+        nav.ponged = {} if ponged else None
+        learned: dict[int, int] = {}
+        hands.watchers.append(lambda look_: learned.__setitem__(look_.frame, world.tiles_learned))
+        plan = list(plan)
+        home: list = []  # where the first walk on the map stood on began
+
+        def choose(navigator, look_):
+            if not plan:
+                return None
+            x = plan.pop(0)
+            if x is None:  # a walk on the map stood on, to a tile already walked: nothing new
+                home.append(game.pos)
+                return Target("wander", (home[0][0] - 2, home[0][1]) if len(home) % 2 else home[0], "a walked tile")
+            return Target("road", (x, -1) if game.map == "TOWN" else (x, 3), "across")
+
+        outcome = drive_world(nav.run(Intent("across", 20000, choose, lambda look_: False), "across"), 400_000)
+        return outcome, self.crossings(world), learned, plan, nav
+
+    @staticmethod
+    def last_news(learned: dict) -> int:
+        """The frame of the last look at which the tiles learned grew."""
+        frames = sorted(learned)
+        return max(f for prev, f in zip(frames, frames[1:]) if learned[f] > learned[prev])
+
+    def test_b_f1_news_after_the_third_crossing_then_crossings_with_nothing_new_stop(self):
+        """V2-1's FAULT (the verifier's): new tiles are seen between the crossings up to the tenth (x 3, 12, 21, 30, 37:
+        the town's top edge crossed from below 3 times, then back and forth at x 37), then the walk is sent across at x 37
+        twelve more times with NOTHING new. The intent must stop as an edge ping-pong within 5 crossings after the last
+        news, and both sides are kept. FAULT: the worktree before V2-1 (`frames[1]`: news after the 2nd crossing frees
+        the edge for the whole intent) crosses all 17 and ends "nothing left to try"; 17ed7794 the same."""
+        outcome, crossed, learned, plan, nav = self.wide_walk([3, 12, 21, 30, 37] + [37] * 12)
+        news = self.last_news(learned)
+        town_up = [t.frame for t in crossed if t.direction == "up"]
+        self.assertGreater(news, town_up[2])  # non-vacuous: the news came AFTER the 3rd same-side crossing ...
+        self.assertTrue(outcome.startswith("stuck: ping-pong: the edge "), outcome)  # FAULT: nothing left to try
+        after = [t for t in crossed if t.frame >= news]
+        self.assertLessEqual(len(after), 5, (news, [t.frame for t in crossed]))  # FAULT: 8 (17 crossed in all)
+        self.assertTrue(plan, "the walk crossed every planned time")  # ... and 5 or more were left to cross for nothing
+        self.assertEqual(len(nav.ponged), 2)
+
+    def test_b_c1b_a_walk_on_its_own_map_with_nothing_new_after_crossings_with_news_is_no_ping_pong(self):
+        """V2-1's CONTROL (and the verifier's mutant VM7, the window keyed on the LAST crossing): B-C1's five crossings
+        with news between, then walks on the map stood on to tiles already seen, NOTHING new and no crossing: the edge
+        rule must not fire (an edge ping-pong is crossings, not time); the intent ends "nothing left to try", and with
+        `ponged` None (the earlier brains) the same."""
+        runs = [self.wide_walk([3, 12, 21, 30, 37, None, None, None], ponged) for ponged in (True, False)]
+        (outcome, crossed, learned, plan, nav), (plain, crossed2, _, _, _) = runs
+        self.assertTrue(outcome.startswith("stuck: nothing left to try"), outcome)  # VM7: stuck: ping-pong
+        self.assertEqual(len(crossed), 5)
+        self.assertEqual(plan, [])  # non-vacuous: the walks on the map were made ...
+        self.assertLessEqual(self.last_news(learned), crossed[-1].frame)  # ... and saw nothing new after the last crossing
+        self.assertGreater(max(learned) - crossed[-1].frame, 30)  # ... for a while
+        self.assertEqual((outcome, [(t.source, t.direction, t.frame) for t in crossed]),
+                         (plain, [(t.source, t.direction, t.frame) for t in crossed2]))
+        self.assertEqual(nav.ponged, {})
+
+    def test_b_f2_the_next_intent_crosses_it_from_neither_side_until_news_or_rest(self):
+        """B-F2. The next walk from where B-F1 ended crosses the edge from NEITHER side: it wanders the map it stands on.
+        After something new anywhere (`stamp`), or `PONG_REST` frames, the edge is an option again."""
+        from ai_player.brain.explore import candidates
+        from ai_player.brain.goals import travel_intent
+        from ai_player.gates.test_world import drive as drive_world
+        from ai_player.brain.explore import WEIGHTS
+        game, nav, world, notes, outcome = self.pong(1, crop=False)
+        self.assertTrue(outcome.startswith("stuck: ping-pong: the edge "), outcome)
+        stopped, stamp = game.frame, world.stamp()
+        since, decided = len(world.transitions), len(notes.records)
+        again = drive_world(nav.run(travel_intent(None, "Story", 20000, lambda look_: False), "again"), 200_000)
+        self.assertTrue(again.startswith("stuck: nothing new"), again)
+        self.assertEqual(world.stamp(), stamp)  # nothing new seen anywhere: the arm is what it claims
+        self.assertEqual(self.crossings(world, since), [])  # FAULT (17ed7794): back and forth again
+        kinds = {r["extra"].get("kind") for r in notes.records[decided:] if r["decision"] == "decide"}
+        self.assertIn("wander", kinds)
+        self.assertNotIn("back", kinds)
+        from ai_player.brain.navigator import PONG_REST  # (imported here: the FAULT arm, 17ed7794, has none)
+        nav.excluded = {}
+        look = replace(game.look(), frame=stopped + 1)
+        weights = WEIGHTS["Story"]
+
+        def over_the_edge(seen) -> list:
+            memory = world.here()
+            return [t for t in candidates(nav, seen, weights) if t.exit is None and memory.outside(t.tile)]
+
+        self.assertEqual(over_the_edge(look), [])
+        self.assertEqual(over_the_edge(replace(look, frame=stopped + PONG_REST - 1)), [])
+        self.assertNotEqual(over_the_edge(replace(look, frame=stopped + PONG_REST)), [])  # FAULT half: no rest kept
+        world.tiles_learned += 1
+        self.assertNotEqual(over_the_edge(look), [])  # something new seen anywhere: worth a try again
+        world.tiles_learned -= 1
+        nav.story_moved()
+        self.assertEqual(nav.ponged, {})  # the story moved on: forgotten with the warps'
+
+    def test_b_f3_with_the_edge_ponged_the_fallback_takes_a_refused_way_back_else_wanders(self):
+        """B-F3 (the critic's F1, the fallback NAMED, not changed): with the edge ponged, a walk going somewhere has
+        nothing it keeps (`keeps_going` refuses the way back into a house), so `travel_intent` falls back to
+        `choose_target`, which re-runs the candidates (the edge still dropped) WITHOUT `keeps_going`: it takes the way back
+        into the house where something is left, before it would wander. Without the house: a wander.
+        Which half discriminates, MEASURED (revert_step5 G420-G422, G426): without the house the walk takes the road back
+        across the edge, "seen all of" (the FAULT half); WITH the house it takes the house under those mutants too, because
+        `candidates`' step-4 rule (`not_back_to_seen_all`) already drops a way back to a map seen all of while a way back
+        leads somewhere with something left. The house half is therefore the named fallback pinned, not a test of the
+        drop. At 17ed7794 both halves fail at the setup (no stop: "stuck: nothing new")."""
+        from dataclasses import replace as replace_fact
+        from ai_player.brain.goals import travel_intent
+        for house in (True, False):
+            with self.subTest(house=house):
+                game, nav, world, _, outcome = self.pong(1)
+                self.assertTrue(outcome.startswith("stuck: ping-pong: the edge "), outcome)
+                memory, key = world.here(), world.current
+                door = None
+                if house:
+                    door = next(xy for xy, fact in sorted(memory.tiles.items()) if fact.blocked and not memory.outside(xy)
+                                and memory.passable((xy[0], xy[1] + 1)) and not memory.outside((xy[0], xy[1] + 1)))
+                    memory.tiles[door] = replace_fact(memory.tiles[door], door=True)
+                    inside = MapMemory("9:9", "TOWN_HOUSE", "TOWN_HOUSE")
+                    inside.visits[(1, 1)] = 1
+                    inside.tiles[(1, 1)] = TileFact(False, False, False, False, None, False, False, 3, "NORMAL", 0, (1, 1))
+                    world.maps["9:9"] = inside
+                    world.warps[f"{key}|{door[0]},{door[1]}"] = {"to": "9:9", "arrival": [1, 1], "direction": "up",
+                                                                 "uses": 1, "by": "ai", "first": 1, "last": 1}
+                    self.assertGreater(world.promise("9:9"), 0)
+                    for name, (_, frame) in list(nav.ponged.items()):  # still ponged: the house is the fixture's, not news
+                        nav.ponged[name] = (world.stamp(), frame)
+                nav.excluded = {}
+                chosen = travel_intent(None, "Story", 2400, lambda look_: False).choose(nav, game.look())
+                if house:
+                    self.assertEqual((chosen.kind, chosen.exit), ("back", door), chosen)
+                else:
+                    self.assertEqual(chosen.kind, "wander", chosen)
+
+    def test_b_c1_crossings_with_news_between_are_no_ping_pong(self):
+        """B-C1 (the critic's F9, non-vacuous): a town and a route wider than the view, the walk sent across their edge at
+        x 3, 12, 21, 30 and 37 in turn: the town's top edge is crossed 3 times, with new tiles seen between its second and
+        third crossing. No stop, and the walk is the earlier brains' (`ponged` None) step for step."""
+        from ai_player.brain.navigator import Intent
+        from ai_player.gates.test_world import GridGame, drive as drive_world, rig
+        wide = {"TOWN": ["#" + "." * 38 + "#"] * 3 + ["#" * 40], "ROUTE": ["#" * 40] + ["#" + "." * 38 + "#"] * 2}
+        links = {("TOWN", "up"): ("ROUTE", (0, 3)), ("ROUTE", "down"): ("TOWN", (0, -3))}
+        runs = []
+        for ponged in (None, {}):
+            game = GridGame(wide, ("TOWN", (3, 1)), links=links)
+            hands, nav, world, notes, _ = rig(game)
+            nav.ponged = ponged
+            learned: dict[int, int] = {}  # frame -> tiles learned by then (the novelty a new tile is)
+            hands.watchers.append(lambda look_, world=world, learned=learned: learned.__setitem__(look_.frame,
+                                                                                                  world.tiles_learned))
+            plan = [3, 12, 21, 30, 37]
+
+            def choose(navigator, look_, plan=plan, game=game):
+                if not plan:
+                    return None
+                x = plan.pop(0)
+                return Target("road", (x, -1) if game.map == "TOWN" else (x, 3), "across")
+
+            outcome = drive_world(nav.run(Intent("across", 20000, choose, lambda look_: False), "across"), 200_000)
+            runs.append((outcome, list(game.trail), [(t.source, t.direction, t.frame) for t in self.crossings(world)],
+                         learned))
+        (plain, trail, crossed, learned), (kept, trail2, crossed2, _) = runs
+        self.assertTrue(plain.startswith("stuck: nothing left to try"), plain)
+        self.assertEqual((kept, trail2, crossed2), (plain, trail, crossed))  # FAULT (a stop that ignores news): stopped
+        town_up = [frame for source, direction, frame in crossed if direction == "up"]
+        self.assertEqual(len(town_up), 3)  # non-vacuous: the same edge from the same side 3 times ...
+        before_third = max(frame for frame in learned if frame < town_up[2])
+        self.assertGreater(learned[before_third], learned[town_up[1]], (town_up, learned[town_up[1]]))  # ... news between
+
+    def test_b_c2_the_earlier_brains_are_unchanged(self):
+        """B-C2. `ponged` None (every brain before the play brain): B-F1's fixture as at 17ed7794, measured there with the
+        session's bf1_probe.py: "stuck: nothing new" after 72 crossings (seed 1) and 84 (seed 3), nothing kept."""
+        for seed, crossings in ((1, 72), (3, 84)):
+            for brain in ("explore", "travel"):
+                with self.subTest(seed=seed, brain=brain):
+                    _, nav, world, _, outcome = self.pong(seed, ponged=False, brain=brain)
+                    self.assertTrue(outcome.startswith("stuck: nothing new"), outcome)
+                    self.assertEqual(len(self.crossings(world)), crossings)
+                    self.assertIsNone(nav.ponged)
+
+    def test_b_c3_a_ponged_edge_on_a_known_route_to_the_goal_is_still_taken(self):
+        """B-C3 (the critic's F6): the roads past a ponged edge are dropped, but when that edge is the first hop of a known
+        route toward the goal, its "route" target is kept: a known way toward the goal is always an option."""
+        from ai_player.brain.explore import WEIGHTS, candidates
+        game, nav, world, _, outcome = self.pong(1)
+        self.assertTrue(outcome.startswith("stuck: ping-pong: the edge "), outcome)
+        other = self.crossings(world)[-1].source
+        nav.excluded = {}
+        look = game.look()
+        memory = world.here()
+        roads = [t for t in candidates(nav, look, WEIGHTS["Story"]) if memory.outside(t.tile)]
+        self.assertEqual(roads, [])
+        toward = [t for t in candidates(nav, look, WEIGHTS["Story"], lambda memory_, key: key == other)
+                  if memory.outside(t.tile)]
+        self.assertTrue(toward and {t.kind for t in toward} == {"route"}, toward)  # FAULT half: routes dropped too
 
 
 def _unused_tile() -> Tile:  # keeps the builder import honest (a Tile is what View rows hold)

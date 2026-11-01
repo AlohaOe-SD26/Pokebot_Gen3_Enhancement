@@ -1,0 +1,15 @@
+KI-129 PART B - THE SMOKE RUN (instrument check before the live A/B) - DEVELOPMENT, NOT GRADED, NO PASS
+ledger entry #76 (development, seed 5917, the worktree's ledger.json), 2026-10-31 15:19 (this PC's clock, Los Angeles);
+driver s53/fix2/scripts/fx2_probe.py run smoke
+prediction registered BEFORE the run: s53/fix2/predictions/smoke.txt, sha256
+909a601c479a7f1d9ed45d8c13d5db4edaa806e40fec344bd857c23eecd009d0 (the ledger entry's bounds_sha256); NOT committed
+arm B (818d3706 + Part B), tree digest ac348b0cd119c9ae before and after; start S1 (the A0-1 end: ROUTE104 (39,63), Catcher),
+2,000 frames.
+
+RESULT: exit 0, 13.1 s, purity CLEAN, map [0, 19] -> [0, 17]; one edge stop at f482716 ("stuck: ping-pong: the edge
+0:19|edge:right crossed 3 times"), PETALBURG_CITY|ROUTE104 crossed 5 times in that intent, then one crossing to ROUTE102;
+world.jsonl 7 lines, 7,989,119 bytes, summarised and DELETED (world_deleted True).
+PREDICTIONS: P-S1 HELD (live_step5 imported from the stage's arm-B tree, asserted by the driver); P-S2 HELD (CLEAN); P-S3 HELD;
+P-S4 HELD (digests unchanged).
+This run's observation (the walk left for ROUTE102 after the stop) was seen BEFORE the partb prediction was written, and that
+prediction names it (P2d) as one allowed outcome.

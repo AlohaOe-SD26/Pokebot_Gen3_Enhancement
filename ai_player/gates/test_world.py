@@ -1152,7 +1152,7 @@ class IntentTests(unittest.TestCase):
         game = ExitTests().house(scene=True)
         hands, nav, world, notes, lines = rig(game)
         outcome = drive(nav.run(explore_intent("TOWN", "Story", 20000), "leave the house"))
-        self.assertTrue(outcome.startswith("stuck: ping-pong"), outcome)
+        self.assertTrue(outcome.startswith("stuck: ping-pong: the warp "), outcome)  # (KI-129 B: not the edge's text)
         uses = [t for t in world.transitions if t.by == "ai"]
         self.assertEqual(len(uses), PINGPONG_USES)
         self.assertLess(hands.pad.frames, 6000)

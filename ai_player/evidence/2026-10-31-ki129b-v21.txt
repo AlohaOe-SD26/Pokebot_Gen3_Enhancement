@@ -1,0 +1,116 @@
+KI-129 PART B - THE ROUND-2 VERIFIER'S V2-1 (MAJOR) FIXED: AN EDGE'S PING-PONG WINDOW SLIDES - DEVELOPMENT, NOT GRADED
+code: HEAD 17ed7794 + this worktree's uncommitted changes, working-tree digest sha256:af626e542c0b2ab7 (gates/provenance.py;
+the same digest is on 2026-10-31-step52-REVERT.txt and 2026-10-31-r1-REVERT.txt, both rewritten in this round); 2026-10-31,
+this PC's clock (Los Angeles). Environment: PYTHONUTF8=1, AI_PLAYER_TEST_SUPPORT_ROOT=<main checkout>,
+POKEBOT_DECOMP=C:/Remote Projects/_decomp/pokeemerald. Scripts: s53/fix2/v21/ (outside the repo).
+
+THE FINDING, CHECKED AGAINST THE CODE FIRST
+  navigator.py run(), as built: `if len(frames) >= PINGPONG_USES and novelty.last <= frames[1]` for warps AND edges.
+  frames[1] is fixed and novelty.last only grows, so once anything new is seen after an edge's 2nd same-side crossing, that
+  edge can never stop in that intent. CONFIRMED by the builder's own test (B-F1 seed 3, Part B on): "stuck: nothing new"
+  after 84 crossings. Re-measured on the pre-fix tree (s53/fix2/v21/arms/pre: the worktree with its pre-fix navigator.py):
+    scripts/bf1_probe.py seed 3 travel: "stuck: nothing new ... the last at f649 ... | connections 84 | ponged []"
+    v21/probe.py, a town and a route wider than the view, crossed at x 3, 12, 21, 30, 37, then at x 37 twelve more times:
+      new tiles until crossing 10 (f1157), then nothing new; outcome "stuck: nothing left to try", 17 crossings, 8 of them
+      at or after the last news, ponged [] (17ed7794: the same, 17 crossings).
+
+THE FIX (navigator.py run(), edges only; warps unchanged)
+  if name in edge_to: stop when `len(frames) >= PINGPONG_USES and novelty.last <= frames[-2]` (nothing new since the
+  same-side crossing BEFORE the last), else `continue`; the warp keeps `frames[1]`. The stop reads "... with nothing new
+  since its crossing before the last, f<frames[-2]>". With strict alternation, a back-and-forth with nothing new between
+  is at most 5 crossings of the edge after the last news. Deleting the `continue` is EQUIVALENT (an edge reaching the
+  warp test would already have stopped, frames[1] <= frames[-2]), so it has no mutant.
+  After the fix: bf1_probe seed 3 stops "crossed 4 times (f473..f730) with nothing new since its crossing before the last,
+  f649" (7 crossings in all); the wide walk stops at crossing 12 ("0:0|edge:down crossed 6 times ... f1157"), 3 crossings
+  at or after the last news, 5 planned crossings left, both sides kept.
+
+THE SECTION 5 BAR (spec, re-worded before registration, the orchestrator to accept)
+  "no same-edge alternation over 5 within any intent" cannot hold literally under ANY rule that also keeps B-C1 (crossings
+  with news between them are no ping-pong): seed 3 crosses 7 times in one intent with news after the 2nd crossing. The
+  spec's bar now reads as a run of crossings with nothing new between them, and the held-out build must name how "nothing
+  new between" is read from the logs before registering.
+
+OFFLINE TESTS (test_goals.py KI129PartBTests: 9 tests, was 7)
+  CHANGED ON PURPOSE: test_b_f1_the_rule_is_the_warps_nothing_new_since_the_second_crossing (asserted 84 crossings and
+    "stuck: nothing new") -> test_b_f1_news_after_the_second_crossing_does_not_free_the_edge_for_the_intent: the edge stop,
+    <= 7 crossings, the window starting at f649, and the next intent stops too.
+  FAULT (new): test_b_f1_news_after_the_third_crossing_then_crossings_with_nothing_new_stop (the verifier's): news after the
+    3rd same-side crossing (asserted), then an edge stop with <= 5 crossings at or after the last news, planned crossings
+    left over, both sides kept.
+  CONTROL (new): test_b_c1b_a_walk_on_its_own_map_with_nothing_new_after_crossings_with_news_is_no_ping_pong: B-C1's 5
+    crossings with news, then walks on the map stood on with nothing new after the last crossing (asserted, > 30 frames):
+    "stuck: nothing left to try", 5 crossings, ponged {}, and identical to `ponged` None.
+  FAULT ARMS, the new test file in each (KI129PartBTests):
+    pre-fix tree: FAILED (failures=2): both FAULT tests, at the outcome line: "stuck: nothing new ... for 3001 frames, the
+      last at f649" and "stuck: nothing left to try on ROUTE ... 17 decisions"; every CONTROL passes (B-C1, B-C1b, B-C2).
+    17ed7794 (verify/head_17ed7794.zip + the new test_goals.py and test_world.py): FAILED (failures=8): both new FAULT tests
+      and the 6 earlier Part B FAULT checks; B-C1, B-C1b and B-C2 pass.
+    the fixed worktree: Ran 9 tests, OK.
+  The verifier's VM7 (frames[1] -> frames[-1]) applied to the PRE-fix tree (v21/vm7_pre.py): caught by B-C1, B-C1b and the
+    new FAULT test (FAILED (failures=3)). I could not reproduce "VM7 survives"; the verifier's VM7 may have been a
+    different edit.
+
+MUTANTS
+  revert_step5 G419-G429 (filtered, --workers 4): 11 mutants CAUGHT as predicted; FROZEN TREE PASS; OVERALL PASS.
+  revert_step5 (full, --workers 8, 17:34:23-17:43:11): 423 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of
+    425; FROZEN TREE PASS; OVERALL: PASS. Changed: G427 re-anchored on the edge line (its news clause deleted: caught by
+    B-C1, B-C1b, the new FAULT test). New: G428 the window fixed again (frames[1]: caught by both FAULT tests); G429 the
+    window on the LAST crossing (frames[-1], VM7: caught by B-C1, B-C1b, the new FAULT test). G419's prediction renamed to
+    the changed corner test.
+  revert_r1 (--workers 6, 17:43:11-18:12:48): 555 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 556;
+    FROZEN TREE PASS; OVERALL: PASS.
+  revert_safety_gates (--workers 6, 18:12:48-18:16:00): 23 mutants CAUGHT as predicted, of 23; FROZEN TREE PASS; OVERALL:
+    PASS (no evidence file: run without --evidence).
+
+LIVE A/B (ledger #79 in the worktree's ledger.json: development, seeds 5966-5971, 2026-10-31 17:26:48-17:30:20; driver
+s53/fix2/v21/fx3_probe.py, round 2's fx2_probe.py method: live_step5.run_arm, the real launcher, purity per launch)
+  prediction registered BEFORE the batch: s53/fix2/predictions/v21.txt, sha256
+    42d8b9fedb45c027f399e03b655bb7867dce66570852a8af8bf5f385848e209f (the ledger entry's bounds); NOT committed.
+  seeds: the orchestrator's free list named 5918-5921 and 5960-5965; the verifier's ledger copy (#79/#80) took 5918-5924 and
+    the builder's #78 took 5960-5965, so 5966-5971 were used. NOTE: the verifier's #79/#80 are NOT in this worktree's
+    ledger.json, whose new entry is also #79: the ids collide when the two are merged.
+  stage s53/fix2/fix-stage (v21/build_fixstage.py; each patch checked to reproduce its navigator, LF-normalised), arms:
+    Bpre    818d3706 + Part B as built (frames[1]); digest ac348b0cd119c9ae = the builder's arm B
+    Bfix    818d3706 + Part B with V2-1 (frames[-2]); digest e986ab8df427e38c
+    PAWBpre 17ed7794 + the builder's navigator.py; digest 4fb6bbc99425765c = the builder's PAWB
+    PAWBfix 17ed7794 + this worktree's navigator.py; digest 6f6463404d5f2c74
+    digests unchanged before and after the batch: True. The stage was deleted after (junctions unlinked first; the main
+    sandbox's linked folders kept modules 4391, plugins 40, mgba 43, roms 2 files).
+  10,000 frames each, at most 3 in parallel, C: free 69.2 GB at the start; every world.jsonl summarised (streamed) and
+  DELETED; E3 = most crossings of one edge in one intent; over5 = intents with > 5 (on Bpre only possible with news after
+  the 2nd crossing: the V2-1 condition); nf = crossings at or after the last news (a "nothing new" intent's "the last at
+  fN", or the window start an edge stop names).
+    Bpre  S1 5966: purity CLEAN, 10000 frames, [0,19] -> [24,11], E3 5, edge stops 1 ("second crossing", nf 3), over5 0, map changes edge 6 warp 1, world.jsonl 8 lines 9135425 bytes deleted
+    Bfix  S1 5966: purity CLEAN, 10000 frames, [0,19] -> [24,11], E3 5, edge stops 1 ("crossing before the last", nf 3), over5 0, edge 6 warp 1, 8 lines 9135425 bytes deleted
+    Bpre  S1 5968: purity CLEAN, 10000 frames, [0,19] -> [0,19], E3 5, edge stops 1 ("second crossing", nf 3), over5 0, edge 10 warp 0, 11 lines 12559614 bytes deleted
+    Bfix  S1 5968: purity CLEAN, 10000 frames, [0,19] -> [0,19], E3 5, edge stops 1 ("crossing before the last", nf 3), over5 0, edge 10 warp 0, 11 lines 12559614 bytes deleted
+    Bpre  S3 5967: purity CLEAN, 10000 frames, [0,19] -> [0,19], E3 5, edge stops 1 ("second crossing", nf 3), over5 0, edge 6 warp 2, 9 lines 10158052 bytes deleted
+    Bfix  S3 5967: purity CLEAN, 10000 frames, [0,19] -> [0,19], E3 5, edge stops 1 ("crossing before the last", nf 3), over5 0, edge 6 warp 2, 9 lines 10158052 bytes deleted
+    Bpre  S3 5969: purity CLEAN, 10000 frames, [0,19] -> [24,11], E3 5, edge stops 1 ("second crossing", nf 3), over5 0, edge 6 warp 1, 8 lines 9021986 bytes deleted
+    Bfix  S3 5969: purity CLEAN, 10000 frames, [0,19] -> [24,11], E3 5, edge stops 1 ("crossing before the last", nf 3), over5 0, edge 6 warp 1, 8 lines 9021986 bytes deleted
+    PAWBpre S1 5970 / PAWBfix S1 5970: purity CLEAN both, [0,19] -> [24,11], E3 0, edge stops 0, edge 0 warp 1, 2 lines 2282882 bytes deleted
+    PAWBpre S3 5971 / PAWBfix S3 5971: purity CLEAN both, [0,19] -> [24,11], E3 0, edge stops 0, edge 0 warp 1, 2 lines 2256573 bytes deleted
+  PAIRS (v21/compare3.py, v21/diffrec.py; a DETERMINISM CHECK, one trajectory replayed per pair, never a replication):
+    Bpre vs Bfix: decide records identical on all 4 (48/48, 33/33, 25/25, 24/24); all records 644/663/624/567 each, 2
+      differing per pair: the edge stop's tell and goal_end at the same frame (482677, 482702, 618589, 618647), whose texts
+      differ only by the window wording (the goal_end reason is cut at a fixed length after it).
+    PAWBpre vs PAWBfix: decide records identical (27/27, 12/12), all records identical (540, 416), 0 edge stops.
+  PREDICTIONS - VERDICTS:
+    P0 HELD: 12 of 12 purity CLEAN; 12 world.jsonl deleted.
+    P1 HELD: every Bfix edge stop says "crossing before the last" with nf 3; no Bfix or PAWBfix intent ended "stuck: nothing
+       new" (so its nf bound was not exercised live).
+    P2 HELD: identical decide records in all 6 pairs (no Bfix stop that Bpre did not make).
+    P3 HELD (my prior of zero): over5 = 0 in all 4 Bpre runs: the V2-1 condition did not arise live.
+    P4 HELD: 0 edge stops in PAWBpre and PAWBfix.
+
+WHAT THIS DOES AND DOES NOT SHOW
+  The fix is proven OFFLINE: both FAULT tests fail on the pre-fix tree and on 17ed7794 and pass on the fix; G428 and G429
+  are caught. LIVE, the V2-1 condition did not arise in these 4 Bpre runs (nor in the builder's 4 or the verifier's 6), so
+  this live arm shows NO behavioural difference: it shows only that nothing else changed (the same decisions, the same
+  stops at the same frames). It is not a demonstration of the fix in the game, and nothing here is graded.
+
+TESTS AND GATES (the worktree, after the fix)
+  test_goals Ran 281 tests, OK; test_world Ran 132 tests, OK; test_host Ran 37 tests, OK; test_kb2 Ran 122 tests, OK;
+  check_fairness PERSON-FAIR DATA DOOR: PASS (0 breaches); regression_due: 6 of 6 suites due (units, revert_step5,
+  revert_r1, revert_safety_gates, rate_step5, live_step5: only run_regression --full writes the evidence names it reads,
+  and that is not run in this round; rate_step5 and live_step5 are live suites, not revert drivers).

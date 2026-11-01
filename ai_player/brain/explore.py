@@ -260,8 +260,17 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
         away = weights.away * min(abs(tile[0] - entry[0]) + abs(tile[1] - entry[1]), AWAY_CAP) if onward else 0.0
         score = VALUE_TILES * value - walk + away + (jitter.uniform(0.0, 1.5) if jitter_on else 0.0)
         target = Target(kind, tile, reason, score, exit_tile, direction, who)
-        if not nav.is_excluded(target):
-            out.append(target)
+        if nav.is_excluded(target):
+            return
+        # (KI-129 Part B, 2026-10-31) a tile past an edge that ended an earlier intent as a ping-pong, nothing new seen
+        # since and its rest not over (`Navigator.edge_ponged`), is no option: someone who walked back and forth over the
+        # same line for nothing looks elsewhere for a while. A known way toward the goal ("route") is always kept (the
+        # critic's F6); a navigator without the rule (a test's stand-in) keeps everything, as before
+        edge_ponged = getattr(nav, "edge_ponged", None)
+        if (kind != "route" and exit_tile is None and memory.outside(tile) and edge_ponged is not None
+                and edge_ponged(memory, tile, look.frame)):
+            return
+        out.append(target)
 
     route = route_to(world, memory.key, goal) if goal is not None else None
     first_hop = route[0] if route else None

@@ -77,10 +77,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 360 sections (newest first)
+## All 361 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-10-31-76810c` | 9983 |  |  | 2026-10-31 — KI-129 Part B: an edge ping-pong is a ping-pong (a sliding "nothing new" window for edges, routes exempt); an explore goal that ends in one is now  |
 | `2026-10-31-8a3e66` | 9975 |  |  | 2026-10-31 — KI-128's fix reads the game's MAP TYPES through a declared loader (`ai_player/knowledge/atlas.py`), the AI player's first static-knowledge loader;  |
 | `2026-10-31-979d5c` | 9967 | 56 |  | 2026-10-31 — USER RULING 56: the $50 extra credit may be spent now, to start the AI work before the weekly reset; the user re-opens the cloud-credit question (m |
 | `2026-10-31-911bb5` | 9958 | 55 | DO-NOT-REOPEN | 2026-10-31 — USER RULING 55: practice runs from the AI's own saves are allowed, but a NEW GAME test must follow a few of them; the session limit is Claude's cal |

@@ -47,7 +47,7 @@
       "raised": []
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 291246,
+      "ceiling": 291821,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -71,6 +71,13 @@
           "from": 289978,
           "to": 291246,
           "why": "Round 1 of KI-128/KI-129 (2026-10-31): KI-128 fixed on development runs and KI-129 Part A built; their headers and one body line each record it (CLAUDE.md section 2, pair P2)"
+        },
+        {
+          "date": "2026-10-31",
+          "field": "ceiling",
+          "from": 291246,
+          "to": 291821,
+          "why": "Round 2 of KI-128/KI-129 (2026-10-31): KI-129 fixed on development runs; its header and one body line record it (pair P2)"
         }
       ]
     }

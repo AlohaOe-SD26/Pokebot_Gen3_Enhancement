@@ -25,8 +25,10 @@ and its progress is NOVELTY only (`Novelty`: a tile or a map first seen during t
 Pokemon of the player's, more items, experience gained; every one that is not a place is TOLD with its particulars and
 the clock it moved: `[AI-WORLD] novelty at f...`): walking back and forth through known places is not progress. It ends with what
 happened: its goal reached, or "stuck:<reason>" (no novelty for `NOVELTY_WINDOW` frames; one warp used
-`PINGPONG_USES` times with nothing new since its second use: a door ping-pong; nothing left to try; a trainer battle,
-out of scope), or "budget:" when the frames ran out. It never hangs: every loop is bounded.
+`PINGPONG_USES` times with nothing new since its second use: a door ping-pong; for the play brain (`ponged` set), one
+map EDGE crossed from the same side as often with nothing new since its crossing before the last (the warps' window,
+SLIDING: the verifier's V2-1): an edge ping-pong, KI-129 Part B; nothing left to try; a
+trainer battle, out of scope), or "budget:" when the frames ran out. It never hangs: every loop is bounded.
 
 INTERRUPTIONS (`handle`): a wild battle is fled (`skills/flee.py`); a scene (a script runs, a text waits, the controls
 are locked: Mom with the Running Shoes, Mom sending the player back upstairs) is read and moved on with A only on the
@@ -129,7 +131,8 @@ from ai_player.hands.dialogue import advance, busy_reason, player_free
 from ai_player.hands.menus import answer_yes_no
 from ai_player.hands.pad import Hands
 from ai_player.skills.flee import TRAINER_OUT_OF_SCOPE, flee, in_battle
-from ai_player.world.memory import BUMP_GIVE_UP, DIRECTIONS, OPPOSITE, MapMemory, WorldMemory, in_window, moved
+from ai_player.world.memory import (BUMP_GIVE_UP, DIRECTIONS, OPPOSITE, MapMemory, WorldMemory, in_window, moved,
+                                    road_side)
 
 __all__ = [
     "BUMP_RETRY_COST",
@@ -143,6 +146,7 @@ __all__ = [
     "PERSON_PLAN_WAITS",
     "NOVELTY_WINDOW",
     "PINGPONG_USES",
+    "PONG_REST",
     "PLAN_SWITCH_MARGIN",
     "SCENE_REPEATS",
     "SEARCH_MARGIN",
@@ -184,7 +188,14 @@ SEARCH_MARGIN = 3
 #: Frames (of the emulator) with nothing new before an intent is stuck (about 50 seconds of play).
 NOVELTY_WINDOW = 3000
 #: One warp used this often in an intent, with nothing new since its second use: a ping-pong, and the intent is stuck.
+#: (KI-129 Part B, 2026-10-31) for the play brain, one map EDGE crossed this often from the same side too, with nothing
+#: new since the crossing before the last (a SLIDING window, the verifier's V2-1: `run`)
 PINGPONG_USES = 3
+#: (KI-129 Part B, 2026-10-31) how long an EDGE that ended an intent as a ping-pong is left alone by the later intents
+#: while nothing new is seen anywhere (`Navigator.edge_ponged`): the novelty window, an existing constant, not tuned. A
+#: warp's ping-pong keeps no such clock (it is kept until something new is seen, `ponged_now`): a door can be the only
+#: way out of a room, an edge never is the only thing a walk can do (it can wander the map it stands on)
+PONG_REST = NOVELTY_WINDOW
 #: The chance a target gets a small detour through a seen tile beside the way (seeded).
 DETOUR_P = 0.15
 #: (step 4.1 round 2, finding 7) A detour's tile lies on a way at most this many steps longer than the plan (Manhattan:
@@ -738,6 +749,10 @@ class Navigator:
         #: then: while nothing new has been seen anywhere since, no later intent goes through it again unless it is the only
         #: way left (`brain/explore.py` candidates, `ponged_now`). None (every earlier brain): each intent on its own, as
         #: before; the play brain sets {}.
+        #: (KI-129 Part B, 2026-10-31) and "map key|edge:<side>" of a map EDGE that ended an intent as a ping-pong, BOTH
+        #: sides (the map left and the side it was left by, the map entered and the side it was entered by) -> (the stamp,
+        #: the frame it ended): no later intent crosses it again while nothing new is seen and `PONG_REST` frames have not
+        #: passed (`edge_ponged`; `brain/explore.py` candidates drops its roads, a known route toward the goal excepted)
         self.ponged: dict[str, tuple] | None = None
         #: BUILD STEP 5.2 (the verifier's round) at every decision, the frontier tiles and unused exits of the map that the
         #: reach from where the player stands shows no way to are marked in the world memory (`cut_off`), so a map's
@@ -795,6 +810,32 @@ class Navigator:
         anywhere (`ponged_now`). Off for the earlier brains (`ponged` None)."""
         if self.ponged is not None:
             self.ponged[name] = self.world.stamp()
+
+    def _remember_edge_pingpong(self, name: str, target: str, frame: int) -> None:
+        """(KI-129 Part B, 2026-10-31) The edge `name` ("map key|edge:<side>") ended this intent as a ping-pong: kept past it
+        (`ponged`) from BOTH sides, the map it was crossed from and (`target`) the map on the other side, by the side it is
+        entered by there (`OPPOSITE`), each with the world memory's stamp and `frame`: a walk that ended on either side
+        does not cross back (the critic's F9: the uses are counted by the map LEFT, so a ping-pong begun on the town
+        stopped with only the town's side counted). Off for the earlier brains (`ponged` None)."""
+        if self.ponged is None:
+            return
+        source, _, side = name.partition("|edge:")
+        stamp = self.world.stamp()
+        self.ponged[name] = (stamp, frame)
+        if side in OPPOSITE:
+            self.ponged[f"{target}|edge:{OPPOSITE[side]}"] = (stamp, frame)
+
+    def edge_ponged(self, memory: MapMemory, tile: tuple[int, int], frame: int) -> bool:
+        """(KI-129 Part B, 2026-10-31) Does walking to `tile`, a tile past an edge of `memory` (the map stood on), cross an
+        edge that ended an earlier intent as a ping-pong (`_remember_edge_pingpong`), with nothing new seen anywhere since
+        (`WorldMemory.stamp`) and fewer than `PONG_REST` frames ago? A warp's ping-pong is `ponged_now`'s, unchanged."""
+        if self.ponged is None or not memory.outside(tile):
+            return False
+        kept = self.ponged.get(f"{self.world.current}|edge:{road_side(memory, tile)}")
+        if not isinstance(kept, tuple) or len(kept) != 2:
+            return False
+        stamp, ponged_at = kept
+        return stamp == self.world.stamp() and frame - ponged_at < PONG_REST
 
     def _seen_out(self, target: Target, result: str) -> None:
         """(build step 5.2, the verifier's round: OLDALE's MART kept two frontier tiles whose unseen side the screen never
@@ -1227,6 +1268,8 @@ class Navigator:
         on_the_move = False  # a target just dropped as stale: the next one is chosen without a thinking pause
         self._seen_changes = len(world.transitions)
         uses: dict[str, list[int]] = {}
+        #: (KI-129 Part B) "map key|edge:<side>" in `uses` -> the map on its other side
+        edge_to: dict[str, str] = {}
         target: Target | None = None
         detour: Target | None = None
         here_map = world.current
@@ -1264,6 +1307,14 @@ class Navigator:
                 self.arrived(change, look)
                 if change.how == "warp" and change.tile is not None:
                     uses.setdefault(f"{change.source}|{change.tile[0]},{change.tile[1]}", []).append(change.frame)
+                elif change.how == "connection" and change.direction in OPPOSITE and self.ponged is not None:
+                    # (KI-129 Part B, 2026-10-31) an EDGE crossed is counted like a warp used, by the map left and its
+                    # side, for the play brain (`ponged` set; the earlier brains as before). Measured on A0's three
+                    # chapter-3 runs: 194-196 crossings of one edge in 10,000 frames, "seen all of" both ways, every one
+                    # walked to the end of the novelty window because only WARP uses were counted
+                    name = f"{change.source}|edge:{change.direction}"
+                    uses.setdefault(name, []).append(change.frame)
+                    edge_to[name] = change.target
                 target = detour = None
             if novel and world.current != here_map:
                 here_map = world.current
@@ -1315,6 +1366,18 @@ class Navigator:
                 return (f"stuck: nothing new (no new tile, map, flag, Pokemon, item or experience) for {look.frame - novelty.last} "
                         f"frames, the last at f{novelty.last}: {novelty.events[-1][1] if novelty.events else 'none'} ({self.summary()})")
             for name, frames in uses.items():
+                if name in edge_to:
+                    # (KI-129 Part B, the verifier's V2-1, 2026-10-31) an EDGE's window SLIDES: nothing new since the
+                    # crossing from that side BEFORE the last one (`frames[-2]`), not since the second. With the warps'
+                    # fixed `frames[1]`, anything new seen once after the second crossing (`novelty.last` only grows) left
+                    # the edge free to be crossed for the rest of the intent, up to the novelty window: 84 crossings in
+                    # B-F1's seed 3. Sliding, a back-and-forth with nothing new is at most 5 crossings of the edge (both
+                    # sides counted) after the last news; crossings with news between them are still no ping-pong (B-C1)
+                    if len(frames) >= PINGPONG_USES and novelty.last <= frames[-2]:
+                        self._remember_edge_pingpong(name, edge_to[name], look.frame)
+                        return (f"stuck: ping-pong: the edge {name} crossed {len(frames)} times (f{frames[0]}..f{frames[-1]}) "
+                                f"with nothing new since its crossing before the last, f{frames[-2]} ({self.summary()})")
+                    continue
                 if len(frames) >= PINGPONG_USES and novelty.last <= frames[1]:
                     self._remember_pingpong(name)
                     return (f"stuck: ping-pong: the warp {name} used {len(frames)} times (f{frames[0]}..f{frames[-1]}) "

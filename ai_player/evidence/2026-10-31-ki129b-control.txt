@@ -1,0 +1,35 @@
+KI-129 PART B - THE CHAPTER 1-2 CONTROL (spec section 4.4, last bullet) - DEVELOPMENT, NOT GRADED, NO PASS: HELD
+ledger entry #78 (development, seeds 5960-5965, the worktree's ledger.json), 2026-10-31 15:26:19 to 2026-10-31 15:54:55 (this PC's clock, Los Angeles); driver s53/fix2/scripts/fx2_probe.py run control
+prediction registered BEFORE the runs: s53/fix2/predictions/control.txt, sha256 6e08fab9541f6e34023084024571b6b6cd861ba2962ee721d21c74086e8d144f (the ledger entry's bounds field); NOT committed
+arm trees, digest before -> after: PAW fa2edfb664e59f30 -> fa2edfb664e59f30; PAWB 4fb6bbc99425765c -> 4fb6bbc99425765c
+  PAW = 17ed7794 (round 1's code); PAWB = 17ed7794 + the worktree's brain/navigator.py and brain/explore.py (Part B)
+the six r1base chapter 1-2 arms of live_step5 (CH1T Story/TREECKO, CH1C Catcher/TORCHIC, CH1M Trainer/MUDKIP from a fresh game to ch1_pokedex; CH2 Catcher, CH2T Story, CH2M Trainer from the r1base CH1C/CH1T/CH1M ends to ch2_wally), 330,000-frame cap, the SAME new seed per arm in both codes; world.jsonl summarised (streamed) and DELETED after every run
+
+PER RUN:
+  PAW  CH1C seed 5961: exit 0, purity CLEAN, frames 178855, final map [1, 4], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 266, intents 65, map changes {'edge': 15, 'warp': 40, 'other': 0}, world.jsonl 56 lines 8859276 bytes (deleted: True)
+  PAW  CH1M seed 5962: exit 0, purity CLEAN, frames 158017, final map [1, 4], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 202, intents 53, map changes {'edge': 12, 'warp': 29, 'other': 0}, world.jsonl 42 lines 5927541 bytes (deleted: True)
+  PAW  CH1T seed 5960: exit 0, purity CLEAN, frames 134298, final map [1, 4], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 145, intents 49, map changes {'edge': 12, 'warp': 29, 'other': 0}, world.jsonl 42 lines 5987030 bytes (deleted: True)
+  PAW  CH2  seed 5963: exit 0, purity CLEAN, frames 108526, final map [8, 1], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 190, intents 22, map changes {'edge': 6, 'warp': 13, 'other': 0}, world.jsonl 20 lines 5358256 bytes (deleted: True)
+  PAW  CH2M seed 5965: exit 0, purity CLEAN, frames 117926, final map [8, 1], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 223, intents 30, map changes {'edge': 6, 'warp': 13, 'other': 0}, world.jsonl 20 lines 5683514 bytes (deleted: True)
+  PAW  CH2T seed 5964: exit 0, purity CLEAN, frames 115678, final map [8, 1], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 110, intents 26, map changes {'edge': 6, 'warp': 9, 'other': 0}, world.jsonl 16 lines 4125924 bytes (deleted: True)
+  PAWB CH1C seed 5961: exit 0, purity CLEAN, frames 178855, final map [1, 4], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 266, intents 65, map changes {'edge': 15, 'warp': 40, 'other': 0}, world.jsonl 56 lines 8859276 bytes (deleted: True)
+  PAWB CH1M seed 5962: exit 0, purity CLEAN, frames 158017, final map [1, 4], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 202, intents 53, map changes {'edge': 12, 'warp': 29, 'other': 0}, world.jsonl 42 lines 5927541 bytes (deleted: True)
+  PAWB CH1T seed 5960: exit 0, purity CLEAN, frames 134298, final map [1, 4], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 145, intents 49, map changes {'edge': 12, 'warp': 29, 'other': 0}, world.jsonl 42 lines 5987030 bytes (deleted: True)
+  PAWB CH2  seed 5963: exit 0, purity CLEAN, frames 108526, final map [8, 1], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 190, intents 22, map changes {'edge': 6, 'warp': 13, 'other': 0}, world.jsonl 20 lines 5358256 bytes (deleted: True)
+  PAWB CH2M seed 5965: exit 0, purity CLEAN, frames 117926, final map [8, 1], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 223, intents 30, map changes {'edge': 6, 'warp': 13, 'other': 0}, world.jsonl 20 lines 5683514 bytes (deleted: True)
+  PAWB CH2T seed 5964: exit 0, purity CLEAN, frames 115678, final map [8, 1], edge stops 0, warp stops 0, most crossings of one edge in one intent 1, decisions 110, intents 26, map changes {'edge': 6, 'warp': 9, 'other': 0}, world.jsonl 16 lines 4125924 bytes (deleted: True)
+
+PAW vs PAWB (compare2.py control; a DETERMINISM CHECK, one trajectory replayed per arm, never a replication):
+  CH1C: decide records [266, 266] identical True; all records [7310, 7310], differing 0; edge stops [None, None]; marks equal True; frames [178855, 178855]; final map [[1, 4], [1, 4]]; purity ['CLEAN', 'CLEAN']
+  CH1M: decide records [202, 202] identical True; all records [6235, 6235], differing 0; edge stops [None, None]; marks equal True; frames [158017, 158017]; final map [[1, 4], [1, 4]]; purity ['CLEAN', 'CLEAN']
+  CH1T: decide records [145, 145] identical True; all records [4961, 4961], differing 0; edge stops [None, None]; marks equal True; frames [134298, 134298]; final map [[1, 4], [1, 4]]; purity ['CLEAN', 'CLEAN']
+  CH2: decide records [190, 190] identical True; all records [4363, 4363], differing 0; edge stops [None, None]; marks equal True; frames [108526, 108526]; final map [[8, 1], [8, 1]]; purity ['CLEAN', 'CLEAN']
+  CH2M: decide records [223, 223] identical True; all records [4704, 4704], differing 0; edge stops [None, None]; marks equal True; frames [117926, 117926]; final map [[8, 1], [8, 1]]; purity ['CLEAN', 'CLEAN']
+  CH2T: decide records [110, 110] identical True; all records [3554, 3554], differing 0; edge stops [None, None]; marks equal True; frames [115678, 115678]; final map [[8, 1], [8, 1]]; purity ['CLEAN', 'CLEAN']
+
+PREDICTIONS - VERDICTS:
+  C0 HELD: 12 of 12 launches purity CLEAN; 12 of 12 world.jsonl deleted.
+  C1 HELD: 0 edge stops in all 6 PAWB runs (and in PAW's).
+  C2 HELD: decide records identical on all 6 arms (145, 266, 202, 190, 110, 223), same marks, same final map, same frames.
+  C3 HELD (stronger than registered): EVERY record is identical on all 6 arms (0 differing, after normalising the eyes' wall-clock cost); the dict key-order 'say' differences round 1 saw did not occur in these processes.
+NON-VACUITY NOTE: the most crossings of one edge within one intent was 1 in every run, so Part B's counter (3 uses from ONE side) was never near firing: this control shows Part B is INERT on ordinary chapter 1-2 play (what it was run to show), not that the rule works; that is the partb batch's and the offline tests' job.

@@ -441,7 +441,7 @@ PLANS = {
     "ROAM": (["roam", "--state", str(FIXTURES / "route101_south.ss1"), "--roam-steps", "150", "--frames", "40000",
               "--personality", "Catcher"], lambda t, r: r.startswith("roam: roamed")),
     "STUCK": (_explore(FIXTURES / "clock_room.ss1", "LITTLEROOT_TOWN", 12000, "Story"),
-              lambda t, r: r.startswith("explore: stuck: ping-pong")),
+              lambda t, r: r.startswith("explore: stuck: ping-pong: the warp ")),  # (KI-129 B: not the edge's)
     "TOWN-Catcher": (_explore(DONE, "ROUTE101", 20000, "Catcher"),
                      lambda t, r: r.startswith("explore: done") and t["map"] == [0, 16]),
     "TOWN-Trainer": (_explore(DONE, "ROUTE101", 20000, "Trainer"),

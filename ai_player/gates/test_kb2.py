@@ -1138,6 +1138,49 @@ class NotReadTests(unittest.TestCase):
         found = plant(unclassified)
         self.assertTrue(any("world/maps.json" in f and "UNCLASSIFIED" in f and "secret_route" in f for f in found), found)
 
+    def test_v1_warps_and_connections_are_classified_leaf_by_leaf(self):
+        """(The round-1 verifier's V1, 2026-10-31) `maps[].warps` and `maps[].connections` were SUBTREE entries, so a key
+        planted under a warp (`warps[].script`, the verifier's gate mutant M4) passed RULE B unmarked. Every leaf under
+        them is now classified by its OWN exact pattern, the containers marked without a subtree; a key planted under
+        `warps[]` or `connections[]` FAILS (K-F3's shape). FAULT (17ed7794's check_fairness): both plants PASS."""
+        from ai_player.gates import check_fairness as cf_
+        schema = cf_.KNOWLEDGE_FIELDS["world/maps.json"]
+        data = json.loads((WORLD / "maps.json").read_text(encoding="utf-8"))
+        leaves = sorted({p for p in cf_.key_paths(data) if p[2:3] in (("warps",), ("connections",)) and len(p) > 3})
+        self.assertEqual(sorted({cf_.shown(p) for p in leaves}),
+                         ["maps[].connections[].dir", "maps[].connections[].map", "maps[].connections[].offset",
+                          "maps[].warps[].dest_map", "maps[].warps[].dest_warp_id", "maps[].warps[].elevation",
+                          "maps[].warps[].x", "maps[].warps[].y"])
+        for p in leaves:
+            found = cf_.classify(p, schema)
+            self.assertEqual(found and found[0], cf_.shown(p))  # its own pattern, never a parent's subtree
+        for container in ("maps[].warps", "maps[].warps[]", "maps[].connections", "maps[].connections[]"):
+            self.assertFalse(schema[container][2], container)  # FAULT half: a subtree, which classifies any plant
+
+        def plant(edit) -> list[str]:
+            with tempfile.TemporaryDirectory() as tmp:
+                pkg = Path(tmp) / "ai_player"
+                shutil.copytree(REPO / "ai_player", pkg, ignore=shutil.ignore_patterns(
+                    "__pycache__", "evidence", "gates", "*.ss1", "eyes", "host"))
+                path = pkg / "knowledge" / "world" / "maps.json"
+                doc = json.loads(path.read_text(encoding="utf-8"))
+                edit(doc)
+                path.write_text(json.dumps(doc), encoding="utf-8")
+                return cf_.check(pkg)[1]
+
+        self.assertEqual(plant(lambda doc: None), [])  # CONTROL: the copy is clean
+
+        def under(part: str, key: str):
+            def edit(doc):
+                next(m for m in doc["maps"] if m.get(part))[part][0][key] = "SomeScript_Label"
+            return edit
+
+        for part, key in (("warps", "script"), ("warps", "secret_door"), ("connections", "flag")):
+            with self.subTest(part=part, key=key):
+                found = plant(under(part, key))
+                self.assertTrue(any("world/maps.json" in f and "UNCLASSIFIED" in f and f"maps[].{part}[].{key}" in f
+                                    for f in found), found)  # FAULT (17ed7794): [] (classified by the subtree)
+
     def test_k_c6_the_atlas_facts_equal_the_pinned_decomp(self):
         """(KI-128, K-C6) The atlas's facts for the woods, ROUTE 104 and RUSTBORO CITY are the pinned decomp's own:
         PetalburgWoods is MAP_TYPE_ROUTE with warps (14, 5) and (15, 5) to Route104's warps 2 and 3, which are (10, 30)

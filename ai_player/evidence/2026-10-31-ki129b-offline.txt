@@ -1,0 +1,78 @@
+KI-129 PART B + THE ROUND-1 VERIFIER'S V1 - OFFLINE PROOF (spec 2026-10-31-KI128-KI129-BUILD-SPEC.md sections 4.1-4.3) - DEVELOPMENT
+code: HEAD 17ed7794 + this worktree's uncommitted changes, working-tree digest sha256:4e0510336ea695b9 (gates/provenance.py; the
+same digest is on 2026-10-31-step52-REVERT.txt and 2026-10-31-r1-REVERT.txt); 2026-10-31, this PC's clock (Los Angeles)
+environment: PYTHONUTF8=1, AI_PLAYER_TEST_SUPPORT_ROOT=<main checkout>, POKEBOT_DECOMP=C:/Remote Projects/_decomp/pokeemerald
+
+WHAT WAS BUILT
+  Part B (brain/navigator.py, brain/explore.py):
+    1. COUNT: `Navigator.run` counts a connection change with a direction under "<source>|edge:<dir>", with the same
+       PINGPONG_USES (3) and "nothing new since the second use" stop, ONLY when `ponged` is set (the play brain; the earlier
+       brains are unchanged, B-C2). The stop reads "stuck: ping-pong: the edge <name> crossed N times ... with nothing new
+       since its second crossing"; the warp's text is unchanged.
+       [SUPERSEDED by the round-2 verifier's V2-1, 2026-10-31: an edge's window now SLIDES (nothing new since the crossing
+       before the last, frames[-2]) and the text reads "... since its crossing before the last"; see
+       2026-10-31-ki129b-v21.txt]
+    2. REMEMBER BOTH SIDES: `_remember_edge_pingpong` keeps "<source>|edge:<dir>" and "<target>|edge:<OPPOSITE[dir]>", each
+       (stamp, frame). Warp entries are unchanged (a stamp only).
+    3. `Navigator.edge_ponged(memory, tile, frame)`: ponged set, the tile outside, the key "<current>|edge:<road_side>" held,
+       the stamp unchanged, frame - ponged_frame < PONG_REST (= NOVELTY_WINDOW, 3000; an existing constant). `story_moved`
+       clears it with the warps'.
+    4. HONOUR: `explore.candidates`' `add()` drops a target with exit None and an outside tile when `edge_ponged` says so,
+       EXCEPT kind "route" (F6); a navigator without the method (a test's stand-in) keeps everything.
+    5. The fallback is NAMED, not changed: `travel_intent.choose` falls back to `choose_target` when `found` is empty, which
+       re-runs the candidates (the edge still dropped) without `keeps_going` (B-F3).
+  The graders that read the warp's ping-pong text now read "explore: stuck: ping-pong: the warp " (gates/live_step3.py
+  grade_STUCK, gates/rate_step3.py STUCK): their old prefix "explore: stuck: ping-pong" would also have matched the edge's
+  text (the spec asked to confirm it did not; it did, so it was narrowed; that arm runs the step-3 brain, `ponged` None, where
+  the edge rule never fires). test_world's stairs test and test_goals' warp-keep test assert the warp's prefix the same way.
+  V1 (gates/check_fairness.py): maps.json's `maps[].warps` and `maps[].connections` are no longer SUBTREE entries; every leaf
+  is classified on its own (warps[].x, y, elevation, dest_map, dest_warp_id; connections[].dir, map, offset: all `ai`), the
+  containers marked without a subtree. check_fairness on the real tree: "PERSON-FAIR DATA DOOR: PASS (0 breaches)".
+  census_waivers.json: 2 waivers with reasons (candidates.add: the census matches the nested `add` by NAME, its 40 "sites"
+  are set.add calls, the body change is mutated by G422/G423; Navigator.summary: a text formatter of the outcome).
+
+TESTS (worktree)
+  test_goals            Ran 279 tests, OK (272 before + 7 KI129PartBTests)
+  test_world            Ran 132 tests, OK
+  test_kb2              Ran 122 tests in 217.608s, OK (121 + test_v1)
+  test_host             Ran 37 tests in 47.581s, OK
+  check_fairness        PERSON-FAIR DATA DOOR: PASS (0 breaches)
+  call_census           CALL-SITE CENSUS since HEAD: 2 AI files changed, 8 functions or added calls, 67 sites; 0 MISSING: PASS
+
+FAULT ARMS (s53/fix2/scripts/fault_arm.py: 17ed7794 from git archive, the new test file laid over)
+  KI129PartBTests on 17ed7794: FAILED (failures=7): B-F1 (seeds 1 and 2), B-F1 corner, B-F2, B-F3 (both halves) and B-C3 fail,
+    each at "False is not true : stuck: nothing new (no new tile, map, flag, Pokemon, item or experience) for 3007 frames ..."
+    (no edge stop); B-C1 and B-C2 (the controls) pass.
+  test_v1 on 17ed7794's check_fairness: FAIL "AssertionError: 'maps[].connections' != 'maps[].connections[].dir'"; and the
+    plants (v1_plants.py) on 17ed7794: warps[].script PASS [], warps[].secret_door PASS [], connections[].flag PASS [] (no
+    breach: the subtree classified them); on the fix: each FAIL "knowledge/world/maps.json: 1 UNCLASSIFIED key paths
+    ['maps[].warps[].script']" (and secret_door, connections[].flag); the clean copy PASS on both.
+  Per stage arm (arm_check.py): B 7/7 OK, PAWB 7/7 OK, Bstop fails B-F2, B-F3 (house=False), B-C3; PAW and none fail 7.
+  B-C1 and B-C2 trails (bc1_trail.py; hash over the outcome, the trail and the transitions, B-C2 also over every record):
+    identical in the worktree and in 17ed7794 (B-C1 ae9f3ef640fdb75b both ponged arms; B-C2 seeds 1-3 x explore/travel:
+    a6318ac14420de3e, fe0fa772c7c2d676, 6eafde804d2293c4, c20293680994531a, 3dac9fb4c271a3e2, 8c14368d53210412 in both trees).
+
+MEASURED CORNERS (documented in the tests, not hidden)
+  * The rule is the warp rule's wording: on B-F1's fixture, seed 3's first intent sees new tiles after its 2nd crossing
+    (the last at f649), so it is not a ping-pong and runs to the novelty window (84 crossings in both codes); its NEXT intent
+    stops at the third crossing (B-F1 corner). [SUPERSEDED by V2-1: this corner WAS the defect; with the sliding window seed
+    3's first intent stops after 7 crossings, and the corner test was changed on purpose: 2026-10-31-ki129b-v21.txt]
+  * With the eyes' crop, a wander to a corner of B-F1's maps shows new border tiles: news, so the edge is rightly an option
+    again; B-F2 uses the CROP fault (the whole map seen at the first look) so "nothing new anywhere" is exact.
+  * B-F3's house half is NOT a discriminator of the drop (measured under G420-G422, G426): `candidates`' step-4 rule
+    (`not_back_to_seen_all`) already drops a way back to a map seen all of while a way back leads somewhere with something
+    left. Its house=False half is the FAULT half.
+
+MUTANTS
+  revert_step5 (full, --workers 8): 421 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 423; FROZEN TREE PASS;
+    OVERALL: PASS (15:27:46-15:43:38). New: G419 edge uses not counted, G420 only the source side kept, G421 edge_ponged blind,
+    G422 add()'s guard deleted, G423 route not exempt, G424 PONG_REST expiry deleted, G425 stamp not compared, G426 the stop's
+    call of _remember_edge_pingpong deleted, G427 the "nothing new since the 2nd use" clause deleted: each CAUGHT.
+  revert_r1 (--workers 6): 555 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 556; OVERALL: PASS.
+  revert_safety_gates (--workers 6): 23 mutants CAUGHT as predicted, of 23; OVERALL: PASS (no evidence file: run without
+    --evidence).
+  V1 gate mutants (v1_mutants.py): V0 control test_v1 OK, check_fairness PASS; V1a warps a subtree again: test_v1 FAILED
+    ("True is not false : maps[].warps"), check_fairness PASS (the hole it re-opens); V1b connections a subtree again:
+    test_v1 FAILED; V1c warps[].dest_warp_id unclassified: test_v1 FAILED and check_fairness FAIL (1 breaches).
+  regression_due (read only): 6 of 6 suites due (2 of them only unproven): the drivers above pass, but only run_regression
+  --full writes the evidence names it reads, and that was not run (the orchestrator forbids it in this round).
