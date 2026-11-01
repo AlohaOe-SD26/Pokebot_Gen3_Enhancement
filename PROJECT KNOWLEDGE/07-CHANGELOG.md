@@ -39315,3 +39315,10 @@ bought balls only at fixed story points.
 - **Fixed:** `ai_player/gates/run_regression_times.json` `revert_step5` 237 -> 3460, its source noted in the table's `_doc` (the table's own procedure, as for `revert_r1` on 2026-10-29). The lane now gives it `max(3600, 3460 x 3.5)` = 12,110 s. `test_run_regression` 53 OK.
 - **Why it grew** (`08`, this date): 425 mutants, and two Part B tests of 2.1 s and 1.2 s that every mutant re-runs; speeding those two up would save about 20 minutes per run (a follow-up, not done).
 - **Next:** the full lane on this commit.
+
+## 2026-11-01 — the full regression lane PASSED on 5dba7578 (rounds 1 and 2, the held-out driver, the timing fix) (punch-list #28-aiagent-v2)
+
+- **Run:** `py -3.12 ai_player/gates/run_regression.py --full --evidence`, detached, 11:53 PM 2026-10-31 to 1:19 AM 2026-11-01: `REGRESSION: PASS (full, 34 suites, 5138.2 s wall)`.
+- **Every unit suite PASS** (now with test_live_ki128, 55 tests) and **every revert driver PASS**: `revert_step5` 425 mutants in 4,206.3 s (inside the lane, beside the other suites; its new limit is 12,110 s, so the old 3,600 s floor would have killed it again), revert_r1 556, and the rest. FROZEN TREE PASS. rate_* and live_* NOT-RUN by design.
+- **Evidence:** `ai_player/evidence/2026-11-01-regression-*` and the drivers' own `2026-11-01-*-REVERT.txt` (and two `2026-10-31-*-REVERT.txt` rewritten); the 54ce416d lane's files are kept under `archive/53e0c26e7812db47-54ce416d/` by the keep-earlier rule.
+- **Cost:** local CPU only (86 minutes). **Next:** A1 (the wide chapter-3 probe), then the AI trainer.
