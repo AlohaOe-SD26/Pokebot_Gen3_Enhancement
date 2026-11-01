@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "a869fff677a32a3f1fefd16326ebb3be8ef1d4be",
+ "source_sha1_lf": "e401b736c5820995fa4a7d5005df93ea50809b05",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 362,
+  "sections": 363,
   "donot_candidates": 31,
-  "sections_naming_user_rulings": 52
+  "sections_naming_user_rulings": 53
  },
  "sections": [
   {
@@ -5668,6 +5668,21 @@
     "KI-128",
     "KI-129"
    ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-01-bab294",
+   "date": "2026-11-01",
+   "line_start": 9998,
+   "line_end": 10005,
+   "title": "2026-11-01 — USER RULING 57: keep progressing on the extra credit, with the cloud kept set up; the measurement: at a full weekly meter a cloud job bills the EXTRA credit, and the $250 cloud credit never moved",
+   "rulings": [
+    57
+   ],
+   "ruling_mentions": [],
+   "slugs": [],
+   "ki": [],
    "donot": [],
    "cues": []
   }

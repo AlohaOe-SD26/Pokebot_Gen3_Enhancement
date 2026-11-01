@@ -39330,3 +39330,11 @@ bought balls only at fixed story points.
 - **The prediction was WRONG on chapter 4:** it said ch4_roxanne would NOT be reached in at least 2 of 3 (the 2026-10-15 recon's predicted gym blockers); it was reached in 3 of 3. Recorded as information.
 - **What it means:** v1's goal (BADGE 1 in 4 chapters, USER RULING 37) is reached ON DEVELOPMENT RUNS, from a real New Game, unbroken, on one code version. It is NOT graded: `ai-frontier.txt` stays at chapter 3 until a graded held-out of the whole chain (seeds registered and pushed first) shows it.
 - **Next:** a graded held-out of the unbroken New Game-to-BADGE-1 chain (a committed driver; `live_ki128.py`'s machinery is the base), then A1 and the AI trainer.
+
+## 2026-11-01 — Two cloud jobs (the billing measurement of USER RULING 56) produced two UNVERIFIED notes: chapter 5's maps and a DRAFT of chapters 5-8's milestones; USER RULING 57 (punch-list #28-aiagent-v2)
+
+- **The routine** `pokebot-cloud-worker` (`trig_011hasDZP5PDcUsyA5S4C3B2`) was re-pointed and ENABLED for manual runs (no schedule).
+- **CH5-RECON** (about 2 minutes, Sonnet 5.5) pushed `claude/ch5-recon-rnkfao`: `ai_player/knowledge/seasoned/ch5_maps.json` (13 maps after BADGE 1: warps, trainers with parties, item balls, coord events, hidden items, story flags), `cloud/CH5-REPORT.md` (the story order from BADGE 1 to Slateport; BRAWLY's party MACHOP 16, MEDITITE 16, MAKUHITA 19), `cloud/CH5-STATUS.md`. Decomp `pret/pokeemerald@731ad5bf` (the same commit as the pinned local decomp).
+- **MILESTONES-CH5-CH8** (about 12 minutes) pushed `claude/milestones-ch5-ch8-o0janq`: `ai_player/knowledge/seasoned/milestones_ch5_ch8_DRAFT.json` (20 milestones: chapter 5 x8, 6 x3, 7 x5, 8 x4; in `milestones.json`'s schema), `cloud/MILESTONES-REPORT.md` (each proof's file:line), `cloud/MILESTONES-STATUS.md`.
+- **Both are NOTES, not merged:** every name and proof is checked here (the pinned decomp, `audit_flag_names.py`, the milestone extractor) before any of it reaches `main`.
+- **The billing result and the ruling:** `06`, this date (the second job cost about $0.51 of the extra credit; the $250 did not move).
