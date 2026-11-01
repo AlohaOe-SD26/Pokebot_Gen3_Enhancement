@@ -1,0 +1,1398 @@
+{
+ "provenance": {
+  "status": "DRAFT, not wired in: not read by ai_player/knowledge/story.py, not checked by extract_milestones.py --verify",
+  "made_by": "cloud job MILESTONES-CH5-CH8 (static, no emulator); scratch generator not committed",
+  "decomp": {
+   "repo": "pret/pokeemerald",
+   "commit": "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881"
+  },
+  "rule": "RULING 35/40: teaching DATA from the game's own source (static knowledge); the AI plays by the screen",
+  "number_sources": "flags/vars/trainer ids evaluated from the decomp's include/constants/{flags,vars,opponents}.h; each also equals the bot table (sandbox-pokebot/modules/data/event_{flags,vars}/emerald.txt)",
+  "schema": "same keys as ai_player/knowledge/milestones.json; extra top-level keys (sources) hold file:line citations; taught_by is empty (no bot teacher mapped in this job)",
+  "chapter_scope": "chapters as ai_player/knowledge/world/campaign.json defines them: 5 = DEVON GOODS / RUSTBORO, 6 = sail to DEWFORD, 7 = GRANITE CAVE + BRAWLY, 8 = sail to SLATEPORT + CAPT. STERN"
+ },
+ "gendered_maps": {},
+ "looks": {},
+ "trainers": {
+  "GRUNT_RUSTURF_TUNNEL": {
+   "id": 16,
+   "flag": 1296,
+   "levels": [
+    11
+   ]
+  },
+  "MAY_RUSTBORO_TREECKO": {
+   "id": 768,
+   "flag": 2048,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "MAY_RUSTBORO_TORCHIC": {
+   "id": 769,
+   "flag": 2049,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "MAY_RUSTBORO_MUDKIP": {
+   "id": 600,
+   "flag": 1880,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "BRENDAN_RUSTBORO_TREECKO": {
+   "id": 592,
+   "flag": 1872,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "BRENDAN_RUSTBORO_TORCHIC": {
+   "id": 599,
+   "flag": 1879,
+   "levels": [
+    13,
+    15
+   ]
+  },
+  "BRENDAN_RUSTBORO_MUDKIP": {
+   "id": 593,
+   "flag": 1873,
+   "levels": [
+    13,
+    15
+   ]
+  }
+ },
+ "milestones": [
+  {
+   "id": "ch5_stolen_goods",
+   "chapter": 5,
+   "title": "RUSTBORO CITY: the DEVON employee is robbed by a TEAM AQUA GRUNT",
+   "done": {
+    "flags": {},
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 2
+     },
+     "RUSTURF_TUNNEL_STATE": {
+      "number": 16538,
+      "at_least": 2
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Get out! Out of the way! Wait! Pleeeaaase! Don't take my GOODS!",
+    "words": null,
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "automatic scene: RustboroCity_EventScript_StolenGoodsTrigger0-4 are COORD events on x=23, y=20..24 while VAR_RUSTBORO_CITY_STATE==1, and that var is set to 1 by ROXANNE's defeat script (RustboroCity_Gym/scripts.inc), so the scene plays on the first walk out of the gym past those tiles. FLAG_DEVON_GOODS_STOLEN is set here but CLEARED again in RusturfTunnel when the goods are recovered, so it is NOT used as a proof (it would flip back); the two vars only move up",
+   "taught_by": [],
+   "decomp": {
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc",
+    "RUSTURF_TUNNEL_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_goods_employee",
+   "chapter": 5,
+   "title": "The DEVON employee asks for help getting the DEVON GOODS back",
+   "done": {
+    "flags": {
+     "INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": 159
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 3
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "RUSTBORO_CITY"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Oh, it's you! You're that fantastic TRAINER who helped me in PETALBURG WOODS! Help me! I was robbed by TEAM AQUA! I have to get the DEVON GOODS back! If I don't… I'm going to be in serious trouble.",
+    "words": "DEVON GOODS",
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "optional: the HelpGetGoodsTrigger0-3 coord events (x=29..30, y=9..12, state 2) play it on the walk east toward ROUTE 116, but RusturfTunnel sets the state to 4 whether or not it played, so it never gates anything",
+   "taught_by": [],
+   "decomp": {
+    "INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": "data/maps/RustboroCity/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_rusturf_grunt",
+   "chapter": 5,
+   "title": "RUSTURF TUNNEL: beat the TEAM AQUA GRUNT and take back the DEVON GOODS",
+   "done": {
+    "flags": {
+     "RECOVERED_DEVON_GOODS": 143
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 4
+     },
+     "BRINEY_HOUSE_STATE": {
+      "number": 16528,
+      "at_least": 1
+     }
+    },
+    "trainers": {
+     "GRUNT_RUSTURF_TUNNEL": 1296
+    }
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY",
+    "ROUTE116",
+    "RUSTURF_TUNNEL"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "RUSTURF_TUNNEL",
+     "told": "tunnel"
+    },
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "That shady character, I think he took off towards the tunnel over there.",
+    "words": "tunnel",
+    "map": "RUSTURF_TUNNEL",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "GRUNT_RUSTURF_TUNNEL"
+    ],
+    "levels": [
+     11
+    ],
+    "per_trainer": {
+     "GRUNT_RUSTURF_TUNNEL": [
+      11
+     ]
+    }
+   },
+   "note": "the tunnel entrance is the ROUTE 116 warp; the GRUNT (with PEEKO) stands at (13,5) while VAR_RUSTURF_TUNNEL_STATE==2 and backs up at the AquaGruntBackUp coord tiles (state 3). Scripted fight (RusturfTunnel_EventScript_Grunt: trainerbattle_no_intro): ONE POOCHYENA Lv 11. (The earlier CH5-REPORT's 'lvl16 GEODUDE, GEODUDE, MACHOP' is MIKE_2, the optional HIKER in the same tunnel, not the grunt.) The tunnel's far (Verdanturf) side needs ROCK SMASH and is not part of this milestone",
+   "taught_by": [],
+   "decomp": {
+    "RECOVERED_DEVON_GOODS": "data/maps/RusturfTunnel/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RusturfTunnel/scripts.inc",
+    "BRINEY_HOUSE_STATE": "data/maps/RusturfTunnel/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_return_goods",
+   "chapter": 5,
+   "title": "Return the DEVON GOODS to the DEVON employee",
+   "done": {
+    "flags": {
+     "RETURNED_DEVON_GOODS": 144
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 5
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "RUSTBORO_CITY",
+     "told": "DEVON GOODS"
+    },
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Oh, it's you! You're that fantastic TRAINER who helped me in PETALBURG WOODS! Help me! I was robbed by TEAM AQUA! I have to get the DEVON GOODS back! If I don't… I'm going to be in serious trouble.",
+    "words": "DEVON GOODS",
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "no line of dialogue tells the player to bring the goods back: the employee's ReturnGoodsTrigger0-3 coord events (x=30..31, y=9..12, state 4) and a talk to him (RustboroCity_EventScript_DevonEmployee1 when FLAG_RECOVERED_DEVON_GOODS) start RustboroCity_EventScript_ReturnGoods, which gives a GREAT BALL and warps the player to DEVON CORP 3F",
+   "taught_by": [],
+   "decomp": {
+    "RETURNED_DEVON_GOODS": "data/maps/RustboroCity/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_devon_corp",
+   "chapter": 5,
+   "title": "DEVON CORP 3F: MR. STONE's favor (the LETTER for STEVEN) and the POKéNAV",
+   "done": {
+    "flags": {
+     "RECEIVED_POKENAV": 188,
+     "SYS_POKENAV_GET": 2146
+    },
+    "variables": {
+     "DEVON_CORP_3F_STATE": {
+      "number": 16527,
+      "at_least": 1
+     },
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 6
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY_DEVON_CORP_3F"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Our PRESIDENT would like to have a word with you. Please come with me.",
+    "words": null,
+    "map": "RUSTBORO_CITY_DEVON_CORP_3F",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "automatic (RustboroCity_DevonCorp_3F_EventScript_MeetPresident, an OnFrame script at VAR_DEVON_CORP_3F_STATE==0, runs on arrival from the ReturnGoods warp): the player follows the employee, receives ITEM_LETTER (giveitem, no flag of its own) and the POKéNAV, and the party is healed. The script itself is the only place these four are set",
+   "taught_by": [],
+   "decomp": {
+    "RECEIVED_POKENAV": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+    "SYS_POKENAV_GET": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+    "DEVON_CORP_3F_STATE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_pokenav_tutorial",
+   "chapter": 5,
+   "title": "Leaving DEVON CORP: the scientist adds MATCH CALL and the player must open the POKéNAV from the START menu",
+   "done": {
+    "flags": {
+     "HAS_MATCH_CALL": 303,
+     "ADDED_MATCH_CALL_TO_POKENAV": 304
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 7
+     },
+     "ROUTE104_STATE": {
+      "number": 16483,
+      "at_least": 1
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "Please select the POKéNAV.",
+    "words": "POKéNAV",
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "INTERACTIVE, not a cut scene: RustboroCity_EventScript_ScientistAddMatchCall runs from the OnFrame table at VAR_RUSTBORO_CITY_STATE==6 and ends in RustboroCity_EventScript_MatchCallTutorial, which opens a START menu where only the POKéNAV entry is accepted (every other choice loops back to 'Please select POKéNAV'); only after it does the script set VAR_RUSTBORO_CITY_STATE to 7 (RustboroCity/scripts.inc:88). This is the first step in the game that needs the AI to pick a START-menu entry",
+   "taught_by": [],
+   "decomp": {
+    "HAS_MATCH_CALL": "data/maps/RustboroCity/scripts.inc",
+    "ADDED_MATCH_CALL_TO_POKENAV": "data/maps/RustboroCity/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc",
+    "ROUTE104_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_rival_meet",
+   "chapter": 5,
+   "title": "South RUSTBORO: the rival (MAY or BRENDAN) meets the player and mentions MR. BRINEY",
+   "done": {
+    "flags": {
+     "MET_RIVAL_RUSTBORO": 288,
+     "ENABLE_RIVAL_MATCH_CALL": 253
+    },
+    "variables": {
+     "RUSTBORO_CITY_STATE": {
+      "number": 16474,
+      "at_least": 8
+     }
+    },
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "RUSTBORO_CITY",
+    "ROUTE104"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "MAY: Oh, by the way, I passed MR. BRINEY in PETALBURG WOODS. I guess he's on his way home to his cottage by the sea. How's your POKéDEX coming along, {PLAYER}{KUN}? Mine's looking pretty decent! So… How about a little battle?",
+    "words": "cottage",
+    "map": "ROUTE104_MR_BRINEYS_HOUSE",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "RivalTrigger0-7 are COORD events on y=53, x=12..19 while VAR_RUSTBORO_CITY_STATE==7 (state 7 is set in RustboroCity/scripts.inc on the way out of DEVON CORP). The rival also has a SECOND chance on ROUTE 104 (Route104_EventScript_RivalTrigger at (17,51), VAR_ROUTE104_STATE==1) which sets state 8 and runs the same RustboroCity_EventScript_RivalEncounter. The hint quoted is the MAY (male player) text; the BRENDAN (female player) text carries the same 'cottage' words, checked by this generator",
+   "taught_by": [],
+   "decomp": {
+    "MET_RIVAL_RUSTBORO": "data/maps/RustboroCity/scripts.inc",
+    "ENABLE_RIVAL_MATCH_CALL": "data/maps/RustboroCity/scripts.inc",
+    "RUSTBORO_CITY_STATE": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch5_rival_battle",
+   "chapter": 5,
+   "title": "The rival's battle outside RUSTBORO (declinable)",
+   "done": {
+    "flags": {
+     "DEFEATED_RIVAL_RUSTBORO": 211
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "RUSTBORO_CITY",
+    "ROUTE104"
+   ],
+   "steps": [
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "MAY: So, what do you think? How about a little battle here?",
+    "words": null,
+    "map": "RUSTBORO_CITY",
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "MAY_RUSTBORO_TREECKO",
+     "MAY_RUSTBORO_TORCHIC",
+     "MAY_RUSTBORO_MUDKIP",
+     "BRENDAN_RUSTBORO_TREECKO",
+     "BRENDAN_RUSTBORO_TORCHIC",
+     "BRENDAN_RUSTBORO_MUDKIP"
+    ],
+    "named": true,
+    "levels": [
+     13,
+     15
+    ],
+    "per_trainer": {
+     "MAY_RUSTBORO_TREECKO": [
+      13,
+      15
+     ],
+     "MAY_RUSTBORO_TORCHIC": [
+      13,
+      15
+     ],
+     "MAY_RUSTBORO_MUDKIP": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_TREECKO": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_TORCHIC": [
+      13,
+      15
+     ],
+     "BRENDAN_RUSTBORO_MUDKIP": [
+      13,
+      15
+     ]
+    }
+   },
+   "note": "OPTIONAL because the battle is a YES/NO prompt (RustboroCity_Text_MayWantToBattle / ...MayOhHaventRaisedPokemonEnough on NO) and the rival leaves once the player sails (Route104_MrBrineysHouse sets FLAG_HIDE_RUSTBORO_CITY_RIVAL), so it can be skipped for good. The SAME flag is set by all six variants (the trainer is chosen by the player's gender and VAR_STARTER_MON), which is why the proof is the flag, not a trainer; per_trainer lists all six. Rewards: none",
+   "taught_by": [],
+   "decomp": {
+    "DEFEATED_RIVAL_RUSTBORO": "data/maps/RustboroCity/scripts.inc"
+   }
+  }
+ ],
+ "sources": {
+  "ch5_stolen_goods": {
+   "flags": {},
+   "vars": {
+    "RUSTBORO_CITY_STATE": {
+     "number": 16474,
+     "at_least": 2,
+     "define": "include/constants/vars.h:110",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 50,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 78,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 88,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 7"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 288,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 482,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 3"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 563,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 5"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 741,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 809,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 68,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 6"
+      },
+      {
+       "file": "data/maps/RustboroCity_Gym/scripts.inc",
+       "line": 20,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 1"
+      },
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 323,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 4"
+      }
+     ]
+    },
+    "RUSTURF_TUNNEL_STATE": {
+     "number": 16538,
+     "at_least": 2,
+     "define": "include/constants/vars.h:174",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 289,
+       "text": "setvar VAR_RUSTURF_TUNNEL_STATE, 2"
+      },
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 267,
+       "text": "setvar VAR_RUSTURF_TUNNEL_STATE, 3"
+      }
+     ]
+    }
+   },
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity/scripts.inc:992 RustboroCity_Text_OutOfTheWay",
+     "data/maps/RustboroCity/scripts.inc:996 RustboroCity_Text_WaitDontTakeMyGoods"
+    ]
+   },
+   "maps": {
+    "RUSTBORO_CITY": "data/maps/RustboroCity/map.json id"
+   },
+   "fight": null
+  },
+  "ch5_goods_employee": {
+   "flags": {
+    "INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN": {
+     "number": 159,
+     "define": "include/constants/flags.h:181",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 481,
+       "text": "setflag FLAG_INTERACTED_WITH_DEVON_EMPLOYEE_GOODS_STOLEN"
+      }
+     ]
+    }
+   },
+   "vars": {
+    "RUSTBORO_CITY_STATE": {
+     "number": 16474,
+     "at_least": 3,
+     "define": "include/constants/vars.h:110",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 50,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 78,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 88,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 7"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 288,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 482,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 3"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 563,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 5"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 741,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 809,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 68,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 6"
+      },
+      {
+       "file": "data/maps/RustboroCity_Gym/scripts.inc",
+       "line": 20,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 1"
+      },
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 323,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 4"
+      }
+     ]
+    }
+   },
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity/scripts.inc:1000 RustboroCity_Text_HelpMeIWasRobbed"
+    ]
+   },
+   "maps": {
+    "RUSTBORO_CITY": "data/maps/RustboroCity/map.json id"
+   },
+   "fight": null
+  },
+  "ch5_rusturf_grunt": {
+   "flags": {
+    "RECOVERED_DEVON_GOODS": {
+     "number": 143,
+     "define": "include/constants/flags.h:165",
+     "setters": [
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 322,
+       "text": "setflag FLAG_RECOVERED_DEVON_GOODS"
+      }
+     ]
+    }
+   },
+   "vars": {
+    "RUSTBORO_CITY_STATE": {
+     "number": 16474,
+     "at_least": 4,
+     "define": "include/constants/vars.h:110",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 50,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 78,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 88,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 7"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 288,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 482,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 3"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 563,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 5"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 741,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 809,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 68,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 6"
+      },
+      {
+       "file": "data/maps/RustboroCity_Gym/scripts.inc",
+       "line": 20,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 1"
+      },
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 323,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 4"
+      }
+     ]
+    },
+    "BRINEY_HOUSE_STATE": {
+     "number": 16528,
+     "at_least": 1,
+     "define": "include/constants/vars.h:164",
+     "setters": [
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 324,
+       "text": "setvar VAR_BRINEY_HOUSE_STATE, 1"
+      }
+     ]
+    }
+   },
+   "trainers": {
+    "GRUNT_RUSTURF_TUNNEL": {
+     "flag": 1296,
+     "setters": [
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 292,
+       "text": "trainerbattle_no_intro TRAINER_GRUNT_RUSTURF_TUNNEL, RusturfTunnel_Text_GruntDefeat"
+      }
+     ],
+     "id": 16,
+     "levels": [
+      11
+     ],
+     "species": [
+      "POOCHYENA"
+     ],
+     "class": "TEAM_AQUA",
+     "double": false,
+     "trainers_h_line": 196,
+     "party_label": "sParty_GruntRusturfTunnel",
+     "party_line": 166
+    }
+   },
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity/scripts.inc:1009 RustboroCity_Text_ShadyCharacterTookOffTowardsTunnel"
+    ]
+   },
+   "maps": {
+    "RUSTBORO_CITY": "data/maps/RustboroCity/map.json id",
+    "ROUTE116": "data/maps/Route116/map.json id",
+    "RUSTURF_TUNNEL": "data/maps/RusturfTunnel/map.json id"
+   },
+   "fight": {
+    "GRUNT_RUSTURF_TUNNEL": {
+     "id": 16,
+     "levels": [
+      11
+     ],
+     "species": [
+      "POOCHYENA"
+     ],
+     "trainers_h_line": 196,
+     "party_label": "sParty_GruntRusturfTunnel",
+     "party_line": 166
+    }
+   }
+  },
+  "ch5_return_goods": {
+   "flags": {
+    "RETURNED_DEVON_GOODS": {
+     "number": 144,
+     "define": "include/constants/flags.h:166",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 561,
+       "text": "setflag FLAG_RETURNED_DEVON_GOODS"
+      }
+     ]
+    }
+   },
+   "vars": {
+    "RUSTBORO_CITY_STATE": {
+     "number": 16474,
+     "at_least": 5,
+     "define": "include/constants/vars.h:110",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 50,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 78,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 88,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 7"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 288,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 482,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 3"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 563,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 5"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 741,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 809,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 68,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 6"
+      },
+      {
+       "file": "data/maps/RustboroCity_Gym/scripts.inc",
+       "line": 20,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 1"
+      },
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 323,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 4"
+      }
+     ]
+    }
+   },
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity/scripts.inc:1000 RustboroCity_Text_HelpMeIWasRobbed"
+    ]
+   },
+   "maps": {
+    "RUSTBORO_CITY": "data/maps/RustboroCity/map.json id"
+   },
+   "fight": null
+  },
+  "ch5_devon_corp": {
+   "flags": {
+    "RECEIVED_POKENAV": {
+     "number": 188,
+     "define": "include/constants/flags.h:210",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 54,
+       "text": "setflag FLAG_RECEIVED_POKENAV"
+      }
+     ]
+    },
+    "SYS_POKENAV_GET": {
+     "number": 2146,
+     "define": "include/constants/flags.h:1352",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 53,
+       "text": "setflag FLAG_SYS_POKENAV_GET"
+      }
+     ]
+    }
+   },
+   "vars": {
+    "DEVON_CORP_3F_STATE": {
+     "number": 16527,
+     "at_least": 1,
+     "define": "include/constants/vars.h:163",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 67,
+       "text": "setvar VAR_DEVON_CORP_3F_STATE, 1"
+      }
+     ]
+    },
+    "RUSTBORO_CITY_STATE": {
+     "number": 16474,
+     "at_least": 6,
+     "define": "include/constants/vars.h:110",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 50,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 78,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 88,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 7"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 288,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 482,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 3"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 563,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 5"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 741,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 809,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 68,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 6"
+      },
+      {
+       "file": "data/maps/RustboroCity_Gym/scripts.inc",
+       "line": 20,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 1"
+      },
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 323,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 4"
+      }
+     ]
+    }
+   },
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity_DevonCorp_3F/scripts.inc:281 RustboroCity_DevonCorp_3F_Text_WordWithPresidentComeWithMe"
+    ]
+   },
+   "maps": {
+    "RUSTBORO_CITY_DEVON_CORP_3F": "data/maps/RustboroCity_DevonCorp_3F/map.json id"
+   },
+   "fight": null
+  },
+  "ch5_pokenav_tutorial": {
+   "flags": {
+    "HAS_MATCH_CALL": {
+     "number": 303,
+     "define": "include/constants/flags.h:329",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 46,
+       "text": "setflag FLAG_HAS_MATCH_CALL"
+      }
+     ]
+    },
+    "ADDED_MATCH_CALL_TO_POKENAV": {
+     "number": 304,
+     "define": "include/constants/flags.h:330",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 69,
+       "text": "setflag FLAG_ADDED_MATCH_CALL_TO_POKENAV"
+      }
+     ]
+    }
+   },
+   "vars": {
+    "RUSTBORO_CITY_STATE": {
+     "number": 16474,
+     "at_least": 7,
+     "define": "include/constants/vars.h:110",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 50,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 78,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 88,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 7"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 288,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 482,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 3"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 563,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 5"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 741,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 809,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 68,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 6"
+      },
+      {
+       "file": "data/maps/RustboroCity_Gym/scripts.inc",
+       "line": 20,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 1"
+      },
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 323,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 4"
+      }
+     ]
+    },
+    "ROUTE104_STATE": {
+     "number": 16483,
+     "at_least": 1,
+     "define": "include/constants/vars.h:119",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 51,
+       "text": "setvar VAR_ROUTE104_STATE, 2"
+      },
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 79,
+       "text": "setvar VAR_ROUTE104_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 33,
+       "text": "setvar VAR_ROUTE104_STATE, 1"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 742,
+       "text": "setvar VAR_ROUTE104_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 810,
+       "text": "setvar VAR_ROUTE104_STATE, 2"
+      }
+     ]
+    }
+   },
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity/scripts.inc:1177 RustboroCity_Text_PleaseSelectPokenav"
+    ]
+   },
+   "maps": {
+    "RUSTBORO_CITY": "data/maps/RustboroCity/map.json id"
+   },
+   "fight": null
+  },
+  "ch5_rival_meet": {
+   "flags": {
+    "MET_RIVAL_RUSTBORO": {
+     "number": 288,
+     "define": "include/constants/flags.h:314",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 731,
+       "text": "setflag FLAG_MET_RIVAL_RUSTBORO"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 799,
+       "text": "setflag FLAG_MET_RIVAL_RUSTBORO"
+      }
+     ]
+    },
+    "ENABLE_RIVAL_MATCH_CALL": {
+     "number": 253,
+     "define": "include/constants/flags.h:279",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 99,
+       "text": "setflag FLAG_ENABLE_RIVAL_MATCH_CALL"
+      },
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 184,
+       "text": "setflag FLAG_ENABLE_RIVAL_MATCH_CALL"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 740,
+       "text": "setflag FLAG_ENABLE_RIVAL_MATCH_CALL"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 808,
+       "text": "setflag FLAG_ENABLE_RIVAL_MATCH_CALL"
+      }
+     ]
+    }
+   },
+   "vars": {
+    "RUSTBORO_CITY_STATE": {
+     "number": 16474,
+     "at_least": 8,
+     "define": "include/constants/vars.h:110",
+     "setters": [
+      {
+       "file": "data/maps/Route104/scripts.inc",
+       "line": 50,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/Route104_MrBrineysHouse/scripts.inc",
+       "line": 78,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 88,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 7"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 288,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 2"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 482,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 3"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 563,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 5"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 741,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 809,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 8"
+      },
+      {
+       "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc",
+       "line": 68,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 6"
+      },
+      {
+       "file": "data/maps/RustboroCity_Gym/scripts.inc",
+       "line": 20,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 1"
+      },
+      {
+       "file": "data/maps/RusturfTunnel/scripts.inc",
+       "line": 323,
+       "text": "setvar VAR_RUSTBORO_CITY_STATE, 4"
+      }
+     ]
+    }
+   },
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity/scripts.inc:1042 RustboroCity_Text_MayPassedBrineyWantToBattle"
+    ],
+    "also_checked": "data/maps/RustboroCity/scripts.inc:1089 RustboroCity_Text_BrendanPassedBrineyWantToBattle contains 'cottage'"
+   },
+   "maps": {
+    "RUSTBORO_CITY": "data/maps/RustboroCity/map.json id",
+    "ROUTE104": "data/maps/Route104/map.json id",
+    "ROUTE104_MR_BRINEYS_HOUSE": "data/maps/Route104_MrBrineysHouse/map.json id"
+   },
+   "fight": null
+  },
+  "ch5_rival_battle": {
+   "flags": {
+    "DEFEATED_RIVAL_RUSTBORO": {
+     "number": 211,
+     "define": "include/constants/flags.h:233",
+     "setters": [
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 780,
+       "text": "setflag FLAG_DEFEATED_RIVAL_RUSTBORO"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 786,
+       "text": "setflag FLAG_DEFEATED_RIVAL_RUSTBORO"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 792,
+       "text": "setflag FLAG_DEFEATED_RIVAL_RUSTBORO"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 841,
+       "text": "setflag FLAG_DEFEATED_RIVAL_RUSTBORO"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 847,
+       "text": "setflag FLAG_DEFEATED_RIVAL_RUSTBORO"
+      },
+      {
+       "file": "data/maps/RustboroCity/scripts.inc",
+       "line": 853,
+       "text": "setflag FLAG_DEFEATED_RIVAL_RUSTBORO"
+      }
+     ]
+    }
+   },
+   "vars": {},
+   "trainers": {},
+   "hint": {
+    "sources": [
+     "data/maps/RustboroCity/scripts.inc:1058 RustboroCity_Text_MayWantToBattle"
+    ]
+   },
+   "maps": {
+    "RUSTBORO_CITY": "data/maps/RustboroCity/map.json id",
+    "ROUTE104": "data/maps/Route104/map.json id"
+   },
+   "fight": {
+    "MAY_RUSTBORO_TREECKO": {
+     "id": 768,
+     "levels": [
+      13,
+      15
+     ],
+     "species": [
+      "LOTAD",
+      "TORCHIC"
+     ],
+     "trainers_h_line": 9220,
+     "party_label": "sParty_MayRustboroTreecko",
+     "party_line": 10275
+    },
+    "MAY_RUSTBORO_TORCHIC": {
+     "id": 769,
+     "levels": [
+      13,
+      15
+     ],
+     "species": [
+      "TORKOAL",
+      "MUDKIP"
+     ],
+     "trainers_h_line": 9232,
+     "party_label": "sParty_MayRustboroTorchic",
+     "party_line": 10288
+    },
+    "MAY_RUSTBORO_MUDKIP": {
+     "id": 600,
+     "levels": [
+      13,
+      15
+     ],
+     "species": [
+      "WINGULL",
+      "TREECKO"
+     ],
+     "trainers_h_line": 7204,
+     "party_label": "sParty_MayRustboroMudkip",
+     "party_line": 7945
+    },
+    "BRENDAN_RUSTBORO_TREECKO": {
+     "id": 592,
+     "levels": [
+      13,
+      15
+     ],
+     "species": [
+      "LOTAD",
+      "TORCHIC"
+     ],
+     "trainers_h_line": 7108,
+     "party_label": "sParty_BrendanRustboroTreecko",
+     "party_line": 7836
+    },
+    "BRENDAN_RUSTBORO_TORCHIC": {
+     "id": 599,
+     "levels": [
+      13,
+      15
+     ],
+     "species": [
+      "SLUGMA",
+      "MUDKIP"
+     ],
+     "trainers_h_line": 7192,
+     "party_label": "sParty_BrendanRustboroTorchic",
+     "party_line": 7932
+    },
+    "BRENDAN_RUSTBORO_MUDKIP": {
+     "id": 593,
+     "levels": [
+      13,
+      15
+     ],
+     "species": [
+      "WINGULL",
+      "TREECKO"
+     ],
+     "trainers_h_line": 7120,
+     "party_label": "sParty_BrendanRustboroMudkip",
+     "party_line": 7849
+    }
+   }
+  }
+ }
+}
