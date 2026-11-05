@@ -24191,3 +24191,17 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** `run_regression.py` gives a suite `max(3600, measured x 3.5)`, and `run_regression_times.json` still held `revert_step5: 237` (2026-10-21, far fewer mutants). Round 1's lane already took 2,111 s; round 2 added mutants and two Part B tests of 2.1 s and 1.2 s that every mutant re-runs, which pushed it past the 3,600 s floor.
 - **The fix:** measure the suite alone and record the measured time in the table, as the table's own `_doc` prescribes (it was done for `revert_r1` on 2026-10-29); then a full lane.
 - **Prevention rule:** when a build adds mutants or slow tests to a revert suite, re-measure that suite and update `run_regression_times.json` in the same item; a TIMEOUT that repeats without load is a stale table, not a slow machine.
+
+## 2026-11-05 — A ROM table read at the size of its struct's FIELDS named the wrong rows: `gRematchTable` is 16 bytes a row, not 14
+
+- **Symptom:** none live (the POKéNAV tutorial lists MR. STONE only). The gap round's new test, an ordinary MATCH CALL trainer with its expected name taken from the pinned decomp, failed: REMATCH_ANDRES read "" and REMATCH_DUSTY "GRUNT".
+- **Root cause:** the build added up `struct RematchTrainer`'s members (14 bytes); the compiler pads each row to 16. The symbol's size shows it: 0x4E0 = 1,248 = 78 rows x 16. At 14 bytes, 77 of 78 rows differ from the decomp; at 16, none.
+- **The fix:** `host/eyes.py` REMATCH_ENTRY_SIZE 16, a test that reads the ROM's own table behind a fake EWRAM, and FAULT halves for its range guards (`revert_r1` CH5E5-CH5E7).
+- **Prevention rule:** take a ROM table's row size from its symbol's size divided by its entry count, never from adding up the struct's fields.
+
+## 2026-11-05 — A "new pages?" test compared the length of a CAPPED list, so it stopped firing once the list was full (CLAUDE.md rule 3, again)
+
+- **Symptom:** the gap check's probe: after 39 filler pages, a field menu given again under a new page was left to the caller ("stuck: an unexpected multichoice on screen").
+- **Root cause:** `skills/instructed.py` compared `len(pages) > self.at_field`, while `read_along` keeps only the last MAX_PAGES (40) pages; once full, a new page leaves the length unchanged and reads as "nothing new".
+- **The fix:** `read_total`, the pages read (never capped), is compared and stored; FAULT/CONTROL test `test_g4c_...`; mutant G469 is the code as built.
+- **Prevention rule:** "something new happened" is a monotonic counter or an identity, never the size of a bounded buffer.

@@ -140,6 +140,14 @@
    ],
    "what": "ROXANNE, the RUSTBORO GYM leader",
    "decomp": "OBJ_EVENT_GFX_ROXANNE"
+  },
+  "aqua_member": {
+   "gfx": [
+    117,
+    118
+   ],
+   "what": "a TEAM AQUA member (the striped shirt and the bandana)",
+   "decomp": "OBJ_EVENT_GFX_AQUA_MEMBER_M, OBJ_EVENT_GFX_AQUA_MEMBER_F"
   }
  },
  "trainers": {
@@ -1495,7 +1503,10 @@
      "told": "tunnel"
     },
     {
-     "do": "follow"
+     "do": "talk",
+     "map": "RUSTURF_TUNNEL",
+     "look": "aqua_member",
+     "told": "tunnel"
     }
    ],
    "hint": {

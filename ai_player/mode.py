@@ -64,6 +64,7 @@ from ai_player.runlog import RecordFile
 from ai_player.skills.battle import play_battle
 from ai_player.skills.clock import set_wall_clock
 from ai_player.skills.flee import in_battle
+from ai_player.skills.instructed import GRID_KIND, INSTRUCTED_KINDS, Instructed
 from ai_player.skills.intro import play_intro
 from ai_player.skills.roam_train import roam_train
 from ai_player.skills.saving import SAVE_CLOSE_BUDGET, SAVE_WRITE_BUDGET, continue_game, save_game
@@ -328,6 +329,8 @@ class HandsBrain:
     _policy = None
     _registry = None
     _continued = None
+    #: (chapter 5) the instructed-choice skill of the play brain (`skills/instructed.py`), made per `_play`; None elsewhere
+    _instructed = None
     _saves_made = 0
     _at_save_presses = None
     _continue_may_retry = False
@@ -724,6 +727,9 @@ class HandsBrain:
         nav.battler = lambda: play_battle(hands, mind, f"battle ({mind.purpose})")
         nav.answer = answer_question
         nav.on_menu = lambda kind, why: self._story_menu(hands, kind, why, starter)
+        # (chapter 5) the instructed-choice skill reads the field pages of every look (`skills/instructed.py` read_along)
+        self._instructed = Instructed(misstep=options.fault_instructed_misstep)
+        hands.watchers.append(self._instructed.read_along)
         look = hands.look()
         story = load_story(look.player.gender if look.player is not None else None)
         manager = GoalManager(story, state, random.Random(f"{seed}:goals"), hints_off=options.fault_no_hints,
@@ -1006,7 +1012,8 @@ class HandsBrain:
 
     def _story_menu(self, hands: Hands, kind: str, why: str, starter: str) -> Generator[None, None, bool]:
         """A menu a story scene raises (the navigator's `on_menu`): PROF. BIRCH's bag (the starter the personality drew) or
-        the wall clock (the computer's time, as a person sets it, or `AI_PLAYER_CLOCK`)."""
+        the wall clock (the computer's time, as a person sets it, or `AI_PLAYER_CLOCK`); (chapter 5) a forced multichoice
+        and the POKéNAV's menus, by the instruction read (`skills/instructed.py`; FAULT `AI_PLAYER_FAULT_NO_INSTRUCTED`)."""
         if kind == "choose_starter":
             return (yield from choose_starter_in_bag(hands, starter, f"{why}: PROF. BIRCH's bag: {starter}"))
         if kind == "clock":
@@ -1018,6 +1025,12 @@ class HandsBrain:
         if kind in ("save_dialog", "save_yes_no", "start_menu"):
             # (R1, D13) a save screen met outside the save skill: never an A on it (`_save_screen`)
             return (yield from self._save_screen(hands, kind, why))
+        if (kind in INSTRUCTED_KINDS or kind == GRID_KIND) and self._instructed is not None \
+                and not self.options.fault_no_instructed:
+            # (chapter 5, 2026-11-05) a menu a scene FORCES (Rustboro's MATCH CALL tutorial: a forced START menu, then the
+            # POKéNAV): the option the words read since the player was last free NAME is chosen (`skills/instructed.py`);
+            # a field menu nothing names, and a grid, are still the stop they were (False)
+            return (yield from self._instructed.follow(hands, kind, why))
         return False
 
     def _milestone_line(self, hands: Hands, look: Observation, story, last: list, index: int, milestone, report,

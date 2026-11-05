@@ -14,7 +14,7 @@
       "raised": []
     },
     "02-ARCHITECTURE.md": {
-      "ceiling": 71281,
+      "ceiling": 71900,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -31,6 +31,13 @@
           "from": 70972,
           "to": 71281,
           "why": "The atlas loader (2026-10-31, KI-128): a new AI-player module, the first static-knowledge loader; 02 stays true to the code (CLAUDE.md section 2)"
+        },
+        {
+          "date": "2026-11-05",
+          "field": "ceiling",
+          "from": 71281,
+          "to": 71900,
+          "why": "chapter 5's stops (2026-11-05): one module-map line for skills/instructed.py, the POKeNAV eyes and the grunt's talk step"
         }
       ]
     },
@@ -41,7 +48,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 67700,
+      "ceiling": 68250,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -58,11 +65,25 @@
           "from": 67400,
           "to": 67700,
           "why": "2026-11-01: chapter 5 wired and probed (resume point, START HERE, queue item 4, the cloud-branch note and the STATE row's full-lane verdict carry new facts); the growth is right and archive_sweep finds no closed block of this file to move"
+        },
+        {
+          "date": "2026-11-05",
+          "field": "ceiling",
+          "from": 67700,
+          "to": 67950,
+          "why": "chapter 5's stops MERGED (2026-11-05): queue item 4 records the build and names the graded New Game test that replaces the BADGE-1 chain"
+        },
+        {
+          "date": "2026-11-05",
+          "field": "ceiling",
+          "from": 67950,
+          "to": 68250,
+          "why": "the Tier 1 review of the chapter-5 stops merge (2026-11-05): the headlines say the 3 of 3 started from saved BADGE-1 chain ends, and queue item 4 says where the live_chain driver is (branch wip/live-chain), its verifier's verdict and that seeds 6201-6206 are NOT yet registered"
         }
       ]
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 292547,
+      "ceiling": 295750,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -100,6 +121,20 @@
           "from": 291821,
           "to": 292547,
           "why": "The KI-128/KI-129 graded held-out PASSED (2026-10-31): both headers and one body line each record it (pair P2)"
+        },
+        {
+          "date": "2026-11-05",
+          "field": "ceiling",
+          "from": 292547,
+          "to": 295650,
+          "why": "four new KIs from the chapter-5 stops build (2026-11-05): KI-130 to KI-133"
+        },
+        {
+          "date": "2026-11-05",
+          "field": "ceiling",
+          "from": 295650,
+          "to": 295750,
+          "why": "the Tier 1 review of the chapter-5 stops merge (2026-11-05): KI-130's risk line says the chain driver that deletes world files is not yet on main"
         }
       ]
     }

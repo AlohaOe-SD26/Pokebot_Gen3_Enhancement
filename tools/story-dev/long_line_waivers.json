@@ -14,10 +14,10 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
-      "chars": 3279,
+      "chars": 3226,
       "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
       "tails": [
-        "nowhere); the graded BADGE-1 chain and A1 are still ahead.**"
+        "to it (`live_chain.py`), chapter 6 and A1 are still ahead.**"
       ],
       "history": [
         {
@@ -55,6 +55,24 @@
           "to_tails": [
             "nowhere); the graded BADGE-1 chain and A1 are still ahead.**"
           ]
+        },
+        {
+          "date": "2026-11-05",
+          "from_chars": 3279,
+          "to_chars": 3195,
+          "why": "chapter 5's stops MERGED (2026-11-05): the #28-aiagent-v2 status sentence now says the two stops are built and merged and names the graded New Game test to ch5_rival_meet as next",
+          "from_tails": [
+            "nowhere); the graded BADGE-1 chain and A1 are still ahead.**"
+          ],
+          "to_tails": [
+            "to it (`live_chain.py`), chapter 6 and A1 are still ahead.**"
+          ]
+        },
+        {
+          "date": "2026-11-05",
+          "from_chars": 3195,
+          "to_chars": 3226,
+          "why": "chapter 5's stops MERGED (2026-11-05): the #28-aiagent-v2 status sentence now says the two stops are built and merged and names the graded New Game test to ch5_rival_meet as next"
         }
       ]
     },
