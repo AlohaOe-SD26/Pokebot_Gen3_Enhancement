@@ -54,6 +54,8 @@ __all__ = [
     "ENV_FAULT_NO_REBIND",
     "ENV_FAULT_NO_TRAINING",
     "ENV_FAULT_NO_ERRANDS",
+    "ENV_FAULT_NO_INSTRUCTED",
+    "ENV_FAULT_INSTRUCTED_MISSTEP",
     "ENV_FAULT_RAISE",
     "ENV_FAULT_SKIP_RESTORE",
     "ENV_FAULT_UNGATED_A",
@@ -247,6 +249,12 @@ ENV_CONTINUE = "AI_PLAYER_CONTINUE"
 ENV_CART = "AI_PLAYER_CART"
 #: CONTROL (R1, D14): a memory file is given, but the AI never saves and keeps no memory file: the pre-R1 loop.
 ENV_FAULT_NO_SAVE = "AI_PLAYER_FAULT_NO_SAVE"
+#: FAULT (chapter 5, 2026-11-05): the play brain never calls the instructed-choice skill (`skills/instructed.py`): a forced
+#: multichoice and the POKéNAV's menus are the stop they were before it (the live arm L2).
+ENV_FAULT_NO_INSTRUCTED = "AI_PLAYER_FAULT_NO_INSTRUCTED"
+#: FAULT (chapter 5, the live arm L4): the FIRST field choice of each scene takes the next option with a word instead of the
+#: named one (a slip of the thumb), so a forced menu comes back under its "Please select ..." page.
+ENV_FAULT_INSTRUCTED_MISSTEP = "AI_PLAYER_FAULT_INSTRUCTED_MISSTEP"
 #: Who started the play brain, for the memory file's `session` line: `launcher` (the default) or `harness` (the in-process
 #: test side, which has no lifecycle: D12 (a) classifies a harness session by its `end` line alone).
 ENV_HOST = "AI_PLAYER_HOST"
@@ -261,7 +269,7 @@ ALL_SWITCHES = (
     ENV_FAULT_IGNORE_TYPES, ENV_FAULT_IGNORE_RECOIL, ENV_FAULT_UNCAPPED_RECOIL, ENV_FAULT_FORGET_FIELD,
     ENV_FAULT_IGNORE_REFUSAL, ENV_FAULT_OVERKILL, ENV_FAULT_SHIFT_FAINTED, ENV_FAULT_FORGET_UNUSABLE,
     ENV_FAULT_NO_CATCH_STATUS, ENV_FAULT_IGNORE_PP, ENV_FAULT_FORGET_SHIFT, ENV_FAULT_NO_HINTS, ENV_FAULT_NO_TRAINING,
-    ENV_FAULT_NO_ERRANDS, ENV_FAULT_NO_SAVE,
+    ENV_FAULT_NO_ERRANDS, ENV_FAULT_NO_SAVE, ENV_FAULT_NO_INSTRUCTED, ENV_FAULT_INSTRUCTED_MISSTEP,
 )
 
 DEFAULT_FRAMES = 3000
@@ -399,6 +407,9 @@ class HandsOptions:
     cart: str | None = None
     fault_no_save: bool = False
     host: str = "launcher"
+    # (chapter 5, 2026-11-05) the instructed-choice skill's two faults; defaults: the skill plays, no slip
+    fault_no_instructed: bool = False
+    fault_instructed_misstep: bool = False
 
     def __post_init__(self) -> None:
         # D19: a continued game's memory is its save's, and nothing else's: a world file beside a continue is an error
@@ -482,6 +493,8 @@ class HandsOptions:
             cart=os.environ.get(ENV_CART, "").strip() or None,
             fault_no_save=_flag(ENV_FAULT_NO_SAVE),
             host=os.environ.get(ENV_HOST, "").strip() or "launcher",
+            fault_no_instructed=_flag(ENV_FAULT_NO_INSTRUCTED),
+            fault_instructed_misstep=_flag(ENV_FAULT_INSTRUCTED_MISSTEP),
         )
 
 

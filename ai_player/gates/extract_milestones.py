@@ -3,7 +3,7 @@
     py -3.12 ai_player/gates/extract_milestones.py            # writes ai_player/knowledge/milestones.json
     py -3.12 ai_player/gates/extract_milestones.py --check    # exits 1 if the written file differs from a fresh extraction
     py -3.12 ai_player/gates/extract_milestones.py --verify [--plant] [--evidence PATH]
-                                                              # every fact against pret/pokeemerald (gh api); --plant: seven
+                                                              # every fact against pret/pokeemerald (gh api); --plant: eight
                                                               # facts changed in memory must be found, and nothing else
 
 WHY (USER RULING 35; design draft §3 "How the bot teaches it": "`modules/story/early_game.py` step docstrings ('STORY
@@ -34,8 +34,10 @@ VERIFY (`--verify`): through `gh api repos/pret/pokeemerald/contents/...`: every
 every proof is SET by the script file the milestone names (`setflag FLAG_X` / `setvar VAR_X, N`, or `trainerbattle* TRAINER_X`
 for a trainer); every trainer's id (`include/constants/opponents.h`) and party levels (`src/data/trainers.h` ->
 `src/data/trainer_parties.h`); every look's graphics id and metatile; and each hint's quoted words appear in the decomp text
-of the map it names. `--plant` changes seven facts in memory (a flag number, a fight level, a look; chapter 5: a flag number, a var value, a
-grunt's level, a step's words) and must report exactly those seven.
+of the map it names; and (2026-11-05) every `talk` / `use` step's FIGURE look stands on the step's map (`object_events` of its
+`map.json`; a figure set at runtime, `OBJ_EVENT_GFX_VAR_*`, is noted, not failed). `--plant` changes eight facts in memory (a
+flag number, a fight level, a look; chapter 5: a flag number, a var value, a grunt's level, a step's words, a talk step's map)
+and must report exactly those eight.
 """
 
 from __future__ import annotations
@@ -100,6 +102,12 @@ LOOKS: dict[str, dict] = {
     "norman": {"gfx": [129], "what": "DAD (NORMAN), the PETALBURG GYM leader", "decomp": "OBJ_EVENT_GFX_NORMAN"},
     "mom": {"gfx": [215], "what": "MOM, at home (she heals the party once PROF. BIRCH is rescued)", "decomp": "OBJ_EVENT_GFX_MOM"},
     "roxanne": {"gfx": [125], "what": "ROXANNE, the RUSTBORO GYM leader", "decomp": "OBJ_EVENT_GFX_ROXANNE"},
+    # (chapter 5, 2026-11-05: the tunnel grunt's step) the TEAM AQUA uniform, the figure the eyes report (`SeenObject.graphics_id`):
+    # the player watched it run off with the DEVON GOODS, and a seasoned player knows TEAM AQUA's look (RULING 40). Both
+    # figures: a person recognises the uniform, not the gender. On RUSTURF_TUNNEL only the M figure stands (local id 6 at
+    # (14, 5), the map's only Aqua figure; `--verify` checks a step's look stands on its map)
+    "aqua_member": {"gfx": [117, 118], "what": "a TEAM AQUA member (the striped shirt and the bandana)",
+                    "decomp": "OBJ_EVENT_GFX_AQUA_MEMBER_M, OBJ_EVENT_GFX_AQUA_MEMBER_F"},
 }
 
 #: What a person hears and the map it names: the words (as the eyes read a page, upper case where the game writes it).
@@ -338,7 +346,11 @@ MILESTONES: list[dict] = [
      "done": {"flags": ["RECOVERED_DEVON_GOODS"], "vars": {"RUSTBORO_CITY_STATE": 4, "BRINEY_HOUSE_STATE": 1},
               "trainers": ["GRUNT_RUSTURF_TUNNEL"]},
      "maps": ["RUSTBORO_CITY", "ROUTE116", "RUSTURF_TUNNEL"],
-     "steps": [{"do": "go", "map": "RUSTURF_TUNNEL", "told": "tunnel"}, {"do": "follow"}],
+     # (2026-11-05, the chapter-5 probe's second stop: `follow` steered nowhere, and 2 of 3 runs stood in the tunnel beside
+     # the grunt and never talked to him) TALK to the TEAM AQUA member in the tunnel: the general `talk` step (find, seek,
+     # talk_to), as for the rival, NORMAN and ROXANNE; the scene after the fight plays inside talk_to's play_out
+     "steps": [{"do": "go", "map": "RUSTURF_TUNNEL", "told": "tunnel"},
+               {"do": "talk", "map": "RUSTURF_TUNNEL", "look": "aqua_member", "told": "tunnel"}],
      # (the names check, F3) the hint's words say only 'tunnel', never the map's name: no `map` (HintTests: a hint's map must
      # be NAMED by what the game says). The brain reads only each STEP's `told`, so nothing is lost
      "hint": {"said": "That shady character, I think he took off towards the tunnel over there.", "words": "tunnel",
@@ -684,6 +696,37 @@ def verify(data: dict, say) -> list[str]:
             pret = evaluate(label, metatiles) if label in metatiles else None
             if [pret] != look["metatile"]:
                 problems.append(f"looks: {name}: ours metatile {[hex(v) for v in look['metatile']]}, pret {pret} ({label})")
+    # (2026-11-05, the tunnel grunt's step) A LOOK IS ON ITS STEP'S MAP: for every `talk` / `use` step whose look is a FIGURE
+    # (`gfx`), the map's `object_events` (`data/maps/<folder>/map.json`, the folder named by `knowledge/world/maps.json`) hold
+    # one of the look's graphics constants. A figure set at RUNTIME (`OBJ_EVENT_GFX_VAR_*`, the Route 103 rival) is reported
+    # as such and not failed
+    checked["look_maps"] = 0
+    folders = {entry["id"]: entry["name"] for entry in
+               json.loads((REPO / "ai_player" / "knowledge" / "world" / "maps.json").read_text(encoding="utf-8"))["maps"]}
+    for milestone in data["milestones"]:
+        for step in milestone["steps"]:
+            look = data["looks"].get(step.get("look") or "")
+            if step["do"] not in ("talk", "use") or look is None or "gfx" not in look or not step.get("map"):
+                continue
+            names = {n.strip() for n in look["decomp"].split(",")}
+            consts = (sorted(set(GENDERED_MAPS[step["map"][1:-1]].values())) if step["map"].startswith("<")
+                      else [step["map"]])
+            for const in consts:
+                folder = folders.get(f"MAP_{const}")
+                checked["look_maps"] += 1
+                if folder is None:
+                    problems.append(f"{milestone['id']}: the {step['do']} step's map {const} is not in knowledge/world/maps.json")
+                    continue
+                figures = [str(o.get("graphics_id")) for o in json.loads(script(f"data/maps/{folder}/map.json"))["object_events"]]
+                if names & set(figures):
+                    continue
+                if any(f.startswith("OBJ_EVENT_GFX_VAR_") for f in figures):
+                    say(f"[VERIFY] note: {milestone['id']}: {const} has no {sorted(names)} object; its figures set at runtime "
+                        f"({sorted({f for f in figures if f.startswith('OBJ_EVENT_GFX_VAR_')})}) are not checked")
+                    continue
+                problems.append(f"{milestone['id']}: the {step['do']} step's look {step['look']!r} ({sorted(names)}) stands "
+                                f"nowhere on {const} (data/maps/{folder}/map.json)")
+
     def said_in(path: str) -> str:
         text = re.sub(r'"\s*\n\s*\.string\s*"', "", script(path))
         return text.replace("\\n", " ").replace("\\l", " ").replace("\\p", " ")
@@ -705,7 +748,8 @@ def verify(data: dict, say) -> list[str]:
                 problems.append(f"{milestone['id']}: the {step['do']} step's words {step['told']!r} are not in {path}")
     say(f"[VERIFY] checked: {checked['flags']} flag numbers, {checked['vars']} var numbers, {checked['setters']} proofs set by "
         f"their scripts, {checked['trainers']} trainer ids, {checked['levels']} party level lists, {checked['looks']} looks, "
-        f"{checked['hints']} hint words in their scripts, {checked['told']} steps' own words in their scripts")
+        f"{checked['hints']} hint words in their scripts, {checked['told']} steps' own words in their scripts, "
+        f"{checked['look_maps']} step looks on their maps")
     return problems
 
 
@@ -781,7 +825,7 @@ def main() -> int:
     parser.add_argument("--items", action="store_true", help="(gh api, TEST SIDE) write gates/fixtures/item_flags.json")
     parser.add_argument("--check", action="store_true", help="exit 1 if the written file differs from a fresh extraction")
     parser.add_argument("--verify", action="store_true", help="check every fact against pret/pokeemerald (gh api)")
-    parser.add_argument("--plant", action="store_true", help="with --verify: three facts changed in memory must be found")
+    parser.add_argument("--plant", action="store_true", help="with --verify: eight facts changed in memory must be found")
     parser.add_argument("--evidence", type=Path, help="with --verify: also write the report here")
     args = parser.parse_args()
     if args.items:
@@ -834,6 +878,8 @@ def main() -> int:
         by_id["ch5_return_goods"]["done"]["variables"]["RUSTBORO_CITY_STATE"]["at_least"] = 9
         by_id["ch5_rusturf_grunt"]["fight"]["per_trainer"]["GRUNT_RUSTURF_TUNNEL"] = [12]
         by_id["ch5_rusturf_grunt"]["steps"][0]["told"] = "tunnl"
+        # (2026-11-05) the 8th: the talk step's map moved to where no Aqua figure stands (the new look-on-its-map check)
+        by_id["ch5_rusturf_grunt"]["steps"][1]["map"] = "ROUTE116"
     try:
         problems = verify(data, say)
     except Exception as error:  # noqa: BLE001
@@ -850,7 +896,9 @@ def main() -> int:
                    "ch5_return_goods: VAR_RUSTBORO_CITY_STATE is never set to 9 in data/maps/RustboroCity/scripts.inc "
                    "(setvar values there: [2, 3, 5, 7, 8])",
                    "fight: TRAINER_GRUNT_RUSTURF_TUNNEL levels: ours [12], pret [11] (sParty_GruntRusturfTunnel)",
-                   "ch5_rusturf_grunt: the go step's words 'tunnl' are not in data/maps/RustboroCity/scripts.inc"}
+                   "ch5_rusturf_grunt: the go step's words 'tunnl' are not in data/maps/RustboroCity/scripts.inc",
+                   "ch5_rusturf_grunt: the talk step's look 'aqua_member' (['OBJ_EVENT_GFX_AQUA_MEMBER_F', "
+                   "'OBJ_EVENT_GFX_AQUA_MEMBER_M']) stands nowhere on ROUTE116 (data/maps/Route116/map.json)"}
         verdict = ("PASS (the plants were found, and nothing else)" if set(problems) == planted
                    else f"FAIL (found {sorted(problems)})")
     say(f"[VERIFY] OVERALL {verdict}")

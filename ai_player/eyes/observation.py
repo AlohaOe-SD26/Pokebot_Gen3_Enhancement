@@ -195,6 +195,10 @@ class PlayerState:
     #: BUILD STEP 5: the player's own character, "BOY" or "GIRL", as its sprite shows it (`include/global.fieldmap.h` struct
     #: PlayerAvatar gender @7): the goal manager's "your house" and "next door" swap with it. None = not read.
     gender: str | None = None
+    #: (chapter 5, E1, 2026-11-05) the player's own NAME as the game prints it in every conversation ("Milo"; `include/global.h`
+    #: struct SaveBlock2 playerName[8] @0). The instructed-choice skill (`skills/instructed.py`) leaves the player's own name
+    #: out of an option's words ("MILO'S PC" is never named by "Milo booted up the PC."). None = not read.
+    name: str | None = None
 
 
 @dataclass(frozen=True)

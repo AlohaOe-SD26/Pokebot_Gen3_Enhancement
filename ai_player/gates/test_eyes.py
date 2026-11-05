@@ -879,6 +879,145 @@ class PartyNoneTests(unittest.TestCase):
         self.assertTrue(problems[0].startswith("party slot 2: "), problems)
 
 
+class PokenavEyesTests(unittest.TestCase):
+    """(chapter 5, 2026-11-05) The POKéNAV the AI was blind to (567 recon records of the MATCH CALL tutorial: ui None,
+    scene None, the call-exit wait "not waiting"): U2 its three menus (`eyes/screens.py` pokenav_view, and the HOST's read of
+    `gPokenavResources`), U3 the call-exit wait, U4 its scene, E7 the grid's own kind, E1 the player's name. Each FAULT
+    half is what the eyes said before: no view (no `Task_Pokenav` rule), no wait, no scene, `multichoice`."""
+
+    STATE_INPUT = bytes([3, 0]) + bytes(30)  # Task_Pokenav's data[0] = 3: it reads keys
+    STATE_LOOPING = bytes([2, 0]) + bytes(30)  # data[0] = 2: a looped task runs (an animation, a list being built)
+
+    def view(self, raw: dict, data: bytes | None = None):
+        from ai_player.eyes.screens import read_ui
+
+        return read_ui("UNKNOWN", {"Task_Pokenav": data or self.STATE_INPUT, "Task_MoveBgDots": bytes(32)},
+                       {"pokenav": {"state": (data or self.STATE_INPUT)[0], **raw}})
+
+    def test_u2_the_main_menu_in_each_of_its_tutorial_handlers(self) -> None:
+        """Critic MENU-5: the tutorial runs `HandleMainMenuInputTutorial` before the call and `...EndTutorial` after it
+        (recon: cursor @0, @1, @2, then @2): both take input; a transition's callback (`GetMenuId`) is no menu."""
+        for handler in ("HANDLEMAINMENUINPUT", "HANDLEMAINMENUINPUTTUTORIAL", "HANDLEMAINMENUINPUTENDTUTORIAL"):
+            with self.subTest(handler):
+                ui = self.view({"menu": {"type": 1, "cursor": 2, "handler": handler}})
+                self.assertEqual((ui.kind, ui.options, ui.cursor, ui.accepts_input),
+                                 ("pokenav_menu", ("HOENN MAP", "CONDITION", "MATCH CALL", "SWITCH OFF"), 2, True))
+        self.assertFalse(self.view({"menu": {"type": 1, "cursor": 1, "handler": "HANDLEMAINMENUINPUTTUTORIAL"}},
+                                   self.STATE_LOOPING).accepts_input)  # moving: no key read
+        self.assertIsNone(self.view({"menu": {"type": 1, "cursor": 2, "handler": "GETMENUID"}}))
+        self.assertEqual(self.view({"menu": {"type": 2, "cursor": 0, "handler": "HANDLEMAINMENUINPUT"}}).options[3], "RIBBONS")
+
+    def test_u2_the_match_call_list_and_an_entrys_options(self) -> None:
+        listed = self.view({"mc": {"handler": "CB2_HANDLEMATCHCALLINPUT", "entries": ["MR. STONE"], "list_cursor": 0,
+                                   "option_cursor": 0, "options": []}})
+        self.assertEqual((listed.kind, listed.options, listed.cursor, listed.accepts_input),
+                         ("pokenav_list", ("MR. STONE",), 0, True))
+        options = self.view({"mc": {"handler": "CB2_HANDLEMATCHCALLOPTIONSINPUT", "entries": ["MR. STONE"],
+                                    "list_cursor": 0, "option_cursor": 0, "options": [0, 2]}})
+        self.assertEqual((options.kind, options.options, options.cursor), ("pokenav_options", ("CALL", "CANCEL"), 0))
+        self.assertIsNone(self.view({"mc": {"handler": "CB2_HANDLECALLEXITINPUT", "entries": ["MR. STONE"],
+                                            "list_cursor": 0, "option_cursor": 0, "options": [0, 2]}}))
+        # FAULT half: before the rule, a POKéNAV screen read as nothing at all
+        from ai_player.eyes.screens import read_ui
+
+        self.assertIsNone(read_ui("UNKNOWN", {"Task_MoveBgDots": bytes(32)}, {}))
+
+    def test_u2_the_host_follows_gpokenavresources(self) -> None:
+        """The HOST's own `_pokenav` on a FAKE memory laid out as the decomp's structs (`src/pokenav.c` PokenavResources,
+        `src/pokenav_menu_handler.c` Pokenav_Menu, `src/pokenav_match_call_list.c` Pokenav_MatchCallMenu, `src/pokenav_list.c`
+        PokenavList's windowState @0x888): the main menu, then MR. STONE's options; the handlers named by the REAL reverse
+        lookup (the handlers' real addresses, thumb bit set as the game stores them), `gPokenavResources` at its real address."""
+        from modules.context import context
+        from modules.game import get_symbol
+
+        import ai_player.host.eyes as host_eyes
+
+        framework_rom()
+        pointer_at = get_symbol("gPokenavResources")[0]
+        resources, menu, mc, listing, rom = 0x02010000, 0x02011000, 0x02012000, 0x02013000, 0x08600000
+        tutorial, options_input = get_symbol("HandleMainMenuInputTutorial")[0], get_symbol("CB2_HandleMatchCallOptionsInput")[0]
+
+        def u16(v: int) -> bytes:
+            return v.to_bytes(2, "little")
+
+        def u32(v: int) -> bytes:
+            return v.to_bytes(4, "little")
+
+        def memory(subs: dict[int, int]) -> dict[int, bytes]:
+            table = b"".join(u32(subs.get(i, 0)) for i in range(19))
+            return {pointer_at: u32(resources),
+                    resources: bytes(16) + table,
+                    menu: u16(1) + u16(2) + u16(2) + u16(0) + u32(0) + u32(tutorial | 1),
+                    mc: u16(0) + u16(1) + u32(rom) + u16(0) + u16(1) + u16(5) + bytes(2) + u32(1) + u32(0)
+                        + u32(options_input | 1) + bytes([1, 10]) + u16(0),
+                    listing + 0x888: u16(0) + u16(1) + u16(0) + u16(0),
+                    rom: bytes([0, 2])}
+
+        class Memory:
+            def __init__(self, cells: dict[int, bytes]) -> None:
+                self.cells = cells
+
+            def read_bytes(self, address: int, length: int) -> bytes:
+                for start, data in self.cells.items():
+                    if start <= address and address + length <= start + len(data) + 64:
+                        return (data[address - start:] + bytes(length))[:length]
+                raise AssertionError(f"_pokenav read 0x{address:08X} (+{length})")
+
+        def read(subs):
+            with mock.patch.object(context, "emulator", Memory(memory(subs)), create=True):
+                return host_eyes.FrameworkEyes()._pokenav(self.STATE_INPUT)
+
+        found = read({1: menu})
+        self.assertEqual(found["menu"], {"type": 1, "cursor": 2, "handler": "HANDLEMAINMENUINPUTTUTORIAL"})
+        self.assertEqual(self.view({k: v for k, v in found.items() if k != "state"}).kind, "pokenav_menu")
+        # the host's `_ui` reads it whenever `Task_Pokenav` runs (its call of `_pokenav`), and `read_ui` names the menu
+        with mock.patch.object(context, "emulator", Memory(memory({1: menu})), create=True):
+            ui = host_eyes.FrameworkEyes()._ui("UNKNOWN", {"Task_Pokenav": self.STATE_INPUT})
+        self.assertEqual((ui.kind, ui.cursor, ui.accepts_input), ("pokenav_menu", 2, True))
+        found = read({5: mc, 17: listing})
+        self.assertEqual(found["mc"], {"handler": "CB2_HANDLEMATCHCALLOPTIONSINPUT", "option_cursor": 0, "options": [0, 2],
+                                       "entries": ["MR. STONE"], "list_cursor": 0})
+        self.assertEqual(self.view({k: v for k, v in found.items() if k != "state"}).options, ("CALL", "CANCEL"))
+
+    def test_u3_the_call_exit_wait_is_seen(self) -> None:
+        from ai_player.eyes.screens import pokenav_wait
+
+        ended = {"state": 3, "mc": {"handler": "CB2_HANDLECALLEXITINPUT"}}
+        self.assertEqual(pokenav_wait(ended), "task Task_Pokenav (A or B: the call has ended)")
+        self.assertIsNone(pokenav_wait({**ended, "state": 2}))  # the call's message still runs (a looped task)
+        self.assertIsNone(pokenav_wait({"state": 3, "mc": {"handler": "CB2_HANDLEMATCHCALLINPUT"}}))  # the list: a menu
+        self.assertIsNone(pokenav_wait(None))
+
+    def test_u4_the_pokenav_is_a_named_scene(self) -> None:
+        from ai_player.eyes.screens import SCENE_CALLBACKS, scene_of
+
+        for callback in ("CB2_InitPokenavForTutorial", "CB2_Pokenav", "CB2_InitPokeNav"):
+            self.assertEqual(scene_of("UNKNOWN", (), callback), "the POKéNAV")
+        self.assertIsNone(scene_of("UNKNOWN", (), "CB2_SomethingElse"))  # FAULT half: an unnamed callback: no scene
+        self.assertIn("CB2_Pokenav", SCENE_CALLBACKS)
+
+    def test_e7_a_grid_of_options_is_its_own_kind(self) -> None:
+        """Critic MENU-3: E7 RECLASSIFIES the grid (`Task_HandleMultichoiceGridInput`, the Rustboro school's blackboard),
+        which the eyes reported as `multichoice` before: its options and cursor are still read; a list multichoice is
+        unchanged (CONTROL)."""
+        from ai_player.eyes.screens import read_ui
+
+        menu = bytes([0, 0, 2, 0, 5]) + bytes(7)  # sMenu: cursorPos 2, maxCursorPos 5
+        names = ["PSN", "PAR", "SLP", "BRN", "FRZ", "EXIT"]
+        grid = read_ui("OVERWORLD", {"Task_HandleMultichoiceGridInput": bytes(32)},
+                       {"menu": menu, "multichoice_options": names, "multichoice_delay": 0})
+        self.assertEqual((grid.kind, grid.options, grid.cursor), ("multichoice_grid", tuple(names), 2))
+        listed = read_ui("OVERWORLD", {"Task_HandleMultichoiceInput": bytes(32)},
+                         {"menu": menu, "multichoice_options": names, "multichoice_delay": 0})
+        self.assertEqual(listed.kind, "multichoice")
+
+    def test_e1_the_player_has_a_name_field(self) -> None:
+        from dataclasses import fields
+
+        self.assertIn("name", {f.name for f in fields(PlayerState)})
+        self.assertIsNone(PlayerState(0, 0, "X", None, 0, 0, "down", "walking", 3, 0, 1).name)
+
+
 class ScriptWaitTests(unittest.TestCase):
     """Finding 6: the script's waitbuttonpress branch (`eyes/view.py` script_waits_for_button)."""
 

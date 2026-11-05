@@ -1,0 +1,1070 @@
+CHAPTER 5's TWO STOPS - DEVELOPMENT RUNS (never graded): the instructed-choice skill (the forced START menu and the POKeNAV) and the tunnel grunt's talk step
+written 2026-11-05 09:07:03 by s53/ch5stops/write_evidence.py; worktree HEAD cbbb3ec519aa903fb4964f175bfee928de291ada (+ the uncommitted build)
+AI-player code (the package minus gates/, evidence/ and the .md files): worktree 40b1db185bdba453; stage armB (the NEW code the batches menu2, grunt, control and probe ran) 40b1db185bdba453; stage armA (the BASE, git archive HEAD) 117a5f74bde49025
+stage manifest: A 2150416a8aefd47f, B ea6fb4dee1d969f3 (whole package); earlier B ['7eb1a83be43eb939'] (batch menu ran on it, before the no-spin bound)
+method: the chapter-5 probe's (s53/ch5/ch5_probe.py): the real launcher through live_step5.run_arm, a purity gate per launch, what each run reached read from the GAME (the truth harness on the state it left, L5.THIS_RUN freshness-checked); ONE stage (s53/ch5stops/stage: junctions to the main sandbox's code folders, read only), at most 3 runs at once, a world.jsonl kept only under 300 MB (decimal), each batch registered in the seed ledger with its prediction's sha256 BEFORE its runs.
+smoke (before the stage): ledger #86, seed 6001, play_harness in-process from the C1L5 end state: S1-S3 held (POKeNAV, MATCH CALL, MR. STONE, CALL in order; VAR_RUSTBORO_CITY_STATE 6 -> 7; done in 3,053 frames).
+
+===== BATCH menu: ledger #87, 2026-11-05 08:05:49 -> 2026-11-05 08:14:04, prediction sha256 8b3982267ea530c3e76feb67a5cbab78871b3ea0803eee613641db2366642eb3 (the file now: 8b3982267ea530c3e76feb67a5cbab78871b3ea0803eee613641db2366642eb3), stage code before {"A": "2150416a8aefd47f", "B": "7eb1a83be43eb939"} after {"A": "2150416a8aefd47f", "B": "7eb1a83be43eb939"}
+--- the prediction, verbatim:
+CHAPTER 5 STOPS, batch MENU (s53/ch5stops/arms.py run menu), written 2026-11-05 BEFORE the runs. DEVELOPMENT, never graded.
+
+Start: the chapter-5 probe's C1L5 end_state.ss1 (md5 343860d7df3cf52b5ec387d88a1e9369: the forced START menu of
+RustboroCity_EventScript_MatchCallTutorial, VAR_RUSTBORO_CITY_STATE 6) with its world.jsonl (md5 c00c68e3b281e1b8...), through
+the real launcher (live_step5.run_arm, a purity gate per launch), Story, target ch5_pokenav_tutorial, 30,000 frames, 1,800 s.
+Code: stage/armB = the new code (the instructed-choice skill and the POKeNAV eyes); stage/armA = the base (cbbb3ec5, whose
+ai_player equals e70a8469's). What a run reached is read from the GAME (the truth harness on the state the run left,
+L5.THIS_RUN freshness-checked), never from the AI's log.
+
+Runs (8): B1 B2 B3 (seeds 6002, 6003, 6004), A1 A2 A3 (the same seeds, base code), L2 = B + AI_PLAYER_FAULT_NO_INSTRUCTED=1
+(seed 6005), L4 = B + AI_PLAYER_FAULT_INSTRUCTED_MISSTEP=1 (seed 6006).
+
+Prediction:
+  M1 (B1-B3, the proof) in 3 of 3: VAR_RUSTBORO_CITY_STATE 6 -> 7 read from the game; the run ends "done: ch5_pokenav_tutorial
+     reached" with at most 15,000 real frames; the skill's records (decision "instructed") are, in this order, choose POKeNAV,
+     choose MATCH CALL, choose MR. STONE, choose CALL, back, back; exactly 1 press gated "the call has ended"; 0 lines
+     "an unexpected multichoice on screen"; the first full look's player name is read (not None).
+  M2 (A1-A3, the base code) in 3 of 3: VAR_RUSTBORO_CITY_STATE stays 6; the log has "an unexpected multichoice on screen";
+     no "instructed" record.
+  M3 (L2, the FAULT switch): VAR stays 6; "an unexpected multichoice on screen" in the log; no "instructed" record.
+  M4 (L4, the misstep FAULT: critic MENU-1's loop, live): the first instructed choice is SAVE (the slip), then POKeNAV,
+     MATCH CALL, MR. STONE, CALL, back, back; VAR 6 -> 7 within 15,000 real frames.
+  M5 purity CLEAN in 8 of 8.
+Wrong if: M1 fails in any of B1-B3; VAR 7 in any of A1-A3 or L2; M4's order or VAR differs; any purity not CLEAN.
+Not run (rebutted, see the report): the design's L3 (FAULT G3 live). The call's pages name no option but MR. STONE, which the
+followed-once rule already excludes, so G3 is REDUNDANT on this scene; its FAULT/CONTROL pair is the unit test
+InstructedTests.test_g3_a_page_inside_the_app_never_names_a_menu (a call page naming the HOENN MAP).
+--- judged (judge.py, from the results):
+  M1 menu-B1 (seed 6002): VAR 6->7, real frames 3073, order as predicted, call-exit presses 1, unexpected 0, name 'Milo', THIS_RUN True -> HELD
+  M1 menu-B2 (seed 6003): VAR 6->7, real frames 3113, order as predicted, call-exit presses 1, unexpected 0, name 'Milo', THIS_RUN True -> HELD
+  M1 menu-B3 (seed 6004): VAR 6->7, real frames 3103, order as predicted, call-exit presses 1, unexpected 0, name 'Milo', THIS_RUN True -> HELD
+  M2 menu-A1 (seed 6002, base code): VAR 6->6, unexpected-multichoice lines 30000, instructed records 0, end ' stopped: not finished within 30000 frames code=0' -> HELD
+  M2 menu-A2 (seed 6003, base code): VAR 6->6, unexpected-multichoice lines 30000, instructed records 0, end ' stopped: not finished within 30000 frames code=0' -> HELD
+  M2 menu-A3 (seed 6004, base code): VAR 6->6, unexpected-multichoice lines 30000, instructed records 0, end ' stopped: not finished within 30000 frames code=0' -> HELD
+  M3 menu-L2 (FAULT_NO_INSTRUCTED): VAR 6->6, unexpected-multichoice lines 30000, instructed 0 -> HELD
+  M4 menu-L4 (MISSTEP): order as predicted, VAR 6->7, real frames 3443 -> HELD
+  M5 purity CLEAN in 8 of 8
+{"M1": "3 of 3", "M2": "3 of 3", "M3": "HELD", "M4": "HELD", "M5": "purity CLEAN 8 of 8"}
+
+===== BATCH menu2: ledger #88, 2026-11-05 08:14:59 -> 2026-11-05 08:19:29, prediction sha256 1d3b1ea7b4ad7b7b82c883d2e29f3ea26ddc6412387a793f7186a83be09404df (the file now: 1d3b1ea7b4ad7b7b82c883d2e29f3ea26ddc6412387a793f7186a83be09404df), stage code before {"A": "2150416a8aefd47f", "B": "ea6fb4dee1d969f3"} after {"A": "2150416a8aefd47f", "B": "ea6fb4dee1d969f3"}
+--- the prediction, verbatim:
+CHAPTER 5 STOPS, batch MENU2 (s53/ch5stops/arms.py run menu2), written 2026-11-05 BEFORE the runs. DEVELOPMENT, never graded.
+
+Why a second menu batch: after batch MENU (ledger #87, stage code digest 7eb1a83b) the mutant proof found that one
+mutant (G439) made the episode spin with no frame passing, so the skill gained a bound on passes that let no frame pass
+(STILL_PASSES_MAX). This batch runs the FINAL code (stage/armB refreshed, digest ea6fb4de) on the same start. The base arms
+(A1-A3 of batch MENU) are not repeated: the base code did not change.
+
+Start, launcher, persona, target, frames: as batch MENU (the C1L5 end state, md5 343860d7df3cf52b5ec387d88a1e9369, with its
+world.jsonl; Story; ch5_pokenav_tutorial; 30,000 frames; a purity gate per launch; what a run reached read from the GAME).
+Runs (5): B1 B2 B3 (seeds 6007, 6008, 6009), L2 = B + AI_PLAYER_FAULT_NO_INSTRUCTED=1 (seed 6010), L4 = B +
+AI_PLAYER_FAULT_INSTRUCTED_MISSTEP=1 (seed 6010).
+
+Prediction (batch MENU's M1, M3, M4, M5 on the final code):
+  M1 B1-B3 in 3 of 3: VAR_RUSTBORO_CITY_STATE 6 -> 7 from the game; "done: ch5_pokenav_tutorial reached" within 15,000 real
+     frames; the "instructed" records in order choose POKeNAV, MATCH CALL, MR. STONE, CALL, back, back; exactly 1 press gated
+     "the call has ended"; 0 "an unexpected multichoice on screen"; the first full look's player name read.
+  M3 L2: VAR stays 6; the unexpected-multichoice stop in the log; no "instructed" record.
+  M4 L4: choose SAVE (the slip), then POKeNAV, MATCH CALL, MR. STONE, CALL, back, back; VAR 6 -> 7 within 15,000 real frames.
+  M5 purity CLEAN in 5 of 5.
+Wrong if any of these fails.
+--- judged (judge.py, from the results):
+  M1 menu2-B1 (seed 6007): VAR 6->7, real frames 3103, order as predicted, call-exit presses 1, unexpected 0, name 'Milo', THIS_RUN True -> HELD
+  M1 menu2-B2 (seed 6008): VAR 6->7, real frames 3013, order as predicted, call-exit presses 1, unexpected 0, name 'Milo', THIS_RUN True -> HELD
+  M1 menu2-B3 (seed 6009): VAR 6->7, real frames 3064, order as predicted, call-exit presses 1, unexpected 0, name 'Milo', THIS_RUN True -> HELD
+  M3 menu2-L2 (FAULT_NO_INSTRUCTED): VAR 6->6, unexpected-multichoice lines 30000, instructed 0 -> HELD
+  M4 menu2-L4 (MISSTEP): order as predicted, VAR 6->7, real frames 3395 -> HELD
+  M5 purity CLEAN in 5 of 5
+{"M1": "3 of 3", "M3": "HELD", "M4": "HELD", "M5": "purity CLEAN 5 of 5"}
+
+===== BATCH grunt: ledger #89, 2026-11-05 08:19:29 -> 2026-11-05 08:37:35, prediction sha256 c9f4a621ba60f3fabe9706aed0b981a44dff90a44731417978c0fd44e2354a69 (the file now: c9f4a621ba60f3fabe9706aed0b981a44dff90a44731417978c0fd44e2354a69), stage code before {"A": "2150416a8aefd47f", "B": "ea6fb4dee1d969f3"} after {"A": "2150416a8aefd47f", "B": "ea6fb4dee1d969f3"}
+--- the prediction, verbatim:
+CHAPTER 5 STOPS, batch GRUNT (s53/ch5stops/arms.py run grunt), written 2026-11-05 BEFORE the runs. DEVELOPMENT, never graded.
+
+The tunnel grunt's step: `ch5_rusturf_grunt` = [go RUSTURF_TUNNEL told 'tunnel', talk RUSTURF_TUNNEL look aqua_member told
+'tunnel'] (new, stage/armB) against [go, follow] (base, stage/armA = cbbb3ec5, whose ai_player equals e70a8469's). Through the
+real launcher (live_step5.run_arm, a purity gate per launch); what a run reached is read from the GAME (the truth harness on
+the state it left, L5.THIS_RUN freshness-checked). Target ch5_rusturf_grunt (the run ends "done" once it is proven).
+
+Starts (the design's 6.1): C3L5 = the chapter-5 probe's C3 end state (RUSTURF TUNNEL (4,10), RUSTURF_TUNNEL_STATE 3; md5
+c8508cb1cce1fc82...) with the chain probe's C3L4 world.jsonl (4.9 MB; that memory never saw ROUTE 116 or the tunnel and never
+heard 'tunnel', so both arms start equally blind); C2L5 = the probe's C2 end state (ROUTE 116 (14,10); md5 e287d5d355b07...)
+with the C2L4 world.jsonl (2.4 MB, the same blindness).
+Runs (12): C3L5 x Trainer x 60,000 frames x seeds 6011, 6012, 6013 x {A, B}; C2L5 x Catcher x 200,000 frames x seeds 6014,
+6015, 6016 x {A, B}. A and B of a seed share it (one trajectory until the first decision the step changes).
+
+Discriminator (computed offline before, on the design's offline_ab.py and TunnelGruntTests): in the tunnel with nobody on
+screen A decides `follow` and B `find:aqua_member`; with the grunt on screen A `follow`, B `talk:aqua_member`. VACUITY GUARD
+(critic GRUNT-1): a B run that never makes a decision inside RUSTURF TUNNEL never met the changed step: it is reported
+VACUOUS and not counted for or against P2; the frames from the start to the first look inside the tunnel are reported.
+
+Prediction:
+  P1 B from C3L5: TRAINER_GRUNT_RUSTURF_TUNNEL 1 and RECOVERED_DEVON_GOODS 1 (from the game) in 3 of 3, each within 40,000
+     real frames; the goal before the grunt's trainer battle in the tunnel is a STORY goal with key talk:aqua_member and a
+     reason naming "a TEAM AQUA member".
+  P2 B from C2L5: proven in at least 2 of the NON-VACUOUS runs (at least 2 non-vacuous runs needed, else the arm is VACUOUS,
+     not a pass).
+  P3 A: at most 1 of 6 proven; any A success starts from a `chat` goal, never a story goal.
+  P4 B: at most 2 heal goals whose reason says "a known fight is next" after the first look inside the tunnel, per run.
+  P5 purity CLEAN in 12 of 12; every world.jsonl under 300 MB (decimal) at the end.
+Wrong if: P1 under 3 of 3 or its goal not talk:aqua_member; P2 under 2 of the non-vacuous; P3 a story-goal success in A or 2
+or more A successes; P4 over 2 in any B run; P5 not clean.
+--- judged (judge.py, from the results):
+  P1 grunt-C3-B1 (seed 6011): proven True (from the game), real frames 11485, goal before the grunt's battle ['talk', 'talk:aqua_member'] -> HELD
+  P1 grunt-C3-B2 (seed 6012): proven True (from the game), real frames 15597, goal before the grunt's battle ['talk', 'talk:aqua_member'] -> HELD
+  P1 grunt-C3-B3 (seed 6013): proven True (from the game), real frames 9237, goal before the grunt's battle ['talk', 'talk:aqua_member'] -> HELD
+  P2 grunt-C2-B1 (seed 6014): non-vacuous (2 decisions in the tunnel; first look there 37167 frames in), proven True (real frames 48748)
+  P2 grunt-C2-B2 (seed 6015): non-vacuous (2 decisions in the tunnel; first look there 57750 frames in), proven True (real frames 68521)
+  P2 grunt-C2-B3 (seed 6016): VACUOUS (no decision inside RUSTURF TUNNEL), proven False
+  P3 grunt-C2-A1 (seed 6014, base): proven False; goal before the grunt's battle [None, None]; tunnel decisions {'follow': 15, 'aside': 11}; first tunnel look 1306044
+  P3 grunt-C2-A2 (seed 6015, base): proven False; goal before the grunt's battle [None, None]; tunnel decisions {'follow': 18, 'aside': 12}; first tunnel look 1326627
+  P3 grunt-C2-A3 (seed 6016, base): proven False; goal before the grunt's battle [None, None]; tunnel decisions {}; first tunnel look 1330346
+  P3 grunt-C3-A1 (seed 6011, base): proven False; goal before the grunt's battle [None, None]; tunnel decisions {'follow': 6, 'aside': 4, 'chat': 1}; first tunnel look 1329685
+  P3 grunt-C3-A2 (seed 6012, base): proven True; goal before the grunt's battle ['chat', 'chat:24:4|6']; tunnel decisions {'follow': 1, 'chat': 2}; first tunnel look 1329685
+  P3 grunt-C3-A3 (seed 6013, base): proven False; goal before the grunt's battle [None, None]; tunnel decisions {'follow': 7, 'aside': 4}; first tunnel look 1329685
+  P3: 1 of 6 A runs proven, 0 by a story goal -> HELD
+  P4: max 0 heals after arrival per B run ({'grunt-C2-B1': 0, 'grunt-C2-B2': 0, 'grunt-C2-B3': 0, 'grunt-C3-B1': 0, 'grunt-C3-B2': 0, 'grunt-C3-B3': 0}) -> HELD
+  P5: purity CLEAN 12 of 12; world.jsonl under 300 MB 10 of 12
+{"P1": "3 of 3", "P2": "2 of 2 non-vacuous proven (1 vacuous)", "P3": "1 of 6 A runs proven, 0 by a story goal -> HELD", "P4": "max 0 heals after arrival per B run ({'grunt-C2-B1': 0, 'grunt-C2-B2': 0, 'grunt-C2-B3': 0, 'grunt-C3-B1': 0, 'grunt-C3-B2': 0, 'grunt-C3-B3': 0}) -> HELD", "P5": "purity CLEAN 12 of 12; world.jsonl under 300 MB 10 of 12"}
+
+===== BATCH control: ledger #90, 2026-11-05 08:37:36 -> 2026-11-05 08:57:16, prediction sha256 5a318c1b6b382bf2742b37ef73ba5f13ab78a88bb5a18b47d117502667e75d87 (the file now: 5a318c1b6b382bf2742b37ef73ba5f13ab78a88bb5a18b47d117502667e75d87), stage code before {"A": "2150416a8aefd47f", "B": "ea6fb4dee1d969f3"} after {"A": "2150416a8aefd47f", "B": "ea6fb4dee1d969f3"}
+--- the prediction, verbatim:
+CHAPTER 5 STOPS, batch CONTROL (s53/ch5stops/arms.py run control), written 2026-11-05 BEFORE the runs. DEVELOPMENT, never graded.
+
+The chapter 1-4 decision-record CONTROL (critic MENU-6 / GRUNT-2 / the design's C4 and section 8). Each pair is ONE
+TRAJECTORY REPLAYED on two code roots with the same seed: a DETERMINISM check of "nothing leaks", never a replication.
+  * the chain probe's first legs (fresh New Game to ch1_pokedex, 330,000 frames): C1 Story/TREECKO seed 6031, C2
+    Catcher/TORCHIC 6032, C3 Trainer/MUDKIP 6033, each A (base) and B (new);
+  * the chain probe's third legs (from the chain probe's C?L2 end states and worlds to ch3_rustboro, 600,000 frames): seeds
+    6034, 6035, 6036, A and B. These cross PETALBURG WOODS, where the woods grunt (gfx 117) is on screen: the only chapter 1-4
+    place the new `aqua_member` look meets a figure (`notice` writes a sighting; the decisions read it only for the CURRENT
+    step's look, never an Aqua one in chapter 3). The first legs exercise only the eyes' changes (the player's name read,
+    the reader on every look) and are identical by construction for the grunt's look (critic GRUNT-2).
+What is compared: every decide, goal, goal_end and instructed record and every press (frame, decision, action, reason, extra;
+the eyes' wall-clock `cost=` normalised), the total record count, and the game's marks at the end.
+
+Prediction:
+  K1 the compared streams are identical, A vs B, in 6 of 6 pairs; the record totals equal; the end marks equal;
+  K2 B makes 0 "instructed" records in all 6 (12 chapter 1-4 runs of the chain probe met no multichoice and no POKeNAV);
+  K3 purity CLEAN in 12 of 12.
+  Expected non-decision difference (not a failure): none in the action logs; the world memory may differ by `sightings`
+  entries for `aqua_member` in the chapter-3 arms (not compared: memory, not a decision).
+Wrong if any compared stream differs, or K2/K3 fails. A difference means the change leaks into chapters 1-4: it is reported
+and traced, never explained away.
+--- judged (judge.py, from the results):
+  control-C1L1 (seed 6031): compared records A 641 / B 641, all records 4723 / 4723, end marks equal True, real frames 126079 / 126079, instructed in B 0 -> IDENTICAL
+  control-C1L3 (seed 6034): compared records A 884 / B 884, all records 6921 / 6921, end marks equal True, real frames 156821 / 156821, instructed in B 0 -> IDENTICAL
+  control-C2L1 (seed 6032): compared records A 779 / B 779, all records 5840 / 5840, end marks equal True, real frames 147398 / 147398, instructed in B 0 -> IDENTICAL
+  control-C2L3 (seed 6035): compared records A 684 / B 684, all records 5568 / 5568, end marks equal True, real frames 137820 / 137820, instructed in B 0 -> IDENTICAL
+  control-C3L1 (seed 6033): compared records A 793 / B 793, all records 5951 / 5951, end marks equal True, real frames 164417 / 164417, instructed in B 0 -> IDENTICAL
+  control-C3L3 (seed 6036): compared records A 1056 / B 1056, all records 8550 / 8550, end marks equal True, real frames 215049 / 215049, instructed in B 0 -> IDENTICAL
+  K1: 6 of 6 pairs identical
+  K2: instructed records in B: 0
+  K3: purity CLEAN 12 of 12
+{"K1": "6 of 6 pairs identical", "K2": "instructed records in B: 0", "K3": "purity CLEAN 12 of 12"}
+
+===== BATCH probe: ledger #91, 2026-11-05 08:57:17 -> 2026-11-05 09:05:42, prediction sha256 f7860a8fe79deda777c80b04903caa9e92643c26c9052b233ee6d22c117ada71 (the file now: f7860a8fe79deda777c80b04903caa9e92643c26c9052b233ee6d22c117ada71), stage code before {"A": "2150416a8aefd47f", "B": "ea6fb4dee1d969f3"} after {"A": "2150416a8aefd47f", "B": "ea6fb4dee1d969f3"}
+--- the prediction, verbatim:
+CHAPTER 5 STOPS, batch PROBE (s53/ch5stops/arms.py run probe), written 2026-11-05 BEFORE the runs. DEVELOPMENT, never graded.
+
+The chapter-5 probe again (ledger #85's method and starts) on the NEW code (stage/armB: the instructed-choice skill, the
+POKeNAV eyes, the tunnel grunt's talk step): from the three BADGE-1 chain ends C1L4 (Story), C2L4 (Catcher), C3L4 (Trainer)
+with their world.jsonl, target ch5_rival_meet, 900,000 frames, 3,600 s, seeds 6021, 6022, 6023. Through the real launcher
+(a purity gate per launch); what each reached is read from the GAME (L5.THIS_RUN). ONE trajectory per start: a sample, never
+a rate. The original probe (seeds 5986-5988, e70a8469's code): C1 stopped at the forced START menu (VAR_RUSTBORO_CITY_STATE
+6), C2 and C3 never beat the tunnel grunt.
+
+Prediction:
+  Q1 no run ends with VAR_RUSTBORO_CITY_STATE 6 (a run that reaches the forced START menu passes it: VAR 7 or more);
+  Q2 at least 2 of 3 runs beat the tunnel grunt (TRAINER_GRUNT_RUSTURF_TUNNEL 1 from the game);
+  Q3 at least 1 of 3 passes ch5_pokenav_tutorial (VAR_RUSTBORO_CITY_STATE 7 or more);
+  Q4 0 lines "an unexpected multichoice on screen" in all 3 logs;
+  Q5 purity CLEAN in 3 of 3.
+  Not predicted (reported): ch5_rival_meet itself (the rival's named fight, levels 13 and 15, after training).
+Wrong if any of Q1-Q5 fails.
+--- judged (judge.py, from the results):
+  probe-C1 (Story, seed 6021): real frames 251345, end ' done: ch5_rival_meet reached code=0', game marks changed {'RUSTBORO_CITY_STATE': '1->8', 'RUSTURF_TUNNEL_STATE': '0->3', 'BRINEY_HOUSE_STATE': '0->1', 'RECOVERED_DEVON_GOODS': '0->1', 'TRAINER_GRUNT_RUSTURF_TUNNEL': '0->1', 'RETURNED_DEVON_GOODS': '0->1', 'RECEIVED_POKENAV': '0->1', 'HAS_MATCH_CALL': '0->1', 'ADDED_MATCH_CALL_TO_POKENAV': '0->1', 'ENABLE_RIVAL_MATCH_CALL': '0->1', 'DEFEATED_RIVAL_RUSTBORO': '0->1'}, instructed 6 records, world 91544456 B, THIS_RUN True
+     milestones told: ['h5_stolen_goods done at f497421 (RUSTBORO CITY: the DEVON ', 'h5_goods_employee passed as OPTIONAL (not required; its pr', 'h5_rusturf_grunt done at f618846 (RUSTURF TUNNEL: beat the', 'h5_return_goods done at f715720 (Return the DEVON GOODS to', "h5_devon_corp done at f727156 (DEVON CORP 3F: MR. STONE's ", 'h5_pokenav_tutorial done at f735111 (Leaving DEVON CORP: t', 'h5_rival_meet done at f739016 (South RUSTBORO: the rival (', 'h5_rival_battle passed as OPTIONAL (not required; its proo']
+  probe-C2 (Catcher, seed 6022): real frames 158697, end ' done: ch5_rival_meet reached code=0', game marks changed {'RUSTBORO_CITY_STATE': '1->8', 'RUSTURF_TUNNEL_STATE': '0->3', 'BRINEY_HOUSE_STATE': '0->1', 'RECOVERED_DEVON_GOODS': '0->1', 'TRAINER_GRUNT_RUSTURF_TUNNEL': '0->1', 'RETURNED_DEVON_GOODS': '0->1', 'RECEIVED_POKENAV': '0->1', 'HAS_MATCH_CALL': '0->1', 'ADDED_MATCH_CALL_TO_POKENAV': '0->1', 'ENABLE_RIVAL_MATCH_CALL': '0->1', 'DEFEATED_RIVAL_RUSTBORO': '0->1'}, instructed 6 records, world 13599098 B, THIS_RUN True
+     milestones told: ['h5_stolen_goods done at f477552 (RUSTBORO CITY: the DEVON ', 'h5_goods_employee passed as OPTIONAL (not required; its pr', 'h5_rusturf_grunt done at f594596 (RUSTURF TUNNEL: beat the', 'h5_return_goods done at f601175 (Return the DEVON GOODS to', "h5_devon_corp done at f612514 (DEVON CORP 3F: MR. STONE's ", 'h5_pokenav_tutorial done at f620538 (Leaving DEVON CORP: t', 'h5_rival_meet done at f624559 (South RUSTBORO: the rival (', 'h5_rival_battle passed as OPTIONAL (not required; its proo']
+  probe-C3 (Trainer, seed 6023): real frames 220692, end ' done: ch5_rival_meet reached code=0', game marks changed {'RUSTBORO_CITY_STATE': '1->8', 'RUSTURF_TUNNEL_STATE': '0->3', 'BRINEY_HOUSE_STATE': '0->1', 'RECOVERED_DEVON_GOODS': '0->1', 'TRAINER_GRUNT_RUSTURF_TUNNEL': '0->1', 'RETURNED_DEVON_GOODS': '0->1', 'RECEIVED_POKENAV': '0->1', 'HAS_MATCH_CALL': '0->1', 'ADDED_MATCH_CALL_TO_POKENAV': '0->1', 'ENABLE_RIVAL_MATCH_CALL': '0->1', 'DEFEATED_RIVAL_RUSTBORO': '0->1'}, instructed 6 records, world 58084300 B, THIS_RUN True
+     milestones told: ['h5_stolen_goods done at f594482 (RUSTBORO CITY: the DEVON ', 'h5_goods_employee passed as OPTIONAL (not required; its pr', 'h5_rusturf_grunt done at f761662 (RUSTURF TUNNEL: beat the', 'h5_return_goods done at f773119 (Return the DEVON GOODS to', "h5_devon_corp done at f784577 (DEVON CORP 3F: MR. STONE's ", 'h5_pokenav_tutorial done at f792710 (Leaving DEVON CORP: t', 'h5_rival_meet done at f796996 (South RUSTBORO: the rival (', 'h5_rival_battle passed as OPTIONAL (not required; its proo']
+  Q1: no run ends at VAR 6: True
+  Q2: 3 of 3 beat the grunt -> HELD
+  Q3: 3 of 3 pass the POKeNAV tutorial -> HELD
+  Q4: unexpected-multichoice lines in all runs: 0 -> HELD
+  Q5: purity CLEAN 3 of 3
+{"Q1": "no run ends at VAR 6: True", "Q2": "3 of 3 beat the grunt -> HELD", "Q3": "3 of 3 pass the POKeNAV tutorial -> HELD", "Q4": "unexpected-multichoice lines in all runs: 0 -> HELD", "Q5": "purity CLEAN 3 of 3"}
+
+
+===== THE OFFLINE PROOF (s53/ch5stops/out, quoted)
+-- test_goals_3.txt:
+   Ran 320 tests in 7.878s
+   OK
+-- u_test_hands.txt:
+   Ran 57 tests in 1.778s
+   OK
+-- u_test_world.txt:
+   Ran 132 tests in 44.697s
+   OK
+-- u_test_kb2.txt:
+   Ran 123 tests in 211.021s
+   OK
+-- u_test_host.txt:
+   Ran 37 tests in 45.998s
+   OK
+-- u_test_eyes.txt:
+   Ran 63 tests in 1.002s
+   OK
+-- u_test_goals.txt:
+   Ran 320 tests in 7.710s
+   OK
+-- verify.txt:
+   [VERIFY] checked: 24 flag numbers, 19 var numbers, 46 proofs set by their scripts, 27 trainer ids, 27 party level lists, 13 looks, 18 hint words in their scripts, 23 steps' own words in their scripts, 5 step looks on their maps
+   [VERIFY] OVERALL PASS
+-- verify_plant.txt:
+   [VERIFY] checked: 24 flag numbers, 19 var numbers, 46 proofs set by their scripts, 27 trainer ids, 27 party level lists, 13 looks, 18 hint words in their scripts, 23 steps' own words in their scripts, 5 step looks on their maps
+   [VERIFY] OVERALL PASS (the plants were found, and nothing else)
+-- revert_new.txt:
+   [G430] BROKEN: the play brain never calls the instructed-choice skill (`_story_menu`'s call of `follow` deleted). Predicted CAUGHT by ['InstructedTests.test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_words', 'InstructedTests.test_menu1_the_loop_appends_and_the_pokenav_is_still_named']. The
+   [G431] BROKEN: the play brain makes no instructed-choice skill (`_play`'s call of `Instructed` deleted). Predicted CAUGHT by ['PlayLoopTests.test_the_play_brain_reads_along_for_its_instructed_menus']. The copy ran 320 tests (the copy); failing: {'PlayLoopTests.test_a_goal_waits_when_a_scene_began_wh
+   [G432] BROKEN: the skill's reader is on no look (`_play`'s `read_along` watcher deleted). Predicted CAUGHT by ['PlayLoopTests.test_the_play_brain_reads_along_for_its_instructed_menus']. The copy ran 320 tests (the copy); failing: {'PlayLoopTests.test_the_play_brain_reads_along_for_its_instructed_men
+   [G433] BROKEN: the episode never asks the rule (`follow`'s call of `named_option` deleted). Predicted CAUGHT by ['InstructedTests.test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_words']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_a_loop_that_lets_no_frame_pass_is_bo
+   [G434] BROKEN: the rule reads no label's words (`named_option`'s call of `label_words` deleted). Predicted CAUGHT by ['InstructedTests.test_u5_the_rule_on_the_tutorials_menus']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_a_loop_that_lets_no_frame_pass_is_bounded': 'FAIL', 'In
+   [G435] BROKEN: the player's own name is not left out of a label (G2: the own-name `said_words` call deleted). Predicted CAUGHT by ['InstructedTests.test_g2_the_players_own_name_never_names_an_option']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_c3_a_field_menu_nothing_names_i
+   [G436] BROKEN: a label has no words (`label_words`' call of `said_words` on the label deleted). Predicted CAUGHT by ['InstructedTests.test_u5_the_rule_on_the_tutorials_menus']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_a_loop_that_lets_no_frame_pass_is_bounded': 'FAIL', 'Ins
+   [G437] BROKEN: a page says no words (`named_option`'s call of `said_words` on the page deleted). Predicted CAUGHT by ['InstructedTests.test_u5_the_rule_on_the_tutorials_menus']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_a_loop_that_lets_no_frame_pass_is_bounded': 'FAIL', 'In
+   [G438] BROKEN: the misstep fault slips onto a blank option (`_slip`'s call of `said_words` deleted). Predicted CAUGHT by ['InstructedTests.test_menu1_the_loop_appends_and_the_pokenav_is_still_named']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_menu1_the_loop_appends_and_the_p
+   [G439] BROKEN: the episode never sees it is back in the field (the early check's call of `_in_field` deleted): it spins, and STILL_PASSES_MAX stops it, told. Predicted CAUGHT by ['InstructedTests.test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_words']. The copy ran 320 tests (the copy); fa
+   [G440] BROKEN: between the menus it waits for nothing (`advance`'s until, the `_in_field` reference, deleted). Predicted CAUGHT by ['InstructedTests.test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_words']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_g3_a_page_inside_
+   [G441] BROKEN: the episode reads no instruction (`follow`'s call of `instruction_now` deleted). Predicted CAUGHT by ['InstructedTests.test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_words']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_a_loop_that_lets_no_frame_pass_i
+   [G442] BROKEN: the misstep fault never slips (`follow`'s call of `_slip` deleted). Predicted CAUGHT by ['InstructedTests.test_menu1_the_loop_appends_and_the_pokenav_is_still_named']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_menu1_the_loop_appends_and_the_pokenav_is_still_na
+   [G443] BROKEN: a B the screen ignores is pressed again and again (G7: the B_REFUSALS bound deleted). Predicted CAUGHT by ['InstructedTests.test_g7_u6_a_b_the_screen_ignores_ends_the_episode_in_its_bounds']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_g7_u6_a_b_the_screen_ignor
+   [G444] BROKEN: a followed option is followed again (G4: `label not in used` deleted). Predicted CAUGHT by ['InstructedTests.test_u5_the_rule_on_the_tutorials_menus', 'InstructedTests.test_g4_each_named_option_is_followed_once']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_g3_a
+   [G445] BROKEN: a label with no word is named by every page (G1: `needed and` deleted). Predicted CAUGHT by ['InstructedTests.test_g1_g5_a_blank_label_is_never_named_and_two_named_choose_nothing']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_a_loop_that_lets_no_frame_pass_is_bo
+   [G446] BROKEN: two named options: the first is chosen (G5: the ambiguity rule deleted). Predicted CAUGHT by ['InstructedTests.test_g1_g5_a_blank_label_is_never_named_and_two_named_choose_nothing']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_g1_g5_a_blank_label_is_never_named_
+   [G447] BROKEN: a page inside an app joins the instruction (G3: the reader's field condition deleted). Predicted CAUGHT by ['InstructedTests.test_g3_a_page_inside_the_app_never_names_a_menu', 'InstructedTests.test_the_transcript_is_the_field_pages_read_since_the_player_was_free']. The copy ran 320 te
+   [G448] BROKEN: a field menu given again under new pages keeps what was followed (the re-capture's reset deleted). Predicted CAUGHT by ['InstructedTests.test_the_other_bounds_each_end_the_episode_said']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_the_other_bounds_each_end_the_
+   [G449] BROKEN: no bound on choices and backs-out (MAX_DECISIONS deleted). Predicted CAUGHT by ['InstructedTests.test_the_other_bounds_each_end_the_episode_said']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_the_other_bounds_each_end_the_episode_said': 'FAIL'} -> CAUGHT
+   [G450] BROKEN: a field menu that keeps coming back is chosen on for ever (FIELD_CHOICES_MAX deleted). Predicted CAUGHT by ['InstructedTests.test_the_other_bounds_each_end_the_episode_said']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_the_other_bounds_each_end_the_episode_said
+   [G451] BROKEN: no frame bound on the scene's menus (EPISODE_BUDGET deleted). Predicted CAUGHT by ['InstructedTests.test_g7_u6_a_b_the_screen_ignores_ends_the_episode_in_its_bounds']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_g7_u6_a_b_the_screen_ignores_ends_the_episode_in_i
+   [G452] BROKEN: a stuck screen between the menus is waited at again and again (its stop deleted). Predicted CAUGHT by ['InstructedTests.test_the_other_bounds_each_end_the_episode_said']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_the_other_bounds_each_end_the_episode_said': 'F
+   [G453] BROKEN: a menu that did not take the choice is chosen on again (its stop deleted). Predicted CAUGHT by ['InstructedTests.test_the_other_bounds_each_end_the_episode_said']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_the_other_bounds_each_end_the_episode_said': 'FAIL'} -
+   [G454] BROKEN: a grid is not refused with its own reason (the GRID branch deleted: it falls to 'another menu'). Predicted CAUGHT by ['InstructedTests.test_g6_a_grid_is_refused_with_no_press']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_g6_a_grid_is_refused_with_no_press': 'FA
+   [G455] BROKEN: the transcript is never cleared when the player is free (the reader's reset deleted). Predicted CAUGHT by ['InstructedTests.test_the_transcript_is_the_field_pages_read_since_the_player_was_free']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_the_transcript_is_the
+   [G456] BROKEN: a run that began inside the scene reads nothing it was shown (MENU-4's fallback deleted). Predicted CAUGHT by ['InstructedTests.test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_words', 'InstructedTests.test_menu4_a_stale_message_is_no_instruction_once_the_player_was_free']. T
+   [G457] BROKEN: a stale message is an instruction after the player was free (MENU-4's condition `not self.free_seen` deleted). Predicted CAUGHT by ['InstructedTests.test_menu4_a_stale_message_is_no_instruction_once_the_player_was_free']. The copy ran 320 tests (the copy); failing: {'InstructedTests.t
+   [G458] BROKEN: a spin is not bounded (STILL_PASSES_MAX deleted). Predicted CAUGHT by ['InstructedTests.test_a_loop_that_lets_no_frame_pass_is_bounded']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_a_loop_that_lets_no_frame_pass_is_bounded': 'FAIL'} -> CAUGHT
+   [G459] BROKEN: the FAULT switch AI_PLAYER_FAULT_NO_INSTRUCTED is ignored. Predicted CAUGHT by ['InstructedTests.test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_words']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_w
+   [G460] BROKEN: the misstep FAULT slips on every field choice (`not self.slipped` deleted). Predicted CAUGHT by ['InstructedTests.test_menu1_the_loop_appends_and_the_pokenav_is_still_named']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_menu1_the_loop_appends_and_the_pokenav_is_
+   [G461] BROKEN: the eyes see no POKéNAV menu (`_read_ui`'s call of `pokenav_view` deleted). Predicted CAUGHT by ['InstructedTests.test_the_eyes_report_the_kinds_the_skill_plays']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_the_eyes_report_the_kinds_the_skill_plays': 'ERROR'} -
+   [G462] BROKEN: a grid is reported as a 1-D multichoice again (E7 reverted). Predicted CAUGHT by ['InstructedTests.test_the_eyes_report_the_kinds_the_skill_plays']. The copy ran 320 tests (the copy); failing: {'InstructedTests.test_the_eyes_report_the_kinds_the_skill_plays': 'FAIL'} -> CAUGHT
+   [G463] BROKEN: the chat is asked with no story figure (`next_goal`'s chat call drops the step look's gfx). Predicted CAUGHT by ['TunnelGruntTests.test_f5b_the_decision_hands_the_steps_look_to_the_chat']. The copy ran 320 tests (the copy); failing: {'SecondRoundTests.test_the_storys_own_person_is_no_
+   [G464] BROKEN: the tunnel grunt's step is `follow` again (the data reverted to e70a8469's). Predicted CAUGHT by ['TunnelGruntTests.test_f1_the_step_is_talk_to_the_aqua_member', 'TunnelGruntTests.test_f2_in_the_tunnel_the_grunt_on_screen_is_talked_to', 'TunnelGruntTests.test_f3_nobody_on_screen_it_fi
+   35 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 460
+   FROZEN TREE: PASS - the tree did not change from the start to the verdict (37 checks of 203 files, files digest c16bc440d50c6a3c)
+   OVERALL: PASS
+-- tests_on_base.txt:
+   the NEW tests on the BASE code (git archive cbbb3ec519aa903fb4964f175bfee928de291ada ai_player, the new test files copied in): exit 1
+   Ran 46 tests in 0.835s
+   FAILED (failures=12, errors=28)
+   Ran 46 tests in 0.835s
+   FAILED (failures=12, errors=28)
+-- static_gates.txt:
+   VERDICT: PASS
+   PERSON-FAIR DATA DOOR: PASS (0 breaches)
+   CALL-SITE CENSUS since HEAD: 6 AI files changed, 30 functions or added calls, 60 sites; 0 MISSING
+   CALL-SITE CENSUS: PASS
+   [MILESTONES] ai_player\knowledge\milestones.json is up to date
+   [KB2] CHECK OK: 4 files identical to a fresh extraction
+   CHECK: PASS
+   LEDGER ledger.json: 91 entries; well formed -> PASS
+
+===== NOTES (what the judge's lines do not say)
+1. A PREDICTION THAT FAILED: batch grunt's P5 ("every world.jsonl under 300 MB") held in 10 of 12, not 12 of 12. The two
+   over the line are grunt-C2-A3 and grunt-C2-B3 (seed 6016, ROUTE 116): 774,013,568 B each, in 200,000 frames. They are ONE
+   trajectory (A and B identical to the byte: the B run never made a decision inside RUSTURF TUNNEL, so the changed step was
+   never read: VACUOUS for P2). Their world files were measured and NOT kept. The run spent its time on ROUTE 116 (6,002 action
+   records), RUSTBORO CITY (4,176) and ROUTE 104 (3,609): the after-battle break churn the grunt design's section 10 named.
+   Not fixed here (its own item).
+2. A DRIVER BUG, RESCUED: the six control first-leg children (control-C?L1-A/B) crashed AFTER their runs, in arms.py's
+   analysis (a New Game's first full look has no player; fixed at 08:47 before the later children started). Each run had
+   finished and its files were copied first; rescue.py rebuilt each result from them: the game's marks by the truth harness on
+   the copied end state, the real frames from purity.json, L5.THIS_RUN redone (fresh boot: state frame == real frames, PASS in
+   6 of 6), the compared stream from actions.jsonl. The orchestrator's results.json was written after the rescue.
+3. THE CHAPTER-3 CONTROL LEGS: all six passed ch3_woods (the woods grunt's scene and battle: "MILESTONE ch3_woods done" in each
+   B log), so a gfx-117 figure was on screen; the goal manager's sightings are not in the kept artefacts (world.jsonl holds no
+   'aqua_member'; the action records' digests do not carry graphics ids), so "notice met the new look" is inferred from the
+   scene, not measured. The decision streams were identical in all three.
+4. The base code's stop at the forced menu fired 30,000 times in a 30,000-frame run (one play-loop pass a frame) in each of
+   the 5 runs without the skill (menu A1-A3, L2 twice): the spin the menu design's section 7 named, not in scope.
+5. Batch menu ran on the stage code digest 7eb1a83b, before the no-spin bound (STILL_PASSES_MAX) the mutant proof added;
+   batch menu2 repeats its new-code arms on the final code (ea6fb4de) with the same results. The base arms did not change.
+6. Every battle with the tunnel grunt ended its battle skill with "the battle: budget" while the game set the grunt's defeated
+   flag and RECOVERED_DEVON_GOODS (the 2026-11-01 probe's C1 printed the same line): the milestone is read from the game, not
+   from that outcome. Not investigated here.
+
+===== THE STAGE, DELETED (s53/ch5stops/cleanup_stage.py)
+main sandbox linked folders BEFORE: {'modules': 4461, 'plugins': 43, 'mgba': 44, 'roms': 2}
+unlinked stage\build\modules
+unlinked stage\build\plugins
+unlinked stage\build\mgba
+unlinked stage\build\roms
+unlinked stage\armA\sandbox-pokebot
+unlinked stage\armB\sandbox-pokebot
+stage exists after: False
+main sandbox linked folders AFTER : {'modules': 4461, 'plugins': 43, 'mgba': 44, 'roms': 2} | unchanged: True
+paths named ai-ch5stops in the main sandbox's profiles: 0
+C: free GB: 88.2 at 09:07:28
+
+===== APPENDIX: the drivers (s53/ch5stops), verbatim
+--- arms.py (sha256 630e3c9571fa14458ed1855f9843cba9a647fdfca37e5176ca1704945fcf82d6)
+"""CHAPTER 5 STOPS: the live DEVELOPMENT arms (s53/ch5stops), never graded. The chapter-5 probe's method (s53/ch5/ch5_probe.py:
+the real launcher through live_step5.run_arm, a purity gate per launch, what a run reached read from the GAME on the state it
+left, freshness-checked with L5.THIS_RUN), on ONE stage with two code roots: stage/armA (the base, HEAD cbbb3ec5 = e70a8469's
+ai_player) and stage/armB (the new code). Each job runs in its own disposable profile `ai-ch5stops-<job>`.
+
+    py -3.12 arms.py run BATCH        the orchestrator: refuses under 40 GB free; checks both code digests against the
+                                      manifest before and after; registers the batch's ledger entry (prediction sha256) FIRST;
+                                      at most 3 jobs at once; a world.jsonl kept only under 300 MB (decimal)
+    py -3.12 arms.py child JOB.json   one run
+
+BATCHES (seeds: development, 6002 onward; 6001 was the smoke, ledger #86):
+  menu     from C1L5 (the forced START menu): B x3 (6002-6004), A x3 (the same seeds), L2 = B + FAULT_NO_INSTRUCTED (6005),
+           L4 = B + FAULT_INSTRUCTED_MISSTEP (6006); Story, target ch5_pokenav_tutorial, 30,000 frames
+  grunt    C3L5 (RUSTURF TUNNEL (4,10), the C3L4 world) Trainer 60,000 frames, seeds 6011-6013, A and B; C2L5 (ROUTE 116,
+           the C2L4 world) Catcher 200,000 frames, seeds 6014-6016, A and B; target ch5_rusturf_grunt
+  probe    B from the three BADGE-1 chain ends C{1,2,3}L4 (Story, Catcher, Trainer), target ch5_rival_meet, 900,000 frames,
+           seeds 6021-6023
+  control  chapter 1-4 decision-record CONTROL: the chain probe's first legs (fresh New Game, ch1_pokedex, 330,000 frames,
+           Story/TREECKO, Catcher/TORCHIC, Trainer/MUDKIP), A and B on the same seed, 6031-6033
+"""
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+STAGE = HERE / "stage"
+OUT = HERE / "out"
+WORLD_KEEP_BYTES, WORLD_KILL_GB, FREE_MIN_GB, PARALLEL = 300 * 1000 * 1000, 3.0, 30.0, 3
+FIELDS = ("RUSTBORO_CITY_STATE", "RUSTURF_TUNNEL_STATE", "BRINEY_HOUSE_STATE", "RECOVERED_DEVON_GOODS",
+          "TRAINER_GRUNT_RUSTURF_TUNNEL", "RETURNED_DEVON_GOODS", "RECEIVED_POKENAV", "HAS_MATCH_CALL",
+          "ADDED_MATCH_CALL_TO_POKENAV", "ENABLE_RIVAL_MATCH_CALL", "DEFEATED_RIVAL_RUSTBORO", "BADGE01_GET",
+          "RECEIVED_POKEDEX_FROM_BIRCH")
+CHAINS = {1: ("Story", "TREECKO"), 2: ("Catcher", "TORCHIC"), 3: ("Trainer", "MUDKIP")}
+
+
+def jobs_of(batch: str) -> tuple[list[dict], int, int]:
+    jobs: list[dict] = []
+    if batch == "menu":
+        for i, seed in enumerate((6002, 6003, 6004), 1):
+            for arm in ("B", "A"):
+                jobs.append({"name": f"menu-{arm}{i}", "arm": arm, "seed": seed, "start": "C1L5", "world": "C1L5",
+                             "persona": "Story", "target": "ch5_pokenav_tutorial", "frames": 30000, "wall": 1800})
+        jobs.append({"name": "menu-L2", "arm": "B", "seed": 6005, "start": "C1L5", "world": "C1L5", "persona": "Story",
+                     "target": "ch5_pokenav_tutorial", "frames": 30000, "wall": 1800,
+                     "env": {"AI_PLAYER_FAULT_NO_INSTRUCTED": "1"}})
+        jobs.append({"name": "menu-L4", "arm": "B", "seed": 6006, "start": "C1L5", "world": "C1L5", "persona": "Story",
+                     "target": "ch5_pokenav_tutorial", "frames": 30000, "wall": 1800,
+                     "env": {"AI_PLAYER_FAULT_INSTRUCTED_MISSTEP": "1"}})
+        return jobs, 6002, 6006
+    if batch == "grunt":
+        for i, seed in enumerate((6011, 6012, 6013), 1):
+            for arm in ("B", "A"):
+                jobs.append({"name": f"grunt-C3-{arm}{i}", "arm": arm, "seed": seed, "start": "C3L5", "world": "C3L4",
+                             "persona": "Trainer", "target": "ch5_rusturf_grunt", "frames": 60000, "wall": 1800})
+        for i, seed in enumerate((6014, 6015, 6016), 1):
+            for arm in ("B", "A"):
+                jobs.append({"name": f"grunt-C2-{arm}{i}", "arm": arm, "seed": seed, "start": "C2L5", "world": "C2L4",
+                             "persona": "Catcher", "target": "ch5_rusturf_grunt", "frames": 200000, "wall": 3000})
+        return jobs, 6011, 6016
+    if batch == "probe":
+        for n, seed in ((1, 6021), (2, 6022), (3, 6023)):
+            jobs.append({"name": f"probe-C{n}", "arm": "B", "seed": seed, "start": f"C{n}L4", "world": f"C{n}L4",
+                         "persona": CHAINS[n][0], "target": "ch5_rival_meet", "frames": 900000, "wall": 3600})
+        return jobs, 6021, 6023
+    if batch == "menu2":
+        # the FINAL tree (the episode's no-spin bound added after batch menu): B x3, the FAULT switch, the misstep
+        for i, seed in enumerate((6007, 6008, 6009), 1):
+            jobs.append({"name": f"menu2-B{i}", "arm": "B", "seed": seed, "start": "C1L5", "world": "C1L5", "persona": "Story",
+                         "target": "ch5_pokenav_tutorial", "frames": 30000, "wall": 1800})
+        jobs.append({"name": "menu2-L2", "arm": "B", "seed": 6010, "start": "C1L5", "world": "C1L5", "persona": "Story",
+                     "target": "ch5_pokenav_tutorial", "frames": 30000, "wall": 1800,
+                     "env": {"AI_PLAYER_FAULT_NO_INSTRUCTED": "1"}})
+        jobs.append({"name": "menu2-L4", "arm": "B", "seed": 6010, "start": "C1L5", "world": "C1L5", "persona": "Story",
+                     "target": "ch5_pokenav_tutorial", "frames": 30000, "wall": 1800,
+                     "env": {"AI_PLAYER_FAULT_INSTRUCTED_MISSTEP": "1"}})
+        return jobs, 6007, 6010
+    if batch == "control":
+        for n, seed in ((1, 6031), (2, 6032), (3, 6033)):
+            for arm in ("A", "B"):
+                jobs.append({"name": f"control-C{n}L1-{arm}", "arm": arm, "seed": seed, "start": None, "world": None,
+                             "persona": CHAINS[n][0], "starter": CHAINS[n][1], "target": "ch1_pokedex", "frames": 330000,
+                             "wall": 3600})
+        for n, seed in ((1, 6034), (2, 6035), (3, 6036)):
+            for arm in ("A", "B"):
+                jobs.append({"name": f"control-C{n}L3-{arm}", "arm": arm, "seed": seed, "start": f"C{n}L2", "world": f"C{n}L2",
+                             "persona": CHAINS[n][0], "target": "ch3_rustboro", "frames": 600000, "wall": 3600})
+        return jobs, 6031, 6036
+    raise SystemExit(f"no batch {batch!r}")
+
+
+def tree_digest(root: Path) -> str:
+    h = hashlib.sha256()
+    for p in sorted(x for x in root.rglob("*") if x.is_file() and "__pycache__" not in x.parts):
+        h.update(p.relative_to(root).as_posix().encode() + b"\0" + hashlib.sha256(p.read_bytes()).digest())
+    return h.hexdigest()
+
+
+# ------------------------------------------------------------------------------------------------ what a run did
+def in_tunnel(record: dict) -> bool:
+    return "RUSTURF TUNNEL(" in str(record.get("digest") or "")
+
+
+def analyse(records: list[dict], ai_log: str) -> dict:
+    """The facts each batch's prediction names, read from the run's own action log (the AI's records) and its log."""
+    out: dict = {}
+    out["instructed"] = [(r.get("frame"), r.get("action"), str(r.get("reason"))[:120]) for r in records
+                         if r.get("decision") == "instructed"]
+    out["unexpected_multichoice"] = ai_log.count("an unexpected multichoice on screen")
+    out["call_exit_presses"] = sum(1 for r in records if str(r.get("action", "")).startswith("press")
+                                   and "the call has ended" in str(r.get("reason")))
+    first = next((r for r in records if isinstance(r.get("observation"), dict)
+                  and isinstance(r["observation"].get("player"), dict)), None)  # a New Game's first look has no player
+    out["first_look_player_name"] = first["observation"]["player"].get("name") if first else None
+    goals = [r for r in records if r.get("decision") == "goal"]
+    tunnel_goals = [r for r in goals if in_tunnel(r)]
+    out["goals"] = len(goals)
+    out["tunnel_decisions"] = len(tunnel_goals)
+    out["first_tunnel_frame"] = next((r.get("frame") for r in records if in_tunnel(r)), None)
+    out["first_frame"] = next((r.get("frame") for r in records if isinstance(r.get("frame"), int)), None)
+    out["tunnel_goal_kinds"] = {}
+    for r in tunnel_goals:
+        key = str((r.get("extra") or {}).get("key") or r.get("action")).split(":")[0]
+        out["tunnel_goal_kinds"][key] = out["tunnel_goal_kinds"].get(key, 0) + 1
+    out["first_tunnel_goal"] = (tunnel_goals[0].get("action"), (tunnel_goals[0].get("extra") or {}).get("key"),
+                                str(tunnel_goals[0].get("reason"))[:200]) if tunnel_goals else None
+    battles = [r for r in records if isinstance(r.get("extra"), dict) and "battle" in r["extra"] and "kind" in r["extra"]]
+    trainer_in_tunnel = [r for r in battles if r["extra"].get("kind") == "trainer" and in_tunnel(r)]
+    out["tunnel_trainer_battles"] = [(r.get("frame"), r["extra"].get("began"), r["extra"].get("outcome")) for r in trainer_in_tunnel]
+    if trainer_in_tunnel:
+        began = trainer_in_tunnel[0]["extra"].get("began") or trainer_in_tunnel[0].get("frame")
+        before = [r for r in goals if (r.get("frame") or 0) <= began]
+        last = before[-1] if before else None
+        out["goal_before_grunt_battle"] = (last.get("action"), (last.get("extra") or {}).get("key"),
+                                           str(last.get("reason"))[:200], last.get("frame")) if last else None
+    first_tunnel = out["first_tunnel_frame"]
+    out["heal_known_fight_after_tunnel"] = sum(
+        1 for r in goals if r.get("action") == "heal" and "a known fight is next" in str(r.get("reason"))
+        and first_tunnel is not None and (r.get("frame") or 0) >= first_tunnel)
+    out["milestones_told"] = [str(r.get("reason"))[:160] for r in records
+                              if r.get("decision") == "tell" and "MILESTONE " in str(r.get("reason", ""))]
+    return out
+
+
+def control_stream(records: list[dict]) -> list:
+    """The decision-record stream a CONTROL compares: decide, goal, goal_end, instructed and every press (frame, decision,
+    action, reason, extra), the eyes' wall-clock `cost=` normalised."""
+    keep = []
+    for r in records:
+        d, a = r.get("decision"), str(r.get("action", ""))
+        if d in ("decide", "goal", "goal_end", "instructed") or a.startswith("press"):
+            keep.append([r.get("frame"), d, a, re.sub(r"cost=\d+\.\d+ms", "cost=N", str(r.get("reason"))),
+                         json.dumps(r.get("extra"), sort_keys=True, ensure_ascii=False)])
+    return keep
+
+
+# ------------------------------------------------------------------------------------------------ one run
+def child(job_path: Path) -> int:
+    job = json.loads(job_path.read_text(encoding="utf-8"))
+    root = STAGE / f"arm{job['arm']}"
+    sys.path.insert(0, str(root))
+    from ai_player.gates import live_step5 as L5
+    assert Path(L5.__file__).resolve().is_relative_to(root.resolve()), L5.__file__
+    L5.PROFILE = f"ai-ch5stops-{job['name']}"
+    env = L5.play_env(job["persona"], job.get("starter"), job["target"], **(job.get("env") or {}))
+    carried = {}
+    if job["start"] is not None:
+        carried["START"] = (STAGE / "starts" / f"{job['start']}_end_state.ss1", STAGE / "starts" / f"{job['world']}_world.jsonl", [])
+    arm = L5.Arm(job["name"], f"ch5 stops {job['name']}", job["frames"], float(job["wall"]), env, seed=job["seed"],
+                 fresh=job["start"] is None, state_from="START" if job["start"] is not None else None)
+    run = L5.run_arm(arm, L5.launcher.resolve_build_root(None), carried)
+    try:
+        L5.check_after_is_this_run(run)
+    except Exception as error:  # noqa: BLE001 - recorded, not fatal
+        run.notes.append(f"check_after_is_this_run raised {error!r}")
+    out_dir = OUT / job["batch"] / job["name"]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("actions.jsonl", "ai_player.log", "purity.json", "end_state.ss1", "stdout.txt"):
+        if run.run_dir and (run.run_dir / name).is_file():
+            shutil.copy2(run.run_dir / name, out_dir / name)
+    world = run.run_dir / "world.jsonl" if run.run_dir else None
+    world_bytes = world.stat().st_size if world is not None and world.is_file() else None
+    kept = bool(world_bytes is not None and world_bytes < WORLD_KEEP_BYTES)
+    if kept:
+        shutil.copy2(world, out_dir / "world.jsonl")
+    after, before = run.after or {}, run.before or {}
+    purity = json.loads((run.run_dir / "purity.json").read_text(encoding="utf-8")) if run.run_dir and \
+        (run.run_dir / "purity.json").is_file() else {}
+    marks_after, marks_before = L5.marks(after), L5.marks(before)
+    result = {**job, "exit": run.exit_code, "elapsed": round(run.elapsed or 0, 1), "run_dir": str(run.run_dir),
+              "harness_stop": run.measures.get("harness_stop"), "map_before": before.get("map"), "map_after": after.get("map"),
+              "frame_before": before.get("frame"), "frame_after": after.get("frame"),
+              "marks_before": {k: marks_before.get(k, marks_before.get("VAR_" + k)) for k in FIELDS},
+              "marks_after": {k: marks_after.get(k, marks_after.get("VAR_" + k)) for k in FIELDS},
+              "checks": [getattr(c, "__dict__", str(c)) for c in run.checks], "notes": run.notes,
+              "purity_verdict": purity.get("verdict"), "purity_counters": purity.get("counters"),
+              "world_bytes": world_bytes, "world_kept": kept, "outcome": run.outcome,
+              "exit_line": next((ln for ln in reversed(run.ai_log.splitlines()) if "[AI-EXIT]" in ln), None),
+              "analysis": analyse(run.records, run.ai_log)}
+    if job["batch"] == "control":
+        (OUT / job["batch"] / f"{job['name']}.stream.json").write_text(json.dumps(control_stream(run.records), ensure_ascii=False),
+                                                                     encoding="utf-8")
+        result["records_total"] = len(run.records)
+    (OUT / job["batch"] / f"{job['name']}.json").write_text(json.dumps(result, indent=1, default=str, ensure_ascii=False),
+                                                            encoding="utf-8")
+    print(f"[{job['name']}] exit {run.exit_code} {run.elapsed:.0f}s map {after.get('map')} purity {purity.get('verdict')} "
+          f"world {world_bytes}", flush=True)
+    return 0
+
+
+# ------------------------------------------------------------------------------------------------ the orchestrator
+def kill_family(pid: int) -> None:
+    import psutil
+
+    try:
+        family = psutil.Process(pid).children(recursive=True) + [psutil.Process(pid)]
+    except psutil.Error:
+        return
+    for p in family:
+        try:
+            p.kill()
+        except psutil.Error:
+            pass
+
+
+def run_batch(batch: str) -> int:
+    free = shutil.disk_usage("C:/").free / 1e9
+    if free < 40:
+        raise SystemExit(f"REFUSED: {free:.1f} GB free on C: (the floor is 40 GB)")
+    manifest = json.loads((STAGE / "manifest.json").read_text(encoding="utf-8"))
+    digests = {arm: tree_digest(STAGE / f"arm{arm}" / "ai_player") for arm in ("A", "B")}
+    if digests != {"A": manifest["digest_A"], "B": manifest["digest_B"]}:
+        raise SystemExit("REFUSED: a stage code root changed since the stage was built")
+    jobs, first, last = jobs_of(batch)
+    pred = HERE / f"prediction_{batch}.txt"
+    note = HERE / f"note_{batch}.txt"
+    reg = subprocess.run([sys.executable, "-B", str(HERE / "ledger_tool.py"), "begin", f"ch5stops_{batch}", str(pred), str(first),
+                          str(last), str(STAGE / "armB"), str(note)], capture_output=True, text=True)
+    print(reg.stdout + reg.stderr, flush=True)
+    if reg.returncode != 0 or "ENTRY " not in reg.stdout:
+        raise SystemExit("REFUSED: the ledger did not register the batch")
+    entry = int(re.search(r"ENTRY (\d+)", reg.stdout).group(1))
+    (OUT / batch).mkdir(parents=True, exist_ok=True)
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+    began = time.strftime("%Y-%m-%d %H:%M:%S")
+    pending = [dict(job, batch=batch) for job in jobs]
+    running: list = []
+    while pending or running:
+        while pending and len(running) < PARALLEL:
+            job = pending.pop(0)
+            path = OUT / batch / f"{job['name']}.job.json"
+            path.write_text(json.dumps(job), encoding="utf-8")
+            log = open(OUT / batch / f"{job['name']}.child.log", "w", encoding="utf-8")
+            proc = subprocess.Popen([sys.executable, "-B", str(Path(__file__).resolve()), "child", str(path)],
+                                    cwd=str(STAGE / f"arm{job['arm']}"), env=env, stdout=log, stderr=subprocess.STDOUT)
+            running.append((job, proc, log))
+            print(f"[{batch}] started {job['name']} ({time.strftime('%H:%M:%S')})", flush=True)
+            time.sleep(10)
+        for item in list(running):
+            job, proc, log = item
+            worlds = list((STAGE / "build" / "profiles" / f"ai-ch5stops-{job['name']}" / "ai_player_runs").glob("*/world.jsonl"))
+            big = max((w.stat().st_size for w in worlds if w.exists()), default=0) / 1e9
+            free_now = shutil.disk_usage("C:/").free / 1e9
+            if proc.poll() is None and (big > WORLD_KILL_GB or free_now < FREE_MIN_GB):
+                kill_family(proc.pid)
+                (OUT / batch / f"{job['name']}.KILLED.txt").write_text(
+                    f"killed by the disk guard: world.jsonl {big:.2f} GB, C: free {free_now:.1f} GB\n", encoding="utf-8")
+            if proc.poll() is not None:
+                log.close()
+                running.remove(item)
+                print(f"[{batch}] {job['name']} child exit {proc.returncode} ({time.strftime('%H:%M:%S')})", flush=True)
+        time.sleep(5)
+    after = {arm: tree_digest(STAGE / f"arm{arm}" / "ai_player") for arm in ("A", "B")}
+    results = []
+    for job in jobs:
+        p = OUT / batch / f"{job['name']}.json"
+        results.append(json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {"name": job["name"], "missing": True})
+    (OUT / batch / "results.json").write_text(json.dumps({"batch": batch, "ledger": entry, "began": began,
+                                                         "ended": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                                         "prediction_sha256": hashlib.sha256(pred.read_bytes()).hexdigest(),
+                                                         "digests_before": digests, "digests_after": after,
+                                                         "results": results}, indent=1, default=str, ensure_ascii=False),
+                                              encoding="utf-8")
+    verdict = HERE / f"verdict_{batch}.txt"
+    verdict.write_text(f"DEVELOPMENT, not graded: chapter-5 stops, batch {batch} "
+                       f"({sum(1 for r in results if not r.get('missing'))} of {len(results)} ran); read the evidence\n",
+                       encoding="utf-8")
+    subprocess.run([sys.executable, "-B", str(HERE / "ledger_tool.py"), "finish", str(entry), str(verdict),
+                    "ai_player/evidence/2026-11-05-ch5-stops-development.txt"])
+    print(f"[{batch}] done; ledger #{entry}; stage code unchanged: {after == digests}", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "child":
+        sys.exit(child(Path(sys.argv[2])))
+    if len(sys.argv) == 3 and sys.argv[1] == "run":
+        sys.exit(run_batch(sys.argv[2]))
+    print(__doc__)
+    sys.exit(2)
+
+--- judge.py (sha256 6c657c59d0991252ac426e012b72c697cce343665468ca0b822f5a2d31f6ae0e)
+"""Judge each batch's registered prediction from its results (out/<batch>/*.json; control: the .stream.json files), claim by
+claim, the way the prediction file words it. Prints lines; `--json` prints a dict too. Nothing here is hand-entered."""
+import json
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ORDER = ["choose:multichoice: POKéNAV", "choose:pokenav_menu: MATCH CALL", "choose:pokenav_list: MR. STONE",
+         "choose:pokenav_options: CALL", "back:pokenav_list", "back:pokenav_menu"]
+
+
+def runs(batch: str) -> dict:
+    out = {}
+    for path in sorted((HERE / "out" / batch).glob("*.json")):
+        if path.name.endswith((".job.json", ".stream.json")) or path.name == "results.json":
+            continue
+        r = json.loads(path.read_text(encoding="utf-8"))
+        out[r["name"]] = r
+    return out
+
+
+def order(r: dict) -> list[str]:
+    seq = []
+    for _, action, reason in r["analysis"]["instructed"]:
+        if action == "choose":
+            seq.append(f"choose:{reason}")
+        elif action == "back":
+            seq.append(f"back:{reason.split(':')[0]}")
+        else:
+            seq.append(f"{action}:{reason[:40]}")
+    return seq
+
+
+def var(r: dict, which: str = "after") -> int | None:
+    return r[f"marks_{which}"].get("RUSTBORO_CITY_STATE")
+
+
+def frames(r: dict) -> int | None:
+    return (r.get("harness_stop") or {}).get("real_frames")
+
+
+def fresh(r: dict) -> bool:
+    return all(c.get("status") == "PASS" for c in r["checks"] if isinstance(c, dict)) and bool(r["checks"])
+
+
+def menu(batch: str, lines: list[str]) -> dict:
+    rs = runs(batch)
+    verdicts = {}
+    bs = [r for n, r in rs.items() if "-B" in n]
+    m1 = []
+    for r in bs:
+        ok = (var(r, "before") == 6 and var(r) == 7 and "done: ch5_pokenav_tutorial reached" in (r["exit_line"] or "")
+              and frames(r) is not None and frames(r) <= 15000 and order(r) == ORDER
+              and r["analysis"]["call_exit_presses"] == 1 and r["analysis"]["unexpected_multichoice"] == 0
+              and r["analysis"]["first_look_player_name"] and fresh(r))
+        m1.append(ok)
+        lines.append(f"  M1 {r['name']} (seed {r['seed']}): VAR {var(r, 'before')}->{var(r)}, real frames {frames(r)}, order "
+                     f"{'as predicted' if order(r) == ORDER else order(r)}, call-exit presses {r['analysis']['call_exit_presses']}, "
+                     f"unexpected {r['analysis']['unexpected_multichoice']}, name {r['analysis']['first_look_player_name']!r}, "
+                     f"THIS_RUN {fresh(r)} -> {'HELD' if ok else 'FAILED'}")
+    verdicts["M1"] = f"{sum(m1)} of {len(m1)}"
+    as_ = [r for n, r in rs.items() if "-A" in n]
+    if as_:
+        m2 = [var(r) == 6 and r["analysis"]["unexpected_multichoice"] > 0 and not r["analysis"]["instructed"] and fresh(r)
+              for r in as_]
+        for r, ok in zip(as_, m2):
+            lines.append(f"  M2 {r['name']} (seed {r['seed']}, base code): VAR {var(r, 'before')}->{var(r)}, unexpected-multichoice "
+                         f"lines {r['analysis']['unexpected_multichoice']}, instructed records {len(r['analysis']['instructed'])}, "
+                         f"end {(r['exit_line'] or '')[22:90]!r} -> {'HELD' if ok else 'FAILED'}")
+        verdicts["M2"] = f"{sum(m2)} of {len(m2)}"
+    l2 = [r for n, r in rs.items() if n.endswith("-L2")][0]
+    ok3 = var(l2) == 6 and l2["analysis"]["unexpected_multichoice"] > 0 and not l2["analysis"]["instructed"]
+    lines.append(f"  M3 {l2['name']} (FAULT_NO_INSTRUCTED): VAR {var(l2, 'before')}->{var(l2)}, unexpected-multichoice lines "
+                 f"{l2['analysis']['unexpected_multichoice']}, instructed {len(l2['analysis']['instructed'])} -> {'HELD' if ok3 else 'FAILED'}")
+    verdicts["M3"] = "HELD" if ok3 else "FAILED"
+    l4 = [r for n, r in rs.items() if n.endswith("-L4")][0]
+    want = ["choose:multichoice: SAVE"] + ORDER
+    ok4 = order(l4) == want and var(l4) == 7 and frames(l4) <= 15000
+    lines.append(f"  M4 {l4['name']} (MISSTEP): order {'as predicted' if order(l4) == want else order(l4)}, VAR {var(l4, 'before')}->"
+                 f"{var(l4)}, real frames {frames(l4)} -> {'HELD' if ok4 else 'FAILED'}")
+    verdicts["M4"] = "HELD" if ok4 else "FAILED"
+    clean = sum(1 for r in rs.values() if r["purity_verdict"] == "CLEAN")
+    verdicts["M5"] = f"purity CLEAN {clean} of {len(rs)}"
+    lines.append(f"  M5 purity CLEAN in {clean} of {len(rs)}")
+    return verdicts
+
+
+def grunt(lines: list[str]) -> dict:
+    rs = runs("grunt")
+    verdicts = {}
+
+    def proven(r):
+        m = r["marks_after"]
+        return m.get("TRAINER_GRUNT_RUSTURF_TUNNEL") == 1 and m.get("RECOVERED_DEVON_GOODS") == 1
+
+    def done_frames(r):
+        return frames(r)
+
+    p1 = []
+    for r in [r for n, r in rs.items() if n.startswith("grunt-C3-B")]:
+        before = r["analysis"].get("goal_before_grunt_battle")
+        ok = (proven(r) and done_frames(r) <= 40000 and before is not None and before[1] == "talk:aqua_member"
+              and "a TEAM AQUA member" in before[2] and fresh(r))
+        p1.append(ok)
+        lines.append(f"  P1 {r['name']} (seed {r['seed']}): proven {proven(r)} (from the game), real frames {done_frames(r)}, "
+                     f"goal before the grunt's battle {before[:2] if before else None} -> {'HELD' if ok else 'FAILED'}")
+    verdicts["P1"] = f"{sum(p1)} of {len(p1)}"
+    p2, vacuous = [], 0
+    for r in [r for n, r in rs.items() if n.startswith("grunt-C2-B")]:
+        a = r["analysis"]
+        if a["tunnel_decisions"] == 0:
+            vacuous += 1
+            lines.append(f"  P2 {r['name']} (seed {r['seed']}): VACUOUS (no decision inside RUSTURF TUNNEL), proven {proven(r)}")
+            continue
+        first = a["first_tunnel_frame"] - a["first_frame"] if a["first_tunnel_frame"] and a["first_frame"] else None
+        p2.append(proven(r))
+        lines.append(f"  P2 {r['name']} (seed {r['seed']}): non-vacuous ({a['tunnel_decisions']} decisions in the tunnel; first "
+                     f"look there {first} frames in), proven {proven(r)} (real frames {done_frames(r)})")
+    verdicts["P2"] = (f"{sum(p2)} of {len(p2)} non-vacuous proven ({vacuous} vacuous)"
+                      + ("" if len(p2) >= 2 else ": VACUOUS ARM (fewer than 2 non-vacuous runs)"))
+    a_runs = [r for n, r in rs.items() if "-A" in n]
+    a_ok = [r for r in a_runs if proven(r)]
+    story_success = [r for r in a_ok if (r["analysis"].get("goal_before_grunt_battle") or [None])[0] != "chat"]
+    for r in a_runs:
+        lines.append(f"  P3 {r['name']} (seed {r['seed']}, base): proven {proven(r)}; goal before the grunt's battle "
+                     f"{(r['analysis'].get('goal_before_grunt_battle') or [None, None])[:2]}; tunnel decisions "
+                     f"{r['analysis']['tunnel_goal_kinds']}; first tunnel look {r['analysis']['first_tunnel_frame']}")
+    verdicts["P3"] = (f"{len(a_ok)} of {len(a_runs)} A runs proven, {len(story_success)} by a story goal -> "
+                      f"{'HELD' if len(a_ok) <= 1 and not story_success else 'FAILED'}")
+    p4 = {r["name"]: r["analysis"]["heal_known_fight_after_tunnel"] for n, r in rs.items() if "-B" in n}
+    verdicts["P4"] = f"max {max(p4.values())} heals after arrival per B run ({p4}) -> {'HELD' if max(p4.values()) <= 2 else 'FAILED'}"
+    clean = sum(1 for r in rs.values() if r["purity_verdict"] == "CLEAN")
+    small = sum(1 for r in rs.values() if r["world_bytes"] is not None and r["world_bytes"] < 300 * 1000 * 1000)
+    verdicts["P5"] = f"purity CLEAN {clean} of {len(rs)}; world.jsonl under 300 MB {small} of {len(rs)}"
+    for key in ("P3", "P4", "P5"):
+        lines.append(f"  {key}: {verdicts[key]}")
+    return verdicts
+
+
+def probe(lines: list[str]) -> dict:
+    rs = runs("probe")
+    verdicts = {}
+    q1 = all(var(r) != 6 for r in rs.values())
+    q2 = sum(1 for r in rs.values() if r["marks_after"].get("TRAINER_GRUNT_RUSTURF_TUNNEL") == 1)
+    q3 = sum(1 for r in rs.values() if (var(r) or 0) >= 7)
+    q4 = sum(r["analysis"]["unexpected_multichoice"] for r in rs.values())
+    clean = sum(1 for r in rs.values() if r["purity_verdict"] == "CLEAN")
+    for r in rs.values():
+        changed = {k: f"{r['marks_before'][k]}->{r['marks_after'][k]}" for k in r["marks_after"]
+                   if r["marks_before"].get(k) != r["marks_after"].get(k)}
+        lines.append(f"  {r['name']} ({r['persona']}, seed {r['seed']}): real frames {frames(r)}, end {(r['exit_line'] or '')[22:160]!r}, "
+                     f"game marks changed {changed}, instructed {len(r['analysis']['instructed'])} records, world "
+                     f"{r['world_bytes']} B, THIS_RUN {fresh(r)}")
+        lines.append(f"     milestones told: {[m[22:80] for m in r['analysis']['milestones_told']]}")
+    verdicts["Q1"] = f"no run ends at VAR 6: {q1}"
+    verdicts["Q2"] = f"{q2} of {len(rs)} beat the grunt -> {'HELD' if q2 >= 2 else 'FAILED'}"
+    verdicts["Q3"] = f"{q3} of {len(rs)} pass the POKeNAV tutorial -> {'HELD' if q3 >= 1 else 'FAILED'}"
+    verdicts["Q4"] = f"unexpected-multichoice lines in all runs: {q4} -> {'HELD' if q4 == 0 else 'FAILED'}"
+    verdicts["Q5"] = f"purity CLEAN {clean} of {len(rs)}"
+    for key, value in verdicts.items():
+        lines.append(f"  {key}: {value}")
+    return verdicts
+
+
+def control(lines: list[str]) -> dict:
+    rs = runs("control")
+    verdicts = {}
+    same, pairs = 0, 0
+    for key in sorted({n.rsplit("-", 1)[0] for n in rs}):
+        a, b = rs.get(f"{key}-A"), rs.get(f"{key}-B")
+        if a is None or b is None:
+            lines.append(f"  {key}: MISSING an arm")
+            continue
+        pairs += 1
+        sa = json.loads((HERE / "out" / "control" / f"{key}-A.stream.json").read_text(encoding="utf-8"))
+        sb = json.loads((HERE / "out" / "control" / f"{key}-B.stream.json").read_text(encoding="utf-8"))
+        first_diff = next((i for i, (x, y) in enumerate(zip(sa, sb)) if x != y), None)
+        identical = sa == sb and a.get("records_total") == b.get("records_total") and a["marks_after"] == b["marks_after"]
+        same += identical
+        lines.append(f"  {key} (seed {a['seed']}): compared records A {len(sa)} / B {len(sb)}, all records {a.get('records_total')} / "
+                     f"{b.get('records_total')}, end marks equal {a['marks_after'] == b['marks_after']}, real frames "
+                     f"{frames(a)} / {frames(b)}, instructed in B {len(b['analysis']['instructed'])}"
+                     + (f"; FIRST DIFFERENCE at {first_diff}: A {sa[first_diff]} | B {sb[first_diff]}" if first_diff is not None
+                        else "") + f" -> {'IDENTICAL' if identical else 'DIFFERENT'}")
+    verdicts["K1"] = f"{same} of {pairs} pairs identical"
+    verdicts["K2"] = f"instructed records in B: {sum(len(r['analysis']['instructed']) for n, r in rs.items() if n.endswith('-B'))}"
+    clean = sum(1 for r in rs.values() if r["purity_verdict"] == "CLEAN")
+    verdicts["K3"] = f"purity CLEAN {clean} of {len(rs)}"
+    for key, value in verdicts.items():
+        lines.append(f"  {key}: {value}")
+    return verdicts
+
+
+if __name__ == "__main__":
+    lines: list[str] = []
+    batch = sys.argv[1]
+    result = {"menu": lambda: menu("menu", lines), "menu2": lambda: menu("menu2", lines), "grunt": lambda: grunt(lines),
+              "probe": lambda: probe(lines), "control": lambda: control(lines)}[batch]()
+    print("\n".join(lines))
+    print(json.dumps(result, ensure_ascii=False))
+
+--- rescue.py (sha256 39ab6a56b7728febe19890fa06683da88e06355031a8f8b1ce662a794f9e1806)
+"""RESCUE the results of control runs whose child crashed AFTER the run (arms.py's analysis read a New Game's first look,
+which has no player: fixed in arms.py at 08:47). The run itself finished and its files were copied to out/control/<name>/
+before the crash; this rebuilds the result JSON from them: the game's marks from the truth harness on the copied
+end_state.ss1 (the stage's code root of the arm), the real frames from purity.json's counters, the L5.THIS_RUN freshness
+check redone (a fresh boot starts at frame 0: the state's frame must equal the real frames +-5), the analysis and the
+compared stream from actions.jsonl and ai_player.log. Usage: rescue.py NAME [NAME ...]"""
+import json
+import os
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import arms  # noqa: E402
+
+for name in sys.argv[1:]:
+    job = json.loads((HERE / "out" / "control" / f"{name}.job.json").read_text(encoding="utf-8"))
+    root = HERE / "stage" / f"arm{job['arm']}"
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from ai_player.gates import live_step5 as L5  # noqa: E402 - the first arm's root; truth_of runs the harness file of that root
+    folder = HERE / "out" / "control" / name
+    records = [json.loads(line) for line in (folder / "actions.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    ai_log = (folder / "ai_player.log").read_text(encoding="utf-8", errors="replace")
+    purity = json.loads((folder / "purity.json").read_text(encoding="utf-8"))
+    after, raw = L5.truth_of(folder / "end_state.ss1")
+    real = (purity.get("counters") or {}).get("real_frames")
+    frame = (after or {}).get("frame")
+    fresh_ok = isinstance(frame, int) and isinstance(real, int) and abs(frame - real) <= L5.FRAME_SLACK
+    marks_after = L5.marks(after)
+    world = folder / "world.jsonl"
+    result = {**job, "batch": "control", "exit": None, "rescued": True, "harness_stop": {"real_frames": real},
+              "map_after": (after or {}).get("map"), "frame_after": frame,
+              "marks_before": {k: None for k in arms.FIELDS},
+              "marks_after": {k: marks_after.get(k, marks_after.get("VAR_" + k)) for k in arms.FIELDS},
+              "checks": [{"id": "L5.THIS_RUN (redone by rescue.py)", "status": "PASS" if fresh_ok else "FAIL",
+                          "text": f"fresh boot: state frame {frame} == real frames {real} (+-{L5.FRAME_SLACK})"}],
+              "notes": [f"rescued: the child crashed after the run in its analysis; truth {'read' if after else 'FAILED: ' + raw[-300:]}"],
+              "purity_verdict": purity.get("verdict"), "purity_counters": purity.get("counters"),
+              "world_bytes": world.stat().st_size if world.exists() else None, "world_kept": world.exists(),
+              "outcome": None, "exit_line": next((ln for ln in reversed(ai_log.splitlines()) if "[AI-EXIT]" in ln), None),
+              "analysis": arms.analyse(records, ai_log), "records_total": len(records)}
+    (HERE / "out" / "control" / f"{name}.stream.json").write_text(json.dumps(arms.control_stream(records), ensure_ascii=False),
+                                                                encoding="utf-8")
+    (HERE / "out" / "control" / f"{name}.json").write_text(json.dumps(result, indent=1, default=str, ensure_ascii=False),
+                                                           encoding="utf-8")
+    print(name, "rescued: real frames", real, "frame", frame, "fresh", fresh_ok, "records", len(records), flush=True)
+
+--- build_stage.py (sha256 b10c7629a479203ef090c5517a8804619fc7b6b61fe01833e55df3bf71c39951)
+"""Build the ONE stage for the chapter-5 stops' live arms (s53/ch5stops/stage/), outside every checkout (the round-1 method,
+`PROJECT KNOWLEDGE/ai-research-notes/2026-10-31-KI128-KI129A-BUILD-REPORT.md`; s53/ch5/build_stage.py's mirror):
+
+  stage/build/              a mirror build root of the main sandbox-pokebot: modules, plugins, mgba, roms are JUNCTIONS (read
+                            only), its top-level files, the profiles' global configs and the cache are COPIES, an empty .git,
+                            its own logs/ and profiles/
+  stage/armA/ai_player      the BASE code: `git archive HEAD ai_player` of this worktree (HEAD cbbb3ec5; its ai_player equals
+                            e70a8469's)
+  stage/armB/ai_player      the NEW code: a copy of this worktree's ai_player (no evidence, no bytecode)
+  stage/arm{A,B}/sandbox-pokebot   junctions to stage/build (the launcher's default build root, and the truth harness's)
+  stage/starts/             C{1,2,3}L4 (the BADGE-1 chain ends: end_state.ss1 + world.jsonl) and C{1,2,3}L5 (the chapter-5
+                            probe's end states; C1L5's world.jsonl, the only one kept)
+
+usage: build_stage.py   (refuses if stage/ exists; refuses under 40 GB free)
+"""
+import _winapi
+import hashlib
+import io
+import json
+import shutil
+import subprocess
+import sys
+import tarfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+STAGE = HERE / "stage"
+MAIN = Path("C:/Remote Projects/Pokebot_Gen3_Enhancement")
+SANDBOX = MAIN / "sandbox-pokebot"
+WT = MAIN / ".claude" / "worktrees" / "wf_5eff42ad-346-4"
+PROBE = HERE.parent / "ch5" / "out" / "probe"
+LINKS = ("modules", "plugins", "mgba", "roms")
+CHAIN_L4 = {1: "20261101-013643-C1L4", 2: "20261101-013817-C2L4", 3: "20261101-014127-C3L4"}
+
+
+def tree_digest(root: Path) -> str:
+    h = hashlib.sha256()
+    for p in sorted(x for x in root.rglob("*") if x.is_file() and "__pycache__" not in x.parts):
+        h.update(p.relative_to(root).as_posix().encode() + b"\0" + hashlib.sha256(p.read_bytes()).digest())
+    return h.hexdigest()
+
+
+def md5(path: Path) -> str:
+    return hashlib.md5(path.read_bytes()).hexdigest()
+
+
+def main() -> int:
+    free = shutil.disk_usage("C:/").free / 1e9
+    if free < 40:
+        raise SystemExit(f"REFUSED: {free:.1f} GB free on C: (the floor is 40 GB)")
+    if STAGE.exists():
+        raise SystemExit(f"{STAGE} exists: delete it first (nothing is reused)")
+    build = STAGE / "build"
+    (build / "profiles").mkdir(parents=True)
+    for folder in LINKS:
+        _winapi.CreateJunction(str(SANDBOX / folder), str(build / folder))
+    for entry in SANDBOX.iterdir():
+        if entry.is_file():
+            shutil.copy2(entry, build / entry.name)
+    for entry in (SANDBOX / "profiles").iterdir():
+        if entry.is_file() and entry.suffix in (".yml", ".py"):
+            shutil.copy2(entry, build / "profiles" / entry.name)
+    shutil.copytree(SANDBOX / "cache", build / "cache")
+    (build / "logs").mkdir()
+    (build / ".git").mkdir()
+    fixture = build / "profiles" / "ai-step0-fixture"
+    fixture.mkdir()
+    shutil.copy2(SANDBOX / "profiles" / "ai-step0-fixture" / "metadata.yml", fixture / "metadata.yml")
+    (fixture / ".ai_player_profile").write_text("s53 ch5stops stage: the truth harness's profile\n", encoding="utf-8")
+    # arm A: the base code, from git (read-only `git archive`)
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(WT), capture_output=True, text=True, check=True).stdout.strip()
+    blob = subprocess.run(["git", "archive", "--format=tar", "HEAD", "ai_player"], cwd=str(WT), capture_output=True,
+                          check=True).stdout
+    (STAGE / "armA").mkdir()
+    with tarfile.open(fileobj=io.BytesIO(blob)) as tar:
+        tar.extractall(STAGE / "armA", filter="data")
+    shutil.rmtree(STAGE / "armA" / "ai_player" / "evidence", ignore_errors=True)
+    # arm B: the new code, this worktree's
+    (STAGE / "armB").mkdir()
+    shutil.copytree(WT / "ai_player", STAGE / "armB" / "ai_player", ignore=shutil.ignore_patterns("evidence", "__pycache__", "*.pyc"))
+    for arm in ("armA", "armB"):
+        _winapi.CreateJunction(str(build), str(STAGE / arm / "sandbox-pokebot"))
+    starts = STAGE / "starts"
+    starts.mkdir()
+    for n, folder in CHAIN_L4.items():
+        src = SANDBOX / "profiles" / f"ai-chain-probe-{n}" / "ai_player_runs" / folder
+        shutil.copy2(src / "end_state.ss1", starts / f"C{n}L4_end_state.ss1")
+        shutil.copy2(src / "world.jsonl", starts / f"C{n}L4_world.jsonl")
+        shutil.copy2(PROBE / f"probe-C{n}L5" / "end_state.ss1", starts / f"C{n}L5_end_state.ss1")
+    shutil.copy2(PROBE / "probe-C1L5" / "world.jsonl", starts / "C1L5_world.jsonl")
+    manifest = {"head": head, "digest_A": tree_digest(STAGE / "armA" / "ai_player"),
+                "digest_B": tree_digest(STAGE / "armB" / "ai_player"),
+                "starts": {p.name: {"md5": md5(p), "bytes": p.stat().st_size} for p in sorted(starts.iterdir())}}
+    (STAGE / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
+    print("stage built; HEAD", head, "A", manifest["digest_A"][:16], "B", manifest["digest_B"][:16])
+    print(json.dumps(manifest["starts"], indent=1))
+    print("C: free GB:", round(shutil.disk_usage("C:/").free / 1e9, 1))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+--- refresh_stage.py (sha256 6276cc9cfca9fbe14439a82fc6f7ebdb3ae6169730e1b68a3c80fcb6db7946af)
+"""Refresh the stage's NEW code root (stage/armB/ai_player) from this worktree, add the chain probe's C{1,2,3}L2 end states and
+worlds (the control batch's third legs start there), and rewrite the manifest. The old B digest is kept in the manifest's
+`history` (the batches already run name it). Refuses while a batch runs (any ai-ch5stops profile with a running world file
+modified in the last 30 s)."""
+import hashlib
+import json
+import shutil
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+STAGE = HERE / "stage"
+WT = Path("C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_5eff42ad-346-4")
+SANDBOX = Path("C:/Remote Projects/Pokebot_Gen3_Enhancement/sandbox-pokebot")
+CHAIN_L2 = {1: "20261101-012856-C1L2", 2: None, 3: None}
+
+
+def tree_digest(root: Path) -> str:
+    h = hashlib.sha256()
+    for p in sorted(x for x in root.rglob("*") if x.is_file() and "__pycache__" not in x.parts):
+        h.update(p.relative_to(root).as_posix().encode() + b"\0" + hashlib.sha256(p.read_bytes()).digest())
+    return h.hexdigest()
+
+
+busy = [w for w in (STAGE / "build" / "profiles").glob("ai-ch5stops-*/ai_player_runs/*/world.jsonl")
+        if time.time() - w.stat().st_mtime < 30]
+if busy:
+    raise SystemExit(f"REFUSED: a run is writing {busy[0]}")
+manifest = json.loads((STAGE / "manifest.json").read_text(encoding="utf-8"))
+old = manifest["digest_B"]
+shutil.rmtree(STAGE / "armB" / "ai_player")
+shutil.copytree(WT / "ai_player", STAGE / "armB" / "ai_player", ignore=shutil.ignore_patterns("evidence", "__pycache__", "*.pyc"))
+manifest["digest_B"] = tree_digest(STAGE / "armB" / "ai_player")
+manifest.setdefault("history", []).append({"digest_B": old, "replaced": time.strftime("%Y-%m-%d %H:%M:%S")})
+starts = STAGE / "starts"
+for n in (1, 2, 3):
+    runs = sorted((SANDBOX / "profiles" / f"ai-chain-probe-{n}" / "ai_player_runs").glob(f"*-C{n}L2"))
+    src = runs[-1]
+    for name, dst in (("end_state.ss1", f"C{n}L2_end_state.ss1"), ("world.jsonl", f"C{n}L2_world.jsonl")):
+        if not (starts / dst).exists():
+            shutil.copy2(src / name, starts / dst)
+    print(f"C{n}L2 from {src.name}")
+for p in sorted(starts.iterdir()):
+    manifest["starts"][p.name] = {"md5": hashlib.md5(p.read_bytes()).hexdigest(), "bytes": p.stat().st_size}
+(STAGE / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
+print("B digest", old[:16], "->", manifest["digest_B"][:16])
+
+--- ledger_tool.py (sha256 a8c64340bbf81945d8b972b9f1ceb9fdd489f6b575eb892813ab775d8a5ba558)
+"""Register (begin) or finish a DEVELOPMENT ledger entry in THIS worktree's ai_player/gates/ledger.json. Prose comes from
+FILES (never the shell).
+
+    py -3.12 ledger_tool.py begin DRIVER PREDICTION_FILE FIRST LAST CODE_ROOT NOTE_FILE
+        -> prints the entry id; the bounds field is the sha256 of the prediction file's bytes, written BEFORE the runs;
+           the tree field is the first 16 hex of a digest of CODE_ROOT/ai_player (the code under test)
+    py -3.12 ledger_tool.py finish ID VERDICT_FILE EVIDENCE_PATH
+"""
+import hashlib
+import sys
+from pathlib import Path
+
+WT = Path("C:/Remote Projects/Pokebot_Gen3_Enhancement/.claude/worktrees/wf_5eff42ad-346-4")
+sys.path.insert(0, str(WT))
+from ai_player.gates import ledger  # noqa: E402
+
+assert Path(ledger.__file__).resolve().is_relative_to(WT.resolve()), ledger.__file__
+
+
+def tree_digest(root: Path) -> str:
+    h = hashlib.sha256()
+    for p in sorted(x for x in root.rglob("*") if x.is_file() and "__pycache__" not in x.parts and "evidence" not in x.parts):
+        h.update(p.relative_to(root).as_posix().encode() + b"\0" + hashlib.sha256(p.read_bytes()).digest())
+    return h.hexdigest()
+
+
+if sys.argv[1] == "begin":
+    driver, pred, first, last, code = sys.argv[2], Path(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]), Path(sys.argv[6])
+    note = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+    sha = hashlib.sha256(pred.read_bytes()).hexdigest()
+    digest = tree_digest(code / "ai_player")
+    entry, lines = ledger.begin("story", driver, "development", first, last, sha, digest[:16],
+                                note=note + f" (the bounds field is the sha256 of {pred.name}, written before the runs)")
+    print("\n".join(lines))
+    print(f"ENTRY {entry['id']} seeds {first}-{last} prediction sha256 {sha} code {digest[:16]}")
+elif sys.argv[1] == "finish":
+    ledger.finish(int(sys.argv[2]), Path(sys.argv[3]).read_text(encoding="utf-8").strip(), sys.argv[4])
+    print("finished", sys.argv[2])
+

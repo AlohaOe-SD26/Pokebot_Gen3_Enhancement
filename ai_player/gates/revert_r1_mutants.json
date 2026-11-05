@@ -9653,6 +9653,86 @@
     "test_goals"
    ],
    "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
+  },
+  {
+   "name": "CH5E1",
+   "what": "the call of FrameworkEyes._pokenav in FrameworkEyes._ui deleted (the POKeNAV never read)",
+   "site": "host/eyes.py in FrameworkEyes._ui [call]",
+   "callee": "host/eyes.py:FrameworkEyes._pokenav",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            raw[\"pokenav\"] = self._pokenav_raw = self._pokenav(tasks[\"Task_Pokenav\"])\n",
+     "            raw[\"pokenav\"] = self._pokenav_raw = None  # MUTANT CH5E1\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_host_follows_gpokenavresources"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5, 2026-11-05 (s53/ch5stops): one mutant per new call site of the POKeNAV read in host/eyes.py, each deleting that one call; predictions written BEFORE the first run"
+  },
+  {
+   "name": "CH5E2",
+   "what": "the main menu's handler never named (the call of FrameworkEyes._function_name for substruct 1 deleted)",
+   "site": "host/eyes.py in FrameworkEyes._pokenav [call] (menu)",
+   "callee": "host/eyes.py:FrameworkEyes._function_name",
+   "edits": [
+    [
+     "host/eyes.py",
+     "\"handler\": self._function_name(_u32(menu, 0xC))}\n",
+     "\"handler\": None}  # MUTANT CH5E2\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_host_follows_gpokenavresources"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5, 2026-11-05 (s53/ch5stops): one mutant per new call site of the POKeNAV read in host/eyes.py, each deleting that one call; predictions written BEFORE the first run"
+  },
+  {
+   "name": "CH5E3",
+   "what": "MATCH CALL's handler never named (the call of FrameworkEyes._function_name for substruct 5 deleted)",
+   "site": "host/eyes.py in FrameworkEyes._pokenav [call] (mc)",
+   "callee": "host/eyes.py:FrameworkEyes._function_name",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            handler = self._function_name(_u32(head, 0x18))\n",
+     "            handler = None  # MUTANT CH5E3\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_host_follows_gpokenavresources"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5, 2026-11-05 (s53/ch5stops): one mutant per new call site of the POKeNAV read in host/eyes.py, each deleting that one call; predictions written BEFORE the first run"
+  },
+  {
+   "name": "CH5E4",
+   "what": "the MATCH CALL entries unnamed (the call of FrameworkEyes._match_call_name deleted)",
+   "site": "host/eyes.py in FrameworkEyes._pokenav [call] (entries)",
+   "callee": "host/eyes.py:FrameworkEyes._match_call_name",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            entries = [self._match_call_name(raw_entries[MATCH_CALL_ENTRY * i], _u16(raw_entries, MATCH_CALL_ENTRY * i + 2))\n                       for i in range(count)]\n",
+     "            entries = [\"\" for i in range(count)]  # MUTANT CH5E4\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_host_follows_gpokenavresources"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5, 2026-11-05 (s53/ch5stops): one mutant per new call site of the POKeNAV read in host/eyes.py, each deleting that one call; predictions written BEFORE the first run"
   }
  ]
 }

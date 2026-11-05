@@ -452,6 +452,7 @@ WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3
 | `brain/goals.py` | step 5: the GOAL MANAGER (framework-free): which milestone the marks prove (`milestone`, a waypoint passed on its map), ONE goal at a time with its reason in a fixed order, HEAL, SHOP, TRAIN, ITEM, CATCH, CHAT, then the STORY step (`next_goal`, `_story_goal`: go where the words heard say, `ask` the people of a place when nothing was said, `seek` someone seen earlier where they stood, `find` them, `use`/`talk`/`follow`), the doors it recognises by their look (`notice`, kept in the world memory), the training target from the fight's levels and the personality's margin (`prep`), a goal that failed twice put aside (`FAIL_LIMIT`, `COOLDOWN_DECISIONS`; a heal not, when the party is in danger); the way to an unknown place (`lead_toward`: out to the open map with most left to see, or a building's own town; `travel_intent`); the roam's rest (`training_rest`, installed by `GoalRunner.roam_hooks`), the losses (`battles_lost`); and `GoalRunner`, which plays each goal with the navigator, roaming and the story skills; step 5.1: the look-around (`may_look_around`, kind `explore`) and the detour (`_detour`), the new-map stop, item curiosity (`_remembered_ball`), each step's own words (`step_known`), the fights a person knows (`fight_levels`, `training_target`), the mart by its list (`no_balls`), home healing by experience (`home_heals`, `_saw_mom_heal`), finding a centre (`find_center`), hurt walks out of the grass, the story's cooldown (`aside:`) and the scene walls carried within a milestone; step 5.1's verifier's round: a new place is new to the carried world memory (`_Memory.known_before`), the look-around debt (`LOOK_DEBT`) and every draw told (`say`), the detour walks to a place it chose (`DETOUR_MIN_TILES`, `DETOUR_TRIES`), a story goal put aside comes back after `STORY_ASIDE_FRAMES`, and a walk whose battles ate its budget walks on (`_walk_on_after_battles`, `_BattleClock`, `GO_BATTLE_EXTENSIONS`); the verifier's second round: a GYM by its door's look (`door_of`, `is_gym`, `GoalRunner._to_building`), the nearest place to heal or shop (`_nearest_place`; a door past a crossed edge is not that map's, a door that cannot be walked into is forgotten, `DOOR_UNUSABLE`), a town's own centre looked for first (`find_center` with `via`), the BALANCE (`spent`, `owed`, `OWED_STOP`, `AGAIN_MAX`, the curiosity minimum), its first POKé BALLS tried, the story's own person no chat, `DANGER_RETRIES`, `ASIDE_LOOK_MIN`, and whose rule judged a fight's training done (`fight_prep` `judged_by`) |
 | `skills/story.py` | step 5: the story's person-level skills: talk to someone seen (beside or across a counter), use a thing, pick up an item ball (read what was found), walk into a door, the nurse and the clerk (found by their look), the starter chosen in the bag by its cursor, a scene's yes/no answered by its words (`answer_question`, `QUESTION_RULES`), a scene played to its end (`play_out`) |
 | `knowledge/milestones.json`, `knowledge/story.py`, `knowledge/wild_species.json` | step 5: the story to badge 1 as DATA (20 milestones in 4 chapters, and since 2026-11-01 8 more in chapter 5: proofs, maps, steps, the game's own hint, the fight's levels), extracted from the bot's `story/early_game.py` (teaching material, named with its sha256) by `gates/extract_milestones.py` and checked against pret/pokeemerald by its `--verify`; `story.py` reads it (which milestone the marks prove, the player's own gender's houses); the species a person meets in the wild (the favourite's pool) |
+| `skills/instructed.py` | chapter 5 (2026-11-05): THE INSTRUCTED CHOICE, a menu a scene FORCES chosen by the words read (`named_option`: an option is named when a page says every word of its label, the player's own name left out; pages newest first; two named is ambiguous, nothing chosen). The instruction is the FIELD pages read since the player was last free (`read_along`, a watcher on every look; an app's pages never count); a field menu nothing names is the stop it was; a POKéNAV menu nothing names is backed out of with B; a grid is refused; every loop bounded (`EPISODE_BUDGET`, `MAX_DECISIONS`, `B_REFUSALS`, `FIELD_CHOICES_MAX`, `STILL_PASSES_MAX`) |
 | `skills/roam_train.py`, `skills/flee.py` | step 3: training by ROAMING through seen grass (training steps, every press an attempt, the spin ratio over the training steps, distinct tiles, encounters fled); a WILD battle fled by choosing RUN on the cursor read (a trainer battle: the reason, nothing pressed) |
 | `hands/pad.py` | step 2: the PAD (every press a jittered hold and gap, a gate it names, logged; reading and thinking delays; never an idle without a reason) and `Hands`, what every skill holds (eyes, pad, the choices stream, the faults, the log) |
 | `hands/dialogue.py` | step 2: advance text only on the eyes' waits, stop at every menu; start a conversation only while the player is free (`talk`); step 5.1: what on screen waits for a press (`awaits_press`) and `talk(give_way=True)`, which gives a screen that waits for a press back to its caller at once (the story skills use it; the default is step 2's rule) |
@@ -459,7 +460,7 @@ WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3
 | `hands/menus.py` | step 2: move a cursor by reading it, choose by intent, answer a yes/no, type a name, set the clock, the "How many?" box, and the nurse (`nurse_heal`) and the mart (`mart_buy`); the step-5.1 verifier's second round: with `give_way` (the story's skills; the step-2 default unchanged) a screen that waits for a press before the talk is handed back at once (`GAVE_WAY`) |
 | `skills/intro.py`, `skills/clock.py` | step 2: the New Game intro from the title screen to the truck; the wall clock in the player's room |
 | `personality.py` | step 2: the base personality (Catcher, Story, Trainer) and the intro's two choices, gender and name, by a personality-weighted draw from the seed; step 5: each personality's ERRAND weights (`Errands`, `ERRANDS`: training margin and minimum, catching, balls, healing, chatting), the step-based DRIFT to another personality and back (`PersonalityState`, `DRIFT_EVERY`, `DRIFT_CHANCE`, `DRIFT_STEPS`, every drift logged), the starter's lean (`choose_starter`) and the FAVOURITE Pokemon (`choose_favourite`, a wild species; the shiny hunt is deferred) |
-| `eyes/screens.py` | step 2: the eyes' perception of menus and text (framework-free): which menu is open by its input task, its cursor, the keyboard's layout, the charmap, the tasks that wait for A/B |
+| `eyes/screens.py` | step 2: the eyes' perception of menus and text (framework-free): which menu is open by its input task, its cursor, the keyboard's layout, the charmap, the tasks that wait for A/B; chapter 5: the POKéNAV's three menus (`pokenav_view`: `pokenav_menu`, `pokenav_list`, `pokenav_options`), its call-exit wait (`pokenav_wait`) and scene, and a grid multichoice as its own kind (`multichoice_grid`) |
 | `eyes/observation.py` | the immutable `Observation` and its parts (framework-free): what one look sees |
 | `eyes/view.py` | the AI's perception rules (framework-free): the on-screen window, tile behaviours, object kinds, the screen, when a text waits for a button (`text_printer_wait`), the story flags; tables from pret/pokeemerald |
 | `eyes/party.py` | how a party Pokemon is stored, decoded by the AI's own code (framework-free) |
@@ -2054,19 +2055,48 @@ and VAR_RUSTURF_TUNNEL_STATE at least 2; FLAG_DEVON_GOODS_STOLEN is no proof, th
 (OPTIONAL), `ch5_rusturf_grunt` (the RECOVERED flag, the GRUNT's defeated flag, two states), `ch5_return_goods`, `ch5_devon_corp`
 (the POKeNAV), `ch5_pokenav_tutorial`, `ch5_rival_meet` and `ch5_rival_battle` (OPTIONAL). Every flag, var, trainer id, party level
 and quoted word was checked by `extract_milestones.py --verify` (live `gh api`, the whole 28-milestone file: 24 flag numbers, 19 var numbers, 46 proofs set by
-their scripts, 27 trainers; `--plant` finds seven planted errors and nothing else) and by two independent agents against the pinned
-decomp. What the review changed: the grunt's proof gets its `decomp` script; two hints carry no `map` (their words say only 'tunnel' and
-'cottage': `test_goals` HintTests); the rival proof is PATH-INDEPENDENT (`ENABLE_RIVAL_MATCH_CALL` and STATE 8, never
-`MET_RIVAL_RUSTBORO`, which the Route 104 second chance never sets); `taught_by` names the bot's functions. Three limits, said:
-`ch5_pokenav_tutorial` has the step `follow` only because no step kind exists for a menu task: the scene is a FORCED start menu
-(`Task_HandleMultichoiceInput`, every choice but POKeNAV loops back) then the POKeNAV's MATCH CALL, and the AI has no skill for it
-(measured live: `evidence/2026-11-01-chapter5-development-probe.txt`, 1 of 3 runs stopped there, looping on 'an unexpected
-multichoice on screen' until the loop's own bound); the tunnel grunt step is `follow` too and was reached by chance in 1 of 3 runs;
-`ch5_rival_meet` carries the rival's NAMED fight (levels 13 and 15) with a `go ROUTE104` step, so the train-before-the-fight errand
+their scripts, 27 trainers; `--plant` then found seven planted errors and nothing else; since 2026-11-05 eight, see below) and by two
+independent agents against the pinned decomp. What the review changed: the grunt's proof gets its `decomp` script; two hints carry no
+`map` (their words say only 'tunnel' and 'cottage': `test_goals` HintTests); the rival proof is PATH-INDEPENDENT
+(`ENABLE_RIVAL_MATCH_CALL` and STATE 8, never `MET_RIVAL_RUSTBORO`, which the Route 104 second chance never sets); `taught_by` names
+the bot's functions. The 2026-11-01 probe (`evidence/2026-11-01-chapter5-development-probe.txt`) found TWO STOPS, both built on
+2026-11-05 (next section): the forced START menu of `ch5_pokenav_tutorial` (1 of 3 runs stopped there, looping on 'an unexpected
+multichoice on screen' until the loop's own bound; the milestone keeps its `follow` step: the menus are played by the SCREEN's skill,
+`skills/instructed.py`, never by a step of the story), and the tunnel grunt's `follow` step, which steered nowhere (reached by chance in
+1 of 3 runs; now a `talk` step). `ch5_rival_meet` carries the rival's NAMED fight (levels 13 and 15) with a `go ROUTE104` step, so the train-before-the-fight errand
 applies before the trigger row (`06` 2026-11-01; the bot's own teacher warns the rival 'hits harder than the gym'). `BIG_MOMENTS`
 (`brain/saving.py`) gained no chapter-5 moment. The eyes gained 10 flags and 5 vars (`eyes/view.py`, appended; read-only).
 `gates/test_goals.py` `Chapter5Tests` (12 tests, FAULT and CONTROL halves) and `gates/test_kb2.py` (W4: the milestone count is read,
 not written) carry the rest. Chapters 1-4's entries are byte-identical (digests pinned in `Chapter5Tests`).
+
+### Chapter 5's two stops, built (2026-11-05; DEVELOPMENT evidence, never graded)
+
+**The forced menus: `skills/instructed.py`, THE INSTRUCTED CHOICE.** A menu a scene forces is chosen by the words the player
+read since it was last free: an option is NAMED when a page says every word of its label (3+ letters, the player's own name
+left out), the newest page that names something new decides, two named is ambiguous (nothing chosen). The play brain's
+`_story_menu` hands it a script's multichoice and the POKéNAV's three menus; a field menu nothing names is the stop it was, a
+POKéNAV menu nothing names is backed out of with B, a grid (`multichoice_grid`, the eyes' reclassification) is refused, and
+every loop is bounded. The eyes gained the POKéNAV (`eyes/screens.py` pokenav_view: its main menu in all three of the
+tutorial's handlers, the MATCH CALL list by name, an entry's CALL / CANCEL; the wait after a call; its scene) and the player's
+name (`PlayerState.name`). Nothing reads a flag, the tutorial's hidden mode, a place or a press count (RULINGS 35 and 40, D1).
+FAULT switches: `AI_PLAYER_FAULT_NO_INSTRUCTED` (the code before it) and `AI_PLAYER_FAULT_INSTRUCTED_MISSTEP` (the first field
+choice slips, so the forced menu comes back under "Please select the POKéNAV.").
+**The tunnel grunt: data, no AI-player code.** `ch5_rusturf_grunt`'s steps are `go RUSTURF_TUNNEL` then `talk` to someone who
+LOOKS like a TEAM AQUA member (`looks.aqua_member`, gfx 117 and 118, the general mechanism of the rival, NORMAN and ROXANNE);
+`extract_milestones.py --verify` gained "a step's figure stands on its map" and an 8th plant.
+**Proof** (`evidence/2026-11-05-ch5-stops-development.txt`; seeds 6001-6036, ledger #86-#91): from the C1 probe's forced
+menu the new code passed the tutorial in 6 of 6 runs (VAR_RUSTBORO_CITY_STATE 6 -> 7 from the game, about 3,000 frames,
+POKéNAV, MATCH CALL, MR. STONE, CALL, then B, B), the base code and the FAULT switch in 0 of 5 (one stop a frame for 30,000
+frames), the misstep fault in 2 of 2; from the tunnel (C3) the new step beat the grunt in 3 of 3 by a `talk:aqua_member` goal
+(9,237-15,597 frames), the base in 1 of 3 (by a chat); from ROUTE 116 (C2) 2 of 2 non-vacuous runs (the third never decided
+inside the tunnel), the base 0 of 3; the chapter-5 probe again from the three BADGE-1 chain ends: 3 of 3 reached
+`ch5_rival_meet` (and beat the rival: DEFEATED_RIVAL_RUSTBORO 1) in 158,697-251,345 frames, where the 2026-11-01 probe stopped
+in 3 of 3 (one sample each, never a rate); chapters 1-4: 6 of 6 A/B pairs (three first legs, three third legs) made identical decide,
+goal, goal_end and press records (one trajectory replayed each: a determinism check). Tests: `test_goals.py` InstructedTests
+and TunnelGruntTests, PlayLoopTests' reader check, `test_eyes.py` PokenavEyesTests; mutants `revert_step5` G430-G464 and
+`revert_r1` CH5E1-CH5E4, all CAUGHT; four census waivers, each with its live evidence.
+Seen on the way, not fixed: the base code's stop spins one play-loop pass a frame; a ROUTE 116 run (seed 6016) wrote a
+774 MB world.jsonl in 200,000 frames (both arms: one trajectory), over the 300 MB keep line.
 
 ### The goal manager: `brain/goals.py`
 

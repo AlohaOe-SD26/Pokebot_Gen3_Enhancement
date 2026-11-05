@@ -89,6 +89,11 @@ R1 (the AI saves its game; build spec 2026-10-29, section 3 (a), E1-E6), each ru
     (`CreateMainMenuErrorWindow`); while their task runs the page is printer 7's string (`ERROR_PAGE_TASKS`, `host/eyes.py`).
   * THE CONTINUE WINDOW's TIME: `MainMenu_FormatSavegameTime` draws `playTimeHours:playTimeMinutes` of the save the boot
     loaded (`:2147-2152`): the main menu's view carries it (`hours`, `minutes`) when it offers CONTINUE (tMenuType >= 1).
+
+CHAPTER 5 (2026-11-05, the instructed-choice skill): THE POKéNAV's three menus (`pokenav_menu`, `pokenav_list`,
+`pokenav_options`), the wait after a call (`pokenav_wait`) and its scene (`SCENE_CALLBACKS`): `POKENAV_INPUT_STATE` has the
+decomp source. A GRID multichoice (`Task_HandleMultichoiceGridInput`) is its own kind, `multichoice_grid` (it was
+`multichoice` until then): its cursor moves in 2-D.
 """
 
 from __future__ import annotations
@@ -113,8 +118,16 @@ __all__ = [
     "KEYBOARD_COLUMNS",
     "KEYBOARD_PAGES",
     "MAIN_MENU_OPTIONS",
+    "MATCH_CALL_NAMES",
+    "MATCH_CALL_OPTIONS",
     "NAMING_STATE_HANDLE_INPUT",
     "PARAGRAPH",
+    "POKENAV_CALL_EXIT_HANDLER",
+    "POKENAV_INPUT_STATE",
+    "POKENAV_LIST_HANDLER",
+    "POKENAV_MENU_HANDLERS",
+    "POKENAV_MENU_OPTIONS",
+    "POKENAV_OPTIONS_HANDLER",
     "SAVE_DIALOG_CALLBACKS",
     "SAVE_INPUT_CALLBACKS",
     "SAVE_MENU_CALLBACKS",
@@ -132,6 +145,8 @@ __all__ = [
     "encode_char",
     "key_position",
     "page_text",
+    "pokenav_view",
+    "pokenav_wait",
     "read_ui",
     "save_dialog_wait",
     "scene_of",
@@ -248,7 +263,10 @@ UI_TASKS: dict[str, str] = {
     "Task_SetClock_HandleConfirmInput": "yes_no",  # src/wallclock.c ("Is this the correct time?", default NO)
     "Task_NewGameBirchSpeech_ChooseGender": "gender",  # src/main_menu.c
     "Task_HandleMultichoiceInput": "multichoice",  # src/script_menu.c
-    "Task_HandleMultichoiceGridInput": "multichoice",
+    # (chapter 5, the instructed-choice skill) a GRID of options (`src/script_menu.c` Task_HandleMultichoiceGridInput, the
+    # Rustboro school's blackboard): its cursor moves in 2-D, so it is its own kind, never a list a 1-D cursor walks
+    # (`skills/instructed.py` refuses it). Until 2026-11-05 it was reported as "multichoice".
+    "Task_HandleMultichoiceGridInput": "multichoice_grid",
     "Task_ShopMenu": "mart_menu",  # src/shop.c (BUY / SELL / QUIT)
     "Task_BuyMenu": "mart_buy",  # src/shop.c (the item list)
     "Task_BuyHowManyDialogueHandleInput": "mart_quantity",  # src/shop.c ("How many?")
@@ -404,6 +422,99 @@ def _start_menu_view(tasks: Mapping[str, bytes], raw: Mapping[str, object]) -> M
     return menu_view  # rule 7
 
 
+# --------------------------------------------------------------------------------------------- the POKéNAV (chapter 5)
+#: (chapter 5, 2026-11-05, the instructed-choice skill; the recon of the MATCH CALL tutorial, s53/ch5stops/menu) The POKéNAV
+#: runs no menu task the tables above know: `Task_Pokenav` (`src/pokenav.c`) calls the CURRENT menu's handler every frame
+#: while its state (data[0]) is 3, and runs a looped task (an animation, a list being built, a call's message) in its other
+#: states, when no key is read. `host/eyes.py` follows `gPokenavResources` (EWRAM) to its substructs:
+#:   1, MAIN_MENU_HANDLER (`src/pokenav_menu_handler.c` struct Pokenav_Menu: menuType u16 @0, cursorPos s16 @2, callback @0xC);
+#:   5, MATCH_CALL_MAIN (`src/pokenav_match_call_list.c` struct Pokenav_MatchCallMenu: optionCursorPos u16 @0, maxOptionId
+#:      u16 @2, matchCallOptions (ROM u8[]) @4, numRegistered u16 @0xA, callback @0x18, matchCallEntries[] @0x1C, each
+#:      {isSpecialTrainer u8, mapSec u8, headerId u16});
+#:   17, LIST (`src/pokenav_list.c` struct PokenavList: windowState @0x888 {windowTopIndex u16 @0, selectedIndexOffset u16 @6}).
+#: Each handler is NAMED by the symbol table's reverse lookup (`get_symbol_name`): `HandleMainMenuInput` and
+#: `HandleConditionMenuInput` are static functions in TWO files each (`src/main_menu.c` too), so the forward table cannot
+#: name them. ONLY the kind, the options, the cursor and whether it takes input reach the brain, never a handler's name
+#: (`...Tutorial` would tell a hidden mode).
+POKENAV_INPUT_STATE = 3
+#: `src/pokenav_menu_handler.c` sMenuItems, by menuType (DEFAULT, UNLOCK_MC, UNLOCK_MC_RIBBONS, CONDITION,
+#: CONDITION_SEARCH), as the buttons' pictures read.
+POKENAV_MENU_OPTIONS: dict[int, tuple[str, ...]] = {
+    0: ("HOENN MAP", "CONDITION", "SWITCH OFF"),
+    1: ("HOENN MAP", "CONDITION", "MATCH CALL", "SWITCH OFF"),
+    2: ("HOENN MAP", "CONDITION", "MATCH CALL", "RIBBONS", "SWITCH OFF"),
+    3: ("PARTY", "SEARCH", "CANCEL"),
+    4: ("COOL", "BEAUTY", "CUTE", "SMART", "TOUGH", "CANCEL"),
+}
+#: The menu handlers that read the D-pad and A/B (`src/pokenav_menu_handler.c`; upper case, as `get_symbol_name` names
+#: them). The tutorial's two (critic MENU-5): a build that knew only `HandleMainMenuInput` would see the whole tutorial
+#: as "not taking input". Any other callback (`GetMenuId`, `CB2_ReturnToMainMenu`, ...) is a transition: no menu.
+POKENAV_MENU_HANDLERS = frozenset({"HANDLEMAINMENUINPUT","HANDLEMAINMENUINPUTTUTORIAL",
+                                   "HANDLEMAINMENUINPUTENDTUTORIAL", "HANDLECONDITIONMENUINPUT",
+                                   "HANDLECONDITIONSEARCHMENUINPUT", "HANDLECANTOPENRIBBONSINPUT"})
+#: `src/pokenav_match_call_list.c`: the list's handler, its CALL / CHECK / CANCEL list's, and the wait after a call.
+POKENAV_LIST_HANDLER = "CB2_HANDLEMATCHCALLINPUT"
+POKENAV_OPTIONS_HANDLER = "CB2_HANDLEMATCHCALLOPTIONSINPUT"
+POKENAV_CALL_EXIT_HANDLER = "CB2_HANDLECALLEXITINPUT"
+#: `include/pokenav.h` MATCH_CALL_OPTION_CALL 0, _CHECK 1, _CANCEL 2 (`src/strings.c` gText_Call, gText_Check, gText_Cancel6).
+MATCH_CALL_OPTIONS = ("CALL", "CHECK", "CANCEL")
+#: The NAME a MATCH CALL entry shows, by `include/pokenav.h` MC_HEADER_* (`src/pokenav_match_call_data.c` sMatchCallHeaders:
+#: the `.name` strings of `src/strings.c`, e.g. gText_MrStoneMatchCallName "MR. STONE", gText_NormanMatchCallName "DAD";
+#: a leader's `.name` is NULL and the list shows its trainer's name). The entry's description column ("DEVON PRES") is not
+#: part of the name.
+MATCH_CALL_NAMES = ("MR. STONE", "PROF. BIRCH", "BRENDAN", "MAY", "WALLY", "DAD", "MOM", "STEVEN", "SCOTT", "ROXANNE",
+                    "BRAWLY", "WATTSON", "FLANNERY", "WINONA", "TATE&LIZA", "JUAN", "SIDNEY", "PHOEBE", "GLACIA",
+                    "DRAKE", "WALLACE")
+
+
+def pokenav_view(pokenav: object) -> MenuView | None:
+    """(chapter 5) The POKéNAV's menu on screen, from `host/eyes.py`'s raw read (`raw["pokenav"]`: `state`, Task_Pokenav's
+    data[0]; `menu` {type, cursor, handler}; `mc` {handler, option_cursor, options, entries, list_cursor}): the MATCH CALL
+    list (`pokenav_list`, the cursor windowTopIndex + selectedIndexOffset), an entry's CALL / CHECK / CANCEL
+    (`pokenav_options`, the cursor optionCursorPos) or a main / condition menu (`pokenav_menu`, the cursor cursorPos). It
+    TAKES INPUT only while its handler is the current one AND `Task_Pokenav` reads keys (state 3). None while a call plays,
+    after one (a wait: `pokenav_wait`), on a check page, the map or any transition."""
+    if not isinstance(pokenav, dict):
+        return None
+    taking = pokenav.get("state") == POKENAV_INPUT_STATE
+    mc = pokenav.get("mc")
+    if isinstance(mc, dict):
+        handler = mc.get("handler")
+        if handler == POKENAV_LIST_HANDLER:
+            names = tuple(mc.get("entries") or ())
+            cursor = mc.get("list_cursor")
+            valid = isinstance(cursor, int) and 0 <= cursor < len(names)
+            return MenuView(kind="pokenav_list", options=names, cursor=cursor if valid else None,
+                            accepts_input=taking and valid)
+        if handler == POKENAV_OPTIONS_HANDLER:
+            names = tuple(MATCH_CALL_OPTIONS[i] if 0 <= i < len(MATCH_CALL_OPTIONS) else f"option{i}"
+                          for i in mc.get("options") or ())
+            cursor = mc.get("option_cursor")
+            valid = isinstance(cursor, int) and 0 <= cursor < len(names)
+            return MenuView(kind="pokenav_options", options=names, cursor=cursor if valid else None,
+                            accepts_input=taking and valid)
+        return None
+    menu = pokenav.get("menu")
+    if isinstance(menu, dict) and menu.get("handler") in POKENAV_MENU_HANDLERS:
+        options = POKENAV_MENU_OPTIONS.get(menu.get("type"), ())
+        cursor = menu.get("cursor")
+        valid = isinstance(cursor, int) and 0 <= cursor < len(options)
+        return MenuView(kind="pokenav_menu", options=options, cursor=cursor if valid else None, accepts_input=taking and valid)
+    return None
+
+
+def pokenav_wait(pokenav: object) -> str | None:
+    """(chapter 5, E5) The one POKéNAV wait no text printer shows: a call has ended (its last page printed) and
+    `CB2_HandleCallExitInput` reads A or B (`src/pokenav_match_call_list.c`), while `Task_Pokenav` reads keys (state 3).
+    Measured 2026-11-05: 830 frames of this screen were reported "not waiting" (f859067-f859897 of the recon)."""
+    if not isinstance(pokenav, dict) or pokenav.get("state") != POKENAV_INPUT_STATE:
+        return None
+    mc = pokenav.get("mc")
+    if isinstance(mc, dict) and mc.get("handler") == POKENAV_CALL_EXIT_HANDLER:
+        return "task Task_Pokenav (A or B: the call has ended)"
+    return None
+
+
 def task_wait(tasks: Iterable[str]) -> str | None:
     """Which TASK waits for a button with no text printer waiting (`TASK_WAITS`), as a wait reason."""
     for name in sorted(tasks):
@@ -460,6 +571,12 @@ SCENE_CALLBACKS: dict[str, str] = {
     # from the bag to the party menu and back to the battle (`src/party_menu.c`)
     "ChooseMonForInBattleItem": "the party menu opening (for an item)",
     "CB2_SetUpExitToBattleScreen": "the battle coming back",
+    # (chapter 5, E6, 2026-11-05) the POKéNAV: opened by the MATCH CALL tutorial's script (`src/pokenav.c`
+    # CB2_InitPokenavForTutorial), from the START menu (CB2_InitPokeNav) and running (CB2_Pokenav). Measured: 567 recon
+    # records of the tutorial read scene None, so an unchanging POKéNAV frame got the unnamed stall allowance
+    "CB2_InitPokenavForTutorial": "the POKéNAV",
+    "CB2_InitPokeNav": "the POKéNAV",
+    "CB2_Pokenav": "the POKéNAV",
 }
 #: By a task's name PREFIX (first match), when the callback names no scene:
 SCENE_TASKS: tuple[tuple[str, str], ...] = (
@@ -613,6 +730,9 @@ def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, obje
         # the battle's party menu; a reader without the task list sees it as before (taking input).
         accepts = "Task_HandleChooseMonInput" in tasks if raw.get("party_tasks_known") else True
         return MenuView(kind="party", cursor=slot if isinstance(slot, int) else None, accepts_input=accepts)
+    if "Task_Pokenav" in tasks:
+        # (chapter 5) the POKéNAV's menus (`pokenav_view`): before 2026-11-05 the eyes saw nothing on these screens
+        return pokenav_view(raw.get("pokenav"))
     menu = raw.get("menu")  # sMenu, 12 bytes
     for task, kind in sorted(UI_TASKS.items()):
         if task not in tasks:
@@ -623,7 +743,7 @@ def _read_ui(game_state: str, tasks: Mapping[str, bytes], raw: Mapping[str, obje
             cursor = _s16(data, 0)
             return MenuView(kind=kind, options=STARTER_OPTIONS,
                             cursor=cursor if 0 <= cursor < len(STARTER_OPTIONS) else None)
-        if kind in ("yes_no", "gender", "mart_menu", "multichoice") and isinstance(menu, (bytes, bytearray)):
+        if kind in ("yes_no", "gender", "mart_menu", "multichoice", "multichoice_grid") and isinstance(menu, (bytes, bytearray)):
             cursor = _s8(menu[2])
             if kind == "yes_no":
                 options = YES_NO

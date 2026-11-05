@@ -909,7 +909,9 @@ class PlayLoopTests(unittest.TestCase):
 
         brain = HandsBrain.__new__(HandsBrain)
         brain.options = types.SimpleNamespace(target="ch1_pokedex", fault_no_hints=False, fault_no_training=False,
-                                              fault_no_errands=False, starter=None, clock=None)
+                                              fault_no_errands=False, starter=None, clock=None,
+                                              # (chapter 5) the instructed-choice skill's faults, off
+                                              fault_no_instructed=False, fault_instructed_misstep=False)
         brain.navigator, brain.world, brain.seed, brain._say, brain.play_report = nav, world, 5, (lambda line: None), None
         # (R5's fix round, R5-F1) the run's frame budget: with `frames`, the loop is driven through the brain's REAL bound
         # (`HandsBrain._bounded`, as `play` drives `_skill`), one frame per `yield`; without it, a budget no test reaches
@@ -1858,6 +1860,16 @@ class PlayLoopTests(unittest.TestCase):
         self.assertIn("never starts a New Game", reason)
         reason, *_ = self.run_loop(title, budget=2000, patches={"play_intro": fake_intro})
         self.assertEqual(len(intro), 1)
+
+    def test_the_play_brain_reads_along_for_its_instructed_menus(self):
+        """(chapter 5, 2026-11-05) `_play` makes the instructed-choice skill (`skills/instructed.py`) and puts its reader on
+        EVERY look: the instruction is what was read since the player was last free, so a reader that is not on the looks
+        reads nothing (the dispatch alone is `InstructedTests`). Here the loop's free screens reached it."""
+        reason, hands, *_ = self.run_loop(self.free_screen(), budget=3000)
+        skill = self.last_brain._instructed
+        self.assertIsNotNone(skill)
+        self.assertIn(skill.read_along, hands.watchers)
+        self.assertTrue(skill.free_seen)
 
     def r1_menu_hands(self, script):
         """Hands whose pad also PRESSES (recorded), for `_story_menu`'s save screens."""
@@ -6731,7 +6743,8 @@ class Chapter5Tests(unittest.TestCase):
         self.assertEqual(story.current(dict(before_menu, RUSTBORO_CITY_STATE=7))[1].id, "ch5_rival_meet")  # CONTROL
         pokenav = story.milestones[story.index("ch5_pokenav_tutorial")]
         self.assertIn("INTERACTIVE", json.dumps(KNOWLEDGE["milestones"][story.index("ch5_pokenav_tutorial")]["note"]))
-        self.assertEqual([s.do for s in pokenav.steps], ["follow"])  # no step kind exists for a menu task yet
+        # the forced menus are played by the SCREEN's skill (`skills/instructed.py`, 2026-11-05), never by a step of the story
+        self.assertEqual([s.do for s in pokenav.steps], ["follow"])
 
     def test_the_rival_is_met_on_either_road_the_route_104_variant_included(self):
         """Rustboro's RivalTrigger0-7 set MET_RIVAL_RUSTBORO, ENABLE_RIVAL_MATCH_CALL and STATE 8; Route 104's second chance
@@ -6812,9 +6825,671 @@ class Chapter5Tests(unittest.TestCase):
 
         self.assertEqual(digest(KNOWLEDGE["milestones"][:20]),
                          "24ce2d9509b8e2d1c73b9c4b5e7b73324e847f32c2e40a455d3e4a01d9ebd2bd")
-        self.assertEqual(digest([KNOWLEDGE["gendered_maps"], KNOWLEDGE["looks"], list(KNOWLEDGE["trainers"].items())[:14]]),
+        # (2026-11-05, the tunnel grunt's step) chapter 5 added a 13th look (`aqua_member`, appended): the pin digests the
+        # TWELVE looks chapters 1-4 had, BY NAME, so it still says those are what they were (the same digest as before)
+        old_looks = {name: KNOWLEDGE["looks"][name] for name in OLD_LOOKS}
+        self.assertEqual(digest([KNOWLEDGE["gendered_maps"], old_looks, list(KNOWLEDGE["trainers"].items())[:14]]),
                          "de26718a062c5f1e5a47b2ffe3b90f78fbe7fe90388c533899690b6b9d23e302")
         self.assertNotEqual(digest(KNOWLEDGE["milestones"][:21]), "24ce2d9509b8e2d1c73b9c4b5e7b73324e847f32c2e40a455d3e4a01d9ebd2bd")  # FAULT half: the digest does see a 21st entry
+        # FAULT half of the looks' pin: the whole looks block (13 since the grunt's step) no longer gives that digest
+        self.assertNotEqual(digest([KNOWLEDGE["gendered_maps"], KNOWLEDGE["looks"], list(KNOWLEDGE["trainers"].items())[:14]]),
+                            "de26718a062c5f1e5a47b2ffe3b90f78fbe7fe90388c533899690b6b9d23e302")
+
+
+#: (2026-11-05) The twelve looks of chapters 1-4, in the order the file had them (`test_chapters_1_to_4_are_untouched`).
+OLD_LOOKS = ("clock", "pokemon_center_door", "mart_door", "gym_door", "nurse", "clerk", "birchs_bag", "rival",
+             "rivals_poke_ball", "norman", "mom", "roxanne")
+#: The page the DEVON employee says (`RustboroCity_Text_ShadyCharacterTookOffTowardsTunnel`): the step's own word 'tunnel'.
+TUNNEL_LINE = "That shady character, I think he took off towards the tunnel over there."
+
+
+def _grunt_data(talk_step: bool) -> dict:
+    """The milestones as the file has them (`talk_step`, today's) or as e70a8469 had them (the step `follow`, no Aqua look):
+    the FAULT halves run the real goal manager on the old data."""
+    import copy
+
+    data = copy.deepcopy(KNOWLEDGE)
+    if not talk_step:
+        data["looks"].pop("aqua_member", None)
+        grunt = next(m for m in data["milestones"] if m["id"] == "ch5_rusturf_grunt")
+        grunt["steps"] = [{"do": "go", "map": "RUSTURF_TUNNEL", "told": "tunnel"}, {"do": "follow"}]
+    return data
+
+
+class TunnelGruntTests(unittest.TestCase):
+    """(2026-11-05) The chapter-5 probe's second stop: `ch5_rusturf_grunt`'s `follow` step steered nowhere, and 2 of 3 runs
+    stood beside the TEAM AQUA grunt in RUSTURF TUNNEL and never talked to him. The step is now `talk` to a person who LOOKS
+    like a TEAM AQUA member (`looks.aqua_member`, gfx 117/118), the general mechanism the rival, NORMAN and ROXANNE use. No
+    AI-player code changed: each FAULT half runs the SAME goal manager on e70a8469's data (`_grunt_data(False)`)."""
+
+    GRUNT = person(x=14, y=10, gfx=117, local_id=6)  # 4 tiles east of the player (the grunt at (14,5) from (10,5))
+    PEEKO = person(x=14, y=9, gfx=211, local_id=7)  # PEEKO, the WINGULL, above him
+    THIEF = person(x=12, y=10, gfx=117, local_id=5)  # an Aqua figure on RUSTBORO CITY (the look counts on its step's map only)
+
+    def goal(self, data, const="RUSTURF_TUNNEL", objects=(), heard=(TUNNEL_LINE,), sighting=None, hp=79,
+             personality="Trainer", errands_off=True):
+        from ai_player.knowledge.story import Story
+
+        state = PersonalityState(personality, random.Random(1), drift_on=False)
+        mgr = GoalManager(Story(data, "BOY"), state, random.Random(1), errands_off=errands_off)
+        mgr.memory.known_before = set()
+        mgr.memory.looked, mgr.memory.detoured = _Everything(), _Everything()
+        world = world_with("RUSTBORO_CITY", "ROUTE116", "RUSTURF_TUNNEL", current=const, heard=heard)
+        if sighting is not None:
+            mgr.memory.sightings[("aqua_member", world.current)] = sighting
+        observation = look(ch_proofs("ch5_rusturf_grunt"), party=[mon(26, hp=hp, max_hp=79)], const=const, objects=objects)
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, "ch5_rusturf_grunt")
+        return mgr.next_goal(observation, world, milestone, index), mgr, world, observation, milestone
+
+    def test_f1_the_step_is_talk_to_the_aqua_member(self):
+        grunt = next(m for m in KNOWLEDGE["milestones"] if m["id"] == "ch5_rusturf_grunt")
+        self.assertEqual([(s["do"], s.get("look")) for s in grunt["steps"]], [("go", None), ("talk", "aqua_member")])
+        self.assertEqual(load_story("BOY").looks["aqua_member"].gfx, (117, 118))
+        old = next(m for m in _grunt_data(False)["milestones"] if m["id"] == "ch5_rusturf_grunt")
+        self.assertEqual([s["do"] for s in old["steps"]], ["go", "follow"])  # FAULT half: the old shape
+
+    def test_f2_in_the_tunnel_the_grunt_on_screen_is_talked_to(self):
+        goal = self.goal(KNOWLEDGE, objects=(self.GRUNT, self.PEEKO))[0]
+        self.assertEqual((goal.kind, goal.key, goal.target.local_id, goal.target.graphics_id),
+                         ("talk", "talk:aqua_member", 6, 117))
+        self.assertIn("TEAM AQUA member", goal.reason)
+        self.assertEqual(self.goal(_grunt_data(False), objects=(self.GRUNT, self.PEEKO))[0].kind, "follow")  # FAULT half
+
+    def test_f3_nobody_on_screen_it_finds_him_on_this_map(self):
+        goal = self.goal(KNOWLEDGE)[0]
+        self.assertEqual((goal.kind, goal.key), ("find", "find:aqua_member"))
+        self.assertEqual(self.goal(_grunt_data(False))[0].kind, "follow")  # FAULT half
+
+    def test_f4_a_remembered_sighting_is_sought(self):
+        goal = self.goal(KNOWLEDGE, sighting=(14, 5, 900))[0]
+        self.assertEqual((goal.kind, goal.key, goal.tile), ("seek", "seek:aqua_member", (14, 5)))
+        self.assertEqual(self.goal(_grunt_data(False), sighting=(14, 5, 900))[0].kind, "follow")  # FAULT half
+
+    def test_f5_chat_never_picks_the_story_person(self):
+        """The chat errand leaves alone whoever LOOKS like the current step's person (`story_gfx`). FAULT half: on the old
+        data the step owns nobody and chat picks the grunt."""
+        from ai_player.knowledge.story import Story
+
+        picks = {}
+        for label, data in (("now", KNOWLEDGE), ("old", _grunt_data(False))):
+            mgr = GoalManager(Story(data, "BOY"), PersonalityState("Trainer", random.Random(1), drift_on=False),
+                              random.Random(1))  # fresh: no decision drew a chat yet
+            world = world_with("RUSTBORO_CITY", "ROUTE116", "RUSTURF_TUNNEL", current="RUSTURF_TUNNEL", heard=(TUNNEL_LINE,))
+            observation = look(ch_proofs("ch5_rusturf_grunt"), party=[mon(26, hp=79, max_hp=79)], const="RUSTURF_TUNNEL",
+                               objects=(self.GRUNT,))
+            milestone = mgr.milestone(observation, visited_in(world))[1]
+            step = mgr.story_step(observation, world, milestone)
+            own = mgr.story.looks.get(step.look) if step is not None and step.look else None
+            mgr.memory.curious_since = -10 ** 7  # boredom saturated: the chat's odds at their cap
+            pick = mgr._chat_person(observation, world, observation.frame, own.gfx if own is not None else ())
+            picks[label] = None if pick is None else (pick[0].local_id, pick[0].graphics_id)
+        self.assertEqual(picks, {"now": None, "old": (6, 117)})
+
+    def test_f5b_the_decision_hands_the_steps_look_to_the_chat(self):
+        """F5 through `next_goal` (errands on, boredom at its cap, the grunt beside the player, seed 1): the story's talk,
+        never a chat with him. The call-site mutant (the chat asked with no story gfx) chats with him on this seed
+        (measured offline: s53/ch5stops/f5b_probe.py, seed 1)."""
+        from ai_player.knowledge.story import Story
+
+        mgr = GoalManager(Story(KNOWLEDGE, "BOY"), PersonalityState("Trainer", random.Random(1), drift_on=False),
+                          random.Random(1))
+        mgr.memory.known_before = set()
+        mgr.memory.looked, mgr.memory.detoured = _Everything(), _Everything()
+        mgr.memory.curious_since = -10 ** 7
+        world = world_with("RUSTBORO_CITY", "ROUTE116", "RUSTURF_TUNNEL", current="RUSTURF_TUNNEL", heard=(TUNNEL_LINE,))
+        observation = look(ch_proofs("ch5_rusturf_grunt"), party=[mon(26, hp=79, max_hp=79)], const="RUSTURF_TUNNEL",
+                           objects=(person(x=11, y=10, gfx=117, local_id=6),))
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        goal = mgr.next_goal(observation, world, milestone, index)
+        self.assertEqual((goal.kind, goal.key), ("talk", "talk:aqua_member"))
+
+    def test_c1_a_wingull_is_never_the_aqua_member(self):
+        goal = self.goal(KNOWLEDGE, objects=(self.PEEKO,))[0]
+        self.assertEqual((goal.kind, goal.key), ("find", "find:aqua_member"))
+
+    def test_c2_the_look_counts_on_its_steps_map_only(self):
+        for data in (KNOWLEDGE, _grunt_data(False)):
+            goal = self.goal(data, const="RUSTBORO_CITY", objects=(self.THIEF,))[0]
+            self.assertEqual((goal.kind, goal.map), ("go", "RUSTURF_TUNNEL"))
+
+    def test_c3_c4_seeing_him_is_enough_and_the_word_keeps_it_in_the_tunnel(self):
+        goal, mgr, world, observation, milestone = self.goal(KNOWLEDGE, objects=(self.GRUNT, self.PEEKO), heard=())
+        self.assertEqual(goal.kind, "talk")  # C3: never told 'tunnel', but he is on screen
+        self.assertFalse(mgr._story_here(mgr.story_step(observation, world, milestone), world))
+        _, mgr, world, observation, milestone = self.goal(KNOWLEDGE)
+        self.assertTrue(mgr._story_here(mgr.story_step(observation, world, milestone), world))  # C4: 'tunnel' heard
+
+    def test_c8_a_hurt_party_heals_before_the_talk_a_healthy_one_talks(self):
+        """The behaviour change the design names: a known fight is next INSIDE the tunnel now, so the heal before it
+        applies there (as the go phase's did). The grunt's level is known only from a trainer SEEN on the milestone's maps
+        (ROUTE 116, L9), training done, a POKéMON CENTER known in RUSTBORO. Pinned both ways (85 % heals, 95 % talks); the
+        old data never heals here (its `follow` is no fight step)."""
+        from ai_player.knowledge.story import Story
+
+        kinds = {}
+        for label, data in (("now", KNOWLEDGE), ("old", _grunt_data(False))):
+            for share in (85, 95):
+                state = PersonalityState("Trainer", random.Random(1), drift_on=False)
+                mgr = GoalManager(Story(data, "BOY"), state, random.Random(1), errands_off=True)
+                mgr.memory.known_before = set()
+                mgr.memory.looked, mgr.memory.detoured = _Everything(), _Everything()
+                world = world_with("RUSTBORO_CITY", "ROUTE116", "RUSTURF_TUNNEL", current="RUSTURF_TUNNEL",
+                                   heard=(TUNNEL_LINE,), center_from="RUSTBORO_CITY")
+                mgr.memory.seen_levels["ROUTE116"] = 9
+                observation = look(ch_proofs("ch5_rusturf_grunt"), party=[mon(26, hp=share, max_hp=100)],
+                                   const="RUSTURF_TUNNEL", objects=(self.GRUNT,))
+                index, milestone = mgr.milestone(observation, visited_in(world))
+                mgr.memory.fight_prep[milestone.id] = {"ready": True, "steps": 999, "sessions": 1}
+                kinds[(label, share)] = mgr.next_goal(observation, world, milestone, index).kind
+        self.assertEqual(kinds, {("now", 85): "heal", ("now", 95): "talk", ("old", 85): "follow", ("old", 95): "follow"})
+
+
+# ------------------------------------------------------------------------------------------------ the instructed choice
+#: (2026-11-05) Rustboro's MATCH CALL tutorial as the eyes read it live (the C1 probe's end state and the recon of
+#: s53/ch5stops/menu): the scientist's pages (`data/maps/RustboroCity/scripts.inc`), the forced START menu, the POKéNAV's
+#: main menu, MR. STONE's call (`data/text/match_call.inc` MatchCall_Text_MrStone1), the loop's page and the page after.
+SCENE = ["I’ve been developing an added feature for the POKéNAV…", "And it turned out great!",
+         "Milo, may I see that POKéNAV? The one our PRESIDENT gave you?", "There you go, Milo!",
+         "I added a new feature named MATCH CALL to your POKéNAV.",
+         "Using the MATCH CALL feature, you can chat with people who have been registered in your POKéNAV.",
+         "Milo, our PRESIDENT STONE should be registered in your POKéNAV.", "Test it out. Please give our PRESIDENT a call."]
+FORCED_START = ("POKéDEX", "POKéMON", "BAG", "POKéNAV", "", "SAVE", "OPTION", "EXIT")
+POKENAV_MAIN = ("HOENN MAP", "CONDITION", "MATCH CALL", "SWITCH OFF")
+CALL_PAGES = ["MR. STONE: Oh? Milo!", "Since you called me, the POKéNAV must be working properly!",
+              "Other people will be registered, so try calling them up, too!", "Good! Good! You seem to be quite happy!",
+              "Hm… How could I know that?", "It’s because I’m looking down at you from my office window!",
+              "Wahahaha! See you again!"]
+PLEASE_SELECT = "Please select the POKéNAV."
+BACK_TO_WORK = "Okay, I’d better get back to work. Please take care, Milo!"
+
+
+class _Tutorial:
+    """The tutorial, screen by screen, as the decomp plays it: the forced START menu (every choice but POKéNAV, and B, loop
+    back under "Please select the POKéNAV."), the POKéNAV opening, its main menu (A only on MATCH CALL, B refused until MR.
+    STONE was called), the MATCH CALL list (B refused until then), the entry's CALL / CANCEL, the call's pages, the call-exit
+    wait, then back out and "Okay, I'd better get back to work.". `app_in_field` (FAULT G3's discriminator): the call's
+    pages read as FIELD pages. `call_pages`: what MR. STONE says. Every press moves it as `press` says; frames tick it."""
+
+    OPEN_FRAMES = 30
+
+    def __init__(self, scene=tuple(SCENE), call_pages=tuple(CALL_PAGES), app_in_field=False, accepts=True, bounce=False,
+                 loop_always=False, stuck_opening=False, deaf=False):
+        self.state, self.cursor, self.page, self.index = "forced", 0, None, 0
+        self.buffer = "¶".join(scene)
+        self.call_pages, self.app_in_field, self.accepts = list(call_pages), app_in_field, accepts
+        self.after_call, self.calls, self.wait, self.chosen = False, 0, 0, []
+        # the bounds' fixtures: a B that sends the list and the menu back and forth (`bounce`), a forced menu that loops
+        # back whatever is chosen (`loop_always`), a POKéNAV that never finishes opening (`stuck_opening`), a main menu
+        # that ignores A (`deaf`)
+        self.bounce, self.loop_always, self.stuck_opening, self.deaf = bounce, loop_always, stuck_opening, deaf
+
+    def press(self, button: str) -> None:
+        state = self.state
+        if state == "forced":
+            if button in ("Down", "Up"):
+                self.cursor = max(0, min(len(FORCED_START) - 1, self.cursor + (1 if button == "Down" else -1)))
+            elif button in ("A", "B"):
+                self.chosen.append(("forced", FORCED_START[self.cursor] if button == "A" else "B"))
+                if button == "A" and self.cursor == 3 and not self.loop_always:
+                    self.state, self.wait = "opening", self.OPEN_FRAMES
+                else:
+                    self.state, self.page, self.buffer = "field_page", PLEASE_SELECT, PLEASE_SELECT
+        elif state == "field_page" and button == "A":
+            self.state, self.cursor = ("forced", 0) if self.page == PLEASE_SELECT else ("free", 0)
+        elif state == "menu" and self.bounce and button == "B":
+            self.state, self.cursor = "list", 0
+        elif state == "list" and self.bounce and button == "B":
+            self.state, self.cursor = "menu", 0
+        elif state == "menu" and self.accepts:
+            if button in ("Down", "Up"):
+                self.cursor = max(0, min(3, self.cursor + (1 if button == "Down" else -1)))
+            elif button == "A" and self.deaf:
+                pass
+            elif button == "A" and POKENAV_MAIN[self.cursor] == "MATCH CALL":
+                self.chosen.append(("menu", "MATCH CALL"))
+                self.state, self.wait = "opening_list", self.OPEN_FRAMES
+            elif (button == "B" or (button == "A" and self.cursor == 3)) and self.after_call:
+                self.chosen.append(("menu", "B" if button == "B" else "SWITCH OFF"))
+                self.state, self.wait = "leaving", self.OPEN_FRAMES
+        elif state == "list":
+            if button == "A":
+                self.chosen.append(("list", "MR. STONE"))
+                self.state, self.cursor = "options", 0
+            elif button == "B" and self.after_call:
+                self.chosen.append(("list", "B"))
+                self.state, self.cursor = "menu", 2
+        elif state == "options":
+            if button in ("Down", "Up"):
+                self.cursor = max(0, min(1, self.cursor + (1 if button == "Down" else -1)))
+            elif button == "A" and self.cursor == 0:
+                self.chosen.append(("options", "CALL"))
+                self.state, self.index = "call", 0
+                self.calls += 1
+            elif button in ("A", "B"):
+                self.state, self.cursor = "list", 0
+        elif state == "call" and button == "A":
+            self.index += 1
+            if self.index >= len(self.call_pages):
+                self.state = "call_end"
+        elif state == "call_end" and button in ("A", "B"):
+            self.state, self.cursor, self.after_call = "list", 0, True
+
+    def tick(self) -> None:
+        if self.wait > 0 and not (self.stuck_opening and self.state == "opening"):
+            self.wait -= 1
+            if self.wait == 0:
+                if self.state == "opening":
+                    self.state, self.cursor = "menu", 0
+                elif self.state == "opening_list":
+                    self.state, self.cursor = "list", 0
+                elif self.state == "leaving":
+                    self.state, self.page = "field_page", BACK_TO_WORK
+
+    def look(self, frame: int) -> Observation:
+        from ai_player.eyes.observation import MenuView
+
+        base = look(ch_proofs("ch5_pokenav_tutorial"), const="RUSTBORO_CITY", frame=frame)
+        base = replace(base, player=replace(base.player, name="Milo"))
+        state, ui, text, waits, game, scene = self.state, None, None, False, "UNKNOWN", "the POKéNAV"
+        if state == "forced":
+            ui, text, game, scene = MenuView("multichoice", FORCED_START, self.cursor, True), self.buffer, "OVERWORLD", None
+        elif state == "field_page":
+            text, waits, game, scene = self.page, True, "OVERWORLD", None
+        elif state == "menu":
+            ui = MenuView("pokenav_menu", POKENAV_MAIN, self.cursor, self.accepts)
+        elif state == "list":
+            ui = MenuView("pokenav_list", ("MR. STONE",), 0, True)
+        elif state == "options":
+            ui = MenuView("pokenav_options", ("CALL", "CANCEL"), self.cursor, True)
+        elif state == "call":
+            text, waits = self.call_pages[self.index], True
+            game = "OVERWORLD" if self.app_in_field else "UNKNOWN"
+        elif state == "call_end":
+            waits = True
+        elif state == "free":
+            game, scene = "OVERWORLD", None
+        script = state != "free"
+        screen = ScreenState(game_state=game, screen="overworld", menu=None, text_box_open=waits, waits_for_button=waits,
+                             in_battle=False, wait_reason="text printer 0 CLEAR" if waits else None, ui=ui, text=text,
+                             script_running=script, controls_locked=script, scene=scene)
+        return replace(base, screen=screen)
+
+
+class _TutorialControls(_Controls):
+    """The brain's `Controls` on `_Tutorial`: a press reaches the game on its first frame; every frame ticks it."""
+
+    def __init__(self, game: _Tutorial) -> None:
+        self.game = game
+
+    def wait(self, frames: int):
+        for _ in range(frames):
+            self.game.tick()
+            yield
+
+    def hold(self, button: str, frames: int):
+        self.game.press(button)
+        for _ in range(frames):
+            self.game.tick()
+            yield
+
+
+def tutorial_hands(game, fault_no_instructed=False, misstep=False):
+    """Hands on `_Tutorial`, and the play brain's `_story_menu` with its instructed-choice skill watching every look."""
+    from ai_player.skills.instructed import Instructed
+
+    eyes = _ScriptEyes(game.look)
+    hands = Hands(eyes, _TutorialControls(game), random.Random(1), random.Random(1), None, lambda line: None)
+    eyes.hands = hands
+    hands.told = []
+    hands.say = hands.told.append
+    brain = HandsBrain.__new__(HandsBrain)
+    brain.options = types.SimpleNamespace(fault_no_instructed=fault_no_instructed)
+    brain._instructed = Instructed(misstep=misstep)
+    hands.watchers.append(brain._instructed.read_along)
+    return hands, brain
+
+
+def play_scene(hands, brain, rounds: int = 12):
+    """What `Navigator.handle` does with a scene (advance; a menu to `on_menu`; a stop said), until the player is free."""
+    from ai_player.hands.dialogue import advance, player_free
+
+    for _ in range(rounds):
+        outcome = yield from advance(hands, player_free, "a scene")
+        if outcome == "done":
+            return "free"
+        if outcome.startswith("menu:"):
+            if (yield from brain._story_menu(hands, outcome[5:], "a scene", "MUDKIP")):
+                continue
+            return f"stuck: an unexpected {outcome[5:]} on screen"
+        return f"stuck: a scene: {outcome}"
+    return "rounds"
+
+
+def buttons(hands) -> list[str]:
+    return [entry["button"] for entry in hands.pad.history]
+
+
+class InstructedTests(unittest.TestCase):
+    """(2026-11-05) THE INSTRUCTED CHOICE (`skills/instructed.py`), the chapter-5 probe's first stop: a menu a scene FORCES
+    is chosen by the words read. U1 (the dispatch), U5 (the rule on the tutorial's menus), U6 (the bounds), the guards
+    G1-G7 each with a FAULT and a CONTROL half (a guard whose FAULT needs the code changed is carried by
+    `revert_step5.py`'s mutants), and C1-C3 (the menus chapters 1-4 meet go where they went)."""
+
+    def test_u1_the_forced_menu_and_the_pokenav_are_played_by_the_words(self):
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game)
+        self.assertEqual(drive(play_scene(hands, brain), 200_000), "free")
+        self.assertEqual(game.chosen, [("forced", "POKéNAV"), ("menu", "MATCH CALL"), ("list", "MR. STONE"),
+                                       ("options", "CALL"), ("list", "B"), ("menu", "B")])
+        self.assertEqual(game.calls, 1)
+        self.assertEqual(buttons(hands), ["Down", "Down", "Down", "A", "Down", "Down", "A", "A", "A"] + ["A"] * 7
+                         + ["A", "B", "B", "A"])
+        self.assertTrue(any("'POKéNAV' is named by" in line for line in hands.told))
+        # FAULT half: today's code (`_story_menu` returns False on a multichoice): the same stop as the probe, no press
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game, fault_no_instructed=True)
+        self.assertEqual(drive(play_scene(hands, brain), 200_000), "stuck: an unexpected multichoice on screen")
+        self.assertEqual((buttons(hands), game.chosen), ([], []))
+
+    def test_u5_the_rule_on_the_tutorials_menus(self):
+        from ai_player.skills.instructed import named_option
+
+        def name(options, pages, used=(), own="Milo"):
+            index, _ = named_option(options, list(pages), set(used), own)
+            return None if index is None else options[index]
+
+        self.assertEqual(name(FORCED_START, SCENE), "POKéNAV")
+        self.assertEqual(name(FORCED_START, SCENE + [PLEASE_SELECT]), "POKéNAV")
+        self.assertEqual(name(POKENAV_MAIN, SCENE), "MATCH CALL")
+        self.assertEqual(name(("MR. STONE",), SCENE), "MR. STONE")
+        self.assertEqual(name(("CALL", "CANCEL"), SCENE), "CALL")
+        self.assertIsNone(name(("MR. STONE",), SCENE, used={"MR. STONE"}))
+        self.assertIsNone(name(POKENAV_MAIN, SCENE, used={"MATCH CALL"}))
+        # whole words (a substring rule would find 'call' in "called"; it is REDUNDANT on this scene: a synthetic pair)
+        self.assertIsNone(name(("CALL", "CANCEL"), ["Since you called me, it works."]))
+        # newest first: the newest page that names something decides (REDUNDANT on this scene: a synthetic pair)
+        self.assertEqual(name(("SAVE", "EXIT"), ["Please EXIT now.", "No, SAVE first."]), "SAVE")
+
+    def test_menu1_the_loop_appends_and_the_pokenav_is_still_named(self):
+        """Critic MENU-1: a forced menu that comes back under "Please select the POKéNAV." keeps the pages before it, so
+        MATCH CALL is still named inside the POKéNAV and the call is made. The live arm L4 is this with the misstep fault.
+        FAULT half (the design's replace rule): the single page names nothing on the POKéNAV's main menu."""
+        from ai_player.skills.instructed import named_option
+
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game, misstep=True)
+        self.assertEqual(drive(play_scene(hands, brain), 200_000), "free")
+        self.assertEqual(game.chosen[:3], [("forced", "SAVE"), ("forced", "POKéNAV"), ("menu", "MATCH CALL")])
+        self.assertEqual(game.calls, 1)
+        self.assertEqual(named_option(POKENAV_MAIN, [PLEASE_SELECT], set(), "Milo")[0], None)  # FAULT: replace
+        self.assertEqual(named_option(POKENAV_MAIN, SCENE + [PLEASE_SELECT], set(), "Milo")[0], 2)  # CONTROL: append
+
+    def test_menu4_a_stale_message_is_no_instruction_once_the_player_was_free(self):
+        """Critic MENU-4: the forced menu stands AFTER `closemessage`, so its words come from the message buffer only for a
+        run that began inside the scene. CONTROL: once the player has been free and nothing was read since, the same buffer
+        names nothing (no press). FAULT half: the run that began there (no free look) reads it and chooses POKéNAV."""
+        from ai_player.skills.instructed import Instructed
+
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game)
+        free = replace(game.look(0), screen=ScreenState(game_state="OVERWORLD", screen="overworld", menu=None,
+                                                        text_box_open=False, waits_for_button=False, in_battle=False))
+        brain._instructed.read_along(free)
+        self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
+        self.assertEqual(buttons(hands), [])
+        hands, brain = tutorial_hands(_Tutorial())
+        self.assertIsInstance(brain._instructed, Instructed)
+        self.assertTrue(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 200_000))
+        self.assertEqual(buttons(hands)[:4], ["Down", "Down", "Down", "A"])
+
+    def test_the_transcript_is_the_field_pages_read_since_the_player_was_free(self):
+        """The pages the player READ (each once it waits for a press) since the player was last free, in order; cleared
+        when the player is free; a page inside an app never (G3's CONTROL); the same page in the field is (its FAULT
+        half: what the eyes report decides, so an app whose pages read as the field's would be captured)."""
+        from ai_player.skills.instructed import Instructed
+
+        game = _Tutorial()
+        skill = Instructed()
+        page = game.look(0)
+        for text in SCENE[:3]:
+            skill.read_along(replace(page, screen=replace(page.screen, ui=None, waits_for_button=True, text=text)))
+            skill.read_along(replace(page, screen=replace(page.screen, ui=None, waits_for_button=True, text=text)))
+        self.assertEqual(skill.pages, SCENE[:3])
+        app = replace(page, screen=replace(page.screen, game_state="UNKNOWN", ui=None, waits_for_button=True,
+                                           text="MR. STONE: Oh? Milo!"))
+        skill.read_along(app)
+        self.assertEqual(skill.pages, SCENE[:3])  # CONTROL: never an app's page
+        skill.read_along(replace(app, screen=replace(app.screen, game_state="OVERWORLD")))
+        self.assertEqual(skill.pages[-1], "MR. STONE: Oh? Milo!")  # FAULT half: the same page read as the field's
+        free = replace(page, screen=ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=False,
+                                                waits_for_button=False, in_battle=False))
+        skill.read_along(free)
+        self.assertEqual((skill.pages, skill.free_seen), ([], True))
+
+    def test_g3_a_page_inside_the_app_never_names_a_menu(self):
+        """G3: a call page that names an option of the POKéNAV's main menu ("the HOENN MAP") is conversation: after the call
+        the main menu is backed out of (B). FAULT half: the call's pages read as field pages: HOENN MAP is chosen."""
+        pages = CALL_PAGES[:-1] + ["Do look at the HOENN MAP sometime!", CALL_PAGES[-1]]
+        game = _Tutorial(call_pages=pages)
+        hands, brain = tutorial_hands(game)
+        self.assertEqual(drive(play_scene(hands, brain), 200_000), "free")
+        self.assertNotIn(("menu", "HOENN MAP"), game.chosen)
+        self.assertEqual(game.chosen[-1], ("menu", "B"))
+        game = _Tutorial(call_pages=pages, app_in_field=True)
+        hands, brain = tutorial_hands(game)
+        drive(play_scene(hands, brain), 200_000)
+        self.assertTrue(any("'HOENN MAP' is named by" in line for line in hands.told))
+
+    def test_g4_each_named_option_is_followed_once(self):
+        """G4: after the call, MR. STONE (followed) is named by no NEW option: the list is backed out of, one call made.
+        FAULT half: with nothing remembered as followed, the same pages name MR. STONE again (a second call)."""
+        from ai_player.skills.instructed import named_option
+
+        self.assertEqual(named_option(("MR. STONE",), SCENE, set(), "Milo")[0], 0)  # FAULT: named again
+        self.assertIsNone(named_option(("MR. STONE",), SCENE, {"MR. STONE"}, "Milo")[0])  # CONTROL
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game)
+        drive(play_scene(hands, brain), 200_000)
+        self.assertEqual((game.calls, game.chosen.count(("list", "MR. STONE"))), (1, 1))
+
+    def test_g2_the_players_own_name_never_names_an_option(self):
+        from ai_player.skills.instructed import named_option
+
+        options = ("SOMEONE'S PC", "MILO'S PC", "LOG OFF")
+        pages = ["Milo booted up the PC.", "Which PC should be accessed?"]
+        self.assertIsNone(named_option(options, pages, set(), "Milo")[0])  # CONTROL
+        self.assertEqual(named_option(options, pages, set(), None)[0], 1)  # FAULT half: the name unknown: MILO'S PC
+
+    def test_g1_g5_a_blank_label_is_never_named_and_two_named_choose_nothing(self):
+        from ai_player.skills.instructed import label_words, named_option
+
+        self.assertEqual(label_words("", "Milo"), ())
+        self.assertEqual(label_words("MR.", "Milo"), ())
+        self.assertEqual(named_option(FORCED_START, ["Test it out. Please give our PRESIDENT a call."], set(), "Milo"),
+                         (None, "nothing on it is named by the instruction"))
+        index, why = named_option(("MATCH CALL", "HOENN MAP"), ["Use the MATCH CALL or the HOENN MAP."], set(), "Milo")
+        self.assertIsNone(index)
+        self.assertIn("ambiguous", why)
+        self.assertEqual(named_option(("MATCH CALL", "HOENN MAP"), ["Use the MATCH CALL."], set(), "Milo")[0], 0)
+
+    def test_g6_a_grid_is_refused_with_no_press(self):
+        """G6 (the eyes' E7: `Task_HandleMultichoiceGridInput` is `multichoice_grid`): a grid is refused, said, no press,
+        even when a page names one of its options. FAULT half (E7 reverted: the grid read as a 1-D `multichoice`): the
+        named option is walked to with Up/Down on a 2-D cursor."""
+        from ai_player.eyes.observation import MenuView
+
+        def grid(kind):
+            game = _Tutorial(scene=("The blackboard lists status changes.", "Which topic do you want to read? PSN?"))
+            hands, brain = tutorial_hands(game)
+            board = MenuView(kind, ("PSN", "PAR", "SLP", "BRN", "FRZ", "EXIT"), 0, True)
+            hands.eyes.script = lambda frame: replace(game.look(frame), screen=replace(game.look(frame).screen, ui=board))
+            return hands, brain
+
+        hands, brain = grid("multichoice_grid")
+        self.assertFalse(drive(brain._story_menu(hands, "multichoice_grid", "a scene", "MUDKIP"), 10_000))
+        self.assertEqual(buttons(hands), [])
+        self.assertTrue(any("GRID" in line for line in hands.told))
+        hands, brain = grid("multichoice")
+        drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000)
+        self.assertIn("A", buttons(hands))  # FAULT half: chosen on a grid
+
+    def test_g7_u6_a_b_the_screen_ignores_ends_the_episode_in_its_bounds(self):
+        """G7 / U6: a POKéNAV menu that nothing names and that ignores B (the tutorial's, under an instruction that never
+        names MATCH CALL) gets exactly `B_REFUSALS` B presses, then the episode stops, said, well inside its frame budget. A
+        menu that never takes input stops at `EPISODE_BUDGET`."""
+        from ai_player.skills.instructed import B_REFUSALS, EPISODE_BUDGET
+
+        game = _Tutorial(scene=("Please choose the POKéNAV.",))
+        hands, brain = tutorial_hands(game)
+        self.assertTrue(drive(play_scene(hands, brain, rounds=1), 200_000).startswith("stuck: an unexpected"))
+        self.assertEqual(buttons(hands).count("B"), B_REFUSALS)
+        self.assertLess(hands.pad.frames, EPISODE_BUDGET)
+        self.assertTrue(any("ignored B" in line for line in hands.told))
+        game = _Tutorial(accepts=False)
+        hands, brain = tutorial_hands(game)
+        self.assertNotEqual(drive(play_scene(hands, brain, rounds=1), 400_000), "free")
+        self.assertLessEqual(hands.pad.frames, EPISODE_BUDGET + 600)
+        self.assertTrue(any(f"more than {EPISODE_BUDGET} frames" in line for line in hands.told))
+
+    def test_the_other_bounds_each_end_the_episode_said(self):
+        """Every bound of `follow` stops it, told, with no press past it: MAX_DECISIONS (a B that sends the list and the
+        menu back and forth), FIELD_CHOICES_MAX (a forced menu that loops back whatever is chosen), a screen between the
+        menus that never changes (the stall detector's stop), and a menu that does not take the choice named."""
+        from ai_player.skills.instructed import FIELD_CHOICES_MAX, MAX_DECISIONS
+
+        game = _Tutorial(scene=("Please choose the POKéNAV.",), bounce=True)
+        hands, brain = tutorial_hands(game)
+        drive(play_scene(hands, brain, rounds=1), 200_000)
+        self.assertEqual(buttons(hands).count("B"), MAX_DECISIONS - 1)  # the POKéNAV choice, then the B's
+        self.assertTrue(any("MAX_DECISIONS" in line for line in hands.told))
+        game = _Tutorial(loop_always=True)
+        hands, brain = tutorial_hands(game)
+        drive(play_scene(hands, brain), 200_000)
+        self.assertEqual(game.chosen.count(("forced", "POKéNAV")), FIELD_CHOICES_MAX)
+        self.assertTrue(any("FIELD_CHOICES_MAX" in line for line in hands.told))
+        game = _Tutorial(stuck_opening=True)
+        hands, brain = tutorial_hands(game)
+        drive(play_scene(hands, brain, rounds=1), 200_000)
+        self.assertTrue(any("between the menus: stuck:" in line for line in hands.told))
+        self.assertLess(hands.pad.frames, 2_000)
+        game = _Tutorial(deaf=True)
+        hands, brain = tutorial_hands(game)
+        drive(play_scene(hands, brain, rounds=1), 200_000)
+        self.assertTrue(any("did not take 'MATCH CALL'" in line for line in hands.told))
+        self.assertEqual(game.chosen, [("forced", "POKéNAV")])
+
+    def test_a_loop_that_lets_no_frame_pass_is_bounded(self):
+        """The episode never spins: a pass that presses nothing and waits for nothing (here: an `advance` that answers at
+        once while the POKéNAV is still opening) is counted, and `STILL_PASSES_MAX` of them in a row stop it, told. CONTROL:
+        the real `advance` waits the opening out and the tutorial is played (U1)."""
+        import ai_player.skills.instructed as instructed
+        from ai_player.skills.instructed import STILL_PASSES_MAX
+
+        def answers_at_once(*_args, **_kwargs):
+            return "done"
+            yield  # a generator that lets no frame pass
+
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game)
+        looks = hands.look
+
+        def counted():
+            # a loop that yields no frame never returns to `drive`: the test's own bound is on the looks it takes
+            counted.n += 1
+            if counted.n > 5_000:
+                raise AssertionError("5,000 looks and the episode still spins: no bound on passes that let no frame pass")
+            return looks()
+
+        counted.n = 0
+        hands.look = counted
+        with mock.patch.object(instructed, "advance", answers_at_once):
+            self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 50_000))
+        self.assertTrue(any(f"{STILL_PASSES_MAX + 1} passes in a row let no frame pass" in line for line in hands.told))
+        self.assertEqual(game.chosen, [("forced", "POKéNAV")])
+
+    def test_the_eyes_report_the_kinds_the_skill_plays(self):
+        """The skill's kinds are the eyes' (`eyes/screens.py` read_ui): the POKéNAV's three views and a script's multichoice
+        are INSTRUCTED kinds, a grid is the refused GRID kind (E7). FAULT half: without `Task_Pokenav` the eyes report no
+        menu at all (what they reported before chapter 5)."""
+        from ai_player.eyes.screens import read_ui
+        from ai_player.skills.instructed import GRID_KIND, INSTRUCTED_KINDS
+
+        state = bytes([3, 0]) + bytes(30)
+        views = [
+            {"menu": {"type": 1, "cursor": 0, "handler": "HANDLEMAINMENUINPUTTUTORIAL"}},
+            {"mc": {"handler": "CB2_HANDLEMATCHCALLINPUT", "entries": ["MR. STONE"], "list_cursor": 0, "options": []}},
+            {"mc": {"handler": "CB2_HANDLEMATCHCALLOPTIONSINPUT", "entries": ["MR. STONE"], "list_cursor": 0,
+                    "option_cursor": 0, "options": [0, 2]}},
+        ]
+        kinds = [read_ui("UNKNOWN", {"Task_Pokenav": state}, {"pokenav": {"state": 3, **raw}}).kind for raw in views]
+        self.assertEqual(kinds, ["pokenav_menu", "pokenav_list", "pokenav_options"])
+        self.assertTrue(set(kinds) <= INSTRUCTED_KINDS)
+        menu = bytes([0, 0, 0, 0, 2]) + bytes(7)
+        raw = {"menu": menu, "multichoice_options": ["A1", "B1", "C1"], "multichoice_delay": 0}
+        self.assertEqual(read_ui("OVERWORLD", {"Task_HandleMultichoiceInput": bytes(32)}, raw).kind, "multichoice")
+        self.assertEqual(read_ui("OVERWORLD", {"Task_HandleMultichoiceGridInput": bytes(32)}, raw).kind, GRID_KIND)
+        self.assertIsNone(read_ui("UNKNOWN", {}, {"pokenav": {"state": 3, **views[0]}}))  # FAULT half: no Task_Pokenav
+
+    def test_c3_a_field_menu_nothing_names_is_still_the_stop_it_was(self):
+        """C3: the field multichoices chapters 1-4 (and later) meet, under their own words: nothing is named, no press, the
+        stop is the same as before (False). Each built as the eyes would read it, after the player was free."""
+        from ai_player.eyes.observation import MenuView
+
+        cases = {
+            "PC": (("SOMEONE'S PC", "MILO'S PC", "LOG OFF"), ["Milo booted up the PC.", "Which PC should be accessed?"]),
+            "Briney": (("DEWFORD", "EXIT"), ["MR. BRINEY: Ahoy! For you, I’ll go out to sea anytime!",
+                                             "Now, my friend, where are we bound?"]),
+            "fossil": (("CLAW FOSSIL", "ROOT FOSSIL", "EXIT"),
+                       ["Oh, now that’s a surprise! You have not one, but two, fossils?",
+                        "Unfortunately, my machine can only regenerate one POKéMON at a time.",
+                        "Would you like to pick one of your fossils for regeneration?"]),
+            "fishing": (("EXCELLENT!", "NOT SO GOOD"), ["Yo! How’s your fishing?"]),
+        }
+        for name, (options, pages) in cases.items():
+            with self.subTest(name):
+                game = _Tutorial()
+                hands, brain = tutorial_hands(game)
+                base = game.look(0)
+                free = replace(base, screen=ScreenState(game_state="OVERWORLD", screen="overworld", menu=None,
+                                                        text_box_open=False, waits_for_button=False, in_battle=False))
+                brain._instructed.read_along(free)
+                for text in pages:
+                    brain._instructed.read_along(replace(base, screen=replace(base.screen, ui=None, waits_for_button=True,
+                                                                         text=text)))
+                menu = MenuView("multichoice", options, 0, True)
+                hands.eyes.script = lambda frame, m=menu: replace(base, screen=replace(base.screen, ui=m, text=pages[-1]))
+                self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
+                self.assertEqual(buttons(hands), [])
+
+    def test_c1_c2_the_menus_chapters_1_to_4_meet_go_where_they_went(self):
+        """C1: a starter's bag, the clock, a mart and the save screens reach their own handlers, never the skill; an unknown
+        kind and a yes/no (C2: the navigator answers it by its words before `on_menu`) are not the skill's either."""
+        import ai_player.mode as mode_module
+
+        def handler(*_args, **_kwargs):
+            yield
+            return True
+
+        def left(*_args, **_kwargs):
+            yield
+            return "left"
+
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game)
+        brain.options.clock = (10, 0)
+        brain.navigator = None
+        with mock.patch.object(type(brain._instructed), "follow", side_effect=AssertionError("the skill was called")), \
+                mock.patch.object(mode_module, "choose_starter_in_bag", handler), \
+                mock.patch.object(mode_module, "set_clock", handler), \
+                mock.patch.object(mode_module, "leave_shop", left), \
+                mock.patch.object(HandsBrain, "_save_screen", lambda self, h, k, w: handler()):
+            for kind in ("choose_starter", "clock", "mart_buy", "mart_menu", "start_menu", "save_yes_no", "save_dialog"):
+                with self.subTest(kind):
+                    self.assertTrue(drive(brain._story_menu(hands, kind, "a scene", "MUDKIP")))
+            for kind in ("yes_no", "a_menu_nobody_knows"):
+                with self.subTest(kind):
+                    self.assertFalse(drive(brain._story_menu(hands, kind, "a scene", "MUDKIP")))
 
 
 def _unused_tile() -> Tile:  # keeps the builder import honest (a Tile is what View rows hold)
