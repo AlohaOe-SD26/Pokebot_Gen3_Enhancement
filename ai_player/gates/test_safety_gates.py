@@ -213,6 +213,13 @@ class WiringTests(unittest.TestCase):
         ("revert_step5.py", "main"): {"watch", "check", "seal"},
         ("run_units.py", "main"): {"watch", "check", "seal"},
         ("revert_safety_gates.py", "main"): {"watch", "check", "seal"},
+        # (2026-11-05, the live_chain build's critic CH-01) the New Game chain held-out: the orchestrator begins and
+        # finishes its ledger entry, refuses before it, watches and seals the tree; the child grades every leg's purity
+        # and freshness, measures and deletes its world file, and applies the custody and continuation rules
+        # (`test_live_chain.WiringTests` holds the full list, with a mutant per deleted call)
+        ("live_chain.py", "run_batch"): {"watch", "check", "seal", "begin", "finish", "run_refusal", "schedule"},
+        ("live_chain.py", "run_chain"): {"check_purity", "check_after_is_this_run", "finish_leg", "custody_problems",
+                                         "continue_after"},
     }
 
     def test_each_driver_calls_its_guards_where_they_belong(self) -> None:

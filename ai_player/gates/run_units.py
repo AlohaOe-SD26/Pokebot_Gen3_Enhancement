@@ -89,6 +89,9 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # KI-128/KI-129's graded held-out driver (2026-10-31): every grader's FAULT and CONTROL on planted rows (offline,
     # about 4 s)
     "test_live_ki128": ([str(GATES / "test_live_ki128.py")], 2),
+    # the New Game chain held-out driver (USER RULING 55, 2026-11-05): every guard's FAULT and CONTROL on stub launches,
+    # planted rows and whole stub batches, and its in-suite MUTANTS (each breaks one guard; the control M0 passes)
+    "test_live_chain": ([str(GATES / "test_live_chain.py")], 2),
 }
 
 
