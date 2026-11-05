@@ -415,6 +415,10 @@ def milestone_marks(flag_bytes: bytes, var_bytes: bytes) -> tuple[tuple[str, int
 
 # ------------------------------------------------------------------------------------------- the screen
 #: Task names (`src/start_menu.c`, `src/script_menu.c`) that mean a menu is open over the overworld.
+#: (Chapter 5 gap round, 2026-11-05, the verifier's F5: a NAME only, no behaviour.) This COARSE table feeds
+#: `ScreenState.menu` and still calls the grid `multichoice`, while the menu the skills act on, `ScreenState.ui` from
+#: `eyes/screens.py` read_ui (E7), calls it `multichoice_grid`. No skill or brain code reads `menu`; `observation.py`'s
+#: digest prints it (a log string).
 MENU_TASKS: dict[str, str] = {
     "StartMenuTask": "start_menu",
     "Task_ShowStartMenu": "start_menu",

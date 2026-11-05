@@ -979,6 +979,114 @@ class PokenavEyesTests(unittest.TestCase):
                                        "entries": ["MR. STONE"], "list_cursor": 0})
         self.assertEqual(self.view({k: v for k, v in found.items() if k != "state"}).options, ("CALL", "CANCEL"))
 
+    # ---- (gap round 2026-11-05, the verifier's F1: guards and arithmetic no test exercised)
+    def test_u2_the_list_and_the_options_take_no_input_while_a_looped_task_runs(self) -> None:
+        """`pokenav_view`'s "takes input" guard on the MATCH CALL list and on an entry's CALL / CANCEL, as the main menu's
+        test has it: `Task_Pokenav` calls the current menu's handler only in state 3; in state 2 a looped task runs (the
+        list being built, the options sliding in) and `break`s before any handler reads a key (`src/pokenav.c:452-457`).
+        CONTROL: state 3, both take input. FAULT half: state 2, the same view (kind and cursor) takes none
+        (`revert_r1_mutants.json` CH5E8 and CH5E9 delete the state from each)."""
+        listed = {"mc": {"handler": "CB2_HANDLEMATCHCALLINPUT", "entries": ["MR. STONE", "MOM"], "list_cursor": 1,
+                         "option_cursor": 0, "options": []}}
+        options = {"mc": {"handler": "CB2_HANDLEMATCHCALLOPTIONSINPUT", "entries": ["MR. STONE"], "list_cursor": 0,
+                          "option_cursor": 1, "options": [0, 2]}}
+        for raw, kind, cursor in ((listed, "pokenav_list", 1), (options, "pokenav_options", 1)):
+            with self.subTest(kind):
+                taking, looping = self.view(raw), self.view(raw, self.STATE_LOOPING)
+                self.assertEqual((taking.kind, taking.cursor, taking.accepts_input), (kind, cursor, True))  # CONTROL
+                self.assertEqual((looping.kind, looping.cursor, looping.accepts_input), (kind, cursor, False))
+
+    @staticmethod
+    def _host_read(cells: dict[int, bytes], task: bytes, rom: bytes | None = None) -> dict | None:
+        """The host's `_pokenav` on a FAKE memory: `cells` (exact ranges; EWRAM structs, or a value PLANTED over the
+        cartridge), then, with `rom`, the REAL cartridge behind them (`context.rom.file`, the fixture profile's ROM)."""
+        from modules.context import context
+
+        import ai_player.host.eyes as host_eyes
+
+        class Memory:
+            def read_bytes(self, address: int, length: int) -> bytes:
+                for start, data in cells.items():
+                    if start <= address and address + length <= start + len(data):
+                        return data[address - start:address - start + length]
+                if rom is not None and 0x08000000 <= address and address + length <= 0x08000000 + len(rom):
+                    return rom[address - 0x08000000:address - 0x08000000 + length]
+                raise AssertionError(f"_pokenav read 0x{address:08X} (+{length})")
+
+        with mock.patch.object(context, "emulator", Memory(), create=True):
+            return host_eyes.FrameworkEyes()._pokenav(task)
+
+    @staticmethod
+    def _match_call_cells(entries: list[tuple[int, int]], top: int, offset: int) -> dict[int, bytes]:
+        """`gPokenavResources` -> substruct 5 (Pokenav_MatchCallMenu on its list handler, `entries` as (isSpecialTrainer,
+        headerId)) and 17 (PokenavList: the window state @0x888 {windowTopIndex @0, listLength @2, entriesOffscreen @4,
+        selectedIndexOffset @6}, `src/pokenav_list.c:29-40`), laid out as `test_u2_the_host_follows_gpokenavresources`."""
+        from modules.game import get_symbol
+
+        def u16(v: int) -> bytes:
+            return v.to_bytes(2, "little")
+
+        def u32(v: int) -> bytes:
+            return v.to_bytes(4, "little")
+
+        resources, mc, listing = 0x02010000, 0x02012000, 0x02013000
+        table = b"".join(u32({5: mc, 17: listing}.get(i, 0)) for i in range(19))
+        handler = get_symbol("CB2_HandleMatchCallInput")[0]
+        head = (u16(0) + u16(0) + u32(0) + u16(0) + u16(len(entries)) + u16(0) + bytes(2) + u32(1) + u32(0)
+                + u32(handler | 1))
+        listed = b"".join(bytes([special, 10]) + u16(header) for special, header in entries)
+        return {get_symbol("gPokenavResources")[0]: u32(resources), resources: bytes(16) + table, mc: head + listed,
+                listing + 0x888: u16(top) + u16(len(entries)) + u16(0) + u16(offset)}
+
+    def test_u2_the_list_cursor_is_the_windows_top_plus_its_offset(self) -> None:
+        """The MATCH CALL list's cursor is the entry SELECTED: `windowTopIndex + selectedIndexOffset`
+        (`src/pokenav_list.c:445-450` PokenavList_GetSelectedIndex). A list of six scrolled 3 entries down with the cursor
+        on the window's 2nd row has entry 4 (WALLY) selected. FAULT half (the offset alone, `revert_r1_mutants.json`
+        CH5E10): row 1 of the list, PROF. BIRCH. CONTROL: a window at its top (the tutorial's, top 0) is the same index
+        both ways, which is why `test_u2_the_host_follows_gpokenavresources` could not tell them apart."""
+        framework_rom()
+        specials = [(1, header) for header in range(6)]  # MC_HEADER_MR_STONE .. MC_HEADER_NORMAN (`include/pokenav.h:188`)
+        found = self._host_read(self._match_call_cells(specials, top=3, offset=1), self.STATE_INPUT)
+        self.assertEqual(found["mc"]["entries"], ["MR. STONE", "PROF. BIRCH", "BRENDAN", "MAY", "WALLY", "DAD"])
+        self.assertEqual(found["mc"]["list_cursor"], 4)
+        ui = self.view({"mc": found["mc"]})
+        self.assertEqual((ui.kind, ui.cursor, ui.options[ui.cursor], ui.accepts_input), ("pokenav_list", 4, "WALLY", True))
+        at_top = self._host_read(self._match_call_cells(specials, top=0, offset=4), self.STATE_INPUT)
+        self.assertEqual(at_top["mc"]["list_cursor"], 4)  # CONTROL: top 0, the offset alone is the index
+
+    def test_u2_an_ordinary_trainers_entry_is_named_from_the_rom(self) -> None:
+        """An ORDINARY trainer's MATCH CALL entry (isSpecialTrainer 0) is named as the game names it (its name; the class
+        the game draws beside it is left out on purpose, `eyes/screens.py`)
+        (`src/pokenav_match_call_list.c:399-410` BufferMatchCallNameAndDesc: `GetTrainerIdxByRematchIdx(headerId)`, which
+        is `gRematchTable[rematchIdx].trainerIds[0]`, `src/pokenav_match_call_data.c:735-738`, then that trainer's
+        `gTrainers[].trainerName`), the host reading the ROM's OWN tables (the fixture profile's cartridge behind a fake
+        EWRAM). EXPECTED, from the pinned decomp: REMATCH_ANDRES 1 and REMATCH_DUSTY 2 (`include/constants/rematches.h:6-7`)
+        -> TRAINER_ANDRES_1 and TRAINER_DUSTY_1 (`src/battle_setup.c:263-264`) -> "ANDRES" and "DUSTY"
+        (`src/data/trainers.h:8853`, `:537`); REMATCH_WALLACE, the table's LAST row (77, `include/constants/rematches.h:82`)
+        -> TRAINER_WALLACE (`src/battle_setup.c:339`) -> "WALLACE" (`src/data/trainers.h:4029`). MR. STONE is the special
+        entry the tutorial has.
+
+        THIS TEST FOUND A REAL DEFECT (gap round, 2026-11-05): the build read the table at the struct's 14 bytes of
+        members, but agbcc pads `struct RematchTrainer` to 16 (the symbol table's gRematchTable is 0x4E0 = 78 x 16 bytes),
+        so REMATCH_ANDRES was named "" and REMATCH_DUSTY "GRUNT" (the FAULT half: `revert_r1_mutants.json` CH5E5 restores
+        14). The two RANGE GUARDS, each with a value PLANTED where its guard is the only thing between the read and a
+        name: a header past the table (78 = REMATCH_TABLE_ENTRIES, a real trainer id planted right after the table) and a
+        row naming trainer 855 (TRAINERS_COUNT, `include/constants/opponents.h:864`; past gTrainers lies gSpeciesNames)
+        each name NOTHING (FAULT halves: CH5E6 and CH5E7 delete each guard). CONTROL: row 77 is in range and named."""
+        from modules.context import context
+        from modules.game import get_symbol
+
+        framework_rom()
+        rom = Path(context.rom.file).read_bytes()
+        rematch, size = get_symbol("gRematchTable")
+        self.assertEqual(size, 78 * 16)  # REMATCH_TABLE_ENTRIES (78) rows of 16 bytes: the padding is in the ROM's table
+        entries = [(1, 0), (0, 1), (0, 2), (0, 77), (0, 78), (0, 5)]
+        cells = self._match_call_cells(entries, top=0, offset=0)
+        cells[rematch + 16 * 78] = (44).to_bytes(2, "little")  # PLANTED: TRAINER_DUSTY_1 right after the table
+        cells[rematch + 16 * 5] = (855).to_bytes(2, "little")  # PLANTED: row 5 (REMATCH_LILA_AND_ROY) names trainer 855
+        found = self._host_read(cells, self.STATE_INPUT, rom)
+        self.assertEqual(found["mc"]["entries"], ["MR. STONE", "ANDRES", "DUSTY", "WALLACE", "", ""])
+
     def test_u3_the_call_exit_wait_is_seen(self) -> None:
         from ai_player.eyes.screens import pokenav_wait
 

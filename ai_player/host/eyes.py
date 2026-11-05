@@ -254,9 +254,14 @@ POKENAV_MAIN_MENU_HANDLER, POKENAV_MATCH_CALL_MAIN, POKENAV_LIST = 1, 5, 17
 #: @0x1C (4 bytes each); struct PokenavList windowState @0x888; at most MAX_REMATCH_ENTRIES - 1 = 99 entries read.
 POKENAV_MENU_SIZE, MATCH_CALL_HEAD, MATCH_CALL_ENTRY, POKENAV_LIST_WINDOW = 0x10, 0x1C, 4, 0x888
 MATCH_CALL_MAX_ENTRIES = 99
-#: `include/battle_setup.h` struct RematchTrainer: trainerIds[5] (u16) then mapGroup, mapNum: 14 bytes; `include/data.h`
-#: struct Trainer (0x28 bytes): trainerName[12] @4. An ordinary trainer's MATCH CALL entry shows that name.
-REMATCH_ENTRY_SIZE, TRAINER_SIZE, TRAINER_NAME_AT, TRAINER_NAME_BYTES = 14, 0x28, 4, 12
+#: `include/battle_setup.h` struct RematchTrainer: trainerIds[5] (u16) then mapGroup, mapNum: 14 bytes of members, but
+#: 16 bytes an entry in the ROM (gap round, 2026-11-05: agbcc rounds a struct's size up to a multiple of 4). MEASURED:
+#: the symbol table's gRematchTable is 0x4E0 = 1248 bytes = 78 entries (`include/constants/rematches.h`
+#: REMATCH_TABLE_ENTRIES) x 16, and the ROM's rows read at a 16-byte stride are `src/battle_setup.c:262-265`'s (ROSE,
+#: ANDRES, DUSTY, LOLA), while a 14-byte stride named REMATCH_ANDRES "" and REMATCH_DUSTY "GRUNT" (`gates/test_eyes.py`
+#: test_u2_an_ordinary_trainers_entry_is_named_from_the_rom). `include/data.h` struct Trainer (0x28 bytes):
+#: trainerName[12] @4. An ordinary trainer's MATCH CALL entry shows that name.
+REMATCH_ENTRY_SIZE, TRAINER_SIZE, TRAINER_NAME_AT, TRAINER_NAME_BYTES = 16, 0x28, 4, 12
 #: R1: the start menu's own tasks (`src/start_menu.c`): building it, and running its input and the save dialog.
 _START_MENU_TASKS = frozenset({"StartMenuTask", "Task_ShowStartMenu"})
 #: R1: the main menu's tasks during which it is on screen (`eyes/screens.py` UI_TASKS "main_menu").
@@ -819,7 +824,8 @@ class FrameworkEyes:
     def _match_call_name(special: int, header: int) -> str:
         """The NAME a MATCH CALL entry shows (`src/pokenav_match_call_list.c` BufferMatchCallNameAndDesc): a special entry's
         from `eyes/screens.py` MATCH_CALL_NAMES by its header id; an ordinary trainer's from the ROM (`gRematchTable[header]
-        .trainerIds[0]`, then that trainer's `gTrainers[].trainerName`), each index range-checked against its table."""
+        .trainerIds[0]`, then that trainer's `gTrainers[].trainerName`), each index range-checked against its table. The
+        game also draws the trainer's CLASS beside the name (e.g. RUIN MANIAC, then ANDRES); the name alone is returned."""
         if special:
             return MATCH_CALL_NAMES[header] if 0 <= header < len(MATCH_CALL_NAMES) else ""
         _, rematch_size = get_symbol("gRematchTable")

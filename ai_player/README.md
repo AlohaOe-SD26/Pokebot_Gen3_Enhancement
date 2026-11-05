@@ -2087,14 +2087,35 @@ LOOKS like a TEAM AQUA member (`looks.aqua_member`, gfx 117 and 118, the general
 **Proof** (`evidence/2026-11-05-ch5-stops-development.txt`; seeds 6001-6036, ledger #86-#91): from the C1 probe's forced
 menu the new code passed the tutorial in 6 of 6 runs (VAR_RUSTBORO_CITY_STATE 6 -> 7 from the game, about 3,000 frames,
 POKéNAV, MATCH CALL, MR. STONE, CALL, then B, B), the base code and the FAULT switch in 0 of 5 (one stop a frame for 30,000
-frames), the misstep fault in 2 of 2; from the tunnel (C3) the new step beat the grunt in 3 of 3 by a `talk:aqua_member` goal
+frames), the misstep fault in 2 of 2. ⚠ Those forced-menu runs (the smoke, `menu`, `menu2`) all START from the C1L5 end
+state, INSIDE the forced-menu scene, so the player was never free in them: every one that chose (the smoke, B1-B3 and L4 of
+each batch; the base and FAULT-switch runs choose nothing) took its instruction from MENU-4's MESSAGE-BUFFER FALLBACK ("the
+message the field menu stood under"; counted in their logs, 0 lines of the real path). The REAL
+path, "the pages read since the player was last free" (`read_along`), was exercised by the three chain-end probe runs below
+(#91) and the independent verifier's three (VPROBE, ledger #94 of its copy, seeds 6121-6123): 4 of 4 named lines each, 0 from
+the fallback. From the tunnel (C3) the new step beat the grunt in 3 of 3 by a `talk:aqua_member` goal
 (9,237-15,597 frames), the base in 1 of 3 (by a chat); from ROUTE 116 (C2) 2 of 2 non-vacuous runs (the third never decided
 inside the tunnel), the base 0 of 3; the chapter-5 probe again from the three BADGE-1 chain ends: 3 of 3 reached
 `ch5_rival_meet` (and beat the rival: DEFEATED_RIVAL_RUSTBORO 1) in 158,697-251,345 frames, where the 2026-11-01 probe stopped
 in 3 of 3 (one sample each, never a rate); chapters 1-4: 6 of 6 A/B pairs (three first legs, three third legs) made identical decide,
 goal, goal_end and press records (one trajectory replayed each: a determinism check). Tests: `test_goals.py` InstructedTests
-and TunnelGruntTests, PlayLoopTests' reader check, `test_eyes.py` PokenavEyesTests; mutants `revert_step5` G430-G464 and
-`revert_r1` CH5E1-CH5E4, all CAUGHT; four census waivers, each with its live evidence.
+(20: 16 at the build, 3 from the gap round, 1 from its check) and TunnelGruntTests (10), PlayLoopTests' reader check, `test_eyes.py`
+PokenavEyesTests (10: 7 at the build, 3 from the gap round); mutants `revert_step5` G430-G469 and `revert_r1` CH5E1-CH5E10,
+all CAUGHT; four census waivers, each with its live evidence.
+**The gap round (after the independent verifier, 2026-11-05)** closed six survivors with a FAULT and a CONTROL each (a looped
+task's list and options take no input; the list cursor is the window's top plus its offset; a fading look is not the field;
+MENU-4's message is older than the pages read since; a field menu back with no new page keeps what was followed) and FOUND A
+REAL DEFECT: an ORDINARY trainer's MATCH CALL entry was named from the wrong `gRematchTable` row (the build read 14-byte rows,
+the struct's members; agbcc pads `struct RematchTrainer` to 16, which the symbol table's 0x4E0 = 78 x 16 bytes shows). Read
+from the ROM itself, REMATCH_ANDRES was "" and REMATCH_DUSTY "GRUNT"; fixed (`host/eyes.py` REMATCH_ENTRY_SIZE 16), with
+`test_eyes.py` test_u2_an_ordinary_trainers_entry_is_named_from_the_rom (expected names from the pinned decomp) and its range
+guards' FAULT halves. The tutorial's list holds MR. STONE only (a special entry), so no live run listed an ordinary trainer.
+**The gap round's independent check** (it made its own mutants for every guard; all CAUGHT) found one more defect at
+the same boundary: the field menu's re-capture compared `len(pages)`, a transcript capped at MAX_PAGES (40), so once 40
+pages were held a new page left the count unchanged and the menu given again was left to the caller (CLAUDE.md rule 3:
+a count, not an identity). Fixed: `Instructed.read_total` counts the pages READ, never capped; FAULT/CONTROL
+`test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript` (45 filler pages); mutant G469 is the code as built.
+Its probe re-captures at 39 and 45 filler pages, where the built code did not.
 Seen on the way, not fixed: the base code's stop spins one play-loop pass a frame; a ROUTE 116 run (seed 6016) wrote a
 774 MB world.jsonl in 200,000 frames (both arms: one trajectory), over the 300 MB keep line.
 

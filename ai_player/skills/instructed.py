@@ -147,7 +147,8 @@ class Instructed:
         self.own_name: str | None = None
         self.free_seen = False  # the player has been free in this run (else the run began inside a scene)
         self.joined: list[str] | None = None  # the message box's pages, for a run that began inside a scene
-        self.at_field: int | None = None  # how many instruction pages the last field decision saw
+        self.read_total = 0  # pages read in this scene, never capped (the re-capture test counts this, not `pages`)
+        self.at_field: int | None = None  # `read_total` at the last field decision
         self.started: int | None = None
         self.decisions = 0
         self.refused = 0
@@ -173,6 +174,7 @@ class Instructed:
             # a page is READ once per time it waits: the same words waiting again after a press (the loop's "Please select
             # the POKéNAV.") are read again
             self.pages.append(page)
+            self.read_total += 1
             del self.pages[:-MAX_PAGES]
         self.waiting = page
 
@@ -229,15 +231,17 @@ class Instructed:
                 continue
             app = ui.kind in APP_KINDS
             pages, source = self.instruction_now(look, field=not app)
-            if not app and self.at_field is not None and len(pages) > self.at_field:
-                # the field menu came back under NEW pages: the instruction was given again (its own kind's pairs clear)
+            if not app and self.at_field is not None and self.read_total > self.at_field:
+                # the field menu came back under NEW pages: the instruction was given again (its own kind's pairs clear).
+                # A COUNT OF PAGES READ, never `len(pages)`: that list is capped at MAX_PAGES, so once full a new page left
+                # its length unchanged and the re-capture never fired (the gap check's cap probe, 2026-11-05)
                 self.used = {pair for pair in self.used if pair[0] != ui.kind}
             used = {label for k, label in self.used if k == ui.kind}
             index, deciding = named_option(ui.options, pages, used, self.own_name)
             if index is not None:
                 if not app:
                     self.field_choices += 1
-                    self.at_field = len(pages)
+                    self.at_field = self.read_total
                     if self.field_choices > FIELD_CHOICES_MAX:
                         stop = f"the {ui.kind} came back {self.field_choices} times in one scene (FIELD_CHOICES_MAX)"
                         break

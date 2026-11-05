@@ -7170,6 +7170,59 @@ def buttons(hands) -> list[str]:
     return [entry["button"] for entry in hands.pad.history]
 
 
+class _FieldMenu:
+    """(gap round 2026-11-05, the verifier's F2) A script's FIELD multichoice that comes back after a choice: under the
+    page `after` (`paged`: the box shows it, waiting for A, then the menu again: the instruction given again), or
+    SILENTLY (`paged` False: the box closed for `CLOSE_FRAMES`, then the same menu, no page). The menu stands under
+    `message`, the text box's last message (MENU-4's buffer for a run that began inside the scene)."""
+
+    CLOSE_FRAMES = 30
+
+    def __init__(self, options, message, after=None, paged=True):
+        self.options, self.message, self.after, self.paged = tuple(options), message, after or message, paged
+        self.state, self.cursor, self.wait, self.chosen = "menu", 0, 0, []
+
+    def press(self, button: str) -> None:
+        if self.state == "menu":
+            if button in ("Down", "Up"):
+                self.cursor = max(0, min(len(self.options) - 1, self.cursor + (1 if button == "Down" else -1)))
+            elif button == "A":
+                self.chosen.append(self.options[self.cursor])
+                self.state, self.wait = ("page", 0) if self.paged else ("closed", self.CLOSE_FRAMES)
+        elif self.state == "page" and button == "A":
+            self.state, self.cursor, self.message = "menu", 0, self.after
+
+    def tick(self) -> None:
+        if self.wait > 0:
+            self.wait -= 1
+            if self.wait == 0 and self.state == "closed":
+                self.state, self.cursor = "menu", 0
+
+    def look(self, frame: int) -> Observation:
+        from ai_player.eyes.observation import MenuView
+
+        base = look(ch_proofs("ch5_pokenav_tutorial"), const="RUSTBORO_CITY", frame=frame)
+        base = replace(base, player=replace(base.player, name="Milo"))
+        ui = MenuView("multichoice", self.options, self.cursor, True) if self.state == "menu" else None
+        waits = self.state == "page"
+        text = {"menu": self.message, "page": self.after}.get(self.state)
+        screen = ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=text is not None,
+                             waits_for_button=waits, in_battle=False, wait_reason="text printer 0 CLEAR" if waits else None,
+                             ui=ui, text=text, script_running=True, controls_locked=True)
+        return replace(base, screen=screen)
+
+
+def free_look(base: Observation) -> Observation:
+    """`base` with the player FREE in the field (no script, no box, no menu), as `test_menu4` builds it."""
+    return replace(base, screen=ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=False,
+                                            waits_for_button=False, in_battle=False))
+
+
+def page_look(base: Observation, text: str) -> Observation:
+    """`base` with a FIELD page `text` waiting for a press (read once by `Instructed.read_along`)."""
+    return replace(base, screen=replace(base.screen, game_state="OVERWORLD", ui=None, waits_for_button=True, text=text))
+
+
 class InstructedTests(unittest.TestCase):
     """(2026-11-05) THE INSTRUCTED CHOICE (`skills/instructed.py`), the chapter-5 probe's first stop: a menu a scene FORCES
     is chosen by the words read. U1 (the dispatch), U5 (the rule on the tutorial's menus), U6 (the bounds), the guards
@@ -7242,6 +7295,107 @@ class InstructedTests(unittest.TestCase):
         self.assertIsInstance(brain._instructed, Instructed)
         self.assertTrue(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 200_000))
         self.assertEqual(buttons(hands)[:4], ["Down", "Down", "Down", "A"])
+
+    # ---- (gap round 2026-11-05, the verifier's F2: three boundaries of `skills/instructed.py` no suite exercised)
+    def test_menu4b_the_message_a_run_began_under_is_older_than_the_pages_read_since(self):
+        """MENU-4's ORDER: for a run that began inside a scene, the message the first field menu stands under was shown
+        BEFORE anything the run reads itself, so it goes FIRST and a page read since is NEWER (pages are read newest
+        first): the newer page decides. CONTROL: with nothing read since, the message alone names the option (the C1L5
+        smoke/menu arms' case: they began inside the forced-menu scene). FAULT half (`revert_step5.py` G466: the message
+        read as NEWER than the pages): SAVE is chosen again under "No, EXIT first."."""
+        from ai_player.eyes.observation import MenuView
+        from ai_player.skills.instructed import Instructed, named_option
+
+        options = ("SAVE", "EXIT")
+        base = _Tutorial().look(0)
+        menu = replace(base, screen=replace(base.screen, ui=MenuView("multichoice", options, 0, True),
+                                            text="Please SAVE your game."))
+        skill = Instructed()
+        pages, source = skill.instruction_now(menu, field=True)
+        self.assertEqual((pages, named_option(options, pages, set(), "Milo")[0]), (["Please SAVE your game."], 0))
+        self.assertIn("the run began inside this scene", source)  # CONTROL: the message alone, read from the box
+        skill.read_along(page_look(base, "No, EXIT first."))
+        pages, _ = skill.instruction_now(menu, field=True)
+        self.assertEqual(pages, ["Please SAVE your game.", "No, EXIT first."])  # the message first: OLDER
+        self.assertEqual(named_option(options, pages, set(), "Milo")[0], 1)
+        # the same through the episode: a menu that comes back under "No, EXIT first." gets EXIT
+        game = _FieldMenu(options, "Please SAVE your game.", after="No, EXIT first.")
+        hands, brain = tutorial_hands(game)
+        self.assertTrue(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
+        self.assertEqual(drive(play_scene(hands, brain, rounds=1), 10_000), "rounds")
+        self.assertEqual(game.chosen, ["SAVE", "EXIT"])
+
+    def test_g8_a_fading_look_is_not_the_field(self):
+        """`_in_field`: a look while the screen FADES (the POKéNAV closing back to the field, a warp) is not the field yet,
+        whatever else it shows, so the episode waits the fade out (`advance`) instead of handing a half-drawn field back
+        to the navigator. CONTROL: the same looks not fading are the field (the player free, a field page waiting, another
+        menu). FAULT half (`revert_step5.py` G465: `not screen.fading` deleted): every one of them is the field."""
+        from ai_player.eyes.observation import MenuView
+        from ai_player.skills.instructed import _in_field
+
+        base = _Tutorial().look(0)
+        menu = replace(base, screen=replace(base.screen, ui=MenuView("yes_no", ("YES", "NO"), 0, True)))
+        for name, seen in (("free", free_look(base)), ("page", page_look(base, BACK_TO_WORK)), ("menu", menu)):
+            with self.subTest(name):
+                self.assertTrue(_in_field(seen))  # CONTROL
+                self.assertFalse(_in_field(replace(seen, screen=replace(seen.screen, fading=True))))
+
+    def test_g4b_a_field_menu_back_with_no_new_page_keeps_what_was_followed(self):
+        """G4 on a FIELD menu: `used` is cleared for the menu's own kind only when it comes back under NEW pages (the
+        instruction given again). A menu that comes back SILENTLY (no page read since) keeps what was followed: SAVE is
+        not chosen again, nothing else is named, and it is left to the caller (False). FAULT half (`revert_step5.py`
+        G467: `>` read as `>=`): SAVE is chosen again on every return, until FIELD_CHOICES_MAX stops it. CONTROL: a menu
+        back under a new page clears ITS kind's pairs (SAVE chosen again) and keeps an app's (`pokenav_menu`'s MATCH
+        CALL); `revert_step5.py` G468 clears every kind's."""
+        def scene(paged):
+            game = _FieldMenu(("SAVE", "EXIT"), "Please SAVE your game.", paged=paged)
+            hands, brain = tutorial_hands(game)
+            skill = brain._instructed
+            base = game.look(0)
+            skill.read_along(free_look(base))  # the player was free: the instruction is the pages read since
+            skill.read_along(page_look(base, "Please SAVE your game."))
+            skill.used.add(("pokenav_menu", "MATCH CALL"))  # an app's option followed earlier in this scene
+            return game, hands, brain, skill
+
+        game, hands, brain, skill = scene(paged=False)
+        self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
+        self.assertEqual((game.chosen, buttons(hands).count("A")), (["SAVE"], 1))
+        self.assertTrue(any("left to the caller" in line for line in hands.told))
+        self.assertEqual(skill.used, {("multichoice", "SAVE"), ("pokenav_menu", "MATCH CALL")})
+        game, hands, brain, skill = scene(paged=True)  # CONTROL: back under a new page
+        self.assertTrue(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
+        self.assertEqual(drive(play_scene(hands, brain, rounds=1), 10_000), "rounds")
+        self.assertEqual(game.chosen, ["SAVE", "SAVE"])
+        self.assertEqual(skill.used, {("multichoice", "SAVE"), ("pokenav_menu", "MATCH CALL")})
+
+    def test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript(self):
+        """G4's re-capture once the transcript is FULL (more than MAX_PAGES pages read since the player was free): a field
+        menu back under a new page is still the instruction given again. FAULT half (`revert_step5.py` G469, the code as
+        built: the test compared `len(pages)`, a list capped at MAX_PAGES, so a new page left the count unchanged and the
+        menu was left to the caller; the gap check's cap probe, 2026-11-05). CONTROL: with the transcript just as full, a
+        menu back with NO new page keeps what was followed."""
+        from ai_player.skills.instructed import MAX_PAGES
+
+        def scene(paged):
+            game = _FieldMenu(("SAVE", "EXIT"), "Please SAVE your game.", paged=paged)
+            hands, brain = tutorial_hands(game)
+            skill = brain._instructed
+            base = game.look(0)
+            skill.read_along(free_look(base))
+            for i in range(MAX_PAGES + 5):
+                skill.read_along(page_look(base, f"Some story page number {i}."))
+            skill.read_along(page_look(base, "Please SAVE your game."))
+            self.assertEqual(len(skill.pages), MAX_PAGES)  # the transcript is full
+            return game, hands, brain, skill
+
+        game, hands, brain, skill = scene(paged=True)
+        self.assertTrue(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
+        self.assertEqual(drive(play_scene(hands, brain, rounds=1), 10_000), "rounds")
+        self.assertEqual(game.chosen, ["SAVE", "SAVE"])  # re-captured although the list's length did not change
+        game, hands, brain, skill = scene(paged=False)  # CONTROL: back with no new page
+        self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
+        self.assertEqual(game.chosen, ["SAVE"])
+        self.assertTrue(any("left to the caller" in line for line in hands.told))
 
     def test_the_transcript_is_the_field_pages_read_since_the_player_was_free(self):
         """The pages the player READ (each once it waits for a press) since the player was last free, in order; cleared

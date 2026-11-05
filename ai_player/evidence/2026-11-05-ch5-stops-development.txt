@@ -1,4 +1,5 @@
 CHAPTER 5's TWO STOPS - DEVELOPMENT RUNS (never graded): the instructed-choice skill (the forced START menu and the POKeNAV) and the tunnel grunt's talk step
+CAVEAT (added at the gap round, 2026-11-05; the headline carries it): the smoke, menu and menu2 runs start from the C1L5 state, INSIDE the forced-menu scene, so every instruction they followed came from MENU-4's message-buffer fallback; the real read-along path ('the pages read since the player was last free') was exercised by the chain-end probe runs (#91, 3 of 3) and the verifier's (#94, 3 of 3).
 written 2026-11-05 09:07:03 by s53/ch5stops/write_evidence.py; worktree HEAD cbbb3ec519aa903fb4964f175bfee928de291ada (+ the uncommitted build)
 AI-player code (the package minus gates/, evidence/ and the .md files): worktree 40b1db185bdba453; stage armB (the NEW code the batches menu2, grunt, control and probe ran) 40b1db185bdba453; stage armA (the BASE, git archive HEAD) 117a5f74bde49025
 stage manifest: A 2150416a8aefd47f, B ea6fb4dee1d969f3 (whole package); earlier B ['7eb1a83be43eb939'] (batch menu ran on it, before the no-spin bound)
@@ -1068,3 +1069,82 @@ elif sys.argv[1] == "finish":
     ledger.finish(int(sys.argv[2]), Path(sys.argv[3]).read_text(encoding="utf-8").strip(), sys.argv[4])
     print("finished", sys.argv[2])
 
+
+===== GAP ROUND (2026-11-05, after the independent verifier's report; APPENDED, nothing above is rewritten)
+The verifier (s53/ch5stops/verify) found five gaps, F1-F5. What this round changed, measured and proved; the code is the
+worktree's (branch worktree-wf_5eff42ad-346-4) on top of its safety commit 5adcb33d, uncommitted when this was written.
+Scratch: s53/ch5stops/gaps (g_mut.py, the verifier's v_mut.py harness pointed at this worktree; rom_rematch.py).
+
+1. F3, WHICH INSTRUCTION PATH THE LIVE RUNS TOOK (counted in the kept logs, s53/ch5stops/out/<batch>/<run>/ai_player.log and
+   out/smoke/run, every "is named by" line):
+   - The smoke (#86) and every C1L5 run that chose (menu #87: B1, B2, B3 4 lines each, L4 5; menu2 #88: B1, B2, B3 4 each,
+     L4 5) took its instruction from MENU-4's MESSAGE-BUFFER FALLBACK on EVERY line: "(the message the field menu stood under
+     (the run began inside this scene) and the pages read since)". Those runs START inside the forced-menu scene (the C1L5
+     end state), so the player was never free in them. They prove the forced menu and the POKeNAV are PLAYED; they do NOT
+     exercise the real instruction path. (The base and FAULT-switch runs, A1-A3 and L2, named nothing.)
+   - The REAL path, "(the pages read since the player was last free)" (`Instructed.read_along`), was exercised by the 3
+     chain-end probe runs (#91: probe-C1, C2, C3, 4 of 4 lines each) and by the verifier's 3 (VPROBE, ledger #94 of the
+     verifier's copy, seeds 6121-6123, s53/ch5stops/verify/out/live/vprobe/results.json: 4 of 4 lines each,
+     VAR_RUSTBORO_CITY_STATE 1 -> 8 in 3 of 3). 0 fallback lines in those 6 runs (one trajectory each: samples, not a rate).
+
+2. A REAL DEFECT, FOUND BY F1's NEW TEST AND FIXED: an ORDINARY trainer's MATCH CALL entry (isSpecialTrainer 0) was named from
+   the wrong gRematchTable row. host/eyes.py read the table at 14 bytes a row, the sum of struct RematchTrainer's members
+   (include/battle_setup.h:8-13: u16 trainerIds[5], mapGroup, mapNum); agbcc pads the struct to 16.
+   MEASURED (rom_rematch.py, the fixture profile's cartridge): the symbol table's gRematchTable is 0x4E0 = 1,248 bytes = 78 rows
+   (REMATCH_TABLE_ENTRIES, include/constants/rematches.h) x 16. Rows 0-3 at a 16-byte stride hold trainers 37, 737, 44, 57
+   (ROSE, ANDRES, DUSTY, LOLA: src/battle_setup.c:262-265's TRAINER_*_1); at 14 the same headers read 37, 0, 20, 0. Through
+   the host's own `_match_call_name` (test_eyes.py test_u2_an_ordinary_trainers_entry_is_named_from_the_rom, the REAL ROM
+   behind a fake EWRAM): with 14, REMATCH_ANDRES "", REMATCH_DUSTY "GRUNT", REMATCH_WALLACE "WATTSON"; with 16 "ANDRES",
+   "DUSTY", "WALLACE", the names the pinned decomp gives (src/data/trainers.h:8853, :537, :4029).
+   Fix: host/eyes.py REMATCH_ENTRY_SIZE 14 -> 16 (its comment says why). Not met live: the tutorial's MATCH CALL list holds
+   MR. STONE only, a special entry (MATCH_CALL_NAMES).
+
+3. F1 and F2 CLOSED. Each guard or sum now has a FAULT half (the test fails when it is broken) and a CONTROL half (where it
+   must not fire). The verifier's mutants, the SAME harness (goals + eyes + hands from a full copy), BEFORE (the build's
+   ai_player, snapshot gaps/before) -> AFTER (this round's):
+     X0  (no change, CONTROL)              440 tests OK                  -> 446 tests OK
+     X4  list takes input in any state      SURVIVED                      -> CAUGHT by PokenavEyesTests.test_u2_the_list_and_the_options_take_no_input_while_a_looped_task_runs
+     X4b options take input in any state    SURVIVED                      -> CAUGHT by the same test
+     X11 list cursor without the window top SURVIVED                      -> CAUGHT by PokenavEyesTests.test_u2_the_list_cursor_is_the_windows_top_plus_its_offset
+     X7  _in_field ignores a fade           SURVIVED                      -> CAUGHT by InstructedTests.test_g8_a_fading_look_is_not_the_field (3 subtests)
+     X13 MENU-4's message read as newer     SURVIVED                      -> CAUGHT by InstructedTests.test_menu4b_the_message_a_run_began_under_is_older_than_the_pages_read_since
+     X15 pairs cleared on every return      SURVIVED                      -> CAUGHT by InstructedTests.test_g4b_a_field_menu_back_with_no_new_page_keeps_what_was_followed
+   and the new ones: X20 (the 14-byte row, the defect) and X21, X22 (each range guard of `_match_call_name` deleted) CAUGHT by
+   test_u2_an_ordinary_trainers_entry_is_named_from_the_rom; X23 (a re-capture clears every kind's pairs) CAUGHT by test_g4b.
+   test_menu4b's behavioural half was checked ALONE (x13_behaviour.py: its page-order assertions removed): the unchanged copy
+   passes, X13 fails it with the choices ['SAVE', 'SAVE'] for ['SAVE', 'EXIT'].
+   REGISTERED for the regression lane (predictions written before their first run in a revert driver):
+     revert_step5.py G465 (X7), G466 (X13), G467 (X15), G468 (X23): `revert_step5.py G0,G465,G466,G467,G468 --workers 5`:
+       G0 CONTROL 323 tests, failing none -> PASS; 4 of 4 CAUGHT as predicted; FROZEN TREE PASS; OVERALL PASS.
+     revert_r1_mutants.json CH5E5 (X20), CH5E6 (X21), CH5E7 (X22), CH5E8 (X4), CH5E9 (X4b), CH5E10 (X11), suite
+       test_eyes:PokenavEyesTests (guard mutants: no `site`, which is a call-site mutant's key):
+       `revert_r1.py R0,CH5E1,...,CH5E10 --workers 4`: R0 CONTROL 501 tests, failing none -> PASS; CH5E1-CH5E10 10 of 10
+       CAUGHT as predicted (CH5E1-CH5E4 unchanged, still CAUGHT); FROZEN TREE PASS; OVERALL PASS.
+     The FULL lanes (revert_step5 ~58 min, revert_r1 ~19 min) were not run here.
+
+4. F4, the counts: InstructedTests had 16 tests at the build (the build's claim said 17), now 19; PokenavEyesTests 7, now 10;
+   TunnelGruntTests 10 and Chapter5Tests 12, unchanged. (The verifier's own count: on the BASE code TunnelGruntTests.c2 and 11
+   of the 12 Chapter5Tests pass.)
+
+5. F5: eyes/view.py MENU_TASKS gained a COMMENT only: the coarse `ScreenState.menu` still calls the grid `multichoice`, while
+   `ScreenState.ui.kind` (eyes/screens.py read_ui, E7) calls it `multichoice_grid`; no skill or brain code reads `menu`
+   (observation.py's digest prints it). No behaviour changed.
+
+===== GAP CHECK (2026-11-05, an independent agent after the gap round; APPENDED)
+1. Verdict: every F1/F2 guard fails a test under the checker's OWN mutants (Y1-Y21, written differently from the gap
+   round's); each CONTROL exercises the non-firing side; G465-G468 and CH5E5-CH5E10 each anchor once on the line they
+   claim; the 14 -> 16 byte fix holds on all 78 gRematchTable rows read from the ROM (stride 14: 77 of 78 rows differ
+   from the decomp; stride 16: 0 of 78).
+2. ITS FINDING 1 (MINOR, in the new code, fixed by the lead): the field menu's re-capture compared len(pages), a list
+   capped at MAX_PAGES (40); with 39 filler pages the probe left the menu to the caller ('stuck: an unexpected
+   multichoice on screen'). Fix: Instructed.read_total (pages read, never capped) is compared and stored instead.
+   After: the probe re-captures at 0, 10, 38, 39 and 45 filler pages (['SAVE', 'SAVE'] each).
+   test_goals InstructedTests.test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript (FAULT: 45 filler
+   pages then a new page re-captures; CONTROL: no new page keeps what was followed); revert_step5 G469 (the code as
+   built, both lines): `revert_step5.py G0,G465,G466,G467,G468,G469 --workers 6`: G0 CONTROL 324 tests, failing none ->
+   PASS; 5 of 5 CAUGHT; FROZEN TREE PASS; OVERALL PASS. goals + eyes + hands: Ran 447 tests, OK.
+3. Its finding 4 (NIT): the docstrings of host/eyes.py _match_call_name and the ordinary-entry test now say the game
+   draws the trainer's class beside the name and the eyes return the name alone.
+4. Its finding 2 (NIT) is the CAVEAT line under this file's headline.
+5. The verifier's live batches (#92-#95, seeds 6101-6131, development) were registered in its COPY of the ledger; they
+   are copied into gates/ledger.json with this round, so those seeds are never reused as graded.

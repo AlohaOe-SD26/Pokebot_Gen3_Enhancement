@@ -2095,6 +2095,39 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
               "TunnelGruntTests.test_f2_in_the_tunnel_the_grunt_on_screen_is_talked_to",
               "TunnelGruntTests.test_f3_nobody_on_screen_it_finds_him_on_this_map",
               "TunnelGruntTests.test_f4_a_remembered_sighting_is_sought"]),
+    # ---- (chapter 5 gap round, 2026-11-05) the verifier's F2: three boundaries of `skills/instructed.py` that survived
+    # every suite (its X7, X13, X15), each now FAULT-tested beside a CONTROL, test_goals.py InstructedTests; G468 is the
+    # CONTROL half's own rule (a re-capture clears the field menu's kind only)
+    "G465": (CAUGHT, "a fading look is the field (`_in_field`'s `not screen.fading` deleted; the verifier's X7)",
+             [(INSTRUCTED, "    return (screen.game_state == \"OVERWORLD\" and not screen.fading\n",
+               "    return (screen.game_state == \"OVERWORLD\"  # MUTANT G465\n")],
+             ["InstructedTests.test_g8_a_fading_look_is_not_the_field"]),
+    "G466": (CAUGHT, "MENU-4's message is read as NEWER than the pages read since (`instruction_now` puts the joined "
+                     "message after the pages; the verifier's X13)",
+             [(INSTRUCTED, "        return list(self.joined or []) + self.pages, (\"the message the field menu stood under "
+                           "(the run began inside this \"\n",
+               "        return self.pages + list(self.joined or []), (\"the message the field menu stood under (the run "
+               "began inside this \"  # MUTANT G466\n")],
+             ["InstructedTests.test_menu4b_the_message_a_run_began_under_is_older_than_the_pages_read_since"]),
+    "G467": (CAUGHT, "a field menu's followed pairs are cleared on every return, new pages or not (the re-capture's `>` "
+                     "read as `>=`; the verifier's X15)",
+             [(INSTRUCTED, "            if not app and self.at_field is not None and self.read_total > self.at_field:\n",
+               "            if not app and self.at_field is not None and self.read_total >= self.at_field:  # MUTANT G467\n")],
+             ["InstructedTests.test_g4b_a_field_menu_back_with_no_new_page_keeps_what_was_followed"]),
+    "G468": (CAUGHT, "a field menu given again under new pages clears EVERY kind's followed pairs (an app's too), not "
+                     "only its own kind's",
+             [(INSTRUCTED, "                self.used = {pair for pair in self.used if pair[0] != ui.kind}\n",
+               "                self.used = set()  # MUTANT G468\n")],
+             ["InstructedTests.test_g4b_a_field_menu_back_with_no_new_page_keeps_what_was_followed"]),
+    # ---- the gap check's finding 1 (2026-11-05): the re-capture compared `len(pages)`, a list capped at MAX_PAGES; G469
+    # is the code as built (both lines), so a full transcript never re-captures
+    "G469": (CAUGHT, "the re-capture counts the CAPPED transcript (`len(pages)`) instead of the pages read (the code as "
+                     "built; once MAX_PAGES are held a new page leaves the count unchanged)",
+             [(INSTRUCTED, "            if not app and self.at_field is not None and self.read_total > self.at_field:\n",
+               "            if not app and self.at_field is not None and len(pages) > self.at_field:  # MUTANT G469\n"),
+              (INSTRUCTED, "                    self.at_field = self.read_total\n",
+               "                    self.at_field = len(pages)  # MUTANT G469\n")],
+             ["InstructedTests.test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript"]),
 }
 
 DRIVER = '''
