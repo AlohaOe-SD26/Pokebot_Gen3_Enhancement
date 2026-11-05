@@ -120,7 +120,11 @@ PACKS = os.path.join(REPO, "PROJECT KNOWLEDGE", "chapter-packs")
 MILESTONES = os.path.join(REPO, "ai_player", "knowledge", "milestones.json")
 EXTRACT_WORLD = os.path.join(REPO, "ai_player", "gates", "extract_world.py")
 VERIFY_WORLD = os.path.join(REPO, "ai_player", "gates", "verify_world.py")
-W3_CHAPTERS = (1, 2, 3, 4)
+#: the chapters that have milestones (chapter 5 joined on 2026-11-01: its trainers, the Rustboro rival among them, are in
+#: milestones.json's table, so recall must look for them in the ch5 pack)
+W3_CHAPTERS = (1, 2, 3, 4, 5)
+#: how many milestones milestones.json holds (20 for chapters 1-4; 28 with chapter 5's eight)
+MILESTONE_COUNT = 28
 MD_CAP = 12 * 1024
 ROUTE_KEYS = ("x", "y", "route", "path", "steps", "coords")
 ABSENT_MARKERS = ("NOT INCLUDED YET: items, gifts, marts and scripted events",
@@ -534,7 +538,7 @@ def recall(packs, mds, ms):
         total += 3
         c = chap.get(key)
         if c not in packs:
-            missing.append("%s: no chapter 1-4 milestone places it" % key)
+            missing.append("%s: no milestone of chapters %s places it" % (key, list(packs)))
             continue
         pack, md = packs[c], mds[c]
         cands = [t for t in pack["trainers"] if t["symbol"] == sym] + \
@@ -545,7 +549,15 @@ def recall(packs, mds, ms):
             missing.append("ch%d %s (id %s): not in the pack" % (c, key, row["id"]))
             continue
         hits += 1
-        if t["flag"] == row["flag"] and re.search(r"`%s`[^\n]*flag %d\b" % (re.escape(key), row["flag"]), md):
+        md_named = bool(re.search(r"`%s`[^\n]*flag %d\b" % (re.escape(key), row["flag"]), md))
+        if not md_named and "SUMMARISED to fit the cap" in md and not t.get("double"):
+            # (2026-11-01, chapter 5) a page summarised to fit its cap lists ordinary single-battle trainers as a per-map
+            # count, by make_chapter_pack's design; such a trainer counts as named when its boss entry or its map's count
+            # line is on the page. Its flag is still checked in the pack JSON (t["flag"] above).
+            first = ((t.get("seen") or [{}])[0].get("map") or "").replace("MAP_", "")
+            md_named = ("`%s`" % key in md) or bool(
+                first and re.search(r"^- %s: \d+ ordinary trainers?\b" % re.escape(first), md, re.M))
+        if t["flag"] == row["flag"] and md_named:
             hits += 1
         else:
             missing.append("ch%d %s: flag %s, pack %s (or the .md lacks it)" % (c, key, row["flag"], t["flag"]))
@@ -1101,9 +1113,10 @@ def s_mapping(R):
     camp = load(os.path.join(WORLD, "campaign.json"))
     errs = chapter_mapping_errors(ms, camp)
     R.arm("W3 mapping CONTROL: every milestone id is a campaign entry of the SAME chapter (%d milestones)" % len(
-        ms["milestones"]), not errs and len(ms["milestones"]) == 20, "; ".join(errs[:3]))
+        ms["milestones"]), not errs and len(ms["milestones"]) == MILESTONE_COUNT, "; ".join(errs[:3]))
     bad = json.loads(json.dumps(ms))
-    bad["milestones"][-1]["chapter"] = 5
+    # (2026-11-01) the last milestone is now a chapter-5 one, so "set it to 5" would change nothing: move it ONE chapter on
+    bad["milestones"][-1]["chapter"] = bad["milestones"][-1]["chapter"] + 1
     R.arm("W3 mapping FAULT: one milestone's chapter changed is reported",
           any(bad["milestones"][-1]["id"] in x for x in chapter_mapping_errors(bad, camp)))
 
@@ -1163,9 +1176,17 @@ def s_w3_control(R):
     ms = load(MILESTONES)
     chapters, (packs, mds) = fresh_packs(R)
     h, t, miss, extras = recall({c: packs[c] for c in W3_CHAPTERS}, {c: mds[c] for c in W3_CHAPTERS}, ms)
-    R.arm("W3 CONTROL: recall on freshly generated ch1-4 packs is 100%% (%d/%d facts, %d table trainers; extras "
-          "adjudicated in the report: %s)" % (h, t, len(ms["trainers"]), {c: len(extras[c]) for c in extras}),
+    R.arm("W3 CONTROL: recall on freshly generated ch1-%d packs is 100%% (%d/%d facts, %d table trainers; extras "
+          "adjudicated in the report: %s)" % (max(W3_CHAPTERS), h, t, len(ms["trainers"]),
+                                              {c: len(extras[c]) for c in extras}),
           h == t and t == 3 * len(ms["trainers"]) and t > 0, "; ".join(miss[:3]))
+    # (2026-11-01) FAULT for the summarised-page reading: without its RUSTURF_TUNNEL count line the ch5 page no longer
+    # names GRUNT_RUSTURF_TUNNEL (an ordinary single on a summarised page), so recall must report it
+    cut = {c: mds[c] for c in W3_CHAPTERS}
+    cut[5] = re.sub(r"^- RUSTURF_TUNNEL: \d+ ordinary trainers?[^\n]*\n", "", cut[5], flags=re.M)
+    _, _, miss_cut, _ = recall({c: packs[c] for c in W3_CHAPTERS}, cut, ms)
+    R.arm("W3 FAULT (summarised page): the ch5 page without its RUSTURF_TUNNEL count line misses GRUNT_RUSTURF_TUNNEL",
+          cut[5] != mds[5] and any("GRUNT_RUSTURF_TUNNEL" in x for x in miss_cut), "; ".join(miss_cut[:3]))
     if all(os.path.isfile(os.path.join(PACKS, "ch%d.%s" % (c, x))) for c in chapters for x in ("json", "md")):
         cp, cm = read_packs(PACKS, W3_CHAPTERS)
         h2, t2, miss2, _ = recall(cp, cm, ms)
