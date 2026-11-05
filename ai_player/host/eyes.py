@@ -93,6 +93,14 @@ BUILD STEP 5 (the story player), READ ONLY, no new door (the doors of steps 1-4)
   * PROF. BIRCH's bag (`eyes/screens.py`: the starter choice from its task's data, already read for every task; its
     "Do you choose this POKéMON?" through `sMenu`, which is now read while `Task_HandleConfirmStarterInput` runs too).
 
+CHAPTER 5 (2026-11-05, the instructed-choice skill), READ ONLY, no new door (the doors of steps 1-4):
+  * the POKéNAV (`_pokenav`, read only while `Task_Pokenav` runs): `gPokenavResources` (an EWRAM pointer, range-checked)
+    and its substructs 1, 5 and 17 (the main menu, MATCH CALL, the list's window), each handler NAMED by the reverse symbol
+    lookup (`get_symbol_name`, step 3's door: `HandleMainMenuInput` is static in two files); an ordinary trainer's entry
+    named from the ROM's `gRematchTable` and `gTrainers` (`read_symbol`). The tutorial's `mode` is never read. The views
+    and the call-exit wait are `eyes/screens.py` pokenav_view and pokenav_wait;
+  * the player's own NAME (`PlayerState.name`): SaveBlock2 playerName[8], through `_play_time`'s doors.
+
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
 
@@ -132,10 +140,12 @@ from ai_player.eyes.screens import (
     BATTLE_YES_NO_OPCODES,
     ERROR_PAGE_PRINTER,
     ERROR_PAGE_TASKS,
+    MATCH_CALL_NAMES,
     SAVE_DIALOG_CALLBACKS,
     SAVE_MENU_CALLBACKS,
     SCENE_CALLBACKS,
     decode_text,
+    pokenav_wait,
     read_ui,
     save_dialog_wait,
     scene_of,
@@ -233,6 +243,25 @@ _SMENU_TASKS = frozenset({
 #: R1: struct SaveBlock2 playTimeHours (u16) @0x0E, playTimeMinutes (u8) @0x10 (`include/global.h:514-515`); 3 bytes, so the
 #: seconds @0x11 and the VBlanks @0x12 are never read (build spec E5).
 PLAY_TIME_OFFSET, PLAY_TIME_BYTES = 0x0E, 3
+#: (chapter 5, E1) struct SaveBlock2 playerName[PLAYER_NAME_LENGTH + 1] @0 (`include/global.h`): 8 bytes, EOS-terminated.
+PLAYER_NAME_BYTES = 8
+#: (chapter 5) `src/pokenav.c` struct PokenavResources: currentMenuCb1 @0, currentMenuIndex @4, mode @8, conditionSearchId
+#: @0xA, hasAnyRibbons @0xC, substructPtrs[POKENAV_SUBSTRUCT_COUNT = 19] @0x10 (`include/pokenav.h`). The `mode` is never
+#: read: it is the tutorial's hidden state, and the menus' own handlers show what takes input.
+POKENAV_SUBSTRUCTS_AT, POKENAV_SUBSTRUCT_COUNT = 0x10, 19
+POKENAV_MAIN_MENU_HANDLER, POKENAV_MATCH_CALL_MAIN, POKENAV_LIST = 1, 5, 17
+#: struct Pokenav_Menu (16 bytes): menuType @0, cursorPos @2, callback @0xC; struct Pokenav_MatchCallMenu: matchCallEntries
+#: @0x1C (4 bytes each); struct PokenavList windowState @0x888; at most MAX_REMATCH_ENTRIES - 1 = 99 entries read.
+POKENAV_MENU_SIZE, MATCH_CALL_HEAD, MATCH_CALL_ENTRY, POKENAV_LIST_WINDOW = 0x10, 0x1C, 4, 0x888
+MATCH_CALL_MAX_ENTRIES = 99
+#: `include/battle_setup.h` struct RematchTrainer: trainerIds[5] (u16) then mapGroup, mapNum: 14 bytes of members, but
+#: 16 bytes an entry in the ROM (gap round, 2026-11-05: agbcc rounds a struct's size up to a multiple of 4). MEASURED:
+#: the symbol table's gRematchTable is 0x4E0 = 1248 bytes = 78 entries (`include/constants/rematches.h`
+#: REMATCH_TABLE_ENTRIES) x 16, and the ROM's rows read at a 16-byte stride are `src/battle_setup.c:262-265`'s (ROSE,
+#: ANDRES, DUSTY, LOLA), while a 14-byte stride named REMATCH_ANDRES "" and REMATCH_DUSTY "GRUNT" (`gates/test_eyes.py`
+#: test_u2_an_ordinary_trainers_entry_is_named_from_the_rom). `include/data.h` struct Trainer (0x28 bytes):
+#: trainerName[12] @4. An ordinary trainer's MATCH CALL entry shows that name.
+REMATCH_ENTRY_SIZE, TRAINER_SIZE, TRAINER_NAME_AT, TRAINER_NAME_BYTES = 16, 0x28, 4, 12
 #: R1: the start menu's own tasks (`src/start_menu.c`): building it, and running its input and the save dialog.
 _START_MENU_TASKS = frozenset({"StartMenuTask", "Task_ShowStartMenu"})
 #: R1: the main menu's tasks during which it is on screen (`eyes/screens.py` UI_TASKS "main_menu").
@@ -366,6 +395,7 @@ class FrameworkEyes:
         self._maps: dict[tuple[int, int], tuple] = {}
         self._scene_callbacks: dict[int, str] | None = None  # STEP 2.1: address (thumb bit off) -> symbol name
         self._save_callbacks: dict[int, str] | None = None  # R1: the same, for the start menu's and the save's callbacks
+        self._pokenav_raw: dict | None = None  # (chapter 5) this look's POKéNAV read, for its wait (`_screen`)
 
     # ------------------------------------------------------------------ the one public call
     def look(self) -> Observation:
@@ -474,6 +504,9 @@ class FrameworkEyes:
         if reason is None and ui is not None and ui.kind == "save_dialog":
             # R1: the save error page's A, which no text printer shows (`eyes/screens.py` save_dialog_wait)
             reason = self._guarded("save wait", problems, self._save_wait)
+        if reason is None and "Task_Pokenav" in tasks:
+            # (chapter 5, E5) a call has ended and the POKéNAV reads A or B: no text printer shows it (`pokenav_wait`)
+            reason = pokenav_wait(self._pokenav_raw)
         shown = reason is not None or ui is not None or text_box_mode != 0
         text = self._guarded("text", problems, lambda: self._text(shown, tasks))
         status = self._guarded("script status", problems, lambda: read_symbol("sGlobalScriptContextStatus", size=1)[0])
@@ -536,6 +569,10 @@ class FrameworkEyes:
         input task is active). Every read is a symbol or a pointer the decomp names (`eyes/screens.py`).
         `fading` (step 2.1, the review's item 4) is this look's palette fade, read by `_screen`: no extra read."""
         raw: dict = {"fading": fading}
+        self._pokenav_raw = None
+        if "Task_Pokenav" in tasks:
+            # (chapter 5) the POKéNAV's menus and its call-exit wait (`eyes/screens.py` pokenav_view, pokenav_wait)
+            raw["pokenav"] = self._pokenav_raw = self._pokenav(tasks["Task_Pokenav"])
         if tasks.keys() & _SMENU_TASKS:
             raw["menu"] = bytes(read_symbol("sMenu", 0, 12))
         if "Task_ShopMenu" in tasks:
@@ -743,6 +780,63 @@ class FrameworkEyes:
             names.append(decode_text(_rom_bytes(text, 24)))
         return names
 
+    def _pokenav(self, task: bytes) -> dict | None:
+        """(chapter 5; `eyes/screens.py` POKENAV_INPUT_STATE has the decomp source) The POKéNAV's menus as `pokenav_view`
+        reads them: `Task_Pokenav`'s state (its data[0], already read with the task), then `gPokenavResources` (an EWRAM
+        pointer, range-checked) and its substructs 1 (the main menu: type, cursor, handler), 5 (MATCH CALL: handler, the
+        option ids and cursor, the entries' NAMES) and 17 (the list's window: its cursor). Each handler is NAMED by the
+        reverse symbol lookup (`get_symbol_name`, the step-3 door: two of the names are static in two files, so the forward
+        table cannot resolve them). The tutorial's `mode` is never read. None while the POKéNAV holds no resources."""
+        pointer = _u32(read_symbol("gPokenavResources", size=4), 0)
+        if not pointer:
+            return None
+        resources = _ewram_bytes(pointer, POKENAV_SUBSTRUCTS_AT + 4 * POKENAV_SUBSTRUCT_COUNT)
+        subs = [_u32(resources, POKENAV_SUBSTRUCTS_AT + 4 * i) for i in range(POKENAV_SUBSTRUCT_COUNT)]
+        found: dict = {"state": _s16(task, 0)}
+        if subs[POKENAV_MAIN_MENU_HANDLER]:
+            menu = _ewram_bytes(subs[POKENAV_MAIN_MENU_HANDLER], POKENAV_MENU_SIZE)
+            found["menu"] = {"type": _u16(menu, 0), "cursor": _s16(menu, 2), "handler": self._function_name(_u32(menu, 0xC))}
+        if subs[POKENAV_MATCH_CALL_MAIN]:
+            head = _ewram_bytes(subs[POKENAV_MATCH_CALL_MAIN], MATCH_CALL_HEAD)
+            handler = self._function_name(_u32(head, 0x18))
+            count = min(_u16(head, 0xA), MATCH_CALL_MAX_ENTRIES)
+            raw_entries = _ewram_bytes(subs[POKENAV_MATCH_CALL_MAIN] + MATCH_CALL_HEAD, MATCH_CALL_ENTRY * count) if count else b""
+            entries = [self._match_call_name(raw_entries[MATCH_CALL_ENTRY * i], _u16(raw_entries, MATCH_CALL_ENTRY * i + 2))
+                       for i in range(count)]
+            options: list[int] = []
+            if handler == "CB2_HANDLEMATCHCALLOPTIONSINPUT":
+                # the option ids of the entry chosen (a ROM table: CALL, CANCEL or CALL, CHECK, CANCEL)
+                options = list(_rom_bytes(_u32(head, 4), min(_u16(head, 2), 2) + 1))
+            list_cursor = None
+            if subs[POKENAV_LIST]:
+                window = _ewram_bytes(subs[POKENAV_LIST] + POKENAV_LIST_WINDOW, 8)
+                list_cursor = _u16(window, 0) + _u16(window, 6)
+            found["mc"] = {"handler": handler, "option_cursor": _u16(head, 0), "options": options, "entries": entries,
+                           "list_cursor": list_cursor}
+        return found
+
+    @staticmethod
+    def _function_name(address: int) -> str | None:
+        """A function pointer named by the reverse symbol lookup (upper case; the thumb bit off), or None for NULL."""
+        return (get_symbol_name(address & ~1) or None) if address else None
+
+    @staticmethod
+    def _match_call_name(special: int, header: int) -> str:
+        """The NAME a MATCH CALL entry shows (`src/pokenav_match_call_list.c` BufferMatchCallNameAndDesc): a special entry's
+        from `eyes/screens.py` MATCH_CALL_NAMES by its header id; an ordinary trainer's from the ROM (`gRematchTable[header]
+        .trainerIds[0]`, then that trainer's `gTrainers[].trainerName`), each index range-checked against its table. The
+        game also draws the trainer's CLASS beside the name (e.g. RUIN MANIAC, then ANDRES); the name alone is returned."""
+        if special:
+            return MATCH_CALL_NAMES[header] if 0 <= header < len(MATCH_CALL_NAMES) else ""
+        _, rematch_size = get_symbol("gRematchTable")
+        if not 0 <= header < rematch_size // REMATCH_ENTRY_SIZE:
+            return ""
+        trainer = _u16(read_symbol("gRematchTable", REMATCH_ENTRY_SIZE * header, 2), 0)
+        _, trainers_size = get_symbol("gTrainers")
+        if not 0 <= trainer < trainers_size // TRAINER_SIZE:
+            return ""
+        return decode_text(read_symbol("gTrainers", TRAINER_SIZE * trainer + TRAINER_NAME_AT, TRAINER_NAME_BYTES))
+
     def _mart_items(self) -> tuple[list[str], list[int]]:
         """The items for sale (`sMartInfo.itemList`, ROM u16s, `itemCount` of them), each named and priced from
         the ROM's `gItems` (`include/item.h` struct Item: name[14] @0, price @0x10), decoded by the AI's own
@@ -861,6 +955,9 @@ class FrameworkEyes:
             settling=position is None,
             # BUILD STEP 5: the player's own sprite (struct PlayerAvatar gender @7, in the bytes read above): BOY 0, GIRL 1
             gender={0: "BOY", 1: "GIRL"}.get(avatar[7]),
+            # (chapter 5, E1) the player's own name, printed in every conversation: SaveBlock2 playerName[8] @0, through
+            # the doors `_play_time` uses (`read_symbol` for the save block's pointer, `context.emulator.read_bytes`)
+            name=decode_text(context.emulator.read_bytes(_u32(read_symbol("gSaveBlock2Ptr", size=4), 0), PLAYER_NAME_BYTES)),
         )
 
     def _map_names(self, group: int, number: int) -> tuple[str, str | None]:

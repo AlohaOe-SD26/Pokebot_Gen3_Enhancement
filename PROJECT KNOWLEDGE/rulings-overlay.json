@@ -510,6 +510,16 @@
    "reason": "06 USER RULING 55: \"⛔ Do not re-ask whether practice runs from saves are allowed (yes, with a New Game test after a few) or which limit ends a session (the frame budget; the clock is a backstop).\"",
    "status": "ACTIVE",
    "topics": "trainer practice runs saves new game test curriculum session limit frame budget wall clock U2b U2c worktrees"
+  },
+  "2026-11-05-577173": {
+   "title": "2026-11-05 — Chapter 5's stops: a GENERAL instructed choice for forced menus; the grunt as data; the next graded test is a New Game to the end of chapter 5 (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "7738055b": "marker"
+   },
+   "do_not_reopen": "Do not reopen merging a development pass as a graded claim, or replacing the general instructed choice with a scene-specific (POKéNAV-only) menu script (2026-11-05).",
+   "reason": "06 2026-11-05 \"Chapter 5's stops\": \"Do not reopen: merging a development pass as a graded claim; a scene-specific menu script.\"",
+   "status": "ACTIVE",
+   "topics": "forced menu POKeNAV POKéNAV instructed choice tutorial MR. STONE match call grunt Rusturf talk step New Game test live_chain ch5_rival_meet BADGE-1 chain"
   }
  }
 }

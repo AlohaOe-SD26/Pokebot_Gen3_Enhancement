@@ -9653,6 +9653,194 @@
     "test_goals"
    ],
    "origin": "U2 build stage 1 (spec 2026-10-30 section 6, U2a; scratch s53/u2/build/s1-offline/gen_census.py): one mutant per call-census site of a U2 function, each deleting that one call; predictions RECORDED from the first run"
+  },
+  {
+   "name": "CH5E1",
+   "what": "the call of FrameworkEyes._pokenav in FrameworkEyes._ui deleted (the POKeNAV never read)",
+   "site": "host/eyes.py in FrameworkEyes._ui [call]",
+   "callee": "host/eyes.py:FrameworkEyes._pokenav",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            raw[\"pokenav\"] = self._pokenav_raw = self._pokenav(tasks[\"Task_Pokenav\"])\n",
+     "            raw[\"pokenav\"] = self._pokenav_raw = None  # MUTANT CH5E1\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_host_follows_gpokenavresources"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5, 2026-11-05 (s53/ch5stops): one mutant per new call site of the POKeNAV read in host/eyes.py, each deleting that one call; predictions written BEFORE the first run"
+  },
+  {
+   "name": "CH5E2",
+   "what": "the main menu's handler never named (the call of FrameworkEyes._function_name for substruct 1 deleted)",
+   "site": "host/eyes.py in FrameworkEyes._pokenav [call] (menu)",
+   "callee": "host/eyes.py:FrameworkEyes._function_name",
+   "edits": [
+    [
+     "host/eyes.py",
+     "\"handler\": self._function_name(_u32(menu, 0xC))}\n",
+     "\"handler\": None}  # MUTANT CH5E2\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_host_follows_gpokenavresources"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5, 2026-11-05 (s53/ch5stops): one mutant per new call site of the POKeNAV read in host/eyes.py, each deleting that one call; predictions written BEFORE the first run"
+  },
+  {
+   "name": "CH5E3",
+   "what": "MATCH CALL's handler never named (the call of FrameworkEyes._function_name for substruct 5 deleted)",
+   "site": "host/eyes.py in FrameworkEyes._pokenav [call] (mc)",
+   "callee": "host/eyes.py:FrameworkEyes._function_name",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            handler = self._function_name(_u32(head, 0x18))\n",
+     "            handler = None  # MUTANT CH5E3\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_host_follows_gpokenavresources"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5, 2026-11-05 (s53/ch5stops): one mutant per new call site of the POKeNAV read in host/eyes.py, each deleting that one call; predictions written BEFORE the first run"
+  },
+  {
+   "name": "CH5E4",
+   "what": "the MATCH CALL entries unnamed (the call of FrameworkEyes._match_call_name deleted)",
+   "site": "host/eyes.py in FrameworkEyes._pokenav [call] (entries)",
+   "callee": "host/eyes.py:FrameworkEyes._match_call_name",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            entries = [self._match_call_name(raw_entries[MATCH_CALL_ENTRY * i], _u16(raw_entries, MATCH_CALL_ENTRY * i + 2))\n                       for i in range(count)]\n",
+     "            entries = [\"\" for i in range(count)]  # MUTANT CH5E4\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_host_follows_gpokenavresources"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5, 2026-11-05 (s53/ch5stops): one mutant per new call site of the POKeNAV read in host/eyes.py, each deleting that one call; predictions written BEFORE the first run"
+  },
+  {
+   "name": "CH5E5",
+   "what": "an ordinary MATCH CALL entry's gRematchTable row read at the struct's 14 bytes of members, not the ROM's 16-byte entries (agbcc pads struct RematchTrainer; the defect the gap round found, restored)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "REMATCH_ENTRY_SIZE, TRAINER_SIZE, TRAINER_NAME_AT, TRAINER_NAME_BYTES = 16, 0x28, 4, 12\n",
+     "REMATCH_ENTRY_SIZE, TRAINER_SIZE, TRAINER_NAME_AT, TRAINER_NAME_BYTES = 14, 0x28, 4, 12  # MUTANT CH5E5\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_an_ordinary_trainers_entry_is_named_from_the_rom"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5 gap round, 2026-11-05 (s53/ch5stops/gaps; the verifier's F1): one mutant per guard or arithmetic of the POKeNAV eyes that no test exercised (CH5E5 restores the 14-byte rematch-table entry, the REAL defect the new test found); a guard's mutant, not a call site's (no `site`); predictions written BEFORE the first revert_r1 run, each first CAUGHT in the scratch harness gaps/g_mut.py"
+  },
+  {
+   "name": "CH5E6",
+   "what": "an ordinary MATCH CALL entry's header not range-checked against gRematchTable (_match_call_name's first guard deleted: a header past the table reads whatever follows it)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        if not 0 <= header < rematch_size // REMATCH_ENTRY_SIZE:\n            return \"\"\n",
+     "        if False:  # MUTANT CH5E6\n            return \"\"\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_an_ordinary_trainers_entry_is_named_from_the_rom"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5 gap round, 2026-11-05 (s53/ch5stops/gaps; the verifier's F1): one mutant per guard or arithmetic of the POKeNAV eyes that no test exercised (CH5E5 restores the 14-byte rematch-table entry, the REAL defect the new test found); a guard's mutant, not a call site's (no `site`); predictions written BEFORE the first revert_r1 run, each first CAUGHT in the scratch harness gaps/g_mut.py"
+  },
+  {
+   "name": "CH5E7",
+   "what": "an ordinary MATCH CALL entry's trainer not range-checked against gTrainers (_match_call_name's second guard deleted: a trainer id past the table names whatever follows it)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        if not 0 <= trainer < trainers_size // TRAINER_SIZE:\n            return \"\"\n",
+     "        if False:  # MUTANT CH5E7\n            return \"\"\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_an_ordinary_trainers_entry_is_named_from_the_rom"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5 gap round, 2026-11-05 (s53/ch5stops/gaps; the verifier's F1): one mutant per guard or arithmetic of the POKeNAV eyes that no test exercised (CH5E5 restores the 14-byte rematch-table entry, the REAL defect the new test found); a guard's mutant, not a call site's (no `site`); predictions written BEFORE the first revert_r1 run, each first CAUGHT in the scratch harness gaps/g_mut.py"
+  },
+  {
+   "name": "CH5E8",
+   "what": "the MATCH CALL list takes input whatever Task_Pokenav's state (pokenav_view's `taking and` deleted on the list: a looped task's frames read as a menu taking keys; the verifier's X4)",
+   "edits": [
+    [
+     "eyes/screens.py",
+     "            return MenuView(kind=\"pokenav_list\", options=names, cursor=cursor if valid else None,\n                            accepts_input=taking and valid)\n",
+     "            return MenuView(kind=\"pokenav_list\", options=names, cursor=cursor if valid else None,\n                            accepts_input=valid)  # MUTANT CH5E8\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_list_and_the_options_take_no_input_while_a_looped_task_runs"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5 gap round, 2026-11-05 (s53/ch5stops/gaps; the verifier's F1): one mutant per guard or arithmetic of the POKeNAV eyes that no test exercised (CH5E5 restores the 14-byte rematch-table entry, the REAL defect the new test found); a guard's mutant, not a call site's (no `site`); predictions written BEFORE the first revert_r1 run, each first CAUGHT in the scratch harness gaps/g_mut.py"
+  },
+  {
+   "name": "CH5E9",
+   "what": "an entry's CALL / CHECK / CANCEL options take input whatever Task_Pokenav's state (pokenav_view's `taking and` deleted on the options; the verifier's X4b)",
+   "edits": [
+    [
+     "eyes/screens.py",
+     "            return MenuView(kind=\"pokenav_options\", options=names, cursor=cursor if valid else None,\n                            accepts_input=taking and valid)\n",
+     "            return MenuView(kind=\"pokenav_options\", options=names, cursor=cursor if valid else None,\n                            accepts_input=valid)  # MUTANT CH5E9\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_list_and_the_options_take_no_input_while_a_looped_task_runs"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5 gap round, 2026-11-05 (s53/ch5stops/gaps; the verifier's F1): one mutant per guard or arithmetic of the POKeNAV eyes that no test exercised (CH5E5 restores the 14-byte rematch-table entry, the REAL defect the new test found); a guard's mutant, not a call site's (no `site`); predictions written BEFORE the first revert_r1 run, each first CAUGHT in the scratch harness gaps/g_mut.py"
+  },
+  {
+   "name": "CH5E10",
+   "what": "the MATCH CALL list's cursor read without the window's top (selectedIndexOffset alone, windowTopIndex dropped: a scrolled list's cursor names the wrong entry; the verifier's X11)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "                list_cursor = _u16(window, 0) + _u16(window, 6)\n",
+     "                list_cursor = _u16(window, 6)  # MUTANT CH5E10\n"
+    ]
+   ],
+   "expected": [
+    "PokenavEyesTests.test_u2_the_list_cursor_is_the_windows_top_plus_its_offset"
+   ],
+   "suites": [
+    "test_eyes:PokenavEyesTests"
+   ],
+   "origin": "chapter 5 gap round, 2026-11-05 (s53/ch5stops/gaps; the verifier's F1): one mutant per guard or arithmetic of the POKeNAV eyes that no test exercised (CH5E5 restores the 14-byte rematch-table entry, the REAL defect the new test found); a guard's mutant, not a call site's (no `site`); predictions written BEFORE the first revert_r1 run, each first CAUGHT in the scratch harness gaps/g_mut.py"
   }
  ]
 }
