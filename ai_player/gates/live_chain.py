@@ -7,19 +7,36 @@ the build report). TEST SIDE: the AI never imports this module (ImportTests).
         print the BOUNDS TEXT, the legs, the registered numbers (without the text) and both sha256s (read only)
     py -3.12 ai_player/gates/live_chain.py register --run ch5 [--note-file F]
         pre-register GRADED_RUNS["ch5"]'s seeds with registered_numbers()'s sha256 (BEFORE any run; commit and push it);
-        REFUSED (R12, the checker's C2-05) while the grader's import closure finds a file GRADER_FILES does not hash
+        REFUSED (R12, the checker's C2-05 and the third check's C3-H01/H02) while the grader's code could be a file the
+        registration does not hash (`closure_missing`: an unhashed file of the import closure, a package folder, an
+        extension module or a sourceless .pyc beside a closure module, a __pycache__ file CPython would load instead of
+        its source, or a file in a script folder named like a module a closure file imports or the standard library; not
+        sandbox-pokebot's own git-ignored mgba (the emulator's library) and profiles, unhashed by design)
     py -3.12 ai_player/gates/live_chain.py run --purpose graded --run ch5 --out DIR
     py -3.12 ai_player/gates/live_chain.py run --purpose development --first-seed N --to ID --prediction-file F --out DIR
             [--chains 3|6] [--leg-frames L1=F[,L2=F...]] [--build-root DIR]
-        exit 0 = PASS (graded) / ran (development), 1 = FAIL, 2 = refused before any leg, 3 = ABORTED by the harness (disk),
-        4 = ERROR: the harness raised while grading or writing the evidence (the checker's C2-07): the ledger entry is
-        still FINISHED, as "ERROR (harness: ...; no PASS or FAIL; the seeds are spent)", with the traceback in the evidence
-        --out must not exist or be EMPTY (R11, the verifier's V-01): an earlier batch's STOP.txt or ABORT.txt would stop
-        every chain after the ledger began, spending the seeds; a graded run is refused (R12) like a registration while
-        the import closure finds a file GRADER_FILES does not hash
-    py -3.12 ai_player/gates/live_chain.py grade DIR      offline re-grade of a batch's rows (no ledger write): only the
-        registered chains' rows (results.json's jobs), each read from rows/<chain>.json and RE-DERIVED from its own facts;
-        any other row is printed as IGNORED (V-02)
+        EXIT CODES: 0 = PASS (graded) / ran (development); 1 = FAIL; 2 = refused before any leg (the ledger untouched);
+        3 = ABORTED by the harness (disk); 4 = ERROR: the harness raised after ledger.begin, while the chains ran or while
+        grading, writing the evidence, results.json or the ledger (the checkers' C2-07 and C3-E03): the ledger entry is
+        FINISHED as "ERROR (harness: <type>: <message> while <stage>; no PASS or FAIL; the seeds are spent)", with the
+        traceback in the evidence, UNLESS the ledger itself cannot be written: then the evidence and the output say the
+        entry is NOT finished and give the exact command that finishes it (`finish-entry`), and the exit is still 4;
+        5 = a harness crash the guard did not cover (before ledger.begin: the ledger untouched; see the ledger entry's
+        status). Ctrl+C after ledger.begin finishes the entry as ERROR and then stops the process. After ledger.begin the
+        only way the entry stays "started" is a HARD KILL of this orchestrator process itself (or a ledger that cannot be
+        written, which the output says).
+        --out must not exist or be EMPTY, and must be a folder this process can create and write (R11, the verifier's V-01
+        and the third check's C3-E01): --out and the chains' job files are written BEFORE ledger.begin, so a typo in --out
+        never spends the seeds; a graded run is refused (R12) like a registration, and while PYTHONPATH, PYTHONHOME or
+        PYTHONSTARTUP is set
+    py -3.12 ai_player/gates/live_chain.py grade DIR [--ledger PATH]   offline re-grade of a batch's rows (no ledger
+        write): only the registered chains' rows, each read from rows/<chain>.json and RE-DERIVED from its own facts; any
+        other row is printed as IGNORED (V-02). (C3-G02) The legs, jobs and reach floor come from the numbers results.json
+        carries, VERIFIED against its numbers sha256 and the ledger entry's registered bounds sha256 (an older folder with
+        no numbers prints UNVERIFIED); a batch that ended in ERROR says so. EXIT: 0 = PASS, 1 = FAIL (or numbers that do not
+        verify), 2 = could not be graded, 4 = the batch ended in ERROR (its rows re-graded for information only)
+    py -3.12 ai_player/gates/live_chain.py finish-entry DIR [--ledger PATH]   finish a ledger entry the ERROR path could
+        not write (it left DIR/ledger.unfinished.json): refused unless that entry is still "started"
     py -3.12 ai_player/gates/live_chain.py read RUN_DIR [--truth]
         one leg folder, READ ONLY: its log counts, its memory line, its world.jsonl streamed (never kept, never deleted)
     `child JOB.json` is the internal entry of one chain's process.
@@ -48,10 +65,16 @@ sha256 of the one kept file, the keys of the environment `run_chain` builds, not
 a later leg it catches a regression of the harness only, never anything the AI does (the verifier's V-09). A launch that
 dies before playing a frame RAN, so it fails LC.PURITY and LC.THIS_RUN and the batch (the lead's ruling on V-08: the
 registered rule is kept); its row and the evidence name it "harness: the launch died before playing a frame". (The
-checker's C2-07) an exception in the harness after the chains ended, while grading or writing the evidence, still
-FINISHES the ledger entry, as "ERROR (harness: <type>: <message> while grading; no PASS or FAIL; the seeds are spent)",
-the way the disk guard's ABORT is recorded, with whatever evidence could be written and the traceback (exit 4). An
-exception while the chains run is not guarded (the entry stays "started"; see the build report).
+checkers' C2-07, C3-E01 and the chains-run guard) an exception in the harness after ledger.begin, while the chains run
+(every running chain process is then killed) or while grading, writing the evidence, results.json or the ledger, still
+FINISHES the ledger entry, as "ERROR (harness: <type>: <message> while <stage>; no PASS or FAIL; the seeds are spent)",
+the way the disk guard's ABORT is recorded, with whatever evidence could be written and the traceback (exit 4); every
+step that needs no chain (--out, the job files, the profile snapshots) runs BEFORE ledger.begin. The only ways an entry
+stays "started" are a hard kill of this orchestrator process and a ledger file that cannot be written at all (then the
+evidence and the output say so, with the command that finishes it). (C3-E02) every file the AI writes (world.jsonl and
+its kept last line, ai_player.log, the verdict file and its counters, actions.jsonl) is UNTRUSTED: a line or a value that
+does not parse or has the wrong shape is a failed check of that leg (its chain stops; the batch is GRADED), never an
+exception of the harness.
 """
 
 from __future__ import annotations
@@ -60,6 +83,7 @@ import argparse
 import ast
 import copy
 import hashlib
+import importlib.machinery
 import json
 import os
 import re
@@ -145,10 +169,9 @@ PROOF_NOTES = {
 #: prefix, the path of that package or module without ".py"). The AI's own modules (ai_player/ outside gates/) are not
 #: followed: they are hashed whole, as ai_code_sha256. The framework's are the top-level names a leg's pokebot.py and its
 #: modules import (sandbox-pokebot is sys.path[0] in a leg): its modules and plugins packages and its pokebot,
-#: requirements and updater files. NOT `profiles`: sandbox-pokebot/profiles is git-ignored and per machine (the framework
-#: copies modules/config/templates into it at start, catch filters included), so following it would make the closure
-#: depend on the machine; it is not hashed, and the bounds text says so (test_live_chain fails on any other top-level name
-#: of sandbox-pokebot an import names)
+#: requirements and updater files. NOT `profiles` and `mgba` (TOPLEVEL_NOT_FOLLOWED): git-ignored and per machine, so
+#: following them would make the closure depend on the machine; they are not hashed, and the bounds text says so (R12
+#: refuses any other folder or module of sandbox-pokebot named like a top-level module a closure file imports)
 CLOSURE_ROOTS = (("ai_player.gates", "ai_player/gates"), ("modules", "sandbox-pokebot/modules"),
                  ("plugins", "sandbox-pokebot/plugins"), ("pokebot", "sandbox-pokebot/pokebot"),
                  ("requirements", "sandbox-pokebot/requirements"), ("updater", "sandbox-pokebot/updater"))
@@ -168,12 +191,48 @@ PLUGINS_DIR = "sandbox-pokebot/plugins"
 #: ... and plugins/custom_modes_loader.py's get_additional_bot_modes() (called for pokebot.py's bot-mode names) imports
 #: every *.py here not starting with "_" with importlib.import_module("plugins.custom_modes.<stem>")
 CUSTOM_MODES_DIR = "sandbox-pokebot/plugins/custom_modes"
+#: (the third check's C3-H05) the framework's top-level names whose ABSOLUTE imports in the AI's own files (ai_player/
+#: outside gates/ and evidence/) also START the closure: a framework module only the AI imports runs in every leg, so it
+#: is hashed and R12 sees it (the AI's own files are hashed whole, as ai_code_sha256, and never followed)
+AI_FRAMEWORK_PREFIXES = ("modules", "plugins")
+#: (the third check's C3-H02) the folders Python puts FIRST on sys.path in the grader's own processes: the repository root
+#: (live_chain.py inserts it at sys.path[0]), ai_player/gates (the folder of every gates script run by path: the grader, the
+#: purity gate, the truth and the hands harnesses) and sandbox-pokebot (a leg's pokebot.py runs from it). A .py, .pyw,
+#: .pyc, extension module or package folder directly in one of them, named like the standard library's module (or any
+#: folder or such file named like a module a closure file imports at top level), runs INSTEAD of that module: R12 refuses
+#: it (`toplevel_problems`)
+SCRIPT_FOLDERS = ("", "ai_player/gates", "sandbox-pokebot")
+#: (C3-H02) the entries of a script folder that ARE the module a closure file imports by that name: the AI's package at the
+#: repository root, and the framework's own top-level names in sandbox-pokebot (the CLOSURE_ROOTS rooted there)
+TOPLEVEL_HOMES = frozenset({("", "ai_player"), *(("sandbox-pokebot", prefix) for prefix, folder in CLOSURE_ROOTS
+                                                 if folder == f"sandbox-pokebot/{prefix}")})
+#: (C2-02, C3-H02) the top-level names of sandbox-pokebot a closure file imports that the closure does NOT follow, each with
+#: why (EXACT: test_live_chain fails on an entry no closure file imports any more; a stale exemption is a hole). Each is
+#: exempt BY NAME and only in that folder: `toplevel_problems` never refuses it there, and still refuses the same name in
+#: any other script folder (the full regression lane of 2026-11-06 on d1a853bc: sandbox-pokebot/mgba exists wherever the
+#: emulator is installed, which is the main checkout always, and the test's earlier rule failed on it)
+TOPLEVEL_NOT_FOLLOWED = {
+    ("sandbox-pokebot", "profiles"):
+        "git-ignored and per machine (the framework copies modules/config/templates into it at start, the catch filters "
+        "modules/encounter.py imports among them): following it would make the closure depend on the machine; the bounds "
+        "text says it is not hashed",
+    ("sandbox-pokebot", "mgba"):
+        "the emulator's library: it exists wherever the emulator is installed (the main checkout always; a fresh worktree "
+        "has none), git-ignored and installed per machine with its compiled _pylib (modules/libmgba.py and "
+        "modules/gui/glfw.py import it); it is unhashed BY DESIGN, and the bounds text says so",
+}
+#: (C3-H02) a graded run is refused while one of these is set: each puts other files first on sys.path (PYTHONPATH,
+#: PYTHONHOME) or runs a file at start (PYTHONSTARTUP); the chain processes' environment, and so the truth reads', drops
+#: them for any batch
+PYTHON_ENV = ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP")
 #: THE FILES THAT GRADE THE BATCH, hashed into the registration (`grader_files`). (V-03, C2-02) The code is the IMPORT
-#: CLOSURE, within the repository, of this module, of PATH_ROOTS and of the plugins the framework loads by name
-#: (`loaded_plugins`), as `grader_closure` finds it: every import, at module level or inside a function (a function-local
-#: import runs on the path that calls it; a static scan cannot tell which do, so all are followed), relative imports
-#: resolved, parent packages' __init__.py included. `register` and a graded run are REFUSED (R12) while the scan finds a
-#: file not listed here (C2-05), and test_live_chain fails. The truth harness (play_harness.py), the party decoder
+#: CLOSURE, within the repository, of this module, of PATH_ROOTS, of the plugins the framework loads by name
+#: (`loaded_plugins`) and of the framework modules the AI's own files import (`ai_framework_imports`, C3-H05), as
+#: `closure_scan` finds it: every import, at module level or inside a function (a function-local import runs on the path
+#: that calls it; a static scan cannot tell which do, so all are followed), relative imports resolved, parent packages'
+#: __init__.py included, each module resolved in CPython's order. `register` and a graded run are REFUSED (R12) while the
+#: scan finds a file not listed here (C2-05) or another file in place of one (C3-H01, C3-H02: `closure_missing`), and
+#: test_live_chain fails. The truth harness (play_harness.py), the party decoder
 #: (modules/pokemon.py, pokemon_party.py), the symbol reader (modules/game.py, memory.py), the purity gate and the AI's
 #: plugin are among them; so is most of the bot framework, because its modules import one another (a change there means a
 #: new registration, which is cheap: the same unplayed range may be re-registered).
@@ -430,19 +489,31 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
     lines = [
         f"LIVE CHAIN GRADED HELD-OUT (USER RULING 55: the New Game test), build spec {SPEC} (with its critique CH-01..CH-18). "
         f"Driver ai_player/gates/live_chain.py.",
-        "CODE: the AI's files (ai_player/ outside gates/ and evidence/, no *.md, no __pycache__) are hashed into these "
+        "CODE: the AI's files (every file under ai_player/ outside gates/ and evidence/ except *.md files, *.pyc files and "
+        "__pycache__ folders; a sourceless .pyc there is refused by the purity gate at every launch) are hashed into these "
         "numbers (ai_code_sha256), knowledge/milestones.json among them and also as milestones_sha256. grader_files hashes, "
         f"by path and content, exactly these {len(GRADER_FILES)} files and nothing else: the IMPORT CLOSURE, within this "
         f"repository, of ai_player/gates/live_chain.py, of the files the harness and the launcher run by path "
-        f"({', '.join(PATH_ROOTS)}) and of the plugins the framework loads by name in every leg (every name ending in .py in "
-        f"{PLUGINS_DIR}, and every *.py of {CUSTOM_MODES_DIR} not starting with _) ({len(GRADER_GATES)} files of "
-        f"ai_player/gates, {len(GRADER_SANDBOX)} of sandbox-pokebot/modules and {len(GRADER_BOT)} more of sandbox-pokebot: "
-        "every import, at module level or inside a function, followed through ai_player/gates and the framework's modules, "
-        "plugins, pokebot, requirements and updater; the truth harness, the party decoder, the symbol reader, the purity gate "
-        f"and the AI's plugin ({PLUGIN}) among them), and the data the grade reads ({', '.join(GRADER_DATA)}). Registration "
-        "and a graded run are REFUSED while that scan finds a file this list does not hash (each named). Not hashed: the "
-        "ROM, the emulator's library, the framework's configuration (its *.yml files and the git-ignored, per-machine "
-        "sandbox-pokebot/profiles folder it writes at start, catch filters included) and every other file. Every hashed "
+        f"({', '.join(PATH_ROOTS)}), of the plugins the framework loads by name in every leg (every name ending in .py in "
+        f"{PLUGINS_DIR}, and every *.py of {CUSTOM_MODES_DIR} not starting with _) and of the framework modules the AI's own "
+        f"files import (every absolute {' and '.join(p + '.*' for p in AI_FRAMEWORK_PREFIXES)} import of ai_player/ outside "
+        f"gates/ and evidence/) ({len(GRADER_GATES)} files of ai_player/gates, {len(GRADER_SANDBOX)} of "
+        f"sandbox-pokebot/modules and {len(GRADER_BOT)} more of sandbox-pokebot: every import, at module level or inside a "
+        "function, followed through ai_player/gates and the framework's modules, plugins, pokebot, requirements and updater, "
+        "each module resolved in CPython's order (a package's __init__.py before a module X.py); the truth harness, the "
+        f"party decoder, the symbol reader, the purity gate and the AI's plugin ({PLUGIN}) among them), and the data the "
+        f"grade reads ({', '.join(GRADER_DATA)}). Registration and a graded run are REFUSED (R12) while that scan finds a "
+        "file this list does not hash (every one named), a package folder, an extension module or a sourceless .pyc beside "
+        "a closure module (or as the only importable file of a module the closure follows), a __pycache__ file CPython "
+        "would load INSTEAD of a closure file's source that holds other code, or a .py, .pyw, .pyc, extension module or "
+        "package folder directly in the repository root, ai_player/gates or sandbox-pokebot named like a standard-library "
+        "module, or any file or folder there named like a top-level module a closure file imports (other than that module "
+        "itself: the AI's package, the framework's modules, plugins, pokebot, requirements and updater, and, in "
+        "sandbox-pokebot only, its git-ignored mgba and profiles, which are not hashed: see below); a graded run is "
+        "also refused while PYTHONPATH, PYTHONHOME or PYTHONSTARTUP is set, and every chain process runs without them. Not "
+        "hashed: the ROM, the emulator's library (sandbox-pokebot/mgba), the framework's configuration (its *.yml files and "
+        "the git-ignored, per-machine sandbox-pokebot/profiles folder it writes at start, catch filters included) and every "
+        "other file. Every hashed "
         "file is read with CRLF as LF, so a change of line endings alone is accepted BY "
         "DESIGN (git checks the same commit out with either ending). A graded run on any other AI code, milestone data or "
         "grader file is refused by ledger.begin. A graded run also needs HEAD to be origin/main after a fetch with no tracked "
@@ -462,7 +533,11 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         "repo; the AI reads only the last line), with the pages read in the earlier legs. The environment holds exactly "
         f"{', '.join(ENV_KEYS_FIRST)} (L1) or {', '.join(ENV_KEYS_LATER)} (later legs); no fault switch. Each leg is its own "
         "session: the game and the world memory are carried, the goal manager's in-run memory starts again, and the harness "
-        "names each leg's target (the AI connecting one chapter to the next inside one process is NOT what this tests).",
+        "names each leg's target (the AI connecting one chapter to the next inside one process is NOT what this tests). "
+        "Every file the AI writes (world.jsonl and its kept last line, ai_player.log, the verdict file and its counters, "
+        "actions.jsonl) is UNTRUSTED: a line or a value that does not parse or has the wrong shape fails the check of that "
+        "leg that reads it (so its chain stops, by C1-C3 or the purity checks), never the harness: the batch is still "
+        "graded.",
         "A LEG REACHES its target iff its L5.THIS_RUN PASSES and every proof of its target holds on the state it left; a mark "
         "the truth did not return is not held. Every chain starts from a New Game, which holds none of the proofs, so the "
         "chain's claim is never vacuous; a leg whose target already held at its start (an earlier leg played past its own "
@@ -470,7 +545,8 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         "is UNREAD, never 'not held' (its custody then fails).",
         f"A CHAIN CONTINUES after a leg iff (C1) the leg reached its target, (C2) every counting purity check of its launch "
         f"PASSED, (C3) its world.jsonl was measured{(' under ' + str(WORLD_MAX_BYTES) + ' bytes') if world_graded else ''} "
-        f"and its last line parsed and was kept (a failed deletion is recorded and retried at the end, never a stop), (C4) "
+        f"and its last line parsed as a JSON object whose five counts (maps, tiles learned, warp links, connections, map "
+        f"changes) can be read, and was kept (a failed deletion is recorded and retried at the end, never a stop), (C4) "
         f"the disk guard did not kill it, (C5) its custody held, (C6) the frozen tree had not moved. Otherwise the chain "
         f"STOPS: it fails, and every later leg is NOT RUN (a row says so, with the reason) and is in no check's sample. A "
         f"CHAIN REACHES {to} iff every one of its legs ran and passed C1-C6, the last included.",
@@ -490,7 +566,15 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         f"floor may read VACUOUS). Each counted row's legs that ran are RE-DERIVED from the row's own facts: its reach from "
         f"the truth's marks against the REGISTERED leg's proof, its custody by LC.CUSTODY's rule (joined to any problem the "
         f"row stored), its kept last line from the file "
-        f"(present, a JSON object, its sha256 the row's), so a stored flag can stop a chain but never continue one.",
+        f"(present, a JSON object whose five counts can be read, its sha256 the row's), so a stored flag can stop a chain "
+        f"but never continue one. (Each leg) every leg that RAN must carry its REGISTERED job in its own harness records: "
+        f"its environment's AI_PLAYER_SEED (the seed) and AI_PLAYER_PERSONALITY, its command's --profile, its arm "
+        f"'<chain>-<leg>' and a run folder under profiles/<profile>/ai_player_runs; and no two legs of the counted rows may "
+        f"share a run folder or a kept file: otherwise its custody fails (C5), so a row copied from another chain never "
+        f"counts. Each leg's STATUS (RAN, NOT RUN, ...) is READ AS STORED, because no row carries what decides it, so a "
+        f"stored stop could take a leg out of every sample: a NOT RUN leg after a leg whose re-derived continuation holds "
+        f"is a custody failure unless STOP.txt or ABORT.txt is in --out or its reason is the orchestrator's salvage reason "
+        f"(\"the chain's process ended ...\").",
         f"LC.PURITY: on every leg that ran, the counting purity checks of live_step2.check_purity ({', '.join(PURITY_IDS)}) "
         f"all PASS. L5.PURITY_ENDED is reported only.",
         "LC.THIS_RUN: every leg that ran: L5.THIS_RUN (live_step5.check_after_is_this_run) PASSES. A leg whose launch died "
@@ -502,7 +586,9 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         "LC.CUSTODY: every registered chain's L1 ran, and every leg that ran started as above: L1 from --fresh with the "
         "chain's starter and no world memory or start state; each later leg from --state of the previous leg's end state, its "
         "start truth (frame, md5) equal to the previous leg's end truth, and an AI_PLAYER_WORLD file whose sha256 equals the "
-        "previous leg's kept last line's; every leg's environment keys exactly the set above. These checks read only the "
+        "previous leg's kept last line's; every leg's environment keys exactly the set above; every leg that ran names its "
+        "registered job and shares no run folder or kept file, and no NOT RUN leg follows a continuing leg unexplained (as "
+        "under LC.REACH). These checks read only the "
         "HARNESS's own records (the truth of one state file read twice, the sha256 of the one kept file, the keys of the "
         "environment run_chain builds and hands run_arm, whose clean_env also passes on the caller's variables that are not "
         "AI_PLAYER_*): on a later leg they catch a regression of the harness only, never anything the AI does.",
@@ -522,28 +608,41 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         "folders and its state file unchanged)"
         + ("" if world_graded else f", LC.WORLD_SIZE (the {WORLD_MAX_BYTES}-byte cap, information)") + ".",
         "VERDICT: PASS iff every GRADED check PASSES. Nothing is tuned to a grader (B1): a miss is reported, never re-run on "
-        "new seeds. If the harness raises after the chains ended, while grading or writing the evidence, the ledger entry is "
-        "still FINISHED, as 'ERROR (harness: <type>: <message> while grading; no PASS or FAIL; the seeds are spent)', with "
-        "whatever evidence could be written and the traceback, the way the disk guard's ABORT is recorded.",
+        "new seeds. Every step that needs no chain (--out, the job files, the profile snapshots) runs before ledger.begin, so "
+        "an --out that cannot be written is refused with the seeds unspent. If the harness raises after ledger.begin, while "
+        "the chains run (every running chain process is killed first) or while grading or writing the evidence, "
+        "results.json or the ledger, the ledger entry is still FINISHED, as 'ERROR (harness: <type>: <message> while "
+        "<stage>; no PASS or FAIL; the seeds are spent)' (the stage: the chains, grading, the evidence, results.json or the "
+        "ledger), with whatever evidence could be written and the traceback, the way the disk guard's ABORT is recorded; a "
+        "failed ledger write is retried with the computed verdict before it falls back to ERROR. The entry stays 'started' "
+        "only if this orchestrator process is killed hard, or if the ledger file cannot be written at all: the evidence and "
+        "the output then say the entry is NOT finished and give the command that finishes it.",
     ]
     return "\n".join(lines)
 
 
 # ====================================================================== registration
-def _closure_file(repo: Path, module: str) -> Path | None:
-    """The repository file of a dotted module inside CLOSURE_ROOTS (a module's .py or a package's __init__.py), or None (a
-    namespace package, such as `plugins`, has no file of its own)."""
+def _module_base(repo: Path, module: str) -> Path | None:
+    """The path of a dotted module inside CLOSURE_ROOTS without a suffix (`modules.game` -> sandbox-pokebot/modules/game),
+    or None for a module outside them."""
     for prefix, folder in CLOSURE_ROOTS:
         if module == prefix:
-            for path in (repo / folder / "__init__.py", repo / f"{folder}.py"):
-                if path.is_file():
-                    return path
-            return None
+            return repo / folder
         if module.startswith(prefix + "."):
-            base = repo / folder / module[len(prefix) + 1:].replace(".", "/")
-            for path in (base.with_suffix(".py"), base / "__init__.py"):
-                if path.is_file():
-                    return path
+            return repo / folder / module[len(prefix) + 1:].replace(".", "/")
+    return None
+
+
+def _closure_file(repo: Path, module: str) -> Path | None:
+    """The repository file of a dotted module inside CLOSURE_ROOTS, in CPython's order (the third check's C3-H01: its
+    FileFinder tries a package folder's __init__.py BEFORE a module's X.py), or None (a namespace package, such as
+    `plugins`, has no file of its own; a module whose only importable file is no source is R12's: `resolution_problems`)."""
+    base = _module_base(repo, module)
+    if base is None:
+        return None
+    for path in (base / "__init__.py", base.parent / f"{base.name}.py"):
+        if path.is_file():
+            return path
     return None
 
 
@@ -570,12 +669,22 @@ def _statements(nodes: list) -> Iterable[ast.AST]:
             yield from _statements(getattr(node, name, None) or [])
 
 
+def _parse(repo: Path, path: Path) -> ast.Module:
+    """A file's syntax tree, parsed from its BYTES (the import system decodes by the coding cookie); (the third check's
+    C3-E06) a file that does not parse raises a SyntaxError that NAMES it."""
+    try:
+        name = path.relative_to(repo).as_posix()
+    except ValueError:
+        name = str(path)
+    return ast.parse(path.read_bytes(), filename=name)
+
+
 def _closure_imports(repo: Path, path: Path) -> set[str]:
     """Every module an import statement of `path` names, read from its SYNTAX (a mention in a comment or a string is no
     import), at module level or inside a function, relative ones resolved, with each one's parent packages."""
     package = _closure_package(repo, path)
     named: set[str] = set()
-    for node in _statements(ast.parse(path.read_bytes()).body):
+    for node in _statements(_parse(repo, path).body):
         if isinstance(node, ast.Import):
             named.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
@@ -610,16 +719,45 @@ def loaded_plugins(repo: Path | None = None) -> list[str]:
     return names
 
 
-def grader_closure(repo: Path | None = None) -> list[str]:
-    """(The verifier's V-03, the checker's C2-02) THE IMPORT CLOSURE within the repository of live_chain.py, of the files
-    the harness and the launcher run by path (PATH_ROOTS) and of the plugins the framework loads by name
-    (`loaded_plugins`, each with its parent packages, as Python imports them): every file reached by import statements,
-    transitively (module level or inside a function), through CLOSURE_ROOTS, as sorted repository-relative paths.
-    GRADER_FILES must list every one (`closure_missing`: R12 at registration and before a graded run; test_live_chain)."""
+def ai_framework_imports(repo: Path | None = None) -> set[str]:
+    """(The third check's C3-H05) The framework modules the AI's OWN files import: every ABSOLUTE import of ai_player/
+    outside gates/ and evidence/ (its .py and .pyw files, __pycache__ skipped) whose top-level name is one of
+    AI_FRAMEWORK_PREFIXES, with its parent packages. They start the closure too (a framework module only the AI imports
+    runs in every leg); the AI's own files are hashed whole (ai_code_sha256) and never followed."""
+    repo = repo or REPO
+    root = repo / "ai_player"
+    names: set[str] = set()
+    for path in sorted([*root.rglob("*.py"), *root.rglob("*.pyw")]):
+        rel = path.relative_to(root)
+        if rel.parts[0] in ("gates", "evidence") or "__pycache__" in rel.parts:
+            continue
+        for node in _statements(_parse(repo, path).body):
+            if isinstance(node, ast.Import):
+                found = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
+                found = [node.module, *(f"{node.module}.{alias.name}" for alias in node.names if alias.name != "*")]
+            else:
+                continue
+            for name in found:
+                if name.split(".")[0] in AI_FRAMEWORK_PREFIXES:
+                    parts = name.split(".")
+                    names.update(".".join(parts[:k]) for k in range(1, len(parts) + 1))
+    return names
+
+
+def closure_scan(repo: Path | None = None) -> dict:
+    """(The verifier's V-03, the checkers' C2-02 and C3-H05) THE IMPORT CLOSURE within the repository of live_chain.py, of
+    the files the harness and the launcher run by path (PATH_ROOTS), of the plugins the framework loads by name
+    (`loaded_plugins`, each with its parent packages, as Python imports them) and of the framework modules the AI's own
+    files import (`ai_framework_imports`): every file reached by import statements, transitively (module level or inside
+    a function), through CLOSURE_ROOTS. Returns {"closure": the sorted repository-relative paths, "paths": those files,
+    "modules": every module name followed -> its file or None, "tops": every top-level name an import of a closure file
+    names}."""
     repo = repo or REPO
     start = repo / "ai_player" / "gates" / "live_chain.py"
     seen, todo = {start}, [start]
     files: dict[str, Path | None] = {}  # module -> its file, looked up once per scan
+    tops: set[str] = set()
 
     def follow(module: str) -> None:
         if module not in files:
@@ -638,27 +776,202 @@ def grader_closure(repo: Path | None = None) -> list[str]:
         parts = name.split(".")
         for k in range(1, len(parts) + 1):
             follow(".".join(parts[:k]))
+    for name in sorted(ai_framework_imports(repo)):  # (C3-H05) the framework modules the AI's own files import
+        follow(name)
     while todo:
         path = todo.pop()
         for module in _closure_imports(repo, path):
+            if "." not in module:
+                tops.add(module)
             follow(module)
-    return sorted(p.relative_to(repo).as_posix() for p in seen)
+    return {"closure": sorted(p.relative_to(repo).as_posix() for p in seen), "paths": seen,
+            "modules": {name: found for name, found in files.items() if _module_base(repo, name) is not None},
+            "tops": tops}
+
+
+def grader_closure(repo: Path | None = None) -> list[str]:
+    """(V-03, C2-02, C3-H05) `closure_scan`'s files as sorted repository-relative paths. GRADER_FILES must list every one
+    (`closure_missing`: R12 at registration and before a graded run; test_live_chain)."""
+    return closure_scan(repo)["closure"]
+
+
+#: (C3-H01) the suffixes of an IMPORTABLE file that is no source: an extension module (CPython loads one BEFORE a source of
+#: the same name) and bytecode (loaded when no source is there)
+EXTENSION_SUFFIXES = tuple(sorted({*importlib.machinery.EXTENSION_SUFFIXES, ".pyd", ".so"}))
+SOURCE_SUFFIXES = (".py", ".pyw")
+
+
+def _opaque_names(names: Iterable[str], stem: str) -> list[str]:
+    """The names among `names` of an importable file of module `stem` that is no source: `stem.pyc`, `stem.pyd`,
+    `stem.<tag>.pyd` (any tag) or `stem` + an extension suffix (compared without case: refuse more, never less)."""
+    stem = stem.lower()
+    found = []
+    for name in names:
+        low = name.lower()
+        if low.startswith(stem + ".") and (low == stem + ".pyc" or low.endswith(EXTENSION_SUFFIXES)):
+            found.append(name)
+    return sorted(found)
+
+
+def _entries(cache: dict, folder: Path) -> dict[str, tuple[str, bool]]:
+    """{lower-case name: (name, is a folder)} of a folder's entries, listed once per scan ({} when it cannot be)."""
+    if folder not in cache:
+        try:
+            cache[folder] = {entry.name.lower(): (entry.name, entry.is_dir()) for entry in os.scandir(folder)}
+        except OSError:
+            cache[folder] = {}
+    return cache[folder]
+
+
+def _package_inits(cache: dict, folder: Path) -> list[str]:
+    """The `__init__` files of a folder that make it a package for CPython (source, bytecode or an extension module)."""
+    return sorted(name for low, (name, is_dir) in _entries(cache, folder).items()
+                  if not is_dir and low.startswith("__init__.") and low.endswith((*SOURCE_SUFFIXES, ".pyc",
+                                                                                  *EXTENSION_SUFFIXES)))
+
+
+def resolution_problems(repo: Path, modules: dict[str, Path | None]) -> list[str]:
+    """(The third check's C3-H01) Every module the closure follows (`closure_scan`'s "modules") that CPython could import
+    from a file the scan did not read: an extension module or a sourceless .pyc beside its X.py or its package's
+    __init__.py; a package folder (one with an __init__ file) of the same name beside its X.py; a module X.py beside its
+    package folder; a module the scan found no source for whose only importable file is an extension module or bytecode."""
+    cache: dict = {}
+    problems: list[str] = []
+
+    def rel(path: Path) -> str:
+        return path.relative_to(repo).as_posix()
+    for module, found in sorted(modules.items()):
+        base = _module_base(repo, module)
+        if base is None:
+            continue
+        folder, stem = base.parent, base.name
+        here = _entries(cache, folder)
+        opaque = _opaque_names((name for name, _ in here.values()), stem)
+        is_folder = here.get(stem.lower(), ("", False))[1]
+        inits = _package_inits(cache, base) if is_folder else []
+        if found is not None and found.name == "__init__.py":
+            extra = [n for n in _opaque_names(inits, "__init__")]
+            problems += [f"{rel(base / n)}: beside the closure file {rel(found)}: an importable file CPython loads "
+                         f"instead (an extension module) or that the registration does not hash (bytecode)" for n in extra]
+            module_files = [name for name, is_dir in here.values() if not is_dir and name.lower() in
+                            {f"{stem.lower()}{s}" for s in SOURCE_SUFFIXES}] + opaque
+            problems += [f"{rel(folder / n)}: a module named like the package {rel(base)}/ (the closure file "
+                         f"{rel(found)}): two files for one module name" for n in sorted(module_files)]
+        elif found is not None:
+            problems += [f"{rel(folder / n)}: beside the closure file {rel(found)}: an importable file CPython loads "
+                         f"instead (an extension module) or that the registration does not hash (bytecode)" for n in opaque]
+            if inits:
+                problems.append(f"{rel(base)}/ ({', '.join(inits)}): a package folder named like the closure file "
+                                f"{rel(found)}: CPython imports the package INSTEAD of it")
+        else:
+            problems += [f"{rel(folder / n)}: the only importable file of {module}, which the closure follows, is no "
+                         f"source (an extension module or bytecode): it would run unhashed" for n in opaque]
+            problems += [f"{rel(base / n)}: the package {module}, which the closure follows, is imported from a file that "
+                         f"is no source: it would run unhashed" for n in inits if not n.lower().endswith(".py")]
+    return problems
+
+
+def pycache_problems(repo: Path, paths: Iterable[Path]) -> list[str]:
+    """(The third check's C3-H01) Every __pycache__ file of a closure file that CPython (this interpreter's cache tag)
+    would load INSTEAD of its source while holding other code: check_purity's rule (e), reused (`_pyc_problem`: the
+    header matches the source, so the source is never read, and the code differs from compiling it)."""
+    from ai_player.gates.check_purity import CACHE_FILE, _pyc_problem
+
+    problems: list[str] = []
+    by_folder: dict[Path, dict[str, Path]] = {}
+    for path in paths:
+        if path.suffix == ".py":
+            by_folder.setdefault(path.parent, {})[path.stem.lower()] = path
+    for folder, sources in sorted(by_folder.items()):
+        cache = folder / "__pycache__"
+        try:
+            names = sorted(os.listdir(cache))
+        except OSError:
+            continue
+        for name in names:
+            match = CACHE_FILE.match(name)
+            source = sources.get(match["stem"].lower()) if match else None
+            if source is None or match["tag"] != sys.implementation.cache_tag or not source.is_file():
+                continue
+            try:
+                problem = _pyc_problem(cache / name, source, int(match["opt"] or 0))
+            except OSError as error:
+                problem = f"it cannot be read ({type(error).__name__}), so it cannot be shown to hold the source's code"
+            if problem:
+                problems.append(f"{(cache / name).relative_to(repo).as_posix()}: {problem}")
+    return problems
+
+
+def _importable(entry: Path) -> tuple[str | None, str]:
+    """(kind, module name) of a folder's entry as CPython imports it from sys.path: ("package", name) for a folder with an
+    __init__ file, ("folder", name) for one without (a namespace package), ("module", name) for a .py, .pyw, .pyc or
+    extension module file; (None, name) for anything else."""
+    name = entry.name
+    if entry.is_dir():
+        inits = _package_inits({}, entry)
+        return ("package" if inits else "folder"), name
+    low = name.lower()
+    for suffix in (*SOURCE_SUFFIXES, ".pyc"):
+        if low.endswith(suffix) and "." not in name[:-len(suffix)]:
+            return "module", name[:-len(suffix)]
+    if low.endswith(EXTENSION_SUFFIXES):
+        return "module", name.split(".", 1)[0]
+    return None, name
+
+
+def toplevel_problems(repo: Path, tops: set[str]) -> list[str]:
+    """(The third check's C3-H02; moved here from the test and extended to the repository root) Every entry directly in a
+    SCRIPT_FOLDERS folder that Python would import INSTEAD of a module: named like a top-level module a closure file
+    imports (any file or folder CPython can import, unless it IS that module: TOPLEVEL_HOMES, or a declared exemption:
+    TOPLEVEL_NOT_FOLLOWED), or named like a standard-library module (a module file or a package: a namespace folder never
+    replaces a regular module)."""
+    stdlib = getattr(sys, "stdlib_module_names", frozenset())
+    problems: list[str] = []
+    for rel in SCRIPT_FOLDERS:
+        folder = repo / rel if rel else repo
+        try:
+            entries = sorted(folder.iterdir(), key=lambda p: p.name)
+        except OSError:
+            continue
+        for entry in entries:
+            kind, name = _importable(entry)
+            if kind is None or not name.isidentifier() or (name.startswith("__") and name.endswith("__")):
+                continue
+            if (rel, name) in TOPLEVEL_HOMES or (rel, name) in TOPLEVEL_NOT_FOLLOWED:
+                continue
+            if kind == "folder" and name in stdlib:  # a namespace folder never replaces a regular (library) module
+                continue
+            where = f"{rel}/{entry.name}" if rel else entry.name
+            if name in tops:
+                problems.append(f"{where}: a {kind} named like {name!r}, a top-level module a closure file imports: with "
+                                f"{rel or 'the repository root'} first on sys.path it runs INSTEAD, unhashed")
+            elif name in stdlib:
+                problems.append(f"{where}: a {kind} named like the standard library's {name!r}: with "
+                                f"{rel or 'the repository root'} first on sys.path it runs INSTEAD, unhashed")
+    return problems
 
 
 def closure_missing(repo: Path | None = None) -> tuple[list[str], int, float]:
-    """(The checker's C2-05) The files of `grader_closure` that GRADER_FILES does not hash (empty: it covers them), the
-    closure's size and the scan's seconds. `register` and a graded run are refused (R12) unless the list is empty."""
+    """(The checkers' C2-05, C3-H01 and C3-H02) WHAT R12 REFUSES: every file of the import closure (`closure_scan`) that
+    GRADER_FILES does not hash, then every other file the grader's code could be (`resolution_problems`,
+    `pycache_problems`, `toplevel_problems`, each "path: why"); with the closure's size and the scan's seconds. `register`
+    and a graded run are refused (R12) unless the list is empty; a development batch only prints it."""
+    repo = repo or REPO
     began = time.perf_counter()
-    closure = grader_closure(repo)
-    return [rel for rel in closure if rel not in GRADER_FILES], len(closure), round(time.perf_counter() - began, 2)
+    scan = closure_scan(repo)
+    missing = [rel for rel in scan["closure"] if rel not in GRADER_FILES]
+    problems = [*resolution_problems(repo, scan["modules"]), *pycache_problems(repo, scan["paths"]),
+                *toplevel_problems(repo, scan["tops"])]
+    return [*missing, *problems], len(scan["closure"]), round(time.perf_counter() - began, 2)
 
 
 def closure_refusal(missing: list[str]) -> str | None:
-    """R12's text for `closure_missing`'s list, or None when GRADER_FILES hashes the whole closure."""
+    """R12's text for `closure_missing`'s list (EVERY entry named, the third check's C3-H04), or None when it is empty."""
     if not missing:
         return None
-    return (f"R12: the grader's import closure has {len(missing)} file(s) that GRADER_FILES does not hash: {missing[:12]}: "
-            f"list each in GRADER_GATES, GRADER_SANDBOX or GRADER_BOT (a new registration), or remove the import")
+    return (f"R12: the grader's code could be {len(missing)} file(s) the registration does not hash: {missing}: list an "
+            f"unhashed closure file in GRADER_GATES, GRADER_SANDBOX or GRADER_BOT (a new registration) or remove its "
+            f"import; remove any other file named (it would run instead of a hashed one)")
 
 
 def env_keys() -> dict:
@@ -715,10 +1028,43 @@ SNAPSHOT_SOURCE = "the last snapshot of "
 NEW_MEMORY = "nothing (a new memory)"
 
 
+def world_counts(raw: bytes) -> tuple[dict | None, str | None]:
+    """(The third check's C3-E02) The five counts of one world.jsonl line the AI wrote (maps, tiles learned, warp links,
+    connections, map changes: the five it says it loaded), or (None, why) for a line that does not parse or has the wrong
+    shape. The AI's output is UNTRUSTED: EVERY exception of the parse and of the counts (ValueError, RecursionError on a
+    deeply nested line, TypeError on a field of the wrong type, OverflowError, ...) is a failed line, never the harness's."""
+    try:
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return None, f"its last line is a JSON {type(data).__name__}, not an object"
+        tiles = data.get("tiles_learned") or 0
+        if isinstance(tiles, bool) or not isinstance(tiles, int):
+            return None, f"its tiles_learned is a {type(tiles).__name__}, not a whole number"
+        counts = {"maps": len(data.get("maps") or {}), "tiles": tiles, "warps": len(data.get("warps") or {}),
+                  "connections": len(data.get("connections") or []), "transitions": len(data.get("transitions") or [])}
+        wrong = [key for key, kind in (("maps", dict), ("warps", dict), ("connections", list), ("transitions", list))
+                 if data.get(key) is not None and not isinstance(data.get(key), kind)]
+        if wrong:
+            return None, f"its {', '.join(wrong)} have the wrong JSON type"
+        return counts, None
+    except Exception as error:  # noqa: BLE001 - (C3-E02) the AI's output is untrusted: any failure is a failed line
+        return None, f"its last line does not parse ({type(error).__name__})"
+
+
+def _line_parses(raw: bytes) -> bool:
+    """One world.jsonl line parses as JSON (any exception of the parse, a RecursionError included, is a bad line)."""
+    try:
+        json.loads(raw)
+        return True
+    except Exception:  # noqa: BLE001 - (C3-E02) untrusted: a deeply nested line raises RecursionError, not ValueError
+        return False
+
+
 def stream_world_tail(path: Path, keep: Path | None = None) -> dict:
     """ONE PASS over a world.jsonl, line by line, never a whole-file read: its size, its non-blank lines, the ones that do
-    not parse, and its LAST non-blank line, byte for byte (written to `keep` when given): whether it parses, its sha256, its
-    size and its counts (maps, tiles learned, warp links, connections, map changes: the five the AI says it loaded)."""
+    not parse, and its LAST non-blank line, byte for byte (written to `keep` when given): whether it parses as a JSON object
+    whose five counts can be read (`world_counts`; maps, tiles learned, warp links, connections, map changes: the five the
+    AI says it loaded), its sha256, its size and its counts. (C3-E02) no line the AI wrote can make it raise."""
     size = path.stat().st_size
     lines = bad = 0
     last: bytes | None = None
@@ -728,24 +1074,17 @@ def stream_world_tail(path: Path, keep: Path | None = None) -> dict:
                 continue
             lines += 1
             last = raw
-            try:
-                json.loads(raw)
-            except ValueError:
+            if not _line_parses(raw):
                 bad += 1
     out = {"bytes": size, "lines": lines, "bad_lines": bad, "last_ok": False, "last_sha256": None, "last_bytes": 0,
            "kept": None, "counts": None}
     if last is None:
         return out
-    try:
-        data = json.loads(last)
-        ok = isinstance(data, dict)
-    except ValueError:
-        data, ok = None, False
-    out.update({"last_ok": ok, "last_sha256": hashlib.sha256(last).hexdigest(), "last_bytes": len(last)})
-    if ok:
-        out["counts"] = {"maps": len(data.get("maps") or {}), "tiles": int(data.get("tiles_learned") or 0),
-                         "warps": len(data.get("warps") or {}), "connections": len(data.get("connections") or []),
-                         "transitions": len(data.get("transitions") or [])}
+    counts, why = world_counts(last)
+    out.update({"last_ok": counts is not None, "last_sha256": hashlib.sha256(last).hexdigest(), "last_bytes": len(last),
+                "counts": counts})
+    if why:
+        out["last_problem"] = why
     if keep is not None:
         keep.parent.mkdir(parents=True, exist_ok=True)
         keep.write_bytes(last)
@@ -772,7 +1111,9 @@ def parse_memory_line(line: str) -> dict | None:
 
 def log_counts(lines: Iterable[str]) -> dict:
     """The AI's log, line by line: every 'an unexpected <kind>' LINE by kind and by form (lines, not events: one stop may
-    be said more than once), the multichoice lines, the first such line, and the FIRST memory line."""
+    be said more than once), the multichoice lines, the first such line, and the FIRST memory line. (C3-E02) a memory line
+    that cannot be read (a count of more digits than int() takes, ...) is kept as an UNREADABLE memory line, with no
+    counts and no source, so LC.MEMORY fails that leg; it never raises."""
     out: dict = {"lines": 0, "unexpected": {}, "forms": {}, "multichoice": 0, "first_unexpected": None, "memory": None}
     for line in lines:
         out["lines"] += 1
@@ -787,15 +1128,31 @@ def log_counts(lines: Iterable[str]) -> dict:
             if out["first_unexpected"] is None:
                 out["first_unexpected"] = line.strip()[:300]
         if out["memory"] is None and "[AI-WORLD] memory from " in line:
-            out["memory"] = parse_memory_line(line)
+            try:
+                out["memory"] = parse_memory_line(line)
+            except Exception as error:  # noqa: BLE001 - (C3-E02) the AI's log is untrusted
+                out["memory"] = {"source": None, "path": None, "new": False, "counts": None, "line": line.strip()[:600],
+                                 "unreadable": f"{type(error).__name__}"}
     return out
 
 
 def read_log_counts(path: Path) -> dict | None:
+    """`log_counts` of the AI's log, or None when there is none. (C3-E02) a log that cannot be read to its end (an OS
+    error mid-read, ...) keeps what was counted, marked "error": its lines are untrusted input, never the harness's."""
     if not path.is_file():
         return None
-    with open(path, encoding="utf-8", errors="replace") as handle:
-        return log_counts(handle)
+    counted = {"lines": 0}
+
+    def lines(handle) -> Iterable[str]:
+        for line in handle:
+            counted["lines"] += 1
+            yield line
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            return log_counts(lines(handle))
+    except Exception as error:  # noqa: BLE001 - (C3-E02) an unreadable log is a failed read of that leg, not a crash
+        return {"lines": counted["lines"], "unexpected": {}, "forms": {}, "multichoice": 0, "first_unexpected": None,
+                "memory": None, "error": f"the AI's log could not be read: {type(error).__name__}"}
 
 
 # ====================================================================== the rules (pure; unit-tested on planted rows)
@@ -836,13 +1193,41 @@ def launch_died(row: dict) -> str | None:
             f"{stop.get('real_frames')}; {stop.get('elapsed_seconds')} s; no line of the AI's log; no world file)")
 
 
+def leg_identity_problems(row: dict, job: dict) -> list[str]:
+    """(The third check's C3-G01) Does a leg that RAN carry its REGISTERED job in the harness's own records? Its
+    environment's AI_PLAYER_SEED is str(seed) and its AI_PLAYER_PERSONALITY the personality, its command's --profile is the
+    profile, its arm is '<chain>-<leg>', and its run folder is recorded and lies under profiles/<profile>/ai_player_runs.
+    Empty: it does. A row copied from another chain of the same pair, its labels renamed, keeps the other job's records."""
+    name = row.get("leg")
+    env = row.get("env") if isinstance(row.get("env"), dict) else {}
+    command = [str(c) for c in row.get("command") or []]
+    at = command.index("--profile") if "--profile" in command else None
+    profile = command[at + 1] if at is not None and at + 1 < len(command) else None
+    problems: list[str] = []
+    if env.get(ENV_SEED) != str(job.get("seed")):
+        problems.append(f"{name}'s environment seed {env.get(ENV_SEED)!r} is not the registered {str(job.get('seed'))!r}")
+    if env.get(ENV_PERSONALITY) != job.get("personality"):
+        problems.append(f"{name}'s environment personality {env.get(ENV_PERSONALITY)!r} is not the registered "
+                        f"{job.get('personality')!r}")
+    if profile != job.get("profile"):
+        problems.append(f"{name}'s command's --profile {profile!r} is not the registered {job.get('profile')!r}")
+    if row.get("arm") != f"{job.get('chain')}-{name}":
+        problems.append(f"{name}'s arm {row.get('arm')!r} is not {job.get('chain')}-{name}")
+    run_dir = row.get("run_dir")
+    parts = [part.lower() for part in Path(str(run_dir)).parts] if run_dir else []
+    if len(parts) < 4 or parts[-4:-1] != ["profiles", str(job.get("profile")).lower(), "ai_player_runs"]:
+        problems.append(f"{name}'s run folder {run_dir!r} is not under profiles/{job.get('profile')}/ai_player_runs")
+    return problems
+
+
 def custody_problems(row: dict, prev: dict | None, job: dict, index: int) -> list[str]:
     """Did this leg start from what the bounds say? (section 4, CUSTODY) Empty: it did. (V-09) Every input is the
     HARNESS's own record (the command it built, the dict of environment keys `run_chain` built, its truth of one state file
-    read twice, the sha256 of its one kept file): on a later leg this catches a harness regression, never the AI."""
-    problems: list[str] = []
+    read twice, the sha256 of its one kept file): on a later leg this catches a harness regression, never the AI. (C3-G01)
+    every leg first names its REGISTERED job (`leg_identity_problems`)."""
+    problems: list[str] = leg_identity_problems(row, job)
     command = [str(c) for c in row.get("command") or []]
-    env = row.get("env") or {}
+    env = row.get("env") if isinstance(row.get("env"), dict) else {}
     keys = tuple(sorted(row.get("env_keys") or []))
     if index == 0:
         if "--fresh" not in command:
@@ -859,7 +1244,7 @@ def custody_problems(row: dict, prev: dict | None, job: dict, index: int) -> lis
             problems.append(f"L1's environment keys {list(keys)} are not {list(ENV_KEYS_FIRST)}")
         return problems
     if prev is None:
-        return [f"{row.get('leg')}: no row of the leg before it"]
+        return [*problems, f"{row.get('leg')}: no row of the leg before it"]
     want = str(Path(prev["run_dir"]) / "end_state.ss1") if prev.get("run_dir") else None
     state = command[command.index("--state") + 1] if "--state" in command and command.index("--state") + 1 < len(command) \
         else None
@@ -1019,34 +1404,62 @@ REDERIVED_TEXT = ("RE-DERIVED from each row's own facts: each leg's proof (the t
                   "checks' statuses (their inputs are the launch's verdict file and counters and the end state's write "
                   "time), the world file's measured size (the file is deleted by design: the measurement is its only "
                   "record), the disk guard's mark (grade DIR also reads the marker files on disk), C6 (when STOP.txt "
-                  "appeared) and each leg's status. A stored flag can stop a chain, never continue one.")
+                  "appeared) and each leg's STATUS (RAN, NOT RUN, ...) with its stored reason. A stored flag can stop a "
+                  "chain, never continue one; and since a stored stop could take a leg out of every sample, (C3-G06) a "
+                  "NOT RUN leg after a leg whose re-derived continuation holds fails LC.CUSTODY unless STOP.txt or "
+                  "ABORT.txt is in --out or its reason is the orchestrator's salvage reason. (C3-G01) every leg that ran "
+                  "must name its registered job in its own records, and no two counted legs share a run folder or a "
+                  "kept file.")
+#: (C3-G06) how the orchestrator's salvage names a leg a dead chain process never played (`salvage_chain`, `salvage_leg`)
+SALVAGE_REASON = "the chain's process ended"
 
 
-def kept_problem(leg: dict) -> str | None:
-    """(V-02) A leg's kept last line, re-read from its FILE: present, its sha256 the row's, a JSON object. None: it holds."""
+def kept_path(leg: dict, chain: str | None = None, kept_root: Path | None = None) -> str | None:
+    """(The third check's C3-G04) The file of a leg's kept last line: the row's stored path; when that is gone and
+    `kept_root` (a --out folder that was MOVED after its batch) is given, <kept_root>/<chain>/<leg>/world_last.jsonl, where
+    the harness writes it (its sha256 is still checked against the row's)."""
     kept = leg.get("kept_world")
+    if kept and Path(kept).is_file():
+        return kept
+    if kept_root is not None and chain:
+        moved = Path(kept_root) / chain / str(leg.get("leg")) / "world_last.jsonl"
+        if moved.is_file():
+            return str(moved)
+    return kept
+
+
+def kept_problem(leg: dict, path: str | None = None) -> str | None:
+    """(V-02) A leg's kept last line, re-read from its FILE (`path`, else the row's): present, its sha256 the row's, a
+    JSON object whose five counts can be read (`world_counts`: the AI's bytes are untrusted, C3-E02). None: it holds."""
+    kept = path if path is not None else leg.get("kept_world")
     if not kept or not Path(kept).is_file():
         return f"its kept last line {kept} is not on disk"
-    data = Path(kept).read_bytes()
+    try:
+        data = Path(kept).read_bytes()
+    except OSError as error:
+        return f"its kept last line {kept} cannot be read ({type(error).__name__})"
     if hashlib.sha256(data).hexdigest() != leg.get("kept_world_sha256"):
         return f"its kept last line's sha256 is not the row's {leg.get('kept_world_sha256')}"
-    try:
-        parsed = json.loads(data)
-    except ValueError:
-        parsed = None
-    return None if isinstance(parsed, dict) else "its kept last line is not a JSON object"
+    counts, why = world_counts(data)
+    return None if counts is not None else f"its kept last line is not a JSON object whose five counts can be read ({why})"
 
 
-def rederived_chain(chain: dict, job: dict, legs: list[dict] | None = None) -> dict:
+def rederived_chain(chain: dict, job: dict, legs: list[dict] | None = None, shared: dict | None = None,
+                    stop_files: Iterable[str] = (), kept_root: Path | None = None) -> dict:
     """(The verifier's V-02) A COPY of one registered chain's row whose every leg that RAN is RE-DERIVED from the row's own
     facts (`REDERIVED_TEXT`): its proof from the truth's marks against the REGISTERED leg's proof (`legs`; the row's own
     proof only when no legs are given), its reach, its custody against the registered job (joined to the stored custody
-    problems: a stored problem still counts), its kept last line, and so its continuation. A leg continues iff its STORED
-    flag AND the re-derived rule say so. (The checker's C2-01) the row's identity (`IDENTITY`) is the job's: a row whose
-    identity is not never reaches here (`registered_chains` IGNORES it), so LC.STARTER compares the REGISTERED starter.
-    Every stored flag the facts do not support is listed in the copy's "rederived"."""
+    problems: a stored problem still counts; with C3-G01 the leg's own records must name that job, and `shared` adds each
+    leg's run folder or kept file that another counted leg also has), its kept last line (`kept_root`: a moved --out,
+    C3-G04), and so its continuation. A leg continues iff its STORED flag AND the re-derived rule say so. (The checker's
+    C2-01) the row's identity (`IDENTITY`) is the job's: a row whose identity is not never reaches here (`registered_chains`
+    IGNORES it), so LC.STARTER compares the REGISTERED starter. Every stored flag the facts do not support is listed in the
+    copy's "rederived". (C3-G06) a leg that did not run after a leg whose re-derived continuation holds, with no STOP.txt
+    or ABORT.txt in --out (`stop_files`) and no salvage reason, is listed in "custody_chain" (LC.CUSTODY fails)."""
     out = copy.deepcopy(chain)
     notes: list[str] = []
+    unexplained: list[str] = []
+    stops = set(stop_files)
     prev: dict | None = None
     for index, leg in enumerate(out.get("legs") or []):
         stored = bool(leg.get("continue"))
@@ -1063,11 +1476,13 @@ def rederived_chain(chain: dict, job: dict, legs: list[dict] | None = None) -> d
             leg["reached"] = leg_reached(leg)[0]
             leg["harness"] = launch_died(leg)
             # a stored custody problem still counts (a stored flag may stop a leg, never clear one): the union
-            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), *custody_problems(leg, prev, job, index)]))
-            kept = kept_problem(leg)
+            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), *custody_problems(leg, prev, job, index),
+                                                 *((shared or {}).get(str(leg.get("leg"))) or [])]))
+            path = kept_path(leg, job["chain"], kept_root)
+            kept = kept_problem(leg, path)
             if kept is not None:
                 problems.append(f"C3 {kept}")
-            go, why = continue_after(leg, False)
+            go, why = continue_after({**leg, "kept_world": path}, False)
             if not go:
                 problems.append(why)
             leg["continue"] = stored and not problems
@@ -1078,20 +1493,49 @@ def rederived_chain(chain: dict, job: dict, legs: list[dict] | None = None) -> d
                 leg["why"] = f"RE-DERIVED: {text}"
                 if out.get("stopped_at") is None:
                     out.update({"stopped_at": leg.get("leg"), "stop_reason": f"RE-DERIVED: {text}"})
+        elif (leg.get("status") not in RAN and prev is not None and prev.get("status") == "RAN" and prev.get("continue")
+              and not stops and not str(leg.get("reason") or "").startswith(SALVAGE_REASON)):
+            unexplained.append(f"{job['chain']} {leg.get('leg')}: {leg.get('status')} after {prev.get('leg')}, whose "
+                               f"re-derived continuation holds, with no STOP.txt or ABORT.txt in --out and no salvage "
+                               f"reason (its stored reason: {str(leg.get('reason'))[:200]!r})")
         prev = leg
     out["rederived"] = notes
+    out["custody_chain"] = unexplained
     out["reached_to"] = chain_reaches(out, len(legs) if legs is not None else len(out.get("legs") or []))
     return out
 
 
-def registered_chains(chains: list[dict], jobs: list[dict],
-                      legs: list[dict] | None = None) -> tuple[list[dict], list[str], list[str]]:
+def shared_legs(rows: list[tuple[dict, dict]]) -> dict[str, dict[str, list[str]]]:
+    """(The third check's C3-G01) Two legs of the counted rows that share a run folder or a kept file never both count:
+    {chain: {leg: [why]}} for every leg (RAN, SALVAGED or ERROR) whose run_dir or kept_world another such leg also has."""
+    owners: dict[tuple[str, str | None], list[tuple[str, str]]] = {}
+    for chain, job in rows:
+        for leg in chain.get("legs") or []:
+            if leg.get("status") not in RAN:
+                continue
+            for key in ("run_dir", "kept_world"):
+                if leg.get(key):
+                    owners.setdefault((key, _norm(leg[key])), []).append((job["chain"], str(leg.get("leg"))))
+    out: dict[str, dict[str, list[str]]] = {}
+    for (key, _), found in owners.items():
+        if len(found) > 1:
+            for chain, leg in found:
+                others = ", ".join(f"{c} {l}" for c, l in found if (c, l) != (chain, leg))
+                out.setdefault(chain, {}).setdefault(leg, []).append(
+                    f"{leg}'s {key} is also {others}'s: two legs never share one, so neither counts")
+    return out
+
+
+def registered_chains(chains: list[dict], jobs: list[dict], legs: list[dict] | None = None,
+                      stop_files: Iterable[str] = (),
+                      kept_root: Path | None = None) -> tuple[list[dict], list[str], list[str]]:
     """(The verifier's V-02) The rows that COUNT, in the jobs' order: each registered chain's ONE row, re-derived
     (`rederived_chain`). Returns (those rows, the rows IGNORED with why, the stored flags the facts do not support). A row
     of a chain that is not registered never counts, a registered chain with two rows counts neither, and (the checker's
     C2-01) a row whose chain, pair, personality, starter, seed or profile (`IDENTITY`) is not the registered job's is
     IGNORED the same way, named with its reason: its registered chain is then ABSENT (LC.CUSTODY's "every registered
-    chain's L1 ran" fails, and a floor may read VACUOUS)."""
+    chain's L1 ran" fails, and a floor may read VACUOUS). (C3-G01) two counted legs that share a run folder or a kept file
+    (`shared_legs`) fail custody."""
     registered = [job["chain"] for job in jobs]
     rows: dict = {}
     for chain in chains:
@@ -1100,7 +1544,7 @@ def registered_chains(chains: list[dict], jobs: list[dict],
                for name, found in rows.items() if name not in registered]
     ignored += [f"{name}: {len(rows[name])} rows for one registered chain: none of them counts" for name in registered
                 if len(rows.get(name) or []) > 1]
-    kept = []
+    counted: list[tuple[dict, dict]] = []
     for job in jobs:
         found = rows.get(job["chain"]) or []
         if len(found) != 1:
@@ -1111,22 +1555,26 @@ def registered_chains(chains: list[dict], jobs: list[dict],
             ignored.append(f"{job['chain']}: its row is not the registered job's ({'; '.join(wrong)}): it never counts, "
                            f"so the chain is ABSENT")
             continue
-        kept.append(rederived_chain(found[0], job, legs))
+        counted.append((found[0], job))
+    shared = shared_legs(counted)
+    kept = [rederived_chain(row, job, legs, shared.get(job["chain"]), stop_files, kept_root) for row, job in counted]
     return kept, ignored, [note for chain in kept for note in chain.get("rederived") or []]
 
 
 def grade_batch(chains: list[dict], jobs: list[dict], legs_wanted: int, reach_min: int,
                 frozen: tuple[bool, str] | None = None, leftover: list[str] | None = None,
-                reported: dict | None = None, legs: list[dict] | None = None) -> list[Check]:
+                reported: dict | None = None, legs: list[dict] | None = None, stop_files: Iterable[str] = (),
+                kept_root: Path | None = None) -> list[Check]:
     """THE GRADED BOUNDS of the bounds text over a batch's chain rows (each with every leg's row, NOT RUN ones included).
     `jobs` are the REGISTERED chains: (V-02) only their rows count, each RE-DERIVED from its own facts against the
-    registered `legs` (`registered_chains`); `reported` carries the harness's own records for the reported checks (world
+    registered `legs` (`registered_chains`; `stop_files`: which of STOP.txt and ABORT.txt are in --out, C3-G06;
+    `kept_root`: a moved --out, C3-G04); `reported` carries the harness's own records for the reported checks (world
     files left after the sweep, the profiles' listings, the main profile, the most chains at once). Every check quotes
     both values."""
     reported = reported or {}
     checks: list[Check] = []
     expected = len(jobs)
-    chains, ignored, rederived = registered_chains(chains, jobs, legs)
+    chains, ignored, rederived = registered_chains(chains, jobs, legs, stop_files, kept_root)
     by_name = {c.get("chain"): c for c in chains}
     ran = ran_legs(chains)
     floor = max(len(ran), expected)
@@ -1176,6 +1624,8 @@ def grade_batch(chains: list[dict], jobs: list[dict], legs_wanted: int, reach_mi
                   if not ((by_name.get(j["chain"]) or {}).get("legs") or [{}])[0].get("status") == "RAN"]
     custody_bad = [f"{chain.get('chain')} {leg.get('leg')}: {'; '.join(leg.get('custody') or ['not checked'])}"
                    for chain, leg in ran if leg.get("status") != "RAN" or leg.get("custody") is None or leg.get("custody")]
+    # (C3-G06) a leg that did not run after a continuing leg, unexplained: a stored stop never hides a leg unseen
+    custody_bad += [problem for chain in chains for problem in chain.get("custody_chain") or []]
     custody_judged = sum(1 for _, leg in ran if leg.get("status") == "RAN" and leg.get("custody") is not None)
     checks.append(_check("LC.CUSTODY", GRADED, not unlaunched and not custody_bad, custody_judged, floor, (HARNESS, GAME),
                          f"every registered chain's L1 ran ({expected - len(unlaunched)} of {expected}; not: "
@@ -1323,6 +1773,52 @@ def optional_report(chains: list[dict], data: dict, to_chapter: int) -> dict:
 
 
 # ====================================================================== one chain (the child process)
+def safe_text(value: object, limit: int = 300) -> str:
+    """str(value), cut to `limit`, NEVER raising (the third check's C3-E06: an exception whose str() raises must not
+    break the ERROR record): repr, then the type's name."""
+    try:
+        text = str(value)
+    except Exception:  # noqa: BLE001
+        try:
+            text = repr(value)
+        except Exception:  # noqa: BLE001
+            text = f"<a {type(value).__name__} that cannot be printed>"
+    return text[:limit]
+
+
+def error_text(error: BaseException) -> str:
+    """'<type>: <message>', never raising; (C3-E06) a SyntaxError also names its file's repository path (its own message
+    names the file's last part only)."""
+    text = f"{type(error).__name__}: {safe_text(error)}"
+    filename = getattr(error, "filename", None) if isinstance(error, SyntaxError) else None
+    return f"{text} in {filename}" if filename else text
+
+
+def dig(value: object, *keys: str) -> object:
+    """value[k1][k2]... through dicts only, None at the first step that is not a dict: (C3-E02) the reader of a file the
+    AI wrote, whose shape is untrusted."""
+    for key in keys:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(key)
+    return value
+
+
+def untrusted_text(value: object) -> str | None:
+    """(C3-E02) A value the AI wrote, kept as text (None stays None)."""
+    return value if value is None or isinstance(value, str) else safe_text(value, 200)
+
+
+def judged(check: Callable[[], None], what: str, notes: list) -> None:
+    """(The third check's C3-E02) Run one check of the AI's output (its verdict file and counters): an exception leaves the
+    checks it would have made MISSING, so they fail and the chain stops, with a note; it never ends the chain process."""
+    try:
+        check()
+    except Exception as error:  # noqa: BLE001 - the AI's output is untrusted: a failed read is a failed check
+        notes.append(f"{what} could not judge the AI's output ({type(error).__name__}: {safe_text(error, 200)}): its "
+                     f"checks are MISSING, so they fail")
+
+
 def _truth_subset(truth: dict | None) -> dict | None:
     if not truth:
         return None
@@ -1467,8 +1963,10 @@ def run_chain(job: dict, run_leg: Callable | None = None) -> dict:
             chain.update({"stopped_at": leg["leg"], "stop_reason": row["reason"]})
             write_chain(out, chain, len(legs))
             return chain
-        check_purity(run, None)
-        L5.check_after_is_this_run(run)
+        # (C3-E02) the verdict file and its counters are the AI process's output: a value of the wrong shape leaves the
+        # checks it would have made MISSING (so they fail and the chain stops), never a dead chain process
+        judged(lambda: check_purity(run, None), "the purity checks", run.notes)
+        judged(lambda: L5.check_after_is_this_run(run), "L5.THIS_RUN", run.notes)
         sent = {ENV_BRAIN: "play", ENV_SEED: str(arm.seed), **arm.env}
         if run.world_in is not None:
             sent[ENV_WORLD] = str(run.world_in)
@@ -1487,7 +1985,7 @@ def run_chain(job: dict, run_leg: Callable | None = None) -> dict:
                {"held": False, "missing": ["(no end truth)"], "failing": [], "values": {}},
                "already_held": (proof_before or {}).get("held") if proof_before else (False if fresh else None),
                "checks": check_rows(run.checks), "harness_stop": run.measures.get("harness_stop"),
-               "outcome": ((run.verdict or {}).get("facts") or {}).get("exit_reason"),
+               "outcome": untrusted_text(dig(run.verdict, "facts", "exit_reason")),
                "gate_line": next((ln for ln in run.stdout.splitlines() if ln.startswith("[AI-GATE]")), None),
                "notes": list(run.notes)}
         row["reached"] = leg_reached(row)[0]
@@ -1498,7 +1996,8 @@ def run_chain(job: dict, run_leg: Callable | None = None) -> dict:
         # (spec section 4) the next leg gets the KEPT last line as its world memory, never the deleted original (F6/F8)
         carried.pop(arm_name, None)
         if end_state is not None and end_state.is_file() and row["kept_world"]:
-            reads = [r for r in run.earlier + run.records if r.get("decision") == "read"]
+            # (C3-E02) actions.jsonl is the AI's: a record that is not a JSON object is no page it read
+            reads = [r for r in run.earlier + run.records if isinstance(r, dict) and r.get("decision") == "read"]
             carried[arm_name] = (end_state, Path(row["kept_world"]), reads)
         row["custody"] = custody_problems(row, prev, job, index)
         go, why = continue_after(row, (out / STOP_FILE).is_file())
@@ -1572,6 +2071,8 @@ def salvage_chain(job: dict, build_root: Path, out: Path, why: str) -> dict:
 
 def child(job_path: Path) -> int:
     job = json.loads(Path(job_path).read_text(encoding="utf-8"))
+    for name in PYTHON_ENV:  # (C3-H02) the truth reads' environment (live_step2.clean_env copies this one) drops them
+        os.environ.pop(name, None)
     from ai_player.gates import live_step5 as L5
 
     L5.PROFILE = job["profile"]
@@ -1650,12 +2151,18 @@ def snapshot() -> object:
     return snapshot_tree(REPO)
 
 
+def child_env() -> dict[str, str]:
+    """(The third check's C3-H02) The environment of a chain process: this one's without PYTHON_ENV (PYTHONPATH, PYTHONHOME,
+    PYTHONSTARTUP), so neither the chain process nor the truth reads it starts put another file in place of a hashed one."""
+    return {k: v for k, v in os.environ.items() if k not in PYTHON_ENV}
+
+
 class ChildProcess:
     """One chain's child: `py -B live_chain.py child JOB.json`, its output in `<chain>.child.log`."""
 
     def __init__(self, job_path: Path, log_path: Path) -> None:
         self.log = open(log_path, "w", encoding="utf-8")
-        env = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+        env = {**child_env(), "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"}
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
         self.proc = subprocess.Popen([sys.executable, "-B", str(Path(__file__).resolve()), "child", str(job_path)],
                                      cwd=str(REPO), env=env, stdout=self.log, stderr=subprocess.STDOUT, creationflags=flags)
@@ -1739,10 +2246,12 @@ def schedule(jobs: list[dict], spawn: Callable, tick: Callable, parallel: int, s
 
 
 def run_refusal(args, facts: dict) -> str | None:
-    """EVERY REFUSAL before `ledger.begin` (spec section 7, R1-R9, the critique's additions, R11: --out missing or empty,
-    the verifier's V-01, and R12: a graded batch whose grader closure GRADER_FILES does not cover, the checker's C2-05),
-    pure: `facts` are what the orchestrator measured (`gather_facts`). None: the batch may begin (the ledger, R10, may
-    still refuse)."""
+    """Every refusal JUDGED FROM FACTS before `ledger.begin` (spec section 7, R1-R9, the critique's additions; R11: --out
+    missing or empty, the verifier's V-01, or (C3-E01) one that can never be made: a file above it, a missing drive; R12: a
+    graded batch whose grader code could be a file the registration does not hash (`closure_missing`, the checkers' C2-05,
+    C3-H01, C3-H02), a closure that cannot be scanned (C3-E06), or PYTHONPATH, PYTHONHOME or PYTHONSTARTUP set (C3-H02)),
+    pure: `facts` are what the orchestrator measured (`gather_facts`). None: the batch may go on; it may still be refused
+    by R11 when --out cannot actually be MADE or written (`prepare_out`, still before the ledger) and by the ledger (R10)."""
     repo = Path(facts["repo"])
     out, build_root = Path(facts["out"]), Path(facts["build_root"])
     graded = args.purpose == "graded"
@@ -1783,9 +2292,17 @@ def run_refusal(args, facts: dict) -> str | None:
         return f"R4: {facts['legs_error']}"
     if facts.get("g3"):
         return f"R5: the G-3 walk of ai_player.gates.live_chain found an AI import: {facts['g3']}"
+    if graded and facts.get("closure_error"):
+        # (the third check's C3-E06) a closure file that does not parse: the scan names it, and nothing is begun
+        return (f"R12: the grader's import closure could not be scanned ({facts['closure_error']}), so what it runs "
+                f"cannot be shown to be hashed")
     if graded and facts.get("closure_missing"):
-        # (the checker's C2-05) a file the grade imports or runs that the registration did not hash
+        # (the checkers' C2-05, C3-H01, C3-H02) a file the grade imports or runs that the registration did not hash
         return closure_refusal(facts["closure_missing"])
+    if graded and facts.get("python_env"):
+        # (the third check's C3-H02) each puts other files in front of the hashed ones (or runs a file at start)
+        return (f"R12: {', '.join(facts['python_env'])} is set: a graded run uses only the files on the registered "
+                f"sys.path; unset it and run again")
     if graded:
         git = facts.get("git") or {}
         if git.get("error") or not git.get("head") or git.get("head") != git.get("origin"):
@@ -1808,9 +2325,17 @@ def run_refusal(args, facts: dict) -> str | None:
 
 def out_listing(out: Path) -> dict:
     """(The verifier's V-01) What --out holds before the batch: {"out_entries": every name in it, sorted (empty when it does
-    not exist)}, or {"out_error": why it cannot be a batch's --out} when it is not a folder or cannot be listed."""
+    not exist)}, or {"out_error": why it cannot be a batch's --out} when it is not a folder or cannot be listed, or (the
+    third check's C3-E01) when it does not exist and cannot be created: the nearest path above it that exists is a file
+    (a typo), or nothing above it exists (a missing drive). `prepare_out` then tries what no listing can show (an invalid
+    name, no permission) by making it, before ledger.begin."""
     if not out.exists():
-        return {"out_entries": []}
+        for parent in out.parents:
+            if parent.exists():
+                if not parent.is_dir():
+                    return {"out_error": f"it cannot be created: {parent} above it is not a folder"}
+                return {"out_entries": []}
+        return {"out_error": "it cannot be created: no folder above it exists (a missing drive?)"}
     if not out.is_dir():
         return {"out_error": "it exists and is not a folder"}
     try:
@@ -1854,7 +2379,13 @@ def gather_facts(args, deps: Deps) -> dict:
     facts.update(out_listing(facts["out"]))
     facts["g3"] = deps.g3()
     # (the checker's C2-05) measured for every batch, refused (R12) for a graded one; its cost is printed
-    facts["closure_missing"], facts["closure_size"], facts["closure_seconds"] = deps.closure()
+    try:
+        facts["closure_missing"], facts["closure_size"], facts["closure_seconds"] = deps.closure()
+    except Exception as error:  # noqa: BLE001 - (C3-E06) a file that does not parse is named, never a crash
+        facts.update({"closure_missing": [], "closure_size": None, "closure_seconds": None,
+                      "closure_error": error_text(error)})
+    # (C3-H02) a graded run is refused while one is set (`run_refusal`)
+    facts["python_env"] = [name for name in PYTHON_ENV if os.environ.get(name)]
     if first is not None:
         facts["seeds"] = run["seeds"] if run else seeds_of(first, chains)
     if graded:
@@ -1940,12 +2471,112 @@ def evidence_path(evidence_dir: Path, graded: bool, to: str, first: int) -> Path
     return evidence_dir / (f"{stamp}-chain-heldout.txt" if graded else f"{stamp}-chain-heldout-dev-{to}-{first}.txt")
 
 
+#: (the third check's C3-E05) the ERROR path's own record, written BESIDE a complete results.json, never over it
+RESULTS_ERROR = "results.error.json"
+#: (C3-E03) what the ERROR path leaves in --out when the ledger cannot be written at all: `finish-entry DIR` reads it
+UNFINISHED = "ledger.unfinished.json"
+#: (C3-E03) a ledger finish is tried this many times, this many seconds apart (a lock another writer holds, a ledger file
+#: another program has open): the computed verdict first, and only then the ERROR verdict
+FINISH_TRIES = 3
+FINISH_PAUSE_SECONDS = 2.0
+#: (C3-E06, C3-E07) the stage the guard names in an ERROR verdict ("... while <the text>")
+STAGES = {"chains": "while the chains ran", "grading": "while grading", "evidence": "while writing the evidence",
+          "results.json": "while writing results.json", "ledger": "while writing the ledger"}
+BOUNDS_HEADING = "BOUNDS TEXT (hashed into the registration):"
+
+
+def prepare_out(out: Path, files: dict[str, object]) -> list[Path]:
+    """(The third check's C3-E01) --out and the files the batch writes there before any chain (the chains' job files),
+    made BEFORE ledger.begin. RAISES `Refusal` (R11) when --out cannot be created or written (a file in its path, a missing
+    drive, an invalid name, no permission), after removing what it made, so the ledger is never begun on an --out the
+    batch cannot use. Returns what it made (the folders it created, then each file and its temp file), for `undo_out`."""
+    made: list[Path] = []
+    try:
+        created = [p for p in (out, *out.parents) if not p.exists()]
+        out.mkdir(parents=True, exist_ok=True)
+        made += sorted(created, key=lambda p: len(p.parts))
+        for name, data in files.items():
+            path = out / name
+            made += [path, path.with_name(path.name + ".tmp")]
+            _write_json(path, data)
+    except Exception as error:  # noqa: BLE001 - any failure to make or write --out is R11's, before the ledger
+        undo_out(made)
+        raise Refusal(f"R11: --out {out} cannot be created or written ({type(error).__name__}: {safe_text(error)}); give a "
+                      f"folder this process can create and write") from None
+    return made
+
+
+def undo_out(made: list[Path]) -> None:
+    """Remove what `prepare_out` made (its files, then the folders it created, deepest first, a folder only when empty), so
+    a batch refused by the ledger leaves --out as it found it (R11 would refuse that --out next time otherwise)."""
+    for path in sorted(made, key=lambda p: len(p.parts), reverse=True):
+        try:
+            if path.is_dir():
+                path.rmdir()
+            else:
+                path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def entry_finished(entry_id: int, verdict: str, path: Path) -> bool:
+    """The ledger entry is "done" with exactly this verdict (False when the ledger cannot be read)."""
+    try:
+        entry = next((e for e in ledger.load(path).get("entries", []) if e.get("id") == entry_id), None)
+    except Exception:  # noqa: BLE001
+        return False
+    return bool(entry) and entry.get("status") == "done" and entry.get("verdict") == verdict
+
+
+def finish_entry(entry_id: int, verdict: str, evidence: str | None, path: Path, sleep: Callable[[float], None],
+                 tries: int = FINISH_TRIES) -> str | None:
+    """(The third check's C3-E03) `ledger.finish`, tried up to `tries` times, FINISH_PAUSE_SECONDS apart. None when the
+    entry is finished with `verdict` (re-read after a failed try, in case it was written); else why the last try failed."""
+    why = None
+    for attempt in range(tries):
+        if attempt:
+            sleep(FINISH_PAUSE_SECONDS)
+        try:
+            ledger.finish(entry_id, verdict, evidence, path=path)
+            return None
+        except Exception as error:  # noqa: BLE001 - retried; the caller decides what a ledger it cannot write means
+            why = f"{type(error).__name__}: {safe_text(error)}"
+            if entry_finished(entry_id, verdict, path):
+                return None
+    return why
+
+
+class LedgerUnwritten(Exception):
+    """(C3-E03) The batch's computed verdict could not be written to the ledger after FINISH_TRIES tries."""
+
+
+def stop_children(handles: list[tuple[str, object]]) -> list[str]:
+    """(The chains-run guard) Kill every chain process still running, with its launcher's process tree (`kill_tree`): the
+    guard's first step when the harness raised while the chains ran. One line per chain it acted on."""
+    lines: list[str] = []
+    for chain, handle in handles:
+        try:
+            if handle.poll() is None:
+                handle.kill_tree()
+                lines.append(f"{chain}: its process (pid {handle.pid}) was still running: killed")
+        except Exception as error:  # noqa: BLE001
+            lines.append(f"{chain}: its process could not be killed ({type(error).__name__}: {safe_text(error, 200)})")
+    return lines
+
+
 def run_batch(args, deps: Deps | None = None) -> int:
-    """THE BATCH: refusals, the ledger's begin, the chains (at most PARALLEL at once), salvage, the end sweep, the grade,
-    one evidence file and the ledger's finish. Exit 0 PASS (graded) or ran (development), 1 FAIL, 2 refused, 3 ABORTED,
-    4 ERROR. (The checker's C2-07) from the end of the chains to the ledger's finish the harness is GUARDED: an exception
-    while grading or writing the evidence still FINISHES the ledger entry, with `error_verdict`'s ERROR (neither PASS nor
-    FAIL: the seeds are spent), and writes whatever evidence it can with the traceback (`finish_on_error`)."""
+    """THE BATCH: refusals; every step that needs no chain (--out and the job files, the profile snapshots: BEFORE the
+    ledger, the third check's C3-E01 and C3-G05); the ledger's begin; the chains (at most PARALLEL at once); salvage, the
+    end sweep, the grade, one evidence file, results.json and the ledger's finish. Exit 0 PASS (graded) or ran
+    (development), 1 FAIL, 2 refused, 3 ABORTED, 4 ERROR. (The checkers' C2-07, C3-E03 and the chains-run guard) from
+    ledger.begin to the ledger's finish the harness is GUARDED: an exception while the chains run (every running chain
+    process is killed first, then the end sweep deletes their world files) or while grading or writing the evidence,
+    results.json or the ledger FINISHES the entry with `error_verdict`'s ERROR naming the stage (neither PASS nor FAIL: the
+    seeds are spent) and writes whatever evidence it can with the traceback (`finish_on_error`); a Ctrl+C
+    (KeyboardInterrupt) does the same and then stops the process. A failed ledger write is retried with the computed
+    verdict before it falls back to ERROR (`finish_entry`). The entry stays "started" only after a HARD KILL of this
+    process, or when the ledger cannot be written at all: then the evidence and the output say it is NOT finished, with
+    the command that finishes it, and the exit is still 4."""
     from ai_player.gates.provenance import keep_earlier, line_digest
 
     deps = deps or Deps()
@@ -1956,8 +2587,11 @@ def run_batch(args, deps: Deps | None = None) -> int:
         print(f"REFUSED: {refusal}", flush=True)
         return 2
     missing = facts.get("closure_missing") or []
+    if facts.get("closure_error"):
+        print(f"[LC] the grader's import closure could NOT be scanned: {facts['closure_error']} (a development batch is "
+              f"not refused)", flush=True)
     print(f"[LC] the grader's import closure: {facts.get('closure_size')} files, "
-          + (f"{len(missing)} NOT hashed (a development batch is not refused): {missing[:8]}" if missing else
+          + (f"{len(missing)} NOT hashed (a development batch is not refused): {missing}" if missing else
              "every one hashed") + f" (scan {facts.get('closure_seconds')} s)", flush=True)
     out, build_root = facts["out"], facts["build_root"]
     legs, jobs, seeds, to = facts["legs"], facts["jobs"], facts["seeds"], facts["to"]
@@ -1973,6 +2607,30 @@ def run_batch(args, deps: Deps | None = None) -> int:
     kept = deps.snapshot()
     print(f"[LC] numbers sha256 {sha} (seeds {seeds[0]}-{seeds[1]}, {args.purpose}); code: {code}; tree kept: {kept}",
           flush=True)
+    # (the third check's C3-E01, C3-G05) every step that needs no chain runs BEFORE ledger.begin: an --out that cannot be
+    # made or written is refused with the seeds unspent, and between begin and the guard nothing can raise
+    began = time.strftime("%Y-%m-%d %H:%M:%S")
+    main_before = main_profile_state(build_root)
+    folders_before = run_folders(build_root)
+    events: list[str] = deps.events
+    stagger = STAGGER_SECONDS if deps.stagger is None else deps.stagger
+    watchdog = chain_watchdog_seconds(legs)
+    label = ledger.label(args.purpose)
+    paths = {job["chain"]: (out / f"{job['chain']}.job.json", out / f"{job['chain']}.child.log") for job in jobs}
+    try:
+        made = prepare_out(out, {f"{job['chain']}.job.json": {**job, "legs": legs, "out": str(out),
+                                                              "build_root": str(build_root), "watchdog_seconds": watchdog}
+                                 for job in jobs})
+    except Refusal as error:
+        print(f"REFUSED: {error}", flush=True)
+        return 2
+    # (the checkers' C2-07, C3-E03..E07) what the ERROR record needs, and what the guarded part has built so far
+    ctx: dict = {"graded": graded, "purpose": args.purpose, "label": label, "to": to, "seeds": seeds, "sha": sha,
+                 "code": code, "began": began, "out": out, "evidence_dir": deps.evidence_dir or EVIDENCE_DIR,
+                 "ledger_path": deps.ledger_path or ledger.LEDGER, "bounds_text": numbers["bounds_text"],
+                 "keep_earlier": keep_earlier, "chains_n": chains_n, "run": args.run if graded else None,
+                 "numbers": numbers, "legs": legs, "jobs": jobs, "reach_min": reach_min, "sleep": deps.sleep,
+                 "stage": "chains"}
     try:
         entry, ledger_lines = begin(args.purpose, seeds, numbers, line_digest(code),
                                     note=f"LIVE CHAIN held-out (USER RULING 55), {args.purpose}, to {to}, {chains_n} chains, "
@@ -1981,23 +2639,14 @@ def run_batch(args, deps: Deps | None = None) -> int:
                                          + (f", prediction file sha256 {development['prediction_sha256'][:16]}" if development
                                             else ""), path=deps.ledger_path)
     except ledger.Refused as error:
+        undo_out(made)
         print(f"REFUSED by the ledger (R10): {error}", flush=True)
         return 2
-    for line in ledger_lines:
-        print(f"[LC] {line}", flush=True)
-    out.mkdir(parents=True, exist_ok=True)
-    began = time.strftime("%Y-%m-%d %H:%M:%S")
-    main_before = main_profile_state(build_root)
-    folders_before = run_folders(build_root)
-    events: list[str] = deps.events
-    stagger = STAGGER_SECONDS if deps.stagger is None else deps.stagger
-    paths: dict[str, tuple[Path, Path]] = {}
-    watchdog = chain_watchdog_seconds(legs)
-    for job in jobs:
-        full = {**job, "legs": legs, "out": str(out), "build_root": str(build_root), "watchdog_seconds": watchdog}
-        job_path = out / f"{job['chain']}.job.json"
-        _write_json(job_path, full)
-        paths[job["chain"]] = (job_path, out / f"{job['chain']}.child.log")
+    except BaseException:
+        undo_out(made)  # (ledger.begin writes the ledger last and atomically: on a raise the entry was not begun)
+        raise
+    ctx.update({"entry_id": entry["id"], "ledger_lines": ledger_lines})
+    handles: list[tuple[str, object]] = []
     started: dict[str, float] = {}
     state = {"last_tree": deps.clock(), "aborted": False}
 
@@ -2014,7 +2663,9 @@ def run_batch(args, deps: Deps | None = None) -> int:
         job_path, log_path = paths[job["chain"]]
         started[job["chain"]] = deps.clock()
         print(f"[LC] {job['chain']} started ({time.strftime('%H:%M:%S')})", flush=True)
-        return deps.spawn({**job, "legs": legs, "out": str(out), "build_root": str(build_root)}, job_path, log_path)
+        handle = deps.spawn({**job, "legs": legs, "out": str(out), "build_root": str(build_root)}, job_path, log_path)
+        handles.append((job["chain"], handle))  # (the chains-run guard kills each one still running)
+        return handle
 
     def tick(running: list) -> None:
         now = deps.clock()
@@ -2048,15 +2699,11 @@ def run_batch(args, deps: Deps | None = None) -> int:
                 (out / job["chain"] / "WATCHDOG.txt").write_text(f"past {watchdog} s\n", encoding="utf-8")
                 events.append(f"{job['chain']}: the chain watchdog ({watchdog} s) killed its process tree")
 
-    plan = schedule(jobs, spawn, tick, PARALLEL, stagger, deps.sleep, may_start, deps.poll_seconds)
-    label = ledger.label(args.purpose)
-    # (the checker's C2-07) what the ERROR record needs, and what the guarded part has built so far
-    ctx: dict = {"graded": graded, "purpose": args.purpose, "label": label, "to": to, "seeds": seeds, "sha": sha,
-                 "code": code, "ledger_lines": ledger_lines, "began": began, "entry_id": entry["id"], "out": out,
-                 "evidence_dir": deps.evidence_dir or EVIDENCE_DIR, "ledger_path": deps.ledger_path or ledger.LEDGER,
-                 "bounds_text": numbers["bounds_text"], "keep_earlier": keep_earlier, "chains_n": chains_n,
-                 "run": args.run if graded else None}
     try:
+        for line in ledger_lines:
+            print(f"[LC] {line}", flush=True)
+        plan = schedule(jobs, spawn, tick, PARALLEL, stagger, deps.sleep, may_start, deps.poll_seconds)
+        ctx["stage"] = "grading"
         left_procs = deps.leftover()
         chains: list[dict] = []
         not_started = {job["chain"]: why for job, why in plan["not_started"]}
@@ -2085,9 +2732,12 @@ def run_batch(args, deps: Deps | None = None) -> int:
         held = tree.check("after the batch")
         _, frozen_line = tree.seal("PASS" if held else "FAIL")
         optional = optional_report(chains, load_milestones(repo_root()), legs[-1]["chapter"])
+        # (C3-G06) a leg that did not run after a continuing leg is explained only by these files (or a salvage reason)
+        stop_files = [name for name in (STOP_FILE, ABORT_FILE) if (out / name).is_file()]
         checks = grade_batch(chains, jobs, len(legs), reach_min, (held and not tree.moves, frozen_line), left_procs,
                              {"world_left": [w for w in world_left if "could not" in w], "profiles": profiles,
-                              "main_profile": main, "optional": optional, "most_running": plan["most_running"]}, legs=legs)
+                              "main_profile": main, "optional": optional, "most_running": plan["most_running"]}, legs=legs,
+                             stop_files=stop_files)
         result = batch_verdict(checks)
         aborted = state["aborted"] or (out / ABORT_FILE).is_file()
         failing = [c.id for c in checks if c.kind == GRADED and c.status != PASS]
@@ -2100,6 +2750,7 @@ def run_batch(args, deps: Deps | None = None) -> int:
                         f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''}{died_text}: live chain "
                         f"held-out, to {to}, seeds {seeds[0]}-{seeds[1]}, numbers sha256 {sha[:16]}; "
                         f"{reach.text.split(': ', 1)[1][:400]}")
+        ctx["stage"] = "evidence"
         evidence = evidence_path(ctx["evidence_dir"], graded, to, seeds[0])
         evidence.parent.mkdir(parents=True, exist_ok=True)
         keep_earlier(evidence)
@@ -2131,7 +2782,7 @@ def run_batch(args, deps: Deps | None = None) -> int:
                  "checks (registered in the bounds text below; each quotes both values):", *check_lines(checks), "",
                  "per chain and leg (each counted chain as it was RE-DERIVED and graded):"]
         # (the checker's C2-03) the reach printed is the RE-DERIVED one that LC.REACH counted, never the stored flag alone
-        counted = {c.get("chain"): c for c in registered_chains(chains, jobs, legs)[0]}
+        counted = {c.get("chain"): c for c in registered_chains(chains, jobs, legs, stop_files)[0]}
         for chain in chains:
             row = counted.get(chain["chain"])
             stored = chain_reaches(chain, len(legs))
@@ -2146,8 +2797,9 @@ def run_batch(args, deps: Deps | None = None) -> int:
                         f"{shown_row.get('stopped_at')}: {shown_row.get('stop_reason')}")
             for leg in shown_row["legs"]:
                 text += leg_lines(leg)
-        text += ["", "BOUNDS TEXT (hashed into the registration):", numbers["bounds_text"]]
+        text += ["", BOUNDS_HEADING, numbers["bounds_text"]]
         evidence.write_text("\n".join(text) + "\n", encoding="utf-8")
+        ctx["stage"] = "results.json"
         _write_json(out / "results.json", {"began": began, "ended": time.strftime("%Y-%m-%d %H:%M:%S"),
                                            "purpose": args.purpose, "run": args.run if graded else None, "to": to,
                                            "chains": chains_n, "seeds": list(seeds), "numbers_sha256": sha,
@@ -2156,12 +2808,28 @@ def run_batch(args, deps: Deps | None = None) -> int:
                                            "most_running": plan["most_running"], "verdict": shown, "reach_min": reach_min,
                                            "legs": legs, "jobs": jobs, "world_left": world_left,
                                            "reported": {"profiles": profiles, "main_profile": main, "optional": optional},
-                                           "checks": check_rows(checks), "evidence": str(evidence)})
+                                           "checks": check_rows(checks), "evidence": str(evidence),
+                                           # (C3-G02) grade DIR takes its legs, jobs and reach floor from these, verified
+                                           "numbers": numbers})
+        ctx["stage"] = "ledger"
         reference = (str(evidence.resolve().relative_to(REPO)).replace("\\", "/") if evidence.resolve().is_relative_to(REPO)
                      else str(evidence))
-        ledger.finish(entry["id"], verdict_line, reference, path=deps.ledger_path or ledger.LEDGER)
-    except Exception as error:  # noqa: BLE001 - (C2-07) the seeds are spent: the entry is FINISHED, never left "started"
-        return finish_on_error(error, traceback.format_exc(), ctx)
+        # (C3-E03) a failed write is retried with the COMPUTED verdict first; only then does the guard write ERROR
+        why = finish_entry(entry["id"], verdict_line, reference, ctx["ledger_path"], deps.sleep)
+        if why is not None:
+            raise LedgerUnwritten(f"the computed verdict could not be written to ledger entry #{entry['id']} in "
+                                  f"{FINISH_TRIES} tries: {why}")
+    except BaseException as error:  # noqa: BLE001 - (C2-07, the chains-run guard) the seeds are spent: FINISH the entry
+        ctx["guard_notes"] = stop_children(handles)
+        if ctx["stage"] == "chains":
+            try:  # the killed legs' world files: deleted as the end sweep deletes them
+                ctx["guard_notes"] += end_sweep(jobs, build_root)
+            except Exception as sweep:  # noqa: BLE001
+                ctx["guard_notes"].append(f"the end sweep could not run: {type(sweep).__name__}: {safe_text(sweep, 200)}")
+        exit_code = finish_on_error(error, traceback.format_exc(), ctx)
+        if not isinstance(error, Exception):
+            raise  # (C3-E06) a Ctrl+C still stops the process, AFTER the entry is finished
+        return exit_code
     print(f"[LC] evidence: {evidence}", flush=True)
     for line in check_lines(checks):
         print(f"[LC] {line.strip()}", flush=True)
@@ -2171,23 +2839,37 @@ def run_batch(args, deps: Deps | None = None) -> int:
     return 0 if (result == "PASS" or not graded) else 1
 
 
-def error_verdict(error: BaseException) -> str:
-    """(The checker's C2-07) The named verdict of a batch whose harness raised after the chains ended: neither PASS nor FAIL
-    (the seeds are spent), recorded the way the disk guard's ABORT is."""
-    return (f"ERROR (harness: {type(error).__name__}: {str(error)[:300]} while grading; no PASS or FAIL; the seeds are "
-            f"spent)")
+def error_verdict(error: BaseException, stage: str = "grading") -> str:
+    """(The checkers' C2-07, C3-E06 and C3-E07) The named verdict of a batch whose harness raised after ledger.begin:
+    neither PASS nor FAIL (the seeds are spent), recorded the way the disk guard's ABORT is, naming the STAGE (`STAGES`) and
+    the error (`safe_text`: an exception whose str() raises still gives a verdict)."""
+    return (f"ERROR (harness: {type(error).__name__}: {safe_text(error) or 'no message'} "
+            f"{STAGES.get(stage, 'while ' + stage)}; no PASS or FAIL; the seeds are spent)")
+
+
+def finish_command(ctx: dict) -> str:
+    """(C3-E03) The exact command that finishes an entry the ERROR path could not write (run from the repository)."""
+    path = Path(ctx["ledger_path"])
+    return (f'py -3.12 ai_player/gates/live_chain.py finish-entry "{ctx["out"]}"'
+            + ("" if path == ledger.LEDGER else f' --ledger "{path}"'))
 
 
 def finish_on_error(error: BaseException, trace: str, ctx: dict) -> int:
-    """(The checker's C2-07) The harness raised between the end of the chains and the ledger's finish: write whatever
-    evidence it can (the traceback, then what was built before the error) and results.json, then FINISH the ledger entry
-    with `error_verdict`, so it never stays "started". Each write is guarded on its own: an evidence file that cannot be
-    written still finishes the entry, and the verdict line says so. Exit 4."""
-    shown = error_verdict(error)
+    """(The checkers' C2-07 and C3-E03..E07) The harness raised after ledger.begin, at `ctx["stage"]`. In this order,
+    each step guarded on its own: (1) the evidence: the ERROR verdict naming the stage, the guard's own steps, the
+    traceback, then what the harness had built before the error, every line marked "UNFINISHED| " and cut before its bounds
+    text (the bounds text follows once); an evidence file that cannot be written does not stop the rest, and the verdict
+    line says so; (2) the ledger entry FINISHED with `error_verdict` (`finish_entry`: retried); (3) results.error.json
+    BESIDE any complete results.json (never over it), with the numbers, the legs, the jobs and the reach floor, for `grade
+    DIR`; (4) one line appended to the evidence saying whether the entry was finished. When the ledger cannot be written
+    at all, the entry is NOT finished: the evidence, results.error.json, the output and ledger.unfinished.json say so, with
+    the exact command that finishes it (`finish_command`). Exit 4 in every case, never 1."""
+    stage = ctx.get("stage") or "grading"
+    shown = error_verdict(error, stage)
     graded, seeds = ctx["graded"], ctx["seeds"]
     verdict_line = (f"{ctx['label']}, {shown if graded else 'NO PASS (development: ' + shown + ')'}: live chain "
                     f"held-out, to {ctx['to']}, seeds {seeds[0]}-{seeds[1]}, numbers sha256 {ctx['sha'][:16]}")
-    reference = None
+    reference, evidence = None, None
     try:
         evidence = ctx.get("evidence") or evidence_path(ctx["evidence_dir"], graded, ctx["to"], seeds[0])
         evidence.parent.mkdir(parents=True, exist_ok=True)
@@ -2195,30 +2877,63 @@ def finish_on_error(error: BaseException, trace: str, ctx: dict) -> int:
             ctx["keep_earlier"](evidence)
         head = (f"LIVE CHAIN HELD-OUT - {'GRADED' if graded else 'DEVELOPMENT, NOT GRADED, NO PASS'} - VERDICT {shown} "
                 f"(to {ctx['to']}; driver ai_player/gates/live_chain.py; build spec {SPEC})")
+        built: list[str] = []
+        for line in ctx.get("text") or []:
+            if line == BOUNDS_HEADING:  # (C3-E07) the bounds text is printed ONCE, below
+                break
+            built.append(line)
         lines = [head, f"date: {ctx['began']} -> {time.strftime('%Y-%m-%d %H:%M:%S')}", f"code: {ctx['code']}",
                  *ctx["ledger_lines"], f"numbers sha256: {ctx['sha']} (seeds {seeds[0]}-{seeds[1]}; {ctx['purpose']}; "
                                        f"{ctx['chains_n']} chains)",
-                 f"VERDICT: {shown}: the harness raised after the chains ended, so this batch has no PASS and no FAIL; the "
-                 f"ledger entry is finished with this verdict and its seeds are spent",
+                 f"VERDICT: {shown}: the harness raised {STAGES.get(stage, 'while ' + stage)}, so this batch has no PASS and "
+                 f"no FAIL, and its seeds are spent",
+                 f"LEDGER: entry #{ctx['entry_id']} is being finished with this verdict; the LAST line of this file says "
+                 f"whether that was written",
+                 *(f"the guard: {note}" for note in ctx.get("guard_notes") or []),
                  "the traceback:", *trace.rstrip().splitlines(), "",
-                 "what the harness had built before the error (unfinished, so never a verdict):",
-                 *(ctx.get("text") or ["(nothing yet)"]), "", "BOUNDS TEXT (hashed into the registration):",
-                 ctx["bounds_text"]]
+                 "what the harness had built before the error (UNFINISHED, so never a verdict; every line marked):",
+                 *([f"UNFINISHED| {line}" for line in built] or ["UNFINISHED| (nothing yet)"]), "",
+                 BOUNDS_HEADING, ctx["bounds_text"]]
         evidence.write_text("\n".join(lines) + "\n", encoding="utf-8")
         reference = (str(evidence.resolve().relative_to(REPO)).replace("\\", "/") if evidence.resolve().is_relative_to(REPO)
                      else str(evidence))
     except Exception as second:  # noqa: BLE001 - the entry is still finished; the verdict line says the evidence is missing
-        verdict_line += f"; no evidence file ({type(second).__name__}: {str(second)[:200]})"
+        verdict_line += f"; no evidence file ({type(second).__name__}: {safe_text(second, 200)})"
+        evidence = None
+    why = finish_entry(ctx["entry_id"], verdict_line, reference, Path(ctx["ledger_path"]), ctx.get("sleep") or time.sleep)
+    finished = why is None
+    command = finish_command(ctx)
+    status = (f"LEDGER: entry #{ctx['entry_id']} FINISHED with this verdict" if finished else
+              f"LEDGER: entry #{ctx['entry_id']} is NOT FINISHED (it is still 'started'): the ledger could not be written "
+              f"({why}). Finish it by hand, from the repository: {command}")
+    record = {"verdict": shown, "stage": stage, "purpose": ctx["purpose"], "run": ctx["run"], "to": ctx["to"],
+              "seeds": list(seeds), "numbers_sha256": ctx["sha"], "ledger": ctx["entry_id"],
+              "error": f"{type(error).__name__}: {safe_text(error, 2000)}", "traceback": trace, "evidence": reference,
+              "ledger_finished": finished, "finish_command": None if finished else command,
+              "guard_notes": ctx.get("guard_notes") or [], "numbers": ctx.get("numbers"), "legs": ctx.get("legs"),
+              "jobs": ctx.get("jobs"), "reach_min": ctx.get("reach_min")}
     try:
-        _write_json(ctx["out"] / "results.json", {"verdict": shown, "purpose": ctx["purpose"], "run": ctx["run"],
-                                                  "to": ctx["to"], "seeds": list(seeds), "numbers_sha256": ctx["sha"],
-                                                  "ledger": ctx["entry_id"], "error": f"{type(error).__name__}: {error}",
-                                                  "traceback": trace, "evidence": reference})
-    except Exception as third:  # noqa: BLE001 - results.json is a copy; the ledger and the evidence are the record
-        print(f"[LC] results.json could not be written: {type(third).__name__}: {third}", flush=True)
-    ledger.finish(ctx["entry_id"], verdict_line, reference, path=ctx["ledger_path"])
+        _write_json(ctx["out"] / RESULTS_ERROR, record)
+    except Exception as third:  # noqa: BLE001 - the ledger and the evidence are the record
+        print(f"[LC] {RESULTS_ERROR} could not be written: {type(third).__name__}: {safe_text(third, 200)}", flush=True)
+    if not finished:
+        try:
+            _write_json(ctx["out"] / UNFINISHED, {"entry_id": ctx["entry_id"], "verdict": verdict_line,
+                                                  "evidence": reference, "seeds": list(seeds),
+                                                  "ledger": str(ctx["ledger_path"])})
+        except Exception as fourth:  # noqa: BLE001
+            print(f"[LC] {UNFINISHED} could not be written either ({type(fourth).__name__}): finish the entry with "
+                  f"ledger.finish({ctx['entry_id']}, {verdict_line!r}, {reference!r}, path=Path({str(ctx['ledger_path'])!r}))",
+                  flush=True)
+    if evidence is not None:
+        try:
+            with open(evidence, "a", encoding="utf-8") as handle:
+                handle.write(status + "\n")
+        except Exception as fifth:  # noqa: BLE001
+            print(f"[LC] the evidence's last line could not be written: {type(fifth).__name__}", flush=True)
     print(trace, flush=True)
-    print(f"[LC] OVERALL {shown} ({ctx['label']}); ledger #{ctx['entry_id']} finished; evidence {reference}", flush=True)
+    print(f"[LC] {status}", flush=True)
+    print(f"[LC] OVERALL {shown} ({ctx['label']}); evidence {reference}", flush=True)
     return 4
 
 
@@ -2253,7 +2968,8 @@ def leg_lines(leg: dict) -> list[str]:
 
 def registered_rows(out: Path, jobs: list[dict]) -> tuple[list[dict], list[str]]:
     """(The verifier's V-02) `grade DIR`'s rows: each REGISTERED chain's row read from rows/<chain>.json, kept only when its
-    own chain field names that chain; every other file of rows/ is IGNORED, with why (a reused --out, a copied row)."""
+    own chain field names that chain; every other file of rows/ is IGNORED, with why (a reused --out, a copied row, a file
+    that does not parse, whatever the parse raises)."""
     names = {job["chain"] for job in jobs}
     chains: list[dict] = []
     ignored: list[str] = []
@@ -2263,7 +2979,7 @@ def registered_rows(out: Path, jobs: list[dict]) -> tuple[list[dict], list[str]]
             continue
         try:
             row = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as error:
+        except Exception as error:  # noqa: BLE001 - a row file that cannot be read never counts
             ignored.append(f"rows/{path.name}: unreadable ({type(error).__name__}): not counted")
             continue
         if not isinstance(row, dict) or row.get("chain") != path.stem:
@@ -2274,12 +2990,75 @@ def registered_rows(out: Path, jobs: list[dict]) -> tuple[list[dict], list[str]]
     return chains, ignored
 
 
-def regrade_dir(out: Path) -> dict:
-    """THE OFFLINE RE-GRADE of a batch's --out (no ledger write): the registered chains (results.json's jobs) only, each
-    from its own row file (`registered_rows`), a disk guard's marker file on disk joined to its leg (it can only stop a
-    leg), then `grade_batch` against the registered legs, which re-derives every leg from the row's facts."""
-    results = json.loads((out / "results.json").read_text(encoding="utf-8"))
-    legs, jobs = results["legs"], results["jobs"]
+def _read_record(path: Path) -> dict | None:
+    """A results file of --out: its JSON object, None when it is not there; RAISES `Refusal` when it cannot be read."""
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as error:  # noqa: BLE001
+        raise Refusal(f"{path.name} cannot be read ({type(error).__name__}: {safe_text(error, 200)})") from None
+    if not isinstance(data, dict):
+        raise Refusal(f"{path.name} holds a JSON {type(data).__name__}, not an object")
+    return data
+
+
+def verify_numbers(source: dict, ledger_path: Path | None) -> tuple[dict | None, list[str], str]:
+    """(The third check's C3-G02) The numbers a --out records, VERIFIED: (the numbers, the problems, what was checked).
+    Their sha256 must be the numbers_sha256 recorded beside them and, when `ledger_path` is given and holds a live_chain
+    entry for these seeds, the bounds sha256 that entry registered. An older folder with no numbers: (None, [], UNVERIFIED)."""
+    numbers = source.get("numbers")
+    if not isinstance(numbers, dict):
+        return None, [], "UNVERIFIED (no numbers): the legs, jobs and reach floor are results.json's own"
+    problems: list[str] = []
+    sha = ledger.numbers_sha256(numbers)
+    if sha != source.get("numbers_sha256"):
+        problems.append(f"the numbers' sha256 {sha[:16]} is not the numbers_sha256 recorded beside them "
+                        f"{str(source.get('numbers_sha256'))[:16]}")
+    seeds = list(numbers.get("seeds") or [])
+    if list(source.get("seeds") or []) != seeds:
+        problems.append(f"the numbers' seeds {seeds} are not the batch's {source.get('seeds')}")
+    checked = f"numbers sha256 {sha[:16]} == the one recorded beside them"
+    if ledger_path is not None:
+        try:
+            entries = [e for e in ledger.load(Path(ledger_path)).get("entries", [])
+                       if e.get("driver") == DRIVER and [e.get("first"), e.get("last")] == seeds]
+        except Exception as error:  # noqa: BLE001 - an unreadable ledger is said, never a crash
+            entries, checked = None, f"{checked}; NOT checked against the ledger ({type(error).__name__})"
+        if entries == []:
+            checked = f"{checked}; NOT checked against the ledger (no {DRIVER} entry for seeds {seeds} in {ledger_path})"
+        elif entries:
+            if any(e.get("bounds_sha256") == sha for e in entries):
+                checked = f"{checked} == the bounds sha256 ledger entry #{entries[0]['id']} registered"
+            else:
+                problems.append(f"the numbers' sha256 {sha[:16]} is not the bounds sha256 the ledger registered for seeds "
+                                f"{seeds} ({[str(e.get('bounds_sha256'))[:16] for e in entries]})")
+    return numbers, problems, (f"MISMATCH: {'; '.join(problems)}" if problems else f"VERIFIED: {checked}")
+
+
+def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
+    """THE OFFLINE RE-GRADE of a batch's --out (no ledger write). (The third check's C3-G02) the registered numbers come from
+    results.json's "numbers" (for a batch that ended in ERROR before results.json was written, from results.error.json's),
+    VERIFIED by `verify_numbers` against `ledger_path` when given; the legs, jobs and reach floor are taken from them (an
+    older folder with no numbers: results.json's own, UNVERIFIED). The registered chains only, each from its own row file
+    (`registered_rows`), a disk guard's marker file on disk joined to its leg (it can only stop a leg), then `grade_batch`
+    against the registered legs, which re-derives every leg from the row's facts (C3-G04: `kept_root` reads a kept line
+    from out/<chain>/<leg>/ when a moved --out lost its stored path; C3-G06: STOP.txt and ABORT.txt read on disk). A
+    frozen-tree or leftover record that is missing grades FAIL, never drops its check. Numbers that do not verify make the
+    verdict FAIL. (C3-E05) a batch that ended in ERROR says so ("ended_in_error"); its rows are re-graded as information."""
+    error_record = _read_record(out / RESULTS_ERROR)
+    results = _read_record(out / "results.json")
+    source = results if results is not None else error_record
+    if source is None:
+        raise Refusal(f"{out} holds no results.json and no {RESULTS_ERROR}: nothing to grade from")
+    numbers, problems, verified = verify_numbers(source, ledger_path)
+    if numbers is not None:
+        prefix = numbers.get("profile_prefix") or PROFILE_PREFIX
+        legs = numbers["legs"]
+        jobs = [{**job, "profile": f"{prefix}{job['seed']}"} for job in numbers["jobs"]]
+        reach_min = numbers["reach_min"]
+    else:
+        legs, jobs, reach_min = source["legs"], source["jobs"], source["reach_min"]
     chains, ignored = registered_rows(out, jobs)
     markers = []
     for chain in chains:
@@ -2288,17 +3067,38 @@ def regrade_dir(out: Path) -> dict:
             if mark is not None and not leg.get("guard_killed"):
                 leg["guard_killed"] = mark
                 markers.append(f"{chain['chain']} {leg.get('leg')}: the disk guard's marker is on disk; the row had none")
-    rep = results.get("reported") or {}
-    checks = grade_batch(chains, jobs, len(legs), results["reach_min"], tuple(results["frozen"]), results.get("leftover"),
-                         {"world_left": [w for w in results.get("world_left") or [] if "could not" in w],
+    frozen = source.get("frozen")
+    frozen = (tuple(frozen) if isinstance(frozen, list) and len(frozen) == 2 else
+              (False, f"the frozen-tree record is missing from {'results.json' if results else RESULTS_ERROR}: graded FAIL"))
+    leftover = source.get("leftover")
+    if not isinstance(leftover, list):
+        leftover = [f"the leftover-process record is missing from {'results.json' if results else RESULTS_ERROR}: graded "
+                    f"FAIL"]
+    rep = source.get("reported") or {}
+    checks = grade_batch(chains, jobs, len(legs), reach_min, frozen, leftover,
+                         {"world_left": [w for w in source.get("world_left") or [] if "could not" in w],
                           "profiles": rep.get("profiles"), "main_profile": rep.get("main_profile"),
-                          "optional": rep.get("optional"), "most_running": results.get("most_running")}, legs=legs)
-    return {"checks": checks, "verdict": batch_verdict(checks), "ignored": ignored, "markers": markers,
-            "rows": len(chains), "jobs": len(jobs)}
+                          "optional": rep.get("optional"), "most_running": source.get("most_running")}, legs=legs,
+                         stop_files=[name for name in (STOP_FILE, ABORT_FILE) if (out / name).is_file()], kept_root=out)
+    return {"checks": checks, "verdict": "FAIL" if problems else batch_verdict(checks), "ignored": ignored,
+            "markers": markers, "rows": len(chains), "jobs": len(jobs), "numbers": verified,
+            "ended_in_error": (error_record or {}).get("verdict"), "error_stage": (error_record or {}).get("stage"),
+            "ledger_finished": (error_record or {}).get("ledger_finished")}
 
 
-def grade_dir(out: Path) -> int:
-    found = regrade_dir(out)
+def grade_dir(out: Path, ledger_path: Path | None = None) -> int:
+    """`grade DIR`: the offline re-grade, printed. EXIT 0 = PASS; 1 = FAIL (VACUOUS checks and numbers that do not verify
+    included); 2 = it could not be graded (no results file, an unreadable one); 4 = the batch ENDED IN ERROR (its ledger
+    verdict is ERROR, never this re-grade: the rows are re-graded as information). (C3-G02, C3-G04, C3-E05)"""
+    try:
+        found = regrade_dir(out, ledger_path)
+    except Exception as error:  # noqa: BLE001 - grade DIR reads files it did not write: it says why, never crashes
+        print(f"CANNOT GRADE {out}: {type(error).__name__}: {safe_text(error)}")
+        return 2
+    if found["ended_in_error"]:
+        print(f"this batch ended in ERROR: {found['ended_in_error']} (stage {found['error_stage']}; ledger entry "
+              f"{'finished' if found['ledger_finished'] else 'NOT finished'}): its ledger verdict is ERROR, no PASS or "
+              f"FAIL; the re-grade below is information only")
     for line in found["ignored"]:
         print(f"IGNORED: {line}")
     for line in found["markers"]:
@@ -2306,8 +3106,36 @@ def grade_dir(out: Path) -> int:
     for line in check_lines(found["checks"]):
         print(line)
     print(REDERIVED_TEXT)
+    print(f"NUMBERS: {found['numbers']}")
     print(f"OFFLINE RE-GRADE (no ledger write): {found['verdict']} over the {found['rows']} rows of the {found['jobs']} "
-          f"registered chains ({len(found['ignored'])} row file(s) IGNORED)")
+          f"registered chains ({len(found['ignored'])} row file(s) IGNORED)"
+          + ("; THE BATCH ENDED IN ERROR" if found["ended_in_error"] else ""))
+    if found["ended_in_error"]:
+        return 4
+    return 0 if found["verdict"] == PASS else 1
+
+
+def finish_entry_cli(out: Path, ledger_path: Path | None = None) -> int:
+    """`finish-entry DIR`: finish the ledger entry the ERROR path could not write (its DIR/ledger.unfinished.json), with the
+    verdict and evidence recorded there. REFUSED (exit 2, the ledger untouched) unless that entry exists in the ledger,
+    names the recorded seeds and is still "started". (C3-E03)"""
+    path = Path(ledger_path or ledger.LEDGER)
+    try:
+        data = _read_record(out / UNFINISHED)
+    except Refusal as error:
+        print(f"REFUSED: {error}")
+        return 2
+    if data is None:
+        print(f"REFUSED: {out / UNFINISHED} is not there: no entry was left unfinished in {out}")
+        return 2
+    entry = next((e for e in ledger.load(path).get("entries", []) if e.get("id") == data.get("entry_id")), None)
+    if entry is None or entry.get("status") != "started" or [entry.get("first"), entry.get("last")] != data.get("seeds"):
+        print(f"REFUSED: ledger entry #{data.get('entry_id')} in {path} is "
+              f"{'missing' if entry is None else repr(entry.get('status')) + ' for seeds ' + str([entry.get('first'), entry.get('last')])}"
+              f", not a 'started' entry for seeds {data.get('seeds')}")
+        return 2
+    ledger.finish(data["entry_id"], data["verdict"], data.get("evidence"), path=path)
+    print(f"FINISHED ledger entry #{data['entry_id']}: {data['verdict'][:300]}")
     return 0
 
 
@@ -2359,6 +3187,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--build-root")
     p = sub.add_parser("grade")
     p.add_argument("dir")
+    p.add_argument("--ledger", type=Path, default=None)
+    p = sub.add_parser("finish-entry")
+    p.add_argument("dir")
+    p.add_argument("--ledger", type=Path, default=None)
     p = sub.add_parser("read")
     p.add_argument("run_dir")
     p.add_argument("--truth", action="store_true")
@@ -2369,8 +3201,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def register_run(run: str, note_file: str | None = None, repo: Path | None = None, path: Path | None = None) -> int:
     """`register --run RUN`: pre-register GRADED_RUNS[run]'s seeds with registered_numbers()'s sha256 (exit 0), REFUSED
-    (exit 2, the ledger untouched) for an unknown run, seeds another ledger entry names, or (R12, the checker's C2-05) a
-    grader import closure with a file GRADER_FILES does not hash. `repo` and `path` (the ledger) are the tests'."""
+    (exit 2, the ledger untouched) for an unknown run, seeds another ledger entry names, or (R12, the checkers' C2-05,
+    C3-H01 and C3-H02) a grader whose code could be a file the registration does not hash (`closure_missing`, every file
+    named), or a closure that cannot be scanned (C3-E06: the file that does not parse is named). `repo` and `path` (the
+    ledger) are the tests'."""
     repo = repo or REPO
     path = path or ledger.LEDGER
     if run not in GRADED_RUNS:
@@ -2382,7 +3216,12 @@ def register_run(run: str, note_file: str | None = None, repo: Path | None = Non
     if named:
         print(f"REFUSED: ledger entries already name seeds {seeds[0]}-{seeds[1]}: {[e['id'] for e in named]}")
         return 2
-    missing, size, seconds = closure_missing(repo)
+    try:
+        missing, size, seconds = closure_missing(repo)
+    except Exception as error:  # noqa: BLE001 - (C3-E06) refused, naming the file, never a crash
+        print(f"REFUSED: R12: the grader's import closure could not be scanned ({error_text(error)}), so what it runs "
+              f"cannot be shown to be hashed")
+        return 2
     refusal = closure_refusal(missing)
     if refusal is not None:
         print(f"REFUSED: {refusal}")
@@ -2402,12 +3241,29 @@ def register_run(run: str, note_file: str | None = None, repo: Path | None = Non
     return 0
 
 
+#: (the third check's C3-E06) the exit code of an exception no guard covered (run_batch's guard covers ledger.begin to the
+#: finish; before begin the ledger is untouched): never 1, which reads as a graded FAIL
+CRASH_EXIT = 5
+
+
 def main(argv: list[str] | None = None) -> int:
+    """The command line (the module docstring). (C3-E06) an exception no guard covered exits CRASH_EXIT (5): 'a harness
+    crash; see the ledger entry's status', never 1 (FAIL); a Ctrl+C propagates (run_batch's guard finishes the entry first)."""
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:  # noqa: BLE001
         pass
     args = build_parser().parse_args(argv)
+    try:
+        return command(args)
+    except Exception:  # noqa: BLE001 - (C3-E06) a crash is never the FAIL code
+        print(traceback.format_exc(), flush=True)
+        print(f"[LC] HARNESS CRASH (exit {CRASH_EXIT}): no guard covered this exception; see the ledger entry's status "
+              f"(before ledger.begin the ledger is untouched)", flush=True)
+        return CRASH_EXIT
+
+
+def command(args) -> int:
     if args.cmd == "child":
         return child(Path(args.job))
     if args.cmd == "bounds":
@@ -2431,7 +3287,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "run":
         return run_batch(args)
     if args.cmd == "grade":
-        return grade_dir(Path(args.dir))
+        return grade_dir(Path(args.dir), args.ledger or ledger.LEDGER)
+    if args.cmd == "finish-entry":
+        return finish_entry_cli(Path(args.dir), args.ledger)
     if args.cmd == "read":
         print(json.dumps(read_leg(Path(args.run_dir), args.truth), indent=1, default=str))
         return 0
