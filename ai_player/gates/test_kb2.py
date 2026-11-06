@@ -1102,12 +1102,14 @@ def names_in_play_code(package, allowed=None):
 
 class NotReadTests(unittest.TestCase):
     def test_no_play_code_names_a_world_file(self):
-        """No play code names a world file, but (KI-128) the declared loader `knowledge/atlas.py` its own one."""
-        self.assertEqual(loader_allowed_names(), {"knowledge/atlas.py": {"knowledge/world", "maps.json"}})
+        """No play code names a world file, but (KI-128) the declared loader `knowledge/atlas.py` its own ones ((chapter 7
+        NS4, 2026-11-06) maps.json and, since its second slice, bosses.json: which leader holds which gym)."""
+        self.assertEqual(loader_allowed_names(), {"knowledge/atlas.py": {"knowledge/world", "maps.json", "bosses.json"}})
         n, hits = names_in_play_code(REPO / "ai_player")
         self.assertGreater(n, 20)
         self.assertEqual(hits, [])
         self.assertIn("maps.json", (KNOWLEDGE / "atlas.py").read_text(encoding="utf-8"))  # the allowance is used
+        self.assertIn("bosses.json", (KNOWLEDGE / "atlas.py").read_text(encoding="utf-8"))  # and the second one
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "brain").mkdir()
             (Path(tmp) / "brain" / "goals.py").write_text('BOOK = "knowledge/world/bosses.json"\nATLAS = "maps.json"\n',
@@ -1115,19 +1117,19 @@ class NotReadTests(unittest.TestCase):
             (Path(tmp) / "gates").mkdir()
             (Path(tmp) / "gates" / "ok.py").write_text('X = "maps.json"\n', encoding="utf-8")
             (Path(tmp) / "knowledge").mkdir()
-            (Path(tmp) / "knowledge" / "atlas.py").write_text('F = "knowledge/world/maps.json"\nB = "bosses.json"\n',
+            (Path(tmp) / "knowledge" / "atlas.py").write_text('F = "knowledge/world/maps.json"\nB = "trainers.json"\n',
                                                               encoding="utf-8")
             _, hits = names_in_play_code(tmp)
             self.assertEqual(hits, [("brain/goals.py", "knowledge/world"), ("brain/goals.py", "bosses.json"),
-                                    ("brain/goals.py", "maps.json"), ("knowledge/atlas.py", "bosses.json")])
+                                    ("brain/goals.py", "maps.json"), ("knowledge/atlas.py", "trainers.json")])
 
     def test_check_fairness_does_not_glob_world(self):
-        """RULE B walks ONLY the world files a LOADER names (KI-128: maps.json, for `knowledge/atlas.py`); the others
-        stay unread and unchecked."""
+        """RULE B walks ONLY the world files a LOADER names (KI-128: maps.json, and (chapter 7 NS4, 2026-11-06)
+        bosses.json, both for `knowledge/atlas.py`); the others stay unread and unchecked."""
         from ai_player.gates.check_fairness import knowledge_files, schema_problems, world_files
-        self.assertEqual(world_files(), ["world/maps.json"])
+        self.assertEqual(world_files(), ["world/bosses.json", "world/maps.json"])
         walked = [name for name, _ in knowledge_files(KNOWLEDGE)]
-        self.assertEqual([n for n in walked if n.startswith("world/")], ["world/maps.json"])
+        self.assertEqual([n for n in walked if n.startswith("world/")], ["world/bosses.json", "world/maps.json"])
         problems, counts = schema_problems(KNOWLEDGE)
         self.assertEqual([p for p in problems if "world" in p or "campaign" in p or "trainers" in p], [])
         self.assertEqual(problems, [])
@@ -1139,11 +1141,18 @@ class NotReadTests(unittest.TestCase):
             problems, _ = schema_problems(k)
             self.assertEqual(len(problems), 1)
             self.assertIn("campaign.json", problems[0])
-            # an unclassified key in a world file NO loader names is not walked (bosses.json); in maps.json it FAILS
-            boss = json.loads((k / "world" / "bosses.json").read_text(encoding="utf-8"))
-            boss["planted_secret"] = 1
-            (k / "world" / "bosses.json").write_text(json.dumps(boss), encoding="utf-8")
+            # an unclassified key in a world file NO loader names is not walked (trainers.json); in a loaded one
+            # (bosses.json, since its loader slice) it FAILS
+            trainers = json.loads((k / "world" / "trainers.json").read_text(encoding="utf-8"))
+            trainers["planted_secret"] = 1
+            (k / "world" / "trainers.json").write_text(json.dumps(trainers), encoding="utf-8")
             self.assertEqual(len(schema_problems(k)[0]), 1)  # still only campaign.json's
+            boss = json.loads((k / "world" / "bosses.json").read_text(encoding="utf-8"))
+            boss["bosses"][0]["planted_secret"] = 1
+            (k / "world" / "bosses.json").write_text(json.dumps(boss), encoding="utf-8")
+            problems, _ = schema_problems(k)
+            self.assertEqual(len(problems), 2)
+            self.assertTrue(any("bosses.json" in p and "planted_secret" in p for p in problems), problems)
 
     def test_k_f3_the_atlas_loader_gate(self):
         """(KI-128, K-F3) The world loader is gated like every loader: a developer key read in `knowledge/atlas.py` FAILS

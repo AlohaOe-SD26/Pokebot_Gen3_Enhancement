@@ -490,6 +490,14 @@ class WorldMemory:
         #: chapter-2 development run of 2026-10-14 started from chapter 1's memory, had walked past OLDALE's centre, and
         #: went home to MOM to heal). Written only when it holds something, so the earlier brains' snapshots are unchanged.
         self.landmarks: dict[tuple[str, tuple[int, int]], str] = {}
+        #: (chapter 6 NS2, 2026-11-06) RIDES: "from map key|person id|to map key" -> what the AI saw when answering YES to a
+        #: person's offer of a trip carried it, by scenes only, to another map (`brain/rides.py` RideWatch): "from", "to",
+        #: "arrival" (where the controls came back), "who" (the person's local id), "gfx", "tile" (where they stood),
+        #: "words" (the question answered), "place" (the town it offered), "via" (the maps the scene passed), "first",
+        #: "last", "uses", and "closed" ({"news", "frame", "why"}) while one failed and nothing new has been seen since
+        #: (`close_ride`). A way a person knows: walk up to them, talk, say YES (`rides_from`). Written only when it holds
+        #: something, so the earlier brains' snapshots are unchanged.
+        self.rides: dict[str, dict] = {}
         self._last = _Last()
 
     # ------------------------------------------------------------------ what the navigator tells it
@@ -538,6 +546,39 @@ class WorldMemory:
                 out.append(("connection", {**connection, "source": key, "target": connection["source"],
                                            "direction": OPPOSITE[connection["direction"]], "inferred": True}))
         return out
+
+    def record_ride(self, ride: dict) -> dict:
+        """(chapter 6 NS2) A RIDE seen (`brain/rides.py` RideWatch): kept by (from, who, to), its uses counted; seen again,
+        it is open again (`close_ride` undone) and its words, the person's tile and the arrival are the newest."""
+        name = f"{ride['from']}|{ride['who']}|{ride['to']}"
+        kept = self.rides.get(name) or {"uses": 0, "first": ride.get("frame")}
+        kept.update({key: value for key, value in ride.items() if key != "frame"})
+        kept["uses"] = int(kept.get("uses", 0)) + 1
+        kept["last"] = ride.get("frame")
+        kept.pop("closed", None)
+        self.rides[name] = kept
+        return kept
+
+    def rides_from(self, key: str) -> list[tuple[str, dict]]:
+        """(chapter 6 NS2) The rides from map `key` a person would try now: [(its name, the ride)], every one not put aside
+        (`close_ride`: a failed one waits for news, or `CLOSED_RETRY_FRAMES` frames, as a closed door does)."""
+        out = []
+        for name, ride in sorted(self.rides.items()):
+            if ride.get("from") != key:
+                continue
+            closed = ride.get("closed")
+            if closed is not None and self.news <= int(closed.get("news", 0)) and \
+                    self._last.frame - int(closed.get("frame", 0)) < CLOSED_RETRY_FRAMES:
+                continue
+            out.append((name, ride))
+        return out
+
+    def close_ride(self, name: str, why: str, frame: int) -> None:
+        """(chapter 6 NS2) The ride `name` was tried and did not carry the player (the person was not there, asked
+        something else, or the scene ended elsewhere): put aside until there is news (`rides_from`)."""
+        ride = self.rides.get(name)
+        if ride is not None:
+            ride["closed"] = {"news": self.news, "frame": frame, "why": why}
 
     def promise(self, key: str) -> int:
         """How much is left to see on map `key`, as far as the AI knows: its frontier tiles, its exits never used, and its
@@ -731,9 +772,40 @@ class WorldMemory:
     def forget_bump(self, key: str | None, xy: tuple[int, int], direction: str) -> dict | None:
         """(build step 3.2, the step-3.1 review's finding 3) A step got the player into `xy` going `direction` on map
         `key`: a bump learned there that way is wrong now (a person who walked through stops thinking it is a wall), and
-        is forgotten. Returns what was forgotten, or None."""
+        is forgotten. Returns what was forgotten, or None.
+        (chapter 6 NS6, 2026-11-06) NOT a way learned by SLIDING BACK (`learn_slide`): getting into such a tile is exactly
+        what happens before the slide, so getting in proves nothing; it is forgotten only when the tile HOLDS the player
+        (`forget_slide`)."""
         memory = self.maps.get(key) if key is not None else None
         if memory is None:
+            return None
+        if (memory.bumped.get((xy, direction)) or {}).get("slid"):
+            return None
+        return memory.bumped.pop((xy, direction), None)
+
+    def learn_slide(self, key: str | None, xy: tuple[int, int], direction: str, frame: int) -> dict | None:
+        """(chapter 6 NS6, 2026-11-06) A STEP UNDONE: the player stepped into `xy` going `direction` on map `key`, and was
+        carried straight back to where the step began without pressing back (a MUDDY SLOPE, pinned decomp
+        `src/field_player_avatar.c` ForcedMovement_MuddySlope: on foot the player slides south). What a person sees: they
+        walk up, and slide down again. It counts as a failed step that way, exactly like a bump (`bumps`: dear after one,
+        refused at `BUMP_GIVE_UP`), marked `slid` so the step that gets in before each slide does not forget it
+        (`forget_bump`). Kept with the memory like every bump, so a later session knows it too. Returns what is kept."""
+        memory = self.maps.get(key) if key is not None else None
+        if memory is None:
+            return None
+        info = memory.bumped.get((xy, direction)) or {"from": list(moved(xy, OPPOSITE[direction])), "direction": direction,
+                                                      "first": frame, "bumps": 0}
+        info["bumps"] = int(info.get("bumps", 0)) + 1
+        info["last"] = frame
+        info["slid"] = True
+        memory.bumped[(xy, direction)] = info
+        return info
+
+    def forget_slide(self, key: str | None, xy: tuple[int, int], direction: str) -> dict | None:
+        """(chapter 6 NS6) The tile `xy`, entered going `direction`, HELD the player: it walked on from there by itself. A
+        slide learned there that way is wrong now, and is forgotten. Returns what was forgotten, or None."""
+        memory = self.maps.get(key) if key is not None else None
+        if memory is None or not (memory.bumped.get((xy, direction)) or {}).get("slid"):
             return None
         return memory.bumped.pop((xy, direction), None)
 
@@ -813,6 +885,8 @@ class WorldMemory:
             out["landmarks"] = {f"{key}|{xy[0]},{xy[1]}": kind for (key, xy), kind in sorted(self.landmarks.items())}
         if self.spoke:  # (build step 5.2, the verifier's round) only when someone has spoken to the player: the same
             out["spoke"] = sorted(self.spoke)
+        if self.rides:  # (chapter 6 NS2) only when a ride was seen: the same
+            out["rides"] = {name: dict(ride) for name, ride in sorted(self.rides.items())}
         return out
 
     def snapshot(self) -> str:
@@ -838,6 +912,8 @@ class WorldMemory:
             x, _, y = xy.partition(",")
             world.landmarks[(key, (int(x), int(y)))] = str(kind)
         world.spoke = {str(who) for who in data.get("spoke") or []}  # (build step 5.2, the verifier's round)
+        # (chapter 6 NS2) the rides seen; a memory written before has none (and loads as before)
+        world.rides = {str(name): dict(ride) for name, ride in (data.get("rides") or {}).items() if isinstance(ride, dict)}
         for memory in world.maps.values():
             for info in memory.closed.values():
                 info.setdefault("news", world.news)

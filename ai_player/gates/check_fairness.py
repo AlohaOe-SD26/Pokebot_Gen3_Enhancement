@@ -82,7 +82,9 @@ LOADERS = {
     # walked by RULE B (classified, its developer keys refused) only once a loader here names it: the other world files
     # stay unread, as the 2026-10-22 KB2 decision intended ("nothing is read or checked until a loader and a
     # KNOWLEDGE_FIELDS classification exist")
-    "knowledge/atlas.py": ("world/maps.json",),
+    "knowledge/atlas.py": ("world/maps.json",
+                           # (chapter 7 NS4, 2026-11-06) the second slice: which leader holds which gym (`gym_leaders`)
+                           "world/bosses.json"),
 }
 #: the loaders that CARRY hidden keys into a record the brain must not read (rule B2/B3): file -> hidden keys
 CARRIES = {
@@ -263,6 +265,44 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "maps[].shared_events_map": (DEVELOPER, "the decomp map whose events this map shares: the extractor's join", True),
         "maps[].shared_scripts_map": (DEVELOPER, "the decomp map whose scripts this map shares: the extractor's join",
                                       True),
+    },
+    # (chapter 7 NS4, 2026-11-06) the world folder's SECOND loaded file, for `knowledge/atlas.py` gym_leaders: which leader
+    # holds which gym, as a seasoned player knows (USER RULING 40). Classified LEAF BY LEAF (the containers without a
+    # subtree), as maps.json's warps are, so a developer key planted under a boss is unclassified and FAILS
+    "world/bosses.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "count": (META, "how many bosses the file holds", True),
+        "bosses": (AI, "the game's bosses: gym leaders, the Elite Four, the Champion, the rival, the teams' leaders "
+                       "(USER RULING 40: a seasoned player knows them)", False),
+        "bosses[]": (AI, "one boss", False),
+        "bosses[].name": (AI, "the boss's name as the game says it (BRAWLY)", True),
+        "bosses[].role": (AI, "what the boss is (a gym leader, the rival, ...)", True),
+        "bosses[].battled_on": (AI, "the map(s) the boss is fought on (a gym leader's gym)", False),
+        "bosses[].battled_on[]": (AI, "one such map", True),
+        "bosses[].double": (AI, "a double battle (seen at once)", True),
+        "bosses[].party": (AI, "the boss's team (a seasoned player knows it, USER RULING 40; no loader reads it)", False),
+        "bosses[].party[]": (AI, "one Pokemon of it", False),
+        "bosses[].party[].species": (AI, "its species", True),
+        "bosses[].party[].level": (AI, "its level", True),
+        "bosses[].party[].types": (AI, "its types", False),
+        "bosses[].party[].types[]": (AI, "one type", True),
+        "bosses[].party[].moves": (AI, "its moves (the default moveset a guide lists)", False),
+        "bosses[].party[].moves[]": (AI, "one move", True),
+        "bosses[].party[].held_item": (AI, "what it holds (a guide lists it)", True),
+        "bosses[].party[].moves_source": (META, "how the moves were derived (the extractor's rule)", True),
+        "bosses[].types_derived_from": (META, "where the types came from (the extractor's input)", True),
+        "bosses[].measured": (META, "measured priors (none yet)", True),
+        "bosses[].badge": (AI, "the badge the leader gives", False),
+        "bosses[].badge.id": (AI, "the badge's name (BADGE02: the KNUCKLE BADGE)", True),
+        "bosses[].badge.flag": (DEVELOPER, "the badge's FLAG: a hidden flag, never read (RULE A)", True),
+        "bosses[].badge.ref": (DEVELOPER, "the decomp file and line: the developers' proof", True),
+        "bosses[].fight": (DEVELOPER, "the extractor's grouping of a boss's variants (the campaign's join)", True),
+        "bosses[].id": (DEVELOPER, "the decomp's trainer constant (TRAINER_BRAWLY_1): a defeated FLAG's name", True),
+        "bosses[].order": (DEVELOPER, "the derived campaign order (the extractor's join)", True),
+        "bosses[].entry": (DEVELOPER, "the campaign entry it belongs to (the extractor's join)", True),
+        "bosses[].rematches": (DEVELOPER, "the rematch trainer constants (flags' names)", True),
+        "bosses[].notes": (DEVELOPER, "the extractor's notes", True),
+        "bosses[].ref": (DEVELOPER, "the decomp file and line: the developers' proof", True),
     },
 }
 

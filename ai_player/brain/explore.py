@@ -112,8 +112,10 @@ __all__ = [
     "pick",
     "pick_on_the_move",
     "region_hops",
+    "ride_stands",
     "route_to",
     "standing_walls",
+    "ways_from",
     "weights_for",
 ]
 
@@ -178,6 +180,24 @@ def weights_for(personality: str) -> Weights:
     return WEIGHTS.get(personality, WEIGHTS["Story"])
 
 
+def ways_from(world: WorldMemory, key: str) -> list[tuple[str, dict]]:
+    """Every known way out of map `key` for a route: its links (`WorldMemory.links_from`: warps and connections) and
+    (chapter 6 NS2, 2026-11-06) its RIDES (`WorldMemory.rides_from`: someone who took the player to another map when it
+    said YES to their offer; `brain/rides.py`), as ("ride", the ride with its "name"). A memory with no rides: the links
+    alone, exactly as before."""
+    return world.links_from(key) + [("ride", {**ride, "name": name}) for name, ride in world.rides_from(key)]
+
+
+def ride_stands(memory: MapMemory, ride: dict) -> list[tuple[int, int]]:
+    """(chapter 6 NS2) The tiles from which a ride's person is talked to, as far as the AI knows: the walkable seen tiles
+    beside the tile they stood on (`ride["tile"]`)."""
+    tile = ride.get("tile")
+    if not tile:
+        return []
+    x, y = int(tile[0]), int(tile[1])
+    return [xy for xy in ((x, y + 1), (x - 1, y), (x + 1, y), (x, y - 1)) if memory.passable(xy)]
+
+
 def route_to(world: WorldMemory, source: str, goal: Callable[[MapMemory | None, str], bool],
              at: tuple[int, int] | None = None, walls: frozenset | set = frozenset()) -> list[tuple[str, dict]] | None:
     """The known links (warps, connections) from map `source` to a map `goal(memory, key)` accepts, breadth first over
@@ -227,7 +247,8 @@ def route_to(world: WorldMemory, source: str, goal: Callable[[MapMemory | None, 
         reach = regions.part_from(key, entry) if regions is not None else None
         if regions is not None and reach is None:
             continue  # (KI-134) a part of the map already searched from, or a map it holds no memory of
-        for kind, link in world.links_from(key):
+        # (chapter 6 NS2) a RIDE is a link too (`ways_from`): walk up to the person, talk, say YES
+        for kind, link in ways_from(world, key):
             if kind == "warp" and not looks_like_exit(world, key, link.get("tile")):
                 # (build step 5) a "warp" whose tile does not LOOK like a way out is no way a person can take: a map change a
                 # SCENE made from where the player stood (PROF. BIRCH taking the player from the grass of ROUTE 101 to his
@@ -241,7 +262,7 @@ def route_to(world: WorldMemory, source: str, goal: Callable[[MapMemory | None, 
                 # knew no way HOME (it had never walked in by itself) and its walks home to heal ran out on ROUTE 101
                 # (the development sweep step5dev7, seed 3: twice 9,000 frames, then a whiteout at 2/26 HP)
                 continue
-            target = link.get("to") if kind == "warp" else link.get("target")
+            target = link.get("to") if kind in ("warp", "ride") else link.get("target")
             if target is None or (regions is None and target in seen):
                 continue
             arrivals = regions.landings(key, reach, kind, link) if regions is not None else []
@@ -320,6 +341,13 @@ class _Regions:
                 return None
             arrival = link.get("arrival")
             return [(int(arrival[0]), int(arrival[1]))] if arrival else []
+        if kind == "ride":
+            # (chapter 6 NS2) a ride is taken from a part where a walk gets beside the person (`ride_stands`); it lands
+            # where the controls came back
+            if not any(stand in reach for stand in ride_stands(memory, link)):
+                return None
+            arrival = link.get("arrival")
+            return [(int(arrival[0]), int(arrival[1]))] if arrival else []
         direction, offset = link.get("direction"), link.get("offset")
         if direction not in DIRECTIONS or not offset:
             return None
@@ -349,7 +377,12 @@ class _Regions:
 def standing_walls(world: WorldMemory) -> dict[str, frozenset]:
     """(KI-134 V1 and V3, 2026-11-06) Per map the AI remembers: the things it saw STANDING there on its last look of that
     map that are not people (an item ball, a boulder: `MapMemory.objects_now` less `people_now`; people walk on). What a
-    walk there goes round as far as the AI knows, whichever map it decides on."""
+    walk there goes round as far as the AI knows, whichever map it decides on.
+    (Round 3, 2026-11-06, the KI-134 follow-ups' verifier's V-N5) ONLY WHAT WAS SEEN IN THIS SESSION: `objects_now` is the
+    last look of a map and is NOT saved with the memory (`MapMemory.to_dict`), so a run that starts from a saved memory
+    knows no standing thing on any other map until it looks at that map again. Decided: kept so, not saved. A thing seen
+    standing in an earlier session (an item ball since picked up, a boulder since pushed) is exactly what a person may find
+    gone, and a saved one would be a wall that outlives what made it; within a session it is what the AI last saw."""
     out: dict[str, frozenset] = {}
     for key, memory in world.maps.items():
         things = memory.objects_now - memory.people_now
@@ -392,10 +425,10 @@ def region_hops(world: WorldMemory, source: str, at: tuple[int, int],
         reach = regions.part_from(key, entry)
         if reach is None:
             continue
-        for kind, link in world.links_from(key):
+        for kind, link in ways_from(world, key):  # (chapter 6 NS2) the rides too
             if kind == "warp" and not looks_like_exit(world, key, link.get("tile")):  # no way a person takes (`route_to`)
                 continue
-            target = link.get("to") if kind == "warp" else link.get("target")
+            target = link.get("to") if kind in ("warp", "ride") else link.get("target")
             if target is None:
                 continue
             arrivals = regions.landings(key, reach, kind, link)
@@ -454,16 +487,31 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
     jitter = nav.rng
     out: list[Target] = []
 
+    side_reach: dict[str, dict] = {}
+
+    def road_walk(tile: tuple[int, int]) -> float | None:
+        """(chapter 6, the crossing ping-pong, 2026-11-06) The walk to a tile past an edge, over this map and the tiles
+        past THAT side only (`navigator.in_map_walls`, the planner's own rule): never through the map beyond another
+        edge, which the walk would cross onto (from ROUTE 104's north strip, the road right was "reached" through
+        RUSTBORO)."""
+        side = road_side(memory, tile)
+        if side not in side_reach:
+            side_reach[side] = distances(memory, here, in_map_walls(memory, walls, tile), weights.grass_cost,
+                                         nav.turn_costs())
+        return side_reach[side].get(tile)
+
     def add(kind: str, tile: tuple[int, int], value: float, reason: str, exit_tile=None, direction=None, cost=None,
-            who: int | None = None) -> None:
+            who: int | None = None, ride: str | None = None) -> None:
         walk = reach.get(tile) if cost is None else cost
+        if cost is None and exit_tile is None and memory.edges and memory.outside(tile):
+            walk = road_walk(tile)
         if walk is None:
             return
         # the pull AWAY from where it came in is a traveller's: toward new ground (a frontier, a road), never back
         onward = kind in ("frontier", "road", "grass")
         away = weights.away * min(abs(tile[0] - entry[0]) + abs(tile[1] - entry[1]), AWAY_CAP) if onward else 0.0
         score = VALUE_TILES * value - walk + away + (jitter.uniform(0.0, 1.5) if jitter_on else 0.0)
-        target = Target(kind, tile, reason, score, exit_tile, direction, who)
+        target = Target(kind, tile, reason, score, exit_tile, direction, who, ride)
         if nav.is_excluded(target):
             return
         # (KI-129 Part B, 2026-10-31) a tile past an edge that ended an earlier intent as a ping-pong, nothing new seen
@@ -515,6 +563,16 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
             kind, value, why = "door", weights.door, "an exit to a map not visited yet"
         for stand, direction, cost in _approaches(memory, exit_tile, reach)[:1]:
             add(kind, stand, value, why, exit_tile, direction, cost)
+    # (chapter 6 NS2, 2026-11-06) a RIDE from this map is the first link toward the goal: walk up beside the person (the
+    # nearest tile beside where they stood), where the play brain talks to them (`Navigator.run`, `rider`)
+    if first_hop is not None and first_hop[0] == "ride":
+        ride = first_hop[1]
+        stands = sorted((xy for xy in ride_stands(memory, ride) if xy in reach), key=lambda xy: (reach[xy], xy))
+        for stand in stands[:1]:
+            add("route", stand, ROUTE_VALUE, f"the ride toward the goal: the person at {tuple(ride.get('tile') or ())} "
+                                             f"took it to {names.get(ride.get('to'), ride.get('to'))} for a YES to "
+                                             f"{str(ride.get('words'))[:60]!r} ({len(route)} link(s) known)",
+                ride=ride.get("name"))
     # roads: walkable tiles past the edge (a connection is known both ways)
     known_sides = {link["direction"]: link for kind, link in world.links_from(memory.key) if kind == "connection"}
     for tile in memory.roads():

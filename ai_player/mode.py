@@ -44,8 +44,9 @@ from ai_player.brain.battle import BattleFaults, BattleMind, needs_rest
 from ai_player.brain.saving import SavePolicy, own_cart
 from ai_player.brain.explore import explore_intent, goto_intent, weights_for
 from ai_player.brain.goals import (
-    CURIOSITY_KINDS, Goal, GoalManager, GoalRunner, battles_lost, goal_yield, party_share, yield_snapshot,
+    CURIOSITY_KINDS, Goal, GoalManager, GoalRunner, TravelSense, battles_lost, goal_yield, party_share, yield_snapshot,
 )
+from ai_player.brain.rides import RideWatch
 from ai_player.brain.navigator import Navigator, nav_free
 from ai_player.eyes.observation import Observation
 from ai_player.game_memory import (
@@ -743,6 +744,8 @@ class HandsBrain:
         manager.memory.spoke = world.spoke
         nav.ponged = {}
         nav.mark_cut = True
+        # (chapter 6 NS6, 2026-11-06) a step undone by a slide back (GRANITE CAVE's muddy slope) is learned as a failed step
+        nav.learn_slides = True
         manager.say = hands.tell  # (build step 5.1) a draw that chose no errand is told too
         hands.watchers.append(manager.notice)
         # (build step 5.1, the step-5 verifier's FAILURE) every stretch a screen WAITED FOR A PRESS with none, whatever the
@@ -759,6 +762,17 @@ class HandsBrain:
         battle_clock = BattleClock()
         hands.watchers.append(battle_clock)
         runner = GoalRunner(hands, nav, manager, mind, hands.tell)
+        # (chapter 6 NS1 and NS2, 2026-11-06) a trip a person offers is answered by where its goal is (`TravelSense`), a
+        # YES that carries the player away by scenes is kept as a RIDE (`RideWatch`, after the world memory's own watcher),
+        # and a ride toward a goal is taken by talking to that person again (`GoalRunner.ride`)
+        rides = RideWatch(world, lambda: hands.pad.presses,
+                          getattr(nav, "tell", None) or (lambda line, extra=None: hands.tell(f"[AI-WORLD] {line}")))
+        hands.watchers.append(rides)
+        travel = TravelSense(manager, runner, rides, lambda const: any(memory.const == const and memory.visits
+                                                                       for memory in world.maps.values()))
+        runner.travel = travel
+        nav.answer = travel.answer
+        nav.rider = getattr(runner, "ride", None)
         target = story.index(options.target)
         hands.tell(f"play brain: target {options.target} ({story.milestones[target].title}); personality {state.base} "
                    f"(errands {state.errands}); favourite Pokemon {state.favourite} (the shiny hunt is deferred); starter "

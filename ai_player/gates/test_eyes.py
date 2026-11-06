@@ -1317,6 +1317,97 @@ class LiveCallEndTests(unittest.TestCase):
         self.assertTrue(screen.waits_for_button)
         self.assertTrue(screen.wait_reason.startswith("text printer 0"), screen.wait_reason)
 
+    def drive_nav(self, generator, budget: int = 2000):
+        """Run a navigator generator on the real emulator: one frame per `next` (the harness's own rule)."""
+        for _ in range(budget):
+            try:
+                next(generator)
+            except StopIteration as done:
+                return done.value
+            self.emulator.run_single_frame()
+        raise AssertionError("the navigator's generator did not end")
+
+    def test_the_muddy_slope_is_learned_as_one_way_on_the_real_game(self) -> None:
+        """(chapter 6 stops round 3, NS6, 2026-11-06) On the REAL game, at the foot of GRANITE CAVE B1F's muddy slope
+        (`fixtures/granite_b1f_slope.build.json`: probe8 C3's end, the player on (9, 11)), the navigator's own steps up: each
+        one gets the player onto (9, 10) and the game slides it back to (9, 11) (pinned decomp ForcedMovement_MuddySlope).
+        With the round's rule two such steps are learned as failed steps that way (`slid`, refused at `BUMP_GIVE_UP`).
+        FAULT half (`learn_slides` off, the old navigator): every step 'moved', nothing learned, the player back at the
+        foot. CONTROL: a step left and back on the cave floor learns nothing."""
+        import random
+
+        from ai_player.brain.navigator import Navigator
+        from ai_player.gates.hands_harness import HarnessControls
+        from ai_player.hands.pad import Hands
+        from ai_player.world.memory import WorldMemory
+
+        for learn in (False, True):
+            with self.subTest(learn=learn):
+                eyes = self.load("granite_b1f_slope.ss1")
+                world = WorldMemory()
+                hands = Hands(eyes, HarnessControls(self.emulator), random.Random(1), random.Random(1), None,
+                              lambda line: None)
+                hands.watchers.append(world.observe)
+                nav = Navigator(hands, world, random.Random(1))
+                nav.learn_slides = learn
+                start = hands.look()
+                self.assertEqual((start.player.map_const, start.player.x, start.player.y), ("GRANITE_CAVE_B1F", 9, 11))
+                results = [self.drive_nav(nav.walk_step("up", "up the slope", "walk up")).kind for _ in range(4)]
+                memory = world.maps["24:8"]
+                slid = {key: info for key, info in memory.bumped.items() if info.get("slid")}
+                if learn:
+                    self.assertEqual(results.count("slid"), 2, results)
+                    self.assertEqual(list(slid), [((9, 10), "up")])
+                    self.assertEqual(slid[((9, 10), "up")]["bumps"], 2)
+                else:
+                    self.assertNotIn("slid", results)
+                    self.assertEqual(memory.bumped, {})
+                # CONTROL: a step along the cave floor (it may meet a wild Pokemon: the cave's floor has them) learns no slide
+                step = self.drive_nav(nav.walk_step("left", "along the floor", "walk left")).kind
+                self.assertIn(step, ("moved", "battle"))
+                self.assertEqual({key for key, info in memory.bumped.items() if info.get("slid")}, set(slid))
+
+    def test_the_sail_after_the_call_is_kept_as_a_ride(self) -> None:
+        """(chapter 6 stops round 3, NS2, 2026-11-06) On the REAL game: DAD's call hung up on the first sail, the boat's
+        scenes carry the player through ROUTE 106 to DEWFORD; a YES given before (`RideWatch.offered`, the pending ride
+        set as the cottage's would be) is kept as a ride only once the controls are back in DEWFORD and stay: the ride's
+        end is DEWFORD at the tile the player stood on when they came back, never a map of the voyage."""
+        from ai_player.brain.rides import RIDE_SETTLE, RideWatch
+        from ai_player.world.memory import WorldMemory
+
+        eyes = self.load("call_end_dad.ss1")
+        world = WorldMemory()
+        presses = [0]
+        watch = RideWatch(world, lambda: presses[0], lambda line, extra=None: None)
+        first = eyes.look()
+        world.observe(first)
+        watch.pending = {"from": "17:0", "who": 1, "gfx": 21, "tile": [6, 6], "words": "we'll set sail for dewford.",
+                         "place": "DEWFORD_TOWN", "frame": first.frame, "changes": len(world.transitions), "free": None}
+        self.emulator.press_button("A")
+        presses[0] += 1
+        self.emulator.run_single_frame()
+        free_since = None
+        for _ in range(3000):
+            self.emulator.run_single_frame()
+            seen = eyes.look()
+            world.observe(seen)
+            watch(seen)
+            if seen.screen.waits_for_button:
+                self.emulator.press_button("A")
+                presses[0] += 1
+                continue
+            if free_since is None and seen.player is not None and seen.player.map_const == "DEWFORD_TOWN" and \
+                    not seen.screen.script_running and not seen.screen.controls_locked:
+                free_since = seen.frame
+            if free_since is not None and seen.frame - free_since > RIDE_SETTLE + 5:
+                break
+        self.assertIsNotNone(free_since, "the sail never ended with the player free in DEWFORD")
+        self.assertEqual(len(world.rides), 1, watch.history)
+        ride = next(iter(world.rides.values()))
+        self.assertEqual(world.maps[ride["to"]].const, "DEWFORD_TOWN")
+        self.assertEqual(ride["from"], "17:0")
+        self.assertTrue(all(world.maps[key].const in ("ROUTE105", "ROUTE106") for key in ride["via"]), ride["via"])
+
     def test_control_the_sail_after_the_call_is_a_scene_that_really_locks_the_controls(self) -> None:
         """(chapter 6 stops, the second builder, 2026-11-06) CONTROL: a scene that REALLY locks the controls, on the real
         game. After DAD's call is hung up (ONE A), MR. BRINEY's boat crosses ROUTE 105 and 106 to DEWFORD with the script

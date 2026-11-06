@@ -43,6 +43,9 @@ CONTROL, the chapter-5 POKeNAV registration call, scratch recon (the first build
   second builder, s53/ch6stops2/mutant_predictions_r2_addendum.txt: sha256 fc62955f167f36d7bf6a1432356082f871ad5c721f7b88e810f056f04004df50
   second builder, s53/ch6stops2/mutant_predictions_r2_addendum2.txt: sha256 c7d4f2d6a0f7d7c38ae677f40f0945ab1d8bfba0dbc4d9e896e9be177484a145
   second builder, s53/ch6stops2/mutant_predictions_r2_addendum3.txt: sha256 54966a3eb703cfef017940e540573191c681bde0df6149c7ce3acc1b475afdb9
+  (Round 3, 2026-11-06, the verifier's V-N3: G491's history in full. G491 SURVIVED run 1 (mutants_run1.out: failing none);
+  the TEST was then strengthened, test_w2 asking for the watch before any step from all 12 starts (mutant_predictions_2.txt),
+  and G491 is caught since, in runs 2 and 3. A test change, not only a corrected prediction.)
   first builder, revert_step5 run 3 (G0, G491-G517, samples G476 G480 G32 G71) (mutants_run3.out):
     [G0] CONTROL, the unchanged copy: 365 tests, failing none (ran the copy: True) -> PASS
     [G32] BROKEN: the data names a map the game never says (ROUTE 102 for MOM's 'PETALBURG GYM', the verifier's case). Predicted CAUGHT by ['HintTests.tes ... -> CAUGHT

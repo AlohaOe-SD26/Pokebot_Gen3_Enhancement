@@ -137,27 +137,33 @@ from ai_player.brain.explore import (
     carry_on,
     choose_target,
     looks_like_exit,
+    map_walls,
     pick,
     pick_on_the_move,
     region_hops,
+    route_to,
     standing_walls,
+    ways_from,
     weights_for,
 )
-from ai_player.brain.navigator import Intent, Navigator, Target, step_from
+from ai_player.brain.navigator import Intent, Navigator, Target, nav_free, step_from
+from ai_player.brain.rides import RideWatch, folded, trip_offer
 from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import page_text
 from ai_player.hands.dialogue import player_free
 from ai_player.hands.pad import Hands
-from ai_player.knowledge.atlas import open_map
+from ai_player.knowledge.atlas import gym_leaders, open_map, town_places
 from ai_player.knowledge.story import Milestone, Step, Story
 from ai_player.personality import PersonalityState
 from ai_player.world.memory import DIRECTIONS, moved
 from ai_player.skills.roam_train import roam_train
 from ai_player.skills.story import (
     NOT_FOR_SALE,
+    answer_question,
     enter_door,
     heal_at_center,
     pick_up,
+    play_out,
     shop_at_mart,
     talk_to,
     use_thing,
@@ -200,10 +206,17 @@ __all__ = [
     "HEARD_KINDS",
     "LOST_KEYS",
     "OUT_OF_IDEAS",
+    "OWN_PERSON_KINDS",
     "SPOKE_REACH",
+    "UNREACHABLE",
     "Goal",
     "GoalManager",
     "GoalRunner",
+    "TravelSense",
+    "grass_target",
+    "in_place",
+    "inside_grass",
+    "town_of",
     "ITEM_STOP",
     "ITEM_TRIES",
     "LOOK_AROUND_FRAMES",
@@ -278,6 +291,9 @@ NEW_MAP_STOP = "arrived somewhere it has not looked round"
 #: (build step 5.1, review #5) The goal kinds that are the STORY's (every other kind is an errand), and the key prefix of a
 #: story goal put aside after failing (the look around meanwhile is never put aside: never without a goal).
 STORY_KINDS = ("intro", "go", "ask", "talk", "use", "follow", "find", "seek", "look_around")
+#: (chapter 7 NS3, 2026-11-06) the goals whose walk is the walk TO someone, or a heal, a save or a scene: every other goal's
+#: walk stops when the one the story's next step names comes into view on that step's map (`GoalRunner.story_in_view`)
+OWN_PERSON_KINDS = ("talk", "use", "seek", "find", "heal", "find_center", "save", "intro", "follow")
 ASIDE = "aside:"
 #: (build step 5.1) The ERRAND kinds (the intent mix the graders count: `gates/rate_step5.py`).
 ERRAND_KINDS = ("heal", "find_center", "shop", "train", "catch", "pick_up", "chat", "explore", "detour")
@@ -714,14 +730,44 @@ def world_distance(world, key: str) -> int:
         here, depth = frontier.pop(0)
         if here == key:
             return depth
-        for kind, link in world.links_from(here):
+        for kind, link in ways_from(world, here):  # (chapter 6 NS2) a ride counts as a link too
             if kind == "warp" and not looks_like_exit(world, here, link.get("tile")):
                 continue  # a "warp" from a tile that is no way out (a scene's, from the grass) is no way to walk (route_to)
-            target = link.get("to") if kind == "warp" else link.get("target")
+            target = link.get("to") if kind in ("warp", "ride") else link.get("target")
             if target is not None and target not in seen:
                 seen.add(target)
                 frontier.append((target, depth + 1))
     return 99
+
+
+#: (chapter 7 NS4, 2026-11-06) `world_distance` for a map no known way leads to (no link, no ride)
+UNREACHABLE = 99
+
+
+def inside_grass(memory) -> list:
+    """Tall grass tiles INSIDE map `memory` (none past its edges: those are the next map's)."""
+    return [xy for xy in memory.grass() if xy[0] >= 0 and xy[1] >= 0 and not memory.outside(xy)]
+
+
+def grass_target(world, fight_maps=()) -> tuple[str, str | None]:
+    """Where a training (or catching) roam goes: ("here", None) when this map has grass of its own; ("there", map const)
+    for the map with grass nearest by the known way, the fight's own maps (`fight_maps`) first; ("none", None) when it
+    has seen no grass at all (the roam stays, as before); ("out of reach", None) when it has seen grass but no known way
+    leads to any of it. (Chapter 7 NS4, 2026-11-06) grass no known way leads to (no link, no ride: `world_distance`
+    `UNREACHABLE`) is no place to train: probe7 C1, on the island with no way back known, chose 16 train errands for the
+    mainland's grass (`GoalManager.next_goal` chooses no training then)."""
+    here = world.here()
+    if here is not None and inside_grass(here):
+        return "here", None
+    options = []
+    for key, memory in world.maps.items():
+        if memory.visits and inside_grass(memory) and memory.const:
+            first = 0 if memory.const in fight_maps else 1
+            options.append((world_distance(world, key), first, memory.const))
+    if not options:
+        return "none", None
+    options = [option for option in options if option[0] < UNREACHABLE]
+    return ("there", min(options)[2]) if options else ("out of reach", None)
 
 
 def lead_toward(world, goal_const: str | None) -> str | None:
@@ -1175,8 +1221,19 @@ class GoalManager:
         if self.hints_off:
             return False
         if step.told:
-            return heard_words(heard, step.told)
+            return heard_words(heard, step.told) or self.knows_gym(step, world)
         return self.been_to(world, step.map)
+
+    def knows_gym(self, step: Step, world) -> bool:
+        """(chapter 7 NS4, 2026-11-06) May the AI head for this step's map without its words? Yes when the words it waits
+        for NAME A GYM LEADER whom the AI knows to hold the step's map (`knowledge/atlas.py` gym_leaders: a seasoned
+        player knows each town's leader, USER RULING 40) AND it has stood inside that gym itself (its own world memory):
+        a person who has been in DEWFORD's gym knows it is BRAWLY's. WHY (probe7 C1, ledger #101): after STEVEN, BRAWLY's
+        step waited for the words 'BRAWLY' (the gym sign's) and made 36 "where to? nobody has said yet" goals over
+        502,847 frames, although it had been inside DEWFORD_TOWN_GYM. Being inside is asked so that a chapter whose
+        leader's words come first (ROXANNE's sign, read before her gym is entered) is as it was."""
+        leader = gym_leaders().get((step.told or "").strip().upper())
+        return leader is not None and leader == step.map and self.been_to(world, step.map)
 
     # ------------------------------------------------------------------ the landmarks a person notices
     def notice(self, look: Observation) -> None:
@@ -1257,8 +1314,14 @@ class GoalManager:
         # 2/26 HP, and whited out)
         must_rest = has_party and (fainted or needs_rest(look.party) is not None)
         hurt = has_party and share is not None and (must_rest or share < errands.heal_below)
+        # (chapter 7 NS3, 2026-11-06) THE STORY'S OWN PERSON, HERE AND IN VIEW: the story's next step talks to (or uses)
+        # someone it recognises, on that step's map, on the screen now, and no fight is next. Then a walk OFF this map for
+        # an errand (a heal while not in danger, a shop) waits: a person carrying a letter for STEVEN who stands in his
+        # room hands it over first (probe7 C2 left the room on a shop errand). Curiosity here keeps its place
+        story_here = (step is not None and step.do in ("talk", "use") and bool(step.look) and here_const == step.map
+                      and not fight_next and self.looks_like(look, step.look) is not None)
         # 1. HEAL
-        if has_party and share is not None:
+        if has_party and share is not None and not (story_here and not must_rest):
             # ready for the fight: trained (`prep` ready), or, under the no-training FAULT, at once (the fault removes the
             # TRAINING only; healing before the fight stays, so the fault arm measures training alone: the step-5
             # verifier, 2026-10-14, found it removed both)
@@ -1311,7 +1374,8 @@ class GoalManager:
         # set, a flag no player sees): a mart whose list had no POKé BALLS is tried again only once the story moved on
         balls = look.bag.ball_total if look.bag is not None else 0
         money = look.progress.money if look.progress is not None else 0
-        if has_party and balls < errands.balls_low and money >= BALL_PRICE * min(errands.balls_buy, 5):
+        if (has_party and balls < errands.balls_low and money >= BALL_PRICE * min(errands.balls_buy, 5)
+                and not story_here):
             where = self._mart_place(world, index)
             if where is not None and self._allowed(f"shop:{where[0]}"):
                 return Goal("shop", f"{balls} POKé BALLS left (fewer than {errands.balls_low}) and {money} money: "
@@ -1371,13 +1435,15 @@ class GoalManager:
             target = self.training_target(levels)
             level = strongest_level(look)
             short = level < target or prep["steps"] < errands.train_min_steps
-            if short and prep["sessions"] < TRAIN_SESSIONS and self._allowed("train"):
+            # (chapter 7 NS4, 2026-11-06) never toward grass no known way leads to (`grass_target`: no link, no ride)
+            out_of_reach = short and grass_target(world, milestone.maps)[0] == "out of reach"
+            if short and prep["sessions"] < TRAIN_SESSIONS and self._allowed("train") and not out_of_reach:
                 why = (f"the next fight ({milestone.title}) has levels {list(levels)} ({levels_from}): its strongest "
                        f"Pokemon is L{level}, the {self.state.active}'s target L{target}; {prep['steps']} of at least "
                        f"{errands.train_min_steps} training steps roamed in {prep['sessions']} of at most "
                        f"{TRAIN_SESSIONS} sessions")
                 return Goal("train", why, milestone.id, steps=errands.train_session, key="train")
-            if not prep["ready"]:
+            if not prep["ready"] and not (out_of_reach and prep["sessions"] < TRAIN_SESSIONS):
                 prep["ready"] = True
                 prep["why_ready"] = ("trained" if not short else f"{TRAIN_SESSIONS} sessions roamed: no endless grind"
                                      if prep["sessions"] >= TRAIN_SESSIONS else "training put aside for a while")
@@ -1606,6 +1672,9 @@ class GoalManager:
         """Why the AI may head for this step's map, as a reason says it: the page it READ that says the step's own words
         (the most recent: never the milestone's stored line, the step-5 verifier's round 2), or a place it has been."""
         page = heard_page(world.heard, step.told, self.memory.pages) if step.told else None
+        if page is None and step.told and self.knows_gym(step, world):
+            # (chapter 7 NS4) the leader it waits to hear of is one it KNOWS: it has been inside their gym
+            return f"it knows {step.told} holds {step.map} (a seasoned player's knowledge) and it has been inside it"
         return f"the game said: {quote(page, step.told)!r}" if page is not None else "a place it has been to; nothing was said"
 
     # ------------------------------------------------------------------ the fight ahead
@@ -1725,11 +1794,13 @@ class GoalManager:
             return f"it saw MOM heal the party ({self.memory.home_heals} time(s))"
         return None
 
-    def _nearest_place(self, world, suffix: str, landmark: str, name: str, keep=lambda const: True) -> tuple | None:
+    def _nearest_place(self, world, suffix: str, landmark: str, name: str, keep=lambda const: True,
+                       reachable: bool = False) -> tuple | None:
         """(build step 5.1, the verifier's second round: CH2T walked back to OLDALE's centre and mart, the ones it had been
         IN, past PETALBURG's, whose doors it had seen) The NEAREST place of a kind by the known way (`world_distance`): one
         it has been in (`suffix`) or one whose door it has SEEN (`landmark`), the one it has been in on a tie; `keep`
-        filters by the interior's map constant. Step 5 took any place it had been in before any door it had seen."""
+        filters by the interior's map constant. Step 5 took any place it had been in before any door it had seen.
+        (chapter 7 NS4, 2026-11-06) `reachable` (the SHOP): only a place a known way leads to (`UNREACHABLE`)."""
         options = []
         for const, source in self._known_interiors(world, suffix):
             if keep(const):
@@ -1745,6 +1816,11 @@ class GoalManager:
                 continue  # its inside is known already: that is the same place
             options.append((world_distance(world, key), 1, const,
                             (const, key, tile, f"the {name} door it saw on {world.maps[key].const} at {tile}")))
+        # (chapter 7 NS4, 2026-11-06) a MART no known way leads to from here (`world_distance` 99: no link, no ride) is no
+        # place to go: probe7 C1, on the island with no way back known, chose 7 shop errands for the mainland's marts. (A
+        # HEAL keeps every place it knows: a party in danger tries the nearest it knows, as before)
+        if reachable:
+            options = [option for option in options if option[0] < UNREACHABLE]
         return min(options, key=lambda option: option[:3])[3] if options else None
 
     def _place_key(self, world, where: tuple) -> str | None:
@@ -1798,7 +1874,7 @@ class GoalManager:
         if here is not None and (here.const or "").endswith(MART_SUFFIX) and stocked(here.const):
             return here.const, None, None, "in a MART"
         # (build step 5.1, the verifier's second round) the NEAREST stocked mart, been in or its door seen
-        return self._nearest_place(world, MART_SUFFIX, "mart", "MART", keep=stocked)
+        return self._nearest_place(world, MART_SUFFIX, "mart", "MART", keep=stocked, reachable=True)
 
     # ------------------------------------------------------------------ bookkeeping
     def prep(self, milestone: Milestone) -> dict:
@@ -1821,6 +1897,122 @@ class GoalManager:
         if fails >= FAIL_LIMIT:
             self.memory.cooldown[goal.key] = self.memory.decisions + COOLDOWN_DECISIONS
             self.memory.fails[goal.key] = 0
+
+
+def in_place(const: str | None, place: str | None) -> bool:
+    """(chapter 6 NS1) Is map `const` the town `place` (a map const) or one of its buildings ("DEWFORD_TOWN_GYM" is in
+    "DEWFORD_TOWN")?"""
+    return bool(const) and bool(place) and (const == place or const.startswith(f"{place}_"))
+
+
+def town_of(const: str | None) -> str | None:
+    """(chapter 6 NS1) The town or city map `const` is in (itself, or the town its name begins with), or None."""
+    towns = [town for town in town_places().values() if in_place(const, town)]
+    return max(towns, key=len) if towns else None
+
+
+class TravelSense:
+    """(chapter 6 NS1 and NS2, 2026-11-06) The play brain's answer to a scene's yes/no (`Navigator.answer`): a question
+    whose words OFFER A TRIP to a named town (`brain/rides.py` trip_offer) is judged the way a person judges it; every
+    other question is answered exactly as before (`skills/story.py` answer_question). A YES to a trip is told to the
+    ride watch (`RideWatch.offered`), which keeps what follows as a RIDE if the trip happens.
+
+    THE RULE (USER RULING 40: the words are on the screen; the story's places are what a seasoned player knows): YES only
+    when the AI's current goal is reached THROUGH the offered place, or cannot be reached from where it stands:
+      0. the RIDE it is taking now (`riding`, `GoalRunner.ride`) offers the trip it is known for: YES;
+      1. its goal (`goal_places`: the map its walk is heading for, or else the maps of the milestone it is playing and of
+         the next one it needs) is the offered town or a building of it: YES (the first sail: "We'll set sail for
+         DEWFORD", with DEWFORD TOWN the next milestone's);
+      2. its goal is where it stands (the map, or the town it is in): NO ("sail back to PETALBURG?" in DEWFORD, with the
+         letter for STEVEN in DEWFORD: probe8 C1 and C2 said YES and sailed off the island, NS1);
+      3. a known way from where it stands to its goal (`brain/explore.py` route_to, the rides counted): YES only when that
+         way's first link is a ride to the offered town; otherwise NO, it knows a way without the trip;
+      4. no known way: YES when nothing is left it could get to from here on any map (`WorldMemory.left_anywhere`, by the
+         region route from where it stands): its goal cannot be reached from here; otherwise NO, it looks round first."""
+
+    def __init__(self, manager: "GoalManager", runner: "GoalRunner", watch: RideWatch | None = None,
+                 visited: Callable[[str], bool] | None = None) -> None:
+        self.manager = manager
+        self.runner = runner
+        self.watch = watch
+        self.visited = visited or (lambda const: False)
+        #: the ride the navigator is taking now (`GoalRunner.ride`), or None
+        self.riding: dict | None = None
+        #: (frame, the offered place, yes, why) of the last trip judged (for the log and the tests)
+        self.last: tuple | None = None
+
+    def answer(self, look: Observation) -> tuple[bool, str]:
+        words = folded(look.screen.text)
+        place = trip_offer(words)
+        if place is None:
+            return answer_question(look)
+        yes, why = self.judge(look, place)
+        self.last = (look.frame, place, yes, why)
+        if yes and self.watch is not None:
+            self.watch.offered(look, place, words)
+        return yes, f"a trip offered to {place} ({words[:60]!r}): {'YES' if yes else 'NO'}, {why}"
+
+    def goal_places(self, look: Observation) -> dict[str, str]:
+        """{map const: why} of what the AI takes for its goal now (the class docstring's rule 1)."""
+        heading = getattr(self.runner, "heading", None)
+        if heading:
+            return {heading: "the map its walk is on its way to"}
+        story = self.manager.story
+        milestone = getattr(self.runner, "milestone_now", None)
+        if milestone is None:
+            milestone = self.manager.milestone(look, self.visited)[1]
+        if milestone is None:
+            return {}
+        out: dict[str, str] = {}
+        index = story.index(milestone.id)
+        following = next((m for m in story.milestones[index + 1:] if not m.optional), None)
+        for owner in (milestone, following):
+            if owner is None:
+                continue
+            consts = list(owner.maps) + [step.map for step in owner.steps if step.map] + [owner.hint_map]
+            for const in consts:
+                if const:
+                    out.setdefault(const, f"the story: {owner.title}")
+        return out
+
+    def judge(self, look: Observation, place: str) -> tuple[bool, str]:
+        """(yes, why) for a trip offered to the town `place` (the class docstring's rules 0-4)."""
+        ride = self.riding
+        if ride is not None and ride.get("place") == place:
+            return True, (f"the ride it is taking toward its goal (it went to {ride.get('to')} for this YES before)")
+        world = self.runner.nav.world
+        goals = self.goal_places(look)
+        if not goals:
+            return True, "it has no goal it could name: a person goes along with what the game asks"
+        there = next((const for const in sorted(goals) if in_place(const, place)), None)
+        if there is not None:
+            return True, f"its goal is there: {there} ({goals[there]})"
+        here = world.here()
+        here_const = here.const if here is not None else None
+        area = town_of(here_const)
+        at_goal = next((const for const in sorted(goals) if const == here_const or (area and in_place(const, area))),
+                       None)
+        if at_goal is not None:
+            return False, f"its goal is here, not there: {at_goal} ({goals[at_goal]}); a person does not leave it behind"
+        nav = self.runner.nav
+        found = nav.where(look) if hasattr(nav, "where") else None
+        if found is not None:
+            memory, at = found
+            walls = map_walls(nav, memory, nav.walls(memory, at)) if hasattr(nav, "walls") else frozenset()
+            route = route_to(world, memory.key, lambda m, key: m is not None and m.const in goals, at, walls)
+            if route is not None:
+                first = route[0]
+                if first[0] == "ride" and first[1].get("place") == place:
+                    return True, f"the way it knows to its goal begins with this trip ({len(route)} link(s))"
+                return False, f"it knows a way to its goal from here without the trip ({len(route)} link(s))"
+            reachable = region_hops(world, memory.key, at, standing_walls(world))
+            left = [key for key, _ in world.left_anywhere() if key in reachable]
+            if not left:
+                return True, "its goal cannot be reached from where it stands: nothing is left it could get to here"
+            names = world.names()
+            return False, (f"its goal ({', '.join(sorted(goals)[:3])}) is not there, and it has not looked round all it "
+                           f"can get to here yet ({', '.join(names.get(key, key) for key in left[:3])})")
+        return False, f"its goal ({', '.join(sorted(goals)[:3])}) is not there"
 
 
 class _BattleClock:
@@ -1899,6 +2091,12 @@ class GoalRunner:
         #: (R1) how a `save` goal is played: the play brain's own save (`mode.py` HandsBrain._save, which owns the memory
         #: file): a generator of the save's outcome; None (no memory file) and no save goal is ever chosen
         self.saver: Callable[[Goal], Generator[None, None, str]] | None = None
+        #: (chapter 6 NS1, 2026-11-06) the map a walk of this runner is on its way to now (`_travel`), and the milestone
+        #: of the goal being played (`pursue`): what the travel answer (`TravelSense`) takes for "its goal"
+        self.heading: str | None = None
+        self.milestone_now: Milestone | None = None
+        #: (chapter 6 NS2) the travel answer that knows which ride is being taken (`ride`); set by the play brain
+        self.travel: TravelSense | None = None
 
     def pursue(self, goal: Goal, milestone: Milestone, index: int, current: Callable[[Observation], int]) -> Generator[None, None, tuple[bool, str]]:
         """`_pursue` the goal; (build step 5.1) a person whose Pokemon is HURT keeps out of the tall grass on ANY walk, not
@@ -1951,9 +2149,19 @@ class GoalRunner:
         turned_from = len(turned)
         # (build step 5.2, the verifier's round) who speaks in a service talk or a chat is remembered (`notice`)
         self.manager.memory.hearing = goal.kind in HEARD_KINDS
+        self.milestone_now = milestone
+        # (chapter 7 NS3, 2026-11-06) any walk that is not the story's own (an errand, a look round, a go) STOPS when the
+        # one its story's next step names comes into view on that step's map (`story_in_view`): a person carrying a
+        # letter for STEVEN who walks into his room speaks to him (probe7 C2 walked into STEVEN's room on a shop errand
+        # and out again 198 frames later; C1 did it under a go goal that looked round)
+        stops = goal.kind not in OWN_PERSON_KINDS and hasattr(nav, "stop_for")
+        if stops:
+            nav.stop_for = lambda look: self.story_in_view(look, milestone)
         try:
             return (yield from self._pursue(goal, milestone, index, current))
         finally:
+            if stops:
+                nav.stop_for = None
             self.manager.memory.hearing = False
             if watch is not None and watch in watchers:
                 watchers.remove(watch)
@@ -1990,6 +2198,58 @@ class GoalRunner:
             walls.setdefault(key, set()).add(tile)
         name = getattr(self.nav.world.maps.get(key), "const", None) or key
         self.tell(f"[AI-GOALS] the place at {tile} on {name}: {why}: given up, and kept from curiosity in this milestone")
+
+    def story_in_view(self, look: Observation, milestone: Milestone) -> str | None:
+        """(chapter 7 NS3, 2026-11-06) Why a walk that is not the story's own stops here, or None: the milestone's next
+        step is a talk (or a use) of someone (something) it RECOGNISES by their look, the player stands on that step's
+        map, and they are on the screen now (`GoalManager.looks_like`): what the screen shows, nothing else."""
+        player = look.player
+        if player is None or player.settling or look.screen.game_state != "OVERWORLD" or look.view is None:
+            return None
+        manager = self.manager
+        step = manager.story_step(look, self.nav.world, milestone)
+        if step is None or step.do not in ("talk", "use") or not step.look or step.map != player.map_const:
+            return None
+        seen = manager.looks_like(look, step.look)
+        if seen is None:
+            return None
+        return (f"{manager.story.looks[step.look].what}, whom its story's next step names, is in view on {step.map} at "
+                f"{(seen.x, seen.y)}")
+
+    def ride(self, target: Target) -> Generator[None, None, str]:
+        """(chapter 6 NS2, 2026-11-06) TAKE A RIDE (`Navigator.rider`): the walk has arrived beside where the ride's person
+        stood (`Target.ride`, `WorldMemory.rides`). The person is found on the screen by their id and figure, talked to
+        (`skills/story.py` talk_to, which meets a walker the way it does), and the travel answer says YES to the trip the
+        ride is known for (`TravelSense.riding`); a person who asks something else is answered by the ordinary rules.
+        Returns "rode ..." once the controls are back on another map, or why not; a ride not taken (the person not on
+        the screen, or the talk left the player free on the map it began on) is put aside until there is news
+        (`WorldMemory.close_ride`)."""
+        world, hands = self.nav.world, self.hands
+        name = target.ride
+        ride = world.rides.get(name) if name is not None else None
+        if ride is None:
+            return "not taken: no such ride is known"
+        look = hands.look()
+        seen = next((o for o in (look.view.objects if look.view is not None else ())
+                     if o.source == "object" and o.kind == "npc" and o.local_id == ride.get("who")
+                     and o.graphics_id == ride.get("gfx")), None)
+        if seen is None:
+            world.close_ride(name, "the person was not on the screen", look.frame)
+            return f"not taken: the person who took it (id {ride.get('who')}) is not on the screen here"
+        began = world.current
+        why = (f"the ride to {world.names().get(ride.get('to'), ride.get('to'))}: the person at {(seen.x, seen.y)} took it "
+               f"there for a YES to {str(ride.get('words'))[:60]!r}")
+        if self.travel is not None:
+            self.travel.riding = ride
+        try:
+            outcome = yield from talk_to(hands, self.nav, seen, why)
+        finally:
+            if self.travel is not None:
+                self.travel.riding = None
+        if world.current == began and nav_free(hands.look()):
+            world.close_ride(name, f"talked ({outcome}) and was not carried off", hands.last.frame if hands.last else 0)
+            return f"not taken: {outcome}; still on {world.names().get(began, began)}"
+        return f"rode: {outcome}; now on {world.names().get(world.current, world.current)}"
 
     def _out_of_ideas(self, milestone: Milestone, why: str, said: list[str]) -> None:
         """(build step 5.2, the verifier's round) A walk with NO LEAD found nothing left on any map it knows that it could
@@ -2374,6 +2634,14 @@ class GoalRunner:
     def _travel(self, target_map: str, why: str, budget: int, done: Callable[[Observation], bool]) -> Generator[None, None, str]:
         """To `target_map`: straight there when the way is known or the map is; when it is not, first to the outdoor map
         with the most left to see (`lead_toward`: a person heads out, not into the houses), then on from there."""
+        # (chapter 6 NS1) where this walk goes is "its goal" to the travel answer while it walks (`TravelSense`)
+        heading, self.heading = self.heading, target_map
+        try:
+            return (yield from self._travel_on(target_map, why, budget, done))
+        finally:
+            self.heading = heading
+
+    def _travel_on(self, target_map: str, why: str, budget: int, done: Callable[[Observation], bool]) -> Generator[None, None, str]:
         nav, active = self.nav, self.manager.state.active
         lead = lead_toward(nav.world, target_map)
         if lead is not None:
@@ -2389,21 +2657,8 @@ class GoalRunner:
 
     def _grass_map(self, milestone: Milestone) -> str | None:
         """Where to roam: None to stay (this map has grass of its own: tiles inside it); otherwise the map with grass
-        nearest by the known way, the fight's own map first."""
-        world = self.nav.world
-        here = world.here()
-
-        def inside_grass(memory) -> list:
-            return [xy for xy in memory.grass() if xy[0] >= 0 and xy[1] >= 0 and not memory.outside(xy)]
-
-        if here is not None and inside_grass(here):
-            return None
-        options = []
-        for key, memory in world.maps.items():
-            if memory.visits and inside_grass(memory) and memory.const:
-                first = 0 if memory.const in milestone.maps else 1
-                options.append((world_distance(world, key), first, memory.const))
-        return min(options)[2] if options else None
+        nearest by the known way, the fight's own map first (`grass_target`)."""
+        return grass_target(self.nav.world, milestone.maps)[1]  # "out of reach" is never chosen (`next_goal`)
 
     def _go_inside(self, goal: Goal) -> Generator[None, None, str]:
         """Into the place of `goal` (a heal or a shop): a map it knows (the way to it known), or a door it SAW on the map

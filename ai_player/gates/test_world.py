@@ -3167,5 +3167,150 @@ class FleeTests(unittest.TestCase):
         self.assertEqual(model.pressed, [])
 
 
+class SlopeGame(GridGame):
+    """(chapter 6 stops round 3, NS6, 2026-11-06) The grid model with a MUDDY SLOPE ('U'): a player on foot who comes to the
+    end of a step ON a slope tile, or stands on one, slides one tile SOUTH at a fast walk instead of taking any step (pinned
+    decomp `src/field_player_avatar.c` ForcedMovement_MuddySlope: unless moving north at the fastest speed, the MACH BIKE,
+    DoForcedMovement(DIR_SOUTH, PlayerWalkFast)); nothing runs on the screen meanwhile (no script, no lock). `bike`: the
+    player rides up it (no slide)."""
+
+    slides = 0
+    bike = False
+
+    def slide(self) -> None:
+        self.pos = (self.pos[0], self.pos[1] + 1)
+        self.facing = "up"  # the slope locks the facing (facingDirectionLocked): the player still faces up
+        self.moving = 8
+        self.slides += 1
+        self.trail.append((self.map, self.pos))
+
+    def attempt(self, button: str) -> None:
+        if self.char(self.map, self.pos) == "U" and not self.bike:
+            self.slide()
+            return
+        if self.char(self.map, (self.pos[0], self.pos[1] - 1)) == "U" and button == "Up":
+            # onto the slope going up (on foot it slides back at the step's end; on the bike it holds): a plain step
+            self.pos, self.moving, self.steps = (self.pos[0], self.pos[1] - 1), 16, self.steps + 1
+            self.trail.append((self.map, self.pos))
+            return
+        super().attempt(button)
+
+    def tick(self, button: str | None, new: bool) -> None:
+        if (not self.moving and not self.warp_out and not self.warp_in and not self.scene and not self.bike
+                and self.char(self.map, self.pos) == "U"):
+            self.frame += 1
+            self.slide()
+            return
+        super().tick(button, new)
+
+    def tile(self, x: int, y: int, dx: int, dy: int) -> Tile:
+        tile = super().tile(x, y, dx, dy)
+        if self.char(self.map, (x, y)) == "U":
+            return replace(tile, behavior_name="MUDDY_SLOPE", blocked=False, collision=0)
+        return tile
+
+
+SLOPE = ["#####", "#...#", "##U##", "##U##", "#...#", "#####"]  # the slope at (2, 2)-(2, 3), the foot (2, 4)
+
+
+class SlopeTests(unittest.TestCase):
+    """(chapter 6 stops round 3, NS6, 2026-11-06) GRANITE CAVE B1F's MUDDY SLOPE at (9, 9)-(9, 10): the navigator planned up
+    it 7,536 times in probe8's C3 and no bump was ever recorded, because the player DID move each time (and slid back). A
+    step UNDONE by a slide is now a failed step that way (`Navigator._undone`, `WorldMemory.learn_slide`): dear after one,
+    refused at `BUMP_GIVE_UP`, as a bump is. Off for the earlier brains (`learn_slides`). Mutants: `revert_step5.py`
+    G576-G581."""
+
+    def walk_up(self, learn: bool, game=None, budget: int = 3000):
+        game = game or SlopeGame({"CAVE": SLOPE}, ("CAVE", (2, 4)))
+        hands, nav, world, notes, lines = rig(game)
+        nav.learn_slides = learn
+        outcome = drive(nav.run(goto_intent([(2, 1)], budget), "up the slope"), budget=40_000)
+        memory = world.here()
+        return game, outcome, memory, lines
+
+    def test_s1_a_step_slid_back_from_is_learned_and_put_aside(self):
+        """Two slides, then the way up is refused and the walk is given up (no other way there). FAULT half: with
+        `learn_slides` off (the old navigator) the player keeps walking up and sliding back until the budget, no bump
+        learned."""
+        game, outcome, memory, lines = self.walk_up(True)
+        info = memory.bumped.get(((2, 3), "up"))
+        self.assertIsNotNone(info, lines[-5:])
+        self.assertEqual((info["bumps"], info.get("slid")), (2, True))
+        self.assertEqual(game.slides, 2)
+        self.assertIn("cannot be reached", outcome)
+        self.assertTrue(any("SLID BACK" in line for line in lines))
+        game, outcome, memory, lines = self.walk_up(False)
+        self.assertEqual(memory.bumped, {})
+        self.assertGreater(game.slides, 10)
+        self.assertNotIn("cannot be reached", outcome)
+
+    def test_s2_control_a_scene_that_walks_the_player_back_is_no_slide(self):
+        """CONTROL: a SCENE that sends the player back from (2, 3) (a script runs, the controls are locked: the twin's
+        "Um, um, um!") is the scene walls' business: no slide is learned."""
+        game = GridGame({"CAVE": ["#####", "#...#", "##.##", "##.##", "#...#", "#####"]}, ("CAVE", (2, 4)),
+                        triggers={("CAVE", (2, 3)): (40, (2, 4), "Um, um, um!")})
+        hands, nav, world, notes, lines = rig(game)
+        nav.learn_slides = True
+        drive(nav.run(goto_intent([(2, 1)], 3000), "up past the trigger"), budget=40_000)
+        self.assertGreaterEqual(game.scenes_run, 1)
+        self.assertFalse(any(info.get("slid") for info in world.here().bumped.values()), world.here().bumped)
+        self.assertFalse(any("SLID BACK" in line for line in lines))
+
+    def test_s3_control_ledges_and_ordinary_steps_learn_no_slide(self):
+        """CONTROL: a ledge jumped (two tiles on, the same way) and a walk round a room learn no slide, and walk as before."""
+        game = SlopeGame({"ROOM": ["#####", "#...#", "#vvv#", "#...#", "#...#", "#####"]}, ("ROOM", (1, 1)))
+        hands, nav, world, notes, lines = rig(game)
+        nav.learn_slides = True
+        outcome = drive(nav.run(goto_intent([(3, 4), (1, 4)], 3000), "down the ledge and along"), budget=40_000)
+        self.assertTrue(outcome.startswith("done"), outcome)
+        self.assertEqual(game.slides, 0)
+        self.assertEqual(world.here().bumped, {})
+
+    def test_s5_a_slide_already_over_before_the_next_step_is_seen_too(self):
+        """The step up gets the player onto the slope; the AI waits a moment (a look, a thought) and the slide is over
+        before its next step: back on the foot with no press in between. That next step is not taken: the slide is learned
+        first ("slid"). FAULT half: the step from the foot is taken again ("moved")."""
+        game = SlopeGame({"CAVE": SLOPE}, ("CAVE", (2, 4)))
+        hands, nav, world, notes, lines = rig(game)
+        nav.learn_slides = True
+        hands.look()
+        first = drive(nav.walk_step("up", "up the slope", "walk up"))
+        self.assertEqual((first.kind, first.to), ("moved", (2, 3)))
+        drive(hands.pad.idle(40, "a moment"))
+        self.assertEqual(game.pos, (2, 4))  # slid back while it waited
+        second = drive(nav.walk_step("up", "up the slope", "walk up"))
+        self.assertEqual(second.kind, "slid")
+        self.assertEqual(world.here().bumps((2, 3), "up"), 1)
+
+    def test_s6_a_slope_that_holds_the_player_forgets_the_slide(self):
+        """One slide learned (dear, not refused); then the player gets up the slope (the model's MACH BIKE: it holds) and
+        walks on from it: the slide learned there is forgotten (`forget_slide`): the tile held the player."""
+        game = SlopeGame({"CAVE": SLOPE}, ("CAVE", (2, 4)))
+        hands, nav, world, notes, lines = rig(game)
+        nav.learn_slides = True
+        hands.look()
+        drive(nav.walk_step("up", "up the slope", "walk up"))
+        drive(nav.walk_step("up", "up the slope", "walk up"))
+        self.assertEqual(world.here().bumps((2, 3), "up"), 1)
+        game.bike = True
+        outcome = drive(nav.run(goto_intent([(2, 1)], 3000), "up on the bike"), budget=40_000)
+        self.assertTrue(outcome.startswith("done"), outcome)
+        self.assertEqual(world.here().bumps((2, 3), "up"), 0)
+        self.assertTrue(any("held the player now: forgotten" in line for line in lines), lines[-6:])
+
+    def test_s4_a_slide_is_kept_through_the_step_before_it_and_forgotten_when_the_tile_holds(self):
+        world = WorldMemory()
+        world.maps["0:1"] = memory_module.MapMemory("0:1", "CAVE", "CAVE")
+        world.learn_slide("0:1", (2, 3), "up", 10)
+        self.assertIsNone(world.forget_bump("0:1", (2, 3), "up"))  # the step INTO it, before each slide: kept
+        self.assertEqual(world.maps["0:1"].bumps((2, 3), "up"), 1)
+        again = WorldMemory.from_dict(json.loads(world.snapshot()))
+        self.assertTrue(again.maps["0:1"].bumped[((2, 3), "up")]["slid"])  # kept with the memory
+        self.assertIsNotNone(world.forget_slide("0:1", (2, 3), "up"))  # the tile held the player: forgotten
+        self.assertEqual(world.maps["0:1"].bumps((2, 3), "up"), 0)
+        world.maps["0:1"].bumped[((4, 4), "left")] = {"bumps": 1}
+        self.assertIsNone(world.forget_slide("0:1", (4, 4), "left"))  # an ordinary bump is not a slide's to forget
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
