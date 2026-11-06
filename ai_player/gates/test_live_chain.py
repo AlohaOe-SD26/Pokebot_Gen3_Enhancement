@@ -33,6 +33,26 @@ process global, is restored after every chain.
                    the guard it deletes).
   ImportTests, ReaderTests, TieTests: the G-3 walk; no AI file imports the driver (an AST scan, CH-17: a mention does not
   fire); the real log lines; the AI reads only the last line of a world file.
+THE FIX ROUND (the verifier's V-01..V-09, 2026-11-05; each new or changed guard has a FAULT case, a CONTROL case and a
+mutant in MUTANTS):
+  OutTests         V-01: a non-empty --out (STOP.txt, ABORT.txt, any file) is refused BEFORE ledger.begin, graded and
+                   development, the registration unspent; a missing or empty --out proceeds.
+  RegradeTests     V-02: only the registered chains' rows count (a foreign row, a second row, a row of another identity);
+                   every leg re-derived from the row's facts (a flipped continue flag, a weakened row proof, a renamed leg,
+                   a swapped kept file never count; a stored custody problem still does); grade DIR prints what it
+                   ignored and reads the marker files; the honest batch re-grades as it was graded.
+  ClosureTests     V-03: every file of the import closure is hashed (drop one: red); the scan follows function-local,
+                   except-block and relative imports and parent packages, and not a mention or the AI's own imports; the
+                   data the grade reads is hashed; an edited decoder, symbol table or gates module is refused; a change
+                   of line endings alone is accepted (by design).
+  KindTests        V-04: one impure, one stale L5 leg or one wrong starter fails the BATCH; every check the bounds text
+                   lists as GRADED is GRADED, and the converse.
+  GuardTests       V-05: the watchdog's value and formula; the larger world size graded; the kept line outside the repo;
+                   a partly overlapping development range refused; a leftover process read after the batch; git_state on
+                   a scratch repository; the ABORT check before each leg; LC.STARTER's floor.
+  PredictionTests  V-06: the registered prediction sha256 is the FILE's bytes'.
+  DeadLaunchTests  V-08: a launch that died before playing a frame is named in the row, the evidence and the ledger (and
+                   still fails); a leg with no world file reads "no world file", never "not deleted".
 """
 
 from __future__ import annotations
@@ -45,7 +65,10 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -163,7 +186,8 @@ class Stub:
     memory line, a 3-snapshot world.jsonl, end_state.ss1) and returns a `live_step5.Run` with the truths it controls. The
     start truth of a leg is the truth this stub gave the state it is handed (as `truth_of` would read it). `plan[leg]`
     plants a fault: miss, stale, truncate, no_world, overshoot, unread_start, amnesia, wrong_counts, multichoice=N,
-    write_stop, raise, die, wrong_species, wrong_ot."""
+    write_stop, write_abort, raise, die, wrong_species, wrong_ot, dead (the launch dies before playing a frame, as the
+    verifier's live V1 did: the gate line, exit code 1, no verdict file, no log, no world file, no end state)."""
 
     def __init__(self, job: dict, plan: dict | None = None) -> None:
         self.job = job
@@ -198,6 +222,11 @@ class Stub:
         run.command = ["py", "-m", "ai_player", "run", "--profile", L5.PROFILE, "--frames", str(arm.frames),
                        "--run-dir", str(run.run_dir), *start]
         run.started = time.time()
+        if plan.get("dead"):
+            run.stdout = f"[AI-GATE] exit=0 verdict=PASS package={L2.REPO / 'ai_player'}\n"
+            run.exit_code, run.elapsed, run.verdict, run.after, run.state_mtime = 1, 3.8, None, None, None
+            run.measures["harness_stop"] = L5.harness_stop(run)
+            return run
         frames = 1000 + self.stamp
         # the AI's log: its pad outcome line, its memory line, any unexpected lines
         counts = None
@@ -231,6 +260,8 @@ class Stub:
             self.last_lines[arm.name] = (lines[2] + "\n").encode("utf-8")
         if plan.get("write_stop"):
             (Path(self.job["out"]) / "STOP.txt").write_text("moved\n", encoding="utf-8")
+        if plan.get("write_abort"):
+            (Path(self.job["out"]) / "ABORT.txt").write_text("under 30 GB free\n", encoding="utf-8")
         if plan.get("raise"):
             raise RuntimeError("the launcher could not start")
         if plan.get("die"):
@@ -310,7 +341,9 @@ def healthy_batch(n: int = 6, plans: dict | None = None) -> tuple[list[dict], li
 
 
 def grade(M, chains, jobs, reach_min: int = 5, frozen=(True, "ok"), leftover=()):
-    return M.grade_batch(chains, jobs, 5, reach_min, frozen, list(leftover), {"most_running": 3})
+    """The batch grade as `run_batch` calls it: against the REGISTERED legs (V-02: every leg re-derived from its row)."""
+    return M.grade_batch(chains, jobs, 5, reach_min, frozen, list(leftover), {"most_running": 3},
+                         legs=LC.legs_of("ch5_rival_meet", real_milestones()))
 
 
 def graded_ok(checks) -> dict:
@@ -1102,15 +1135,34 @@ def case_r9_dirty(M, tmp):
 
 
 # ---------------------------------------------------------------------------------------------------- the ledger
+_FAKE_REPO: dict = {}
+
+
 def fake_repo(tmp: Path) -> Path:
-    """The files registered_numbers hashes, copied into a temp tree (its AI code: one brain file)."""
-    root = tmp / "repo"
-    for rel in (*LC.GRADER_FILES, LC.MILESTONES):
-        (root / rel).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(REPO / rel, root / rel)
-    (root / "ai_player" / "brain").mkdir(parents=True, exist_ok=True)
-    (root / "ai_player" / "brain" / "goals.py").write_text("x = 1\n", encoding="utf-8")
+    """The files registered_numbers hashes, copied ONCE per test process into a temp tree (its AI code: one brain file)
+    and shared: a case that changes a file does it through `edited` (or `restored`), which puts the bytes back. (The fix
+    round: V-03 made the hashed set 197 files and 10.7 MB, and the FIRST read of a freshly copied file costs about 0.9 s
+    on this machine, measured, against 0.03 s warm: one copy per case had tripled the suite's time.)"""
+    root = _FAKE_REPO.get("root")
+    if root is None:
+        root = _TEMP_ROOT / "fake_repo"
+        for rel in (*LC.GRADER_FILES, LC.MILESTONES):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(REPO / rel, root / rel)
+        (root / "ai_player" / "brain").mkdir(parents=True, exist_ok=True)
+        (root / "ai_player" / "brain" / "goals.py").write_text("x = 1\n", encoding="utf-8")
+        _FAKE_REPO["root"] = root
     return root
+
+
+@contextlib.contextmanager
+def restored(path: Path):
+    """Whatever the block writes to `path`, its bytes are put back after it (the shared fake repo stays as copied)."""
+    original = path.read_bytes()
+    try:
+        yield
+    finally:
+        path.write_bytes(original)
 
 
 def numbers(M, repo: Path, **dev) -> dict:
@@ -1128,6 +1180,7 @@ def case_register_begin(M, tmp):
 
 
 def refused_after(M, tmp, change) -> None:
+    tmp.mkdir(parents=True, exist_ok=True)
     repo, path = fake_repo(tmp), tmp / "ledger.json"
     M.register((6201, 6206), numbers(M, repo), "test", path=path)
     with change(repo):
@@ -1154,9 +1207,12 @@ def case_changed_cap_refused(M, tmp):
 
 @contextlib.contextmanager
 def edited(path: Path, old: str, new: str):
-    text = path.read_text(encoding="utf-8")
-    path.write_text(text.replace(old, new, 1), encoding="utf-8")
-    yield
+    """`old` replaced by `new` once in `path` for the block; the original bytes are put back after it (`restored`)."""
+    with restored(path):
+        text = path.read_text(encoding="utf-8")
+        ok(old in text, f"the edit's anchor {old!r} is in {path.name}")
+        path.write_text(text.replace(old, new, 1), encoding="utf-8")
+        yield
 
 
 def case_changed_milestones_refused(M, tmp):
@@ -1211,8 +1267,19 @@ def case_bounds_needles(M, tmp):
                    "L2 ch2_wally, 330000 frames: VAR_PETALBURG_GYM_STATE (16517) >= 2",
                    "L5 ch5_rival_meet, 600000 frames: ENABLE_RIVAL_MATCH_CALL (253) = 1, VAR_RUSTBORO_CITY_STATE (16474) >= 8",
                    "(C1)", "(C2)", "(C3)", "(C4)", "(C5)", "(C6)", "at least 5 of the 6 chains", "300000000",
-                   "ALREADY HELD", "UNREAD", "LC.MEMORY", "Route104", "goal manager's in-run memory starts again"):
+                   "ALREADY HELD", "UNREAD", "LC.MEMORY", "Route104", "goal manager's in-run memory starts again",
+                   # (the fix round) V-03: exactly what is hashed, and the CRLF rule said as a rule
+                   f"grader_files hashes, by path and content, exactly these {len(M.GRADER_FILES)} files and nothing "
+                   f"else", "sandbox-pokebot/modules/data/symbols/pokeemerald.sym", "Not hashed: the ROM",
+                   "a change of line endings alone is accepted BY DESIGN",
+                   # V-02: only the registered rows count, re-derived
+                   "Every check counts the REGISTERED chains only", "a stored flag can stop a chain but never continue one",
+                   # V-08: the dead launch's rule, said and named
+                   "harness: the launch died before playing a frame", "the reach tolerance does not cover it",
+                   # V-09: what LC.CUSTODY can catch
+                   "on a later leg they catch a regression of the harness only, never anything the AI does"):
         ok(needle in text, f"the bounds text says {needle!r}")
+    ok("never anything the AI does" in (M.__doc__ or ""), "the docstring says LC.CUSTODY's limit too (V-09)")
 
 
 # ---------------------------------------------------------------------------------------------------- the scheduler
@@ -1285,7 +1352,8 @@ class Rig:
     """A whole batch with stub launches: a temp repo geometry, build root, out, ledger and evidence folder."""
 
     def __init__(self, M, tmp: Path, plans: dict | None = None, alive: int = 2, free=lambda path: 100.0,
-                 tree: FakeTree | None = None, clock=None, pre_spawn=None, tree_every: float = 10 ** 9) -> None:
+                 tree: FakeTree | None = None, clock=None, pre_spawn=None, tree_every: float = 10 ** 9,
+                 leftover=None) -> None:
         self.M, self.plans, self.alive = M, plans or {}, alive
         self.repo = tmp / "repo"
         self.build = self.repo / "sandbox-pokebot"
@@ -1297,7 +1365,7 @@ class Rig:
         self.pre_spawn = pre_spawn
         ticks = iter(range(10 ** 6))
         self.deps = M.Deps(spawn=self.spawn, free=free, git_state=lambda: {"head": "a", "origin": "a", "dirty": []},
-                           leftover=lambda: [], g3=lambda: [], watch=lambda: self.tree, snapshot=lambda: None,
+                           leftover=leftover or (lambda: []), g3=lambda: [], watch=lambda: self.tree, snapshot=lambda: None,
                            code_line=lambda: "fake code line", default_build_root=lambda: self.build,
                            kill=self.kill, sleep=lambda seconds: None, clock=clock or (lambda: float(next(ticks))),
                            ledger_path=self.ledger, evidence_dir=self.evidence, repo=self.repo, poll_seconds=0, stagger=0,
@@ -1408,8 +1476,11 @@ def case_e2e_development(M, tmp):
        "the ledger entry: first..first+2 (N3)")
     ok(entry["verdict"].startswith("DEVELOPMENT, not graded, NO PASS (development: PASS"), entry["verdict"])
     evidence = Path(rig.results()["evidence"]).read_text(encoding="utf-8")
-    ok("3 of 3 reach ch2_wally." in evidence and hashlib.sha256(b"3 of 3 reach ch2_wally.").hexdigest() in evidence,
-       "the prediction and its sha in the evidence")
+    # (V-06) the sha256 printed is the FILE's bytes' (so `sha256sum prediction.txt` matches), never the stripped text's
+    file_sha = hashlib.sha256(prediction.read_bytes()).hexdigest()
+    ok("3 of 3 reach ch2_wally." in evidence and f"sha256 of the file's bytes {file_sha}" in evidence,
+       "the prediction and its file's sha256 in the evidence")
+    ok(hashlib.sha256(b"3 of 3 reach ch2_wally.").hexdigest() not in evidence, "not the stripped text's sha256")
     ok(Path(rig.results()["evidence"]).name.endswith("chain-heldout-dev-ch2_wally-6041.txt"), rig.results()["evidence"])
 
 
@@ -1493,10 +1564,17 @@ def calls_in(source: str, qualname: str) -> set[str]:
 WIRING = {
     "run_batch": {"gather_facts", "run_refusal", "watch", "check", "seal", "begin", "finish", "schedule", "salvage_chain",
                   "end_sweep", "grade_batch", "guard_decision", "newest_world", "kill", "kill_tree", "keep_earlier"},
-    "gather_facts": {"legs_of", "g3", "git_state", "seeds_named", "free"},
+    "gather_facts": {"legs_of", "g3", "git_state", "seeds_named", "free", "out_listing"},
     "run_chain": {"child_refusal", "check_purity", "check_after_is_this_run", "finish_leg", "custody_problems",
-                  "continue_after", "guard_mark", "stop_rest", "salvage_leg"},
+                  "continue_after", "guard_mark", "stop_rest", "salvage_leg", "launch_died"},
     "finish_leg": {"stream_world_tail", "measure_then_delete", "read_log_counts"},
+    # (the fix round, V-02) the grade counts the registered rows only, each re-derived from its own facts
+    "grade_batch": {"registered_chains"},
+    "registered_chains": {"rederived_chain"},
+    "rederived_chain": {"proof_holds", "leg_reached", "launch_died", "custody_problems", "kept_problem", "continue_after",
+                        "chain_reaches"},
+    "regrade_dir": {"registered_rows", "guard_mark", "grade_batch"},
+    "grade_dir": {"regrade_dir"},
 }
 
 
@@ -1505,6 +1583,579 @@ def case_wiring(M, tmp):
     for function, want in WIRING.items():
         missing = want - calls_in(source, function)
         ok(not missing, f"{function} no longer calls {sorted(missing)}")
+
+
+# ==================================================================================================== THE FIX ROUND
+# (the verifier's V-01..V-09, 2026-11-05) each new or changed guard: a FAULT case, a CONTROL case, and a mutant in MUTANTS
+DEAD = "harness: the launch died before playing a frame"
+
+
+# ---------------------------------------------------------------------------------------------------- V-01: --out
+def case_r11_out_not_empty(M, tmp):
+    for planted in (["STOP.txt"], ["ABORT.txt"], ["notes-of-an-earlier-batch.txt"], ["rows"]):
+        for args, graded in ((run_args(), True), (dev_args(), False)):
+            found = M.run_refusal(args, facts_of(graded, out_entries=planted))
+            ok((found or "").startswith("R11") and planted[0] in found,
+               f"{planted} ({'graded' if graded else 'development'}) is refused before the ledger: {found}")
+    found = M.run_refusal(run_args(), facts_of(out_error="it exists and is not a folder"))
+    ok((found or "").startswith("R11"), f"an --out that is a file: {found}")
+    eq(M.run_refusal(run_args(), facts_of(out_entries=[])), None, "CONTROL: an empty --out (graded)")
+    eq(M.run_refusal(dev_args(), facts_of(False, out_entries=[])), None, "CONTROL: an empty --out (development)")
+
+
+def case_out_listing(M, tmp):
+    eq(M.out_listing(tmp / "missing"), {"out_entries": []}, "CONTROL: a missing --out")
+    (tmp / "empty").mkdir()
+    eq(M.out_listing(tmp / "empty"), {"out_entries": []}, "CONTROL: an empty one")
+    (tmp / "full" / "rows").mkdir(parents=True)
+    (tmp / "full" / "STOP.txt").write_text("x", encoding="utf-8")
+    eq(M.out_listing(tmp / "full"), {"out_entries": ["STOP.txt", "rows"]}, "every entry, a folder too")
+    (tmp / "afile").write_text("x", encoding="utf-8")
+    ok("not a folder" in M.out_listing(tmp / "afile").get("out_error", ""), "a file is no --out")
+
+
+def case_e2e_out_not_empty_refused(M, tmp):
+    for name in ("STOP.txt", "ABORT.txt", "notes-of-an-earlier-batch.txt"):
+        rig = graded_rig(M, tmp / name.split(".")[0])
+        rig.out.mkdir(parents=True)
+        (rig.out / name).write_text("left by an earlier batch\n", encoding="utf-8")
+        before = rig.ledger.read_bytes()
+        code, text = rig.run(run_args(out=str(rig.out)))
+        eq(code, 2, f"{name}: refused before any leg (V-01): {text[-600:]}")
+        ok("R11" in text and name in text, f"{name}: {text[-600:]}")
+        eq((rig.entry()["status"], rig.entry().get("started")), ("registered", None),
+           f"{name}: the registration is NOT spent (no 'started')")
+        eq(rig.ledger.read_bytes(), before, f"{name}: the ledger is unchanged")
+        eq(rig.handles, [], f"{name}: no chain was started")
+        ok(not (rig.out / "results.json").exists(), f"{name}: no results")
+    rig = Rig(M, tmp / "dev")
+    rig.ledger.write_text(json.dumps({"what": "t", "entries": []}), encoding="utf-8")
+    (rig.out / "rows").mkdir(parents=True)
+    (rig.out / "rows" / "LC-S-6041.json").write_text("{}", encoding="utf-8")
+    prediction = tmp / "prediction.txt"
+    prediction.write_text("3 of 3 reach ch2_wally.\n", encoding="utf-8")
+    before = rig.ledger.read_bytes()
+    code, text = rig.run(dev_args(out=str(rig.out), prediction_file=str(prediction)))
+    eq((code, "R11" in text), (2, True), f"a development batch too: {text[-600:]}")
+    eq(rig.ledger.read_bytes(), before, "no development entry was begun")
+
+
+def case_e2e_out_empty_proceeds(M, tmp):
+    rig = graded_rig(M, tmp)
+    rig.out.mkdir(parents=True)
+    code, text = rig.run(run_args(out=str(rig.out)))
+    eq(code, 0, f"CONTROL: an EMPTY --out proceeds (a missing one: e2e_graded_pass): {text[-800:]}")
+    eq(rig.entry()["status"], "done", "the batch ran and finished its entry")
+
+
+# ---------------------------------------------------------------------------------------------------- V-02: the regrade
+def batch_with(plans_by_index: dict) -> tuple[list[dict], list[dict]]:
+    """healthy_batch with a plan for the chains at these indexes of jobs_of(7101, 6)."""
+    jobs = LC.jobs_of(7101, 6)
+    return healthy_batch(6, {jobs[at]["chain"]: plan for at, plan in plans_by_index.items()})
+
+
+def case_grade_batch_foreign_row(M, tmp):
+    chains, jobs = batch_with({1: {"L2": {"miss": True}}, 2: {"L4": {"miss": True}}})
+    eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "FAIL", "CONTROL: 4 of 6 reach")
+    foreign = {**copy.deepcopy(chains[0]), "chain": "LC-S-6041"}
+    checks = grade(M, chains + [foreign], jobs)
+    reach = by_id(checks, "LC.REACH")
+    eq((reach.status, M.batch_verdict(checks)), ("FAIL", "FAIL"), f"a passing row of ANOTHER chain never counts: {reach.text}")
+    ok("LC-S-6041: not a registered chain of this batch" in reach.text, reach.text)
+    honest, jobs = healthy_batch()
+    eq(by_id(grade(M, honest, jobs), "LC.REACH").status, "PASS", "CONTROL: 6 of 6")
+    twice = by_id(grade(M, honest + [copy.deepcopy(honest[0])], jobs), "LC.REACH")
+    ok(twice.status != "PASS" and "2 rows for one registered chain" in twice.text,
+       f"a registered chain with two rows counts neither: {twice.status} {twice.text[:400]}")
+
+
+def case_grade_dir_foreign_row(M, tmp):
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp, plans={jobs[1]["chain"]: {"L2": {"miss": True}}, jobs[2]["chain"]: {"L4": {"miss": True}}})
+    code, text = rig.run(run_args(out=str(rig.out)))
+    eq((code, rig.results()["verdict"]), (1, "FAIL"), f"in-run: 4 of 6 reach: {text[-600:]}")
+    eq(M.regrade_dir(rig.out)["verdict"], "FAIL", "CONTROL: the offline re-grade agrees")
+    passing = json.loads((rig.out / "rows" / f"{jobs[0]['chain']}.json").read_text(encoding="utf-8"))
+    # the verifier's P2: a passing row of another batch in rows/ (a reused --out) ...
+    (rig.out / "rows" / "LC-S-6041.json").write_text(json.dumps({**passing, "chain": "LC-S-6041"}), encoding="utf-8")
+    # ... and a passing row copied over a failing registered chain's file, its chain field unchanged
+    (rig.out / "rows" / f"{jobs[1]['chain']}.json").write_text(json.dumps(passing), encoding="utf-8")
+    found = M.regrade_dir(rig.out)
+    eq(found["verdict"], "FAIL", f"neither row counts (P2 stays FAIL): {found['ignored']}")
+    ok(any(i.startswith("rows/LC-S-6041.json: not a registered chain") for i in found["ignored"]), found["ignored"])
+    ok(any(i.startswith(f"rows/{jobs[1]['chain']}.json: its chain field 'LC-S-6201'") for i in found["ignored"]),
+       found["ignored"])
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        M.grade_dir(rig.out)
+    printed = buffer.getvalue()
+    ok("IGNORED: rows/LC-S-6041.json" in printed and "OFFLINE RE-GRADE (no ledger write): FAIL" in printed, printed[-800:])
+    ok("READ AS STORED" in printed, "grade DIR names the flags it could not re-derive")
+
+
+def case_regrade_honest(M, tmp):
+    rig = graded_rig(M, tmp)
+    code, text = rig.run(run_args(out=str(rig.out)))
+    eq(code, 0, text[-600:])
+    found = M.regrade_dir(rig.out)
+    eq((found["verdict"], found["ignored"], found["markers"]), ("PASS", [], []), "CONTROL: the honest batch re-grades PASS")
+    eq({c.id: c.status for c in found["checks"]}, {c["id"]: c["status"] for c in rig.results()["checks"]},
+       "CONTROL: every check as it was graded in the run")
+
+
+def case_flipped_continue_not_counted(M, tmp):
+    chains, jobs = batch_with({0: {"L5": {"miss": True}}, 1: {"L5": {"miss": True}}})
+    eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "FAIL", "CONTROL: 4 of 6 reach")
+    for chain in chains[:2]:
+        leg = chain["legs"][4]
+        leg.update({"continue": True, "reached": True, "why": "C1-C6 held"})
+        leg["proof_after"]["held"] = True
+        chain["reached_to"] = True
+    ok(LC.chain_reaches(chains[0], 5), "the stored flags now say it reaches")
+    checks = grade(M, chains, jobs)
+    reach = by_id(checks, "LC.REACH")
+    eq((reach.status, M.batch_verdict(checks)), ("FAIL", "FAIL"), f"flipped flags over failing facts never count: {reach.text}")
+    ok("its stored continue is True, the re-derived rule says no" in reach.text, reach.text)
+
+
+def case_row_identity_mismatch(M, tmp):
+    chains, jobs = batch_with({3: {"L2": {"miss": True}}, 4: {"L2": {"miss": True}}})
+    eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "FAIL", "CONTROL: 4 of 6 reach")
+    forged = {**copy.deepcopy(chains[0]), "chain": jobs[3]["chain"]}  # LC-S-7101's row filed as LC-S-7102 (same pair)
+    chains[3] = forged
+    reach = by_id(grade(M, chains, jobs), "LC.REACH")
+    eq(reach.status, "FAIL", f"a row with another chain's seed and profile never counts: {reach.text[:600]}")
+    ok("its seed 7101 is not the registered 7102" in reach.text, reach.text)
+
+
+def case_kept_file_swapped(M, tmp):
+    chains, jobs = batch_with({1: {"L2": {"miss": True}}})
+    eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "PASS", "CONTROL: 5 of 6 reach")
+    last = chains[0]["legs"][4]
+    swapped = tmp / "swapped_world_last.jsonl"  # (a new file: the cached batch's own files are never touched)
+    swapped.write_bytes(Path(last["kept_world"]).read_bytes().replace(b'"tiles_learned":', b'"tiles_learned": '))
+    last["kept_world"] = str(swapped)
+    reach = by_id(grade(M, chains, jobs), "LC.REACH")
+    eq(reach.status, "FAIL", f"a kept line that is not the one the row measured never counts: {reach.text[:600]}")
+    ok("its kept last line's sha256 is not the row's" in reach.text, reach.text)
+
+
+def case_row_proof_weakened(M, tmp):
+    chains, jobs = batch_with({0: {"L5": {"miss": True}}, 1: {"L5": {"miss": True}}})
+    for chain in chains[:2]:
+        leg = chain["legs"][4]
+        leg["proof"] = {"flags": {}, "variables": {"RUSTBORO_CITY_STATE": {"number": 0x405A, "at_least": 7}}, "trainers": {}}
+        leg["proof_after"] = M.proof_holds(leg["truth_after"]["marks"], leg["proof"])
+        leg.update({"continue": True, "reached": True})
+        ok(leg["proof_after"]["held"], "the row's own (weakened) proof holds on its marks")
+    reach = by_id(grade(M, chains, jobs), "LC.REACH")
+    eq(reach.status, "FAIL", f"the REGISTERED leg's proof decides, never the row's own: {reach.text[:600]}")
+
+
+def case_row_leg_names_checked(M, tmp):
+    chains, jobs = batch_with({1: {"L2": {"miss": True}}})
+    eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "PASS", "CONTROL: 5 of 6 reach")
+    chains[0]["legs"][4]["target"] = "ch9_elsewhere"
+    reach = by_id(grade(M, chains, jobs), "LC.REACH")
+    eq(reach.status, "FAIL", f"a leg the row names otherwise is not the registered leg: {reach.text[:600]}")
+    ok("is not the registered L5 ch5_rival_meet" in reach.text, reach.text)
+
+
+def case_grade_dir_marker_on_disk(M, tmp):
+    rig = graded_rig(M, tmp)
+    code, text = rig.run(run_args(out=str(rig.out)))
+    eq((code, M.regrade_dir(rig.out)["verdict"]), (0, "PASS"), f"CONTROL: no marker: {text[-400:]}")
+    for chain in ("LC-S-6201", "LC-C-6203"):
+        LC._write_json(rig.out / chain / "L3.KILLED.json", {"cause": "world", "text": "planted after the batch"})
+    found = M.regrade_dir(rig.out)
+    eq((found["verdict"], len(found["markers"])), ("FAIL", 2),
+       f"a disk guard's marker file stops its leg even when the row has none: {found['markers']}")
+
+
+# ---------------------------------------------------------------------------------------------------- V-03: the hash
+#: the test's OWN list of the data the grade reads (a second path: MEASURED 2026-11-05 by an audit hook on `open` while
+#: modules.memory, game, pokemon_party and pokemon were imported in a throw-away process, plus the two symbol tables
+#: modules/game.py loads for Emerald and the gates' own data), and the AI's plugin
+DATA_REQUIRED = ("sandbox-pokebot/modules/data/symbols/pokeemerald.sym",
+                 "sandbox-pokebot/modules/data/symbols/patches/pokeemerald.sym",
+                 "sandbox-pokebot/modules/data/species.json", "sandbox-pokebot/modules/data/types.json",
+                 "sandbox-pokebot/modules/data/moves.json", "sandbox-pokebot/modules/data/natures.json",
+                 "sandbox-pokebot/modules/data/abilities.json", "sandbox-pokebot/modules/data/items.json",
+                 "ai_player/gates/fixtures/item_flags.json", "ai_player/gates/b1_debt.json",
+                 "ai_player/gates/grader_waivers.json", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py")
+#: the files the verifier named in the grade's import path (V-03): the scan must find every one (it is not vacuous)
+CLOSURE_NAMED = ("ai_player/gates/live_chain.py", "ai_player/gates/live_step5.py", "ai_player/gates/play_harness.py",
+                 "ai_player/gates/hands_harness.py", "ai_player/gates/probe_eyes.py", "ai_player/gates/disk_budget.py",
+                 "ai_player/gates/check_grader_imports.py", "ai_player/gates/window.py",
+                 "ai_player/gates/probe_save_kill.py", "ai_player/gates/probe_end_screen.py",
+                 "ai_player/gates/revert_step5.py", "sandbox-pokebot/modules/pokemon.py", "sandbox-pokebot/modules/game.py",
+                 "sandbox-pokebot/modules/pokemon_party.py", "sandbox-pokebot/modules/memory.py")
+
+
+def case_grader_files_cover_closure(M, tmp):
+    closure = M.grader_closure(REPO)
+    eq([rel for rel in closure if rel not in M.GRADER_FILES], [],
+       "files the grade imports that the registration does not hash (add them to GRADER_GATES or GRADER_SANDBOX)")
+    eq([rel for rel in M.GRADER_FILES if not (REPO / rel).is_file()], [], "listed files that do not exist")
+
+
+def case_closure_not_vacuous(M, tmp):
+    closure = M.grader_closure(REPO)
+    eq([rel for rel in CLOSURE_NAMED if rel not in closure], [], "the scan finds every file the verifier named")
+    eq([rel for rel in closure if not rel.startswith(("ai_player/gates/", "sandbox-pokebot/modules/"))], [],
+       "the AI's own modules are never followed (they are hashed whole, as ai_code_sha256)")
+
+
+def case_closure_scan_planted(M, tmp):
+    root = tmp / "repo"
+
+    def put(rel: str, text: str) -> None:
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text, encoding="utf-8")
+    put("ai_player/gates/__init__.py", "")
+    put("ai_player/gates/live_chain.py", '"""It never imports ai_player.gates.mentioned."""\n'
+                                         "# from ai_player.gates import commented\n"
+                                         "from ai_player.gates import top\nfrom ai_player.brain import goals\n"
+                                         "try:\n    import json\nexcept ImportError:\n"
+                                         "    from ai_player.gates import fallback\n\n\n"
+                                         "def later():\n    from ai_player.gates.inner import x\n    return x\n")
+    put("ai_player/gates/top.py", "import modules.pkg.sub\n")
+    put("ai_player/gates/inner.py", "from modules.rel import y\n")
+    put("ai_player/gates/fallback.py", "")
+    put("ai_player/gates/mentioned.py", "")
+    put("ai_player/gates/commented.py", "")
+    put("ai_player/brain/goals.py", "from modules.ai_only import z\n")
+    put("sandbox-pokebot/modules/pkg/__init__.py", "")
+    put("sandbox-pokebot/modules/pkg/sub.py", "")
+    put("sandbox-pokebot/modules/rel.py", "from .sibling import w\n")
+    put("sandbox-pokebot/modules/sibling.py", "")
+    put("sandbox-pokebot/modules/ai_only.py", "")
+    eq(M.grader_closure(root), ["ai_player/gates/__init__.py", "ai_player/gates/fallback.py", "ai_player/gates/inner.py",
+                                "ai_player/gates/live_chain.py", "ai_player/gates/top.py",
+                                "sandbox-pokebot/modules/pkg/__init__.py", "sandbox-pokebot/modules/pkg/sub.py",
+                                "sandbox-pokebot/modules/rel.py", "sandbox-pokebot/modules/sibling.py"],
+       "a function-local import, one in an except block, a relative one and a parent package are followed; a mention in "
+       "a docstring or a comment and the AI's own imports are not")
+
+
+def case_grader_data_hashed(M, tmp):
+    eq([rel for rel in DATA_REQUIRED if rel not in M.GRADER_FILES], [], "the data the grade reads is hashed")
+
+
+def case_changed_decoder_refused(M, tmp):
+    refused_after(M, tmp / "pokemon", lambda repo: edited(repo / "sandbox-pokebot/modules/pokemon.py", "import ",
+                                                          "import  "))
+    refused_after(M, tmp / "sym", lambda repo: edited(repo / "sandbox-pokebot/modules/data/symbols/pokeemerald.sym",
+                                                      " ", "  "))
+    refused_after(M, tmp / "gates", lambda repo: edited(repo / "ai_player/gates/disk_budget.py", "import ", "import  "))
+
+
+def case_crlf_only_accepted(M, tmp):
+    repo, path = fake_repo(tmp), tmp / "ledger.json"
+    M.register((6201, 6206), numbers(M, repo), "test", path=path)
+    target = repo / "ai_player" / "gates" / "live_step5.py"
+    with restored(target):
+        data = target.read_bytes()
+        lf = data.replace(b"\r\n", b"\n")
+        changed = lf.replace(b"\n", b"\r\n") if data == lf else lf
+        ok(changed != data, "the line endings really changed")
+        target.write_bytes(changed)
+        entry, _ = M.begin("graded", (6201, 6206), numbers(M, repo), "tree", path=path)
+    eq(entry["status"], "started", "CONTROL (by design): a change of line endings alone is not refused")
+
+
+# ---------------------------------------------------------------------------------------------------- V-04: what counts
+def case_verdict_impure_l5_fails(M, tmp):
+    chains, jobs = healthy_batch()
+    leg = chains[0]["legs"][4]
+    next(c for c in leg["checks"] if c["id"] == "L5.PURITY_CLEAN")["status"] = "FAIL"
+    leg["continue"] = False  # what run_chain writes on a C2 stop
+    checks = grade(M, chains, jobs)
+    eq((by_id(checks, "LC.REACH").status, by_id(checks, "LC.PURITY").status), ("PASS", "FAIL"), "5 of 6 reach; L5 impure")
+    eq(M.batch_verdict(checks), "FAIL", "one impure leg fails the BATCH, even with 5 of 6 reaching")
+
+
+def case_verdict_stale_l5_fails(M, tmp):
+    chains, jobs = batch_with({0: {"L5": {"stale": True}}})
+    checks = grade(M, chains, jobs)
+    eq((by_id(checks, "LC.REACH").status, by_id(checks, "LC.THIS_RUN").status), ("PASS", "FAIL"),
+       "5 of 6 reach; one L5 stale")
+    eq(M.batch_verdict(checks), "FAIL", "one stale leg fails the BATCH")
+
+
+def case_verdict_wrong_starter_fails(M, tmp):
+    chains, jobs = batch_with({0: {"L1": {"wrong_species": True}}})
+    checks = grade(M, chains, jobs)
+    eq((by_id(checks, "LC.REACH").status, by_id(checks, "LC.STARTER").status), ("PASS", "FAIL"),
+       "6 of 6 reach; one wrong starter")
+    eq(M.batch_verdict(checks), "FAIL", "a wrong starter fails the BATCH")
+
+
+def graded_ids(bounds: str) -> set[str]:
+    """The ids the bounds text lists between 'GRADED (' and 'REPORTED ('."""
+    lines = bounds.splitlines()
+    start = next(at for at, line in enumerate(lines) if line.startswith("GRADED ("))
+    end = next(at for at, line in enumerate(lines) if line.startswith("REPORTED ("))
+    return {found.group(1) for line in lines[start + 1:end] if (found := re.match(r"(LC\.[A-Z_]+)", line))}
+
+
+def case_graded_kinds_match_bounds(M, tmp):
+    chains, jobs = healthy_batch()
+    listed = graded_ids(M.bounds_text("ch5_rival_meet", LC.legs_of("ch5_rival_meet", real_milestones()), jobs, 5))
+    ok({"LC.REACH", "LC.PURITY", "LC.THIS_RUN", "LC.STARTER", "LC.CUSTODY", "LC.MEMORY", "LC.FROZEN",
+        "LC.LEFTOVER"} <= listed, f"the bounds text's GRADED list: {sorted(listed)}")
+    kinds = {c.id: c.kind for c in grade(M, chains, jobs)}
+    eq(sorted(i for i in listed if kinds.get(i) != "GRADED"), [], "every check the bounds text lists as GRADED is GRADED")
+    eq(sorted(i for i, kind in kinds.items() if kind == "GRADED" and i not in listed), [], "and every GRADED one is listed")
+
+
+# ---------------------------------------------------------------------------------------------------- V-05: guards
+def case_watchdog_value(M, tmp):
+    legs = M.legs_of("ch5_rival_meet", real_milestones())
+    eq(M.chain_watchdog_seconds(legs), 25800, "ch5: 5 x (3,600 + 300 + 2 x 600) + 300, as the docstring says")
+    eq(M.chain_watchdog_seconds([{"wall": 100.0}, {"wall": 50.0}]), 3450, "per leg: wall + 300 + 2 x 600; then + 300")
+    ok("each leg's wall + 300 s + two 600 s truth reads, + 300 s" in M.bounds_text("ch5_rival_meet", legs,
+                                                                                   LC.jobs_of(6201, 6), 5), "registered")
+
+
+def case_world_grew_larger_graded(M, tmp):
+    def plant(name: str) -> tuple[Path, int]:
+        run_dir = tmp / name
+        run_dir.mkdir(parents=True)
+        (run_dir / "world.jsonl").write_text(snapshot(1, 1) + "\n" + snapshot(2, 5) + "\n", encoding="utf-8")
+        return run_dir, (run_dir / "world.jsonl").stat().st_size
+    run_dir, first = plant("steady")
+    row: dict = {"notes": []}
+    M.finish_leg(row, run_dir, tmp / "kept_steady")
+    eq((row["world_file"]["bytes"], row["notes"]), (first, []), "CONTROL: a file that did not grow is graded at its size")
+    run_dir, first = plant("grew")
+    real = M.measure_then_delete
+
+    def grows(path):  # the AI's process wrote 4,096 more bytes between the first size and the deletion
+        with open(path, "ab") as handle:
+            handle.write(b" " * 4096)
+        return real(path)
+    row = {"notes": []}
+    with mock.patch.object(M, "measure_then_delete", grows):
+        M.finish_leg(row, run_dir, tmp / "kept_grew")
+    eq(row["world_file"]["bytes"], first + 4096, "the LARGER size is graded")
+    ok(any("the larger is graded" in note for note in row["notes"]), row["notes"])
+    row.update({k: v for k, v in base_row(tmp).items() if k in ("chain", "leg", "target", "status", "checks", "proof_after",
+                                                                 "guard_killed", "custody")})
+    with mock.patch.object(M, "WORLD_MAX_BYTES", first + 1):
+        go, why = M.continue_after(row, False)
+    ok(not go and "C3 " in why, f"under the cap at first and over it at its deletion: the chain stops: {why}")
+
+
+def case_kept_outside_repo(M, tmp):
+    """The kept last line is written under --out, which R1 keeps outside the repository (case_r1), and never beside the
+    run in the chain's profile (the build root, inside the repository). (Whether this test's own temp --out lies outside
+    the repository is the runner's environment, not the driver's: the external mutant runner puts TEMP in its copy.)"""
+    chain, _, job = play(M, tmp)
+    out, build = Path(job["out"]).resolve(), Path(job["build_root"]).resolve()
+    for leg in chain["legs"]:
+        kept = Path(leg["kept_world"]).resolve()
+        eq(kept, (out / job["chain"] / leg["leg"] / "world_last.jsonl").resolve(), f"{leg['leg']}: under --out")
+        ok(not kept.is_relative_to(build) and not kept.is_relative_to(Path(leg["run_dir"]).resolve()),
+           f"{leg['leg']}'s kept last line is not in the profiles or its run folder: {kept}")
+    ok((M.run_refusal(run_args(out="C:/R/repo/out"), facts_of(out=Path("C:/R/repo/out"))) or "").startswith("R1"),
+       "and R1 refuses an --out inside the repository")
+
+
+def case_dev_partial_overlap_refused(M, tmp):
+    path = tmp / "ledger.json"
+    ledger.begin("story", "live_chain", "development", 6041, 6043, "x" * 64, "tree", path=path)
+    for first, last in ((6042, 6044), (6040, 6041), (6043, 6050), (6038, 6048)):
+        eq([e["first"] for e in M.seeds_named(first, last, path)], [6041], f"{first}-{last} overlaps 6041-6043")
+    for first, last in ((6044, 6046), (6038, 6040)):
+        eq(M.seeds_named(first, last, path), [], f"CONTROL: {first}-{last} does not")
+    rig = Rig(M, tmp / "rig")
+    shutil.copy2(path, rig.ledger)
+    prediction = tmp / "prediction.txt"
+    prediction.write_text("2 of 3.\n", encoding="utf-8")
+    before = rig.ledger.read_bytes()
+    code, text = rig.run(dev_args(first_seed=6042, out=str(rig.out), prediction_file=str(prediction)))
+    eq(code, 2, f"6042-6044 overlaps 6041-6043 at two seeds: refused (CH-15): {text[-500:]}")
+    ok("R3" in text and "would replay" in text, text[-500:])
+    eq(rig.ledger.read_bytes(), before, "the ledger is unchanged")
+
+
+def case_e2e_leftover_reported(M, tmp):
+    reads: list[bool] = []
+
+    def leftover() -> list[str]:
+        reads.append(len(rig.handles) == 6 and all(h.code is not None for h in rig.handles))
+        return ["4242 C:\\Python312\\python.exe -B live_chain.py child ai-livechain-6201.job.json"]
+    rig = graded_rig(M, tmp, leftover=leftover)
+    code, text = rig.run(run_args(out=str(rig.out)))
+    eq(code, 1, f"a process left after the batch fails it: {text[-600:]}")
+    eq(reads, [True], "read ONCE, after every chain ended")
+    results = rig.results()
+    ok(results["leftover"] and "ai-livechain-6201" in results["leftover"][0], results["leftover"])
+    eq({c["id"]: c["status"] for c in results["checks"]}["LC.LEFTOVER"], "FAIL", "LC.LEFTOVER")
+    evidence = Path(results["evidence"]).read_text(encoding="utf-8")
+    ok(any(line.startswith("leftover processes: ") and "ai-livechain-6201.job.json" in line
+           for line in evidence.splitlines()), "named in the evidence")
+
+
+def short_scratch() -> Path:
+    """A new folder with a SHORT path for throw-away git repositories, removed by the caller (`remove_tree`). MEASURED
+    2026-11-05: under the external mutant runner's deep TEMP (it nests TEMP in its copy) git fails on Windows' path
+    limit: object files past 260 characters ("Filename too long"), and a push, whose local receive-pack runs inside the
+    bare repository, past the working folder's limit even with core.longpaths ("not a git repository: '.'"). So: this
+    process's temp folder when its path is short, else the user's own temp folder."""
+    for base in (Path(tempfile.gettempdir()), Path(os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()) / "Temp"):
+        if base.is_dir() and len(str(base.resolve())) <= 100:
+            return Path(tempfile.mkdtemp(prefix="lc_git_", dir=base))
+    return Path(tempfile.mkdtemp(prefix="lc_git_"))
+
+
+def remove_tree(path: Path) -> None:
+    """shutil.rmtree that also removes git's READ-ONLY object files (Windows refuses to delete them as they are); a file
+    that still cannot be removed is left (a stray temp file never fails the case it served)."""
+    def writable_then_retry(func, name, exc):
+        try:
+            os.chmod(name, 0o700)
+            func(name)
+        except OSError:
+            pass
+    shutil.rmtree(path, onexc=writable_then_retry)
+
+
+def case_git_state_scratch(M, tmp):
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+
+    def git(cwd: Path, *args: str) -> str:
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false",
+                               "-c", "core.autocrlf=false", *args], cwd=str(cwd), capture_output=True, check=True,
+                              text=True, env=env).stdout.strip()
+    base = short_scratch()
+    try:
+        origin, work = base / "origin.git", base / "work"
+        git(base, "init", "-q", "--bare", "-b", "main", str(origin))
+        git(base, "init", "-q", "-b", "main", str(work))
+        (work / "t.txt").write_bytes(b"a\n")
+        git(work, "add", "t.txt")
+        git(work, "commit", "-q", "-m", "c1")
+        git(work, "remote", "add", "origin", str(origin))
+        git(work, "push", "-q", "origin", "main")
+        with mock.patch.dict(os.environ, env, clear=True):
+            clean = M.git_state(work)
+            (work / "t.txt").write_bytes(b"bb\n")
+            tracked = M.git_state(work)
+            (work / "t.txt").write_bytes(b"a\n")
+            (work / "u.txt").write_bytes(b"u\n")
+            untracked = M.git_state(work)
+        git(work, "add", "u.txt")
+        git(work, "commit", "-q", "-m", "c2")
+        with mock.patch.dict(os.environ, env, clear=True):
+            ahead = M.git_state(work)
+    finally:
+        remove_tree(base)
+    eq((clean["head"] == clean["origin"], clean["dirty"], clean.get("error")), (True, [], None),
+       f"CONTROL: clean and pushed: {clean}")
+    ok(any("t.txt" in line for line in tracked["dirty"]), f"a changed TRACKED file is dirty: {tracked}")
+    eq(untracked["dirty"], [], f"an UNTRACKED file is not (--untracked-files=no): {untracked}")
+    ok(ahead["head"] and ahead["head"] != ahead["origin"], f"a commit not pushed: HEAD is not origin/main: {ahead}")
+
+
+def case_abort_before_leg(M, tmp):
+    def pre(job):
+        Path(job["out"]).mkdir(parents=True, exist_ok=True)
+        (Path(job["out"]) / "ABORT.txt").write_text("under 30 GB free\n", encoding="utf-8")
+    chain, stub, _ = play(M, tmp / "before", pre=pre)
+    eq(stub.calls, [], "ABORT.txt before L1: no leg is launched")
+    ok(all("ABORTED by the harness" in leg["reason"] for leg in chain["legs"]), chain["legs"][0]["reason"])
+    chain, stub, _ = play(M, tmp / "during", {"L2": {"write_abort": True}})
+    eq(len(stub.calls), 2, "ABORT.txt written during L2: L3 is never launched (the pre-leg check)")
+    eq([leg["status"] for leg in chain["legs"]], ["RAN", "RAN", "NOT RUN", "NOT RUN", "NOT RUN"], "L3-L5 NOT RUN")
+    ok("ABORTED by the harness" in chain["legs"][2]["reason"], chain["legs"][2]["reason"])
+
+
+def case_starter_floor(M, tmp):
+    chains, jobs = healthy_batch()
+    chains[0]["legs"][0]["truth_after"]["party_exp"] = []
+    eq(by_id(grade(M, chains, jobs), "LC.STARTER").status, "PASS", "CONTROL: 5 of 6 chains judged (the floor is 5)")
+    chains[1]["legs"][0]["truth_after"]["party_exp"] = []
+    checks = grade(M, chains, jobs)
+    eq(by_id(checks, "LC.STARTER").status, "VACUOUS", "4 chains judged: under the floor of 5")
+    eq(M.batch_verdict(checks), "FAIL", "a VACUOUS starter check fails the batch")
+
+
+# ---------------------------------------------------------------------------------------------------- V-06: the prediction
+def case_prediction_sha_file_bytes(M, tmp):
+    rig = Rig(M, tmp)
+    prediction = tmp / "prediction.txt"
+    prediction.write_bytes(b"3 of 3 reach ch2_wally.\n")
+    code, text = rig.run(dev_args(out=str(rig.out), prediction_file=str(prediction)))
+    eq(code, 0, text[-600:])
+    file_sha = hashlib.sha256(prediction.read_bytes()).hexdigest()
+    legs = M.legs_of("ch2_wally", M.load_milestones())
+    with mock.patch.object(M, "ai_code_sha256", lambda repo=None: "0" * 64):
+        want = M.registered_numbers(None, "ch2_wally", (6041, 6043), 3, legs, M.repo_root(),
+                                    {"chains": 3, "leg_frames_override": {}, "prediction_sha256": file_sha})
+    eq(rig.entry()["bounds_sha256"], ledger.numbers_sha256(want), "the ledger holds the FILE's sha256 (sha256sum matches)")
+
+
+# ---------------------------------------------------------------------------------------------------- V-08: a dead launch
+def case_launch_died_rule(M, tmp):
+    def row(world=None, log_lines=None, **stop):
+        found = {"status": "RAN", "harness_stop": {"by": "other", "cause": "exit code 1", "real_frames": None, **stop}}
+        if world is not None:
+            found["world_file"] = world
+        if log_lines is not None:
+            found["measures"] = {"log": {"lines": log_lines}}
+        return found
+    ok((M.launch_died(row()) or "").startswith(DEAD), "exit code 1, no verdict file, no log, no world file: named")
+    ok((M.launch_died(row(log_lines=0, world={"bytes": None, "deleted": False, "present": False})) or "").startswith(DEAD),
+       "an empty log and no world file: named")
+    ok((M.launch_died(row(by="harness", real_frames=0)) or "").startswith(DEAD), "killed with no trace of play: named")
+    eq(M.launch_died(row(real_frames=5000)), None, "CONTROL: a launch that played frames and then crashed")
+    eq(M.launch_died(row(by="harness", world={"bytes": 1_600_000_000, "deleted": True, "present": True})), None,
+       "CONTROL: killed MID-PLAY by the guard or the wall clock (no verdict file, but a world file): not named")
+    eq(M.launch_died(row(log_lines=40)), None, "CONTROL: the AI's log has lines (it started): not named")
+    eq(M.launch_died(row(by="ai", cause="the AI exited by itself (exit code 0)")), None, "CONTROL: the AI's own exit")
+    eq(M.launch_died({"status": "NOT RUN", "harness_stop": None}), None, "CONTROL: a leg never launched")
+
+
+def case_dead_launch_named(M, tmp):
+    chain, stub, _ = play(M, tmp / "dead", {"L1": {"dead": True}})
+    eq(len(stub.calls), 1, "the dead launch stops its chain")
+    first = chain["legs"][0]
+    ok((first.get("harness") or "").startswith(DEAD), f"the chain row NAMES it: {first.get('harness')}")
+    ok(DEAD in chain["stop_reason"] and DEAD in chain["legs"][1]["reason"], chain["stop_reason"])
+    eq({c["id"]: c["status"] for c in first["checks"]}["L5.THIS_RUN"], "FAIL", "it RAN: THIS_RUN still fails (kept)")
+    control, _, _ = play(M, tmp / "control")
+    eq([leg.get("harness") for leg in control["legs"]], [None] * 5, "CONTROL: legs that played are never named")
+
+
+def case_e2e_dead_launch_evidence(M, tmp):
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp, plans={jobs[0]["chain"]: {"L1": {"dead": True}}})
+    code, text = rig.run(run_args(out=str(rig.out)))
+    eq(code, 1, f"the registered rule is kept: a dead launch fails the batch: {text[-600:]}")
+    results = rig.results()
+    statuses = {c["id"]: c["status"] for c in results["checks"]}
+    eq((statuses["LC.REACH"], statuses["LC.PURITY"], statuses["LC.THIS_RUN"]), ("PASS", "FAIL", "FAIL"), "5 of 6 reach")
+    lines = Path(results["evidence"]).read_text(encoding="utf-8").splitlines()
+    ok(DEAD in lines[0] and "LC-S-6201 L1" in lines[0], f"the evidence's first line names it: {lines[0]}")
+    ok(any(line.startswith(DEAD) and f"LC-S-6201 L1: {DEAD}" in line for line in lines), "and its own line")
+    ok(any(line.strip().startswith(DEAD) for line in lines if line.startswith("      ")), "and the leg's block")
+    ok(DEAD in rig.entry()["verdict"], f"and the ledger's verdict: {rig.entry()['verdict'][:300]}")
+    world = next(c for c in results["checks"] if c["id"] == "LC.WORLD")["text"]
+    ok("LC-S-6201 L1 no world file" in world and "not deleted after its leg: none" in world, world[:600])
+    ok(any("world.jsonl: no world file" in line for line in lines), "the leg's world line")
+
+
+def case_world_line_no_file(M, tmp):
+    chains, jobs = healthy_batch()
+    chains[0]["legs"][4]["world_file"] = {"bytes": None, "deleted": False, "present": False}
+    chains[1]["legs"][4]["world_file"] = {"bytes": 5000, "deleted": False, "present": True}
+    world = by_id(grade(M, chains, jobs), "LC.WORLD").text
+    ok(f"{chains[0]['chain']} L5 no world file" in world, world[:600])
+    ok(f"not deleted after its leg: ['{chains[1]['chain']} L5']" in world,
+       f"CONTROL: a file the OS kept open is still listed as not deleted: {world[:900]}")
 
 
 # ==================================================================================================== THE TESTCASES
@@ -1567,6 +2218,24 @@ OrchestratorTests = _bind(type("OrchestratorTests", (Base,), {}), (
     "e2e_graded_pass", "e2e_dry_run", "e2e_unregistered_refused", "e2e_refusal_before_ledger", "e2e_development",
     "free_guard_aborts", "world_guard_kills", "watchdog", "tree_move_stops", "tree_move_tick"))
 WiringTests = _bind(type("WiringTests", (Base,), {}), ("wiring",))
+# (the fix round, the verifier's V-01..V-09)
+OutTests = _bind(type("OutTests", (Base,), {}), ("r11_out_not_empty", "out_listing", "e2e_out_not_empty_refused",
+                                                 "e2e_out_empty_proceeds"))
+RegradeTests = _bind(type("RegradeTests", (Base,), {}), (
+    "grade_batch_foreign_row", "grade_dir_foreign_row", "regrade_honest", "flipped_continue_not_counted",
+    "row_identity_mismatch", "kept_file_swapped", "row_proof_weakened", "row_leg_names_checked",
+    "grade_dir_marker_on_disk"))
+ClosureTests = _bind(type("ClosureTests", (Base,), {}), (
+    "grader_files_cover_closure", "closure_not_vacuous", "closure_scan_planted", "grader_data_hashed",
+    "changed_decoder_refused", "crlf_only_accepted"))
+KindTests = _bind(type("KindTests", (Base,), {}), ("verdict_impure_l5_fails", "verdict_stale_l5_fails",
+                                                   "verdict_wrong_starter_fails", "graded_kinds_match_bounds"))
+GuardTests = _bind(type("GuardTests", (Base,), {}), (
+    "watchdog_value", "world_grew_larger_graded", "kept_outside_repo", "dev_partial_overlap_refused",
+    "e2e_leftover_reported", "git_state_scratch", "abort_before_leg", "starter_floor"))
+PredictionTests = _bind(type("PredictionTests", (Base,), {}), ("prediction_sha_file_bytes",))
+DeadLaunchTests = _bind(type("DeadLaunchTests", (Base,), {}), ("launch_died_rule", "dead_launch_named",
+                                                               "e2e_dead_launch_evidence", "world_line_no_file"))
 
 
 class PurposeTests(unittest.TestCase):
@@ -1856,6 +2525,121 @@ MUTANTS = [
      ["profile_guard"]),
     ("M94_c3_unmeasured", '        why.append("C3 its world.jsonl was not measured")', "        pass",
      ["continue_c3_unmeasured"]),
+    # ------------------------------------------------------------------ the fix round (the verifier's V-01..V-09)
+    # V-01: a non-empty --out is refused before ledger.begin
+    ("M95_out_not_empty_ignored", "    if entries:\n        return (f\"R11:", "    if False:\n        return (f\"R11:",
+     ["r11_out_not_empty"]),
+    ("M96_out_unmeasured", '    facts.update(out_listing(facts["out"]))', '    facts.update({"out_entries": []})',
+     ["e2e_out_not_empty_refused"]),
+    ("M97_out_not_a_folder_ok", '    if facts.get("out_error"):', "    if False:", ["r11_out_not_empty"]),
+    ("M98_out_listing_blind", '        return {"out_entries": sorted(p.name for p in out.iterdir())}',
+     '        return {"out_entries": []}', ["out_listing"]),
+    # V-02: only the registered rows count, each re-derived from its own facts
+    ("M99_raw_rows_graded", "    chains, ignored, rederived = registered_chains(chains, jobs, legs)",
+     "    _, ignored, rederived = registered_chains(chains, jobs, legs)",
+     ["grade_batch_foreign_row", "flipped_continue_not_counted"]),
+    ("M100_unregistered_counted",
+     '    kept = [rederived_chain(rows[job["chain"]][0], job, legs) for job in jobs if len(rows.get(job["chain"]) or []) == 1]',
+     '    kept = [rederived_chain(rows[job["chain"]][0], job, legs) for job in jobs if len(rows.get(job["chain"]) or []) == 1]'
+     ' + [c for c in chains if c.get("chain") not in registered]', ["grade_batch_foreign_row"]),
+    ("M101_duplicates_counted", 'for job in jobs if len(rows.get(job["chain"]) or []) == 1]',
+     'for job in jobs if rows.get(job["chain"])]', ["grade_batch_foreign_row"]),
+    ("M102_stored_continue_trusted", '            leg["continue"] = stored and not problems', '            leg["continue"] = stored',
+     ["flipped_continue_not_counted", "row_identity_mismatch", "kept_file_swapped", "row_proof_weakened",
+      "row_leg_names_checked"]),
+    ("M103_identity_ignored", '    identity = [f"its {key} {out.get(key)!r} is not the registered {job.get(key)!r}" for key in '
+                              'IDENTITY\n                if out.get(key) != job.get(key)]', "    identity = []",
+     ["row_identity_mismatch"]),
+    ("M104_kept_not_reread", "            kept = kept_problem(leg)", "            kept = None", ["kept_file_swapped"]),
+    ("M105_row_proof_used", '            proof = want["proof"] if want is not None else (leg.get("proof") or {})',
+     '            proof = leg.get("proof") or {}', ["row_proof_weakened"]),
+    ("M106_leg_names_unchecked", '            if legs is not None and (want is None or (leg.get("leg"), leg.get("target")) != '
+                                 '(want["leg"], want["target"])):', "            if False:", ["row_leg_names_checked"]),
+    ("M107_stored_custody_dropped", '            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), '
+                                    '*custody_problems(leg, prev, job, index)]))',
+     '            leg["custody"] = custody_problems(leg, prev, job, index)', ["custody_grade_fail"]),
+    ("M108_grade_dir_reads_all", "        if path.stem not in names:", "        if False:", ["grade_dir_foreign_row"]),
+    ("M109_chain_field_unchecked", '        if not isinstance(row, dict) or row.get("chain") != path.stem:',
+     "        if not isinstance(row, dict):", ["grade_dir_foreign_row"]),
+    ("M110_marker_files_ignored", '            if mark is not None and not leg.get("guard_killed"):', "            if False:",
+     ["grade_dir_marker_on_disk"]),
+    # V-03: the grader files are the import closure, and the data the grade reads
+    ("M111_closure_top_level_only", "    for node in _statements(ast.parse(path.read_bytes()).body):",
+     "    for node in ast.parse(path.read_bytes()).body:", ["closure_scan_planted", "closure_not_vacuous"]),
+    ("M139_closure_skips_except_blocks", '        for name in ("body", "orelse", "finalbody", "handlers", "cases"):',
+     '        for name in ("body", "orelse", "finalbody", "cases"):', ["closure_scan_planted"]),
+    ("M112_closure_relative_unresolved", '            if node.level:\n                parts = package.split(".")',
+     '            if False:\n                parts = package.split(".")', ["closure_scan_planted"]),
+    ("M113_closure_no_parents", '        out.update(".".join(parts[:k]) for k in range(1, len(parts) + 1))',
+     "        out.add(name)", ["closure_scan_planted"]),
+    ("M114_pokemon_unhashed", '"pokedex.py", "pokemon.py", "pokemon_party.py",', '"pokedex.py", "pokemon_party.py",',
+     ["grader_files_cover_closure", "changed_decoder_refused"]),
+    ("M115_disk_budget_unhashed", '"check_grader_imports.py", "disk_budget.py", "grader_checks.py",',
+     '"check_grader_imports.py", "grader_checks.py",', ["grader_files_cover_closure", "changed_decoder_refused"]),
+    ("M116_symbols_unhashed", 'GRADER_DATA = ("sandbox-pokebot/modules/data/symbols/pokeemerald.sym",\n',
+     "GRADER_DATA = (\n", ["grader_data_hashed", "changed_decoder_refused"]),
+    # V-04: what the bounds text lists as GRADED is GRADED (and counts in the verdict)
+    ("M117_purity_kind_reported", 'checks.append(_check("LC.PURITY", GRADED,', 'checks.append(_check("LC.PURITY", REPORTED,',
+     ["verdict_impure_l5_fails", "graded_kinds_match_bounds"]),
+    ("M118_this_run_kind_reported", 'checks.append(_check("LC.THIS_RUN", GRADED,',
+     'checks.append(_check("LC.THIS_RUN", REPORTED,', ["verdict_stale_l5_fails", "graded_kinds_match_bounds"]),
+    ("M119_starter_kind_reported", 'checks.append(_check("LC.STARTER", GRADED,', 'checks.append(_check("LC.STARTER", REPORTED,',
+     ["verdict_wrong_starter_fails", "graded_kinds_match_bounds"]),
+    ("M120_reach_kind_reported", 'checks.append(_check("LC.REACH", GRADED,', 'checks.append(_check("LC.REACH", REPORTED,',
+     ["graded_kinds_match_bounds"]),
+    ("M121_custody_kind_reported", 'checks.append(_check("LC.CUSTODY", GRADED,', 'checks.append(_check("LC.CUSTODY", REPORTED,',
+     ["graded_kinds_match_bounds", "refused_chain_fails_custody"]),
+    ("M122_memory_kind_reported", 'checks.append(_check("LC.MEMORY", GRADED,', 'checks.append(_check("LC.MEMORY", REPORTED,',
+     ["graded_kinds_match_bounds"]),
+    ("M123_frozen_kind_reported", 'checks.append(_check("LC.FROZEN", GRADED,', 'checks.append(_check("LC.FROZEN", REPORTED,',
+     ["graded_kinds_match_bounds", "frozen_leftover"]),
+    ("M124_leftover_kind_reported", 'checks.append(_check("LC.LEFTOVER", GRADED,',
+     'checks.append(_check("LC.LEFTOVER", REPORTED,', ["graded_kinds_match_bounds", "frozen_leftover"]),
+    # V-05: the guards no test protected
+    ("M125_watchdog_formula", '    return int(sum(leg["wall"] + LEG_MARGIN_SECONDS + 2 * TRUTH_SECONDS for leg in legs) + 300)',
+     '    return int(sum(leg["wall"] for leg in legs) + 300)', ["watchdog_value"]),
+    ("M126_first_size_graded", '            world_file["bytes"] = max(sizes)', '            world_file["bytes"] = size_first',
+     ["world_grew_larger_graded"]),
+    ("M127_kept_in_profile", 'measures["world"] = stream_world_tail(world_path, keep / "world_last.jsonl")',
+     'measures["world"] = stream_world_tail(world_path, run_dir / "world_last.jsonl")', ["kept_outside_repo"]),
+    ("M128_overlap_first_only", 'if e["first"] <= last and first <= e["last"]]', 'if e["first"] == first]',
+     ["dev_partial_overlap_refused"]),
+    ("M129_leftover_unread", "    left_procs = deps.leftover()", "    left_procs = []", ["e2e_leftover_reported"]),
+    ("M130_git_dirty_unread", '"dirty": [ln for ln in git("status", "--porcelain", "--untracked-files=no").splitlines() '
+                              'if ln.strip()]}', '"dirty": []}', ["git_state_scratch"]),
+    ("M131_abort_not_checked_before_leg",
+     '                          (ABORT_FILE, "the batch was ABORTED by the harness (disk: free space)")):',
+     "                          ):", ["abort_before_leg"]),
+    ("M132_starter_floor_zero", "not wrong_starters, len(judged_starters), reach_min, (GAME,),",
+     "not wrong_starters, len(judged_starters), 0, (GAME,),", ["starter_floor"]),
+    # V-06: the prediction's sha256 is the file's bytes'
+    ("M133_prediction_stripped", '            facts["prediction_sha256"] = hashlib.sha256(raw).hexdigest()',
+     '            facts["prediction_sha256"] = hashlib.sha256(raw.strip()).hexdigest()',
+     ["e2e_development", "prediction_sha_file_bytes"]),
+    # V-08: a launch that died before playing a frame is NAMED (and still fails); a leg with no world file says so
+    ("M134_dead_never_named", '    if (row.get("status") != "RAN" or not stop or stop.get("by") == "ai" or stop.get("real_frames") or '
+                              'log.get("lines")\n            or not no_world_file(row)):', "    if True:",
+     ["launch_died_rule", "dead_launch_named"]),
+    ("M142_dead_ignores_the_log", ' or stop.get("real_frames") or log.get("lines")\n', ' or stop.get("real_frames")\n',
+     ["launch_died_rule"]),
+    ("M143_dead_ignores_the_world_file", "            or not no_world_file(row)):", "            or False):",
+     ["launch_died_rule"]),
+    ("M135_dead_row_unnamed", '        row["harness"] = launch_died(row)\n', '        row["harness"] = None\n',
+     ["dead_launch_named"]),
+    ("M136_no_world_file_as_undeleted",
+     '                 if not no_world_file(leg) and not (leg.get("world_file") or {}).get("deleted")]',
+     '                 if not (leg.get("world_file") or {}).get("deleted")]', ["world_line_no_file"]),
+    ("M137_no_world_file_unsaid", '              + ("no world file" if no_world_file(leg) else',
+     '              + ("no world file" if False else', ["world_line_no_file"]),
+    ("M140_evidence_dead_unnamed",
+     '    died_rows = [(c["chain"], leg["leg"], launch_died(leg)) for c in chains for leg in c["legs"] if launch_died(leg)]',
+     "    died_rows = []", ["e2e_dead_launch_evidence"]),
+    ("M141_leg_line_no_file_unsaid", '("      world.jsonl: no world file (the leg wrote none)" if no_world_file(leg) else',
+     '("      world.jsonl: no world file (the leg wrote none)" if False else', ["e2e_dead_launch_evidence"]),
+    # V-09: the bounds text says what LC.CUSTODY can catch
+    ("M138_custody_limit_unsaid",
+     '"AI_PLAYER_*): on a later leg they catch a regression of the harness only, never anything the AI does.",',
+     '"AI_PLAYER_*).",', ["bounds_needles"]),
 ]
 
 

@@ -11,7 +11,11 @@ the build report). TEST SIDE: the AI never imports this module (ImportTests).
     py -3.12 ai_player/gates/live_chain.py run --purpose development --first-seed N --to ID --prediction-file F --out DIR
             [--chains 3|6] [--leg-frames L1=F[,L2=F...]] [--build-root DIR]
         exit 0 = PASS (graded) / ran (development), 1 = FAIL, 2 = refused before any leg, 3 = ABORTED by the harness (disk)
-    py -3.12 ai_player/gates/live_chain.py grade DIR      offline re-grade of a batch's rows (no ledger write)
+        --out must not exist or be EMPTY (R11, the verifier's V-01): an earlier batch's STOP.txt or ABORT.txt would stop
+        every chain after the ledger began, spending the seeds
+    py -3.12 ai_player/gates/live_chain.py grade DIR      offline re-grade of a batch's rows (no ledger write): only the
+        registered chains' rows (results.json's jobs), each read from rows/<chain>.json and RE-DERIVED from its own facts;
+        any other row is printed as IGNORED (V-02)
     py -3.12 ai_player/gates/live_chain.py read RUN_DIR [--truth]
         one leg folder, READ ONLY: its log counts, its memory line, its world.jsonl streamed (never kept, never deleted)
     `child JOB.json` is the internal entry of one chain's process.
@@ -32,12 +36,18 @@ alternative, one process to --to, would be about 2.76 M frames and 3 h a chain);
 not through the game's own save (USER RULING 51's saving is not part of this test); `live_step5.run_arm` reads the whole
 action log into memory (the 2 GB-world churn runs of 2026-10-30, profiles ai-ch3-probe-1/2, had actions.jsonl of 12.97 MB
 and 14.61 MB and logs under 1 MB, so this is megabytes, not gigabytes); the world cap is per leg, and later chapters'
-snapshot lines are larger.
+snapshot lines are larger. LC.CUSTODY reads only the HARNESS's own records (the truth of one state file read twice, the
+sha256 of the one kept file, the keys of the environment `run_chain` builds, not the whole environment `run_arm` passes): on
+a later leg it catches a regression of the harness only, never anything the AI does (the verifier's V-09). A launch that
+dies before playing a frame RAN, so it fails LC.PURITY and LC.THIS_RUN and the batch (the lead's ruling on V-08: the
+registered rule is kept); its row and the evidence name it "harness: the launch died before playing a frame".
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
+import copy
 import hashlib
 import json
 import os
@@ -119,15 +129,74 @@ PROOF_NOTES = {
                       "BRINEY's sail sets VAR 8 alone (Route104_MrBrineysHouse/scripts.inc:78), so the FLAG is what tells a "
                       "rival meeting: the proof means 'met the rival in Rustboro or on Route 104'",
 }
-#: the files that grade the batch, hashed into the registration (critic CH-08: the framework's party and memory decoders
-#: decide LC.STARTER and every truth read, and the plugin is the hook the AI plays through)
-GRADER_FILES = ("ai_player/gates/live_chain.py", "ai_player/gates/live_ki128.py", "ai_player/gates/live_step5.py",
-                "ai_player/gates/live_step2.py", "ai_player/gates/grader_checks.py", "ai_player/gates/play_harness.py",
-                "ai_player/gates/hands_harness.py", "ai_player/gates/probe_eyes.py", "ai_player/gates/probe_presses.py",
-                "ai_player/gates/rate_step5.py", "ai_player/gates/provenance.py", "ai_player/gates/ledger.py",
-                "ai_player/gates/fixtures/item_flags.json", "ai_player/gates/b1_debt.json",
-                "ai_player/gates/grader_waivers.json", "sandbox-pokebot/modules/pokemon_party.py",
-                "sandbox-pokebot/modules/memory.py", "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py")
+#: (the verifier's V-03) the folders the grader's IMPORT CLOSURE is followed through: (module prefix, its folder). The AI's
+#: own modules (ai_player/ outside gates/) are not followed: they are hashed whole, as ai_code_sha256
+CLOSURE_ROOTS = (("ai_player.gates", "ai_player/gates"), ("modules", "sandbox-pokebot/modules"))
+#: THE FILES THAT GRADE THE BATCH, hashed into the registration (`grader_files`). (V-03) The code is the IMPORT CLOSURE of
+#: this module within the repository, as `grader_closure` finds it: every import, at module level or inside a function
+#: (a function-local import runs on the path that calls it; a static scan cannot tell which do, so all are followed),
+#: relative imports resolved, parent packages' __init__.py included. test_live_chain fails when the scan finds a file not
+#: listed here. The truth harness (play_harness.py), the party decoder (modules/pokemon.py, pokemon_party.py) and the
+#: symbol reader (modules/game.py, memory.py) are among them; so is most of the bot framework, because its modules import
+#: one another (a change there means a new registration, which is cheap: the same unplayed range may be re-registered).
+#: (critic CH-08) the gates part, under ai_player/gates/
+GRADER_GATES = ("__init__.py", "check_grader_imports.py", "disk_budget.py", "grader_checks.py", "hands_harness.py",
+                "ledger.py", "live_chain.py", "live_ki128.py", "live_step2.py", "live_step5.py", "play_harness.py",
+                "probe_end_screen.py", "probe_eyes.py", "probe_presses.py", "probe_save_kill.py", "provenance.py",
+                "rate_step5.py", "revert_step5.py", "window.py")
+#: the framework part, under sandbox-pokebot/modules/ (reached from the gates' `modules.*` imports)
+GRADER_SANDBOX = (
+    "badge_case.py", "badge_log.py", "battle_action_selection.py", "battle_evolution_scene.py", "battle_fault.py",
+    "battle_handler.py", "battle_menuing.py", "battle_move_replacing.py", "battle_state.py", "battle_strategies/__init__.py",
+    "battle_strategies/_interface.py", "battle_strategies/_util.py", "battle_strategies/catch.py",
+    "battle_strategies/default.py", "battle_strategies/item_stealing.py", "battle_strategies/level_balancing.py",
+    "battle_strategies/level_up.py", "battle_strategies/lose_on_purpose.py", "battle_strategies/run_away.py",
+    "berry_trees.py", "built_in_plugins/discord_integration.py", "built_in_plugins/generate_encounter_media.py",
+    "built_in_plugins/obs.py", "catch_balls.py", "clock.py", "config/__init__.py", "config/schemas_v1.py", "console.py",
+    "context.py", "daycare.py", "debug.py", "debug_logger.py", "debug_utilities.py", "discord.py", "dmgaudit.py",
+    "encounter.py", "encounter_index.py", "exceptions.py", "faint_chooser.py", "files.py", "fishing.py", "game.py",
+    "game_sprites.py", "game_stats.py", "gui/__init__.py", "gui/create_profile_screen.py", "gui/debug_edit_item_bag.py",
+    "gui/debug_edit_party.py", "gui/debug_edit_pokedex.py", "gui/debug_menu.py", "gui/debug_tabs.py",
+    "gui/desktop_notification.py", "gui/emulator_controls.py", "gui/emulator_screen.py", "gui/ev_selection_window.py",
+    "gui/glfw.py", "gui/load_state_window.py", "gui/milestone_window.py", "gui/multi_select_window.py",
+    "gui/select_profile_screen.py", "items.py", "keyboard.py", "libmgba.py", "main.py", "map.py", "map_data.py",
+    "map_path.py", "mart.py", "memory.py", "menu_parsers.py", "menuing.py", "modes/__init__.py", "modes/_asserts.py",
+    "modes/_interface.py", "modes/_listeners.py", "modes/berry_blend.py", "modes/bunny_hop.py", "modes/daycare.py",
+    "modes/ev_train.py", "modes/feebas.py", "modes/fishing.py", "modes/game_corner.py", "modes/item_steal.py",
+    "modes/kecleon.py", "modes/level_grind.py", "modes/nugget_bridge.py", "modes/puzzle_solver.py",
+    "modes/roamer_reencounter.py", "modes/roamer_reset.py", "modes/rock_smash.py", "modes/safari.py", "modes/spin.py",
+    "modes/starters.py", "modes/static_gift_resets.py", "modes/static_run_away.py", "modes/static_soft_resets.py",
+    "modes/sudowoodo.py", "modes/sweet_scent.py", "modes/util/__init__.py", "modes/util/_util_helper.py",
+    "modes/util/event_flags_and_vars.py", "modes/util/global_navigation.py", "modes/util/higher_level_actions.py",
+    "modes/util/items.py", "modes/util/map.py", "modes/util/pc_interaction.py", "modes/util/pokecenter_loop.py",
+    "modes/util/sleep.py", "modes/util/soft_reset.py", "modes/util/tasks_scripts.py", "modes/util/walking.py",
+    "obtainability.py", "party_accounting.py", "player.py", "plugin_interface.py", "plugins.py", "pokeblock_feeder.py",
+    "pokedex.py", "pokemon.py", "pokemon_party.py", "pokemon_storage.py", "profiles.py", "region_map.py",
+    "remote_party.py", "roamer.py", "roms.py", "runtime.py", "safari_strategy.py", "save_data.py", "save_import.py",
+    "sprites.py", "state_cache.py", "stats.py", "stats_migrate.py", "story/__init__.py", "story/battle_items.py",
+    "story/chapters.py", "story/counter_hunt.py", "story/double_items.py", "story/early_game.py",
+    "story/fortree_gates.py", "story/gym_tm_teach.py", "story/league_reserve.py", "story/mossdeep_gym.py",
+    "story/mossdeep_gym_puzzle.py", "story/obstacle_clearing.py", "story/overworld_items.py", "story/pc_trip.py",
+    "story/pokemon_league.py", "story/progress.py", "story/region_reach.py", "story/seafloor_cavern.py",
+    "story/sootopolis.py", "story/space_center.py", "story/stock_topoff.py", "story/team_policy.py",
+    "story/training_areas.py", "story/victory_road.py", "story_milestones.py", "tasks.py", "tcg_card.py",
+    "text_printer.py", "version.py", "warp_graph.py", "web/http.py", "web/http_stream.py")
+#: the AI's plugin in the framework: the hook it plays through (no grader imports it; the framework loads it by name)
+PLUGIN = "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py"
+#: THE DATA THE GRADE READS (V-03): the truth's symbol tables (modules/game.py loads both for Emerald: every address the
+#: truth reads, gSaveBlock1Ptr's and gSaveBlock2Ptr's among them), the tables the party decoder opens when it is imported
+#: (MEASURED 2026-11-05 by an audit hook on `open` while modules.memory, game, pokemon_party and pokemon were imported:
+#: species.json, whose names LC.STARTER compares, and five more), the item flags the truth's story read reads, and the
+#: check table's B1 debt and waiver lists
+GRADER_DATA = ("sandbox-pokebot/modules/data/symbols/pokeemerald.sym",
+               "sandbox-pokebot/modules/data/symbols/patches/pokeemerald.sym",
+               "sandbox-pokebot/modules/data/species.json", "sandbox-pokebot/modules/data/types.json",
+               "sandbox-pokebot/modules/data/moves.json", "sandbox-pokebot/modules/data/natures.json",
+               "sandbox-pokebot/modules/data/abilities.json", "sandbox-pokebot/modules/data/items.json",
+               "ai_player/gates/fixtures/item_flags.json", "ai_player/gates/b1_debt.json",
+               "ai_player/gates/grader_waivers.json")
+GRADER_FILES = (*(f"ai_player/gates/{name}" for name in GRADER_GATES),
+                *(f"sandbox-pokebot/modules/{name}" for name in GRADER_SANDBOX), PLUGIN, *GRADER_DATA)
 MILESTONES = "ai_player/knowledge/milestones.json"
 #: (critic CH-11) the graded check that reads an AI input, declared: the only record that the AI LOADED the carried memory
 AI_INPUT_DEBT = {
@@ -306,12 +375,18 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
     lines = [
         f"LIVE CHAIN GRADED HELD-OUT (USER RULING 55: the New Game test), build spec {SPEC} (with its critique CH-01..CH-18). "
         f"Driver ai_player/gates/live_chain.py.",
-        "CODE: the AI's files (ai_player/ outside gates/ and evidence/, no *.md, no __pycache__; CRLF read as LF) are hashed "
-        "into these numbers (ai_code_sha256), knowledge/milestones.json among them and also as milestones_sha256, as are the "
-        "files that grade the batch (grader_files, the framework's party and memory decoders and the AI's plugin among them): "
-        "a graded run on any other AI code, milestone data or grader is refused by ledger.begin. A graded run also needs HEAD "
-        "to be origin/main after a fetch with no tracked file changed, and the build root to be the one the truth harness "
-        "reads. The frozen-tree watch must see no change from the batch's start to its verdict.",
+        "CODE: the AI's files (ai_player/ outside gates/ and evidence/, no *.md, no __pycache__) are hashed into these "
+        "numbers (ai_code_sha256), knowledge/milestones.json among them and also as milestones_sha256. grader_files hashes, "
+        f"by path and content, exactly these {len(GRADER_FILES)} files and nothing else: the IMPORT CLOSURE of "
+        f"ai_player/gates/live_chain.py within this repository ({len(GRADER_GATES)} files of ai_player/gates and "
+        f"{len(GRADER_SANDBOX)} of sandbox-pokebot/modules: every import, at module level or inside a function, followed "
+        "through those two folders; the truth harness, the party decoder and the symbol reader among them), the AI's plugin "
+        f"({PLUGIN}), and the data the grade reads ({', '.join(GRADER_DATA)}). Not hashed: the ROM, the emulator's library "
+        "and every other file. Every hashed file is read with CRLF as LF, so a change of line endings alone is accepted BY "
+        "DESIGN (git checks the same commit out with either ending). A graded run on any other AI code, milestone data or "
+        "grader file is refused by ledger.begin. A graded run also needs HEAD to be origin/main after a fetch with no tracked "
+        "file changed, and the build root to be the one the truth harness reads. The frozen-tree watch must see no change "
+        "from the batch's start to its verdict.",
         f"TARGET {to}. LEGS, one per chapter, derived from milestones.json (each chapter before the target's: the LAST "
         f"milestone of the chapter in file order that is neither optional nor a waypoint; the target's chapter: the target), "
         f"each with its frame budget, a {WALL:g} s wall clock and the GAME's proof of its target (save block 1 at the numbers "
@@ -347,15 +422,27 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         f"last line is written outside the repo, and it is DELETED.",
         "GRADED (every one must PASS; a VACUOUS check fails; no waivers):",
         f"LC.REACH: at least {reach_min} of the {chains} chains reach {to} (a pre-registered prior: it assumes independent "
-        f"chains, and the chains come in pairs).",
+        f"chains, and the chains come in pairs). Every check counts the REGISTERED chains only, one row each (a row of any "
+        f"other chain, a second row of one, or a row whose chain, pair, personality, starter, seed or profile is not the "
+        f"registered one never counts), and RE-DERIVES each leg that ran from the row's own facts: its reach from the "
+        f"truth's marks against the REGISTERED leg's proof, its custody by LC.CUSTODY's rule (joined to any problem the row "
+        f"stored), its kept last line from the file "
+        f"(present, a JSON object, its sha256 the row's), so a stored flag can stop a chain but never continue one.",
         f"LC.PURITY: on every leg that ran, the counting purity checks of live_step2.check_purity ({', '.join(PURITY_IDS)}) "
         f"all PASS. L5.PURITY_ENDED is reported only.",
-        "LC.THIS_RUN: every leg that ran: L5.THIS_RUN (live_step5.check_after_is_this_run) PASSES.",
+        "LC.THIS_RUN: every leg that ran: L5.THIS_RUN (live_step5.check_after_is_this_run) PASSES. A leg whose launch died "
+        "before playing a frame RAN (it was launched), so it fails LC.PURITY and LC.THIS_RUN and the batch, like any other "
+        "leg: the reach tolerance does not cover it; its row and the evidence name it 'harness: the launch died before "
+        "playing a frame', from the run's own exit facts (no exit by the AI, no frame counted, no line of the AI's log, no "
+        "world file; a launch killed mid-play is not named).",
         *([world_rule] if world_graded else []),
         "LC.CUSTODY: every registered chain's L1 ran, and every leg that ran started as above: L1 from --fresh with the "
         "chain's starter and no world memory or start state; each later leg from --state of the previous leg's end state, its "
         "start truth (frame, md5) equal to the previous leg's end truth, and an AI_PLAYER_WORLD file whose sha256 equals the "
-        "previous leg's kept last line's; every leg's environment keys exactly the set above.",
+        "previous leg's kept last line's; every leg's environment keys exactly the set above. These checks read only the "
+        "HARNESS's own records (the truth of one state file read twice, the sha256 of the one kept file, the keys of the "
+        "environment run_chain builds and hands run_arm, whose clean_env also passes on the caller's variables that are not "
+        "AI_PLAYER_*): on a later leg they catch a regression of the harness only, never anything the AI does.",
         "LC.STARTER: every chain whose first leg left a party: its first Pokemon is the chain's registered starter, the "
         "player's own (OT).",
         "LC.MEMORY (reads the AI's log, declared as B1 debt): every leg that ran said '[AI-WORLD] memory from ...': L1 from "
@@ -378,6 +465,83 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
 
 
 # ====================================================================== registration
+def _closure_file(repo: Path, module: str) -> Path | None:
+    """The repository file of a dotted module inside CLOSURE_ROOTS (a module's .py or a package's __init__.py), or None."""
+    for prefix, folder in CLOSURE_ROOTS:
+        if module == prefix:
+            path = repo / folder / "__init__.py"
+            return path if path.is_file() else None
+        if module.startswith(prefix + "."):
+            base = repo / folder / module[len(prefix) + 1:].replace(".", "/")
+            for path in (base.with_suffix(".py"), base / "__init__.py"):
+                if path.is_file():
+                    return path
+    return None
+
+
+def _closure_package(repo: Path, path: Path) -> str:
+    """The package a file's relative imports resolve against (a package's own name for its __init__.py)."""
+    rel = path.relative_to(repo).as_posix()
+    for prefix, folder in CLOSURE_ROOTS:
+        if rel.startswith(folder + "/"):
+            parts = [prefix, *rel[len(folder) + 1:-len(".py")].split("/")]
+            return ".".join(parts[:-1])
+    raise ValueError(f"{rel} is in no closure root")
+
+
+def _statements(nodes: list) -> Iterable[ast.AST]:
+    """Every STATEMENT of a syntax tree, nested ones included (function, class, if, try, with, loop and match bodies). An
+    import is a statement and never sits inside an expression, so this finds exactly the imports `ast.walk` finds (checked
+    2026-11-05 on all 369 .py files of ai_player/ and sandbox-pokebot/: 5,944 each) without walking every expression."""
+    for node in nodes:
+        yield node
+        for name in ("body", "orelse", "finalbody", "handlers", "cases"):
+            yield from _statements(getattr(node, name, None) or [])
+
+
+def _closure_imports(repo: Path, path: Path) -> set[str]:
+    """Every module an import statement of `path` names, read from its SYNTAX (a mention in a comment or a string is no
+    import), at module level or inside a function, relative ones resolved, with each one's parent packages."""
+    package = _closure_package(repo, path)
+    named: set[str] = set()
+    for node in _statements(ast.parse(path.read_bytes()).body):
+        if isinstance(node, ast.Import):
+            named.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                parts = package.split(".")
+                base = ".".join(parts[:len(parts) - (node.level - 1)] + ([node.module] if node.module else []))
+            else:
+                base = node.module or ""
+            named.add(base)
+            named.update(f"{base}.{alias.name}" for alias in node.names if alias.name != "*")
+    out: set[str] = set()
+    for name in named:
+        parts = name.split(".")
+        out.update(".".join(parts[:k]) for k in range(1, len(parts) + 1))
+    return out
+
+
+def grader_closure(repo: Path | None = None) -> list[str]:
+    """(The verifier's V-03) THE IMPORT CLOSURE of this module within the repository: every file of ai_player/gates and
+    sandbox-pokebot/modules reached from live_chain.py by import statements, transitively (module level or inside a
+    function), as sorted repository-relative paths. GRADER_FILES must list every one (test_live_chain)."""
+    repo = repo or REPO
+    start = repo / "ai_player" / "gates" / "live_chain.py"
+    seen, todo = {start}, [start]
+    files: dict[str, Path | None] = {}  # module -> its file, looked up once per scan
+    while todo:
+        path = todo.pop()
+        for module in _closure_imports(repo, path):
+            if module not in files:
+                files[module] = _closure_file(repo, module)
+            found = files[module]
+            if found is not None and found not in seen:
+                seen.add(found)
+                todo.append(found)
+    return sorted(p.relative_to(repo).as_posix() for p in seen)
+
+
 def env_keys() -> dict:
     return {"L1": list(ENV_KEYS_FIRST), "later": list(ENV_KEYS_LATER)}
 
@@ -533,8 +697,30 @@ def leg_reached(row: dict) -> tuple[bool, str]:
                 f"{'HOLDS' if after.get('held') else 'does NOT hold'} ({proof_text(after)})")
 
 
+DEAD_LAUNCH = "harness: the launch died before playing a frame"
+
+
+def launch_died(row: dict) -> str | None:
+    """(The lead's ruling on the verifier's V-08) A leg that RAN whose launch died before playing a frame, by the run's OWN
+    exit facts, all four: the harness's stop record (`live_step5.harness_stop`) names no exit by the AI; it counted no
+    frame (`real_frames` 0, or None: no verdict file); the AI's log has no line; and no world file was written (the
+    verifier's live V1: the sandbox's updater died on its own prompt before the AI started). A launch the disk guard or the
+    wall clock KILLED also leaves no verdict file, but it played: its log and its world file say so, and it is not named.
+    It still fails the batch (the registered rule: every leg that ran passes purity and THIS_RUN); this only NAMES what
+    the exit facts show. Needs the row's measures (`finish_leg`). None: not such a leg."""
+    stop = row.get("harness_stop") or {}
+    log = (row.get("measures") or {}).get("log") or {}
+    if (row.get("status") != "RAN" or not stop or stop.get("by") == "ai" or stop.get("real_frames") or log.get("lines")
+            or not no_world_file(row)):
+        return None
+    return (f"{DEAD_LAUNCH} (the harness's stop record: by {stop.get('by')}, {stop.get('cause')}; real frames "
+            f"{stop.get('real_frames')}; {stop.get('elapsed_seconds')} s; no line of the AI's log; no world file)")
+
+
 def custody_problems(row: dict, prev: dict | None, job: dict, index: int) -> list[str]:
-    """Did this leg start from what the bounds say? (section 4, CUSTODY) Empty: it did."""
+    """Did this leg start from what the bounds say? (section 4, CUSTODY) Empty: it did. (V-09) Every input is the
+    HARNESS's own record (the command it built, the dict of environment keys `run_chain` built, its truth of one state file
+    read twice, the sha256 of its one kept file): on a later leg this catches a harness regression, never the AI."""
     problems: list[str] = []
     command = [str(c) for c in row.get("command") or []]
     env = row.get("env") or {}
@@ -703,16 +889,114 @@ def memory_problems(chain: dict) -> tuple[int, list[str], list[str]]:
     return judged, problems, lines
 
 
+#: (V-02) a chain row's identity: a row counts for a registered chain only when every one of these is the job's
+IDENTITY = ("chain", "pair", "personality", "starter", "seed", "profile")
+#: (V-02) what the re-derivation reads, and what no row carries the inputs of (printed by `grade DIR`)
+REDERIVED_TEXT = ("RE-DERIVED from each row's own facts: each leg's proof (the truth's marks against the REGISTERED leg's "
+                  "proof), its reach (L5.THIS_RUN and that proof), its custody (custody_problems on the rows, against the "
+                  "registered job, joined to the problems the row stored), its kept last line (the file: present, a JSON "
+                  "object, its sha256 the row's) and so its "
+                  "continuation (C1-C5). READ AS STORED, because no row carries their inputs: L5.THIS_RUN's and the purity "
+                  "checks' statuses (their inputs are the launch's verdict file and counters and the end state's write "
+                  "time), the world file's measured size (the file is deleted by design: the measurement is its only "
+                  "record), the disk guard's mark (grade DIR also reads the marker files on disk), C6 (when STOP.txt "
+                  "appeared) and each leg's status. A stored flag can stop a chain, never continue one.")
+
+
+def kept_problem(leg: dict) -> str | None:
+    """(V-02) A leg's kept last line, re-read from its FILE: present, its sha256 the row's, a JSON object. None: it holds."""
+    kept = leg.get("kept_world")
+    if not kept or not Path(kept).is_file():
+        return f"its kept last line {kept} is not on disk"
+    data = Path(kept).read_bytes()
+    if hashlib.sha256(data).hexdigest() != leg.get("kept_world_sha256"):
+        return f"its kept last line's sha256 is not the row's {leg.get('kept_world_sha256')}"
+    try:
+        parsed = json.loads(data)
+    except ValueError:
+        parsed = None
+    return None if isinstance(parsed, dict) else "its kept last line is not a JSON object"
+
+
+def rederived_chain(chain: dict, job: dict, legs: list[dict] | None = None) -> dict:
+    """(The verifier's V-02) A COPY of one registered chain's row whose every leg that RAN is RE-DERIVED from the row's own
+    facts (`REDERIVED_TEXT`): its proof from the truth's marks against the REGISTERED leg's proof (`legs`; the row's own
+    proof only when no legs are given), its reach, its custody against the registered job (joined to the stored custody
+    problems: a stored problem still counts), its kept last line, and so its continuation. A leg continues iff its STORED
+    flag AND the re-derived rule say so. A row whose identity (`IDENTITY`) is
+    not the job's continues nowhere; the copy carries the job's identity (LC.STARTER compares the REGISTERED starter).
+    Every stored flag the facts do not support is listed in the copy's "rederived"."""
+    out = copy.deepcopy(chain)
+    notes: list[str] = []
+    identity = [f"its {key} {out.get(key)!r} is not the registered {job.get(key)!r}" for key in IDENTITY
+                if out.get(key) != job.get(key)]
+    out.update({key: job.get(key) for key in IDENTITY})
+    prev: dict | None = None
+    for index, leg in enumerate(out.get("legs") or []):
+        stored = bool(leg.get("continue"))
+        if leg.get("status") == "RAN":
+            problems = list(identity)
+            want = legs[index] if legs is not None and index < len(legs) else None
+            if legs is not None and (want is None or (leg.get("leg"), leg.get("target")) != (want["leg"], want["target"])):
+                problems.append(f"the row's leg {leg.get('leg')} {leg.get('target')} is not the registered "
+                                f"{(want or {}).get('leg')} {(want or {}).get('target')}")
+            proof = want["proof"] if want is not None else (leg.get("proof") or {})
+            after = leg.get("truth_after")
+            leg["proof_after"] = (proof_holds(after.get("marks"), proof) if after else
+                                  {"held": False, "missing": ["(no end truth)"], "failing": [], "values": {}})
+            leg["reached"] = leg_reached(leg)[0]
+            leg["harness"] = launch_died(leg)
+            # a stored custody problem still counts (a stored flag may stop a leg, never clear one): the union
+            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), *custody_problems(leg, prev, job, index)]))
+            kept = kept_problem(leg)
+            if kept is not None:
+                problems.append(f"C3 {kept}")
+            go, why = continue_after(leg, False)
+            if not go:
+                problems.append(why)
+            leg["continue"] = stored and not problems
+            if stored and problems:
+                text = "; ".join(problems)
+                notes.append(f"{job['chain']} {leg.get('leg')}: its stored continue is True, the re-derived rule says "
+                             f"no: {text[:400]}")
+                leg["why"] = f"RE-DERIVED: {text}"
+                if out.get("stopped_at") is None:
+                    out.update({"stopped_at": leg.get("leg"), "stop_reason": f"RE-DERIVED: {text}"})
+        prev = leg
+    out["rederived"] = notes
+    out["reached_to"] = chain_reaches(out, len(legs) if legs is not None else len(out.get("legs") or []))
+    return out
+
+
+def registered_chains(chains: list[dict], jobs: list[dict],
+                      legs: list[dict] | None = None) -> tuple[list[dict], list[str], list[str]]:
+    """(The verifier's V-02) The rows that COUNT, in the jobs' order: each registered chain's ONE row, re-derived
+    (`rederived_chain`). Returns (those rows, the rows IGNORED with why, the stored flags the facts do not support). A row
+    of a chain that is not registered never counts, and a registered chain with two rows counts neither."""
+    registered = [job["chain"] for job in jobs]
+    rows: dict = {}
+    for chain in chains:
+        rows.setdefault(chain.get("chain"), []).append(chain)
+    ignored = [f"{name}: not a registered chain of this batch ({len(found)} row(s)): never counted"
+               for name, found in rows.items() if name not in registered]
+    ignored += [f"{name}: {len(rows[name])} rows for one registered chain: none of them counts" for name in registered
+                if len(rows.get(name) or []) > 1]
+    kept = [rederived_chain(rows[job["chain"]][0], job, legs) for job in jobs if len(rows.get(job["chain"]) or []) == 1]
+    return kept, ignored, [note for chain in kept for note in chain.get("rederived") or []]
+
+
 def grade_batch(chains: list[dict], jobs: list[dict], legs_wanted: int, reach_min: int,
                 frozen: tuple[bool, str] | None = None, leftover: list[str] | None = None,
-                reported: dict | None = None) -> list[Check]:
+                reported: dict | None = None, legs: list[dict] | None = None) -> list[Check]:
     """THE GRADED BOUNDS of the bounds text over a batch's chain rows (each with every leg's row, NOT RUN ones included).
-    `jobs` are the REGISTERED chains; `reported` carries the harness's own records for the reported checks (world files
-    left after the sweep, the profiles' listings, the main profile, the most chains at once). Every check quotes both
-    values."""
+    `jobs` are the REGISTERED chains: (V-02) only their rows count, each RE-DERIVED from its own facts against the
+    registered `legs` (`registered_chains`); `reported` carries the harness's own records for the reported checks (world
+    files left after the sweep, the profiles' listings, the main profile, the most chains at once). Every check quotes
+    both values."""
     reported = reported or {}
     checks: list[Check] = []
     expected = len(jobs)
+    chains, ignored, rederived = registered_chains(chains, jobs, legs)
     by_name = {c.get("chain"): c for c in chains}
     ran = ran_legs(chains)
     floor = max(len(ran), expected)
@@ -724,7 +1008,8 @@ def grade_batch(chains: list[dict], jobs: list[dict], legs_wanted: int, reach_mi
     checks.append(_check("LC.REACH", GRADED, len(reached) >= reach_min, len(present), expected, (GAME, HARNESS),
                          f"chains reaching the target (every leg continued, the last reached by the game): {len(reached)} "
                          f"of {len(present)} (bound: at least {reach_min} of {expected}); reached {reached or 'none'}; "
-                         f"not: {stopped or 'none'}"))
+                         f"not: {stopped or 'none'}; rows IGNORED (V-02): {ignored or 'none'}; stored flags the "
+                         f"re-derived rule does not support: {rederived or 'none'}"))
     # LC.PURITY
     judged, bad = 0, []
     for chain, leg in ran:
@@ -733,7 +1018,8 @@ def grade_batch(chains: list[dict], jobs: list[dict], legs_wanted: int, reach_mi
             judged += 1
             wrong = [f"{i} {statuses.get(i, 'MISSING')}" for i in PURITY_IDS if statuses.get(i) != PASS]
             if wrong:
-                bad.append(f"{chain.get('chain')} {leg.get('leg')}: {', '.join(wrong)}")
+                bad.append(f"{chain.get('chain')} {leg.get('leg')}: "
+                           + (f"{DEAD_LAUNCH}; " if leg.get("harness") else "") + ", ".join(wrong))
     checks.append(_check("LC.PURITY", GRADED, not bad and judged == len(ran), judged, floor, (HARNESS,),
                          f"purity CLEAN on every leg that ran: {judged - len(bad)} of {judged} judged legs with every "
                          f"counting purity check PASS, of {len(ran)} legs that ran (want every one; floor {floor}); "
@@ -741,7 +1027,8 @@ def grade_batch(chains: list[dict], jobs: list[dict], legs_wanted: int, reach_mi
     # LC.THIS_RUN
     fresh = [(chain.get("chain"), leg.get("leg"), _status(leg, "L5.THIS_RUN")) for chain, leg in ran]
     read = [f for f in fresh if f[2] is not None]
-    stale = [f"{c} {l} {s}" for c, l, s in read if s != PASS]
+    dead = {(chain.get("chain"), leg.get("leg")) for chain, leg in ran if leg.get("harness")}
+    stale = [f"{c} {l} {s}" + (f" ({DEAD_LAUNCH})" if (c, l) in dead else "") for c, l, s in read if s != PASS]
     checks.append(_check("LC.THIS_RUN", GRADED, not stale and len(read) == len(ran), len(read), floor, (HARNESS, GAME),
                          f"L5.THIS_RUN PASS on {len(read) - len(stale)} of {len(read)} legs read, of {len(ran)} that ran "
                          f"(want every one; floor {floor}); not: {stale or 'none'}"))
@@ -790,6 +1077,13 @@ def grade_batch(chains: list[dict], jobs: list[dict], legs_wanted: int, reach_mi
                              f"python processes naming {PROFILE_PREFIX} after the batch: {leftover or 'none'} (want none)"))
     checks += reported_checks(chains, legs_wanted, reported)
     return checks
+
+
+def no_world_file(leg: dict) -> bool:
+    """(V-08) The leg never had a world.jsonl: none was measured and none was there to delete (a launch that died before
+    playing a frame writes none)."""
+    world = leg.get("world_file") or {}
+    return world.get("bytes") is None and not world.get("present")
 
 
 def reported_checks(chains: list[dict], legs_wanted: int, reported: dict) -> list[Check]:
@@ -841,14 +1135,17 @@ def reported_checks(chains: list[dict], legs_wanted: int, reported: dict) -> lis
     checks.append(_check("LC.OPTIONAL", REPORTED, True, len(optional), None, (GAME,),
                          f"(information) the optional milestones' proofs at each chain's last leg that ran: "
                          + ("; ".join(f"{k}: {v}" for k, v in optional.items()) or "none")))
-    worlds = [f"{c.get('chain')} {leg.get('leg')} {(leg.get('world_file') or {}).get('bytes')} B, "
-              f"{((leg.get('measures') or {}).get('world') or {}).get('lines')} lines, deleted "
-              f"{(leg.get('world_file') or {}).get('deleted')}" for c, leg in ran]
+    worlds = [f"{c.get('chain')} {leg.get('leg')} "
+              + ("no world file" if no_world_file(leg) else
+                 f"{(leg.get('world_file') or {}).get('bytes')} B, "
+                 f"{((leg.get('measures') or {}).get('world') or {}).get('lines')} lines, deleted "
+                 f"{(leg.get('world_file') or {}).get('deleted')}") for c, leg in ran]
     totals = {c.get("chain"): sum((leg.get("world_file") or {}).get("bytes") or 0 for leg in c.get("legs") or [])
               for c in chains}
     left = reported.get("world_left") or []
+    # (V-08) a leg that never had a world file has nothing to delete: it is "no world file", never "not deleted"
     undeleted = [w for c, leg in ran for w in [f"{c.get('chain')} {leg.get('leg')}"]
-                 if not (leg.get("world_file") or {}).get("deleted")]
+                 if not no_world_file(leg) and not (leg.get("world_file") or {}).get("deleted")]
     checks.append(_check("LC.WORLD", REPORTED, not left and not undeleted, len(ran), None, (HARNESS,),
                          f"(information) per leg: {'; '.join(worlds) or 'none'}; per chain total bytes {totals}; not deleted "
                          f"after its leg: {undeleted or 'none'}; still present after the end sweep: {left or 'none'}"))
@@ -1065,6 +1362,7 @@ def run_chain(job: dict, run_leg: Callable | None = None) -> dict:
                "notes": list(run.notes)}
         row["reached"] = leg_reached(row)[0]
         finish_leg(row, run.run_dir, keep)
+        row["harness"] = launch_died(row)
         row["guard_killed"] = guard_mark(out, job["chain"], leg["leg"])
         end_state = (run.run_dir / "end_state.ss1") if run.run_dir else None
         # (spec section 4) the next leg gets the KEPT last line as its world memory, never the deleted original (F6/F8)
@@ -1074,6 +1372,8 @@ def run_chain(job: dict, run_leg: Callable | None = None) -> dict:
             carried[arm_name] = (end_state, Path(row["kept_world"]), reads)
         row["custody"] = custody_problems(row, prev, job, index)
         go, why = continue_after(row, (out / STOP_FILE).is_file())
+        if row["harness"]:
+            why = f"{row['harness']}; {why}"
         row["continue"], row["why"] = go, why
         _write_json(keep / "row.json", row)
         chain["legs"].append(row)
@@ -1307,13 +1607,23 @@ def schedule(jobs: list[dict], spawn: Callable, tick: Callable, parallel: int, s
 
 
 def run_refusal(args, facts: dict) -> str | None:
-    """EVERY REFUSAL before `ledger.begin` (spec section 7, R1-R9 and the critique's additions), pure: `facts` are what
-    the orchestrator measured (`gather_facts`). None: the batch may begin (the ledger, R10, may still refuse)."""
+    """EVERY REFUSAL before `ledger.begin` (spec section 7, R1-R9, the critique's additions, and R11: --out missing or
+    empty, the verifier's V-01), pure: `facts` are what the orchestrator measured (`gather_facts`). None: the batch may
+    begin (the ledger, R10, may still refuse)."""
     repo = Path(facts["repo"])
     out, build_root = Path(facts["out"]), Path(facts["build_root"])
     graded = args.purpose == "graded"
     if out == repo or out.is_relative_to(repo):
         return f"R1: --out {out} is inside the repository; the summaries and kept lines live outside it (section 6)"
+    # (the verifier's V-01, graded AND development) an earlier batch's STOP.txt or ABORT.txt in --out stops every chain
+    # before its first leg, AFTER ledger.begin has spent the seeds; its rows would be re-graded as this batch's
+    if facts.get("out_error"):
+        return f"R11: --out {out}: {facts['out_error']}; give a new or an empty folder"
+    entries = facts.get("out_entries") or []
+    if entries:
+        return (f"R11: --out {out} exists and is NOT EMPTY ({len(entries)} entries: {entries[:8]}): an earlier batch's "
+                f"STOP.txt, ABORT.txt or rows would be read as this batch's after the ledger began, spending the seeds; "
+                f"give a new or an empty folder")
     learner = [p for p in (out, build_root) if "pokebot-learner" in (part.lower() for part in p.parts)]
     if learner:
         return f"R8: {learner[0]} lies in a folder named pokebot-learner: the learner clone is never touched"
@@ -1360,6 +1670,19 @@ def run_refusal(args, facts: dict) -> str | None:
     return None
 
 
+def out_listing(out: Path) -> dict:
+    """(The verifier's V-01) What --out holds before the batch: {"out_entries": every name in it, sorted (empty when it does
+    not exist)}, or {"out_error": why it cannot be a batch's --out} when it is not a folder or cannot be listed."""
+    if not out.exists():
+        return {"out_entries": []}
+    if not out.is_dir():
+        return {"out_error": "it exists and is not a folder"}
+    try:
+        return {"out_entries": sorted(p.name for p in out.iterdir())}
+    except OSError as error:
+        return {"out_error": f"it cannot be listed: {error}"}
+
+
 def gather_facts(args, deps: Deps) -> dict:
     """What `run_refusal` judges, measured once (each piece robust to the arguments it has)."""
     repo = repo_root()
@@ -1384,11 +1707,15 @@ def gather_facts(args, deps: Deps) -> dict:
         facts["legs_error"] = str(error)
     if not graded and args.prediction_file is not None:
         try:
-            facts["prediction"] = Path(args.prediction_file).read_text(encoding="utf-8").strip()
+            raw = Path(args.prediction_file).read_bytes()
+            # (the verifier's V-06) the sha256 registered is of the FILE's bytes, so `sha256sum prediction.txt` matches it
+            facts["prediction_sha256"] = hashlib.sha256(raw).hexdigest()
+            facts["prediction"] = raw.decode("utf-8").strip()
             if not facts["prediction"]:
                 facts["prediction_error"] = f"the prediction file {args.prediction_file} is empty"
-        except OSError as error:
-            facts["prediction_error"] = f"the prediction file cannot be read: {error}"
+        except (OSError, UnicodeDecodeError) as error:
+            facts["prediction_error"] = f"the prediction file cannot be read as UTF-8 text: {error}"
+    facts.update(out_listing(facts["out"]))
     facts["g3"] = deps.g3()
     if first is not None:
         facts["seeds"] = run["seeds"] if run else seeds_of(first, chains)
@@ -1491,8 +1818,9 @@ def run_batch(args, deps: Deps | None = None) -> int:
     legs, jobs, seeds, to = facts["legs"], facts["jobs"], facts["seeds"], facts["to"]
     chains_n, reach_min = facts["chains"], reach_min_of(facts["chains"])
     prediction = facts.get("prediction")
+    # (V-06) the sha256 of the prediction FILE's bytes (`gather_facts`), not of its stripped text
     development = None if graded else {"chains": chains_n, "leg_frames_override": facts.get("override") or {},
-                                       "prediction_sha256": hashlib.sha256(prediction.encode("utf-8")).hexdigest()}
+                                       "prediction_sha256": facts["prediction_sha256"]}
     numbers = registered_numbers(args.run if graded else None, to, seeds, chains_n, legs, repo_root(), development)
     sha = ledger.numbers_sha256(numbers)
     code = deps.code_line()
@@ -1505,7 +1833,7 @@ def run_batch(args, deps: Deps | None = None) -> int:
                                     note=f"LIVE CHAIN held-out (USER RULING 55), {args.purpose}, to {to}, {chains_n} chains, "
                                          f"driver ai_player/gates/live_chain.py, numbers sha256 {sha[:16]}, free "
                                          f"{facts['free']:.1f} GB"
-                                         + (f", prediction sha256 {development['prediction_sha256'][:16]}" if development
+                                         + (f", prediction file sha256 {development['prediction_sha256'][:16]}" if development
                                             else ""), path=deps.ledger_path)
     except ledger.Refused as error:
         print(f"REFUSED by the ledger (R10): {error}", flush=True)
@@ -1606,22 +1934,26 @@ def run_batch(args, deps: Deps | None = None) -> int:
     optional = optional_report(chains, load_milestones(repo_root()), legs[-1]["chapter"])
     checks = grade_batch(chains, jobs, len(legs), reach_min, (held and not tree.moves, frozen_line), left_procs,
                          {"world_left": [w for w in world_left if "could not" in w], "profiles": profiles,
-                          "main_profile": main, "optional": optional, "most_running": plan["most_running"]})
+                          "main_profile": main, "optional": optional, "most_running": plan["most_running"]}, legs=legs)
     result = batch_verdict(checks)
     aborted = state["aborted"] or (out / ABORT_FILE).is_file()
     failing = [c.id for c in checks if c.kind == GRADED and c.status != PASS]
     label = ledger.label(args.purpose)
     shown = "ABORTED (harness: disk)" if aborted else result
     reach = next(c for c in checks if c.id == "LC.REACH")
+    # (V-08) a launch that died before playing a frame fails the batch by the registered rule: NAMED, never hidden
+    died_rows = [(c["chain"], leg["leg"], launch_died(leg)) for c in chains for leg in c["legs"] if launch_died(leg)]
+    died_text = f"; {DEAD_LAUNCH}: {[f'{c} {leg}' for c, leg, _ in died_rows]}" if died_rows else ""
     verdict_line = (f"{label}, {shown if graded else 'NO PASS (development: ' + shown + ' by the registered rules)'}"
-                    f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''}: live chain held-out, "
-                    f"to {to}, seeds {seeds[0]}-{seeds[1]}, numbers sha256 {sha[:16]}; {reach.text.split(': ', 1)[1][:400]}")
+                    f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''}{died_text}: live chain "
+                    f"held-out, to {to}, seeds {seeds[0]}-{seeds[1]}, numbers sha256 {sha[:16]}; "
+                    f"{reach.text.split(': ', 1)[1][:400]}")
     evidence_dir = deps.evidence_dir or EVIDENCE_DIR
     evidence = evidence_path(evidence_dir, graded, to, seeds[0])
     evidence.parent.mkdir(parents=True, exist_ok=True)
     keep_earlier(evidence)
     head = (f"LIVE CHAIN HELD-OUT - {'GRADED' if graded else 'DEVELOPMENT, NOT GRADED, NO PASS'} - VERDICT {shown}"
-            f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''} (to {to}; driver "
+            f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''}{died_text} (to {to}; driver "
             f"ai_player/gates/live_chain.py; build spec {SPEC})")
     not_run = [f"{c['chain']} {leg['leg']}: {leg.get('reason')}" for c in chains for leg in c["legs"]
                if leg.get("status") in ("NOT RUN", "REFUSED")]
@@ -1631,12 +1963,15 @@ def run_batch(args, deps: Deps | None = None) -> int:
             f"numbers sha256: {sha} (seeds {seeds[0]}-{seeds[1]}; {args.purpose}; {chains_n} chains; at least {reach_min} "
             f"to reach)"]
     if development:
-        text += [f"PREDICTION (sha256 {development['prediction_sha256']}, in the numbers, registered before the runs): "
-                 f"{prediction}", f"leg budgets overridden: {development['leg_frames_override'] or 'none'}"]
+        text += [f"PREDICTION (sha256 of the file's bytes {development['prediction_sha256']}, in the numbers, registered "
+                 f"before the runs): {prediction}",
+                 f"leg budgets overridden: {development['leg_frames_override'] or 'none'}"]
     text += [f"build root: {build_root}   out: {out}   free at start: {facts['free']:.1f} GB",
              f"frozen tree: {frozen_line}", f"leftover processes: {left_procs or 'none'}",
              f"the most chains running at once: {plan['most_running']} (launch order {plan['order']})",
              f"NOT RUN: {not_run or 'none'}", f"guard and watchdog events: {events or 'none'}",
+             f"{DEAD_LAUNCH} (each RAN, so each fails LC.PURITY and LC.THIS_RUN by the registered rule): "
+             f"{[f'{c} {leg}: {why}' for c, leg, why in died_rows] or 'none'}",
              f"legs with an unexpected-multichoice line: {flagged or 'none'}",
              f"VERDICT: {shown}" + (" (the checks below are information: a harness abort is no PASS and no FAIL)"
                                      if aborted else ""),
@@ -1681,34 +2016,82 @@ def leg_lines(leg: dict) -> list[str]:
     statuses = {c["id"]: c["status"] for c in leg.get("checks") or []}
     purity = "CLEAN" if all(statuses.get(i) == PASS for i in PURITY_IDS) else \
         {i: statuses.get(i) for i in PURITY_IDS if statuses.get(i) != PASS}
+    died = launch_died(leg)
     return [f"    {leg['leg']} {leg['target']} ({leg['status']}): proof before {proof_text(leg.get('proof_before'))} -> "
             f"after {proof_text(leg.get('proof_after'))}; reached {leg.get('reached')}"
             f"{' (ALREADY HELD at its start)' if leg.get('already_held') is True else ''}; real frames "
             f"{stop.get('real_frames')} of {leg.get('frames')}; {leg.get('elapsed')} s of {leg.get('wall')}; stop by "
             f"{stop.get('by')} ({stop.get('cause')})",
+            *([f"      {died}: it RAN, so it fails LC.PURITY and LC.THIS_RUN (the registered rule)"] if died else []),
             f"      purity {purity}; THIS_RUN {statuses.get('L5.THIS_RUN')}; custody {leg.get('custody') or 'held'}; "
             f"continue {leg.get('continue')}: {leg.get('why')}",
-            f"      world.jsonl {(leg.get('world_file') or {}).get('bytes')} B, {world.get('lines')} lines "
-            f"({world.get('bad_lines')} bad), last line {world.get('last_bytes')} B ok {world.get('last_ok')}, deleted "
-            f"{(leg.get('world_file') or {}).get('deleted')}; kept {leg.get('kept_world')}",
+            ("      world.jsonl: no world file (the leg wrote none)" if no_world_file(leg) else
+             f"      world.jsonl {(leg.get('world_file') or {}).get('bytes')} B, {world.get('lines')} lines "
+             f"({world.get('bad_lines')} bad), last line {world.get('last_bytes')} B ok {world.get('last_ok')}, deleted "
+             f"{(leg.get('world_file') or {}).get('deleted')}") + f"; kept {leg.get('kept_world')}",
             f"      unexpected lines {log.get('unexpected')} (multichoice {log.get('multichoice')}, forms "
             f"{log.get('forms')}); first {log.get('first_unexpected')!r}",
             f"      the AI's outcome {leg.get('outcome')!r}; memory line {((log.get('memory') or {}).get('line') or '')[:300]!r}",
             f"      run dir {leg.get('run_dir')}; notes {leg.get('notes') or 'none'}"]
 
 
-def grade_dir(out: Path) -> int:
+def registered_rows(out: Path, jobs: list[dict]) -> tuple[list[dict], list[str]]:
+    """(The verifier's V-02) `grade DIR`'s rows: each REGISTERED chain's row read from rows/<chain>.json, kept only when its
+    own chain field names that chain; every other file of rows/ is IGNORED, with why (a reused --out, a copied row)."""
+    names = {job["chain"] for job in jobs}
+    chains: list[dict] = []
+    ignored: list[str] = []
+    for path in sorted((out / "rows").glob("*.json")):
+        if path.stem not in names:
+            ignored.append(f"rows/{path.name}: not a registered chain of this batch {sorted(names)}: never counted")
+            continue
+        try:
+            row = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as error:
+            ignored.append(f"rows/{path.name}: unreadable ({type(error).__name__}): not counted")
+            continue
+        if not isinstance(row, dict) or row.get("chain") != path.stem:
+            ignored.append(f"rows/{path.name}: its chain field "
+                           f"{row.get('chain') if isinstance(row, dict) else None!r} is not {path.stem!r}: not counted")
+            continue
+        chains.append(row)
+    return chains, ignored
+
+
+def regrade_dir(out: Path) -> dict:
+    """THE OFFLINE RE-GRADE of a batch's --out (no ledger write): the registered chains (results.json's jobs) only, each
+    from its own row file (`registered_rows`), a disk guard's marker file on disk joined to its leg (it can only stop a
+    leg), then `grade_batch` against the registered legs, which re-derives every leg from the row's facts."""
     results = json.loads((out / "results.json").read_text(encoding="utf-8"))
-    chains = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((out / "rows").glob("*.json"))]
     legs, jobs = results["legs"], results["jobs"]
+    chains, ignored = registered_rows(out, jobs)
+    markers = []
+    for chain in chains:
+        for leg in chain.get("legs") or []:
+            mark = guard_mark(out, chain["chain"], str(leg.get("leg"))) if leg.get("status") in RAN else None
+            if mark is not None and not leg.get("guard_killed"):
+                leg["guard_killed"] = mark
+                markers.append(f"{chain['chain']} {leg.get('leg')}: the disk guard's marker is on disk; the row had none")
     rep = results.get("reported") or {}
     checks = grade_batch(chains, jobs, len(legs), results["reach_min"], tuple(results["frozen"]), results.get("leftover"),
                          {"world_left": [w for w in results.get("world_left") or [] if "could not" in w],
                           "profiles": rep.get("profiles"), "main_profile": rep.get("main_profile"),
-                          "optional": rep.get("optional"), "most_running": results.get("most_running")})
-    for line in check_lines(checks):
+                          "optional": rep.get("optional"), "most_running": results.get("most_running")}, legs=legs)
+    return {"checks": checks, "verdict": batch_verdict(checks), "ignored": ignored, "markers": markers,
+            "rows": len(chains), "jobs": len(jobs)}
+
+
+def grade_dir(out: Path) -> int:
+    found = regrade_dir(out)
+    for line in found["ignored"]:
+        print(f"IGNORED: {line}")
+    for line in found["markers"]:
+        print(f"MARKER: {line}")
+    for line in check_lines(found["checks"]):
         print(line)
-    print(f"OFFLINE RE-GRADE (no ledger write): {batch_verdict(checks)} over {len(chains)} chains")
+    print(REDERIVED_TEXT)
+    print(f"OFFLINE RE-GRADE (no ledger write): {found['verdict']} over the {found['rows']} rows of the {found['jobs']} "
+          f"registered chains ({len(found['ignored'])} row file(s) IGNORED)")
     return 0
 
 
