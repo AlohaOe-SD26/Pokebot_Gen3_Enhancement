@@ -50,15 +50,34 @@ mutant in MUTANTS):
   GuardTests       V-05: the watchdog's value and formula; the larger world size graded; the kept line outside the repo;
                    a partly overlapping development range refused; a leftover process read after the batch; git_state on
                    a scratch repository; the ABORT check before each leg; LC.STARTER's floor.
-  PredictionTests  V-06: the registered prediction sha256 is the FILE's bytes'.
+  PredictionTests  V-06: the registered prediction sha256 is the FILE's bytes'; a prediction that is not UTF-8 is refused.
   DeadLaunchTests  V-08: a launch that died before playing a frame is named in the row, the evidence and the ledger (and
                    still fails); a leg with no world file reads "no world file", never "not deleted".
+THE SECOND FIX ROUND (the independent checker's C2-01..C2-07, 2026-11-05; same rule: FAULT, CONTROL, a mutant each):
+  RegradeTests     C2-01: a row whose chain, pair, personality, starter, seed or profile is not the registered job's is
+                   IGNORED like a second row, so its chain is ABSENT and the batch FAILS (from an impure original; a
+                   starter-only mismatch); C2-03: custody re-derived over a stored [], grade DIR and the in-run grade by the
+                   REGISTERED proofs, the evidence's per-chain line prints the RE-DERIVED reach; a kept line that is no
+                   JSON object never counts.
+  ClosureTests     C2-02: the closure starts from the files run by path (PATH_ROOTS) and the plugins loaded by name; every
+                   path-built argv of the closure's files and the AI's code runs a root (an AST scan; a mention does not
+                   count); every top-level framework name an import names is followed; edits of the purity gate, pokebot.py
+                   and two plugins are refused; C2-05: else, finally, match, with and class-body imports are found;
+                   register and a graded run are REFUSED (R12) while the closure has an unhashed file.
+  GradeErrorTests  C2-07: an exception while grading or writing the evidence still FINISHES the ledger entry as ERROR (no
+                   PASS or FAIL), exit 4, with the traceback in the evidence.
+  (also) DeadLaunchTests C2-04: the dead launch named in LC.PURITY's and LC.THIS_RUN's texts and in the ledger verdict's own
+                   clause; PredictionTests C2-06; GuardTests the verifier's V02 (an unread OT and TID never prove the
+                   player's starter).
+The module's temp root is removed at exit as well as in tearDownModule, so a process that imports it outside unittest (a
+probe, a mutant worker) leaves no livechain_test_* folder behind.
 """
 
 from __future__ import annotations
 
 import argparse
 import ast
+import atexit
 import contextlib
 import copy
 import hashlib
@@ -113,6 +132,9 @@ LEGS5 = [("L1", "ch1_pokedex", 330000), ("L2", "ch2_wally", 330000), ("L3", "ch3
          ("L4", "ch4_roxanne", 900000), ("L5", "ch5_rival_meet", 600000)]
 TID = 4242
 _TEMP_ROOT = Path(tempfile.mkdtemp(prefix="livechain_test_"))
+# (the checker's hygiene note) a process that imports this module OUTSIDE unittest (a probe, a mutant worker) never runs
+# tearDownModule, and its fake repository and batches (27 MB) were left in %TEMP%: the root is removed at exit as well
+atexit.register(shutil.rmtree, _TEMP_ROOT, ignore_errors=True)
 
 
 def tearDownModule() -> None:
@@ -1277,9 +1299,20 @@ def case_bounds_needles(M, tmp):
                    # V-08: the dead launch's rule, said and named
                    "harness: the launch died before playing a frame", "the reach tolerance does not cover it",
                    # V-09: what LC.CUSTODY can catch
-                   "on a later leg they catch a regression of the harness only, never anything the AI does"):
+                   "on a later leg they catch a regression of the harness only, never anything the AI does",
+                   # (the second fix round) C2-01: an ignored row and its absent chain; C2-02: the starts of the closure;
+                   # C2-05: the refusal; C2-07: the ERROR record
+                   "starter, seed or profile is not the registered job's are each IGNORED and named with the reason, so a "
+                   "registered chain whose row is ignored is ABSENT",
+                   "of the files the harness and the launcher run by path (ai_player/gates/check_purity.py",
+                   "of the plugins the framework loads by name in every leg",
+                   "Registration and a graded run are REFUSED while that scan finds a file this list does not hash",
+                   "still FINISHED, as 'ERROR (harness: <type>: <message> while grading; no PASS or FAIL; the seeds are "
+                   "spent)'"):
         ok(needle in text, f"the bounds text says {needle!r}")
     ok("never anything the AI does" in (M.__doc__ or ""), "the docstring says LC.CUSTODY's limit too (V-09)")
+    ok("still FINISHES the ledger entry, as \"ERROR (harness:" in " ".join((M.__doc__ or "").split()),
+       "the docstring says C2-07's rule too")
 
 
 # ---------------------------------------------------------------------------------------------------- the scheduler
@@ -1364,8 +1397,10 @@ class Rig:
         self.tree = tree or FakeTree()
         self.pre_spawn = pre_spawn
         ticks = iter(range(10 ** 6))
+        # (C2-05) the closure scan is stubbed as "every file hashed" here (1.4 s a scan); ClosureTests drive the real one
         self.deps = M.Deps(spawn=self.spawn, free=free, git_state=lambda: {"head": "a", "origin": "a", "dirty": []},
-                           leftover=leftover or (lambda: []), g3=lambda: [], watch=lambda: self.tree, snapshot=lambda: None,
+                           leftover=leftover or (lambda: []), g3=lambda: [], closure=lambda: ([], 0, 0.0),
+                           watch=lambda: self.tree, snapshot=lambda: None,
                            code_line=lambda: "fake code line", default_build_root=lambda: self.build,
                            kill=self.kill, sleep=lambda seconds: None, clock=clock or (lambda: float(next(ticks))),
                            ledger_path=self.ledger, evidence_dir=self.evidence, repo=self.repo, poll_seconds=0, stagger=0,
@@ -1563,8 +1598,16 @@ def calls_in(source: str, qualname: str) -> set[str]:
 
 WIRING = {
     "run_batch": {"gather_facts", "run_refusal", "watch", "check", "seal", "begin", "finish", "schedule", "salvage_chain",
-                  "end_sweep", "grade_batch", "guard_decision", "newest_world", "kill", "kill_tree", "keep_earlier"},
-    "gather_facts": {"legs_of", "g3", "git_state", "seeds_named", "free", "out_listing"},
+                  "end_sweep", "grade_batch", "guard_decision", "newest_world", "kill", "kill_tree", "keep_earlier",
+                  # (the second fix round) C2-07's guard, C2-03's re-derived per-chain line
+                  "finish_on_error", "registered_chains"},
+    "gather_facts": {"legs_of", "g3", "git_state", "seeds_named", "free", "out_listing", "closure"},
+    # (C2-05) the closure checked at registration and before a graded run; (C2-07) the ERROR record finishes the entry
+    "register_run": {"closure_missing", "closure_refusal", "register"},
+    "run_refusal": {"closure_refusal"},
+    "finish_on_error": {"error_verdict", "finish", "_write_json"},
+    # (C2-02) the closure starts from the files run by path and the plugins loaded by name
+    "grader_closure": {"loaded_plugins", "_closure_imports", "_closure_file"},
     "run_chain": {"child_refusal", "check_purity", "check_after_is_this_run", "finish_leg", "custody_problems",
                   "continue_after", "guard_mark", "stop_rest", "salvage_leg", "launch_died"},
     "finish_leg": {"stream_world_tail", "measure_then_delete", "read_log_counts"},
@@ -1720,13 +1763,145 @@ def case_flipped_continue_not_counted(M, tmp):
 
 
 def case_row_identity_mismatch(M, tmp):
+    """(The checker's C2-01) a row whose identity is not the registered job's is IGNORED like a second row, so its chain is
+    ABSENT and the batch FAILS. FROM AN IMPURE ORIGINAL (the checker's probe_identity): LC-S-7101's L5 fails purity, so the
+    batch fails; filing LC-S-7102's clean row (the same pair) as LC-S-7101, only its chain field renamed, must not grade
+    the impure leg away."""
+    chains, jobs = healthy_batch()
+    leg = chains[0]["legs"][4]
+    next(c for c in leg["checks"] if c["id"] == "L5.PURITY_CLEAN")["status"] = "FAIL"
+    leg["continue"] = False  # what run_chain writes on a C2 stop
+    checks = grade(M, chains, jobs)
+    eq((M.batch_verdict(checks), by_id(checks, "LC.REACH").status, by_id(checks, "LC.PURITY").status),
+       ("FAIL", "PASS", "FAIL"), "CONTROL: the honest rows, graded as before: 5 of 6 reach, LC-S-7101's L5 impure")
+    chains[0] = {**copy.deepcopy(chains[3]), "chain": jobs[0]["chain"]}  # LC-S-7102's clean row filed as LC-S-7101
+    checks = grade(M, chains, jobs)
+    reach, custody = by_id(checks, "LC.REACH"), by_id(checks, "LC.CUSTODY")
+    eq(M.batch_verdict(checks), "FAIL", f"a row of another identity never counts: {graded_ok(checks)}")
+    ok(f"{jobs[0]['chain']}: its row is not the registered job's" in reach.text
+       and "its seed 7102 is not the registered 7101" in reach.text, f"IGNORED and named with why: {reach.text[:900]}")
+    eq((reach.status, reach.n), ("VACUOUS", 5), f"the chain is ABSENT: 5 rows of the 6 registered: {reach.text[:300]}")
+    ok(custody.status == "FAIL" and f"not: ['{jobs[0]['chain']}']" in custody.text,
+       f"LC.CUSTODY: the registered chain's L1 never ran: {custody.text[:400]}")
+    # the earlier direction too: a passing row filed over a failing registered chain
     chains, jobs = batch_with({3: {"L2": {"miss": True}}, 4: {"L2": {"miss": True}}})
     eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "FAIL", "CONTROL: 4 of 6 reach")
-    forged = {**copy.deepcopy(chains[0]), "chain": jobs[3]["chain"]}  # LC-S-7101's row filed as LC-S-7102 (same pair)
-    chains[3] = forged
-    reach = by_id(grade(M, chains, jobs), "LC.REACH")
-    eq(reach.status, "FAIL", f"a row with another chain's seed and profile never counts: {reach.text[:600]}")
+    chains[3] = {**copy.deepcopy(chains[0]), "chain": jobs[3]["chain"]}  # LC-S-7101's row filed as LC-S-7102 (same pair)
+    checks = grade(M, chains, jobs)
+    reach = by_id(checks, "LC.REACH")
+    eq(M.batch_verdict(checks), "FAIL", f"a row with another chain's seed and profile never counts: {reach.text[:600]}")
     ok("its seed 7101 is not the registered 7102" in reach.text, reach.text)
+
+
+def case_row_starter_mismatch(M, tmp):
+    """(C2-01) a row whose STARTER alone is not the registered job's, with a party that agrees with that starter (so a
+    LC.STARTER over the row's own field would pass), is IGNORED: LC.STARTER judges the REGISTERED starter, never the
+    row's. CONTROL: the honest batch passes."""
+    chains, jobs = healthy_batch()
+    eq(M.batch_verdict(grade(M, chains, jobs)), "PASS", "CONTROL: the honest batch passes")
+    chains[0]["starter"] = "MUDKIP"
+    chains[0]["legs"][0]["truth_after"]["party_exp"][0][1] = "Mudkip"
+    checks = grade(M, chains, jobs)
+    reach = by_id(checks, "LC.REACH")
+    eq(M.batch_verdict(checks), "FAIL", f"a row of another starter never counts: {graded_ok(checks)}")
+    ok("its starter 'MUDKIP' is not the registered 'TREECKO'" in reach.text, reach.text[:800])
+
+
+def weaken_l5(M, row: dict) -> None:
+    """A row's L5 as a forger would leave it: its own proof lowered (VAR 7, no flag), held on its marks, flags flipped."""
+    leg = row["legs"][4]
+    leg["proof"] = {"flags": {}, "variables": {"RUSTBORO_CITY_STATE": {"number": 0x405A, "at_least": 7}}, "trainers": {}}
+    leg["proof_after"] = M.proof_holds(leg["truth_after"]["marks"], leg["proof"])
+    ok(leg["proof_after"]["held"], "the row's own (weakened) proof holds on its marks")
+    leg.update({"continue": True, "reached": True, "why": "C1-C6 held"})
+    row.update({"reached_to": True, "stopped_at": None, "stop_reason": None})
+
+
+def case_regrade_custody_stored_empty(M, tmp):
+    """(The checker's C2-03, its C15b) custody is RE-DERIVED, not read: a row that STORED custody [] for an L2 whose
+    --state is not L1's end state fails LC.CUSTODY, and its chain stops at L2."""
+    chains, jobs = healthy_batch()
+    eq(by_id(grade(M, chains, jobs), "LC.CUSTODY").status, "PASS", "CONTROL: the honest custody")
+    leg = chains[0]["legs"][1]
+    at = leg["command"].index("--state")
+    leg["command"][at + 1] = str(Path(leg["command"][at + 1]).parent.parent / "another-run" / "end_state.ss1")
+    eq(leg["custody"], [], "the row stored no custody problem")
+    checks = grade(M, chains, jobs)
+    custody = by_id(checks, "LC.CUSTODY")
+    eq((custody.status, M.batch_verdict(checks)), ("FAIL", "FAIL"), f"re-derived custody: {custody.text[:700]}")
+    ok("L2 started from --state" in custody.text, custody.text[:700])
+    ok(f"{jobs[0]['chain']} at L2" in by_id(checks, "LC.REACH").text, "and its chain stops at L2 (C5)")
+
+
+def case_grade_dir_registered_proof(M, tmp):
+    """(C2-03, the checker's C17) grade DIR judges each row by the REGISTERED legs' proofs (results.json's legs), never
+    the row's own: two rows whose L5 proof was weakened on disk, with their flags flipped, still miss."""
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp, plans={jobs[0]["chain"]: {"L5": {"miss": True}}, jobs[1]["chain"]: {"L5": {"miss": True}}})
+    code, text = rig.run(run_args(out=str(rig.out)))
+    eq((code, M.regrade_dir(rig.out)["verdict"]), (1, "FAIL"), f"CONTROL: 4 of 6 reach, in-run and offline: {text[-400:]}")
+    for job in jobs[:2]:
+        path = rig.out / "rows" / f"{job['chain']}.json"
+        row = json.loads(path.read_text(encoding="utf-8"))
+        weaken_l5(M, row)
+        path.write_text(json.dumps(row), encoding="utf-8")
+    found = M.regrade_dir(rig.out)
+    reach = by_id(found["checks"], "LC.REACH")
+    eq((found["verdict"], reach.status), ("FAIL", "FAIL"), f"the registered proof decides: {reach.text[:700]}")
+
+
+def case_e2e_row_proof_weakened_in_run(M, tmp):
+    """(C2-03, the checker's C18) the IN-RUN grade judges by the registered legs too: two rows rewritten on disk after
+    their chains ended (a weakened L5 proof, flipped flags), which run_batch reads back, still miss."""
+    jobs = LC.jobs_of(6201, 6)
+
+    def tamper() -> list[str]:  # (run_batch reads the leftover processes right after the chains, before the rows)
+        for job in jobs[:2]:
+            path = rig.out / "rows" / f"{job['chain']}.json"
+            row = json.loads(path.read_text(encoding="utf-8"))
+            weaken_l5(M, row)
+            path.write_text(json.dumps(row), encoding="utf-8")
+        return []
+    rig = graded_rig(M, tmp, plans={jobs[0]["chain"]: {"L5": {"miss": True}}, jobs[1]["chain"]: {"L5": {"miss": True}}},
+                     leftover=tamper)
+    code, text = rig.run(run_args(out=str(rig.out)))
+    statuses = {c["id"]: c["status"] for c in rig.results()["checks"]}
+    eq((code, statuses["LC.REACH"]), (1, "FAIL"), f"4 of 6 reach: the rows' own proofs never count: {text[-600:]}")
+
+
+def case_e2e_evidence_rederived_reach(M, tmp):
+    """(C2-03) the evidence's per-chain line prints the RE-DERIVED reach LC.REACH counted, not the row's stored flag: a
+    kept last line rewritten after its chain ended stops that chain by the re-derived rule while its row still says
+    reached. CONTROL: an untouched chain reads the same both ways."""
+    jobs = LC.jobs_of(6201, 6)
+
+    def tamper() -> list[str]:
+        kept = rig.out / jobs[0]["chain"] / "L5" / "world_last.jsonl"
+        kept.write_bytes(kept.read_bytes().replace(b'"tiles_learned":', b'"tiles_learned": '))
+        return []
+    rig = graded_rig(M, tmp, leftover=tamper)
+    code, text = rig.run(run_args(out=str(rig.out)))
+    row = json.loads((rig.out / "rows" / f"{jobs[0]['chain']}.json").read_text(encoding="utf-8"))
+    ok(row["reached_to"], f"the row on disk still says reached: {text[-400:]}")
+    lines = Path(rig.results()["evidence"]).read_text(encoding="utf-8").splitlines()
+    line = next(found for found in lines if found.startswith(f"  {jobs[0]['chain']} ("))
+    ok("reached ch5_rival_meet False (re-derived; the row stored True)" in line, line)
+    other = next(found for found in lines if found.startswith(f"  {jobs[1]['chain']} ("))
+    ok("reached ch5_rival_meet True (re-derived)" in other, f"CONTROL: an untouched chain: {other}")
+
+
+def case_kept_file_not_json(M, tmp):
+    """(The checker's C13) the kept last line must still be a JSON OBJECT when re-read: a kept file that is not one, filed
+    with its own sha256 (the stored last_ok still True), never counts."""
+    chains, jobs = batch_with({1: {"L2": {"miss": True}}})
+    eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "PASS", "CONTROL: 5 of 6 reach")
+    last = chains[0]["legs"][4]
+    forged = tmp / "not_an_object.jsonl"  # (a new file: the cached batch's own files are never touched)
+    forged.write_bytes(b"[1, 2, 3]\n")
+    last["kept_world"], last["kept_world_sha256"] = str(forged), hashlib.sha256(forged.read_bytes()).hexdigest()
+    reach = by_id(grade(M, chains, jobs), "LC.REACH")
+    eq(reach.status, "FAIL", f"a kept line that is no JSON object never counts: {reach.text[:600]}")
+    ok("its kept last line is not a JSON object" in reach.text, reach.text[:800])
 
 
 def case_kept_file_swapped(M, tmp):
@@ -1793,17 +1968,38 @@ CLOSURE_NAMED = ("ai_player/gates/live_chain.py", "ai_player/gates/live_step5.py
                  "sandbox-pokebot/modules/pokemon_party.py", "sandbox-pokebot/modules/memory.py")
 
 
+_CLOSURE: dict = {}
+
+
+def real_closure(M) -> list[str]:
+    """M.grader_closure(REPO): computed once for the real module (1.4 s a scan); a mutant's copy always computes its own."""
+    if M is not LC:
+        return M.grader_closure(REPO)
+    if "real" not in _CLOSURE:
+        _CLOSURE["real"] = M.grader_closure(REPO)
+    return list(_CLOSURE["real"])
+
+
+def plant(root: Path, rel: str, text: str = "") -> Path:
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
 def case_grader_files_cover_closure(M, tmp):
-    closure = M.grader_closure(REPO)
+    closure = real_closure(M)
     eq([rel for rel in closure if rel not in M.GRADER_FILES], [],
-       "files the grade imports that the registration does not hash (add them to GRADER_GATES or GRADER_SANDBOX)")
+       "files the grade imports or runs that the registration does not hash (add them to GRADER_GATES, GRADER_SANDBOX or "
+       "GRADER_BOT)")
     eq([rel for rel in M.GRADER_FILES if not (REPO / rel).is_file()], [], "listed files that do not exist")
+    eq(len(M.GRADER_FILES), len(set(M.GRADER_FILES)), "no file is listed twice (the bounds text counts them)")
 
 
 def case_closure_not_vacuous(M, tmp):
-    closure = M.grader_closure(REPO)
+    closure = real_closure(M)
     eq([rel for rel in CLOSURE_NAMED if rel not in closure], [], "the scan finds every file the verifier named")
-    eq([rel for rel in closure if not rel.startswith(("ai_player/gates/", "sandbox-pokebot/modules/"))], [],
+    eq([rel for rel in closure if not rel.startswith(("ai_player/gates/", "sandbox-pokebot/"))], [],
        "the AI's own modules are never followed (they are hashed whole, as ai_code_sha256)")
 
 
@@ -1811,15 +2007,26 @@ def case_closure_scan_planted(M, tmp):
     root = tmp / "repo"
 
     def put(rel: str, text: str) -> None:
-        (root / rel).parent.mkdir(parents=True, exist_ok=True)
-        (root / rel).write_text(text, encoding="utf-8")
+        plant(root, rel, text)
     put("ai_player/gates/__init__.py", "")
+    # (the checker's C2-05, its C30) every statement body an import can sit in: else (of try, if and for), finally,
+    # with, match and a class body, besides the module level, a function and an except block
     put("ai_player/gates/live_chain.py", '"""It never imports ai_player.gates.mentioned."""\n'
                                          "# from ai_player.gates import commented\n"
                                          "from ai_player.gates import top\nfrom ai_player.brain import goals\n"
                                          "try:\n    import json\nexcept ImportError:\n"
-                                         "    from ai_player.gates import fallback\n\n\n"
+                                         "    from ai_player.gates import fallback\n"
+                                         "else:\n    from ai_player.gates import in_try_else\n"
+                                         "finally:\n    from ai_player.gates import in_finally\n"
+                                         "if json:\n    pass\nelse:\n    from ai_player.gates import in_if_else\n"
+                                         "for _ in ():\n    pass\nelse:\n    from ai_player.gates import in_for_else\n"
+                                         "with open(__file__) as handle:\n    from ai_player.gates import in_with\n"
+                                         "match handle:\n    case _:\n        from ai_player.gates import in_match\n\n\n"
+                                         "class Holder:\n    from ai_player.gates import in_class\n\n\n"
                                          "def later():\n    from ai_player.gates.inner import x\n    return x\n")
+    planted = ("in_try_else", "in_finally", "in_if_else", "in_for_else", "in_with", "in_match", "in_class")
+    for name in planted:
+        put(f"ai_player/gates/{name}.py", "")
     put("ai_player/gates/top.py", "import modules.pkg.sub\n")
     put("ai_player/gates/inner.py", "from modules.rel import y\n")
     put("ai_player/gates/fallback.py", "")
@@ -1831,12 +2038,428 @@ def case_closure_scan_planted(M, tmp):
     put("sandbox-pokebot/modules/rel.py", "from .sibling import w\n")
     put("sandbox-pokebot/modules/sibling.py", "")
     put("sandbox-pokebot/modules/ai_only.py", "")
-    eq(M.grader_closure(root), ["ai_player/gates/__init__.py", "ai_player/gates/fallback.py", "ai_player/gates/inner.py",
-                                "ai_player/gates/live_chain.py", "ai_player/gates/top.py",
-                                "sandbox-pokebot/modules/pkg/__init__.py", "sandbox-pokebot/modules/pkg/sub.py",
-                                "sandbox-pokebot/modules/rel.py", "sandbox-pokebot/modules/sibling.py"],
-       "a function-local import, one in an except block, a relative one and a parent package are followed; a mention in "
-       "a docstring or a comment and the AI's own imports are not")
+    with mock.patch.object(M, "PATH_ROOTS", ()):
+        found = M.grader_closure(root)
+    eq(found, sorted(["ai_player/gates/__init__.py", "ai_player/gates/fallback.py", "ai_player/gates/inner.py",
+                      "ai_player/gates/live_chain.py", "ai_player/gates/top.py",
+                      *(f"ai_player/gates/{name}.py" for name in planted),
+                      "sandbox-pokebot/modules/pkg/__init__.py", "sandbox-pokebot/modules/pkg/sub.py",
+                      "sandbox-pokebot/modules/rel.py", "sandbox-pokebot/modules/sibling.py"]),
+       "a function-local import, one in an except, else, finally, with, match or class body, a relative one and a parent "
+       "package are followed; a mention in a docstring or a comment and the AI's own imports are not")
+
+
+def case_closure_starts(M, tmp):
+    """(The checker's C2-02) the closure STARTS from the files the harness and the launcher run by path (PATH_ROOTS) and
+    from the plugins the framework loads by name: each is in it and hashed (the purity gate, pokebot.py with the
+    requirements and updater it imports, every plugins/*.py, plugins/custom_modes/__init__.py, every custom mode not
+    starting with _), and nothing of the AI's own package outside gates/ is."""
+    closure = real_closure(M)
+    eq([rel for rel in M.PATH_ROOTS if not (REPO / rel).is_file()], [], "every file run by path exists")
+    eq([rel for rel in M.PATH_ROOTS if rel not in closure], [], "every file run by path starts the closure")
+    plugins = sorted(p.relative_to(REPO).as_posix() for p in (REPO / "sandbox-pokebot" / "plugins").iterdir()
+                     if p.name.endswith(".py"))
+    modes = sorted(p.relative_to(REPO).as_posix() for p in (REPO / "sandbox-pokebot" / "plugins" / "custom_modes").glob("*.py")
+                   if not p.name.startswith("_"))
+    ok(len(plugins) >= 8 and len(modes) >= 6, f"the folders the loaders read are not empty: {plugins} {modes}")
+    eq([rel for rel in [*plugins, "sandbox-pokebot/plugins/custom_modes/__init__.py", *modes] if rel not in closure], [],
+       "every plugin the framework loads by name, with the custom modes' package")
+    for rel in ("ai_player/gates/check_purity.py", "sandbox-pokebot/pokebot.py", "sandbox-pokebot/requirements.py",
+                "sandbox-pokebot/updater.py", "sandbox-pokebot/plugins/custom_modes_loader.py",
+                "sandbox-pokebot/plugins/game_cheats_plugin.py", M.PLUGIN):
+        ok(rel in closure and rel in M.GRADER_FILES, f"{rel}: in the closure and hashed")
+    eq([rel for rel in closure if rel.startswith("ai_player/") and not rel.startswith("ai_player/gates/")], [],
+       "the AI's own modules are never followed")
+
+
+def case_closure_starts_planted(M, tmp):
+    """(C2-02) on a planted tree: the closure follows a file run by path and every plugin the loaders import by name, with
+    its parent packages (the custom modes' __init__.py is reached ONLY that way here, as Python runs it), through the
+    framework's top-level names (pokebot, requirements, updater, plugins, modules); it never follows what the loaders
+    skip (a name not ending in .py, a custom mode starting with _), nor the git-ignored profiles folder."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/__init__.py")
+    plant(root, "ai_player/gates/live_chain.py", "x = 1\n")
+    plant(root, "ai_player/gates/check_purity.py", "from ai_player.gates import gate_helper\n")
+    plant(root, "ai_player/gates/gate_helper.py")
+    plant(root, "sandbox-pokebot/pokebot.py", "from requirements import check\nfrom updater import run\n"
+                                              "from profiles.customcatchfilters import custom_catch_filters\n")
+    plant(root, "sandbox-pokebot/requirements.py")
+    plant(root, "sandbox-pokebot/updater.py", "import modules.helper\n")
+    for name in ("helper", "from_plugin", "from_mode", "never"):
+        plant(root, f"sandbox-pokebot/modules/{name}.py")
+    plant(root, "sandbox-pokebot/plugins/loaded_plugin.py", "from modules import from_plugin\n")
+    plant(root, "sandbox-pokebot/plugins/notes.txt", "import modules.never\n")
+    plant(root, "sandbox-pokebot/plugins/custom_modes/__init__.py")
+    plant(root, "sandbox-pokebot/plugins/custom_modes/mode_a.py", "import modules.from_mode\n")
+    plant(root, "sandbox-pokebot/plugins/custom_modes/_private.py", "import modules.never\n")
+    plant(root, "sandbox-pokebot/profiles/customcatchfilters.py")
+    with mock.patch.object(M, "PATH_ROOTS", ("ai_player/gates/check_purity.py", "sandbox-pokebot/pokebot.py")):
+        found = M.grader_closure(root)
+    eq(found, ["ai_player/gates/__init__.py", "ai_player/gates/check_purity.py", "ai_player/gates/gate_helper.py",
+               "ai_player/gates/live_chain.py", "sandbox-pokebot/modules/from_mode.py",
+               "sandbox-pokebot/modules/from_plugin.py", "sandbox-pokebot/modules/helper.py",
+               "sandbox-pokebot/plugins/custom_modes/__init__.py", "sandbox-pokebot/plugins/custom_modes/mode_a.py",
+               "sandbox-pokebot/plugins/loaded_plugin.py", "sandbox-pokebot/pokebot.py", "sandbox-pokebot/requirements.py",
+               "sandbox-pokebot/updater.py"],
+       "the starts by path and by name, their imports and parent packages; never notes.txt, _private.py, never.py or "
+       "profiles/")
+    with mock.patch.object(M, "PATH_ROOTS", ()):
+        eq([rel for rel in M.grader_closure(root) if rel.endswith(("check_purity.py", "pokebot.py"))], [],
+           "CONTROL: a file run by path is in the closure only as a start (no import reaches these)")
+
+
+# ---------------------------------------------------------------------------------------------------- C2-02: runs by path
+#: the first element of a Python argv besides `sys.executable` (a launcher or interpreter named by its program name)
+PYTHONS = ("py", "py.exe", "python", "python.exe", "python3", "pythonw", "pythonw.exe")
+#: (C2-02) path-built argvs of the scanned code that start NO file the closure must start from, each with WHY. EXACT: an
+#: entry the scan no longer finds fails the test too (a stale exemption is a hole)
+PATH_RUN_EXEMPT = {
+    ("ai_player/gates/revert_step5.py", "run_step5_tests.py"):
+        "revert_step5 writes it from its own DRIVER constant into a throw-away copy, so the generator is what is hashed",
+    ("sandbox-pokebot/modules/endless_x4.py", "*args"):
+        "a frozen bundle (is_bundled_app()): sys.executable is the bot itself and there is no script",
+    ("sandbox-pokebot/modules/gui/emulator_controls.py", "tools/story-dev/endless_runs.py"):
+        "a button of the Tk emulator controls: a leg runs headless (host/launcher.py bot_command passes -hl), so no "
+        "button is pressed",
+}
+
+
+def _is_python(node) -> bool:
+    if isinstance(node, ast.Attribute) and node.attr == "executable" and isinstance(node.value, ast.Name) \
+            and node.value.id == "sys":
+        return True
+    return isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.lower() in PYTHONS
+
+
+class PathEval:
+    """A SECOND PATH (test side): a small static evaluator of the path expressions an argv names its script by. It reads
+    constants, `__file__`, Path(...)/str(...)/os.fspath(...), .resolve(), .parent, .parents[k], .name, `a / b`, a
+    conditional's two branches and a name's assignments in its function (then the enclosing ones, then the module). A
+    parameter, or a call it cannot see through, is an UNKNOWN base: the parts joined after it are kept as a suffix and
+    resolved against the repository and the build root. What it cannot read is UNRESOLVED, which fails (never a pass)."""
+
+    def __init__(self, repo: Path, path: Path, tree: ast.Module) -> None:
+        self.repo, self.path = repo, path
+        self.parent = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
+        self.bound: dict = {}  # scope -> name -> [value expression, or None for a binding it cannot read]
+        for node in ast.walk(tree):
+            targets: list[tuple[ast.AST, ast.AST | None]] = []
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    targets += ([(target, node.value)] if isinstance(target, ast.Name) else
+                                [(t, None) for t in ast.walk(target) if isinstance(t, ast.Name)])
+            elif isinstance(node, (ast.AnnAssign, ast.NamedExpr)) and isinstance(node.target, ast.Name):
+                targets.append((node.target, node.value))
+            elif isinstance(node, (ast.AugAssign, ast.For, ast.AsyncFor, ast.comprehension)):
+                targets += [(t, None) for t in ast.walk(node.target) if isinstance(t, ast.Name)]
+            elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+                targets += [(t, None) for t in ast.walk(node.optional_vars) if isinstance(t, ast.Name)]
+            for target, value in targets:
+                self.bound.setdefault(self.scope(target), {}).setdefault(target.id, []).append(value)
+
+    def scope(self, node):
+        node = self.parent.get(node)
+        while node is not None and not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            node = self.parent.get(node)
+        return node
+
+    @staticmethod
+    def params(func) -> set[str]:
+        a = func.args
+        return {x.arg for x in (*a.posonlyargs, *a.args, *a.kwonlyargs, *(v for v in (a.vararg, a.kwarg) if v))}
+
+    def lookup(self, name: str, scope, depth: int) -> list:
+        while True:
+            values = (self.bound.get(scope) or {}).get(name)
+            if values is not None:
+                return [v for value in values for v in (self.eval(value, scope, depth + 1) if value is not None
+                                                        else [("unknown",)])]
+            if scope is None or name in self.params(scope):
+                return [("unknown",)]
+            scope = self.scope(scope)
+
+    def eval(self, node, scope, depth: int = 0) -> list:
+        if depth > 25:
+            return [("unknown",)]
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return [("str", node.value)]
+        if isinstance(node, ast.Name):
+            return [("path", self.path)] if node.id == "__file__" else self.lookup(node.id, scope, depth)
+        if isinstance(node, ast.IfExp):
+            return self.eval(node.body, scope, depth + 1) + self.eval(node.orelse, scope, depth + 1)
+        if isinstance(node, ast.Call):
+            func = node.func
+            name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else None
+            if name in ("str", "Path", "PurePath", "fspath") and len(node.args) == 1 and not node.keywords:
+                return self.eval(node.args[0], scope, depth + 1)
+            if isinstance(func, ast.Attribute) and name in ("resolve", "absolute") and not node.args:
+                return self.eval(func.value, scope, depth + 1)
+            return [("unknown",)]
+        if isinstance(node, ast.Attribute) and node.attr in ("parent", "name"):
+            out = []
+            for value in self.eval(node.value, scope, depth + 1):
+                if value[0] == "path":
+                    out.append(("path", value[1].parent) if node.attr == "parent" else ("str", value[1].name))
+                elif value[0] == "suffix" and node.attr == "name":
+                    out.append(("str", value[1][-1]))
+                else:
+                    out.append(("unknown",))
+            return out
+        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Attribute) and node.value.attr == "parents" \
+                and isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, int):
+            return [("path", v[1].parents[node.slice.value]) if v[0] == "path" else ("unknown",)
+                    for v in self.eval(node.value.value, scope, depth + 1)]
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            out = []
+            for left in self.eval(node.left, scope, depth + 1):
+                for right in self.eval(node.right, scope, depth + 1):
+                    if right[0] != "str":
+                        out.append(("unknown",))
+                    elif left[0] == "path":
+                        out.append(("path", left[1] / right[1]))
+                    elif left[0] == "suffix":
+                        out.append(("suffix", (*left[1], right[1])))
+                    elif left[0] == "str":
+                        out.append(("suffix", (left[1], right[1])))
+                    else:
+                        out.append(("suffix", (right[1],)))
+            return out
+        return [("unknown",)]
+
+
+def path_runs(M, repo: Path, rel: str) -> list[tuple[int, str, str]]:
+    """Every script a Python argv display ([sys.executable or "py"/"python", flags..., SCRIPT, ...]) in `rel` runs, from
+    its SYNTAX (a mention in a comment or a string is no argv): (line, kind, key), kind "file" (key: the repository-relative
+    file), "module" (a `-m` module of the repository) or "unresolved" (key: the expression). `-c` code and `-m` modules
+    outside the repository (pip, ai_player: the AI's code) start nothing the closure must start from."""
+    tree = ast.parse((repo / rel).read_bytes())
+    displays = [node for node in ast.walk(tree)
+                if isinstance(node, (ast.List, ast.Tuple)) and node.elts and _is_python(node.elts[0])]
+    if not displays:
+        return []
+    evaluator = PathEval(repo, repo / rel, tree)
+    found: list[tuple[int, str, str]] = []
+    for node in displays:
+        at, script = 1, None
+        while at < len(node.elts):
+            element = node.elts[at]
+            if isinstance(element, ast.Constant) and isinstance(element.value, str) and element.value.startswith("-"):
+                if element.value in ("-m", "-c"):
+                    script = (element.value, node.elts[at + 1] if at + 1 < len(node.elts) else None)
+                    break
+                at += 2 if element.value in ("-X", "-W") else 1
+                continue
+            script = ("script", element)
+            break
+        if script is None or script[0] == "-c":
+            continue
+        kind, expr = script
+        if kind == "-m":
+            name = expr.value if isinstance(expr, ast.Constant) and isinstance(expr.value, str) else None
+            module = M._closure_file(repo, name) if name else None
+            if name is None:
+                found.append((node.lineno, "unresolved", f"-m {ast.unparse(expr) if expr is not None else ''}"))
+            elif module is not None:
+                found.append((node.lineno, "module", module.relative_to(repo).as_posix()))
+            continue
+        if isinstance(expr, ast.Starred):
+            found.append((node.lineno, "unresolved", ast.unparse(expr)))
+            continue
+        for value in evaluator.eval(expr, evaluator.scope(node)):
+            if value[0] == "path":
+                try:
+                    found.append((node.lineno, "file", Path(os.path.normpath(value[1])).relative_to(repo).as_posix()))
+                except ValueError:
+                    found.append((node.lineno, "unresolved", str(value[1])))
+            elif value[0] in ("suffix", "str"):
+                joined = "/".join(value[1]) if value[0] == "suffix" else value[1]
+                hits = [base + joined for base in ("", "sandbox-pokebot/") if (repo / (base + joined)).is_file()]
+                found.append((node.lineno, "file", hits[0]) if len(hits) == 1 else (node.lineno, "unresolved", joined))
+            else:
+                found.append((node.lineno, "unresolved", ast.unparse(expr)))
+    return found
+
+
+def path_run_problems(M, repo: Path, files: list[str]) -> tuple[list[str], set, set]:
+    """(C2-02) Over `files`: (each script run by path that is not a closure ROOT (M.PATH_ROOTS), the PATH_RUN_EXEMPT keys
+    found, every (file, script) found). A file that runs ITSELF is in the closure already; the AI's own code (ai_player/
+    outside gates/ and evidence/) is hashed whole (ai_code_sha256)."""
+    problems: list[str] = []
+    used, seen = set(), set()
+    for rel in files:
+        for line, kind, key in path_runs(M, repo, rel):
+            seen.add((rel, key))
+            if kind in ("file", "module") and (key == rel or key in M.PATH_ROOTS or (
+                    key.startswith("ai_player/") and not key.startswith(("ai_player/gates/", "ai_player/evidence/")))):
+                continue
+            if (rel, key) in PATH_RUN_EXEMPT:
+                used.add((rel, key))
+                continue
+            problems.append(f"{rel}:{line} runs {key} ({kind}) by path, and it is no closure root (PATH_ROOTS)")
+    return problems, used, seen
+
+
+def ai_code(repo: Path) -> list[str]:
+    """The AI's own code, the launcher among it (ai_player/ outside gates/ and evidence/)."""
+    return sorted(p.relative_to(repo).as_posix() for p in (repo / "ai_player").rglob("*.py")
+                  if p.relative_to(repo / "ai_player").parts[0] not in ("gates", "evidence") and "__pycache__" not in p.parts)
+
+
+def case_path_runs_are_roots(M, tmp):
+    """(C2-02) every script a path-built argv of the HARNESS (the closure's files) or the LAUNCHER (the AI's code) runs is
+    a closure root, the file itself, the AI's own code or an exact, explained exemption. Not vacuous: the scan sees the
+    launcher run the purity gate and pokebot.py and live_step5 run the truth harness."""
+    problems, used, seen = path_run_problems(M, REPO, [*real_closure(M), *ai_code(REPO)])
+    eq(problems, [], "a script the harness or the launcher runs by path that the closure does not start from")
+    eq(sorted(set(PATH_RUN_EXEMPT) - used), [], "every exemption is still found (a stale one is a hole)")
+    for want in (("ai_player/host/launcher.py", "ai_player/gates/check_purity.py"),
+                 ("ai_player/host/launcher.py", "sandbox-pokebot/pokebot.py"),
+                 ("ai_player/gates/live_step5.py", "ai_player/gates/play_harness.py")):
+        ok(want in seen, f"the scan sees {want[0]} run {want[1]}: {sorted(seen)}")
+
+
+def case_path_run_scan_planted(M, tmp):
+    """(C2-02) the scan on a planted file: FAULT, a script run by path that is no root goes red (the closure's starts are
+    patched); CONTROL, the same script listed as a root does not; a mention in a docstring or a comment, a `-c`, a `-m`
+    of the AI's code and a file that runs itself never count; a parameter base is resolved by its suffix."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/live_chain.py",
+          '"""It never runs subprocess.run([sys.executable, str(GATES / "mentioned.py")])."""\n'
+          "# subprocess.run([sys.executable, str(GATES / 'commented.py')])\n"
+          "import subprocess\nimport sys\nfrom pathlib import Path\n\nGATES = Path(__file__).resolve().parent\n\n\n"
+          "def a():\n    subprocess.run([sys.executable, str(GATES / 'evil.py')])\n\n\n"
+          "def b():\n    subprocess.run([sys.executable, '-B', str(Path(__file__).resolve()), 'child'])\n\n\n"
+          "def c():\n    subprocess.run([sys.executable, '-m', 'ai_player', 'run'])\n\n\n"
+          "def d():\n    subprocess.run([sys.executable, '-c', 'print(1)'])\n\n\n"
+          "def e(root):\n    script = root / 'ai_player' / 'gates' / 'rooted.py'\n    subprocess.run([sys.executable, str(script)])\n\n\n"
+          "def f(build_root):\n    return ['py', '-3.12', str(build_root / 'pokebot.py'), 'x']\n")
+    for rel in ("ai_player/gates/evil.py", "ai_player/gates/rooted.py", "ai_player/gates/mentioned.py",
+                "ai_player/gates/commented.py", "sandbox-pokebot/pokebot.py"):
+        plant(root, rel)
+    roots = ("ai_player/gates/rooted.py", "sandbox-pokebot/pokebot.py")
+    with mock.patch.object(M, "PATH_ROOTS", roots):
+        problems, _, seen = path_run_problems(M, root, ["ai_player/gates/live_chain.py"])
+    eq(len(problems), 1, f"FAULT: exactly the unlisted script: {problems}")
+    ok("ai_player/gates/evil.py" in problems[0], problems[0])
+    eq(sorted(key for _, key in seen), ["ai_player/gates/evil.py", "ai_player/gates/live_chain.py",
+                                        "ai_player/gates/rooted.py", "sandbox-pokebot/pokebot.py"],
+       "found: the root, the suffix behind a parameter, the file itself; never a mention, a -c or the AI's -m")
+    with mock.patch.object(M, "PATH_ROOTS", (*roots, "ai_player/gates/evil.py")):
+        problems, _, _ = path_run_problems(M, root, ["ai_player/gates/live_chain.py"])
+    eq(problems, [], "CONTROL: the same script listed as a root")
+
+
+#: (C2-02) top-level names of sandbox-pokebot an import may name WITHOUT the closure following them, each with why
+TOPLEVEL_NOT_FOLLOWED = {
+    "profiles": "git-ignored and per machine (the framework copies modules/config/templates into it at start, the catch "
+                "filters modules/encounter.py imports among them): following it would make the closure depend on the "
+                "machine; the bounds text says it is not hashed",
+}
+
+
+def toplevel_problems(M, repo: Path, files: list[str]) -> tuple[list[str], set[str]]:
+    """(C2-02) Over `files`, from their syntax (ast.walk, a second path): each import of a top-level name that exists
+    directly under sandbox-pokebot/ (a .py or a folder) but is no CLOSURE_ROOTS prefix, and each bare import of a sibling
+    of ai_player/gates (also unfollowed); and the TOPLEVEL_NOT_FOLLOWED names found."""
+    roots = {prefix.split(".")[0] for prefix, _ in M.CLOSURE_ROOTS}
+    problems, excused = [], set()
+    for rel in files:
+        tops: set[str] = set()
+        for node in ast.walk(ast.parse((repo / rel).read_bytes())):
+            if isinstance(node, ast.Import):
+                tops.update(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
+                tops.add(node.module.split(".")[0])
+        for top in sorted(tops - roots):
+            if top in TOPLEVEL_NOT_FOLLOWED:  # (whether or not this machine's folder exists: it is git-ignored)
+                excused.add(top)
+                continue
+            if (repo / "sandbox-pokebot" / f"{top}.py").is_file() or (repo / "sandbox-pokebot" / top).is_dir():
+                problems.append(f"{rel} imports {top!r}, a name of sandbox-pokebot the closure does not follow")
+            if (repo / "ai_player" / "gates" / f"{top}.py").is_file():
+                problems.append(f"{rel} imports {top!r} bare, a sibling of ai_player/gates the closure does not follow")
+    return problems, excused
+
+
+def case_closure_toplevel_names(M, tmp):
+    """(C2-02) every top-level name of the framework an import of the closure names is FOLLOWED (a CLOSURE_ROOTS prefix),
+    except the explained TOPLEVEL_NOT_FOLLOWED (exact). FAULT (planted): pokebot.py importing a new top-level module, and
+    a gates file importing a sibling bare, are each named; CONTROL: the real tree."""
+    problems, excused = toplevel_problems(M, REPO, real_closure(M))
+    eq(problems, [], "an import of the framework's top-level names that the closure does not follow")
+    eq(excused, set(TOPLEVEL_NOT_FOLLOWED), "every exemption is still found")
+    root = tmp / "repo"
+    plant(root, "sandbox-pokebot/pokebot.py", "import modules.main\nfrom newtop import thing\n")
+    plant(root, "sandbox-pokebot/newtop.py")
+    plant(root, "ai_player/gates/live_chain.py", "import window\n")
+    plant(root, "ai_player/gates/window.py")
+    problems, _ = toplevel_problems(M, root, ["sandbox-pokebot/pokebot.py", "ai_player/gates/live_chain.py"])
+    eq(len(problems), 2, f"FAULT: both named: {problems}")
+    ok("'newtop'" in problems[0] + problems[1] and "'window' bare" in problems[0] + problems[1], problems)
+
+
+def case_changed_path_run_refused(M, tmp):
+    """(C2-02) after registration, an edit of the purity gate, of pokebot.py, or of a plugin the framework loads by name is
+    REFUSED by ledger.begin (the checker's probe_unhashed edits; each was accepted before this round)."""
+    for name, rel in (("gate", "ai_player/gates/check_purity.py"), ("pokebot", "sandbox-pokebot/pokebot.py"),
+                      ("loader", "sandbox-pokebot/plugins/custom_modes_loader.py"),
+                      ("cheats", "sandbox-pokebot/plugins/game_cheats_plugin.py")):
+        refused_after(M, tmp / name, lambda repo, rel=rel: edited(repo / rel, "import ", "import  "))
+
+
+def unlisted_import(repo: Path):
+    """(C2-05) the planted fault: live_chain.py in the fake repository imports a gates file GRADER_FILES does not list
+    (created for the block, removed after; live_chain.py's bytes restored)."""
+    @contextlib.contextmanager
+    def block():
+        helper = plant(repo, "ai_player/gates/unlisted_helper.py", "x = 1\n")
+        try:
+            with edited(repo / "ai_player" / "gates" / "live_chain.py", "from ai_player.gates import ledger  # noqa: E402",
+                        "from ai_player.gates import ledger  # noqa: E402\n"
+                        "from ai_player.gates import unlisted_helper  # noqa: E402,F401"):
+                yield
+        finally:
+            helper.unlink(missing_ok=True)
+    return block()
+
+
+def case_closure_enforced_register(M, tmp):
+    """(The checker's C2-05) `register` is REFUSED (R12), naming the file, with the ledger's bytes unchanged, while the
+    grader's import closure finds a file GRADER_FILES does not hash. CONTROL: the same tree without that import
+    registers."""
+    repo, path = fake_repo(tmp), tmp / "ledger.json"
+    path.write_text(json.dumps({"what": "t", "entries": []}), encoding="utf-8")
+    before = path.read_bytes()
+    buffer = io.StringIO()
+    with unlisted_import(repo), contextlib.redirect_stdout(buffer):
+        code = M.register_run("ch5", None, repo=repo, path=path)
+    eq(code, 2, f"refused: {buffer.getvalue()[-600:]}")
+    ok("R12" in buffer.getvalue() and "ai_player/gates/unlisted_helper.py" in buffer.getvalue(), buffer.getvalue()[-600:])
+    eq(path.read_bytes(), before, "the ledger is unchanged")
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        code = M.register_run("ch5", None, repo=repo, path=path)
+    eq(code, 0, f"CONTROL: a tree whose whole closure is hashed registers: {buffer.getvalue()[-600:]}")
+    eq(ledger.load(path)["entries"][-1]["status"], "registered", "registered")
+
+
+def case_closure_enforced_run(M, tmp):
+    """(C2-05) a GRADED run is refused (R12) BEFORE ledger.begin while the closure has a file GRADER_FILES does not hash:
+    the registration stays unspent, the ledger's bytes unchanged, no chain started. CONTROL: the real tree's closure is
+    hashed whole."""
+    repo = fake_repo(tmp)
+    rig = graded_rig(M, tmp / "rig")
+    rig.deps.closure = lambda: M.closure_missing(repo)
+    before = rig.ledger.read_bytes()
+    with unlisted_import(repo):
+        code, text = rig.run(run_args(out=str(rig.out)))
+    eq(code, 2, f"refused: {text[-600:]}")
+    ok("R12" in text and "ai_player/gates/unlisted_helper.py" in text, text[-600:])
+    eq((rig.entry()["status"], rig.ledger.read_bytes() == before, rig.handles), ("registered", True, []),
+       "the registration is not spent and no chain started")
+    missing, size, _ = M.closure_missing(REPO)
+    eq(missing, [], f"CONTROL: the real tree's closure ({size} files) is hashed whole")
 
 
 def case_grader_data_hashed(M, tmp):
@@ -2083,6 +2706,16 @@ def case_starter_floor(M, tmp):
     eq(M.batch_verdict(checks), "FAIL", "a VACUOUS starter check fails the batch")
 
 
+def case_starter_unread_ot_and_tid(M, tmp):
+    """(The verifier's V02, a narrow gap that predated the fix rounds) a lead whose owner (OT) AND the player's TID were both
+    unread (None == None) is never proved the player's own: LC.STARTER fails. CONTROL: grade_control (both read)."""
+    chains, jobs = healthy_batch()
+    after = chains[0]["legs"][0]["truth_after"]
+    after["party_ot"], after["player_tid"] = [], None
+    starter = by_id(grade(M, chains, jobs), "LC.STARTER")
+    eq(starter.status, "FAIL", f"an unread OT and an unread TID prove nothing: {starter.text[:500]}")
+
+
 # ---------------------------------------------------------------------------------------------------- V-06: the prediction
 def case_prediction_sha_file_bytes(M, tmp):
     rig = Rig(M, tmp)
@@ -2096,6 +2729,75 @@ def case_prediction_sha_file_bytes(M, tmp):
         want = M.registered_numbers(None, "ch2_wally", (6041, 6043), 3, legs, M.repo_root(),
                                     {"chains": 3, "leg_frames_override": {}, "prediction_sha256": file_sha})
     eq(rig.entry()["bounds_sha256"], ledger.numbers_sha256(want), "the ledger holds the FILE's sha256 (sha256sum matches)")
+
+
+def case_prediction_not_utf8_refused(M, tmp):
+    """(The checker's C2-06, its C70) a prediction file that is not UTF-8 is REFUSED (R3) before the ledger, never a crash:
+    no entry begun, the ledger's bytes unchanged, no chain started. CONTROL: prediction_sha_file_bytes (UTF-8 runs)."""
+    rig = Rig(M, tmp)
+    rig.ledger.write_text(json.dumps({"what": "t", "entries": []}), encoding="utf-8")
+    prediction = tmp / "prediction.txt"
+    prediction.write_bytes(b"\xff\xfe 3 of 3 \x80\n")
+    before = rig.ledger.read_bytes()
+    try:
+        code, text = rig.run(dev_args(out=str(rig.out), prediction_file=str(prediction)))
+    except UnicodeDecodeError as error:
+        raise AssertionError(f"a prediction that is not UTF-8 CRASHED the driver: {error}") from None
+    eq(code, 2, f"refused: {text[-500:]}")
+    ok("R3" in text and "cannot be read as UTF-8" in text, text[-500:])
+    eq((rig.ledger.read_bytes() == before, rig.handles), (True, []), "no entry begun, no chain started")
+
+
+# ---------------------------------------------------------------------------------------------------- C2-07: the guard
+ERROR_OF = "ERROR (harness: {kind}: {message} while grading; no PASS or FAIL; the seeds are spent)"
+
+
+def errored_run(M, rig: Rig, target: str, error: Exception) -> tuple[int, str]:
+    """`rig.run` with `M.<target>` raising `error`: an exception that ESCAPES run_batch (the entry left 'started') is a
+    FAILED case here, never a broken one."""
+    try:
+        with mock.patch.object(M, target, side_effect=error):
+            return rig.run(run_args(out=str(rig.out)))
+    except Exception as escaped:  # noqa: BLE001
+        raise AssertionError(f"the harness's exception escaped run_batch and left the entry started: {escaped!r}") from None
+
+
+def case_grade_error_finishes_entry(M, tmp):
+    """(The checker's C2-07) an exception while GRADING still FINISHES the ledger entry, with a named verdict that is neither
+    PASS nor FAIL, exit 4, and writes the evidence with the traceback and results.json. CONTROL: e2e_graded_pass."""
+    rig = graded_rig(M, tmp)
+    code, text = errored_run(M, rig, "grade_batch", RuntimeError("a planted fault"))
+    entry = rig.entry()
+    want = ERROR_OF.format(kind="RuntimeError", message="a planted fault")
+    eq((code, entry["status"]), (4, "done"), f"exit 4 and the entry FINISHED: {text[-900:]}")
+    ok(entry["verdict"].startswith(f"GRADED, {want}: live chain held-out"), entry["verdict"])
+    evidence = Path(entry["evidence"] or "")
+    ok(evidence.is_file(), f"the evidence is written: {entry['evidence']}")
+    body = evidence.read_text(encoding="utf-8")
+    ok(body.startswith(f"LIVE CHAIN HELD-OUT - GRADED - VERDICT {want}"), body[:400])
+    ok("Traceback (most recent call last)" in body and "RuntimeError: a planted fault" in body, body[:2000])
+    eq(rig.results()["verdict"], want, "results.json says ERROR")
+
+
+def case_evidence_error_finishes_entry(M, tmp):
+    """(C2-07) an exception while WRITING THE EVIDENCE finishes the entry too, keeping what was built before it; and when
+    no evidence file can be written at all (its folder is a file), the entry is STILL finished, its verdict saying so."""
+    rig = graded_rig(M, tmp / "partial")
+    code, text = errored_run(M, rig, "leg_lines", OSError("a planted fault in the evidence"))
+    entry = rig.entry()
+    want = ERROR_OF.format(kind="OSError", message="a planted fault in the evidence")
+    eq((code, entry["status"]), (4, "done"), f"exit 4 and the entry FINISHED: {text[-900:]}")
+    ok(entry["verdict"].startswith(f"GRADED, {want}"), entry["verdict"])
+    body = Path(entry["evidence"] or "").read_text(encoding="utf-8") if Path(entry["evidence"] or "").is_file() else ""
+    ok("OSError: a planted fault in the evidence" in body and "checks (registered in the bounds text below" in body,
+       f"the traceback and what was built before the error: {body[:1500]}")
+    rig = graded_rig(M, tmp / "nowhere")
+    (tmp / "nowhere" / "evidence-is-a-file").write_text("x", encoding="utf-8")
+    rig.deps.evidence_dir = tmp / "nowhere" / "evidence-is-a-file"
+    code, text = errored_run(M, rig, "grade_batch", RuntimeError("a planted fault"))
+    entry = rig.entry()
+    eq((code, entry["status"], entry["evidence"]), (4, "done", None), f"finished with no evidence file: {text[-600:]}")
+    ok("; no evidence file (" in entry["verdict"], f"the verdict says the evidence is missing: {entry['verdict']}")
 
 
 # ---------------------------------------------------------------------------------------------------- V-08: a dead launch
@@ -2117,6 +2819,9 @@ def case_launch_died_rule(M, tmp):
     eq(M.launch_died(row(log_lines=40)), None, "CONTROL: the AI's log has lines (it started): not named")
     eq(M.launch_died(row(by="ai", cause="the AI exited by itself (exit code 0)")), None, "CONTROL: the AI's own exit")
     eq(M.launch_died({"status": "NOT RUN", "harness_stop": None}), None, "CONTROL: a leg never launched")
+    # (the checker's C61) the rule reads the harness's STOP RECORD: a leg that ran with none has unknown exit facts
+    eq(M.launch_died({"status": "RAN", "harness_stop": None, "measures": {"log": {"lines": 0}}}), None,
+       "CONTROL: a RAN leg with no stop record is never named (its exit facts are unknown)")
 
 
 def case_dead_launch_named(M, tmp):
@@ -2143,6 +2848,13 @@ def case_e2e_dead_launch_evidence(M, tmp):
     ok(any(line.startswith(DEAD) and f"LC-S-6201 L1: {DEAD}" in line for line in lines), "and its own line")
     ok(any(line.strip().startswith(DEAD) for line in lines if line.startswith("      ")), "and the leg's block")
     ok(DEAD in rig.entry()["verdict"], f"and the ledger's verdict: {rig.entry()['verdict'][:300]}")
+    # (the checker's C2-04) each place on its own: the ledger verdict's OWN clause (LC.REACH's stop reason quotes the
+    # text too, so DEAD alone passed with the clause removed: C66), and LC.PURITY's and LC.THIS_RUN's lists (C64, C65)
+    ok(f"; {DEAD}: ['LC-S-6201 L1']: live chain held-out" in rig.entry()["verdict"],
+       f"the ledger verdict's own dead-launch clause: {rig.entry()['verdict'][:400]}")
+    texts = {c["id"]: c["text"] for c in results["checks"]}
+    ok(f"LC-S-6201 L1: {DEAD}" in texts["LC.PURITY"], f"LC.PURITY's failing list names it: {texts['LC.PURITY'][:600]}")
+    ok(f"LC-S-6201 L1 FAIL ({DEAD})" in texts["LC.THIS_RUN"], f"LC.THIS_RUN's list names it: {texts['LC.THIS_RUN'][:600]}")
     world = next(c for c in results["checks"] if c["id"] == "LC.WORLD")["text"]
     ok("LC-S-6201 L1 no world file" in world and "not deleted after its leg: none" in world, world[:600])
     ok(any("world.jsonl: no world file" in line for line in lines), "the leg's world line")
@@ -2152,10 +2864,13 @@ def case_world_line_no_file(M, tmp):
     chains, jobs = healthy_batch()
     chains[0]["legs"][4]["world_file"] = {"bytes": None, "deleted": False, "present": False}
     chains[1]["legs"][4]["world_file"] = {"bytes": 5000, "deleted": False, "present": True}
+    # (the checker's C62) a world file that is THERE but was not measured is no "no world file": it is not deleted
+    chains[2]["legs"][4]["world_file"] = {"bytes": None, "deleted": False, "present": True}
     world = by_id(grade(M, chains, jobs), "LC.WORLD").text
     ok(f"{chains[0]['chain']} L5 no world file" in world, world[:600])
-    ok(f"not deleted after its leg: ['{chains[1]['chain']} L5']" in world,
-       f"CONTROL: a file the OS kept open is still listed as not deleted: {world[:900]}")
+    ok(f"{chains[2]['chain']} L5 no world file" not in world, f"a present, unmeasured file is not 'no world file': {world[:900]}")
+    ok(f"not deleted after its leg: ['{chains[1]['chain']} L5', '{chains[2]['chain']} L5']" in world,
+       f"CONTROL: a file the OS kept open, measured or not, is still listed as not deleted: {world[:900]}")
 
 
 # ==================================================================================================== THE TESTCASES
@@ -2224,18 +2939,29 @@ OutTests = _bind(type("OutTests", (Base,), {}), ("r11_out_not_empty", "out_listi
 RegradeTests = _bind(type("RegradeTests", (Base,), {}), (
     "grade_batch_foreign_row", "grade_dir_foreign_row", "regrade_honest", "flipped_continue_not_counted",
     "row_identity_mismatch", "kept_file_swapped", "row_proof_weakened", "row_leg_names_checked",
-    "grade_dir_marker_on_disk"))
+    "grade_dir_marker_on_disk",
+    # (the second fix round) C2-01, C2-03, the checker's C13
+    "row_starter_mismatch", "regrade_custody_stored_empty", "grade_dir_registered_proof",
+    "e2e_row_proof_weakened_in_run", "e2e_evidence_rederived_reach", "kept_file_not_json"))
 ClosureTests = _bind(type("ClosureTests", (Base,), {}), (
     "grader_files_cover_closure", "closure_not_vacuous", "closure_scan_planted", "grader_data_hashed",
-    "changed_decoder_refused", "crlf_only_accepted"))
+    "changed_decoder_refused", "crlf_only_accepted",
+    # (the second fix round) C2-02, C2-05
+    "closure_starts", "closure_starts_planted", "path_runs_are_roots", "path_run_scan_planted",
+    "closure_toplevel_names", "changed_path_run_refused", "closure_enforced_register", "closure_enforced_run"))
 KindTests = _bind(type("KindTests", (Base,), {}), ("verdict_impure_l5_fails", "verdict_stale_l5_fails",
                                                    "verdict_wrong_starter_fails", "graded_kinds_match_bounds"))
 GuardTests = _bind(type("GuardTests", (Base,), {}), (
     "watchdog_value", "world_grew_larger_graded", "kept_outside_repo", "dev_partial_overlap_refused",
-    "e2e_leftover_reported", "git_state_scratch", "abort_before_leg", "starter_floor"))
-PredictionTests = _bind(type("PredictionTests", (Base,), {}), ("prediction_sha_file_bytes",))
+    "e2e_leftover_reported", "git_state_scratch", "abort_before_leg", "starter_floor",
+    # (the second fix round) the verifier's V02
+    "starter_unread_ot_and_tid"))
+PredictionTests = _bind(type("PredictionTests", (Base,), {}), ("prediction_sha_file_bytes", "prediction_not_utf8_refused"))
 DeadLaunchTests = _bind(type("DeadLaunchTests", (Base,), {}), ("launch_died_rule", "dead_launch_named",
                                                                "e2e_dead_launch_evidence", "world_line_no_file"))
+# (the second fix round) C2-07: the harness's exception after the chains still finishes the ledger entry
+GradeErrorTests = _bind(type("GradeErrorTests", (Base,), {}), ("grade_error_finishes_entry",
+                                                               "evidence_error_finishes_entry"))
 
 
 class PurposeTests(unittest.TestCase):
@@ -2538,18 +3264,21 @@ MUTANTS = [
     ("M99_raw_rows_graded", "    chains, ignored, rederived = registered_chains(chains, jobs, legs)",
      "    _, ignored, rederived = registered_chains(chains, jobs, legs)",
      ["grade_batch_foreign_row", "flipped_continue_not_counted"]),
+    # (re-anchored in the second fix round: registered_chains' comprehension became a loop, C2-01)
     ("M100_unregistered_counted",
-     '    kept = [rederived_chain(rows[job["chain"]][0], job, legs) for job in jobs if len(rows.get(job["chain"]) or []) == 1]',
-     '    kept = [rederived_chain(rows[job["chain"]][0], job, legs) for job in jobs if len(rows.get(job["chain"]) or []) == 1]'
-     ' + [c for c in chains if c.get("chain") not in registered]', ["grade_batch_foreign_row"]),
-    ("M101_duplicates_counted", 'for job in jobs if len(rows.get(job["chain"]) or []) == 1]',
-     'for job in jobs if rows.get(job["chain"])]', ["grade_batch_foreign_row"]),
+     '    return kept, ignored, [note for chain in kept for note in chain.get("rederived") or []]',
+     '    kept += [c for c in chains if c.get("chain") not in registered]\n'
+     '    return kept, ignored, [note for chain in kept for note in chain.get("rederived") or []]',
+     ["grade_batch_foreign_row"]),
+    ("M101_duplicates_counted", "        if len(found) != 1:\n            continue\n",
+     "        if not found:\n            continue\n", ["grade_batch_foreign_row"]),
+    # (the second fix round: a mis-identified row is ignored BEFORE re-derivation, C2-01, so the stored continue plays
+    # no part in row_identity_mismatch any more)
     ("M102_stored_continue_trusted", '            leg["continue"] = stored and not problems', '            leg["continue"] = stored',
-     ["flipped_continue_not_counted", "row_identity_mismatch", "kept_file_swapped", "row_proof_weakened",
-      "row_leg_names_checked"]),
-    ("M103_identity_ignored", '    identity = [f"its {key} {out.get(key)!r} is not the registered {job.get(key)!r}" for key in '
-                              'IDENTITY\n                if out.get(key) != job.get(key)]', "    identity = []",
-     ["row_identity_mismatch"]),
+     ["flipped_continue_not_counted", "kept_file_swapped", "row_proof_weakened", "row_leg_names_checked"]),
+    ("M103_identity_ignored", '        wrong = [f"its {key} {found[0].get(key)!r} is not the registered {job.get(key)!r}" for '
+                              'key in IDENTITY\n                 if found[0].get(key) != job.get(key)]', "        wrong = []",
+     ["row_identity_mismatch", "row_starter_mismatch"]),
     ("M104_kept_not_reread", "            kept = kept_problem(leg)", "            kept = None", ["kept_file_swapped"]),
     ("M105_row_proof_used", '            proof = want["proof"] if want is not None else (leg.get("proof") or {})',
      '            proof = leg.get("proof") or {}', ["row_proof_weakened"]),
@@ -2574,8 +3303,9 @@ MUTANTS = [
      "        out.add(name)", ["closure_scan_planted"]),
     ("M114_pokemon_unhashed", '"pokedex.py", "pokemon.py", "pokemon_party.py",', '"pokedex.py", "pokemon_party.py",',
      ["grader_files_cover_closure", "changed_decoder_refused"]),
-    ("M115_disk_budget_unhashed", '"check_grader_imports.py", "disk_budget.py", "grader_checks.py",',
-     '"check_grader_imports.py", "grader_checks.py",', ["grader_files_cover_closure", "changed_decoder_refused"]),
+    ("M115_disk_budget_unhashed", '"check_grader_imports.py", "check_purity.py", "disk_budget.py", "grader_checks.py",',
+     '"check_grader_imports.py", "check_purity.py", "grader_checks.py",',
+     ["grader_files_cover_closure", "changed_decoder_refused"]),
     ("M116_symbols_unhashed", 'GRADER_DATA = ("sandbox-pokebot/modules/data/symbols/pokeemerald.sym",\n',
      "GRADER_DATA = (\n", ["grader_data_hashed", "changed_decoder_refused"]),
     # V-04: what the bounds text lists as GRADED is GRADED (and counts in the verdict)
@@ -2640,6 +3370,110 @@ MUTANTS = [
     ("M138_custody_limit_unsaid",
      '"AI_PLAYER_*): on a later leg they catch a regression of the harness only, never anything the AI does.",',
      '"AI_PLAYER_*).",', ["bounds_needles"]),
+    # ------------------------------------------------------------------ the second fix round (the checker's C2-01..C2-07)
+    # C2-01: a row whose identity is not the registered job's is IGNORED (its chain absent), never graded
+    ("M144_identity_starter_unchecked", 'IDENTITY = ("chain", "pair", "personality", "starter", "seed", "profile")',
+     'IDENTITY = ("chain", "pair", "personality", "seed", "profile")', ["row_starter_mismatch"]),
+    ("M145_mismatched_row_counted", '                           f"so the chain is ABSENT")\n            continue\n',
+     '                           f"so the chain is ABSENT")\n', ["row_identity_mismatch", "row_starter_mismatch"]),
+    ("M181_ignored_rule_unsaid",
+     'f"starter, seed or profile is not the registered job\'s are each IGNORED and named with the reason, so a registered "',
+     'f"starter, seed or profile is not the registered job\'s never count, so a registered "', ["bounds_needles"]),
+    # C2-02: the closure starts from the files run by path and the plugins loaded by name, through the framework's names
+    ("M146_check_purity_not_a_root",
+     'PATH_ROOTS = ("ai_player/gates/check_purity.py",  # host/launcher.py run_gate: L5.PURITY_GATE\n', "PATH_ROOTS = (\n",
+     ["path_runs_are_roots", "closure_starts", "bounds_needles"]),
+    ("M147_pokebot_not_a_root", '              "sandbox-pokebot/pokebot.py")  # host/launcher.py bot_command',
+     "              )  # host/launcher.py bot_command", ["path_runs_are_roots"]),
+    ("M148_plugins_not_loaded",
+     '        names = [f"plugins.{p.name[:-3]}" for p in sorted((repo / PLUGINS_DIR).iterdir()) if p.name.endswith(".py")]',
+     "        names = []", ["closure_starts", "closure_starts_planted"]),
+    ("M149_custom_modes_not_loaded",
+     '    names += [f"plugins.custom_modes.{p.stem}" for p in sorted((repo / CUSTOM_MODES_DIR).glob("*.py"))\n'
+     '              if not p.name.startswith("_")]', "    names += []", ["closure_starts", "closure_starts_planted"]),
+    ("M150_private_modes_loaded", '              if not p.name.startswith("_")]', "              if True]",
+     ["closure_starts_planted"]),
+    ("M151_plugin_parents_unfollowed", '        for k in range(1, len(parts) + 1):\n            follow(".".join(parts[:k]))',
+     "        follow(name)", ["closure_starts_planted"]),
+    ("M152_framework_names_unfollowed",
+     '                 ("requirements", "sandbox-pokebot/requirements"), ("updater", "sandbox-pokebot/updater"))',
+     "                 )", ["closure_starts", "closure_starts_planted", "closure_toplevel_names"]),
+    ("M153_module_files_unresolved", '            for path in (repo / folder / "__init__.py", repo / f"{folder}.py"):',
+     '            for path in (repo / folder / "__init__.py",):', ["closure_starts", "closure_starts_planted"]),
+    ("M155_framework_files_unhashed", '                *(f"sandbox-pokebot/{name}" for name in GRADER_BOT), *GRADER_DATA)',
+     "                *GRADER_DATA)", ["grader_files_cover_closure", "changed_path_run_refused", "grader_data_hashed"]),
+    # C2-05: every statement body an import can sit in is scanned; the closure is enforced at registration and the run
+    ("M156_scan_skips_finally", '        for name in ("body", "orelse", "finalbody", "handlers", "cases"):',
+     '        for name in ("body", "orelse", "handlers", "cases"):', ["closure_scan_planted"]),
+    ("M157_scan_skips_orelse", '        for name in ("body", "orelse", "finalbody", "handlers", "cases"):',
+     '        for name in ("body", "finalbody", "handlers", "cases"):', ["closure_scan_planted"]),
+    ("M158_scan_skips_match", '        for name in ("body", "orelse", "finalbody", "handlers", "cases"):',
+     '        for name in ("body", "orelse", "finalbody", "handlers"):', ["closure_scan_planted"]),
+    ("M169_register_closure_unchecked", "    refusal = closure_refusal(missing)\n    if refusal is not None:",
+     "    refusal = closure_refusal(missing)\n    if False:", ["closure_enforced_register"]),
+    ("M170_run_closure_unchecked", '    if graded and facts.get("closure_missing"):', "    if False:",
+     ["closure_enforced_run"]),
+    ("M171_closure_unmeasured",
+     '    facts["closure_missing"], facts["closure_size"], facts["closure_seconds"] = deps.closure()',
+     '    facts["closure_missing"], facts["closure_size"], facts["closure_seconds"] = [], 0, 0.0', ["closure_enforced_run"]),
+    ("M172_closure_refusal_silent", "    if not missing:\n        return None\n", "    if True:\n        return None\n",
+     ["closure_enforced_register", "closure_enforced_run"]),
+    ("M173_closure_missing_empty",
+     "    return [rel for rel in closure if rel not in GRADER_FILES], len(closure), round(time.perf_counter() - began, 2)",
+     "    return [], len(closure), round(time.perf_counter() - began, 2)",
+     ["closure_enforced_register", "closure_enforced_run"]),
+    ("M182_closure_rule_unsaid",
+     '"and a graded run are REFUSED while that scan finds a file this list does not hash (each named). Not hashed: the "',
+     '"Not hashed: the "', ["bounds_needles"]),
+    # C2-03: custody, grade DIR and the in-run grade re-derive by the REGISTERED legs; the evidence prints the re-derived
+    # reach; a kept line must still be a JSON object (the checker's C15b, C17, C18, C13)
+    ("M159_stored_reach_printed", "                rederived = chain_reaches(row, len(legs))",
+     "                rederived = stored", ["e2e_evidence_rederived_reach"]),
+    ("M160_custody_called_discarded",
+     '            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), *custody_problems(leg, prev, job, index)]))',
+     '            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), '
+     '*[p for p in custody_problems(leg, prev, job, index) if False]]))', ["regrade_custody_stored_empty"]),
+    ("M161_grade_dir_without_legs",
+     '                          "optional": rep.get("optional"), "most_running": results.get("most_running")}, legs=legs)',
+     '                          "optional": rep.get("optional"), "most_running": results.get("most_running")})',
+     ["grade_dir_registered_proof"]),
+    ("M162_run_batch_without_legs",
+     '"main_profile": main, "optional": optional, "most_running": plan["most_running"]}, legs=legs)',
+     '"main_profile": main, "optional": optional, "most_running": plan["most_running"]})',
+     ["e2e_row_proof_weakened_in_run"]),
+    ("M163_kept_json_unchecked", '    return None if isinstance(parsed, dict) else "its kept last line is not a JSON object"',
+     "    return None", ["kept_file_not_json"]),
+    # C2-04: the dead launch named in LC.PURITY's and LC.THIS_RUN's lists and in the ledger verdict's own clause; the
+    # rule reads the stop record; a present, unmeasured world file is no "no world file" (the checker's C64-C66, C61, C62)
+    ("M164_purity_list_unnamed", '+ (f"{DEAD_LAUNCH}; " if leg.get("harness") else "") + ", ".join(wrong))',
+     '+ ", ".join(wrong))', ["e2e_dead_launch_evidence"]),
+    ("M165_this_run_list_unnamed",
+     '    dead = {(chain.get("chain"), leg.get("leg")) for chain, leg in ran if leg.get("harness")}', "    dead = set()",
+     ["e2e_dead_launch_evidence"]),
+    ("M166_ledger_verdict_unnamed", "if failing and not aborted else ''}{died_text}: live chain \"",
+     "if failing and not aborted else ''}: live chain \"", ["e2e_dead_launch_evidence"]),
+    ("M167_dead_without_stop_record", 'or not stop or stop.get("by") == "ai" or stop.get("real_frames")',
+     'or stop.get("by") == "ai" or stop.get("real_frames")', ["launch_died_rule"]),
+    ("M168_no_world_ignores_present", '    return world.get("bytes") is None and not world.get("present")',
+     '    return world.get("bytes") is None', ["world_line_no_file"]),
+    # C2-06: a prediction that is not UTF-8 is refused, never a crash (the checker's C70)
+    ("M174_prediction_not_utf8_crashes", "        except (OSError, UnicodeDecodeError) as error:",
+     "        except OSError as error:", ["prediction_not_utf8_refused"]),
+    # C2-07: an exception after the chains still finishes the ledger entry, named ERROR, with the evidence it can write
+    ("M175_grade_error_unguarded", "        return finish_on_error(error, traceback.format_exc(), ctx)", "        raise",
+     ["grade_error_finishes_entry", "evidence_error_finishes_entry"]),
+    ("M176_error_entry_unfinished", '    ledger.finish(ctx["entry_id"], verdict_line, reference, path=ctx["ledger_path"])',
+     "    pass", ["grade_error_finishes_entry", "evidence_error_finishes_entry"]),
+    ("M177_error_evidence_unwritten", '        evidence.write_text("\\n".join(lines) + "\\n", encoding="utf-8")',
+     "        pass", ["grade_error_finishes_entry"]),
+    ("M178_error_verdict_unnamed",
+     '    return (f"ERROR (harness: {type(error).__name__}: {str(error)[:300]} while grading; no PASS or FAIL; the seeds are "'
+     '\n            f"spent)")', '    return "FAIL"', ["grade_error_finishes_entry"]),
+    ("M179_error_rule_unsaid",
+     "\"still FINISHED, as 'ERROR (harness: <type>: <message> while grading; no PASS or FAIL; the seeds are spent)', with \"",
+     "\"still finished, with \"", ["bounds_needles"]),
+    # the verifier's V02: an unread OT and an unread TID (None == None) never prove the player's own starter
+    ("M180_starter_tid_unread_ok", ' \\\n        and after.get("player_tid") is not None', "", ["starter_unread_ot_and_tid"]),
 ]
 
 

@@ -6,13 +6,17 @@ the build report). TEST SIDE: the AI never imports this module (ImportTests).
     py -3.12 ai_player/gates/live_chain.py bounds (--run ch5 | --to ID [--chains 3|6] [--leg-frames L1=F,...])
         print the BOUNDS TEXT, the legs, the registered numbers (without the text) and both sha256s (read only)
     py -3.12 ai_player/gates/live_chain.py register --run ch5 [--note-file F]
-        pre-register GRADED_RUNS["ch5"]'s seeds with registered_numbers()'s sha256 (BEFORE any run; commit and push it)
+        pre-register GRADED_RUNS["ch5"]'s seeds with registered_numbers()'s sha256 (BEFORE any run; commit and push it);
+        REFUSED (R12, the checker's C2-05) while the grader's import closure finds a file GRADER_FILES does not hash
     py -3.12 ai_player/gates/live_chain.py run --purpose graded --run ch5 --out DIR
     py -3.12 ai_player/gates/live_chain.py run --purpose development --first-seed N --to ID --prediction-file F --out DIR
             [--chains 3|6] [--leg-frames L1=F[,L2=F...]] [--build-root DIR]
-        exit 0 = PASS (graded) / ran (development), 1 = FAIL, 2 = refused before any leg, 3 = ABORTED by the harness (disk)
+        exit 0 = PASS (graded) / ran (development), 1 = FAIL, 2 = refused before any leg, 3 = ABORTED by the harness (disk),
+        4 = ERROR: the harness raised while grading or writing the evidence (the checker's C2-07): the ledger entry is
+        still FINISHED, as "ERROR (harness: ...; no PASS or FAIL; the seeds are spent)", with the traceback in the evidence
         --out must not exist or be EMPTY (R11, the verifier's V-01): an earlier batch's STOP.txt or ABORT.txt would stop
-        every chain after the ledger began, spending the seeds
+        every chain after the ledger began, spending the seeds; a graded run is refused (R12) like a registration while
+        the import closure finds a file GRADER_FILES does not hash
     py -3.12 ai_player/gates/live_chain.py grade DIR      offline re-grade of a batch's rows (no ledger write): only the
         registered chains' rows (results.json's jobs), each read from rows/<chain>.json and RE-DERIVED from its own facts;
         any other row is printed as IGNORED (V-02)
@@ -27,7 +31,10 @@ left. A leg targets its chapter's end milestone (`legs_of`, derived from `knowle
 the milestones name), freshness-checked by `L5.THIS_RUN`. A chain that misses STOPS: its later legs are NOT RUN, each with
 a row that says why. Everything the batch is graded by (BOUNDS_TEXT, every constant, the legs and their proofs, the
 milestones' sha256, the AI code's sha256 and the grader files' sha256) is hashed into the ledger registration, so
-`ledger.begin` refuses a graded run on other numbers or code. The disk rule is live_ki128's section 6, per leg.
+`ledger.begin` refuses a graded run on other numbers or code. The grader files are the IMPORT CLOSURE of this module, of
+the files the harness and the launcher RUN BY PATH (`PATH_ROOTS`: the purity gate, the truth and hands harnesses, the
+framework's pokebot.py) and of the plugins the framework LOADS BY NAME in every leg (`loaded_plugins`), the checker's
+C2-02. The disk rule is live_ki128's section 6, per leg.
 
 KNOWN LIMITS (said, not hidden; also in the evidence): each leg is its own launcher session, so the goal manager's in-run
 memory starts again at every leg and the HARNESS names each leg's target (critic CH-18: this tests the game state and the
@@ -40,7 +47,11 @@ snapshot lines are larger. LC.CUSTODY reads only the HARNESS's own records (the 
 sha256 of the one kept file, the keys of the environment `run_chain` builds, not the whole environment `run_arm` passes): on
 a later leg it catches a regression of the harness only, never anything the AI does (the verifier's V-09). A launch that
 dies before playing a frame RAN, so it fails LC.PURITY and LC.THIS_RUN and the batch (the lead's ruling on V-08: the
-registered rule is kept); its row and the evidence name it "harness: the launch died before playing a frame".
+registered rule is kept); its row and the evidence name it "harness: the launch died before playing a frame". (The
+checker's C2-07) an exception in the harness after the chains ended, while grading or writing the evidence, still
+FINISHES the ledger entry, as "ERROR (harness: <type>: <message> while grading; no PASS or FAIL; the seeds are spent)",
+the way the disk guard's ABORT is recorded, with whatever evidence could be written and the traceback (exit 4). An
+exception while the chains run is not guarded (the entry stays "started"; see the build report).
 """
 
 from __future__ import annotations
@@ -56,6 +67,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterable
@@ -129,59 +141,101 @@ PROOF_NOTES = {
                       "BRINEY's sail sets VAR 8 alone (Route104_MrBrineysHouse/scripts.inc:78), so the FLAG is what tells a "
                       "rival meeting: the proof means 'met the rival in Rustboro or on Route 104'",
 }
-#: (the verifier's V-03) the folders the grader's IMPORT CLOSURE is followed through: (module prefix, its folder). The AI's
-#: own modules (ai_player/ outside gates/) are not followed: they are hashed whole, as ai_code_sha256
-CLOSURE_ROOTS = (("ai_player.gates", "ai_player/gates"), ("modules", "sandbox-pokebot/modules"))
-#: THE FILES THAT GRADE THE BATCH, hashed into the registration (`grader_files`). (V-03) The code is the IMPORT CLOSURE of
-#: this module within the repository, as `grader_closure` finds it: every import, at module level or inside a function
-#: (a function-local import runs on the path that calls it; a static scan cannot tell which do, so all are followed),
-#: relative imports resolved, parent packages' __init__.py included. test_live_chain fails when the scan finds a file not
-#: listed here. The truth harness (play_harness.py), the party decoder (modules/pokemon.py, pokemon_party.py) and the
-#: symbol reader (modules/game.py, memory.py) are among them; so is most of the bot framework, because its modules import
-#: one another (a change there means a new registration, which is cheap: the same unplayed range may be re-registered).
+#: (the verifier's V-03; the checker's C2-02) the module names the grader's IMPORT CLOSURE is followed through: (module
+#: prefix, the path of that package or module without ".py"). The AI's own modules (ai_player/ outside gates/) are not
+#: followed: they are hashed whole, as ai_code_sha256. The framework's are the top-level names a leg's pokebot.py and its
+#: modules import (sandbox-pokebot is sys.path[0] in a leg): its modules and plugins packages and its pokebot,
+#: requirements and updater files. NOT `profiles`: sandbox-pokebot/profiles is git-ignored and per machine (the framework
+#: copies modules/config/templates into it at start, catch filters included), so following it would make the closure
+#: depend on the machine; it is not hashed, and the bounds text says so (test_live_chain fails on any other top-level name
+#: of sandbox-pokebot an import names)
+CLOSURE_ROOTS = (("ai_player.gates", "ai_player/gates"), ("modules", "sandbox-pokebot/modules"),
+                 ("plugins", "sandbox-pokebot/plugins"), ("pokebot", "sandbox-pokebot/pokebot"),
+                 ("requirements", "sandbox-pokebot/requirements"), ("updater", "sandbox-pokebot/updater"))
+#: (the checker's C2-02) the files the harness or the launcher RUNS BY PATH (`[sys.executable, <file>, ...]`), which no
+#: import statement has to reach, so each STARTS the closure: test_live_chain finds every path-built argv in the closure's
+#: files and the AI's code and fails on a script that is not listed here (a file that runs itself is in the closure
+#: already). The purity gate decides L5.PURITY_GATE: host/launcher.py's run_gate runs it and its exit code is the
+#: '[AI-GATE] ... verdict=PASS' line live_step2 requires; host/launcher.py's bot_command runs pokebot.py in every leg
+PATH_ROOTS = ("ai_player/gates/check_purity.py",  # host/launcher.py run_gate: L5.PURITY_GATE
+              "ai_player/gates/hands_harness.py",  # live_step2's hands harness
+              "ai_player/gates/play_harness.py",  # live_step5.truth_of and rate_step5: the truth every proof is read from
+              "ai_player/gates/probe_presses.py",  # live_step2's presses probe
+              "sandbox-pokebot/pokebot.py")  # host/launcher.py bot_command (and modules/endless_x4.py's lanes): every leg
+#: (the checker's C2-02) the plugins the framework loads BY NAME in every leg: modules/plugins.py's load_plugins() imports
+#: every name ending in .py in this folder with __import__("plugins.<name>") ...
+PLUGINS_DIR = "sandbox-pokebot/plugins"
+#: ... and plugins/custom_modes_loader.py's get_additional_bot_modes() (called for pokebot.py's bot-mode names) imports
+#: every *.py here not starting with "_" with importlib.import_module("plugins.custom_modes.<stem>")
+CUSTOM_MODES_DIR = "sandbox-pokebot/plugins/custom_modes"
+#: THE FILES THAT GRADE THE BATCH, hashed into the registration (`grader_files`). (V-03, C2-02) The code is the IMPORT
+#: CLOSURE, within the repository, of this module, of PATH_ROOTS and of the plugins the framework loads by name
+#: (`loaded_plugins`), as `grader_closure` finds it: every import, at module level or inside a function (a function-local
+#: import runs on the path that calls it; a static scan cannot tell which do, so all are followed), relative imports
+#: resolved, parent packages' __init__.py included. `register` and a graded run are REFUSED (R12) while the scan finds a
+#: file not listed here (C2-05), and test_live_chain fails. The truth harness (play_harness.py), the party decoder
+#: (modules/pokemon.py, pokemon_party.py), the symbol reader (modules/game.py, memory.py), the purity gate and the AI's
+#: plugin are among them; so is most of the bot framework, because its modules import one another (a change there means a
+#: new registration, which is cheap: the same unplayed range may be re-registered).
 #: (critic CH-08) the gates part, under ai_player/gates/
-GRADER_GATES = ("__init__.py", "check_grader_imports.py", "disk_budget.py", "grader_checks.py", "hands_harness.py",
-                "ledger.py", "live_chain.py", "live_ki128.py", "live_step2.py", "live_step5.py", "play_harness.py",
-                "probe_end_screen.py", "probe_eyes.py", "probe_presses.py", "probe_save_kill.py", "provenance.py",
-                "rate_step5.py", "revert_step5.py", "window.py")
-#: the framework part, under sandbox-pokebot/modules/ (reached from the gates' `modules.*` imports)
+GRADER_GATES = ("__init__.py", "check_grader_imports.py", "check_purity.py", "disk_budget.py", "grader_checks.py",
+                "hands_harness.py", "ledger.py", "live_chain.py", "live_ki128.py", "live_step2.py", "live_step5.py",
+                "play_harness.py", "probe_end_screen.py", "probe_eyes.py", "probe_presses.py", "probe_save_kill.py",
+                "provenance.py", "rate_step5.py", "revert_step5.py", "window.py")
+#: the framework part, under sandbox-pokebot/modules/ (reached from the gates' and the framework's `modules.*` imports)
 GRADER_SANDBOX = (
-    "badge_case.py", "badge_log.py", "battle_action_selection.py", "battle_evolution_scene.py", "battle_fault.py",
-    "battle_handler.py", "battle_menuing.py", "battle_move_replacing.py", "battle_state.py", "battle_strategies/__init__.py",
-    "battle_strategies/_interface.py", "battle_strategies/_util.py", "battle_strategies/catch.py",
-    "battle_strategies/default.py", "battle_strategies/item_stealing.py", "battle_strategies/level_balancing.py",
-    "battle_strategies/level_up.py", "battle_strategies/lose_on_purpose.py", "battle_strategies/run_away.py",
-    "berry_trees.py", "built_in_plugins/discord_integration.py", "built_in_plugins/generate_encounter_media.py",
-    "built_in_plugins/obs.py", "catch_balls.py", "clock.py", "config/__init__.py", "config/schemas_v1.py", "console.py",
-    "context.py", "daycare.py", "debug.py", "debug_logger.py", "debug_utilities.py", "discord.py", "dmgaudit.py",
-    "encounter.py", "encounter_index.py", "exceptions.py", "faint_chooser.py", "files.py", "fishing.py", "game.py",
-    "game_sprites.py", "game_stats.py", "gui/__init__.py", "gui/create_profile_screen.py", "gui/debug_edit_item_bag.py",
-    "gui/debug_edit_party.py", "gui/debug_edit_pokedex.py", "gui/debug_menu.py", "gui/debug_tabs.py",
-    "gui/desktop_notification.py", "gui/emulator_controls.py", "gui/emulator_screen.py", "gui/ev_selection_window.py",
-    "gui/glfw.py", "gui/load_state_window.py", "gui/milestone_window.py", "gui/multi_select_window.py",
-    "gui/select_profile_screen.py", "items.py", "keyboard.py", "libmgba.py", "main.py", "map.py", "map_data.py",
-    "map_path.py", "mart.py", "memory.py", "menu_parsers.py", "menuing.py", "modes/__init__.py", "modes/_asserts.py",
-    "modes/_interface.py", "modes/_listeners.py", "modes/berry_blend.py", "modes/bunny_hop.py", "modes/daycare.py",
-    "modes/ev_train.py", "modes/feebas.py", "modes/fishing.py", "modes/game_corner.py", "modes/item_steal.py",
-    "modes/kecleon.py", "modes/level_grind.py", "modes/nugget_bridge.py", "modes/puzzle_solver.py",
-    "modes/roamer_reencounter.py", "modes/roamer_reset.py", "modes/rock_smash.py", "modes/safari.py", "modes/spin.py",
-    "modes/starters.py", "modes/static_gift_resets.py", "modes/static_run_away.py", "modes/static_soft_resets.py",
-    "modes/sudowoodo.py", "modes/sweet_scent.py", "modes/util/__init__.py", "modes/util/_util_helper.py",
-    "modes/util/event_flags_and_vars.py", "modes/util/global_navigation.py", "modes/util/higher_level_actions.py",
-    "modes/util/items.py", "modes/util/map.py", "modes/util/pc_interaction.py", "modes/util/pokecenter_loop.py",
-    "modes/util/sleep.py", "modes/util/soft_reset.py", "modes/util/tasks_scripts.py", "modes/util/walking.py",
-    "obtainability.py", "party_accounting.py", "player.py", "plugin_interface.py", "plugins.py", "pokeblock_feeder.py",
-    "pokedex.py", "pokemon.py", "pokemon_party.py", "pokemon_storage.py", "profiles.py", "region_map.py",
-    "remote_party.py", "roamer.py", "roms.py", "runtime.py", "safari_strategy.py", "save_data.py", "save_import.py",
-    "sprites.py", "state_cache.py", "stats.py", "stats_migrate.py", "story/__init__.py", "story/battle_items.py",
-    "story/chapters.py", "story/counter_hunt.py", "story/double_items.py", "story/early_game.py",
-    "story/fortree_gates.py", "story/gym_tm_teach.py", "story/league_reserve.py", "story/mossdeep_gym.py",
-    "story/mossdeep_gym_puzzle.py", "story/obstacle_clearing.py", "story/overworld_items.py", "story/pc_trip.py",
-    "story/pokemon_league.py", "story/progress.py", "story/region_reach.py", "story/seafloor_cavern.py",
-    "story/sootopolis.py", "story/space_center.py", "story/stock_topoff.py", "story/team_policy.py",
-    "story/training_areas.py", "story/victory_road.py", "story_milestones.py", "tasks.py", "tcg_card.py",
-    "text_printer.py", "version.py", "warp_graph.py", "web/http.py", "web/http_stream.py")
-#: the AI's plugin in the framework: the hook it plays through (no grader imports it; the framework loads it by name)
+    "analytics.py", "backup_manager.py", "badge_case.py", "badge_log.py", "battle_action_selection.py",
+    "battle_evolution_scene.py", "battle_fault.py", "battle_handler.py", "battle_menuing.py",
+    "battle_move_replacing.py", "battle_state.py", "battle_strategies/__init__.py", "battle_strategies/_interface.py",
+    "battle_strategies/_util.py", "battle_strategies/catch.py", "battle_strategies/default.py",
+    "battle_strategies/item_stealing.py", "battle_strategies/level_balancing.py", "battle_strategies/level_up.py",
+    "battle_strategies/lose_on_purpose.py", "battle_strategies/run_away.py", "berry_trees.py",
+    "built_in_plugins/discord_integration.py", "built_in_plugins/generate_encounter_media.py",
+    "built_in_plugins/obs.py", "capabilities.py", "catch_balls.py", "clock.py", "cloud_sync.py", "config/__init__.py",
+    "config/schemas_v1.py", "console.py", "context.py", "daycare.py", "debug.py", "debug_logger.py",
+    "debug_utilities.py", "discord.py", "dmgaudit.py", "encounter.py", "encounter_index.py", "endless_x4.py",
+    "exceptions.py", "exceptions_hook.py", "faint_chooser.py", "files.py", "fishing.py", "game.py", "game_cheats.py",
+    "game_sprites.py", "game_stats.py", "gamepad.py", "gui/__init__.py", "gui/create_profile_screen.py",
+    "gui/dashboard_gui.py", "gui/debug_edit_item_bag.py", "gui/debug_edit_party.py", "gui/debug_edit_pokedex.py",
+    "gui/debug_menu.py", "gui/debug_tabs.py", "gui/desktop_notification.py", "gui/emulator_controls.py",
+    "gui/emulator_screen.py", "gui/ev_selection_window.py", "gui/glfw.py", "gui/headless.py",
+    "gui/load_state_window.py", "gui/milestone_window.py", "gui/multi_select_window.py", "gui/select_profile_screen.py",
+    "gui/tile_child.py", "items.py", "keyboard.py", "libmgba.py", "living_dex.py", "macros.py", "main.py", "map.py",
+    "map_data.py", "map_path.py", "mart.py", "memory.py", "menu_parsers.py", "menuing.py", "modes/__init__.py",
+    "modes/_asserts.py", "modes/_interface.py", "modes/_listeners.py", "modes/berry_blend.py", "modes/bunny_hop.py",
+    "modes/daycare.py", "modes/ev_train.py", "modes/feebas.py", "modes/fishing.py", "modes/game_corner.py",
+    "modes/item_steal.py", "modes/kecleon.py", "modes/level_grind.py", "modes/nugget_bridge.py",
+    "modes/puzzle_solver.py", "modes/roamer_reencounter.py", "modes/roamer_reset.py", "modes/rock_smash.py",
+    "modes/safari.py", "modes/spin.py", "modes/starters.py", "modes/static_gift_resets.py", "modes/static_run_away.py",
+    "modes/static_soft_resets.py", "modes/sudowoodo.py", "modes/sweet_scent.py", "modes/util/__init__.py",
+    "modes/util/_util_helper.py", "modes/util/event_flags_and_vars.py", "modes/util/global_navigation.py",
+    "modes/util/higher_level_actions.py", "modes/util/items.py", "modes/util/map.py", "modes/util/pc_interaction.py",
+    "modes/util/pokecenter_loop.py", "modes/util/sleep.py", "modes/util/soft_reset.py", "modes/util/tasks_scripts.py",
+    "modes/util/walking.py", "obtainability.py", "party_accounting.py", "player.py", "plugin_interface.py",
+    "plugins.py", "pokeblock_feeder.py", "pokedex.py", "pokemon.py", "pokemon_party.py", "pokemon_storage.py",
+    "profiles.py", "rarity.py", "region_map.py", "remote_party.py", "roamer.py", "roms.py", "runtime.py",
+    "safari_strategy.py", "save_data.py", "save_import.py", "sprites.py", "state_cache.py", "stats.py",
+    "stats_migrate.py", "story/__init__.py", "story/amulet_coin.py", "story/battle_items.py", "story/bossmode_topup.py",
+    "story/chapters.py", "story/config.py", "story/counter_hunt.py", "story/counter_plan.py", "story/double_items.py",
+    "story/early_game.py", "story/fortree_gates.py", "story/gym_tm_teach.py", "story/intro.py",
+    "story/league_reserve.py", "story/mossdeep_gym.py", "story/mossdeep_gym_puzzle.py", "story/obstacle_clearing.py",
+    "story/overworld_items.py", "story/pc_trip.py", "story/pokemon_league.py", "story/progress.py",
+    "story/region_reach.py", "story/seafloor_cavern.py", "story/sootopolis.py", "story/sootopolis_gym.py",
+    "story/space_center.py", "story/stock_topoff.py", "story/team_policy.py", "story/trainer_identity.py",
+    "story/training_areas.py", "story/victory_road.py", "story/weaken_catch.py", "story_milestones.py", "tasks.py",
+    "tcg_card.py", "text_printer.py", "tile_bridge.py", "tile_mosaic.py", "update_check.py", "version.py",
+    "warp_graph.py", "watchdog.py", "web/http.py", "web/http_stream.py", "x4_logs.py")
+#: (C2-02) the rest of the framework, under sandbox-pokebot/: its entry (pokebot.py, run by path) with the requirements and
+#: updater files it imports, and the plugins it loads by name (the AI's own hook, PLUGIN, among them)
+GRADER_BOT = (
+    "plugins/backup_plugin.py", "plugins/custom_modes/__init__.py", "plugins/custom_modes/ai_player_mode.py",
+    "plugins/custom_modes/hunt_mode.py", "plugins/custom_modes/living_dex_mode.py",
+    "plugins/custom_modes/macro_player.py", "plugins/custom_modes/patrol.py", "plugins/custom_modes/story_mode.py",
+    "plugins/custom_modes_loader.py", "plugins/dashboard_autoopen.py", "plugins/game_cheats_plugin.py",
+    "plugins/gamepad_plugin.py", "plugins/macro_plugin.py", "plugins/shiny_alert_plugin.py",
+    "plugins/watchdog_plugin.py", "pokebot.py", "requirements.py", "updater.py")
+#: the AI's plugin in the framework: the hook it plays through (no grader imports it; the framework loads it by name, so it
+#: is in GRADER_BOT through `loaded_plugins`)
 PLUGIN = "sandbox-pokebot/plugins/custom_modes/ai_player_mode.py"
 #: THE DATA THE GRADE READS (V-03): the truth's symbol tables (modules/game.py loads both for Emerald: every address the
 #: truth reads, gSaveBlock1Ptr's and gSaveBlock2Ptr's among them), the tables the party decoder opens when it is imported
@@ -196,7 +250,8 @@ GRADER_DATA = ("sandbox-pokebot/modules/data/symbols/pokeemerald.sym",
                "ai_player/gates/fixtures/item_flags.json", "ai_player/gates/b1_debt.json",
                "ai_player/gates/grader_waivers.json")
 GRADER_FILES = (*(f"ai_player/gates/{name}" for name in GRADER_GATES),
-                *(f"sandbox-pokebot/modules/{name}" for name in GRADER_SANDBOX), PLUGIN, *GRADER_DATA)
+                *(f"sandbox-pokebot/modules/{name}" for name in GRADER_SANDBOX),
+                *(f"sandbox-pokebot/{name}" for name in GRADER_BOT), *GRADER_DATA)
 MILESTONES = "ai_player/knowledge/milestones.json"
 #: (critic CH-11) the graded check that reads an AI input, declared: the only record that the AI LOADED the carried memory
 AI_INPUT_DEBT = {
@@ -377,12 +432,18 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         f"Driver ai_player/gates/live_chain.py.",
         "CODE: the AI's files (ai_player/ outside gates/ and evidence/, no *.md, no __pycache__) are hashed into these "
         "numbers (ai_code_sha256), knowledge/milestones.json among them and also as milestones_sha256. grader_files hashes, "
-        f"by path and content, exactly these {len(GRADER_FILES)} files and nothing else: the IMPORT CLOSURE of "
-        f"ai_player/gates/live_chain.py within this repository ({len(GRADER_GATES)} files of ai_player/gates and "
-        f"{len(GRADER_SANDBOX)} of sandbox-pokebot/modules: every import, at module level or inside a function, followed "
-        "through those two folders; the truth harness, the party decoder and the symbol reader among them), the AI's plugin "
-        f"({PLUGIN}), and the data the grade reads ({', '.join(GRADER_DATA)}). Not hashed: the ROM, the emulator's library "
-        "and every other file. Every hashed file is read with CRLF as LF, so a change of line endings alone is accepted BY "
+        f"by path and content, exactly these {len(GRADER_FILES)} files and nothing else: the IMPORT CLOSURE, within this "
+        f"repository, of ai_player/gates/live_chain.py, of the files the harness and the launcher run by path "
+        f"({', '.join(PATH_ROOTS)}) and of the plugins the framework loads by name in every leg (every name ending in .py in "
+        f"{PLUGINS_DIR}, and every *.py of {CUSTOM_MODES_DIR} not starting with _) ({len(GRADER_GATES)} files of "
+        f"ai_player/gates, {len(GRADER_SANDBOX)} of sandbox-pokebot/modules and {len(GRADER_BOT)} more of sandbox-pokebot: "
+        "every import, at module level or inside a function, followed through ai_player/gates and the framework's modules, "
+        "plugins, pokebot, requirements and updater; the truth harness, the party decoder, the symbol reader, the purity gate "
+        f"and the AI's plugin ({PLUGIN}) among them), and the data the grade reads ({', '.join(GRADER_DATA)}). Registration "
+        "and a graded run are REFUSED while that scan finds a file this list does not hash (each named). Not hashed: the "
+        "ROM, the emulator's library, the framework's configuration (its *.yml files and the git-ignored, per-machine "
+        "sandbox-pokebot/profiles folder it writes at start, catch filters included) and every other file. Every hashed "
+        "file is read with CRLF as LF, so a change of line endings alone is accepted BY "
         "DESIGN (git checks the same commit out with either ending). A graded run on any other AI code, milestone data or "
         "grader file is refused by ledger.begin. A graded run also needs HEAD to be origin/main after a fetch with no tracked "
         "file changed, and the build root to be the one the truth harness reads. The frozen-tree watch must see no change "
@@ -422,11 +483,13 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         f"last line is written outside the repo, and it is DELETED.",
         "GRADED (every one must PASS; a VACUOUS check fails; no waivers):",
         f"LC.REACH: at least {reach_min} of the {chains} chains reach {to} (a pre-registered prior: it assumes independent "
-        f"chains, and the chains come in pairs). Every check counts the REGISTERED chains only, one row each (a row of any "
-        f"other chain, a second row of one, or a row whose chain, pair, personality, starter, seed or profile is not the "
-        f"registered one never counts), and RE-DERIVES each leg that ran from the row's own facts: its reach from the "
-        f"truth's marks against the REGISTERED leg's proof, its custody by LC.CUSTODY's rule (joined to any problem the row "
-        f"stored), its kept last line from the file "
+        f"chains, and the chains come in pairs). Every check counts the REGISTERED chains only, one row each: a row of any "
+        f"other chain, a second row of one (then none of its rows counts), and a row whose chain, pair, personality, "
+        f"starter, seed or profile is not the registered job's are each IGNORED and named with the reason, so a registered "
+        f"chain whose row is ignored is ABSENT (LC.CUSTODY's 'every registered chain's L1 ran' then fails, and a check's "
+        f"floor may read VACUOUS). Each counted row's legs that ran are RE-DERIVED from the row's own facts: its reach from "
+        f"the truth's marks against the REGISTERED leg's proof, its custody by LC.CUSTODY's rule (joined to any problem the "
+        f"row stored), its kept last line from the file "
         f"(present, a JSON object, its sha256 the row's), so a stored flag can stop a chain but never continue one.",
         f"LC.PURITY: on every leg that ran, the counting purity checks of live_step2.check_purity ({', '.join(PURITY_IDS)}) "
         f"all PASS. L5.PURITY_ENDED is reported only.",
@@ -459,18 +522,23 @@ def bounds_text(to: str, legs: list[dict], jobs: list[dict], reach_min: int) -> 
         "folders and its state file unchanged)"
         + ("" if world_graded else f", LC.WORLD_SIZE (the {WORLD_MAX_BYTES}-byte cap, information)") + ".",
         "VERDICT: PASS iff every GRADED check PASSES. Nothing is tuned to a grader (B1): a miss is reported, never re-run on "
-        "new seeds.",
+        "new seeds. If the harness raises after the chains ended, while grading or writing the evidence, the ledger entry is "
+        "still FINISHED, as 'ERROR (harness: <type>: <message> while grading; no PASS or FAIL; the seeds are spent)', with "
+        "whatever evidence could be written and the traceback, the way the disk guard's ABORT is recorded.",
     ]
     return "\n".join(lines)
 
 
 # ====================================================================== registration
 def _closure_file(repo: Path, module: str) -> Path | None:
-    """The repository file of a dotted module inside CLOSURE_ROOTS (a module's .py or a package's __init__.py), or None."""
+    """The repository file of a dotted module inside CLOSURE_ROOTS (a module's .py or a package's __init__.py), or None (a
+    namespace package, such as `plugins`, has no file of its own)."""
     for prefix, folder in CLOSURE_ROOTS:
         if module == prefix:
-            path = repo / folder / "__init__.py"
-            return path if path.is_file() else None
+            for path in (repo / folder / "__init__.py", repo / f"{folder}.py"):
+                if path.is_file():
+                    return path
+            return None
         if module.startswith(prefix + "."):
             base = repo / folder / module[len(prefix) + 1:].replace(".", "/")
             for path in (base.with_suffix(".py"), base / "__init__.py"):
@@ -480,9 +548,12 @@ def _closure_file(repo: Path, module: str) -> Path | None:
 
 
 def _closure_package(repo: Path, path: Path) -> str:
-    """The package a file's relative imports resolve against (a package's own name for its __init__.py)."""
+    """The package a file's relative imports resolve against (a package's own name for its __init__.py; "" for a
+    top-level module such as pokebot.py, which has none)."""
     rel = path.relative_to(repo).as_posix()
     for prefix, folder in CLOSURE_ROOTS:
+        if rel == f"{folder}.py":
+            return ""
         if rel.startswith(folder + "/"):
             parts = [prefix, *rel[len(folder) + 1:-len(".py")].split("/")]
             return ".".join(parts[:-1])
@@ -510,6 +581,8 @@ def _closure_imports(repo: Path, path: Path) -> set[str]:
         elif isinstance(node, ast.ImportFrom):
             if node.level:
                 parts = package.split(".")
+                if not package:  # a top-level module has no package: Python refuses its relative import
+                    continue
                 base = ".".join(parts[:len(parts) - (node.level - 1)] + ([node.module] if node.module else []))
             else:
                 base = node.module or ""
@@ -522,24 +595,70 @@ def _closure_imports(repo: Path, path: Path) -> set[str]:
     return out
 
 
+def loaded_plugins(repo: Path | None = None) -> list[str]:
+    """(The checker's C2-02) The module names the framework imports BY NAME in every leg, read from the folders the way its
+    loaders read them: "plugins.<name>" for every name ending in .py in PLUGINS_DIR (modules/plugins.py load_plugins,
+    __import__) and "plugins.custom_modes.<stem>" for every *.py of CUSTOM_MODES_DIR not starting with "_"
+    (plugins/custom_modes_loader.py get_additional_bot_modes, importlib.import_module)."""
+    repo = repo or REPO
+    try:
+        names = [f"plugins.{p.name[:-3]}" for p in sorted((repo / PLUGINS_DIR).iterdir()) if p.name.endswith(".py")]
+    except OSError:
+        names = []
+    names += [f"plugins.custom_modes.{p.stem}" for p in sorted((repo / CUSTOM_MODES_DIR).glob("*.py"))
+              if not p.name.startswith("_")]
+    return names
+
+
 def grader_closure(repo: Path | None = None) -> list[str]:
-    """(The verifier's V-03) THE IMPORT CLOSURE of this module within the repository: every file of ai_player/gates and
-    sandbox-pokebot/modules reached from live_chain.py by import statements, transitively (module level or inside a
-    function), as sorted repository-relative paths. GRADER_FILES must list every one (test_live_chain)."""
+    """(The verifier's V-03, the checker's C2-02) THE IMPORT CLOSURE within the repository of live_chain.py, of the files
+    the harness and the launcher run by path (PATH_ROOTS) and of the plugins the framework loads by name
+    (`loaded_plugins`, each with its parent packages, as Python imports them): every file reached by import statements,
+    transitively (module level or inside a function), through CLOSURE_ROOTS, as sorted repository-relative paths.
+    GRADER_FILES must list every one (`closure_missing`: R12 at registration and before a graded run; test_live_chain)."""
     repo = repo or REPO
     start = repo / "ai_player" / "gates" / "live_chain.py"
     seen, todo = {start}, [start]
     files: dict[str, Path | None] = {}  # module -> its file, looked up once per scan
+
+    def follow(module: str) -> None:
+        if module not in files:
+            files[module] = _closure_file(repo, module)
+        found = files[module]
+        if found is not None and found not in seen:
+            seen.add(found)
+            todo.append(found)
+
+    for rel in PATH_ROOTS:  # (C2-02) run by path: no import statement reaches them
+        path = repo / rel
+        if path.is_file() and path not in seen:
+            seen.add(path)
+            todo.append(path)
+    for name in loaded_plugins(repo):  # (C2-02) loaded by name: "plugins", "plugins.custom_modes", ... each imported
+        parts = name.split(".")
+        for k in range(1, len(parts) + 1):
+            follow(".".join(parts[:k]))
     while todo:
         path = todo.pop()
         for module in _closure_imports(repo, path):
-            if module not in files:
-                files[module] = _closure_file(repo, module)
-            found = files[module]
-            if found is not None and found not in seen:
-                seen.add(found)
-                todo.append(found)
+            follow(module)
     return sorted(p.relative_to(repo).as_posix() for p in seen)
+
+
+def closure_missing(repo: Path | None = None) -> tuple[list[str], int, float]:
+    """(The checker's C2-05) The files of `grader_closure` that GRADER_FILES does not hash (empty: it covers them), the
+    closure's size and the scan's seconds. `register` and a graded run are refused (R12) unless the list is empty."""
+    began = time.perf_counter()
+    closure = grader_closure(repo)
+    return [rel for rel in closure if rel not in GRADER_FILES], len(closure), round(time.perf_counter() - began, 2)
+
+
+def closure_refusal(missing: list[str]) -> str | None:
+    """R12's text for `closure_missing`'s list, or None when GRADER_FILES hashes the whole closure."""
+    if not missing:
+        return None
+    return (f"R12: the grader's import closure has {len(missing)} file(s) that GRADER_FILES does not hash: {missing[:12]}: "
+            f"list each in GRADER_GATES, GRADER_SANDBOX or GRADER_BOT (a new registration), or remove the import")
 
 
 def env_keys() -> dict:
@@ -923,19 +1042,16 @@ def rederived_chain(chain: dict, job: dict, legs: list[dict] | None = None) -> d
     facts (`REDERIVED_TEXT`): its proof from the truth's marks against the REGISTERED leg's proof (`legs`; the row's own
     proof only when no legs are given), its reach, its custody against the registered job (joined to the stored custody
     problems: a stored problem still counts), its kept last line, and so its continuation. A leg continues iff its STORED
-    flag AND the re-derived rule say so. A row whose identity (`IDENTITY`) is
-    not the job's continues nowhere; the copy carries the job's identity (LC.STARTER compares the REGISTERED starter).
+    flag AND the re-derived rule say so. (The checker's C2-01) the row's identity (`IDENTITY`) is the job's: a row whose
+    identity is not never reaches here (`registered_chains` IGNORES it), so LC.STARTER compares the REGISTERED starter.
     Every stored flag the facts do not support is listed in the copy's "rederived"."""
     out = copy.deepcopy(chain)
     notes: list[str] = []
-    identity = [f"its {key} {out.get(key)!r} is not the registered {job.get(key)!r}" for key in IDENTITY
-                if out.get(key) != job.get(key)]
-    out.update({key: job.get(key) for key in IDENTITY})
     prev: dict | None = None
     for index, leg in enumerate(out.get("legs") or []):
         stored = bool(leg.get("continue"))
         if leg.get("status") == "RAN":
-            problems = list(identity)
+            problems: list[str] = []
             want = legs[index] if legs is not None and index < len(legs) else None
             if legs is not None and (want is None or (leg.get("leg"), leg.get("target")) != (want["leg"], want["target"])):
                 problems.append(f"the row's leg {leg.get('leg')} {leg.get('target')} is not the registered "
@@ -972,7 +1088,10 @@ def registered_chains(chains: list[dict], jobs: list[dict],
                       legs: list[dict] | None = None) -> tuple[list[dict], list[str], list[str]]:
     """(The verifier's V-02) The rows that COUNT, in the jobs' order: each registered chain's ONE row, re-derived
     (`rederived_chain`). Returns (those rows, the rows IGNORED with why, the stored flags the facts do not support). A row
-    of a chain that is not registered never counts, and a registered chain with two rows counts neither."""
+    of a chain that is not registered never counts, a registered chain with two rows counts neither, and (the checker's
+    C2-01) a row whose chain, pair, personality, starter, seed or profile (`IDENTITY`) is not the registered job's is
+    IGNORED the same way, named with its reason: its registered chain is then ABSENT (LC.CUSTODY's "every registered
+    chain's L1 ran" fails, and a floor may read VACUOUS)."""
     registered = [job["chain"] for job in jobs]
     rows: dict = {}
     for chain in chains:
@@ -981,7 +1100,18 @@ def registered_chains(chains: list[dict], jobs: list[dict],
                for name, found in rows.items() if name not in registered]
     ignored += [f"{name}: {len(rows[name])} rows for one registered chain: none of them counts" for name in registered
                 if len(rows.get(name) or []) > 1]
-    kept = [rederived_chain(rows[job["chain"]][0], job, legs) for job in jobs if len(rows.get(job["chain"]) or []) == 1]
+    kept = []
+    for job in jobs:
+        found = rows.get(job["chain"]) or []
+        if len(found) != 1:
+            continue
+        wrong = [f"its {key} {found[0].get(key)!r} is not the registered {job.get(key)!r}" for key in IDENTITY
+                 if found[0].get(key) != job.get(key)]
+        if wrong:
+            ignored.append(f"{job['chain']}: its row is not the registered job's ({'; '.join(wrong)}): it never counts, "
+                           f"so the chain is ABSENT")
+            continue
+        kept.append(rederived_chain(found[0], job, legs))
     return kept, ignored, [note for chain in kept for note in chain.get("rederived") or []]
 
 
@@ -1558,6 +1688,8 @@ class Deps:
     git_state: Callable[[], dict] = git_state
     leftover: Callable[[], list[str]] = leftover_processes
     g3: Callable[[], list] = g3_scan
+    #: (the checker's C2-05) the grader's import closure against GRADER_FILES: (missing, closure size, seconds)
+    closure: Callable[[], tuple[list[str], int, float]] = closure_missing
     watch: Callable[[], object] = watch_tree
     snapshot: Callable[[], object] = snapshot
     code_line: Callable[[], str] = code_line
@@ -1607,9 +1739,10 @@ def schedule(jobs: list[dict], spawn: Callable, tick: Callable, parallel: int, s
 
 
 def run_refusal(args, facts: dict) -> str | None:
-    """EVERY REFUSAL before `ledger.begin` (spec section 7, R1-R9, the critique's additions, and R11: --out missing or
-    empty, the verifier's V-01), pure: `facts` are what the orchestrator measured (`gather_facts`). None: the batch may
-    begin (the ledger, R10, may still refuse)."""
+    """EVERY REFUSAL before `ledger.begin` (spec section 7, R1-R9, the critique's additions, R11: --out missing or empty,
+    the verifier's V-01, and R12: a graded batch whose grader closure GRADER_FILES does not cover, the checker's C2-05),
+    pure: `facts` are what the orchestrator measured (`gather_facts`). None: the batch may begin (the ledger, R10, may
+    still refuse)."""
     repo = Path(facts["repo"])
     out, build_root = Path(facts["out"]), Path(facts["build_root"])
     graded = args.purpose == "graded"
@@ -1650,6 +1783,9 @@ def run_refusal(args, facts: dict) -> str | None:
         return f"R4: {facts['legs_error']}"
     if facts.get("g3"):
         return f"R5: the G-3 walk of ai_player.gates.live_chain found an AI import: {facts['g3']}"
+    if graded and facts.get("closure_missing"):
+        # (the checker's C2-05) a file the grade imports or runs that the registration did not hash
+        return closure_refusal(facts["closure_missing"])
     if graded:
         git = facts.get("git") or {}
         if git.get("error") or not git.get("head") or git.get("head") != git.get("origin"):
@@ -1717,6 +1853,8 @@ def gather_facts(args, deps: Deps) -> dict:
             facts["prediction_error"] = f"the prediction file cannot be read as UTF-8 text: {error}"
     facts.update(out_listing(facts["out"]))
     facts["g3"] = deps.g3()
+    # (the checker's C2-05) measured for every batch, refused (R12) for a graded one; its cost is printed
+    facts["closure_missing"], facts["closure_size"], facts["closure_seconds"] = deps.closure()
     if first is not None:
         facts["seeds"] = run["seeds"] if run else seeds_of(first, chains)
     if graded:
@@ -1804,7 +1942,10 @@ def evidence_path(evidence_dir: Path, graded: bool, to: str, first: int) -> Path
 
 def run_batch(args, deps: Deps | None = None) -> int:
     """THE BATCH: refusals, the ledger's begin, the chains (at most PARALLEL at once), salvage, the end sweep, the grade,
-    one evidence file and the ledger's finish. Exit 0 PASS (graded) or ran (development), 1 FAIL, 2 refused, 3 ABORTED."""
+    one evidence file and the ledger's finish. Exit 0 PASS (graded) or ran (development), 1 FAIL, 2 refused, 3 ABORTED,
+    4 ERROR. (The checker's C2-07) from the end of the chains to the ledger's finish the harness is GUARDED: an exception
+    while grading or writing the evidence still FINISHES the ledger entry, with `error_verdict`'s ERROR (neither PASS nor
+    FAIL: the seeds are spent), and writes whatever evidence it can with the traceback (`finish_on_error`)."""
     from ai_player.gates.provenance import keep_earlier, line_digest
 
     deps = deps or Deps()
@@ -1814,6 +1955,10 @@ def run_batch(args, deps: Deps | None = None) -> int:
     if refusal is not None:
         print(f"REFUSED: {refusal}", flush=True)
         return 2
+    missing = facts.get("closure_missing") or []
+    print(f"[LC] the grader's import closure: {facts.get('closure_size')} files, "
+          + (f"{len(missing)} NOT hashed (a development batch is not refused): {missing[:8]}" if missing else
+             "every one hashed") + f" (scan {facts.get('closure_seconds')} s)", flush=True)
     out, build_root = facts["out"], facts["build_root"]
     legs, jobs, seeds, to = facts["legs"], facts["jobs"], facts["seeds"], facts["to"]
     chains_n, reach_min = facts["chains"], reach_min_of(facts["chains"])
@@ -1904,99 +2049,119 @@ def run_batch(args, deps: Deps | None = None) -> int:
                 events.append(f"{job['chain']}: the chain watchdog ({watchdog} s) killed its process tree")
 
     plan = schedule(jobs, spawn, tick, PARALLEL, stagger, deps.sleep, may_start, deps.poll_seconds)
-    left_procs = deps.leftover()
-    chains: list[dict] = []
-    not_started = {job["chain"]: why for job, why in plan["not_started"]}
-    for job in jobs:
-        full = {**job, "legs": legs}
-        if job["chain"] in not_started:
-            chain = new_chain_row(full)
-            stop_rest(full, chain, 0, not_started[job["chain"]])
-            chain.update({"stopped_at": "L1", "stop_reason": not_started[job["chain"]]})
-            write_chain(out, chain, len(legs))
-            chains.append(chain)
-            continue
-        path = out / "rows" / f"{job['chain']}.json"
-        chain = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
-        if chain is None or len(chain.get("legs") or []) != len(legs):
-            why = ("killed by the chain watchdog" if (out / job["chain"] / "WATCHDOG.txt").is_file()
-                   else "it ended without its chain row")
-            chain = salvage_chain({**full, "out": str(out)}, build_root, out, why)
-            events.append(f"{job['chain']}: salvaged ({why})")
-        chains.append(chain)
-    world_left = end_sweep(jobs, build_root)
-    profiles = profiles_report(folders_before, run_folders(build_root), chains, jobs)
-    main_after = main_profile_state(build_root)
-    main = {"unchanged": main_before == main_after,
-            "text": f"before {main_before}, after {main_after}: {'unchanged' if main_before == main_after else 'CHANGED'}"}
-    held = tree.check("after the batch")
-    _, frozen_line = tree.seal("PASS" if held else "FAIL")
-    optional = optional_report(chains, load_milestones(repo_root()), legs[-1]["chapter"])
-    checks = grade_batch(chains, jobs, len(legs), reach_min, (held and not tree.moves, frozen_line), left_procs,
-                         {"world_left": [w for w in world_left if "could not" in w], "profiles": profiles,
-                          "main_profile": main, "optional": optional, "most_running": plan["most_running"]}, legs=legs)
-    result = batch_verdict(checks)
-    aborted = state["aborted"] or (out / ABORT_FILE).is_file()
-    failing = [c.id for c in checks if c.kind == GRADED and c.status != PASS]
     label = ledger.label(args.purpose)
-    shown = "ABORTED (harness: disk)" if aborted else result
-    reach = next(c for c in checks if c.id == "LC.REACH")
-    # (V-08) a launch that died before playing a frame fails the batch by the registered rule: NAMED, never hidden
-    died_rows = [(c["chain"], leg["leg"], launch_died(leg)) for c in chains for leg in c["legs"] if launch_died(leg)]
-    died_text = f"; {DEAD_LAUNCH}: {[f'{c} {leg}' for c, leg, _ in died_rows]}" if died_rows else ""
-    verdict_line = (f"{label}, {shown if graded else 'NO PASS (development: ' + shown + ' by the registered rules)'}"
-                    f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''}{died_text}: live chain "
-                    f"held-out, to {to}, seeds {seeds[0]}-{seeds[1]}, numbers sha256 {sha[:16]}; "
-                    f"{reach.text.split(': ', 1)[1][:400]}")
-    evidence_dir = deps.evidence_dir or EVIDENCE_DIR
-    evidence = evidence_path(evidence_dir, graded, to, seeds[0])
-    evidence.parent.mkdir(parents=True, exist_ok=True)
-    keep_earlier(evidence)
-    head = (f"LIVE CHAIN HELD-OUT - {'GRADED' if graded else 'DEVELOPMENT, NOT GRADED, NO PASS'} - VERDICT {shown}"
-            f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''}{died_text} (to {to}; driver "
-            f"ai_player/gates/live_chain.py; build spec {SPEC})")
-    not_run = [f"{c['chain']} {leg['leg']}: {leg.get('reason')}" for c in chains for leg in c["legs"]
-               if leg.get("status") in ("NOT RUN", "REFUSED")]
-    flagged = [f"{c['chain']} {leg['leg']} {((leg.get('measures') or {}).get('log') or {}).get('multichoice')}"
-               for c, leg in ran_legs(chains) if ((leg.get("measures") or {}).get("log") or {}).get("multichoice")]
-    text = [head, f"date: {began} -> {time.strftime('%Y-%m-%d %H:%M:%S')}", f"code: {code}", *ledger_lines,
-            f"numbers sha256: {sha} (seeds {seeds[0]}-{seeds[1]}; {args.purpose}; {chains_n} chains; at least {reach_min} "
-            f"to reach)"]
-    if development:
-        text += [f"PREDICTION (sha256 of the file's bytes {development['prediction_sha256']}, in the numbers, registered "
-                 f"before the runs): {prediction}",
-                 f"leg budgets overridden: {development['leg_frames_override'] or 'none'}"]
-    text += [f"build root: {build_root}   out: {out}   free at start: {facts['free']:.1f} GB",
-             f"frozen tree: {frozen_line}", f"leftover processes: {left_procs or 'none'}",
-             f"the most chains running at once: {plan['most_running']} (launch order {plan['order']})",
-             f"NOT RUN: {not_run or 'none'}", f"guard and watchdog events: {events or 'none'}",
-             f"{DEAD_LAUNCH} (each RAN, so each fails LC.PURITY and LC.THIS_RUN by the registered rule): "
-             f"{[f'{c} {leg}: {why}' for c, leg, why in died_rows] or 'none'}",
-             f"legs with an unexpected-multichoice line: {flagged or 'none'}",
-             f"VERDICT: {shown}" + (" (the checks below are information: a harness abort is no PASS and no FAIL)"
-                                     if aborted else ""),
-             "checks (registered in the bounds text below; each quotes both values):", *check_lines(checks), "",
-             "per chain and leg:"]
-    for chain in chains:
-        text.append(f"  {chain['chain']} ({chain.get('personality')}, {chain.get('starter')}, seed {chain.get('seed')}, "
-                    f"profile {chain.get('profile')}): reached {to} {chain_reaches(chain, len(legs))}; stopped at "
-                    f"{chain.get('stopped_at')}: {chain.get('stop_reason')}")
-        for leg in chain["legs"]:
-            text += leg_lines(leg)
-    text += ["", "BOUNDS TEXT (hashed into the registration):", numbers["bounds_text"]]
-    evidence.write_text("\n".join(text) + "\n", encoding="utf-8")
-    _write_json(out / "results.json", {"began": began, "ended": time.strftime("%Y-%m-%d %H:%M:%S"),
-                                       "purpose": args.purpose, "run": args.run if graded else None, "to": to,
-                                       "chains": chains_n, "seeds": list(seeds), "numbers_sha256": sha,
-                                       "ledger": entry["id"], "frozen": [held and not tree.moves, frozen_line],
-                                       "leftover": left_procs, "not_run": not_run, "events": events,
-                                       "most_running": plan["most_running"], "verdict": shown, "reach_min": reach_min,
-                                       "legs": legs, "jobs": jobs, "world_left": world_left,
-                                       "reported": {"profiles": profiles, "main_profile": main, "optional": optional},
-                                       "checks": check_rows(checks), "evidence": str(evidence)})
-    reference = (str(evidence.resolve().relative_to(REPO)).replace("\\", "/") if evidence.resolve().is_relative_to(REPO)
-                 else str(evidence))
-    ledger.finish(entry["id"], verdict_line, reference, path=deps.ledger_path or ledger.LEDGER)
+    # (the checker's C2-07) what the ERROR record needs, and what the guarded part has built so far
+    ctx: dict = {"graded": graded, "purpose": args.purpose, "label": label, "to": to, "seeds": seeds, "sha": sha,
+                 "code": code, "ledger_lines": ledger_lines, "began": began, "entry_id": entry["id"], "out": out,
+                 "evidence_dir": deps.evidence_dir or EVIDENCE_DIR, "ledger_path": deps.ledger_path or ledger.LEDGER,
+                 "bounds_text": numbers["bounds_text"], "keep_earlier": keep_earlier, "chains_n": chains_n,
+                 "run": args.run if graded else None}
+    try:
+        left_procs = deps.leftover()
+        chains: list[dict] = []
+        not_started = {job["chain"]: why for job, why in plan["not_started"]}
+        for job in jobs:
+            full = {**job, "legs": legs}
+            if job["chain"] in not_started:
+                chain = new_chain_row(full)
+                stop_rest(full, chain, 0, not_started[job["chain"]])
+                chain.update({"stopped_at": "L1", "stop_reason": not_started[job["chain"]]})
+                write_chain(out, chain, len(legs))
+                chains.append(chain)
+                continue
+            path = out / "rows" / f"{job['chain']}.json"
+            chain = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+            if chain is None or len(chain.get("legs") or []) != len(legs):
+                why = ("killed by the chain watchdog" if (out / job["chain"] / "WATCHDOG.txt").is_file()
+                       else "it ended without its chain row")
+                chain = salvage_chain({**full, "out": str(out)}, build_root, out, why)
+                events.append(f"{job['chain']}: salvaged ({why})")
+            chains.append(chain)
+        world_left = end_sweep(jobs, build_root)
+        profiles = profiles_report(folders_before, run_folders(build_root), chains, jobs)
+        main_after = main_profile_state(build_root)
+        main = {"unchanged": main_before == main_after,
+                "text": f"before {main_before}, after {main_after}: {'unchanged' if main_before == main_after else 'CHANGED'}"}
+        held = tree.check("after the batch")
+        _, frozen_line = tree.seal("PASS" if held else "FAIL")
+        optional = optional_report(chains, load_milestones(repo_root()), legs[-1]["chapter"])
+        checks = grade_batch(chains, jobs, len(legs), reach_min, (held and not tree.moves, frozen_line), left_procs,
+                             {"world_left": [w for w in world_left if "could not" in w], "profiles": profiles,
+                              "main_profile": main, "optional": optional, "most_running": plan["most_running"]}, legs=legs)
+        result = batch_verdict(checks)
+        aborted = state["aborted"] or (out / ABORT_FILE).is_file()
+        failing = [c.id for c in checks if c.kind == GRADED and c.status != PASS]
+        shown = "ABORTED (harness: disk)" if aborted else result
+        reach = next(c for c in checks if c.id == "LC.REACH")
+        # (V-08) a launch that died before playing a frame fails the batch by the registered rule: NAMED, never hidden
+        died_rows = [(c["chain"], leg["leg"], launch_died(leg)) for c in chains for leg in c["legs"] if launch_died(leg)]
+        died_text = f"; {DEAD_LAUNCH}: {[f'{c} {leg}' for c, leg, _ in died_rows]}" if died_rows else ""
+        verdict_line = (f"{label}, {shown if graded else 'NO PASS (development: ' + shown + ' by the registered rules)'}"
+                        f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''}{died_text}: live chain "
+                        f"held-out, to {to}, seeds {seeds[0]}-{seeds[1]}, numbers sha256 {sha[:16]}; "
+                        f"{reach.text.split(': ', 1)[1][:400]}")
+        evidence = evidence_path(ctx["evidence_dir"], graded, to, seeds[0])
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        keep_earlier(evidence)
+        ctx.update({"evidence": evidence, "kept_earlier": True})
+        head = (f"LIVE CHAIN HELD-OUT - {'GRADED' if graded else 'DEVELOPMENT, NOT GRADED, NO PASS'} - VERDICT {shown}"
+                f"{' (failing: ' + ', '.join(failing) + ')' if failing and not aborted else ''}{died_text} (to {to}; driver "
+                f"ai_player/gates/live_chain.py; build spec {SPEC})")
+        not_run = [f"{c['chain']} {leg['leg']}: {leg.get('reason')}" for c in chains for leg in c["legs"]
+                   if leg.get("status") in ("NOT RUN", "REFUSED")]
+        flagged = [f"{c['chain']} {leg['leg']} {((leg.get('measures') or {}).get('log') or {}).get('multichoice')}"
+                   for c, leg in ran_legs(chains) if ((leg.get("measures") or {}).get("log") or {}).get("multichoice")]
+        text = [head, f"date: {began} -> {time.strftime('%Y-%m-%d %H:%M:%S')}", f"code: {code}", *ledger_lines,
+                f"numbers sha256: {sha} (seeds {seeds[0]}-{seeds[1]}; {args.purpose}; {chains_n} chains; at least "
+                f"{reach_min} to reach)"]
+        ctx["text"] = text
+        if development:
+            text += [f"PREDICTION (sha256 of the file's bytes {development['prediction_sha256']}, in the numbers, registered "
+                     f"before the runs): {prediction}",
+                     f"leg budgets overridden: {development['leg_frames_override'] or 'none'}"]
+        text += [f"build root: {build_root}   out: {out}   free at start: {facts['free']:.1f} GB",
+                 f"frozen tree: {frozen_line}", f"leftover processes: {left_procs or 'none'}",
+                 f"the most chains running at once: {plan['most_running']} (launch order {plan['order']})",
+                 f"NOT RUN: {not_run or 'none'}", f"guard and watchdog events: {events or 'none'}",
+                 f"{DEAD_LAUNCH} (each RAN, so each fails LC.PURITY and LC.THIS_RUN by the registered rule): "
+                 f"{[f'{c} {leg}: {why}' for c, leg, why in died_rows] or 'none'}",
+                 f"legs with an unexpected-multichoice line: {flagged or 'none'}",
+                 f"VERDICT: {shown}" + (" (the checks below are information: a harness abort is no PASS and no FAIL)"
+                                         if aborted else ""),
+                 "checks (registered in the bounds text below; each quotes both values):", *check_lines(checks), "",
+                 "per chain and leg (each counted chain as it was RE-DERIVED and graded):"]
+        # (the checker's C2-03) the reach printed is the RE-DERIVED one that LC.REACH counted, never the stored flag alone
+        counted = {c.get("chain"): c for c in registered_chains(chains, jobs, legs)[0]}
+        for chain in chains:
+            row = counted.get(chain["chain"])
+            stored = chain_reaches(chain, len(legs))
+            if row is None:
+                reached_text = "NOT COUNTED (its row is IGNORED: see LC.REACH)"
+            else:
+                rederived = chain_reaches(row, len(legs))
+                reached_text = f"{rederived} (re-derived{'' if rederived == stored else f'; the row stored {stored}'})"
+            shown_row = row or chain
+            text.append(f"  {chain['chain']} ({chain.get('personality')}, {chain.get('starter')}, seed {chain.get('seed')}, "
+                        f"profile {chain.get('profile')}): reached {to} {reached_text}; stopped at "
+                        f"{shown_row.get('stopped_at')}: {shown_row.get('stop_reason')}")
+            for leg in shown_row["legs"]:
+                text += leg_lines(leg)
+        text += ["", "BOUNDS TEXT (hashed into the registration):", numbers["bounds_text"]]
+        evidence.write_text("\n".join(text) + "\n", encoding="utf-8")
+        _write_json(out / "results.json", {"began": began, "ended": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                           "purpose": args.purpose, "run": args.run if graded else None, "to": to,
+                                           "chains": chains_n, "seeds": list(seeds), "numbers_sha256": sha,
+                                           "ledger": entry["id"], "frozen": [held and not tree.moves, frozen_line],
+                                           "leftover": left_procs, "not_run": not_run, "events": events,
+                                           "most_running": plan["most_running"], "verdict": shown, "reach_min": reach_min,
+                                           "legs": legs, "jobs": jobs, "world_left": world_left,
+                                           "reported": {"profiles": profiles, "main_profile": main, "optional": optional},
+                                           "checks": check_rows(checks), "evidence": str(evidence)})
+        reference = (str(evidence.resolve().relative_to(REPO)).replace("\\", "/") if evidence.resolve().is_relative_to(REPO)
+                     else str(evidence))
+        ledger.finish(entry["id"], verdict_line, reference, path=deps.ledger_path or ledger.LEDGER)
+    except Exception as error:  # noqa: BLE001 - (C2-07) the seeds are spent: the entry is FINISHED, never left "started"
+        return finish_on_error(error, traceback.format_exc(), ctx)
     print(f"[LC] evidence: {evidence}", flush=True)
     for line in check_lines(checks):
         print(f"[LC] {line.strip()}", flush=True)
@@ -2004,6 +2169,57 @@ def run_batch(args, deps: Deps | None = None) -> int:
     if aborted:
         return 3
     return 0 if (result == "PASS" or not graded) else 1
+
+
+def error_verdict(error: BaseException) -> str:
+    """(The checker's C2-07) The named verdict of a batch whose harness raised after the chains ended: neither PASS nor FAIL
+    (the seeds are spent), recorded the way the disk guard's ABORT is."""
+    return (f"ERROR (harness: {type(error).__name__}: {str(error)[:300]} while grading; no PASS or FAIL; the seeds are "
+            f"spent)")
+
+
+def finish_on_error(error: BaseException, trace: str, ctx: dict) -> int:
+    """(The checker's C2-07) The harness raised between the end of the chains and the ledger's finish: write whatever
+    evidence it can (the traceback, then what was built before the error) and results.json, then FINISH the ledger entry
+    with `error_verdict`, so it never stays "started". Each write is guarded on its own: an evidence file that cannot be
+    written still finishes the entry, and the verdict line says so. Exit 4."""
+    shown = error_verdict(error)
+    graded, seeds = ctx["graded"], ctx["seeds"]
+    verdict_line = (f"{ctx['label']}, {shown if graded else 'NO PASS (development: ' + shown + ')'}: live chain "
+                    f"held-out, to {ctx['to']}, seeds {seeds[0]}-{seeds[1]}, numbers sha256 {ctx['sha'][:16]}")
+    reference = None
+    try:
+        evidence = ctx.get("evidence") or evidence_path(ctx["evidence_dir"], graded, ctx["to"], seeds[0])
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        if not ctx.get("kept_earlier"):
+            ctx["keep_earlier"](evidence)
+        head = (f"LIVE CHAIN HELD-OUT - {'GRADED' if graded else 'DEVELOPMENT, NOT GRADED, NO PASS'} - VERDICT {shown} "
+                f"(to {ctx['to']}; driver ai_player/gates/live_chain.py; build spec {SPEC})")
+        lines = [head, f"date: {ctx['began']} -> {time.strftime('%Y-%m-%d %H:%M:%S')}", f"code: {ctx['code']}",
+                 *ctx["ledger_lines"], f"numbers sha256: {ctx['sha']} (seeds {seeds[0]}-{seeds[1]}; {ctx['purpose']}; "
+                                       f"{ctx['chains_n']} chains)",
+                 f"VERDICT: {shown}: the harness raised after the chains ended, so this batch has no PASS and no FAIL; the "
+                 f"ledger entry is finished with this verdict and its seeds are spent",
+                 "the traceback:", *trace.rstrip().splitlines(), "",
+                 "what the harness had built before the error (unfinished, so never a verdict):",
+                 *(ctx.get("text") or ["(nothing yet)"]), "", "BOUNDS TEXT (hashed into the registration):",
+                 ctx["bounds_text"]]
+        evidence.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        reference = (str(evidence.resolve().relative_to(REPO)).replace("\\", "/") if evidence.resolve().is_relative_to(REPO)
+                     else str(evidence))
+    except Exception as second:  # noqa: BLE001 - the entry is still finished; the verdict line says the evidence is missing
+        verdict_line += f"; no evidence file ({type(second).__name__}: {str(second)[:200]})"
+    try:
+        _write_json(ctx["out"] / "results.json", {"verdict": shown, "purpose": ctx["purpose"], "run": ctx["run"],
+                                                  "to": ctx["to"], "seeds": list(seeds), "numbers_sha256": ctx["sha"],
+                                                  "ledger": ctx["entry_id"], "error": f"{type(error).__name__}: {error}",
+                                                  "traceback": trace, "evidence": reference})
+    except Exception as third:  # noqa: BLE001 - results.json is a copy; the ledger and the evidence are the record
+        print(f"[LC] results.json could not be written: {type(third).__name__}: {third}", flush=True)
+    ledger.finish(ctx["entry_id"], verdict_line, reference, path=ctx["ledger_path"])
+    print(trace, flush=True)
+    print(f"[LC] OVERALL {shown} ({ctx['label']}); ledger #{ctx['entry_id']} finished; evidence {reference}", flush=True)
+    return 4
 
 
 def leg_lines(leg: dict) -> list[str]:
@@ -2151,6 +2367,41 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def register_run(run: str, note_file: str | None = None, repo: Path | None = None, path: Path | None = None) -> int:
+    """`register --run RUN`: pre-register GRADED_RUNS[run]'s seeds with registered_numbers()'s sha256 (exit 0), REFUSED
+    (exit 2, the ledger untouched) for an unknown run, seeds another ledger entry names, or (R12, the checker's C2-05) a
+    grader import closure with a file GRADER_FILES does not hash. `repo` and `path` (the ledger) are the tests'."""
+    repo = repo or REPO
+    path = path or ledger.LEDGER
+    if run not in GRADED_RUNS:
+        print(f"REFUSED: --run {run!r} is not one of {sorted(GRADED_RUNS)}")
+        return 2
+    spec = GRADED_RUNS[run]
+    seeds = spec["seeds"]
+    named = [e for e in seeds_named(*seeds, path=path) if not (e["driver"] == DRIVER and e["status"] == "registered")]
+    if named:
+        print(f"REFUSED: ledger entries already name seeds {seeds[0]}-{seeds[1]}: {[e['id'] for e in named]}")
+        return 2
+    missing, size, seconds = closure_missing(repo)
+    refusal = closure_refusal(missing)
+    if refusal is not None:
+        print(f"REFUSED: {refusal}")
+        return 2
+    print(f"[LC] the grader's import closure: {size} files, every one hashed (scan {seconds} s)")
+    legs = legs_of(spec["to"], load_milestones(repo))
+    numbers = registered_numbers(run, spec["to"], seeds, 6, legs, repo)
+    note = (Path(note_file).read_text(encoding="utf-8").strip() if note_file else
+            f"LIVE CHAIN graded held-out (USER RULING 55), run {run}, to {spec['to']}, driver "
+            f"ai_player/gates/live_chain.py: registered BEFORE any run; the bounds field is the sha256 of "
+            f"registered_numbers() (the bounds text, the legs and proofs, every constant, the milestones', the AI "
+            f"code's and the grader files' sha256)")
+    print(numbers["bounds_text"])
+    entry = register(seeds, numbers, note, path=path)
+    print(f"REGISTERED numbers sha256 {ledger.numbers_sha256(numbers)}")
+    print("ENTRY " + json.dumps(entry, ensure_ascii=False))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -2176,27 +2427,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"REGISTERED NUMBERS sha256 {ledger.numbers_sha256(numbers)}")
         return 0
     if args.cmd == "register":
-        if args.run not in GRADED_RUNS:
-            print(f"REFUSED: --run {args.run!r} is not one of {sorted(GRADED_RUNS)}")
-            return 2
-        spec = GRADED_RUNS[args.run]
-        seeds = spec["seeds"]
-        named = [e for e in seeds_named(*seeds) if not (e["driver"] == DRIVER and e["status"] == "registered")]
-        if named:
-            print(f"REFUSED: ledger entries already name seeds {seeds[0]}-{seeds[1]}: {[e['id'] for e in named]}")
-            return 2
-        legs = legs_of(spec["to"], load_milestones())
-        numbers = registered_numbers(args.run, spec["to"], seeds, 6, legs)
-        note = (Path(args.note_file).read_text(encoding="utf-8").strip() if args.note_file else
-                f"LIVE CHAIN graded held-out (USER RULING 55), run {args.run}, to {spec['to']}, driver "
-                f"ai_player/gates/live_chain.py: registered BEFORE any run; the bounds field is the sha256 of "
-                f"registered_numbers() (the bounds text, the legs and proofs, every constant, the milestones', the AI "
-                f"code's and the grader files' sha256)")
-        print(numbers["bounds_text"])
-        entry = register(seeds, numbers, note)
-        print(f"REGISTERED numbers sha256 {ledger.numbers_sha256(numbers)}")
-        print("ENTRY " + json.dumps(entry, ensure_ascii=False))
-        return 0
+        return register_run(args.run, args.note_file)
     if args.cmd == "run":
         return run_batch(args)
     if args.cmd == "grade":
