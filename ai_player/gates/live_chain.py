@@ -42,12 +42,20 @@ the build report). TEST SIDE: the AI never imports this module (ImportTests).
         that are missing, or that no ledger entry verifies, are UNVERIFIED, and a GRADED folder then never exits 0. A folder
         with no ledger entry (an old one, or a ledger that is not the one it ran with) is re-graded from its own records,
         labelled with results.json's purpose (said to be unconfirmed): a graded one exits 1 (UNVERIFIED), a development one
-        by its re-grade. EXIT: 0 = PASS (graded: VERIFIED and the ledger says PASS; development: labelled), 1 = FAIL or
-        UNVERIFIED, 2 = could not be graded, 3 = ABORTED (ABORT.txt, results.json or the ledger entry), 4 = ERROR
-        (results.error.json, the ledger entry's ERROR verdict, or an entry still "started"); the worst of these wins
+        by its re-grade. (The fifth check's C5-01) Numbers or none, the folder's jobs must be one per seed of its seeds, and
+        the ledger entry its recorded id names, when that is a live_chain entry (and not explained by a renumbered ledger:
+        the folder's entry met by its seeds and bounds sha256 under another id), must have the folder's seeds and purpose:
+        else MISMATCH, graded FAIL. (C5-03) A folder ERROR or ABORTED mark (results.error.json, ABORT.txt, results.json's
+        verdict) beside an entry FINISHED with PASS or FAIL contradicts it (in a run they never meet): said, and graded
+        FAIL, never ABORTED or ERROR. EXIT: 0 = PASS (graded: VERIFIED and the ledger says PASS; development: labelled),
+        1 = FAIL, MISMATCH or UNVERIFIED, 2 = could not be graded, 3 = ABORTED (ABORT.txt, results.json or the ledger
+        entry), 4 = ERROR (results.error.json, the ledger entry's ERROR verdict, or an entry still "started"); the worst of
+        these wins
     py -3.12 ai_player/gates/live_chain.py finish-entry DIR [--ledger PATH]   finish a ledger entry the ERROR path could
         not write (it left DIR/ledger.unfinished.json): refused unless that entry is still "started" and (C4-E05) the verdict
-        is this driver's own ERROR verdict for it, rebuilt from DIR/results.error.json (never a PASS or a FAIL)
+        is this driver's own ERROR verdict for it, rebuilt from DIR/results.error.json, or (the fifth check's C5-02) when
+        that file could not be written, from the copy of its ERROR record that ledger.unfinished.json carries, under the
+        same checks (never a PASS or a FAIL)
     py -3.12 ai_player/gates/live_chain.py read RUN_DIR [--truth]
         one leg folder, READ ONLY: its log counts, its memory line, its world.jsonl streamed (never kept, never deleted)
     `child JOB.json` is the internal entry of one chain's process.
@@ -3193,6 +3201,9 @@ def error_line(label: str, graded: bool, shown: str, to: str, seeds, sha: str) -
 
 #: (C4-E05) the form of `error_verdict`'s text: the only verdict `finish-entry` writes
 ERROR_FORM = re.compile(r"ERROR \(harness: .+ while .+; no PASS or FAIL; the seeds are spent\)", re.S)
+#: (The fifth check's C5-02) the fields of results.error.json that `finish-entry` rebuilds the ERROR verdict from and
+#: checks (`unfinished_problems`); ledger.unfinished.json carries a copy of them as "error_record"
+REBUILD_KEYS = ("verdict", "stage", "to", "seeds", "numbers_sha256", "ledger", "ledger_finished")
 
 
 def entry_status(entry_id: int, path: Path) -> str | None:
@@ -3285,9 +3296,12 @@ def finish_on_error(error: BaseException, trace: str, ctx: dict) -> int:
         print(f"[LC] {RESULTS_ERROR} could not be written: {type(third).__name__}: {safe_text(third, 200)}", flush=True)
     if not finished:
         try:
+            # (the fifth check's C5-02) with a copy of what finish-entry rebuilds the verdict from, so the printed command
+            # still works when results.error.json could not be written (a full disk fails the larger file first)
             _write_json(ctx["out"] / UNFINISHED, {"entry_id": ctx["entry_id"], "verdict": verdict_line,
                                                   "evidence": reference, "seeds": list(seeds),
-                                                  "ledger": str(ctx["ledger_path"])})
+                                                  "ledger": str(ctx["ledger_path"]),
+                                                  "error_record": {key: record[key] for key in REBUILD_KEYS}})
         except BaseException as fourth:  # noqa: BLE001
             note_interrupt(ctx, fourth)
             print(f"[LC] {UNFINISHED} could not be written either ({type(fourth).__name__}): finish the entry with "
@@ -3398,21 +3412,50 @@ def find_entry(ledger_path: Path, seeds: list, entry_id, sha) -> tuple[dict | No
     return None, f"no {DRIVER} entry for seeds {seeds} in {ledger_path}"
 
 
-def numbers_jobs_problems(numbers: dict) -> list[str]:
+def numbers_jobs_problems(numbers: dict, whose: str = "the numbers'") -> list[str]:
     """(C4-G01) The numbers' jobs belong to the numbers' seeds: one job per seed of the range, each named LC-<pair>-<seed>
-    (so seeds moved to another range with the jobs left as they were never verify)."""
+    (so seeds moved to another range with the jobs left as they were never verify). (The fifth check's C5-01) also a
+    folder's OWN seeds, jobs and chain count when it has no numbers (`whose` names them)."""
     try:
         first, last = int(numbers["seeds"][0]), int(numbers["seeds"][1])
         named = [(str(job["chain"]), int(job["seed"]), str(job["pair"])) for job in numbers["jobs"]]
     except Exception as error:  # noqa: BLE001 - numbers from a folder are untrusted
-        return [f"the numbers' seeds or jobs cannot be read ({type(error).__name__})"]
+        return [f"{whose} seeds or jobs cannot be read ({type(error).__name__})"]
     problems: list[str] = []
     if sorted(seed for _, seed, _ in named) != list(range(first, last + 1)) or numbers.get("chains") != len(named):
-        problems.append(f"the numbers' jobs {[c for c, _, _ in named]} are not one per seed of {first}-{last} "
+        problems.append(f"{whose} jobs {[c for c, _, _ in named]} are not one per seed of {first}-{last} "
                         f"({numbers.get('chains')} chains)")
     wrong = [chain for chain, seed, pair in named if chain != f"LC-{pair}-{seed}"]
     if wrong:
-        problems.append(f"the numbers' jobs {wrong} are not named LC-<pair>-<seed>")
+        problems.append(f"{whose} jobs {wrong} are not named LC-<pair>-<seed>")
+    return problems
+
+
+def recorded_problems(ledger_path: Path | None, source: dict, seeds: list, sha, entry: dict | None,
+                      where: str = "results.json") -> list[str]:
+    """(The fifth check's C5-01) The ledger entry that the folder's RECORDED id names (results.json's "ledger"), read now:
+    when it is a live_chain entry it must be this folder's, with the folder's seeds and purpose, else a MISMATCH (so a
+    graded FAIL folder whose seeds and purpose were edited still meets its own entry). Not a mismatch: an id that names
+    no entry or an entry of another driver (a merged ledger renumbers entries: R0's results.json names #86, an entry of
+    another driver in the worktree's ledger), and an id explained by the folder's entry met by its seeds AND bounds
+    sha256 under another id (`find_entry`)."""
+    entry_id = source.get("ledger")
+    if ledger_path is None or (entry is not None and entry.get("id") != entry_id and entry.get("bounds_sha256") == sha):
+        return []
+    try:
+        named = next((e for e in ledger.load(Path(ledger_path)).get("entries", [])
+                      if isinstance(e, dict) and e.get("id") == entry_id), None)
+    except Exception:  # noqa: BLE001 - find_entry has already said that the ledger cannot be read
+        return []
+    if named is None or named.get("driver") != DRIVER:
+        return []
+    problems: list[str] = []
+    if [named.get("first"), named.get("last")] != list(seeds):
+        problems.append(f"{where} names ledger entry #{entry_id}, a {DRIVER} entry for seeds "
+                        f"{[named.get('first'), named.get('last')]}, not the folder's {list(seeds)}")
+    if named.get("purpose") != source.get("purpose"):
+        problems.append(f"{where} names ledger entry #{entry_id}, whose purpose is {named.get('purpose')!r}, not the "
+                        f"folder's {source.get('purpose')!r}")
     return problems
 
 
@@ -3424,6 +3467,12 @@ def verify_numbers(source: dict, entry: dict | None, entry_why: str = "") -> tup
     never re-grades PASS. An older folder with no numbers: (None, [], UNVERIFIED (no numbers), False)."""
     numbers = source.get("numbers")
     if not isinstance(numbers, dict):
+        # (the fifth check's C5-01) the folder's own jobs still belong to its own seeds: seeds moved to a range no entry
+        # names, with the jobs left as they were, are a MISMATCH even with the numbers deleted
+        own = numbers_jobs_problems({"seeds": source.get("seeds"), "jobs": source.get("jobs"),
+                                     "chains": source.get("chains", len(source.get("jobs") or []))}, "the folder's own")
+        if own:
+            return None, own, f"MISMATCH (no numbers): {'; '.join(own)}", False
         note = ("" if entry is None or entry.get("bounds_sha256") != source.get("numbers_sha256") else
                 f"; ledger entry #{entry.get('id')} registered the numbers_sha256 recorded beside them")
         return None, [], f"UNVERIFIED (no numbers): the legs, jobs and reach floor are results.json's own{note}", False
@@ -3487,7 +3536,10 @@ def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
     "verdict" is the rows' re-grade, "final" the worst of it, the entry's verdict (STARTED reads as ERROR), the folder's
     own ERROR (results.error.json) and ABORTED (ABORT.txt, results.json's verdict) marks, and UNVERIFIED for a graded
     folder whose numbers no entry verifies; "purpose" is the entry's (else results.json's, said unconfirmed); (C4-G04) the
-    salvage exemption reads the orchestrator's own events."""
+    salvage exemption reads the orchestrator's own events. (The fifth check's C5-01) the folder's own jobs are checked
+    against its seeds even with no numbers, and the entry its recorded id names (`recorded_problems`): either is a
+    MISMATCH (FAIL); (C5-03) a folder ERROR or ABORTED mark beside an entry finished with PASS or FAIL is
+    "contradiction", graded FAIL instead."""
     error_record = _read_record(out / RESULTS_ERROR)
     results = _read_record(out / "results.json")
     source = results if results is not None else error_record
@@ -3503,6 +3555,10 @@ def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
     else:
         entry, entry_why = find_entry(Path(ledger_path), seeds, source.get("ledger"), sha)
     numbers, problems, verified, is_verified = verify_numbers(source, entry, entry_why)
+    recorded = recorded_problems(ledger_path, source, seeds, sha, entry, "results.json" if results else RESULTS_ERROR)
+    if recorded:  # (the fifth check's C5-01) the entry the folder's recorded id names is another batch's
+        problems = [*problems, *recorded]
+        verified, is_verified = f"MISMATCH: {'; '.join(problems)}", False
     if numbers is not None:
         prefix = numbers.get("profile_prefix") or PROFILE_PREFIX
         legs = numbers["legs"]
@@ -3537,22 +3593,34 @@ def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
     # (C4-G01..G03, C4-E06) what the batch's own files and its ledger entry (read NOW) say; the worst of them wins
     purpose = (entry or {}).get("purpose") or source.get("purpose") or "graded"
     word = ledger_result(entry) if entry is not None else None
-    states: dict[str, str] = {}
+    marks: dict[str, str] = {}  # the folder's OWN ERROR and ABORTED marks
     if error_record is not None:
-        states["ERROR"] = f"{RESULTS_ERROR} says {error_record.get('verdict')} (stage {error_record.get('stage')})"
+        marks["ERROR"] = f"{RESULTS_ERROR} says {error_record.get('verdict')} (stage {error_record.get('stage')})"
+    if (out / ABORT_FILE).is_file() or str(source.get("verdict") or "").startswith("ABORTED"):
+        marks["ABORTED"] = (f"{ABORT_FILE if (out / ABORT_FILE).is_file() else 'results.json'} says the harness ABORTED the "
+                            f"batch (disk)")
+    # (the fifth check's C5-03) in a run these marks never meet an entry FINISHED with PASS or FAIL (ABORT.txt makes the
+    # verdict ABORTED; results.error.json is written only for an ERROR entry): beside one, the folder CONTRADICTS its
+    # ledger entry. That is said and graded FAIL, never reported as the folder's ABORTED or ERROR
+    contradiction = (f"the folder disagrees with its finished ledger entry #{(entry or {}).get('id')} ({word}): "
+                     f"{'; '.join(marks.values())} (edited after the run?)" if word in ("PASS", "FAIL") and marks else "")
+    states: dict[str, str] = {}
+    if "ERROR" in marks and not contradiction:
+        states["ERROR"] = marks["ERROR"]
     if word == "STARTED":
         states["ERROR"] = (f"ledger entry #{entry.get('id')} is still 'started': no verdict was ever written for it (see "
                            f"{UNFINISHED} and finish-entry)")
     elif word in ("ERROR", "ABORTED"):
         states.setdefault(word, f"ledger entry #{entry.get('id')}'s verdict: {str(entry.get('verdict'))[:300]}")
-    if (out / ABORT_FILE).is_file() or str(source.get("verdict") or "").startswith("ABORTED"):
-        states.setdefault("ABORTED", f"{ABORT_FILE if (out / ABORT_FILE).is_file() else 'results.json'} says the harness "
-                                     f"ABORTED the batch (disk)")
+    if "ABORTED" in marks and not contradiction:
+        states.setdefault("ABORTED", marks["ABORTED"])
     candidates = [regrade, *states]
     if word in ("PASS", "FAIL"):
         candidates.append(word)
+    if contradiction:
+        candidates.append("FAIL")
     final = max(candidates, key=_WORST.index)
-    why_not = ""
+    why_not = "the folder contradicts its finished ledger entry" if contradiction else ""
     if final == "PASS" and (word in ("REGISTERED", "UNREADABLE") or (purpose == "graded" and not is_verified)):
         final = "UNVERIFIED"
         why_not = ("its ledger entry " + ("was never begun" if word == "REGISTERED" else "has a verdict this driver "
@@ -3563,7 +3631,7 @@ def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
             "ended_in_error": states.get("ERROR"), "error_stage": (error_record or {}).get("stage"),
             "aborted": states.get("ABORTED"), "entry": entry, "entry_why": entry_why, "entry_word": word,
             "recorded_id": source.get("ledger"), "purpose": purpose, "purpose_confirmed": entry is not None,
-            "final": final, "why_not": why_not, "exit": GRADE_EXIT[final]}
+            "contradiction": contradiction, "final": final, "why_not": why_not, "exit": GRADE_EXIT[final]}
 
 
 def grade_dir(out: Path, ledger_path: Path | None = None) -> int:
@@ -3571,10 +3639,12 @@ def grade_dir(out: Path, ledger_path: Path | None = None) -> int:
     reads the batch's ledger entry NOW and NEVER reports a verdict better than that entry's (`regrade_dir`'s "final", the
     worst of the re-grade, the entry and the folder's own ERROR or ABORTED marks): EXIT 0 = PASS (a GRADED folder only when
     its numbers are VERIFIED against its ledger entry; a development folder is labelled DEVELOPMENT, not graded); 1 = FAIL
-    or UNVERIFIED (VACUOUS checks, numbers that do not verify, a graded folder no ledger entry verifies); 2 = it could not
-    be graded (no results file, an unreadable one); 3 = ABORTED by the harness (ABORT.txt, results.json or the entry);
-    4 = ERROR (results.error.json, the entry's ERROR verdict, or an entry still 'started'). In 3 and 4 the rows are
-    re-graded as information only."""
+    or UNVERIFIED (VACUOUS checks, numbers that do not verify, a graded folder no ledger entry verifies; the fifth check's
+    C5-01: a MISMATCH of the folder's own jobs and seeds or of the entry its recorded id names; C5-03: a folder ERROR or
+    ABORTED mark beside an entry finished with PASS or FAIL, said as a contradiction); 2 = it could not be graded (no
+    results file, an unreadable one); 3 = ABORTED by the harness (ABORT.txt, results.json or the entry); 4 = ERROR
+    (results.error.json, the entry's ERROR verdict, or an entry still 'started'). In 3 and 4 the rows are re-graded as
+    information only."""
     try:
         found = regrade_dir(out, ledger_path)
     except Exception as error:  # noqa: BLE001 - grade DIR reads files it did not write: it says why, never crashes
@@ -3597,6 +3667,9 @@ def grade_dir(out: Path, ledger_path: Path | None = None) -> int:
     if found["aborted"]:
         print(f"this batch was ABORTED by the harness: {found['aborted']}: no PASS or FAIL; the re-grade below is "
               f"information only")
+    if found["contradiction"]:  # (C5-03)
+        print(f"THE FOLDER CONTRADICTS ITS LEDGER ENTRY: {found['contradiction']}: neither ABORTED nor ERROR is reported "
+              f"for it; graded FAIL")
     for line in found["ignored"]:
         print(f"IGNORED: {line}")
     for line in found["markers"]:
@@ -3617,23 +3690,26 @@ def grade_dir(out: Path, ledger_path: Path | None = None) -> int:
     return found["exit"]
 
 
-def unfinished_problems(data: dict, record: dict | None, entry: dict) -> list[str]:
+def unfinished_problems(data: dict, record: dict | None, entry: dict, where: str = RESULTS_ERROR) -> list[str]:
     """(The fourth check's C4-E05) Why `finish-entry` must NOT write DIR/ledger.unfinished.json's verdict into `entry`
     (empty: it may). The verdict must be this driver's own ERROR verdict for that entry, REBUILT from DIR/results.error.json
     (`error_line`: the entry's own purpose label, results.error.json's `error_verdict` text, its target, the entry's seeds
     and bounds sha256; "; no evidence file (...)" may follow), and results.error.json must name the same entry, seeds and
-    numbers sha256 and say the ledger was NOT finished. A PASS, a FAIL or any edited line is refused."""
+    numbers sha256 and say the ledger was NOT finished. A PASS, a FAIL or any edited line is refused. (The fifth check's
+    C5-02) `record` is ledger.unfinished.json's copy of those fields when results.error.json could not be written
+    (`where` names which one): the same checks."""
     if record is None:
-        return [f"{RESULTS_ERROR} is not there, so the ERROR verdict cannot be rebuilt"]
+        return [f"{RESULTS_ERROR} is not there and {UNFINISHED} carries no copy of its ERROR record, so the ERROR verdict "
+                f"cannot be rebuilt"]
     seeds = [entry.get("first"), entry.get("last")]
     problems: list[str] = []
     for key, want in (("ledger", entry.get("id")), ("seeds", seeds), ("numbers_sha256", entry.get("bounds_sha256")),
                       ("ledger_finished", False)):
         if record.get(key) != want:
-            problems.append(f"{RESULTS_ERROR}'s {key} is {record.get(key)!r}, not {want!r}")
+            problems.append(f"{where}'s {key} is {record.get(key)!r}, not {want!r}")
     shown = str(record.get("verdict") or "")
     if not ERROR_FORM.fullmatch(shown):
-        problems.append(f"{RESULTS_ERROR}'s verdict {shown[:120]!r} is not this driver's ERROR verdict")
+        problems.append(f"{where}'s verdict {shown[:120]!r} is not this driver's ERROR verdict")
     purpose = entry.get("purpose")
     if purpose not in ledger.PURPOSES or not isinstance(entry.get("bounds_sha256"), str):
         return [*problems, f"the entry's purpose {purpose!r} or bounds sha256 cannot be read"]
@@ -3641,7 +3717,7 @@ def unfinished_problems(data: dict, record: dict | None, entry: dict) -> list[st
                          entry["bounds_sha256"])
     verdict = str(data.get("verdict") or "")
     if not (verdict == rebuilt or verdict.startswith(rebuilt + "; no evidence file (")):
-        problems.append(f"{UNFINISHED}'s verdict {verdict[:160]!r} is not the ERROR verdict rebuilt from {RESULTS_ERROR} "
+        problems.append(f"{UNFINISHED}'s verdict {verdict[:160]!r} is not the ERROR verdict rebuilt from {where} "
                         f"({rebuilt[:160]!r})")
     return problems
 
@@ -3650,7 +3726,9 @@ def finish_entry_cli(out: Path, ledger_path: Path | None = None) -> int:
     """`finish-entry DIR`: finish the ledger entry the ERROR path could not write (its DIR/ledger.unfinished.json), with the
     verdict and evidence recorded there. REFUSED (exit 2, the ledger untouched) unless that entry exists in the ledger,
     names the recorded seeds and is still "started" (C3-E03), and (the fourth check's C4-E05) the verdict is this driver's
-    own ERROR verdict for it, rebuilt from DIR/results.error.json (`unfinished_problems`)."""
+    own ERROR verdict for it, rebuilt from DIR/results.error.json (`unfinished_problems`); (the fifth check's C5-02) when
+    results.error.json is not there (it could not be written), from the copy of its fields ledger.unfinished.json carries
+    ("error_record"), under the same checks."""
     path = Path(ledger_path or ledger.LEDGER)
     try:
         data = _read_record(out / UNFINISHED)
@@ -3661,6 +3739,9 @@ def finish_entry_cli(out: Path, ledger_path: Path | None = None) -> int:
     if data is None:
         print(f"REFUSED: {out / UNFINISHED} is not there: no entry was left unfinished in {out}")
         return 2
+    where = RESULTS_ERROR
+    if record is None and isinstance(data.get("error_record"), dict):
+        record, where = data["error_record"], f"{UNFINISHED}'s copy of {RESULTS_ERROR}"
     try:
         entry = next((e for e in ledger.load(path).get("entries", []) if e.get("id") == data.get("entry_id")), None)
     except Exception as error:  # noqa: BLE001 - a ledger that cannot be read is said, never written
@@ -3671,7 +3752,7 @@ def finish_entry_cli(out: Path, ledger_path: Path | None = None) -> int:
               f"{'missing' if entry is None else repr(entry.get('status')) + ' for seeds ' + str([entry.get('first'), entry.get('last')])}"
               f", not a 'started' entry for seeds {data.get('seeds')}")
         return 2
-    problems = unfinished_problems(data, record, entry)
+    problems = unfinished_problems(data, record, entry, where)
     if problems:
         print(f"REFUSED: finish-entry writes only this driver's own ERROR verdict for entry #{entry.get('id')}: "
               f"{'; '.join(problems)}")
