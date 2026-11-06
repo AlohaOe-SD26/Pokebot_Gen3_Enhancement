@@ -3217,8 +3217,9 @@ class SlopeTests(unittest.TestCase):
     """(chapter 6 stops round 3, NS6, 2026-11-06) GRANITE CAVE B1F's MUDDY SLOPE at (9, 9)-(9, 10): the navigator planned up
     it 7,536 times in probe8's C3 and no bump was ever recorded, because the player DID move each time (and slid back). A
     step UNDONE by a slide is now a failed step that way (`Navigator._undone`, `WorldMemory.learn_slide`): dear after one,
-    refused at `BUMP_GIVE_UP`, as a bump is. Off for the earlier brains (`learn_slides`). Mutants: `revert_step5.py`
-    G576-G581."""
+    refused at `BUMP_GIVE_UP`, as a bump is. Off for the earlier brains (`learn_slides`). Mutants:
+    `revert_r1_mutants.json` CH6S1-CH6S13 (suites SlopeTests and test_eyes LiveCallEndTests; CH6S7, CH6S9 and CH6S10
+    REDUNDANT ALONE, with why; CH6S8 corrected from REDUNDANT to CAUGHT by test_s2, s53/ch6stops3 addendum 2)."""
 
     def walk_up(self, learn: bool, game=None, budget: int = 3000):
         game = game or SlopeGame({"CAVE": SLOPE}, ("CAVE", (2, 4)))
@@ -3297,6 +3298,24 @@ class SlopeTests(unittest.TestCase):
         self.assertTrue(outcome.startswith("done"), outcome)
         self.assertEqual(world.here().bumps((2, 3), "up"), 0)
         self.assertTrue(any("held the player now: forgotten" in line for line in lines), lines[-6:])
+
+    def test_s7_control_a_way_back_by_its_own_press_is_no_slide(self):
+        """(round 3, the second builder, 2026-11-06) CONTROL of `_undone`'s press guard: on an ordinary floor a step up, then
+        the player is moved back down by a press of its own that is no navigator step (`_walk`, as a skill's own press
+        would), then a step left: back on the tile the step up began on, free, but it PRESSED since: no slide is learned
+        and the step is taken."""
+        game = SlopeGame({"ROOM": ["#####", "#...#", "#...#", "#...#", "#####"]}, ("ROOM", (2, 3)))
+        hands, nav, world, notes, lines = rig(game)
+        nav.learn_slides = True
+        hands.look()
+        first = drive(nav.walk_step("up", "up", "walk up"))
+        self.assertEqual((first.kind, first.to), ("moved", (2, 2)))
+        back = drive(nav._walk("down", "back down by its own press", "walk down"))  # noqa: SLF001
+        self.assertEqual((back.kind, game.pos), ("moved", (2, 3)))
+        step = drive(nav.walk_step("left", "left", "walk left"))
+        self.assertEqual((step.kind, step.to), ("moved", (1, 3)))
+        self.assertEqual(world.here().bumped, {})
+        self.assertFalse(any("SLID BACK" in line for line in lines))
 
     def test_s4_a_slide_is_kept_through_the_step_before_it_and_forgotten_when_the_tile_holds(self):
         world = WorldMemory()

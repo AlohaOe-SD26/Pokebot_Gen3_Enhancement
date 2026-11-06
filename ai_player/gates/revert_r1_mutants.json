@@ -10018,6 +10018,278 @@
     "test_eyes:LiveCallEndTests"
    ],
    "origin": "chapter 6 stops, the second builder, 2026-11-06 (s53/ch6stops2): the round's two new CONTROLS on the real game (the sail after DAD's call: a scene that really locks the controls; the chapter-5 POKeNAV call read exactly as before); predictions written and hashed (s53/ch6stops2/mutant_predictions_r2.txt, sha256 e9bac304...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S0",
+   "prediction": "CONTROL",
+   "what": "nothing: the unchanged copy on round 3's revert_r1 suites (the slope tests, the live call-end class)",
+   "edits": [],
+   "expected": [],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S1",
+   "prediction": "CAUGHT",
+   "what": "walk_step's check BEFORE a step deleted (a slide already over is not seen)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "        undone = self._undone(key, self.hands.look())\n        if undone is not None:\n            return undone\n        result = yield from self._walk(direction, why, gate)\n",
+     "        result = yield from self._walk(direction, why, gate)  # MUTANT CH6S1\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s5_a_slide_already_over_before_the_next_step_is_seen_too"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S2",
+   "prediction": "CAUGHT",
+   "what": "walk_step's check of a step's RESULT deleted (pressing on and landing behind is not seen)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "            undone = self._undone(key, self.hands.last, landed=result)\n",
+     "            undone = None  # MUTANT CH6S2\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s1_a_step_slid_back_from_is_learned_and_put_aside",
+    "LiveCallEndTests.test_the_muddy_slope_is_learned_as_one_way_on_the_real_game"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S3",
+   "prediction": "CAUGHT",
+   "what": "a slope that holds the player never forgets the slide (`forget_slide`'s call deleted)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "                info = self.world.forget_slide(key, result.frm, last[3])\n",
+     "                info = None  # MUTANT CH6S3\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s6_a_slope_that_holds_the_player_forgets_the_slide"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S4",
+   "prediction": "CAUGHT",
+   "what": "a step undone is never learned (`learn_slide`'s call deleted)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "        info = self.world.learn_slide(key, into, direction, look.frame)\n",
+     "        info = None  # MUTANT CH6S4\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s1_a_step_slid_back_from_is_learned_and_put_aside",
+    "SlopeTests.test_s5_a_slide_already_over_before_the_next_step_is_seen_too",
+    "LiveCallEndTests.test_the_muddy_slope_is_learned_as_one_way_on_the_real_game"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S5",
+   "prediction": "CAUGHT",
+   "what": "the step INTO a slope forgets the slide learned there (forget_bump's slid exception deleted)",
+   "edits": [
+    [
+     "world/memory.py",
+     "        if (memory.bumped.get((xy, direction)) or {}).get(\"slid\"):\n            return None\n",
+     "        if False:  # MUTANT CH6S5\n            return None\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s1_a_step_slid_back_from_is_learned_and_put_aside",
+    "SlopeTests.test_s4_a_slide_is_kept_through_the_step_before_it_and_forgotten_when_the_tile_holds"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S6",
+   "prediction": "CAUGHT",
+   "what": "a press of its own since the last step is no guard (`_undone`'s press guard deleted)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "                or (landed is None and pressed > 0)):\n",
+     "                ):  # MUTANT CH6S6\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s7_control_a_way_back_by_its_own_press_is_no_slide"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S7",
+   "prediction": "REDUNDANT",
+   "what": "`_undone`'s screen guard deleted (a step undone while something holds the screen)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     " or into is None or not nav_free(look)\n",
+     " or into is None\n"
+    ]
+   ],
+   "expected": "a scene that walks the player back is met by `handle`, which clears the last step (CH6S8), and its text is pressed through (CH6S6's press guard): SlopeTests.test_s2 holds by either.",
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S8",
+   "prediction": "CAUGHT",
+   "what": "`handle` keeps the last step through a scene or a battle",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "        self._entered = None  # (chapter 6 NS6) and a scene or a battle that moves it is no slide\n",
+     "        pass  # MUTANT CH6S8\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s2_control_a_scene_that_walks_the_player_back_is_no_slide"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run; the prediction CORRECTED in addendum 2 (sha256 0d5e091fbd2ac892...): run 1 found it was REDUNDANT-predicted and CAUGHT by test_s2"
+  },
+  {
+   "name": "CH6S9",
+   "prediction": "REDUNDANT",
+   "what": "an exit keeps the last step (`_use`'s reset deleted)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "        self._entered = None  # (chapter 6 NS6) an exit is no step to be undone\n",
+     "        pass  # MUTANT CH6S9\n"
+    ]
+   ],
+   "expected": "an exit changes the map, and `_undone` asks the same map (`last[0] != key`): no slope test uses an exit.",
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S10",
+   "prediction": "REDUNDANT",
+   "what": "a new intent keeps the last intent's step (`run`'s reset deleted)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "        self._entered = None  # (chapter 6 NS6) a new intent: what the last one walked is not this one's step\n",
+     "        pass  # MUTANT CH6S10\n"
+    ]
+   ],
+   "expected": "a slide between two intents is a slide still (the player is back where the last step began with no press): the reset only drops what a new intent cannot use; no slope test ends an intent between a step and its slide.",
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S11",
+   "prediction": "CAUGHT",
+   "what": "slides are learned with `learn_slides` off (every earlier brain)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "        if not self.learn_slides or last is None or look is None or key is None:\n",
+     "        if last is None or look is None or key is None:  # MUTANT CH6S11\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s1_a_step_slid_back_from_is_learned_and_put_aside",
+    "LiveCallEndTests.test_the_muddy_slope_is_learned_as_one_way_on_the_real_game"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3.txt, sha256 e5b6ededbc4cb115...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S12",
+   "prediction": "CAUGHT",
+   "what": "walk_step never asks whether a step landed BEHIND the tile it pressed from (the result check guarded off)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "        if result.kind == \"moved\" and result.frm is not None and result.to == moved(result.frm, OPPOSITE[direction]):\n            undone = self._undone(key, self.hands.last, landed=result)\n",
+     "        if False:  # MUTANT CH6S12\n            undone = self._undone(key, self.hands.last, landed=result)\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s1_a_step_slid_back_from_is_learned_and_put_aside",
+    "LiveCallEndTests.test_the_muddy_slope_is_learned_as_one_way_on_the_real_game"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3_add1.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3_addendum1.txt, sha256 84bb47903cb5e5a0...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S13",
+   "prediction": "CAUGHT",
+   "what": "a slide forgotten is not told (the forget_slide line deleted)",
+   "edits": [
+    [
+     "brain/navigator.py",
+     "                    self.tell(f\"the way into {result.frm} moving {last[3]}, learned as a slide back ({info.get('bumps')} \"\n                              f\"time(s)), held the player now: forgotten\", {\"forgot_slide\": list(result.frm),\n                                                                           \"direction\": last[3], \"map\": key})\n",
+     "                    pass  # MUTANT CH6S13\n"
+    ]
+   ],
+   "expected": [
+    "SlopeTests.test_s6_a_slope_that_holds_the_player_forgets_the_slide"
+   ],
+   "suites": [
+    "test_world:SlopeTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3_add1.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3_addendum1.txt, sha256 84bb47903cb5e5a0...) BEFORE the first run"
   }
  ]
 }

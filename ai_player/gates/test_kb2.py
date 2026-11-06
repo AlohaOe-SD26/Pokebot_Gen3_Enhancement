@@ -1200,6 +1200,63 @@ class NotReadTests(unittest.TestCase):
         found = plant(unclassified)
         self.assertTrue(any("world/maps.json" in f and "UNCLASSIFIED" in f and "secret_route" in f for f in found), found)
 
+    def test_k_f3b_the_bosses_slice_is_gated_and_weakens_nothing(self):
+        """(chapter 7 NS4 round 3, the second builder, 2026-11-06) The fairness gate's CHANGE: `knowledge/atlas.py` may now
+        name a SECOND world file, `world/bosses.json` (`gym_leaders`: which leader holds which gym), and every key path of
+        it is classified. What that must NOT do, and does not: remove a key from the developer-only set (a world file's
+        AI names never excuse a name elsewhere, `developer_keys`) or touch the hidden keys; measured here with LOADERS put
+        back to the base's (atlas: maps.json only). What it ADDS: the bosses' own developer keys are refused now
+        (`rematches`, `order`, `entry`, `notes`), and deciding code that names `bosses.json` breaks B1 (before, a world file
+        no loader named was not one of B1's names). THE NEW BREACHES of the kind the change is about FAIL: the loader
+        reading a boss's badge FLAG or its rematch constants (B2), deciding code naming the file (B1), a key planted
+        under a boss (RULE B); a docstring mention of them does not fire."""
+        from unittest import mock
+
+        from ai_player.gates import check_fairness as cf_
+        loaders = dict(cf_.LOADERS)
+        loaders["knowledge/atlas.py"] = ("world/maps.json",)
+        with_slice = cf_.developer_keys(knowledge=KNOWLEDGE), cf_.hidden_keys(knowledge=KNOWLEDGE)
+        with mock.patch.object(cf_, "LOADERS", loaders):
+            without = cf_.developer_keys(knowledge=KNOWLEDGE), cf_.hidden_keys(knowledge=KNOWLEDGE)
+        self.assertEqual(without[0] - with_slice[0], set())  # no developer-only key is lost
+        self.assertEqual(with_slice[0] - without[0], {"entry", "notes", "order", "rematches"})
+        self.assertEqual(with_slice[1], without[1])
+
+        def plant(edit) -> list[str]:
+            with tempfile.TemporaryDirectory() as tmp:
+                pkg = Path(tmp) / "ai_player"
+                shutil.copytree(REPO / "ai_player", pkg, ignore=shutil.ignore_patterns(
+                    "__pycache__", "evidence", "gates", "*.ss1", "eyes", "host"))
+                edit(pkg)
+                return cf_.check(pkg)[1]
+
+        def add(rel: str, text: str):
+            def do(pkg):
+                path = pkg / rel
+                path.write_text(path.read_text(encoding="utf-8") + text, encoding="utf-8")
+            return do
+
+        self.assertEqual(plant(lambda pkg: None), [])  # CONTROL: the copy is clean
+        found = plant(add("knowledge/atlas.py", '\n\ndef leak(boss):\n    return boss["badge"]["flag"], '
+                                                'boss.get("rematches")\n'))
+        self.assertEqual(sorted(f.split("key ")[1].split(" ")[0] for f in found if f.startswith("B2")),
+                         ["'flag'", "'rematches'"])
+        found = plant(add("brain/goals.py", '\n\nBOOK = "knowledge/world/bosses.json"\n'))
+        self.assertTrue(any(f.startswith("B1") and "bosses.json" in f for f in found), found)
+        with mock.patch.object(cf_, "LOADERS", loaders):  # FAULT half: without the slice B1 did not know the name
+            found = plant(add("brain/goals.py", '\n\nBOOK = "knowledge/world/bosses.json"\n'))
+        self.assertFalse(any(f.startswith("B1") and "bosses.json" in f for f in found), found)
+        mention = '\n\ndef told():\n    """Never boss["badge"]["flag"] nor bosses.json."""\n    return "x"\n'
+        self.assertEqual(plant(add("knowledge/atlas.py", mention)), [])
+
+        def unclassified(pkg):
+            path = pkg / "knowledge" / "world" / "bosses.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            next(boss for boss in data["bosses"] if isinstance(boss.get("badge"), dict))["badge"]["secret_flag"] = "FLAG_X"
+            path.write_text(json.dumps(data), encoding="utf-8")
+        found = plant(unclassified)
+        self.assertTrue(any("world/bosses.json" in f and "UNCLASSIFIED" in f and "secret_flag" in f for f in found), found)
+
     def test_v1_warps_and_connections_are_classified_leaf_by_leaf(self):
         """(The round-1 verifier's V1, 2026-10-31) `maps[].warps` and `maps[].connections` were SUBTREE entries, so a key
         planted under a warp (`warps[].script`, the verifier's gate mutant M4) passed RULE B unmarked. Every leaf under

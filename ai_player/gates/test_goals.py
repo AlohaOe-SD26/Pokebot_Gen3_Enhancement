@@ -8923,7 +8923,8 @@ class Round3TravelTests(unittest.TestCase):
     PETALBURG?" and the story skill's default answered YES (`QUESTION_RULES`: "a person goes along"): 4 of 6 probe runs
     (#101 C2, C3; #102 C1, C2) sailed off the island with the letter undelivered. A question whose words OFFER A TRIP to a
     named town (`brain/rides.py` trip_offer) is answered by where the AI's goal is (`brain/goals.py` TravelSense); every
-    other question as before. Mutants: `revert_step5.py` G539-G546."""
+    other question as before. Mutants: `revert_step5.py` G539-G546, G576-G583 (G583 REDUNDANT ALONE, with why), G595-G598,
+    G611-G613."""
 
     def test_t1_a_trip_offer_is_read_from_the_words(self):
         from ai_player.brain.rides import trip_offer
@@ -8988,6 +8989,21 @@ class Round3TravelTests(unittest.TestCase):
         self.assertIn("its goal is here", why)
         sense, _ = travel_sense(world, None)  # no goal played yet: the milestone the marks prove (ch7_steven)
         self.assertFalse(sense.answer(seen)[0])
+
+    def test_t3b_a_goal_in_a_building_of_the_town_it_stands_in_is_here(self):
+        """(round 3, the second builder, 2026-11-06) Rule 2 counts a BUILDING of the town it stands in: BRAWLY's step
+        (ch7_brawly: its one map DEWFORD_TOWN_GYM, no milestone after it), asked "sail back to PETALBURG?" in DEWFORD: NO,
+        "its goal is here" (`town_of`, `in_place`: the gym is in DEWFORD TOWN). Without the town rule the answer is NO
+        only by a known way (rule 3), whose reason says so: the pin is the reason."""
+        words = BRINEY_QUESTIONS["dewford, letter"][0]
+        world = island_world()
+        world._last.key, world._last.xy = "0:11", (11, 9)  # noqa: SLF001
+        seen = question_look(words, "DEWFORD_TOWN", 0, 11, at=(11, 9), mark_values=ch_proofs("ch7_brawly"))
+        sense, _ = travel_sense(world, "ch7_brawly")
+        self.assertEqual(sense.goal_places(seen), {"DEWFORD_TOWN_GYM": "the story: BRAWLY: the KNUCKLE BADGE"})
+        yes, why = sense.answer(seen)
+        self.assertFalse(yes, why)
+        self.assertIn("its goal is here, not there: DEWFORD_TOWN_GYM", why)
 
     def test_t4_control_the_first_sail_is_yes(self):
         """CONTROL: MR. BRINEY's first offer in his cottage ("We'll set sail for DEWFORD."), asked during the talk goal of
@@ -9092,6 +9108,26 @@ class Round3TravelTests(unittest.TestCase):
         self.assertTrue(same)
         self.assertTrue(any(isinstance(w, RideWatch) for w in hands.watchers))
 
+    def test_t10_a_walk_names_where_it_is_heading_while_it_walks(self):
+        """(round 3, the second builder, 2026-11-06) What rule 1 calls "the map its walk is on its way to"
+        (`GoalRunner.heading`) is set by `_travel` for its walk (`_travel_on`) and put back after it, so a question met on
+        the way is judged by that map and one met after it is not."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import GoalRunner
+
+        runner = GoalRunner(None, Navigator(None, world_with("DEWFORD_TOWN", current="DEWFORD_TOWN"), random.Random(1)),
+                            manager("Story"), None, lambda line: None)
+        heading_seen = []
+
+        def travel_on(self_, target_map, why, budget, done):
+            heading_seen.append(self_.heading)
+            return f"arrived at {target_map}"
+            yield  # noqa: unreachable - a generator
+
+        with mock.patch.object(goals_module.GoalRunner, "_travel_on", travel_on):
+            outcome = drive(runner._travel("RUSTBORO_CITY", "why", 100, lambda seen: False), budget=10)  # noqa: SLF001
+        self.assertEqual((outcome, heading_seen, runner.heading), ("arrived at RUSTBORO_CITY", ["RUSTBORO_CITY"], None))
+
 
 def ride_look(frame: int, group: int, number: int, const: str, at, free: bool = True, fading: bool = False,
               battle: bool = False) -> Observation:
@@ -9107,7 +9143,7 @@ class Round3RideTests(unittest.TestCase):
     scene's, from tiles that look like no way out, so `route_to` ROUTE104 -> DEWFORD_TOWN was None on probe7 C1's own
     memory (`ISLAND_FIXTURE`). What the AI SAW is kept as a RIDE (`brain/rides.py` RideWatch: a YES to someone's offer of
     a trip, then scenes only, the controls back on another map) and used as a link (`brain/explore.py` ways_from, route_to,
-    region_hops; `goals.world_distance`; the navigator's `rider`). Mutants: `revert_step5.py` G547-G556."""
+    region_hops; `goals.world_distance`; the navigator's `rider`). Mutants: `revert_step5.py` G547-G556, G584-G594."""
 
     def sail(self, settle_frames: int = 200, watch_settle=None):
         """The first sail as the looks show it: the YES in the cottage (MR. BRINEY in front), the fade, ROUTE 104's dock
@@ -9166,13 +9202,15 @@ class Round3RideTests(unittest.TestCase):
 
     def test_r2_what_is_no_ride(self):
         """No YES to a trip: nothing is kept. A battle after the YES: dropped. A YES whose scene ends on the map it was asked
-        on: dropped. The AI walking off by itself before any scene: dropped."""
+        on: dropped. The AI walking off by itself before any scene: dropped. (Round 3, the second builder) A scene after
+        the YES that does not end within `RIDE_MAX_FRAMES` (here 50): dropped."""
+        from ai_player.brain import rides as rides_module
         from ai_player.brain.rides import RideWatch
 
         world, watch, _ = self.sail(settle_frames=10)  # not yet settled: still pending
         self.assertEqual(world.rides, {})
         self.assertIsNotNone(watch.pending)
-        for case in ("battle", "same map", "own step", "round trip"):
+        for case in ("battle", "same map", "own step", "round trip", "never ends"):
             with self.subTest(case=case):
                 world = WorldMemory()
                 watch = RideWatch(world, lambda: 0, lambda line, extra=None: None)
@@ -9191,14 +9229,19 @@ class Round3RideTests(unittest.TestCase):
                               ride_look(11, 0, 19, "ROUTE104", (17, 50), free=False),
                               ride_look(12, 0, 19, "ROUTE104", (17, 50), free=False, fading=True)]
                              + [ride_look(13 + f, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 8)) for f in range(300)])
+                elif case == "never ends":  # locked on the map it was asked on, frame after frame
+                    later = [ride_look(10 + f, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=False) for f in range(100)]
                 else:
                     world.intend("step", "down")
                     later = [ride_look(10, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=False, fading=True),
                              ride_look(11, 0, 19, "ROUTE104", (17, 50))] + [
                         ride_look(12 + f, 0, 19, "ROUTE104", (17, 50)) for f in range(300)]
-                for seen in later:
-                    world.observe(seen)
-                    watch(seen)
+                patch = (mock.patch.object(rides_module, "RIDE_MAX_FRAMES", 50) if case == "never ends"
+                         else contextlib.nullcontext())
+                with patch:
+                    for seen in later:
+                        world.observe(seen)
+                        watch(seen)
                 self.assertEqual(world.rides, {}, case)
                 self.assertIsNone(watch.pending, case)
                 self.assertEqual(watch.history[-1][1], "dropped", case)
@@ -9364,7 +9407,7 @@ class Round3CrossingTests(unittest.TestCase):
     ("back (46, 59): the road right: it leads back to PETALBURG_CITY"), whose walk was planned through RUSTBORO's tiles
     past the UP edge: its first step crossed into RUSTBORO, and RUSTBORO's lost walk led straight back down. A road is now
     walked to over this map and its own side's tiles only (`navigator.in_map_walls`, `explore.candidates`' road walk).
-    Mutants: `revert_step5.py` G557-G558."""
+    Mutants: `revert_step5.py` G557, G558, G599."""
 
     def north_strip(self, fault: bool = False):
         from ai_player.brain import explore as explore_module
@@ -9430,7 +9473,7 @@ class Round3StevenTests(unittest.TestCase):
     on a shop errand (in at f761588, out at f761786), C1 under a go goal that looked round. Every walk that is not the walk
     to the one the story's next step names now STOPS when they come into view on that step's map
     (`GoalRunner.story_in_view`, `Navigator.stop_for`), and with them in view there a heal not in danger and a shop wait
-    (`next_goal`'s `story_here`). Mutants: `revert_step5.py` G559-G563."""
+    (`next_goal`'s `story_here`). Mutants: `revert_step5.py` G559-G563, G600-G602."""
 
     def steven_look(self, in_view: bool = True, const: str = "GRANITE_CAVE_STEVENS_ROOM", **kwargs):
         mgr = manager("Story")
@@ -9477,6 +9520,11 @@ class Round3StevenTests(unittest.TestCase):
         self.assertEqual({kind: stop is not None for kind, stop in seen_stop.items()},
                          {"shop": True, "explore": True, "go": True, "talk": False, "heal": False, "find": False})
         self.assertIsNone(nav.stop_for)  # put back after each goal
+        # (round 3, the second builder) the stop an errand's walk is given asks `story_in_view` with the goal's milestone
+        asked = []
+        runner.story_in_view = lambda seen, milestone_: asked.append((seen, milestone_.id)) or "STEVEN is in view"
+        self.assertEqual(seen_stop["shop"]("a look"), "STEVEN is in view")
+        self.assertEqual(asked, [("a look", "ch7_steven")])
 
     def test_s3_with_steven_in_view_a_shop_and_a_heal_not_in_danger_wait(self):
         """In his room with STEVEN in view and the letter undelivered: no POKé BALLS and money (a mart known and reachable),
@@ -9519,7 +9567,9 @@ class Round3GymTests(unittest.TestCase):
     gym. The knowledge base now knows which leader holds which gym (`knowledge/atlas.py` gym_leaders, the world file
     `bosses.json`'s second loader slice, classified by `check_fairness.py`), and a step told by a leader's name is known
     once the AI has stood inside that leader's gym (`GoalManager.knows_gym`). And errands no longer pick a mart or grass no
-    known way leads to (`_nearest_place(reachable=True)`, `grass_target`). Mutants: `revert_step5.py` G564-G569."""
+    known way leads to (`_nearest_place(reachable=True)`, `grass_target`). Mutants: `revert_step5.py` G564-G569, G603-G610;
+    the fairness gate's change (the `bosses.json` slice): test_kb2 NotReadTests.test_k_f3b, mutants CH7F1 and CH7F2
+    (`s53/ch6stops3/gate_mutants3.py`: revert_r1's copy cannot import test_kb2)."""
 
     def test_g1_the_knowledge_base_knows_each_gyms_leader(self):
         from ai_player.knowledge.atlas import gym_leaders
@@ -9591,6 +9641,8 @@ class Round3GymTests(unittest.TestCase):
         seen = look(ch_proofs("ch7_brawly"), party=[mon(10)], const="DEWFORD_TOWN", map_number=1)
         index, milestone = mgr.milestone(seen, visited_in(world))
         self.assertNotEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")  # out of reach: no training
+        # (round 3, the second builder) and the training is NOT taken as done ("ready") because the grass was out of reach
+        self.assertFalse(mgr.prep(milestone)["ready"])
         world.connections.append({"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
                                   "offset": [0, 10], "by": "ai", "frame": 1})
         self.assertEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")  # CONTROL: reachable, as before
@@ -9600,6 +9652,31 @@ class Round3GymTests(unittest.TestCase):
         mgr = manager("Story")
         world = world_with("DEWFORD_TOWN", "OLDALE_TOWN", current="DEWFORD_TOWN", center_from="OLDALE_TOWN")
         self.assertEqual(mgr.heal_place(world)[0], "OLDALE_TOWN_POKEMON_CENTER_1F")
+
+    def test_g7_a_training_roam_goes_only_to_grass_a_known_way_leads_to(self):
+        """(round 3, the second builder, 2026-11-06) The roam itself (`GoalRunner._grass_map`, by `grass_target`): with the
+        mainland's grass out of reach from the island it stays (None), never sets off for it; FAULT half (no reachability
+        rule: `UNREACHABLE` raised past the count of a map no way leads to) it heads for ROUTE104 as the old rule did;
+        CONTROL: with a known way, ROUTE104, as before."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import GoalRunner
+
+        mgr = manager("Trainer")
+        world = world_with("DEWFORD_TOWN", "ROUTE104", current="DEWFORD_TOWN")
+        world.maps["0:2"].tiles[(3, 3)] = TileFact(False, False, True, True, None, False, False, 3, "TALL_GRASS", 0, (0, 0))
+        runner = GoalRunner(None, Navigator(None, world, random.Random(1)), mgr, None, lambda line: None)
+        milestone = mgr.story.milestones[mgr.story.index("ch7_brawly")]
+        self.assertIsNone(runner._grass_map(milestone))  # noqa: SLF001
+        with mock.patch.object(goals_module, "UNREACHABLE", 100):
+            self.assertEqual(runner._grass_map(milestone), "ROUTE104")  # noqa: SLF001 - FAULT half
+        world.connections.append({"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
+                                  "offset": [0, 10], "by": "ai", "frame": 1})
+        self.assertEqual(runner._grass_map(milestone), "ROUTE104")  # noqa: SLF001 - CONTROL
+        # CONTROL: standing on a map with grass of its own, the roam stays (`grass_target` "here")
+        from ai_player.brain.goals import grass_target
+        world._last.key = "0:2"  # noqa: SLF001 - on ROUTE104
+        self.assertEqual(grass_target(world), ("here", None))
+        self.assertIsNone(runner._grass_map(milestone))  # noqa: SLF001
 
 
 class Round3WalkerPinTests(unittest.TestCase):
@@ -9634,7 +9711,9 @@ class Round3WalkerPinTests(unittest.TestCase):
 
     def test_p2_a_re_aim_never_walks_to_a_spot_already_tried(self):
         """(VM4) Someone who moved while the player walked up: the spots beside their new tile are tried, never one already
-        tried."""
+        tried. (Round 3, the second builder, 2026-11-06: run 1 of the mutants showed the first version VACUOUS, G571 not
+        caught: the person stepped to (10, 4), and no spot beside it had been tried. Now they step to the tile just past the
+        spot tried first, (9, 5) -> (10, 5), so that spot is beside them again, the nearest to the player on a tie.)"""
         from ai_player.skills import story as story_skill
 
         sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
@@ -9644,13 +9723,15 @@ class Round3WalkerPinTests(unittest.TestCase):
         def go_to(tile, why, budget):
             calls.append(tile)
             if len(calls) == 1:
-                sim.still[STILL_ID] = (10, 4)  # they step aside once
+                sim.still[STILL_ID] = (tile[0] + 1, tile[1])  # they step aside once: to the tile past the spot tried
             yield from hands.pad.busy("walking: no way there")
             return "stuck: the goto cannot be reached (unreachable), and nothing else is wanted (0 battles)"
 
         nav.go_to = go_to
         with mock.patch.object(story_skill, "meet_walker", _no_walker):
             drive(story_skill.talk_to(hands, nav, self.target(hands), "chat"), budget=20000)
+        self.assertEqual(calls[0], (9, 5))  # the nearest spot beside (9, 4) to the player at (5, 7)
+        self.assertEqual(sim.still[STILL_ID], (10, 5))  # so (9, 5) is beside them again: the case is not vacuous
         self.assertGreaterEqual(len(calls), 2, calls)
         self.assertEqual(len(calls), len(set(calls)), calls)
 
