@@ -8181,6 +8181,480 @@ class InstructedTests(unittest.TestCase):
                     self.assertFalse(drive(brain._story_menu(hands, kind, "a scene", "MUDKIP")))
 
 
+# ------------------------------------------------------------------------------------------------ (chapter 6) the stops
+#: MR. BRINEY's cottage as the AI's own memory has it (the KI-134 B arm's C2 world.jsonl, ROUTE104_MR_BRINEYS_HOUSE): local
+#: x 0..11 from the left, rows y 2..8; '#' a vase, the table (7..8, 4..5) or the door's two warp tiles (5..6, 8).
+COTTAGE = {2: "............", 3: "##..........", 4: "#......##...", 5: ".......##...", 6: "............",
+           7: "............", 8: ".....##....."}
+#: His round once PEEKO is home (pinned decomp `data/maps/Route104_MrBrineysHouse/scripts.inc` SetBrineyPeekoPos: (9,3),
+#: MOVEMENT_TYPE_WALK_SEQUENCE_DOWN_LEFT_UP_RIGHT, range 3), and PEEKO three steps ahead on the same round ((9,6),
+#: WALK_SEQUENCE_LEFT_UP_RIGHT_DOWN): both walk round the table, a step every 16 frames, never stopping.
+BRINEY_ROUND = [(9, 3), (9, 4), (9, 5), (9, 6), (8, 6), (7, 6), (6, 6), (6, 5), (6, 4), (6, 3), (7, 3), (8, 3)]
+BRINEY_ID, PEEKO_ID, STILL_ID, BRINEY_GFX = 1, 2, 3, 21  # gfx 21: OBJ_EVENT_GFX_EXPERT_M (the B arm's 'npc (gfx 21)')
+
+
+class _Cottage:
+    """A small SIMULATION of the cottage, for the talk skill (test side). The PLAYER moves by the pad's holds the way the game
+    does it: a direction held while facing another way turns; held on facing it, a step every 16 frames whose tile changes 8
+    frames in; a wall or someone on the tile: no step. The WALKERS step round BRINEY_ROUND every `pace` frames and walk in
+    place while someone stands on their next tile (`src/event_object_movement.c` MoveNextDirectionInSequence: a collision
+    walks in place, the round's index unchanged). An A on its FIRST frame, with nothing running, talks to whoever STANDS on
+    the faced tile (`GetInteractedObjectEventScript`: an object's current tile): everyone stops (`lock`), a page prints for
+    10 frames and waits for A, and that A ends the talk. `talks` records WHO was talked to (map ids), `starts` the tiles at
+    the A that began each talk."""
+
+    def __init__(self, phase: int = 0, player=(5, 7), facing: str = "up", pace: int = 16, walkers: dict | None = None,
+                 still: dict | None = None, round_: list | None = None) -> None:
+        self.frame = 0
+        self.player = tuple(player)
+        self.facing = facing
+        self.pace = pace
+        self.round = round_ or BRINEY_ROUND
+        self.held = 0
+        self.talking: int | None = None
+        self.printed = 0
+        self.talks: list[int] = []
+        self.starts: list[dict] = []
+        self.walkers = walkers if walkers is not None else {BRINEY_ID: [phase % 12, 0], PEEKO_ID: [(phase + 3) % 12, 0]}
+        self.still = dict(still or {})
+
+    def tile_of(self, who: int) -> tuple[int, int]:
+        return self.round[self.walkers[who][0]] if who in self.walkers else self.still[who]
+
+    def people(self) -> list[int]:
+        return list(self.walkers) + list(self.still)
+
+    def occupied(self, tile: tuple[int, int], but: int | None = None) -> bool:
+        return tile == self.player or any(self.tile_of(who) == tile for who in self.people() if who != but)
+
+    @staticmethod
+    def walkable(tile: tuple[int, int]) -> bool:
+        row = COTTAGE.get(tile[1])
+        return row is not None and 0 <= tile[0] < len(row) and row[tile[0]] == "."
+
+    def step_frame(self, button: str | None, new: bool) -> None:
+        if button in ("Up", "Down", "Left", "Right") and self.talking is None:
+            direction = button.lower()
+            if self.facing != direction:
+                self.facing, self.held = direction, 0
+            else:
+                self.held += 1
+                if self.held == 8:
+                    ahead = (self.player[0] + DIRS[direction][0], self.player[1] + DIRS[direction][1])
+                    if self.walkable(ahead) and not self.occupied(ahead):
+                        self.player = ahead
+                    self.held = -8
+        else:
+            self.held = 0
+        if button == "A" and new:
+            if self.talking is None:
+                faced = (self.player[0] + DIRS[self.facing][0], self.player[1] + DIRS[self.facing][1])
+                who = next((w for w in self.people() if self.tile_of(w) == faced), None)
+                if who is not None:
+                    self.talking, self.printed = who, 0
+                    self.starts.append({"frame": self.frame, "who": who, "player": self.player, "facing": self.facing,
+                                        "tiles": {w: self.tile_of(w) for w in self.people()}})
+            elif self.printed >= 10:
+                self.talks.append(self.talking)
+                self.talking = None
+        if self.talking is not None:
+            self.printed += 1
+        else:
+            for who, state in self.walkers.items():
+                state[1] += 1
+                if state[1] >= self.pace:
+                    state[1] = 0
+                    ahead = self.round[(state[0] + 1) % len(self.round)]
+                    if not self.occupied(ahead, but=who):
+                        state[0] = (state[0] + 1) % len(self.round)
+        self.frame += 1
+
+
+DIRS = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
+
+
+class _CottageControls:
+    def __init__(self, sim: _Cottage) -> None:
+        self.sim = sim
+
+    def wait(self, frames: int):
+        for _ in range(frames):
+            self.sim.step_frame(None, False)
+            yield
+
+    def tap(self, button: str):
+        for i in range(2):
+            self.sim.step_frame(button, i == 0)
+            yield
+
+    def hold(self, button: str, frames: int):
+        for i in range(frames):
+            self.sim.step_frame(button, i == 0)
+            yield
+
+
+class _CottageEyes:
+    """What the screen shows of the simulation: the player's tile and facing, every person on their CURRENT tile (the eyes'
+    `current_coords`), and the talk's page (printing, then waiting for A)."""
+
+    def __init__(self, sim: _Cottage) -> None:
+        self.sim = sim
+        self.base = look(const="ROUTE104_MR_BRINEYS_HOUSE", map_number=17)
+
+    def look(self) -> Observation:
+        sim = self.sim
+        x, y = sim.player
+        talking = sim.talking is not None
+        waits = talking and sim.printed >= 10
+        words = {BRINEY_ID: "MR. BRINEY: Hold on, lass! Wait up, PEEKO!", PEEKO_ID: "PEEKO: Pihyoh!"}.get(sim.talking, "Hello!")
+        screen = ScreenState(game_state="OVERWORLD", screen="text" if talking else "overworld", menu=None,
+                             text_box_open=talking, waits_for_button=waits, in_battle=False,
+                             wait_reason="text printer 0 CLEAR" if waits else None, text=words if talking else None,
+                             script_running=talking, controls_locked=talking)
+        objects = tuple(SeenObject(kind="npc", x=tx, y=ty, dx=tx - x, dy=ty - y, local_id=who,
+                                   graphics_id=BRINEY_GFX if who == BRINEY_ID else 5, facing="down", elevation=3,
+                                   source="object")
+                        for who, (tx, ty) in ((w, sim.tile_of(w)) for w in sim.people()))
+        player = replace(self.base.player, x=x, y=y, facing=sim.facing)
+        return replace(self.base, frame=sim.frame, screen=screen, player=player, view=replace(self.base.view, objects=objects))
+
+
+def cottage_world() -> WorldMemory:
+    """The cottage in the AI's memory (`COTTAGE`), walls all round, on the map key the eyes' player gives (0:17)."""
+    world = WorldMemory()
+    memory = MapMemory("0:17", "ROUTE104_MR_BRINEYS_HOUSE", "ROUTE104_MR_BRINEYS_HOUSE")
+    wall = TileFact(True, False, False, False, None, False, False, 3, "WALL", 0, (0, 0))
+    for y in range(1, 10):
+        for x in range(-1, 13):
+            memory.tiles[(x, y)] = _open_tile() if _Cottage.walkable((x, y)) else wall
+    world.maps["0:17"] = memory
+    return world
+
+
+def cottage(sim: _Cottage, seed: int = 1) -> tuple[Hands, Navigator]:
+    world = cottage_world()
+    hands = Hands(_CottageEyes(sim), _CottageControls(sim), random.Random(seed), random.Random(seed), None, lambda line: None)
+    hands.watchers.append(world.observe)
+    return hands, Navigator(hands, world, random.Random(seed))
+
+
+def _no_walker(hands, nav, target, why, budget=0, since=None):
+    """FAULT (test side): `meet_walker` as if everyone stood still: the approach of the ordinary way, the old code's."""
+    return "standing"
+    yield  # noqa: unreachable - a generator that takes no frame
+
+
+class WalkerTests(unittest.TestCase):
+    """(chapter 6, 2026-11-05) STOP 1 of the KI-134 B arm (ledger #98): MR. BRINEY walks round his table and never stops, and
+    the talk skill walked to a tile beside where he WAS seen (C1: 54 talk goals, none landed; its ends 'interrupted on the
+    way: played out', 'unreachable: no tile from which the npc at (x,y) can be talked to', 'the npc did not answer'). Now
+    `skills/story.py` meets someone seen to move the way a person does (`meet_walker`): watch where they walk, wait beside
+    the way facing it, speak as they step in front. Every check is on the simulation's record of WHO was talked to (PEEKO
+    walks the same round three steps ahead: a talk that lands on PEEKO is no talk with MR. BRINEY)."""
+
+    def talk(self, phase: int, idle: int = 20, fault: bool = False, sim: _Cottage | None = None, who: int = BRINEY_ID,
+             seed: int = 1):
+        from ai_player.skills import story as story_skill
+
+        sim = sim or _Cottage(phase)
+        hands, nav = cottage(sim, seed)
+        first = hands.look()
+        target = next(o for o in first.view.objects if o.local_id == who)
+
+        def run():
+            yield from hands.pad.idle(idle, "deciding: talk to him") if idle else iter(())
+            return (yield from story_skill.talk_to(hands, nav, target, "talk to MR. BRINEY"))
+
+        patch = mock.patch.object(story_skill, "meet_walker", _no_walker) if fault else contextlib.nullcontext()
+        with patch:
+            outcome = drive(run(), budget=30000)
+        return outcome, sim
+
+    def test_w1_he_is_spoken_to_from_every_point_of_his_round(self):
+        """From each of the 12 points of his round at the moment the goal chose him (the goal manager's deciding pause
+        between), the talk lands on MR. BRINEY himself, the A pressed while he STOOD on the tile the player faced, within
+        a watch and two of his rounds (measured 251-416 frames). FAULT half: with `meet_walker` reporting everyone as
+        standing (the ordinary approach alone), the same 12 starts talk to him in 1 (measured; bound 3), the others
+        ending 'unreachable: no tile from which the npc at (x, y) can be talked to', the B arm's words."""
+        for phase in range(12):
+            with self.subTest(phase=phase):
+                outcome, sim = self.talk(phase)
+                self.assertEqual(outcome, "talked", outcome)
+                self.assertEqual(sim.talks, [BRINEY_ID])
+                start = sim.starts[0]
+                faced = (start["player"][0] + DIRS[start["facing"]][0], start["player"][1] + DIRS[start["facing"]][1])
+                self.assertEqual(start["tiles"][BRINEY_ID], faced)
+                self.assertLess(start["frame"], 20 + WALKER_WATCH_BOUND + 2 * 12 * 16 + 100, start)
+        old = [phase for phase in range(12) if self.talk(phase, fault=True)[1].talks[:1] == [BRINEY_ID]]
+        self.assertLessEqual(len(old), 3, f"the ordinary approach alone talked to him from {old}")
+
+    def test_w2_someone_who_moved_since_the_choice_is_watched_before_any_step(self):
+        """He walked on during the deciding pause: from every point of his round, the first thing the skill does is WATCH him
+        from where the player stands (no step before it), and it watches once. (Its first form tried one start only, phase
+        4, where the first walk up could not begin, so mutant G491 survived it: the round's first prediction was wrong.)"""
+        from ai_player.skills import story as story_skill
+
+        real = story_skill.watch_walker
+        for phase in range(12):
+            with self.subTest(phase=phase):
+                calls = []
+                sim = _Cottage(phase)
+
+                def spy(hands, target, why, frames=story_skill.WALKER_WATCH):
+                    calls.append((sim.frame, sim.player))
+                    return (yield from real(hands, target, why, frames))
+
+                with mock.patch.object(story_skill, "watch_walker", spy):
+                    outcome, _ = self.talk(phase, sim=sim)
+                self.assertEqual(outcome, "talked")
+                self.assertEqual(len(calls), 1, calls)
+                self.assertEqual(calls[0][1], (5, 7))  # where the player stood: no step before the watch
+
+    def test_w3_he_walks_on_while_the_player_walks_up(self):
+        """Chosen and approached on the SAME frame (no pause: he is where the goal saw him), the ordinary walk begins; he
+        has walked on when it ends, and he is met as a walker then: MR. BRINEY talked to from every point of his round.
+        (The second of `approach`'s two meetings; the first never fires here.)"""
+        for phase in range(12):
+            with self.subTest(phase=phase):
+                outcome, sim = self.talk(phase, idle=0)
+                self.assertEqual((outcome, sim.talks), ("talked", [BRINEY_ID]))
+
+    def test_w4_control_someone_standing_is_walked_up_to_the_ordinary_way(self):
+        """CONTROL: a person who never moves (every talk of chapters 1-5 but this one) is never watched: the walk up to a tile
+        beside them, the look before speaking, the talk, exactly as before."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        watched = []
+        real = story_skill.meet_walker
+
+        def spy(*args, **kwargs):
+            watched.append(args[2].local_id)
+            return (yield from real(*args, **kwargs))
+
+        with mock.patch.object(story_skill, "meet_walker", spy):
+            outcome, _ = self.talk(0, sim=sim, who=STILL_ID)
+        self.assertEqual((outcome, sim.talks, watched), ("talked", [STILL_ID], []))
+
+    def test_w5_someone_who_keeps_a_tile_is_not_waited_for(self):
+        """CONTROL for wanderers: someone who steps and then keeps a tile (a WANDERER waits 32 to 128 frames between steps,
+        `sMovementDelaysMedium`: here 96, stepping between (10,4) and (10,5)) is seen to keep still within the watch
+        (`WALKER_STILL`), and `meet_walker` hands them back as "standing": never waited for beside a way, and walked up to
+        the ordinary way, each walk AIMED at a tile beside where they stand at its start. (Whether the talk then lands
+        depends on their next step, as it did before this change: the look before speaking, a KNOWN LIMIT not changed
+        here; this test does not ask for it.)"""
+        from ai_player.skills import story as story_skill
+
+        def wanderer() -> _Cottage:
+            return _Cottage(0, pace=96, walkers={BRINEY_ID: [0, 0]}, round_=[(10, 4), (10, 5)])
+
+        sim = wanderer()
+        hands, _nav = cottage(sim)
+        target = next(o for o in hands.look().view.objects if o.local_id == BRINEY_ID)
+        way, others, standing, now = drive(story_skill.watch_walker(hands, target, "watch"), budget=1000)
+        self.assertTrue(standing)
+        self.assertEqual(sim.frame, story_skill.WALKER_STILL - 1)
+        met, waited = [], []
+        real_meet, real_wait = story_skill.meet_walker, story_skill._wait_for_walker
+
+        def spy_meet(*args, **kwargs):
+            outcome = yield from real_meet(*args, **kwargs)
+            met.append(outcome)
+            return outcome
+
+        def spy_wait(*args, **kwargs):
+            waited.append(args[2])
+            return (yield from real_wait(*args, **kwargs))
+
+        sim = wanderer()
+        aims = []
+        real_go_to = Navigator.go_to
+
+        def spy_go_to(nav_, tile, why, budget):
+            aims.append((tile, sim.tile_of(BRINEY_ID)))
+            return (yield from real_go_to(nav_, tile, why, budget))
+
+        with mock.patch.object(story_skill, "meet_walker", spy_meet), mock.patch.object(story_skill, "_wait_for_walker",
+                                                                                        spy_wait), \
+                mock.patch.object(Navigator, "go_to", spy_go_to):
+            self.talk(0, sim=sim, idle=100)
+        self.assertTrue(met and all(m == "standing" for m in met), met)
+        self.assertEqual(waited, [])
+        self.assertTrue(aims)
+        for tile, his in aims:
+            self.assertEqual(abs(tile[0] - his[0]) + abs(tile[1] - his[1]), 1, aims)
+
+    def test_w6_the_watch_ends_once_his_round_has_been_seen(self):
+        """The watch ends when the way comes back round to where it began: his whole round, in order, well inside
+        `WALKER_WATCH`, never keeping still."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(5)
+        hands, _nav = cottage(sim)
+        target = next(o for o in hands.look().view.objects if o.local_id == BRINEY_ID)
+        way, others, standing, now = drive(story_skill.watch_walker(hands, target, "watch"), budget=1000)
+        self.assertFalse(standing)
+        self.assertEqual(way, BRINEY_ROUND[5:] + BRINEY_ROUND[:5])
+        self.assertEqual(set(others), set(BRINEY_ROUND))  # PEEKO walked the same round meanwhile
+        self.assertLess(sim.frame, story_skill.WALKER_WATCH)
+        self.assertEqual((now.x, now.y), BRINEY_ROUND[5])
+
+    def test_w7_a_waiting_spot_is_beside_the_way_never_on_anyones_way(self):
+        from ai_player.skills import story as story_skill
+
+        memory = cottage_world().maps["0:17"]
+        spots = story_skill.waiting_spots(memory, (5, 7), BRINEY_ROUND, {(1, 6)})
+        self.assertTrue(spots)
+        for spot, tile, direction in spots:
+            self.assertNotIn(spot, BRINEY_ROUND)
+            self.assertNotEqual(spot, (1, 6))
+            self.assertTrue(memory.passable(spot))
+            self.assertEqual((spot[0] + DIRS[direction][0], spot[1] + DIRS[direction][1]), tile)
+            self.assertIn(tile, BRINEY_ROUND)
+        self.assertEqual(len({s[0] for s in spots}), len(spots))
+        distances = [abs(s[0][0] - 5) + abs(s[0][1] - 7) for s in spots]
+        self.assertEqual(distances, sorted(distances))
+        self.assertEqual(spots[0][0], (5, 6))
+
+    def test_b1_a_spot_that_cannot_be_reached_is_no_battle(self):
+        """The old check ('"battle" in outcome') matched the "0 battles" of a stuck walk's own summary, so the first spot
+        that could not be reached ended the approach as a battle ('interrupted on the way: played out', 28 times in the B
+        arm's Story run). Now the next spot is tried, and the person is talked to. FAULT half: that summary does contain
+        the word."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+        real = nav.go_to
+        stuck = ("stuck: the goto at (9, 5) cannot be reached (unreachable), and nothing else is wanted (0 steps, 0 bumps, "
+                 "0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, "
+                 "0 tiles learned)")
+        self.assertIn("battle", stuck)  # FAULT half: the old test fires on it
+        calls = []
+
+        def go_to(tile, why, budget):
+            calls.append(tile)
+            if len(calls) == 1:
+                yield from hands.pad.busy("planning")
+                return stuck
+            return (yield from real(tile, why, budget))
+
+        nav.go_to = go_to
+        target = next(o for o in hands.look().view.objects if o.local_id == STILL_ID)
+        outcome = drive(story_skill.talk_to(hands, nav, target, "chat"), budget=20000)
+        self.assertEqual((outcome, sim.talks), ("talked", [STILL_ID]))
+        self.assertGreaterEqual(len(calls), 2)
+
+    def test_b2_control_a_walk_a_battle_stopped_is_still_a_battle(self):
+        """CONTROL: a walk that a BATTLE stopped (the navigator's battle log grew) still ends the approach as one, and the
+        talk says it was interrupted."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+
+        def go_to(tile, why, budget):
+            nav.battle_log.append((sim.frame, "wild", "the battle: it could not flee"))
+            yield from hands.pad.busy("a battle")
+            return "stuck: the battle: it could not flee"
+
+        nav.go_to = go_to
+        target = next(o for o in hands.look().view.objects if o.local_id == STILL_ID)
+        outcome = drive(story_skill.talk_to(hands, nav, target, "chat"), budget=20000)
+        self.assertTrue(outcome.startswith("interrupted on the way"), outcome)
+        self.assertEqual(sim.talks, [])
+
+
+#: the frames a watch of MR. BRINEY may take: one round of 12 steps and a step more
+WALKER_WATCH_BOUND = 13 * 16
+
+
+class CallEndTests(unittest.TestCase):
+    """(chapter 6, 2026-11-05) STOP 2 of the KI-134 B arm: after a call's last page nothing pressed (DAD on the first sail in
+    C2 and C3: 400 lines of 'STUCK ... reading along: a text is printing'; CINDY's MATCH CALL in C1: 172 of 'a scene
+    plays'). Pinned decomp `src/match_call.c` MatchCall_PrintMessage (the task `ExecuteMatchCall`, state 5) ends the call on
+    A or B once its window's printer has finished and no sound effect plays: a wait no text printer shows
+    (`eyes/screens.py` match_call_wait)."""
+
+    CALL = bytes([5, 0, 0, 0, 1, 0]) + bytes(26)  # data[0] tState 5 (PrintMessage), data[2] tWindowId 1
+
+    def call(self, state: int) -> bytes:
+        return bytes([state, 0, 0, 0, 1, 0]) + bytes(26)
+
+    def test_c1_the_call_waits_only_when_its_last_page_has_printed_and_nothing_plays(self):
+        from ai_player.eyes.screens import match_call_wait, pokenav_wait, task_wait
+        from ai_player.eyes.view import text_printer_wait
+
+        self.assertEqual(match_call_wait(self.CALL, False, False),
+                         "task ExecuteMatchCall (A or B: the call's last page has printed; a press hangs up)")
+        self.assertIsNone(match_call_wait(self.CALL, True, False))  # a page printing (its \p is the printer's own wait)
+        self.assertIsNone(match_call_wait(self.CALL, False, True))  # a sound effect playing: A is not read yet
+        for state in (0, 1, 2, 3, 4, 6, 7):  # the window loading, sliding in, the intro, sliding out, ending
+            with self.subTest(state=state):
+                self.assertIsNone(match_call_wait(self.call(state), False, False))
+        self.assertIsNone(match_call_wait(None, False, False))  # no call
+        self.assertIsNone(match_call_wait(self.CALL, None, False))  # a read missing: never a wait on a guess
+        self.assertIsNone(match_call_wait(self.CALL, False, None))
+        self.assertIsNone(match_call_wait(self.CALL[:4], False, False))
+        # FAULT half: the eyes' earlier rules see nothing on this screen (printer 1 done, the call task running)
+        self.assertIsNone(text_printer_wait([(1, 0, 0)] + [(i, 0, 0) for i in range(2, 32)], 0))
+        self.assertIsNone(task_wait({"ExecuteMatchCall", "Task_SpinPokenavIcon", "Task_HidePokenavMessageWhenDone"}))
+        self.assertIsNone(pokenav_wait(None))
+
+    def test_c2_a_sound_effect_plays_by_the_games_own_rule(self):
+        """`src/sound.c` IsSEPlaying from the two sound-effect players' status words: both paused is silence, a track on
+        either is a sound."""
+        from ai_player.eyes.screens import sound_effect_playing
+
+        paused, track = 0x80000000, 0x00000003
+        self.assertFalse(sound_effect_playing(0, 0))
+        self.assertTrue(sound_effect_playing(track, 0))
+        self.assertTrue(sound_effect_playing(0, track))
+        self.assertFalse(sound_effect_playing(paused | track, paused | track))  # both paused
+        self.assertTrue(sound_effect_playing(paused | track, track))  # one paused, the other playing
+        self.assertFalse(sound_effect_playing(paused, 0))
+
+    def test_c3_the_hands_hang_up_once_and_never_while_the_page_prints(self):
+        """The hands' `advance` on the call's end: its last page prints for 60 frames (no wait), then the call waits; ONE A,
+        gated on that wait, after the page has printed; then the window slides out with the controls still locked (no
+        wait) and the player is free. FAULT half: with the wait unreported (the eyes before the fix), `advance` presses
+        nothing and comes back STUCK 'reading along: a text is printing', as the B arm's C2 and C3 logged 400 times."""
+        from ai_player.eyes.screens import match_call_wait
+        from ai_player.hands.dialogue import advance, player_free
+
+        reason = match_call_wait(self.CALL, False, False)
+        for fault in (False, True):
+            with self.subTest(fault=fault):
+                pressed: list[int] = []
+
+                def script(frames: int) -> Observation:
+                    if pressed and frames - pressed[0] > 40:
+                        return screen_look(frames)
+                    printing = not pressed and frames < 60
+                    waits = not pressed and not printing and not fault
+                    base = screen_look(frames, script=True, text="It sounds like you're doing fine.¶You take care now.¶"
+                                                                 "… … … … … …… … … … … Click!")
+                    return replace(base, screen=replace(base.screen, text_box_open=True, waits_for_button=waits,
+                                                        wait_reason=reason if waits else None))
+
+                hands = script_hands(script)
+                real_press = hands.pad.press
+
+                def press(button, why, gate, hold=None):
+                    pressed.append(hands.pad.frames)
+                    return real_press(button, why, gate, hold)
+
+                hands.pad.press = press
+                outcome = drive(advance(hands, player_free, "a scene"), budget=5000)
+                if fault:
+                    self.assertEqual((outcome, pressed), ("stuck:reading along: a text is printing", []))
+                else:
+                    self.assertEqual(outcome, "done")
+                    self.assertEqual(len(pressed), 1, pressed)
+                    self.assertGreaterEqual(pressed[0], 60)
+                    self.assertEqual(hands.pad.history[0]["gate"], reason)
+
+
 def _unused_tile() -> Tile:  # keeps the builder import honest (a Tile is what View rows hold)
     return Tile(0, 0, 0, 0, 0, 0, "NORMAL", 0, 3, False, False, None, False, None, False, False, False)
 

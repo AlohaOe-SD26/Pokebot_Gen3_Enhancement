@@ -141,14 +141,19 @@ from ai_player.eyes.screens import (
     ERROR_PAGE_PRINTER,
     ERROR_PAGE_TASKS,
     MATCH_CALL_NAMES,
+    MATCH_CALL_TASK,
+    MATCH_CALL_TEXT_STATE,
+    MUSIC_PLAYER_STATUS_AT,
     SAVE_DIALOG_CALLBACKS,
     SAVE_MENU_CALLBACKS,
     SCENE_CALLBACKS,
     decode_text,
+    match_call_wait,
     pokenav_wait,
     read_ui,
     save_dialog_wait,
     scene_of,
+    sound_effect_playing,
     task_wait,
 )
 from ai_player.eyes.view import (
@@ -507,8 +512,12 @@ class FrameworkEyes:
         if reason is None and "Task_Pokenav" in tasks:
             # (chapter 5, E5) a call has ended and the POKéNAV reads A or B: no text printer shows it (`pokenav_wait`)
             reason = pokenav_wait(self._pokenav_raw)
+        call = task_data.get(MATCH_CALL_TASK)
+        if reason is None and call is not None:
+            # (chapter 6) a call in the field has printed its last page and A or B hangs up (`match_call_wait`)
+            reason = self._guarded("call wait", problems, lambda: self._match_call_wait(call))
         shown = reason is not None or ui is not None or text_box_mode != 0
-        text = self._guarded("text", problems, lambda: self._text(shown, tasks))
+        text = self._guarded("text", problems, lambda: self._text(shown, tasks, self._call_window(call)))
         status = self._guarded("script status", problems, lambda: read_symbol("sGlobalScriptContextStatus", size=1)[0])
         locked = self._guarded("field controls", problems, lambda: read_symbol("sLockFieldControls", size=1)[0])
         callback = self._guarded("main callback", problems, self._callback_name)
@@ -856,7 +865,28 @@ class FrameworkEyes:
         return names, prices
 
     @staticmethod
-    def _text(shown: bool, tasks: frozenset = frozenset()) -> str | None:
+    def _call_window(call: bytes | None) -> int | None:
+        """(chapter 6) The window (and so the text printer) a call in the field prints on, `ExecuteMatchCall`'s data[2], once
+        its printer holds the call's words (`MATCH_CALL_TEXT_STATE` on, `eyes/screens.py`); None otherwise."""
+        if call is None or len(call) < 6:
+            return None
+        state = int.from_bytes(call[0:2], "little", signed=True)
+        window = int.from_bytes(call[4:6], "little", signed=True)
+        return window if state >= MATCH_CALL_TEXT_STATE and 0 <= window < TEXT_PRINTER_COUNT else None
+
+    def _match_call_wait(self, call: bytes) -> str | None:
+        """(chapter 6) `eyes/screens.py` match_call_wait from three reads: the call window's printer (`sTextPrinters`), and
+        the two sound-effect players' status (`gMPlayInfo_SE1`, `gMPlayInfo_SE2`: `IsSEPlaying`)."""
+        window = int.from_bytes(call[4:6], "little", signed=True) if len(call) >= 6 else -1
+        active = None
+        if 0 <= window < TEXT_PRINTER_COUNT:
+            active = bool(read_symbol("sTextPrinters", window * TEXT_PRINTER_SIZE + TEXT_PRINTER_ACTIVE, 1)[0])
+        se1 = _u32(read_symbol("gMPlayInfo_SE1", MUSIC_PLAYER_STATUS_AT, 4), 0)
+        se2 = _u32(read_symbol("gMPlayInfo_SE2", MUSIC_PLAYER_STATUS_AT, 4), 0)
+        return match_call_wait(call, active, sound_effect_playing(se1, se2))
+
+    @staticmethod
+    def _text(shown: bool, tasks: frozenset = frozenset(), call_window: int | None = None) -> str | None:
         """The message on screen, decoded by the AI's own charmap (`eyes/screens.py`).
           * While a printer is ACTIVE (a waiting one first): as far as it has printed, up to its next character
             (`currentChar`): from the start of `gStringVar4` (field, intro and shop messages are expanded there
@@ -874,7 +904,11 @@ class FrameworkEyes:
         message of its own (the start menu): `text` is what was printed last, not proof it is still drawn.
           * R1 (build spec E4): while a main-menu ERROR PAGE's task runs (`eyes/screens.py` ERROR_PAGE_TASKS), the
             page is PRINTER 7's (`src/main_menu.c` CreateMainMenuErrorWindow), a ROM string: once it has printed,
-            printer 0's pointer is stale (it is not that page's), so the last message is printer 7's string."""
+            printer 0's pointer is stale (it is not that page's), so the last message is printer 7's string.
+          * (chapter 6) While a call in the field runs (`call_window`: `_call_window`), the CALL WINDOW's printer first,
+            active or not: the call's words as far as they have printed. A trainer's call opens no field message box, so
+            printer 0 then holds some older message, and the wait at the call's end (`match_call_wait`) would otherwise
+            show it."""
         raw = read_symbol("sTextPrinters", 0, TEXT_PRINTER_SIZE * TEXT_PRINTER_COUNT)
         if tasks & frozenset(ERROR_PAGE_TASKS):
             at = ERROR_PAGE_PRINTER * TEXT_PRINTER_SIZE
@@ -882,6 +916,14 @@ class FrameworkEyes:
             if ROM_START <= pointer < ROM_END:
                 return _rom_string(pointer)
         buffers = (get_symbol("gStringVar4"), get_symbol("gDisplayedStringBattle"))
+        if call_window is not None:
+            # (the names differ from the loop's below on purpose: the revert mutants anchor on that loop's exact lines)
+            words_at = _u32(raw, call_window * TEXT_PRINTER_SIZE)
+            for start, length in buffers:
+                if start <= words_at <= start + length:
+                    return decode_text(context.emulator.read_bytes(start, words_at - start)) if words_at > start else ""
+            if ROM_START <= words_at < ROM_END:
+                return _rom_string(words_at)
         candidates = []
         for index in range(TEXT_PRINTER_COUNT):
             at = index * TEXT_PRINTER_SIZE

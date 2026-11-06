@@ -94,6 +94,12 @@ CHAPTER 5 (2026-11-05, the instructed-choice skill): THE POKéNAV's three menus 
 `pokenav_options`), the wait after a call (`pokenav_wait`) and its scene (`SCENE_CALLBACKS`): `POKENAV_INPUT_STATE` has the
 decomp source. A GRID multichoice (`Task_HandleMultichoiceGridInput`) is its own kind, `multichoice_grid` (it was
 `multichoice` until then): its cursor moves in 2-D.
+
+CHAPTER 6 (2026-11-05): THE END OF A CALL IN THE FIELD (`match_call_wait`). A trainer's MATCH CALL and a script's
+`pokenavcall` (DAD on MR. BRINEY's first sail) both run the task `ExecuteMatchCall` (`src/match_call.c`); its last page
+prints with no `\\p`, so no text printer waits, and the task ends the call on A or B by itself. The eyes called that screen
+"a text is printing" (the script's own message box is open) or "a scene plays" (a trainer's call locks the controls), so
+the AI never pressed and the call never ended (the KI-134 B arm, ledger #98: all three runs ended there).
 """
 
 from __future__ import annotations
@@ -120,6 +126,12 @@ __all__ = [
     "MAIN_MENU_OPTIONS",
     "MATCH_CALL_NAMES",
     "MATCH_CALL_OPTIONS",
+    "MATCH_CALL_PRINT_MESSAGE",
+    "MATCH_CALL_TASK",
+    "MATCH_CALL_TEXT_STATE",
+    "MUSIC_PLAYER_PAUSED",
+    "MUSIC_PLAYER_STATUS_AT",
+    "MUSIC_PLAYER_TRACKS",
     "NAMING_STATE_HANDLE_INPUT",
     "PARAGRAPH",
     "POKENAV_CALL_EXIT_HANDLER",
@@ -144,12 +156,14 @@ __all__ = [
     "decode_text",
     "encode_char",
     "key_position",
+    "match_call_wait",
     "page_text",
     "pokenav_view",
     "pokenav_wait",
     "read_ui",
     "save_dialog_wait",
     "scene_of",
+    "sound_effect_playing",
     "task_wait",
 ]
 
@@ -513,6 +527,44 @@ def pokenav_wait(pokenav: object) -> str | None:
     if isinstance(mc, dict) and mc.get("handler") == POKENAV_CALL_EXIT_HANDLER:
         return "task Task_Pokenav (A or B: the call has ended)"
     return None
+
+
+#: (chapter 6, 2026-11-05) A CALL IN THE FIELD (module docstring, CHAPTER 6). Pinned decomp `src/match_call.c`: the task
+#: `ExecuteMatchCall` runs `sMatchCallTaskFuncs[tState]` (tState = data[0]; tWindowId = data[2], the window, and so the text
+#: printer, the call prints on): 0 LoadGfx, 1 DrawWindow, 2 ReadyIntro (its printer readied on "………………"), 3 SlideWindowIn,
+#: 4 PrintIntro, 5 PrintMessage, 6 SlideWindowOut, 7 EndCall. State 5 ends the call on
+#: `!RunMatchCallTextPrinter(tWindowId) && !IsSEPlaying() && JOY_NEW(A_BUTTON | B_BUTTON)`: once the window's printer has
+#: finished (its pages' `\p` waits are the printer's own, `eyes/view.py` text_printer_wait) and no sound effect plays, the
+#: game waits for A or B and for nothing else. From state 3 on, the window's printer holds the call's words.
+MATCH_CALL_TASK = "ExecuteMatchCall"
+MATCH_CALL_PRINT_MESSAGE = 5
+MATCH_CALL_TEXT_STATE = 3
+#: `include/gba/m4a_internal.h` struct MusicPlayerInfo: `status` u32 @4; MUSICPLAYER_STATUS_TRACK 0x0000ffff,
+#: MUSICPLAYER_STATUS_PAUSE 0x80000000 (`gMPlayInfo_SE1`, `gMPlayInfo_SE2`: the two sound-effect players).
+MUSIC_PLAYER_STATUS_AT = 4
+MUSIC_PLAYER_TRACKS = 0x0000FFFF
+MUSIC_PLAYER_PAUSED = 0x80000000
+
+
+def sound_effect_playing(se1_status: int, se2_status: int) -> bool:
+    """`src/sound.c` IsSEPlaying, from the two sound-effect players' `status` words: FALSE when both are paused or neither
+    has a track playing, TRUE otherwise (what a person hears: a sound effect still playing)."""
+    if se1_status & MUSIC_PLAYER_PAUSED and se2_status & MUSIC_PLAYER_PAUSED:
+        return False
+    return bool(se1_status & MUSIC_PLAYER_TRACKS or se2_status & MUSIC_PLAYER_TRACKS)
+
+
+def match_call_wait(call: bytes | None, printer_active: bool | None, sound_playing: bool | None) -> str | None:
+    """(chapter 6) The one wait of a call in the field no text printer shows: `call` is the `ExecuteMatchCall` task's data
+    (None when no call runs), `printer_active` whether the text printer of the call's window (data[2]) is active, and
+    `sound_playing` the game's `IsSEPlaying()` (what a person hears). A reason while the call's last page has printed in
+    PrintMessage, nothing plays and so A or B hangs up; None otherwise, and None when either read is missing (never a wait
+    on a guess)."""
+    if call is None or len(call) < 6 or printer_active is None or sound_playing is None:
+        return None
+    if _s16(call, 0) != MATCH_CALL_PRINT_MESSAGE or printer_active or sound_playing:
+        return None
+    return f"task {MATCH_CALL_TASK} (A or B: the call's last page has printed; a press hangs up)"
 
 
 def task_wait(tasks: Iterable[str]) -> str | None:

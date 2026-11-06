@@ -5633,12 +5633,12 @@
   {
    "name": "C216",
    "what": "the call of _text at host/eyes.py:478 in FrameworkEyes._screen [call] deleted (deletes the call)",
-   "site": "host/eyes.py:478 in FrameworkEyes._screen [call]",
+   "site": "host/eyes.py:520 in FrameworkEyes._screen [call]",
    "callee": "host/eyes.py:FrameworkEyes._text",
    "edits": [
     [
      "host/eyes.py",
-     "        text = self._guarded(\"text\", problems, lambda: self._text(shown, tasks))\n",
+     "        text = self._guarded(\"text\", problems, lambda: self._text(shown, tasks, self._call_window(call)))\n",
      "        text = self._guarded(\"text\", problems, lambda: None)\n"
     ]
    ],
@@ -5650,7 +5650,7 @@
     "test_goals",
     "test_eyes"
    ],
-   "origin": "build stage 4 (scratch gen_census_mutants.py: one mutant per call-census site)"
+   "origin": "build stage 4 (scratch gen_census_mutants.py: one mutant per call-census site) (chapter 6 stops, 2026-11-05: the anchor MOVED to the line as it is now, which also asks `_call_window`; the prediction unchanged)"
   },
   {
    "name": "C217",
@@ -8860,12 +8860,12 @@
   {
    "name": "F022",
    "what": "the call of _guarded at host/eyes.py:478 in FrameworkEyes._screen [call] deleted (deletes the call)",
-   "site": "host/eyes.py:478 in FrameworkEyes._screen [call]",
+   "site": "host/eyes.py:520 in FrameworkEyes._screen [call]",
    "callee": "host/eyes.py:FrameworkEyes._guarded",
    "edits": [
     [
      "host/eyes.py",
-     "        text = self._guarded(\"text\", problems, lambda: self._text(shown, tasks))\n",
+     "        text = self._guarded(\"text\", problems, lambda: self._text(shown, tasks, self._call_window(call)))\n",
      "        text = None\n"
     ]
    ],
@@ -8878,7 +8878,7 @@
     "test_goals",
     "test_eyes"
    ],
-   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers)"
+   "origin": "build fix round (scratch fix/gen_fix_mutants.py, stage 4's generator: one mutant per call-census site; regenerated where the fix moved an anchor, and the two sites review R-3 took off the waivers) (chapter 6 stops, 2026-11-05: the anchor MOVED to the line as it is now, which also asks `_call_window`; the prediction unchanged)"
   },
   {
    "name": "F023",
@@ -9841,6 +9841,143 @@
     "test_eyes:PokenavEyesTests"
    ],
    "origin": "chapter 5 gap round, 2026-11-05 (s53/ch5stops/gaps; the verifier's F1): one mutant per guard or arithmetic of the POKeNAV eyes that no test exercised (CH5E5 restores the 14-byte rematch-table entry, the REAL defect the new test found); a guard's mutant, not a call site's (no `site`); predictions written BEFORE the first revert_r1 run, each first CAUGHT in the scratch harness gaps/g_mut.py"
+  },
+  {
+   "name": "CH6H1",
+   "what": "the eyes never ask whether a call in the field waits for its hang-up (`_screen`'s call of `_match_call_wait` deleted: the B arm's eyes)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            reason = self._guarded(\"call wait\", problems, lambda: self._match_call_wait(call))\n",
+     "            pass  # MUTANT CH6H1\n"
+    ]
+   ],
+   "expected": [
+    "LiveCallEndTests.test_dads_call_on_the_first_sail",
+    "LiveCallEndTests.test_a_trainers_match_call_in_the_woods"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, 2026-11-05 (s53/ch6stops): the HOST's reads of the end of a call in the field (host/eyes.py _screen's call of _match_call_wait, _text's call window, _match_call_wait's printer and sound, _call_window's state); predictions written and hashed (s53/ch6stops/mutant_predictions.txt) BEFORE the first run; the rules the AI decides by are G503-G508 of revert_step5.py"
+  },
+  {
+   "name": "CH6H2",
+   "what": "the text of a call is printer 0's (the call window's whole block in `_text` deleted; redefined in addendum 3, was its condition -> False)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        if call_window is not None:\n            # (the names differ from the loop's below on purpose: the revert mutants anchor on that loop's exact lines)\n            words_at = _u32(raw, call_window * TEXT_PRINTER_SIZE)\n            for start, length in buffers:\n                if start <= words_at <= start + length:\n                    return decode_text(context.emulator.read_bytes(start, words_at - start)) if words_at > start else \"\"\n            if ROM_START <= words_at < ROM_END:\n                return _rom_string(words_at)\n",
+     ""
+    ]
+   ],
+   "expected": [
+    "LiveCallEndTests.test_a_trainers_match_call_in_the_woods",
+    "CallEndHostTests.test_the_call_window_and_its_words"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, 2026-11-05 (s53/ch6stops): the HOST's reads of the end of a call in the field (host/eyes.py _screen's call of _match_call_wait, _text's call window, _match_call_wait's printer and sound, _call_window's state); predictions written and hashed (s53/ch6stops/mutant_predictions.txt) BEFORE the first run; the rules the AI decides by are G503-G508 of revert_step5.py"
+  },
+  {
+   "name": "CH6H3",
+   "what": "the call's end is read on PRINTER 0, never the call window's printer",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            active = bool(read_symbol(\"sTextPrinters\", window * TEXT_PRINTER_SIZE + TEXT_PRINTER_ACTIVE, 1)[0])\n",
+     "            active = bool(read_symbol(\"sTextPrinters\", TEXT_PRINTER_ACTIVE, 1)[0])  # MUTANT CH6H3\n"
+    ]
+   ],
+   "expected": [
+    "CallEndHostTests.test_the_wait_is_read_from_the_calls_own_printer_and_the_sound"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, 2026-11-05 (s53/ch6stops): the HOST's reads of the end of a call in the field (host/eyes.py _screen's call of _match_call_wait, _text's call window, _match_call_wait's printer and sound, _call_window's state); predictions written and hashed (s53/ch6stops/mutant_predictions.txt) BEFORE the first run; the rules the AI decides by are G503-G508 of revert_step5.py"
+  },
+  {
+   "name": "CH6H4",
+   "what": "the call's end never hears a sound effect (the sound read's verdict always False)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        return match_call_wait(call, active, sound_effect_playing(se1, se2))\n",
+     "        return match_call_wait(call, active, False)  # MUTANT CH6H4\n"
+    ]
+   ],
+   "expected": [
+    "CallEndHostTests.test_the_wait_is_read_from_the_calls_own_printer_and_the_sound"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, 2026-11-05 (s53/ch6stops): the HOST's reads of the end of a call in the field (host/eyes.py _screen's call of _match_call_wait, _text's call window, _match_call_wait's printer and sound, _call_window's state); predictions written and hashed (s53/ch6stops/mutant_predictions.txt) BEFORE the first run; the rules the AI decides by are G503-G508 of revert_step5.py"
+  },
+  {
+   "name": "CH6H5",
+   "what": "the call window is read from the call's first state (its printer before ReadyIntro readies it)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        return window if state >= MATCH_CALL_TEXT_STATE and 0 <= window < TEXT_PRINTER_COUNT else None\n",
+     "        return window if 0 <= window < TEXT_PRINTER_COUNT else None  # MUTANT CH6H5\n"
+    ]
+   ],
+   "expected": [
+    "CallEndHostTests.test_the_call_window_and_its_words"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, 2026-11-05 (s53/ch6stops): the HOST's reads of the end of a call in the field (host/eyes.py _screen's call of _match_call_wait, _text's call window, _match_call_wait's printer and sound, _call_window's state); predictions written and hashed (s53/ch6stops/mutant_predictions.txt) BEFORE the first run; the rules the AI decides by are G503-G508 of revert_step5.py"
+  },
+  {
+   "name": "CH6H6",
+   "what": "`_match_call_wait`'s call of match_call_wait deleted (it never reports the wait)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        return match_call_wait(call, active, sound_effect_playing(se1, se2))\n",
+     "        return None  # MUTANT CH6H6\n"
+    ]
+   ],
+   "expected": [
+    "CallEndHostTests.test_the_wait_is_read_from_the_calls_own_printer_and_the_sound",
+    "LiveCallEndTests.test_dads_call_on_the_first_sail",
+    "LiveCallEndTests.test_a_trainers_match_call_in_the_woods"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, 2026-11-05 (s53/ch6stops): the HOST's reads of the end of a call in the field (host/eyes.py _screen's call of _match_call_wait, _text's call window, _match_call_wait's printer and sound, _call_window's state); predictions written and hashed (s53/ch6stops/mutant_predictions.txt) BEFORE the first run; the rules the AI decides by are G503-G508 of revert_step5.py (addendum 3: the call-site census)"
+  },
+  {
+   "name": "CH6H8",
+   "what": "`_screen`'s call of `_call_window` deleted (the text asked with no call window)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        text = self._guarded(\"text\", problems, lambda: self._text(shown, tasks, self._call_window(call)))\n",
+     "        text = self._guarded(\"text\", problems, lambda: self._text(shown, tasks, None))  # MUTANT CH6H8\n"
+    ]
+   ],
+   "expected": [
+    "LiveCallEndTests.test_a_trainers_match_call_in_the_woods"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, 2026-11-05 (s53/ch6stops): the HOST's reads of the end of a call in the field (host/eyes.py _screen's call of _match_call_wait, _text's call window, _match_call_wait's printer and sound, _call_window's state); predictions written and hashed (s53/ch6stops/mutant_predictions.txt) BEFORE the first run; the rules the AI decides by are G503-G508 of revert_step5.py (addendum 3: the call-site census)"
   }
  ]
 }

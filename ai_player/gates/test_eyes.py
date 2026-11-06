@@ -1141,6 +1141,183 @@ class ScriptWaitTests(unittest.TestCase):
         self.assertFalse(script_waits_for_button(0, "Native", "IsFieldMessageBoxHidden"))  # waitmessage: the text prints
 
 
+class CallEndHostTests(unittest.TestCase):
+    """(chapter 6, 2026-11-05) THE END OF A CALL IN THE FIELD, the HOST's reads on a FAKE memory laid out at the real symbols:
+    `_match_call_wait` asks the printer of the CALL'S window (`ExecuteMatchCall` data[2]), never printer 0, and the two
+    sound-effect players (`IsSEPlaying`); `_call_window` gives that window once the call's printer is readied (state 3 on);
+    `_text` reads the call window's words before printer 0's. Each FAULT half is a printer-0 read or no call window."""
+
+    CALL = bytes([5, 0, 0, 0, 1, 0]) + bytes(26)  # tState 5 (PrintMessage), tWindowId 1
+
+    def memory(self, active: dict[int, int], se1: int = 0, se2: int = 0, pointers: dict[int, int] | None = None,
+               extra: dict[int, bytes] | None = None):
+        from modules.game import get_symbol
+
+        framework_rom()
+        printers = bytearray(0x24 * 32)
+        for index, on in active.items():
+            printers[index * 0x24 + 0x1B] = on
+        for index, pointer in (pointers or {}).items():
+            printers[index * 0x24:index * 0x24 + 4] = pointer.to_bytes(4, "little")
+        cells = {get_symbol("sTextPrinters")[0]: bytes(printers),
+                 get_symbol("gMPlayInfo_SE1")[0]: bytes(4) + se1.to_bytes(4, "little"),
+                 get_symbol("gMPlayInfo_SE2")[0]: bytes(4) + se2.to_bytes(4, "little"), **(extra or {})}
+
+        class Memory:
+            def read_bytes(self, address: int, length: int) -> bytes:
+                for start, data in cells.items():
+                    if start <= address and address + length <= start + len(data):
+                        return bytes(data[address - start:address - start + length])
+                raise AssertionError(f"read 0x{address:08X} (+{length})")
+
+        return Memory()
+
+    def wait(self, memory) -> str | None:
+        from modules.context import context
+
+        import ai_player.host.eyes as host_eyes
+
+        with mock.patch.object(context, "emulator", memory, create=True):
+            return host_eyes.FrameworkEyes()._match_call_wait(self.CALL)
+
+    def test_the_wait_is_read_from_the_calls_own_printer_and_the_sound(self) -> None:
+        self.assertEqual(self.wait(self.memory({})),
+                         "task ExecuteMatchCall (A or B: the call's last page has printed; a press hangs up)")
+        self.assertIsNone(self.wait(self.memory({1: 1})))  # the call's window still printing
+        self.assertIsNone(self.wait(self.memory({}, se1=3)))  # a sound effect playing
+        self.assertEqual(self.wait(self.memory({}, se1=0x80000003, se2=0x80000001)), self.wait(self.memory({})))  # both paused
+        # FAULT half: printer 0 (the field's message window) says nothing about the call: busy there, the call still waits
+        self.assertIsNotNone(self.wait(self.memory({0: 1})))
+
+    def test_the_call_window_and_its_words(self) -> None:
+        from modules.context import context
+        from modules.game import get_symbol
+
+        import ai_player.host.eyes as host_eyes
+
+        framework_rom()
+        eyes = host_eyes.FrameworkEyes
+        self.assertEqual(eyes._call_window(self.CALL), 1)
+        for state, window in ((2, None), (3, 1), (4, 1), (6, 1), (7, 1)):
+            with self.subTest(state=state):
+                self.assertEqual(eyes._call_window(bytes([state, 0, 0, 0, 1, 0]) + bytes(26)), window)
+        self.assertIsNone(eyes._call_window(None))
+        self.assertIsNone(eyes._call_window(bytes([5, 0, 0, 0, 40, 0])))  # not a printer
+        var4, var4_size = get_symbol("gStringVar4")
+        battle, battle_size = get_symbol("gDisplayedStringBattle")
+        call_words = encode("See you again!") + b"\xff"
+        old_words = encode("GROVYLE gained 47 EXP. Points!") + b"\xff"
+        memory = self.memory({}, pointers={0: battle + len(old_words) - 1, 1: var4 + len(call_words) - 1},
+                             extra={var4: call_words + bytes(var4_size - len(call_words)),
+                                    battle: old_words + bytes(battle_size - len(old_words))})
+        with mock.patch.object(context, "emulator", memory, create=True):
+            self.assertEqual(eyes._text(True, frozenset({"ExecuteMatchCall"}), 1), "See you again!")
+            # FAULT half: no call window, printer 0's stale battle message (measured on call_end_cindy.ss1)
+            self.assertEqual(eyes._text(True, frozenset({"ExecuteMatchCall"}), None), "GROVYLE gained 47 EXP. Points!")
+
+
+def encode(words: str) -> bytes:
+    """Words in the game's charmap (`eyes/screens.py` encode_char), for a fake memory."""
+    from ai_player.eyes.screens import encode_char
+
+    return bytes(encode_char(c) for c in words)
+
+
+class LiveCallEndTests(unittest.TestCase):
+    """(chapter 6, 2026-11-05) THE END OF A CALL on the REAL game: the KI-134 B arm's two end states, which the AI never left
+    (`fixtures/call_end_dad.build.json`: DAD's call from MR. BRINEY's first-sail script; `call_end_cindy.build.json`: a
+    trainer's MATCH CALL in PETALBURG WOODS). The eyes report the wait, with the call's words; ONE A ends the call (the
+    task gone); after it nothing waits while the window slides out with the controls still locked (a scene that really
+    locks them), and the next wait is the ordinary text that follows (DAD's: "Registered DAD NORMAN", a script's wait).
+    FAULT half on the same frame: the rules the eyes had before (the printers, the script, the task table, the POKéNAV's)
+    report no wait at all."""
+
+    FIXTURES = SUPPORT / "ai_player" / "gates" / "fixtures"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        from ai_player.gates.probe_eyes import boot
+
+        with mock.patch.dict(os.environ, {"AI_PLAYER_BUILD_ROOT": str(BUILD_ROOT)}):
+            cls.context = boot("ai-step0-fixture")
+        cls.emulator = cls.context.emulator
+
+    def load(self, name: str):
+        from modules.state_cache import state_cache
+
+        from ai_player.host.eyes import FrameworkEyes
+
+        self.emulator.load_save_state((self.FIXTURES / name).read_bytes())
+        state_cache.reset()
+        self.emulator.run_single_frame()
+        return FrameworkEyes()
+
+    @staticmethod
+    def tasks() -> set[str]:
+        from modules.tasks import get_tasks
+
+        return {task.symbol for task in get_tasks()}
+
+    def old_rules(self, eyes) -> str | None:
+        """What the eyes' rules before the fix say on this frame (the host's own reads, each rule unchanged)."""
+        from ai_player.eyes.screens import pokenav_wait, task_wait
+
+        return eyes._waits_for_button() or task_wait(self.tasks()) or pokenav_wait(None)
+
+    def hang_up(self, eyes, frames: int = 300) -> list:
+        """ONE A, then `frames` frames: each frame's (call task running, waits, wait reason, controls locked)."""
+        self.emulator.press_button("A")
+        self.emulator.run_single_frame()
+        seen = []
+        for _ in range(frames):
+            self.emulator.run_single_frame()
+            screen = eyes.look().screen
+            seen.append(("ExecuteMatchCall" in self.tasks(), screen.waits_for_button, screen.wait_reason,
+                         screen.controls_locked))
+        return seen
+
+    def test_dads_call_on_the_first_sail(self) -> None:
+        eyes = self.load("call_end_dad.ss1")
+        screen = eyes.look().screen
+        self.assertTrue(screen.waits_for_button)
+        self.assertTrue(screen.wait_reason.startswith("task ExecuteMatchCall"), screen.wait_reason)
+        self.assertTrue(screen.text.endswith("Click!"), screen.text)
+        self.assertIsNone(self.old_rules(eyes))  # FAULT half
+        seen = self.hang_up(eyes, 400)
+        ended = next(i for i, s in enumerate(seen) if not s[0])
+        self.assertLess(ended, 120)
+        self.assertFalse(any(s[1] for s in seen[:ended]))  # the window slides out: no wait
+        self.assertTrue(all(s[3] for s in seen[:ended]))  # ... with the controls locked
+        after = [s[2] for s in seen[ended:] if s[1]]
+        self.assertTrue(after, "the script's next text never waited")
+        self.assertFalse(any((reason or "").startswith("task ExecuteMatchCall") for reason in after))  # CONTROL
+        self.assertIn("Registered DAD NORMAN", eyes.look().screen.text or "")
+
+    def test_a_trainers_match_call_in_the_woods(self) -> None:
+        eyes = self.load("call_end_cindy.ss1")
+        screen = eyes.look().screen
+        self.assertTrue(screen.waits_for_button)
+        self.assertTrue(screen.wait_reason.startswith("task ExecuteMatchCall"), screen.wait_reason)
+        self.assertTrue(screen.text.endswith("See you again!"), screen.text)  # the call's words, not printer 0's
+        self.assertFalse(screen.script_running or screen.text_box_open)  # no script, no field box: only the call
+        self.assertIsNone(self.old_rules(eyes))  # FAULT half
+        seen = self.hang_up(eyes, 120)
+        ended = next(i for i, s in enumerate(seen) if not s[0])
+        self.assertLess(ended, 80)
+        self.assertFalse(any(s[1] for s in seen))  # no wait after the A, while sliding out or after
+        self.assertTrue(seen[ended - 1][3] and not seen[-1][3])  # locked while it slides out; free after
+        self.assertIsNone(eyes.look().screen.text)
+
+    def test_control_a_text_box_that_waits_is_read_as_before(self) -> None:
+        """CONTROL: a trainer's defeat text that waits for a press (`trainer_defeat_text_r116.ss1`, printer 0 WAIT) is
+        reported by the printer rule, as before, with no call running."""
+        eyes = self.load("trainer_defeat_text_r116.ss1")
+        screen = eyes.look().screen
+        self.assertNotIn("ExecuteMatchCall", self.tasks())
+        self.assertTrue(screen.waits_for_button)
+        self.assertTrue(screen.wait_reason.startswith("text printer 0"), screen.wait_reason)
+
+
 class ActionLogTests(unittest.TestCase):
     def test_one_json_line_per_record(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

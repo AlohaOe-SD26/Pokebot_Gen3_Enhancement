@@ -3520,7 +3520,8 @@ class CensusSiteTests(unittest.TestCase):
         eyes._save_wait = lambda: state.get("save")
         eyes._ui = lambda game_state, task_data, fading: (
             MenuView(state["ui"], ("SAVE",), 0, False) if "Task_ShowStartMenu" in task_data and fading else None)
-        eyes._text = lambda shown, tasks: "WORDS" if shown else None
+        # (chapter 6) `_text` takes the call window too (`_call_window`: None here, no call runs)
+        eyes._text = lambda shown, tasks, call_window=None: "WORDS" if shown else None
         eyes._callback_name = lambda: "CB2_NewGame"
         return eyes, mock.patch.dict(host_eyes.__dict__, patches)
 
