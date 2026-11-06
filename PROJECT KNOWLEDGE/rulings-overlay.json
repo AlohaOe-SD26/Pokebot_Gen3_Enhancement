@@ -520,6 +520,16 @@
    "reason": "06 2026-11-05 \"Chapter 5's stops\": \"Do not reopen: merging a development pass as a graded claim; a scene-specific menu script.\"",
    "status": "ACTIVE",
    "topics": "forced menu POKeNAV POKéNAV instructed choice tutorial MR. STONE match call grunt Rusturf talk step New Game test live_chain ch5_rival_meet BADGE-1 chain"
+  },
+  "2026-11-05-0d6710": {
+   "title": "2026-11-05 — Chapters 6-7 wired from the cloud note: ONE talk step for STEVEN, the chapter-5 method, the pinned decomp for `--verify` (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "861dca18": "marker"
+   },
+   "do_not_reopen": "Do not reopen the draft's four-step STEVEN list (a `go` list that revisits maps regresses under the real story_step) or copying the cloud note's chapter 6-7 data instead of authoring it (2026-11-05).",
+   "reason": "06 2026-11-05 \"Chapters 6-7 wired\": \"Do not reopen: the draft's four-step STEVEN list (probed against the real `story_step`, not argued); copying the cloud note.\"",
+   "status": "ACTIVE",
+   "topics": "chapter 6 chapter 7 milestones Briney Dewford Steven Granite Cave Brawly talk step story_step go step regress cloud draft POKEBOT_DECOMP verify pinned decomp"
   }
  }
 }

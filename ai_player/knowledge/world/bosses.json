@@ -14,7 +14,7 @@
    "species.json": "244a970b1aeacb6791d4b42b9aa1f198bcc744765181dba89d51f6387c4605ed",
    "learnsets.json": "83115ad6b9b4747a4deeaef5e1e5516b8f01ba92de577219b7ccab6f987ff4db"
   },
-  "campaign_skeleton.json": "6303c3df944db9656e60c7fc34f1c31bcc154290af783264b6d2515c8542bc28"
+  "campaign_skeleton.json": "e1568b85c62c155f7ce09e5dbedb0e07d4686300b124758282e32f34deaa8434"
  },
  "_measured": "null: A6's chapter_priors.json (spec S3-3) is not generated yet (it waits for the AI's loader); when it is, this block is copied from it and labelled source: 'bot corpus'",
  "_excluded": {
@@ -37,7 +37,7 @@
    "id": "TRAINER_MATT",
    "name": "MATT",
    "role": "team_admin",
-   "order": 57,
+   "order": 62,
    "entry": "ch17_aqua_hideout",
    "double": false,
    "party": [
@@ -85,7 +85,7 @@
    "id": "TRAINER_SHELLY_WEATHER_INSTITUTE",
    "name": "SHELLY",
    "role": "team_admin",
-   "order": 47,
+   "order": 52,
    "entry": "ch13_weather_institute",
    "double": false,
    "party": [
@@ -133,7 +133,7 @@
    "id": "TRAINER_SHELLY_SEAFLOOR_CAVERN",
    "name": "SHELLY",
    "role": "team_admin",
-   "order": 61,
+   "order": 66,
    "entry": "ch20_shelly_seafloor",
    "double": false,
    "party": [
@@ -181,7 +181,7 @@
    "id": "TRAINER_ARCHIE",
    "name": "ARCHIE",
    "role": "team_leader",
-   "order": 62,
+   "order": 67,
    "entry": "ch20_archie",
    "double": false,
    "party": [
@@ -244,7 +244,7 @@
    "id": "TRAINER_SIDNEY",
    "name": "SIDNEY",
    "role": "elite_four",
-   "order": 67,
+   "order": 72,
    "entry": "ch24_sidney",
    "double": false,
    "party": [
@@ -341,7 +341,7 @@
    "id": "TRAINER_PHOEBE",
    "name": "PHOEBE",
    "role": "elite_four",
-   "order": 68,
+   "order": 73,
    "entry": "ch24_phoebe",
    "double": false,
    "party": [
@@ -436,7 +436,7 @@
    "id": "TRAINER_GLACIA",
    "name": "GLACIA",
    "role": "elite_four",
-   "order": 69,
+   "order": 74,
    "entry": "ch24_glacia",
    "double": false,
    "party": [
@@ -533,7 +533,7 @@
    "id": "TRAINER_DRAKE",
    "name": "DRAKE",
    "role": "elite_four",
-   "order": 70,
+   "order": 75,
    "entry": "ch24_drake",
    "double": false,
    "party": [
@@ -707,7 +707,7 @@
    "id": "TRAINER_BRAWLY_1",
    "name": "BRAWLY",
    "role": "gym_leader",
-   "order": 31,
+   "order": 35,
    "entry": "ch7_brawly",
    "double": false,
    "party": [
@@ -782,7 +782,7 @@
    "id": "TRAINER_WATTSON_1",
    "name": "WATTSON",
    "role": "gym_leader",
-   "order": 36,
+   "order": 41,
    "entry": "ch9_wattson",
    "double": false,
    "party": [
@@ -872,7 +872,7 @@
    "id": "TRAINER_FLANNERY_1",
    "name": "FLANNERY",
    "role": "gym_leader",
-   "order": 43,
+   "order": 48,
    "entry": "ch11_flannery",
    "double": false,
    "party": [
@@ -963,7 +963,7 @@
    "id": "TRAINER_NORMAN_1",
    "name": "NORMAN",
    "role": "gym_leader",
-   "order": 44,
+   "order": 49,
    "entry": "ch12_norman",
    "double": false,
    "party": [
@@ -1052,7 +1052,7 @@
    "id": "TRAINER_WINONA_1",
    "name": "WINONA",
    "role": "gym_leader",
-   "order": 50,
+   "order": 55,
    "entry": "ch13_winona",
    "double": false,
    "party": [
@@ -1161,7 +1161,7 @@
    "id": "TRAINER_TATE_AND_LIZA_1",
    "name": "TATE&LIZA",
    "role": "gym_leader",
-   "order": 58,
+   "order": 63,
    "entry": "ch18_tate_and_liza",
    "double": true,
    "party": [
@@ -1256,7 +1256,7 @@
    "id": "TRAINER_JUAN_1",
    "name": "JUAN",
    "role": "gym_leader",
-   "order": 65,
+   "order": 70,
    "entry": "ch22_juan",
    "double": false,
    "party": [
@@ -1366,7 +1366,7 @@
    "id": "TRAINER_WALLACE",
    "name": "WALLACE",
    "role": "champion",
-   "order": 71,
+   "order": 76,
    "entry": "ch24_wallace",
    "double": false,
    "party": [
@@ -1479,7 +1479,7 @@
    "id": "TRAINER_TABITHA_MOSSDEEP",
    "name": "TABITHA",
    "role": "team_admin",
-   "order": 59,
+   "order": 64,
    "entry": "ch19_space_center",
    "double": false,
    "party": [
@@ -1542,7 +1542,7 @@
    "id": "TRAINER_WALLY_VR_1",
    "name": "WALLY",
    "role": "rival",
-   "order": 66,
+   "order": 71,
    "entry": "ch23_victory_road",
    "double": false,
    "party": [
@@ -1665,7 +1665,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_110_MUDKIP",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -1727,7 +1727,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_119_MUDKIP",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 48,
+   "order": 53,
    "entry": "ch13_rival_route119",
    "double": false,
    "party": [
@@ -1820,7 +1820,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_110_TREECKO",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -1884,7 +1884,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_119_TREECKO",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 48,
+   "order": 53,
    "entry": "ch13_rival_route119",
    "double": false,
    "party": [
@@ -1979,7 +1979,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_110_TORCHIC",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -2042,7 +2042,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_119_TORCHIC",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 48,
+   "order": 53,
    "entry": "ch13_rival_route119",
    "double": false,
    "party": [
@@ -2136,7 +2136,7 @@
    "id": "TRAINER_MAY_ROUTE_110_MUDKIP",
    "name": "MAY",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -2198,7 +2198,7 @@
    "id": "TRAINER_MAY_ROUTE_119_MUDKIP",
    "name": "MAY",
    "role": "rival",
-   "order": 48,
+   "order": 53,
    "entry": "ch13_rival_route119",
    "double": false,
    "party": [
@@ -2291,7 +2291,7 @@
    "id": "TRAINER_MAY_ROUTE_110_TREECKO",
    "name": "MAY",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -2355,7 +2355,7 @@
    "id": "TRAINER_MAY_ROUTE_119_TREECKO",
    "name": "MAY",
    "role": "rival",
-   "order": 48,
+   "order": 53,
    "entry": "ch13_rival_route119",
    "double": false,
    "party": [
@@ -2450,7 +2450,7 @@
    "id": "TRAINER_MAY_ROUTE_110_TORCHIC",
    "name": "MAY",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -2513,7 +2513,7 @@
    "id": "TRAINER_MAY_ROUTE_119_TORCHIC",
    "name": "MAY",
    "role": "rival",
-   "order": 48,
+   "order": 53,
    "entry": "ch13_rival_route119",
    "double": false,
    "party": [
@@ -2674,7 +2674,7 @@
    "id": "TRAINER_TABITHA_MT_CHIMNEY",
    "name": "TABITHA",
    "role": "team_admin",
-   "order": 40,
+   "order": 45,
    "entry": "ch11_tabitha_chimney",
    "double": false,
    "party": [
@@ -2847,7 +2847,7 @@
    "id": "TRAINER_MAXIE_MAGMA_HIDEOUT",
    "name": "MAXIE",
    "role": "team_leader",
-   "order": 55,
+   "order": 60,
    "entry": "ch15_maxie_hideout",
    "double": false,
    "party": [
@@ -2910,7 +2910,7 @@
    "id": "TRAINER_MAXIE_MT_CHIMNEY",
    "name": "MAXIE",
    "role": "team_leader",
-   "order": 41,
+   "order": 46,
    "entry": "ch11_maxie_chimney",
    "double": false,
    "party": [
@@ -2973,7 +2973,7 @@
    "id": "TRAINER_WALLY_MAUVILLE",
    "name": "WALLY",
    "role": "rival",
-   "order": 35,
+   "order": 40,
    "entry": "ch9_wally_mauville",
    "double": false,
    "party": [
@@ -3102,7 +3102,7 @@
    "id": "TRAINER_BRENDAN_LILYCOVE_MUDKIP",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 52,
+   "order": 57,
    "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
@@ -3179,7 +3179,7 @@
    "id": "TRAINER_BRENDAN_LILYCOVE_TREECKO",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 52,
+   "order": 57,
    "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
@@ -3258,7 +3258,7 @@
    "id": "TRAINER_BRENDAN_LILYCOVE_TORCHIC",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 52,
+   "order": 57,
    "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
@@ -3336,7 +3336,7 @@
    "id": "TRAINER_MAY_LILYCOVE_MUDKIP",
    "name": "MAY",
    "role": "rival",
-   "order": 52,
+   "order": 57,
    "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
@@ -3413,7 +3413,7 @@
    "id": "TRAINER_MAY_LILYCOVE_TREECKO",
    "name": "MAY",
    "role": "rival",
-   "order": 52,
+   "order": 57,
    "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
@@ -3492,7 +3492,7 @@
    "id": "TRAINER_MAY_LILYCOVE_TORCHIC",
    "name": "MAY",
    "role": "rival",
-   "order": 52,
+   "order": 57,
    "entry": "ch14_rival_lilycove",
    "double": false,
    "party": [
@@ -3570,7 +3570,7 @@
    "id": "TRAINER_TABITHA_MAGMA_HIDEOUT",
    "name": "TABITHA",
    "role": "team_admin",
-   "order": 54,
+   "order": 59,
    "entry": "ch15_tabitha_hideout",
    "double": false,
    "party": [
@@ -3648,7 +3648,7 @@
    "id": "TRAINER_MAXIE_MOSSDEEP",
    "name": "MAXIE",
    "role": "team_leader",
-   "order": 59,
+   "order": 64,
    "entry": "ch19_space_center",
    "double": false,
    "party": [

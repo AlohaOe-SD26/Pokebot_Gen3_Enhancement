@@ -77,7 +77,7 @@ cooldown and the gym's trainers are optional (review #5). Below that, the step-5
 
 **Build step 5, the AI plays the STORY itself** (section "The story (build step 5)" below): a new brain,
 `AI_PLAYER_BRAIN=play`, plays from a real New Game toward a target milestone (`AI_PLAYER_TARGET`, default `ch1_pokedex`)
-of the story to badge 1 and on into chapter 5, RUSTBORO after the badge (4 chapters + chapter 5, 28 milestones in `knowledge/milestones.json`, each proven by the game's own flags and
+of the story to badge 1 and on into chapters 5-7, RUSTBORO after the badge, MR. BRINEY's boat and the DEWFORD GYM (4 chapters + chapters 5-7, 36 milestones in `knowledge/milestones.json`, each proven by the game's own flags and
 vars, every number checked against pret/pokeemerald). A GOAL MANAGER (`brain/goals.py`) reads where the story is and
 chooses one goal at a time, always with a logged reason: the milestone's next step (go where the game SAID, ask the people
 when it has not said, talk, use a thing, follow a scene) or a person's errand (heal when hurt, buy POKé BALLS once the
@@ -451,7 +451,7 @@ WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3
 | `knowledge/` | step 4: the AI's OWN game facts, `types.json` (the Gen-3 chart), `moves.json` (354 moves: type, power, accuracy, PP, effect, priority, target, category, recoil class), `species.json` (386 species: types, base stats, catch rate, experience yield), each with its provenance (the bot's data file it was extracted from and that file's sha256); `facts.py` reads them (the play loop never reads the bot's data) |
 | `brain/goals.py` | step 5: the GOAL MANAGER (framework-free): which milestone the marks prove (`milestone`, a waypoint passed on its map), ONE goal at a time with its reason in a fixed order, HEAL, SHOP, TRAIN, ITEM, CATCH, CHAT, then the STORY step (`next_goal`, `_story_goal`: go where the words heard say, `ask` the people of a place when nothing was said, `seek` someone seen earlier where they stood, `find` them, `use`/`talk`/`follow`), the doors it recognises by their look (`notice`, kept in the world memory), the training target from the fight's levels and the personality's margin (`prep`), a goal that failed twice put aside (`FAIL_LIMIT`, `COOLDOWN_DECISIONS`; a heal not, when the party is in danger); the way to an unknown place (`lead_toward`: out to the open map with most left to see, or a building's own town; `travel_intent`); the roam's rest (`training_rest`, installed by `GoalRunner.roam_hooks`), the losses (`battles_lost`); and `GoalRunner`, which plays each goal with the navigator, roaming and the story skills; step 5.1: the look-around (`may_look_around`, kind `explore`) and the detour (`_detour`), the new-map stop, item curiosity (`_remembered_ball`), each step's own words (`step_known`), the fights a person knows (`fight_levels`, `training_target`), the mart by its list (`no_balls`), home healing by experience (`home_heals`, `_saw_mom_heal`), finding a centre (`find_center`), hurt walks out of the grass, the story's cooldown (`aside:`) and the scene walls carried within a milestone; step 5.1's verifier's round: a new place is new to the carried world memory (`_Memory.known_before`), the look-around debt (`LOOK_DEBT`) and every draw told (`say`), the detour walks to a place it chose (`DETOUR_MIN_TILES`, `DETOUR_TRIES`), a story goal put aside comes back after `STORY_ASIDE_FRAMES`, and a walk whose battles ate its budget walks on (`_walk_on_after_battles`, `_BattleClock`, `GO_BATTLE_EXTENSIONS`); the verifier's second round: a GYM by its door's look (`door_of`, `is_gym`, `GoalRunner._to_building`), the nearest place to heal or shop (`_nearest_place`; a door past a crossed edge is not that map's, a door that cannot be walked into is forgotten, `DOOR_UNUSABLE`), a town's own centre looked for first (`find_center` with `via`), the BALANCE (`spent`, `owed`, `OWED_STOP`, `AGAIN_MAX`, the curiosity minimum), its first POKé BALLS tried, the story's own person no chat, `DANGER_RETRIES`, `ASIDE_LOOK_MIN`, and whose rule judged a fight's training done (`fight_prep` `judged_by`) |
 | `skills/story.py` | step 5: the story's person-level skills: talk to someone seen (beside or across a counter), use a thing, pick up an item ball (read what was found), walk into a door, the nurse and the clerk (found by their look), the starter chosen in the bag by its cursor, a scene's yes/no answered by its words (`answer_question`, `QUESTION_RULES`), a scene played to its end (`play_out`) |
-| `knowledge/milestones.json`, `knowledge/story.py`, `knowledge/wild_species.json` | step 5: the story to badge 1 as DATA (20 milestones in 4 chapters, and since 2026-11-01 8 more in chapter 5: proofs, maps, steps, the game's own hint, the fight's levels), extracted from the bot's `story/early_game.py` (teaching material, named with its sha256) by `gates/extract_milestones.py` and checked against pret/pokeemerald by its `--verify`; `story.py` reads it (which milestone the marks prove, the player's own gender's houses); the species a person meets in the wild (the favourite's pool) |
+| `knowledge/milestones.json`, `knowledge/story.py`, `knowledge/wild_species.json` | step 5: the story to badge 1 as DATA (20 milestones in 4 chapters, since 2026-11-01 8 more in chapter 5 and since 2026-11-05 8 more in chapters 6-7: proofs, maps, steps, the game's own hint, the fight's levels), extracted from the bot's `story/early_game.py` (teaching material, named with its sha256) by `gates/extract_milestones.py` and checked against pret/pokeemerald by its `--verify`; `story.py` reads it (which milestone the marks prove, the player's own gender's houses); the species a person meets in the wild (the favourite's pool) |
 | `skills/instructed.py` | chapter 5 (2026-11-05): THE INSTRUCTED CHOICE, a menu a scene FORCES chosen by the words read (`named_option`: an option is named when a page says every word of its label, the player's own name left out; pages newest first; two named is ambiguous, nothing chosen). The instruction is the FIELD pages read since the player was last free (`read_along`, a watcher on every look; an app's pages never count); a field menu nothing names is the stop it was; a POKéNAV menu nothing names is backed out of with B; a grid is refused; every loop bounded (`EPISODE_BUDGET`, `MAX_DECISIONS`, `B_REFUSALS`, `FIELD_CHOICES_MAX`, `STILL_PASSES_MAX`) |
 | `skills/roam_train.py`, `skills/flee.py` | step 3: training by ROAMING through seen grass (training steps, every press an attempt, the spin ratio over the training steps, distinct tiles, encounters fled); a WILD battle fled by choosing RUN on the cursor read (a trainer battle: the reason, nothing pressed) |
 | `hands/pad.py` | step 2: the PAD (every press a jittered hold and gap, a gate it names, logged; reading and thinking delays; never an idle without a reason) and `Hands`, what every skill holds (eyes, pad, the choices stream, the faults, the log) |
@@ -2018,12 +2018,14 @@ eyes gained READ-ONLY reads only: below).
 
 ### What it knows: `knowledge/milestones.json`, and how that was checked
 
-28 milestones (20 to badge 1, 8 more since 2026-11-01): chapter 1 (the truck, MOM, the wall clock, the rival's house, PROF. BIRCH on ROUTE 101, the starter, the
+36 milestones (20 to badge 1, 8 more in chapter 5 since 2026-11-01, 8 more in chapters 6-7 since 2026-11-05): chapter 1 (the truck, MOM, the wall clock, the rival's house, PROF. BIRCH on ROUTE 101, the starter, the
 lab, the rival on ROUTE 103, the POKéDEX), chapter 2 (OLDALE, ROUTE 102, PETALBURG, DAD at the gym, WALLY's tutorial),
 chapter 3 (ROUTE 104, PETALBURG WOODS and the AQUA grunt, RUSTBORO), chapter 4 (the gym's trainers, ROXANNE) and chapter 5
 (RUSTBORO after the badge: the DEVON GOODS stolen, the employee's plea (optional), the RUSTURF TUNNEL grunt, the goods
 returned, DEVON CORP and the POKéNAV, the forced POKéNAV/MATCH CALL menu, the rival meeting south of the city, and the
-rival's battle (optional); see "Chapter 5" at the end of this section). Each
+rival's battle (optional); see "Chapter 5" at the end of this section), chapter 6 (MR. BRINEY's cottage, the sail to DEWFORD,
+the OLD ROD (optional)) and chapter 7 (STEVEN's LETTER in GRANITE CAVE, the HIKER's FLASH (optional), the gym's trainers (optional),
+BRAWLY, the EXP. SHARE (optional); see "Chapters 6-7" below). Each
 names the game's own PROOF (flags and vars, e.g. `FLAG_DEFEATED_RIVAL_ROUTE103`, `VAR_BIRCH_LAB_STATE >= 3`), its maps,
 its steps (go, ask, talk, use, follow), the HINT the game itself gives (the words and who says them: the rival's mom "{RIVAL}
 went out to ROUTE 103", MOM's "next door", the TV's "PETALBURG GYM", DAD's "Head for RUSTBORO CITY ... the GYM LEADER,
@@ -2118,6 +2120,31 @@ a count, not an identity). Fixed: `Instructed.read_total` counts the pages READ,
 Its probe re-captures at 39 and 45 filler pages, where the built code did not.
 Seen on the way, not fixed: the base code's stop spins one play-loop pass a frame; a ROUTE 116 run (seed 6016) wrote a
 774 MB world.jsonl in 200,000 frames (both arms: one trajectory), over the 300 MB keep line.
+
+### Chapters 6-7, MR. BRINEY's boat and the DEWFORD GYM (2026-11-05): 8 more milestones, a development probe that stopped at the first
+
+Entries 28-35 of `milestones.json` (authored in `gates/extract_milestones.py` from the cloud note `claude/milestones-ch5-ch8-o0janq`, an UNVERIFIED
+draft, after a names check and a schema check against the pinned decomp): `ch6_briney_house` (FLAG_MR_BRINEY_SAILING_INTRO, set BEFORE the
+yes/no, so it proves 'talked', not 'sailed'), `ch6_dewford` (FLAG_VISITED_DEWFORD_TOWN, the landing's proof, set a few seconds before the player
+regains control), `ch6_old_rod` (OPTIONAL), `ch7_steven` (BOTH DELIVERED_STEVEN_LETTER and REGISTERED_STEVEN_POKENAV), `ch7_flash` (OPTIONAL),
+`ch7_gym_trainers` (OPTIONAL, six trainers), `ch7_brawly` (both flags; a NAMED fight, levels 16 and 19) and `ch7_exp_share` (OPTIONAL, and not yet
+walkable from DEWFORD). `--verify` passes against `gh api` AND against the pinned local clone (new: env `POKEBOT_DECOMP` makes `--verify` read it, and
+prints its HEAD): 33 flag numbers, 19 var numbers, 61 proofs set, 34 trainer ids and level lists, 18 looks, 23 hint words, 26 steps' words, 11 step looks on
+their maps; `--plant` finds fourteen planted errors and nothing else. What the checks changed in the draft: its looks are authored in this schema
+(`decomp`, five of them); `ch7_gym_trainers` gets its `decomp` script; two hints carry no `map` ('cottage', 'STEVEN in DEWFORD'); **`ch7_steven`
+is ONE `talk` step**, not the draft's four (a `go` step is done only on its own map or a LATER step's, and the real road 1F -> B1F -> B2F -> B1F -> 1F
+revisits maps, so the draft made `story_step` answer 'go DEWFORD_TOWN' on ROUTE 106 and inside the cave; `Chapter67Tests` runs the real `story_step`
+on both shapes); `ch6_dewford` is one `talk` step (a second step could never be reached); GRANITE_CAVE_B2F and PETALBURG_WOODS are in `maps`;
+`taught_by` names `sail_to_dewford`, `deliver_stevens_letter` and `do_dewford_gym`. The eyes gained 15 flags (`eyes/view.py`, appended; an unread proof
+is never progress); `campaign_skeleton.json` replaced three ids by eight and the four world files and the 48 chapter packs were regenerated;
+chapters 1-5's entries, the 13 looks and 21 trainers are byte-identical (digests pinned in `Chapter67Tests`).
+
+**The development probe** (`evidence/2026-11-05-chapter67-development-probe.txt`, ledger #96, seeds 6301-6303; never graded): from the three
+chapter-5 chain ends, target `ch7_brawly`. **0 of 3 reached the cottage; all three stopped at `ch6_briney_house`** ('no progress for 120,000 frames'),
+so nothing of the sail or of chapter 7 ran live. The prediction (the cottage found in 2 of 3) was wrong. The stop is the route planner, not the
+data: the cottage's door is in the SOUTH part of ROUTE 104, which the north strip (where `ch5_rival_meet` ends) reaches only through the woods'
+south doors; `explore.route_to` is a search over known map-level links, so from the woods 'toward ROUTE104' is the north door it came through, and the
+AI leaves the woods and re-enters them (`stuck: ping-pong: the warp 24:11|14,5`, 47 of 49 ended goals in the Trainer run).
 
 ### The goal manager: `brain/goals.py`
 

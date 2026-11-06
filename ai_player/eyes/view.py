@@ -388,6 +388,13 @@ MILESTONE_FLAGS: tuple[tuple[str, int], ...] = (
     ("TRAINER_GRUNT_RUSTURF_TUNNEL", 0x510), ("RETURNED_DEVON_GOODS", 0x90), ("RECEIVED_POKENAV", 0xBC),
     ("SYS_POKENAV_GET", 0x862), ("HAS_MATCH_CALL", 0x12F), ("ADDED_MATCH_CALL_TO_POKENAV", 0x130),
     ("ENABLE_RIVAL_MATCH_CALL", 0xFD), ("DEFEATED_RIVAL_RUSTBORO", 0xD3),
+    # (chapters 6-7, 2026-11-05: MR. BRINEY's boat and the DEWFORD GYM; numbers checked by `gates/extract_milestones.py --verify`;
+    # no variable is new. A proof the eyes do not read is never progress: `Story.done` is None for it and the story would stop)
+    ("MR_BRINEY_SAILING_INTRO", 0x93), ("VISITED_DEWFORD_TOWN", 0x871), ("RECEIVED_OLD_ROD", 0x101),
+    ("DELIVERED_STEVEN_LETTER", 0xBD), ("REGISTERED_STEVEN_POKENAV", 0x131), ("RECEIVED_HM_FLASH", 0x6D),
+    ("TRAINER_TAKAO", 0x5B3), ("TRAINER_JOCELYN", 0x6A9), ("TRAINER_LAURA", 0x6AA), ("TRAINER_BRENDEN", 0x73C),
+    ("TRAINER_CRISTIAN", 0x73E), ("TRAINER_LILITH", 0x73D), ("DEFEATED_DEWFORD_GYM", 0x4F1), ("BADGE02_GET", 0x868),
+    ("RECEIVED_EXP_SHARE", 0x110),
 )
 MILESTONE_VARS: tuple[tuple[str, int], ...] = (
     ("BIRCH_LAB_STATE", 0x4084), ("PETALBURG_GYM_STATE", 0x4085), ("LITTLEROOT_RIVAL_STATE", 0x408D),

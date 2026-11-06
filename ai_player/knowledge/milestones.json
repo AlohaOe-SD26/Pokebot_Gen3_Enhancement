@@ -148,6 +148,41 @@
    ],
    "what": "a TEAM AQUA member (the striped shirt and the bandana)",
    "decomp": "OBJ_EVENT_GFX_AQUA_MEMBER_M, OBJ_EVENT_GFX_AQUA_MEMBER_F"
+  },
+  "mr_briney": {
+   "gfx": [
+    21
+   ],
+   "what": "MR. BRINEY, the old sailor (his cottage on ROUTE 104)",
+   "decomp": "OBJ_EVENT_GFX_EXPERT_M"
+  },
+  "old_rod_fisherman": {
+   "gfx": [
+    50
+   ],
+   "what": "the DEWFORD fisherman who gives the OLD ROD",
+   "decomp": "OBJ_EVENT_GFX_FISHERMAN"
+  },
+  "steven": {
+   "gfx": [
+    134
+   ],
+   "what": "STEVEN, in his room at the back of GRANITE CAVE",
+   "decomp": "OBJ_EVENT_GFX_STEVEN"
+  },
+  "brawly": {
+   "gfx": [
+    126
+   ],
+   "what": "BRAWLY, the DEWFORD GYM leader",
+   "decomp": "OBJ_EVENT_GFX_BRAWLY"
+  },
+  "mr_stone": {
+   "gfx": [
+    48
+   ],
+   "what": "MR. STONE, the DEVON president, at his desk on the 3rd floor",
+   "decomp": "OBJ_EVENT_GFX_GENTLEMAN"
   }
  },
  "trainers": {
@@ -308,6 +343,57 @@
    "levels": [
     13,
     15
+   ]
+  },
+  "TAKAO": {
+   "id": 179,
+   "flag": 1459,
+   "levels": [
+    13
+   ]
+  },
+  "JOCELYN": {
+   "id": 425,
+   "flag": 1705,
+   "levels": [
+    13
+   ]
+  },
+  "LAURA": {
+   "id": 426,
+   "flag": 1706,
+   "levels": [
+    13
+   ]
+  },
+  "BRENDEN": {
+   "id": 572,
+   "flag": 1852,
+   "levels": [
+    13
+   ]
+  },
+  "CRISTIAN": {
+   "id": 574,
+   "flag": 1854,
+   "levels": [
+    13
+   ]
+  },
+  "LILITH": {
+   "id": 573,
+   "flag": 1853,
+   "levels": [
+    13
+   ]
+  },
+  "BRAWLY_1": {
+   "id": 266,
+   "flag": 1546,
+   "levels": [
+    16,
+    16,
+    19
    ]
   }
  },
@@ -1876,6 +1962,421 @@
    ],
    "decomp": {
     "DEFEATED_RIVAL_RUSTBORO": "data/maps/RustboroCity/scripts.inc"
+   }
+  },
+  {
+   "id": "ch6_briney_house",
+   "chapter": 6,
+   "title": "ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)",
+   "done": {
+    "flags": {
+     "MR_BRINEY_SAILING_INTRO": 147
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "ROUTE104",
+    "ROUTE104_MR_BRINEYS_HOUSE",
+    "PETALBURG_WOODS"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "ROUTE104_MR_BRINEYS_HOUSE",
+     "told": "cottage",
+     "file": "data/maps/RustboroCity/scripts.inc"
+    },
+    {
+     "do": "talk",
+     "map": "ROUTE104_MR_BRINEYS_HOUSE",
+     "look": "mr_briney"
+    }
+   ],
+   "hint": {
+    "said": "MAY: Oh, by the way, I passed MR. BRINEY in PETALBURG WOODS. I guess he's on his way home to his cottage by the sea. How's your POKéDEX coming along, {PLAYER}{KUN}? Mine's looking pretty decent! So... How about a little battle?",
+    "words": "cottage",
+    "map": null,
+    "file": "data/maps/RustboroCity/scripts.inc"
+   },
+   "fight": null,
+   "note": "FLAG_MR_BRINEY_SAILING_INTRO is set the FIRST time the player talks to MR. BRINEY, BEFORE the yes/no (Route104_MrBrineysHouse_EventScript_SailingIntro: setflag, then the msgbox YESNO), so it proves 'talked to him', NOT 'sailed'; the arrival proof is the next milestone's VISITED_DEWFORD_TOWN. Sailing itself leaves no durable flag: VAR_BOARD_BRINEY_BOAT_STATE is 1 only during the voyage and Route104_EventScript_ArriveInDewford sets it back to 0. THE WAY THERE (flood fill of the pinned layouts, no HMs): the cottage door (17,50) is in the SOUTH part of ROUTE 104, joined to the north strip (where ch5_rival_meet ends, beside Rustboro) only back through PETALBURG WOODS (the woods' south doors, (10,38) and (11,38), are in the cottage's component; the north doors and the Rustboro connection are in the other), which is why PETALBURG_WOODS is in `maps`. The first probe question: does `go ROUTE104_MR_BRINEYS_HOUSE` (told 'cottage', a map it has not entered) find that way",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "sail_to_dewford",
+     "line": 3542,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "MR_BRINEY_SAILING_INTRO": "data/maps/Route104_MrBrineysHouse/scripts.inc"
+   }
+  },
+  {
+   "id": "ch6_dewford",
+   "chapter": 6,
+   "title": "Sail with MR. BRINEY to DEWFORD TOWN",
+   "done": {
+    "flags": {
+     "VISITED_DEWFORD_TOWN": 2161
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "ROUTE104_MR_BRINEYS_HOUSE",
+    "ROUTE104",
+    "DEWFORD_TOWN"
+   ],
+   "steps": [
+    {
+     "do": "talk",
+     "map": "ROUTE104_MR_BRINEYS_HOUSE",
+     "look": "mr_briney"
+    }
+   ],
+   "hint": {
+    "said": "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION. I'd just got word about you! You saved our staff not just once, but twice! I have a favor to ask of an amazing person like you. I understand that you're delivering a package to SLATEPORT's SHIPYARD. Well, on the way, could you stop off in DEWFORD TOWN? I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",
+    "words": "DEWFORD TOWN",
+    "map": "DEWFORD_TOWN",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "FLAG_VISITED_DEWFORD_TOWN is set by DewfordTown_OnTransition on every arrival (map load), so it is the durable proof of having landed. Boat only: the voyage starts on Route104_MrBrineysHouse_EventScript_SailToDewford (answer YES) and the player is warped to ROUTE 104 (13,51) where Route104_OnFrame runs the sail. The proof is EARLY: the boat reaches Dewford through the connections ROUTE 104 -> 105 -> 106 -> DEWFORD, so the flag is set a few seconds before the player regains control. The FIRST sail also plays DAD's POKeNAV call (a fanfare and text boxes, FLAG_ENABLE_NORMAN_MATCH_CALL unset): a probe question is whether the AI presses through them",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "sail_to_dewford",
+     "line": 3542,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "VISITED_DEWFORD_TOWN": "data/maps/DewfordTown/scripts.inc"
+   }
+  },
+  {
+   "id": "ch6_old_rod",
+   "chapter": 6,
+   "title": "DEWFORD TOWN: the fisherman's OLD ROD",
+   "done": {
+    "flags": {
+     "RECEIVED_OLD_ROD": 257
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "DEWFORD_TOWN"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "DEWFORD_TOWN"
+    },
+    {
+     "do": "talk",
+     "map": "DEWFORD_TOWN",
+     "look": "old_rod_fisherman"
+    }
+   ],
+   "hint": {
+    "said": "This is a renowned fishing spot. Are you getting the itch to fish?",
+    "words": null,
+    "map": "DEWFORD_TOWN",
+    "file": "data/maps/DewfordTown/scripts.inc"
+   },
+   "fight": null,
+   "note": "OPTIONAL gift (answer YES to 'Are you getting the itch to fish?'); gates nothing in chapters 5-8. The flag is set right after the giveitem WITHOUT a bag-full check (DewfordTown/scripts.inc), so it does not mean 'the rod is in the bag'; the bag cannot be full at this stage of a normal run",
+   "taught_by": [],
+   "decomp": {
+    "RECEIVED_OLD_ROD": "data/maps/DewfordTown/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_steven",
+   "chapter": 7,
+   "title": "GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN",
+   "done": {
+    "flags": {
+     "DELIVERED_STEVEN_LETTER": 189,
+     "REGISTERED_STEVEN_POKENAV": 305
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "DEWFORD_TOWN",
+    "ROUTE106",
+    "GRANITE_CAVE_1F",
+    "GRANITE_CAVE_B1F",
+    "GRANITE_CAVE_B2F",
+    "GRANITE_CAVE_STEVENS_ROOM"
+   ],
+   "steps": [
+    {
+     "do": "talk",
+     "map": "GRANITE_CAVE_STEVENS_ROOM",
+     "look": "steven"
+    }
+   ],
+   "hint": {
+    "said": "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION. I'd just got word about you! You saved our staff not just once, but twice! I have a favor to ask of an amazing person like you. I understand that you're delivering a package to SLATEPORT's SHIPYARD. Well, on the way, could you stop off in DEWFORD TOWN? I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",
+    "words": "STEVEN in DEWFORD",
+    "map": null,
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "NO line of dialogue names GRANITE CAVE as STEVEN's place: MR. STONE says 'STEVEN in DEWFORD', MR. BRINEY 'who was it now, STEVEN', and the HIKER inside the cave 'that guy who came by earlier... STEVEN'. The one pointer is a DEWFORD POKeMON CENTER woman: 'There's a stone cavern at the edge of town' (DewfordTown_PokemonCenter_1F_Text_StoneCavern). The cave mouth is the GRANITE_CAVE_1F warp (37,12) on ROUTE 106, reachable on foot from DEWFORD (no Surf). THE ROAD (flood fill of the pinned layouts, collision bits and metatile behaviours, water blocked, no HMs): 1F is split in two, the door from ROUTE 106 and the HIKER on one side and STEVEN's door (5,10) on the other, so the way is 1F (17,11) -> B1F -> B2F -> B1F (29,13) -> B1F (25,13) -> 1F (35,3) -> 1F (5,10) -> STEVEN's room. B1F and B2F are dark (requires_flash) but WALKABLE: SetDefaultFlashLevel only shrinks the lit circle; FLASH (BADGE02) comes after. Whether the AI finds the cave and crosses the dark floors unlit is a QUESTION for a development probe, not a fact. STEVEN hands over TM STEEL WING in the same script; REGISTERED_STEVEN_POKENAV is set later in it than DELIVERED_STEVEN_LETTER, so both are the proof",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "deliver_stevens_letter",
+     "line": 3755,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "DELIVERED_STEVEN_LETTER": "data/maps/GraniteCave_StevensRoom/scripts.inc",
+    "REGISTERED_STEVEN_POKENAV": "data/maps/GraniteCave_StevensRoom/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_flash",
+   "chapter": 7,
+   "title": "GRANITE CAVE 1F: the HIKER's HM FLASH",
+   "done": {
+    "flags": {
+     "RECEIVED_HM_FLASH": 109
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "GRANITE_CAVE_1F"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "GRANITE_CAVE_1F"
+    }
+   ],
+   "hint": {
+    "said": "Hey, you. It gets awfully dark ahead. It'll be tough trying to explore. That guy who came by earlier... STEVEN, I think it was. He knew how to use FLASH, so he ought to be all right, but... Well, for us HIKERS, helping out those that we meet is our motto. Here you go, I'll pass this on to you.",
+    "words": null,
+    "map": "GRANITE_CAVE_1F",
+    "file": "data/maps/GraniteCave_1F/scripts.inc"
+   },
+   "fight": null,
+   "note": "OPTIONAL gift, from the HIKER near the cave's door on 1F. Using FLASH outside battle needs BADGE02 (src/party_menu.c, FIELD_MOVE_FLASH), i.e. BRAWLY first. The flag is set right after the giveitem WITHOUT a bag-full check, so it does not mean 'the HM is in the bag'",
+   "taught_by": [],
+   "decomp": {
+    "RECEIVED_HM_FLASH": "data/maps/GraniteCave_1F/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_gym_trainers",
+   "chapter": 7,
+   "title": "The DEWFORD GYM's trainers",
+   "done": {
+    "flags": {},
+    "variables": {},
+    "trainers": {
+     "TAKAO": 1459,
+     "JOCELYN": 1705,
+     "LAURA": 1706,
+     "BRENDEN": 1852,
+     "CRISTIAN": 1854,
+     "LILITH": 1853
+    }
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "DEWFORD_TOWN_GYM"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "DEWFORD_TOWN_GYM",
+     "told": "BRAWLY"
+    },
+    {
+     "do": "follow"
+    }
+   ],
+   "hint": {
+    "said": "DEWFORD TOWN POKéMON GYM LEADER: BRAWLY \"A big wave in fighting!\"",
+    "words": "BRAWLY",
+    "map": "DEWFORD_TOWN_GYM",
+    "file": "data/maps/DewfordTown/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "TAKAO",
+     "JOCELYN",
+     "LAURA",
+     "BRENDEN",
+     "CRISTIAN",
+     "LILITH"
+    ],
+    "levels": [
+     13
+    ],
+    "per_trainer": {
+     "TAKAO": [
+      13
+     ],
+     "JOCELYN": [
+      13
+     ],
+     "LAURA": [
+      13
+     ],
+     "BRENDEN": [
+      13
+     ],
+     "CRISTIAN": [
+      13
+     ],
+     "LILITH": [
+      13
+     ]
+    }
+   },
+   "note": "OPTIONAL (DewfordTown_Gym_EventScript_CountTrainersDefeated lights the dark room by the number beaten; BRAWLY can be fought without them, so BRAWLY is proven by his badge alone and this is never the current milestone)",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "do_dewford_gym",
+     "line": 8020,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "TAKAO": "data/maps/DewfordTown_Gym/scripts.inc",
+    "JOCELYN": "data/maps/DewfordTown_Gym/scripts.inc",
+    "LAURA": "data/maps/DewfordTown_Gym/scripts.inc",
+    "BRENDEN": "data/maps/DewfordTown_Gym/scripts.inc",
+    "CRISTIAN": "data/maps/DewfordTown_Gym/scripts.inc",
+    "LILITH": "data/maps/DewfordTown_Gym/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_brawly",
+   "chapter": 7,
+   "title": "BRAWLY: the KNUCKLE BADGE",
+   "done": {
+    "flags": {
+     "DEFEATED_DEWFORD_GYM": 1265,
+     "BADGE02_GET": 2152
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": false,
+   "maps": [
+    "DEWFORD_TOWN_GYM"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "DEWFORD_TOWN_GYM",
+     "told": "BRAWLY"
+    },
+    {
+     "do": "talk",
+     "map": "DEWFORD_TOWN_GYM",
+     "look": "brawly"
+    }
+   ],
+   "hint": {
+    "said": "DEWFORD TOWN POKéMON GYM LEADER: BRAWLY \"A big wave in fighting!\"",
+    "words": "BRAWLY",
+    "map": "DEWFORD_TOWN_GYM",
+    "file": "data/maps/DewfordTown/scripts.inc"
+   },
+   "fight": {
+    "trainers": [
+     "BRAWLY_1"
+    ],
+    "named": true,
+    "levels": [
+     16,
+     19
+    ],
+    "per_trainer": {
+     "BRAWLY_1": [
+      16,
+      16,
+      19
+     ]
+    }
+   },
+   "note": "BRAWLY is a trainerbattle_single with an on-defeat script (DewfordTown_Gym_EventScript_BrawlyDefeated) that sets both flags, then gives TM BULK UP. The TM's FLAG_RECEIVED_TM_BULK_UP is set in TWO places (GiveBulkUp and GiveBulkUp2, both in DewfordTown_Gym) and is skipped when the bag is full, so it is not a proof. The hint is the GYM SIGN ('LEADER: BRAWLY'); MR. STONE and the HIKER name only 'DEWFORD'S POKeMON GYM'. The wild land encounters between DEWFORD and the gym are none (DEWFORD and ROUTES 105-107 are water and fishing only; the land tables are the GRANITE CAVE floors), so a train-before-the-fight errand has no tall grass near: a probe question",
+   "taught_by": [
+    {
+     "file": "sandbox-pokebot/modules/story/early_game.py",
+     "what": "do_dewford_gym",
+     "line": 8020,
+     "sha256": "9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77"
+    }
+   ],
+   "decomp": {
+    "DEFEATED_DEWFORD_GYM": "data/maps/DewfordTown_Gym/scripts.inc",
+    "BADGE02_GET": "data/maps/DewfordTown_Gym/scripts.inc"
+   }
+  },
+  {
+   "id": "ch7_exp_share",
+   "chapter": 7,
+   "title": "Back in RUSTBORO: MR. STONE thanks the player for the LETTER (EXP. SHARE)",
+   "done": {
+    "flags": {
+     "RECEIVED_EXP_SHARE": 272
+    },
+    "variables": {},
+    "trainers": {}
+   },
+   "waypoint": null,
+   "optional": true,
+   "maps": [
+    "RUSTBORO_CITY_DEVON_CORP_3F"
+   ],
+   "steps": [
+    {
+     "do": "go",
+     "map": "RUSTBORO_CITY_DEVON_CORP_3F"
+    },
+    {
+     "do": "talk",
+     "map": "RUSTBORO_CITY_DEVON_CORP_3F",
+     "look": "mr_stone"
+    }
+   ],
+   "hint": {
+    "said": "MR. STONE: I'm counting on you!",
+    "words": null,
+    "map": "RUSTBORO_CITY_DEVON_CORP_3F",
+    "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
+   },
+   "fight": null,
+   "note": "OPTIONAL, and NOT yet walkable from DEWFORD: it needs FLAG_DELIVERED_STEVEN_LETTER, then a trip back to RUSTBORO (RustboroCity_DevonCorp_3F_EventScript_GiveExpShare; it returns early on a full bag BEFORE the setflag). The way back is MR. BRINEY's multichoice in DEWFORD, which lands in his cottage, then the walk through PETALBURG WOODS; the hint above is the PRE-delivery line (said while the flag is unset). `Story.current` skips an optional milestone, so nothing pursues it; do not let an errand pick it until the boat menu is a taught skill",
+   "taught_by": [],
+   "decomp": {
+    "RECEIVED_EXP_SHARE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"
    }
   }
  ]

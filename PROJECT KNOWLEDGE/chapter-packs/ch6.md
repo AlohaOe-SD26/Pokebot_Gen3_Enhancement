@@ -15,13 +15,15 @@ Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `bf3cc8ad0960
 | `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf233912` |
 | `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a` |
 | `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb67` |
-| `ai_player/knowledge/world/bosses.json` | `3ef0c4e273c6f7c7` |
-| `ai_player/knowledge/world/campaign.json` | `8b980f653291f315` |
+| `ai_player/knowledge/world/bosses.json` | `3551b535cd896e2b` |
+| `ai_player/knowledge/world/campaign.json` | `e2e7d2f437f9df71` |
 | `ai_player/knowledge/world/maps.json` | `ecc1cec58ee498de` |
 | `ai_player/knowledge/world/trainers.json` | `2f329852a38e1416` |
 
 ## Entries
-- **ch6_sail_dewford** (order 29) area ROUTE104, ROUTE104_MR_BRINEYS_HOUSE, DEWFORD_TOWN; boss -; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
+- **ch6_briney_house** (order 29) area ROUTE104, ROUTE104_MR_BRINEYS_HOUSE; boss -; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
+- **ch6_dewford** (order 30) area ROUTE104_MR_BRINEYS_HOUSE, ROUTE104, DEWFORD_TOWN; boss -; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
+- **ch6_old_rod** (order 31) area DEWFORD_TOWN; boss -; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
 
 ## Maps and links
 - **ROUTE104** (route). Connections: up RUSTBORO_CITY, down ROUTE105, right PETALBURG_CITY. Warps: ROUTE104_MR_BRINEYS_HOUSE, ROUTE104_PRETTY_PETAL_FLOWER_SHOP, PETALBURG_WOODS x6.

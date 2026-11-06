@@ -13,8 +13,8 @@
  "_reader": "no loader reads this file yet; check_fairness.py does not glob knowledge/world (fact 2), and nothing in ai_player's play code may read it until a loader and a KNOWLEDGE_FIELDS classification exist",
  "_also_uses": "bosses.json and maps.json (their _files)",
  "_inputs": {
-  "campaign_skeleton.json": "6303c3df944db9656e60c7fc34f1c31bcc154290af783264b6d2515c8542bc28",
-  "milestones.json": "c9ef6d4feb0fca1a4f2cd28503f8b7ec8eefa46f84cc2fb62a1503d6025e4f2a"
+  "campaign_skeleton.json": "e1568b85c62c155f7ce09e5dbedb0e07d4686300b124758282e32f34deaa8434",
+  "milestones.json": "3f51c97b690d31ab1019e18d877deae8671f76ad81fa565222d84382dab4c220"
  },
  "_measured": "null: A6's chapter_priors.json (spec S3-3) is not generated yet (it waits for the AI's loader); when it is, this block is copied from it and labelled source: 'bot corpus'",
  "_notes": {
@@ -100,7 +100,7 @@
    "overworld_ref": "src/field_control_avatar.c:455"
   }
  ],
- "count": 71,
+ "count": 76,
  "entries": [
   {
    "id": "ch1_intro",
@@ -1200,12 +1200,51 @@
    "measured": null
   },
   {
-   "id": "ch6_sail_dewford",
+   "id": "ch6_briney_house",
    "chapter": 6,
    "order": 29,
    "area": [
     "ROUTE104",
+    "ROUTE104_MR_BRINEYS_HOUSE"
+   ],
+   "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "RIVAL_RUSTBORO"
+   ],
+   "needs": {
+    "field_moves": [],
+    "badges": [],
+    "badge_refs": {},
+    "badge_gates": [],
+    "key_items": [],
+    "party_min": 1,
+    "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
+    "double_battle": false,
+    "types_ahead": [
+     "FIGHTING",
+     "PSYCHIC"
+    ],
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
+    "level_band": {
+     "low": 16,
+     "high": 19,
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY, the fights ahead)"
+    },
+    "money_checkpoint": null
+   },
+   "measured": null
+  },
+  {
+   "id": "ch6_dewford",
+   "chapter": 6,
+   "order": 30,
+   "area": [
     "ROUTE104_MR_BRINEYS_HOUSE",
+    "ROUTE104",
     "DEWFORD_TOWN"
    ],
    "boss": null,
@@ -1240,11 +1279,48 @@
    "measured": null
   },
   {
-   "id": "ch7_granite_cave",
+   "id": "ch6_old_rod",
+   "chapter": 6,
+   "order": 31,
+   "area": [
+    "DEWFORD_TOWN"
+   ],
+   "boss": null,
+   "fights": [],
+   "area_bosses": [],
+   "needs": {
+    "field_moves": [],
+    "badges": [],
+    "badge_refs": {},
+    "badge_gates": [],
+    "key_items": [],
+    "party_min": 1,
+    "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
+    "double_battle": false,
+    "types_ahead": [
+     "FIGHTING",
+     "PSYCHIC"
+    ],
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
+    "level_band": {
+     "low": 16,
+     "high": 19,
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY, the fights ahead)"
+    },
+    "money_checkpoint": null
+   },
+   "measured": null
+  },
+  {
+   "id": "ch7_steven",
    "chapter": 7,
-   "order": 30,
+   "order": 32,
    "area": [
     "DEWFORD_TOWN",
+    "ROUTE106",
     "GRANITE_CAVE_1F",
     "GRANITE_CAVE_B1F",
     "GRANITE_CAVE_B2F",
@@ -1280,9 +1356,83 @@
    "measured": null
   },
   {
+   "id": "ch7_flash",
+   "chapter": 7,
+   "order": 33,
+   "area": [
+    "GRANITE_CAVE_1F"
+   ],
+   "boss": null,
+   "fights": [],
+   "area_bosses": [],
+   "needs": {
+    "field_moves": [],
+    "badges": [],
+    "badge_refs": {},
+    "badge_gates": [],
+    "key_items": [],
+    "party_min": 1,
+    "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
+    "double_battle": false,
+    "types_ahead": [
+     "FIGHTING",
+     "PSYCHIC"
+    ],
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
+    "level_band": {
+     "low": 16,
+     "high": 19,
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY, the fights ahead)"
+    },
+    "money_checkpoint": null
+   },
+   "measured": null
+  },
+  {
+   "id": "ch7_gym_trainers",
+   "chapter": 7,
+   "order": 34,
+   "area": [
+    "DEWFORD_TOWN_GYM"
+   ],
+   "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "BRAWLY"
+   ],
+   "needs": {
+    "field_moves": [],
+    "badges": [],
+    "badge_refs": {},
+    "badge_gates": [],
+    "key_items": [],
+    "party_min": 1,
+    "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
+    "double_battle": false,
+    "types_ahead": [
+     "FIGHTING",
+     "PSYCHIC"
+    ],
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
+    "level_band": {
+     "low": 16,
+     "high": 19,
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY, the fights ahead)"
+    },
+    "money_checkpoint": null
+   },
+   "measured": null
+  },
+  {
    "id": "ch7_brawly",
    "chapter": 7,
-   "order": 31,
+   "order": 35,
    "area": [
     "DEWFORD_TOWN",
     "DEWFORD_TOWN_GYM"
@@ -1321,9 +1471,51 @@
    "measured": null
   },
   {
+   "id": "ch7_exp_share",
+   "chapter": 7,
+   "order": 36,
+   "area": [
+    "RUSTBORO_CITY_DEVON_CORP_1F",
+    "RUSTBORO_CITY_DEVON_CORP_2F",
+    "RUSTBORO_CITY_DEVON_CORP_3F"
+   ],
+   "boss": null,
+   "fights": [],
+   "area_bosses": [],
+   "needs": {
+    "field_moves": [],
+    "badges": [],
+    "badge_refs": {},
+    "badge_gates": [],
+    "key_items": [],
+    "party_min": 1,
+    "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
+    "double_battle": false,
+    "types_ahead": [
+     "FIGHTING",
+     "FIRE",
+     "FLYING",
+     "GRASS",
+     "GROUND",
+     "WATER"
+    ],
+    "types_ahead_of": [
+     "RIVAL_ROUTE_110"
+    ],
+    "level_band": {
+     "low": 18,
+     "high": 20,
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_110, the fights ahead)"
+    },
+    "money_checkpoint": null
+   },
+   "measured": null
+  },
+  {
    "id": "ch8_sail_slateport",
    "chapter": 8,
-   "order": 32,
+   "order": 37,
    "area": [
     "DEWFORD_TOWN",
     "ROUTE109",
@@ -1365,7 +1557,7 @@
   {
    "id": "ch8_stern",
    "chapter": 8,
-   "order": 33,
+   "order": 38,
    "area": [
     "SLATEPORT_CITY",
     "SLATEPORT_CITY_OCEANIC_MUSEUM_1F",
@@ -1407,7 +1599,7 @@
   {
    "id": "ch9_rival_route110",
    "chapter": 9,
-   "order": 34,
+   "order": 39,
    "area": [
     "SLATEPORT_CITY",
     "ROUTE110"
@@ -1452,7 +1644,7 @@
   {
    "id": "ch9_wally_mauville",
    "chapter": 9,
-   "order": 35,
+   "order": 40,
    "area": [
     "ROUTE110",
     "MAUVILLE_CITY"
@@ -1493,7 +1685,7 @@
   {
    "id": "ch9_wattson",
    "chapter": 9,
-   "order": 36,
+   "order": 41,
    "area": [
     "MAUVILLE_CITY",
     "MAUVILLE_CITY_GYM"
@@ -1535,7 +1727,7 @@
   {
    "id": "ch10_rock_smash",
    "chapter": 10,
-   "order": 37,
+   "order": 42,
    "area": [
     "MAUVILLE_CITY",
     "MAUVILLE_CITY_HOUSE1"
@@ -1577,7 +1769,7 @@
   {
    "id": "ch10_fallarbor",
    "chapter": 10,
-   "order": 38,
+   "order": 43,
    "area": [
     "ROUTE111",
     "ROUTE112",
@@ -1634,7 +1826,7 @@
   {
    "id": "ch11_meteor_falls",
    "chapter": 11,
-   "order": 39,
+   "order": 44,
    "area": [
     "FALLARBOR_TOWN",
     "ROUTE114",
@@ -1675,7 +1867,7 @@
   {
    "id": "ch11_tabitha_chimney",
    "chapter": 11,
-   "order": 40,
+   "order": 45,
    "area": [
     "ROUTE112",
     "ROUTE112_CABLE_CAR_STATION",
@@ -1722,7 +1914,7 @@
   {
    "id": "ch11_maxie_chimney",
    "chapter": 11,
-   "order": 41,
+   "order": 46,
    "area": [
     "MT_CHIMNEY"
    ],
@@ -1766,7 +1958,7 @@
   {
    "id": "ch11_lavaridge",
    "chapter": 11,
-   "order": 42,
+   "order": 47,
    "area": [
     "MT_CHIMNEY",
     "JAGGED_PASS",
@@ -1807,7 +1999,7 @@
   {
    "id": "ch11_flannery",
    "chapter": 11,
-   "order": 43,
+   "order": 48,
    "area": [
     "LAVARIDGE_TOWN",
     "LAVARIDGE_TOWN_GYM_1F",
@@ -1849,7 +2041,7 @@
   {
    "id": "ch12_norman",
    "chapter": 12,
-   "order": 44,
+   "order": 49,
    "area": [
     "PETALBURG_CITY",
     "PETALBURG_CITY_GYM"
@@ -1928,7 +2120,7 @@
   {
    "id": "ch12_surf",
    "chapter": 12,
-   "order": 45,
+   "order": 50,
    "area": [
     "PETALBURG_CITY",
     "PETALBURG_CITY_WALLYS_HOUSE"
@@ -1965,7 +2157,7 @@
   {
    "id": "ch13_route118",
    "chapter": 13,
-   "order": 46,
+   "order": 51,
    "area": [
     "MAUVILLE_CITY",
     "ROUTE118"
@@ -2018,7 +2210,7 @@
   {
    "id": "ch13_weather_institute",
    "chapter": 13,
-   "order": 47,
+   "order": 52,
    "area": [
     "ROUTE118",
     "ROUTE119",
@@ -2062,7 +2254,7 @@
   {
    "id": "ch13_rival_route119",
    "chapter": 13,
-   "order": 48,
+   "order": 53,
    "area": [
     "ROUTE119"
    ],
@@ -2106,7 +2298,7 @@
   {
    "id": "ch13_devon_scope",
    "chapter": 13,
-   "order": 49,
+   "order": 54,
    "area": [
     "ROUTE119",
     "FORTREE_CITY",
@@ -2150,7 +2342,7 @@
   {
    "id": "ch13_winona",
    "chapter": 13,
-   "order": 50,
+   "order": 55,
    "area": [
     "FORTREE_CITY",
     "FORTREE_CITY_GYM"
@@ -2200,7 +2392,7 @@
   {
    "id": "ch14_lilycove",
    "chapter": 14,
-   "order": 51,
+   "order": 56,
    "area": [
     "ROUTE120",
     "ROUTE121",
@@ -2244,7 +2436,7 @@
   {
    "id": "ch14_rival_lilycove",
    "chapter": 14,
-   "order": 52,
+   "order": 57,
    "area": [
     "LILYCOVE_CITY"
    ],
@@ -2288,7 +2480,7 @@
   {
    "id": "ch14_mt_pyre",
    "chapter": 14,
-   "order": 53,
+   "order": 58,
    "area": [
     "ROUTE122",
     "MT_PYRE_1F",
@@ -2344,7 +2536,7 @@
   {
    "id": "ch15_tabitha_hideout",
    "chapter": 15,
-   "order": 54,
+   "order": 59,
    "area": [
     "JAGGED_PASS",
     "MAGMA_HIDEOUT_1F",
@@ -2399,7 +2591,7 @@
   {
    "id": "ch15_maxie_hideout",
    "chapter": 15,
-   "order": 55,
+   "order": 60,
    "area": [
     "MAGMA_HIDEOUT_4F"
    ],
@@ -2443,7 +2635,7 @@
   {
    "id": "ch16_slateport_harbor",
    "chapter": 16,
-   "order": 56,
+   "order": 61,
    "area": [
     "SLATEPORT_CITY",
     "SLATEPORT_CITY_HARBOR"
@@ -2481,7 +2673,7 @@
   {
    "id": "ch17_aqua_hideout",
    "chapter": 17,
-   "order": 57,
+   "order": 62,
    "area": [
     "LILYCOVE_CITY",
     "AQUA_HIDEOUT_1F",
@@ -2540,7 +2732,7 @@
   {
    "id": "ch18_tate_and_liza",
    "chapter": 18,
-   "order": 58,
+   "order": 63,
    "area": [
     "ROUTE124",
     "MOSSDEEP_CITY",
@@ -2598,7 +2790,7 @@
   {
    "id": "ch19_space_center",
    "chapter": 19,
-   "order": 59,
+   "order": 64,
    "area": [
     "MOSSDEEP_CITY",
     "MOSSDEEP_CITY_SPACE_CENTER_1F",
@@ -2646,7 +2838,7 @@
   {
    "id": "ch19_dive",
    "chapter": 19,
-   "order": 60,
+   "order": 65,
    "area": [
     "MOSSDEEP_CITY",
     "MOSSDEEP_CITY_STEVENS_HOUSE"
@@ -2683,7 +2875,7 @@
   {
    "id": "ch20_shelly_seafloor",
    "chapter": 20,
-   "order": 61,
+   "order": 66,
    "area": [
     "ROUTE128",
     "UNDERWATER_ROUTE128",
@@ -2742,7 +2934,7 @@
   {
    "id": "ch20_archie",
    "chapter": 20,
-   "order": 62,
+   "order": 67,
    "area": [
     "SEAFLOOR_CAVERN_ROOM4",
     "SEAFLOOR_CAVERN_ROOM5",
@@ -2814,7 +3006,7 @@
   {
    "id": "ch21_sootopolis",
    "chapter": 21,
-   "order": 63,
+   "order": 68,
    "area": [
     "ROUTE126",
     "UNDERWATER_ROUTE126",
@@ -2872,7 +3064,7 @@
   {
    "id": "ch21_sky_pillar",
    "chapter": 21,
-   "order": 64,
+   "order": 69,
    "area": [
     "ROUTE131",
     "SKY_PILLAR_OUTSIDE",
@@ -2919,7 +3111,7 @@
   {
    "id": "ch22_juan",
    "chapter": 22,
-   "order": 65,
+   "order": 70,
    "area": [
     "SOOTOPOLIS_CITY",
     "SOOTOPOLIS_CITY_GYM_1F",
@@ -2964,7 +3156,7 @@
   {
    "id": "ch23_victory_road",
    "chapter": 23,
-   "order": 66,
+   "order": 71,
    "area": [
     "ROUTE128",
     "EVER_GRANDE_CITY",
@@ -3051,7 +3243,7 @@
   {
    "id": "ch24_sidney",
    "chapter": 24,
-   "order": 67,
+   "order": 72,
    "area": [
     "EVER_GRANDE_CITY_POKEMON_LEAGUE_1F",
     "EVER_GRANDE_CITY_SIDNEYS_ROOM"
@@ -3099,7 +3291,7 @@
   {
    "id": "ch24_phoebe",
    "chapter": 24,
-   "order": 68,
+   "order": 73,
    "area": [
     "EVER_GRANDE_CITY_PHOEBES_ROOM"
    ],
@@ -3139,7 +3331,7 @@
   {
    "id": "ch24_glacia",
    "chapter": 24,
-   "order": 69,
+   "order": 74,
    "area": [
     "EVER_GRANDE_CITY_GLACIAS_ROOM"
    ],
@@ -3179,7 +3371,7 @@
   {
    "id": "ch24_drake",
    "chapter": 24,
-   "order": 70,
+   "order": 75,
    "area": [
     "EVER_GRANDE_CITY_DRAKES_ROOM"
    ],
@@ -3221,7 +3413,7 @@
   {
    "id": "ch24_wallace",
    "chapter": 24,
-   "order": 71,
+   "order": 76,
    "area": [
     "EVER_GRANDE_CITY_CHAMPIONS_ROOM",
     "EVER_GRANDE_CITY_HALL_OF_FAME"

@@ -6687,10 +6687,12 @@ class Chapter5Tests(unittest.TestCase):
 
     def test_the_eight_follow_the_badge_in_this_order(self):
         story = load_story("BOY")
-        self.assertEqual([m.id for m in story.milestones[20:]], self.CH5)
-        self.assertEqual({m.id for m in story.milestones[20:] if m.optional}, self.OPTIONAL)
-        self.assertEqual({m.chapter for m in story.milestones[20:]}, {5})
+        # (2026-11-05) the slice ends at 28: chapters 6-7 follow (`Chapter67Tests`), so chapter 5 is no longer the file's end
+        self.assertEqual([m.id for m in story.milestones[20:28]], self.CH5)
+        self.assertEqual({m.id for m in story.milestones[20:28] if m.optional}, self.OPTIONAL)
+        self.assertEqual({m.chapter for m in story.milestones[20:28]}, {5})
         self.assertEqual(story.milestones[19].id, "ch4_roxanne")  # chapters 1-4 stay where they were
+        self.assertEqual(story.milestones[28].id, "ch6_briney_house")  # and chapter 6 begins right after chapter 5
 
     def test_the_story_walks_through_the_required_ones_and_skips_the_optional(self):
         story = load_story("BOY")
@@ -6755,7 +6757,9 @@ class Chapter5Tests(unittest.TestCase):
         before = ch_proofs("ch5_rival_meet")
         route104_road = dict(before, ENABLE_RIVAL_MATCH_CALL=1, RUSTBORO_CITY_STATE=8)
         self.assertTrue(meet.done(route104_road))
-        self.assertEqual(story.current(route104_road), (len(story.milestones), None))
+        # (2026-11-05) chapter 5 is no longer the end: with the rival met, the story is at chapter 6's first milestone
+        self.assertEqual(story.current(route104_road)[1].id, "ch6_briney_house")
+        self.assertEqual(story.current(dict(before, RUSTBORO_CITY_STATE=8))[1].id, "ch5_rival_meet")  # FAULT half: not met
         drafted = replace(meet, flags=(*meet.flags, "MET_RIVAL_RUSTBORO"))
         self.assertFalse(drafted.done({**route104_road, "MET_RIVAL_RUSTBORO": 0}))  # FAULT: stuck for good
         self.assertTrue(meet.done({**route104_road, "MET_RIVAL_RUSTBORO": 1}))  # the Rustboro road passes too
@@ -6834,6 +6838,281 @@ class Chapter5Tests(unittest.TestCase):
         # FAULT half of the looks' pin: the whole looks block (13 since the grunt's step) no longer gives that digest
         self.assertNotEqual(digest([KNOWLEDGE["gendered_maps"], KNOWLEDGE["looks"], list(KNOWLEDGE["trainers"].items())[:14]]),
                             "de26718a062c5f1e5a47b2ffe3b90f78fbe7fe90388c533899690b6b9d23e302")
+
+
+#: (2026-11-05, chapters 6-7) What MAY says about MR. BRINEY (`RustboroCity/scripts.inc`, the words 'cottage'), the DEWFORD gym sign, and
+#: the pages the first sail's yes/no ends on.
+COTTAGE_LINE = "MAY: Oh, by the way, I passed MR. BRINEY in PETALBURG WOODS. I guess he's on his way home to his cottage by the sea."
+BRAWLY_SIGN = "DEWFORD TOWN POKéMON GYM LEADER: BRAWLY"
+BRINEY_YESNO = "You've come to the right man! We'll set sail for DEWFORD."
+
+
+def _steven_data(shape: str) -> dict:
+    """The milestones as the file has them (`shape` 'now': ONE talk step) or as the cloud note's draft had them ('draft': go
+    DEWFORD_TOWN, go GRANITE_CAVE_1F, go GRANITE_CAVE_STEVENS_ROOM, talk): the FAULT halves run the real goal manager on the draft."""
+    import copy
+
+    data = copy.deepcopy(KNOWLEDGE)
+    if shape == "draft":
+        steven = next(m for m in data["milestones"] if m["id"] == "ch7_steven")
+        steven["steps"] = [{"do": "go", "map": "DEWFORD_TOWN", "told": "STEVEN in DEWFORD"},
+                           {"do": "go", "map": "GRANITE_CAVE_1F"}, {"do": "go", "map": "GRANITE_CAVE_STEVENS_ROOM"},
+                           {"do": "talk", "map": "GRANITE_CAVE_STEVENS_ROOM", "look": "steven"}]
+    return data
+
+
+class Chapter67Tests(unittest.TestCase):
+    """(2026-11-05) CHAPTERS 6 AND 7, MR. BRINEY's boat to DEWFORD and the DEWFORD GYM (`knowledge/milestones.json` entries
+    28-35, `gates/extract_milestones.py`): each rule has a FAULT half (the proof or step missing / the draft's shape) and a
+    CONTROL half (the real data)."""
+
+    CH6 = ["ch6_briney_house", "ch6_dewford", "ch6_old_rod"]
+    CH7 = ["ch7_steven", "ch7_flash", "ch7_gym_trainers", "ch7_brawly", "ch7_exp_share"]
+    OPTIONAL = {"ch6_old_rod", "ch7_flash", "ch7_gym_trainers", "ch7_exp_share"}
+    REQUIRED = ["ch6_briney_house", "ch6_dewford", "ch7_steven", "ch7_brawly"]
+
+    def test_the_eight_follow_chapter_5_in_this_order(self):
+        story = load_story("BOY")
+        self.assertEqual(len(story.milestones), 36)
+        self.assertEqual([m.id for m in story.milestones[28:]], self.CH6 + self.CH7)
+        self.assertEqual({m.id for m in story.milestones[28:] if m.optional}, self.OPTIONAL)
+        self.assertEqual([m.chapter for m in story.milestones[28:]], [6, 6, 6, 7, 7, 7, 7, 7])
+        self.assertEqual(story.milestones[27].id, "ch5_rival_battle")  # chapters 1-5 stay where they were
+
+    def test_the_story_walks_through_the_required_ones_and_skips_the_optional(self):
+        story = load_story("BOY")
+        for milestone_id in self.REQUIRED:
+            with self.subTest(milestone=milestone_id):
+                self.assertEqual(story.current(ch_proofs(milestone_id))[1].id, milestone_id)
+        self.assertEqual(story.current(ch_proofs(None)), (len(story.milestones), None))  # every required one proven
+        # an optional one is never current, even when its own proof is the only one missing (`ch_proofs` leaves them out)
+        self.assertEqual(story.current(ch_proofs("ch7_steven"))[1].id, "ch7_steven")  # not ch6_old_rod
+        self.assertEqual(story.current(ch_proofs("ch7_brawly"))[1].id, "ch7_brawly")  # not ch7_flash / ch7_gym_trainers
+        everything_but_brawly = dict(ch_proofs(None), DEFEATED_DEWFORD_GYM=0, BADGE02_GET=0)
+        self.assertEqual(story.current(everything_but_brawly)[1].id, "ch7_brawly")  # FAULT half: the end is not reached
+        # FAULT half: with ch5 done and nothing else, the story is at chapter 6's first milestone (not the end)
+        self.assertEqual(story.current(ch_proofs("ch6_briney_house"))[1].id, "ch6_briney_house")
+
+    def test_a_later_proof_never_makes_up_for_an_earlier_one(self):
+        story = load_story("BOY")
+        everything = ch_proofs(None)
+        for name, expected in (("VISITED_DEWFORD_TOWN", "ch6_dewford"), ("MR_BRINEY_SAILING_INTRO", "ch6_briney_house"),
+                               ("BADGE02_GET", "ch7_brawly")):
+            with self.subTest(missing=name):
+                self.assertEqual(story.current(dict(everything, **{name: 0}))[1].id, expected)
+                unread = {k: v for k, v in everything.items() if k != name}  # the mark was not READ at all
+                self.assertEqual(story.current(unread)[1].id, expected)  # an unread proof is never progress
+        self.assertEqual(story.current(everything), (len(story.milestones), None))  # CONTROL
+
+    def test_talking_to_briney_is_not_sailing(self):
+        """FLAG_MR_BRINEY_SAILING_INTRO is set BEFORE the yes/no (`Route104_MrBrineysHouse_EventScript_SailingIntro`), so it
+        proves 'talked to him'; only FLAG_VISITED_DEWFORD_TOWN proves the landing. FAULT: the intro flag alone does not pass
+        ch6_dewford; the arrival alone does not pass ch6_briney_house either."""
+        story = load_story("BOY")
+        before = ch_proofs("ch6_briney_house")
+        talked = dict(before, MR_BRINEY_SAILING_INTRO=1)
+        self.assertEqual(story.current(talked)[1].id, "ch6_dewford")  # FAULT: talked, not sailed
+        self.assertEqual(story.current(dict(talked, VISITED_DEWFORD_TOWN=1))[1].id, "ch7_steven")  # CONTROL: landed
+        self.assertEqual(story.current(dict(before, VISITED_DEWFORD_TOWN=1))[1].id, "ch6_briney_house")
+        self.assertEqual(story.milestones[story.index("ch6_briney_house")].flags, ("MR_BRINEY_SAILING_INTRO",))
+        self.assertEqual(story.milestones[story.index("ch6_dewford")].flags, ("VISITED_DEWFORD_TOWN",))
+
+    def test_the_first_sails_question_is_answered_yes(self):
+        """The yes/no after 'We'll set sail for DEWFORD.' matches no rule: a person goes along (YES). FAULT: a nickname
+        question, which has a rule, is NO, so the default is not simply 'always yes'."""
+        def ask(words):
+            screen = ScreenState(game_state="OVERWORLD", screen="text", menu="yes_no", text_box_open=True,
+                                 waits_for_button=False, in_battle=False, text=words)
+            return answer_question(Observation(frame=1, screen=screen, player=None, view=None, party=(), bag=None,
+                                               progress=None, battle=None, last_battle_outcome=0, problems=(), cost_ms=0.0))
+        self.assertTrue(ask(BRINEY_YESNO)[0])
+        self.assertFalse(ask("Why don't you give a nickname to the MUDKIP you received?")[0])
+
+    def test_steven_needs_both_flags(self):
+        story = load_story("BOY")
+        steven = story.milestones[story.index("ch7_steven")]
+        self.assertEqual(steven.flags, ("DELIVERED_STEVEN_LETTER", "REGISTERED_STEVEN_POKENAV"))
+        before = ch_proofs("ch7_steven")
+        self.assertEqual(story.current(dict(before, DELIVERED_STEVEN_LETTER=1))[1].id, "ch7_steven")  # FAULT: one
+        self.assertEqual(story.current(dict(before, REGISTERED_STEVEN_POKENAV=1))[1].id, "ch7_steven")  # FAULT: the other
+        both = dict(before, DELIVERED_STEVEN_LETTER=1, REGISTERED_STEVEN_POKENAV=1)
+        self.assertEqual(story.current(both)[1].id, "ch7_brawly")  # CONTROL (the gym trainers / flash are optional)
+
+    def test_brawlys_levels_are_the_verified_boss_table(self):
+        story = load_story("BOY")
+        brawly = story.milestones[story.index("ch7_brawly")]
+        self.assertEqual(sorted(brawly.fight_levels), sorted(set(BossLevelTests().boss_levels()["BRAWLY"])))
+        self.assertEqual(brawly.fight_levels, (16, 19))
+        self.assertTrue(brawly.fight_named and not brawly.optional)
+        self.assertEqual(story.trainer_levels["BRAWLY_1"], (16, 16, 19))
+        trainers = story.milestones[story.index("ch7_gym_trainers")]
+        self.assertTrue(trainers.optional and not trainers.fight_named)  # learned when SEEN, never required
+        self.assertEqual({story.trainer_levels[name] for name in trainers.trainers}, {(13,)})
+        self.assertEqual(sorted(trainers.trainers), ["BRENDEN", "CRISTIAN", "JOCELYN", "LAURA", "LILITH", "TAKAO"])
+
+    def brawly_goal(self, level: int, train_off: bool = False, heard=(BRAWLY_SIGN,), prep_steps=None):
+        mgr = manager("Story", train_off=train_off)
+        world = world_with("PETALBURG_CITY", "DEWFORD_TOWN", current="DEWFORD_TOWN", heard=heard)
+        observation = look(ch_proofs("ch7_brawly"), party=[mon(level, hp=40, max_hp=40)], const="DEWFORD_TOWN")
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_brawly")
+        if prep_steps is not None:
+            mgr.next_goal(observation, world, milestone, index)
+            mgr.memory.fight_prep["ch7_brawly"]["steps"] = prep_steps
+        return mgr.next_goal(observation, world, milestone, index)
+
+    def test_it_trains_for_brawly_then_walks_to_the_gym_the_sign_named(self):
+        """The leader is a named fight (the gym sign: 'LEADER: BRAWLY'), so the train-before-a-fight errand applies, to
+        19 + the personality's margin. FAULT: under train_off it goes straight; CONTROL: a trained party goes to the gym."""
+        trains = self.brawly_goal(level=9)
+        self.assertEqual(trains.kind, "train")
+        self.assertIn(f"target L{19 + ERRANDS['Story'].train_margin}", trains.reason)
+        self.assertEqual(self.brawly_goal(level=9, train_off=True).kind, "go")
+        ready = self.brawly_goal(level=30, prep_steps=ERRANDS["Story"].train_min_steps)
+        self.assertEqual((ready.kind, ready.map), ("go", "DEWFORD_TOWN_GYM"))
+
+    def test_the_gym_is_only_walked_to_once_the_sign_is_read(self):
+        """`told` 'BRAWLY': nobody has said it, it explores (map None); read, it heads for the gym. FAULT: unread -> never a
+        guess at the map."""
+        unread = self.brawly_goal(level=30, train_off=True, heard=())
+        self.assertEqual((unread.kind, unread.map), ("go", None))
+        read = self.brawly_goal(level=30, train_off=True)
+        self.assertEqual((read.kind, read.map), ("go", "DEWFORD_TOWN_GYM"))
+
+    def briney_goal(self, heard=(COTTAGE_LINE,), const="ROUTE104", known=("RUSTBORO_CITY", "ROUTE104"), objects=(),
+                    proofs="ch6_briney_house"):
+        mgr = manager("Story", train_off=True, errands_off=True)  # (a stranger would otherwise draw the CHAT errand)
+        world = world_with(*known, current=const, heard=heard)
+        observation = look(ch_proofs(proofs), party=[mon(20, hp=40, max_hp=40)], const=const, objects=objects)
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, proofs)
+        return mgr.next_goal(observation, world, milestone, index)
+
+    def test_the_cottage_is_only_walked_to_once_it_is_said(self):
+        unread = self.briney_goal(heard=())
+        self.assertEqual((unread.kind, unread.map), ("go", None))  # FAULT: nobody said 'cottage': explores
+        read = self.briney_goal()
+        self.assertEqual((read.kind, read.map), ("go", "ROUTE104_MR_BRINEYS_HOUSE"))  # CONTROL
+
+    def test_in_the_cottage_briney_is_talked_to_and_nobody_else(self):
+        briney = person(x=12, y=10, gfx=21, local_id=1)
+        someone = person(x=12, y=10, gfx=1, local_id=2)
+        known = ("RUSTBORO_CITY", "ROUTE104", "ROUTE104_MR_BRINEYS_HOUSE")
+        for proofs in ("ch6_briney_house", "ch6_dewford"):
+            goal = self.briney_goal(const="ROUTE104_MR_BRINEYS_HOUSE", known=known, objects=(briney,), proofs=proofs)
+            self.assertEqual((goal.kind, goal.key, goal.target.graphics_id), ("talk", "talk:mr_briney", 21), proofs)
+            other = self.briney_goal(const="ROUTE104_MR_BRINEYS_HOUSE", known=known, objects=(someone,), proofs=proofs)
+            self.assertEqual((other.kind, other.key), ("find", "find:mr_briney"), proofs)  # FAULT: a stranger is no Briney
+
+    def test_ch6_dewford_goes_back_to_the_cottage_when_the_sail_was_declined(self):
+        """ch6_briney_house is proven (the flag is set before the yes/no) but the AI is elsewhere and not aboard: ch6_dewford's
+        ONE talk step sends it back to a map it has been to. FAULT: it has not been there -> it explores."""
+        known = ("RUSTBORO_CITY", "ROUTE104", "ROUTE104_MR_BRINEYS_HOUSE")
+        back = self.briney_goal(const="ROUTE104", known=known, heard=(), proofs="ch6_dewford")
+        self.assertEqual((back.kind, back.map), ("go", "ROUTE104_MR_BRINEYS_HOUSE"))
+        lost = self.briney_goal(const="ROUTE104", heard=(), proofs="ch6_dewford")
+        self.assertEqual((lost.kind, lost.map), ("go", None))
+
+    def steven_steps(self, shape: str, consts=("DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", "GRANITE_CAVE_B1F",
+                                              "GRANITE_CAVE_B2F", "GRANITE_CAVE_STEVENS_ROOM")):
+        """`story_step` as the real goal manager answers it on each map the player passes on the road to STEVEN's door."""
+        from ai_player.knowledge.story import Story
+
+        out = {}
+        for const in consts:
+            mgr = GoalManager(Story(_steven_data(shape), "BOY"), PersonalityState("Story", random.Random(1), drift_on=False),
+                              random.Random(1))
+            world = world_with("DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", "GRANITE_CAVE_B1F", "GRANITE_CAVE_B2F",
+                               "GRANITE_CAVE_STEVENS_ROOM", current=const,
+                               heard=("I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",))
+            observation = look(ch_proofs("ch7_steven"), party=[mon(20, hp=40, max_hp=40)], const=const)
+            milestone = mgr.milestone(observation, visited_in(world))[1]
+            self.assertEqual(milestone.id, "ch7_steven")
+            step = mgr.story_step(observation, world, milestone)
+            out[const] = (step.do, step.map)
+        return out
+
+    def test_stevens_step_never_sends_it_back_out_of_the_cave(self):
+        """The draft's four steps made `story_step` answer 'go DEWFORD_TOWN' on ROUTE 106 and on the cave's B1F/B2F: the real
+        road (1F -> B1F -> B2F -> B1F -> 1F -> the room) revisits maps, and a `go` step is done only on its own map or a LATER
+        step's. ONE talk step is returned unconditionally, so it cannot flap. FAULT: the draft's shape does regress."""
+        now = self.steven_steps("now")
+        self.assertEqual(set(now.values()), {("talk", "GRANITE_CAVE_STEVENS_ROOM")}, now)
+        draft = self.steven_steps("draft")
+        self.assertEqual(draft["ROUTE106"], ("go", "DEWFORD_TOWN"), draft)  # the FAULT: back to town from the road
+        self.assertEqual(draft["GRANITE_CAVE_B1F"], ("go", "DEWFORD_TOWN"), draft)  # and from inside the cave
+        self.assertEqual(draft["GRANITE_CAVE_B2F"], ("go", "DEWFORD_TOWN"), draft)
+
+    def steven_goal(self, objects=(), const="DEWFORD_TOWN", been_to_room=False):
+        mgr = manager("Story", train_off=True, errands_off=True)  # (a stranger would otherwise draw the CHAT errand)
+        known = ["DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", "GRANITE_CAVE_B1F", "GRANITE_CAVE_B2F"]
+        if been_to_room or const == "GRANITE_CAVE_STEVENS_ROOM":
+            known.append("GRANITE_CAVE_STEVENS_ROOM")
+        world = world_with(*known, current=const, heard=("I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",))
+        observation = look(ch_proofs("ch7_steven"), party=[mon(20, hp=40, max_hp=40)], const=const, objects=objects)
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_steven")
+        return mgr.next_goal(observation, world, milestone, index)
+
+    def test_nothing_names_the_cave_so_it_explores_until_it_has_been_to_stevens_room(self):
+        """No `told` on the talk step (no line names the cave): even with 'STEVEN in DEWFORD' heard it EXPLORES (map None),
+        never guessing a map it was not told; once it has been to the room's map it goes there; in the room, STEVEN (a figure
+        of the 'steven' look) is talked to and a stranger is not."""
+        lost = self.steven_goal()
+        self.assertEqual((lost.kind, lost.map), ("go", None))
+        there = self.steven_goal(been_to_room=True)
+        self.assertEqual((there.kind, there.map), ("go", "GRANITE_CAVE_STEVENS_ROOM"))
+        steven, stranger = person(x=11, y=10, gfx=134, local_id=1), person(x=11, y=10, gfx=1, local_id=2)
+        talk = self.steven_goal(objects=(steven,), const="GRANITE_CAVE_STEVENS_ROOM", been_to_room=True)
+        self.assertEqual((talk.kind, talk.key, talk.target.graphics_id), ("talk", "talk:steven", 134))
+        other = self.steven_goal(objects=(stranger,), const="GRANITE_CAVE_STEVENS_ROOM", been_to_room=True)
+        self.assertEqual((other.kind, other.key), ("find", "find:steven"))
+
+    def test_the_optional_ones_are_never_the_current_milestone_and_name_no_required_step(self):
+        story = load_story("BOY")
+        for milestone_id in sorted(self.OPTIONAL):
+            milestone = story.milestones[story.index(milestone_id)]
+            self.assertTrue(milestone.optional, milestone_id)
+        # EXP. SHARE's hint is the PRE-delivery line (said while FLAG_DELIVERED_STEVEN_LETTER is unset): the note says so
+        exp = KNOWLEDGE["milestones"][story.index("ch7_exp_share")]
+        self.assertIn("PRE-delivery", exp["note"])
+        self.assertIn("NOT yet walkable", exp["note"])
+
+    def test_the_new_looks_are_the_figures_the_game_draws(self):
+        story = load_story("BOY")
+        got = {name: story.looks[name].gfx for name in ("mr_briney", "old_rod_fisherman", "steven", "brawly", "mr_stone")}
+        self.assertEqual(got, {"mr_briney": (21,), "old_rod_fisherman": (50,), "steven": (134,), "brawly": (126,),
+                               "mr_stone": (48,)})
+        for milestone in story.milestones[28:]:
+            for step in milestone.steps:
+                if step.do in ("talk", "use"):
+                    self.assertIn(step.look, story.looks, (milestone.id, step.look))  # a talk step names a look that exists
+
+    def test_chapters_1_to_5_are_untouched(self):
+        """The first 28 entries, the 13 looks of chapters 1-5 (by name), the first 21 trainers and the gendered maps are what
+        they were before chapters 6-7: the digests were measured on the committed file (979754bf), and the same digests of
+        the 36-milestone file match. A deliberate change to chapters 1-5 updates these constants, in the open."""
+        import hashlib
+
+        def digest(parts) -> str:
+            return hashlib.sha256(json.dumps(parts, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+
+        self.assertEqual(digest(KNOWLEDGE["milestones"][:28]),
+                         "17d1b7477b6c5378e647f129183661c992029a34e2de46d569e165866f3c6e91")
+        looks13 = {name: KNOWLEDGE["looks"][name] for name in (*OLD_LOOKS, "aqua_member")}
+        self.assertEqual(digest(looks13), "1165e014d0ce7040f71f50340b311908ea1ae7e55bd26ac0d3ba7f4b2b5af81e")
+        self.assertEqual(digest(list(KNOWLEDGE["trainers"].items())[:21]),
+                         "3f8f87c440a89c3f96eae983d13b32878a8af8efb9f1bfd3924f62b86c26686d")
+        self.assertEqual(digest(KNOWLEDGE["gendered_maps"]),
+                         "2c219a8bb949f61239fa08663c7f832d9f141cadaeff86303606b5bce4658744")
+        # FAULT halves: the digests do see a 29th milestone, a 14th look and a 22nd trainer
+        self.assertNotEqual(digest(KNOWLEDGE["milestones"][:29]),
+                            "17d1b7477b6c5378e647f129183661c992029a34e2de46d569e165866f3c6e91")
+        self.assertNotEqual(digest({**looks13, "mr_briney": KNOWLEDGE["looks"]["mr_briney"]}),
+                            "1165e014d0ce7040f71f50340b311908ea1ae7e55bd26ac0d3ba7f4b2b5af81e")
+        self.assertNotEqual(digest(list(KNOWLEDGE["trainers"].items())[:22]),
+                            "3f8f87c440a89c3f96eae983d13b32878a8af8efb9f1bfd3924f62b86c26686d")
+        self.assertEqual((len(KNOWLEDGE["milestones"]), len(KNOWLEDGE["looks"]), len(KNOWLEDGE["trainers"])), (36, 18, 28))
 
 
 #: (2026-11-05) The twelve looks of chapters 1-4, in the order the file had them (`test_chapters_1_to_4_are_untouched`).

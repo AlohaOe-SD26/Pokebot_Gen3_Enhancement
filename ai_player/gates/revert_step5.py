@@ -2128,6 +2128,51 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
               (INSTRUCTED, "                    self.at_field = self.read_total\n",
                "                    self.at_field = len(pages)  # MUTANT G469\n")],
              ["InstructedTests.test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript"]),
+    # ---- (chapters 6-7, 2026-11-05) DATA mutants of milestones.json's eight new entries, each the old/draft/wrong shape of
+    # ONE rule; every anchor occurs exactly once (measured by the copy step, which refuses otherwise)
+    "G470": (CAUGHT, "ch6_dewford is proven by the intro flag (the talk, set BEFORE the yes/no) instead of the landing's "
+                     "VISITED_DEWFORD_TOWN: talking would pass 'sailed'",
+             [(DATA, '    "flags": {\n     "VISITED_DEWFORD_TOWN": 2161\n    },',
+               '    "flags": {\n     "MR_BRINEY_SAILING_INTRO": 147\n    },')],
+             ["TableTests.test_the_eyes_read_exactly_the_milestones_proofs_number_by_number",
+              "Chapter67Tests.test_talking_to_briney_is_not_sailing"]),
+    "G471": (CAUGHT, "ch6_briney_house's hint names the cottage's map though the words say only 'cottage' (the draft's map "
+                     "restored)",
+             [(DATA, '    "map": null,\n    "file": "data/maps/RustboroCity/scripts.inc"\n   },\n   "fight": null,\n'
+                     '   "note": "FLAG_MR_BRINEY',
+               '    "map": "ROUTE104_MR_BRINEYS_HOUSE",\n    "file": "data/maps/RustboroCity/scripts.inc"\n   },\n'
+               '   "fight": null,\n   "note": "FLAG_MR_BRINEY')],
+             ["HintTests.test_every_hint_map_is_named_by_what_the_game_says"]),
+    "G472": (CAUGHT, "BRAWLY's fight levels are 16 and 17 (his Lv 19 last Pokemon dropped): the train errand's target is wrong",
+             [(DATA, '    "named": true,\n    "levels": [\n     16,\n     19\n    ]',
+               '    "named": true,\n    "levels": [\n     16,\n     17\n    ]')],
+             ["Chapter67Tests.test_brawlys_levels_are_the_verified_boss_table",
+              "Chapter67Tests.test_it_trains_for_brawly_then_walks_to_the_gym_the_sign_named"]),
+    "G473": (CAUGHT, "the DEWFORD gym's trainers are a REQUIRED milestone (optional: false), so a path to BRAWLY would wait for "
+                     "six fights",
+             [(DATA, '   "optional": true,\n   "maps": [\n    "DEWFORD_TOWN_GYM"\n   ],\n   "steps": [\n    {\n'
+                     '     "do": "go",\n     "map": "DEWFORD_TOWN_GYM",\n     "told": "BRAWLY"\n    },\n    {\n'
+                     '     "do": "follow"',
+               '   "optional": false,\n   "maps": [\n    "DEWFORD_TOWN_GYM"\n   ],\n   "steps": [\n    {\n'
+               '     "do": "go",\n     "map": "DEWFORD_TOWN_GYM",\n     "told": "BRAWLY"\n    },\n    {\n'
+               '     "do": "follow"')],
+             ["Chapter67Tests.test_the_eight_follow_chapter_5_in_this_order",
+              "Chapter67Tests.test_the_optional_ones_are_never_the_current_milestone_and_name_no_required_step"]),
+    "G474": (CAUGHT, "ch7_steven's steps are the DRAFT's four (go DEWFORD_TOWN, go the cave, go the room, talk): the AI is sent "
+                     "back out of the cave (the names check's F1)",
+             [(DATA, '   "steps": [\n    {\n     "do": "talk",\n     "map": "GRANITE_CAVE_STEVENS_ROOM",\n'
+                     '     "look": "steven"\n    }\n   ],',
+               '   "steps": [\n    {"do": "go", "map": "DEWFORD_TOWN", "told": "STEVEN in DEWFORD"},\n'
+               '    {"do": "go", "map": "GRANITE_CAVE_1F"}, {"do": "go", "map": "GRANITE_CAVE_STEVENS_ROOM"},\n'
+               '    {"do": "talk", "map": "GRANITE_CAVE_STEVENS_ROOM", "look": "steven"}\n   ],')],
+             ["Chapter67Tests.test_stevens_step_never_sends_it_back_out_of_the_cave",
+              "Chapter67Tests.test_nothing_names_the_cave_so_it_explores_until_it_has_been_to_stevens_room"]),
+    "G475": (CAUGHT, "ch7_steven is proven by the letter's flag alone (REGISTERED_STEVEN_POKENAV, set later in the same script, "
+                     "dropped)",
+             [(DATA, '     "DELIVERED_STEVEN_LETTER": 189,\n     "REGISTERED_STEVEN_POKENAV": 305\n    },',
+               '     "DELIVERED_STEVEN_LETTER": 189\n    },')],
+             ["TableTests.test_the_eyes_read_exactly_the_milestones_proofs_number_by_number",
+              "Chapter67Tests.test_steven_needs_both_flags"]),
 }
 
 DRIVER = '''

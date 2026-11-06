@@ -53,7 +53,7 @@ because its checks compared a line's START. The arms, each FAULT + CONTROL:
               named. FAULT (input level, in-process so verify_world does not answer first): a boss row, a boss
               trainer's object on an area and on a ring map, the field-move row of a badge won and of a needed move,
               either side of a connection, a warp to a missing map each give EXACTLY one finding naming it.
-  W3 recall   milestones.json's hand-recon'd `trainers` table must be fully contained in the ch1-4 packs. FAULT: JOSH's
+  W3 recall   milestones.json's hand-recon'd `trainers` table must be fully contained in the ch1-7 packs. FAULT: JOSH's
               object removed from a scratch maps.json: recall on the pack built from it falls (in-process), and the
               real run refuses that world through verify_world. The milestone -> chapter mapping is the identity.
   R3 reader   (round 3) the check reads the input files with its OWN loader (read_inputs_for_check), never load_inputs'
@@ -121,10 +121,11 @@ MILESTONES = os.path.join(REPO, "ai_player", "knowledge", "milestones.json")
 EXTRACT_WORLD = os.path.join(REPO, "ai_player", "gates", "extract_world.py")
 VERIFY_WORLD = os.path.join(REPO, "ai_player", "gates", "verify_world.py")
 #: the chapters that have milestones (chapter 5 joined on 2026-11-01: its trainers, the Rustboro rival among them, are in
-#: milestones.json's table, so recall must look for them in the ch5 pack)
-W3_CHAPTERS = (1, 2, 3, 4, 5)
-#: how many milestones milestones.json holds (20 for chapters 1-4; 28 with chapter 5's eight)
-MILESTONE_COUNT = 28
+#: milestones.json's table, so recall must look for them in the ch5 pack; chapters 6 and 7 joined on 2026-11-05: the DEWFORD
+#: gym's trainers and BRAWLY are in the table, so recall looks for them in the ch7 pack)
+W3_CHAPTERS = (1, 2, 3, 4, 5, 6, 7)
+#: how many milestones milestones.json holds (20 for chapters 1-4; 28 with chapter 5's eight; 36 with chapters 6-7's eight)
+MILESTONE_COUNT = 36
 MD_CAP = 12 * 1024
 ROUTE_KEYS = ("x", "y", "route", "path", "steps", "coords")
 ABSENT_MARKERS = ("NOT INCLUDED YET: items, gifts, marts and scripted events",

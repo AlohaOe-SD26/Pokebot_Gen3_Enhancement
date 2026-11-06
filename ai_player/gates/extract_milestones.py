@@ -3,7 +3,8 @@
     py -3.12 ai_player/gates/extract_milestones.py            # writes ai_player/knowledge/milestones.json
     py -3.12 ai_player/gates/extract_milestones.py --check    # exits 1 if the written file differs from a fresh extraction
     py -3.12 ai_player/gates/extract_milestones.py --verify [--plant] [--evidence PATH]
-                                                              # every fact against pret/pokeemerald (gh api); --plant: eight
+                                                              # every fact against pret/pokeemerald (gh api, or the PINNED
+                                                              # clone when env POKEBOT_DECOMP is set); --plant: fourteen
                                                               # facts changed in memory must be found, and nothing else
 
 WHY (USER RULING 35; design draft §3 "How the bot teaches it": "`modules/story/early_game.py` step docstrings ('STORY
@@ -14,7 +15,8 @@ bot's chapter functions whose docstrings taught each beat (`modules/story/early_
 sha256 recorded), and writes the AI's own `ai_player/knowledge/milestones.json`. It never imports the bot and the play loop
 never reads the bot: `ai_player/knowledge/story.py` reads only the JSON.
 
-WHAT A MILESTONE CARRIES (USER RULING 37 Q3: badge 1 in 4 chapters; chapter 5, RUSTBORO after the badge, added 2026-11-01):
+WHAT A MILESTONE CARRIES (USER RULING 37 Q3: badge 1 in 4 chapters; chapter 5, RUSTBORO after the badge, added 2026-11-01;
+chapters 6-7, MR. BRINEY's boat to DEWFORD and the DEWFORD GYM, 2026-11-05):
   * `done`: the FLAGS that must be set, the VARS that must have reached a value, the TRAINERS whose defeated flag must be
     set (flag `TRAINER_FLAGS_START` 0x500 + the trainer's id): what PROVES it happened, each with its number;
   * `maps`: where it happens (a map constant as the eyes name it; `<player_house_2f>` and the like are resolved by the
@@ -35,9 +37,10 @@ every proof is SET by the script file the milestone names (`setflag FLAG_X` / `s
 for a trainer); every trainer's id (`include/constants/opponents.h`) and party levels (`src/data/trainers.h` ->
 `src/data/trainer_parties.h`); every look's graphics id and metatile; and each hint's quoted words appear in the decomp text
 of the map it names; and (2026-11-05) every `talk` / `use` step's FIGURE look stands on the step's map (`object_events` of its
-`map.json`; a figure set at runtime, `OBJ_EVENT_GFX_VAR_*`, is noted, not failed). `--plant` changes eight facts in memory (a
-flag number, a fight level, a look; chapter 5: a flag number, a var value, a grunt's level, a step's words, a talk step's map)
-and must report exactly those eight.
+`map.json`; a figure set at runtime, `OBJ_EVENT_GFX_VAR_*`, is noted, not failed). `--plant` changes fourteen facts in memory (a
+flag number, a fight level, a look; chapter 5: a flag number, a var value, a grunt's level, a step's words, a talk step's map;
+chapters 6-7: two flag numbers, a trainer proof's script, the leader's level, a step's words, a talk step's map) and must
+report exactly those fourteen.
 """
 
 from __future__ import annotations
@@ -108,6 +111,13 @@ LOOKS: dict[str, dict] = {
     # (14, 5), the map's only Aqua figure; `--verify` checks a step's look stands on its map)
     "aqua_member": {"gfx": [117, 118], "what": "a TEAM AQUA member (the striped shirt and the bandana)",
                     "decomp": "OBJ_EVENT_GFX_AQUA_MEMBER_M, OBJ_EVENT_GFX_AQUA_MEMBER_F"},
+    # (chapters 6-7, 2026-11-05: the cloud note's looks authored in this schema, `decomp` being the constant `--verify` checks;
+    # only the five that chapters 6-7's talk steps use, standing on their steps' maps, which `--verify` checks too)
+    "mr_briney": {"gfx": [21], "what": "MR. BRINEY, the old sailor (his cottage on ROUTE 104)", "decomp": "OBJ_EVENT_GFX_EXPERT_M"},
+    "old_rod_fisherman": {"gfx": [50], "what": "the DEWFORD fisherman who gives the OLD ROD", "decomp": "OBJ_EVENT_GFX_FISHERMAN"},
+    "steven": {"gfx": [134], "what": "STEVEN, in his room at the back of GRANITE CAVE", "decomp": "OBJ_EVENT_GFX_STEVEN"},
+    "brawly": {"gfx": [126], "what": "BRAWLY, the DEWFORD GYM leader", "decomp": "OBJ_EVENT_GFX_BRAWLY"},
+    "mr_stone": {"gfx": [48], "what": "MR. STONE, the DEVON president, at his desk on the 3rd floor", "decomp": "OBJ_EVENT_GFX_GENTLEMAN"},
 }
 
 #: What a person hears and the map it names: the words (as the eyes read a page, upper case where the game writes it).
@@ -456,6 +466,141 @@ MILESTONES: list[dict] = [
              "VAR_STARTER_MON), which is why the proof is the flag, not a trainer. Rewards: none",
      "taught_by": [("modules/story/early_game.py", "fight_rustboro_rival")],
      "decomp": {"DEFEATED_RIVAL_RUSTBORO": "data/maps/RustboroCity/scripts.inc"}},
+    # ---------------------------------------------------------------- CHAPTER 6: MR. BRINEY's boat to DEWFORD
+    # (2026-11-05, build: the cloud note's chapters 6-7 converted to this AUTHORED form, as chapter 5 was, and checked against the
+    # PINNED decomp, 731ad5bf, by a names checker and a schema checker; findings applied here: no `map` on two hints, looks in
+    # this schema, the gym trainers' `decomp`, `taught_by`, ONE talk step for STEVEN, GRANITE_CAVE_B2F and PETALBURG_WOODS in
+    # `maps`.) The ids and their order are the ones `gates/campaign_skeleton.json` carries (the W4 guard of `extract_world.py`).
+    {"id": "ch6_briney_house", "chapter": 6, "title": "ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)",
+     "done": {"flags": ["MR_BRINEY_SAILING_INTRO"]},
+     "maps": ["ROUTE104", "ROUTE104_MR_BRINEYS_HOUSE", "PETALBURG_WOODS"],
+     "steps": [{"do": "go", "map": "ROUTE104_MR_BRINEYS_HOUSE", "told": "cottage", "file": "data/maps/RustboroCity/scripts.inc"},
+               {"do": "talk", "map": "ROUTE104_MR_BRINEYS_HOUSE", "look": "mr_briney"}],
+     # (the names check, F3) the hint's words say only 'cottage', never the map's name: no `map` (HintTests: a hint's map must be
+     # NAMED by what the game says). The brain reads only each STEP's `told`, so nothing is lost
+     "hint": {"said": "MAY: Oh, by the way, I passed MR. BRINEY in PETALBURG WOODS. I guess he's on his way home to his cottage "
+                      "by the sea. How's your POKéDEX coming along, {PLAYER}{KUN}? Mine's looking pretty decent! So... How about "
+                      "a little battle?", "words": "cottage", "map": None, "file": "data/maps/RustboroCity/scripts.inc"},
+     "note": "FLAG_MR_BRINEY_SAILING_INTRO is set the FIRST time the player talks to MR. BRINEY, BEFORE the yes/no "
+             "(Route104_MrBrineysHouse_EventScript_SailingIntro: setflag, then the msgbox YESNO), so it proves 'talked to him', "
+             "NOT 'sailed'; the arrival proof is the next milestone's VISITED_DEWFORD_TOWN. Sailing itself leaves no durable flag: "
+             "VAR_BOARD_BRINEY_BOAT_STATE is 1 only during the voyage and Route104_EventScript_ArriveInDewford sets it back to 0. "
+             "THE WAY THERE (flood fill of the pinned layouts, no HMs): the cottage door (17,50) is in the SOUTH part of ROUTE 104, "
+             "joined to the north strip (where ch5_rival_meet ends, beside Rustboro) only back through PETALBURG WOODS "
+             "(the woods' south doors, (10,38) and (11,38), are in the cottage's component; the north doors and the Rustboro "
+             "connection are in the other), which is why PETALBURG_WOODS is in `maps`. The first probe question: does "
+             "`go ROUTE104_MR_BRINEYS_HOUSE` (told 'cottage', a map it has not entered) find that way",
+     "taught_by": [("modules/story/early_game.py", "sail_to_dewford")],
+     "decomp": {"MR_BRINEY_SAILING_INTRO": "data/maps/Route104_MrBrineysHouse/scripts.inc"}},
+    {"id": "ch6_dewford", "chapter": 6, "title": "Sail with MR. BRINEY to DEWFORD TOWN",
+     "done": {"flags": ["VISITED_DEWFORD_TOWN"]}, "maps": ["ROUTE104_MR_BRINEYS_HOUSE", "ROUTE104", "DEWFORD_TOWN"],
+     # (the names check, F5) ONE step: `story_step` returns a talk step unconditionally, so the draft's second step (`go
+     # DEWFORD_TOWN`) could never be reached; the talk starts the sail, and the AI is on the boat until it lands
+     "steps": [{"do": "talk", "map": "ROUTE104_MR_BRINEYS_HOUSE", "look": "mr_briney"}],
+     "hint": {"said": "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION. I'd just got word about you! You saved our staff "
+                      "not just once, but twice! I have a favor to ask of an amazing person like you. I understand that you're "
+                      "delivering a package to SLATEPORT's SHIPYARD. Well, on the way, could you stop off in DEWFORD TOWN? I was "
+                      "hoping that you'd deliver a LETTER to STEVEN in DEWFORD.", "words": "DEWFORD TOWN",
+              "map": "DEWFORD_TOWN", "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"},
+     "note": "FLAG_VISITED_DEWFORD_TOWN is set by DewfordTown_OnTransition on every arrival (map load), so it is the durable proof "
+             "of having landed. Boat only: the voyage starts on Route104_MrBrineysHouse_EventScript_SailToDewford (answer YES) and "
+             "the player is warped to ROUTE 104 (13,51) where Route104_OnFrame runs the sail. The proof is EARLY: the boat reaches "
+             "Dewford through the connections ROUTE 104 -> 105 -> 106 -> DEWFORD, so the flag is set a few seconds before the "
+             "player regains control. The FIRST sail also plays DAD's POKeNAV call (a fanfare and text boxes, "
+             "FLAG_ENABLE_NORMAN_MATCH_CALL unset): a probe question is whether the AI presses through them",
+     "taught_by": [("modules/story/early_game.py", "sail_to_dewford")],
+     "decomp": {"VISITED_DEWFORD_TOWN": "data/maps/DewfordTown/scripts.inc"}},
+    {"id": "ch6_old_rod", "chapter": 6, "title": "DEWFORD TOWN: the fisherman's OLD ROD", "optional": True,
+     "done": {"flags": ["RECEIVED_OLD_ROD"]}, "maps": ["DEWFORD_TOWN"],
+     "steps": [{"do": "go", "map": "DEWFORD_TOWN"}, {"do": "talk", "map": "DEWFORD_TOWN", "look": "old_rod_fisherman"}],
+     "hint": {"said": "This is a renowned fishing spot. Are you getting the itch to fish?", "words": None, "map": "DEWFORD_TOWN",
+              "file": "data/maps/DewfordTown/scripts.inc"},
+     "note": "OPTIONAL gift (answer YES to 'Are you getting the itch to fish?'); gates nothing in chapters 5-8. The flag is set "
+             "right after the giveitem WITHOUT a bag-full check (DewfordTown/scripts.inc), so it does not mean 'the rod is in "
+             "the bag'; the bag cannot be full at this stage of a normal run",
+     "taught_by": [],
+     "decomp": {"RECEIVED_OLD_ROD": "data/maps/DewfordTown/scripts.inc"}},
+    # ---------------------------------------------------------------- CHAPTER 7: GRANITE CAVE and the DEWFORD GYM
+    {"id": "ch7_steven", "chapter": 7, "title": "GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN",
+     "done": {"flags": ["DELIVERED_STEVEN_LETTER", "REGISTERED_STEVEN_POKENAV"]},
+     "maps": ["DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", "GRANITE_CAVE_B1F", "GRANITE_CAVE_B2F", "GRANITE_CAVE_STEVENS_ROOM"],
+     # (the names check, F1) ONE step. The draft's [go DEWFORD_TOWN, go GRANITE_CAVE_1F, go STEVENS_ROOM, talk] sent the AI
+     # BACK out of the cave: a `go` step counts as done only on its own map or a LATER step's map, and the real road
+     # (1F -> B1F -> B2F -> B1F -> 1F -> the room) revisits maps, so `story_step` returned 'go DEWFORD_TOWN' on ROUTE 106 and on
+     # B1F/B2F (probed against the real GoalManager.story_step). A talk step is returned unconditionally, so it cannot flap:
+     # the AI goes to the room's map once it has been there, and explores until then (no line names the cave, so no `told`)
+     "steps": [{"do": "talk", "map": "GRANITE_CAVE_STEVENS_ROOM", "look": "steven"}],
+     # (the names check, F3 of the schema check) words that name 'DEWFORD' only, never the cave: no `map` on the hint
+     "hint": {"said": "I'm MR. STONE, the PRESIDENT of the DEVON CORPORATION. I'd just got word about you! You saved our staff "
+                      "not just once, but twice! I have a favor to ask of an amazing person like you. I understand that you're "
+                      "delivering a package to SLATEPORT's SHIPYARD. Well, on the way, could you stop off in DEWFORD TOWN? I was "
+                      "hoping that you'd deliver a LETTER to STEVEN in DEWFORD.", "words": "STEVEN in DEWFORD", "map": None,
+              "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"},
+     "note": "NO line of dialogue names GRANITE CAVE as STEVEN's place: MR. STONE says 'STEVEN in DEWFORD', MR. BRINEY 'who was it "
+             "now, STEVEN', and the HIKER inside the cave 'that guy who came by earlier... STEVEN'. The one pointer is a DEWFORD "
+             "POKeMON CENTER woman: 'There's a stone cavern at the edge of town' (DewfordTown_PokemonCenter_1F_Text_StoneCavern). "
+             "The cave mouth is the GRANITE_CAVE_1F warp (37,12) on ROUTE 106, reachable on foot from DEWFORD (no Surf). THE ROAD "
+             "(flood fill of the pinned layouts, collision bits and metatile behaviours, water blocked, no HMs): 1F is split in two, "
+             "the door from ROUTE 106 and the HIKER on one side and STEVEN's door (5,10) on the other, so the way is 1F (17,11) -> "
+             "B1F -> B2F -> B1F (29,13) -> B1F (25,13) -> 1F (35,3) -> 1F (5,10) -> STEVEN's room. B1F and B2F are dark "
+             "(requires_flash) but WALKABLE: SetDefaultFlashLevel only shrinks the lit circle; FLASH (BADGE02) comes after. "
+             "Whether the AI finds the cave and crosses the dark floors unlit is a QUESTION for a development probe, not a fact. "
+             "STEVEN hands over TM STEEL WING in the same script; REGISTERED_STEVEN_POKENAV is set later in it than "
+             "DELIVERED_STEVEN_LETTER, so both are the proof",
+     "taught_by": [("modules/story/early_game.py", "deliver_stevens_letter")],
+     "decomp": {"DELIVERED_STEVEN_LETTER": "data/maps/GraniteCave_StevensRoom/scripts.inc",
+                "REGISTERED_STEVEN_POKENAV": "data/maps/GraniteCave_StevensRoom/scripts.inc"}},
+    {"id": "ch7_flash", "chapter": 7, "title": "GRANITE CAVE 1F: the HIKER's HM FLASH", "optional": True,
+     "done": {"flags": ["RECEIVED_HM_FLASH"]}, "maps": ["GRANITE_CAVE_1F"], "steps": [{"do": "go", "map": "GRANITE_CAVE_1F"}],
+     "hint": {"said": "Hey, you. It gets awfully dark ahead. It'll be tough trying to explore. That guy who came by earlier... "
+                      "STEVEN, I think it was. He knew how to use FLASH, so he ought to be all right, but... Well, for us HIKERS, "
+                      "helping out those that we meet is our motto. Here you go, I'll pass this on to you.", "words": None,
+              "map": "GRANITE_CAVE_1F", "file": "data/maps/GraniteCave_1F/scripts.inc"},
+     "note": "OPTIONAL gift, from the HIKER near the cave's door on 1F. Using FLASH outside battle needs BADGE02 (src/party_menu.c, "
+             "FIELD_MOVE_FLASH), i.e. BRAWLY first. The flag is set right after the giveitem WITHOUT a bag-full check, so it "
+             "does not mean 'the HM is in the bag'",
+     "taught_by": [],
+     "decomp": {"RECEIVED_HM_FLASH": "data/maps/GraniteCave_1F/scripts.inc"}},
+    {"id": "ch7_gym_trainers", "chapter": 7, "title": "The DEWFORD GYM's trainers", "optional": True,
+     "done": {"trainers": ["TAKAO", "JOCELYN", "LAURA", "BRENDEN", "CRISTIAN", "LILITH"]}, "maps": ["DEWFORD_TOWN_GYM"],
+     "steps": [{"do": "go", "map": "DEWFORD_TOWN_GYM", "told": "BRAWLY"}, {"do": "follow"}],
+     "hint": {"said": "DEWFORD TOWN POKéMON GYM LEADER: BRAWLY \"A big wave in fighting!\"", "words": "BRAWLY",
+              "map": "DEWFORD_TOWN_GYM", "file": "data/maps/DewfordTown/scripts.inc"},
+     "fight": {"trainers": ["TAKAO", "JOCELYN", "LAURA", "BRENDEN", "CRISTIAN", "LILITH"]},  # not named: learned when SEEN
+     "note": "OPTIONAL (DewfordTown_Gym_EventScript_CountTrainersDefeated lights the dark room by the number beaten; BRAWLY can "
+             "be fought without them, so BRAWLY is proven by his badge alone and this is never the current milestone)",
+     "taught_by": [("modules/story/early_game.py", "do_dewford_gym")],
+     "decomp": {name: "data/maps/DewfordTown_Gym/scripts.inc"
+                for name in ("TAKAO", "JOCELYN", "LAURA", "BRENDEN", "CRISTIAN", "LILITH")}},
+    {"id": "ch7_brawly", "chapter": 7, "title": "BRAWLY: the KNUCKLE BADGE",
+     "done": {"flags": ["DEFEATED_DEWFORD_GYM", "BADGE02_GET"]}, "maps": ["DEWFORD_TOWN_GYM"],
+     "steps": [{"do": "go", "map": "DEWFORD_TOWN_GYM", "told": "BRAWLY"},
+               {"do": "talk", "map": "DEWFORD_TOWN_GYM", "look": "brawly"}],
+     "hint": {"said": "DEWFORD TOWN POKéMON GYM LEADER: BRAWLY \"A big wave in fighting!\"", "words": "BRAWLY",
+              "map": "DEWFORD_TOWN_GYM", "file": "data/maps/DewfordTown/scripts.inc"},
+     "fight": {"trainers": ["BRAWLY_1"], "named": True},  # the gym sign names him: "LEADER: BRAWLY"
+     "note": "BRAWLY is a trainerbattle_single with an on-defeat script (DewfordTown_Gym_EventScript_BrawlyDefeated) that sets both "
+             "flags, then gives TM BULK UP. The TM's FLAG_RECEIVED_TM_BULK_UP is set in TWO places (GiveBulkUp and GiveBulkUp2, "
+             "both in DewfordTown_Gym) and is skipped when the bag is full, so it is not a proof. The hint is the GYM SIGN "
+             "('LEADER: BRAWLY'); MR. STONE and the HIKER name only 'DEWFORD'S POKeMON GYM'. The wild land encounters between "
+             "DEWFORD and the gym are none (DEWFORD and ROUTES 105-107 are water and fishing only; the land tables are the "
+             "GRANITE CAVE floors), so a train-before-the-fight errand has no tall grass near: a probe question",
+     "taught_by": [("modules/story/early_game.py", "do_dewford_gym")],
+     "decomp": {"DEFEATED_DEWFORD_GYM": "data/maps/DewfordTown_Gym/scripts.inc",
+                "BADGE02_GET": "data/maps/DewfordTown_Gym/scripts.inc"}},
+    {"id": "ch7_exp_share", "chapter": 7, "title": "Back in RUSTBORO: MR. STONE thanks the player for the LETTER (EXP. SHARE)",
+     "optional": True, "done": {"flags": ["RECEIVED_EXP_SHARE"]}, "maps": ["RUSTBORO_CITY_DEVON_CORP_3F"],
+     "steps": [{"do": "go", "map": "RUSTBORO_CITY_DEVON_CORP_3F"},
+               {"do": "talk", "map": "RUSTBORO_CITY_DEVON_CORP_3F", "look": "mr_stone"}],
+     "hint": {"said": "MR. STONE: I'm counting on you!", "words": None, "map": "RUSTBORO_CITY_DEVON_CORP_3F",
+              "file": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"},
+     "note": "OPTIONAL, and NOT yet walkable from DEWFORD: it needs FLAG_DELIVERED_STEVEN_LETTER, then a trip back to RUSTBORO "
+             "(RustboroCity_DevonCorp_3F_EventScript_GiveExpShare; it returns early on a full bag BEFORE the setflag). The way "
+             "back is MR. BRINEY's multichoice in DEWFORD, which lands in his cottage, then the walk through PETALBURG WOODS; "
+             "the hint above is the PRE-delivery line (said while the flag is unset). `Story.current` skips an optional "
+             "milestone, so nothing pursues it; do not let an errand pick it until the boat menu is a taught skill",
+     "taught_by": [],
+     "decomp": {"RECEIVED_EXP_SHARE": "data/maps/RustboroCity_DevonCorp_3F/scripts.inc"}},
 ]
 
 #: The trainers' ids (`include/constants/opponents.h`) and party levels (`src/data/trainer_parties.h`), as the decomp says:
@@ -484,6 +629,14 @@ TRAINERS: dict[str, dict] = {
     "BRENDAN_RUSTBORO_TREECKO": {"id": 592, "levels": [13, 15], "party": "sParty_BrendanRustboroTreecko"},
     "BRENDAN_RUSTBORO_TORCHIC": {"id": 599, "levels": [13, 15], "party": "sParty_BrendanRustboroTorchic"},
     "BRENDAN_RUSTBORO_MUDKIP": {"id": 593, "levels": [13, 15], "party": "sParty_BrendanRustboroMudkip"},
+    # chapter 7 (2026-11-05): the DEWFORD GYM's six trainers and BRAWLY (the leader's table row is BRAWLY_1)
+    "TAKAO": {"id": 179, "levels": [13], "party": "sParty_Takao"},
+    "JOCELYN": {"id": 425, "levels": [13], "party": "sParty_Jocelyn"},
+    "LAURA": {"id": 426, "levels": [13], "party": "sParty_Laura"},
+    "BRENDEN": {"id": 572, "levels": [13], "party": "sParty_Brenden"},
+    "CRISTIAN": {"id": 574, "levels": [13], "party": "sParty_Cristian"},
+    "LILITH": {"id": 573, "levels": [13], "party": "sParty_Lilith"},
+    "BRAWLY_1": {"id": 266, "levels": [16, 16, 19], "party": "sParty_Brawly1"},
 }
 
 
@@ -565,7 +718,29 @@ def render(data: dict) -> str:
 
 
 # ---------------------------------------------------------------------------------------------------- verification
+def local_decomp() -> Path | None:
+    """(2026-11-05, chapters 6-7; the schema check's F15: `gh api` without a ref reads pret's CURRENT default branch, not the
+    pinned commit) With env `POKEBOT_DECOMP` set to a clone, `--verify` reads the files from it instead: the PINNED clone
+    (`extract_world.py` refuses a clone whose HEAD is not the pin; this reads, it does not re-check, and `--verify` prints the
+    clone's HEAD). Unset, the behaviour is the old one (gh api)."""
+    import os
+
+    root = os.environ.get("POKEBOT_DECOMP")
+    return Path(root) if root else None
+
+
+def decomp_head(root: Path) -> str:
+    try:
+        return subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, timeout=30,
+                              check=True).stdout.decode().strip()
+    except Exception as error:  # noqa: BLE001
+        return f"unknown ({type(error).__name__})"
+
+
 def fetch(path: str) -> str:
+    root = local_decomp()
+    if root is not None:
+        return (root / path).read_bytes().decode("utf-8", errors="replace").replace("\r\n", "\n")
     result = subprocess.run(["gh", "api", f"repos/{REPOSITORY}/contents/{path}", "-H", "Accept: application/vnd.github.raw"],
                             capture_output=True, timeout=120)
     if result.returncode != 0:
@@ -576,6 +751,9 @@ def fetch(path: str) -> str:
 def fetch_bytes(path: str) -> bytes:
     """A BINARY file of the decomp, through the contents API's base64 (measured 2026-10-14: the raw media type through
     `gh` on Windows returned 192 bytes for a 144-byte map.bin: its line ends were translated)."""
+    root = local_decomp()
+    if root is not None:
+        return (root / path).read_bytes()
     result = subprocess.run(["gh", "api", f"repos/{REPOSITORY}/contents/{path}"], capture_output=True, timeout=120)
     if result.returncode != 0:
         raise RuntimeError(f"gh api {path}: {result.stderr.decode(errors='replace')[:300]}")
@@ -628,7 +806,10 @@ def verify(data: dict, say) -> list[str]:
             scripts[path] = fetch(path)
         return scripts[path]
 
-    say(f"[VERIFY] pret/pokeemerald via gh api: flags.h {len(flags_h)} defines, vars.h {len(vars_h)}, opponents.h "
+    root = local_decomp()
+    source = "pret/pokeemerald via gh api (its default branch, NOT the pin)" if root is None else \
+        f"the local decomp clone {root.name} at HEAD {decomp_head(root)} (env POKEBOT_DECOMP)"
+    say(f"[VERIFY] {source}: flags.h {len(flags_h)} defines, vars.h {len(vars_h)}, opponents.h "
         f"{len(opponents)}, event_objects.h {len(objects)}, metatile_labels.h {len(metatiles)}")
     checked = {"flags": 0, "vars": 0, "trainers": 0, "setters": 0, "levels": 0, "looks": 0, "hints": 0}
     for milestone in data["milestones"]:
@@ -825,7 +1006,7 @@ def main() -> int:
     parser.add_argument("--items", action="store_true", help="(gh api, TEST SIDE) write gates/fixtures/item_flags.json")
     parser.add_argument("--check", action="store_true", help="exit 1 if the written file differs from a fresh extraction")
     parser.add_argument("--verify", action="store_true", help="check every fact against pret/pokeemerald (gh api)")
-    parser.add_argument("--plant", action="store_true", help="with --verify: eight facts changed in memory must be found")
+    parser.add_argument("--plant", action="store_true", help="with --verify: fourteen facts changed in memory must be found")
     parser.add_argument("--evidence", type=Path, help="with --verify: also write the report here")
     args = parser.parse_args()
     if args.items:
@@ -880,6 +1061,14 @@ def main() -> int:
         by_id["ch5_rusturf_grunt"]["steps"][0]["told"] = "tunnl"
         # (2026-11-05) the 8th: the talk step's map moved to where no Aqua figure stands (the new look-on-its-map check)
         by_id["ch5_rusturf_grunt"]["steps"][1]["map"] = "ROUTE116"
+        # chapters 6-7 (2026-11-05): a flag number, a second flag number, a trainer proof's script, a leader's level, a step's
+        # words, and the talk step's map moved to where STEVEN does not stand
+        by_id["ch6_dewford"]["done"]["flags"]["VISITED_DEWFORD_TOWN"] = 2162
+        by_id["ch6_old_rod"]["done"]["flags"]["RECEIVED_OLD_ROD"] = 258
+        by_id["ch7_gym_trainers"]["decomp"]["TAKAO"] = "data/maps/DewfordTown/scripts.inc"
+        by_id["ch7_brawly"]["fight"]["per_trainer"]["BRAWLY_1"] = [16, 16, 20]
+        by_id["ch6_briney_house"]["steps"][0]["told"] = "cotage"
+        by_id["ch7_steven"]["steps"][0]["map"] = "GRANITE_CAVE_1F"
     try:
         problems = verify(data, say)
     except Exception as error:  # noqa: BLE001
@@ -898,7 +1087,14 @@ def main() -> int:
                    "fight: TRAINER_GRUNT_RUSTURF_TUNNEL levels: ours [12], pret [11] (sParty_GruntRusturfTunnel)",
                    "ch5_rusturf_grunt: the go step's words 'tunnl' are not in data/maps/RustboroCity/scripts.inc",
                    "ch5_rusturf_grunt: the talk step's look 'aqua_member' (['OBJ_EVENT_GFX_AQUA_MEMBER_F', "
-                   "'OBJ_EVENT_GFX_AQUA_MEMBER_M']) stands nowhere on ROUTE116 (data/maps/Route116/map.json)"}
+                   "'OBJ_EVENT_GFX_AQUA_MEMBER_M']) stands nowhere on ROUTE116 (data/maps/Route116/map.json)",
+                   "ch6_dewford: FLAG_VISITED_DEWFORD_TOWN: ours 2162, pret 2161",
+                   "ch6_old_rod: FLAG_RECEIVED_OLD_ROD: ours 258, pret 257",
+                   "ch7_gym_trainers: TRAINER_TAKAO is not fought in data/maps/DewfordTown/scripts.inc",
+                   "fight: TRAINER_BRAWLY_1 levels: ours [16, 16, 20], pret [16, 16, 19] (sParty_Brawly1)",
+                   "ch6_briney_house: the go step's words 'cotage' are not in data/maps/RustboroCity/scripts.inc",
+                   "ch7_steven: the talk step's look 'steven' (['OBJ_EVENT_GFX_STEVEN']) stands nowhere on GRANITE_CAVE_1F "
+                   "(data/maps/GraniteCave_1F/map.json)"}
         verdict = ("PASS (the plants were found, and nothing else)" if set(problems) == planted
                    else f"FAIL (found {sorted(problems)})")
     say(f"[VERIFY] OVERALL {verdict}")

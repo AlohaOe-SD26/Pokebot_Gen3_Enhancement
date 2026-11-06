@@ -40,6 +40,7 @@
 | `2026-10-30-c2a92b` | 9942 | Do not re-ask whether the 24/7 trainer (ai-agent/ learner) should train the AI player itself, nonstop, chapter by chapter: it should (2026-10-30). |
 | `2026-10-31-911bb5` | 9958 | Do not re-ask whether the AI trainer's practice runs from the AI's own saves are allowed (yes, with a New Game test after a few), or which limit ends a session (the frame budget; the clock is a backstop) (2026-10-31). |
 | `2026-11-05-577173` | 10020 | Do not reopen merging a development pass as a graded claim, or replacing the general instructed choice with a scene-specific (POKéNAV-only) menu script (2026-11-05). |
+| `2026-11-05-0d6710` | 10029 | Do not reopen the draft's four-step STEVEN list (a `go` list that revisits maps regresses under the real story_step) or copying the cloud note's chapter 6-7 data instead of authoring it (2026-11-05). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -78,10 +79,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 365 sections (newest first)
+## All 366 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-05-0d6710` | 10029 |  | DO-NOT-REOPEN | 2026-11-05 — Chapters 6-7 wired from the cloud note: ONE talk step for STEVEN, the chapter-5 method, the pinned decomp for `--verify` (punch-list #28-aiagent-v2 |
 | `2026-11-05-577173` | 10020 |  | DO-NOT-REOPEN | 2026-11-05 — Chapter 5's stops: a GENERAL instructed choice for forced menus; the grunt as data; the next graded test is a New Game to the end of chapter 5 (pun |
 | `2026-11-01-6cfa03` | 10007 |  |  | 2026-11-01 — Chapter 5's eight milestones wired into the AI from the cloud note, after two independent checks; six choices, and what the first development probe |
 | `2026-11-01-bab294` | 9998 | 57 |  | 2026-11-01 — USER RULING 57: keep progressing on the extra credit, with the cloud kept set up; the measurement: at a full weekly meter a cloud job bills the EXT |

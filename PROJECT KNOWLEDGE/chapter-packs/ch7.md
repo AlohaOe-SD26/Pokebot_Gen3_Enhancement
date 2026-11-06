@@ -15,23 +15,30 @@ Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `bf3cc8ad0960
 | `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf233912` |
 | `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a` |
 | `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb67` |
-| `ai_player/knowledge/world/bosses.json` | `3ef0c4e273c6f7c7` |
-| `ai_player/knowledge/world/campaign.json` | `8b980f653291f315` |
+| `ai_player/knowledge/world/bosses.json` | `3551b535cd896e2b` |
+| `ai_player/knowledge/world/campaign.json` | `e2e7d2f437f9df71` |
 | `ai_player/knowledge/world/maps.json` | `ecc1cec58ee498de` |
 | `ai_player/knowledge/world/trainers.json` | `2f329852a38e1416` |
 
 ## Entries
-- **ch7_granite_cave** (order 30) area DEWFORD_TOWN, GRANITE_CAVE_1F, GRANITE_CAVE_B1F, GRANITE_CAVE_B2F, GRANITE_CAVE_STEVENS_ROOM; boss -; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
-- **ch7_brawly** (order 31) area DEWFORD_TOWN, DEWFORD_TOWN_GYM; boss BRAWLY; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
+- **ch7_steven** (order 32) area DEWFORD_TOWN, ROUTE106, GRANITE_CAVE_1F, GRANITE_CAVE_B1F, GRANITE_CAVE_B2F, GRANITE_CAVE_STEVENS_ROOM; boss -; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
+- **ch7_flash** (order 33) area GRANITE_CAVE_1F; boss -; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
+- **ch7_gym_trainers** (order 34) area DEWFORD_TOWN_GYM; boss -; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
+- **ch7_brawly** (order 35) area DEWFORD_TOWN, DEWFORD_TOWN_GYM; boss BRAWLY; party_min 1; types ahead FIGHTING/PSYCHIC; level band 16-19
+- **ch7_exp_share** (order 36) area RUSTBORO_CITY_DEVON_CORP_1F, RUSTBORO_CITY_DEVON_CORP_2F, RUSTBORO_CITY_DEVON_CORP_3F; boss -; party_min 1; types ahead FIGHTING/FIRE/FLYING/GRASS/GROUND/WATER; level band 18-20
 
 ## Maps and links
 - **DEWFORD_TOWN** (town). Connections: up ROUTE106, right ROUTE107. Warps: DEWFORD_TOWN_HALL, DEWFORD_TOWN_POKEMON_CENTER_1F, DEWFORD_TOWN_GYM, DEWFORD_TOWN_HOUSE1, DEWFORD_TOWN_HOUSE2.
+- **ROUTE106** (route). Connections: up ROUTE105, down DEWFORD_TOWN. Warps: GRANITE_CAVE_1F.
 - **GRANITE_CAVE_1F** (underground). Connections: -. Warps: ROUTE106, GRANITE_CAVE_B1F x2, GRANITE_CAVE_STEVENS_ROOM.
 - **GRANITE_CAVE_B1F** (underground, FLASH). Connections: -. Warps: GRANITE_CAVE_1F x2, GRANITE_CAVE_B2F x5.
 - **GRANITE_CAVE_B2F** (underground, FLASH). Connections: -. Warps: GRANITE_CAVE_B1F x5.
 - **GRANITE_CAVE_STEVENS_ROOM** (underground). Connections: -. Warps: GRANITE_CAVE_1F.
 - **DEWFORD_TOWN_GYM** (indoor, no running). Connections: -. Warps: DEWFORD_TOWN x2.
-- Neighbours (one ring, 6): DEWFORD_TOWN_HALL, DEWFORD_TOWN_HOUSE1, DEWFORD_TOWN_HOUSE2, DEWFORD_TOWN_POKEMON_CENTER_1F, ROUTE106, ROUTE107
+- **RUSTBORO_CITY_DEVON_CORP_1F** (indoor, no running). Connections: -. Warps: RUSTBORO_CITY x2, RUSTBORO_CITY_DEVON_CORP_2F.
+- **RUSTBORO_CITY_DEVON_CORP_2F** (indoor, no running). Connections: -. Warps: RUSTBORO_CITY_DEVON_CORP_1F, RUSTBORO_CITY_DEVON_CORP_3F.
+- **RUSTBORO_CITY_DEVON_CORP_3F** (indoor, no running). Connections: -. Warps: RUSTBORO_CITY_DEVON_CORP_2F.
+- Neighbours (one ring, 7): DEWFORD_TOWN_HALL, DEWFORD_TOWN_HOUSE1, DEWFORD_TOWN_HOUSE2, DEWFORD_TOWN_POKEMON_CENTER_1F, ROUTE105, ROUTE107, RUSTBORO_CITY
 
 ## Trainers
 EVERY trainer on the area maps, whether or not this chapter fights them (compare the levels with the entries' level band). Area maps: name, class, single/DOUBLE, sight, levels, team, defeat flag number.
@@ -42,10 +49,15 @@ EVERY trainer on the area maps, whether or not this chapter fights them (compare
 - LAURA `LAURA` BATTLE GIRL, single, sight 2, Lv 13 (MEDITITE), flag 1706, on DEWFORD_TOWN_GYM
 - LILITH `LILITH` BATTLE GIRL, single, sight 3, Lv 13 (MEDITITE), flag 1853, on DEWFORD_TOWN_GYM
 - TAKAO `TAKAO` BLACK BELT, single, sight 3, Lv 13 (MACHOP), flag 1459, on DEWFORD_TOWN_GYM
+- DOUGLAS `DOUGLAS` SWIMMER♂, single, sight 3, Lv 24/24 (TENTACOOL TENTACOOL), flag 1433, on ROUTE106
+- ELLIOT `ELLIOT_1` FISHERMAN, single, sight 4, Lv 10/7/10 (MAGIKARP TENTACOOL MAGIKARP), flag 1619, on ROUTE106
+- KYLA `KYLA` SWIMMER♀, single, sight 3, Lv 26 (WAILMER), flag 1723, on ROUTE106
+- NED `NED` FISHERMAN, single, sight 3, Lv 11 (TENTACOOL), flag 1620, on ROUTE106
 
 Neighbour maps (name, Lv min-max, D = double):
-- ROUTE106: DOUGLAS 24-24, ELLIOT_1 7-10, KYLA 26-26, NED 11-11
+- ROUTE105: ANDRES_1 25-25, BEVERLY 25-25, DOMINIK 26-26, FOSTER 25-25, IMANI 26-26, JOSUE 25-25, LUIS 26-26
 - ROUTE107: BETH 26-26, CAMRON 26-26, DARRIN 24-24, DENISE 25-25, LISA_AND_RAY 25-27 D, TONY_1 26-26
+- RUSTBORO_CITY: BRENDAN_RUSTBORO_MUDKIP 13-15, BRENDAN_RUSTBORO_TORCHIC 13-15, BRENDAN_RUSTBORO_TREECKO 13-15, MAY_RUSTBORO_MUDKIP 13-15, MAY_RUSTBORO_TORCHIC 13-15, MAY_RUSTBORO_TREECKO 13-15
 
 ## Bosses
 - **BRAWLY** `BRAWLY_1` (gym_leader, single) badge BADGE02, src/data/trainers.h:3196:
@@ -58,6 +70,10 @@ Neighbour maps (name, Lv min-max, D = double):
 - GRANITE_CAVE_B1F land (rate 10): ARON 40% L9-11, ZUBAT 30% L9-10, ABRA 10% L9-9, MAKUHITA 10% L10-11, SABLEYE 10% L9-11
 - GRANITE_CAVE_B2F land (rate 10): ARON 40% L10-12, ZUBAT 30% L10-11, SABLEYE 20% L10-12, ABRA 10% L10-10
 - GRANITE_CAVE_B2F rock_smash (rate 20): GEODUDE 70% L5-20, NOSEPASS 30% L10-20
+- ROUTE106 good_rod (rate 30): MAGIKARP 60% L10-30, TENTACOOL 20% L10-30, WAILMER 20% L10-30
+- ROUTE106 old_rod (rate 30): MAGIKARP 70% L5-10, TENTACOOL 30% L5-10
+- ROUTE106 super_rod (rate 30): WAILMER 100% L20-45
+- ROUTE106 water (rate 4): TENTACOOL 60% L5-35, WINGULL 35% L10-30, PELIPPER 5% L25-30
 - GRANITE_CAVE_STEVENS_ROOM land (rate 10): MAKUHITA 50% L6-10, ZUBAT 30% L7-8, ABRA 10% L8-8, ARON 10% L7-8
 - DEWFORD_TOWN good_rod (rate 10): MAGIKARP 60% L10-30, TENTACOOL 20% L10-30, WAILMER 20% L10-30
 - DEWFORD_TOWN old_rod (rate 10): MAGIKARP 70% L5-10, TENTACOOL 30% L5-10
@@ -74,4 +90,4 @@ Neighbour maps (name, Lv min-max, D = double):
 4. [hm_gate] FLASH (HM05) usable outside battle only with BADGE02; 155 species learn it, met wild here: ABRA, SABLEYE (source: src/party_menu.c:121)
 5. [hm_gate] GRANITE_CAVE_B1F requires Flash (dark map) (source: maps.json requires_flash)
 6. [hm_gate] GRANITE_CAVE_B2F requires Flash (dark map) (source: maps.json requires_flash)
-7. [one_way_warp] none of the 33 warps touching the area maps is one-way by warp data (ledges, holes and scripted movement are NOT modelled) (source: maps.json warps)
+7. [one_way_warp] none of the 41 warps touching the area maps is one-way by warp data (ledges, holes and scripted movement are NOT modelled) (source: maps.json warps)

@@ -113,6 +113,7 @@ CHAPTER_OF = {
     4: ["JOSH", "TOMMY", "ROXANNE_1"],                                 # ch4_gym_trainers (JOSH, TOMMY), ch4_roxanne
     5: ["GRUNT_RUSTURF_TUNNEL", "MAY_RUSTBORO_TREECKO", "MAY_RUSTBORO_TORCHIC", "MAY_RUSTBORO_MUDKIP",
         "BRENDAN_RUSTBORO_TREECKO", "BRENDAN_RUSTBORO_TORCHIC", "BRENDAN_RUSTBORO_MUDKIP"],  # ch5_rusturf_grunt, ch5_rival_*
+    7: ["TAKAO", "JOCELYN", "LAURA", "BRENDEN", "CRISTIAN", "LILITH", "BRAWLY_1"],  # ch7_gym_trainers (six), ch7_brawly
 }
 #: what a reader of the world files would have to write (`world/` alone is not one: the AI's own `ai_player/world/`
 #: package is named in comments and paths all over the play code)
@@ -780,7 +781,7 @@ class W3RecallTests(unittest.TestCase):
     def test_recall_is_complete(self):
         missing, extras = recall(OBJS["maps.json"]["maps"], OBJS["trainers.json"]["trainers"])
         self.assertEqual(missing, [])
-        print("\n  W3 extras on the chapter 1-5 maps (listed for adjudication, not hidden): %s" % extras)
+        print("\n  W3 extras on the chapter 1-5 and 7 maps (listed for adjudication, not hidden): %s" % extras)
 
     def test_fault_deleted_object_lowers_recall(self):
         rel = "data/maps/Route102/map.json"
@@ -869,6 +870,32 @@ class W4ConsistencyTests(unittest.TestCase):
             campaign_of(scratch_skeleton(swap))
         with self.assertRaises(ew.Refused):
             campaign_of(scratch_skeleton(lambda es: es.pop(index(es, "ch5_goods_employee"))))
+
+    def test_chapter_6_and_7_ids_are_guarded_too(self):
+        """(2026-11-05) FAULT: a chapter-6 and a chapter-7 skeleton id renamed, two chapter-7 entries swapped, and a chapter-6
+        entry dropped are each REFUSED naming the milestone; CONTROL: the real skeleton (36 milestones, 3 of chapter 6 and 5 of
+        chapter 7) is accepted. The skeleton's old ids (ch6_sail_dewford, ch7_granite_cave) are refused too: a stale skeleton."""
+        ids = {c: [m["id"] for m in MILESTONES["milestones"] if m["chapter"] == c] for c in (6, 7)}
+        self.assertEqual((len(ids[6]), len(ids[7])), (3, 5))
+        campaign_of(scratch_skeleton(lambda es: None))  # CONTROL: unchanged -> no raise
+
+        def index(es, mid):
+            return next(i for i, e in enumerate(es) if e["id"] == mid)
+
+        with self.assertRaises(ew.Refused) as cm:
+            campaign_of(scratch_skeleton(lambda es: es[index(es, "ch6_dewford")].__setitem__("id", "ch6_sail_dewford")))
+        self.assertIn("ch6_dewford", str(cm.exception))
+        with self.assertRaises(ew.Refused) as cm:
+            campaign_of(scratch_skeleton(lambda es: es[index(es, "ch7_steven")].__setitem__("id", "ch7_granite_cave")))
+        self.assertIn("ch7_steven", str(cm.exception))
+
+        def swap(es):
+            i, j = index(es, "ch7_steven"), index(es, "ch7_brawly")
+            es[i], es[j] = es[j], es[i]
+        with self.assertRaises(ew.Refused):
+            campaign_of(scratch_skeleton(swap))
+        with self.assertRaises(ew.Refused):
+            campaign_of(scratch_skeleton(lambda es: es.pop(index(es, "ch6_old_rod"))))
 
 
 class W4bOrderTests(unittest.TestCase):

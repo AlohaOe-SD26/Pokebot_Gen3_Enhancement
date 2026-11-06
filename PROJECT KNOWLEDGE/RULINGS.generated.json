@@ -1,11 +1,11 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "7ecf1525b8a22c56c6fd51bea5334f69a4ec303a",
+ "source_sha1_lf": "628b709f77b060bac12a370aeb553ff6b605bd11",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 365,
-  "donot_candidates": 32,
+  "sections": 366,
+  "donot_candidates": 33,
   "sections_naming_user_rulings": 53
  },
  "sections": [
@@ -5718,6 +5718,29 @@
      "key": "7738055b",
      "line": 10027,
      "text": "- **Do not reopen:** merging a development pass as a graded claim; a scene-specific menu script."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-11-05-0d6710",
+   "date": "2026-11-05",
+   "line_start": 10029,
+   "line_end": 10038,
+   "title": "2026-11-05 — Chapters 6-7 wired from the cloud note: ONE talk step for STEVEN, the chapter-5 method, the pinned decomp for `--verify` (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-134"
+   ],
+   "donot": [
+    {
+     "key": "861dca18",
+     "line": 10038,
+     "text": "- **Do not reopen:** the draft's four-step STEVEN list (probed against the real `story_step`, not argued); copying the cloud note."
     }
    ],
    "cues": []

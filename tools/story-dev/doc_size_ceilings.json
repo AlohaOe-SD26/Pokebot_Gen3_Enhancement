@@ -48,7 +48,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 68250,
+      "ceiling": 68750,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -79,11 +79,18 @@
           "from": 67950,
           "to": 68250,
           "why": "the Tier 1 review of the chapter-5 stops merge (2026-11-05): the headlines say the 3 of 3 started from saved BADGE-1 chain ends, and queue item 4 says where the live_chain driver is (branch wip/live-chain), its verifier's verdict and that seeds 6201-6206 are NOT yet registered"
+        },
+        {
+          "date": "2026-11-05",
+          "field": "ceiling",
+          "from": 68250,
+          "to": 68750,
+          "why": "chapters 6-7 wired in a worktree (2026-11-05), probe stopped at ch6_briney_house (KI-134): the resume point, queue item 4, the cloud-branch note and the banner carry the new status; the growth is right"
         }
       ]
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 295750,
+      "ceiling": 298200,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -135,6 +142,13 @@
           "from": 295650,
           "to": 295750,
           "why": "the Tier 1 review of the chapter-5 stops merge (2026-11-05): KI-130's risk line says the chain driver that deletes world files is not yet on main"
+        },
+        {
+          "date": "2026-11-05",
+          "field": "ceiling",
+          "from": 295750,
+          "to": 298200,
+          "why": "KI-134 filed (2026-11-05: a goal behind a map's disconnected part ping-pongs, found by the chapters 6-7 probe) and a KI-130 update line; 05 must list open defects (CLAUDE.md section 2)"
         }
       ]
     }

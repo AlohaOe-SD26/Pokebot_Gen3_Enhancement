@@ -15,14 +15,14 @@ Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `bf3cc8ad0960
 | `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf233912` |
 | `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a` |
 | `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb67` |
-| `ai_player/knowledge/world/bosses.json` | `3ef0c4e273c6f7c7` |
-| `ai_player/knowledge/world/campaign.json` | `8b980f653291f315` |
+| `ai_player/knowledge/world/bosses.json` | `3551b535cd896e2b` |
+| `ai_player/knowledge/world/campaign.json` | `e2e7d2f437f9df71` |
 | `ai_player/knowledge/world/maps.json` | `ecc1cec58ee498de` |
 | `ai_player/knowledge/world/trainers.json` | `2f329852a38e1416` |
 
 ## Entries
-- **ch8_sail_slateport** (order 32) area DEWFORD_TOWN, ROUTE109, SLATEPORT_CITY; boss -; party_min 1; types ahead FIGHTING/FIRE/FLYING/GRASS/GROUND/WATER; level band 18-20
-- **ch8_stern** (order 33) area SLATEPORT_CITY, SLATEPORT_CITY_OCEANIC_MUSEUM_1F, SLATEPORT_CITY_OCEANIC_MUSEUM_2F; boss -; party_min 1; types ahead FIGHTING/FIRE/FLYING/GRASS/GROUND/WATER; level band 18-20
+- **ch8_sail_slateport** (order 37) area DEWFORD_TOWN, ROUTE109, SLATEPORT_CITY; boss -; party_min 1; types ahead FIGHTING/FIRE/FLYING/GRASS/GROUND/WATER; level band 18-20
+- **ch8_stern** (order 38) area SLATEPORT_CITY, SLATEPORT_CITY_OCEANIC_MUSEUM_1F, SLATEPORT_CITY_OCEANIC_MUSEUM_2F; boss -; party_min 1; types ahead FIGHTING/FIRE/FLYING/GRASS/GROUND/WATER; level band 18-20
 
 ## Maps and links
 - **DEWFORD_TOWN** (town). Connections: up ROUTE106, right ROUTE107. Warps: DEWFORD_TOWN_HALL, DEWFORD_TOWN_POKEMON_CENTER_1F, DEWFORD_TOWN_GYM, DEWFORD_TOWN_HOUSE1, DEWFORD_TOWN_HOUSE2.
