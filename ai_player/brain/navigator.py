@@ -164,6 +164,7 @@ __all__ = [
     "astar",
     "distances",
     "exit_press",
+    "in_map_walls",
     "is_scene",
     "nav_free",
     "path_cost",

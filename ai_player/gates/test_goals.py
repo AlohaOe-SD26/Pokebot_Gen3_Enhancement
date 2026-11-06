@@ -53,7 +53,7 @@ from ai_player.personality import (  # noqa: E402
     DRIFT_CHANCE, DRIFT_EVERY, DRIFT_STEPS, ERRANDS, PersonalityState, choose_favourite, choose_starter, wild_species,
 )
 from ai_player.skills.story import answer_question  # noqa: E402
-from ai_player.world.memory import MapMemory, TileFact, WorldMemory  # noqa: E402
+from ai_player.world.memory import MapMemory, TileFact, WorldMemory, learn_edges  # noqa: E402
 
 KNOWLEDGE = json.loads((REPO / "ai_player" / "knowledge" / "milestones.json").read_text(encoding="utf-8"))
 #: (build step 5.2) the page PROF. BIRCH's lab scene shows after "go see MAY?" (the `ask` step's own words)
@@ -4125,6 +4125,262 @@ class WayTests(unittest.TestCase):
         self.assertFalse(keeps_going(world, house, "ROUTE103"))
         self.assertTrue(keeps_going(world, house, "LITTLEROOT_TOWN_MAYS_HOUSE_1F"))  # unless that house is the goal
         self.assertTrue(keeps_going(world, road, "ROUTE103"))
+
+
+# ------------------------------------------------------------------------------------------------ KI-134 (2026-11-05)
+#: A tile of a picture (`ki134_map`): '.' floor, '#' a wall, 'D' a door (used pressing up, from the tile below), 'v' a ledge
+#: jumped going down, ' ' a tile never seen.
+KI134_TILES = {".": (False, None, False, "NORMAL"), "#": (True, None, False, "NORMAL"), "D": (True, None, True, "ANIMATED_DOOR"),
+               "v": (False, "down", False, "JUMP_SOUTH")}
+
+
+def ki134_map(world: WorldMemory, key: str, const: str, rows: list[str], left: int = -1, top: int = -1) -> MapMemory:
+    """(KI-134) A visited map drawn as a picture (`KI134_TILES`), its first character at (`left`, `top`): a border of walls
+    drawn round every map, so no walk goes round a part through the unseen tiles the navigator is optimistic about."""
+    memory = MapMemory(key, const, const)
+    for dy, row in enumerate(rows):
+        for dx, char in enumerate(row):
+            if char == " ":
+                continue
+            xy = (left + dx, top + dy)
+            blocked, ledge, door, behavior = KI134_TILES[char]
+            memory.tiles[xy] = TileFact(blocked, False, False, False, ledge, door, door, 3, behavior, 0, xy)
+    memory.visits[next(xy for xy in sorted(memory.tiles) if memory.passable(xy))] = 1
+    world.maps[key] = memory
+    return memory
+
+
+def ki134_link(world: WorldMemory, key: str, tile: tuple[int, int], to: str, arrival) -> None:
+    world.warps[f"{key}|{tile[0]},{tile[1]}"] = {"to": to, "arrival": list(arrival) if arrival else None, "direction": "up",
+                                                  "uses": 1, "by": "ai", "inferred": False}
+
+
+#: ROUTE 104 in miniature (`ki134_world`): a north part (rows 0-4: the woods' north door N (1, 2), the flower shop's door F
+#: (8, 2)) and a south part (rows 6-11: the woods' south door S (1, 7), the cottage's door G (5, 9)), row 5 between them
+KI134_ROUTE = ["############", "#..........#", "#..........#", "#.D......D.#", "#..........#", "#..........#",
+               "############", "#..........#", "#.D........#", "#..........#", "#.....D....#", "#..........#", "#..........#",
+               "############"]
+KI134_KEYS = {"route": "0:19", "woods": "24:11", "cottage": "17:0", "shop": "13:0", "city": "0:3", "gym": "11:3"}
+
+
+def ki134_world(between: str = "############", city: bool = False) -> WorldMemory:
+    """(KI-134) ROUTE 104 (`KI134_ROUTE`, its row 5 drawn `between`) and the woods (one part: the north door WN (1, 0) lands
+    in ROUTE 104's north part, the south door WS (3, 0) in its south part; WN first in the warp graph, as in the probe's
+    memory), the cottage and the flower shop; with `city`, RUSTBORO above ROUTE 104 (a road down, crossed once from
+    (2, 3) to (2, 0): the edges learned as a crossing teaches them) and its GYM's door (6, 1)."""
+    world = WorldMemory()
+    keys = KI134_KEYS
+    rows = list(KI134_ROUTE)
+    rows[6] = between
+    if city:  # what ROUTE 104 shows of RUSTBORO past its top edge (its rows 2 and 3, at y -2 and -1), the top row open to it
+        rows = ["############", "#..........#", "#..........#"] + rows[1:]
+    route = ki134_map(world, keys["route"], "ROUTE104", rows, top=-3 if city else -1)
+    ki134_map(world, keys["woods"], "PETALBURG_WOODS", ["#######", "#.D.D.#", "#.....#", "#######"])
+    ki134_map(world, keys["cottage"], "ROUTE104_MR_BRINEYS_HOUSE", ["#####", "#...#", "#####"])
+    ki134_map(world, keys["shop"], "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", ["#####", "#...#", "#####"])
+    for tile, to, arrival in (((1, 2), "woods", (1, 1)), ((8, 2), "shop", (2, 0)), ((1, 7), "woods", (3, 1)),
+                              ((5, 9), "cottage", (1, 0))):
+        ki134_link(world, keys["route"], tile, keys[to], arrival)
+    ki134_link(world, keys["woods"], (1, 0), keys["route"], (1, 3))
+    ki134_link(world, keys["woods"], (3, 0), keys["route"], (1, 8))
+    if city:
+        rustboro = ki134_map(world, keys["city"], "RUSTBORO_CITY",
+                             ["############", "#..........#", "#......D...#", "#..........#", "#..........#",
+                              "#..........#", "#..........#"])  # rows 0-3 its own, rows 4-5 ROUTE 104's seen past its edge
+        ki134_map(world, keys["gym"], "RUSTBORO_CITY_GYM", ["#####", "#...#", "#####"])
+        ki134_link(world, keys["city"], (6, 1), keys["gym"], (2, 0))
+        world.connections.append({"source": keys["city"], "target": keys["route"], "direction": "down", "from": [2, 3],
+                                  "arrival": [2, 0], "offset": [0, -4], "by": "ai", "frame": 1})
+        learn_edges(rustboro, route, "down", (2, 3), (2, 0))
+    return world
+
+
+def ki134_goal(const: str):
+    return lambda memory, key: memory is not None and memory.const == const
+
+
+def ki134_hops(route) -> list:
+    """A route as (kind, the warp's tile or the road's side) per link."""
+    return None if route is None else [(kind, tuple(link["tile"]) if kind == "warp" else link["direction"])
+                                       for kind, link in route]
+
+
+class KI134RegionTests(unittest.TestCase):
+    """(KI-134, 2026-11-05: the chapters 6-7 probe, ledger #96, 0 of 3 runs reached MR. BRINEY's cottage) THE ROUTE IS
+    FROM WHERE THE PLAYER STANDS, over the parts of maps a walk gets to (`brain/explore.py` route_to). A map in two parts is
+    two places: from the woods the route to the cottage is the SOUTH door, and from ROUTE 104's north part it is out
+    through the woods and back in. The navigator's own reach decides what is one part: a ledge one way, an unseen tile
+    optimistic. A connected map routes exactly as the search by maps did."""
+
+    N, F, S, G, WN, WS = (1, 2), (8, 2), (1, 7), (5, 9), (1, 0), (3, 0)
+
+    def route(self, world, key: str, const: str, at=None, walls=frozenset()):
+        from ai_player.brain.explore import route_to
+        return ki134_hops(route_to(world, KI134_KEYS[key], ki134_goal(const), at, walls)
+                          if at is not None else route_to(world, KI134_KEYS[key], ki134_goal(const)))
+
+    def chosen(self, world, key: str, at, const: str, scene_walls=None):
+        """What the travel intent's explorer would go to first (the jitter off: its best place), standing on `at`."""
+        from ai_player.brain.explore import candidates, weights_for
+        world._last.key, world._last.xy = KI134_KEYS[key], at  # noqa: SLF001 - test side: where the player stands
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        if scene_walls:
+            nav.scene_walls = {KI134_KEYS[key]: set(scene_walls)}
+        seen = look(const=world.maps[KI134_KEYS[key]].const)
+        seen = replace(seen, player=replace(seen.player, x=at[0], y=at[1]))
+        found = candidates(nav, seen, weights_for("Story"), ki134_goal(const), jitter_on=False)
+        best = max(found, key=lambda t: (t.score, t.kind))
+        return best.kind, best.tile, best.exit
+
+    def test_f1_from_the_woods_the_route_to_the_cottage_is_the_south_door(self):
+        """FAULT (the probe's 47 ping-pongs on `24:11|14,5`): searched by maps, the first link from the woods into ROUTE 104
+        was the north door it had just come through."""
+        world = ki134_world()
+        self.assertEqual(self.route(world, "woods", "ROUTE104_MR_BRINEYS_HOUSE"), [("warp", self.WN), ("warp", self.G)])  # by maps
+        self.assertEqual(self.route(world, "woods", "ROUTE104_MR_BRINEYS_HOUSE", (1, 1)), [("warp", self.WS), ("warp", self.G)])
+        self.assertEqual(self.chosen(world, "woods", (1, 1), "ROUTE104_MR_BRINEYS_HOUSE"), ("route", (3, 1), self.WS))
+
+    def test_f2_from_the_north_part_the_route_goes_out_through_the_woods_and_back_in(self):
+        """FAULT (the probe's C1 and C2: on ROUTE 104's north strip the route was the cottage's own door, which no walk there
+        gets to; the explorer then walked off the map): the way is the woods' north door, then the south door."""
+        world = ki134_world()
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE"), [("warp", self.G)])  # by maps
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)),
+                         [("warp", self.N), ("warp", self.WS), ("warp", self.G)])
+        self.assertEqual(self.chosen(world, "route", (3, 1), "ROUTE104_MR_BRINEYS_HOUSE"), ("route", (1, 3), self.N))
+        from ai_player.brain.goals import travel_intent  # the probe's path: the go goal's travel intent
+        world._last.key, world._last.xy = KI134_KEYS["route"], (3, 1)  # noqa: SLF001
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        seen = look(const="ROUTE104")
+        target = travel_intent("ROUTE104_MR_BRINEYS_HOUSE", "Story", 9000, lambda s: False).choose(
+            nav, replace(seen, player=replace(seen.player, x=3, y=1)))
+        self.assertEqual((target.kind, target.exit), ("route", self.N))
+        # CONTROL: in the south part the cottage's door is the way, as before
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 10)), [("warp", self.G)])
+        self.assertEqual(self.chosen(world, "route", (3, 10), "ROUTE104_MR_BRINEYS_HOUSE"), ("route", (5, 10), self.G))
+
+    def test_c1_a_connected_map_routes_exactly_as_the_search_by_maps(self):
+        """CONTROL: with row 5 open, ROUTE 104 is one part, and from EVERY tile the route to every map is the search by
+        maps', link for link (the warp graph's order kept)."""
+        for city in (False, True):
+            world = ki134_world("#..........#", city=city)
+            for key in ("route", "woods") + (("city",) if city else ()):
+                memory = world.maps[KI134_KEYS[key]]
+                tiles = [xy for xy in memory.tiles if memory.passable(xy) and not memory.outside(xy)]
+                for const in ("ROUTE104_MR_BRINEYS_HOUSE", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", "PETALBURG_WOODS",
+                              "RUSTBORO_CITY_GYM", "ROUTE104"):
+                    by_maps = self.route(world, key, const)
+                    for xy in tiles:
+                        self.assertEqual(self.route(world, key, const, xy), by_maps, (city, key, const, xy))
+
+    def test_l1_a_ledge_is_one_way(self):
+        """A LEDGE row between the parts: jumped going down, so the north part gets to the cottage's door; never climbed,
+        so from the south part the flower shop (north) is out through the woods and in by the north door, and with no
+        woods known there is no way at all (by maps: the shop's own door)."""
+        world = ki134_world("#vvvvvvvvvv#")
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)), [("warp", self.G)])  # down: a way
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP"), [("warp", self.F)])  # by maps
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", (3, 10)),
+                         [("warp", self.S), ("warp", self.WN), ("warp", self.F)])
+        del world.warps["24:11|1,0"], world.warps["24:11|3,0"]
+        self.assertIsNone(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", (3, 10)))
+
+    def test_u1_an_unseen_gap_is_walked_through_as_the_navigator_plans_until_it_is_seen(self):
+        """STATED BEHAVIOUR: tiles never seen between the parts are optimistic, exactly as the navigator plans a walk (cost
+        3, maybe floor): the parts count as one and the cottage's door is the way. Once the gap is seen to be wall, the
+        route goes round through the woods (the walk there shows it: the next decision routes round)."""
+        world = ki134_world("#####  #####")
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)), [("warp", self.G)])
+        for x in (4, 5):
+            world.maps[KI134_KEYS["route"]].tiles[(x, 5)] = TileFact(True, False, False, False, None, False, False, 3,
+                                                                     "NORMAL", 0, (x, 4))
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)),
+                         [("warp", self.N), ("warp", self.WS), ("warp", self.G)])
+
+    def test_k1_a_road_lands_in_the_part_its_edge_tiles_step_into(self):
+        """CONNECTIONS: RUSTBORO's road down lands on ROUTE 104's top row, its NORTH part (the edge tiles walked across,
+        moved by the crossing's offset), so the way on to the cottage is through the woods (by maps: straight to the
+        cottage's door). Known from its far side, the road up is crossed only from the north part, and lands on
+        RUSTBORO's bottom row (the offset taken back): from the south part the GYM is out through the woods first."""
+        world = ki134_world(city=True)
+        self.assertEqual(self.route(world, "city", "ROUTE104_MR_BRINEYS_HOUSE"), [("connection", "down"), ("warp", self.G)])
+        self.assertEqual(self.route(world, "city", "ROUTE104_MR_BRINEYS_HOUSE", (5, 2)),
+                         [("connection", "down"), ("warp", self.N), ("warp", self.WS), ("warp", self.G)])
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY_GYM", (3, 1)), [("connection", "up"), ("warp", (6, 1))])
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY_GYM"), [("connection", "up"), ("warp", (6, 1))])  # by maps
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY_GYM", (3, 10)),
+                         [("warp", self.S), ("warp", self.WN), ("connection", "up"), ("warp", (6, 1))])
+
+    def test_k2_two_parts_joined_only_past_an_edge_are_two_parts(self):
+        """The tiles seen past a crossed edge are the next map's (`in_map_walls`, KI-129 Part A): ROUTE 104's top row split
+        by a wall, RUSTBORO's tiles above joining the halves, the east half's door is no way from the west half but up the
+        road and down again (the probe's C1 and C2 walked off the map's top edge toward the far part this way)."""
+        world = ki134_world(city=True)
+        route, rustboro = world.maps[KI134_KEYS["route"]], world.maps[KI134_KEYS["city"]]
+        for y in (0, 1, 2, 3, 4):  # a wall down x = 4 of the north part; the shop's door (8, 2) is in its east half
+            route.tiles[(4, y)] = TileFact(True, False, False, False, None, False, False, 3, "NORMAL", 0, (4, y))
+        for y in (4, 5):  # the same wall, as RUSTBORO shows ROUTE 104's top rows past its own edge
+            rustboro.tiles[(4, y)] = TileFact(True, False, False, False, None, False, False, 3, "NORMAL", 0, (4, y))
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP"), [("warp", self.F)])  # by maps
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", (1, 1)),
+                         [("connection", "up"), ("connection", "down"), ("warp", self.F)])
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", (7, 1)), [("warp", self.F)])
+
+    def test_w1_a_tile_a_scene_sent_the_player_back_from_cuts_the_parts_as_the_walk_does(self):
+        """The route goes round what the navigator's walk goes round (`Navigator.walls` less the people): a scene wall on
+        the one gap of row 5 makes two parts of ROUTE 104, as `cut_off` counts them."""
+        world = ki134_world("#####.######")
+        self.assertEqual(self.chosen(world, "route", (3, 1), "ROUTE104_MR_BRINEYS_HOUSE"), ("route", (5, 10), self.G))
+        self.assertEqual(self.chosen(world, "route", (3, 1), "ROUTE104_MR_BRINEYS_HOUSE", scene_walls={(4, 5)}),
+                         ("route", (1, 3), self.N))
+
+    def test_p1_a_pocket_above_a_ledge_is_a_part_of_its_own(self):
+        """An arrival on a WALKABLE tile is searched though every step from it lands in a part already searched: a one-tile
+        pocket above a ledge (the jump down its only step) stands before a door the part below never gets to."""
+        world = WorldMemory()
+        ki134_map(world, "0:40", "ROUTE200", ["######", "##D###", "##.###", "#.v..#", "#....#", "#....#", "######"])
+        ki134_map(world, "0:41", "ROUTE201", ["#######", "#.D.D.#", "#.....#", "#######"])
+        ki134_map(world, "0:42", "SECRET_ROOM", ["#####", "#...#", "#####"])
+        ki134_link(world, "0:41", (1, 0), "0:40", (2, 4))  # first: the part below the ledge
+        ki134_link(world, "0:41", (3, 0), "0:40", (1, 1))  # then: the pocket, above the ledge (1, 2)
+        ki134_link(world, "0:40", (1, 0), "0:42", (2, 0))  # the pocket's door
+        from ai_player.brain.explore import route_to
+        self.assertEqual(ki134_hops(route_to(world, "0:41", ki134_goal("SECRET_ROOM"), (1, 1))), [("warp", (3, 0)), ("warp", (1, 0))])
+
+    def test_e1_a_goal_on_no_map_it_knows_works_out_no_reach(self):
+        """COST: a way through parts of maps is a way through maps, so when the search by maps knows none (a goal on no map
+        it knows: the commonest walk of all) no part is worked out; with a goal it knows, they are."""
+        from ai_player.brain import explore
+        world = ki134_world()
+        calls = []
+        real = explore.distances
+        with mock.patch.object(explore, "distances", lambda *args, **kw: calls.append(args[1]) or real(*args, **kw)):
+            self.assertIsNone(explore.route_to(world, KI134_KEYS["route"], ki134_goal("DEWFORD_TOWN"), (3, 1)))
+            self.assertEqual(calls, [])
+            explore.route_to(world, KI134_KEYS["route"], ki134_goal("ROUTE104_MR_BRINEYS_HOUSE"), (3, 1))
+            self.assertTrue(calls)
+
+    def test_e2_a_part_is_searched_once_whatever_tile_or_door_the_walk_comes_back_in_by(self):
+        """COST: an arrival inside a part already searched, or ON a door whose steps all lead into one (a door is never
+        walked through, so it is in no reach), is not searched again: one reach per part, not one per door of a town."""
+        from ai_player.brain import explore
+        real = explore.distances
+        for arrival in ((1, 3), (1, 2)):  # back by the floor below the north door, then ON that door, as the eyes record it
+            world = ki134_world()
+            world.warps["24:11|1,0"]["arrival"] = list(arrival)
+            calls = []
+            with mock.patch.object(explore, "distances", lambda *args, **kw: calls.append((args[0].key, args[1])) or real(*args, **kw)):
+                explore.route_to(world, KI134_KEYS["route"], ki134_goal("ROUTE104_MR_BRINEYS_HOUSE"), (3, 1))
+            self.assertEqual(calls, [("0:19", (3, 1)), ("24:11", (1, 1)), ("13:0", (2, 0)), ("0:19", (1, 8))], arrival)
+
+    def test_n1_a_door_with_no_arrival_recorded_is_a_way_to_the_goal_never_a_way_on(self):
+        """A warp whose arrival is not recorded is still the way INTO the map it leads to, but no part of that map is known
+        to be reached by it, so no route goes on from it (by maps: on to the cottage as if the arrival did not matter)."""
+        world = ki134_world()
+        world.warps["0:19|1,2"]["arrival"] = None
+        self.assertEqual(self.route(world, "route", "PETALBURG_WOODS", (3, 1)), [("warp", self.N)])
+        self.assertIsNone(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)))
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE"), [("warp", self.G)])
 
 
 class BossLevelTests(unittest.TestCase):
