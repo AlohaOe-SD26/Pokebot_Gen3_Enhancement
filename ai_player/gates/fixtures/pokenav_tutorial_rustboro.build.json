@@ -1,0 +1,12 @@
+{
+ "fixture": "pokenav_tutorial_rustboro.ss1",
+ "md5": "343860d7df3cf52b5ec387d88a1e9369",
+ "source": "the chapter-5 development probe (ledger #85, batch probe, run probe-C1L5): the launcher's end_state.ss1 of that run (frame 856172, L5.THIS_RUN PASS), copied unchanged by the chapter-5 stops round (s53/ch5stops/menu/c1_end_state.ss1) and again here",
+ "played_by": "the AI (the chapter-5 probe's code); nothing pressed by the test side",
+ "at": {
+  "frame": 856172,
+  "map": "RUSTBORO_CITY",
+  "screen": "RustboroCity_EventScript_MatchCallTutorial: the forced START menu on screen (cursor on POKeDEX), the DEVON employee's words 'Please give our PRESIDENT a call.' last; VAR_RUSTBORO_CITY_STATE 6"
+ },
+ "measured_2026_11_06": "s53/ch6stops2/pokenav_proto.py on this state, the worktree's eyes driving (presses chosen by what they report) and a second eyes with the chapter-6 call branch patched out reading every frame: 1766 frames, 0 frames where the two differ, 0 frames with ExecuteMatchCall, 20 presses (MR. STONE's call: 7 pages on text printer 1, then 'task Task_Pokenav (A or B: the call has ended)'), VAR_RUSTBORO_CITY_STATE 6 -> 7"
+}

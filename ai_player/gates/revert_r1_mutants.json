@@ -9978,6 +9978,46 @@
     "test_eyes:LiveCallEndTests"
    ],
    "origin": "chapter 6 stops, 2026-11-05 (s53/ch6stops): the HOST's reads of the end of a call in the field (host/eyes.py _screen's call of _match_call_wait, _text's call window, _match_call_wait's printer and sound, _call_window's state); predictions written and hashed (s53/ch6stops/mutant_predictions.txt) BEFORE the first run; the rules the AI decides by are G503-G508 of revert_step5.py (addendum 3: the call-site census)"
+  },
+  {
+   "name": "CH6H9",
+   "what": "the eyes report the call's wait on EVERY frame a call in the field runs (a press would mash through its pages, its slide-out and whatever scene follows)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            reason = self._guarded(\"call wait\", problems, lambda: self._match_call_wait(call))\n",
+     "            reason = \"task ExecuteMatchCall (MUTANT CH6H9: any frame of a call)\"\n"
+    ]
+   ],
+   "expected": [
+    "LiveCallEndTests.test_dads_call_on_the_first_sail",
+    "LiveCallEndTests.test_a_trainers_match_call_in_the_woods",
+    "LiveCallEndTests.test_control_the_sail_after_the_call_is_a_scene_that_really_locks_the_controls"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, the second builder, 2026-11-06 (s53/ch6stops2): the round's two new CONTROLS on the real game (the sail after DAD's call: a scene that really locks the controls; the chapter-5 POKeNAV call read exactly as before); predictions written and hashed (s53/ch6stops2/mutant_predictions_r2.txt, sha256 e9bac304...) BEFORE the first run"
+  },
+  {
+   "name": "CH6H10",
+   "what": "the POKeNAV's own call (Task_Pokenav, MR. STONE's in the chapter-5 tutorial) is taken for a call in the field at its last page (tState 5 on window 1, the window the POKeNAV call prints on)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        call = task_data.get(MATCH_CALL_TASK)\n",
+     "        call = task_data.get(MATCH_CALL_TASK) or (bytes([5, 0, 0, 0, 1, 0]) + bytes(26) if \"Task_Pokenav\" in task_data else None)  # MUTANT CH6H10\n"
+    ]
+   ],
+   "expected": [
+    "LiveCallEndTests.test_control_the_chapter5_pokenav_call_is_read_exactly_as_before"
+   ],
+   "suites": [
+    "test_eyes:CallEndHostTests",
+    "test_eyes:LiveCallEndTests"
+   ],
+   "origin": "chapter 6 stops, the second builder, 2026-11-06 (s53/ch6stops2): the round's two new CONTROLS on the real game (the sail after DAD's call: a scene that really locks the controls; the chapter-5 POKeNAV call read exactly as before); predictions written and hashed (s53/ch6stops2/mutant_predictions_r2.txt, sha256 e9bac304...) BEFORE the first run"
   }
  ]
 }

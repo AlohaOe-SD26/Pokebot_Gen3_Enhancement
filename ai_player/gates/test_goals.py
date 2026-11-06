@@ -4383,6 +4383,219 @@ class KI134RegionTests(unittest.TestCase):
         self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE"), [("warp", self.G)])
 
 
+def ki134_towns(between: str = "############") -> WorldMemory:
+    """(KI-134 V3) `ki134_world(between, city=True)` with PETALBURG beside ROUTE 104's SOUTH part (a door at (8, 9) there,
+    the way the real PETALBURG touches only the south part) and a POKéMON CENTER been in in each town: RUSTBORO's (door
+    (2, 1)), PETALBURG's (door (3, 0)). Keys: PETALBURG 0:0, its centre 1:0, RUSTBORO's centre 1:1."""
+    world = ki134_world(between, city=True)
+    door = lambda xy: TileFact(True, False, False, False, None, True, True, 3, "ANIMATED_DOOR", 0, xy)  # noqa: E731
+    world.maps[KI134_KEYS["route"]].tiles[(8, 9)] = door((8, 9))
+    world.maps[KI134_KEYS["city"]].tiles[(2, 1)] = door((2, 1))
+    ki134_map(world, "0:0", "PETALBURG_CITY", ["#######", "#.D.D.#", "#.....#", "#######"])
+    ki134_map(world, "1:0", "PETALBURG_CITY_POKEMON_CENTER_1F", ["#####", "#...#", "#####"])
+    ki134_map(world, "1:1", "RUSTBORO_CITY_POKEMON_CENTER_1F", ["#####", "#...#", "#####"])
+    ki134_link(world, KI134_KEYS["route"], (8, 9), "0:0", (1, 1))
+    ki134_link(world, "0:0", (1, 0), KI134_KEYS["route"], (8, 10))
+    ki134_link(world, "0:0", (3, 0), "1:0", (1, 0))
+    ki134_link(world, KI134_KEYS["city"], (2, 1), "1:1", (1, 0))
+    return world
+
+
+class KI134FollowUpTests(unittest.TestCase):
+    """(the KI-134 verifier's MINOR findings, 2026-11-06; its report s53/ki134/verify_report.md) K134-V1: every map's walls
+    go into the route, so decisions on two maps agree; K134-V2: a road no walk in the part can cross is no way even TO the
+    map it leads to (its mutant V10 survived); K134-V3: places are ranked by the links of the route from where the player
+    stands (`goals.world_distance`); K134-V4: the guards its mutants V5, V6, V11, V13 and V16 showed untested; the NIT V8:
+    the landings cache is keyed by the part, not by `id()`. Each test carries its FAULT half (what the code did before, or
+    what the guard's mutant does) and a CONTROL."""
+
+    N, F, S, G, WN, WS = KI134RegionTests.N, KI134RegionTests.F, KI134RegionTests.S, KI134RegionTests.G, \
+        KI134RegionTests.WN, KI134RegionTests.WS
+    COTTAGE = "ROUTE104_MR_BRINEYS_HOUSE"
+
+    @staticmethod
+    def nav(world) -> Navigator:
+        return Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+
+    @staticmethod
+    def decide(world, nav, key: str, at, const: str):
+        """What the travel intent's explorer would go to first (jitter off), standing on `at` of map `key`, with `nav`."""
+        from ai_player.brain.explore import candidates, weights_for
+        world._last.key, world._last.xy = KI134_KEYS[key], at  # noqa: SLF001 - test side: where the player stands
+        seen = look(const=world.maps[KI134_KEYS[key]].const)
+        seen = replace(seen, player=replace(seen.player, x=at[0], y=at[1]))
+        found = candidates(nav, seen, weights_for("Story"), ki134_goal(const), jitter_on=False)
+        best = max(found, key=lambda t: (t.score, t.kind))
+        return best.kind, best.tile, best.exit
+
+    @staticmethod
+    def route(world, key: str, const: str, at=None, walls=frozenset()):
+        from ai_player.brain.explore import route_to
+        source = KI134_KEYS.get(key, key)
+        return ki134_hops(route_to(world, source, ki134_goal(const), at, walls) if at is not None
+                          else route_to(world, source, ki134_goal(const)))
+
+    def test_v1_decisions_on_two_maps_see_the_same_walls(self):
+        """K134-V1: a tile a scene sent the player back from on ROUTE 104 (the one gap of row 5) is a wall of ROUTE 104 for
+        the decision in the woods too: from the north part the way is the woods' north door, and from the woods the SOUTH
+        door, not back out of the north one. FAULT half (the verifier's flipflop.py): with only the source's walls, the
+        woods' route was [WN, G], back out where the player came in. CONTROL: no wall, ROUTE 104 is one part, and both
+        decisions take the short way (the cottage's door; the woods' north door, then the gap)."""
+        world = ki134_world("#####.######")
+        nav = self.nav(world)
+        nav.scene_walls = {KI134_KEYS["route"]: {(4, 5)}}
+        self.assertEqual(self.decide(world, nav, "route", (3, 1), self.COTTAGE), ("route", (1, 3), self.N))
+        self.assertEqual(self.decide(world, nav, "woods", (1, 1), self.COTTAGE), ("route", (3, 1), self.WS))
+        self.assertEqual(self.route(world, "woods", self.COTTAGE, (1, 1), frozenset()), [("warp", self.WN), ("warp", self.G)])  # FAULT
+        control = ki134_world("#####.######")
+        nav = self.nav(control)
+        self.assertEqual(self.decide(control, nav, "route", (3, 1), self.COTTAGE), ("route", (5, 10), self.G))
+        self.assertEqual(self.decide(control, nav, "woods", (1, 1), self.COTTAGE), ("route", (1, 1), self.WN))
+
+    def test_v2_a_road_no_walk_here_crosses_is_no_way_even_to_the_map_it_leads_to(self):
+        """K134-V2 (its mutant V10 survived every test): from ROUTE 104's SOUTH part, the goal RUSTBORO_CITY itself (the map
+        the road leads to) is out through the woods and in again by the north door, then up the road; the road up is no
+        way from the south part even though it leads straight to the goal. FAULT half: by maps, the road up."""
+        world = ki134_world(city=True)
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY", (3, 10)),
+                         [("warp", self.S), ("warp", self.WN), ("connection", "up")])
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY"), [("connection", "up")])  # FAULT half: by maps
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY", (3, 1)), [("connection", "up")])  # CONTROL: north part
+
+    def test_v3_the_nearest_centre_is_counted_from_where_the_player_stands(self):
+        """K134-V3 (the verifier's rank_check.py on probe-C1's chapter-5 memory): on ROUTE 104's NORTH part the nearest
+        POKéMON CENTER is RUSTBORO's (up the road, then its door: 2 links), not PETALBURG's (out through the woods, back in
+        by the south door, then PETALBURG's road and door: 4). FAULT half: counted by maps (no tile known: the rule before),
+        ROUTE 104 touches both towns, the two tie, and the tie goes to PETALBURG by name. CONTROL: in the SOUTH part,
+        PETALBURG's is the nearest, as before."""
+        from ai_player.brain.goals import part_hops, world_distance
+        world = ki134_towns()
+        world._last.key, world._last.xy = KI134_KEYS["route"], (3, 1)  # noqa: SLF001 - the north part
+        self.assertEqual((world_distance(world, KI134_KEYS["city"]), world_distance(world, "0:0")), (1, 3))
+        self.assertEqual((world_distance(world, "1:1"), world_distance(world, "1:0")), (2, 4))
+        self.assertEqual((world_distance(world, KI134_KEYS["route"]), world_distance(world, KI134_KEYS["woods"])), (0, 1))
+        self.assertEqual(manager("Story").heal_place(world)[0], "RUSTBORO_CITY_POKEMON_CENTER_1F")
+        world._last.xy = (3, 10)  # noqa: SLF001 - CONTROL: the south part, the same memory (the hops worked out again)
+        self.assertEqual((world_distance(world, KI134_KEYS["city"]), world_distance(world, "0:0")), (3, 1))
+        self.assertEqual(manager("Story").heal_place(world)[0], "PETALBURG_CITY_POKEMON_CENTER_1F")
+        world._last.xy = None  # noqa: SLF001 - FAULT half: by maps
+        self.assertIsNone(part_hops(world))
+        self.assertEqual((world_distance(world, KI134_KEYS["city"]), world_distance(world, "0:0")), (1, 1))
+        self.assertEqual(manager("Story").heal_place(world)[0], "PETALBURG_CITY_POKEMON_CENTER_1F")
+        # a map no walk from here is known to get to counts by maps, as before: the woods' south door with no arrival
+        world._last.xy = (3, 1)  # noqa: SLF001
+        world.warps["24:11|3,0"]["arrival"] = None
+        self.assertNotIn("0:0", part_hops(world))
+        self.assertEqual(world_distance(world, "0:0"), 1)
+        # the two centres only SEEN as doors (`GoalManager.memory.landmarks`), never been in: the same ranking by their towns
+        world = ki134_towns()
+        del world.warps["0:0|3,0"], world.warps[f"{KI134_KEYS['city']}|2,1"], world.maps["1:0"], world.maps["1:1"]
+        for at, nearest in (((3, 1), "RUSTBORO_CITY_POKEMON_CENTER_1F"), ((3, 10), "PETALBURG_CITY_POKEMON_CENTER_1F"),
+                            (None, "PETALBURG_CITY_POKEMON_CENTER_1F")):  # None: FAULT half, by maps (the tie, by name)
+            world._last.key, world._last.xy = KI134_KEYS["route"], at  # noqa: SLF001
+            mgr = manager("Story")
+            mgr.memory.landmarks[(KI134_KEYS["city"], (2, 1))] = "pokemon_center"
+            mgr.memory.landmarks[("0:0", (3, 0))] = "pokemon_center"
+            self.assertEqual(mgr.heal_place(world)[0], nearest, at)
+            self.assertIsNotNone(mgr.heal_place(world)[2], at)  # a door SEEN: the place is that door's tile
+
+    def test_v3b_what_stands_on_a_map_counts_for_the_distance_and_people_walk_on(self):
+        """K134-V3, the walls it ranks round (`explore.standing_walls`, as the route does): ROUTE 104 with ONE gap in row 5
+        is one part, so from the north part PETALBURG is one link (its door, through the gap), as near as RUSTBORO, and the
+        tie goes to PETALBURG by name. A THING standing in the gap (an item ball, a rock: it never moves) makes ROUTE 104 two
+        parts again: PETALBURG is three links, and RUSTBORO's centre is the nearest. A PERSON standing there walks on: one
+        link, as with the gap open."""
+        from ai_player.brain.goals import world_distance
+        for kind, things, people, expected, nearest in (
+                ("open", set(), set(), 1, "PETALBURG_CITY_POKEMON_CENTER_1F"),
+                ("thing", {(4, 5)}, set(), 3, "RUSTBORO_CITY_POKEMON_CENTER_1F"),
+                ("person", {(4, 5)}, {(4, 5)}, 1, "PETALBURG_CITY_POKEMON_CENTER_1F")):
+            world = ki134_towns("#####.######")
+            memory = world.maps[KI134_KEYS["route"]]
+            memory.objects_now, memory.people_now = frozenset(things), frozenset(people)
+            world._last.key, world._last.xy = KI134_KEYS["route"], (3, 1)  # noqa: SLF001
+            self.assertEqual((world_distance(world, KI134_KEYS["city"]), world_distance(world, "0:0")), (1, expected), kind)
+            self.assertEqual(manager("Story").heal_place(world)[0], nearest, kind)
+
+    def test_v4a_a_maps_walls_count_on_that_map_only(self):
+        """K134-V4 (its mutant V5: the source's walls on every map): a wall of the WOODS at (4, 5) is no wall of ROUTE 104,
+        whose one gap is at (4, 5): from the woods the way to the cottage is the north door and the gap. FAULT half: the
+        same tile given as ROUTE 104's cuts it in two, and the way is the south door."""
+        world = ki134_world("#####.######")
+        self.assertEqual(self.route(world, "woods", self.COTTAGE, (1, 1), frozenset({(4, 5)})), [("warp", self.WN), ("warp", self.G)])
+        self.assertEqual(self.route(world, "woods", self.COTTAGE, (1, 1), {KI134_KEYS["woods"]: frozenset({(4, 5)})}),
+                         [("warp", self.WN), ("warp", self.G)])
+        self.assertEqual(self.route(world, "woods", self.COTTAGE, (1, 1), {KI134_KEYS["route"]: frozenset({(4, 5)})}),
+                         [("warp", self.WS), ("warp", self.G)])  # FAULT half
+
+    def test_v4b_a_road_is_crossed_round_the_walls_of_its_map(self):
+        """K134-V4 (its mutant V6: a crossing ignores the walls): with every tile of the road row past RUSTBORO's bottom
+        edge a wall (someone standing on each, as the screen shows them past the edge), the road down is no way and no route
+        to the cottage is known. CONTROL: no wall, down the road, through the woods, to the cottage."""
+        world = ki134_world(city=True)
+        row = frozenset((x, 4) for x in range(10))
+        self.assertIsNone(self.route(world, "city", self.COTTAGE, (5, 2), row))
+        self.assertEqual(self.route(world, "city", self.COTTAGE, (5, 2), frozenset()),
+                         [("connection", "down"), ("warp", self.N), ("warp", self.WS), ("warp", self.G)])
+
+    def test_v4c_people_walk_on_and_things_do_not(self):
+        """K134-V4 (its mutant V11: the people passed as walls): STATED RULE, people walk on. A PERSON in the one gap of row 5
+        is no wall of the route (`map_walls`): from the north part it is the cottage's door, on this map and seen from the
+        woods alike; a THING standing there (an item ball, a rock: never moves) cuts ROUTE 104 in two. (The explorer's own
+        reach still walks round the person NOW: the walk itself goes round whoever stands in the way.)"""
+        from ai_player.brain.explore import map_walls, route_to
+        for kind, people, expected in (("person", True, [("warp", self.G)]),
+                                       ("thing", False, [("warp", self.N), ("warp", self.WS), ("warp", self.G)])):
+            world = ki134_world("#####.######")
+            memory = world.maps[KI134_KEYS["route"]]
+            memory.objects_now = frozenset({(4, 5)})
+            memory.people_now = frozenset({(4, 5)}) if people else frozenset()
+            nav = self.nav(world)
+            walls = map_walls(nav, memory, nav.walls(memory, (3, 1)))
+            self.assertEqual(ki134_hops(route_to(world, memory.key, ki134_goal(self.COTTAGE), (3, 1), walls)), expected, kind)
+            # seen from the woods (ROUTE 104 another map): the same answer (`standing_walls`)
+            woods = world.maps[KI134_KEYS["woods"]]
+            walls = map_walls(nav, woods, nav.walls(woods, (1, 1)))
+            self.assertEqual(ki134_hops(route_to(world, woods.key, ki134_goal(self.COTTAGE), (1, 1), walls))[0],
+                             ("warp", self.WN) if people else ("warp", self.WS), kind)
+
+    def test_v4d_a_door_is_used_from_the_side_its_look_asks_for(self):
+        """K134-V4 (its mutant V13: a warp a way on when ANY neighbour is in the reach): a door used pressing UP, whose tile
+        below is a wall, is no way from a part that reaches only its sides and the tile above. CONTROL: the tile below
+        walkable, the door is the way. By maps it is the way either way."""
+        for below, expected in (("#", None), (".", [("warp", (1, 1))])):
+            world = WorldMemory()
+            ki134_map(world, "0:50", "ROUTE300", ["#####", "#...#", "#.D.#", f"#.{below}.#", "#####"])
+            ki134_map(world, "0:51", "ROOM300", ["#####", "#...#", "#####"])
+            ki134_link(world, "0:50", (1, 1), "0:51", (1, 0))
+            self.assertEqual(self.route(world, "0:50", "ROOM300", (0, 0)), expected, below)
+            self.assertEqual(self.route(world, "0:50", "ROOM300"), [("warp", (1, 1))], below)
+
+    def test_v4e_a_connection_with_no_offset_is_no_way_on(self):
+        """K134-V4 (its mutant V16: the offset-less guard dropped; live it would raise on `int(None)`): a road crossed with no
+        offset recorded lands nowhere known, so it is no way on and the route is None, with no error. By maps it is the
+        way, as before."""
+        world = ki134_world(city=True)
+        world.connections[0]["offset"] = None
+        self.assertIsNone(self.route(world, "city", self.COTTAGE, (5, 2)))
+        self.assertEqual(self.route(world, "city", self.COTTAGE), [("connection", "down"), ("warp", self.G)])
+
+    def test_v8_the_landings_of_a_reach_the_search_did_not_work_out_are_never_kept(self):
+        """The verifier's NIT V8: the landings cache was keyed by `id(reach)`, and a freed reach's id, reused, hit a stale
+        entry. Keyed by the PART (its index among the parts searched), a reach the search did not work out keeps nothing
+        and is answered afresh every time; one it did is kept."""
+        from ai_player.brain.explore import _Regions
+        world = ki134_world(city=True)
+        regions = _Regions(world, KI134_KEYS["city"], frozenset())
+        link = world.connections[0]
+        loose = {(x, 3): 0.0 for x in range(10)}  # a reach this search never worked out (a caller's own)
+        self.assertEqual(regions.landings(KI134_KEYS["city"], loose, "connection", link), [(x, 0) for x in range(10)])
+        self.assertEqual(regions.landing, {})  # FAULT half (`id()`): kept under the id of a dict that may be freed
+        part = regions.part_from(KI134_KEYS["city"], (5, 2))
+        self.assertEqual(regions.landings(KI134_KEYS["city"], part, "connection", link), [(x, 0) for x in range(10)])
+        self.assertEqual(list(regions.landing), [(KI134_KEYS["city"], 0, "down", (0, -4))])
+
+
 class BossLevelTests(unittest.TestCase):
     def boss_levels(self) -> dict:
         support = Path(os.environ.get("AI_PLAYER_TEST_SUPPORT_ROOT") or REPO)

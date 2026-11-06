@@ -79,7 +79,7 @@ and `gates/test_world.py` PeopleTests, WaitTests, BendTests.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 
 from ai_player.brain.navigator import (MEET_TRIES, Intent, Navigator, Target, distances, exit_press, in_map_walls,
@@ -107,10 +107,13 @@ __all__ = [
     "explore_intent",
     "goto_intent",
     "looks_like_exit",
+    "map_walls",
     "not_back_to_seen_all",
     "pick",
     "pick_on_the_move",
+    "region_hops",
     "route_to",
+    "standing_walls",
     "weights_for",
 ]
 
@@ -191,7 +194,12 @@ def route_to(world: WorldMemory, source: str, goal: Callable[[MapMemory | None, 
       * A part of a map is the navigator's own reach from a tile (`distances` round `walls`, never through the tiles seen
         past a crossed edge: `in_map_walls`, KI-129 Part A's "one rule for can it get there", `Navigator.cut_off`'s reach):
         unseen tiles optimistic within its search box, a ledge one way, a side bumped `BUMP_GIVE_UP` times shut, exactly
-        as a walk is planned. The source's `walls` count on every part of the source (they are its tiles); no others.
+        as a walk is planned. `walls` given as one set are the source's: they count on every part of the source (they are
+        its tiles); no others. (KI-134 V1, 2026-11-06) Given as a MAPPING (map key -> tiles: `map_walls`), each map's walls
+        count on that map, whichever map the search starts on: a decision on ROUTE 104 and one in the woods then see the
+        same parts of ROUTE 104 (with only the source's, a tile a scene sent the player back from on ROUTE 104 was a wall
+        from ROUTE 104 and none from the woods, so the two decisions sent the player back and forth through the woods'
+        north door: the KI-134 verifier's flip-flop on test_w1's own fixture).
       * A WARP is a way on from a part when one of its stand tiles (`_approaches`: seen, walkable, in the reach, the press
         its look asks for) is; it lands where its link records (`arrival`); a warp with none recorded is still a way TO
         the goal, never a way on.
@@ -257,21 +265,30 @@ class _Regions:
     """(KI-134, 2026-11-05) What one `route_to` search knows of the PARTS of maps: per map, the reach of every entry
     searched from (`part_from`), and which links can be used from one of them, landing where (`landings`)."""
 
-    def __init__(self, world: WorldMemory, source: str, walls: frozenset | set) -> None:
+    def __init__(self, world: WorldMemory, source: str, walls: frozenset | set | Mapping) -> None:
         self.world = world
         self.source = source
-        self.walls = frozenset(walls)
+        # (KI-134 V1) per map, the tiles a walk there goes round: a mapping as given (`map_walls`), or one set: the source's
+        self.walls_by: dict[str, frozenset] = ({str(key): frozenset(tiles) for key, tiles in walls.items()}
+                                               if isinstance(walls, Mapping) else {source: frozenset(walls)})
+        self.walls = self.walls_by.get(source, frozenset())
         self.searched: dict[str, list[dict]] = {}
         self.blocked: dict[str, frozenset] = {}
         self.roads: dict[tuple[str, str], list[tuple[int, int]]] = {}
         self.landing: dict[tuple, list | None] = {}
 
     def walls_of(self, key: str, memory: MapMemory) -> frozenset:
-        """What a walk on map `key` goes round (`route_to`): the source's `walls` there, and on every map the tiles seen
+        """What a walk on map `key` goes round (`route_to`): that map's walls (`walls_by`), and on every map the tiles seen
         past a crossed edge (`in_map_walls`), worked out once a search."""
         if key not in self.blocked:
-            self.blocked[key] = in_map_walls(memory, self.walls if key == self.source else frozenset(), None)
+            self.blocked[key] = in_map_walls(memory, self.walls_by.get(key, frozenset()), None)
         return self.blocked[key]
+
+    def part_of(self, key: str, reach: dict) -> int | None:
+        """(the KI-134 verifier's NIT V8) Which of map `key`'s searched parts `reach` is (its index in `searched`), by
+        identity; None for a reach this search did not work out (then nothing is cached for it: a cache keyed by `id()`
+        hit for a freed reach whose id was reused)."""
+        return next((index for index, part in enumerate(self.searched.get(key, ())) if part is reach), None)
 
     def part_from(self, key: str, entry: tuple[int, int]) -> dict | None:
         """Where a walk from `entry` on map `key` can get to (the navigator's reach: `route_to`), or None when the map is
@@ -308,9 +325,10 @@ class _Regions:
             return None
         sign = -1 if link.get("inferred") else 1  # known from its far side: the recorded offset taken back
         shift = (sign * int(offset[0]), sign * int(offset[1]))
-        cached = (key, id(reach), direction, shift)
-        if cached not in self.landing:
-            walls = self.walls if key == self.source else frozenset()  # the tile past the edge is entered: no edge walls
+        part = self.part_of(key, reach)
+        cached = (key, part, direction, shift) if part is not None else None
+        if cached is None or cached not in self.landing:
+            walls = self.walls_by.get(key, frozenset())  # the tile past the edge is entered: no edge walls
             if (key, direction) not in self.roads:
                 self.roads[(key, direction)] = [xy for xy in memory.roads() if past_edge(memory.edges, xy, direction)]
             out = set()
@@ -321,8 +339,74 @@ class _Regions:
                 crossed = step_from(memory, inside, direction, walls, 0.0, allow_unknown=False)
                 if crossed is not None and crossed[0] == road:
                     out.add((road[0] + shift[0], road[1] + shift[1]))
-            self.landing[cached] = sorted(out) or None
+            found = sorted(out) or None
+            if cached is None:
+                return found
+            self.landing[cached] = found
         return self.landing[cached]
+
+
+def standing_walls(world: WorldMemory) -> dict[str, frozenset]:
+    """(KI-134 V1 and V3, 2026-11-06) Per map the AI remembers: the things it saw STANDING there on its last look of that
+    map that are not people (an item ball, a boulder: `MapMemory.objects_now` less `people_now`; people walk on). What a
+    walk there goes round as far as the AI knows, whichever map it decides on."""
+    out: dict[str, frozenset] = {}
+    for key, memory in world.maps.items():
+        things = memory.objects_now - memory.people_now
+        if things:
+            out[key] = frozenset(things)
+    return out
+
+
+def map_walls(nav: Navigator, memory: MapMemory, walls: frozenset) -> dict[str, frozenset]:
+    """(KI-134 V1, 2026-11-06) What `route_to` goes round on EVERY map, for a decision on `memory` (`candidates`): this
+    map's `walls` (`Navigator.walls`: what stands there now, the tiles a scene sent the player back from) less the people
+    (they walk on); every other map's `standing_walls` and the tiles a scene sent the player back from THERE in this
+    intent (`Navigator.scene_walls`, kept per map). A decision in the woods then sees ROUTE 104's scene wall exactly as a
+    decision on ROUTE 104 does, and the two agree."""
+    out = standing_walls(nav.world)
+    for key, tiles in (getattr(nav, "scene_walls", None) or {}).items():
+        if tiles and key != memory.key:
+            out[key] = out.get(key, frozenset()) | frozenset(tiles)
+    out[memory.key] = frozenset(walls - memory.people_now)
+    return out
+
+
+def region_hops(world: WorldMemory, source: str, at: tuple[int, int],
+                walls: frozenset | set | Mapping = frozenset()) -> dict[str, int]:
+    """(KI-134 V3, 2026-11-06) How many known links the route FROM WHERE THE PLAYER STANDS takes to each map it gets to:
+    `route_to`'s search over the parts of maps a walk gets to (the same `_Regions`, the same rules for a warp and a road),
+    run once for every map at once, breadth first, so each map's number is its shortest such route. The map the player
+    stands on is 0; a map no walk from here is known to get to is left out (the caller decides what that means). WHY: the
+    nearest POKéMON CENTER from ROUTE 104's north strip was PETALBURG's by maps (ROUTE 104 touches both towns), four links
+    away through the woods, when RUSTBORO's is two (`goals.world_distance`)."""
+    hops = {source: 0}
+    if world.maps.get(source) is None:
+        return hops
+    regions = _Regions(world, source, walls)
+    start = (int(at[0]), int(at[1]))
+    frontier: list[tuple[str, tuple[int, int], int]] = [(source, start, 0)]
+    queued = {(source, start)}
+    while frontier:
+        key, entry, depth = frontier.pop(0)
+        reach = regions.part_from(key, entry)
+        if reach is None:
+            continue
+        for kind, link in world.links_from(key):
+            if kind == "warp" and not looks_like_exit(world, key, link.get("tile")):  # no way a person takes (`route_to`)
+                continue
+            target = link.get("to") if kind == "warp" else link.get("target")
+            if target is None:
+                continue
+            arrivals = regions.landings(key, reach, kind, link)
+            if arrivals is None:
+                continue
+            hops.setdefault(target, depth + 1)
+            for arrival in arrivals:
+                if (target, arrival) not in queued:
+                    queued.add((target, arrival))
+                    frontier.append((target, arrival, depth + 1))
+    return hops
 
 
 def looks_like_exit(world: WorldMemory, key: str, tile) -> bool:
@@ -393,8 +477,9 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
         out.append(target)
 
     # (KI-134, 2026-11-05) the route from WHERE THE PLAYER STANDS, over the parts of maps a walk gets to (`route_to`), round
-    # what `Navigator.cut_off` walks round (never the people: they walk on)
-    route = route_to(world, memory.key, goal, here, walls - memory.people_now) if goal is not None else None
+    # what `Navigator.cut_off` walks round (never the people: they walk on); (KI-134 V1, 2026-11-06) round every map's walls,
+    # not only this one's (`map_walls`), so decisions on two maps agree
+    route = route_to(world, memory.key, goal, here, map_walls(nav, memory, walls)) if goal is not None else None
     first_hop = route[0] if route else None
     names = world.names()
     last = world.transitions[-1] if world.transitions else None

@@ -1317,6 +1317,124 @@ class LiveCallEndTests(unittest.TestCase):
         self.assertTrue(screen.waits_for_button)
         self.assertTrue(screen.wait_reason.startswith("text printer 0"), screen.wait_reason)
 
+    def test_control_the_sail_after_the_call_is_a_scene_that_really_locks_the_controls(self) -> None:
+        """(chapter 6 stops, the second builder, 2026-11-06) CONTROL: a scene that REALLY locks the controls, on the real
+        game. After DAD's call is hung up (ONE A), MR. BRINEY's boat crosses ROUTE 105 and 106 to DEWFORD with the script
+        running and the controls locked for some 900 frames: the eyes report no wait there (a press there would be mashing),
+        never the call's wait once the call has ended, and only the script's own waits (the 'Registered DAD NORMAN' button
+        wait, MR. BRINEY's words at DEWFORD) between; a press on each of those, and the sail ends in DEWFORD with the
+        player free (VISITED_DEWFORD_TOWN set by the game). Measured by s53/ch6stops2/sail_proto.py: 3 waits, the longest
+        locked stretch with no wait 917 frames, DEWFORD at frame 749 after the A."""
+        from modules.memory import get_event_flag
+
+        eyes = self.load("call_end_dad.ss1")
+        self.emulator.press_button("A")
+        self.emulator.run_single_frame()
+        frames, waits, locked_quiet, longest, ended, free = 0, [], 0, 0, None, None
+        for frames in range(1, 1700):
+            self.emulator.run_single_frame()
+            screen = eyes.look().screen
+            if ended is None and "ExecuteMatchCall" not in self.tasks():
+                ended = frames
+            if ended is not None:
+                self.assertFalse((screen.wait_reason or "").startswith("task ExecuteMatchCall"), (frames, screen.wait_reason))
+            if screen.waits_for_button:
+                waits.append(screen.wait_reason)
+                locked_quiet = 0
+                self.emulator.press_button("A")
+                self.emulator.run_single_frame()
+                continue
+            locked_quiet = locked_quiet + 1 if screen.controls_locked and screen.script_running else 0
+            longest = max(longest, locked_quiet)
+            if get_event_flag("VISITED_DEWFORD_TOWN") and not screen.controls_locked and not screen.script_running:
+                free = frames
+                break
+        self.assertIsNotNone(ended)
+        self.assertLess(ended, 80)
+        self.assertGreaterEqual(longest, 600)  # the boat moving: a scene that locks the controls, no wait, no press
+        self.assertTrue(waits and len(waits) <= 4, waits)
+        self.assertTrue(all(w.startswith(("script ", "text printer")) for w in waits), waits)
+        self.assertIsNotNone(free, "the sail never ended with the player free in DEWFORD")
+
+    def test_control_the_chapter5_pokenav_call_is_read_exactly_as_before(self) -> None:
+        """(chapter 6 stops, the second builder, 2026-11-06) CONTROL: the chapter-5 POKéNAV registration call (MR. STONE's
+        MATCH CALL in RustboroCity_EventScript_MatchCallTutorial, `pokenav_tutorial_rustboro.ss1`) is read EXACTLY as before
+        the round. Presses are chosen from what the round's eyes report (the forced START menu to POKéNAV, MATCH CALL, MR.
+        STONE, CALL, A on every page that waits, B out of the POKéNAV, A on the field's last words); a SECOND eyes with the
+        chapter-6 branch patched out (`_match_call_wait` and `_call_window` None: the eyes before the round) reads every
+        frame too, and the two never differ. That call runs inside the POKéNAV (`Task_Pokenav`), never `ExecuteMatchCall`,
+        and its end is the POKéNAV's own wait (`pokenav_wait`). The tutorial completes: VAR_RUSTBORO_CITY_STATE 6 -> 7."""
+        from modules.memory import get_event_var, get_game_state_symbol
+
+        from ai_player.host.eyes import FrameworkEyes
+
+        new = self.load("pokenav_tutorial_rustboro.ss1")
+        old = FrameworkEyes()
+        old._match_call_wait = lambda call: None  # noqa: SLF001 - the eyes before the round
+        old._call_window = lambda call: None  # noqa: SLF001
+        self.assertEqual(get_event_var("RUSTBORO_CITY_STATE"), 6)
+        seen = {"frames": 0, "reasons": set(), "presses": 0}
+
+        def frame():
+            self.emulator.run_single_frame()
+            seen["frames"] += 1
+            a, b = new.look().screen, old.look().screen
+            self.assertEqual(a, b, seen["frames"])
+            self.assertNotIn("ExecuteMatchCall", self.tasks())
+            if a.wait_reason:
+                seen["reasons"].add(a.wait_reason.split(" (")[0])
+            return a
+
+        def press(button):
+            self.emulator.press_button(button)
+            seen["presses"] += 1
+            return frame()
+
+        def until(test, limit):
+            for _ in range(limit):
+                screen = frame()
+                if test(screen):
+                    return screen
+            self.fail(f"not reached in {limit} frames (frame {seen['frames']})")
+
+        def menu(kind):
+            return lambda s: s.ui is not None and s.ui.kind == kind and s.ui.accepts_input
+
+        screen = frame()
+        for _ in range(12):
+            if menu("multichoice")(screen) and screen.ui.cursor == 3:
+                break
+            press("Down")
+            screen = until(lambda s: s.ui is not None and s.ui.accepts_input, 60)
+        press("A")  # POKéNAV
+        screen = until(menu("pokenav_menu"), 1500)
+        while screen.ui.cursor != 2:
+            press("Down")
+            screen = until(menu("pokenav_menu"), 120)
+        press("A")  # MATCH CALL
+        until(menu("pokenav_list"), 1500)
+        press("A")  # MR. STONE
+        until(menu("pokenav_options"), 600)
+        press("A")  # CALL
+        for _ in range(3000):
+            screen = frame()
+            if screen.waits_for_button:
+                press("A")
+            elif menu("pokenav_list")(screen):
+                break
+        press("B")
+        until(menu("pokenav_menu"), 600)
+        press("B")
+        for _ in range(3000):
+            screen = frame()
+            if get_game_state_symbol() in ("CB2_OVERWORLD", "CB2_Overworld"):
+                if screen.waits_for_button:
+                    press("A")
+                elif not screen.script_running and not screen.controls_locked:
+                    break
+        self.assertEqual(seen["reasons"], {"text printer 1 CLEAR", "task Task_Pokenav", "script waitbuttonpress"})
+        self.assertEqual(get_event_var("RUSTBORO_CITY_STATE"), 7)
+
 
 class ActionLogTests(unittest.TestCase):
     def test_one_json_line_per_record(self) -> None:

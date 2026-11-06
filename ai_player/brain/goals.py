@@ -139,6 +139,8 @@ from ai_player.brain.explore import (
     looks_like_exit,
     pick,
     pick_on_the_move,
+    region_hops,
+    standing_walls,
     weights_for,
 )
 from ai_player.brain.navigator import Intent, Navigator, Target, step_from
@@ -219,6 +221,7 @@ __all__ = [
     "lost_intent",
     "lost_way",
     "marks_of",
+    "part_hops",
     "party_share",
     "quote",
     "roam_numbers",
@@ -666,11 +669,46 @@ def open_way(const: str | None) -> bool:
     return bool(OUTDOOR.match(const or "")) or open_map(const) is True
 
 
+#: (KI-134 V3) the last `region_hops` worked out (`part_hops`): (the world memory it was for, what for, the hops). ONE
+#: entry, held by REFERENCE (never by `id()`, which the next object may reuse once one is freed: the verifier's NIT V8), so a
+#: run's one world memory is searched once a decision, not once per place ranked
+_PART_HOPS: list = [None]
+
+
+def part_hops(world) -> dict[str, int] | None:
+    """(KI-134 V3, 2026-11-06) The links from WHERE THE PLAYER STANDS to every map a walk from there is known to get to
+    (`explore.region_hops`, round what stands on each map: `explore.standing_walls`); None when the player's tile or map
+    is not known. Worked out once for each place the player stands and each new thing the memory has seen (its `stamp`,
+    its links and their uses), and kept for that."""
+    start, at = world.current, world.position
+    if start is None or at is None or world.maps.get(start) is None:
+        return None
+    uses = sum(int(link.get("uses") or 0) for link in world.warps.values())
+    asked = (start, tuple(at), world.stamp(), len(world.warps), len(world.connections), uses)
+    kept = _PART_HOPS[0]
+    if kept is not None and kept[0] is world and kept[1] == asked:
+        return kept[2]
+    hops = region_hops(world, start, at, standing_walls(world))
+    _PART_HOPS[0] = (world, asked, hops)
+    return hops
+
+
 def world_distance(world, key: str) -> int:
-    """How many known links (warps, connections) lie between the current map and map `key` (99 when no way is known)."""
+    """How many known links (warps, connections) lie between the current map and map `key` (99 when no way is known).
+
+    (KI-134 V3, 2026-11-06) FROM WHERE THE PLAYER STANDS, when its tile is known: the links of the route over the PARTS of
+    maps a walk gets to (`part_hops`, `explore.region_hops`). WHY (the KI-134 verifier's K134-V3, on probe-C1's chapter-5
+    memory): counted by maps, ROUTE 104 touches both PETALBURG and RUSTBORO, so from its north strip the two centres were
+    equally near and the tie went to PETALBURG's (its name sorts first), four links away through the woods, when RUSTBORO's
+    is two. The heal and shop places (`GoalRunner._nearest_place`), the open map to head for (`lead_toward`) and the grass
+    to train in (`_grass_map`) all rank by this. A map no walk from here is known to get to (a door whose arrival was
+    never recorded leads to no part: `route_to`) counts by maps, exactly as before."""
     start = world.current
     if start is None:
         return 99
+    hops = part_hops(world)
+    if hops is not None and key in hops:
+        return hops[key]
     seen, frontier = {start}, [(start, 0)]
     while frontier:
         here, depth = frontier.pop(0)
