@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "092d7d93c07c302dceff0b9e619032d6278d4995",
+ "source_sha1_lf": "ec812a4a3c08f3c4172e3287dd7c36390ea20b90",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 367,
-  "donot_candidates": 34,
-  "sections_naming_user_rulings": 54
+  "sections": 368,
+  "donot_candidates": 35,
+  "sections_naming_user_rulings": 55
  },
  "sections": [
   {
@@ -5765,6 +5765,32 @@
     }
    ],
    "cues": []
+  },
+  {
+   "id": "2026-11-07-62bc04",
+   "date": "2026-11-07",
+   "line_start": 10053,
+   "line_end": 10057,
+   "title": "2026-11-07 — Correction to the USER RULING 58 entry above: a boss Pokémon's HELD ITEM is known (USER RULING 44), so it is not hidden state for boss preparation (punch-list #28-aiagent-v2)",
+   "rulings": [
+    44,
+    58
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "e4653cf6",
+     "line": 10055,
+     "text": "- **The error:** the USER RULING 58 entry's knowledge bullet lists \"held items not shown\" among the live hidden state the AI may not read. For bosses that is wrong: USER RULING 44 (2026-10-21, \"Do not re-ask\") says the AI KNOWS each boss Pokémon's held item; it does not know their exact stats (IVs, "
+    }
+   ],
+   "cues": [
+    "correction"
+   ]
   }
  ]
 }

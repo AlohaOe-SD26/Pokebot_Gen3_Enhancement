@@ -10049,3 +10049,9 @@ on all three questions:
   - The lead's reading, not the user's words: which plan a run leans on can follow its personality (the Trainer trains, the Catcher catches a counter), and a run that keeps losing changes its plan rather than repeating the same fight.
 - **Status:** a design ruling, NOT built. It answers P4-1: the boss preparation is the next design and build for chapters 6-7 (on `wip/ch6-ch7`).
 - **Do not re-ask** what a seasoned player does against a boss the party loses to: all three (train the whole team; a counter judged by its resistances AND its moves' type advantages; smarter fights) are viable for every gym leader, boss and the Elite Four (2026-11-07).
+
+## 2026-11-07 — Correction to the USER RULING 58 entry above: a boss Pokémon's HELD ITEM is known (USER RULING 44), so it is not hidden state for boss preparation (punch-list #28-aiagent-v2)
+
+- **The error:** the USER RULING 58 entry's knowledge bullet lists "held items not shown" among the live hidden state the AI may not read. For bosses that is wrong: USER RULING 44 (2026-10-21, "Do not re-ask") says the AI KNOWS each boss Pokémon's held item; it does not know their exact stats (IVs, hidden stats) or the trainers' AI flags.
+- **The rule for boss preparation, as both rulings stand:** the AI may plan from a gym leader's, boss's or Elite Four member's team, levels, moves and held items (static game data); it may not read live hidden state such as a foe's exact HP numbers or IVs. A wild Pokémon's held item stays unknown until the game shows it.
+- **Found by:** the adversarial critique of the boss-preparation design (`ai-research-notes/2026-11-07-BOSS-PREP-DESIGN.md`, Part 2, M2), which also caught the design withholding held items.

@@ -61,6 +61,8 @@
 | 25 | `2026-09-29-33b616` | 2026-09-29 | 8057 | defines 26@2026-09-29, 27@2026-09-29; amends `2026-09-28-f65547` |
 | 39 | `2026-10-15-17dd10` | 2026-10-15 | 9386 | defines 39@2026-10-15 |
 | 39 | `2026-10-16-aaa49a` | 2026-10-16 | 9482 | applies `2026-10-15-17dd10` |
+| 44 | `2026-10-21-3b21a7` | 2026-10-21 | 9582 | defines 44@2026-10-21 |
+| 44 | `2026-11-07-62bc04` | 2026-11-07 | 10053 | amends `2026-11-07-08dac8` |
 | 47 | `2026-10-27-5b5b7d` | 2026-10-27 | 9785 | - |
 | 47 | `2026-10-28-7d117a` | 2026-10-28 | 9792 | applies `2026-10-27-5b5b7d` |
 | 53 | `2026-10-29-2afa57` | 2026-10-29 | 9904 | defines 53@2026-10-29 |
@@ -80,10 +82,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 367 sections (newest first)
+## All 368 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-07-62bc04` | 10053 | 44, 58 | cue | 2026-11-07 — Correction to the USER RULING 58 entry above: a boss Pokémon's HELD ITEM is known (USER RULING 44), so it is not hidden state for boss preparation  |
 | `2026-11-07-08dac8` | 10039 | 58 | DO-NOT-REOPEN | 2026-11-07 — USER RULING 58: against a boss the party loses to, all three plans are viable (train the whole team, bring a counter, fight smarter) for BRAWLY and |
 | `2026-11-06-dc449a` | 10029 |  | DO-NOT-REOPEN | 2026-11-06 — The graded chain driver `live_chain.py`: a WRITTEN threat model, "grade DIR is never better than the ledger", its refusals and exit codes, and a st |
 | `2026-11-05-577173` | 10020 |  | DO-NOT-REOPEN | 2026-11-05 — Chapter 5's stops: a GENERAL instructed choice for forced menus; the grunt as data; the next graded test is a New Game to the end of chapter 5 (pun |
