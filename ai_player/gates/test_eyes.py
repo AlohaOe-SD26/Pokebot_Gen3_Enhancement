@@ -1556,8 +1556,9 @@ class DarkTests(unittest.TestCase):
     (`sFlashLevelToRadius`), GRANITE CAVE B1F and B2F the same until FLASH (`requires_flash`, SetDefaultFlashLevel); the
     eyes listed every object, and the world memory learned every tile, of the whole 15 x 11 window (#109's records: 150 of
     154 gym records a run listed someone outside the circle). Now a tile outside the circle the screen draws is None in
-    `View.rows` and an object outside it is not listed (`eyes/view.py` lit, `host/eyes.py` _view). Mutants:
-    `revert_step5.py` (round 7)."""
+    `View.rows` and an object outside it is not listed (`eyes/view.py` lit, `host/eyes.py` _view). (Round 8, the round-7
+    verifier's V7-1 and V7-2) a person is judged by the sprite the screen draws (d4, d5), and the circle is placed where the
+    screen draws it while a step is in progress (d6). Mutants: `revert_r1.py` CH6S18-CH6S35 (round 7), CH6S36-CH6S49 (round 8)."""
 
     LEVEL_7, LEVEL_1 = 7, 1  # no gym trainer beaten / FLASH used
 
@@ -1587,13 +1588,22 @@ class DarkTests(unittest.TestCase):
                 elif distance >= radius + 1:
                     self.assertFalse(lit(dx, dy, radius), (radius, dx, dy))
 
+    #: (round 8) the fake's `gSpriteCoordOffsetX/Y` (any values: a sprite is drawn at x + x2 + centerToCornerVec + these)
+    COORD_OFFSET = (-40, 24)
+
     @staticmethod
-    def host_view(level: int, people: list[tuple[int, int, int]], signs: tuple = (), crop: bool = True):
+    def host_view(level: int, people: list[tuple], signs: tuple = (), crop: bool = True, camera: tuple[int, int] = (0, 0),
+                  drawn: tuple[int, int] = (0, 0), dark_reads: bool = True):
         """The HOST's own `_view` (`host/eyes.py`) and its real readers (`read_symbol`, the framework's
         `get_map_objects`), on a FAKE memory at the real symbols' addresses: a 40 x 40 live grid of open floor, a map
         header whose layout and border are in the cartridge, the player on (10, 10), save block 1's flashLevel = `level`,
-        and `people` (x, y, local id) as active object events (`struct ObjectEvent`: active bit, graphicsId @5, localId @8,
-        elevation @11, currentCoords @0x10 with MAP_OFFSET, facing @0x18). The ROM tables a look reads once are given."""
+        and `people` (x, y, local id[, sprite flags]) as active object events (`struct ObjectEvent`: active bit, spriteId
+        @4, graphicsId @5, localId @8, elevation @11, currentCoords @0x10 with MAP_OFFSET, facing @0x18). The ROM tables a
+        look reads once are given. (Round 8) Each person's SPRITE (`gSprites[slot]`, struct Sprite: x @0x20, y @0x22,
+        centerToCornerVec (-8, -16) @0x28, flags @0x3E, default inUse | coordOffsetEnabled) is drawn 16 x 32 with its feet on
+        its tile, standing still: screen (112 + 16 dx, 56 + 16 dy) moved by `drawn`, where the screen draws the player's
+        tile while a step is in progress; `camera` is `gFieldCamera`'s (x, y) pixel offset. `dark_reads` False leaves the
+        sprites, `gSpriteCoordOffset*` and `gFieldCamera` OUT of the fake memory, so a look that reads them fails."""
         from modules.context import context
         from modules.game import get_symbol
 
@@ -1607,13 +1617,23 @@ class DarkTests(unittest.TestCase):
         def u32(value: int) -> bytes:
             return value.to_bytes(4, "little")
 
+        def s16(value: int) -> bytes:
+            return value.to_bytes(2, "little", signed=True)
+
         objects = bytearray(0x24 * 16)
-        for slot, (x, y, local) in enumerate(people, start=1):
+        sprites = bytearray(0x44 * 64)
+        off_x, off_y = DarkTests.COORD_OFFSET
+        for slot, (x, y, local, *flags) in enumerate(people, start=1):
             at = 0x24 * slot
             objects[at] = 0x01
-            objects[at + 5], objects[at + 8], objects[at + 11] = 100, local, 3
+            objects[at + 4], objects[at + 5], objects[at + 8], objects[at + 11] = slot, 100, local, 3
             objects[at + 0x10:at + 0x14] = (x + 7).to_bytes(2, "little") + (y + 7).to_bytes(2, "little")
             objects[at + 0x18] = 1
+            left, top = 112 + 16 * (x - 10) + drawn[0], 56 + 16 * (y - 10) + drawn[1]
+            sprite = 0x44 * slot
+            sprites[sprite + 0x20:sprite + 0x24] = s16(left + 8 - off_x) + s16(top + 16 - off_y)
+            sprites[sprite + 0x28], sprites[sprite + 0x29] = 0xF8, 0xF0  # centerToCornerVec (-8, -16): 16 x 32
+            sprites[sprite + 0x3E] = flags[0] if flags else 0x03
         cells = {get_symbol("gBackupMapLayout")[0]: u32(width) + u32(height) + u32(grid),
                  get_symbol("gMapHeader")[0]: u32(layout) + bytes(0x18),
                  get_symbol("gSaveBlock1Ptr")[0]: u32(save_block_1),
@@ -1621,6 +1641,12 @@ class DarkTests(unittest.TestCase):
                  layout: bytes(8) + u32(border) + bytes(12), border: bytes(8),
                  save_block_1 + 0x30: bytes([level]),
                  grid: bytes(2 * width * height)}  # metatile 0, no collision: floor
+        if dark_reads:
+            cells.update({get_symbol("gSprites")[0]: bytes(sprites),
+                          get_symbol("gSpriteCoordOffsetX")[0]: s16(off_x),
+                          get_symbol("gSpriteCoordOffsetY")[0]: s16(off_y),
+                          get_symbol("gFieldCamera")[0]: bytes(0x10) + camera[0].to_bytes(4, "little", signed=True)
+                          + camera[1].to_bytes(4, "little", signed=True)})
 
         class Memory:
             def read_bytes(self, address: int, length: int) -> bytes:
@@ -1670,8 +1696,9 @@ class DarkTests(unittest.TestCase):
     def test_d3_control_a_lit_map_is_seen_whole_and_recorded_as_before(self):
         """CONTROL (passes on adf6c246 too): flash level 0 (a lit map): every tile of the window and every object in it,
         no `lit`, and the record (`Observation.to_dict`, `digest`) has no trace of the rule (no `lit` key, no `lit=`): as
-        before. The NO_CROP fault sees all at any level (its purpose: tiles a person could not see)."""
-        view, player = self.host_view(0, [(13, 8, 1), (11, 9, 2), (17, 15, 3)], signs=(((10, 6), 0),))
+        before. The NO_CROP fault sees all at any level (its purpose: tiles a person could not see). (Round 8) Neither reads a
+        sprite or the camera (`dark_reads` False: those reads would fail): the round-8 reads are a dark map's only."""
+        view, player = self.host_view(0, [(13, 8, 1), (11, 9, 2), (17, 15, 3)], signs=(((10, 6), 0),), dark_reads=False)
         self.assertIsNone(getattr(view, "lit", None))
         self.assertEqual(sorted(o.local_id for o in view.objects), [-1, 1, 2, 3])
         self.assertTrue(all(tile is not None for row in view.rows for tile in row))
@@ -1680,9 +1707,81 @@ class DarkTests(unittest.TestCase):
         self.assertNotIn("lit", seen.to_dict()["view"])
         self.assertNotIn("lit=", seen.digest())
         self.assertEqual(len(seen.to_dict()["view"]["tiles"]), 165)
-        view, _ = self.host_view(7, [(13, 8, 1)], crop=False)
+        view, _ = self.host_view(7, [(13, 8, 1)], crop=False, dark_reads=False)
         self.assertIsNone(getattr(view, "lit", None))
         self.assertEqual([o.local_id for o in view.objects], [1])
+
+    def test_d4_a_person_needs_the_light_a_tile_needs(self):
+        """(Round 8, the round-7 verifier's V7-1) `SEEN_PIXELS` is DERIVED, not chosen: the fewest lit pixels of any tile
+        the tile rule (`lit`) sees, over every flash level and every tile of the window, at rest (124: the tile 2 rows up
+        under the 32 px circle's top). `lit_pixels` equals a pixel-by-pixel count of `flash_window` on a person's 16 x 32
+        rectangle and a tile's 16 x 16 at every level and place; and a person's verdict is the same at (dx, dy) and
+        (-dx, dy) everywhere (the round-7 rule saw (-2, 0) at 32 px and not (2, 0)). Two values the verifier measured
+        with its own window: 327 px at (-1, 2) and 183 px at (2, 0) (32 px), 268 px at (0, 2) (24 px)."""
+        from ai_player.eyes.view import FLASH_RADIUS, SEEN_PIXELS, flash_window, lit, lit_pixels, view_offsets
+
+        def brute(left, top, width, height, radius):
+            window = flash_window(radius)
+            return sum(1 for y in range(top, top + height) for x in range(left, left + width)
+                       if 0 <= x < 240 and 0 <= y < 160 and window.get(y, (0, 0))[0] <= x < window.get(y, (0, 0))[1])
+
+        least = None
+        for radius in FLASH_RADIUS[1:8]:
+            for dx, dy in view_offsets():
+                person = lit_pixels(112 + 16 * dx, 56 + 16 * dy, 16, 32, radius)
+                self.assertEqual(person, brute(112 + 16 * dx, 56 + 16 * dy, 16, 32, radius), (radius, dx, dy))
+                tile = lit_pixels(112 + 16 * dx, 72 + 16 * dy, 16, 16, radius)
+                self.assertEqual(tile, brute(112 + 16 * dx, 72 + 16 * dy, 16, 16, radius), (radius, dx, dy))
+                if lit(dx, dy, radius):
+                    least = tile if least is None else min(least, tile)
+                    self.assertGreaterEqual(person, SEEN_PIXELS, (radius, dx, dy))  # a seen feet tile: a seen person
+                self.assertEqual(person, lit_pixels(112 - 16 * dx, 56 + 16 * dy, 16, 32, radius), (radius, dx, dy))
+        self.assertEqual(least, SEEN_PIXELS)
+        self.assertEqual(SEEN_PIXELS, 124)
+        self.assertEqual([lit_pixels(112 + 16 * dx, 56 + 16 * dy, 16, 32, 32) for dx, dy in ((-1, 2), (2, 0))], [327, 183])
+        self.assertEqual(lit_pixels(112, 88, 16, 32, 24), 268)
+
+    def test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark(self):
+        """FAULT (V7-1; on 986a5816 the eyes listed only (-2, 0) of the first look and nobody of the second): at 32 px (one
+        gym trainer beaten, D2's gym) people drawn largely in the light with a DARK feet tile are listed: (-1, 2) 327 px,
+        (2, 0) and its mirror (-2, 0) 183 px each, (0, 3) 140 px. CONTROLS (the same look): (1, -2), only grazed (58 px), and
+        (0, 4), wholly dark, are NOT listed; a person inside the circle whose sprite is not drawn (invisible) is not listed.
+        At 24 px (no trainer beaten, GRANITE CAVE without FLASH): (0, 2) 268 px and (1, 2) 162 px are listed, (0, 3) (12 px)
+        is not. The tiles keep their own rule: (2, 0) and (-1, 2) stay None at 32 px."""
+        people = [(9, 12, 1), (12, 10, 2), (8, 10, 3), (10, 13, 4), (11, 8, 5), (10, 14, 6), (10, 9, 7, 0x07)]
+        view, _ = self.host_view(6, people)
+        self.assertEqual(view.lit, 32)
+        self.assertEqual(sorted((o.local_id, o.dx, o.dy) for o in view.objects), [(1, -1, 2), (2, 2, 0), (3, -2, 0), (4, 0, 3)])
+        self.assertIsNone(view.tile(2, 0))
+        self.assertIsNone(view.tile(-1, 2))
+        self.assertIsNotNone(view.tile(-2, 0))
+        view, _ = self.host_view(7, [(10, 12, 1), (11, 12, 2), (10, 13, 3)])
+        self.assertEqual(sorted((o.local_id, o.dx, o.dy) for o in view.objects), [(1, 0, 2), (2, 1, 2)])
+
+    def test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it(self):
+        """FAULT (V7-2; on 986a5816 the circle was centred on the step's destination): walking Up, the step's first frame
+        (`gFieldCamera.y` = -1): the screen draws the player's tile (the destination) 15 px above its middle, so at 32 px
+        the gym guide 2 tiles up from the destination, standing still, is drawn with 0 lit pixels and is NOT listed (the
+        verifier's VP6 found him listed on 8 walking frames), the tile 2 up is None, and the tiles the screen does draw lit
+        behind the player are seen. Expected tiles from the verifier's own window (s53/ch6stops8/expect_d6.py): 11 tiles,
+        (-2, 1), (-1..1, 0..2) and (0, -1); a sign on (1, 2), a tile drawn lit, is listed (a sign keeps the tile rule,
+        placed as the tiles are). Walking Right at 24 px (`gFieldCamera.x` = 1, drawn 15 px right): the 3 x 3 round the
+        step's ORIGIN is seen, (1, 0) is not; a person at (-1, 0) (508 px) is listed, one at (1, 0) (13 px) not. CONTROL: the
+        camera standing still (0, 0) gives the rest look (round 7's tiles; the guide, 124 px, listed; the sign on (1, 2), a
+        dark tile at rest, not)."""
+        view, _ = self.host_view(6, [(10, 8, 1), (8, 11, 2)], signs=(((11, 12), 0),), camera=(0, -1), drawn=(0, -15))
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(2, -2, 1), (-1, 1, 2)])
+        seen = sorted((dx, dy) for dy in range(-5, 6) for dx in range(-7, 8) if view.tile(dx, dy) is not None)
+        self.assertEqual(seen, [(-2, 1), (-1, 0), (-1, 1), (-1, 2), (0, -1), (0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)])
+        view, _ = self.host_view(7, [(9, 10, 1), (11, 10, 2)], camera=(1, 0), drawn=(15, 0))
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(1, -1, 0)])
+        seen = sorted((dx, dy) for dy in range(-5, 6) for dx in range(-7, 8) if view.tile(dx, dy) is not None)
+        self.assertEqual(seen, [(dx, dy) for dx in (-2, -1, 0) for dy in (-1, 0, 1)])
+        view, _ = self.host_view(6, [(10, 8, 1)], signs=(((11, 12), 0),))
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(1, 0, -2)])
+        seen = sorted((dx, dy) for dy in range(-5, 6) for dx in range(-7, 8) if view.tile(dx, dy) is not None)
+        self.assertEqual(len(seen), 12)
+        self.assertIn((0, -2), seen)
 
     @staticmethod
     def observation(view, player):

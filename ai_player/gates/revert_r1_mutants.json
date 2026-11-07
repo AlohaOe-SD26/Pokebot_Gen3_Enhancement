@@ -10397,36 +10397,40 @@
    "edits": [
     [
      "host/eyes.py",
-     "                                      tile_bits, dy) if lit(column - left_of, dy, radius) else None)\n",
+     "                                      tile_bits, dy) if lit(column - left_of, dy, radius, shift) else None)\n",
      "                                      tile_bits, dy))  # MUTANT CH6S19\n"
     ]
    ],
    "expected": [
-    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned",
+    "DarkTests.test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
    ],
    "suites": [
     "test_eyes:DarkTests"
    ],
-   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run; RE-ANCHORED in chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run (round 8 changed its line)"
   },
   {
    "name": "CH6S20",
    "prediction": "CAUGHT",
-   "what": "N6-1: a person in the dark is still listed",
+   "what": "N6-1: a person in the dark is still listed (round 8: the drawn-sprite check made dead)",
    "edits": [
     [
      "host/eyes.py",
-     "            if not lit(x - player.x, y - player.y, radius):\n                continue  # (round 7, N6-1) a",
-     "            if False:\n                continue  # MUTANT CH6S20 (round 7, N6-1) a"
+     "            if radius is not None and self._drawn_lit(event.sprite_id, radius) < SEEN_PIXELS:\n",
+     "            if False:  # MUTANT CH6S20\n"
     ]
    ],
    "expected": [
-    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned",
+    "DarkTests.test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
    ],
    "suites": [
     "test_eyes:DarkTests"
    ],
-   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run; RE-ANCHORED in chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run (round 8 changed its line)"
   },
   {
    "name": "CH6S21",
@@ -10435,17 +10439,18 @@
    "edits": [
     [
      "host/eyes.py",
-     "            if not lit(x - player.x, y - player.y, radius):\n                continue\n            seen.append(SeenObject(kind=\"sign\"",
-     "            if False:  # MUTANT CH6S21\n                continue\n            seen.append(SeenObject(kind=\"sign\""
+     "            if not lit(x - player.x, y - player.y, radius, shift):\n                continue\n",
+     "            if False:  # MUTANT CH6S21\n                continue\n"
     ]
    ],
    "expected": [
-    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
    ],
    "suites": [
     "test_eyes:DarkTests"
    ],
-   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run; RE-ANCHORED in chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run (round 8 changed its line)"
   },
   {
    "name": "CH6S22",
@@ -10627,18 +10632,21 @@
    "edits": [
     [
      "eyes/view.py",
-     "    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy, (0, 0))\n",
+     "    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy + shift[1], (0, 0))\n",
      "    left, right = 0, 0  # MUTANT CH6S31\n"
     ]
    ],
    "expected": [
     "DarkTests.test_d1_the_games_circle",
-    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned",
+    "DarkTests.test_d4_a_person_needs_the_light_a_tile_needs",
+    "DarkTests.test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
    ],
    "suites": [
     "test_eyes:DarkTests"
    ],
-   "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run"
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run; RE-ANCHORED in chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run (round 8 changed its line)"
   },
   {
    "name": "CH6S32",
@@ -10715,6 +10723,280 @@
     "test_eyes:DarkTests"
    ],
    "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run"
+  },
+  {
+   "name": "CH6S36",
+   "prediction": "CAUGHT",
+   "what": "V7-1: a person judged by the middle pixel of their FEET tile again (round 7's rule)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            if radius is not None and self._drawn_lit(event.sprite_id, radius) < SEEN_PIXELS:\n",
+     "            if not lit(x - player.x, y - player.y, radius):  # MUTANT CH6S36\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S37",
+   "prediction": "CAUGHT",
+   "what": "V7-1: SEEN_PIXELS chosen as half a tile (128), not derived from the tile rule (124)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "SEEN_PIXELS = 124\n",
+     "SEEN_PIXELS = 128  # MUTANT CH6S37\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d4_a_person_needs_the_light_a_tile_needs",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S38",
+   "prediction": "CAUGHT",
+   "what": "V7-1: any lit pixel of the sprite's rectangle sees a person (SEEN_PIXELS 1: more than the screen)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "SEEN_PIXELS = 124\n",
+     "SEEN_PIXELS = 1  # MUTANT CH6S38\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d4_a_person_needs_the_light_a_tile_needs",
+    "DarkTests.test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S39",
+   "prediction": "CAUGHT",
+   "what": "V7-1: the sprite's coordinate offset (gSpriteCoordOffsetX/Y) left out of where it is drawn",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        if flags & 0x02:\n",
+     "        if False:  # MUTANT CH6S39\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned",
+    "DarkTests.test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S40",
+   "prediction": "CAUGHT",
+   "what": "V7-1: an invisible sprite (not drawn) counted as drawn",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        if not flags & 0x01 or flags & 0x04:\n",
+     "        if not flags & 0x01:  # MUTANT CH6S40\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S41",
+   "prediction": "CAUGHT",
+   "what": "V7-1: `_drawn_lit`'s call of `lit_pixels` deleted (no person is ever lit)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        return lit_pixels(left, top, -2 * corner_x, -2 * corner_y, radius)\n",
+     "        return 0  # MUTANT CH6S41\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned",
+    "DarkTests.test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark",
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S42",
+   "prediction": "CAUGHT",
+   "what": "V7-2: `_view`'s call of `_step_shift` deleted (the circle on the step's destination: round 7)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        shift = self._step_shift() if radius is not None else (0, 0)\n",
+     "        shift = (0, 0)  # MUTANT CH6S42\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S43",
+   "prediction": "CAUGHT",
+   "what": "V7-2: step_offset gives the camera's raw offset (the wrong direction and size)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "    return (16 if camera > 0 else -16 if camera < 0 else 0) - camera\n",
+     "    return camera  # MUTANT CH6S43\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S44",
+   "prediction": "CAUGHT",
+   "what": "V7-2: the tiles are judged unshifted (the shift not passed to the tile rule in `_view`)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "                                      tile_bits, dy) if lit(column - left_of, dy, radius, shift) else None)\n",
+     "                                      tile_bits, dy) if lit(column - left_of, dy, radius) else None)  # MUTANT CH6S44\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S45",
+   "prediction": "CAUGHT",
+   "what": "V7-2: the signs are judged unshifted (the shift not passed to the tile rule in `_signs`)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            if not lit(x - player.x, y - player.y, radius, shift):\n",
+     "            if not lit(x - player.x, y - player.y, radius):  # MUTANT CH6S45\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S46",
+   "prediction": "CAUGHT",
+   "what": "V7-2: `lit` ignores the shift across (x)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "    return left <= FLASH_CENTRE[0] + 16 * dx + shift[0] < right\n",
+     "    return left <= FLASH_CENTRE[0] + 16 * dx < right  # MUTANT CH6S46\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S47",
+   "prediction": "CAUGHT",
+   "what": "V7-2: `lit` ignores the shift down (y)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy + shift[1], (0, 0))\n",
+     "    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy, (0, 0))  # MUTANT CH6S47\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S48",
+   "prediction": "CAUGHT",
+   "what": "V7-2: `_step_shift`'s call of `step_offset` for x deleted (0: no shift across)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        return step_offset(_s32(camera, 0)), step_offset(_s32(camera, 4))\n",
+     "        return 0, step_offset(_s32(camera, 4))  # MUTANT CH6S48\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
+  },
+  {
+   "name": "CH6S49",
+   "prediction": "CAUGHT",
+   "what": "V7-2: `_step_shift`'s call of `step_offset` for y deleted (0: no shift down)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        return step_offset(_s32(camera, 0)), step_offset(_s32(camera, 4))\n",
+     "        return step_offset(_s32(camera, 0)), 0  # MUTANT CH6S49\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run"
   }
  ]
 }

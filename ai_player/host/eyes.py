@@ -112,6 +112,15 @@ the circle is None in `View.rows` (the world memory does not learn it), an objec
 Tiles the world memory already knows, and the AI's static knowledge (`brain/goals.py` gym_back), stay: a seasoned player
 knows the map; it does not SEE a person in the dark.
 
+CHAPTER 6 STOPS ROUND 8 (2026-11-07, the round-7 verifier's V7-1 and V7-2), READ ONLY, no new door (`read_symbol`), read on a
+DARK map only: (V7-1) a PERSON is judged by the sprite the screen draws, not by their feet tile: `_drawn_lit` reads the
+object's sprite (`gSprites`, `gSpriteCoordOffsetX/Y`: where and how big it is drawn) and counts its lit pixels; a person
+is listed when at least `eyes/view.py` SEEN_PIXELS (124, the least light the tile rule sees a tile by) are lit. Round 7
+missed a ring of people drawn largely in the light with a dark feet tile (up to 72% of their sprite; 16 gym records a run
+in #110). (V7-2) `_step_shift` reads the field camera's pixel offset inside a step (`gFieldCamera`), so the circle is placed
+on the map where the screen draws it while a step is in progress; round 7 centred it on the step's destination, up to 15 px
+ahead of the screen. Tiles and signs keep the tile rule (a sign is drawn as a tile). A lit map's look is unchanged.
+
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
 
@@ -177,6 +186,7 @@ from ai_player.eyes.view import (
     SAVE_BLOCK_1_FLASH_LEVEL,
     SAVE_BLOCK_1_VARS,
     SCRIPT_CONTEXT_SHUTDOWN,
+    SEEN_PIXELS,
     STORY_FLAGS,
     TALL_GRASS_BEHAVIORS,
     TEXT_PRINTER_COUNT,
@@ -194,12 +204,14 @@ from ai_player.eyes.view import (
     hp_bar_pixels,
     in_view,
     lit,
+    lit_pixels,
     milestone_marks,
     movement_mode,
     object_kind,
     script_waits_for_button,
     settled_position,
     status_name,
+    step_offset,
     text_printer_wait,
     visible_id,
 )
@@ -1076,6 +1088,9 @@ class FrameworkEyes:
         # (chapter 6 stops round 7, N6-1) on a DARK map only the lit circle the screen draws is seen: a tile outside it is
         # None, an object or sign outside it is not listed (`eyes/view.py` lit). Not under the NO_CROP fault, which sees all
         radius = self._lit_radius() if self.crop else None
+        # (round 8, V7-2) while a step is in progress the screen still draws the player's tile (the step's destination) up
+        # to 15 px off its middle: the circle is placed on the map where the screen draws it. Read on a dark map only
+        shift = self._step_shift() if radius is not None else (0, 0)
         if self.crop:
             up, down, left_of, right_of = VIEW_UP, VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_HALF_WIDTH
         else:
@@ -1101,9 +1116,9 @@ class FrameworkEyes:
                 else:
                     block = MAPGRID_UNDEFINED
                 row.append(self._tile(player, vx - MAP_OFFSET, vy - MAP_OFFSET, block, border, primary, secondary,
-                                      tile_bits, dy) if lit(column - left_of, dy, radius) else None)
+                                      tile_bits, dy) if lit(column - left_of, dy, radius, shift) else None)
             rows.append(tuple(row))
-        objects = self._objects(player, radius) + self._signs(player, signs, radius)
+        objects = self._objects(player, radius) + self._signs(player, signs, radius, shift)
         return View(left=left_of, right=right_of, up=up, down=down, rows=tuple(rows), objects=tuple(objects),
                     cropped=self.crop, lit=radius)
 
@@ -1117,6 +1132,38 @@ class FrameworkEyes:
         than the screen for those frames (the player's controls are locked through it), never more."""
         save_block_1 = _u32(read_symbol("gSaveBlock1Ptr", size=4), 0)
         return flash_radius(context.emulator.read_bytes(save_block_1 + SAVE_BLOCK_1_FLASH_LEVEL, 1)[0])
+
+    @staticmethod
+    def _step_shift() -> tuple[int, int]:
+        """(Chapter 6 stops round 8, the round-7 verifier's V7-2) Where the screen draws the player's tile, in pixels from
+        its standing-still place (`eyes/view.py` step_offset), from the field camera's pixel offset inside a step
+        (`gFieldCamera`, struct CameraObject: s32 x @0x10, s32 y @0x14): how far the screen has scrolled, which it shows.
+        (0, 0) standing still. Through the `read_symbol` door."""
+        camera = read_symbol("gFieldCamera", 0x10, 8)
+        return step_offset(_s32(camera, 0)), step_offset(_s32(camera, 4))
+
+    @staticmethod
+    def _drawn_lit(sprite_id: int, radius: int) -> int:
+        """(Chapter 6 stops round 8, the round-7 verifier's V7-1) How many pixels of a map object's sprite the screen
+        draws lit: its DRAWN rectangle (`include/sprite.h` struct Sprite: x @0x20, y @0x22, x2 @0x24, y2 @0x26,
+        centerToCornerVecX/Y @0x28/0x29, inUse bit 0, coordOffsetEnabled bit 1 and invisible bit 2 of @0x3E: drawn at
+        x + x2 + centerToCornerVecX (+ gSpriteCoordOffsetX), width -2 centerToCornerVecX), counted in the circle
+        (`eyes/view.py` lit_pixels). A sprite that is not drawn (no sprite, not in use, invisible) has none. The sprite's
+        place is where the screen draws it, so a person (or the player) part way through a step is counted where drawn."""
+        if sprite_id >= MAX_SPRITES:
+            return 0
+        sprite = read_symbol("gSprites", sprite_id * SPRITE_SIZE, SPRITE_SIZE)
+        flags = sprite[0x3E]
+        if not flags & 0x01 or flags & 0x04:
+            return 0
+        corner_x = int.from_bytes(bytes(sprite[0x28:0x29]), "little", signed=True)
+        corner_y = int.from_bytes(bytes(sprite[0x29:0x2A]), "little", signed=True)
+        left = _s16(sprite, 0x20) + _s16(sprite, 0x24) + corner_x
+        top = _s16(sprite, 0x22) + _s16(sprite, 0x26) + corner_y
+        if flags & 0x02:
+            left += _s16(read_symbol("gSpriteCoordOffsetX", size=2), 0)
+            top += _s16(read_symbol("gSpriteCoordOffsetY", size=2), 0)
+        return lit_pixels(left, top, -2 * corner_x, -2 * corner_y, radius)
 
     @staticmethod
     def _tile(player: PlayerState, x: int, y: int, block: int, border: bytes, primary: bytes, secondary: bytes,
@@ -1176,8 +1223,10 @@ class FrameworkEyes:
             x, y = event.current_coords
             if self.crop and not in_view(player.x, player.y, x, y):
                 continue
-            if not lit(x - player.x, y - player.y, radius):
-                continue  # (round 7, N6-1) a person in the dark is not seen: black on screen
+            if radius is not None and self._drawn_lit(event.sprite_id, radius) < SEEN_PIXELS:
+                # (round 7, N6-1) a person in the dark is not seen: black on screen. (Round 8, V7-1) judged by the sprite
+                # the screen DRAWS (16 x 32 for a person), not by the feet tile alone: as lit as a seen tile is seen
+                continue
             seen.append(SeenObject(
                 kind=object_kind(event.graphics_id), x=x, y=y, dx=x - player.x,
                 dy=y - player.y, local_id=event.local_id, graphics_id=event.graphics_id,
@@ -1185,14 +1234,16 @@ class FrameworkEyes:
             ))
         return seen
 
-    def _signs(self, player: PlayerState, signs: tuple, radius: int | None = None) -> list[SeenObject]:
+    def _signs(self, player: PlayerState, signs: tuple, radius: int | None = None,
+               shift: tuple[int, int] = (0, 0)) -> list[SeenObject]:
         """Interactable tiles of the map (`MapBgEvent` kind Script: signposts, PCs, bookshelves). Hidden
-        items are never here: nobody can see them. (Round 7, N6-1) Nor is a sign in the dark."""
+        items are never here: nobody can see them. (Round 7, N6-1) Nor is a sign in the dark. (Round 8) A sign is drawn as
+        a map TILE (the BG layers, no sprite), so the tile rule is its rule, placed as the tiles are (`shift`)."""
         seen = []
         for (x, y), elevation in signs:
             if self.crop and not in_view(player.x, player.y, x, y):
                 continue
-            if not lit(x - player.x, y - player.y, radius):
+            if not lit(x - player.x, y - player.y, radius, shift):
                 continue
             seen.append(SeenObject(kind="sign", x=x, y=y, dx=x - player.x, dy=y - player.y, local_id=-1,
                                    graphics_id=-1, facing=None, elevation=elevation, source="bg_event"))

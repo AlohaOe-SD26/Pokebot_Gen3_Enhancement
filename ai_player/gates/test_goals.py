@@ -11239,10 +11239,18 @@ class Round7HealTests(unittest.TestCase):
                 Round5HealTests.link(world, keys["DEWFORD_TOWN"], keys["DEWFORD_TOWN_GYM"])
                 seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const=start,
                             map_number=1 if start == "DEWFORD_TOWN" else 3)
-                walks, looks = [], []
+                walks, looks, ends = [], [], []
+                # (round 8, the round-7 verifier's VM-E survived) the walk out ENDS on arriving in the town, before the look
+                # begins, though the centre is not seen yet: its done check, asked of a look still in the gym and of one on
+                # the town (no centre door known yet)
+                in_gym = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const="DEWFORD_TOWN_GYM",
+                              map_number=3)
+                in_town = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const="DEWFORD_TOWN",
+                               map_number=1)
 
                 def travel(target, why, budget, done):
                     walks.append(target)
+                    ends.append((done(in_gym), done(in_town)))
                     world._last.key = keys[target]  # noqa: SLF001 - out of the gym's door, on the town
                     yield
                     return "done: travel"
@@ -11264,6 +11272,7 @@ class Round7HealTests(unittest.TestCase):
                 ok, outcome = drive(runner.pursue(goal, mgr.story.milestones[index], index, lambda observation: index))
                 self.assertTrue(ok, outcome)
                 self.assertEqual(walks, ["DEWFORD_TOWN"] if start == "DEWFORD_TOWN_GYM" else [])
+                self.assertEqual(ends, [(False, True)] if start == "DEWFORD_TOWN_GYM" else [])
                 self.assertEqual(looks, [(CENTER_LOOK_FRAMES, False, True)])
                 self.assertIn("its door seen on DEWFORD_TOWN", outcome)
                 after = mgr.next_goal(seen, world, mgr.story.milestones[index], index)
@@ -11330,6 +11339,33 @@ class Round7HealTests(unittest.TestCase):
         self.assertNotIn(goal.kind, ("heal", "find_center"), goal.reason)
         goal = self.top_up_in("DEWFORD_TOWN_GYM", way_out=False)
         self.assertEqual((goal.kind, goal.map, goal.via), ("find_center", "DEWFORD_TOWN", "0:1"), goal.reason)
+
+    def test_h5_a_building_whose_way_out_is_a_route_has_no_town(self):
+        """(Round 8, the round-7 verifier's V7-3: its mutant VM-D, the ROUTE filter dropped, survived) `_building_town`
+        passes over a way out to a ROUTE: a top-up inside MR. BRINEY's cottage (ROUTE104_MR_BRINEYS_HOUSE, chapters 5-6),
+        whose only known way out is ROUTE 104, gives (None, None), and its first goal neither looks for a POKéMON CENTER on
+        the route nor heals (the only centre known, RUSTBORO's, has no known way; grass is seen only where no known way
+        leads, so it cannot train). CONTROL: the same cottage with its known way out to DEWFORD_TOWN instead gives that town,
+        and the top-up looks for DEWFORD's centre."""
+        from ai_player.brain.goals import GoalManager
+
+        for out_to, expected in (("ROUTE104", (None, None)), ("DEWFORD_TOWN", ("0:1", "DEWFORD_TOWN"))):
+            with self.subTest(out_to=out_to):
+                mgr = manager("Trainer")
+                cottage = "ROUTE104_MR_BRINEYS_HOUSE"
+                world = world_with("DEWFORD_TOWN", cottage, "ROUTE104", "RUSTBORO_CITY", current=cottage,
+                                   center_from="RUSTBORO_CITY")
+                keys = {m.const: k for k, m in world.maps.items()}
+                world.maps[keys["RUSTBORO_CITY"]].tiles[(3, 3)] = Round5HealTests.GRASS  # seen, no known way to it
+                world.warps[f"{keys[cottage]}|5,8"] = {"to": keys[out_to], "arrival": [12, 6], "uses": 1, "inferred": False}
+                self.assertEqual(GoalManager._building_town(world), expected)  # noqa: SLF001
+                seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const=cottage, map_number=2)
+                index, milestone = mgr.milestone(seen, visited_in(world))
+                goal = mgr.next_goal(seen, world, milestone, index)
+                if out_to == "ROUTE104":
+                    self.assertNotIn(goal.kind, ("heal", "find_center"), goal.reason)
+                else:
+                    self.assertEqual((goal.kind, goal.map, goal.via), ("find_center", "DEWFORD_TOWN", "0:1"), goal.reason)
 
 
 class _Questions(_Question):

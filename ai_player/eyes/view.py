@@ -61,6 +61,7 @@ __all__ = [
     "SAVE_BLOCK_1_FLASH_LEVEL",
     "SAVE_BLOCK_1_VARS",
     "SCRIPT_CONTEXT_SHUTDOWN",
+    "SEEN_PIXELS",
     "STORY_FLAGS",
     "TALL_GRASS_BEHAVIORS",
     "TEXT_FLAG_AUTO_SCROLL",
@@ -81,12 +82,14 @@ __all__ = [
     "hp_bar_pixels",
     "in_view",
     "lit",
+    "lit_pixels",
     "milestone_marks",
     "movement_mode",
     "object_kind",
     "script_waits_for_button",
     "settled_position",
     "status_name",
+    "step_offset",
     "text_printer_wait",
     "view_offsets",
     "visible_id",
@@ -177,15 +180,51 @@ def flash_window(radius: int) -> dict[int, tuple[int, int]]:
     return _WINDOWS[radius]
 
 
-def lit(dx: int, dy: int, radius: int | None) -> bool:
+def lit(dx: int, dy: int, radius: int | None, shift: tuple[int, int] = (0, 0)) -> bool:
     """Is the tile (dx, dy) from the player inside the lit circle the screen draws (`flash_window`)? Its MIDDLE pixel
     (120 + 16 dx, 80 + 16 dy) must be lit, so a tile the AI sees is at least partly on screen; a tile only grazed by the
     circle's rim (a few pixels of its edge) is not seen. At flash level 7 (24 px) that is the player's tile and the 8 round
-    it; at level 1 (72 px, FLASH used) 69 tiles of the window. `radius` None (a lit map): every tile."""
+    it; at level 1 (72 px, FLASH used) 69 tiles of the window. `radius` None (a lit map): every tile. (Round 8, V7-2)
+    `shift`: where the screen draws the player's tile, in pixels from where it is drawn standing still (`step_offset`: up
+    to 15 px while a step is in progress), so the circle is placed on the map as the screen draws it. LIMIT: a tile exactly
+    half lit at the circle's widest row (r = 32, 48, 64: dx = -r/16 and +r/16) is seen on the left and not on the right
+    (the middle pixel 120 + 16 dx is right of the tile's true centre, 119.5 + 16 dx); either verdict is half the screen's."""
     if radius is None:
         return True
-    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy, (0, 0))
-    return left <= FLASH_CENTRE[0] + 16 * dx < right
+    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy + shift[1], (0, 0))
+    return left <= FLASH_CENTRE[0] + 16 * dx + shift[0] < right
+
+
+def step_offset(camera: int) -> int:
+    """(Chapter 6 stops round 8, the round-7 verifier's V7-2) How many pixels from its standing-still place the screen
+    draws the player's tile along one axis, from the field camera's pixel offset inside a step (`gFieldCamera.x` or `.y`,
+    struct CameraObject): `CameraUpdate` (src/field_camera.c) moves the camera's TILE (save block 1's pos) at the step's
+    FIRST frame and its pixels one frame at a time, so a look while a step is in progress has the player's tile (the step's
+    destination) still up to 15 px off the screen's middle; `SetSpritePosToMapCoords` (src/event_object_movement.c) places
+    a sprite on a map tile by the same rule (+16 when the offset is positive, -16 when negative, minus the offset). 0 when
+    the camera stands still."""
+    return (16 if camera > 0 else -16 if camera < 0 else 0) - camera
+
+
+#: (Chapter 6 stops round 8, the round-7 verifier's V7-1) A PERSON (a map object's sprite) on a dark map is seen when at
+#: least this many pixels of the rectangle the screen draws their sprite in are lit (`lit_pixels`): the fewest lit pixels of
+#: any tile the tile rule (`lit`) sees, at any flash level at rest (124 of 256: the tile 2 rows above the player under the
+#: 32 px circle's top; `gates/test_eyes.py` DarkTests.test_d4 derives it). So a person is seen by the light that is enough
+#: to see a tile: a 16 x 32 person drawn largely in the light with a dark feet tile (up to 72% of their sprite, round 7's
+#: rim ring) is seen, a person whose feet tile is seen is always seen (their sprite holds that tile), and a sprite the
+#: circle only grazes is not. The rectangle is symmetric about its middle, so mirror places get the same verdict.
+SEEN_PIXELS = 124
+
+
+def lit_pixels(left: int, top: int, width: int, height: int, radius: int) -> int:
+    """How many pixels of the screen rectangle (`left`, `top`, `width` x `height`) the screen draws lit: on the screen
+    (0..239 x 0..159) and inside the circle (`flash_window`)."""
+    window = flash_window(radius)
+    count = 0
+    for y in range(max(top, 0), min(top + height, 160)):
+        low, high = window.get(y, (0, 0))
+        count += max(0, min(high, left + width, 240) - max(low, left, 0))
+    return count
 
 
 # ------------------------------------------------------------------------------------------- tiles

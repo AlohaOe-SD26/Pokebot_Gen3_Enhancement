@@ -2918,6 +2918,13 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
     'G688': (CAUGHT, "VR6-4: next_goal's call of `_building_town` deleted (no building's town is ever known)",
              [('brain/goals.py', '                    town_key, town = self._building_town(world)\n', '                    town_key, town = None, None  # MUTANT G688\n')],
              ['Round7HealTests.test_h1_a_top_up_inside_the_gym_looks_for_its_towns_centre', 'Round7HealTests.test_h4_the_buildings_town_by_its_way_out_or_a_gyms_own_name']),
+    # (chapter 6 stops round 8, the builder, 2026-11-07 (s53/ch6stops8/mutants8.py): predictions written and hashed (s53/ch6stops8/prediction_mutants8.txt, sha256 2419684466116676...) BEFORE the run: V7-3 G689-G690, the round-7 verifier's VM-D and VM-E)
+    'G689': (CAUGHT, "V7-3 (the round-7 verifier's VM-D): `_building_town` takes a way out to a ROUTE for the town (a top-up in MR. BRINEY's cottage looks for a centre on ROUTE 104)",
+             [('brain/goals.py', ' and OUTDOOR.match(memory.const) and not memory.const.startswith("ROUTE"):\n', ' and OUTDOOR.match(memory.const):  # MUTANT G689\n')],
+             ['Round7HealTests.test_h5_a_building_whose_way_out_is_a_route_has_no_town']),
+    'G690': (CAUGHT, "V7-3 (the round-7 verifier's VM-E): the walk out of the building does not end on arriving in the town (its map check dropped from the done check)",
+             [('brain/goals.py', 'lambda look: moved_on(look) or manager.center_seen_on(goal.via)\n                                                  or (look.player is not None and look.player.map_const == goal.map))\n', 'lambda look: moved_on(look) or manager.center_seen_on(goal.via))  # MUTANT G690\n')],
+             ['Round7HealTests.test_h2_the_look_walks_out_to_the_town_first']),
 }
 
 DRIVER = '''
