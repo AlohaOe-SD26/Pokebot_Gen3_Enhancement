@@ -55,7 +55,9 @@ read, a hidden fact, an unclassified knowledge key) and on mentions.
 
 LIMITS. Static analysis cannot follow a value: a marks dict a door hands on (as an argument) to an errand is not traced (the
 door's purpose is the review point, and the flag-name rule refuses the errand's key); a key name that is AI-visible in one
-file and developer-only in another (`id`, `map`, `metatile`) is not refused by name (its developer paths are still marked);
+file and developer-only in another (`id`, `map`, `metatile`; and `fight`, AI in milestones.json, developer-only in
+bosses.json: the atlas's reads of bosses.json are pinned by name instead, `test_kb2.py` NotReadTests.test_k_f3c) is not
+refused by name (its developer paths are still marked);
 and the developer-only key NAMES (`x`, `y`, `state`, `line`, ...) are refused in every dict the deciding code reads, so a
 dict of the AI's own that wants one of those names must use another (the price of a rule by name).
 """

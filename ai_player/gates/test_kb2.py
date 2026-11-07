@@ -1257,6 +1257,36 @@ class NotReadTests(unittest.TestCase):
         found = plant(unclassified)
         self.assertTrue(any("world/bosses.json" in f and "UNCLASSIFIED" in f and "secret_flag" in f for f in found), found)
 
+    def test_k_f3c_the_atlas_reads_only_role_name_and_battled_on_of_bosses_json(self):
+        """(chapter 7 stops round 4, the round-3 verifier's V3-6, 2026-11-06) `bosses[].fight` is DEVELOPER in bosses.json
+        but AI in milestones.json (`milestones[].fight`), so the gate's by-name rule cannot refuse it (its documented
+        limit). The atlas's reads of the file are pinned by NAME instead: every key `gym_leaders` subscripts or `.get`s on
+        the file's data or a boss is one of `bosses`, `role`, `name`, `battled_on`. FAULT half: a planted
+        `boss["fight"]` (or `boss.get("badge")`) is seen by the same reading."""
+        import ast as ast_
+
+        def keys_read(source: str) -> set[str]:
+            tree = ast_.parse(source)
+            func = next(node for node in ast_.walk(tree) if isinstance(node, ast_.FunctionDef) and node.name == "gym_leaders")
+            found = set()
+            for node in ast_.walk(func):
+                if isinstance(node, ast_.Subscript) and isinstance(node.value, ast_.Name) and node.value.id in ("data", "boss") \
+                        and isinstance(node.slice, ast_.Constant) and isinstance(node.slice.value, str):
+                    found.add(node.slice.value)
+                if isinstance(node, ast_.Call) and isinstance(node.func, ast_.Attribute) and node.func.attr == "get" \
+                        and isinstance(node.func.value, ast_.Name) and node.func.value.id in ("data", "boss") and node.args \
+                        and isinstance(node.args[0], ast_.Constant):
+                    found.add(node.args[0].value)
+            return found
+
+        source = (REPO / "ai_player" / "knowledge" / "atlas.py").read_text(encoding="utf-8")
+        self.assertEqual(keys_read(source), {"bosses", "role", "name", "battled_on"})
+        planted = source.replace('leaders[str(boss["name"])]', 'leaders[str(boss["name"]) + str(boss["fight"])]', 1)
+        self.assertNotEqual(planted, source)
+        self.assertIn("fight", keys_read(planted))  # FAULT half
+        planted = source.replace('boss.get("role")', 'boss.get("badge") and boss.get("role")', 1)
+        self.assertIn("badge", keys_read(planted))
+
     def test_v1_warps_and_connections_are_classified_leaf_by_leaf(self):
         """(The round-1 verifier's V1, 2026-10-31) `maps[].warps` and `maps[].connections` were SUBTREE entries, so a key
         planted under a warp (`warps[].script`, the verifier's gate mutant M4) passed RULE B unmarked. Every leaf under

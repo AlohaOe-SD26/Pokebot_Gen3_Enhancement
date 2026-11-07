@@ -207,6 +207,7 @@ __all__ = [
     "LOST_KEYS",
     "OUT_OF_IDEAS",
     "OWN_PERSON_KINDS",
+    "PREP_WALK_KINDS",
     "SPOKE_REACH",
     "UNREACHABLE",
     "Goal",
@@ -294,6 +295,11 @@ STORY_KINDS = ("intro", "go", "ask", "talk", "use", "follow", "find", "seek", "l
 #: (chapter 7 NS3, 2026-11-06) the goals whose walk is the walk TO someone, or a heal, a save or a scene: every other goal's
 #: walk stops when the one the story's next step names comes into view on that step's map (`GoalRunner.story_in_view`)
 OWN_PERSON_KINDS = ("talk", "use", "seek", "find", "heal", "find_center", "save", "intro", "follow")
+#: (chapter 7 stops round 4, V3-3, 2026-11-06) the walks that PREPARE for a fight: while the story's next step is a fight,
+#: they are not stopped when its person comes into view (a party short of the leader's levels, in his gym with him in
+#: view, walks out to the grass to train; stopped at its first look, the goal failed and training was put aside). With a
+#: talk next (STEVEN), they stop as every errand does
+PREP_WALK_KINDS = ("train", "catch")
 ASIDE = "aside:"
 #: (build step 5.1) The ERRAND kinds (the intent mix the graders count: `gates/rate_step5.py`).
 ERRAND_KINDS = ("heal", "find_center", "shop", "train", "catch", "pick_up", "chat", "explore", "detour")
@@ -1326,12 +1332,21 @@ class GoalManager:
             # TRAINING only; healing before the fight stays, so the fault arm measures training alone: the step-5
             # verifier, 2026-10-14, found it removed both)
             ready = self.train_off or bool(self.prep(milestone).get("ready"))
-            before_fight = fight_next and share < HEAL_BEFORE_FIGHT and ready
+            # (chapter 7 stops round 4, V3-1, 2026-11-06) TRAINED and READY FOR THE FIGHT are two things. A party that
+            # cannot train where it stands (it has seen grass, but no known way leads to any: `grass_target` "out of
+            # reach", the island before a way back is known) is as ready as it will get, so it tops up before the fight
+            # all the same; `prep["ready"]` (trained, or training put aside) is NOT set by this. MEASURED (probe #104):
+            # with the heal tied to `prep["ready"]` alone, C3 talked to BRAWLY at 77% of its HP and C2 at 89.9%
+            cannot_train = (fight_next and share < HEAL_BEFORE_FIGHT and not ready
+                            and grass_target(world, milestone.maps)[0] == "out of reach")
+            before_fight = fight_next and share < HEAL_BEFORE_FIGHT and (ready or cannot_train)
             if hurt or before_fight:
                 where = self.heal_place(world)
                 why = ("a Pokemon has fainted" if fainted else f"the party is at {share:.0%} of its HP"
                        + (f" (under {errands.heal_below:.0%})" if share < errands.heal_below else "")
-                       + ("; a known fight is next" if before_fight else ""))
+                       + ("; a known fight is next" if before_fight else "")
+                       + (" (it cannot train here: no known way leads to grass)" if before_fight and cannot_train
+                          else ""))
                 town = here_const if here_const and OUTDOOR.match(here_const) and not here_const.startswith("ROUTE") \
                     else None
                 if (where is not None and town is not None and self._place_key(world, where) not in (None, world.current)
@@ -2155,6 +2170,10 @@ class GoalRunner:
         # letter for STEVEN who walks into his room speaks to him (probe7 C2 walked into STEVEN's room on a shop errand
         # and out again 198 frames later; C1 did it under a go goal that looked round)
         stops = goal.kind not in OWN_PERSON_KINDS and hasattr(nav, "stop_for")
+        # (chapter 7 stops round 4, V3-3) never a walk that prepares for the fight the story's next step is
+        # (`PREP_WALK_KINDS`): with BRAWLY in view in his gym, a training walk out to the grass goes on
+        if stops and goal.kind in PREP_WALK_KINDS and self.manager.fight_levels(milestone)[0]:
+            stops = False
         if stops:
             nav.stop_for = lambda look: self.story_in_view(look, milestone)
         try:
@@ -2222,8 +2241,10 @@ class GoalRunner:
         (`skills/story.py` talk_to, which meets a walker the way it does), and the travel answer says YES to the trip the
         ride is known for (`TravelSense.riding`); a person who asks something else is answered by the ordinary rules.
         Returns "rode ..." once the controls are back on another map, or why not; a ride not taken (the person not on
-        the screen, or the talk left the player free on the map it began on) is put aside until there is news
-        (`WorldMemory.close_ride`)."""
+        the screen, or the talk ended on the map it began on, free or held there by a menu left open) is put aside until
+        there is news (`WorldMemory.close_ride`). (Chapter 7 stops round 4, V3-4, 2026-11-06) "rode" is said only once
+        the map has changed: with the screen still held on the same map (MR. BRINEY's multichoice once both deliveries are
+        done, `data/maps/Route104_MrBrineysHouse/scripts.inc`), the base said "rode" and put nothing aside."""
         world, hands = self.nav.world, self.hands
         name = target.ride
         ride = world.rides.get(name) if name is not None else None
@@ -2246,9 +2267,11 @@ class GoalRunner:
         finally:
             if self.travel is not None:
                 self.travel.riding = None
-        if world.current == began and nav_free(hands.look()):
-            world.close_ride(name, f"talked ({outcome}) and was not carried off", hands.last.frame if hands.last else 0)
-            return f"not taken: {outcome}; still on {world.names().get(began, began)}"
+        if world.current == began:
+            held = "" if nav_free(hands.look()) else " (the screen still held there)"
+            world.close_ride(name, f"talked ({outcome}) and was not carried off{held}",
+                             hands.last.frame if hands.last else 0)
+            return f"not taken: {outcome}; still on {world.names().get(began, began)}{held}"
         return f"rode: {outcome}; now on {world.names().get(world.current, world.current)}"
 
     def _out_of_ideas(self, milestone: Milestone, why: str, said: list[str]) -> None:

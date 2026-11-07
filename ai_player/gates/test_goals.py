@@ -9643,6 +9643,18 @@ class Round3GymTests(unittest.TestCase):
         self.assertNotEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")  # out of reach: no training
         # (round 3, the second builder) and the training is NOT taken as done ("ready") because the grass was out of reach
         self.assertFalse(mgr.prep(milestone)["ready"])
+        # (round 4, V3-1) but the HEAL before the fight is chosen all the same: the party at 75% (over its heal line, under
+        # HEAL_BEFORE_FIGHT), a centre known on the island, the grass out of reach: it tops up first, and the record still
+        # says it did not train (`prep["ready"]` False: trained and ready for the fight are kept apart)
+        island = world_with("DEWFORD_TOWN", "ROUTE104", current="DEWFORD_TOWN", center_from="DEWFORD_TOWN")
+        island.maps["0:2"].tiles[(3, 3)] = grass
+        hurt = look(ch_proofs("ch7_brawly"), party=[mon(10, hp=15, max_hp=20)], const="DEWFORD_TOWN", map_number=1)
+        healer = manager("Trainer")
+        h_index, h_milestone = healer.milestone(hurt, visited_in(island))
+        goal = healer.next_goal(hurt, island, h_milestone, h_index)
+        self.assertEqual(goal.kind, "heal", goal.reason)
+        self.assertIn("a known fight is next (it cannot train here", goal.reason)
+        self.assertFalse(healer.prep(h_milestone)["ready"])
         world.connections.append({"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
                                   "offset": [0, 10], "by": "ai", "frame": 1})
         self.assertEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")  # CONTROL: reachable, as before
@@ -9677,6 +9689,290 @@ class Round3GymTests(unittest.TestCase):
         world._last.key = "0:2"  # noqa: SLF001 - on ROUTE104
         self.assertEqual(grass_target(world), ("here", None))
         self.assertIsNone(runner._grass_map(milestone))  # noqa: SLF001
+
+
+from ai_player.brain.goals import Goal, GoalRunner  # noqa: E402 - (round 4) the goal runner's tests below
+
+
+class _GymEyes(_CottageEyes):
+    """(chapter 7 stops round 4, V3-3) The cottage simulation as a GYM: the eyes name the map `const` and every person
+    wears `gfx` (the leader's figure), so the story's next step sees its leader in view."""
+
+    def __init__(self, sim: _Cottage, const: str, gfx: int, marks: dict) -> None:
+        super().__init__(sim)
+        self.base = look(marks, party=[mon(8)], const=const, map_number=17)
+        self.gfx = gfx
+
+    def look(self) -> Observation:
+        seen = super().look()
+        objects = tuple(replace(o, graphics_id=self.gfx) for o in seen.view.objects)
+        return replace(seen, view=replace(seen.view, objects=objects))
+
+
+class Round4Tests(unittest.TestCase):
+    """(chapter 7 stops round 4, 2026-11-06) The round-3 verifier's findings. V3-1 (MAJOR): with grass out of reach (the
+    island), the party was never 'ready', so the heal before a known fight never fired (probe #104: C3 talked to BRAWLY at
+    77% of its HP, C2 at 89.9%): trained and ready for the fight are now two things (`next_goal`'s `cannot_train`). V3-3:
+    NS3's stop was given to a TRAINING walk with a fight next (`PREP_WALK_KINDS`). V3-4: `GoalRunner.ride` said "rode"
+    with the screen held on the same map. V3-7: the rides' untested guards (a closed ride offered again; `SPEAKER_REACH`).
+    Mutants: `revert_step5.py` G614-G623 (and G591, re-anchored on V3-4's changed line)."""
+
+    CENTRE_LINK = {"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
+                   "offset": [0, 10], "by": "ai", "frame": 1}
+    GRASS = TileFact(False, False, True, True, None, False, False, 3, "TALL_GRASS", 0, (0, 0))
+
+    def island(self, reachable: bool = False, milestone_id: str = "ch7_brawly", hp: int = 15, personality="Trainer",
+               steps: int = 0, train_allowed: bool = True, ready: bool = False):
+        """The verifier's VT1: DEWFORD, its centre known, ROUTE104's grass seen (a known way to it or not), the party at
+        `hp`/20 (75%: over the Trainer's heal line, under HEAL_BEFORE_FIGHT). Returns the first two decisions' goals and
+        whether the record says it trained (`prep["ready"]`)."""
+        mgr = manager(personality)
+        world = world_with("DEWFORD_TOWN", "ROUTE104", current="DEWFORD_TOWN", center_from="DEWFORD_TOWN")
+        world.maps["0:2"].tiles[(3, 3)] = self.GRASS
+        if reachable:
+            world.connections.append(dict(self.CENTRE_LINK))
+        seen = look(ch_proofs(milestone_id), party=[mon(30, hp=hp, max_hp=20)], const="DEWFORD_TOWN", map_number=1)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, milestone_id)
+        errands = mgr.state.errands
+        self.assertLess(errands.heal_below, 0.75)
+        mgr.prep(milestone)["steps"] = steps
+        mgr.prep(milestone)["ready"] = ready
+        patch = (contextlib.nullcontext() if train_allowed else
+                 mock.patch.object(mgr, "_allowed", lambda key, real=mgr._allowed: False if key == "train" else real(key)))
+        goals = []
+        with patch:
+            for _ in range(2):
+                goals.append(mgr.next_goal(seen, world, milestone, index))
+        return goals, bool(mgr.prep(milestone)["ready"]), mgr
+
+    def test_v1_the_heal_before_a_fight_fires_where_it_cannot_train(self):
+        """V3-1, the verifier's VT1 as a test. FAULT (the round-3 defect): on the island, untrained, the grass out of reach,
+        the party at 75%: the FIRST decision is the heal before the fight, saying why; training put aside (cooled down) the
+        same; the record still says it did not train. CONTROLS: grass a known way leads to and untrained: training first,
+        as before (no heal first); trained there: the heal on the second decision (VT1's own CONTROL); the party at 90% or
+        more: no heal; a talk next (STEVEN), not a fight: no heal before a fight."""
+        for train_allowed in (True, False):
+            with self.subTest(train_allowed=train_allowed):
+                goals, ready, _ = self.island(train_allowed=train_allowed)
+                self.assertEqual(goals[0].kind, "heal", goals[0].reason)
+                self.assertIn("a known fight is next (it cannot train here: no known way leads to grass)", goals[0].reason)
+                self.assertFalse(ready)
+        goals, ready, mgr = self.island(reachable=True)
+        self.assertEqual(goals[0].kind, "train", goals[0].reason)  # CONTROL: it can train: training first
+        goals, ready, mgr = self.island(reachable=True, steps=mgr.state.errands.train_min_steps + 10)
+        self.assertNotEqual(goals[0].kind, "heal", goals[0].reason)  # CONTROL (VT1): trained, judged on the first ...
+        self.assertEqual(goals[1].kind, "heal", goals[1].reason)  # ... and the heal before the fight on the second
+        self.assertNotIn("cannot train here", goals[1].reason)
+        self.assertTrue(ready)
+        goals, _, _ = self.island(hp=18)  # 90%: not under HEAL_BEFORE_FIGHT
+        self.assertNotIn("heal", [g.kind for g in goals])
+        goals, _, _ = self.island(milestone_id="ch7_steven")
+        self.assertNotIn("heal", [g.kind for g in goals])
+        # CONTROL: a party already judged ready (trained) on the island heals because it is READY; its reason does not
+        # claim it cannot train (the island's words are only for a party that has not trained)
+        goals, ready, _ = self.island(ready=True)
+        self.assertEqual(goals[0].kind, "heal", goals[0].reason)
+        self.assertNotIn("cannot train here", goals[0].reason)
+        self.assertTrue(ready)
+
+    def test_v1b_control_in_danger_it_heals_as_before(self):
+        """CONTROL: under its heal line (the Trainer's) the heal comes first as before (its reason names the line; the
+        island's words are added since a fight is next there too)."""
+        goals, _, mgr = self.island(hp=5)
+        self.assertEqual(goals[0].kind, "heal")
+        self.assertIn(f"(under {mgr.state.errands.heal_below:.0%})", goals[0].reason)
+
+    def leader_runner(self, leader: str, milestone_id: str, gym: str, number: int):
+        town = gym.rsplit("_GYM", 1)[0]
+        mgr = manager("Trainer")
+        world = world_with(town, gym, current=gym, grass=True)
+        who = person(11, 10, gfx=mgr.story.looks[leader].gfx[0], local_id=1)
+        seen = look(ch_proofs(milestone_id), party=[mon(8)], const=gym, map_number=number, objects=(who,))
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        nav = Navigator(None, world, random.Random(1))
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: seen), nav, mgr, None, lambda line: None)
+        return mgr, world, seen, index, milestone, nav, runner
+
+    def stops_given(self, runner, nav, seen, milestone, index, kinds):
+        from ai_player.brain import goals as goals_module
+
+        captured = {}
+
+        def fake_pursue(goal_, milestone_, index_, current_):
+            captured[goal_.kind] = nav.stop_for(seen) if nav.stop_for is not None else None
+            return False, "x"
+            yield  # noqa: unreachable - a generator
+
+        with mock.patch.object(goals_module.GoalRunner, "_pursue", lambda self_, *a: fake_pursue(*a)):
+            for kind in kinds:
+                drive(runner.pursue(Goal(kind, "r", milestone.id), milestone, index, lambda s: index), budget=10)
+        return captured
+
+    def test_v3_a_training_walk_is_not_stopped_by_the_leader_in_view(self):
+        """V3-3, the verifier's VT8. ROXANNE (chapter 4) and BRAWLY (chapter 7) in view in their gyms, the party short: the
+        decision is to train (as before), the leader IS in view (`story_in_view`), and the training walk is NOT given the
+        stop; a go walk still is (it stops for the leader, as NS3 meant). FAULT half: no `PREP_WALK_KINDS` (the round-3
+        code): the training walk is given the stop."""
+        from ai_player.brain import goals as goals_module
+
+        for leader, milestone_id, gym, number in (("roxanne", "ch4_roxanne", "RUSTBORO_CITY_GYM", 2),
+                                                  ("brawly", "ch7_brawly", "DEWFORD_TOWN_GYM", 2)):
+            with self.subTest(leader=leader):
+                mgr, world, seen, index, milestone, nav, runner = self.leader_runner(leader, milestone_id, gym, number)
+                self.assertEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")
+                self.assertIsNotNone(runner.story_in_view(seen, milestone))
+                given = self.stops_given(runner, nav, seen, milestone, index, ("train", "catch", "go", "explore"))
+                self.assertEqual({k: v is not None for k, v in given.items()},
+                                 {"train": False, "catch": False, "go": True, "explore": True})
+                with mock.patch.object(goals_module, "PREP_WALK_KINDS", ()):
+                    given = self.stops_given(runner, nav, seen, milestone, index, ("train",))
+                self.assertIsNotNone(given["train"])  # FAULT half: the round-3 code's stop
+
+    def test_v3b_control_with_a_talk_next_a_catch_walk_still_stops(self):
+        """CONTROL: STEVEN next (a talk, no fight), in view in his room: a catch walk and a training walk are given NS3's
+        stop as before (PREP_WALK_KINDS only while the next step is a fight)."""
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", "GRANITE_CAVE_STEVENS_ROOM", current="GRANITE_CAVE_STEVENS_ROOM")
+        steven = person(10, 7, gfx=mgr.story.looks["steven"].gfx[0], local_id=1)
+        seen = look(ch_proofs("ch7_steven"), const="GRANITE_CAVE_STEVENS_ROOM", map_number=2, objects=(steven,))
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_steven")
+        nav = Navigator(None, world, random.Random(1))
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: seen), nav, mgr, None, lambda line: None)
+        given = self.stops_given(runner, nav, seen, milestone, index, ("catch", "train"))
+        self.assertTrue(all(v is not None for v in given.values()), given)
+
+    def test_v3c_a_training_walk_is_driven_out_of_the_gym_with_brawly_in_view(self):
+        """V3-3 DRIVEN: the gym as the cottage simulation, BRAWLY standing in view, the navigator's own walk (`Navigator.run`)
+        with the stop `pursue` gives each goal. The training walk walks on (no "stopped:"); the go walk stops at its first
+        look ("stopped: BRAWLY ... is in view"). FAULT half: `PREP_WALK_KINDS` emptied: the training walk is stopped too."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import travel_intent
+
+        mgr = manager("Trainer")
+        marks = ch_proofs("ch7_brawly")
+        gfx = mgr.story.looks["brawly"].gfx[0]
+
+        def walk(kind: str) -> str:
+            sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+            world = cottage_world()
+            world.maps["0:17"].const = "DEWFORD_TOWN_GYM"
+            hands = Hands(_GymEyes(sim, "DEWFORD_TOWN_GYM", gfx, marks), _CottageControls(sim), random.Random(1),
+                          random.Random(1), None, lambda line: None)
+            hands.watchers.append(world.observe)
+            nav = Navigator(hands, world, random.Random(1))
+            seen = hands.look()
+            index, milestone = mgr.milestone(seen, visited_in(world))
+            self.assertEqual(milestone.id, "ch7_brawly")
+            runner = GoalRunner(hands, nav, mgr, None, lambda line: None)
+            self.assertIsNotNone(runner.story_in_view(seen, milestone))
+            ended = {}
+
+            def real_walk(goal_, milestone_, index_, current_):
+                ended["outcome"] = yield from nav.run(travel_intent(None, "Trainer", 400, lambda s: False),
+                                                      f"a {goal_.kind} walk")
+                return False, ended["outcome"]
+
+            with mock.patch.object(goals_module.GoalRunner, "_pursue", lambda self_, *a: real_walk(*a)):
+                drive(runner.pursue(Goal(kind, "r", milestone.id), milestone, index, lambda s: index), budget=20000)
+            ended["frames"] = sim.frame
+            return ended["outcome"]
+
+        self.assertTrue(walk("go").startswith("stopped: BRAWLY"), walk("go"))
+        trained = walk("train")
+        self.assertFalse(trained.startswith("stopped:"), trained)
+        self.assertRegex(trained, r"\((?:[1-9]\d*) steps,", "the training walk walked on with BRAWLY in view")
+        with mock.patch.object(goals_module, "PREP_WALK_KINDS", ()):
+            self.assertTrue(walk("train").startswith("stopped: BRAWLY"))  # FAULT half
+
+    def ride_runner(self, talk_outcome: str, free_after: bool, carried_to: str | None = None):
+        """The verifier's VT9: MR. BRINEY's ride known, him in front; the talk (faked) ends `talk_outcome`, the player
+        free or not, on the same map or carried to `carried_to`."""
+        from ai_player.brain import goals as goals_module
+
+        world = world_with("ROUTE104_MR_BRINEYS_HOUSE", "DEWFORD_TOWN", current="ROUTE104_MR_BRINEYS_HOUSE")
+        world.record_ride({"from": "0:1", "to": "0:2", "arrival": [11, 9], "who": 1, "gfx": 5, "tile": [6, 6],
+                           "words": "first, we'll set sail for dewford.", "place": "DEWFORD_TOWN", "via": [], "frame": 10})
+        name = next(iter(world.rides))
+        briney = person(6, 6, gfx=5, local_id=1)
+        seen = look(ch_proofs("ch7_brawly"), const="ROUTE104_MR_BRINEYS_HOUSE", map_number=1, objects=(briney,))
+        hands = types.SimpleNamespace(look=lambda: seen, last=seen)
+        nav = Navigator(None, world, random.Random(1))
+        runner = GoalRunner(hands, nav, manager("Story"), None, lambda line: None)
+
+        def fake_talk(hands_, nav_, target, why):
+            if carried_to is not None:
+                world._last.key = carried_to  # noqa: SLF001 - the scene carried the player off
+            return talk_outcome
+            yield  # noqa: unreachable - a generator
+
+        with mock.patch.object(goals_module, "talk_to", fake_talk), \
+                mock.patch.object(goals_module, "nav_free", lambda look_: free_after):
+            outcome = drive(runner.ride(Target("route", (6, 7), "r", 0.0, None, None, None, name)))
+        return outcome, world.rides[name]
+
+    def test_v4_rode_only_once_the_map_changed(self):
+        """V3-4, the verifier's VT9. The talk ended held on the same map (a multichoice left open): "not taken", the ride
+        put aside (the base said "rode" and put nothing aside). CONTROLS: carried to DEWFORD: "rode", nothing put aside;
+        free on the same map (the person said something else): "not taken", put aside, as before."""
+        outcome, ride = self.ride_runner("talked; then stuck: an unexpected multichoice on screen", free_after=False)
+        self.assertTrue(outcome.startswith("not taken"), outcome)
+        self.assertIn("the screen still held there", outcome)
+        self.assertIn("closed", ride)
+        outcome, ride = self.ride_runner("talked", free_after=True, carried_to="0:2")
+        self.assertTrue(outcome.startswith("rode"), outcome)
+        self.assertNotIn("closed", ride)
+        outcome, ride = self.ride_runner("talked", free_after=True)
+        self.assertTrue(outcome.startswith("not taken"), outcome)
+        self.assertIn("closed", ride)
+
+    def test_v7_a_closed_ride_is_offered_again_after_the_retry_frames_or_when_seen_again(self):
+        """V3-7 (the verifier's VM2, VM3). A ride put aside (`close_ride`) is not offered while nothing new was seen and
+        fewer than `CLOSED_RETRY_FRAMES` frames passed; it is offered again at that many frames, on news, and when the ride
+        is SEEN again (`record_ride` reopens it)."""
+        from ai_player.world.memory import CLOSED_RETRY_FRAMES
+
+        world = WorldMemory()
+        ride = {"from": "0:1", "to": "0:2", "arrival": [11, 9], "who": 1, "gfx": 5, "tile": [6, 6], "words": "w",
+                "place": "DEWFORD_TOWN", "via": [], "frame": 10}
+        world.record_ride(dict(ride))
+        name = next(iter(world.rides))
+        world.close_ride(name, "not carried off", 100)
+        world._last.frame = 100 + CLOSED_RETRY_FRAMES - 1  # noqa: SLF001
+        self.assertEqual(world.rides_from("0:1"), [])
+        world._last.frame = 100 + CLOSED_RETRY_FRAMES  # noqa: SLF001
+        self.assertEqual([n for n, _ in world.rides_from("0:1")], [name])  # the retry frames passed
+        world.close_ride(name, "not carried off", 200)
+        world._last.frame = 300  # noqa: SLF001
+        self.assertEqual(world.rides_from("0:1"), [])
+        world.news += 1
+        self.assertEqual([n for n, _ in world.rides_from("0:1")], [name])  # news since
+        world.close_ride(name, "not carried off", 300)
+        self.assertEqual(world.rides_from("0:1"), [])
+        world.record_ride(dict(ride, frame=310))  # seen again
+        self.assertNotIn("closed", world.rides[name])
+        self.assertEqual([n for n, _ in world.rides_from("0:1")], [name])
+
+    def test_v7b_the_one_who_asks_stands_at_most_two_tiles_ahead(self):
+        """V3-7 (the verifier's VM7): `SPEAKER_REACH` 2, pinned: the person straight ahead one tile away is the speaker
+        before one two away; two away (a counter between: the nurse, the clerk) still is; three away is not; one beside the
+        player (not ahead) is not."""
+        from ai_player.brain.rides import SPEAKER_REACH, speaker_of
+
+        self.assertEqual(SPEAKER_REACH, 2)
+        base = look(const="ROUTE104_MR_BRINEYS_HOUSE", map_number=17)
+
+        def ahead(*people):
+            objects = tuple(SeenObject("npc", 10 + dx, 10 + dy, dx, dy, who, 5, "down", 3, "object")
+                            for who, (dx, dy) in enumerate(people, 1))
+            return replace(base, player=replace(base.player, x=10, y=10, facing="up"),
+                           view=replace(base.view, objects=objects))
+
+        self.assertEqual(speaker_of(ahead((0, -2), (0, -1))).local_id, 2)
+        self.assertEqual(speaker_of(ahead((0, -2))).local_id, 1)
+        self.assertIsNone(speaker_of(ahead((0, -3))))
+        self.assertIsNone(speaker_of(ahead((1, 0))))
 
 
 class Round3WalkerPinTests(unittest.TestCase):

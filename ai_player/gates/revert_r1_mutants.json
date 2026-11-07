@@ -10290,6 +10290,46 @@
     "test_eyes:LiveCallEndTests"
    ],
    "origin": "chapter 6 stops round 3, the second builder, 2026-11-06 (s53/ch6stops3/mutants3_add1.py): predictions written and hashed (s53/ch6stops3/prediction_mutants3_addendum1.txt, sha256 84bb47903cb5e5a0...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S14",
+   "prediction": "CAUGHT",
+   "what": "the battle's end: a battle over by gBattleOutcome is still 'the battle: stuck/budget' when the scene after it holds the screen (the check deleted)",
+   "edits": [
+    [
+     "skills/battle.py",
+     "            if ended is not None:\n",
+     "            if False:  # MUTANT CH6S14\n"
+    ]
+   ],
+   "expected": [
+    "BattleEndHeldTests.test_e1_a_won_battle_whose_scene_holds_the_screen_is_won"
+   ],
+   "suites": [
+    "test_battle:BattleEndHeldTests",
+    "test_battle:SkillTests"
+   ],
+   "origin": "chapter 7 stops round 4, the builder, 2026-11-06 (s53/ch6stops4/mutants4.py): predictions written and hashed (s53/ch6stops4/prediction_mutants4.txt, sha256 8cacf258d4d0cb23...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S15",
+   "prediction": "CAUGHT",
+   "what": "the battle's end: the outcome is read while the game still shows the battle (the in-battle guard deleted)",
+   "edits": [
+    [
+     "skills/battle.py",
+     "            ended = OUTCOMES.get(look.last_battle_outcome) if look is not None and not in_battle(look) else None\n",
+     "            ended = OUTCOMES.get(look.last_battle_outcome) if look is not None else None  # MUTANT CH6S15\n"
+    ]
+   ],
+   "expected": [
+    "BattleEndHeldTests.test_e2_control_a_hold_while_the_game_still_shows_the_battle_is_still_stuck"
+   ],
+   "suites": [
+    "test_battle:BattleEndHeldTests",
+    "test_battle:SkillTests"
+   ],
+   "origin": "chapter 7 stops round 4, the builder, 2026-11-06 (s53/ch6stops4/mutants4.py): predictions written and hashed (s53/ch6stops4/prediction_mutants4.txt, sha256 8cacf258d4d0cb23...) BEFORE the first run"
   }
  ]
 }

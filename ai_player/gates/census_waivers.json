@@ -124,7 +124,7 @@
     {"callee": "brain/navigator.py:Navigator._use", "caller": "*",
      "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) _use changed by one line, `self._entered = None` (an exit is no step to be undone: CH6S9, REDUNDANT ALONE, an exit changes the map and `_undone` asks the same map); its one caller (use_exit) is unchanged."},
     {"callee": "brain/navigator.py:Navigator.handle", "caller": "*",
-     "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) handle changed by one line, `self._entered = None` (CH6S8, REDUNDANT ALONE: the screen and press guards of `_undone` refuse a scene's walk back too); its five callers are unchanged."},
+     "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) handle changed by one line, `self._entered = None`, which is LOAD-BEARING: its mutant CH6S8 (the reset deleted) was measured CAUGHT by SlopeTests.test_s2 in both runs (s53/ch6stops3/mutants3_r1_run1.out, run2.out; it had been predicted REDUNDANT ALONE, and addendum 2 corrected that prediction; this waiver's wording was corrected in round 4, the verifier's V3-5); its five callers are unchanged."},
     {"callee": "brain/navigator.py:Navigator.tell", "caller": "brain/navigator.py:Navigator.run",
      "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) run added one tell line (the ride taken and its outcome, after the rider); tells are the run's log lines, which no decision reads (the exclusion of a ride not taken is G594's, test_r6). The other eight are unchanged."},
     {"callee": "brain/navigator.py:nav_free", "caller": "brain/navigator.py:Navigator.run",
@@ -138,6 +138,10 @@
     {"callee": "brain/navigator.py:Navigator.tell", "caller": "mode.py:HandsBrain._play",
      "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the census lists every tell site of _play because RideWatch's construction added a `hands.tell` (its fallback line printer, used only when the navigator has none); tells are log lines no decision reads, and the construction itself is G595's (test_t9)."},
     {"callee": "world/memory.py:WorldMemory.forget_bump", "caller": "*",
-     "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) forget_bump changed in its body only (a slid way is kept through the step into it: CH6S5, test_s1 and test_s4); its one caller (walk_step) is unchanged."}
+     "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) forget_bump changed in its body only (a slid way is kept through the step into it: CH6S5, test_s1 and test_s4); its one caller (walk_step) is unchanged."},
+    {"callee": "skills/battle.py:_play", "caller": "skills/battle.py:play_battle",
+     "reason": "(chapter 7 stops round 4, 2026-11-06) `_play` changed by one branch at its budget / watchdog end (the game's outcome read once the battle has left the screen: CH6S14 and CH6S15, test_battle BattleEndHeldTests e1 and e2); its one caller, play_battle, is unchanged, and a run with that call deleted ends every battle at once (test_battle SkillTests)."},
+    {"callee": "brain/navigator.py:Navigator.tell", "caller": "skills/battle.py:_play",
+     "reason": "(chapter 7 stops round 4, 2026-11-06) the census lists every tell site of `_play` because the round added one `hands.tell` (the line saying the battle is over by gBattleOutcome while the scene after it holds the screen); tells are the run's log lines, which no decision reads, and the branch itself is CH6S14's (test_e1). The other eleven sites are unchanged."}
   ]
 }

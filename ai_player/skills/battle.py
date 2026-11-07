@@ -154,6 +154,18 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
                        f"{[(m.species, m.level, m.hp, m.max_hp) for m in look.party or ()]}")
             return result
         if outcome.startswith(STUCK) or outcome == "budget":
+            ended = OUTCOMES.get(look.last_battle_outcome) if look is not None and not in_battle(look) else None
+            if ended is not None:
+                # (chapter 7 stops round 4, 2026-11-06; KI-131's mechanism) the BATTLE is over by the game's own word
+                # (gBattleOutcome: 0 while a battle runs) and the screen has left it: what held the screen past the
+                # budget or the watchdog came AFTER it (level-ups and an evolution, then the map's own scene: a gym
+                # leader's badge fanfare and words, which `battle_done` waits through because the player is not free).
+                # The caller plays that scene as any other. MEASURED (probe #104): C2's win over BRAWLY ended "the
+                # battle: budget" 5,411 frames after its last press (three level-ups, the leader's words, an evolution),
+                # C3's "stuck: ... a scene plays" at the badge's fanfare; the game had set BADGE02_GET in both
+                hands.tell(f"battle: over: {ended} (gBattleOutcome {look.last_battle_outcome}); what came after it held "
+                           f"the screen ({outcome}): the scene after the battle is played on")
+                return ended
             return f"the battle: {outcome}"
         kind = outcome[5:] if outcome.startswith("menu:") else outcome
         if kind == BATTLE_ACTION:
