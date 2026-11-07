@@ -65,7 +65,7 @@ from ai_player.runlog import RecordFile
 from ai_player.skills.battle import play_battle
 from ai_player.skills.clock import set_wall_clock
 from ai_player.skills.flee import in_battle
-from ai_player.skills.instructed import GRID_KIND, INSTRUCTED_KINDS, Instructed
+from ai_player.skills.instructed import GRID_KIND, INSTRUCTED_KINDS, Instructed, SceneOpener
 from ai_player.skills.intro import play_intro
 from ai_player.skills.roam_train import roam_train
 from ai_player.skills.saving import SAVE_CLOSE_BUDGET, SAVE_WRITE_BUDGET, continue_game, save_game
@@ -731,6 +731,10 @@ class HandsBrain:
         # (chapter 5) the instructed-choice skill reads the field pages of every look (`skills/instructed.py` read_along)
         self._instructed = Instructed(misstep=options.fault_instructed_misstep)
         hands.watchers.append(self._instructed.read_along)
+        # (chapter 6 stops round 5, VR4-1) whether the AI opened the scene on screen itself (its own A while free, read
+        # from its own presses): a field menu nothing names is backed out of only then (`skills/instructed.py`)
+        self._instructed.opener = SceneOpener(hands.pad)
+        hands.watchers.append(self._instructed.opener.watch)
         look = hands.look()
         story = load_story(look.player.gender if look.player is not None else None)
         manager = GoalManager(story, state, random.Random(f"{seed}:goals"), hints_off=options.fault_no_hints,
@@ -762,6 +766,8 @@ class HandsBrain:
         battle_clock = BattleClock()
         hands.watchers.append(battle_clock)
         runner = GoalRunner(hands, nav, manager, mind, hands.tell)
+        # (round 5, VR4-1) a talk that backed out of a field menu nobody asked for counts as a failed talk
+        runner.backed_out = lambda: self._instructed.backouts
         # (chapter 6 NS1 and NS2, 2026-11-06) a trip a person offers is answered by where its goal is (`TravelSense`), a
         # YES that carries the player away by scenes is kept as a RIDE (`RideWatch`, after the world memory's own watcher),
         # and a ride toward a goal is taken by talking to that person again (`GoalRunner.ride`)
@@ -880,9 +886,19 @@ class HandsBrain:
                                       f"no progress for {hands.pad.frames - changed_at} frames (no milestone, battle won "
                                       f"training, level, new map, catch, item or heal; since {milestone.title})")
             if not nav_free(look):
+                # (chapter 6 stops round 5, VR4-1; KI-132's first fix direction) a FORCED field menu nothing names (still
+                # on screen after the AI backed out of it, or in a scene it did not open: `skills/instructed.py`) ends the
+                # run AT ONCE, with no frame passing: #106 arm A returned "stuck: an unexpected multichoice on screen"
+                # once a frame for 20,167 frames
+                forced = self._instructed.forced if self._instructed is not None else None
+                if forced is not None:
+                    return self._play_end(hands, story, manager, runner, report, "stuck", forced)
                 stop = yield from play_out(hands, nav, f"{milestone.title}: what is on screen")
                 if stop is not None and "battle was lost" not in stop:  # a loss is counted at the top of the loop
                     hands.tell(f"what was on screen ended: {stop}")
+                    forced = self._instructed.forced if self._instructed is not None else None
+                    if forced is not None:
+                        return self._play_end(hands, story, manager, runner, report, "stuck", forced)
                     if not nav_free(hands.look()):
                         yield from hands.pad.busy("waiting for the screen to settle after a stop")
                 continue

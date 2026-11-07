@@ -1809,7 +1809,8 @@ class _HeldAfterModel(ScreenModel):
 
 
 class BattleEndHeldTests(unittest.TestCase):
-    """(chapter 7 stops round 4, 2026-11-06; the mechanism of KI-131) The battle skill waits for the player to be FREE
+    """(chapter 7 stops round 4, 2026-11-06; the likely mechanism of KI-131: its records agree; its own case not re-run)
+    The battle skill waits for the player to be FREE
     (`battle_done`), so the map's own scene after a trainer's battle (a leader's words, the badge's fanfare) plays INSIDE
     the skill's last `advance`, under its budget (`TEXT_BUDGET`) and the hands' watchdog. MEASURED (probe #104, ledger
     #104): C2's win over BRAWLY ended "the battle: budget" 5,411 frames after its last press (three level-ups, the
@@ -1848,6 +1849,29 @@ class BattleEndHeldTests(unittest.TestCase):
         model = ScreenModel(self.battle(), [member("Combusken", 22, ["Peck"], 37, 66, 2)], self.plan())
         outcome, _, _ = play(model, mind())
         self.assertEqual(outcome, "won")
+
+    def test_e4_a_lost_battle_whose_whiteout_holds_the_screen_is_lost(self) -> None:
+        """(chapter 6 stops round 5, the round-4 verifier's VR4-3, its VM6) FAULT: a LOST battle (gBattleOutcome 2,
+        B_OUTCOME_LOST) whose after-scene holds the screen (the whiteout: `src/overworld.c` CB2_WhiteOut waits 120 frames
+        off the battle, then warps to the last place it healed and fades in) is "lost", so the navigator counts it and
+        MAX_LOSSES can end the run (`brain/navigator.py` handle: "lost" is the whiteout's stop; `mode.py` _count_losses).
+        Under VM6 (`if ended == "won":`) the same battle was "the battle: ...", never counted."""
+        plan = [("action",), ("move",), ("text", "COMBUSKEN fainted!"), ("text", "Player is out of usable POKéMON!"),
+                ("text", "Player whited out!"), ("outcome", 2)]
+        model = _HeldAfterModel(self.battle(), [member("Combusken", 22, ["Peck"], 0, 66, 2)], plan)
+        outcome, _, _ = play(model, mind())
+        self.assertEqual(outcome, "lost")
+
+    def test_e5_control_off_the_battle_with_the_outcome_unset_is_still_the_battle(self) -> None:
+        """(round 5, VR4-3: the round-4 verifier's VT-B1, its VM1) CONTROL: once the plan ends the screen LEAVES the battle's
+        (a bag or party screen over it) and holds there while gBattleOutcome is still 0 (`src/battle_main.c`
+        BattleStartClearSetData resets it at the battle's start: the battle still runs behind it). That is no end: "the
+        battle: ..." as the base said, never "won" (VM1: `OUTCOMES.get(..., "won")`)."""
+        model = _HeldAfterModel(self.battle(), [member("Combusken", 22, ["Peck"], 37, 66, 2)],
+                                [("action",), ("move",), ("text", "Foe MAKUHITA fainted!")])
+        self.assertEqual(model.outcome, 0)
+        outcome, _, _ = play(model, mind())
+        self.assertTrue(outcome.startswith("the battle: "), outcome)
 
 
 if __name__ == "__main__":

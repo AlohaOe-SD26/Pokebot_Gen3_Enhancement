@@ -10330,6 +10330,46 @@
     "test_battle:SkillTests"
    ],
    "origin": "chapter 7 stops round 4, the builder, 2026-11-06 (s53/ch6stops4/mutants4.py): predictions written and hashed (s53/ch6stops4/prediction_mutants4.txt, sha256 8cacf258d4d0cb23...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S16",
+   "prediction": "CAUGHT",
+   "what": "VR4-3 (VM1): a screen off the battle with gBattleOutcome 0 reads as a WIN",
+   "edits": [
+    [
+     "skills/battle.py",
+     "            ended = OUTCOMES.get(look.last_battle_outcome) if look is not None and not in_battle(look) else None\n",
+     "            ended = OUTCOMES.get(look.last_battle_outcome, \"won\") if look is not None and not in_battle(look) else None  # MUTANT CH6S16\n"
+    ]
+   ],
+   "expected": [
+    "BattleEndHeldTests.test_e5_control_off_the_battle_with_the_outcome_unset_is_still_the_battle"
+   ],
+   "suites": [
+    "test_battle:BattleEndHeldTests",
+    "test_battle:SkillTests"
+   ],
+   "origin": "chapter 6 stops round 5, the builder, 2026-11-06 (s53/ch6stops5/mutants5.py): predictions written and hashed (s53/ch6stops5/prediction_mutants5.txt, sha256 c1a9ecde7bd40f29...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S17",
+   "prediction": "CAUGHT",
+   "what": "VR4-3 (VM6): only a WON battle is read from the game when its after-scene holds the screen (a held loss is never counted for MAX_LOSSES)",
+   "edits": [
+    [
+     "skills/battle.py",
+     "            if ended is not None:\n",
+     "            if ended == \"won\":  # MUTANT CH6S17\n"
+    ]
+   ],
+   "expected": [
+    "BattleEndHeldTests.test_e4_a_lost_battle_whose_whiteout_holds_the_screen_is_lost"
+   ],
+   "suites": [
+    "test_battle:BattleEndHeldTests",
+    "test_battle:SkillTests"
+   ],
+   "origin": "chapter 6 stops round 5, the builder, 2026-11-06 (s53/ch6stops5/mutants5.py): predictions written and hashed (s53/ch6stops5/prediction_mutants5.txt, sha256 c1a9ecde7bd40f29...) BEFORE the first run"
   }
  ]
 }

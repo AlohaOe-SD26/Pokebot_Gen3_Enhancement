@@ -32,10 +32,31 @@ so the call is never made twice. When a field menu comes back under NEW pages, i
 instruction was given again), and `FIELD_CHOICES_MAX` bounds how often.
 
 THE EPISODE (`follow`): from the first instructed menu until the game is back in the field. A field multichoice that
-nothing names returns False AT ONCE (today's stop, unchanged: the PC, Briney's "where are we bound?", the fossils); a
-GRID of options is refused with no press (its cursor moves in 2-D); a menu of an app (`APP_KINDS`) that nothing names is
-backed out of with B, and a B the screen ignores is counted (`B_REFUSALS`). Every loop is bounded (`EPISODE_BUDGET`
+nothing names is BACKED OUT OF when the AI opened it itself, and otherwise ends the run (below: THE MENU NOBODY ASKED FOR);
+a GRID of options is refused with no press (its cursor moves in 2-D); a menu of an app (`APP_KINDS`) that nothing names
+is backed out of with B, and a B the screen ignores is counted (`B_REFUSALS`). Every loop is bounded (`EPISODE_BUDGET`
 frames, `MAX_DECISIONS`, `FIELD_CHOICES_MAX`), and every stop says why in the run's log.
+
+THE MENU NOBODY ASKED FOR (chapter 6 stops round 5, 2026-11-06, the round-4 verifier's VR4-1; KI-132's class). MEASURED
+(#106 arm A, both runs, `s53/ch6stops4/verify/wedge.py`): after a curiosity chat the AI CHOSE with MR. BRINEY on
+DEWFORD's dock, his PETALBURG/SLATEPORT/EXIT multichoice opened (`data/maps/DewfordTown/scripts.inc`
+DewfordTown_EventScript_Briney: `multichoicedefault ... MULTI_BRINEY_ON_DEWFORD, 2, FALSE` once STEVEN's letter is
+delivered; B gives MULTI_B_PRESSED, which cancels like EXIT). Nothing read named an option, the skill left it to the
+caller, and the play loop returned "stuck: an unexpected multichoice on screen" once a frame until the run's end (20,167
+and 15,360 frames). THE RULE (the lead's decision for this round): a person who opens a field menu nobody asked them to
+choose from, and wants none of its places, backs out of it, as the AI already backs out of an app menu nothing names:
+  * the AI OPENED the scene itself when the last press it made while FREE, before the scene began, was its own A (it
+    talked to someone or used something: `SceneOpener`, a watcher on the pad's own presses, never on the game's state);
+  * such a field multichoice is cancelled with B (the game's MULTI_B_PRESSED), read from the screen: the menu leaves
+    within `B_REACT_FRAMES`; a B the menu ignores is followed by the option whose words read EXIT or CANCEL
+    (`CANCEL_WORDS`), chosen like any option; each cancel is counted (`backouts`: the goal that talked puts itself aside,
+    `brain/goals.py` GoalRunner);
+  * a menu still (or again) on screen after its cancel in the same scene, a cancel refused with no EXIT or CANCEL on the
+    menu, or such a menu in a scene the AI did NOT open (the game forces it; a run that began inside a scene) is a FORCED
+    menu nothing names: no press, said once, and `forced` keeps the stop, which ends the run AT ONCE (`mode.py` _play;
+    KI-132's first fix direction) instead of one "stuck" a frame until the run's bound.
+A forced menu the words DO name (the POKéNAV tutorial's) is chosen by THE RULE above, unchanged; an app menu nothing names
+is backed out of exactly as before.
 
 FAULT `AI_PLAYER_FAULT_NO_INSTRUCTED` (`options.py`): `mode._story_menu` never calls this skill (the code before it).
 FAULT `AI_PLAYER_FAULT_INSTRUCTED_MISSTEP` (`options.py`, the live L4 arm): the FIRST field choice of a scene takes the next
@@ -58,6 +79,7 @@ __all__ = [
     "APP_KINDS",
     "B_REACT_FRAMES",
     "B_REFUSALS",
+    "CANCEL_WORDS",
     "EPISODE_BUDGET",
     "FIELD_CHOICES_MAX",
     "GRID_KIND",
@@ -66,6 +88,7 @@ __all__ = [
     "MAX_DECISIONS",
     "MAX_PAGES",
     "STILL_PASSES_MAX",
+    "SceneOpener",
     "label_words",
     "named_option",
     "said_words",
@@ -96,6 +119,8 @@ STILL_PASSES_MAX = 50
 WORD = re.compile(r"[0-9a-zé]+")
 #: A label word has at least this many letters ("MR." and "PC" carry none).
 MIN_WORD = 3
+#: (round 5, VR4-1) the words of the option that backs out of a field menu whose B is refused (MR. BRINEY's "EXIT").
+CANCEL_WORDS = ("exit", "cancel")
 
 
 def said_words(text: str) -> list[str]:
@@ -136,8 +161,45 @@ def _in_field(look: Observation) -> bool:
             and (player_free(look) or screen.waits_for_button or screen.ui is not None))
 
 
+class SceneOpener:
+    """(round 5, VR4-1) Did the AI OPEN the scene now on screen itself? A watcher on every look (`Hands.watchers`) that reads
+    only the AI's OWN presses (`pad.history`) beside whether the player is free (`player_free`): the presses made after a
+    free look were made while the player was free; when a free stretch ends (the first look that is not free), the scene
+    was opened by the AI when the LAST press of that stretch was its A (`talk` faces the person, then presses A). A step
+    into a trigger (a direction), a scene that began with no press, and a run that began inside a scene are not opened by
+    it. A walking step ends a free stretch too (the player is settling); the next stretch decides again."""
+
+    def __init__(self, pad) -> None:
+        self.pad = pad
+        self.was_free = False
+        self.seen = len(getattr(pad, "history", ()))
+        self.last_free_press: str | None = None
+        self.opened = False
+
+    def watch(self, look: Observation) -> None:
+        free = player_free(look)
+        history = getattr(self.pad, "history", ())  # (a pad that keeps no presses: nothing is ever opened by the AI)
+        for entry in history[self.seen:]:
+            self.last_free_press = entry.get("button")
+        self.seen = len(history)
+        if free and not self.was_free:
+            # a new free stretch: no press made in it yet (what was pressed before it, in a scene, is dropped here)
+            self.last_free_press = None
+        if not free and self.was_free:
+            self.opened = self.last_free_press == "A"
+        self.was_free = free
+
+
 class Instructed:
     """The skill's memory of ONE scene (since the player was last free): what was read, what was followed, the bounds."""
+
+    #: (round 5, VR4-1) set by the play brain (`mode.py`): whether the AI opened the scene itself; None: never opened
+    opener: SceneOpener | None = None
+    #: (round 5) field menus nobody asked for that were backed out of, over the whole run (never reset by a free look)
+    backouts = 0
+    #: (round 5) the stop of a FORCED field menu nothing names (still on screen after its cancel, or in a scene the AI did
+    #: not open): the play loop ends the run with it at once; the skill presses nothing more once it is set
+    forced: str | None = None
 
     def __init__(self, misstep: bool = False) -> None:
         self.misstep = misstep
@@ -154,6 +216,7 @@ class Instructed:
         self.refused = 0
         self.field_choices = 0
         self.slipped = False
+        self.cancelled: set[tuple[str, tuple]] = set()  # (round 5) field menus backed out of in this scene
 
     def read_along(self, look: Observation) -> None:
         """A watcher on every look (`Hands.watchers`): the transcript of FIELD pages read, cleared once the player is free."""
@@ -192,9 +255,12 @@ class Instructed:
 
     def follow(self, hands: Hands, kind: str, why: str) -> Generator[None, None, bool]:
         """Play the instructed menus from here until the game is back in the field (True once it chose or backed out at
-        least once), or False: a field menu nothing names (said), or a STOP (a grid, a bound run out, a menu that would not
-        take a choice or a B; said once, at the end)."""
+        least once, a field menu backed out of included), or False: a STOP (a FORCED field menu nothing names, a grid, a
+        bound run out, a menu that would not take a choice or a B; said once, at the end)."""
         made = 0
+        if self.forced is not None:
+            # (round 5) a forced field menu nothing names has already ended the run (`mode.py` _play): nothing more pressed
+            return False
         if self.started is None:
             self.started = hands.pad.frames
         stop = None
@@ -260,10 +326,31 @@ class Instructed:
                 self.used.add((ui.kind, option))
                 continue
             if not app:
-                hands.tell(f"{why}: the {ui.kind} {list(ui.options)}: {deciding} ({source}, {len(pages)} pages): left "
-                           f"to the caller")
-                hands.note("instructed", "none", f"{ui.kind}: {deciding}", {"kind": ui.kind, "pages": len(pages)})
-                return False
+                # (round 5, VR4-1) a FIELD menu nothing names (the module docstring's THE MENU NOBODY ASKED FOR)
+                menu = (ui.kind, tuple(ui.options))
+                opened = self.opener is not None and self.opener.opened
+                if menu in self.cancelled or not opened:
+                    reason = ("it is on screen again after the AI backed out of it: the game refuses the cancel"
+                              if menu in self.cancelled else
+                              "in a scene the AI did not open itself: the game forces it")
+                    stop = self.forced = (f"a forced {ui.kind} {list(ui.options)} that nothing read names ({reason}): "
+                                          f"no press; the run ends here")
+                    break
+                hands.tell(f"{why}: the {ui.kind} {list(ui.options)}: {deciding} ({source}, {len(pages)} pages): the AI "
+                           f"opened it itself (it talked to someone) and wants none of it: it backs out")
+                hands.note("instructed", "cancel", f"{ui.kind}: {deciding}", {"kind": ui.kind, "pages": len(pages),
+                                                                              "options": list(ui.options)})
+                self.decisions += 1
+                left = yield from self._back_out(hands, ui, why)
+                if left is None:
+                    stop = self.forced = (f"a forced {ui.kind} {list(ui.options)} that nothing read names (it ignored B, "
+                                          f"and no option reading {' or '.join(w.upper() for w in CANCEL_WORDS)} took it "
+                                          f"off the screen): the run ends here")
+                    break
+                self.cancelled.add(menu)
+                self.backouts += 1
+                made += 1
+                continue
             before = seen_now(look)
             hands.note("instructed", "back", f"{ui.kind}: {deciding}", {"kind": ui.kind, "pages": len(pages)})
             yield from hands.pad.press("B", why, f"{ui.kind} takes input; nothing on this menu is named by the "
@@ -282,6 +369,37 @@ class Instructed:
         hands.tell(f"{why}: the instructed menus stop: {stop}")
         hands.note("instructed", "stop", stop)
         return False
+
+    def _back_out(self, hands: Hands, ui, why: str) -> Generator[None, None, str | None]:
+        """(round 5, VR4-1) Back out of the field menu `ui` the AI opened itself, read from the screen: B (the game's
+        MULTI_B_PRESSED), then, if the menu is still there after `B_REACT_FRAMES`, the option whose words read EXIT or
+        CANCEL (`CANCEL_WORDS`). "B" or the option chosen once the menu has reacted; None when it ignored B and has no such
+        option, or did not take it (a FORCED menu: the caller ends the run)."""
+        menu = (ui.kind, tuple(ui.options))
+
+        def still(seen: Observation) -> bool:
+            now = seen.screen.ui
+            return now is not None and (now.kind, tuple(now.options)) == menu
+
+        yield from hands.pad.press("B", why, f"the {ui.kind} {list(ui.options)} takes input; nothing on it is named, the "
+                                             f"AI opened it itself and wants none of it: B backs out")
+        for _ in range(B_REACT_FRAMES):
+            if not still(hands.look()):
+                hands.tell(f"{why}: the {ui.kind} left the screen after B (backed out)")
+                return "B"
+            yield from hands.pad.busy("watching the B take effect")
+        if not still(hands.look()):
+            return "B"
+        exits = [i for i, label in enumerate(ui.options) if any(w in CANCEL_WORDS for w in said_words(label))]
+        hands.tell(f"{why}: the {ui.kind} ignored B; "
+                   + (f"it takes {ui.options[exits[-1]]!r}, the option that backs out" if exits else
+                      "no option on it reads EXIT or CANCEL"))
+        if not exits:
+            return None
+        option = ui.options[exits[-1]]
+        if not (yield from choose(hands, ui.kind, exits[-1], f"{why}: {option} (backing out of a menu nobody asked for)")):
+            return None
+        return option
 
     @staticmethod
     def _slip(options: tuple[str, ...], index: int) -> int:

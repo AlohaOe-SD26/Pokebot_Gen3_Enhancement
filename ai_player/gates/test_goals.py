@@ -8096,7 +8096,8 @@ class InstructedTests(unittest.TestCase):
     def test_g4b_a_field_menu_back_with_no_new_page_keeps_what_was_followed(self):
         """G4 on a FIELD menu: `used` is cleared for the menu's own kind only when it comes back under NEW pages (the
         instruction given again). A menu that comes back SILENTLY (no page read since) keeps what was followed: SAVE is
-        not chosen again, nothing else is named, and it is left to the caller (False). FAULT half (`revert_step5.py`
+        not chosen again, nothing else is named, and it is not the skill's to choose (False; since round 5 a forced menu
+        nothing names, in a scene the AI did not open: no press, said). FAULT half (`revert_step5.py`
         G467: `>` read as `>=`): SAVE is chosen again on every return, until FIELD_CHOICES_MAX stops it. CONTROL: a menu
         back under a new page clears ITS kind's pairs (SAVE chosen again) and keeps an app's (`pokenav_menu`'s MATCH
         CALL); `revert_step5.py` G468 clears every kind's."""
@@ -8113,7 +8114,7 @@ class InstructedTests(unittest.TestCase):
         game, hands, brain, skill = scene(paged=False)
         self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
         self.assertEqual((game.chosen, buttons(hands).count("A")), (["SAVE"], 1))
-        self.assertTrue(any("left to the caller" in line for line in hands.told))
+        self.assertTrue(any("that nothing read names" in line for line in hands.told))  # (round 5: was "left to the caller")
         self.assertEqual(skill.used, {("multichoice", "SAVE"), ("pokenav_menu", "MATCH CALL")})
         game, hands, brain, skill = scene(paged=True)  # CONTROL: back under a new page
         self.assertTrue(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
@@ -8148,7 +8149,7 @@ class InstructedTests(unittest.TestCase):
         game, hands, brain, skill = scene(paged=False)  # CONTROL: back with no new page
         self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
         self.assertEqual(game.chosen, ["SAVE"])
-        self.assertTrue(any("left to the caller" in line for line in hands.told))
+        self.assertTrue(any("that nothing read names" in line for line in hands.told))  # (round 5: was "left to the caller")
 
     def test_the_transcript_is_the_field_pages_read_since_the_player_was_free(self):
         """The pages the player READ (each once it waits for a press) since the player was last free, in order; cleared
@@ -8340,7 +8341,9 @@ class InstructedTests(unittest.TestCase):
 
     def test_c3_a_field_menu_nothing_names_is_still_the_stop_it_was(self):
         """C3: the field multichoices chapters 1-4 (and later) meet, under their own words: nothing is named, no press, the
-        stop is the same as before (False). Each built as the eyes would read it, after the player was free."""
+        stop is the same as before (False). Each built as the eyes would read it, after the player was free. (Round 5,
+        VR4-1) Here the scene was not opened by the AI's own A (no opener: `Round5MenuTests` has the one it opens, which is
+        backed out of), so each is a FORCED menu: the skill keeps the stop, said, and the run ends at once."""
         from ai_player.eyes.observation import MenuView
 
         cases = {
@@ -8368,6 +8371,7 @@ class InstructedTests(unittest.TestCase):
                 hands.eyes.script = lambda frame, m=menu: replace(base, screen=replace(base.screen, ui=m, text=pages[-1]))
                 self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
                 self.assertEqual(buttons(hands), [])
+                self.assertIn("the game forces it", getattr(brain._instructed, "forced", None) or "")
 
     def test_c1_c2_the_menus_chapters_1_to_4_meet_go_where_they_went(self):
         """C1: a starter's bag, the clock, a mart and the save screens reach their own handlers, never the skill; an unknown
@@ -10133,6 +10137,441 @@ class Round3HopsPinTests(unittest.TestCase):
 
 def _unused_tile() -> Tile:  # keeps the builder import honest (a Tile is what View rows hold)
     return Tile(0, 0, 0, 0, 0, 0, "NORMAL", 0, 3, False, False, None, False, None, False, False, False)
+
+
+# ------------------------------------------------------------------------------------------------ (chapter 6 stops round 5)
+#: (round 5, VR4-1) MR. BRINEY on DEWFORD's dock once STEVEN's letter is delivered (pinned decomp
+#: data/maps/DewfordTown/scripts.inc DewfordTown_EventScript_Briney): lock, faceplayer, his words (the page break waits for
+#: A), then `multichoicedefault 21, 6, MULTI_BRINEY_ON_DEWFORD, 2, FALSE` (the cursor on EXIT, B allowed); B
+#: (MULTI_B_PRESSED) or EXIT -> DewfordTown_EventScript_CancelSailSelect's page; PETALBURG or SLATEPORT sails
+DOCK_OPTIONS = ("PETALBURG", "SLATEPORT", "EXIT")
+DOCK_PAGE = "MR. BRINEY: Ahoy!\nFor you, I’ll go out to sea anytime!"
+DOCK_ASK = "Now, my friend, where are we bound?"
+DOCK_CANCEL = "MR. BRINEY: You just tell me whenever\nyou need to set sail again!"
+DOCK_NAG = "MR. BRINEY: Come now, where are we bound?"
+#: MR. BRINEY one tile right of the player (`look`'s player stands at (10, 10)): the AI's `talk` turns right, then A
+BRINEY_ON_DOCK = person(11, 10, gfx=21, local_id=4)
+
+
+class _Dock:
+    """A SIMULATION of the dock (test side): the player FREE on DEWFORD_TOWN; a direction press while free turns the player;
+    an A while free and facing MR. BRINEY begins his scene (`talk`'s own A). `b_ok`: the menu takes B (the game's FALSE
+    ignoreBPress); `has_exit`: EXIT is on it; `exit_reopens`: EXIT is answered by a nag page and the SAME menu again (a
+    menu the game will not let go); `b_reopens`: the same after B. `start`: "free", or "page"/"menu" for a run that began
+    inside the scene. `page`: his first page's words (a CONTROL names an option with them)."""
+
+    def __init__(self, b_ok=True, has_exit=True, exit_reopens=False, b_reopens=False, start="free", page=DOCK_PAGE):
+        self.b_ok, self.exit_reopens, self.b_reopens = b_ok, exit_reopens, b_reopens
+        self.options = DOCK_OPTIONS if has_exit else DOCK_OPTIONS[:2]
+        self.state, self.facing, self.page = start, "down", page
+        self.cursor = len(self.options) - 1
+        self.chosen: list[str] = []
+        self.backs = 0
+
+    def press(self, button: str) -> None:
+        state = self.state
+        if state == "free":
+            if button in ("Up", "Down", "Left", "Right"):
+                self.facing = button.lower()
+            elif button == "A" and self.facing == "right":
+                self.state = "page"
+        elif state == "page" and button == "A":
+            self.state, self.cursor = "menu", len(self.options) - 1
+        elif state == "menu":
+            if button in ("Up", "Down"):
+                self.cursor = max(0, min(len(self.options) - 1, self.cursor + (1 if button == "Down" else -1)))
+            elif button == "B" and self.b_ok:
+                self.backs += 1
+                self.state = "nag" if self.b_reopens else "cancel"
+            elif button == "A":
+                option = self.options[self.cursor]
+                self.chosen.append(option)
+                self.state = ("nag" if self.exit_reopens else "cancel") if option == "EXIT" else "sailing"
+        elif state == "cancel" and button == "A":
+            self.state = "free"
+        elif state == "nag" and button == "A":
+            self.state, self.cursor = "menu", len(self.options) - 1
+
+    def tick(self) -> None:
+        pass
+
+    def look(self, frame: int) -> Observation:
+        from ai_player.eyes.observation import MenuView
+
+        base = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", frame=frame, objects=(BRINEY_ON_DOCK,),
+                    map_number=1)
+        base = replace(base, player=replace(base.player, name="Milo", facing=self.facing))
+        state = self.state
+        ui = MenuView("multichoice", self.options, self.cursor, True) if state == "menu" else None
+        waits = state in ("page", "cancel", "nag")
+        text = {"page": self.page, "menu": DOCK_ASK, "cancel": DOCK_CANCEL, "nag": DOCK_NAG}.get(state)
+        script = state != "free"
+        screen = ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=text is not None,
+                             waits_for_button=waits, in_battle=False, wait_reason="text printer 0 CLEAR" if waits else None,
+                             ui=ui, text=text, script_running=script, controls_locked=script)
+        return replace(base, screen=screen)
+
+
+def dock_hands(game):
+    """Hands on `_Dock`, and the play brain's `_story_menu` with its instructed-choice skill and (round 5) its scene opener
+    watching every look, as `mode.py` _play sets them (on a tree without the opener: the skill alone, as it was)."""
+    from ai_player.skills.instructed import Instructed
+
+    try:
+        from ai_player.skills.instructed import SceneOpener
+    except ImportError:  # the base, before round 5 (the reproduction on c41db547)
+        SceneOpener = None
+    eyes = _ScriptEyes(game.look)
+    hands = Hands(eyes, _TutorialControls(game), random.Random(1), random.Random(1), None, lambda line: None)
+    eyes.hands = hands
+    hands.told = []
+    hands.say = hands.told.append
+    brain = HandsBrain.__new__(HandsBrain)
+    brain.options = types.SimpleNamespace(fault_no_instructed=False)
+    brain._instructed = Instructed()
+    hands.watchers.append(brain._instructed.read_along)
+    if SceneOpener is not None:
+        brain._instructed.opener = SceneOpener(hands.pad)
+        hands.watchers.append(brain._instructed.opener.watch)
+    return hands, brain
+
+
+def chat_on_the_dock(game):
+    """The AI's own chat with MR. BRINEY (`hands/dialogue.py` talk: it turns to face him, then A), then what the navigator
+    does with the scene (`play_scene`). Returns (the scene's end, hands, brain)."""
+    from ai_player.hands.dialogue import talk
+
+    hands, brain = dock_hands(game)
+    hands.look()
+    assert drive(talk(hands, BRINEY_ON_DOCK, "a chat"), 5_000), "the talk did not start"
+    return drive(play_scene(hands, brain), 50_000), hands, brain
+
+
+class Round5MenuTests(unittest.TestCase):
+    """(chapter 6 stops round 5, 2026-11-06) The round-4 verifier's VR4-1 (MAJOR, KI-132's class): after a curiosity chat
+    with MR. BRINEY on DEWFORD's dock, his PETALBURG/SLATEPORT/EXIT multichoice opened, nothing read named an option, and
+    the play loop returned "stuck: an unexpected multichoice on screen" once a frame until the run's end (#106 arm A, both
+    runs: 20,167 and 15,360 frames). THE RULE (`skills/instructed.py` THE MENU NOBODY ASKED FOR): a field menu the AI
+    opened itself (its own A, `SceneOpener`) that nothing names is backed out of (B, else EXIT/CANCEL), the talk that opened
+    it fails (`GoalRunner`); one that stays, or one in a scene the AI did not open, is FORCED: no press, and the run ends at
+    once (`mode.py` _play). Mutants: `revert_step5.py` G624 onward."""
+
+    def test_m1_the_dock_menu_after_a_chat_is_backed_out_of(self):
+        """FAULT (reproduced on c41db547: "stuck: an unexpected multichoice on screen", no press): the AI's own chat opens
+        the dock menu; B backs out of it, read from the screen (the menu left, his "You just tell me whenever..." page
+        played), no place is chosen, the player is FREE again, and the cancel is counted; nothing is forced."""
+        game = _Dock()
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(end, "free")
+        self.assertEqual((game.chosen, game.backs, game.state), ([], 1, "free"))
+        self.assertEqual(buttons(hands).count("B"), 1)
+        self.assertEqual(getattr(brain._instructed, "backouts", None), 1)
+        self.assertIsNone(getattr(brain._instructed, "forced", None))
+        self.assertTrue(any("wants none of it: it backs out" in line for line in hands.told))
+        self.assertTrue(any("left the screen after B" in line for line in hands.told))
+
+    def test_m2_a_menu_whose_b_is_refused_is_left_by_its_exit(self):
+        """The cancel's second half: a menu that ignores B (`B_REACT_FRAMES` with the menu still on screen) is left by the
+        option whose words read EXIT (`CANCEL_WORDS`), chosen like any option; the player is free again."""
+        game = _Dock(b_ok=False)
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(end, "free")
+        self.assertEqual((game.chosen, game.backs), (["EXIT"], 0))
+        self.assertEqual(buttons(hands).count("B"), 1)
+        self.assertEqual(brain._instructed.backouts, 1)
+        self.assertIsNone(brain._instructed.forced)
+
+    def test_m3_a_menu_that_stays_after_the_cancel_is_forced_and_said_once(self):
+        """FAULT: a menu the game will not let go is FORCED: (a) it ignores B and has no EXIT: one B, no choice, the stop
+        said; (b) its EXIT is answered by the same menu again; (c) its B is. Each: the scene ends "stuck", `forced` holds the
+        stop, it is told ONCE, and a later call presses nothing (the latch: the run's loop ends at once,
+        `test_m5_the_play_loop_ends_at_once_on_a_forced_menu`)."""
+        cases = {"no exit": (dict(b_ok=False, has_exit=False),
+                             "it ignored B, and no option reading EXIT or CANCEL took it off the screen", [], 0),
+                 "exit reopens": (dict(b_ok=False, exit_reopens=True), "it is on screen again after the AI backed out of it",
+                                  ["EXIT"], 0),
+                 "b reopens": (dict(b_reopens=True), "it is on screen again after the AI backed out of it", [], 1)}
+        for name, (kwargs, why, chosen, backs) in cases.items():
+            with self.subTest(name):
+                game = _Dock(**kwargs)
+                end, hands, brain = chat_on_the_dock(game)
+                self.assertEqual(end, "stuck: an unexpected multichoice on screen")
+                self.assertEqual((game.chosen, game.backs, game.state), (chosen, backs, "menu"))
+                forced = brain._instructed.forced
+                self.assertIsNotNone(forced)
+                self.assertIn(why, forced)
+                self.assertEqual(sum(1 for line in hands.told if "the instructed menus stop: a forced" in line), 1)
+                presses = len(buttons(hands))
+                self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 1_000))
+                self.assertEqual(len(buttons(hands)), presses)  # latched: nothing more pressed
+
+    def test_m4_control_a_scene_the_ai_did_not_open_is_forced_with_no_press(self):
+        """CONTROL (the rule's other half): the same menu in a scene the AI did NOT open (the run began inside it: no free
+        look, no A of its own) is not backed out of: no press, FORCED, said. FAULT half (`SceneOpener` never consulted:
+        `revert_step5.py`): it would be cancelled with B."""
+        for start in ("page", "menu"):
+            with self.subTest(start=start):
+                game = _Dock(start=start)
+                hands, brain = dock_hands(game)
+                self.assertEqual(drive(play_scene(hands, brain), 50_000), "stuck: an unexpected multichoice on screen")
+                self.assertEqual(buttons(hands), ["A"] if start == "page" else [])  # only the page's own A
+                self.assertEqual((game.backs, game.chosen), (0, []))
+                self.assertIn("in a scene the AI did not open itself: the game forces it", brain._instructed.forced)
+
+    def test_m5_the_play_loop_ends_at_once_on_a_forced_menu(self):
+        """FAULT (reproduced on c41db547: the REAL loop returns "stuck: an unexpected multichoice on screen" once a pass
+        until the story's patience, ~120,000 frames): the REAL `HandsBrain._play` loop on a dock menu it did not open, its
+        `play_out` standing in for the navigator's (`on_menu`, the REAL skill): the run ends with the forced stop on the
+        first pass, before any frame passes, with ONE play-out."""
+        base = _Dock(start="menu").look(0)
+        loop = PlayLoopTests("test_patience_ends_a_screen_that_never_frees")
+
+        def settle(hands_, nav_, why):
+            if (yield from nav_.on_menu("multichoice", why)):
+                return None
+            return "stuck: an unexpected multichoice on screen"
+
+        def target(brain, hands_):
+            brain.options.target = "ch7_brawly"
+
+        reason, hands, pursued, screens, report = loop.run_loop(base, settle=settle, setup=target, budget=400_000,
+                                                                world=world_with("DEWFORD_TOWN", current="DEWFORD_TOWN"))
+        self.assertTrue(reason.startswith("stuck: a forced multichoice ['PETALBURG', 'SLATEPORT', 'EXIT']"), reason)
+        self.assertIn("the game forces it", reason)
+        self.assertEqual((len(screens), pursued), (1, []))
+        self.assertEqual(hands.pad.frames, 0)  # no frame passed: not even the wait for the screen to settle
+        self.assertEqual(sum(1 for line in hands.told if "what was on screen ended" in line), 1)
+
+    def test_m11_a_forced_menu_met_inside_a_goal_ends_the_run_before_any_play_out(self):
+        """FAULT: a forced menu latched INSIDE a goal (a chat's talk plays its scene through the navigator: `talk_to`) ends
+        the run at the loop's next pass, before it plays the screen out again and before any frame passes after the goal.
+        The goal stands in here: it latches the stop as the skill would and leaves the menu on screen."""
+        loop = PlayLoopTests("test_patience_ends_a_screen_that_never_frees")
+        free = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", map_number=1)
+        menu = _Dock(start="menu").look(0)
+        state = {"menu": False, "frames": None}
+        stop = "a forced multichoice ['PETALBURG', 'SLATEPORT', 'EXIT'] that nothing read names (a test's stand-in)"
+
+        def effect(goal, world, runner):
+            loop.last_brain._instructed.forced = stop
+            state["menu"] = True
+            return False, "talked; then stuck: an unexpected multichoice on screen"
+
+        def screen(frames):
+            if state["menu"] and state["frames"] is None:
+                state["frames"] = frames
+            return menu if state["menu"] else free
+
+        def setup(brain, hands_):
+            brain.options.target = "ch7_brawly"
+            loop.last_brain = brain
+
+        reason, hands, pursued, screens, _ = loop.run_loop(screen, effect=effect, setup=setup,
+                                                           world=world_with("DEWFORD_TOWN", current="DEWFORD_TOWN"))
+        self.assertEqual(reason, f"stuck: {stop}")
+        self.assertEqual((len(pursued), screens), (1, []))
+        self.assertEqual(hands.pad.frames, state["frames"])  # no frame after the goal's end
+
+    def test_m6_control_a_named_option_is_still_chosen_in_a_scene_the_ai_opened(self):
+        """CONTROL: THE RULE before the cancel: when a page read names an option, it is chosen, even in a scene the AI
+        opened (no B, nothing cancelled)."""
+        game = _Dock(page="MR. BRINEY: Ahoy! Shall we set sail for SLATEPORT?")
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(game.chosen, ["SLATEPORT"])
+        self.assertEqual(buttons(hands).count("B"), 0)
+        self.assertEqual(brain._instructed.backouts, 0)
+        self.assertIsNone(brain._instructed.forced)
+
+    def test_m7_the_scene_opener_reads_only_the_ais_own_last_press_while_free(self):
+        """`SceneOpener`: a scene is the AI's own when the LAST press it made while free, before the scene began, was A.
+        CONTROLS: a step into a trigger (a direction), a scene with no press since the player was free, and an A from an
+        EARLIER free stretch (a talk that ended, then an idle, then someone else's scene) are not; an A followed by a free
+        look before the lock (the game's lag) still is."""
+        from ai_player.skills.instructed import SceneOpener
+
+        game = _Dock()
+        free, busy = game.look(0), _Dock(start="page").look(0)
+        pad = types.SimpleNamespace(history=[])
+
+        def run(steps):
+            opener = SceneOpener(pad)
+            pad.history.clear()
+            opener.seen = 0
+            for step in steps:
+                if step in ("free", "busy"):
+                    opener.watch(free if step == "free" else busy)
+                else:
+                    pad.history.append({"button": step})
+            return opener.opened
+
+        self.assertTrue(run(["free", "Right", "free", "A", "busy"]))  # turn, then A: the AI's own talk
+        self.assertTrue(run(["free", "A", "free", "busy"]))  # the lag: still free one look after the A
+        self.assertFalse(run(["free", "Right", "busy"]))  # walked into a trigger
+        self.assertFalse(run(["free", "busy"]))  # a scene with no press
+        self.assertFalse(run(["free", "A", "busy", "A", "free", "free", "busy"]))  # an A of the last stretch: not this one
+        self.assertFalse(run(["busy", "A", "busy"]))  # a run that began inside a scene
+
+    def test_m8_a_talk_that_backed_out_of_a_menu_failed_and_is_put_aside(self):
+        """`GoalRunner`: a chat (or a story talk, or a use) whose talk backed out of a menu nobody asked for FAILED (its
+        outcome says why), so `GoalManager.outcome` counts it like any failed chat: FAIL_LIMIT of them put it aside
+        (cooldown). CONTROL: the same talk with no menu backed out of is "talked", as before; a runner without the play
+        brain's count (`backed_out` None) is unchanged."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import COOLDOWN_DECISIONS, FAIL_LIMIT
+
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", current="DEWFORD_TOWN")
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", map_number=1, objects=(BRINEY_ON_DOCK,))
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        nav = Navigator(None, world, random.Random(1))
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: seen, last=seen), nav, mgr,
+                            types.SimpleNamespace(purpose=None), lambda line: None)
+        count = [0]
+        bump = [1]
+
+        def fake_talk(hands_, nav_, target, why):
+            count[0] += bump[0]
+            return "talked"
+            yield  # noqa: unreachable - a generator
+
+        goal = Goal("chat", "someone stands near at (11, 10)", milestone.id, target=BRINEY_ON_DOCK, key="chat:0:1|4")
+        with mock.patch.object(goals_module, "talk_to", fake_talk):
+            runner.backed_out = lambda: count[0]
+            ok, outcome = drive(runner.pursue(goal, milestone, index, lambda _: index))
+            self.assertFalse(ok)
+            self.assertEqual(outcome, "talked; it backed out of a menu nobody asked it to choose from")
+            for _ in range(FAIL_LIMIT):
+                mgr.outcome(goal, False)
+            self.assertEqual(mgr.memory.cooldown.get(goal.key), mgr.memory.decisions + COOLDOWN_DECISIONS)
+            bump[0] = 0  # CONTROL: no menu backed out of
+            self.assertEqual(drive(runner.pursue(goal, milestone, index, lambda _: index)), (True, "talked"))
+            runner.backed_out = None  # CONTROL: no count from the play brain
+            bump[0] = 1
+            self.assertEqual(drive(runner.pursue(goal, milestone, index, lambda _: index)), (True, "talked"))
+
+    def test_m9_the_play_brain_wires_the_opener_and_the_count(self):
+        """`mode.py` _play gives the skill its `SceneOpener` (watching every look after the skill's own watcher) and the
+        goal runner its count of menus backed out of (`backed_out`)."""
+        from ai_player.skills.instructed import SceneOpener
+
+        loop = PlayLoopTests("test_patience_ends_a_screen_that_never_frees")
+        counts: list = []
+
+        def effect(goal, world, runner):
+            counts.append(getattr(runner, "backed_out", None))
+            return False, "not done: the test's stand-in goal"
+
+        free = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", map_number=1)
+        reason, hands, pursued, _, _ = loop.run_loop(
+            free, effect=effect, world=world_with("DEWFORD_TOWN", current="DEWFORD_TOWN"),
+            setup=lambda brain, hands_: setattr(brain.options, "target", "ch7_brawly"))
+        brain = loop.last_brain
+        self.assertIsInstance(brain._instructed.opener, SceneOpener)
+        watchers = hands.watchers
+        self.assertLess(watchers.index(brain._instructed.read_along), watchers.index(brain._instructed.opener.watch))
+        self.assertTrue(pursued and callable(counts[0]), counts[:1])
+        self.assertEqual(counts[0](), 0)
+        brain._instructed.backouts = 3
+        self.assertEqual(counts[0](), 3)
+
+    def test_m10_control_the_pokenav_tutorial_is_played_as_before_with_the_opener(self):
+        """CONTROL (chapter 5): with the scene opener watching, as `mode.py` sets it, the POKéNAV tutorial (a scene the
+        game forces, its menus NAMED by the scientist's words) is played exactly as `test_u1` plays it: the forced START
+        menu's POKéNAV chosen, the call made once, the app's menus backed out of with B; nothing forced, nothing counted
+        as backed out of a field menu."""
+        from ai_player.skills.instructed import SceneOpener
+
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game)
+        brain._instructed.opener = SceneOpener(hands.pad)
+        hands.watchers.append(brain._instructed.opener.watch)
+        self.assertEqual(drive(play_scene(hands, brain), 200_000), "free")
+        self.assertEqual(game.chosen, [("forced", "POKéNAV"), ("menu", "MATCH CALL"), ("list", "MR. STONE"),
+                                       ("options", "CALL"), ("list", "B"), ("menu", "B")])
+        self.assertEqual(game.calls, 1)
+        self.assertEqual((brain._instructed.backouts, brain._instructed.forced), (0, None))
+
+
+class Round5HealTests(unittest.TestCase):
+    """(chapter 6 stops round 5, 2026-11-06) The round-4 verifier's VR4-2 (MINOR): V3-1's heal before a fight where the AI
+    cannot train (a TOP-UP: the party neither in danger nor under its heal line) headed for a centre no known way leads to,
+    and again after each cooldown (its VT-R1, VT-R2). A top-up now uses only a centre a known way leads to
+    (`GoalManager.heal_place(reachable=True)`), else no heal. Mutants: `revert_step5.py` (round 5)."""
+
+    GRASS = TileFact(False, False, True, True, None, False, False, 3, "TALL_GRASS", 0, (0, 0))
+
+    @staticmethod
+    def link(world, a, b):
+        for source, target in ((a, b), (b, a)):
+            world.connections.append({"source": source, "target": target, "direction": "up", "from": [1, 0],
+                                      "arrival": [1, 9], "offset": [0, 10], "by": "ai", "frame": 1})
+
+    def gym(self, centre: str, hp: int = 15, personality: str = "Trainer", decisions: int = 2, fail_heals: bool = False):
+        """The verifier's VT-R1: in DEWFORD's GYM (indoors: no `find_center`), ch7_brawly, untrained, ROUTE104's grass seen
+        with no known way to it; the only centre known is `centre`'s (RUSTBORO: no known way; DEWFORD: the gym's town,
+        linked). The goals of `decisions` decisions (each failed heal recorded as failed when `fail_heals`)."""
+        mgr = manager(personality)
+        world = world_with("DEWFORD_TOWN", "DEWFORD_TOWN_GYM", "ROUTE104", "RUSTBORO_CITY", current="DEWFORD_TOWN_GYM",
+                           center_from=centre)
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = self.GRASS
+        self.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        self.link(world, keys["DEWFORD_TOWN"], keys["DEWFORD_TOWN_GYM"])
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=hp, max_hp=20)], const="DEWFORD_TOWN_GYM", map_number=3)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_brawly")
+        goals = []
+        for _ in range(decisions):
+            goal = mgr.next_goal(seen, world, milestone, index)
+            goals.append(goal)
+            if fail_heals and goal.kind == "heal":
+                mgr.outcome(goal, False)
+        return goals, mgr
+
+    def test_r1_a_top_up_heads_only_for_a_centre_a_known_way_leads_to(self):
+        """FAULT (the verifier's VT-R1, reproduced on c41db547: 'heal' to RUSTBORO_CITY_POKEMON_CENTER_1F twice): the party
+        at 75% (over the Trainer's heal line, under HEAL_BEFORE_FIGHT), the only centre known on the mainland with no known
+        way to it: NO heal (VT-R2: none in 30 decisions with every heal failing). CONTROL: DEWFORD's centre, a known way
+        from the gym: the top-up heals there, saying it cannot train here."""
+        goals, _ = self.gym("RUSTBORO_CITY")
+        self.assertEqual([g.kind for g in goals if g.kind == "heal"], [], [g.reason for g in goals])
+        goals, _ = self.gym("RUSTBORO_CITY", decisions=30, fail_heals=True)
+        self.assertEqual(sum(g.kind == "heal" for g in goals), 0)
+        goals, _ = self.gym("DEWFORD_TOWN")  # CONTROL
+        self.assertEqual((goals[0].kind, goals[0].map), ("heal", "DEWFORD_TOWN_POKEMON_CENTER_1F"), goals[0].reason)
+        self.assertIn("(it cannot train here: no known way leads to grass)", goals[0].reason)
+
+    def test_r2_control_heals_for_the_partys_own_state_keep_every_centre(self):
+        """CONTROLS (unchanged): a party IN DANGER (the strongest under a third) and one under its heal line (not in danger)
+        still head for the only centre known, RUSTBORO's, with no known way to it, as before the round: only the top-up is
+        held to a known way."""
+        mgr = manager("Trainer")
+        line = mgr.state.errands.heal_below
+        for name, hp in (("danger", 4), ("under the heal line", int(20 * line) - 1)):
+            with self.subTest(name):
+                self.assertGreater(hp / 20, 0 if name == "danger" else 1 / 3)
+                goals, _ = self.gym("RUSTBORO_CITY", hp=hp)
+                self.assertEqual((goals[0].kind, goals[0].map), ("heal", "RUSTBORO_CITY_POKEMON_CENTER_1F"),
+                                 goals[0].reason)
+
+    def test_r3_heal_place_reachable_home_and_centres(self):
+        """`heal_place(reachable=True)`: a centre or HOME only when a known way leads there (`world_distance` under
+        UNREACHABLE); in a centre, that centre. CONTROL: `reachable` False keeps every place it knows, as before."""
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", "RUSTBORO_CITY", current="DEWFORD_TOWN", center_from="RUSTBORO_CITY")
+        self.assertEqual(mgr.heal_place(world)[0], "RUSTBORO_CITY_POKEMON_CENTER_1F")  # CONTROL
+        self.assertIsNone(mgr.heal_place(world, reachable=True))
+        keys = {m.const: k for k, m in world.maps.items()}
+        self.link(world, keys["DEWFORD_TOWN"], keys["RUSTBORO_CITY"])
+        self.assertEqual(mgr.heal_place(world, reachable=True)[0], "RUSTBORO_CITY_POKEMON_CENTER_1F")
+        home = mgr.story.resolve("<player_house_1f>")
+        world = world_with("DEWFORD_TOWN", home, current="DEWFORD_TOWN")
+        mgr.memory.home_heals = 1
+        self.assertEqual(mgr.heal_place(world)[0], home)  # CONTROL: home, where MOM heals
+        self.assertIsNone(mgr.heal_place(world, reachable=True))  # no known way home from the island
+        keys = {m.const: k for k, m in world.maps.items()}
+        self.link(world, keys["DEWFORD_TOWN"], keys[home])
+        self.assertEqual(mgr.heal_place(world, reachable=True)[0], home)
 
 
 if __name__ == "__main__":

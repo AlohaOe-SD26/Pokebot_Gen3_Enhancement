@@ -1341,7 +1341,15 @@ class GoalManager:
                             and grass_target(world, milestone.maps)[0] == "out of reach")
             before_fight = fight_next and share < HEAL_BEFORE_FIGHT and (ready or cannot_train)
             if hurt or before_fight:
-                where = self.heal_place(world)
+                # (chapter 6 stops round 5, the round-4 verifier's VR4-2) V3-1's TOP-UP where it cannot train (the party
+                # neither in danger nor under its heal line) goes only to a centre a known way leads to, as the shop does
+                # (NS4): a party at 75% in DEWFORD's gym knowing only RUSTBORO's centre, no way back known, headed there
+                # twice per cooldown (the verifier's VT-R1, VT-R2). A heal for the party's own state (under its heal line,
+                # or in danger) and the TRAINED party's heal before the fight (step 5's, chapters 1-5: ErrandTests
+                # test_the_no_training_fault_still_heals_before_the_fight, TunnelGruntTests test_c8, unlinked worlds, pin
+                # it; this round's first version also held it to a known way, and both failed) keep every centre it knows
+                topup = cannot_train and not hurt
+                where = self.heal_place(world, reachable=topup)
                 why = ("a Pokemon has fainted" if fainted else f"the party is at {share:.0%} of its HP"
                        + (f" (under {errands.heal_below:.0%})" if share < errands.heal_below else "")
                        + ("; a known fight is next" if before_fight else "")
@@ -1861,20 +1869,26 @@ class GoalManager:
                        if kind == "gym" and key in world.maps and world.maps[key].const == town)
         return doors[0] if doors else None
 
-    def heal_place(self, world) -> tuple | None:
+    def heal_place(self, world, reachable: bool = False) -> tuple | None:
         """Where it would heal: (the map to be in, the map key of a door seen but never used or None, that door or None,
         how it knows): the NEAREST centre it has been in or whose door it has seen (`_nearest_place`; build step 5.1);
-        home, once it KNOWS MOM heals (`home_heals`), when no centre is known."""
+        home, once it KNOWS MOM heals (`home_heals`), when no centre is known. (Chapter 6 stops round 5, VR4-2)
+        `reachable` (V3-1's TOP-UP before a fight where it cannot train, the party neither in danger nor under its heal
+        line): only a place a known way leads to, as the SHOP (`_nearest_place`); home too only when a known way leads
+        there; else None (no heal)."""
         here = world.here()
         if here is not None and (here.const or "").endswith(CENTER_SUFFIX):
             return here.const, None, None, "in a POKéMON CENTER: the nurse"
-        nearest = self._nearest_place(world, CENTER_SUFFIX, "pokemon_center", "POKéMON CENTER")
+        nearest = self._nearest_place(world, CENTER_SUFFIX, "pokemon_center", "POKéMON CENTER", reachable=reachable)
         if nearest is not None:
             return nearest
         why = self.home_heals(world)
         if why is not None:
             home = self.story.resolve("<player_house_1f>")
-            if any(memory.const == home for memory in world.maps.values()):
+            homes = [key for key, memory in world.maps.items() if memory.const == home]
+            if reachable and homes and min(world_distance(world, key) for key in homes) >= UNREACHABLE:
+                return None  # (round 5, VR4-2) a top-up does not head home when no known way leads there
+            if homes:
                 return home, None, None, f"no POKéMON CENTER known yet: home, where MOM heals ({why})"
         return None
 
@@ -2112,6 +2126,9 @@ class GoalRunner:
         self.milestone_now: Milestone | None = None
         #: (chapter 6 NS2) the travel answer that knows which ride is being taken (`ride`); set by the play brain
         self.travel: TravelSense | None = None
+        #: (chapter 6 stops round 5, VR4-1) how many field menus nobody asked for the AI has backed out of so far
+        #: (`skills/instructed.py` Instructed.backouts); set by the play brain. A talk that backed out of one failed
+        self.backed_out: Callable[[], int] | None = None
 
     def pursue(self, goal: Goal, milestone: Milestone, index: int, current: Callable[[Observation], int]) -> Generator[None, None, tuple[bool, str]]:
         """`_pursue` the goal; (build step 5.1) a person whose Pokemon is HURT keeps out of the tall grass on ANY walk, not
@@ -2453,11 +2470,18 @@ class GoalRunner:
             key = f"{nav.world.current}|{goal.target.local_id}"
             manager.memory.talked.add(key)
             before = party_share(hands.look())
+            backed = self.backed_out() if self.backed_out is not None else 0
             if goal.kind == "use":
                 outcome = yield from use_thing(hands, nav, goal.target, goal.reason)
             else:
                 outcome = yield from talk_to(hands, nav, goal.target, goal.reason)
             self._saw_mom_heal(goal.target, before)
+            if self.backed_out is not None and self.backed_out() > backed:
+                # (chapter 6 stops round 5, VR4-1) the talk opened a field menu nobody asked it to choose from (MR.
+                # BRINEY's PETALBURG/SLATEPORT/EXIT on DEWFORD's dock after a curiosity chat, #106 arm A) and the AI backed
+                # out of it: the talk did not do what it was for, so it FAILED, as any failed chat (`GoalManager.outcome`
+                # counts it toward `FAIL_LIMIT`; the person is in `talked`, never chatted with again)
+                return False, f"{outcome}; it backed out of a menu nobody asked it to choose from"
             return outcome.startswith("talked"), outcome
         if goal.kind == "pick_up" and goal.target is None and goal.tile is not None:
             outcome = yield from self._back_to_ball(goal, milestone, index, current)

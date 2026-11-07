@@ -156,7 +156,8 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
         if outcome.startswith(STUCK) or outcome == "budget":
             ended = OUTCOMES.get(look.last_battle_outcome) if look is not None and not in_battle(look) else None
             if ended is not None:
-                # (chapter 7 stops round 4, 2026-11-06; KI-131's mechanism) the BATTLE is over by the game's own word
+                # (chapter 7 stops round 4, 2026-11-06; the likely mechanism of KI-131: its records agree; its own case not
+                # re-run) the BATTLE is over by the game's own word
                 # (gBattleOutcome: 0 while a battle runs) and the screen has left it: what held the screen past the
                 # budget or the watchdog came AFTER it (level-ups and an evolution, then the map's own scene: a gym
                 # leader's badge fanfare and words, which `battle_done` waits through because the player is not free).
