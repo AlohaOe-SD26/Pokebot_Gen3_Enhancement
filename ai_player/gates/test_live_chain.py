@@ -69,6 +69,55 @@ THE SECOND FIX ROUND (the independent checker's C2-01..C2-07, 2026-11-05; same r
   (also) DeadLaunchTests C2-04: the dead launch named in LC.PURITY's and LC.THIS_RUN's texts and in the ledger verdict's own
                    clause; PredictionTests C2-06; GuardTests the verifier's V02 (an unread OT and TID never prove the
                    player's starter).
+THE THIRD FIX ROUND (the independent check's C3-E01..E07, C3-G01..G06, C3-H01..H07 and the chains-run guard, 2026-11-05;
+same rule: FAULT, CONTROL, a mutant each):
+  OutTests         C3-E01, C3-G05: --out and the job files are made BEFORE ledger.begin; an --out under a file, on a
+                   missing drive or with an invalid name is refused (R11) with the registration unspent; a batch the ledger
+                   refuses removes what it made; the profile snapshots come before begin too.
+  ChainGuardTests  an exception or a Ctrl+C WHILE THE CHAINS RUN kills the running chain processes and finishes the entry
+                   as ERROR (the interrupt then goes on).
+  UntrustedTests   C3-E02: the AI's world lines (a wrong type, a 100,000-deep line), its log, its verdict file and actions
+                   are untrusted: a failed check of that leg, a GRADED batch (FAIL, exit 1), never the harness's ERROR.
+  GradeErrorTests  C3-E03..E07: the ledger write retried (computed verdict first), a ledger that cannot be written said
+                   (NOT finished, the command, exit 4) and finished by `finish-entry`; any exception type; both results
+                   writes; a development error; results.error.json beside results.json; grade DIR on an ERROR batch and
+                   its exit codes; exit 5 for an uncovered crash; an unprintable exception; a Ctrl+C while grading; the
+                   ERROR evidence's marked lines and single bounds text.
+  RegradeTests     C3-G01: each leg's own records name its registered job (a relabelled copy stays FAIL), no shared run
+                   folder or kept file; C3-G02/G04: grade DIR's numbers verified against their sha256 and the ledger, a
+                   missing record FAILS, a moved --out, a move seen only at the seal; C3-G03: each identity field alone;
+                   C3-G06: a NOT RUN after a continuing leg, unexplained, fails custody.
+  ClosureTests     C3-H01: CPython's resolution order, a package, an extension module or bytecode beside a closure module,
+                   a forged __pycache__ file; C3-H02: script-folder shadows, PYTHONPATH and friends; C3-H04: every file
+                   named; C3-H05: the AI's framework imports start the closure; C3-E06: a file that does not parse is named.
+  WiringTests      C3-H03: the production Deps defaults.
+THE FOURTH FIX ROUND (the fourth check's C4-E01..E07, C4-G01..G06, C4-H01..H08, 2026-11-06; same rule: FAULT (the finding's
+own scenario), CONTROL, a mutant each; the check's surviving mutants re-anchored and pinned):
+  C4ErrorTests     C4-E01: a world.jsonl that is a FOLDER, or one the OS refuses to open, is a failed check, in the chain
+                   process and in the orchestrator's salvage (GRADED FAIL, never ERROR); C4-E02: --out claimed exclusively,
+                   a second launch refused (R11) without touching the first's files; C4-E07: every folder prepare_out made
+                   removed; C4-E03: a second Ctrl+C while the guard finishes (from the sweep, the ledger write, a kill) still
+                   finishes the entry, SIGINT ignored meanwhile and a line printed first, and a computed verdict already
+                   written is never overwritten; C4-E04: a lone surrogate written escaped; C4-E05: finish-entry writes only
+                   this driver's ERROR verdict.
+  C4GradingTests   C4-G01, C4-E06: grade DIR reads the ledger entry NOW and never reports better than it (numbers deleted,
+                   seeds moved, rows forged, an ERROR or 'started' entry, a renumbered id); C4-G02: a planted stop file or a
+                   deleted leg never turns FAIL into PASS; C4-G03: ABORTED and development said, with their exits; C4-G04:
+                   the salvage exemption reads the orchestrator's events. (C4-G05 is pinned in GradeTests, RegradeTests.)
+  C4HashingTests   C4-H01: .pyw beside a namespace package, the exact homes; C4-H03: names installed outside the
+                   repository; C4-H04, C4-H06: the AI's caches and bytecode, code under evidence/; C4-H05: the closure
+                   check falls through; C4-H07: the check's twelve surviving branches; C4-H08: the production bodies.
+                   (C4-H02 is in ClosureTests' python_env_refused.)
+THE FIFTH FIX ROUND (the fifth check's C5-01..C5-05, 2026-11-06; same rule: FAULT (the finding's own scenario), CONTROL,
+a mutant each, check 5's surviving MY02 among them):
+  C5Tests          C5-01: grade DIR never exits 0 for an edited graded FAIL folder (its numbers deleted, its seeds moved,
+                   its purpose relabelled): the folder's own jobs are checked against its seeds with no numbers, and the
+                   entry its recorded ledger id names must have its seeds and purpose (a renumbered ledger excepted);
+                   C5-02: when results.error.json cannot be written either, the printed finish-entry command still works,
+                   from the copy of the ERROR record in ledger.unfinished.json, under the same checks; C5-03: a folder ERROR
+                   or ABORTED mark beside an entry finished with PASS or FAIL is a contradiction (FAIL, exit 1); C5-04:
+                   SIGINT restored after the guard, pinned with a fresh sentinel handler; C5-05: an entry never begun or
+                   with a verdict this driver never writes is UNVERIFIED.
 The module's temp root is removed at exit as well as in tearDownModule, so a process that imports it outside unittest (a
 probe, a mutant worker) leaves no livechain_test_* folder behind.
 """
@@ -87,6 +136,7 @@ import json
 import os
 import re
 import shutil
+import string
 import subprocess
 import sys
 import tempfile
@@ -209,7 +259,13 @@ class Stub:
     start truth of a leg is the truth this stub gave the state it is handed (as `truth_of` would read it). `plan[leg]`
     plants a fault: miss, stale, truncate, no_world, overshoot, unread_start, amnesia, wrong_counts, multichoice=N,
     write_stop, write_abort, raise, die, wrong_species, wrong_ot, dead (the launch dies before playing a frame, as the
-    verifier's live V1 did: the gate line, exit code 1, no verdict file, no log, no world file, no end state)."""
+    verifier's live V1 did: the gate line, exit code 1, no verdict file, no log, no world file, no end state); (the third fix
+    round, C3-E02: the AI's output is untrusted) wrong_type_last_line (the world.jsonl's last line is valid JSON with
+    "maps" a number), deep_line (a 100,000-deep MIDDLE line; the last line is a good snapshot), bad_verdict (the verdict
+    file's real_frames is text and its exit_reason a number; one actions.jsonl record is no JSON object); (the fourth fix
+    round) world_is_folder (C4-E01: world.jsonl is a FOLDER), lone_surrogate (C4-E04: the exit_reason holds a lone
+    surrogate, which no UTF-8 write takes), die_before_launch (C4-G04: the chain process dies after naming the leg and
+    before its launch makes a run folder)."""
 
     def __init__(self, job: dict, plan: dict | None = None) -> None:
         self.job = job
@@ -226,6 +282,8 @@ class Stub:
         self.calls.append(arm.name)
         leg = arm.name.rsplit("-", 1)[1]
         plan = self.plan.get(leg, {})
+        if plan.get("die_before_launch"):
+            raise SystemExit("the child process died before its launch")
         target = arm.env[ENV_TARGET]
         run = L5.Run(arm)
         profile = Path(build_root) / "profiles" / L5.PROFILE
@@ -278,7 +336,16 @@ class Stub:
             body = "\n".join(lines) + "\n\n"
             if plan.get("truncate"):
                 body = "\n".join(lines[:2] + [lines[2][: len(lines[2]) // 2]]) + "\n"
-            (run.run_dir / "world.jsonl").write_bytes(body.encode("utf-8"))
+            if plan.get("deep_line"):  # (C3-E02) json.loads raises RecursionError on it, not ValueError
+                body = "\n".join([lines[0], "[" * 100000 + "]" * 100000, *lines[1:]]) + "\n"
+            if plan.get("wrong_type_last_line"):  # (C3-E02) parses, but len() of its "maps" raises TypeError
+                body = "\n".join([*lines, '{"maps": 3, "tiles_learned": 0, "warps": {}, "connections": [], '
+                                          '"transitions": []}']) + "\n"
+            if plan.get("world_is_folder"):  # (C4-E01) a world.jsonl of the wrong KIND: open() refuses a folder
+                (run.run_dir / "world.jsonl").mkdir()
+                (run.run_dir / "world.jsonl" / "inside.txt").write_bytes(body.encode("utf-8"))
+            else:
+                (run.run_dir / "world.jsonl").write_bytes(body.encode("utf-8"))
             self.last_lines[arm.name] = (lines[2] + "\n").encode("utf-8")
         if plan.get("write_stop"):
             (Path(self.job["out"]) / "STOP.txt").write_text("moved\n", encoding="utf-8")
@@ -310,6 +377,12 @@ class Stub:
                                                         **{k: 0 for k in L2.BREACH_COUNTERS}},
                        "facts": {"exit_code": 0, "exit_reason": f"play: done: {target} reached" if reached else
                                  "play: stuck: out of ideas", "package_root": str(L2.REPO)}}
+        if plan.get("bad_verdict"):  # (C3-E02) the AI process's verdict file and action log, of the wrong shape
+            run.verdict["counters"]["real_frames"] = "lots"
+            run.verdict["facts"]["exit_reason"] = 7
+            run.records.append([1, 2, 3])
+        if plan.get("lone_surrogate"):  # (C4-E04) valid JSON text ("\ud800") that no UTF-8 write takes
+            run.verdict["facts"]["exit_reason"] = json.loads('"play: done \\ud800"')
         run.stdout = f"[AI-GATE] exit=0 verdict=PASS package={L2.REPO / 'ai_player'}\n"
         run.exit_code = 0
         run.elapsed = 12.5
@@ -549,22 +622,27 @@ def case_deletion_failure_continues(M, tmp):
 
 
 # ---------------------------------------------------------------------------------------------------- custody (pure)
-JOB_S = {"chain": "LC-S-1", "starter": "TREECKO"}
+#: (the third fix round, C3-G01) a complete registered job: every leg row below names it in its own records, so each FAULT
+#: case adds exactly its own problem and the CONTROL reads []
+JOB_S = {"chain": "LC-S-1", "starter": "TREECKO", "seed": 1, "personality": "Story", "profile": "ai-livechain-1"}
+RUNS_S = "C:/b/sandbox-pokebot/profiles/ai-livechain-1/ai_player_runs"
+IDENTITY_ENV = {"AI_PLAYER_SEED": "1", "AI_PLAYER_PERSONALITY": "Story"}
 
 
 def l1_row(**changes) -> dict:
-    row = {"leg": "L1", "command": ["py", "run", "--fresh"], "env": {ENV_STARTER: "TREECKO"},
-           "env_keys": list(LC.ENV_KEYS_FIRST), "world_in": None, "truth_before": None, "run_dir": "C:/x/r1",
-           "truth_after": {"frame": 500, "state_md5": "m1"}, "kept_world": "C:/out/L1/world_last.jsonl",
-           "kept_world_sha256": "s1"}
+    row = {"leg": "L1", "arm": "LC-S-1-L1", "command": ["py", "run", "--profile", "ai-livechain-1", "--fresh"],
+           "env": {ENV_STARTER: "TREECKO", **IDENTITY_ENV}, "env_keys": list(LC.ENV_KEYS_FIRST), "world_in": None,
+           "truth_before": None, "run_dir": f"{RUNS_S}/r1", "truth_after": {"frame": 500, "state_md5": "m1"},
+           "kept_world": "C:/out/L1/world_last.jsonl", "kept_world_sha256": "s1"}
     row.update(changes)
     return row
 
 
 def l2_row(**changes) -> dict:
-    row = {"leg": "L2", "command": ["py", "run", "--state", str(Path("C:/x/r1") / "end_state.ss1")], "env": {},
-           "env_keys": list(LC.ENV_KEYS_LATER), "world_in": "C:/out/L1/world_last.jsonl", "world_in_sha256": "s1",
-           "truth_before": {"frame": 500, "state_md5": "m1"}}
+    row = {"leg": "L2", "arm": "LC-S-1-L2",
+           "command": ["py", "run", "--profile", "ai-livechain-1", "--state", str(Path(f"{RUNS_S}/r1") / "end_state.ss1")],
+           "env": dict(IDENTITY_ENV), "env_keys": list(LC.ENV_KEYS_LATER), "world_in": "C:/out/L1/world_last.jsonl",
+           "world_in_sha256": "s1", "truth_before": {"frame": 500, "state_md5": "m1"}, "run_dir": f"{RUNS_S}/r2"}
     row.update(changes)
     return row
 
@@ -583,7 +661,8 @@ def case_custody_wrong_frame(M, tmp):
 
 
 def case_custody_wrong_state(M, tmp):
-    ok(M.custody_problems(l2_row(command=["py", "run", "--state", "C:/other/end_state.ss1"]), l1_row(), JOB_S, 1), "state")
+    ok(M.custody_problems(l2_row(command=["py", "run", "--profile", "ai-livechain-1", "--state", "C:/other/end_state.ss1"]),
+                          l1_row(), JOB_S, 1), "state")
 
 
 def case_custody_wrong_world_sha(M, tmp):
@@ -592,12 +671,13 @@ def case_custody_wrong_world_sha(M, tmp):
 
 
 def case_custody_wrong_world_path(M, tmp):
-    ok(M.custody_problems(l2_row(world_in="C:/x/r1/world.jsonl"), l1_row(), JOB_S, 1), "the original world.jsonl")
+    ok(M.custody_problems(l2_row(world_in=f"{RUNS_S}/r1/world.jsonl"), l1_row(), JOB_S, 1), "the original world.jsonl")
 
 
 def case_custody_l1_state(M, tmp):
-    ok(M.custody_problems(l1_row(command=["py", "run", "--fresh", "--state", "C:/s.ss1"]), None, JOB_S, 0), "--state")
-    ok(M.custody_problems(l1_row(command=["py", "run"]), None, JOB_S, 0), "no --fresh")
+    ok(M.custody_problems(l1_row(command=["py", "run", "--profile", "ai-livechain-1", "--fresh", "--state", "C:/s.ss1"]),
+                          None, JOB_S, 0), "--state")
+    ok(M.custody_problems(l1_row(command=["py", "run", "--profile", "ai-livechain-1"]), None, JOB_S, 0), "no --fresh")
 
 
 def case_custody_l1_world(M, tmp):
@@ -606,7 +686,7 @@ def case_custody_l1_world(M, tmp):
 
 
 def case_custody_l1_starter(M, tmp):
-    ok(M.custody_problems(l1_row(env={ENV_STARTER: "MUDKIP"}), None, JOB_S, 0), "another starter")
+    ok(M.custody_problems(l1_row(env={ENV_STARTER: "MUDKIP", **IDENTITY_ENV}), None, JOB_S, 0), "another starter")
 
 
 def case_custody_env_keys(M, tmp):
@@ -757,9 +837,18 @@ def case_grade_control(M, tmp):
 
 
 def case_reach_5_of_6_pass(M, tmp):
+    """5 of 6 reach. (The fourth check's C4-G05) the MOST LIKELY honest graded outcome, one chain missing one leg, is a
+    full GRADED PASS: every graded check PASSES, LC.CUSTODY included (the legs NOT RUN after the miss follow a leg that
+    did NOT continue), whether the miss is at L1, L3 or L4. The check's mutant C05 (the rule fires after any RAN leg)
+    turned exactly this into FAIL."""
     chains, jobs = stopped_batch(1, {"L3": {"miss": True}})
     eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "PASS", "5 of 6")
     ok(not M.chain_reaches(chains[1], 5), "the chain stopped at L3 does not reach")
+    for at in ("L1", "L3", "L4"):
+        chains, jobs = stopped_batch(1, {at: {"miss": True}})
+        checks = grade(M, chains, jobs)
+        eq((M.batch_verdict(checks), by_id(checks, "LC.CUSTODY").status), ("PASS", "PASS"),
+           f"one miss at {at}: a full GRADED PASS: {graded_ok(checks)}")
 
 
 def case_reach_4_of_6_fails(M, tmp):
@@ -1306,13 +1395,80 @@ def case_bounds_needles(M, tmp):
                    "registered chain whose row is ignored is ABSENT",
                    "of the files the harness and the launcher run by path (ai_player/gates/check_purity.py",
                    "of the plugins the framework loads by name in every leg",
-                   "Registration and a graded run are REFUSED while that scan finds a file this list does not hash",
-                   "still FINISHED, as 'ERROR (harness: <type>: <message> while grading; no PASS or FAIL; the seeds are "
-                   "spent)'"):
+                   # (the third fix round) C3-H04/H01/H02: every file named, the resolution, caches and shadows refused,
+                   # the environment; C3-H05: the AI's framework imports start the closure; C3-H07: the CODE sentence
+                   "Registration and a graded run are REFUSED (R12) while that scan finds a file this list does not hash "
+                   "(every one named; a .pyw the closure reaches is one)", "each module resolved in CPython's order (a "
+                   "package's __init__.py, then __init__.pyw, before a module X.py, then X.pyw)",
+                   "a __pycache__ file CPython would load INSTEAD of its source that holds other code (of a closure file, or "
+                   "of any .py file of the AI's under ai_player/ outside gates/)",
+                   "an entry directly in the repository root, ai_player/gates or sandbox-pokebot that Python could import "
+                   "instead of a module, its name compared without case",
+                   "of the framework modules the AI's own files import (every absolute modules.* and plugins.* import",
+                   "except *.md files, *.pyc files and __pycache__ folders",
+                   # (the fourth fix round) C4-H01..H06 in the CODE sentence, C4-H05's limit, the THREAT MODEL
+                   "unless the entry IS that module (exactly these: the folder ai_player at the root; in sandbox-pokebot the "
+                   "folders modules and plugins and the files pokebot.py, requirements.py and updater.py",
+                   "a module installed outside the repository (every folder on the interpreter's sys.path outside it, listed "
+                   "when the scan runs, so a library's own imports are covered",
+                   "a .pyc file of the AI's outside __pycache__",
+                   "any Python code file (.py, .pyw, .pyc or an extension module) under ai_player/evidence/",
+                   "a graded run is also refused while any environment variable starting with PYTHON is set other than "
+                   "PYTHONIOENCODING, PYTHONUTF8, PYTHONDONTWRITEBYTECODE, PYTHONUNBUFFERED",
+                   "it does not claim to stop code written to switch the grader off from inside its own process: the purity "
+                   "gate and the clean, pushed tree (R9) are the defence there",
+                   "THREAT MODEL: the driver guards against (a) honest-case harness defects",
+                   "(c) edits of an --out folder after the run, which can never make the offline re-grade (grade DIR) report "
+                   "a verdict better than the ledger's",
+                   # C3-E02: the AI's output is untrusted; C3-G01: each leg's own records; C3-G06: statuses as stored
+                   "Every file the AI writes (world.jsonl and its kept last line, ai_player.log, the verdict file and its "
+                   "counters, actions.jsonl), of any content or kind, is UNTRUSTED",
+                   "a folder where a file was meant, or a file the OS refuses to open (a world.jsonl is tried 3 times, 1 s "
+                   "apart, first) fails the check of that leg",
+                   "text that cannot be written as UTF-8 is kept escaped", "whose five counts (maps, tiles learned, warp links, connections, "
+                   "map changes) can be read", "every leg that RAN must carry its REGISTERED job in its own harness records",
+                   "no two legs of the counted rows may share a run folder or a kept file",
+                   "Each leg's STATUS (RAN, NOT RUN, ...) is READ AS STORED",
+                   "a NOT RUN leg after a leg whose re-derived continuation holds is a custody failure unless STOP.txt or "
+                   "ABORT.txt is in --out",
+                   # (the fourth fix round) C4-G04, C4-G02, C4-G06
+                   "lists that chain as SALVAGED and the leg's reason is the salvage reason",
+                   "Each counted row holds exactly the registered legs, in order",
+                   "a row copied from another chain fails custody unless every one of these records is rewritten as well",
+                   "beside a record that says it held, fails it",
+                   # C3-E01, C3-E03, C3-E06, the chains-run guard: before begin; the stages; a hard kill only
+                   "Every step that needs no chain (--out, the job files, the profile snapshots) runs before ledger.begin",
+                   "while the chains run (every running chain process is killed first)",
+                   "'ERROR (harness: <type>: <message> while <stage>; no PASS or FAIL; the seeds are spent)'",
+                   "a failed ledger write is retried with the computed verdict before it falls back to ERROR",
+                   "The entry stays 'started' only if this orchestrator process is killed hard (its window closed, "
+                   "Ctrl+Break, a task kill), or if the ledger file cannot be written at all",
+                   # (the fourth fix round) C4-E03, C4-E02, C4-E05, C4-G01..G03
+                   "While the entry is being finished a second Ctrl+C is ignored (a line says so first)",
+                   "a launch first claims --out by creating BATCH.claim.json there exclusively",
+                   "give the command that finishes it, which writes only this ERROR verdict",
+                   "The offline re-grade (grade DIR) reads the batch's ledger entry and never reports a verdict better than "
+                   "it",
+                   # (the third fix round's finish, 2026-11-06) the exemption R12 makes is registered with the rule
+                   "and there the git-ignored folders mgba and profiles, which are not hashed",
+                   "Not hashed: the ROM, the emulator's library (sandbox-pokebot/mgba)"):
         ok(needle in text, f"the bounds text says {needle!r}")
+    doc = " ".join((M.__doc__ or "").split())
     ok("never anything the AI does" in (M.__doc__ or ""), "the docstring says LC.CUSTODY's limit too (V-09)")
-    ok("still FINISHES the ledger entry, as \"ERROR (harness:" in " ".join((M.__doc__ or "").split()),
-       "the docstring says C2-07's rule too")
+    ok("still FINISHES the ledger entry, as \"ERROR (harness:" in doc, "the docstring says C2-07's rule too")
+    for needle in ("5 = a harness crash the guard did not cover", "the only way the entry stays \"started\" is a HARD KILL "
+                   "of this orchestrator process itself", "EXIT: 0 = PASS (graded: VERIFIED and the ledger says PASS; "
+                   # (the fifth fix round) C5-01's MISMATCH is named among exit 1's verdicts
+                   "development: labelled), 1 = FAIL, MISMATCH or UNVERIFIED, 2 = could not be graded, 3 = ABORTED",
+                   "finish-entry DIR",
+                   # (the fourth fix round) the THREAT MODEL, said in the docstring as in the bounds text
+                   "THREAT MODEL", "It does NOT claim to stop code crafted to switch the grader off from inside its own "
+                   "process", "a second Ctrl+C is ignored until the entry is written"):
+        ok(needle in doc, f"the docstring says {needle!r}")
+    run_doc = " ".join((M.run_batch.__doc__ or "").split())
+    ok("The entry stays \"started\" only after a HARD KILL of this process" in run_doc, run_doc[-400:])
+    ok("When the ledger cannot be written at all, the entry is NOT finished" in " ".join(M.finish_on_error.__doc__.split()),
+       "finish_on_error's docstring says it")
 
 
 # ---------------------------------------------------------------------------------------------------- the scheduler
@@ -1386,8 +1542,11 @@ class Rig:
 
     def __init__(self, M, tmp: Path, plans: dict | None = None, alive: int = 2, free=lambda path: 100.0,
                  tree: FakeTree | None = None, clock=None, pre_spawn=None, tree_every: float = 10 ** 9,
-                 leftover=None) -> None:
+                 leftover=None, real_child: bool = False) -> None:
         self.M, self.plans, self.alive = M, plans or {}, alive
+        #: (the third fix round, C3-E02) the stub child dies like a separate process: ANY exception ends it with exit 1
+        #: (recorded in child_errors) instead of reaching the orchestrator, which a real `child` process cannot do
+        self.real_child, self.child_errors = real_child, []
         self.repo = tmp / "repo"
         self.build = self.repo / "sandbox-pokebot"
         (self.build / "profiles").mkdir(parents=True)
@@ -1424,6 +1583,11 @@ class Rig:
                 return 0
             except SystemExit:
                 return 1
+            except Exception as error:  # noqa: BLE001
+                if not self.real_child:
+                    raise
+                self.child_errors.append(f"{job['chain']}: {type(error).__name__}: {error}")
+                return 1
             finally:
                 L5.PROFILE = saved
         handle = FakeHandle(runner, self.alive, pid=1000 + len(self.handles))
@@ -1435,10 +1599,18 @@ class Rig:
         found = self.M.registered_numbers("ch5", "ch5_rival_meet", (6201, 6206), 6, legs, REPO)
         self.M.register((6201, 6206), found, "test", path=self.ledger)
 
-    def run(self, args: argparse.Namespace) -> tuple[int, str]:
+    def run(self, args: argparse.Namespace, environ: dict | None = None) -> tuple[int, str]:
+        """run_batch with the stubs; (C3-H02, C4-H02) the caller's PYTHON* variables are removed for the run (a graded
+        run refuses every one PYTHON_ENV_ALLOWED does not list) unless `environ` sets them; the environment is restored
+        after."""
         buffer = io.StringIO()
-        with mock.patch.object(self.M, "ai_code_sha256", lambda repo=None: "0" * 64), contextlib.redirect_stdout(buffer):
+        with mock.patch.dict(os.environ, {}), \
+                mock.patch.object(self.M, "ai_code_sha256", lambda repo=None: "0" * 64), contextlib.redirect_stdout(buffer):
+            for name in [name for name in os.environ if name.upper().startswith("PYTHON")]:
+                os.environ.pop(name, None)
+            os.environ.update(environ or {})
             code = self.M.run_batch(args, self.deps)
+        self.text = buffer.getvalue()
         return code, buffer.getvalue()
 
     def results(self) -> dict:
@@ -1597,27 +1769,56 @@ def calls_in(source: str, qualname: str) -> set[str]:
 
 
 WIRING = {
-    "run_batch": {"gather_facts", "run_refusal", "watch", "check", "seal", "begin", "finish", "schedule", "salvage_chain",
+    "run_batch": {"gather_facts", "run_refusal", "watch", "check", "seal", "begin", "schedule", "salvage_chain",
                   "end_sweep", "grade_batch", "guard_decision", "newest_world", "kill", "kill_tree", "keep_earlier",
                   # (the second fix round) C2-07's guard, C2-03's re-derived per-chain line
-                  "finish_on_error", "registered_chains"},
-    "gather_facts": {"legs_of", "g3", "git_state", "seeds_named", "free", "out_listing", "closure"},
+                  "finish_on_error", "registered_chains",
+                  # (the third fix round) C3-E01 before begin, C3-E03 the retried finish, the chains-run guard
+                  "prepare_out", "undo_out", "finish_entry", "stop_children", "main_profile_state", "run_folders",
+                  # (the fourth fix round) C4-E03 the guard's interrupts, C4-G04 the orchestrator's own salvage record
+                  "hold_interrupts", "note_interrupt", "salvaged_chains"},
+    "gather_facts": {"legs_of", "g3", "git_state", "seeds_named", "free", "out_listing", "closure", "python_env_refused"},
     # (C2-05) the closure checked at registration and before a graded run; (C2-07) the ERROR record finishes the entry
     "register_run": {"closure_missing", "closure_refusal", "register"},
     "run_refusal": {"closure_refusal"},
-    "finish_on_error": {"error_verdict", "finish", "_write_json"},
-    # (C2-02) the closure starts from the files run by path and the plugins loaded by name
-    "grader_closure": {"loaded_plugins", "_closure_imports", "_closure_file"},
+    "finish_on_error": {"error_verdict", "finish_entry", "_write_json", "finish_command", "error_line", "entry_status",
+                        "note_interrupt"},
+    "finish_entry": {"finish", "entry_finished"},
+    "finish_entry_cli": {"finish", "unfinished_problems"},
+    "unfinished_problems": {"error_line"},
+    # (the fourth fix round) C4-E02 the claim before the job files; C4-E04 every write UTF-8-safe; C4-H02 the environment
+    "prepare_out": {"undo_out", "_write_json"},
+    "_write_json": {"utf8_safe"},
+    "untrusted_text": {"utf8_safe"},
+    "child_env": {"python_env_refused"},
+    # C4-H03, C4-H04, C4-H06: the installed names, the AI's caches and its evidence folder
+    "toplevel_problems": {"outside_modules", "_importable"},
+    "ai_problems": {"pycache_problems"},
+    "verify_numbers": {"numbers_jobs_problems"},
+    # (C2-02, C3-H05) the closure starts from the files run by path, the plugins loaded by name, the AI's framework imports
+    "closure_scan": {"loaded_plugins", "ai_framework_imports", "_closure_imports", "_closure_file"},
+    "grader_closure": {"closure_scan"},
+    # (C3-H01, C3-H02) R12 also refuses another file in place of a hashed one
+    "closure_missing": {"closure_scan", "resolution_problems", "pycache_problems", "toplevel_problems", "ai_problems"},
+    "pycache_problems": {"_pyc_problem"},
     "run_chain": {"child_refusal", "check_purity", "check_after_is_this_run", "finish_leg", "custody_problems",
-                  "continue_after", "guard_mark", "stop_rest", "salvage_leg", "launch_died"},
+                  "continue_after", "guard_mark", "stop_rest", "salvage_leg", "launch_died", "judged"},
     "finish_leg": {"stream_world_tail", "measure_then_delete", "read_log_counts"},
+    "stream_world_tail": {"world_counts", "_line_parses"},
+    "custody_problems": {"leg_identity_problems"},
     # (the fix round, V-02) the grade counts the registered rows only, each re-derived from its own facts
     "grade_batch": {"registered_chains"},
-    "registered_chains": {"rederived_chain"},
+    "registered_chains": {"rederived_chain", "shared_legs"},
     "rederived_chain": {"proof_holds", "leg_reached", "launch_died", "custody_problems", "kept_problem", "continue_after",
-                        "chain_reaches"},
-    "regrade_dir": {"registered_rows", "guard_mark", "grade_batch"},
+                        "chain_reaches", "kept_path"},
+    "kept_problem": {"world_counts"},
+    "regrade_dir": {"registered_rows", "guard_mark", "grade_batch", "verify_numbers", "find_entry", "ledger_result",
+                    "salvaged_chains",
+                    # (the fifth fix round) C5-01: the entry the folder's recorded id names
+                    "recorded_problems"},
     "grade_dir": {"regrade_dir"},
+    "child": {"run_chain", "python_env_refused"},
+    "main": {"command"},
 }
 
 
@@ -1626,6 +1827,46 @@ def case_wiring(M, tmp):
     for function, want in WIRING.items():
         missing = want - calls_in(source, function)
         ok(not missing, f"{function} no longer calls {sorted(missing)}")
+
+
+def case_wiring_defaults(M, tmp):
+    """(The third check's C3-H03) the PRODUCTION side effects a graded run uses (`Deps()`'s defaults; every test rig
+    replaces them): R12's closure scan, R9's git facts, R5's G-3 walk, R6's free space, R2's build root, the leftover
+    processes and the spawn of a chain process. A default switched off passed every other test."""
+    deps = M.Deps()
+    for name, want in (("closure", M.closure_missing), ("git_state", M.git_state), ("g3", M.g3_scan),
+                       ("free", M.safe_free), ("default_build_root", M.default_build_root),
+                       ("leftover", M.leftover_processes), ("spawn", M.spawn_child),
+                       # (the fourth check's C4-H08) the rest: LC.FROZEN's watch, the snapshot, the code line, the kill
+                       ("watch", M.watch_tree), ("snapshot", M.snapshot), ("code_line", M.code_line),
+                       ("kill", M.kill_descendants)):
+        ok(getattr(deps, name) is want, f"Deps().{name} is {getattr(deps, name)!r}, not {want.__name__}")
+
+
+def case_wiring_bodies(M, tmp):
+    """(The fourth check's C4-H08) the BODIES behind the production Deps, each of which a test rig replaces, so a body
+    switched off passed every other test: watch_tree watches this repository's code (LC.FROZEN can fail), safe_free is the
+    drive's real free space (R6 and the disk guard), g3_scan walks live_chain itself (R5), and leftover_processes finds a
+    python process whose command line names the prefix (LC.LEFTOVER)."""
+    tree = M.watch_tree()
+    ok(Path(tree.repo) == REPO.resolve() and "ai_player/gates/live_chain.py" in tree.stats and tree.explicit,
+       f"watch_tree watches this repository's code: {tree.repo}, {len(tree.stats)} files")
+    from ai_player.gates.live_ki128 import free_gb
+    ok(abs((M.safe_free(tmp) or -1.0) - free_gb(tmp)) < 1.0, f"safe_free is the real free space: {M.safe_free(tmp)}")
+    seen: list = []
+    with mock.patch("ai_player.gates.check_grader_imports.scan", lambda repo, names: seen.append((repo, names)) or []):
+        eq(M.g3_scan(), [], "the G-3 walk's result")
+    eq(seen, [(M.REPO, ("ai_player.gates.live_chain",))], "g3_scan walks live_chain itself")
+    marker = f"{M.PROFILE_PREFIX}wiring-{os.getpid()}-{time.time_ns()}"
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+    sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)", marker], creationflags=flags,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        found = M.leftover_processes(marker)
+    finally:
+        sleeper.kill()
+        sleeper.wait(timeout=30)
+    ok(any(line.startswith(f"{sleeper.pid} ") for line in found), f"leftover_processes finds the python process: {found}")
 
 
 # ==================================================================================================== THE FIX ROUND
@@ -1666,6 +1907,8 @@ def case_e2e_out_not_empty_refused(M, tmp):
         code, text = rig.run(run_args(out=str(rig.out)))
         eq(code, 2, f"{name}: refused before any leg (V-01): {text[-600:]}")
         ok("R11" in text and name in text, f"{name}: {text[-600:]}")
+        # (the fourth fix round) refused by the LISTING, which says why, before the claim's own check (C4-E02) would
+        ok("exists and is NOT EMPTY" in text, f"{name}: refused by the listing: {text[-600:]}")
         eq((rig.entry()["status"], rig.entry().get("started")), ("registered", None),
            f"{name}: the registration is NOT spent (no 'started')")
         eq(rig.ledger.read_bytes(), before, f"{name}: the ledger is unchanged")
@@ -2044,9 +2287,12 @@ def case_closure_scan_planted(M, tmp):
                       "ai_player/gates/live_chain.py", "ai_player/gates/top.py",
                       *(f"ai_player/gates/{name}.py" for name in planted),
                       "sandbox-pokebot/modules/pkg/__init__.py", "sandbox-pokebot/modules/pkg/sub.py",
-                      "sandbox-pokebot/modules/rel.py", "sandbox-pokebot/modules/sibling.py"]),
+                      "sandbox-pokebot/modules/rel.py", "sandbox-pokebot/modules/sibling.py",
+                      # (the third fix round, C3-H05) the AI's framework import STARTS the closure; its own file is never in it
+                      "sandbox-pokebot/modules/ai_only.py"]),
        "a function-local import, one in an except, else, finally, with, match or class body, a relative one and a parent "
-       "package are followed; a mention in a docstring or a comment and the AI's own imports are not")
+       "package are followed, and the framework module an AI file imports; a mention in a docstring or a comment is not, "
+       "and the AI's own file is not")
 
 
 def case_closure_starts(M, tmp):
@@ -2350,53 +2596,40 @@ def case_path_run_scan_planted(M, tmp):
     eq(problems, [], "CONTROL: the same script listed as a root")
 
 
-#: (C2-02) top-level names of sandbox-pokebot an import may name WITHOUT the closure following them, each with why
-TOPLEVEL_NOT_FOLLOWED = {
-    "profiles": "git-ignored and per machine (the framework copies modules/config/templates into it at start, the catch "
-                "filters modules/encounter.py imports among them): following it would make the closure depend on the "
-                "machine; the bounds text says it is not hashed",
-}
-
-
-def toplevel_problems(M, repo: Path, files: list[str]) -> tuple[list[str], set[str]]:
-    """(C2-02) Over `files`, from their syntax (ast.walk, a second path): each import of a top-level name that exists
-    directly under sandbox-pokebot/ (a .py or a folder) but is no CLOSURE_ROOTS prefix, and each bare import of a sibling
-    of ai_player/gates (also unfollowed); and the TOPLEVEL_NOT_FOLLOWED names found."""
-    roots = {prefix.split(".")[0] for prefix, _ in M.CLOSURE_ROOTS}
-    problems, excused = [], set()
+def tops_of(M, repo: Path, files: list[str]) -> set[str]:
+    """(A SECOND PATH, test side: ast.walk, not the driver's statement walk) every top-level name an absolute import of
+    `files` names."""
+    tops: set[str] = set()
     for rel in files:
-        tops: set[str] = set()
         for node in ast.walk(ast.parse((repo / rel).read_bytes())):
             if isinstance(node, ast.Import):
                 tops.update(alias.name.split(".")[0] for alias in node.names)
             elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
                 tops.add(node.module.split(".")[0])
-        for top in sorted(tops - roots):
-            if top in TOPLEVEL_NOT_FOLLOWED:  # (whether or not this machine's folder exists: it is git-ignored)
-                excused.add(top)
-                continue
-            if (repo / "sandbox-pokebot" / f"{top}.py").is_file() or (repo / "sandbox-pokebot" / top).is_dir():
-                problems.append(f"{rel} imports {top!r}, a name of sandbox-pokebot the closure does not follow")
-            if (repo / "ai_player" / "gates" / f"{top}.py").is_file():
-                problems.append(f"{rel} imports {top!r} bare, a sibling of ai_player/gates the closure does not follow")
-    return problems, excused
+    return tops
 
 
 def case_closure_toplevel_names(M, tmp):
-    """(C2-02) every top-level name of the framework an import of the closure names is FOLLOWED (a CLOSURE_ROOTS prefix),
-    except the explained TOPLEVEL_NOT_FOLLOWED (exact). FAULT (planted): pokebot.py importing a new top-level module, and
-    a gates file importing a sibling bare, are each named; CONTROL: the real tree."""
-    problems, excused = toplevel_problems(M, REPO, real_closure(M))
-    eq(problems, [], "an import of the framework's top-level names that the closure does not follow")
-    eq(excused, set(TOPLEVEL_NOT_FOLLOWED), "every exemption is still found")
+    """(C2-02, moved into the driver by the third fix round, C3-H02: R12's `toplevel_problems`) every top-level name of the
+    framework an import of the closure names is FOLLOWED (a CLOSURE_ROOTS prefix) or a declared exemption
+    (TOPLEVEL_NOT_FOLLOWED, EXACT: each is imported by a closure file, found by a second path). FAULT (planted): pokebot.py
+    importing a new top-level module beside it, and a gates file importing a sibling bare, are each named; CONTROL: the
+    real tree (whatever git-ignored folders it holds, the emulator's mgba among them on the main checkout)."""
+    tops = tops_of(M, REPO, real_closure(M))
+    eq(M.toplevel_problems(REPO, M.closure_scan(REPO)["tops"]), [], "an entry of a script folder that shadows a module")
+    eq(sorted(name for _, name in M.TOPLEVEL_NOT_FOLLOWED if name not in tops), [],
+       "every exemption names a module a closure file imports (a stale exemption is a hole)")
+    eq(sorted(n for n in tops - {p.split(".")[0] for p, _ in M.CLOSURE_ROOTS}
+              if (REPO / "sandbox-pokebot" / f"{n}.py").is_file() and ("sandbox-pokebot", n) not in M.TOPLEVEL_NOT_FOLLOWED),
+       [], "a top-level module of sandbox-pokebot a closure file imports that is neither followed nor exempt")
     root = tmp / "repo"
     plant(root, "sandbox-pokebot/pokebot.py", "import modules.main\nfrom newtop import thing\n")
     plant(root, "sandbox-pokebot/newtop.py")
     plant(root, "ai_player/gates/live_chain.py", "import window\n")
     plant(root, "ai_player/gates/window.py")
-    problems, _ = toplevel_problems(M, root, ["sandbox-pokebot/pokebot.py", "ai_player/gates/live_chain.py"])
+    problems = M.toplevel_problems(root, tops_of(M, root, ["sandbox-pokebot/pokebot.py", "ai_player/gates/live_chain.py"]))
     eq(len(problems), 2, f"FAULT: both named: {problems}")
-    ok("'newtop'" in problems[0] + problems[1] and "'window' bare" in problems[0] + problems[1], problems)
+    ok("sandbox-pokebot/newtop.py" in " ".join(problems) and "ai_player/gates/window.py" in " ".join(problems), problems)
 
 
 def case_changed_path_run_refused(M, tmp):
@@ -2749,7 +2982,8 @@ def case_prediction_not_utf8_refused(M, tmp):
 
 
 # ---------------------------------------------------------------------------------------------------- C2-07: the guard
-ERROR_OF = "ERROR (harness: {kind}: {message} while grading; no PASS or FAIL; the seeds are spent)"
+ERROR_OF = "ERROR (harness: {kind}: {message} {stage}; no PASS or FAIL; the seeds are spent)"
+GRADING = "while grading"
 
 
 def errored_run(M, rig: Rig, target: str, error: Exception) -> tuple[int, str]:
@@ -2768,7 +3002,7 @@ def case_grade_error_finishes_entry(M, tmp):
     rig = graded_rig(M, tmp)
     code, text = errored_run(M, rig, "grade_batch", RuntimeError("a planted fault"))
     entry = rig.entry()
-    want = ERROR_OF.format(kind="RuntimeError", message="a planted fault")
+    want = ERROR_OF.format(kind="RuntimeError", message="a planted fault", stage=GRADING)
     eq((code, entry["status"]), (4, "done"), f"exit 4 and the entry FINISHED: {text[-900:]}")
     ok(entry["verdict"].startswith(f"GRADED, {want}: live chain held-out"), entry["verdict"])
     evidence = Path(entry["evidence"] or "")
@@ -2776,7 +3010,11 @@ def case_grade_error_finishes_entry(M, tmp):
     body = evidence.read_text(encoding="utf-8")
     ok(body.startswith(f"LIVE CHAIN HELD-OUT - GRADED - VERDICT {want}"), body[:400])
     ok("Traceback (most recent call last)" in body and "RuntimeError: a planted fault" in body, body[:2000])
-    eq(rig.results()["verdict"], want, "results.json says ERROR")
+    ok(body.rstrip().splitlines()[-1] == f"LEDGER: entry #{entry['id']} FINISHED with this verdict", body[-300:])
+    # (the third fix round, C3-E05) the error record is results.error.json, with what grade DIR needs
+    record = json.loads((rig.out / M.RESULTS_ERROR).read_text(encoding="utf-8"))
+    eq((record["verdict"], record["stage"], record["ledger_finished"]), (want, "grading", True), "results.error.json")
+    eq(record["numbers_sha256"], ledger.numbers_sha256(record["numbers"]), "it carries the registered numbers")
 
 
 def case_evidence_error_finishes_entry(M, tmp):
@@ -2785,12 +3023,20 @@ def case_evidence_error_finishes_entry(M, tmp):
     rig = graded_rig(M, tmp / "partial")
     code, text = errored_run(M, rig, "leg_lines", OSError("a planted fault in the evidence"))
     entry = rig.entry()
-    want = ERROR_OF.format(kind="OSError", message="a planted fault in the evidence")
+    want = ERROR_OF.format(kind="OSError", message="a planted fault in the evidence", stage="while writing the evidence")
     eq((code, entry["status"]), (4, "done"), f"exit 4 and the entry FINISHED: {text[-900:]}")
     ok(entry["verdict"].startswith(f"GRADED, {want}"), entry["verdict"])
     body = Path(entry["evidence"] or "").read_text(encoding="utf-8") if Path(entry["evidence"] or "").is_file() else ""
     ok("OSError: a planted fault in the evidence" in body and "checks (registered in the bounds text below" in body,
        f"the traceback and what was built before the error: {body[:1500]}")
+    # (the third fix round, C3-E07) every embedded unfinished line is marked, and the bounds text is printed ONCE
+    lines = body.splitlines()
+    at = next(i for i, line in enumerate(lines) if line.startswith("what the harness had built before the error"))
+    embedded = lines[at + 1:lines.index("", at + 1)]
+    ok(embedded and all(line.startswith("UNFINISHED| ") for line in embedded), f"marked: {embedded[:3]}")
+    ok(any(line == "UNFINISHED| VERDICT: PASS" for line in embedded) and not any(line == "VERDICT: PASS" for line in lines),
+       "the unfinished build's own verdict line is marked, never bare")
+    eq(lines.count(M.BOUNDS_HEADING), 1, "the bounds text is in the evidence once")
     rig = graded_rig(M, tmp / "nowhere")
     (tmp / "nowhere" / "evidence-is-a-file").write_text("x", encoding="utf-8")
     rig.deps.evidence_dir = tmp / "nowhere" / "evidence-is-a-file"
@@ -2873,6 +3119,2289 @@ def case_world_line_no_file(M, tmp):
        f"CONTROL: a file the OS kept open, measured or not, is still listed as not deleted: {world[:900]}")
 
 
+# ==================================================================================================== THE THIRD FIX ROUND
+# (the independent check's C3-E01..E07, C3-G01..G06, C3-H01..H07 and the chains-run guard, 2026-11-05) each new or changed
+# guard: a FAULT case, a CONTROL case, and a mutant in MUTANTS
+def guarded_run(rig: Rig, args: argparse.Namespace | None = None, environ: dict | None = None) -> tuple[int, str]:
+    """`rig.run`; an exception that ESCAPES run_batch is a FAILED case here (its entry would be left 'started')."""
+    try:
+        return rig.run(args or run_args(out=str(rig.out)), environ)
+    except Exception as escaped:  # noqa: BLE001
+        raise AssertionError(f"the harness's exception escaped run_batch: {escaped!r}") from None
+
+
+def evidence_text(rig: Rig) -> str:
+    found = sorted(rig.evidence.glob("*.txt")) if rig.evidence.is_dir() else []
+    return found[-1].read_text(encoding="utf-8") if found else ""
+
+
+def dev_rig(M, tmp: Path, **kwargs) -> tuple[Rig, argparse.Namespace]:
+    rig = Rig(M, tmp, **kwargs)
+    rig.ledger.write_text(json.dumps({"what": "t", "entries": []}), encoding="utf-8")
+    prediction = tmp / "prediction.txt"
+    prediction.write_text("3 of 3 reach ch2_wally.\n", encoding="utf-8")
+    return rig, dev_args(out=str(rig.out), prediction_file=str(prediction))
+
+
+def missing_drive() -> Path | None:
+    return next((Path(f"{c}:/") for c in reversed(string.ascii_uppercase) if not Path(f"{c}:/").exists()), None)
+
+
+# ---------------------------------------------------------------------------------------------------- C3-E01: --out first
+def case_out_listing_unmakeable(M, tmp):
+    """(C3-E01) an --out that does not exist and can never be made is R11's before anything: a FILE above it (a typo), no
+    folder above it at all (a missing drive). CONTROL: a new folder under one that exists."""
+    (tmp / "notes.txt").write_text("x", encoding="utf-8")
+    ok("above it is not a folder" in M.out_listing(tmp / "notes.txt" / "out" / "deeper").get("out_error", ""),
+       "a file above --out")
+    drive = missing_drive()
+    if drive is not None:
+        ok("no folder above it exists" in M.out_listing(drive / "lc" / "out").get("out_error", ""), "a missing drive")
+    eq(M.out_listing(tmp / "fresh" / "out"), {"out_entries": []}, "CONTROL: a folder that can be made")
+
+
+def case_e2e_out_unmakeable_refused(M, tmp):
+    """(C3-E01, the checker's S5) a graded run whose --out cannot be created or written is REFUSED (R11, exit 2) BEFORE
+    ledger.begin: the ledger's bytes unchanged, the entry still 'registered', no chain started, nothing made. Under a file
+    and on a missing drive the listing refuses it; an invalid name only fails when it is MADE (prepare_out). CONTROL:
+    e2e_graded_pass and e2e_out_empty_proceeds."""
+    (tmp / "notes.txt").write_text("a file where a folder was meant\n", encoding="utf-8")
+    cases = {"under_a_file": tmp / "notes.txt" / "out", "invalid_name": tmp / "out?1"}
+    if missing_drive() is not None:
+        cases["missing_drive"] = missing_drive() / "lc" / "out"
+    for label, out in cases.items():
+        rig = graded_rig(M, tmp / label)
+        before = rig.ledger.read_bytes()
+        code, text = guarded_run(rig, run_args(out=str(out)))
+        eq(code, 2, f"{label}: refused: {text[-500:]}")
+        ok("REFUSED: R11" in text and "cannot be created" in text, f"{label}: {text[-500:]}")
+        eq((rig.entry()["status"], rig.ledger.read_bytes() == before, rig.handles), ("registered", True, []),
+           f"{label}: the registration is NOT spent")
+    ok(not any(p.name.startswith("out?") for p in tmp.iterdir()), "nothing made for the invalid name")
+
+
+def case_e2e_out_undone_on_ledger_refusal(M, tmp):
+    """(C3-E01) --out and the job files are made BEFORE ledger.begin, so a batch the LEDGER refuses (R10) removes them
+    again: a missing --out is not left behind, an empty one is left empty (else R11 would refuse it next time)."""
+    for label, pre in (("missing", False), ("empty", True)):
+        rig = Rig(M, tmp / label)
+        rig.ledger.write_text(json.dumps({"what": "t", "entries": []}), encoding="utf-8")
+        if pre:
+            rig.out.mkdir(parents=True)
+        code, text = guarded_run(rig)
+        eq(code, 2, f"{label}: refused by the ledger: {text[-400:]}")
+        ok("R10" in text, text[-400:])
+        if pre:
+            eq(sorted(p.name for p in rig.out.iterdir()), [], "an EMPTY --out is left empty")
+        else:
+            ok(not rig.out.exists(), "the --out made before ledger.begin is removed again")
+
+
+def case_e2e_steps_before_begin(M, tmp):
+    """(C3-E01, C3-G05) every step that needs no chain runs BEFORE ledger.begin: every job file is on disk and both profile
+    snapshots (main_profile_state, run_folders) were taken when begin is called. CONTROL: the batch passes."""
+    rig = graded_rig(M, tmp)
+    calls: list[str] = []
+    seen: dict = {}
+    real_begin, real_main, real_folders = M.begin, M.main_profile_state, M.run_folders
+
+    def begin(*args, **kwargs):
+        seen.update({"job_files": sorted(p.name for p in rig.out.glob("*.job.json")), "calls": list(calls)})
+        return real_begin(*args, **kwargs)
+    with mock.patch.object(M, "begin", begin), \
+            mock.patch.object(M, "main_profile_state", lambda b: calls.append("main_profile_state") or real_main(b)), \
+            mock.patch.object(M, "run_folders", lambda b: calls.append("run_folders") or real_folders(b)):
+        code, text = guarded_run(rig)
+    eq(code, 0, f"CONTROL: the batch passes: {text[-400:]}")
+    eq(len(seen.get("job_files") or []), 6, f"every job file is written before ledger.begin: {seen}")
+    ok({"main_profile_state", "run_folders"} <= set(seen.get("calls") or []), f"the snapshots come before begin: {seen}")
+
+
+# ---------------------------------------------------------------------------------------------------- the chains-run guard
+def case_chains_error_finishes_entry(M, tmp):
+    """(The chains-run guard) an exception WHILE THE CHAINS RUN (here the disk guard's free-space read raises with three
+    chains running) kills every running chain process, deletes their world files (the end sweep) and FINISHES the entry as
+    ERROR 'while the chains ran', exit 4, with the evidence naming what the guard did and results.error.json. And the
+    checker's S6: the very first spawn raising (nothing running) ends the same way. CONTROL: e2e_graded_pass."""
+    reads = {"n": 0}
+
+    def free(path):
+        reads["n"] += 1
+        if reads["n"] == 2:  # (read 1: gather_facts; read 2: the first tick, three chains running)
+            raise RuntimeError("a planted fault in the disk guard")
+        return 100.0
+    rig = graded_rig(M, tmp / "tick", alive=50, free=free,
+                     pre_spawn=lambda job: planted_folder(Path(job["build_root"]), job["profile"],
+                                                          f"20261105-000000-{job['chain']}-L1"))
+    code, text = guarded_run(rig)
+    entry = rig.entry()
+    want = ERROR_OF.format(kind="RuntimeError", message="a planted fault in the disk guard", stage="while the chains ran")
+    eq((code, entry["status"]), (4, "done"), f"exit 4 and the entry FINISHED: {text[-700:]}")
+    ok(entry["verdict"].startswith(f"GRADED, {want}"), entry["verdict"])
+    eq(len(rig.handles), 3, "three chains were running")
+    ok(all(handle.killed for handle in rig.handles), "every running chain process was killed")
+    eq(list(rig.build.glob("profiles/*/ai_player_runs/*/world.jsonl")), [], "their world files were deleted")
+    body = evidence_text(rig)
+    ok("the guard: LC-S-6201: its process (pid 1000) was still running: killed" in body, body[:1500])
+    eq(json.loads((rig.out / M.RESULTS_ERROR).read_text(encoding="utf-8"))["stage"], "chains", "results.error.json")
+    rig = graded_rig(M, tmp / "spawn")
+    rig.deps.spawn = lambda job, job_path, log_path: (_ for _ in ()).throw(OSError(24, "Too many open files"))
+    code, text = guarded_run(rig)
+    eq((code, rig.entry()["status"]), (4, "done"), f"the first spawn raising: {text[-500:]}")
+    ok("while the chains ran" in rig.entry()["verdict"], rig.entry()["verdict"])
+
+
+def case_chains_interrupt_finishes_entry(M, tmp):
+    """(The chains-run guard, C3-E06) a Ctrl+C (KeyboardInterrupt) while the chains run: the running chain processes are
+    killed and the entry FINISHED as ERROR, and only then does the interrupt stop the process."""
+    calls = {"n": 0}
+    rig = graded_rig(M, tmp, alive=50)
+
+    def sleep(seconds):
+        calls["n"] += 1
+        if calls["n"] == 6:
+            raise KeyboardInterrupt()
+    rig.deps.sleep = sleep
+    try:
+        rig.run(run_args(out=str(rig.out)))
+        raise AssertionError("the interrupt did not stop the process")
+    except KeyboardInterrupt:
+        pass
+    entry = rig.entry()
+    eq(entry["status"], "done", "the entry is FINISHED before the interrupt goes on")
+    ok(entry["verdict"].startswith("GRADED, ERROR (harness: KeyboardInterrupt: no message while the chains ran"),
+       entry["verdict"])
+    ok(rig.handles and all(handle.killed for handle in rig.handles), "the running chain processes were killed")
+
+
+# ---------------------------------------------------------------------------------------------------- C3-E02: the AI's data
+def case_world_counts_untrusted(M, tmp):
+    """(C3-E02) a world line the AI wrote never makes the harness raise: a wrong-typed field, a deeply nested line, a list,
+    bytes that are not UTF-8, a number too long for int() and a float are each a FAILED line (None, why); the stream
+    counts a bad MIDDLE line and keeps going. CONTROL: the AI's own snapshot shape is read."""
+    good = snapshot(2, 10).encode()
+    eq(M.world_counts(good)[0], {"maps": 2, "tiles": 10, "warps": 1, "connections": 1, "transitions": 2}, "CONTROL")
+    for label, raw in (("maps a number", b'{"maps": 3}'), ("tiles as text", b'{"tiles_learned": "many"}'),
+                       ("tiles a float", b'{"tiles_learned": 1e400}'), ("warps a list", b'{"warps": [1]}'),
+                       ("a list", b"[1, 2]"), ("deep", b"[" * 100000 + b"]" * 100000), ("not utf-8", b"\xff\xfe{"),
+                       ("a 5000-digit count", b'{"tiles_learned": ' + b"9" * 5000 + b"}"), ("a bool", b'{"tiles_learned": true}')):
+        counts, why = M.world_counts(raw)
+        ok(counts is None and why, f"{label}: a failed line, not {counts}")
+    world = tmp / "world.jsonl"
+    world.write_bytes(good + b"\n" + b"[" * 100000 + b"]" * 100000 + b"\n" + good + b"\n")
+    found = M.stream_world_tail(world, tmp / "kept.jsonl")
+    eq((found["lines"], found["bad_lines"], found["last_ok"]), (3, 1, True), "a deep MIDDLE line is one bad line")
+    world.write_bytes(good + b"\n" + b'{"maps": 3, "tiles_learned": 0}\n')
+    found = M.stream_world_tail(world, tmp / "kept2.jsonl")
+    eq((found["last_ok"], found["counts"]), (False, None), "a wrong-typed LAST line: last_ok False")
+
+
+def case_e2e_untrusted_world_fails_not_errors(M, tmp):
+    """(C3-E02, the checker's arms C-E) the AI's world.jsonl with a valid-JSON last line of the wrong type, and another leg's
+    with a 100,000-deep middle line, inside a batch that FAILS (two chains miss at L2): the batch is GRADED, FAIL, exit 1,
+    NEVER the harness's ERROR. The chain processes behave as separate processes (any exception ends one, exit 1) and none
+    died; the wrong-typed chain STOPS at that leg by C3, the deep-line leg continues (its last line is good)."""
+    jobs = LC.jobs_of(6201, 6)
+    plans = {jobs[0]["chain"]: {"L2": {"miss": True}}, jobs[3]["chain"]: {"L2": {"miss": True}},
+             jobs[1]["chain"]: {"L3": {"wrong_type_last_line": True}}, jobs[2]["chain"]: {"L2": {"deep_line": True}}}
+    rig = graded_rig(M, tmp, plans=plans, real_child=True)
+    code, text = guarded_run(rig)
+    entry = rig.entry()
+    eq(code, 1, f"GRADED, FAIL, never the harness's ERROR: {entry.get('verdict')}: {text[-700:]}")
+    eq(rig.results()["verdict"], "FAIL", "results.json")
+    ok(entry["verdict"].startswith("GRADED, FAIL") and "ERROR" not in entry["verdict"], entry["verdict"][:300])
+    eq(rig.child_errors, [], "no chain process died")
+    wrong = json.loads((rig.out / "rows" / f"{jobs[1]['chain']}.json").read_text(encoding="utf-8"))
+    eq(wrong["stopped_at"], "L3", f"the wrong-typed leg stops its chain: {wrong['stop_reason']}")
+    ok("C3 its world.jsonl's last line did not parse" in wrong["stop_reason"], wrong["stop_reason"])
+    deep = json.loads((rig.out / "rows" / f"{jobs[2]['chain']}.json").read_text(encoding="utf-8"))
+    world = (deep["legs"][1].get("measures") or {}).get("world") or {}
+    eq((world.get("bad_lines"), deep["reached_to"]), (1, True), "the deep line is counted only (the leg is measured)")
+
+
+def case_log_untrusted(M, tmp):
+    """(C3-E02) the AI's log: a memory line with a count longer than int() reads is an UNREADABLE memory line (no counts:
+    LC.MEMORY fails that leg), and a log that cannot be read to its end keeps its count, marked: neither raises."""
+    try:
+        found = M.log_counts(["[AI-HANDS] outcome=done presses=1 frames=1",
+                              "[AI-WORLD] memory from nothing (a new memory): " + "9" * 5000 + " maps (none), 0 tiles "
+                              "learned, 0 warp links, 0 connections, 0 map changes"])
+    except Exception as error:  # noqa: BLE001
+        raise AssertionError(f"the AI's memory line raised: {error!r}") from None
+    ok(found["memory"] is not None and found["memory"]["counts"] is None and found["memory"].get("unreadable"),
+       f"an unreadable memory line: {found['memory']}")
+    log = tmp / "ai_player.log"
+    log.write_text("one\ntwo\n", encoding="utf-8")
+    real_open = open
+
+    def broken(file, *args, **kwargs):
+        if str(file) == str(log):
+            raise PermissionError(13, "held by another program")
+        return real_open(file, *args, **kwargs)
+    try:
+        with mock.patch("builtins.open", broken):
+            read = M.read_log_counts(log)
+    except Exception as error:  # noqa: BLE001
+        raise AssertionError(f"an unreadable log raised: {error!r}") from None
+    ok(read is not None and "could not be read" in (read.get("error") or ""), f"an unreadable log: {read}")
+    chains, jobs = healthy_batch()
+    eq(by_id(grade(M, chains, jobs), "LC.MEMORY").status, "PASS", "CONTROL: every memory line read")
+    chains[0]["legs"][2]["measures"]["log"]["memory"] = found["memory"]
+    eq(by_id(grade(M, chains, jobs), "LC.MEMORY").status, "FAIL", "an unreadable memory line fails LC.MEMORY")
+
+
+def case_chain_bad_verdict(M, tmp):
+    """(C3-E02) the AI process's verdict file with values of the wrong type (real_frames as text, exit_reason a number)
+    and an action record that is no object: the chain process does NOT raise; the checks that could not judge it are
+    MISSING (they fail), noted, and the chain stops at that leg. CONTROL: chain_control."""
+    try:
+        chain, stub, _ = play(M, tmp, {"L2": {"bad_verdict": True}})
+    except Exception as error:  # noqa: BLE001
+        raise AssertionError(f"the chain process raised on the AI's verdict file: {error!r}") from None
+    eq(len(stub.calls), 2, "the chain stopped at L2")
+    leg = chain["legs"][1]
+    ok(any("could not judge the AI's output" in note for note in leg["notes"]), leg["notes"])
+    ok(not leg["continue"] and "L5.THIS_RUN MISSING" in leg["why"], leg["why"])
+    eq(leg["outcome"], "7", "the AI's exit_reason kept as text")
+
+
+def case_kept_line_wrong_shape(M, tmp):
+    """(C3-E02) a kept last line that IS a JSON object but whose counts cannot be read (maps a number), filed with its own
+    sha256, never counts. CONTROL: 5 of 6 reach."""
+    chains, jobs = batch_with({1: {"L2": {"miss": True}}})
+    eq(by_id(grade(M, chains, jobs), "LC.REACH").status, "PASS", "CONTROL: 5 of 6 reach")
+    forged = tmp / "wrong_shape.jsonl"
+    forged.write_bytes(b'{"maps": 3, "tiles_learned": 0}\n')
+    last = chains[0]["legs"][4]
+    last["kept_world"], last["kept_world_sha256"] = str(forged), hashlib.sha256(forged.read_bytes()).hexdigest()
+    try:
+        reach = by_id(grade(M, chains, jobs), "LC.REACH")
+    except Exception as error:  # noqa: BLE001 - (the fourth fix round) the grade reads the AI's bytes: it never raises
+        raise AssertionError(f"a kept line of the wrong shape raised in the grade: {error!r}") from None
+    eq(reach.status, "FAIL", f"a kept line whose counts cannot be read never counts: {reach.text[:500]}")
+    ok("its kept last line is not a JSON object whose five counts can be read" in reach.text, reach.text[:900])
+
+
+# ---------------------------------------------------------------------------------------------------- C3-E03: the ledger
+def case_ledger_finish_transient_retried(M, tmp):
+    """(C3-E03) a ledger write that fails ONCE (another program held it) is retried with the COMPUTED verdict: the entry is
+    'done' with PASS, exit 0."""
+    rig = graded_rig(M, tmp)
+    real, verdicts = ledger.finish, []
+
+    def flaky(entry_id, verdict, evidence, path=ledger.LEDGER):
+        verdicts.append(verdict)
+        if len(verdicts) == 1:
+            raise PermissionError(13, "held open by another program")
+        return real(entry_id, verdict, evidence, path=path)
+    with mock.patch.object(ledger, "finish", flaky):
+        code, text = guarded_run(rig)
+    eq((code, rig.entry()["status"]), (0, "done"), f"retried: {text[-500:]}")
+    ok(rig.entry()["verdict"].startswith("GRADED, PASS") and len(verdicts) == 2, f"{verdicts}")
+
+
+def case_ledger_finish_computed_unwritable(M, tmp):
+    """(C3-E03, C3-E04's E08) the computed verdict cannot be written in any try while the ERROR verdict can: the entry is
+    'done' with ERROR 'while writing the ledger', exit 4; the COMPLETE results.json is kept and the error record sits
+    beside it (results.error.json)."""
+    rig = graded_rig(M, tmp)
+    real = ledger.finish
+
+    def refuse_computed(entry_id, verdict, evidence, path=ledger.LEDGER):
+        if "ERROR (harness:" not in verdict:
+            raise PermissionError(13, "held open by another program")
+        return real(entry_id, verdict, evidence, path=path)
+    with mock.patch.object(ledger, "finish", refuse_computed):
+        code, text = guarded_run(rig)
+    entry = rig.entry()
+    eq((code, entry["status"]), (4, "done"), f"finished as ERROR: {text[-600:]}")
+    ok(entry["verdict"].startswith("GRADED, ERROR (harness: LedgerUnwritten:") and "while writing the ledger" in
+       entry["verdict"], entry["verdict"][:300])
+    ok("checks" in rig.results() and rig.results()["verdict"] == "PASS", "the complete results.json is kept")
+    eq(json.loads((rig.out / M.RESULTS_ERROR).read_text(encoding="utf-8"))["stage"], "ledger", "results.error.json")
+
+
+def case_ledger_unwritable_not_finished(M, tmp):
+    """(C3-E03, the checker's S1/S8) a ledger that cannot be written AT ALL: exit 4 (never 1), the entry still 'started',
+    and the evidence's last line, results.error.json and the output say it is NOT finished, with the exact command; that
+    command then finishes it, and refuses a second time."""
+    rig = graded_rig(M, tmp)
+    with mock.patch.object(ledger, "finish", side_effect=PermissionError(13, "held open by another program")):
+        code, text = guarded_run(rig)
+    eq((code, rig.entry()["status"]), (4, "started"), f"not finished, said: {text[-600:]}")
+    command = M.finish_command({"out": rig.out.resolve(), "ledger_path": rig.ledger})
+    last = evidence_text(rig).rstrip().splitlines()[-1]
+    ok("is NOT FINISHED" in last and command in last, f"the evidence's last line: {last}")
+    ok(f"is NOT FINISHED" in text and command in text, text[-700:])
+    record = json.loads((rig.out / M.RESULTS_ERROR).read_text(encoding="utf-8"))
+    eq((record["ledger_finished"], record["finish_command"]), (False, command), "results.error.json says so")
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        code = M.main(["finish-entry", str(rig.out), "--ledger", str(rig.ledger)])
+    eq((code, rig.entry()["status"]), (0, "done"), buffer.getvalue())
+    ok(rig.entry()["verdict"].startswith("GRADED, ERROR (harness: LedgerUnwritten:"), rig.entry()["verdict"][:200])
+    with contextlib.redirect_stdout(io.StringIO()):
+        eq(M.main(["finish-entry", str(rig.out), "--ledger", str(rig.ledger)]), 2, "an entry already done is refused")
+
+
+# ---------------------------------------------------------------------------------------------------- C3-E04: the edges
+def case_grade_error_any_exception(M, tmp):
+    """(C3-E04, its E01) the guard is not limited to some exception types: a KeyError and a TypeError while grading each
+    finish the entry as ERROR, exit 4."""
+    for kind in (KeyError("legs"), TypeError("object of type 'int' has no len()")):
+        rig = graded_rig(M, tmp / type(kind).__name__)
+        code, text = errored_run(M, rig, "grade_batch", kind)
+        eq((code, rig.entry()["status"]), (4, "done"), f"{type(kind).__name__}: {text[-400:]}")
+        ok(rig.entry()["verdict"].startswith(f"GRADED, ERROR (harness: {type(kind).__name__}:"), rig.entry()["verdict"])
+
+
+def case_results_write_error_both_paths(M, tmp):
+    """(C3-E04, its E03) results.json cannot be written (the normal path) and neither can results.error.json (the error
+    path): the entry is still FINISHED as ERROR 'while writing results.json', exit 4, and the output says the error record
+    is missing."""
+    rig = graded_rig(M, tmp)
+    real = M._write_json
+
+    def failing(path, data):
+        if Path(path).name in ("results.json", M.RESULTS_ERROR):
+            raise OSError("a planted fault: the disk is full")
+        return real(path, data)
+    with mock.patch.object(M, "_write_json", failing):
+        code, text = guarded_run(rig)
+    eq((code, rig.entry()["status"]), (4, "done"), text[-500:])
+    ok("while writing results.json" in rig.entry()["verdict"], rig.entry()["verdict"])
+    ok(f"{M.RESULTS_ERROR} could not be written" in text, text[-800:])
+
+
+def case_error_evidence_any_exception(M, tmp):
+    """(C3-E04, its E04) the error path's evidence fails with an exception that is no OSError (keep_earlier raising
+    ValueError): the entry is still FINISHED, its verdict saying the evidence is missing."""
+    rig = graded_rig(M, tmp)
+    with mock.patch("ai_player.gates.provenance.keep_earlier", side_effect=ValueError("a planted fault")):
+        code, text = errored_run(M, rig, "grade_batch", RuntimeError("a planted fault in grading"))
+    eq((code, rig.entry()["status"]), (4, "done"), text[-400:])
+    ok("; no evidence file (ValueError" in rig.entry()["verdict"], rig.entry()["verdict"])
+
+
+def case_dev_error_labelled(M, tmp):
+    """(C3-E04, its E06/E07) a DEVELOPMENT batch whose harness raises: exit 4 (never 0, 'ran') and a verdict that reads as
+    no pass ('DEVELOPMENT, not graded, NO PASS (development: ERROR ...')."""
+    rig, args = dev_rig(M, tmp)
+    with mock.patch.object(M, "grade_batch", side_effect=RuntimeError("a planted fault")):
+        code, text = guarded_run(rig, args)
+    eq((code, rig.entry()["status"]), (4, "done"), text[-400:])
+    ok(rig.entry()["verdict"].startswith("DEVELOPMENT, not graded, NO PASS (development: ERROR (harness: RuntimeError"),
+       rig.entry()["verdict"])
+
+
+def case_dev_unhashed_printed(M, tmp):
+    """(C3-E04's E22, C3-H06) a DEVELOPMENT batch whose closure has an unhashed file is NOT refused: it runs, prints the
+    file as NOT hashed and exits 0. (A graded run is refused: closure_enforced_run.)"""
+    rig, args = dev_rig(M, tmp)
+    rig.deps.closure = lambda: (["sandbox-pokebot/plugins/zz_new_plugin.py"], 232, 0.1)
+    code, text = guarded_run(rig, args)
+    eq(code, 0, f"not refused: {text[-500:]}")
+    eq(rig.entry()["status"], "done", "the development batch ran")
+    ok("1 NOT hashed (a development batch is not refused): ['sandbox-pokebot/plugins/zz_new_plugin.py']" in text,
+       text[:900])
+
+
+# ---------------------------------------------------------------------------------------------------- C3-E05: grade DIR
+def case_grade_dir_error_batch(M, tmp):
+    """(C3-E05) grade DIR on a batch that ended in ERROR says so and exits 4, never crashes: while grading (no results.json:
+    it re-grades from results.error.json's numbers) and while writing the ledger (the complete results.json kept)."""
+    rig = graded_rig(M, tmp / "grading")
+    errored_run(M, rig, "grade_batch", RuntimeError("a planted fault"))
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        code = M.grade_dir(rig.out, rig.ledger)
+    eq(code, 4, buffer.getvalue()[-600:])
+    ok("this batch ended in ERROR" in buffer.getvalue() and "NUMBERS: VERIFIED" in buffer.getvalue(), buffer.getvalue()[:900])
+    rig = graded_rig(M, tmp / "ledger")
+    real = ledger.finish
+    with mock.patch.object(ledger, "finish", lambda i, v, e, path=ledger.LEDGER: (
+            real(i, v, e, path=path) if "ERROR (harness:" in v else (_ for _ in ()).throw(OSError("held")))):
+        guarded_run(rig)
+    with contextlib.redirect_stdout(io.StringIO()) as buffer:
+        code = M.grade_dir(rig.out, rig.ledger)
+    eq(code, 4, buffer.getvalue()[-600:])
+    ok("OFFLINE RE-GRADE (no ledger write): PASS" in buffer.getvalue(), "its rows re-grade, as information")
+
+
+def case_grade_dir_exit_codes(M, tmp):
+    """(C3-E05, C3-G04) grade DIR's exit: 0 on PASS, 1 on FAIL, 2 when there is nothing to grade."""
+    rig = graded_rig(M, tmp / "pass")
+    guarded_run(rig)
+    with contextlib.redirect_stdout(io.StringIO()) as buffer:
+        eq(M.grade_dir(rig.out, rig.ledger), 0, buffer.getvalue()[-400:])
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp / "fail", plans={jobs[0]["chain"]: {"L2": {"miss": True}}, jobs[1]["chain"]: {"L2": {"miss": True}}})
+    guarded_run(rig)
+    with contextlib.redirect_stdout(io.StringIO()) as buffer:
+        eq(M.grade_dir(rig.out, rig.ledger), 1, buffer.getvalue()[-400:])
+    (tmp / "empty").mkdir()
+    with contextlib.redirect_stdout(io.StringIO()) as buffer:
+        eq(M.grade_dir(tmp / "empty"), 2, buffer.getvalue())
+    ok("CANNOT GRADE" in buffer.getvalue(), buffer.getvalue())
+
+
+# ---------------------------------------------------------------------------------------------------- C3-E06, C3-E07
+class Unprintable(Exception):
+    def __str__(self):
+        raise ValueError("str() of this exception fails")
+
+
+def case_main_crash_exit_5(M, tmp):
+    """(C3-E06) an exception no guard covers exits 5 ('harness crash'), never 1 (FAIL); before ledger.begin it leaves the
+    ledger untouched (a crash in the refusal checks)."""
+    try:
+        with mock.patch.object(M, "run_batch", side_effect=RuntimeError("a planted crash")), \
+                contextlib.redirect_stdout(io.StringIO()) as buffer:
+            code = M.main(["run", "--purpose", "graded", "--run", "ch5", "--out", str(tmp / "out")])
+    except Exception as error:  # noqa: BLE001
+        raise AssertionError(f"the crash escaped main: {error!r}") from None
+    eq(code, 5, buffer.getvalue()[-400:])
+    ok("HARNESS CRASH (exit 5)" in buffer.getvalue(), buffer.getvalue()[-400:])
+    rig = graded_rig(M, tmp / "before")
+    before = rig.ledger.read_bytes()
+    rig.deps.g3 = lambda: (_ for _ in ()).throw(RuntimeError("a planted crash before begin"))
+    try:
+        rig.run(run_args(out=str(rig.out)))
+        raise AssertionError("the crash did not reach main")
+    except RuntimeError:
+        pass
+    eq((rig.ledger.read_bytes() == before, rig.entry()["status"]), (True, "registered"), "the ledger is untouched")
+
+
+def case_unprintable_error(M, tmp):
+    """(C3-E06) an exception whose str() raises still gives a named ERROR verdict (a safe repr), exit 4, entry done."""
+    rig = graded_rig(M, tmp)
+    code, text = errored_run(M, rig, "grade_batch", Unprintable())
+    eq((code, rig.entry()["status"]), (4, "done"), text[-400:])
+    ok(rig.entry()["verdict"].startswith("GRADED, ERROR (harness: Unprintable: Unprintable() while grading"),
+       rig.entry()["verdict"])
+
+
+def case_grading_interrupt(M, tmp):
+    """(C3-E06, the checker's S4) a Ctrl+C while grading FINISHES the entry as ERROR, then stops the process."""
+    rig = graded_rig(M, tmp)
+    try:
+        with mock.patch.object(M, "grade_batch", side_effect=KeyboardInterrupt()):
+            rig.run(run_args(out=str(rig.out)))
+        raise AssertionError("the interrupt did not stop the process")
+    except KeyboardInterrupt:
+        pass
+    eq(rig.entry()["status"], "done", "finished before the interrupt goes on")
+    ok("KeyboardInterrupt" in rig.entry()["verdict"] and "while grading" in rig.entry()["verdict"], rig.entry()["verdict"])
+
+
+def case_closure_parse_error_named(M, tmp):
+    """(C3-E06) a closure file that does not parse is NAMED (its repository path): the scan's SyntaxError says it; a
+    registration and a graded run are REFUSED (R12) naming it, the ledger untouched."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/live_chain.py", "x = 1\n")
+    plant(root, "sandbox-pokebot/plugins/broken_plugin.py", "def (:\n")
+    try:
+        M.closure_scan(root)
+        raise AssertionError("a file that does not parse was scanned")
+    except SyntaxError as error:
+        eq(error.filename, "sandbox-pokebot/plugins/broken_plugin.py", "the error names the file")
+    repo, path = fake_repo(tmp), tmp / "ledger.json"
+    path.write_text(json.dumps({"what": "t", "entries": []}), encoding="utf-8")
+    broken = plant(repo, "sandbox-pokebot/plugins/zz_broken.py", "def (:\n")
+    try:
+        with contextlib.redirect_stdout(io.StringIO()) as buffer:
+            code = M.register_run("ch5", None, repo=repo, path=path)
+        rig = graded_rig(M, tmp / "rig")
+        rig.deps.closure = lambda: M.closure_missing(repo)
+        run_code, text = guarded_run(rig)
+    except SyntaxError as error:
+        raise AssertionError(f"a closure file that does not parse crashed the registration: {error!r}") from None
+    finally:
+        broken.unlink()
+    eq(code, 2, buffer.getvalue()[-400:])
+    ok("R12" in buffer.getvalue() and "sandbox-pokebot/plugins/zz_broken.py" in buffer.getvalue(), buffer.getvalue()[-400:])
+    eq(json.loads(path.read_text(encoding="utf-8"))["entries"], [], "nothing registered")
+    eq((run_code, rig.entry()["status"]), (2, "registered"), text[-400:])
+    ok("R12" in text and "sandbox-pokebot/plugins/zz_broken.py" in text, text[-400:])
+
+
+def case_evidence_write_error_bounds_once(M, tmp):
+    """(C3-E07) the evidence write itself fails once, AFTER the bounds text was appended: the ERROR evidence embeds what
+    was built, every line marked 'UNFINISHED| ', cut before its bounds text, and prints the bounds text ONCE."""
+    rig = graded_rig(M, tmp)
+
+    class FailOnce(type(Path())):
+        failed: list = []
+
+        def write_text(self, *args, **kwargs):
+            if not FailOnce.failed:
+                FailOnce.failed.append(1)
+                raise OSError("a planted fault writing the evidence")
+            return super().write_text(*args, **kwargs)
+    real = M.evidence_path
+    with mock.patch.object(M, "evidence_path", lambda *a: FailOnce(real(*a))):
+        code, text = guarded_run(rig)
+    eq((code, rig.entry()["status"]), (4, "done"), text[-400:])
+    ok("while writing the evidence" in rig.entry()["verdict"], rig.entry()["verdict"])
+    lines = evidence_text(rig).splitlines()
+    eq(lines.count(M.BOUNDS_HEADING), 1, "the bounds text once")
+    at = next(i for i, line in enumerate(lines) if line.startswith("what the harness had built before the error"))
+    embedded = lines[at + 1:lines.index("", at + 1)]
+    ok(len(embedded) > 20 and all(line.startswith("UNFINISHED| ") for line in embedded), embedded[:3])
+    ok("UNFINISHED| VERDICT: PASS" in embedded, "the unfinished verdict line is marked")
+
+
+# ---------------------------------------------------------------------------------------------------- C3-G01: each leg
+def case_leg_identity_each_field(M, tmp):
+    """(C3-G01) every leg that ran names its REGISTERED job in its own records: changing ONE of its environment's seed, its
+    personality, its command's --profile, its arm or its run folder (or dropping the folder) is named, and fails
+    LC.CUSTODY. CONTROL: the honest leg."""
+    chains, jobs = healthy_batch()
+    job, leg = jobs[0], chains[0]["legs"][1]
+    eq(M.leg_identity_problems(leg, job), [], "CONTROL: the honest leg")
+    changes = (("seed", lambda r: r["env"].__setitem__("AI_PLAYER_SEED", "7102"), "environment seed '7102'"),
+               ("personality", lambda r: r["env"].__setitem__("AI_PLAYER_PERSONALITY", "Catcher"), "personality 'Catcher'"),
+               ("profile", lambda r: r["command"].__setitem__(r["command"].index("--profile") + 1, "ai-livechain-7102"),
+                "--profile 'ai-livechain-7102'"),
+               ("arm", lambda r: r.__setitem__("arm", "LC-S-7102-L2"), "arm 'LC-S-7102-L2'"),
+               ("run folder", lambda r: r.__setitem__("run_dir", r["run_dir"].replace("ai-livechain-7101", "ai-livechain-7102")),
+                "run folder"),
+               ("no run folder", lambda r: r.__setitem__("run_dir", None), "run folder None"),
+               # (the fourth check's C4-G05: its mutant C03) the right profile folder, but not profiles/<profile>/ai_player_runs
+               ("run folder outside ai_player_runs",
+                lambda r: r.__setitem__("run_dir", r["run_dir"].replace("ai_player_runs", "other_runs")), "run folder"))
+    for label, change, needle in changes:
+        row = copy.deepcopy(leg)
+        change(row)
+        found = M.leg_identity_problems(row, job)
+        ok(len(found) == 1 and needle in found[0], f"{label}: {found}")
+        rows = copy.deepcopy(chains)
+        change(rows[0]["legs"][1])
+        eq(by_id(grade(M, rows, jobs), "LC.CUSTODY").status, "FAIL", f"{label}: LC.CUSTODY")
+
+
+def relabel(chains: list[dict], src: int, dst: int, jobs: list[dict]) -> dict:
+    row = copy.deepcopy(chains[src])
+    for key in ("chain", "seed", "profile"):
+        row[key] = jobs[dst][key]
+    return row
+
+
+def case_relabelled_copy_stays_fail(M, tmp):
+    """(C3-G01, the checker's G2/G2b) a clean row of ANOTHER chain of the same pair, filed over an impure one with its
+    chain, seed and profile labels renamed, never counts: its legs' own records name the other job. In grade_batch, IN-RUN
+    (rows rewritten after the chains ended) and in grade DIR. CONTROL: the impure batch FAILS."""
+    chains, jobs = healthy_batch()
+    leg = chains[0]["legs"][4]
+    next(c for c in leg["checks"] if c["id"] == "L5.PURITY_CLEAN")["status"] = "FAIL"
+    leg["continue"] = False
+    eq(M.batch_verdict(grade(M, chains, jobs)), "FAIL", "CONTROL: LC-S-7101's L5 impure")
+    chains[0] = relabel(chains, 3, 0, jobs)
+    checks = grade(M, chains, jobs)
+    custody = by_id(checks, "LC.CUSTODY")
+    eq((M.batch_verdict(checks), custody.status), ("FAIL", "FAIL"), f"the relabelled copy never counts: {graded_ok(checks)}")
+    ok("environment seed '7102' is not the registered '7101'" in custody.text, custody.text[:700])
+    run_jobs = LC.jobs_of(6201, 6)
+    by = {j["chain"]: j for j in run_jobs}
+
+    def tamper() -> list[str]:
+        for dst, src in ((run_jobs[0]["chain"], "LC-S-6202"), (run_jobs[1]["chain"], "LC-C-6204")):
+            row = json.loads((rig.out / "rows" / f"{src}.json").read_text(encoding="utf-8"))
+            row.update({key: by[dst][key] for key in ("chain", "seed", "profile")})
+            (rig.out / "rows" / f"{dst}.json").write_text(json.dumps(row), encoding="utf-8")
+        return []
+    rig = graded_rig(M, tmp, plans={run_jobs[0]["chain"]: {"L5": {"miss": True}}, run_jobs[1]["chain"]: {"L5": {"miss": True}}},
+                     leftover=tamper)
+    code, text = guarded_run(rig)
+    eq((code, rig.results()["verdict"]), (1, "FAIL"), f"in-run: {text[-500:]}")
+    eq(M.regrade_dir(rig.out, rig.ledger)["verdict"], "FAIL", "grade DIR agrees")
+
+
+def case_shared_legs_never_count(M, tmp):
+    """(C3-G01) two counted legs that share a run folder, or a kept file (filed with its sha256), never both count: each
+    fails LC.CUSTODY, named. CONTROL: the honest batch passes."""
+    chains, jobs = healthy_batch()
+    eq(M.batch_verdict(grade(M, chains, jobs)), "PASS", "CONTROL")
+    for key in ("run_dir", "kept_world"):
+        rows = copy.deepcopy(chains)
+        l4, l5 = rows[0]["legs"][3], rows[0]["legs"][4]
+        l5[key] = l4[key]
+        if key == "kept_world":
+            l5["kept_world_sha256"] = l4["kept_world_sha256"]
+        custody = by_id(grade(M, rows, jobs), "LC.CUSTODY")
+        eq(custody.status, "FAIL", f"{key}: {custody.text[:500]}")
+        ok(f"L5's {key} is also {jobs[0]['chain']} L4's" in custody.text, custody.text[:900])
+
+
+# ---------------------------------------------------------------------------------------------------- C3-G02, C3-G04
+def results_of(rig: Rig) -> dict:
+    return json.loads((rig.out / "results.json").read_text(encoding="utf-8"))
+
+
+def write_results(rig: Rig, data: dict) -> None:
+    (rig.out / "results.json").write_text(json.dumps(data), encoding="utf-8")
+
+
+def case_grade_dir_numbers_verified(M, tmp):
+    """(C3-G02, the checker's G5) grade DIR takes the legs, jobs and reach floor from results.json's NUMBERS, verified
+    against their own sha256 and the ledger's registration: editing results.json's own reach_min, jobs or legs changes
+    nothing (the two-miss batch stays FAIL); editing the numbers fails their sha256; editing the numbers and their sha256
+    together fails against the ledger. CONTROL: the batch, in place."""
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp, plans={jobs[0]["chain"]: {"L5": {"miss": True}}, jobs[1]["chain"]: {"L5": {"miss": True}}})
+    guarded_run(rig)
+    original = results_of(rig)
+    found = M.regrade_dir(rig.out, rig.ledger)
+    eq(found["verdict"], "FAIL", "CONTROL: 4 of 6")
+    ok(found["numbers"].startswith("VERIFIED") and "ledger entry #1 registered" in found["numbers"], found["numbers"])
+    for label, edit in (("reach_min 0", lambda d: d.update(reach_min=0)),
+                        ("jobs without the two misses", lambda d: d.update(jobs=d["jobs"][2:], reach_min=4)),
+                        ("legs' L5 proof weakened", lambda d: d["legs"][4].update(proof={"flags": {}, "variables": {
+                            "RUSTBORO_CITY_STATE": {"number": 0x405A, "at_least": 7}}, "trainers": {}}))):
+        data = copy.deepcopy(original)
+        edit(data)
+        write_results(rig, data)
+        eq(M.regrade_dir(rig.out, rig.ledger)["verdict"], "FAIL", f"{label}: results.json's own copy is never used")
+    data = copy.deepcopy(original)
+    data["numbers"]["reach_min"] = 0
+    write_results(rig, data)
+    found = M.regrade_dir(rig.out, rig.ledger)
+    ok(found["verdict"] == "FAIL" and found["numbers"].startswith("MISMATCH"), f"numbers edited: {found['numbers']}")
+    found = M.regrade_dir(rig.out, None)  # (with no ledger to check: their own sha256 alone refuses them)
+    ok(found["verdict"] == "FAIL" and "is not the numbers_sha256 recorded beside them" in found["numbers"], found["numbers"])
+    data["numbers_sha256"] = ledger.numbers_sha256(data["numbers"])
+    write_results(rig, data)
+    found = M.regrade_dir(rig.out, rig.ledger)
+    ok(found["verdict"] == "FAIL" and "is not the bounds sha256 the ledger registered" in found["numbers"], found["numbers"])
+    found = M.regrade_dir(rig.out, None)
+    eq((found["verdict"], found["final"], found["exit"]), ("PASS", "UNVERIFIED", 1),
+       "(C4-G01) with no ledger to check, a consistent forgery re-grades PASS from its own numbers, but it is UNVERIFIED: a "
+       "graded folder no ledger entry verifies never exits 0")
+    write_results(rig, original)
+
+
+def case_grade_dir_missing_records(M, tmp):
+    """(C3-G02, the checker's G5b) a results.json whose frozen-tree or leftover record is missing grades that check FAIL;
+    it is never dropped. An older folder with no numbers is graded and printed UNVERIFIED."""
+    rig = graded_rig(M, tmp)
+    guarded_run(rig)
+    original = results_of(rig)
+    for key, check_id in (("frozen", "LC.FROZEN"), ("leftover", "LC.LEFTOVER")):
+        data = copy.deepcopy(original)
+        data[key] = None
+        write_results(rig, data)
+        found = M.regrade_dir(rig.out, rig.ledger)
+        eq((found["verdict"], {c.id: c.status for c in found["checks"]}.get(check_id)), ("FAIL", "FAIL"), f"{key} null")
+    data = {k: v for k, v in original.items() if k != "numbers"}
+    write_results(rig, data)
+    found = M.regrade_dir(rig.out, rig.ledger)
+    ok(found["verdict"] == "PASS" and found["numbers"].startswith("UNVERIFIED (no numbers)"), found["numbers"])
+
+
+def case_grade_dir_moved_out(M, tmp):
+    """(C3-G04, the checker's probe_moved_out) an honest --out MOVED after its batch re-grades PASS: a kept line whose
+    stored path is gone is read from out/<chain>/<leg>/world_last.jsonl (its sha256 still the row's)."""
+    rig = graded_rig(M, tmp / "batch")
+    guarded_run(rig)
+    moved = tmp / "archive" / "out-moved"
+    moved.parent.mkdir()
+    shutil.move(str(rig.out), str(moved))
+    found = M.regrade_dir(moved, rig.ledger)
+    eq(found["verdict"], "PASS", f"{[c.text[:300] for c in found['checks'] if c.status != 'PASS'][:2]}")
+
+
+class SealTree(FakeTree):
+    """(C3-G02's G20) a frozen-tree watch that sees the move ONLY at the seal (the last check)."""
+
+    def seal(self, verdict: str):
+        self.moves.append("at the verdict: 1 changed ['ai_player/brain/x.py']")
+        return ("FAIL", "FROZEN TREE: FAIL - planted at the seal")
+
+
+def case_grade_dir_frozen_at_seal(M, tmp):
+    """(C3-G02, the checker's G20) a tree move seen only at the seal fails LC.FROZEN in the run, and grade DIR re-grades it
+    FAIL too (it reads the recorded watch, never assumes it)."""
+    rig = graded_rig(M, tmp, tree=SealTree())
+    code, text = guarded_run(rig)
+    eq((code, {c["id"]: c["status"] for c in rig.results()["checks"]}["LC.FROZEN"]), (1, "FAIL"), text[-400:])
+    found = M.regrade_dir(rig.out, rig.ledger)
+    eq((found["verdict"], {c.id: c.status for c in found["checks"]}["LC.FROZEN"]), ("FAIL", "FAIL"), "grade DIR")
+
+
+# ---------------------------------------------------------------------------------------------------- C3-G03, C3-G06
+def case_row_identity_each_field(M, tmp):
+    """(C3-G03) EACH of the six identity fields alone: a row whose field is not the registered job's is IGNORED (its chain
+    ABSENT: LC.REACH VACUOUS with 5 rows) and named. CONTROL: the honest batch passes."""
+    honest, jobs = healthy_batch()
+    eq(M.batch_verdict(grade(M, honest, jobs)), "PASS", "CONTROL")
+    for key, value in (("chain", "LC-S-7999"), ("pair", "C"), ("personality", "Catcher"), ("starter", "TORCHIC"),
+                       ("seed", 7102), ("profile", "ai-livechain-7102")):
+        rows = copy.deepcopy(honest)
+        rows[0][key] = value
+        checks = grade(M, rows, jobs)
+        reach = by_id(checks, "LC.REACH")
+        eq((M.batch_verdict(checks), reach.status, reach.n), ("FAIL", "VACUOUS", 5), f"{key}: {reach.text[:400]}")
+        ok("is not the registered" in reach.text or "not a registered chain" in reach.text, f"{key} named: {reach.text[:600]}")
+
+
+def case_not_run_after_continuing_leg(M, tmp):
+    """(C3-G06, the checker's G6) a stored NOT RUN after a leg whose re-derived continuation holds, with no STOP.txt or
+    ABORT.txt in --out and no salvage reason, fails LC.CUSTODY: an impure last leg rewritten as NOT RUN stays FAIL, in
+    grade_batch and IN-RUN. CONTROLS: the same stop explained by STOP.txt, or by the orchestrator's salvage reason."""
+    chains, jobs = healthy_batch()
+    leg = chains[0]["legs"][4]
+    next(c for c in leg["checks"] if c["id"] == "L5.PURITY_CLEAN")["status"] = "FAIL"
+    leg["continue"] = False
+    eq(M.batch_verdict(grade(M, chains, jobs)), "FAIL", "CONTROL: the impure L5")
+    legs = LC.legs_of("ch5_rival_meet", real_milestones())
+
+    def hidden(reason: str, stop_files=(), salvaged=()) -> list:
+        rows = copy.deepcopy(chains)
+        rows[0]["legs"][4] = M.not_run_row({**jobs[0]}, leg, "NOT RUN", reason)
+        return M.grade_batch(rows, jobs, 5, 5, (True, "ok"), [], {"most_running": 3}, legs=legs, stop_files=stop_files,
+                             salvaged=salvaged)
+    checks = hidden("the chain stopped at L4: planted")
+    custody = by_id(checks, "LC.CUSTODY")
+    eq((M.batch_verdict(checks), custody.status), ("FAIL", "FAIL"), f"a hidden leg: {graded_ok(checks)}")
+    ok(f"{jobs[0]['chain']} L5: NOT RUN after L4, whose re-derived continuation holds" in custody.text, custody.text[:800])
+    eq(by_id(hidden("the code under test changed mid-batch (STOP.txt)", ["STOP.txt"]), "LC.CUSTODY").status, "PASS",
+       "CONTROL: STOP.txt in --out explains it")
+    # (the fourth check's C4-G05: its mutant C06) ABORT.txt explains it as well: the disk guard's abort stops every chain
+    eq(by_id(hidden("the batch was ABORTED by the harness (disk: free space)", ["ABORT.txt"]), "LC.CUSTODY").status, "PASS",
+       "CONTROL: ABORT.txt in --out explains it")
+    salvage = "the chain's process ended (it ended without its chain row; see out/x.child.log)"
+    eq(by_id(hidden(salvage, salvaged=[jobs[0]["chain"]]), "LC.CUSTODY").status, "PASS",
+       "CONTROL: the salvage reason explains it when the orchestrator recorded that salvage (C4-G04)")
+    eq(by_id(hidden(salvage), "LC.CUSTODY").status, "FAIL",
+       "FAULT (C4-G04): the salvage reason with no salvage the orchestrator recorded explains nothing")
+    run_jobs = LC.jobs_of(6201, 6)
+
+    def hide() -> list[str]:
+        path = rig.out / "rows" / f"{run_jobs[0]['chain']}.json"
+        row = json.loads(path.read_text(encoding="utf-8"))
+        last = row["legs"][4]
+        next(c for c in last["checks"] if c["id"] == "L5.PURITY_CLEAN")["status"] = "FAIL"
+        row["legs"][4] = M.not_run_row({**run_jobs[0]}, last, "NOT RUN", "the chain stopped at L4: planted")
+        path.write_text(json.dumps(row), encoding="utf-8")
+        return []
+    rig = graded_rig(M, tmp, leftover=hide)
+    code, text = guarded_run(rig)
+    eq((code, rig.results()["verdict"]), (1, "FAIL"), f"in-run: {text[-500:]}")
+
+
+# ---------------------------------------------------------------------------------------------------- C3-H01..H05: R12
+def case_closure_resolution_planted(M, tmp):
+    """(C3-H01) on a planted tree: CPython's order (a package's __init__.py before X.py) and every module the closure follows
+    that Python could import from a file the scan did not read is named: a module beside its package, an extension module
+    or a sourceless .pyc beside a closure file, a module with no source, a package whose __init__ is bytecode. CONTROL: a
+    namespace folder beside a module, and the same tree without the plants."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/__init__.py")
+    plant(root, "ai_player/gates/live_chain.py", "from ai_player.gates import helper\nimport modules.memory\nimport modules.game\n"
+                                                 "import modules.ghost\nimport modules.pkgx\nimport modules.plain\n")
+    plant(root, "ai_player/gates/helper.py")
+    plant(root, "sandbox-pokebot/modules/__init__.py")
+    for name in ("memory", "game", "pkgx", "plain"):
+        plant(root, f"sandbox-pokebot/modules/{name}.py")
+    (root / "sandbox-pokebot" / "modules" / "plain").mkdir()  # a namespace folder: CPython still imports plain.py
+    with mock.patch.object(M, "PATH_ROOTS", ()):
+        clean = M.closure_scan(root)
+    eq(M.resolution_problems(root, clean["modules"]), [], "CONTROL: the tree without the plants")
+    plant(root, "sandbox-pokebot/modules/memory/__init__.py")
+    plant(root, "sandbox-pokebot/modules/game.cp312-win_amd64.pyd")
+    plant(root, "sandbox-pokebot/modules/ghost.pyc")
+    plant(root, "sandbox-pokebot/modules/pkgx/__init__.pyc")
+    plant(root, "ai_player/gates/helper.pyc")
+    with mock.patch.object(M, "PATH_ROOTS", ()):
+        scan = M.closure_scan(root)
+    ok("sandbox-pokebot/modules/memory/__init__.py" in scan["closure"] and "sandbox-pokebot/modules/memory.py" not in
+       scan["closure"], f"CPython's order: the package first: {scan['closure']}")
+    found = M.resolution_problems(root, scan["modules"])
+    for rel in ("sandbox-pokebot/modules/memory.py:", "sandbox-pokebot/modules/game.cp312-win_amd64.pyd:",
+                "sandbox-pokebot/modules/ghost.pyc:", "sandbox-pokebot/modules/pkgx/ (__init__.pyc):",
+                "ai_player/gates/helper.pyc:"):
+        ok(any(problem.startswith(rel) for problem in found), f"{rel} named: {found}")
+    eq(len(found), 5, f"exactly the plants: {found}")
+
+
+def case_pycache_planted(M, tmp):
+    """(C3-H01, the checker's C1) a __pycache__ file CPython would load INSTEAD of a closure file (its header holds the
+    source's mtime and size) holding other code is named (check_purity's rule (e), reused). CONTROLS: a genuine cache, a
+    stale one (its header does not match: never loaded) and another interpreter's."""
+    import importlib._bootstrap_external as ext
+
+    root = tmp / "repo"
+    source = plant(root, "ai_player/gates/live_chain.py", "x = 1\n")
+    plant(root, "ai_player/gates/__init__.py")
+    cache = root / "ai_player" / "gates" / "__pycache__"
+    cache.mkdir()
+    st = source.stat()
+    tag = sys.implementation.cache_tag
+
+    def pyc(text: str, mtime: int) -> bytes:
+        return bytes(ext._code_to_timestamp_pyc(compile(text, str(source), "exec", dont_inherit=True), mtime, st.st_size))
+    target = cache / f"live_chain.{tag}.pyc"
+    for label, data, want in (("genuine", pyc("x = 1\n", int(st.st_mtime)), False),
+                              ("stale", pyc("x = 2\n", int(st.st_mtime) - 100), False),
+                              ("forged", pyc("x = 2\n", int(st.st_mtime)), True)):
+        target.write_bytes(data)
+        found = M.pycache_problems(root, [source])
+        eq(bool(found), want, f"{label}: {found}")
+    ok("holds different code" in found[0] and f"ai_player/gates/__pycache__/live_chain.{tag}.pyc" in found[0], found)
+    ok(any(f"live_chain.{tag}.pyc" in problem for problem in M.closure_missing(root)[0]), "and R12 (closure_missing) has it")
+    target.rename(cache / "live_chain.cpython-311.pyc")
+    eq(M.pycache_problems(root, [source]), [], "CONTROL: another interpreter's cache is never loaded by this one")
+
+
+def case_resolution_enforced_register(M, tmp):
+    """(C3-H01, the checker's A2) a registration and a graded run are REFUSED (R12) while a package folder sits beside a
+    hashed closure module (modules/memory/ beside memory.py), naming it; the ledger untouched. CONTROL: removed, it
+    registers (closure_enforced_register)."""
+    repo, path = fake_repo(tmp), tmp / "ledger.json"
+    path.write_text(json.dumps({"what": "t", "entries": []}), encoding="utf-8")
+    package = plant(repo, "sandbox-pokebot/modules/memory/__init__.py")
+    try:
+        with contextlib.redirect_stdout(io.StringIO()) as buffer:
+            code = M.register_run("ch5", None, repo=repo, path=path)
+        rig = graded_rig(M, tmp / "rig")
+        rig.deps.closure = lambda: M.closure_missing(repo)
+        run_code, text = guarded_run(rig)
+    finally:
+        shutil.rmtree(package.parent)
+    eq(code, 2, buffer.getvalue()[-500:])
+    ok("R12" in buffer.getvalue() and "sandbox-pokebot/modules/memory.py: a module named like the package" in
+       buffer.getvalue(), buffer.getvalue()[-700:])
+    eq((run_code, rig.entry()["status"]), (2, "registered"), text[-400:])
+    ok("sandbox-pokebot/modules/memory/__init__.py" in text, text[-700:])
+
+
+def case_toplevel_planted(M, tmp):
+    """(C3-H02, the checker's B1-B3) an entry of a script folder that would run INSTEAD of a module is named: a standard
+    library name at the repository root, in ai_player/gates and in sandbox-pokebot (a .py and an extension module), a
+    package named like a module a closure file imports. CONTROLS: the framework's own names, the declared exemptions, a
+    namespace folder named like the library (it never replaces a regular module), and names nothing imports."""
+    root = tmp / "repo"
+    for rel in ("random.py", "ai_player/gates/argparse.py", "sandbox-pokebot/argparse.py",
+                "ai_player/gates/zipfile.cp312-win_amd64.pyd", "sandbox-pokebot/yaml/__init__.py",
+                "ai_player/__init__.py", "sandbox-pokebot/modules/__init__.py", "sandbox-pokebot/pokebot.py",
+                "sandbox-pokebot/profiles/x.yml", "sandbox-pokebot/mgba/__init__.py", "sandbox-pokebot/json/readme.txt",
+                "tools/helper.py", "notes.txt", "ai_player/gates/ledger.py"):
+        plant(root, rel)
+    tops = {"yaml", "modules", "pokebot", "profiles", "mgba", "ai_player", "argparse", "json", "ledger_x"}
+    found = M.toplevel_problems(root, tops)
+    want = ["ai_player/gates/argparse.py", "ai_player/gates/zipfile.cp312-win_amd64.pyd", "random.py",
+            "sandbox-pokebot/argparse.py", "sandbox-pokebot/yaml"]
+    eq(sorted(problem.split(":")[0] for problem in found), want, f"exactly the shadows: {found}")
+    plant(root, "ai_player/gates/live_chain.py", "import argparse\n")
+    ok(any(problem.startswith("random.py:") for problem in M.closure_missing(root)[0]), "and R12 (closure_missing) has it")
+
+
+#: the emulator's library as the main checkout holds it (listed 2026-11-06, read only): a package with its compiled
+#: _pylib, its DLLs and a __pycache__ (the files' contents do not matter to any rule; their names and kinds do)
+MGBA_LAYOUT = ("__init__.py", "_pylib.pyd", "core.py", "image.py", "gba.py", "mgba.dll", "SDL2.dll",
+               "__pycache__/__init__.cpython-312.pyc", "__pycache__/core.cpython-312.pyc")
+
+
+def case_toplevel_mgba_exempt(M, tmp):
+    """(The full regression lane of 2026-11-06 on d1a853bc, where test_closure_toplevel_names failed because the lane's
+    tree had the emulator installed) sandbox-pokebot/mgba, the emulator's library, exists wherever the emulator is
+    installed (the main checkout always): git-ignored and unhashed BY DESIGN, it is exempt BY NAME, in sandbox-pokebot
+    only. CONTROL: its real layout planted and imported the way the framework imports it (modules/libmgba.py,
+    modules/gui/glfw.py) is named by no rule of R12 (`closure_missing`: resolution, __pycache__, top-level shadows).
+    FAULTS: an unknown top-level name beside it that a closure file imports is still named, and so is the name mgba in
+    the other script folders (a package at the repository root, a module in ai_player/gates)."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/live_chain.py", "import modules.libmgba\nimport modules.gui.glfw\n")
+    plant(root, "sandbox-pokebot/modules/__init__.py")
+    plant(root, "sandbox-pokebot/modules/libmgba.py",
+          "import mgba.core\nimport mgba.image\nfrom mgba._pylib import ffi, lib\nfrom mgba.gba import GBA\n")
+    plant(root, "sandbox-pokebot/modules/gui/__init__.py")
+    plant(root, "sandbox-pokebot/modules/gui/glfw.py", "import mgba.image\n")
+    for rel in MGBA_LAYOUT:
+        plant(root, f"sandbox-pokebot/mgba/{rel}")
+    scan = M.closure_scan(root)
+    ok("mgba" in scan["tops"] and (root / "sandbox-pokebot" / "mgba" / "__init__.py").is_file(),
+       f"not vacuous: a closure file imports mgba, and mgba is a package beside them: {sorted(scan['tops'])}")
+    problems = [entry for entry in M.closure_missing(root)[0] if ": " in entry]  # "path: why" (an unhashed file has none)
+    eq(problems, [], "CONTROL: a present sandbox-pokebot/mgba is named by no rule of R12")
+    eq(M.toplevel_problems(root, scan["tops"]), [], "CONTROL: the top-level rule itself")
+    # FAULTS: an unknown top-level name beside it, and mgba in the other script folders
+    plant(root, "sandbox-pokebot/modules/libmgba.py", "import mgba.core\nimport mgbx\n")
+    plant(root, "sandbox-pokebot/mgbx/__init__.py")
+    plant(root, "mgba/__init__.py")
+    plant(root, "ai_player/gates/mgba.py")
+    found = M.toplevel_problems(root, M.closure_scan(root)["tops"])
+    eq(sorted(problem.split(":")[0] for problem in found), ["ai_player/gates/mgba.py", "mgba", "sandbox-pokebot/mgbx"],
+       f"FAULT: exactly the unknown name and mgba outside sandbox-pokebot: {found}")
+    ok(all(not entry.startswith("sandbox-pokebot/mgba:") for entry in M.closure_missing(root)[0]),
+       "and R12 still does not name sandbox-pokebot/mgba itself")
+
+
+def case_python_env_refused(M, tmp):
+    """(C3-H02, the checker's E2) a graded run is REFUSED (R12) while PYTHONPATH (or PYTHONHOME, PYTHONSTARTUP) is set, the
+    ledger untouched; every chain process's environment (and so the truth reads') drops them, and the chain process clears
+    them at start. CONTROL: a development batch runs. (The fourth check's C4-H02) EVERY PYTHON* variable but the four of
+    PYTHON_ENV_ALLOWED: PYTHONPYCACHEPREFIX (another cache folder), PYTHONCASEOK (even set to nothing: Python reads only that
+    it is there) and PYTHONUSERBASE (another user site-packages) are refused too and dropped from the chain processes;
+    CONTROL: the four allowed ones set, a graded run proceeds and the chain processes keep them."""
+    refused_names = {"PYTHONPATH": str(tmp), "PYTHONHOME": str(tmp), "PYTHONSTARTUP": str(tmp),
+                     "PYTHONPYCACHEPREFIX": str(tmp), "PYTHONCASEOK": "", "PYTHONUSERBASE": str(tmp)}
+    for name, value in refused_names.items():
+        rig = graded_rig(M, tmp / name)
+        before = rig.ledger.read_bytes()
+        code, text = guarded_run(rig, environ={name: value})
+        eq((code, rig.ledger.read_bytes() == before), (2, True), f"{name}: {text[-400:]}")
+        ok("REFUSED: R12" in text and name in text, text[-400:])
+    allowed = {"PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUNBUFFERED": "1"}
+    eq(set(allowed), set(M.PYTHON_ENV_ALLOWED), "the allow-list is exactly these four")
+    rig = graded_rig(M, tmp / "allowed")
+    code, text = guarded_run(rig, environ=allowed)
+    eq((code, rig.entry()["status"]), (0, "done"), f"CONTROL: the four allowed ones set, a graded run proceeds: {text[-400:]}")
+    rig, args = dev_rig(M, tmp / "dev")
+    eq(guarded_run(rig, args, environ={"PYTHONPATH": str(tmp)})[0], 0, "CONTROL: a development batch runs")
+    with mock.patch.dict(os.environ, {**refused_names, **allowed, "LC_OTHER": "1"}):
+        env = M.child_env()
+        eq(([k for k in refused_names if k in env], env.get("LC_OTHER"), {k: env.get(k) for k in allowed}),
+           ([], "1", allowed), "the chain processes' environment: every refused one dropped, the allowed ones kept")
+        job = tmp / "job.json"
+        job.write_text(json.dumps({"chain": "LC-S-1", "profile": "ai-livechain-1"}), encoding="utf-8")
+        seen: dict = {}
+        with mock.patch.object(M, "run_chain", lambda j: seen.update(env=dict(os.environ)) or {"legs": []}), \
+                contextlib.redirect_stdout(io.StringIO()):
+            M.child(job)
+        eq([k for k in refused_names if k in seen["env"]], [], "the chain process clears them")
+
+
+def case_closure_refusal_names_all(M, tmp):
+    """(C3-H04) R12 names EVERY file (13 planted plugins: all 13)."""
+    files = [f"sandbox-pokebot/plugins/zz_{i:02d}.py" for i in range(13)]
+    text = M.closure_refusal(files)
+    eq([f for f in files if f not in text], [], text)
+
+
+def case_closure_ai_starts_planted(M, tmp):
+    """(C3-H05, the checker's probe_ai_door) an absolute modules.* import of the AI's own file STARTS the closure: the
+    framework module only the AI imports is in it (and so hashed or refused); the AI's file itself is not, and neither is
+    an import of ai_player/evidence or the gates' own folder walked as AI code. CONTROL: without that import it is not."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/live_chain.py", "x = 1\n")
+    plant(root, "ai_player/host/eyes.py", "x = 1\n")
+    plant(root, "ai_player/evidence/note.py", "import modules.never\n")
+    for name in ("__init__", "zz_door", "never"):
+        plant(root, f"sandbox-pokebot/modules/{name}.py")
+    with mock.patch.object(M, "PATH_ROOTS", ()):
+        eq([rel for rel in M.grader_closure(root) if "zz_door" in rel or "never" in rel], [], "CONTROL: no AI import")
+        plant(root, "ai_player/host/eyes.py", "from modules.zz_door import DOOR\n")
+        found = M.grader_closure(root)
+    ok("sandbox-pokebot/modules/zz_door.py" in found and "sandbox-pokebot/modules/__init__.py" in found, found)
+    ok("ai_player/host/eyes.py" not in found and "sandbox-pokebot/modules/never.py" not in found, found)
+
+
+# ==================================================================================================== THE FOURTH FIX ROUND
+# (the fourth check's C4-E01..E07, C4-G01..G06, C4-H01..H08, 2026-11-06) each new or changed guard: a FAULT case (the
+# finding's own scenario), a CONTROL case, and a mutant in MUTANTS
+def run_capturing(rig: Rig, args: argparse.Namespace | None = None) -> tuple[object, str]:
+    """run_batch as `Rig.run` runs it, its output kept even when it RAISES: (its exit code, or what it raised; the output).
+    A KeyboardInterrupt is caught here: the cases below inspect it."""
+    buffer = io.StringIO()
+    with mock.patch.dict(os.environ, {}), mock.patch.object(rig.M, "ai_code_sha256", lambda repo=None: "0" * 64), \
+            contextlib.redirect_stdout(buffer):
+        for name in [name for name in os.environ if name.upper().startswith("PYTHON")]:
+            os.environ.pop(name, None)
+        try:
+            result: object = rig.M.run_batch(args or run_args(out=str(rig.out)), rig.deps)
+        except BaseException as error:  # noqa: BLE001 - the case inspects it (a KeyboardInterrupt among them)
+            result = error
+    return result, buffer.getvalue()
+
+
+def grade_dir_out(M, out: Path, ledger_path) -> tuple[int, str]:
+    """`grade DIR` on `out`: (its exit code, its output)."""
+    with contextlib.redirect_stdout(io.StringIO()) as buffer:
+        code = M.grade_dir(out, ledger_path)
+    return code, buffer.getvalue()
+
+
+# ---------------------------------------------------------------------------------------------------- C4-E01: the KIND
+def case_world_kind_untrusted(M, tmp):
+    """(C4-E01) `finish_leg` on the AI's run folder NEVER raises, whatever KIND its files are: a world.jsonl that is a
+    FOLDER is NOT MEASURED (no size, a note; the leg fails C3); one the OS refuses to open is read again, then NOT
+    MEASURED (its size still recorded and the file deleted; the leg fails C3); a small file that cannot be copied is a
+    note. CONTROL: a regular world file is measured, kept and deleted."""
+    def run_dir(name: str, world: bool = True) -> Path:
+        folder = tmp / name
+        folder.mkdir()
+        if world:
+            (folder / "world.jsonl").write_text(snapshot(1, 1) + "\n" + snapshot(2, 4) + "\n", encoding="utf-8")
+        (folder / "ai_player.log").write_text("[AI-HANDS] outcome=done\n", encoding="utf-8")
+        return folder
+
+    def finished(folder: Path, keep: str) -> dict:
+        row: dict = {"notes": []}
+        try:
+            M.finish_leg(row, folder, tmp / keep)
+        except Exception as error:  # noqa: BLE001
+            raise AssertionError(f"finish_leg raised on the AI's {folder.name}: {error!r}") from None
+        return row
+    row = finished(run_dir("control"), "keep_control")
+    ok(row["measures"]["world"]["last_ok"] and isinstance(row["world_file"]["bytes"], int) and row["world_file"]["deleted"]
+       and Path(row["kept_world"]).is_file(), f"CONTROL: measured, kept, deleted: {row['world_file']}")
+    folder = run_dir("folder", world=False)
+    (folder / "world.jsonl").mkdir()
+    (folder / "world.jsonl" / "inside.txt").write_text(snapshot(1, 1) + "\n", encoding="utf-8")
+    row = finished(folder, "keep_folder")
+    eq((row["measures"]["world"], row["world_file"]["bytes"], row["world_file"]["present"]), (None, None, True),
+       f"a FOLDER named world.jsonl is NOT MEASURED: {row['world_file']}")
+    ok(any("not a regular file" in note for note in row["notes"]), row["notes"])
+    stops(M, base_row(tmp, measures=row["measures"], world_file=row["world_file"], kept_world=row["kept_world"]),
+          needle="C3 its world.jsonl was not measured")
+    locked = run_dir("locked")
+    real_open = open
+
+    def refuse(file, *args, **kwargs):
+        if Path(str(file)) == locked / "world.jsonl":
+            raise PermissionError(13, "the file is held by another process")
+        return real_open(file, *args, **kwargs)
+    with mock.patch.object(M, "WORLD_READ_PAUSE_SECONDS", 0), mock.patch("builtins.open", refuse):
+        row = finished(locked, "keep_locked")
+    ok(row["measures"]["world"] is None and any(f"could not be read in {M.WORLD_READ_TRIES} tries" in note
+                                                for note in row["notes"]), row["notes"])
+    ok(isinstance(row["world_file"]["bytes"], int) and row["world_file"]["deleted"],
+       f"its size is still recorded and it is deleted: {row['world_file']}")
+    stops(M, base_row(tmp, measures=row["measures"], world_file=row["world_file"], kept_world=row["kept_world"]),
+          needle="C3 its world.jsonl's last line did not parse")
+    with mock.patch.object(M.shutil, "copy2", side_effect=PermissionError(13, "held")):
+        row = finished(run_dir("copy"), "keep_copy")
+    ok(any("could not be copied" in note for note in row["notes"]), row["notes"])
+
+
+def case_e2e_world_folder_graded(M, tmp):
+    """(C4-E01, the check's W1) a world.jsonl that is a FOLDER, in a batch that FAILS (two chains miss at L2): GRADED, FAIL,
+    exit 1, never the harness's ERROR, and no chain process died; a chain process that DIES with a folder world.jsonl is
+    salvaged by the orchestrator the same way (its finish_leg runs there). CONTROL: the same leg writing no world file."""
+    jobs = LC.jobs_of(6201, 6)
+    misses = {jobs[0]["chain"]: {"L2": {"miss": True}}, jobs[3]["chain"]: {"L2": {"miss": True}}}
+    for label, extra in (("control", {jobs[1]["chain"]: {"L3": {"no_world": True}}}),
+                         ("folder", {jobs[1]["chain"]: {"L3": {"world_is_folder": True}}}),
+                         ("folder_and_dies", {jobs[2]["chain"]: {"L3": {"world_is_folder": True, "die": True}}})):
+        rig = graded_rig(M, tmp / label, plans={**misses, **extra}, real_child=True)
+        code, text = guarded_run(rig)
+        verdict = rig.entry().get("verdict") or ""
+        eq((code, rig.child_errors), (1, []), f"{label}: GRADED FAIL, no chain process died: {verdict[:300]}")
+        ok(verdict.startswith("GRADED, FAIL") and "ERROR" not in verdict, f"{label}: {verdict[:300]}")
+    row = json.loads((rig.out / "rows" / f"{jobs[2]['chain']}.json").read_text(encoding="utf-8"))
+    eq(row["legs"][2]["status"], "SALVAGED", "the dead chain's L3 is salvaged by the orchestrator")
+    ok(any("not a regular file" in note for note in row["legs"][2]["notes"]), row["legs"][2]["notes"])
+
+
+# ---------------------------------------------------------------------------------------------------- C4-E02, C4-E07: --out
+def case_out_second_launch_refused(M, tmp):
+    """(C4-E02, the check's RACE) a launch CLAIMS --out (BATCH.claim.json, created exclusively) before it writes anything
+    there: a second launch of the same graded run whose own listing came before the first's prepare_out (so it saw an
+    empty --out) is REFUSED (R11, exit 2) with the ledger untouched and removes nothing of the first's: the first launch's
+    six job files are intact and its batch PASSES. On its own: a second prepare_out on a claimed --out is refused even
+    before the first wrote any job file. CONTROL: a single launch (e2e_graded_pass)."""
+    out = tmp / "unit" / "out"
+    M.prepare_out(out, {})
+    message = refused(M, M.prepare_out, out, {"LC-S-1.job.json": {"x": 1}})
+    ok(message.startswith("R11") and "CLAIMED by another launch" in message, message)
+    eq(sorted(os.listdir(out)), [M.OUT_CLAIM], "the first launch's claim is intact, and the second wrote nothing")
+    rig = graded_rig(M, tmp / "a")
+    second = Rig(M, tmp / "b")
+    second.deps.ledger_path = rig.ledger
+    seen: dict = {}
+
+    def launch_second(job: dict) -> None:
+        if seen:
+            return
+        before = rig.ledger.read_bytes()
+        with mock.patch.object(M, "out_listing", lambda path: {"out_entries": []}):
+            code, text = second.run(run_args(out=str(rig.out)))
+        seen.update(code=code, text=text, ledger=rig.ledger.read_bytes() == before,
+                    jobs=sorted(p.name for p in rig.out.glob("*.job.json")))
+    rig.pre_spawn = launch_second
+    code, text = guarded_run(rig)
+    eq((seen.get("code"), seen.get("ledger")), (2, True),
+       f"the second launch is refused, the ledger untouched: {seen.get('text', '')[-500:]}")
+    ok("REFUSED: R11" in seen["text"] and "CLAIMED by another launch" in seen["text"], seen["text"][-500:])
+    eq(len(seen["jobs"]), 6, f"the first launch's job files are intact: {seen['jobs']}")
+    eq((code, rig.entry()["status"]), (0, "done"), f"the first launch's batch PASSES: {text[-500:]}")
+
+
+def case_out_written_after_listing(M, tmp):
+    """(C4-E02) once claimed, --out must hold ONLY the claim: a file another process wrote after the listing (here a
+    STOP.txt a stale listing missed) refuses the launch (R11, exit 2), the ledger untouched, and that file is left as it
+    was (the claim is removed). CONTROL: e2e_out_empty_proceeds."""
+    rig = graded_rig(M, tmp)
+    rig.out.mkdir(parents=True)
+    (rig.out / "STOP.txt").write_text("left by another process\n", encoding="utf-8")
+    before = rig.ledger.read_bytes()
+    with mock.patch.object(M, "out_listing", lambda path: {"out_entries": []}):
+        code, text = guarded_run(rig)
+    eq((code, rig.ledger.read_bytes() == before, rig.handles), (2, True, []), text[-500:])
+    ok("REFUSED: R11" in text and "no longer empty" in text, text[-500:])
+    eq(sorted(os.listdir(rig.out)), ["STOP.txt"], "only that file is left: the claim made is removed")
+
+
+def case_out_undo_edges(M, tmp):
+    """(C4-E07, the check's N01, N02, N05) prepare_out removes EVERYTHING it made: an invalid last part under MISSING
+    parents leaves no parent behind; the 3rd job file failing leaves --out as it was (a missing one gone, an empty one
+    empty); ledger.begin raising something other than a refusal (PermissionError) leaves --out removed and escapes
+    run_batch (main's exit 5), the ledger untouched. CONTROL: e2e_out_undone_on_ledger_refusal."""
+    message = refused(M, M.prepare_out, tmp / "np2" / "deeper" / "x?y", {})
+    ok(message.startswith("R11") and not (tmp / "np2").exists(), f"no parent folder left behind: {message}")
+    real = M._write_json
+    for label, pre in (("missing", False), ("empty", True)):
+        out = tmp / label / "out"
+        if pre:
+            out.mkdir(parents=True)
+        calls = {"n": 0}
+
+        def third_fails(path, data):
+            calls["n"] += 1
+            if calls["n"] == 3:
+                raise OSError("a planted fault: the disk is full")
+            return real(path, data)
+        with mock.patch.object(M, "_write_json", third_fails):
+            message = refused(M, M.prepare_out, out, {f"LC-S-{i}.job.json": {"i": i} for i in range(6)})
+        ok(message.startswith("R11"), message)
+        if pre:
+            eq(sorted(os.listdir(out)), [], f"{label}: an EMPTY --out is left empty")
+        else:
+            ok(not (tmp / label).exists(), f"{label}: the --out (and the folder above it) made here are removed")
+    rig = graded_rig(M, tmp / "begin")
+    before = rig.ledger.read_bytes()
+    with mock.patch.object(M, "begin", side_effect=PermissionError(13, "the ledger is held open")):
+        result, text = run_capturing(rig)
+    ok(isinstance(result, PermissionError), f"the raise escapes run_batch (main exits 5): {result!r}")
+    ok(not rig.out.exists() and rig.ledger.read_bytes() == before, f"--out removed, the ledger untouched: {text[-300:]}")
+
+
+# ---------------------------------------------------------------------------------------------------- C4-E03: Ctrl+C twice
+def _guard_rig(M, tmp: Path) -> Rig:
+    """A graded batch whose disk guard raises (RuntimeError) with three chains running: the chains-run guard's case."""
+    reads = {"n": 0}
+
+    def free(path):
+        reads["n"] += 1
+        if reads["n"] == 2:
+            raise RuntimeError("a planted fault in the disk guard")
+        return 100.0
+    return graded_rig(M, tmp, alive=50, free=free,
+                      pre_spawn=lambda job: planted_folder(Path(job["build_root"]), job["profile"],
+                                                           f"20261105-000000-{job['chain']}-L1"))
+
+
+def case_guard_second_interrupt(M, tmp):
+    """(C4-E03, the check's W3) a SECOND Ctrl+C while the guard finishes the entry: from the end sweep (1), from the ledger
+    write itself (2), while killing a chain (3): each time the entry is still FINISHED as ERROR, the other chains are still
+    killed and the interrupt goes on after; the guard printed its line FIRST, SIGINT was IGNORED while it ran and the
+    handler is restored after. (4) an end sweep that raises an ordinary exception (the check's N03) also leaves the entry
+    finished, exit 4. CONTROL: chains_interrupt_finishes_entry (one Ctrl+C)."""
+    import signal
+    handler = signal.getsignal(signal.SIGINT)
+    want = ERROR_OF.format(kind="RuntimeError", message="a planted fault in the disk guard", stage="while the chains ran")
+    try:
+        rig = _guard_rig(M, tmp / "sweep")
+        seen: list = []
+
+        def sweep(jobs, build_root):
+            seen.append(signal.getsignal(signal.SIGINT))
+            raise KeyboardInterrupt()
+        with mock.patch.object(M, "end_sweep", sweep):
+            result, text = run_capturing(rig)
+        ok(isinstance(result, KeyboardInterrupt), f"(1) the interrupt goes on after the finish: {result!r}")
+        eq(rig.entry()["status"], "done", f"(1) a Ctrl+C from the end sweep: the entry is still FINISHED: {text[-600:]}")
+        ok(rig.entry()["verdict"].startswith(f"GRADED, {want}"), rig.entry()["verdict"])
+        eq(seen, [signal.SIG_IGN], "(1) while the guard ran, Ctrl+C was IGNORED")
+        ok(signal.getsignal(signal.SIGINT) is handler, "(1) and the handler is restored after")
+        first = text.find("[LC] the harness stopped (RuntimeError while the chains ran)")
+        ok(0 <= first < text.find("LEDGER: entry #"), f"(1) the guard's line comes first: {text[:900]}")
+        rig = graded_rig(M, tmp / "write", alive=50)
+        calls = {"sleep": 0, "finish": 0}
+
+        def sleep(seconds):
+            calls["sleep"] += 1
+            if calls["sleep"] == 6:
+                raise KeyboardInterrupt()
+        rig.deps.sleep = sleep
+        real_finish = M.finish_entry
+
+        def finish(*args, **kwargs):
+            calls["finish"] += 1
+            if calls["finish"] == 1:
+                raise KeyboardInterrupt()
+            return real_finish(*args, **kwargs)
+        with mock.patch.object(M, "finish_entry", finish):
+            result, text = run_capturing(rig)
+        ok(isinstance(result, KeyboardInterrupt), f"(2) {result!r}")
+        eq(rig.entry()["status"], "done", f"(2) a Ctrl+C from the ledger write: FINISHED: {text[-600:]}")
+        ok(rig.entry()["verdict"].startswith("GRADED, ERROR (harness: KeyboardInterrupt"), rig.entry()["verdict"])
+        rig = _guard_rig(M, tmp / "kill")
+        spawn = rig.spawn
+
+        def spawn_first_interrupts(job, job_path, log_path):
+            handle = spawn(job, job_path, log_path)
+            if len(rig.handles) == 1:
+                def interrupted() -> None:
+                    raise KeyboardInterrupt()
+                handle.kill_tree = interrupted
+            return handle
+        rig.deps.spawn = spawn_first_interrupts
+        result, text = run_capturing(rig)
+        ok(isinstance(result, KeyboardInterrupt), f"(3) {result!r}")
+        eq(rig.entry()["status"], "done", f"(3) a Ctrl+C while killing a chain: FINISHED: {text[-600:]}")
+        ok(len(rig.handles) == 3 and all(handle.killed for handle in rig.handles[1:]), "(3) the other chains are killed")
+        rig = _guard_rig(M, tmp / "raise")
+        with mock.patch.object(M, "end_sweep", side_effect=RuntimeError("a planted fault in the sweep")):
+            result, text = run_capturing(rig)
+        eq((result, rig.entry()["status"]), (4, "done"), f"(4) an end sweep that raises: {text[-600:]}")
+        ok("the end sweep could not run: RuntimeError: a planted fault in the sweep" in evidence_text(rig), "(4) named")
+    finally:
+        signal.signal(signal.SIGINT, handler)
+
+
+def case_error_finish_retried(M, tmp):
+    """(C3-E03, kept by the fourth round's loop) the ERROR verdict's ledger write is retried like the computed one: a ledger
+    that refuses the computed verdict every time and the ERROR verdict twice (a lock another writer holds) still ends
+    'done' with ERROR, exit 4. CONTROL: ledger_finish_computed_unwritable."""
+    rig = graded_rig(M, tmp)
+    real, tried = ledger.finish, []
+
+    def flaky(entry_id, verdict, evidence, path=ledger.LEDGER):
+        if "ERROR (harness:" not in verdict:
+            raise PermissionError(13, "held open by another program")
+        tried.append(verdict)
+        if len(tried) <= 2:
+            raise PermissionError(13, "held open by another program")
+        return real(entry_id, verdict, evidence, path=path)
+    with mock.patch.object(ledger, "finish", flaky):
+        code, text = guarded_run(rig)
+    eq((code, rig.entry()["status"], len(tried)), (4, "done", 3), f"the ERROR write retried: {text[-500:]}")
+    ok(rig.entry()["verdict"].startswith("GRADED, ERROR (harness: LedgerUnwritten:"), rig.entry()["verdict"][:200])
+
+
+def case_guard_after_finish_keeps_verdict(M, tmp):
+    """(C4-E03) a Ctrl+C that comes right AFTER the computed verdict was written (as the ledger write returns): the guard
+    writes nothing over it: the entry stays 'done' with its computed PASS, no ERROR record is left beside results.json,
+    and the interrupt goes on. CONTROL: e2e_graded_pass."""
+    rig = graded_rig(M, tmp)
+    real_finish = M.finish_entry
+
+    def finish_then_interrupt(entry_id, verdict, *args, **kwargs):
+        why = real_finish(entry_id, verdict, *args, **kwargs)
+        if "ERROR (harness:" not in verdict:
+            raise KeyboardInterrupt()
+        return why
+    with mock.patch.object(M, "finish_entry", finish_then_interrupt):
+        result, text = run_capturing(rig)
+    ok(isinstance(result, KeyboardInterrupt), repr(result))
+    eq(rig.entry()["status"], "done", text[-400:])
+    ok(rig.entry()["verdict"].startswith("GRADED, PASS"), f"the computed verdict stands: {rig.entry()['verdict'][:200]}")
+    ok(not (rig.out / M.RESULTS_ERROR).exists(), "no ERROR record beside the finished batch")
+    ok("was already FINISHED with the batch's computed verdict" in text, text[-500:])
+
+
+# ---------------------------------------------------------------------------------------------------- C4-E04, C4-E05
+def case_lone_surrogate_graded(M, tmp):
+    """(C4-E04, the check's W2) a lone surrogate in the AI's exit_reason (two chains' L3, every leg reaching): no chain
+    process dies, the batch is GRADED PASS (6 of 6), and the leg's outcome is kept ESCAPED, in the row file and in the
+    chain's own row; `_write_json` writes any str. CONTROL: e2e_graded_pass."""
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp / "batch", real_child=True, plans={jobs[0]["chain"]: {"L3": {"lone_surrogate": True}},
+                                                               jobs[1]["chain"]: {"L3": {"lone_surrogate": True}}})
+    code, text = guarded_run(rig)
+    eq((code, rig.child_errors), (0, []), f"no chain process died, PASS: {(rig.entry().get('verdict') or '')[:300]}")
+    ok(rig.entry()["verdict"].startswith("GRADED, PASS"), rig.entry()["verdict"][:300])
+    row = json.loads((rig.out / "rows" / f"{jobs[0]['chain']}.json").read_text(encoding="utf-8"))
+    eq(row["legs"][2]["outcome"], "play: done \\ud800", "kept ESCAPED in the row file")
+    chain, _, _ = play(M, tmp / "one", {"L3": {"lone_surrogate": True}})
+    eq(chain["legs"][2]["outcome"], "play: done \\ud800", "and in the chain's own row (untrusted_text)")
+    path = tmp / "any.json"
+    try:
+        M._write_json(path, json.loads('{"a": "x\\ud800", "\\udcff": ["\\ud800"], "n": 1}'))
+    except Exception as error:  # noqa: BLE001
+        raise AssertionError(f"_write_json raised on text UTF-8 cannot take: {error!r}") from None
+    eq(json.loads(path.read_text(encoding="utf-8")), {"a": "x\\ud800", "\\udcff": ["\\ud800"], "n": 1},
+       "_write_json escapes what UTF-8 cannot take, keys too")
+
+
+def case_finish_entry_only_error(M, tmp):
+    """(C4-E05, the check's F1) finish-entry writes ONLY this driver's own ERROR verdict, rebuilt from results.error.json:
+    a hand-edited PASS in ledger.unfinished.json, a PASS in both files, results.error.json naming other numbers or saying
+    the ledger WAS finished, and no results.error.json (with, since the fifth check's C5-02, no copy of its record in
+    ledger.unfinished.json either) are each REFUSED (exit 2, the ledger untouched). CONTROL: the files as the guard wrote
+    them finish the entry. (The copy alone: finish_entry_without_error_record.)"""
+    rig = graded_rig(M, tmp)
+    with mock.patch.object(ledger, "finish", side_effect=PermissionError(13, "held open by another program")):
+        code, _ = guarded_run(rig)
+    eq((code, rig.entry()["status"]), (4, "started"), "the ledger could not be written")
+    paths = {"unfinished": rig.out / M.UNFINISHED, "record": rig.out / M.RESULTS_ERROR}
+    original = {name: json.loads(path.read_text(encoding="utf-8")) for name, path in paths.items()}
+    data, record = original["unfinished"], original["record"]
+    passing = M.error_line("GRADED", True, "PASS", record["to"], record["seeds"], record["numbers_sha256"])
+    attacks = {"a hand-edited PASS": ({**data, "verdict": "GRADED, PASS: live chain held-out (EDITED BY HAND)"}, record),
+               "a PASS in both files": ({**data, "verdict": passing}, {**record, "verdict": "PASS"}),
+               "other numbers": (data, {**record, "numbers_sha256": "0" * 64}),
+               "the ledger said finished": (data, {**record, "ledger_finished": True}),
+               "no results.error.json and no copy": ({k: v for k, v in data.items() if k != "error_record"}, None)}
+    for label, (unfinished, error_record) in attacks.items():
+        paths["unfinished"].write_text(json.dumps(unfinished), encoding="utf-8")
+        if error_record is None:
+            paths["record"].unlink()
+        else:
+            paths["record"].write_text(json.dumps(error_record), encoding="utf-8")
+        before = rig.ledger.read_bytes()
+        with contextlib.redirect_stdout(io.StringIO()) as buffer:
+            code = M.main(["finish-entry", str(rig.out), "--ledger", str(rig.ledger)])
+        eq((code, rig.ledger.read_bytes() == before), (2, True), f"{label}: REFUSED: {buffer.getvalue()[-400:]}")
+    for name, path in paths.items():
+        path.write_text(json.dumps(original[name]), encoding="utf-8")
+    with contextlib.redirect_stdout(io.StringIO()) as buffer:
+        code = M.main(["finish-entry", str(rig.out), "--ledger", str(rig.ledger)])
+    eq((code, rig.entry()["status"]), (0, "done"), f"CONTROL: {buffer.getvalue()[-400:]}")
+    ok(rig.entry()["verdict"].startswith("GRADED, ERROR (harness: LedgerUnwritten:"), rig.entry()["verdict"][:200])
+
+
+# ---------------------------------------------------------------------------------------------------- C4-G01..G04, C4-E06
+def case_grade_dir_never_better_than_ledger(M, tmp):
+    """(C4-G01; the threat model's (c)) grade DIR reads the batch's ledger entry NOW and never reports better than it, on a
+    FAIL batch (two L5 misses): (A) its numbers deleted and results.json's reach_min 0: the ledger's FAIL, never exit 0;
+    (B) its numbers moved to seeds 9001-9006 with reach_min 0 and the sha256 recomputed: MISMATCH (its jobs are not those
+    seeds'), never VERIFIED, never exit 0; (C) its rows forged so the re-grade PASSES (the missed L5s' stored truths
+    rewritten as held): the ledger's FAIL wins, exit 1. On a PASS batch: (D) with no ledger, and with its numbers deleted:
+    UNVERIFIED, exit 1; (E) results.json's ledger id changed: the entry is still found (by its seeds and bounds sha256: a
+    merged ledger renumbers entries), VERIFIED, exit 0. CONTROLS: both folders in place (exit 1, exit 0)."""
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp / "fail", plans={jobs[0]["chain"]: {"L5": {"miss": True}}, jobs[1]["chain"]: {"L5": {"miss": True}}})
+    guarded_run(rig)
+    original = results_of(rig)
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    eq(code, 1, f"CONTROL: the FAIL batch in place: {text[-300:]}")
+    data = {key: value for key, value in original.items() if key != "numbers"}
+    data["reach_min"] = 0
+    write_results(rig, data)
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "GRADE DIR VERDICT: GRADED: FAIL" in text, f"(A) never exit 0: {text[-400:]}")
+    data = copy.deepcopy(original)
+    data["seeds"] = data["numbers"]["seeds"] = [9001, 9006]
+    data["numbers"]["reach_min"] = 0
+    data["numbers_sha256"] = ledger.numbers_sha256(data["numbers"])
+    write_results(rig, data)
+    found = M.regrade_dir(rig.out, rig.ledger)
+    ok(found["numbers"].startswith("MISMATCH") and "are not one per seed of 9001-9006" in found["numbers"], found["numbers"])
+    eq(found["exit"], 1, "(B) never exit 0")
+    write_results(rig, original)
+    for job in jobs[:2]:
+        path = rig.out / "rows" / f"{job['chain']}.json"
+        row = json.loads(path.read_text(encoding="utf-8"))
+        last = row["legs"][4]
+        last["truth_after"]["marks"].update(held_marks(last["proof"]))
+        last["continue"], last["reached"], row["reached_to"] = True, True, True
+        path.write_text(json.dumps(row), encoding="utf-8")
+    found = M.regrade_dir(rig.out, rig.ledger)
+    eq((found["verdict"], found["final"], found["exit"]), ("PASS", "FAIL", 1), "(C) rows forged to PASS: the ledger's FAIL")
+    rig = graded_rig(M, tmp / "pass")
+    guarded_run(rig)
+    original = results_of(rig)
+    eq(grade_dir_out(M, rig.out, rig.ledger)[0], 0, "CONTROL: the PASS batch in place exits 0")
+    eq(M.regrade_dir(rig.out, None)["final"], "UNVERIFIED", "(D) a graded folder with no ledger: UNVERIFIED")
+    write_results(rig, {key: value for key, value in original.items() if key != "numbers"})
+    found = M.regrade_dir(rig.out, rig.ledger)
+    eq((found["verdict"], found["final"], found["exit"]), ("PASS", "UNVERIFIED", 1), "(D) its numbers deleted")
+    write_results(rig, {**original, "ledger": 99})
+    found = M.regrade_dir(rig.out, rig.ledger)
+    eq((found["final"], (found["entry"] or {}).get("id"), found["numbers"].split(":")[0]), ("PASS", 1, "VERIFIED"),
+       f"(E) a renumbered id: {found['numbers']}")
+    write_results(rig, original)
+
+
+def case_grade_dir_error_states(M, tmp):
+    """(C4-E06, the check's G1) grade DIR knows an ERROR batch from its LEDGER ENTRY, read NOW, as well as from
+    results.error.json: (a) a batch whose ERROR was written to the ledger exits 4 with results.error.json removed; (b) a
+    batch whose ledger could not be written (entry 'started') exits 4, says the entry is NOT finished, and exits 4 with
+    results.error.json removed (an entry still 'started' has no verdict); after finish-entry its line says the entry IS
+    finished (read now, not the stale ledger_finished); (c) with no ledger given, results.error.json alone exits 4. (The
+    sixth check's C6-04) in (a) with results.error.json beside its ERROR entry, in (b) beside its 'started' entry and
+    after finish-entry, no contradiction is said (`no_contradiction`)."""
+    rig = graded_rig(M, tmp / "error")
+    real = ledger.finish
+    with mock.patch.object(ledger, "finish", lambda i, v, e, path=ledger.LEDGER: (
+            real(i, v, e, path=path) if "ERROR (harness:" in v else (_ for _ in ()).throw(OSError("held")))):
+        guarded_run(rig)
+    ok(rig.entry()["verdict"].startswith("GRADED, ERROR (harness:"), rig.entry()["verdict"][:200])
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 4 and "this batch ended in ERROR" in text, f"(a) the entry's ERROR, with the file: {text[-500:]}")
+    no_contradiction(M, rig.out, rig.ledger, text, "(a) the entry's ERROR beside results.error.json")
+    (rig.out / M.RESULTS_ERROR).unlink()
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 4 and "this batch ended in ERROR" in text, f"(a) the entry's ERROR, without the file: {text[-500:]}")
+    rig = graded_rig(M, tmp / "unwritten")
+    with mock.patch.object(ledger, "finish", side_effect=PermissionError(13, "held open by another program")):
+        guarded_run(rig)
+    eq(rig.entry()["status"], "started", "the ledger could not be written")
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 4 and "NOT finished (it is 'started')" in text, f"(b) {text[-500:]}")
+    no_contradiction(M, rig.out, rig.ledger, text, "(b) the entry 'started' beside results.error.json")
+    record = rig.out / M.RESULTS_ERROR
+    saved = record.read_bytes()
+    record.unlink()
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 4 and "is still 'started': no verdict was ever written" in text, f"(b) without the file: {text[-500:]}")
+    record.write_bytes(saved)
+    eq(M.regrade_dir(rig.out, None)["final"], "ERROR", "(c) with no ledger, results.error.json alone")
+    with contextlib.redirect_stdout(io.StringIO()):
+        eq(M.main(["finish-entry", str(rig.out), "--ledger", str(rig.ledger)]), 0, "finish-entry")
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 4 and "its ledger entry is finished (read now)" in text, f"(b) read NOW after finish-entry: {text[-500:]}")
+    no_contradiction(M, rig.out, rig.ledger, text, "(b) after finish-entry")
+
+
+def no_contradiction(M, out: Path, ledger_path, text: str, label: str) -> None:
+    """(The sixth check's C6-04, its mutant MZ1) an HONEST ERROR, ABORTED or STARTED batch is never said to contradict
+    its ledger entry: not in grade DIR's output, not in regrade_dir's "contradiction"."""
+    ok("CONTRADICTS" not in text, f"{label}: a contradiction said: {text[-600:]}")
+    eq(M.regrade_dir(out, ledger_path)["contradiction"], "", f"{label}: regrade_dir's contradiction")
+
+
+def case_grade_dir_planted_stop_and_deleted_leg(M, tmp):
+    """(C4-G02, the check's S and T) a stop file or a missing leg never turns a FAIL into PASS: (a) an impure L5 rewritten as
+    NOT RUN with a STOP.txt planted beside a frozen record that says the tree held: LC.FROZEN FAILS (the STOP.txt explains
+    the leg, but the batch writes one only when the tree moved); (b) the impure L5 DELETED from the row's legs: LC.CUSTODY
+    FAILS (the row's legs are not the registered legs). grade DIR on an honest PASS folder: a planted ABORT.txt beside
+    its entry FINISHED with PASS contradicts it (the fifth check's C5-03: said, exit 1, never 0 or 3) and, with no ledger
+    given, is the folder's own ABORTED mark (final ABORTED); a planted STOP.txt FAILS LC.FROZEN (exit 1), a clean L5
+    deleted from its row file FAILS (exit 1). CONTROLS: the honest batch passes; in place, the folder exits 0."""
+    chains, jobs = healthy_batch()
+    eq(M.batch_verdict(grade(M, copy.deepcopy(chains), jobs)), "PASS", "CONTROL")
+    legs = LC.legs_of("ch5_rival_meet", real_milestones())
+    leg = chains[0]["legs"][4]
+    next(c for c in leg["checks"] if c["id"] == "L5.PURITY_CLEAN")["status"] = "FAIL"
+    rows = copy.deepcopy(chains)
+    rows[0]["legs"][4] = M.not_run_row({**jobs[0]}, leg, "NOT RUN", "the chain stopped at L4: planted")
+    checks = M.grade_batch(rows, jobs, 5, 5, (True, "ok"), [], {"most_running": 3}, legs=legs, stop_files=["STOP.txt"])
+    eq((M.batch_verdict(checks), by_id(checks, "LC.FROZEN").status, by_id(checks, "LC.CUSTODY").status),
+       ("FAIL", "FAIL", "PASS"), "(a) a planted STOP.txt beside a frozen record that held fails LC.FROZEN")
+    rows = copy.deepcopy(chains)
+    del rows[0]["legs"][4]
+    checks = M.grade_batch(rows, jobs, 5, 5, (True, "ok"), [], {"most_running": 3}, legs=legs)
+    custody = by_id(checks, "LC.CUSTODY")
+    eq((M.batch_verdict(checks), custody.status), ("FAIL", "FAIL"), f"(b) a deleted leg: {graded_ok(checks)}")
+    ok("are not the registered legs" in custody.text, custody.text[:700])
+    rig = graded_rig(M, tmp / "dir")
+    guarded_run(rig)
+    eq(grade_dir_out(M, rig.out, rig.ledger)[0], 0, "CONTROL: the honest folder in place")
+    (rig.out / "ABORT.txt").write_text("", encoding="utf-8")
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "THE FOLDER CONTRADICTS ITS LEDGER ENTRY" in text and "this batch was ABORTED" not in text,
+       f"a planted ABORT.txt beside a finished PASS: {text[-400:]}")
+    eq(M.regrade_dir(rig.out, None)["final"], "ABORTED", "with no ledger, a planted ABORT.txt is the folder's own mark")
+    (rig.out / "ABORT.txt").unlink()
+    (rig.out / "STOP.txt").write_text("", encoding="utf-8")
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "[FAIL] LC.FROZEN" in text, f"a planted STOP.txt: {text[-400:]}")
+    (rig.out / "STOP.txt").unlink()
+    path = rig.out / "rows" / f"{LC.jobs_of(6201, 6)[0]['chain']}.json"
+    row = json.loads(path.read_text(encoding="utf-8"))
+    del row["legs"][4]
+    path.write_text(json.dumps(row), encoding="utf-8")
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "[FAIL] LC.CUSTODY" in text, f"a deleted leg: {text[-400:]}")
+
+
+def case_grade_dir_aborted_and_development(M, tmp):
+    """(C4-G03, the check's A; its mutants C06, C08) grade DIR on an honest ABORTED graded batch (in-run exit 3) says
+    ABORTED and exits 3, never PASS; its rows' re-grade is the in-run one (LC.CUSTODY PASS: ABORT.txt explains the legs
+    it stopped); with ABORT.txt removed and results.json saying PASS, the ledger entry still says ABORTED (exit 3). A
+    development batch re-grades labelled DEVELOPMENT, not graded (exit 0 for its PASS); a development batch that ended in
+    ERROR exits 4. (The sixth check's C6-04) the honest ABORTED batch and the development ERROR batch are said to
+    contradict nothing (`no_contradiction`)."""
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp / "aborted", plans={jobs[5]["chain"]: {"L4": {"write_abort": True}}})
+    code, text = guarded_run(rig)
+    eq((code, rig.results()["verdict"]), (3, "ABORTED (harness: disk)"), f"in-run: {text[-400:]}")
+    in_run = {c["id"]: c["status"] for c in rig.results()["checks"]}
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 3 and "this batch was ABORTED by the harness" in text and "GRADE DIR VERDICT: GRADED: ABORTED" in text,
+       f"grade DIR: {text[-500:]}")
+    no_contradiction(M, rig.out, rig.ledger, text, "an honest ABORTED batch (ABORT.txt, its entry ABORTED)")
+    regraded = {c.id: c.status for c in M.regrade_dir(rig.out, rig.ledger)["checks"]}
+    eq((in_run["LC.CUSTODY"], regraded["LC.CUSTODY"]), ("PASS", "PASS"),
+       "the re-grade's custody is the in-run one: ABORT.txt explains the legs it stopped")
+    (rig.out / "ABORT.txt").unlink()
+    write_results(rig, {**results_of(rig), "verdict": "PASS"})
+    eq(grade_dir_out(M, rig.out, rig.ledger)[0], 3, "the ledger entry still says ABORTED")
+    dev, args = dev_rig(M, tmp / "dev")
+    eq(guarded_run(dev, args)[0], 0, "a development batch ran")
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 0 and "GRADE DIR VERDICT: DEVELOPMENT, not graded: PASS" in text, f"labelled development: {text[-400:]}")
+    dev, args = dev_rig(M, tmp / "dev_error")
+    with mock.patch.object(M, "grade_batch", side_effect=RuntimeError("a planted fault")):
+        eq(guarded_run(dev, args)[0], 4, "a development batch that ended in ERROR")
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 4 and "GRADE DIR VERDICT: DEVELOPMENT, not graded: ERROR" in text, f"{text[-400:]}")
+    no_contradiction(M, dev.out, dev.ledger, text, "an honest development ERROR batch")
+
+
+def case_salvage_exemption_needs_record(M, tmp):
+    """(C4-G04, the check's V) the salvage reason explains a NOT RUN leg after a continuing leg only for a chain the
+    orchestrator's OWN events say it salvaged. CONTROL: an honest salvage (a chain process that dies after naming L3 and
+    before its launch): L3-L5 NOT RUN with the salvage reason, the event recorded, LC.CUSTODY PASS, the batch PASSES (5 of
+    6), and grade DIR agrees. FAULT: a hidden impure L5 whose stored reason reads like a salvage, rewritten in-run through
+    the tamper hook with no salvage recorded: LC.CUSTODY FAILS, in-run and in grade DIR."""
+    run_jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp / "honest", plans={run_jobs[0]["chain"]: {"L3": {"die_before_launch": True}}})
+    code, text = guarded_run(rig)
+    row = json.loads((rig.out / "rows" / f"{run_jobs[0]['chain']}.json").read_text(encoding="utf-8"))
+    eq([leg["status"] for leg in row["legs"]], ["RAN", "RAN", "NOT RUN", "NOT RUN", "NOT RUN"], "salvaged before L3")
+    ok(row["legs"][2]["reason"].startswith(M.SALVAGE_REASON), row["legs"][2]["reason"])
+    ok(any(str(e).startswith(f"{run_jobs[0]['chain']}{M.SALVAGE_EVENT}") for e in rig.results()["events"]),
+       rig.results()["events"])
+    statuses = {c["id"]: c["status"] for c in rig.results()["checks"]}
+    eq((code, statuses["LC.CUSTODY"]), (0, "PASS"), f"CONTROL: an honest, recorded salvage: {text[-600:]}")
+    eq(M.regrade_dir(rig.out, rig.ledger)["final"], "PASS", "CONTROL: grade DIR reads the same events")
+
+    def hide() -> list[str]:
+        path = attack.out / "rows" / f"{run_jobs[0]['chain']}.json"
+        found = json.loads(path.read_text(encoding="utf-8"))
+        last = found["legs"][4]
+        next(c for c in last["checks"] if c["id"] == "L5.PURITY_CLEAN")["status"] = "FAIL"
+        found["legs"][4] = M.not_run_row({**run_jobs[0]}, last, "NOT RUN", "the chain's process ended (planted)")
+        path.write_text(json.dumps(found), encoding="utf-8")
+        return []
+    attack = graded_rig(M, tmp / "attack", leftover=hide)
+    code, text = guarded_run(attack)
+    custody = {c["id"]: c["status"] for c in attack.results()["checks"]}["LC.CUSTODY"]
+    eq((code, custody), (1, "FAIL"), f"FAULT: a salvage reason with no salvage recorded: {text[-500:]}")
+    eq(M.regrade_dir(attack.out, attack.ledger)["final"], "FAIL", "FAULT: and grade DIR")
+
+
+# ---------------------------------------------------------------------------------------------------- C4-H01..H08: R12
+def case_closure_pyw_planted(M, tmp):
+    """(C4-H01, the check's N3, N3b, N3d) a .pyw beside a NAMESPACE package of the framework runs in its place (a module
+    FILE wins over a namespace folder): sandbox-pokebot/modules.pyw, plugins.pyw and modules/web.pyw are each named by
+    R12, as closure files the registration does not hash, and the first two as top-level shadows of their folders (only
+    the FOLDER is their home); a package whose only __init__ is a .pyw is followed into. CONTROL: the tree without the
+    three is named by nothing."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/live_chain.py", "import modules.web.http\nimport modules.pw\nimport plugins.a_plugin\n")
+    plant(root, "sandbox-pokebot/modules/web/http.py")
+    plant(root, "sandbox-pokebot/modules/pw/__init__.pyw", "import modules.from_pyw\n")
+    plant(root, "sandbox-pokebot/modules/from_pyw.py")
+    plant(root, "sandbox-pokebot/plugins/a_plugin.py")
+    planted = ("sandbox-pokebot/modules.pyw", "sandbox-pokebot/plugins.pyw", "sandbox-pokebot/modules/web.pyw")
+    with mock.patch.object(M, "PATH_ROOTS", ()):
+        control = M.grader_closure(root)
+        ok({"sandbox-pokebot/modules/pw/__init__.pyw", "sandbox-pokebot/modules/from_pyw.py"} <= set(control),
+           f"a package whose __init__ is a .pyw is followed into: {control}")
+        with mock.patch.object(M, "GRADER_FILES", tuple(control)):
+            eq(M.closure_missing(root)[0], [], "CONTROL: nothing is named")
+            for rel in planted:
+                plant(root, rel, "x = 1\n")
+            found = M.closure_missing(root)[0]
+    eq([rel for rel in planted if rel not in found], [], f"each .pyw is a closure file the registration does not hash: {found}")
+    for rel in planted[:2]:
+        ok(any(problem.startswith(f"{rel}: a module named like") for problem in found), f"{rel}: a top-level shadow: {found}")
+
+
+def case_toplevel_installed_planted(M, tmp):
+    """(C4-H03, the check's N7, N7b) a script-folder entry named like a module installed OUTSIDE the repository (one a
+    closure library imports: pydantic's typing_extensions, ...) runs in its place and is named; so is a folder without
+    __init__ beside an installed NAMESPACE package of that name (ruamel here: its portions merge, the script folder's
+    first); `outside_modules` lists the standard library's and site-packages' top-level names when the scan runs;
+    (C4-H02) a name differing only in case from the library's (a root Random.py, which PYTHONCASEOK would import) is
+    named; a standard-library name this platform does not install (pwd on Windows, which getpass imports) is named by
+    the standard library's list. CONTROL: none of them planted, and a namespace folder named like an installed REGULAR
+    package (it never replaces one)."""
+    installed = M.outside_modules(tmp / "repo")
+    stdlib = {name.lower() for name in sys.stdlib_module_names}
+    libraries = sorted(name for name, kind in installed.items()
+                       if name not in stdlib and kind in ("module", "package") and not name.startswith("_"))
+    ok(len(libraries) >= 3 and "json" in installed, f"the installed names are listed: {sorted(installed)[:20]}")
+    first = "typing_extensions" if "typing_extensions" in libraries else libraries[0]
+    second = "annotated_types" if "annotated_types" in libraries and first != "annotated_types" else \
+        next(name for name in libraries if name != first)
+    regular = "pydantic" if installed.get("pydantic") == "package" else \
+        next(name for name in libraries if installed[name] == "package" and name not in (first, second))
+    namespaces = sorted(name for name, kind in installed.items() if kind == "folder" and not name.startswith("_"))
+    namespace = "ruamel" if "ruamel" in namespaces else namespaces[0]
+    absent = sorted(name for name in stdlib if name not in installed and name.isidentifier() and not name.startswith("_"))
+    missing = "pwd" if "pwd" in absent else absent[0]
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/live_chain.py", "x = 1\n")
+    plant(root, f"{regular}/readme.txt", "a namespace folder")
+    eq(M.toplevel_problems(root, set()), [], f"CONTROL: nothing planted ({regular}/ is a namespace folder)")
+    plant(root, f"sandbox-pokebot/{first}.py", "x = 1\n")
+    plant(root, f"ai_player/gates/{second}.py", "x = 1\n")
+    plant(root, "Random.py", "x = 1\n")
+    plant(root, f"{namespace}/yaml.py", "x = 1\n")
+    plant(root, f"{missing}.py", "x = 1\n")
+    found = sorted(problem.split(":")[0] for problem in M.toplevel_problems(root, set()))
+    eq(found, sorted(["Random.py", f"ai_player/gates/{second}.py", f"sandbox-pokebot/{first}.py", namespace,
+                      f"{missing}.py"]), f"exactly the shadows: {found}")
+
+
+def case_ai_problems_planted(M, tmp):
+    """(C4-H04, C4-H06; the check's N4, N4b and probe_evidence) R12 names, in the AI's own package: a __pycache__ file
+    CPython would load INSTEAD of one of the AI's .py files that holds other code (ai_player/__init__.py,
+    host/launcher.py: the grader imports them before any check), a .pyc of the AI's outside __pycache__, and ANY Python
+    code file under ai_player/evidence/ (.py, .pyw, .pyc, an extension module, in a subfolder too). CONTROLS: a genuine
+    cache, a stale one, and the evidence folder's text, JSON and zip files."""
+    import importlib._bootstrap_external as ext
+
+    root = tmp / "repo"
+    init = plant(root, "ai_player/__init__.py", "x = 1\n")
+    launcher = plant(root, "ai_player/host/launcher.py", "y = 2\n")
+    plant(root, "ai_player/gates/live_chain.py", "x = 1\n")
+    for rel in ("ai_player/evidence/2026-11-06-x.txt", "ai_player/evidence/results.json", "ai_player/evidence/archive/a/b.zip"):
+        plant(root, rel, "text")
+    tag = sys.implementation.cache_tag
+
+    def pyc(source: Path, text: str, shift: int = 0) -> bytes:
+        st = source.stat()
+        return bytes(ext._code_to_timestamp_pyc(compile(text, str(source), "exec", dont_inherit=True),
+                                                int(st.st_mtime) + shift, st.st_size))
+    caches = {init: root / "ai_player" / "__pycache__" / f"__init__.{tag}.pyc",
+              launcher: root / "ai_player" / "host" / "__pycache__" / f"launcher.{tag}.pyc"}
+    for path in caches.values():
+        path.parent.mkdir(parents=True, exist_ok=True)
+    caches[init].write_bytes(pyc(init, "x = 1\n"))
+    caches[launcher].write_bytes(pyc(launcher, "y = 3\n", -100))
+    eq(M.ai_problems(root), [], "CONTROL: a genuine and a stale cache, the evidence's text, JSON and zip files")
+    caches[init].write_bytes(pyc(init, "x = 2\n"))
+    caches[launcher].write_bytes(pyc(launcher, "y = 3\n"))
+    planted = ("ai_player/zz_probe.pyc", "ai_player/evidence/zz_brain.py", "ai_player/evidence/archive/x/m.pyw",
+               "ai_player/evidence/c.pyc", "ai_player/evidence/e.cp312-win_amd64.pyd")
+    for rel in planted:
+        plant(root, rel, "x = 1\n")
+    found = sorted(problem.split(":")[0] for problem in M.ai_problems(root))
+    eq(found, sorted([*planted, f"ai_player/__pycache__/__init__.{tag}.pyc", f"ai_player/host/__pycache__/launcher.{tag}.pyc"]),
+       f"exactly the plants: {found}")
+    ok(any(problem.startswith(f"ai_player/__pycache__/__init__.{tag}.pyc:") for problem in M.closure_missing(root)[0]),
+       "and R12 (closure_missing) has them")
+
+
+def case_run_refusal_falls_through(M, tmp):
+    """(C4-H05) R12's closure check RETURNS a refusal only when it has one: whatever closure_refusal returns for a list, the
+    checks after it still run (R9 here). CONTROL: a closure entry is R12."""
+    facts = facts_of(closure_missing=["sandbox-pokebot/plugins/zz.py"], git={"head": "a1", "origin": "b2", "dirty": []})
+    ok((M.run_refusal(run_args(), facts) or "").startswith("R12"), "CONTROL: a closure entry is R12")
+    with mock.patch.object(M, "closure_refusal", lambda missing: None):
+        ok((M.run_refusal(run_args(), facts) or "").startswith("R9"), "a None from the closure check never skips R9")
+
+
+def case_resolution_branches_planted(M, tmp):
+    """(C4-H07: the check's R03, R04 survived) a package the closure follows whose ONLY __init__ is bytecode (with no
+    source anywhere, it would run unhashed), and an extension module beside a closure module whose stem differs in CASE
+    (mixed.cp312-win_amd64.pyd beside Mixed.py: CPython's finder compares without case on Windows) are each named.
+    CONTROL: the tree without them."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/live_chain.py", "import modules.Mixed\nimport modules.pkgz\n")
+    plant(root, "sandbox-pokebot/modules/Mixed.py")
+    (root / "sandbox-pokebot" / "modules" / "pkgz").mkdir(parents=True)
+    with mock.patch.object(M, "PATH_ROOTS", ()):
+        eq(M.resolution_problems(root, M.closure_scan(root)["modules"]), [], "CONTROL")
+        plant(root, "sandbox-pokebot/modules/pkgz/__init__.pyc")
+        plant(root, "sandbox-pokebot/modules/mixed.cp312-win_amd64.pyd")
+        found = M.resolution_problems(root, M.closure_scan(root)["modules"])
+    for rel in ("sandbox-pokebot/modules/pkgz/__init__.pyc:", "sandbox-pokebot/modules/mixed.cp312-win_amd64.pyd:"):
+        ok(any(problem.startswith(rel) for problem in found), f"{rel} named: {found}")
+
+
+def case_pycache_branches_planted(M, tmp):
+    """(C4-H07: the check's R06, R07 survived) a forged cache whose NAME differs in case (Live_Chain.<tag>.pyc: CPython
+    loads it on Windows, the check's N10) is named; a GENUINE optimized cache (.opt-1.pyc of a source holding an assert)
+    is not, because it is compared with the source compiled at ITS optimization level. CONTROL: pycache_planted."""
+    import importlib._bootstrap_external as ext
+
+    root = tmp / "repo"
+    source = plant(root, "ai_player/gates/live_chain.py", "assert True\nx = 1\n")
+    cache = root / "ai_player" / "gates" / "__pycache__"
+    cache.mkdir()
+    st, tag = source.stat(), sys.implementation.cache_tag
+
+    def pyc(text: str, optimize: int = 0) -> bytes:
+        return bytes(ext._code_to_timestamp_pyc(compile(text, str(source), "exec", dont_inherit=True, optimize=optimize),
+                                                int(st.st_mtime), st.st_size))
+    (cache / f"live_chain.{tag}.opt-1.pyc").write_bytes(pyc("assert True\nx = 1\n", optimize=1))
+    eq(M.pycache_problems(root, [source]), [], "CONTROL: a genuine optimized cache")
+    (cache / f"Live_Chain.{tag}.pyc").write_bytes(pyc("x = 2\n"))
+    found = M.pycache_problems(root, [source])
+    ok(len(found) == 1 and found[0].startswith(f"ai_player/gates/__pycache__/Live_Chain.{tag}.pyc:"), found)
+
+
+def case_toplevel_branches_planted(M, tmp):
+    """(C4-H07: the check's T03, T04, T06, T07, T08, T10 survived; C4-H01's exact homes) each entry Python imports INSTEAD
+    of a module is named: a .pyw and a sourceless .pyc named like the library (gates/argparse.pyw, a root json.pyc), a
+    PACKAGE named like the library in gates (gates/json/, the check's S06), a private library name (gates/_hashlib.py,
+    S07), the framework's names OUTSIDE their exact home (a root modules.py, S08; a root profiles.py, S10;
+    sandbox-pokebot/mgba.py, a file and not the exempt folder; sandbox-pokebot/modules.pyw beside its home folder; a
+    sandbox-pokebot/pokebot package beside its home file). CONTROL: the homes and the exempt folders themselves."""
+    root = tmp / "repo"
+    for rel in ("ai_player/__init__.py", "sandbox-pokebot/modules/x.py", "sandbox-pokebot/plugins/p.py",
+                "sandbox-pokebot/pokebot.py", "sandbox-pokebot/requirements.py", "sandbox-pokebot/updater.py",
+                "sandbox-pokebot/mgba/__init__.py", "sandbox-pokebot/profiles/x.yml", "ai_player/gates/live_chain.py"):
+        plant(root, rel)
+    tops = {"modules", "plugins", "pokebot", "requirements", "updater", "mgba", "profiles", "ai_player", "argparse", "json"}
+    eq(M.toplevel_problems(root, tops), [], "CONTROL: the homes and the exempt folders")
+    planted = ["ai_player/gates/argparse.pyw", "json.pyc", "ai_player/gates/json/__init__.py", "ai_player/gates/_hashlib.py",
+               "modules.py", "profiles.py", "sandbox-pokebot/mgba.py", "sandbox-pokebot/modules.pyw",
+               "sandbox-pokebot/pokebot/__init__.py"]
+    for rel in planted:
+        plant(root, rel)
+    found = sorted(problem.split(":")[0] for problem in M.toplevel_problems(root, tops))
+    eq(found, sorted(["ai_player/gates/argparse.pyw", "json.pyc", "ai_player/gates/json", "ai_player/gates/_hashlib.py",
+                      "modules.py", "profiles.py", "sandbox-pokebot/mgba.py", "sandbox-pokebot/modules.pyw",
+                      "sandbox-pokebot/pokebot"]), f"exactly the plants: {found}")
+
+
+def case_ai_starts_branches_planted(M, tmp):
+    """(C4-H07: the check's A02, A03 survived) the AI's `from modules import zz_from` (the imported NAME is the module) and
+    an absolute import in one of the AI's .pyw files each START the closure. CONTROL: without them neither is in it."""
+    root = tmp / "repo"
+    plant(root, "ai_player/gates/live_chain.py", "x = 1\n")
+    for name in ("__init__", "zz_from", "zz_pyw"):
+        plant(root, f"sandbox-pokebot/modules/{name}.py")
+    with mock.patch.object(M, "PATH_ROOTS", ()):
+        eq([rel for rel in M.grader_closure(root) if "zz_" in rel], [], "CONTROL")
+        plant(root, "ai_player/host/eyes.py", "from modules import zz_from\n")
+        plant(root, "ai_player/host/door.pyw", "import modules.zz_pyw\n")
+        found = M.grader_closure(root)
+    ok("sandbox-pokebot/modules/zz_from.py" in found and "sandbox-pokebot/modules/zz_pyw.py" in found, found)
+
+
+# ---------------------------------------------------------------------------------------------------- the fifth check: C5-01
+def case_grade_dir_edited_fail_folder(M, tmp):
+    """(The fifth check's C5-01, its DR) grade DIR never exits 0 for an EDITED graded FAIL folder (two L5 misses; the
+    ledger says 'GRADED, FAIL'): (1) the check's own ATTACK, four edits to results.json (its numbers deleted, its seeds
+    moved to 9001-9006, which no entry names, reach_min 0, its purpose relabelled 'development'): MISMATCH by its own jobs
+    and by the entry its recorded id names, exit 1 (it exited 0); (the sixth check's C6-01) its entry is found by the
+    seeds its jobs bind, so the verdict is the ledger's GRADED: FAIL; (2) the same with the recorded ledger id removed too:
+    the folder's own jobs (LC-*-6201..6206) are not one per seed of 9001-9006, MISMATCH, exit 1; (3) its seeds and numbers
+    kept, only the purpose relabelled: the entry its recorded id names (its own) is graded: MISMATCH, and on an honest
+    PASS folder relabelled the same way, exit 1, never 0. (The sixth check's C6-01, its SEEDSTR) (4) five edits: the
+    seeds written as STRINGS ["6201", "6206"], the recorded id one no entry has, the numbers deleted, the purpose
+    'development', reach_min 0: MISMATCH (not two int seeds), the entry found by the jobs' int seeds, GRADED: FAIL, exit 1
+    (it exited 0); (5) the same with the numbers KEPT (their seeds strings too, reach_min 0, numbers_sha256 recomputed):
+    MISMATCH, GRADED: FAIL, exit 1 (it exited 0); (6) the honest PASS folder's results.json seeds written as FLOATS
+    [6201.0, 6206.0] beside int numbers: MISMATCH (never equal by value only), exit 1. CONTROLS: both folders as written
+    (exit 1, exit 0); (4)'s edits with INT seeds: no MISMATCH from the seeds, the ledger's GRADED: FAIL, exit 1; an honest
+    DEVELOPMENT folder with its numbers deleted (its jobs are its seeds'), graded against its ledger and against one with
+    no entry for it (as the real R2 is), still exits 0, labelled development. (The seventh check's C7-03, its MX1) (7)
+    the numbers KEPT (reach_min 0, numbers_sha256 recomputed, their jobs untouched), purpose development, id 99999, and
+    results.json's OWN top-level jobs trimmed to 6205-6206 or moved to 9005-9006: the entry is looked up by the range the
+    NUMBERS' jobs bind (their rows are the ones that count), so it is #1 by its seeds exactly, GRADED: FAIL, exit 1 (with
+    the range taken from the top-level jobs, the moved arm exits 0); CONTROL: the same with the top-level jobs untouched.
+    (The LEDGER line, round 6's own note) it says only what matched: 'matched by its seeds, not its bounds sha256' in (5)
+    and (7), whose numbers' sha256 is recomputed; 'matched by its seeds and bounds sha256' in (4)'s int-seeds control."""
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp / "fail", plans={jobs[0]["chain"]: {"L5": {"miss": True}}, jobs[3]["chain"]: {"L5": {"miss": True}}})
+    guarded_run(rig)
+    original = results_of(rig)
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "GRADE DIR VERDICT: GRADED: FAIL" in text and "MISMATCH" not in text,
+       f"CONTROL: the FAIL folder as written: {text[-300:]}")
+    attack = {key: value for key, value in original.items() if key != "numbers"}
+    attack.update(seeds=[9001, 9006], reach_min=0, purpose="development")
+    write_results(rig, attack)
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH" in text and "jobs ['LC-S-6201'" in text and "not one per seed of 9001-9006" in text
+       and "names ledger entry #1, whose purpose is 'graded', not the folder's 'development'" in text
+       and "LEDGER (read now): entry #1, graded" in text and "GRADE DIR VERDICT: GRADED: FAIL; exit 1" in text,
+       f"(1) the check's ATTACK: {text[-1200:]}")
+    write_results(rig, {key: value for key, value in attack.items() if key != "ledger"})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH (no numbers)" in text and "not one per seed of 9001-9006" in text,
+       f"(2) and the recorded id removed: {text[-900:]}")
+    write_results(rig, {**original, "purpose": "development"})
+    found = M.regrade_dir(rig.out, rig.ledger)
+    ok(found["numbers"].startswith("MISMATCH") and "whose purpose is 'graded', not the folder's 'development'" in
+       found["numbers"] and found["exit"] == 1, f"(3) the purpose relabelled: {found['numbers']}")
+    # (the sixth check's C6-01, its SEEDSTR) the seeds written as strings, the recorded id one no entry has
+    edits = {"ledger": 99999, "purpose": "development", "reach_min": 0}  # (MISMATCH re-grades FAIL: no suffix then)
+    met = "LEDGER (read now): entry #1 (results.json names #99999"  # its own entry, found by the seeds its jobs bind
+    no_numbers = {key: value for key, value in original.items() if key != "numbers"}
+    write_results(rig, {**no_numbers, **edits, "seeds": [6201, 6206]})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "MISMATCH" not in text and met in text and "GRADE DIR VERDICT: GRADED: FAIL" in text
+       and f"{met}: matched by its seeds and bounds sha256)" in text, f"CONTROL: (4)'s edits with int seeds: {text[-700:]}")
+    write_results(rig, {**no_numbers, **edits, "seeds": ["6201", "6206"]})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH (no numbers)" in text and "own seeds ['6201', '6206'] are not two int seeds" in text
+       and met in text and "GRADE DIR VERDICT: GRADED: FAIL; exit 1" in text,
+       f"(4) SEEDSTR, the numbers deleted: {text[-900:]}")
+    numbers_of = {**original["numbers"], "seeds": ["6201", "6206"], "reach_min": 0}
+    write_results(rig, {**original, **edits, "numbers": numbers_of, "numbers_sha256": ledger.numbers_sha256(numbers_of),
+                        "seeds": ["6201", "6206"]})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH" in text and "the numbers' seeds ['6201', '6206'] are not two int seeds" in text
+       and met in text and "GRADE DIR VERDICT: GRADED: FAIL; exit 1" in text, f"(5) SEEDSTR, the numbers kept: {text[-900:]}")
+    ok(f"{met}: matched by its seeds, not its bounds sha256)" in text, f"(5) the LEDGER line says only what matched: {text}")
+    # (the seventh check's C7-03, its MX1) the range comes from the NUMBERS' jobs, never from results.json's own jobs
+    numbers_of = {**original["numbers"], "reach_min": 0}
+    kept = {**original, **edits, "numbers": numbers_of, "numbers_sha256": ledger.numbers_sha256(numbers_of)}
+    exact = f"{met}: matched by its seeds, not its bounds sha256)"
+    write_results(rig, kept)
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and exact in text and "GRADE DIR VERDICT: GRADED: FAIL" in text,
+       f"CONTROL: (7) the numbers kept (reach_min 0), the top-level jobs untouched: {text[-800:]}")
+    for label, shift in (("trimmed to 6205-6206", 0), ("moved to 9005-9006", 2800)):
+        top = [{**job, "seed": job["seed"] + shift, "chain": f"LC-{job['pair']}-{job['seed'] + shift}"}
+               for job in original["jobs"] if job["seed"] in (6205, 6206)]
+        write_results(rig, {**kept, "jobs": top})
+        code, text = grade_dir_out(M, rig.out, rig.ledger)
+        ok(code == 1 and exact in text and "jobs bind" not in text and "GRADE DIR VERDICT: GRADED: FAIL" in text,
+           f"(7) MX1: results.json's own jobs {label}, the numbers' untouched: {text[-900:]}")
+    eq(rig.entry()["verdict"][:len("GRADED, FAIL")], "GRADED, FAIL", "the ledger still says FAIL")
+    rig = graded_rig(M, tmp / "pass")
+    guarded_run(rig)
+    original = results_of(rig)
+    eq(grade_dir_out(M, rig.out, rig.ledger)[0], 0, "CONTROL: the PASS folder as written")
+    write_results(rig, {**original, "purpose": "development"})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "GRADE DIR VERDICT: GRADED: FAIL" in text and "whose purpose is 'graded'" in text,
+       f"(3) a PASS folder relabelled development: {text[-600:]}")
+    write_results(rig, {**original, "seeds": [6201.0, 6206.0]})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH" in text
+       and "the batch's seeds [6201.0, 6206.0] are not two int seeds equal to the numbers' [6201, 6206]" in text,
+       f"(6) the PASS folder's seeds written as floats: {text[-700:]}")
+    write_results(rig, original)
+    dev, args = dev_rig(M, tmp / "dev")
+    eq(guarded_run(dev, args)[0], 0, "a development batch ran")
+    write_results(dev, {key: value for key, value in results_of(dev).items() if key != "numbers"})
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 0 and "GRADE DIR VERDICT: DEVELOPMENT, not graded: PASS" in text and "MISMATCH" not in text,
+       f"CONTROL: a development folder with no numbers: {text[-500:]}")
+    empty = tmp / "empty_ledger.json"
+    empty.write_text(json.dumps({"what": "t", "entries": []}), encoding="utf-8")
+    code, text = grade_dir_out(M, dev.out, empty)
+    ok(code == 0 and "DEVELOPMENT, not graded (unconfirmed: no ledger entry): PASS" in text,
+       f"CONTROL: and with no entry for it: {text[-500:]}")
+
+
+def case_recorded_entry_rules(M, tmp):
+    """(C5-01) `recorded_problems`, rule by rule, on a planted ledger (#1 the folder's own graded entry, #2 an entry of
+    another driver as the real R0's recorded #86 is after the merge, its seeds meeting the folder's, #3 another
+    live_chain batch whose seeds MEET the folder's, as only a merged ledger holds; (the sixth check's C6-02) #4 another
+    live_chain batch whose seeds never meet the folder's, as the next registration is to R2's recorded #100; #5-#8 its
+    neighbours: 6195-6201 and 6206-6210 touch the folder's 6201-6206 at one seed, 6195-6200 and 6207-6210 do not).
+    FAULTS: the recorded id names a live_chain entry whose seeds meet the folder's and differ (only the seeds are named:
+    #1 for a folder of 6201-6203; #5 and #6, each touching at one seed); the folder's own entry with another purpose (only
+    the purpose); another batch's id (#3) while the folder's seeds' entry was met WITHOUT its bounds sha256. CONTROLS (no
+    problem): its own entry; an id of no entry; an entry of another driver; another batch's id explained by the folder's
+    entry met by its seeds AND bounds sha256 under another id (a renumbered ledger); (C6-02) a live_chain entry whose
+    seeds never meet the folder's (#4, #7, #8, and #1 for a folder of 9001-9006), with or without the folder's own entry;
+    no ledger given."""
+    path = tmp / "ledger.json"
+    own = {"id": 1, "driver": M.DRIVER, "first": 6201, "last": 6206, "purpose": "graded", "status": "done",
+           "bounds_sha256": "a" * 64, "verdict": "GRADED, FAIL (failing: LC.REACH): planted"}
+
+    def other(entry_id: int, first: int, last: int) -> dict:
+        return {"id": entry_id, "driver": M.DRIVER, "first": first, "last": last, "purpose": "graded", "status": "done",
+                "bounds_sha256": "b" * 64}
+    path.write_text(json.dumps({"what": "t", "entries": [
+        own, {"id": 2, "driver": "ch5stops_smoke", "first": 6001, "last": 6001, "purpose": "development", "status": "done"},
+        other(3, 6204, 6209), {**other(4, 7001, 7006), "status": "registered"}, other(5, 6195, 6201), other(6, 6206, 6210),
+        other(7, 6195, 6200), other(8, 6207, 6210)]}), encoding="utf-8")
+
+    def problems(entry_id, seeds, purpose, entry=None, sha="a" * 64, ledger_path=path) -> list[str]:
+        return M.recorded_problems(ledger_path, {"ledger": entry_id, "seeds": seeds, "purpose": purpose}, seeds, sha, entry)
+    eq(problems(1, [6201, 6206], "graded", own), [], "CONTROL: its own entry")
+    found = problems(1, [6201, 6206], "development", own)
+    ok(len(found) == 1 and "whose purpose is 'graded', not the folder's 'development'" in found[0], found)
+    found = problems(1, [6201, 6203], "graded")
+    ok(len(found) == 1 and "for seeds [6201, 6206], not the folder's [6201, 6203]" in found[0], found)
+    eq(problems(99, [9001, 9006], "graded"), [], "CONTROL: an id of no entry")
+    eq(problems(2, [6001, 6003], "development"), [], "CONTROL: an entry of another driver (a renumbered ledger)")
+    eq(problems(3, [6201, 6206], "graded", own), [], "CONTROL: the folder's entry met by its seeds and bounds sha256")
+    found = problems(3, [6201, 6206], "graded", own, sha="c" * 64)
+    ok(len(found) == 1 and "#3, a live_chain entry for seeds [6204, 6209]" in found[0], f"no sha256 to explain it: {found}")
+    eq(problems(1, [6201, 6206], "development", ledger_path=None), [], "CONTROL: no ledger given")
+    # (the sixth check's C6-02) another live_chain batch's entry: its seeds never meet the folder's
+    eq(problems(1, [9001, 9006], "development"), [], "CONTROL: #1's seeds never meet the folder's 9001-9006")
+    eq(problems(4, [6201, 6206], "development"), [], "CONTROL: #4 (7001-7006), the folder's own entry absent")
+    eq(problems(4, [6201, 6206], "graded", own, sha="c" * 64), [], "CONTROL: #4, the folder's entry met without its sha256")
+    for entry_id, span in ((7, [6195, 6200]), (8, [6207, 6210])):
+        eq(problems(entry_id, [6201, 6206], "graded"), [], f"CONTROL: #{entry_id} ({span}) never meets 6201-6206")
+    for entry_id, span in ((5, [6195, 6201]), (6, [6206, 6210])):
+        found = problems(entry_id, [6201, 6206], "graded")
+        ok(len(found) == 1 and f"#{entry_id}, a live_chain entry for seeds {span}, not the folder's [6201, 6206]" in found[0],
+           f"#{entry_id} touches the folder's seeds at one seed: {found}")
+
+
+# ---------------------------------------------------------------------------------------------------- C5-02
+def case_finish_entry_without_error_record(M, tmp):
+    """(The fifth check's C5-02, its probe5c: a regression of the C4-E05 fix) the ledger AND results.error.json cannot be
+    written (a full disk fails the larger file first): exit 4, the entry 'started', ledger.unfinished.json written and no
+    results.error.json; the command the guard PRINTED, run as printed with the ledger writable again, FINISHES the entry
+    with this driver's ERROR verdict, rebuilt from the copy of the ERROR record that ledger.unfinished.json carries.
+    FAULTS (each REFUSED, exit 2, the ledger untouched): that copy edited to a PASS (in both lines), to other numbers, or
+    removed. CONTROL: ledger_unwritable_not_finished (results.error.json written, the same command)."""
+    rig = graded_rig(M, tmp)
+    real = M._write_json
+
+    def full_disk(path, data):
+        if Path(path).name == M.RESULTS_ERROR:
+            raise OSError(28, "No space left on device")
+        return real(path, data)
+    with mock.patch.object(ledger, "finish", side_effect=PermissionError(13, "held open by another program")), \
+            mock.patch.object(M, "_write_json", full_disk):
+        code, text = guarded_run(rig)
+    eq((code, rig.entry()["status"]), (4, "started"), f"neither could be written: {text[-600:]}")
+    eq(((rig.out / M.UNFINISHED).is_file(), (rig.out / M.RESULTS_ERROR).exists()), (True, False), "only the unfinished file")
+    printed = re.search(r'Finish it by hand, from the repository: py -3\.12 ai_player/gates/live_chain\.py finish-entry '
+                        r'"([^"]+)"(?: --ledger "([^"]+)")?', text)
+    ok(printed is not None and printed.group(2), f"the guard printed the command: {text[-900:]}")
+    argv = ["finish-entry", printed.group(1), "--ledger", printed.group(2)]
+    path = rig.out / M.UNFINISHED
+    data = json.loads(path.read_text(encoding="utf-8"))
+    ok(isinstance(data.get("error_record"), dict), f"{M.UNFINISHED} carries a copy of the ERROR record: {sorted(data)}")
+    copy_of = data["error_record"]
+    passing = M.error_line("GRADED", True, "PASS", copy_of["to"], copy_of["seeds"], copy_of["numbers_sha256"])
+    for label, edited in (("a PASS in the copy", {**data, "verdict": passing, "error_record": {**copy_of, "verdict": "PASS"}}),
+                          ("other numbers", {**data, "error_record": {**copy_of, "numbers_sha256": "0" * 64}}),
+                          ("the copy removed", {k: v for k, v in data.items() if k != "error_record"})):
+        path.write_text(json.dumps(edited), encoding="utf-8")
+        before = rig.ledger.read_bytes()
+        with contextlib.redirect_stdout(io.StringIO()) as buffer:
+            code = M.main(argv)
+        eq((code, rig.ledger.read_bytes() == before), (2, True), f"{label}: REFUSED: {buffer.getvalue()[-400:]}")
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with contextlib.redirect_stdout(io.StringIO()) as buffer:
+        code = M.main(argv)
+    eq((code, rig.entry()["status"]), (0, "done"), f"the printed command finishes it: {buffer.getvalue()[-500:]}")
+    ok(rig.entry()["verdict"].startswith("GRADED, ERROR (harness: LedgerUnwritten:"), rig.entry()["verdict"][:200])
+
+
+# ---------------------------------------------------------------------------------------------------- C5-03
+def case_grade_dir_contradiction(M, tmp):
+    """(The fifth check's C5-03, its AB) a folder ERROR or ABORTED mark beside an entry FINISHED with PASS or FAIL is a
+    CONTRADICTION (in a run they never meet): grade DIR says the folder contradicts its ledger entry and grades FAIL, exit
+    1, never ABORTED (3) or ERROR (4): on a FAIL batch, an ABORT.txt planted, a results.error.json planted, results.json's
+    verdict edited to ABORTED; on a PASS batch, an ABORT.txt planted (exit 1, never 0 or 3). CONTROLS: the FAIL batch as
+    written (no contradiction said); an honest ABORTED and an honest ERROR batch, whose entries say so, are no
+    contradiction (grade_dir_aborted_and_development, grade_dir_error_states: `no_contradiction`). (The sixth check's
+    C6-04, its mutant MZ3) the verdict line says why: 'GRADED: FAIL (the folder contradicts its finished ledger entry)'."""
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp / "fail", plans={jobs[0]["chain"]: {"L5": {"miss": True}}, jobs[3]["chain"]: {"L5": {"miss": True}}})
+    guarded_run(rig)
+    original = results_of(rig)
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "CONTRADICTS" not in text, f"CONTROL: {text[-300:]}")
+
+    def contradicted(label: str, out: Path, ledger_path: Path) -> None:
+        code, text = grade_dir_out(M, out, ledger_path)
+        ok(code == 1 and "THE FOLDER CONTRADICTS ITS LEDGER ENTRY" in text and "GRADED: FAIL" in text
+           and "this batch was ABORTED" not in text and "this batch ended in ERROR" not in text, f"{label}: {text[-700:]}")
+        ok("GRADE DIR VERDICT: GRADED: FAIL (the folder contradicts its finished ledger entry)" in text,
+           f"{label}: the verdict line says why: {text[-300:]}")
+    (rig.out / M.ABORT_FILE).write_text("", encoding="utf-8")
+    contradicted("FAIL + ABORT.txt", rig.out, rig.ledger)
+    (rig.out / M.ABORT_FILE).unlink()
+    (rig.out / M.RESULTS_ERROR).write_text(json.dumps({
+        **original, "verdict": "ERROR (harness: OSError: planted while grading; no PASS or FAIL; the seeds are spent)",
+        "stage": "grading", "ledger_finished": True}), encoding="utf-8")
+    contradicted("FAIL + results.error.json", rig.out, rig.ledger)
+    (rig.out / M.RESULTS_ERROR).unlink()
+    write_results(rig, {**original, "verdict": "ABORTED (harness: disk)"})
+    contradicted("FAIL + results.json's verdict ABORTED", rig.out, rig.ledger)
+    rig = graded_rig(M, tmp / "pass")
+    guarded_run(rig)
+    (rig.out / M.ABORT_FILE).write_text("", encoding="utf-8")
+    contradicted("PASS + ABORT.txt", rig.out, rig.ledger)
+    found = M.regrade_dir(rig.out, rig.ledger)
+    eq((found["verdict"], found["final"], found["entry_word"]), ("PASS", "FAIL", "PASS"), "the rows and the entry PASS")
+
+
+# ---------------------------------------------------------------------------------------------------- C5-04
+def case_guard_sigint_restored(M, tmp):
+    """(The fifth check's C5-04: M280 survived the full runner only by test order) with a FRESH sentinel SIGINT handler
+    installed first, a guard that RETURNS (an exception while grading: exit 4) and a guard that RE-RAISES (a Ctrl+C while
+    grading) each finish the entry with SIGINT IGNORED (SIG_IGN) while they run, and leave the SENTINEL installed after.
+    The handler found at the start is restored in finally."""
+    import signal
+    original = signal.getsignal(signal.SIGINT)
+
+    def sentinel(signum, frame):  # a handler no other code installs
+        raise KeyboardInterrupt()
+    try:
+        for label, error in (("returns", RuntimeError("a planted fault in grading")), ("reraises", KeyboardInterrupt())):
+            signal.signal(signal.SIGINT, sentinel)
+            rig = graded_rig(M, tmp / label)
+            during: list = []
+            real_stop = M.stop_children
+
+            def stop(handles, interrupts=None, real_stop=real_stop):
+                during.append(signal.getsignal(signal.SIGINT))
+                return real_stop(handles, interrupts)
+            with mock.patch.object(M, "grade_batch", side_effect=error), mock.patch.object(M, "stop_children", stop):
+                result, text = run_capturing(rig)
+            ok(result == 4 if label == "returns" else isinstance(result, KeyboardInterrupt), f"({label}) {result!r}")
+            eq(rig.entry()["status"], "done", f"({label}) the entry is finished: {text[-400:]}")
+            eq(during, [signal.SIG_IGN], f"({label}) SIGINT was IGNORED while the guard ran")
+            after = signal.getsignal(signal.SIGINT)
+            ok(after is sentinel, f"({label}) the sentinel handler is restored after the guard: {after!r}")
+    finally:
+        signal.signal(signal.SIGINT, original)
+
+
+# ---------------------------------------------------------------------------------------------------- C5-05
+def case_grade_dir_entry_unbegun_or_unreadable(M, tmp):
+    """(The fifth check's C5-05, its probe5d and mutant MY02) an honest graded PASS folder graded against its ledger AS IT
+    WAS BEFORE THE RUN (its entry 'registered', never begun; the same bounds sha256) is UNVERIFIED ('its ledger entry was
+    never begun'), exit 1; against an entry whose verdict this driver never writes (UNREADABLE), UNVERIFIED, exit 1.
+    CONTROL: against the ledger as the run left it, PASS, exit 0."""
+    rig = graded_rig(M, tmp)
+    registered = tmp / "ledger_registered.json"
+    shutil.copy2(rig.ledger, registered)
+    guarded_run(rig)
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 0 and "GRADE DIR VERDICT: GRADED: PASS" in text, f"CONTROL: {text[-300:]}")
+    code, text = grade_dir_out(M, rig.out, registered)
+    ok(code == 1 and "GRADED: UNVERIFIED (its ledger entry was never begun)" in text, f"REGISTERED: {text[-400:]}")
+    data = ledger.load(rig.ledger)
+    data["entries"][-1]["verdict"] = "GRADED, MAYBE: a verdict this driver never writes"
+    unreadable = tmp / "ledger_unreadable.json"
+    unreadable.write_text(json.dumps(data), encoding="utf-8")
+    code, text = grade_dir_out(M, rig.out, unreadable)
+    ok(code == 1 and "GRADED: UNVERIFIED (its ledger entry has a verdict this driver never writes)" in text,
+       f"UNREADABLE: {text[-400:]}")
+
+
+# ---------------------------------------------------------------------------------------------------- the sixth check
+def case_grade_dir_other_live_chain_entry(M, tmp):
+    """(The sixth check's C6-02, its R2NEXT and OTHERLEDGER; C6-03, its probe6b and mutant MZ2) an HONEST development
+    batch (seeds 6041-6043; its results.json names #1, its own entry) graded against a ledger that is not the one it ran
+    with never re-grades FAIL. FAULTS, each exit 0, PASS, no MISMATCH (round 5 gave exit 1): (C6-02) its own entry absent
+    and the id it records naming ANOTHER live_chain batch whose seeds never meet its own (a graded registration of
+    6201-6206, as the next entry is to the real R2's recorded #100; a development batch begun on 6301-6303), with its
+    numbers kept and deleted (R2 has none); (C6-03) a MERGED ledger: its own entry renumbered #2 (the same seeds and
+    bounds sha256) and #1 another live_chain batch, whose seeds MEET its own (6043-6045: only the renumbered exemption
+    clears it) or never meet them (7001-7003): its entry #2 is found, the recorded #1 is no mismatch. CONTROLS: its own
+    ledger (exit 0); the recorded id naming another driver's entry (exit 0); an empty ledger (exit 0); and a live_chain
+    entry whose seeds MEET its own and differ, with its own entry absent: MISMATCH, exit 1."""
+    dev, args = dev_rig(M, tmp / "dev")
+    eq(guarded_run(dev, args)[0], 0, "a development batch ran")
+    own = dev.entry()
+    original = results_of(dev)
+    eq((own["id"], own["first"], own["last"], original["ledger"]), (1, 6041, 6043, 1), "its own entry #1, as recorded")
+
+    def planted(name: str, *entries: dict) -> Path:
+        path = tmp / f"{name}.json"
+        path.write_text(json.dumps({"what": "t", "entries": list(entries)}), encoding="utf-8")
+        return path
+
+    def batch(entry_id: int, first: int, last: int, purpose: str, status: str) -> dict:
+        return {**own, "id": entry_id, "first": first, "last": last, "purpose": purpose, "status": status,
+                "bounds_sha256": "b" * 64, "verdict": own["verdict"] if status == "done" else None}
+
+    def honest(label: str, path: Path, confirmed: bool) -> str:
+        code, text = grade_dir_out(M, dev.out, path)
+        verdict = (f"GRADE DIR VERDICT: DEVELOPMENT, not graded{'' if confirmed else ' (unconfirmed: no ledger entry)'}: "
+                   f"PASS; exit 0")
+        ok(code == 0 and verdict in text and "MISMATCH" not in text, f"{label}: {text[-800:]}")
+        return text
+    nxt = {"the next graded registration (6201-6206)": planted("next_graded", batch(1, 6201, 6206, "graded", "registered")),
+           "a development batch begun (6301-6303)": planted("next_dev", batch(1, 6301, 6303, "development", "started"))}
+    for numbers_kept in (True, False):
+        write_results(dev, original if numbers_kept else {k: v for k, v in original.items() if k != "numbers"})
+        for label, path in nxt.items():
+            honest(f"(C6-02) #1 is {label}; numbers {'kept' if numbers_kept else 'deleted'}", path, confirmed=False)
+    write_results(dev, original)
+    text = honest("(C6-03) merged: #1 another live_chain batch MEETING its seeds, its own entry #2",
+                  planted("merged_meet", batch(1, 6043, 6045, "development", "done"), {**own, "id": 2}), confirmed=True)
+    ok("LEDGER (read now): entry #2 (results.json names #1: matched by its seeds and bounds sha256)" in text, text[-800:])
+    honest("(C6-03) merged: #1 another live_chain batch apart from its seeds, its own entry #2",
+           planted("merged_apart", batch(1, 7001, 7003, "development", "done"), {**own, "id": 2}), confirmed=True)
+    honest("CONTROL: its own ledger", dev.ledger, confirmed=True)
+    honest("CONTROL: #1 another driver's entry",
+           planted("other_driver", {**batch(1, 6041, 6041, "development", "done"), "driver": "ch5stops_other"}),
+           confirmed=False)
+    honest("CONTROL: an empty ledger", planted("empty"), confirmed=False)
+    code, text = grade_dir_out(M, dev.out, planted("meets", batch(1, 6043, 6045, "development", "done")))
+    ok(code == 1 and "names ledger entry #1, a live_chain entry for seeds [6043, 6045], not the folder's [6041, 6043]" in
+       text, f"CONTROL: #1 meets its seeds and differs, its own entry absent: {text[-800:]}")
+
+
+def case_seed_rules(M, tmp):
+    """(The sixth check's C6-01) the seed rules are TYPE-STRICT (`type(seed) is int`, never int()): `seed_pair` takes two
+    int seeds, first to last, and nothing else ("6201", 6201.0, true, backwards, one seed, three, a string, None);
+    `job_seed_range` takes the jobs' seeds as ints, one per seed of a contiguous range (FAULTS: a seed written "6205", a
+    gap, a repeat, no jobs, not a list); `numbers_jobs_problems` (FAULTS) seeds as strings or floats, a job's seed as a
+    string, jobs with a gap whose seeds name their ends; and through grade DIR, an honest development folder (numbers
+    deleted) with one job's seed written as a string: MISMATCH, never exit 0. CONTROLS: int seeds and jobs_of's jobs give
+    the range and no problem; the folder as written exits 0. (The seventh check's C7-03, its MX2 to MX4) FAULTS: a repeat
+    with NO gap (6041, 6041, 6042, 6043: the 'a repeat' fixture above also leaves a gap); the seeds [6041, 6044] beside
+    jobs 6041-6043 (only the LAST seed differs), unit by unit and through grade DIR (exit 1); the folder's jobs AND its
+    recorded seeds both unreadable (a job's seed and both seeds written as strings) while its recorded id names its own
+    live_chain entry: MISMATCH, exit 1, never 2 (CANNOT GRADE). CONTROL: [6041, 6043] beside the same jobs."""
+    eq(M.seed_pair([6201, 6206]), [6201, 6206], "CONTROL: two ints")
+    for value in (["6201", "6206"], [6201.0, 6206.0], [True, 6206], [6206, 6201], [6201], [6201, 6206, 6207], "6201", None):
+        eq(M.seed_pair(value), None, f"no seed pair: {value!r}")
+    jobs = LC.jobs_of(6201, 6)
+    eq(M.job_seed_range(jobs), ([6201, 6206], ""), "CONTROL: jobs_of's jobs")
+    stringed = copy.deepcopy(jobs)
+    stringed[2]["seed"] = str(stringed[2]["seed"])
+    gap = [job for job in copy.deepcopy(jobs) if job["seed"] != 6203]
+    repeat = copy.deepcopy(jobs)
+    repeat[1]["seed"] = repeat[0]["seed"]
+    for label, bad, needle in (("a seed written as a string", stringed, "are not all ints"),
+                               ("a gap", gap, "not one per seed of a contiguous range"),
+                               ("a repeat", repeat, "not one per seed of a contiguous range"),
+                               ("no jobs", [], "it has no jobs"), ("not a list", {"jobs": jobs}, "not a list")):
+        span, why = M.job_seed_range(bad)
+        ok(span is None and needle in why, f"{label}: {span} {why!r}")
+    eq(M.numbers_jobs_problems({"seeds": [6201, 6206], "jobs": jobs, "chains": 6}), [], "CONTROL: the numbers' jobs")
+    for label, numbers_of, needle in (
+            ("seeds as strings", {"seeds": ["6201", "6206"], "jobs": jobs, "chains": 6}, "are not two int seeds"),
+            ("seeds as floats", {"seeds": [6201.0, 6206.0], "jobs": jobs, "chains": 6}, "are not two int seeds"),
+            ("a job's seed as a string", {"seeds": [6201, 6206], "jobs": stringed, "chains": 6}, "bind no seed range"),
+            ("a gap, the seeds its ends", {"seeds": [6201, 6206], "jobs": gap, "chains": 5}, "bind no seed range")):
+        found = M.numbers_jobs_problems(numbers_of)
+        ok(any(needle in problem for problem in found), f"{label}: {found}")
+    # (the seventh check's C7-03, its MX2 and MX3) a repeat with no gap; only the last seed differs
+    three = LC.jobs_of(6041, 3)
+    first = next(job for job in three if job["seed"] == 6041)
+    span, why = M.job_seed_range([*three, {**first, "chain": "LC-X-6041", "pair": "X"}])
+    ok(span is None and "not one per seed of a contiguous range" in why, f"a repeat with no gap (6041 twice): {span} {why!r}")
+    eq(M.numbers_jobs_problems({"seeds": [6041, 6043], "jobs": three, "chains": 3}), [], "CONTROL: 6041-6043's seeds")
+    found = M.numbers_jobs_problems({"seeds": [6041, 6044], "jobs": three, "chains": 3})
+    ok(any("are not one per seed of 6041-6044" in problem for problem in found), f"only the last seed differs: {found}")
+    dev, args = dev_rig(M, tmp / "dev")
+    eq(guarded_run(dev, args)[0], 0, "a development batch ran")
+    data = {key: value for key, value in results_of(dev).items() if key != "numbers"}
+    write_results(dev, data)
+    eq(grade_dir_out(M, dev.out, dev.ledger)[0], 0, "CONTROL: the folder, its numbers deleted")
+    write_results(dev, {**data, "seeds": [6041, 6044]})
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH (no numbers)" in text and "are not one per seed of 6041-6044" in text,
+       f"(MX3) the recorded seeds [6041, 6044] beside jobs 6041-6043: {text[-800:]}")
+    data["jobs"][1]["seed"] = str(data["jobs"][1]["seed"])
+    write_results(dev, data)
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH (no numbers)" in text and "bind no seed range" in text,
+       f"a job's seed written as a string: {text[-800:]}")
+    eq(data["ledger"], dev.entry()["id"], "the folder's recorded id names its own live_chain entry")
+    write_results(dev, {**data, "seeds": [str(seed) for seed in data["seeds"]]})
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH" in text and "not the folder's []" in text and "CANNOT GRADE" not in text,
+       f"(MX4) the jobs and the recorded seeds both unreadable, the recorded id a live_chain entry: {text[-800:]}")
+
+
+# ---------------------------------------------------------------------------------------------------- the seventh check
+def case_grade_dir_subset_folder(M, tmp):
+    """(The seventh check's C7-01, its SUBSET) a graded FAIL folder (two L5 misses, at LC-*-6201 and LC-*-6204; the ledger
+    says 'GRADED, FAIL') edited in results.json ALONE: its jobs trimmed to the contiguous subset 6205-6206 (no miss), seeds
+    [6205, 6206], chains 2, reach_min 2, purpose 'development'. FAULTS (each exited 0, 'DEVELOPMENT, not graded
+    (unconfirmed: no ledger entry): PASS'), each now exit 1 'GRADED: FAIL': the numbers deleted, or kept (trimmed the
+    same, numbers_sha256 recomputed), with the recorded id changed (99999) or the 'ledger' key removed. No entry names
+    6205-6206, so the entry whose seeds MEET them (#1) is the folder's: its verdict bounds the result, its purpose sets the
+    label, and a MISMATCH says 'the folder's jobs bind [6205, 6206], not ledger entry #1's [6201, 6206]'; the LEDGER line
+    says it was matched by seeds that meet. Also the subset 6206 alone (touching #1 at its last seed); and an honest
+    DEVELOPMENT batch (6041-6043, PASS) trimmed to 6042-6043, numbers deleted, id 99999: MISMATCH, 'DEVELOPMENT, not
+    graded: FAIL', exit 1, never 0. CONTROLS: the FAIL folder as written ('LEDGER (read now): entry #1, graded', no
+    MISMATCH, exit 1); the subset with the recorded id KEPT (both MISMATCH lines, exit 1); the development batch against
+    its own ledger (its entry found exactly, exit 0, no MISMATCH) and against a ledger whose only live_chain entry is the
+    NEXT batch (6044-6046, adjacent, never meeting 6041-6043; as the real R2's 6050-6052 meets neither 6201-6206 nor
+    6301-6303, grade_dir_other_live_chain_entry): no entry, exit 0."""
+    jobs = LC.jobs_of(6201, 6)
+    rig = graded_rig(M, tmp / "fail", plans={jobs[0]["chain"]: {"L5": {"miss": True}}, jobs[3]["chain"]: {"L5": {"miss": True}}})
+    guarded_run(rig)
+    original = results_of(rig)
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "LEDGER (read now): entry #1, graded" in text and "MISMATCH" not in text
+       and "GRADE DIR VERDICT: GRADED: FAIL" in text, f"CONTROL: the FAIL folder as written: {text[-500:]}")
+
+    def subset(keep: tuple[int, ...], numbers_kept: bool, changes: dict) -> dict:
+        edited = copy.deepcopy(original)
+        seeds = [min(keep), max(keep)]
+        if numbers_kept:
+            numbers = {**edited["numbers"], "jobs": [job for job in edited["numbers"]["jobs"] if job["seed"] in keep],
+                       "seeds": seeds, "chains": len(keep), "reach_min": len(keep)}
+            edited.update({"numbers": numbers, "numbers_sha256": ledger.numbers_sha256(numbers)})
+        else:
+            edited.pop("numbers")
+        edited.update({"jobs": [job for job in edited["jobs"] if job["seed"] in keep], "seeds": seeds,
+                       "chains": len(keep), "reach_min": len(keep), "purpose": "development", **changes})
+        if changes.get("ledger", 0) is None:
+            edited.pop("ledger")
+        return edited
+    for numbers_kept in (False, True):
+        for how, changes in (("the recorded id changed", {"ledger": 99999}), ("the 'ledger' key removed", {"ledger": None})):
+            write_results(rig, subset((6205, 6206), numbers_kept, changes))
+            code, text = grade_dir_out(M, rig.out, rig.ledger)
+            ok(code == 1 and "NUMBERS: MISMATCH" in text
+               and "the folder's jobs bind [6205, 6206], not ledger entry #1's [6201, 6206]" in text
+               and "matched by seeds that meet the folder's [6205, 6206]" in text
+               and "GRADE DIR VERDICT: GRADED: FAIL; exit 1" in text,
+               f"(SUBSET) the numbers {'kept' if numbers_kept else 'deleted'}, {how}: {text[-900:]}")
+    write_results(rig, subset((6206,), False, {"ledger": 99999}))
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "the folder's jobs bind [6206, 6206], not ledger entry #1's [6201, 6206]" in text
+       and "GRADE DIR VERDICT: GRADED: FAIL; exit 1" in text, f"(SUBSET) 6206 alone, #1's last seed: {text[-900:]}")
+    write_results(rig, subset((6205, 6206), False, {}))
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "the folder's jobs bind [6205, 6206], not ledger entry #1's [6201, 6206]" in text
+       and "names ledger entry #1, a live_chain entry for seeds [6201, 6206], not the folder's [6205, 6206]" in text
+       and "GRADE DIR VERDICT: GRADED: FAIL" in text, f"CONTROL: the subset, the recorded id KEPT: {text[-900:]}")
+    eq(rig.entry()["verdict"][:len("GRADED, FAIL")], "GRADED, FAIL", "the ledger still says FAIL")
+    dev, args = dev_rig(M, tmp / "dev")
+    eq(guarded_run(dev, args)[0], 0, "a development batch ran")
+    honest = results_of(dev)
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 0 and "LEDGER (read now): entry #1, development" in text and "MISMATCH" not in text,
+       f"CONTROL: the development batch, its own entry found exactly: {text[-600:]}")
+    nxt = tmp / "next_batch.json"
+    nxt.write_text(json.dumps({"what": "t", "entries": [{**dev.entry(), "first": 6044, "last": 6046}]}), encoding="utf-8")
+    code, text = grade_dir_out(M, dev.out, nxt)
+    ok(code == 0 and "no live_chain entry names or meets seeds [6041, 6043]" in text and "MISMATCH" not in text
+       and "DEVELOPMENT, not graded (unconfirmed: no ledger entry): PASS; exit 0" in text,
+       f"CONTROL: the next batch (6044-6046) never meets 6041-6043: {text[-600:]}")
+    trimmed = {key: value for key, value in honest.items() if key != "numbers"}
+    trimmed.update({"jobs": [job for job in honest["jobs"] if job["seed"] != 6041], "seeds": [6042, 6043], "chains": 2,
+                    "reach_min": 2, "ledger": 99999})
+    write_results(dev, trimmed)
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 1 and "the folder's jobs bind [6042, 6043], not ledger entry #1's [6041, 6043]" in text
+       and "GRADE DIR VERDICT: DEVELOPMENT, not graded: FAIL; exit 1" in text,
+       f"(SUBSET) a development PASS batch trimmed to 6042-6043: {text[-900:]}")
+
+
+def case_find_entry_meets(M, tmp):
+    """(The seventh check's C7-01) `find_entry`, rule by rule, on a planted ledger. FAULTS (each found nothing before):
+    with no live_chain entry for exactly the seeds asked, the one whose seeds MEET them (#1, 6201-6206: the subset
+    6205-6206, its first or last seed alone, a range touching it at one seed from below or above, one around it). An
+    entry for exactly the seeds wins over one that only meets them, wherever it stands in the file (#4 6504-6509 exact,
+    #5 6501-6506 after it). CONTROLS (no entry, 'names or meets', never a crash): the ranges beside #1 that never meet it
+    (6195-6200, 6207-6210); an entry of another driver (#2); an entry whose seeds are not ints (#3: '6401'); and exactly
+    #1's seeds find #1 as before."""
+    path = tmp / "ledger.json"
+
+    def planted(entry_id: int, first, last, driver: str | None = None) -> dict:
+        return {"id": entry_id, "driver": driver or M.DRIVER, "first": first, "last": last, "purpose": "graded",
+                "status": "done", "bounds_sha256": "a" * 64}
+    path.write_text(json.dumps({"what": "t", "entries": [
+        planted(1, 6201, 6206), planted(2, 6301, 6306, "ch5stops_other"), planted(3, "6401", 6406), planted(4, 6504, 6509),
+        planted(5, 6501, 6506)]}), encoding="utf-8")
+
+    def found(first: int, last: int) -> tuple:
+        try:
+            entry, why = M.find_entry(path, [first, last], None, None)
+        except Exception as error:  # noqa: BLE001 - a crash is a failed case here, not a broken one
+            raise AssertionError(f"find_entry raised on {first}-{last}: {error!r}") from None
+        return (entry or {}).get("id"), why
+    eq(found(6201, 6206), (1, ""), "CONTROL: exactly #1's seeds")
+    for first, last in ((6205, 6206), (6201, 6201), (6206, 6206), (6195, 6201), (6206, 6210), (6195, 6210)):
+        eq(found(first, last), (1, ""), f"{first}-{last} meets #1 (6201-6206)")
+    for first, last in ((6195, 6200), (6207, 6210), (6301, 6302), (6401, 6402)):
+        got = found(first, last)
+        ok(got[0] is None and "names or meets" in got[1], f"CONTROL: {first}-{last} finds no entry: {got}")
+    eq(found(6504, 6509), (4, ""), "the entry for exactly the seeds wins over #5, which only meets them")
+    eq(found(6502, 6503), (5, ""), "only #5 meets 6502-6503")
+
+
 # ==================================================================================================== THE TESTCASES
 class Base(unittest.TestCase):
     def setUp(self) -> None:
@@ -2932,23 +5461,35 @@ SchedulerTests = _bind(type("SchedulerTests", (Base,), {}), ("scheduler_max_3", 
 OrchestratorTests = _bind(type("OrchestratorTests", (Base,), {}), (
     "e2e_graded_pass", "e2e_dry_run", "e2e_unregistered_refused", "e2e_refusal_before_ledger", "e2e_development",
     "free_guard_aborts", "world_guard_kills", "watchdog", "tree_move_stops", "tree_move_tick"))
-WiringTests = _bind(type("WiringTests", (Base,), {}), ("wiring",))
+WiringTests = _bind(type("WiringTests", (Base,), {}), ("wiring", "wiring_defaults"))
 # (the fix round, the verifier's V-01..V-09)
 OutTests = _bind(type("OutTests", (Base,), {}), ("r11_out_not_empty", "out_listing", "e2e_out_not_empty_refused",
-                                                 "e2e_out_empty_proceeds"))
+                                                 "e2e_out_empty_proceeds",
+                                                 # (the third fix round) C3-E01, C3-G05
+                                                 "out_listing_unmakeable", "e2e_out_unmakeable_refused",
+                                                 "e2e_out_undone_on_ledger_refusal", "e2e_steps_before_begin"))
 RegradeTests = _bind(type("RegradeTests", (Base,), {}), (
     "grade_batch_foreign_row", "grade_dir_foreign_row", "regrade_honest", "flipped_continue_not_counted",
     "row_identity_mismatch", "kept_file_swapped", "row_proof_weakened", "row_leg_names_checked",
     "grade_dir_marker_on_disk",
     # (the second fix round) C2-01, C2-03, the checker's C13
     "row_starter_mismatch", "regrade_custody_stored_empty", "grade_dir_registered_proof",
-    "e2e_row_proof_weakened_in_run", "e2e_evidence_rederived_reach", "kept_file_not_json"))
+    "e2e_row_proof_weakened_in_run", "e2e_evidence_rederived_reach", "kept_file_not_json",
+    # (the third fix round) C3-G01..G04, C3-G06
+    "leg_identity_each_field", "relabelled_copy_stays_fail", "shared_legs_never_count", "grade_dir_numbers_verified",
+    "grade_dir_missing_records", "grade_dir_moved_out", "grade_dir_frozen_at_seal", "row_identity_each_field",
+    "not_run_after_continuing_leg"))
 ClosureTests = _bind(type("ClosureTests", (Base,), {}), (
     "grader_files_cover_closure", "closure_not_vacuous", "closure_scan_planted", "grader_data_hashed",
     "changed_decoder_refused", "crlf_only_accepted",
     # (the second fix round) C2-02, C2-05
     "closure_starts", "closure_starts_planted", "path_runs_are_roots", "path_run_scan_planted",
-    "closure_toplevel_names", "changed_path_run_refused", "closure_enforced_register", "closure_enforced_run"))
+    "closure_toplevel_names", "changed_path_run_refused", "closure_enforced_register", "closure_enforced_run",
+    # (the third fix round) C3-H01, C3-H02, C3-H04, C3-H05, C3-E06's named file
+    "closure_resolution_planted", "pycache_planted", "resolution_enforced_register", "toplevel_planted",
+    "python_env_refused", "closure_refusal_names_all", "closure_ai_starts_planted", "closure_parse_error_named",
+    # (the third fix round's finish, 2026-11-06) the full regression lane's failure: sandbox-pokebot/mgba present
+    "toplevel_mgba_exempt"))
 KindTests = _bind(type("KindTests", (Base,), {}), ("verdict_impure_l5_fails", "verdict_stale_l5_fails",
                                                    "verdict_wrong_starter_fails", "graded_kinds_match_bounds"))
 GuardTests = _bind(type("GuardTests", (Base,), {}), (
@@ -2960,8 +5501,39 @@ PredictionTests = _bind(type("PredictionTests", (Base,), {}), ("prediction_sha_f
 DeadLaunchTests = _bind(type("DeadLaunchTests", (Base,), {}), ("launch_died_rule", "dead_launch_named",
                                                                "e2e_dead_launch_evidence", "world_line_no_file"))
 # (the second fix round) C2-07: the harness's exception after the chains still finishes the ledger entry
-GradeErrorTests = _bind(type("GradeErrorTests", (Base,), {}), ("grade_error_finishes_entry",
-                                                               "evidence_error_finishes_entry"))
+GradeErrorTests = _bind(type("GradeErrorTests", (Base,), {}), (
+    "grade_error_finishes_entry", "evidence_error_finishes_entry",
+    # (the third fix round) C3-E03..E07
+    "ledger_finish_transient_retried", "ledger_finish_computed_unwritable", "ledger_unwritable_not_finished",
+    "grade_error_any_exception", "results_write_error_both_paths", "error_evidence_any_exception", "dev_error_labelled",
+    "dev_unhashed_printed", "grade_dir_error_batch", "grade_dir_exit_codes", "main_crash_exit_5", "unprintable_error",
+    "grading_interrupt", "evidence_write_error_bounds_once"))
+# (the third fix round) the chains-run guard; C3-E02: the AI's output is untrusted
+ChainGuardTests = _bind(type("ChainGuardTests", (Base,), {}), ("chains_error_finishes_entry",
+                                                               "chains_interrupt_finishes_entry"))
+UntrustedTests = _bind(type("UntrustedTests", (Base,), {}), (
+    "world_counts_untrusted", "e2e_untrusted_world_fails_not_errors", "log_untrusted", "chain_bad_verdict",
+    "kept_line_wrong_shape"))
+# (the fourth fix round, 2026-11-06) the fourth check's three lenses: errors, grading, hashing
+C4ErrorTests = _bind(type("C4ErrorTests", (Base,), {}), (
+    "world_kind_untrusted", "e2e_world_folder_graded", "out_second_launch_refused", "out_written_after_listing",
+    "out_undo_edges", "guard_second_interrupt", "guard_after_finish_keeps_verdict", "error_finish_retried",
+    "lone_surrogate_graded", "finish_entry_only_error"))
+C4GradingTests = _bind(type("C4GradingTests", (Base,), {}), (
+    "grade_dir_never_better_than_ledger", "grade_dir_error_states", "grade_dir_planted_stop_and_deleted_leg",
+    "grade_dir_aborted_and_development", "salvage_exemption_needs_record"))
+C4HashingTests = _bind(type("C4HashingTests", (Base,), {}), (
+    "closure_pyw_planted", "toplevel_installed_planted", "ai_problems_planted", "run_refusal_falls_through",
+    "resolution_branches_planted", "pycache_branches_planted", "toplevel_branches_planted", "ai_starts_branches_planted",
+    "wiring_bodies"))
+# (the fifth fix round, 2026-11-06) the fifth check's C5-01..C5-05
+C5Tests = _bind(type("C5Tests", (Base,), {}), (
+    "grade_dir_edited_fail_folder", "recorded_entry_rules", "finish_entry_without_error_record", "grade_dir_contradiction",
+    "guard_sigint_restored", "grade_dir_entry_unbegun_or_unreadable"))
+# (the sixth fix round, 2026-11-06) the sixth check's C6-01 and C6-02 (and C6-03's merged ledger)
+C6Tests = _bind(type("C6Tests", (Base,), {}), ("grade_dir_other_live_chain_entry", "seed_rules"))
+# (the seventh fix round, 2026-11-06) the seventh check's C7-01: the entry whose seeds MEET the folder's range
+C7Tests = _bind(type("C7Tests", (Base,), {}), ("grade_dir_subset_folder", "find_entry_meets"))
 
 
 class PurposeTests(unittest.TestCase):
@@ -3089,6 +5661,17 @@ class TieTests(Base):
 
 
 # ==================================================================================================== THE MUTANTS (D5)
+def _prepare_after_begin() -> tuple[str, str]:
+    """(The third fix round, C3-E01) the mutant that makes --out and the job files AFTER ledger.begin: its anchor is the
+    source from the prepare_out call to the entry's ctx update, its replacement the same two parts swapped (computed
+    from the source, so it follows the code)."""
+    text = SOURCE.read_text(encoding="utf-8")
+    a = text.index("    try:\n        made = prepare_out(")
+    b = text.index("    # (the checkers' C2-07, C3-E03..E07) what the ERROR record needs")
+    c = text.index('    ctx.update({"entry_id": entry["id"], "ledger_lines": ledger_lines})\n')
+    return text[a:c], text[b:c] + text[a:b]
+
+
 #: (id, anchor in live_chain.py (exactly once), replacement, [cases that must FAIL on it])
 MUTANTS = [
     ("M01_reach_min", "GRADED, len(reached) >= reach_min,", "GRADED, len(reached) >= reach_min - 1,", ["reach_4_of_6_fails"]),
@@ -3112,9 +5695,11 @@ MUTANTS = [
      "WORLD_SIZE_KIND == GRADED and size > WORLD_MAX_BYTES:", ["continue_c3_at_cap"]),
     ("M10_no_delete", "            world_file = measure_then_delete(world_path)\n",
      '            world_file = {"bytes": size_first, "deleted": True, "present": True}\n', ["chain_control"]),
+    # (re-anchored in the third fix round: the record filter, C3-E02)
     ("M11_original_world", "        carried.pop(arm_name, None)\n        if end_state is not None and end_state.is_file() "
-                           "and row[\"kept_world\"]:\n            reads = [r for r in run.earlier + run.records if "
-                           "r.get(\"decision\") == \"read\"]\n            carried[arm_name] = (end_state, "
+                           "and row[\"kept_world\"]:\n            # (C3-E02) actions.jsonl is the AI's: a record that is not "
+                           "a JSON object is no page it read\n            reads = [r for r in run.earlier + run.records if "
+                           "isinstance(r, dict) and r.get(\"decision\") == \"read\"]\n            carried[arm_name] = (end_state, "
                            "Path(row[\"kept_world\"]), reads)\n", "        pass\n", ["chain_control"]),
     ("M12_custody_md5", "    elif after.get(\"state_md5\") is None or (before.get(\"frame\"), before.get(\"state_md5\")) != "
                         "(after.get(\"frame\"),", "    elif False and (before.get(\"frame\"), before.get(\"state_md5\")) != "
@@ -3202,13 +5787,17 @@ MUTANTS = [
      ["tree_move_stops"]),
     ("M58_no_begin", "        entry, ledger_lines = begin(args.purpose, seeds,", "        entry, ledger_lines = _skip(args.purpose, seeds,",
      ["wiring"]),
-    ("M59_no_finish", '    ledger.finish(entry["id"], verdict_line, reference,', '    _skip(entry["id"], verdict_line, reference,',
-     ["wiring"]),
+    # (re-anchored in the third fix round: the finish is retried through finish_entry, C3-E03)
+    ("M59_no_finish", '        why = finish_entry(entry["id"], verdict_line, reference, ctx["ledger_path"], deps.sleep)',
+     '        why = _skip(entry["id"], verdict_line, reference, ctx["ledger_path"], deps.sleep)', ["wiring"]),
     ("M60_no_seal", '    _, frozen_line = tree.seal("PASS" if held else "FAIL")', '    _, frozen_line = (None, "skipped")',
      ["wiring"]),
     ("M61_no_refusal", "    refusal = run_refusal(args, facts)", "    refusal = None", ["wiring", "e2e_refusal_before_ledger"]),
-    ("M62_no_purity", "        check_purity(run, None)\n", "        pass\n", ["wiring", "chain_control"]),
-    ("M63_no_this_run", "        L5.check_after_is_this_run(run)\n", "        pass\n", ["wiring", "chain_control"]),
+    # (re-anchored in the third fix round: each check of the AI's output is `judged`, C3-E02)
+    ("M62_no_purity", '        judged(lambda: check_purity(run, None), "the purity checks", run.notes)\n', "        pass\n",
+     ["wiring", "chain_control"]),
+    ("M63_no_this_run", '        judged(lambda: L5.check_after_is_this_run(run), "L5.THIS_RUN", run.notes)\n', "        pass\n",
+     ["wiring", "chain_control"]),
     ("M64_no_custody", '        row["custody"] = custody_problems(row, prev, job, index)', '        row["custody"] = []',
      ["wiring"]),
     ("M65_r3_run_given", '        if args.run is not None:\n            return "R3', '        if False:\n            return "R3',
@@ -3235,8 +5824,8 @@ MUTANTS = [
     ("M82_reach_ignores_count", "    return len(legs) == legs_wanted and legs_wanted > 0 and", "    return legs_wanted > 0 and",
      ["last_leg_must_continue"]),
     ("M83_abort_exit", "    if aborted:\n        return 3\n", "", ["free_guard_aborts"]),
-    ("M85_no_end_sweep", "    world_left = end_sweep(jobs, build_root)", "    world_left = []",
-     ["wiring", "world_guard_kills"]),
+    # (the third fix round: run_batch's guard calls end_sweep too, so WIRING's name check no longer sees this one)
+    ("M85_no_end_sweep", "    world_left = end_sweep(jobs, build_root)", "    world_left = []", ["world_guard_kills"]),
     ("M86_leftover_ignored", 'checks.append(_check("LC.LEFTOVER", GRADED, not leftover,',
      'checks.append(_check("LC.LEFTOVER", GRADED, True,', ["frozen_leftover"]),
     ("M87_frozen_ignored", 'checks.append(_check("LC.FROZEN", GRADED, bool(frozen[0]),',
@@ -3261,8 +5850,9 @@ MUTANTS = [
     ("M98_out_listing_blind", '        return {"out_entries": sorted(p.name for p in out.iterdir())}',
      '        return {"out_entries": []}', ["out_listing"]),
     # V-02: only the registered rows count, each re-derived from its own facts
-    ("M99_raw_rows_graded", "    chains, ignored, rederived = registered_chains(chains, jobs, legs)",
-     "    _, ignored, rederived = registered_chains(chains, jobs, legs)",
+    # (re-anchored in the fourth fix round: grade_batch passes the salvaged chains, C4-G04)
+    ("M99_raw_rows_graded", "    chains, ignored, rederived = registered_chains(chains, jobs, legs, stop_files, kept_root, salvaged)",
+     "    _, ignored, rederived = registered_chains(chains, jobs, legs, stop_files, kept_root, salvaged)",
      ["grade_batch_foreign_row", "flipped_continue_not_counted"]),
     # (re-anchored in the second fix round: registered_chains' comprehension became a loop, C2-01)
     ("M100_unregistered_counted",
@@ -3279,22 +5869,22 @@ MUTANTS = [
     ("M103_identity_ignored", '        wrong = [f"its {key} {found[0].get(key)!r} is not the registered {job.get(key)!r}" for '
                               'key in IDENTITY\n                 if found[0].get(key) != job.get(key)]', "        wrong = []",
      ["row_identity_mismatch", "row_starter_mismatch"]),
-    ("M104_kept_not_reread", "            kept = kept_problem(leg)", "            kept = None", ["kept_file_swapped"]),
+    ("M104_kept_not_reread", "            kept = kept_problem(leg, path)", "            kept = None", ["kept_file_swapped"]),
     ("M105_row_proof_used", '            proof = want["proof"] if want is not None else (leg.get("proof") or {})',
      '            proof = leg.get("proof") or {}', ["row_proof_weakened"]),
     ("M106_leg_names_unchecked", '            if legs is not None and (want is None or (leg.get("leg"), leg.get("target")) != '
                                  '(want["leg"], want["target"])):', "            if False:", ["row_leg_names_checked"]),
     ("M107_stored_custody_dropped", '            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), '
-                                    '*custody_problems(leg, prev, job, index)]))',
-     '            leg["custody"] = custody_problems(leg, prev, job, index)', ["custody_grade_fail"]),
+                                    '*custody_problems(leg, prev, job, index),',
+     '            leg["custody"] = list(dict.fromkeys([*custody_problems(leg, prev, job, index),', ["custody_grade_fail"]),
     ("M108_grade_dir_reads_all", "        if path.stem not in names:", "        if False:", ["grade_dir_foreign_row"]),
     ("M109_chain_field_unchecked", '        if not isinstance(row, dict) or row.get("chain") != path.stem:',
      "        if not isinstance(row, dict):", ["grade_dir_foreign_row"]),
     ("M110_marker_files_ignored", '            if mark is not None and not leg.get("guard_killed"):', "            if False:",
      ["grade_dir_marker_on_disk"]),
     # V-03: the grader files are the import closure, and the data the grade reads
-    ("M111_closure_top_level_only", "    for node in _statements(ast.parse(path.read_bytes()).body):",
-     "    for node in ast.parse(path.read_bytes()).body:", ["closure_scan_planted", "closure_not_vacuous"]),
+    ("M111_closure_top_level_only", "    named: set[str] = set()\n    for node in _statements(_parse(repo, path).body):",
+     "    named: set[str] = set()\n    for node in _parse(repo, path).body:", ["closure_scan_planted", "closure_not_vacuous"]),
     ("M139_closure_skips_except_blocks", '        for name in ("body", "orelse", "finalbody", "handlers", "cases"):',
      '        for name in ("body", "orelse", "finalbody", "cases"):', ["closure_scan_planted"]),
     ("M112_closure_relative_unresolved", '            if node.level:\n                parts = package.split(".")',
@@ -3380,9 +5970,10 @@ MUTANTS = [
      'f"starter, seed or profile is not the registered job\'s are each IGNORED and named with the reason, so a registered "',
      'f"starter, seed or profile is not the registered job\'s never count, so a registered "', ["bounds_needles"]),
     # C2-02: the closure starts from the files run by path and the plugins loaded by name, through the framework's names
+    # (the third fix round: live_chain's pycache_problems now IMPORTS check_purity, so closure_starts still finds it)
     ("M146_check_purity_not_a_root",
      'PATH_ROOTS = ("ai_player/gates/check_purity.py",  # host/launcher.py run_gate: L5.PURITY_GATE\n', "PATH_ROOTS = (\n",
-     ["path_runs_are_roots", "closure_starts", "bounds_needles"]),
+     ["path_runs_are_roots", "bounds_needles"]),
     ("M147_pokebot_not_a_root", '              "sandbox-pokebot/pokebot.py")  # host/launcher.py bot_command',
      "              )  # host/launcher.py bot_command", ["path_runs_are_roots"]),
     ("M148_plugins_not_loaded",
@@ -3398,8 +5989,10 @@ MUTANTS = [
     ("M152_framework_names_unfollowed",
      '                 ("requirements", "sandbox-pokebot/requirements"), ("updater", "sandbox-pokebot/updater"))',
      "                 )", ["closure_starts", "closure_starts_planted", "closure_toplevel_names"]),
-    ("M153_module_files_unresolved", '            for path in (repo / folder / "__init__.py", repo / f"{folder}.py"):',
-     '            for path in (repo / folder / "__init__.py",):', ["closure_starts", "closure_starts_planted"]),
+    # (re-anchored in the fourth fix round: each source suffix, .py then .pyw, C4-H01)
+    ("M153_module_files_unresolved",
+     '                 *(base.parent / f"{base.name}{suffix}" for suffix in SOURCE_SUFFIXES)):', "                 ):",
+     ["closure_starts", "closure_starts_planted"]),
     ("M155_framework_files_unhashed", '                *(f"sandbox-pokebot/{name}" for name in GRADER_BOT), *GRADER_DATA)',
      "                *GRADER_DATA)", ["grader_files_cover_closure", "changed_path_run_refused", "grader_data_hashed"]),
     # C2-05: every statement body an import can sit in is scanned; the closure is enforced at registration and the run
@@ -3411,38 +6004,34 @@ MUTANTS = [
      '        for name in ("body", "orelse", "finalbody", "handlers"):', ["closure_scan_planted"]),
     ("M169_register_closure_unchecked", "    refusal = closure_refusal(missing)\n    if refusal is not None:",
      "    refusal = closure_refusal(missing)\n    if False:", ["closure_enforced_register"]),
-    ("M170_run_closure_unchecked", '    if graded and facts.get("closure_missing"):', "    if False:",
+    # (re-anchored in the fourth fix round: the closure refusal falls through when it is empty, C4-H05)
+    ("M170_run_closure_unchecked", "    if closure:\n        return closure\n", "    if False:\n        return closure\n",
      ["closure_enforced_run"]),
     ("M171_closure_unmeasured",
      '    facts["closure_missing"], facts["closure_size"], facts["closure_seconds"] = deps.closure()',
      '    facts["closure_missing"], facts["closure_size"], facts["closure_seconds"] = [], 0, 0.0', ["closure_enforced_run"]),
     ("M172_closure_refusal_silent", "    if not missing:\n        return None\n", "    if True:\n        return None\n",
      ["closure_enforced_register", "closure_enforced_run"]),
-    ("M173_closure_missing_empty",
-     "    return [rel for rel in closure if rel not in GRADER_FILES], len(closure), round(time.perf_counter() - began, 2)",
-     "    return [], len(closure), round(time.perf_counter() - began, 2)",
-     ["closure_enforced_register", "closure_enforced_run"]),
-    ("M182_closure_rule_unsaid",
-     '"and a graded run are REFUSED while that scan finds a file this list does not hash (each named). Not hashed: the "',
-     '"Not hashed: the "', ["bounds_needles"]),
+    ("M173_closure_missing_empty", '    missing = [rel for rel in scan["closure"] if rel not in GRADER_FILES]',
+     "    missing = []", ["closure_enforced_register", "closure_enforced_run"]),
+    ("M182_closure_rule_unsaid", "Registration and a graded run are REFUSED (R12) while that scan finds a ",
+     "Registration and a graded run may run while that scan finds a ", ["bounds_needles"]),
     # C2-03: custody, grade DIR and the in-run grade re-derive by the REGISTERED legs; the evidence prints the re-derived
     # reach; a kept line must still be a JSON object (the checker's C15b, C17, C18, C13)
     ("M159_stored_reach_printed", "                rederived = chain_reaches(row, len(legs))",
      "                rederived = stored", ["e2e_evidence_rederived_reach"]),
     ("M160_custody_called_discarded",
-     '            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), *custody_problems(leg, prev, job, index)]))',
+     '            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), *custody_problems(leg, prev, job, index),',
      '            leg["custody"] = list(dict.fromkeys([*(leg.get("custody") or []), '
-     '*[p for p in custody_problems(leg, prev, job, index) if False]]))', ["regrade_custody_stored_empty"]),
-    ("M161_grade_dir_without_legs",
-     '                          "optional": rep.get("optional"), "most_running": results.get("most_running")}, legs=legs)',
-     '                          "optional": rep.get("optional"), "most_running": results.get("most_running")})',
-     ["grade_dir_registered_proof"]),
+     '*[p for p in custody_problems(leg, prev, job, index) if False],', ["regrade_custody_stored_empty"]),
+    ("M161_grade_dir_without_legs", '"optional": rep.get("optional"), "most_running": source.get("most_running")}, legs=legs,',
+     '"optional": rep.get("optional"), "most_running": source.get("most_running")},', ["grade_dir_registered_proof"]),
     ("M162_run_batch_without_legs",
-     '"main_profile": main, "optional": optional, "most_running": plan["most_running"]}, legs=legs)',
-     '"main_profile": main, "optional": optional, "most_running": plan["most_running"]})',
+     '"main_profile": main, "optional": optional, "most_running": plan["most_running"]}, legs=legs,',
+     '"main_profile": main, "optional": optional, "most_running": plan["most_running"]},',
      ["e2e_row_proof_weakened_in_run"]),
-    ("M163_kept_json_unchecked", '    return None if isinstance(parsed, dict) else "its kept last line is not a JSON object"',
-     "    return None", ["kept_file_not_json"]),
+    ("M163_kept_json_unchecked", '    return None if counts is not None else f"its kept last line is not a JSON object whose five '
+                                 'counts can be read ({why})"', "    return None", ["kept_file_not_json"]),
     # C2-04: the dead launch named in LC.PURITY's and LC.THIS_RUN's lists and in the ledger verdict's own clause; the
     # rule reads the stop record; a present, unmeasured world file is no "no world file" (the checker's C64-C66, C61, C62)
     ("M164_purity_list_unnamed", '+ (f"{DEAD_LAUNCH}; " if leg.get("harness") else "") + ", ".join(wrong))',
@@ -3460,20 +6049,549 @@ MUTANTS = [
     ("M174_prediction_not_utf8_crashes", "        except (OSError, UnicodeDecodeError) as error:",
      "        except OSError as error:", ["prediction_not_utf8_refused"]),
     # C2-07: an exception after the chains still finishes the ledger entry, named ERROR, with the evidence it can write
-    ("M175_grade_error_unguarded", "        return finish_on_error(error, traceback.format_exc(), ctx)", "        raise",
+    ("M175_grade_error_unguarded", "        exit_code = finish_on_error(error, traceback.format_exc(), ctx)", "        raise",
      ["grade_error_finishes_entry", "evidence_error_finishes_entry"]),
-    ("M176_error_entry_unfinished", '    ledger.finish(ctx["entry_id"], verdict_line, reference, path=ctx["ledger_path"])',
-     "    pass", ["grade_error_finishes_entry", "evidence_error_finishes_entry"]),
-    ("M177_error_evidence_unwritten", '        evidence.write_text("\\n".join(lines) + "\\n", encoding="utf-8")',
+    ("M176_error_entry_unfinished", '    why = finish_entry(ctx["entry_id"], verdict_line, reference, Path(ctx["ledger_path"]), '
+                                    'ctx.get("sleep") or time.sleep)', '    why = "skipped"',
+     ["grade_error_finishes_entry", "evidence_error_finishes_entry"]),
+    ("M177_error_evidence_unwritten",
+     '        evidence.write_text("\\n".join(lines) + "\\n", encoding="utf-8", errors="backslashreplace")',
      "        pass", ["grade_error_finishes_entry"]),
     ("M178_error_verdict_unnamed",
-     '    return (f"ERROR (harness: {type(error).__name__}: {str(error)[:300]} while grading; no PASS or FAIL; the seeds are "'
-     '\n            f"spent)")', '    return "FAIL"', ["grade_error_finishes_entry"]),
-    ("M179_error_rule_unsaid",
-     "\"still FINISHED, as 'ERROR (harness: <type>: <message> while grading; no PASS or FAIL; the seeds are spent)', with \"",
-     "\"still finished, with \"", ["bounds_needles"]),
+     '    return (f"ERROR (harness: {type(error).__name__}: {safe_text(error) or \'no message\'} "\n'
+     '            f"{STAGES.get(stage, \'while \' + stage)}; no PASS or FAIL; the seeds are spent)")', '    return "FAIL"',
+     ["grade_error_finishes_entry"]),
+    ("M179_error_rule_unsaid", "\"results.json or the ledger, the ledger entry is still FINISHED, as 'ERROR (harness: <type>: "
+                               "<message> while \"", "\"results.json or the ledger, the ledger entry is still finished (\"",
+     ["bounds_needles"]),
     # the verifier's V02: an unread OT and an unread TID (None == None) never prove the player's own starter
     ("M180_starter_tid_unread_ok", ' \\\n        and after.get("player_tid") is not None', "", ["starter_unread_ot_and_tid"]),
+    # ------------------------------------------------------------------ the third fix round (the check's C3-*, 2026-11-05)
+    # C3-E01, C3-G05: --out and the job files before ledger.begin; R11 refuses an --out that cannot be made
+    ("M183_out_under_a_file_ok", '                if not parent.is_dir():\n',
+     "                if False:\n", ["out_listing_unmakeable"]),
+    ("M184_out_missing_drive_ok",
+     '        return {"out_error": "it cannot be created: no folder above it exists (a missing drive?)"}',
+     '        return {"out_entries": []}', ["out_listing_unmakeable"]),
+    ("M185_out_error_raw", '        raise Refusal(f"R11: --out {out} cannot be created or written',
+     '        raise\n        raise Refusal(f"R11: --out {out} cannot be created or written', ["e2e_out_unmakeable_refused"]),
+    ("M186_prepare_after_begin", *_prepare_after_begin(), ["e2e_out_unmakeable_refused", "e2e_steps_before_begin"]),
+    ("M187_out_not_undone", "    for path in sorted(made, key=lambda p: len(p.parts), reverse=True):",
+     "    for path in []:", ["e2e_out_undone_on_ledger_refusal"]),
+    ("M265_job_files_after_begin", '            made += [path, path.with_name(path.name + ".tmp")]\n            _write_json(path, data)\n',
+     '            made += [path]\n', ["e2e_steps_before_begin"]),
+    # the chains-run guard
+    ("M188_chains_unguarded",
+     '    try:\n        for line in ledger_lines:\n            print(f"[LC] {line}", flush=True)\n'
+     '        plan = schedule(jobs, spawn, tick, PARALLEL, stagger, deps.sleep, may_start, deps.poll_seconds)\n',
+     '    for line in ledger_lines:\n        print(f"[LC] {line}", flush=True)\n'
+     '    plan = schedule(jobs, spawn, tick, PARALLEL, stagger, deps.sleep, may_start, deps.poll_seconds)\n    try:\n',
+     ["chains_error_finishes_entry"]),
+    ("M189_children_not_killed", '            ctx["guard_notes"] = stop_children(handles, ctx.setdefault("interrupts", []))',
+     '            ctx["guard_notes"] = []', ["chains_error_finishes_entry"]),
+    ("M190_guard_not_base", "    except BaseException as error:  # noqa: BLE001 - (C2-07, the chains-run guard)",
+     "    except Exception as error:  # noqa: BLE001 - (C2-07, the chains-run guard)",
+     ["chains_interrupt_finishes_entry", "grading_interrupt"]),
+    ("M191_interrupt_swallowed", "            raise  # (C3-E06) a Ctrl+C still stops the process", "            pass  #",
+     ["chains_interrupt_finishes_entry", "grading_interrupt"]),
+    ("M192_no_sweep_after_kill", '                ctx["guard_notes"] += end_sweep(jobs, build_root)',
+     '                ctx["guard_notes"] += []', ["chains_error_finishes_entry"]),
+    # C3-E02: the AI's output is untrusted (M193 restores `except ValueError` in the line parse, as the check asked)
+    ("M193_world_line_value_error_only",
+     "    except Exception:  # noqa: BLE001 - (C3-E02) untrusted: a deeply nested line raises RecursionError, not ValueError",
+     "    except ValueError:", ["e2e_untrusted_world_fails_not_errors"]),
+    # (the fourth fix round: in a leg, finish_leg's own guard (C4-E01) now also catches what world_counts lets through,
+    # so this guard is told apart where nothing else catches: the grade's re-read of a kept line)
+    ("M194_world_counts_value_error_only",
+     "    except Exception as error:  # noqa: BLE001 - (C3-E02) the AI's output is untrusted: any failure is a failed line",
+     "    except ValueError as error:", ["kept_line_wrong_shape"]),
+    ("M195_world_types_unchecked", "        if wrong:\n            return None, f\"its {', '.join(wrong)} have the wrong",
+     "        if False:\n            return None, f\"its {', '.join(wrong)} have the wrong", ["world_counts_untrusted"]),
+    ("M196_tiles_type_unchecked", "        if isinstance(tiles, bool) or not isinstance(tiles, int):", "        if False:",
+     ["world_counts_untrusted"]),
+    ("M197_judged_reraises",
+     "    except Exception as error:  # noqa: BLE001 - the AI's output is untrusted: a failed read is a failed check\n",
+     "    except Exception as error:  # noqa: BLE001 - the AI's output is untrusted: a failed read is a failed check\n"
+     "        raise\n", ["chain_bad_verdict"]),
+    ("M198_memory_line_unguarded",
+     '            try:\n                out["memory"] = parse_memory_line(line)\n'
+     "            except Exception as error:  # noqa: BLE001 - (C3-E02) the AI's log is untrusted\n",
+     '            out["memory"] = parse_memory_line(line)\n            if False:\n                error = None\n',
+     ["log_untrusted"]),
+    ("M199_log_read_unguarded",
+     "    except Exception as error:  # noqa: BLE001 - (C3-E02) an unreadable log is a failed read of that leg, not a crash",
+     "    except ZeroDivisionError as error:", ["log_untrusted"]),
+    ("M200_kept_object_only", "    counts, why = world_counts(data)",
+     "    counts, why = (json.loads(data) if isinstance(json.loads(data), dict) else None), 'not an object'",
+     ["kept_line_wrong_shape"]),
+    ("M201_records_unfiltered", 'if isinstance(r, dict) and r.get("decision") == "read"]', 'if r.get("decision") == "read"]',
+     ["chain_bad_verdict"]),
+    ("M202_outcome_raw", '"outcome": untrusted_text(dig(run.verdict, "facts", "exit_reason")),',
+     '"outcome": ((run.verdict or {}).get("facts") or {}).get("exit_reason"),', ["chain_bad_verdict"]),
+    # C3-E03: the ledger write retried, and a ledger that cannot be written said, with the command that finishes it
+    ("M203_finish_not_retried", "FINISH_TRIES = 3", "FINISH_TRIES = 1", ["ledger_finish_transient_retried"]),
+    ("M204_computed_failure_ignored", "        if why is not None:\n            raise LedgerUnwritten(",
+     "        if False:\n            raise LedgerUnwritten(", ["ledger_finish_computed_unwritable", "ledger_unwritable_not_finished"]),
+    # (the fourth fix round: the guard's write is in a loop that catches a second Ctrl+C (C4-E03), so a raw write is told
+    # apart by finish_entry's own retries: error_finish_retried)
+    ("M205_error_finish_unguarded",
+     '    why = finish_entry(ctx["entry_id"], verdict_line, reference, Path(ctx["ledger_path"]), ctx.get("sleep") or time.sleep)',
+     '    why = ledger.finish(ctx["entry_id"], verdict_line, reference, path=Path(ctx["ledger_path"]))',
+     ["error_finish_retried"]),
+    ("M206_not_finished_unsaid", "f\"LEDGER: entry #{ctx['entry_id']} is NOT FINISHED (it is still 'started')",
+     "f\"LEDGER: entry #{ctx['entry_id']} FINISHED (it is still 'started')", ["ledger_unwritable_not_finished"]),
+    ("M207_unfinished_file_unwritten", '            _write_json(ctx["out"] / UNFINISHED, {"entry_id"',
+     '            (lambda *a: None)(ctx["out"] / UNFINISHED, {"entry_id"', ["ledger_unwritable_not_finished"]),
+    ("M208_finish_cli_status_unchecked",
+     '    if entry is None or entry.get("status") != "started" or [entry.get("first"), entry.get("last")] != data.get("seeds"):',
+     "    if entry is None:", ["ledger_unwritable_not_finished"]),
+    # C3-E04: the guard's breadth, the error path's own guards, a development error
+    ("M209_guard_some_types", "    except BaseException as error:  # noqa: BLE001 - (C2-07, the chains-run guard)",
+     "    except (RuntimeError, OSError) as error:  # noqa: BLE001 - (C2-07, the chains-run guard)",
+     ["grade_error_any_exception"]),
+    ("M210_error_results_unguarded",
+     "    except BaseException as third:  # noqa: BLE001 - the ledger and the evidence are the record",
+     "    except ZeroDivisionError as third:", ["results_write_error_both_paths"]),
+    ("M211_error_evidence_oserror_only",
+     "    except BaseException as second:  # noqa: BLE001 - the entry is still finished; the verdict line says the evidence "
+     "is missing", "    except OSError as second:", ["error_evidence_any_exception"]),
+    ("M212_dev_error_exits_0", "        note_interrupt(ctx, sixth)\n    return 4\n",
+     "        note_interrupt(ctx, sixth)\n    return 4 if ctx[\"graded\"] else 0\n", ["dev_error_labelled"]),
+    ("M213_dev_error_unlabelled", "{shown if graded else 'NO PASS (development: ' + shown + ')'}: live chain \"",
+     "{shown}: live chain \"", ["dev_error_labelled"]),
+    ("M214_r12_dev_too", '    closure = closure_refusal(facts.get("closure_missing") or []) if graded else None',
+     '    closure = closure_refusal(facts.get("closure_missing") or [])', ["dev_unhashed_printed"]),
+    # C3-E05: the error record beside results.json; grade DIR on an ERROR batch and its exit codes
+    ("M215_error_record_over_results", 'RESULTS_ERROR = "results.error.json"', 'RESULTS_ERROR = "results.json"',
+     ["ledger_finish_computed_unwritable"]),
+    # (re-anchored in the fourth fix round: grade DIR's exit is its worst verdict's, C4-G01..G03, C4-E06)
+    ("M216_grade_dir_exit_always_0", '    return found["exit"]', "    return 0", ["grade_dir_exit_codes"]),
+    ("M217_error_batch_unsaid",
+     # (the fifth fix round) re-anchored: the folder's ERROR mark is kept in `marks` first (C5-03)
+     '        marks["ERROR"] = f"{RESULTS_ERROR} says {error_record.get(\'verdict\')} (stage {error_record.get(\'stage\')})"',
+     "        pass", ["grade_dir_error_states"]),
+    # C3-E06: exit 5, a safe repr, the named file
+    ("M218_crash_not_exit_5", "    except Exception:  # noqa: BLE001 - (C3-E06) a crash is never the FAIL code",
+     "    except ZeroDivisionError:", ["main_crash_exit_5"]),
+    ("M219_error_text_unsafe", "{safe_text(error) or 'no message'} \"", "{str(error)[:300] or 'no message'} \"",
+     ["unprintable_error"]),
+    ("M220_parse_unnamed", "    return ast.parse(path.read_bytes(), filename=name)", "    return ast.parse(path.read_bytes())",
+     ["closure_parse_error_named"]),
+    ("M221_run_scan_error_crashes",
+     "    except Exception as error:  # noqa: BLE001 - (C3-E06) a file that does not parse is named, never a crash",
+     "    except ZeroDivisionError as error:", ["closure_parse_error_named"]),
+    ("M222_register_scan_error_crashes",
+     "    except Exception as error:  # noqa: BLE001 - (C3-E06) refused, naming the file, never a crash",
+     "    except ZeroDivisionError as error:", ["closure_parse_error_named"]),
+    # C3-E07: the ERROR evidence's marked lines, its single bounds text, the stage
+    ("M223_unfinished_unmarked",
+     '                 *([f"UNFINISHED| {line}" for line in built] or ["UNFINISHED| (nothing yet)"]), "",',
+     '                 *(built or ["(nothing yet)"]), "",', ["evidence_error_finishes_entry", "evidence_write_error_bounds_once"]),
+    ("M224_bounds_twice", "            if line == BOUNDS_HEADING:  # (C3-E07) the bounds text is printed ONCE, below\n",
+     "            if False:\n", ["evidence_write_error_bounds_once"]),
+    ("M225_stage_unnamed", '        ctx["stage"] = "evidence"', '        ctx["stage"] = "grading"',
+     ["evidence_error_finishes_entry", "evidence_write_error_bounds_once"]),
+    # C3-G01: each leg that ran names its registered job; no two counted legs share a run folder or a kept file
+    ("M226_leg_seed_unchecked", '    if env.get(ENV_SEED) != str(job.get("seed")):', "    if False:",
+     ["leg_identity_each_field", "relabelled_copy_stays_fail"]),
+    ("M227_leg_personality_unchecked", '    if env.get(ENV_PERSONALITY) != job.get("personality"):', "    if False:",
+     ["leg_identity_each_field"]),
+    ("M228_leg_profile_unchecked", "    if profile != job.get(\"profile\"):\n        problems.append(f\"{name}'s command's",
+     "    if False:\n        problems.append(f\"{name}'s command's", ["leg_identity_each_field"]),
+    ("M229_leg_arm_unchecked", "    if row.get(\"arm\") != f\"{job.get('chain')}-{name}\":", "    if False:",
+     ["leg_identity_each_field"]),
+    ("M230_leg_run_dir_unchecked",
+     '    if len(parts) < 4 or parts[-4:-1] != ["profiles", str(job.get("profile")).lower(), "ai_player_runs"]:',
+     "    if False:", ["leg_identity_each_field"]),
+    ("M231_leg_identity_off", "    problems: list[str] = leg_identity_problems(row, job)", "    problems: list[str] = []",
+     ["leg_identity_each_field", "relabelled_copy_stays_fail"]),
+    ("M232_shared_legs_off", "    shared = shared_legs(counted)", "    shared = {}", ["shared_legs_never_count"]),
+    # C3-G02, C3-G04: grade DIR's numbers verified, a missing record FAILS, a moved --out, the seal (the check's G20)
+    ("M233_numbers_ignored", '    if numbers is not None:\n        prefix = numbers.get("profile_prefix") or PROFILE_PREFIX',
+     '    if False:\n        prefix = numbers.get("profile_prefix") or PROFILE_PREFIX', ["grade_dir_numbers_verified"]),
+    ("M234_numbers_sha_unchecked", '    if sha != source.get("numbers_sha256"):', "    if False:", ["grade_dir_numbers_verified"]),
+    ("M235_ledger_unchecked", '    elif entry.get("bounds_sha256") == sha:', "    elif True:", ["grade_dir_numbers_verified"]),
+    ("M236_frozen_assumed", "    frozen = (tuple(frozen) if isinstance(frozen, list) and len(frozen) == 2 else",
+     '    frozen = ((True, "assumed") if True else', ["grade_dir_frozen_at_seal", "grade_dir_missing_records"]),
+    ("M237_leftover_missing_dropped", '        leftover = [f"the leftover-process record',
+     '        leftover = [] and [f"the leftover-process record', ["grade_dir_missing_records"]),
+    ("M238_moved_out_unread", "    if kept_root is not None and chain:", "    if False:", ["grade_dir_moved_out"]),
+    # C3-G03: each of the six identity fields (the check's G01-G03 survived)
+    ("M239_identity_no_profile", 'IDENTITY = ("chain", "pair", "personality", "starter", "seed", "profile")',
+     'IDENTITY = ("chain", "pair", "personality", "starter", "seed")', ["row_identity_each_field"]),
+    ("M240_identity_no_personality", 'IDENTITY = ("chain", "pair", "personality", "starter", "seed", "profile")',
+     'IDENTITY = ("chain", "pair", "starter", "seed", "profile")', ["row_identity_each_field"]),
+    ("M241_identity_no_pair", 'IDENTITY = ("chain", "pair", "personality", "starter", "seed", "profile")',
+     'IDENTITY = ("chain", "personality", "starter", "seed", "profile")', ["row_identity_each_field"]),
+    # C3-G06: a NOT RUN after a continuing leg, unexplained, fails custody (and an explained one does not)
+    ("M242_hidden_leg_allowed",
+     '    custody_bad += [problem for chain in chains for problem in chain.get("custody_chain") or []]',
+     "    custody_bad += []", ["not_run_after_continuing_leg"]),
+    ("M243_hidden_leg_unseen",
+     '              and not stops and not (by_salvage and str(leg.get("reason") or "").startswith(SALVAGE_REASON))):',
+     "              and False):", ["not_run_after_continuing_leg"]),
+    ("M244_stop_file_ignored",
+     '              and not stops and not (by_salvage and str(leg.get("reason") or "").startswith(SALVAGE_REASON))):',
+     '              and not (by_salvage and str(leg.get("reason") or "").startswith(SALVAGE_REASON))):',
+     ["not_run_after_continuing_leg"]),
+    # C3-H01: CPython's resolution order, files beside a closure module, a __pycache__ file loaded instead
+    ("M245_closure_old_order",
+     '    for path in (*(base / f"__init__{suffix}" for suffix in SOURCE_SUFFIXES),\n'
+     '                 *(base.parent / f"{base.name}{suffix}" for suffix in SOURCE_SUFFIXES)):',
+     '    for path in (*(base.parent / f"{base.name}{suffix}" for suffix in SOURCE_SUFFIXES),\n'
+     '                 *(base / f"__init__{suffix}" for suffix in SOURCE_SUFFIXES)):', ["closure_resolution_planted"]),
+    ("M246_resolution_unrefused",
+     '    problems = [*resolution_problems(repo, scan["modules"]), *pycache_problems(repo, scan["paths"]),',
+     '    problems = [*pycache_problems(repo, scan["paths"]),', ["resolution_enforced_register"]),
+    ("M247_resolution_blind", "    cache: dict = {}\n    problems: list[str] = []\n\n    def rel(",
+     "    return []\n    cache: dict = {}\n    problems: list[str] = []\n\n    def rel(", ["closure_resolution_planted"]),
+    ("M248_pycache_unrefused",
+     '    problems = [*resolution_problems(repo, scan["modules"]), *pycache_problems(repo, scan["paths"]),',
+     '    problems = [*resolution_problems(repo, scan["modules"]),', ["pycache_planted"]),
+    ("M249_pycache_blind", "            if problem:\n                problems.append(f\"{(cache / name)",
+     "            if False:\n                problems.append(f\"{(cache / name)", ["pycache_planted"]),
+    ("M250_bytecode_beside_ok", '(low == stem + ".pyc" or low.endswith(EXTENSION_SUFFIXES))',
+     "low.endswith(EXTENSION_SUFFIXES)", ["closure_resolution_planted"]),
+    ("M251_extension_beside_ok", '(low == stem + ".pyc" or low.endswith(EXTENSION_SUFFIXES))', '(low == stem + ".pyc")',
+     ["closure_resolution_planted"]),
+    # C3-H02: the script folders' shadows, PYTHONPATH and friends
+    ("M252_toplevel_unrefused", '                *toplevel_problems(repo, scan["tops"]), *ai_problems(repo)]',
+     "                *ai_problems(repo)]", ["toplevel_planted"]),
+    # (the fourth fix round: since C4-H03 the installed names include the standard library's folder, so only a stdlib name
+    # this platform does not install tells this rule apart: toplevel_installed_planted's pwd)
+    ("M253_stdlib_unchecked", "            elif low in stdlib:", "            elif False:", ["toplevel_installed_planted"]),
+    ("M254_namespace_flagged",
+     '            if kind == "folder" and low in stdlib:  # a namespace folder never replaces a regular (library) module\n',
+     "            if False:\n", ["toplevel_planted"]),
+    ("M255_python_env_unrefused", '    if graded and facts.get("python_env"):', "    if False:", ["python_env_refused"]),
+    ("M256_child_env_unfiltered", "    return {k: v for k, v in os.environ.items() if not python_env_refused(k)}",
+     "    return dict(os.environ)", ["python_env_refused"]),
+    ("M257_child_keeps_env", "        os.environ.pop(name, None)", "        pass", ["python_env_refused"]),
+    # C3-H03: the production Deps defaults (the check's H10, H11 survived)
+    ("M259_deps_closure_noop", "    closure: Callable[[], tuple[list[str], int, float]] = closure_missing",
+     "    closure: Callable[[], tuple[list[str], int, float]] = lambda: ([], 0, 0.0)", ["wiring_defaults"]),
+    ("M260_deps_git_clean", "    git_state: Callable[[], dict] = git_state",
+     '    git_state: Callable[[], dict] = lambda: {"head": "a", "origin": "a", "dirty": []}', ["wiring_defaults"]),
+    ("M261_deps_spawn_noop", "    spawn: Callable = spawn_child", "    spawn: Callable = lambda *a: None", ["wiring_defaults"]),
+    # C3-H04: every file named; C3-H05: the AI's framework imports start the closure
+    ("M262_refusal_first_12", "does not hash: {missing}: list an ", "does not hash: {missing[:12]}: list an ",
+     ["closure_refusal_names_all"]),
+    ("M263_ai_starts_off", "    for name in sorted(ai_framework_imports(repo)):", "    for name in []:",
+     ["closure_ai_starts_planted", "closure_scan_planted"]),
+    ("M264_ai_starts_from_evidence", '        if rel.parts[0] in ("gates", "evidence") or "__pycache__" in rel.parts:\n'
+                                     "            continue\n        for node in _statements",
+     '        if "__pycache__" in rel.parts:\n            continue\n        for node in _statements',
+     ["closure_ai_starts_planted"]),
+    # (the third fix round's finish, 2026-11-06) the full regression lane: sandbox-pokebot/mgba is exempt by name, and
+    # only in sandbox-pokebot
+    ("M266_mgba_exemption_dropped", '    ("sandbox-pokebot", "mgba"):\n', '    ("sandbox-pokebot", "mgba_dropped"):\n',
+     ["toplevel_mgba_exempt", "toplevel_planted"]),
+    ("M267_exemption_any_folder", "or (is_dir and (rel, low) in exempt):",
+     "or (is_dir and low in {name for _, name in exempt}):", ["toplevel_mgba_exempt"]),
+    ("M268_exemption_unsaid",
+     '"the git-ignored folders mgba and profiles, which are not hashed: see below), and any .py, .pyw, .pyc, extension "',
+     '"nothing more), and any .py, .pyw, .pyc, extension "', ["bounds_needles"]),
+    # ------------------------------------------------------------------ the fourth fix round (the check's C4-*, 2026-11-06)
+    # C4-E01: the AI's world.jsonl of the wrong KIND, or one the OS refuses to open, is a failed check, never the harness's
+    ("M269_world_read_unguarded",
+     "                except Exception as error:  # noqa: BLE001 - (C4-E01) the AI's file: a failed read is a failed check",
+     "                except ZeroDivisionError as error:", ["world_kind_untrusted"]),
+    ("M270_world_kind_unchecked",
+     "        if os.path.isfile(world_path):  # (C4-E01) os.path never raises; a folder named world.jsonl is no world file",
+     "        if os.path.lexists(world_path):", ["world_kind_untrusted"]),
+    ("M271_copy_unguarded",
+     "                except Exception as error:  # noqa: BLE001 - (C4-E01) a copy is a record, never the grade's input",
+     "                except ZeroDivisionError as error:", ["world_kind_untrusted"]),
+    # C4-E02: --out claimed exclusively; once claimed it holds the claim only; a refused launch removes only its own
+    ("M273_out_claim_not_exclusive", "            handle = os.open(claim, os.O_CREAT | os.O_EXCL | os.O_WRONLY)",
+     "            handle = os.open(claim, os.O_CREAT | os.O_WRONLY)", ["out_second_launch_refused"]),
+    ("M274_out_emptiness_unchecked", "        if others:\n            raise OutTaken(", "        if False:\n            raise OutTaken(",
+     ["out_written_after_listing"]),
+    ("M275_out_taken_not_undone", "    except OutTaken as error:\n        undo_out(made)\n",
+     "    except OutTaken as error:\n        pass\n", ["out_written_after_listing"]),
+    # C4-E07 (the check's N01, N02, N05): what prepare_out made, removed on every failure
+    ("M276_out_parents_not_undone",
+     "        made += sorted((p for p in (out, *out.parents) if not p.exists()), key=lambda p: len(p.parts))\n",
+     "        pass\n", ["out_undo_edges"]),
+    ("M277_prepare_failure_not_undone",
+     "    except Exception as error:  # noqa: BLE001 - any failure to make or write --out is R11's, before the ledger\n"
+     "        undo_out(made)\n",
+     "    except Exception as error:  # noqa: BLE001 - any failure to make or write --out is R11's, before the ledger\n"
+     "        pass\n", ["out_undo_edges"]),
+    ("M278_begin_raise_not_undone",
+     "        undo_out(made)  # (ledger.begin writes the ledger last and atomically: on a raise the entry was not begun)\n",
+     "        pass\n", ["out_undo_edges"]),
+    # C4-E03: a second Ctrl+C while the guard finishes (the check's N03 among them)
+    ("M279_sigint_not_ignored", "        previous = signal.signal(signal.SIGINT, signal.SIG_IGN)",
+     "        previous = signal.getsignal(signal.SIGINT)", ["guard_second_interrupt", "guard_sigint_restored"]),
+    # (the fifth check's C5-04) guard_sigint_restored installs a fresh sentinel first, so this is caught in any test order
+    ("M280_sigint_not_restored",
+     "            signal.signal(signal.SIGINT, previous if previous is not None else signal.default_int_handler)",
+     "            pass", ["guard_second_interrupt", "guard_sigint_restored"]),
+    ("M281_guard_line_unprinted", '        print(f"[LC] the harness stopped ({type(error).__name__}',
+     '        (lambda *a, **k: None)(f"[LC] the harness stopped ({type(error).__name__}', ["guard_second_interrupt"]),
+    ("M282_sweep_interrupt_escapes",
+     "                except BaseException as sweep:  # noqa: BLE001 - (C4-E03) a sweep that raises never leaves 'started'",
+     "                except Exception as sweep:  # noqa: BLE001", ["guard_second_interrupt"]),
+    ("M283_sweep_error_escapes",
+     "                except BaseException as sweep:  # noqa: BLE001 - (C4-E03) a sweep that raises never leaves 'started'",
+     "                except ZeroDivisionError as sweep:  # noqa: BLE001", ["guard_second_interrupt"]),
+    ("M284_finish_interrupt_escapes", "        except BaseException as late:  # noqa: BLE001\n            note_interrupt(ctx, late)",
+     "        except ZeroDivisionError as late:  # noqa: BLE001\n            note_interrupt(ctx, late)", ["guard_second_interrupt"]),
+    ("M285_kill_interrupt_escapes",
+     "        except BaseException as error:  # noqa: BLE001 - (C4-E03) a second Ctrl+C never stops the guard",
+     "        except Exception as error:  # noqa: BLE001 - (C4-E03) a second Ctrl+C never stops the guard",
+     ["guard_second_interrupt"]),
+    ("M286_interrupt_swallowed", '        if ctx.get("interrupts"):\n            raise KeyboardInterrupt(',
+     "        if False:\n            raise KeyboardInterrupt(", ["guard_second_interrupt"]),
+    ("M287_finished_entry_overwritten",
+     '    if ctx.get("finished") or entry_status(ctx["entry_id"], Path(ctx["ledger_path"])) == "done":', "    if False:",
+     ["guard_after_finish_keeps_verdict"]),
+    # C4-E04: text that cannot be written as UTF-8 is escaped before any write
+    ("M288_untrusted_text_raw",
+     "    return None if value is None else utf8_safe(value) if isinstance(value, str) else safe_text(value, 200)",
+     "    return value if value is None or isinstance(value, str) else safe_text(value, 200)", ["lone_surrogate_graded"]),
+    ("M289_write_json_raw", "    text = json.dumps(utf8_safe(data), ensure_ascii=False", "    text = json.dumps(data, ensure_ascii=False",
+     ["lone_surrogate_graded"]),
+    # C4-E05: finish-entry writes only this driver's own ERROR verdict, rebuilt from results.error.json
+    ("M290_finish_any_verdict", "    problems = unfinished_problems(data, record, entry, where)\n    if problems:",
+     "    problems = []\n    if problems:", ["finish_entry_only_error", "finish_entry_without_error_record"]),
+    ("M291_error_form_unchecked", "    if not ERROR_FORM.fullmatch(shown):", "    if False:", ["finish_entry_only_error"]),
+    ("M292_rebuilt_unchecked", '    if not (verdict == rebuilt or verdict.startswith(rebuilt + "; no evidence file (")):',
+     "    if False:", ["finish_entry_only_error"]),
+    ("M293_record_unchecked", "        if record.get(key) != want:", "        if False:", ["finish_entry_only_error"]),
+    # C4-G01..G03, C4-E06: grade DIR reads the ledger entry NOW and never reports better than it
+    ("M294_ledger_fail_ignored", '    if word in ("PASS", "FAIL"):\n        candidates.append(word)',
+     "    if False:\n        candidates.append(word)", ["grade_dir_never_better_than_ledger"]),
+    ("M295_ledger_error_ignored", '    elif word in ("ERROR", "ABORTED"):', "    elif False:",
+     ["grade_dir_error_states", "grade_dir_aborted_and_development"]),
+    ("M296_ledger_started_ignored", '    if word == "STARTED":', "    if False:", ["grade_dir_error_states"]),
+    ("M297_graded_unverified_passes", '(purpose == "graded" and not is_verified)', "(False)",
+     ["grade_dir_never_better_than_ledger"]),
+    ("M298_abort_file_ignored",
+     '    if (out / ABORT_FILE).is_file() or str(source.get("verdict") or "").startswith("ABORTED"):', "    if False:",
+     ["grade_dir_planted_stop_and_deleted_leg"]),
+    ("M299_purpose_always_graded", '    purpose = (entry or {}).get("purpose") or source.get("purpose") or "graded"',
+     '    purpose = "graded"', ["grade_dir_aborted_and_development"]),
+    ("M300_entry_by_id_only",
+     '    for match in (lambda e: e.get("id") == entry_id and e.get("bounds_sha256") == sha,\n'
+     '                  lambda e: e.get("bounds_sha256") == sha and e.get("status") != "registered",\n'
+     '                  lambda e: e.get("bounds_sha256") == sha, lambda e: e.get("id") == entry_id,\n'
+     '                  lambda e: e.get("status") != "registered", lambda e: True):',
+     '    for match in (lambda e: e.get("id") == entry_id,):', ["grade_dir_never_better_than_ledger"]),
+    ("M301_numbers_jobs_unchecked", "    problems += numbers_jobs_problems(numbers)", "    problems += []",
+     ["grade_dir_never_better_than_ledger"]),
+    # C4-G02: a stop file beside a clean frozen record, a row whose legs are not the registered ones
+    ("M302_stop_beside_frozen_ok", "    if frozen is not None and frozen[0] and STOP_FILE in stop_files:", "    if False:",
+     ["grade_dir_planted_stop_and_deleted_leg"]),
+    ("M303_row_legs_unchecked", '        if have != want or len(have) != len(out.get("legs") or []):', "        if False:",
+     ["grade_dir_planted_stop_and_deleted_leg"]),
+    # C4-G04: the salvage exemption reads the orchestrator's own events
+    ("M304_salvage_text_trusted", '    by_salvage = job["chain"] in set(salvaged)', "    by_salvage = True",
+     ["salvage_exemption_needs_record", "not_run_after_continuing_leg"]),
+    ("M305_in_run_salvage_unrecorded", "                             stop_files=stop_files, salvaged=salvaged)",
+     "                             stop_files=stop_files, salvaged=())", ["salvage_exemption_needs_record"]),
+    ("M306_regrade_salvage_unread", '    salvaged = salvaged_chains(source.get("events"))', "    salvaged = []",
+     ["salvage_exemption_needs_record"]),
+    # C4-G05: the check's surviving C05, C06, C08 and C03, pinned
+    ("M307_rule_after_any_ran", 'prev.get("status") == "RAN" and prev.get("continue")\n', 'prev.get("status") == "RAN"\n',
+     ["reach_5_of_6_pass"]),
+    ("M308_abort_does_not_explain", "              and not stops and not", "              and STOP_FILE not in stops and not",
+     ["not_run_after_continuing_leg", "grade_dir_aborted_and_development"]),
+    ("M309_regrade_stop_files_dropped",
+     "stop_files=[name for name in (STOP_FILE, ABORT_FILE) if (out / name).is_file()], kept_root=out,\n",
+     "stop_files=[], kept_root=out,\n", ["grade_dir_aborted_and_development"]),
+    ("M310_run_dir_any_profile_folder",
+     '    if len(parts) < 4 or parts[-4:-1] != ["profiles", str(job.get("profile")).lower(), "ai_player_runs"]:',
+     '    if len(parts) < 4 or parts[-3] != str(job.get("profile")).lower():', ["leg_identity_each_field"]),
+    # C4-H01: a .pyw, the exact homes
+    ("M311_closure_pyw_skipped", '                 *(base.parent / f"{base.name}{suffix}" for suffix in SOURCE_SUFFIXES)):',
+     '                 *(base.parent / f"{base.name}{suffix}" for suffix in (".py",))):', ["closure_pyw_planted"]),
+    ("M312_closure_init_pyw_skipped", '    for path in (*(base / f"__init__{suffix}" for suffix in SOURCE_SUFFIXES),',
+     '    for path in (*(base / f"__init__{suffix}" for suffix in (".py",)),', ["closure_pyw_planted"]),
+    ("M313_homes_any_kind",
+     "            if (rel, entry.name.lower(), is_dir) in homes or (is_dir and (rel, low) in exempt):",
+     '            if (rel, low) in {(r, n.split(".")[0]) for r, n, _ in homes} or (is_dir and (rel, low) in exempt):',
+     ["closure_pyw_planted", "toplevel_branches_planted"]),
+    ("M314_homes_any_folder",
+     "            if (rel, entry.name.lower(), is_dir) in homes or (is_dir and (rel, low) in exempt):",
+     '            if low in {n.split(".")[0] for _, n, _ in homes} or (is_dir and (rel, low) in exempt):',
+     ["toplevel_branches_planted"]),
+    ("M315_exempt_any_kind", "or (is_dir and (rel, low) in exempt):", "or ((rel, low) in exempt):",
+     ["toplevel_branches_planted"]),
+    ("M316_profiles_exempt_anywhere", "or (is_dir and (rel, low) in exempt):",
+     'or (is_dir and (rel, low) in exempt) or low == "profiles":', ["toplevel_branches_planted"]),
+    # C4-H02: every PYTHON* variable but the allow-list; names compared without case
+    ("M317_python_env_old_three", '    return upper.startswith("PYTHON") and upper not in PYTHON_ENV_ALLOWED',
+     '    return upper in ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP")', ["python_env_refused"]),
+    ("M318_python_env_allowlist_ignored", '    return upper.startswith("PYTHON") and upper not in PYTHON_ENV_ALLOWED',
+     '    return upper.startswith("PYTHON")', ["python_env_refused"]),
+    ("M319_names_with_case", "            low, is_dir = name.lower(), entry.is_dir()", "            low, is_dir = name, entry.is_dir()",
+     ["toplevel_installed_planted"]),
+    # C4-H03: the names installed outside the repository
+    ("M320_installed_ignored",
+     '            elif low in installed and (kind != "folder" or installed[low] == "folder"):', "            elif False:",
+     ["toplevel_installed_planted"]),
+    ("M321_installed_namespace_flagged",
+     '            elif low in installed and (kind != "folder" or installed[low] == "folder"):',
+     "            elif low in installed:", ["toplevel_installed_planted"]),
+    # C4-H04, C4-H06: the AI's caches and bytecode, Python code under evidence/
+    ("M322_ai_problems_off", '                *toplevel_problems(repo, scan["tops"]), *ai_problems(repo)]',
+     '                *toplevel_problems(repo, scan["tops"])]', ["ai_problems_planted"]),
+    ("M323_evidence_code_ok",
+     '                if low.endswith((*SOURCE_SUFFIXES, ".pyc")) or low.endswith(EXTENSION_SUFFIXES):', "                if False:",
+     ["ai_problems_planted"]),
+    ("M324_ai_bytecode_ok", '            elif low.endswith(".pyc"):\n                problems.append(f"{rel}: bytecode of the AI',
+     '            elif False:\n                problems.append(f"{rel}: bytecode of the AI', ["ai_problems_planted"]),
+    ("M325_ai_caches_unjudged", "    return problems + pycache_problems(repo, sources)", "    return problems",
+     ["ai_problems_planted"]),
+    # C4-H05: an empty closure check never skips the checks after it
+    ("M326_closure_none_skips_rest", "    if closure:\n        return closure\n", "    if graded:\n        return closure\n",
+     ["run_refusal_falls_through", "r9"]),
+    # C4-H07: the check's twelve surviving branches, pinned (R03, R04, R06, R07, T03, T04, T06, T07, A02, A03; its T08
+    # and T10 are M314 and M316 on the exact homes)
+    ("M327_sourceless_init_ok", 'for n in inits if not n.lower().endswith(".py")]', "for n in inits if False]",
+     ["resolution_branches_planted"]),
+    ("M328_opaque_with_case", "    stem = stem.lower()\n    found = []", "    found = []", ["resolution_branches_planted"]),
+    ("M329_cache_name_case", '            source = sources.get(match["stem"].lower()) if match else None',
+     '            source = sources.get(match["stem"]) if match else None', ["pycache_branches_planted"]),
+    ("M330_cache_opt_ignored", 'problem = _pyc_problem(cache / name, source, int(match["opt"] or 0))',
+     "problem = _pyc_problem(cache / name, source, 0)", ["pycache_branches_planted"]),
+    ("M331_pyw_not_module", '    for suffix in (*SOURCE_SUFFIXES, ".pyc"):', '    for suffix in (".py", ".pyc"):',
+     ["toplevel_branches_planted"]),
+    ("M332_pyc_not_module", '    for suffix in (*SOURCE_SUFFIXES, ".pyc"):', "    for suffix in SOURCE_SUFFIXES:",
+     ["toplevel_branches_planted"]),
+    ("M333_package_as_folder", '        return ("package" if inits else "folder"), name', '        return "folder", name',
+     ["toplevel_branches_planted"]),
+    ("M334_private_names_skipped",
+     'if kind is None or not name.isidentifier() or (name.startswith("__") and name.endswith("__")):',
+     'if kind is None or not name.isidentifier() or name.startswith("_"):', ["toplevel_branches_planted"]),
+    ("M335_ai_from_names_off",
+     '                found = [node.module, *(f"{node.module}.{alias.name}" for alias in node.names if alias.name != "*")]',
+     "                found = [node.module]", ["ai_starts_branches_planted"]),
+    ("M336_ai_pyw_off", '    for path in sorted([*root.rglob("*.py"), *root.rglob("*.pyw")]):',
+     '    for path in sorted(root.rglob("*.py")):', ["ai_starts_branches_planted"]),
+    # C4-H08: the production wiring (the check's W01, W02, W04-W07) and the rest of Deps
+    ("M337_watch_nothing", "    return watch(REPO, explicit=True)", '    return watch(REPO / "zz_nothing_here", explicit=True)',
+     ["wiring_bodies"]),
+    ("M338_deps_kill_noop", "    kill: Callable[[int], list] = kill_descendants", "    kill: Callable[[int], list] = lambda pid: []",
+     ["wiring_defaults"]),
+    ("M339_leftover_never_matches", "f\"-like '*{prefix}*' }}", "f\"-like '*{prefix}zz_never*' }}", ["wiring_bodies"]),
+    ("M340_free_always_plenty", "        return free_gb(path)", "        return 999.0", ["wiring_bodies"]),
+    ("M341_g3_scans_nothing", '    return scan(REPO, ("ai_player.gates.live_chain",))', "    return scan(REPO, ())",
+     ["wiring_bodies"]),
+    ("M342_deps_snapshot_none", "    snapshot: Callable[[], object] = snapshot", "    snapshot: Callable[[], object] = lambda: None",
+     ["wiring_defaults"]),
+    ("M343_deps_watch_other", "    watch: Callable[[], object] = watch_tree", "    watch: Callable[[], object] = lambda: None",
+     ["wiring_defaults"]),
+    ("M344_deps_code_line_other", "    code_line: Callable[[], str] = code_line", '    code_line: Callable[[], str] = lambda: "x"',
+     ["wiring_defaults"]),
+    # (the fifth fix round, 2026-11-06) C5-01: the folder's own jobs against its seeds, the entry its recorded id names
+    ("M345_own_jobs_unchecked", '        if own:\n            return None, own, f"MISMATCH (no numbers)',
+     '        if False:\n            return None, own, f"MISMATCH (no numbers)', ["grade_dir_edited_fail_folder"]),
+    ("M346_recorded_entry_unread", "    if recorded:  # (the fifth check's C5-01)", "    if False:  # (the fifth check's C5-01)",
+     ["grade_dir_edited_fail_folder"]),
+    ("M347_recorded_seeds_unchecked", '    if [named.get("first"), named.get("last")] != list(seeds):', "    if False:",
+     ["recorded_entry_rules"]),
+    ("M348_recorded_purpose_unchecked", '    if named.get("purpose") != source.get("purpose"):', "    if False:",
+     ["recorded_entry_rules", "grade_dir_edited_fail_folder"]),
+    ("M349_recorded_any_driver", '    if named is None or named.get("driver") != DRIVER:', "    if named is None:",
+     ["recorded_entry_rules"]),
+    ("M350_renumbered_not_exempt",
+     '    if ledger_path is None or (entry is not None and entry.get("id") != entry_id and entry.get("bounds_sha256") == sha):',
+     "    if ledger_path is None:", ["recorded_entry_rules"]),
+    ("M351_renumbered_without_sha", 'entry.get("id") != entry_id and entry.get("bounds_sha256") == sha):',
+     'entry.get("id") != entry_id):', ["recorded_entry_rules"]),
+    # C5-02: finish-entry rebuilds from ledger.unfinished.json's copy when results.error.json could not be written
+    ("M352_unfinished_copy_unread", '    if record is None and isinstance(data.get("error_record"), dict):', "    if False:",
+     ["finish_entry_without_error_record"]),
+    ("M353_unfinished_copy_unwritten", '"error_record": {key: record[key] for key in REBUILD_KEYS}})', '"error_record": None})',
+     ["finish_entry_without_error_record"]),
+    # C5-03: a folder mark beside a finished PASS or FAIL is a contradiction, graded FAIL
+    ("M354_contradiction_never", 'if word in ("PASS", "FAIL") and marks else "")', 'if False else "")',
+     ["grade_dir_contradiction", "grade_dir_planted_stop_and_deleted_leg"]),
+    ("M355_contradiction_passes", '    if contradiction:\n        candidates.append("FAIL")',
+     '    if False:\n        candidates.append("FAIL")', ["grade_dir_contradiction", "grade_dir_planted_stop_and_deleted_leg"]),
+    ("M356_contradicted_error_reported", '    if "ERROR" in marks and not contradiction:', '    if "ERROR" in marks:',
+     ["grade_dir_contradiction"]),
+    ("M357_contradicted_abort_reported", '    if "ABORTED" in marks and not contradiction:', '    if "ABORTED" in marks:',
+     ["grade_dir_contradiction"]),
+    # C5-05: an entry never begun, or with a verdict this driver never writes, never gives PASS (M358 is check 5's MY02)
+    ("M358_registered_entry_passes",
+     '    if final == "PASS" and (word in ("REGISTERED", "UNREADABLE") or (purpose == "graded" and not is_verified)):',
+     '    if final == "PASS" and (word in () or (purpose == "graded" and not is_verified)):',
+     ["grade_dir_entry_unbegun_or_unreadable"]),
+    ("M359_unreadable_entry_passes", 'word in ("REGISTERED", "UNREADABLE") or', 'word in ("REGISTERED",) or',
+     ["grade_dir_entry_unbegun_or_unreadable"]),
+    # (the sixth fix round, 2026-11-06) C6-01: the entry looked up by the seeds the rows bind, the seed rules type-strict
+    ("M360_lookup_by_recorded_seeds",
+     '    seeds = bound or seed_pair((raw.get("seeds") if isinstance(raw, dict) else None) or source.get("seeds")) or []',
+     '    seeds = list((raw.get("seeds") if isinstance(raw, dict) else None) or source.get("seeds") or [])',
+     ["grade_dir_edited_fail_folder"]),
+    ("M361_seed_pair_coerced", "    pair = [seed for seed in value if type(seed) is int]", "    pair = [int(seed) for seed in value]",
+     ["grade_dir_edited_fail_folder", "seed_rules"]),
+    ("M362_job_seeds_coerced", "    strict = [seed for seed in seeds if type(seed) is int]",
+     "    strict = [int(seed) for seed in seeds]", ["seed_rules"]),
+    ("M363_jobs_not_contiguous", "    if sorted(strict) != list(range(min(strict), max(strict) + 1)):", "    if False:",
+     ["seed_rules"]),
+    ("M364_batch_seeds_by_value",
+     '    if seed_pair(source.get("seeds")) is None or source.get("seeds") != seeds:  # (C6-01)',
+     '    if source.get("seeds") != seeds:  # (C6-01)', ["grade_dir_edited_fail_folder"]),
+    ("M365_seeds_type_unchecked", "    if given is None:\n        problems.append(", "    if False:\n        problems.append(",
+     ["grade_dir_edited_fail_folder", "seed_rules"]),
+    # C6-02: a live_chain entry whose seeds never meet the folder's is another batch's, no MISMATCH
+    ("M366_other_batch_mismatched",
+     "    if len(seeds) == 2 and type(first) is int and type(last) is int and (last < seeds[0] or first > seeds[1]):",
+     "    if False:", ["grade_dir_other_live_chain_entry", "recorded_entry_rules"]),
+    ("M367_every_batch_ignored",
+     "    if len(seeds) == 2 and type(first) is int and type(last) is int and (last < seeds[0] or first > seeds[1]):",
+     "    if True:", ["recorded_entry_rules", "grade_dir_edited_fail_folder"]),
+    ("M368_touching_low_ignored", "(last < seeds[0] or first > seeds[1])", "(last <= seeds[0] or first > seeds[1])",
+     ["recorded_entry_rules"]),
+    ("M369_touching_high_ignored", "(last < seeds[0] or first > seeds[1])", "(last < seeds[0] or first >= seeds[1])",
+     ["recorded_entry_rules"]),
+    # C6-03: the renumbered-ledger exemption cut at regrade_dir's call site (check 6's MZ2)
+    ("M370_recorded_without_entry", "recorded = recorded_problems(ledger_path, source, seeds, sha, entry, ",
+     "recorded = recorded_problems(ledger_path, source, seeds, sha, None, ", ["grade_dir_other_live_chain_entry"]),
+    # C6-04: a contradiction said for an honest ERROR, ABORTED or STARTED batch (check 6's MZ1); the verdict line's
+    # reason unsaid (its MZ3)
+    ("M371_contradiction_any_word", 'if word in ("PASS", "FAIL") and marks else "")',
+     'if word in ("PASS", "FAIL", "ERROR", "ABORTED", "STARTED") and marks else "")',
+     ["grade_dir_error_states", "grade_dir_aborted_and_development"]),
+    ("M372_contradiction_reason_unsaid",
+     'why_not = "the folder contradicts its finished ledger entry" if contradiction else ""', 'why_not = ""',
+     ["grade_dir_contradiction"]),
+    # (the seventh fix round, 2026-11-06) C7-01: with no entry for exactly the folder's range, the one whose seeds MEET it
+    ('M373_meet_lookup_off', 'and e["first"] <= seeds[1] and seeds[0] <= e["last"]])', "and False])",
+     ["grade_dir_subset_folder", "find_entry_meets"]),
+    ("M374_meet_low_edge", 'and e["first"] <= seeds[1] and', 'and e["first"] < seeds[1] and', ["find_entry_meets"]),
+    ("M375_meet_high_edge", 'and seeds[0] <= e["last"]])', 'and seeds[0] < e["last"]])',
+     ["find_entry_meets", "grade_dir_subset_folder"]),
+    ("M376_meet_before_exact", '    entries = ([e for e in live if [e.get("first"), e.get("last")] == list(seeds)]',
+     "    entries = ([e for e in live if False]", ["find_entry_meets"]),
+    ("M377_meet_types_unchecked",
+     '               or [e for e in live if type(e.get("first")) is int and type(e.get("last")) is int\n',
+     "               or [e for e in live if True\n", ["find_entry_meets"]),
+    ("M378_meet_mismatch_unsaid", "    if entry is not None and not exact:  # (the seventh check's C7-01)",
+     "    if False:  # (the seventh check's C7-01)", ["grade_dir_subset_folder"]),
+    # the LEDGER line says only what matched (round 6's own note)
+    ("M379_ledger_line_says_sha",
+     '+ (" and bounds sha256" if entry.get("bounds_sha256") == sha else ", not its bounds sha256"))',
+     '+ " and bounds sha256")', ["grade_dir_edited_fail_folder"]),
+    ("M380_ledger_line_says_exact", '("its seeds" if exact else f"seeds that meet the folder\'s {list(seeds)}")',
+     '"its seeds"', ["grade_dir_subset_folder"]),
+    # C7-03: check 7's MX1 to MX4, each surviving round 6's tests
+    ("M381_bound_from_results_jobs",
+     '    bound, bound_why = job_seed_range(raw.get("jobs") if isinstance(raw, dict) else source.get("jobs"))',
+     '    bound, bound_why = job_seed_range(source.get("jobs"))', ["grade_dir_edited_fail_folder"]),
+    ("M382_jobs_repeat_allowed", "    if sorted(strict) != list(range(min(strict), max(strict) + 1)):",
+     "    if sorted(set(strict)) != list(range(min(strict), max(strict) + 1)):", ["seed_rules"]),
+    ("M383_jobs_range_first_seed_only",
+     '    elif given is not None and (span != given or numbers.get("chains") != len(named)):',
+     '    elif given is not None and (span[0] != given[0] or numbers.get("chains") != len(named)):', ["seed_rules"]),
+    ("M384_never_meet_unguarded",
+     "    if len(seeds) == 2 and type(first) is int and type(last) is int and (last < seeds[0] or first > seeds[1]):",
+     "    if type(first) is int and type(last) is int and (last < seeds[0] or first > seeds[1]):", ["seed_rules"]),
 ]
 
 
