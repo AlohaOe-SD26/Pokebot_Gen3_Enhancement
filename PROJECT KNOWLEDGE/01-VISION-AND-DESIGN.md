@@ -462,6 +462,7 @@ it.
   - **Rule:** the ledger is the record. A graded batch is registered with its seeds and numbers before it runs, a miss is never re-run, and re-grading a result folder is never better than the ledger. It refuses before the ledger on a bad `--out` folder or a contaminated tree. It guards against honest harness defects, accidental contamination and later edits of a result folder, not against code written to switch the grader off from inside its own process (the purity gate's job; `06` 2026-11-06). It deletes each chain's `world.jsonl` after measuring it (KI-130's disk risk).
 
 ### Still future
+- **The AI player prepares for a boss (USER RULING 58, a design ruling, NOT built):** against a gym leader, a boss or the Elite Four, the AI may train the whole team, bring a counter, or fight smarter (switching, items), alone or together. A counter is judged by what its typing RESISTS and by what its MOVES hit super-effectively (USER RULING 33). It plans from the static knowledge of the boss's team (USER RULING 40).
 - Further custom features as the punch list dictates; each gets a section here when built.
 
 ## Design principles & style

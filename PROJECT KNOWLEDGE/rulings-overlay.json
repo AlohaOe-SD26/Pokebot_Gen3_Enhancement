@@ -530,6 +530,17 @@
    "reason": "06 2026-11-06 \"The graded chain driver\": \"Do not reopen: an in-process defense against code written to disable the grader (that is the purity gate's and R9's job); `grade DIR` trusting results.json over the ledger.\"",
    "status": "ACTIVE",
    "topics": "live_chain graded New Game chain driver threat model grade DIR ledger refusal exit codes stopping rule checks purity R9 C4-H05 C6-02 C7-02 mgba closure"
+  },
+  "2026-11-07-08dac8": {
+   "title": "2026-11-07 — USER RULING 58: against a boss the party loses to, all three plans are viable (train the whole team, bring a counter, fight smarter) for BRAWLY and every gym leader, boss and the Elite Four; a counter is judged by its typing's RESISTANCES and by its MOVES' type advantages (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "7dc65651": "marker"
+   },
+   "ruling_key": "58@2026-11-07",
+   "do_not_reopen": "Do not re-ask what a seasoned player does against a boss the party loses to: all three (train the whole team; a counter judged by its resistances AND its moves' type advantages; smarter fights) are viable for every gym leader, boss and the Elite Four (2026-11-07).",
+   "reason": "06 USER RULING 58: \"All 3 are viable for the Brawly fight and all gym leaders, bosses and elite 4 for that matter. Keep in mind pokemon types are good for resistances but type advantages in moves need to be considered as well\"",
+   "status": "ACTIVE",
+   "topics": "boss gym leader Elite Four BRAWLY P4-1 lose losses preparation train team counter type advantage resistance move types switch potions items battle strategy"
   }
  }
 }
