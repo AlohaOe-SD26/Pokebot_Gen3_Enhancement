@@ -4522,13 +4522,18 @@ def case_grade_dir_error_states(M, tmp):
     results.error.json: (a) a batch whose ERROR was written to the ledger exits 4 with results.error.json removed; (b) a
     batch whose ledger could not be written (entry 'started') exits 4, says the entry is NOT finished, and exits 4 with
     results.error.json removed (an entry still 'started' has no verdict); after finish-entry its line says the entry IS
-    finished (read now, not the stale ledger_finished); (c) with no ledger given, results.error.json alone exits 4."""
+    finished (read now, not the stale ledger_finished); (c) with no ledger given, results.error.json alone exits 4. (The
+    sixth check's C6-04) in (a) with results.error.json beside its ERROR entry, in (b) beside its 'started' entry and
+    after finish-entry, no contradiction is said (`no_contradiction`)."""
     rig = graded_rig(M, tmp / "error")
     real = ledger.finish
     with mock.patch.object(ledger, "finish", lambda i, v, e, path=ledger.LEDGER: (
             real(i, v, e, path=path) if "ERROR (harness:" in v else (_ for _ in ()).throw(OSError("held")))):
         guarded_run(rig)
     ok(rig.entry()["verdict"].startswith("GRADED, ERROR (harness:"), rig.entry()["verdict"][:200])
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 4 and "this batch ended in ERROR" in text, f"(a) the entry's ERROR, with the file: {text[-500:]}")
+    no_contradiction(M, rig.out, rig.ledger, text, "(a) the entry's ERROR beside results.error.json")
     (rig.out / M.RESULTS_ERROR).unlink()
     code, text = grade_dir_out(M, rig.out, rig.ledger)
     ok(code == 4 and "this batch ended in ERROR" in text, f"(a) the entry's ERROR, without the file: {text[-500:]}")
@@ -4538,6 +4543,7 @@ def case_grade_dir_error_states(M, tmp):
     eq(rig.entry()["status"], "started", "the ledger could not be written")
     code, text = grade_dir_out(M, rig.out, rig.ledger)
     ok(code == 4 and "NOT finished (it is 'started')" in text, f"(b) {text[-500:]}")
+    no_contradiction(M, rig.out, rig.ledger, text, "(b) the entry 'started' beside results.error.json")
     record = rig.out / M.RESULTS_ERROR
     saved = record.read_bytes()
     record.unlink()
@@ -4549,6 +4555,14 @@ def case_grade_dir_error_states(M, tmp):
         eq(M.main(["finish-entry", str(rig.out), "--ledger", str(rig.ledger)]), 0, "finish-entry")
     code, text = grade_dir_out(M, rig.out, rig.ledger)
     ok(code == 4 and "its ledger entry is finished (read now)" in text, f"(b) read NOW after finish-entry: {text[-500:]}")
+    no_contradiction(M, rig.out, rig.ledger, text, "(b) after finish-entry")
+
+
+def no_contradiction(M, out: Path, ledger_path, text: str, label: str) -> None:
+    """(The sixth check's C6-04, its mutant MZ1) an HONEST ERROR, ABORTED or STARTED batch is never said to contradict
+    its ledger entry: not in grade DIR's output, not in regrade_dir's "contradiction"."""
+    ok("CONTRADICTS" not in text, f"{label}: a contradiction said: {text[-600:]}")
+    eq(M.regrade_dir(out, ledger_path)["contradiction"], "", f"{label}: regrade_dir's contradiction")
 
 
 def case_grade_dir_planted_stop_and_deleted_leg(M, tmp):
@@ -4601,7 +4615,8 @@ def case_grade_dir_aborted_and_development(M, tmp):
     ABORTED and exits 3, never PASS; its rows' re-grade is the in-run one (LC.CUSTODY PASS: ABORT.txt explains the legs
     it stopped); with ABORT.txt removed and results.json saying PASS, the ledger entry still says ABORTED (exit 3). A
     development batch re-grades labelled DEVELOPMENT, not graded (exit 0 for its PASS); a development batch that ended in
-    ERROR exits 4."""
+    ERROR exits 4. (The sixth check's C6-04) the honest ABORTED batch and the development ERROR batch are said to
+    contradict nothing (`no_contradiction`)."""
     jobs = LC.jobs_of(6201, 6)
     rig = graded_rig(M, tmp / "aborted", plans={jobs[5]["chain"]: {"L4": {"write_abort": True}}})
     code, text = guarded_run(rig)
@@ -4610,6 +4625,7 @@ def case_grade_dir_aborted_and_development(M, tmp):
     code, text = grade_dir_out(M, rig.out, rig.ledger)
     ok(code == 3 and "this batch was ABORTED by the harness" in text and "GRADE DIR VERDICT: GRADED: ABORTED" in text,
        f"grade DIR: {text[-500:]}")
+    no_contradiction(M, rig.out, rig.ledger, text, "an honest ABORTED batch (ABORT.txt, its entry ABORTED)")
     regraded = {c.id: c.status for c in M.regrade_dir(rig.out, rig.ledger)["checks"]}
     eq((in_run["LC.CUSTODY"], regraded["LC.CUSTODY"]), ("PASS", "PASS"),
        "the re-grade's custody is the in-run one: ABORT.txt explains the legs it stopped")
@@ -4625,6 +4641,7 @@ def case_grade_dir_aborted_and_development(M, tmp):
         eq(guarded_run(dev, args)[0], 4, "a development batch that ended in ERROR")
     code, text = grade_dir_out(M, dev.out, dev.ledger)
     ok(code == 4 and "GRADE DIR VERDICT: DEVELOPMENT, not graded: ERROR" in text, f"{text[-400:]}")
+    no_contradiction(M, dev.out, dev.ledger, text, "an honest development ERROR batch")
 
 
 def case_salvage_exemption_needs_record(M, tmp):
@@ -4859,10 +4876,17 @@ def case_grade_dir_edited_fail_folder(M, tmp):
     """(The fifth check's C5-01, its DR) grade DIR never exits 0 for an EDITED graded FAIL folder (two L5 misses; the
     ledger says 'GRADED, FAIL'): (1) the check's own ATTACK, four edits to results.json (its numbers deleted, its seeds
     moved to 9001-9006, which no entry names, reach_min 0, its purpose relabelled 'development'): MISMATCH by its own jobs
-    and by the entry its recorded id names, exit 1 (it exited 0); (2) the same with the recorded ledger id removed too: the
-    folder's own jobs (LC-*-6201..6206) are not one per seed of 9001-9006, MISMATCH, exit 1; (3) its seeds and numbers
+    and by the entry its recorded id names, exit 1 (it exited 0); (the sixth check's C6-01) its entry is found by the
+    seeds its jobs bind, so the verdict is the ledger's GRADED: FAIL; (2) the same with the recorded ledger id removed too:
+    the folder's own jobs (LC-*-6201..6206) are not one per seed of 9001-9006, MISMATCH, exit 1; (3) its seeds and numbers
     kept, only the purpose relabelled: the entry its recorded id names (its own) is graded: MISMATCH, and on an honest
-    PASS folder relabelled the same way, exit 1, never 0. CONTROLS: both folders as written (exit 1, exit 0); an honest
+    PASS folder relabelled the same way, exit 1, never 0. (The sixth check's C6-01, its SEEDSTR) (4) five edits: the
+    seeds written as STRINGS ["6201", "6206"], the recorded id one no entry has, the numbers deleted, the purpose
+    'development', reach_min 0: MISMATCH (not two int seeds), the entry found by the jobs' int seeds, GRADED: FAIL, exit 1
+    (it exited 0); (5) the same with the numbers KEPT (their seeds strings too, reach_min 0, numbers_sha256 recomputed):
+    MISMATCH, GRADED: FAIL, exit 1 (it exited 0); (6) the honest PASS folder's results.json seeds written as FLOATS
+    [6201.0, 6206.0] beside int numbers: MISMATCH (never equal by value only), exit 1. CONTROLS: both folders as written
+    (exit 1, exit 0); (4)'s edits with INT seeds: no MISMATCH from the seeds, the ledger's GRADED: FAIL, exit 1; an honest
     DEVELOPMENT folder with its numbers deleted (its jobs are its seeds'), graded against its ledger and against one with
     no entry for it (as the real R2 is), still exits 0, labelled development."""
     jobs = LC.jobs_of(6201, 6)
@@ -4877,7 +4901,8 @@ def case_grade_dir_edited_fail_folder(M, tmp):
     write_results(rig, attack)
     code, text = grade_dir_out(M, rig.out, rig.ledger)
     ok(code == 1 and "NUMBERS: MISMATCH" in text and "jobs ['LC-S-6201'" in text and "not one per seed of 9001-9006" in text
-       and "names ledger entry #1, a live_chain entry for seeds [6201, 6206], not the folder's [9001, 9006]" in text,
+       and "names ledger entry #1, whose purpose is 'graded', not the folder's 'development'" in text
+       and "LEDGER (read now): entry #1, graded" in text and "GRADE DIR VERDICT: GRADED: FAIL; exit 1" in text,
        f"(1) the check's ATTACK: {text[-1200:]}")
     write_results(rig, {key: value for key, value in attack.items() if key != "ledger"})
     code, text = grade_dir_out(M, rig.out, rig.ledger)
@@ -4887,6 +4912,26 @@ def case_grade_dir_edited_fail_folder(M, tmp):
     found = M.regrade_dir(rig.out, rig.ledger)
     ok(found["numbers"].startswith("MISMATCH") and "whose purpose is 'graded', not the folder's 'development'" in
        found["numbers"] and found["exit"] == 1, f"(3) the purpose relabelled: {found['numbers']}")
+    # (the sixth check's C6-01, its SEEDSTR) the seeds written as strings, the recorded id one no entry has
+    edits = {"ledger": 99999, "purpose": "development", "reach_min": 0}  # (MISMATCH re-grades FAIL: no suffix then)
+    met = "LEDGER (read now): entry #1 (results.json names #99999"  # its own entry, found by the seeds its jobs bind
+    no_numbers = {key: value for key, value in original.items() if key != "numbers"}
+    write_results(rig, {**no_numbers, **edits, "seeds": [6201, 6206]})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "MISMATCH" not in text and met in text and "GRADE DIR VERDICT: GRADED: FAIL" in text,
+       f"CONTROL: (4)'s edits with int seeds: {text[-700:]}")
+    write_results(rig, {**no_numbers, **edits, "seeds": ["6201", "6206"]})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH (no numbers)" in text and "own seeds ['6201', '6206'] are not two int seeds" in text
+       and met in text and "GRADE DIR VERDICT: GRADED: FAIL; exit 1" in text,
+       f"(4) SEEDSTR, the numbers deleted: {text[-900:]}")
+    numbers_of = {**original["numbers"], "seeds": ["6201", "6206"], "reach_min": 0}
+    write_results(rig, {**original, **edits, "numbers": numbers_of, "numbers_sha256": ledger.numbers_sha256(numbers_of),
+                        "seeds": ["6201", "6206"]})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH" in text and "the numbers' seeds ['6201', '6206'] are not two int seeds" in text
+       and met in text and "GRADE DIR VERDICT: GRADED: FAIL; exit 1" in text, f"(5) SEEDSTR, the numbers kept: {text[-900:]}")
+    eq(rig.entry()["verdict"][:len("GRADED, FAIL")], "GRADED, FAIL", "the ledger still says FAIL")
     rig = graded_rig(M, tmp / "pass")
     guarded_run(rig)
     original = results_of(rig)
@@ -4895,6 +4940,12 @@ def case_grade_dir_edited_fail_folder(M, tmp):
     code, text = grade_dir_out(M, rig.out, rig.ledger)
     ok(code == 1 and "GRADE DIR VERDICT: GRADED: FAIL" in text and "whose purpose is 'graded'" in text,
        f"(3) a PASS folder relabelled development: {text[-600:]}")
+    write_results(rig, {**original, "seeds": [6201.0, 6206.0]})
+    code, text = grade_dir_out(M, rig.out, rig.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH" in text
+       and "the batch's seeds [6201.0, 6206.0] are not two int seeds equal to the numbers' [6201, 6206]" in text,
+       f"(6) the PASS folder's seeds written as floats: {text[-700:]}")
+    write_results(rig, original)
     dev, args = dev_rig(M, tmp / "dev")
     eq(guarded_run(dev, args)[0], 0, "a development batch ran")
     write_results(dev, {key: value for key, value in results_of(dev).items() if key != "numbers"})
@@ -4910,32 +4961,52 @@ def case_grade_dir_edited_fail_folder(M, tmp):
 
 def case_recorded_entry_rules(M, tmp):
     """(C5-01) `recorded_problems`, rule by rule, on a planted ledger (#1 the folder's own graded entry, #2 an entry of
-    another driver as the real R0's recorded #86 is after the merge, #3 another live_chain batch). FAULTS: the recorded id
-    names a live_chain entry for other seeds (only the seeds are named); the folder's own entry with another purpose (only
-    the purpose); another batch's id while the folder's seeds' entry was met WITHOUT its bounds sha256. CONTROLS (no
+    another driver as the real R0's recorded #86 is after the merge, its seeds meeting the folder's, #3 another
+    live_chain batch whose seeds MEET the folder's, as only a merged ledger holds; (the sixth check's C6-02) #4 another
+    live_chain batch whose seeds never meet the folder's, as the next registration is to R2's recorded #100; #5-#8 its
+    neighbours: 6195-6201 and 6206-6210 touch the folder's 6201-6206 at one seed, 6195-6200 and 6207-6210 do not).
+    FAULTS: the recorded id names a live_chain entry whose seeds meet the folder's and differ (only the seeds are named:
+    #1 for a folder of 6201-6203; #5 and #6, each touching at one seed); the folder's own entry with another purpose (only
+    the purpose); another batch's id (#3) while the folder's seeds' entry was met WITHOUT its bounds sha256. CONTROLS (no
     problem): its own entry; an id of no entry; an entry of another driver; another batch's id explained by the folder's
-    entry met by its seeds AND bounds sha256 under another id (a renumbered ledger); no ledger given."""
+    entry met by its seeds AND bounds sha256 under another id (a renumbered ledger); (C6-02) a live_chain entry whose
+    seeds never meet the folder's (#4, #7, #8, and #1 for a folder of 9001-9006), with or without the folder's own entry;
+    no ledger given."""
     path = tmp / "ledger.json"
     own = {"id": 1, "driver": M.DRIVER, "first": 6201, "last": 6206, "purpose": "graded", "status": "done",
            "bounds_sha256": "a" * 64, "verdict": "GRADED, FAIL (failing: LC.REACH): planted"}
+
+    def other(entry_id: int, first: int, last: int) -> dict:
+        return {"id": entry_id, "driver": M.DRIVER, "first": first, "last": last, "purpose": "graded", "status": "done",
+                "bounds_sha256": "b" * 64}
     path.write_text(json.dumps({"what": "t", "entries": [
         own, {"id": 2, "driver": "ch5stops_smoke", "first": 6001, "last": 6001, "purpose": "development", "status": "done"},
-        {"id": 3, "driver": M.DRIVER, "first": 7001, "last": 7006, "purpose": "graded", "status": "done",
-         "bounds_sha256": "b" * 64}]}), encoding="utf-8")
+        other(3, 6204, 6209), {**other(4, 7001, 7006), "status": "registered"}, other(5, 6195, 6201), other(6, 6206, 6210),
+        other(7, 6195, 6200), other(8, 6207, 6210)]}), encoding="utf-8")
 
     def problems(entry_id, seeds, purpose, entry=None, sha="a" * 64, ledger_path=path) -> list[str]:
         return M.recorded_problems(ledger_path, {"ledger": entry_id, "seeds": seeds, "purpose": purpose}, seeds, sha, entry)
     eq(problems(1, [6201, 6206], "graded", own), [], "CONTROL: its own entry")
     found = problems(1, [6201, 6206], "development", own)
     ok(len(found) == 1 and "whose purpose is 'graded', not the folder's 'development'" in found[0], found)
-    found = problems(1, [9001, 9006], "graded")
-    ok(len(found) == 1 and "for seeds [6201, 6206], not the folder's [9001, 9006]" in found[0], found)
+    found = problems(1, [6201, 6203], "graded")
+    ok(len(found) == 1 and "for seeds [6201, 6206], not the folder's [6201, 6203]" in found[0], found)
     eq(problems(99, [9001, 9006], "graded"), [], "CONTROL: an id of no entry")
-    eq(problems(2, [6050, 6052], "development"), [], "CONTROL: an entry of another driver (a renumbered ledger)")
+    eq(problems(2, [6001, 6003], "development"), [], "CONTROL: an entry of another driver (a renumbered ledger)")
     eq(problems(3, [6201, 6206], "graded", own), [], "CONTROL: the folder's entry met by its seeds and bounds sha256")
     found = problems(3, [6201, 6206], "graded", own, sha="c" * 64)
-    ok(len(found) == 1 and "#3, a live_chain entry for seeds [7001, 7006]" in found[0], f"no sha256 to explain it: {found}")
-    eq(problems(1, [9001, 9006], "development", ledger_path=None), [], "CONTROL: no ledger given")
+    ok(len(found) == 1 and "#3, a live_chain entry for seeds [6204, 6209]" in found[0], f"no sha256 to explain it: {found}")
+    eq(problems(1, [6201, 6206], "development", ledger_path=None), [], "CONTROL: no ledger given")
+    # (the sixth check's C6-02) another live_chain batch's entry: its seeds never meet the folder's
+    eq(problems(1, [9001, 9006], "development"), [], "CONTROL: #1's seeds never meet the folder's 9001-9006")
+    eq(problems(4, [6201, 6206], "development"), [], "CONTROL: #4 (7001-7006), the folder's own entry absent")
+    eq(problems(4, [6201, 6206], "graded", own, sha="c" * 64), [], "CONTROL: #4, the folder's entry met without its sha256")
+    for entry_id, span in ((7, [6195, 6200]), (8, [6207, 6210])):
+        eq(problems(entry_id, [6201, 6206], "graded"), [], f"CONTROL: #{entry_id} ({span}) never meets 6201-6206")
+    for entry_id, span in ((5, [6195, 6201]), (6, [6206, 6210])):
+        found = problems(entry_id, [6201, 6206], "graded")
+        ok(len(found) == 1 and f"#{entry_id}, a live_chain entry for seeds {span}, not the folder's [6201, 6206]" in found[0],
+           f"#{entry_id} touches the folder's seeds at one seed: {found}")
 
 
 # ---------------------------------------------------------------------------------------------------- C5-02
@@ -4989,7 +5060,8 @@ def case_grade_dir_contradiction(M, tmp):
     1, never ABORTED (3) or ERROR (4): on a FAIL batch, an ABORT.txt planted, a results.error.json planted, results.json's
     verdict edited to ABORTED; on a PASS batch, an ABORT.txt planted (exit 1, never 0 or 3). CONTROLS: the FAIL batch as
     written (no contradiction said); an honest ABORTED and an honest ERROR batch, whose entries say so, are no
-    contradiction (grade_dir_aborted_and_development, grade_dir_error_states)."""
+    contradiction (grade_dir_aborted_and_development, grade_dir_error_states: `no_contradiction`). (The sixth check's
+    C6-04, its mutant MZ3) the verdict line says why: 'GRADED: FAIL (the folder contradicts its finished ledger entry)'."""
     jobs = LC.jobs_of(6201, 6)
     rig = graded_rig(M, tmp / "fail", plans={jobs[0]["chain"]: {"L5": {"miss": True}}, jobs[3]["chain"]: {"L5": {"miss": True}}})
     guarded_run(rig)
@@ -5001,6 +5073,8 @@ def case_grade_dir_contradiction(M, tmp):
         code, text = grade_dir_out(M, out, ledger_path)
         ok(code == 1 and "THE FOLDER CONTRADICTS ITS LEDGER ENTRY" in text and "GRADED: FAIL" in text
            and "this batch was ABORTED" not in text and "this batch ended in ERROR" not in text, f"{label}: {text[-700:]}")
+        ok("GRADE DIR VERDICT: GRADED: FAIL (the folder contradicts its finished ledger entry)" in text,
+           f"{label}: the verdict line says why: {text[-300:]}")
     (rig.out / M.ABORT_FILE).write_text("", encoding="utf-8")
     contradicted("FAIL + ABORT.txt", rig.out, rig.ledger)
     (rig.out / M.ABORT_FILE).unlink()
@@ -5072,6 +5146,105 @@ def case_grade_dir_entry_unbegun_or_unreadable(M, tmp):
     code, text = grade_dir_out(M, rig.out, unreadable)
     ok(code == 1 and "GRADED: UNVERIFIED (its ledger entry has a verdict this driver never writes)" in text,
        f"UNREADABLE: {text[-400:]}")
+
+
+# ---------------------------------------------------------------------------------------------------- the sixth check
+def case_grade_dir_other_live_chain_entry(M, tmp):
+    """(The sixth check's C6-02, its R2NEXT and OTHERLEDGER; C6-03, its probe6b and mutant MZ2) an HONEST development
+    batch (seeds 6041-6043; its results.json names #1, its own entry) graded against a ledger that is not the one it ran
+    with never re-grades FAIL. FAULTS, each exit 0, PASS, no MISMATCH (round 5 gave exit 1): (C6-02) its own entry absent
+    and the id it records naming ANOTHER live_chain batch whose seeds never meet its own (a graded registration of
+    6201-6206, as the next entry is to the real R2's recorded #100; a development batch begun on 6301-6303), with its
+    numbers kept and deleted (R2 has none); (C6-03) a MERGED ledger: its own entry renumbered #2 (the same seeds and
+    bounds sha256) and #1 another live_chain batch, whose seeds MEET its own (6043-6045: only the renumbered exemption
+    clears it) or never meet them (7001-7003): its entry #2 is found, the recorded #1 is no mismatch. CONTROLS: its own
+    ledger (exit 0); the recorded id naming another driver's entry (exit 0); an empty ledger (exit 0); and a live_chain
+    entry whose seeds MEET its own and differ, with its own entry absent: MISMATCH, exit 1."""
+    dev, args = dev_rig(M, tmp / "dev")
+    eq(guarded_run(dev, args)[0], 0, "a development batch ran")
+    own = dev.entry()
+    original = results_of(dev)
+    eq((own["id"], own["first"], own["last"], original["ledger"]), (1, 6041, 6043, 1), "its own entry #1, as recorded")
+
+    def planted(name: str, *entries: dict) -> Path:
+        path = tmp / f"{name}.json"
+        path.write_text(json.dumps({"what": "t", "entries": list(entries)}), encoding="utf-8")
+        return path
+
+    def batch(entry_id: int, first: int, last: int, purpose: str, status: str) -> dict:
+        return {**own, "id": entry_id, "first": first, "last": last, "purpose": purpose, "status": status,
+                "bounds_sha256": "b" * 64, "verdict": own["verdict"] if status == "done" else None}
+
+    def honest(label: str, path: Path, confirmed: bool) -> str:
+        code, text = grade_dir_out(M, dev.out, path)
+        verdict = (f"GRADE DIR VERDICT: DEVELOPMENT, not graded{'' if confirmed else ' (unconfirmed: no ledger entry)'}: "
+                   f"PASS; exit 0")
+        ok(code == 0 and verdict in text and "MISMATCH" not in text, f"{label}: {text[-800:]}")
+        return text
+    nxt = {"the next graded registration (6201-6206)": planted("next_graded", batch(1, 6201, 6206, "graded", "registered")),
+           "a development batch begun (6301-6303)": planted("next_dev", batch(1, 6301, 6303, "development", "started"))}
+    for numbers_kept in (True, False):
+        write_results(dev, original if numbers_kept else {k: v for k, v in original.items() if k != "numbers"})
+        for label, path in nxt.items():
+            honest(f"(C6-02) #1 is {label}; numbers {'kept' if numbers_kept else 'deleted'}", path, confirmed=False)
+    write_results(dev, original)
+    text = honest("(C6-03) merged: #1 another live_chain batch MEETING its seeds, its own entry #2",
+                  planted("merged_meet", batch(1, 6043, 6045, "development", "done"), {**own, "id": 2}), confirmed=True)
+    ok("LEDGER (read now): entry #2 (results.json names #1: matched by its seeds and bounds sha256)" in text, text[-800:])
+    honest("(C6-03) merged: #1 another live_chain batch apart from its seeds, its own entry #2",
+           planted("merged_apart", batch(1, 7001, 7003, "development", "done"), {**own, "id": 2}), confirmed=True)
+    honest("CONTROL: its own ledger", dev.ledger, confirmed=True)
+    honest("CONTROL: #1 another driver's entry",
+           planted("other_driver", {**batch(1, 6041, 6041, "development", "done"), "driver": "ch5stops_other"}),
+           confirmed=False)
+    honest("CONTROL: an empty ledger", planted("empty"), confirmed=False)
+    code, text = grade_dir_out(M, dev.out, planted("meets", batch(1, 6043, 6045, "development", "done")))
+    ok(code == 1 and "names ledger entry #1, a live_chain entry for seeds [6043, 6045], not the folder's [6041, 6043]" in
+       text, f"CONTROL: #1 meets its seeds and differs, its own entry absent: {text[-800:]}")
+
+
+def case_seed_rules(M, tmp):
+    """(The sixth check's C6-01) the seed rules are TYPE-STRICT (`type(seed) is int`, never int()): `seed_pair` takes two
+    int seeds, first to last, and nothing else ("6201", 6201.0, true, backwards, one seed, three, a string, None);
+    `job_seed_range` takes the jobs' seeds as ints, one per seed of a contiguous range (FAULTS: a seed written "6205", a
+    gap, a repeat, no jobs, not a list); `numbers_jobs_problems` (FAULTS) seeds as strings or floats, a job's seed as a
+    string, jobs with a gap whose seeds name their ends; and through grade DIR, an honest development folder (numbers
+    deleted) with one job's seed written as a string: MISMATCH, never exit 0. CONTROLS: int seeds and jobs_of's jobs give
+    the range and no problem; the folder as written exits 0."""
+    eq(M.seed_pair([6201, 6206]), [6201, 6206], "CONTROL: two ints")
+    for value in (["6201", "6206"], [6201.0, 6206.0], [True, 6206], [6206, 6201], [6201], [6201, 6206, 6207], "6201", None):
+        eq(M.seed_pair(value), None, f"no seed pair: {value!r}")
+    jobs = LC.jobs_of(6201, 6)
+    eq(M.job_seed_range(jobs), ([6201, 6206], ""), "CONTROL: jobs_of's jobs")
+    stringed = copy.deepcopy(jobs)
+    stringed[2]["seed"] = str(stringed[2]["seed"])
+    gap = [job for job in copy.deepcopy(jobs) if job["seed"] != 6203]
+    repeat = copy.deepcopy(jobs)
+    repeat[1]["seed"] = repeat[0]["seed"]
+    for label, bad, needle in (("a seed written as a string", stringed, "are not all ints"),
+                               ("a gap", gap, "not one per seed of a contiguous range"),
+                               ("a repeat", repeat, "not one per seed of a contiguous range"),
+                               ("no jobs", [], "it has no jobs"), ("not a list", {"jobs": jobs}, "not a list")):
+        span, why = M.job_seed_range(bad)
+        ok(span is None and needle in why, f"{label}: {span} {why!r}")
+    eq(M.numbers_jobs_problems({"seeds": [6201, 6206], "jobs": jobs, "chains": 6}), [], "CONTROL: the numbers' jobs")
+    for label, numbers_of, needle in (
+            ("seeds as strings", {"seeds": ["6201", "6206"], "jobs": jobs, "chains": 6}, "are not two int seeds"),
+            ("seeds as floats", {"seeds": [6201.0, 6206.0], "jobs": jobs, "chains": 6}, "are not two int seeds"),
+            ("a job's seed as a string", {"seeds": [6201, 6206], "jobs": stringed, "chains": 6}, "bind no seed range"),
+            ("a gap, the seeds its ends", {"seeds": [6201, 6206], "jobs": gap, "chains": 5}, "bind no seed range")):
+        found = M.numbers_jobs_problems(numbers_of)
+        ok(any(needle in problem for problem in found), f"{label}: {found}")
+    dev, args = dev_rig(M, tmp / "dev")
+    eq(guarded_run(dev, args)[0], 0, "a development batch ran")
+    data = {key: value for key, value in results_of(dev).items() if key != "numbers"}
+    write_results(dev, data)
+    eq(grade_dir_out(M, dev.out, dev.ledger)[0], 0, "CONTROL: the folder, its numbers deleted")
+    data["jobs"][1]["seed"] = str(data["jobs"][1]["seed"])
+    write_results(dev, data)
+    code, text = grade_dir_out(M, dev.out, dev.ledger)
+    ok(code == 1 and "NUMBERS: MISMATCH (no numbers)" in text and "bind no seed range" in text,
+       f"a job's seed written as a string: {text[-800:]}")
 
 
 # ==================================================================================================== THE TESTCASES
@@ -5202,6 +5375,8 @@ C4HashingTests = _bind(type("C4HashingTests", (Base,), {}), (
 C5Tests = _bind(type("C5Tests", (Base,), {}), (
     "grade_dir_edited_fail_folder", "recorded_entry_rules", "finish_entry_without_error_record", "grade_dir_contradiction",
     "guard_sigint_restored", "grade_dir_entry_unbegun_or_unreadable"))
+# (the sixth fix round, 2026-11-06) the sixth check's C6-01 and C6-02 (and C6-03's merged ledger)
+C6Tests = _bind(type("C6Tests", (Base,), {}), ("grade_dir_other_live_chain_entry", "seed_rules"))
 
 
 class PurposeTests(unittest.TestCase):
@@ -6191,6 +6366,44 @@ MUTANTS = [
      ["grade_dir_entry_unbegun_or_unreadable"]),
     ("M359_unreadable_entry_passes", 'word in ("REGISTERED", "UNREADABLE") or', 'word in ("REGISTERED",) or',
      ["grade_dir_entry_unbegun_or_unreadable"]),
+    # (the sixth fix round, 2026-11-06) C6-01: the entry looked up by the seeds the rows bind, the seed rules type-strict
+    ("M360_lookup_by_recorded_seeds",
+     '    seeds = bound or seed_pair((raw.get("seeds") if isinstance(raw, dict) else None) or source.get("seeds")) or []',
+     '    seeds = list((raw.get("seeds") if isinstance(raw, dict) else None) or source.get("seeds") or [])',
+     ["grade_dir_edited_fail_folder"]),
+    ("M361_seed_pair_coerced", "    pair = [seed for seed in value if type(seed) is int]", "    pair = [int(seed) for seed in value]",
+     ["grade_dir_edited_fail_folder", "seed_rules"]),
+    ("M362_job_seeds_coerced", "    strict = [seed for seed in seeds if type(seed) is int]",
+     "    strict = [int(seed) for seed in seeds]", ["seed_rules"]),
+    ("M363_jobs_not_contiguous", "    if sorted(strict) != list(range(min(strict), max(strict) + 1)):", "    if False:",
+     ["seed_rules"]),
+    ("M364_batch_seeds_by_value",
+     '    if seed_pair(source.get("seeds")) is None or source.get("seeds") != seeds:  # (C6-01)',
+     '    if source.get("seeds") != seeds:  # (C6-01)', ["grade_dir_edited_fail_folder"]),
+    ("M365_seeds_type_unchecked", "    if given is None:\n        problems.append(", "    if False:\n        problems.append(",
+     ["grade_dir_edited_fail_folder", "seed_rules"]),
+    # C6-02: a live_chain entry whose seeds never meet the folder's is another batch's, no MISMATCH
+    ("M366_other_batch_mismatched",
+     "    if len(seeds) == 2 and type(first) is int and type(last) is int and (last < seeds[0] or first > seeds[1]):",
+     "    if False:", ["grade_dir_other_live_chain_entry", "recorded_entry_rules"]),
+    ("M367_every_batch_ignored",
+     "    if len(seeds) == 2 and type(first) is int and type(last) is int and (last < seeds[0] or first > seeds[1]):",
+     "    if True:", ["recorded_entry_rules", "grade_dir_edited_fail_folder"]),
+    ("M368_touching_low_ignored", "(last < seeds[0] or first > seeds[1])", "(last <= seeds[0] or first > seeds[1])",
+     ["recorded_entry_rules"]),
+    ("M369_touching_high_ignored", "(last < seeds[0] or first > seeds[1])", "(last < seeds[0] or first >= seeds[1])",
+     ["recorded_entry_rules"]),
+    # C6-03: the renumbered-ledger exemption cut at regrade_dir's call site (check 6's MZ2)
+    ("M370_recorded_without_entry", "recorded = recorded_problems(ledger_path, source, seeds, sha, entry, ",
+     "recorded = recorded_problems(ledger_path, source, seeds, sha, None, ", ["grade_dir_other_live_chain_entry"]),
+    # C6-04: a contradiction said for an honest ERROR, ABORTED or STARTED batch (check 6's MZ1); the verdict line's
+    # reason unsaid (its MZ3)
+    ("M371_contradiction_any_word", 'if word in ("PASS", "FAIL") and marks else "")',
+     'if word in ("PASS", "FAIL", "ERROR", "ABORTED", "STARTED") and marks else "")',
+     ["grade_dir_error_states", "grade_dir_aborted_and_development"]),
+    ("M372_contradiction_reason_unsaid",
+     'why_not = "the folder contradicts its finished ledger entry" if contradiction else ""', 'why_not = ""',
+     ["grade_dir_contradiction"]),
 ]
 
 

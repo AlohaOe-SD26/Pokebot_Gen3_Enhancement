@@ -3412,18 +3412,52 @@ def find_entry(ledger_path: Path, seeds: list, entry_id, sha) -> tuple[dict | No
     return None, f"no {DRIVER} entry for seeds {seeds} in {ledger_path}"
 
 
+def seed_pair(value) -> list[int] | None:
+    """(The sixth check's C6-01) [first, last] when `value` is a list of exactly two int seeds, first <= last, else None.
+    TYPE-STRICT (`type(seed) is int`, never `int()`): a seed written as "6201", 6201.0 or true is no seed."""
+    if not isinstance(value, list) or len(value) != 2:
+        return None
+    pair = [seed for seed in value if type(seed) is int]
+    return pair if len(pair) == 2 and pair[0] <= pair[1] else None
+
+
+def job_seed_range(jobs) -> tuple[list[int] | None, str]:
+    """(The sixth check's C6-01, C6-02) The seed range a folder's ROWS bind: the seeds of the jobs whose rows/<chain>.json
+    `grade DIR` counts, each an int (TYPE-STRICT, as `seed_pair`), one job per seed of a contiguous range. ([first, last],
+    "") or (None, why)."""
+    try:
+        seeds = [job["seed"] for job in jobs] if isinstance(jobs, list) else []
+    except Exception as error:  # noqa: BLE001 - jobs from a folder are untrusted
+        return None, f"its jobs cannot be read ({type(error).__name__})"
+    if not seeds:
+        return None, "it has no jobs" if isinstance(jobs, list) else f"its jobs are a {type(jobs).__name__}, not a list"
+    strict = [seed for seed in seeds if type(seed) is int]
+    if len(strict) != len(seeds):
+        return None, f"its jobs' seeds {safe_text(seeds, 120)} are not all ints"
+    if sorted(strict) != list(range(min(strict), max(strict) + 1)):
+        return None, f"its jobs' seeds {safe_text(sorted(strict), 120)} are not one per seed of a contiguous range"
+    return [min(strict), max(strict)], ""
+
+
 def numbers_jobs_problems(numbers: dict, whose: str = "the numbers'") -> list[str]:
     """(C4-G01) The numbers' jobs belong to the numbers' seeds: one job per seed of the range, each named LC-<pair>-<seed>
     (so seeds moved to another range with the jobs left as they were never verify). (The fifth check's C5-01) also a
-    folder's OWN seeds, jobs and chain count when it has no numbers (`whose` names them)."""
+    folder's OWN seeds, jobs and chain count when it has no numbers (`whose` names them). (The sixth check's C6-01)
+    TYPE-STRICT: the seeds must be two ints (`seed_pair`) and EQUAL the range the jobs' int seeds bind (`job_seed_range`)."""
     try:
-        first, last = int(numbers["seeds"][0]), int(numbers["seeds"][1])
-        named = [(str(job["chain"]), int(job["seed"]), str(job["pair"])) for job in numbers["jobs"]]
+        named = [(str(job["chain"]), job["seed"], str(job["pair"])) for job in numbers["jobs"]]
     except Exception as error:  # noqa: BLE001 - numbers from a folder are untrusted
         return [f"{whose} seeds or jobs cannot be read ({type(error).__name__})"]
     problems: list[str] = []
-    if sorted(seed for _, seed, _ in named) != list(range(first, last + 1)) or numbers.get("chains") != len(named):
-        problems.append(f"{whose} jobs {[c for c, _, _ in named]} are not one per seed of {first}-{last} "
+    given = seed_pair(numbers.get("seeds"))
+    span, why = job_seed_range(numbers["jobs"])
+    if given is None:
+        problems.append(f"{whose} seeds {safe_text(numbers.get('seeds'), 80)} are not two int seeds, first to last (a "
+                        f"seed written as a string is no seed)")
+    if span is None:
+        problems.append(f"{whose} jobs {[c for c, _, _ in named]} bind no seed range: {why}")
+    elif given is not None and (span != given or numbers.get("chains") != len(named)):
+        problems.append(f"{whose} jobs {[c for c, _, _ in named]} are not one per seed of {given[0]}-{given[1]} "
                         f"({numbers.get('chains')} chains)")
     wrong = [chain for chain, seed, pair in named if chain != f"LC-{pair}-{seed}"]
     if wrong:
@@ -3438,7 +3472,9 @@ def recorded_problems(ledger_path: Path | None, source: dict, seeds: list, sha, 
     graded FAIL folder whose seeds and purpose were edited still meets its own entry). Not a mismatch: an id that names
     no entry or an entry of another driver (a merged ledger renumbers entries: R0's results.json names #86, an entry of
     another driver in the worktree's ledger), and an id explained by the folder's entry met by its seeds AND bounds
-    sha256 under another id (`find_entry`)."""
+    sha256 under another id (`find_entry`). (The sixth check's C6-02) `seeds` is the range the folder's ROWS bind
+    (`job_seed_range`); a live_chain entry whose seeds never meet it is ANOTHER batch's, not this folder's (a lost or
+    renumbered id that later names the next live_chain entry: R2 names #100), so no mismatch."""
     entry_id = source.get("ledger")
     if ledger_path is None or (entry is not None and entry.get("id") != entry_id and entry.get("bounds_sha256") == sha):
         return []
@@ -3449,6 +3485,9 @@ def recorded_problems(ledger_path: Path | None, source: dict, seeds: list, sha, 
         return []
     if named is None or named.get("driver") != DRIVER:
         return []
+    first, last = named.get("first"), named.get("last")
+    if len(seeds) == 2 and type(first) is int and type(last) is int and (last < seeds[0] or first > seeds[1]):
+        return []  # (the sixth check's C6-02) its seeds never meet the folder's: another batch's entry
     problems: list[str] = []
     if [named.get("first"), named.get("last")] != list(seeds):
         problems.append(f"{where} names ledger entry #{entry_id}, a {DRIVER} entry for seeds "
@@ -3481,9 +3520,10 @@ def verify_numbers(source: dict, entry: dict | None, entry_why: str = "") -> tup
     if sha != source.get("numbers_sha256"):
         problems.append(f"the numbers' sha256 {sha[:16]} is not the numbers_sha256 recorded beside them "
                         f"{str(source.get('numbers_sha256'))[:16]}")
-    seeds = list(numbers.get("seeds") or [])
-    if list(source.get("seeds") or []) != seeds:
-        problems.append(f"the numbers' seeds {seeds} are not the batch's {source.get('seeds')}")
+    seeds = numbers.get("seeds")
+    if seed_pair(source.get("seeds")) is None or source.get("seeds") != seeds:  # (C6-01) two ints, exactly the numbers'
+        problems.append(f"the batch's seeds {safe_text(source.get('seeds'), 80)} are not two int seeds equal to the numbers' "
+                        f"{safe_text(seeds, 80)}")
     problems += numbers_jobs_problems(numbers)
     checked = f"numbers sha256 {sha[:16]} == the one recorded beside them"
     verified = False
@@ -3539,19 +3579,24 @@ def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
     salvage exemption reads the orchestrator's own events. (The fifth check's C5-01) the folder's own jobs are checked
     against its seeds even with no numbers, and the entry its recorded id names (`recorded_problems`): either is a
     MISMATCH (FAIL); (C5-03) a folder ERROR or ABORTED mark beside an entry finished with PASS or FAIL is
-    "contradiction", graded FAIL instead."""
+    "contradiction", graded FAIL instead. (The sixth check's C6-01, C6-02) the entry is looked up by the seed range the
+    folder's ROWS bind (`job_seed_range`: its jobs' int seeds), which the seeds it records must equal exactly, ints
+    included; an entry its recorded id names whose seeds never meet that range is another batch's (no MISMATCH)."""
     error_record = _read_record(out / RESULTS_ERROR)
     results = _read_record(out / "results.json")
     source = results if results is not None else error_record
     if source is None:
         raise Refusal(f"{out} holds no results.json and no {RESULTS_ERROR}: nothing to grade from")
     raw = source.get("numbers")
-    seeds = list((raw.get("seeds") if isinstance(raw, dict) else None) or source.get("seeds") or [])
+    # (the sixth check's C6-01, C6-02) the entry is looked up by the seeds the folder's ROWS bind (its jobs' int seeds),
+    # not by the seeds it records beside them, which must equal them (`numbers_jobs_problems`, `verify_numbers`)
+    bound, bound_why = job_seed_range(raw.get("jobs") if isinstance(raw, dict) else source.get("jobs"))
+    seeds = bound or seed_pair((raw.get("seeds") if isinstance(raw, dict) else None) or source.get("seeds")) or []
     sha = ledger.numbers_sha256(raw) if isinstance(raw, dict) else source.get("numbers_sha256")
     if ledger_path is None:
         entry, entry_why = None, "no ledger was given"
     elif len(seeds) != 2:
-        entry, entry_why = None, f"the folder records no seed range ({seeds})"
+        entry, entry_why = None, f"the folder's jobs bind no seed range ({bound_why}) and it records none of two int seeds"
     else:
         entry, entry_why = find_entry(Path(ledger_path), seeds, source.get("ledger"), sha)
     numbers, problems, verified, is_verified = verify_numbers(source, entry, entry_why)
