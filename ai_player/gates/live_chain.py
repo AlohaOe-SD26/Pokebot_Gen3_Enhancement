@@ -3394,14 +3394,22 @@ def find_entry(ledger_path: Path, seeds: list, entry_id, sha) -> tuple[dict | No
     its seeds, the one with its recorded id AND bounds sha256, else its bounds sha256 (a merged ledger renumbers entries:
     R0's results.json names #86, the worktree's ledger holds it as #96), else its id, else the latest one that was begun
     (so a folder whose id and sha256 were both edited still meets its seeds' entry, whose verdict then bounds the
-    re-grade). (None, why) when no entry names those seeds or the ledger cannot be read."""
+    re-grade). (The seventh check's C7-01) when no entry names exactly those seeds, the entries whose seeds MEET them, by
+    the same preferences: a folder whose jobs were trimmed to a subset of its batch's in results.json alone still meets
+    its batch's entry, which `regrade_dir` then takes as the folder's (its verdict bounds the result, its purpose sets the
+    label) and says a MISMATCH. live_chain refuses a run on seeds any entry names, so one batch's entry is the only one
+    that meets a range inside it (a merged ledger may hold more: the same preferences choose one, and the MISMATCH grades
+    the folder FAIL whichever it is). (None, why) when no entry names or meets those seeds or the ledger cannot be read."""
     try:
-        entries = [e for e in ledger.load(Path(ledger_path)).get("entries", []) if isinstance(e, dict)
-                   and e.get("driver") == DRIVER and [e.get("first"), e.get("last")] == list(seeds)]
+        live = [e for e in ledger.load(Path(ledger_path)).get("entries", []) if isinstance(e, dict)
+                and e.get("driver") == DRIVER]
     except Exception as error:  # noqa: BLE001 - an unreadable ledger is said, never a crash
         return None, f"the ledger {ledger_path} could not be read ({type(error).__name__})"
+    entries = ([e for e in live if [e.get("first"), e.get("last")] == list(seeds)]
+               or [e for e in live if type(e.get("first")) is int and type(e.get("last")) is int
+                   and e["first"] <= seeds[1] and seeds[0] <= e["last"]])  # (C7-01) the seeds MEET
     if not entries:
-        return None, f"no {DRIVER} entry for seeds {seeds} in {ledger_path}"
+        return None, f"no {DRIVER} entry names or meets seeds {seeds} in {ledger_path}"
     for match in (lambda e: e.get("id") == entry_id and e.get("bounds_sha256") == sha,
                   lambda e: e.get("bounds_sha256") == sha and e.get("status") != "registered",
                   lambda e: e.get("bounds_sha256") == sha, lambda e: e.get("id") == entry_id,
@@ -3409,7 +3417,7 @@ def find_entry(ledger_path: Path, seeds: list, entry_id, sha) -> tuple[dict | No
         found = [e for e in entries if match(e)]
         if found:
             return found[-1], ""
-    return None, f"no {DRIVER} entry for seeds {seeds} in {ledger_path}"
+    return None, f"no {DRIVER} entry names or meets seeds {seeds} in {ledger_path}"
 
 
 def seed_pair(value) -> list[int] | None:
@@ -3472,9 +3480,11 @@ def recorded_problems(ledger_path: Path | None, source: dict, seeds: list, sha, 
     graded FAIL folder whose seeds and purpose were edited still meets its own entry). Not a mismatch: an id that names
     no entry or an entry of another driver (a merged ledger renumbers entries: R0's results.json names #86, an entry of
     another driver in the worktree's ledger), and an id explained by the folder's entry met by its seeds AND bounds
-    sha256 under another id (`find_entry`). (The sixth check's C6-02) `seeds` is the range the folder's ROWS bind
+    sha256 under another id (`find_entry`). (The sixth check's C6-02) `seeds` is the range the folder's JOBS bind
     (`job_seed_range`); a live_chain entry whose seeds never meet it is ANOTHER batch's, not this folder's (a lost or
-    renumbered id that later names the next live_chain entry: R2 names #100), so no mismatch."""
+    renumbered id that later names the next live_chain entry: R2 names #100), so no mismatch. (The seventh check's C7-02)
+    This never-meet exemption gives up the recorded id as a tripwire for a folder rewritten wholesale to unspent seeds: no
+    anchor inside a folder survives a whole-folder rewrite, and the ledger's verdict still stands for the seeds it names."""
     entry_id = source.get("ledger")
     if ledger_path is None or (entry is not None and entry.get("id") != entry_id and entry.get("bounds_sha256") == sha):
         return []
@@ -3580,16 +3590,22 @@ def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
     against its seeds even with no numbers, and the entry its recorded id names (`recorded_problems`): either is a
     MISMATCH (FAIL); (C5-03) a folder ERROR or ABORTED mark beside an entry finished with PASS or FAIL is
     "contradiction", graded FAIL instead. (The sixth check's C6-01, C6-02) the entry is looked up by the seed range the
-    folder's ROWS bind (`job_seed_range`: its jobs' int seeds), which the seeds it records must equal exactly, ints
-    included; an entry its recorded id names whose seeds never meet that range is another batch's (no MISMATCH)."""
+    folder's JOBS bind (`job_seed_range`: the int seeds of the numbers' jobs, else of results.json's own; those jobs name
+    the rows that count), which the seeds it records must equal exactly, ints included; an entry its recorded id names
+    whose seeds never meet that range is another batch's (no MISMATCH). (The seventh check's C7-01) with no entry for
+    exactly that range, the entry whose seeds MEET it is the folder's (`find_entry`): its verdict bounds the result, its
+    purpose sets the label, and the folder is a MISMATCH ("the folder's jobs bind [a, b], not ledger entry #N's [c, d]"),
+    so jobs trimmed to a subset of the batch's in results.json alone never reach exit 0. "matched" says what found the
+    entry: its seeds exactly or by meeting, with or without its bounds sha256."""
     error_record = _read_record(out / RESULTS_ERROR)
     results = _read_record(out / "results.json")
     source = results if results is not None else error_record
     if source is None:
         raise Refusal(f"{out} holds no results.json and no {RESULTS_ERROR}: nothing to grade from")
     raw = source.get("numbers")
-    # (the sixth check's C6-01, C6-02) the entry is looked up by the seeds the folder's ROWS bind (its jobs' int seeds),
-    # not by the seeds it records beside them, which must equal them (`numbers_jobs_problems`, `verify_numbers`)
+    # (the sixth check's C6-01, C6-02) the entry is looked up by the seeds the folder's JOBS bind (their int seeds; the
+    # jobs name the rows that count), not by the seeds it records beside them, which must equal them
+    # (`numbers_jobs_problems`, `verify_numbers`)
     bound, bound_why = job_seed_range(raw.get("jobs") if isinstance(raw, dict) else source.get("jobs"))
     seeds = bound or seed_pair((raw.get("seeds") if isinstance(raw, dict) else None) or source.get("seeds")) or []
     sha = ledger.numbers_sha256(raw) if isinstance(raw, dict) else source.get("numbers_sha256")
@@ -3600,6 +3616,14 @@ def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
     else:
         entry, entry_why = find_entry(Path(ledger_path), seeds, source.get("ledger"), sha)
     numbers, problems, verified, is_verified = verify_numbers(source, entry, entry_why)
+    exact = entry is not None and [entry.get("first"), entry.get("last")] == list(seeds)
+    if entry is not None and not exact:  # (the seventh check's C7-01) the folder's entry, met by its seeds, not named
+        problems = [*problems, f"the folder's {'jobs bind' if bound else 'recorded seeds are'} {list(seeds)}, not ledger "
+                               f"entry #{entry.get('id')}'s {[entry.get('first'), entry.get('last')]}"]
+        verified, is_verified = f"MISMATCH: {'; '.join(problems)}", False
+    matched = "" if entry is None else (
+        ("its seeds" if exact else f"seeds that meet the folder's {list(seeds)}")
+        + (" and bounds sha256" if entry.get("bounds_sha256") == sha else ", not its bounds sha256"))
     recorded = recorded_problems(ledger_path, source, seeds, sha, entry, "results.json" if results else RESULTS_ERROR)
     if recorded:  # (the fifth check's C5-01) the entry the folder's recorded id names is another batch's
         problems = [*problems, *recorded]
@@ -3676,7 +3700,8 @@ def regrade_dir(out: Path, ledger_path: Path | None = None) -> dict:
             "ended_in_error": states.get("ERROR"), "error_stage": (error_record or {}).get("stage"),
             "aborted": states.get("ABORTED"), "entry": entry, "entry_why": entry_why, "entry_word": word,
             "recorded_id": source.get("ledger"), "purpose": purpose, "purpose_confirmed": entry is not None,
-            "contradiction": contradiction, "final": final, "why_not": why_not, "exit": GRADE_EXIT[final]}
+            "contradiction": contradiction, "final": final, "why_not": why_not, "exit": GRADE_EXIT[final],
+            "matched": matched}
 
 
 def grade_dir(out: Path, ledger_path: Path | None = None) -> int:
@@ -3685,11 +3710,11 @@ def grade_dir(out: Path, ledger_path: Path | None = None) -> int:
     worst of the re-grade, the entry and the folder's own ERROR or ABORTED marks): EXIT 0 = PASS (a GRADED folder only when
     its numbers are VERIFIED against its ledger entry; a development folder is labelled DEVELOPMENT, not graded); 1 = FAIL
     or UNVERIFIED (VACUOUS checks, numbers that do not verify, a graded folder no ledger entry verifies; the fifth check's
-    C5-01: a MISMATCH of the folder's own jobs and seeds or of the entry its recorded id names; C5-03: a folder ERROR or
-    ABORTED mark beside an entry finished with PASS or FAIL, said as a contradiction); 2 = it could not be graded (no
-    results file, an unreadable one); 3 = ABORTED by the harness (ABORT.txt, results.json or the entry); 4 = ERROR
-    (results.error.json, the entry's ERROR verdict, or an entry still 'started'). In 3 and 4 the rows are re-graded as
-    information only."""
+    C5-01: a MISMATCH of the folder's own jobs and seeds or of the entry its recorded id names, and the seventh check's
+    C7-01: of the entry its jobs' range meets without naming it exactly; C5-03: a folder ERROR or ABORTED mark beside an
+    entry finished with PASS or FAIL, said as a contradiction); 2 = it could not be graded (no results file, an unreadable
+    one); 3 = ABORTED by the harness (ABORT.txt, results.json or the entry); 4 = ERROR (results.error.json, the entry's
+    ERROR verdict, or an entry still 'started'). In 3 and 4 the rows are re-graded as information only."""
     try:
         found = regrade_dir(out, ledger_path)
     except Exception as error:  # noqa: BLE001 - grade DIR reads files it did not write: it says why, never crashes
@@ -3697,8 +3722,8 @@ def grade_dir(out: Path, ledger_path: Path | None = None) -> int:
         return 2
     entry = found["entry"]
     if entry is not None:
-        renumbered = ("" if found["recorded_id"] == entry.get("id") else
-                      f" (results.json names #{found['recorded_id']}: matched by its seeds and bounds sha256)")
+        renumbered = ("" if found["recorded_id"] == entry.get("id") else  # (C7) says only what matched
+                      f" (results.json names #{found['recorded_id']}: matched by {found['matched']})")
         print(f"LEDGER (read now): entry #{entry.get('id')}{renumbered}, {entry.get('purpose')}, status "
               f"{entry.get('status')}: {str(entry.get('verdict'))[:300]}")
     else:
