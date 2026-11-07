@@ -1352,6 +1352,55 @@ Cleanup:
 - C: has 58 GB free.
 - Files: s53/ch6stops9/verify/ (STATE.md, prediction_vm9.txt and its .sha256, vm9.py, vm9.out).
 
+## Chapters 6-7, development probe 11 (2026-11-07)
+
+This is a development probe: one trajectory per start, never a rate, never graded. It ran as ledger #111, batch probe11, with seeds 6365-6367.
+
+**Setup.** The code was b7c11490 (stop rounds 1-9). In round 7 the eyes changed: on a dark map they now see only the lit circle the screen draws. The probe used the same starts, target and budget as #107 (probe10, round 4's code):
+- starts: the three chapter-5 chain ends, C1 Story, C2 Catcher and C3 Trainer, byte-identical to #107's
+- target: ch7_brawly
+- budget: 1,200,000 frames, 9,000 s of wall time
+
+The prediction was hashed and the ledger entry registered before the runs. The batch took 05:03-05:11, and all three runs ended by themselves (exit 0, purity CLEAN, L5.THIS_RUN PASS).
+
+**From the game.**
+- C1 (Story):
+  - Delivered STEVEN's letter.
+  - Lost to BRAWLY three times at 100% HP (Grovyle L22 and five L3-L6). After each fight the game shows a whiteout to DEWFORD.
+  - Ended with 'stuck: 3 battles lost' after 167,065 frames, with no BADGE02.
+- C2 (Catcher):
+  - Lost its first BRAWLY fight at 100% and won its second (the badge count went from 1 to 2).
+  - BADGE02 after 195,229 frames.
+- C3 (Trainer):
+  - Beat BRAWLY in its first fight (Marshtomp L25).
+  - BADGE02 after 194,349 frames.
+
+All three got through the dark GRANITE_CAVE_B1F/B2F without FLASH. Each crossed from the 1F (17,11) ladder side to the (35,3) side and then reached STEVEN's room.
+
+| Start | Frames in B1F/B2F | Passes | Wild battles inside | #107 frames |
+|---|---|---|---|---|
+| C1 | 57,624 | 1 | 29 | 21,945 |
+| C2 | 93,947 | 4 (the first three turned back; the first ended in a heal walk) | 45 | 12,811 |
+| C3 | 77,029 | 1 | 34 | 6,832 |
+
+**Versus #107.** BADGE02 came out the same on every start (C1 no, C2 yes, C3 yes). The cave crossing was 2.6 to 11.3 times slower. The prediction held in every part.
+
+**New stops (reported, not fixed):**
+- **P11-1, all three runs: the dark cave is slow.**
+  - The cave records carry 'lit=24px' (2,164, 2,815 and 1,951 records; 0 in #107).
+  - The explorer steps from one one-tile frontier to the next: 255, 234 and 235 frontier decisions, against 15, 13 and 14 in #107.
+  - The go goal toward STEVEN ran out its 9,000-frame budget inside the cave 4, 6 and 5 times (1, 1 and 0 in #107).
+  - This is not an A/B: the seeds and rounds 5-9 also differ.
+- **P11-2, C2: 'lost' decisions in the cave.** They targeted leftover tiles on PETALBURG, OLDALE, ROUTE 103 and ROUTE 104, and the run took one ladder up and down twice (about 400 frames).
+- **P11-3, C2: a detour after a heal.** It spent about 17,900 frames looking around DEWFORD, ROUTE 106 and ROUTE 107 before going back into the cave.
+- **P4-1 is unchanged:** the Story party still loses to BRAWLY at full HP.
+
+**Files.**
+- Evidence: ai_player/evidence/2026-11-07-ch6-stops-development-probe-11.txt in worktree wf_e7452923-f06-3.
+- Tools and records: s53/ch6probe11/ (arms11.py, judge11.py, judge_probe11.json, judge_107.json, STATE.md).
+
+**Cleanup.** The world.jsonl files (52-61 MB) were deleted after judging. The stage was torn down with the junctions unlinked first. The main sandbox counts are unchanged (plugins 43, mgba 44, roms 2, modules 4461). The main checkout is clean. In the worktree, ledger.json and the new evidence file are uncommitted (no commit, no staging). C: has 62.5 GB free.
+
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 
 ### MILESTONES-CH5-CH8 report (cloud job, static, no emulator)
