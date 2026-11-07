@@ -1,10 +1,10 @@
 AI PLAYER REGRESSION - full lane, evidence group `revert_step5` (gates/run_regression.py, spec S4-1)
-date: 2026-11-06 21:57:40
-code: HEAD 59a7d560; covers:revert_step5 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-11-06 23:29:52
+code: HEAD b0e6c289; covers:revert_step5 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 command: py -3.12 ai_player/gates/run_regression.py --full --evidence
 Each section is one suite: the runner's typed status, then the suite's raw output (indented).
 
-== revert_step5: PASS (exit 0, 5186.7 s, 465 mutants)
+== revert_step5: PASS (exit 0, 5125.3 s, 465 mutants)
     | [G0] CONTROL, the unchanged copy: 324 tests, failing none (ran the copy: True) -> PASS
     | [G1] BROKEN: a milestone's VARS are not checked (only its flags). Predicted CAUGHT by ['MilestoneTests.test_vars_count_at_least', 'MilestoneTests.test_chapter_1_in_order_from_the_marks']. The copy ran 324 tests (the copy); failing: {'Chapter5Tests.test_stolen_goods_is_proven_by_the_two_states_never_the_flag_that_flips_back': 'FAIL', 'Chapter5Tests.test_the_pokenav_scene_is_not_passed_by_the_flags_set_before_its_menu': 'FAIL', 'Chapter5Tests.test_the_rival_is_met_on_either_road_the_route_104_variant_included': 'FAIL', 'Chapter5Tests.test_the_story_walks_through_the_required_ones_and_skips_the_optional': 'FAIL', "Chapter5Tests.test_the_story_walks_through_the_required_ones_and_skips_the_optional (milestone='ch5_stolen_goods')": 'FAIL', 'ExploreTests.test_curiosity_finds_an_item_ball_before_the_party': 'FAIL', 'MilestoneTests.test_chapter_1_in_order_from_the_marks': 'FAIL', 'MilestoneTests.test_the_intro_is_passed_by_its_waypoint_the_truck': 'FAIL', 'MilestoneTests.test_vars_count_at_least': 'FAIL', 'PersonFairTests.test_each_step_needs_its_own_words': 'FAIL', 'PersonFairTests.test_roxanne_is_proven_by_the_badge_alone': 'FAIL', 'PlayLoopTests.test_r1_a_save_goal_after_a_big_moment': 'FAIL', 'PlayLoopTests.test_r1_an_unwritten_save_line_ends_the_run': 'FAIL', 'PlayLoopTests.test_r1_fault_no_save_is_the_old_loop': 'FAIL', 'SmallTests.test_milestone_lines_say_how_a_milestone_passed': 'FAIL'} -> CAUGHT
     | [G2] BROKEN: a proof NOT READ counts as done. Predicted CAUGHT by ['MilestoneTests.test_a_proof_not_read_is_never_progress']. The copy ran 324 tests (the copy); failing: {'Chapter5Tests.test_a_later_proof_never_makes_up_for_an_earlier_one': 'ERROR', 'MilestoneTests.test_a_proof_not_read_is_never_progress': 'FAIL'} -> CAUGHT
@@ -472,10 +472,11 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [G468] BROKEN: a field menu given again under new pages clears EVERY kind's followed pairs (an app's too), not only its own kind's. Predicted CAUGHT by ['InstructedTests.test_g4b_a_field_menu_back_with_no_new_page_keeps_what_was_followed']. The copy ran 324 tests (the copy); failing: {'InstructedTests.test_g4b_a_field_menu_back_with_no_new_page_keeps_what_was_followed': 'FAIL'} -> CAUGHT
     | [G469] BROKEN: the re-capture counts the CAPPED transcript (`len(pages)`) instead of the pages read (the code as built; once MAX_PAGES are held a new page leaves the count unchanged). Predicted CAUGHT by ['InstructedTests.test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript']. The copy ran 324 tests (the copy); failing: {'InstructedTests.test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript': 'FAIL'} -> CAUGHT
     | 463 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 465
-    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (467 checks of 205 files, files digest 5202c6e4a6735c5c)
+    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (467 checks of 205 files, files digest 5ba774f4421919c0)
     | OVERALL: PASS
+    | [EVIDENCE] kept the earlier tree's 2026-11-06-step52-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-59a7d560/2026-11-06-step52-REVERT.txt
     | evidence: ai_player\evidence\2026-11-06-step52-REVERT.txt
 
 
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (40 checks of 205 files, files digest 5202c6e4a6735c5c); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
-REGRESSION: FAIL (full, 35 suites, 5352.4 s wall)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (40 checks of 205 files, files digest 5ba774f4421919c0); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
+REGRESSION: PASS (full, 35 suites, 5274.2 s wall)

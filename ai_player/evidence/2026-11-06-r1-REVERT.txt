@@ -1,6 +1,6 @@
 AI PLAYER R1 + R2 - MUTANT PROOF OF SAVING, CONTINUING AND THE MEMORY FILE (gates/revert_r1.py)
-date: 2026-11-06 20:28:29
-code: HEAD 59a7d560; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-11-06 22:01:58
+code: HEAD b0e6c289; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_213590e7-d34-3\ai_player\evidence\trees\53e0c26e7812db47.zip
 Each mutant breaks ONE rule (or deletes ONE call the census lists) in a copy; CAUGHT = the run fails and every predicted test is among the failing ones.
 
@@ -573,5 +573,5 @@ Each mutant breaks ONE rule (or deletes ONE call the census lists) in a copy; CA
 [CH5E10] BROKEN: the MATCH CALL list's cursor read without the window's top (selectedIndexOffset alone, windowTopIndex dropped: a scrolled list's cursor names the wrong entry; the verifier's X11). Predicted CAUGHT by ['PokenavEyesTests.test_u2_the_list_cursor_is_the_windows_top_plus_its_offset']. The copy ran 10 tests (the copy); failing: {'test_eyes.PokenavEyesTests.test_u2_the_list_cursor_is_the_windows_top_plus_its_offset': 'FAIL'} -> CAUGHT
 
 565 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 566 run (566 defined)
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (568 checks of 205 files, files digest 5202c6e4a6735c5c)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (568 checks of 205 files, files digest 5ba774f4421919c0)
 OVERALL: PASS

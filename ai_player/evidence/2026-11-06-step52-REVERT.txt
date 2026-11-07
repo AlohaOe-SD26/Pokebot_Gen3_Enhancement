@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 5.1 - MUTANT PROOF OF THE STORY PLAYER (gates/revert_step5.py: G1-G52 step 5's, G53-G106 step 5.1's, G107-G126 the step-5.1 verifier's second round's)
-date: 2026-11-06 20:28:29
-code: HEAD 59a7d560; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-11-06 22:01:58
+code: HEAD b0e6c289; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 tree kept: C:\Remote Projects\Pokebot_Gen3_Enhancement\.claude\worktrees\wf_213590e7-d34-3\ai_player\evidence\trees\53e0c26e7812db47.zip (the step-5.1 verifier's second round)
 Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted tests of gates/test_goals.py fail.
 
@@ -472,5 +472,5 @@ Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted t
 [G469] BROKEN: the re-capture counts the CAPPED transcript (`len(pages)`) instead of the pages read (the code as built; once MAX_PAGES are held a new page leaves the count unchanged). Predicted CAUGHT by ['InstructedTests.test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript']. The copy ran 324 tests (the copy); failing: {'InstructedTests.test_g4c_the_re_capture_counts_pages_read_not_the_capped_transcript': 'FAIL'} -> CAUGHT
 
 463 mutants CAUGHT as predicted, 2 REDUNDANT ALONE as predicted, of 465
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (467 checks of 205 files, files digest 5202c6e4a6735c5c)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (467 checks of 205 files, files digest 5ba774f4421919c0)
 OVERALL: PASS

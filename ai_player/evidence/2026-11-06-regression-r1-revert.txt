@@ -1,10 +1,10 @@
 AI PLAYER REGRESSION - full lane, evidence group `revert_r1` (gates/run_regression.py, spec S4-1)
-date: 2026-11-06 21:57:40
-code: HEAD 59a7d560; covers:revert_r1 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+date: 2026-11-06 23:29:52
+code: HEAD b0e6c289; covers:revert_r1 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 command: py -3.12 ai_player/gates/run_regression.py --full --evidence
 Each section is one suite: the runner's typed status, then the suite's raw output (indented).
 
-== revert_r1: PASS (exit 0, 2378.8 s, 566 mutants)
+== revert_r1: PASS (exit 0, 2335.5 s, 566 mutants)
     | [R0] CONTROL, the unchanged copy: 502 tests of ['test_saving', 'test_goals', 'test_check_purity:PlayLoopExitTests', 'test_safety_gates:FairnessTests', 'test_host:ControllerTogetherTests', 'test_host:ResetRefusalTests'], failing none (ran the copy: True) -> PASS
     | [S27] BROKEN: `--continue` keeps the .ss1 (also the live proof's LAUNCH-OLD). Predicted CAUGHT by ['LauncherContinueTests.test_continue_removes_the_ss1_and_keeps_the_sav', 'LauncherContinueTests.test_the_cart_is_told']. The copy ran 151 tests (the copy); failing: {'test_saving.LauncherContinueTests.test_continue_removes_the_ss1_and_keeps_the_sav': 'FAIL', 'test_saving.LauncherContinueTests.test_the_cart_is_told': 'FAIL'} -> CAUGHT
     | [S33] BROKEN: the end classes collapsed to the draft's "no chosen end line -> allowed" (findings M1, M2). Predicted CAUGHT by ['LauncherContinueTests.test_the_end_classes']. The copy ran 151 tests (the copy); failing: {'test_saving.LauncherContinueTests.test_a_budget_end_needs_a_clean_verdict': 'FAIL', "test_saving.LauncherContinueTests.test_a_budget_end_needs_a_clean_verdict (verdict='BREACH')": 'FAIL', "test_saving.LauncherContinueTests.test_a_budget_end_needs_a_clean_verdict (verdict='UNVERIFIED')": 'FAIL', 'test_saving.LauncherContinueTests.test_a_continue_that_stopped_before_its_restore_is_looked_through [it played after its session line]': 'FAIL', "test_saving.LauncherContinueTests.test_a_continue_that_stopped_before_its_restore_is_looked_through [the host's record names another end]": 'FAIL', 'test_saving.LauncherContinueTests.test_a_continue_that_stopped_before_its_restore_is_looked_through [the session before was chosen right after a save]': 'FAIL'} (+46 more) -> CAUGHT
@@ -573,10 +573,11 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | [CH5E9] BROKEN: an entry's CALL / CHECK / CANCEL options take input whatever Task_Pokenav's state (pokenav_view's `taking and` deleted on the options; the verifier's X4b). Predicted CAUGHT by ['PokenavEyesTests.test_u2_the_list_and_the_options_take_no_input_while_a_looped_task_runs']. The copy ran 10 tests (the copy); failing: {'test_eyes.PokenavEyesTests.test_u2_the_list_and_the_options_take_no_input_while_a_looped_task_runs [pokenav_options]': 'FAIL'} -> CAUGHT
     | [CH5E10] BROKEN: the MATCH CALL list's cursor read without the window's top (selectedIndexOffset alone, windowTopIndex dropped: a scrolled list's cursor names the wrong entry; the verifier's X11). Predicted CAUGHT by ['PokenavEyesTests.test_u2_the_list_cursor_is_the_windows_top_plus_its_offset']. The copy ran 10 tests (the copy); failing: {'test_eyes.PokenavEyesTests.test_u2_the_list_cursor_is_the_windows_top_plus_its_offset': 'FAIL'} -> CAUGHT
     | 565 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 566 run (566 defined)
-    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (568 checks of 205 files, files digest 5202c6e4a6735c5c)
+    | FROZEN TREE: PASS - the tree did not change from the start to the verdict (568 checks of 205 files, files digest 5ba774f4421919c0)
     | OVERALL: PASS
+    | [EVIDENCE] kept the earlier tree's 2026-11-06-r1-REVERT.txt (code 53e0c26e7812db47): archive/53e0c26e7812db47-59a7d560/2026-11-06-r1-REVERT.txt
     | evidence: ai_player\evidence\2026-11-06-r1-REVERT.txt
 
 
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (40 checks of 205 files, files digest 5202c6e4a6735c5c); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
-REGRESSION: FAIL (full, 35 suites, 5352.4 s wall)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (40 checks of 205 files, files digest 5ba774f4421919c0); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
+REGRESSION: PASS (full, 35 suites, 5274.2 s wall)
