@@ -114,12 +114,17 @@ knows the map; it does not SEE a person in the dark.
 
 CHAPTER 6 STOPS ROUND 8 (2026-11-07, the round-7 verifier's V7-1 and V7-2), READ ONLY, no new door (`read_symbol`), read on a
 DARK map only: (V7-1) a PERSON is judged by the sprite the screen draws, not by their feet tile: `_drawn_lit` reads the
-object's sprite (`gSprites`, `gSpriteCoordOffsetX/Y`: where and how big it is drawn) and counts its lit pixels; a person
-is listed when at least `eyes/view.py` SEEN_PIXELS (124, the least light the tile rule sees a tile by) are lit. Round 7
-missed a ring of people drawn largely in the light with a dark feet tile (up to 72% of their sprite; 16 gym records a run
-in #110). (V7-2) `_step_shift` reads the field camera's pixel offset inside a step (`gFieldCamera`), so the circle is placed
-on the map where the screen draws it while a step is in progress; round 7 centred it on the step's destination, up to 15 px
-ahead of the screen. Tiles and signs keep the tile rule (a sign is drawn as a tile). A lit map's look is unchanged.
+object's sprite (`gSprites`, `gSpriteCoordOffsetX/Y`: where it is drawn) and counts its lit pixels. Round 7 missed a ring
+of people drawn largely in the light with a dark feet tile (16 gym records a run in #110). (V7-2) `_step_shift` reads the
+field camera's pixel offset inside a step (`gFieldCamera`), so the circle is placed on the map where the screen draws it
+while a step is in progress; round 7 centred it on the step's destination, up to 15 px ahead of the screen. Tiles and signs
+keep the tile rule (a sign is drawn as a tile). A lit map's look is unchanged.
+CHAPTER 6 STOPS ROUND 9 (2026-11-07, the round-8 verifier's V8-1), READ ONLY, no new door (`read_symbol` and the cartridge
+read `_rom_bytes`), on a DARK map only: round 8 counted every pixel of the sprite's rectangle, whose top 10 or 11 rows a
+person leaves transparent, so it listed a person the screen drew none of. `_drawn_lit` now counts only the pixels the
+sprite DRAWS: its current animation frame (the frame command `animNum` / `animCmdIndex` point to, whose image the game
+copies into VRAM: `images[imageValue]`, cartridge data), palette index 0 transparent, mirrored by its OAM flip bits; a
+person is listed by `eyes/view.py` person_seen (some of them lit, and at least SEEN_SHARE, 74 / 227, of what is drawn).
 
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
@@ -181,12 +186,12 @@ from ai_player.eyes.view import (
     DOOR_BEHAVIORS,
     EXIT_BEHAVIORS,
     LEDGE_DIRECTIONS,
+    OBJ_SIZES,
     SAVE_BLOCK_1_FLAG_BYTES,
     SAVE_BLOCK_1_FLAGS,
     SAVE_BLOCK_1_FLASH_LEVEL,
     SAVE_BLOCK_1_VARS,
     SCRIPT_CONTEXT_SHUTDOWN,
-    SEEN_PIXELS,
     STORY_FLAGS,
     TALL_GRASS_BEHAVIORS,
     TEXT_PRINTER_COUNT,
@@ -198,18 +203,20 @@ from ai_player.eyes.view import (
     VIEW_UP,
     behavior_name,
     classify_screen,
+    drawn_pixels,
     facing_name,
     flash_radius,
     foe_move_seen,
     hp_bar_pixels,
     in_view,
     lit,
-    lit_pixels,
     milestone_marks,
     movement_mode,
     object_kind,
+    person_seen,
     script_waits_for_button,
     settled_position,
+    sprite_mask,
     status_name,
     step_offset,
     text_printer_wait,
@@ -1143,19 +1150,37 @@ class FrameworkEyes:
         return step_offset(_s32(camera, 0)), step_offset(_s32(camera, 4))
 
     @staticmethod
-    def _drawn_lit(sprite_id: int, radius: int) -> int:
-        """(Chapter 6 stops round 8, the round-7 verifier's V7-1) How many pixels of a map object's sprite the screen
-        draws lit: its DRAWN rectangle (`include/sprite.h` struct Sprite: x @0x20, y @0x22, x2 @0x24, y2 @0x26,
-        centerToCornerVecX/Y @0x28/0x29, inUse bit 0, coordOffsetEnabled bit 1 and invisible bit 2 of @0x3E: drawn at
-        x + x2 + centerToCornerVecX (+ gSpriteCoordOffsetX), width -2 centerToCornerVecX), counted in the circle
-        (`eyes/view.py` lit_pixels). A sprite that is not drawn (no sprite, not in use, invisible) has none. The sprite's
-        place is where the screen draws it, so a person (or the player) part way through a step is counted where drawn."""
+    def _drawn_lit(sprite_id: int, radius: int) -> tuple[int, int]:
+        """(Chapter 6 stops round 8, V7-1; round 9, the round-8 verifier's V8-1) What the screen draws of a map object's
+        sprite: (how many of its DRAWN pixels are lit, how many pixels it draws). WHERE (round 8; `include/sprite.h` struct
+        Sprite: x @0x20, y @0x22, x2 @0x24, y2 @0x26, centerToCornerVecX/Y @0x28/0x29, inUse bit 0, coordOffsetEnabled bit 1
+        and invisible bit 2 of @0x3E): its top-left at x + x2 + centerToCornerVecX (+ gSpriteCoordOffsetX), so a person part
+        way through a step, or a jump's offset (x2, y2), is counted where drawn. WHAT (round 9): its current animation frame,
+        the image of the frame command `anims[animNum][animCmdIndex]` (anims @0x08, animNum @0x2A, animCmdIndex @0x2B;
+        `AnimCmd_frame` copies `images[imageValue]` into VRAM: images @0x0C, struct SpriteFrameImage {data, size}), cartridge
+        data, at the OAM's size (attr0 @0 shape bits 14-15, attr1 @2 size bits 14-15) and flips (attr1 bits 12 and 13, set by
+        `SetSpriteOamFlipBits`), its palette index 0 transparent (`eyes/view.py` sprite_mask), counted in the circle
+        (drawn_pixels). NOTHING drawn (0, 0): no sprite, not in use, invisible; and, so that the AI sees LESS than the screen,
+        never more: an affine, hidden or 256-colour sprite (attr0 bits 8, 9, 13: no overworld person's; only KYOGRE's and
+        GROUDON's scene sprites are affine) and a command that is not a frame (an animation ended right after a loop: the
+        image shown is not the command's)."""
         if sprite_id >= MAX_SPRITES:
-            return 0
+            return 0, 0
         sprite = read_symbol("gSprites", sprite_id * SPRITE_SIZE, SPRITE_SIZE)
         flags = sprite[0x3E]
         if not flags & 0x01 or flags & 0x04:
-            return 0
+            return 0, 0
+        attr0, attr1 = _u16(sprite, 0), _u16(sprite, 2)
+        size = OBJ_SIZES.get((attr0 >> 14, attr1 >> 14))
+        if attr0 & 0x2300 or size is None:
+            return 0, 0
+        animation = _u32(_rom_bytes(_u32(sprite, 0x08) + 4 * sprite[0x2A], 4), 0)
+        command = _u32(_rom_bytes(animation + 4 * sprite[0x2B], 4), 0)
+        if command & 0x8000:
+            return 0, 0
+        width, height = size
+        image = _u32(_rom_bytes(_u32(sprite, 0x0C) + 8 * (command & 0xFFFF), 4), 0)
+        mask = sprite_mask(bytes(_rom_bytes(image, width * height // 2)), width, bool(attr1 & 0x1000), bool(attr1 & 0x2000))
         corner_x = int.from_bytes(bytes(sprite[0x28:0x29]), "little", signed=True)
         corner_y = int.from_bytes(bytes(sprite[0x29:0x2A]), "little", signed=True)
         left = _s16(sprite, 0x20) + _s16(sprite, 0x24) + corner_x
@@ -1163,7 +1188,7 @@ class FrameworkEyes:
         if flags & 0x02:
             left += _s16(read_symbol("gSpriteCoordOffsetX", size=2), 0)
             top += _s16(read_symbol("gSpriteCoordOffsetY", size=2), 0)
-        return lit_pixels(left, top, -2 * corner_x, -2 * corner_y, radius)
+        return drawn_pixels(left, top, mask, radius), sum(len(row) for row in mask)
 
     @staticmethod
     def _tile(player: PlayerState, x: int, y: int, block: int, border: bytes, primary: bytes, secondary: bytes,
@@ -1223,9 +1248,9 @@ class FrameworkEyes:
             x, y = event.current_coords
             if self.crop and not in_view(player.x, player.y, x, y):
                 continue
-            if radius is not None and self._drawn_lit(event.sprite_id, radius) < SEEN_PIXELS:
+            if radius is not None and not person_seen(*self._drawn_lit(event.sprite_id, radius)):
                 # (round 7, N6-1) a person in the dark is not seen: black on screen. (Round 8, V7-1) judged by the sprite
-                # the screen DRAWS (16 x 32 for a person), not by the feet tile alone: as lit as a seen tile is seen
+                # the screen DRAWS, not by the feet tile alone. (Round 9, V8-1) by the pixels it draws, not its rectangle
                 continue
             seen.append(SeenObject(
                 kind=object_kind(event.graphics_id), x=x, y=y, dx=x - player.x,

@@ -1557,8 +1557,11 @@ class DarkTests(unittest.TestCase):
     eyes listed every object, and the world memory learned every tile, of the whole 15 x 11 window (#109's records: 150 of
     154 gym records a run listed someone outside the circle). Now a tile outside the circle the screen draws is None in
     `View.rows` and an object outside it is not listed (`eyes/view.py` lit, `host/eyes.py` _view). (Round 8, the round-7
-    verifier's V7-1 and V7-2) a person is judged by the sprite the screen draws (d4, d5), and the circle is placed where the
-    screen draws it while a step is in progress (d6). Mutants: `revert_r1.py` CH6S18-CH6S35 (round 7), CH6S36-CH6S49 (round 8)."""
+    verifier's V7-1 and V7-2) a person is judged by the sprite the screen draws (d5), and the circle is placed where the
+    screen draws it while a step is in progress (d6). (Round 9, the round-8 verifier's V8-1 and V8-3) by the pixels the
+    sprite's current frame DRAWS, not its rectangle (d4, d7, d8, d9), where it is drawn with its x2 / y2 (d10). Mutants:
+    `revert_r1.py` CH6S18-CH6S35 (round 7), CH6S36-CH6S49 (round 8; CH6S36-CH6S38 and CH6S41 re-anchored in round 9),
+    CH6S50 on (round 9)."""
 
     LEVEL_7, LEVEL_1 = 7, 1  # no gym trainer beaten / FLASH used
 
@@ -1590,20 +1593,55 @@ class DarkTests(unittest.TestCase):
 
     #: (round 8) the fake's `gSpriteCoordOffsetX/Y` (any values: a sprite is drawn at x + x2 + centerToCornerVec + these)
     COORD_OFFSET = (-40, 24)
+    #: (Round 9, the round-8 verifier's V8-1) REAL sprite frames as the game draws them: the pixels that change on the
+    #: game's own screen when only that object is hidden (the round-8 verifier's s53/ch6stops8/verify/v8_mask.out, in
+    #: DEWFORD's gym at 32 px, 509 of the rectangle's 512 pixels lit). The gym guide's frame draws 227 pixels (the round-9
+    #: probe's eyes read the same 227 from his frame in the cartridge), the player's 216. '#' drawn, '.' transparent: a
+    #: person leaves the top 10 or 11 rows of the 16 x 32 rectangle transparent.
+    GUIDE = ("." * 16,) * 11 + (
+        "..########......", "..##########....", "...##########...", "...###########..", "..############..",
+        "..############..", ".##############.", ".##############.", "..############..", "...##########...",
+        "..############..", "..############..", ".##############.", ".##############.", ".##############.",
+        "..############..", "...##########...", "...##########...", "...##########...", "....###..###....", "." * 16)
+    PLAYER = ("." * 16,) * 10 + (
+        ".....#..........", "....###.........", "...########.....", "..##########....", "...##########...",
+        "..############..", "..############..", "..############..", ".##############.", ".##############.",
+        "..############..", "...##########...", "...##########...", "..############..", ".##############.",
+        ".##############.", "..############..", "...##########...", "...##########...", "...##########...",
+        "....###..###....", "." * 16)
+    #: the fake cartridge: an animation table, its one animation (FRAME(0), FRAME(1), END), the frame table (frame 0
+    #: draws nothing, frame 1 the guide), the frames
+    ANIMS, ANIM, IMAGES, BLANK_FRAME, GUIDE_FRAME = 0x08710000, 0x08710010, 0x08710100, 0x08710200, 0x08710300
+
+    @staticmethod
+    def frame_bytes(mask: tuple[str, ...]) -> bytes:
+        """A 4 bpp frame drawing `mask` in colour 1, the rest in colour 0 (transparent): tiles row after row (the 1D
+        mapping), each 8 x 8 tile 4 bytes a row, the low nibble the left pixel."""
+        width = len(mask[0])
+        data = bytearray(len(mask) * width // 2)
+        for y, row in enumerate(mask):
+            for x, c in enumerate(row):
+                if c == "#":
+                    data[(y // 8 * (width // 8) + x // 8) * 32 + y % 8 * 4 + x % 8 // 2] |= 1 << (4 * (x & 1))
+        return bytes(data)
 
     @staticmethod
     def host_view(level: int, people: list[tuple], signs: tuple = (), crop: bool = True, camera: tuple[int, int] = (0, 0),
-                  drawn: tuple[int, int] = (0, 0), dark_reads: bool = True):
+                  drawn: tuple[int, int] = (0, 0), dark_reads: bool = True, counts: bool = False):
         """The HOST's own `_view` (`host/eyes.py`) and its real readers (`read_symbol`, the framework's
         `get_map_objects`), on a FAKE memory at the real symbols' addresses: a 40 x 40 live grid of open floor, a map
         header whose layout and border are in the cartridge, the player on (10, 10), save block 1's flashLevel = `level`,
-        and `people` (x, y, local id[, sprite flags]) as active object events (`struct ObjectEvent`: active bit, spriteId
-        @4, graphicsId @5, localId @8, elevation @11, currentCoords @0x10 with MAP_OFFSET, facing @0x18). The ROM tables a
-        look reads once are given. (Round 8) Each person's SPRITE (`gSprites[slot]`, struct Sprite: x @0x20, y @0x22,
-        centerToCornerVec (-8, -16) @0x28, flags @0x3E, default inUse | coordOffsetEnabled) is drawn 16 x 32 with its feet on
-        its tile, standing still: screen (112 + 16 dx, 56 + 16 dy) moved by `drawn`, where the screen draws the player's
-        tile while a step is in progress; `camera` is `gFieldCamera`'s (x, y) pixel offset. `dark_reads` False leaves the
-        sprites, `gSpriteCoordOffset*` and `gFieldCamera` OUT of the fake memory, so a look that reads them fails."""
+        and `people` (x, y, local id[, sprite flags[, extra]]) as active object events (`struct ObjectEvent`: active bit,
+        spriteId @4, graphicsId @5, localId @8, elevation @11, currentCoords @0x10 with MAP_OFFSET, facing @0x18). The ROM
+        tables a look reads once are given. (Round 8) Each person's SPRITE (`gSprites[slot]`, struct Sprite: x @0x20, y
+        @0x22, centerToCornerVec (-8, -16) @0x28, flags @0x3E, default inUse | coordOffsetEnabled) is drawn 16 x 32 with its
+        feet on its tile, standing still: screen (112 + 16 dx, 56 + 16 dy) moved by `drawn`, where the screen draws the
+        player's tile while a step is in progress; `camera` is `gFieldCamera`'s (x, y) pixel offset. (Round 9) and its
+        FRAME: OAM attr0 @0 / attr1 @2 16 x 32 (shape 2, size 2), anims @0x08, images @0x0C, animNum 0 @0x2A,
+        animCmdIndex @0x2B 1 (the guide's frame); `extra` may set "attr0" / "attr1" bits (flips, affine), "index"
+        (animCmdIndex) and "x2" / "y2". `dark_reads` False leaves the sprites, their frames, `gSpriteCoordOffset*` and
+        `gFieldCamera` OUT of the fake memory, so a look that reads them fails. `counts`: also return, by local id, the
+        host's own `_drawn_lit` (lit, drawn) of each person."""
         from modules.context import context
         from modules.game import get_symbol
 
@@ -1623,7 +1661,8 @@ class DarkTests(unittest.TestCase):
         objects = bytearray(0x24 * 16)
         sprites = bytearray(0x44 * 64)
         off_x, off_y = DarkTests.COORD_OFFSET
-        for slot, (x, y, local, *flags) in enumerate(people, start=1):
+        for slot, (x, y, local, *more) in enumerate(people, start=1):
+            extra = more[1] if len(more) > 1 else {}
             at = 0x24 * slot
             objects[at] = 0x01
             objects[at + 4], objects[at + 5], objects[at + 8], objects[at + 11] = slot, 100, local, 3
@@ -1631,9 +1670,14 @@ class DarkTests(unittest.TestCase):
             objects[at + 0x18] = 1
             left, top = 112 + 16 * (x - 10) + drawn[0], 56 + 16 * (y - 10) + drawn[1]
             sprite = 0x44 * slot
-            sprites[sprite + 0x20:sprite + 0x24] = s16(left + 8 - off_x) + s16(top + 16 - off_y)
+            sprites[sprite:sprite + 4] = ((0x8000 | extra.get("attr0", 0)).to_bytes(2, "little")
+                                          + (0x8000 | extra.get("attr1", 0)).to_bytes(2, "little"))  # 16 x 32
+            sprites[sprite + 0x08:sprite + 0x10] = u32(DarkTests.ANIMS) + u32(DarkTests.IMAGES)
+            sprites[sprite + 0x20:sprite + 0x28] = (s16(left + 8 - off_x) + s16(top + 16 - off_y) + s16(extra.get("x2", 0))
+                                                    + s16(extra.get("y2", 0)))
             sprites[sprite + 0x28], sprites[sprite + 0x29] = 0xF8, 0xF0  # centerToCornerVec (-8, -16): 16 x 32
-            sprites[sprite + 0x3E] = flags[0] if flags else 0x03
+            sprites[sprite + 0x2B] = extra.get("index", 1)
+            sprites[sprite + 0x3E] = more[0] if more else 0x03
         cells = {get_symbol("gBackupMapLayout")[0]: u32(width) + u32(height) + u32(grid),
                  get_symbol("gMapHeader")[0]: u32(layout) + bytes(0x18),
                  get_symbol("gSaveBlock1Ptr")[0]: u32(save_block_1),
@@ -1646,7 +1690,12 @@ class DarkTests(unittest.TestCase):
                           get_symbol("gSpriteCoordOffsetX")[0]: s16(off_x),
                           get_symbol("gSpriteCoordOffsetY")[0]: s16(off_y),
                           get_symbol("gFieldCamera")[0]: bytes(0x10) + camera[0].to_bytes(4, "little", signed=True)
-                          + camera[1].to_bytes(4, "little", signed=True)})
+                          + camera[1].to_bytes(4, "little", signed=True),
+                          DarkTests.ANIMS: u32(DarkTests.ANIM),
+                          DarkTests.ANIM: u32(0x00100000) + u32(0x00100001) + u32(0x0000FFFF),  # FRAME(0), FRAME(1), END
+                          DarkTests.IMAGES: u32(DarkTests.BLANK_FRAME) + u32(256) + u32(DarkTests.GUIDE_FRAME) + u32(256),
+                          DarkTests.BLANK_FRAME: bytes(256),
+                          DarkTests.GUIDE_FRAME: DarkTests.frame_bytes(DarkTests.GUIDE)})
 
         class Memory:
             def read_bytes(self, address: int, length: int) -> bytes:
@@ -1661,7 +1710,11 @@ class DarkTests(unittest.TestCase):
         eyes._maps[(3, 3)] = ("DEWFORD TOWN", "DEWFORD_TOWN_GYM", signs)  # noqa: SLF001
         player = PlayerState(3, 3, "DEWFORD TOWN", "DEWFORD_TOWN_GYM", 10, 10, "up", "walking", 3, 0, 1)
         with mock.patch.object(context, "emulator", Memory(), create=True):
-            return eyes._view(player), player  # noqa: SLF001
+            view = eyes._view(player)  # noqa: SLF001
+            if counts:
+                return view, player, {person[2]: host_eyes.FrameworkEyes._drawn_lit(slot, view.lit)  # noqa: SLF001
+                                      for slot, person in enumerate(people, start=1)}
+            return view, player
 
     def learned(self, view) -> set:
         from ai_player.world.memory import MapMemory
@@ -1674,7 +1727,7 @@ class DarkTests(unittest.TestCase):
         """FAULT (N6-1; on adf6c246 the eyes listed him and every tile): DEWFORD's gym at flash level 7, BRAWLY 3 tiles
         right and 2 up (outside the 24 px circle) and a sign 4 up: neither is listed, his tile is None in the view and the
         world memory learns only the 9 lit tiles. CONTROL (the same look): a trainer 1 right and 1 up, inside the circle,
-        IS listed, and his tile learned. The record says so (`lit=24px`, 9 tiles)."""
+        IS listed (98 of 227 drawn pixels lit), and his tile learned. The record says so (`lit=24px`, 9 tiles)."""
         view, player = self.host_view(self.LEVEL_7, [(13, 8, 1), (11, 9, 2)], signs=(((10, 6), 0),))
         self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(2, 1, -1)])
         self.assertIsNone(view.tile(3, -2))
@@ -1711,52 +1764,68 @@ class DarkTests(unittest.TestCase):
         self.assertIsNone(getattr(view, "lit", None))
         self.assertEqual([o.local_id for o in view.objects], [1])
 
-    def test_d4_a_person_needs_the_light_a_tile_needs(self):
-        """(Round 8, the round-7 verifier's V7-1) `SEEN_PIXELS` is DERIVED, not chosen: the fewest lit pixels of any tile
-        the tile rule (`lit`) sees, over every flash level and every tile of the window, at rest (124: the tile 2 rows up
-        under the 32 px circle's top). `lit_pixels` equals a pixel-by-pixel count of `flash_window` on a person's 16 x 32
-        rectangle and a tile's 16 x 16 at every level and place; and a person's verdict is the same at (dx, dy) and
-        (-dx, dy) everywhere (the round-7 rule saw (-2, 0) at 32 px and not (2, 0)). Two values the verifier measured
-        with its own window: 327 px at (-1, 2) and 183 px at (2, 0) (32 px), 268 px at (0, 2) (24 px)."""
-        from ai_player.eyes.view import FLASH_RADIUS, SEEN_PIXELS, flash_window, lit, lit_pixels, view_offsets
+    @staticmethod
+    def brute_drawn(mask, left, top, radius):
+        """A pixel-by-pixel count of `mask`'s drawn ('#') pixels inside `flash_window` and on the screen."""
+        from ai_player.eyes.view import flash_window
 
-        def brute(left, top, width, height, radius):
-            window = flash_window(radius)
-            return sum(1 for y in range(top, top + height) for x in range(left, left + width)
-                       if 0 <= x < 240 and 0 <= y < 160 and window.get(y, (0, 0))[0] <= x < window.get(y, (0, 0))[1])
+        window = flash_window(radius)
+        return sum(1 for y, row in enumerate(mask) for x, c in enumerate(row) if c == "#" and 0 <= left + x < 240
+                   and 0 <= top + y < 160 and window.get(top + y, (0, 0))[0] <= left + x < window.get(top + y, (0, 0))[1])
+
+    @staticmethod
+    def mask_of(mask, h_flip=False, v_flip=False):
+        """`mask` as `sprite_mask` gives it: per row, the drawn columns, mirrored as the flips say."""
+        rows = [row[::-1] if h_flip else row for row in mask]
+        return tuple(tuple(x for x, c in enumerate(row) if c == "#") for row in (rows[::-1] if v_flip else rows))
+
+    def test_d4_a_tiles_light_and_a_sprites_drawn_pixels(self):
+        """(Round 8) the tile rule's least light: the fewest lit pixels of any tile `lit` sees, over every flash level and
+        every tile of the window, at rest, is 124 of 256 (the tile 2 rows up under the 32 px circle's top); `lit_pixels`
+        equals a pixel-by-pixel count of `flash_window` on a tile at every level and place. (Round 9, V8-1) a SPRITE is
+        counted by the pixels it DRAWS: `sprite_mask` decodes a 4 bpp frame back into the drawn pixels, mirrored by its
+        flips, and `drawn_pixels` equals a pixel-by-pixel count of those pixels in `flash_window` at every level and place,
+        for the guide's real frame and its mirror. Values the game's screen drew (s53/ch6stops9 probe9.py, the guide moved
+        by a probe-only write): (-1, 2) 109 px at 32 px and 8 px at 24 px, (0, 3) 0 px at 32 px."""
+        from ai_player.eyes.view import FLASH_RADIUS, drawn_pixels, lit, lit_pixels, sprite_mask, view_offsets
 
         least = None
         for radius in FLASH_RADIUS[1:8]:
             for dx, dy in view_offsets():
-                person = lit_pixels(112 + 16 * dx, 56 + 16 * dy, 16, 32, radius)
-                self.assertEqual(person, brute(112 + 16 * dx, 56 + 16 * dy, 16, 32, radius), (radius, dx, dy))
                 tile = lit_pixels(112 + 16 * dx, 72 + 16 * dy, 16, 16, radius)
-                self.assertEqual(tile, brute(112 + 16 * dx, 72 + 16 * dy, 16, 16, radius), (radius, dx, dy))
+                self.assertEqual(tile, self.brute_drawn(("#" * 16,) * 16, 112 + 16 * dx, 72 + 16 * dy, radius))
                 if lit(dx, dy, radius):
                     least = tile if least is None else min(least, tile)
-                    self.assertGreaterEqual(person, SEEN_PIXELS, (radius, dx, dy))  # a seen feet tile: a seen person
-                self.assertEqual(person, lit_pixels(112 - 16 * dx, 56 + 16 * dy, 16, 32, radius), (radius, dx, dy))
-        self.assertEqual(least, SEEN_PIXELS)
-        self.assertEqual(SEEN_PIXELS, 124)
-        self.assertEqual([lit_pixels(112 + 16 * dx, 56 + 16 * dy, 16, 32, 32) for dx, dy in ((-1, 2), (2, 0))], [327, 183])
-        self.assertEqual(lit_pixels(112, 88, 16, 32, 24), 268)
+                for flip in (False, True):
+                    mask = self.mask_of(self.GUIDE, h_flip=flip)
+                    flipped = tuple(row[::-1] for row in self.GUIDE) if flip else self.GUIDE
+                    self.assertEqual(drawn_pixels(112 + 16 * dx, 56 + 16 * dy, mask, radius),
+                                     self.brute_drawn(flipped, 112 + 16 * dx, 56 + 16 * dy, radius), (radius, dx, dy, flip))
+        self.assertEqual(least, 124)
+        frame = self.frame_bytes(self.GUIDE)
+        self.assertEqual(sprite_mask(frame, 16), self.mask_of(self.GUIDE))
+        self.assertEqual(sprite_mask(frame, 16, h_flip=True), self.mask_of(self.GUIDE, h_flip=True))
+        self.assertEqual(sprite_mask(frame, 16, v_flip=True), self.mask_of(self.GUIDE, v_flip=True))
+        self.assertEqual(sum(map(len, sprite_mask(frame, 16))), 227)
+        self.assertEqual(sprite_mask(bytes(256), 16), ((),) * 32)  # palette index 0 everywhere: nothing drawn
+        guide = self.mask_of(self.GUIDE)
+        self.assertEqual([drawn_pixels(96, 88, guide, 32), drawn_pixels(96, 88, guide, 24), drawn_pixels(112, 104, guide, 32)],
+                         [109, 8, 0])
 
     def test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark(self):
-        """FAULT (V7-1; on 986a5816 the eyes listed only (-2, 0) of the first look and nobody of the second): at 32 px (one
-        gym trainer beaten, D2's gym) people drawn largely in the light with a DARK feet tile are listed: (-1, 2) 327 px,
-        (2, 0) and its mirror (-2, 0) 183 px each, (0, 3) 140 px. CONTROLS (the same look): (1, -2), only grazed (58 px), and
-        (0, 4), wholly dark, are NOT listed; a person inside the circle whose sprite is not drawn (invisible) is not listed.
-        At 24 px (no trainer beaten, GRANITE CAVE without FLASH): (0, 2) 268 px and (1, 2) 162 px are listed, (0, 3) (12 px)
-        is not. The tiles keep their own rule: (2, 0) and (-1, 2) stay None at 32 px."""
-        people = [(9, 12, 1), (12, 10, 2), (8, 10, 3), (10, 13, 4), (11, 8, 5), (10, 14, 6), (10, 9, 7, 0x07)]
-        view, _ = self.host_view(6, people)
+        """FAULT (V7-1; on 986a5816 the eyes listed only (-2, 0)): at 32 px (one gym trainer beaten, D2's gym) people the
+        screen draws half lit with a DARK feet tile are listed: (-1, 2) (109 of the guide's 227 drawn pixels lit), (2, 0)
+        (106) and its mirror (-2, 0) (101). CONTROLS (the same look): (1, -2), only grazed (27 lit), and (0, 4), wholly dark,
+        are NOT listed; a person inside the circle whose sprite is not drawn (invisible) is not listed. The tiles keep their
+        own rule: (2, 0) and (-1, 2) stay None at 32 px. (Round 9: (0, 3), listed by round 8, is test_d8's FAULT.)"""
+        people = [(9, 12, 1), (12, 10, 2), (8, 10, 3), (11, 8, 5), (10, 14, 6), (10, 9, 7, 0x07)]
+        view, _, counts = self.host_view(6, people, counts=True)
         self.assertEqual(view.lit, 32)
-        self.assertEqual(sorted((o.local_id, o.dx, o.dy) for o in view.objects), [(1, -1, 2), (2, 2, 0), (3, -2, 0), (4, 0, 3)])
+        self.assertEqual(sorted((o.local_id, o.dx, o.dy) for o in view.objects), [(1, -1, 2), (2, 2, 0), (3, -2, 0)])
+        self.assertEqual(counts, {1: (109, 227), 2: (106, 227), 3: (101, 227), 5: (27, 227), 6: (0, 227), 7: (0, 0)})
         self.assertIsNone(view.tile(2, 0))
         self.assertIsNone(view.tile(-1, 2))
         self.assertIsNotNone(view.tile(-2, 0))
-        view, _ = self.host_view(7, [(10, 12, 1), (11, 12, 2), (10, 13, 3)])
-        self.assertEqual(sorted((o.local_id, o.dx, o.dy) for o in view.objects), [(1, 0, 2), (2, 1, 2)])
 
     def test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it(self):
         """FAULT (V7-2; on 986a5816 the circle was centred on the step's destination): walking Up, the step's first frame
@@ -1766,9 +1835,11 @@ class DarkTests(unittest.TestCase):
         behind the player are seen. Expected tiles from the verifier's own window (s53/ch6stops8/expect_d6.py): 11 tiles,
         (-2, 1), (-1..1, 0..2) and (0, -1); a sign on (1, 2), a tile drawn lit, is listed (a sign keeps the tile rule,
         placed as the tiles are). Walking Right at 24 px (`gFieldCamera.x` = 1, drawn 15 px right): the 3 x 3 round the
-        step's ORIGIN is seen, (1, 0) is not; a person at (-1, 0) (508 px) is listed, one at (1, 0) (13 px) not. CONTROL: the
-        camera standing still (0, 0) gives the rest look (round 7's tiles; the guide, 124 px, listed; the sign on (1, 2), a
-        dark tile at rest, not)."""
+        step's ORIGIN is seen, (1, 0) is not; a person at (-1, 0) (all 227 drawn pixels lit) is listed, one at (1, 0) (0 lit)
+        not. CONTROL: the camera standing still (0, 0) gives the rest look (round 7's tiles; the guide, 74 of 227 lit, listed;
+        the sign on (1, 2), a dark tile at rest, not). (Round 9) LIMIT, measured (the round-8 verifier's V8-2, six looks; the
+        round-9 probe's walk, seven): MID-STEP, for 1 to 4 frames, a standing person whose feet tile the shifted tile rule
+        sees can be unlisted (65 to 73 of 227 drawn pixels lit, below SEEN_SHARE; test_d11): at rest none is (test_d7)."""
         view, _ = self.host_view(6, [(10, 8, 1), (8, 11, 2)], signs=(((11, 12), 0),), camera=(0, -1), drawn=(0, -15))
         self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(2, -2, 1), (-1, 1, 2)])
         seen = sorted((dx, dy) for dy in range(-5, 6) for dx in range(-7, 8) if view.tile(dx, dy) is not None)
@@ -1782,6 +1853,93 @@ class DarkTests(unittest.TestCase):
         seen = sorted((dx, dy) for dy in range(-5, 6) for dx in range(-7, 8) if view.tile(dx, dy) is not None)
         self.assertEqual(len(seen), 12)
         self.assertIn((0, -2), seen)
+
+    def test_d7_the_share_a_person_needs_is_derived(self):
+        """(Round 9, V8-1) `SEEN_SHARE` (74 / 227) is DERIVED, not chosen: the least lit share of a person's DRAWN pixels
+        when the tile rule sees their feet tile, standing still, over every flash level and every place of the window, for
+        the guide's real frame (74 of 227, at (0, -2) under the 32 px circle's top) and its mirror; the player's frame gives
+        74 of 216 there, a larger share. So at rest a person whose feet tile is seen is seen, for both frames. The round-8
+        verifier's V8-1 places (round 8 listed them; the screen draws 0 to 29 of the person) are NOT seen with either frame,
+        and its CONTROL (-1, 2) at 32 px (109 drawn) is. A person whose frame draws nothing is never seen."""
+        from fractions import Fraction
+
+        from ai_player.eyes.view import FLASH_RADIUS, SEEN_SHARE, drawn_pixels, lit, person_seen, view_offsets
+
+        least = {}
+        for name, frame in (("guide", self.GUIDE), ("player", self.PLAYER)):
+            for flip in (False, True):
+                mask = self.mask_of(frame, h_flip=flip)
+                total = sum(map(len, mask))
+                for radius in FLASH_RADIUS[1:8]:
+                    for dx, dy in view_offsets():
+                        if (dx, dy) == (0, 0) or not lit(dx, dy, radius):
+                            continue
+                        count = drawn_pixels(112 + 16 * dx, 56 + 16 * dy, mask, radius)
+                        least[name] = min(least.get(name, Fraction(1)), Fraction(count, total))
+                        self.assertTrue(person_seen(count, total), (name, flip, radius, dx, dy, count))
+                verdict = {(radius, dx, dy): person_seen(drawn_pixels(112 + 16 * dx, 56 + 16 * dy, mask, radius), total)
+                           for radius, dx, dy in ((32, 0, 3), (48, 0, 4), (64, 0, 5), (72, -2, 5), (24, -1, 2), (24, 1, 2),
+                                                  (40, -1, 3), (40, 1, 3), (48, -2, 3), (48, 2, 3), (72, -4, 3), (72, 4, 3),
+                                                  (72, 2, 5), (32, -1, 2))}
+                self.assertEqual({key for key, seen in verdict.items() if seen}, {(32, -1, 2)}, (name, flip))
+        self.assertEqual(least, {"guide": Fraction(74, 227), "player": Fraction(74, 216)})
+        self.assertEqual(SEEN_SHARE, (74, 227))
+        self.assertEqual(Fraction(*SEEN_SHARE), min(least.values()))
+        self.assertEqual([person_seen(0, 0), person_seen(0, 227), person_seen(74, 227), person_seen(73, 227)],
+                         [False, False, True, False])
+
+    def test_d8_fault_a_person_the_screen_draws_none_of_is_not_seen(self):
+        """FAULT (V8-1; on 059a65ff, round 8, every one of these was listed: their RECTANGLE had 140 to 268 lit pixels, its
+        top 10 or 11 rows transparent): at 32 px the guide drawn at (0, 3) (the screen drew 0 of him on the game's own frame,
+        s53/ch6stops9 probe9.py); at 24 px (-1, 2) (8 of 227 drawn pixels lit, 8 on the screen), (1, 2) (13) and (0, 2) (63,
+        below the share); at 48 px (0, 4) (0). CONTROL (the same 32 px look): (-1, 2), 109 of 227 lit, IS listed."""
+        view, _, counts = self.host_view(6, [(10, 13, 1), (9, 12, 2)], counts=True)
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(2, -1, 2)])
+        self.assertEqual(counts, {1: (0, 227), 2: (109, 227)})
+        view, _, counts = self.host_view(7, [(9, 12, 1), (11, 12, 2), (10, 12, 3)], counts=True)
+        self.assertEqual(view.objects, ())
+        self.assertEqual(counts, {1: (8, 227), 2: (13, 227), 3: (63, 227)})
+        view, _ = self.host_view(4, [(10, 14, 1)])
+        self.assertEqual((view.lit, view.objects), (48, ()))
+
+    def test_d9_the_frame_the_screen_draws_its_flips_and_the_sprites_it_cannot_read(self):
+        """(Round 9, V8-1) the frame counted is the one the game DRAWS: the image of the animation's current command
+        (animCmdIndex 1: the guide; 0: a frame that draws nothing, so a person standing in the light is NOT listed), mirrored
+        by the OAM's flip bits (24 px: (1, 2) counts 13 drawn pixels, flipped 8, the mirror of (-1, 2); (0, 2) counts 63,
+        flipped upside down 188 and is then listed). CONTROL: (0, 1), wholly lit, unflipped, 227 of 227, listed. LESS, never
+        more: a sprite whose frame is not known (a command that is not a frame, an END) or that is not drawn as a plain
+        16-colour sprite (affine, hidden by its affine mode, 256 colours, OAM shape 3) counts nothing and is not listed."""
+        people = [(10, 11, 1), (10, 11, 2, 0x03, {"index": 0}), (10, 11, 3, 0x03, {"index": 2}),
+                  (11, 12, 4, 0x03, {"attr1": 0x1000}), (9, 12, 5, 0x03, {"attr1": 0x1000}), (10, 12, 6, 0x03, {"attr1": 0x2000}),
+                  (11, 12, 7), (10, 11, 8, 0x03, {"attr0": 0x0100}), (10, 11, 9, 0x03, {"attr0": 0x0200}),
+                  (10, 11, 10, 0x03, {"attr0": 0x2000}), (10, 11, 11, 0x03, {"attr0": 0x4000})]
+        view, _, counts = self.host_view(7, people, counts=True)
+        self.assertEqual(sorted(o.local_id for o in view.objects), [1, 6])
+        self.assertEqual(counts, {1: (227, 227), 2: (0, 0), 3: (0, 0), 4: (8, 227), 5: (13, 227), 6: (188, 227),
+                                  7: (13, 227), 8: (0, 0), 9: (0, 0), 10: (0, 0), 11: (0, 0)})
+
+    def test_d10_fault_a_jump_or_shake_offset_moves_what_is_counted(self):
+        """FAULT (the round-8 verifier's V8-3 and its mutant VM8-A: dropping x2 / y2 from the drawn place survived every
+        test, the fakes never set them): a sprite's x2 / y2 (a jump's or a shake's offset) moves where the screen draws it.
+        At 32 px: the guide at (0, -2) lifted 8 px (y2 -8) is drawn wholly in the dark, 0 lit, NOT listed (at rest he is,
+        74 of 227); at (2, 0) moved 8 px right (x2 8), 0 lit, NOT listed (106 without); at (-2, 1) moved 8 px right, 202
+        lit, LISTED (64 without, not listed)."""
+        people = [(10, 8, 1, 0x03, {"y2": -8}), (12, 10, 2, 0x03, {"x2": 8}), (8, 11, 3, 0x03, {"x2": 8})]
+        view, _, counts = self.host_view(6, people, counts=True)
+        self.assertEqual([o.local_id for o in view.objects], [3])
+        self.assertEqual(counts, {1: (0, 227), 2: (0, 227), 3: (202, 227)})
+
+    def test_d11_limit_mid_step_a_person_on_a_seen_tile_can_be_unlisted(self):
+        """A STATED LIMIT, pinned (the round-8 verifier's V8-2): the two rules agree at rest (test_d7), NOT while a step is in
+        progress. Walking Right at 32 px, `gFieldCamera.x` 2 to 6 (the screen draws the map 14 to 10 px right of rest), the
+        guide standing at (-1, -2) has his feet tile SEEN by the shifted tile rule and is NOT listed: 73, 72, 70, 68, 66 of
+        his 227 drawn pixels lit, below SEEN_SHARE. On the game's own frames the eyes counted exactly these (s53/ch6stops9
+        probe9.py walk, gym32 s2Right walk6 to after0) and the screen drew 74, 73, 72, 70, 68 of him (one frame behind the
+        memory the eyes read); the round-8 verifier's six looks were walk7 to after0, s3Up walk8 and the 24 px s3Up after7.
+        Each lasts 1 to 4 frames. If this changes, change the docs with it."""
+        view, _, counts = self.host_view(6, [(9, 8, 1)], camera=(3, 0), drawn=(13, 0), counts=True)
+        self.assertIsNotNone(view.tile(-1, -2))
+        self.assertEqual((view.objects, counts), ((), {1: (72, 227)}))
 
     @staticmethod
     def observation(view, player):

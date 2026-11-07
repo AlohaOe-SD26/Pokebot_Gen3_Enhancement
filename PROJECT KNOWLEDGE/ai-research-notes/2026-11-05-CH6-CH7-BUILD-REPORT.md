@@ -2,9 +2,9 @@
 
 > A NOTE, not a source of truth (`00-READ-THIS-FIRST.md`). It collects the workflows' own reports for chapters 6-7 on
 > branch `wip/ch6-ch7` (worktree `wf_e7452923-f06-3`), in order: the wiring (base `979754bf`, commit `4b84131a`) and its
-> adversarial check of the cloud draft, KI-134's verification (`43485a36`), then the chapter 6 stop rounds 1-7 with one
+> adversarial check of the cloud draft, KI-134's verification (`43485a36`), then the chapter 6 stop rounds 1-9 with one
 > independent verifier each (commits `2bce9c0c`, `66acbd1c`, `07913cde`, `bbb68eb9`, `c41db547`, `095ea511`,
-> `adf6c246` and round 7's). Every live claim is development (one trajectory per seed, never a rate); the ledger ids
+> `adf6c246`, `986a5816`, `059a65ff` and round 9's; round 8's verifier read FAIL and round 9 fixed its MAJOR). Every live claim is development (one trajectory per seed, never a rate); the ledger ids
 > on this branch from #96 overlap `main`'s #96-#101 and are renumbered at the merge. Nothing here is on `main` until
 > `07` records the merge. The cloud draft that the wiring checked is appendix A.
 
@@ -1133,6 +1133,224 @@ Caveat first: this is 2 pairs, one trajectory each, development only, from a tes
 - The worktree is untouched.
 - C: has 61.4 GB free.
 - Progress notes: `s53/ch6stops7/verify/STATE.md`.
+
+## Chapter 6 stops, round 8 (the builder, 2026-11-07)
+
+Worktree wf_e7452923-f06-3 (wip/ch6-ch7), starting from 986a5816. Nothing is committed or staged. All work was offline; there was no live batch.
+
+Headline, with its caveat: on a dark map the eyes now see a person by the sprite the screen draws. The circle also stays where the screen draws it while a step is in progress. This was checked frame by frame on real emulator frames from one gym walk at 32 px, plus a cave state at rest, and in unit tests. It is not a live run and says nothing about how play changes.
+
+V7-1 (MAJOR), fixed.
+- Reproduced first on 986a5816. probe8.py looked on every frame of the verifier's walk into DEWFORD's gym, which is at 32 px from D2. It measured against the game's WIN0H buffer and each sprite's drawn rectangle. In 67 of 192 dark looks, a person with at least 124 lit pixels of their sprite was not listed. The new unit tests d4 and d5 also fail on the base.
+- The new rule: a person is seen when at least SEEN_PIXELS = 124 pixels of their drawn sprite rectangle are lit. The rectangle comes from gSprites and gSpriteCoordOffsetX/Y, through the existing read_symbol door.
+- Why 124: it is derived, not chosen. It is the fewest lit pixels of any tile that the tile rule sees, at any flash level. So a person needs exactly the light a tile needs.
+- What follows from that:
+  - anyone whose feet tile is seen is still seen;
+  - the ring round 7 missed is now seen (up to 72% of a sprite was lit there);
+  - a grazed sprite is not seen;
+  - mirror places get the same verdict.
+- Tiles keep their own middle-pixel rule. Signs keep it too, because a sign is drawn as a tile. Lit maps read nothing new.
+
+V7-2 (MINOR), fixed.
+- Reproduced first on 986a5816. All 105 mid-step looks saw a tile whose drawn middle pixel was dark. In 54 looks a tile was seen with 0 lit pixels, and in 8 looks the guide was listed with 0 lit pixels.
+- The fix places the circle by where the screen draws the player's tile. It uses gFieldCamera's pixel offset inside the step, with the same rule as SetSpritePosToMapCoords (step_offset). People need no shift, because their drawn sprite already includes the scroll.
+
+V7-3 (MINOR): two tests added. The code was already correct and is unchanged.
+- h2 now requires the walk out of the gym to end on arriving in the town. This catches VM-E.
+- New h5: a top-up in MR. BRINEY's cottage, whose only known way out is ROUTE 104, does not look for a POKéMON CENTER on the route. This catches VM-D. With a way out to DEWFORD_TOWN instead, it looks for DEWFORD's centre (the control).
+
+V7-4 (NIT): the round-7 evidence file is reworded. It now says that people whose feet tile is lit were listed, and that a ring of people partly in the light was not. P3 is marked "HELD as worded".
+
+Proof:
+- Unit tests:
+  - test_eyes DarkTests d4, d5 and d6, plus the d3 control, which now runs with the new reads left out of the fake memory.
+  - test_goals h2 and h5.
+  - On the base: d4 ERROR, d5 FAIL, d6 FAIL; d1 to d3 pass.
+- Real frames, with predictions hashed first (359221d3...); all five held:
+  - Arm B: V71, MORE, ZERO and every tile mismatch are 0 over 192 dark looks, including 105 mid-step.
+  - At rest, B drops none of A's people and adds 50.
+  - The lit control is byte-identical on 88 of 88 looks over 22 states.
+- Mutants, with predictions hashed first (24196844...):
+  - revert_step5: G689 and G690 caught, G0 PASS (462 tests).
+  - revert_r1: CH6S36 to CH6S49 caught, plus CH6S19, CH6S20, CH6S21 and CH6S31, which were re-anchored. R0 PASS (640 tests).
+  - call_census since HEAD: 0 MISSING, no new waiver.
+  - 1,327 anchors, all unique.
+
+Gates on the final tree, all PASS:
+- test_eyes 81, test_goals 462, test_world 139, test_host 37, test_evidence 27 and FairnessTests 9.
+- check_fairness, check_purity, call_census, check_paths and ledger --check (110 entries).
+
+Limits:
+- N8-1: the count includes the sprite's own transparent pixels.
+- N8-2: the tile rule's exactly-half-lit asymmetry at the widest row is kept.
+- N8-3: the effect on play is unmeasured, and N7-1 still stands.
+
+Cleanup:
+- The stage was torn down with its junctions unlinked first, and base/ was deleted.
+- The main sandbox's counts are unchanged: plugins 43, mgba 44, roms 2 (and modules 4461), by rglob.
+- The main checkout is clean. C: has 61.3 GB free.
+
+Progress file: s53/ch6stops8/STATE.md.
+
+## Chapter 6 stops, round 8: verification (the verifier, 2026-11-07)
+
+Verdict: FAIL, on V7-1 only. V7-2, V7-3 and V7-4 are confirmed.
+
+Headline, with its caveat: the new person rule (at least 124 lit pixels of the sprite's RECTANGLE) lists people that the screen does not draw at all. The top 10 to 11 rows of every 16x32 person sprite are transparent. A person below the player has only those rows in the light. On a real frame at 32 px (D2's level), a person drawn where (0,3) is drawn is listed with 140 counted pixels and 0 drawn pixels. That frame places the guide's sprite there by a probe-only write. On real frames at 24 px, the gym guide at (-1,2) was listed with 8 drawn pixels in 50 rest-phase looks. That is one trajectory, not a rate. Round 7's rule listed none of these. This is a RULING 40 breach in the opposite direction from V7-1.
+
+What I ran: everything offline, on a copy of the worktree without .git (986a5816 plus the builder's uncommitted round). Predictions were written and hashed before any run: v8_predictions.txt, sha256 f7aa7e79aec5f593....
+
+- Probe (v8_probe.py), on real emulator frames:
+  - three arms: the gym at 32 px from D2 (191 dark looks, 99 mid-step); the gym at 24 px, with trainer flag 574 cleared in the probe only (191 looks); and GRANITE B1F at 24 px (57 looks, with no person in them);
+  - ground truth: the game's WIN0H buffer, gSprites, and the rendered screen;
+  - a person's drawn pixels are the pixels that change when only that object is hidden (its ObjectEvent invisible bit, 3 frames).
+- V8-1 follow-ups:
+  - v8_mask.py measured the real sprite masks. Its model, built on those masks, matches the probe's measured values exactly.
+  - v8_place.py checked (0,3) at 32 px on a real frame, with a control.
+- v8_mutants.py: 7 mutants of my own.
+- v8_heal.py: the round-7 verifier's VM-D and VM-E against the new tests.
+
+Results against my predictions:
+- VP8-1 HOLDS: in 439 dark looks, the eyes' person verdict equals my own count (RAM window plus gSprites, at least 124) every time.
+- VP8-2: no listed person had 0 drawn pixels in the natural walk. Its ">= 30" part FAILED, with 8 drawn pixels (V8-1).
+- VP8-3 HOLDS: no unlisted person had more than 73 drawn pixels.
+- VP8-4 HOLDS: 0 tile mismatches (seen with a dark drawn middle pixel, unseen with a lit one, or seen with 0 lit pixels) in 382 looks with a standing reference. That includes 198 mid-step looks, at both 24 and 32 px. This extends the builder's evidence, which covered 24 px mid-step only in unit tests.
+- VP8-5 HOLDS: on 92 lit DEWFORD TOWN looks the eyes read none of gSprites, gSpriteCoordOffsetX/Y or gFieldCamera, and called neither new function. My first census pooled 23 dark gym looks into the lit count. That was an instrument error, corrected by attributing reads per look (v8_look.out).
+- VP8-6 HOLDS at rest. VP8-6b HELD: 6 mid-step exceptions (V8-2).
+- VP8-7 HOLDS: 124 is the fewest lit pixels of a seen tile at rest (r 32, tile (0,-2)), from my own window.
+- VP8-8 HOLDS: the gym loads at 24 px with the trainer flag cleared.
+
+Findings:
+- V8-1 (MAJOR): a person is listed when the screen draws none of them.
+  - The real masks of the guide and the player start at rows 11 and 10 of their 32-row rectangles.
+  - With the real mask, the model (exact on (-1,2): 162/8 at 24 px and 327/109 at 32 px) gives 0 drawn pixels for listings at (0,3) at 32 px, (0,4) at 48, (0,5) at 64 and (-2,5) at 72.
+  - It gives 1 to 29 drawn pixels for listings at (+-1,2) at 24, (+-1,3) at 40 and several places at 48 and 72.
+  - test_d5 asserts that (0,3) at 32 px IS listed, so the test pins the defect.
+  - The claim "a person needs exactly the light a tile needs" does not hold on real frames, and N8-1 understates the problem.
+  - Fix: count drawn (opaque) pixels, from the sprite frame's graphics or at least its drawn rows, and re-derive the threshold. Then flip d5's (0,3) expectation, add a real-mask FAULT and CONTROL, and re-probe.
+- V8-2 (MINOR): "anyone whose feet tile is seen is still seen" holds only at rest. Mid-step, in 6 person-looks of one trajectory (1 to 4 frames each), the feet tile was seen and the person was not listed (rectangle 104-122, 61-73 drawn pixels).
+- V8-3 (MINOR): my mutant VM8-A (x2/y2 dropped from _drawn_lit) SURVIVED all 81 tests of test_eyes, as predicted. The fake sprites never set x2 or y2. On real frames they were 0 for every person.
+
+Confirmed:
+- V7-2 is fixed. The circle stays where the screen draws it while walking, at 24 and 32 px, on real frames (VP8-4).
+- V7-3 is fixed. VM-D is caught by h5 and VM-E by h2. R0 PASS before and after.
+- V7-4: the round-7 evidence wording now says what P3 tested.
+- Lit maps read nothing new (VP8-5).
+- Mutants VM8-B to VM8-G were all CAUGHT as predicted:
+  - VM8-B (needs more than 124) by d6;
+  - VM8-C (the camera read on a lit map) by d3;
+  - VM8-D (step_offset's sign flipped) by d6;
+  - VM8-E (height taken from X) by d2, d5 and d6;
+  - VM8-F (the window read one row low) by d4;
+  - VM8-G (the X offset used for Y) by d2, d5 and d6.
+- R0 PASS before and after; the whole test_eyes ran 81 OK.
+- test_evidence: 25 of 27 pass in the copy. The other 2 need `git rev-parse`, and the copy has no .git (an environment limit, not a defect). The builder reports 27 OK on the worktree.
+
+Not done:
+- No live batch, and no seeds were used.
+- No person was observed standing naturally at (0,3) at 32 px, because walls block that place on this walk. The 0-pixel case was shown by moving the sprite only. Every pixel counted there is the game's own drawing.
+
+Cleanup:
+- verify/repo is deleted, with 0 junctions or links found first. No stage was built.
+- The main sandbox's counts are unchanged: plugins 43, mgba 44, roms 2 (rglob).
+- The main checkout's git status is clean. The worktree is untouched (8 modified files and 1 new one, as the builder left it).
+- C: has 62.3 GB free. verify/ keeps 0.45 MB of scripts, outputs and png8/.
+- Progress file: s53/ch6stops8/verify/STATE.md.
+
+## Chapter 6 stops, round 9 (the builder, 2026-11-07)
+
+Headline: on the game's own frames, the dark eyes no longer list a person when the screen draws none of them. One caveat: a pixel that the map draws over the sprite (the top of a wall) is still counted. On a probe-only placement onto a wall tile, that caveat let a person be listed with 0 pixels on the screen. In the natural walk, no listed person had 0 pixels on the screen.
+
+What changed (the worktree, uncommitted, on top of 059a65ff):
+- `host/eyes.py` `_drawn_lit` counts the pixels the sprite's current animation frame draws, not its 16x32 rectangle. It returns (lit, drawn).
+  - The frame is the image of the animation's current command, which the game copies into VRAM.
+  - It is read from the cartridge through the existing doors. No VRAM door was added, because the framework's read_bytes has none.
+  - The frame is read at the OAM size and flips, with palette index 0 transparent.
+- `eyes/view.py` adds `sprite_mask`, `drawn_pixels` and `person_seen`. A person is listed when some of their drawn pixels are lit and at least `SEEN_SHARE` of them are.
+  - `SEEN_SHARE` is 74/227, derived: the least lit share of a standing person whose feet tile the tile rule sees, at rest, at every level and place.
+  - It comes from the guide's real frame. The player's frame gives 74/216.
+  - It is a share and not a count because an item ball draws only 76 pixels.
+- When the frame cannot be read, the eyes count nothing, so the AI sees less, never more. That covers affine, hidden or 256-colour sprites, OAM shape 3, and a command that is not a frame.
+- `SEEN_PIXELS` is gone, and the README rows are reworded.
+
+Reproduced first, on HEAD with probe9.py: at 32 px, the guide drawn at (0,3) was listed with 140 pixels counted and 0 on the screen.
+
+Real-frame results on round 9 (predictions hashed first):
+- Placements:
+  - At 32 px, (0,3) is not listed (0 lit).
+  - The CONTROL (-1,2) at 32 px is listed, with 109 counted and 109 on the screen.
+  - At 24 px, (-1,2) is not listed (8 counted, 8 on the screen).
+  - Flips and x2/y2 match the screen wherever nothing covers the sprite.
+- Natural walk (439 dark looks, 1,058 person-looks, one trajectory):
+  - No listed person had 0 pixels on the screen.
+  - At rest, the count equals the screen in 158 of 158 looks.
+  - Compared with round 8 on the same walk: 63 listings dropped (8 to 75 pixels on the screen), 0 added.
+  - My prediction "never more on the screen at rest" FAILED as written. 6 looks two frames after a step differed by 1 to 14 pixels, because the eyes read memory one frame ahead of the screen.
+- Lit control: 88 of 88 lit looks over 22 states are byte-identical to 986a5816.
+
+V8-2 is stated and pinned, not closed. Mid-step, for 1 to 4 frames, a standing person on a tile the shifted tile rule sees can be unlisted. There were 7 such looks on the walk, with 65 to 73 of 227 pixels lit. Test d11 pins one of them at the exact count. At rest there are none.
+
+V8-3 is fixed: test d10 sets x2 and y2. Mutants CH6S61 to CH6S63 (including the verifier's VM8-A) are caught.
+
+Tests (DarkTests):
+- d4 renamed, d5 reworded.
+- New: d7 (the share, derived), d8 (the V8-1 FAULT: it fails on round 8's eyes), d9 (frame, flips and guards), d10, d11.
+
+Mutants: 23 of 23 caught as predicted, R0 PASS, FROZEN TREE PASS. They are 14 new, 5 re-anchored, 1 with a renamed test, and 3 rerun.
+
+Gates: all PASS. test_eyes 86, test_goals 462, test_world 139, test_host 37, test_evidence 27, FairnessTests 9; check_fairness, check_purity, call_census (19 sites, 0 missing), check_paths. All 1,342 anchors are unique.
+
+New stops:
+- N9-1: map layers and overlapping sprites are not modelled.
+- N9-2: fewer people are listed than in round 8, and the effect on play has not been run.
+- N9-3: the share is derived from two frames.
+- N9-4: the eyes read memory one frame ahead of the screen.
+
+Not done: no commit or staging; no live batch; PROJECT KNOWLEDGE not edited; untouched round-7 and round-8 mutants not rerun.
+
+Cleanup: the main sandbox is unchanged (plugins 43, mgba 44, roms 2), the main checkout is clean, there are 0 junctions, and C: has 62.2 GB free. Progress: s53/ch6stops9/STATE.md.
+
+## Chapter 6 stops, round 9: verification (the verifier, 2026-11-07)
+
+Verdict: CONDITIONAL PASS. I found no MAJOR. The code does what the builder says. The two MINORs are a missing test and one mislabelled number in the report.
+
+What I checked (on a copy of the worktree without .git, now deleted; the worktree and the main checkout are untouched):
+- The diff of view.py, host/eyes.py and the README against 059a65ff.
+  - A person is listed only when `drawn_pixels` of the decoded frame finds at least 1 lit pixel and at least 74/227 of the drawn pixels are lit. The eyes can therefore list someone with 0 screen pixels only when the frame or the place they count differs from the screen.
+  - The struct Sprite offsets match the decomp: anims 0x08, images 0x0C, animNum 0x2A, animCmdIndex 0x2B.
+  - The flip bits (attr1 bits 12 and 13) and the affine, hidden and 256-colour guards (attr0 & 0x2300) are right.
+  - The 12 OBJ_SIZES entries match the GBA table.
+  - All 245 object event graphics in the pinned decomp have tileTag = TAG_NONE, so `images` is always a valid cartridge table. On these maps the new `_rom_bytes` reads cannot raise and drop a look's objects.
+- A lit map: `_drawn_lit` runs only when the radius is set. Outside the dark branch the diff changes only imports. No SEEN_PIXELS reference is left anywhere in the worktree.
+- Tests on the copy: test_eyes ran 86 tests OK, and DarkTests ran 11 OK.
+
+Mutants (predictions written and hashed first: prediction_vm9.txt, sha256 bf2362a2...):
+- VM9-A drops animNum from the animation read. It SURVIVED test_eyes (86 OK) and test_host (37 OK), as predicted. Every fake sprite has animNum 0, so no test can tell the difference. This is V9-1.
+- VM9-B drops animCmdIndex. It was CAUGHT, with 7 test failures, as predicted.
+
+Real-frame data (the builder's walk, re-read rather than re-run):
+- The fewest screen pixels of a listed person, 60 at gym32 s1Up after2 (0,-2), is the one-frame lag.
+  - The eyes count 60 at after1 and 74 at after2.
+  - From after3 on, the eyes and the screen both read 74.
+- The report and N9-1 put this down to a wall. That is V9-2. No wall covering shows in the natural walk at rest; the only evidence for N9-1 is the probe-only placement.
+- No listed person had 0 pixels on the screen, so the headline's claim holds.
+
+Findings:
+- V9-1 (MINOR): add a test with animNum 1, and add VM9-A to the mutant file with prediction CAUGHT.
+- V9-2 (MINOR): reword the stop text and the report: the 60 is the lag (N9-4), not a wall.
+- V9-3 (NIT): no test pins the OBJ_SIZES entries other than 16x32. I checked them all and they are correct.
+
+Not done:
+- No emulator run. The round asked for no live batch, and the builder's real-frame files answered what I needed.
+- I did not rerun the builder's 23 mutants.
+- I did not attack V8-2 (pinned) or N9-1 (documented) further. One argument, not measured: a person's head rows hold about 57 drawn pixels, fewer than the 74 needed. So a wall covering only the tile above a person cannot give a listing with 0 on the screen. N9-1 should therefore be out of reach in natural play on these maps.
+
+Cleanup:
+- The copy is deleted.
+- I made no staging and no junction, and ran no emulator.
+- The main checkout is clean, and the worktree is unchanged (5 modified files and 1 new zip).
+- C: has 58 GB free.
+- Files: s53/ch6stops9/verify/ (STATE.md, prediction_vm9.txt and its .sha256, vm9.py, vm9.out).
 
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 

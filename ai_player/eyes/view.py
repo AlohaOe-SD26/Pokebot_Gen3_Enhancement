@@ -53,6 +53,7 @@ __all__ = [
     "MENU_TASKS",
     "MILESTONE_FLAGS",
     "MILESTONE_VARS",
+    "OBJ_SIZES",
     "OUTCOME_CAUGHT",
     "OUTCOME_NAMES",
     "RENDER_STATE_NAMES",
@@ -61,7 +62,7 @@ __all__ = [
     "SAVE_BLOCK_1_FLASH_LEVEL",
     "SAVE_BLOCK_1_VARS",
     "SCRIPT_CONTEXT_SHUTDOWN",
-    "SEEN_PIXELS",
+    "SEEN_SHARE",
     "STORY_FLAGS",
     "TALL_GRASS_BEHAVIORS",
     "TEXT_FLAG_AUTO_SCROLL",
@@ -75,6 +76,7 @@ __all__ = [
     "VIEW_UP",
     "behavior_name",
     "classify_screen",
+    "drawn_pixels",
     "facing_name",
     "foe_move_seen",
     "flash_radius",
@@ -86,8 +88,10 @@ __all__ = [
     "milestone_marks",
     "movement_mode",
     "object_kind",
+    "person_seen",
     "script_waits_for_button",
     "settled_position",
+    "sprite_mask",
     "status_name",
     "step_offset",
     "text_printer_wait",
@@ -206,25 +210,79 @@ def step_offset(camera: int) -> int:
     return (16 if camera > 0 else -16 if camera < 0 else 0) - camera
 
 
-#: (Chapter 6 stops round 8, the round-7 verifier's V7-1) A PERSON (a map object's sprite) on a dark map is seen when at
-#: least this many pixels of the rectangle the screen draws their sprite in are lit (`lit_pixels`): the fewest lit pixels of
-#: any tile the tile rule (`lit`) sees, at any flash level at rest (124 of 256: the tile 2 rows above the player under the
-#: 32 px circle's top; `gates/test_eyes.py` DarkTests.test_d4 derives it). So a person is seen by the light that is enough
-#: to see a tile: a 16 x 32 person drawn largely in the light with a dark feet tile (up to 72% of their sprite, round 7's
-#: rim ring) is seen, a person whose feet tile is seen is always seen (their sprite holds that tile), and a sprite the
-#: circle only grazes is not. The rectangle is symmetric about its middle, so mirror places get the same verdict.
-SEEN_PIXELS = 124
+#: (Chapter 6 stops round 9, the round-8 verifier's V8-1) A PERSON (a map object's sprite) on a dark map is seen when the
+#: screen draws some of them lit and the lit share of what it draws of them (their sprite frame's non-transparent pixels,
+#: `sprite_mask`, counted in the circle by `drawn_pixels`) is at least SEEN_SHARE = 74 / 227. DERIVED, not chosen
+#: (`gates/test_eyes.py` DarkTests.test_d7): the least lit share of a person standing still whose FEET tile the tile rule
+#: (`lit`) sees, over every flash level and every place of the window, for the gym guide's frame as the game draws it (74
+#: of his 227 drawn pixels: 2 rows above the player under the 32 px circle's top; the player's own frame gives 74 of 216
+#: there, a larger share). So, at rest, a person whose feet tile is seen is seen (for those two frames; a thinner frame can
+#: be seen less), a person drawn half lit with a dark feet tile is seen (109 of 227 at (-1, 2) under 32 px), and the slivers
+#: of a head at the circle's rim (39 drawn pixels or fewer at rest, 0 to 29 in the round-8 verifier's cases) are not. A
+#: share, not a count, because what a sprite draws differs in size: an item ball draws 76 pixels, a person 173 to 252.
+#: Round 8 counted every pixel of the sprite's RECTANGLE, whose top 10 or 11 rows a person leaves transparent, so it listed
+#: a person the screen drew none of. LIMITS: (1) mid-step (1 to 4 frames of a step) a standing person whose feet tile the
+#: shifted tile rule sees can be unlisted, 65 to 73 of 227 drawn pixels lit (the round-9 probe's seven looks of one walk;
+#: the round-8 verifier's six; `gates/test_eyes.py` DarkTests.test_d11 pins one); (2) a pixel the map draws over the
+#: sprite (a top-layer metatile: the top of a wall) or another sprite covers is still counted: the eyes do not read the
+#: background layers. Measured: with the guide moved onto a wall tile by a probe-only write, (0, -2) at 32 px, he was
+#: listed with 74 pixels counted and 0 on the screen; in the natural walk no listed person had 0 on the screen.
+SEEN_SHARE = (74, 227)
+
+#: The GBA's OBJ sizes (width, height) by (OAM shape, OAM size): square, horizontal, vertical.
+OBJ_SIZES = {(0, 0): (8, 8), (0, 1): (16, 16), (0, 2): (32, 32), (0, 3): (64, 64),
+             (1, 0): (16, 8), (1, 1): (32, 8), (1, 2): (32, 16), (1, 3): (64, 32),
+             (2, 0): (8, 16), (2, 1): (8, 32), (2, 2): (16, 32), (2, 3): (32, 64)}
 
 
 def lit_pixels(left: int, top: int, width: int, height: int, radius: int) -> int:
     """How many pixels of the screen rectangle (`left`, `top`, `width` x `height`) the screen draws lit: on the screen
-    (0..239 x 0..159) and inside the circle (`flash_window`)."""
+    (0..239 x 0..159) and inside the circle (`flash_window`). A tile's light (every pixel of a tile is drawn)."""
     window = flash_window(radius)
     count = 0
     for y in range(max(top, 0), min(top + height, 160)):
         low, high = window.get(y, (0, 0))
         count += max(0, min(high, left + width, 240) - max(low, left, 0))
     return count
+
+
+def sprite_mask(frame: bytes, width: int, h_flip: bool = False, v_flip: bool = False) -> tuple[tuple[int, ...], ...]:
+    """(Round 9, V8-1) The pixels a 4 bpp sprite frame DRAWS, as the screen draws it: for each row of the sprite (top to
+    bottom), the columns (0 = its left) whose colour is not palette index 0, the transparent one. `frame`: the frame's tiles
+    (`width` / 8 tiles across, row after row, the 1D OBJ mapping `RequestSpriteFrameImageCopy` copies into VRAM whole; each
+    8 x 8 tile 4 bytes a row, the low nibble the left pixel). `h_flip`, `v_flip`: the sprite's OAM flip bits (the screen
+    mirrors it)."""
+    across = width // 8
+    height = len(frame) * 2 // width
+    rows = []
+    for y in range(height):
+        source_y = height - 1 - y if v_flip else y
+        row = []
+        for x in range(width):
+            source_x = width - 1 - x if h_flip else x
+            byte = frame[(source_y // 8 * across + source_x // 8) * 32 + source_y % 8 * 4 + source_x % 8 // 2]
+            if (byte >> 4 if source_x & 1 else byte & 0x0F) != 0:
+                row.append(x)
+        rows.append(tuple(row))
+    return tuple(rows)
+
+
+def drawn_pixels(left: int, top: int, mask: tuple[tuple[int, ...], ...], radius: int) -> int:
+    """(Round 9, V8-1) How many of a sprite's DRAWN pixels (`sprite_mask`, the sprite's top-left at screen (`left`, `top`))
+    the screen draws lit: on the screen (0..239 x 0..159) and inside the circle (`flash_window`)."""
+    window = flash_window(radius)
+    count = 0
+    for row, columns in enumerate(mask):
+        if 0 <= top + row < 160:
+            low, high = window.get(top + row, (0, 0))
+            count += sum(1 for x in columns if max(low, 0) <= left + x < min(high, 240))
+    return count
+
+
+def person_seen(lit_count: int, drawn: int) -> bool:
+    """(Round 9, V8-1) Is a person (a map object) on a dark map seen: some of what the screen draws of them is lit
+    (`lit_count` of their `drawn` pixels), and at least SEEN_SHARE of it?"""
+    return lit_count > 0 and lit_count * SEEN_SHARE[1] >= drawn * SEEN_SHARE[0]
 
 
 # ------------------------------------------------------------------------------------------- tiles
