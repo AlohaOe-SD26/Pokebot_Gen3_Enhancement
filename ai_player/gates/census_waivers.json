@@ -390,6 +390,61 @@
    "callee": "brain/goals.py:travel_intent.reached",
    "caller": "*",
    "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) NAME collisions and the Intent interface: `reached` is also goto_intent's and Navigator.go_to's own callbacks, GoalRunner._detour's local and MemoryWriter's; the one real site, Navigator.run's `intent.reached(target)`, is the Intent interface every arrival goes through (Navigator.go_to relies on it). The callback's body is broken by G664 (the back never marked reached), CAUGHT by Round6GymTests.test_p6."
+  },
+  {
+   "callee": "eyes/observation.py:View.ascii",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) View.ascii changed only to draw a dark tile (None) as a blank, the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); the record's picture of a dark map is asserted by DarkTests.test_d2 (row 5 reads '      .@.      ')."
+  },
+  {
+   "callee": "eyes/observation.py:Observation.to_dict",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) Observation.to_dict changed only to leave a lit map's `lit` out and a dark tile out of the compact tiles, the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); CH6S25 and CH6S26 break exactly those two lines."
+  },
+  {
+   "callee": "eyes/observation.py:Observation.digest",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) Observation.digest changed only to add `lit=Npx` on a dark map, the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); CH6S28 deletes that line (CAUGHT by DarkTests.test_d2), and the live check #110 reads it (judge7.py)."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._view",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) FrameworkEyes._view changed only to apply the lit circle, the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); its one caller, look(), reads the view of every overworld look."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._objects",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) FrameworkEyes._objects changed only by its lit check (CH6S20 deletes it), the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3)."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._signs",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) FrameworkEyes._signs changed only by its lit check (CH6S21 deletes it), the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3)."
+  },
+  {
+   "callee": "world/memory.py:MapMemory.absorb",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) MapMemory.absorb changed only to pass over a dark tile (None), the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); CH6S24 deletes the guard (CAUGHT by DarkTests.test_d2)."
+  },
+  {
+   "callee": "knowledge/story.py:Story._milestone",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-5) Story._milestone changed only to load the fight's trainers (`fight_trainers`); its one caller, Story.__init__, builds every milestone of the story, and deleting it removes the whole story. G676 empties the new field (CAUGHT by Round7GymTests g1, g3 and Round6GymTests p1, p7)."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner._leader_back.back",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-1) NAME collisions: the census matches `back` by name (brain/explore.py candidates' own `back`, host/eyes.py and world/memory.py references of other names). The closure is never called by name: it is HANDED to travel_intent as `back` (deleted by G661, CAUGHT) and called inside travel_intent's chooser as `back(nav, look)` (deleted by G662, CAUGHT); its binding to the leader's gym is broken by G672 and G673 (CAUGHT by Round7GymTests g1)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.center_seen_on",
+   "caller": "brain/goals.py:GoalRunner._pursue",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-4) the three new reads of the town's centre door inside the find_center's WALK OUT of a building (the walk's done, the check after it, the result) only end the walk early when the door is already seen; deleting one leaves the look that follows to end at once on the same read (the look's own done, the fourth site, unchanged since build step 5.1). The branch is deleted whole by G682 (CAUGHT by Round7HealTests h2)."
+  },
+  {
+   "callee": "hands/pad.py:Hands.look",
+   "caller": "brain/goals.py:GoalRunner._pursue",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-4) one new screen read in the find_center's walk-out check (`moved_on(self.hands.look())`: did the story move on during the walk); the other sites are _pursue's earlier reads of the same name. The branch is deleted whole by G682 (CAUGHT by Round7HealTests h2); deleting the read alone fails every look."
   }
  ]
 }

@@ -1550,5 +1550,149 @@ class ActionLogTests(unittest.TestCase):
                 RecordFile(Path(folder)).append("two\nlines")
 
 
+class DarkTests(unittest.TestCase):
+    """(chapter 6 stops round 7, 2026-11-07, N6-1: a USER RULING 40 gap) ON A DARK MAP ONLY THE LIT CIRCLE IS SEEN. With no
+    gym trainer beaten DEWFORD's gym is at flash level 7 (DewfordTown_Gym_EventScript_SetFlashLevel), a circle of 24 px
+    (`sFlashLevelToRadius`), GRANITE CAVE B1F and B2F the same until FLASH (`requires_flash`, SetDefaultFlashLevel); the
+    eyes listed every object, and the world memory learned every tile, of the whole 15 x 11 window (#109's records: 150 of
+    154 gym records a run listed someone outside the circle). Now a tile outside the circle the screen draws is None in
+    `View.rows` and an object outside it is not listed (`eyes/view.py` lit, `host/eyes.py` _view). Mutants:
+    `revert_step5.py` (round 7)."""
+
+    LEVEL_7, LEVEL_1 = 7, 1  # no gym trainer beaten / FLASH used
+
+    def test_d1_the_games_circle(self):
+        """The rule is the game's drawing rule: radius by level (`sFlashLevelToRadius`, 0 = lit whole), the scanline
+        bounds of `SetFlashScanlineEffectWindowBoundaries` (the centre row spans [120 - r, 120 + r)); at 24 px the player's
+        tile and the 8 round it, at 72 px 69 tiles. CROSS-CHECK against plain geometry, independent of the decomp's
+        algorithm: every tile whose middle is 2 px or more inside the circle is lit, and none whose middle is 1 px or more
+        outside it (the rim is the algorithm's own)."""
+        from ai_player.eyes.view import FLASH_RADIUS, flash_radius, flash_window, lit, view_offsets
+
+        self.assertEqual([flash_radius(level) for level in range(9)], [None, 72, 64, 56, 48, 40, 32, 24, 0])
+        self.assertEqual(flash_radius(200), 0)  # not a level the game sets: nothing lit (less, never more)
+        self.assertEqual(flash_window(24)[80], (96, 144))
+        window = view_offsets()
+        self.assertEqual({o for o in window if lit(*o, 24)}, {(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)})
+        self.assertEqual(sum(lit(*o, 72) for o in window), 69)
+        self.assertEqual((len(window), sum(lit(*o, None) for o in window)), (165, 165))
+        self.assertEqual(sum(lit(*o, 0) for o in window), 0)
+        counts = [sum(lit(*o, r) for o in window) for r in FLASH_RADIUS[7:0:-1]]
+        self.assertEqual(counts, sorted(counts))
+        for radius in (24, 32, 48, 72):
+            for dx, dy in window:
+                distance = ((16 * dx) ** 2 + (16 * dy) ** 2) ** 0.5
+                if distance <= radius - 2:
+                    self.assertTrue(lit(dx, dy, radius), (radius, dx, dy))
+                elif distance >= radius + 1:
+                    self.assertFalse(lit(dx, dy, radius), (radius, dx, dy))
+
+    @staticmethod
+    def host_view(level: int, people: list[tuple[int, int, int]], signs: tuple = (), crop: bool = True):
+        """The HOST's own `_view` (`host/eyes.py`) and its real readers (`read_symbol`, the framework's
+        `get_map_objects`), on a FAKE memory at the real symbols' addresses: a 40 x 40 live grid of open floor, a map
+        header whose layout and border are in the cartridge, the player on (10, 10), save block 1's flashLevel = `level`,
+        and `people` (x, y, local id) as active object events (`struct ObjectEvent`: active bit, graphicsId @5, localId @8,
+        elevation @11, currentCoords @0x10 with MAP_OFFSET, facing @0x18). The ROM tables a look reads once are given."""
+        from modules.context import context
+        from modules.game import get_symbol
+
+        import ai_player.host.eyes as host_eyes
+        from ai_player.eyes.observation import PlayerState
+
+        framework_rom()
+        width = height = 40
+        grid, save_block_1, layout, border = 0x02000000, 0x02020000, 0x08700000, 0x08700100
+
+        def u32(value: int) -> bytes:
+            return value.to_bytes(4, "little")
+
+        objects = bytearray(0x24 * 16)
+        for slot, (x, y, local) in enumerate(people, start=1):
+            at = 0x24 * slot
+            objects[at] = 0x01
+            objects[at + 5], objects[at + 8], objects[at + 11] = 100, local, 3
+            objects[at + 0x10:at + 0x14] = (x + 7).to_bytes(2, "little") + (y + 7).to_bytes(2, "little")
+            objects[at + 0x18] = 1
+        cells = {get_symbol("gBackupMapLayout")[0]: u32(width) + u32(height) + u32(grid),
+                 get_symbol("gMapHeader")[0]: u32(layout) + bytes(0x18),
+                 get_symbol("gSaveBlock1Ptr")[0]: u32(save_block_1),
+                 get_symbol("gObjectEvents")[0]: bytes(objects),
+                 layout: bytes(8) + u32(border) + bytes(12), border: bytes(8),
+                 save_block_1 + 0x30: bytes([level]),
+                 grid: bytes(2 * width * height)}  # metatile 0, no collision: floor
+
+        class Memory:
+            def read_bytes(self, address: int, length: int) -> bytes:
+                for start, data in cells.items():
+                    if start <= address and address + length <= start + len(data):
+                        return data[address - start:address - start + length]
+                raise AssertionError(f"_view read 0x{address:08X} (+{length})")
+
+        eyes = host_eyes.FrameworkEyes(crop=crop)
+        eyes._tile_bits = bytes(256)  # noqa: SLF001 - the ROM tables a real look reads once
+        eyes._attributes[0] = bytes(2 * host_eyes.METATILES_IN_PRIMARY)  # noqa: SLF001
+        eyes._maps[(3, 3)] = ("DEWFORD TOWN", "DEWFORD_TOWN_GYM", signs)  # noqa: SLF001
+        player = PlayerState(3, 3, "DEWFORD TOWN", "DEWFORD_TOWN_GYM", 10, 10, "up", "walking", 3, 0, 1)
+        with mock.patch.object(context, "emulator", Memory(), create=True):
+            return eyes._view(player), player  # noqa: SLF001
+
+    def learned(self, view) -> set:
+        from ai_player.world.memory import MapMemory
+
+        memory = MapMemory("3:3", "DEWFORD TOWN", "DEWFORD_TOWN_GYM")
+        memory.absorb(SimpleNamespace(view=view, frame=1), (10, 10))
+        return set(memory.tiles)
+
+    def test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned(self):
+        """FAULT (N6-1; on adf6c246 the eyes listed him and every tile): DEWFORD's gym at flash level 7, BRAWLY 3 tiles
+        right and 2 up (outside the 24 px circle) and a sign 4 up: neither is listed, his tile is None in the view and the
+        world memory learns only the 9 lit tiles. CONTROL (the same look): a trainer 1 right and 1 up, inside the circle,
+        IS listed, and his tile learned. The record says so (`lit=24px`, 9 tiles)."""
+        view, player = self.host_view(self.LEVEL_7, [(13, 8, 1), (11, 9, 2)], signs=(((10, 6), 0),))
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(2, 1, -1)])
+        self.assertIsNone(view.tile(3, -2))
+        self.assertIsNotNone(view.tile(1, -1))
+        self.assertNotIn((13, 8), self.learned(view))
+        self.assertEqual(self.learned(view), {(10 + dx, 10 + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)})
+        self.assertEqual(view.lit, 24)
+        self.assertEqual(sum(tile is not None for row in view.rows for tile in row), 9)
+        self.assertEqual(len(view.rows), 11)
+        self.assertTrue(all(len(row) == 15 for row in view.rows))  # the window keeps its shape: `tile(dx, dy)` is unchanged
+        self.assertEqual(view.ascii()[5], "      .@.      ")
+        seen = self.observation(view, player)
+        self.assertEqual((seen.to_dict()["view"]["lit"], len(seen.to_dict()["view"]["tiles"])), (24, 9))
+        self.assertIn("lit=24px", seen.digest())
+        # with FLASH used (level 1, 72 px) both are seen
+        view, _ = self.host_view(self.LEVEL_1, [(13, 8, 1), (11, 9, 2)], signs=(((10, 6), 0),))
+        self.assertEqual(sorted(o.local_id for o in view.objects), [-1, 1, 2])
+
+    def test_d3_control_a_lit_map_is_seen_whole_and_recorded_as_before(self):
+        """CONTROL (passes on adf6c246 too): flash level 0 (a lit map): every tile of the window and every object in it,
+        no `lit`, and the record (`Observation.to_dict`, `digest`) has no trace of the rule (no `lit` key, no `lit=`): as
+        before. The NO_CROP fault sees all at any level (its purpose: tiles a person could not see)."""
+        view, player = self.host_view(0, [(13, 8, 1), (11, 9, 2), (17, 15, 3)], signs=(((10, 6), 0),))
+        self.assertIsNone(getattr(view, "lit", None))
+        self.assertEqual(sorted(o.local_id for o in view.objects), [-1, 1, 2, 3])
+        self.assertTrue(all(tile is not None for row in view.rows for tile in row))
+        self.assertEqual(len(self.learned(view)), 165)
+        seen = self.observation(view, player)
+        self.assertNotIn("lit", seen.to_dict()["view"])
+        self.assertNotIn("lit=", seen.digest())
+        self.assertEqual(len(seen.to_dict()["view"]["tiles"]), 165)
+        view, _ = self.host_view(7, [(13, 8, 1)], crop=False)
+        self.assertIsNone(getattr(view, "lit", None))
+        self.assertEqual([o.local_id for o in view.objects], [1])
+
+    @staticmethod
+    def observation(view, player):
+        from ai_player.eyes.observation import Observation, ScreenState
+
+        screen = ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=False,
+                             waits_for_button=False, in_battle=False)
+        return Observation(frame=1, screen=screen, player=player, view=view, party=(), bag=None, progress=None,
+                           battle=None, last_battle_outcome=0, problems=(), cost_ms=0.0)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

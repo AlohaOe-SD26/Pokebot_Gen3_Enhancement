@@ -11045,5 +11045,326 @@ class Round6GymTests(unittest.TestCase):
         self.assertFalse(fights("DEWFORD_TOWN", "brawly", "ch7_brawly"))
 
 
+class _DimGym(_GymWalk):
+    """(round 7) `_GymWalk` whose eyes see a PERSON only inside the lit circle of DEWFORD's gym at flash level 7 (24 px:
+    the player's tile and the 8 round it, `eyes/view.py` lit), the tiles as the window shows them (the round-6 verifier's
+    dark-gym model; it runs on adf6c246 too). The learning looks (`learn`, crop off) see everything."""
+
+    def view(self):
+        seen = super().view()
+        if seen is None or not self.crop:
+            return seen
+        return replace(seen, objects=tuple(o for o in seen.objects if abs(o.dx) <= 1 and abs(o.dy) <= 1))
+
+
+#: (round 7, VR6-6) DEWFORD's gym's right-hand corridor (x 16, rows 9-17, and the side tiles (14, 12), (15, 12)): left
+#: unknown so a find there has something to explore first, far from BRAWLY at (4, 3)
+DEWFORD_GYM_POCKET = [(16, y) for y in range(9, 18)] + [(14, 12), (15, 12)]
+
+
+class Round7GymTests(unittest.TestCase):
+    """(chapter 6 stops round 7, 2026-11-07) The round-6 verifier's VR6-1 (MINOR: the back of the gym was offered on a map
+    that is not the gym: a find whose back was excluded walked out to the town and was offered 'the back of the gym'
+    there), VR6-5 (NIT: `_fights_its_leader` checked that SOME fight is next, not that it is with this leader) and VR6-6
+    (NIT: nothing pinned that only reaching the BACK disarms it: the verifier's mutant VM2 survived every test). Mutants:
+    `revert_step5.py` (round 7)."""
+
+    @staticmethod
+    def gym_nav(game: _GymWalk, world: WorldMemory) -> Navigator:
+        hands = Hands(GridEyes(game), GridControls(game), random.Random(1), random.Random(1), None, lambda line: None)
+        return Navigator(hands, world, random.Random(1))
+
+    def test_g1_the_back_of_the_gym_is_offered_only_on_that_gym(self):
+        """FAULT (the round-6 verifier's VT6-3, reproduced on adf6c246: the choice on DEWFORD_TOWN was 'the back of the gym'
+        (5, 3)): a find made in DEWFORD's gym, its back EXCLUDED (a walk found no way), the player now on the TOWN: its
+        choice there is not the back. The runner's own `back` (`GoalRunner._leader_back`, bound to the gym the find began
+        on) offers none on the town nor on another gym (RUSTBORO's); CONTROL: on DEWFORD's gym it offers (4, 3)."""
+        from ai_player.brain.goals import GYM_BACK, gym_back, travel_intent
+
+        game = _GymWalk("DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3), 1, ch_proofs("ch7_brawly"))
+        world = WorldMemory()
+        game.learn(world, "DEWFORD_TOWN", (5, 2))
+        game.learn(world, "DEWFORD_TOWN_GYM", (5, 27))
+        nav = self.gym_nav(game, world)
+        intent = travel_intent(None, "Story", 4000, lambda look_: False, stay=True, back=gym_back)
+        target = intent.choose(nav, game.look())
+        self.assertTrue(target.reason.startswith(GYM_BACK), target)
+        nav.exclude(target, "a test: no way there")
+        game.learn(world, "DEWFORD_TOWN", (5, 2))  # the player now on the town, below the gym's door
+        there = intent.choose(nav, game.look())
+        self.assertFalse(there is not None and there.reason.startswith(GYM_BACK), there)
+        # the runner's own binding
+        mgr = manager("Story")
+        game.learn(world, "DEWFORD_TOWN_GYM", (5, 27))
+        milestone = next(m for m in mgr.story.milestones if m.id == "ch7_brawly")
+        runner = GoalRunner(None, nav, mgr, types.SimpleNamespace(purpose=None), lambda line: None)
+        back = runner._leader_back(Goal("find", "r", "ch7_brawly", look="brawly"), milestone)  # noqa: SLF001
+        self.assertEqual(back(nav, game.look()).tile, (4, 3))  # CONTROL: on the leader's own gym
+        game.learn(world, "DEWFORD_TOWN", (5, 2))
+        self.assertIsNone(back(nav, game.look()))
+        other, elsewhere = _GymWalk("RUSTBORO_CITY_GYM", ROOM_GYM_ROWS, (5, 2), 1, ch_proofs("ch7_brawly")), WorldMemory()
+        other.learn(elsewhere, "RUSTBORO_CITY_GYM", (5, 19))
+        self.assertIsNotNone(gym_back(self.gym_nav(other, elsewhere), other.look()))  # an unbound back there: a gym
+        self.assertIsNone(back(self.gym_nav(other, elsewhere), other.look()))  # bound to DEWFORD's: not RUSTBORO's
+        self.assertIsNone(GoalRunner(None, nav, mgr, types.SimpleNamespace(purpose=None), lambda line: None)
+                          ._leader_back(Goal("go", "r", "ch7_brawly", map="DEWFORD_TOWN_GYM"), milestone))  # noqa: SLF001
+
+    def test_g2_only_reaching_the_back_disarms_it(self):
+        """VR6-6 (the round-6 verifier's VM2: 'any reached target marks the back done' SURVIVED every test). (a) The
+        intent: an EXPLORATION target reached leaves the back offered; the back reached disarms it. (b) DRIVEN, the real
+        find (`GoalRunner.pursue`) on DEWFORD's real layout seen through eyes that see a person only beside the player
+        (`_DimGym`), the gym known but for its right-hand corridor (`DEWFORD_GYM_POCKET`): the find first REACHES a target
+        exploring the corridor, then, nothing left to see, walks to the back and ends DONE beside BRAWLY, never out of the
+        door. A test gap, not a defect: it passes on adf6c246 too."""
+        from ai_player.brain.goals import GYM_BACK, gym_back, travel_intent
+
+        game = _GymWalk("DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3), 1, ch_proofs("ch7_brawly"))
+        world = WorldMemory()
+        game.learn(world, "DEWFORD_TOWN_GYM", (5, 27))
+        nav = self.gym_nav(game, world)
+        intent = travel_intent(None, "Story", 4000, lambda look_: False, stay=True, back=gym_back)
+        intent.reached(Target("goto", (9, 13), "an exploration target: the unseen side"))
+        target = intent.choose(nav, game.look())
+        self.assertTrue(target.reason.startswith(GYM_BACK), target)  # not disarmed by another target
+        intent.reached(target)
+        self.assertFalse(intent.choose(nav, game.look()).reason.startswith(GYM_BACK))  # the back reached: disarmed
+        # (b) the driven find
+        mgr = manager("Story")
+        game = _DimGym("DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3), mgr.story.looks["brawly"].gfx[0],
+                       ch_proofs("ch7_brawly"))
+        world = WorldMemory()
+        game.learn(world, game.town, (5, 2))
+        town_key = world._last.key  # noqa: SLF001
+        game.learn(world, game.gym, game.doors[0])
+        gym_key = world._last.key  # noqa: SLF001
+        for xy in DEWFORD_GYM_POCKET:
+            del world.maps[gym_key].tiles[xy]
+        for door in game.doors:
+            world.warps[f"{gym_key}|{door[0]},{door[1]}"] = {"to": town_key, "arrival": [5, 2], "direction": "down",
+                                                             "uses": 2, "by": "ai", "first": 1, "last": 1, "inferred": False}
+        world.warps[f"{town_key}|5,1"] = {"to": gym_key, "arrival": list(game.doors[0]), "direction": "up", "uses": 2,
+                                          "by": "ai", "first": 1, "last": 1, "inferred": False}
+        game.map, game.pos, game.trail = game.gym, game.doors[0], [(game.gym, game.doors[0])]
+        lines: list[str] = []
+        hands = Hands(GridEyes(game), GridControls(game), random.Random(1), random.Random(1), None, lines.append)
+        hands.watchers.append(world.observe)
+        nav = Navigator(hands, world, random.Random(1))
+        seen = hands.look()
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_brawly")
+        runner = GoalRunner(hands, nav, mgr, types.SimpleNamespace(purpose=None), lambda line: None)
+        goal = Goal("find", "BRAWLY: looking for brawly", milestone.id, look="brawly", key="find:brawly")
+        ok, outcome = drive(runner.pursue(goal, milestone, index, lambda s: index), 60_000)
+        self.assertTrue(ok and outcome.startswith("done"), outcome)
+        self.assertEqual({name for name, _ in game.trail}, {"DEWFORD_TOWN_GYM"})  # never out of the door
+        self.assertTrue(any(name == game.gym and xy[0] == 16 and xy[1] <= 17 for name, xy in game.trail))  # explored first
+        last = game.trail[-1][1]
+        self.assertLessEqual(max(abs(last[0] - 4), abs(last[1] - 3)), 1, game.trail[-3:])
+        self.assertTrue(all(xy in world.maps[gym_key].tiles for xy in DEWFORD_GYM_POCKET))
+
+    def test_g3_the_fight_next_must_be_with_that_leader(self):
+        """VR6-5 (the round-6 verifier's VT6-8 found True here): a find for ROXANNE in her own gym while BRAWLY's fight is
+        next (ch7_brawly) is NOT one (`Milestone.fight_trainers` is BRAWLY_1). CONTROLS: BRAWLY in his gym with his fight
+        next is one; ROXANNE in hers with hers next (ch4_roxanne) is one; BRAWLY after his milestone (ch7_exp_share: no
+        fight next) is not."""
+        mgr = manager("Story")
+
+        def fights(const: str, look_name: str, milestone_id: str) -> bool:
+            world = world_with("DEWFORD_TOWN", const, current=const)
+            runner = GoalRunner(None, Navigator(None, world, random.Random(1)), mgr, types.SimpleNamespace(purpose=None),
+                                lambda line: None)
+            milestone = next(m for m in mgr.story.milestones if m.id == milestone_id)
+            return runner._fights_its_leader(Goal("find", "r", milestone_id, look=look_name), milestone)  # noqa: SLF001
+
+        self.assertFalse(fights("RUSTBORO_CITY_GYM", "roxanne", "ch7_brawly"))
+        self.assertTrue(fights("DEWFORD_TOWN_GYM", "brawly", "ch7_brawly"))
+        self.assertTrue(fights("RUSTBORO_CITY_GYM", "roxanne", "ch4_roxanne"))
+        self.assertFalse(fights("DEWFORD_TOWN_GYM", "brawly", "ch7_exp_share"))
+        self.assertEqual(next(m for m in mgr.story.milestones if m.id == "ch7_brawly").fight_trainers, ("BRAWLY_1",))
+
+    def test_g4_a_dark_look_teaches_no_landmark_from_the_dark(self):
+        """(round 7, N6-1) A look on a DARK map (`View.rows` holds None for a tile outside the lit circle) is noticed by the
+        goal manager (`GoalManager.notice`, the doors it recognises): the lit POKéMON CENTER door is remembered, the dark
+        tiles are passed over (no error); CONTROL: the same door in the dark is not remembered."""
+        mgr = manager("Story")
+        door = Tile(x=11, y=10, dx=1, dy=0, metatile=mgr.story.looks["pokemon_center_door"].metatile[0], behavior=0x69,
+                    behavior_name="ANIMATED_DOOR", collision=1, elevation=3, blocked=True, water=False, encounter=None,
+                    tall_grass=False, ledge=None, door=True, warp=True, half_visible=False)
+        mgr.notice(look(const="DEWFORD_TOWN", tiles=(None, None, door, None), map_number=1))
+        self.assertEqual(mgr.memory.landmarks, {("0:1", (11, 10)): "pokemon_center"})
+        mgr = manager("Story")
+        mgr.notice(look(const="DEWFORD_TOWN", tiles=(None, None, None, None), map_number=1))
+        self.assertEqual(mgr.memory.landmarks, {})
+
+
+class Round7HealTests(unittest.TestCase):
+    """(chapter 6 stops round 7, 2026-11-07) The round-6 verifier's VR6-4 (MINOR): a TOP-UP (it cannot train, the party
+    neither in danger nor under its heal line) that starts INSIDE DEWFORD's gym, knowing only RUSTBORO's centre (no known
+    way to it) and never having seen DEWFORD's, neither looked for the town's centre nor healed: `next_goal`'s look needed
+    an OUTDOOR town map. Now the look is for the centre of the town the building's door leads to (`_building_town`: the
+    world memory's way out, else a gym's own town by its name), walked out to first. Mutants: `revert_step5.py` (round 7)."""
+
+    def test_h1_a_top_up_inside_the_gym_looks_for_its_towns_centre(self):
+        """FAULT (VR6-4, reproduced on adf6c246: no look and no heal, `Round5HealTests.test_r1` pinned 'no heal' there): in
+        DEWFORD's gym (the way out to DEWFORD_TOWN known), the party at 75% (Trainer), only RUSTBORO's centre known with no
+        known way to it: the first goal LOOKS for DEWFORD's centre (find_center on the town's own key, saying it looks out
+        of this building); the next decision neither heals nor looks again (once a town), and 30 decisions with every heal
+        failing still hold no heal (round 5's VT-R2)."""
+        goals, mgr = Round5HealTests().gym("RUSTBORO_CITY")
+        first, second = goals
+        self.assertEqual((first.kind, first.map, first.via), ("find_center", "DEWFORD_TOWN", "0:1"), first.reason)
+        self.assertIn("looks in DEWFORD_TOWN, out of this building, first: no known way leads back to the POKéMON "
+                      "CENTER it knows (RUSTBORO_CITY_POKEMON_CENTER_1F)", first.reason)
+        self.assertIn("(it cannot train here: no known way leads to grass)", first.reason)
+        self.assertNotIn(second.kind, ("heal", "find_center"), second.reason)
+        goals, _ = Round5HealTests().gym("RUSTBORO_CITY", decisions=30, fail_heals=True)
+        self.assertEqual([g.kind for g in goals].count("find_center"), 1)
+        self.assertEqual([g.kind for g in goals].count("heal"), 0)
+
+    def test_h2_the_look_walks_out_to_the_town_first(self):
+        """The find_center made in the gym (`via` the TOWN's key, the player in the gym): the runner walks OUT to the town
+        first (`_travel` to DEWFORD_TOWN), then looks round it keeping to it, until the centre's door is seen; DONE, and
+        the next decision heals at DEWFORD's centre. CONTROL (the outdoor look, unchanged): standing on the town already,
+        no walk out."""
+        from ai_player.brain.goals import CENTER_LOOK_FRAMES
+
+        for start in ("DEWFORD_TOWN_GYM", "DEWFORD_TOWN"):
+            with self.subTest(start=start):
+                mgr = manager("Trainer")
+                world = world_with("DEWFORD_TOWN", "DEWFORD_TOWN_GYM", "ROUTE104", "RUSTBORO_CITY", current=start,
+                                   center_from="RUSTBORO_CITY")
+                keys = {m.const: k for k, m in world.maps.items()}
+                world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS  # grass seen, no known way: no training
+                Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+                Round5HealTests.link(world, keys["DEWFORD_TOWN"], keys["DEWFORD_TOWN_GYM"])
+                seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const=start,
+                            map_number=1 if start == "DEWFORD_TOWN" else 3)
+                walks, looks = [], []
+
+                def travel(target, why, budget, done):
+                    walks.append(target)
+                    world._last.key = keys[target]  # noqa: SLF001 - out of the gym's door, on the town
+                    yield
+                    return "done: travel"
+
+                def run(intent, why):
+                    before = intent.done(seen)
+                    mgr.memory.landmarks[(keys["DEWFORD_TOWN"], (2, 6))] = "pokemon_center"  # its red roof in view
+                    looks.append((intent.budget, before, intent.done(seen)))
+                    yield
+                    return "done: looked round"
+
+                nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+                runner = GoalRunner(types.SimpleNamespace(look=lambda: seen), nav, mgr, types.SimpleNamespace(purpose=""),
+                                    lambda line: None)
+                runner._travel = travel  # noqa: SLF001
+                index = mgr.story.index("ch7_brawly")
+                goal = Goal("find_center", "top-up", map="DEWFORD_TOWN", via=keys["DEWFORD_TOWN"],
+                            key=f"find_center:{keys['DEWFORD_TOWN']}")
+                ok, outcome = drive(runner.pursue(goal, mgr.story.milestones[index], index, lambda observation: index))
+                self.assertTrue(ok, outcome)
+                self.assertEqual(walks, ["DEWFORD_TOWN"] if start == "DEWFORD_TOWN_GYM" else [])
+                self.assertEqual(looks, [(CENTER_LOOK_FRAMES, False, True)])
+                self.assertIn("its door seen on DEWFORD_TOWN", outcome)
+                after = mgr.next_goal(seen, world, mgr.story.milestones[index], index)
+                self.assertEqual((after.kind, after.map), ("heal", "DEWFORD_TOWN_POKEMON_CENTER_1F"), after.reason)
+
+    def test_h3_controls_a_heal_for_the_partys_own_state_and_an_unknown_town(self):
+        """CONTROLS: (a) a party IN DANGER or under its heal line in the gym still heads for the only centre known
+        (RUSTBORO's), as `Round5HealTests.test_r2` pins: the look from a building is the top-up's only; (b) a top-up in a gym
+        whose town the AI does not know (no way out known, the town's map never seen) neither looks nor heals; (c) on a
+        ROUTE (no town), unchanged: no look, no heal (the round-6 verifier's VT6-4)."""
+        mgr = manager("Trainer")
+        line = mgr.state.errands.heal_below
+        for name, hp in (("danger", 4), ("under the heal line", int(20 * line) - 1)):
+            with self.subTest(name):
+                goals, _ = Round5HealTests().gym("RUSTBORO_CITY", hp=hp)
+                self.assertEqual((goals[0].kind, goals[0].map), ("heal", "RUSTBORO_CITY_POKEMON_CENTER_1F"),
+                                 goals[0].reason)
+        world = world_with("DEWFORD_TOWN_GYM", "ROUTE104", "RUSTBORO_CITY", current="DEWFORD_TOWN_GYM",
+                           center_from="RUSTBORO_CITY")
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS
+        Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const="DEWFORD_TOWN_GYM", map_number=3)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        goals = [mgr.next_goal(seen, world, milestone, index) for _ in range(3)]
+        self.assertEqual([g.kind for g in goals if g.kind in ("heal", "find_center")], [], [g.reason for g in goals])
+        world = world_with("DEWFORD_TOWN", "ROUTE104", "RUSTBORO_CITY", "ROUTE106", current="ROUTE106",
+                           center_from="RUSTBORO_CITY")
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS
+        Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        Round5HealTests.link(world, keys["DEWFORD_TOWN"], keys["ROUTE106"])
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const="ROUTE106", map_number=5)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        goals = [mgr.next_goal(seen, world, milestone, index) for _ in range(3)]
+        self.assertEqual([g.kind for g in goals if g.kind in ("heal", "find_center")], [], [g.reason for g in goals])
+
+    @staticmethod
+    def top_up_in(building: str, way_out: bool) -> Goal:
+        """A top-up (Trainer, 15/20, ch7_brawly, ROUTE 104's grass seen with no known way, only RUSTBORO's centre known with
+        no known way) standing in `building` of DEWFORD (map 0:2); `way_out`: the warp out to DEWFORD_TOWN (0:1) known (the
+        door it came in by). The first goal."""
+        mgr = manager("Trainer")
+        world = world_with("DEWFORD_TOWN", building, "ROUTE104", "RUSTBORO_CITY", current=building,
+                           center_from="RUSTBORO_CITY")
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS
+        Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        if way_out:
+            world.warps[f"{keys[building]}|3,8"] = {"to": keys["DEWFORD_TOWN"], "arrival": [8, 18], "uses": 1,
+                                                     "inferred": False}
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const=building, map_number=2)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        return mgr.next_goal(seen, world, milestone, index)
+
+    def test_h4_the_buildings_town_by_its_way_out_or_a_gyms_own_name(self):
+        """`GoalManager._building_town`: (a) a top-up in another building of the town (DEWFORD_TOWN_HALL), its way out to
+        DEWFORD_TOWN known: it looks for DEWFORD's centre; CONTROL: the same building with no way out known (and not a gym)
+        has no known town: no look. (b) a GYM whose way out is not known (the town's map known, no link between them): its
+        town by the gym's own name (static map data): it looks for DEWFORD's centre."""
+        goal = self.top_up_in("DEWFORD_TOWN_HALL", way_out=True)
+        self.assertEqual((goal.kind, goal.map, goal.via), ("find_center", "DEWFORD_TOWN", "0:1"), goal.reason)
+        goal = self.top_up_in("DEWFORD_TOWN_HALL", way_out=False)
+        self.assertNotIn(goal.kind, ("heal", "find_center"), goal.reason)
+        goal = self.top_up_in("DEWFORD_TOWN_GYM", way_out=False)
+        self.assertEqual((goal.kind, goal.map, goal.via), ("find_center", "DEWFORD_TOWN", "0:1"), goal.reason)
+
+
+class _Questions(_Question):
+    """(round 7, VM5) `_Question` whose every answer is followed by a NEW question (other options each time), all ignoring
+    B with no EXIT, each reply a page that names no option: a scene of endless questions."""
+
+    def __init__(self):
+        super().__init__(options=("Yes 1", "No 1"), again=True)
+        self.asked = 1
+
+    def press(self, button: str) -> None:
+        if self.state == "again" and button == "A":
+            self.asked += 1
+            self.options = (f"Yes {self.asked}", f"No {self.asked}")
+        super().press(button)
+        if self.state == "again":
+            self.replied = "Hmm, I see."
+
+
+class Round7MenuTests(unittest.TestCase):
+    """(chapter 6 stops round 7, 2026-11-07) The round-6 verifier's VM5 survived: nothing pinned that an ANSWER
+    (`Instructed._answer`) counts toward `MAX_DECISIONS`, the bound on one scene's choices. It does (the field menu's back
+    out and its answer: two decisions an answered question), and this pins it."""
+
+    def test_m1_a_scene_of_endless_questions_stops_at_max_decisions(self):
+        """A scene that asks a NEW question after every answer (`_Questions`): the AI answers each with its first option,
+        and the scene stops at `MAX_DECISIONS` (16: 8 answers, two decisions each), said in the log; never more answers."""
+        from ai_player.skills.instructed import MAX_DECISIONS
+
+        game = _Questions()
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(brain._instructed.answers, MAX_DECISIONS // 2)
+        self.assertEqual(game.chosen, [f"Yes {n}" for n in range(1, MAX_DECISIONS // 2 + 1)])
+        self.assertTrue(any("(MAX_DECISIONS)" in line for line in hands.told), hands.told[-3:])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

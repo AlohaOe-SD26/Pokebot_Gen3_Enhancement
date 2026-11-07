@@ -101,6 +101,17 @@ CHAPTER 5 (2026-11-05, the instructed-choice skill), READ ONLY, no new door (the
     and the call-exit wait are `eyes/screens.py` pokenav_view and pokenav_wait;
   * the player's own NAME (`PlayerState.name`): SaveBlock2 playerName[8], through `_play_time`'s doors.
 
+CHAPTER 6 STOPS ROUND 7 (2026-11-07, N6-1, a USER RULING 40 gap), READ ONLY, no new door: ON A DARK MAP ONLY THE LIT CIRCLE IS
+SEEN. DEWFORD's gym (flash level 7 with no gym trainer beaten: 24 px) and GRANITE CAVE B1F and B2F (`requires_flash`) show
+the map and its people only inside a circle round the player; the eyes listed every object, and the world memory learned
+every tile, of the whole window (#109's records: 150 of 154 gym records a run listed someone outside the circle, up to 12
+tiles away). `_lit_radius` reads save block 1's `flashLevel` (one byte, through `_player`'s doors) to know which circle the
+screen draws; `eyes/view.py` lit has the game's drawing rule (`SetFlashScanlineEffectWindowBoundaries`). A tile outside
+the circle is None in `View.rows` (the world memory does not learn it), an object or sign outside it is not listed, and
+`View.lit` says the radius. A lit map's look is unchanged, byte for byte (`View.lit` None is left out of the record).
+Tiles the world memory already knows, and the AI's static knowledge (`brain/goals.py` gym_back), stay: a seasoned player
+knows the map; it does not SEE a person in the dark.
+
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
 
@@ -163,6 +174,7 @@ from ai_player.eyes.view import (
     LEDGE_DIRECTIONS,
     SAVE_BLOCK_1_FLAG_BYTES,
     SAVE_BLOCK_1_FLAGS,
+    SAVE_BLOCK_1_FLASH_LEVEL,
     SAVE_BLOCK_1_VARS,
     SCRIPT_CONTEXT_SHUTDOWN,
     STORY_FLAGS,
@@ -177,9 +189,11 @@ from ai_player.eyes.view import (
     behavior_name,
     classify_screen,
     facing_name,
+    flash_radius,
     foe_move_seen,
     hp_bar_pixels,
     in_view,
+    lit,
     milestone_marks,
     movement_mode,
     object_kind,
@@ -1059,6 +1073,9 @@ class FrameworkEyes:
         secondary = self._tileset_attributes(_u32(map_layout, 20))
         tile_bits = self._tile_flags()
         _, _, signs = self._map_facts(player.map_group, player.map_number)
+        # (chapter 6 stops round 7, N6-1) on a DARK map only the lit circle the screen draws is seen: a tile outside it is
+        # None, an object or sign outside it is not listed (`eyes/view.py` lit). Not under the NO_CROP fault, which sees all
+        radius = self._lit_radius() if self.crop else None
         if self.crop:
             up, down, left_of, right_of = VIEW_UP, VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_HALF_WIDTH
         else:
@@ -1084,11 +1101,22 @@ class FrameworkEyes:
                 else:
                     block = MAPGRID_UNDEFINED
                 row.append(self._tile(player, vx - MAP_OFFSET, vy - MAP_OFFSET, block, border, primary, secondary,
-                                      tile_bits, dy))
+                                      tile_bits, dy) if lit(column - left_of, dy, radius) else None)
             rows.append(tuple(row))
-        objects = self._objects(player) + self._signs(player, signs)
+        objects = self._objects(player, radius) + self._signs(player, signs, radius)
         return View(left=left_of, right=right_of, up=up, down=down, rows=tuple(rows), objects=tuple(objects),
-                    cropped=self.crop)
+                    cropped=self.crop, lit=radius)
+
+    @staticmethod
+    def _lit_radius() -> int | None:
+        """(chapter 6 stops round 7, N6-1) The radius of the lit circle the screen draws on this map, or None when it is lit
+        whole (`eyes/view.py` flash_radius): save block 1's `flashLevel`, the level the game draws its circle by
+        (`InitCurrentFlashLevelScanlineEffect`), through the doors `_player` uses (`read_symbol` for the save block's
+        pointer, `context.emulator.read_bytes`). While a script ANIMATES the circle wider (`animateflash`, DEWFORD's gym
+        after a trainer) the level is still the old one until its `setflashlevel`: the AI sees the smaller circle, less
+        than the screen for those frames (the player's controls are locked through it), never more."""
+        save_block_1 = _u32(read_symbol("gSaveBlock1Ptr", size=4), 0)
+        return flash_radius(context.emulator.read_bytes(save_block_1 + SAVE_BLOCK_1_FLASH_LEVEL, 1)[0])
 
     @staticmethod
     def _tile(player: PlayerState, x: int, y: int, block: int, border: bytes, primary: bytes, secondary: bytes,
@@ -1139,7 +1167,7 @@ class FrameworkEyes:
             self._tile_bits = read_symbol("sTileBitAttributes")
         return self._tile_bits
 
-    def _objects(self, player: PlayerState) -> list[SeenObject]:
+    def _objects(self, player: PlayerState, radius: int | None = None) -> list[SeenObject]:
         seen = []
         for event in get_map_objects():
             flags = event.flags
@@ -1148,6 +1176,8 @@ class FrameworkEyes:
             x, y = event.current_coords
             if self.crop and not in_view(player.x, player.y, x, y):
                 continue
+            if not lit(x - player.x, y - player.y, radius):
+                continue  # (round 7, N6-1) a person in the dark is not seen: black on screen
             seen.append(SeenObject(
                 kind=object_kind(event.graphics_id), x=x, y=y, dx=x - player.x,
                 dy=y - player.y, local_id=event.local_id, graphics_id=event.graphics_id,
@@ -1155,12 +1185,14 @@ class FrameworkEyes:
             ))
         return seen
 
-    def _signs(self, player: PlayerState, signs: tuple) -> list[SeenObject]:
+    def _signs(self, player: PlayerState, signs: tuple, radius: int | None = None) -> list[SeenObject]:
         """Interactable tiles of the map (`MapBgEvent` kind Script: signposts, PCs, bookshelves). Hidden
-        items are never here: nobody can see them."""
+        items are never here: nobody can see them. (Round 7, N6-1) Nor is a sign in the dark."""
         seen = []
         for (x, y), elevation in signs:
             if self.crop and not in_view(player.x, player.y, x, y):
+                continue
+            if not lit(x - player.x, y - player.y, radius):
                 continue
             seen.append(SeenObject(kind="sign", x=x, y=y, dx=x - player.x, dy=y - player.y, local_id=-1,
                                    graphics_id=-1, facing=None, elevation=elevation, source="bg_event"))

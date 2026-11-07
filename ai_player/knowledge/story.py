@@ -78,6 +78,8 @@ class Milestone:
     fight_named: bool = False
     #: (build step 5.1) not required for the story: never the current milestone (the gym's trainers)
     optional: bool = False
+    #: (chapter 6 stops round 7, VR6-5) who the fight is with, by trainer name ("BRAWLY_1"): milestones.json `fight.trainers`
+    fight_trainers: tuple[str, ...] = ()
 
     def done(self, marks: dict[str, int]) -> bool | None:
         """Every proof holds on the eyes' marks; None when a proof is not in the marks (not read)."""
@@ -127,7 +129,8 @@ class Story:
                         for s in raw.get("steps", [])),
             hint_said=hint.get("said", ""), hint_words=hint.get("words"), hint_map=self.resolve(hint.get("map")),
             fight_levels=tuple(fight.get("levels", ())), waypoint=raw.get("waypoint"),
-            fight_named=bool(fight.get("named")), optional=bool(raw.get("optional")))
+            fight_named=bool(fight.get("named")), optional=bool(raw.get("optional")),
+            fight_trainers=tuple(fight.get("trainers", ())))
 
     def index(self, milestone_id: str) -> int:
         for number, milestone in enumerate(self.milestones):

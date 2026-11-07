@@ -43,6 +43,8 @@ __all__ = [
     "BEHAVIOR_NAMES",
     "DOOR_BEHAVIORS",
     "EXIT_BEHAVIORS",
+    "FLASH_CENTRE",
+    "FLASH_RADIUS",
     "GFX_KINDS",
     "GLYPHS",
     "HP_BAR_PIXELS",
@@ -56,6 +58,7 @@ __all__ = [
     "RENDER_STATE_NAMES",
     "SAVE_BLOCK_1_FLAGS",
     "SAVE_BLOCK_1_FLAG_BYTES",
+    "SAVE_BLOCK_1_FLASH_LEVEL",
     "SAVE_BLOCK_1_VARS",
     "SCRIPT_CONTEXT_SHUTDOWN",
     "STORY_FLAGS",
@@ -73,8 +76,11 @@ __all__ = [
     "classify_screen",
     "facing_name",
     "foe_move_seen",
+    "flash_radius",
+    "flash_window",
     "hp_bar_pixels",
     "in_view",
+    "lit",
     "milestone_marks",
     "movement_mode",
     "object_kind",
@@ -105,6 +111,81 @@ def view_offsets() -> tuple[tuple[int, int], ...]:
     return tuple(
         (dx, dy) for dy in range(-VIEW_UP, VIEW_DOWN + 1) for dx in range(-VIEW_HALF_WIDTH, VIEW_HALF_WIDTH + 1)
     )
+
+
+# ------------------------------------------------------------------------------------------- the dark
+# (chapter 6 stops round 7, N6-1: a USER RULING 40 gap) ON A DARK MAP THE SCREEN SHOWS ONLY A LIT CIRCLE ROUND THE PLAYER.
+# Pinned decomp: `SetDefaultFlashLevel` (src/overworld.c) sets save block 1's `flashLevel` on a map whose header has `cave`
+# (map.json `requires_flash`: GRANITE CAVE B1F and B2F, VICTORY ROAD B1F and B2F) to gMaxFlashLevel - 1 = 7, or to 1 once
+# FLASH is used (FLAG_SYS_USE_FLASH); a script can set it (`setflashlevel`, `animateflash`: DEWFORD's gym,
+# DewfordTown_Gym_EventScript_SetFlashLevel, 7 with no gym trainer beaten, one level brighter per trainer, 0 after BRAWLY).
+# `InitCurrentFlashLevelScanlineEffect` then draws, for a level other than 0, a circle of `sFlashLevelToRadius[level]`
+# pixels centred on the screen's middle (DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2) into WIN0's per-scanline bounds
+# (`SetFlashScanlineEffectWindowBoundaries`, src/field_screen_effect.c); inside WIN0 every BG and the sprites are drawn
+# (REG_WININ), outside it only BG0, the text layer (REG_WINOUT, `InitOverworldGraphicsRegisters`): the map and the people
+# there are black. The scanline buffers start cleared (`ScanlineEffect_Clear`), so a scanline the circle does not reach is
+# black whole. That drawing rule is the SCREEN's, so applying it is fair (what is not drawn is not seen); the level is read
+# from the save block only to know which circle the screen draws. NOT HERE: the BATTLE PYRAMID draws its own radius
+# (`WriteBattlePyramidViewScanlineEffectBuffer`, post-game, `frontier.pyramidLightRadius`); a later chapter must add it.
+#: `sFlashLevelToRadius` (src/field_screen_effect.c): the lit circle's radius in pixels, by flash level
+FLASH_RADIUS = (200, 72, 64, 56, 48, 40, 32, 24, 0)
+#: `struct SaveBlock1` /*0x30*/ u8 flashLevel (include/global.h)
+SAVE_BLOCK_1_FLASH_LEVEL = 0x30
+#: the circle's centre on screen (DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2): the middle of the player's tile, which is drawn at
+#: screen (112..127, 72..87) (the module docstring), so a tile (dx, dy) from the player has its middle at
+#: (120 + 16 dx, 80 + 16 dy)
+FLASH_CENTRE = (120, 80)
+
+
+def flash_radius(level: int) -> int | None:
+    """The radius of the lit circle the screen draws at flash `level`, or None when the screen is lit whole (level 0: no
+    circle is drawn). A level outside the game's table (never set by the game: `SetFlashLevel` turns one into 0; only a
+    bad read) is radius 0, nothing lit: the AI then sees LESS than the screen, never more."""
+    if level == 0:
+        return None
+    return FLASH_RADIUS[level] if 0 < level < len(FLASH_RADIUS) else 0
+
+
+_WINDOWS: dict[int, dict[int, tuple[int, int]]] = {}
+
+
+def flash_window(radius: int) -> dict[int, tuple[int, int]]:
+    """The lit circle as the game draws it: scanline y -> (left, right), WIN0H's bounds (a pixel x is lit when
+    left <= x < right), from `SetFlashScanlineEffectWindowBoundaries` and `SetFlashScanlineEffectWindowBoundary` line for
+    line (a midpoint circle; bounds clamped to 0..255; only scanlines y <= 160 are written). A scanline not in the result
+    is black (the buffer was cleared)."""
+    if radius not in _WINDOWS:
+        rows: dict[int, tuple[int, int]] = {}
+
+        def bound(y: int, left: int, right: int) -> None:
+            if y <= 160:
+                rows[y] = (min(max(left, 0), 255), min(max(right, 0), 255))
+
+        cx, cy = FLASH_CENTRE
+        r, v2, v3 = radius, radius, 0
+        while r >= v3:
+            bound(cy - v3, cx - r, cx + r)
+            bound(cy + v3, cx - r, cx + r)
+            bound(cy - r, cx - v3, cx + v3)
+            bound(cy + r, cx - v3, cx + v3)
+            v2 -= (v3 * 2) - 1
+            v3 += 1
+            if v2 < 0:
+                v2 += 2 * (r - 1)
+                r -= 1
+        _WINDOWS[radius] = rows
+    return _WINDOWS[radius]
+
+
+def lit(dx: int, dy: int, radius: int | None) -> bool:
+    """Is the tile (dx, dy) from the player inside the lit circle the screen draws (`flash_window`)? Its MIDDLE pixel
+    (120 + 16 dx, 80 + 16 dy) must be lit, so a tile the AI sees is at least partly on screen; a tile only grazed by the
+    circle's rim (a few pixels of its edge) is not seen. At flash level 7 (24 px) that is the player's tile and the 8 round
+    it; at level 1 (72 px, FLASH used) 69 tiles of the window. `radius` None (a lit map): every tile."""
+    if radius is None:
+        return True
+    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy, (0, 0))
+    return left <= FLASH_CENTRE[0] + 16 * dx < right
 
 
 # ------------------------------------------------------------------------------------------- tiles

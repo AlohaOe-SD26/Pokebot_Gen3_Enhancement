@@ -10370,6 +10370,351 @@
     "test_battle:SkillTests"
    ],
    "origin": "chapter 6 stops round 5, the builder, 2026-11-06 (s53/ch6stops5/mutants5.py): predictions written and hashed (s53/ch6stops5/prediction_mutants5.txt, sha256 c1a9ecde7bd40f29...) BEFORE the first run"
+  },
+  {
+   "name": "CH6S18",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the eyes ignore the dark (no lit circle on any map)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        radius = self._lit_radius() if self.crop else None\n",
+     "        radius = None  # MUTANT CH6S18\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S19",
+   "prediction": "CAUGHT",
+   "what": "N6-1: a tile outside the lit circle is still in the view (and learned)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "                                      tile_bits, dy) if lit(column - left_of, dy, radius) else None)\n",
+     "                                      tile_bits, dy))  # MUTANT CH6S19\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S20",
+   "prediction": "CAUGHT",
+   "what": "N6-1: a person in the dark is still listed",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            if not lit(x - player.x, y - player.y, radius):\n                continue  # (round 7, N6-1) a",
+     "            if False:\n                continue  # MUTANT CH6S20 (round 7, N6-1) a"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S21",
+   "prediction": "CAUGHT",
+   "what": "N6-1: a sign in the dark is still listed",
+   "edits": [
+    [
+     "host/eyes.py",
+     "            if not lit(x - player.x, y - player.y, radius):\n                continue\n            seen.append(SeenObject(kind=\"sign\"",
+     "            if False:  # MUTANT CH6S21\n                continue\n            seen.append(SeenObject(kind=\"sign\""
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S22",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the radius table read one level off (level 7 drawn as 32 px)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "    return FLASH_RADIUS[level] if 0 < level < len(FLASH_RADIUS) else 0\n",
+     "    return FLASH_RADIUS[level - 1] if 0 < level < len(FLASH_RADIUS) else 0  # MUTANT CH6S22\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d1_the_games_circle",
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S23",
+   "prediction": "CAUGHT",
+   "what": "N6-1: flash level 1 (FLASH used, a 72 px circle) taken for a lit map",
+   "edits": [
+    [
+     "eyes/view.py",
+     "    if level == 0:\n        return None\n",
+     "    if level <= 1:  # MUTANT CH6S23\n        return None\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d1_the_games_circle"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S24",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the world memory reads a dark tile (None) as a tile",
+   "edits": [
+    [
+     "world/memory.py",
+     "                if tile is None:\n                    continue\n",
+     "                if False:  # MUTANT CH6S24\n                    continue\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S25",
+   "prediction": "CAUGHT",
+   "what": "N6-1: a lit map's record carries `lit: null` (no longer the record it was)",
+   "edits": [
+    [
+     "eyes/observation.py",
+     "                del data[\"view\"][\"lit\"]  # (round 7, N6-1) a lit map's record is as before, byte for byte\n",
+     "                pass  # MUTANT CH6S25\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d3_control_a_lit_map_is_seen_whole_and_recorded_as_before"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S26",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the compact record writes a dark tile (None) as a tile",
+   "edits": [
+    [
+     "eyes/observation.py",
+     " for row in self.view.rows for tile in row if tile is not None]\n",
+     " for row in self.view.rows for tile in row]  # MUTANT CH6S26\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S27",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the NO_CROP fault is darkened too (it must see everything: its purpose)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        radius = self._lit_radius() if self.crop else None\n",
+     "        radius = self._lit_radius()  # MUTANT CH6S27\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d3_control_a_lit_map_is_seen_whole_and_recorded_as_before"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S28",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the record's digest does not say the map is dark",
+   "edits": [
+    [
+     "eyes/observation.py",
+     "                parts.append(f\"lit={self.view.lit}px\")  # (round 7, N6-1) a dark map: only this circle is seen\n",
+     "                pass  # MUTANT CH6S28\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S29",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the flash level read from the wrong byte of save block 1 (not `flashLevel` @0x30)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "SAVE_BLOCK_1_FLASH_LEVEL = 0x30\n",
+     "SAVE_BLOCK_1_FLASH_LEVEL = 0x31  # MUTANT CH6S29\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned",
+    "DarkTests.test_d3_control_a_lit_map_is_seen_whole_and_recorded_as_before"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07 (s53/ch6stops7/mutants7.py): predictions written and hashed (s53/ch6stops7/prediction_mutants7.txt, sha256 020dcde7af4f2dc5...) BEFORE the run"
+  },
+  {
+   "name": "CH6S30",
+   "prediction": "CAUGHT",
+   "what": "N6-1: `_lit_radius`'s call of `flash_radius` deleted (every map read as lit)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        return flash_radius(context.emulator.read_bytes(save_block_1 + SAVE_BLOCK_1_FLASH_LEVEL, 1)[0])\n",
+     "        return None  # MUTANT CH6S30\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run"
+  },
+  {
+   "name": "CH6S31",
+   "prediction": "CAUGHT",
+   "what": "N6-1: `lit`'s call of `flash_window` deleted (no scanline is lit: nothing seen on a dark map)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy, (0, 0))\n",
+     "    left, right = 0, 0  # MUTANT CH6S31\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d1_the_games_circle",
+    "DarkTests.test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run"
+  },
+  {
+   "name": "CH6S32",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the circle's rows ABOVE the centre within 45 degrees never drawn (bound call 1 deleted)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "            bound(cy - v3, cx - r, cx + r)\n",
+     "            pass  # MUTANT CH6S32\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d1_the_games_circle"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run"
+  },
+  {
+   "name": "CH6S33",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the circle's rows BELOW the centre within 45 degrees never drawn (bound call 2 deleted)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "            bound(cy + v3, cx - r, cx + r)\n",
+     "            pass  # MUTANT CH6S33\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d1_the_games_circle"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run"
+  },
+  {
+   "name": "CH6S34",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the circle's TOP cap never drawn (bound call 3 deleted)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "            bound(cy - r, cx - v3, cx + v3)\n",
+     "            pass  # MUTANT CH6S34\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d1_the_games_circle"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run"
+  },
+  {
+   "name": "CH6S35",
+   "prediction": "CAUGHT",
+   "what": "N6-1: the circle's BOTTOM cap never drawn (bound call 4 deleted)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "            bound(cy + r, cx - v3, cx + v3)\n",
+     "            pass  # MUTANT CH6S35\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d1_the_games_circle"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 7, the builder, 2026-11-07, revision b (s53/ch6stops7/mutants7b.py: the call-site census's deleting mutants): predictions written and hashed (s53/ch6stops7/prediction_mutants7b.txt, sha256 25b7b80e36483d4d...) BEFORE the run"
   }
  ]
 }

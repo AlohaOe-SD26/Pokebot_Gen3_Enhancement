@@ -466,7 +466,9 @@ class Instructed:
         unchanged, after the B) and that has no option reading EXIT or CANCEL is a question it cannot decline: it answers
         with the option the cursor STARTS on (`ui`, the look before its B; A), says so once and adds the menu to `answered`.
         None (the caller forces it): a menu of `NO_ANSWER_MENUS` (its starting option commits something a person would
-        regret), no option highlighted, or an answer the menu did not take; `unanswered` then says why."""
+        regret), no option highlighted, or an answer the menu did not take; `unanswered` then says why. (Chapter 6 stops
+        round 7, the round-6 verifier's VM5) The answer is a DECISION toward `MAX_DECISIONS` (with the back-out before it,
+        two a question), so a scene that asks question after question stops there (test_goals Round7MenuTests m1)."""
         name = no_answer_menu(ui.options)
         if name is not None:
             self.unanswered = (f"; its first option starts a battle or makes a one-way choice ({name}), so the AI does not "

@@ -864,17 +864,25 @@ def lost_way(nav: Navigator, look: Observation, weights, moving: bool) -> tuple[
 GYM_BACK = "the back of the gym, opposite its door: a gym's leader stands there (a seasoned player's knowledge)"
 
 
-def gym_back(nav: Navigator, look: Observation) -> Target | None:
+def gym_back(nav: Navigator, look: Observation, gym: str | None = None) -> Target | None:
     """(chapter 6 stops round 6, round 5's new stop P5-1) THE BACK OF A GYM: where a person who has come to FIGHT the
     leader walks to find them, through the gym and the trainers in the way. A seasoned player knows a gym's leader stands at
     its back, the side opposite its door (USER RULING 40: static knowledge of every gym; the AI is never told a tile). Of
     the known walkable tiles of this map a walk from here reaches (`navigator.distances`), the one farthest from the door it
     knows nearest to it (its `exits`) across the gym (by rows), the one nearest the door's column on a tie, then the nearer
-    by the walk. None when no door, no player's tile, or no such tile is known."""
+    by the walk. None when no door, no player's tile, or no such tile is known. (Chapter 6 stops round 7, VR6-1) None, too,
+    on a map that is not a gym, or not `gym` (the leader's gym the find was made for): a find whose back was excluded
+    walked out to the TOWN and was offered "the back of the gym" there (the round-6 verifier's VT6-3).
+    LIMIT (the round-6 verifier's VR6-2): "the farthest row from the door" is the leader's own tile in RUSTBORO's and
+    DEWFORD's gyms (chapters 4 and 7, measured on the pinned layouts); MAUVILLE's, FORTREE's and PETALBURG's leaders do not
+    stand there (rooms, side columns, intra-map doors), so a find there in the rare state this serves (the gym fully known,
+    no sighting) is not proven: define the back by the gym's rooms before chapter 9."""
     found = nav.where(look)
     if found is None:
         return None
     memory, here = found
+    if not is_gym(memory.const) or (gym is not None and memory.const != gym):
+        return None
     doors = memory.exits()
     if not doors:
         return None
@@ -1317,8 +1325,8 @@ class GoalManager:
         for row in look.view.rows:
             for tile in row:
                 # a door seen ACROSS a map's edge belongs to the next map (its coordinates here are past this map's): it is
-                # remembered when the AI stands on that map and sees it again
-                if not tile.door or tile.x < 0 or tile.y < 0:
+                # remembered when the AI stands on that map and sees it again; a tile in the dark (round 7, N6-1) is unseen
+                if tile is None or not tile.door or tile.x < 0 or tile.y < 0:
                     continue
                 if center is not None and tile.metatile in center.metatile:
                     self.memory.landmarks.setdefault((key, (tile.x, tile.y)), "pokemon_center")
@@ -1400,23 +1408,31 @@ class GoalManager:
                        + ("; a known fight is next" if before_fight else "")
                        + (" (it cannot train here: no known way leads to grass)" if before_fight and cannot_train
                           else ""))
-                town = here_const if here_const and OUTDOOR.match(here_const) and not here_const.startswith("ROUTE") \
-                    else None
-                if (known is not None and town is not None and self._place_key(world, known) not in (None, world.current)
-                        and world.current not in self.memory.center_looked
+                town_key, town = ((world.current, here_const) if here_const and OUTDOOR.match(here_const)
+                                  and not here_const.startswith("ROUTE") else (None, None))
+                if town is None and topup:
+                    # (chapter 6 stops round 7, the round-6 verifier's VR6-4) a TOP-UP that starts INSIDE a building of a
+                    # town (its gym) looks for that town's centre as it would outdoors: the town its door leads to
+                    # (`_building_town`). Before, the look needed an outdoor town map, so in DEWFORD's gym, knowing only
+                    # an unreachable centre, it neither looked nor healed. Only the top-up: a heal for the party's own
+                    # state from a building keeps the nearest centre it knows (Round5HealTests r2, chapters 1-5)
+                    town_key, town = self._building_town(world)
+                if (known is not None and town is not None and self._place_key(world, known) not in (None, town_key)
+                        and town_key not in self.memory.center_looked
                         # (the graded sweep on 701-720, seed 706: a look round of PETALBURG did not pass its centre, and
                         # the AI took the town for one with none) only a town SEEN ALL OF (nothing left to see there) and
                         # looked round has no centre to look for
-                        and not (world.current in self.memory.explored and world.promise(world.current) <= 0)):
+                        and not (town_key in self.memory.explored and world.promise(town_key) <= 0)):
                     # (build step 5.1, the verifier's second round: CH2T, hurt on arriving in PETALBURG CITY, walked back
                     # to OLDALE's centre, the one it knew) in a TOWN whose own centre it has not seen, a person looks for
                     # it here first (a town has one), once; then the nearest it knows
-                    self.memory.center_looked.add(world.current)
+                    self.memory.center_looked.add(town_key)
                     back = (f"before walking back to {where[3]}" if where is not None else
                             f"first: no known way leads back to {known[3]}")
+                    here_said = "here" if town_key == world.current else f"in {town}, out of this building,"
                     return Goal("find_center", f"{why}: it has not seen {town}'s POKéMON CENTER yet; a town has one, so it "
-                                               f"looks here {back}", milestone.id, map=town,
-                                via=world.current, key=f"find_center:{world.current}")
+                                               f"looks {here_said} {back}", milestone.id, map=town,
+                                via=town_key, key=f"find_center:{town_key}")
                 allowed = self._allowed(f"heal:{where[0]}") if where is not None else False
                 retries = self.memory.danger_again.get(f"heal:{where[0]}", 0) if where is not None else 0
                 if where is not None and (allowed or (must_rest and retries < DANGER_RETRIES)):
@@ -1900,6 +1916,27 @@ class GoalManager:
             return where[1]
         return next((source for const, source in self._known_interiors(world, CENTER_SUFFIX)
                      + self._known_interiors(world, MART_SUFFIX) if const == where[0]), None)
+
+    @staticmethod
+    def _building_town(world) -> tuple[str | None, str | None]:
+        """(chapter 6 stops round 7, VR6-4) The TOWN of the building the player is in, as (its map key, its map const): the
+        town a known way out of this map leads to (the world memory's warps and edges: the door it came in by), else, for a
+        GYM, the town its name carries (static map data, `door_of`'s rule: "DEWFORD_TOWN_GYM" is DEWFORD_TOWN's) when the AI
+        knows that town's map. (None, None) outdoors, or for a building whose town it does not know."""
+        here = world.here()
+        if here is None or not here.const or open_way(here.const):
+            return None, None
+        for kind, link in world.links_from(world.current):
+            key = link.get("to") if kind == "warp" else link.get("target")
+            memory = world.maps.get(key)
+            if memory is not None and memory.const and OUTDOOR.match(memory.const) and not memory.const.startswith("ROUTE"):
+                return key, memory.const
+        if is_gym(here.const):
+            name = here.const[: -len(GYM_SUFFIX) - 1]
+            keys = sorted(key for key, memory in world.maps.items() if memory.const == name)
+            if keys:
+                return keys[0], name
+        return None, None
 
     def center_seen_on(self, key: str | None) -> bool:
         """(build step 5.1, the verifier's second round) A POKéMON CENTER's door seen on map `key`."""
@@ -2466,7 +2503,7 @@ class GoalRunner:
                                            lambda why: self._out_of_ideas(milestone, why, lost_why))
                           if goal.kind in ("go", "look_around") and goal.key.startswith(LOST_KEYS)
                           else travel_intent(None, manager.state.active, budget, walk_done, stay=goal.kind == "find",
-                                             back=gym_back if self._fights_its_leader(goal, milestone) else None))
+                                             back=self._leader_back(goal, milestone)))
                 outcome = yield from nav.run(intent, goal.reason)
                 if lost_why:
                     outcome = f"{lost_why[-1]} ({outcome})"
@@ -2486,11 +2523,24 @@ class GoalRunner:
         if goal.kind == "find_center" and goal.via is not None:
             # (build step 5.1, the verifier's second round) THIS town's own centre: looked for here, keeping to the town,
             # until its door is seen (the next decision heals at the nearest place it knows: that door, now)
+            walked = ""
+            if nav.world.current != goal.via and goal.map:
+                # (chapter 6 stops round 7, VR6-4) looked for from a building of the town (its gym): out to the town first,
+                # as `_go_inside` walks back to a door's town
+                outcome = yield from self._travel(goal.map, f"{goal.reason}: out to {goal.map}", CENTER_LOOK_FRAMES,
+                                                  lambda look: moved_on(look) or manager.center_seen_on(goal.via)
+                                                  or (look.player is not None and look.player.map_const == goal.map))
+                if nav.world.current != goal.via or manager.center_seen_on(goal.via) or moved_on(self.hands.look()):
+                    seen = manager.center_seen_on(goal.via)
+                    return seen, outcome + (f"; its door seen on {goal.map}" if seen else
+                                            f"; did not get out to {goal.map} to look")
+                walked = f"out to {goal.map}: {outcome}; "
             outcome = yield from nav.run(travel_intent(None, manager.state.active, CENTER_LOOK_FRAMES,
                                                        lambda look: moved_on(look) or manager.center_seen_on(goal.via),
                                                        stay=True), goal.reason)
             seen = manager.center_seen_on(goal.via)
-            return seen, outcome + (f"; its door seen on {goal.map}" if seen else f"; no POKéMON CENTER seen on {goal.map}")
+            return seen, walked + outcome + (f"; its door seen on {goal.map}" if seen else
+                                             f"; no POKéMON CENTER seen on {goal.map}")
         if goal.kind == "find_center":
             outcome = yield from nav.run(travel_intent(None, manager.state.active, FIND_FRAMES * 2,
                                                        lambda look: moved_on(look) or manager.heal_place(nav.world) is not None),
@@ -2671,13 +2721,30 @@ class GoalRunner:
         """(chapter 6 stops round 6, P5-1) Is this a FIND for the gym leader the AI has come to FIGHT (a fight next:
         `GoalManager.fight_levels`), on that leader's own gym (`knowledge/atlas.py` gym_leaders: a seasoned player knows
         each gym's leader)? Then, nothing on the map left to see, the back of the gym is where to look (`gym_back`). Not a
-        talk with no fight: chapter 2's NORMAN, whom a script stands in his gym's FRONT room."""
+        talk with no fight: chapter 2's NORMAN, whom a script stands in his gym's FRONT room. (Chapter 6 stops round 7,
+        VR6-5) The fight next must be with THAT leader (`Milestone.fight_trainers`, milestones.json `fight.trainers`:
+        "BRAWLY_1"), not merely some fight: a find for ROXANNE in her gym while BRAWLY's fight is next is not one."""
         if goal.kind != "find" or not goal.look:
             return False
         here = self.nav.world.here()
         const = here.const if here is not None else None
-        return (is_gym(const) and gym_leaders().get(goal.look.upper()) == const
+        leader = goal.look.upper()
+        return (is_gym(const) and gym_leaders().get(leader) == const
+                and any(name == leader or name.startswith(f"{leader}_") for name in milestone.fight_trainers)
                 and bool(self.manager.fight_levels(milestone)[0]))
+
+    def _leader_back(self, goal: Goal, milestone: Milestone) -> Callable[[Navigator, Observation], Target | None] | None:
+        """(chapter 6 stops round 7, VR6-1) The `back` of a find for the leader it has come to fight (`_fights_its_leader`):
+        `gym_back` bound to THAT leader's gym (the map the find began on), so it is offered there and nowhere else; None
+        for any other walk."""
+        if not self._fights_its_leader(goal, milestone):
+            return None
+        gym = self.nav.world.here().const
+
+        def back(nav: Navigator, look: Observation) -> Target | None:
+            return gym_back(nav, look, gym)
+
+        return back
 
     def _to_building(self, goal: Goal, target_map: str, budget: int,
                      done: Callable[[Observation], bool]) -> Generator[None, None, str]:

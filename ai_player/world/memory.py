@@ -319,13 +319,16 @@ class MapMemory:
 
     # ------------------------------------------------------------------ learning
     def absorb(self, look: Observation, seen_from: tuple[int, int]) -> int:
-        """Remember every tile of the look's view; returns how many were NEW."""
+        """Remember every tile of the look's view; returns how many were NEW. (Chapter 6 stops round 7, N6-1) A tile in the
+        dark (None: outside the lit circle of a dark map) is not seen, so not learned; what was learned before stays."""
         view = look.view
         if view is None:
             return 0
         new = 0
         for row in view.rows:
             for tile in row:
+                if tile is None:
+                    continue
                 xy = (tile.x, tile.y)
                 fact = TileFact.of(tile, look.frame, seen_from)
                 old = self.tiles.get(xy)
