@@ -520,6 +520,16 @@
    "reason": "06 2026-11-05 \"Chapter 5's stops\": \"Do not reopen: merging a development pass as a graded claim; a scene-specific menu script.\"",
    "status": "ACTIVE",
    "topics": "forced menu POKeNAV POKéNAV instructed choice tutorial MR. STONE match call grunt Rusturf talk step New Game test live_chain ch5_rival_meet BADGE-1 chain"
+  },
+  "2026-11-06-dc449a": {
+   "title": "2026-11-06 — The graded chain driver `live_chain.py`: a WRITTEN threat model, \"grade DIR is never better than the ledger\", its refusals and exit codes, and a stopping rule for its checks (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "5ff117c0": "marker"
+   },
+   "do_not_reopen": "Do not reopen an in-process defense in live_chain.py against code written to disable the grader (the purity gate's and R9's job), or grade DIR trusting results.json over the ledger (2026-11-06).",
+   "reason": "06 2026-11-06 \"The graded chain driver\": \"Do not reopen: an in-process defense against code written to disable the grader (that is the purity gate's and R9's job); `grade DIR` trusting results.json over the ledger.\"",
+   "status": "ACTIVE",
+   "topics": "live_chain graded New Game chain driver threat model grade DIR ledger refusal exit codes stopping rule checks purity R9 C4-H05 C6-02 C7-02 mgba closure"
   }
  }
 }

@@ -28,7 +28,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 #: the graders this rule protects
-GRADERS = ("ai_player.gates.rate_step5", "ai_player.gates.live_step5")
+#: (2026-11-05) live_chain, the New Game chain held-out (USER RULING 55), walked on every lane run (its spec section 9)
+GRADERS = ("ai_player.gates.rate_step5", "ai_player.gates.live_step5", "ai_player.gates.live_chain")
 #: the package whose modules are walked into (a name taken from one is followed to its definition)
 WALKED = "ai_player.gates"
 #: (module, name pattern) a grader may take from the AI's package without a walk: the launcher's plumbing and the

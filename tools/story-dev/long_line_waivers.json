@@ -14,10 +14,10 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
-      "chars": 3226,
+      "chars": 3189,
       "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
       "tails": [
-        "to it (`live_chain.py`), chapter 6 and A1 are still ahead.**"
+        "aded run, then chapters 6-7 (branch `wip/ch6-ch7`) and A1.**"
       ],
       "history": [
         {
@@ -73,6 +73,18 @@
           "from_chars": 3195,
           "to_chars": 3226,
           "why": "chapter 5's stops MERGED (2026-11-05): the #28-aiagent-v2 status sentence now says the two stops are built and merged and names the graded New Game test to ch5_rival_meet as next"
+        },
+        {
+          "date": "2026-11-06",
+          "from_chars": 3226,
+          "to_chars": 3189,
+          "why": "its end was edited (no growth): the new last 60 characters are recorded",
+          "from_tails": [
+            "to it (`live_chain.py`), chapter 6 and A1 are still ahead.**"
+          ],
+          "to_tails": [
+            "aded run, then chapters 6-7 (branch `wip/ch6-ch7`) and A1.**"
+          ]
         }
       ]
     },

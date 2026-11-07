@@ -24205,3 +24205,38 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** `skills/instructed.py` compared `len(pages) > self.at_field`, while `read_along` keeps only the last MAX_PAGES (40) pages; once full, a new page leaves the length unchanged and reads as "nothing new".
 - **The fix:** `read_total`, the pages read (never capped), is compared and stored; FAULT/CONTROL test `test_g4c_...`; mutant G469 is the code as built.
 - **Prevention rule:** "something new happened" is a monotonic counter or an identity, never the size of a bounded buffer.
+
+## 2026-11-06 — The full regression lane FAILED on the graded driver because its tests assumed a CLEAN checkout: the lane stages the emulator's git-ignored library
+
+- **Symptom:** `run_regression.py --full --evidence` on `fcb997f5` (branch `wip/live-chain`): overall FAIL, one suite, `test_live_chain`, 2 failures, both `test_closure_toplevel_names`: "ai_player/gates/probe_save_kill.py imports 'mgba', a name of sandbox-pokebot the closure does not follow". The suite was OK in the builder's worktree.
+- **Root cause:** the lane stages the emulator (`stage.py up`), which puts `sandbox-pokebot/mgba`, a git-ignored folder, beside the code; the worktree the tests were written in never had it. The closure rule was right; the tests had never run in the tree the lane runs them in.
+- **The fix:** round 3 (`82cebfd9`, LANE-MGBA) exempts `mgba` by name, with a FAULT test (another unhashed top-level name is still refused) and a CONTROL; every later round runs the suite twice, in the worktree and in a copy with a fake `sandbox-pokebot/mgba`.
+- **Prevention rule:** a test that scans the tree runs once in a copy that holds what the lane stages (git-ignored files included) before the lane is spent on it.
+
+## 2026-11-06 — Long single agents were cut off by a usage limit and lost their final runs; a live batch died with its agent
+
+- **Symptom:** at about 8:22 AM both builders (the driver's round 4 and chapter 6's round 3) stopped mid-task. The driver's final test runs had not run; chapter 6's A/B batch (ledger #103) died with its agent, 1 of 6 runs ended.
+- **Root cause:** each agent held the whole round (build, tests, mutants, live runs, report) in one context, and the batch it started was its child, so the cut-off ended both. Two heavy agents were running at once.
+- **The fix:** the trees were committed as found (WIP commits `cd11bde4`, `07913cde`); the driver's final runs were finished by a background script with no agent; a finishing agent read the transcript's tail and completed chapter 6's round; ledger #103 was closed truthfully (INTERRUPTED; its seeds stay spent and are never re-run).
+- **Prevention rule:** every agent prompt names a progress file (`STATE.md`, one dated line per milestone); long test runs and live batches run as background scripts, not inside an agent; one heavy agent at a time.
+
+## 2026-11-06 — A fix moved the driver's `--out` writes before `ledger.begin` and opened a race (check 4's C4-E02, MAJOR)
+
+- **Symptom:** check 4: a second launch of the same graded run, started while the first gathered its facts, overwrote the first launch's job files, was refused by the ledger, and its undo deleted them; the first launch's six chains died and it read "GRADED, FAIL ... 0 of 6".
+- **Root cause:** round 3 moved the `--out` writes earlier (to refuse a bad folder before the ledger), and the "is --out empty?" check and the writes were separate steps with seconds between them (closure scan, G-3 walk, git fetch, snapshot). At `d1a853bc` the writes came after `begin`, so a refused launch wrote nothing.
+- **The fix:** round 4 claims `--out` exclusively (`BATCH.claim.json`, O_CREAT|O_EXCL) and undoes only this process's own files.
+- **Prevention rule:** "check that it is free, then use it" is a race; claim the resource atomically (an exclusive create) and undo only what you created.
+
+## 2026-11-06 — Four rounds of checks kept finding new attack classes because no threat model said what the driver must withstand
+
+- **Symptom:** checks 2 to 5 of the graded driver each found new MAJOR or MINOR attacks (in-process tampering, planted files, edited result folders, crafted ledgers); each fix round widened the code, and two fixes regressed something (C4-E02 above; C5-01's recorded-id check made the honest R2 folder re-grade FAIL once the next ledger entry exists, check 6's C6-02).
+- **Root cause:** the scope was never written down, so every clever attack was a finding, and a check had no way to say "out of scope". The C6-02 regression's control graded against the ledger as it was, never against the ledger after the next registration.
+- **The fix:** round 4 wrote the threat model into the driver (`06` 2026-11-06) and the checks after it were scoped to it, with severities tied to it and a stopping rule; round 6 anchored the ledger lookup to the seeds the folder's rows bind, with a control that registers the next entry.
+- **Prevention rule:** before the first adversarial check of a grader, write its threat model (what it guards against and what it does not); and a check of a ledger lookup includes a control where the ledger has GROWN.
+
+## 2026-11-06 — The full lane on the merged driver FAILED twice over: a second wiring list went stale, and the lane runner lost the decomp's environment variable
+
+- **Symptom:** `run_regression.py --full --evidence` on `59a7d560` (the driver after seven fix rounds): FAIL, 3 of 35 suites. `test_safety_gates` and `revert_safety_gates`'s S0 control: `WiringTests.test_each_driver_calls_its_guards_where_they_belong (driver='live_chain.py')` "['finish']". `test_kb2`: "the decomp at ...\.claude\worktrees\_decomp\pokeemerald is at None, not the pinned 731ad5bf...". 89 minutes of lane spent.
+- **Root cause:** (1) round 3 moved `run_batch`'s `ledger.finish` into `finish_entry` (retried, C3-E03) and updated `test_live_chain`'s own WIRING map; `test_safety_gates` keeps a second, shorter list of the same calls, and the seven fix rounds ran only `test_live_chain`, never every unit suite. (2) The lane runner was rewritten for this lane and dropped `POKEBOT_DECOMP`; the 11-05 lane had it (its evidence reads the clone as `C:/Remote Projects/_decomp/pokeemerald`), and from a worktree the default `../_decomp` does not exist.
+- **The fix:** `b0e6c289` makes the list want `finish_entry` in `run_batch` and `finish` in `finish_entry` (scratch `wiring_fault.py`: a CONTROL and three FAULTS, plus the old list reproducing the failure); the re-run sets `POKEBOT_DECOMP` to the pinned clone. The failed lane's evidence is kept (`afcde809`).
+- **Prevention rule:** a fix round that changes a gate's calls runs every unit suite (`run_units.py`), not only its own; and a lane run from a worktree sets `POKEBOT_DECOMP` (copy the last runner that passed instead of rewriting it). A preflight in `run_regression.py` that resolves the decomp before a 90-minute lane would make the second half a gate (not built yet).

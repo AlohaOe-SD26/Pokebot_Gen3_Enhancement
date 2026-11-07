@@ -1,11 +1,11 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "7ecf1525b8a22c56c6fd51bea5334f69a4ec303a",
+ "source_sha1_lf": "9431572d5b91fed04b81085853f6084c0a4d1deb",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 365,
-  "donot_candidates": 32,
+  "sections": 366,
+  "donot_candidates": 33,
   "sections_naming_user_rulings": 53
  },
  "sections": [
@@ -5718,6 +5718,27 @@
      "key": "7738055b",
      "line": 10027,
      "text": "- **Do not reopen:** merging a development pass as a graded claim; a scene-specific menu script."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-11-06-dc449a",
+   "date": "2026-11-06",
+   "line_start": 10029,
+   "line_end": 10037,
+   "title": "2026-11-06 — The graded chain driver `live_chain.py`: a WRITTEN threat model, \"grade DIR is never better than the ledger\", its refusals and exit codes, and a stopping rule for its checks (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "5ff117c0",
+     "line": 10037,
+     "text": "- **Do not reopen:** an in-process defense against code written to disable the grader (that is the purity gate's and R9's job); `grade DIR` trusting results.json over the ledger."
     }
    ],
    "cues": []
