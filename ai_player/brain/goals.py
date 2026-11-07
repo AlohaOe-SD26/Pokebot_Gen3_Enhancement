@@ -146,7 +146,7 @@ from ai_player.brain.explore import (
     ways_from,
     weights_for,
 )
-from ai_player.brain.navigator import Intent, Navigator, Target, nav_free, step_from
+from ai_player.brain.navigator import Intent, Navigator, Target, distances, nav_free, step_from
 from ai_player.brain.rides import RideWatch, folded, trip_offer
 from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import page_text
@@ -860,15 +860,46 @@ def lost_way(nav: Navigator, look: Observation, weights, moving: bool) -> tuple[
                                 f"({', '.join(f'{names.get(k, k)} {n}' for k, n in left[:4])})"), left
 
 
+#: (chapter 6 stops round 6, round 5's new stop P5-1) the reason a walk to the back of a gym gives (`gym_back`)
+GYM_BACK = "the back of the gym, opposite its door: a gym's leader stands there (a seasoned player's knowledge)"
+
+
+def gym_back(nav: Navigator, look: Observation) -> Target | None:
+    """(chapter 6 stops round 6, round 5's new stop P5-1) THE BACK OF A GYM: where a person who has come to FIGHT the
+    leader walks to find them, through the gym and the trainers in the way. A seasoned player knows a gym's leader stands at
+    its back, the side opposite its door (USER RULING 40: static knowledge of every gym; the AI is never told a tile). Of
+    the known walkable tiles of this map a walk from here reaches (`navigator.distances`), the one farthest from the door it
+    knows nearest to it (its `exits`) across the gym (by rows), the one nearest the door's column on a tie, then the nearer
+    by the walk. None when no door, no player's tile, or no such tile is known."""
+    found = nav.where(look)
+    if found is None:
+        return None
+    memory, here = found
+    doors = memory.exits()
+    if not doors:
+        return None
+    door = min(doors, key=lambda xy: (abs(xy[0] - here[0]) + abs(xy[1] - here[1]), xy))
+    reach = distances(memory, here, nav.walls(memory, here), 0.0)
+    tiles = [xy for xy in reach if xy != here and xy not in doors and memory.passable(xy) and not memory.outside(xy)]
+    if not tiles:
+        return None
+    tile = min(tiles, key=lambda xy: (-abs(xy[1] - door[1]), abs(xy[0] - door[0]), reach[xy], xy))
+    return Target("goto", tile, f"{GYM_BACK}: {tile}")
+
+
 def travel_intent(goal_map: str | None, personality: str, budget: int, done: Callable[[Observation], bool],
-                  stay: bool = False) -> Intent:
+                  stay: bool = False, back: Callable[[Navigator, Observation], Target | None] | None = None) -> Intent:
     """`brain/explore.py` explore_intent's taste and walk, for a person who is GOING somewhere: the ways BACK into a building
     already visited (a house, the lab: an interior, not a town or a route) are no option (measured 2026-10-14, the play
     brain's first chapter-1 run: told "ROUTE 103" in the rival's house, the explorer went up and down its stairs for the
     unseen corners of the bedroom until its ping-pong rule stopped it, eight times). Everything else is the explorer's own
     (`candidates`, `pick`, `pick_on_the_move`, `carry_on`); with nothing left it falls back to `choose_target` (never
-    idle)."""
+    idle). (Chapter 6 stops round 6, P5-1) `back`: where a search of this map goes when nothing on it is left to see,
+    before that fallback (`gym_back`: the leader it has come to fight, at the back of the gym), until it is reached; the
+    fallback's best place was the way back OUT (#108: 21 entries onto DEWFORD's gym a run, each find ended on the door's
+    ping-pong)."""
     weights = weights_for(personality)
+    backed: list = []  # (round 6, P5-1) the back of the gym, once reached
 
     def goal(memory, key: str) -> bool:
         return goal_map is not None and memory is not None and memory.const == goal_map
@@ -878,6 +909,10 @@ def travel_intent(goal_map: str | None, personality: str, budget: int, done: Cal
         found = [t for t in candidates(nav, look, weights, goal if goal_map else None, jitter_on=not moving)
                  if keeps_going(nav.world, t, goal_map, stay)]
         located = nav.where(look)
+        if not found and back is not None and not backed and located is not None:
+            target = back(nav, look)
+            if target is not None and not nav.is_excluded(target):
+                return target
         if not found or located is None:
             return choose_target(nav, look, weights, goal if goal_map else None)
         if moving:
@@ -887,7 +922,12 @@ def travel_intent(goal_map: str | None, personality: str, budget: int, done: Cal
     def carry(nav: Navigator, look: Observation, old: Target) -> Target | None:
         return carry_on(nav, look, weights, old, goal if goal_map else None)
 
-    return Intent(f"travel to {goal_map}" if goal_map else "look around", budget, choose, done, carry_on=carry)
+    def reached(target: Target) -> None:
+        if target.reason.startswith(GYM_BACK):
+            backed.append(target.tile)
+
+    return Intent(f"travel to {goal_map}" if goal_map else "look around", budget, choose, done,
+                  reached=reached if back is not None else None, carry_on=carry)
 
 
 def lost_intent(personality: str, budget: int, done: Callable[[Observation], bool], told: Callable[[str], None]) -> Intent:
@@ -1349,7 +1389,12 @@ class GoalManager:
                 # test_the_no_training_fault_still_heals_before_the_fight, TunnelGruntTests test_c8, unlinked worlds, pin
                 # it; this round's first version also held it to a known way, and both failed) keep every centre it knows
                 topup = cannot_train and not hurt
-                where = self.heal_place(world, reachable=topup)
+                # (chapter 6 stops round 6, the round-5 verifier's V5-1) the LOOK for a town's own centre is decided on
+                # every centre it knows (`known`), as before round 5; only the walk to a centre is held to a known way
+                # (`where`). Round 5 decided both on `where`, so a top-up in a town whose centre it had not seen, knowing
+                # only an unreachable one, looked for none and walked to BRAWLY at 75% (the verifier's VT5-1)
+                known = self.heal_place(world)
+                where = self.heal_place(world, reachable=True) if topup else known
                 why = ("a Pokemon has fainted" if fainted else f"the party is at {share:.0%} of its HP"
                        + (f" (under {errands.heal_below:.0%})" if share < errands.heal_below else "")
                        + ("; a known fight is next" if before_fight else "")
@@ -1357,7 +1402,7 @@ class GoalManager:
                           else ""))
                 town = here_const if here_const and OUTDOOR.match(here_const) and not here_const.startswith("ROUTE") \
                     else None
-                if (where is not None and town is not None and self._place_key(world, where) not in (None, world.current)
+                if (known is not None and town is not None and self._place_key(world, known) not in (None, world.current)
                         and world.current not in self.memory.center_looked
                         # (the graded sweep on 701-720, seed 706: a look round of PETALBURG did not pass its centre, and
                         # the AI took the town for one with none) only a town SEEN ALL OF (nothing left to see there) and
@@ -1367,8 +1412,10 @@ class GoalManager:
                     # to OLDALE's centre, the one it knew) in a TOWN whose own centre it has not seen, a person looks for
                     # it here first (a town has one), once; then the nearest it knows
                     self.memory.center_looked.add(world.current)
+                    back = (f"before walking back to {where[3]}" if where is not None else
+                            f"first: no known way leads back to {known[3]}")
                     return Goal("find_center", f"{why}: it has not seen {town}'s POKéMON CENTER yet; a town has one, so it "
-                                               f"looks here before walking back to {where[3]}", milestone.id, map=town,
+                                               f"looks here {back}", milestone.id, map=town,
                                 via=world.current, key=f"find_center:{world.current}")
                 allowed = self._allowed(f"heal:{where[0]}") if where is not None else False
                 retries = self.memory.danger_again.get(f"heal:{where[0]}", 0) if where is not None else 0
@@ -2418,7 +2465,8 @@ class GoalRunner:
                           else lost_intent(manager.state.active, budget, walk_done,
                                            lambda why: self._out_of_ideas(milestone, why, lost_why))
                           if goal.kind in ("go", "look_around") and goal.key.startswith(LOST_KEYS)
-                          else travel_intent(None, manager.state.active, budget, walk_done, stay=goal.kind == "find"))
+                          else travel_intent(None, manager.state.active, budget, walk_done, stay=goal.kind == "find",
+                                             back=gym_back if self._fights_its_leader(goal, milestone) else None))
                 outcome = yield from nav.run(intent, goal.reason)
                 if lost_why:
                     outcome = f"{lost_why[-1]} ({outcome})"
@@ -2619,6 +2667,18 @@ class GoalRunner:
         self.nav.roam_stop = None
 
     # ------------------------------------------------------------------ going somewhere
+    def _fights_its_leader(self, goal: Goal, milestone: Milestone) -> bool:
+        """(chapter 6 stops round 6, P5-1) Is this a FIND for the gym leader the AI has come to FIGHT (a fight next:
+        `GoalManager.fight_levels`), on that leader's own gym (`knowledge/atlas.py` gym_leaders: a seasoned player knows
+        each gym's leader)? Then, nothing on the map left to see, the back of the gym is where to look (`gym_back`). Not a
+        talk with no fight: chapter 2's NORMAN, whom a script stands in his gym's FRONT room."""
+        if goal.kind != "find" or not goal.look:
+            return False
+        here = self.nav.world.here()
+        const = here.const if here is not None else None
+        return (is_gym(const) and gym_leaders().get(goal.look.upper()) == const
+                and bool(self.manager.fight_levels(milestone)[0]))
+
     def _to_building(self, goal: Goal, target_map: str, budget: int,
                      done: Callable[[Observation], bool]) -> Generator[None, None, str]:
         """(build step 5.1, the verifier's second round: the live CH2T arm searched PETALBURG CITY door by door for its GYM,

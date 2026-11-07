@@ -58,6 +58,17 @@ choose from, and wants none of its places, backs out of it, as the AI already ba
 A forced menu the words DO name (the POKéNAV tutorial's) is chosen by THE RULE above, unchanged; an app menu nothing names
 is backed out of exactly as before.
 
+THE QUESTION IT CANNOT DECLINE (chapter 6 stops round 6, 2026-11-07, the round-5 verifier's V5-2). Once the OLD ROD is
+received, DEWFORD's fisherman asks "Yo! How's your fishing?" on `multichoice 20, 8, MULTI_HOWS_FISHING, TRUE` (B ignored;
+Excellent / Not so good; no EXIT): round 5's rule ended the run ('forced') on a second chat with him. THE RULE (the lead's
+decision): a person asked a question they cannot decline, in a scene they opened themselves, answers it; they do not stop
+playing. So a field multichoice in a scene the AI opened, that nothing read names, whose B the game IGNORES (read from the
+screen: the same menu, unchanged, after the B) and that has no option reading EXIT or CANCEL, is ANSWERED with the option
+the cursor starts on (A, `_answer`), counted (`answers`, not `backouts`: the talk that opened it is not put aside for it)
+and said once. The loop guard stays: the same menu again in the same scene after an answer, or such a menu in a scene the
+AI did NOT open, is still FORCED (the run ends). So is a menu whose starting option commits something a person would regret
+(`NO_ANSWER_MENUS`: a battle, a one-way choice; static knowledge from the pinned decomp's census).
+
 FAULT `AI_PLAYER_FAULT_NO_INSTRUCTED` (`options.py`): `mode._story_menu` never calls this skill (the code before it).
 FAULT `AI_PLAYER_FAULT_INSTRUCTED_MISSTEP` (`options.py`, the live L4 arm): the FIRST field choice of a scene takes the next
 option with a word instead of the named one (a person's slip of the thumb), so the forced menu loops back under "Please
@@ -87,10 +98,12 @@ __all__ = [
     "Instructed",
     "MAX_DECISIONS",
     "MAX_PAGES",
+    "NO_ANSWER_MENUS",
     "STILL_PASSES_MAX",
     "SceneOpener",
     "label_words",
     "named_option",
+    "no_answer_menu",
     "said_words",
 ]
 
@@ -121,6 +134,32 @@ WORD = re.compile(r"[0-9a-zé]+")
 MIN_WORD = 3
 #: (round 5, VR4-1) the words of the option that backs out of a field menu whose B is refused (MR. BRINEY's "EXIT").
 CANCEL_WORDS = ("exit", "cancel")
+#: (round 6, V5-2) THE QUESTIONS IT DOES NOT ANSWER: the field menus whose B the game ignores and whose STARTING option
+#: commits something a person would regret (it starts a battle, or makes a one-way choice). Static game knowledge (RULING
+#: 40): the pinned decomp's menu ids (`src/data/script_menu.h`), matched by the options the screen shows. One of these in a
+#: scene the AI opened stays FORCED (the run ends) instead of being answered. The census (s53/ch6stops6/census/
+#: census_menus6.py, every multichoice / multichoicedefault / multichoicegrid with ignoreBPress TRUE in the pinned decomp,
+#: 50 of them): on the maps a chapter 1-8 run can reach there are two, DEWFORD's fisherman (MULTI_HOWS_FISHING, answered)
+#: and SLATEPORT's BATTLE TENT corridor (MULTI_GO_ON_REST_RETIRE: GO ON starts the next battle), plus MOM's TV question
+#: after the HALL OF FAME (MULTI_TV_LATI, a scene the AI does not open). The others are on later chapters' maps.
+NO_ANSWER_MENUS = {
+    "MULTI_GO_ON_REST_RETIRE": ("GO ON", "REST", "RETIRE"),  # the BATTLE TENTs (SLATEPORT's in chapter 8's city): a battle
+    "MULTI_GO_ON_RECORD_REST_RETIRE": ("GO ON", "RECORD", "REST", "RETIRE"),  # the BATTLE FRONTIER: the next battle
+    "MULTI_GO_ON_RECORD_RETIRE": ("GO ON", "RECORD", "RETIRE"),  # the BATTLE FRONTIER: the next battle
+    "MULTI_GO_ON_RETIRE": ("GO ON", "RETIRE"),  # the BATTLE FRONTIER: the next battle
+    "MULTI_TV_LATI": ("RED", "BLUE"),  # MOM's TV after the HALL OF FAME: which roaming Pokemon there is (one-way)
+    "MULTI_TENT": ("RED TENT", "BLUE TENT"),  # the TRICK HOUSE's prize: one tent, for good (one-way)
+}
+
+
+def no_answer_menu(options: tuple[str, ...] | list[str]) -> str | None:
+    """(round 6, V5-2) The decomp's id of the menu NOT to answer (`NO_ANSWER_MENUS`) whose options these are, by their
+    words (case-folded), or None."""
+    shown = tuple(" ".join(said_words(label)) for label in options)
+    for name, labels in NO_ANSWER_MENUS.items():
+        if shown == tuple(" ".join(said_words(label)) for label in labels):
+            return name
+    return None
 
 
 def said_words(text: str) -> list[str]:
@@ -167,7 +206,14 @@ class SceneOpener:
     free look were made while the player was free; when a free stretch ends (the first look that is not free), the scene
     was opened by the AI when the LAST press of that stretch was its A (`talk` faces the person, then presses A). A step
     into a trigger (a direction), a scene that began with no press, and a run that began inside a scene are not opened by
-    it. A walking step ends a free stretch too (the player is settling); the next stretch decides again."""
+    it. A walking step ends a free stretch too (the player is settling); the next stretch decides again.
+
+    LIMIT (the round-5 verifier's V5-6): it decides only when a free stretch ends, so a scene the game CHAINS onto the
+    AI's own scene, with no free look between, counts as opened by the AI too (its VT5-3). A field menu that allows B in
+    such a chained scene would be backed out of, and one that ignores B answered, instead of being FORCED. The round-5
+    verifier's census of the pinned decomp found no such case in chapters 1-7 (the only forced field menu there, the
+    POKéNAV tutorial's, is NAMED by its words, so this decision is never consulted for it); chapter 8's maps were
+    censused (round 6) only for menus that ignore B."""
 
     def __init__(self, pad) -> None:
         self.pad = pad
@@ -197,6 +243,10 @@ class Instructed:
     opener: SceneOpener | None = None
     #: (round 5) field menus nobody asked for that were backed out of, over the whole run (never reset by a free look)
     backouts = 0
+    #: (round 6, V5-2) questions it could not decline (B ignored, no EXIT or CANCEL, in a scene it opened) that it answered
+    #: with the option the cursor started on, over the whole run (never reset by a free look; not `backouts`: the talk
+    #: that opened one is not put aside for it)
+    answers = 0
     #: (round 5) the stop of a FORCED field menu nothing names (still on screen after its cancel, or in a scene the AI did
     #: not open): the play loop ends the run with it at once; the skill presses nothing more once it is set
     forced: str | None = None
@@ -217,6 +267,8 @@ class Instructed:
         self.field_choices = 0
         self.slipped = False
         self.cancelled: set[tuple[str, tuple]] = set()  # (round 5) field menus backed out of in this scene
+        self.answered: set[tuple[str, tuple]] = set()  # (round 6) of those, the ones answered (`_answer`)
+        self.unanswered = ""  # (round 6) why the last question it could not decline was not answered (the forced stop)
 
     def read_along(self, look: Observation) -> None:
         """A watcher on every look (`Hands.watchers`): the transcript of FIELD pages read, cleared once the player is free."""
@@ -330,7 +382,8 @@ class Instructed:
                 menu = (ui.kind, tuple(ui.options))
                 opened = self.opener is not None and self.opener.opened
                 if menu in self.cancelled or not opened:
-                    reason = ("it is on screen again after the AI backed out of it: the game refuses the cancel"
+                    reason = ("it is on screen again after the AI answered it" if menu in self.answered else
+                              "it is on screen again after the AI backed out of it: the game refuses the cancel"
                               if menu in self.cancelled else
                               "in a scene the AI did not open itself: the game forces it")
                     stop = self.forced = (f"a forced {ui.kind} {list(ui.options)} that nothing read names ({reason}): "
@@ -345,10 +398,14 @@ class Instructed:
                 if left is None:
                     stop = self.forced = (f"a forced {ui.kind} {list(ui.options)} that nothing read names (it ignored B, "
                                           f"and no option reading {' or '.join(w.upper() for w in CANCEL_WORDS)} took it "
-                                          f"off the screen): the run ends here")
+                                          f"off the screen{self.unanswered}): the run ends here")
                     break
                 self.cancelled.add(menu)
-                self.backouts += 1
+                if menu in self.answered:
+                    # (round 6, V5-2) a question it could not decline, answered: counted, and the talk is not put aside
+                    self.answers += 1
+                else:
+                    self.backouts += 1
                 made += 1
                 continue
             before = seen_now(look)
@@ -373,9 +430,11 @@ class Instructed:
     def _back_out(self, hands: Hands, ui, why: str) -> Generator[None, None, str | None]:
         """(round 5, VR4-1) Back out of the field menu `ui` the AI opened itself, read from the screen: B (the game's
         MULTI_B_PRESSED), then, if the menu is still there after `B_REACT_FRAMES`, the option whose words read EXIT or
-        CANCEL (`CANCEL_WORDS`). "B" or the option chosen once the menu has reacted; None when it ignored B and has no such
-        option, or did not take it (a FORCED menu: the caller ends the run)."""
+        CANCEL (`CANCEL_WORDS`). "B" or the option chosen once the menu has reacted; (round 6) with no such option, the
+        question it cannot decline is answered (`_answer`: the option answered, or None). None when the menu did not take
+        the option, or the question was not answered (a FORCED menu: the caller ends the run)."""
         menu = (ui.kind, tuple(ui.options))
+        self.unanswered = ""
 
         def still(seen: Observation) -> bool:
             now = seen.screen.ui
@@ -395,10 +454,38 @@ class Instructed:
                    + (f"it takes {ui.options[exits[-1]]!r}, the option that backs out" if exits else
                       "no option on it reads EXIT or CANCEL"))
         if not exits:
-            return None
+            # (round 6, V5-2) THE QUESTION IT CANNOT DECLINE (the module docstring)
+            return (yield from self._answer(hands, ui, why))
         option = ui.options[exits[-1]]
         if not (yield from choose(hands, ui.kind, exits[-1], f"{why}: {option} (backing out of a menu nobody asked for)")):
             return None
+        return option
+
+    def _answer(self, hands: Hands, ui, why: str) -> Generator[None, None, str | None]:
+        """(round 6, V5-2) A field menu the AI opened itself whose B the game ignored (read from the screen: the same menu,
+        unchanged, after the B) and that has no option reading EXIT or CANCEL is a question it cannot decline: it answers
+        with the option the cursor STARTS on (`ui`, the look before its B; A), says so once and adds the menu to `answered`.
+        None (the caller forces it): a menu of `NO_ANSWER_MENUS` (its starting option commits something a person would
+        regret), no option highlighted, or an answer the menu did not take; `unanswered` then says why."""
+        name = no_answer_menu(ui.options)
+        if name is not None:
+            self.unanswered = (f"; its first option starts a battle or makes a one-way choice ({name}), so the AI does not "
+                               f"answer it")
+            return None
+        start = ui.cursor
+        if start is None or not 0 <= start < len(ui.options):
+            self.unanswered = "; no option is highlighted to answer with"
+            return None
+        option = ui.options[start]
+        hands.tell(f"{why}: the {ui.kind} {list(ui.options)} ignored B and nothing on it reads EXIT or CANCEL: a question "
+                   f"it cannot decline, in a scene it opened itself: it answers {option!r}, the option the cursor starts on")
+        hands.note("instructed", "answer", f"{ui.kind}: {option}", {"kind": ui.kind, "option": option,
+                                                                    "options": list(ui.options)})
+        self.decisions += 1
+        if not (yield from choose(hands, ui.kind, start, f"{why}: {option} (answering a question it cannot decline)")):
+            self.unanswered = f"; it did not take {option!r}"
+            return None
+        self.answered.add((ui.kind, tuple(ui.options)))
         return option
 
     @staticmethod

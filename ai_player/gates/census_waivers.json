@@ -370,6 +370,26 @@
    "callee": "skills/instructed.py:SceneOpener.watch",
    "caller": "brain/navigator.py:Navigator.handle",
    "reason": "(chapter 6 stops round 5, 2026-11-06) a NAME collision: `watch` in Navigator.handle is its own nested function (the battle's kind as the eyes first show it, step 5), not SceneOpener.watch; the opener's one registration is mode.py _play's, deleted by G634 (and its construction by G644)."
+  },
+  {
+   "callee": "brain/goals.py:gym_back",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) `gym_back` is never called by name: it is HANDED ON as travel_intent's `back` in GoalRunner._pursue (`back=gym_back if self._fights_its_leader(...) else None`), and travel_intent's chooser calls it as `back(nav, look)`. The hand-on is deleted by G661 (back=None) and the call inside the chooser by G662 (target = None); both are CAUGHT by Round6GymTests p1 and p3."
+  },
+  {
+   "callee": "brain/goals.py:travel_intent",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) travel_intent changed only by a new keyword, `back` (default None); the callers in GoalRunner._travel_on, GoalRunner._see and _pursue's other two calls pass none, so their intents are exactly as before the round (Round6GymTests.test_p6's first-visit control and test_p2: no back is ever chosen without it). The one changed call, the find's in _pursue, has its new argument deleted by G661 and its stop by G225 (re-anchored); deleting the whole call would leave every go, look-around and find with no walk at all."
+  },
+  {
+   "callee": "brain/goals.py:travel_intent.choose",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) NAME collisions and the Intent interface: `choose` is also hands/menus.py's menu chooser (called in hands/menus.py, skills/battle.py, skills/instructed.py, skills/intro.py and skills/story.py) and the nested choosers of explore_intent and goto_intent; the one real site, Navigator.run's `intent.choose(self, look)`, is every intent's interface (deleting it stops every walk). The chooser's new branch is broken by G662-G665 (its call, its exclusion and reached checks, and its 'nothing left on the map' guard), all CAUGHT."
+  },
+  {
+   "callee": "brain/goals.py:travel_intent.reached",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) NAME collisions and the Intent interface: `reached` is also goto_intent's and Navigator.go_to's own callbacks, GoalRunner._detour's local and MemoryWriter's; the one real site, Navigator.run's `intent.reached(target)`, is the Intent interface every arrival goes through (Navigator.go_to relies on it). The callback's body is broken by G664 (the back never marked reached), CAUGHT by Round6GymTests.test_p6."
   }
  ]
 }
