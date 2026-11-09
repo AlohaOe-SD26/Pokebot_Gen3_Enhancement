@@ -55,7 +55,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 68250,
+      "ceiling": 68389,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -86,6 +86,13 @@
           "from": 67950,
           "to": 68250,
           "why": "the Tier 1 review of the chapter-5 stops merge (2026-11-05): the headlines say the 3 of 3 started from saved BADGE-1 chain ends, and queue item 4 says where the live_chain driver is (branch wip/live-chain), its verifier's verdict and that seeds 6201-6206 are NOT yet registered"
+        },
+        {
+          "date": "2026-11-09",
+          "field": "ceiling",
+          "from": 68250,
+          "to": 68389,
+          "why": "2026-11-09: the queue's chapter 6-7 line must say that boss prep BP-1 is built on side branch wip/ch6-bp1 with a verifier FAIL and what to fix next; no caveat trimmed, and the session stops at the week's usage cap"
         }
       ]
     },
