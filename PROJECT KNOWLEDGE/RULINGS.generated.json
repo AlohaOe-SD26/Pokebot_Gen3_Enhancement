@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "ec812a4a3c08f3c4172e3287dd7c36390ea20b90",
+ "source_sha1_lf": "73c52ecadb6664fdb8b3865b0e1b8c36f6750a55",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 368,
-  "donot_candidates": 35,
-  "sections_naming_user_rulings": 55
+  "sections": 369,
+  "donot_candidates": 36,
+  "sections_naming_user_rulings": 56
  },
  "sections": [
   {
@@ -5791,6 +5791,29 @@
    "cues": [
     "correction"
    ]
+  },
+  {
+   "id": "2026-11-09-4acd7f",
+   "date": "2026-11-09",
+   "line_start": 10059,
+   "line_end": 10070,
+   "title": "2026-11-09 — USER RULING 59: raising a weak Pokémon to counter a boss is \"some mix that makes logical sense\" of switch-training, its own fights, and healing (a Pokémon Center or Potions) (punch-list #28-aiagent-v2)",
+   "rulings": [
+    59
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "0156a392",
+     "line": 10070,
+     "text": "- **Do not re-ask** how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09)."
+    }
+   ],
+   "cues": []
   }
  ]
 }

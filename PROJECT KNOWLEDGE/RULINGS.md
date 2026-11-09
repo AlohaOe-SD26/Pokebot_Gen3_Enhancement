@@ -42,6 +42,7 @@
 | `2026-11-05-577173` | 10020 | Do not reopen merging a development pass as a graded claim, or replacing the general instructed choice with a scene-specific (POKéNAV-only) menu script (2026-11-05). |
 | `2026-11-06-dc449a` | 10029 | Do not reopen an in-process defense in live_chain.py against code written to disable the grader (the purity gate's and R9's job), or grade DIR trusting results.json over the ledger (2026-11-06). |
 | `2026-11-07-08dac8` | 10039 | Do not re-ask what a seasoned player does against a boss the party loses to: all three (train the whole team; a counter judged by its resistances AND its moves' type advantages; smarter fights) are viable for every gym leader, boss and the Elite Four (2026-11-07). |
+| `2026-11-09-4acd7f` | 10059 | Do not re-ask how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -82,10 +83,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 368 sections (newest first)
+## All 369 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-09-4acd7f` | 10059 | 59 | DO-NOT-REOPEN | 2026-11-09 — USER RULING 59: raising a weak Pokémon to counter a boss is "some mix that makes logical sense" of switch-training, its own fights, and healing (a  |
 | `2026-11-07-62bc04` | 10053 | 44, 58 | cue | 2026-11-07 — Correction to the USER RULING 58 entry above: a boss Pokémon's HELD ITEM is known (USER RULING 44), so it is not hidden state for boss preparation  |
 | `2026-11-07-08dac8` | 10039 | 58 | DO-NOT-REOPEN | 2026-11-07 — USER RULING 58: against a boss the party loses to, all three plans are viable (train the whole team, bring a counter, fight smarter) for BRAWLY and |
 | `2026-11-06-dc449a` | 10029 |  | DO-NOT-REOPEN | 2026-11-06 — The graded chain driver `live_chain.py`: a WRITTEN threat model, "grade DIR is never better than the ledger", its refusals and exit codes, and a st |

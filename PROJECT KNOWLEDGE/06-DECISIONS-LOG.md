@@ -10055,3 +10055,16 @@ on all three questions:
 - **The error:** the USER RULING 58 entry's knowledge bullet lists "held items not shown" among the live hidden state the AI may not read. For bosses that is wrong: USER RULING 44 (2026-10-21, "Do not re-ask") says the AI KNOWS each boss Pokémon's held item; it does not know their exact stats (IVs, hidden stats) or the trainers' AI flags.
 - **The rule for boss preparation, as both rulings stand:** the AI may plan from a gym leader's, boss's or Elite Four member's team, levels, moves and held items (static game data); it may not read live hidden state such as a foe's exact HP numbers or IVs. A wild Pokémon's held item stays unknown until the game shows it.
 - **Found by:** the adversarial critique of the boss-preparation design (`ai-research-notes/2026-11-07-BOSS-PREP-DESIGN.md`, Part 2, M2), which also caught the design withholding held items.
+
+## 2026-11-09 — USER RULING 59: raising a weak Pokémon to counter a boss is "some mix that makes logical sense" of switch-training, its own fights, and healing (a Pokémon Center or Potions) (punch-list #28-aiagent-v2)
+
+- **The question (asked 2026-11-09, after boss preparation BP-1's live A/B: the raise of C1's level-3 Wurmple stalled at L9-10; branch `wip/ch6-bp1`):** when a seasoned player raises a weak Pokémon, like a level-3 Wurmple, to counter a boss, what do they actually do? (1) lead with it, then switch to the strong Pokémon right away, so the weak one shares the experience without fighting; (2) let it fight easy wild Pokémon itself, healing at the Pokémon Center whenever it gets low; (3) use Potions between fights to keep it going; (4) some mix.
+- **The user's answer, VERBATIM:**
+  > Some mix that makes logical sense
+- **What it means for the AI player (the lead's reading, not the user's words):** the raise combines the three by the situation, the way a person would.
+  - **Switch-training** while the trainee cannot win a fight safely: lead with it and switch to a strong member on the first turn, so it shares the experience without being hit. A seasoned player knows the game's experience rule (static knowledge, USER RULING 40); the build must cite it from the pinned decomp (`src/battle_script_commands.c`, the experience command) before relying on it.
+  - **Its own fights** once it can win against the wild Pokémon in front of it, by the battle brain's own matchup.
+  - **Healing** between fights: a Pokémon Center when the trainee is low and one is near, Potions when one is far and the bag has them; never sending it into the next fight at a sliver of HP (the verifier's V-M1 on BP-1).
+  - Which mix fits is decided per situation, never one fixed recipe, and every loop stays bounded by BP-1's one per-boss budget (M5).
+- **Status:** a design ruling for BP-1's raise; NOT built. BP-1 is on branch `wip/ch6-bp1` (`69ce148e`) with a verifier FAIL (V-M1); its next round builds the raise this way, then its live A/B.
+- **Do not re-ask** how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09).

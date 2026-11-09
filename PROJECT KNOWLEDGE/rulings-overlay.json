@@ -551,6 +551,17 @@
    "reason": "06 correction: \"the USER RULING 58 entry's knowledge bullet lists 'held items not shown' among the live hidden state ... For bosses that is wrong: USER RULING 44 (2026-10-21, 'Do not re-ask') says the AI KNOWS each boss Pokémon's held item\"",
    "status": "ACTIVE",
    "topics": "boss held item Sitrus Berry USER RULING 44 58 hidden state knowledge correction"
+  },
+  "2026-11-09-4acd7f": {
+   "title": "2026-11-09 — USER RULING 59: raising a weak Pokémon to counter a boss is \"some mix that makes logical sense\" of switch-training, its own fights, and healing (a Pokémon Center or Potions) (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "0156a392": "marker"
+   },
+   "ruling_key": "59@2026-11-09",
+   "do_not_reopen": "Do not re-ask how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09).",
+   "reason": "06 USER RULING 59: the user's answer to the raise question, verbatim: \"Some mix that makes logical sense\"",
+   "status": "ACTIVE",
+   "topics": "raise train trainee weak Pokemon counter boss switch-training switch out experience EXP share wild battles Pokemon Center heal Potion BP-1 V-M1 Wurmple"
   }
  }
 }
