@@ -124,6 +124,7 @@ __all__ = [
     "recoil_risk",
     "rough_share",
     "seen_types",
+    "typical_stat",
 ]
 
 #: (step 4.1, the review's "hidden information") A person's ROUGH sense of a hit: the share of the foe's HP it takes, to the
@@ -392,17 +393,19 @@ def recoil_penalty(fact: MoveFact | None, damage_worth: float, hp_share: float, 
 
 def move_value(slot: int, move: MoveSlot, user_types: tuple[str, ...], user_level: int, hp_share: float,
                foe_types: tuple[str, ...], faults: BattleFaults = BattleFaults(),
-               risk: RecoilRisk = NO_ESTIMATE, ko_worth: float | None = None) -> MoveValue | None:
+               risk: RecoilRisk = NO_ESTIMATE, ko_worth: float | None = None, power: float | None = None) -> MoveValue | None:
     """A move's worth against this foe (module docstring); None when it cannot be used (no PP left). `risk`: what its
     recoil would cost against this foe (`recoil_risk`; the default: no estimate, the recoil of the whole worth).
     `ko_worth` (step 4.1): the move would FINISH the foe, and this is the worth of the strongest move against it; a move
     that finishes the foe is worth that much (before its hit chance and recoil), whatever its power (FAULT `overkill`:
-    ignored, as step 4)."""
+    ignored, as step 4). `power` (boss preparation BP-1, 2026-11-09): the power to weigh it by instead of the printed one
+    (`_power`): a boss's Low Kick, Reversal or Arm Thrust at the power the readiness verdict gives it
+    (`brain/bossprep.py` verdict_slot); None (every caller before BP-1) changes nothing."""
     if move.pp is not None and move.pp <= 0 and not faults.ignore_pp:
         return None
     fact = _fact(move)
     mtype = fact.type if fact is not None else move.type
-    power = _power(fact, move, user_level)
+    power = _power(fact, move, user_level) if power is None else float(power)
     if (fact is not None and fact.category == "status") or power <= 0:
         return MoveValue(slot, move.name, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, True)
     turns = 1.0
@@ -466,15 +469,15 @@ def seen_types(mon: BattleMon) -> tuple[str, ...]:
 
 
 def _formula_share(move: MoveSlot, user: MonSummary | None, user_battler: BattleMon, foe: BattleMon,
-                   faults: BattleFaults = BattleFaults(), seen: float = 1.0) -> float | None:
+                   faults: BattleFaults = BattleFaults(), seen: float = 1.0, power: float | None = None) -> float | None:
     """The middle of the game's damage formula's rolls as a share of the foe's max HP (`src/pokemon.c`
     CalculateBaseDamage: ((2L/5+2) x power x A / D) / 50 + 2, x STAB x type, x 85-100 %), with the user's own attack (the
     summary screen's) and the foe guessed as a TYPICAL Pokemon of its level (step 4.1 round 3: `typical_stat`, never the
     foe's species' base stats), times `seen` (`BattleMind._seen_factor`: what its hits were seen to take off this foe,
     over this guess); no critical hit. Only the ROUGH sense made from it (`rough_share`) is used in a choice. None for a
-    status move."""
+    status move. `power` (BP-1): as `move_value`'s."""
     fact = _fact(move)
-    power = _power(fact, move, user_battler.level)
+    power = _power(fact, move, user_battler.level) if power is None else float(power)
     if power <= 0 or (fact is not None and fact.category == "status"):
         return None
     mtype = fact.type if fact is not None else move.type
@@ -499,11 +502,11 @@ def _formula_share(move: MoveSlot, user: MonSummary | None, user_battler: Battle
 
 
 def rough_share(move: MoveSlot, user: MonSummary | None, user_battler: BattleMon, foe: BattleMon,
-                faults: BattleFaults = BattleFaults(), seen: float = 1.0) -> float | None:
+                faults: BattleFaults = BattleFaults(), seen: float = 1.0, power: float | None = None) -> float | None:
     """(step 4.1) A person's ROUGH sense of what one hit of `move` takes off the foe, as a share of its HP: to the nearest
     eighth (at least a sixteenth: "a scratch"). `seen`: the correction its hits on this foe were seen to make (round 3).
-    None for a status move."""
-    share = _formula_share(move, user, user_battler, foe, faults, seen)
+    None for a status move. `power` (BP-1): as `move_value`'s."""
+    share = _formula_share(move, user, user_battler, foe, faults, seen, power)
     if share is None:
         return None
     if share <= 0:
@@ -704,6 +707,9 @@ class BattleMind:
         self.rng = rng
         self.purpose = purpose
         self.faults = faults
+        #: (boss preparation BP-1, 2026-11-09) the PID of the Pokemon being RAISED while the purpose is "raise" (the goal
+        #: runner sets and clears it): its battles are its own, so no switch to a stronger member and no catch
+        self.trainee: int | None = None
         self.memory = _Memory()
         #: (step 4.1 round 2) an OPENER the draw passed over on this decision (said with the move chosen instead)
         self.opener_passed = ""
@@ -809,7 +815,9 @@ class BattleMind:
         if self.memory.new_species:
             if foe.species not in self.wishes:
                 self.wishes[foe.species] = self.rng.random() < self.temper.catch_new
-            self.memory.want_catch = self.wishes[foe.species]
+            # (BP-1, M4) a person RAISING one Pokemon fights its battles: no catch while raising (the wish is drawn as
+            # ever, so the stream does not shift, and kept for a later meeting)
+            self.memory.want_catch = self.wishes[foe.species] and self.purpose != "raise"
         # (build step 5.1, the step-5 verifier: "it WANTS it" was said with no ball in the bag, and then "run: this wild
         # Zigzagoon is not one it wants") the words say what it can do: a wish with no ball is said as one
         balls = any(count > 0 and name != "Master Ball" for name, count in (look.bag.balls if look.bag is not None else ()))
@@ -1264,7 +1272,7 @@ class BattleMind:
             return None
         bar = foe.hp_bar / HP_BAR_PIXELS
         reason = None
-        if self.purpose == "train":
+        if self.purpose in ("train", "raise"):  # (BP-1) raising runs exactly as training does
             if hp_share < self.temper.run_low and bar > 0.3:
                 reason = f"its {own.species} is low ({hp_share:.0%}) and the foe is not ({bar:.0%}): not worth the risk"
             elif foe.level - own.level >= 6:
@@ -1287,6 +1295,8 @@ class BattleMind:
     # ------------------------------------------------------------------ switching
     def _switch(self, look: Observation, own: BattleMon, foe: BattleMon) -> Decision | None:
         mem = self.memory
+        if self.purpose == "raise":
+            return None  # (BP-1, M4) a switch to a stronger member would split the experience the trainee is there for
         if mem.switches >= MAX_SWITCHES or foe.species in mem.switched_against:
             return None
         if look.battle is not None and look.battle.double:

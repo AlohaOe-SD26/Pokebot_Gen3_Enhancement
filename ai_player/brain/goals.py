@@ -129,6 +129,26 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass, field, replace
 
 from ai_player.brain.battle import BattleMind, needs_rest
+from ai_player.brain.bossprep import (
+    ACT_ON,
+    ACTING,
+    CLOSE,
+    NOT_READY,
+    READY,
+    RaiseWatch,
+    choose_plan,
+    described,
+    members_of,
+    near_best,
+    new_record,
+    next_boss,
+    spent_reason,
+    team_line,
+    trainee_rest,
+    with_target,
+)
+from ai_player.brain.bossprep import options as raise_options
+from ai_player.brain.bossprep import verdict as judge_party
 from ai_player.brain.explore import (
     JUST_COME_FROM,
     ONWARD_KINDS,
@@ -152,7 +172,9 @@ from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import page_text
 from ai_player.hands.dialogue import player_free
 from ai_player.hands.pad import Hands
-from ai_player.knowledge.atlas import gym_leaders, open_map, town_places
+from ai_player.hands.party_order import lead_with
+from ai_player.knowledge.atlas import boss_party, gym_leaders, open_map, town_places
+from ai_player.knowledge.seasoned import land_levels
 from ai_player.knowledge.story import Milestone, Step, Story
 from ai_player.personality import PersonalityState
 from ai_player.world.memory import DIRECTIONS, moved
@@ -1086,6 +1108,12 @@ class GoalManager:
         #: run's frames left; set by the play brain only when it keeps a memory file (D14), else None: no save goal ever
         self.saving = None
         self.frames_left: Callable[[], int] | None = None
+        #: (boss preparation BP-1, 2026-11-09) the run's own `<seed>:bossprep` stream (the play brain sets it: no other
+        #: stream moves), the signature of the last verdict run (party and boss: the verdict runs again only when it
+        #: changes), and the next boss as (its milestone id, its leader's name, its gym map)
+        self.bossprep_rng: random.Random | None = None
+        self._bp_seen: tuple | None = None
+        self.bp_boss: tuple[str, str, str | None] | None = None
 
     def _say(self, line: str) -> None:
         if self.say is not None:
@@ -1368,6 +1396,9 @@ class GoalManager:
         # 2/26 HP, and whited out)
         must_rest = has_party and (fainted or needs_rest(look.party) is not None)
         hurt = has_party and share is not None and (must_rest or share < errands.heal_below)
+        # (boss preparation BP-1) the readiness verdict for the next gym leader: run when the party or the boss changed,
+        # logged; for a leader in `ACT_ON` it may make (or re-judge) the plan this run commits to
+        bp_plan = self.boss_prep(look, index) if has_party else None
         # (chapter 7 NS3, 2026-11-06) THE STORY'S OWN PERSON, HERE AND IN VIEW: the story's next step talks to (or uses)
         # someone it recognises, on that step's map, on the screen now, and no fight is next. Then a walk OFF this map for
         # an errand (a heal while not in danger, a shop) waits: a person carrying a letter for STEVEN who stands in his
@@ -1514,9 +1545,20 @@ class GoalManager:
             self.memory.passed_new += 1
             self._say(f"[AI-GOALS] a new place, {here_const}: it goes on without looking round (draw {draw:.2f} >= "
                       f"{odds:.2f}, {odds_why}; {self.memory.passed_new} in a row)")
+        # 5a. (boss preparation BP-1, spec section 3.1) RAISE the plan's trainee for the next leader: in the place of step 5,
+        # never while hurt, NOT tied to `fight_next` (the plan is made where the grass is, before the trip to the gym);
+        # and on the leader's own gym map, with the raise done, the trainee is put back in the lead first
+        if bp_plan is not None and not hurt:
+            raised = self._raise_goal(look, world, bp_plan)
+            if raised is not None:
+                return raised
+            relead = self._lead_goal(look, here_const, bp_plan)
+            if relead is not None:
+                return relead
         # 5. TRAIN before a fight it KNOWS of (never while hurt: a person heals first, and a roam begun hurt stops at its first
-        # battle, `training_rest`, burning a session of `TRAIN_SESSIONS` for nothing: step5dev7, seed 3, six in a row)
-        if fight_next and not self.train_off and not hurt:
+        # battle, `training_rest`, burning a session of `TRAIN_SESSIONS` for nothing: step5dev7, seed 3, six in a row).
+        # (BP-1, m11: ONE budget) never while a raise plan is active for this very fight
+        if fight_next and not self.train_off and not hurt and not self.raising_for(milestone.id):
             prep = self.prep(milestone)
             target = self.training_target(levels)
             level = strongest_level(look)
@@ -1994,6 +2036,187 @@ class GoalManager:
         return self.memory.fight_prep.setdefault(milestone.id, {"steps": 0, "sessions": 0, "wild": 0, "won": 0,
                                                                 "rests": 0, "ready": False})
 
+    # ------------------------------------------------------------------ (BP-1) boss preparation
+    def bp_record(self, milestone_id: str | None) -> dict | None:
+        """The boss-preparation record of the fight `milestone_id` (`fight_prep[...]["bp"]`, game memory: a continue keeps
+        it), or None."""
+        prep = self.memory.fight_prep.get(milestone_id or "")
+        return prep.get("bp") if prep else None
+
+    def raising_for(self, milestone_id: str) -> bool:
+        """(m11) A raise plan is ACTIVE for this fight: its step-5 training is not chosen (one budget per boss)."""
+        record = self.bp_record(milestone_id)
+        return record is not None and record.get("status") == "active"
+
+    def boss_prep(self, look: Observation, index: int) -> tuple | None:
+        """(BP-1, spec sections 1 and 1.6) The readiness verdict for the NEXT gym leader (`next_boss`), run when
+        the party's signature (PID, species, level, max HP, moves) or the boss changed since the last run, and logged
+        (`[AI-BOSSPREP]`); no RNG drawn but the plan's own draw (`bossprep_rng`). For a leader in `ACT_ON` only:
+        a NOT READY verdict with no plan yet makes ONE plan (Story, Catcher: `active`; Trainer: `logged`, the in-run
+        control), stored once (m10); an active plan whose trainee reached its target is re-judged (READY or CLOSE: done;
+        else the target one higher). Returns (the boss milestone id, the leader's name, its gym, the record) for a leader
+        in ACT_ON, else None."""
+        found = next_boss(self.story.milestones, index)
+        if found is None:
+            self.bp_boss = None
+            return None
+        boss_ms, name = found
+        gym = gym_leaders().get(name)
+        self.bp_boss = (boss_ms.id, name, gym)
+        party = members_of(look)
+        team = boss_party(name)
+        if not party or not team:
+            return None
+        # acted on only for a leader in ACT_ON whose fight is the NEXT NAMED FIGHT ahead: in chapter 5 the rival's fight
+        # (`ch5_rival_meet`) comes first, so BRAWLY's plan waits for chapter 6 and chapters 1-5 play exactly as before
+        # (the spec's scope guard, section 0: "chapters 1-5 unchanged by construction"; its "next boss" alone looks
+        # past the rival)
+        named = next((m for m in self.story.milestones[max(0, index):] if not m.optional and m.fight_named), None)
+        acts = name in ACT_ON and named is boss_ms
+        record = self.prep(boss_ms).setdefault("bp", new_record()) if acts else None
+        personality = self.state.base
+        signature = (name, tuple((m.pid, m.species, m.level, m.max_hp, m.moves) for m in party))
+        if signature != self._bp_seen:
+            self._bp_seen = signature
+            self._judge(boss_ms.id, name, party, team, personality, record)
+        return (boss_ms.id, name, gym, record) if acts else None
+
+    def _judge(self, boss_id: str, name: str, party: list, team, personality: str, record: dict | None) -> None:
+        """One verdict run (`boss_prep`): logged; the plan made or re-judged for a leader in ACT_ON."""
+        active = record is not None and record["status"] == "active"
+        lead = record["trainee"] if active else party[0].pid
+        verdict = judge_party(party, lead, team, personality)
+        self._say(f"[AI-BOSSPREP] {name} ({boss_id}): team {team_line(team)}; party "
+                  f"{described(party)}; verdict for the {personality}: {verdict.line()}"
+                  + (f"; plan {record['plan'] or '-'} ({record['status']})" if record is not None else
+                     " (not acted on in BP-1: logged)"))
+        if record is None:
+            return
+        if active:
+            trainee = next((m for m in party if m.pid == record["trainee"]), None)
+            if trainee is None:
+                record["status"] = "spent"
+                self._say(f"[AI-BOSSPREP] {name}: the trainee {record['trainee']:08x} is no longer in the party: the plan "
+                          f"is given up")
+            elif trainee.level >= record["target"]:
+                if verdict.cls in (READY, CLOSE):
+                    record["status"] = "done"
+                    self._say(f"[AI-BOSSPREP] {name}: the trainee {trainee.species} reached L{trainee.level} (target "
+                              f"{record['target']}): {verdict.cls}: the raise is done")
+                else:
+                    record.update(with_target(record, record["target"] + 1))
+                    self._say(f"[AI-BOSSPREP] {name}: the trainee {trainee.species} reached L{trainee.level} and the "
+                              f"verdict still reads NOT READY: the target is now L{record['target']} (within the budget)")
+            return
+        if record["status"] != "none" or verdict.cls != NOT_READY:
+            return
+        self._plan(name, party, team, personality, record)
+
+    def _plan(self, name: str, party: list, team, personality: str, record: dict) -> None:
+        """Make the ONE plan (spec section 1.6): the options, one draw among the near-best from `bossprep_rng`."""
+        found, said = raise_options(party, team, personality)
+        rng = self.bossprep_rng if self.bossprep_rng is not None else random.Random(0)
+        choice, how = choose_plan(rng, near_best(personality), found, record["failed"])
+        self._say(f"[AI-BOSSPREP] {name}: options "
+                  f"{[f'{o.species} L{o.level} -> L{o.target} ({o.projected}, cost {o.cost}, left {o.party_left:.2f})' for o in found]}"
+                  f"; {'; '.join(said) or 'every member has one'}")
+        if choice is None:
+            self._say(f"[AI-BOSSPREP] {name}: no plan ({how}): it fights as it is")
+            return
+        record.update(plan=choice.plan, trainee=choice.pid, target=choice.target)
+        record["status"] = "active" if personality in ACTING else "logged"
+        self._say(f"[AI-BOSSPREP] {name}: the plan: raise {choice.species} ({choice.pid:08x}) from L{choice.level} to "
+                  f"L{choice.target} as the one who leads ({choice.projected}); {how}; "
+                  + ("it acts on it" if record["status"] == "active" else
+                     f"the {personality} only logs it (it trains as it always has)"))
+
+    def raise_map(self, world, level: int) -> str | None:
+        """(spec section 3.1) Where to raise a Pokemon of `level`: among the maps it has visited with grass of their own and
+        a known way there, whose wild land levels a guide lists (`knowledge/seasoned.py` land_levels), the one with the
+        highest top level at most `level` + 2 (ties: the nearer); none such: the reachable one with the lowest top level;
+        none reachable: None."""
+        found = []
+        for key, memory in world.maps.items():
+            if not (memory.visits and memory.const and inside_grass(memory)):
+                continue
+            levels = land_levels(memory.const)
+            if levels is None:
+                continue
+            distance = world_distance(world, key)
+            if distance >= UNREACHABLE:
+                continue
+            found.append((levels[1], distance, memory.const))
+        fit = [item for item in found if item[0] <= level + 2]
+        if fit:
+            return max(fit, key=lambda item: (item[0], -item[1], item[2]))[2]
+        return min(found)[2] if found else None
+
+    def _raise_goal(self, look: Observation, world, plan: tuple) -> Goal | None:
+        """(BP-1) The RAISE goal while the plan is active (spec section 3.1), or None; the budget spent (M5) or no grass
+        within reach ends the plan ("spent": the boss is then fought as today)."""
+        boss_id, name, _gym, record = plan
+        if record is None or record["status"] != "active":
+            return None
+        personality = self.state.base
+        spent = spent_reason(record, personality)
+        trainee = next((m for m in look.party or () if m.pid == record["trainee"]), None)
+        where = self.raise_map(world, trainee.level) if trainee is not None else None
+        if spent is None and where is None:
+            spent = "no grass within reach for the raise"
+        if spent is not None:
+            record["status"] = "spent"
+            self._say(f"[AI-BOSSPREP] {name}: the raise ends, budget spent ({spent}): no endless grind; it fights as it is")
+            return None
+        if not self._allowed("raise"):
+            return None
+        levels = land_levels(where)
+        return Goal("raise", f"the plan for {name}: raise {trainee.species} L{trainee.level} ({trainee.pid:08x}) to "
+                             f"L{record['target']}, leading, on {where} (wild L{levels[0]}-{levels[1]}); "
+                             f"{record['battles']} battles, {record['frames']} frames, {record['sessions']} sessions so far",
+                    boss_id, map=where, steps=self.state.errands.train_session, key="raise")
+
+    def _lead_goal(self, look: Observation, here_const: str | None, plan: tuple) -> Goal | None:
+        """(spec section 3.1) On the leader's own gym map with the raise DONE: the trainee back in the lead (a battle can
+        leave the order changed), when it is not first and has HP."""
+        boss_id, name, gym, record = plan
+        if record is None or record["status"] != "done" or here_const != gym or not self._allowed("lead"):
+            return None
+        party = [m for m in look.party or () if not m.is_egg]
+        trainee = next((m for m in party if m.pid == record["trainee"]), None)
+        if trainee is None or trainee.hp <= 0 or not party or party[0].pid == trainee.pid:
+            return None
+        return Goal("lead", f"before {name}: its raised {trainee.species} L{trainee.level} ({trainee.pid:08x}) leads, as "
+                            f"the plan judged", boss_id, key="lead")
+
+    def boss_lost(self, look: Observation) -> None:
+        """(spec section 3.3, after a loss to the boss) A battle LOST on the boss's gym map: `losses` + 1; a DONE plan was
+        too optimistic: it joins `failed` and ONE new plan is chosen among the options not failed, within the budget left
+        (a raise map is checked when the goal is chosen); otherwise it fights as today. `MAX_LOSSES` stays the run's stop."""
+        if self.bp_boss is None:
+            return
+        boss_id, name, _gym = self.bp_boss
+        record = self.bp_record(boss_id)
+        if record is None:
+            return
+        record["losses"] += 1
+        self._bp_seen = None
+        state = record["status"]
+        self._say(f"[AI-BOSSPREP] {name}: a battle lost on the gym map ({record['losses']} so far; the plan was {state})")
+        if state != "done":
+            return
+        record["failed"].append(record["plan"])
+        party = members_of(look)
+        team = boss_party(name)
+        personality = self.state.base
+        if not party or not team or spent_reason(record, personality) is not None:
+            record["status"] = "spent"
+            self._say(f"[AI-BOSSPREP] {name}: no new plan (budget or party): it fights as it is")
+            return
+        record["status"] = "none"
+        self._plan(name, party, team, personality, record)
+        if record["status"] == "none":
+            record["status"] = "spent"
+
     def _allowed(self, key: str) -> bool:
         return self.memory.cooldown.get(key, -1) <= self.memory.decisions
 
@@ -2227,7 +2450,7 @@ class GoalRunner:
             return outcome.startswith("saved"), outcome
         nav = self.nav
         own = getattr(nav, "grass_cost", None)
-        hurt = (own is not None and goal.kind not in ("train", "catch", "heal")
+        hurt = (own is not None and goal.kind not in ("train", "catch", "heal", "raise")
                 and self.manager.hurt(self.hands.look()))
         if hurt:
             nav.grass_cost = max(own, HURT_GRASS_COST)
@@ -2275,10 +2498,25 @@ class GoalRunner:
         # (`PREP_WALK_KINDS`): with BRAWLY in view in his gym, a training walk out to the grass goes on
         if stops and goal.kind in PREP_WALK_KINDS and self.manager.fight_levels(milestone)[0]:
             stops = False
+        if goal.kind == "raise":
+            stops = False  # (BP-1) a committed raise for the next leader goes on, as a training walk before a known fight
         if stops:
             nav.stop_for = lambda look: self.story_in_view(look, milestone)
+        # (BP-1, spec section 3.3) a battle LOST in a goal begun on (or headed for) the next leader's gym map is a loss to
+        # that leader: the boss-preparation record learns it
+        world_now = getattr(nav, "world", None)
+        start = world_now.here() if hasattr(world_now, "here") else None
+        start_const = getattr(start, "const", None)
+        lost_before = battles_lost(getattr(nav, "battle_log", None) or ())
         try:
-            return (yield from self._pursue(goal, milestone, index, current))
+            result = yield from self._pursue(goal, milestone, index, current)
+            boss = self.manager.bp_boss
+            if (boss is not None and boss[2] is not None and boss[2] in (start_const, goal.map)
+                    and self.manager.bp_record(boss[0]) is not None
+                    and battles_lost(getattr(nav, "battle_log", None) or ()) > lost_before):
+                # the last look the hands took (no new look: nothing else is told of this check)
+                self.manager.boss_lost(self.hands.last if self.hands.last is not None else self.hands.look())
+            return result
         finally:
             if stops:
                 nav.stop_for = None
@@ -2387,7 +2625,8 @@ class GoalRunner:
         moved_on = lambda look: current(look) != index  # noqa: E731 - the milestone changed: the story moved on
         # a battle the STORY starts (PROF. BIRCH's bag, a talk) is fought, not run from (measured 2026-10-14: the play brain's
         # first chapter-1 run tried RUN in PROF. BIRCH's battle, which the game refuses); training and catching fight too
-        self.mind.purpose = "train" if goal.kind in ("train", "catch", "use", "talk", "follow") else "travel"
+        self.mind.purpose = ("raise" if goal.kind == "raise" else
+                             "train" if goal.kind in ("train", "catch", "use", "talk", "follow") else "travel")
         if goal.kind in ("go", "look_around", "follow", "find", "explore"):
             target_map = goal.map if goal.kind == "go" else None
             look_for = goal.look
@@ -2603,6 +2842,15 @@ class GoalRunner:
             if outcome.startswith("picked up"):
                 self.picked.append(f"{nav.world.here().const if nav.world.here() else '?'} {(ball.x, ball.y)}: {outcome}")
             return outcome.startswith("picked up"), outcome
+        if goal.kind == "raise":
+            return (yield from self._raise(goal, moved_on))
+        if goal.kind == "lead":
+            record = manager.bp_record(goal.milestone)
+            pid = record["trainee"] if record is not None else None
+            ok = pid is not None and (yield from lead_with(hands, pid, f"{goal.reason}: the trainee first"))
+            if not ok and record is not None:
+                record["reorder_fails"] += 1
+            return bool(ok), ("the trainee leads" if ok else "the trainee could not be put first")
         if goal.kind in ("train", "catch"):
             where = self._grass_map(milestone)
             if where is not None:
@@ -2684,7 +2932,80 @@ class GoalRunner:
         outcome = yield from self.pursue(replace(goal, target=ball, tile=None), milestone, index, current)
         return outcome[1]
 
-    def roam_hooks(self, hunt: bool = False) -> None:
+    def _raise(self, goal: Goal, moved_on: Callable[[Observation], bool]) -> Generator[None, None, tuple[bool, str]]:
+        """(BP-1, spec sections 3.1 and 3.2) One RAISE session for the plan of `goal.milestone`: the trainee put FIRST
+        (`hands/party_order.py` lead_with) before anything, the trainee rule on every battle from then on (its rest, M4), the
+        walk to the raise map, the roam; the battles fought with purpose "raise" (no switch, no catch) and the trainee as
+        the battle mind's `trainee`. Counted into the ONE budget (M5): wild battles begun, the goal's frames, sessions,
+        stalls (no level gained), reorder failures, leaked battles (the trainee fainted and another finished it). The
+        EXPERIENCE is measured: the trainee's and the strongest other member's summary EXP at the start and the end."""
+        hands, nav, manager = self.hands, self.nav, self.manager
+        record = manager.bp_record(goal.milestone)
+        if record is None or record.get("trainee") is None:
+            return False, "no raise plan"
+        pid = int(record["trainee"])
+        began = hands.pad.frames
+        look = hands.look()
+        start_level = next((m.level for m in look.party or () if m.pid == pid), None)
+        exp_before = self._raise_exp(look, pid)
+        watch = RaiseWatch(pid, self.tell)
+        before = len(nav.battle_log)
+        outcome = "the raise did not begin"
+        try:
+            if not (yield from lead_with(hands, pid, f"{goal.reason}: the trainee first")):
+                record["reorder_fails"] += 1
+                outcome = "the trainee could not be put first"
+                return False, outcome
+            self.mind.trainee = pid
+            hands.watchers.append(watch)
+            self.roam_hooks(trainee=pid, after_battle=watch.after)
+            where = goal.map
+            if where is not None and (nav.world.here() is None or nav.world.here().const != where):
+                went = yield from self._travel(where, f"{goal.reason}: to the grass of {where}", GO_FRAMES,
+                                               lambda seen: moved_on(seen) or (seen.player is not None
+                                                                                and seen.player.map_const == where))
+                if nav.world.here() is None or nav.world.here().const != where:
+                    outcome = f"could not get to the grass of {where}: {went}"
+                    return False, outcome
+            outcome = yield from roam_train(hands, nav, goal.steps, goal.reason)
+            self.roams.append(outcome)
+            numbers = roam_numbers(outcome)
+            if numbers is not None and not outcome.startswith("roamed"):
+                hands.note("roam", "metrics", outcome[:300], {**numbers, "stopped": outcome.split(";", 1)[0][:160]})
+            return ("roamed" in outcome or "rest:" in outcome or ITEM_STOP in outcome), outcome
+        finally:
+            self.clear_roam_hooks()
+            if watch in hands.watchers:
+                hands.watchers.remove(watch)
+            self.mind.trainee = None
+            met = nav.battle_log[before:]
+            record["battles"] += sum(1 for _, kind, _ in met if kind == "wild")
+            record["frames"] += hands.pad.frames - began
+            record["sessions"] += 1
+            record["leak_battles"] += watch.leaks
+            record["reorder_fails"] += watch.not_leading
+            last = hands.last if hands.last is not None else look
+            end_level = next((m.level for m in last.party or () if m.pid == pid), None)
+            gained = start_level is not None and end_level is not None and end_level > start_level
+            record["stalls"] = 0 if gained else record["stalls"] + 1
+            exp_after = self._raise_exp(last, pid)
+            self.tell(f"[AI-BOSSPREP] raise exp: trainee +{exp_after[0] - exp_before[0]}, others +"
+                      f"{exp_after[1] - exp_before[1]} ({exp_before[2]}); L{start_level} -> L{end_level}; "
+                      f"{len(met)} battles ({watch.leaks} leaked, {watch.not_leading} not led by the trainee); "
+                      f"{outcome[:120]}")
+
+    @staticmethod
+    def _raise_exp(look: Observation, pid: int) -> tuple[int, int, str]:
+        """(M4, point 6) The summary EXP of the trainee and of the strongest OTHER member (by level), and who that is."""
+        mons = [m for m in look.party or () if not m.is_egg]
+        trainee = next((m for m in mons if m.pid == pid), None)
+        others = [m for m in mons if m.pid != pid]
+        strongest = max(others, key=lambda m: (m.level, m.max_hp), default=None)
+        return ((trainee.experience if trainee is not None else 0), (strongest.experience if strongest is not None else 0),
+                f"the strongest other: {strongest.species} L{strongest.level}" if strongest is not None else "no other")
+
+    def roam_hooks(self, hunt: bool = False, trainee: int | None = None,
+                   after_battle: Callable[[Observation], str | None] | None = None) -> None:
         """What a TRAINING or CATCHING roam asks (set for the roam only, `clear_roam_hooks` after): after every battle, a
         reason to stop and heal (`training_rest`: under the personality's `heal_below`; the navigator asks it with no battle
         limit set: until the step-5 verifier's round of 2026-10-14 it asked only WITH one, so the rule never fired and a run
@@ -2695,6 +3016,14 @@ class GoalRunner:
         heal_below, active = manager.state.errands.heal_below, manager.state.active
         nav.battle_limit = None
         nav.battle_rest = lambda look: training_rest(look, heal_below, active)
+        if trainee is not None:
+            # (BP-1, M4) a RAISE: the trainee's own state decides the rest (fainted, or under a third), not the strongest's;
+            # and a battle it did not lead ends the roam (`RaiseWatch`)
+            def raise_rest(look: Observation) -> str | None:
+                stop = after_battle(look) if after_battle is not None else None
+                return stop or trainee_rest(look, trainee, heal_below, active)
+
+            nav.battle_rest = raise_rest
         since = {"battles": len(getattr(nav, "battle_log", None) or ()), "dex": None}
 
         def hunt_fruitless(look: Observation) -> str | None:

@@ -1494,6 +1494,94 @@ Not checked:
 
 Files: s53/ch6stops10/verify/ holds copy_tree.py, run_mutants.py and run_mutants.out, wording_check.py, and prediction_verify10.txt with its .sha256. The copy is deleted. The worktree and the main checkout are unchanged (the main checkout still shows only its cost-ledger.jsonl change).
 
+## Boss preparation BP-1 (the builder, 2026-11-09)
+
+BP-1 is built in worktree wf_e7452923-f06-3 on 18c3d51b. It is uncommitted and nothing is staged. The spec was followed except where listed below. The offline proof holds. The live A/B shows the plan does not yet do what the spec intended: the raise is spent long before its target.
+
+Reproduced first, on 18c3d51b. Today's training rule calls C1 ready for BRAWLY (Story target L20, strongest L21-22). In #111's C1 record all six members were sent against MACHOP in each of three fights, and each fight was lost (gBattleOutcome 2).
+
+What was built:
+- The readiness verdict (brain/bossprep.py): a deterministic duel scored with the battle brain's own move_value and rough_share both ways. It covers the verdict powers, exact fixed damage, Focus Punch, held berries (RULING 44) and full-HP members.
+- The projection by evolution and level-up moves.
+- The options at cost L^2-l^2 and one draw from a new <seed>:bossprep stream.
+- The raise goal and runner, with the trainee led first by a new gated party-order hand.
+- The M4 trainee rest, the M5 budget and the after-loss rule.
+- The record, persisted in game memory.
+- The loaders seasoned.py and atlas.boss_party, gated by check_fairness.
+
+The plan is acted on only for BRAWLY, by Story and Catcher runs, and only when that fight is the next NAMED fight. This guard is mine: the spec's next-boss rule alone would act in chapter 5.
+
+Offline proof:
+- test_bossprep: 54 tests, each rule with a FAULT and a CONTROL arm.
+- revert_bossprep: predictions hashed before each run. Final run: 35 mutants CAUGHT, 2 REDUNDANT offline, and both of those killed live by T10.
+- The re-anchored older mutants were caught again.
+- 21 of 21 gates exit 0.
+- The spec's section-2 numbers rested on an accidental tie-break by move name. The shipped rule (the faster move on a tie, the worst case) moves five cells: Wurmple's target becomes 19 with typical stats and 20 with the real summary stats. A fault arm reproduces every spec number.
+
+Live, one trajectory per seed and arm, never a rate:
+- The parent never earned BADGE02: 0 of 6 runs, 18 BRAWLY fights lost.
+- Round 1 (#112) found a bug in my raise watch. It read a battle's lead on the first look, where the game still holds the previous battle's battler, so false "not leading" reads spent every raise's budget. It is fixed, tested and mutant-killed.
+- Round 2 (#114), the fixed code: the plan was made on 3 of 3 runs, and the trainee led all 48 raise battles. The raise was spent on all three at 63-92k frames: stalls twice, no grass within reach once. The trainee met BRAWLY as Cascoon L9, Dustox L10 and Dustox L10. BADGE02 1 of 3. In that win the trainee took MACHOP, but Grovyle was L24 against the parent's L22, so the win is confounded.
+
+New stops:
+- Sessions of one battle meet a stalls bound that counts sessions.
+- The failure cooldown let the story sail away from the grass.
+- A spent plan leaves the trainee leading: a Cascoon L9 led three lost fights.
+- Experience leaks raise Grovyle.
+
+The chapters 1-5 replay control (#113, #115) matched the parent's decision streams in 6 of 6 pairs, with equal frames, marks and parties. The fault arm diverged in both rounds. End-state md5 cannot be compared, because the launcher's game clock is the host's.
+
+Evidence: ai_player/evidence/2026-11-09-bossprep-bp1-live-ab.txt and 2026-11-09-bossprep-REVERT.txt. Ledger #112-#115. Seeds 6371-6382 spent. The stage was cleaned. The main sandbox counts are unchanged (modules 4461, plugins 43, mgba 44, roms 2), and the main checkout is untouched.
+
+## Boss preparation BP-1: verification (the verifier, 2026-11-09)
+
+Verdict: FAIL. The readiness verdict, its numbers, the scope guard and the chapters 1-5 invariance all hold. The raise loop has a bug, and two of the builder's live explanations are not supported by the records.
+
+What I re-derived, without relying on the builder's own scripts or summaries:
+- BRAWLY_1 in the pinned decomp (`src/data/trainer_parties.h:3391-3413`) equals bosses.json and boss_party: MACHOP L16, MEDITITE L16, MAKUHITA L19 with a Sitrus Berry (holdEffectParam 30 in items.h).
+- I recomputed C1's numbers with a separate duel (verify/v_c1_decomp.py). Moves, types, the type chart, evolutions and learnsets are parsed from the decomp; only learn_choice and FIXED_POWER are imported. Under the shipped tie-break (the faster move):
+  - C1 at its fight is NOT READY, with MACHOP at 0.25.
+  - C2 at L23 and L24 is CLOSE, with MAKUHITA at 0.49.
+  - C3 is READY at 0.58.
+  - Dustox L18 beats MACHOP with 21 of 53 HP left.
+  - The options are Wurmple L19 (352), Grovyle L30 (459) and Shroomish L27 (704). Poochyena and Seedot never get there, and Cascoon is not eligible.
+  - With a tie-break by move name, the same duel reproduces the spec's section 2 exactly: Wurmple L18 (315), Shroomish L24 (551), Poochyena L30 (864), MAKUHITA 0.35. The builder's tie-break deviation is real.
+- The scope guard acts only from ch6_briney_house on. The spec's next-boss rule alone would act at all seven chapter-5 milestones, so the builder's next-named-fight guard is needed. Offline (V5), Story and Catcher choose the same goal as with ACT_ON empty at all 25 non-optional chapter 1-5 milestones.
+- The live control: I compared the kept logs line by line myself. A equals B in all 6 pairs; only paths, ids, timing, 3 extra records and one set-ordering log line differ. F differs. The pairs cover chapter 1 to the Pokedex and chapter 5 from after ROXANNE, not chapters 2-4.
+- The game's flags, from the launcher's after-truth:
+  - A earned BADGE02 in 0 of 6 runs.
+  - B round 1: 6371 yes, 6372 yes, 6373 no.
+  - B round 2: 6377 no, 6378 no, 6379 yes.
+- Seeds 6371-6382 appear only in the builder's ledger (#112-#115). The prediction files were hashed at 07:53 and 08:37, before the batches began at 08:07 and 08:38, and the hashes equal the ledger's bounds_sha256. Seeds 6365 and 6337 were not re-run.
+- The builder's 37 mutants, re-run in my copy: P0 PASS, 35 CAUGHT, 2 REDUNDANT.
+- Gates in my copy: 19 of 21 exit 0. test_hands and test_evidence fail only on git-provenance tests, because my copy has no .git; in the builder's worktree run both are OK.
+- The eyes change touches only the field menu's SWITCH: the decomp sets PARTY_ACTION_SWITCH only in CursorCb_Switch.
+
+MAJOR 1. The raise never heals a trainee stopped at under a third of its HP.
+- After a raise session ends on "the trainee is low", the next goal is another raise, with no heal in between: 3 times on 6377, 10 on 6378 and 11 on 6379.
+- The Wurmple at 1/18 HP runs from every battle and gains 0 EXP. These are the 12 stalls that spent the budget on 6378 and 6379.
+- Reproduced offline, with predictions hashed first: with the plan active and Wurmple at 1/18 or 5/18, the next goal is raise. CONTROL: fainted gives find_center; healthy gives raise.
+- Cause: goals.py's `hurt` looks at the whole party's HP and its strongest member, never at the trainee. trainee_rest stops the roam, but nothing heals the trainee, although the spec says "stop and heal".
+
+MAJOR 2. The records do not support the builder's explanations.
+- The trainee was L4 in every stall session, not "about L5-10". When the plan was spent it was L5, L4 and L4; it reached L9-L10 only afterwards, by leading the story's own battles.
+- There was no step-5 training after the spend: the B runs have 0 train goals.
+- Leaked raise battles gave Grovyle 251 EXP on 6379. By my estimate (Medium Slow growth, not looked up) it needs about 3,750 for L21 to L24. Its extra levels came from B's longer play after the spend: 22-23 heal goals against A's 1.
+- The confound stands, but this changes the remedy.
+
+MINOR findings:
+- On the party's side, fixed damage ignores immunity. A Night Shade user against a Normal-type boss Pokemon is scored at 22 points a hit and READY, where the right verdict is NOT READY. BRAWLY is not affected, but the logged verdicts that calibrate BP-2 are.
+- The special move powers (Low Kick 60, multi-hit) apply to the boss's moves only. The party's own Low Kick is weighed at power 1, and Double Kick as one hit.
+- Test gaps: the raise runner's frames and stalls counting can be deleted, and state.base switched to state.active, with all 54 tests still passing. My 8 mutant predictions all held. The active personality drifted to Trainer mid-raise on 6379, so the base rule matters live.
+- A spent plan leaves the trainee first. The re-lead on a done plan has no limit from reorder_fails. The done path never ran live.
+- On 6379 MAKUHITA did not fall to Poochyena: Poochyena took no turn, so "fell to Poochyena" is only who was on the field. In the same fight the battle brain switched the Dustox out against MEDITITE by typing, against the verdict's model.
+
+Next: fix MAJOR 1 with a FAULT/CONTROL test and a mutant. Correct BP1-L1 and BP1-L4 and the report. Then repeat the live A/B on new seeds from 6383 (free in every ledger).
+
+Evidence (scratch, s53/bp1/verify): STATE.md, v_c1_decomp.py, v_tests.py with v_predictions.txt (sha256 50140d07), v_mutants.py (sha256 c0596f31) and v_mutants.out, v_raise_seq.py, v_goalcount.py, v_control.py, v_ledger.py, gates_out.txt.
+
+Clean-up: the verifier ran no live batch and spent no seed. The copy was deleted (there were no links inside it). The worktree's status is as it was at the start. The main checkout is clean, and the main sandbox counts are unchanged (modules 4461, plugins 43, mgba 44, roms 2). 72 GB free.
+
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 
 ### MILESTONES-CH5-CH8 report (cloud job, static, no emulator)

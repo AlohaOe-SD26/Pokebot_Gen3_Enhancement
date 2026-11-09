@@ -77,8 +77,9 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
              "            short = level < target  # MUTANT G8\n")],
            ["ErrandTests.test_it_trains_its_minimum_steps_even_above_the_target"]),
     "G9": (CAUGHT, "the no-training FAULT ignored",
-           [(GOALS, "        if fight_next and not self.train_off and not hurt:\n",
-             "        if fight_next and not hurt:  # MUTANT G9\n")],
+           # (BP-1, 2026-11-09) re-anchored: the line now also skips training while a raise plan is active (m11)
+           [(GOALS, "        if fight_next and not self.train_off and not hurt and not self.raising_for(milestone.id):\n",
+             "        if fight_next and not hurt and not self.raising_for(milestone.id):  # MUTANT G9\n")],
            ["ErrandTests.test_train_off_never_trains"]),
     # (G10 re-anchored: chapter 6 stops round 5, the builder, 2026-11-06 (s53/ch6stops5/mutants5.py): predictions written and hashed (s53/ch6stops5/prediction_mutants5.txt, sha256 c1a9ecde7bd40f29..., run 1; revision b: s53/ch6stops5/prediction_mutants5b.txt, sha256 78f96351570c8bee..., run 2) BEFORE each run)
     "G10": (CAUGHT, "a POKéMON CENTER it knows is not where it heals (home first)",
@@ -234,8 +235,9 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
               "                False)  # MUTANT G45\n")],
             ["RestTests.test_an_item_walk_a_battle_ate_is_tried_again"]),
     "G44": (CAUGHT, "it trains while hurt",
-            [(GOALS, "        if fight_next and not self.train_off and not hurt:\n",
-              "        if fight_next and not self.train_off:  # MUTANT G44\n")],
+            # (BP-1, 2026-11-09) re-anchored as G9
+            [(GOALS, "        if fight_next and not self.train_off and not hurt and not self.raising_for(milestone.id):\n",
+              "        if fight_next and not self.train_off and not self.raising_for(milestone.id):  # MUTANT G44\n")],
             ["ErrandTests.test_a_party_in_danger_heals_again_and_nobody_trains_hurt"]),
     # ---- the step-5 verifier's round 2 (2026-10-14): its two mutants that no test caught, and the four weak rules it named
     "G46": (CAUGHT, "the play loop no longer counts the battles lost (the verifier's V6: the loop's _count_losses call None)",
@@ -941,8 +943,9 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                "            return \"MUTANT G209: no play\"\n")],
              ["ProductiveWiringTests.test_the_play_brain_is_played_through_its_skill"]),
     "G210": (CAUGHT, "a goal is never played by the runner (`_pursue`'s call in `pursue` deleted)",
-             [(GOALS, "            return (yield from self._pursue(goal, milestone, index, current))\n",
-               "            return False, \"MUTANT G210\"\n")],
+             # (BP-1, 2026-11-09) re-anchored: the call's result is now checked for a loss to the next leader first
+             [(GOALS, "            result = yield from self._pursue(goal, milestone, index, current)\n",
+               "            result = False, \"MUTANT G210\"\n")],
              ["ProductiveTests.test_a_detour_says_whether_it_arrived"]),
     "G211": (CAUGHT, "a ball walked back to is never picked up (`pursue`'s call in `_back_to_ball` deleted)",
              [(GOALS, "        outcome = yield from self.pursue(replace(goal, target=ball, tile=None), milestone, index, current)\n",

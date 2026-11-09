@@ -19,16 +19,24 @@ offered "to PETALBURG" is a trip to PETALBURG CITY).
 `name` and `battled_on`, so it knows which leader holds which gym (`gym_leaders`), as a seasoned player does (USER RULING
 40). Its every key path is classified in `gates/check_fairness.py` too; its badge flag, trainer id and source lines are
 developer data no loader reads.
+(boss preparation BP-1, 2026-11-09) The same file's THIRD slice: a boss's TEAM (`boss_party`: species, level, moves and
+held item of each Pokemon, USER RULINGS 40, 44, 58), for the readiness verdict before the next gym leader
+(`brain/bossprep.py`). Never its IVs or the trainer's AI flags (not in the file).
 """
 
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
+from .facts import move_named, species_named
+
 __all__ = [
+    "BossMon",
     "OPEN_TYPES",
     "PLACE_TYPES",
+    "boss_party",
     "gym_leaders",
     "open_map",
     "town_places",
@@ -93,3 +101,45 @@ def gym_leaders() -> dict[str, str]:
                 leaders[str(boss["name"])] = str(boss["battled_on"][0]).removeprefix("MAP_")
         _CACHE["leaders"] = leaders
     return dict(_CACHE["leaders"])
+
+
+@dataclass(frozen=True)
+class BossMon:
+    """(boss preparation BP-1, 2026-11-09) One Pokemon of a boss's team as a seasoned player knows it (USER RULINGS 40,
+    44, 58): its species and moves by the AI's own names (`knowledge/facts.py`), its level, and the item it holds (a guide
+    lists it: RULING 44), spoken as the game spells it ("Sitrus Berry"), or None. Its IVs and the trainer's AI flags are
+    not in the knowledge and stay unknown."""
+
+    species: str
+    level: int
+    moves: tuple[str, ...]
+    held_item: str | None
+
+
+def _spoken(symbol: str, prefix: str) -> str:
+    return str(symbol).removeprefix(prefix).replace("_", " ")
+
+
+def boss_party(name: str) -> tuple[BossMon, ...]:
+    """(boss preparation BP-1, 2026-11-09) The team of the boss called `name` ("BRAWLY"), in the order it is sent out:
+    the world file's THIRD slice, read once; of each boss only its `name` and `party`, of each Pokemon only `species`,
+    `level`, `moves` and `held_item` (all classified AI in `gates/check_fairness.py`; the held item by USER RULING 44).
+    The first boss of that name (a gym leader's first fight; a rematch is a separate trainer the file does not join).
+    () for a name the file does not hold. A species or move with no facts name is kept by its spoken name."""
+    if "parties" not in _CACHE:
+        data = json.loads(_BOSSES.read_text(encoding="utf-8"))
+        parties: dict[str, tuple[BossMon, ...]] = {}
+        for boss in data["bosses"]:
+            key = str(boss["name"])
+            if key in parties:
+                continue
+            team = []
+            for mon in boss["party"]:
+                species = _spoken(mon["species"], "SPECIES_")
+                moves = tuple(move_named(_spoken(m, "MOVE_")) or _spoken(m, "MOVE_") for m in mon["moves"])
+                item = mon.get("held_item")  # a party without held items has no such key
+                team.append(BossMon(species_named(species) or species, int(mon["level"]), moves,
+                                    _spoken(item, "ITEM_").title() if item else None))
+            parties[key] = tuple(team)
+        _CACHE["parties"] = parties
+    return tuple(_CACHE["parties"].get(name, ()))

@@ -1125,9 +1125,11 @@ class NotReadTests(unittest.TestCase):
 
     def test_check_fairness_does_not_glob_world(self):
         """RULE B walks ONLY the world files a LOADER names (KI-128: maps.json, and (chapter 7 NS4, 2026-11-06)
-        bosses.json, both for `knowledge/atlas.py`); the others stay unread and unchecked."""
+        bosses.json, both for `knowledge/atlas.py`); the others stay unread and unchecked. (BP-1, 2026-11-09) And the three
+        `seasoned/` files `knowledge/seasoned.py` names (seasoned/moves.json, named by no loader, stays unwalked)."""
         from ai_player.gates.check_fairness import knowledge_files, schema_problems, world_files
-        self.assertEqual(world_files(), ["world/bosses.json", "world/maps.json"])
+        self.assertEqual(world_files(), ["seasoned/encounters.json", "seasoned/learnsets.json", "seasoned/species.json",
+                                         "world/bosses.json", "world/maps.json"])
         walked = [name for name, _ in knowledge_files(KNOWLEDGE)]
         self.assertEqual([n for n in walked if n.startswith("world/")], ["world/bosses.json", "world/maps.json"])
         problems, counts = schema_problems(KNOWLEDGE)
@@ -1286,6 +1288,58 @@ class NotReadTests(unittest.TestCase):
         self.assertIn("fight", keys_read(planted))  # FAULT half
         planted = source.replace('boss.get("role")', 'boss.get("badge") and boss.get("role")', 1)
         self.assertIn("badge", keys_read(planted))
+
+    @staticmethod
+    def _keys_read(source: str, function: str | None, names: tuple[str, ...] | None = None) -> set[str]:
+        """(BP-1) Every constant key a function (None: the whole module) subscripts or `.get`s, on the names given (None:
+        on anything but the module's own cache, `_CACHE`)."""
+        import ast as ast_
+
+        tree = ast_.parse(source)
+        scope = tree if function is None else next(node for node in ast_.walk(tree)
+                                                   if isinstance(node, ast_.FunctionDef) and node.name == function)
+
+        def counted(value) -> bool:
+            if names is None:
+                return not (isinstance(value, ast_.Name) and value.id == "_CACHE")
+            return isinstance(value, ast_.Name) and value.id in names
+
+        found = set()
+        for node in ast_.walk(scope):
+            if isinstance(node, ast_.Subscript) and isinstance(node.slice, ast_.Constant) and isinstance(node.slice.value, str) \
+                    and counted(node.value):
+                found.add(node.slice.value)
+            if isinstance(node, ast_.Call) and isinstance(node.func, ast_.Attribute) and node.func.attr == "get" and node.args \
+                    and isinstance(node.args[0], ast_.Constant) and isinstance(node.args[0].value, str) \
+                    and counted(node.func.value):
+                found.add(node.args[0].value)
+        return found
+
+    def test_k_f3d_boss_party_reads_only_its_slice(self):
+        """(boss preparation BP-1, 2026-11-09) `knowledge/atlas.py` boss_party reads, of bosses.json, only `bosses`, a
+        boss's `name` and `party`, and each Pokemon's `species`, `level`, `moves` and `held_item` (RULING 44: the item is
+        known). FAULT half: a planted read of a boss's `id` (TRAINER_BRAWLY_1, a defeated flag's name) is seen."""
+        source = (REPO / "ai_player" / "knowledge" / "atlas.py").read_text(encoding="utf-8")
+        self.assertEqual(self._keys_read(source, "boss_party", ("data", "boss", "mon")),
+                         {"bosses", "name", "party", "species", "level", "moves", "held_item"})
+        planted = source.replace('key = str(boss["name"])', 'key = str(boss["name"]) + str(boss["id"])', 1)
+        self.assertNotEqual(planted, source)
+        self.assertIn("id", self._keys_read(planted, "boss_party", ("data", "boss", "mon")))
+        self.assertEqual(self._keys_read(source, "gym_leaders", ("data", "boss")), {"bosses", "role", "name", "battled_on"})
+
+    def test_k_f3e_the_seasoned_loader_reads_only_its_keys(self):
+        """(BP-1) `knowledge/seasoned.py` reads, of the three seasoned files, only the keys its docstring names (species:
+        `symbol`, `name`, `evolutions[].method / parameter.value / into`; learnsets: `symbol`, `level_up[].level / move`;
+        encounters: `map`, `availability`, `methods.land.slots[].min_level / max_level`), never a hidden one (base stats,
+        catch rate, experience, growth, wild held items: also refused by check_fairness B2). FAULT half: a planted
+        `entry["catch_rate"]` is seen."""
+        source = (REPO / "ai_player" / "knowledge" / "seasoned.py").read_text(encoding="utf-8")
+        allowed = {"species", "symbol", "name", "evolutions", "method", "parameter", "value", "into", "level_up", "level",
+                   "move", "maps", "map", "availability", "methods", "land", "slots", "min_level", "max_level"}
+        self.assertEqual(self._keys_read(source, None), allowed)
+        planted = source.replace('out[str(entry["symbol"])] = ', 'entry["catch_rate"]\n            out[str(entry["symbol"])] = ', 1)
+        self.assertNotEqual(planted, source)
+        self.assertIn("catch_rate", self._keys_read(planted, None) - allowed)
 
     def test_v1_warps_and_connections_are_classified_leaf_by_leaf(self):
         """(The round-1 verifier's V1, 2026-10-31) `maps[].warps` and `maps[].connections` were SUBTREE entries, so a key

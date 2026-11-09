@@ -87,7 +87,13 @@ LOADERS = {
     "knowledge/atlas.py": ("world/maps.json",
                            # (chapter 7 NS4, 2026-11-06) the second slice: which leader holds which gym (`gym_leaders`)
                            "world/bosses.json"),
+    # (boss preparation BP-1, 2026-11-09) the SEASONED player's species knowledge: how a species evolves, the moves it
+    # learns by level, and the wild levels of a map's grass (`evolutions`, `level_up`, `land_levels`); every key path of
+    # the three files is classified below, so a hidden key read here (base stats, catch rate, ...) FAILS (B2)
+    "knowledge/seasoned.py": ("seasoned/species.json", "seasoned/learnsets.json", "seasoned/encounters.json"),
 }
+#: (BP-1) the knowledge SUB-FOLDERS whose files are walked by RULE B only once a loader names them (`world_files`)
+LOADED_FOLDERS = ("world/", "seasoned/")
 #: the loaders that CARRY hidden keys into a record the brain must not read (rule B2/B3): file -> hidden keys
 CARRIES = {
     "knowledge/facts.py": ("base", "hp", "attack", "defense", "speed", "sp_attack", "sp_defense", "catch_rate", "exp_yield",
@@ -282,7 +288,8 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "bosses[].battled_on": (AI, "the map(s) the boss is fought on (a gym leader's gym)", False),
         "bosses[].battled_on[]": (AI, "one such map", True),
         "bosses[].double": (AI, "a double battle (seen at once)", True),
-        "bosses[].party": (AI, "the boss's team (a seasoned player knows it, USER RULING 40; no loader reads it)", False),
+        "bosses[].party": (AI, "the boss's team (a seasoned player knows it, USER RULING 40; read by atlas.boss_party, "
+                               "BP-1)", False),
         "bosses[].party[]": (AI, "one Pokemon of it", False),
         "bosses[].party[].species": (AI, "its species", True),
         "bosses[].party[].level": (AI, "its level", True),
@@ -306,14 +313,129 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "bosses[].notes": (DEVELOPER, "the extractor's notes", True),
         "bosses[].ref": (DEVELOPER, "the decomp file and line: the developers' proof", True),
     },
+    # (boss preparation BP-1, 2026-11-09) the THREE seasoned files `knowledge/seasoned.py` reads. What a Pokedex or a guide
+    # shows is `ai` (types, abilities, evolutions, the moves learned by level / TM / tutor / egg, where a species lives,
+    # its levels and shares there); what a player never sees is `hidden` (base stats, catch rate, experience yield, growth
+    # rate, wild held items: RULE B2 refuses them to every loader that does not CARRY them); decomp references and the
+    # extractor's joins are `developer`; the files' own descriptions `meta`. The paths the loader READS are classified LEAF
+    # BY LEAF (the containers without a subtree), so a key planted under them is unclassified and FAILS
+    "seasoned/species.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "count": (META, "how many species the file holds", True),
+        "count_real": (META, "how many of them are real species", True),
+        "species": (AI, "every species (a Pokedex)", False),
+        "species[]": (AI, "one species", False),
+        "species[].symbol": (AI, "its constant: the species' own name in the code's spelling (the loader's key)", True),
+        "species[].name": (AI, "its name as the game shows it", True),
+        "species[].id": (DEVELOPER, "the decomp's species index (not the Pokedex number)", True),
+        "species[].national_dex": (AI, "its national POKéDEX number", True),
+        "species[].hoenn_dex": (AI, "its HOENN POKéDEX number", True),
+        "species[].types": (AI, "its types (a Pokedex shows them)", True),
+        "species[].abilities": (AI, "its abilities (a guide lists them; which one a Pokemon has is its PID's: hidden)", True),
+        "species[].egg_groups": (AI, "its egg groups (a guide lists them)", True),
+        "species[].egg_cycles": (AI, "how long its egg takes (a guide lists it)", True),
+        "species[].female_pct": (AI, "its gender ratio (a guide lists it)", True),
+        "species[].gender_ratio_byte": (AI, "the same ratio, as the game stores it", True),
+        "species[].placeholder": (AI, "an entry that is no real species", True),
+        "species[].evolutions": (AI, "how it evolves (a guide shows it)", False),
+        "species[].evolutions[]": (AI, "one evolution", False),
+        "species[].evolutions[].method": (AI, "by what (a level, an item, friendship, a trade)", True),
+        "species[].evolutions[].into": (AI, "the species it becomes", True),
+        "species[].evolutions[].parameter": (AI, "its condition", False),
+        "species[].evolutions[].parameter.value": (AI, "the level (or value) it needs", True),
+        "species[].evolutions[].parameter.item": (AI, "the item it needs", True),
+        "species[].base_stats": (HIDDEN, "base stats: no player sees them (step 4.1 round 3)", True),
+        "species[].catch_rate": (HIDDEN, "the catch rate: hidden (step 4.1 round 1)", True),
+        "species[].base_exp": (HIDDEN, "the experience yield: hidden", True),
+        "species[].growth_rate": (HIDDEN, "the growth rate: hidden", True),
+        "species[].wild_held_items": (HIDDEN, "what a WILD one may hold: hidden", True),
+    },
+    "seasoned/learnsets.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "count": (META, "how many species the file holds", True),
+        "species": (AI, "each species' moves (a guide lists them)", False),
+        "species[]": (AI, "one species", False),
+        "species[].symbol": (AI, "its constant (the loader's key)", True),
+        "species[].id": (DEVELOPER, "the decomp's species index", True),
+        "species[].level_up": (AI, "the moves it learns by level", False),
+        "species[].level_up[]": (AI, "one of them", False),
+        "species[].level_up[].level": (AI, "at which level", True),
+        "species[].level_up[].move": (AI, "which move", True),
+        "species[].tm_hm": (AI, "the TMs and HMs it can learn (a guide lists them)", True),
+        "species[].tutor": (AI, "the tutor moves it can learn", True),
+        "species[].egg": (AI, "its egg moves", True),
+        "tm_table": (AI, "which move each TM and HM teaches", True),
+        "tutor_moves": (AI, "the tutor moves", True),
+    },
+    "seasoned/encounters.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "ability_decomp": (DEVELOPER, "the decomp reference of the ability rule", True),
+        "ability_note": (META, "the file's note on abilities", True),
+        "availability_note": (META, "the file's note on availability", True),
+        "availability_rules": (META, "the extractor's availability rules, in words", False),
+        "availability_rules.*": (META, "one rule", False),
+        "availability_rules.*.meaning": (META, "what it means", True),
+        "availability_rules.*.decomp": (DEVELOPER, "its decomp reference", True),
+        "availability_rules.*.maps": (DEVELOPER, "the decomp's maps it names, with the decomp lines", True),
+        "availability_rules.*.scan": (META, "how the extractor checked it (a digest of the scanned files)", True),
+        "conditions": (AI, "conditions a guide gives (Mirage Island shown, the tide)", False),
+        "conditions.*": (AI, "one condition", False),
+        "conditions.*.meaning": (META, "what it means", True),
+        "conditions.*.decomp": (DEVELOPER, "its decomp reference", True),
+        "conditions.*.methods": (AI, "the maps and ways of meeting wild Pokemon it governs", True),
+        "count_map_entries": (META, "how many map entries the file holds", True),
+        "encounter_rate_decomp": (DEVELOPER, "the decomp reference of the encounter rate", True),
+        "encounter_rate_note": (META, "the file's note on the encounter rate", True),
+        "feebas": (AI, "where and how FEEBAS is met (a guide shows it)", True),
+        "feebas.decomp": (DEVELOPER, "its decomp reference", True),
+        "groups": (META, "the extractor's grouping of the decomp's wild headers", True),
+        "maps": (AI, "the wild Pokemon of every map (a guide lists them)", False),
+        "maps[]": (AI, "one map's entry", False),
+        "maps[].map": (AI, "the map", True),
+        "maps[].availability": (AI, "when a player meets them (normal play, or a rule)", True),
+        "maps[].availability_source": (DEVELOPER, "the extractor's reason for the availability", True),
+        "maps[].base_label": (DEVELOPER, "the decomp's wild header label", True),
+        "maps[].group": (META, "the extractor's group of the entry", True),
+        "maps[].conditions": (AI, "the condition each way of meeting them needs", True),
+        "maps[].methods": (AI, "the ways of meeting wild Pokemon there (land, water, rods, rock smash)", False),
+        "maps[].methods.*": (AI, "one way", False),
+        "maps[].methods.*.encounter_rate": (AI, "how often", True),
+        "maps[].methods.*.rarity": (AI, "each species' share and levels (a guide's table)", True),
+        "maps[].methods.*.slots": (AI, "the encounter slots", False),
+        "maps[].methods.*.slots[]": (AI, "one slot", False),
+        "maps[].methods.*.slots[].slot": (AI, "which slot", True),
+        "maps[].methods.*.slots[].species": (AI, "the species", True),
+        "maps[].methods.*.slots[].min_level": (AI, "its lowest level", True),
+        "maps[].methods.*.slots[].max_level": (AI, "its highest level", True),
+        "maps[].methods.*.slots[].chance_pct": (AI, "the slot's share", True),
+        "maps[].requires": (AI, "what opens the map to a player (a guide says: after the game is cleared, ...)", True),
+        "maps[].requires_gate": (AI, "the gate that opens it", True),
+        "maps[].requires_source": (DEVELOPER, "the extractor's source for that", True),
+        "progression_gates": (META, "the extractor's gates that open maps late in the game", False),
+        "progression_gates.*": (META, "one gate", False),
+        "progression_gates.*.meaning": (META, "what it means", True),
+        "progression_gates.*.decomp": (DEVELOPER, "its decomp reference", True),
+        "progression_gates.*.root_mentions": (DEVELOPER, "the decomp files that mention it", True),
+        "progression_gates.*.gated_edges": (AI, "the ways it opens (a guide's map)", True),
+        "progression_gates.*.region": (AI, "the maps behind it", True),
+        "progression_gates.*.requires": (AI, "what opens it", True),
+        "progression_gates.*.groups": (META, "the extractor's groups", True),
+        "progression_gates.*.seed_maps": (META, "the extractor's starting maps", True),
+        "slot_probabilities_pct": (AI, "each slot's share by way of meeting (a guide's table)", True),
+        "slot_probabilities_match_expected_gen3": (META, "the extractor's check of those shares", True),
+        "slot_probabilities_note": (META, "the file's note on them", True),
+        "where_to_find": (AI, "where each species lives (a guide's index)", True),
+        "where_to_find_*": (AI, "the same index, cut to the main story's or normal play's maps", True),
+    },
 }
 
 
 def world_files(loaders: dict[str, tuple[str, ...]] | None = None) -> list[str]:
     """(KI-128, 2026-10-31) The files of `knowledge/world/` that a declared LOADER names ("world/maps.json"): the only
-    world files RULE B walks. The rest stay unread and unchecked (the 2026-10-22 KB2 decision)."""
+    world files RULE B walks. The rest stay unread and unchecked (the 2026-10-22 KB2 decision). (BP-1, 2026-11-09) And
+    each `seasoned/` file a loader names, by the same rule (`LOADED_FOLDERS`)."""
     return sorted({name for names in (LOADERS if loaders is None else loaders).values() for name in names
-                   if name.startswith("world/")})
+                   if name.startswith(LOADED_FOLDERS)})
 
 
 def knowledge_files(knowledge: Path) -> list[tuple[str, Path]]:
@@ -399,7 +521,7 @@ def developer_keys(fields: dict[str, dict] = KNOWLEDGE_FIELDS, knowledge: Path |
                 continue
             if found is not None and found[1][0] == DEVELOPER:
                 developer.add(keys[-1])
-            elif not name.startswith("world/"):
+            elif not name.startswith(LOADED_FOLDERS):  # (BP-1) a seasoned file's names excuse nothing either
                 # (KI-128, 2026-10-31) a WORLD file's AI-visible names do not excuse a name elsewhere: the deciding code
                 # never holds a world dict (its loader answers with plain facts: `knowledge/atlas.py` open_map gives a
                 # bool), and maps.json's AI coordinates (`warps[].x`) would otherwise UN-REFUSE `x` and `y`, the

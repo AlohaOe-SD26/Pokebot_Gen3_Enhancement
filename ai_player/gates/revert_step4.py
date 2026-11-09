@@ -86,7 +86,9 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
               "            if member.is_egg or member.pid in out:  # MUTANT B13\n")],
             ["SwitchTests.test_the_replacement_is_the_best_healthy_member_by_pid"]),
     "B14": (CAUGHT, "training never runs (low HP, a far stronger foe)",
-            [(BATTLE, "        if self.purpose == \"train\":\n", "        if False:  # MUTANT B14\n")],
+            # (BP-1, 2026-11-09) re-anchored: the line now reads raising as training too
+            [(BATTLE, "        if self.purpose in (\"train\", \"raise\"):  # (BP-1) raising runs exactly as training does\n",
+              "        if False:  # MUTANT B14\n")],
             ["RunTests.test_training_runs_when_low_or_outmatched"]),
     "B15": (CAUGHT, "a healing item in any battle (not only an important one)",
             [(BATTLE, "        if battle.kind == \"trainer\":\n            decision = self._heal(",

@@ -445,6 +445,306 @@
    "callee": "hands/pad.py:Hands.look",
    "caller": "brain/goals.py:GoalRunner._pursue",
    "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-4) one new screen read in the find_center's walk-out check (`moved_on(self.hands.look())`: did the story move on during the walk); the other sites are _pursue's earlier reads of the same name. The branch is deleted whole by G682 (CAUGHT by Round7HealTests h2); deleting the read alone fails every look."
+  },
+  {
+   "callee": "brain/battle.py:move_value",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:_formula_share",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:rough_share",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.__init__",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.begin",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._run_or_not",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._switch",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/bossprep.py:Member.types",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:Verdict.line",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:Option.plan",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:types_of",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:_slot",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:_battler",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:members_of",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:project",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:verdict_slot",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:attack_half",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:threat_half",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:hit_points",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:_own_points",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:verdict",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:verdict.rank",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:options",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:choose_plan",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:new_record",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:spent_reason",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:near_best",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:next_boss",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:trainee_rest",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:RaiseWatch.after",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:described",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:team_line",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:with_target",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:_damaging",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.bp_record",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the boss-preparation record's accessors and the plan's helpers in brain/goals.py: test_bossprep T5-T9 drive them through next_goal and pin the record's fields; their callers are covered by revert_bossprep no_verdict_run, no_raise_goal, no_lead_goal, no_boss_lost, not_persisted, same_plan, rechoose, no_bound."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._judge",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the boss-preparation record's accessors and the plan's helpers in brain/goals.py: test_bossprep T5-T9 drive them through next_goal and pin the record's fields; their callers are covered by revert_bossprep no_verdict_run, no_raise_goal, no_lead_goal, no_boss_lost, not_persisted, same_plan, rechoose, no_bound."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._plan",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the boss-preparation record's accessors and the plan's helpers in brain/goals.py: test_bossprep T5-T9 drive them through next_goal and pin the record's fields; their callers are covered by revert_bossprep no_verdict_run, no_raise_goal, no_lead_goal, no_boss_lost, not_persisted, same_plan, rechoose, no_bound."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.raise_map",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the boss-preparation record's accessors and the plan's helpers in brain/goals.py: test_bossprep T5-T9 drive them through next_goal and pin the record's fields; their callers are covered by revert_bossprep no_verdict_run, no_raise_goal, no_lead_goal, no_boss_lost, not_persisted, same_plan, rechoose, no_bound."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner._raise_exp",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the raise's EXPERIENCE report (M4 point 6: a log line, read by the A/B), no decision depends on it; its caller _raise is covered by no_raise_branch."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner.roam_hooks",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a keyword (trainee=None) that keeps the training and catching roams' calls as they were (RestTests pin them); the raise's call installs the trainee rest, deleted by revert_bossprep no_raise_rest."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner.roam_hooks.raise_rest",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) handed on as a VALUE (nav.battle_rest = raise_rest: the navigator calls it after each battle); the assignment is deleted by revert_bossprep no_raise_rest (caught by TraineeRuleTests)."
+  },
+  {
+   "callee": "brain/goals.py:battles_lost",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue)."
+  },
+  {
+   "callee": "world/memory.py:WorldMemory.here",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue)."
+  },
+  {
+   "callee": "hands/pad.py:Hands.look | host/eyes.py:FrameworkEyes.look | mode.py:Eyes.look",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue)."
+  },
+  {
+   "callee": "hands/party_order.py:lead_with",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the party-order hand's own helpers (hands/party_order.py): no offline test drives the field's party menu, so the hand is proven LIVE by T10 (gates/probe_bossprep.py lead from probe-C1: PASS, the game's party read by the framework; CONTROL already first: no press; FAULT shift_slot: FAIL), and revert_bossprep reorder_by_slot and eyes_slot_id are killed LIVE on copies (s53/bp1)."
+  },
+  {
+   "callee": "hands/party_order.py:_free",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the party-order hand's own helpers (hands/party_order.py): no offline test drives the field's party menu, so the hand is proven LIVE by T10 (gates/probe_bossprep.py lead from probe-C1: PASS, the game's party read by the framework; CONTROL already first: no press; FAULT shift_slot: FAIL), and revert_bossprep reorder_by_slot and eyes_slot_id are killed LIVE on copies (s53/bp1)."
+  },
+  {
+   "callee": "hands/party_order.py:_pids",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the party-order hand's own helpers (hands/party_order.py): no offline test drives the field's party menu, so the hand is proven LIVE by T10 (gates/probe_bossprep.py lead from probe-C1: PASS, the game's party read by the framework; CONTROL already first: no press; FAULT shift_slot: FAIL), and revert_bossprep reorder_by_slot and eyes_slot_id are killed LIVE on copies (s53/bp1)."
+  },
+  {
+   "callee": "hands/party_order.py:_close",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the party-order hand's own helpers (hands/party_order.py): no offline test drives the field's party menu, so the hand is proven LIVE by T10 (gates/probe_bossprep.py lead from probe-C1: PASS, the game's party read by the framework; CONTROL already first: no press; FAULT shift_slot: FAIL), and revert_bossprep reorder_by_slot and eyes_slot_id are killed LIVE on copies (s53/bp1)."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_load",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_move",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_species",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_by_name",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_learnsets",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:evolutions",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:level_up",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:land_levels",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:unmapped",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) called by the TEST side only (test_bossprep LoaderTests: the loader's own mapping check, every learnset move and evolution target): no AI code calls it."
+  },
+  {
+   "callee": "knowledge/atlas.py:_spoken",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/atlas.py:boss_party",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "hands/pad.py:Hands.look",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue). The site at the head of pursue is the hurt check's look, there before BP-1 (its line changed only by adding 'raise' to the kinds it skips)."
   }
  ]
 }

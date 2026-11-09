@@ -64,6 +64,8 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # spec S3-4 slice 1 (KB2): the world files' extractor, its independent verifier and W1-W8 (about 10 s; the pinned
     # decomp clone is required: without it every test ERRORS, never a silent pass)
     "test_kb2": ([str(GATES / "test_kb2.py")], 2),
+    # (boss preparation BP-1, 2026-11-09) the readiness verdict, the plan, the raise and their wiring (offline)
+    "test_bossprep": ([str(GATES / "test_bossprep.py")], 2),
     # build step 5.3, stage A1: the typed checks' unit tests (A1-1 to A1-4 and the A1 fix round; offline, about 7 s). Its
     # GraderImportTests.test_the_tree_as_it_stands_passes runs the G-3 rule (no grader takes a value from the AI's code)
     # on the tree as it stands, so this suite enforces G-3 too

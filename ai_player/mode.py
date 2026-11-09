@@ -739,6 +739,9 @@ class HandsBrain:
         story = load_story(look.player.gender if look.player is not None else None)
         manager = GoalManager(story, state, random.Random(f"{seed}:goals"), hints_off=options.fault_no_hints,
                               train_off=options.fault_no_training, errands_off=options.fault_no_errands)
+        # (boss preparation BP-1, 2026-11-09) the plan's draw has its OWN stream: building it draws nothing, so no other
+        # stream moves (`brain/bossprep.py` choose_plan)
+        manager.bossprep_rng = random.Random(f"{seed}:bossprep")
         if restored is not None:
             manager.memory = restore_goals(manager.memory, restored.goals)  # (R2, D16) what it remembers, as of the save
         manager.memory.landmarks = world.landmarks  # the doors it recognised live in the world memory: a later run has them
@@ -955,7 +958,7 @@ class HandsBrain:
             manager.outcome(goal, ok)
             # (R1, D3) a heal at a POKéMON CENTER makes a save due
             self._after_heal(goal, ok)
-            if goal.kind == "train":
+            if goal.kind in ("train", "raise"):  # (BP-1) a raise's battles won are progress exactly as training's
                 report["won_training"] += sum(1 for _, _, result in nav.battle_log[battles:] if result in ("won", "caught"))
             report["goals"].append({"kind": goal.kind, "key": goal.key, "ok": ok, "frames": hands.pad.frames - began,
                                     "outcome": outcome[:200], "milestone": milestone.id})

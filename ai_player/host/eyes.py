@@ -319,6 +319,8 @@ NAMING_INPUT_ENABLED = 1
 SPRITE_SIZE, SPRITE_DATA = 0x44, 0x2E
 #: `include/party_menu.h` struct PartyMenu: slotId (s8) @9.
 PARTY_MENU_SLOT_ID = 9
+#: (BP-1) `include/constants/party_menu.h` PARTY_ACTION_SWITCH: the field menu's SWITCH, choosing the second Pokemon
+PARTY_ACTION_SWITCH = 8
 #: `include/constants/items.h` ITEMS_COUNT (377 in Emerald), `include/sprite.h` MAX_SPRITES (64).
 ITEMS_COUNT, MAX_SPRITES = 377, 64
 #: ‼ BUILD STEP 2, found by the first run of the new eyes: the framework's `read_bytes` bounds EWRAM and IWRAM
@@ -658,7 +660,11 @@ class FrameworkEyes:
                 raw["menu"] = bytes(read_symbol("sMenu", 0, 12))
                 raw["bag_action"] = {"actions": self._bag_actions()}
         if game_state == "PARTY_MENU":
-            slot = read_symbol("gPartyMenu", PARTY_MENU_SLOT_ID, 1)[0]
+            # slotId @9, slotId2 @10, action @11 (`include/party_menu.h` struct PartyMenu). (BP-1, 2026-11-09) while two
+            # Pokemon are being SWITCHED (the field menu's SWITCH: action PARTY_ACTION_SWITCH) the cursor that moves is
+            # slotId2 (`src/party_menu.c` GetCurrentPartySlotPtr): the one on screen; otherwise slotId, as before
+            ids = read_symbol("gPartyMenu", PARTY_MENU_SLOT_ID, 3)
+            slot = ids[1] if ids[2] == PARTY_ACTION_SWITCH else ids[0]
             raw["party_slot"] = slot - 256 if slot >= 128 else slot
             raw["party_tasks_known"] = True  # build step 4: the list takes input only while its task runs
             if "Task_HandleSelectionMenuInput" in tasks:
