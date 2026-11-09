@@ -397,7 +397,13 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
             ["LapTests.test_a_shortcut_that_comes_into_view_is_taken"]),
     "W64": (CAUGHT, "finding 3 (MEDIUM): a bump is never forgotten after the way let the player through (the next errand walks "
                     "round a way that is open)",
-            [("world/memory.py", "        return memory.bumped.pop((xy, direction), None)\n", "        return None  # MUTANT W64\n")],
+            # (2026-11-09) anchored on forget_bump's own last three lines: chapter 6's round 3 (07913cde) added
+            # forget_slide, which ends with the same `return memory.bumped.pop(...)`, so the one-line anchor had 2 hits
+            [("world/memory.py",
+              "        if (memory.bumped.get((xy, direction)) or {}).get(\"slid\"):\n            return None\n"
+              "        return memory.bumped.pop((xy, direction), None)\n",
+              "        if (memory.bumped.get((xy, direction)) or {}).get(\"slid\"):\n            return None\n"
+              "        return None  # MUTANT W64\n")],
             ["WalkTests.test_a_bump_is_forgotten_when_the_way_lets_the_player_through",
              "WalkTests.test_the_only_way_on_is_retried_before_it_is_given_up"]),
     "W65": (CAUGHT, "finding 3: a tile that LOOKS different keeps the bumps learned on the old tile",
