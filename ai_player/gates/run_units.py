@@ -89,6 +89,10 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # KI-128/KI-129's graded held-out driver (2026-10-31): every grader's FAULT and CONTROL on planted rows (offline,
     # about 4 s)
     "test_live_ki128": ([str(GATES / "test_live_ki128.py")], 2),
+    # the anchor gate (08-MISTAKES 2026-11-09: a round broke revert_step3's W64 anchor and only the full lane saw it): every
+    # mutant runner's anchors hit exactly once, no mutant run (under 1 s), and its CONTROL + FAULT tests (about 3 s)
+    "check_anchors": ([str(GATES / "check_anchors.py")], 1),
+    "test_check_anchors": ([str(GATES / "test_check_anchors.py")], 2),
 }
 
 

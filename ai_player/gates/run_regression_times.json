@@ -9,7 +9,7 @@
     "disk_budget": 1, "test_run_regression": 4,
     "revert_step3": 2014, "revert_safety_gates": 326, "revert_step5": 3460, "revert_step2": 114, "revert_step11": 25,
     "revert_step4": 23,
-    "test_saving": 9, "check_paths": 1, "revert_r1": 1167
+    "test_saving": 9, "check_paths": 1, "revert_r1": 1167, "check_anchors": 1, "test_check_anchors": 3
   },
   "test_check_purity": {
     "ControlTests.test_control_real_package_passes": 1.8,
