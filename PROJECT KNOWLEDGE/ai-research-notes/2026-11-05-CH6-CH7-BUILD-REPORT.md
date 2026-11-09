@@ -1401,6 +1401,99 @@ All three got through the dark GRANITE_CAVE_B1F/B2F without FLASH. Each crossed 
 
 **Cleanup.** The world.jsonl files (52-61 MB) were deleted after judging. The stage was torn down with the junctions unlinked first. The main sandbox counts are unchanged (plugins 43, mgba 44, roms 2, modules 4461). The main checkout is clean. In the worktree, ledger.json and the new evidence file are uncommitted (no commit, no staging). C: has 62.5 GB free.
 
+## Chapter 6 stops, round 10 (the builder, 2026-11-08)
+
+All three findings from round 9's verifier are closed. I changed only tests and wording: the AI's code is unchanged, and the diff to view.py is a comment.
+
+V9-1 (MINOR), closed:
+- Before this round, no test set a sprite's animNum (the animation it is playing).
+- The fake cartridge now has a second animation, animation 1: FRAME(1), FRAME(0), FRAME(2), END.
+- The new test d12 puts four people on (0,1) at 24 px:
+  - animation 1, command 0: the guide is drawn, 227 of 227, and he is listed;
+  - animation 1, command 1: nothing is drawn, and he is not listed;
+  - two controls on animation 0.
+- If the code read animation 0 instead, the first two would swap.
+- The verifier's mutant VM9-A (renamed CH6S64) is now CAUGHT, as predicted, by d12 and d14.
+
+V9-2 (MINOR), confirmed and reworded:
+- I re-read round 9's walk data (pB_walk.jsonl) without running the emulator.
+- Both at-rest looks where the screen drew fewer pixels than the eyes counted are the one-frame lag (N9-4):
+  - gym32 s1Up after2 (0,-2): the screen drew 60. The eyes counted 60 one frame earlier, and the next frame drew 74.
+  - gym24 s4Up after2 (-1,0): the screen drew 224. The eyes counted 224 one frame earlier, and the next frame drew 225.
+- Over the whole walk, the screen drew fewer than the eyes in 74 person-looks:
+  - 71 equal the eyes' count one frame earlier (the lag);
+  - 3 do not. All three are walk0, the first frame of a step, at 2 to 12 pixels fewer. The lag does not explain them, and nothing shows them to be walls.
+- So no wall was measured covering a person in the natural walk. The only evidence for N9-1 is the probe-only placement.
+- view.py's limits comment now says this.
+- Nothing in the worktree's ai_player/evidence/ or docstrings said 'wall' for the 60. The wrong wording is only in round 9's build_result.json and in the CH6-CH7 report. Corrected text for the lead to use:
+  - P9-1: "0 listed people at 0 screen pixels (the fewest, 60, is the one-frame lag N9-4: the next frame drew 74)."
+  - N9-1: "In the natural walk, no wall was measured covering a person. The two at-rest looks where the screen drew fewer were the one-frame lag. Of 74 such looks in the whole walk, 71 were the lag, and 3 were on a step's first frame, unexplained. The only evidence for this limit is the probe-only placement onto a wall tile."
+
+V9-3 (NIT), closed:
+- The new test d13 checks OBJ_SIZES against the game's own table, sOamDimensions in src/sprite.c, transcribed from the pinned decomp.
+- The new test d14 runs a 16x16 item ball through the host:
+  - OAM shape 0, size 1, centerToCornerVec (-8,-8), 76 drawn pixels;
+  - on (0,1) at 24 px it is listed, with 76 of 76 pixels lit.
+- Mutant CH6S65 reads 16x16 as 8x16. It was CAUGHT by d13 and d14.
+- Mutant CH6S66 gives the horizontal 64x32 entry the size 32x64. It was CAUGHT by d13.
+
+Test helper: host_view gains three optional settings, 'anim', 'oam' and 'corner'. With the defaults, tests d1 to d11 run exactly as before.
+
+Proof:
+- I wrote and hashed the predictions before the run: prediction_mutants10.txt, sha256 656dfa048362f80b...
+- revert_r1 ran the R0 control and the 3 new mutants:
+  - R0 CONTROL PASS (640 tests);
+  - 3 of 3 CAUGHT as predicted;
+  - FROZEN TREE PASS.
+- test_eyes: 89 OK. test_evidence: 27 OK.
+- Mutant anchors: 1345, all unique. The call-site census since HEAD: PASS.
+
+Worktree (no commit, no staging):
+- Modified: ai_player/gates/test_eyes.py, ai_player/eyes/view.py (comment only), ai_player/gates/revert_r1_mutants.json (CH6S64 to CH6S66).
+- New: ai_player/evidence/trees/09d458e747de24ac.zip, revert_r1's tree snapshot, as in rounds 8 and 9.
+- The main checkout is untouched.
+- My files are in s53/ch6stops10/: STATE.md, lag_check.py and .out, lag_all.py and .out, mutants10.py, prediction_mutants10.txt and its .sha256, mutants10_r1.out, gates10.py, gates/.
+
+Not done:
+- No emulator run.
+- I did not look further into the 3 step-start looks the lag does not explain.
+
+## Chapter 6 stops, round 10: verification (the verifier, 2026-11-08)
+
+Verdict: PASS. I found nothing to fix.
+
+What I checked (worktree wf_e7452923-f06-3 on f299a1e7, uncommitted; I copied it without .git, worked on the copy, then deleted the copy):
+
+The AI's behaviour is unchanged:
+- The diff touches view.py, test_eyes.py and revert_r1_mutants.json, plus a new untracked tree snapshot zip. host/eyes.py has no diff.
+- Every changed line in view.py is a `#:` comment.
+- In test_eyes.py, the host_view defaults give the same bytes as before. The sprite's y is top + 32 + (-16) = top + 16, as it was. The corner bytes are still 0xF8 and 0xF0. animNum @0x2A defaults to 0. Animation 0 and its frames are unchanged. Animation 1 and the ball frame are only added.
+
+The tests pass on the tree and fail on their mutants. I hashed my predictions before any run: s53/ch6stops10/verify/prediction_verify10.txt, sha256 81bd680b2009091d...
+- Unmutated tree: test_eyes ran 89 tests, OK.
+- VM9-A (CH6S64, `+ 4 * sprite[0x2A]` dropped): CAUGHT by exactly d12 and d14, as predicted. In d12, guides 1 and 2 swap. In d14, animation 0's command 2 is END, so the ball counts nothing.
+- CH6S65 ((0,1) read as 8x16): CAUGHT by exactly d13 and d14, as predicted.
+- CH6S66 ((1,3) given 32x64): CAUGHT by exactly d13, as predicted.
+- Each mutant's edit matched its file exactly once.
+
+d13's table is the decomp's own:
+- The test's transcription equals src/sprite.c sOamDimensions32 / sOamDimensions in the pinned decomp, lines 220-242: square, then horizontal, then vertical, indexed by SPRITE_SIZE.
+- d14's OAM bits (attr0 0x0000, attr1 0x4000) are shape 0, size 1, which is 16x16.
+
+The V9-2 wording matches round 9's pB_walk.jsonl. I re-read it with my own script:
+- The fewest screen pixels of any listed person in the whole walk is 60: gym32 gym-s1Up-after2 (0,-2), eyes 74 lit, at rest.
+  - The eyes counted 60 on the frame before (after1).
+  - The next frame (after3) drew 74.
+- Exactly two at-rest person-looks drew fewer than the eyes counted: that one, and gym24 gym-s4Up-after2 (-1,0) at 224 of 225. The frame before had eyes 224, and the next frame drew 225.
+- So the comment's claims hold: no wall was measured covering a person at rest, and the only evidence for limit (2) is the probe-only placement.
+- The builder's counts also match the records: 74 fewer-looks, 71 explained by the lag, and 3 on a step's first frame (walk0) that the lag does not explain.
+
+Not checked:
+- I did not re-run test_evidence, the anchors census or revert_r1's full R0 control.
+- I did not check whether the item ball really draws 76 pixels in the game. The test only needs its own mask's count.
+
+Files: s53/ch6stops10/verify/ holds copy_tree.py, run_mutants.py and run_mutants.out, wording_check.py, and prediction_verify10.txt with its .sha256. The copy is deleted. The worktree and the main checkout are unchanged (the main checkout still shows only its cost-ledger.jsonl change).
+
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 
 ### MILESTONES-CH5-CH8 report (cloud job, static, no emulator)

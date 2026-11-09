@@ -1559,9 +1559,10 @@ class DarkTests(unittest.TestCase):
     `View.rows` and an object outside it is not listed (`eyes/view.py` lit, `host/eyes.py` _view). (Round 8, the round-7
     verifier's V7-1 and V7-2) a person is judged by the sprite the screen draws (d5), and the circle is placed where the
     screen draws it while a step is in progress (d6). (Round 9, the round-8 verifier's V8-1 and V8-3) by the pixels the
-    sprite's current frame DRAWS, not its rectangle (d4, d7, d8, d9), where it is drawn with its x2 / y2 (d10). Mutants:
-    `revert_r1.py` CH6S18-CH6S35 (round 7), CH6S36-CH6S49 (round 8; CH6S36-CH6S38 and CH6S41 re-anchored in round 9),
-    CH6S50 on (round 9)."""
+    sprite's current frame DRAWS, not its rectangle (d4, d7, d8, d9), where it is drawn with its x2 / y2 (d10). (Round 10,
+    the round-9 verifier's V9-1 and V9-3) the frame is that of the animation the sprite PLAYS, animNum (d12), at the OAM
+    size the game's own table gives (d13, d14). Mutants: `revert_r1.py` CH6S18-CH6S35 (round 7), CH6S36-CH6S49 (round 8;
+    CH6S36-CH6S38 and CH6S41 re-anchored in round 9), CH6S50-CH6S63 (round 9), CH6S64 on (round 10)."""
 
     LEVEL_7, LEVEL_1 = 7, 1  # no gym trainer beaten / FLASH used
 
@@ -1609,9 +1610,16 @@ class DarkTests(unittest.TestCase):
         "..############..", "...##########...", "...##########...", "..############..", ".##############.",
         ".##############.", "..############..", "...##########...", "...##########...", "...##########...",
         "....###..###....", "." * 16)
-    #: the fake cartridge: an animation table, its one animation (FRAME(0), FRAME(1), END), the frame table (frame 0
-    #: draws nothing, frame 1 the guide), the frames
-    ANIMS, ANIM, IMAGES, BLANK_FRAME, GUIDE_FRAME = 0x08710000, 0x08710010, 0x08710100, 0x08710200, 0x08710300
+    #: (Round 10) an ITEM BALL's 16 x 16 frame (OAM shape 0, size 1), drawn on its own tile: 76 opaque pixels, as many
+    #: as the game's item ball draws (s53/ch6stops9 small_sprites.py)
+    BALL = ("." * 16,) * 3 + (
+        "......####......", "....########....", "...##########...", "...##########...", "..############..",
+        "..############..", "...##########...", "....########....", "......##........") + ("." * 16,) * 4
+    #: the fake cartridge: an animation table of two animations, animation 0 (FRAME(0), FRAME(1), END) and (round 10)
+    #: animation 1 (FRAME(1), FRAME(0), FRAME(2), END), the frame table (frame 0 draws nothing, frame 1 the guide, frame
+    #: 2 the item ball), the frames
+    ANIMS, ANIM, ANIM_1, IMAGES = 0x08710000, 0x08710010, 0x08710020, 0x08710100
+    BLANK_FRAME, GUIDE_FRAME, BALL_FRAME = 0x08710200, 0x08710300, 0x08710400
 
     @staticmethod
     def frame_bytes(mask: tuple[str, ...]) -> bytes:
@@ -1639,7 +1647,9 @@ class DarkTests(unittest.TestCase):
         player's tile while a step is in progress; `camera` is `gFieldCamera`'s (x, y) pixel offset. (Round 9) and its
         FRAME: OAM attr0 @0 / attr1 @2 16 x 32 (shape 2, size 2), anims @0x08, images @0x0C, animNum 0 @0x2A,
         animCmdIndex @0x2B 1 (the guide's frame); `extra` may set "attr0" / "attr1" bits (flips, affine), "index"
-        (animCmdIndex) and "x2" / "y2". `dark_reads` False leaves the sprites, their frames, `gSpriteCoordOffset*` and
+        (animCmdIndex) and "x2" / "y2"; (round 10) "anim" (animNum), "oam" (attr0, attr1 in place of 16 x 32's (0x8000,
+        0x8000)) and "corner" (centerToCornerVec in place of (-8, -16); the sprite's y is then its tile's top + 16 + the
+        corner's y, as the game places an object event's sprite, so a 16 x 16 sprite is drawn on its own tile). `dark_reads` False leaves the sprites, their frames, `gSpriteCoordOffset*` and
         `gFieldCamera` OUT of the fake memory, so a look that reads them fails. `counts`: also return, by local id, the
         host's own `_drawn_lit` (lit, drawn) of each person."""
         from modules.context import context
@@ -1670,12 +1680,15 @@ class DarkTests(unittest.TestCase):
             objects[at + 0x18] = 1
             left, top = 112 + 16 * (x - 10) + drawn[0], 56 + 16 * (y - 10) + drawn[1]
             sprite = 0x44 * slot
-            sprites[sprite:sprite + 4] = ((0x8000 | extra.get("attr0", 0)).to_bytes(2, "little")
-                                          + (0x8000 | extra.get("attr1", 0)).to_bytes(2, "little"))  # 16 x 32
+            oam0, oam1 = extra.get("oam", (0x8000, 0x8000))  # 16 x 32
+            sprites[sprite:sprite + 4] = ((oam0 | extra.get("attr0", 0)).to_bytes(2, "little")
+                                          + (oam1 | extra.get("attr1", 0)).to_bytes(2, "little"))
             sprites[sprite + 0x08:sprite + 0x10] = u32(DarkTests.ANIMS) + u32(DarkTests.IMAGES)
-            sprites[sprite + 0x20:sprite + 0x28] = (s16(left + 8 - off_x) + s16(top + 16 - off_y) + s16(extra.get("x2", 0))
-                                                    + s16(extra.get("y2", 0)))
-            sprites[sprite + 0x28], sprites[sprite + 0x29] = 0xF8, 0xF0  # centerToCornerVec (-8, -16): 16 x 32
+            corner_x, corner_y = extra.get("corner", (-8, -16))  # centerToCornerVec (-8, -16): 16 x 32
+            sprites[sprite + 0x20:sprite + 0x28] = (s16(left + 8 - off_x) + s16(top + 32 + corner_y - off_y)
+                                                    + s16(extra.get("x2", 0)) + s16(extra.get("y2", 0)))
+            sprites[sprite + 0x28], sprites[sprite + 0x29] = corner_x & 0xFF, corner_y & 0xFF
+            sprites[sprite + 0x2A] = extra.get("anim", 0)
             sprites[sprite + 0x2B] = extra.get("index", 1)
             sprites[sprite + 0x3E] = more[0] if more else 0x03
         cells = {get_symbol("gBackupMapLayout")[0]: u32(width) + u32(height) + u32(grid),
@@ -1691,11 +1704,14 @@ class DarkTests(unittest.TestCase):
                           get_symbol("gSpriteCoordOffsetY")[0]: s16(off_y),
                           get_symbol("gFieldCamera")[0]: bytes(0x10) + camera[0].to_bytes(4, "little", signed=True)
                           + camera[1].to_bytes(4, "little", signed=True),
-                          DarkTests.ANIMS: u32(DarkTests.ANIM),
+                          DarkTests.ANIMS: u32(DarkTests.ANIM) + u32(DarkTests.ANIM_1),
                           DarkTests.ANIM: u32(0x00100000) + u32(0x00100001) + u32(0x0000FFFF),  # FRAME(0), FRAME(1), END
-                          DarkTests.IMAGES: u32(DarkTests.BLANK_FRAME) + u32(256) + u32(DarkTests.GUIDE_FRAME) + u32(256),
+                          DarkTests.ANIM_1: u32(0x00100001) + u32(0x00100000) + u32(0x00100002) + u32(0x0000FFFF),
+                          DarkTests.IMAGES: u32(DarkTests.BLANK_FRAME) + u32(256) + u32(DarkTests.GUIDE_FRAME) + u32(256)
+                          + u32(DarkTests.BALL_FRAME) + u32(128),
                           DarkTests.BLANK_FRAME: bytes(256),
-                          DarkTests.GUIDE_FRAME: DarkTests.frame_bytes(DarkTests.GUIDE)})
+                          DarkTests.GUIDE_FRAME: DarkTests.frame_bytes(DarkTests.GUIDE),
+                          DarkTests.BALL_FRAME: DarkTests.frame_bytes(DarkTests.BALL)})
 
         class Memory:
             def read_bytes(self, address: int, length: int) -> bytes:
@@ -1940,6 +1956,41 @@ class DarkTests(unittest.TestCase):
         view, _, counts = self.host_view(6, [(9, 8, 1)], camera=(3, 0), drawn=(13, 0), counts=True)
         self.assertIsNotNone(view.tile(-1, -2))
         self.assertEqual((view.objects, counts), ((), {1: (72, 227)}))
+
+    def test_d12_fault_the_frame_is_from_the_animation_the_sprite_plays(self):
+        """FAULT (round 10; the round-9 verifier's V9-1 and its mutant VM9-A: dropping animNum from the animation read
+        survived every test, the fakes never set it): the frame counted is the one of the animation the sprite PLAYS,
+        `anims[animNum]` (a person who faces another way, or walks, plays another animation). At 24 px on (0, 1), wholly
+        lit: animation 1 (FRAME(1), FRAME(0), ...) at command 0 draws the guide, 227 of 227, LISTED, and at command 1
+        draws nothing, NOT listed; read from animation 0 the two would swap. CONTROL: animation 0 at command 1 draws the
+        guide, listed, and at command 0 nothing."""
+        people = [(10, 11, 1, 0x03, {"anim": 1, "index": 0}), (10, 11, 2, 0x03, {"anim": 1, "index": 1}),
+                  (10, 11, 3, 0x03, {"anim": 0, "index": 1}), (10, 11, 4, 0x03, {"anim": 0, "index": 0})]
+        view, _, counts = self.host_view(self.LEVEL_7, people, counts=True)
+        self.assertEqual(sorted(o.local_id for o in view.objects), [1, 3])
+        self.assertEqual(counts, {1: (227, 227), 2: (0, 0), 3: (227, 227), 4: (0, 0)})
+
+    def test_d13_the_obj_sizes_are_the_games_own_table(self):
+        """(Round 10; the round-9 verifier's V9-3: only 16 x 32 and shape 3 were exercised) `OBJ_SIZES` is the game's own
+        table, `src/sprite.c` sOamDimensions[shape][size] (ST_OAM_SQUARE, ST_OAM_H_RECTANGLE, ST_OAM_V_RECTANGLE),
+        transcribed below from the pinned decomp; it has no shape 3, so such a sprite counts nothing (test_d9)."""
+        from ai_player.eyes.view import OBJ_SIZES
+
+        decomp = (((8, 8), (16, 16), (32, 32), (64, 64)),  # ST_OAM_SQUARE
+                  ((16, 8), (32, 8), (32, 16), (64, 32)),  # ST_OAM_H_RECTANGLE
+                  ((8, 16), (8, 32), (16, 32), (32, 64)))  # ST_OAM_V_RECTANGLE
+        self.assertEqual(OBJ_SIZES, {(shape, size): dimensions for shape, sizes in enumerate(decomp)
+                                     for size, dimensions in enumerate(sizes)})
+
+    def test_d14_an_item_ball_is_read_at_its_own_16_by_16_size(self):
+        """(Round 10; V9-3) a sprite other than 16 x 32 is read at its own size: an ITEM BALL (OAM shape 0, size 1:
+        16 x 16; centerToCornerVec (-8, -8), so drawn on its own tile; its frame is animation 1's command 2) on (0, 1) at
+        24 px draws all 76 of its pixels lit and is LISTED."""
+        ball = sum(row.count("#") for row in self.BALL)
+        self.assertEqual((len(self.BALL), {len(row) for row in self.BALL}, ball), (16, {16}, 76))
+        people = [(10, 11, 1, 0x03, {"oam": (0x0000, 0x4000), "corner": (-8, -8), "anim": 1, "index": 2})]
+        view, _, counts = self.host_view(self.LEVEL_7, people, counts=True)
+        self.assertEqual(([o.local_id for o in view.objects], counts), ([1], {1: (ball, ball)}))
 
     @staticmethod
     def observation(view, player):

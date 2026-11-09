@@ -226,7 +226,10 @@ def step_offset(camera: int) -> int:
 #: the round-8 verifier's six; `gates/test_eyes.py` DarkTests.test_d11 pins one); (2) a pixel the map draws over the
 #: sprite (a top-layer metatile: the top of a wall) or another sprite covers is still counted: the eyes do not read the
 #: background layers. Measured: with the guide moved onto a wall tile by a probe-only write, (0, -2) at 32 px, he was
-#: listed with 74 pixels counted and 0 on the screen; in the natural walk no listed person had 0 on the screen.
+#: listed with 74 pixels counted and 0 on the screen; in the natural walk no listed person had 0 on the screen, and no
+#: wall was measured covering one at rest: the fewest the screen drew of a listed person (60 of 74 counted, gym32 s1Up
+#: after2) was the screen one frame behind the memory the eyes read (the next frame drew 74), as was the other at-rest
+#: look where it drew fewer (224 of 225); so the only evidence for (2) is the probe-only placement (round 10, V9-2).
 SEEN_SHARE = (74, 227)
 
 #: The GBA's OBJ sizes (width, height) by (OAM shape, OAM size): square, horizontal, vertical.

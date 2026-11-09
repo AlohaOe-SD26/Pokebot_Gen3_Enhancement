@@ -11306,6 +11306,65 @@
     "test_eyes:DarkTests"
    ],
    "origin": "chapter 6 stops round 9, the builder, 2026-11-07 (s53/ch6stops9/mutants9.py): predictions written and hashed (s53/ch6stops9/prediction_mutants9.txt, sha256 81e02b02fd219454...) BEFORE the run"
+  },
+  {
+   "name": "CH6S64",
+   "prediction": "CAUGHT",
+   "what": "V9-1 (the round-9 verifier's VM9-A): animNum dropped from the animation read (every sprite read as playing animation 0)",
+   "edits": [
+    [
+     "host/eyes.py",
+     "        animation = _u32(_rom_bytes(_u32(sprite, 0x08) + 4 * sprite[0x2A], 4), 0)\n",
+     "        animation = _u32(_rom_bytes(_u32(sprite, 0x08), 4), 0)  # MUTANT CH6S64\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d12_fault_the_frame_is_from_the_animation_the_sprite_plays",
+    "DarkTests.test_d14_an_item_ball_is_read_at_its_own_16_by_16_size"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 10, the builder, 2026-11-08 (s53/ch6stops10/mutants10.py): predictions written and hashed (s53/ch6stops10/prediction_mutants10.txt, sha256 656dfa048362f80b...) BEFORE the run"
+  },
+  {
+   "name": "CH6S65",
+   "prediction": "CAUGHT",
+   "what": "V9-3: the 16 x 16 OBJ size (shape 0, size 1) read as 8 x 16 (an item ball read at the wrong size)",
+   "edits": [
+    [
+     "eyes/view.py",
+     "OBJ_SIZES = {(0, 0): (8, 8), (0, 1): (16, 16), (0, 2): (32, 32), (0, 3): (64, 64),\n",
+     "OBJ_SIZES = {(0, 0): (8, 8), (0, 1): (8, 16), (0, 2): (32, 32), (0, 3): (64, 64),  # MUTANT CH6S65\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d13_the_obj_sizes_are_the_games_own_table",
+    "DarkTests.test_d14_an_item_ball_is_read_at_its_own_16_by_16_size"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 10, the builder, 2026-11-08 (s53/ch6stops10/mutants10.py): predictions written and hashed (s53/ch6stops10/prediction_mutants10.txt, sha256 656dfa048362f80b...) BEFORE the run"
+  },
+  {
+   "name": "CH6S66",
+   "prediction": "CAUGHT",
+   "what": "V9-3: a horizontal OBJ size (shape 1, size 3) given the vertical one's 32 x 64",
+   "edits": [
+    [
+     "eyes/view.py",
+     "             (1, 0): (16, 8), (1, 1): (32, 8), (1, 2): (32, 16), (1, 3): (64, 32),\n",
+     "             (1, 0): (16, 8), (1, 1): (32, 8), (1, 2): (32, 16), (1, 3): (32, 64),  # MUTANT CH6S66\n"
+    ]
+   ],
+   "expected": [
+    "DarkTests.test_d13_the_obj_sizes_are_the_games_own_table"
+   ],
+   "suites": [
+    "test_eyes:DarkTests"
+   ],
+   "origin": "chapter 6 stops round 10, the builder, 2026-11-08 (s53/ch6stops10/mutants10.py): predictions written and hashed (s53/ch6stops10/prediction_mutants10.txt, sha256 656dfa048362f80b...) BEFORE the run"
   }
  ]
 }
