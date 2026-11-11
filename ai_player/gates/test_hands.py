@@ -1544,6 +1544,178 @@ class SubSkillFailureTests(unittest.TestCase):
         self.assertLess(hands.pad.frames, CLOCK_BUDGET)
 
 
+class FieldBagModel(Model):
+    """(boss preparation round 2, 2026-11-11) The FIELD bag with a healing item, a model of the decomp's screens: the START
+    menu (`src/start_menu.c`, cursor `sStartMenuCursorPos`), the bag (`src/item_menu.c`: Left / Right SwitchBagPocket, the
+    pocket list with CLOSE BAG last, A the item's context menu USE / GIVE / TOSS / CANCEL opening on USE), USE on a Potion
+    (`src/item_use.c` ItemUseOutOfBattle_Medicine: the party menu "Use on which POKéMON?"; A on a member: +20 HP and the
+    count down one, the message waits for A, then the bag again, `CB2_ReturnToBagMenu`), B back out. `shift`: the party
+    menu reports its cursor one row off (a FAULT for the hand's slot gate)."""
+
+    START = ("POKéDEX", "POKéMON", "BAG", "POKéNAV", "PLAYER", "SAVE", "OPTION", "EXIT")
+    POCKETS = ("items", "poke_balls", "tms_hms", "berries", "key_items")
+
+    def __init__(self, hp: list[int], potions: int = 3, pocket: int = 4, shift: int = 0) -> None:
+        self.state = "free"
+        self.start_cursor = 0
+        self.pocket = pocket
+        self.bag_cursor = 0
+        self.action_cursor = 0
+        self.party_cursor = 0
+        self.hp = list(hp)
+        self.potions = potions
+        self.shift = shift
+        self.used_on: list[int] = []
+        self.presses: list[tuple[str, str]] = []
+
+    def items(self) -> tuple[str, ...]:
+        if self.POCKETS[self.pocket] == "items":
+            return (("POTION",) if self.potions > 0 else ()) + ("ANTIDOTE",)
+        return ("POKé BALL",) if self.POCKETS[self.pocket] == "poke_balls" else ()
+
+    def press(self, button: str) -> None:
+        self.presses.append((self.state, button))
+        if self.state == "free" and button == "Start":
+            self.state = "start"
+        elif self.state == "start":
+            if button in ("Up", "Down"):
+                self.start_cursor = max(0, min(len(self.START) - 1, self.start_cursor + (1 if button == "Down" else -1)))
+            elif button == "A" and self.START[self.start_cursor] == "BAG":
+                self.state, self.bag_cursor = "bag", 0
+            elif button == "B":
+                self.state = "free"
+        elif self.state == "bag":
+            options = self.items() + ("CLOSE BAG",)
+            if button in ("Left", "Right"):
+                self.pocket = (self.pocket + (1 if button == "Right" else -1)) % len(self.POCKETS)
+                self.bag_cursor = 0
+            elif button in ("Up", "Down"):
+                self.bag_cursor = max(0, min(len(options) - 1, self.bag_cursor + (1 if button == "Down" else -1)))
+            elif button == "A":
+                self.state = "start" if options[self.bag_cursor] == "CLOSE BAG" else "bag_action"
+                self.action_cursor = 0
+            elif button == "B":
+                self.state = "start"
+        elif self.state == "bag_action":
+            if button in ("Up", "Down"):
+                self.action_cursor = max(0, min(3, self.action_cursor + (2 if button == "Down" else -2)))
+            elif button == "A":
+                chosen = ("USE", "GIVE", "TOSS", "CANCEL")[self.action_cursor]
+                self.state = "party" if chosen == "USE" else "bag"
+                self.party_cursor = 0
+            elif button == "B":
+                self.state = "bag"
+        elif self.state == "party":
+            if button in ("Up", "Down"):
+                self.party_cursor = max(0, min(len(self.hp) - 1, self.party_cursor + (1 if button == "Down" else -1)))
+            elif button == "A":
+                self.used_on.append(self.party_cursor)
+                self.hp[self.party_cursor] = min(40, self.hp[self.party_cursor] + 20)
+                self.potions -= 1
+                self.state = "message"
+            elif button == "B":
+                self.state = "bag"
+        elif self.state == "message" and button in ("A", "B"):
+            self.state = "bag"
+
+    def screen(self) -> ScreenState:
+        if self.state == "free":
+            return overworld_screen()
+        if self.state == "start":
+            return overworld_screen(screen="menu", menu="start_menu",
+                                    ui=MenuView(kind="start_menu", options=self.START, cursor=self.start_cursor))
+        if self.state == "bag":
+            return ScreenState("BAG_MENU", "menu", "bag", False, False, False,
+                               ui=MenuView(kind="bag", options=self.items() + ("CLOSE BAG",), cursor=self.bag_cursor,
+                                           pocket=self.POCKETS[self.pocket]))
+        if self.state == "bag_action":
+            return ScreenState("BAG_MENU", "menu", "bag", False, False, False,
+                               ui=MenuView(kind="bag_action", options=("USE", "GIVE", "TOSS", "CANCEL"),
+                                           cursor=self.action_cursor))
+        if self.state == "party":
+            return ScreenState("PARTY_MENU", "menu", "party", False, False, False,
+                               ui=MenuView(kind="party", cursor=self.party_cursor + self.shift))
+        return ScreenState("PARTY_MENU", "menu", "party", False, True, False, wait_reason="text printer 0 CLEAR",
+                           text="WURMPLE's HP was restored by 20 point(s).",
+                           ui=MenuView(kind="party", cursor=self.party_cursor, accepts_input=False))
+
+    def player(self) -> PlayerState:
+        return PlayerState(map_group=0, map_number=0, map_name="TEST", map_const="TEST", x=5, y=5, facing="up",
+                           movement="walking", elevation=3, avatar_flags=0, trainer_id=1)
+
+    def view(self) -> View:
+        return View(left=7, right=7, up=5, down=5, rows=(), objects=(), cropped=True)
+
+
+class _BagEyes:
+    """The eyes on a `FieldBagModel`: its screen, and the party (by PID) and the bag it holds."""
+
+    PIDS = (0x1001, 0x1003, 0x1002)
+
+    def __init__(self, model: FieldBagModel) -> None:
+        self.model = model
+
+    def look(self) -> Observation:
+        from ai_player.eyes.observation import BagSummary, MonSummary
+
+        model = self.model
+        party = tuple(MonSummary(i, name, 1, 10, hp, 40, "", ("Normal",), (), pid, 1, False)
+                      for i, (name, hp, pid) in enumerate(zip(("Grovyle", "Wurmple", "Poochyena"), model.hp, self.PIDS)))
+        healing = (("Potion", model.potions),) if model.potions else ()
+        return Observation(frame=model.frame, screen=model.screen(), player=model.player(), view=model.view(), party=party,
+                           bag=BagSummary((), healing, 0), progress=None, battle=None, last_battle_outcome=0, problems=(),
+                           cost_ms=0.0)
+
+
+class FieldItemTests(unittest.TestCase):
+    """(boss preparation round 2) `hands/field_item.py` use_on: START -> BAG -> the ITEMS pocket -> POTION -> USE -> the
+    member by PID -> the message -> again while low -> out. FAULT: a party cursor that reads one row off (`shift`) FAILS."""
+
+    def use(self, model: FieldBagModel, pid: int = 0x1003, items=("Potion", "Super Potion"), up_to: float = 2 / 3,
+            most: int = 2):
+        from ai_player.hands.field_item import use_on
+
+        hands = Hands(_BagEyes(model), FakeControls(model), random.Random("5:pacing"), random.Random("5:choices"), None,
+                      lambda line: None)
+        return drive(use_on(hands, pid, items, up_to, most, "a Potion for the trainee")), hands
+
+    def test_the_path_and_its_gates(self) -> None:
+        """Wurmple (slot 1) at 5/40: two Potions (5 -> 25 -> 45, capped 40; it stops at 2 of `most`); the pocket switched
+        from KEY ITEMS to ITEMS; every A pressed on a gate; the menus closed."""
+        model = FieldBagModel([40, 5, 30])
+        (ok, used, why), hands = self.use(model)
+        self.assertTrue(ok, why)
+        self.assertEqual((used, model.used_on, model.hp, model.potions, model.state), (2, [1, 1], [40, 40, 30], 1, "free"))
+        self.assertTrue(all(p["gate"] for p in hands.pad.history))
+        self.assertIn(("bag", "Left"), model.presses)
+
+    def test_it_stops_at_two_thirds(self) -> None:
+        model = FieldBagModel([40, 10, 30])  # 10 -> 30: at 30/40 >= 2/3, one Potion is enough
+        (ok, used, _), _ = self.use(model)
+        self.assertEqual((ok, used, model.hp[1]), (True, 1, 30))
+
+    def test_no_item_no_press(self) -> None:
+        model = FieldBagModel([40, 5, 30], potions=0)
+        (ok, used, why), hands = self.use(model)
+        self.assertEqual((ok, used, hands.pad.presses), (False, 0, 0), why)
+        self.assertIn("holds none", why)
+
+    def test_fault_a_shifted_slot_fails(self) -> None:
+        """FAULT: the party cursor reads one row off: the gate sees the cursor on the member while the game's is on the one
+        before it: the Potion goes to Grovyle (full), Wurmple's HP does not rise: FAILED (the HP check, by PID)."""
+        model = FieldBagModel([40, 5, 30], shift=1)
+        (ok, used, why), _ = self.use(model)
+        self.assertFalse(ok, why)
+        self.assertEqual(model.hp[1], 5)
+
+    def test_control_the_target_by_pid(self) -> None:
+        """CONTROL: the same path for Poochyena (slot 2) treats Poochyena, not the trainee."""
+        model = FieldBagModel([40, 5, 10])
+        (ok, _, _), _ = self.use(model, pid=0x1002)
+        self.assertTrue(ok)
+        self.assertEqual((model.used_on[0], model.hp[1]), (2, 5))
+
+
 class ProvenanceTests(unittest.TestCase):
     """STEP 2.1, the review's item 2 (`gates/provenance.py`): the evidence's CODE line tells two uncommitted trees
     apart. Before 2.1 every uncommitted tree printed the same "HEAD x; ai_player/ has UNCOMMITTED changes"."""

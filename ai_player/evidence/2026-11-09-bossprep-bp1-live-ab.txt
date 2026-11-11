@@ -1,5 +1,9 @@
 BOSS PREPARATION BP-1 - THE LIVE A/B AND THE CHAPTERS 1-5 REPLAY CONTROL (2026-11-09; DEVELOPMENT, never graded)
 
+CORRECTED 2026-11-11 (BP-1 round 2, spec section 4, the verifier's V-M2): five sentences below were reworded to what the records
+support (who was on the FIELD when a bar reached 0, never who knocked it out; the stalls' cause; the raise's own levels;
+no training goal ran). The verdict lines are otherwise as written on 2026-11-09.
+
 Harness: s53/bp1/armsbp1.py (a copy of #111's arms11.py), the real launcher, one stage whose build root's modules, plugins,
 mgba and roms are junctions to the main sandbox (read only). Arm A = the parent commit 18c3d51b (git archive); arm B =
 BP-1 in worktree wf_e7452923-f06-3, uncommitted; arm F = B with one planted extra :goals draw per verdict run (the
@@ -25,17 +29,26 @@ THE ROUNDS:
 VERDICT, read against the hashed predictions (development; one trajectory per seed and arm, never a rate):
   * A (the parent) earned BADGE02 in 0 of 6 runs (#112, #114): all 18 BRAWLY fights lost.
   * #114 (the fixed B): the plan raise:55cfbff3:20 was made on 3 of 3 (= the discriminator); the trainee led every raise
-    battle (0 "not the trainee" reads in 48); but the raise was SPENT far below its target on all three: by stalls (12
-    sessions with no level gained) on 6378 and 6379, by "no grass within reach" on 6377 (two failed walks put the raise
+    battle (0 "not the trainee" reads in 48); but the raise was SPENT far below its target on all three: by stalls on 6378 and 6379: 12 raise sessions in a row at
+    L4 -> L4 with +0 EXP. The trainee sat at 1/18 HP and ran from every battle, because no heal came between a session
+    that ended 'the trainee is low' and the next raise (the verifier's V-M1: 3, 10 and 11 such sequences on 6377, 6378
+    and 6379); by "no grass within reach" on 6377 (two failed walks put the raise
     aside by the failure cooldown, the story sailed to DEWFORD meanwhile), after 62,702-92,485 raise frames (predicted
     150,000-450,000: WRONG). The trainee met BRAWLY as Cascoon L9, Dustox L10, Dustox L10 (predicted Dustox/Beautifly L14+:
-    WRONG). B earned BADGE02 on 1 of 3 (6379; predicted at least 2: WRONG); in that win the trainee (Dustox L12, leading)
-    took MACHOP, Grovyle MEDITITE, Poochyena MAKUHITA, and B's Grovyle was L24 against A's L22 (above A + 1: CONFOUNDED by
-    leaked battles, the spec's M4 reading). On 6377 the spent plan left the Cascoon L9 FIRST in the party, and it led all
+    WRONG). The raise itself took it from L3 to L5 (6377), L4 (6378) and L4 (6379). It reached L9-L10 afterwards,
+    leading the story's own battles from first place in the party. B earned BADGE02 on 1 of 3 (6379; predicted at least 2: WRONG); in that win the records put the trainee (Dustox L12,
+    leading) on the field when MACHOP's bar reached 0, Grovyle L24 when MEDITITE's did (the battle brain had switched the
+    Dustox out against MEDITITE by typing), and Poochyena L8 when MAKUHITA's did. Poochyena took no turn and the last
+    recorded hit was Shroomish's Absorb (turn 20), so who knocked MAKUHITA out is not read. B's Grovyle was L24 against
+    A's L22 (above A + 1: CONFOUNDED). The leaked raise battles do not explain it: they gave the others +251 EXP, a
+    tenth of the 2,631 from L22 to L24. The extra levels came from B's far longer play after the spend (22-23 heal
+    goals after it in B, 1 in A). On 6377 the spent plan left the Cascoon L9 FIRST in the party, and it led all
     three lost BRAWLY fights.
   * #112 (the buggy B, NOT the plan): BADGE02 on 2 of 3 (6371, 6372), each on the third fight with the Wurmple (left first
-    in the party by the raise) leading as a Dustox L14 and taking MACHOP and MEDITITE; Grovyle L23/L22 against A's L22/L22.
-    What carried those wins was the REORDER and the training after the spent raise, not the raise's target.
+    in the party by the raise) leading as a Dustox L14, on the field when MACHOP's and MEDITITE's bars reached 0; Grovyle L23/L22 against A's L22/L22.
+    What carried those wins was the REORDER: the Wurmple, left first by the spent raise, led the story's own
+    battles from first place and grew into a Dustox L14 there. No training goal ran in any B run (0 'train' goals in
+    six).
   * The controls (#113, #115): A vs B decision streams IDENTICAL in 6 of 6 pairs (fresh New Game to ch1_pokedex; C1L4 and
     C2L4 to ch5_rival_meet), the end frames and the end marks equal, the parties equal by the framework; F vs B DIFFERS in
     both (records 210 and 246): the comparison sees a leak. B logged the verdict in every run (against ROXANNE from the

@@ -1,0 +1,182 @@
+BOSS PREPARATION BP-1, ROUND 2 (USER RULING 59: the raise as a mix of switch-training, the trainee's own winnable fights
+and healing at a centre or with a Potion) - THE LIVE PRE-CHECKS, THE A/B AND THE CHAPTERS 1-5 REPLAY CONTROL
+(2026-11-11; DEVELOPMENT, never graded; one trajectory per seed and arm, never a rate)
+
+Harness: s53/bp1r2/armsr2.py (a copy of round 1's armsbp1.py), the real launcher, one stage whose build root's modules,
+plugins, mgba and roms are junctions to the main sandbox (read only). Arms: A = 18c3d51b (BP-1's parent, no plan); C =
+69ce148e (BP-1 round 1); B = the round-2 worktree as first built (#118, #119); B2 = the round-2 worktree after the fix of
+#118's learn-move loop (#120, #121); F / F2 = B / B2 with one planted extra :goals draw per verdict run (the control's
+fault arm). Start of the A/B: probe-C1 (RUSTBORO (19,53), md5 e909e537, Story), target ch7_brawly, 1,200,000 frames, wall
+12,000 s; every job of a batch started together (the launcher's game clock is the host's).
+
+THE SEEDS. The spec's 6383-6385 all draw GROVYLE L21 -> L30 from the run's own :bossprep stream (the near-best set holds
+Wurmple L20 at cost 391 and Grovyle L30 at 459, within 391 / 0.85 = 460.0), the spec's STOP condition. The A/B batches use
+NEW seeds whose offline draw is the spec's plan raise:55cfbff3:20 (6397-6399, then 6400-6402: the discriminator on each);
+the result is CONDITIONED on that plan. The Grovyle branch is untested. Control seeds 6383-6385 and 6391-6393 (no plan acts
+before chapter 6). P1 seed 6390 (6386 void, below).
+
+WHAT IS READ FROM THE GAME: BADGE02_GET and DEFEATED_DEWFORD_GYM on the end state (the launcher's after-truth); the party at
+the end by PID, species, EXP and level (the framework's reader); each BRAWLY battle (records naming trainer 266): its first
+record's party in the game's order (the eyes' read), its end with the game's gBattleOutcome, each foe's bar first reading 0
+with who was on the FIELD then (the lead, each send-in and each switch decision the records name: an inference from
+records, the digest holds no battler PID) and the own battler's LAST DECISION before that record (a move: the knockout; a
+switch or an item: "not attributed"); the EXP pages "<NAME> gained N EXP. Points!" the AI read in each wild battle (the
+game's own words). The AI's [AI-BOSSPREP] words are only quoted.
+
+VERDICT, read against the hashed predictions:
+  * V-M1 REPRODUCED on 69ce148e first (repro_vm1.py, 7 of 7 predictions): a trainee at 1/18 or 5/18 with the plan active
+    got the next goal "raise", and a session that ended "is low (5/18)" was followed by "raise".
+  * P1 (#117, seed 6390; #116 on 6386 VOID: the probe called GoalRunner._raise directly, so its battles were fought as
+    "travel"): turn 1 switched to Grovyle; Wurmple +23 and Grovyle +23 against a Poochyena L6 (E 47 from the decomp's
+    yield 55: floor(47/2) = 23, both, by the framework's party read); slot 0 after = Wurmple. FAULT no_switch_train (Grovyle
+    first): Wurmple +0, Grovyle the full E of its foe. FAULT (c): FAIL. P2 from P1's end: a Potion raised Grovyle 54 -> 57
+    (min(20, missing 3)), the count 8 -> 7, the PIDs unchanged; CONTROL (an item not held) no press; FAULT (a row off) FAIL.
+  * #118 (B as first built, seeds 6397-6399): A 0 of 3 (9 BRAWLY fights lost). In B the raise did what the spec designed:
+    the plan on 3 of 3, the first raise battle switch-trained on 3 of 3, 70-72 switch-trained battles, 6-7 own fights, 1-4
+    runs; every session that ended low (the trainee) or worn (the partner) was followed by a heal before the next raise
+    (4-6 a run, 0 not), no session began under a third, 0 not-the-trainee reads, 0 Potions (the centre 1 link away), and
+    63 of 63 switch-trained battles' EXP pages equal floor(floor(Y x L / 7) / 2) in each run. BUT all three B runs ended
+    "stuck: no progress for about 166,000 frames" BEFORE BRAWLY: the trainee, SWITCHED OUT, reached Dustox L13 (2,197 EXP
+    in all three) and was asked to learn GUST; the battle skill took Grovyle, the battler on the field, for the learner (its
+    40-page window had lost "DUSTOX is trying to learn GUST." among the partial prints of a printing page), kept Dustox's
+    four moves on the forget screen and answered "Stop learning GUST?" NO from the wrong choice: the game asked again, the
+    battle hit its 150-menu bound, and every replay of that battle did the same. INCONCLUSIVE for the badge (no BRAWLY
+    fight). A latent battle-skill bug (step 4), exposed by switch-training: before it the learner was always on the field.
+    Reproduced offline (repro_learn.py, 4 of 4 predictions), fixed, tested (LearnerTests) and mutant-killed.
+  * #120 (B2, the fix, seeds 6400-6402): A 0 of 3 (9 BRAWLY fights lost, Grovyle L22 at each first fight). B2 earned
+    BADGE02 on 3 of 3, each on its FIRST fight with BRAWLY. The raise ended SPENT on frames (462,693 / 450,784 / 464,737 of
+    at most 450,000; the record counts the heal goals' frames too: the raise goals' own were 431,936 / 427,286 / 437,624)
+    after 123-130 battles: 94-97 switch-trained, 26-34 own fights, 5-13 runs; the trainee +3,721 to +3,997 EXP in raise
+    sessions, the strongest other +2,191 to +2,492. The trainee was a Dustox L15 (48/48) at BRAWLY's first record in all
+    three; the switched-out L13 GUST was answered for Dustox ("forget Harden"); V-M1 stayed closed (5, 5, 6 low or worn
+    endings, each healed first); 82 of 82, 89 of 89 and 83 of 83 EXP pages equal E/2. The spent plan's lead was SETTLED
+    (V-m5 E1): its re-judge did not prefer the trainee, so a lead goal put Grovyle first again; Grovyle led each BRAWLY fight.
+    The knockouts, by the last decision before each bar read 0: 6400 MACHOP Grovyle (Quick Attack), MEDITITE Dustox (Gust),
+    MAKUHITA Dustox (Confusion); 6401 MACHOP Dustox (Gust), MEDITITE Dustox (Gust), MAKUHITA Poochyena L6 (Tackle); 6402
+    all three Dustox (Gust). B2's Grovyle was L24 at BRAWLY's first record against A's L22 in all three pairs: A + 2, the
+    pre-registered bound exactly (the spec predicted about + 1 from switch-training's share). Read by the spec's rule: B2
+    won with the trainee knocking out 2, 2 and 3 of BRAWLY's Pokemon and Grovyle at most A + 2: the raise changed the
+    outcome ON THESE TRAJECTORIES, conditioned on the Wurmple plan, with the partner's +2 levels the confound to keep in
+    view (A's Grovyle L22 lost all nine fights; the knockouts in the wins were mostly the trainee's). Not a rate.
+  * The controls: #119 (B as first built) C vs B decision streams IDENTICAL in 3 of 3 pairs (L1 609, C1L4 588, C2L4 1,081
+    records), end frames, marks and parties equal; F differs (record 236). #121 (B2): L1 (737) and C1L4 (644) IDENTICAL;
+    C2L4 differs at record 1,051 of 1,717 (prediction MISSED as worded: its first difference is not a move question asked
+    off the field): every AI record and press is identical up to a map change at frame 617,525, where the game took 11
+    frames to change maps in B2 and 10 in C (a wait, no AI decision between); the AI's next decisions are the same, one
+    frame later; end marks and parties equal, end frames 684,781 / 684,782. Read as a game-side one-frame difference with
+    identical inputs before it (the launcher's game clock is the host's; not shown further), not as a regression of the fix.
+    F2 differs (record 230). Coverage, named (V-m4): chapter 1 to the Pokedex and chapter 5 from after ROXANNE; chapters
+    2-4 by the guard only (offline).
+  * purity CLEAN in all 26 launches.
+
+prediction repro_predictions.txt: sha256 5d909b42bdd9b4d05358d7b85801e73bde03d373d79d80e3764dda247bd1f633
+prediction prediction_p1.txt: sha256 2cf17fd740773cac98be0e982ee0077e9a7719adcb31217e545f6cb9520d58df
+prediction prediction_p1b.txt: sha256 9b644ac53852af39d7e557eedfbe6cfa71e7b89bc3ca4a4328b475abd58ac65d
+prediction prediction_ab.txt: sha256 9ed6238237e8553a1b185bef207c7f9bc5f495798ba68733da8ba77737652a3e
+prediction prediction_control.txt: sha256 b495714855bb4fa2f52a91c781df4ae3802bef074b782dc2eb42f51ff0722c09
+prediction repro_learn_predictions.txt: sha256 748c9dcdbf2a6b3167fa65c24deca193a83a437039bce76712ab78105b871294
+prediction prediction_ab2.txt: sha256 83330fbb3c3c818b0d8d2c3c3378d296e47f4e719ce6780eb0f30fa2e415a5e8
+prediction prediction_control2.txt: sha256 a90676dfc4be81da801ec89f2c57a64e5cac5c609cd03cde260e2752884d5727
+
+== P1 / P2 (ledger #116 VOID: the probe's own bug; #117 seed 6390): one trajectory per arm
+[p1b_real.out] PASS: checks {'a_turn1_switch_to_partner': True, 'b_trainee_step': 23, 'b_partner_step': 23, 'b_expected_each': 23, 'b_holds': True, 'c_slot0': '55cfbff3', 'c_holds': True}; battle ['Poochyena', 6] lead 55cfbff3 turn-1 [1, 'switch', 'd05408ff']; EXP steps (the framework, by PID) {'55cfbff3': 23, 'cab7c0ff': 0, 'd05408ff': 23, 'b2634630': 0, '0435dbeb': 0, 'cccf41b6': 0}; E 47, E/2 23
+[p1b_faultno_switch_train.out] FAIL: checks {'a_turn1_switch_to_partner': False, 'b_trainee_step': 0, 'b_partner_step': 59, 'b_expected_each': 29, 'b_holds': False, 'c_slot0': 'd05408ff', 'c_holds': False}; battle ['Taillow', 7] lead d05408ff turn-1 [1, 'fight', None]; EXP steps (the framework, by PID) {'d05408ff': 59, 'cab7c0ff': 0, '55cfbff3': 0, 'b2634630': 0, '0435dbeb': 0, 'cccf41b6': 0}; E 59, E/2 29
+[p1b_faultc.out] FAIL: checks {'a_turn1_switch_to_partner': True, 'b_trainee_step': 23, 'b_partner_step': 23, 'b_expected_each': 23, 'b_holds': True, 'c_slot0': 'd05408ff', 'c_holds': False}; battle ['Poochyena', 6] lead 55cfbff3 turn-1 [1, 'switch', 'd05408ff']; EXP steps (the framework, by PID) {'55cfbff3': 23, 'cab7c0ff': 0, 'd05408ff': 23, 'b2634630': 0, '0435dbeb': 0, 'cccf41b6': 0}; E 47, E/2 23
+[p2_real.out] PASS: the hand said [True, 1, 'Potion used on Grovyle; Grovyle (54, 57) -> (57, 57), 1 used, the count fell by 1']; presses 10; HP (the framework) ['Grovyle', 54, 57] -> ['Grovyle', 57, 57] (missing 3, rose 3); the count fell {'POTION': 1}; the PID multiset unchanged True
+[p2_control.out] FAIL: the hand said [False, 0, "the bag holds none of ['Super Potion']"]; presses 0; HP (the framework) ['Grovyle', 54, 57] -> ['Grovyle', 54, 57] (missing 3, rose 0); the count fell {}; the PID multiset unchanged True
+[p2_fault.out] FAIL: the hand said [False, 0, 'the party cursor is not on Grovyle before the press; Grovyle (54, 57) -> (54, 57), 0 used, the count fell by 0']; presses 10; HP (the framework) ['Grovyle', 54, 57] -> ['Grovyle', 54, 57] (missing 3, rose 0); the count fell {}; the PID multiset unchanged True
+
+== batch ab (ledger #118): one trajectory per seed and arm, never a rate
+[ab-A-C1-6397] exit 0, purity CLEAN, frames 746397 -> 919011 (172614 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 22, 55, 60]; the trainee [['Wurmple', 3, 16, 16]]; Grovyle ['Grovyle', 22, 55, 60]; the trainee at the end (the framework, by PID) ['55cfbff3', 'Wurmple', 27, 3]
+    BRAWLY fight at f851507: slot 0 ['Grovyle', 22, 55, 60]; the end {'frame': 867625, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+    BRAWLY fight at f871500: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 900247, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 22, 'Grovyle (Pound)'), ('Meditite', 'Grovyle', 22, 'Grovyle (Quick Attack)')]
+    BRAWLY fight at f904103: slot 0 ['Grovyle', 23, 62, 62]; the end {'frame': 919011, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+[ab-B-C1-6397] exit 0, purity CLEAN, frames 746397 -> 1322824 (576427 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: no progress for 166394 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 None; the trainee []; Grovyle None; the trainee at the end (the framework, by PID) ['55cfbff3', 'Dustox', 2197, 13]
+    AI words, the plan: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] (cost within 85% of 
+    the raise (the run's own lines): 15 raise goals, 337210 frames; 15 sessions: own 6, switch-trained 72, run 1; the trainee +2050 EXP, the strongest other +1695; sessions begun under a third 0; V-M1 {'ended_low': 6, 'healed_before_next_raise': 6, 'raise_again_unhealed': 0}; heal goals 8, potion goals 0; not-the-trainee reads 0; the record at the last raise goal (battles, frames, sessions) ['77', '310034', '14']
+    the cited rule, a second path: 63 of 63 switch-trained battles' 'gained N EXP. Points!' pages equal floor(floor(Y x L / 7) / 2) (Y the decomp's yield)
+[ab-A-C1-6398] exit 0, purity CLEAN, frames 746397 -> 936120 (189723 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 22, 54, 60]; the trainee [['Wurmple', 3, 16, 16]]; Grovyle ['Grovyle', 22, 54, 60]; the trainee at the end (the framework, by PID) ['55cfbff3', 'Wurmple', 27, 3]
+    BRAWLY fight at f866314: slot 0 ['Grovyle', 22, 54, 60]; the end {'frame': 888383, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 22, 'Grovyle (Pound)'), ('Meditite', 'Grovyle', 22, 'Grovyle (Quick Attack)')]
+    BRAWLY fight at f892263: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 906678, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+    BRAWLY fight at f910757: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 936120, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 22, 'Grovyle (Pound)'), ('Meditite', 'Grovyle', 22, 'Grovyle (Pursuit)')]
+[ab-B-C1-6398] exit 0, purity CLEAN, frames 746397 -> 1275687 (529290 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: no progress for 166568 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 None; the trainee []; Grovyle None; the trainee at the end (the framework, by PID) ['55cfbff3', 'Dustox', 2197, 13]
+    AI words, the plan: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] (cost within 85% of 
+    the raise (the run's own lines): 14 raise goals, 335996 frames; 14 sessions: own 7, switch-trained 72, run 4; the trainee +2170 EXP, the strongest other +1746; sessions begun under a third 0; V-M1 {'ended_low': 5, 'healed_before_next_raise': 5, 'raise_again_unhealed': 0}; heal goals 5, potion goals 0; not-the-trainee reads 0; the record at the last raise goal (battles, frames, sessions) ['77', '281174', '13']
+    the cited rule, a second path: 63 of 63 switch-trained battles' 'gained N EXP. Points!' pages equal floor(floor(Y x L / 7) / 2) (Y the decomp's yield)
+[ab-A-C1-6399] exit 0, purity CLEAN, frames 746397 -> 905128 (158731 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 22, 60, 60]; the trainee [['Wurmple', 3, 16, 16]]; Grovyle ['Grovyle', 22, 60, 60]; the trainee at the end (the framework, by PID) ['55cfbff3', 'Wurmple', 27, 3]
+    BRAWLY fight at f840738: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 855213, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+    BRAWLY fight at f859052: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 878862, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 22, 'Grovyle (Pound)'), ('Meditite', 'Grovyle', 22, 'Grovyle (Quick Attack)')]
+    BRAWLY fight at f882788: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 905128, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 22, 'Grovyle (Quick Attack)'), ('Meditite', 'Grovyle', 22, 'Grovyle (Pound)')]
+[ab-B-C1-6399] exit 0, purity CLEAN, frames 746397 -> 1294232 (547835 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: no progress for 167013 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 None; the trainee []; Grovyle None; the trainee at the end (the framework, by PID) ['55cfbff3', 'Dustox', 2197, 13]
+    AI words, the plan: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] (cost within 85% of 
+    the raise (the run's own lines): 15 raise goals, 338832 frames; 14 sessions: own 6, switch-trained 70, run 3; the trainee +2075 EXP, the strongest other +1717; sessions begun under a third 0; V-M1 {'ended_low': 4, 'healed_before_next_raise': 4, 'raise_again_unhealed': 0}; heal goals 6, potion goals 0; not-the-trainee reads 0; the record at the last raise goal (battles, frames, sessions) ['77', '297024', '13']
+    the cited rule, a second path: 63 of 63 switch-trained battles' 'gained N EXP. Points!' pages equal floor(floor(Y x L / 7) / 2) (Y the decomp's yield)
+
+== batch ab2 (ledger #120): one trajectory per seed and arm, never a rate
+[ab2-A-C1-6400] exit 0, purity CLEAN, frames 746397 -> 973536 (227139 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 22, 59, 59]; the trainee [['Wurmple', 3, 16, 16]]; Grovyle ['Grovyle', 22, 59, 59]; the trainee at the end (the framework, by PID) ['55cfbff3', 'Wurmple', 27, 3]
+    BRAWLY fight at f924065: slot 0 ['Grovyle', 22, 59, 59]; the end {'frame': 937455, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+    BRAWLY fight at f941399: slot 0 ['Grovyle', 22, 59, 59]; the end {'frame': 955312, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+    BRAWLY fight at f959188: slot 0 ['Grovyle', 22, 59, 59]; the end {'frame': 973536, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+[ab2-B2-C1-6400] exit 0, purity CLEAN, frames 746397 -> 1400854 (654457 played); GAME: BADGE02_GET=1 DEFEATED_DEWFORD_GYM=1; [AI-EXIT] reason=play: done: ch7_brawly reached code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 24, 65, 65]; the trainee [['Dustox', 15, 48, 48]]; Grovyle ['Grovyle', 24, 65, 65] (A's L22); the trainee at the end (the framework, by PID) ['55cfbff3', 'Dustox', 4737, 16]
+    AI words, the plan: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] (cost within 85% of 
+    the raise (the run's own lines): 26 raise goals, 431936 frames; 25 sessions: own 34, switch-trained 94, run 7; the trainee +3997 EXP, the strongest other +2191; sessions begun under a third 0; V-M1 {'ended_low': 5, 'healed_before_next_raise': 5, 'raise_again_unhealed': 0}; heal goals 10, potion goals 0; not-the-trainee reads 0; the record at the last raise goal (battles, frames, sessions) ['130', '445179', '24']
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (frames 462693 of at most 450000): no endless grind; it fights as it is
+    AI words: )
+    AI words: )
+    the cited rule, a second path: 82 of 82 switch-trained battles' 'gained N EXP. Points!' pages equal floor(floor(Y x L / 7) / 2) (Y the decomp's yield)
+    BRAWLY fight at f1370546: slot 0 ['Grovyle', 24, 65, 65]; the end {'frame': 1397832, 'result': 'won', 'gBattleOutcome': 1}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 24, 'Grovyle (Quick Attack)'), ('Meditite', 'Dustox', 15, 'Dustox (Gust)'), ('Makuhita', 'Dustox', 15, 'Dustox (Confusion)')]
+[ab2-A-C1-6401] exit 0, purity CLEAN, frames 746397 -> 936464 (190067 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 22, 59, 59]; the trainee [['Wurmple', 3, 16, 16]]; Grovyle ['Grovyle', 22, 59, 59]; the trainee at the end (the framework, by PID) ['55cfbff3', 'Wurmple', 27, 3]
+    BRAWLY fight at f879008: slot 0 ['Grovyle', 22, 59, 59]; the end {'frame': 890471, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+    BRAWLY fight at f894351: slot 0 ['Grovyle', 22, 59, 59]; the end {'frame': 907365, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+    BRAWLY fight at f911295: slot 0 ['Grovyle', 22, 59, 59]; the end {'frame': 936464, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 22, 'Grovyle (Pound)'), ('Meditite', 'Grovyle', 22, 'Grovyle (Pound)')]
+[ab2-B2-C1-6401] exit 0, purity CLEAN, frames 746397 -> 1358993 (612596 played); GAME: BADGE02_GET=1 DEFEATED_DEWFORD_GYM=1; [AI-EXIT] reason=play: done: ch7_brawly reached code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 24, 65, 65]; the trainee [['Dustox', 15, 48, 48]]; Grovyle ['Grovyle', 24, 65, 65] (A's L22); the trainee at the end (the framework, by PID) ['55cfbff3', 'Dustox', 4604, 16]
+    AI words, the plan: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] (cost within 85% of 
+    the raise (the run's own lines): 20 raise goals, 427286 frames; 20 sessions: own 30, switch-trained 95, run 5; the trainee +3964 EXP, the strongest other +2492; sessions begun under a third 0; V-M1 {'ended_low': 5, 'healed_before_next_raise': 5, 'raise_again_unhealed': 0}; heal goals 7, potion goals 0; not-the-trainee reads 0; the record at the last raise goal (battles, frames, sessions) ['123', '430789', '19']
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (frames 450784 of at most 450000): no endless grind; it fights as it is
+    AI words: )
+    AI words: )
+    the cited rule, a second path: 89 of 89 switch-trained battles' 'gained N EXP. Points!' pages equal floor(floor(Y x L / 7) / 2) (Y the decomp's yield)
+    BRAWLY fight at f1323178: slot 0 ['Grovyle', 24, 65, 65]; the end {'frame': 1355420, 'result': 'won', 'gBattleOutcome': 1}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Dustox', 15, 'Dustox (Gust)'), ('Meditite', 'Dustox', 15, 'Dustox (Gust)'), ('Makuhita', 'Poochyena', 6, 'Poochyena (Tackle)')]
+[ab2-A-C1-6402] exit 0, purity CLEAN, frames 746397 -> 932453 (186056 played); GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 22, 60, 60]; the trainee [['Wurmple', 3, 16, 16]]; Grovyle ['Grovyle', 22, 60, 60]; the trainee at the end (the framework, by PID) ['55cfbff3', 'Wurmple', 27, 3]
+    BRAWLY fight at f868232: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 881944, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) []
+    BRAWLY fight at f885888: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 904047, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 22, 'Grovyle (Pound)'), ('Meditite', 'Grovyle', 22, 'Grovyle (Pound)')]
+    BRAWLY fight at f907916: slot 0 ['Grovyle', 22, 60, 60]; the end {'frame': 932453, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Grovyle', 22, 'Grovyle (Quick Attack)'), ('Meditite', 'Grovyle', 22, 'Grovyle (Quick Attack)')]
+[ab2-B2-C1-6402] exit 0, purity CLEAN, frames 746397 -> 1412538 (666141 played); GAME: BADGE02_GET=1 DEFEATED_DEWFORD_GYM=1; [AI-EXIT] reason=play: done: ch7_brawly reached code=0
+    at BRAWLY's first record (the eyes' party, slot 0 first): slot 0 ['Grovyle', 24, 65, 65]; the trainee [['Dustox', 15, 48, 48]]; Grovyle ['Grovyle', 24, 65, 65] (A's L22); the trainee at the end (the framework, by PID) ['55cfbff3', 'Dustox', 4938, 17]
+    AI words, the plan: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] (cost within 85% of 
+    the raise (the run's own lines): 27 raise goals, 437624 frames; 24 sessions: own 26, switch-trained 97, run 13; the trainee +3721 EXP, the strongest other +2302; sessions begun under a third 0; V-M1 {'ended_low': 6, 'healed_before_next_raise': 6, 'raise_again_unhealed': 0}; heal goals 10, potion goals 0; not-the-trainee reads 0; the record at the last raise goal (battles, frames, sessions) ['130', '446513', '23']
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (frames 464737 of at most 450000): no endless grind; it fights as it is
+    AI words: )
+    AI words: )
+    the cited rule, a second path: 83 of 83 switch-trained battles' 'gained N EXP. Points!' pages equal floor(floor(Y x L / 7) / 2) (Y the decomp's yield)
+    BRAWLY fight at f1382887: slot 0 ['Grovyle', 24, 65, 65]; the end {'frame': 1409499, 'result': 'won', 'gBattleOutcome': 1}; each foe's bar first at 0 (on the field, level, the knockout by the last decision) [('Machop', 'Dustox', 15, 'Dustox (Gust)'), ('Meditite', 'Dustox', 15, 'Dustox (Gust)'), ('Makuhita', 'Dustox', 15, 'Dustox (Gust)')]
+
+== batch control (ledger #119): a determinism check, one trajectory replayed per pair
+[L1 C/B] decision streams identical: True (lengths [609, 609], first difference at None); end frames [121836, 121836]; end marks equal True; parties equal True; purity ['CLEAN', 'CLEAN']
+[C1L4 C/B] decision streams identical: True (lengths [588, 588], first difference at None); end frames [623494, 623494]; end marks equal True; parties equal True; purity ['CLEAN', 'CLEAN']
+[C2L4 C/B] decision streams identical: True (lengths [1081, 1081], first difference at None); end frames [703791, 703791]; end marks equal True; parties equal True; purity ['CLEAN', 'CLEAN']
+[L1 F/B] decision streams identical: False (lengths [598, 609], first difference at 236); end frames [118804, 121836]; end marks equal True; parties equal False; purity ['CLEAN', 'CLEAN']
+[C1L4 B] [AI-BOSSPREP] lines 4; raise goals 0; lead goals 0; potion goals 0
+[C2L4 B] [AI-BOSSPREP] lines 4; raise goals 0; lead goals 0; potion goals 0
+[L1 B] [AI-BOSSPREP] lines 4; raise goals 0; lead goals 0; potion goals 0
+
+== batch control2 (ledger #121): a determinism check, one trajectory replayed per pair
+[L1 C/B2] decision streams identical: True (lengths [737, 737], first difference at None); end frames [152296, 152296]; end marks equal True; parties equal True; purity ['CLEAN', 'CLEAN']
+[C1L4 C/B2] decision streams identical: True (lengths [644, 644], first difference at None); end frames [632205, 632205]; end marks equal True; parties equal True; purity ['CLEAN', 'CLEAN']
+[C2L4 C/B2] decision streams identical: False (lengths [1717, 1717], first difference at 1051); end frames [684781, 684782]; end marks equal True; parties equal True; purity ['CLEAN', 'CLEAN']
+[L1 F2/B2] decision streams identical: False (lengths [628, 737], first difference at 230); end frames [124653, 152296]; end marks equal True; parties equal False; purity ['CLEAN', 'CLEAN']
+[C1L4 B] [AI-BOSSPREP] lines 3; raise goals 0; lead goals 0; potion goals 0
+[C2L4 B] [AI-BOSSPREP] lines 2; raise goals 0; lead goals 0; potion goals 0
+[L1 B] [AI-BOSSPREP] lines 4; raise goals 0; lead goals 0; potion goals 0
+

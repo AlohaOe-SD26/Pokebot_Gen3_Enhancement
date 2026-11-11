@@ -34,6 +34,7 @@ __all__ = [
     "land_levels",
     "level_up",
     "unmapped",
+    "wild_moves",
 ]
 
 _FOLDER = Path(__file__).parent / "seasoned"
@@ -99,6 +100,23 @@ def level_up(species: str) -> tuple[tuple[int, str], ...]:
     if symbol is None:
         return ()
     return tuple((level, move) for level, move in _learnsets().get(symbol, ()) if move is not None)
+
+
+def wild_moves(species: str, level: int) -> list[str]:
+    """(boss preparation round 2, 2026-11-11) The moves a WILD `species` (a facts name) of `level` knows, as a seasoned
+    player reckons it from the level-up list: the game's initial-moveset rule (`src/pokemon.c` GiveBoxMonInitialMoveset:
+    every level-up move at or below its level, in the list's order, a move it knows already skipped, the FIRST one
+    forgotten once it has four). [] for an unknown species. Static knowledge (a guide's learnset), nothing hidden."""
+    out: list[str] = []
+    for at, move in level_up(species):
+        if at > level:
+            break
+        if move in out:
+            continue
+        out.append(move)
+        if len(out) > 4:
+            out.pop(0)
+    return out
 
 
 def land_levels(map_const: str | None) -> tuple[int, int] | None:

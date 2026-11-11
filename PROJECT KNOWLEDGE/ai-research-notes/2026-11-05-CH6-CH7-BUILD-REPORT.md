@@ -7,6 +7,8 @@
 > `adf6c246`, `986a5816`, `059a65ff` and round 9's; round 8's verifier read FAIL and round 9 fixed its MAJOR). Every live claim is development (one trajectory per seed, never a rate); the ledger ids
 > on this branch from #96 overlap `main`'s #96-#101 and are renumbered at the merge. Nothing here is on `main` until
 > `07` records the merge. The cloud draft that the wiring checked is appendix A.
+> After round 9 come probe 11, round 10, and boss preparation BP-1 on side branch `wip/ch6-bp1`: round 1 (verifier
+> FAIL) and round 2 (2026-11-11, verifier CONDITIONAL PASS with two MAJOR trainee-safety findings, V2-M1 and V2-M2).
 
 ## Chapters 6-7 builder report (worktree wf_e7452923-f06-3, base 979754bf, nothing committed)
 
@@ -1521,13 +1523,13 @@ Offline proof:
 Live, one trajectory per seed and arm, never a rate:
 - The parent never earned BADGE02: 0 of 6 runs, 18 BRAWLY fights lost.
 - Round 1 (#112) found a bug in my raise watch. It read a battle's lead on the first look, where the game still holds the previous battle's battler, so false "not leading" reads spent every raise's budget. It is fixed, tested and mutant-killed.
-- Round 2 (#114), the fixed code: the plan was made on 3 of 3 runs, and the trainee led all 48 raise battles. The raise was spent on all three at 63-92k frames: stalls twice, no grass within reach once. The trainee met BRAWLY as Cascoon L9, Dustox L10 and Dustox L10. BADGE02 1 of 3. In that win the trainee took MACHOP, but Grovyle was L24 against the parent's L22, so the win is confounded.
+- Round 2 (#114), the fixed code: the plan was made on 3 of 3 runs, and the trainee led all 48 raise battles. The raise was spent on all three at 63-92k frames: stalls twice, no grass within reach once. The trainee met BRAWLY as Cascoon L9, Dustox L10 and Dustox L10. BADGE02 1 of 3. In that win the records put the trainee on the field when MACHOP's bar reached 0 (who knocked a foe out is not read), but Grovyle was L24 against the parent's L22, so the win is confounded: by B's longer play after the spent raise, not by the leaks (they gave a tenth of it) and not by training (none ran). (Corrected 2026-11-11, round 2, V-M2.)
 
 New stops:
-- Sessions of one battle meet a stalls bound that counts sessions.
+- 12 stalls at L4, each a session of +0 EXP with the trainee at 1/18 HP: V-M1's loop (no heal between a session that ended "the trainee is low" and the next raise), not the session length. (Corrected 2026-11-11, round 2, V-M2.)
 - The failure cooldown let the story sail away from the grass.
 - A spent plan leaves the trainee leading: a Cascoon L9 led three lost fights.
-- Experience leaks raise Grovyle.
+- B's longer play after the spent raise raised Grovyle; the leaks gave a tenth of it and no training goal ran. (Corrected 2026-11-11, round 2, V-M2.)
 
 The chapters 1-5 replay control (#113, #115) matched the parent's decision streams in 6 of 6 pairs, with equal frames, marks and parties. The fault arm diverged in both rounds. End-state md5 cannot be compared, because the launcher's game clock is the host's.
 
@@ -1581,6 +1583,179 @@ Next: fix MAJOR 1 with a FAULT/CONTROL test and a mutant. Correct BP1-L1 and BP1
 Evidence (scratch, s53/bp1/verify): STATE.md, v_c1_decomp.py, v_tests.py with v_predictions.txt (sha256 50140d07), v_mutants.py (sha256 c0596f31) and v_mutants.out, v_raise_seq.py, v_goalcount.py, v_control.py, v_ledger.py, gates_out.txt.
 
 Clean-up: the verifier ran no live batch and spent no seed. The copy was deleted (there were no links inside it). The worktree's status is as it was at the start. The main checkout is clean, and the main sandbox counts are unchanged (modules 4461, plugins 43, mgba 44, roms 2). 72 GB free.
+
+## Boss preparation BP-1, round 2 (the builder, 2026-11-11)
+
+Built on branch wip/ch6-bp1 (worktree wf_e7452923-f06-3, HEAD 69ce148e). Nothing is committed. This round implements the raise as USER RULING 59 describes it: "some mix that makes logical sense" of switch-training, the trainee's own winnable fights, and healing at a POKéMON CENTER or with a Potion. It follows the spec ai-research-notes/2026-11-09-BOSS-PREP-BP1-RAISE-SPEC.md.
+
+**Reproduced first.** V-M1 on 69ce148e: the plan is active and Wurmple is at 1/18 or 5/18. The next goal was "raise", and a session that ended "is low (5/18)" was followed by another raise (7 of 7 predictions, hashed first).
+
+**What was built.**
+- **The experience rule**, as the pinned decomp states it (Cmd_getexp, gSentPokesToOpponent; checked in the decomp): every member sent out and still standing shares evenly, and a member switched out keeps its share.
+- **In a raise battle**, the trainee leads:
+  - it fights only when fight_safe says it wins in 3 hits or fewer and keeps a third of its HP;
+  - otherwise it is switched out once, on turn 1, for a partner that wins safely;
+  - a later rescue switch is allowed, and so is a run;
+  - the replacement after a faint is never the trainee while another member can fight, and "Use next POKéMON?" is answered NO when only the trainee is left.
+- **Between battles**, a trainee under a third (and, my addition, a knock-out partner under half) makes the party rest. A centre is used when one is 2 links away or nearer; when it is farther, a Potion from the bag is used through the new field-item hand. The raise never begins under the floor.
+- **The raise map** is the highest one the partner clears with 5 levels to spare. Each map has its own failure cooldown.
+- **The budget** counts the frames of heal goals, and a stall now means "no EXP gained". New record fields are counted.
+- **When the plan ends** (V-m5), it settles the lead. A spent plan re-judges the lead and gives the usual lead back unless the trainee's verdict is strictly better. A done plan's re-lead is bounded.
+- **V-m1**: the party's fixed damage now scores 0 against an immune type.
+- **V-M2**: the round-1 sentences are corrected in the evidence, the build result, the report section and ledger #113/#115.
+
+**Tests.** test_bossprep has 114 tests, covering R1-R9 plus PartnerWornTests and LearnerTests, each with FAULT and CONTROL arms. FieldItemTests are in test_hands. Mutants: 38 new ones, with predictions hashed before each run. The final run gave P0 PASS and 73 CAUGHT plus 2 REDUNDANT (live-only), as predicted. On the final tree all 21 gates exit 0.
+
+**The discriminator found the spec's seeds unusable.** 6383, 6384 and 6385 all draw "raise Grovyle L21 -> L30". The near-best set holds Wurmple L20 at cost 391 and Grovyle L30 at 459, within the cutoff of 460.0, so about half of all seeds plan to raise Grovyle. That is the spec's STOP condition. I used new seeds whose offline draw is the spec's Wurmple plan. The A/B below is therefore conditioned on that plan, and the Grovyle branch is untested.
+
+**Live pre-checks** (#117, seed 6390; #116 is VOID because of a bug in my own probe):
+- P1: turn 1 switched to Grovyle. Wurmple +23 and Grovyle +23 against a Poochyena L6, which is E 47 from the decomp's yield 55, halved, read from the game's party. Slot 0 after the battle was the trainee. Both fault arms failed as predicted.
+- P2: a Potion raised Grovyle from 54 to 57 (min(20, missing)), and the count fell from 8 to 7. Its control and fault arms behaved as predicted.
+
+**The first A/B found a bug (#118, seeds 6397-6399).** The raise worked as designed:
+- switch-trained on the first battle in 3 of 3;
+- 70-72 switch-trained battles;
+- every low ending healed before the next raise;
+- 63 of 63 EXP pages equal to E/2.
+
+But all three B runs got stuck before BRAWLY. The trainee, switched out, reached Dustox L13 and was asked to learn GUST. The battle skill had lost the page naming the learner (its 40-page window fills with partial prints), took Grovyle on the field for the learner, and looped forever on "Stop learning GUST?". This bug dates from step 4 and was exposed by switch-training. I reproduced it offline (4 of 4 predictions), fixed it in skills/battle.py, tested it and killed it with mutants. The result is INCONCLUSIVE for the badge.
+
+**The A/B after the fix (#120, seeds 6400-6402).**
+- A (no plan) earned BADGE02 in 0 of 3 runs, losing 9 BRAWLY fights with Grovyle L22.
+- B2 earned it in 3 of 3, each on its first fight with BRAWLY.
+- The raise was spent on frames (450,784 to 464,737) after 123-130 battles.
+- The trainee met BRAWLY as a Dustox L15 in all three runs, and GUST was learned by the right Pokemon.
+- The settle gave Grovyle the lead back, so Grovyle led every fight.
+- By the last move before each bar read 0, the trainee knocked out 2, 2 and 3 of BRAWLY's 3 Pokemon.
+- B2's Grovyle was L24 against A's L22: A + 2, exactly the pre-registered bound.
+
+By the spec's reading rule, the raise changed the outcome on these trajectories. The caveats: the result is conditioned on the Wurmple plan; the partner's +2 levels are a confound at the edge of the bound; and these are development runs, one trajectory per seed, so this is not a rate.
+
+**The chapters 1-5 replay control.**
+- #119: B's decision streams were identical to 69ce148e's in 3 of 3 pairs.
+- #121, after the fix: identical in L1 and C1L4. C2L4 differs at record 1,051, where one map change took 11 frames instead of 10 with identical AI inputs before it. I read that as the host clock, and it is a prediction miss as worded.
+- The fault arms diverged in both controls.
+- Coverage: chapter 1 to the Pokedex, and chapter 5 after ROXANNE. Chapters 2-4 are covered only by the guard, offline.
+- Purity was CLEAN in 26 of 26 launches.
+
+**New stops:**
+- the Grovyle plan branch;
+- Grovyle at A + 2;
+- the settled lead goes back to Grovyle;
+- the shift question's context rests on the same 40-page window;
+- the potion goal, E2 and E3 have not run live.
+
+**Evidence:** ai_player/evidence/2026-11-11-bossprep-bp1r2-live-ab.txt and 2026-11-11-bossprep-REVERT.txt. Ledger #116-#121. The run book is s53/bp1r2/STATE.md.
+
+**Clean-up:** the stage was removed with its junctions unlinked first, and 162 MB of outputs were deleted. The main sandbox counts are unchanged (modules 4461, plugins 43, mgba 44, roms 2). C: has 71.5 GB free, and the main checkout is clean.
+
+## Boss preparation BP-1, round 2: verification (the verifier, 2026-11-11)
+
+**Verdict: CONDITIONAL PASS.** The round's main claims re-derive from the game's records:
+- the experience rule;
+- switch-training that never lets the trainee be hit;
+- V-M1 closed;
+- the A/B win on the builder's seeds.
+
+Two MAJOR defects in the trainee's safety, which is the point of USER RULING 59, must be fixed and proven before the branch is merged:
+- the raise's run mode lets the trainee faint (V2-M1);
+- the trainee leads every travel battle of the plan, including the walk to heal it (V2-M2).
+
+Neither defect is in the builder's evidence. These are development runs: one trajectory per seed, never a rate.
+
+**What I checked, and how**
+
+The work was done in a copy of the worktree without .git (`s53/bp1r2/verify/repo`, deleted afterwards). The run book is `s53/bp1r2/verify/STATE.md`.
+
+- **The experience rule**, re-read in the pinned decomp: `Cmd_getexp` in `src/battle_script_commands.c:3255-3454`, and `Reset`/`Update`/`OpponentSwitchInResetSentPokesToOpponentValue` in `src/battle_util.c:913-958`.
+  - E = expYield x level / 7, in integer arithmetic.
+  - Every member that was sent out and has HP shares it, E / n. A fainted member gets nothing and is not counted.
+  - A member switched out keeps its bit, so it keeps its share.
+  - The spec reads this correctly.
+- **E/2, a second path.** `exp_check.py` reads the yields directly from `species_info.h`. On the kept `.battles.json` extracts:
+  - B2's switch-trained two-member gains equal E/2 in 82 of 82, 89 of 89 and 83 of 83 battles;
+  - own fights give the full E (47, 40 and 38 battles).
+- **Switch-training never hurt the trainee.** It lost HP in 0 of 491 switch-trained battles over the 6 B runs (`trainee_hits.py`).
+- **V-M1 closed** (`vm1_check.py`):
+  - B2: 5, 5 and 6 sessions ended low or worn, and each was healed before the next raise.
+  - B: 6, 5 and 4, the same.
+  - 0 sessions began under a third.
+- **The A/B, re-read** from the extracts and the launcher's after-truth flags:
+  - A: 0 of 3 BADGE02. Grovyle was L22 at all 9 first records.
+  - B2: 3 of 3 BADGE02, each on its first BRAWLY fight.
+  - The trainee was a Dustox L15 at the first record in all 3.
+  - Grovyle was L24, which is A + 2, exactly at the bound.
+  - Knockouts, by who was on the field and the last decision: the trainee made 2, 2 and 3. On 6401, Poochyena took MAKUHITA.
+  - Grovyle led every win and fainted early: on 6400 after MACHOP, on 6401 and 6402 before MACHOP fell. So the +2 levels did not carry the fights.
+  - E1's re-judge, rebuilt offline with typical stats: Grovyle leading gives CLOSE, Dustox leading gives NOT READY. That is not a tie.
+- **Seeds.** `seed_audit.py` read 187 ledgers. Each seed of 6383-6386, 6390-6393 and 6397-6402 is covered by exactly one entry, #116-#121, and only in the round-2 worktree's ledger.
+  - Every prediction file's sha256 equals its ledger `bounds_sha256`.
+  - Every prediction's mtime precedes its launch: ab 08:04:59 before 08:05:35, ab2 08:50:21 before 08:50:57.
+  - Choosing seeds by their offline plan draw is disclosed. It conditions the result on the Wurmple plan and does not bias arm A.
+- **Controls**, from the kept `.stream.json` files:
+  - #119: 3 of 3 identical.
+  - #121: L1 and C1L4 identical.
+  - #121 C2L4: all 50 differing records differ only in frame numbers inside the reasons. The decision sequence is identical throughout, so the builder's reading is better supported than it says.
+  - Purity was CLEAN in 26 of 26 launches.
+- **Gates on the copy.** 19 of 21 exit 0. The only failures are test_hands ProvenanceTests and test_evidence KeepEarlier/Snapshot, both on `git rev-parse` because the copy has no .git. The builder's worktree logs show both OK.
+- **Mutants.**
+  - The builder's mutants, re-run (hash 09e87755): 73 CAUGHT plus 2 REDUNDANT of 75, PASS.
+  - My 19 mutants (`vmutants.py`, sha256 8b3a7060..., hashed first): 11 CAUGHT and 8 REDUNDANT, as predicted.
+  - Ruled out: a hidden-state read (check_fairness PASS; `fight_safe` uses the bar, level, species, static learnsets and typical stats), bot code in the AI's play, and an unbounded raise or plan flip-flop (the raise was spent on frames at 450-465k; spent is final; the settle is bounded).
+
+**V2-M1 (MAJOR): the raise's run mode.**
+
+The builder's addition `partner_worn` rests the party only when the partner is under half its HP. `raise_partner` takes a partner only when it keeps a third of its max HP after the worst case. So a Grovyle at 29-34/57 is "not worn" and also "not a partner" against Nincada L7, Taillow L7-8 and Skitty L7-8, which are 22% of ROUTE116's land slots. The raise then runs.
+
+In the run mode, the battle brain answers every refused escape with "run again", up to MAX_RUN_TRIES (6). There is no rescue in that mode, so the slow trainee stays on the field under its floor.
+
+Live, #120 6402: Wurmple at 12/23 against Nincada L7, and Cascoon at 14/26 against Taillow L7. Each had 3-4 refused runs, then fainted. In all, B2 had 25 raise run battles: the trainee was hit in 4 and fainted in 2.
+
+Reproduced offline: 6 of 6 predictions held (c93b79cc..., hashed first). No test plays a later turn of the run mode; my mutant `run_no_retry` was REDUNDANT.
+
+Fix:
+- rescue to the best healthy member that can win, once a run is refused or the trainee is under its floor;
+- make the rest line match the partner's safety against the map's top slot;
+- add test R3n and a mutant for each;
+- predict 0 trainee faints in raise battles in the next live check.
+
+**V2-M2 (MAJOR): the trainee leads every other battle of the plan.**
+
+The trainee is kept in slot 0 between sessions (spec section 1.3). Round 2's heal walks therefore lead with it. #118 6397 is the clearest case:
+- the heal goal said "the trainee Wurmple L5 is low (3/21)";
+- on the walk it led against a Poochyena L6;
+- 2 runs were refused, and it fainted.
+
+The final code is unchanged on this path. In all, there were 5 trainee faints in travel battles over the 6 B runs:
+- 6400: on a heal walk at 11/23, where the travel brain fought a Taillow L6;
+- 6401, 6397 and 6399: on pick_ups;
+- 6397: the heal walk above.
+
+Fix: while a plan is active, either switch the trainee out on turn 1 of a non-raise wild battle (at least under its floor), or restore `lead_before` between sessions. Add FAULT and CONTROL tests and a mutant, and count these faints live.
+
+**Minor findings**
+- **V2-m1:** the headline ("fights only the battles it wins safely") and the evidence leave out the 7 faints, the rescue that never fired live (0 in 6 runs), and that P2 healed Grovyle +3 rather than a low trainee.
+- **V2-m2:** "chapters 2-4 by the guard only" does not hold for the `skills/battle.py` learn fix, which has no guard. By my reading it changes play only where the old code named the wrong learner. Still, no chapters 2-4 replay was run, and neither was `run_regression --full`.
+- **V2-m3:** eight rules have no offline test: `partner_any_hp`, `learns_now_any`, `potion_ignores_heal_line`, `run_no_retry`, `settle_any_lead`, `use_on_no_pid_check`, `learning_any_move` and `settle_while_hurt`.
+
+**Nits**
+- **V2-n1:** some tests need .git. `FieldBagModel` uses up a Potion on a full member, which the game refuses.
+- **V2-n2:** #121's C2L4 is the same decisions throughout, one frame late.
+
+**Conditions for the merge**
+1. V2-M1 and V2-M2 fixed, each with FAULT and CONTROL tests and mutants (predictions hashed first).
+2. The evidence corrected per V2-m1 and V2-m2.
+3. A live re-check on NEW seeds (6403 and up are free; check each ledger again) that counts trainee faints in raise and travel battles from the records.
+
+The Grovyle-plan branch (about half of all seeds), the potion goal inside a raise, and E2/E3 stay untested live, as the builder reported.
+
+**Housekeeping**
+- I ran no live batch. The kept records and the offline reproduction settle every finding, and no seed was spent.
+- I made no junctions. The 582 MB copy was deleted.
+- The main sandbox counts are unchanged: modules 4461, plugins 43, mgba 44, roms 2.
+- The worktree status is unchanged (13 modified, 4 new, 2 archive folders). The main checkout is clean. C: has 67 GB free.
+
+The verifier's scripts and outputs are in `C:/Remote Projects/_ai_lab/s53/bp1r2/verify/`: `trainee_hits.py`, `repro_m1.py`, `vmutants.py` and `vmutants_run1.out`, `exp_check.py`, `stream_diff.py`, `brawly_read.py`, `seed_audit.py`, and `STATE.md`.
 
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 

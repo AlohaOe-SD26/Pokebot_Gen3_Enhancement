@@ -745,6 +745,181 @@
    "callee": "hands/pad.py:Hands.look",
    "caller": "*",
    "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue). The site at the head of pursue is the hurt check's look, there before BP-1 (its line changed only by adding 'raise' to the kinds it skips)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._raise_turn",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the raise's turn in a battle (brain/battle.py _raise_turn, raise_partner) and its one log line: gates/test_bossprep.py RaiseTurnTests R3a-R3m pin every decision BY VALUE (switch, own fight, rescue, run, not the trainee, a trainer battle, the replacement, 'Use next', no second switch); revert_bossprep breaks each rule in the body or at its call: raise_never_switch (deletes raise_partner's turn-1 call), no_own_fight (deletes fight_safe's call), partner_unchecked, raise_always_switch, run_first (both call sites of _raise_turn guarded: the old order), second_switch, replacement_trainee_ok, trainee_sent_last (deletes _only_the_trainee's call). _raise_say only tells a line (no decision reads it)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.raise_partner",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the raise's turn in a battle (brain/battle.py _raise_turn, raise_partner) and its one log line: gates/test_bossprep.py RaiseTurnTests R3a-R3m pin every decision BY VALUE (switch, own fight, rescue, run, not the trainee, a trainer battle, the replacement, 'Use next', no second switch); revert_bossprep breaks each rule in the body or at its call: raise_never_switch (deletes raise_partner's turn-1 call), no_own_fight (deletes fight_safe's call), partner_unchecked, raise_always_switch, run_first (both call sites of _raise_turn guarded: the old order), second_switch, replacement_trainee_ok, trainee_sent_last (deletes _only_the_trainee's call). _raise_say only tells a line (no decision reads it)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._raise_say",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the raise's turn in a battle (brain/battle.py _raise_turn, raise_partner) and its one log line: gates/test_bossprep.py RaiseTurnTests R3a-R3m pin every decision BY VALUE (switch, own fight, rescue, run, not the trainee, a trainer battle, the replacement, 'Use next', no second switch); revert_bossprep breaks each rule in the body or at its call: raise_never_switch (deletes raise_partner's turn-1 call), no_own_fight (deletes fight_safe's call), partner_unchecked, raise_always_switch, run_first (both call sites of _raise_turn guarded: the old order), second_switch, replacement_trainee_ok, trainee_sent_last (deletes _only_the_trainee's call). _raise_say only tells a line (no decision reads it)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._decide",
+   "caller": "brain/battle.py:BattleMind.decide",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.replacement",
+   "caller": "brain/battle.py:BattleMind.answer",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.replacement",
+   "caller": "skills/battle.py:_send_in",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.answer",
+   "caller": "brain/navigator.py:Navigator.handle",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.answer",
+   "caller": "skills/battle.py:_play",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/bossprep.py:member_now",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/bossprep.py:rank_of",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/bossprep.py:raise_partner_of",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/bossprep.py:partner_worn",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._partner_worn",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._raise_goal.key_of",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._raise_name",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._settle_one",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._trainee_low",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.raise_cap",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.raise_maps",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/bossprep.py:spend",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) brain/bossprep.py spend and GoalManager._spend: the ONE way a plan ends spent (status, why, settle pending); BudgetTests.test_a_spent_budget_ends_the_raise pins its three fields after a spend through _raise_goal, and LeadAfterTests R8a-R8f the settle it leaves; revert_bossprep no_settle_on_spend breaks it (caught), and BP-1's no_bound deletes the budget check that leads to it. The sites in _judge and boss_lost replace BP-1's direct status writes one for one."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._spend",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) brain/bossprep.py spend and GoalManager._spend: the ONE way a plan ends spent (status, why, settle pending); BudgetTests.test_a_spent_budget_ends_the_raise pins its three fields after a spend through _raise_goal, and LeadAfterTests R8a-R8f the settle it leaves; revert_bossprep no_settle_on_spend breaks it (caught), and BP-1's no_bound deletes the budget check that leads to it. The sites in _judge and boss_lost replace BP-1's direct status writes one for one."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._say",
+   "caller": "brain/goals.py:GoalManager._raise_goal",
+   "reason": "(BP-1 round 2, 2026-11-11) a log line of the raise goal ('the raise waits: ...'): no decision reads it; the waits themselves are pinned by TraineeFloorTests.test_r1f (raise_guard_off) and RaiseMapTests.test_r6e (one_raise_key)."
+  },
+  {
+   "callee": "hands/field_item.py:_close",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_count",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_free",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_hp",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_pids",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_read_message",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_to_pocket",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "knowledge/seasoned.py:wild_moves",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a static knowledge read (knowledge/seasoned.py wild_moves: the initial-moveset rule over a guide's learnset; facts.move_fact for the move's type in _own_points' immunity check): FightSafeTests pins wild_moves by value (Poochyena L5, Taillow L8, no Pursuit near RUSTBORO) and OwnImmunityTests the immunity (revert_bossprep no_immunity_own deletes the type check)."
+  },
+  {
+   "callee": "knowledge/facts.py:move_fact",
+   "caller": "brain/bossprep.py:_own_points",
+   "reason": "(BP-1 round 2, 2026-11-11) a static knowledge read (knowledge/seasoned.py wild_moves: the initial-moveset rule over a guide's learnset; facts.move_fact for the move's type in _own_points' immunity check): FightSafeTests pins wild_moves by value (Poochyena L5, Taillow L8, no Pursuit near RUSTBORO) and OwnImmunityTests the immunity (revert_bossprep no_immunity_own deletes the type check)."
+  },
+  {
+   "callee": "skills/battle.py:_Pages.__init__",
+   "caller": "skills/battle.py:play_battle",
+   "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) skills/battle.py's learner and forget-screen choice: the existing call sites in _play and play_battle are the same as before (the questions' answer path and the battle's pages watcher); test_bossprep LearnerTests pins the learner by its page, at the question, and the forget screen's recheck BY VALUE with FAULT arms, and revert_bossprep breaks each rule at its own line (no_learning_kept, learner_page_off, learner_knowledge_off: it deletes the _learns_now call, forget_recheck_off). Reproduced offline first (s53/bp1r2/repro_learn.py, predictions hashed) and re-run live (#120)."
+  },
+  {
+   "callee": "skills/battle.py:_forget_choice",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) skills/battle.py's learner and forget-screen choice: the existing call sites in _play and play_battle are the same as before (the questions' answer path and the battle's pages watcher); test_bossprep LearnerTests pins the learner by its page, at the question, and the forget screen's recheck BY VALUE with FAULT arms, and revert_bossprep breaks each rule at its own line (no_learning_kept, learner_page_off, learner_knowledge_off: it deletes the _learns_now call, forget_recheck_off). Reproduced offline first (s53/bp1r2/repro_learn.py, predictions hashed) and re-run live (#120)."
+  },
+  {
+   "callee": "skills/battle.py:_learn",
+   "caller": "skills/battle.py:_play",
+   "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) skills/battle.py's learner and forget-screen choice: the existing call sites in _play and play_battle are the same as before (the questions' answer path and the battle's pages watcher); test_bossprep LearnerTests pins the learner by its page, at the question, and the forget screen's recheck BY VALUE with FAULT arms, and revert_bossprep breaks each rule at its own line (no_learning_kept, learner_page_off, learner_knowledge_off: it deletes the _learns_now call, forget_recheck_off). Reproduced offline first (s53/bp1r2/repro_learn.py, predictions hashed) and re-run live (#120)."
+  },
+  {
+   "callee": "brain/battle.py:move_key",
+   "caller": "skills/battle.py:_learn",
+   "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) brain/battle.py move_key, a pure name normaliser (lowercase letters and digits), compared on the page's move and the question's: LearnerTests.test_the_learner_named_by_its_page fails when the comparison is lost (learner_page_off)."
   }
  ]
 }

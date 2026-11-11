@@ -35,10 +35,27 @@ run (`brain/goals.py` raise goal); a Trainer run LOGS what it would do (the in-r
 
 NEVER READ HERE: the PC boxes (`look.storage`), a base stat, a catch rate, an experience yield, a growth rate, a wild
 held item, a PID-derived trait, the RNG. `gates/check_fairness.py` and `gates/test_bossprep.py` pin it.
+
+ROUND 2, THE RAISE AS A MIX (USER RULING 59, 2026-11-09: "some mix that makes logical sense" of switch-training, the
+trainee's own winnable fights, and healing at a POKéMON CENTER or with Potions; spec
+`ai-research-notes/2026-11-09-BOSS-PREP-BP1-RAISE-SPEC.md`). THE EXPERIENCE RULE a seasoned player knows (the pinned decomp,
+`src/battle_script_commands.c` Cmd_getexp; `src/battle_util.c` UpdateSentPokesToOpponentValue): every member SENT OUT
+against a foe and still standing when it faints shares its experience evenly, whatever the member's level; a member
+switched out keeps its share. So a trainee that leads and is switched out on turn 1 for a strong partner who knocks the foe
+out earns half of it without being hit (switches go before moves, `src/battle_main.c` SetActionsAndBattlersTurnOrder). The
+AI uses that RULE and the EXP the game SHOWS (the summary's EXP points); a species' experience YIELD and GROWTH RATE stay
+hidden (`gates/check_fairness.py`): it never computes a yield.
+  * `fight_safe`: would the trainee win a wild battle on its own and still stand well (at most `RAISE_MAX_HITS` of its
+    hits, and `TRAINEE_FLOOR` of its HP left with the foe striking first every turn)? Built only from the battle brain's
+    own rough sense of a hit and the foe's moves as a seasoned player knows them (`knowledge/seasoned.py` wild_moves).
+  * `_own_points` gives 0 to a move the boss Pokemon's typing is IMMUNE to (V-m1: fixed damage ignored the chart).
+  * the per-boss record's new fields (`new_record`), the one way a plan is SPENT (`spend`: it leaves the lead to be
+    SETTLED, V-m5), and the raise's knock-out partner (`raise_partner_of`, `partner_worn`).
 """
 
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -46,7 +63,7 @@ from dataclasses import dataclass
 from ai_player.brain.battle import TEMPERAMENTS, BattleFaults, learn_choice, move_value, rough_share, typical_stat
 from ai_player.eyes.observation import BattleMon, MonSummary, MoveSlot, Observation
 from ai_player.knowledge.atlas import BossMon, gym_leaders
-from ai_player.knowledge.seasoned import evolutions, level_up
+from ai_player.knowledge.seasoned import evolutions, level_up, wild_moves
 from ai_player.knowledge.facts import move_fact, species_fact, type_multiplier
 from ai_player.personality import ERRANDS
 
@@ -58,11 +75,16 @@ __all__ = [
     "CAUTION",
     "CLOSE",
     "FLAIL_TABLE",
+    "LEADS_MAX",
     "LOW_KICK_POWER",
     "MULTI_HIT_FACTOR",
     "NOT_READY",
+    "PARTNER_MARGIN",
     "RAISE_LEVEL_SPAN",
+    "RAISE_MAX_HITS",
     "READY",
+    "RELEAD_FAILS_MAX",
+    "TRAINEE_FLOOR",
     "BossprepFaults",
     "Member",
     "NO_FAULTS",
@@ -73,13 +95,19 @@ __all__ = [
     "attack_half",
     "choose_plan",
     "described",
+    "fight_safe",
     "hit_points",
+    "member_now",
     "members_of",
     "near_best",
     "new_record",
     "next_boss",
     "options",
+    "partner_worn",
     "project",
+    "raise_partner_of",
+    "rank_of",
+    "spend",
     "spent_reason",
     "team_line",
     "threat_half",
@@ -123,6 +151,18 @@ TURN_CAP = 80
 #: fixed damage the duel models (points): the user's level, or a flat number (`src/battle_script_commands.c`)
 _FLAT = {"SONICBOOM": 20, "DRAGON_RAGE": 40}
 _LEVEL_FLAT = ("LEVEL_DAMAGE", "PSYWAVE")
+#: (round 2, spec section 2.1) no raise battle, session or own fight is begun or continued with the trainee under this share
+#: of its max HP (the line `trainee_rest` stops a raise roam at)
+TRAINEE_FLOOR = 1 / 3
+#: (round 2) the trainee fights a wild Pokemon itself only when it needs at most this many of its hits (`fight_safe`)
+RAISE_MAX_HITS = 3
+#: (round 2) the raise map's top wild level is at most the knock-out Pokemon's level less this (`brain/goals.py`
+#: raise_maps): the battle brain's own "far above the foe" margin (`brain/battle.py` OUTLEVELS, 5; `gates/test_bossprep.py`
+#: RaiseMapTests pins the two equal)
+PARTNER_MARGIN = 5
+#: (round 2, V-m5) failed lead goals, and lead goals of any outcome, per plan record
+RELEAD_FAILS_MAX = 2
+LEADS_MAX = 6
 
 
 @dataclass(frozen=True)
@@ -144,6 +184,27 @@ class BossprepFaults:
     current_only: bool = False  # the next boss only when the CURRENT milestone is its fight (today's fight_next)
     #: the boss's moves tied on points chosen by NAME (the spec appendix's `max((points, name))`), not the faster one
     name_tie: bool = False
+    # ---- round 2 (the raise as a mix, USER RULING 59), each a rule of the spec switched off
+    no_immunity_own: bool = False  # (V-m1) the party's fixed damage scored against a type immune to it
+    safe_full_hp: bool = False  # `fight_safe` judges the trainee at its FULL HP, not its HP now
+    hits_unbounded: bool = False  # `fight_safe` asks no bound on the trainee's hits
+    trainee_floor_off: bool = False  # (V-M1) BP-1's `hurt`: a trainee under the floor does not make the party rest
+    raise_guard_off: bool = False  # (V-M1) the raise goal is made with the trainee under the floor
+    partner_worn_off: bool = False  # (the builder's addition) a worn knock-out partner does not make the raise rest
+    potion_always: bool = False  # the potion goal chosen even with a POKéMON CENTER near
+    centre_always: bool = False  # the potion goal never chosen
+    potion_revives: bool = False  # the potion goal chosen for a FAINTED trainee
+    map_by_trainee: bool = False  # (BP1-L1) BP-1's map rule: the highest top level at most the trainee's level + 2
+    one_raise_key: bool = False  # (BP1-L2) one cooldown key for every raise map
+    frames_uncounted: bool = False  # (V-m3) a raise session's frames not counted
+    stalls_never: bool = False  # (V-m3) the stall count never grows
+    stall_by_level: bool = False  # (V-m3) BP-1's stall: a session with no LEVEL gained
+    heal_frames_uncounted: bool = False  # (V-m3) the heal, find_center and potion goals of an active plan not counted
+    base_to_active: bool = False  # (V-m3) the plan and its budget by the ACTIVE personality, not the base
+    restore_never: bool = False  # (V-m5) a spent plan leaves the trainee first
+    restore_always: bool = False  # (V-m5) the usual lead restored without the re-judge
+    relead_unbounded: bool = False  # (V-m5) no bound on failed lead goals
+    lead_ignores_budget: bool = False  # (V-m5) the done plan's re-lead ignores the reorder and lead bounds
 
 
 NO_FAULTS = BossprepFaults()
@@ -355,12 +416,56 @@ def hit_points(boss: BossMon, member: Member, name: str, boss_share: float, memb
     return round((share or 0.0) * typical_stat("hp", member.level))
 
 
-def _own_points(member: Member, boss: BossMon, name: str) -> int:
+def _own_points(member: Member, boss: BossMon, name: str, faults: BossprepFaults = NO_FAULTS) -> int:
     """The HP points one hit of the member's move takes off the boss Pokemon (its typical HP), as a person roughly puts
     it (`rough_share`; the summary's real attack at the member's own level, typical when projected; Bide and a status
-    move 0)."""
+    move 0). (Round 2, the verifier's V-m1) 0 when the boss Pokemon's typing is IMMUNE to the move's type: fixed damage
+    (Night Shade, Seismic Toss, SonicBoom) skipped the chart, so a Night Shade user read READY against a Normal type
+    (`hit_points` already did this for the boss's side). FAULT `no_immunity_own`: as before."""
+    fact = move_fact(name)
+    if fact is not None and not faults.no_immunity_own and type_multiplier(fact.type, types_of(boss.species)) == 0:
+        return 0
     share = rough_share(_slot(name), member.summary, _battler(member.species, member.level), _battler(boss.species, boss.level))
     return round((share or 0.0) * typical_stat("hp", boss.level))
+
+
+# ------------------------------------------------------------------------------------------- (round 2) a fight it wins
+def member_now(look: Observation, pid: int) -> Member | None:
+    """(round 2) The party member `pid` as the verdict sees it (`members_of`), but at its HP NOW (the eyes' party), not
+    its full HP: what `fight_safe` judges the trainee or a partner at."""
+    mon = next((m for m in look.party or () if m.pid == pid and not m.is_egg), None)
+    if mon is None:
+        return None
+    return Member(mon.pid, mon.species, mon.level, mon.hp, mon.max_hp, tuple(m.name for m in mon.moves), mon)
+
+
+def fight_safe(member: Member, foe_species: str, foe_level: int, bar_share: float, hp: int, seen_moves=(),
+               faults: BossprepFaults = NO_FAULTS) -> tuple[bool, str]:
+    """(round 2, spec section 2.2) Would `member` win this WILD battle on its own and still stand well? Built only from
+    the battle brain's own functions, as a person reckons it:
+      1. the foe's moves: the moves a wild one of its species and level knows (`knowledge/seasoned.py` wild_moves: the
+         game's initial-moveset rule) and any move it was SEEN to use;
+      2. its HP left: the bar on screen times a TYPICAL Pokemon of its level (rule 4.1);
+      3. the member's hits: its best move's points (`_own_points`); none that hurts: not safe;
+      4. the foe's worst hit on it (`hit_points`), and a person's worst case: the foe strikes FIRST every turn;
+    SAFE when it needs at most `RAISE_MAX_HITS` hits and keeps `TRAINEE_FLOOR` of its max HP. `hp` is its HP NOW.
+    FAULTS `safe_full_hp` (judged at its full HP), `hits_unbounded` (no bound on its hits). Returns (safe, why)."""
+    moves = list(wild_moves(foe_species, foe_level))
+    for name in seen_moves:
+        if name and name not in moves:
+            moves.append(name)
+    foe = BossMon(foe_species, foe_level, tuple(moves), None)
+    foe_hp = max(1, round(max(0.0, min(1.0, bar_share)) * typical_stat("hp", foe_level)))
+    own = max((_own_points(member, foe, name, faults) for name in member.moves), default=0)
+    if own <= 0:
+        return False, f"nothing it knows hurts {foe_species}"
+    hits = math.ceil(foe_hp / own)
+    now = member.max_hp if faults.safe_full_hp else hp
+    their = max((hit_points(foe, member, name, bar_share, True, now, faults) for name in foe.moves), default=0)
+    left = now - their * hits
+    safe = (faults.hits_unbounded or hits <= RAISE_MAX_HITS) and left >= member.max_hp * TRAINEE_FLOOR
+    return safe, (f"{hits} of its hits ({own} points each against about {foe_hp}); {foe_species}'s worst {their} a hit "
+                  f"first every turn leaves {left}/{member.max_hp}")
 
 
 # ------------------------------------------------------------------------------------------- the duel
@@ -403,7 +508,7 @@ def verdict(party: list[Member], lead_pid: int | None, team: tuple[BossMon, ...]
                 field_i = max(alive, key=rank)
             me = party[field_i]
             mine = attack_half(me, boss, hp[field_i] / me.max_hp, faults)
-            dmg_out = _own_points(me, boss, mine.name) if mine is not None else 0
+            dmg_out = _own_points(me, boss, mine.name, faults) if mine is not None else 0
             options = []
             for name in boss.moves:
                 fact = move_fact(name)
@@ -485,10 +590,62 @@ def choose_plan(rng: random.Random, near_best: float, found: list[Option], faile
 def new_record() -> dict:
     """The per-boss record (spec section 3.3), kept in the goal manager's game memory (`fight_prep[<boss>]["bp"]`). Its
     stage is under `status` (the spec's `state`: active, done, spent, logged, none): `state` is a developer-only key
-    name of the knowledge (`gates/check_fairness.py` RULE B2 refuses any read of it by name)."""
+    name of the knowledge (`gates/check_fairness.py` RULE B2 refuses any read of it by name). (Round 2, spec section 2.6)
+    the lead before the plan (`lead_before`), how its end is SETTLED (`settle`, and `settle_after` once the boss is
+    beaten: none, pending, done, kept, gave up), the lead goals (`relead_fails`, `leads`), the raise's battles by how they
+    were fought (`own_fights`, `switch_fights`, `raise_runs`), its `heals` and `potions`, the EXP the trainee and the
+    partner gained in raise sessions, and the boss's name. A record persisted before round 2 is read with `.get`."""
     return {"plan": "", "trainee": None, "target": 0, "status": "none", "battles": 0, "frames": 0, "sessions": 0,
             "stalls": 0, "reorder_fails": 0, "leak_battles": 0, "failed": [], "losses": 0, "hunt_encounters": 0,
-            "balls_thrown": 0}
+            "balls_thrown": 0, "boss": None, "lead_before": None, "settle": "none", "settle_after": "none",
+            "relead_fails": 0, "leads": 0, "own_fights": 0, "switch_fights": 0, "raise_runs": 0, "heals": 0, "potions": 0,
+            "exp_gained": 0, "partner_exp": 0, "spent_why": None}
+
+
+def spend(record: dict, why: str) -> None:
+    """(round 2, V-m5 E1) The ONE way a plan ends SPENT: its status, why, and its lead left to be SETTLED (`settle`
+    pending: `brain/goals.py` _settle_goal re-judges who should lead before the boss)."""
+    record["status"] = "spent"
+    record["spent_why"] = why
+    record["settle"] = "pending"
+
+
+def rank_of(result: "Verdict") -> tuple[int, float]:
+    """(round 2, E1) A verdict's order: the class (READY > CLOSE > NOT READY), then the party's HP left."""
+    return _RANK[result.cls], result.party_left
+
+
+def raise_partner_of(party, trainee: int):
+    """(round 2) The raise's KNOCK-OUT Pokemon as `brain/goals.py` raise_maps takes it: the strongest member other than the
+    trainee by (level, max HP), no eggs; None when there is none or the trainee is at least as strong (a strong trainee
+    fights its own battles)."""
+    mons = [m for m in party or () if not m.is_egg]
+    me = next((m for m in mons if m.pid == trainee), None)
+    others = [m for m in mons if m.pid != trainee]
+    if not others:
+        return None
+    partner = max(others, key=lambda m: (m.level, m.max_hp))
+    if me is not None and me.level >= partner.level:
+        return None
+    return partner
+
+
+def partner_worn(look: Observation, trainee: int, faults: BossprepFaults = NO_FAULTS) -> str | None:
+    """(round 2, the builder's addition to the spec) Why the raise rests for its KNOCK-OUT Pokemon (`raise_partner_of`):
+    it has fainted or is under HALF its max HP, the battle brain's own health rule for a member to switch to
+    (`brain/battle.py` better_member; spec section 2.3's `raise_partner`). WHY: under that line no member can take the
+    trainee's place, so every raise battle is RUN from and the session earns nothing; with only the trainee's floor asked,
+    the next decision raised again (the partner's own V-M1). None otherwise. FAULT `partner_worn_off`: never."""
+    if faults.partner_worn_off:
+        return None
+    partner = raise_partner_of(look.party, trainee)
+    if partner is None:
+        return None
+    if partner.hp <= 0:
+        return f"its knock-out Pokemon {partner.species} L{partner.level} has fainted"
+    if partner.hp < partner.max_hp / 2:
+        return f"its knock-out Pokemon {partner.species} L{partner.level} is worn ({partner.hp}/{partner.max_hp})"
+    return None
 
 
 def spent_reason(record: dict, personality: str) -> str | None:
@@ -532,7 +689,7 @@ def trainee_rest(look: Observation, pid: int, heal_below: float, active: str) ->
     trainee = next((m for m in look.party or () if m.pid == pid and not m.is_egg), None)
     if trainee is not None and trainee.hp <= 0:
         return f"the trainee {trainee.species} L{trainee.level} ({pid:08x}) has fainted"
-    if trainee is not None and trainee.hp < trainee.max_hp / 3:
+    if trainee is not None and trainee.hp < trainee.max_hp * TRAINEE_FLOOR:
         return f"the trainee {trainee.species} L{trainee.level} is low ({trainee.hp}/{trainee.max_hp})"
     return training_rest(look, heal_below, active)
 

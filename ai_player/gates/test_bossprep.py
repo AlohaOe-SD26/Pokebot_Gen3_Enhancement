@@ -17,6 +17,15 @@ MAKUHITA 0.35 -> 0.49). The tests below hold the SHIPPED numbers and pin the spe
 
 Fixtures are the spec's parties (section 2.2 and 2.5) with TYPICAL stats (no summary stats), and the real BRAWLY entry from
 the knowledge (`boss_party`).
+
+ROUND 2 (USER RULING 59, 2026-11-11; spec `ai-research-notes/2026-11-09-BOSS-PREP-BP1-RAISE-SPEC.md` section 5.1): R1
+TraineeFloorTests (V-M1 reproduced through its FAULT arm, then fixed), R2 ExpModelTests (the gate-side model
+`gates/exp_rule.py`), R3 RaiseTurnTests (switch-training, own fights, the rescue, the run, the replacement, "Use next"),
+R4 FightSafeTests, R5 HealChoiceTests (a centre near, a Potion far), PartnerWornTests (the builder's addition: the raise
+rests for a worn knock-out partner), R6 RaiseMapTests, R7 BudgetCountingTests (V-m3), R8 LeadAfterTests (V-m5), R9
+OwnImmunityTests (V-m1). Two fixtures were moved from the spec's, by what the built rule computes (observed, then pinned):
+R3b's own fight is Whismur L6 / Nincada L7, not Poochyena L7 (Confusion does nothing to a Dark type; Tackle alone needs 5
+hits), and R3h's is Nincada L7 for the same reason.
 """
 
 from __future__ import annotations
@@ -49,7 +58,7 @@ from ai_player.gates.test_battle import foe, look as battle_look, member, mon as
 from ai_player.gates.test_goals import ch_proofs, look, manager, world_with  # noqa: E402
 from ai_player.knowledge import facts, seasoned  # noqa: E402
 from ai_player.knowledge.atlas import BossMon, boss_party  # noqa: E402
-from ai_player.knowledge.facts import move_fact, move_named, species_fact  # noqa: E402
+from ai_player.knowledge.facts import move_fact, move_named, species_fact, species_named  # noqa: E402
 from ai_player.knowledge.story import load_story  # noqa: E402
 from ai_player.personality import ERRANDS  # noqa: E402
 
@@ -375,7 +384,9 @@ class PlanTests(unittest.TestCase):
         mgr = c1_manager()
         goal, _ = c1_decide(mgr)
         record = mgr.bp_record("ch7_brawly")
-        self.assertEqual((goal.kind, goal.map, goal.milestone, goal.key), ("raise", "ROUTE104", "ch7_brawly", "raise"))
+        # (round 2, BP1-L2) one cooldown key a raise map
+        self.assertEqual((goal.kind, goal.map, goal.milestone, goal.key),
+                         ("raise", "ROUTE104", "ch7_brawly", "raise:ROUTE104"))
         self.assertEqual((record["status"], record["trainee"], record["target"], record["plan"]),
                          ("active", PID["Wurmple"], 19, f"raise:{PID['Wurmple']:08x}:19"))
 
@@ -575,12 +586,18 @@ class BudgetTests(unittest.TestCase):
         goal, _ = c1_decide(mgr)
         self.assertNotEqual(goal.kind, "raise")
         self.assertEqual(mgr.bp_record("ch7_brawly")["status"], "spent")
+        # (round 2, E1) spent through `spend`: its why kept and its lead SETTLED in the same decision (no raise session
+        # ran, so no usual lead was recorded: nothing to restore, "done")
+        self.assertEqual((mgr.bp_record("ch7_brawly")["spent_why"], mgr.bp_record("ch7_brawly")["settle"]),
+                         ("battles 160 of at most 160", "done"))
 
     def brawly_goal(self, status: str):
         mgr = c1_manager()
         record = mgr.prep(at("ch7_brawly")[0]).setdefault("bp", bp.new_record())
         record.update(status=status, trainee=PID["Wurmple"], target=19, plan=f"raise:{PID['Wurmple']:08x}:19")
-        mgr.memory.cooldown["raise"] = 10 ** 6  # the raise put aside: what step 5 does then is the question
+        # the raise put aside (round 2: every raise map's own key): what step 5 does then is the question
+        for key in ("raise", "raise:ROUTE104"):
+            mgr.memory.cooldown[key] = 10 ** 6
         goal, _ = c1_decide(mgr, milestone_id="ch7_brawly")
         return goal
 
@@ -756,14 +773,17 @@ class LoaderTests(unittest.TestCase):
                                                            "RUSTBORO_CITY")], [(3, 5), (5, 6), (6, 8), (6, 8), None])
 
     def test_the_raise_map_rule(self):
+        """(round 2) `raise_maps` by a CAP (the knock-out Pokemon's level less the margin; `RaiseMapTests` for the cap):
+        the highest top under the cap first, then the rest by the lowest top; only maps a known way leads to."""
         mgr = manager()
         world = world_with("ROUTE104", "PETALBURG_WOODS", "ROUTE116", current="ROUTE104", grass=True)
         with mock.patch.object(goals_module, "world_distance", lambda world_, key: 1):
-            self.assertEqual([mgr.raise_map(world, level) for level in (3, 4, 6, 18, 1)],
-                             ["ROUTE104", "PETALBURG_WOODS", "ROUTE116", "ROUTE116", "ROUTE104"])
-        self.assertEqual(mgr.raise_map(world, 18), "ROUTE104")  # the others: no known way there
+            self.assertEqual([mgr.raise_maps(world, cap)[0] for cap in (5, 6, 7, 16, 1)],
+                             ["ROUTE104", "PETALBURG_WOODS", "PETALBURG_WOODS", "ROUTE116", "ROUTE104"])
+            self.assertEqual(mgr.raise_maps(world, 6), ["PETALBURG_WOODS", "ROUTE104", "ROUTE116"])
+        self.assertEqual(mgr.raise_maps(world, 16), ["ROUTE104"])  # the others: no known way there
         with mock.patch.object(goals_module, "world_distance", lambda world_, key: goals_module.UNREACHABLE):
-            self.assertIsNone(mgr.raise_map(world, 3))
+            self.assertEqual(mgr.raise_maps(world, 3), [])
 
     def test_fairness_passes_and_a_hidden_read_fails(self):
         from ai_player.gates import check_fairness as cf
@@ -796,6 +816,795 @@ class LoaderTests(unittest.TestCase):
         planted = source.replace("    for mon in look.party or ():\n", "    for mon in (look.party or ()) + look.storage:\n", 1)
         self.assertNotEqual(planted, source)
         self.assertIn("storage", reads(planted))
+
+
+# =========================================================================================== ROUND 2 (USER RULING 59)
+# The raise as a mix: switch-training, the trainee's own winnable fights, healing at a centre or with a Potion
+# (`ai-research-notes/2026-11-09-BOSS-PREP-BP1-RAISE-SPEC.md` section 5.1: R1-R9). Each rule: a FAULT arm (a
+# `BossprepFaults` / `BattleFaults` switch, or BP-1's rule) beside a CONTROL; `gates/revert_bossprep.py` breaks each in a copy.
+W, G, P = PID["Wurmple"], PID["Grovyle"], PID["Poochyena"]
+GROVYLE_MOVES = ["Pound", "Pursuit", "Absorb", "Quick Attack"]
+DUSTOX_MOVES = ["Tackle", "Confusion", "Poison Sting", "Harden"]
+SEVEN = ("ROUTE101", "ROUTE102", "ROUTE103", "ROUTE104", "PETALBURG_WOODS", "ROUTE116", "ROUTE115")
+
+
+def party18(**hp: int) -> list[MonSummary]:
+    """C1's party with the trainee as it was live at the stalls: Wurmple L4, max HP 18 (the rest full unless named)."""
+    out = c1_party()
+    out[2] = replace(out[2], level=4, max_hp=18, hp=18)
+    return [replace(m, hp=hp[m.species]) if m.species in hp else m for m in out]
+
+
+def decide2(mgr, party, world, milestone_id="ch6_briney_house", const="ROUTE104", healing=()):
+    """A decision on C1's fixture with the bag's healing items pinned (`healing`: () is an EMPTY bag, the verifier's)."""
+    from ai_player.eyes.observation import BagSummary
+
+    milestone, index = at(milestone_id)
+    seen = look(ch_proofs(milestone_id), party=party, const=const)
+    seen = replace(seen, bag=BagSummary(seen.bag.balls, tuple(healing), seen.bag.ball_total))
+    return mgr.next_goal(seen, world, milestone, index)
+
+
+def planned(personality: str = "Story", faults=bp.NO_FAULTS):
+    """A manager whose plan is made (active, Wurmple), and the world it was made on (ROUTE104 with grass)."""
+    mgr = c1_manager(personality)
+    mgr.bp_faults = faults
+    world = world_with("ROUTE104", current="ROUTE104", grass=True)
+    first = decide2(mgr, party18(), world)
+    return mgr, world, first
+
+
+def with_centre() -> object:
+    return world_with("ROUTE104", "RUSTBORO_CITY", current="ROUTE104", grass=True, center_from="RUSTBORO_CITY")
+
+
+def raise_mind(faults=None, bp_faults=None, personality="Story") -> BattleMind:
+    from ai_player.brain.battle import BattleFaults
+
+    mind = BattleMind(personality, random.Random("1:battle"), "raise", faults or BattleFaults())
+    mind.trainee = W
+    mind.bp_faults = bp_faults
+    return mind
+
+
+def battle_turn(mind, own, foe_, party, kind="wild", begin=True):
+    seen = battle_look([own], [foe_], party=party, kind=kind)
+    if begin:
+        mind.begin(seen)
+    return mind.decide(seen)
+
+
+def grovyle_member(hp: int = 57):
+    return member("Grovyle", 21, GROVYLE_MOVES, hp, 57, G, 1)
+
+
+def poochyena_member(hp: int = 21, level: int = 6):
+    return member("Poochyena", level, ["Tackle", "Howl"], hp, 21, P, 2)
+
+
+class TraineeFloorTests(unittest.TestCase):
+    """R1 (V-M1 reproduced, then fixed): the verifier's fixture, C1's plan active, the rest full, an EMPTY bag."""
+
+    def test_r1a_r1b_under_the_floor_heals(self):
+        for hp in (1, 5):
+            for world, kind in ((None, "find_center"), (with_centre(), "heal")):
+                mgr, made, first = planned()
+                self.assertEqual(first.kind, "raise")
+                goal = decide2(mgr, party18(Wurmple=hp), world or made)
+                self.assertEqual(goal.kind, kind, (hp, goal.reason))
+                self.assertIn(f"is low ({hp}/18)", goal.reason)
+
+    def test_r1a_fault_trainee_floor_off(self):
+        """FAULT (BP-1's `hurt`, and the raise's own guard off): R1a and R1b give `raise`: the loop reproduced. With the
+        floor off alone the raise's guard still holds (no raise), but no heal either."""
+        for hp in (1, 5):
+            mgr, made, _ = planned(faults=F(trainee_floor_off=True, raise_guard_off=True))
+            self.assertEqual(decide2(mgr, party18(Wurmple=hp), made).kind, "raise", hp)
+            mgr, made, _ = planned(faults=F(trainee_floor_off=True))
+            self.assertNotIn(decide2(mgr, party18(Wurmple=hp), made).kind, ("raise", "heal", "find_center"), hp)
+
+    def test_r1c_control_fainted_heals_as_before(self):
+        mgr, made, _ = planned()
+        self.assertEqual(decide2(mgr, party18(Wurmple=0), made).kind, "find_center")
+        mgr, made, _ = planned(faults=F(trainee_floor_off=True, raise_guard_off=True))
+        self.assertEqual(decide2(mgr, party18(Wurmple=0), made).kind, "find_center")  # a faint was always danger
+
+    def test_r1d_r1e_control_a_third_and_full_raise(self):
+        for hp in (6, 18):  # 6/18 is exactly a third: not under it
+            mgr, made, _ = planned()
+            goal = decide2(mgr, party18(Wurmple=hp), made)
+            self.assertEqual((goal.kind, goal.key), ("raise", "raise:ROUTE104"), hp)
+
+    def test_r1f_the_raise_goal_waits_under_the_floor(self):
+        mgr, made, _ = planned()
+        plan = mgr.boss_prep(look(party=party18(Wurmple=5)), at("ch6_briney_house")[1])
+        self.assertIsNone(mgr._raise_goal(look(party=party18(Wurmple=5)), made, plan))
+        self.assertEqual(mgr._raise_goal(look(party=party18()), made, plan).kind, "raise")  # CONTROL
+        mgr.bp_faults = F(raise_guard_off=True)
+        self.assertEqual(mgr._raise_goal(look(party=party18(Wurmple=5)), made, plan).kind, "raise")  # FAULT
+
+    def session(self, mgr, after_hp: int = 5, roam_line: str = "rest: the trainee Wurmple L4 is low (5/18)"):
+        from ai_player.gates.test_goals import RestTests
+
+        nav = RestTests.navigator(RestTests(), [look(party=party18()), look(party=party18(Wurmple=after_hp))])
+        runner = GoalRunner(nav.hands, nav, mgr, types.SimpleNamespace(purpose="travel", trainee=None), lambda line: None)
+
+        def fake_lead(hands, pid, why):
+            yield
+            return True
+
+        def fake_roam(hands, nav_, steps, why):
+            hands.look()
+            yield
+            return f"{roam_line}; roam: 3 training steps (3 pressed, 1 ran into a battle or a scene)"
+
+        goal = Goal("raise", "r", "ch7_brawly", map=None, steps=10, key="raise:ROUTE104")
+        with mock.patch.object(goals_module, "lead_with", fake_lead), mock.patch.object(goals_module, "roam_train", fake_roam):
+            return goals_module_drive(runner._raise(goal, lambda s: False))
+
+    def test_r1g_the_sequence(self):
+        """Decision 1 is a raise; its session ends "the trainee ... is low (5/18)"; decision 2 must be a heal goal. FAULT
+        (floor and guard off: BP-1): decision 2 is `raise` (the verifier's 3, 10 and 11 such sequences)."""
+        for faults, expected in ((bp.NO_FAULTS, ("heal", "find_center")),
+                                 (F(trainee_floor_off=True, raise_guard_off=True), ("raise",))):
+            mgr, made, first = planned(faults=faults)
+            self.assertEqual(first.kind, "raise")
+            ended = self.session(mgr)
+            self.assertTrue(ended[1].startswith("rest: the trainee"), ended)
+            second = decide2(mgr, party18(Wurmple=5), made)
+            self.assertIn(second.kind, expected, (faults, second.reason))
+
+
+class ExpModelTests(unittest.TestCase):
+    """R2 (the gate-side model, `gates/exp_rule.py`, never imported by the AI): `Cmd_getexp`'s split, by hand (spec 1.4)."""
+
+    def test_the_hand_values(self):
+        from ai_player.gates import exp_rule
+
+        self.assertEqual(exp_rule.expected_gain(55, 6, (True, True)), [23, 23])  # Poochyena L6, 2 sent
+        self.assertEqual(exp_rule.expected_gain(59, 8, (True, True)), [33, 33])  # Taillow L8
+        self.assertEqual(exp_rule.expected_gain(55, 6, (True,)), [47])  # 1 sent: the full E
+        self.assertEqual(exp_rule.expected_gain(55, 6, (False, True)), [0, 47])  # a fainted participant
+        self.assertEqual(exp_rule.switch_share(73, 7), 36)  # Abra L7 (in practice 0: it teleports)
+
+    def test_fault_count_fainted(self):
+        """FAULT: the fainted participant counted: the survivor's share halves (P1's expectation guards it)."""
+        from ai_player.gates import exp_rule
+
+        self.assertEqual(exp_rule.expected_gain(55, 6, (False, True), count_fainted=True), [0, 23])
+
+    def test_the_yields_are_the_decomps(self):
+        """Read from the pinned decomp when present (`POKEBOT_DECOMP`): the spec's section 1.4 yields."""
+        from ai_player.gates import exp_rule
+
+        if exp_rule.decomp_yield("Poochyena") is None:
+            self.skipTest("the pinned decomp is not here")
+        self.assertEqual({s: exp_rule.decomp_yield(s) for s in ("Poochyena", "Whismur", "Nincada", "Abra", "Taillow",
+                                                                  "Skitty")},
+                         {"Poochyena": 55, "Whismur": 68, "Nincada": 65, "Abra": 73, "Taillow": 59, "Skitty": 65})
+
+
+class RaiseTurnTests(unittest.TestCase):
+    """R3: a raise battle's first decision and later turns (`BattleMind._raise_turn`), with test_battle's fixtures. The
+    party in the game's order: the trainee first (the raise puts it first), Grovyle L21, Poochyena L6."""
+
+    def party(self, trainee, grovyle_hp=57, **more):
+        return [trainee, grovyle_member(grovyle_hp), poochyena_member(**more)]
+
+    def wurmple(self, hp=18, level=4):
+        return member("Wurmple", level, ["Tackle", "String Shot"], hp, 18 if level == 4 else 16, W, 0)
+
+    def dustox(self, hp=38, max_hp=38):
+        return member("Dustox", 12, DUSTOX_MOVES, hp, max_hp, W, 0)
+
+    def own_wurmple(self, hp=18, level=4):
+        return battle_mon("Wurmple", level, ["Tackle", "String Shot"], hp, 18 if level == 4 else 16, pid=W)
+
+    def own_dustox(self, hp=38, max_hp=38):
+        return battle_mon("Dustox", 12, DUSTOX_MOVES, hp, max_hp, pid=W)
+
+    def test_r3a_switch_training(self):
+        from ai_player.brain.battle import BattleFaults
+
+        mind = raise_mind()
+        decision = battle_turn(mind, self.own_wurmple(), foe("Poochyena", 6), self.party(self.wurmple()))
+        self.assertEqual((decision.action, decision.switch_pid, mind.memory.raise_mode), ("switch", G, "switch"))
+        self.assertIn("keeps its share", decision.reason)
+        broken = raise_mind(BattleFaults(raise_never_switch=True))
+        decision = battle_turn(broken, self.own_wurmple(), foe("Poochyena", 6), self.party(self.wurmple()))
+        self.assertIn(decision.action, ("fight", "run"))  # FAULT: BP-1 neither switched nor had a partner
+
+    def test_r3b_control_an_own_fight(self):
+        """CONTROL: Dustox L12 full against a foe it beats safely fights (own). (The spec's fixture was Poochyena L7:
+        built, Confusion does nothing to a Dark type and Tackle needs 5 hits, so that one is switch-trained; Whismur L6
+        and Nincada L7 are the own fights.) FAULT `raise_always_switch`: switched."""
+        from ai_player.brain.battle import BattleFaults
+
+        for species, level in (("Whismur", 6), ("Nincada", 7)):
+            mind = raise_mind()
+            decision = battle_turn(mind, self.own_dustox(), foe(species, level), self.party(self.dustox()))
+            self.assertEqual((decision.action, mind.memory.raise_mode), ("fight", "own"), species)
+            broken = raise_mind(BattleFaults(raise_always_switch=True))
+            decision = battle_turn(broken, self.own_dustox(), foe(species, level), self.party(self.dustox()))
+            self.assertEqual(decision.action, "switch", species)
+
+    def test_r3c_dustox_against_taillow_and_poochyena_l7(self):
+        for species, level in (("Taillow", 8), ("Poochyena", 7)):
+            mind = raise_mind()
+            decision = battle_turn(mind, self.own_dustox(), foe(species, level), self.party(self.dustox()))
+            self.assertEqual((decision.action, decision.switch_pid), ("switch", G), species)
+
+    def test_r3d_the_rescue_once(self):
+        mind = raise_mind()
+        party = self.party(self.dustox())
+        self.assertEqual(battle_turn(mind, self.own_dustox(), foe("Whismur", 6), party).action, "fight")
+        low = self.party(self.dustox(hp=10))  # under a third of 38
+        decision = battle_turn(mind, self.own_dustox(hp=10), foe("Whismur", 6, bar=30), low, begin=False)
+        self.assertEqual((decision.action, decision.switch_pid, mind.memory.raise_mode, mind.raise_modes),
+                         ("switch", G, "rescue", ["rescue"]))
+        again = battle_turn(mind, self.own_dustox(hp=8), foe("Whismur", 6, bar=30), self.party(self.dustox(hp=8)),
+                            begin=False)
+        self.assertNotEqual(again.action, "switch")  # the one switch is made: never again
+        mind = raise_mind()  # CONTROL: at a third, no rescue
+        battle_turn(mind, self.own_dustox(), foe("Whismur", 6), party)
+        self.assertNotEqual(battle_turn(mind, self.own_dustox(hp=13), foe("Whismur", 6, bar=30),
+                                        self.party(self.dustox(hp=13)), begin=False).action, "switch")
+
+    def test_r3e_no_partner_runs(self):
+        """Grovyle at 20/57 and Poochyena at 10/21: nobody at half HP or more: run. CONTROL: Grovyle at 29/57 is one."""
+        mind = raise_mind()
+        decision = battle_turn(mind, self.own_wurmple(), foe("Poochyena", 6), self.party(self.wurmple(), grovyle_hp=20,
+                                                                                          hp=10))
+        self.assertEqual((decision.action, mind.memory.raise_mode, mind.raise_modes), ("run", "run", ["run"]))
+        mind = raise_mind()
+        decision = battle_turn(mind, self.own_wurmple(), foe("Poochyena", 6), self.party(self.wurmple(), grovyle_hp=29,
+                                                                                          hp=10))
+        self.assertEqual((decision.action, decision.switch_pid), ("switch", G))
+        # a healthy member that would NOT win safely is no partner: Poochyena L6 full against a Taillow L8 (Grovyle worn)
+        poochyena = poochyena_member()
+        self.assertFalse(bp.fight_safe(bp.member_now(battle_look([self.own_wurmple()], [foe("Taillow", 8)],
+                                                                 party=[poochyena]), P), "Taillow", 8, 1.0, 21)[0])
+        mind = raise_mind()
+        decision = battle_turn(mind, self.own_wurmple(), foe("Taillow", 8), self.party(self.wurmple(), grovyle_hp=20))
+        self.assertEqual(decision.action, "run")
+
+    def test_r3f_not_the_trainee(self):
+        mind = raise_mind()
+        own = battle_mon("Grovyle", 21, GROVYLE_MOVES, 57, 57, pid=G)
+        decision = battle_turn(mind, own, foe("Poochyena", 6), [grovyle_member(), self.wurmple(), poochyena_member()])
+        self.assertEqual((mind.memory.raise_mode, mind.raise_modes), ("not the trainee", ["not the trainee"]))
+        self.assertEqual(decision.action, "fight")
+
+    def test_r3g_a_trainer_battle(self):
+        mind = raise_mind()
+        battle_turn(mind, self.own_wurmple(), foe("Poochyena", 6), self.party(self.wurmple()), kind="trainer")
+        self.assertIsNone(mind.memory.raise_mode)
+        self.assertEqual(mind.raise_modes, [])
+
+    def test_r3h_judged_at_its_hp_now(self):
+        """Dustox L12 at 14/40 against Nincada L7 (safe at full HP): switch. FAULT `safe_full_hp`: fight."""
+        mind = raise_mind()
+        decision = battle_turn(mind, self.own_dustox(14, 40), foe("Nincada", 7), self.party(self.dustox(14, 40)))
+        self.assertEqual(decision.action, "switch")
+        mind = raise_mind(bp_faults=F(safe_full_hp=True))
+        decision = battle_turn(mind, self.own_dustox(14, 40), foe("Nincada", 7), self.party(self.dustox(14, 40)))
+        self.assertEqual(decision.action, "fight")
+
+    def test_r3i_a_five_hit_fight_is_not_safe(self):
+        dustox = next(d for d in bp.project(bp.Member(W, "Wurmple", 4, 18, 18, ("Tackle", "String Shot")), 12)
+                      if d.species == "Dustox")
+        safe, why = bp.fight_safe(dustox, "Abra", 7, 1.0, dustox.max_hp)
+        self.assertFalse(safe)
+        self.assertTrue(why.startswith("5 of its hits"), why)
+        self.assertTrue(bp.fight_safe(dustox, "Abra", 7, 1.0, dustox.max_hp, faults=F(hits_unbounded=True))[0])
+        mind = raise_mind(bp_faults=F(hits_unbounded=True))
+        self.assertEqual(battle_turn(mind, self.own_dustox(), foe("Abra", 7), self.party(self.dustox())).action, "fight")
+
+    def test_r3j_the_replacement_is_never_the_trainee_while_another_can_fight(self):
+        from ai_player.brain.battle import BattleFaults
+
+        fainted = battle_mon("Grovyle", 21, GROVYLE_MOVES, 0, 57, pid=G)
+        party = [self.dustox(), grovyle_member(0), poochyena_member()]
+        seen = battle_look([fainted], [foe("Whismur", 6)], party=party)
+        self.assertEqual(raise_mind().replacement(seen)[0], P)
+        # FAULT: the trainee, the better matched (its Confusion against a Normal type, five levels up)
+        self.assertEqual(raise_mind(BattleFaults(replacement_trainee_ok=True)).replacement(seen)[0], W)
+        only = battle_look([fainted], [foe("Whismur", 6)], party=[self.dustox(), grovyle_member(0), poochyena_member(0)])
+        self.assertEqual(raise_mind().replacement(only)[0], W)  # CONTROL: the trainee when it is the only one left
+
+    def test_r3k_the_raise_turn_before_the_run_rule(self):
+        from ai_player.brain.battle import BattleFaults
+
+        party = self.party(self.wurmple(16, 3))
+        mind = raise_mind()
+        self.assertEqual(battle_turn(mind, self.own_wurmple(16, 3), foe("Taillow", 9), party).action, "switch")
+        broken = raise_mind(BattleFaults(run_first=True))
+        self.assertEqual(battle_turn(broken, self.own_wurmple(16, 3), foe("Taillow", 9), party).action, "run")
+
+    def test_r3l_use_next_with_only_the_trainee(self):
+        from ai_player.brain.battle import BattleFaults
+
+        fainted = battle_mon("Grovyle", 21, GROVYLE_MOVES, 0, 57, pid=G)
+        alone = battle_look([fainted], [foe("Poochyena", 6)], party=[self.wurmple(), grovyle_member(0), poochyena_member(0)])
+        self.assertFalse(raise_mind().answer("Use next POKéMON?", alone)[0])
+        self.assertTrue(raise_mind(BattleFaults(trainee_sent_last=True)).answer("Use next POKéMON?", alone)[0])
+        other = battle_look([fainted], [foe("Poochyena", 6)], party=[self.wurmple(), grovyle_member(0), poochyena_member()])
+        self.assertTrue(raise_mind().answer("Use next POKéMON?", other)[0])  # CONTROL
+
+    def test_r3m_no_second_switch(self):
+        from ai_player.brain.battle import BattleFaults
+
+        party = [self.wurmple(), grovyle_member(), member("Poochyena", 14, ["Tackle", "Howl", "Bite"], 40, 40, P, 2)]
+        for faults, second in ((BattleFaults(), False), (BattleFaults(second_switch=True), True)):
+            mind = raise_mind(faults)
+            first = battle_turn(mind, self.own_wurmple(), foe("Taillow", 8), party)
+            self.assertEqual(first.action, "switch")
+            sent = next(m for m in party if m.pid == first.switch_pid)
+            out = battle_mon(sent.species, sent.level, [s.name for s in sent.moves], sent.hp, sent.max_hp, pid=sent.pid)
+            decision = battle_turn(mind, out, foe("Taillow", 8), party, begin=False)
+            self.assertEqual(decision.action == "switch", second, (faults, decision.reason))
+
+    def test_no_raise_turn_outside_a_raise(self):
+        """CONTROL: purpose train (or no trainee) with the same battle: the ordinary rules (no switch-training)."""
+        for purpose, trainee in (("train", W), ("raise", None)):
+            mind = BattleMind("Story", random.Random("1:battle"), purpose)
+            mind.trainee = trainee
+            battle_turn(mind, self.own_wurmple(), foe("Poochyena", 6), self.party(self.wurmple()))
+            self.assertIsNone(mind.memory.raise_mode, purpose)
+
+
+class FightSafeTests(unittest.TestCase):
+    """R4: `fight_safe`'s classes (spec section 2.2) on every ROUTE116 land slot, and the Pursuit check."""
+
+    @staticmethod
+    def route_slots(*maps: str) -> list[tuple[str, int, str]]:
+        data = json.loads((REPO / "ai_player" / "knowledge" / "seasoned" / "encounters.json").read_text(encoding="utf-8"))
+        out = set()
+        for entry in data["maps"]:
+            if str(entry.get("map") or "").removeprefix("MAP_") in maps and entry["availability"] == "normal":
+                for slot_ in ((entry.get("methods") or {}).get("land") or {}).get("slots") or ():
+                    for level in range(slot_["min_level"], slot_["max_level"] + 1):
+                        out.add((species_named(slot_["species"].removeprefix("SPECIES_").replace("_", " ")), level,
+                                 entry["map"]))
+        return sorted(out)
+
+    def trainee_at(self, level: int, species: str) -> bp.Member:
+        return next(d for d in bp.project(bp.Member(W, "Wurmple", 4, 18, 18, ("Tackle", "String Shot")), level)
+                    if d.species == species) if level > 4 else bp.Member(W, "Wurmple", 4, 18, 18, ("Tackle", "String Shot"))
+
+    def test_r4a_r4b_wurmple_and_cascoon_never_safe(self):
+        for who in (self.trainee_at(4, "Wurmple"), self.trainee_at(8, "Cascoon")):
+            for species, level, _ in self.route_slots("ROUTE116"):
+                self.assertFalse(bp.fight_safe(who, species, level, 1.0, who.max_hp)[0], (who.species, species, level))
+
+    def test_r4c_r4d_dustox_l12(self):
+        dustox = self.trainee_at(12, "Dustox")
+        self.assertEqual(dustox.moves, tuple(DUSTOX_MOVES))
+        verdicts = {(s, lv): bp.fight_safe(dustox, s, lv, 1.0, dustox.max_hp)[0] for s, lv, _ in self.route_slots("ROUTE116")}
+        for key in (("Whismur", 6), ("Nincada", 6), ("Nincada", 7), ("Poochyena", 6)):
+            self.assertTrue(verdicts[key], key)
+        for key in (("Taillow", 7), ("Taillow", 8), ("Poochyena", 7), ("Poochyena", 8), ("Abra", 7)):
+            self.assertFalse(verdicts[key], key)  # Taillow's Peck x2 on Bug; Poochyena (Dark) immune to Confusion
+
+    def test_r4e_no_pursuit_near_rustboro(self):
+        maps = ("ROUTE101", "ROUTE102", "ROUTE103", "ROUTE104", "PETALBURG_WOODS", "ROUTE115", "ROUTE116")
+        found = [(s, lv, m) for s, lv, m in self.route_slots(*maps) if "Pursuit" in seasoned.wild_moves(s, lv)]
+        self.assertEqual(found, [])
+        self.assertGreater(len(self.route_slots(*maps)), 20)  # the scan reads the slots (an empty read passes nothing)
+        self.assertEqual(seasoned.wild_moves("Poochyena", 5), ["Tackle", "Howl"])  # CONTROL
+        self.assertIn("Pursuit", seasoned.wild_moves("Grovyle", 21))  # the scan can find it (C1's own Grovyle knows it)
+
+    def test_the_initial_moveset_rule(self):
+        """The last FOUR, the first forgotten (`GiveBoxMonInitialMoveset`); a move known already skipped."""
+        self.assertEqual(seasoned.wild_moves("Taillow", 8), ["Peck", "Growl", "Focus Energy", "Quick Attack"])
+        self.assertEqual(seasoned.wild_moves("Nobody", 8), [])
+
+
+class HealChoiceTests(unittest.TestCase):
+    """R5: the trainee at 5/18 and the plan active, unless said: a CENTRE when one is near, a POTION when it is far."""
+
+    def choose(self, links=2, healing=(("Potion", 3),), faults=bp.NO_FAULTS, trainee_hp=5, grovyle_hp=57, cooldown=False):
+        mgr, _, _ = planned(faults=faults)
+        if cooldown:
+            mgr.memory.cooldown["potion"] = 10 ** 6
+        with mock.patch.object(goals_module, "world_distance", lambda world_, key: links):
+            return decide2(mgr, party18(Wurmple=trainee_hp, Grovyle=grovyle_hp), with_centre(), healing=healing)
+
+    def test_r5a_a_centre_near(self):
+        self.assertEqual(self.choose(2).kind, "heal")
+        self.assertEqual(self.choose(2, faults=F(potion_always=True)).kind, "potion")  # FAULT
+
+    def test_r5b_a_centre_far(self):
+        goal = self.choose(3)
+        self.assertEqual((goal.kind, goal.pid, goal.key, goal.milestone), ("potion", W, "potion", "ch7_brawly"))
+        self.assertEqual(self.choose(3, faults=F(centre_always=True)).kind, "heal")  # FAULT
+
+    def test_r5c_no_field_item(self):
+        self.assertEqual(self.choose(3, healing=()).kind, "heal")
+        self.assertEqual(self.choose(3, healing=(("Hyper Potion", 1), ("Potion", 0))).kind, "heal")
+
+    def test_r5d_fainted(self):
+        self.assertEqual(self.choose(3, trainee_hp=0).kind, "heal")
+        self.assertEqual(self.choose(3, trainee_hp=0, faults=F(potion_revives=True)).kind, "potion")  # FAULT
+
+    def test_r5e_another_needs_the_heal(self):
+        self.assertEqual(self.choose(3, grovyle_hp=15).kind, "heal")
+
+    def test_r5f_the_potion_put_aside(self):
+        self.assertEqual(self.choose(3, cooldown=True).kind, "heal")
+
+    def test_r5g_control_at_a_third(self):
+        self.assertEqual(self.choose(3, trainee_hp=6).kind, "raise")
+
+    def test_r5h_control_no_plan_in_chapter_5(self):
+        """No plan (chapter 5: the rival's fight is the next named one), a member at 5/18: exactly the goal the parent's
+        rules give (ACT_ON empty)."""
+        party = party18(Wurmple=5)
+        for healing in ((), (("Potion", 3),)):
+            mgr = c1_manager()
+            goal = decide2(mgr, party, with_centre(), milestone_id="ch5_stolen_goods", healing=healing)
+            with mock.patch.object(goals_module, "ACT_ON", frozenset()):
+                parent = decide2(c1_manager(), party, with_centre(), milestone_id="ch5_stolen_goods", healing=healing)
+            self.assertEqual((goal.kind, goal.reason, goal.map, goal.key), (parent.kind, parent.reason, parent.map, parent.key))
+            self.assertNotEqual(goal.kind, "potion")
+
+    def test_the_potion_runner_calls_the_hand(self):
+        """The runner plays a potion goal through `hands/field_item.py` use_on, for the goal's PID, and counts it."""
+        from ai_player.gates.test_goals import RestTests
+
+        mgr, _, _ = planned()
+        nav = RestTests.navigator(RestTests(), [look(party=party18(Wurmple=5))])
+        runner = GoalRunner(nav.hands, nav, mgr, types.SimpleNamespace(purpose="travel", trainee=None), lambda line: None)
+        asked = []
+
+        def fake_use(hands, pid, items, up_to, most, why):
+            asked.append((pid, tuple(items), round(up_to, 3), most))
+            yield
+            return True, 2, "2 used"
+
+        milestone, index = at("ch6_briney_house")
+        with mock.patch.object(goals_module, "use_on", fake_use):
+            result = goals_module_drive(runner._pursue(Goal("potion", "p", "ch7_brawly", key="potion", pid=W), milestone,
+                                                       index, lambda s: index))
+        self.assertEqual(result, (True, "2 used"))
+        self.assertEqual(asked, [(W, ("Potion", "Super Potion"), 0.667, 2)])
+        self.assertEqual(mgr.bp_record("ch7_brawly")["potions"], 2)
+
+
+class PartnerWornTests(unittest.TestCase):
+    """(the builder's addition to the spec) The raise's KNOCK-OUT partner under half its HP makes the raise rest: no member
+    could take the trainee's place, so every battle would be run from (the partner's own V-M1)."""
+
+    def test_a_worn_partner_heals(self):
+        mgr, made, _ = planned()
+        goal = decide2(mgr, party18(Grovyle=27), made)
+        self.assertEqual(goal.kind, "find_center")
+        self.assertIn("is worn (27/57)", goal.reason)
+        mgr, made, _ = planned(faults=F(partner_worn_off=True))
+        self.assertEqual(decide2(mgr, party18(Grovyle=27), made).kind, "raise")  # FAULT
+
+    def test_control_at_half_it_raises(self):
+        mgr, made, _ = planned()
+        self.assertEqual(decide2(mgr, party18(Grovyle=29), made).kind, "raise")
+
+    def test_the_raise_roam_rests(self):
+        from ai_player.gates.test_goals import RestTests
+
+        nav = RestTests.navigator(RestTests(), [look(party=party18())])
+        runner = GoalRunner(nav.hands, nav, c1_manager(), None, lambda line: None)
+        runner.roam_hooks(trainee=W, after_battle=lambda observation: None)
+        self.assertIn("is worn", nav.battle_rest(look(party=party18(Grovyle=27))))
+        self.assertIsNone(nav.battle_rest(look(party=party18(Grovyle=40))))  # CONTROL
+
+    def test_a_strong_trainee_has_no_partner_to_wear(self):
+        strong = c1_party()
+        self.assertIsNone(bp.raise_partner_of(strong, G))  # Grovyle L21 raised: the others are weaker
+        self.assertEqual(bp.raise_partner_of(strong, W).pid, G)
+
+
+class RaiseMapTests(unittest.TestCase):
+    """R6 (BP1-L1, BP1-L2): the seven maps, all visited and reachable."""
+
+    def goal(self, party, faults=bp.NO_FAULTS, mgr=None):
+        mgr = mgr or c1_manager()
+        mgr.bp_faults = faults
+        world = world_with(*SEVEN, current="ROUTE104", grass=True)
+        with mock.patch.object(goals_module, "world_distance", lambda world_, key: 1):
+            return decide2(mgr, party, world), mgr, world
+
+    def test_r6a_the_partners_cap(self):
+        from ai_player.brain.battle import OUTLEVELS
+
+        self.assertEqual(bp.PARTNER_MARGIN, OUTLEVELS)  # the battle brain's own margin (spec section 2.1)
+        self.assertEqual(self.goal(party18())[0].map, "ROUTE116")
+        self.assertEqual(self.goal(party18(), F(map_by_trainee=True))[0].map, "PETALBURG_WOODS")  # FAULT: BP1-L1
+
+    def test_r6b_r6c_r6d_the_caps(self):
+        mgr = manager()
+        world = world_with(*SEVEN, current="ROUTE104", grass=True)
+        cases = (((4, 12), "PETALBURG_WOODS"), ((21, 5), "ROUTE116"), ((3, 5), "ROUTE101"))
+        for (trainee_level, partner_level), expected in cases:
+            party = [summary(0, "Wurmple", trainee_level, ("Tackle",), 18, pid=W),
+                     summary(1, "Poochyena", partner_level, ("Tackle",), 30, pid=P)]
+            cap, _ = mgr.raise_cap(look(party=party), party[0])
+            with mock.patch.object(goals_module, "world_distance", lambda world_, key: 1):
+                self.assertEqual(mgr.raise_maps(world, cap)[0], expected, (trainee_level, partner_level, cap))
+
+    def test_r6e_a_map_that_fails_twice_is_put_aside(self):
+        for faults, then in ((bp.NO_FAULTS, "PETALBURG_WOODS"), (F(one_raise_key=True), None)):
+            first, mgr, world = self.goal(party18(), faults)
+            self.assertEqual(first.map, "ROUTE116")
+            mgr.outcome(first, False)
+            mgr.outcome(first, False)
+            with mock.patch.object(goals_module, "world_distance", lambda world_, key: 1):
+                plan = mgr.boss_prep(look(party=party18()), at("ch6_briney_house")[1])
+                after = mgr._raise_goal(look(party=party18()), world, plan)
+            self.assertEqual(after.map if after is not None else None, then, faults)
+            self.assertEqual(mgr.bp_record("ch7_brawly")["status"], "active")  # put aside is not spent
+
+
+class BudgetCountingTests(unittest.TestCase):
+    """R7 (V-m3): the raise runner's counting, on a fake session (lead and roam faked; the looks carry the EXP)."""
+
+    def session(self, faults=bp.NO_FAULTS, exp=(100, 100), levels=(4, 4), frames=12345, modes=()):
+        from ai_player.gates.test_goals import RestTests
+
+        mgr, _, _ = planned(faults=faults)
+        record = mgr.bp_record("ch7_brawly")
+        before, after = party18(), party18()
+        before[2] = replace(before[2], experience=exp[0], level=levels[0])
+        after[2] = replace(after[2], experience=exp[1], level=levels[1])
+        nav = RestTests.navigator(RestTests(), [look(party=before), look(party=after)])
+        mind = types.SimpleNamespace(purpose="travel", trainee=None, raise_modes=[], say=None, bp_faults=None)
+        runner = GoalRunner(nav.hands, nav, mgr, mind, lambda line: None)
+
+        def fake_lead(hands, pid, why):
+            yield
+            return True
+
+        def fake_roam(hands, nav_, steps, why):
+            hands.look()
+            hands.pad.frames += frames
+            mind.raise_modes.extend(modes)
+            yield
+            return "roamed: 10 training steps"
+
+        with mock.patch.object(goals_module, "lead_with", fake_lead), mock.patch.object(goals_module, "roam_train", fake_roam):
+            goals_module_drive(runner._raise(Goal("raise", "r", "ch7_brawly", steps=10, key="raise:ROUTE104"),
+                                             lambda s: False))
+        return record
+
+    def test_r7a_frames(self):
+        self.assertEqual(self.session()["frames"], 12345)
+        self.assertEqual(self.session(F(frames_uncounted=True))["frames"], 0)  # FAULT
+
+    def test_r7b_r7c_r7d_stalls_by_exp(self):
+        self.assertEqual(self.session(exp=(100, 100))["stalls"], 1)  # +0 EXP: a stall
+        self.assertEqual(self.session(F(stalls_never=True), exp=(100, 100))["stalls"], 0)  # FAULT
+        self.assertEqual(self.session(exp=(100, 160))["stalls"], 0)  # +EXP, no level: no stall
+        self.assertEqual(self.session(F(stall_by_level=True), exp=(100, 160))["stalls"], 1)  # FAULT: BP-1's
+        self.assertEqual(self.session(exp=(100, 160), levels=(4, 5))["stalls"], 0)  # +level
+
+    def test_the_counters_and_lead_before(self):
+        record = self.session(exp=(100, 146), modes=("switch", "own", "rescue", "run", "not the trainee"))
+        self.assertEqual((record["own_fights"], record["switch_fights"], record["raise_runs"], record["exp_gained"]),
+                         (1, 2, 1, 46))
+        self.assertEqual(record["lead_before"], G)  # slot 0 before the first session (C1's order: Grovyle first)
+
+    def test_r7e_twelve_stalls_spend(self):
+        record = bp.new_record()
+        record["stalls"] = 12
+        self.assertEqual(bp.spent_reason(record, "Story"), "stalls 12 of at most 12")
+
+    def heal_frames(self, faults=bp.NO_FAULTS, status="active"):
+        from ai_player.gates.test_goals import RestTests
+
+        mgr, _, _ = planned(faults=faults)
+        mgr.bp_record("ch7_brawly")["status"] = status
+        nav = RestTests.navigator(RestTests(), [look(party=party18(Wurmple=5))])
+        runner = GoalRunner(nav.hands, nav, mgr, types.SimpleNamespace(purpose="travel", trainee=None), lambda line: None)
+
+        def fake(goal, milestone, index, current):
+            nav.hands.pad.frames += 777
+            yield
+            return True, "healed"
+
+        runner._pursue = fake
+        milestone, index = at("ch6_briney_house")
+        before = mgr.bp_record("ch7_brawly")["frames"]
+        goals_module_drive(runner.pursue(Goal("heal", "h", "ch6_briney_house", key="heal:x"), milestone, index,
+                                         lambda s: index))
+        return mgr.bp_record("ch7_brawly")["frames"] - before, mgr.bp_record("ch7_brawly")["heals"]
+
+    def test_r7f_heal_frames_count_while_active(self):
+        self.assertEqual(self.heal_frames(), (777, 1))
+        self.assertEqual(self.heal_frames(status="spent"), (0, 0))  # CONTROL: no active plan
+        self.assertEqual(self.heal_frames(F(heal_frames_uncounted=True)), (0, 0))  # FAULT
+
+    def test_r7g_the_base_personality_decides(self):
+        """`state.base` Story with `state.active` drifted to Trainer (6379): the plan is ACTED on, on Story's budget.
+        FAULT `base_to_active`: only logged."""
+        for faults, status in ((bp.NO_FAULTS, "active"), (F(base_to_active=True), "logged")):
+            mgr = c1_manager("Story")
+            mgr.bp_faults = faults
+            mgr.state.active = "Trainer"
+            decide2(mgr, party18(), world_with("ROUTE104", current="ROUTE104", grass=True))
+            self.assertEqual(mgr.bp_record("ch7_brawly")["status"], status, faults)
+
+
+class LeadAfterTests(unittest.TestCase):
+    """R8 (V-m5): the lead when a plan ends, bounded."""
+
+    def manager_with(self, status="spent", lead_before=G, trainee_first=True, faults=bp.NO_FAULTS, **record_fields):
+        mgr = c1_manager()
+        mgr.bp_faults = faults
+        record = mgr.prep(at("ch7_brawly")[0]).setdefault("bp", bp.new_record())
+        record.update(status=status, trainee=W, target=19, plan=f"raise:{W:08x}:19", boss="BRAWLY", lead_before=lead_before,
+                      settle="pending" if status == "spent" else "none", **record_fields)
+        party = party18()
+        if trainee_first:
+            party[0], party[2] = party[2], party[0]
+        return mgr, record, party
+
+    def test_r8a_the_usual_lead_restored(self):
+        mgr, record, party = self.manager_with()
+        goal = decide2(mgr, party, world_with("ROUTE104", current="ROUTE104", grass=True))
+        self.assertEqual((goal.kind, goal.pid, goal.key), ("lead", G, "lead:settle"))
+        mgr, record, party = self.manager_with(faults=F(restore_never=True))
+        self.assertNotEqual(decide2(mgr, party, world_with("ROUTE104", current="ROUTE104", grass=True)).kind, "lead")
+
+    def test_r8b_control_the_trainee_kept(self):
+        """The verdict prefers the trainee (a Dustox L20 leading: READY, against Grovyle's NOT READY): no goal, kept.
+        FAULT `restore_always`: the lead goal."""
+        for faults, kind in ((bp.NO_FAULTS, None), (F(restore_always=True), "lead")):
+            mgr, record, party = self.manager_with(faults=faults)
+            party[0] = summary(0, "Dustox", 20, ("Confusion", "Gust", "Protect", "Moonlight"), 55, pid=W)
+            goal = decide2(mgr, party, world_with("ROUTE104", current="ROUTE104", grass=True))
+            self.assertEqual(goal.kind == "lead", kind == "lead", (faults, goal.kind))
+            if kind is None:
+                self.assertEqual(record["settle"], "kept")
+
+    def test_r8c_relead_bounded(self):
+        mgr, record, party = self.manager_with(relead_fails=2)
+        self.assertNotEqual(decide2(mgr, party, world_with("ROUTE104", current="ROUTE104", grass=True)).kind, "lead")
+        mgr, record, party = self.manager_with(relead_fails=2, faults=F(relead_unbounded=True))
+        self.assertEqual(decide2(mgr, party, world_with("ROUTE104", current="ROUTE104", grass=True)).kind, "lead")
+
+    def done_on_gym(self, faults=bp.NO_FAULTS, **fields):
+        mgr, record, party = self.manager_with(status="done", trainee_first=False, faults=faults, **fields)
+        gym = world_with("DEWFORD_TOWN_GYM", current="DEWFORD_TOWN_GYM")
+        return decide2(mgr, party, gym, milestone_id="ch7_brawly", const="DEWFORD_TOWN_GYM")
+
+    def test_r8d_the_done_plans_relead_is_bounded(self):
+        goal = self.done_on_gym()
+        self.assertEqual((goal.kind, goal.pid), ("lead", W))
+        self.assertNotEqual(self.done_on_gym(reorder_fails=3).kind, "lead")
+        self.assertNotEqual(self.done_on_gym(leads=6).kind, "lead")
+        self.assertNotEqual(self.done_on_gym(relead_fails=2).kind, "lead")
+        self.assertEqual(self.done_on_gym(F(relead_unbounded=True), relead_fails=2).kind, "lead")  # FAULT
+        self.assertEqual(self.done_on_gym(F(lead_ignores_budget=True), reorder_fails=3).kind, "lead")  # FAULT (V4)
+
+    def test_r8e_after_the_boss_is_beaten(self):
+        mgr, record, party = self.manager_with(status="done")
+        record["settle"] = "none"
+        goal = decide2(mgr, party, world_with("ROUTE104", current="ROUTE104", grass=True), milestone_id="ch7_exp_share")
+        self.assertEqual((goal.kind, goal.pid, goal.key), ("lead", G, "lead:after"))
+
+    def test_r8f_no_usual_lead(self):
+        mgr, record, party = self.manager_with(lead_before=None)
+        self.assertNotEqual(decide2(mgr, party, world_with("ROUTE104", current="ROUTE104", grass=True)).kind, "lead")
+        self.assertEqual(record["settle"], "done")
+
+    def test_the_lead_runner_counts_and_settles(self):
+        from ai_player.gates.test_goals import RestTests
+
+        for ok, expected in ((True, ("done", 1, 0)), (False, ("pending", 1, 1))):
+            mgr, record, party = self.manager_with()
+            nav = RestTests.navigator(RestTests(), [look(party=party)])
+            runner = GoalRunner(nav.hands, nav, mgr, types.SimpleNamespace(purpose="travel", trainee=None), lambda line: None)
+            asked = []
+
+            def fake_lead(hands, pid, why, ok=ok):
+                asked.append(pid)
+                yield
+                return ok
+
+            milestone, index = at("ch6_briney_house")
+            with mock.patch.object(goals_module, "lead_with", fake_lead):
+                goals_module_drive(runner._pursue(Goal("lead", "l", "ch7_brawly", key="lead:settle", pid=G), milestone,
+                                                  index, lambda s: index))
+            self.assertEqual((record["settle"], record["leads"], record["relead_fails"]), expected)
+            self.assertEqual(asked, [G])
+
+
+class LearnerTests(unittest.TestCase):
+    """(round 2, the LIVE finding of ledger #118: all three raise runs stuck in one battle) A trainee that levels up while
+    SWITCHED OUT is asked to learn a move with another Pokemon on the field: the battle skill (`skills/battle.py` _learn,
+    _forget_choice) must name the learner, not the battler, and keep its answers consistent. Reproduced offline first
+    (s53/bp1r2/repro_learn.py, predictions hashed): with the pages as the eyes showed them (one partial print a look) the
+    40-page window lost "DUSTOX is trying to learn GUST.", the learner was taken to be Grovyle ("forget Absorb"), the forget
+    screen kept Dustox's four, and "Stop learning GUST?" was answered NO: the game asked again, without end."""
+
+    DUSTOX, GROVYLE = 0x55cfbff3, 0xd05408ff
+
+    def seen(self, dustox_level: int = 13):
+        party = [member("Dustox", dustox_level, DUSTOX_MOVES, 30, 43, self.DUSTOX, 0),
+                 member("Grovyle", 22, GROVYLE_MOVES, 34, 60, self.GROVYLE, 2)]
+        return battle_look([battle_mon("Grovyle", 22, GROVYLE_MOVES, 34, 60, pid=self.GROVYLE)], [foe("Poochyena", 6, bar=0)],
+                           party=party)
+
+    @staticmethod
+    def pages_shown(*texts: str):
+        from ai_player.skills import battle as skill
+
+        pages = skill._Pages()
+        for text in texts:
+            for n in range(1, len(text) + 1):  # a page PRINTING is a new page at every look
+                pages(types.SimpleNamespace(screen=types.SimpleNamespace(text=text[:n])))
+        return pages
+
+    def learn(self, pages, seen, faults=None):
+        from ai_player.brain.battle import BattleFaults
+        from ai_player.skills import battle as skill
+
+        hands = types.SimpleNamespace(tell=lambda line: None, note=lambda *a, **k: None)
+        return skill._learn(hands, seen, "GUST", pages, faults or BattleFaults())
+
+    MESSAGES = ("DUSTOX is trying to learn GUST.", "But, DUSTOX can’t learn more than four moves.",
+                "Delete a move to make room for GUST?")
+
+    def test_the_learner_named_by_its_page(self):
+        """The page kept apart names Dustox even after the window lost it. Dustox at L14 here, so the 'taught at its level
+        now' rule cannot name it (Gust is Dustox's L13 move): the page alone does. FAULT `learner_by_battler`: Grovyle."""
+        from ai_player.brain.battle import BattleFaults
+
+        pages = self.pages_shown(*self.MESSAGES)
+        self.assertFalse(any("is trying to learn" in p and p.endswith(".") for p in pages.pages))  # the window lost it
+        self.assertEqual(self.learn(pages, self.seen(14)).forget, "Harden")
+        self.assertEqual(self.learn(pages, self.seen(14), BattleFaults(learner_by_battler=True)).forget, "Absorb")
+
+    def test_met_at_the_question(self):
+        """A battle played from the question on (no page seen): the member the game teaches Gust NOW (Dustox L13); FAULT:
+        the battler, Grovyle. CONTROL: at L14 (nobody is taught Gust now) the battler, as before."""
+        from ai_player.brain.battle import BattleFaults
+
+        fresh = self.pages_shown(self.MESSAGES[2])
+        self.assertEqual(self.learn(fresh, self.seen(13)).forget, "Harden")
+        self.assertEqual(self.learn(fresh, self.seen(13), BattleFaults(learner_by_battler=True)).forget, "Absorb")
+        self.assertEqual(self.learn(self.pages_shown(self.MESSAGES[2]), self.seen(14)).forget, "Absorb")
+
+    def test_the_forget_screen_rechecks(self):
+        """The forget screen lists Dustox's four: a choice made for Grovyle ("forget Absorb") is made again for Dustox (row
+        3, Harden), and it is the choice "Stop learning?" is answered by. FAULT `forget_unchecked`: the row of the new
+        move (keep the four) while the choice still says LEARN: the live loop. CONTROL: a choice already Dustox's stands."""
+        from ai_player.brain.battle import BattleFaults, LearnChoice
+        from ai_player.skills import battle as skill
+
+        hands = types.SimpleNamespace(tell=lambda line: None, note=lambda *a, **k: None)
+        names = ["Tackle", "Confusion", "Poison Sting", "Harden", "Gust"]
+        wrong = LearnChoice(True, "Absorb", "for Grovyle")
+        index, _, learn = skill._forget_choice(hands, self.seen(13), names, wrong)
+        self.assertEqual((index, learn.learn, learn.forget), (3, True, "Harden"))
+        index, _, learn = skill._forget_choice(hands, self.seen(13), names, wrong, BattleFaults(forget_unchecked=True))
+        self.assertEqual((index, learn.learn, learn.forget), (4, True, "Absorb"))
+        right = LearnChoice(True, "Harden", "for Dustox")
+        self.assertEqual(skill._forget_choice(hands, self.seen(13), names, right)[0::2], (3, right))
+
+
+class OwnImmunityTests(unittest.TestCase):
+    """R9 (V-m1): the party's fixed damage against a type immune to it."""
+
+    def test_night_shade(self):
+        sableye = bp.Member(9, "Sableye", 20, 58, 58, ("Night Shade",))
+        normal = BossMon("Zigzagoon", 20, ("Tackle",), None)
+        fighting = BossMon("Machop", 20, ("Karate Chop",), None)
+        self.assertEqual(bp._own_points(sableye, normal, "Night Shade"), 0)
+        self.assertEqual(bp.verdict([sableye], 9, [normal], "Story").cls, bp.NOT_READY)
+        control = bp._own_points(sableye, fighting, "Night Shade")
+        self.assertGreater(control, 0)  # CONTROL: the rough share of its 20 points
+        self.assertEqual(bp._own_points(sableye, fighting, "Night Shade", F(no_immunity_own=True)), control)
+        self.assertGreater(bp._own_points(sableye, normal, "Night Shade", F(no_immunity_own=True)), 0)  # FAULT
+        self.assertEqual(bp.verdict([sableye], 9, [normal], "Story", F(no_immunity_own=True)).cls, bp.READY)
 
 
 if __name__ == "__main__":
