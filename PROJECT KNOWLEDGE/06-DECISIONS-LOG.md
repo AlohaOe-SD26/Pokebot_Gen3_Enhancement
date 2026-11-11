@@ -10068,3 +10068,11 @@ on all three questions:
   - Which mix fits is decided per situation, never one fixed recipe, and every loop stays bounded by BP-1's one per-boss budget (M5).
 - **Status:** a design ruling for BP-1's raise; NOT built. BP-1 is on branch `wip/ch6-bp1` (`69ce148e`) with a verifier FAIL (V-M1); its next round builds the raise this way, then its live A/B.
 - **Do not re-ask** how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09).
+
+## 2026-11-11 — The order stays: chapter 6's boss preparation and dark cave, then the chapter 6-7 merge, then A1 (the trainer training the AI player); the user was unsure, so it is the lead's call (punch-list #28-aiagent-v2)
+
+- **The question (2026-11-09):** should A1, the 24/7 trainer actually training the AI player, move ahead of BP-1 round 2 and P11-1, or keep the order that finishes chapter 6 first?
+- **The user's answer, VERBATIM:**
+  > I am not exactly sure at this moment in time, I want the ai agent to be trained overall but I am not sure if I am just being impatient, I dont want to ruin the process if this is part of the process.
+- **Decision (the lead's):** keep the order: BP-1 round 2, P11-1, the chapter 6-7 merge, then A1. **Why:** the trainer trains the AI chapter by chapter (USER RULING 54), on chapters the AI can already play through; with chapters 6-7 merged it has more to train on, and A1 built before the merge would have to be re-integrated after the merge's code changes. **Rejected:** A1 first (training starts sooner, on chapters 1-5 only, at the cost of a second integration).
+- **Revisit** when the chapter 6-7 merge lands, or whenever the user asks. Not a do-not-reopen ruling.

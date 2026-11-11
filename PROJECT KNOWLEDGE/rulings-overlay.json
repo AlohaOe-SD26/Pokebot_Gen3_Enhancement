@@ -562,6 +562,15 @@
    "reason": "06 USER RULING 59: the user's answer to the raise question, verbatim: \"Some mix that makes logical sense\"",
    "status": "ACTIVE",
    "topics": "raise train trainee weak Pokemon counter boss switch-training switch out experience EXP share wild battles Pokemon Center heal Potion BP-1 V-M1 Wurmple"
+  },
+  "2026-11-11-334134": {
+   "title": "2026-11-11 — The order stays: chapter 6's boss preparation and dark cave, then the chapter 6-7 merge, then A1 (the trainer training the AI player); the user was unsure, so it is the lead's call (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "1da96edb": "mention"
+   },
+   "reason": "06 2026-11-11: the user was unsure (\"I am not exactly sure at this moment in time\"); the lead kept the order and wrote \"Not a do-not-reopen ruling\", so nothing here forbids re-asking",
+   "status": "ACTIVE",
+   "topics": "order priority A1 trainer train the AI player BP-1 P11-1 chapter 6-7 merge sequence impatient process"
   }
  }
 }

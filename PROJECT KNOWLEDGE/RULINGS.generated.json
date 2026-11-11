@@ -1,11 +1,11 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "73c52ecadb6664fdb8b3865b0e1b8c36f6750a55",
+ "source_sha1_lf": "c464281c6423408b31035f27b67638543d056de4",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 369,
-  "donot_candidates": 36,
+  "sections": 370,
+  "donot_candidates": 37,
   "sections_naming_user_rulings": 56
  },
  "sections": [
@@ -5811,6 +5811,27 @@
      "key": "0156a392",
      "line": 10070,
      "text": "- **Do not re-ask** how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09)."
+    }
+   ],
+   "cues": []
+  },
+  {
+   "id": "2026-11-11-334134",
+   "date": "2026-11-11",
+   "line_start": 10072,
+   "line_end": 10078,
+   "title": "2026-11-11 — The order stays: chapter 6's boss preparation and dark cave, then the chapter 6-7 merge, then A1 (the trainer training the AI player); the user was unsure, so it is the lead's call (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [
+    {
+     "key": "1da96edb",
+     "line": 10078,
+     "text": "- **Revisit** when the chapter 6-7 merge lands, or whenever the user asks. Not a do-not-reopen ruling."
     }
    ],
    "cues": []
