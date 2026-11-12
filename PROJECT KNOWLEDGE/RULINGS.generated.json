@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "9edd7885aa085e50bceb4d6e8593b75e6101fa44",
+ "source_sha1_lf": "422739b1ac10bb1ab66eaaba7ad9e17db193f801",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 371,
+  "sections": 372,
   "donot_candidates": 37,
   "sections_naming_user_rulings": 56
  },
@@ -5842,6 +5842,21 @@
    "line_start": 10080,
    "line_end": 10086,
    "title": "2026-11-11 — Boss prep BP-1 round 3: the trainee is protected in every battle of an active plan by a turn-1 switch, not by re-ordering the party between sessions; round 3 runs beside P11-1 (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-11-65d48b",
+   "date": "2026-11-11",
+   "line_start": 10088,
+   "line_end": 10099,
+   "title": "2026-11-11 — The fix round after BP-1 round 3 and P11-1: a heal only when it can change the decision; a member that cannot win is the last resort; the dark-cave fact refuses what it cannot model (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [
