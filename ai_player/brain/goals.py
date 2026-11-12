@@ -1425,7 +1425,7 @@ class GoalManager:
         # the raise was chosen again, it ran from every battle and 12 sessions of +0 EXP spent the plan (6378, 6379).
         # Always None in chapters 1-5, where no plan is active
         trainee_low = self._trainee_low(look, bp_plan)
-        worn = self._partner_worn(look, bp_plan)
+        worn = self._partner_worn(look, bp_plan, world)
         if self.bp_faults.trainee_floor_off:
             trainee_low = worn = None
         # the party in real danger (a Pokemon fainted, the strongest under a third: `needs_rest`): healing is then the only
@@ -2236,13 +2236,28 @@ class GoalManager:
             return f"low ({trainee.hp}/{trainee.max_hp})"
         return None
 
-    def _partner_worn(self, look: Observation, bp_plan: tuple | None) -> str | None:
-        """(round 2, the builder's addition) An ACTIVE plan's knock-out partner fainted or under half its HP
-        (`bossprep.partner_worn`): no member could then take the trainee's place and every raise battle would be run from."""
+    def _partner_worn(self, look: Observation, bp_plan: tuple | None, world=None) -> str | None:
+        """(round 2, the builder's addition) An ACTIVE plan's knock-out partner fainted or (round 3, V2-M1) not a partner
+        against the wild Pokemon of the map the next raise goes to (`_raise_place`; `bossprep.partner_worn`): no member
+        could then take the trainee's place and the raise battle would be run from."""
         record = bp_plan[3] if bp_plan is not None else None
         if record is None or record.get("status") != "active" or record.get("trainee") is None:
             return None
-        return partner_worn(look, int(record["trainee"]), self.bp_faults)
+        place = self._raise_place(look, world, record) if world is not None else None
+        return partner_worn(look, int(record["trainee"]), self.bp_faults, place)
+
+    def _raise_key(self, place: str) -> str:
+        """(BP1-L2) A raise map's own cooldown key. FAULT `one_raise_key`: one key for every map."""
+        return "raise" if self.bp_faults.one_raise_key else f"raise:{place}"
+
+    def _raise_place(self, look: Observation, world, record: dict) -> str | None:
+        """(round 3) The map the next raise session goes to, as `_raise_goal` chooses it (the first ranked map under the
+        partner's cap that is not put aside), or None."""
+        trainee = next((m for m in look.party or () if m.pid == record.get("trainee")), None)
+        if trainee is None:
+            return None
+        cap, _ = self.raise_cap(look, trainee)
+        return next((place for place in self.raise_maps(world, cap) if self._allowed(self._raise_key(place))), None)
 
     @staticmethod
     def _raise_name(look: Observation, bp_plan: tuple | None) -> str:
@@ -2307,14 +2322,11 @@ class GoalManager:
         if spent is not None:
             self._spend(record, name, spent)
             return None
-        low = self._trainee_low(look, plan) or self._partner_worn(look, plan)
+        low = self._trainee_low(look, plan) or self._partner_worn(look, plan, world)
         if low is not None and not self.bp_faults.raise_guard_off:
             self._say(f"[AI-BOSSPREP] {name}: the raise waits: the trainee is low ({low})")
             return None
-
-        def key_of(place: str) -> str:
-            return "raise" if self.bp_faults.one_raise_key else f"raise:{place}"
-
+        key_of = self._raise_key
         where = next((place for place in maps if self._allowed(key_of(place))), None)
         if where is None:
             self._say(f"[AI-BOSSPREP] {name}: the raise waits: every raise map is put aside for now ({maps})")
@@ -2788,6 +2800,29 @@ class GoalRunner:
                     walls[key] -= corners.get(key, set())
                 nav.carried_scene_walls = None
 
+    def _guard_for(self, goal: Goal) -> int | None:
+        """(round 3, the round-2 verifier's V2-M2; the lead's design D2) Whom the battle brain protects in this goal's
+        battles: the trainee of the next boss's plan while that plan is ACTIVE, in every goal but a raise (the raise
+        battle's own rules) and the BOSS FIGHT itself (the story's own talk to the leader: `talk:<look>` in the boss's
+        milestone; a plan done or spent is not active, and its trainee may lead the boss on purpose). The trainee stays
+        FIRST between raise sessions (the spec; the rejected alternative, restoring the lead each session, costs a reorder
+        a session and loses the trainee's share of the walks' battles). WHY: round 2 told the battle brain nothing outside a
+        raise, and the trainee led the walks to heal it, the pick-ups and the travel: 5 faints in 6 live runs, one from
+        3/21 on the walk to the POKéMON CENTER. FAULTS `guard_unset` (never: round 2), `guard_in_boss_fight` (the boss
+        fight not left out)."""
+        manager = self.manager
+        faults = manager.bp_faults
+        if faults.guard_unset or goal.kind == "raise" or manager.bp_boss is None:
+            return None
+        boss_id = manager.bp_boss[0]
+        record = manager.bp_record(boss_id)
+        if record is None or record.get("status") != "active" or record.get("trainee") is None:
+            return None
+        if (not faults.guard_in_boss_fight and goal.milestone == boss_id and goal.kind in ("talk", "use")
+                and goal.look is not None and goal.key == f"{goal.kind}:{goal.look}"):
+            return None
+        return int(record["trainee"])
+
     def _plan_heal_record(self, goal: Goal) -> dict | None:
         """(round 2) The ACTIVE raise plan's record a goal of `PLAN_HEAL_KINDS` counts into (the next boss's, by
         `bp_boss`, its status read at the goal's START), or None (FAULT `heal_frames_uncounted`: always None)."""
@@ -2877,6 +2912,15 @@ class GoalRunner:
         # first chapter-1 run tried RUN in PROF. BIRCH's battle, which the game refuses); training and catching fight too
         self.mind.purpose = ("raise" if goal.kind == "raise" else
                              "train" if goal.kind in ("train", "catch", "use", "talk", "follow") else "travel")
+        # (boss preparation round 3, the round-2 verifier's V2-M2) an ACTIVE plan's trainee is protected in every battle of
+        # this goal (`_guard_for`): the battle brain is told whom (`BattleMind.guard`, its line through `say`). None in
+        # chapters 1-5 (no plan), in a raise (its own rules) and in the boss fight itself
+        guard = self._guard_for(goal)
+        self.mind.guard = guard
+        if goal.kind != "raise":
+            self.mind.say = self.tell if guard is not None else None
+            if guard is not None:
+                self.mind.bp_faults = manager.bp_faults
         if goal.kind in ("go", "look_around", "follow", "find", "explore"):
             target_map = goal.map if goal.kind == "go" else None
             look_for = goal.look
@@ -3219,7 +3263,7 @@ class GoalRunner:
             if hasattr(mind, "bp_faults"):
                 mind.bp_faults = faults
             hands.watchers.append(watch)
-            self.roam_hooks(trainee=pid, after_battle=watch.after)
+            self.roam_hooks(trainee=pid, after_battle=watch.after, raise_map=goal.map)
             where = goal.map
             if where is not None and (nav.world.here() is None or nav.world.here().const != where):
                 went = yield from self._travel(where, f"{goal.reason}: to the grass of {where}", GO_FRAMES,
@@ -3323,7 +3367,7 @@ class GoalRunner:
                 f"the strongest other: {strongest.species} L{strongest.level}" if strongest is not None else "no other")
 
     def roam_hooks(self, hunt: bool = False, trainee: int | None = None,
-                   after_battle: Callable[[Observation], str | None] | None = None) -> None:
+                   after_battle: Callable[[Observation], str | None] | None = None, raise_map: str | None = None) -> None:
         """What a TRAINING or CATCHING roam asks (set for the roam only, `clear_roam_hooks` after): after every battle, a
         reason to stop and heal (`training_rest`: under the personality's `heal_below`; the navigator asks it with no battle
         limit set: until the step-5 verifier's round of 2026-10-14 it asked only WITH one, so the rule never fired and a run
@@ -3340,9 +3384,10 @@ class GoalRunner:
             def raise_rest(look: Observation) -> str | None:
                 stop = after_battle(look) if after_battle is not None else None
                 # (round 2, the builder's addition) and its knock-out partner worn: no member could take the trainee's
-                # place, so the roam would run from every battle (`bossprep.partner_worn`)
+                # place, so the roam would run from every battle (`bossprep.partner_worn`; round 3, V2-M1: the partner
+                # line against the wild Pokemon of the map it roams, `raise_map`)
                 return (stop or trainee_rest(look, trainee, heal_below, active)
-                        or partner_worn(look, trainee, manager.bp_faults))
+                        or partner_worn(look, trainee, manager.bp_faults, raise_map))
 
             nav.battle_rest = raise_rest
         since = {"battles": len(getattr(nav, "battle_log", None) or ()), "dex": None}

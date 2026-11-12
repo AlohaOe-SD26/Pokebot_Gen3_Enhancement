@@ -51,6 +51,16 @@ hidden (`gates/check_fairness.py`): it never computes a yield.
   * `_own_points` gives 0 to a move the boss Pokemon's typing is IMMUNE to (V-m1: fixed damage ignored the chart).
   * the per-boss record's new fields (`new_record`), the one way a plan is SPENT (`spend`: it leaves the lead to be
     SETTLED, V-m5), and the raise's knock-out partner (`raise_partner_of`, `partner_worn`).
+
+ROUND 3, THE TRAINEE SAFE THROUGHOUT AN ACTIVE PLAN (2026-11-11; the round-2 verifier's V2-M1 and V2-M2: 7 trainee
+faints in 6 live runs, 2 in raise battles the game would not let it run from, 5 in the plan's other battles it led):
+  * `partner_fit`, the ONE partner line: the battle's turn-1 partner (`brain/battle.py` raise_partner) and the raise's
+    rest (`partner_worn`, now against every wild Pokemon of the raise map, `knowledge/seasoned.py` land_slots) ask the
+    same thing, so the raise rests exactly when no member could take the trainee's place;
+  * `fight_safe(..., keep=0)`: "can it win, still standing?", the RESCUE's question (`brain/battle.py` rescue_member):
+    a partner at 56% that wins beats a fainted trainee;
+  * the protection outside raise battles is the battle brain's (`brain/battle.py` BattleMind.guard, set by the goal
+    runner, `brain/goals.py` GoalRunner._guard_for).
 """
 
 from __future__ import annotations
@@ -63,7 +73,7 @@ from dataclasses import dataclass
 from ai_player.brain.battle import TEMPERAMENTS, BattleFaults, learn_choice, move_value, rough_share, typical_stat
 from ai_player.eyes.observation import BattleMon, MonSummary, MoveSlot, Observation
 from ai_player.knowledge.atlas import BossMon, gym_leaders
-from ai_player.knowledge.seasoned import evolutions, level_up, wild_moves
+from ai_player.knowledge.seasoned import evolutions, land_slots, level_up, wild_moves
 from ai_player.knowledge.facts import move_fact, species_fact, type_multiplier
 from ai_player.personality import ERRANDS
 
@@ -103,6 +113,7 @@ __all__ = [
     "new_record",
     "next_boss",
     "options",
+    "partner_fit",
     "partner_worn",
     "project",
     "raise_partner_of",
@@ -205,6 +216,14 @@ class BossprepFaults:
     restore_always: bool = False  # (V-m5) the usual lead restored without the re-judge
     relead_unbounded: bool = False  # (V-m5) no bound on failed lead goals
     lead_ignores_budget: bool = False  # (V-m5) the done plan's re-lead ignores the reorder and lead bounds
+    # ---- round 3 (the trainee SAFE throughout an active plan: the round-2 verifier's V2-M1 and V2-M2)
+    #: (V2-M1) round 2's rest line for the knock-out partner: a flat half of its HP, not the partner line against the
+    #: raise map's own wild Pokemon (`partner_worn`)
+    partner_half_line: bool = False
+    #: (V2-M2) the goal runner never tells the battle brain whom to protect outside a raise battle (round 2)
+    guard_unset: bool = False
+    #: (V2-M2) the protection kept on in the boss fight itself (the story's own talk to the leader)
+    guard_in_boss_fight: bool = False
 
 
 NO_FAULTS = BossprepFaults()
@@ -440,7 +459,7 @@ def member_now(look: Observation, pid: int) -> Member | None:
 
 
 def fight_safe(member: Member, foe_species: str, foe_level: int, bar_share: float, hp: int, seen_moves=(),
-               faults: BossprepFaults = NO_FAULTS) -> tuple[bool, str]:
+               faults: BossprepFaults = NO_FAULTS, keep: float = TRAINEE_FLOOR) -> tuple[bool, str]:
     """(round 2, spec section 2.2) Would `member` win this WILD battle on its own and still stand well? Built only from
     the battle brain's own functions, as a person reckons it:
       1. the foe's moves: the moves a wild one of its species and level knows (`knowledge/seasoned.py` wild_moves: the
@@ -448,8 +467,10 @@ def fight_safe(member: Member, foe_species: str, foe_level: int, bar_share: floa
       2. its HP left: the bar on screen times a TYPICAL Pokemon of its level (rule 4.1);
       3. the member's hits: its best move's points (`_own_points`); none that hurts: not safe;
       4. the foe's worst hit on it (`hit_points`), and a person's worst case: the foe strikes FIRST every turn;
-    SAFE when it needs at most `RAISE_MAX_HITS` hits and keeps `TRAINEE_FLOOR` of its max HP. `hp` is its HP NOW.
-    FAULTS `safe_full_hp` (judged at its full HP), `hits_unbounded` (no bound on its hits). Returns (safe, why)."""
+    SAFE when it needs at most `RAISE_MAX_HITS` hits and keeps `keep` of its max HP (`TRAINEE_FLOOR`; round 3: 0 asks
+    only that it is still STANDING, at 1 HP or more: the RESCUE's "can win", `brain/battle.py` rescue_member). `hp` is
+    its HP NOW. FAULTS `safe_full_hp` (judged at its full HP), `hits_unbounded` (no bound on its hits). Returns (safe,
+    why)."""
     moves = list(wild_moves(foe_species, foe_level))
     for name in seen_moves:
         if name and name not in moves:
@@ -463,9 +484,24 @@ def fight_safe(member: Member, foe_species: str, foe_level: int, bar_share: floa
     now = member.max_hp if faults.safe_full_hp else hp
     their = max((hit_points(foe, member, name, bar_share, True, now, faults) for name in foe.moves), default=0)
     left = now - their * hits
-    safe = (faults.hits_unbounded or hits <= RAISE_MAX_HITS) and left >= member.max_hp * TRAINEE_FLOOR
+    floor = member.max_hp * keep if keep > 0 else 1  # (round 3) keep 0: still standing, at 1 HP or more
+    safe = (faults.hits_unbounded or hits <= RAISE_MAX_HITS) and left >= floor
     return safe, (f"{hits} of its hits ({own} points each against about {foe_hp}); {foe_species}'s worst {their} a hit "
                   f"first every turn leaves {left}/{member.max_hp}")
+
+
+def partner_fit(member: Member, foe_species: str, foe_level: int, bar_share: float, hp: int, seen_moves=(),
+                faults: BossprepFaults = NO_FAULTS) -> tuple[bool, str]:
+    """(round 3, V2-M1) THE PARTNER LINE, one rule for the two places that ask it: a member fit to KNOCK OUT a wild
+    Pokemon for the trainee is at HALF its HP or more (`brain/battle.py` better_member's health rule) and wins the battle
+    safely itself (`fight_safe` at its HP now, keeping `TRAINEE_FLOOR`). `brain/battle.py` raise_partner asks it of the
+    foe on the field (the turn-1 switch); `partner_worn` asks it of every wild Pokemon of the raise map, so the raise
+    rests exactly when the battle brain would find no partner. WHY (the round-2 verifier's V2-M1): round 2 rested the party
+    at a flat half while the battle asked `fight_safe`; a Grovyle L21 at 29-34/57 was neither worn nor a partner against
+    Nincada L7, Taillow L7-8 or Skitty L7-8 (22% of ROUTE116's land), the raise ran, and the trainee fainted twice."""
+    if hp < member.max_hp / 2:
+        return False, f"{member.species} is under half its HP ({hp}/{member.max_hp})"
+    return fight_safe(member, foe_species, foe_level, bar_share, hp, seen_moves, faults)
 
 
 # ------------------------------------------------------------------------------------------- the duel
@@ -630,12 +666,16 @@ def raise_partner_of(party, trainee: int):
     return partner
 
 
-def partner_worn(look: Observation, trainee: int, faults: BossprepFaults = NO_FAULTS) -> str | None:
+def partner_worn(look: Observation, trainee: int, faults: BossprepFaults = NO_FAULTS,
+                 raise_map: str | None = None) -> str | None:
     """(round 2, the builder's addition to the spec) Why the raise rests for its KNOCK-OUT Pokemon (`raise_partner_of`):
-    it has fainted or is under HALF its max HP, the battle brain's own health rule for a member to switch to
-    (`brain/battle.py` better_member; spec section 2.3's `raise_partner`). WHY: under that line no member can take the
-    trainee's place, so every raise battle is RUN from and the session earns nothing; with only the trainee's floor asked,
-    the next decision raised again (the partner's own V-M1). None otherwise. FAULT `partner_worn_off`: never."""
+    it has fainted, or (round 3, V2-M1) it is not a PARTNER (`partner_fit`: half its HP and a safe win) against every wild
+    Pokemon of the raise map, each at the highest level the map's land holds it (`knowledge/seasoned.py` land_slots: a
+    guide's table); with no raise map known, under half its HP (round 2's line). WHY: under the partner line no member
+    can take the trainee's place, so the raise battle is RUN from, a refused run keeps the trainee on the field, and the
+    session earns nothing; the line is the battle's own, so the two can no longer disagree (V2-M1: Grovyle at 32/57 was
+    "not worn" and "no partner" at once). None otherwise. FAULTS `partner_worn_off` (never), `partner_half_line` (round
+    2's flat half)."""
     if faults.partner_worn_off:
         return None
     partner = raise_partner_of(look.party, trainee)
@@ -643,8 +683,17 @@ def partner_worn(look: Observation, trainee: int, faults: BossprepFaults = NO_FA
         return None
     if partner.hp <= 0:
         return f"its knock-out Pokemon {partner.species} L{partner.level} has fainted"
-    if partner.hp < partner.max_hp / 2:
-        return f"its knock-out Pokemon {partner.species} L{partner.level} is worn ({partner.hp}/{partner.max_hp})"
+    slots = land_slots(raise_map) if raise_map and not faults.partner_half_line else ()
+    if not slots:
+        if partner.hp < partner.max_hp / 2:
+            return f"its knock-out Pokemon {partner.species} L{partner.level} is worn ({partner.hp}/{partner.max_hp})"
+        return None
+    member = member_now(look, partner.pid)
+    for species, level in slots:
+        fit, why = partner_fit(member, species, level, 1.0, partner.hp, (), faults)
+        if not fit:
+            return (f"its knock-out Pokemon {partner.species} L{partner.level} ({partner.hp}/{partner.max_hp}) is not a "
+                    f"safe partner against {species} L{level} on {raise_map}: {why}")
     return None
 
 

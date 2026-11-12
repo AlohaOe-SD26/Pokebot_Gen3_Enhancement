@@ -266,8 +266,8 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
                 if learn is None or learn_key != key:
                     learn, learn_key = _learn(hands, look, key, pages, mind.faults), key
             # (step 4.1) the pages before the question and the whole message: the shift question names the next foe on the
-            # page before "Will ... change POKéMON?"
-            context = " ".join(pages.pages[-4:] + [look.screen.text or ""])
+            # page before "Will ... change POKéMON?" (`_shift_context`)
+            context = _shift_context(pages, look)
             yes, reason = mind.answer(question, look, learn if learning else None, context)
             hands.tell(f"battle: the question {question!r}: {'YES' if yes else 'NO'} ({reason})")
             if not (yield from choose(hands, BATTLE_YES_NO, 0 if yes else 1, f"{why}: {reason}")):
@@ -311,6 +311,19 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
             continue
         return f"the battle: an unexpected {kind} on screen"
     return f"the battle did not end within {BATTLE_STEPS} menus"
+
+
+def _shift_context(pages: _Pages, look: Observation) -> str:
+    """(step 4.1; boss preparation round 3, the round-2 builder's new stop) The words a yes/no question is answered with:
+    the last 4 pages of the window and the WHOLE message on screen. WHY THE SHIFT QUESTION CANNOT LOSE ITS FOE THE WAY THE
+    LEARNER WAS LOST (round 2, #118): the learner's page ("DUSTOX is trying to learn GUST.") is a message of its own, before
+    the question's, so only the 40-page window held it; the shift question is ONE message whose first page names the foe
+    (`src/battle_message.c` sText_EnemyAboutToSwitchPkmn: "{B_TRAINER1_CLASS} {B_TRAINER1_NAME} is\\nabout to use
+    {B_BUFF2}.\\pWill {B_PLAYER_NAME} change\\nPOKéMON?"), and the eyes' text is that message FROM ITS START up to what has
+    printed (`host/eyes.py` _text: `gDisplayedStringBattle` from its base), so `look.screen.text` at the question holds the
+    first page whatever the window lost (`brain/battle.py` incoming takes the LAST "about to use" in the words: this
+    message's). `gates/test_bossprep.py` ShiftContextTests pins it with a window that lost the page."""
+    return " ".join(pages.pages[-4:] + [look.screen.text or ""])
 
 
 def _learns_now(party: list[MonSummary], move: str) -> MonSummary | None:

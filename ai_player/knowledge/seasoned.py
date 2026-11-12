@@ -5,7 +5,8 @@ WHAT IT ANSWERS (USER RULINGS 40 and 58: a seasoned player knows Pokemon and Eme
 training the party's own counter is a plan):
   * `evolutions(species)`: how a species evolves, as a Pokedex or a guide says it: (method, level or None, into);
   * `level_up(species)`: the moves it learns by level: (level, move);
-  * `land_levels(map_const)`: the levels of the wild Pokemon on a map's land (its grass), as a guide lists them.
+  * `land_levels(map_const)`: the levels of the wild Pokemon on a map's land (its grass), as a guide lists them;
+  * `land_slots(map_const)` (round 3): which species live on that land, each at its highest level there.
 Every name is the AI's own (`knowledge/facts.py`): "Wurmple", "Poison Sting". A symbol that maps to no facts name is
 left out (`unmapped` lists them, for the test side).
 
@@ -16,8 +17,8 @@ Confusion or Gust), and a raise goal chooses grass whose wild levels suit the Po
 WHAT IT READS, AND NOTHING ELSE (`gates/check_fairness.py` declares this module the three files' only LOADER and
 classifies every key path of them, RULE B): of `seasoned/species.json` each entry's `symbol`, `name` and its
 `evolutions[].method / parameter.value / into`; of `seasoned/learnsets.json` each entry's `symbol` and `level_up[].level /
-move`; of `seasoned/encounters.json` each map's `map`, `availability` and its land slots' `min_level / max_level`.
-Never a base stat, a catch rate, an experience yield, a growth rate or a wild held item (all HIDDEN: the fairness gate
+move`; of `seasoned/encounters.json` each map's `map`, `availability` and its land slots' `species` and `min_level /
+max_level`. Never a base stat, a catch rate, an experience yield, a growth rate or a wild held item (all HIDDEN: the fairness gate
 refuses them here, B2), and never which branch a Wurmple takes (decided by its PID, which is hidden: the caller judges by
 the worse branch).
 """
@@ -32,6 +33,7 @@ from .facts import move_named, species_named
 __all__ = [
     "evolutions",
     "land_levels",
+    "land_slots",
     "level_up",
     "unmapped",
     "wild_moves",
@@ -139,6 +141,28 @@ def land_levels(map_const: str | None) -> tuple[int, int] | None:
             land[const] = (low, high)
         _CACHE["land"] = land
     return _CACHE["land"].get(str(map_const or "").removeprefix("MAP_"))  # type: ignore[union-attr]
+
+
+def land_slots(map_const: str | None) -> tuple[tuple[str, int], ...]:
+    """(boss preparation round 3, 2026-11-11) The wild Pokemon of a map's LAND as a guide's table lists them: each
+    species (a facts name) once, at the HIGHEST level the map's land holds it (its strongest), over the entries a player
+    meets in normal play; sorted by species. () when it has none. A species whose symbol maps to no facts name is left
+    out. Static knowledge: who lives in the grass and how strong (never how often a slot comes up, never a yield)."""
+    if "slots" not in _CACHE:
+        found: dict[str, dict[str, int]] = {}
+        for entry in _load("encounters.json")["maps"]:
+            if entry["availability"] != "normal":
+                continue
+            slots = ((entry.get("methods") or {}).get("land") or {}).get("slots") or ()
+            const = str(entry["map"]).removeprefix("MAP_")
+            for slot in slots:
+                name = _species().get(str(slot["species"]), (None, ()))[0]
+                if name is None:
+                    continue
+                top = found.setdefault(const, {})
+                top[name] = max(top.get(name, 0), int(slot["max_level"]))
+        _CACHE["slots"] = {const: tuple(sorted(levels.items())) for const, levels in found.items()}
+    return _CACHE["slots"].get(str(map_const or "").removeprefix("MAP_"), ())  # type: ignore[union-attr]
 
 
 def unmapped() -> dict[str, list[str]]:

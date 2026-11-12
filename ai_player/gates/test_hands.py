@@ -76,8 +76,10 @@ import ast
 import json
 import os
 import random
+import subprocess
 import sys
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -86,6 +88,17 @@ REPO = Path(__file__).resolve().parents[2]
 #: temporary folder and points here at the real repo (as `gates/test_eyes.py` does): without it the host's
 #: range-check test cannot import `ai_player.host.eyes` (it needs the framework) and ERRORs in every copy.
 SUPPORT = Path(os.environ.get("AI_PLAYER_TEST_SUPPORT_ROOT") or REPO)
+
+
+def in_git_repository(root: Path) -> bool:
+    """(boss preparation round 3, the round-2 verifier's V2-n1) Is `root` inside a git repository? A copy of the package
+    with no .git (a verifier's copy) skips the tests that read git, instead of failing on `git rev-parse`."""
+    try:
+        return subprocess.run(["git", "rev-parse", "--git-dir"], cwd=str(root), capture_output=True, timeout=30).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 for entry in (str(REPO), str(SUPPORT / "sandbox-pokebot")):
     if entry not in sys.path:
         sys.path.insert(0, entry)
@@ -1550,7 +1563,9 @@ class FieldBagModel(Model):
     pocket list with CLOSE BAG last, A the item's context menu USE / GIVE / TOSS / CANCEL opening on USE), USE on a Potion
     (`src/item_use.c` ItemUseOutOfBattle_Medicine: the party menu "Use on which POKéMON?"; A on a member: +20 HP and the
     count down one, the message waits for A, then the bag again, `CB2_ReturnToBagMenu`), B back out. `shift`: the party
-    menu reports its cursor one row off (a FAULT for the hand's slot gate)."""
+    menu reports its cursor one row off (a FAULT for the hand's slot gate). (Round 3, the round-2 verifier's V2-n1) a
+    Potion on a member at FULL HP is refused as the game refuses it (`src/party_menu.c` ItemUseCB_Medicine: "It won't have
+    any effect.", the item kept, no RemoveBagItem): round 2's model spent it."""
 
     START = ("POKéDEX", "POKéMON", "BAG", "POKéNAV", "PLAYER", "SAVE", "OPTION", "EXIT")
     POCKETS = ("items", "poke_balls", "tms_hms", "berries", "key_items")
@@ -1567,6 +1582,8 @@ class FieldBagModel(Model):
         self.shift = shift
         self.used_on: list[int] = []
         self.presses: list[tuple[str, str]] = []
+        #: (round 3) uses the game refused (a member at full HP: the item kept)
+        self.refused = 0
 
     def items(self) -> tuple[str, ...]:
         if self.POCKETS[self.pocket] == "items":
@@ -1610,12 +1627,19 @@ class FieldBagModel(Model):
                 self.party_cursor = max(0, min(len(self.hp) - 1, self.party_cursor + (1 if button == "Down" else -1)))
             elif button == "A":
                 self.used_on.append(self.party_cursor)
-                self.hp[self.party_cursor] = min(40, self.hp[self.party_cursor] + 20)
-                self.potions -= 1
-                self.state = "message"
+                if self.hp[self.party_cursor] >= 40:
+                    # (round 3, the round-2 verifier's V2-n1) a member at full HP: `src/party_menu.c` ItemUseCB_Medicine
+                    # finds the item has no effect (`ExecuteTableBasedItemEffect_` TRUE): "It won't have any effect.",
+                    # NO RemoveBagItem: the item is kept, the HP unchanged, back to the bag
+                    self.refused += 1
+                    self.state = "refused"
+                else:
+                    self.hp[self.party_cursor] = min(40, self.hp[self.party_cursor] + 20)
+                    self.potions -= 1
+                    self.state = "message"
             elif button == "B":
                 self.state = "bag"
-        elif self.state == "message" and button in ("A", "B"):
+        elif self.state in ("message", "refused") and button in ("A", "B"):
             self.state = "bag"
 
     def screen(self) -> ScreenState:
@@ -1636,7 +1660,8 @@ class FieldBagModel(Model):
             return ScreenState("PARTY_MENU", "menu", "party", False, False, False,
                                ui=MenuView(kind="party", cursor=self.party_cursor + self.shift))
         return ScreenState("PARTY_MENU", "menu", "party", False, True, False, wait_reason="text printer 0 CLEAR",
-                           text="WURMPLE's HP was restored by 20 point(s).",
+                           text=("It won't have any effect." if self.state == "refused"
+                                 else "WURMPLE's HP was restored by 20 point(s)."),
                            ui=MenuView(kind="party", cursor=self.party_cursor, accepts_input=False))
 
     def player(self) -> PlayerState:
@@ -1665,6 +1690,18 @@ class _BagEyes:
         return Observation(frame=model.frame, screen=model.screen(), player=model.player(), view=model.view(), party=party,
                            bag=BagSummary((), healing, 0), progress=None, battle=None, last_battle_outcome=0, problems=(),
                            cost_ms=0.0)
+
+
+class _ChangedPidEyes(_BagEyes):
+    """(round 3) The eyes on a `FieldBagModel` whose third member's PID reads differently once an item was used: the
+    party is not the one the hand began with (identity, never a count: CLAUDE.md rule 3)."""
+
+    def look(self) -> Observation:
+        seen = super().look()
+        if not self.model.used_on:
+            return seen
+        party = tuple(replace(m, pid=0x1009) if m.pid == 0x1002 else m for m in seen.party)
+        return replace(seen, party=party)
 
 
 class FieldItemTests(unittest.TestCase):
@@ -1702,11 +1739,40 @@ class FieldItemTests(unittest.TestCase):
 
     def test_fault_a_shifted_slot_fails(self) -> None:
         """FAULT: the party cursor reads one row off: the gate sees the cursor on the member while the game's is on the one
-        before it: the Potion goes to Grovyle (full), Wurmple's HP does not rise: FAILED (the HP check, by PID)."""
+        before it: the Potion goes to Grovyle (full), Wurmple's HP does not rise: FAILED (the HP check, by PID). (Round 3)
+        the game refuses a Potion on a full member and keeps it: the Potions are all still there, and the hand fails on
+        the HP read, not on a count that happened to fall."""
         model = FieldBagModel([40, 5, 30], shift=1)
-        (ok, used, why), _ = self.use(model)
+        (ok, used, why), hands = self.use(model)
         self.assertFalse(ok, why)
-        self.assertEqual(model.hp[1], 5)
+        self.assertEqual((model.hp, model.potions, model.refused), ([40, 5, 30], 3, used))
+        self.assertIn("(5, 40) -> (5, 40)", why)
+
+    def test_a_full_member_keeps_the_potion(self) -> None:
+        """(round 3, V2-n1) The model as the game is: a Potion on a member at full HP is refused and kept. CONTROL: on a
+        hurt member it is used."""
+        model = FieldBagModel([40, 5, 30])
+        model.state, model.party_cursor = "party", 0
+        model.press("A")
+        self.assertEqual((model.hp[0], model.potions, model.refused, model.screen().text),
+                         (40, 3, 1, "It won't have any effect."))
+        model.press("A")
+        model.state, model.party_cursor = "party", 1
+        model.press("A")
+        self.assertEqual((model.hp[1], model.potions), (25, 2))
+
+    def test_a_party_whose_pids_changed_fails(self) -> None:
+        """(round 3, the verifier's REDUNDANT mutant `use_on_no_pid_check`) The trainee's HP rose and the count fell by
+        the number used, but another member's PID changed (the party is not the one the hand began with): FAILED.
+        CONTROL: the same use with the PIDs unchanged is OK."""
+        from ai_player.hands.field_item import use_on
+
+        for eyes_type, expected in ((_BagEyes, True), (_ChangedPidEyes, False)):
+            model = FieldBagModel([40, 10, 30])
+            hands = Hands(eyes_type(model), FakeControls(model), random.Random("5:pacing"), random.Random("5:choices"),
+                          None, lambda line: None)
+            ok, used, why = drive(use_on(hands, 0x1003, ("Potion",), 2 / 3, 2, "a Potion"))
+            self.assertEqual((ok, used, model.hp[1]), (expected, 1, 30), why)
 
     def test_control_the_target_by_pid(self) -> None:
         """CONTROL: the same path for Poochyena (slot 2) treats Poochyena, not the trainee."""
@@ -1734,9 +1800,12 @@ class ProvenanceTests(unittest.TestCase):
         self.assertIn("clean at HEAD", line("abc1234", "ai_player/", b"", {}, 0))
 
     def test_this_trees_line_is_recomputable(self) -> None:
-        """Read-only git on the real repository (`SUPPORT`, also from a copy of the package): the same line twice."""
+        """Read-only git on the real repository (`SUPPORT`, also from a copy of the package): the same line twice. (Round
+        3) skipped where `SUPPORT` is in no git repository (a copy without .git)."""
         from ai_player.gates.provenance import provenance
 
+        if not in_git_repository(SUPPORT):
+            self.skipTest(f"no git repository at {SUPPORT}")
         first, second = provenance(SUPPORT), provenance(SUPPORT)
         self.assertEqual(first, second)
         self.assertIn("working-tree digest sha256:", first)

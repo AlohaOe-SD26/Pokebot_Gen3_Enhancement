@@ -1,0 +1,12 @@
+AI PLAYER REGRESSION - full lane, evidence group `revert_step5` (gates/run_regression.py, spec S4-1)
+date: 2026-11-11 15:29:30
+code: HEAD c5146e53; covers:revert_step5 has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:6701eab79b5bf870 over git diff HEAD (10 files, 127555 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+command: py -3.12 ai_player/gates/run_regression.py --full --evidence
+Each section is one suite: the runner's typed status, then the suite's raw output (indented).
+
+== revert_step5: TIMEOUT (exit None, 12110.0 s, - tests)
+   failing: no verdict within 12110 s: the process tree was killed
+
+
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (43 checks of 224 files, files digest 86178fd2383220be); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
+REGRESSION: FAIL (full, 38 suites, 12111.8 s wall)

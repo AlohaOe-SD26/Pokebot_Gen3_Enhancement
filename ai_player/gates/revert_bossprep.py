@@ -15,6 +15,12 @@ one of them in the gate-side model `gates/exp_rule.py`) and the builder's eight 
 whose rule is two conditions (`run_first`, `second_switch`, `potion_revives`, `relead_unbounded`) edits both, so it is the
 rule switched off and not one half of it. Predictions written and this file's sha256 recorded (s53/bp1r2/STATE.md)
 BEFORE the first run.
+ROUND 3 (2026-11-11, the trainee safe throughout an active plan: the round-2 verifier's V2-M1, V2-M2, V2-m3, the lead's
+design D1-D5): 28 mutants (the rescue, the partner line, the guard outside raise battles, four of the verifier's REDUNDANT
+mutants given a test, the shift question's context); eight round-2 anchors moved by the round's edits were re-anchored
+(their predictions kept; three gained a round-3 test). The driver also runs `gates/test_hands.py` FieldItemTests (the field
+item hand's PID check); test names are "Class.test" in both. Predictions written and this file's sha256 recorded
+(s53/bp1r3/STATE.md) BEFORE the first run.
 """
 
 from __future__ import annotations
@@ -43,6 +49,8 @@ BP, GOALS, BATTLE, ORDER, EYES = ("brain/bossprep.py", "brain/goals.py", "brain/
 #: #118 learn-move loop's fix)
 EXP = "gates/exp_rule.py"
 SKILL = "skills/battle.py"
+#: (round 3) the field item hand (its tests are `gates/test_hands.py` FieldItemTests, run beside test_bossprep's)
+ITEM = "hands/field_item.py"
 
 #: name -> (prediction, the rule that is broken, [edits], tests that MUST fail (CAUGHT) or the reason (REDUNDANT)).
 MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]] = {
@@ -205,22 +213,22 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
     # (s53/bp1r2/STATE.md)
     # ---- R1 the trainee's floor (V-M1)
     "trainee_floor_off": (CAUGHT, "(V-M1) BP-1's `hurt`: a trainee under its floor does not make the party rest",
-                          [(GOALS, "        trainee_low = self._trainee_low(look, bp_plan)\n        worn = self._partner_worn(look, bp_plan)\n",
-                            "        trainee_low = None  # MUTANT trainee_floor_off\n        worn = self._partner_worn(look, bp_plan)\n")],
+                          [(GOALS, "        trainee_low = self._trainee_low(look, bp_plan)\n        worn = self._partner_worn(look, bp_plan, world)\n",
+                            "        trainee_low = None  # MUTANT trainee_floor_off\n        worn = self._partner_worn(look, bp_plan, world)\n")],
                           ["TraineeFloorTests.test_r1a_r1b_under_the_floor_heals", "TraineeFloorTests.test_r1g_the_sequence"]),
     "raise_guard_off": (CAUGHT, "(V-M1) the raise goal made with the trainee under its floor",
                         [(GOALS, "        if low is not None and not self.bp_faults.raise_guard_off:\n",
                           "        if False:  # MUTANT raise_guard_off\n")],
                         ["TraineeFloorTests.test_r1f_the_raise_goal_waits_under_the_floor"]),
     "partner_worn_off": (CAUGHT, "(the builder's addition) a worn knock-out partner does not make the party rest",
-                         [(GOALS, "        worn = self._partner_worn(look, bp_plan)\n        if self.bp_faults.trainee_floor_off:\n",
+                         [(GOALS, "        worn = self._partner_worn(look, bp_plan, world)\n        if self.bp_faults.trainee_floor_off:\n",
                            "        worn = None  # MUTANT partner_worn_off\n        if self.bp_faults.trainee_floor_off:\n")],
                          ["PartnerWornTests.test_a_worn_partner_heals"]),
     "no_partner_rest": (CAUGHT, "the raise roam does not stop for a worn partner (the call deleted)",
                         [(GOALS, "                return (stop or trainee_rest(look, trainee, heal_below, active)\n"
-                                 "                        or partner_worn(look, trainee, manager.bp_faults))\n",
+                                 "                        or partner_worn(look, trainee, manager.bp_faults, raise_map))\n",
                           "                return stop or trainee_rest(look, trainee, heal_below, active)  # MUTANT no_partner_rest\n")],
-                        ["PartnerWornTests.test_the_raise_roam_rests"]),
+                        ["PartnerWornTests.test_the_raise_roam_rests", "PartnerLineTests.test_the_raise_roam_rests_on_its_map"]),
     # ---- R3 the raise's turn in a battle
     "raise_never_switch": (CAUGHT, "no switch-training: a trainee that cannot win safely runs (no partner asked)",
                            [(BATTLE, "            partner = None if self.faults.raise_never_switch else self.raise_partner(look, foe)\n",
@@ -236,8 +244,8 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                        "            safe, why = False, \"MUTANT no_own_fight\"\n")],
                      ["RaiseTurnTests.test_r3b_control_an_own_fight"]),
     "partner_unchecked": (CAUGHT, "a healthy member taken as the partner without asking whether it wins safely",
-                          [(BATTLE, "            safe, why = fight_safe(member, foe.species, foe.level, bar, mon.hp, "
-                                    "tuple(m.name for m in foe.moves if m.name),\n                                   faults)\n",
+                          [(BATTLE, "            safe, why = partner_fit(member, foe.species, foe.level, bar, mon.hp, "
+                                    "tuple(m.name for m in foe.moves if m.name),\n                                    faults)\n",
                             "            safe, why = True, \"MUTANT partner_unchecked\"\n")],
                           ["RaiseTurnTests.test_r3e_no_partner_runs"]),
     "safe_full_hp": (CAUGHT, "`fight_safe` judges the trainee at its FULL HP, not its HP now",
@@ -245,8 +253,8 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                        "    now = member.max_hp  # MUTANT safe_full_hp\n")],
                      ["RaiseTurnTests.test_r3h_judged_at_its_hp_now"]),
     "hits_unbounded": (CAUGHT, "`fight_safe` asks no bound on the trainee's hits",
-                       [(BP, "    safe = (faults.hits_unbounded or hits <= RAISE_MAX_HITS) and left >= member.max_hp * TRAINEE_FLOOR\n",
-                         "    safe = left >= member.max_hp * TRAINEE_FLOOR  # MUTANT hits_unbounded\n")],
+                       [(BP, "    safe = (faults.hits_unbounded or hits <= RAISE_MAX_HITS) and left >= floor\n",
+                         "    safe = left >= floor  # MUTANT hits_unbounded\n")],
                        ["RaiseTurnTests.test_r3i_a_five_hit_fight_is_not_safe",
                         "FightSafeTests.test_r4a_r4b_wurmple_and_cascoon_never_safe"]),
     "run_first": (CAUGHT, "the old order of a wild battle's choice: the run rule before the raise's turn",
@@ -256,11 +264,11 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                     "        if battle.kind == \"wild\":  # MUTANT run_first\n")],
                   ["RaiseTurnTests.test_r3k_the_raise_turn_before_the_run_rule"]),
     "replacement_trainee_ok": (CAUGHT, "the replacement after a faint may be the trainee while another member can fight",
-                               [(BATTLE, "        if (self.purpose == \"raise\" and self.trainee is not None and not "
-                                         "self.faults.replacement_trainee_ok\n                and any(m.pid != self.trainee "
-                                         "for m in able)):\n",
+                               [(BATTLE, "        if (protected is not None and not self.faults.replacement_trainee_ok\n"
+                                         "                and any(m.pid != protected for m in able)):\n",
                                  "        if False:  # MUTANT replacement_trainee_ok\n")],
-                               ["RaiseTurnTests.test_r3j_the_replacement_is_never_the_trainee_while_another_can_fight"]),
+                               ["RaiseTurnTests.test_r3j_the_replacement_is_never_the_trainee_while_another_can_fight",
+                                "GuardTests.test_g5_never_sent_in_while_another_can_fight"]),
     "second_switch": (CAUGHT, "the raise's switch made again on a later turn (three would share): its guard and its mode both",
                       [(BATTLE, "                or (mem.raise_switched and not self.faults.second_switch)):\n",
                         "                or (mem.raise_switched and False)):  # MUTANT second_switch\n"),
@@ -268,10 +276,10 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                         "        if mem.raise_mode in (\"switch\", \"rescue\"):  # MUTANT second_switch\n")],
                       ["RaiseTurnTests.test_r3m_no_second_switch"]),
     "trainee_sent_last": (CAUGHT, "\"Use next POKéMON?\" answered YES with only the trainee left (its check deleted)",
-                          [(BATTLE, "            if (self.purpose == \"raise\" and self.trainee is not None and not "
-                                    "self.faults.trainee_sent_last\n                    and self._only_the_trainee(look)):\n",
+                          [(BATTLE, "            if not self.faults.trainee_sent_last and self._only_the_trainee(look):\n",
                             "            if False:  # MUTANT trainee_sent_last\n")],
-                          ["RaiseTurnTests.test_r3l_use_next_with_only_the_trainee"]),
+                          ["RaiseTurnTests.test_r3l_use_next_with_only_the_trainee",
+                           "GuardTests.test_g5_never_sent_in_while_another_can_fight"]),
     # ---- R5 the heal choice
     "potion_always": (CAUGHT, "the potion goal chosen even with a POKéMON CENTER near",
                       [(GOALS, "        if near and not faults.potion_always:\n", "        if False:  # MUTANT potion_always\n")],
@@ -298,8 +306,8 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                        [(GOALS, "        if self.bp_faults.map_by_trainee:\n", "        if True:  # MUTANT map_by_trainee\n")],
                        ["RaiseMapTests.test_r6a_the_partners_cap", "RaiseMapTests.test_r6b_r6c_r6d_the_caps"]),
     "one_raise_key": (CAUGHT, "(BP1-L2) one cooldown key for every raise map",
-                      [(GOALS, "            return \"raise\" if self.bp_faults.one_raise_key else f\"raise:{place}\"\n",
-                        "            return \"raise\"  # MUTANT one_raise_key\n")],
+                      [(GOALS, "        return \"raise\" if self.bp_faults.one_raise_key else f\"raise:{place}\"\n",
+                        "        return \"raise\"  # MUTANT one_raise_key\n")],
                       ["RaiseMapTests.test_r6e_a_map_that_fails_twice_is_put_aside",
                        "PlanTests.test_the_story_run_gets_a_raise_goal"]),
     # ---- R7 the budget's counting (V-m3)
@@ -380,6 +388,172 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                                     "and not faults.forget_unchecked\n",
                              "    if (False and learn is not None and learn.learn and learn.forget is not None  # MUTANT\n")],
                            ["LearnerTests.test_the_forget_screen_rechecks"]),
+    # =================================================================================== ROUND 3 (2026-11-11)
+    # the trainee SAFE throughout an active plan (the round-2 verifier's V2-M1, V2-M2, V2-m3; the lead's design D1-D5);
+    # predictions written and this file's sha256 recorded (s53/bp1r3/STATE.md) BEFORE the first run
+    # ---- D1 (V2-M1): the raise battle's rescue
+    "run_no_rescue": (CAUGHT, "(V2-M1) a refused run in a raise battle answered with \"run again\", never the rescue (the "
+                              "rescue's calls deleted)",
+                      [(BATTLE, "                rescue = self.rescue_member(look, foe, desperate=hp_share < TRAINEE_FLOOR)\n"
+                                "                if rescue is not None:\n                    mem.raise_mode = \"rescue\"\n"
+                                "                    if self.raise_modes:\n                        self.raise_modes[-1] = \"rescue\"\n"
+                                "                    return self._raise_rescue(rescue, hp_share, \"the run was refused\")\n",
+                        "                pass  # MUTANT run_no_rescue\n")],
+                      ["RescueTests.test_r3n_a_refused_run_under_the_floor_is_rescued",
+                       "RescueTests.test_r3o_a_refused_run_above_the_floor_goes_to_a_member_that_can_win",
+                       "RescueTests.test_r3r_under_the_floor_any_member_that_can_come_in"]),
+    "turn1_no_rescue": (CAUGHT, "(V2-M1) a trainee under its floor on its first decision with no partner runs (the "
+                                "rescue's calls deleted)",
+                        [(BATTLE, "                rescue = self.rescue_member(look, foe, desperate=True)\n"
+                                  "                if rescue is not None:\n                    mem.raise_mode = \"rescue\"\n"
+                                  "                    self.raise_modes.append(mem.raise_mode)\n"
+                                  "                    return self._raise_rescue(rescue, hp_share, f\"{head}: under its floor and no "
+                                  "partner wins safely\")\n",
+                          "                pass  # MUTANT turn1_no_rescue\n")],
+                        ["RescueTests.test_r3s_under_the_floor_on_its_first_decision"]),
+    "own_no_rescue": (CAUGHT, "an own fight gone badly is never rescued (the rescue's calls deleted)",
+                      [(BATTLE, "            rescue = self.rescue_member(look, foe, desperate=True)\n            if rescue is None:\n"
+                                "                return None\n            mem.raise_mode = \"rescue\"\n"
+                                "            if self.raise_modes:\n                self.raise_modes[-1] = \"rescue\"\n"
+                                "            return self._raise_rescue(rescue, hp_share, \"an own fight went badly\")\n",
+                        "            return None  # MUTANT own_no_rescue\n")],
+                      ["RaiseTurnTests.test_r3d_the_rescue_once", "RescueTests.test_the_own_fights_rescue_needs_only_a_win"]),
+    "rescue_unchecked": (CAUGHT, "(V2-M1) the rescue takes any member that can come in as one that can win (its fight_safe "
+                                 "call deleted)",
+                         [(BATTLE, "            wins, why = fight_safe(member, foe.species, foe.level, bar, mon.hp, seen, faults, keep=0)\n",
+                           "            wins, why = True, \"MUTANT rescue_unchecked\"\n")],
+                         ["RescueTests.test_r3p_run_again_when_nobody_can_win"]),
+    "rescue_needs_partner": (CAUGHT, "(V2-M1) the rescue asks round 2's partner line (half its HP, a third kept), not a win",
+                             [(BATTLE, "        if self.faults.rescue_needs_partner:\n",
+                               "        if True:  # MUTANT rescue_needs_partner\n")],
+                             ["RescueTests.test_r3o_a_refused_run_above_the_floor_goes_to_a_member_that_can_win",
+                              "RescueTests.test_the_own_fights_rescue_needs_only_a_win"]),
+    "rescue_keep_third": (CAUGHT, "(V2-M1) the rescue's \"can win\" asks a third kept after the worst case (keep 0 lost)",
+                          [(BATTLE, "            wins, why = fight_safe(member, foe.species, foe.level, bar, mon.hp, seen, faults, keep=0)\n",
+                            "            wins, why = fight_safe(member, foe.species, foe.level, bar, mon.hp, seen, faults)  # MUTANT\n")],
+                          ["RescueTests.test_r3o_a_refused_run_above_the_floor_goes_to_a_member_that_can_win"]),
+    "rescue_no_fallback": (CAUGHT, "(V2-M1, V2-M2) under its floor with nobody sure to win, no member that can come in",
+                           [(BATTLE, "        if not desperate or self.faults.rescue_no_fallback:\n",
+                             "        if True:  # MUTANT rescue_no_fallback\n")],
+                           ["RescueTests.test_r3r_under_the_floor_any_member_that_can_come_in"]),
+    "keep_zero_floor": (CAUGHT, "(V2-M1) `fight_safe(keep=0)` asks a third kept anyway (the rescue's line is the partner's)",
+                        [(BP, "    floor = member.max_hp * keep if keep > 0 else 1  # (round 3) keep 0: still standing, at 1 HP or more\n",
+                          "    floor = member.max_hp * TRAINEE_FLOOR  # MUTANT keep_zero_floor\n")],
+                        ["RescueTests.test_can_win_is_fight_safe_with_keep_zero",
+                         "RescueTests.test_r3o_a_refused_run_above_the_floor_goes_to_a_member_that_can_win"]),
+    # ---- D1 (V2-M1): the rest line is the partner line
+    "partner_half_line": (CAUGHT, "(V2-M1) the raise rests at round 2's flat half, not by the partner line on its map",
+                          [(BP, "    slots = land_slots(raise_map) if raise_map and not faults.partner_half_line else ()\n",
+                            "    slots = ()  # MUTANT partner_half_line\n")],
+                          ["PartnerLineTests.test_the_rest_line_is_the_battles_partner_line",
+                           "PartnerLineTests.test_the_line_against_the_strongest_slot",
+                           "PartnerLineTests.test_the_party_rests_before_the_next_raise",
+                           "PartnerLineTests.test_the_raise_roam_rests_on_its_map"]),
+    "partner_line_unchecked": (CAUGHT, "(V2-M1) the rest line never asks the partner line of the map's wild Pokemon (its call "
+                                       "deleted)",
+                               [(BP, "        fit, why = partner_fit(member, species, level, 1.0, partner.hp, (), faults)\n",
+                                 "        fit, why = True, \"MUTANT partner_line_unchecked\"\n")],
+                               ["PartnerLineTests.test_the_rest_line_is_the_battles_partner_line",
+                                "PartnerLineTests.test_the_line_against_the_strongest_slot",
+                                "PartnerLineTests.test_the_party_rests_before_the_next_raise"]),
+    "partner_fit_half_only": (CAUGHT, "(V2-M1) the partner line asks only half its HP, not a safe win (its fight_safe call "
+                                      "deleted)",
+                              [(BP, "    return fight_safe(member, foe_species, foe_level, bar_share, hp, seen_moves, faults)\n",
+                                "    return True, \"MUTANT partner_fit_half_only\"\n")],
+                              ["RaiseTurnTests.test_r3e_no_partner_runs", "PartnerLineTests.test_the_line_against_the_strongest_slot"]),
+    "partner_fit_no_half": (CAUGHT, "(V2-M1) the partner line without its half-HP rule (the verifier's `partner_any_hp`)",
+                            [(BP, "    if hp < member.max_hp / 2:\n        return False, f\"{member.species} is under half its HP",
+                              "    if False:  # MUTANT partner_fit_no_half\n        return False, f\"{member.species} is under half its HP")],
+                            ["PartnerLineTests.test_half_its_hp_is_part_of_the_line",
+                             "PartnerWornTests.test_a_worn_partner_heals"]),
+    "no_raise_place": (CAUGHT, "(V2-M1) the decision's rest line not told the map the next raise goes to",
+                       [(GOALS, "        place = self._raise_place(look, world, record) if world is not None else None\n",
+                         "        place = None  # MUTANT no_raise_place\n")],
+                       ["PartnerLineTests.test_the_party_rests_before_the_next_raise"]),
+    "roam_no_map": (CAUGHT, "(V2-M1) the raise session's roam not told its map (its rest falls back to the half line)",
+                    [(GOALS, "            self.roam_hooks(trainee=pid, after_battle=watch.after, raise_map=goal.map)\n",
+                      "            self.roam_hooks(trainee=pid, after_battle=watch.after)  # MUTANT roam_no_map\n")],
+                    ["PartnerLineTests.test_the_raise_session_gives_its_map_to_the_rest"]),
+    # ---- D2 (V2-M2): the trainee protected in every other battle of an active plan
+    "guard_off": (CAUGHT, "(V2-M2) no protection outside a raise battle (the guard's turn guarded off in _decide)",
+                  [(BATTLE, "        if not self.faults.guard_off:\n            # (boss preparation round 3, V2-M2) an ACTIVE plan's "
+                            "trainee in a battle that is not a raise battle (a heal walk,\n            # a pick-up, travel, a "
+                            "trainer's battle): kept out of harm FIRST, before a catch, a run or a heal (FAULT\n            # "
+                            "`guard_off`: round 2, where it led them as any Pokemon and fainted in 5 of them in 6 live runs)\n"
+                            "            decision = self._guard_turn(look, own, foe, hp_share)\n",
+                    "        if False:  # MUTANT guard_off\n            decision = self._guard_turn(look, own, foe, hp_share)\n")],
+                  ["GuardTests.test_g1_the_heal_walk", "GuardTests.test_g2_a_wild_fight_it_would_not_win_safely",
+                   "GuardTests.test_g3_a_trainers_battle", "GuardTests.test_g4_a_later_turn_under_the_floor"]),
+    "guard_no_switch": (CAUGHT, "(V2-M2) the first decision's protection never names a member to take its place (the "
+                                "rescue's call deleted)",
+                        [(BATTLE, "            rescue = self.rescue_member(look, foe, desperate=low)\n",
+                          "            rescue = None  # MUTANT guard_no_switch\n")],
+                        ["GuardTests.test_g1_the_heal_walk", "GuardTests.test_g2_a_wild_fight_it_would_not_win_safely",
+                         "GuardTests.test_g3_a_trainers_battle"]),
+    "guard_floor_only": (CAUGHT, "(V2-M2) a wild battle's turn-1 protection asks only the floor, not a safe win (its "
+                                 "fight_safe call deleted)",
+                         [(BATTLE, "                    safe, why = fight_safe(trainee, foe.species, foe.level, foe.hp_bar / "
+                                   "HP_BAR_PIXELS, trainee.hp,\n                                           tuple(m.name for m "
+                                   "in foe.moves if m.name), faults)\n",
+                           "                    safe, why = True, \"MUTANT guard_floor_only\"\n")],
+                         ["GuardTests.test_g2_a_wild_fight_it_would_not_win_safely"]),
+    "guard_turn1_only": (CAUGHT, "(V2-M2) no rescue on a later turn under the floor (a refused run answered with a run): the "
+                                 "rescue's call deleted",
+                         [(BATTLE, "        if self.faults.guard_turn1_only or not low:\n            return None\n"
+                                   "        rescue = self.rescue_member(look, foe, desperate=True)\n",
+                           "        if self.faults.guard_turn1_only or not low:\n            return None\n"
+                           "        rescue = None  # MUTANT guard_turn1_only\n")],
+                         ["GuardTests.test_g4_a_later_turn_under_the_floor"]),
+    "guard_switch_back": (CAUGHT, "(V2-M2) the protected trainee may be the member switched IN for a matchup",
+                          [(BATTLE, "            out = out | {protected}  # (round 3, V2-M2) a protected trainee is never the member "
+                                    "switched IN for a matchup\n",
+                            "            pass  # MUTANT guard_switch_back\n")],
+                          ["GuardTests.test_g6_never_switched_in_for_a_matchup"]),
+    "guard_unset": (CAUGHT, "(V2-M2) the goal runner never tells the battle brain whom to protect (round 2)",
+                    [(GOALS, "        guard = self._guard_for(goal)\n        self.mind.guard = guard\n",
+                      "        guard = None  # MUTANT guard_unset\n        self.mind.guard = guard\n")],
+                    ["GuardRunnerTests.test_a_heal_walk_is_guarded"]),
+    "guard_in_boss_fight": (CAUGHT, "(V2-M2) the protection kept on in the boss fight itself",
+                            [(GOALS, "        if (not faults.guard_in_boss_fight and goal.milestone == boss_id and goal.kind in "
+                                     "(\"talk\", \"use\")\n",
+                              "        if (False and goal.milestone == boss_id and goal.kind in (\"talk\", \"use\")  # MUTANT\n")],
+                            ["GuardRunnerTests.test_the_boss_fight_and_the_raise_are_left_out"]),
+    "guard_in_raise": (CAUGHT, "(V2-M2) the guard set in a raise goal too (its own rules are the raise's)",
+                       [(GOALS, "        if faults.guard_unset or goal.kind == \"raise\" or manager.bp_boss is None:\n",
+                         "        if faults.guard_unset or manager.bp_boss is None:  # MUTANT guard_in_raise\n")],
+                       ["GuardRunnerTests.test_the_boss_fight_and_the_raise_are_left_out"]),
+    "guard_inactive_plan": (CAUGHT, "(V2-M2) the guard set for a plan that is not active (spent or done)",
+                            [(GOALS, "        if record is None or record.get(\"status\") != \"active\" or record.get(\"trainee\") is None:\n"
+                                     "            return None\n        if (not faults.guard_in_boss_fight",
+                              "        if record is None or record.get(\"trainee\") is None:  # MUTANT guard_inactive_plan\n"
+                              "            return None\n        if (not faults.guard_in_boss_fight")],
+                            ["GuardRunnerTests.test_a_heal_walk_is_guarded"]),
+    # ---- D3 (V2-m3): the verifier's REDUNDANT mutants, each now with a test (its own edit, its own name)
+    "run_no_retry": (CAUGHT, "(the verifier's) after a refused run with nobody to rescue, the raise turn gives up (a fight)",
+                     [(BATTLE, "            mem.runs += 1\n            return Decision(\"run\", \"raising: still no member to knock "
+                               "it out: run again\")\n",
+                       "            return None  # MUTANT run_no_retry\n")],
+                     ["RescueTests.test_r3p_run_again_when_nobody_can_win"]),
+    "settle_any_lead": (CAUGHT, "(the verifier's) E1/E3 restore the usual lead even when the trainee is not first",
+                        [(GOALS, "        if faults.restore_never or before is None or before == trainee or usual is None or "
+                                 "usual.hp <= 0 \\\n                or party[0].pid != trainee:\n",
+                          "        if faults.restore_never or before is None or before == trainee or usual is None or "
+                          "usual.hp <= 0:  # MUTANT\n")],
+                        ["SettleNotFirstTests.test_the_trainee_not_first"]),
+    "use_on_no_pid_check": (CAUGHT, "(the verifier's) the field item hand's PID-multiset check removed",
+                            [(ITEM, "    same = sorted(_pids(after)) == sorted(before_pids)\n",
+                              "    same = True  # MUTANT use_on_no_pid_check\n")],
+                            ["FieldItemTests.test_a_party_whose_pids_changed_fails"]),
+    "learning_any_move": (CAUGHT, "(the verifier's) the page kept apart used even when it names ANOTHER move",
+                          [(SKILL, "            and move_key(pages.learning[1]) == move_key(printed)):\n",
+                            "            and True):  # MUTANT learning_any_move\n")],
+                          ["LearnerKeptPageTests.test_a_kept_page_for_another_move"]),
+    # ---- D5: the shift question's context
+    "shift_context_pages_only": (CAUGHT, "the shift question answered from the window's last 4 pages without the screen's "
+                                         "whole message",
+                                 [(SKILL, "    return \" \".join(pages.pages[-4:] + [look.screen.text or \"\"])\n",
+                                   "    return \" \".join(pages.pages[-4:])  # MUTANT shift_context_pages_only\n")],
+                                 ["ShiftContextTests.test_the_foe_is_in_the_screens_text_not_the_window"]),
 }
 
 DRIVER = '''
@@ -387,10 +561,11 @@ import json, sys, unittest
 from pathlib import Path
 root = Path(__file__).resolve().parent
 sys.path.insert(0, str(root))
-from ai_player.gates import test_bossprep
+from ai_player.gates import test_bossprep, test_hands
 suite = unittest.defaultTestLoader.loadTestsFromModule(test_bossprep)
+suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(test_hands.FieldItemTests))
 result = unittest.TextTestRunner(stream=open(root / "unittest.out", "w", encoding="utf-8"), verbosity=2).run(suite)
-bad = {t.id().split("test_bossprep.", 1)[1]: kind for kind, items in (("FAIL", result.failures), ("ERROR", result.errors)) for t, _ in items}
+bad = {".".join(t.id().split(".")[-2:]): kind for kind, items in (("FAIL", result.failures), ("ERROR", result.errors)) for t, _ in items}
 print("RESULT " + json.dumps({"ran": result.testsRun, "bad": bad, "module": test_bossprep.__file__}))
 '''
 

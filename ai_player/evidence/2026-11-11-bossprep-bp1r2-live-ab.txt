@@ -180,3 +180,26 @@ prediction prediction_control2.txt: sha256 a90676dfc4be81da801ec89f2c57a64e5cac5
 [C2L4 B] [AI-BOSSPREP] lines 2; raise goals 0; lead goals 0; potion goals 0
 [L1 B] [AI-BOSSPREP] lines 4; raise goals 0; lead goals 0; potion goals 0
 
+
+== 2026-11-11, round 3 (the builder): corrections from the round-2 verifier (CONDITIONAL PASS; V2-m1, V2-m2, V2-n2)
+HEADLINE, WITH ITS CAVEATS: round 2's raise made the trainee strong enough to win BRAWLY on the three #120 trajectories, but
+it did NOT keep the trainee safe: 7 trainee faints in the 6 B runs (2 in raise battles the game would not let it run from,
+5 in the plan's other battles it led). The rescue switch never fired live (0 "raise battle: rescue" lines in 6 runs; proven
+offline only, R3d). P2 proved the field item hand on Grovyle at 54/57 (+3), not on a low trainee.
+PER-RUN TABLE (the round-2 verifier's s53/bp1r2/verify/trainee_hits.py over the kept ai_player.log of each B run: the eyes'
+read of the game's party at each battle's end; re-run by the round-3 builder, the same seven):
+  run                trainee faints by goal: raise run / raise own / travel / heal walk / pick_up / trainer   rescues (live)
+  #118 B 6397        0 / 0 / 0 / 1 (Wurmple L5 3/21 vs Poochyena L6) / 1 (Cascoon L9 30/30 vs Taillow L7) / 0      0
+  #118 B 6398        0 / 0 / 0 / 0 / 0 / 0                                                                             0
+  #118 B 6399        0 / 0 / 0 / 0 / 1 (Cascoon L7 26/26 vs Whismur L6) / 0                                             0
+  #120 B2 6400       0 / 0 / 0 / 1 (Wurmple L6 11/23 vs Taillow L6) / 0 / 0                                             0
+  #120 B2 6401       0 / 0 / 0 / 0 / 1 (Wurmple L4 18/18 vs Whismur L6) / 0                                             0
+  #120 B2 6402       2 (Wurmple L6 12/23 vs Nincada L7; Cascoon L7 14/26 vs Taillow L7) / 0 / 0 / 0 / 0 / 0           0
+  Potions used: 0 in all six. Fixed in round 3 (s53/bp1r3; evidence 2026-11-11-bossprep-bp1r3-live-ab.txt).
+COVERAGE (V2-m2): "chapters 2-4 by the guard only (offline)" does NOT hold for the battle skill's learn fix
+(skills/battle.py _Pages.learning, _learns_now, _forget_choice): it runs in every battle of every chapter with no purpose
+guard; by its own logic it changes play only where the old code named the wrong learner (the page absent, or the chosen
+move not on the forget screen). Round 3 runs the full regression lane on the final tree for it.
+#121's C2L4 (V2-n2): the SAME DECISIONS throughout, one frame later: all 50 differing records differ only in frame numbers
+inside the reasons ('f617961' against 'f617962', '1672 frames left' against '1671'); the (kind, choice) sequence is
+identical over all 1,717 records (the verifier's stream_diff.py). The prediction miss stands as worded.

@@ -920,6 +920,31 @@
    "callee": "brain/battle.py:move_key",
    "caller": "skills/battle.py:_learn",
    "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) brain/battle.py move_key, a pure name normaliser (lowercase letters and digits), compared on the page's move and the question's: LearnerTests.test_the_learner_named_by_its_page fails when the comparison is lost (learner_page_off)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._protected",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) brain/battle.py BattleMind._protected, a pure accessor (the raise's trainee in a raise battle, the goal runner's guard outside one, None in chapters 1-5): no side effect. Each rule that reads it is pinned BY VALUE with a FAULT arm and broken at its own line by revert_bossprep: replacement_trainee_ok (the replacement, RaiseTurnTests R3j and GuardTests g5), trainee_sent_last ('Use next', R3l and g5), guard_switch_back (better_member's exclusion, g6); rescue_member's skip set holds the battler on the field too."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._guard_say",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) brain/battle.py BattleMind._guard_say: one log line for each protective decision outside a raise ('[AI-BOSSPREP] guard: ...'), told through the goal runner's say; no decision reads it. The decisions themselves are pinned by GuardTests g1-g7 and broken by guard_off, guard_no_switch, guard_floor_only, guard_turn1_only."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.better_member",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) brain/battle.py BattleMind.better_member CHANGED by one exclusion (a protected trainee is never the member switched IN for a matchup): its call sites (_switch, _shift) are step 4's, unchanged; GuardTests test_g6_never_switched_in_for_a_matchup pins the exclusion with its CONTROL (no guard: the switch to it), and revert_bossprep guard_switch_back deletes it (caught). test_battle's 112 tests pin the ordinary paths."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._raise_key",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) brain/goals.py GoalManager._raise_key: round 2's nested key_of (BP1-L2, one cooldown key a raise map) moved to a method so _raise_place (the partner line's map) asks the SAME key as _raise_goal; revert_bossprep one_raise_key breaks its body (RaiseMapTests R6e, caught)."
+  },
+  {
+   "callee": "skills/battle.py:_shift_context",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) skills/battle.py _shift_context: the shift question's context expression of step 4.1 moved, verbatim, out of _play into a function so it can be pinned (the lead's design D5: does it lose its foe like the learner's page? It cannot: the screen's text is the whole message from its start). ShiftContextTests pins it with a window that lost the foe's page, and revert_bossprep shift_context_pages_only breaks it (caught). The call in _play is the one place the expression was."
   }
  ]
 }

@@ -8,7 +8,10 @@
 > on this branch from #96 overlap `main`'s #96-#101 and are renumbered at the merge. Nothing here is on `main` until
 > `07` records the merge. The cloud draft that the wiring checked is appendix A.
 > After round 9 come probe 11, round 10, and boss preparation BP-1 on side branch `wip/ch6-bp1`: round 1 (verifier
-> FAIL) and round 2 (2026-11-11, verifier CONDITIONAL PASS with two MAJOR trainee-safety findings, V2-M1 and V2-M2).
+> FAIL), round 2 (2026-11-11, verifier CONDITIONAL PASS with two MAJOR trainee-safety findings, V2-M1 and V2-M2) and
+> round 3 (2026-11-11, verifier CONDITIONAL PASS: V2-M1 and V2-M2 closed on six development runs; two new MAJORs, V3-M1
+> a heal loop when the partner fails its line at full HP, and V3-M2 the guard's fallback sending a member that cannot
+> win).
 
 ## Chapters 6-7 builder report (worktree wf_e7452923-f06-3, base 979754bf, nothing committed)
 
@@ -1756,6 +1759,131 @@ The Grovyle-plan branch (about half of all seeds), the potion goal inside a rais
 - The worktree status is unchanged (13 modified, 4 new, 2 archive folders). The main checkout is clean. C: has 67 GB free.
 
 The verifier's scripts and outputs are in `C:/Remote Projects/_ai_lab/s53/bp1r2/verify/`: `trainee_hits.py`, `repro_m1.py`, `vmutants.py` and `vmutants_run1.out`, `exp_check.py`, `stream_diff.py`, `brawly_read.py`, `seed_audit.py`, and `STATE.md`.
+
+## Boss preparation BP-1, round 3 (the builder, 2026-11-11)
+
+This round was resumed after a cut. A first builder started at 10:22 and was stopped by a usage limit at about 11:20. Its detached live chain (pid 43892) kept running and finished at 12:04. A resumed builder took over at 11:54. It relaunched nothing and did not change the code. It checked the worktree against the frozen stage: the play digest 360ff20c and the provenance digest 6701eab79b5bf870 are unchanged since 11:01, and only gates/ledger.json differs, holding the chain's own entries. It then judged the batches, ran the full lane and the final gates, and removed the stage. The run book is s53/bp1r3/STATE.md. Nothing is committed: the worktree sits at c5146e53 with the round's edits uncommitted.
+
+**What was built (D1-D6, by the first builder).**
+- **D1 (V2-M1).** There is now one partner line, `bossprep.partner_fit`: half its HP plus a safe win. The battle's turn-1 partner and the raise's rest line both use it, and the rest line now checks every wild species on the raise map (the new static fact `seasoned.land_slots`). `fight_safe` gains a "keep" setting; 0 means "can it win, still standing", the rescue's question. In a raise battle, a refused run or a trainee under its floor is answered with a rescue (`rescue_member`): the healthiest member that can win. When the trainee is under its floor and nobody can win, the rescue falls back to any member that can come in.
+- **D2 (V2-M2).** While a plan is active, the goal runner tells the battle brain whom to protect, in every goal except the raise and the boss fight's own talk. The trainee is switched out on turn 1 when it is under its floor, or in a wild battle when it would not win safely. On a later turn under the floor it is rescued.
+- **D3.** Tests and mutants for run_no_retry, settle_any_lead, use_on_no_pid_check and learning_any_move.
+- **D4.** Tests that need .git skip cleanly without a repository. The field-bag model refuses a Potion on a full member and keeps it, as the game does (checked in the decomp).
+- **D5.** The shift question cannot lose its foe. It is one message whose first page names the foe, and the eyes read that message from its start (checked in the decomp and in host/eyes.py). The code change only moves the expression into a function. Live, all 29 shift questions in the B3 runs named the next foe.
+- **Reproduced first.** V2-M1 and V2-M2 were reproduced on c5146e53, with 10 of 10 hashed predictions holding.
+
+**A bug in the judge, found and fixed.** The first builder's judge followed one Wurmple-line member by "least change". At 6406's fourth battle it switched to the party's other Cascoon L5, which never fights. Its own end check flagged this in all three Wurmple runs. It was fixed before any verdict was recorded: every member of the plan's species line is now tracked at once by identity, from the game's PID read at the start, and checked against the PID read at the end. The old tracker is kept as the fault arm.
+
+**Three instruments give one answer.**
+- (a) Every record's party read, by identity. A planted faint is counted exactly once. 0 ambiguous steps, and exact agreement at the end in 6 of 6 runs.
+- (b) The pre-registered method: each battle's first and last party.
+- (c) Round 2's verifier counter, unchanged. On round 2's logs it reproduces the 7 faints it reported.
+
+**The live A/B.** These are development runs, one trajectory per seed, never a rate.
+- **Wurmple plan, ab3w (#122, seeds 6406-6408).** A: 0 of 3 BADGE02. B3: 3 of 3.
+- **Grovyle plan, ab3g (#123, seeds 6411-6413, the first live runs of this branch).** A: 0 of 3. B3: 3 of 3, each winning its second BRAWLY fight. Grovyle was L27-28 at the first fight, against A's L22-23.
+- **Trainee safety.** In all six B3 runs the trainee fainted 0 times in raise battles and 0 times in the plan's other battles (the BRAWLY fight is excluded). Round 2's six B runs had 7. No member sent in by a switch fainted.
+
+**What these runs do not show.**
+- The raise battle's rescue never fired live, because the game refused 0 runs.
+- The guard's later-turn rescue never fired live.
+- Potions were never used.
+
+**Prediction misses.**
+- The Grovyle level: L27-28, against the predicted L24-26.
+- Grovyle BADGE02: 3 of 3, against the predicted at most 1.
+- The 6406 Dustox level: L17, against the predicted L13-L16.
+
+**The chapters 1-5 replay control (#124).** C and B3 are identical, with frames, on L1, C1L4 and C2L4. The fault arm differs from B3 from record 257.
+
+**Observed, not changed.** B3's code was frozen for the runs, so a fix would need new seeds.
+- The Grovyle raise ran out of PP and fought with Struggle 8-9 times a run. The raise never looks at PP.
+- A battle that starts while a raise goal is being decided is fought with neither the raise rules nor the guard. This happened 4 times in 6 runs, with no faint.
+- Once (6413), the guard's fallback sent Poochyena L6, which was not sure to win, in for Grovyle at 31%. Poochyena won on 1 HP.
+- The developer verdict looks pessimistic for the Grovyle plan.
+
+**Mutants.** The round's mutant file was hashed before its first run. It catches 101 mutants as predicted and leaves 2 redundant as predicted, of 103. That held at 11:01 and again on the final tree.
+
+**The full regression lane failed, on timeouts only.**
+- Every unit suite passed, and so did the frozen-tree check.
+- Four revert drivers timed out under the load of the PC, with the bot tuner and a parallel builder running.
+- Re-run alone, all four pass: bossprep, r1, step3 and step5.
+
+**Final gates.** All 21 exit 0 on the final tree.
+
+The evidence is ai_player/evidence/2026-11-11-bossprep-bp1r3-live-ab.txt. The judged records, including every run's actions.jsonl, are kept in s53/bp1r3/out for the verifier.
+
+## Boss preparation BP-1, round 3: verification (the verifier, 2026-11-11)
+
+**Verdict: CONDITIONAL PASS.** The round's claims hold when checked against the game's own records, so V2-M1 and V2-M2 are closed on these trajectories. The code adds two new MAJOR problems that must be fixed offline, with tests, before this round is merged:
+- **V3-M1, a heal loop.** This round's rest line (D1) causes it.
+- **V3-M2, the guard's fallback.** It sends a member that cannot win in place of a trainee that can. This happened once live.
+
+These are development runs, one trajectory per seed, never a rate.
+
+**How I checked.** I copied the uncommitted worktree, without .git, into s53/bp1r3/verify/repo and worked there. I wrote my own instruments and did not reuse the builder's. Every prediction was hashed before its run. The run book is s53/bp1r3/verify/STATE.md. I ran no live batch: the kept records and the offline reproductions settle every finding. Seeds 6409, 6410 and 6414-6430 are untouched.
+
+**What I confirmed.**
+- **The code the runs used.** The worktree's play digest now is 360ff20c, equal to the frozen B3 arm's. Every play file was last modified at 10:38-10:46, before the 11:12 stage. revert_bossprep.py's sha256 (c13efc0f) equals the hashed copy from 11:01.
+- **The seeds.** I searched 189 ledger files: main, every worktree including ch6-p11, the lab, the old scratch and the learner clone.
+  - Each of 6403-6408 and 6411-6413 is in exactly one entry (#122-#124), and only in this worktree's ledger.
+  - The entries' bounds_sha256 values equal the prediction files' hashes.
+  - The prediction files were written at 11:11:21, before each batch started.
+- **Trainee faints, counted by my own identity tracker** (vcount.py). It reads every record's party from the game and tracks every member at once by a full assignment. It is seeded from, and checked against, the framework's PID reads.
+  - In the six B3 runs the trainee fainted 0 times outside BRAWLY's fight.
+  - No member of any kind fainted while a plan was active.
+  - The BRAWLY-fight faints were found as predicted: 6408, 6411, 6412 and 6413.
+  - Across the 12 runs there were 0 ambiguous steps and the end check agreed in 12 of 12.
+  - Every faint by identity matches one of the game's own 'X fainted!' texts, one to one.
+  - A faint I planted in a raise battle, and separately in a heal-walk battle, was counted exactly once each.
+  - No raise battle began with the trainee under its floor. The trainee's lowest share was 46-49% in the Wurmple runs and 31-32% in the Grovyle runs.
+- **The A/B, re-derived from the flags.**
+  - Wurmple plan: A 0 of 3 BADGE02, B3 3 of 3. 6406 and 6407 won their first BRAWLY fight; 6408 won its second. Dustox was L17/16/16.
+  - Grovyle plan: A 0 of 3, B3 3 of 3, each run winning its second fight. Grovyle was L27/28/28.
+- **The chapters 1-5 control.** I compared the raw records, not only the decision streams, leaving out the host's timing field.
+  - L1 and C1L4 are identical in every field.
+  - C2L4 differs in one log line, a dict printed in another order. 0 decisions differ.
+  - The fault arm F3 first differs from B3 at raw record 1584.
+- **Gates and mutants.** All 21 gates exit 0 on the copy without .git, and the git-dependent tests skip cleanly (D4 holds). The builder's mutants, re-run on the copy: P0 PASS (148 tests), 101 CAUGHT and 2 REDUNDANT, as predicted.
+- **D5.** The shift message (sText_EnemyAboutToSwitchPkmn) and the 'It won't have any effect' refusal match the decomp.
+- **No hidden state and no bot code.** check_fairness, check_purity and the call census pass. Purity is CLEAN in 12 of 12 runs.
+
+**MAJOR findings.**
+- **V3-M1, a heal loop (a regression from D1).** When the knock-out partner fails the partner line even at full HP, partner_worn never clears. next_goal then heals on every decision, and the budget check, which sits inside _raise_goal after HEAL, is never reached.
+  - The reproduction, with predictions hashed first: a Grovyle L17 46/46 at full HP with the Wurmple plan healed on 5 of 5 decisions, and still did with the budget exceeded.
+  - Controls: a Grovyle L21 raises, and so does round 2's code, which also spends the plan when over budget.
+  - A nurse heal on a full party returns 'healed', so only the play loop's 120,000-frame patience ends the run, stuck.
+  - A Grovyle at L14-L17 fails the line against ROUTE116's Taillow L8, and ROUTE116 is the first-ranked raise map at that level.
+  - The live runs did not reach it because C1's partner was L21. No test covers it.
+- **V3-M2, the guard's fallback.** In 6413, battle 106, Grovyle L25 was at 21/68 against a Taillow L6. The guard sent Poochyena L6, which ended the battle at 1/21.
+  - By the rescue's own question (fight_safe with keep 0), the trainee wins in one hit, leaving 12/68, and Poochyena cannot win.
+  - The lead's D2 asked for 'the healthiest member that wins'. The builder disclosed the deviation as a question.
+  - No offline test covers this path.
+
+**MINOR findings.**
+- **V3-m1, trainer battles are unprotected.**
+  - During a raise goal, a trainer battle has neither the raise's rules nor the guard nor the ordinary switch. A Wurmple L5 fights a Zigzagoon L12 and keeps fighting at 3/21.
+  - Outside a raise, the guard acts in a trainer battle only under the floor, so a full Wurmple L5 fights a Zigzagoon L12 whose worst hit is 25.
+  - Every one of the 905 battles fought during the six active plans was wild, so neither case happened live.
+- **V3-m2, the seam is wider than reported.** A battle between goals uses the previous goal's guard and purpose. Four such battles followed a raise goal, all won, none fainted. The exposure covers any goal decided right after a raise, not only a raise goal.
+- **V3-m3, PP.** The raise ignores PP, so the Grovyle trainee used Struggle in 9/8/9 raise battles. This predates round 3 and the builder disclosed it.
+- **V3-m4, coverage.** The paths that never fired live are proven offline only. My 19 mutants gave 6 CAUGHT and 13 REDUNDANT, every prediction held. The REDUNDANT ones mark 13 rules with no test, including V3-M1 and V3-M2.
+
+**NIT findings.**
+- **V3-n1.** The headline's '7 in round 2's six runs' compares six Wurmple-plan runs with three Wurmple-plan and three Grovyle-plan runs. The like-for-like figure is 0 in 3 against 7 in 6. The Wurmple zero came without the raise ever entering its run mode, so the rest line prevented the V2-M1 situation; the rescue did not handle it.
+- **V3-n2.** The fallback battle is battle 106, not 105. '29 of 29' covers all nine B3 runs (24 in the A/B and 5 in the control). 'Fully identical' holds for the decisions; one log line's dict order differs.
+
+**What the next round needs.**
+- Fix V3-M1 and V3-M2, each with a test and a mutant.
+- Re-run the A/B on new seeds.
+- Decide whether trainer battles (V3-m1) and the seam (V3-m2) belong in round 4.
+
+**Clean-up.**
+- I removed verify/repo (584 MB) after a link check that found 0 links. I made no junction.
+- The worktree is unchanged: HEAD c5146e53, 13 modified and 17 untracked files. The main checkout is untouched, and the main sandbox counts are unchanged (plugins 43, mgba 44, roms 2).
+- C: has 66.1 GB free.
+- The builder's s53/bp1r3/out (about 156 MB, the 19 runs' records) is left for the lead to keep or delete.
+- verify/ keeps only the scripts, predictions and outputs (1.9 MB).
 
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 
