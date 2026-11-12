@@ -1,0 +1,63 @@
+AI PLAYER P11-1 (THE DARK GRANITE CAVE CROSSING, ROUND 2b) - THE GATES ON THE FINAL TREE
+code: HEAD 18c3d51b; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:044dacd1e4965f57 over git diff HEAD (9 files, 24375 bytes) and 6 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+Each suite's START line names the digest it ran on (all the same as the code line above).
+
+== test_goals: started 13:26:13 on sha256:044dacd1e4965f57, exit 0 at 13:26:32
+   Ran 462 tests in 18.076s
+   OK
+== test_world: started 13:26:32 on sha256:044dacd1e4965f57, exit 0 at 13:27:32
+   Ran 139 tests in 58.864s
+   OK
+== test_eyes: started 13:27:32 on sha256:044dacd1e4965f57, exit 0 at 13:27:48
+   Ran 89 tests in 15.096s
+   OK
+== test_kb2: started 13:27:48 on sha256:044dacd1e4965f57, exit 0 at 13:32:04
+   Ran 126 tests in 255.015s
+   OK
+== test_battle: started 13:32:04 on sha256:044dacd1e4965f57, exit 0 at 13:32:05
+   Ran 112 tests in 1.035s
+   OK
+== test_saving: started 13:32:06 on sha256:044dacd1e4965f57, exit 0 at 13:32:18
+   Ran 151 tests in 11.819s
+   OK
+== test_hands: started 13:32:18 on sha256:044dacd1e4965f57, exit 0 at 13:32:21
+   Ran 57 tests in 1.950s
+   OK
+== test_host: started 13:32:21 on sha256:044dacd1e4965f57, exit 0 at 13:33:14
+   Ran 37 tests in 52.446s
+   OK
+== test_check_purity: started 13:33:14 on sha256:044dacd1e4965f57, exit 0 at 13:39:36
+   Ran 30 tests in 382.318s
+   OK
+== test_step53_a2: started 13:39:37 on sha256:044dacd1e4965f57, exit 0 at 13:39:38
+   Ran 34 tests in 0.984s
+   OK (skipped=5)
+== test_evidence: started 13:39:38 on sha256:044dacd1e4965f57, exit 0 at 13:39:51
+   Ran 27 tests in 12.705s
+   OK
+== test_safety_gates: started 13:39:52 on sha256:044dacd1e4965f57, exit 0 at 13:40:42
+   Ran 50 tests in 49.754s
+   OK
+== check_fairness: started 13:40:42 on sha256:044dacd1e4965f57, exit 0 at 13:40:45
+   30 files (deciding code and loaders); 6 flag doors, each with its purpose; knowledge key paths by kind {'ai': 7290, 'developer': 157, 'hidden': 3860, 'meta': 1825}; developer-only keys ['decomp', 'entry', 'flag', 'label', 'line', 'measured', 'note', 'notes', 'object', 'order', 'ref', 'rematches', 'script', 'shared_events_map', 'shared_scripts_map', 'state', 'taught_by', 'x', 'y']; hidden keys ['attack', 'base', 'catch_rate', 'defense', 'exp_yield', 'growth', 'hp', 'sp_attack', 'sp_defense', 'speed']
+   PERSON-FAIR DATA DOOR: PASS (0 breaches)
+== check_purity: started 13:40:45 on sha256:044dacd1e4965f57, exit 0 at 13:40:47
+   VERDICT: PASS
+== call_census: started 13:40:47 on sha256:044dacd1e4965f57, exit 0 at 13:40:50
+   CALL-SITE CENSUS since HEAD: 3 AI files changed, 16 functions or added calls, 30 sites; 0 MISSING
+   CALL-SITE CENSUS: PASS
+== check_paths: started 13:40:50 on sha256:044dacd1e4965f57, exit 0 at 13:40:51
+   PATHS GATE: PASS (50 files, 0 findings)
+== check_anchors: started 13:40:51 on sha256:044dacd1e4965f57, exit 0 at 13:40:51
+   ANCHORS GATE: PASS (8 of 8 runners, 1603 mutants, 1623 edits, 0 not unique, 0 errors)
+== test_check_anchors: started 13:40:52 on sha256:044dacd1e4965f57, exit 0 at 13:40:55
+   Ran 7 tests in 3.511s
+   OK
+== test_ways: started 13:40:56 on sha256:044dacd1e4965f57, exit 0 at 13:41:42
+   Ran 20 tests in 46.257s
+   OK
+== ledger_check: started 13:41:43 on sha256:044dacd1e4965f57, exit 0 at 13:41:43
+   LEDGER ledger.json: 119 entries; well formed -> PASS
+
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (21 checks of 222 files, files digest 564433ece20fc1e7)
+OVERALL: PASS (every suite exit 0)

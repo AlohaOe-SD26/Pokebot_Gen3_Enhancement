@@ -118,7 +118,9 @@ CHAPTER_OF = {
 #: what a reader of the world files would have to write (`world/` alone is not one: the AI's own `ai_player/world/`
 #: package is named in comments and paths all over the play code)
 PLAY_NAMES = ("knowledge/world", "trainers.json", "bosses.json", "maps.json", "campaign.json", "items_gifts.json",
-              "events.json")
+              "events.json",
+              # (P11-1, 2026-11-11) the way through each dark cave, read ONLY by its declared loader `knowledge/ways.py`
+              "ways.json")
 
 ROOT = None
 D = None
@@ -259,8 +261,8 @@ class W1WithheldTests(unittest.TestCase):
         n, hits = vw.withheld_scan(str(KNOWLEDGE))
         self.assertEqual(hits, [])
         world = sorted(p.name for p in WORLD.glob("*.json"))
-        # slice 1's four + stage 2a's items_gifts + stage 2b's events
-        self.assertEqual(world, sorted(ew.OUTPUTS + (ei.OUT_NAME, xe.OUT_NAME)))
+        # slice 1's four + stage 2a's items_gifts + stage 2b's events + (P11-1, 2026-11-11) extract_ways' ways.json
+        self.assertEqual(world, sorted(ew.OUTPUTS + (ei.OUT_NAME, xe.OUT_NAME, os.path.basename(xwy.OUT_DEFAULT))))
         self.assertGreaterEqual(n, len(list(KNOWLEDGE.rglob("*.json"))))
         with tempfile.TemporaryDirectory() as tmp:
             shutil.copytree(KNOWLEDGE, Path(tmp) / "k", ignore=shutil.ignore_patterns("*.py", "__pycache__"))
@@ -1103,13 +1105,16 @@ def names_in_play_code(package, allowed=None):
 class NotReadTests(unittest.TestCase):
     def test_no_play_code_names_a_world_file(self):
         """No play code names a world file, but (KI-128) the declared loader `knowledge/atlas.py` its own ones ((chapter 7
-        NS4, 2026-11-06) maps.json and, since its second slice, bosses.json: which leader holds which gym)."""
-        self.assertEqual(loader_allowed_names(), {"knowledge/atlas.py": {"knowledge/world", "maps.json", "bosses.json"}})
+        NS4, 2026-11-06) maps.json and, since its second slice, bosses.json: which leader holds which gym) and (P11-1,
+        2026-11-11) the declared loader `knowledge/ways.py` its ways.json (the way through each dark cave)."""
+        self.assertEqual(loader_allowed_names(), {"knowledge/atlas.py": {"knowledge/world", "maps.json", "bosses.json"},
+                                                  "knowledge/ways.py": {"knowledge/world", "ways.json"}})
         n, hits = names_in_play_code(REPO / "ai_player")
         self.assertGreater(n, 20)
         self.assertEqual(hits, [])
         self.assertIn("maps.json", (KNOWLEDGE / "atlas.py").read_text(encoding="utf-8"))  # the allowance is used
         self.assertIn("bosses.json", (KNOWLEDGE / "atlas.py").read_text(encoding="utf-8"))  # and the second one
+        self.assertIn("ways.json", (KNOWLEDGE / "ways.py").read_text(encoding="utf-8"))  # (P11-1) and ways.py's own
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "brain").mkdir()
             (Path(tmp) / "brain" / "goals.py").write_text('BOOK = "knowledge/world/bosses.json"\nATLAS = "maps.json"\n',
@@ -1125,11 +1130,13 @@ class NotReadTests(unittest.TestCase):
 
     def test_check_fairness_does_not_glob_world(self):
         """RULE B walks ONLY the world files a LOADER names (KI-128: maps.json, and (chapter 7 NS4, 2026-11-06)
-        bosses.json, both for `knowledge/atlas.py`); the others stay unread and unchecked."""
+        bosses.json, both for `knowledge/atlas.py`; (P11-1, 2026-11-11) ways.json for `knowledge/ways.py`); the others stay
+        unread and unchecked."""
         from ai_player.gates.check_fairness import knowledge_files, schema_problems, world_files
-        self.assertEqual(world_files(), ["world/bosses.json", "world/maps.json"])
+        self.assertEqual(world_files(), ["world/bosses.json", "world/maps.json", "world/ways.json"])
         walked = [name for name, _ in knowledge_files(KNOWLEDGE)]
-        self.assertEqual([n for n in walked if n.startswith("world/")], ["world/bosses.json", "world/maps.json"])
+        self.assertEqual([n for n in walked if n.startswith("world/")],
+                         ["world/bosses.json", "world/maps.json", "world/ways.json"])
         problems, counts = schema_problems(KNOWLEDGE)
         self.assertEqual([p for p in problems if "world" in p or "campaign" in p or "trainers" in p], [])
         self.assertEqual(problems, [])
@@ -1355,6 +1362,7 @@ class NotReadTests(unittest.TestCase):
 import check_fairness as cf  # noqa: E402
 import extract_items as ei  # noqa: E402
 import extract_events as xe  # noqa: E402
+import extract_ways as xwy  # noqa: E402  (P11-1, 2026-11-11) the way through each dark cave: its output's name (W1)
 
 _S2 = {}
 

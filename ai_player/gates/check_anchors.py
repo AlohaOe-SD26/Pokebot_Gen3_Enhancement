@@ -44,6 +44,8 @@ RUNNERS: dict[str, tuple[str, str | None]] = {
     "revert_step11": ("REVERTS", None),
     "revert_safety_gates": ("MUTANTS", None),
     "revert_r1": ("MUTANTS", "revert_r1_mutants.json"),
+    # (P11-1, 2026-11-11) the way through a dark cave
+    "revert_p11": ("MUTANTS", None),
 }
 _SERIAL = itertools.count()
 

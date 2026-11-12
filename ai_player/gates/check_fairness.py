@@ -87,6 +87,9 @@ LOADERS = {
     "knowledge/atlas.py": ("world/maps.json",
                            # (chapter 7 NS4, 2026-11-06) the second slice: which leader holds which gym (`gym_leaders`)
                            "world/bosses.json"),
+    # (P11-1, 2026-11-11) the way through each DARK cave (`requires_flash`): per arrival ladder, the ladder on toward a map
+    # (`way_on`), a guide's level (USER RULING 40), written by the test side's `gates/extract_ways.py`
+    "knowledge/ways.py": ("world/ways.json",),
 }
 #: the loaders that CARRY hidden keys into a record the brain must not read (rule B2/B3): file -> hidden keys
 CARRIES = {
@@ -305,6 +308,27 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "bosses[].rematches": (DEVELOPER, "the rematch trainer constants (flags' names)", True),
         "bosses[].notes": (DEVELOPER, "the extractor's notes", True),
         "bosses[].ref": (DEVELOPER, "the decomp file and line: the developers' proof", True),
+    },
+    # (P11-1, 2026-11-11) the world folder's THIRD loaded file, for `knowledge/ways.py`: the way through each dark cave at a
+    # guide's level. Classified LEAF BY LEAF (the containers without a subtree), as maps.json's warps are, so a developer key
+    # planted under a way is unclassified and FAILS. `_check` (the extractor's walk lengths) is meta: never read
+    "world/ways.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, its notes, and the "
+                     "extractor's own walk lengths under `_check` for the developers)", True),
+        "count": (META, "how many dark maps the file holds", True),
+        "maps": (AI, "every dark cave of the game (requires_flash: the screen shows a small lit circle)", False),
+        "maps[]": (AI, "one dark map", False),
+        "maps[].id": (AI, "its const: the map a person stands on, dark", True),
+        "maps[].ways": (AI, "its ways on, a guide's level (USER RULING 40: the way through a cave)", False),
+        "maps[].ways[]": (AI, "one way on", False),
+        "maps[].ways[].from": (AI, "the ladder or exit the player arrived by (RULING 45: coordinates kept)", True),
+        "maps[].ways[].take": (AI, "the ladder or exit to take on (RULING 45: coordinates kept; maps.json holds the same "
+                                   "warp)", True),
+        "maps[].ways[].leads_to": (AI, "the map that ladder leads to (a guide's map)", True),
+        "maps[].ways[].toward": (AI, "the maps it is the way on toward (a guide: 'the ladder east is the way to STEVEN')",
+                                 True),
+        "maps[].ways[].through": (AI, "the cave's far end when this is THE WAY THROUGH from that arrival (a guide's 'the way "
+                                      "through the cave'), else null", True),
     },
 }
 
