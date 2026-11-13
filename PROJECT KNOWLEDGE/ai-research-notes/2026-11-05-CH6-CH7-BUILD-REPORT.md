@@ -10,6 +10,12 @@
 > P11-1 (2026-11-11, side branch `wip/ch6-p11` from `18c3d51b`, built beside BP-1 round 3): the way through
 > GRANITE CAVE's dark floors from static map knowledge (`knowledge/world/ways.json`); verifier CONDITIONAL PASS with one
 > MAJOR, V1 (the extractor ignores the one-way muddy slope, so one way in `ways.json` is unreachable on foot).
+> P11-2 (2026-11-12, verifier CONDITIONAL PASS): the muddy slope modelled and V1 to V6 closed; the shipped file went
+> from 7 maps to 2 (GRANITE CAVE B1F and B2F; VICTORY ROAD and the unused CAVE OF ORIGIN maps are left out until an
+> HM-aware walk); `f1069d9d` and the new play code made identical decision streams on 3 seeds (one trajectory per seed,
+> replayed, not a rate); the detour after the crossing is diagnosed as a test-start artifact (the B1F starts carry no
+> goal memory), so P11-1's "FIX reached STEVEN sooner in only 3 of 6" does not measure the AI. One MAJOR, VV1
+> (`maps[].id` is still a subtree leaf in `check_fairness`, so a developer key nested inside it passes RULE B).
 
 ## Chapters 6-7 builder report (worktree wf_e7452923-f06-3, base 979754bf, nothing committed)
 
@@ -1627,6 +1633,167 @@ This round was resumed after a cut. The first builder stopped at about 11:32 bec
   - the builder's p11r1/out/ (94 MB, judged, can be deleted);
   - starts_p11/;
   - my scripts and outputs in p11r1/verify/ (0.4 MB), with STATE.md as the run book.
+
+## P11-2, the dark GRANITE CAVE crossing's fixes (the builder, 2026-11-12)
+
+**What it is.** P11-2 closes the six findings of P11-1's verifier (CONDITIONAL PASS: MAJOR V1, MINOR V2 to V4, NIT V5 and V6) and diagnoses the detour after the crossing (P11-x). It is built in the worktree `ch6-p11` (branch `wip/ch6-p11`, over `f1069d9d`) and is not committed. Three builders worked on it. A session usage limit cut the first at about 8:27 PM on 2026-11-11 and the second at about 9:22 AM on 2026-11-12. Nothing was lost. The run book is `s53/p11r2/STATE.md`.
+
+**Headline and caveat.** The fixes change no through mark in GRANITE CAVE and no decision on its forward crossing. In a live check on 3 seeds, f1069d9d and the new play code made identical decision streams. This is development work: one trajectory per seed, replayed under both codes, not a rate. The detour after the crossing comes from the test starts, not from the AI's code, so it is not fixed here. P11-1's caveat "FIX reached STEVEN sooner in only 3 of 6" rests on that artifact and does not measure the AI.
+
+**Reproduced first.** The verifier's VP2 was run on a copy of `f1069d9d` with only the muddy slope modelled; the prediction was hashed first (`prediction_r0.txt`, bf66765f). The regenerated `ways.json` differed in one place: B1F's ways from (4, 21) lost the (8, 5) way toward B2F, and the walk from (4, 21) to B2F grew from 24 to 42 steps. The 8 through marks did not change. `test_ways` failed exactly the two tests that pinned (8, 5).
+
+**What changed.**
+- **F1 (V1).** `gates/extract_ways.py` now models the muddy slope. On foot, a step onto MB_MUDDY_SLOPE slides the player south, one tile a step, until they are off the slope or blocked. On foot the player never climbs it. Each rule is cited at the pinned decomp 731ad5bf: `src/field_player_avatar.c` 144-163, 332-350, 412-427, 443-471 and 567-581, `src/bike.c` 1022-1037, and `src/event_object_movement.c` 7673. The second builder read every cited range at that commit.
+- The extractor now REFUSES a dark map, loudly and naming the map and the tile, in two cases: its walks land on a forced movement it does not model, or its ways or walk lengths change when the player is assumed to have every field HM. Each search is run twice, on foot and with every HM, and the cuttable tree joined the HM obstacles. A refused map is left out of `ways.json`, so to the AI it is not dark and the explorer decides there as it did before P11-1.
+- The test fixture draws the slope one-way. `ways.json` and the fixture were regenerated (`--check` SAME, SAME). The two tests that pinned the wrong fact now say that from (4, 21) the way toward B2F is (28, 21).
+- Option A is kept for the named ladder only, with its true reason. On the forward crossing, no unnamed ladder is ever in sight. On the slope's other side, arriving at (8, 5) up from B2F, the unused ladder (4, 21) leads back to 1F, away from STEVEN. If every lit ladder beat the frontier, the AI would take it.
+- The ModelTests docstring and the extractor's "every one cited" claim are corrected. The model legs were re-measured on the one-way slope: FIX's first B1F stay took 46-70 steps against FAULT's 86-200.
+- **F2 (V2).** In `brain/explore.py`, an exit that is both the route's first hop and the way's ladder now keeps the route's role. So `goals.lost_way`, which walks known routes only, still finds it. The verifier's VP1 is now a unit test.
+- **F3 (V3).** In `check_fairness`, `ways.json`'s five leaves are now subtree False. A developer key nested inside a leaf now fails RULE B, as a sibling key does. VM1's plant sits beside the sibling plant in FairnessTests. maps.json and bosses.json are unchanged; that is a follow-up.
+- **F4 (V4).** These are the seven requires_flash maps and what the extractor now does with each:
+  - GRANITE CAVE B1F: shipped, 13 ways.
+  - GRANITE CAVE B2F: shipped, 7 ways. The walks for both GRANITE maps meet B2F's 7 breakable rocks, which change no way and no walk length.
+  - VICTORY ROAD B1F: left out, for two reasons. Its ways depend on the HMs (9 obstacles met), and its walk reaches MB_ICE at (6, 11) on the Hall of Fame. That ice is real: an independent read of the layout found 190 MB_ICE tiles.
+  - VICTORY ROAD B2F: left out, because its ways depend on the HMs (4 obstacles met).
+  - The three unused CAVE OF ORIGIN maps: left out, because their ways depend on Surf and Waterfall.
+  - The file went from 7 maps, 45 ways, 8 through marks and 137 walk lengths to 2, 20, 5 and 42. A test pins that no VICTORY ROAD way is shipped.
+- **F5 (V5).** `_check` and everything under it are now DEVELOPER, so RULE B2 refuses a loader that reads `walk_lengths`. A docstring that only mentions it does not trigger the refusal. `_source` and `_files` stay META.
+- **F6 (V6).** A correction is appended to `2026-11-11-p11-dark-cave-live-ab.txt`. The line "not picked up" was the AI's own record, not the game's words. The flag `FLAG_ITEM_GRANITE_CAVE_1F_ESCAPE_ROPE` was read from #116 C1's kept end state: it is 1, so the ball was gone. The reader was checked first against the harness's own mark for FLAG_DELIVERED_STEVEN_LETTER.
+- **F7 (P11-x): diagnosed, not fixed** (`s53/p11r2/P11X-DIAGNOSIS.md`).
+  - The start maker's own play picked the ball up before every B1F start: the flag is 1 in all three B1F start states and 0 in the three G1F ones.
+  - The B1F starts restore the AI's world memory, which still lists the ball, but start a new goal memory, which does not record the pick-up.
+  - Reproduced offline on the real start memory and the real code: the errand chooser returns (17, 7) with the new goal memory and None with the pick-up recorded.
+  - All 5 errands in #115/#116 ended at an empty tile. Every errand run then left the cave over 1F's one-way ledges and crossed the dark again. No run without an errand left the cave.
+  - The three pairs where FIX reached STEVEN later than FAULT are exactly the three where only FIX ran the errand.
+  - One probe line the diagnosis cites was wrong: its tile is a wall. The second builder re-probed the floor tiles beside STEVEN's door, and the sentence stands. A dated correction is appended to the diagnosis.
+
+**Proof.**
+- **Tests.** `test_ways` has 27 tests (20 before): 7 added, 2 rewritten, FairnessTests extended.
+- **FAULT side.** Each new test was run on f1069d9d's code, with the prediction hashed first. Only the F2 test fails on the old explorer. The three fairness tests fail on the old `check_fairness`. 11 tests fail on the old extractor, file and fixture, against 10 predicted; the extra is a correct failure, recorded as MISSED AS WORDED. All 27 pass on the final code.
+- **Mutants.** `revert_p11.py` v5 run 2, with its predictions and the tree hashed first. P0 passes 166 tests. 45 mutants were CAUGHT and 3 REDUNDANT ALONE, as predicted, of 48. OVERALL PASS. Before it, v4's run held 47 of 48 predictions and read FAIL on one prediction's wording. That error stands in the record, and v5 corrected only that prediction and one docstring paragraph.
+- **Gates.** Gates run 3 on the final tree: 20 of 20 suites exit 0, FROZEN TREE PASS, OVERALL PASS. Evidence: `2026-11-12-p11-UNITS.txt` and `2026-11-12-p11-REVERT.txt`. At 1:51 PM today the tree was still the one both runs hashed.
+- **Live, #120** (seeds 6452-6454, prediction hashed first). Arm A was f1069d9d; arm B was the new play code. Both ran from P11-1's B1F starts.
+  - Identical up to the first frame on 1F, with frames: 961, 821 and 716 records.
+  - Identical by kind and choice: 20, 16 and 15 decisions.
+  - Each dark stay's first decision was "way" in both arms.
+  - Purity CLEAN, with 0 bot calls in 6 of 6.
+  - Observed but not predicted: identical to the end. All six runs reached STEVEN (the game's flag, read by the harness).
+  - The C1 pair ran the stale errand in both arms.
+  - At 1:57 PM today the play code was still 87d5b014, the code arm B played.
+- **No chapters 1-5 replay control.** F2 cannot change a decision on a lit map: `dark_way` returns None off a dark map.
+
+**Housekeeping.**
+- The worktree's sandbox staging was taken down at 9:15 AM today. `git status` shows nothing of it.
+- Nine git-ignored copies of pokebot's default profile files are left in the worktree sandbox. They were created on 2026-11-11, before this round, and are not its.
+- The main sandbox is unchanged: plugins 43, mgba 44, roms 2.
+- No mutant temp copies remain. The lab folder holds 9.9 MB, with no links and no world.jsonl. The judged runs' actions.jsonl are kept in `s53/p11r2/out/id`.
+- C: has 55 GiB free.
+
+**Where the cuts fell.**
+- First cut: about 8:27 PM on 2026-11-11, while mutants v5 run 1 and gates run 2 ran as background shells of that session. Both died with it: cut, not failed.
+- Second cut: about 9:22 AM on 2026-11-12. Both jobs had already been re-run detached and had passed, and the staging was already down.
+
+**New stops.**
+1. The kit fix: start files must carry the AI's goal memory, then the B1F starts must be re-made. Until then, use the G1F starts for anything past the crossing.
+2. P11-x2: should an errand over a one-way ledge be weighed, or should the AI know as static knowledge that STEVEN is in the back room? The builder recommends measuring first.
+3. maps.json's and bosses.json's leaves: the same nested-key hole that V3 found in ways.json.
+4. P11-y stands, now narrower: an HM-aware walk, plus ice, for VICTORY ROAD.
+5. At commit: the tracked 2026-11-11 p11 REVERT and UNITS evidence files hold the v4 tree's runs.
+
+## P11-2, the dark GRANITE CAVE crossing's fixes: verification (the verifier, 2026-11-12)
+
+**Verdict: CONDITIONAL PASS.** One MAJOR, one MINOR and two NITs.
+
+The shipped ways are right. I re-derived them independently from the pinned decomp, and all 20 ways and all 5 through marks agree.
+
+The MAJOR is a one-line gap in F3: ways.json's `maps[].id` is still a subtree leaf, so a developer key nested inside it passes RULE B.
+
+The live claims and the P11-x diagnosis are supported by the raw records and by the game's own flags.
+
+Caveat: these are development records, one trajectory per seed. I made no live run of my own.
+
+**What was verified.**
+- A copy of the worktree ch6-p11 (f1069d9d plus the uncommitted P11-2 tree), made at 2:08 PM without .git.
+- Its 9 hashed files equal `prediction_mutants_v5.sha256`. Its gate run's frozen-tree digest, d7f759c05cfd8c75, equals the builder's gates run 3.
+- My predictions were hashed before every run: `vpredictions.txt` (e984b473, 2:28 PM) and `vpredictions2.txt` (f22e5b1e, 2:36 PM).
+- Scripts, outputs and the run book STATE.md are in `C:/Remote Projects/_ai_lab/s53/p11r2/verify/`.
+
+**The ways, re-derived independently.**
+- I wrote my own layout reader and walk (`vgrid.py`, `vways.py`) before reading extract_ways.py's code. Each rule is taken from the pinned decomp:
+  - collision, one-way walls and elevation: `event_object_movement.c` 893-905, 4641-4706, 7673, 7725;
+  - ledges: `event_object_movement.c` 7631 and `field_player_avatar.c` 693;
+  - the muddy slope: `field_player_avatar.c` 412-427, 443-471, 567-581, and `bike.c` 1022-1037;
+  - warps;
+  - the cracked floor's fall: `field_tasks.c` 801-840 and `cave_hole.inc`.
+- **Result:** every take, every toward list and every through mark of GRANITE CAVE B1F and B2F agrees (`vcompare.py`: 20 ways, 5 marks, ALL AGREE). Walk lengths differ only for ledge jumps: I count a jump as 1 step, the extractor as 2. Those lengths live only in the developer-only `_check`.
+- **Controls:**
+  - On f1069d9d's file the comparator finds exactly V1: B1F (4, 21) toward B2F by (8, 5).
+  - With the slope walked both ways, my walk reproduces V1's 24 steps.
+- **Variants:**
+  - Removing the breakable rocks, letting item balls be walked through, or treating people as walls changes nothing.
+  - Treating the cracked floor as the fall it is changes only the (29, 2) pocket arrivals, which no one on foot can reach. From B2F (29, 2), a fall would also lead toward 1F, STEVEN's room and ROUTE 106. No take changes and no through mark changes.
+- No GRANITE walk lands on a forced movement other than the slope, on any map it crosses.
+- The Hall of Fame's ice is real: my reader finds 190 MB_ICE tiles, (6, 11) among them.
+
+**The refusals, plant-tested in memory** (the decomp is never written).
+- Ice on a B1F floor tile refuses both GRANITE maps. So does ice on the lit 1F at (35, 4).
+- Ice on a wall tile refuses nothing.
+- A breakable rock or a cuttable tree in B1F's 1-wide corridor at (3, 17) refuses both maps.
+- A standing person on that same tile is shipped unchanged. A warp event planted on a plain cave tile is used as a step warp. These are VV2's latent gaps.
+
+**Fairness.**
+- RULE B: a developer key nested inside from, take, leads_to, through or toward FAILS, as it should. So does a sibling key under a way or under a map.
+- The same nested plant inside `maps[].id` PASSES (VV1). On f1069d9d, VM1's plant passes too, so V3 was real on the base.
+- RULE B2 refuses a loader that reads `_check` or `walk_lengths`.
+- It now also refuses deciding code that reads `x.get("MAP_GRANITE_CAVE_B1F")`, which it did not on f1069d9d (VV3).
+
+**The builder's tests and mutants, re-run on my copy.**
+- The gates of the diff: 10 of 10 suites exit 0: test_ways 27, test_world 139, test_goals 462, check_fairness, check_purity, call_census, check_paths, check_anchors (8 runners, 1621 mutants), test_check_anchors 7, and ledger 120.
+- `revert_p11` v5: P0 passes 166 tests. 45 mutants were CAUGHT and 3 REDUNDANT ALONE, as predicted, of 48. OVERALL PASS.
+- The builder's base matrix had run on a test_ways.py edited about a minute later. I re-ran its four arms on the final file, and all came out as predicted: CTRL fails none, BX 1, BF 3, BE the same 11.
+- My own mutants: setting from, take, leads_to or through back to a subtree is each CAUGHT. Two slide branches survive (VV4).
+
+**Live #120, read from the raw records.**
+- In each of the 3 pairs, arms A and B are identical up to the first record on 1F (961, 821 and 716 records) and over the whole streams (5,080, 1,120 and 936 records), frames and extras included.
+- Each dark stay's first kinded decision is `way` in both arms.
+- Purity is CLEAN and bot calls are 0 in 6 of 6.
+- DELIVERED_STEVEN_LETTER went from 0 to 1 in all six by the harness's marks, and my own flag reader reads 1 in all six end states.
+- The C1 pair ran the stale errand in both arms.
+- Seeds 6452-6454 appear only in #120 (213 ledgers checked). The batch log prints the entry and prediction a3937784 before the first start.
+
+**P11-x, re-read.**
+- My own flag reader is checked against two controls: the save's map, and the STEVEN flag against the harness's marks. Both are OK in 17 of 17 states.
+- It reads FLAG_ITEM_GRANITE_CAVE_1F_ESCAPE_ROPE as 0 at the three ROUTE 106 starts and the three G1F starts, and 1 at the three B1F starts.
+- The B1F starts' world memories list 1F's ball at "17,7". The G1F ones list none.
+- The arms pass AI_PLAYER_WORLD and no AI_PLAYER_MEMORY.
+- The builder's offline repro reproduces on the P11-2 code.
+- From the raw records:
+  - The errand ran in exactly ab2-B-C2, ab2-B-C3, ab2-F-C2, ab3-B-C1 and ab3-B-C2. Each ended at an empty tile.
+  - FIX was later than FAULT exactly in ab2 C3, ab3 C1 and ab3 C2.
+- One of my predictions missed as worded. Two FAULT runs (ab3-F-C2, ab3-F-C3) were on ROUTE 106 BEFORE their crossing, after climbing back up the ladder they came down. Anchored, as the diagnosis anchors it, on the crossing's arrival at 1F (35, 3), only the 5 errand runs leave the cave afterwards. The diagnosis stands.
+- In #117, all 6 lit-control runs picked the ball up on the way in, and none went back for it.
+
+**Process across the two cuts.**
+- Each prediction file's sha256 equals its .sha256 file and the value in the builder's STATE.md. Each was written before its run. None was re-hashed.
+- Both cut runs hold partial output only:
+  - mutants v5 run 1: its start lines;
+  - gates run 2: 3 of 20 suites.
+  Both are reported as cut. Their re-runs are complete, with 10 of 10 hashes OK at both ends.
+- The archived pair of P11-1 evidence files equals the committed blobs, byte for byte once CRLF is turned to LF.
+- F6's appended correction matches my own reads.
+
+**Findings.**
+- **VV1 (MAJOR):** `maps[].id` is still a subtree leaf. Fix: subtree False, plus "id" in the leaf test with a nested plant.
+- **VV2 (MINOR):** the extractor's headline claims more than it does. A standing person, and a warp event on a tile that is not a step warp, are neither modelled nor refused. No effect today; this must be fixed before P11-y ships VICTORY ROAD.
+- **VV3 (NIT):** seven map consts are now developer-only names, so RULE B2 would refuse code that reads one as a key (a latent false positive).
+- **VV4 (NIT):** two slide branches are untested: a warp under a slope, and an HM obstacle under a slope.
+
+**Housekeeping.**
+- The copy is deleted (17,167 entries, no link inside), and so are the temp mutant copies.
+- The main sandbox is unchanged: plugins 43, mgba 44, roms 2.
+- `verify/` holds 0.4 MB and no world.jsonl. C: has 57.9 GB free.
+- The worktree's git status is unchanged, and the main checkout is clean.
+- No live run was made and no seed was registered, so 6455-6480 stay free.
 
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 

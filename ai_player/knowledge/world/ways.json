@@ -26,9 +26,13 @@
   "data/layouts/PokemonCenter_2F/map.bin": "a0c9ecf69e7faa2d66fd719bc2d1167bd520d78ef7660b858f950d68a0b108f5",
   "data/layouts/Route106/map.bin": "1b7db80391ceca412e992ad704ccfd8018d3d97a810d4a144033e1193ba67849",
   "data/layouts/SootopolisCity/map.bin": "620c9c896617640b73595ea98d32d68b8eb0e850ea681c7b2f51f30b8f43fe49",
+  "data/layouts/SootopolisCity_Gym_1F/map.bin": "cf87d29377201dd2f825131db2e0fe06af1bb3a720e3dcb3f99077ac97169469",
+  "data/layouts/SootopolisCity_Gym_B1F/map.bin": "117e9500edb73620207f9179ad722bc4dcd63a0dfe5c96eaae2928f99a389c09",
   "data/layouts/SootopolisCity_House1/map.bin": "8432e7b1ffccad18ca30b8aa9a576ea01e8ce3cbf02647c00428dc0a8b345e39",
   "data/layouts/SootopolisCity_House2/map.bin": "4bf6de0329a2959bb9ed7eb1b5a5adb9e7be18d6aa1b03cfd667ad1b34594ed9",
   "data/layouts/SootopolisCity_House3/map.bin": "05a2c8c623e3fb1993168ee2124a6928ffc1b46858b488f5014a5f4081b70e24",
+  "data/layouts/SootopolisCity_LotadAndSeedotHouse/map.bin": "ebc4bcb55044604367278070a7baa792ed66f89dc2533218aa07d45308b93734",
+  "data/layouts/SootopolisCity_MysteryEventsHouse_1F/map.bin": "2911489999f1f22a8a96f33486d0a997148c2e07549e6474370b223a5367ec70",
   "data/layouts/VictoryRoad_1F/map.bin": "b100693756672442b3f583a8886950d07b68bac1b6eafe07a2b5fe721d1c484e",
   "data/layouts/VictoryRoad_B1F/map.bin": "574316b10f2989df34eb3a53c3fc4bd946bb0e67bb679e15dfc91997cb47d684",
   "data/layouts/VictoryRoad_B2F/map.bin": "60f525ef9b6e374604f4dcfd96ef1091b6b9bdaac2b73860b345eb75476c00c0",
@@ -559,86 +563,23 @@
   "data/tilesets/secondary/elite_four/metatile_attributes.bin": "a238840dfeac1c6bfc644044d3c71169fa664fef698836d252c324b96a064cc5",
   "data/tilesets/secondary/ever_grande/metatile_attributes.bin": "eb42b6dc5843d54e96f6b2d90122f8b9f7d8e43ffb045c8ef5737768b2331e61",
   "data/tilesets/secondary/generic_building/metatile_attributes.bin": "eb3e942c013770224ffc7d99c469cdaf9cd31243f71ce3fb05a70b278dc5a509",
+  "data/tilesets/secondary/mystery_events_house/metatile_attributes.bin": "f03fce467014ec1603c11ece2a3fbb91dd23100d557baf97c738e255c343389f",
   "data/tilesets/secondary/pokemon_center/metatile_attributes.bin": "7c6373eced25fba8b046b61779d60b16755250aedb8945ff84c1a9c3f50b9110",
   "data/tilesets/secondary/shop/metatile_attributes.bin": "195c8f4e535fe202c57331445a5aeb69a5fa95f739def300982f84c7a4246f63",
   "data/tilesets/secondary/sootopolis/metatile_attributes.bin": "730c1bc475039536acab2ee31ec2d434e47798d0b6d2376a8839ef00ec78c7be",
+  "data/tilesets/secondary/sootopolis_gym/metatile_attributes.bin": "633366767b89b7230696d4e684086dd9713a6f928146f928f04948e8a44496fe",
   "include/constants/metatile_behaviors.h": "213bfcb92984f848272b6aba404cabc82932e0c553ad4362e69d10a09afda854",
   "src/data/tilesets/headers.h": "902ed5a843c1903ce3be5d61f85c0b12df78ab7b1e4d98dd3b10415159a3db3d",
   "src/data/tilesets/metatiles.h": "c94f2c1f4c06bf336270aa1e1b1384651e06a909b0f16368f20cad68f240ae35",
+  "src/field_player_avatar.c": "70db5bd30ce875189e9bc7bfed9e0d712d1d6da3f78931f16b9526521dea78af",
   "src/metatile_behavior.c": "0c770f6cc5876b87f893a415df5d2b001c1d3530d9542cd6a9a311b0ec9e82d8"
  },
  "_kind": "static game knowledge (USER RULING 40): the way through each dark cave, a guide's level",
  "_made_by": "ai_player/gates/extract_ways.py",
- "_reader": "read by ONE loader, ai_player/knowledge/ways.py (P11-1): which maps are dark, and per arrival ladder the ladder to take toward a map; check_fairness.py declares it in LOADERS and classifies every key path of this file in KNOWLEDGE_FIELDS (`_check` and the other `_` keys are the developers' meta, never read)",
- "_notes": "per dark map (requires_flash), per warp the player can arrive by ('from'), the warp to take ('take', leading to 'leads_to') as the first step of the shortest walk on foot toward each map in 'toward'; warps only, no connection; HM obstacles are walls; a cracked floor is no way (see the extractor's docstring)",
+ "_reader": "read by ONE loader, ai_player/knowledge/ways.py (P11-1): which maps are dark, and per arrival ladder the ladder to take toward a map; check_fairness.py declares it in LOADERS and classifies every key path of this file in KNOWLEDGE_FIELDS (`_check` and all under it DEVELOPER, the other `_` keys META: never read)",
+ "_notes": "per dark map (requires_flash), per warp the player can arrive by ('from'), the warp to take ('take', leading to 'leads_to') as the first step of the shortest walk on foot toward each map in 'toward'; warps only, no connection; HM obstacles are walls; a cracked floor is no way; a muddy slope only goes down; a dark map whose walk meets a forced movement the walk does not model, or whose ways depend on the HMs, is LEFT OUT (_check.left_out; see the extractor's docstring)",
  "_check": {
   "walk_lengths": {
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_CAVE_OF_ORIGIN_1F": 2,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_CAVE_OF_ORIGIN_B1F": 4,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_CAVE_OF_ORIGIN_ENTRANCE": 25,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2": 24,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3": 51,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_SOOTOPOLIS_CITY": 40,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_SOOTOPOLIS_CITY_HOUSE1": 110,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_SOOTOPOLIS_CITY_HOUSE3": 115,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_SOOTOPOLIS_CITY_HOUSE5": 124,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_SOOTOPOLIS_CITY_HOUSE7": 148,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|13,5|MAP_SOOTOPOLIS_CITY_MART": 135,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_CAVE_OF_ORIGIN_1F": 24,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_CAVE_OF_ORIGIN_B1F": 26,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_CAVE_OF_ORIGIN_ENTRANCE": 47,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2": 2,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3": 29,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_SOOTOPOLIS_CITY": 62,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_SOOTOPOLIS_CITY_HOUSE1": 132,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_SOOTOPOLIS_CITY_HOUSE3": 137,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_SOOTOPOLIS_CITY_HOUSE5": 146,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_SOOTOPOLIS_CITY_HOUSE7": 170,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1|5,11|MAP_SOOTOPOLIS_CITY_MART": 157,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_CAVE_OF_ORIGIN_1F": 26,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_CAVE_OF_ORIGIN_B1F": 28,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_CAVE_OF_ORIGIN_ENTRANCE": 49,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1": 2,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3": 27,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_SOOTOPOLIS_CITY": 64,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_SOOTOPOLIS_CITY_HOUSE1": 134,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_SOOTOPOLIS_CITY_HOUSE3": 139,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_SOOTOPOLIS_CITY_HOUSE5": 148,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_SOOTOPOLIS_CITY_HOUSE7": 172,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|5,10|MAP_SOOTOPOLIS_CITY_MART": 159,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_CAVE_OF_ORIGIN_1F": 21,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_CAVE_OF_ORIGIN_B1F": 19,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_CAVE_OF_ORIGIN_ENTRANCE": 44,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1": 27,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3": 2,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_SOOTOPOLIS_CITY": 59,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_SOOTOPOLIS_CITY_HOUSE1": 129,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_SOOTOPOLIS_CITY_HOUSE3": 134,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_SOOTOPOLIS_CITY_HOUSE5": 143,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_SOOTOPOLIS_CITY_HOUSE7": 167,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2|8,14|MAP_SOOTOPOLIS_CITY_MART": 154,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_CAVE_OF_ORIGIN_1F": 4,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_CAVE_OF_ORIGIN_B1F": 2,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_CAVE_OF_ORIGIN_ENTRANCE": 27,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1": 44,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2": 17,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_SOOTOPOLIS_CITY": 42,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_SOOTOPOLIS_CITY_HOUSE1": 112,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_SOOTOPOLIS_CITY_HOUSE3": 117,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_SOOTOPOLIS_CITY_HOUSE5": 126,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_SOOTOPOLIS_CITY_HOUSE7": 150,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|12,6|MAP_SOOTOPOLIS_CITY_MART": 137,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_CAVE_OF_ORIGIN_1F": 19,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_CAVE_OF_ORIGIN_B1F": 17,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_CAVE_OF_ORIGIN_ENTRANCE": 42,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1": 29,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2": 2,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_SOOTOPOLIS_CITY": 57,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_SOOTOPOLIS_CITY_HOUSE1": 127,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_SOOTOPOLIS_CITY_HOUSE3": 132,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_SOOTOPOLIS_CITY_HOUSE5": 141,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_SOOTOPOLIS_CITY_HOUSE7": 165,
-   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3|7,14|MAP_SOOTOPOLIS_CITY_MART": 152,
    "MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_1F": 32,
    "MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_B2F": 2,
    "MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_STEVENS_ROOM": 146,
@@ -657,7 +598,7 @@
    "MAP_GRANITE_CAVE_B1F|29,13|MAP_ROUTE106": 73,
    "MAP_GRANITE_CAVE_B1F|29,2|MAP_GRANITE_CAVE_B2F": 2,
    "MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_1F": 2,
-   "MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_B2F": 24,
+   "MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_B2F": 42,
    "MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_STEVENS_ROOM": 144,
    "MAP_GRANITE_CAVE_B1F|4,21|MAP_ROUTE106": 31,
    "MAP_GRANITE_CAVE_B1F|8,5|MAP_GRANITE_CAVE_1F": 24,
@@ -680,289 +621,69 @@
    "MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_1F": 26,
    "MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_B1F": 2,
    "MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_STEVENS_ROOM": 140,
-   "MAP_GRANITE_CAVE_B2F|8,5|MAP_ROUTE106": 55,
-   "MAP_VICTORY_ROAD_B1F|17,16|MAP_VICTORY_ROAD_B2F": 2,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY": 61,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM": 224,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_DRAKES_ROOM": 182,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_GLACIAS_ROOM": 161,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_HALL1": 130,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_HALL2": 151,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_HALL3": 172,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_HALL4": 193,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_HALL5": 109,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_HALL_OF_FAME": 234,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_PHOEBES_ROOM": 140,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_POKEMON_LEAGUE_1F": 99,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_POKEMON_LEAGUE_2F": 111,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_EVER_GRANDE_CITY_SIDNEYS_ROOM": 119,
-   "MAP_VICTORY_ROAD_B1F|20,21|MAP_VICTORY_ROAD_1F": 2,
-   "MAP_VICTORY_ROAD_B1F|30,25|MAP_VICTORY_ROAD_B2F": 2,
-   "MAP_VICTORY_ROAD_B1F|42,25|MAP_VICTORY_ROAD_1F": 2,
-   "MAP_VICTORY_ROAD_B1F|42,25|MAP_VICTORY_ROAD_B2F": 14,
-   "MAP_VICTORY_ROAD_B1F|42,2|MAP_VICTORY_ROAD_B2F": 2,
-   "MAP_VICTORY_ROAD_B1F|5,26|MAP_VICTORY_ROAD_B2F": 2,
-   "MAP_VICTORY_ROAD_B1F|8,3|MAP_EVER_GRANDE_CITY": 46,
-   "MAP_VICTORY_ROAD_B1F|8,3|MAP_EVER_GRANDE_CITY_POKEMON_CENTER_1F": 70,
-   "MAP_VICTORY_ROAD_B1F|8,3|MAP_EVER_GRANDE_CITY_POKEMON_CENTER_2F": 78,
-   "MAP_VICTORY_ROAD_B1F|8,3|MAP_VICTORY_ROAD_1F": 2,
-   "MAP_VICTORY_ROAD_B2F|19,12|MAP_VICTORY_ROAD_B1F": 2,
-   "MAP_VICTORY_ROAD_B2F|30,25|MAP_VICTORY_ROAD_B1F": 2,
-   "MAP_VICTORY_ROAD_B2F|43,2|MAP_VICTORY_ROAD_B1F": 2,
-   "MAP_VICTORY_ROAD_B2F|5,26|MAP_VICTORY_ROAD_B1F": 2
+   "MAP_GRANITE_CAVE_B2F|8,5|MAP_ROUTE106": 55
+  },
+  "left_out": {
+   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1": [
+    "HMs: its ways depend on the HMs the player can use, which the walk does not know: from (13, 5) on foot take (13, 5) toward ['MAP_CAVE_OF_ORIGIN_1F', 'MAP_CAVE_OF_ORIGIN_B1F', 'MAP_CAVE_OF_ORIGIN_ENTRANCE', 'MAP_SOOTOPOLIS_CITY', 'MAP_SOOTOPOLIS_CITY_HOUSE1', 'MAP_SOOTOPOLIS_CITY_HOUSE3', 'MAP_SOOTOPOLIS_CITY_HOUSE5', 'MAP_SOOTOPOLIS_CITY_HOUSE7', 'MAP_SOOTOPOLIS_CITY_MART'] through None; the HM obstacles its walk on foot met: none (water: Surf, Waterfall)"
+   ],
+   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2": [
+    "HMs: its ways depend on the HMs the player can use, which the walk does not know: from (5, 10) on foot take (5, 10) toward ['MAP_CAVE_OF_ORIGIN_1F', 'MAP_CAVE_OF_ORIGIN_B1F', 'MAP_CAVE_OF_ORIGIN_ENTRANCE', 'MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1', 'MAP_SOOTOPOLIS_CITY', 'MAP_SOOTOPOLIS_CITY_HOUSE1', 'MAP_SOOTOPOLIS_CITY_HOUSE3', 'MAP_SOOTOPOLIS_CITY_HOUSE5', 'MAP_SOOTOPOLIS_CITY_HOUSE7', 'MAP_SOOTOPOLIS_CITY_MART'] through None; the HM obstacles its walk on foot met: none (water: Surf, Waterfall)"
+   ],
+   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3": [
+    "HMs: its ways depend on the HMs the player can use, which the walk does not know: from (7, 14) on foot take (12, 6) toward ['MAP_CAVE_OF_ORIGIN_1F', 'MAP_CAVE_OF_ORIGIN_B1F', 'MAP_CAVE_OF_ORIGIN_ENTRANCE', 'MAP_SOOTOPOLIS_CITY', 'MAP_SOOTOPOLIS_CITY_HOUSE1', 'MAP_SOOTOPOLIS_CITY_HOUSE3', 'MAP_SOOTOPOLIS_CITY_HOUSE5', 'MAP_SOOTOPOLIS_CITY_HOUSE7', 'MAP_SOOTOPOLIS_CITY_MART'] through MAP_SOOTOPOLIS_CITY_HOUSE7; the HM obstacles its walk on foot met: none (water: Surf, Waterfall)"
+   ],
+   "MAP_VICTORY_ROAD_B1F": [
+    "FORCED MOVEMENT its walk does not model: MB_ICE at (6, 11) on MAP_EVER_GRANDE_CITY_HALL_OF_FAME (and 3 more forced-movement tile(s))",
+    "HMs: its ways depend on the HMs the player can use, which the walk does not know: from (30, 25) on foot take (30, 25) toward ['MAP_VICTORY_ROAD_B2F'] through None; the HM obstacles its walk on foot met: OBJ_EVENT_GFX_BREAKABLE_ROCK at (18, 12) on MAP_VICTORY_ROAD_B1F; OBJ_EVENT_GFX_BREAKABLE_ROCK at (20, 25) on MAP_VICTORY_ROAD_B1F; OBJ_EVENT_GFX_BREAKABLE_ROCK at (21, 26) on MAP_VICTORY_ROAD_B1F (and 6 more)"
+   ],
+   "MAP_VICTORY_ROAD_B2F": [
+    "HMs: its ways depend on the HMs the player can use, which the walk does not know: from (30, 25) on foot take (30, 25) toward ['MAP_VICTORY_ROAD_B1F'] through None; the HM obstacles its walk on foot met: OBJ_EVENT_GFX_BREAKABLE_ROCK at (18, 12) on MAP_VICTORY_ROAD_B1F; OBJ_EVENT_GFX_BREAKABLE_ROCK at (20, 25) on MAP_VICTORY_ROAD_B1F; OBJ_EVENT_GFX_PUSHABLE_BOULDER at (20, 26) on MAP_VICTORY_ROAD_B1F (and 1 more)"
+   ]
+  },
+  "hm_obstacles": {
+   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1": [],
+   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2": [],
+   "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3": [],
+   "MAP_GRANITE_CAVE_B1F": [
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (2, 16) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (3, 14) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (3, 21) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (4, 22) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (5, 14) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (6, 22) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (7, 12) on MAP_GRANITE_CAVE_B2F"
+   ],
+   "MAP_GRANITE_CAVE_B2F": [
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (2, 16) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (3, 14) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (3, 21) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (4, 22) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (5, 14) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (6, 22) on MAP_GRANITE_CAVE_B2F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (7, 12) on MAP_GRANITE_CAVE_B2F"
+   ],
+   "MAP_VICTORY_ROAD_B1F": [
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (18, 12) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (20, 25) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (21, 26) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_PUSHABLE_BOULDER at (20, 26) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_PUSHABLE_BOULDER at (21, 25) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_PUSHABLE_BOULDER at (21, 4) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_PUSHABLE_BOULDER at (35, 6) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_PUSHABLE_BOULDER at (4, 7) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_PUSHABLE_BOULDER at (9, 10) on MAP_VICTORY_ROAD_B1F"
+   ],
+   "MAP_VICTORY_ROAD_B2F": [
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (18, 12) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_BREAKABLE_ROCK at (20, 25) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_PUSHABLE_BOULDER at (20, 26) on MAP_VICTORY_ROAD_B1F",
+    "OBJ_EVENT_GFX_PUSHABLE_BOULDER at (35, 6) on MAP_VICTORY_ROAD_B1F"
+   ]
   }
  },
- "count": 7,
+ "count": 2,
  "maps": [
-  {
-   "id": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1",
-   "ways": [
-    {
-     "from": [
-      13,
-      5
-     ],
-     "take": [
-      5,
-      11
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2",
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      13,
-      5
-     ],
-     "take": [
-      13,
-      5
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_1F",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_1F",
-      "MAP_CAVE_OF_ORIGIN_B1F",
-      "MAP_CAVE_OF_ORIGIN_ENTRANCE",
-      "MAP_SOOTOPOLIS_CITY",
-      "MAP_SOOTOPOLIS_CITY_HOUSE1",
-      "MAP_SOOTOPOLIS_CITY_HOUSE3",
-      "MAP_SOOTOPOLIS_CITY_HOUSE5",
-      "MAP_SOOTOPOLIS_CITY_HOUSE7",
-      "MAP_SOOTOPOLIS_CITY_MART"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      5,
-      11
-     ],
-     "take": [
-      5,
-      11
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2",
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      5,
-      11
-     ],
-     "take": [
-      13,
-      5
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_1F",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_1F",
-      "MAP_CAVE_OF_ORIGIN_B1F",
-      "MAP_CAVE_OF_ORIGIN_ENTRANCE",
-      "MAP_SOOTOPOLIS_CITY",
-      "MAP_SOOTOPOLIS_CITY_HOUSE1",
-      "MAP_SOOTOPOLIS_CITY_HOUSE3",
-      "MAP_SOOTOPOLIS_CITY_HOUSE5",
-      "MAP_SOOTOPOLIS_CITY_HOUSE7",
-      "MAP_SOOTOPOLIS_CITY_MART"
-     ],
-     "through": "MAP_SOOTOPOLIS_CITY_HOUSE7"
-    }
-   ]
-  },
-  {
-   "id": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2",
-   "ways": [
-    {
-     "from": [
-      5,
-      10
-     ],
-     "take": [
-      5,
-      10
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_1F",
-      "MAP_CAVE_OF_ORIGIN_B1F",
-      "MAP_CAVE_OF_ORIGIN_ENTRANCE",
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1",
-      "MAP_SOOTOPOLIS_CITY",
-      "MAP_SOOTOPOLIS_CITY_HOUSE1",
-      "MAP_SOOTOPOLIS_CITY_HOUSE3",
-      "MAP_SOOTOPOLIS_CITY_HOUSE5",
-      "MAP_SOOTOPOLIS_CITY_HOUSE7",
-      "MAP_SOOTOPOLIS_CITY_MART"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      5,
-      10
-     ],
-     "take": [
-      8,
-      14
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      8,
-      14
-     ],
-     "take": [
-      5,
-      10
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      8,
-      14
-     ],
-     "take": [
-      8,
-      14
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_1F",
-      "MAP_CAVE_OF_ORIGIN_B1F",
-      "MAP_CAVE_OF_ORIGIN_ENTRANCE",
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3",
-      "MAP_SOOTOPOLIS_CITY",
-      "MAP_SOOTOPOLIS_CITY_HOUSE1",
-      "MAP_SOOTOPOLIS_CITY_HOUSE3",
-      "MAP_SOOTOPOLIS_CITY_HOUSE5",
-      "MAP_SOOTOPOLIS_CITY_HOUSE7",
-      "MAP_SOOTOPOLIS_CITY_MART"
-     ],
-     "through": null
-    }
-   ]
-  },
-  {
-   "id": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3",
-   "ways": [
-    {
-     "from": [
-      7,
-      14
-     ],
-     "take": [
-      7,
-      14
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1",
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      7,
-      14
-     ],
-     "take": [
-      12,
-      6
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_B1F",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_1F",
-      "MAP_CAVE_OF_ORIGIN_B1F",
-      "MAP_CAVE_OF_ORIGIN_ENTRANCE",
-      "MAP_SOOTOPOLIS_CITY",
-      "MAP_SOOTOPOLIS_CITY_HOUSE1",
-      "MAP_SOOTOPOLIS_CITY_HOUSE3",
-      "MAP_SOOTOPOLIS_CITY_HOUSE5",
-      "MAP_SOOTOPOLIS_CITY_HOUSE7",
-      "MAP_SOOTOPOLIS_CITY_MART"
-     ],
-     "through": "MAP_SOOTOPOLIS_CITY_HOUSE7"
-    },
-    {
-     "from": [
-      12,
-      6
-     ],
-     "take": [
-      7,
-      14
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1",
-      "MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      12,
-      6
-     ],
-     "take": [
-      12,
-      6
-     ],
-     "leads_to": "MAP_CAVE_OF_ORIGIN_B1F",
-     "toward": [
-      "MAP_CAVE_OF_ORIGIN_1F",
-      "MAP_CAVE_OF_ORIGIN_B1F",
-      "MAP_CAVE_OF_ORIGIN_ENTRANCE",
-      "MAP_SOOTOPOLIS_CITY",
-      "MAP_SOOTOPOLIS_CITY_HOUSE1",
-      "MAP_SOOTOPOLIS_CITY_HOUSE3",
-      "MAP_SOOTOPOLIS_CITY_HOUSE5",
-      "MAP_SOOTOPOLIS_CITY_HOUSE7",
-      "MAP_SOOTOPOLIS_CITY_MART"
-     ],
-     "through": null
-    }
-   ]
-  },
   {
    "id": "MAP_GRANITE_CAVE_B1F",
    "ways": [
@@ -1020,26 +741,12 @@
       21
      ],
      "take": [
-      8,
-      5
-     ],
-     "leads_to": "MAP_GRANITE_CAVE_B2F",
-     "toward": [
-      "MAP_GRANITE_CAVE_B2F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      4,
-      21
-     ],
-     "take": [
       28,
       21
      ],
      "leads_to": "MAP_GRANITE_CAVE_B2F",
      "toward": [
+      "MAP_GRANITE_CAVE_B2F",
       "MAP_GRANITE_CAVE_STEVENS_ROOM"
      ],
      "through": "MAP_GRANITE_CAVE_STEVENS_ROOM"
@@ -1304,213 +1011,6 @@
      "leads_to": "MAP_GRANITE_CAVE_B1F",
      "toward": [
       "MAP_GRANITE_CAVE_B1F"
-     ],
-     "through": null
-    }
-   ]
-  },
-  {
-   "id": "MAP_VICTORY_ROAD_B1F",
-   "ways": [
-    {
-     "from": [
-      30,
-      25
-     ],
-     "take": [
-      30,
-      25
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B2F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B2F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      17,
-      16
-     ],
-     "take": [
-      17,
-      16
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B2F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B2F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      42,
-      25
-     ],
-     "take": [
-      30,
-      25
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B2F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B2F"
-     ],
-     "through": "MAP_VICTORY_ROAD_B2F"
-    },
-    {
-     "from": [
-      42,
-      25
-     ],
-     "take": [
-      42,
-      25
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_1F",
-     "toward": [
-      "MAP_VICTORY_ROAD_1F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      42,
-      2
-     ],
-     "take": [
-      42,
-      2
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B2F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B2F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      8,
-      3
-     ],
-     "take": [
-      8,
-      3
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_1F",
-     "toward": [
-      "MAP_EVER_GRANDE_CITY",
-      "MAP_EVER_GRANDE_CITY_POKEMON_CENTER_1F",
-      "MAP_EVER_GRANDE_CITY_POKEMON_CENTER_2F",
-      "MAP_VICTORY_ROAD_1F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      20,
-      21
-     ],
-     "take": [
-      20,
-      21
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_1F",
-     "toward": [
-      "MAP_EVER_GRANDE_CITY",
-      "MAP_EVER_GRANDE_CITY_CHAMPIONS_ROOM",
-      "MAP_EVER_GRANDE_CITY_DRAKES_ROOM",
-      "MAP_EVER_GRANDE_CITY_GLACIAS_ROOM",
-      "MAP_EVER_GRANDE_CITY_HALL1",
-      "MAP_EVER_GRANDE_CITY_HALL2",
-      "MAP_EVER_GRANDE_CITY_HALL3",
-      "MAP_EVER_GRANDE_CITY_HALL4",
-      "MAP_EVER_GRANDE_CITY_HALL5",
-      "MAP_EVER_GRANDE_CITY_HALL_OF_FAME",
-      "MAP_EVER_GRANDE_CITY_PHOEBES_ROOM",
-      "MAP_EVER_GRANDE_CITY_POKEMON_LEAGUE_1F",
-      "MAP_EVER_GRANDE_CITY_POKEMON_LEAGUE_2F",
-      "MAP_EVER_GRANDE_CITY_SIDNEYS_ROOM",
-      "MAP_VICTORY_ROAD_1F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      5,
-      26
-     ],
-     "take": [
-      5,
-      26
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B2F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B2F"
-     ],
-     "through": null
-    }
-   ]
-  },
-  {
-   "id": "MAP_VICTORY_ROAD_B2F",
-   "ways": [
-    {
-     "from": [
-      30,
-      25
-     ],
-     "take": [
-      30,
-      25
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B1F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B1F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      43,
-      2
-     ],
-     "take": [
-      43,
-      2
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B1F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B1F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      19,
-      12
-     ],
-     "take": [
-      19,
-      12
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B1F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B1F"
-     ],
-     "through": null
-    },
-    {
-     "from": [
-      5,
-      26
-     ],
-     "take": [
-      5,
-      26
-     ],
-     "leads_to": "MAP_VICTORY_ROAD_B1F",
-     "toward": [
-      "MAP_VICTORY_ROAD_B1F"
      ],
      "through": null
     }

@@ -616,11 +616,14 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
     # exits: warps and doors seen on this map
     for exit_tile in memory.exits():
         link = world.link_of(memory.key, exit_tile)
-        if way is not None and exit_tile == way.take:
+        if first_hop is not None and first_hop[0] == "warp" and tuple(first_hop[1]["tile"]) == exit_tile:
+            # (P11-2, the P11-1 verifier's V2) the route's first hop keeps the ROUTE's role even where it is also the way's
+            # ladder: the AI's own known way toward its goal, exactly as before P11-1, so `goals.lost_way` (which walks the
+            # known routes only) still finds it. The fact adds a `way` only where the memory knows no route by that exit
+            kind, value, why = "route", ROUTE_VALUE, f"it leads toward the goal ({len(route)} link(s) known)"
+        elif way is not None and exit_tile == way.take:
             # (P11-1, option A folded into B) the way on, IN SIGHT: it outranks every frontier of the dark (`WAY_VALUE`)
             kind, value, why = "way", WAY_VALUE, f"{way_why}: in sight"
-        elif first_hop is not None and first_hop[0] == "warp" and tuple(first_hop[1]["tile"]) == exit_tile:
-            kind, value, why = "route", ROUTE_VALUE, f"it leads toward the goal ({len(route)} link(s) known)"
         elif link is None:
             kind, value, why = "door", weights.door, "an exit not used yet: where does it go?"
         elif world.visited(link["to"]):

@@ -127,3 +127,16 @@ test_step53_a2, test_evidence, test_safety_gates, check_fairness, check_purity, 
 test_check_anchors, test_ways, ledger_check), FROZEN TREE PASS, with the worktree's sandbox staged (a junction to the main
 mgba and copies of small config files, s53/p11r1/stage_wt_p11.py; removed after). The first run, unstaged, failed
 test_eyes / test_saving / test_hands / test_host for the missing mgba and test_kb2 for 3 real pins (fixed, above).
+
+CORRECTION (appended by P11-2's builder, 2026-11-11; the P11-1 verifier's V6; nothing above is rewritten)
+The caveat above quotes "not picked up: no item ball where it lay at (17, 7) any more" (#116 C1) as if the game said it. It
+is the AI's OWN goal_end record (its look found no ball there), not the game's words, and the item's flag was not read
+then. The GAME's record, read now from the kept end state of #116 C1 (s53/p11r1/out/ab3/ab3-B-C1-6450/end_state.ss1) by
+s53/p11r2/read_flags.py (an offline reader of the save state's event flags, checked first against the harness's GAME
+marks: FLAG_DELIVERED_STEVEN_LETTER reads 0 at the start and 1 at the end, as the run's marks_before / marks_after say):
+FLAG_ITEM_GRANITE_CAVE_1F_ESCAPE_ROPE (0x41A, the ball at 1F (17, 7)) = 1, so the ball WAS gone. It was gone before the run
+began: the flag reads 1 in all three B1F start states and 0 in all three G1F ones (s53/p11r2/read_flags.out), so the
+start maker's own play picked it up, and the B1F starts restored the AI's world memory (which still lists the ball) without
+its goal memory (which records the pick-up). P11-2's diagnosis of the detour (s53/p11r2/P11X-DIAGNOSIS.md): the errand is
+an artifact of those starts, not of the AI's code; the three pairs where FIX reached STEVEN later (#115 C3, #116 C1, #116
+C2) are exactly the three where only FIX ran it.

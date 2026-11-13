@@ -311,24 +311,30 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
     },
     # (P11-1, 2026-11-11) the world folder's THIRD loaded file, for `knowledge/ways.py`: the way through each dark cave at a
     # guide's level. Classified LEAF BY LEAF (the containers without a subtree), as maps.json's warps are, so a developer key
-    # planted under a way is unclassified and FAILS. `_check` (the extractor's walk lengths) is meta: never read
+    # planted under a way is unclassified and FAILS. (P11-2, the P11-1 verifier's V3) the five LEAVES are no subtree either:
+    # each holds a scalar or a list of scalars, which make no key path below it, so a key NESTED inside one (a dict planted in
+    # `toward`) is unclassified and FAILS too, as a sibling key does. (P11-2, V5) `_check` and everything under it (the
+    # extractor's walk lengths, the maps it left out and why, the HM obstacles its walks met) is DEVELOPER, so RULE B2
+    # refuses a loader or deciding code that reads `walk_lengths`; the other `_` keys stay META. `_check` comes FIRST: an exact
+    # pattern is matched in this order (`classify`), and `_*` matches `_check` too
     "world/ways.json": {
-        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, its notes, and the "
-                     "extractor's own walk lengths under `_check` for the developers)", True),
+        "_check": (DEVELOPER, "the extractor's own checks (walk lengths, the dark maps it left out and why, the HM obstacles "
+                              "its walks met): the developers' proof, never read by the AI", True),
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, its notes)", True),
         "count": (META, "how many dark maps the file holds", True),
         "maps": (AI, "every dark cave of the game (requires_flash: the screen shows a small lit circle)", False),
         "maps[]": (AI, "one dark map", False),
         "maps[].id": (AI, "its const: the map a person stands on, dark", True),
         "maps[].ways": (AI, "its ways on, a guide's level (USER RULING 40: the way through a cave)", False),
         "maps[].ways[]": (AI, "one way on", False),
-        "maps[].ways[].from": (AI, "the ladder or exit the player arrived by (RULING 45: coordinates kept)", True),
+        "maps[].ways[].from": (AI, "the ladder or exit the player arrived by (RULING 45: coordinates kept)", False),
         "maps[].ways[].take": (AI, "the ladder or exit to take on (RULING 45: coordinates kept; maps.json holds the same "
-                                   "warp)", True),
-        "maps[].ways[].leads_to": (AI, "the map that ladder leads to (a guide's map)", True),
+                                   "warp)", False),
+        "maps[].ways[].leads_to": (AI, "the map that ladder leads to (a guide's map)", False),
         "maps[].ways[].toward": (AI, "the maps it is the way on toward (a guide: 'the ladder east is the way to STEVEN')",
-                                 True),
+                                 False),
         "maps[].ways[].through": (AI, "the cave's far end when this is THE WAY THROUGH from that arrival (a guide's 'the way "
-                                      "through the cave'), else null", True),
+                                      "through the cave'), else null", False),
     },
 }
 

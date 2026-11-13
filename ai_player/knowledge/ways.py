@@ -26,7 +26,10 @@ decomp's layouts), once, cached; of it each dark map's `id` and its `ways` (`fro
 `gates/check_fairness.py` declares this module the file's only LOADER and classifies every key path of it (RULE B).
 
 A MISSING FILE IS NO DARK MAP: without `world/ways.json` every answer is "not dark" / None, which is the AI's behaviour
-before P11-1, exactly (the live A/B's FAULT arm is this code with the file removed).
+before P11-1, exactly (the live A/B's FAULT arm is this code with the file removed). (P11-2) Likewise a dark cave the file
+LEAVES OUT: the extractor ships no guess for a cave whose walk it cannot model (a forced movement other than the muddy slope,
+or ways that depend on the HMs the player can use: VICTORY ROAD, until its walk knows the player's HMs), so there too the
+answer is "not dark" and the AI's own explorer decides, as before P11-1.
 """
 
 from __future__ import annotations
@@ -77,8 +80,8 @@ def _ways() -> dict[str, list[tuple[tuple[int, int], tuple[int, int], str, tuple
 
 
 def dark(const: str | None) -> bool:
-    """Is map `const` (the eyes' map const) one of the dark caves the file holds (`requires_flash`)? False for any other
-    map, for None, and for every map when the file is missing."""
+    """Is map `const` (the eyes' map const) one of the dark caves the file holds (`requires_flash`, and not left out by the
+    extractor: P11-2)? False for any other map, for None, and for every map when the file is missing."""
     return (const or "") in _ways()
 
 

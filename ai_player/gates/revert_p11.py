@@ -25,6 +25,22 @@ map's first step is the warp arrived by: round 2a's marks made 11 of 29 goal-les
 that steps back planted in the shipped file). v2's run 1 is NOT evidence: this runner copies the package once PER MUTANT,
 and the worktree was edited (round 2b) while that run was in flight, so its copies mixed two trees. v3's predictions were
 written and its sha256 recorded (`s53/p11r1/prediction_mutants_v3.sha256`) before its first run, on a frozen tree.
+
+VERSION 4 (P11-2, 2026-11-11, the fix round after the P11-1 verifier's CONDITIONAL PASS): v3's table, three of its anchors
+re-anchored where P11-2 rewrote the line (`a_for_every_ladder` and `no_named_in_sight`: the way's branch now comes after the
+route's, V2; `fair_no_through`: the leaf is no subtree now, V3), plus the P11-2 rules: the muddy slope (V1: the slide, its
+ledge and its cracked floor), the refusal of what the walk does not model (an unmodelled forced movement stops the walk and
+is recorded; the decomp's forced-movement table; the HM check, its walk lengths and its every-HM walk; a cuttable tree is an
+HM obstacle; the refused map is left out and said loudly; the model draws the slope one way), the route's first hop keeping
+its role (V2), the five leaves no subtree (V3) and `_check` DEVELOPER, first in its schema (V5). v4's predictions were
+written and its sha256 recorded (`s53/p11r2/prediction_mutants_v4.sha256`) before its first run, on a frozen tree.
+
+VERSION 5 (P11-2, 2026-11-11): v4's run 1 (sha256 f5e5d81d, on the frozen tree) held 47 of its 48 predictions and read
+OVERALL FAIL: `forced_not_recorded` was CAUGHT by two of the three tests predicted (the extraction-equality test and the
+hand-made forced-movement test), not by the third, the loud test, which reads the SHIPPED file's refusals, and a mutant of
+the extractor's code leaves the shipped file as it is (the equality test is what ties the two). The prediction was wrong,
+not the test; v5 is v4 with that one prediction corrected (and one docstring paragraph of the extractor reworded), its
+sha256 recorded (`s53/p11r2/prediction_mutants_v5.sha256`) before its first run, on a frozen tree.
 """
 
 from __future__ import annotations
@@ -55,6 +71,15 @@ GOAL_LESS = ["test_ways.CandidateTests.test_no_goal_is_the_way_through_an_unwant
              "test_ways.ModelTests.test_b2f_goal_less_fix_against_fault"]
 THROUGH = "test_ways.LoaderTests.test_the_way_through_with_no_goal"
 EXTRACTED = "test_ways.LoaderTests.test_the_file_is_the_extractors_output_from_the_pinned_decomp"
+#: (v4, P11-2) the extractor's own tests, the fairness tests and the route's first hop (V2, the verifier's VP1)
+SLOPE = "test_ways.ExtractorTests.test_the_muddy_slope_only_goes_down_on_foot"
+FORCED = "test_ways.ExtractorTests.test_a_forced_movement_it_does_not_model_stops_the_walk_and_refuses_the_map"
+HM_CHECK = "test_ways.ExtractorTests.test_ways_that_depend_on_the_hms_refuse_the_map_and_an_obstacle_that_changes_nothing_is_a_wall"
+LOUD = "test_ways.ExtractorTests.test_every_refusal_is_said_loudly_naming_the_map_and_the_tile"
+LEAVES = "test_ways.FairnessTests.test_the_file_is_classified_leaf_by_leaf_and_a_planted_developer_key_fails"
+GATED = "test_ways.FairnessTests.test_the_loader_and_the_deciding_code_are_gated"
+DEV_KEYS = "test_ways.FairnessTests.test_no_developer_key_is_lost_and_the_loader_reads_only_its_keys"
+ROUTE_HOP = "test_ways.CandidateTests.test_the_routes_first_hop_keeps_its_role_where_it_is_the_way"
 #: the tests every "no way at all" mutant fails (the way never offered on the model)
 NO_WAY = ["test_ways.CandidateTests.test_the_fact_only_adds_the_way_and_it_outranks_the_frontier",
           "test_ways.CandidateTests.test_the_latest_arrival_counts_and_survives_a_restore",
@@ -144,14 +169,16 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                         "None)  # MUTANT arrival_first\n")],
                       ["test_ways.CandidateTests.test_the_latest_arrival_counts_and_survives_a_restore"]),
     # ---- option A folded in: the NAMED ladder in sight outranks the frontier; no other ladder does
-    "a_for_every_ladder": (CAUGHT, "option A for EVERY unused ladder in sight on a dark map (the decision reverted): B1F's "
-                                   "dead-end (8, 5) taken for the way",
-                           [(EXPLORE, "        if way is not None and exit_tile == way.take:\n",
-                             "        if way is not None and link is None:  # MUTANT a_for_every_ladder\n")],
+    # (v4) re-anchored: P11-2 put the route's branch first (V2), so the way's is an `elif` now; (v4) the unnamed ladder of
+    # the test is (4, 21) seen from the slope's other side (P11-1's (8, 5) is out of reach of (4, 21) on foot, V1)
+    "a_for_every_ladder": (CAUGHT, "option A for EVERY unused ladder in sight on a dark map (the decision reverted): from "
+                                   "B1F's north side, (4, 21), back up to 1F, taken for the way",
+                           [(EXPLORE, "        elif way is not None and exit_tile == way.take:\n",
+                             "        elif way is not None and link is None:  # MUTANT a_for_every_ladder\n")],
                            ["test_ways.CandidateTests.test_an_unnamed_ladder_in_sight_stays_a_door_the_named_one_is_the_way"]),
     "no_named_in_sight": (CAUGHT, "the named ladder in sight is a plain door (option A dropped)",
-                          [(EXPLORE, "        if way is not None and exit_tile == way.take:\n",
-                            "        if False:  # MUTANT no_named_in_sight\n")],
+                          [(EXPLORE, "        elif way is not None and exit_tile == way.take:\n",
+                            "        elif False:  # MUTANT no_named_in_sight\n")],
                           ["test_ways.CandidateTests.test_an_unnamed_ladder_in_sight_stays_a_door_the_named_one_is_the_way",
                            "test_ways.ModelTests.test_the_last_b1f_stay",
                            "test_ways.ModelTests.test_b2f_fix_against_fault"]),
@@ -217,9 +244,10 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
     # (v2, round 2) the new leaf unclassified: RULE B finds `maps[].ways[].through` on the CLEAN copy (both tests assert the
     # gate's findings on a clean or mention-only copy are empty)
     "fair_no_through": (CAUGHT, "ways.json's round-2 leaf `maps[].ways[].through` unclassified",
+                        # (v4) re-anchored: the leaf is no subtree since P11-2 (V3)
                         [(FAIR, "        \"maps[].ways[].through\": (AI, \"the cave's far end when this is THE WAY THROUGH "
                                 "from that arrival (a guide's 'the way \"\n"
-                                "                                      \"through the cave'), else null\", True),\n",
+                                "                                      \"through the cave'), else null\", False),\n",
                           "        # MUTANT fair_no_through\n")],
                         ["test_ways.FairnessTests.test_the_file_is_classified_leaf_by_leaf_and_a_planted_developer_key_fails",
                          "test_ways.FairnessTests.test_the_loader_and_the_deciding_code_are_gated"]),
@@ -256,6 +284,114 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                          "     \"toward\": [\n      \"MAP_GRANITE_CAVE_B2F\"\n     ],\n"
                          "     \"through\": \"MAP_GRANITE_CAVE_B2F\"\n")],
                        ["test_ways.LoaderTests.test_the_way_through_never_steps_back_nor_cycles", EXTRACTED]),
+    # ---- (v4, P11-2) V1: THE MUDDY SLOPE, one way on foot (src/field_player_avatar.c:567-581)
+    "slope_two_way": (CAUGHT, "the muddy slope walked as plain floor (P11-1's walk: (8, 5) reached from (4, 21) again)",
+                      [(EXTRACT, "            if behaviour not in self.forced:\n                return tile, elev, cost\n",
+                        "            if behaviour not in self.forced or behaviour == MUDDY_SLOPE:  # MUTANT slope_two_way\n"
+                        "                return tile, elev, cost\n")],
+                      [EXTRACTED, SLOPE, FORCED]),
+    "slide_ledge_blocked": (CAUGHT, "a south ledge under a slope stops the slide instead of being jumped",
+                            [(EXTRACT, "                if JUMPS[under] != \"down\" or not self.inside(land) or "
+                                       "self._walled(land, hms, met):\n",
+                              "                if True:  # MUTANT slide_ledge_blocked\n")],
+                            [FORCED]),
+    "slide_onto_crack_walks_on": (CAUGHT, "a slide onto a cracked floor stops on the slope instead of dropping the player",
+                                  [(EXTRACT, "            if under in CRACKED and not hms:\n                return None\n",
+                                    "            if False:  # MUTANT slide_onto_crack_walks_on\n                return None\n")],
+                                  [FORCED]),
+    # ---- (v4) V1/V4: WHAT THE WALK DOES NOT MODEL, IT REFUSES
+    "forced_walks_on": (CAUGHT, "on foot, a forced movement the walk does not model is walked on as floor (it is still "
+                                "recorded)",
+                        [(EXTRACT, "                return (tile, elev, cost) if hms else None\n",
+                          "                return tile, elev, cost  # MUTANT forced_walks_on\n")],
+                        [FORCED]),
+    "forced_not_recorded": (CAUGHT, "a forced movement the walk does not model is not recorded: VICTORY ROAD B1F loses its "
+                                    "FORCED MOVEMENT reason (the Hall of Fame's ice)",
+                            [(EXTRACT, "                    met.add((\"forced\", self.id, tile, behaviour))\n",
+                              "                    pass  # MUTANT forced_not_recorded\n")],
+                            # (v5) not LOUD: it reads the shipped file, which this mutant of the extractor's code leaves as
+                            # it is (v4's prediction listed it and missed; the equality test is what ties the two)
+                            [EXTRACTED, FORCED]),
+    "forced_table_only_slope": (CAUGHT, "the decomp's forced-movement table read as the slope alone (ice, slides, currents "
+                                        "and mats walked as floor)",
+                                [(EXTRACT, "        out |= found\n",
+                                  "        out |= found & {MUDDY_SLOPE}  # MUTANT forced_table_only_slope\n")],
+                                [EXTRACTED, SLOPE]),
+    "hm_check_off": (CAUGHT, "the HM check never refuses (VICTORY ROAD B2F and the three CAVE OF ORIGIN maps shipped on "
+                             "their on-foot ways)",
+                     [(EXTRACT, "    if hm_ways != ways or hm_lengths != lengths:\n",
+                       "    if False:  # MUTANT hm_check_off\n")],
+                     [EXTRACTED, HM_CHECK]),
+    "hm_lengths_ignored": (CAUGHT, "the HM check compares the ways only, not the walk lengths (a shorter walk with an HM "
+                                   "could start by another ladder)",
+                           [(EXTRACT, "    if hm_ways != ways or hm_lengths != lengths:\n",
+                             "    if hm_ways != ways:  # MUTANT hm_lengths_ignored\n")],
+                           [HM_CHECK]),
+    "hm_walk_on_foot": (CAUGHT, "the every-HM walk keeps the HM obstacles as walls (it opens only the water)",
+                        [(EXTRACT, "        return not hms\n", "        return True  # MUTANT hm_walk_on_foot\n")],
+                        [HM_CHECK]),
+    "cut_tree_not_obstacle": (CAUGHT, "a cuttable tree walked through as 'another object' (P11-1's HM obstacles)",
+                              [(EXTRACT, "HM_OBSTACLES = (\"OBJ_EVENT_GFX_BREAKABLE_ROCK\", \"OBJ_EVENT_GFX_PUSHABLE_BOULDER\", "
+                                         "\"OBJ_EVENT_GFX_CUTTABLE_TREE\")\n",
+                                "HM_OBSTACLES = (\"OBJ_EVENT_GFX_BREAKABLE_ROCK\", \"OBJ_EVENT_GFX_PUSHABLE_BOULDER\")  "
+                                "# MUTANT cut_tree_not_obstacle\n")],
+                              [HM_CHECK]),
+    "loud_silent": (CAUGHT, "the refusals are no longer said (every mode prints nothing for them)",
+                    [(EXTRACT, "    return [f\"REFUSED {map_id}: {why}\" for map_id, reasons in doc[\"_check\"][\"left_out\"]."
+                               "items() for why in reasons]\n",
+                      "    return []  # MUTANT loud_silent\n")],
+                    [LOUD]),
+    "refusal_ships_anyway": (CAUGHT, "a refused map is recorded as left out AND shipped (its guess emitted)",
+                             [(EXTRACT, "            left_out[map_id] = why\n            continue\n",
+                               "            left_out[map_id] = why  # MUTANT refusal_ships_anyway\n")],
+                             [EXTRACTED]),
+    "model_slope_floor": (CAUGHT, "the test side's model draws the slope as floor again (P11-1's two-way fixture)",
+                          [(EXTRACT, "                elif behaviour == MUDDY_SLOPE and g.behaviour.get((x, y - 1)) != MUDDY_SLOPE:\n",
+                            "                elif False:  # MUTANT model_slope_floor\n")],
+                          [EXTRACTED]),
+    "model_slope_unchecked": (REDUNDANT, "the model's check that a slope column has walls both sides and floor under it "
+                                         "deleted",
+                              [(EXTRACT, "            if sides != [\"#\", \"#\"] or bottom >= g.height or rows[bottom][x] != "
+                                         "\".\":\n",
+                                "            if False:  # MUTANT model_slope_unchecked\n")],
+                              "on the pinned layouts the only slope column of the modelled floors (GRANITE CAVE B1F (9, 9)-"
+                              "(9, 10)) has walls both sides and floor under it, so the check never fires there; it "
+                              "guards a future layout the model could not draw one way."),
+    # ---- (v4) V2: the route's first hop keeps the route's role where it is also the way's ladder (the verifier's VP1)
+    "route_hop_becomes_way": (CAUGHT, "the way's branch before the route's again (P11-1's order): the exit becomes a `way` "
+                                      "and lost_way, which walks routes only, answers None",
+                              [(EXPLORE, "        if first_hop is not None and first_hop[0] == \"warp\" and "
+                                         "tuple(first_hop[1][\"tile\"]) == exit_tile:\n",
+                                "        if way is not None and exit_tile == way.take:  # MUTANT route_hop_becomes_way\n"
+                                "            kind, value, why = \"way\", WAY_VALUE, f\"{way_why}: in sight\"\n"
+                                "        elif first_hop is not None and first_hop[0] == \"warp\" and "
+                                "tuple(first_hop[1][\"tile\"]) == exit_tile:\n")],
+                              [ROUTE_HOP]),
+    # ---- (v4) V3: the five leaves are no subtree; V5: `_check` DEVELOPER, first in its schema
+    "fair_leaf_subtree": (CAUGHT, "ways.json's leaf `maps[].ways[].toward` a subtree again (a key nested inside it passes "
+                                  "RULE B: the verifier's VM1)",
+                          [(FAIR, "        \"maps[].ways[].toward\": (AI, \"the maps it is the way on toward (a guide: 'the "
+                                  "ladder east is the way to STEVEN')\",\n                                 False),\n",
+                            "        \"maps[].ways[].toward\": (AI, \"the maps it is the way on toward (a guide: 'the ladder "
+                            "east is the way to STEVEN')\",\n                                 True),  # MUTANT\n")],
+                          [LEAVES]),
+    "fair_check_meta": (CAUGHT, "`_check` classified META again (its walk lengths readable by a loader: the verifier's VM2)",
+                        [(FAIR, "        \"_check\": (DEVELOPER, \"the extractor's own checks (walk lengths, the dark maps it "
+                                "left out and why, the HM obstacles \"\n                              \"its walks met): the "
+                                "developers' proof, never read by the AI\", True),\n",
+                          "        # MUTANT fair_check_meta\n")],
+                        [GATED, DEV_KEYS]),
+    "fair_check_after_meta": (CAUGHT, "`_check` listed AFTER `_*` (an exact pattern is matched in order, so `_*` classifies "
+                                      "it META)",
+                              [(FAIR, "        \"_check\": (DEVELOPER, \"the extractor's own checks (walk lengths, the dark "
+                                      "maps it left out and why, the HM obstacles \"\n                              \"its walks "
+                                      "met): the developers' proof, never read by the AI\", True),\n        \"_*\": (META, "
+                                      "\"where the file came from (the pinned decomp, each input's sha256, the extractor, its "
+                                      "notes)\", True),\n",
+                                "        \"_*\": (META, \"where the file came from (the pinned decomp, each input's sha256, "
+                                "the extractor, its notes)\", True),\n        \"_check\": (DEVELOPER, \"the extractor's own "
+                                "checks: MUTANT fair_check_after_meta\", True),\n")],
+                              [GATED, DEV_KEYS]),
 }
 
 DRIVER = '''
