@@ -280,6 +280,17 @@ class BattleFaults:
     #: (V2-M2) the protection only on the trainee's first decision: on a later turn, under its floor, the ordinary rules
     #: (a refused run is answered with "run again")
     guard_turn1_only: bool = False
+    # ---- (boss preparation round 4, 2026-11-11: the round-3 verifier's V3-M2, V3-m1, V3-M1; the lead's design E2, E3, E1)
+    #: (V3-M2) with no member sure to win, a member that CANNOT win is sent at once (round 3's order), before the trainee's
+    #: own sure win and the run (the live 6413 battle 106: Poochyena L6 sent for a Grovyle L25 that wins in one hit)
+    fallback_first: bool = False
+    #: (V3-m1) the turn-1 protection asks "would it win safely?" in WILD battles only (round 3): a trainer's foe whose worst
+    #: hit takes the trainee out was fought
+    guard_wild_only: bool = False
+    #: (V3-m1) a trainer battle met during a RAISE goal unguarded (round 3: the raise's turn handles wild battles only)
+    guard_not_in_raise: bool = False
+    #: (V3-M1) a raise battle switch-trains even on a map where the knock-out partner fails its line healed ("own" mode)
+    own_map_switches: bool = False
 
 
 @dataclass(frozen=True)
@@ -760,6 +771,10 @@ class BattleMind:
         #: sets it per goal, `brain/goals.py` GoalRunner._guard_for: None with no active plan, in a raise, and in the boss
         #: fight itself): the battle brain keeps it out of harm (`_guard_turn`, `replacement`, "Use next POKéMON?")
         self.guard: int | None = None
+        #: (round 4, V3-M1, the lead's E1) whether a raise battle may SWITCH-TRAIN (the raise runner sets it per session from
+        #: `brain/goals.py` GoalManager.raise_mode: False on a map where the knock-out partner fails its line even healed,
+        #: where the trainee raises by its own winnable fights only)
+        self.raise_switch: bool = True
         self.memory = _Memory()
         #: (step 4.1 round 2) an OPENER the draw passed over on this decision (said with the move chosen instead)
         self.opener_passed = ""
@@ -1417,7 +1432,10 @@ class BattleMind:
         the foe faints shares; switches go before moves, so it is not hit); with no partner it runs ("run"). On a later
         turn of an own fight a trainee under `TRAINEE_FLOOR` is RESCUED by the one switch ("rescue"); after the switch,
         never again (exactly two members share). Only in a single wild battle with the purpose "raise" and a trainee set;
-        None otherwise (the ordinary rules decide). FAULTS `raise_never_switch`, `raise_always_switch`, `second_switch`."""
+        None otherwise (the ordinary rules decide). FAULTS `raise_never_switch`, `raise_always_switch`, `second_switch`.
+        (Round 4, the lead's E1 and E2) no switch-training on an "own" map (`raise_switch` False); and wherever no member is
+        sure to win (under its floor on turn 1, after a refused run, an own fight gone badly) `_last_resort`'s order: its
+        own sure win, a run, and only after a refused run a member that cannot win."""
         mem = self.memory
         battle = look.battle
         if (self.purpose != "raise" or self.trainee is None or battle is None or battle.kind != "wild" or battle.double
@@ -1444,23 +1462,36 @@ class BattleMind:
                 self.raise_modes.append(mem.raise_mode)
                 self._raise_say(f"{head}: own: it wins this itself ({why})")
                 return None
-            partner = None if self.faults.raise_never_switch else self.raise_partner(look, foe)
+            # (round 4, V3-M1, the lead's E1) no SWITCH-TRAINING on a map where the knock-out partner fails its line even
+            # healed (`raise_switch` False, "own" mode: its own winnable fights only; FAULT `own_map_switches`)
+            switching = self.raise_switch or self.faults.own_map_switches
+            partner = None if self.faults.raise_never_switch or not switching else self.raise_partner(look, foe)
             if (partner is None and hp_share < TRAINEE_FLOOR and not self.faults.raise_never_switch
                     and not self.faults.run_no_rescue):
                 # (round 3, V2-M1) a trainee UNDER ITS FLOOR on its first decision (the rest lines keep it from starting
                 # so; a wild battle met on the walk to the grass may still find it so): no partner wins safely, so the
-                # RESCUE now, never a run that the game may refuse with it on the field (FAULT `run_no_rescue`: the run)
-                rescue = self.rescue_member(look, foe, desperate=True)
+                # RESCUE now to a member that can win, never a run that the game may refuse with it on the field (FAULT
+                # `run_no_rescue`: the run); (round 4, E2) with none, the last resort in its order (`_last_resort`: its own
+                # sure win, a run, and only after a refused run a member that cannot win)
+                rescue = self.rescue_member(look, foe, desperate=self.faults.fallback_first)
                 if rescue is not None:
                     mem.raise_mode = "rescue"
                     self.raise_modes.append(mem.raise_mode)
                     return self._raise_rescue(rescue, hp_share, f"{head}: under its floor and no partner wins safely")
+                last, decision = self._last_resort(look, own, foe, f"raising {trainee.species}: {head}: under its floor",
+                                                   desperate=False, run_ok=False)  # (b), the run, is the path below
+                if last == "fight":
+                    mem.raise_mode = "own"
+                    self.raise_modes.append(mem.raise_mode)
+                    self._raise_say(f"{head}: own: under its floor, but its own sure win ({decision.reason})")
+                    return decision
             if partner is None:
                 mem.raise_mode = "run"
                 self.raise_modes.append(mem.raise_mode)
                 mem.runs += 1
                 said = ("FAULT raise_never_switch: no switch" if self.faults.raise_never_switch
-                        else "no member is healthy and wins it safely")
+                        else "no switch-training on this map (its knock-out partner is unfit here even healed)"
+                        if not switching else "no member is healthy and wins it safely")
                 self._raise_say(f"{head}: run: it cannot win safely ({why}) and {said}")
                 return Decision("run", f"raising {trainee.species}: it cannot win safely ({why}) and {said}: run")
             member, partner_why = partner
@@ -1474,15 +1505,27 @@ class BattleMind:
         if mem.raise_mode == "run":
             # (a run the game refused: "Can't escape!") (round 3, V2-M1, measured live #120 6402: twice the trainee stayed
             # on the field through 3-4 refused runs and fainted, its partner Grovyle at 29-32/57 able to win) THE RESCUE
-            # first: a member that can win it (or, the trainee under its floor, any member that can come in); only with
-            # none, run again, within MAX_RUN_TRIES (FAULT `run_no_rescue`: round 2's "run again")
+            # first: a member that can win it; (round 4, E2) with none, its own sure win, then (the run spent) and only
+            # under its floor, any member that can come in (`_last_resort`); only with none of these, run again, within
+            # MAX_RUN_TRIES (FAULT `run_no_rescue`: round 2's "run again")
             if not self.faults.run_no_rescue and own.pid == self.trainee:
-                rescue = self.rescue_member(look, foe, desperate=hp_share < TRAINEE_FLOOR)
+                low = hp_share < TRAINEE_FLOOR
+                rescue = self.rescue_member(look, foe, desperate=low and self.faults.fallback_first)
                 if rescue is not None:
                     mem.raise_mode = "rescue"
                     if self.raise_modes:
                         self.raise_modes[-1] = "rescue"
                     return self._raise_rescue(rescue, hp_share, "the run was refused")
+                last, decision = self._last_resort(look, own, foe, "raising: the run was refused", desperate=low,
+                                                   run_ok=False)
+                if last == "fight":
+                    mem.raise_mode = "own"
+                    return decision
+                if last == "fallback":
+                    mem.raise_mode = "rescue"
+                    if self.raise_modes:
+                        self.raise_modes[-1] = "rescue"
+                    return self._raise_rescue(decision, hp_share, "the run was refused")
             if mem.runs >= MAX_RUN_TRIES:
                 return None
             mem.runs += 1
@@ -1490,16 +1533,27 @@ class BattleMind:
         if mem.raise_mode == "own":
             # THE RESCUE: an own fight that went badly, the trainee under the floor: the one switch (it keeps its share; a
             # run would earn nothing). (Round 3, V2-M1) to a member that can WIN it, not only to one that keeps a third
-            # after the worst case: a partner at 56% that wins beats a fainted trainee (`rescue_member`)
+            # after the worst case: a partner at 56% that wins beats a fainted trainee (`rescue_member`). (Round 4, E2)
+            # with none: its own sure win (it fights on), else a run, and only after a refused run (the "run" branch
+            # above) a member that cannot win (`_last_resort`)
             if own.pid != self.trainee or hp_share >= TRAINEE_FLOOR:
                 return None
-            rescue = self.rescue_member(look, foe, desperate=True)
-            if rescue is None:
-                return None
-            mem.raise_mode = "rescue"
-            if self.raise_modes:
-                self.raise_modes[-1] = "rescue"
-            return self._raise_rescue(rescue, hp_share, "an own fight went badly")
+            rescue = self.rescue_member(look, foe, desperate=self.faults.fallback_first)
+            if rescue is not None:
+                mem.raise_mode = "rescue"
+                if self.raise_modes:
+                    self.raise_modes[-1] = "rescue"
+                return self._raise_rescue(rescue, hp_share, "an own fight went badly")
+            last, decision = self._last_resort(look, own, foe, "raising: an own fight went badly", desperate=mem.runs > 0,
+                                               run_ok=mem.runs == 0)
+            if last == "run":
+                mem.raise_mode = "run"
+            if last == "fallback":
+                mem.raise_mode = "rescue"
+                if self.raise_modes:
+                    self.raise_modes[-1] = "rescue"
+                return self._raise_rescue(decision, hp_share, "an own fight went badly, and a run was refused")
+            return decision
         if self.faults.second_switch and mem.raise_mode in ("switch", "rescue"):
             # FAULT `second_switch`: the raise's switch made again, to another member that wins it (three would share)
             partner = self.raise_partner(look, foe, exclude={own.pid})
@@ -1610,23 +1664,73 @@ class BattleMind:
         return Decision("switch", f"rescue ({why}): the trainee at {hp_share:.0%}: {member.species} takes its place "
                                   f"({rescue_why}); the trainee keeps its share (it was sent out)", switch_pid=member.pid)
 
+    def _guard_whom(self, battle: BattleView | None) -> int | None:
+        """(round 4, V3-m1, the lead's E3) Whom `_guard_turn` protects in this battle: outside a raise, the goal runner's
+        `guard` (an active plan's trainee); in a RAISE goal, its trainee in a battle that is NOT wild (a trainer who meets
+        it on the raise map: the raise's own turn handles wild battles only, so round 3 left such a battle to the ordinary
+        rules, with no switch at all in purpose "raise"). FAULT `guard_not_in_raise`: round 3."""
+        if self.purpose != "raise":
+            return self.guard
+        if self.faults.guard_not_in_raise or battle is None or battle.kind == "wild":
+            return None
+        return self.trainee
+
+    def _last_resort(self, look: Observation, own: BattleMon, foe: BattleMon, why: str, desperate: bool,
+                     run_ok: bool) -> tuple[str, object]:
+        """(round 4, the round-3 verifier's V3-M2; the lead's design E2) The protected trainee (`own`) must not be left in
+        harm's way and NO member is sure to win (`rescue_member` named none). In THIS order:
+          (a) it FIGHTS when it wins still standing itself (`bossprep.fight_safe` keep 0, the rescue's own question: its own
+              sure win, and it takes the experience);
+          (b) in a wild battle it RUNS, when `run_ok` (no run refused in this battle yet; within MAX_RUN_TRIES);
+          (c) only then, and only when `desperate` (under its floor), a member that CANNOT win is sent: any that can come in
+              (`rescue_member`'s fallback).
+        WHY (live, 6413 battle 106): with no member sure to win, round 3 sent Poochyena L6 (it ended the battle at 1/21)
+        for a Grovyle L25 at 21/68 that knocks the Taillow L6 out in one hit, keeping 12/68. Static knowledge only (the
+        foe's moves are its species' at its level and the moves seen; `fight_safe`). Returns ("fight", the Decision), ("run",
+        the Decision), ("fallback", (member, why)) or ("none", None). FAULT `fallback_first`: round 3's order, (c) alone."""
+        from ai_player.brain.bossprep import NO_FAULTS, fight_safe, member_now  # here: bossprep imports us
+
+        faults = self.bp_faults if self.bp_faults is not None else NO_FAULTS
+        battle = look.battle
+        if not self.faults.fallback_first:
+            me = member_now(look, own.pid)
+            if me is not None:
+                wins, wins_why = fight_safe(me, foe.species, foe.level, foe.hp_bar / HP_BAR_PIXELS, me.hp,
+                                            tuple(m.name for m in foe.moves if m.name), faults, keep=0)
+                if wins:
+                    return "fight", self._fight(own, foe, look, f"{why}: no member is sure to win it, and it wins it "
+                                                                f"itself, still standing ({wins_why})")
+            if run_ok and battle is not None and battle.kind == "wild" and self.memory.runs < MAX_RUN_TRIES:
+                self.memory.runs += 1
+                return "run", Decision("run", f"{why}: no member is sure to win it, and it would not win it itself: run")
+        if desperate:
+            fallback = self.rescue_member(look, foe, desperate=True)
+            if fallback is not None:
+                return "fallback", fallback
+        return "none", None
+
     def _guard_turn(self, look: Observation, own: BattleMon, foe: BattleMon, hp_share: float) -> Decision | None:
         """(round 3, the round-2 verifier's V2-M2; measured live: 5 trainee faints in 6 runs in the plan's OTHER battles, one
         on the walk to heal it from 3/21) An ACTIVE plan's trainee (`guard`) in a battle that is NOT a raise battle (a heal
         walk, a pick-up, travel, a trainer's battle; the boss fight itself is left out by the goal runner), single only:
-          * on its FIRST decision on the field: when it is under `TRAINEE_FLOOR`, or (a wild battle) it would not win
-            safely (`bossprep.fight_safe`), it is switched out to the member `rescue_member` names: the same move as
-            switch-training, so a wild foe that falls still shares with it; with nobody to take its place, the ordinary
-            rules ("none"); otherwise it fights by them ("own");
-          * on a LATER turn, under its floor (an own fight gone badly, a refused run): the same rescue, never "run again"
-            while a member can come in (FAULT `guard_turn1_only`: the ordinary rules);
+          * on its FIRST decision on the field: when it is under `TRAINEE_FLOOR`, or it would not win safely
+            (`bossprep.fight_safe`; round 4, E3: in a TRAINER battle too, judged from static knowledge only, the foe's
+            species' level-up moves at its level and the moves seen, never the live foe's moves from memory; FAULT
+            `guard_wild_only`), it is switched out to a member that CAN WIN it (`rescue_member`): the same move as
+            switch-training, so a wild foe that falls still shares with it; (round 4, E2) with none, `_last_resort` in
+            its order: its own sure win (it fights), a run (wild), and only under its floor a member that cannot win;
+            otherwise ("none") the ordinary rules; a trainee fit to fight fights by them ("own");
+          * on a LATER turn, under its floor (an own fight gone badly, a refused run): the same rescue, then the same
+            last resort (the run only when none was refused yet), never "run again" while a member can come in (FAULT
+            `guard_turn1_only`: the ordinary rules);
           * one protective switch a battle.
-        None in a raise battle, in chapters 1-5 (no `guard`), and for any other member on the field. FAULT `guard_off`
-        (in `_decide`): round 2, no protection."""
+        (Round 4, E3) In a RAISE goal its trainee is protected so in a battle that is not wild (`_guard_whom`). None in a wild
+        raise battle (`_raise_turn`), in chapters 1-5 (no `guard`), and for any other member on the field. FAULT
+        `guard_off` (in `_decide`): round 2, no protection."""
         mem = self.memory
         battle = look.battle
-        if (self.purpose == "raise" or self.guard is None or battle is None or battle.double or own.pid != self.guard
-                or mem.guard_switched):
+        protected = self._guard_whom(battle)
+        if protected is None or battle is None or battle.double or own.pid != protected or mem.guard_switched:
             return None
         from ai_player.brain.bossprep import NO_FAULTS, TRAINEE_FLOOR, fight_safe, member_now  # here: bossprep imports us
 
@@ -1635,8 +1739,8 @@ class BattleMind:
         head = f"the plan's trainee {own.species} L{own.level} ({own.hp}/{own.max_hp}) is protected"
         if mem.guard_mode is None:
             reason = f"it is under its floor ({hp_share:.0%})" if low else None
-            if reason is None and battle.kind == "wild":
-                trainee = member_now(look, self.guard)
+            if reason is None and (battle.kind == "wild" or not self.faults.guard_wild_only):
+                trainee = member_now(look, protected)
                 if trainee is not None:
                     safe, why = fight_safe(trainee, foe.species, foe.level, foe.hp_bar / HP_BAR_PIXELS, trainee.hp,
                                            tuple(m.name for m in foe.moves if m.name), faults)
@@ -1646,12 +1750,21 @@ class BattleMind:
                 mem.guard_mode = "own"
                 self._guard_say(f"{head} vs {foe.species} L{foe.level} ({battle.kind}): own: the ordinary rules")
                 return None
-            rescue = self.rescue_member(look, foe, desperate=low)
+            rescue = self.rescue_member(look, foe, desperate=low and self.faults.fallback_first)
             if rescue is None:
-                mem.guard_mode = "none"
-                self._guard_say(f"{head} vs {foe.species} L{foe.level} ({battle.kind}): none: {reason}, but no member can "
-                                f"take its place: the ordinary rules")
-                return None
+                last, decision = self._last_resort(look, own, foe, f"{head}: {reason}", desperate=low, run_ok=True)
+                if last == "fallback":
+                    rescue = decision
+                elif last != "none":
+                    mem.guard_mode = last
+                    self._guard_say(f"{head} vs {foe.species} L{foe.level} ({battle.kind}): {last}: {reason}; no member "
+                                    f"is sure to win it")
+                    return decision
+                else:
+                    mem.guard_mode = "none"
+                    self._guard_say(f"{head} vs {foe.species} L{foe.level} ({battle.kind}): none: {reason}, but no member "
+                                    f"can take its place: the ordinary rules")
+                    return None
             member, why = rescue
             mem.guard_mode, mem.guard_switched = "switch", True
             self._guard_say(f"{head} vs {foe.species} L{foe.level} ({battle.kind}): switch to {member.species} "
@@ -1660,9 +1773,18 @@ class BattleMind:
                                       f"shares a wild foe that falls", switch_pid=member.pid)
         if self.faults.guard_turn1_only or not low:
             return None
-        rescue = self.rescue_member(look, foe, desperate=True)
+        rescue = self.rescue_member(look, foe, desperate=self.faults.fallback_first)
         if rescue is None:
-            return None
+            last, decision = self._last_resort(look, own, foe, f"{head}: under its floor ({hp_share:.0%})", desperate=True,
+                                               run_ok=mem.runs == 0)
+            if last == "fallback":
+                rescue = decision
+            elif last != "none":
+                self._guard_say(f"{head} vs {foe.species} L{foe.level} ({battle.kind}): {last}: under its floor "
+                                f"({hp_share:.0%}); no member is sure to win it")
+                return decision
+            else:
+                return None
         member, why = rescue
         mem.guard_mode, mem.guard_switched = "rescue", True
         self._guard_say(f"{head} vs {foe.species} L{foe.level} ({battle.kind}): rescue to {member.species} "

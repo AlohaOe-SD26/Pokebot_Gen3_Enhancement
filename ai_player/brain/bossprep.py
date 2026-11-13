@@ -61,14 +61,26 @@ faints in 6 live runs, 2 in raise battles the game would not let it run from, 5 
     a partner at 56% that wins beats a fainted trainee;
   * the protection outside raise battles is the battle brain's (`brain/battle.py` BattleMind.guard, set by the goal
     runner, `brain/goals.py` GoalRunner._guard_for).
+
+ROUND 4 (2026-11-11, the round-3 verifier's V3-M1 and V3-m3; the lead's design E1 and E5, `06-DECISIONS-LOG.md`):
+  * A HEAL ONLY WHEN IT CAN CHANGE THE DECISION (V3-M1, the heal loop: a Grovyle L17 that fails the partner line against
+    ROUTE116's Taillow L8 even at FULL HP made every decision a heal, and a nurse's heal of a full party "succeeds", so
+    nothing ended it). `partner_line_full` judges the partner as a heal would leave it (full HP, full PP) against every
+    wild Pokemon of a map, once per map and partner (`_full_line`, cached). A map where it fails is no switch-training
+    map: `brain/goals.py` mode_on and _raise_choice pick another map under the cap where it passes, else the trainee's
+    own winnable fights only; and `partner_worn` never rests for a partner a heal cannot make fit.
+  * PP (V3-m3, the Grovyle raise fought 8-9 battles a run with Struggle): a move with no PP left, as the summary and the
+    move grid show it (`_pp_left`), is not a move it can use in `fight_safe`; `out_of_pp` (every damaging move at 0 PP)
+    ends a raise session (`trainee_rest`) and makes the party heal (`brain/goals.py` _trainee_low).
 """
 
 from __future__ import annotations
 
+import functools
 import math
 import random
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ai_player.brain.battle import TEMPERAMENTS, BattleFaults, learn_choice, move_value, rough_share, typical_stat
 from ai_player.eyes.observation import BattleMon, MonSummary, MoveSlot, Observation
@@ -113,7 +125,9 @@ __all__ = [
     "new_record",
     "next_boss",
     "options",
+    "out_of_pp",
     "partner_fit",
+    "partner_line_full",
     "partner_worn",
     "project",
     "raise_partner_of",
@@ -224,6 +238,18 @@ class BossprepFaults:
     guard_unset: bool = False
     #: (V2-M2) the protection kept on in the boss fight itself (the story's own talk to the leader)
     guard_in_boss_fight: bool = False
+    # ---- round 4 (2026-11-11: the round-3 verifier's V3-M1, V3-m2, V3-m3; the lead's design E1, E4, E5)
+    #: (V3-M1) the partner judged only at its HP NOW (round 3): a map where it fails the line even at full HP still makes
+    #: the party rest (the heal loop) and is still a switch-training map
+    partner_full_unchecked: bool = False
+    #: (V3-M1) the plan's budget checked only inside the raise goal, after the heal step (round 3's order: a plan over its
+    #: budget heals for the plan first, and with the heal loop it is never spent)
+    budget_after_rest: bool = False
+    #: (V3-m3) a move with no PP left counts (round 3): in `fight_safe`, the raise roam's rest and the decision's rest
+    pp_ignored: bool = False
+    #: (V3-m2) the goal runner leaves the last goal's purpose and guard to the battles between goals (round 3: after a raise
+    #: goal its purpose "raise" and no guard)
+    seam_kept: bool = False
 
 
 NO_FAULTS = BossprepFaults()
@@ -458,6 +484,27 @@ def member_now(look: Observation, pid: int) -> Member | None:
     return Member(mon.pid, mon.species, mon.level, mon.hp, mon.max_hp, tuple(m.name for m in mon.moves), mon)
 
 
+def _pp_left(member: Member, name: str) -> bool:
+    """(round 4, V3-m3, the lead's E5) Can `member` still use the move `name`? Its PP as the summary screen and the move grid
+    show it (`MonSummary.moves[].pp`, the player's own Pokemon: visible); unknown PP (a projected member, no summary, a
+    foe's move) counts as usable. A move at 0 PP is refused by the game (`src/battle_util.c`
+    TrySetCantSelectMoveBattleScript), so it is no move at all for the fight it would be counted in."""
+    summary = member.summary
+    if summary is None:
+        return True
+    move = next((m for m in summary.moves if m.name == name), None)
+    return move is None or move.pp is None or move.pp > 0
+
+
+def out_of_pp(member: Member | None) -> bool:
+    """(round 4, V3-m3, the lead's E5) Every move `member` knows that HURTS (`_damaging`) is at 0 PP, and it knows at least
+    one: it can only Struggle. False for None or with no damaging move (PP cannot help that)."""
+    if member is None:
+        return False
+    hurting = [name for _slot, name in _damaging(member)]
+    return bool(hurting) and not any(_pp_left(member, name) for name in hurting)
+
+
 def fight_safe(member: Member, foe_species: str, foe_level: int, bar_share: float, hp: int, seen_moves=(),
                faults: BossprepFaults = NO_FAULTS, keep: float = TRAINEE_FLOOR) -> tuple[bool, str]:
     """(round 2, spec section 2.2) Would `member` win this WILD battle on its own and still stand well? Built only from
@@ -469,17 +516,21 @@ def fight_safe(member: Member, foe_species: str, foe_level: int, bar_share: floa
       4. the foe's worst hit on it (`hit_points`), and a person's worst case: the foe strikes FIRST every turn;
     SAFE when it needs at most `RAISE_MAX_HITS` hits and keeps `keep` of its max HP (`TRAINEE_FLOOR`; round 3: 0 asks
     only that it is still STANDING, at 1 HP or more: the RESCUE's "can win", `brain/battle.py` rescue_member). `hp` is
-    its HP NOW. FAULTS `safe_full_hp` (judged at its full HP), `hits_unbounded` (no bound on its hits). Returns (safe,
-    why)."""
+    its HP NOW. (Round 4, V3-m3) only the moves it can still USE count: a move at 0 PP (`_pp_left`) is none. FAULTS
+    `safe_full_hp` (judged at its full HP), `hits_unbounded` (no bound on its hits), `pp_ignored` (round 3: every move
+    it knows, PP or not). Returns (safe, why)."""
     moves = list(wild_moves(foe_species, foe_level))
     for name in seen_moves:
         if name and name not in moves:
             moves.append(name)
     foe = BossMon(foe_species, foe_level, tuple(moves), None)
     foe_hp = max(1, round(max(0.0, min(1.0, bar_share)) * typical_stat("hp", foe_level)))
-    own = max((_own_points(member, foe, name, faults) for name in member.moves), default=0)
+    usable = [name for name in member.moves if faults.pp_ignored or _pp_left(member, name)]
+    own = max((_own_points(member, foe, name, faults) for name in usable), default=0)
     if own <= 0:
-        return False, f"nothing it knows hurts {foe_species}"
+        spent = [name for name in member.moves if name not in usable]
+        return False, (f"nothing it knows hurts {foe_species}" if not spent
+                       else f"nothing it can still use hurts {foe_species} (no PP left: {', '.join(spent)})")
     hits = math.ceil(foe_hp / own)
     now = member.max_hp if faults.safe_full_hp else hp
     their = max((hit_points(foe, member, name, bar_share, True, now, faults) for name in foe.moves), default=0)
@@ -666,6 +717,51 @@ def raise_partner_of(party, trainee: int):
     return partner
 
 
+def _healed(member: Member) -> Member:
+    """(round 4, E1) `member` as a heal at a POKéMON CENTER leaves it: full HP, every move's PP back to its max, and no
+    status (the nurse restores all three, `src/script_pokemon_util.c` HealPlayerParty). Its EXP points are left out (0):
+    the partner line never reads them, and so the judgement is made once per map and partner LEVEL (`_full_line`'s cache),
+    not again after every battle that adds a few points."""
+    summary = member.summary
+    if summary is not None:
+        summary = replace(summary, hp=summary.max_hp, status="", experience=0,
+                          moves=tuple(replace(m, pp=m.max_pp) if m.max_pp is not None else m for m in summary.moves))
+    return replace(member, hp=member.max_hp, summary=summary)
+
+
+@functools.lru_cache(maxsize=512)
+def _full_line(member: Member, raise_map: str, faults: BossprepFaults) -> tuple[bool, str]:
+    """(round 4, E1) The partner line of a HEALED `member` against every wild Pokemon of `raise_map`'s land (each at its
+    strongest there, `knowledge/seasoned.py` land_slots), judged ONCE per map and partner (cached on both: the same
+    healed partner and map give the same answer every decision). (True, "") when it is fit against every one; else
+    (False, why) for the first it is not."""
+    for species, level in land_slots(raise_map):
+        fit, why = partner_fit(member, species, level, 1.0, member.max_hp, (), faults)
+        if not fit:
+            return False, f"{species} L{level}: {why}"
+    return True, ""
+
+
+def partner_line_full(look: Observation, trainee: int, raise_map: str | None,
+                      faults: BossprepFaults = NO_FAULTS) -> tuple[bool, str] | None:
+    """(round 4, the round-3 verifier's V3-M1; the lead's design E1) Would the raise's KNOCK-OUT partner
+    (`raise_partner_of`) be a PARTNER (`partner_fit`) against every wild Pokemon of `raise_map` once HEALED (full HP, full
+    PP: `_healed`)? (fits, why), or None with no partner or no map whose land a guide lists. WHY: a heal is chosen only
+    when it can change the decision. A partner that fails the line even healed (a Grovyle L17 against ROUTE116's Taillow
+    L8: 3 of its hits, Taillow's worst 12 a hit leaves 10/46) can never be made fit there, so resting for it rested
+    forever (5 of 5 decisions, the verifier's offline reproduction). Such a map is no switch-training map
+    (`brain/goals.py` GoalManager.mode_on)."""
+    if not raise_map or not land_slots(raise_map):
+        return None
+    partner = raise_partner_of(look.party, trainee)
+    if partner is None:
+        return None
+    member = member_now(look, partner.pid)
+    if member is None:
+        return None
+    return _full_line(_healed(member), raise_map, faults)
+
+
 def partner_worn(look: Observation, trainee: int, faults: BossprepFaults = NO_FAULTS,
                  raise_map: str | None = None) -> str | None:
     """(round 2, the builder's addition to the spec) Why the raise rests for its KNOCK-OUT Pokemon (`raise_partner_of`):
@@ -674,8 +770,11 @@ def partner_worn(look: Observation, trainee: int, faults: BossprepFaults = NO_FA
     guide's table); with no raise map known, under half its HP (round 2's line). WHY: under the partner line no member
     can take the trainee's place, so the raise battle is RUN from, a refused run keeps the trainee on the field, and the
     session earns nothing; the line is the battle's own, so the two can no longer disagree (V2-M1: Grovyle at 32/57 was
-    "not worn" and "no partner" at once). None otherwise. FAULTS `partner_worn_off` (never), `partner_half_line` (round
-    2's flat half)."""
+    "not worn" and "no partner" at once). (Round 4, V3-M1, the lead's E1) never for a partner that fails the line on that
+    map even HEALED (`partner_line_full`): a heal cannot make it fit, so the rest would never end (the heal loop); that
+    map is raised on by the trainee's own fights only (`brain/goals.py` mode_on). None otherwise. FAULTS
+    `partner_worn_off` (never), `partner_half_line` (round 2's flat half), `partner_full_unchecked` (round 3: the line
+    asked at its HP now only)."""
     if faults.partner_worn_off:
         return None
     partner = raise_partner_of(look.party, trainee)
@@ -688,6 +787,9 @@ def partner_worn(look: Observation, trainee: int, faults: BossprepFaults = NO_FA
         if partner.hp < partner.max_hp / 2:
             return f"its knock-out Pokemon {partner.species} L{partner.level} is worn ({partner.hp}/{partner.max_hp})"
         return None
+    healed = None if faults.partner_full_unchecked else partner_line_full(look, trainee, raise_map, faults)
+    if healed is not None and not healed[0]:
+        return None  # (round 4, E1) a heal cannot make it fit here: no rest for it (the trainee's own fights only)
     member = member_now(look, partner.pid)
     for species, level in slots:
         fit, why = partner_fit(member, species, level, 1.0, partner.hp, (), faults)
@@ -729,10 +831,13 @@ def next_boss(milestones, index: int, faults: BossprepFaults = NO_FAULTS):
     return None
 
 
-def trainee_rest(look: Observation, pid: int, heal_below: float, active: str) -> str | None:
-    """(M4) Why a RAISE roam stops after a battle: the trainee (by PID) fainted or under a third of its max HP; otherwise
-    the training rule (`brain/goals.py` training_rest: the party under its heal line, the strongest down). Before BP-1 the
-    rule was keyed on the STRONGEST only, so a fainted L3 trainee left the party at 89 % and Grovyle fought on."""
+def trainee_rest(look: Observation, pid: int, heal_below: float, active: str,
+                 faults: BossprepFaults = NO_FAULTS) -> str | None:
+    """(M4) Why a RAISE roam stops after a battle: the trainee (by PID) fainted or under a third of its max HP; (round 4,
+    V3-m3, the lead's E5) or out of PP in every move that hurts (`out_of_pp`: it could only Struggle; the session ends
+    and the party heals, which restores PP); otherwise the training rule (`brain/goals.py` training_rest: the party under
+    its heal line, the strongest down). Before BP-1 the rule was keyed on the STRONGEST only, so a fainted L3 trainee left
+    the party at 89 % and Grovyle fought on. FAULT `pp_ignored`: no stop for PP (round 3)."""
     from ai_player.brain.goals import training_rest  # here: goals imports this module
 
     trainee = next((m for m in look.party or () if m.pid == pid and not m.is_egg), None)
@@ -740,6 +845,8 @@ def trainee_rest(look: Observation, pid: int, heal_below: float, active: str) ->
         return f"the trainee {trainee.species} L{trainee.level} ({pid:08x}) has fainted"
     if trainee is not None and trainee.hp < trainee.max_hp * TRAINEE_FLOOR:
         return f"the trainee {trainee.species} L{trainee.level} is low ({trainee.hp}/{trainee.max_hp})"
+    if trainee is not None and not faults.pp_ignored and out_of_pp(member_now(look, pid)):
+        return f"the trainee {trainee.species} L{trainee.level} has no PP left in any move that hurts"
     return training_rest(look, heal_below, active)
 
 

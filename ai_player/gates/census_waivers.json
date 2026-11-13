@@ -945,6 +945,11 @@
    "callee": "skills/battle.py:_shift_context",
    "caller": "*",
    "reason": "(BP-1 round 3, 2026-11-11) skills/battle.py _shift_context: the shift question's context expression of step 4.1 moved, verbatim, out of _play into a function so it can be pinned (the lead's design D5: does it lose its foe like the learner's page? It cannot: the screen's text is the whole message from its start). ShiftContextTests pins it with a window that lost the foe's page, and revert_bossprep shift_context_pages_only breaks it (caught). The call in _play is the one place the expression was."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.tell",
+   "caller": "brain/goals.py:GoalRunner._raise",
+   "reason": "NOT A SITE of Navigator.tell (the census matches by name): GoalRunner._raise calls its own `self.tell`, the goal runner's log line callback. (BP-1 round 4, 2026-11-11) The round added ONE such line: '[AI-BOSSPREP] raise session on <map>: ...' when the map's mode is \"own\" (the knock-out partner unfit there even healed); so the census lists both of _raise's tell sites (that one and round 2's raise-exp line). Tells are log lines; no decision reads them. The decision they report is pinned by FullPartnerTests.test_the_raise_session_takes_its_mode_from_the_map and broken by revert_bossprep no_mode_in_session (the mode's call deleted)."
   }
  ]
 }

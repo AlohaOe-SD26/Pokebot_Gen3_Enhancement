@@ -287,3 +287,21 @@ to its 'the raise ends' tell); 'after' = the plan spent, before and between BRAW
 [C2L4 B3] [AI-BOSSPREP] lines 3; guard lines 0; raise goals 0; lead goals 0; potion goals 0
 [L1 B3] [AI-BOSSPREP] lines 4; guard lines 0; raise goals 0; lead goals 0; potion goals 0
 
+
+CORRECTIONS (APPENDED 2026-11-11 by BP-1 round 4's builder; the round-3 verifier's V3-n1 and V3-n2, s53/bp1r3/result/
+verify_result.json; the lead's design E7. The lines above are kept as they were written; these corrections supersede them
+where they differ.)
+  1. (V3-n1) THE HEADLINE'S COMPARISON IS NOT LIKE FOR LIKE. Round 2's six B runs were all Wurmple-plan runs; round 3's six
+     B3 runs are three Wurmple-plan runs and three Grovyle-plan runs, and the Grovyle plan's trainee is the strongest member.
+     The like-for-like headline: on the three Wurmple-plan B3 trajectories the trainee fainted 0 times outside BRAWLY's fight,
+     against 7 trainee faints in round 2's six Wurmple-plan B runs; different seeds, one trajectory each, never a rate. The
+     CAVEAT that belongs in the headline: that zero was PREVENTED, not handled. The Wurmple raise never entered its run mode
+     (0 of its 392 raise battles), because the stricter partner rest line (D1) rested the party first, so the V2-M1
+     situation (a refused run with the trainee on the field) did not arise; the rescue built for it never fired live (0
+     refused runs in the six runs).
+  2. (V3-n2) "6413, battle 105" is battle 106 by the game's battle-end record ("battle 106: won", record 9585).
+  3. (V3-n2) "29 of 29 live shift questions in the B3 runs" counts all NINE B3 runs (24 + 5): 24 in the A/B's six runs and
+     5 in the control's three. All 29 named the next foe from the words.
+  4. (V3-n2) "P-C2 HELD, fully identical" (C2L4): the DECISION STREAM is identical, frames included, in every decision
+     record; one raw log line (a `world` line) differs only in the order a dict was printed (the same characters), which a
+     raw-record comparison shows.

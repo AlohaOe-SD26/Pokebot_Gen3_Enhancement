@@ -1,0 +1,182 @@
+BOSS PREPARATION BP-1, ROUND 4 (the round-3 verifier's V3-M1, V3-M2, V3-m1 to V3-m4, V3-n1, V3-n2 closed; the lead's design
+E1-E7, 06-DECISIONS-LOG 2026-11-11 "The fix round after BP-1 round 3 and P11-1") - THE REPRODUCTION, THE LIVE RUNS ON BOTH
+PLANS (WURMPLE AND GROVYLE), THE CHAPTERS 1-5 REPLAY CONTROL AND THE P-G6 DIAGNOSIS (2026-11-11 and 2026-11-12;
+DEVELOPMENT, never graded; one trajectory per seed and arm, never a rate)
+
+HEADLINE, WITH ITS CAVEATS: on the six B4 trajectories (three Wurmple-plan seeds, three Grovyle-plan seeds) the plan's
+trainee fainted 0 times outside BRAWLY's fight, counted by identity from the game's party reads (the end check agrees with
+the framework's PID read in 6 of 6); 0 heal loops (0 consecutive heal goals of a full party with no battle between); E5's
+PP rule ended a raise session for PP and sent the party to a POKEMON CENTER in each Grovyle-plan run; the guard's E2 order
+RAN from a wild battle an out-of-PP trainee could not win (6427) instead of sending a member that cannot win. BADGE02: the
+Wurmple plan 3 of 3, the Grovyle plan 1 of 3: P-G6 (at least 2 of 3) MISSED.
+CAVEATS: (1) development runs, one trajectory per seed: never a rate; other seeds than round 3's. (2) P-G6's miss was
+DIAGNOSED (S), the seeds, not a round-4 regression (section P-G6 below; the full account is s53/bp1r4/PG6-DIAGNOSIS.md):
+every BRAWLY fight of both rounds' Grovyle plans is decided by Leaf Blade (Grovyle L29); round 4's runs reached BRAWLY with
+less experience because the stretch after the raise was shorter, and no round-4 change ran there; the 15 fights' decisions
+replay identically through 975964c7 and the round-4 tree. (3) One round-4 change did alter the state the trainee arrived
+in: E5's rest moved the raise's one Centre visit earlier, so 6426 and 6427 began their first BRAWLY fight without Pursuit
+(6426 also without Quick Attack); on these records it changed no fight's experience and no outcome. (4) E1 (the partner
+judged at FULL HP) never fired live: no start and seed of this round's range puts a partner that fails its line at full HP
+on a raise map; it is proven offline only. (5) The Grovyle plan's raise ends on its 160-battle budget at L27, 3006-3615
+EXP short of L29: a DESIGN matter, left to the lead.
+
+THE ROUND WAS CUT TWICE AND RESUMED. A first builder ran from 18:48 on 2026-11-11 (reproduction, E1-E7, tests, the mutant
+predictions, the stage and the live kit) and was cut by a session usage limit at about 8:30 PM while it waited on mutant
+run 1; its detached live chain (pid 984) ended on its own at 20:44:43 and mutant run 1 (pid 12972) at 20:47:32. A second
+builder ran from 08:31 on 2026-11-12 (mutant run 1's one miss explained and closed by tests, vmut1, msel1, the first
+judgement) and was cut at about 9:22 AM while the full mutant run mutants2 (pid 51832) ran; it ended on its own at
+09:52:38, exit 0, PASS. A third builder ran from 13:50 (judged the rest, diagnosed P-G6, ran the gates on the final tree,
+wrote this file). Nothing was relaunched and nothing was lost. Run book: s53/bp1r4/STATE.md.
+
+HARNESS: s53/bp1r4/armsr4.py (round 3's armsr3.py adapted by adapt_arms_r4.py), the real launcher, one stage whose build
+root's modules, plugins, mgba and roms are junctions to the main sandbox (read only). Arms: C4 = 975964c7 (round 3 as
+committed; digest 0b98eccc7b54f414, play digest 29673757774228d2); B4 = the round-4 worktree frozen at 19:50:27 on
+2026-11-11 (digest 1442a9007a9eea55, play digest 840ece09384cb6b8); F4 = B4 plus one planted extra :goals draw in every
+verdict run (play digest 79f90f7eb4b17913), the control's fault arm. The live runs: probe-C1 (RUSTBORO (19,53), md5
+e909e537, Story), target ch7_brawly, 1,200,000 frames, wall 12,000 s; ab4w, ab4g and ab4g2 side by side (6 emulators),
+then control4 (7). No run ended on its frame or wall budget; no run was killed.
+
+THE SEEDS: 6409-6410 and 6414-6430 were free in 186 ledgers (s53/ch6/seeds_free.py) and 188 (s53/bp1r2/seeds_free.py, the
+lab and the learner's clone included) at 18:52 on 2026-11-11, before registration. Offline draws
+(random.Random('<seed>:bossprep'), round 3's arithmetic): Wurmple 6409 6410 6414-6416 6418 6420 6422 6423 6425 6428;
+Grovyle 6417 6419 6421 6424 6426 6427 6429 6430. Spent: 6414-6416 (#125 ab4w), 6426 6427 (#126 ab4g), 6429 (#127 ab4g2),
+6417-6419 (#128 control4). Not spent: 6409, 6410, 6420-6425, 6428, 6430.
+E1's discriminator (disc_r4.py, offline, from every start in the range): E1 fires NOWHERE. probe-C1 draws the Wurmple plan
+(partner Grovyle L21 57/57, its healed line on ROUTE116 PASSES) or the Grovyle plan (no partner); probe-C2 and probe-C3
+read BRAWLY CLOSE (Combusken L21, Marshtomp L22): no plan. The C4/B4 E1 pair was therefore SKIPPED, by the assignment's
+rule, and E1 stays proven offline only.
+
+THE REPRODUCTION (before building; prediction_repro_r4.txt sha256 8491c2f2921f98231c0e51f6491ed41c17e8d1c60071d7c177d5636
+1c38a6d51, hashed at 18:58:25): on 975964c7, 17 of 17 held. V3-M1: a Grovyle L17 at FULL HP 46/46 is sent to heal 5 of 5
+times ("not a safe partner against Taillow L8 on ROUTE116"), still at 10**7 frames, the plan still active (H1, H2);
+CONTROLS L21 and the half-HP line raise on ROUTE116 (H3, H4). V3-M2: the 6413 fixture (Grovyle L25 21/68 against Taillow
+L6) switches to Poochyena, "no member is sure to win it" (G1), though the trainee wins it with keep 0 (G2) and Poochyena
+does not (G3). V3-m1: G6 fights where it should switch. V3-m2: after a raise goal a scene's trainer battle has purpose
+"raise" and no guard (S1). V3-m3: fight_safe at 0 PP equals fight_safe at 20 PP (P1); no rest for PP (P2). On the round-4
+tree every one of these readings moved as designed (repro_wt1.out).
+
+WHAT WAS BUILT (the worktree, uncommitted at this writing, on 975964c7): E1: the partner line judged at the partner's FULL
+HP once per raise map and level (bossprep.partner_line_full); a map where it fails is not a switch-training map: the raise
+picks another under its cap, or raises by the trainee's own winnable fights only (GoalManager.mode_on); the plan's budget
+is checked BEFORE any rest (_spend_if_over). E2: with no member sure to win, (a) the trainee fights its own sure win, (b) a
+wild battle is run from, (c) only then, under the floor, a member that cannot win is sent (BattleMind._last_resort), in
+the guard's first turn, its later-turn rescue and the raise's rescue. E3: the guard's first-turn test in trainer battles
+too, from static knowledge only, and a raise goal's trainer battles guarded (_guard_whom). E4: the guard and purpose reset
+at each goal's end (GoalRunner.between_goals). E5: a move at 0 PP is no move in fight_safe and the own-fight judgement; a
+raise session ends and the party heals when every move that hurts is out of PP (bossprep.out_of_pp, _trainee_low). E6:
+the tests and mutants below. E7: corrections APPENDED to 2026-11-11-bossprep-bp1r3-live-ab.txt (18 lines; nothing above
+them changed).
+
+THE OFFLINE PROOF:
+  * gates/test_bossprep.py 141 -> 187 tests, all OK (FullPartnerTests, LastResortTests, TrainerGuardTests, SeamTests,
+    PPTests, CoverageTests; round 3's test_g3 updated to E3's rule, with FAULT guard_wild_only).
+  * MUTANT RUN 1 (19:50:33, predictions hashed: revert_bossprep.py sha256 7db6ae80...): 152 CAUGHT as predicted and 2
+    REDUNDANT ALONE as predicted, of 155: OVERALL FAIL. The one miss, own_fallback_unmade: its named test reached the RUN
+    branch's fallback call first, so it passed with the own branch's call deleted; the call is not dead (a fight begun
+    after a refused run). Closed by tests and the gate only (play code untouched): a new test for that path with its
+    CONTROL, the old test pinned to the call that makes its switch, new mutants run_fallback_unmade, fallback_hp_only,
+    fallback_matchup_only, land_slots_any_availability. Mutant run 1 rewrote 2026-11-11-bossprep-REVERT.txt (its file
+    records the FAIL); round 3's version is kept in evidence/archive/6701eab79b5bf870-c5146e53/.
+  * PREDICTIONS RE-HASHED BEFORE ANY RUN at 09:06:54 on 2026-11-12: revert_bossprep.py sha256 6c23fb4009096beae4fd69662692
+    d30c036ea18f6b038508351733c3bdbb22eb (P0 + 159: 157 CAUGHT + 2 REDUNDANT predicted), test_bossprep.py sha256 5b7d6057
+    e007124559a60a708a29f9403514166583f09653f2ee55f66ed1b021, vmutants_r4.py sha256 398f4464829bfda6c1b3ca36dcc0349ce3d0a
+    cab9c901b94e8e037034018a2d7.
+  * msel1 (the five new or changed mutants alone): 5 of 5 CAUGHT as predicted, PASS.
+  * mutants2, THE FULL FINAL-TREE RUN (09:18:01-09:52:38, exit 0 in 2077 s): 157 mutants CAUGHT as predicted, 2 REDUNDANT
+    ALONE as predicted (round 1's live-only reorder_by_slot and eyes_slot_id), of 159: OVERALL PASS; its file is
+    2026-11-12-bossprep-REVERT.txt. Both hashed files are unchanged since (sha256 checked at 13:50 on 2026-11-12).
+  * vmut1, the round-3 verifier's 19 mutants (vmutants_r4.py, adapted to this tree): 19 CAUGHT and 0 REDUNDANT as
+    predicted, of 19, PASS. All 13 that round 3's verifier found REDUNDANT are caught now (v_guard_switch_unbounded,
+    v_guard_doubles, v_rescue_sent_since, v_rescue_matchup_first, v_fallback_hp_only, v_raise_place_ignores_aside,
+    v_say_always, v_no_bp_faults_for_guard, v_land_slots_any_availability, v_guard_floor_inclusive,
+    v_guard_never_desperate, v_boss_fight_any_talk, v_full_partner_never_rests). Said honestly: 9 of the 19 predictions
+    were not blind (a same-edit twin had been seen CAUGHT in run 1); 10 were.
+
+== THE LIVE RUNS, PER LEDGER ENTRY (each prediction file hashed before its runs; the batch recorded the same sha256) ==
+Counted from the game's records (flags, the party reads, the battles, the game's texts); the AI's words only classify or
+are quoted. Trainee faints by identity: count_faints_r3.py and track_r3.py, round 3's, unchanged (md5 03a21d43 / 6b05ac23).
+
+#125 ab4w, the WURMPLE plan, seeds 6414-6416 (prediction_ab4w.txt sha256 904e8cb998da1ac199d4363bf75f68b3243f036ff5cece5
+6d6b8329b0aaf1e80). ALL EIGHT HELD.
+  P-W1 HELD: the plan raise Wurmple (55cfbff3) from L3 to L20 in 3 of 3.
+  P-W2 HELD: 0 trainee faints outside BRAWLY's fight in each run (6414: 1 faint, in BRAWLY's fight, Dustox L17 not
+       leading); the end check agrees with the framework's PID read in 3 of 3 (Dustox L17, L16, L17).
+  P-W3 HELD: 0 raise goals with "OWN FIGHTS ONLY" (25, 26, 22 raise goals, all ROUTE116, mode mix).
+  P-W4 HELD: 0 heal loops; 0 heal goals of a full party (9, 9, 8 heal goals); 0 for the partner line.
+  P-W5 HELD: BADGE02 in 3 of 3; the raise SPENT before BRAWLY in 3 of 3 (frames 457706, 460630, 450262 of 450000).
+  P-W6 HELD: 0 "has no moves left!" pages in each run.
+  P-W7 HELD: 0 "no member is sure to win it" lines in each run (not reached live).
+  P-W8 HELD: every run ended "done: ch7_brawly reached" (650281, 595957, 672384 frames of 1,200,000).
+
+#126 ab4g, the GROVYLE plan, seeds 6426, 6427, and #127 ab4g2, seed 6429 (prediction_ab4g.txt sha256 e7d5b3bd00f28a6d0296
+96ead9889a3d89b223c223ce4bb0b9ec7e489abad941; prediction_ab4g2.txt sha256 22847c68e1f9e0afae74368a333f9d680ef2cbbfcde6da0
+c16b8c10a2f65845a). SEVEN HELD, P-G6 MISSED.
+  P-G1 HELD: the plan raise Grovyle (d05408ff) from L21 to L30 in 3 of 3.
+  P-G2 HELD: 0 trainee faints outside BRAWLY's fight (all 8 faints are in BRAWLY's fights: 3, 3, 2); the end check agrees
+       in 3 of 3 (Grovyle L28, L28, L29).
+  P-G3 HELD: "GROVYLE has no moves left!" in 0, 0 and 1 battle (6429 f946807, the battle whose last PP ran out, the session
+       then ended for PP), against round 3's 9 / 8 / 9; no raise session with it in two or more battles.
+  P-G4 HELD: a raise session ended with the trainee out of PP and the next goal a heal in 3 of 3 (the AI's words: "roam:
+       rest: the trainee Grovyle L25 has no PP left in any move that hurts"; the Centre's words read at f953233,
+       f956213, f950553). In 6426 and 6427 the party read at those heal goals is the whole party at full HP (1 and 2 heal
+       goals): heals for PP, not a loop (P-G5).
+  P-G5 HELD: 0 heal loops in each run.
+  P-G6 MISSED: BADGE02 in 1 of 3 (6429; 6426 and 6427 ended "stuck: 3 battles lost (MAX_LOSSES 3)", all three to BRAWLY).
+       Its second half held: the raise SPENT before BRAWLY in 3 of 3 (battles 164, 164, 163 of 160). See P-G6 below.
+  P-G7 HELD: no "no member is sure to win it" SWITCH in any run. The judge's phrase check flagged one line, 6427 f953180,
+       and it is a RUN: "[AI-BOSSPREP] guard: the plan's trainee Grovyle L25 (68/68) is protected vs Abra L7 (wild): run:
+       it would not win safely against Abra L7 (nothing it can still use hurts Abra (no PP left: Pound, Pursuit, Absorb,
+       Quick Attack))", gBattleOutcome 4 (ran), on the heal goal's walk to RUSTBORO's Centre right after E5's raise stop
+       (f952028). That is E2's step (b) live; round 3's code would have sent a member that cannot win (V3-M2).
+  P-G8 HELD: no run ended on a budget (547621, 525422, 572665 frames); no run was killed.
+
+#128 control4, the CHAPTERS 1-5 REPLAY CONTROL, seeds 6417-6419 (prediction_control4.txt sha256 ac05b96cc7b3efe5eef501873f
+ca9c432f74d4ce8444d135129d7c9911270afc). ALL FIVE HELD (determinism: one trajectory replayed per pair, never a
+replication).
+  P-C1 HELD: L1 (New Game -> ch1_pokedex, 6417): C4 and B4 decision streams IDENTICAL, frames included (749 records each);
+       end frame 154650 both; after-truth flags and party equal.
+  P-C2 HELD: C1L4 (6418): identical (542 records), end frame 613751 both, flags and party equal.
+  P-C3 HELD: C2L4 (6419): identical (907 records), end frame 665729 both; no one-frame game-side split this time.
+  P-C4 HELD: F4 differs from B4 at record 243, frame 48381 (F4 takes a 'chat' goal where B4 walks to MAY's house), after
+       the first verdict line at frame 47388 in both: the fault arm is alive (F4 ended at 115983).
+  P-C5 HELD: purity CLEAN in 7 of 7; B4: 0 raise, lead or potion goals and 0 guard lines in each leg; [AI-BOSSPREP] lines
+       equal to C4's in each leg (5/5, 3/3, 3/3).
+
+== P-G6: THE DIAGNOSIS (third builder, 2026-11-12; read-only on the kept records; s53/bp1r4/PG6-DIAGNOSIS.md) ==
+VERDICT (S): the same decisions in the same kind of situation, in a fight both rounds lose without Leaf Blade (11 of 12
+such fights lost: round 3 3 of 4, round 4 8 of 8) and win with it (3 of 3). Round 4's runs reached BRAWLY with less
+experience, and that shortfall arose after the raise had ended, where no round-4 change ran.
+  1. The trainee followed by PID 3495168255 through the game's "GROVYLE gained N EXP. Points!" messages (exp_b3.py;
+     SELF-CHECK: the sum equals the last observation's experience of the same pid in 6 of 6 runs). Every lost fight gained
+     exactly 613 EXP (MACHOP and MEDITITE knocked out, MAKUHITA not); every won fight 967. Leaf Blade comes at L29 (19411
+     EXP). From 18798 EXP at a fight's start (L29 before MAKUHITA) 3 of 3 fights were won; below it 1 of 12 (round 3's
+     6411, second fight, without Leaf Blade).
+  2. EXP at the raise's end (SPENT): round 3 15796 / 16200 / 16361; round 4 16405 / 16386 / 16283. EXP at the first BRAWLY
+     fight: round 3 16820 / 18701 / 18439; round 4 17035 / 16980 / 17589. Gained in between: round 3 1024 / 2501 / 2078 (in
+     108,632 / 187,294 / 168,035 frames, with Centre trips in 6412 and 6413); round 4 630 / 594 / 1306 (105,082 / 87,656 /
+     143,160 frames). With MAX_LOSSES 3 a run needs about 17572 EXP at its first fight; 6429 had 17589.
+  3. No round-4 change ran after SPENT or in the fights (sig_b3.py): 0 guard, raise-battle, PP or last-resort lines in 6 of
+     6 runs from SPENT to the end, against 320-328 raise-battle lines a run and round 4's PP lines in the raise itself (the
+     POSITIVE CONTROL); the battles after SPENT have purposes "train" and "travel" only. In the code: the guard is None in
+     the boss fight (GoalRunner._guard_for) and once the plan is spent (_plan_trainee needs status "active"); E2 and E3 live
+     in _guard_turn, which returns at once with nobody protected; E5's rules are an active plan's. E5 fired in the raise
+     (the caveat above); E1 has no partner to judge on the Grovyle plan, and at SPENT the trainee was at full HP in all six
+     runs (no rest due in either tree).
+  4. OFFLINE REPLAY of the 15 BRAWLY fights' 323 events (235 decisions, 55 sends, 33 questions) through both trees' battle
+     brains, the same seeded rng and the live history told back (replay_b3.py; predictions hashed first:
+     prediction_replay_b3.txt sha256 c8ee3c14..., and its addendum df8f80d6... before the corrected run): 975964c7 and
+     the round-4 tree give the IDENTICAL (kind, choice) and words on 323 of 323. CONTROL: a copy with BattleMind._heal's
+     threshold doubled differs in 14 of 15 fights (59 decisions), each fight's first difference a Potion where the
+     round-4 tree fights. Fidelity to the live records: 235 of 235 decision kinds, 219 of 220 live moves inside the
+     replay's own candidate set, sends 55 of 55, answers 33 of 33.
+  No play code was changed for P-G6. What the fight needs (the raise's budget against the level of the key move, what a
+  lost boss fight changes before the next try, a pre-boss heal that counts PP) is put to the lead.
+
+== THE GATES ON THE FINAL TREE (2026-11-12, gates_r4.py, logs in s53/bp1r4/gates_final/) ==
+All exit 0 at 13:58:53: test_goals 462 OK, test_battle 112 OK, test_bossprep 187 OK, test_world 139 OK, test_eyes 89 OK,
+test_kb2 128 OK, test_saving 151 OK, test_hands 64 OK, test_host 37 OK, test_check_purity 30 OK, test_step53_a2 34 OK (5
+skipped), test_evidence 27 OK, test_safety_gates FairnessTests 9 OK, test_run_regression 53 OK, test_check_anchors 7 OK,
+check_fairness PASS (0 breaches), check_purity PASS, call_census PASS, check_paths PASS, check_anchors PASS (8 of 8
+runners, 1732 mutants, 0 not unique), ledger --check PASS; revert_bossprep with its controls: mutants2 above.
+THE PLAY DIGEST of the final tree is 840ece09384cb6b8, the digest the live B4 arm played: the live runs describe the final
+tree's play code.

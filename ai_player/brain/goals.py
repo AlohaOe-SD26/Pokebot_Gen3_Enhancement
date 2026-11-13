@@ -144,11 +144,15 @@ from ai_player.brain.bossprep import (
     RaiseWatch,
     choose_plan,
     described,
+    member_now,
     members_of,
     near_best,
     new_record,
     next_boss,
+    out_of_pp,
+    partner_line_full,
     partner_worn,
+    raise_partner_of,
     rank_of,
     spend,
     spent_reason,
@@ -1419,6 +1423,12 @@ class GoalManager:
         # logged; for a leader in `ACT_ON` it may make (or re-judge) the plan this run commits to. (Round 2) decided
         # BEFORE the danger below, which reads the plan's trainee; it reads nothing the danger lines set
         bp_plan = self.boss_prep(look, index) if has_party else None
+        # (round 4, the round-3 verifier's V3-M1; the lead's design E1) the plan's BUDGET (and grass to raise on) is checked
+        # BEFORE any rest is decided for it: a plan over its budget is spent here, so it never heals for the plan (round 3
+        # checked it inside the raise goal, which the heal step below returned before: with a heal loop, never). FAULT
+        # `budget_after_rest`: round 3's order
+        if bp_plan is not None and not self.bp_faults.budget_after_rest:
+            self._spend_if_over(look, world, bp_plan)
         # (round 2, the verifier's V-M1) THE TRAINEE'S FLOOR: an active plan's trainee fainted or under `TRAINEE_FLOOR`
         # (and, the builder's addition, its knock-out partner worn, `bossprep.partner_worn`) is a party that must rest. The
         # danger was keyed on the STRONGEST (`needs_rest`) and the party's share: a Wurmple at 1/18 left the party at 89 %,
@@ -2223,7 +2233,10 @@ class GoalManager:
 
     def _trainee_low(self, look: Observation, bp_plan: tuple | None) -> str | None:
         """(round 2, spec section 2.4, V-M1) "fainted" or "low (<hp>/<max>)" when the plan's record is ACTIVE, its trainee
-        is in the party, and its HP is 0 or under `TRAINEE_FLOOR` of its max; None otherwise (always in chapters 1-5)."""
+        is in the party, and its HP is 0 or under `TRAINEE_FLOOR` of its max; (round 4, V3-m3, the lead's E5) "out of PP"
+        when every move it has that hurts is at 0 PP (`bossprep.out_of_pp`: a heal at a POKéMON CENTER restores PP; a
+        Potion does not, so `_potion_goal` takes only "low"); None otherwise (always in chapters 1-5). FAULT `pp_ignored`:
+        PP not asked (round 3)."""
         record = bp_plan[3] if bp_plan is not None else None
         if record is None or record.get("status") != "active":
             return None
@@ -2234,12 +2247,15 @@ class GoalManager:
             return "fainted"
         if trainee.hp < trainee.max_hp * TRAINEE_FLOOR:
             return f"low ({trainee.hp}/{trainee.max_hp})"
+        if not self.bp_faults.pp_ignored and out_of_pp(member_now(look, trainee.pid)):
+            return "out of PP (no PP left in any move that hurts)"
         return None
 
     def _partner_worn(self, look: Observation, bp_plan: tuple | None, world=None) -> str | None:
         """(round 2, the builder's addition) An ACTIVE plan's knock-out partner fainted or (round 3, V2-M1) not a partner
         against the wild Pokemon of the map the next raise goes to (`_raise_place`; `bossprep.partner_worn`): no member
-        could then take the trainee's place and the raise battle would be run from."""
+        could then take the trainee's place and the raise battle would be run from. (Round 4, E1) never on a map where it
+        fails the line even healed: the trainee raises there by its own fights only (`mode_on`)."""
         record = bp_plan[3] if bp_plan is not None else None
         if record is None or record.get("status") != "active" or record.get("trainee") is None:
             return None
@@ -2251,13 +2267,77 @@ class GoalManager:
         return "raise" if self.bp_faults.one_raise_key else f"raise:{place}"
 
     def _raise_place(self, look: Observation, world, record: dict) -> str | None:
-        """(round 3) The map the next raise session goes to, as `_raise_goal` chooses it (the first ranked map under the
-        partner's cap that is not put aside), or None."""
+        """(round 3) The map the next raise session goes to, as `_raise_goal` chooses it, or None. (Round 4, the round-3
+        verifier's V3-m4 and the lead's E6) THE SAME choice, `_raise_choice`, for both: round 3 repeated the rule here, and
+        a mutant that let this copy ignore a map put aside left every test green."""
+        choice = self._raise_choice(look, world, record)
+        return choice[0] if choice is not None else None
+
+    def mode_on(self, look: Observation, place: str | None, trainee: int) -> tuple[str, str]:
+        """(round 4, the round-3 verifier's V3-M1; the lead's design E1) HOW the trainee is raised on `place`: "mix" (USER
+        RULING 59's mix: switch-training to the knock-out partner, its own winnable fights, and the party resting when the
+        partner is worn) when the partner, HEALED, is a partner against every wild Pokemon of that map
+        (`bossprep.partner_line_full`), or when there is no knock-out partner (a strong trainee fights its own battles);
+        "own" (its own winnable fights ONLY: no switch-training, and no rest for the partner) when the partner fails the
+        line there even healed: no heal could make it fit, so a rest for it would never end (the heal loop). Returns (mode,
+        why). FAULT `partner_full_unchecked`: always "mix" (round 3)."""
+        if self.bp_faults.partner_full_unchecked:
+            return "mix", "FAULT partner_full_unchecked"
+        healed = partner_line_full(look, trainee, place, self.bp_faults)
+        if healed is None or healed[0]:
+            return "mix", "its knock-out partner is fit there once healed" if healed is not None else "no knock-out partner"
+        partner = raise_partner_of(look.party, trainee)
+        return "own", (f"its knock-out Pokemon {partner.species} L{partner.level} is no partner on {place} even healed "
+                       f"({healed[1]}): its own winnable fights only")
+
+    def _raise_choice(self, look: Observation, world, record: dict) -> tuple | None:
+        """(round 4, E1 and E6) WHERE and HOW the next raise session goes, the ONE rule `_raise_goal` and `_raise_place`
+        both read: among the ranked maps (`raise_maps`, under the partner's cap first) that are not put aside, the first
+        map UNDER THE CAP where the healed partner is fit (`mode_on` "mix"); with none, the first map not put aside, in
+        "own" mode (the trainee's own winnable fights only). Returns (place, mode, why, maps, cap, cap_why), or None when the
+        trainee is not in the party or every map is put aside."""
         trainee = next((m for m in look.party or () if m.pid == record.get("trainee")), None)
         if trainee is None:
             return None
-        cap, _ = self.raise_cap(look, trainee)
-        return next((place for place in self.raise_maps(world, cap) if self._allowed(self._raise_key(place))), None)
+        cap, cap_why = self.raise_cap(look, trainee)
+        maps = self.raise_maps(world, cap)
+        allowed = [place for place in maps if self._allowed(self._raise_key(place))]
+        if not allowed:
+            return None
+        for place in allowed:
+            levels = land_levels(place)
+            if levels is None or levels[1] > cap:
+                continue
+            mode, why = self.mode_on(look, place, trainee.pid)
+            if mode == "mix":
+                return place, mode, why, maps, cap, cap_why
+        mode, why = self.mode_on(look, allowed[0], trainee.pid)
+        return allowed[0], mode, why, maps, cap, cap_why
+
+    def _plan_spent(self, look: Observation, world, record: dict, personality: str) -> str | None:
+        """(round 4, E1) Why an ACTIVE plan is SPENT now, or None: the first bound of its one budget reached
+        (`spent_reason`, M5), or no grass within reach to raise on. Read by the decision BEFORE any rest
+        (`_spend_if_over`) and, as before, by `_raise_goal`."""
+        spent = spent_reason(record, personality)
+        if spent is not None:
+            return spent
+        trainee = next((m for m in look.party or () if m.pid == record.get("trainee")), None)
+        if trainee is not None and not self.raise_maps(world, self.raise_cap(look, trainee)[0]):
+            return "no grass within reach for the raise"
+        return None
+
+    def _spend_if_over(self, look: Observation, world, plan: tuple) -> None:
+        """(round 4, the round-3 verifier's V3-M1; the lead's design E1) An ACTIVE plan over its budget is spent at the
+        START of the decision, before the heal step: a spent plan never heals for the plan (round 3 checked the budget only
+        in `_raise_goal`, after the heal step; with the partner failing its line even at full HP every decision was a heal
+        and the budget was never read: frames at 10**7, still active)."""
+        _boss_id, name, _gym, record = plan
+        if record is None or record.get("status") != "active":
+            return
+        personality = self.state.active if self.bp_faults.base_to_active else self.state.base
+        spent = self._plan_spent(look, world, record, personality)
+        if spent is not None:
+            self._spend(record, name, spent)
 
     @staticmethod
     def _raise_name(look: Observation, bp_plan: tuple | None) -> str:
@@ -2308,16 +2388,17 @@ class GoalManager:
         guard) never begun with the trainee under its floor (or its partner worn), even when no heal goal could be made:
         "the raise waits". (BP1-L1, BP1-L2) the map from `raise_maps` under the partner's cap, one cooldown key a map
         (`raise:<map>`): a map that fails twice is put aside and the next one tried; every one put aside: the raise waits
-        (counted nowhere). FAULTS `raise_guard_off`, `one_raise_key`."""
+        (counted nowhere). FAULTS `raise_guard_off`, `one_raise_key`. (Round 4, E1 and E6) the map and the MODE from
+        `_raise_choice`, the one rule `_raise_place` reads too: a map where the healed knock-out partner fails its line is
+        no switch-training map ("own": the trainee's own winnable fights only), said in the goal's reason."""
         boss_id, name, _gym, record = plan
         if record is None or record["status"] != "active":
             return None
         personality = self.state.active if self.bp_faults.base_to_active else self.state.base
-        spent = spent_reason(record, personality)
         trainee = next((m for m in look.party or () if m.pid == record["trainee"]), None)
-        cap, cap_why = self.raise_cap(look, trainee) if trainee is not None else (0, "")
-        maps = self.raise_maps(world, cap) if trainee is not None else []
-        if spent is None and not maps:
+        spent = self._plan_spent(look, world, record, personality) if trainee is not None else spent_reason(record,
+                                                                                                             personality)
+        if spent is None and trainee is None:
             spent = "no grass within reach for the raise"
         if spent is not None:
             self._spend(record, name, spent)
@@ -2326,17 +2407,20 @@ class GoalManager:
         if low is not None and not self.bp_faults.raise_guard_off:
             self._say(f"[AI-BOSSPREP] {name}: the raise waits: the trainee is low ({low})")
             return None
-        key_of = self._raise_key
-        where = next((place for place in maps if self._allowed(key_of(place))), None)
-        if where is None:
-            self._say(f"[AI-BOSSPREP] {name}: the raise waits: every raise map is put aside for now ({maps})")
+        choice = self._raise_choice(look, world, record)
+        if choice is None:
+            cap, _ = self.raise_cap(look, trainee)
+            self._say(f"[AI-BOSSPREP] {name}: the raise waits: every raise map is put aside for now "
+                      f"({self.raise_maps(world, cap)})")
             return None
+        where, mode, mode_why, _maps, cap, cap_why = choice
         levels = land_levels(where)
+        how = "" if mode == "mix" else f"; OWN FIGHTS ONLY: {mode_why}"
         return Goal("raise", f"the plan for {name}: raise {trainee.species} L{trainee.level} ({trainee.pid:08x}) to "
                              f"L{record['target']}, leading, on {where} (wild L{levels[0]}-{levels[1]}; the cap L{cap}: "
-                             f"{cap_why}); {record['battles']} battles, {record['frames']} frames, {record['sessions']} "
-                             f"sessions so far",
-                    boss_id, map=where, steps=self.state.errands.train_session, key=key_of(where))
+                             f"{cap_why}){how}; {record['battles']} battles, {record['frames']} frames, "
+                             f"{record['sessions']} sessions so far",
+                    boss_id, map=where, steps=self.state.errands.train_session, key=self._raise_key(where))
 
     def _spend(self, record: dict, name: str, why: str) -> None:
         """(round 2, E1) The plan SPENT (`bossprep.spend`: its lead left to settle), said."""
@@ -2767,6 +2851,9 @@ class GoalRunner:
                 self.manager.boss_lost(self.hands.last if self.hands.last is not None else self.hands.look())
             return result
         finally:
+            # (round 4, V3-m2, the lead's E4) the goal's purpose and guard end with it: the battles until the next goal
+            # take the plan's own state (`between_goals`)
+            self.between_goals(goal)
             if plan_record is not None:
                 plan_record["frames"] = plan_record.get("frames", 0) + self.hands.pad.frames - plan_began
                 if goal.kind in ("heal", "find_center"):
@@ -2809,19 +2896,53 @@ class GoalRunner:
         a session and loses the trainee's share of the walks' battles). WHY: round 2 told the battle brain nothing outside a
         raise, and the trainee led the walks to heal it, the pick-ups and the travel: 5 faints in 6 live runs, one from
         3/21 on the walk to the POKéMON CENTER. FAULTS `guard_unset` (never: round 2), `guard_in_boss_fight` (the boss
-        fight not left out)."""
-        manager = self.manager
-        faults = manager.bp_faults
-        if faults.guard_unset or goal.kind == "raise" or manager.bp_boss is None:
+        fight not left out). (Round 4) the plan's trainee and the boss fight are read by `_plan_trainee` and `_boss_fight`,
+        which the battles BETWEEN goals read too (`between_goals`)."""
+        if goal.kind == "raise" or self._boss_fight(goal):
             return None
-        boss_id = manager.bp_boss[0]
-        record = manager.bp_record(boss_id)
+        return self._plan_trainee()
+
+    def _plan_trainee(self) -> int | None:
+        """(round 3; round 4, E4) The PLAN's own state: the trainee of the next boss's plan while that plan is ACTIVE, else
+        None (always in chapters 1-5). FAULT `guard_unset`: None (round 2)."""
+        manager = self.manager
+        if manager.bp_faults.guard_unset or manager.bp_boss is None:
+            return None
+        record = manager.bp_record(manager.bp_boss[0])
         if record is None or record.get("status") != "active" or record.get("trainee") is None:
             return None
-        if (not faults.guard_in_boss_fight and goal.milestone == boss_id and goal.kind in ("talk", "use")
-                and goal.look is not None and goal.key == f"{goal.kind}:{goal.look}"):
-            return None
         return int(record["trainee"])
+
+    def _boss_fight(self, goal: Goal) -> bool:
+        """(round 3) The BOSS FIGHT itself: the story's own talk to (or use of) the leader in the next boss's milestone
+        (`talk:<look>`). FAULT `guard_in_boss_fight`: never."""
+        manager = self.manager
+        if manager.bp_faults.guard_in_boss_fight or manager.bp_boss is None:
+            return False
+        return (goal.milestone == manager.bp_boss[0] and goal.kind in ("talk", "use") and goal.look is not None
+                and goal.key == f"{goal.kind}:{goal.look}")
+
+    def between_goals(self, goal: Goal | None = None) -> None:
+        """(round 4, the round-3 verifier's V3-m2; the lead's design E4) The battle brain as a goal ENDS (`pursue`): a
+        battle between goals (a scene that begins while the next goal is decided, or one a goal hands back mid-screen) is
+        fought with the guard of the PLAN's state, never the last goal's: the active plan's trainee is guarded whenever no
+        raise goal runs (`_plan_trainee`), and a raise's purpose "raise" and trainee end with it ("travel", the play brain's
+        own between goals). WHY: round 3 set them per goal and reset nothing, so after a raise goal a scene's battle had
+        purpose "raise" with no trainee and no guard: no protection and no switch (4 such battles in 6 live runs, Grovyle at
+        28/68 fighting on with Struggle). After the BOSS FIGHT's own talk the guard stays off (its battle may still be on
+        screen). Only a raise's purpose is reset: a story battle a talk hands back is fought, not run from ("train", the
+        purpose `_pursue` gives talks), as in chapters 1-5. FAULT `seam_kept`: nothing reset (round 3)."""
+        mind, manager = self.mind, self.manager
+        if mind is None or manager.bp_faults.seam_kept:
+            return
+        if getattr(mind, "purpose", None) == "raise":
+            mind.purpose = "travel"
+            mind.trainee = None
+        guard = None if goal is not None and self._boss_fight(goal) else self._plan_trainee()
+        mind.guard = guard
+        mind.say = self.tell if guard is not None else None
+        if guard is not None:
+            mind.bp_faults = manager.bp_faults
 
     def _plan_heal_record(self, goal: Goal) -> dict | None:
         """(round 2) The ACTIVE raise plan's record a goal of `PLAN_HEAL_KINDS` counts into (the next boss's, by
@@ -3262,6 +3383,13 @@ class GoalRunner:
                 mind.say = self.tell  # (round 2) the raise battle's one line a battle
             if hasattr(mind, "bp_faults"):
                 mind.bp_faults = faults
+            # (round 4, V3-M1, the lead's E1) HOW this map is raised on (`GoalManager.mode_on`, the rule its choice
+            # read): "own", the knock-out partner unfit here even healed, means no switch-training in its battles
+            mode, mode_why = manager.mode_on(hands.last if hands.last is not None else look, goal.map, pid)
+            if hasattr(mind, "raise_switch"):
+                mind.raise_switch = mode == "mix"
+            if mode != "mix":
+                self.tell(f"[AI-BOSSPREP] raise session on {goal.map}: {mode_why}")
             hands.watchers.append(watch)
             self.roam_hooks(trainee=pid, after_battle=watch.after, raise_map=goal.map)
             where = goal.map
@@ -3283,6 +3411,8 @@ class GoalRunner:
             if watch in hands.watchers:
                 hands.watchers.remove(watch)
             self.mind.trainee = None
+            if hasattr(mind, "raise_switch"):
+                mind.raise_switch = True  # (round 4, E1) switch-training is the raise's default ("mix")
             if hasattr(mind, "say"):
                 mind.say = None
             modes = list(getattr(mind, "raise_modes", None) or ())
@@ -3386,7 +3516,8 @@ class GoalRunner:
                 # (round 2, the builder's addition) and its knock-out partner worn: no member could take the trainee's
                 # place, so the roam would run from every battle (`bossprep.partner_worn`; round 3, V2-M1: the partner
                 # line against the wild Pokemon of the map it roams, `raise_map`)
-                return (stop or trainee_rest(look, trainee, heal_below, active)
+                # (round 4, V3-m3, E5) and the trainee out of PP in every move that hurts (`bossprep.trainee_rest`)
+                return (stop or trainee_rest(look, trainee, heal_below, active, manager.bp_faults)
                         or partner_worn(look, trainee, manager.bp_faults, raise_map))
 
             nav.battle_rest = raise_rest
