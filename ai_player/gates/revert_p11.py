@@ -41,6 +41,16 @@ hand-made forced-movement test), not by the third, the loud test, which reads th
 the extractor's code leaves the shipped file as it is (the equality test is what ties the two). The prediction was wrong,
 not the test; v5 is v4 with that one prediction corrected (and one docstring paragraph of the extractor reworded), its
 sha256 recorded (`s53/p11r2/prediction_mutants_v5.sha256`) before its first run, on a frozen tree.
+
+VERSION 6 (P11-2's closing pass, 2026-11-12, after the P11-2 verifier's CONDITIONAL PASS): v5's table, three anchors
+re-anchored where the closing pass rewrote the line (`fair_check_meta` and `fair_check_after_meta`: `_check` and `_*` are
+no subtree now, so `_check`'s line ends in False and `_*` takes two lines; `loud_silent`: the refusals are read from
+[map, reasons] pairs), `fair_check_meta` now predicted to fail the leaf test as well, plus the closing pass's rules: one
+mutant per entry of ways.json's block that the closing pass made no subtree (VV1: `maps[].id`, `count`, `_*`, `_check` and
+its children, `_files` and its sha256s, each flag set back to True), the two wildcards narrowed to their keys' shape
+widened again, the slope's two untested branches (VV4: the verifier's VMe and VMf), and the writer keying `left_out` or
+`hm_obstacles` by map const again (VV3). v6's predictions were written and their sha256 recorded
+(`s53/p11r2c/pred_mutants_v6.sha256`) before its first run, on a frozen tree.
 """
 
 from __future__ import annotations
@@ -87,6 +97,33 @@ NO_WAY = ["test_ways.CandidateTests.test_the_fact_only_adds_the_way_and_it_outra
           "test_ways.ModelTests.test_the_last_b1f_stay",
           "test_ways.ModelTests.test_the_first_b1f_stay_leaves_by_the_named_ladder",
           "test_ways.BoundTests.test_an_unreachable_way_is_given_up_and_never_loops"]
+
+#: (v6, P11-2's closing pass) the lines of check_fairness.py's ways.json block its mutants anchor on, each ending "False),"
+_W_CHECK = ("        \"_check\": (DEVELOPER, \"the extractor's own checks (walk lengths, the dark maps it left out and why, the "
+            "HM obstacles \"\n" + " " * 30 + "\"its walks met): the developers' proof, never read by the AI\", False),\n")
+_W_WALKS = ("        \"_check.walk_lengths\": (DEVELOPER, \"each walk's length in steps, keyed 'map|arrival|destination'\", "
+            "False),\n")
+_W_WALK = ("        \"_check.walk_lengths.MAP_*|*,*|MAP_*\": (DEVELOPER, \"one walk's length (a number), keyed "
+           "'map|x,y|destination'\",\n" + " " * 48 + "False),\n")
+_W_LEFT = ("        \"_check.left_out\": (DEVELOPER, \"the dark maps it left out, each a [map const, [why, ...]] pair (the "
+           "const a value, \"\n" + " " * 39 + "\"never a key name)\", False),\n")
+_W_HM = ("        \"_check.hm_obstacles\": (DEVELOPER, \"the HM obstacles each dark map's walk met, each a [map const, "
+         "[obstacle, ...]] \"\n" + " " * 43 + "\"pair (the const a value, never a key name)\", False),\n")
+_W_FILES = "        \"_files\": (META, \"each input's sha256, by its path in the pinned decomp\", False),\n"
+_W_FILE = ("        \"_files.*/*\": (META, \"one input's sha256, keyed by its path (a key with no '/' is no input: "
+           "unclassified)\", False),\n")
+_W_META = ("        \"_*\": (META, \"where the file came from (the pinned decomp, the extractor, its reader, its notes): one "
+           "string each\",\n" + " " * 15 + "False),\n")
+_W_COUNT = "        \"count\": (META, \"how many dark maps the file holds\", False),\n"
+_W_ID = "        \"maps[].id\": (AI, \"its const: the map a person stands on, dark\", False),\n"
+
+
+def _subtree(anchor: str, name: str) -> tuple[str, str, str]:
+    """(v6) The edit that sets one schema entry's subtree flag back to True (`anchor` ends with "False),\\n")."""
+    if not anchor.endswith("False),\n"):
+        raise SystemExit(f"a subtree mutant's anchor must end with the flag: {anchor!r}")
+    return FAIR, anchor, anchor[:-len("False),\n")] + f"True),  # MUTANT {name}\n"
+
 
 #: name -> (prediction, the rule that is broken, [edits], tests that MUST fail (CAUGHT) or the reason (REDUNDANT)).
 MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]] = {
@@ -299,7 +336,7 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                                   [(EXTRACT, "            if under in CRACKED and not hms:\n                return None\n",
                                     "            if False:  # MUTANT slide_onto_crack_walks_on\n                return None\n")],
                                   [FORCED]),
-    # ---- (v4) V1/V4: WHAT THE WALK DOES NOT MODEL, IT REFUSES
+    # ---- (v4) V1/V4: THE TWO KINDS THE WALK DOES NOT MODEL AND REFUSES (an unmodelled forced movement; HM-dependent ways)
     "forced_walks_on": (CAUGHT, "on foot, a forced movement the walk does not model is walked on as floor (it is still "
                                 "recorded)",
                         [(EXTRACT, "                return (tile, elev, cost) if hms else None\n",
@@ -337,8 +374,8 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                                 "# MUTANT cut_tree_not_obstacle\n")],
                               [HM_CHECK]),
     "loud_silent": (CAUGHT, "the refusals are no longer said (every mode prints nothing for them)",
-                    [(EXTRACT, "    return [f\"REFUSED {map_id}: {why}\" for map_id, reasons in doc[\"_check\"][\"left_out\"]."
-                               "items() for why in reasons]\n",
+                    [(EXTRACT, "    return [f\"REFUSED {map_id}: {why}\" for map_id, reasons in doc[\"_check\"][\"left_out\"] "
+                               "for why in reasons]\n",
                       "    return []  # MUTANT loud_silent\n")],
                     [LOUD]),
     "refusal_ships_anyway": (CAUGHT, "a refused map is recorded as left out AND shipped (its guess emitted)",
@@ -375,23 +412,70 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                             "        \"maps[].ways[].toward\": (AI, \"the maps it is the way on toward (a guide: 'the ladder "
                             "east is the way to STEVEN')\",\n                                 True),  # MUTANT\n")],
                           [LEAVES]),
+    # (v6) re-anchored: the closing pass made `_check` no subtree (its children named) and `_*` no subtree; the rule is the
+    # same. fair_check_meta now fails the leaf test too (`_check`'s plant has no entry left), so it is predicted there
     "fair_check_meta": (CAUGHT, "`_check` classified META again (its walk lengths readable by a loader: the verifier's VM2)",
-                        [(FAIR, "        \"_check\": (DEVELOPER, \"the extractor's own checks (walk lengths, the dark maps it "
-                                "left out and why, the HM obstacles \"\n                              \"its walks met): the "
-                                "developers' proof, never read by the AI\", True),\n",
-                          "        # MUTANT fair_check_meta\n")],
-                        [GATED, DEV_KEYS]),
+                        [(FAIR, _W_CHECK, "        # MUTANT fair_check_meta\n")],
+                        [GATED, DEV_KEYS, LEAVES]),
     "fair_check_after_meta": (CAUGHT, "`_check` listed AFTER `_*` (an exact pattern is matched in order, so `_*` classifies "
                                       "it META)",
-                              [(FAIR, "        \"_check\": (DEVELOPER, \"the extractor's own checks (walk lengths, the dark "
-                                      "maps it left out and why, the HM obstacles \"\n                              \"its walks "
-                                      "met): the developers' proof, never read by the AI\", True),\n        \"_*\": (META, "
-                                      "\"where the file came from (the pinned decomp, each input's sha256, the extractor, its "
-                                      "notes)\", True),\n",
-                                "        \"_*\": (META, \"where the file came from (the pinned decomp, each input's sha256, "
-                                "the extractor, its notes)\", True),\n        \"_check\": (DEVELOPER, \"the extractor's own "
-                                "checks: MUTANT fair_check_after_meta\", True),\n")],
+                              [(FAIR, _W_CHECK, "        # MUTANT fair_check_after_meta: `_check` moved below `_*`\n"),
+                               (FAIR, _W_META, _W_META + "        \"_check\": (DEVELOPER, \"the extractor's own checks: "
+                                               "MUTANT fair_check_after_meta\", False),\n")],
                               [GATED, DEV_KEYS]),
+    # ---- (v6, P11-2's closing pass) VV1: NO entry of ways.json's block is a subtree. One mutant per tightened entry sets
+    # its subtree flag back to True: a key nested inside that leaf passes RULE B again, and the leaf test's plant for it fails
+    "fair_id_subtree": (CAUGHT, "`maps[].id` a subtree again (the P11-2 verifier's VF1: a developer key nested in a map's "
+                                "id passes RULE B)", [_subtree(_W_ID, "fair_id_subtree")], [LEAVES]),
+    "fair_count_subtree": (CAUGHT, "`count` a subtree again (a key nested in it passes)",
+                           [_subtree(_W_COUNT, "fair_count_subtree")], [LEAVES]),
+    "fair_meta_subtree": (CAUGHT, "`_*` a subtree again (a key nested in `_kind`, `_notes`, a sha256 ... passes, as META)",
+                          [_subtree(_W_META, "fair_meta_subtree")], [LEAVES]),
+    "fair_check_subtree": (CAUGHT, "`_check` a subtree again (any key under it passes as DEVELOPER, and its NAME joins the "
+                                   "developer-only names: the VV3 trap, a map const as a key name)",
+                           [_subtree(_W_CHECK, "fair_check_subtree")], [LEAVES]),
+    "fair_walks_subtree": (CAUGHT, "`_check.walk_lengths` a subtree again (a bare map const as a key under it passes)",
+                           [_subtree(_W_WALKS, "fair_walks_subtree")], [LEAVES]),
+    "fair_walk_subtree": (CAUGHT, "one walk length a subtree again (a key nested in it passes)",
+                          [_subtree(_W_WALK, "fair_walk_subtree")], [LEAVES]),
+    "fair_left_out_subtree": (CAUGHT, "`_check.left_out` a subtree again (a dict record, a map const's key, passes)",
+                              [_subtree(_W_LEFT, "fair_left_out_subtree")], [LEAVES]),
+    "fair_hm_subtree": (CAUGHT, "`_check.hm_obstacles` a subtree again (a key nested in a pair passes)",
+                        [_subtree(_W_HM, "fair_hm_subtree")], [LEAVES]),
+    "fair_files_subtree": (CAUGHT, "`_files` a subtree again (a key with no path under it passes)",
+                           [_subtree(_W_FILES, "fair_files_subtree")], [LEAVES]),
+    "fair_file_subtree": (CAUGHT, "one input's sha256 a subtree again (a key nested in it passes)",
+                          [_subtree(_W_FILE, "fair_file_subtree")], [LEAVES]),
+    # the two data-keyed maps: their wildcard narrowed to the keys' shape, so a stray key directly under them fails
+    "fair_files_any_key": (CAUGHT, "`_files.*/*` widened to `_files.*` (a developer key with no path under `_files` "
+                                   "classified META)",
+                           [(FAIR, "        \"_files.*/*\": (META,", "        \"_files.*\": (META,  # MUTANT\n        ")],
+                           [LEAVES]),
+    "fair_walk_any_key": (CAUGHT, "the walk length's key widened to `*` (a bare map const as a key under walk_lengths "
+                                  "classified DEVELOPER: its name a developer-only name, VV3)",
+                          [(FAIR, "        \"_check.walk_lengths.MAP_*|*,*|MAP_*\": (DEVELOPER,",
+                            "        \"_check.walk_lengths.*\": (DEVELOPER,  # MUTANT\n        ")],
+                          [LEAVES]),
+    # ---- (v6) VV4: the muddy slope's two untested branches (the P11-2 verifier's VMe and VMf, byte for byte its edits)
+    "slide_warp_ends": (CAUGHT, "a warp under a slope ENDS the slide on the slope (never used): the verifier's VMe",
+                        [(EXTRACT, "                return below, elev, cost + 1\n",
+                          "                return tile, elev, cost  # MUTANT slide_warp_ends\n")],
+                        [FORCED]),
+    "slide_through_rock": (CAUGHT, "on foot an HM obstacle under a slope is slid through: the verifier's VMf",
+                           [(EXTRACT, "            if self._walled(below, hms, met):\n",
+                             "            if False and self._walled(below, hms, met):  # MUTANT slide_through_rock\n")],
+                           [FORCED]),
+    # ---- (v6) VV3: the map consts are VALUES under `_check`; the writer keying them by map again differs from the file
+    "left_out_keyed_by_map": (CAUGHT, "the writer keys `_check.left_out` by map const again (P11-2's shape)",
+                              [(EXTRACT, "                   \"left_out\": [[map_id, why] for map_id, why in "
+                                         "sorted(left_out.items())],\n",
+                                "                   \"left_out\": dict(sorted(left_out.items())),  # MUTANT\n")],
+                              [EXTRACTED]),
+    "hm_obstacles_keyed_by_map": (CAUGHT, "the writer keys `_check.hm_obstacles` by map const again (P11-2's shape)",
+                                  [(EXTRACT, "                   \"hm_obstacles\": [[map_id, met] for map_id, met in "
+                                             "sorted(obstacles.items())]},\n",
+                                    "                   \"hm_obstacles\": dict(sorted(obstacles.items()))},  # MUTANT\n")],
+                                  [EXTRACTED]),
 }
 
 DRIVER = '''

@@ -16,6 +16,12 @@
 > replayed, not a rate); the detour after the crossing is diagnosed as a test-start artifact (the B1F starts carry no
 > goal memory), so P11-1's "FIX reached STEVEN sooner in only 3 of 6" does not measure the AI. One MAJOR, VV1
 > (`maps[].id` is still a subtree leaf in `check_fairness`, so a developer key nested inside it passes RULE B).
+> P11-2's closing pass (2026-11-12, offline only, verifier PASS with no MAJOR or MINOR): VV1 to VV4 closed (no entry
+> of `ways.json`'s fairness block is a subtree now; 1,069 plants, 0 holes). No play code changed, but the play digest
+> moved from 87d5b014f8189cfe to 1c96c11fbbf253f7, because `ways.json`'s developer-only `_check` block changed shape
+> (the rest parses equal, and the loader never reads `_check`). Mutants: 61 CAUGHT and 3 REDUNDANT of 64. The extractor
+> still neither models nor refuses five things; none changes today's two maps, and each must be handled before any
+> VICTORY ROAD way ships. The branch's 24 chapter packs were regenerated in the same commit.
 
 ## Chapters 6-7 builder report (worktree wf_e7452923-f06-3, base 979754bf, nothing committed)
 
@@ -1794,6 +1800,214 @@ Caveat: these are development records, one trajectory per seed. I made no live r
 - `verify/` holds 0.4 MB and no world.jsonl. C: has 57.9 GB free.
 - The worktree's git status is unchanged, and the main checkout is clean.
 - No live run was made and no seed was registered, so 6455-6480 stay free.
+
+## P11-2: the closing pass (the builder, 2026-11-12)
+
+The closing pass closes the verifier's four findings: VV1 (MAJOR), VV2 (MINOR), VV3 and VV4 (NITs). It also files the P11-x diagnosis as a note. The changes are in test-side code and data only. No play code changed: under ai_player/brain and ai_player/knowledge, only ways.json differs from 1cf3ae6a, and only inside its developer part, _check. But ways.json is in the play digest, so the play digest moved from 87d5b014f8189cfe (#120's arm B) to 1c96c11fbbf253f7. The rest of ways.json parses identical to 1cf3ae6a's, and the loader is byte-identical and never reads _check. So #120's identity result still describes this file's decisions. Every proof is offline: no live run, no seed. The gate run drove the emulator in process for its unit suites, as P11-2's gates run 3 did. Mutants v6: 61 CAUGHT and 3 REDUNDANT of 64, as predicted, with the prediction hashed first. Gates: 20 of 20 exit 0. Tier 0: PASS. Nothing is committed. The extractor still neither models nor refuses five things (below). None of them changes today's two maps, and each must be handled before any VICTORY ROAD way ships. One proof file is incomplete: fault.out records which tests failed in the F3 arm but not why.
+
+- **D1 (VV1, the fairness leaf).**
+  - Reproduced on 1cf3ae6a (repro_base, 17 of 17 HELD): a dict nested inside maps[].id, count, _kind or a _files sha256 passes RULE B.
+  - The fix: no entry of ways.json's block is a subtree now. _check's children are named one by one. The keys of _files and of walk_lengths are narrowed to their shapes.
+  - The leaf test now plants a developer key in every entry that holds a value (19 plants). It has two controls: the unplanted file passes, and a value that mentions a developer key passes.
+  - FAULT F1 (1cf3ae6a's check_fairness.py): only the leaf test fails. Its 14 failing subtests cover the 10 entries a subtree swallowed on 1cf3ae6a; no way leaf fails. **[Reworded by the lead after the verifier's VC1: it read "are the 10 entries that were subtrees". Only 4 entries were subtrees on 1cf3ae6a; 6 of the 10 did not exist there and were covered by `_check` or `_*`.]**
+  - CONTROL F0: the copy unchanged, 166 tests pass.
+  - 12 mutants: each of the 10 flags set back to True, and each of the 2 wildcards widened back to *. Each is CAUGHT by the leaf test.
+  - Every entry of the block, with its class and subtree flag. No entry is left a subtree.
+
+| Entry | Class | Subtree | Holds |
+|---|---|---|---|
+| _check | developer | False | a dict (three children) |
+| _check.walk_lengths | developer | False | a dict keyed map\|x,y\|map |
+| _check.walk_lengths.MAP_*\|*,*\|MAP_* | developer | False | a number |
+| _check.left_out | developer | False | [map, [why]] pairs |
+| _check.hm_obstacles | developer | False | [map, [obstacle]] pairs |
+| _files | meta | False | a dict keyed by path |
+| _files.*/* | meta | False | a sha256 |
+| _* | meta | False | a string (_source, _kind, _made_by, _reader, _notes) |
+| count | meta | False | a number |
+| maps, maps[], maps[].ways, maps[].ways[] | ai | False | containers |
+| maps[].id | ai | False | a string |
+| maps[].ways[].from, take | ai | False | a pair of numbers |
+| maps[].ways[].leads_to | ai | False | a string |
+| maps[].ways[].toward | ai | False | a list of strings |
+| maps[].ways[].through | ai | False | a string or null |
+
+- **D2 (VV4, the slope's two branches).**
+  - On 1cf3ae6a, the verifier's VMe and VMf each survive all 166 tests (d2base.out, prediction hashed first).
+  - Two hand-made cases are added. A warp under a slope is used, at 2 steps. A rock under a slope stops the slide on foot and is recorded as met; the every-HM walk slides onto the rock's tile.
+  - slide_warp_ends (VMe) and slide_through_rock (VMf) are both CAUGHT by the forced-movement test.
+- **D3 (VV3, map consts as developer-only key names).**
+  - Reproduced on 1cf3ae6a: 7 of the 72 developer-only names are map consts, and the probe x.get("MAP_GRANITE_CAVE_B1F") is refused.
+  - The data's shape is fixed. The extractor writes left_out and hm_obstacles as [map, [..]] pairs, and ways.json was regenerated by it (--check SAME, SAME). Pairs add no key names; dict records would have made 'reasons' and 'obstacles' developer-only.
+  - The tests:
+    - Deciding code that reads a map const as a key is not refused.
+    - A loader that reads _check, walk_lengths, left_out or hm_obstacles is still refused.
+    - No map const is a developer-only name (65 names now, 0 of them map consts).
+  - FAULT F3 (1cf3ae6a's check_fairness.py and ways.json together): exactly the 5 predicted tests fail.
+  - Controls: d3_controls_final.out, 10 of 10 HELD.
+    - The file less _check equals 1cf3ae6a's, and _check holds the same facts.
+    - The fixture and knowledge/ways.py are byte-identical to 1cf3ae6a's.
+    - ways.py names none of _check's keys.
+    - Play digest: as in the headline.
+  - 2 mutants: the writer keying either list by map const again. Each is CAUGHT by the extraction-equality test.
+- **D4 (VV2, the extractor's headline).**
+  - The docstring now separates two lists: WHAT IT REFUSES (TWO KINDS), and WHAT IT NEITHER MODELS NOR REFUSES TODAY.
+  - The five items, each confirmed from the code:
+    - a standing person (walls hold HM obstacles only);
+    - a warp event on a tile that is no warp (every warp event is used on a step);
+    - coord events (never read);
+    - every step callback except the cracked floor;
+    - the ledge landing (stricter than ShouldJumpLedge).
+  - The first two are also the verifier's plants VE6 and VE7.
+  - d4_confirm.out: on the five maps the GRANITE CAVE searches cross, there are 0 coord events, the only step callback is the cracked floor, no landing is refused, and every warp tile is a ladder, a door or an arrow warp.
+  - The docstring says each item must be modelled or refused, with a plant test, before P11-y.
+- **D5 (the P11-x note).**
+  - Filed as PROJECT KNOWLEDGE/ai-research-notes/2026-11-12-P11-X-DETOUR-DIAGNOSIS.md. The body is byte for byte, the correction included. The longest line is 123 characters.
+  - The new first paragraph says:
+    - it is a NOTE, and who wrote it: P11-2's first builder, with the third builder's correction;
+    - what the verifier re-read, including its prediction that missed as worded, and that the diagnosis stands;
+    - what follows: the kit must save and restore the goal memory with a start, the B1F starts must be re-made, and P11-1's "3 of 6" is confounded by the test starts.
+- **D6 (which file proves which commit).**
+  - d6_evidence.py reads every p11 REVERT and UNITS file under evidence/ and archive/. It then recomputes each commit's digest with provenance's own rule.
+  - P11-1's commit measured with its 6 new files untracked gives 044dacd1e4965f57. P11-2's commit gives 9c2c02b1b678e7be.
+  - My runs moved P11-2's 2026-11-12 pair under archive/ by keep_earlier, as expected.
+
+| Tree | Files that prove it |
+|---|---|
+| f1069d9d (P11-1), digest 044dacd1e4965f57 | archive/044dacd1e4965f57-18c3d51b/2026-11-11-p11-REVERT.txt (PASS, 28 CAUGHT + 2 REDUNDANT of 30), and the UNITS file there (PASS) |
+| 1cf3ae6a (P11-2), digest 9c2c02b1b678e7be | archive/9c2c02b1b678e7be-f1069d9d/2026-11-12-p11-REVERT.txt (PASS, 45 + 3 of 48), and the UNITS file there (PASS). Moved there tonight; untracked, so commit it. |
+| the closing tree (uncommitted at 1cf3ae6a), digest 5453e8e32e7bff3c | 2026-11-12-p11-REVERT.txt (PASS, 61 + 3 of 64) and 2026-11-12-p11-UNITS.txt (PASS) |
+| NO committed tree: the intermediate tree 75619fd3df39c661 | 2026-11-11-p11-REVERT.txt (mutants v4 run 1, FAIL, 44 + 3 of 48) and 2026-11-11-p11-UNITS.txt (gates run 1, PASS) |
+| NO committed tree: P11-1's earlier trees | archive/5da56a3912b12087-18c3d51b (REVERT PASS, UNITS FAIL), archive/a7066fb4e7ee4fa5-18c3d51b and archive/b0952b41c95c1ff4-18c3d51b (REVERT only) |
+
+- **D7 (the final tree).**
+  - Predictions hashed before their runs: pred_repro_base c2dcf211, pred_d2_base aaff9d8c, pred_fault 165cddff, pred_mutants_v6 5bbc4541 (with 10 tree files, all OK at the start and the end).
+  - revert_p11 v6 (detached, 7:43 to 8:36 PM): PASS.
+  - Gate driver (20 suites, detached, 7:43 to 8:09 PM): every suite exit 0, FROZEN TREE PASS.
+  - check_anchors: PASS. ledger.py --check: PASS (120 entries). Tier 0: PASS.
+  - git diff --stat 1cf3ae6a -- ai_player/brain ai_player/knowledge shows ways.json only, changed only inside _check (D3, control 1).
+  - The sandbox staging was taken down and the main sandbox's counts are unchanged.
+  - Run book: C:/Remote Projects/_ai_lab/s53/p11r2c/STATE.md.
+
+## P11-2: the closing pass, verification (the verifier, 2026-11-12)
+
+**Verdict: PASS.** The pass closes VV1 to VV4 and files the P11-x note. Under ai_player/brain and ai_player/knowledge, only ways.json differs from 1cf3ae6a, and only inside `_check`. I found nothing MAJOR or MINOR. There are three NITs (below).
+
+**How it was checked.** All work was offline: no live run, no emulator, no seed. I ran on a copy of the uncommitted worktree, deleted at the end (17,169 entries). Predictions were hashed before each run:
+- v_pred1 b002b086, with v_ruleb.py, v_b2.py and v_extract.py;
+- v_pred2 cf9f1b02, with v_gates.py;
+- v_pred3 c9449c56, with v_arrow_walk.py.
+
+Every prediction HELD. The scripts and outputs are in C:/Remote Projects/_ai_lab/s53/p11r2c/verify/, and STATE.md there is the run book.
+
+**RULE B, every position of ways.json planted one at a time (v_ruleb.py).** N nests a developer key inside every scalar, list elements and the [map, [..]] pairs included. S adds every developer name as a sibling in every dict. L appends a dict to every list.
+- **Closing tree:** 1,069 plants (N 829, S 151, L 89).
+  - 0 holes.
+  - 1 plant passes, classified DEVELOPER, by design: a new walk-shaped key under `_check.walk_lengths`.
+  - The other 1,068 FAIL as unclassified.
+- **Gap on 1cf3ae6a:** 1,055 plants.
+  - 586 holes, all where predicted: 572 nested under `_files` sha256s, 6 siblings under `_files`, the 5 `_x` strings, `count`, and the 2 `maps[i].id`.
+  - The 107 plants under `_check` are DEVELOPER.
+  - 362 FAIL.
+
+**RULE B2, using each arm's own check() on a package copy (v_b2.py).**
+- **Closing tree:**
+  - Deciding code that reads `_check`, `walk_lengths`, `left_out`, `hm_obstacles` or any of the 42 walk keys is refused: all 46, by subscript and by .get.
+  - The loader is refused 4 of 4.
+  - Every map const of the file (10) read as a key: 0 refused.
+  - The control passes.
+  - 65 names are developer-only, and none is a map const.
+- **1cf3ae6a:** 72 developer-only names. Exactly the 7 map consts are refused (GRANITE B1F and B2F, VICTORY ROAD B1F and B2F, the 3 CAVE OF ORIGIN).
+
+**The extractor's reworded headline, planted on the pinned decomp (v_extract.py): 32 of 32 HELD.**
+- **Controls:** the unplanted output equals the shipped maps and `_check`, and ice on a wall changes nothing.
+- **REFUSED (two kinds):**
+  - Ice at B1F (20, 12) and at 1F (35, 4).
+  - Each of the 17 forced behaviours other than the slope, at B1F (3, 17). The 12 that are not water are refused with FORCED MOVEMENT naming the tile. The 5 that are water (4 currents, the waterfall) are refused with "HMs:", because on foot they are water. That is the old wording's list and the outcome is still a refusal.
+  - A rock, a tree or a boulder there: refused with "HMs:".
+- **NEITHER MODELLED NOR REFUSED (five):**
+  - a hiker at (3, 17): shipped unchanged;
+  - a warp event on the MB_CAVE tile (5, 20): taken toward STEVEN's room;
+  - a coord event: shipped unchanged;
+  - MB_CRACKED_ICE, MB_THIN_ICE, MB_ASHGRASS, MB_FORTREE_BRIDGE: each shipped unchanged;
+  - a hand-made ledge: the jump is taken when it lands on floor (2 steps), and refused when it lands on a rock or a wall.
+- **The arrow-warp clause the builder added (v_arrow_walk.py).** 1F's (37, 12) and (5, 10) are MB_SOUTH_ARROW_WARP, and (37, 12) has open floor on both sides. I made the walk use an arrow tile on a press toward its arrow, and walk across it otherwise. The maps and all 42 walk lengths are unchanged, so "NONE OF THEM CHANGES TODAY'S TWO MAPS" holds for it too.
+
+**ways.json and the hard limits (v_compare.py, vcompare.py).**
+- The parsed file equals 1cf3ae6a's outside `_check`: all 20 ways, toward lists and through marks.
+- The text hunks are new lines 626-719, inside `_check` (581-720).
+- `walk_lengths` is equal (42). left_out (5 pairs) and hm_obstacles (7 pairs) are each equal to the old dict, sorted, one per map.
+- The P11-2 verifier's vcompare.py on the regenerated file: ALL AGREE (20 ways, 5 through marks).
+- Nothing changed under brain/. No knowledge .py changed. provenance.py and the run_regression files are unchanged.
+- Every changed tracked file is one the branch's rounds changed (18c3d51b..1cf3ae6a). No file was renamed or deleted.
+- check_fairness.py's hunks (old 319-327) are inside the ways.json block and its comment (old 312-338).
+
+**Gates re-run on my copy (v_gates.py).**
+- test_ways: 27 OK. test_world: 139 OK. Together that is 166, the mutant runs' P0.
+- check_fairness: PASS, 0 breaches.
+- extract_ways --check: SAME for ways.json and the fixture.
+- check_anchors: PASS (revert_p11 65 mutants, 65 edits; 8 of 8 runners).
+- test_check_anchors: 7 OK.
+- Tier 0: 7 of 7 exit 0.
+
+**Mutants: not re-run, because the builder's run was on the final tree.**
+- The 11 hashes in pred_mutants_v6.sha256 match the worktree at my start and at my end. mutants_v6.out has "OK" for all 11 at its start (7:43:57 PM) and its end (8:36:48 PM).
+- The prediction was written at 7:43:37 PM, before the run.
+- The table holds 65 entries: P0 plus 64 mutants with 65 edits (fair_check_after_meta has two edits). Every one ran.
+- Result: 61 CAUGHT and 3 REDUNDANT, as predicted.
+
+**Across the cut (the first builder was cut at about 4:50 PM).**
+- Each of the 4 prediction files' sha256 equals its STATE line and its .sha256 file, and each was written before its output:
+  - repro: 04:47:13 PM, against an output created at 04:48:09 PM;
+  - d2: 04:48:50 PM, against a launch at 04:49:21 PM;
+  - fault: 07:32:24 PM, against 07:32:26 PM;
+  - mutants: 07:43:37 PM, against 07:43:57 PM.
+- d2base was launched detached before the cut and ended "exit 0 at 16:51:15". The cut killed no job. Nothing was re-run or re-hashed.
+
+**Evidence and "which file proves which commit" (v_evidence*.py, v_d6.py).**
+- archive/9c2c02b1b678e7be-f1069d9d/ holds 1cf3ae6a's committed pair. Each file is the same blob (d5266fb46adb, 7e242d993d8d); the raw bytes differ only by the CRLF checkout.
+- keep_earlier moved them, not a hand: the "[EVIDENCE] kept" lines are in mutants_v6.out and in gates_c1.out line 60.
+- All 904 tracked evidence files are present.
+- I recomputed each digest with provenance's tree_digest:
+  - f1069d9d from 18c3d51b, its 6 new files untracked: 044dacd1e4965f57;
+  - 1cf3ae6a: 9c2c02b1b678e7be;
+  - the closing tree: 5453e8e32e7bff3c.
+  - 75619fd3df39c661 (the 2026-11-11 pair) is no commit.
+- The builder's table matches the files' code lines and verdicts.
+
+**Play digest (v_digest.py).**
+- 1c96c11fbbf253f7 now. With 1cf3ae6a's ways.json in place it is 87d5b014f8189cfe, the play digest the identity evidence names for arm B.
+- The loader reads `data["maps"]` only, and no other play code reads ways.json or scans the folder. So #120's identity result still describes this file's decisions.
+
+**The note (v_note.py).**
+- Its body is the source s53/p11r2/P11X-DIAGNOSIS.md byte for byte, after an 18-line header. The longest line is 123 characters, and the Correction section is at the end.
+- The header's facts match the records: the run book's 19:07 line, and the P11-2 verifier's "P11-x, re-read" (17 of 17, the five errand runs, ab3-F-C2 and ab3-F-C3, the three later-FIX pairs).
+
+**NITs.**
+- **VC1:** the report's F1 wording ("the 10 entries that were subtrees") drops pred_fault's caveat. Only 4 entries were subtrees on 1cf3ae6a.
+- **VC2:** two run-book times are approximate ("~04:48 PM", "~07:50 PM"). The file times support them.
+- **VC3:** the gate driver drove the emulator in process. The builder disclosed it, and the lead should rule on whether "no emulator" covers that.
+
+**At commit (the lead).**
+- Commit the untracked archive/9c2c02b1b678e7be-f1069d9d/ together with the rewritten 2026-11-12 pair. It is now the only proof of 1cf3ae6a.
+- The note still needs its stub marker in the authoritative doc, and docs 03 to 08 need updating.
+- In the main checkout, PROJECT KNOWLEDGE/cost-ledger.jsonl was modified at 8:50:09 PM, after this verification started. Neither this pass nor I wrote it.
+
+**Housekeeping.**
+- The copy is deleted; verify/ is 0.31 MB; C: has 55.7 GB free.
+- The worktree's git status is the same as at my start, and the worktree's sandbox has no junction left.
+- I wrote nothing in the main checkout or the worktree, and touched neither wf_e7452923-f06-3 nor pokebot-learner.
+
+## P11-2: the closing pass, the lead's notes at the commit (2026-11-12)
+
+The closing pass's verifier read PASS, with three NITs and two things to do at the commit. Nothing below was run live.
+
+- **The commit holds the tree the proofs ran on.** Just before the commit the worktree's provenance digest was HEAD 1cf3ae6a + 5453e8e32e7bff3c over 5 files (`check_fairness.py`, `extract_ways.py`, `revert_p11.py`, `test_ways.py`, `ways.json`), the code line of the 2026-11-12 REVERT and UNITS pair (61 CAUGHT and 3 REDUNDANT of 64). The pair that proves 1cf3ae6a itself, moved by the drivers to `archive/9c2c02b1b678e7be-f1069d9d/`, is committed with it.
+- **The 24 chapter packs were regenerated (the merge plan review's M1).** `ways.json` is a seventh file under `knowledge/world`, so each pack's recorded `result` line changes from "W1 scanned 6" to "W1 scanned 7". The branch's packs had not been regenerated since P11-1, and `make_chapter_pack.py --all --check` read 24 files differing. After the regeneration it reads CHECK: PASS, and `selftest_chapter_pack.py` reads 137 of 137 arms PASS. One line changed per file, nothing else. The packs are outside every evidence digest (the digest covers `ai_player` only).
+- **VC1 (NIT), fixed in this copy.** The builder's F1 line now says the 14 failing subtests cover the 10 entries a subtree swallowed on 1cf3ae6a. Only 4 entries were subtrees there; 6 of the 10 did not exist.
+- **VC2 (NIT), corrected in the run book.** Two run-book times were approximate. A dated CORRECTION line in `s53/p11r2c/STATE.md` gives the file times: the repro output was created at 4:48:09 PM, and `d6_evidence.py` was written at 7:45:24 PM. The two original lines are kept.
+- **VC3 (NIT), the lead's ruling.** The gate driver drove the emulator in process for its unit suites, although the pass's limits said "no emulator". The builder disclosed it. Ruling: in a closing pass, "no emulator" means no live run and no seed. The in-process unit suites of the round's own gate driver are allowed, with the sandbox staged for them and taken down after. Future prompts say it in those words.
+- **Not done, for P11-y.** The extractor neither models nor refuses five things: a standing person, a warp event on a tile that is no warp, coord events, every step callback except the cracked floor, and the ledge landing. None changes today's two maps. Each must be modelled or refused, with a plant test, before any VICTORY ROAD way ships. Also open: the test kit must save and restore the goal memory with a start, and the B1F starts must be re-made (the P11-x note).
 
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 

@@ -316,15 +316,31 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
     # `toward`) is unclassified and FAILS too, as a sibling key does. (P11-2, V5) `_check` and everything under it (the
     # extractor's walk lengths, the maps it left out and why, the HM obstacles its walks met) is DEVELOPER, so RULE B2
     # refuses a loader or deciding code that reads `walk_lengths`; the other `_` keys stay META. `_check` comes FIRST: an exact
-    # pattern is matched in this order (`classify`), and `_*` matches `_check` too
+    # pattern is matched in this order (`classify`), and `_*` matches `_check` too. (P11-2's closing pass, the P11-2
+    # verifier's VV1 and VV3) NO ENTRY OF THIS FILE IS A SUBTREE: every leaf holds a scalar or a list of scalars (or, under
+    # `_check`, of [map, strings] pairs), so a key nested inside any of them, `maps[].id` and the META leaves included, is
+    # unclassified and FAILS. `_check`'s children are named one by one, so a key added under it fails until it is classified:
+    # every key NAME under `_check` becomes a developer-only name (RULE B2, `developer_keys`), and a map const as a key name
+    # there made B2 refuse deciding code that reads a map const as a key (VV3); the map consts are VALUES in its pairs now
     "world/ways.json": {
         "_check": (DEVELOPER, "the extractor's own checks (walk lengths, the dark maps it left out and why, the HM obstacles "
-                              "its walks met): the developers' proof, never read by the AI", True),
-        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, its notes)", True),
-        "count": (META, "how many dark maps the file holds", True),
+                              "its walks met): the developers' proof, never read by the AI", False),
+        "_check.walk_lengths": (DEVELOPER, "each walk's length in steps, keyed 'map|arrival|destination'", False),
+        # the walk's key, never a bare map const: a map const planted as a key here is unclassified (VV3)
+        "_check.walk_lengths.MAP_*|*,*|MAP_*": (DEVELOPER, "one walk's length (a number), keyed 'map|x,y|destination'",
+                                                False),
+        "_check.left_out": (DEVELOPER, "the dark maps it left out, each a [map const, [why, ...]] pair (the const a value, "
+                                       "never a key name)", False),
+        "_check.hm_obstacles": (DEVELOPER, "the HM obstacles each dark map's walk met, each a [map const, [obstacle, ...]] "
+                                           "pair (the const a value, never a key name)", False),
+        "_files": (META, "each input's sha256, by its path in the pinned decomp", False),
+        "_files.*/*": (META, "one input's sha256, keyed by its path (a key with no '/' is no input: unclassified)", False),
+        "_*": (META, "where the file came from (the pinned decomp, the extractor, its reader, its notes): one string each",
+               False),
+        "count": (META, "how many dark maps the file holds", False),
         "maps": (AI, "every dark cave of the game (requires_flash: the screen shows a small lit circle)", False),
         "maps[]": (AI, "one dark map", False),
-        "maps[].id": (AI, "its const: the map a person stands on, dark", True),
+        "maps[].id": (AI, "its const: the map a person stands on, dark", False),
         "maps[].ways": (AI, "its ways on, a guide's level (USER RULING 40: the way through a cave)", False),
         "maps[].ways[]": (AI, "one way on", False),
         "maps[].ways[].from": (AI, "the ladder or exit the player arrived by (RULING 45: coordinates kept)", False),

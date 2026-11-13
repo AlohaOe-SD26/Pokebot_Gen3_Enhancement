@@ -45,7 +45,11 @@ sight, that ladder (and only that one) outranks the frontier. The AI still sees 
                      loader reading a developer key FAILS B2, (P11-2, V5) `_check`'s walk lengths included; deciding code
                      naming ways.json FAILS B1; a mention does not fire; no developer-only key of the base is lost (nothing
                      un-refused) and the file adds exactly the names under `_check`; the loader reads only `maps`, `id`,
-                     `ways`, `from`, `take`, `leads_to`, `toward`, `through`.
+                     `ways`, `from`, `take`, `leads_to`, `toward`, `through`. (P11-2's closing pass, the P11-2 verifier's
+                     VV1 and VV3) no entry of the file is a subtree: a key nested inside EVERY leaf fails, `maps[].id` and
+                     `_check`'s children included; no map const is a developer-only key name (they are values under
+                     `_check`), so deciding code that reads one as a key is not refused, while B2 still refuses a loader
+                     that reads `_check`, its walk lengths, its maps left out or its HM obstacles.
 """
 
 from __future__ import annotations
@@ -53,6 +57,7 @@ from __future__ import annotations
 import ast
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -153,13 +158,15 @@ class LoaderTests(unittest.TestCase):
 
     def test_the_dark_maps_are_the_requires_flash_maps(self):
         """The dark maps the file holds are the requires_flash maps it SHIPS; (P11-2) every other requires_flash map is LEFT
-        OUT with its reasons under `_check.left_out` (the extractor refuses what its walk does not model), never silently
+        OUT with its reasons under `_check.left_out` (the extractor refuses a forced movement its walk does not model and
+        ways that depend on the HMs; what it neither models nor refuses is listed in its docstring), never silently
         missing and never both. Today GRANITE CAVE B1F and B2F are shipped; VICTORY ROAD B1F and B2F and the three unused
         CAVE OF ORIGIN maps are left out, and so are no dark map to the AI (its explorer decides there, as before P11-1)."""
         data = json.loads((WORLD / "maps.json").read_text(encoding="utf-8"))
         flash = sorted(str(m["id"]).removeprefix("MAP_") for m in data["maps"] if m.get("requires_flash"))
         self.assertEqual(len(flash), 7)
-        left_out = json.loads((WORLD / "ways.json").read_text(encoding="utf-8"))["_check"]["left_out"]
+        # (P11-2's closing pass, VV3) [map, reasons] pairs, the map const a value
+        left_out = dict(json.loads((WORLD / "ways.json").read_text(encoding="utf-8"))["_check"]["left_out"])
         gone = sorted(str(name).removeprefix("MAP_") for name in left_out)
         self.assertEqual(sorted(ways_module._ways()), [B1F, B2F])
         self.assertEqual(sorted([*ways_module._ways(), *gone]), flash)  # each one shipped or left out, never both
@@ -182,7 +189,7 @@ class LoaderTests(unittest.TestCase):
         self.assertFalse([m["id"] for m in doc["maps"] if "VICTORY_ROAD" in m["id"]])
         for const in ("VICTORY_ROAD_B1F", "VICTORY_ROAD_B2F"):
             with self.subTest(const=const):
-                reasons = doc["_check"]["left_out"][f"MAP_{const}"]
+                reasons = dict(doc["_check"]["left_out"])[f"MAP_{const}"]
                 self.assertTrue([r for r in reasons if r.startswith("HMs: its ways depend on the HMs the player can use")],
                                 reasons)
                 self.assertFalse(ways_module.dark(const))
@@ -366,7 +373,10 @@ class ExtractorTests(unittest.TestCase):
         the map and the tile; the every-HM walk walks on over it (it only looks for more ways). CONTROL: floor at (3, 1),
         the walk reaches (4, 1) and meets nothing. A slope ('M') above a wall stays where the wall stops it (DoForcedMovement:
         a collision ends the forced move); one above floor slides down onto it; one above a south ledge jumps it (the
-        forced move's COLLISION_LEDGE_JUMP); one above a cracked floor drops the player through it: no way."""
+        forced move's COLLISION_LEDGE_JUMP); one above a cracked floor drops the player through it: no way. (P11-2's closing
+        pass, the P11-2 verifier's VV4: its mutants VMe and VMf survived every test) One above a WARP slides onto it and
+        uses it, the slid tile counted; one above a breakable ROCK leaves the player resting on the slope on foot, the rock
+        met, while the every-HM walk (the rock gone) slides on onto the rock's tile."""
         from ai_player.gates import extract_ways as ex
         ice = hand_grid(["######", "#S.I.S", "######"], [(1, 1), (5, 1)])
         found, met = ice.walks_from((1, 1), set())
@@ -385,6 +395,17 @@ class ExtractorTests(unittest.TestCase):
         self.assertEqual(ledge.enter((1, 0), 3, "down", set())[0::2], ((1, 3), 3))  # the ledge under the slope is jumped
         crack = hand_grid(["#.#", "#M#", "#C#", "#.#", "###"], [])
         self.assertIsNone(crack.enter((1, 0), 3, "down", set()))  # slid onto a cracked floor: a drop, no way
+        # (closing pass, VV4) a warp under the slope is used (DoForcedMovement: a warp south of it is stepped on), the slid
+        # tile counted: 2 steps, never a rest on the slope (VMe)
+        warp = hand_grid(["#.#", "#M#", "#S#", "###"], [(1, 2)])
+        self.assertEqual(warp.enter((1, 0), 3, "down", set())[0::2], ((1, 2), 2))
+        # a breakable rock under the slope stops the slide on foot (a collision ends the forced move) and is met; never slid
+        # through (VMf); in the every-HM walk the rock is gone and the slide goes on onto its tile
+        rock = hand_grid(["#.#", "#M#", "#.#", "#.#", "###"], [], rocks=((1, 2),))
+        met: set = set()
+        self.assertEqual(rock.enter((1, 0), 3, "down", set(), met=met)[0::2], ((1, 1), 1))
+        self.assertEqual(met, {("hm", "MAP_HAND_MADE", (1, 2), "OBJ_EVENT_GFX_BREAKABLE_ROCK")})
+        self.assertEqual(rock.enter((1, 0), 3, "down", set(), hms=True)[0::2], ((1, 2), 2))
 
     def test_ways_that_depend_on_the_hms_refuse_the_map_and_an_obstacle_that_changes_nothing_is_a_wall(self):
         """The HM check: a hand-made map whose only way to the warp (4, 1) is through a breakable rock at (3, 1): on foot no
@@ -410,7 +431,7 @@ class ExtractorTests(unittest.TestCase):
         shorter = ex.refusals(([way], {"k": 4}, set()), ([way], {"k": 3}, set()))
         self.assertTrue(shorter and shorter[0].startswith("HMs:") and "4 steps on foot, 3 with every HM" in shorter[0], shorter)
         doc = json.loads((WORLD / "ways.json").read_text(encoding="utf-8"))
-        rocks = doc["_check"]["hm_obstacles"][f"MAP_{B2F}"]
+        rocks = dict(doc["_check"]["hm_obstacles"])[f"MAP_{B2F}"]
         self.assertEqual(len([r for r in rocks if r.startswith("OBJ_EVENT_GFX_BREAKABLE_ROCK") and r.endswith(f"MAP_{B2F}")]), 7)
         self.assertIn(f"MAP_{B2F}", [m["id"] for m in doc["maps"]])
         _, src, names, surfable, forced, attrs, (maps, layouts) = self.pinned()
@@ -425,7 +446,7 @@ class ExtractorTests(unittest.TestCase):
         from ai_player.gates import extract_ways as ex
         doc = json.loads((WORLD / "ways.json").read_text(encoding="utf-8"))
         lines = ex.loud(doc)
-        self.assertEqual(len(lines), sum(len(r) for r in doc["_check"]["left_out"].values()))
+        self.assertEqual(len(lines), sum(len(reasons) for _map, reasons in doc["_check"]["left_out"]))
         vr = [line for line in lines if line.startswith("REFUSED MAP_VICTORY_ROAD_B1F: ")]
         self.assertTrue(any("FORCED MOVEMENT its walk does not model: MB_ICE at (6, 11) on "
                             "MAP_EVER_GRANDE_CITY_HALL_OF_FAME" in line for line in vr), vr)
@@ -734,6 +755,18 @@ class FairnessTests(unittest.TestCase):
             return cf_.check(pkg)[1]
 
     @staticmethod
+    def rule_b(edit) -> list[str]:
+        """(P11-2's closing pass) RULE B's problems for the shipped ways.json, edited by `edit`, alone in a knowledge folder
+        of its own (`schema_problems` walks only the world files that exist): seconds for every leaf's plant."""
+        from ai_player.gates import check_fairness as cf_
+        doc = json.loads((WORLD / "ways.json").read_text(encoding="utf-8"))
+        edit(doc)
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "world").mkdir()
+            (Path(tmp) / "world" / "ways.json").write_text(json.dumps(doc), encoding="utf-8")
+            return cf_.schema_problems(Path(tmp))[0]
+
+    @staticmethod
     def add(rel: str, text: str):
         def do(pkg):
             path = pkg / rel
@@ -743,14 +776,75 @@ class FairnessTests(unittest.TestCase):
     def test_the_file_is_classified_leaf_by_leaf_and_a_planted_developer_key_fails(self):
         """A developer key planted under a way FAILS RULE B as a SIBLING of its leaves and (P11-2, the P11-1 verifier's V3:
         its mutant VM1 passed the gate) NESTED inside a leaf (a dict with a walk length added to `toward`): the five leaves
-        hold scalars or lists of scalars, so none is a subtree and a key below one is unclassified."""
+        hold scalars or lists of scalars, so none is a subtree and a key below one is unclassified. (P11-2's closing pass,
+        the P11-2 verifier's VV1: its plant VF1, a developer key nested inside `maps[].id`, PASSED RULE B) NO entry of the
+        file is a subtree: a dict nested inside EVERY leaf fails, `maps[].id`, `count`, the META leaves and (VV3) `_check`'s
+        children included; a key planted directly under `_check`, under its walk lengths (a bare map const) or under
+        `_files` (no path) is unclassified too. CONTROL: a VALUE that mentions a developer key is no key and passes."""
         from ai_player.gates import check_fairness as cf_
         self.assertIn("world/ways.json", cf_.world_files())
         schema = cf_.KNOWLEDGE_FIELDS["world/ways.json"]
         for container in ("maps", "maps[]", "maps[].ways", "maps[].ways[]"):
             self.assertFalse(schema[container][2], container)  # never a subtree: it would classify any plant
-        for leaf in ("from", "take", "leads_to", "toward", "through"):
-            self.assertFalse(schema[f"maps[].ways[].{leaf}"][2], leaf)  # (P11-2, V3) a leaf is no subtree either
+
+        def the_way(doc):
+            return next(w for m in doc["maps"] if m["id"] == f"MAP_{B1F}" for w in m["ways"]
+                        if w["from"] == [4, 21] and w["take"] == [28, 21])
+
+        def nest(value):  # a developer key nested inside a scalar leaf (the verifier's VF1 shape)
+            return {"value": value, "walk_lengths": {"x": 1}}
+
+        def first(mapping):
+            return sorted(mapping)[0]
+
+        def put(doc, path, value):
+            *parents, last = path
+            for key in parents:
+                doc = doc[key]
+            doc[last] = value
+
+        doc0 = json.loads((WORLD / "ways.json").read_text(encoding="utf-8"))
+        walk0, file0 = first(doc0["_check"]["walk_lengths"]), first(doc0["_files"])
+        # (the leaf, the plant, the UNCLASSIFIED path RULE B must name): one per schema entry that holds a value
+        plants = [
+            ("maps[].id", lambda d: put(d, ("maps", 0, "id"), nest(d["maps"][0]["id"])), "maps[].id.walk_lengths"),
+            ("maps[].ways[].from", lambda d: the_way(d)["from"].append({"steps": 107}), "maps[].ways[].from[].steps"),
+            ("maps[].ways[].take", lambda d: the_way(d)["take"].append({"steps": 107}), "maps[].ways[].take[].steps"),
+            ("maps[].ways[].leads_to", lambda d: the_way(d).update(leads_to=nest(the_way(d)["leads_to"])),
+             "maps[].ways[].leads_to.walk_lengths"),
+            ("maps[].ways[].toward", lambda d: the_way(d)["toward"].append({"map": f"MAP_{STEVEN}", "steps": 107}),
+             "maps[].ways[].toward[].steps"),  # the P11-1 verifier's VM1, byte for byte
+            ("maps[].ways[].through", lambda d: the_way(d).update(through=nest(the_way(d)["through"])),
+             "maps[].ways[].through.walk_lengths"),
+            ("count", lambda d: put(d, ("count",), nest(d["count"])), "count.walk_lengths"),
+            *[("_*", (lambda key: lambda d: put(d, (key,), nest(d[key])))(key), f"{key}.walk_lengths")
+              for key in ("_source", "_kind", "_made_by", "_reader", "_notes")],
+            ("_files", lambda d: put(d, ("_files", "walk_lengths"), 1), "_files.walk_lengths"),
+            ("_files.*/*", lambda d: put(d, ("_files", file0), nest(d["_files"][file0])), f"_files.{file0}.walk_lengths"),
+            ("_check", lambda d: put(d, ("_check", "by_map"), {f"MAP_{B1F}": 1}), "_check.by_map"),  # the VV3 shape
+            ("_check.walk_lengths", lambda d: put(d, ("_check", "walk_lengths", f"MAP_{B1F}"), 42),
+             f"_check.walk_lengths.MAP_{B1F}"),
+            ("_check.walk_lengths.MAP_*|*,*|MAP_*",
+             lambda d: put(d, ("_check", "walk_lengths", walk0), nest(d["_check"]["walk_lengths"][walk0])),
+             f"_check.walk_lengths.{walk0}.walk_lengths"),
+            ("_check.left_out", lambda d: d["_check"]["left_out"].append({"map": f"MAP_{B1F}", "why": []}),
+             "_check.left_out[].map"),
+            ("_check.hm_obstacles", lambda d: d["_check"]["hm_obstacles"][0][1].append({"map": f"MAP_{B1F}"}),
+             "_check.hm_obstacles[][][].map"),
+        ]
+        for leaf, edit, path in plants:  # the plant FIRST (what the gate does), then the entry's flag
+            with self.subTest(leaf=leaf, path=path):
+                found = self.rule_b(edit)
+                self.assertTrue(any("UNCLASSIFIED" in f and repr(path) in f for f in found), found)
+                self.assertFalse(schema.get(leaf, ("", "", True))[2], leaf)
+        self.assertEqual(self.rule_b(lambda d: None), [])  # CONTROL: the shipped file, unplanted
+        mention = self.rule_b(lambda d: (the_way(d)["toward"].append("walk_lengths"),
+                                         d.update(_notes=d["_notes"] + " never the walk_lengths")))
+        self.assertEqual(mention, [])  # CONTROL: a value that names a developer key is no key
+        # every entry that holds a value has its plant above, and (closing pass) no entry of the file is a subtree
+        self.assertEqual(sorted({leaf for leaf, _, _ in plants}),
+                         sorted(p for p in schema if p not in ("maps", "maps[]", "maps[].ways", "maps[].ways[]")))
+        self.assertEqual([pattern for pattern, entry in schema.items() if entry[2]], [])
         self.assertEqual(self.plant(lambda pkg: None), [])  # CONTROL: the copy is clean
 
         def under_a_way(pkg):
@@ -783,7 +877,10 @@ class FairnessTests(unittest.TestCase):
 
     def test_the_loader_and_the_deciding_code_are_gated(self):
         """B2 refuses the loader reading a developer key, and (P11-2, the P11-1 verifier's V5: its mutant VM2 passed the
-        gate, `_check` being META) the extractor's walk lengths under `_check`, now DEVELOPER with all under it."""
+        gate, `_check` being META) the extractor's walk lengths under `_check`, now DEVELOPER with all under it, its maps
+        left out and its HM obstacles. (P11-2's closing pass, the P11-2 verifier's VV3: its VB2 was refused) Deciding code
+        that reads a MAP CONST as a key is NOT refused: the map consts are values under `_check`, never developer-only key
+        names, so B2 lost nothing and refuses no map const."""
         found = self.plant(self.add("knowledge/ways.py", '\n\ndef leak(way):\n    return way["flag"], way.get("x")\n'))
         self.assertEqual(sorted(f.split("key ")[1].split(" ")[0] for f in found if f.startswith("B2")), ["'flag'", "'x'"])
         found = self.plant(self.add("knowledge/ways.py", '\n\ndef lengths(data):\n    return data["_check"]["walk_lengths"]\n'))
@@ -792,6 +889,12 @@ class FairnessTests(unittest.TestCase):
         found = self.plant(self.add("knowledge/ways.py", '\n\ndef left(data):\n    return data.get("_check", {}).get("left_out")\n'))
         self.assertEqual(sorted(f.split("key ")[1].split(" ")[0] for f in found if f.startswith("B2")),
                          ["'_check'", "'left_out'"])
+        found = self.plant(self.add("knowledge/ways.py", '\n\ndef met(data):\n    return data["_check"]["hm_obstacles"]\n'))
+        self.assertEqual(sorted(f.split("key ")[1].split(" ")[0] for f in found if f.startswith("B2")),
+                         ["'_check'", "'hm_obstacles'"])
+        probe = ('\n\ndef _probe(table):\n    return table.get("MAP_GRANITE_CAVE_B1F"), table["MAP_VICTORY_ROAD_B1F"], '
+                 'table.get("MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1")\n')
+        self.assertEqual(self.plant(self.add("brain/explore.py", probe)), [])  # (closing pass, VV3) no map const refused
         found = self.plant(self.add("brain/explore.py", '\n\nWAYS = "knowledge/world/ways.json"\n'))
         self.assertTrue(any(f.startswith("B1") and "ways.json" in f for f in found), found)
         mention = ('\n\ndef told():\n    """It never reads ways.json\'s way["flag"] or data["_check"]["walk_lengths"]."""\n'
@@ -815,6 +918,9 @@ class FairnessTests(unittest.TestCase):
         under = {"_check"} | {key for path in cf_.key_paths(check) for key in path if key != "[]"}
         self.assertEqual(with_ways[0] - without[0], under)
         self.assertTrue({"_check", "walk_lengths", "left_out", "hm_obstacles"} <= under)
+        # (P11-2's closing pass, the P11-2 verifier's VV3) no map const is a developer-only key name: under `_check` each is
+        # a VALUE (seven were names on 1cf3ae6a, so B2 refused deciding code that reads a map const as a key)
+        self.assertEqual(sorted(k for k in with_ways[0] if re.fullmatch(r"MAP_[A-Z0-9_]+", k)), [])
         source = (KNOWLEDGE / "ways.py").read_text(encoding="utf-8")
         keys = set()
         for node in ast.walk(ast.parse(source)):

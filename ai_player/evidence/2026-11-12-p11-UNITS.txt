@@ -1,63 +1,63 @@
-AI PLAYER P11-2 (THE DARK GRANITE CAVE CROSSING'S FIXES) - THE GATES ON THE FINAL TREE
-code: HEAD f1069d9d; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:9c2c02b1b678e7be over git diff HEAD (8 files, 131510 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+AI PLAYER P11-2 (THE DARK GRANITE CAVE CROSSING'S FIXES) - THE GATES ON THE CLOSING PASS'S TREE
+code: HEAD 1cf3ae6a; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:5453e8e32e7bff3c over git diff HEAD (5 files, 57876 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 Each suite's START line names the digest it ran on (all the same as the code line above).
 
-== test_goals: started 08:44:09 on sha256:9c2c02b1b678e7be, exit 0 at 08:44:31
-   Ran 462 tests in 20.499s
+== test_goals: started 19:43:59 on sha256:5453e8e32e7bff3c, exit 0 at 19:44:31
+   Ran 462 tests in 31.136s
    OK
-== test_world: started 08:44:31 on sha256:9c2c02b1b678e7be, exit 0 at 08:45:28
-   Ran 139 tests in 56.785s
+== test_world: started 19:44:31 on sha256:5453e8e32e7bff3c, exit 0 at 19:46:16
+   Ran 139 tests in 104.263s
    OK
-== test_eyes: started 08:45:28 on sha256:9c2c02b1b678e7be, exit 0 at 08:45:44
-   Ran 89 tests in 14.984s
+== test_eyes: started 19:46:16 on sha256:5453e8e32e7bff3c, exit 0 at 19:46:38
+   Ran 89 tests in 20.803s
    OK
-== test_kb2: started 08:45:44 on sha256:9c2c02b1b678e7be, exit 0 at 08:50:03
-   Ran 126 tests in 258.431s
+== test_kb2: started 19:46:38 on sha256:5453e8e32e7bff3c, exit 0 at 19:54:05
+   Ran 126 tests in 445.695s
    OK
-== test_battle: started 08:50:03 on sha256:9c2c02b1b678e7be, exit 0 at 08:50:05
-   Ran 112 tests in 1.281s
+== test_battle: started 19:54:05 on sha256:5453e8e32e7bff3c, exit 0 at 19:54:07
+   Ran 112 tests in 1.345s
    OK
-== test_saving: started 08:50:05 on sha256:9c2c02b1b678e7be, exit 0 at 08:50:18
-   Ran 151 tests in 11.765s
+== test_saving: started 19:54:07 on sha256:5453e8e32e7bff3c, exit 0 at 19:54:25
+   Ran 151 tests in 17.156s
    OK
-== test_hands: started 08:50:18 on sha256:9c2c02b1b678e7be, exit 0 at 08:50:20
-   Ran 57 tests in 1.845s
+== test_hands: started 19:54:25 on sha256:5453e8e32e7bff3c, exit 0 at 19:54:28
+   Ran 57 tests in 2.228s
    OK
-== test_host: started 08:50:20 on sha256:9c2c02b1b678e7be, exit 0 at 08:51:14
-   Ran 37 tests in 53.583s
+== test_host: started 19:54:28 on sha256:5453e8e32e7bff3c, exit 0 at 19:55:33
+   Ran 37 tests in 64.484s
    OK
-== test_check_purity: started 08:51:14 on sha256:9c2c02b1b678e7be, exit 0 at 08:57:26
-   Ran 30 tests in 370.992s
+== test_check_purity: started 19:55:33 on sha256:5453e8e32e7bff3c, exit 0 at 20:05:37
+   Ran 30 tests in 603.519s
    OK
-== test_step53_a2: started 08:57:26 on sha256:9c2c02b1b678e7be, exit 0 at 08:57:28
-   Ran 34 tests in 1.009s
+== test_step53_a2: started 20:05:38 on sha256:5453e8e32e7bff3c, exit 0 at 20:05:40
+   Ran 34 tests in 1.279s
    OK (skipped=5)
-== test_evidence: started 08:57:28 on sha256:9c2c02b1b678e7be, exit 0 at 08:57:41
-   Ran 27 tests in 13.139s
+== test_evidence: started 20:05:40 on sha256:5453e8e32e7bff3c, exit 0 at 20:05:55
+   Ran 27 tests in 14.814s
    OK
-== test_safety_gates: started 08:57:41 on sha256:9c2c02b1b678e7be, exit 0 at 08:58:35
-   Ran 50 tests in 53.177s
+== test_safety_gates: started 20:05:55 on sha256:5453e8e32e7bff3c, exit 0 at 20:07:24
+   Ran 50 tests in 87.902s
    OK
-== check_fairness: started 08:58:35 on sha256:9c2c02b1b678e7be, exit 0 at 08:58:38
-   30 files (deciding code and loaders); 6 flag doors, each with its purpose; knowledge key paths by kind {'ai': 7290, 'developer': 215, 'hidden': 3860, 'meta': 1693}; developer-only keys ['MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP1', 'MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP2', 'MAP_CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE_MAP3', 'MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|12,3|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|25,13|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|25,13|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|25,13|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|25,13|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|28,21|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|28,21|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|28,21|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|28,21|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|29,13|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|29,13|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|29,13|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|29,13|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|29,2|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|4,21|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|8,5|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|8,5|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|8,5|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|8,5|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B2F|12,3|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B2F|12,3|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|12,3|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B2F|12,3|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B2F|28,21|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B2F|28,21|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|28,21|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B2F|28,21|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B2F|29,13|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B2F|29,13|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|29,13|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B2F|29,13|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B2F|29,2|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B2F|8,5|MAP_ROUTE106', 'MAP_VICTORY_ROAD_B1F', 'MAP_VICTORY_ROAD_B2F', '_check', 'decomp', 'entry', 'flag', 'hm_obstacles', 'label', 'left_out', 'line', 'measured', 'note', 'notes', 'object', 'order', 'ref', 'rematches', 'script', 'shared_events_map', 'shared_scripts_map', 'state', 'taught_by', 'walk_lengths', 'x', 'y']; hidden keys ['attack', 'base', 'catch_rate', 'defense', 'exp_yield', 'growth', 'hp', 'sp_attack', 'sp_defense', 'speed']
+== check_fairness: started 20:07:24 on sha256:5453e8e32e7bff3c, exit 0 at 20:07:28
+   30 files (deciding code and loaders); 6 flag doors, each with its purpose; knowledge key paths by kind {'ai': 7290, 'developer': 203, 'hidden': 3860, 'meta': 1693}; developer-only keys ['MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|12,3|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|12,3|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|25,13|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|25,13|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|25,13|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|25,13|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|28,21|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|28,21|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|28,21|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|28,21|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|29,13|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|29,13|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|29,13|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|29,13|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|29,2|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|4,21|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|4,21|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B1F|8,5|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B1F|8,5|MAP_GRANITE_CAVE_B2F', 'MAP_GRANITE_CAVE_B1F|8,5|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B1F|8,5|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B2F|12,3|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B2F|12,3|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|12,3|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B2F|12,3|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B2F|28,21|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B2F|28,21|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|28,21|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B2F|28,21|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B2F|29,13|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B2F|29,13|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|29,13|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B2F|29,13|MAP_ROUTE106', 'MAP_GRANITE_CAVE_B2F|29,2|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_1F', 'MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_B1F', 'MAP_GRANITE_CAVE_B2F|8,5|MAP_GRANITE_CAVE_STEVENS_ROOM', 'MAP_GRANITE_CAVE_B2F|8,5|MAP_ROUTE106', '_check', 'decomp', 'entry', 'flag', 'hm_obstacles', 'label', 'left_out', 'line', 'measured', 'note', 'notes', 'object', 'order', 'ref', 'rematches', 'script', 'shared_events_map', 'shared_scripts_map', 'state', 'taught_by', 'walk_lengths', 'x', 'y']; hidden keys ['attack', 'base', 'catch_rate', 'defense', 'exp_yield', 'growth', 'hp', 'sp_attack', 'sp_defense', 'speed']
    PERSON-FAIR DATA DOOR: PASS (0 breaches)
-== check_purity: started 08:58:39 on sha256:9c2c02b1b678e7be, exit 0 at 08:58:40
+== check_purity: started 20:07:28 on sha256:5453e8e32e7bff3c, exit 0 at 20:07:30
    VERDICT: PASS
-== call_census: started 08:58:41 on sha256:9c2c02b1b678e7be, exit 0 at 08:58:42
-   CALL-SITE CENSUS since HEAD: 2 AI files changed, 1 functions or added calls, 10 sites; 0 MISSING
+== call_census: started 20:07:31 on sha256:5453e8e32e7bff3c, exit 0 at 20:07:33
+   CALL-SITE CENSUS since HEAD: 0 AI files changed, 0 functions or added calls, 0 sites; 0 MISSING
    CALL-SITE CENSUS: PASS
-== check_paths: started 08:58:43 on sha256:9c2c02b1b678e7be, exit 0 at 08:58:43
+== check_paths: started 20:07:33 on sha256:5453e8e32e7bff3c, exit 0 at 20:07:34
    PATHS GATE: PASS (50 files, 0 findings)
-== check_anchors: started 08:58:43 on sha256:9c2c02b1b678e7be, exit 0 at 08:58:44
-   ANCHORS GATE: PASS (8 of 8 runners, 1621 mutants, 1641 edits, 0 not unique, 0 errors)
-== test_check_anchors: started 08:58:44 on sha256:9c2c02b1b678e7be, exit 0 at 08:58:47
-   Ran 7 tests in 3.080s
+== check_anchors: started 20:07:34 on sha256:5453e8e32e7bff3c, exit 0 at 20:07:34
+   ANCHORS GATE: PASS (8 of 8 runners, 1637 mutants, 1658 edits, 0 not unique, 0 errors)
+== test_check_anchors: started 20:07:35 on sha256:5453e8e32e7bff3c, exit 0 at 20:07:40
+   Ran 7 tests in 5.193s
    OK
-== test_ways: started 08:58:48 on sha256:9c2c02b1b678e7be, exit 0 at 08:59:53
-   Ran 27 tests in 65.427s
+== test_ways: started 20:07:41 on sha256:5453e8e32e7bff3c, exit 0 at 20:09:33
+   Ran 27 tests in 112.168s
    OK
-== ledger_check: started 08:59:54 on sha256:9c2c02b1b678e7be, exit 0 at 08:59:54
+== ledger_check: started 20:09:34 on sha256:5453e8e32e7bff3c, exit 0 at 20:09:34
    LEDGER ledger.json: 120 entries; well formed -> PASS
 
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (21 checks of 222 files, files digest d7f759c05cfd8c75)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (21 checks of 222 files, files digest 18d41b0bfb5079a9)
 OVERALL: PASS (every suite exit 0)

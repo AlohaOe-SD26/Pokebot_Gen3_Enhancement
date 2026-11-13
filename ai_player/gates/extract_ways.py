@@ -17,9 +17,10 @@ WHY (the diagnosis, measured on #111 against #107): in the dark the explorer had
 ladders leads on, so B2F's exit ladder, 8 tiles north of the arrival, was lit only at the END of a 274-349-step blind
 search; the extra steps met 3x to 17x the wild battles.
 
-THE MODEL OF A WALK ON FOOT (the game's own rules, pinned decomp; each rule it models is cited, and what it does not model it
-REFUSES, below: P11-1's "every one cited" missed the muddy slope, a rule the game applies that the walk did not, so one shipped
-way was unreachable on foot, the P11-1 verifier's V1):
+THE MODEL OF A WALK ON FOOT (the game's own rules, pinned decomp; each rule it models is cited. Of what it does not model it
+REFUSES two kinds, and NEITHER MODELS NOR REFUSES the rest, both listed below (P11-2's closing pass, the P11-2 verifier's VV2:
+the headline here said it refused everything it did not model). P11-1's "every one cited" missed the muddy slope, a rule the
+game applies that the walk did not, so one shipped way was unreachable on foot, the P11-1 verifier's V1):
   * a map's grid is `data/layouts/<layout>/map.bin` (u16 per tile: metatile id bits 0-9, collision bits 10-11, elevation
     bits 12-15: include/global.fieldmap.h:7-9); a tile's BEHAVIOUR is its metatile's attribute (bits 0-7,
     include/global.fieldmap.h:39) from the layout's primary tileset (ids < 512, include/fieldmap.h:6) or secondary one,
@@ -45,15 +46,16 @@ way was unreachable on foot, the P11-1 verifier's V1):
     slope tiles of the dark caves: B1F's north part ((8, 5), (12, 3)) slides down into its south part ((4, 21), (28, 21)) and
     is never reached from it on foot (the project measured it live too: `fixtures/granite_b1f_slope.build.json`);
   * the HM obstacles (OBJ_EVENT_GFX_BREAKABLE_ROCK, OBJ_EVENT_GFX_PUSHABLE_BOULDER, and, P11-2, OBJ_EVENT_GFX_CUTTABLE_TREE
-    object events) are walls on foot; every other object (an item ball, a person) is not: people step aside or are walked
-    round, items are picked up;
-  * stepping onto any WARP tile of the map uses it (ladders warp when stepped on; a door or a cave mouth is entered the
-    same way); arriving by a warp puts the player ON its destination warp's tile, at that tile's elevation;
+    object events) are walls on foot; every other object (an item ball, a person) is walked through: items are picked up,
+    and a person who does not step aside is NOT MODELLED (below);
+  * stepping onto a tile that holds a WARP EVENT uses it (ladders warp when stepped on; a door or a cave mouth is entered
+    the same way; the game also asks the tile's behaviour, which the walk does NOT MODEL, below); arriving by a warp puts
+    the player ON its destination warp's tile, at that tile's elevation;
   * the shortest walk is counted in steps (a ledge jump is 2, a slid tile 1); between maps only warps are followed (no
     connection), from each dark map's arrival through every map reachable that way (a cave, its other floors, the place
     outside its mouth and that place's own doors).
-WHAT IT DOES NOT MODEL, IT REFUSES (P11-2, the lead's call, `06-DECISIONS-LOG.md` 2026-11-11 "The fix round after BP-1 round 3
-and P11-1", item 5): a dark map is LEFT OUT of the file, never shipped as a guess, when the walks its ways are drawn from
+WHAT IT REFUSES: TWO KINDS (P11-2, the lead's call, `06-DECISIONS-LOG.md` 2026-11-11 "The fix round after BP-1 round 3 and
+P11-1", item 5): a dark map is LEFT OUT of the file, never shipped as a guess, when the walks its ways are drawn from
 (on the dark map and on every map its search goes through)
   * land on a FORCED MOVEMENT behaviour other than the muddy slope (ice, a forced walk, a slide, a current, a waterfall, a
     mat): the walk stops there and the map is refused, naming the behaviour, the map and the tile; or
@@ -73,6 +75,28 @@ and P11-1", item 5): a dark map is LEFT OUT of the file, never shipped as a gues
   and B2F are left out (their ways depend on the HMs; B1F's walk also reaches the Hall of Fame's ice), and so are the three
   unused CAVE OF ORIGIN maps (their ways depend on Surf at SOOTOPOLIS); GRANITE CAVE B1F and B2F are shipped (their walks
   meet B2F's seven breakable rocks, which change none of their ways or walk lengths).
+WHAT IT NEITHER MODELS NOR REFUSES TODAY (P11-2's closing pass, the P11-2 verifier's VV2; each read from this file's code,
+the first two also planted by the verifier, `s53/p11r2/verify/vexp_C.out` VE6 and VE7): a dark map whose walk meets one of
+these is SHIPPED, on a walk that ignores it:
+  * a STANDING PERSON: `Grid.walls` holds the HM obstacles only, so a trainer or a person who never steps aside is walked
+    through, while the game refuses the step (src/event_object_movement.c DoesObjectCollideWithObjectAt). VE6, a hiker
+    facing down in B1F's 1-wide corridor at (3, 17), left both GRANITE CAVE maps shipped with the same ways;
+  * a WARP EVENT ON A TILE THAT IS NO WARP: every warp event is used when its tile is stepped onto, while the game warps
+    on a step only where IsWarpMetatileBehavior holds (a ladder, a door, ...: src/field_control_avatar.c), and on an
+    ARROW warp (IsArrowWarpMetatileBehavior) only on a press toward its arrow. VE7, a warp event on B1F's MB_CAVE tile
+    (5, 20), was taken as the way from (4, 21) toward STEVEN's room; the verifier counted over a hundred warp events of
+    the game on tiles that are no warp;
+  * COORD EVENTS (a scene or a trigger on a tile): `coord_events` is never read;
+  * the STEP CALLBACKS but the cracked floor (src/field_tasks.c sPerStepCallbacks: ash grass, the FORTREE and PACIFIDLOG
+    bridges, SOOTOPOLIS's gym ice, the truck, a secret base);
+  * the LEDGE LANDING: the walk refuses a jump whose landing tile is closed (outside, an HM obstacle, a wall, an
+    elevation mismatch), while the game asks only the ledge (src/field_player_avatar.c ShouldJumpLedge): stricter, so a
+    jump the game allows could be missed, never one it refuses taken.
+  NONE OF THEM CHANGES TODAY'S TWO MAPS: the verifier's own walk with people as walls reproduces all 20 GRANITE CAVE ways,
+  and on the five maps the GRANITE CAVE searches cross (1F, B1F, B2F, STEVEN's room, ROUTE 106) every warp tile is a
+  ladder, a door or an arrow warp, no map has a coord event, the only step callback is B1F's cracked floor, and no ledge's
+  landing is refused (`s53/p11r2c/d4_confirm.out`). EACH MUST BE MODELLED OR REFUSED, WITH A PLANT TEST, BEFORE ANY
+  VICTORY ROAD WAY SHIPS (P11-y: VICTORY ROAD has trainers).
 THE WAY OUT OF A DARK MAP toward map D from arrival A is the FIRST warp of map M taken on the shortest such walk from A to
 any arrival on D (ties: fewer warps, then the warp's coordinates). Grouped: one entry per (arrival, warp to take) with every
 map D it is the way toward. A map D is listed only once per arrival.
@@ -96,8 +120,8 @@ classifies `_check` and all under it DEVELOPER, P11-2, so RULE B2 refuses a load
 THE OUTPUT (`knowledge/world/ways.json`, classified key by key in `gates/check_fairness.py` RULE B; read by ONE loader,
 `knowledge/ways.py`):
   {"_source", "_files" (each input's sha256), "_kind", "_made_by", "_reader", "_notes",
-   "_check" (the developers' checks: "walk_lengths", "left_out" (each refused map -> why), "hm_obstacles" (each dark map ->
-   the HM obstacles its walk met)),
+   "_check" (the developers' checks: "walk_lengths", "left_out" ([refused map, [why, ...]] pairs), "hm_obstacles" ([dark
+   map, [the HM obstacles its walk met]] pairs): P11-2's closing pass, the map const a VALUE, never a key name (RULE B2)),
    "count", "maps": [{"id": "MAP_GRANITE_CAVE_B1F",
                       "ways": [{"from": [4, 21], "take": [28, 21], "leads_to": "MAP_GRANITE_CAVE_B2F",
                                 "toward": ["MAP_GRANITE_CAVE_B2F", "MAP_GRANITE_CAVE_STEVENS_ROOM"],
@@ -439,7 +463,7 @@ def _met_text(item: tuple) -> str:
 
 
 def refusals(foot: tuple[list, dict, set], with_hms: tuple[list, dict, set]) -> list[str]:
-    """(P11-2) Why a dark map's ways are not shipped (module docstring, WHAT IT DOES NOT MODEL, IT REFUSES): [] when the
+    """(P11-2) Why a dark map's ways are not shipped (module docstring, WHAT IT REFUSES: TWO KINDS): [] when the
     on-foot walk met no forced movement it does not model AND the every-HM walk gives the same ways and walk lengths."""
     ways, lengths, met = foot
     out: list[str] = []
@@ -566,7 +590,7 @@ def extract(root: str) -> tuple[dict, dict]:
         if grid(map_id) is None:
             raise Refused(f"{map_id}: requires_flash but no layout")
         foot = ways_of(map_id, False)
-        # (P11-2) WHAT IT DOES NOT MODEL, IT REFUSES (module docstring): the map is left out, never shipped as a guess
+        # (P11-2) WHAT IT REFUSES: TWO KINDS (module docstring): the map is left out, never shipped as a guess
         why = refusals(foot, ways_of(map_id, True))
         obstacles[map_id] = sorted({_met_text(m) for m in foot[2] if m[0] == "hm"})
         if why:
@@ -585,8 +609,12 @@ def extract(root: str) -> tuple[dict, dict]:
                    "only, no connection; HM obstacles are walls; a cracked floor is no way; a muddy slope only goes down; a "
                    "dark map whose walk meets a forced movement the walk does not model, or whose ways depend on the HMs, is "
                    "LEFT OUT (_check.left_out; see the extractor's docstring)"),
-        "_check": {"walk_lengths": dict(sorted(check.items())), "left_out": dict(sorted(left_out.items())),
-                   "hm_obstacles": dict(sorted(obstacles.items()))},
+        # (P11-2's closing pass, the P11-2 verifier's VV3) the map const is a VALUE here, never a key name: every key name
+        # under `_check` is a developer-only name to RULE B2, so a map const as a key made B2 refuse deciding code that
+        # reads a map const as a key. Each map left out is a [map, [why, ...]] pair; each map's HM obstacles one too
+        "_check": {"walk_lengths": dict(sorted(check.items())),
+                   "left_out": [[map_id, why] for map_id, why in sorted(left_out.items())],
+                   "hm_obstacles": [[map_id, met] for map_id, met in sorted(obstacles.items())]},
         "count": len(out_maps),
         "maps": out_maps,
     }
@@ -599,7 +627,7 @@ def dump(doc: dict) -> str:
 
 def loud(doc: dict) -> list[str]:
     """(P11-2) The refusals, one line each, as every mode prints them (module docstring)."""
-    return [f"REFUSED {map_id}: {why}" for map_id, reasons in doc["_check"]["left_out"].items() for why in reasons]
+    return [f"REFUSED {map_id}: {why}" for map_id, reasons in doc["_check"]["left_out"] for why in reasons]
 
 
 #: (test side) the dark floors the grid MODEL of `gates/test_ways.py` is drawn from (`model`)
