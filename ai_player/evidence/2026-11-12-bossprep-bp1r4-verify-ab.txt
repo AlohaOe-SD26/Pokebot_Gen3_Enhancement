@@ -1,0 +1,108 @@
+BOSS PREPARATION BP-1, ROUND 4 - THE VERIFIER'S PAIRED LIVE A/B ON THE GROVYLE PLAN (seeds 6421, 6424 and 6430; ledger
+#129-#131): round 3 as committed (975964c7, arm C4) against round 4's final tree (arm B4), the SAME seed for both arms
+of a pair (2026-11-12; DEVELOPMENT, never graded; development, one trajectory per seed and arm: a paired comparison on
+3 seeds, never a rate)
+
+HEADLINE, WITH ITS CAVEATS: BADGE02 round 4 (B4) 3 of 3, round 3 (C4) 1 of 3, on the same three Grovyle-plan seeds.
+The trainee fainted 0 times outside BRAWLY's fight in B4's three runs (1 in C4's), counted by identity. Of the
+verifier's eight predictions 7 HELD (V-1, V-2, V-3, V-4, V-6, V-7, V-8) and 1 MISSED (V-5). It is the strongest
+support for reading the builder's missed P-G6 (BADGE02 in 1 of 3 Grovyle-plan runs,
+2026-11-11-bossprep-bp1r4-live.txt) as the seeds, and it does not prove it.
+CAVEATS: (1) development, one trajectory per seed and arm: a paired comparison on 3 seeds, never a rate. (2) the two
+  arms of a pair share a seed, not a trajectory: they part at or after the first battle (V-1), and from there each
+  plays its own trajectory. (3) the verifier's V-5 (the 18798 EXP line decides the fight, at most one exception)
+  MISSED with two exceptions; V-7 tested (S) and did not refute it. (4) in the 6424 pair the round-3 arm's raise
+  collapsed (WHAT ELSE THE VERIFIER RECORDED, below): it reached SPENT at 9845 EXP, against B4's 16247. (5) the
+  verifier ran and judged the A/B; this file was written later, by BP-1 round 4's closing pass, by a script
+  (s53/bp1r4c/c4_evidence.py) from the verifier's files: it copies the verifier's numbers, adds only tallies of them
+  (totals, losses counted from each fight list), and marks the one line that is its own (B4's commit).
+
+WHO RAN IT AND WHEN: the independent verifier of BP-1 round 4 (s53/bp1r4/verify; run book STATE.md), started
+2026-11-12 14:25:15. Seeds 6421, 6424 and 6430 were free in 197 ledgers at 14:30 (its v_seeds.py), each drawing the
+Grovyle plan. PREDICTION prediction_vab.txt, sha256 fd33651a2badcf1c11e3215cde265cbb1eba000c4c1569a2d15b2598895bae23
+(computed now from the file; the run book records the same), HASHED at 2026-11-12 14:34:39, before the launch at
+2026-11-12 14:34:54 (v_chain.py, pid 36552, detached, 6 emulators) and the first run's start at 2026-11-12 14:34:55.
+The runs ended vabg1 15:04:41, vabg2 15:04:51, vabg3 15:06:41, all exit 0; judged by v_judge_vab.py (v_judge_vab.json,
+v_judge_vab.out) by 2026-11-12 15:16. The verifier's verdict on round 4: CONDITIONAL PASS (2026-11-12 15:53).
+
+ARMS (prediction_vab.txt, DESIGN): Arms: C4 = commit 975964c7 (BP-1 round 3; play digest 29673757774228d2) and B4 =
+round 4's final tree (the verifier's copy of worktree wf_e7452923-f06-3; play digest 840ece09384cb6b8, the builder's
+live B4 arm's). Both from probe-C1 (md5 e909e537, persona Story), target ch7_brawly, 1,200,000 frames, wall 12,000 s,
+on the SAME seed, the two arms of a pair started about 10 s apart: seeds 6421 (batch vabg1), 6424 (vabg2), 6430
+(vabg3), each drawing the GROVYLE plan (raise Grovyle L21 to L30, no knock-out partner; disc_C1_Story.out).
+  B4'S COMMIT (the closing pass's own line, s53/bp1r4c/play_digest.py -> play_digest.out): B4's play code, play digest
+  840ece09384cb6b8, was committed as d4794135 (round 4) after the A/B: the worktree's checkout of d4794135 gives play
+  digest 840ece09384cb6b8 (a git archive of d4794135 has the same files, 8 of them differing only in line endings).
+
+== PER SEED AND ARM (v_judge_vab.json; the trainee followed by its PID, 3495168255 = d05408ff) ==
+seed 6421 (ledger #129, batch vabg1, started 2026-11-12 14:34:55, ended 2026-11-12 15:04:41): first difference record
+151, frame 783210 (first battle f747886)
+  C4: BADGE02 1; BRAWLY fights 2 (EXP at the start, result: 18593 lost, 19206 won): losses to BRAWLY 1; the raise: EXP
+    6976 at the start, 16320 when SPENT (f1104897); the trainee's faints 1, outside BRAWLY's fight 0, by PID
+    3495168255 (the end assignment agrees with the framework's PID read: True; EXP self-check True); purity CLEAN; end
+    f1300309, [AI-EXIT] reason=play: done: ch7_brawly reached code=0
+  B4: BADGE02 1; BRAWLY fights 1 (EXP at the start, result: 18422 won): losses to BRAWLY 0; the raise: EXP 6976 at the
+    start, 16588 when SPENT (f1106123); the trainee's faints 0, outside BRAWLY's fight 0, by PID 3495168255 (the end
+    assignment agrees with the framework's PID read: True; EXP self-check True); purity CLEAN; end f1235982, [AI-EXIT]
+    reason=play: done: ch7_brawly reached code=0
+seed 6424 (ledger #130, batch vabg2, started 2026-11-12 14:35:25, ended 2026-11-12 15:04:51): first difference record
+144, frame 782921 (first battle f747763)
+  C4: BADGE02 0; BRAWLY fights 3 (EXP at the start, result: 10588 lost, 10588 lost, 11201 lost): losses to BRAWLY 3;
+    the raise: EXP 6976 at the start, 9845 when SPENT (f1019618); the trainee's faints 4, outside BRAWLY's fight 1
+    (battle 171 (wild, L23, goal go:?ch7_steven, plan after)), by PID 3495168255 (the end assignment agrees with the
+    framework's PID read: True; EXP self-check True); purity CLEAN; end f1213889, [AI-EXIT] reason=play: stuck: 3
+    battles lost (MAX_LOSSES 3) code=0
+  B4: BADGE02 1; BRAWLY fights 2 (EXP at the start, result: 17102 lost, 17715 won): losses to BRAWLY 1; the raise: EXP
+    6976 at the start, 16247 when SPENT (f1118822); the trainee's faints 1, outside BRAWLY's fight 0, by PID
+    3495168255 (the end assignment agrees with the framework's PID read: True; EXP self-check True); purity CLEAN; end
+    f1279978, [AI-EXIT] reason=play: done: ch7_brawly reached code=0
+seed 6430 (ledger #131, batch vabg3, started 2026-11-12 14:35:55, ended 2026-11-12 15:06:41): first difference record
+723, frame 933382 (first battle f748174)
+  C4: BADGE02 0; BRAWLY fights 3 (EXP at the start, result: 16738 lost, 17351 lost, 17964 lost): losses to BRAWLY 3;
+    the raise: EXP 6976 at the start, 14828 when SPENT (f1094903); the trainee's faints 3, outside BRAWLY's fight 0,
+    by PID 3495168255 (the end assignment agrees with the framework's PID read: True; EXP self-check True); purity
+    CLEAN; end f1320047, [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+  B4: BADGE02 1; BRAWLY fights 1 (EXP at the start, result: 19032 won): losses to BRAWLY 0; the raise: EXP 6976 at the
+    start, 16439 when SPENT (f1108736); the trainee's faints 0, outside BRAWLY's fight 0, by PID 3495168255 (the end
+    assignment agrees with the framework's PID read: True; EXP self-check True); purity CLEAN; end f1306638, [AI-EXIT]
+    reason=play: done: ch7_brawly reached code=0
+
+== THE VERIFIER'S PREDICTIONS, AS v_judge_vab.out RECORDS THEM ==
+  V-1 HELD [True, True, True]
+  V-2 HELD [True, True, True]
+  V-3 HELD [True, True, True]
+  V-4 HELD B4 PP rest [True, True, True] C4 Struggle [True, False, True]
+  V-5 MISSED 2 exceptions of 12 fights
+  V-6 HELD [True, True, True]
+  V-7 HELD [True, False, False]
+  V-8 HELD [True, False, False]
+  BADGE02 C4 [1, 0, 0] B4 [1, 1, 1]
+  Their texts are in prediction_vab.txt (V-1 pairing; V-2 safety, B4; V-3 no heal loop, B4; V-4 E5 live; V-5 the
+  builder's 18798 EXP rule, at most one exception; V-6 the raise, B4 at least C4's EXP minus 600 at SPENT; V-7 the
+  refutation test of (S); V-8 arrival PP, B4). BADGE02 per arm was REPORTED, not predicted.
+
+WHAT ELSE THE VERIFIER RECORDED (STATE.md): C4 6424's raise collapsed: 115 of 161 raise battles RUN at 37-55% HP,
+sessions started at 23/62 for 17 sessions, +2804 EXP (B4 same seed +9096, 2 runs); v_raise_sessions.py: raise runs B3
+11/1/3, C4 2/115/25, B4 (builder's 3 + mine 3) 0/0/0/0/2/0.
+
+== THE BATCH NOTES (note_vabg1.txt to note_vabg3.txt, as registered) ==
+  vabg1: BP-1 round 4 VERIFIER paired live A/B (the builder's missed P-G6): C4 = 975964c7 (round 3) vs B4 = round 4's
+    final tree (play digest 840ece09384cb6b8) on the SAME seed 6421 (draws the GROVYLE plan), from probe-C1 to
+    ch7_brawly, 1,200,000 frames, development, one trajectory per arm, never graded; registered in the verifier's copy
+    of the ledger (s53/bp1r4/verify/repo), for the lead to carry into the branch's ledger
+  vabg2: BP-1 round 4 VERIFIER paired live A/B (the builder's missed P-G6): C4 = 975964c7 (round 3) vs B4 = round 4's
+    final tree (play digest 840ece09384cb6b8) on the SAME seed 6424 (draws the GROVYLE plan), from probe-C1 to
+    ch7_brawly, 1,200,000 frames, development, one trajectory per arm, never graded; registered in the verifier's copy
+    of the ledger (s53/bp1r4/verify/repo), for the lead to carry into the branch's ledger
+  vabg3: BP-1 round 4 VERIFIER paired live A/B (the builder's missed P-G6): C4 = 975964c7 (round 3) vs B4 = round 4's
+    final tree (play digest 840ece09384cb6b8) on the SAME seed 6430 (draws the GROVYLE plan), from probe-C1 to
+    ch7_brawly, 1,200,000 frames, development, one trajectory per arm, never graded; registered in the verifier's copy
+    of the ledger (s53/bp1r4/verify/repo), for the lead to carry into the branch's ledger
+  The verifier registered #129-#131 in its own copy of the ledger (since deleted) and kept them in
+  ledger_vab_entries.json; BP-1 round 4's closing pass carried them, unchanged, into the branch's
+  ai_player/gates/ledger.json, and re-pointed their evidence field at this file.
+
+WHERE THE RAW RECORDS ARE (the lab, outside git): C:/Remote Projects/_ai_lab/s53/bp1r4/verify/out/vabg1, vabg2 and
+vabg3: per run actions.jsonl, ai_player.log, end_state.ss1, purity.json and stdout.txt; per batch results.json and per
+run .json, .battles.json, .job.json and .child.log. Beside them: prediction_vab.txt, the judge v_judge_vab.py with
+v_judge_vab.json and v_judge_vab.out, the batch notes, the run book STATE.md and ledger_vab_entries.json.

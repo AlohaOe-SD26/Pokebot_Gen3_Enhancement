@@ -41,6 +41,12 @@ cannot win; the live 6413 battle 106), TrainerGuardTests (trainer battles judged
 battles guarded), SeamTests (the guard and the purpose reset at each goal's end), PPTests (a move at 0 PP is no move; a
 session ends and the party heals out of PP), CoverageTests (the verifier's REDUNDANT mutants given a test). Reproduced
 first on 975964c7 (s53/bp1r4/repro_r4.py, 17 of 17 held); fixtures observed with s53/bp1r4/explore_fixtures_r4.py.
+
+ROUND 4, THE CLOSING PASS (2026-11-12; the round-4 verifier's V4-m4): ClosingTests, four round-4 rules the verifier's
+mutants broke with every test green (the raise map's cap, an unread PP, the order of "low" and "out of PP", the last
+resort's run bound). The gap was shown first on d4794135's tests (s53/bp1r4c/gap_run.py: each of the four mutants passed
+all 825 tests of test_bossprep, test_hands, test_goals and test_battle); fixtures observed with s53/bp1r4c/c2a_explore.py
+and c2cd_measure.py, then pinned. No play code changed.
 """
 
 from __future__ import annotations
@@ -2877,6 +2883,134 @@ class CoverageTests(unittest.TestCase):
         in normal play (Zubat, up to L16) and eight a Mystery Gift event would swap in (Mareep, Pineco, Houndour,
         Teddiursa, Aipom, Shuckle, Stantler, Smeargle): the partner line reads the first only."""
         self.assertEqual(seasoned.land_slots("ALTERING_CAVE"), (("Zubat", 16),))
+
+
+class ClosingTests(unittest.TestCase):
+    """(round 4's closing pass, the round-4 verifier's V4-m4) Four round-4 rules the verifier's mutants broke with every
+    test green (`v4_choice_ignores_cap`, `v4_pp_none_unusable`, `v4_pp_before_low`, `v4_last_resort_run_unbounded`), each
+    pinned with its CONTROL; `gates/revert_bossprep.py` breaks each in a copy."""
+
+    KIRLIA = 0x1009
+    KIRLIA_MOVES = ("Growl", "Confusion", "Double Team", "Teleport")
+
+    def kirlia_choice(self, level: int):
+        """The Wurmple L4 trainee of an active plan beside a Kirlia partner at `level` (max HP 48 at L20, 50 at L21; the
+        same four moves, Confusion the only one that hurts), on a world of ROUTE116 and ROUTE112 with a centre known from
+        RUSTBORO. Returns (manager, the observation, `_raise_choice`'s answer)."""
+        party = [summary(0, "Wurmple", 4, WURMPLE_MOVES, 18, pid=W),
+                 summary(1, "Kirlia", level, self.KIRLIA_MOVES, {20: 48, 21: 50}[level], pid=self.KIRLIA)]
+        mgr = c1_manager()
+        world = world_with("ROUTE116", "ROUTE112", "RUSTBORO_CITY", current="ROUTE116", grass=True,
+                           center_from="RUSTBORO_CITY")
+        record = bp.new_record()
+        record.update(status="active", trainee=W, target=19, plan=f"raise:{W:08x}:19", boss="BRAWLY")
+        seen = look(party=party)
+        with mock.patch.object(goals_module, "world_distance", lambda world_, key: 1):
+            return mgr, seen, mgr._raise_choice(seen, world, record)
+
+    def test_the_raise_stays_under_the_cap(self):
+        """(the verifier's REDUNDANT `v4_choice_ignores_cap`; E1's "another map UNDER ITS CAP") Kirlia L20 is the
+        knock-out partner: the cap is L15 (L20 less 5). ROUTE116 (top L8, under the cap) fails the partner's line even
+        healed (Poochyena is a Dark type: Confusion does nothing to it). ROUTE112 (top L16, OVER the cap) passes it
+        healed. The raise stays on ROUTE116, its own fights only: the cap keeps the raise where the partner clears the
+        wild Pokemon with room to spare, so a map over it is never switch-training's, however fit the partner looks.
+        CONTROL: Kirlia L21 (cap L16): ROUTE112, AT its cap (a top of at most the cap counts as under it), is chosen, with
+        switch-training ("mix")."""
+        mgr, seen, choice = self.kirlia_choice(20)
+        self.assertEqual(choice[3:5], (["ROUTE116", "ROUTE112"], 15))
+        self.assertEqual(mgr.mode_on(seen, "ROUTE112", W)[0], "mix")  # fit there healed: only the cap keeps it out
+        self.assertEqual(choice[:2], ("ROUTE116", "own"))
+        self.assertIn("Poochyena L8: nothing it knows hurts Poochyena", choice[2])
+        mgr, seen, choice = self.kirlia_choice(21)
+        self.assertEqual(choice[3:5], (["ROUTE112", "ROUTE116"], 16))
+        self.assertEqual(choice[:2], ("ROUTE112", "mix"))
+
+    def test_an_unread_pp_is_still_a_move(self):
+        """(the verifier's REDUNDANT `v4_pp_none_unusable`; the lead's call) A move whose PP was NOT READ (None in its
+        summary slot) is still a move; only a PP READ as 0 is no move. Treating "not read" as empty would end a raise
+        session, and send the party to heal, on missing information. Grovyle L25 at full HP, every move's PP unread:
+        each move usable, not out of PP, safe against a Taillow L6, and the raise session's rest does not stop it.
+        CONTROL, every move read at 0: none usable, out of PP, not safe, and the session stops."""
+        unread = replace(member("Grovyle", 25, GROVYLE_MOVES, 68, 68, G, 0),
+                         moves=tuple(slot(name, None) for name in GROVYLE_MOVES))
+        empty = replace(unread, moves=tuple(slot(name, 0) for name in GROVYLE_MOVES))
+        heal_below = ERRANDS["Story"].heal_below
+        for mon, usable in ((unread, True), (empty, False)):
+            seen = look(party=[mon, member("Poochyena", 6, ["Tackle", "Howl"], 21, 21, P, 1)])
+            grovyle = bp.member_now(seen, G)
+            self.assertIsNotNone(grovyle.summary)  # the summary is there: only its PP slots are unread
+            self.assertEqual([bp._pp_left(grovyle, name) for name in GROVYLE_MOVES], [usable] * 4)
+            self.assertEqual(bp.out_of_pp(grovyle), not usable)
+            self.assertEqual(bp.fight_safe(grovyle, "Taillow", 6, 1.0, 68)[0], usable)
+            rest = bp.trainee_rest(seen, G, heal_below, "Story")
+            if usable:
+                self.assertIsNone(rest)
+            else:
+                self.assertIn("has no PP left in any move that hurts", rest)
+
+    @staticmethod
+    def wurmple_party(hp: int, tackle_pp: int):
+        """C1's party (`party18`) with the trainee Wurmple L4 at `hp`/18, Tackle (its only move that hurts) at `tackle_pp`."""
+        out = party18()
+        out[2] = replace(out[2], hp=hp, moves=(slot("Tackle", tackle_pp), slot("String Shot", 20)))
+        return out
+
+    def next_goal(self, party, links: int, healing=()):
+        mgr, world, first = planned_on(party18())
+        self.assertEqual(first.kind, "raise")
+        with mock.patch.object(goals_module, "world_distance", lambda world_, key: links):
+            return mgr, decide2(mgr, party, world, healing=healing)
+
+    def test_a_low_trainee_out_of_pp_gets_a_potion_first(self):
+        """(the verifier's REDUNDANT `v4_pp_before_low`; the lead's call: the order the code has) The Wurmple plan, its
+        trainee Wurmple L4 at 5/18 (under its floor) AND out of PP (Tackle at 0). `_trainee_low` asks "low" FIRST. So,
+        with the centre 5 links away and Potions in the bag: a POTION on the spot (a Potion answers "low" only); then,
+        at 18/18 and still out of PP, the centre. WHY THE ORDER MATTERS: asked the other way ("out of PP" first), the
+        same state sends the trainee on the 5-link walk to the centre at 5/18, under its floor, and the Potion in the bag
+        is never used; "low" first, it walks there at 18/18. With the centre NEAR (1 link) both orders go to the centre,
+        and the reason names "low". CONTROL with PP (Tackle 20) at 5/18, far, Potions: the Potion as well."""
+        party = self.wurmple_party(5, 0)
+        mgr, _, _ = planned_on(party18())
+        plan = mgr.boss_prep(look(party=party), at("ch6_briney_house")[1])
+        self.assertEqual(mgr._trainee_low(look(party=party), plan), "low (5/18)")
+        _, goal = self.next_goal(party, 5, (("Potion", 3),))
+        self.assertEqual((goal.kind, goal.pid), ("potion", W), goal.reason)
+        _, goal = self.next_goal(self.wurmple_party(18, 0), 5, (("Potion", 3),))
+        self.assertEqual(goal.kind, "heal", goal.reason)
+        self.assertIn("is out of PP (no PP left in any move that hurts)", goal.reason)
+        _, goal = self.next_goal(party, 1)
+        self.assertEqual(goal.kind, "heal", goal.reason)
+        self.assertIn("is low (5/18)", goal.reason)
+        _, goal = self.next_goal(self.wurmple_party(5, 20), 5, (("Potion", 3),))
+        self.assertEqual((goal.kind, goal.pid), ("potion", W), goal.reason)
+
+    def test_the_last_resort_run_is_bounded(self):
+        """(the verifier's REDUNDANT `v4_last_resort_run_unbounded`; the lead's call: every loop is bounded where it loops)
+        `BattleMind._last_resort` asked DIRECTLY, `run_ok` True: a wild battle, the guarded Wurmple L5 at 3/21 against a
+        Poochyena L6 it cannot win, Grovyle fainted, Poochyena L6 full (it cannot win either). With MAX_RUN_TRIES - 1 runs
+        made: a run, its count then MAX_RUN_TRIES. At MAX_RUN_TRIES: no run; under its floor ("desperate") the member that
+        can come in, otherwise none. Every caller today passes `run_ok` True only with no run made in the battle, so in
+        play the callers' own bound binds first; this proves the last resort's own bound where it is."""
+        from ai_player.brain.battle import MAX_RUN_TRIES
+
+        cases = ((MAX_RUN_TRIES - 1, False, "run"), (MAX_RUN_TRIES - 1, True, "run"), (MAX_RUN_TRIES, False, "none"),
+                 (MAX_RUN_TRIES, True, "fallback"))
+        for runs, desperate, expected in cases:
+            mind = guard_mind()
+            party = [member("Wurmple", 5, WURMPLE_MOVES, 3, 21, W, 0), grovyle_member(0), poochyena_member()]
+            own = battle_mon("Wurmple", 5, WURMPLE_MOVES, 3, 21, pid=W)
+            seen = battle_look([own], [foe("Poochyena", 6)], party=party)
+            mind.begin(seen)
+            mind.memory.runs = runs
+            last, out = mind._last_resort(seen, own, foe("Poochyena", 6), "the test", desperate=desperate, run_ok=True)
+            self.assertEqual(last, expected, (runs, desperate))
+            if expected == "run":
+                self.assertEqual((out.action, mind.memory.runs), ("run", MAX_RUN_TRIES))
+                self.assertIn("no member is sure to win it, and it would not win it itself: run", out.reason)
+            elif expected == "fallback":
+                self.assertEqual((out[0].pid, mind.memory.runs), (P, MAX_RUN_TRIES))
+            else:
+                self.assertEqual((out, mind.memory.runs), (None, MAX_RUN_TRIES))
 
 
 if __name__ == "__main__":

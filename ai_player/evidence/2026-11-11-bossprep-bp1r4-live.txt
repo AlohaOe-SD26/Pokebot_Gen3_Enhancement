@@ -180,3 +180,51 @@ check_fairness PASS (0 breaches), check_purity PASS, call_census PASS, check_pat
 runners, 1732 mutants, 0 not unique), ledger --check PASS; revert_bossprep with its controls: mutants2 above.
 THE PLAY DIGEST of the final tree is 840ece09384cb6b8, the digest the live B4 arm played: the live runs describe the final
 tree's play code.
+
+CORRECTION 2026-11-12 (APPENDED by BP-1 round 4's closing pass, its second builder: the round-4 verifier's V4-M1, V4-m1,
+V4-m2 and V4-n2, s53/bp1r4/result/verify_result.json; the lead's item C3. The lines above are kept as they were written;
+these corrections supersede them where they differ.)
+  1. (V4-M1) THE HEADLINE'S BADGE RESULT IN TOTAL. The headline gives BADGE02 by plan (Wurmple 3 of 3, Grovyle 1 of
+     3) and P-G6 MISSED, but no total and no comparison. In total: BADGE02 in 4 of the 6 B4 runs, P-G6 (at least 2 of 3
+     on the Grovyle plan) MISSED, against round 3's 6 of 6 on other seeds (2026-11-11-bossprep-bp1r3-live-ab.txt: P-B6's
+     and P-G5's "BADGE02 in 3 of 3"). The diagnosis reads the miss as the seeds (S). The verifier's paired A/B on three
+     new Grovyle-plan seeds (6421, 6424, 6430; ledger #129-#131) points the same way: round 4 won BADGE02 in 3 of 3,
+     round 3 (975964c7) in 1 of 3 (2026-11-12-bossprep-bp1r4-verify-ab.txt). Development, one trajectory per seed and
+     arm: never a rate.
+  2. (V4-m1) LEAF BLADE IS STRONGLY ASSOCIATED WITH THE WIN; IT IS NOT A LAW. Caveat (2)'s "every BRAWLY fight of both
+     rounds' Grovyle plans is decided by Leaf Blade" and the diagnosis's "win with it" claim more than the records
+     show. Over ALL 27 BRAWLY fights of both kits (this file's 15, from s53/bp1r4/exp_b3.json, and the verifier's 12
+     paired-A/B fights, from s53/bp1r4/verify/v_judge_vab.json; counted by s53/bp1r4c/leaf_count.py): a fight that
+     began at 18798 EXP or more (Grovyle L29, Leaf Blade, before MAKUHITA) was won 5 of 5; one that began below it was
+     won 3 of 22. All three wins below the line came without Leaf Blade: round 3's 6411, fight 2, at 17433 EXP; and in
+     the verifier's A/B, round 4's 6421, fight 1, at 18422, and 6424, fight 2, at 17715. The verifier's own prediction
+     V-5 (at most one such exception) MISSED with 2 in its 12 fights. The counts above for this file's 15 fights (3 of
+     3 and 1 of 12) stand.
+  3. (V4-m2) E3 AND E2'S LAST STEP NEVER RAN LIVE. The headline's "the guard's E2 order RAN" and caveat (4), which
+     names E1 alone as proven offline only, imply more. In round 4's nine B4 runs (this file's six and the verifier's
+     three), counted from each run's ai_player.log by s53/bp1r4c/e2_count.py: all 32 guard lines are in WILD battles
+     and none in a trainer battle, so E3 (the guard in trainer battles, and a raise goal's trainer battles guarded)
+     never ran live; E2's step (c), sending a member that cannot win, ran 0 times. Both are proven offline only (tests,
+     mutants, the verifier's probes X2, X3 and X5). Live, E2's step (a), the trainee's own sure win, ran in 2 battle
+     decisions, both in the verifier's 6424 B4 run: the guard's first turn in battle 17 (Grovyle L22 at 33/60 against
+     a Nincada L7, won), and a raise battle's own fight gone badly in battle 20 (turn 2, against a Nincada L6, won).
+     E2's step (b), the run, ran in 2: 6427 battle 96 (the Abra L7 above) and the verifier's 6421 battle 96 (a Whismur
+     L6, the trainee out of PP). The verifier's V4-m2 counted step (a) once: the raise battle's decision is the one it
+     did not count.
+  4. (V4-n2) E5'S CAVEAT IS NOT A COUNTERFACTUAL. Caveat (3)'s "on these records it changed no fight's experience and
+     no outcome" claims what the records cannot show: they do not show what full PP would have done. It reads: NO SIGN
+     THAT IT CHANGED AN OUTCOME, for these reasons (s53/bp1r4c/e5_check.py): the first BRAWLY fight was lost in all six
+     Grovyle-plan runs of both rounds, with or without those moves; every lost fight gained 613 EXP and every won fight
+     967, so a lost first fight gains the same either way; the moves missing were Quick Attack (Normal, power 40, as
+     Pound, which it kept) and Pursuit (Dark: resisted by MACHOP and MAKUHITA, neutral against MEDITITE); and in the
+     verifier's 6421 pair BOTH arms, round 3 and round 4, began fight 1 without Pursuit (v_judge_vab.json).
+  The diagnosis named above as s53/bp1r4/PG6-DIAGNOSIS.md is filed on the branch as a NOTE, with correction 2 made in
+  it: PROJECT KNOWLEDGE/ai-research-notes/2026-11-12-BP1-PG6-DIAGNOSIS.md. The raw records stay in the lab, outside git.
+
+SCOPE 2026-11-12 (APPENDED by the lead at the closing pass's commit: the closing verifier's VC-n2,
+s53/bp1r4c/result/verify_result.json. Nothing above changes.) "Every lost fight gained 613 EXP", in the section on what
+decides a BRAWLY fight and in correction 4, is true of THIS FILE'S 15 fights (the six Grovyle-plan runs of rounds 3 and
+4). It is not true of all 27 fights that correction 2 counts: in the verifier's paired A/B, round 3's arm on seed 6424
+lost its first BRAWLY fight and gained 0 EXP (10588 EXP before fight 1 and before fight 2;
+s53/bp1r4/verify/v_judge_vab.json, vabg2, arm C4). In this file's 15 fights Grovyle began at L27 or L28; in that fight
+it began at L24.

@@ -33,6 +33,12 @@ record is evidence/2026-11-11-bossprep-REVERT.txt, OVERALL FAIL). The call is li
 four more mutants: `run_fallback_unmade` (the run branch's call), `fallback_hp_only` and `fallback_matchup_only` (the two
 factors of the choice among members that cannot win), `land_slots_any_availability`. P0 + 159. Predictions written and this
 file's NEW sha256 recorded (s53/bp1r4/STATE.md) BEFORE the second run.
+ROUND 4, THE CLOSING PASS (2026-11-12, the round-4 verifier's V4-m4): the verifier's four REDUNDANT mutants
+(`v4_choice_ignores_cap`, `v4_pp_none_unusable`, `v4_pp_before_low`, `v4_last_resort_run_unbounded`; their names and edits
+as its s53/bp1r4/verify/vmutants_v4_defs.py has them) join, each predicted CAUGHT by its new test in `ClosingTests`. The gap
+was shown first, on d4794135's tests: each of the four passed every test of test_bossprep, test_hands, test_goals and
+test_battle (s53/bp1r4c/gap_run.py). P0 + 163. Predictions written and this file's sha256 recorded (s53/bp1r4c/STATE.md)
+BEFORE its first run.
 """
 
 from __future__ import annotations
@@ -899,6 +905,34 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
                                       "            const = str(entry[\"map\"]).removeprefix(\"MAP_\")  # MUTANT\n"
                                       "            for slot in slots:\n")],
                                     ["CoverageTests.test_land_slots_reads_normal_play_only"]),
+    # ---- ROUND 4, THE CLOSING PASS (V4-m4): the round-4 verifier's four REDUNDANT mutants (s53/bp1r4/verify/
+    # vmutants_v4_defs.py, their names and edits unchanged), each now with a test (`ClosingTests`); the gap was shown first
+    # on d4794135's tests (s53/bp1r4c/gap_run.py: each passed all 825 tests of four modules)
+    "v4_choice_ignores_cap": (CAUGHT, "(V4-m4, E1) _raise_choice may take a map OVER the cap where the healed partner passes",
+                              [(GOALS, "            if levels is None or levels[1] > cap:\n",
+                                "            if levels is None:  # MUTANT v4_choice_ignores_cap\n")],
+                              ["ClosingTests.test_the_raise_stays_under_the_cap"]),
+    "v4_pp_none_unusable": (CAUGHT, "(V4-m4, E5) a move whose PP is UNREAD (None) counts as unusable",
+                            [(BP, "    return move is None or move.pp is None or move.pp > 0\n",
+                              "    return move is None or (move.pp is not None and move.pp > 0)  # MUTANT\n")],
+                            ["ClosingTests.test_an_unread_pp_is_still_a_move"]),
+    "v4_pp_before_low": (CAUGHT, "(V4-m4, E5) _trainee_low asks 'out of PP' BEFORE 'low' (a low trainee out of PP gets no "
+                                 "Potion: it walks to the centre under its floor)",
+                         [(GOALS, "        if trainee.hp < trainee.max_hp * TRAINEE_FLOOR:\n"
+                                  "            return f\"low ({trainee.hp}/{trainee.max_hp})\"\n"
+                                  "        if not self.bp_faults.pp_ignored and out_of_pp(member_now(look, trainee.pid)):\n"
+                                  "            return \"out of PP (no PP left in any move that hurts)\"\n",
+                           "        if not self.bp_faults.pp_ignored and out_of_pp(member_now(look, trainee.pid)):  # MUTANT "
+                           "v4_pp_before_low\n"
+                           "            return \"out of PP (no PP left in any move that hurts)\"\n"
+                           "        if trainee.hp < trainee.max_hp * TRAINEE_FLOOR:\n"
+                           "            return f\"low ({trainee.hp}/{trainee.max_hp})\"\n")],
+                         ["ClosingTests.test_a_low_trainee_out_of_pp_gets_a_potion_first"]),
+    "v4_last_resort_run_unbounded": (CAUGHT, "(V4-m4, E2 b) the last resort's run without its MAX_RUN_TRIES bound",
+                                     [(BATTLE, "            if run_ok and battle is not None and battle.kind == \"wild\" and "
+                                               "self.memory.runs < MAX_RUN_TRIES:\n",
+                                       "            if run_ok and battle is not None and battle.kind == \"wild\":  # MUTANT\n")],
+                                     ["ClosingTests.test_the_last_resort_run_is_bounded"]),
 }
 
 DRIVER = '''

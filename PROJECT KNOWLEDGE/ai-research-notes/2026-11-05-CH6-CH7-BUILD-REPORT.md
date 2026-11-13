@@ -18,6 +18,12 @@
 > MAJOR, V4-M1 (the builder's headline did not carry the miss; the lead reworded it in this copy). Open design
 > questions: the raise's budget ends below the key move's level, a lost boss fight changes nothing before the next try,
 > the heal before a boss ignores PP, and a trainee between its floor and a safe win is never rested (V4-m3).
+> Round 4's closing pass (2026-11-12, offline only, verifier CONDITIONAL PASS with no MAJOR): no play code changed
+> (play digest still 840ece09384cb6b8); four round-4 rules that had no test now have one (V4-m4), and the full mutant
+> run on the closing tree read 161 CAUGHT and 2 REDUNDANT of 163; the verifier's paired A/B and four corrections are
+> branch evidence, and the P-G6 diagnosis is filed as a note. Two MINORs are carried to the next round: VC-m1 (the cap
+> test's control does not pin the at-cap boundary) and VC-m2 (the last resort's run bound can bind in play, which
+> leaves a design question).
 
 ## Chapters 6-7 builder report (worktree wf_e7452923-f06-3, base 979754bf, nothing committed)
 
@@ -1938,7 +1944,7 @@ On the round-4 tree every one of these readings moved as designed.
   - The fault arm diverges after the first verdict line.
   - Purity CLEAN in 7 of 7.
 - **E1's live pair was skipped:** no seed in the range lets E1 fire (offline discriminator), so E1 is proven offline only.
-- **E3 and E2's step (c) never ran live either (added by the lead after the verifier's V4-m2).** Over the 9 round-4 runs (the builder's 6 and the verifier's 3) every guard line is in a wild battle: no trainer battle came up during an active plan. So E3 (the guard in trainer battles) is proven offline only (tests, mutants, the verifier's probes X2, X3 and X5), and so is E2's step (c), sending a member that cannot win. Live, E2 ran step (a) once (the verifier's 6424: Grovyle L22 at 33/60 fought a Nincada L7 and survived) and step (b) twice.
+- **E3 and E2's step (c) never ran live either (added by the lead after the verifier's V4-m2; the count of step (a) corrected by the lead on 2026-11-12 after the closing pass's VC-n1: this line read "once").** Over the 9 round-4 runs (the builder's 6 and the verifier's 3) every guard line, 32 in all, is in a wild battle: no trainer battle came up during an active plan. So E3 (the guard in trainer battles) is proven offline only (tests, mutants, the verifier's probes X2, X3 and X5), and so is E2's step (c), sending a member that cannot win. Live, E2's step (a) ran in 2 battle decisions, both in the verifier's seed-6424 run: the guard's first turn in battle 17 (Grovyle L22 at 33/60 against a Nincada L7, won), and turn 2 of battle 20, a raise battle's own fight gone badly (against a Nincada L6, won). Step (b), the run, ran in 2: battle 96 of 6427 and battle 96 of the verifier's 6421. The counts are from each run's log (`s53/bp1r4c/e2_count.py`, and again by the closing verifier's own script).
 
 **P-G6, diagnosed** (`s53/bp1r4/PG6-DIAGNOSIS.md`; read-only on the kept records).
 - **Leaf Blade is strongly associated with the win; it is not a law (reworded by the lead after the verifier's V4-m1).** In both rounds' Grovyle-plan records a BRAWLY fight was mostly won when Grovyle reached L29 (Leaf Blade) before MAKUHITA, and mostly lost when it did not. In the builder's 15 fights every lost fight gained exactly 613 EXP, and every won fight 967. This was checked by PID, with a 6 of 6 self-check against the game's own experience read. Of those 15, fights starting at 18798 EXP or more were won 3 of 3; below that, 1 of 12 (round 3's 6411 won its second fight at 17433 EXP). With the verifier's 12 paired-A/B fights added, 27 in all: 5 of 5 won at or above the line, 3 of 22 below it. Two of the verifier's fights were won below the line without Leaf Blade (round 4's 6421 at 18422 EXP and 6424 at 17715).
@@ -2035,7 +2041,7 @@ Gates and mutants, all re-run on my copy:
 - **V4-m3:** latent, from before this round, but measured. A trainee between its floor and a safe win is never rested and runs from almost every battle. On round 3's arm it burned 115 of 161 raise battles (6424). The rule is still in round 4 (shown offline); round 4 never entered that band in 9 runs. This is for the lead, next to DESIGN 1.
 - **V4-m4:** four round-4 rules have no test, among them E1's under-the-cap filter.
 - **NITs:**
-  - E2 step (a) keeps the trainee in with one rough hit plus 1 HP to spare. That is the design as written, and live it fired once, at 33/60.
+  - E2 step (a) keeps the trainee in with one rough hit plus 1 HP to spare. That is the design as written, and live it fired once, at 33/60. **[Lead's correction, 2026-11-12, after the closing pass's VC-n1: step (a) ran in 2 live battle decisions, both in the verifier's seed-6424 run, battles 17 and 20. The decision at 33/60 is battle 17's. The count is from each run's log, by the closing builder and again by the closing verifier.]**
   - The E5 caveat is a counterfactual: say "no sign that it changed an outcome".
   - For the commit: restore round 3's REVERT.txt from the archive, which matches 975964c7 with line endings normalised.
 
@@ -2048,6 +2054,156 @@ Gates and mutants, all re-run on my copy:
 - The copy and the mutant temp folder are deleted. s53/bp1r4/verify/out keeps my 6 runs' actions.jsonl.
 - The main sandbox is unchanged: plugins 43, mgba 44, roms 2. The main checkout is clean, and the worktree is as the builder left it. C: has 59.0 GB free.
 - The run book is s53/bp1r4/verify/STATE.md.
+
+## Boss preparation BP-1, round 4: the closing pass (the builder, 2026-11-12)
+
+**Headline.** The closing pass is done. No play code changed: the play digest is still 840ece09384cb6b8. Four round-4 rules that had no test now have one, and each rule's mutant is caught. This is proven offline only, by tests and mutants. No live run, no emulator and no new seed were used. The full mutant run on the closing tree passed with 161 CAUGHT and 2 REDUNDANT, of 163. All 21 gates and Tier 0 pass. The verifier's paired A/B is now branch evidence, and four corrections were appended to round 4's live evidence. One count disagrees with the verifier's own: E2 step (a) ran in 2 live decisions, not 1. The lead's report still says "once". Nothing is committed. The lead's follow-up items were not started.
+
+- **C1, the ledger.** The first builder carried the verifier's #129-#131 (seeds 6421, 6424, 6430) into the branch's ledger, as `verify/ledger_vab_entries.json` records them. I checked this again from the files:
+  - `ledger.py --check` reports 131 entries, PASS.
+  - `seeds_free.py` lists all three seeds as spent.
+  - Their bounds hash equals `sha256(prediction_vab.txt)`, `fd33651a...`.
+- **C2, four rules with no test (V4-m4).** First, the gap on d4794135's tests: each of the verifier's four mutants passed all 825 tests of test_bossprep, test_hands, test_goals and test_battle. The new tests are in `ClosingTests`, and each mutant is registered in `revert_bossprep.py` as CAUGHT by its test.
+  - (a) The cap. Kirlia L20 has cap 15. ROUTE112, top level 16, is over the cap, even though the healed Kirlia would be fit there. The raise stays on ROUTE116 in "own" mode. Control: Kirlia L21 has cap 16, so ROUTE112 is at the cap, and it is chosen in "mix" mode.
+  - (b) A PP that was not read is still usable; a PP read as 0 is not. Both halves are pinned.
+  - (c) The order of the two checks was measured first. When the trainee is both low and out of PP, the code's order gives a Potion when the centre is far, then the centre. The swapped order walks to the centre at 5/18. The code's order is pinned.
+  - (d) `_last_resort` was called directly. At 5 runs it runs. At 6 runs it does not run. The state can be reached directly, so the mutant is CAUGHT and no pair mutant was needed.
+  - The catch run caught all 4, each failing only its own test.
+- **C3, the corrections.** One dated CORRECTION block was appended to `2026-11-11-bossprep-bp1r4-live.txt`. Nothing above it changed. The file made all four claims:
+  - (1) The headline now gives the total: BADGE02 in 4 of 6, P-G6 MISSED, against round 3's 6 of 6. The paired A/B gave round 4 3 of 3 and round 3 1 of 3.
+  - (2) Leaf Blade is strongly associated with the win; it is not a law. Over 27 fights, 5 of 5 were won at or above 18798 EXP, and 3 of 22 below it. All three wins below the line came without Leaf Blade.
+  - (3) E3 and E2 step (c) never ran live: all 32 guard lines are in wild battles. E2 step (a) ran in 2 decisions and step (b) in 2.
+  - (4) For E5, there is "no sign that it changed an outcome", with the reasons. This replaces the counterfactual.
+  - The ledger holds no evidence hashes, so nothing else needed to change.
+- **C4, the A/B as branch evidence.** New file `ai_player/evidence/2026-11-12-bossprep-bp1r4-verify-ab.txt`, written by script from the verifier's files. It gives:
+  - who ran the A/B and when, and the prediction's hash (taken at 14:34:39);
+  - each arm's commit and play digest;
+  - per seed and arm: BADGE02, losses to BRAWLY, the raise's EXP, faints outside the boss fight by PID, and purity;
+  - which of the verifier's predictions held (7) and which missed (V-5);
+  - where the raw records are in the lab.
+  One line is my own, and it is marked: the play digest ties B4 to d4794135. #129-#131 now point at this file.
+- **C5, the diagnosis as a note.** New file `ai-research-notes/2026-11-12-BP1-PG6-DIAGNOSIS.md`. Its first paragraph says it is a NOTE, who wrote it, what tried to refute it and what stays unproven. V4-m1 is corrected in place and marked; so is V4-n2. Every line is under 1200 characters.
+- **C6, which file proves which commit.** `c6_revert_table.py` recomputes each round's tree digest from `git diff <parent> <commit>`, in provenance's own scope. Each committed round matches exactly one file:
+
+| Tree | HEAD + digest | The file that proves it | Mutants (CAUGHT + REDUNDANT) | OVERALL |
+|---|---|---|---|---|
+| round 1, 69ce148e | 18c3d51b + 19176520fd219899 | 2026-11-09-bossprep-REVERT.txt | 35 + 2 of 37 | PASS |
+| round 2, c5146e53 | 69ce148e + 05fc87fa4bfa5900 | archive/05fc87fa4bfa5900-69ce148e/2026-11-11-bossprep-REVERT.txt | 73 + 2 of 75 | PASS |
+| round 3, 975964c7 | c5146e53 + 6701eab79b5bf870 | archive/6701eab79b5bf870-c5146e53/2026-11-11-bossprep-REVERT.txt | 101 + 2 of 103 | PASS |
+| round 4, d4794135 | 975964c7 + 03a471a697f2df77 | archive/03a471a697f2df77-975964c7/2026-11-12-bossprep-REVERT.txt (moved there by this pass's run) | 157 + 2 of 159 | PASS |
+| closing tree (uncommitted) | d4794135 + 1f3d41913ffa4e0b | 2026-11-12-bossprep-REVERT.txt | 161 + 2 of 163 | PASS |
+| NO committed tree: mutant run 1 | 975964c7 + 3707fc5fa1abfa32 | 2026-11-11-bossprep-REVERT.txt | 152 + 2 of 155, 1 miss | FAIL |
+| NO committed tree: earlier intermediate runs | 69ce148e + 0fd10c61781d6b4b, 94d2f6c6dc9ae148; 18c3d51b + f7184354facf4506, ff14c5e419050875 | archive/<digest>-<HEAD>/ | 73 + 2 of 75; 69 + 2 of 71; 34 + 2 of 36; 34 + 2 of 36 | PASS |
+
+  The closing tree's row holds only if the commit changes exactly these two in-scope files, `test_bossprep.py` and `revert_bossprep.py`.
+- **C7, the final tree.** The predictions were hashed before any run: `prediction_catch.txt f0458ef7...`, `revert_bossprep.py 76137c6a...`, `test_bossprep.py 6b0f6df7...`. The full run ran detached from 19:35 to 20:19: 161 CAUGHT and 2 REDUNDANT of 163, PASS. All 21 gates exit 0, and Tier 0 passes. `git diff --stat d4794135 -- ai_player/brain ai_player/knowledge` is empty. The play digest is 840ece09384cb6b8, computed as round 4 computed it (`make_arm_r4.tree_digest`, play files only). The run book is `s53/bp1r4c/STATE.md`.
+
+## Boss preparation BP-1, round 4: the closing pass, verification (the verifier, 2026-11-12)
+
+**Headline.** CONDITIONAL PASS. I found no MAJOR, two MINORs and three NITs.
+- **No play code changed.** I checked the bytes, not git's summary: all 13 files under ai_player/brain plus the .py files under ai_player/knowledge equal d4794135's blobs once line endings are normalised. No file was added or missing, and none was modified after 16:30. The play digest is 840ece09384cb6b8 on the worktree and on my copy.
+- **The new tests catch broken rules.** I broke each of the four rules a second way myself, with predictions hashed first. The four ClosingTests caught every break of the rule they name.
+- **Gates.** All 21 gates and Tier 0 pass on my copy of the final tree.
+- **Numbers.** Every number I re-derived from the raw files holds.
+- **Caveats.** Both MINORs are claims in test docstrings or the deviation text, not behaviour. Fix them in the report and the handoff, not in test_bossprep.py: any byte change there moves the digest off the REVERT file's 1f3d41913ffa4e0b, and that would need a new 44-minute mutant run.
+- **Not proven here.** This is offline proof only. Nothing was run live, and I used no emulator and no seed.
+
+**The cut.** The first builder ran from 16:34 to about 16:50. It applied C1 and wrote three recon scripts, and it started no job: no lab file is dated between 16:50:33 and 19:18:45, and no pid file predates 19:23.
+- Every hashed file matches the hash its STATE line recorded, and was written before the run it predicts:
+
+| File | sha256 | Written | Its run started |
+|---|---|---|---|
+| prediction_gap.txt | 37ddfa2f... | 19:22:27 | gap, 19:23:01 |
+| prediction_catch.txt | f0458ef7... | 19:32:48 | catch, 19:33:11 |
+| revert_bossprep.py (worktree and hashed copy) | 76137c6a... | 19:31:55 | full, 19:35:19 |
+| test_bossprep.py (worktree and hashed copy) | 6b0f6df7... | 19:30:42 | full, 19:35:19 |
+| gap_run.py | 0e5761a9... | before the gap run | gap, 19:23:01 |
+| vmutants_v4_defs.py | 8645f29c... | 14:50:23 (unchanged) | gap, 19:23:01 |
+
+- Nothing was re-hashed, and no result comes from a job the cut killed.
+- The worktree's provenance digest now is HEAD d4794135 + 1f3d41913ffa4e0b (2 files, 15196 bytes, 0 untracked). That equals the full run's code line, so the full run ran on the final tree and was not re-run.
+
+**My mutants.** Prediction prediction_vmut.txt, sha256 4f60b152..., hashed at 20:38:12 before the run. The run, job_vmut.out, ran 198 tests per copy (test_bossprep plus the FieldItemTests of test_hands).
+- **Controls.** P0 passed every test. A comment that only mentions the boundary fails no test.
+- **Caught as predicted, each among its failing tests:**
+  - (a) va2: raise_maps ranks an at-cap map with the over-cap maps.
+  - (b) vb1: a PP read as 0 counts as usable.
+  - (b) vb2: out_of_pp treats an unread PP as no PP.
+  - (c) vc1: _potion_goal refuses a trainee that is out of PP. Only test (c) fails.
+  - (d) vd1: the bound is off by one (`<=`). Only test (d) fails.
+  - (d) vd2: the run is not counted.
+- **va1, a `>=` boundary in _raise_choice.** Test (a) survives it, which is VC-m1. My prediction that it would survive all 198 MISSED: RaiseMapTests.test_r6a catches it.
+- **The registered mutants.** The four registered v4_ mutants have edits identical to vmutants_v4_defs.py, and 164 entries are registered including P0.
+
+**C1, the ledger.** Entries #129-#131 equal ledger_vab_entries.json in every field except `evidence`, which C4 re-pointed to the new file (the file exists).
+- Each older line is unchanged; #128 only gained its comma. Ids 1-131 are contiguous.
+- Seeds 6421, 6424 and 6430 are in #129, #130 and #131.
+- bounds_sha256 = sha256(prediction_vab.txt) = fd33651a...
+
+**C3, the correction.** d4794135's blob is an exact prefix of the new file once line endings are normalised. 40 lines were appended, none non-ASCII.
+- **Correction 1.** BADGE02 4 of 6; round 3 6 of 6 (P-B6 and P-G5 both '3 of 3').
+- **Correction 2.** 27 fights: 5 of 5 won at or above 18798, 3 of 22 below it (v_leaf.py, independent). The three wins below the line are 6411 f2 at 17433, 6421-B4 f1 at 18422 and 6424-B4 f2 at 17715. 'Leaf Blade' appears in neither verifier winning log beyond lines 13-14.
+- **Correction 3.** 32 guard lines, all '(wild)'. E2 (a) 2: 6424 battles 17 and 20. E2 (b) 2: battle 96 of 6427 and battle 96 of 6421. E2 (c) 0. Counted by v_e2.py, independently.
+- **Correction 4.** Read against e5_check.out and v_judge_vab.json usable1. The scope NIT is VC-n2.
+
+**C4, the new evidence file.** Every number matches v_judge_vab.json, v_judge_vab.out and the verifier's STATE.md lines 13-32:
+- per seed and arm: BADGE02, the fights and their EXP, SPENT EXP and frames, faints by PID, the end frames, the first difference;
+- B4 3 of 3 against C4 1 of 3; V-1 to V-8;
+- 197 ledgers; 14:34:39, 14:34:54, pid 36552; 15:16 and 15:53;
+- 115 of 161, +2804 and +9096.
+
+Its headline carries its caveats.
+
+**C5, the note.** It is a NOTE, ASCII, and its longest line is 123 characters. Its corrections match V4-m1 and V4-n2. The unmarked edits are VC-n3.
+
+**C6, the table.** I recomputed each committed round's digest on its parent with provenance.tree_digest, in v_c6.py:
+
+| Round | Digest on its parent |
+|---|---|
+| 69ce148e | 19176520fd219899 (added files untracked) |
+| c5146e53 | 05fc87fa4bfa5900 |
+| 975964c7 | 6701eab79b5bf870 |
+| d4794135 | 03a471a697f2df77 |
+
+Each matches exactly the file the table names. Every row's HEAD, digest, counts and OVERALL equal the 10 REVERT files.
+
+**C7, the archive.** The archived copy equals d4794135's committed REVERT file once line endings are normalised. job_full.out line 167 records the driver's own keep_earlier move. All 921 of d4794135's evidence files are present.
+
+**Shared files.** Only seven files were written in the worktree after 16:30, all expected. provenance.py and the run_regression files are untouched. Every changed tracked file is in git diff 18c3d51b..d4794135.
+
+**Gates on my copy.**
+- Test suites, all OK: test_bossprep 191 (including the 4 ClosingTests), test_goals 462, test_battle 112, test_world 139, test_eyes 89, test_kb2 128, test_saving 151, test_hands 64, test_host 37, test_check_purity 30, test_step53_a2 34, test_evidence 27, Fairness 9, test_run_regression 53 and test_check_anchors 7.
+- Checks, all PASS: check_fairness, check_purity, call_census, check_paths, check_anchors (1736 mutants, 1761 edits) and ledger (131 entries).
+- Tier 0: all 7 checks exit 0.
+
+**Findings.**
+- **VC-m1 (MINOR).** Test (a)'s control does not pin the at-cap boundary.
+- **VC-m2 (MINOR).** Test (d)'s docstring is wrong that every caller passes run_ok True only before any run. v_runok_probe.py shows the guard's first decision calling `_last_resort(run_ok=True)` after the lead's refused run (runs 1 to 2). The bound can therefore bind in play, and the lead should decide whether E2 (b) should then come before (c).
+- **VC-n1 (NIT).** Line 2038 of the build report also says 'fired once', not only line 1941.
+- **VC-n2 (NIT).** The 613-EXP sentence needs its scope: one of the 27 fights, vabg2-C4 fight 1, gained 0.
+- **VC-n3 (NIT).** Two edits in the note carry no CORRECTED marker.
+
+**Conditions for the commit.**
+- Commit exactly the two in-scope files at their hashed bytes, so the closing tree's REVERT row holds.
+- Carry VC-m1 and VC-m2 in the report and the handoff.
+
+**Other.**
+- The main checkout's PROJECT KNOWLEDGE/cost-ledger.jsonl was modified at 20:50:09. That is after the builder's last line (20:28:56) and is not mine.
+- A temp folder, ai_player_bossprep_mutant_0rn4dd43, dated 2026-11-11, is not this pass's and was left alone.
+- My copy was deleted (16985 files). Nothing of mine is running.
+- The run book is s53/bp1r4c/verify/STATE.md.
+
+## Boss preparation BP-1, round 4: the closing pass, the lead's notes at the commit (2026-11-12)
+
+The closing pass's verifier read CONDITIONAL PASS with two conditions: commit exactly the two in-scope files at their hashed bytes, and carry VC-m1 and VC-m2 in the report and the handoff. Both are met here. Nothing below was run live.
+
+- **The commit holds the hashed bytes.** `test_bossprep.py` (sha256 6b0f6df7...) and `revert_bossprep.py` (76137c6a...) are committed as the full mutant run read them. Just before the commit the worktree's provenance digest was HEAD d4794135 + 1f3d41913ffa4e0b over 2 files, the code line of `2026-11-12-bossprep-REVERT.txt` (161 CAUGHT and 2 REDUNDANT of 163). Neither file was edited after that run.
+- **VC-m1 (MINOR), carried, not fixed.** The cap test's CONTROL does not pin the at-cap boundary that its docstring says it pins: the verifier's mutant va1 (`levels[1] >= cap` in `_raise_choice`) survives `ClosingTests.test_the_raise_stays_under_the_cap`. Another test catches va1 (`RaiseMapTests.test_r6a_the_partners_cap`), so the rule itself is still guarded. The test file is not edited now, because any byte change moves the digest off the REVERT file and needs a new 44-minute mutant run. Next BP round: add GRANITE_CAVE_1F as a third map to the control, register va1 as CAUGHT, and re-run the mutants.
+- **VC-m2 (MINOR), carried, with a design question.** Test (d)'s docstring says every caller passes `run_ok` True only when no run was made in the battle. That is false: the guard's first decision passes `run_ok=True` unconditionally, and the run count covers a run by any member. The verifier's probe shows `_last_resort(run_ok=True)` after the lead's refused run. So the last resort's run bound can bind in play. The behaviour is as tested; the docstring is wrong. Open for the next round: when another member's run was already refused in this battle, should a trainee still try the run (E2 step b) before step (c)? The docstring is reworded when the test file next changes.
+- **VC-n1 (NIT), fixed in this copy.** "E2 step (a) fired once" stood in two places of this report: the lead's own line under round 4's build section, and the round-4 verifier's NIT. Both now carry the count from the records: 2 battle decisions, both in the verifier's seed-6424 run (battles 17 and 20). The verifier's own sentence is kept and the correction is marked beside it.
+- **VC-n2 (NIT), scope stated.** "Every lost fight gained 613 EXP" is true of the builder's 15 fights. It is not true of all 27: in the verifier's A/B, round 3's arm on seed 6424 lost its first fight and gained 0 (10588 EXP before fight 1 and before fight 2). One scope line was appended to `2026-11-11-bossprep-bp1r4-live.txt` (nothing above it changed), and the note's first section says the same.
+- **VC-n3 (NIT), stated in the note.** The note `2026-11-12-BP1-PG6-DIAGNOSIS.md` now names its two unmarked edits: the verdict's "lose ... win" reads "lost ... won", and the Files list was extended.
+- **Not done, for the next BP round (BP-2).** V4-m3 (a trainee between its floor and a safe win is never rested), V4-n1, the raise's budget ending below the key move's level, what changes after a lost boss fight, a heal before a boss that counts PP, and the live judge that cannot tell a run from a switch.
 
 ## Appendix A. The cloud job's static draft for chapters 5-8 (as the wiring received it)
 
