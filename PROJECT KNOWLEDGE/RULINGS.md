@@ -83,10 +83,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 372 sections (newest first)
+## All 373 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-12-c7562b` | 10100 |  |  | 2026-11-12 — After BP-1 round 4 and P11-2: a closing pass with no play code; evidence is found by its tree digest; the measured boss-prep gaps go to BP-2 after  |
 | `2026-11-11-65d48b` | 10088 |  |  | 2026-11-11 — The fix round after BP-1 round 3 and P11-1: a heal only when it can change the decision; a member that cannot win is the last resort; the dark-cave |
 | `2026-11-11-9db0c9` | 10080 |  |  | 2026-11-11 — Boss prep BP-1 round 3: the trainee is protected in every battle of an active plan by a turn-1 switch, not by re-ordering the party between session |
 | `2026-11-11-334134` | 10072 |  |  | 2026-11-11 — The order stays: chapter 6's boss preparation and dark cave, then the chapter 6-7 merge, then A1 (the trainer training the AI player); the user was |
