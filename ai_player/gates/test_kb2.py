@@ -1348,6 +1348,33 @@ class NotReadTests(unittest.TestCase):
         self.assertNotEqual(planted, source)
         self.assertIn("catch_rate", self._keys_read(planted, None) - allowed)
 
+    def test_k_f3f_entry_maps_reads_only_the_map_links_and_a_coordinate_read_fails_the_gate(self):
+        """(The chapter-5 search fix K1, 2026-11-13) `knowledge/atlas.py` entry_maps reads, of maps.json, only `maps`, each
+        map's `id`, each warp's `dest_map` and each connection's `map` (a guide's map, map level: USER RULING 40), never a
+        warp's `x` or `y`. FAULT halves: a planted `warp["x"]` is seen by the same reading, and the person-fair door
+        (`check_fairness.check`, RULE B2: `x` is a developer-only key NAME, milestones.json's measured coordinates) FAILS a
+        copy of the package that reads it; CONTROL: the unedited copy passes."""
+        from ai_player.gates import check_fairness as cf_
+        names = ("data", "entry", "warp", "link")
+        source = (REPO / "ai_player" / "knowledge" / "atlas.py").read_text(encoding="utf-8")
+        self.assertEqual(self._keys_read(source, "entry_maps", names), {"maps", "id", "warps", "dest_map", "connections", "map"})
+        planted = source.replace('str(warp["dest_map"])', 'str(warp["dest_map"]) + str(warp["x"])', 1)
+        self.assertNotEqual(planted, source)
+        self.assertIn("x", self._keys_read(planted, "entry_maps", names))
+
+        def plant(text: str | None) -> list[str]:
+            with tempfile.TemporaryDirectory() as tmp:
+                pkg = Path(tmp) / "ai_player"
+                shutil.copytree(REPO / "ai_player", pkg, ignore=shutil.ignore_patterns(
+                    "__pycache__", "evidence", "gates", "*.ss1", "eyes", "host"))
+                if text is not None:
+                    (pkg / "knowledge" / "atlas.py").write_text(text, encoding="utf-8")
+                return cf_.check(pkg)[1]
+
+        self.assertEqual(plant(None), [])  # CONTROL: the copy is clean
+        found = plant(planted)
+        self.assertTrue(any(f.startswith("B2") and "'x'" in f and "atlas.py" in f for f in found), found)
+
     def test_v1_warps_and_connections_are_classified_leaf_by_leaf(self):
         """(The round-1 verifier's V1, 2026-10-31) `maps[].warps` and `maps[].connections` were SUBTREE entries, so a key
         planted under a warp (`warps[].script`, the verifier's gate mutant M4) passed RULE B unmarked. Every leaf under

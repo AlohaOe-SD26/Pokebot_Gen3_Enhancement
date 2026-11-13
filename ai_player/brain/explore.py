@@ -396,7 +396,10 @@ def standing_walls(world: WorldMemory) -> dict[str, frozenset]:
     last look of a map and is NOT saved with the memory (`MapMemory.to_dict`), so a run that starts from a saved memory
     knows no standing thing on any other map until it looks at that map again. Decided: kept so, not saved. A thing seen
     standing in an earlier session (an item ball since picked up, a boulder since pushed) is exactly what a person may find
-    gone, and a saved one would be a wall that outlives what made it; within a session it is what the AI last saw."""
+    gone, and a saved one would be a wall that outlives what made it; within a session it is what the AI last saw.
+    (The chapter-5 search fix E, 2026-11-13) `objects_now` now holds, besides the last look, every thing the AI saw
+    standing on that map in this session and has not seen gone (`MapMemory.standing`, `see_objects`), so a map's walls
+    here and on the map itself (`Navigator.walls`) are the same set; still never saved."""
     out: dict[str, frozenset] = {}
     for key, memory in world.maps.items():
         things = memory.objects_now - memory.people_now

@@ -950,6 +950,16 @@
    "callee": "brain/navigator.py:Navigator.tell",
    "caller": "brain/goals.py:GoalRunner._raise",
    "reason": "NOT A SITE of Navigator.tell (the census matches by name): GoalRunner._raise calls its own `self.tell`, the goal runner's log line callback. (BP-1 round 4, 2026-11-11) The round added ONE such line: '[AI-BOSSPREP] raise session on <map>: ...' when the map's mode is \"own\" (the knock-out partner unfit there even healed); so the census lists both of _raise's tell sites (that one and round 2's raise-exp line). Tells are log lines; no decision reads them. The decision they report is pinned by FullPartnerTests.test_the_raise_session_takes_its_mode_from_the_map and broken by revert_bossprep no_mode_in_session (the mode's call deleted)."
+  },
+  {
+   "callee": "world/memory.py:MapMemory.__init__",
+   "caller": "world/memory.py:WorldMemory.observe",
+   "reason": "(The chapter-5 search fix E, 2026-11-13) E added one session-only FIELD to the map memory (`standing`, the things seen standing on the map); this site is the world memory building a map's memory on its first look, unchanged since build step 3: deleting it leaves no map memory at all, so nothing is learned. The new field's writer and readers are mutated instead: revert_step5 G691 (observe's call of see_objects deleted), G692 (the remembered things not joined to objects_now), G693-G697 (the shown check, the forgetting, the expiry, people kept, the field saved), each caught by test_goals StandingThingsTests."
+  },
+  {
+   "callee": "world/memory.py:MapMemory.__init__",
+   "caller": "brain/explore.py:dark_way.toward_goal",
+   "reason": "(The chapter-5 search fix E, 2026-11-13) NOT A NEW USE: P11-1's stand-in that only NAMES a map the dark-cave fact leads toward (an empty memory, never looked at, so its new `standing` field stays empty and is never read through it); the census lists it because MapMemory.__init__ gained E's session-only field. The goal test this stand-in serves is broken whole by revert_p11's way_on_deleted (`way_on`'s call with `toward_goal` deleted, caught); E's own rule is mutated by revert_step5 G691-G697."
   }
  ]
 }

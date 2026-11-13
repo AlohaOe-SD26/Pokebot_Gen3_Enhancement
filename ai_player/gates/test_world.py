@@ -171,15 +171,20 @@ LEDGES = {"v": ("south", (0, 1)), ">": ("east", (1, 0)), "<": ("west", (-1, 0)),
 class GridGame:
     """The overworld model (module docstring). `maps`: name -> rows; `warps`: (map, (x, y)) -> (map, (x, y));
     `links`: (map, side) -> (map, (dx, dy)) added to a tile past that side; `people`: map -> tiles; `scene_on`:
-    map -> (frames, (map, (x, y))): arriving there starts a scene that sends the player to that place."""
+    map -> (frames, (map, (x, y))): arriving there starts a scene that sends the player to that place. (The chapter-5
+    search fix E, 2026-11-13) `things`: map -> {tile: kind}: THINGS that stand there (a "cut_tree", an "item_ball", ...),
+    walls the player cannot walk onto, reported by the eyes as objects of that kind while on screen; a test removes one
+    (`del game.things[map][tile]`) to have it cut or picked up."""
 
     def __init__(self, maps: dict[str, list[str]], start: tuple[str, tuple[int, int]], warps=None, links=None, people=None,
-                 scene_on=None, crop: bool = True, leaving=None, stubborn=None, triggers=None, passers=None) -> None:
+                 scene_on=None, crop: bool = True, leaving=None, stubborn=None, triggers=None, passers=None,
+                 things=None) -> None:
         self.maps = maps
         self.map, self.pos = start[0], start[1]
         self.warps = warps or {}
         self.links = links or {}
         self.people = people or {}
+        self.things = things or {}
         self.leaving = leaving or {}
         #: (step 4.1 round 2) (map, tile) -> (from frame, until frame): someone who steps onto that tile for a while (a
         #: person walking across the way)
@@ -317,7 +322,7 @@ class GridGame:
             self.moving, self.steps = 16, self.steps + 1
             self.trail.append((self.map, self.pos))
             return
-        if c in "#~HDX" or target in self.people_now():
+        if c in "#~HDX" or target in self.people_now() or target in self.things.get(self.map, {}):
             self.bump()
             return
         # 'N': a ONE-WAY tile (IMPASSABLE_SOUTH_AND_NORTH: `src/event_object_movement.c` IsMetatileDirectionallyImpassable
@@ -403,6 +408,10 @@ class GridGame:
         objects = tuple(SeenObject("npc", x, y, x - px, y - py, who, 7, "down", 3, "object")
                         for (x, y), who in sorted(self.who_now().items())
                         if not self.crop or (abs(x - px) <= 7 and abs(y - py) <= 5))
+        # (the chapter-5 search fix E) the things standing on this map, on screen (ids from 100: never a person's)
+        objects += tuple(SeenObject(kind, x, y, x - px, y - py, 100 + n, 82, "down", 3, "object")
+                         for n, ((x, y), kind) in enumerate(sorted(self.things.get(self.map, {}).items()))
+                         if not self.crop or (abs(x - px) <= 7 and abs(y - py) <= 5))
         return View(left=left, right=right, up=up, down=down, rows=rows, objects=objects, cropped=self.crop)
 
     def look(self) -> Observation:

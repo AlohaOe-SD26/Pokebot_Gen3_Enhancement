@@ -83,7 +83,9 @@ LOADERS = {
     # (KI-128, 2026-10-31) the world folder's FIRST loader: each map's static map type, and nothing else. A world file is
     # walked by RULE B (classified, its developer keys refused) only once a loader here names it: the other world files
     # stay unread, as the 2026-10-22 KB2 decision intended ("nothing is read or checked until a loader and a
-    # KNOWLEDGE_FIELDS classification exist")
+    # KNOWLEDGE_FIELDS classification exist"). (The chapter-5 search fix K1, 2026-11-13) maps.json's second slice: the MAP
+    # LINKS, map level only (`entry_maps`: each map's `id`, its warps' `dest_map`, its connections' `map`; never a warp's
+    # `x`/`y`, a developer-only key NAME that B2 refuses; pinned by test_kb2 NotReadTests.test_k_f3f)
     "knowledge/atlas.py": ("world/maps.json",
                            # (chapter 7 NS4, 2026-11-06) the second slice: which leader holds which gym (`gym_leaders`)
                            "world/bosses.json"),
@@ -214,7 +216,8 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "species": (AI, "the species a person can meet in the wild (the favourite is drawn from them)", True),
     },
     # (KI-128, 2026-10-31) the first WORLD file a loader reads (`knowledge/atlas.py`: `maps[].id` and `maps[].map_type`
-    # only). Every key path is classified, the ones no loader reads too: STATIC game knowledge a seasoned player has
+    # only; since the chapter-5 search fix K1, 2026-11-13, also `maps[].warps[].dest_map` and `maps[].connections[].map`,
+    # map level, for `entry_maps`). Every key path is classified, the ones no loader reads too: STATIC game knowledge a seasoned player has
     # (USER RULINGS 40 and 45: the map, its type and name, its ways out, where its trainers stand and what they see, its
     # items) is `ai`; the decomp's script labels, flags, source references and object ids are `developer`
     "world/maps.json": {
@@ -235,14 +238,16 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "maps[].connections": (AI, "the maps beyond its edges (a guide's map; RULING 45)", False),
         "maps[].connections[]": (AI, "one edge and the map beyond it", False),
         "maps[].connections[].dir": (AI, "which edge (up, down, left, right)", True),
-        "maps[].connections[].map": (AI, "the map beyond that edge (a guide's map)", True),
+        "maps[].connections[].map": (AI, "the map beyond that edge (a guide's map); read by the atlas's `entry_maps` "
+                                         "(K1, 2026-11-13: which maps a place is entered from)", True),
         "maps[].connections[].offset": (AI, "how the map beyond lines up along that edge (a guide's map)", True),
         "maps[].warps": (AI, "its doors, stairs and cave mouths and where they lead (a guide's map; RULING 45)", False),
         "maps[].warps[]": (AI, "one door, stairway or cave mouth", False),
         "maps[].warps[].x": (AI, "where it is (RULING 45: coordinates kept)", True),
         "maps[].warps[].y": (AI, "where it is (RULING 45: coordinates kept)", True),
         "maps[].warps[].elevation": (AI, "the level it is on", True),
-        "maps[].warps[].dest_map": (AI, "the map it leads to (a guide's map)", True),
+        "maps[].warps[].dest_map": (AI, "the map it leads to (a guide's map); read by the atlas's `entry_maps` (K1, "
+                                        "2026-11-13: which maps a place is entered from)", True),
         "maps[].warps[].dest_warp_id": (AI, "which door of that map it comes out of (a guide's map)", True),
         "maps[].trainers": (AI, "the trainers who stand on it", False),
         "maps[].trainers[]": (AI, "one trainer", False),

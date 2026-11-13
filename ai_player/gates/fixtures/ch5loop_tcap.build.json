@@ -1,0 +1,16 @@
+{
+ "world": "ai_player/gates/fixtures/ch5loop_tcap.world.jsonl",
+ "from": "the last line of the T capture's world.jsonl (s53 lab e0diag/runs/s3t_Tcap/world_last.jsonl: c25d2c40 replayed from E0 T's L4 start, seed 6483, Trainer, capped at f1036000 inside the loop)",
+ "from_sha256": "0d389c9bbc015db1199b6b21a6e8cdc1b6c6a4bc01cc29fc0bdfcc0e3371b67f",
+ "kept": {
+  "maps": {
+   "0:19": "ROUTE104",
+   "24:11": "PETALBURG_WOODS",
+   "0:3": "RUSTBORO_CITY",
+   "0:31": "ROUTE116"
+  },
+  "warps": "all",
+  "connections": "all"
+ },
+ "why": "the chapter-5 search fix: E (the woods' trees remembered off screen) and K1 (the entry-map lead toward RUSTURF_TUNNEL) on the AI's real memory of the loop"
+}

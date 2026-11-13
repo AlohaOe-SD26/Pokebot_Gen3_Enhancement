@@ -22,6 +22,9 @@ developer data no loader reads.
 (boss preparation BP-1, 2026-11-09) The same file's THIRD slice: a boss's TEAM (`boss_party`: species, level, moves and
 held item of each Pokemon, USER RULINGS 40, 44, 58), for the readiness verdict before the next gym leader
 (`brain/bossprep.py`). Never its IVs or the trainer's AI flags (not in the file).
+(the chapter-5 search fix K1, 2026-11-13) maps.json's SECOND slice: the MAP LINKS, map level only (`entry_maps`: of each
+map its `id`, each warp's `dest_map` and each connection's `map`; never a warp's `x`/`y`), so it knows which maps a place
+is entered from, as a seasoned player knows from a guide's map (USER RULING 40: "the maps and their connections").
 """
 
 from __future__ import annotations
@@ -37,6 +40,7 @@ __all__ = [
     "OPEN_TYPES",
     "PLACE_TYPES",
     "boss_party",
+    "entry_maps",
     "gym_leaders",
     "open_map",
     "town_places",
@@ -63,6 +67,26 @@ def open_map(const: str | None) -> bool | None:
     if kind is None:
         return None
     return kind in OPEN_TYPES
+
+
+def entry_maps(const: str | None) -> frozenset[str]:
+    """(the chapter-5 search fix K1, 2026-11-13) THE MAPS A PLACE IS ENTERED FROM: every other map with a door, stairs or
+    a cave mouth that leads to map `const` (its warps' `dest_map`) or with an edge it lies beyond (its connections' `map`),
+    as consts with `MAP_` dropped ("RUSTURF_TUNNEL" -> {"ROUTE116", "VERDANTURF_TOWN"}). What a seasoned player knows from
+    a guide's map (USER RULING 40: "the maps and their connections"). MAP LEVEL ONLY: no warp's tile is read (its `x` and
+    `y` stay unread here). frozenset() for a const no map leads to, or none given. Read once."""
+    if "entries" not in _CACHE:
+        data = json.loads(_FILE.read_text(encoding="utf-8"))
+        found: dict[str, set[str]] = {}
+        for entry in data["maps"]:
+            source = str(entry["id"]).removeprefix("MAP_")
+            leads = [str(warp["dest_map"]) for warp in entry.get("warps") or ()]
+            leads += [str(link["map"]) for link in entry.get("connections") or ()]
+            for target in leads:
+                if target.removeprefix("MAP_") != source:
+                    found.setdefault(target.removeprefix("MAP_"), set()).add(source)
+        _CACHE["entries"] = {target: frozenset(sources) for target, sources in found.items()}
+    return _CACHE["entries"].get(const or "", frozenset())
 
 
 #: the map types of a TOWN or a CITY (include/constants/map_types.h): a place a person names when they speak of a trip

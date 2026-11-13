@@ -11402,5 +11402,299 @@ class Round7MenuTests(unittest.TestCase):
         self.assertTrue(any("(MAX_DECISIONS)" in line for line in hands.told), hands.told[-3:])
 
 
+# ------------------------------------------------------------------------------- the chapter-5 search fix (2026-11-13)
+#: The AI's REAL memory inside the E0 T leg's ROUTE 104 <-> PETALBURG WOODS loop (`make_ch5loop_fixture.py`): ROUTE 104
+#: (0:19), the woods (24:11), RUSTBORO (0:3) and ROUTE 116 (0:31)
+CH5LOOP_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "ch5loop_tcap.world.jsonl"
+#: (E) a field split by a wall at x 10 with ONE gap, (10, 5), where a cut tree stands (`E_TREE`). From (8, 5) the window
+#: shows the field behind it up to x 15, so its tiles at x 15 are frontier (`E_BEHIND`); no way but through the gap leads
+#: there (the field's border rows and columns are seen walls)
+E_FIELD = ["#" * 40] + ["#" + "." * 9 + ("." if y == 5 else "#") + "." * 28 + "#" for y in range(1, 10)] + ["#" * 40]
+E_TREE = (10, 5)
+E_BEHIND = [(15, y) for y in range(1, 10)]
+#: (E, MECHANISM 4.(d)) ROUTE 116's heal-walk flip in miniature: the floor of row 5 runs west through a cut tree at (10, 5)
+#: to (1, 5); tall grass lies south of it (rows 6-7, x 1-16); the long way round is north (x 20 up to row 2, west along
+#: row 2, down x 2). From x 17 the tree is at the window's left edge; from x 18 it is off screen.
+E_FLIP = ["#######################",
+          "#######################",
+          "##...................##",
+          "##.#################.##",
+          "##.#################.##",
+          "#.....................#",
+          '#""""""""""""""""######',
+          '#""""""""""""""""######',
+          "#######################"]
+
+
+def _alternation(trail: list) -> int:
+    """The most steps in a row that went back and forth between the same two tiles (A B A B ... : its steps)."""
+    best = run = 0
+    for i in range(2, len(trail)):
+        if trail[i] == trail[i - 2] and trail[i] != trail[i - 1]:
+            run = run + 1 if run else 2
+            best = max(best, run)
+        else:
+            run = 0
+    return best
+
+
+class _Pad:
+    presses = 0
+
+
+class StandingThingsTests(unittest.TestCase):
+    """(The chapter-5 search fix E, 2026-11-13) A THING SEEN STANDING (a cut tree, a rock, an item ball) STAYS A WALL OFF
+    SCREEN in the session (`MapMemory.standing`, `see_objects`): `objects_now` was the last look alone, so a frontier behind
+    a tree was offered again as soon as the tree left the screen (every "unreachable" woods frontier and (37, 22) of both
+    missed E0 legs' loops lay behind a cut tree), and ROUTE 116's heal walk flipped between two tiles at the window's edge.
+    FAULT arms: `revert_step5.py` G691-G697 (the call of `see_objects` deleted, the memory not joined to `objects_now`, the
+    shown check, the forgetting, the expiry, people remembered too, the memory saved)."""
+
+    def rig(self, things=None, people=None, maps=None, start=("FIELD", (8, 5))):
+        from ai_player.gates.test_world import GridGame, rig
+        game = GridGame(maps or {"FIELD": list(E_FIELD)}, start,
+                        things={"FIELD": {E_TREE: "cut_tree"}} if things is None else things, people=people)
+        hands, nav, world, _, _ = rig(game)
+        return game, hands, nav, world
+
+    @staticmethod
+    def at(game, hands, xy, frames: int = 1):
+        """The model's player put on `xy` and a look taken `frames` later (the world memory sees it)."""
+        game.pos = xy
+        game.frame += frames
+        return hands.look()
+
+    @staticmethod
+    def offered_behind(nav, look) -> list:
+        from ai_player.brain.explore import candidates, weights_for
+        return sorted({t.tile for t in candidates(nav, look, weights_for("Story")) if t.kind == "frontier" and t.tile[0] > 10})
+
+    def test_e1_a_frontier_behind_a_tree_seen_once_is_not_offered_after_the_tree_leaves_the_screen(self):
+        game, hands, nav, world = self.rig()
+        first = hands.look()  # at (8, 5): the tree on screen, and the field behind it to x 15
+        self.assertIn(E_TREE, {(seen.x, seen.y) for seen in first.view.objects})
+        look = self.at(game, hands, (2, 5))  # eight tiles west: the tree is off screen
+        self.assertNotIn(E_TREE, {(seen.x, seen.y) for seen in look.view.objects})
+        memory = world.here()
+        self.assertEqual([xy for xy in memory.frontier() if xy[0] > 10], E_BEHIND)  # the frontier is there
+        self.assertIn(E_TREE, memory.objects_now)  # FAULT (E removed, a90c8e8f): only what is on screen
+        self.assertEqual(self.offered_behind(nav, look), [])  # FAULT (E removed): E_BEHIND, "reached" through the tree
+
+    def test_e2_cut_off_cuts_it_from_a_tile_where_the_tree_is_off_screen(self):
+        game, hands, nav, world = self.rig()
+        hands.look()
+        nav.mark_cut = True
+        for xy in ((2, 5), (8, 5)):  # off screen and on screen: the same cut (it no longer hangs on where it stands)
+            look = self.at(game, hands, xy)
+            self.assertEqual(sorted(t for t in nav.cut_off(look) if t[0] > 10), E_BEHIND, xy)  # FAULT (E removed): [] at (2, 5)
+            self.assertEqual(world.promise(world.current), 0, xy)  # FAULT (E removed): 9 at (2, 5)
+
+    def test_e3_a_tree_seen_gone_is_forgotten(self):
+        game, hands, nav, world = self.rig()
+        hands.look()
+        look = self.at(game, hands, (2, 5))
+        self.assertEqual(self.offered_behind(nav, look), [])  # remembered (FAULT, E removed: offered)
+        del game.things["FIELD"][E_TREE]  # cut by someone
+        self.at(game, hands, (8, 5))  # the gap SHOWN with nothing standing in it
+        self.assertNotIn(E_TREE, world.here().standing)  # FAULT (the forgetting deleted): still remembered
+        look = self.at(game, hands, (2, 5))
+        self.assertEqual(self.offered_behind(nav, look), E_BEHIND)
+
+    def test_e4_a_thing_not_seen_for_closed_retry_frames_is_forgotten(self):
+        from ai_player.world.memory import CLOSED_RETRY_FRAMES
+        game, hands, nav, world = self.rig()
+        hands.look()  # seen at frame 0
+        look = self.at(game, hands, (2, 5), CLOSED_RETRY_FRAMES - 2)
+        self.assertIn(E_TREE, world.here().objects_now)  # still remembered (FAULT, E removed: gone off screen)
+        self.assertEqual(self.offered_behind(nav, look), [])
+        look = self.at(game, hands, (2, 5), 2)  # CLOSED_RETRY_FRAMES since it was seen: a person looks again
+        self.assertNotIn(E_TREE, world.here().objects_now)  # FAULT (no expiry): a wall for ever
+        self.assertEqual(self.offered_behind(nav, look), E_BEHIND)
+
+    def test_e5_people_are_never_remembered_off_screen(self):
+        game, hands, nav, world = self.rig(people={"FIELD": {(14, 2)}})
+        hands.look()  # the tree and someone at (14, 2), both on screen
+        self.assertTrue({E_TREE, (14, 2)} <= world.here().objects_now)
+        self.at(game, hands, (2, 5))  # both off screen now
+        memory = world.here()
+        self.assertIn(E_TREE, memory.objects_now)  # FAULT (E removed): the tree gone with the screen
+        self.assertNotIn((14, 2), memory.objects_now)  # FAULT (people remembered too): a wall where nobody may stand
+        self.assertNotIn((14, 2), memory.standing)
+
+    def test_e6_never_saved_with_the_memory(self):
+        """KI-134 V-N5's ruling (explore.py standing_walls): a thing saved across sessions would be a wall that outlives
+        what made it; within a session it is what the AI last saw."""
+        game, hands, nav, world = self.rig()
+        hands.look()
+        self.at(game, hands, (2, 5))
+        key = world.current
+        self.assertIn(E_TREE, world.maps[key].objects_now)  # remembered in the session (FAULT, E removed)
+        saved = world.to_dict()
+        self.assertNotIn("standing", saved["maps"][key])  # FAULT (saved with the memory)
+        again = WorldMemory.from_dict(json.loads(json.dumps(saved)))
+        self.assertEqual((again.maps[key].standing, again.maps[key].objects_now), ({}, frozenset()))
+
+    def test_e7_on_a_dark_map_only_a_lit_tile_shows_a_thing_gone(self):
+        """(Chapter 6 stops round 7, N6-1) On a dark map the screen shows a lit circle only: a remembered thing whose tile
+        is in the window but dark is not seen gone; lit and empty, it is."""
+        memory = MapMemory("24:8", "GRANITE_CAVE_B1F", "GRANITE_CAVE_B1F")
+        rock = SeenObject("smash_rock", 5, 5, 0, -1, 3, 86, "down", 3, "object")
+        near = {(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)}
+
+        def look_at(frame, at, objects):
+            rows = tuple(tuple(True if (dx, dy) in near else None for dx in range(-7, 8)) for dy in range(-5, 6))
+            view = View(left=7, right=7, up=5, down=5, rows=rows, objects=tuple(objects), cropped=True, lit=24)
+            return types.SimpleNamespace(frame=frame, view=view, player=types.SimpleNamespace(x=at[0], y=at[1]))
+
+        memory.see_objects(look_at(1, (5, 6), [rock]))
+        self.assertIn((5, 5), memory.objects_now)
+        memory.see_objects(look_at(2, (5, 8), []))  # (5, 5) in the window, three tiles up, but dark
+        self.assertIn((5, 5), memory.objects_now)  # FAULT (E removed; or forgotten by the window alone): gone
+        memory.see_objects(look_at(3, (5, 6), []))  # lit now, and nothing there: smashed
+        self.assertNotIn((5, 5), memory.objects_now)
+
+    def test_e8_the_heal_walk_does_not_flip_at_the_window_edge(self):
+        """MECHANISM 4.(d) (the E0 T leg: (39, 10) / (40, 10) on ROUTE 116, 466 right steps) in miniature: a heal walk
+        (grass at `HURT_GRASS_COST`) west toward (1, 5) after the whole map was seen. From x 17 the tree at (10, 5) is on
+        screen: the way through it is refused and the way round is NORTH-EAST, a step right; from x 18 the tree is off
+        screen and, forgotten, the way through it is the cheapest again: a step left. With the tree remembered the walk
+        takes the way round. The walk must not go back and forth between two tiles for more than 4 steps."""
+        from ai_player.brain.goals import HURT_GRASS_COST
+        from ai_player.gates.test_world import drive as drive_world
+        game, hands, nav, world = self.rig(things={"R116": {E_TREE: "cut_tree"}}, maps={"R116": list(E_FLIP)},
+                                           start=("R116", (7, 5)))
+        hands.look()  # the west half, the tree on screen
+        self.at(game, hands, (15, 5))  # the east half
+        self.at(game, hands, (20, 5))  # the start: the tree off screen
+        nav.grass_cost = HURT_GRASS_COST
+        game.trail = [("R116", (20, 5))]
+        outcome = drive_world(nav.go_to((1, 5), "a heal walk (test)", 6000), budget=200_000)
+        tiles = [xy for _, xy in game.trail]
+        self.assertLessEqual(_alternation(tiles), 4, f"{outcome}; {tiles[:30]}")  # FAULT (E removed): 17 <-> 18 for ever
+        self.assertEqual(game.pos, (1, 5), outcome)
+
+    def test_e9_the_woods_of_the_e0_loop_offer_no_frontier_behind_their_trees(self):
+        """MECHANISM 5.1's second assertion, on the AI's REAL memory of the woods (`CH5LOOP_FIXTURE`): a look one step in
+        at (15, 6) shows both trees, (19, 10) and (19, 11); back on the door tile (15, 5) only (19, 10) is on screen. From
+        there the explorer offered "the frontier at (22, 10)" (the S3t-T log, line 1921) and the planner refused it one step
+        later. Remembered, no frontier behind the trees is offered, and the woods' promise is the same from both tiles."""
+        from ai_player.brain.explore import candidates, weights_for
+        world = WorldMemory.from_dict(json.loads(CH5LOOP_FIXTURE.read_text(encoding="utf-8")))
+        woods = world.maps["24:11"]
+        trees = [SeenObject("cut_tree", 19, 10, 0, 0, 5, 82, "down", 3, "object"),
+                 SeenObject("cut_tree", 19, 11, 0, 0, 6, 82, "down", 3, "object")]
+
+        def look_at(frame, at):
+            rows = tuple(tuple(True if woods.known((at[0] + dx, at[1] + dy)) else None for dx in range(-7, 8))
+                         for dy in range(-5, 6))
+            shown = tuple(tree for tree in trees if abs(tree.x - at[0]) <= 7 and -5 <= tree.y - at[1] <= 5)
+            view = View(left=7, right=7, up=5, down=5, rows=rows, objects=shown, cropped=True)
+            world._last.key, world._last.xy = "24:11", at  # noqa: SLF001 - test side: where the player stands
+            return types.SimpleNamespace(frame=frame, view=view,
+                                         player=types.SimpleNamespace(x=at[0], y=at[1], map_const="PETALBURG_WOODS"))
+
+        behind = [xy for xy in woods.frontier() if 22 <= xy[0] <= 27 and 8 <= xy[1] <= 11]
+        self.assertGreater(len(behind), 3)  # the fixture holds them
+        nav = Navigator(types.SimpleNamespace(pad=_Pad()), world, random.Random(1), personality="Story")
+        nav.mark_cut = True
+        promise = {}
+        for frame, at in ((1, (15, 6)), (2, (15, 5))):
+            look = look_at(frame, at)
+            woods.see_objects(look)
+            nav.cut_off(look)
+            promise[at] = world.promise("24:11")
+        offered = sorted(t.tile for t in candidates(nav, look, weights_for("Story")) if t.tile in behind)
+        self.assertEqual(offered, [])  # FAULT (E removed): (22, 10) and its row, round the one tree on screen
+        self.assertEqual(promise[(15, 5)], promise[(15, 6)])  # FAULT (E removed): more "left to see" from the door
+        self.assertEqual(woods.objects_now, {(19, 10), (19, 11)})  # FAULT (E removed): {(19, 10)} only
+
+
+class EntryLeadTests(unittest.TestCase):
+    """(The chapter-5 search fix K1, 2026-11-13) A SEASONED PLAYER'S ENTRY-MAP LEAD (`brain/goals.py` entry_lead, through
+    `lead_toward`): told of a place never seen that is no open country and whose name no town holds (RUSTURF TUNNEL), the
+    walk goes first to the OPEN map it is entered from that the AI has stood on (ROUTE 116), nearest by the known way, then
+    searches there by its own taste. FAULT arms: `revert_step5.py` G698-G703 (lead_toward's call of entry_lead deleted, the
+    atlas's call deleted, the visits test, the stand-on-it rule, `UNREACHABLE`, the told reason); and here, the atlas
+    without the fact."""
+
+    @staticmethod
+    def fixture_world(key: str, xy: tuple[int, int]) -> WorldMemory:
+        world = WorldMemory.from_dict(json.loads(CH5LOOP_FIXTURE.read_text(encoding="utf-8")))
+        world._last.key, world._last.xy = key, xy  # noqa: SLF001 - test side: where the player stands
+        return world
+
+    def test_k1_the_atlas_knows_which_maps_a_place_is_entered_from(self):
+        from ai_player.knowledge.atlas import entry_maps
+        self.assertEqual(entry_maps("RUSTURF_TUNNEL"), {"ROUTE116", "VERDANTURF_TOWN"})  # ROUTE 116's two mouths, a door
+        self.assertEqual(entry_maps("ROUTE101"), {"LITTLEROOT_TOWN", "OLDALE_TOWN"})  # by its edges only
+        self.assertEqual(entry_maps("PETALBURG_WOODS"), {"ROUTE104"})
+        self.assertEqual(entry_maps("INSIDE_OF_TRUCK"), frozenset())  # no map leads there (the intro's scene does)
+        self.assertEqual(entry_maps(None), frozenset())
+        self.assertNotIn("RUSTURF_TUNNEL", entry_maps("RUSTURF_TUNNEL"))  # never itself
+
+    def test_k2_on_the_loops_memory_the_lead_is_route116(self):
+        """KNOWLEDGE section 5's table, on the AI's real memory of the loop: from the woods, ROUTE 104's north strip and
+        RUSTBORO the lead toward RUSTURF_TUNNEL is ROUTE 116 (a90c8e8f: None everywhere, the walk the bare explorer), with a
+        seasoned player's reason; on ROUTE 116 itself, None: the search there is its own."""
+        from ai_player.brain.goals import WAY_IN, lead_toward
+        from ai_player.knowledge import atlas
+        for key, xy in (("24:11", (15, 5)), ("24:11", (24, 11)), ("0:19", (11, 29)), ("0:19", (10, 29)), ("0:3", (16, 39))):
+            lead = lead_toward(self.fixture_world(key, xy), "RUSTURF_TUNNEL")
+            self.assertEqual(lead, "ROUTE116", (key, xy))  # FAULT (K1 removed): None
+            self.assertEqual(lead.why, f"{WAY_IN}: ROUTE116 has a way into it")
+        self.assertIsNone(lead_toward(self.fixture_world("0:31", (38, 10)), "RUSTURF_TUNNEL"))  # on it
+        with mock.patch.dict(atlas._CACHE, {"entries": {}}):  # noqa: SLF001 - FAULT half: the atlas without the fact
+            self.assertIsNone(lead_toward(self.fixture_world("0:19", (11, 29)), "RUSTURF_TUNNEL"))
+
+    def test_k3_none_when_it_has_stood_on_no_entry_map(self):
+        """The E0 C and T legs began chapter 5 (their L4 memories, measured) without ever having stood on ROUTE 116: the
+        lead is None, as before, until they have."""
+        from ai_player.brain.goals import lead_toward
+        world = self.fixture_world("0:19", (11, 29))
+        del world.maps["0:31"]
+        self.assertIsNone(lead_toward(world, "RUSTURF_TUNNEL"))
+        world = self.fixture_world("0:19", (11, 29))
+        world.maps["0:31"].visits.clear()  # seen across RUSTBORO's edge, never stood on
+        self.assertIsNone(lead_toward(world, "RUSTURF_TUNNEL"))
+
+    def test_k4_controls_a_known_goal_a_town_building_a_cave_entered_from_a_cave(self):
+        from ai_player.brain.goals import Lead, lead_toward
+        known = world_with("ROUTE116", "RUSTURF_TUNNEL", "RUSTBORO_CITY", current="RUSTBORO_CITY")
+        self.assertIsNone(lead_toward(known, "RUSTURF_TUNNEL"))  # a map it knows: straight there
+        town = world_with("PETALBURG_CITY", "ROUTE102", current="ROUTE102")
+        lead = lead_toward(town, "PETALBURG_CITY_GYM")
+        self.assertEqual(lead, "PETALBURG_CITY")  # a building: its own town, by the name, as before
+        self.assertNotIsInstance(lead, Lead)
+        cave = world_with("ROUTE106", "GRANITE_CAVE_1F", current="ROUTE106")
+        self.assertIsNone(lead_toward(cave, "GRANITE_CAVE_STEVENS_ROOM"))  # its only entry (the cave's 1F) is no open country
+        dewford = world_with("DEWFORD_TOWN", "ROUTE106", current="DEWFORD_TOWN")
+        dewford.connections.append({"source": "0:1", "target": "0:2", "direction": "left", "from": [0, 5], "arrival": [39, 5],
+                                    "offset": [40, 0], "by": "ai", "frame": 1})
+        self.assertEqual(lead_toward(dewford, "GRANITE_CAVE_1F"), "ROUTE106")  # chapter 7's cave: its mouth's route
+        lost = world_with("DEWFORD_TOWN", "ROUTE106", current="DEWFORD_TOWN")  # no known way to ROUTE 106: no lead
+        self.assertIsNone(lead_toward(lost, "GRANITE_CAVE_1F"))
+
+    def test_k5_the_walk_goes_first_to_route116_and_says_why(self):
+        """(The census: `lead_toward`'s one site, `GoalRunner._travel_on`) Told of RUSTURF TUNNEL on ROUTE 104's north
+        strip, the go walks FIRST to ROUTE 116 (the lead), then on, and its line says it is a seasoned player's knowledge."""
+        from ai_player.brain.goals import GoalRunner
+        world = self.fixture_world("0:19", (11, 29))
+        walks: list[str] = []
+        told: list[str] = []
+
+        def run(intent, why):
+            walks.append(intent.name)
+            yield
+            return "done (test)"
+
+        nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(20)], const="ROUTE104")), nav,
+                            manager("Trainer"), types.SimpleNamespace(purpose=""), told.append)
+        drive(runner._travel("RUSTURF_TUNNEL", "to RUSTURF_TUNNEL", 9000, lambda seen: False))  # noqa: SLF001
+        self.assertEqual(walks, ["travel to ROUTE116", "travel to RUSTURF_TUNNEL"])  # FAULT (G698/G699): no lead
+        self.assertTrue(any("first to ROUTE116, a seasoned player's knowledge: ROUTE116 has a way into it" in line
+                            for line in told), told)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

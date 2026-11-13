@@ -187,7 +187,7 @@ from ai_player.hands.dialogue import player_free
 from ai_player.hands.field_item import use_on
 from ai_player.hands.pad import Hands
 from ai_player.hands.party_order import lead_with
-from ai_player.knowledge.atlas import boss_party, gym_leaders, open_map, town_places
+from ai_player.knowledge.atlas import boss_party, entry_maps, gym_leaders, open_map, town_places
 from ai_player.knowledge.seasoned import land_levels
 from ai_player.knowledge.story import Milestone, Step, Story
 from ai_player.personality import PersonalityState
@@ -829,7 +829,9 @@ def lead_toward(world, goal_const: str | None) -> str | None:
     """Heading for a map it has NOT been to (`goal_const` unknown to its memory): the open map (`open_way`: a town, a route,
     the woods; KI-128) it HAS been to where the most is left to see (`WorldMemory.promise`: frontier, exits not used, roads), routes before towns, nearer first; None
     when the goal is known, or nothing promising is known. A person who is told "ROUTE 103" and has seen only Littleroot
-    and part of ROUTE 101 walks on up ROUTE 101, not into the houses."""
+    and part of ROUTE 101 walks on up ROUTE 101, not into the houses. (The chapter-5 search fix K1, 2026-11-13) A place
+    that is no open country and whose name no town holds (a cave, a tunnel): the map a seasoned player knows it is entered
+    from, where it has been (`entry_lead`)."""
     if goal_const is not None and any(memory.const == goal_const for memory in world.maps.values()):
         return None
     if goal_const is not None and not open_way(goal_const):
@@ -842,6 +844,10 @@ def lead_toward(world, goal_const: str | None) -> str | None:
                  and goal_const.startswith(f"{m.const}_")]
         town = max(towns, key=len) if towns else None
         there = here is not None and (here.const == town or str(here.const or "").startswith(f"{town}_"))
+        if town is None:
+            # (K1) no town's name holds it: the map it is entered from, as a seasoned player knows (None as before when it
+            # stands on one, has been to none, or knows no way to one)
+            return entry_lead(world, goal_const)
         return town if town is not None and not there else None
     here = world.here()
     if here is not None and open_way(here.const) and world.promise(here.key) > 0:
@@ -856,6 +862,48 @@ def lead_toward(world, goal_const: str | None) -> str | None:
             continue
         options.append((world_distance(world, key), -(1 if const.startswith("ROUTE") else 0), -promise, const))
     return min(options)[3] if options else None
+
+
+class Lead(str):
+    """(The chapter-5 search fix K1, 2026-11-13) A map `lead_toward` names, carrying WHY it is the lead (`why`), which
+    `GoalRunner._travel_on` tells. A lead given as a plain string is where the most is left to see."""
+
+    why = "where the most is left to see"
+
+
+#: (K1) the words a seasoned player's lead gives (`entry_lead`), as `knows_gym`'s and `GYM_BACK`'s do
+WAY_IN = "a seasoned player's knowledge"
+
+
+def entry_lead(world, goal_const: str) -> Lead | None:
+    """(The chapter-5 search fix K1, 2026-11-13) A SEASONED PLAYER'S LEAD toward a place never seen that is no open country
+    and whose name no town holds (a cave, a tunnel: `lead_toward`'s building rule finds no town). Of the maps the place is
+    entered from (`knowledge/atlas.py` entry_maps: a guide's map, USER RULING 40, "the maps and their connections"), the
+    OPEN map (`open_way`) it HAS stood on that is nearest by the known way (`world_distance`). None while the player stands
+    on one of them (the search there is the explorer's own taste), and None when it has stood on none of them or knows no
+    way to any (a person heads only where they know the way): then the walk is as before.
+    WHY (the E0 chapter 1-5 check, 2026-11-13, seeds 6481-6483): told of RUSTURF TUNNEL, the two runs that missed searched
+    ROUTE 104 and PETALBURG WOODS for it, back and forth, until the frame budget or the patience ran out, while ROUTE 116,
+    the tunnel's way in and a map they had walked, was never a lead (`lead_toward` gave None: the tunnel is no open country
+    and no town's name holds it). A seasoned player knows the tunnel is on ROUTE 116, east of RUSTBORO.
+    NOT A ROUTE PLANNER (KI-128's rejection, 06 2026-10-31): it names ONE MAP; the walk there is the AI's own explorer over
+    the links it has walked itself, and on that map the search for the way in is its own: no tile of the warp is read (no
+    beeline, RULING 40)."""
+    entries = entry_maps(goal_const)
+    here = world.here()
+    if not entries or (here is not None and here.const in entries):
+        return None
+    options = []
+    for key, memory in world.maps.items():
+        if memory.const in entries and memory.visits and open_way(memory.const):
+            hops = world_distance(world, key)
+            if hops < UNREACHABLE:
+                options.append((hops, memory.const))
+    if not options:
+        return None
+    lead = Lead(min(options)[1])
+    lead.why = f"{WAY_IN}: {lead} has a way into it"
+    return lead
 
 
 #: The places that keep the player ON the map it searches (`travel_intent(stay=True)`): no road, exit or way back off it.
@@ -3645,7 +3693,10 @@ class GoalRunner:
         nav, active = self.nav, self.manager.state.active
         lead = lead_toward(nav.world, target_map)
         if lead is not None:
-            self.tell(f"[AI-GOALS] {target_map} is somewhere it has not been: first to {lead}, where the most is left to see")
+            # (the chapter-5 search fix K1, 2026-11-13) the lead says why it is the lead (`Lead`): a seasoned player's lead
+            # says what it knows (`entry_lead`)
+            because = lead.why if isinstance(lead, Lead) else Lead.why
+            self.tell(f"[AI-GOALS] {target_map} is somewhere it has not been: first to {lead}, {because}")
             outcome = yield from nav.run(travel_intent(lead, active, budget // 2,
                                                        lambda look: done(look) or (look.player is not None
                                                                                    and look.player.map_const == lead)),

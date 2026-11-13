@@ -815,7 +815,8 @@ class Navigator:
 
     def walls(self, memory: MapMemory, here: tuple[int, int]) -> frozenset:
         """Tiles not to step on now: where someone stands, and (the step-3.1 verifier's round) a tile a repeating scene
-        sent the player back from in this intent (`scene_walls`)."""
+        sent the player back from in this intent (`scene_walls`). (The chapter-5 search fix E, 2026-11-13) `objects_now`
+        holds the things it saw standing on this map in this session too, on screen or not (`MapMemory.standing`)."""
         return frozenset((memory.objects_now | self.scene_walls.get(memory.key, set())) - {here})
 
     def ponged_now(self, target: Target) -> bool:
