@@ -66,6 +66,8 @@ SUITES: dict[str, tuple[list[str], int]] = {
     "test_kb2": ([str(GATES / "test_kb2.py")], 2),
     # (boss preparation BP-1, 2026-11-09) the readiness verdict, the plan, the raise and their wiring (offline)
     "test_bossprep": ([str(GATES / "test_bossprep.py")], 2),
+    # (P11-1, 2026-11-11) the way through a dark cave: the loader, the explorer's way, the offline model A/B (about 40 s)
+    "test_ways": ([str(GATES / "test_ways.py")], 2),
     # build step 5.3, stage A1: the typed checks' unit tests (A1-1 to A1-4 and the A1 fix round; offline, about 7 s). Its
     # GraderImportTests.test_the_tree_as_it_stands_passes runs the G-3 rule (no grader takes a value from the AI's code)
     # on the tree as it stands, so this suite enforces G-3 too

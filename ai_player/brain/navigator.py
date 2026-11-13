@@ -294,7 +294,7 @@ def exit_press(behavior: str) -> str | None:
 def stale_reason(memory: MapMemory, target: "Target") -> str | None:
     """Why a chosen target is no longer worth walking to, by what the AI has seen since it chose it (build step 3.1,
     finding 2), or None: a FRONTIER tile with nothing unseen beside it any more, TALL GRASS already walked, (step 4.1 round
-    2) a PERSON already met."""
+    2) a PERSON already met, (P11-1) the WAY through a dark cave walked toward while unseen, now seen."""
     if target.kind == "frontier" and memory.known(target.tile) and not memory.unknown_neighbours(target.tile):
         return "everything beside it has been seen on the way"
     if target.kind == "grass" and memory.visits.get(target.tile):
@@ -302,6 +302,10 @@ def stale_reason(memory: MapMemory, target: "Target") -> str | None:
     # (step 4.1 round 2, finding 7) a person walked up to: met on the way (`world/memory.py` MEET_RADIUS)
     if target.kind == "people" and target.who is not None and target.who in memory.met:
         return "the player has been beside them: met"
+    # (P11-1, 2026-11-11) the way through a dark cave, walked toward while unseen (`brain/explore.py` way_aims): once its
+    # tile is seen, the way is chosen again (the ladder as the exit it is, with its press)
+    if target.kind == "way" and target.exit is None and memory.known(target.tile):
+        return "the way on is in sight now"
     return None
 
 
@@ -485,7 +489,7 @@ class Target:
     """Where the AI decided to go, and why. `tile` is where it walks; for an exit (a warp, a door) `exit` is that tile
     and `direction` the press that uses it from `tile`; a ROAD (a tile past the map's edge) is walked onto."""
 
-    kind: str  # frontier, road, door, back, route, grass, people, wander, goto
+    kind: str  # frontier, road, door, back, route, grass, people, wander, goto; (P11-1) way (`brain/explore.py` dark_way)
     tile: tuple[int, int]
     reason: str
     score: float = 0.0

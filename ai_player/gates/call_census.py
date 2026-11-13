@@ -45,7 +45,9 @@ if str(REPO) not in sys.path:
 #: (R1 + R2, build stage 4) `revert_r1` too: R1's census sites are closed by its mutants (orchestrator ruling 4)
 MUTANT_SOURCES = ("revert_step5", "revert_r1",
                   # (boss preparation BP-1, 2026-11-09) its wiring mutants delete the calls the slice added
-                  "revert_bossprep")
+                  "revert_bossprep",
+                  # (P11-1, 2026-11-11) its wiring mutants delete the calls the way through a dark cave added
+                  "revert_p11")
 WAIVERS = Path(__file__).resolve().parent / "census_waivers.json"
 WAIVER_MIN = 20
 #: never the AI code: the test side and the run output

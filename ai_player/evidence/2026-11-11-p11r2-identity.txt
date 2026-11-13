@@ -1,0 +1,43 @@
+AI PLAYER P11-2, THE DARK GRANITE CAVE CROSSING'S FIXES - THE LIVE IDENTITY CHECK (development: one trajectory per seed,
+replayed in two codes, never a rate)
+date: 2026-11-11
+worktree: .claude/worktrees/ch6-p11, branch wip/ch6-p11, HEAD f1069d9d (P11-1 committed), P11-2's change UNCOMMITTED
+design: PROJECT KNOWLEDGE/06-DECISIONS-LOG.md, 2026-11-11 "The fix round after BP-1 round 3 and P11-1", item 5
+run book: C:/Remote Projects/_ai_lab/s53/p11r2/STATE.md (every step, dated); kit and records in s53/p11r2/
+LEDGER: #120 (driver p11r2_id, seeds 6452-6454, development; bounds = sha256 of prediction_id.txt a3937784..., written and
+hashed before the runs; the seeds checked free in 212 ledgers by seeds_free_p11r2.py, the working copy of the parallel
+worktree wf_e7452923-f06-3 not read: every branch tip's committed ledger read with git show instead).
+
+WHAT IS CHECKED (the lead's call: F1-F5 change no through mark and no live result on GRANITE's forward crossing):
+  A  P11-1 as committed: f1069d9d's ai_player (git archive), digest 384f9a3b39a76cd1, play digest 4fcb6c66bf983fc6
+  B  P11-2: the worktree's ai_player (F1-F6), digest af101d3e606c6f62, play digest 87d5b014f8189cfe (= the worktree's).
+     Play code differs from A's only in brain/explore.py (F2), knowledge/ways.py (docstrings) and knowledge/world/ways.json
+     (F1, F4: the muddy slope modelled; VICTORY ROAD B1F/B2F and the three unused CAVE OF ORIGIN maps left out).
+  Both from P11-1's B1F starts (#113, md5 = s53/p11r1/starts_p11/MD5.txt), the start's personality (C1 Story, C2 Catcher,
+  C3 Trainer), target ch7_steven, 120,000 frames, through the real launcher (live_step5.run_arm), pairs started 3 s apart.
+JUDGE: s53/p11r2/judge_id.py, read only, from each run's actions.jsonl, up to the FIRST record on GRANITE CAVE 1F (24,7):
+  W  with frames: every record (frame, decision, action, reason, extra, digest), normalised only for the eyes' wall-clock
+     cost, the timing extras and the order of a printed set's items; KC: the (decision, action) pairs of every decide, goal,
+     goal_end, instructed and press record. Its own controls first, on P11-1's records: ab3 C1 FIX vs FAULT DIFFERS at
+     record 10 (the first decide: `way` against `frontier`); a run against itself IDENTICAL (992 records).
+
+#120 id (6452 C3, 6453 C1, 6454 C2), 19:43:39-19:48:27, "stage code unchanged: True":
+  I1 HELD: both runs of every pair reached 1F (the first 1F record: C1 index 960 at f792534, C2 820 at f671167, C3 715 at
+     f861965, the same index and frame in A and B).
+  I2 HELD: W IDENTICAL through the first 1F record in 3 of 3 pairs (961 / 821 / 716 records).
+  I3 HELD: KC IDENTICAL in 3 of 3 (93 / 79 / 64 records; 20 / 16 / 15 decides).
+  I4 HELD: every dark stay before 1F (B1F, B2F, B1F) began with a `way` decide in both arms of every pair: the fact fired,
+     so the comparison is of two walks BY the fact, not of two walks without it.
+  I5 HELD: purity CLEAN 6 of 6, ai_bot_calls 0.
+  The GAME's records (the launcher's end read): every run ended "play: done: ch7_steven reached" on map 24:10 (STEVEN's
+  room), DELIVERED_STEVEN_LETTER 1; A and B end on the same frame in each pair (872,643 / 680,118 / 867,771).
+  OBSERVED, not predicted (outside the compared span): the full streams are identical to the end in all 3 pairs (the
+  verifier's stream_cmp.py --canon: 5,080 / 1,120 / 936 records); the end states' md5 differ (the PNG state and the host
+  clock), their marks are equal. The C1 pair, in BOTH arms, ran the stale 1F errand again ("back over to it", "no item ball
+  where it lay at (17, 7) any more"), left the cave and crossed twice (STEVEN at +103k frames): P11-x, which
+  s53/p11r2/P11X-DIAGNOSIS.md traces to the B1F starts' memory (the world memory restored without the goal memory's
+  tried_items), not to either code.
+READING: F1-F5 left GRANITE's forward crossing exactly as P11-1 played it, as the code says they must (the crossing's walks
+are goal-less, so F2's route-first order never applies; the through marks are unchanged; the changed (4,21) way toward B2F
+is read only by a goal that accepts B2F and not STEVEN's room or 1F; VICTORY ROAD and CAVE OF ORIGIN are never stood on).
+Three trajectories, each replayed in two codes: a determinism check that the change is inert here, not a rate.

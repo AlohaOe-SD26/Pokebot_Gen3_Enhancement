@@ -84,7 +84,9 @@ from dataclasses import dataclass, replace
 
 from ai_player.brain.navigator import (MEET_TRIES, Intent, Navigator, Target, distances, exit_press, in_map_walls,
                                        step_from)
+from ai_player.brain.navigator import astar, path_cost  # (P11-1) the way through a dark cave, planned through the unseen
 from ai_player.eyes.observation import Observation
+from ai_player.knowledge.ways import Way, dark, way_on, way_through
 from ai_player.world.memory import DIRECTIONS, OPPOSITE, MapMemory, WorldMemory, moved, past_edge, road_side
 
 __all__ = [
@@ -95,6 +97,8 @@ __all__ = [
     "PEOPLE_RECENT",
     "SEEN_ALL",
     "VALUE_TILES",
+    "WAY_THROUGH",
+    "WAY_VALUE",
     "WEIGHTS",
     "Weights",
     "ahead",
@@ -102,6 +106,7 @@ __all__ = [
     "candidates",
     "carry_on",
     "choose_target",
+    "dark_way",
     "further",
     "opened",
     "explore_intent",
@@ -115,6 +120,7 @@ __all__ = [
     "ride_stands",
     "route_to",
     "standing_walls",
+    "way_aims",
     "ways_from",
     "weights_for",
 ]
@@ -170,8 +176,16 @@ PROMISE_FULL = 10
 #: (build step 3.1) The kinds of place that are somewhere NEW on this map, and the reason's start that marks the exit
 #: back the way the AI just came in (dropped while any new place is reachable: `candidates`). (Step 4.1 round 2) a person
 #: not met yet is someone new.
-ONWARD_KINDS = ("frontier", "road", "door", "route", "grass", "people")
+ONWARD_KINDS = ("frontier", "road", "door", "route", "grass", "people", "way")
 JUST_COME_FROM = "it leads straight back to"
+#: (P11-1, 2026-11-11) THE WAY THROUGH A DARK CAVE (`dark_way`): what the way on is worth, above a known route toward the
+#: goal (`ROUTE_VALUE`) and far above any frontier (at most ~31 points): a seasoned player who knows the ladder on walks to
+#: it rather than search the dark. MEASURED offline on the pinned layouts (`s53/p11r1/dark_sim.py` P2, the diagnosis's
+#: model): the pull to the known ladder takes B1F 114 -> 70, B2F 217 -> 99, the last B1F stay 40 -> 4 steps; a way 30 tiles
+#: away through the unseen (cost `UNKNOWN_COST` 3 each, 90) still scores 60, clearly above the frontier
+WAY_VALUE = 15.0
+#: (P11-1) every place the way through the dark gives starts its reason with these words (the records say which it was)
+WAY_THROUGH = "the way through the dark"
 #: (the step-4 verifier's round) the reason's end that marks a way back to a map with nothing left to see (`candidates`)
 SEEN_ALL = "seen all of"
 
@@ -471,6 +485,52 @@ def _approaches(memory: MapMemory, exit_tile: tuple[int, int], reach: dict) -> l
     return sorted(out, key=lambda item: item[2])
 
 
+def dark_way(nav: Navigator, memory: MapMemory, goal: Callable[[MapMemory | None, str], bool] | None) -> Way | None:
+    """(P11-1, 2026-11-11) THE WAY THROUGH A DARK CAVE: on a DARK map (`knowledge/ways.py` dark: the caves that need FLASH,
+    where the screen shows a small lit circle), the ladder the static fact names as the way on, from the ladder the player
+    came onto this map by (its latest arrival in the world memory, `WorldMemory.transitions`): toward a map the intent's
+    `goal` accepts when it has one (`way_on`), and with NO goal (round 2: the walk toward STEVEN is goal-less, "by looking
+    around: not told yet", and the first live A/B, #114, never fired) THE WAY THROUGH the cave, toward the farthest place
+    that arrival leads to (`way_through`). None on any other map, with no recorded arrival, or when the intent has a goal
+    the fact names no way toward (a traveller bound elsewhere is not sent through the cave). What a seasoned player knows
+    from a guide (USER RULING 40: "the ladder on is east"); the AI still sees only the lit circle and its memory learns
+    only what it saw. `goal(memory, key)` is asked of each map the fact says this arrival leads toward: of the AI's own
+    memory of it when it has been there, else of an EMPTY stand-in (no tile, nothing seen) that only names it, so a goal by
+    map const (`explore_intent`, `goals.travel_intent`) or by memory key (`goals.lost_way`) answers as it would on
+    arriving."""
+    if not dark(memory.const):
+        return None
+    world = nav.world
+    arrival = next((change.arrival for change in reversed(world.transitions) if change.target == memory.key), None)
+    if arrival is None:
+        return None
+    if goal is None:
+        return way_through(memory.const, arrival)
+    by_const = {known.const: known for known in world.maps.values() if known.const}
+
+    def toward_goal(name: str) -> bool:
+        known = by_const.get(name)
+        if known is not None:
+            return bool(goal(known, known.key))
+        return bool(goal(MapMemory(f"way:{name}", name, name), f"way:{name}"))
+
+    return way_on(memory.const, arrival, toward_goal)
+
+
+def way_aims(memory: MapMemory, take: tuple[int, int], reach: dict) -> set[tuple[int, int]]:
+    """(P11-1) Where a walk toward the way's ladder `take` aims while it cannot yet be USED as a seen exit: the ladder's
+    own tile while it is unseen (a plan through the unseen at `navigator.UNKNOWN_COST` a tile, redone as the lit circle
+    shows the walls), else, seen but with no seen tile beside it that a walk gets to (`_approaches`), its unseen
+    neighbours (a place to stand by it, not seen yet). Empty when the ladder is in sight with a way to stand by it (then it
+    is a place of its own: `candidates`' exits) or nothing beside it is left unseen. Only UNSEEN tiles are aimed at: a seen
+    one is never walked to by this rule."""
+    if not memory.known(take):
+        return {take}
+    if take in memory.exits() and _approaches(memory, take, reach):
+        return set()
+    return {moved(take, direction) for direction in DIRECTIONS if not memory.known(moved(take, direction))}
+
+
 def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callable[[MapMemory | None, str], bool] | None = None,
                jitter_on: bool = True) -> list[Target]:
     """Every place worth going on this map, scored (module docstring). `jitter_on` False (build step 3.2: a choice ON THE
@@ -549,11 +609,21 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
             return weights.back + bonus, f"it leads back to {name}, where {left} thing(s) are left to see"
         return weights.back, f"it leads back to {name}, {SEEN_ALL}"
 
+    # (P11-1, 2026-11-11) on a DARK map, the way on the static fact names (`dark_way`); None everywhere else
+    way = dark_way(nav, memory, goal)
+    way_why = (f"{WAY_THROUGH} (a seasoned player's knowledge): from the ladder at {way.arrival} the way on toward "
+               f"{way.toward} is the one at {way.take}, to {way.leads_to}" if way is not None else "")
     # exits: warps and doors seen on this map
     for exit_tile in memory.exits():
         link = world.link_of(memory.key, exit_tile)
         if first_hop is not None and first_hop[0] == "warp" and tuple(first_hop[1]["tile"]) == exit_tile:
+            # (P11-2, the P11-1 verifier's V2) the route's first hop keeps the ROUTE's role even where it is also the way's
+            # ladder: the AI's own known way toward its goal, exactly as before P11-1, so `goals.lost_way` (which walks the
+            # known routes only) still finds it. The fact adds a `way` only where the memory knows no route by that exit
             kind, value, why = "route", ROUTE_VALUE, f"it leads toward the goal ({len(route)} link(s) known)"
+        elif way is not None and exit_tile == way.take:
+            # (P11-1, option A folded into B) the way on, IN SIGHT: it outranks every frontier of the dark (`WAY_VALUE`)
+            kind, value, why = "way", WAY_VALUE, f"{way_why}: in sight"
         elif link is None:
             kind, value, why = "door", weights.door, "an exit not used yet: where does it go?"
         elif world.visited(link["to"]):
@@ -563,6 +633,22 @@ def candidates(nav: Navigator, look: Observation, weights: Weights, goal: Callab
             kind, value, why = "door", weights.door, "an exit to a map not visited yet"
         for stand, direction, cost in _approaches(memory, exit_tile, reach)[:1]:
             add(kind, stand, value, why, exit_tile, direction, cost)
+    if way is not None:
+        # (P11-1, option B) the way on NOT IN SIGHT YET (or no seen tile beside it a walk gets to): walked toward through
+        # the unseen, the navigator's own plan (`astar`, an unseen tile at `UNKNOWN_COST`), its cost the plan's; the plan
+        # is redone at every step as the lit circle shows the walls (`Navigator._next_step`), and the place is dropped as
+        # soon as it is seen (`navigator.stale_reason`): then the ladder is chosen as the exit it is, above. No plan known:
+        # no place (the fact never loops on a ladder no walk is known to get to)
+        aims = way_aims(memory, way.take, reach)
+        if aims:
+            planned = in_map_walls(memory, walls, None)
+            path = astar(memory, here, aims, planned, weights.grass_cost)
+            cost = path_cost(memory, here, path, planned, weights.grass_cost) if path else None
+            if cost is not None:
+                end = here
+                for direction in path:
+                    end = moved(end, direction)
+                add("way", end, WAY_VALUE, f"{way_why}: not in sight yet, walked toward through the dark", cost=cost)
     # (chapter 6 NS2, 2026-11-06) a RIDE from this map is the first link toward the goal: walk up beside the person (the
     # nearest tile beside where they stood), where the play brain talks to them (`Navigator.run`, `rider`)
     if first_hop is not None and first_hop[0] == "ride":

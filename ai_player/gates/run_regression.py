@@ -208,7 +208,9 @@ REVERTS = ("revert_step3", "revert_safety_gates", "revert_step5", "revert_step2"
            # R1 + R2 (build spec 2026-10-29 section 6): saving, continuing, the memory file, and their call-census sites
            "revert_r1",
            # (boss preparation BP-1, 2026-11-09) the verdict, the plan, the raise and their call sites
-           "revert_bossprep")
+           "revert_bossprep",
+           # (P11-1, 2026-11-11) the way through a dark cave and its call sites
+           "revert_p11")
 #: evidence group -> the file stem it writes (`<date>-<stem>.txt`): each must match its suite's glob in suite_map.json
 EVIDENCE_NAMES = {"units": "regression-units", "revert_step5": "regression-step5-revert",
                   "revert_safety_gates": "regression-revert-gates", "revert_r1": "regression-r1-revert"}
