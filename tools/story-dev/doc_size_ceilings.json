@@ -14,7 +14,7 @@
       "raised": []
     },
     "02-ARCHITECTURE.md": {
-      "ceiling": 71900,
+      "ceiling": 72741,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -38,6 +38,13 @@
           "from": 71281,
           "to": 71900,
           "why": "chapter 5's stops (2026-11-05): one module-map line for skills/instructed.py, the POKeNAV eyes and the grunt's talk step"
+        },
+        {
+          "date": "2026-11-06",
+          "field": "ceiling",
+          "from": 71900,
+          "to": 72741,
+          "why": "2026-11-06: the graded New Game chain driver ai_player/gates/live_chain.py merged to main; 02 gains its module paragraph (commands, refusals, exit codes, tests), the architecture of a new gate, not history"
         }
       ]
     },
@@ -48,7 +55,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 68750,
+      "ceiling": 68389,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -86,6 +93,13 @@
           "from": 68250,
           "to": 68750,
           "why": "chapters 6-7 wired in a worktree (2026-11-05), probe stopped at ch6_briney_house (KI-134): the resume point, queue item 4, the cloud-branch note and the banner carry the new status; the growth is right"
+        },
+        {
+          "date": "2026-11-09",
+          "field": "ceiling",
+          "from": 68250,
+          "to": 68389,
+          "why": "2026-11-09: the queue's chapter 6-7 line must say that boss prep BP-1 is built on side branch wip/ch6-bp1 with a verifier FAIL and what to fix next; no caveat trimmed, and the session stops at the week's usage cap"
         }
       ]
     },

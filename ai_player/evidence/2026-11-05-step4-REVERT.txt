@@ -1,6 +1,6 @@
 AI PLAYER BUILD STEP 4 - MUTANT PROOF OF THE BATTLES (gates/revert_step4.py)
-date: 2026-11-05 15:30:51
-code: HEAD 979754bf; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:8610c4fa67714345 over git diff HEAD (11 files, 106342 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-11-05 18:56:30
+code: HEAD fcb997f5; ai_player/ clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
 Each mutant breaks ONE rule of the real code in a copy; CAUGHT = its predicted tests of gates/test_battle.py fail; REDUNDANT = no test fails, and the reason the rule is redundant alone is stated.
 
 [B0] CONTROL, the unchanged copy: 107 tests, failing none (ran the copy: True) -> PASS

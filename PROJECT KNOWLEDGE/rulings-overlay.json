@@ -530,6 +530,57 @@
    "reason": "06 2026-11-05 \"Chapters 6-7 wired\": \"Do not reopen: the draft's four-step STEVEN list (probed against the real `story_step`, not argued); copying the cloud note.\"",
    "status": "ACTIVE",
    "topics": "chapter 6 chapter 7 milestones Briney Dewford Steven Granite Cave Brawly talk step story_step go step regress cloud draft POKEBOT_DECOMP verify pinned decomp"
+  },
+  "2026-11-06-dc449a": {
+   "title": "2026-11-06 — The graded chain driver `live_chain.py`: a WRITTEN threat model, \"grade DIR is never better than the ledger\", its refusals and exit codes, and a stopping rule for its checks (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "5ff117c0": "marker"
+   },
+   "do_not_reopen": "Do not reopen an in-process defense in live_chain.py against code written to disable the grader (the purity gate's and R9's job), or grade DIR trusting results.json over the ledger (2026-11-06).",
+   "reason": "06 2026-11-06 \"The graded chain driver\": \"Do not reopen: an in-process defense against code written to disable the grader (that is the purity gate's and R9's job); `grade DIR` trusting results.json over the ledger.\"",
+   "status": "ACTIVE",
+   "topics": "live_chain graded New Game chain driver threat model grade DIR ledger refusal exit codes stopping rule checks purity R9 C4-H05 C6-02 C7-02 mgba closure"
+  },
+  "2026-11-07-08dac8": {
+   "title": "2026-11-07 — USER RULING 58: against a boss the party loses to, all three plans are viable (train the whole team, bring a counter, fight smarter) for BRAWLY and every gym leader, boss and the Elite Four; a counter is judged by its typing's RESISTANCES and by its MOVES' type advantages (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "7dc65651": "marker"
+   },
+   "ruling_key": "58@2026-11-07",
+   "do_not_reopen": "Do not re-ask what a seasoned player does against a boss the party loses to: all three (train the whole team; a counter judged by its resistances AND its moves' type advantages; smarter fights) are viable for every gym leader, boss and the Elite Four (2026-11-07).",
+   "reason": "06 USER RULING 58: \"All 3 are viable for the Brawly fight and all gym leaders, bosses and elite 4 for that matter. Keep in mind pokemon types are good for resistances but type advantages in moves need to be considered as well\"",
+   "status": "ACTIVE",
+   "topics": "boss gym leader Elite Four BRAWLY P4-1 lose losses preparation train team counter type advantage resistance move types switch potions items battle strategy"
+  },
+  "2026-11-07-62bc04": {
+   "title": "2026-11-07 — Correction to the USER RULING 58 entry above: a boss Pokémon's HELD ITEM is known (USER RULING 44), so it is not hidden state for boss preparation (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "e4653cf6": "mention"
+   },
+   "amends": "2026-11-07-08dac8",
+   "reason": "06 correction: \"the USER RULING 58 entry's knowledge bullet lists 'held items not shown' among the live hidden state ... For bosses that is wrong: USER RULING 44 (2026-10-21, 'Do not re-ask') says the AI KNOWS each boss Pokémon's held item\"",
+   "status": "ACTIVE",
+   "topics": "boss held item Sitrus Berry USER RULING 44 58 hidden state knowledge correction"
+  },
+  "2026-11-09-4acd7f": {
+   "title": "2026-11-09 — USER RULING 59: raising a weak Pokémon to counter a boss is \"some mix that makes logical sense\" of switch-training, its own fights, and healing (a Pokémon Center or Potions) (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "0156a392": "marker"
+   },
+   "ruling_key": "59@2026-11-09",
+   "do_not_reopen": "Do not re-ask how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09).",
+   "reason": "06 USER RULING 59: the user's answer to the raise question, verbatim: \"Some mix that makes logical sense\"",
+   "status": "ACTIVE",
+   "topics": "raise train trainee weak Pokemon counter boss switch-training switch out experience EXP share wild battles Pokemon Center heal Potion BP-1 V-M1 Wurmple"
+  },
+  "2026-11-11-334134": {
+   "title": "2026-11-11 — The order stays: chapter 6's boss preparation and dark cave, then the chapter 6-7 merge, then A1 (the trainer training the AI player); the user was unsure, so it is the lead's call (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "1da96edb": "mention"
+   },
+   "reason": "06 2026-11-11: the user was unsure (\"I am not exactly sure at this moment in time\"); the lead kept the order and wrote \"Not a do-not-reopen ruling\", so nothing here forbids re-asking",
+   "status": "ACTIVE",
+   "topics": "order priority A1 trainer train the AI player BP-1 P11-1 chapter 6-7 merge sequence impatient process"
   }
  }
 }

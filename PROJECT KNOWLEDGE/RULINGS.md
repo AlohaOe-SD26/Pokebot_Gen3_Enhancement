@@ -41,6 +41,9 @@
 | `2026-10-31-911bb5` | 9958 | Do not re-ask whether the AI trainer's practice runs from the AI's own saves are allowed (yes, with a New Game test after a few), or which limit ends a session (the frame budget; the clock is a backstop) (2026-10-31). |
 | `2026-11-05-577173` | 10020 | Do not reopen merging a development pass as a graded claim, or replacing the general instructed choice with a scene-specific (POKéNAV-only) menu script (2026-11-05). |
 | `2026-11-05-0d6710` | 10029 | Do not reopen the draft's four-step STEVEN list (a `go` list that revisits maps regresses under the real story_step) or copying the cloud note's chapter 6-7 data instead of authoring it (2026-11-05). |
+| `2026-11-06-dc449a` | 10039 | Do not reopen an in-process defense in live_chain.py against code written to disable the grader (the purity gate's and R9's job), or grade DIR trusting results.json over the ledger (2026-11-06). |
+| `2026-11-07-08dac8` | 10049 | Do not re-ask what a seasoned player does against a boss the party loses to: all three (train the whole team; a counter judged by its resistances AND its moves' type advantages; smarter fights) are viable for every gym leader, boss and the Elite Four (2026-11-07). |
+| `2026-11-09-4acd7f` | 10069 | Do not re-ask how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -60,6 +63,8 @@
 | 25 | `2026-09-29-33b616` | 2026-09-29 | 8057 | defines 26@2026-09-29, 27@2026-09-29; amends `2026-09-28-f65547` |
 | 39 | `2026-10-15-17dd10` | 2026-10-15 | 9386 | defines 39@2026-10-15 |
 | 39 | `2026-10-16-aaa49a` | 2026-10-16 | 9482 | applies `2026-10-15-17dd10` |
+| 44 | `2026-10-21-3b21a7` | 2026-10-21 | 9582 | defines 44@2026-10-21 |
+| 44 | `2026-11-07-62bc04` | 2026-11-07 | 10063 | amends `2026-11-07-08dac8` |
 | 47 | `2026-10-27-5b5b7d` | 2026-10-27 | 9785 | - |
 | 47 | `2026-10-28-7d117a` | 2026-10-28 | 9792 | applies `2026-10-27-5b5b7d` |
 | 53 | `2026-10-29-2afa57` | 2026-10-29 | 9904 | defines 53@2026-10-29 |
@@ -79,10 +84,19 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 366 sections (newest first)
+## All 375 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-12-6c76f7` | 10130 |  |  | 2026-11-12 — The chapter 6-7 merge: its docs are written on the integration branch before `main` is touched, and a frozen `main` takes the finished head in one  |
+| `2026-11-12-c7562b` | 10110 |  |  | 2026-11-12 — After BP-1 round 4 and P11-2: a closing pass with no play code; evidence is found by its tree digest; the measured boss-prep gaps go to BP-2 after  |
+| `2026-11-11-65d48b` | 10098 |  |  | 2026-11-11 — The fix round after BP-1 round 3 and P11-1: a heal only when it can change the decision; a member that cannot win is the last resort; the dark-cave |
+| `2026-11-11-9db0c9` | 10090 |  |  | 2026-11-11 — Boss prep BP-1 round 3: the trainee is protected in every battle of an active plan by a turn-1 switch, not by re-ordering the party between session |
+| `2026-11-11-334134` | 10082 |  |  | 2026-11-11 — The order stays: chapter 6's boss preparation and dark cave, then the chapter 6-7 merge, then A1 (the trainer training the AI player); the user was |
+| `2026-11-09-4acd7f` | 10069 | 59 | DO-NOT-REOPEN | 2026-11-09 — USER RULING 59: raising a weak Pokémon to counter a boss is "some mix that makes logical sense" of switch-training, its own fights, and healing (a  |
+| `2026-11-07-62bc04` | 10063 | 44, 58 | cue | 2026-11-07 — Correction to the USER RULING 58 entry above: a boss Pokémon's HELD ITEM is known (USER RULING 44), so it is not hidden state for boss preparation  |
+| `2026-11-07-08dac8` | 10049 | 58 | DO-NOT-REOPEN | 2026-11-07 — USER RULING 58: against a boss the party loses to, all three plans are viable (train the whole team, bring a counter, fight smarter) for BRAWLY and |
+| `2026-11-06-dc449a` | 10039 |  | DO-NOT-REOPEN | 2026-11-06 — The graded chain driver `live_chain.py`: a WRITTEN threat model, "grade DIR is never better than the ledger", its refusals and exit codes, and a st |
 | `2026-11-05-0d6710` | 10029 |  | DO-NOT-REOPEN | 2026-11-05 — Chapters 6-7 wired from the cloud note: ONE talk step for STEVEN, the chapter-5 method, the pinned decomp for `--verify` (punch-list #28-aiagent-v2 |
 | `2026-11-05-577173` | 10020 |  | DO-NOT-REOPEN | 2026-11-05 — Chapter 5's stops: a GENERAL instructed choice for forced menus; the grunt as data; the next graded test is a New Game to the end of chapter 5 (pun |
 | `2026-11-01-6cfa03` | 10007 |  |  | 2026-11-01 — Chapter 5's eight milestones wired into the AI from the cloud note, after two independent checks; six choices, and what the first development probe |

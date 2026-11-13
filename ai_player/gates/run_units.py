@@ -97,6 +97,9 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # mutant runner's anchors hit exactly once, no mutant run (under 1 s), and its CONTROL + FAULT tests (about 3 s)
     "check_anchors": ([str(GATES / "check_anchors.py")], 1),
     "test_check_anchors": ([str(GATES / "test_check_anchors.py")], 2),
+    # the New Game chain held-out driver (USER RULING 55, 2026-11-05): every guard's FAULT and CONTROL on stub launches,
+    # planted rows and whole stub batches, and its in-suite MUTANTS (each breaks one guard; the control M0 passes)
+    "test_live_chain": ([str(GATES / "test_live_chain.py")], 2),
 }
 
 
