@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "72cea27a4911001d84dc9732db3506b0c2e70738",
+ "source_sha1_lf": "285f6af51eb55d6e5e8f5a1df1e2139503d186b3",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 373,
+  "sections": 374,
   "donot_candidates": 37,
   "sections_naming_user_rulings": 56
  },
@@ -5872,6 +5872,21 @@
    "line_start": 10100,
    "line_end": 10119,
    "title": "2026-11-12 — After BP-1 round 4 and P11-2: a closing pass with no play code; evidence is found by its tree digest; the measured boss-prep gaps go to BP-2 after the merge; every workflow agent names its model (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-12-6c76f7",
+   "date": "2026-11-12",
+   "line_start": 10120,
+   "line_end": 10135,
+   "title": "2026-11-12 — The chapter 6-7 merge: its docs are written on the integration branch before `main` is touched, and a frozen `main` takes the finished head in one merge commit; one full lane must read PASS; a chapter 1-5 check chain runs first; what \"no emulator\" means in a closing pass; BP-1's two carried MINORs go to BP-2 (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [
