@@ -1,0 +1,14 @@
+{
+ "fixture": "ai_player/gates/fixtures/a1_e0_loops.json",
+ "fixture_sha256_lf": "2491379ea22a3b1895025d01b86837bd7a402f8ab8a0e2fbb25aeeb1ed99e90d",
+ "made_by": "ai_player/gates/make_a1_fixtures.py KEEP_DIR (KEEP_DIR = the merge lead's A1 keep folder _ai_lab/keep/2026-11-13-a1-sources: this PC only, not git)",
+ "sources_sha256": {
+  "e0-L5/LC-T-6483_L5_world_last.jsonl": "0d07bec44133a68556bed30f550a956dbbb93e5261c664451f61105a432c7c8d",
+  "e0-L5/LC-T-6483_L5_row.json": "424a6a567d5aec479fd1b8dc8620b4261e2f5df8c644112ecfc95617e56db454",
+  "e0-L5/LC-C-6482_L5_world_last.jsonl": "db42e024e0cdf71885c3769883bc81ac6e49b659f8f0545e080dcaab171f9e10",
+  "e0-L5/LC-C-6482_L5_row.json": "4dc1673b644b05c625f9b514c0a6af40d49f27a9083f39e3dacc7d2be860d9eb",
+  "e0-L5/LC-S-6481_L5_world_last.jsonl": "691b461bc0f252598169b470ea62890e9680f702882bbef5111fb69dc212b95f",
+  "e0-L5/LC-S-6481_L5_row.json": "8cbf2f7c60a9068579b62cd66358cef85b66058e006add30f39dd4ac82c4150f"
+ },
+ "why": "T31: the LOOP key on E0's own leg-5 transitions (T 59 each way, C 37 each way, the same pair; S reached, the CONTROL)"
+}
