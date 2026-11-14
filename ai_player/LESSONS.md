@@ -19,7 +19,7 @@ resolves the other way.
   log the retirement in `08-MISTAKES.md`. Change a lesson only to prevent mistakes, never to ease a check.
 * **Load:** paste the lessons that are `PROSE ONLY` or `PARTIAL` into every AI-player builder, verifier and reviewer prompt.
 * **The gates' own proof:** `gates/revert_safety_gates.py` breaks each step-5.2 gate (or deletes the CALL that wires it in)
-  in a copy; its tests must fail (mutants S1-S22, every one CAUGHT). This list's checker is mutated there too (S20-S22).
+  in a copy; its tests must fail (mutants S1-S23, every one CAUGHT). This list's checker is mutated there too (S20-S22).
 
 Status words: `GATED` (a named gate or test enforces it), `PARTIAL` (a gate covers part of it; **Needs** names the rest),
 `PROSE ONLY` (no gate yet; **Needs** names one). Origin quotes are checked in `08` (`PROJECT KNOWLEDGE/08-MISTAKES.md`), `07`
@@ -145,6 +145,12 @@ and `CLAUDE` (`CLAUDE.md`).
 - **Status:** PROSE ONLY
 - **Needs:** a gate in git that reads every driver's last full-lane time and flags a cap below it (an open item in `03`; the lab tool `lane_times.py` does it today, kept in `_ai_lab/keep/2026-11-13-a1-sources/checkers/`, not in git).
 - **Retires:** when that gate does it and is fault-tested.
+
+### PR-20. A done-test reads STATE, never a substring of a log that also describes the work.
+- **Origin:** 2026-11-14, 08 "A done-test that searched a free-text log was met by lines that only mentioned it".
+- **Status:** PROSE ONLY
+- **Needs:** a gate that flags a doc instruction of the form "unless <a log> has a line containing <a marker>", and a check before any folder is offered for deletion that runs `find_junctions.py` on it.
+- **Retires:** when both exist and are fault-tested.
 
 ## B. Proofs: property not label, call-deleting mutants, independent reads, held-out seeds, pre-registration
 

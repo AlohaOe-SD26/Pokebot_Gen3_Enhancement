@@ -29,7 +29,7 @@
       ]
     },
     "02-ARCHITECTURE.md": {
-      "ceiling": 79771,
+      "ceiling": 79856,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -81,6 +81,13 @@
           "from": 79758,
           "to": 79771,
           "why": "the chapter 6-7 merge, Tier round 2: stage 2a's rule names its file (items_gifts.json)"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 79771,
+          "to": 79856,
+          "why": "the chapter 6-7 merge's follow-ups (F7): the dated suite budget says --quick now takes over ten minutes"
         }
       ]
     },

@@ -24369,3 +24369,12 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **The fix that worked:** the lead's amendment II-A1, before the lane: a second timing-rows commit (`fa9f073d`) from the side lanes' measured seconds (revert_step5 3460 -> 12110, revert_r1 1167 -> 4085, revert_step3 2014 -> 7049, revert_safety_gates 326 -> 3456). The lane read "REGRESSION: PASS (full, 41 suites, 14363.9 s wall)".
 - **Prevention rule:** before a full lane, compare EVERY revert driver's cap (3.5 times its row) with its newest measured full-lane time; `lane_times.py` should read every driver's last lane time (an open item in `03`).
 - **LESSONS:** PR-19.
+
+## 2026-11-14 — A done-test that searched a free-text log was met by lines that only mentioned it (the merge's post-merge follow-ups, twice in one hour); the same review rounds found an unnamed junction and a checker that broke on CRLF
+
+- **Symptom:** the merge's handoff told the next session to skip the post-merge follow-ups (the run book's F7) when the lab's `STATE.md` "has an F7 line". Tier 2 (round 2) found 12 lines that only mentioned F7. The fix named an exact marker string; the lead's own log line describing that fix quoted the marker, so the test was met again before F7 had run (Tier 1 and Tier 2, round 3).
+- **Root cause:** a substring test on a free-text log cannot tell a record from a mention, and the log is exactly where every change gets described, markers included.
+- **The fix that worked:** the state lived in the doc itself: the handoff's F7 line said "while this line is in this file, F7 is NOT finished", and F7's own commit deleted it. The junction warning tests the folder (`find_junctions.py`), not a log line.
+- **Found in the same rounds (near misses):** the build worktree `wf_e7452923-f06-3` held a junction into the main sandbox's `mgba` that no doc named, while the cleanup list offered that worktree for deletion (a recursive delete through it deletes the main emulator; `04`'s JUNCTIONS line now names it, with the unlink command). And a kept old-text checker (`count3.py`) parsed 0 blocks on a CRLF note, which is how the repo checks notes out (the kept copy now folds CRLF; the unpatched lab original was the control).
+- **Prevention rule:** test state, never a log substring; if a marker is unavoidable, anchor it (a line that BEGINS with an exact form) and never write it in prose. Before offering any folder for deletion, run `find_junctions.py` on it.
+- **LESSONS:** PR-20.

@@ -299,7 +299,7 @@ PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 157 entries = 15
 #   ⏱ MEASURED 2026-09-11: the FULL suite is **~183s** and `repro_gym_whiteout_guard.py` is
 #   **~108s** of it — still the single dominant gate, but no longer a timeout. ✅ `--quick` ~31-40s
 #   *(that timing is from 2026-09-05; for the COUNT, line 244 above and `run_gates.py` are the
-#   authority — never this line)*. ⭐ **Budget ~3 MINUTES for the full suite, not 15.**
+#   authority — never this line)*. ⭐ **The full suite took ~3 MINUTES in 2026-09** (stale: `--quick` alone took about 13 minutes on 2026-10-22; `04`: start it detached).
 #   ‼ *(This comment read "a KNOWN-RED ~900s timeout (`#26-gatestartupcontention`) … so budget
 #   ~15 MINUTES, not seconds" from 2026-08-26 until 2026-09-11. That item is now CLOSED: the gate
 #   was never hanging, it was PACED to 60fps by a per-frame audio write because it never set
