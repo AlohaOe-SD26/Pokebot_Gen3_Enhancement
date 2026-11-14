@@ -55,7 +55,9 @@ read, a hidden fact, an unclassified knowledge key) and on mentions.
 
 LIMITS. Static analysis cannot follow a value: a marks dict a door hands on (as an argument) to an errand is not traced (the
 door's purpose is the review point, and the flag-name rule refuses the errand's key); a key name that is AI-visible in one
-file and developer-only in another (`id`, `map`, `metatile`) is not refused by name (its developer paths are still marked);
+file and developer-only in another (`id`, `map`, `metatile`; and `fight`, AI in milestones.json, developer-only in
+bosses.json: the atlas's reads of bosses.json are pinned by name instead, `test_kb2.py` NotReadTests.test_k_f3c) is not
+refused by name (its developer paths are still marked);
 and the developer-only key NAMES (`x`, `y`, `state`, `line`, ...) are refused in every dict the deciding code reads, so a
 dict of the AI's own that wants one of those names must use another (the price of a rule by name).
 """
@@ -81,9 +83,22 @@ LOADERS = {
     # (KI-128, 2026-10-31) the world folder's FIRST loader: each map's static map type, and nothing else. A world file is
     # walked by RULE B (classified, its developer keys refused) only once a loader here names it: the other world files
     # stay unread, as the 2026-10-22 KB2 decision intended ("nothing is read or checked until a loader and a
-    # KNOWLEDGE_FIELDS classification exist")
-    "knowledge/atlas.py": ("world/maps.json",),
+    # KNOWLEDGE_FIELDS classification exist"). (The chapter-5 search fix K1, 2026-11-13) maps.json's second slice: the MAP
+    # LINKS, map level only (`entry_maps`: each map's `id`, its warps' `dest_map`, its connections' `map`; never a warp's
+    # `x`/`y`, a developer-only key NAME that B2 refuses; pinned by test_kb2 NotReadTests.test_k_f3f)
+    "knowledge/atlas.py": ("world/maps.json",
+                           # (chapter 7 NS4, 2026-11-06) the second slice: which leader holds which gym (`gym_leaders`)
+                           "world/bosses.json"),
+    # (boss preparation BP-1, 2026-11-09) the SEASONED player's species knowledge: how a species evolves, the moves it
+    # learns by level, and the wild levels of a map's grass (`evolutions`, `level_up`, `land_levels`); every key path of
+    # the three files is classified below, so a hidden key read here (base stats, catch rate, ...) FAILS (B2)
+    "knowledge/seasoned.py": ("seasoned/species.json", "seasoned/learnsets.json", "seasoned/encounters.json"),
+    # (P11-1, 2026-11-11) the way through each DARK cave (`requires_flash`): per arrival ladder, the ladder on toward a map
+    # (`way_on`), a guide's level (USER RULING 40), written by the test side's `gates/extract_ways.py`
+    "knowledge/ways.py": ("world/ways.json",),
 }
+#: (BP-1) the knowledge SUB-FOLDERS whose files are walked by RULE B only once a loader names them (`world_files`)
+LOADED_FOLDERS = ("world/", "seasoned/")
 #: the loaders that CARRY hidden keys into a record the brain must not read (rule B2/B3): file -> hidden keys
 CARRIES = {
     "knowledge/facts.py": ("base", "hp", "attack", "defense", "speed", "sp_attack", "sp_defense", "catch_rate", "exp_yield",
@@ -201,7 +216,8 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "species": (AI, "the species a person can meet in the wild (the favourite is drawn from them)", True),
     },
     # (KI-128, 2026-10-31) the first WORLD file a loader reads (`knowledge/atlas.py`: `maps[].id` and `maps[].map_type`
-    # only). Every key path is classified, the ones no loader reads too: STATIC game knowledge a seasoned player has
+    # only; since the chapter-5 search fix K1, 2026-11-13, also `maps[].warps[].dest_map` and `maps[].connections[].map`,
+    # map level, for `entry_maps`). Every key path is classified, the ones no loader reads too: STATIC game knowledge a seasoned player has
     # (USER RULINGS 40 and 45: the map, its type and name, its ways out, where its trainers stand and what they see, its
     # items) is `ai`; the decomp's script labels, flags, source references and object ids are `developer`
     "world/maps.json": {
@@ -222,14 +238,16 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "maps[].connections": (AI, "the maps beyond its edges (a guide's map; RULING 45)", False),
         "maps[].connections[]": (AI, "one edge and the map beyond it", False),
         "maps[].connections[].dir": (AI, "which edge (up, down, left, right)", True),
-        "maps[].connections[].map": (AI, "the map beyond that edge (a guide's map)", True),
+        "maps[].connections[].map": (AI, "the map beyond that edge (a guide's map); read by the atlas's `entry_maps` "
+                                         "(K1, 2026-11-13: which maps a place is entered from)", True),
         "maps[].connections[].offset": (AI, "how the map beyond lines up along that edge (a guide's map)", True),
         "maps[].warps": (AI, "its doors, stairs and cave mouths and where they lead (a guide's map; RULING 45)", False),
         "maps[].warps[]": (AI, "one door, stairway or cave mouth", False),
         "maps[].warps[].x": (AI, "where it is (RULING 45: coordinates kept)", True),
         "maps[].warps[].y": (AI, "where it is (RULING 45: coordinates kept)", True),
         "maps[].warps[].elevation": (AI, "the level it is on", True),
-        "maps[].warps[].dest_map": (AI, "the map it leads to (a guide's map)", True),
+        "maps[].warps[].dest_map": (AI, "the map it leads to (a guide's map); read by the atlas's `entry_maps` (K1, "
+                                        "2026-11-13: which maps a place is entered from)", True),
         "maps[].warps[].dest_warp_id": (AI, "which door of that map it comes out of (a guide's map)", True),
         "maps[].trainers": (AI, "the trainers who stand on it", False),
         "maps[].trainers[]": (AI, "one trainer", False),
@@ -264,14 +282,211 @@ KNOWLEDGE_FIELDS: dict[str, dict[str, tuple[str, str, bool]]] = {
         "maps[].shared_scripts_map": (DEVELOPER, "the decomp map whose scripts this map shares: the extractor's join",
                                       True),
     },
+    # (chapter 7 NS4, 2026-11-06) the world folder's SECOND loaded file, for `knowledge/atlas.py` gym_leaders: which leader
+    # holds which gym, as a seasoned player knows (USER RULING 40). Classified LEAF BY LEAF (the containers without a
+    # subtree), as maps.json's warps are, so a developer key planted under a boss is unclassified and FAILS
+    "world/bosses.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "count": (META, "how many bosses the file holds", True),
+        "bosses": (AI, "the game's bosses: gym leaders, the Elite Four, the Champion, the rival, the teams' leaders "
+                       "(USER RULING 40: a seasoned player knows them)", False),
+        "bosses[]": (AI, "one boss", False),
+        "bosses[].name": (AI, "the boss's name as the game says it (BRAWLY)", True),
+        "bosses[].role": (AI, "what the boss is (a gym leader, the rival, ...)", True),
+        "bosses[].battled_on": (AI, "the map(s) the boss is fought on (a gym leader's gym)", False),
+        "bosses[].battled_on[]": (AI, "one such map", True),
+        "bosses[].double": (AI, "a double battle (seen at once)", True),
+        "bosses[].party": (AI, "the boss's team (a seasoned player knows it, USER RULING 40; read by atlas.boss_party, "
+                               "BP-1)", False),
+        "bosses[].party[]": (AI, "one Pokemon of it", False),
+        "bosses[].party[].species": (AI, "its species", True),
+        "bosses[].party[].level": (AI, "its level", True),
+        "bosses[].party[].types": (AI, "its types", False),
+        "bosses[].party[].types[]": (AI, "one type", True),
+        "bosses[].party[].moves": (AI, "its moves (the default moveset a guide lists)", False),
+        "bosses[].party[].moves[]": (AI, "one move", True),
+        "bosses[].party[].held_item": (AI, "what it holds (a guide lists it)", True),
+        "bosses[].party[].moves_source": (META, "how the moves were derived (the extractor's rule)", True),
+        "bosses[].types_derived_from": (META, "where the types came from (the extractor's input)", True),
+        "bosses[].measured": (META, "measured priors (none yet)", True),
+        "bosses[].badge": (AI, "the badge the leader gives", False),
+        "bosses[].badge.id": (AI, "the badge's name (BADGE02: the KNUCKLE BADGE)", True),
+        "bosses[].badge.flag": (DEVELOPER, "the badge's FLAG: a hidden flag, never read (RULE A)", True),
+        "bosses[].badge.ref": (DEVELOPER, "the decomp file and line: the developers' proof", True),
+        "bosses[].fight": (DEVELOPER, "the extractor's grouping of a boss's variants (the campaign's join)", True),
+        "bosses[].id": (DEVELOPER, "the decomp's trainer constant (TRAINER_BRAWLY_1): a defeated FLAG's name", True),
+        "bosses[].order": (DEVELOPER, "the derived campaign order (the extractor's join)", True),
+        "bosses[].entry": (DEVELOPER, "the campaign entry it belongs to (the extractor's join)", True),
+        "bosses[].rematches": (DEVELOPER, "the rematch trainer constants (flags' names)", True),
+        "bosses[].notes": (DEVELOPER, "the extractor's notes", True),
+        "bosses[].ref": (DEVELOPER, "the decomp file and line: the developers' proof", True),
+    },
+    # (boss preparation BP-1, 2026-11-09) the THREE seasoned files `knowledge/seasoned.py` reads. What a Pokedex or a guide
+    # shows is `ai` (types, abilities, evolutions, the moves learned by level / TM / tutor / egg, where a species lives,
+    # its levels and shares there); what a player never sees is `hidden` (base stats, catch rate, experience yield, growth
+    # rate, wild held items: RULE B2 refuses them to every loader that does not CARRY them); decomp references and the
+    # extractor's joins are `developer`; the files' own descriptions `meta`. The paths the loader READS are classified LEAF
+    # BY LEAF (the containers without a subtree), so a key planted under them is unclassified and FAILS
+    "seasoned/species.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "count": (META, "how many species the file holds", True),
+        "count_real": (META, "how many of them are real species", True),
+        "species": (AI, "every species (a Pokedex)", False),
+        "species[]": (AI, "one species", False),
+        "species[].symbol": (AI, "its constant: the species' own name in the code's spelling (the loader's key)", True),
+        "species[].name": (AI, "its name as the game shows it", True),
+        "species[].id": (DEVELOPER, "the decomp's species index (not the Pokedex number)", True),
+        "species[].national_dex": (AI, "its national POKéDEX number", True),
+        "species[].hoenn_dex": (AI, "its HOENN POKéDEX number", True),
+        "species[].types": (AI, "its types (a Pokedex shows them)", True),
+        "species[].abilities": (AI, "its abilities (a guide lists them; which one a Pokemon has is its PID's: hidden)", True),
+        "species[].egg_groups": (AI, "its egg groups (a guide lists them)", True),
+        "species[].egg_cycles": (AI, "how long its egg takes (a guide lists it)", True),
+        "species[].female_pct": (AI, "its gender ratio (a guide lists it)", True),
+        "species[].gender_ratio_byte": (AI, "the same ratio, as the game stores it", True),
+        "species[].placeholder": (AI, "an entry that is no real species", True),
+        "species[].evolutions": (AI, "how it evolves (a guide shows it)", False),
+        "species[].evolutions[]": (AI, "one evolution", False),
+        "species[].evolutions[].method": (AI, "by what (a level, an item, friendship, a trade)", True),
+        "species[].evolutions[].into": (AI, "the species it becomes", True),
+        "species[].evolutions[].parameter": (AI, "its condition", False),
+        "species[].evolutions[].parameter.value": (AI, "the level (or value) it needs", True),
+        "species[].evolutions[].parameter.item": (AI, "the item it needs", True),
+        "species[].base_stats": (HIDDEN, "base stats: no player sees them (step 4.1 round 3)", True),
+        "species[].catch_rate": (HIDDEN, "the catch rate: hidden (step 4.1 round 1)", True),
+        "species[].base_exp": (HIDDEN, "the experience yield: hidden", True),
+        "species[].growth_rate": (HIDDEN, "the growth rate: hidden", True),
+        "species[].wild_held_items": (HIDDEN, "what a WILD one may hold: hidden", True),
+    },
+    "seasoned/learnsets.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "count": (META, "how many species the file holds", True),
+        "species": (AI, "each species' moves (a guide lists them)", False),
+        "species[]": (AI, "one species", False),
+        "species[].symbol": (AI, "its constant (the loader's key)", True),
+        "species[].id": (DEVELOPER, "the decomp's species index", True),
+        "species[].level_up": (AI, "the moves it learns by level", False),
+        "species[].level_up[]": (AI, "one of them", False),
+        "species[].level_up[].level": (AI, "at which level", True),
+        "species[].level_up[].move": (AI, "which move", True),
+        "species[].tm_hm": (AI, "the TMs and HMs it can learn (a guide lists them)", True),
+        "species[].tutor": (AI, "the tutor moves it can learn", True),
+        "species[].egg": (AI, "its egg moves", True),
+        "tm_table": (AI, "which move each TM and HM teaches", True),
+        "tutor_moves": (AI, "the tutor moves", True),
+    },
+    "seasoned/encounters.json": {
+        "_*": (META, "where the file came from (the pinned decomp, each input's sha256, the extractor, the notes)", True),
+        "ability_decomp": (DEVELOPER, "the decomp reference of the ability rule", True),
+        "ability_note": (META, "the file's note on abilities", True),
+        "availability_note": (META, "the file's note on availability", True),
+        "availability_rules": (META, "the extractor's availability rules, in words", False),
+        "availability_rules.*": (META, "one rule", False),
+        "availability_rules.*.meaning": (META, "what it means", True),
+        "availability_rules.*.decomp": (DEVELOPER, "its decomp reference", True),
+        "availability_rules.*.maps": (DEVELOPER, "the decomp's maps it names, with the decomp lines", True),
+        "availability_rules.*.scan": (META, "how the extractor checked it (a digest of the scanned files)", True),
+        "conditions": (AI, "conditions a guide gives (Mirage Island shown, the tide)", False),
+        "conditions.*": (AI, "one condition", False),
+        "conditions.*.meaning": (META, "what it means", True),
+        "conditions.*.decomp": (DEVELOPER, "its decomp reference", True),
+        "conditions.*.methods": (AI, "the maps and ways of meeting wild Pokemon it governs", True),
+        "count_map_entries": (META, "how many map entries the file holds", True),
+        "encounter_rate_decomp": (DEVELOPER, "the decomp reference of the encounter rate", True),
+        "encounter_rate_note": (META, "the file's note on the encounter rate", True),
+        "feebas": (AI, "where and how FEEBAS is met (a guide shows it)", True),
+        "feebas.decomp": (DEVELOPER, "its decomp reference", True),
+        "groups": (META, "the extractor's grouping of the decomp's wild headers", True),
+        "maps": (AI, "the wild Pokemon of every map (a guide lists them)", False),
+        "maps[]": (AI, "one map's entry", False),
+        "maps[].map": (AI, "the map", True),
+        "maps[].availability": (AI, "when a player meets them (normal play, or a rule)", True),
+        "maps[].availability_source": (DEVELOPER, "the extractor's reason for the availability", True),
+        "maps[].base_label": (DEVELOPER, "the decomp's wild header label", True),
+        "maps[].group": (META, "the extractor's group of the entry", True),
+        "maps[].conditions": (AI, "the condition each way of meeting them needs", True),
+        "maps[].methods": (AI, "the ways of meeting wild Pokemon there (land, water, rods, rock smash)", False),
+        "maps[].methods.*": (AI, "one way", False),
+        "maps[].methods.*.encounter_rate": (AI, "how often", True),
+        "maps[].methods.*.rarity": (AI, "each species' share and levels (a guide's table)", True),
+        "maps[].methods.*.slots": (AI, "the encounter slots", False),
+        "maps[].methods.*.slots[]": (AI, "one slot", False),
+        "maps[].methods.*.slots[].slot": (AI, "which slot", True),
+        "maps[].methods.*.slots[].species": (AI, "the species", True),
+        "maps[].methods.*.slots[].min_level": (AI, "its lowest level", True),
+        "maps[].methods.*.slots[].max_level": (AI, "its highest level", True),
+        "maps[].methods.*.slots[].chance_pct": (AI, "the slot's share", True),
+        "maps[].requires": (AI, "what opens the map to a player (a guide says: after the game is cleared, ...)", True),
+        "maps[].requires_gate": (AI, "the gate that opens it", True),
+        "maps[].requires_source": (DEVELOPER, "the extractor's source for that", True),
+        "progression_gates": (META, "the extractor's gates that open maps late in the game", False),
+        "progression_gates.*": (META, "one gate", False),
+        "progression_gates.*.meaning": (META, "what it means", True),
+        "progression_gates.*.decomp": (DEVELOPER, "its decomp reference", True),
+        "progression_gates.*.root_mentions": (DEVELOPER, "the decomp files that mention it", True),
+        "progression_gates.*.gated_edges": (AI, "the ways it opens (a guide's map)", True),
+        "progression_gates.*.region": (AI, "the maps behind it", True),
+        "progression_gates.*.requires": (AI, "what opens it", True),
+        "progression_gates.*.groups": (META, "the extractor's groups", True),
+        "progression_gates.*.seed_maps": (META, "the extractor's starting maps", True),
+        "slot_probabilities_pct": (AI, "each slot's share by way of meeting (a guide's table)", True),
+        "slot_probabilities_match_expected_gen3": (META, "the extractor's check of those shares", True),
+        "slot_probabilities_note": (META, "the file's note on them", True),
+        "where_to_find": (AI, "where each species lives (a guide's index)", True),
+        "where_to_find_*": (AI, "the same index, cut to the main story's or normal play's maps", True),
+    },
+    # (P11-1, 2026-11-11) the world folder's THIRD loaded file, for `knowledge/ways.py`: the way through each dark cave at a
+    # guide's level. Classified LEAF BY LEAF (the containers without a subtree), as maps.json's warps are, so a developer key
+    # planted under a way is unclassified and FAILS. (P11-2, the P11-1 verifier's V3) the five LEAVES are no subtree either:
+    # each holds a scalar or a list of scalars, which make no key path below it, so a key NESTED inside one (a dict planted in
+    # `toward`) is unclassified and FAILS too, as a sibling key does. (P11-2, V5) `_check` and everything under it (the
+    # extractor's walk lengths, the maps it left out and why, the HM obstacles its walks met) is DEVELOPER, so RULE B2
+    # refuses a loader or deciding code that reads `walk_lengths`; the other `_` keys stay META. `_check` comes FIRST: an exact
+    # pattern is matched in this order (`classify`), and `_*` matches `_check` too. (P11-2's closing pass, the P11-2
+    # verifier's VV1 and VV3) NO ENTRY OF THIS FILE IS A SUBTREE: every leaf holds a scalar or a list of scalars (or, under
+    # `_check`, of [map, strings] pairs), so a key nested inside any of them, `maps[].id` and the META leaves included, is
+    # unclassified and FAILS. `_check`'s children are named one by one, so a key added under it fails until it is classified:
+    # every key NAME under `_check` becomes a developer-only name (RULE B2, `developer_keys`), and a map const as a key name
+    # there made B2 refuse deciding code that reads a map const as a key (VV3); the map consts are VALUES in its pairs now
+    "world/ways.json": {
+        "_check": (DEVELOPER, "the extractor's own checks (walk lengths, the dark maps it left out and why, the HM obstacles "
+                              "its walks met): the developers' proof, never read by the AI", False),
+        "_check.walk_lengths": (DEVELOPER, "each walk's length in steps, keyed 'map|arrival|destination'", False),
+        # the walk's key, never a bare map const: a map const planted as a key here is unclassified (VV3)
+        "_check.walk_lengths.MAP_*|*,*|MAP_*": (DEVELOPER, "one walk's length (a number), keyed 'map|x,y|destination'",
+                                                False),
+        "_check.left_out": (DEVELOPER, "the dark maps it left out, each a [map const, [why, ...]] pair (the const a value, "
+                                       "never a key name)", False),
+        "_check.hm_obstacles": (DEVELOPER, "the HM obstacles each dark map's walk met, each a [map const, [obstacle, ...]] "
+                                           "pair (the const a value, never a key name)", False),
+        "_files": (META, "each input's sha256, by its path in the pinned decomp", False),
+        "_files.*/*": (META, "one input's sha256, keyed by its path (a key with no '/' is no input: unclassified)", False),
+        "_*": (META, "where the file came from (the pinned decomp, the extractor, its reader, its notes): one string each",
+               False),
+        "count": (META, "how many dark maps the file holds", False),
+        "maps": (AI, "every dark cave of the game (requires_flash: the screen shows a small lit circle)", False),
+        "maps[]": (AI, "one dark map", False),
+        "maps[].id": (AI, "its const: the map a person stands on, dark", False),
+        "maps[].ways": (AI, "its ways on, a guide's level (USER RULING 40: the way through a cave)", False),
+        "maps[].ways[]": (AI, "one way on", False),
+        "maps[].ways[].from": (AI, "the ladder or exit the player arrived by (RULING 45: coordinates kept)", False),
+        "maps[].ways[].take": (AI, "the ladder or exit to take on (RULING 45: coordinates kept; maps.json holds the same "
+                                   "warp)", False),
+        "maps[].ways[].leads_to": (AI, "the map that ladder leads to (a guide's map)", False),
+        "maps[].ways[].toward": (AI, "the maps it is the way on toward (a guide: 'the ladder east is the way to STEVEN')",
+                                 False),
+        "maps[].ways[].through": (AI, "the cave's far end when this is THE WAY THROUGH from that arrival (a guide's 'the way "
+                                      "through the cave'), else null", False),
+    },
 }
 
 
 def world_files(loaders: dict[str, tuple[str, ...]] | None = None) -> list[str]:
     """(KI-128, 2026-10-31) The files of `knowledge/world/` that a declared LOADER names ("world/maps.json"): the only
-    world files RULE B walks. The rest stay unread and unchecked (the 2026-10-22 KB2 decision)."""
+    world files RULE B walks. The rest stay unread and unchecked (the 2026-10-22 KB2 decision). (BP-1, 2026-11-09) And
+    each `seasoned/` file a loader names, by the same rule (`LOADED_FOLDERS`)."""
     return sorted({name for names in (LOADERS if loaders is None else loaders).values() for name in names
-                   if name.startswith("world/")})
+                   if name.startswith(LOADED_FOLDERS)})
 
 
 def knowledge_files(knowledge: Path) -> list[tuple[str, Path]]:
@@ -357,7 +572,7 @@ def developer_keys(fields: dict[str, dict] = KNOWLEDGE_FIELDS, knowledge: Path |
                 continue
             if found is not None and found[1][0] == DEVELOPER:
                 developer.add(keys[-1])
-            elif not name.startswith("world/"):
+            elif not name.startswith(LOADED_FOLDERS):  # (BP-1) a seasoned file's names excuse nothing either
                 # (KI-128, 2026-10-31) a WORLD file's AI-visible names do not excuse a name elsewhere: the deciding code
                 # never holds a world dict (its loader answers with plain facts: `knowledge/atlas.py` open_map gives a
                 # bool), and maps.json's AI coordinates (`warps[].x`) would otherwise UN-REFUSE `x` and `y`, the

@@ -1,5 +1,5 @@
 # A1: the wide frontier probe and the trainer's runner core: BUILD SPEC (2026-11-11, revised after review)
-
+> ⚠ **AMENDMENTS PENDING (2026-11-14):** apply `2026-11-13-A1-SPEC-AMENDMENTS.md` (beside this file) before building (`04-HANDOFF.md`, queue item 4). Whoever applies them empties this line only AFTER the last block (an early delete moves every line the checkers' table names).
 > **Claude's spec, NOT BUILT, a NOTE like every agent output.** Written read-only by a spec agent of session `2cb1657d`,
 > revised the same day on an independent review's 21 findings (`2026-11-11-A1-FRONTIER-PROBE-SPEC-REVIEW.md` beside it; Review log at the end). Each code
 > claim names a path and line, or a symbol whose line is in table 1.2; the builder re-reads it before relying on it.
@@ -127,7 +127,7 @@ from `FRAMES_BY_CHAPTER` and `WALL`; L6-L7 are NEW, in `frontier_probe`'s own ta
 | Frames | 330,000 | 330,000 | 600,000 | 900,000 | 600,000 | 600,000 | 1,200,000 |
 | Wall (s) | 3,600 | 3,600 | 3,600 | 3,600 | 3,600 | 3,600 | 7,200 |
 
-- **Why.** Probe 11 (#111): C2 and C3 reached BADGE02 in 195,229 and 194,349 frames with no raise; C1 lost to BRAWLY
+- **Why.** Probe 11 (#117 (was wip/ch6-ch7#111)): C2 and C3 reached BADGE02 in 195,229 and 194,349 frames with no raise; C1 lost to BRAWLY
   three times (`stuck: 3 battles lost` after 167,065; the CH6-CH7 report on `origin/wip/ch6-bp1`). BP-1 round 2's B2 arms
   took 612,596-666,141 frames from C1, the raise 450,784-464,737 of them (`bp1r2/out/ab2/results.json`). USER RULING
   55: "In training the budget is set generously, so it never cuts off real progress." At 349 frames/s (2.6), 1,200,000
@@ -151,7 +151,7 @@ from `FRAMES_BY_CHAPTER` and `WALL`; L6-L7 are NEW, in `frontier_probe`'s own ta
 ### 2.5 Seeds
 
 - **One development ledger entry per batch**, one contiguous range. Seeds are shared on purpose (P1's two arms; P2 reuses
-  its J-F seeds, as BP-1 round 2 did in #118-#121; a chain's legs), so a resume de-duplicates by `run_id`.
+  its J-F seeds, as BP-1 round 2 did in #124-#127 (was wip/ch6-bp1#118-#121); a chain's legs), so a resume de-duplicates by `run_id`.
 - **Proposed:** P1 `6601-6603`, WP1 `6611-6646`. At 10:40 AM 2026-11-11, `py -3.12 -B "C:/Remote
   Projects/_ai_lab/s53/bp1r2/seeds_free.py" 6461-6500 6501-6600 6601-6700` printed FREE in 188 ledgers (main, 10
   worktrees, the lab and others); the reviewer agreed on the 30 committed `ledger.json` of every ref.

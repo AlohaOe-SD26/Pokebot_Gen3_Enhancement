@@ -485,8 +485,12 @@ def case_refused_targets(M, tmp):
 
 
 def case_no_budget(M, tmp):
-    data = {"milestones": real_milestones()["milestones"] + [ms("ch6_x", 6, {"F": 1})]}
-    ok("budget" in refused(M, M.legs_of, "ch6_x", data), "a chapter without a budget")
+    # (the chapter 6-7 merge) a chapter AFTER the real file's last one, so the file order stays forward: a
+    # chapter-6 milestone appended behind the merged chapter-7 ones was refused BACKWARDS, never by its budget
+    real = real_milestones()["milestones"]
+    nxt = max(m["chapter"] for m in real) + 1
+    data = {"milestones": real + [ms(f"ch{nxt}_x", nxt, {"F": 1})]}
+    ok("budget" in refused(M, M.legs_of, f"ch{nxt}_x", data), "a chapter without a budget")
 
 
 def case_backwards(M, tmp):

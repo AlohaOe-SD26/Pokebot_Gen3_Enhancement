@@ -15,8 +15,8 @@
   "ai_player/knowledge/seasoned/encounters.json": "33532fcacf2339127c0a944df0937624cf90f5a074ad43802b615d5c966ad8ad",
   "ai_player/knowledge/seasoned/learnsets.json": "83115ad6b9b4747a4deeaef5e1e5516b8f01ba92de577219b7ccab6f987ff4db",
   "ai_player/knowledge/seasoned/species.json": "244a970b1aeacb6791d4b42b9aa1f198bcc744765181dba89d51f6387c4605ed",
-  "ai_player/knowledge/world/bosses.json": "3ef0c4e273c6f7c715c4003495d09d32225fd318a1e55c4b43b11926ef1cd9a7",
-  "ai_player/knowledge/world/campaign.json": "8b980f653291f31599154bfccd7e145bf785d1b8820f8da3b3c3284981ff0e7a",
+  "ai_player/knowledge/world/bosses.json": "3551b535cd896e2b92fd54dfed24e520ae11cf6115d7219de7eb67fe44cbf0d5",
+  "ai_player/knowledge/world/campaign.json": "e2e7d2f437f9df71055eac8ea5e9aaec594a36ccbf2a2c51a09ebf9534d6d787",
   "ai_player/knowledge/world/maps.json": "ecc1cec58ee498de4c7a9912132a768ed9cd8f469048b238f63f78072b4c0991",
   "ai_player/knowledge/world/trainers.json": "2f329852a38e14168ad312746ac01bf3529008a16b7c60f3579783ab7e78fe17"
  },
@@ -25,13 +25,13 @@
   "verifier_sha256": "bf3cc8ad096082ed870826a1aa2b32eb567f26e6e7edd227f58a496e90795640",
   "command": "py -3.12 ai_player/gates/verify_world.py --data ai_player/knowledge/world --knowledge ai_player/knowledge/world",
   "exit": 0,
-  "result": "[VERIFY-WORLD] PASS: 0 mismatches (every record; checked {'bosses': 57, 'campaign': 71, 'citations': 2042, 'events_dead': 54, 'events_gates': 32, 'events_labels': 2300, 'events_matchcall': 76, 'field_moves': 8, 'items': 274, 'items_dead': 5, 'items_eon_excluded': 1, 'items_gift_lines': 176, 'items_golden': 40, 'items_mart_lists': 37, 'map_battles': 543, 'maps': 518, 'trainers': 855}; W1 scanned 6 knowledge files)"
+  "result": "[VERIFY-WORLD] PASS: 0 mismatches (every record; checked {'bosses': 57, 'campaign': 76, 'citations': 2042, 'events_dead': 54, 'events_gates': 32, 'events_labels': 2300, 'events_matchcall': 76, 'field_moves': 8, 'items': 274, 'items_dead': 5, 'items_eon_excluded': 1, 'items_gift_lines': 176, 'items_golden': 40, 'items_mart_lists': 37, 'map_battles': 543, 'maps': 518, 'trainers': 855}; W1 scanned 7 knowledge files)"
  },
  "entries": [
   {
    "id": "ch9_rival_route110",
    "chapter": 9,
-   "order": 34,
+   "order": 39,
    "area": [
     "SLATEPORT_CITY",
     "ROUTE110"
@@ -76,7 +76,7 @@
   {
    "id": "ch9_wally_mauville",
    "chapter": 9,
-   "order": 35,
+   "order": 40,
    "area": [
     "ROUTE110",
     "MAUVILLE_CITY"
@@ -117,7 +117,7 @@
   {
    "id": "ch9_wattson",
    "chapter": 9,
-   "order": 36,
+   "order": 41,
    "area": [
     "MAUVILLE_CITY",
     "MAUVILLE_CITY_GYM"
@@ -4513,7 +4513,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_110_MUDKIP",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -4575,7 +4575,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_110_TORCHIC",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -4638,7 +4638,7 @@
    "id": "TRAINER_BRENDAN_ROUTE_110_TREECKO",
    "name": "BRENDAN",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -4702,7 +4702,7 @@
    "id": "TRAINER_MAY_ROUTE_110_MUDKIP",
    "name": "MAY",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -4764,7 +4764,7 @@
    "id": "TRAINER_MAY_ROUTE_110_TORCHIC",
    "name": "MAY",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -4827,7 +4827,7 @@
    "id": "TRAINER_MAY_ROUTE_110_TREECKO",
    "name": "MAY",
    "role": "rival",
-   "order": 34,
+   "order": 39,
    "entry": "ch9_rival_route110",
    "double": false,
    "party": [
@@ -4891,7 +4891,7 @@
    "id": "TRAINER_WALLY_MAUVILLE",
    "name": "WALLY",
    "role": "rival",
-   "order": 35,
+   "order": 40,
    "entry": "ch9_wally_mauville",
    "double": false,
    "party": [
@@ -4924,7 +4924,7 @@
    "id": "TRAINER_WATTSON_1",
    "name": "WATTSON",
    "role": "gym_leader",
-   "order": 36,
+   "order": 41,
    "entry": "ch9_wattson",
    "double": false,
    "party": [

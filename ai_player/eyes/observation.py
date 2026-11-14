@@ -142,17 +142,22 @@ class SeenObject:
 
 @dataclass(frozen=True)
 class View:
-    """The on-screen window around the player: `rows` top to bottom, each left to right."""
+    """The on-screen window around the player: `rows` top to bottom, each left to right. (Chapter 6 stops round 7, N6-1)
+    On a DARK map (`lit`: the radius in pixels of the lit circle the screen draws, `eyes/view.py` flash_radius) a tile
+    outside the circle is None in `rows` (not seen: black on screen), and only objects inside it are in `objects`."""
 
     left: int
     right: int
     up: int
     down: int
-    rows: tuple[tuple[Tile, ...], ...]
+    rows: tuple[tuple[Tile | None, ...], ...]
     objects: tuple[SeenObject, ...]
     cropped: bool  # False only under the FAULT switch AI_PLAYER_FAULT_NO_CROP
+    #: (round 7, N6-1) the lit circle's radius in pixels on a dark map; None when the screen is lit whole
+    lit: int | None = None
 
     def tile(self, dx: int, dy: int) -> Tile | None:
+        """The tile (dx, dy) from the player, or None: outside the window, or (a dark map) outside the lit circle."""
         row = dy + self.up
         column = dx + self.left
         if 0 <= row < len(self.rows) and 0 <= column < len(self.rows[row]):
@@ -160,7 +165,7 @@ class View:
         return None
 
     def ascii(self) -> tuple[str, ...]:
-        """The window as text, one string per row: tiles, with objects drawn over them."""
+        """The window as text, one string per row: tiles, with objects drawn over them; a dark tile is a blank."""
         marks = {}
         for seen in self.objects:
             marks[(seen.dx, seen.dy)] = {
@@ -169,7 +174,8 @@ class View:
             }.get(seen.kind, "?")
         lines = []
         for row in self.rows:
-            lines.append("".join(marks.get((tile.dx, tile.dy), tile.glyph()) if (tile.dx, tile.dy) != (0, 0) else "@" for tile in row))
+            lines.append("".join(" " if tile is None else marks.get((tile.dx, tile.dy), tile.glyph())
+                                 if (tile.dx, tile.dy) != (0, 0) else "@" for tile in row))
         return tuple(lines)
 
 
@@ -391,10 +397,12 @@ class Observation:
         (`STORAGE_FIELDS`)."""
         data = asdict(self)
         if self.view is not None:
+            if self.view.lit is None:
+                del data["view"]["lit"]  # (round 7, N6-1) a lit map's record is as before, byte for byte
             data["view"]["ascii"] = list(self.view.ascii())
             if compact:
                 del data["view"]["rows"]
-                data["view"]["tiles"] = [tile.compact() for row in self.view.rows for tile in row]
+                data["view"]["tiles"] = [tile.compact() for row in self.view.rows for tile in row if tile is not None]
                 data["view"]["tile_fields"] = ["x", "y", "metatile", "behavior", "collision", "elevation", "flags"]
         if compact and self.storage is not None:
             data["storage"] = [[m.box, m.slot, m.pid, m.ot_id, int(m.is_egg)] for m in self.storage]
@@ -430,6 +438,8 @@ class Observation:
         if self.view is not None:
             seen = ",".join(f"{o.kind}({o.dx},{o.dy})" for o in self.view.objects)
             parts.append(f"sees=[{seen}]")
+            if self.view.lit is not None:
+                parts.append(f"lit={self.view.lit}px")  # (round 7, N6-1) a dark map: only this circle is seen
         if self.progress is not None:
             parts.append(f"dex={self.progress.dex_owned}/{self.progress.dex_seen} money={self.progress.money} badges={len(self.progress.badges)}")
         if self.problems:

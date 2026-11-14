@@ -13,6 +13,9 @@ gate refuses them). Framework-free: they see the game through the hands' `Eyes` 
                 reason: the milestone's next step (go where the game SAID, ask people, talk, use a thing, follow a scene)
                 or a person's errand (heal, buy POKé BALLS, train before a known fight, an item ball in view, catch new
                 species, chat), by the personality's weights; and the GoalRunner that plays it with the skills
+  bossprep.py   BOSS PREPARATION BP-1 (USER RULING 58, 2026-11-09): the readiness verdict for the next gym leader (a
+                deterministic duel scored with battle.py's own move valuation both ways) and, when NOT READY, the plan to
+                raise ONE of the party's own Pokemon as a counter (goals.py plays it as a `raise` goal)
 """
 
 __all__: list[str] = []

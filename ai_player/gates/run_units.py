@@ -64,6 +64,10 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # spec S3-4 slice 1 (KB2): the world files' extractor, its independent verifier and W1-W8 (about 10 s; the pinned
     # decomp clone is required: without it every test ERRORS, never a silent pass)
     "test_kb2": ([str(GATES / "test_kb2.py")], 2),
+    # (boss preparation BP-1, 2026-11-09) the readiness verdict, the plan, the raise and their wiring (offline)
+    "test_bossprep": ([str(GATES / "test_bossprep.py")], 2),
+    # (P11-1, 2026-11-11) the way through a dark cave: the loader, the explorer's way, the offline model A/B (about 40 s)
+    "test_ways": ([str(GATES / "test_ways.py")], 2),
     # build step 5.3, stage A1: the typed checks' unit tests (A1-1 to A1-4 and the A1 fix round; offline, about 7 s). Its
     # GraderImportTests.test_the_tree_as_it_stands_passes runs the G-3 rule (no grader takes a value from the AI's code)
     # on the tree as it stands, so this suite enforces G-3 too
@@ -89,6 +93,10 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # KI-128/KI-129's graded held-out driver (2026-10-31): every grader's FAULT and CONTROL on planted rows (offline,
     # about 4 s)
     "test_live_ki128": ([str(GATES / "test_live_ki128.py")], 2),
+    # the anchor gate (08-MISTAKES 2026-11-09: a round broke revert_step3's W64 anchor and only the full lane saw it): every
+    # mutant runner's anchors hit exactly once, no mutant run (under 1 s), and its CONTROL + FAULT tests (about 3 s)
+    "check_anchors": ([str(GATES / "check_anchors.py")], 1),
+    "test_check_anchors": ([str(GATES / "test_check_anchors.py")], 2),
     # the New Game chain held-out driver (USER RULING 55, 2026-11-05): every guard's FAULT and CONTROL on stub launches,
     # planted rows and whole stub batches, and its in-suite MUTANTS (each breaks one guard; the control M0 passes)
     "test_live_chain": ([str(GATES / "test_live_chain.py")], 2),

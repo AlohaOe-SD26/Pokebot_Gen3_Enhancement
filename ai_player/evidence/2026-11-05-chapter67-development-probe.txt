@@ -1,0 +1,97 @@
+CHAPTERS 6-7 - DEVELOPMENT PROBE (never graded): the AI with chapters 6 and 7 wired (36 milestones), from the three chapter-5 chain ends, target ch7_brawly
+HEADLINE (carries the caveat): 0 of 3 runs reached MR. BRINEY's cottage, so NOTHING of chapter 6's sail or chapter 7 was exercised live. All three stopped at the FIRST milestone, ch6_briney_house, by the play loop's own 'no progress for 120,000 frames' bound. The data is read correctly (the story is at ch6_briney_house in 3 of 3, from the game's flags); the stop is the AI's ROUTE PLANNER (below).
+written 2026-11-05 by s53/ch6/write_evidence.py; worktree HEAD 979754bf (+ the uncommitted build); stage armB code digest ef9405a311af87f7 (unchanged: True)
+method: the chapter-5 probe's (s53/ch5stops/arms.py, adapted): the real launcher through live_step5.run_arm, a purity gate per launch, what each run reached read from the GAME (the truth harness on the state it left, L5.THIS_RUN freshness-checked); ONE stage (s53/ch6/stage: junctions to the main sandbox's code folders, read only), at most 3 runs at once, a world.jsonl kept only under 300 MB (decimal; KI-130).
+starts: the ch5-stops probe's probe-C1 (Story), probe-C2 (Catcher), probe-C3 (Trainer) end states + world.jsonl (s53/ch5stops/out/probe): each at RUSTBORO CITY (19,53), VAR_RUSTBORO_CITY_STATE 8, the rival beaten, BADGE01.
+
+===== BATCH probe6: ledger #96, 2026-11-05 14:56:23 -> 2026-11-05 15:14:43, prediction sha256 2e823f6be050e435ee14f2dbc8234042200507b25664d9ea39592db78100f867 (the file now: 2e823f6be050e435ee14f2dbc8234042200507b25664d9ea39592db78100f867)
+--- the prediction, verbatim:
+CHAPTERS 6-7 DEVELOPMENT PROBE (s53/ch6/arms.py run probe6), written 2026-11-05 BEFORE the runs. DEVELOPMENT, never graded.
+
+The first runs of the AI with chapters 6 and 7 wired (36 milestones; 8 new: ch6_briney_house, ch6_dewford, ch6_old_rod[opt],
+ch7_steven, ch7_flash[opt], ch7_gym_trainers[opt], ch7_brawly, ch7_exp_share[opt]). Starts: the three chapter-5 chain ends
+(the ch5-stops probe's probe-C1 Story, probe-C2 Catcher, probe-C3 Trainer: end_state.ss1 + world.jsonl, each at
+ch5_rival_meet with the rival beaten, on ROUTE 104), target ch7_brawly, 1,200,000 frames, 4,800 s, seeds 6301, 6302, 6303.
+Through the real launcher (a purity gate per launch); what each run reached is read from the GAME (L5.THIS_RUN). ONE
+trajectory per start: a sample, never a rate.
+
+What I expect, and why (the unknowns are real; this is a prediction, not a hope):
+  Q1  at least 2 of 3 runs set FLAG_MR_BRINEY_SAILING_INTRO (they find the cottage: its door is in the SOUTH part of ROUTE 104,
+      joined to the north strip only through PETALBURG WOODS, which the AI has crossed before (KI-128 is fixed));
+  Q2  at least 1 of 3 sets FLAG_VISITED_DEWFORD_TOWN (the yes/no after "We'll set sail for DEWFORD." is answered YES by
+      default, and the sail is a cut scene);
+  Q3  0 of 3 deliver the LETTER (DELIVERED_STEVEN_LETTER and REGISTERED_STEVEN_POKENAV both 0 at the end): nothing names the
+      cave, so the AI has to find it by exploring DEWFORD and ROUTE 106, and the cave needs the 1F-B1F-B2F-B1F-1F loop;
+  Q4  0 of 3 reach ch7_brawly's badge (BADGE02_GET 0 in all three);
+  Q5  purity CLEAN in 3 of 3.
+Not predicted (reported): which skill each run lacked at its stop (read from the last log lines and the action records), the
+gym trainers, the OLD ROD, how many frames the sail takes, whether the first sail's DAD call text boxes are pressed through.
+Wrong if any of Q1-Q5 fails.
+--- the runs (read from the GAME):
+[probe6-C1] seed 6301 Story: frames 746397 -> 961095 (214698 real), 897.8 s, map [0, 3] -> [0, 30], purity CLEAN, world.jsonl 224284272 B (kept), checks ['L5.THIS_RUN'] ['PASS']
+    marks after (the nonzero ones): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1}
+    marks that matter for chapters 6-7: MR_BRINEY_SAILING_INTRO 0, VISITED_DEWFORD_TOWN 0, DELIVERED_STEVEN_LETTER 0, REGISTERED_STEVEN_POKENAV 0, BADGE02_GET 0
+    exit: [AI-EXIT] reason=play: stuck: no progress for 120025 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)) code=0
+[probe6-C2] seed 6302 Catcher: frames 634570 -> 881299 (246729 real), 1080.2 s, map [0, 3] -> [0, 19], purity CLEAN, world.jsonl 413222970 B (NOT kept: 300 MB or more), checks ['L5.THIS_RUN'] ['PASS']
+    marks after (the nonzero ones): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1}
+    marks that matter for chapters 6-7: MR_BRINEY_SAILING_INTRO 0, VISITED_DEWFORD_TOWN 0, DELIVERED_STEVEN_LETTER 0, REGISTERED_STEVEN_POKENAV 0, BADGE02_GET 0
+    exit: [AI-EXIT] reason=play: stuck: no progress for 120342 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)) code=0
+[probe6-C3] seed 6303 Trainer: frames 812544 -> 1126666 (314122 real), 921.3 s, map [0, 3] -> [0, 3], purity CLEAN, world.jsonl 404165473 B (NOT kept: 300 MB or more), checks ['L5.THIS_RUN'] ['PASS']
+    marks after (the nonzero ones): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1}
+    marks that matter for chapters 6-7: MR_BRINEY_SAILING_INTRO 0, VISITED_DEWFORD_TOWN 0, DELIVERED_STEVEN_LETTER 0, REGISTERED_STEVEN_POKENAV 0, BADGE02_GET 0
+    exit: [AI-EXIT] reason=play: stuck: no progress for 127264 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)) code=0
+
+--- the prediction judged:
+Q1 (at least 2 of 3 set MR_BRINEY_SAILING_INTRO): 0 of 3 -> WRONG
+Q2 (at least 1 of 3 set VISITED_DEWFORD_TOWN): 0 of 3 -> WRONG
+Q3 (0 of 3 deliver the LETTER): 0 of 3 -> held, VACUOUSLY (no run got near the cave)
+Q4 (0 of 3 earn BADGE02): 0 of 3 -> held, VACUOUSLY
+Q5 (purity CLEAN in 3 of 3): 3 of 3 -> held
+THE PREDICTION IS WRONG (Q1 and Q2 failed). It assumed the cottage would be found once the AI crossed PETALBURG WOODS; the AI does not cross them (below).
+
+--- THE STOP (measured, per run): s53/ch6/stops.py on each run's ai_player.log and actions.jsonl
+[probe6-C1]
+probe6-C1 go not done: 18
+   8 goal go not done: stuck: ping-pong: the edge N:N|edge:down crossed N times (N) with nothing new since its crossing before the last, N (N steps, N bumps, N people in the way, N exits used, N battles, N
+   6 goal go not done: stuck: ping-pong: the edge N:N|edge:up crossed N times (N) with nothing new since its crossing before the last, N (N steps, N bumps, N people in the way, N exits used, N battles, N s
+   2 goal go not done: stuck: ping-pong: the warp N:N|N,N used N times (N) with nothing new since its second use, N (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, N decisions (N
+   2 goal go not done: stuck: nothing new (no new tile, map, flag, Pokemon, item or experience) for N frames, the last at N: none (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, 
+go done: 7
+map changes: 198
+[('RUSTBORO CITY', 90), ('ROUTE 104', 49), ('ROUTE 115', 37), ('ROUTE 116', 12), ('PETALBURG WOODS', 7), ('RUSTURF TUNNEL', 3)]
+first 12: [(746397, 'RUSTBORO CITY', (19, 53)), (746614, 'ROUTE 104', (19, 0)), (751112, 'PETALBURG WOODS', (14, 5)), (751269, 'ROUTE 104', (10, 30)), (751450, 'PETALBURG WOODS', (14, 5)), (751599, 'ROUTE 104', (10, 30)), (751772, 'PETALBURG WOODS', (15, 5)), (751947, 'ROUTE 104', (10, 30)), (766462, 'PETALBURG WOODS', (15, 5)), (766646, 'ROUTE 104', (10, 30)), (766819, 'PETALBURG WOODS', (14, 5)), (766964, 'ROUTE 104', (10, 30))]
+last 6: [(867682, 'RUSTBORO CITY', (23, 0)), (867751, 'ROUTE 115', (21, 79)), (868646, 'RUSTBORO CITY', (21, 0)), (868958, 'ROUTE 115', (21, 79)), (869025, 'RUSTBORO CITY', (19, 0)), (869086, 'ROUTE 115', (19, 79))]
+goal kinds: [('look_around', 26), ('go', 25), ('pick_up', 14), ('detour', 2), ('shop', 2), ('catch', 1), ('explore', 1), ('chat', 1)]
+[probe6-C2]
+probe6-C2 go not done: 45
+   21 goal go not done: stuck: ping-pong: the edge N:N|edge:down crossed N times (N) with nothing new since its crossing before the last, N (N steps, N bumps, N people in the way, N exits used, N battles, N
+   18 goal go not done: stuck: ping-pong: the edge N:N|edge:up crossed N times (N) with nothing new since its crossing before the last, N (N steps, N bumps, N people in the way, N exits used, N battles, N s
+   4 goal go not done: stuck: ping-pong: the warp N:N|N,N used N times (N) with nothing new since its second use, N (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, N decisions (N
+   1 goal go not done: stuck: nothing new (no new tile, map, flag, Pokemon, item or experience) for N frames, the last at N: N new tiles (N steps, N bumps, N people in the way, N exits used, N battles, N s
+   1 goal go not done: stuck: nothing new (no new tile, map, flag, Pokemon, item or experience) for N frames, the last at N: none (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, 
+go done: 14
+map changes: 382
+[('RUSTBORO CITY', 190), ('ROUTE 104', 118), ('ROUTE 116', 31), ('ROUTE 115', 27), ('PETALBURG WOODS', 11), ('RUSTURF TUNNEL', 5)]
+first 12: [(634570, 'RUSTBORO CITY', (19, 53)), (634736, 'ROUTE 104', (19, 0)), (642999, 'ROUTE 104', (2, 8)), (643167, 'ROUTE 104', (5, 18)), (643582, 'PETALBURG WOODS', (14, 5)), (643723, 'ROUTE 104', (10, 30)), (643959, 'PETALBURG WOODS', (15, 5)), (644139, 'ROUTE 104', (10, 30)), (644341, 'PETALBURG WOODS', (15, 5)), (644500, 'ROUTE 104', (10, 30)), (644731, 'PETALBURG WOODS', (14, 5)), (644888, 'ROUTE 104', (10, 30))]
+last 6: [(879877, 'RUSTBORO CITY', (39, 12)), (880998, 'ROUTE 104', (18, 0)), (881155, 'RUSTBORO CITY', (18, 59)), (881219, 'ROUTE 104', (17, 0)), (881261, 'RUSTBORO CITY', (17, 59)), (881299, 'ROUTE 104', (17, 0))]
+goal kinds: [('go', 59), ('look_around', 55), ('pick_up', 20), ('chat', 4), ('detour', 3), ('catch', 2), ('explore', 1)]
+[probe6-C3]
+probe6-C3 go not done: 49
+   47 goal go not done: stuck: ping-pong: the warp N:N|N,N used N times (N) with nothing new since its second use, N (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, N decisions (N
+   2 goal go not done: stuck: nothing new (no new tile, map, flag, Pokemon, item or experience) for N frames, the last at N: none (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, 
+go done: 10
+map changes: 348
+[('ROUTE 104', 172), ('PETALBURG WOODS', 172), ('RUSTBORO CITY', 4)]
+first 12: [(812544, 'RUSTBORO CITY', (19, 53)), (813015, 'RUSTBORO CITY', (7, 8)), (816593, 'RUSTBORO CITY', (16, 38)), (817093, 'ROUTE 104', (12, 0)), (826293, 'PETALBURG WOODS', (14, 5)), (826439, 'ROUTE 104', (10, 30)), (826605, 'PETALBURG WOODS', (14, 5)), (826771, 'ROUTE 104', (10, 30)), (826963, 'PETALBURG WOODS', (15, 5)), (827149, 'ROUTE 104', (10, 30)), (827482, 'PETALBURG WOODS', (15, 5)), (827658, 'ROUTE 104', (10, 30))]
+last 6: [(1111192, 'PETALBURG WOODS', (14, 5)), (1111344, 'ROUTE 104', (10, 30)), (1111517, 'PETALBURG WOODS', (15, 5)), (1111697, 'ROUTE 104', (10, 30)), (1111884, 'PETALBURG WOODS', (14, 5)), (1126642, 'RUSTBORO CITY', (16, 39))]
+goal kinds: [('go', 59), ('look_around', 48), ('heal', 11), ('pick_up', 7), ('chat', 3), ('save', 1), ('detour', 1), ('catch', 1)]
+
+--- WHAT THE RECORDS SHOW (one cycle, probe6-C3, f826311-f826481, the decide records):
+  in PETALBURG WOODS at (14,5), just through the north door: target route (14,6), exit (14,5) direction UP, 'it leads toward the goal (2 link(s) known)' -> back out to ROUTE 104 (10,29);
+  on ROUTE 104's NORTH strip at (10,29): target back (10,29), exit (10,30) direction DOWN, 'it leads back to PETALBURG_WOODS, where 15 thing(s) are left to see' -> into the woods again.
+  The goal go:ROUTE104_MR_BRINEYS_HOUSE then ends 'stuck: ping-pong: the warp 24:11|14,5 used 3 times ... with nothing new since its second use' (47 of 49 ended goals in C3), is put aside, tried again.
+CAUSE (a READING of the decide records and brain/explore.py route_to / candidates, NOT an A/B-proven fix; the discriminating test is a run that starts in the south part): the route to a map is a breadth-first search over KNOWN MAP-LEVEL links (warps, connections); ROUTE 104 is ONE node although it has two disconnected parts. The cottage's door (17,50) is in the south part, which the north strip (where ch5_rival_meet ends) does not reach on foot; the way is the woods' SOUTH doors. The planner's first hop from the woods is the nearest link into ROUTE104 (the north door it just came through), so it leaves the woods the way it came, and on the north strip the only 'exit' still promising is the woods.
+WHICH SKILL OR KNOWLEDGE WAS LACKING: a within-map reachability check in the cross-map route (is the next map's arrival tile in the same walkable component as the goal's door or warp?), or, the person-fair equivalent, remembering that an arrival edge led to a dead end (the ping-pong rule only aborts the goal; nothing makes the next try take the woods' other door). No chapter-6/7 DATA is at fault: the same ping-pong would stop any goal behind ROUTE 104's south part.
+
+--- NOT EXERCISED (questions of the plan, still open): the Briney yes/no and the first sail's DAD call, FLAG_VISITED_DEWFORD_TOWN as the landing's proof, finding GRANITE CAVE from DEWFORD with no told words, crossing the dark B1F/B2F unlit, the single talk step for STEVEN, Brawly named by the gym sign, the grass-less training errand.
+--- side effects seen: the 'the story is at ch6_briney_house' goal note is the first line of every run (the extra pass the plan predicted for a chapter-5-target leg); world.jsonl 224 MB / 413 MB / 404 MB: two of three at or over the 300 MB keep limit (KI-130's size class), so only C1's was kept.

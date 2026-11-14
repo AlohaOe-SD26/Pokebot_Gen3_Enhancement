@@ -1,83 +1,965 @@
 {
-  "what": "WAIVERS of the call-site census (build step 5.2, G3; gates/call_census.py): a site of an added or changed AI function that NO revert mutant deletes, with the REASON (at least 20 characters). Each entry: callee 'file:qualname' (relative to ai_player/), caller 'file:qualname' of the site or '*' for every site (and for a function with no site), reason. A waiver is a claim like any other: prefer the mutant that deletes the call.",
-  "waivers": [
-    {"callee": "brain/goals.py:GoalRunner._detour", "caller": "brain/navigator.py:Navigator.run",
-     "reason": "NOT A SITE (the census matches by name): this is the navigator's own `Navigator._detour` (a small detour beside a planned way), another method of another class; GoalRunner._detour's one site, in GoalRunner._pursue, is covered by revert_step5 G188 (build step 5.2)."},
-    {"callee": "mode.py:HandsBrain._play", "caller": "skills/battle.py:play_battle",
-     "reason": "NOT A SITE (the census matches by name): this is the battle skill's own `_play` (skills/battle.py), another function; HandsBrain._play's one site, in HandsBrain._skill, is covered by revert_step5 G209 (build step 5.2)."},
-    {"callee": "mode.py:HandsBrain._play_end", "caller": "mode.py:HandsBrain._play",
-     "reason": "Build step 5.2 changed only what `_play_end` REPORTS (the push watch wound up and its report, G205 and G206, and the idle curiosity in the end record); its call sites are the play loop's ENDINGS, unchanged since step 5. The endings a unit test drives are mutated (G226 the target reached, G227 MAX_LOSSES, G228 the patience); the four left (no frame passing for STILL_PASSES_MAX passes, the intro met twice, an intro that did not reach the truck, PLAY_PASSES_MAX) are reached by no unit test, only by the live and sweep runs, so a mutant deleting one could not be caught by test_goals: waived, not claimed. R5 (2026-10-28, the free screen before \"done\") again changed only what `_play_end` REPORTS (the screen the run ends on, `_end_screen`, whose call G348 deletes) and added the settle BEFORE the done check (`_settle_before_done`, whose call G347 deletes); the done check's two lines are byte-identical, so G226 still deletes that site and these call sites are unchanged. R5's fix round (2026-10-28) changed only the words of `_play_end`'s end line and the order note above its end record (pinned by G361); its call sites are as R5 left them."},
-    {"callee": "knowledge/story.py:Story.current", "caller": "mode.py:HandsBrain._play",
-     "reason": "NOT A NEW SITE (the census matches by name, so this finding's callee reads Story.current): the calls are of the play loop's own closure `current` (mode.py HandsBrain._play, the milestone a look shows). R5's fix round (2026-10-28, the adversarial review's R5-F6) added two calls of it in `_play`, inside the `_passed_between` reader that the settle before \"done\" uses to name the milestones its screens passed; both are covered by revert_step5 G373 (the reader deleted), and its read in the settle by G359. The one other site, `moved_story = current(after) != index` (build step 5.1's second round), is unchanged by R5 and its fix round: waived, not claimed."},
-    {"callee": "brain/navigator.py:Navigator.__init__", "caller": "mode.py:HandsBrain._start_world",
-     "reason": "Build step 5.2 added one FIELD to the navigator (`scene_given_up`, the targets a scene made it give up); the one site is the play brain constructing its navigator, unchanged since step 3: deleting it leaves no navigator, so no run starts. The new field's writer and reader are mutated instead: G240 (the record deleted) and G231 (the goal runner's read of it deleted)."},
-    {"callee": "brain/navigator.py:Navigator.go_to", "caller": "*",
-     "reason": "Build step 5.2 changed only how `go_to` ENDS (a walk to a tile ends when it leaves that tile's map, and says 'left the map': found by the pushing property in the development sweep step52dev6), mutated by G268 (the end deleted) and G269 (the saying deleted), both caught; its six call sites (the story skills' walk up to someone and to a door, the roam's walk to grass, the goal runner's spot walks, the challenge walk) are unchanged since steps 3-5 and are driven by test_world and test_goals; the one call site whose handling changed with it, the roam's, is mutated by G270."},
-    {"callee": "skills/roam_train.py:roam_train", "caller": "mode.py:HandsBrain._skill",
-     "reason": "Build step 5.2 changed only the roam's walk to grass (a walk that crossed onto the next map walks once more, to that map's own grass: G270, caught); this call site is step 4's `--brain roam`, unchanged, driven by live_step4 and test_world's RoamTests, which the 5.2 revert gate (test_goals) does not run; the goal runner's site is mutated by G271."},
-    {"callee": "skills/roam_train.py:roam_train", "caller": "mode.py:HandsBrain._battles",
-     "reason": "Build step 5.2 changed only the roam's walk to grass (G270, caught); this call site is step 4's battle brain (`--brain battles`), unchanged, driven by live_step4, which the 5.2 revert gate (test_goals) does not run; the goal runner's site is mutated by G271."},
-    {"callee": "brain/navigator.py:Navigator.run", "caller": "*",
-     "reason": "Build step 5.2 added one line inside `run`'s handling of a target it found no way to (a frontier marked unreached in the world memory, found by the pushing property in the development sweep step52dev6), mutated by G275, caught; `run` is the navigator's one walking loop since step 3, its 14 sites (and the launcher's own `run`, another function the census matches by name) unchanged and driven by every suite; deleting any one stops a walk the suites already exercise."},
-    {"callee": "world/memory.py:WorldMemory.__init__", "caller": "*",
-     "reason": "Build step 5.2 added one FIELD (`unreached`); its one site makes the world memory, unchanged since step 3: deleting it leaves no memory, so no run starts. The field's writer and reader are mutated instead: G275 (`mark_unreached`'s call deleted) and G276 (`promise` blind to it), both caught."},
-    {"callee": "world/memory.py:WorldMemory.promise", "caller": "*",
-     "reason": "Build step 5.2 changed only which frontier tiles `promise` counts (not one a walk found no way to, until the map shows more: G276, caught); its six sites (the explorer's back roads, the goal manager's looks round and 'some more') are unchanged since steps 3-5.2 and are driven by test_world and test_goals."},
-    {"callee": "world/memory.py:WorldMemory.to_dict", "caller": "*",
-     "reason": "Build step 5.2, the verifier's round, added one optional key to the world memory's snapshot (`spoke`, the people who have spoken to the player, written only when it holds someone, so every earlier brain's snapshot is unchanged), mutated by G293 (the write deleted), caught by test_whom_it_met_is_kept_with_the_world_memory; its three sites (`snapshot`, the action log's record, its own nesting) are the world memory's persistence since step 3, unchanged, driven by test_world's MemoryTests round trip, a suite the 5.2 revert gate (test_goals) does not run: deleting one stops every run's world.jsonl."},
-    {"callee": "world/memory.py:WorldMemory.from_dict", "caller": "*",
-     "reason": "Build step 5.2, the verifier's round, added one line reading the optional `spoke` key back, mutated by G294 (the read deleted), caught by test_whom_it_met_is_kept_with_the_world_memory; its two sites (`read_world`, the play brain's carried memory, and its own nesting) are step 3's persistence, unchanged, driven by test_world's MemoryTests round trip, which the 5.2 revert gate does not run."},
-    {"callee": "brain/navigator.py:Navigator._scene_met", "caller": "brain/navigator.py:Navigator.run",
-     "reason": "Build step 5.2 added one line to `_scene_met` (it records the target it gives up in `scene_given_up`), mutated by G240; the call site in `Navigator.run` is step 3.1's, unchanged, and is driven by gates/test_world.py's scene tests (a walk that ends 'a scene stopped the way there 2 times'), a suite the 5.2 revert gate, which runs test_goals, does not run: waived, not claimed."},
-    {"callee": "mode.py:_RebasedEyes.look", "caller": "*",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): every `.look()` in the package is matched to the frame-base wrapper's `look` (D7), which implements the Eyes protocol; its one real site is `hands/pad.py` Hands.look (`self.eyes.look()`), unchanged, and the wrap itself is mutated by revert_step5 G393 (CAUGHT by R1PlayTests)."},
-    {"callee": "brain/goals.py:GoalManager._say", "caller": "mode.py:HandsBrain.play",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): HandsBrain.play's `self._say` is the brain's own say callable (the [AI-HANDS] memory line R1 added), not GoalManager._say."},
-    {"callee": "game_memory.py:_same", "caller": "skills/story.py:approach",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): skills/story.py has its own `_same` (a look's object is the target), not game_memory's JSON equality."},
-    {"callee": "game_memory.py:MonRegistry.to_dict", "caller": "memory_log.py:ActionLog.record",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is `Observation.to_dict` in the action log, not the Pokemon registry's."},
-    {"callee": "game_memory.py:restore", "caller": "host/lifecycle.py:Lifecycle.finish",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is `ListenerIsolation.restore` (the framework's listeners given back), not the memory file's restore."},
-    {"callee": "host/controller.py:Controller.tap", "caller": "mode.py:Brain.play",
-     "reason": "(R1 + R2, build stage 4) a pre-R1 site: the step-0 placeholder's CONTROL tap (`AI_PLAYER_CONTROL_TAP`) through the abstract Controls; R1 changed `tap` only by the START/SELECT check, mutated by revert_r1 S39 and CAUGHT by test_host ControllerTogetherTests."},
-    {"callee": "host/controller.py:Controller.hold", "caller": "hands/menus.py:set_clock",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is the pad's `hold` (hands/pad.py Pad.hold), not the controller's; R1's change to Controller.hold is mutated by revert_r1 S39."},
-    {"callee": "host/controller.py:Controller.__init__", "caller": "host/session.py:Session.__init__",
-     "reason": "(R1 + R2, build stage 4) the controller's one site is the host session's constructor, which only a live run builds (no unit suite starts a framework session); R1 added the `held` set it starts with, driven by ControllerTogetherTests."},
-    {"callee": "host/eyes.py:FrameworkEyes._text", "caller": "world/memory.py:MapMemory.to_dict",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): world/memory.py has its own `_text` (a tile's key as text), not the host eyes' `_text`."},
-    {"callee": "host/eyes.py:FrameworkEyes._text", "caller": "world/memory.py:WorldMemory._transition",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): world/memory.py has its own `_text` (a tile's key as text), not the host eyes' `_text`."},
-    {"callee": "mode.py:HandsBrain.play", "caller": "host/session.py:Session.run",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): the session drives `Brain.play` or `WatcherBrain.play` (its `self.brain`), never HandsBrain.play."},
-    {"callee": "mode.py:HandsBrain.play", "caller": "mode.py:Brain.play",
-     "reason": "(R1 + R2, build stage 4) a pre-R1 site: `Brain.play` hands a hands brain's run to `self._hands.play`, unchanged; a Brain is built only by the host session (a live run); R1's changes to HandsBrain.play are driven directly by R1PlayTests and mutated by revert_step5 G387, G393, G394, G399."},
-    {"callee": "mode.py:HandsBrain._story_menu", "caller": "mode.py:HandsBrain._play",
-     "reason": "(R1 + R2, build stage 4) a pre-R1 site: the play loop hands the navigator `on_menu` (a lambda calling `_story_menu`), unchanged since step 5; R1's save branches of `_story_menu` are driven directly by PlayLoopTests and mutated by revert_step5 G390."},
-    {"callee": "options.py:HandsOptions.from_env", "caller": "host/session.py:start_session",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is `RunOptions.from_env`, not HandsOptions'."},
-    {"callee": "options.py:HandsOptions.from_env", "caller": "mode.py:Brain.__init__",
-     "reason": "(R1 + R2, build stage 4) a pre-R1 site: `Brain.__init__` reads the hands options, unchanged; a Brain is built only by the host session; R1's five new options are read by test_saving LauncherContinueTests.test_the_options_carry_the_memory."},
-    {"callee": "options.py:_flag", "caller": "options.py:HandsOptions.from_env",
-     "reason": "(R1 + R2, build stage 4) the census lists EVERY `_flag` call of `from_env` because R1 added calls there; the pre-R1 fault switches' reads (steps 2-5.1, unchanged) are their own steps' arms; R1's own two (`AI_PLAYER_CONTINUE`, `AI_PLAYER_FAULT_NO_SAVE`) are covered by revert_r1 census mutants, CAUGHT by test_the_options_carry_the_memory."},
-    {"callee": "skills/intro.py:play_intro", "caller": "mode.py:HandsBrain._skill",
-     "reason": "(R1 + R2, build stage 4) a pre-R1 site: the `intro` hands brain's skill, unchanged since step 2; stage 3 only moved the title block into `skip_title` (no behaviour change), whose call in play_intro is covered by revert_r1 census mutants and by revert_step2 HFG (re-anchored, CAUGHT); the intro brain runs only live (gates/live_step2.py)."},
-    {"callee": "skills/saving.py:_decide", "caller": "brain/battle.py:BattleMind.decide",
-     "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is the battle mind's own `_decide`, not the save skill's question rule."},
-    {"callee": "game_memory.py:MonRegistry.add_role", "caller": "*",
-     "reason": "(R1 + R2, build stage 4) UNCALLED by design: build spec D15, no role is ASSIGNED in this build (that is L3 (c)-(d)); the vocabulary and the refusal of an unknown role are tested by MemoryFileTests.test_mons_by_pid_and_species_with_roles and CensusSiteTests."},
-    {"callee": "brain/explore.py:candidates.add", "caller": "*",
-     "reason": "(KI-129 Part B, 2026-10-31) `add` is `candidates`' NESTED scorer; Part B added one guard to its BODY (the drop of a tile past a ping-ponged edge), mutated by revert_step5 G422 (the guard deleted) and G423 (routes not exempt), both caught. Its own call sites inside `candidates` are unchanged since step 3; the census matches by NAME, so the other sites it lists are builtin `set.add` calls, not this function: waived, not claimed."},
-    {"callee": "brain/navigator.py:Navigator.summary", "caller": "brain/navigator.py:Navigator.run",
-     "reason": "(KI-129 Part B, 2026-10-31) `summary` only formats the walk's counts (steps, bumps, maps, tiles) at the end of an outcome's text; Part B's edge stop added one more outcome line that prints it. Deleting a call changes only the words after the reason, which no decision reads (the play loop and the graders read the outcome's prefix: 'stuck: ping-pong: the edge'), so no mutant of it can be caught: waived, not claimed."},
-    {"callee": "eyes/screens.py:pokenav_wait", "caller": "host/eyes.py:FrameworkEyes._screen",
-     "reason": "(chapter 5, 2026-11-05, E5) `_screen` reads the whole framework (game state, tasks, printers, the script context), so no offline test drives it; the RULE is test_eyes PokenavEyesTests.test_u3_the_call_exit_wait_is_seen (both halves). This one CALL is proven LIVE instead: in every new-code run of the chapter-5 stops' menu batches the AI pressed A on exactly one look whose gate reads 'task Task_Pokenav (A or B: the call has ended)', the reason this call returns (ai_player/evidence/2026-11-05-ch5-stops-development.txt); with the call deleted that screen has no wait, the AI stood 830 frames there in the recon. Waived offline, proven live."},
-    {"callee": "host/eyes.py:FrameworkEyes._player", "caller": "host/eyes.py:FrameworkEyes.look",
-     "reason": "(chapter 5, 2026-11-05, E1) `_player` changed only by ONE added field, the player's name (`PlayerState.name`); its one call in `look` is the step-1 call every look makes (a run with it deleted has no player and no view: every live arm would stop at once). The name itself is proven LIVE: the first full look of every new-code run of the chapter-5 stops shows player.name 'Milo' (ai_player/evidence/2026-11-05-ch5-stops-development.txt), and the rule that uses it is test_goals InstructedTests.test_g2 (both halves) with mutant revert_step5 G435."},
-    {"callee": "eyes/party.py:_u32", "caller": "host/eyes.py:FrameworkEyes._player",
-     "reason": "(chapter 5, 2026-11-05, E1) the census matches by NAME: `_u32` is a byte decoder (also eyes/party.py's), and the one ADDED call in `_player` is the save block 2 pointer the name read follows (the other site is step 1's save block 1 pointer, unchanged). Deleting it breaks the name read, which is proven live (every new-code run's first full look shows player.name 'Milo') and whose rule is InstructedTests.test_g2 with mutant revert_step5 G435."},
-    {"callee": "eyes/screens.py:decode_text", "caller": "host/eyes.py:FrameworkEyes._player",
-     "reason": "(chapter 5, 2026-11-05, E1) the added call decodes the player's name (SaveBlock2 playerName[8]) with the AI's own charmap. `_player` needs the whole framework (the avatar, the object events, the save blocks, the map tables), so no offline test reaches it; the name is proven LIVE (every new-code run of the chapter-5 stops' batches: first full look, player.name 'Milo'), and the rule that reads it is InstructedTests.test_g2 (both halves) with mutant revert_step5 G435."}
-  ]
+ "what": "WAIVERS of the call-site census (build step 5.2, G3; gates/call_census.py): a site of an added or changed AI function that NO revert mutant deletes, with the REASON (at least 20 characters). Each entry: callee 'file:qualname' (relative to ai_player/), caller 'file:qualname' of the site or '*' for every site (and for a function with no site), reason. A waiver is a claim like any other: prefer the mutant that deletes the call.",
+ "waivers": [
+  {
+   "callee": "brain/goals.py:GoalRunner._detour",
+   "caller": "brain/navigator.py:Navigator.run",
+   "reason": "NOT A SITE (the census matches by name): this is the navigator's own `Navigator._detour` (a small detour beside a planned way), another method of another class; GoalRunner._detour's one site, in GoalRunner._pursue, is covered by revert_step5 G188 (build step 5.2)."
+  },
+  {
+   "callee": "mode.py:HandsBrain._play",
+   "caller": "skills/battle.py:play_battle",
+   "reason": "NOT A SITE (the census matches by name): this is the battle skill's own `_play` (skills/battle.py), another function; HandsBrain._play's one site, in HandsBrain._skill, is covered by revert_step5 G209 (build step 5.2)."
+  },
+  {
+   "callee": "mode.py:HandsBrain._play_end",
+   "caller": "mode.py:HandsBrain._play",
+   "reason": "Build step 5.2 changed only what `_play_end` REPORTS (the push watch wound up and its report, G205 and G206, and the idle curiosity in the end record); its call sites are the play loop's ENDINGS, unchanged since step 5. The endings a unit test drives are mutated (G226 the target reached, G227 MAX_LOSSES, G228 the patience); the four left (no frame passing for STILL_PASSES_MAX passes, the intro met twice, an intro that did not reach the truck, PLAY_PASSES_MAX) are reached by no unit test, only by the live and sweep runs, so a mutant deleting one could not be caught by test_goals: waived, not claimed. R5 (2026-10-28, the free screen before \"done\") again changed only what `_play_end` REPORTS (the screen the run ends on, `_end_screen`, whose call G348 deletes) and added the settle BEFORE the done check (`_settle_before_done`, whose call G347 deletes); the done check's two lines are byte-identical, so G226 still deletes that site and these call sites are unchanged. R5's fix round (2026-10-28) changed only the words of `_play_end`'s end line and the order note above its end record (pinned by G361); its call sites are as R5 left them."
+  },
+  {
+   "callee": "knowledge/story.py:Story.current",
+   "caller": "mode.py:HandsBrain._play",
+   "reason": "NOT A NEW SITE (the census matches by name, so this finding's callee reads Story.current): the calls are of the play loop's own closure `current` (mode.py HandsBrain._play, the milestone a look shows). R5's fix round (2026-10-28, the adversarial review's R5-F6) added two calls of it in `_play`, inside the `_passed_between` reader that the settle before \"done\" uses to name the milestones its screens passed; both are covered by revert_step5 G373 (the reader deleted), and its read in the settle by G359. The one other site, `moved_story = current(after) != index` (build step 5.1's second round), is unchanged by R5 and its fix round: waived, not claimed."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.__init__",
+   "caller": "mode.py:HandsBrain._start_world",
+   "reason": "Build step 5.2 added one FIELD to the navigator (`scene_given_up`, the targets a scene made it give up); the one site is the play brain constructing its navigator, unchanged since step 3: deleting it leaves no navigator, so no run starts. The new field's writer and reader are mutated instead: G240 (the record deleted) and G231 (the goal runner's read of it deleted)."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.go_to",
+   "caller": "*",
+   "reason": "Build step 5.2 changed only how `go_to` ENDS (a walk to a tile ends when it leaves that tile's map, and says 'left the map': found by the pushing property in the development sweep step52dev6), mutated by G268 (the end deleted) and G269 (the saying deleted), both caught; its six call sites (the story skills' walk up to someone and to a door, the roam's walk to grass, the goal runner's spot walks, the challenge walk) are unchanged since steps 3-5 and are driven by test_world and test_goals; the one call site whose handling changed with it, the roam's, is mutated by G270."
+  },
+  {
+   "callee": "skills/roam_train.py:roam_train",
+   "caller": "mode.py:HandsBrain._skill",
+   "reason": "Build step 5.2 changed only the roam's walk to grass (a walk that crossed onto the next map walks once more, to that map's own grass: G270, caught); this call site is step 4's `--brain roam`, unchanged, driven by live_step4 and test_world's RoamTests, which the 5.2 revert gate (test_goals) does not run; the goal runner's site is mutated by G271."
+  },
+  {
+   "callee": "skills/roam_train.py:roam_train",
+   "caller": "mode.py:HandsBrain._battles",
+   "reason": "Build step 5.2 changed only the roam's walk to grass (G270, caught); this call site is step 4's battle brain (`--brain battles`), unchanged, driven by live_step4, which the 5.2 revert gate (test_goals) does not run; the goal runner's site is mutated by G271."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.run",
+   "caller": "*",
+   "reason": "Build step 5.2 added one line inside `run`'s handling of a target it found no way to (a frontier marked unreached in the world memory, found by the pushing property in the development sweep step52dev6), mutated by G275, caught; `run` is the navigator's one walking loop since step 3, its 14 sites (and the launcher's own `run`, another function the census matches by name) unchanged and driven by every suite; deleting any one stops a walk the suites already exercise."
+  },
+  {
+   "callee": "world/memory.py:WorldMemory.__init__",
+   "caller": "*",
+   "reason": "Build step 5.2 added one FIELD (`unreached`); its one site makes the world memory, unchanged since step 3: deleting it leaves no memory, so no run starts. The field's writer and reader are mutated instead: G275 (`mark_unreached`'s call deleted) and G276 (`promise` blind to it), both caught."
+  },
+  {
+   "callee": "world/memory.py:WorldMemory.promise",
+   "caller": "*",
+   "reason": "Build step 5.2 changed only which frontier tiles `promise` counts (not one a walk found no way to, until the map shows more: G276, caught); its six sites (the explorer's back roads, the goal manager's looks round and 'some more') are unchanged since steps 3-5.2 and are driven by test_world and test_goals."
+  },
+  {
+   "callee": "world/memory.py:WorldMemory.to_dict",
+   "caller": "*",
+   "reason": "Build step 5.2, the verifier's round, added one optional key to the world memory's snapshot (`spoke`, the people who have spoken to the player, written only when it holds someone, so every earlier brain's snapshot is unchanged), mutated by G293 (the write deleted), caught by test_whom_it_met_is_kept_with_the_world_memory; its three sites (`snapshot`, the action log's record, its own nesting) are the world memory's persistence since step 3, unchanged, driven by test_world's MemoryTests round trip, a suite the 5.2 revert gate (test_goals) does not run: deleting one stops every run's world.jsonl."
+  },
+  {
+   "callee": "world/memory.py:WorldMemory.from_dict",
+   "caller": "*",
+   "reason": "Build step 5.2, the verifier's round, added one line reading the optional `spoke` key back, mutated by G294 (the read deleted), caught by test_whom_it_met_is_kept_with_the_world_memory; its two sites (`read_world`, the play brain's carried memory, and its own nesting) are step 3's persistence, unchanged, driven by test_world's MemoryTests round trip, which the 5.2 revert gate does not run."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator._scene_met",
+   "caller": "brain/navigator.py:Navigator.run",
+   "reason": "Build step 5.2 added one line to `_scene_met` (it records the target it gives up in `scene_given_up`), mutated by G240; the call site in `Navigator.run` is step 3.1's, unchanged, and is driven by gates/test_world.py's scene tests (a walk that ends 'a scene stopped the way there 2 times'), a suite the 5.2 revert gate, which runs test_goals, does not run: waived, not claimed."
+  },
+  {
+   "callee": "mode.py:_RebasedEyes.look",
+   "caller": "*",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): every `.look()` in the package is matched to the frame-base wrapper's `look` (D7), which implements the Eyes protocol; its one real site is `hands/pad.py` Hands.look (`self.eyes.look()`), unchanged, and the wrap itself is mutated by revert_step5 G393 (CAUGHT by R1PlayTests)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._say",
+   "caller": "mode.py:HandsBrain.play",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): HandsBrain.play's `self._say` is the brain's own say callable (the [AI-HANDS] memory line R1 added), not GoalManager._say."
+  },
+  {
+   "callee": "game_memory.py:_same",
+   "caller": "skills/story.py:approach",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): skills/story.py has its own `_same` (a look's object is the target), not game_memory's JSON equality."
+  },
+  {
+   "callee": "game_memory.py:MonRegistry.to_dict",
+   "caller": "memory_log.py:ActionLog.record",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is `Observation.to_dict` in the action log, not the Pokemon registry's."
+  },
+  {
+   "callee": "game_memory.py:restore",
+   "caller": "host/lifecycle.py:Lifecycle.finish",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is `ListenerIsolation.restore` (the framework's listeners given back), not the memory file's restore."
+  },
+  {
+   "callee": "host/controller.py:Controller.tap",
+   "caller": "mode.py:Brain.play",
+   "reason": "(R1 + R2, build stage 4) a pre-R1 site: the step-0 placeholder's CONTROL tap (`AI_PLAYER_CONTROL_TAP`) through the abstract Controls; R1 changed `tap` only by the START/SELECT check, mutated by revert_r1 S39 and CAUGHT by test_host ControllerTogetherTests."
+  },
+  {
+   "callee": "host/controller.py:Controller.hold",
+   "caller": "hands/menus.py:set_clock",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is the pad's `hold` (hands/pad.py Pad.hold), not the controller's; R1's change to Controller.hold is mutated by revert_r1 S39."
+  },
+  {
+   "callee": "host/controller.py:Controller.__init__",
+   "caller": "host/session.py:Session.__init__",
+   "reason": "(R1 + R2, build stage 4) the controller's one site is the host session's constructor, which only a live run builds (no unit suite starts a framework session); R1 added the `held` set it starts with, driven by ControllerTogetherTests."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._text",
+   "caller": "world/memory.py:MapMemory.to_dict",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): world/memory.py has its own `_text` (a tile's key as text), not the host eyes' `_text`."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._text",
+   "caller": "world/memory.py:WorldMemory._transition",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): world/memory.py has its own `_text` (a tile's key as text), not the host eyes' `_text`."
+  },
+  {
+   "callee": "mode.py:HandsBrain.play",
+   "caller": "host/session.py:Session.run",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): the session drives `Brain.play` or `WatcherBrain.play` (its `self.brain`), never HandsBrain.play."
+  },
+  {
+   "callee": "mode.py:HandsBrain.play",
+   "caller": "mode.py:Brain.play",
+   "reason": "(R1 + R2, build stage 4) a pre-R1 site: `Brain.play` hands a hands brain's run to `self._hands.play`, unchanged; a Brain is built only by the host session (a live run); R1's changes to HandsBrain.play are driven directly by R1PlayTests and mutated by revert_step5 G387, G393, G394, G399."
+  },
+  {
+   "callee": "mode.py:HandsBrain._story_menu",
+   "caller": "mode.py:HandsBrain._play",
+   "reason": "(R1 + R2, build stage 4) a pre-R1 site: the play loop hands the navigator `on_menu` (a lambda calling `_story_menu`), unchanged since step 5; R1's save branches of `_story_menu` are driven directly by PlayLoopTests and mutated by revert_step5 G390."
+  },
+  {
+   "callee": "options.py:HandsOptions.from_env",
+   "caller": "host/session.py:start_session",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is `RunOptions.from_env`, not HandsOptions'."
+  },
+  {
+   "callee": "options.py:HandsOptions.from_env",
+   "caller": "mode.py:Brain.__init__",
+   "reason": "(R1 + R2, build stage 4) a pre-R1 site: `Brain.__init__` reads the hands options, unchanged; a Brain is built only by the host session; R1's five new options are read by test_saving LauncherContinueTests.test_the_options_carry_the_memory."
+  },
+  {
+   "callee": "options.py:_flag",
+   "caller": "options.py:HandsOptions.from_env",
+   "reason": "(R1 + R2, build stage 4) the census lists EVERY `_flag` call of `from_env` because R1 added calls there; the pre-R1 fault switches' reads (steps 2-5.1, unchanged) are their own steps' arms; R1's own two (`AI_PLAYER_CONTINUE`, `AI_PLAYER_FAULT_NO_SAVE`) are covered by revert_r1 census mutants, CAUGHT by test_the_options_carry_the_memory."
+  },
+  {
+   "callee": "skills/intro.py:play_intro",
+   "caller": "mode.py:HandsBrain._skill",
+   "reason": "(R1 + R2, build stage 4) a pre-R1 site: the `intro` hands brain's skill, unchanged since step 2; stage 3 only moved the title block into `skip_title` (no behaviour change), whose call in play_intro is covered by revert_r1 census mutants and by revert_step2 HFG (re-anchored, CAUGHT); the intro brain runs only live (gates/live_step2.py)."
+  },
+  {
+   "callee": "skills/saving.py:_decide",
+   "caller": "brain/battle.py:BattleMind.decide",
+   "reason": "(R1 + R2, build stage 4) NOT A SITE (the census matches by name): this is the battle mind's own `_decide`, not the save skill's question rule."
+  },
+  {
+   "callee": "game_memory.py:MonRegistry.add_role",
+   "caller": "*",
+   "reason": "(R1 + R2, build stage 4) UNCALLED by design: build spec D15, no role is ASSIGNED in this build (that is L3 (c)-(d)); the vocabulary and the refusal of an unknown role are tested by MemoryFileTests.test_mons_by_pid_and_species_with_roles and CensusSiteTests."
+  },
+  {
+   "callee": "brain/explore.py:candidates.add",
+   "caller": "*",
+   "reason": "(KI-129 Part B, 2026-10-31) `add` is `candidates`' NESTED scorer; Part B added one guard to its BODY (the drop of a tile past a ping-ponged edge), mutated by revert_step5 G422 (the guard deleted) and G423 (routes not exempt), both caught. Its own call sites inside `candidates` are unchanged since step 3; the census matches by NAME, so the other sites it lists are builtin `set.add` calls, not this function: waived, not claimed."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.summary",
+   "caller": "brain/navigator.py:Navigator.run",
+   "reason": "(KI-129 Part B, 2026-10-31) `summary` only formats the walk's counts (steps, bumps, maps, tiles) at the end of an outcome's text; Part B's edge stop added one more outcome line that prints it. Deleting a call changes only the words after the reason, which no decision reads (the play loop and the graders read the outcome's prefix: 'stuck: ping-pong: the edge'), so no mutant of it can be caught: waived, not claimed."
+  },
+  {
+   "callee": "eyes/screens.py:pokenav_wait",
+   "caller": "host/eyes.py:FrameworkEyes._screen",
+   "reason": "(chapter 5, 2026-11-05, E5) `_screen` reads the whole framework (game state, tasks, printers, the script context), so no offline test drives it; the RULE is test_eyes PokenavEyesTests.test_u3_the_call_exit_wait_is_seen (both halves). This one CALL is proven LIVE instead: in every new-code run of the chapter-5 stops' menu batches the AI pressed A on exactly one look whose gate reads 'task Task_Pokenav (A or B: the call has ended)', the reason this call returns (ai_player/evidence/2026-11-05-ch5-stops-development.txt); with the call deleted that screen has no wait, the AI stood 830 frames there in the recon. Waived offline, proven live."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._player",
+   "caller": "host/eyes.py:FrameworkEyes.look",
+   "reason": "(chapter 5, 2026-11-05, E1) `_player` changed only by ONE added field, the player's name (`PlayerState.name`); its one call in `look` is the step-1 call every look makes (a run with it deleted has no player and no view: every live arm would stop at once). The name itself is proven LIVE: the first full look of every new-code run of the chapter-5 stops shows player.name 'Milo' (ai_player/evidence/2026-11-05-ch5-stops-development.txt), and the rule that uses it is test_goals InstructedTests.test_g2 (both halves) with mutant revert_step5 G435."
+  },
+  {
+   "callee": "eyes/party.py:_u32",
+   "caller": "host/eyes.py:FrameworkEyes._player",
+   "reason": "(chapter 5, 2026-11-05, E1) the census matches by NAME: `_u32` is a byte decoder (also eyes/party.py's), and the one ADDED call in `_player` is the save block 2 pointer the name read follows (the other site is step 1's save block 1 pointer, unchanged). Deleting it breaks the name read, which is proven live (every new-code run's first full look shows player.name 'Milo') and whose rule is InstructedTests.test_g2 with mutant revert_step5 G435."
+  },
+  {
+   "callee": "eyes/screens.py:decode_text",
+   "caller": "host/eyes.py:FrameworkEyes._player",
+   "reason": "(chapter 5, 2026-11-05, E1) the added call decodes the player's name (SaveBlock2 playerName[8]) with the AI's own charmap. `_player` needs the whole framework (the avatar, the object events, the save blocks, the map tables), so no offline test reaches it; the name is proven LIVE (every new-code run of the chapter-5 stops' batches: first full look, player.name 'Milo'), and the rule that reads it is InstructedTests.test_g2 (both halves) with mutant revert_step5 G435."
+  },
+  {
+   "callee": "brain/explore.py:candidates",
+   "caller": "*",
+   "reason": "(KI-134, 2026-11-05) `candidates` changed in ONE statement, the arguments of its own call of `route_to` (the player's tile and the walls `cut_off` walks round; `nav.walls` is now called once into a local and used by both its reach and the route). None of its callers changed or calls it differently. The change is live wherever a caller passes a goal (travel_intent.choose, carry_on, choose_target, lost_way): KI134RegionTests test_f1, test_f2 and test_w1 call `candidates` and `travel_intent(...).choose` themselves, and the call site inside `candidates` is covered by revert_step5 G477 (the call deleted), G476 (the position dropped) and G487 (the walls dropped), all caught. The callers lost_intent.lost_choose, look_round_intent.look_choose and GoalRunner._detour.detour_choose pass goal None, so `route_to` is never asked there. Three listed sites are NOT SITES (the census matches by name): local lists named `candidates` in brain/battle.py BattleMind._opener and _catch_status, and in host/eyes.py FrameworkEyes._text."
+  },
+  {
+   "callee": "skills/story.py:approach",
+   "caller": "skills/story.py:heal_at_center",
+   "reason": "(chapter 6 stops, 2026-11-05) `approach` changed for someone seen to MOVE (the walker meetings and the re-aim, which fire only when the person's tile changes) and in its battle test (the navigator's battle log, never the word). heal_at_center approaches the NURSE, found by her look in the same look the approach starts from, standing behind the counter, so the moving branch cannot fire: the walk up is the step-5 one (the CONTROL WalkerTests.test_w4: a person who never moves is walked up to exactly as before, never watched) and the battle test is WalkerTests.test_b1/test_b2 with mutants G501/G502. The call itself is unchanged; deleting it is the step-5 nurse's concern (no offline nurse test drives heal_at_center: it is live in every chapter 1-5 run that heals)."
+  },
+  {
+   "callee": "skills/story.py:approach",
+   "caller": "skills/story.py:shop_at_mart",
+   "reason": "(chapter 6 stops, 2026-11-05) as for heal_at_center: shop_at_mart approaches the CLERK, found by his look in the same look the approach starts from, standing behind the counter, so the moving branch (meetings, re-aim) cannot fire and the walk up is the step-5 one (CONTROL WalkerTests.test_w4); the battle test is WalkerTests.test_b1/test_b2 (G501/G502). The call is unchanged; no offline mart test drives shop_at_mart (it is live in every run that shops)."
+  },
+  {
+   "callee": "eyes/screens.py:decode_text",
+   "caller": "host/eyes.py:FrameworkEyes._text",
+   "reason": "(chapter 6 stops, 2026-11-05) `_text` gained ONE call of decode_text, in the call window's block (a call in the field: its window's words, active or not); that site is covered by revert_r1 CH6H2 (the whole block deleted: CallEndHostTests.test_the_call_window_and_its_words and LiveCallEndTests.test_a_trainers_match_call_in_the_woods fail). The census then lists every decode_text site of `_text` (it matches the added call by name and count): the other two are build step 2's unchanged lines (an active printer's words, and the last message while something shows it), not touched by this round."
+  },
+  {
+   "callee": "brain/goals.py:world_distance",
+   "caller": "brain/goals.py:lead_toward",
+   "reason": "(chapter 6 stops, the second builder, 2026-11-06: the KI-134 verifier's K134-V3) world_distance changed in its BODY only: with the player's tile known it counts the links of the route from where the player stands (`part_hops`, `explore.region_hops`); a map no such route reaches counts by maps as before. lead_toward's call is unchanged and ranks by it exactly as _nearest_place does (the min of world_distance first). The body change is proven at the function (KI134FollowUpTests.test_v3 and test_v3b; mutants G528-G536) and at _nearest_place's two calls (G537, G538). No offline test drives lead_toward on a map in two parts; it is live in every run that heads for a map it has not been to."
+  },
+  {
+   "callee": "brain/goals.py:world_distance",
+   "caller": "brain/goals.py:GoalRunner._grass_map",
+   "reason": "(chapter 6 stops, the second builder, 2026-11-06: the KI-134 verifier's K134-V3) as for lead_toward: world_distance changed in its BODY only (the links of the route from where the player stands when its tile is known; by maps otherwise, as before), and _grass_map's call is unchanged, ranking the maps with grass by it (min first). Proven at the function (KI134FollowUpTests.test_v3, test_v3b; G528-G536) and at _nearest_place's two calls (G537, G538). No offline test drives _grass_map on a map in two parts (test_goals stubs it); it is live in every run that roams for grass from a map with none."
+  },
+  {
+   "callee": "brain/navigator.py:distances",
+   "caller": "brain/explore.py:candidates",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) candidates' own reach (`reach = distances(memory, here, walls, ...)`, step 3's) is unchanged; the census lists it because the nested road walk (`candidates.road_walk`) added a second distances call, whose rule is pinned by G599 (its in_map_walls deleted) and G558 (the road walk guarded off), both caught by Round3CrossingTests.test_x1. Deleting the old reach call leaves `reach` unbound: every candidates test errors."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.turn_costs",
+   "caller": "brain/explore.py:candidates",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the same line as the distances waiver: the old reach's turn costs (step 3.1, finding 2), unchanged; the census lists it because the nested road walk added a second turn_costs call (G599, G558)."
+  },
+  {
+   "callee": "world/memory.py:road_side",
+   "caller": "brain/explore.py:candidates",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the old roads loop's `road_side(memory, tile)` (step 3), unchanged; listed because the nested road walk added a road_side call (covered by G558's guard and G557 in in_map_walls, caught by test_x1)."
+  },
+  {
+   "callee": "world/memory.py:MapMemory.outside",
+   "caller": "brain/explore.py:candidates",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the old grass loop's `memory.outside(tile)` (build step 5), unchanged; listed because `add` (nested) added an outside call, which G558 guards off (test_x1)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.step_known",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) step_known changed in ONE clause, `or self.knows_gym(step, world)` (NS4), deleted by G564 and caught by Round3GymTests.test_g2; its four callers (_story_here, _story_step_goal) are unchanged since step 5 (HintTests)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._told",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) _told changed by one added branch (the knows_gym reason, G567, caught by test_g2); its three callers in _story_step_goal are unchanged."
+  },
+  {
+   "callee": "brain/goals.py:TravelSense.answer",
+   "caller": "brain/navigator.py:Navigator.handle",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the navigator's call of its `answer` hook (`self.answer(self.hands.last)`) is build step 5's, unchanged; TravelSense.answer reaches it as `nav.answer` (mode.py: G596 deletes that wiring, caught by test_t9). A yes/no inside a scene in the navigator is driven only live: #103's B-S1q-6320 answered MR. BRINEY's DEWFORD question NO through this call (its records: 'yes_no cursor on 1 (NO)' with the travel answer's reason), and the round's A/B pairs say the same."
+  },
+  {
+   "callee": "brain/goals.py:TravelSense.answer",
+   "caller": "skills/battle.py:_play",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the census matches by NAME: `mind.answer(question, ...)` in skills/battle.py is BattleMind.answer (a battle's own question), not the travel answer."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner.ride",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the census matches by NAME: the five sites are local names `ride` (Target's field in explore.candidates.add, a loop variable in candidates, the memory's dict entries in WorldMemory.to_dict and from_dict), none a reference to the method. The method's one reference is mode.py's `nav.rider = getattr(runner, \"ride\", None)`, a constant-name getattr the census does not list, deleted by G597 (caught by test_t9); its body is pinned by G590-G592 (test_r8)."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner._travel",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) _travel changed only by the heading bookkeeping wrapped round its unchanged body (now `_travel_on`, whose call G612 deletes): G611 pins the heading (Round3TravelTests.test_t10). Its five callers are unchanged."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner._grass_map",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) _grass_map changed in its body only (it delegates to grass_target: G610, caught by Round3GymTests.test_g7); its one caller in _pursue is unchanged."
+  },
+  {
+   "callee": "brain/navigator.py:in_map_walls",
+   "caller": "brain/explore.py:_Regions.walls_of",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) in_map_walls changed only for a target PAST an edge (a road: G557, caught by test_x1); walls_of passes None (any tile of this map), whose branch is unchanged since KI-129 Part A."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.walk_step",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) walk_step changed by the slide rule only (CH6S1-CH6S6, CH6S11-CH6S13 in revert_r1_mutants.json; off for every earlier brain, `learn_slides`); its callers (toward, roam_train) are unchanged."
+  },
+  {
+   "callee": "world/memory.py:moved",
+   "caller": "brain/navigator.py:Navigator.walk_step",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the old `entered = [moved(result.frm, direction)]` (step 3.2) is unchanged; the new call (the result check) is CH6S12's guard (test_s1 and the live slope test)."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.tell",
+   "caller": "brain/navigator.py:Navigator.walk_step",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the old forget_bump line is unchanged; the added line (a slide forgotten) is deleted by CH6S13 (test_s6). Tells are the run's log lines; no decision reads them."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator._use",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) _use changed by one line, `self._entered = None` (an exit is no step to be undone: CH6S9, REDUNDANT ALONE, an exit changes the map and `_undone` asks the same map); its one caller (use_exit) is unchanged."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.handle",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) handle changed by one line, `self._entered = None`, which is LOAD-BEARING: its mutant CH6S8 (the reset deleted) was measured CAUGHT by SlopeTests.test_s2 in both runs (s53/ch6stops3/mutants3_r1_run1.out, run2.out; it had been predicted REDUNDANT ALONE, and addendum 2 corrected that prediction; this waiver's wording was corrected in round 4, the verifier's V3-5); its five callers are unchanged."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.tell",
+   "caller": "brain/navigator.py:Navigator.run",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) run added one tell line (the ride taken and its outcome, after the rider); tells are the run's log lines, which no decision reads (the exclusion of a ride not taken is G594's, test_r6). The other eight are unchanged."
+  },
+  {
+   "callee": "brain/navigator.py:nav_free",
+   "caller": "brain/navigator.py:Navigator.run",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the old `if not nav_free(look):` (step 3.1) is unchanged; the added call (the stop check) is deleted by G560 (test_s2)."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.exclude",
+   "caller": "brain/navigator.py:Navigator.run",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the old exclusion of an unreachable target (step 3) is unchanged; the added one (a ride not taken) is G594's (test_r6)."
+  },
+  {
+   "callee": "brain/rides.py:RideWatch._close",
+   "caller": "hands/waiting.py:WaitWatch.__call__",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the census matches by NAME: WaitWatch._close (build step 5.1's wait watch) is not RideWatch._close."
+  },
+  {
+   "callee": "brain/rides.py:RideWatch._close",
+   "caller": "hands/waiting.py:WaitWatch.finish",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the census matches by NAME: WaitWatch._close (build step 5.1's wait watch) is not RideWatch._close."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.tell",
+   "caller": "mode.py:HandsBrain._play",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) the census lists every tell site of _play because RideWatch's construction added a `hands.tell` (its fallback line printer, used only when the navigator has none); tells are log lines no decision reads, and the construction itself is G595's (test_t9)."
+  },
+  {
+   "callee": "world/memory.py:WorldMemory.forget_bump",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 3, the second builder, 2026-11-06) forget_bump changed in its body only (a slid way is kept through the step into it: CH6S5, test_s1 and test_s4); its one caller (walk_step) is unchanged."
+  },
+  {
+   "callee": "skills/battle.py:_play",
+   "caller": "skills/battle.py:play_battle",
+   "reason": "(chapter 7 stops round 4, 2026-11-06) `_play` changed by one branch at its budget / watchdog end (the game's outcome read once the battle has left the screen: CH6S14 and CH6S15, test_battle BattleEndHeldTests e1 and e2); its one caller, play_battle, is unchanged, and a run with that call deleted ends every battle at once (test_battle SkillTests)."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.tell",
+   "caller": "skills/battle.py:_play",
+   "reason": "(chapter 7 stops round 4, 2026-11-06) the census lists every tell site of `_play` because the round added one `hands.tell` (the line saying the battle is over by gBattleOutcome while the scene after it holds the screen); tells are the run's log lines, which no decision reads, and the branch itself is CH6S14's (test_e1). The other eleven sites are unchanged."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.heal_place",
+   "caller": "brain/goals.py:GoalRunner._pursue",
+   "reason": "(chapter 6 stops round 5, 2026-11-06, VR4-2) `heal_place` changed only by its new keyword `reachable` (default False); the find_center goal's two calls in `_pursue` pass none, so they behave exactly as before the round (Round5HealTests.test_r3: `reachable` False keeps every place it knows); the changed caller, next_goal's, is deleted by G648 and its argument broken by G639, G640, G641 and G643."
+  },
+  {
+   "callee": "skills/instructed.py:SceneOpener.watch",
+   "caller": "brain/goals.py:GoalRunner.pursue",
+   "reason": "(chapter 6 stops round 5, 2026-11-06) a NAME collision: `watch` in GoalRunner.pursue is its own local variable (a `_PersonBlock` watcher appended to and removed from the hands' watchers), not SceneOpener.watch; the opener's one registration is mode.py _play's, deleted by G634 (and its construction by G644)."
+  },
+  {
+   "callee": "skills/instructed.py:SceneOpener.watch",
+   "caller": "brain/navigator.py:Navigator.handle",
+   "reason": "(chapter 6 stops round 5, 2026-11-06) a NAME collision: `watch` in Navigator.handle is its own nested function (the battle's kind as the eyes first show it, step 5), not SceneOpener.watch; the opener's one registration is mode.py _play's, deleted by G634 (and its construction by G644)."
+  },
+  {
+   "callee": "brain/goals.py:gym_back",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) `gym_back` is never called by name: it is HANDED ON as travel_intent's `back` in GoalRunner._pursue (`back=gym_back if self._fights_its_leader(...) else None`), and travel_intent's chooser calls it as `back(nav, look)`. The hand-on is deleted by G661 (back=None) and the call inside the chooser by G662 (target = None); both are CAUGHT by Round6GymTests p1 and p3."
+  },
+  {
+   "callee": "brain/goals.py:travel_intent",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) travel_intent changed only by a new keyword, `back` (default None); the callers in GoalRunner._travel_on, GoalRunner._see and _pursue's other two calls pass none, so their intents are exactly as before the round (Round6GymTests.test_p6's first-visit control and test_p2: no back is ever chosen without it). The one changed call, the find's in _pursue, has its new argument deleted by G661 and its stop by G225 (re-anchored); deleting the whole call would leave every go, look-around and find with no walk at all."
+  },
+  {
+   "callee": "brain/goals.py:travel_intent.choose",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) NAME collisions and the Intent interface: `choose` is also hands/menus.py's menu chooser (called in hands/menus.py, skills/battle.py, skills/instructed.py, skills/intro.py and skills/story.py) and the nested choosers of explore_intent and goto_intent; the one real site, Navigator.run's `intent.choose(self, look)`, is every intent's interface (deleting it stops every walk). The chooser's new branch is broken by G662-G665 (its call, its exclusion and reached checks, and its 'nothing left on the map' guard), all CAUGHT."
+  },
+  {
+   "callee": "brain/goals.py:travel_intent.reached",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 6, 2026-11-07, P5-1) NAME collisions and the Intent interface: `reached` is also goto_intent's and Navigator.go_to's own callbacks, GoalRunner._detour's local and MemoryWriter's; the one real site, Navigator.run's `intent.reached(target)`, is the Intent interface every arrival goes through (Navigator.go_to relies on it). The callback's body is broken by G664 (the back never marked reached), CAUGHT by Round6GymTests.test_p6."
+  },
+  {
+   "callee": "eyes/observation.py:View.ascii",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) View.ascii changed only to draw a dark tile (None) as a blank, the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); the record's picture of a dark map is asserted by DarkTests.test_d2 (row 5 reads '      .@.      ')."
+  },
+  {
+   "callee": "eyes/observation.py:Observation.to_dict",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) Observation.to_dict changed only to leave a lit map's `lit` out and a dark tile out of the compact tiles, the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); CH6S25 and CH6S26 break exactly those two lines."
+  },
+  {
+   "callee": "eyes/observation.py:Observation.digest",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) Observation.digest changed only to add `lit=Npx` on a dark map, the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); CH6S28 deletes that line (CAUGHT by DarkTests.test_d2), and the live check #110 reads it (judge7.py)."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._view",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) FrameworkEyes._view changed only to apply the lit circle, the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); its one caller, look(), reads the view of every overworld look."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._objects",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) FrameworkEyes._objects changed only by its lit check (CH6S20 deletes it), the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3)."
+  },
+  {
+   "callee": "host/eyes.py:FrameworkEyes._signs",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) FrameworkEyes._signs changed only by its lit check (CH6S21 deletes it), the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3)."
+  },
+  {
+   "callee": "world/memory.py:MapMemory.absorb",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, N6-1) MapMemory.absorb changed only to pass over a dark tile (None), the dark's representation (N6-1: a tile outside a dark map's lit circle is None in `View.rows`, `View.lit` its radius); its callers are unchanged, and deleting a call removes the function's whole job for EVERY map, lit or dark. The change itself is broken by revert_r1 CH6S18-CH6S35 (CAUGHT by test_eyes DarkTests d1-d3); CH6S24 deletes the guard (CAUGHT by DarkTests.test_d2)."
+  },
+  {
+   "callee": "knowledge/story.py:Story._milestone",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-5) Story._milestone changed only to load the fight's trainers (`fight_trainers`); its one caller, Story.__init__, builds every milestone of the story, and deleting it removes the whole story. G676 empties the new field (CAUGHT by Round7GymTests g1, g3 and Round6GymTests p1, p7)."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner._leader_back.back",
+   "caller": "*",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-1) NAME collisions: the census matches `back` by name (brain/explore.py candidates' own `back`, host/eyes.py and world/memory.py references of other names). The closure is never called by name: it is HANDED to travel_intent as `back` (deleted by G661, CAUGHT) and called inside travel_intent's chooser as `back(nav, look)` (deleted by G662, CAUGHT); its binding to the leader's gym is broken by G672 and G673 (CAUGHT by Round7GymTests g1)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.center_seen_on",
+   "caller": "brain/goals.py:GoalRunner._pursue",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-4) the three new reads of the town's centre door inside the find_center's WALK OUT of a building (the walk's done, the check after it, the result) only end the walk early when the door is already seen; deleting one leaves the look that follows to end at once on the same read (the look's own done, the fourth site, unchanged since build step 5.1). The branch is deleted whole by G682 (CAUGHT by Round7HealTests h2)."
+  },
+  {
+   "callee": "hands/pad.py:Hands.look",
+   "caller": "brain/goals.py:GoalRunner._pursue",
+   "reason": "(chapter 6 stops round 7, 2026-11-07, VR6-4) one new screen read in the find_center's walk-out check (`moved_on(self.hands.look())`: did the story move on during the walk); the other sites are _pursue's earlier reads of the same name. The branch is deleted whole by G682 (CAUGHT by Round7HealTests h2); deleting the read alone fails every look."
+  },
+  {
+   "callee": "brain/battle.py:move_value",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:_formula_share",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:rough_share",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.__init__",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.begin",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._run_or_not",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._switch",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a KEYWORD with a default that keeps every existing call as it was (power=None, purpose 'raise' a new branch): the existing sites are unchanged, and test_bossprep T1's CONTROL pins move_value and rough_share byte-identical to the parent 18c3d51b over every move x every type set x every species; the new branches are broken by revert_bossprep switch_in_raise, catch_in_raise, raise_travels."
+  },
+  {
+   "callee": "brain/bossprep.py:Member.types",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:Verdict.line",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:Option.plan",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:types_of",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:_slot",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:_battler",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:members_of",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:project",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:verdict_slot",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:attack_half",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:threat_half",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:hit_points",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:_own_points",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:verdict",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:verdict.rank",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:options",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:choose_plan",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:new_record",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:spent_reason",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:near_best",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:next_boss",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:trainee_rest",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:RaiseWatch.after",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:described",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:team_line",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:with_target",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/bossprep.py:_damaging",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a pure function of the readiness verdict (brain/bossprep.py) whose results test_bossprep pins BY VALUE (T1-T9: the halves, the duel's classes, the projection, the options and costs, the plan draw); revert_bossprep breaks its rules in the body (types_only, moves_only, fp_always, name_tie, fixed_resisted, no_immunity, strongest_level, no_sitrus, flail_flat, no_projection, eligible_cocoon, cost_by_level_gap, rechoose, current_only, rest_by_strongest), and the ONE call that runs it all, next_goal's boss_prep, is deleted by no_verdict_run. Many listed sites are other functions of the same NAME (the census matches by name: `.line(`, `options`, `.types`)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.bp_record",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the boss-preparation record's accessors and the plan's helpers in brain/goals.py: test_bossprep T5-T9 drive them through next_goal and pin the record's fields; their callers are covered by revert_bossprep no_verdict_run, no_raise_goal, no_lead_goal, no_boss_lost, not_persisted, same_plan, rechoose, no_bound."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._judge",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the boss-preparation record's accessors and the plan's helpers in brain/goals.py: test_bossprep T5-T9 drive them through next_goal and pin the record's fields; their callers are covered by revert_bossprep no_verdict_run, no_raise_goal, no_lead_goal, no_boss_lost, not_persisted, same_plan, rechoose, no_bound."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._plan",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the boss-preparation record's accessors and the plan's helpers in brain/goals.py: test_bossprep T5-T9 drive them through next_goal and pin the record's fields; their callers are covered by revert_bossprep no_verdict_run, no_raise_goal, no_lead_goal, no_boss_lost, not_persisted, same_plan, rechoose, no_bound."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.raise_map",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the boss-preparation record's accessors and the plan's helpers in brain/goals.py: test_bossprep T5-T9 drive them through next_goal and pin the record's fields; their callers are covered by revert_bossprep no_verdict_run, no_raise_goal, no_lead_goal, no_boss_lost, not_persisted, same_plan, rechoose, no_bound."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner._raise_exp",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the raise's EXPERIENCE report (M4 point 6: a log line, read by the A/B), no decision depends on it; its caller _raise is covered by no_raise_branch."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner.roam_hooks",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a keyword (trainee=None) that keeps the training and catching roams' calls as they were (RestTests pin them); the raise's call installs the trainee rest, deleted by revert_bossprep no_raise_rest."
+  },
+  {
+   "callee": "brain/goals.py:GoalRunner.roam_hooks.raise_rest",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) handed on as a VALUE (nav.battle_rest = raise_rest: the navigator calls it after each battle); the assignment is deleted by revert_bossprep no_raise_rest (caught by TraineeRuleTests)."
+  },
+  {
+   "callee": "brain/goals.py:battles_lost",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue)."
+  },
+  {
+   "callee": "world/memory.py:WorldMemory.here",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue)."
+  },
+  {
+   "callee": "hands/pad.py:Hands.look | host/eyes.py:FrameworkEyes.look | mode.py:Eyes.look",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue)."
+  },
+  {
+   "callee": "hands/party_order.py:lead_with",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the party-order hand's own helpers (hands/party_order.py): no offline test drives the field's party menu, so the hand is proven LIVE by T10 (gates/probe_bossprep.py lead from probe-C1: PASS, the game's party read by the framework; CONTROL already first: no press; FAULT shift_slot: FAIL), and revert_bossprep reorder_by_slot and eyes_slot_id are killed LIVE on copies (s53/bp1)."
+  },
+  {
+   "callee": "hands/party_order.py:_free",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the party-order hand's own helpers (hands/party_order.py): no offline test drives the field's party menu, so the hand is proven LIVE by T10 (gates/probe_bossprep.py lead from probe-C1: PASS, the game's party read by the framework; CONTROL already first: no press; FAULT shift_slot: FAIL), and revert_bossprep reorder_by_slot and eyes_slot_id are killed LIVE on copies (s53/bp1)."
+  },
+  {
+   "callee": "hands/party_order.py:_pids",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the party-order hand's own helpers (hands/party_order.py): no offline test drives the field's party menu, so the hand is proven LIVE by T10 (gates/probe_bossprep.py lead from probe-C1: PASS, the game's party read by the framework; CONTROL already first: no press; FAULT shift_slot: FAIL), and revert_bossprep reorder_by_slot and eyes_slot_id are killed LIVE on copies (s53/bp1)."
+  },
+  {
+   "callee": "hands/party_order.py:_close",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) the party-order hand's own helpers (hands/party_order.py): no offline test drives the field's party menu, so the hand is proven LIVE by T10 (gates/probe_bossprep.py lead from probe-C1: PASS, the game's party read by the framework; CONTROL already first: no press; FAULT shift_slot: FAIL), and revert_bossprep reorder_by_slot and eyes_slot_id are killed LIVE on copies (s53/bp1)."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_load",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_move",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_species",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_by_name",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:_learnsets",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:evolutions",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:level_up",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:land_levels",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/seasoned.py:unmapped",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) called by the TEST side only (test_bossprep LoaderTests: the loader's own mapping check, every learnset move and evolution target): no AI code calls it."
+  },
+  {
+   "callee": "knowledge/atlas.py:_spoken",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "knowledge/atlas.py:boss_party",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a knowledge loader (knowledge/seasoned.py, atlas.boss_party) whose answers test_bossprep LoaderTests and test_kb2 K-F3d/K-F3e pin by value and by the keys read; revert_bossprep loader_prefix breaks the move mapping; its callers' results (the projection, the team) are pinned by T1-T5."
+  },
+  {
+   "callee": "hands/pad.py:Hands.look",
+   "caller": "*",
+   "reason": "(BP-1, 2026-11-09) a read made by the after-loss check in GoalRunner.pursue (the map the goal began on, the battles lost before and after, the record): no side effect on the game; the check's ONE action, the boss_lost call, is deleted by revert_bossprep no_boss_lost (caught by PersistenceTests.test_a_loss_through_pursue). The site at the head of pursue is the hurt check's look, there before BP-1 (its line changed only by adding 'raise' to the kinds it skips)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._raise_turn",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the raise's turn in a battle (brain/battle.py _raise_turn, raise_partner) and its one log line: gates/test_bossprep.py RaiseTurnTests R3a-R3m pin every decision BY VALUE (switch, own fight, rescue, run, not the trainee, a trainer battle, the replacement, 'Use next', no second switch); revert_bossprep breaks each rule in the body or at its call: raise_never_switch (deletes raise_partner's turn-1 call), no_own_fight (deletes fight_safe's call), partner_unchecked, raise_always_switch, run_first (both call sites of _raise_turn guarded: the old order), second_switch, replacement_trainee_ok, trainee_sent_last (deletes _only_the_trainee's call). _raise_say only tells a line (no decision reads it)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.raise_partner",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the raise's turn in a battle (brain/battle.py _raise_turn, raise_partner) and its one log line: gates/test_bossprep.py RaiseTurnTests R3a-R3m pin every decision BY VALUE (switch, own fight, rescue, run, not the trainee, a trainer battle, the replacement, 'Use next', no second switch); revert_bossprep breaks each rule in the body or at its call: raise_never_switch (deletes raise_partner's turn-1 call), no_own_fight (deletes fight_safe's call), partner_unchecked, raise_always_switch, run_first (both call sites of _raise_turn guarded: the old order), second_switch, replacement_trainee_ok, trainee_sent_last (deletes _only_the_trainee's call). _raise_say only tells a line (no decision reads it)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._raise_say",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the raise's turn in a battle (brain/battle.py _raise_turn, raise_partner) and its one log line: gates/test_bossprep.py RaiseTurnTests R3a-R3m pin every decision BY VALUE (switch, own fight, rescue, run, not the trainee, a trainer battle, the replacement, 'Use next', no second switch); revert_bossprep breaks each rule in the body or at its call: raise_never_switch (deletes raise_partner's turn-1 call), no_own_fight (deletes fight_safe's call), partner_unchecked, raise_always_switch, run_first (both call sites of _raise_turn guarded: the old order), second_switch, replacement_trainee_ok, trainee_sent_last (deletes _only_the_trainee's call). _raise_say only tells a line (no decision reads it)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._decide",
+   "caller": "brain/battle.py:BattleMind.decide",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.replacement",
+   "caller": "brain/battle.py:BattleMind.answer",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.replacement",
+   "caller": "skills/battle.py:_send_in",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.answer",
+   "caller": "brain/navigator.py:Navigator.handle",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.answer",
+   "caller": "skills/battle.py:_play",
+   "reason": "(BP-1 round 2, 2026-11-11) an existing entry point CHANGED by a branch that runs only with the purpose 'raise' and a trainee set (the decider's _decide, replacement, answer): its callers (decide, the battle skill, the navigator) are the same as before; test_battle's 112 tests pin the ordinary paths unchanged (RaiseTurnTests test_no_raise_turn_outside_a_raise is the CONTROL: purpose train, or no trainee, gives no raise mode), and the chapters 1-5 replay control (bp1r2 control batch) compares the decision streams with the parent."
+  },
+  {
+   "callee": "brain/bossprep.py:member_now",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/bossprep.py:rank_of",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/bossprep.py:raise_partner_of",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/bossprep.py:partner_worn",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._partner_worn",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._raise_goal.key_of",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._raise_name",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._settle_one",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._trainee_low",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.raise_cap",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager.raise_maps",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a pure helper of the raise (brain/bossprep.py member_now, rank_of, raise_partner_of, partner_worn; brain/goals.py raise_maps, raise_cap, key_of, _trainee_low, _partner_worn, _settle_one, _raise_name): no side effect on the game; test_bossprep pins its answers BY VALUE (TraineeFloorTests, PartnerWornTests, RaiseMapTests, LeadAfterTests) and revert_bossprep deletes the call that ACTS on each (trainee_floor_off, partner_worn_off, no_partner_rest, map_by_trainee, one_raise_key, restore_never, restore_always, raise_guard_off)."
+  },
+  {
+   "callee": "brain/bossprep.py:spend",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) brain/bossprep.py spend and GoalManager._spend: the ONE way a plan ends spent (status, why, settle pending); BudgetTests.test_a_spent_budget_ends_the_raise pins its three fields after a spend through _raise_goal, and LeadAfterTests R8a-R8f the settle it leaves; revert_bossprep no_settle_on_spend breaks it (caught), and BP-1's no_bound deletes the budget check that leads to it. The sites in _judge and boss_lost replace BP-1's direct status writes one for one."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._spend",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) brain/bossprep.py spend and GoalManager._spend: the ONE way a plan ends spent (status, why, settle pending); BudgetTests.test_a_spent_budget_ends_the_raise pins its three fields after a spend through _raise_goal, and LeadAfterTests R8a-R8f the settle it leaves; revert_bossprep no_settle_on_spend breaks it (caught), and BP-1's no_bound deletes the budget check that leads to it. The sites in _judge and boss_lost replace BP-1's direct status writes one for one."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._say",
+   "caller": "brain/goals.py:GoalManager._raise_goal",
+   "reason": "(BP-1 round 2, 2026-11-11) a log line of the raise goal ('the raise waits: ...'): no decision reads it; the waits themselves are pinned by TraineeFloorTests.test_r1f (raise_guard_off) and RaiseMapTests.test_r6e (one_raise_key)."
+  },
+  {
+   "callee": "hands/field_item.py:_close",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_count",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_free",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_hp",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_pids",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_read_message",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "hands/field_item.py:_to_pocket",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) the field item hand's own helpers (hands/field_item.py): test_hands FieldItemTests drives use_on on a MODEL of the decomp's start menu, bag, context menu and use-item party screen (the path and its gates; no item: no press; a shifted slot: FAILED by the HP read; the target by PID), and the live P2 probe (gates/probe_bossprep.py potion) drives it in the game; revert_bossprep no_use_on and no_potion_branch delete its call. The census matches by NAME: the party_order, navigator and pad sites listed are other functions called _close, _pids, _count, _free."
+  },
+  {
+   "callee": "knowledge/seasoned.py:wild_moves",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11) a static knowledge read (knowledge/seasoned.py wild_moves: the initial-moveset rule over a guide's learnset; facts.move_fact for the move's type in _own_points' immunity check): FightSafeTests pins wild_moves by value (Poochyena L5, Taillow L8, no Pursuit near RUSTBORO) and OwnImmunityTests the immunity (revert_bossprep no_immunity_own deletes the type check)."
+  },
+  {
+   "callee": "knowledge/facts.py:move_fact",
+   "caller": "brain/bossprep.py:_own_points",
+   "reason": "(BP-1 round 2, 2026-11-11) a static knowledge read (knowledge/seasoned.py wild_moves: the initial-moveset rule over a guide's learnset; facts.move_fact for the move's type in _own_points' immunity check): FightSafeTests pins wild_moves by value (Poochyena L5, Taillow L8, no Pursuit near RUSTBORO) and OwnImmunityTests the immunity (revert_bossprep no_immunity_own deletes the type check)."
+  },
+  {
+   "callee": "skills/battle.py:_Pages.__init__",
+   "caller": "skills/battle.py:play_battle",
+   "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) skills/battle.py's learner and forget-screen choice: the existing call sites in _play and play_battle are the same as before (the questions' answer path and the battle's pages watcher); test_bossprep LearnerTests pins the learner by its page, at the question, and the forget screen's recheck BY VALUE with FAULT arms, and revert_bossprep breaks each rule at its own line (no_learning_kept, learner_page_off, learner_knowledge_off: it deletes the _learns_now call, forget_recheck_off). Reproduced offline first (s53/bp1r2/repro_learn.py, predictions hashed) and re-run live (#120)."
+  },
+  {
+   "callee": "skills/battle.py:_forget_choice",
+   "caller": "*",
+   "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) skills/battle.py's learner and forget-screen choice: the existing call sites in _play and play_battle are the same as before (the questions' answer path and the battle's pages watcher); test_bossprep LearnerTests pins the learner by its page, at the question, and the forget screen's recheck BY VALUE with FAULT arms, and revert_bossprep breaks each rule at its own line (no_learning_kept, learner_page_off, learner_knowledge_off: it deletes the _learns_now call, forget_recheck_off). Reproduced offline first (s53/bp1r2/repro_learn.py, predictions hashed) and re-run live (#120)."
+  },
+  {
+   "callee": "skills/battle.py:_learn",
+   "caller": "skills/battle.py:_play",
+   "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) skills/battle.py's learner and forget-screen choice: the existing call sites in _play and play_battle are the same as before (the questions' answer path and the battle's pages watcher); test_bossprep LearnerTests pins the learner by its page, at the question, and the forget screen's recheck BY VALUE with FAULT arms, and revert_bossprep breaks each rule at its own line (no_learning_kept, learner_page_off, learner_knowledge_off: it deletes the _learns_now call, forget_recheck_off). Reproduced offline first (s53/bp1r2/repro_learn.py, predictions hashed) and re-run live (#120)."
+  },
+  {
+   "callee": "brain/battle.py:move_key",
+   "caller": "skills/battle.py:_learn",
+   "reason": "(BP-1 round 2, 2026-11-11, the live #118 learn-move loop) brain/battle.py move_key, a pure name normaliser (lowercase letters and digits), compared on the page's move and the question's: LearnerTests.test_the_learner_named_by_its_page fails when the comparison is lost (learner_page_off)."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._protected",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) brain/battle.py BattleMind._protected, a pure accessor (the raise's trainee in a raise battle, the goal runner's guard outside one, None in chapters 1-5): no side effect. Each rule that reads it is pinned BY VALUE with a FAULT arm and broken at its own line by revert_bossprep: replacement_trainee_ok (the replacement, RaiseTurnTests R3j and GuardTests g5), trainee_sent_last ('Use next', R3l and g5), guard_switch_back (better_member's exclusion, g6); rescue_member's skip set holds the battler on the field too."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind._guard_say",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) brain/battle.py BattleMind._guard_say: one log line for each protective decision outside a raise ('[AI-BOSSPREP] guard: ...'), told through the goal runner's say; no decision reads it. The decisions themselves are pinned by GuardTests g1-g7 and broken by guard_off, guard_no_switch, guard_floor_only, guard_turn1_only."
+  },
+  {
+   "callee": "brain/battle.py:BattleMind.better_member",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) brain/battle.py BattleMind.better_member CHANGED by one exclusion (a protected trainee is never the member switched IN for a matchup): its call sites (_switch, _shift) are step 4's, unchanged; GuardTests test_g6_never_switched_in_for_a_matchup pins the exclusion with its CONTROL (no guard: the switch to it), and revert_bossprep guard_switch_back deletes it (caught). test_battle's 112 tests pin the ordinary paths."
+  },
+  {
+   "callee": "brain/goals.py:GoalManager._raise_key",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) brain/goals.py GoalManager._raise_key: round 2's nested key_of (BP1-L2, one cooldown key a raise map) moved to a method so _raise_place (the partner line's map) asks the SAME key as _raise_goal; revert_bossprep one_raise_key breaks its body (RaiseMapTests R6e, caught)."
+  },
+  {
+   "callee": "skills/battle.py:_shift_context",
+   "caller": "*",
+   "reason": "(BP-1 round 3, 2026-11-11) skills/battle.py _shift_context: the shift question's context expression of step 4.1 moved, verbatim, out of _play into a function so it can be pinned (the lead's design D5: does it lose its foe like the learner's page? It cannot: the screen's text is the whole message from its start). ShiftContextTests pins it with a window that lost the foe's page, and revert_bossprep shift_context_pages_only breaks it (caught). The call in _play is the one place the expression was."
+  },
+  {
+   "callee": "brain/navigator.py:Navigator.tell",
+   "caller": "brain/goals.py:GoalRunner._raise",
+   "reason": "NOT A SITE of Navigator.tell (the census matches by name): GoalRunner._raise calls its own `self.tell`, the goal runner's log line callback. (BP-1 round 4, 2026-11-11) The round added ONE such line: '[AI-BOSSPREP] raise session on <map>: ...' when the map's mode is \"own\" (the knock-out partner unfit there even healed); so the census lists both of _raise's tell sites (that one and round 2's raise-exp line). Tells are log lines; no decision reads them. The decision they report is pinned by FullPartnerTests.test_the_raise_session_takes_its_mode_from_the_map and broken by revert_bossprep no_mode_in_session (the mode's call deleted)."
+  },
+  {
+   "callee": "world/memory.py:MapMemory.__init__",
+   "caller": "world/memory.py:WorldMemory.observe",
+   "reason": "(The chapter-5 search fix E, 2026-11-13) E added one session-only FIELD to the map memory (`standing`, the things seen standing on the map); this site is the world memory building a map's memory on its first look, unchanged since build step 3: deleting it leaves no map memory at all, so nothing is learned. The new field's writer and readers are mutated instead: revert_step5 G691 (observe's call of see_objects deleted), G692 (the remembered things not joined to objects_now), G693-G697 (the shown check, the forgetting, the expiry, people kept, the field saved), each caught by test_goals StandingThingsTests."
+  },
+  {
+   "callee": "world/memory.py:MapMemory.__init__",
+   "caller": "brain/explore.py:dark_way.toward_goal",
+   "reason": "(The chapter-5 search fix E, 2026-11-13) NOT A NEW USE: P11-1's stand-in that only NAMES a map the dark-cave fact leads toward (an empty memory, never looked at, so its new `standing` field stays empty and is never read through it); the census lists it because MapMemory.__init__ gained E's session-only field. The goal test this stand-in serves is broken whole by revert_p11's way_on_deleted (`way_on`'s call with `toward_goal` deleted, caught); E's own rule is mutated by revert_step5 G691-G697."
+  }
+ ]
 }

@@ -1,6 +1,7 @@
 # Known Issues — Pokebot_Gen3_Enhancement
-> Current-state file: edit in place. Open problems only — when an issue is
-> fixed, remove it here and record the fix in 07-CHANGELOG.md.
+> Current-state file: edit in place. Open problems, plus FIXED entries kept while
+> their record still matters (each marked FIXED in its header; `archive_sweep.py`
+> moves closed blocks to `31`). Every fix is also recorded in 07-CHANGELOG.md.
 > Entry format below; KI numbers never get reused.
 
 <!--
@@ -20,7 +21,7 @@ candidates; any fix goes in DIVERGENCE-LOG). *The paragraph that used to sit her
 claimed ALL entries were upstream bugs — it was written when the file held five, and
 was wrong for the other eighteen.*
 
-**Everything else from KI-6 onward is OUR OWN story-bot / fork code**, and the active copy
+**Everything else from KI-6 onward is OUR OWN code** (from KI-123 on, mostly the AI player's, `ai_player/`, `#28-aiagent-v2`). For the story-bot / fork issues the active copy
 is **`sandbox-pokebot/`** (not `custom-pokebot/`). KI-23/KI-24 concern
 `modules/story/region_reach.py` and `modules/story/counter_plan.py`, which are ours and
 have no upstream equivalent.
@@ -766,26 +767,7 @@ touching `handle_fainted_pokemon` again.
 ## KI-41 — the Mauville→Route 112 corridor is sealed by a ROCK SMASH rock the planner treats as permanent — ✅ **FIXED 2026-07-31.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, to keep 05 under its R3 line budget; nothing deleted).
 
 **2026-09-06 — ARCHIVED, NOT REOPENED.** The full entry moved VERBATIM to `28-HANDOFF-ARCHIVE.md` to keep this file under its R3 budget after `KI-91`, `KI-92` and `KI-93` were filed. ⛔ Status unchanged: FIXED 2026-07-31.
-### ‼ KI-41 — FIXED 2026-07-31 (same day). `#24-smashroute`.
-`modules/story/obstacle_clearing.py` reads the ROM's own object events, keeps the ones whose
-script is a known field-move obstacle, and offers only those the bot can both REACH (an
-adjacent tile pathable right now) and CLEAR (party move + badge). Hooked into
-`early_game._navigate_riding_out` **before** its fail-fast guard — that guard is right that
-"the field is idle and we have not moved, so retrying cannot change the result", but smashing
-the rock CHANGES THE WORLD, which is the premise it tests.
-**Live A/B** (`story_harness.py --driver smashroute`, `rocksmash_taught.ss1`): OLD arm
-`arrived=False map=MAUVILLE_CITY`; **NEW arm `arrived=True map=FIERY_PATH`, 45,305 frames.**
-Only Rock Smash is actionable; Cut is known-but-unvalidated and **Strength is excluded on
-purpose** (a boulder is PUSHED, not removed, so the success test can never fire).
-Repro: `repro_obstacle_clearing.py`. ‼ It shipped with a re-entrancy bug — `clear_obstacle`
-→ `_smash_rock` → `_navigate_riding_out` runs through the hook itself — caught by
-`repro_smashrock_battle_wedge.py` going from sub-90s to >500s. See `08-MISTAKES` 2026-07-31.
-
-**Original shape of the fix (as written before it was built).** When a journey leg fails, ask whether a smashable rock
-(or a cuttable tree) sits on the blocked corridor, and if the party has the move and badge,
-clear it and re-plan. `_smash_rock` already exists and is idempotent. The rock coordinates
-must come from map data or the decomp, never from memory. ‼ Bound it: a rock that respawns
-must not become an infinite smash-and-retry loop.
+### ‼ KI-41 — FIXED 2026-07-31 (same day). `#24-smashroute`. — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted it closed).
 
 ## KI-42 — The Norman counter sits EXACTLY on the `COUNTER_MAX_HOPS` boundary (2026-07-31)
 
@@ -1076,68 +1058,10 @@ budget that protects against genuine stuck loops.
 ## KI-50 — the Magma chapter is NOT a coin-flip: the `magma_door.ss1` fixture loses to Maxie for a measured reason — ‼ CORRECTED SAME DAY it was filed. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted, status unchanged).
 
 **2026-09-06 — ARCHIVED, STATUS UNCHANGED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`. ⛔ Archived for the R3 budget only — NOT a closure, and its same-day correction is preserved there.
-### ✅ THE MAXIE FIGHT, READ TURN BY TURN (2026-08-11, from `mh-anchor2`'s own telemetry)
-`#24-bosstelemetry` was already in the tree, so the losing fight is on record. Maxie's team is
-**Mightyena L37 / Crobat L38 / Camerupt L39**; the party opened at full strength (Sceptile 122/122).
+### ✅ THE MAXIE FIGHT, READ TURN BY TURN (2026-08-11, from `mh-anchor2`'s own telemetry) — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted it closed).
+Slugs kept for grep: `#24-bosstelemetry`.
 
-**✅ FINDING 1 — SOLID AND UNAMBIGUOUS: Maxie HEALED Camerupt out of the kill.**
-```
-[TURN 14] Skitty L17 45/45 -> UseMove:Tackle(pp35)  vs Camerupt L39  22/110
-[TURN 15] Skitty L17 45/45 -> UseMove:Tackle(pp34)  vs Camerupt L39  67/110
-```
-Skitty's PP went 35 -> 34, so its Tackle DID execute — and Camerupt still went **22 -> 67, a heal
-of at least +45**, one or two hits from death. This is the known boss-healing problem
-(`probe_boss_healing.py`: 17.0% of boss-length battles show a >=50 HP heal) **deciding a
-story-content chapter for the first time on record.** The party had Camerupt beaten and could not
-close.
-
-**⚠ FINDING 2 — REAL OBSERVATION, NOT DIAGNOSABLE WITH TODAY'S TELEMETRY.** The party's best
-attacker did nothing for three consecutive selections while dying:
-```
-[TURN 3] Sceptile L44 122/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
-[TURN 4] Sceptile L44 110/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
-[TURN 5] Sceptile L44  30/122 -> UseItem              vs Crobat L38 90/119
-[TURN 6] Sceptile L44   4/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
-```
-**PP frozen at 19 across all three Slams, Crobat's HP frozen at 90/119, Sceptile 122 -> 4.**
-(Its Leaf Blade had decremented normally on turns 0-2: pp12 -> 11 -> 10, killing Mightyena — so
-the mon and the logger were both working moments earlier.)
-
-‼ **A MISS CANNOT EXPLAIN FROZEN PP** — a missed move still consumes it. But **two causes remain
-and this telemetry cannot separate them**:
-1. the standing `#24-bosstelemetry` **lead 2**, "selected but not executed" on natural mons
-   (2026-08-09, undiagnosed); or
-2. **ordinary incapacitation** — sleep, freeze, flinch, full paralysis, or a confusion self-hit.
-   None of those consume PP either, and Crobat learns **Confuse Ray** and **Bite** (flinch). The
-   HP pattern (−12, then −80, then −26 while never acting) fits confusion self-damage well.
-
-⇒ **RESOLVED THE SAME DAY — IT IS CONFUSION, NOT A BOT BUG.** The status field was added to the
-turn logger and the deterministic fixture re-run. One run answered it:
-```
-[TURN 3] Sceptile L44 122/122            -> UseMove:Slam(pp19)  vs Crobat L38 90/119
-[TURN 4] Sceptile L44 110/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
-[TURN 5] Sceptile L44  30/122 [Confused] -> UseItem              vs Crobat L38 90/119
-[TURN 6] Sceptile L44   4/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
-```
-Crobat used **Confuse Ray**; Sceptile hit itself 122 -> 110 -> 30 -> 4. Confusion self-hits do not
-consume PP, which is the whole of the "frozen PP" mystery. **Castform was confused too**
-(turns 8-9, 100 -> 46). ‼ **`#24-bosstelemetry` LEAD 2 is REFUTED for this instance** — the action
-pipeline is fine; the bot simply has **no answer to confusion** (it neither switches out nor
-carries a Persim Berry), which is a STRATEGY gap, not a bug.
-‼ Scope it honestly: the 2026-08-09 sightings (Cross Chop at pp2, Ninjask's Scratch at pp30) were
-recorded WITHOUT status and are not retro-explained by this — but confusion is now the leading
-hypothesis for them, and the field to check them with exists.
-
-**CONTROL: the telemetry change is behaviourally inert.** With the status suffix stripped, the new
-run's 41 turn lines are md5-identical to the three earlier runs (`07f99a10ac8b`) — same fight, one
-extra field.
-
-### ✅ DONE: the turn logger now prints STATUS
-`modules/battle_action_selection.py`'s `_describe(mon)` printed species / level / HP and no status,
-which is why every boss-loss post-mortem here had to end in "either a bot bug or ordinary status".
-It now appends `[Confused]` / `[Sleep]` / `[Paralysis]` / … from `status_permanent` +
-`status_temporary`, and **only when there is something** — a healthy mon must not add noise to the
-~800 battle-level samples a batch produces.
+### ✅ DONE: the turn logger now prints STATUS — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted it closed).
 
 ### ⇒ SO WHY THE CHAPTER LOSES, in one sentence
 **Crobat confuses the two strongest attackers into killing themselves, and then Maxie heals
@@ -1557,18 +1481,7 @@ pathing onto it does nothing, and a chapter that "arrives and stops" **stalls fo
 `(4,1)`/`(5,1)` doors are NOT gated — they fire on any step, so they are transit tiles, never park
 tiles.) This is the §Ch18 coord-event shape again: an exit invisible to a warp-graph solver.
 
-### ✅ MEASURED 2026-08-13: the four routes we actually plan do NOT spring it
-`probe_ch20_currents.py` section 3b now asserts that no waypoint lands on a warp tile before the
-destination is reached. **Result: 0 offenders across all routes.** P1's route rides four currents and
-its waypoints `(14,16) (19,11) (8,12) (4,8)` are exactly the documented Room 6 chain termini —
-`(14,8)`, the trap, never appears. ‼ **That is NOT a general guarantee**: the defect is real, it is
-simply not exercised by these source/destination pairs. **Any NEW route through Room 6 must be
-re-checked with that same assertion**, which is why it lives in the probe rather than in prose.
-‼ **AND THE CHECK WAS WRONG ON ITS FIRST RUN — the planner was right.** It flagged P4 as riding into
-a warp; in fact `(3,23)` IS P4's destination, and when the destination is itself a warp tile the
-planner emits it and THEN one more waypoint — the arrival on the far side. So the destination sits at
-index `len-2`, and a naive "is it the last waypoint?" test reports the intended exit as a trap.
-**Fourth time in this project that a failing probe was the instrument, not the subject.**
+### ✅ MEASURED 2026-08-13: the four routes we actually plan do NOT spring it — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted it closed).
 
 ### Why the 4/4 prediction run did not catch this
 It asked only *"is there a path?"*, and the two routes it exercised do not happen to pass through
@@ -1614,40 +1527,7 @@ SURF STATE, not merely that it arrived somewhere.
   Seafloor Cavern, so not armed here. (‼ "108/117 forced-slide tiles" is loose wording in our docs —
   they are all `*WARD_CURRENT`.)
 
-### ✅✅ CONFIRMED LIVE 2026-08-17 — THE ENDS-ON-A-WARP DEFECT IS NO LONGER STATIC ANALYSIS
-
-`--driver ki76warp` (NEW) staged the avatar on ROOM6 `(8,12)`, pressed EAST once onto `(9,12)`, and
-recorded every tile of the slide. ⛔ **Nothing is fixed — this makes the fix's A/B possible.**
-
-* **Our chain model is right — and here is the precise version of that claim.** Production
-  predicted a COUNT and an ENDPOINT (`steps=9`, terminus `(14,8)`); the live slide took **exactly
-  nine steps and ended exactly there**. ⚠ The intermediate tiles
-  `(9,12)→(10,12)→(10,11)→(10,10)→(11,10)→(12,10)→(13,10)→(14,10)→(14,9)→(14,8)` were **NOT
-  separately predicted** in the evidence — they are what the recorded tile TYPES imply, and the
-  live trail matches that derivation exactly. *(An earlier draft of this bullet said "EXACTLY
-  right, tile for tile", which credited the prediction with more than it made.)*
-  ⇒ **the slide SIMULATION is not what is broken.**
-* **The warp FIRES.** The avatar ends on `SEAFLOOR_CAVERN_ENTRANCE` — warp-arrival tile `(10,1)` at f+142, then the game's own auto-step to `(10,2)`, which is the FINAL settled tile the driver graded on — a different MAP. Our
-  planner would have emitted `(14,8)` in ROOM6 as an ordinary resting waypoint — unpenalised and
-  not marked `is_warp`.
-* ‼ **AND A THIRD THING NOBODY ASKED FOR: `surfing=True` throughout the slide, `surfing=False` on
-  arrival — THE AVATAR DISMOUNTS.** ⇒ a planner believing it is on `(14,8)` in ROOM6 and still
-  surfing is wrong on **all three** of map, tile and movement mode.
-* ✅✅ **AND THE OBVIOUS OBJECTION IS ANSWERED BY AN ARM, NOT BY AN ARGUMENT.** The default run
-  HOLDS the direction button through the ride, so "the warp fired" could have meant "a held button
-  kept pressing once we arrived". `KI76_RELEASE_EARLY=1` releases it the instant the avatar first
-  moves: **released at f+9, and the ride is byte-for-byte identical** — same ten tiles, same frames,
-  same warp, `ARM R`, `ACCEPTANCE: PASS`. Nine of the ten tiles and the entire warp happen with NO
-  input held. ⇒ the button is exonerated by MEASUREMENT.
-  📁 `evidence/2026-08-17-ki76warp-CONTROL-release-early.stdout.txt`.
-* ⚠ **One thing left UNATTRIBUTED rather than explained away:** the avatar auto-steps from the
-  warp-arrival tile `(10,1)` to the settled `(10,2)` ~29 frames after release. It is NOT the driver
-  (no button is held by then, in either arm); it is most plausibly vanilla's own "step off the warp".
-  ⛔ Not asserted — flagged.
-⚠ **HONEST LIMITS:** this confirms the ENDS-ON-A-WARP defect. It does **NOT** confirm the DISMOUNT
-defect in its own right — that one is about a slide ending beside walkable LAND, and what was seen
-here is a dismount caused by a WARP transition. Related, suggestive, **not the same measurement**.
-📁 `evidence/2026-08-17-ki76warp-RUN3-CONFIRMED.stdout.txt`.
+### ✅✅ CONFIRMED LIVE 2026-08-17 — THE ENDS-ON-A-WARP DEFECT IS NO LONGER STATIC ANALYSIS — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted the block closed; the defect it confirms is still OPEN, `#24-ki76correctness`).
 
 ### Not fixed, and why — ✅ NOW TRACKED as `#24-ki76correctness` (it had NO item until 2026-08-17)
 Fixing defect 1 means teaching `map_path` a "slide ends in a dismount" concept, and defect 2 a
@@ -1867,85 +1747,10 @@ Chamber. That contradicts common knowledge — **sequence the Sealed Chamber fir
 ## KI-66 — the multi-battle hazard is BROADER than the faint chooser — 🔶 **PARTLY FIXED 2026-08-17 (DRIVEN); its index-space residual (`#24-faintchooser-fourthspace`, closed "inert" 2026-08-17) was REAL and is ✅ FIXED 2026-09-28 by `#27-ki47range` (identity chooser); the OWNER filter is still OPEN.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted, status unchanged).
 
 **2026-09-06 — ARCHIVED, STATUS UNCHANGED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`. 🔶 Still PARTLY FIXED; the index-space residual `#24-faintchooser-fourthspace` is ✅ FIXED 2026-09-28 (`#27-ki47range`; the 2026-08-17 "inert" closure is superseded in `06`). ⛔ Archived for the R3 budget only — NOT a closure. ⭐ Re-read its index-space diagnosis before touching `handle_fainted_pokemon`: that shape has now recurred four times.
-### ✅✅ RECON 2026-08-16 — THE ITEM IS NOW BUILD-READY, AND ONE OF ITS SUB-CLAIMS IS NARROWED
+### ✅✅ RECON 2026-08-16 — THE ITEM IS NOW BUILD-READY, AND ONE OF ITS SUB-CLAIMS IS NARROWED — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted the block closed; KI-66's OWNER filter is still OPEN, its header).
 
-⛔ **Read this before writing a line.** A Tier 2 cold-start agent tried to BEGIN this item and
-could not: the handoff called it *"fully startable with zero input"* while naming no fixture and no
-way to trigger the code. Both gaps are now closed by recon, and a third finding NARROWS the item.
-
-**(1) AND (2) — THE FIXTURE AND THE FAINT MECHANISM: MOVED to `31-KNOWN-ISSUES-ARCHIVE.md`
-(2026-08-17), because both are now EMBODIED IN THE DRIVER and its docstring documents them.**
-‼ **Keep only the two facts:** the fixture is `--driver ki66faint` / `saves/at_steven_2f.ss1`; and
-the faint is produced by staging ONE of our picks at **1 HP** before the battle (1, not 0 — a 0-HP
-mon is never SELECTED), which needs no `gBattleMons` writer and stays faithful gameplay.
-
-**(3) ⛔⛔ SUPERSEDED BY MEASUREMENT 2026-08-17 — THIS BLOCK'S "NARROWING" WAS WRONG.** It argued that
-an "only ally candidates" state requires all three of our picks to be down, and that this equals the
-game's LOSS condition. **Both halves are false, and the live run refutes them:**
-* At faint #2 the candidate set WAS ally-only (`alive_slots=[4,5]`, allies `[1,4,5]`) while
-  **Swellow was alive on the BENCH** — proven by its send-out at `f21009`. TWO of ours were down,
-  not three. So the precondition is a BOT defect, not a game state.
-* In a multi battle the player's side is `gPlayerParty[0..5]` — our three AND Steven's — so "all
-  three of ours down" is not the loss condition at all. The run **WON**, `whiteouts=0`.
-‼ *Derived by reading; refuted on first contact with the emulator. Left visible rather than deleted,
-because it is the exact shape this project keeps paying for.*
-
-### ✅✅ DRIVEN 2026-08-17 — `--driver ki66faint` — AND THE HEADLINE IS **NOT** WHAT FIRES
-
-‼ **THE INSTRUMENT EXISTS AND WORKS. ⛔ DO NOT REBUILD IT.** `Ki66FaintMode` SUBCLASSES
-`SpaceCenter2Mode` (so every run re-proves the party-selection + multi battle first), stages ONE of
-our own picks at 1 HP before the battle — exactly two bytes, `data[86:88]` — and lets it faint in
-real combat. Anchor `saves/at_steven_2f.ss1`. Transcripts:
-`tools/story-dev/evidence/2026-08-17-ki66faint-RUN{1,2,3-instrumented}.stdout.txt`.
-⛔ **SAFETY, AND IT MATTERS:** `SpaceCenter2Mode` CAPTURES `saves/post_space_center.ss1` on a PASS,
-and that fixture is **not pinned** in `preflight.py` or `FIXTURES.md5` — an injected run overwriting
-it would be SILENT and permanent. The driver disables capture AND re-hashes the file afterwards;
-the hash was also recorded out-of-band before the first run. Verified intact every run.
-
-**MEASURED (one deterministic trajectory; RUN1 and RUN2 are BYTE-IDENTICAL, so that is a replay
-confirming determinism, NOT independent confirmation — n=1 trajectory, 2 faints):**
-
-| | faint 1 | faint 2 |
-|---|---|---|
-| `alive_slots` | `[1,2,4,5]` | `[4,5]` |
-| `ally_party_indices()` | `[1,4,5]` | `[1,4,5]` |
-| ally slots present as CANDIDATES | yes (3) | yes (2 — **ALL** of them) |
-| slot the chooser ACTUALLY ASKED FOR | **2 (ours)** | **3 (ours)** |
-| menu-open → send-out | **59 frames** | **1263 frames** |
-
-✅ **OBSERVER CONTROL:** RUN3 added the instrumentation (the requested-slot capture and the
-press counter) and reproduced the SAME trajectory — identical milestone frames `f7908 / f7967 /
-f19746 / f21009`. So the instrumentation does not perturb what it measures, which is what licenses
-quoting RUN1's frame deltas beside RUN3's press count.
-
-✅ **WHAT IS CONFIRMED:** `alive_slots` (`:633-636`) is built from the merged party with NO owner
-filter, and it does drive A-vs-Down (`:739`, `:758-765`). Offering slots 1/4/5 is objectively wrong —
-the decomp's `TrySwitchInPokemon` refuses them **unconditionally** in any multi battle.
-
-⛔⛔ **WHAT IS REFUTED — AND THIS IS THE FINDING THAT MATTERS:** **the bot never ATTEMPTED an ally
-slot.** It asked for slot 2, then slot 3 — both ours, `IS_ALLY=False` — because
-`choose_new_lead_after_faint` DOES filter allies (`default.py:189-193`) and its pick is what
-`:600 scroll_to_party_menu_index` receives. ‼ **A CANDIDATE IS NOT AN ATTEMPT.** Faint 1 is the
-control: three ally slots in `alive_slots`, resolved in 59 frames, zero cost.
-⇒ **AN A/B THAT FIXES ONLY THE ALLY FILTER WILL SHOW NO DIFFERENCE ON THIS FIXTURE**, and could
-make things WORSE: removing 1/4/5 at faint 2 leaves `alive_slots` **EMPTY**, tripping the
-`‼ NO ELIGIBLE REPLACEMENT — cannot succeed` branch (`:654`) as a FALSE alarm while Swellow sat on
-the bench. ⛔ **Do not "fix" the ally filter on the strength of this run.**
-
-‼‼ **THE REAL DEFECT THIS EXPOSED — `_on_field` IS IN THE WRONG INDEX SPACE (a THIRD instance in
-this one function, after KI-18 and KI-34).** `_on_field` is built from `battler.party_index`
-(`gBattlerPartyIndexes`, FIELD order) and compared against `get_party()`, which
-`UpdatePartyToBattleOrder` has already permuted into BATTLE-SLOT order. At faint 2 it logged
-`on_field=[1,3]` and thereby excluded **Swellow (slot 3), which was on the BENCH** — proven by its
-send-out at `f21009` — while failing to exclude the ally that WAS active. That is what manufactured
-the ally-only candidate set, and it is what cost **1263 frames vs 59** (21×), tripping the harness's
-own `NO-PROGRESS x1200` alarm at `f20970` with `Task_ReturnToChooseMonAfterText` — the refusal
-signature the code keys on at `:731`. ⚠ **486 party-menu presses** across the run.
-⚠ **HONEST LIMITS:** no press/refusal counter existed per-faint until RUN3, and the give-up dump
-only fires after 6000 frames, so *which* layer absorbed the cost (KI-38's refusal learning vs
-`scroll_to_party_menu_index`'s own bounded walk) is **NOT determined**. No hang, no whiteout, chapter
-PASSED — true for THIS configuration and under-measured as a general property (1263 frames is 21% of
-the 6000-frame per-invocation bound, with only two refusable slots to burn through).
+### ✅✅ DRIVEN 2026-08-17 — `--driver ki66faint` — AND THE HEADLINE IS **NOT** WHAT FIRES — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted the block closed; KI-66's OWNER filter is still OPEN, its header).
+Slugs kept for grep: KI-18, KI-34, KI-38.
 
 ### ✅✅✅ FIXED AND PROMOTED TO BOTH FORKS 2026-08-17 (user-approved)
 
@@ -2724,18 +2529,9 @@ Pokémon**, and would have leaked across battles.
 **Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still hangs on Torment. **Promotion is the user's call.**
 ## `KI-96` — ✅ SOLVED AND DRIVEN 2026-09-07, PROMOTED; FULL ENTRY ARCHIVED VERBATIM in `31-KNOWN-ISSUES-ARCHIVE.md` (retired 2026-09-16).
 ## `KI-94` — ✅ RESOLVED 2026-09-14 (the §Ch24 fixture/Fly blocker is DISSOLVED); FULL ENTRY ARCHIVED VERBATIM in `31-KNOWN-ISSUES-ARCHIVE.md` (retired 2026-09-16).
-## `KI-95` — ✅ RESOLVED/FIXED, GATED #39, PROMOTED 2026-09-07. ⚠ **PARTIALLY ARCHIVED 2026-09-16: the PREAMBLE moved verbatim to `31-KNOWN-ISSUES-ARCHIVE.md`; the two dated `###` blocks below REMAIN HERE — deliberately, because the second is “A LATENT FRAGILITY THIS FIX NOW DEPENDS ON”, a LIVE warning that must not be buried in an archive.**
-### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED AS #39, FAULT-TESTED. ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`).
-
-📦 **The full resolution is ARCHIVED** → `28-HANDOFF-ARCHIVE.md` (2026-09-07), and it is also
-in `07-CHANGELOG.md` 2026-09-06. **In one line:** the offensive term now scores EXPECTED DAMAGE
-via the shipped `calculate_move_damage_range` instead of a bare type multiplier; the ranking is
-the pure `rank_replacement`, gated offline by `probe_faint_chooser_rank.py` (**gate #39**, **9**
-cases as of 2026-09-17, fault-tested **two independent ways** — `POKEBOT_KI95_PROBE_FAULT=legacy` turns exactly C1 red, and REVERTING the `cannot_damage` term in `rank_replacement` turns exactly C8 red. —— *(this read “7 cases” and named only the `legacy` arm until 2026-09-17, when `#24-ghostreplacement` added **C8** — a mon that deals ZERO must never outrank one that can fight, the Phoebe/Ghost defect — and **C9**, its control: among mons that CAN fight, defence must still decide first. A Tier 1 reviewer caught the understatement; `05` is a CURRENT-STATE file, so a gate's coverage described here moves when the gate does.)*). It also fixed two
-things the report never named: a Ground move vs a **Levitate** foe scored 1.0 and now scores 0,
-and the chooser no longer ranks mons on `banned_moves` that `decide_turn` would refuse to use.
-
-**Still live below:** the fix rests on a DEPRECATED CPython behaviour, and it is unpromoted.
+## `KI-95` — ✅ RESOLVED/FIXED, GATED #39, PROMOTED 2026-09-07. ⚠ **PARTIALLY ARCHIVED 2026-09-16: the PREAMBLE moved verbatim to `31-KNOWN-ISSUES-ARCHIVE.md`; the dated `###` block “A LATENT FRAGILITY THIS FIX NOW DEPENDS ON” REMAINS HERE — deliberately, a LIVE warning that must not be buried in an archive. The other dated block (2026-09-06) was ARCHIVED to `31` on 2026-11-14 by `archive_sweep.py` (its pointer is below).**
+### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED AS #39, FAULT-TESTED. ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted it closed).
+Slugs kept for grep: `#24-ghostreplacement`.
 
 ### ⚠ A LATENT FRAGILITY THIS FIX NOW DEPENDS ON — measured 2026-09-06, not reasoned about
 
@@ -2881,43 +2677,7 @@ call sites. ⛔ It blocks nothing today, but it is **on the critical path of the
 directive**, which will make this withdraw a routine operation rather than a rare one.
 
 
-### ✅ RESOLUTION (2026-09-25, same day) — reproduced FIRST, then fixed
-
-**THE REPRO, with both predicates taken verbatim from the tree** (offline, no emulator):
-
-    party = 5 mon + 1 egg
-      producer (pc_trip, egg-FILTERED)   len(alive)=5 -> makes room? False
-      consumer (pc_interaction, RAW len) len(party)=6 -> refuses?   True
-    => no deposit is queued, then the withdraw RAISES "already contains 6".
-    CONTROL (5 mon, no egg): makes room? False  refuses? False  -> agree
-
-⭐ The control is what makes the fix narrow: **the two predicates differ on exactly one case.**
-
-**THE FIX** — the sibling bug's prevention rule applied literally: a new PURE
-`party_has_room_for_withdraw(party)` (`modules/story/pc_trip.py`) that is the consumer's predicate
-**copied verbatim**, `len(party) < 6`. The egg-filtered `alive` list is **deleted**, not kept: it
-had exactly one reader, and a variable retained "for logging" that nothing logs is how a false
-comment gets written.
-⛔ **NO `p is not None` FILTER, DELIBERATELY** — `get_party_size()` does not filter either. Adding
-one would make it an *equivalent-looking* predicate again, which is the exact thing the rule
-forbids.
-
-**GATED:** `repro_withdraw_room.py` (7 checks, offline). Two are unusual and both earn their place:
-* **W2 HISTORICAL CONTROL** — recomputes the OLD egg-filtered predicate and requires it to
-  **DISAGREE** with the new one on 5 mon + 1 egg. This pins the bug so it cannot return wearing a
-  different name; if W2 ever stops disagreeing, the gate has stopped testing anything.
-* **W7 CONSUMER PARITY** — the function must equal `len(party) < 6` EXACTLY. ⭐ Fault-testing proved
-  this one catches an *"equivalent-looking"* rewrite: a version filtering `None` fails W7 while
-  passing every other check.
-
-**FAULT-TESTED BOTH WAYS:** restoring the egg filter fails W1 **and** W2; the `None`-filtered
-lookalike fails W7; control green and the source restored in the same run.
-
-⚠ **SCOPE, STATED:** this makes the two halves AGREE. It does **not** relitigate which authority is
-right — `get_party_size`'s own docstring says capacity questions belong to
-`party_accounting.game_party_count()`, and also that *"Stage 0 has re-pointed NO call site"*.
-Re-pointing the consumer is that project's job; doing it here would have widened the blast radius of
-a change to a SHARED path (the counter hunt withdraws through this code).
+### ✅ RESOLUTION (2026-09-25, same day) — reproduced FIRST, then fixed — 📦 ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-11-14 by `archive_sweep.py` (nothing deleted; R7 counted it closed).
 
 ## KI-103 — ⚠ OPEN (the one known case is WORKED AROUND — merged to `main` 2026-09-27): the planner blocks the ROM TEMPLATE tile of an out-of-view object even when a script has PERMANENTLY moved it — here, Sootopolis's only bridge west (2026-09-26, MEASURED)
 
@@ -3398,12 +3158,52 @@ unless the user rules otherwise.
 **Measured** (batch grunt, ledger #89, seed 6016; its A and B runs were one trajectory, identical to the byte): 774,013,568 bytes each in 200,000 frames; the action records were mostly ROUTE 116 (6,002), RUSTBORO CITY (4,176) and ROUTE 104 (3,609). The grunt design's section 10 names it the after-battle break churn (`06` 2026-11-01 saw the 0.90 story-break draw end `go` on ROUTE 116 again and again). The files were measured and not kept.
 **Risk:** disk, like KI-129's 2 GB files: a batch of such runs can reach the learner's 25 GB floor (it stops the tuner). The graded chain driver `live_chain.py` (MERGED to `main` 2026-11-06) measures each `world.jsonl` of its own chains and then deletes it; runs started any other way keep theirs.
 **Not measured:** how often (1 trajectory of 12 grunt runs; 0 of 6 chain-end runs). **Fix direction (not decided):** find why the break after each battle restarts the walk away from the goal; a FAULT and a CONTROL.
+**Seen again 2026-11-05 (chapters 6-7 probe, ledger #102 (was wip/ch6-ch7#96)):** two of three runs wrote a `world.jsonl` over the 300 MB keep limit (413 MB and 404 MB; the third 224 MB), in 246,729 and 314,122 frames of a ping-pong (KI-134): the size class is common once a goal loops, not rare.
+**2026-11-14 (the merge):** possibly E's ROUTE116 flip (KI-136: the same map and the same after-battle walk); not re-run; KI-130's own case stays OPEN.
 
-## KI-131 — ⚠ OPEN (filed 2026-11-05; consequence NOT measured): every battle with the RUSTURF TUNNEL grunt ends the AI's battle skill with "the battle: budget" while the game records the win (`#28-aiagent-v2`)
-**Seen:** in every grunt battle of the chapter-5 stops batches and in the 2026-11-01 probe's C1. The game set TRAINER_GRUNT_RUSTURF_TUNNEL and RECOVERED_DEVON_GOODS each time, and the milestone is read from the game, so no run was misjudged. **Unknown:** whether the skill's frame budget runs out in the scene AFTER the battle (the grunt's words and the goods), and whether a later battle loses time the same way. Not investigated.
+## KI-131 — ✅ FIXED (chapter 6 stops round 4; MERGED 2026-11-14; development: 5 of 5 grunt battles of E0 and E0 again reported the win, one trajectory per seed) (filed 2026-11-05; consequence NOT measured): every battle with the RUSTURF TUNNEL grunt ends the AI's battle skill with "the battle: budget" while the game records the win (`#28-aiagent-v2`)
+**Seen:** in every grunt battle of the chapter-5 stops batches and in the 2026-11-01 probe's C1. The game set TRAINER_GRUNT_RUSTURF_TUNNEL and RECOVERED_DEVON_GOODS each time, and the milestone is read from the game, so no run was misjudged. **Unknown:** whether the skill's frame budget runs out in the scene AFTER the battle (the grunt's words and the goods), and whether a later battle loses time the same way. Not investigated (the first is answered 2026-11-14, below: the budget runs out after the battle).
+**2026-11-14 (the merge):** chapter 6 stops round 4 (`c41db547`, `07`; the build report) found the likely mechanism after BRAWLY: the battle skill waited for the player to be free, so the scene after the battle ran inside the skill's budget and watchdog (5,411 frames with an evolution). A battle the game says is over (gBattleOutcome set, the battle off the screen) is now reported by its outcome: offline FAULT and CONTROL tests and two mutants; in a later development probe both BRAWLY wins were logged "won".
+**2026-11-14 (E0 and E0 again, on the merged code; development, one trajectory per seed):** all 5 grunt battles (seeds 6481 and 6483 of ledger #147, 6484-6486 of #148; 6482 never reached him) logged "battle: over: won (gBattleOutcome 1); what came after it held the screen (budget): the scene after the battle is played on". So the budget does run out in the scene AFTER the battle, and the skill now reports the win. The five leg-5 logs (#147: LC-S-6481, LC-T-6483; #148: LC-C-6485, LC-S-6484, LC-T-6486) are kept in `C:/Remote Projects/_ai_lab/keep/2026-11-13-a1-sources/e0-L5/` (this PC only).
 
-## KI-132 — ⚠ OPEN (filed 2026-11-05; low impact, bounded): a field menu the AI cannot read stops the play loop once a frame until the run's bound (`#28-aiagent-v2`)
+## KI-132 — ✅ FIXED (chapter 6 stops round 5; development, 2 pairs for the back-out, the forced menu's run end offline only; MERGED 2026-11-14) (filed 2026-11-05; low impact, bounded): a field menu the AI cannot read stops the play loop once a frame until the run's bound (`#28-aiagent-v2`)
 **Measured:** the base code at the forced POKéNAV menu returned "stuck: an unexpected multichoice on screen" 30,000 times in a 30,000-frame run (one play-loop pass a frame), in each of 5 runs; the 2026-11-01 probe logged 99,643 such records. The instructed choice now chooses there (`07` 2026-11-05), but a field menu nothing names still returns the same stop. Bounded (the run ends), never a hang; it spends the rest of the run and fills `actions.jsonl`. **Fix direction:** end the run at the first such stop, or hand the menu to a general unknown-menu step.
+**Fixed (development, 2 pairs; MERGED 2026-11-14):** chapter 6 stops round 5 (`095ea511`, `07`; `skills/instructed.py` `SceneOpener`): a field menu nothing names is backed out of when the AI opened the scene itself (its own A was its last press while free); a forced one ends the run at once (proven offline only). Live A/B at MR. BRINEY's dock menu (ledger #114 (was wip/ch6-ch7#108); seeds 6341-6342, a test-side start, one trajectory per seed): the base stayed on the menu to the frame bound in 2 of 2 runs; the new code left it in 21 and 19 frames.
 
 ## KI-133 — ⚠ OPEN (filed 2026-11-05; low impact, read by no decision): on a MATCH CALL call's first frame the eyes' `text` decodes garbage characters (`#28-aiagent-v2`)
 **Seen** (the menu design's recon, frame 857,855): apparently a text-printer pointer decoded as text. The instructed choice never takes an app's pages as an instruction (guard G3), so no choice reads it; the reading log carries it. **Fix direction:** find the call window's own text buffer, or report no text until its printer runs.
+
+## KI-134 — ✅ FIXED 2026-11-05 on `wip/ch6-ch7`, MERGED 2026-11-14 (development A/B, never graded) (filed 2026-11-05; seen in 3 of 3 development runs; an AI-PLAYER defect, found by the chapters 6-7 probe, not caused by the new data): a goal behind a map's DISCONNECTED part ping-pongs between two maps, so `ch6_briney_house` is never reached (`#28-aiagent-v2`)
+**Measured** (ledger #102 (was wip/ch6-ch7#96), seeds 6301-6303, evidence `ai_player/evidence/2026-11-05-chapter67-development-probe.txt`; development, never graded): from the three chapter-5 chain ends (Rustboro (19,53), the rival beaten), target `ch7_brawly`, **0 of 3 set FLAG_MR_BRINEY_SAILING_INTRO**, all three ended `stuck: no progress for 120,025 / 120,342 / 127,264 frames ... since ROUTE 104: MR. BRINEY's cottage`. The goal `go ROUTE104_MR_BRINEYS_HOUSE` (told 'cottage', heard) ended `stuck: ping-pong` in 18, 45 and 49 goals; in the Trainer run 47 of 49 on the warp `24:11|14,5` and 172 woods/ROUTE 104 crossings. The decide records of one cycle: in PETALBURG WOODS at (14,5) 'target route (14,6) ... it leads toward the goal (2 link(s) known)', exit up, back to ROUTE 104 (10,29); there 'target back ... it leads back to PETALBURG_WOODS, where 15 thing(s) are left to see'.
+**Cause (a READING of the decide records and `brain/explore.py` `route_to`, not an A/B-proven fix):** the route to a map is a breadth-first search over KNOWN MAP-LEVEL links; ROUTE 104 is one node although it has two parts that do not join on foot (flood fill of the pinned layouts). The cottage door (17,50) is in the SOUTH part; the north strip, where `ch5_rival_meet` ends, reaches it only through the woods' SOUTH doors (10,38) and (11,38). The first hop from the woods is the nearest link into ROUTE 104, the north door it came through. **Not measured (2026-11-05, before the fix):** whether the planner would take the south door if the north arrival were marked a dead end for this goal; nothing of the sail, STEVEN or BRAWLY had run live. **Fix direction (2026-11-05; the fix below took the first):** a within-map component check on a route's next map, or a per-goal dead-end memory for an arrival edge; a FAULT and a CONTROL, and a start state INSIDE the south part to exercise chapter 6's remaining steps.
+**Fixed 2026-11-05 on `wip/ch6-ch7`, MERGED 2026-11-14** (`07`; report `ai-research-notes/2026-11-05-CH6-CH7-BUILD-REPORT.md`): `brain/explore.py` `route_to` plans over the parts of maps a walk reaches (`43485a36`; the verifier's four follow-ups in `66acbd1c`). Live A/B, development, one trajectory per seed: the B arm (ledger #104 (was wip/ch6-ch7#98)) entered the cottage by the woods' south door in 3 of 3 runs, against the A arm's 0 of 3 (ledger #102 (was wip/ch6-ch7#96)); its verifier read CONDITIONAL PASS. Never graded: a graded test needs chapter 6-7 bounds in `live_chain.py` first.
+
+## KI-135 — ⚠ OPEN (filed 2026-11-14; low impact, TEST SIDE; found by BP-1 round 4's closing verifier, carried to BP-2): two weaknesses of `test_bossprep.py`: VC-m1, the cap test's control does not pin the at-cap boundary; VC-m2, test (d)'s docstring is wrong that the last resort's run bound cannot bind in play (`#28-aiagent-v2`)
+**VC-m1 (MINOR):** the verifier's mutant va1 (`levels[1] >= cap` in `_raise_choice`) survives `ClosingTests.test_the_raise_stays_under_the_cap`; another test catches it (`RaiseMapTests.test_r6a_the_partners_cap`), so the rule itself is still guarded. **Fix direction (BP-2):** add GRANITE_CAVE_1F as a third map to the control, register va1 as CAUGHT, re-run the mutants.
+**VC-m2 (MINOR, with a design question):** the guard's first decision passes `run_ok=True` unconditionally, and the run count covers a run by any member, so `_last_resort(run_ok=True)` can follow the lead's refused run (the verifier's probe): the bound can bind in play. The behaviour is as tested; the docstring is wrong. **Open for BP-2** (decided there from the decomp's escape rule): when another member's run was already refused in this battle, does a trainee under its floor still try the run before the member that cannot win comes in?
+**Why not fixed in the merge** (`06` 2026-11-12, item 11): `test_bossprep.py` is inside the evidence digest, so one changed byte would void the mutant run the closing commit rests on. Source: the build report, BP-1 round 4's closing pass.
+
+## KI-136 — ✅ FIXED 2026-11-13 by `9d2f3fc5` (tests `3caf9c47`) ON ITS DECISIVE FIXTURE ONLY (T's L4 start; one trajectory per arm); E0 again on new seeds: "E0 VERDICT: REACHED 3 of 3; legs ran 15, purity-clean 15; wall 31 min (cap 120); problems 0 -> GO"; the chapter 1-5 miss RATE is UNMEASURED (filed 2026-11-14; seen in 2 of 3 E0 chains, development; an AI-PLAYER defect in rules `main` already had (read, not measured live), found by the merge's E0): looking for RUSTURF TUNNEL, a map not found yet, the AI ping-ponged between ROUTE 104 and PETALBURG WOODS (`#28-aiagent-v2`)
+**The note (stub marker):** `ai-research-notes/2026-11-13-CH5-SEARCH-LOOP-FIX.md` holds the tables; the lab (`s53/e0diag`, `s53/fix5`, `s53/mergeplan`) is on the merge's cleanup list for the USER (`04`, queue item 4) and goes only with the USER's OK. On any contradiction this entry wins until the note is verified.
+**Measured, E0** (2026-11-13; the merged tree `c25d2c40`, seeds 6481-6483, ledger #147, evidence `ai_player/evidence/2026-11-13-chain-heldout-dev-ch5_rival_meet-6481.txt`): "E0 VERDICT: NOT REACHED (1 of 3 reached ch5_rival_meet); legs ran 15, purity-clean 15; wall 41 min (cap 120); problems 5 -> STOP". The Catcher chain stalled at `ch5_rusturf_grunt` (37 ROUTE 104 -> woods crossings in its leg 5); the Trainer chain looped there (59), beat the grunt at f1257345 and ran out of its 600,000 frames before `ch5_rival_meet`. The independent checker: STOP_CONFIRMED.
+**The diagnosis:** the game splits by one frame at warps onto outdoor maps (KI-138), so each live leg is one trajectory. The Trainer's leg-4 start replays the unfixed loop exactly to f1203126: the decisive fixture. The Catcher's and Story's starts reach on the unfixed code too, so they do not discriminate. On that one trajectory `main`'s road rule picks the same destination as the merged code at 154 of 154 loop decisions (the same destination is not the same loop; no run put `main`'s rule in the loop). Every rule that makes the loop is `main`'s too (read, not measured live); the merge's own road rule (`road_walk`) also runs there. OPEN: whether the merge raises how often chapters 1-5 miss.
+**Cause, measured:** (1) a cut tree, a rock or an item ball was a wall only while on screen (`MapMemory.objects_now`, `Navigator.walls`): every woods-frontier and (37,22) "unreachable" event of the loop runs had a cut tree on screen (E0 T 106 of 106, E0 C 90 of 90). The ROUTE116 two-tile heal flip is the same mechanism: the tree at (32,10) is on screen from x=39, not from x=40 (656 of 656 steps). (2) A told walk to a map not found yet had no direction: `lead_toward` gave None for RUSTURF_TUNNEL; every way out read "seen all of", so the nearest door won.
+**The fix** (`9d2f3fc5`, 14 files, and the test-only `3caf9c47`; `07`): **E** (`world/memory.py` `MapMemory.standing`): a non-person thing seen this session stays a wall while off screen; it is forgotten when a look shows its tile empty, or after 36,000 frames unseen, and never saved. **K1** (`knowledge/atlas.py` `entry_maps`, `brain/goals.py` `entry_lead`): with no town to aim at, `lead_toward` heads for the nearest visited open map the goal map is entered from (static map facts, USER RULING 40); on that map the search is the AI's own. Tests: `test_goals.py` `StandingThingsTests` e1-e11, `EntryLeadTests` k1-k7; mutants G691-G707 in `revert_step5.py`.
+**The live A/B** (one trajectory per arm, purity CLEAN): from the Trainer's leg-4 start the unfixed code did not reach `ch5_rival_meet` in 600,000 frames (59 crossings); the fixed code reached it in 198,539 (three identical runs: one trajectory, replayed); minus E (K1 alone) in 331,643; minus K1 (E alone) in 198,539, the fixed trajectory itself. With the fix the Catcher's and Story's starts reached in 142,810 and 89,825 frames. Chapter 6-7 controls: probe-C1 to `ch7_brawly` 609,121 -> 657,908 frames (+8%); the dark cave identical. **Attribution, on T's start only:** each change alone sufficient, neither shown necessary.
+**E0 again** (seeds 6484-6486, ledger #148, evidence `...-ch5_rival_meet-6484.txt`): "E0 VERDICT: REACHED 3 of 3; legs ran 15, purity-clean 15; wall 31 min (cap 120); problems 0 -> GO". Three games, not a rate. A pass of E0 again does not by itself lift the first STOP (the fixture's A/B answers it), and the first STOP stays in the record. The full lane then ran every mutant driver on the merged code: "REGRESSION: PASS (full, 41 suites, 14363.9 s wall)" (`07`).
+**Not proven:** the chapter 1-5 miss RATE beyond those three seeds; that either change is NECESSARY; E on dark maps where it would act (the lit circle's edge; a remembered thing within one tile of a failed step's target reports "someone at", `navigator.py` about line 1081); K1 live outside chapter 5, and its lack of a promise check on the entry map (a poisoned ROUTE116 could cycle, bounded by the budget, `FAIL_LIMIT` and the stall detector; not seen); E's seen-gone forgetting and its 36,000-frame expiry, live (unit tests only); the non-quick ROM gates in the lab. Follow-ups: KI-137.
+
+## KI-137 — ⚠ OPEN (filed 2026-11-14; offline evidence, not built; found by KI-136's diagnosis): five weaknesses of the explorer that KI-136's fix left alone, (a), (b), (c), F and E2 (`#28-aiagent-v2`)
+- (a) "unreached" ends when ANY new tile is learned, not something NEAR the frontier: in the Trainer loop (35,31), 11 tiles from (37,22), revived it. Alone it changes only "1 thing left" labels (4 of 41 back decisions).
+- (b) no `lost_way` for a told walk to a map not yet found when every neighbour reads "seen all of": an offline prototype turned a woods door (200 of 200) into the main road up (200 of 200). Goals with no static entry can still ping-pong (inferred).
+- (c) a found ping-pong does not outlive its intent (key it by the way): an offline sketch took the road up 200 of 200, but 20 into RUSTBORO's pocket.
+- F: a `cut_off` made from a pocket poisons the whole map: from RUSTBORO's south-east pocket (33,59) it cut 21 of 21 promised items, from the city proper 17 of 21, and RUSTBORO read "seen all of" for about 285,000 frames. The right fix is a promise per map PART (inferred), not a minimal one.
+- E2: the explorer's reach is not the planner's `in_map_walls` rule: with E only, from ROUTE104 (11,29) the frontier (37,22) is still OFFERED, then refused at once (no longer after a walk of about 20 steps).
+Source: `ai-research-notes/2026-11-13-CH5-SEARCH-LOOP-FIX.md` section 11 (offline counts from the lab's mechanism note). The items to build are under `#28-aiagent-v2` in `03`.
+
+## KI-138 — ⚠ OPEN (filed 2026-11-14; cause NOT proven): the same code from the same save, with fresh profiles, splits by one frame at warps onto outdoor maps, so a live leg is one trajectory and an identical replay is a determinism check, never a replication (`#28-aiagent-v2`)
+**Measured** (KI-136's diagnosis; the note's section 3): E0's Trainer leg against its replay, identical for 26,009 moves, then f1203126 "busy 18f" against f1203127 "busy 19f"; the Catcher's, 2,777 moves, then f557997 against f557998, leaving RUSTBORO's POKEMON CENTER; a fault arm's two runs, 15,581 moves, then f1044304 against f1044303.
+**Suspect (inferred, NOT proven):** the cartridge clock reads the host's time (`modules/libmgba.py` sets no clock override); no arm pinned the clock. Compare KI-112 (the story bot's harness, 2026-09-29: one frame late at a warp). It refutes one reason of `06` 2026-10-31 (USER RULING 55, part 2: "so runs replay and can be checked"); the ruling stands on its other reasons, and `06`'s entry "E0's STOP and the fix-forward" carries the correction.
+
+## KI-139 — ⚠ OPEN (filed 2026-11-14; seen in ONE trajectory, a count; cause not investigated): `heard_page` may quote a page without the place's words as the place's telling page (`#28-aiagent-v2`)
+**Measured** (KI-136's diagnosis; the note's section 11): "Milo put away the DEVON GOODS in the KEY ITEMS POCKET." was quoted as RUSTURF TUNNEL's telling page, 8 times in late goals of the Trainer chain's loop leg. Why the page matched was not investigated.

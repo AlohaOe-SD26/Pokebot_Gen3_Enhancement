@@ -1,0 +1,8 @@
+{
+ "fixture": "probe7_c1_island.world.jsonl",
+ "sha256": "2ad5da51d46541a7037b4c92ff26ce1261e42034e18060c3341c1b59ad8f0465",
+ "source": "the chapter-6 stops development probe (ledger #101, batch probe7, seed 6314, the Story run C1): the LAST line of its kept world.jsonl (s53/ch6stops/out/probe7/probe7-B-C1-6314/world.jsonl, 129,950,681 bytes; the last line's sha256 c33246609a88c0710d5576fbdefa894f5c84ff706a25c9feb28c966087c1356b), SLICED by s53/ch6stops3/make_world_fixture.py",
+ "kept": "the maps ROUTE104, ROUTE104_MR_BRINEYS_HOUSE, PETALBURG_WOODS, RUSTBORO_CITY, PETALBURG_CITY, DEWFORD_TOWN, DEWFORD_TOWN_GYM, ROUTE106, GRANITE_CAVE_1F, GRANITE_CAVE_B1F, GRANITE_CAVE_B2F, GRANITE_CAVE_STEVENS_ROOM, each map's record unchanged; every warp (32), connection (34) and transition (105) between two of them; the run's heard pages and news",
+ "played_by": "the AI (the first chapter-6 stops builder's code on 43485a36, probe7's stage arm B); nothing added by the test side",
+ "why": "chapter 6 stops round 3: NS2 (route_to ROUTE104 -> DEWFORD_TOWN is None on this memory: the sail's map changes are a scene's) and the crossing ping-pong (from ROUTE 104 (19, 0) the road right was planned through RUSTBORO's tiles past the up edge): gates/test_goals.py Round3RideTests, Round3CrossingTests, Round3TravelTests"
+}

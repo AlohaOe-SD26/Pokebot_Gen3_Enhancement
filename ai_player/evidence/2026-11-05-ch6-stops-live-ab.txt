@@ -1,0 +1,272 @@
+CHAPTER 6 STOPS - the live A/Bs and the offline proof (development, never graded): STOP 1, MR. BRINEY walks round his table (skills/story.py meet_walker, the approach's re-aim, its battle test); STOP 2, the end of a call in the field (eyes/screens.py match_call_wait, host/eyes.py's call wait and call-window text)
+HEADLINE (carries the caveat): STOP 2 (the end of a call in the field), ledger #99: in both pairs the A arm (the old eyes) never pressed and stood on the start's tile to the 30,000-frame bound (99 'STUCK' lines each), and the B arm pressed once, 87 and 105 frames in, and went on (K2: the sail to DEWFORD; K1: two more calls ended with one press each, then MR. BRINEY talked to at the first try and DEWFORD). STOP 1 (MR. BRINEY walking round), ledger #100: in both seeds the B arm's FIRST talk goal for him landed (3,598 and 3,578 frames in) and the A arm's failed; the A arm was SLOWER, not stuck, at the talk (it talked to him at its 3rd and 5th goals, 9,861 and 20,156 frames in) and then stood at DAD's call on the sail, the other stop. Caveats: development, one trajectory per job (never a rate); each pair has the same start state and seed; the B arm is the round's code as it stood at the A/Bs, before the second builder's changes.
+WHO WROTE THIS: the round was FINISHED BY A SECOND BUILDER (s53/ch6stops2/write_evidence2.py, 2026-11-06). The first builder (s53/ch6stops) built both fixes, ran both A/Bs (#99, #100) and the probe (#101), and was cut off by a usage limit before it wrote this file; the lead committed its partial work as 2bce9c0c. Every judgement below is COMPUTED from the runs' own files kept in s53/ch6stops/out (its stage was deleted by the second builder after C1's files were copied out).
+code: worktree wf_e7452923-f06-3, base 43485a36; arm A = HEAD 43485a36's ai_player (digest 3185287fd533bbc3), arm B = the round's fixes as they stood at the A/Bs (digest 4be84b8a8cd83b89; the ledger's tree field 4be84b8a8cd83b89 is the same tree by the ledger tool's own digest). The second builder's later changes (the KI-134 follow-ups, two controls, tests and mutants) were NOT in these A/Bs; probe8 (#102) runs them.
+method: s53/ki134's harness (arms.py, copied to s53/ch6stops with two code roots): the real launcher through live_step5.run_arm, a purity gate per launch, what each run reached read from the GAME (L5.THIS_RUN), one stage (junctions to the main sandbox's code folders, read only), at most 3 runs at once, a world.jsonl kept only under 300 MB (decimal; KI-130). The same start and seed in both arms of each pair (checked below from each run's own L5.THIS_RUN start md5).
+
+===== OFFLINE REPRODUCTION (the first builder, before any fix was trusted)
+STOP 2, the call's end, from the KI-134 B arm's end states (s53/ch6stops/repro_call.py, a throwaway emulator, the harness's own press): the OLD eyes (arm A) and the NEW (the worktree):
+  repro_K2_old.out:
+    [loaded] f781235 eyes: state=OVERWORLD waits=False reason=None text_box=True script=True locked=True ui=None scene=None text='ine with me.¶You take care now.¶… … … … … … … … … … … Click!' player=('ROUTE105', 22, 60) | raw: {'tasks': ['ExecuteMatchCall', 'ScriptMovement_MoveObjects', 'Task_HidePokenavMessageWhenDone', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_SpinPokenavIcon', 'Tas
+    [A pressed] f781276 eyes: state=OVERWORLD waits=False reason=None text_box=True script=True locked=True ui=None scene=None text='ine with me.¶You take care now.¶… … … … … … … … … … … Click!' player=('ROUTE105', 22, 60) | raw: {'tasks': ['ExecuteMatchCall', 'ScriptMovement_MoveObjects', 'Task_HidePokenavMessageWhenDone', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_SpinPokenavIcon', '
+    [after +80] f781356 eyes: state=OVERWORLD waits=False reason=None text_box=True script=True locked=True ui=None scene=None text='Re' player=('ROUTE105', 22, 60) | raw: {'tasks': ['ScriptMovement_MoveObjects', 'Task_DrawFieldMessage', 'Task_Fanfare', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain'], 'se_playing': True, 'box_mode': 2, 'script': ('Native', 'IsFieldMessageBoxHi
+  repro_K2_new.out:
+    [loaded] f781235 eyes: state=OVERWORLD waits=True reason="task ExecuteMatchCall (A or B: the call's last page has printed; a press hangs up)" text_box=True script=True locked=True ui=None scene=None text='ine with me.¶You take care now.¶… … … … … … … … … … … Click!' player=('ROUTE105', 22, 60) | raw: {'tasks': ['ExecuteMatchCall', 'ScriptMovement_MoveObjects', 'Task_HidePokenavMessageWhenDone', 'Task_MuddySlope', 'Ta
+    [A pressed] f781276 eyes: state=OVERWORLD waits=False reason=None text_box=True script=True locked=True ui=None scene=None text='ine with me.¶You take care now.¶… … … … … … … … … … … Click!' player=('ROUTE105', 22, 60) | raw: {'tasks': ['ExecuteMatchCall', 'ScriptMovement_MoveObjects', 'Task_HidePokenavMessageWhenDone', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_SpinPokenavIcon', '
+    [after +80] f781356 eyes: state=OVERWORLD waits=False reason=None text_box=True script=True locked=True ui=None scene=None text='Re' player=('ROUTE105', 22, 60) | raw: {'tasks': ['ScriptMovement_MoveObjects', 'Task_DrawFieldMessage', 'Task_Fanfare', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain'], 'se_playing': True, 'box_mode': 2, 'script': ('Native', 'IsFieldMessageBoxHi
+  repro_K1_old.out:
+    [loaded] f1057153 eyes: state=OVERWORLD waits=False reason=None text_box=False script=False locked=True ui=None scene=None text='' player=('PETALBURG_WOODS', 14, 34) | raw: {'tasks': ['ExecuteMatchCall', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_SpinPokenavIcon', 'Task_WeatherMain'], 'call': {'tState': 5, 'tWindowId': 1, 'printer_active': 0, 'printer_state': 0}, 'se_playing': Fals
+    [A pressed] f1057194 eyes: state=OVERWORLD waits=False reason=None text_box=False script=False locked=True ui=None scene=None text='' player=('PETALBURG_WOODS', 14, 34) | raw: {'tasks': ['ExecuteMatchCall', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_SpinPokenavIcon', 'Task_WeatherMain'], 'call': {'tState': 6, 'tWindowId': 1, 'printer_active': 0, 'printer_state': 0}, 'se_playing': F
+    [after +80] f1057274 eyes: state=OVERWORLD waits=False reason=None text_box=False script=False locked=False ui=None scene=None text='' player=('PETALBURG_WOODS', 14, 34) | raw: {'tasks': ['Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain'], 'se_playing': False, 'box_mode': 0, 'script': ('Stopped', '0x0'), 'locked': 0, 'printer0': (0, 0)}
+  repro_K1_new.out:
+    [loaded] f1057153 eyes: state=OVERWORLD waits=True reason="task ExecuteMatchCall (A or B: the call's last page has printed; a press hangs up)" text_box=False script=False locked=True ui=None scene=None text='but my target got free.¶I need to try harder! See you again!' player=('PETALBURG_WOODS', 14, 34) | raw: {'tasks': ['ExecuteMatchCall', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Tas
+    [A pressed] f1057194 eyes: state=OVERWORLD waits=False reason=None text_box=False script=False locked=True ui=None scene=None text='but my target got free.¶I need to try harder! See you again!' player=('PETALBURG_WOODS', 14, 34) | raw: {'tasks': ['ExecuteMatchCall', 'Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_SpinPokenavIcon', 'Task_WeatherMain'], 'call': {'tState': 6, 'tWindowId': 
+    [after +80] f1057274 eyes: state=OVERWORLD waits=False reason=None text_box=False script=False locked=False ui=None scene=None text='' player=('PETALBURG_WOODS', 14, 34) | raw: {'tasks': ['Task_MuddySlope', 'Task_RunPerStepCallback', 'Task_RunTimeBasedEvents', 'Task_WeatherMain'], 'se_playing': False, 'box_mode': 0, 'script': ('Stopped', '0x0'), 'locked': 0, 'printer0': (0, 0)}
+STOP 1, the cottage SIMULATION of test_goals.WalkerTests (the player and the walkers by the game's rules; who was talked to by identity), all 12 points of his round (s53/ch6stops/measure_sim.py):
+    NEW idle 20: talked to MR. BRINEY in 12 of 12, to PEEKO in 0
+    FAULT (old approach) idle 20: talked to MR. BRINEY in 1 of 12, to PEEKO in 0
+    NEW idle 0: talked to MR. BRINEY in 12 of 12, to PEEKO in 0
+    FAULT (old approach) idle 0: talked to MR. BRINEY in 2 of 12, to PEEKO in 0
+CONTROL, the chapter-5 POKeNAV registration call, scratch recon (the first builder): s53/ch5stops/menu/recon_pokenav.py run with arm A's eyes and with the round's: records sha256 b97fd7c4f3453ceb and b97fd7c4f3453ceb: IDENTICAL
+
+===== THE SECOND BUILDER'S CONTROLS ON THE REAL GAME (now unit tests in test_eyes.LiveCallEndTests)
+  test_control_the_sail_after_the_call_is_a_scene_that_really_locks_the_controls (call_end_dad.ss1): after ONE A the call ends within 80 frames; MR. BRINEY's boat crosses ROUTE 105 and 106 with the script running and the controls locked, the eyes report no wait there (measured by s53/ch6stops2/sail_proto.py: the longest locked stretch with no wait 917 frames), never the call's wait once it has ended, and only the script's own waits between (3 in all: 'script waitbuttonpress' for 'Registered DAD NORMAN', 'text printer 0 CLEAR' and 'script waitbuttonpress' at DEWFORD); VISITED_DEWFORD_TOWN set by the game 749 frames after the A; the player free in DEWFORD 1,432 frames after.
+  test_control_the_chapter5_pokenav_call_is_read_exactly_as_before (new fixture pokenav_tutorial_rustboro.ss1, md5 343860d7..., ledger #85's probe-C1L5 end state): the MATCH CALL tutorial driven by presses chosen from the round's eyes while a second eyes with the chapter-6 branch patched out reads every frame: measured by s53/ch6stops2/pokenav_proto.py, 1,766 frames, 0 frames where the two differ, 0 frames with ExecuteMatchCall, 20 presses, VAR_RUSTBORO_CITY_STATE 6 -> 7 (the tutorial done).
+  Already there (the first builder): test_control_a_text_box_that_waits_is_read_as_before (an ordinary text box); WalkerTests.test_w4_control_someone_standing_is_walked_up_to_the_ordinary_way and test_w5 (a wanderer) in the simulation; every chapter 1-5 talk test in test_goals and test_hands (green).
+  KI-133 (garbage text on a call's first frame): not fixed. The field call's window is read only from tState 3 on (`_call_window`, mutant CH6H5), so the field call's FIRST page no longer reads printer 0's stale words; but the POKeNAV's own call shows the same kind of garbage on its first wait (pokenav_proto.py: 'text printer 1 CLEAR' with 'ÎÁÁŒ Á ÌÎËÁù...' before MR. STONE's first page), a path this round does not touch.
+
+===== MUTANTS (predictions written and hashed before each run)
+  first builder, s53/ch6stops/mutant_predictions.txt: sha256 0ec5bc6726fdbe023e423b43359e02ad10b9199c3e457202cd69cafa1da072a8
+  first builder, s53/ch6stops/mutant_predictions_2.txt: sha256 e362e294f163bffe9f9ae0d451a43d2b45d811e66cce0440082383b7dcb2a079
+  first builder, s53/ch6stops/mutant_predictions_3.txt: sha256 92f5a62b7f8d4a89a78e9461a43f3dd80305cd328af7981dc851b923d3b8ebea
+  second builder, s53/ch6stops2/mutant_predictions_r2.txt: sha256 e9bac3044cea9af42570e80aecb2415d7ead7be96c71cf6c8eacf17555c129a7
+  second builder, s53/ch6stops2/mutant_predictions_r2_addendum.txt: sha256 fc62955f167f36d7bf6a1432356082f871ad5c721f7b88e810f056f04004df50
+  second builder, s53/ch6stops2/mutant_predictions_r2_addendum2.txt: sha256 c7d4f2d6a0f7d7c38ae677f40f0945ab1d8bfba0dbc4d9e896e9be177484a145
+  second builder, s53/ch6stops2/mutant_predictions_r2_addendum3.txt: sha256 54966a3eb703cfef017940e540573191c681bde0df6149c7ce3acc1b475afdb9
+  (Round 3, 2026-11-06, the verifier's V-N3: G491's history in full. G491 SURVIVED run 1 (mutants_run1.out: failing none);
+  the TEST was then strengthened, test_w2 asking for the watch before any step from all 12 starts (mutant_predictions_2.txt),
+  and G491 is caught since, in runs 2 and 3. A test change, not only a corrected prediction.)
+  first builder, revert_step5 run 3 (G0, G491-G517, samples G476 G480 G32 G71) (mutants_run3.out):
+    [G0] CONTROL, the unchanged copy: 365 tests, failing none (ran the copy: True) -> PASS
+    [G32] BROKEN: the data names a map the game never says (ROUTE 102 for MOM's 'PETALBURG GYM', the verifier's case). Predicted CAUGHT by ['HintTests.tes ... -> CAUGHT
+    [G71] BROKEN: the data scripts 'use the rival's POKé BALL' again (the review's finding 3). Predicted CAUGHT by ['ExploreTests.test_curiosity_finds_an_ ... -> CAUGHT
+    [G476] BROKEN: candidates' route is searched by MAPS again (the player's tile and walls not passed: KI-134 back at its call). Predicted CAUGHT by ['KI ... -> CAUGHT
+    [G480] BROKEN: no part is ever worked out (the call of `_Regions.part_from` deleted: every place skipped). Predicted CAUGHT by ['KI134RegionTests.test ... -> CAUGHT
+    [G491] BROKEN: approach never meets a walker at its START (the first meeting's test deleted). Predicted CAUGHT by ['WalkerTests.test_w2_someone_who_mo ... -> CAUGHT
+    [G492] BROKEN: the SECOND meeting never happens (a walker seen moving after a walk up is only re-aimed at). Predicted CAUGHT by ['WalkerTests.test_w3_ ... -> CAUGHT
+    [G493] BROKEN: the RE-AIM deleted (the tiles beside him are not worked out again from his new tile). Predicted CAUGHT by ['WalkerTests.test_w5_someone ... -> CAUGHT
+    [G494] BROKEN: the watch never sees anyone keep still (WALKER_STILL's test deleted). Predicted CAUGHT by ['WalkerTests.test_w5_someone_who_keeps_a_til ... -> CAUGHT
+    [G495] BROKEN: the watch never ends on a round seen whole (the closure deleted). Predicted CAUGHT by ['WalkerTests.test_w6_the_watch_ends_once_his_rou ... -> CAUGHT
+    [G496] BROKEN: a waiting spot may stand on someone's way (`spot in walked` deleted). Predicted CAUGHT by ['WalkerTests.test_w7_a_waiting_spot_is_besid ... -> CAUGHT
+    [G497] BROKEN: the wait speaks up for ANYONE on the faced tile (the identity check replaced by any object there). Predicted CAUGHT by ['WalkerTests.te ... -> CAUGHT
+    [G498] BROKEN: the player never turns to face the way (the turn press deleted). Predicted CAUGHT by ['WalkerTests.test_w1_he_is_spoken_to_from_every_p ... -> CAUGHT
+    [G499] BROKEN: a look before speaking at the waiting spot (a think pause before "reached"). Predicted CAUGHT by ['WalkerTests.test_w1_he_is_spoken_to_ ... -> CAUGHT
+    [G500] BROKEN: the step aside deleted (meet_walker watches from where people walk, jamming the round). Predicted CAUGHT by ['WalkerTests.test_w3_he_wa ... -> CAUGHT
+    [G501] BROKEN: the battle check back to the WORD (the summary's 'N battles' ends the approach at its first unreachable spot). Predicted CAUGHT by ['Wa ... -> CAUGHT
+    [G502] BROKEN: a battle never stops the approach (the battle log's test deleted). Predicted CAUGHT by ['WalkerTests.test_b2_control_a_walk_a_battle_st ... -> CAUGHT
+    [G503] BROKEN: match_call_wait ignores the call's STATE (any state of a call is the end's wait). Predicted CAUGHT by ['CallEndTests.test_c1_the_call_w ... -> CAUGHT
+    [G504] BROKEN: match_call_wait ignores the PRINTER (a page still printing is the end's wait). Predicted CAUGHT by ['CallEndTests.test_c1_the_call_wait ... -> CAUGHT
+    [G505] BROKEN: match_call_wait ignores the SOUND. Predicted CAUGHT by ['CallEndTests.test_c1_the_call_waits_only_when_its_last_page_has_printed_and_no ... -> CAUGHT
+    [G506] BROKEN: match_call_wait never reports the wait (always None: the eyes before the fix). Predicted CAUGHT by ['CallEndTests.test_c1_the_call_wait ... -> CAUGHT
+    [G507] BROKEN: a missing read is guessed (the guard on a printer or sound read that failed deleted). Predicted CAUGHT by ['CallEndTests.test_c1_the_ca ... -> CAUGHT
+    [G508] BROKEN: sound_effect_playing's PAUSE rule deleted (two paused players still 'playing'). Predicted CAUGHT by ['CallEndTests.test_c2_a_sound_effe ... -> CAUGHT
+    [G509] BROKEN: approach's first spots never worked out (the call of stand_tiles before the walk deleted). Predicted CAUGHT by ['WalkerTests.test_w4_co ... -> CAUGHT
+    [G510] BROKEN: after a walk up, his movement is never asked (the call of _moved deleted: no meeting, no re-aim). Predicted CAUGHT by ['WalkerTests.tes ... -> CAUGHT
+    [G511] BROKEN: the first meeting's call of meet_walker deleted. Predicted CAUGHT by ['WalkerTests.test_w2_someone_who_moved_since_the_choice_is_watche ... -> CAUGHT
+    [G512] BROKEN: the second meeting's call of meet_walker deleted. Predicted CAUGHT by ['WalkerTests.test_w3_he_walks_on_while_the_player_walks_up']. Th ... -> CAUGHT
+    [G513] BROKEN: the step aside's search deleted (the call of _out_of_the_way). Predicted CAUGHT by ['WalkerTests.test_w3_he_walks_on_while_the_player_w ... -> CAUGHT
+    [G514] BROKEN: the watch's call deleted (everyone keeps still, no way seen). Predicted CAUGHT by ['WalkerTests.test_w1_he_is_spoken_to_from_every_poin ... -> CAUGHT
+    [G515] BROKEN: the waiting spots' call deleted (no place to wait). Predicted CAUGHT by ['WalkerTests.test_w1_he_is_spoken_to_from_every_point_of_his_r ... -> CAUGHT
+    [G516] BROKEN: the wait's call deleted (it never waits beside the way). Predicted CAUGHT by ['WalkerTests.test_w1_he_is_spoken_to_from_every_point_of_ ... -> CAUGHT
+    [G517] BROKEN: talk_to's call of approach deleted (it talks from wherever it stands). Predicted CAUGHT by ['WalkerTests.test_w1_he_is_spoken_to_from_e ... -> CAUGHT
+    31 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 513
+    FROZEN TREE: PASS - the tree did not change from the start to the verdict (33 checks of 207 files, files digest 6af10ca055548633)
+    OVERALL: PASS
+  first builder, revert_r1 run 2 (CH6H1-CH6H8, R0) (r1_run2.out):
+    [R0] CONTROL, the unchanged copy: 543 tests of ['test_saving', 'test_goals', 'test_check_purity:PlayLoopExitTests', 'test_safety_gates:FairnessTests', ... -> PASS
+    [C216] BROKEN: the call of _text at host/eyes.py:478 in FrameworkEyes._screen [call] deleted (deletes the call) [covers host/eyes.py:520 in FrameworkE ... -> CAUGHT
+    [F022] BROKEN: the call of _guarded at host/eyes.py:478 in FrameworkEyes._screen [call] deleted (deletes the call) [covers host/eyes.py:520 in Framewo ... -> CAUGHT
+    [CH6H1] BROKEN: the eyes never ask whether a call in the field waits for its hang-up (`_screen`'s call of `_match_call_wait` deleted: the B arm's eyes ... -> CAUGHT
+    [CH6H2] BROKEN: the text of a call is printer 0's (the call window's whole block in `_text` deleted; redefined in addendum 3, was its condition -> Fal ... -> CAUGHT
+    [CH6H3] BROKEN: the call's end is read on PRINTER 0, never the call window's printer. Predicted CAUGHT by ['CallEndHostTests.test_the_wait_is_read_fro ... -> CAUGHT
+    [CH6H4] BROKEN: the call's end never hears a sound effect (the sound read's verdict always False). Predicted CAUGHT by ['CallEndHostTests.test_the_wai ... -> CAUGHT
+    [CH6H5] BROKEN: the call window is read from the call's first state (its printer before ReadyIntro readies it). Predicted CAUGHT by ['CallEndHostTests ... -> CAUGHT
+    [CH6H6] BROKEN: `_match_call_wait`'s call of match_call_wait deleted (it never reports the wait). Predicted CAUGHT by ['CallEndHostTests.test_the_wait ... -> CAUGHT
+    [CH6H8] BROKEN: `_screen`'s call of `_call_window` deleted (the text asked with no call window). Predicted CAUGHT by ['LiveCallEndTests.test_a_trainer ... -> CAUGHT
+    9 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 9 run (573 defined)
+    FROZEN TREE: PASS - the tree did not change from the start to the verdict (11 checks of 207 files, files digest 6af10ca055548633)
+    OVERALL: PASS
+  second builder, revert_r1 run 1 (CH6H1-CH6H6, CH6H8 re-run; CH6H9, CH6H10 new; its R0 FAILED, the purity gate's rule [a] on `import weakref` in brain/goals.py, the second builder's own code, fixed: see addendum 2) (mutants_r2_r1.out):
+    [R0] CONTROL, the unchanged copy: 552 tests of ['test_saving', 'test_goals', 'test_check_purity:PlayLoopExitTests', 'test_safety_gates:FairnessTests', ... -> FAIL
+    [CH6H1] BROKEN: the eyes never ask whether a call in the field waits for its hang-up (`_screen`'s call of `_match_call_wait` deleted: the B arm's eyes ... -> CAUGHT
+    [CH6H2] BROKEN: the text of a call is printer 0's (the call window's whole block in `_text` deleted; redefined in addendum 3, was its condition -> Fal ... -> CAUGHT
+    [CH6H3] BROKEN: the call's end is read on PRINTER 0, never the call window's printer. Predicted CAUGHT by ['CallEndHostTests.test_the_wait_is_read_fro ... -> CAUGHT
+    [CH6H4] BROKEN: the call's end never hears a sound effect (the sound read's verdict always False). Predicted CAUGHT by ['CallEndHostTests.test_the_wai ... -> CAUGHT
+    [CH6H5] BROKEN: the call window is read from the call's first state (its printer before ReadyIntro readies it). Predicted CAUGHT by ['CallEndHostTests ... -> CAUGHT
+    [CH6H6] BROKEN: `_match_call_wait`'s call of match_call_wait deleted (it never reports the wait). Predicted CAUGHT by ['CallEndHostTests.test_the_wait ... -> CAUGHT
+    [CH6H8] BROKEN: `_screen`'s call of `_call_window` deleted (the text asked with no call window). Predicted CAUGHT by ['LiveCallEndTests.test_a_trainer ... -> CAUGHT
+    [CH6H9] BROKEN: the eyes report the call's wait on EVERY frame a call in the field runs (a press would mash through its pages, its slide-out and whate ... -> CAUGHT
+    [CH6H10] BROKEN: the POKeNAV's own call (Task_Pokenav, MR. STONE's in the chapter-5 tutorial) is taken for a call in the field at its last page (tStat ... -> CAUGHT
+    9 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 9 run (575 defined)
+    FROZEN TREE: PASS - the tree did not change from the start to the verdict (11 checks of 209 files, files digest 4ad426b5f8e44051)
+    OVERALL: FAIL
+  second builder, revert_r1 run 2 (R0, CH6H9, CH6H10 after the fix) (mutants_r2_r1_run2.out):
+    [R0] CONTROL, the unchanged copy: 552 tests of ['test_saving', 'test_goals', 'test_check_purity:PlayLoopExitTests', 'test_safety_gates:FairnessTests', ... -> PASS
+    [CH6H9] BROKEN: the eyes report the call's wait on EVERY frame a call in the field runs (a press would mash through its pages, its slide-out and whate ... -> CAUGHT
+    [CH6H10] BROKEN: the POKeNAV's own call (Task_Pokenav, MR. STONE's in the chapter-5 tutorial) is taken for a call in the field at its last page (tStat ... -> CAUGHT
+    2 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 2 run (575 defined)
+    FROZEN TREE: PASS - the tree did not change from the start to the verdict (4 checks of 209 files, files digest 61ba4216806bd06f)
+    OVERALL: PASS
+
+===== LEDGER #99 (batch abcall): 2026-11-05 20:49:09 -> 2026-11-05 20:53:29; prediction sha256 6c52235664bee8ded2e6a878757ba7adfefc40ebef7d47a472ecffc5b3f555c2 (the file now: 6c52235664bee8ded2e6a878757ba7adfefc40ebef7d47a472ecffc5b3f555c2; the ledger's bounds field holds the same); arm digests before {'A': '3185287fd533bbc37980357a807a2b8a2446c473126595e6f10f3623e2800865', 'B': '4be84b8a8cd83b89a90c180f39b714ba87aa1419735c4933d14767b2a0d9d53b'} after {'A': '3185287fd533bbc37980357a807a2b8a2446c473126595e6f10f3623e2800865', 'B': '4be84b8a8cd83b89a90c180f39b714ba87aa1419735c4933d14767b2a0d9d53b'}
+--- the prediction, verbatim (written by the first builder before the runs):
+PREDICTION (written before the runs; its sha256 is the ledger entry's bounds field). Batch abcall of s53/ch6stops/arms.py:
+the live A/B of STOP 2 (the end of a call in the field). Development, never graded; one trajectory per job.
+Arms: A = stage/armA (the worktree at HEAD 43485a36, the old eyes), B = stage/armB (the round's fixes: eyes/screens.py
+match_call_wait, host/eyes.py's call wait and call-window text; skills/story.py's walker meetings). Starts: the KI-134 B arm's
+end states K2 (run ki134c-C2: DAD's call on the first sail, after its last page; Catcher; seed 6310 in both arms) and K1 (run
+ki134c-C1: CINDY's MATCH CALL in PETALBURG WOODS, after its last page; Story; seed 6311 in both arms); 30,000 frames each.
+Read from the runs' own action logs (presses and their gates) and from the GAME on the state each run left (L5.THIS_RUN).
+
+Q1 (A-K2, A-K1): the old code presses NOTHING gated on the call's end (no press whose gate names ExecuteMatchCall), logs 50 or
+   more 'STUCK: nothing on screen changed' lines, and the game's state at the end is still on the start's map and tile
+   (ROUTE105 (22,60) for K2, PETALBURG_WOODS (14,34) for K1); A-K2's VISITED_DEWFORD_TOWN stays 0.
+Q2 (B-K2, B-K1): exactly ONE press gated 'task ExecuteMatchCall (A or B: ...)' at the call's end, made within the run's first
+   300 frames; no 'STUCK' line at the call.
+Q3 (B-K2): the sail goes on after the call: the game's VISITED_DEWFORD_TOWN is 1 at the end.
+Q4 (B-K1): the player is free after the call: the game's state at the end is not PETALBURG_WOODS (14,34).
+Q5: purity CLEAN in all four runs.
+--- the runs (the GAME's state each run left; the AI's own records for presses and goals):
+[abcall-A-K2-6310] arm A start K2 (md5 0ae27ebfe804296037d749222c550589) seed 6310 Catcher: frames 781235 -> 811235 (30000 real), 176.6 s, map [0, 20] [22, 60] -> [0, 20] [22, 60], purity CLEAN, world.jsonl 931262 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1}
+    exit: [AI-EXIT] reason=play: stopped: not finished within 30000 frames code=0
+    presses gated on a call's end (frame, the page read before it): []; STUCK lines 99 (longest run in a row 1); MR. BRINEY talk goals 0, the first ended at fNone: None
+[abcall-B-K2-6310] arm B start K2 (md5 0ae27ebfe804296037d749222c550589) seed 6310 Catcher: frames 781235 -> 811235 (30000 real), 114.3 s, map [0, 20] [22, 60] -> [24, 8] [9, 11], purity CLEAN, world.jsonl 12504697 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1, 'VISITED_DEWFORD_TOWN': 1}
+    exit: [AI-EXIT] reason=play: stopped: not finished within 30000 frames code=0
+    presses gated on a call's end (frame, the page read before it): [(781322, '… … … … … … … … … … … Click!')]; STUCK lines 0 (longest run in a row 0); MR. BRINEY talk goals 0, the first ended at fNone: None
+[abcall-A-K1-6311] arm A start K1 (md5 5cda3fff1ea63913faaeada58ae59bb4) seed 6311 Story: frames 1057153 -> 1087153 (30000 real), 172.2 s, map [24, 11] [14, 34] -> [24, 11] [14, 34], purity CLEAN, world.jsonl 1145529 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1}
+    exit: [AI-EXIT] reason=play: stopped: not finished within 30000 frames code=0
+    presses gated on a call's end (frame, the page read before it): []; STUCK lines 99 (longest run in a row 1); MR. BRINEY talk goals 0, the first ended at fNone: None
+[abcall-B-K1-6311] arm B start K1 (md5 5cda3fff1ea63913faaeada58ae59bb4) seed 6311 Story: frames 1057153 -> 1087153 (30000 real), 111.1 s, map [24, 11] [14, 34] -> [24, 8] [9, 11], purity CLEAN, world.jsonl 17972423 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1, 'VISITED_DEWFORD_TOWN': 1}
+    exit: [AI-EXIT] reason=play: stopped: not finished within 30000 frames code=0
+    presses gated on a call's end (frame, the page read before it): [(1057258, 'I need to try harder! See you again!'), (1059038, 'I should be going now. I’m glad we had this chat.'), (1071887, '… … … … … … … … … … … Click!')]; STUCK lines 0 (longest run in a row 0); MR. BRINEY talk goals 1, the first ended at f1069073: 'talked'
+    log: [AI-HANDS] talk: someone stands near at (7, 6): a person says hello now and then (draw 0.40 < the Story's 0.18, raised to 0.47: 4879 frames since its last curiosity that came to something): the npc (gfx 211) walks round without stopping (th
+--- is the A/B what it claims? (computed)
+  pair abcall-A-K2-6310 / abcall-B-K2-6310: start md5 0ae27ebfe804296037d749222c550589 / 0ae27ebfe804296037d749222c550589, start frame 781235 / 781235, seed 6310 / 6310 -> THE SAME
+  pair abcall-A-K1-6311 / abcall-B-K1-6311: start md5 5cda3fff1ea63913faaeada58ae59bb4 / 5cda3fff1ea63913faaeada58ae59bb4, start frame 1057153 / 1057153, seed 6311 / 6311 -> THE SAME
+  the A arm STUCK at the call (no press gated on it, 50+ STUCK lines, the start's map and tile at the end): YES, both pairs; the B arm PAST it (a press gated on the call's end, another place at the end): YES, both pairs; same start and seed: YES
+--- judgement against the prediction (computed):
+  Q1 (A: no press at the call's end, 50+ STUCK lines, still on the start's tile, A-K2 no DEWFORD): HELD
+  Q2 (B: ONE press gated on the call's end within the first 300 frames, no STUCK line): HELD - B-K2 [(781322, '… … … … … … … … … … … Click!')]; B-K1 [(1057258, 'I need to try harder! See you again!'), (1059038, 'I should be going now. I’m glad we had this chat.'), (1071887, '… … … … … … … … … … … Click!')]: B-K1's later two presses end LATER calls (the pages before them differ, above), one press each; the start's call ended with one press within 300 frames
+  Q3 (B-K2: VISITED_DEWFORD_TOWN 1): HELD
+  Q4 (B-K1: not on PETALBURG_WOODS (14,34) at the end): HELD
+  Q5 (purity CLEAN, 4 of 4): HELD
+
+===== LEDGER #100 (batch abtalk): 2026-11-05 20:53:30 -> 2026-11-05 20:57:41; prediction sha256 f984bb87d981baac0b794548768f1806e0de2b944546792daf70658636d9051f (the file now: f984bb87d981baac0b794548768f1806e0de2b944546792daf70658636d9051f; the ledger's bounds field holds the same); arm digests before {'A': '3185287fd533bbc37980357a807a2b8a2446c473126595e6f10f3623e2800865', 'B': '4be84b8a8cd83b89a90c180f39b714ba87aa1419735c4933d14767b2a0d9d53b'} after {'A': '3185287fd533bbc37980357a807a2b8a2446c473126595e6f10f3623e2800865', 'B': '4be84b8a8cd83b89a90c180f39b714ba87aa1419735c4933d14767b2a0d9d53b'}
+--- the prediction, verbatim (written by the first builder before the runs):
+PREDICTION (written before the runs; its sha256 is the ledger entry's bounds field). Batch abtalk of s53/ch6stops/arms.py:
+the live A/B of STOP 1 (MR. BRINEY walks round his table). Development, never graded; one trajectory per job.
+Arms: A = stage/armA (HEAD 43485a36: the old talk skill), B = stage/armB (the round's fixes). Start W1: MR. BRINEY's cottage
+just entered (f1061334, the player on the door tile (5,8), MR. BRINEY and PEEKO walking round the table), made by replaying the
+old code's in-process run from K1b (the KI-134 B arm's C1 end with CINDY's call hung up by the test side's one A) with seed
+9101 to f1061334 (its first 300 records identical to the first run's: one trajectory, replayed); Story; seeds 6312 and 6313,
+each in both arms; 30,000 frames each. Read from the runs' own logs and from the GAME on the state each run left.
+
+Q1 (B, both seeds): the FIRST talk goal for MR. BRINEY ends 'talked', the log says he walks round without stopping (the
+   meeting), and the game's MR_BRINEY_SAILING_INTRO is 1 at the end.
+Q2 (A, both seeds): the FIRST talk goal for MR. BRINEY does NOT end 'talked'; it ends with one of the B arm's words
+   ('unreachable: no tile from which the npc', 'the npc did not answer', 'interrupted on the way').
+Q3 (B, both seeds): no 'STUCK: nothing on screen changed' line at DAD's call on the sail, if the sail is reached (one press
+   gated on the call's end).
+Q4: purity CLEAN in all four runs.
+--- the runs (the GAME's state each run left; the AI's own records for presses and goals):
+[abtalk-A-W1-6312] arm A start W1 (md5 45fb50cd883f3ea2133cc0c6781c2572) seed 6312 Story: frames 1061334 -> 1091334 (30000 real), 150.3 s, map [17, 0] [5, 8] -> [0, 20] [22, 60], purity CLEAN, world.jsonl 8161183 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1}
+    exit: [AI-EXIT] reason=play: stopped: not finished within 30000 frames code=0
+    presses gated on a call's end (frame, the page read before it): []; STUCK lines 57 (longest run in a row 1); MR. BRINEY talk goals 3, the first ended at f1061395: 'interrupted on the way: played out'
+[abtalk-B-W1-6312] arm B start W1 (md5 45fb50cd883f3ea2133cc0c6781c2572) seed 6312 Story: frames 1061334 -> 1091334 (30000 real), 109.9 s, map [17, 0] [5, 8] -> [24, 8] [9, 11], purity CLEAN, world.jsonl 13005101 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1, 'VISITED_DEWFORD_TOWN': 1}
+    exit: [AI-EXIT] reason=play: stopped: not finished within 30000 frames code=0
+    presses gated on a call's end (frame, the page read before it): [(1067772, '… … … … … … … … … … … Click!'), (1071029, 'See you again!')]; STUCK lines 0 (longest run in a row 0); MR. BRINEY talk goals 1, the first ended at f1064932: 'talked'
+    log: [AI-HANDS] talk: ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD): MR. BRINEY, the old sailor (his cottage on ROUTE 104) at (9, 5): the npc (gfx 21) walks round without stopping (the way seen: [(8, 6), (7, 6), (6, 6), (6, 5), 
+[abtalk-A-W1-6313] arm A start W1 (md5 45fb50cd883f3ea2133cc0c6781c2572) seed 6313 Story: frames 1061334 -> 1091334 (30000 real), 127.9 s, map [17, 0] [5, 8] -> [0, 20] [22, 60], purity CLEAN, world.jsonl 15044807 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1}
+    exit: [AI-EXIT] reason=play: stopped: not finished within 30000 frames code=0
+    presses gated on a call's end (frame, the page read before it): []; STUCK lines 23 (longest run in a row 1); MR. BRINEY talk goals 5, the first ended at f1061398: 'interrupted on the way: played out'
+[abtalk-B-W1-6313] arm B start W1 (md5 45fb50cd883f3ea2133cc0c6781c2572) seed 6313 Story: frames 1061334 -> 1091334 (30000 real), 102.8 s, map [17, 0] [5, 8] -> [24, 8] [9, 11], purity CLEAN, world.jsonl 13000483 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1, 'VISITED_DEWFORD_TOWN': 1}
+    exit: [AI-EXIT] reason=play: stopped: not finished within 30000 frames code=0
+    presses gated on a call's end (frame, the page read before it): [(1067664, '… … … … … … … … … … … Click!')]; STUCK lines 0 (longest run in a row 0); MR. BRINEY talk goals 1, the first ended at f1064912: 'talked'
+    log: [AI-HANDS] talk: ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD): MR. BRINEY, the old sailor (his cottage on ROUTE 104) at (9, 5): the npc (gfx 21) walks round without stopping (the way seen: [(8, 6), (7, 6), (6, 6), (6, 5), 
+--- is the A/B what it claims? (computed)
+  pair abtalk-A-W1-6312 / abtalk-B-W1-6312: start md5 45fb50cd883f3ea2133cc0c6781c2572 / 45fb50cd883f3ea2133cc0c6781c2572, start frame 1061334 / 1061334, seed 6312 / 6312 -> THE SAME
+  pair abtalk-A-W1-6313 / abtalk-B-W1-6313: start md5 45fb50cd883f3ea2133cc0c6781c2572 / 45fb50cd883f3ea2133cc0c6781c2572, start frame 1061334 / 1061334, seed 6313 / 6313 -> THE SAME
+  abtalk-A-W1-6312: first MR. BRINEY goal 'interrupted on the way: played out'; 3 talk goals; the intro flag at [9861] frames in; ended [0, 20] [22, 60] (STUCK lines 57) | abtalk-B-W1-6312: first goal 'talked'; 1 talk goal(s); the flag at [3598] frames in; ended [24, 8] [9, 11]
+  abtalk-A-W1-6313: first MR. BRINEY goal 'interrupted on the way: played out'; 5 talk goals; the intro flag at [20156] frames in; ended [0, 20] [22, 60] (STUCK lines 23) | abtalk-B-W1-6313: first goal 'talked'; 1 talk goal(s); the flag at [3578] frames in; ended [24, 8] [9, 11]
+  same start and seed: YES. READING: the A arm was NOT stuck at the talk: its first goal failed in both seeds, as predicted, but it talked to him at a later goal and then stood at DAD's call on the sail (ROUTE105 (22,60): the old eyes' STOP 2) to the 30,000-frame bound. So this A/B shows the walker fix makes the FIRST talk land and the talk come thousands of frames sooner, not that the old code never talks to him; the KI-134 B arm's Story run (ledger #98, C1: 54 talk goals, none landed) is the case where the old code never did.
+--- judgement against the prediction (computed):
+  Q1 (B: the first MR. BRINEY talk goal 'talked', the meeting logged, the intro flag set): HELD
+  Q2 (A: the first MR. BRINEY talk goal not 'talked', with the B arm's words): HELD
+  Q3 (B: no STUCK line at DAD's call): HELD
+  Q4 (purity CLEAN, 4 of 4): HELD
+  Also seen: all four B runs of #99 and #100 ended at GRANITE_CAVE_B1F (9, 11), the foot of a MUDDY SLOPE (NS6 of the probes' evidence: their kept memories have (9, 10) visited 46, 89, 107 and 166 times).
+
+===== GATES on the round's final tree (s53/ch6stops2/run_gates.py, one process each, 2026-11-06 05:14-05:35; the tree the probe #102 ran, digest 417008c98f062b42), verbatim:
+  == test_goals: exit 0 in 19s
+     ----------------------------------------------------------------------
+     Ran 375 tests in 18.200s
+     OK
+  == test_kb2: exit 0 in 438s
+     ----------------------------------------------------------------------
+     Ran 124 tests in 436.541s
+     OK
+  == test_world: exit 0 in 89s
+     ----------------------------------------------------------------------
+     Ran 132 tests in 88.704s
+     OK
+  == test_saving: exit 0 in 20s
+     ----------------------------------------------------------------------
+     Ran 151 tests in 19.606s
+     OK
+  == test_eyes: exit 0 in 19s
+     ----------------------------------------------------------------------
+     Ran 73 tests in 17.971s
+     OK
+  == test_hands: exit 0 in 3s
+     ----------------------------------------------------------------------
+     Ran 57 tests in 2.968s
+     OK
+  == test_battle: exit 0 in 2s
+     ----------------------------------------------------------------------
+     Ran 107 tests in 1.682s
+     OK
+  == test_check_purity: exit 0 in 614s
+     ----------------------------------------------------------------------
+     Ran 30 tests in 613.264s
+     OK
+  == test_step53_a2: exit 0 in 2s
+     ----------------------------------------------------------------------
+     Ran 34 tests in 1.535s
+     OK (skipped=5)
+  == test_host: exit 0 in 66s
+     ----------------------------------------------------------------------
+     Ran 37 tests in 66.130s
+     OK
+  == check_fairness: exit 0 in 4s
+     28 files (deciding code and loaders); 6 flag doors, each with its purpose; knowledge key paths by kind {'ai': 7269, 'developer': 148, 'hidden': 3860, 'meta': 1087}; developer-only keys ['decomp', 'flag', 'label', 'line', 'measured', 'note', 'object', 'ref', 'script', 'shared_events_map', 'shared_scr
+     PERSON-FAIR DATA DOOR: PASS (0 breaches)
+  == check_purity: exit 0 in 4s
+         host/lifecycle.py: EXIT_BRAIN_RETURNED, EXIT_CRASH, EXIT_FRAME_BUDGET, EXIT_INTERRUPTED, EXIT_OK, EXIT_PARKED, EXIT_PURITY_BREACH, EXIT_REFUSED, EXIT_WALL_CLOCK, Lifecycle
+         host/session.py: Session, start_session
+     VERDICT: PASS
+  == call_census: exit 0 in 6s
+     [ok]   brain/goals.py:part_hops (a call ADDED in brain/goals.py:world_distance): 1 sites
+     CALL-SITE CENSUS since HEAD: 2 AI files changed, 13 functions or added calls, 28 sites; 0 MISSING
+     CALL-SITE CENSUS: PASS
+  == check_paths: exit 0 in 1s
+     PATHS GATE: PASS (48 files, 0 findings)
+  == ledger_check: exit 0 in 0s
+     LEDGER ledger.json: 102 entries; well formed -> PASS

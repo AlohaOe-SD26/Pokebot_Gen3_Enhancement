@@ -164,6 +164,7 @@ __all__ = [
     "astar",
     "distances",
     "exit_press",
+    "in_map_walls",
     "is_scene",
     "nav_free",
     "path_cost",
@@ -293,7 +294,7 @@ def exit_press(behavior: str) -> str | None:
 def stale_reason(memory: MapMemory, target: "Target") -> str | None:
     """Why a chosen target is no longer worth walking to, by what the AI has seen since it chose it (build step 3.1,
     finding 2), or None: a FRONTIER tile with nothing unseen beside it any more, TALL GRASS already walked, (step 4.1 round
-    2) a PERSON already met."""
+    2) a PERSON already met, (P11-1) the WAY through a dark cave walked toward while unseen, now seen."""
     if target.kind == "frontier" and memory.known(target.tile) and not memory.unknown_neighbours(target.tile):
         return "everything beside it has been seen on the way"
     if target.kind == "grass" and memory.visits.get(target.tile):
@@ -301,6 +302,10 @@ def stale_reason(memory: MapMemory, target: "Target") -> str | None:
     # (step 4.1 round 2, finding 7) a person walked up to: met on the way (`world/memory.py` MEET_RADIUS)
     if target.kind == "people" and target.who is not None and target.who in memory.met:
         return "the player has been beside them: met"
+    # (P11-1, 2026-11-11) the way through a dark cave, walked toward while unseen (`brain/explore.py` way_aims): once its
+    # tile is seen, the way is chosen again (the ladder as the exit it is, with its press)
+    if target.kind == "way" and target.exit is None and memory.known(target.tile):
+        return "the way on is in sight now"
     return None
 
 
@@ -447,9 +452,18 @@ def in_map_walls(memory: MapMemory, walls: frozenset, target_tile: tuple[int, in
     are the next map's, and a walk through them crosses onto it. So for a target on this map (`target_tile` not past an
     edge, or None: any tile of this map, `Navigator.cut_off`'s reach) they are walls; a target past an edge (a road)
     still crosses it. ONE rule for "can it get there?": the planner that walks and the reach that says what is left to
-    see (`WorldMemory.promise`) agree."""
+    see (`WorldMemory.promise`) agree.
+    (chapter 6, the crossing ping-pong, 2026-11-06) A target past an edge (a road) is walked to over this map's tiles and
+    the tiles past ITS OWN side only: the tiles seen past ANOTHER crossed edge are the map beyond that edge, and a walk
+    through them crosses onto it. MEASURED on probe7 C1's own memory (`s53/ch6stops3/pong_repro.py`): from ROUTE 104's
+    north strip (19, 0), the road RIGHT toward PETALBURG (44, 57) was planned 96 steps through RUSTBORO's tiles past the
+    UP edge, its first step "up"; probe8's C1 and C2 chose such a road on every look round there, crossed into RUSTBORO
+    with the first step, and RUSTBORO's walk led straight back (287 and 228 ping-pong ends)."""
     if memory.edges and (target_tile is None or not memory.outside(target_tile)):
         walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy))
+    elif memory.edges and target_tile is not None:
+        side = road_side(memory, target_tile)
+        walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy) and road_side(memory, xy) != side)
     return walls
 
 
@@ -475,7 +489,7 @@ class Target:
     """Where the AI decided to go, and why. `tile` is where it walks; for an exit (a warp, a door) `exit` is that tile
     and `direction` the press that uses it from `tile`; a ROAD (a tile past the map's edge) is walked onto."""
 
-    kind: str  # frontier, road, door, back, route, grass, people, wander, goto
+    kind: str  # frontier, road, door, back, route, grass, people, wander, goto; (P11-1) way (`brain/explore.py` dark_way)
     tile: tuple[int, int]
     reason: str
     score: float = 0.0
@@ -483,6 +497,9 @@ class Target:
     direction: str | None = None
     #: (step 4.1 round 2, finding 7) a PEOPLE place: who it is for (the person's id on this map, `MapMemory.persons`)
     who: int | None = None
+    #: (chapter 6 NS2, 2026-11-06) a RIDE toward the goal (`brain/explore.py` candidates): the ride's name in
+    #: `WorldMemory.rides`; arrived beside the person, the play brain's `rider` talks to them (`Navigator.run`)
+    ride: str | None = None
 
     @property
     def key(self) -> str:
@@ -657,6 +674,8 @@ class _Stats:
     switches: int = 0
     #: (build step 3.2, the step-4 verifier's finding 4) stale targets CARRIED ON by the same decision (`Intent.carry_on`)
     carried: int = 0
+    #: (chapter 6 NS6, 2026-11-06) steps UNDONE by a slide back (`Navigator._undone`)
+    slides: int = 0
 
 
 class Navigator:
@@ -759,6 +778,21 @@ class Navigator:
         #: `promise` holds only what it could get to (OLDALE_TOWN_HOUSE1's two unreachable tiles were "2 things left to see"
         #: for ever). False (every earlier brain): as before; the play brain sets True.
         self.mark_cut = False
+        #: (chapter 6 NS6, 2026-11-06) A STEP UNDONE BY A SLIDE is learned as a failed step that way (`_undone`,
+        #: `WorldMemory.learn_slide`). False (every earlier brain): as before; the play brain sets True.
+        self.learn_slides = False
+        #: (chapter 6 NS2, 2026-11-06) who TAKES A RIDE (`Target.ride`) once the walk has arrived beside the person:
+        #: `rider(target)` -> a generator returning what happened ("rode ..." or why not). The play brain sets it
+        #: (`brain/goals.py` GoalRunner.ride); None (every earlier brain): a ride target is never made (they keep no rides)
+        self.rider: Callable[[Target], Generator[None, None, str]] | None = None
+        #: (chapter 7 NS3, 2026-11-06) asked on every look of an intent, after its own `done`: a reason to STOP the walk now
+        #: (the one the story's next step names came into view: `brain/goals.py` GoalRunner.story_in_view), or None. The
+        #: play brain sets it for the goals that are not the walk to that person; None (every earlier brain): as before
+        self.stop_for: Callable[[Observation], str | None] | None = None
+        #: (chapter 6 NS6) the last step that MOVED the player on its own press: (map key, the tile it began on, the tile it
+        #: got into, the way it went, the pad's presses when it ended); cleared by anything else that moves the player (a
+        #: scene, a battle, an exit, a new intent), so a scene that walks the player back is never taken for a slide
+        self._entered: tuple | None = None
 
     # ------------------------------------------------------------------ telling
     def tell(self, line: str, extra: dict | None = None) -> None:
@@ -781,7 +815,8 @@ class Navigator:
 
     def walls(self, memory: MapMemory, here: tuple[int, int]) -> frozenset:
         """Tiles not to step on now: where someone stands, and (the step-3.1 verifier's round) a tile a repeating scene
-        sent the player back from in this intent (`scene_walls`)."""
+        sent the player back from in this intent (`scene_walls`). (The chapter-5 search fix E, 2026-11-13) `objects_now`
+        holds the things it saw standing on this map in this session too, on screen or not (`MapMemory.standing`)."""
         return frozenset((memory.objects_now | self.scene_walls.get(memory.key, set())) - {here})
 
     def ponged_now(self, target: Target) -> bool:
@@ -934,10 +969,23 @@ class Navigator:
     def walk_step(self, direction: str, why: str, gate: str) -> Generator[None, None, StepResult]:
         """One tile in `direction` (module docstring): hold in chunks, look between them. The world is told the AI is
         stepping (a map change during the step is the AI's own) and, once the step is over, that it no longer is (a
-        map change later, in a scene, is the scene's)."""
+        map change later, in a scene, is the scene's).
+        (chapter 6 NS6, 2026-11-06) A STEP UNDONE BY A SLIDE (`_undone`): the last step got the player into a tile and the
+        player is back where that step began, carried there with no press back and nothing on screen holding it (no
+        script, no text, no battle): on GRANITE CAVE B1F the muddy slope at (9, 9)-(9, 10) sends a player on foot back
+        down (pinned decomp `src/field_player_avatar.c` ForcedMovement_MuddySlope), and the navigator planned up it 7,536
+        times in probe8's C3 with no bump ever recorded, because the player DID move each time. It is seen either before
+        the next step begins (the slide already over) or as that step's result (pressing on and landing behind)."""
         key = self.world.current
+        undone = self._undone(key, self.hands.look())
+        if undone is not None:
+            return undone
         result = yield from self._walk(direction, why, gate)
         self.world.settle_intent()
+        if result.kind == "moved" and result.frm is not None and result.to == moved(result.frm, OPPOSITE[direction]):
+            undone = self._undone(key, self.hands.last, landed=result)
+            if undone is not None:
+                return undone
         if result.kind == "moved":
             self.recent = (self.recent + [(key, direction)])[-2:]
             # (build step 3.2, the step-3.1 review's finding 3: "a bump is never forgotten after walking through that way")
@@ -951,7 +999,53 @@ class Navigator:
                     self.tell(f"the way into {tile} moving {direction}, learned blocked by {info.get('bumps')} bump(s) "
                               f"(f{info.get('first')}..f{info.get('last')}), let the player through now: forgotten",
                               {"forgot_bump": list(tile), "direction": direction, "map": key, "info": info})
+            # (chapter 6 NS6) the tile it stepped OFF, by itself, held the player: a slide learned there for the way the
+            # last step got into it is wrong
+            last = self._entered
+            if last is not None and last[0] == key and last[2] == result.frm:
+                info = self.world.forget_slide(key, result.frm, last[3])
+                if info is not None:
+                    self.tell(f"the way into {result.frm} moving {last[3]}, learned as a slide back ({info.get('bumps')} "
+                              f"time(s)), held the player now: forgotten", {"forgot_slide": list(result.frm),
+                                                                           "direction": last[3], "map": key})
+            self._entered = (key, result.frm, result.to, direction, self.hands.pad.presses)
+        else:
+            self._entered = None
         return result
+
+    def _undone(self, key: str | None, look: Observation | None, landed: StepResult | None = None) -> StepResult | None:
+        """(chapter 6 NS6, 2026-11-06) Was the last step UNDONE by a slide? It was when the player is back on the tile that
+        step began on (`_entered`), on the same map, and nothing came between: no press since (`landed`: the press of
+        the step that landed it there, which pressed on, not back) and nothing on screen holds the player (`nav_free`: a
+        script that walks the player back, a battle, a text, is a scene's business: the scene walls). Then the way into
+        the tile that step got into is learned as a failed step (`WorldMemory.learn_slide`, told as "SLID BACK"), and
+        a `StepResult` "slid" is returned in place of a step. None otherwise (and always when `learn_slides` is off)."""
+        last = self._entered
+        if not self.learn_slides or last is None or look is None or key is None:
+            return None
+        began, into, direction, presses = last[1], last[2], last[3], last[4]
+        player = look.player
+        here = (player.x, player.y) if player is not None and player.x is not None else None
+        # before a step: no press at all since the last one ended; as a step's result: only that step's own presses, which
+        # went ON (`walk_step` asks only when it landed behind the tile it pressed from)
+        pressed = self.hands.pad.presses - presses
+        if (last[0] != key or self.world.current != key or here != began or into is None or not nav_free(look)
+                or (landed is None and pressed > 0)):
+            return None
+        self._entered = None
+        info = self.world.learn_slide(key, into, direction, look.frame)
+        if info is None:
+            return None
+        self.stats.slides += 1
+        memory = self.world.maps.get(key)
+        fact = memory.fact(into) if memory is not None else None
+        count = int(info.get("bumps", 0))
+        self.tell(f"SLID BACK: the step {direction} from {began} into {into} on {memory.const if memory else key} was "
+                  f"undone: the player is back on {began} with no press back (the eyes showed "
+                  f"{fact.behavior if fact else 'an unseen tile'} there): learned as a failed step that way ({count} "
+                  f"time(s): {'refused from now on' if count >= BUMP_GIVE_UP else 'dear from now on'})",
+                  {"slid": list(into), "from": list(began), "direction": direction, "map": key, "count": count})
+        return StepResult("slid", into, began, detail=f"slid back from {into} to {began}")
 
     def _walk(self, direction: str, why: str, gate: str) -> Generator[None, None, StepResult]:
         hands, world = self.hands, self.world
@@ -1045,6 +1139,7 @@ class Navigator:
         fact = memory.fact(exit_tile)
         what = "door" if fact is not None and fact.door else "warp"
         world.intend("warp", direction, exit_tile)
+        self._entered = None  # (chapter 6 NS6) an exit is no step to be undone
         held = 0
         while held < WARP_HOLD_MAX:
             here = (look.player.x, look.player.y) if look.player is not None and look.player.x is not None else None
@@ -1091,6 +1186,7 @@ class Navigator:
     def handle(self, look: Observation, why: str) -> Generator[None, None, str | None]:
         """The player cannot walk: a battle, a scene, a fade. None to carry on, or a reason to stop the intent."""
         self.world.settle_intent()  # whatever moves the player now, the AI's own step is over
+        self._entered = None  # (chapter 6 NS6) and a scene or a battle that moves it is no slide
         if in_battle(look):
             self.stats.battles += 1
             if self.battler is not None:  # BUILD STEP 4: the battle brain fights it
@@ -1265,6 +1361,7 @@ class Navigator:
         self.plan, self.planned_for = None, None
         self.carries = 0
         self.people_tries = {}
+        self._entered = None  # (chapter 6 NS6) a new intent: what the last one walked is not this one's step
         on_the_move = False  # a target just dropped as stale: the next one is chosen without a thinking pause
         self._seen_changes = len(world.transitions)
         uses: dict[str, list[int]] = {}
@@ -1322,6 +1419,10 @@ class Navigator:
                 yield from pad.idle(pad.think_frames(), f"taking in a new place: {memory.const if memory else here_map}")
             if intent.done(look):
                 return f"done: {intent.name} ({self.summary()})"
+            stop = self.stop_for(look) if self.stop_for is not None and nav_free(look) else None
+            if stop is not None:
+                # (chapter 7 NS3) the walk is not the story's, and the one its next step names is in view
+                return f"stopped: {stop} ({self.summary()})"
             if not nav_free(look):
                 # (build step 3.1, finding 3) a scene met on the way to a target is counted for THAT target, and (the
                 # step-3.1 verifier's round) for the tile it began on, when it puts the player somewhere else
@@ -1438,6 +1539,16 @@ class Navigator:
             result = yield from self.toward(going, look, why)
             if going is detour and result in ("arrived", "unreachable"):
                 detour = None
+                continue
+            if result == "arrived" and target.ride is not None:
+                # (chapter 6 NS2) beside the person of a RIDE toward the goal: the play brain talks to them and says YES;
+                # a ride not taken is given up for this intent (and put aside in the memory by the rider)
+                taken = (yield from self.rider(target)) if self.rider is not None else "no one here takes rides"
+                self.tell(f"the ride {target.ride}: {taken}", {"ride_taken": target.ride, "outcome": taken})
+                if not taken.startswith("rode"):
+                    self.exclude(target, taken)
+                target = detour = None
+                self.recent = []
                 continue
             if result in ("arrived", "used"):
                 if intent.reached is not None:

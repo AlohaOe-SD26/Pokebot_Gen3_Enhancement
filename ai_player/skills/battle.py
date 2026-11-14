@@ -31,6 +31,20 @@ chosen, the game REFUSED that move (Disabled, Taunt, no PP): the decider is told
 decides again, so it cannot choose the same move until the battle's bound. A healing item's target is given by
 `_give_item`, which READS the party menu's message after it ("MUDKIP's HP was restored by 17 point(s)."): the HEAL arm's
 first development run found the skill stuck there ("the Potion could not be given", the Potion used and the HP restored).
+
+WHO LEARNS A MOVE (boss preparation round 2, 2026-11-11; measured live, ledger #118: all three raise runs ended "stuck: the
+battle did not end within 150 menus"). A Pokemon that levels up while SWITCHED OUT (switch-training: it shares the
+experience as a member sent out) is asked to learn its move with ANOTHER Pokemon on the field. The skill named the learner
+from the page "DUSTOX is trying to learn GUST." among the last 40 pages, but a page PRINTING is a new page at every look,
+so two more messages pushed it out of the window, and the learner was taken to be the battler on the field (Grovyle, "forget
+Absorb"); the forget screen listed Dustox's moves, so it kept them, and then answered "Stop learning GUST?" NO from the
+wrong choice: the game asked again, without end. Now (each with a FAULT in `BattleFaults`):
+  * the last complete "<NAME> is trying to learn <MOVE>." page is kept apart from the window (`_Pages.learning`), and a
+    battle met AT the question names the learner by what the game teaches at a level (`_learns_now`: the member whose
+    level-up list has that move at its level now: static knowledge) before the battler on the field (FAULT
+    `learner_by_battler`: as before);
+  * the forget screen's own four moves are the learner's: when the move the choice would forget is not among them, the
+    choice is made again for the member those moves are (`_forget_choice`; FAULT `forget_unchecked`: as before).
 """
 
 from __future__ import annotations
@@ -38,13 +52,14 @@ from __future__ import annotations
 import re
 from collections.abc import Generator
 
-from ai_player.brain.battle import BattleMind, Decision, LearnChoice, learn_choice
-from ai_player.eyes.observation import Observation
+from ai_player.brain.battle import BattleFaults, BattleMind, Decision, LearnChoice, learn_choice, move_key
+from ai_player.eyes.observation import MonSummary, Observation
 from ai_player.eyes.screens import BAG_POCKETS, page_text
 from ai_player.hands.dialogue import STUCK, advance, new_characters, player_free
 from ai_player.hands.menus import choose, move_cursor, wait_for_ui
 from ai_player.hands.pad import Hands
 from ai_player.knowledge.facts import move_named
+from ai_player.knowledge.seasoned import level_up
 from ai_player.skills.flee import BATTLE_ACTION, battle_over, choose_in_grid, in_battle
 
 __all__ = [
@@ -100,12 +115,18 @@ class _Pages:
 
     def __init__(self) -> None:
         self.pages: list[str] = []
+        #: (round 2) the last COMPLETE "<NAME> is trying to learn <MOVE>." page as (name, move), casefolded: kept apart from
+        #: the 40-page window, which a page printing one character a look fills within two messages (module docstring)
+        self.learning: tuple[str, str] | None = None
 
     def __call__(self, look: Observation) -> None:
         page = page_text(look.screen.text) if look.screen.text else None
         if page and (not self.pages or self.pages[-1] != page):
             self.pages.append(page)
             del self.pages[:-40]
+        found = _TRYING.search(page) if page else None
+        if found:
+            self.learning = (found.group(1).strip().casefold(), found.group(2).strip().casefold())
 
 
 def play_battle(hands: Hands, mind: BattleMind, why: str = "win the battle") -> Generator[None, None, str]:
@@ -154,6 +175,19 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
                        f"{[(m.species, m.level, m.hp, m.max_hp) for m in look.party or ()]}")
             return result
         if outcome.startswith(STUCK) or outcome == "budget":
+            ended = OUTCOMES.get(look.last_battle_outcome) if look is not None and not in_battle(look) else None
+            if ended is not None:
+                # (chapter 7 stops round 4, 2026-11-06; the likely mechanism of KI-131: its records agree; its own case not
+                # re-run) the BATTLE is over by the game's own word
+                # (gBattleOutcome: 0 while a battle runs) and the screen has left it: what held the screen past the
+                # budget or the watchdog came AFTER it (level-ups and an evolution, then the map's own scene: a gym
+                # leader's badge fanfare and words, which `battle_done` waits through because the player is not free).
+                # The caller plays that scene as any other. MEASURED (probe #104): C2's win over BRAWLY ended "the
+                # battle: budget" 5,411 frames after its last press (three level-ups, the leader's words, an evolution),
+                # C3's "stuck: ... a scene plays" at the badge's fanfare; the game had set BADGE02_GET in both
+                hands.tell(f"battle: over: {ended} (gBattleOutcome {look.last_battle_outcome}); what came after it held "
+                           f"the screen ({outcome}): the scene after the battle is played on")
+                return ended
             return f"the battle: {outcome}"
         kind = outcome[5:] if outcome.startswith("menu:") else outcome
         if kind == BATTLE_ACTION:
@@ -230,10 +264,10 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
             if learning:
                 key = learning.group(1).strip()
                 if learn is None or learn_key != key:
-                    learn, learn_key = _learn(hands, look, key, pages), key
+                    learn, learn_key = _learn(hands, look, key, pages, mind.faults), key
             # (step 4.1) the pages before the question and the whole message: the shift question names the next foe on the
-            # page before "Will ... change POKéMON?"
-            context = " ".join(pages.pages[-4:] + [look.screen.text or ""])
+            # page before "Will ... change POKéMON?" (`_shift_context`)
+            context = _shift_context(pages, look)
             yes, reason = mind.answer(question, look, learn if learning else None, context)
             hands.tell(f"battle: the question {question!r}: {'YES' if yes else 'NO'} ({reason})")
             if not (yield from choose(hands, BATTLE_YES_NO, 0 if yes else 1, f"{why}: {reason}")):
@@ -242,13 +276,7 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
         if kind == "move_forget":
             ui = look.screen.ui
             names = list(ui.options) if ui is not None else []
-            if learn is None or not learn.learn or learn.forget is None:
-                index = len(names) - 1  # the new move: keep the four it knows
-                reason = "keep the four moves it knows"
-            else:
-                wanted = [i for i, n in enumerate(names[:4]) if move_named(n) == learn.forget or n == learn.forget]
-                index = wanted[0] if wanted else len(names) - 1
-                reason = f"forget {learn.forget}: {learn.reason}"
+            index, reason, learn = _forget_choice(hands, look, names, learn, mind.faults)
             hands.tell(f"battle: the moves {names}: {reason}")
             if not (yield from choose(hands, "move_forget", index, f"{why}: {reason}")):
                 return "the battle: the move to forget could not be chosen"
@@ -285,17 +313,47 @@ def _play(hands: Hands, mind: BattleMind, why: str, pages: _Pages) -> Generator[
     return f"the battle did not end within {BATTLE_STEPS} menus"
 
 
-def _learn(hands: Hands, look: Observation, printed: str, pages: _Pages) -> LearnChoice:
-    """Which Pokemon is learning which move (the question's earlier page names them), and the decider's choice."""
+def _shift_context(pages: _Pages, look: Observation) -> str:
+    """(step 4.1; boss preparation round 3, the round-2 builder's new stop) The words a yes/no question is answered with:
+    the last 4 pages of the window and the WHOLE message on screen. WHY THE SHIFT QUESTION CANNOT LOSE ITS FOE THE WAY THE
+    LEARNER WAS LOST (round 2, #118): the learner's page ("DUSTOX is trying to learn GUST.") is a message of its own, before
+    the question's, so only the 40-page window held it; the shift question is ONE message whose first page names the foe
+    (`src/battle_message.c` sText_EnemyAboutToSwitchPkmn: "{B_TRAINER1_CLASS} {B_TRAINER1_NAME} is\\nabout to use
+    {B_BUFF2}.\\pWill {B_PLAYER_NAME} change\\nPOKéMON?"), and the eyes' text is that message FROM ITS START up to what has
+    printed (`host/eyes.py` _text: `gDisplayedStringBattle` from its base), so `look.screen.text` at the question holds the
+    first page whatever the window lost (`brain/battle.py` incoming takes the LAST "about to use" in the words: this
+    message's). `gates/test_bossprep.py` ShiftContextTests pins it with a window that lost the page."""
+    return " ".join(pages.pages[-4:] + [look.screen.text or ""])
+
+
+def _learns_now(party: list[MonSummary], move: str) -> MonSummary | None:
+    """(round 2) The ONE member whose level-up list teaches `move` at the level it is now (the game asks only at the
+    level reached: static knowledge, `knowledge/seasoned.py` level_up), or None (none, or more than one)."""
+    found = [m for m in party if not m.is_egg and any(at == m.level and name == move for at, name in level_up(m.species))]
+    return found[0] if len(found) == 1 else None
+
+
+def _learn(hands: Hands, look: Observation, printed: str, pages: _Pages,
+           faults: BattleFaults = BattleFaults()) -> LearnChoice:
+    """Which Pokemon is learning which move (the question's earlier page names them), and the decider's choice. (Round 2,
+    module docstring) the page is the one kept apart (`_Pages.learning`) when it names this move; met at the question with
+    no page seen, the member the game teaches it now (`_learns_now`); the battler on the field only after those (FAULT
+    `learner_by_battler`: the window and the battler only, as before)."""
     move = move_named(printed) or printed
     who = None
-    for page in reversed(pages.pages):
-        found = _TRYING.search(page)
-        if found:
-            who = found.group(1).strip().casefold()
-            break
+    if (not faults.learner_by_battler and pages.learning is not None
+            and move_key(pages.learning[1]) == move_key(printed)):
+        who = pages.learning[0]
+    if who is None:
+        for page in reversed(pages.pages):
+            found = _TRYING.search(page)
+            if found:
+                who = found.group(1).strip().casefold()
+                break
     party = list(look.party or ())
     mon = next((m for m in party if who is not None and m.species.casefold() == who), None)
+    if mon is None and not faults.learner_by_battler:
+        mon = _learns_now(party, move)
     if mon is None and look.battle is not None and look.battle.own:
         mon = next((m for m in party if m.pid == look.battle.own[0].pid), None)
     if mon is None:
@@ -308,6 +366,33 @@ def _learn(hands: Hands, look: Observation, printed: str, pages: _Pages) -> Lear
     hands.note("decide", "learn a move", choice.reason, {"pid": f"{mon.pid:08x}", "species": mon.species, "move": move,
                                                          "learn": choice.learn, "forget": choice.forget})
     return choice
+
+
+def _forget_choice(hands: Hands, look: Observation, names: list[str], learn: LearnChoice | None,
+                   faults: BattleFaults = BattleFaults()) -> tuple[int, str, LearnChoice | None]:
+    """The summary screen's FORGET-A-MOVE list (`names`: the learner's four moves, then the new one): (the row to choose,
+    why, the learn choice from here on). (Round 2, module docstring) the four moves on screen ARE the learner's: when the
+    move the choice would forget is not among them, the choice was made for another member, so it is made again for the
+    member whose four moves these are, and the answer to "Stop learning ...?" follows the new choice (FAULT
+    `forget_unchecked`: the row of the new move, "keep the four", while the choice still says learn: the live loop)."""
+    if (learn is not None and learn.learn and learn.forget is not None and len(names) == 5 and not faults.forget_unchecked
+            and not any(move_named(n) == learn.forget or n == learn.forget for n in names[:4])):
+        four = sorted(move_key(n) for n in names[:4])
+        owner = next((m for m in look.party or () if not m.is_egg
+                      and sorted(move_key(s.name) for s in m.moves) == four), None)
+        if owner is not None:
+            new = move_named(names[4]) or names[4]
+            learn = learn_choice(owner, new)
+            hands.tell(f"battle: the moves on screen are {owner.species} L{owner.level}'s, not the member the choice was "
+                       f"made for: {owner.species} would learn {new}: "
+                       f"{'LEARN, forget ' + learn.forget if learn.learn else 'do NOT learn'} ({learn.reason})")
+            hands.note("decide", "learn a move", learn.reason, {"pid": f"{owner.pid:08x}", "species": owner.species,
+                                                                 "move": new, "learn": learn.learn, "forget": learn.forget,
+                                                                 "again": True})
+    if learn is None or not learn.learn or learn.forget is None:
+        return len(names) - 1, "keep the four moves it knows", learn  # the new move: keep the four it knows
+    wanted = [i for i, n in enumerate(names[:4]) if move_named(n) == learn.forget or n == learn.forget]
+    return (wanted[0] if wanted else len(names) - 1), f"forget {learn.forget}: {learn.reason}", learn
 
 
 def _execute(hands: Hands, mind: BattleMind, decision: Decision, why: str) -> Generator[None, None, str | None]:

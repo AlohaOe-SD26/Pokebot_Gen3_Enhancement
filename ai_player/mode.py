@@ -44,8 +44,9 @@ from ai_player.brain.battle import BattleFaults, BattleMind, needs_rest
 from ai_player.brain.saving import SavePolicy, own_cart
 from ai_player.brain.explore import explore_intent, goto_intent, weights_for
 from ai_player.brain.goals import (
-    CURIOSITY_KINDS, Goal, GoalManager, GoalRunner, battles_lost, goal_yield, party_share, yield_snapshot,
+    CURIOSITY_KINDS, Goal, GoalManager, GoalRunner, TravelSense, battles_lost, goal_yield, party_share, yield_snapshot,
 )
+from ai_player.brain.rides import RideWatch
 from ai_player.brain.navigator import Navigator, nav_free
 from ai_player.eyes.observation import Observation
 from ai_player.game_memory import (
@@ -64,7 +65,7 @@ from ai_player.runlog import RecordFile
 from ai_player.skills.battle import play_battle
 from ai_player.skills.clock import set_wall_clock
 from ai_player.skills.flee import in_battle
-from ai_player.skills.instructed import GRID_KIND, INSTRUCTED_KINDS, Instructed
+from ai_player.skills.instructed import GRID_KIND, INSTRUCTED_KINDS, Instructed, SceneOpener
 from ai_player.skills.intro import play_intro
 from ai_player.skills.roam_train import roam_train
 from ai_player.skills.saving import SAVE_CLOSE_BUDGET, SAVE_WRITE_BUDGET, continue_game, save_game
@@ -730,10 +731,17 @@ class HandsBrain:
         # (chapter 5) the instructed-choice skill reads the field pages of every look (`skills/instructed.py` read_along)
         self._instructed = Instructed(misstep=options.fault_instructed_misstep)
         hands.watchers.append(self._instructed.read_along)
+        # (chapter 6 stops round 5, VR4-1) whether the AI opened the scene on screen itself (its own A while free, read
+        # from its own presses): a field menu nothing names is backed out of only then (`skills/instructed.py`)
+        self._instructed.opener = SceneOpener(hands.pad)
+        hands.watchers.append(self._instructed.opener.watch)
         look = hands.look()
         story = load_story(look.player.gender if look.player is not None else None)
         manager = GoalManager(story, state, random.Random(f"{seed}:goals"), hints_off=options.fault_no_hints,
                               train_off=options.fault_no_training, errands_off=options.fault_no_errands)
+        # (boss preparation BP-1, 2026-11-09) the plan's draw has its OWN stream: building it draws nothing, so no other
+        # stream moves (`brain/bossprep.py` choose_plan)
+        manager.bossprep_rng = random.Random(f"{seed}:bossprep")
         if restored is not None:
             manager.memory = restore_goals(manager.memory, restored.goals)  # (R2, D16) what it remembers, as of the save
         manager.memory.landmarks = world.landmarks  # the doors it recognised live in the world memory: a later run has them
@@ -743,6 +751,8 @@ class HandsBrain:
         manager.memory.spoke = world.spoke
         nav.ponged = {}
         nav.mark_cut = True
+        # (chapter 6 NS6, 2026-11-06) a step undone by a slide back (GRANITE CAVE's muddy slope) is learned as a failed step
+        nav.learn_slides = True
         manager.say = hands.tell  # (build step 5.1) a draw that chose no errand is told too
         hands.watchers.append(manager.notice)
         # (build step 5.1, the step-5 verifier's FAILURE) every stretch a screen WAITED FOR A PRESS with none, whatever the
@@ -759,6 +769,19 @@ class HandsBrain:
         battle_clock = BattleClock()
         hands.watchers.append(battle_clock)
         runner = GoalRunner(hands, nav, manager, mind, hands.tell)
+        # (round 5, VR4-1) a talk that backed out of a field menu nobody asked for counts as a failed talk
+        runner.backed_out = lambda: self._instructed.backouts
+        # (chapter 6 NS1 and NS2, 2026-11-06) a trip a person offers is answered by where its goal is (`TravelSense`), a
+        # YES that carries the player away by scenes is kept as a RIDE (`RideWatch`, after the world memory's own watcher),
+        # and a ride toward a goal is taken by talking to that person again (`GoalRunner.ride`)
+        rides = RideWatch(world, lambda: hands.pad.presses,
+                          getattr(nav, "tell", None) or (lambda line, extra=None: hands.tell(f"[AI-WORLD] {line}")))
+        hands.watchers.append(rides)
+        travel = TravelSense(manager, runner, rides, lambda const: any(memory.const == const and memory.visits
+                                                                       for memory in world.maps.values()))
+        runner.travel = travel
+        nav.answer = travel.answer
+        nav.rider = getattr(runner, "ride", None)
         target = story.index(options.target)
         hands.tell(f"play brain: target {options.target} ({story.milestones[target].title}); personality {state.base} "
                    f"(errands {state.errands}); favourite Pokemon {state.favourite} (the shiny hunt is deferred); starter "
@@ -866,9 +889,19 @@ class HandsBrain:
                                       f"no progress for {hands.pad.frames - changed_at} frames (no milestone, battle won "
                                       f"training, level, new map, catch, item or heal; since {milestone.title})")
             if not nav_free(look):
+                # (chapter 6 stops round 5, VR4-1; KI-132's first fix direction) a FORCED field menu nothing names (still
+                # on screen after the AI backed out of it, or in a scene it did not open: `skills/instructed.py`) ends the
+                # run AT ONCE, with no frame passing: #106 arm A returned "stuck: an unexpected multichoice on screen"
+                # once a frame for 20,167 frames
+                forced = self._instructed.forced if self._instructed is not None else None
+                if forced is not None:
+                    return self._play_end(hands, story, manager, runner, report, "stuck", forced)
                 stop = yield from play_out(hands, nav, f"{milestone.title}: what is on screen")
                 if stop is not None and "battle was lost" not in stop:  # a loss is counted at the top of the loop
                     hands.tell(f"what was on screen ended: {stop}")
+                    forced = self._instructed.forced if self._instructed is not None else None
+                    if forced is not None:
+                        return self._play_end(hands, story, manager, runner, report, "stuck", forced)
                     if not nav_free(hands.look()):
                         yield from hands.pad.busy("waiting for the screen to settle after a stop")
                 continue
@@ -925,7 +958,7 @@ class HandsBrain:
             manager.outcome(goal, ok)
             # (R1, D3) a heal at a POKéMON CENTER makes a save due
             self._after_heal(goal, ok)
-            if goal.kind == "train":
+            if goal.kind in ("train", "raise"):  # (BP-1) a raise's battles won are progress exactly as training's
                 report["won_training"] += sum(1 for _, _, result in nav.battle_log[battles:] if result in ("won", "caught"))
             report["goals"].append({"kind": goal.kind, "key": goal.key, "ok": ok, "frames": hands.pad.frames - began,
                                     "outcome": outcome[:200], "milestone": milestone.id})

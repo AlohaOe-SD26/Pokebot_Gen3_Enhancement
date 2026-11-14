@@ -1141,6 +1141,392 @@ class ScriptWaitTests(unittest.TestCase):
         self.assertFalse(script_waits_for_button(0, "Native", "IsFieldMessageBoxHidden"))  # waitmessage: the text prints
 
 
+class CallEndHostTests(unittest.TestCase):
+    """(chapter 6, 2026-11-05) THE END OF A CALL IN THE FIELD, the HOST's reads on a FAKE memory laid out at the real symbols:
+    `_match_call_wait` asks the printer of the CALL'S window (`ExecuteMatchCall` data[2]), never printer 0, and the two
+    sound-effect players (`IsSEPlaying`); `_call_window` gives that window once the call's printer is readied (state 3 on);
+    `_text` reads the call window's words before printer 0's. Each FAULT half is a printer-0 read or no call window."""
+
+    CALL = bytes([5, 0, 0, 0, 1, 0]) + bytes(26)  # tState 5 (PrintMessage), tWindowId 1
+
+    def memory(self, active: dict[int, int], se1: int = 0, se2: int = 0, pointers: dict[int, int] | None = None,
+               extra: dict[int, bytes] | None = None):
+        from modules.game import get_symbol
+
+        framework_rom()
+        printers = bytearray(0x24 * 32)
+        for index, on in active.items():
+            printers[index * 0x24 + 0x1B] = on
+        for index, pointer in (pointers or {}).items():
+            printers[index * 0x24:index * 0x24 + 4] = pointer.to_bytes(4, "little")
+        cells = {get_symbol("sTextPrinters")[0]: bytes(printers),
+                 get_symbol("gMPlayInfo_SE1")[0]: bytes(4) + se1.to_bytes(4, "little"),
+                 get_symbol("gMPlayInfo_SE2")[0]: bytes(4) + se2.to_bytes(4, "little"), **(extra or {})}
+
+        class Memory:
+            def read_bytes(self, address: int, length: int) -> bytes:
+                for start, data in cells.items():
+                    if start <= address and address + length <= start + len(data):
+                        return bytes(data[address - start:address - start + length])
+                raise AssertionError(f"read 0x{address:08X} (+{length})")
+
+        return Memory()
+
+    def wait(self, memory) -> str | None:
+        from modules.context import context
+
+        import ai_player.host.eyes as host_eyes
+
+        with mock.patch.object(context, "emulator", memory, create=True):
+            return host_eyes.FrameworkEyes()._match_call_wait(self.CALL)
+
+    def test_the_wait_is_read_from_the_calls_own_printer_and_the_sound(self) -> None:
+        self.assertEqual(self.wait(self.memory({})),
+                         "task ExecuteMatchCall (A or B: the call's last page has printed; a press hangs up)")
+        self.assertIsNone(self.wait(self.memory({1: 1})))  # the call's window still printing
+        self.assertIsNone(self.wait(self.memory({}, se1=3)))  # a sound effect playing
+        self.assertEqual(self.wait(self.memory({}, se1=0x80000003, se2=0x80000001)), self.wait(self.memory({})))  # both paused
+        # FAULT half: printer 0 (the field's message window) says nothing about the call: busy there, the call still waits
+        self.assertIsNotNone(self.wait(self.memory({0: 1})))
+
+    def test_the_call_window_and_its_words(self) -> None:
+        from modules.context import context
+        from modules.game import get_symbol
+
+        import ai_player.host.eyes as host_eyes
+
+        framework_rom()
+        eyes = host_eyes.FrameworkEyes
+        self.assertEqual(eyes._call_window(self.CALL), 1)
+        for state, window in ((2, None), (3, 1), (4, 1), (6, 1), (7, 1)):
+            with self.subTest(state=state):
+                self.assertEqual(eyes._call_window(bytes([state, 0, 0, 0, 1, 0]) + bytes(26)), window)
+        self.assertIsNone(eyes._call_window(None))
+        self.assertIsNone(eyes._call_window(bytes([5, 0, 0, 0, 40, 0])))  # not a printer
+        var4, var4_size = get_symbol("gStringVar4")
+        battle, battle_size = get_symbol("gDisplayedStringBattle")
+        call_words = encode("See you again!") + b"\xff"
+        old_words = encode("GROVYLE gained 47 EXP. Points!") + b"\xff"
+        memory = self.memory({}, pointers={0: battle + len(old_words) - 1, 1: var4 + len(call_words) - 1},
+                             extra={var4: call_words + bytes(var4_size - len(call_words)),
+                                    battle: old_words + bytes(battle_size - len(old_words))})
+        with mock.patch.object(context, "emulator", memory, create=True):
+            self.assertEqual(eyes._text(True, frozenset({"ExecuteMatchCall"}), 1), "See you again!")
+            # FAULT half: no call window, printer 0's stale battle message (measured on call_end_cindy.ss1)
+            self.assertEqual(eyes._text(True, frozenset({"ExecuteMatchCall"}), None), "GROVYLE gained 47 EXP. Points!")
+
+
+def encode(words: str) -> bytes:
+    """Words in the game's charmap (`eyes/screens.py` encode_char), for a fake memory."""
+    from ai_player.eyes.screens import encode_char
+
+    return bytes(encode_char(c) for c in words)
+
+
+class LiveCallEndTests(unittest.TestCase):
+    """(chapter 6, 2026-11-05) THE END OF A CALL on the REAL game: the KI-134 B arm's two end states, which the AI never left
+    (`fixtures/call_end_dad.build.json`: DAD's call from MR. BRINEY's first-sail script; `call_end_cindy.build.json`: a
+    trainer's MATCH CALL in PETALBURG WOODS). The eyes report the wait, with the call's words; ONE A ends the call (the
+    task gone); after it nothing waits while the window slides out with the controls still locked (a scene that really
+    locks them), and the next wait is the ordinary text that follows (DAD's: "Registered DAD NORMAN", a script's wait).
+    FAULT half on the same frame: the rules the eyes had before (the printers, the script, the task table, the POKéNAV's)
+    report no wait at all."""
+
+    FIXTURES = SUPPORT / "ai_player" / "gates" / "fixtures"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        from ai_player.gates.probe_eyes import boot
+
+        with mock.patch.dict(os.environ, {"AI_PLAYER_BUILD_ROOT": str(BUILD_ROOT)}):
+            cls.context = boot("ai-step0-fixture")
+        cls.emulator = cls.context.emulator
+
+    def load(self, name: str):
+        from modules.state_cache import state_cache
+
+        from ai_player.host.eyes import FrameworkEyes
+
+        self.emulator.load_save_state((self.FIXTURES / name).read_bytes())
+        state_cache.reset()
+        self.emulator.run_single_frame()
+        return FrameworkEyes()
+
+    @staticmethod
+    def tasks() -> set[str]:
+        from modules.tasks import get_tasks
+
+        return {task.symbol for task in get_tasks()}
+
+    def old_rules(self, eyes) -> str | None:
+        """What the eyes' rules before the fix say on this frame (the host's own reads, each rule unchanged)."""
+        from ai_player.eyes.screens import pokenav_wait, task_wait
+
+        return eyes._waits_for_button() or task_wait(self.tasks()) or pokenav_wait(None)
+
+    def hang_up(self, eyes, frames: int = 300) -> list:
+        """ONE A, then `frames` frames: each frame's (call task running, waits, wait reason, controls locked)."""
+        self.emulator.press_button("A")
+        self.emulator.run_single_frame()
+        seen = []
+        for _ in range(frames):
+            self.emulator.run_single_frame()
+            screen = eyes.look().screen
+            seen.append(("ExecuteMatchCall" in self.tasks(), screen.waits_for_button, screen.wait_reason,
+                         screen.controls_locked))
+        return seen
+
+    def test_dads_call_on_the_first_sail(self) -> None:
+        eyes = self.load("call_end_dad.ss1")
+        screen = eyes.look().screen
+        self.assertTrue(screen.waits_for_button)
+        self.assertTrue(screen.wait_reason.startswith("task ExecuteMatchCall"), screen.wait_reason)
+        self.assertTrue(screen.text.endswith("Click!"), screen.text)
+        self.assertIsNone(self.old_rules(eyes))  # FAULT half
+        seen = self.hang_up(eyes, 400)
+        ended = next(i for i, s in enumerate(seen) if not s[0])
+        self.assertLess(ended, 120)
+        self.assertFalse(any(s[1] for s in seen[:ended]))  # the window slides out: no wait
+        self.assertTrue(all(s[3] for s in seen[:ended]))  # ... with the controls locked
+        after = [s[2] for s in seen[ended:] if s[1]]
+        self.assertTrue(after, "the script's next text never waited")
+        self.assertFalse(any((reason or "").startswith("task ExecuteMatchCall") for reason in after))  # CONTROL
+        self.assertIn("Registered DAD NORMAN", eyes.look().screen.text or "")
+
+    def test_a_trainers_match_call_in_the_woods(self) -> None:
+        eyes = self.load("call_end_cindy.ss1")
+        screen = eyes.look().screen
+        self.assertTrue(screen.waits_for_button)
+        self.assertTrue(screen.wait_reason.startswith("task ExecuteMatchCall"), screen.wait_reason)
+        self.assertTrue(screen.text.endswith("See you again!"), screen.text)  # the call's words, not printer 0's
+        self.assertFalse(screen.script_running or screen.text_box_open)  # no script, no field box: only the call
+        self.assertIsNone(self.old_rules(eyes))  # FAULT half
+        seen = self.hang_up(eyes, 120)
+        ended = next(i for i, s in enumerate(seen) if not s[0])
+        self.assertLess(ended, 80)
+        self.assertFalse(any(s[1] for s in seen))  # no wait after the A, while sliding out or after
+        self.assertTrue(seen[ended - 1][3] and not seen[-1][3])  # locked while it slides out; free after
+        self.assertIsNone(eyes.look().screen.text)
+
+    def test_control_a_text_box_that_waits_is_read_as_before(self) -> None:
+        """CONTROL: a trainer's defeat text that waits for a press (`trainer_defeat_text_r116.ss1`, printer 0 WAIT) is
+        reported by the printer rule, as before, with no call running."""
+        eyes = self.load("trainer_defeat_text_r116.ss1")
+        screen = eyes.look().screen
+        self.assertNotIn("ExecuteMatchCall", self.tasks())
+        self.assertTrue(screen.waits_for_button)
+        self.assertTrue(screen.wait_reason.startswith("text printer 0"), screen.wait_reason)
+
+    def drive_nav(self, generator, budget: int = 2000):
+        """Run a navigator generator on the real emulator: one frame per `next` (the harness's own rule)."""
+        for _ in range(budget):
+            try:
+                next(generator)
+            except StopIteration as done:
+                return done.value
+            self.emulator.run_single_frame()
+        raise AssertionError("the navigator's generator did not end")
+
+    def test_the_muddy_slope_is_learned_as_one_way_on_the_real_game(self) -> None:
+        """(chapter 6 stops round 3, NS6, 2026-11-06) On the REAL game, at the foot of GRANITE CAVE B1F's muddy slope
+        (`fixtures/granite_b1f_slope.build.json`: probe8 C3's end, the player on (9, 11)), the navigator's own steps up: each
+        one gets the player onto (9, 10) and the game slides it back to (9, 11) (pinned decomp ForcedMovement_MuddySlope).
+        With the round's rule two such steps are learned as failed steps that way (`slid`, refused at `BUMP_GIVE_UP`).
+        FAULT half (`learn_slides` off, the old navigator): every step 'moved', nothing learned, the player back at the
+        foot. CONTROL: a step left and back on the cave floor learns nothing."""
+        import random
+
+        from ai_player.brain.navigator import Navigator
+        from ai_player.gates.hands_harness import HarnessControls
+        from ai_player.hands.pad import Hands
+        from ai_player.world.memory import WorldMemory
+
+        for learn in (False, True):
+            with self.subTest(learn=learn):
+                eyes = self.load("granite_b1f_slope.ss1")
+                world = WorldMemory()
+                hands = Hands(eyes, HarnessControls(self.emulator), random.Random(1), random.Random(1), None,
+                              lambda line: None)
+                hands.watchers.append(world.observe)
+                nav = Navigator(hands, world, random.Random(1))
+                nav.learn_slides = learn
+                start = hands.look()
+                self.assertEqual((start.player.map_const, start.player.x, start.player.y), ("GRANITE_CAVE_B1F", 9, 11))
+                results = [self.drive_nav(nav.walk_step("up", "up the slope", "walk up")).kind for _ in range(4)]
+                memory = world.maps["24:8"]
+                slid = {key: info for key, info in memory.bumped.items() if info.get("slid")}
+                if learn:
+                    self.assertEqual(results.count("slid"), 2, results)
+                    self.assertEqual(list(slid), [((9, 10), "up")])
+                    self.assertEqual(slid[((9, 10), "up")]["bumps"], 2)
+                else:
+                    self.assertNotIn("slid", results)
+                    self.assertEqual(memory.bumped, {})
+                # CONTROL: a step along the cave floor (it may meet a wild Pokemon: the cave's floor has them) learns no slide
+                step = self.drive_nav(nav.walk_step("left", "along the floor", "walk left")).kind
+                self.assertIn(step, ("moved", "battle"))
+                self.assertEqual({key for key, info in memory.bumped.items() if info.get("slid")}, set(slid))
+
+    def test_the_sail_after_the_call_is_kept_as_a_ride(self) -> None:
+        """(chapter 6 stops round 3, NS2, 2026-11-06) On the REAL game: DAD's call hung up on the first sail, the boat's
+        scenes carry the player through ROUTE 106 to DEWFORD; a YES given before (`RideWatch.offered`, the pending ride
+        set as the cottage's would be) is kept as a ride only once the controls are back in DEWFORD and stay: the ride's
+        end is DEWFORD at the tile the player stood on when they came back, never a map of the voyage."""
+        from ai_player.brain.rides import RIDE_SETTLE, RideWatch
+        from ai_player.world.memory import WorldMemory
+
+        eyes = self.load("call_end_dad.ss1")
+        world = WorldMemory()
+        presses = [0]
+        watch = RideWatch(world, lambda: presses[0], lambda line, extra=None: None)
+        first = eyes.look()
+        world.observe(first)
+        watch.pending = {"from": "17:0", "who": 1, "gfx": 21, "tile": [6, 6], "words": "we'll set sail for dewford.",
+                         "place": "DEWFORD_TOWN", "frame": first.frame, "changes": len(world.transitions), "free": None}
+        self.emulator.press_button("A")
+        presses[0] += 1
+        self.emulator.run_single_frame()
+        free_since = None
+        for _ in range(3000):
+            self.emulator.run_single_frame()
+            seen = eyes.look()
+            world.observe(seen)
+            watch(seen)
+            if seen.screen.waits_for_button:
+                self.emulator.press_button("A")
+                presses[0] += 1
+                continue
+            if free_since is None and seen.player is not None and seen.player.map_const == "DEWFORD_TOWN" and \
+                    not seen.screen.script_running and not seen.screen.controls_locked:
+                free_since = seen.frame
+            if free_since is not None and seen.frame - free_since > RIDE_SETTLE + 5:
+                break
+        self.assertIsNotNone(free_since, "the sail never ended with the player free in DEWFORD")
+        self.assertEqual(len(world.rides), 1, watch.history)
+        ride = next(iter(world.rides.values()))
+        self.assertEqual(world.maps[ride["to"]].const, "DEWFORD_TOWN")
+        self.assertEqual(ride["from"], "17:0")
+        self.assertTrue(all(world.maps[key].const in ("ROUTE105", "ROUTE106") for key in ride["via"]), ride["via"])
+
+    def test_control_the_sail_after_the_call_is_a_scene_that_really_locks_the_controls(self) -> None:
+        """(chapter 6 stops, the second builder, 2026-11-06) CONTROL: a scene that REALLY locks the controls, on the real
+        game. After DAD's call is hung up (ONE A), MR. BRINEY's boat crosses ROUTE 105 and 106 to DEWFORD with the script
+        running and the controls locked for some 900 frames: the eyes report no wait there (a press there would be mashing),
+        never the call's wait once the call has ended, and only the script's own waits (the 'Registered DAD NORMAN' button
+        wait, MR. BRINEY's words at DEWFORD) between; a press on each of those, and the sail ends in DEWFORD with the
+        player free (VISITED_DEWFORD_TOWN set by the game). Measured by s53/ch6stops2/sail_proto.py: 3 waits, the longest
+        locked stretch with no wait 917 frames, DEWFORD at frame 749 after the A."""
+        from modules.memory import get_event_flag
+
+        eyes = self.load("call_end_dad.ss1")
+        self.emulator.press_button("A")
+        self.emulator.run_single_frame()
+        frames, waits, locked_quiet, longest, ended, free = 0, [], 0, 0, None, None
+        for frames in range(1, 1700):
+            self.emulator.run_single_frame()
+            screen = eyes.look().screen
+            if ended is None and "ExecuteMatchCall" not in self.tasks():
+                ended = frames
+            if ended is not None:
+                self.assertFalse((screen.wait_reason or "").startswith("task ExecuteMatchCall"), (frames, screen.wait_reason))
+            if screen.waits_for_button:
+                waits.append(screen.wait_reason)
+                locked_quiet = 0
+                self.emulator.press_button("A")
+                self.emulator.run_single_frame()
+                continue
+            locked_quiet = locked_quiet + 1 if screen.controls_locked and screen.script_running else 0
+            longest = max(longest, locked_quiet)
+            if get_event_flag("VISITED_DEWFORD_TOWN") and not screen.controls_locked and not screen.script_running:
+                free = frames
+                break
+        self.assertIsNotNone(ended)
+        self.assertLess(ended, 80)
+        self.assertGreaterEqual(longest, 600)  # the boat moving: a scene that locks the controls, no wait, no press
+        self.assertTrue(waits and len(waits) <= 4, waits)
+        self.assertTrue(all(w.startswith(("script ", "text printer")) for w in waits), waits)
+        self.assertIsNotNone(free, "the sail never ended with the player free in DEWFORD")
+
+    def test_control_the_chapter5_pokenav_call_is_read_exactly_as_before(self) -> None:
+        """(chapter 6 stops, the second builder, 2026-11-06) CONTROL: the chapter-5 POKéNAV registration call (MR. STONE's
+        MATCH CALL in RustboroCity_EventScript_MatchCallTutorial, `pokenav_tutorial_rustboro.ss1`) is read EXACTLY as before
+        the round. Presses are chosen from what the round's eyes report (the forced START menu to POKéNAV, MATCH CALL, MR.
+        STONE, CALL, A on every page that waits, B out of the POKéNAV, A on the field's last words); a SECOND eyes with the
+        chapter-6 branch patched out (`_match_call_wait` and `_call_window` None: the eyes before the round) reads every
+        frame too, and the two never differ. That call runs inside the POKéNAV (`Task_Pokenav`), never `ExecuteMatchCall`,
+        and its end is the POKéNAV's own wait (`pokenav_wait`). The tutorial completes: VAR_RUSTBORO_CITY_STATE 6 -> 7."""
+        from modules.memory import get_event_var, get_game_state_symbol
+
+        from ai_player.host.eyes import FrameworkEyes
+
+        new = self.load("pokenav_tutorial_rustboro.ss1")
+        old = FrameworkEyes()
+        old._match_call_wait = lambda call: None  # noqa: SLF001 - the eyes before the round
+        old._call_window = lambda call: None  # noqa: SLF001
+        self.assertEqual(get_event_var("RUSTBORO_CITY_STATE"), 6)
+        seen = {"frames": 0, "reasons": set(), "presses": 0}
+
+        def frame():
+            self.emulator.run_single_frame()
+            seen["frames"] += 1
+            a, b = new.look().screen, old.look().screen
+            self.assertEqual(a, b, seen["frames"])
+            self.assertNotIn("ExecuteMatchCall", self.tasks())
+            if a.wait_reason:
+                seen["reasons"].add(a.wait_reason.split(" (")[0])
+            return a
+
+        def press(button):
+            self.emulator.press_button(button)
+            seen["presses"] += 1
+            return frame()
+
+        def until(test, limit):
+            for _ in range(limit):
+                screen = frame()
+                if test(screen):
+                    return screen
+            self.fail(f"not reached in {limit} frames (frame {seen['frames']})")
+
+        def menu(kind):
+            return lambda s: s.ui is not None and s.ui.kind == kind and s.ui.accepts_input
+
+        screen = frame()
+        for _ in range(12):
+            if menu("multichoice")(screen) and screen.ui.cursor == 3:
+                break
+            press("Down")
+            screen = until(lambda s: s.ui is not None and s.ui.accepts_input, 60)
+        press("A")  # POKéNAV
+        screen = until(menu("pokenav_menu"), 1500)
+        while screen.ui.cursor != 2:
+            press("Down")
+            screen = until(menu("pokenav_menu"), 120)
+        press("A")  # MATCH CALL
+        until(menu("pokenav_list"), 1500)
+        press("A")  # MR. STONE
+        until(menu("pokenav_options"), 600)
+        press("A")  # CALL
+        for _ in range(3000):
+            screen = frame()
+            if screen.waits_for_button:
+                press("A")
+            elif menu("pokenav_list")(screen):
+                break
+        press("B")
+        until(menu("pokenav_menu"), 600)
+        press("B")
+        for _ in range(3000):
+            screen = frame()
+            if get_game_state_symbol() in ("CB2_OVERWORLD", "CB2_Overworld"):
+                if screen.waits_for_button:
+                    press("A")
+                elif not screen.script_running and not screen.controls_locked:
+                    break
+        self.assertEqual(seen["reasons"], {"text printer 1 CLEAR", "task Task_Pokenav", "script waitbuttonpress"})
+        self.assertEqual(get_event_var("RUSTBORO_CITY_STATE"), 7)
+
+
 class ActionLogTests(unittest.TestCase):
     def test_one_json_line_per_record(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
@@ -1162,6 +1548,458 @@ class ActionLogTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             with self.assertRaises(ValueError):
                 RecordFile(Path(folder)).append("two\nlines")
+
+
+class DarkTests(unittest.TestCase):
+    """(chapter 6 stops round 7, 2026-11-07, N6-1: a USER RULING 40 gap) ON A DARK MAP ONLY THE LIT CIRCLE IS SEEN. With no
+    gym trainer beaten DEWFORD's gym is at flash level 7 (DewfordTown_Gym_EventScript_SetFlashLevel), a circle of 24 px
+    (`sFlashLevelToRadius`), GRANITE CAVE B1F and B2F the same until FLASH (`requires_flash`, SetDefaultFlashLevel); the
+    eyes listed every object, and the world memory learned every tile, of the whole 15 x 11 window (#109's records: 150 of
+    154 gym records a run listed someone outside the circle). Now a tile outside the circle the screen draws is None in
+    `View.rows` and an object outside it is not listed (`eyes/view.py` lit, `host/eyes.py` _view). (Round 8, the round-7
+    verifier's V7-1 and V7-2) a person is judged by the sprite the screen draws (d5), and the circle is placed where the
+    screen draws it while a step is in progress (d6). (Round 9, the round-8 verifier's V8-1 and V8-3) by the pixels the
+    sprite's current frame DRAWS, not its rectangle (d4, d7, d8, d9), where it is drawn with its x2 / y2 (d10). (Round 10,
+    the round-9 verifier's V9-1 and V9-3) the frame is that of the animation the sprite PLAYS, animNum (d12), at the OAM
+    size the game's own table gives (d13, d14). Mutants: `revert_r1.py` CH6S18-CH6S35 (round 7), CH6S36-CH6S49 (round 8;
+    CH6S36-CH6S38 and CH6S41 re-anchored in round 9), CH6S50-CH6S63 (round 9), CH6S64 on (round 10)."""
+
+    LEVEL_7, LEVEL_1 = 7, 1  # no gym trainer beaten / FLASH used
+
+    def test_d1_the_games_circle(self):
+        """The rule is the game's drawing rule: radius by level (`sFlashLevelToRadius`, 0 = lit whole), the scanline
+        bounds of `SetFlashScanlineEffectWindowBoundaries` (the centre row spans [120 - r, 120 + r)); at 24 px the player's
+        tile and the 8 round it, at 72 px 69 tiles. CROSS-CHECK against plain geometry, independent of the decomp's
+        algorithm: every tile whose middle is 2 px or more inside the circle is lit, and none whose middle is 1 px or more
+        outside it (the rim is the algorithm's own)."""
+        from ai_player.eyes.view import FLASH_RADIUS, flash_radius, flash_window, lit, view_offsets
+
+        self.assertEqual([flash_radius(level) for level in range(9)], [None, 72, 64, 56, 48, 40, 32, 24, 0])
+        self.assertEqual(flash_radius(200), 0)  # not a level the game sets: nothing lit (less, never more)
+        self.assertEqual(flash_window(24)[80], (96, 144))
+        window = view_offsets()
+        self.assertEqual({o for o in window if lit(*o, 24)}, {(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)})
+        self.assertEqual(sum(lit(*o, 72) for o in window), 69)
+        self.assertEqual((len(window), sum(lit(*o, None) for o in window)), (165, 165))
+        self.assertEqual(sum(lit(*o, 0) for o in window), 0)
+        counts = [sum(lit(*o, r) for o in window) for r in FLASH_RADIUS[7:0:-1]]
+        self.assertEqual(counts, sorted(counts))
+        for radius in (24, 32, 48, 72):
+            for dx, dy in window:
+                distance = ((16 * dx) ** 2 + (16 * dy) ** 2) ** 0.5
+                if distance <= radius - 2:
+                    self.assertTrue(lit(dx, dy, radius), (radius, dx, dy))
+                elif distance >= radius + 1:
+                    self.assertFalse(lit(dx, dy, radius), (radius, dx, dy))
+
+    #: (round 8) the fake's `gSpriteCoordOffsetX/Y` (any values: a sprite is drawn at x + x2 + centerToCornerVec + these)
+    COORD_OFFSET = (-40, 24)
+    #: (Round 9, the round-8 verifier's V8-1) REAL sprite frames as the game draws them: the pixels that change on the
+    #: game's own screen when only that object is hidden (the round-8 verifier's s53/ch6stops8/verify/v8_mask.out, in
+    #: DEWFORD's gym at 32 px, 509 of the rectangle's 512 pixels lit). The gym guide's frame draws 227 pixels (the round-9
+    #: probe's eyes read the same 227 from his frame in the cartridge), the player's 216. '#' drawn, '.' transparent: a
+    #: person leaves the top 10 or 11 rows of the 16 x 32 rectangle transparent.
+    GUIDE = ("." * 16,) * 11 + (
+        "..########......", "..##########....", "...##########...", "...###########..", "..############..",
+        "..############..", ".##############.", ".##############.", "..############..", "...##########...",
+        "..############..", "..############..", ".##############.", ".##############.", ".##############.",
+        "..############..", "...##########...", "...##########...", "...##########...", "....###..###....", "." * 16)
+    PLAYER = ("." * 16,) * 10 + (
+        ".....#..........", "....###.........", "...########.....", "..##########....", "...##########...",
+        "..############..", "..############..", "..############..", ".##############.", ".##############.",
+        "..############..", "...##########...", "...##########...", "..############..", ".##############.",
+        ".##############.", "..############..", "...##########...", "...##########...", "...##########...",
+        "....###..###....", "." * 16)
+    #: (Round 10) an ITEM BALL's 16 x 16 frame (OAM shape 0, size 1), drawn on its own tile: 76 opaque pixels, as many
+    #: as the game's item ball draws (s53/ch6stops9 small_sprites.py)
+    BALL = ("." * 16,) * 3 + (
+        "......####......", "....########....", "...##########...", "...##########...", "..############..",
+        "..############..", "...##########...", "....########....", "......##........") + ("." * 16,) * 4
+    #: the fake cartridge: an animation table of two animations, animation 0 (FRAME(0), FRAME(1), END) and (round 10)
+    #: animation 1 (FRAME(1), FRAME(0), FRAME(2), END), the frame table (frame 0 draws nothing, frame 1 the guide, frame
+    #: 2 the item ball), the frames
+    ANIMS, ANIM, ANIM_1, IMAGES = 0x08710000, 0x08710010, 0x08710020, 0x08710100
+    BLANK_FRAME, GUIDE_FRAME, BALL_FRAME = 0x08710200, 0x08710300, 0x08710400
+
+    @staticmethod
+    def frame_bytes(mask: tuple[str, ...]) -> bytes:
+        """A 4 bpp frame drawing `mask` in colour 1, the rest in colour 0 (transparent): tiles row after row (the 1D
+        mapping), each 8 x 8 tile 4 bytes a row, the low nibble the left pixel."""
+        width = len(mask[0])
+        data = bytearray(len(mask) * width // 2)
+        for y, row in enumerate(mask):
+            for x, c in enumerate(row):
+                if c == "#":
+                    data[(y // 8 * (width // 8) + x // 8) * 32 + y % 8 * 4 + x % 8 // 2] |= 1 << (4 * (x & 1))
+        return bytes(data)
+
+    @staticmethod
+    def host_view(level: int, people: list[tuple], signs: tuple = (), crop: bool = True, camera: tuple[int, int] = (0, 0),
+                  drawn: tuple[int, int] = (0, 0), dark_reads: bool = True, counts: bool = False):
+        """The HOST's own `_view` (`host/eyes.py`) and its real readers (`read_symbol`, the framework's
+        `get_map_objects`), on a FAKE memory at the real symbols' addresses: a 40 x 40 live grid of open floor, a map
+        header whose layout and border are in the cartridge, the player on (10, 10), save block 1's flashLevel = `level`,
+        and `people` (x, y, local id[, sprite flags[, extra]]) as active object events (`struct ObjectEvent`: active bit,
+        spriteId @4, graphicsId @5, localId @8, elevation @11, currentCoords @0x10 with MAP_OFFSET, facing @0x18). The ROM
+        tables a look reads once are given. (Round 8) Each person's SPRITE (`gSprites[slot]`, struct Sprite: x @0x20, y
+        @0x22, centerToCornerVec (-8, -16) @0x28, flags @0x3E, default inUse | coordOffsetEnabled) is drawn 16 x 32 with its
+        feet on its tile, standing still: screen (112 + 16 dx, 56 + 16 dy) moved by `drawn`, where the screen draws the
+        player's tile while a step is in progress; `camera` is `gFieldCamera`'s (x, y) pixel offset. (Round 9) and its
+        FRAME: OAM attr0 @0 / attr1 @2 16 x 32 (shape 2, size 2), anims @0x08, images @0x0C, animNum 0 @0x2A,
+        animCmdIndex @0x2B 1 (the guide's frame); `extra` may set "attr0" / "attr1" bits (flips, affine), "index"
+        (animCmdIndex) and "x2" / "y2"; (round 10) "anim" (animNum), "oam" (attr0, attr1 in place of 16 x 32's (0x8000,
+        0x8000)) and "corner" (centerToCornerVec in place of (-8, -16); the sprite's y is then its tile's top + 16 + the
+        corner's y, as the game places an object event's sprite, so a 16 x 16 sprite is drawn on its own tile). `dark_reads` False leaves the sprites, their frames, `gSpriteCoordOffset*` and
+        `gFieldCamera` OUT of the fake memory, so a look that reads them fails. `counts`: also return, by local id, the
+        host's own `_drawn_lit` (lit, drawn) of each person."""
+        from modules.context import context
+        from modules.game import get_symbol
+
+        import ai_player.host.eyes as host_eyes
+        from ai_player.eyes.observation import PlayerState
+
+        framework_rom()
+        width = height = 40
+        grid, save_block_1, layout, border = 0x02000000, 0x02020000, 0x08700000, 0x08700100
+
+        def u32(value: int) -> bytes:
+            return value.to_bytes(4, "little")
+
+        def s16(value: int) -> bytes:
+            return value.to_bytes(2, "little", signed=True)
+
+        objects = bytearray(0x24 * 16)
+        sprites = bytearray(0x44 * 64)
+        off_x, off_y = DarkTests.COORD_OFFSET
+        for slot, (x, y, local, *more) in enumerate(people, start=1):
+            extra = more[1] if len(more) > 1 else {}
+            at = 0x24 * slot
+            objects[at] = 0x01
+            objects[at + 4], objects[at + 5], objects[at + 8], objects[at + 11] = slot, 100, local, 3
+            objects[at + 0x10:at + 0x14] = (x + 7).to_bytes(2, "little") + (y + 7).to_bytes(2, "little")
+            objects[at + 0x18] = 1
+            left, top = 112 + 16 * (x - 10) + drawn[0], 56 + 16 * (y - 10) + drawn[1]
+            sprite = 0x44 * slot
+            oam0, oam1 = extra.get("oam", (0x8000, 0x8000))  # 16 x 32
+            sprites[sprite:sprite + 4] = ((oam0 | extra.get("attr0", 0)).to_bytes(2, "little")
+                                          + (oam1 | extra.get("attr1", 0)).to_bytes(2, "little"))
+            sprites[sprite + 0x08:sprite + 0x10] = u32(DarkTests.ANIMS) + u32(DarkTests.IMAGES)
+            corner_x, corner_y = extra.get("corner", (-8, -16))  # centerToCornerVec (-8, -16): 16 x 32
+            sprites[sprite + 0x20:sprite + 0x28] = (s16(left + 8 - off_x) + s16(top + 32 + corner_y - off_y)
+                                                    + s16(extra.get("x2", 0)) + s16(extra.get("y2", 0)))
+            sprites[sprite + 0x28], sprites[sprite + 0x29] = corner_x & 0xFF, corner_y & 0xFF
+            sprites[sprite + 0x2A] = extra.get("anim", 0)
+            sprites[sprite + 0x2B] = extra.get("index", 1)
+            sprites[sprite + 0x3E] = more[0] if more else 0x03
+        cells = {get_symbol("gBackupMapLayout")[0]: u32(width) + u32(height) + u32(grid),
+                 get_symbol("gMapHeader")[0]: u32(layout) + bytes(0x18),
+                 get_symbol("gSaveBlock1Ptr")[0]: u32(save_block_1),
+                 get_symbol("gObjectEvents")[0]: bytes(objects),
+                 layout: bytes(8) + u32(border) + bytes(12), border: bytes(8),
+                 save_block_1 + 0x30: bytes([level]),
+                 grid: bytes(2 * width * height)}  # metatile 0, no collision: floor
+        if dark_reads:
+            cells.update({get_symbol("gSprites")[0]: bytes(sprites),
+                          get_symbol("gSpriteCoordOffsetX")[0]: s16(off_x),
+                          get_symbol("gSpriteCoordOffsetY")[0]: s16(off_y),
+                          get_symbol("gFieldCamera")[0]: bytes(0x10) + camera[0].to_bytes(4, "little", signed=True)
+                          + camera[1].to_bytes(4, "little", signed=True),
+                          DarkTests.ANIMS: u32(DarkTests.ANIM) + u32(DarkTests.ANIM_1),
+                          DarkTests.ANIM: u32(0x00100000) + u32(0x00100001) + u32(0x0000FFFF),  # FRAME(0), FRAME(1), END
+                          DarkTests.ANIM_1: u32(0x00100001) + u32(0x00100000) + u32(0x00100002) + u32(0x0000FFFF),
+                          DarkTests.IMAGES: u32(DarkTests.BLANK_FRAME) + u32(256) + u32(DarkTests.GUIDE_FRAME) + u32(256)
+                          + u32(DarkTests.BALL_FRAME) + u32(128),
+                          DarkTests.BLANK_FRAME: bytes(256),
+                          DarkTests.GUIDE_FRAME: DarkTests.frame_bytes(DarkTests.GUIDE),
+                          DarkTests.BALL_FRAME: DarkTests.frame_bytes(DarkTests.BALL)})
+
+        class Memory:
+            def read_bytes(self, address: int, length: int) -> bytes:
+                for start, data in cells.items():
+                    if start <= address and address + length <= start + len(data):
+                        return data[address - start:address - start + length]
+                raise AssertionError(f"_view read 0x{address:08X} (+{length})")
+
+        eyes = host_eyes.FrameworkEyes(crop=crop)
+        eyes._tile_bits = bytes(256)  # noqa: SLF001 - the ROM tables a real look reads once
+        eyes._attributes[0] = bytes(2 * host_eyes.METATILES_IN_PRIMARY)  # noqa: SLF001
+        eyes._maps[(3, 3)] = ("DEWFORD TOWN", "DEWFORD_TOWN_GYM", signs)  # noqa: SLF001
+        player = PlayerState(3, 3, "DEWFORD TOWN", "DEWFORD_TOWN_GYM", 10, 10, "up", "walking", 3, 0, 1)
+        with mock.patch.object(context, "emulator", Memory(), create=True):
+            view = eyes._view(player)  # noqa: SLF001
+            if counts:
+                return view, player, {person[2]: host_eyes.FrameworkEyes._drawn_lit(slot, view.lit)  # noqa: SLF001
+                                      for slot, person in enumerate(people, start=1)}
+            return view, player
+
+    def learned(self, view) -> set:
+        from ai_player.world.memory import MapMemory
+
+        memory = MapMemory("3:3", "DEWFORD TOWN", "DEWFORD_TOWN_GYM")
+        memory.absorb(SimpleNamespace(view=view, frame=1), (10, 10))
+        return set(memory.tiles)
+
+    def test_d2_fault_a_person_in_the_dark_is_not_seen_and_the_dark_not_learned(self):
+        """FAULT (N6-1; on adf6c246 the eyes listed him and every tile): DEWFORD's gym at flash level 7, BRAWLY 3 tiles
+        right and 2 up (outside the 24 px circle) and a sign 4 up: neither is listed, his tile is None in the view and the
+        world memory learns only the 9 lit tiles. CONTROL (the same look): a trainer 1 right and 1 up, inside the circle,
+        IS listed (98 of 227 drawn pixels lit), and his tile learned. The record says so (`lit=24px`, 9 tiles)."""
+        view, player = self.host_view(self.LEVEL_7, [(13, 8, 1), (11, 9, 2)], signs=(((10, 6), 0),))
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(2, 1, -1)])
+        self.assertIsNone(view.tile(3, -2))
+        self.assertIsNotNone(view.tile(1, -1))
+        self.assertNotIn((13, 8), self.learned(view))
+        self.assertEqual(self.learned(view), {(10 + dx, 10 + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)})
+        self.assertEqual(view.lit, 24)
+        self.assertEqual(sum(tile is not None for row in view.rows for tile in row), 9)
+        self.assertEqual(len(view.rows), 11)
+        self.assertTrue(all(len(row) == 15 for row in view.rows))  # the window keeps its shape: `tile(dx, dy)` is unchanged
+        self.assertEqual(view.ascii()[5], "      .@.      ")
+        seen = self.observation(view, player)
+        self.assertEqual((seen.to_dict()["view"]["lit"], len(seen.to_dict()["view"]["tiles"])), (24, 9))
+        self.assertIn("lit=24px", seen.digest())
+        # with FLASH used (level 1, 72 px) both are seen
+        view, _ = self.host_view(self.LEVEL_1, [(13, 8, 1), (11, 9, 2)], signs=(((10, 6), 0),))
+        self.assertEqual(sorted(o.local_id for o in view.objects), [-1, 1, 2])
+
+    def test_d3_control_a_lit_map_is_seen_whole_and_recorded_as_before(self):
+        """CONTROL (passes on adf6c246 too): flash level 0 (a lit map): every tile of the window and every object in it,
+        no `lit`, and the record (`Observation.to_dict`, `digest`) has no trace of the rule (no `lit` key, no `lit=`): as
+        before. The NO_CROP fault sees all at any level (its purpose: tiles a person could not see). (Round 8) Neither reads a
+        sprite or the camera (`dark_reads` False: those reads would fail): the round-8 reads are a dark map's only."""
+        view, player = self.host_view(0, [(13, 8, 1), (11, 9, 2), (17, 15, 3)], signs=(((10, 6), 0),), dark_reads=False)
+        self.assertIsNone(getattr(view, "lit", None))
+        self.assertEqual(sorted(o.local_id for o in view.objects), [-1, 1, 2, 3])
+        self.assertTrue(all(tile is not None for row in view.rows for tile in row))
+        self.assertEqual(len(self.learned(view)), 165)
+        seen = self.observation(view, player)
+        self.assertNotIn("lit", seen.to_dict()["view"])
+        self.assertNotIn("lit=", seen.digest())
+        self.assertEqual(len(seen.to_dict()["view"]["tiles"]), 165)
+        view, _ = self.host_view(7, [(13, 8, 1)], crop=False, dark_reads=False)
+        self.assertIsNone(getattr(view, "lit", None))
+        self.assertEqual([o.local_id for o in view.objects], [1])
+
+    @staticmethod
+    def brute_drawn(mask, left, top, radius):
+        """A pixel-by-pixel count of `mask`'s drawn ('#') pixels inside `flash_window` and on the screen."""
+        from ai_player.eyes.view import flash_window
+
+        window = flash_window(radius)
+        return sum(1 for y, row in enumerate(mask) for x, c in enumerate(row) if c == "#" and 0 <= left + x < 240
+                   and 0 <= top + y < 160 and window.get(top + y, (0, 0))[0] <= left + x < window.get(top + y, (0, 0))[1])
+
+    @staticmethod
+    def mask_of(mask, h_flip=False, v_flip=False):
+        """`mask` as `sprite_mask` gives it: per row, the drawn columns, mirrored as the flips say."""
+        rows = [row[::-1] if h_flip else row for row in mask]
+        return tuple(tuple(x for x, c in enumerate(row) if c == "#") for row in (rows[::-1] if v_flip else rows))
+
+    def test_d4_a_tiles_light_and_a_sprites_drawn_pixels(self):
+        """(Round 8) the tile rule's least light: the fewest lit pixels of any tile `lit` sees, over every flash level and
+        every tile of the window, at rest, is 124 of 256 (the tile 2 rows up under the 32 px circle's top); `lit_pixels`
+        equals a pixel-by-pixel count of `flash_window` on a tile at every level and place. (Round 9, V8-1) a SPRITE is
+        counted by the pixels it DRAWS: `sprite_mask` decodes a 4 bpp frame back into the drawn pixels, mirrored by its
+        flips, and `drawn_pixels` equals a pixel-by-pixel count of those pixels in `flash_window` at every level and place,
+        for the guide's real frame and its mirror. Values the game's screen drew (s53/ch6stops9 probe9.py, the guide moved
+        by a probe-only write): (-1, 2) 109 px at 32 px and 8 px at 24 px, (0, 3) 0 px at 32 px."""
+        from ai_player.eyes.view import FLASH_RADIUS, drawn_pixels, lit, lit_pixels, sprite_mask, view_offsets
+
+        least = None
+        for radius in FLASH_RADIUS[1:8]:
+            for dx, dy in view_offsets():
+                tile = lit_pixels(112 + 16 * dx, 72 + 16 * dy, 16, 16, radius)
+                self.assertEqual(tile, self.brute_drawn(("#" * 16,) * 16, 112 + 16 * dx, 72 + 16 * dy, radius))
+                if lit(dx, dy, radius):
+                    least = tile if least is None else min(least, tile)
+                for flip in (False, True):
+                    mask = self.mask_of(self.GUIDE, h_flip=flip)
+                    flipped = tuple(row[::-1] for row in self.GUIDE) if flip else self.GUIDE
+                    self.assertEqual(drawn_pixels(112 + 16 * dx, 56 + 16 * dy, mask, radius),
+                                     self.brute_drawn(flipped, 112 + 16 * dx, 56 + 16 * dy, radius), (radius, dx, dy, flip))
+        self.assertEqual(least, 124)
+        frame = self.frame_bytes(self.GUIDE)
+        self.assertEqual(sprite_mask(frame, 16), self.mask_of(self.GUIDE))
+        self.assertEqual(sprite_mask(frame, 16, h_flip=True), self.mask_of(self.GUIDE, h_flip=True))
+        self.assertEqual(sprite_mask(frame, 16, v_flip=True), self.mask_of(self.GUIDE, v_flip=True))
+        self.assertEqual(sum(map(len, sprite_mask(frame, 16))), 227)
+        self.assertEqual(sprite_mask(bytes(256), 16), ((),) * 32)  # palette index 0 everywhere: nothing drawn
+        guide = self.mask_of(self.GUIDE)
+        self.assertEqual([drawn_pixels(96, 88, guide, 32), drawn_pixels(96, 88, guide, 24), drawn_pixels(112, 104, guide, 32)],
+                         [109, 8, 0])
+
+    def test_d5_fault_a_person_drawn_in_the_light_is_seen_though_their_feet_tile_is_dark(self):
+        """FAULT (V7-1; on 986a5816 the eyes listed only (-2, 0)): at 32 px (one gym trainer beaten, D2's gym) people the
+        screen draws half lit with a DARK feet tile are listed: (-1, 2) (109 of the guide's 227 drawn pixels lit), (2, 0)
+        (106) and its mirror (-2, 0) (101). CONTROLS (the same look): (1, -2), only grazed (27 lit), and (0, 4), wholly dark,
+        are NOT listed; a person inside the circle whose sprite is not drawn (invisible) is not listed. The tiles keep their
+        own rule: (2, 0) and (-1, 2) stay None at 32 px. (Round 9: (0, 3), listed by round 8, is test_d8's FAULT.)"""
+        people = [(9, 12, 1), (12, 10, 2), (8, 10, 3), (11, 8, 5), (10, 14, 6), (10, 9, 7, 0x07)]
+        view, _, counts = self.host_view(6, people, counts=True)
+        self.assertEqual(view.lit, 32)
+        self.assertEqual(sorted((o.local_id, o.dx, o.dy) for o in view.objects), [(1, -1, 2), (2, 2, 0), (3, -2, 0)])
+        self.assertEqual(counts, {1: (109, 227), 2: (106, 227), 3: (101, 227), 5: (27, 227), 6: (0, 227), 7: (0, 0)})
+        self.assertIsNone(view.tile(2, 0))
+        self.assertIsNone(view.tile(-1, 2))
+        self.assertIsNotNone(view.tile(-2, 0))
+
+    def test_d6_fault_mid_step_the_circle_is_where_the_screen_draws_it(self):
+        """FAULT (V7-2; on 986a5816 the circle was centred on the step's destination): walking Up, the step's first frame
+        (`gFieldCamera.y` = -1): the screen draws the player's tile (the destination) 15 px above its middle, so at 32 px
+        the gym guide 2 tiles up from the destination, standing still, is drawn with 0 lit pixels and is NOT listed (the
+        verifier's VP6 found him listed on 8 walking frames), the tile 2 up is None, and the tiles the screen does draw lit
+        behind the player are seen. Expected tiles from the verifier's own window (s53/ch6stops8/expect_d6.py): 11 tiles,
+        (-2, 1), (-1..1, 0..2) and (0, -1); a sign on (1, 2), a tile drawn lit, is listed (a sign keeps the tile rule,
+        placed as the tiles are). Walking Right at 24 px (`gFieldCamera.x` = 1, drawn 15 px right): the 3 x 3 round the
+        step's ORIGIN is seen, (1, 0) is not; a person at (-1, 0) (all 227 drawn pixels lit) is listed, one at (1, 0) (0 lit)
+        not. CONTROL: the camera standing still (0, 0) gives the rest look (round 7's tiles; the guide, 74 of 227 lit, listed;
+        the sign on (1, 2), a dark tile at rest, not). (Round 9) LIMIT, measured (the round-8 verifier's V8-2, six looks; the
+        round-9 probe's walk, seven): MID-STEP, for 1 to 4 frames, a standing person whose feet tile the shifted tile rule
+        sees can be unlisted (65 to 73 of 227 drawn pixels lit, below SEEN_SHARE; test_d11): at rest none is (test_d7)."""
+        view, _ = self.host_view(6, [(10, 8, 1), (8, 11, 2)], signs=(((11, 12), 0),), camera=(0, -1), drawn=(0, -15))
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(2, -2, 1), (-1, 1, 2)])
+        seen = sorted((dx, dy) for dy in range(-5, 6) for dx in range(-7, 8) if view.tile(dx, dy) is not None)
+        self.assertEqual(seen, [(-2, 1), (-1, 0), (-1, 1), (-1, 2), (0, -1), (0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)])
+        view, _ = self.host_view(7, [(9, 10, 1), (11, 10, 2)], camera=(1, 0), drawn=(15, 0))
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(1, -1, 0)])
+        seen = sorted((dx, dy) for dy in range(-5, 6) for dx in range(-7, 8) if view.tile(dx, dy) is not None)
+        self.assertEqual(seen, [(dx, dy) for dx in (-2, -1, 0) for dy in (-1, 0, 1)])
+        view, _ = self.host_view(6, [(10, 8, 1)], signs=(((11, 12), 0),))
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(1, 0, -2)])
+        seen = sorted((dx, dy) for dy in range(-5, 6) for dx in range(-7, 8) if view.tile(dx, dy) is not None)
+        self.assertEqual(len(seen), 12)
+        self.assertIn((0, -2), seen)
+
+    def test_d7_the_share_a_person_needs_is_derived(self):
+        """(Round 9, V8-1) `SEEN_SHARE` (74 / 227) is DERIVED, not chosen: the least lit share of a person's DRAWN pixels
+        when the tile rule sees their feet tile, standing still, over every flash level and every place of the window, for
+        the guide's real frame (74 of 227, at (0, -2) under the 32 px circle's top) and its mirror; the player's frame gives
+        74 of 216 there, a larger share. So at rest a person whose feet tile is seen is seen, for both frames. The round-8
+        verifier's V8-1 places (round 8 listed them; the screen draws 0 to 29 of the person) are NOT seen with either frame,
+        and its CONTROL (-1, 2) at 32 px (109 drawn) is. A person whose frame draws nothing is never seen."""
+        from fractions import Fraction
+
+        from ai_player.eyes.view import FLASH_RADIUS, SEEN_SHARE, drawn_pixels, lit, person_seen, view_offsets
+
+        least = {}
+        for name, frame in (("guide", self.GUIDE), ("player", self.PLAYER)):
+            for flip in (False, True):
+                mask = self.mask_of(frame, h_flip=flip)
+                total = sum(map(len, mask))
+                for radius in FLASH_RADIUS[1:8]:
+                    for dx, dy in view_offsets():
+                        if (dx, dy) == (0, 0) or not lit(dx, dy, radius):
+                            continue
+                        count = drawn_pixels(112 + 16 * dx, 56 + 16 * dy, mask, radius)
+                        least[name] = min(least.get(name, Fraction(1)), Fraction(count, total))
+                        self.assertTrue(person_seen(count, total), (name, flip, radius, dx, dy, count))
+                verdict = {(radius, dx, dy): person_seen(drawn_pixels(112 + 16 * dx, 56 + 16 * dy, mask, radius), total)
+                           for radius, dx, dy in ((32, 0, 3), (48, 0, 4), (64, 0, 5), (72, -2, 5), (24, -1, 2), (24, 1, 2),
+                                                  (40, -1, 3), (40, 1, 3), (48, -2, 3), (48, 2, 3), (72, -4, 3), (72, 4, 3),
+                                                  (72, 2, 5), (32, -1, 2))}
+                self.assertEqual({key for key, seen in verdict.items() if seen}, {(32, -1, 2)}, (name, flip))
+        self.assertEqual(least, {"guide": Fraction(74, 227), "player": Fraction(74, 216)})
+        self.assertEqual(SEEN_SHARE, (74, 227))
+        self.assertEqual(Fraction(*SEEN_SHARE), min(least.values()))
+        self.assertEqual([person_seen(0, 0), person_seen(0, 227), person_seen(74, 227), person_seen(73, 227)],
+                         [False, False, True, False])
+
+    def test_d8_fault_a_person_the_screen_draws_none_of_is_not_seen(self):
+        """FAULT (V8-1; on 059a65ff, round 8, every one of these was listed: their RECTANGLE had 140 to 268 lit pixels, its
+        top 10 or 11 rows transparent): at 32 px the guide drawn at (0, 3) (the screen drew 0 of him on the game's own frame,
+        s53/ch6stops9 probe9.py); at 24 px (-1, 2) (8 of 227 drawn pixels lit, 8 on the screen), (1, 2) (13) and (0, 2) (63,
+        below the share); at 48 px (0, 4) (0). CONTROL (the same 32 px look): (-1, 2), 109 of 227 lit, IS listed."""
+        view, _, counts = self.host_view(6, [(10, 13, 1), (9, 12, 2)], counts=True)
+        self.assertEqual([(o.local_id, o.dx, o.dy) for o in view.objects], [(2, -1, 2)])
+        self.assertEqual(counts, {1: (0, 227), 2: (109, 227)})
+        view, _, counts = self.host_view(7, [(9, 12, 1), (11, 12, 2), (10, 12, 3)], counts=True)
+        self.assertEqual(view.objects, ())
+        self.assertEqual(counts, {1: (8, 227), 2: (13, 227), 3: (63, 227)})
+        view, _ = self.host_view(4, [(10, 14, 1)])
+        self.assertEqual((view.lit, view.objects), (48, ()))
+
+    def test_d9_the_frame_the_screen_draws_its_flips_and_the_sprites_it_cannot_read(self):
+        """(Round 9, V8-1) the frame counted is the one the game DRAWS: the image of the animation's current command
+        (animCmdIndex 1: the guide; 0: a frame that draws nothing, so a person standing in the light is NOT listed), mirrored
+        by the OAM's flip bits (24 px: (1, 2) counts 13 drawn pixels, flipped 8, the mirror of (-1, 2); (0, 2) counts 63,
+        flipped upside down 188 and is then listed). CONTROL: (0, 1), wholly lit, unflipped, 227 of 227, listed. LESS, never
+        more: a sprite whose frame is not known (a command that is not a frame, an END) or that is not drawn as a plain
+        16-colour sprite (affine, hidden by its affine mode, 256 colours, OAM shape 3) counts nothing and is not listed."""
+        people = [(10, 11, 1), (10, 11, 2, 0x03, {"index": 0}), (10, 11, 3, 0x03, {"index": 2}),
+                  (11, 12, 4, 0x03, {"attr1": 0x1000}), (9, 12, 5, 0x03, {"attr1": 0x1000}), (10, 12, 6, 0x03, {"attr1": 0x2000}),
+                  (11, 12, 7), (10, 11, 8, 0x03, {"attr0": 0x0100}), (10, 11, 9, 0x03, {"attr0": 0x0200}),
+                  (10, 11, 10, 0x03, {"attr0": 0x2000}), (10, 11, 11, 0x03, {"attr0": 0x4000})]
+        view, _, counts = self.host_view(7, people, counts=True)
+        self.assertEqual(sorted(o.local_id for o in view.objects), [1, 6])
+        self.assertEqual(counts, {1: (227, 227), 2: (0, 0), 3: (0, 0), 4: (8, 227), 5: (13, 227), 6: (188, 227),
+                                  7: (13, 227), 8: (0, 0), 9: (0, 0), 10: (0, 0), 11: (0, 0)})
+
+    def test_d10_fault_a_jump_or_shake_offset_moves_what_is_counted(self):
+        """FAULT (the round-8 verifier's V8-3 and its mutant VM8-A: dropping x2 / y2 from the drawn place survived every
+        test, the fakes never set them): a sprite's x2 / y2 (a jump's or a shake's offset) moves where the screen draws it.
+        At 32 px: the guide at (0, -2) lifted 8 px (y2 -8) is drawn wholly in the dark, 0 lit, NOT listed (at rest he is,
+        74 of 227); at (2, 0) moved 8 px right (x2 8), 0 lit, NOT listed (106 without); at (-2, 1) moved 8 px right, 202
+        lit, LISTED (64 without, not listed)."""
+        people = [(10, 8, 1, 0x03, {"y2": -8}), (12, 10, 2, 0x03, {"x2": 8}), (8, 11, 3, 0x03, {"x2": 8})]
+        view, _, counts = self.host_view(6, people, counts=True)
+        self.assertEqual([o.local_id for o in view.objects], [3])
+        self.assertEqual(counts, {1: (0, 227), 2: (0, 227), 3: (202, 227)})
+
+    def test_d11_limit_mid_step_a_person_on_a_seen_tile_can_be_unlisted(self):
+        """A STATED LIMIT, pinned (the round-8 verifier's V8-2): the two rules agree at rest (test_d7), NOT while a step is in
+        progress. Walking Right at 32 px, `gFieldCamera.x` 2 to 6 (the screen draws the map 14 to 10 px right of rest), the
+        guide standing at (-1, -2) has his feet tile SEEN by the shifted tile rule and is NOT listed: 73, 72, 70, 68, 66 of
+        his 227 drawn pixels lit, below SEEN_SHARE. On the game's own frames the eyes counted exactly these (s53/ch6stops9
+        probe9.py walk, gym32 s2Right walk6 to after0) and the screen drew 74, 73, 72, 70, 68 of him (one frame behind the
+        memory the eyes read); the round-8 verifier's six looks were walk7 to after0, s3Up walk8 and the 24 px s3Up after7.
+        Each lasts 1 to 4 frames. If this changes, change the docs with it."""
+        view, _, counts = self.host_view(6, [(9, 8, 1)], camera=(3, 0), drawn=(13, 0), counts=True)
+        self.assertIsNotNone(view.tile(-1, -2))
+        self.assertEqual((view.objects, counts), ((), {1: (72, 227)}))
+
+    def test_d12_fault_the_frame_is_from_the_animation_the_sprite_plays(self):
+        """FAULT (round 10; the round-9 verifier's V9-1 and its mutant VM9-A: dropping animNum from the animation read
+        survived every test, the fakes never set it): the frame counted is the one of the animation the sprite PLAYS,
+        `anims[animNum]` (a person who faces another way, or walks, plays another animation). At 24 px on (0, 1), wholly
+        lit: animation 1 (FRAME(1), FRAME(0), ...) at command 0 draws the guide, 227 of 227, LISTED, and at command 1
+        draws nothing, NOT listed; read from animation 0 the two would swap. CONTROL: animation 0 at command 1 draws the
+        guide, listed, and at command 0 nothing."""
+        people = [(10, 11, 1, 0x03, {"anim": 1, "index": 0}), (10, 11, 2, 0x03, {"anim": 1, "index": 1}),
+                  (10, 11, 3, 0x03, {"anim": 0, "index": 1}), (10, 11, 4, 0x03, {"anim": 0, "index": 0})]
+        view, _, counts = self.host_view(self.LEVEL_7, people, counts=True)
+        self.assertEqual(sorted(o.local_id for o in view.objects), [1, 3])
+        self.assertEqual(counts, {1: (227, 227), 2: (0, 0), 3: (227, 227), 4: (0, 0)})
+
+    def test_d13_the_obj_sizes_are_the_games_own_table(self):
+        """(Round 10; the round-9 verifier's V9-3: only 16 x 32 and shape 3 were exercised) `OBJ_SIZES` is the game's own
+        table, `src/sprite.c` sOamDimensions[shape][size] (ST_OAM_SQUARE, ST_OAM_H_RECTANGLE, ST_OAM_V_RECTANGLE),
+        transcribed below from the pinned decomp; it has no shape 3, so such a sprite counts nothing (test_d9)."""
+        from ai_player.eyes.view import OBJ_SIZES
+
+        decomp = (((8, 8), (16, 16), (32, 32), (64, 64)),  # ST_OAM_SQUARE
+                  ((16, 8), (32, 8), (32, 16), (64, 32)),  # ST_OAM_H_RECTANGLE
+                  ((8, 16), (8, 32), (16, 32), (32, 64)))  # ST_OAM_V_RECTANGLE
+        self.assertEqual(OBJ_SIZES, {(shape, size): dimensions for shape, sizes in enumerate(decomp)
+                                     for size, dimensions in enumerate(sizes)})
+
+    def test_d14_an_item_ball_is_read_at_its_own_16_by_16_size(self):
+        """(Round 10; V9-3) a sprite other than 16 x 32 is read at its own size: an ITEM BALL (OAM shape 0, size 1:
+        16 x 16; centerToCornerVec (-8, -8), so drawn on its own tile; its frame is animation 1's command 2) on (0, 1) at
+        24 px draws all 76 of its pixels lit and is LISTED."""
+        ball = sum(row.count("#") for row in self.BALL)
+        self.assertEqual((len(self.BALL), {len(row) for row in self.BALL}, ball), (16, {16}, 76))
+        people = [(10, 11, 1, 0x03, {"oam": (0x0000, 0x4000), "corner": (-8, -8), "anim": 1, "index": 2})]
+        view, _, counts = self.host_view(self.LEVEL_7, people, counts=True)
+        self.assertEqual(([o.local_id for o in view.objects], counts), ([1], {1: (ball, ball)}))
+
+    @staticmethod
+    def observation(view, player):
+        from ai_player.eyes.observation import Observation, ScreenState
+
+        screen = ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=False,
+                             waits_for_button=False, in_battle=False)
+        return Observation(frame=1, screen=screen, player=player, view=view, party=(), bag=None, progress=None,
+                           battle=None, last_battle_outcome=0, problems=(), cost_ms=0.0)
 
 
 if __name__ == "__main__":

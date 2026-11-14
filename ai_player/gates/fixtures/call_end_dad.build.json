@@ -1,0 +1,12 @@
+{
+ "fixture": "call_end_dad.ss1",
+ "md5": "0ae27ebfe804296037d749222c550589",
+ "source": "the KI-134 live B arm (development, ledger #98, batch ki134c, seed 6308, the Catcher run C2): the launcher's end_state.ss1 of run ki134c-C2, copied unchanged (s53/ki134/out/ki134c/ki134c-C2/end_state.ss1)",
+ "played_by": "the AI (worktree wf_e7452923-f06-3 at the KI-134 fix, stage digest 34270fdf3e990a8c); nothing pressed by the test side",
+ "at": {
+  "frame": 781235,
+  "map": "ROUTE105 (22, 60), on MR. BRINEY's boat (the first sail)",
+  "screen": "DAD's PokeNav call (Route104_EventScript_SailToDewfordDadCalls: pokenavcall Route104_Text_DadPokenavCall) after its last page '... ... Click!': ExecuteMatchCall tState 5 (MatchCall_PrintMessage), tWindowId 1, sTextPrinters[1] inactive, no sound effect playing, sFieldMessageBoxMode 2, the script in waitmessage (native IsFieldMessageBoxHidden), sLockFieldControls 1"
+ },
+ "measured_2026_11_05": "s53/ch6stops/repro_call.py on this state: the eyes before the chapter-6 fix report waits_for_button False ('reading along: a text is printing'); ONE A by the harness: tState 6, 7, the task gone, and the script goes on to 'Registered DAD NORMAN in the POKeNAV.'"
+}

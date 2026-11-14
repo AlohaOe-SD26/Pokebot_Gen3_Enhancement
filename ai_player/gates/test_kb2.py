@@ -113,11 +113,14 @@ CHAPTER_OF = {
     4: ["JOSH", "TOMMY", "ROXANNE_1"],                                 # ch4_gym_trainers (JOSH, TOMMY), ch4_roxanne
     5: ["GRUNT_RUSTURF_TUNNEL", "MAY_RUSTBORO_TREECKO", "MAY_RUSTBORO_TORCHIC", "MAY_RUSTBORO_MUDKIP",
         "BRENDAN_RUSTBORO_TREECKO", "BRENDAN_RUSTBORO_TORCHIC", "BRENDAN_RUSTBORO_MUDKIP"],  # ch5_rusturf_grunt, ch5_rival_*
+    7: ["TAKAO", "JOCELYN", "LAURA", "BRENDEN", "CRISTIAN", "LILITH", "BRAWLY_1"],  # ch7_gym_trainers (six), ch7_brawly
 }
 #: what a reader of the world files would have to write (`world/` alone is not one: the AI's own `ai_player/world/`
 #: package is named in comments and paths all over the play code)
 PLAY_NAMES = ("knowledge/world", "trainers.json", "bosses.json", "maps.json", "campaign.json", "items_gifts.json",
-              "events.json")
+              "events.json",
+              # (P11-1, 2026-11-11) the way through each dark cave, read ONLY by its declared loader `knowledge/ways.py`
+              "ways.json")
 
 ROOT = None
 D = None
@@ -258,8 +261,8 @@ class W1WithheldTests(unittest.TestCase):
         n, hits = vw.withheld_scan(str(KNOWLEDGE))
         self.assertEqual(hits, [])
         world = sorted(p.name for p in WORLD.glob("*.json"))
-        # slice 1's four + stage 2a's items_gifts + stage 2b's events
-        self.assertEqual(world, sorted(ew.OUTPUTS + (ei.OUT_NAME, xe.OUT_NAME)))
+        # slice 1's four + stage 2a's items_gifts + stage 2b's events + (P11-1, 2026-11-11) extract_ways' ways.json
+        self.assertEqual(world, sorted(ew.OUTPUTS + (ei.OUT_NAME, xe.OUT_NAME, os.path.basename(xwy.OUT_DEFAULT))))
         self.assertGreaterEqual(n, len(list(KNOWLEDGE.rglob("*.json"))))
         with tempfile.TemporaryDirectory() as tmp:
             shutil.copytree(KNOWLEDGE, Path(tmp) / "k", ignore=shutil.ignore_patterns("*.py", "__pycache__"))
@@ -780,7 +783,7 @@ class W3RecallTests(unittest.TestCase):
     def test_recall_is_complete(self):
         missing, extras = recall(OBJS["maps.json"]["maps"], OBJS["trainers.json"]["trainers"])
         self.assertEqual(missing, [])
-        print("\n  W3 extras on the chapter 1-5 maps (listed for adjudication, not hidden): %s" % extras)
+        print("\n  W3 extras on the chapter 1-5 and 7 maps (listed for adjudication, not hidden): %s" % extras)
 
     def test_fault_deleted_object_lowers_recall(self):
         rel = "data/maps/Route102/map.json"
@@ -869,6 +872,32 @@ class W4ConsistencyTests(unittest.TestCase):
             campaign_of(scratch_skeleton(swap))
         with self.assertRaises(ew.Refused):
             campaign_of(scratch_skeleton(lambda es: es.pop(index(es, "ch5_goods_employee"))))
+
+    def test_chapter_6_and_7_ids_are_guarded_too(self):
+        """(2026-11-05) FAULT: a chapter-6 and a chapter-7 skeleton id renamed, two chapter-7 entries swapped, and a chapter-6
+        entry dropped are each REFUSED naming the milestone; CONTROL: the real skeleton (36 milestones, 3 of chapter 6 and 5 of
+        chapter 7) is accepted. The skeleton's old ids (ch6_sail_dewford, ch7_granite_cave) are refused too: a stale skeleton."""
+        ids = {c: [m["id"] for m in MILESTONES["milestones"] if m["chapter"] == c] for c in (6, 7)}
+        self.assertEqual((len(ids[6]), len(ids[7])), (3, 5))
+        campaign_of(scratch_skeleton(lambda es: None))  # CONTROL: unchanged -> no raise
+
+        def index(es, mid):
+            return next(i for i, e in enumerate(es) if e["id"] == mid)
+
+        with self.assertRaises(ew.Refused) as cm:
+            campaign_of(scratch_skeleton(lambda es: es[index(es, "ch6_dewford")].__setitem__("id", "ch6_sail_dewford")))
+        self.assertIn("ch6_dewford", str(cm.exception))
+        with self.assertRaises(ew.Refused) as cm:
+            campaign_of(scratch_skeleton(lambda es: es[index(es, "ch7_steven")].__setitem__("id", "ch7_granite_cave")))
+        self.assertIn("ch7_steven", str(cm.exception))
+
+        def swap(es):
+            i, j = index(es, "ch7_steven"), index(es, "ch7_brawly")
+            es[i], es[j] = es[j], es[i]
+        with self.assertRaises(ew.Refused):
+            campaign_of(scratch_skeleton(swap))
+        with self.assertRaises(ew.Refused):
+            campaign_of(scratch_skeleton(lambda es: es.pop(index(es, "ch6_old_rod"))))
 
 
 class W4bOrderTests(unittest.TestCase):
@@ -1075,12 +1104,17 @@ def names_in_play_code(package, allowed=None):
 
 class NotReadTests(unittest.TestCase):
     def test_no_play_code_names_a_world_file(self):
-        """No play code names a world file, but (KI-128) the declared loader `knowledge/atlas.py` its own one."""
-        self.assertEqual(loader_allowed_names(), {"knowledge/atlas.py": {"knowledge/world", "maps.json"}})
+        """No play code names a world file, but (KI-128) the declared loader `knowledge/atlas.py` its own ones ((chapter 7
+        NS4, 2026-11-06) maps.json and, since its second slice, bosses.json: which leader holds which gym) and (P11-1,
+        2026-11-11) the declared loader `knowledge/ways.py` its ways.json (the way through each dark cave)."""
+        self.assertEqual(loader_allowed_names(), {"knowledge/atlas.py": {"knowledge/world", "maps.json", "bosses.json"},
+                                                  "knowledge/ways.py": {"knowledge/world", "ways.json"}})
         n, hits = names_in_play_code(REPO / "ai_player")
         self.assertGreater(n, 20)
         self.assertEqual(hits, [])
         self.assertIn("maps.json", (KNOWLEDGE / "atlas.py").read_text(encoding="utf-8"))  # the allowance is used
+        self.assertIn("bosses.json", (KNOWLEDGE / "atlas.py").read_text(encoding="utf-8"))  # and the second one
+        self.assertIn("ways.json", (KNOWLEDGE / "ways.py").read_text(encoding="utf-8"))  # (P11-1) and ways.py's own
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "brain").mkdir()
             (Path(tmp) / "brain" / "goals.py").write_text('BOOK = "knowledge/world/bosses.json"\nATLAS = "maps.json"\n',
@@ -1088,19 +1122,23 @@ class NotReadTests(unittest.TestCase):
             (Path(tmp) / "gates").mkdir()
             (Path(tmp) / "gates" / "ok.py").write_text('X = "maps.json"\n', encoding="utf-8")
             (Path(tmp) / "knowledge").mkdir()
-            (Path(tmp) / "knowledge" / "atlas.py").write_text('F = "knowledge/world/maps.json"\nB = "bosses.json"\n',
+            (Path(tmp) / "knowledge" / "atlas.py").write_text('F = "knowledge/world/maps.json"\nB = "trainers.json"\n',
                                                               encoding="utf-8")
             _, hits = names_in_play_code(tmp)
             self.assertEqual(hits, [("brain/goals.py", "knowledge/world"), ("brain/goals.py", "bosses.json"),
-                                    ("brain/goals.py", "maps.json"), ("knowledge/atlas.py", "bosses.json")])
+                                    ("brain/goals.py", "maps.json"), ("knowledge/atlas.py", "trainers.json")])
 
     def test_check_fairness_does_not_glob_world(self):
-        """RULE B walks ONLY the world files a LOADER names (KI-128: maps.json, for `knowledge/atlas.py`); the others
-        stay unread and unchecked."""
+        """RULE B walks ONLY the world files a LOADER names (KI-128: maps.json, and (chapter 7 NS4, 2026-11-06)
+        bosses.json, both for `knowledge/atlas.py`; (P11-1, 2026-11-11) ways.json for `knowledge/ways.py`); the others
+        stay unread and unchecked. (BP-1, 2026-11-09) And the three `seasoned/` files `knowledge/seasoned.py` names
+        (seasoned/moves.json, named by no loader, stays unwalked)."""
         from ai_player.gates.check_fairness import knowledge_files, schema_problems, world_files
-        self.assertEqual(world_files(), ["world/maps.json"])
+        self.assertEqual(world_files(), ["seasoned/encounters.json", "seasoned/learnsets.json", "seasoned/species.json",
+                                         "world/bosses.json", "world/maps.json", "world/ways.json"])
         walked = [name for name, _ in knowledge_files(KNOWLEDGE)]
-        self.assertEqual([n for n in walked if n.startswith("world/")], ["world/maps.json"])
+        self.assertEqual([n for n in walked if n.startswith("world/")],
+                         ["world/bosses.json", "world/maps.json", "world/ways.json"])
         problems, counts = schema_problems(KNOWLEDGE)
         self.assertEqual([p for p in problems if "world" in p or "campaign" in p or "trainers" in p], [])
         self.assertEqual(problems, [])
@@ -1112,11 +1150,18 @@ class NotReadTests(unittest.TestCase):
             problems, _ = schema_problems(k)
             self.assertEqual(len(problems), 1)
             self.assertIn("campaign.json", problems[0])
-            # an unclassified key in a world file NO loader names is not walked (bosses.json); in maps.json it FAILS
-            boss = json.loads((k / "world" / "bosses.json").read_text(encoding="utf-8"))
-            boss["planted_secret"] = 1
-            (k / "world" / "bosses.json").write_text(json.dumps(boss), encoding="utf-8")
+            # an unclassified key in a world file NO loader names is not walked (trainers.json); in a loaded one
+            # (bosses.json, since its loader slice) it FAILS
+            trainers = json.loads((k / "world" / "trainers.json").read_text(encoding="utf-8"))
+            trainers["planted_secret"] = 1
+            (k / "world" / "trainers.json").write_text(json.dumps(trainers), encoding="utf-8")
             self.assertEqual(len(schema_problems(k)[0]), 1)  # still only campaign.json's
+            boss = json.loads((k / "world" / "bosses.json").read_text(encoding="utf-8"))
+            boss["bosses"][0]["planted_secret"] = 1
+            (k / "world" / "bosses.json").write_text(json.dumps(boss), encoding="utf-8")
+            problems, _ = schema_problems(k)
+            self.assertEqual(len(problems), 2)
+            self.assertTrue(any("bosses.json" in p and "planted_secret" in p for p in problems), problems)
 
     def test_k_f3_the_atlas_loader_gate(self):
         """(KI-128, K-F3) The world loader is gated like every loader: a developer key read in `knowledge/atlas.py` FAILS
@@ -1163,6 +1208,172 @@ class NotReadTests(unittest.TestCase):
             path.write_text(json.dumps(data), encoding="utf-8")
         found = plant(unclassified)
         self.assertTrue(any("world/maps.json" in f and "UNCLASSIFIED" in f and "secret_route" in f for f in found), found)
+
+    def test_k_f3b_the_bosses_slice_is_gated_and_weakens_nothing(self):
+        """(chapter 7 NS4 round 3, the second builder, 2026-11-06) The fairness gate's CHANGE: `knowledge/atlas.py` may now
+        name a SECOND world file, `world/bosses.json` (`gym_leaders`: which leader holds which gym), and every key path of
+        it is classified. What that must NOT do, and does not: remove a key from the developer-only set (a world file's
+        AI names never excuse a name elsewhere, `developer_keys`) or touch the hidden keys; measured here with LOADERS put
+        back to the base's (atlas: maps.json only). What it ADDS: the bosses' own developer keys are refused now
+        (`rematches`, `order`, `entry`, `notes`), and deciding code that names `bosses.json` breaks B1 (before, a world file
+        no loader named was not one of B1's names). THE NEW BREACHES of the kind the change is about FAIL: the loader
+        reading a boss's badge FLAG or its rematch constants (B2), deciding code naming the file (B1), a key planted
+        under a boss (RULE B); a docstring mention of them does not fire."""
+        from unittest import mock
+
+        from ai_player.gates import check_fairness as cf_
+        loaders = dict(cf_.LOADERS)
+        loaders["knowledge/atlas.py"] = ("world/maps.json",)
+        with_slice = cf_.developer_keys(knowledge=KNOWLEDGE), cf_.hidden_keys(knowledge=KNOWLEDGE)
+        with mock.patch.object(cf_, "LOADERS", loaders):
+            without = cf_.developer_keys(knowledge=KNOWLEDGE), cf_.hidden_keys(knowledge=KNOWLEDGE)
+        self.assertEqual(without[0] - with_slice[0], set())  # no developer-only key is lost
+        self.assertEqual(with_slice[0] - without[0], {"entry", "notes", "order", "rematches"})
+        self.assertEqual(with_slice[1], without[1])
+
+        def plant(edit) -> list[str]:
+            with tempfile.TemporaryDirectory() as tmp:
+                pkg = Path(tmp) / "ai_player"
+                shutil.copytree(REPO / "ai_player", pkg, ignore=shutil.ignore_patterns(
+                    "__pycache__", "evidence", "gates", "*.ss1", "eyes", "host"))
+                edit(pkg)
+                return cf_.check(pkg)[1]
+
+        def add(rel: str, text: str):
+            def do(pkg):
+                path = pkg / rel
+                path.write_text(path.read_text(encoding="utf-8") + text, encoding="utf-8")
+            return do
+
+        self.assertEqual(plant(lambda pkg: None), [])  # CONTROL: the copy is clean
+        found = plant(add("knowledge/atlas.py", '\n\ndef leak(boss):\n    return boss["badge"]["flag"], '
+                                                'boss.get("rematches")\n'))
+        self.assertEqual(sorted(f.split("key ")[1].split(" ")[0] for f in found if f.startswith("B2")),
+                         ["'flag'", "'rematches'"])
+        found = plant(add("brain/goals.py", '\n\nBOOK = "knowledge/world/bosses.json"\n'))
+        self.assertTrue(any(f.startswith("B1") and "bosses.json" in f for f in found), found)
+        with mock.patch.object(cf_, "LOADERS", loaders):  # FAULT half: without the slice B1 did not know the name
+            found = plant(add("brain/goals.py", '\n\nBOOK = "knowledge/world/bosses.json"\n'))
+        self.assertFalse(any(f.startswith("B1") and "bosses.json" in f for f in found), found)
+        mention = '\n\ndef told():\n    """Never boss["badge"]["flag"] nor bosses.json."""\n    return "x"\n'
+        self.assertEqual(plant(add("knowledge/atlas.py", mention)), [])
+
+        def unclassified(pkg):
+            path = pkg / "knowledge" / "world" / "bosses.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            next(boss for boss in data["bosses"] if isinstance(boss.get("badge"), dict))["badge"]["secret_flag"] = "FLAG_X"
+            path.write_text(json.dumps(data), encoding="utf-8")
+        found = plant(unclassified)
+        self.assertTrue(any("world/bosses.json" in f and "UNCLASSIFIED" in f and "secret_flag" in f for f in found), found)
+
+    def test_k_f3c_the_atlas_reads_only_role_name_and_battled_on_of_bosses_json(self):
+        """(chapter 7 stops round 4, the round-3 verifier's V3-6, 2026-11-06) `bosses[].fight` is DEVELOPER in bosses.json
+        but AI in milestones.json (`milestones[].fight`), so the gate's by-name rule cannot refuse it (its documented
+        limit). The atlas's reads of the file are pinned by NAME instead: every key `gym_leaders` subscripts or `.get`s on
+        the file's data or a boss is one of `bosses`, `role`, `name`, `battled_on`. FAULT half: a planted
+        `boss["fight"]` (or `boss.get("badge")`) is seen by the same reading."""
+        import ast as ast_
+
+        def keys_read(source: str) -> set[str]:
+            tree = ast_.parse(source)
+            func = next(node for node in ast_.walk(tree) if isinstance(node, ast_.FunctionDef) and node.name == "gym_leaders")
+            found = set()
+            for node in ast_.walk(func):
+                if isinstance(node, ast_.Subscript) and isinstance(node.value, ast_.Name) and node.value.id in ("data", "boss") \
+                        and isinstance(node.slice, ast_.Constant) and isinstance(node.slice.value, str):
+                    found.add(node.slice.value)
+                if isinstance(node, ast_.Call) and isinstance(node.func, ast_.Attribute) and node.func.attr == "get" \
+                        and isinstance(node.func.value, ast_.Name) and node.func.value.id in ("data", "boss") and node.args \
+                        and isinstance(node.args[0], ast_.Constant):
+                    found.add(node.args[0].value)
+            return found
+
+        source = (REPO / "ai_player" / "knowledge" / "atlas.py").read_text(encoding="utf-8")
+        self.assertEqual(keys_read(source), {"bosses", "role", "name", "battled_on"})
+        planted = source.replace('leaders[str(boss["name"])]', 'leaders[str(boss["name"]) + str(boss["fight"])]', 1)
+        self.assertNotEqual(planted, source)
+        self.assertIn("fight", keys_read(planted))  # FAULT half
+        planted = source.replace('boss.get("role")', 'boss.get("badge") and boss.get("role")', 1)
+        self.assertIn("badge", keys_read(planted))
+
+    @staticmethod
+    def _keys_read(source: str, function: str | None, names: tuple[str, ...] | None = None) -> set[str]:
+        """(BP-1) Every constant key a function (None: the whole module) subscripts or `.get`s, on the names given (None:
+        on anything but the module's own cache, `_CACHE`)."""
+        import ast as ast_
+
+        tree = ast_.parse(source)
+        scope = tree if function is None else next(node for node in ast_.walk(tree)
+                                                   if isinstance(node, ast_.FunctionDef) and node.name == function)
+
+        def counted(value) -> bool:
+            if names is None:
+                return not (isinstance(value, ast_.Name) and value.id == "_CACHE")
+            return isinstance(value, ast_.Name) and value.id in names
+
+        found = set()
+        for node in ast_.walk(scope):
+            if isinstance(node, ast_.Subscript) and isinstance(node.slice, ast_.Constant) and isinstance(node.slice.value, str) \
+                    and counted(node.value):
+                found.add(node.slice.value)
+            if isinstance(node, ast_.Call) and isinstance(node.func, ast_.Attribute) and node.func.attr == "get" and node.args \
+                    and isinstance(node.args[0], ast_.Constant) and isinstance(node.args[0].value, str) \
+                    and counted(node.func.value):
+                found.add(node.args[0].value)
+        return found
+
+    def test_k_f3d_boss_party_reads_only_its_slice(self):
+        """(boss preparation BP-1, 2026-11-09) `knowledge/atlas.py` boss_party reads, of bosses.json, only `bosses`, a
+        boss's `name` and `party`, and each Pokemon's `species`, `level`, `moves` and `held_item` (RULING 44: the item is
+        known). FAULT half: a planted read of a boss's `id` (TRAINER_BRAWLY_1, a defeated flag's name) is seen."""
+        source = (REPO / "ai_player" / "knowledge" / "atlas.py").read_text(encoding="utf-8")
+        self.assertEqual(self._keys_read(source, "boss_party", ("data", "boss", "mon")),
+                         {"bosses", "name", "party", "species", "level", "moves", "held_item"})
+        planted = source.replace('key = str(boss["name"])', 'key = str(boss["name"]) + str(boss["id"])', 1)
+        self.assertNotEqual(planted, source)
+        self.assertIn("id", self._keys_read(planted, "boss_party", ("data", "boss", "mon")))
+        self.assertEqual(self._keys_read(source, "gym_leaders", ("data", "boss")), {"bosses", "role", "name", "battled_on"})
+
+    def test_k_f3e_the_seasoned_loader_reads_only_its_keys(self):
+        """(BP-1) `knowledge/seasoned.py` reads, of the three seasoned files, only the keys its docstring names (species:
+        `symbol`, `name`, `evolutions[].method / parameter.value / into`; learnsets: `symbol`, `level_up[].level / move`;
+        encounters: `map`, `availability`, `methods.land.slots[].min_level / max_level`), never a hidden one (base stats,
+        catch rate, experience, growth, wild held items: also refused by check_fairness B2). FAULT half: a planted
+        `entry["catch_rate"]` is seen."""
+        source = (REPO / "ai_player" / "knowledge" / "seasoned.py").read_text(encoding="utf-8")
+        allowed = {"species", "symbol", "name", "evolutions", "method", "parameter", "value", "into", "level_up", "level",
+                   "move", "maps", "map", "availability", "methods", "land", "slots", "min_level", "max_level"}
+        self.assertEqual(self._keys_read(source, None), allowed)
+        planted = source.replace('out[str(entry["symbol"])] = ', 'entry["catch_rate"]\n            out[str(entry["symbol"])] = ', 1)
+        self.assertNotEqual(planted, source)
+        self.assertIn("catch_rate", self._keys_read(planted, None) - allowed)
+
+    def test_k_f3f_entry_maps_reads_only_the_map_links_and_a_coordinate_read_fails_the_gate(self):
+        """(The chapter-5 search fix K1, 2026-11-13) `knowledge/atlas.py` entry_maps reads, of maps.json, only `maps`, each
+        map's `id`, each warp's `dest_map` and each connection's `map` (a guide's map, map level: USER RULING 40), never a
+        warp's `x` or `y`. FAULT halves: a planted `warp["x"]` is seen by the same reading, and the person-fair door
+        (`check_fairness.check`, RULE B2: `x` is a developer-only key NAME, milestones.json's measured coordinates) FAILS a
+        copy of the package that reads it; CONTROL: the unedited copy passes."""
+        from ai_player.gates import check_fairness as cf_
+        names = ("data", "entry", "warp", "link")
+        source = (REPO / "ai_player" / "knowledge" / "atlas.py").read_text(encoding="utf-8")
+        self.assertEqual(self._keys_read(source, "entry_maps", names), {"maps", "id", "warps", "dest_map", "connections", "map"})
+        planted = source.replace('str(warp["dest_map"])', 'str(warp["dest_map"]) + str(warp["x"])', 1)
+        self.assertNotEqual(planted, source)
+        self.assertIn("x", self._keys_read(planted, "entry_maps", names))
+
+        def plant(text: str | None) -> list[str]:
+            with tempfile.TemporaryDirectory() as tmp:
+                pkg = Path(tmp) / "ai_player"
+                shutil.copytree(REPO / "ai_player", pkg, ignore=shutil.ignore_patterns(
+                    "__pycache__", "evidence", "gates", "*.ss1", "eyes", "host"))
+                if text is not None:
+                    (pkg / "knowledge" / "atlas.py").write_text(text, encoding="utf-8")
+                return cf_.check(pkg)[1]
+
+        self.assertEqual(plant(None), [])  # CONTROL: the copy is clean
+        found = plant(planted)
+        self.assertTrue(any(f.startswith("B2") and "'x'" in f and "atlas.py" in f for f in found), found)
 
     def test_v1_warps_and_connections_are_classified_leaf_by_leaf(self):
         """(The round-1 verifier's V1, 2026-10-31) `maps[].warps` and `maps[].connections` were SUBTREE entries, so a key
@@ -1232,6 +1443,7 @@ class NotReadTests(unittest.TestCase):
 import check_fairness as cf  # noqa: E402
 import extract_items as ei  # noqa: E402
 import extract_events as xe  # noqa: E402
+import extract_ways as xwy  # noqa: E402  (P11-1, 2026-11-11) the way through each dark cave: its output's name (W1)
 
 _S2 = {}
 

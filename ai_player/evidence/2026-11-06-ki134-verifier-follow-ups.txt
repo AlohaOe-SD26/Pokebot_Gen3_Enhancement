@@ -1,0 +1,126 @@
+KI-134 - THE VERIFIER'S MINOR FINDINGS AND NIT V8, FIXED (offline; development, nothing graded): brain/explore.py (map_walls, standing_walls, region_hops, _Regions.walls_by / part_of), brain/goals.py (part_hops, world_distance)
+HEADLINE (carries the caveat): The KI-134 verifier's four MINOR findings and NIT V8 are fixed and tested OFFLINE: every map's walls go into the route (decisions on two maps agree), places are ranked by the links of the route from where the player stands, the five untested guards and V10 now have tests, and the landings cache is keyed by the part. 21 new mutants (G518-G538) are caught, 20 as first predicted and G519 after a corrected prediction (its first one named a test that never calls the mutated code). Caveat: none of this is a live A/B; its only live run is the development probe #102 (one trajectory per start), and the NITs on the 43485a36 commit's wording are left to the lead.
+WHO: the second builder of the chapter-6 stops round (s53/ch6stops2, 2026-11-06), from the KI-134 verifier's report (s53/ki134/verify_report.md, verify_result.json: CONDITIONAL PASS, 4 MINOR, 5 NIT). Live, these changes run only in probe8 (ledger #102, its own evidence file); nothing here is a live A/B.
+
+K134-V1 (decisions on two maps disagree): `route_to` takes the walls as a MAPPING per map (`map_walls`: this map's Navigator.walls less the people; every other map's standing things and its scene walls), so the woods' decision sees ROUTE 104's scene wall exactly as ROUTE 104's does. CAVEAT (added in round 3, 2026-11-06, the verifier's V-N5): other maps' standing things are known only once SEEN IN THIS SESSION (`MapMemory.objects_now` is not saved in world.jsonl; a run starting from a saved memory knows none until it looks at that map again), and the scene walls are this intent's; decided: kept so, not saved (`explore.standing_walls`' docstring says why). A route-for-route control run on loaded memories alone is therefore vacuous for V1. TEST KI134FollowUpTests.test_v1 (the two decisions on test_w1's fixture: north part -> woods' NORTH door, woods -> its SOUTH door; FAULT half: only the source's walls, the woods says the north door again, the verifier's flipflop.py; CONTROL: no wall). MUTANTS G519 (the call back to this map's walls), G520 (other maps' scene walls dropped), G534 (other maps' standing things dropped).
+K134-V2 (V10 survived): TEST test_v2 (from the SOUTH part, goal RUSTBORO_CITY itself: [S, WN, road up]; FAULT half by maps: [road up]; CONTROL from the north part). MUTANT G518 (= the verifier's V10).
+K134-V3 (the nearest centre by maps): `world_distance` counts the links of the route FROM WHERE THE PLAYER STANDS when its tile is known (`part_hops` -> `explore.region_hops`: route_to's search over parts, once for every map, cached for one place and one memory stamp, held by reference); a map no such route reaches counts by maps as before. TESTS test_v3 (north part: RUSTBORO's centre, 1 and 2 links, PETALBURG's 3 and 4; south part: PETALBURG's; FAULT half with no tile: the tie by name, PETALBURG; the same with the centres only SEEN as doors; a door with no arrival recorded counts by maps) and test_v3b (one gap in row 5: PETALBURG 1 link; a THING in the gap: 3; a PERSON: 1). MUTANTS G528, G529, G530, G531, G532, G533, G535, G536, G537, G538. Waivers for lead_toward's and _grass_map's unchanged calls (census_waivers.json).
+K134-V4 (guards untested): TESTS test_v4a (V5: a map's walls count on that map only), test_v4b (V6: a road is crossed round its map's walls), test_v4c (V11: people walk on, things do not; on this map and seen from another), test_v4d (V13: a door is used from the side its look asks for; CONTROL with the tile below walkable), test_v4e (V16: a connection with no offset is no way on, no error). MUTANTS G521 (V5), G522 (V6), G523 and G524 (V11), G525 (V13), G526 (V16). V2, V4 and V7 left as the verifier read them (benign or cost only).
+NIT V8: the landings cache is keyed by the PART (its index among the parts searched, `_Regions.part_of`, by identity); a reach the search did not work out is answered afresh and never kept. TEST test_v8. MUTANT G527 (`id(reach)` again).
+Not done here: the NITs V5 (the ping-pong count wording), V6, V7 and V9 are about wording in the commit and evidence of 43485a36 (PROJECT KNOWLEDGE and committed evidence are the lead's to reconcile).
+
+===== CHAPTERS 1-5: what can change
+  Routes: only where a decision's walls now include another map's standing things or scene walls (none in any chapter 1-5 test fixture; test_c1's route-for-route equality on connected maps still passes). Ranking: world_distance now counts from where the player stands; on maps of one part it equals the count by maps (region_hops follows the same links), so it differs only where a map is in parts (ROUTE 104, as the verifier's chapter 1-5 sweep found) or a standing thing cuts one. test_goals (375), test_world (132), test_kb2 and the rest green (the gates file).
+
+===== MUTANTS (predictions written and hashed before each run; s53/ch6stops2)
+  mutant_predictions_r2.txt: sha256 e9bac3044cea9af42570e80aecb2415d7ead7be96c71cf6c8eacf17555c129a7
+  mutant_predictions_r2_addendum.txt: sha256 fc62955f167f36d7bf6a1432356082f871ad5c721f7b88e810f056f04004df50
+  mutant_predictions_r2_addendum2.txt: sha256 c7d4f2d6a0f7d7c38ae677f40f0945ab1d8bfba0dbc4d9e896e9be177484a145
+  mutant_predictions_r2_addendum3.txt: sha256 54966a3eb703cfef017940e540573191c681bde0df6149c7ce3acc1b475afdb9
+  revert_step5 run 1 (G0, G518-G531, moved/ambiguous anchors G476 G477 G487 G21 G26 G42, samples G480 G32 G71; G519's prediction WRONG on test_v4c, see addendum 1) (mutants_r2_step5.out):
+    [G0] CONTROL, the unchanged copy: 374 tests, failing none (ran the copy: True) -> PASS
+    [G21] BROKEN: a scene's map change from where the player stood taken as a way to walk (the first chapter-1 run's fix reverted). Predicted CAUGHT by [' ... -> CAUGHT
+    [G26] BROKEN: only a SCENE's map change refused: a 'warp' remembered from a tile that is no door taken as a way (the chapter-1 sweep's seed 7 reverted ... -> CAUGHT
+    [G32] BROKEN: the data names a map the game never says (ROUTE 102 for MOM's 'PETALBURG GYM', the verifier's case). Predicted CAUGHT by ['HintTests.tes ... -> CAUGHT
+    [G42] BROKEN: every SCENE link refused, a door MOM walked the player through included (no way home: step5dev7 seed 3). Predicted CAUGHT by ['WayTests. ... -> CAUGHT
+    [G71] BROKEN: the data scripts 'use the rival's POKé BALL' again (the review's finding 3). Predicted CAUGHT by ['ExploreTests.test_curiosity_finds_an_ ... -> CAUGHT
+    [G476] BROKEN: candidates' route is searched by MAPS again (the player's tile and walls not passed: KI-134 back at its call). Predicted CAUGHT by ['KI ... -> CAUGHT
+    [G477] BROKEN: candidates never asks for a route (its call of `route_to` deleted). Predicted CAUGHT by ['KI134RegionTests.test_f1_from_the_woods_the_r ... -> CAUGHT
+    [G480] BROKEN: no part is ever worked out (the call of `_Regions.part_from` deleted: every place skipped). Predicted CAUGHT by ['KI134RegionTests.test ... -> CAUGHT
+    [G487] BROKEN: the route goes through a tile a scene sent the player back from (candidates passes no walls). Predicted CAUGHT by ['KI134RegionTests.te ... -> CAUGHT
+    [G518] BROKEN: a road no walk in the part can cross is still a way TO the map it leads to (the verifier's V10). Predicted CAUGHT by ['KI134FollowUpTes ... -> CAUGHT
+    [G519] BROKEN: candidates passes only THIS map's walls (K134-V1 undone at its call: decisions on two maps disagree). Predicted CAUGHT by ['KI134Follow ... -> NOT CAUGHT
+    [G520] BROKEN: map_walls never adds another map's scene walls (its loop over `Navigator.scene_walls` deleted). Predicted CAUGHT by ['KI134FollowUpTest ... -> CAUGHT
+    [G521] BROKEN: a part's reach goes round the SOURCE's walls on every map (the verifier's V5). Predicted CAUGHT by ['KI134FollowUpTests.test_v4a_a_maps ... -> CAUGHT
+    [G522] BROKEN: a crossing ignores the walls of its map (the verifier's V6). Predicted CAUGHT by ['KI134FollowUpTests.test_v4b_a_road_is_crossed_round_ ... -> CAUGHT
+    [G523] BROKEN: map_walls takes THIS map's people as walls (the verifier's V11). Predicted CAUGHT by ['KI134FollowUpTests.test_v4c_people_walk_on_and_t ... -> CAUGHT
+    [G524] BROKEN: standing_walls takes the people of OTHER maps as walls. Predicted CAUGHT by ['KI134FollowUpTests.test_v4c_people_walk_on_and_things_do_ ... -> CAUGHT
+    [G525] BROKEN: a warp is a way on when ANY neighbour of it is in the reach (the verifier's V13). Predicted CAUGHT by ['KI134FollowUpTests.test_v4d_a_d ... -> CAUGHT
+    [G526] BROKEN: a connection with no recorded offset is used (the verifier's V16: int(None)). Predicted CAUGHT by ['KI134FollowUpTests.test_v4e_a_conne ... -> CAUGHT
+    [G527] BROKEN: the landings cache keyed by `id(reach)` again (the verifier's NIT V8). Predicted CAUGHT by ['KI134FollowUpTests.test_v8_the_landings_of ... -> CAUGHT
+    [G528] BROKEN: world_distance never asks for the parts (K134-V3 undone at its call: counted by maps). Predicted CAUGHT by ['KI134FollowUpTests.test_v3 ... -> CAUGHT
+    [G529] BROKEN: part_hops never works the hops out again (a stale answer after the player moves). Predicted CAUGHT by ['KI134FollowUpTests.test_v3_the_ ... -> CAUGHT
+    [G530] BROKEN: region_hops keeps the LAST depth a map is reached at, not the first. Predicted CAUGHT by ['KI134FollowUpTests.test_v3_the_nearest_centr ... -> CAUGHT
+    [G531] BROKEN: region_hops counts a link no walk in the part gets to. Predicted CAUGHT by ['KI134FollowUpTests.test_v3_the_nearest_centre_is_counted_f ... -> CAUGHT
+    22 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 527
+    FROZEN TREE: PASS - the tree did not change from the start to the verdict (25 checks of 209 files, files digest 4ad426b5f8e44051)
+    OVERALL: FAIL
+  revert_step5 run 2 (after the weakref fix and addendum 1: G0, G519, G528-G531) (mutants_r2_step5_run2.out):
+    [G0] CONTROL, the unchanged copy: 374 tests, failing none (ran the copy: True) -> PASS
+    [G519] BROKEN: candidates passes only THIS map's walls (K134-V1 undone at its call: decisions on two maps disagree). Predicted CAUGHT by ['KI134Follow ... -> CAUGHT
+    [G528] BROKEN: world_distance never asks for the parts (K134-V3 undone at its call: counted by maps). Predicted CAUGHT by ['KI134FollowUpTests.test_v3 ... -> CAUGHT
+    [G529] BROKEN: part_hops never works the hops out again (a stale answer after the player moves). Predicted CAUGHT by ['KI134FollowUpTests.test_v3_the_ ... -> CAUGHT
+    [G530] BROKEN: region_hops keeps the LAST depth a map is reached at, not the first. Predicted CAUGHT by ['KI134FollowUpTests.test_v3_the_nearest_centr ... -> CAUGHT
+    [G531] BROKEN: region_hops counts a link no walk in the part gets to. Predicted CAUGHT by ['KI134FollowUpTests.test_v3_the_nearest_centre_is_counted_f ... -> CAUGHT
+    5 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 527
+    FROZEN TREE: PASS - the tree did not change from the start to the verdict (7 checks of 209 files, files digest 61ba4216806bd06f)
+    OVERALL: PASS
+  revert_step5 run 3 (the census's sites: G0, G532-G538) (mutants_r2_step5_run3.out):
+    [G0] CONTROL, the unchanged copy: 375 tests, failing none (ran the copy: True) -> PASS
+    [G532] BROKEN: region_hops never makes its `_Regions` (only the map stood on is known). Predicted CAUGHT by ['KI134FollowUpTests.test_v3_the_nearest_c ... -> CAUGHT
+    [G533] BROKEN: region_hops' call of `landings` deleted (every link a way from every part, landing nowhere). Predicted CAUGHT by ['KI134FollowUpTests.t ... -> CAUGHT
+    [G534] BROKEN: map_walls' call of standing_walls deleted (other maps' standing things no walls). Predicted CAUGHT by ['KI134FollowUpTests.test_v4c_peo ... -> CAUGHT
+    [G535] BROKEN: part_hops' call of standing_walls deleted (the distance ranks through things standing in the way). Predicted CAUGHT by ['KI134FollowUpT ... -> CAUGHT
+    [G536] BROKEN: part_hops' call of region_hops deleted (every map counted by maps). Predicted CAUGHT by ['KI134FollowUpTests.test_v3_the_nearest_centre ... -> CAUGHT
+    [G537] BROKEN: _nearest_place's call of world_distance for a centre BEEN IN deleted (every one as near). Predicted CAUGHT by ['KI134FollowUpTests.test ... -> CAUGHT
+    [G538] BROKEN: _nearest_place's call of world_distance for a door SEEN deleted (every one as near). Predicted CAUGHT by ['KI134FollowUpTests.test_v3_t ... -> CAUGHT
+    7 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 534
+    FROZEN TREE: PASS - the tree did not change from the start to the verdict (9 checks of 209 files, files digest c9ecb688b349a89c)
+    OVERALL: PASS
+
+===== GATES on the round's final tree (s53/ch6stops2/run_gates.py, one process each, 2026-11-06 05:14-05:35; the tree the probe #102 ran, digest 417008c98f062b42), verbatim:
+  == test_goals: exit 0 in 19s
+     ----------------------------------------------------------------------
+     Ran 375 tests in 18.200s
+     OK
+  == test_kb2: exit 0 in 438s
+     ----------------------------------------------------------------------
+     Ran 124 tests in 436.541s
+     OK
+  == test_world: exit 0 in 89s
+     ----------------------------------------------------------------------
+     Ran 132 tests in 88.704s
+     OK
+  == test_saving: exit 0 in 20s
+     ----------------------------------------------------------------------
+     Ran 151 tests in 19.606s
+     OK
+  == test_eyes: exit 0 in 19s
+     ----------------------------------------------------------------------
+     Ran 73 tests in 17.971s
+     OK
+  == test_hands: exit 0 in 3s
+     ----------------------------------------------------------------------
+     Ran 57 tests in 2.968s
+     OK
+  == test_battle: exit 0 in 2s
+     ----------------------------------------------------------------------
+     Ran 107 tests in 1.682s
+     OK
+  == test_check_purity: exit 0 in 614s
+     ----------------------------------------------------------------------
+     Ran 30 tests in 613.264s
+     OK
+  == test_step53_a2: exit 0 in 2s
+     ----------------------------------------------------------------------
+     Ran 34 tests in 1.535s
+     OK (skipped=5)
+  == test_host: exit 0 in 66s
+     ----------------------------------------------------------------------
+     Ran 37 tests in 66.130s
+     OK
+  == check_fairness: exit 0 in 4s
+     28 files (deciding code and loaders); 6 flag doors, each with its purpose; knowledge key paths by kind {'ai': 7269, 'developer': 148, 'hidden': 3860, 'meta': 1087}; developer-only keys ['decomp', 'flag', 'label', 'line', 'measured', 'note', 'object', 'ref', 'script', 'shared_events_map', 'shared_scr
+     PERSON-FAIR DATA DOOR: PASS (0 breaches)
+  == check_purity: exit 0 in 4s
+         host/lifecycle.py: EXIT_BRAIN_RETURNED, EXIT_CRASH, EXIT_FRAME_BUDGET, EXIT_INTERRUPTED, EXIT_OK, EXIT_PARKED, EXIT_PURITY_BREACH, EXIT_REFUSED, EXIT_WALL_CLOCK, Lifecycle
+         host/session.py: Session, start_session
+     VERDICT: PASS
+  == call_census: exit 0 in 6s
+     [ok]   brain/goals.py:part_hops (a call ADDED in brain/goals.py:world_distance): 1 sites
+     CALL-SITE CENSUS since HEAD: 2 AI files changed, 13 functions or added calls, 28 sites; 0 MISSING
+     CALL-SITE CENSUS: PASS
+  == check_paths: exit 0 in 1s
+     PATHS GATE: PASS (48 files, 0 findings)
+  == ledger_check: exit 0 in 0s
+     LEDGER ledger.json: 102 entries; well formed -> PASS

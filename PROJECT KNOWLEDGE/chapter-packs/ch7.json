@@ -15,8 +15,8 @@
   "ai_player/knowledge/seasoned/encounters.json": "33532fcacf2339127c0a944df0937624cf90f5a074ad43802b615d5c966ad8ad",
   "ai_player/knowledge/seasoned/learnsets.json": "83115ad6b9b4747a4deeaef5e1e5516b8f01ba92de577219b7ccab6f987ff4db",
   "ai_player/knowledge/seasoned/species.json": "244a970b1aeacb6791d4b42b9aa1f198bcc744765181dba89d51f6387c4605ed",
-  "ai_player/knowledge/world/bosses.json": "3ef0c4e273c6f7c715c4003495d09d32225fd318a1e55c4b43b11926ef1cd9a7",
-  "ai_player/knowledge/world/campaign.json": "8b980f653291f31599154bfccd7e145bf785d1b8820f8da3b3c3284981ff0e7a",
+  "ai_player/knowledge/world/bosses.json": "3551b535cd896e2b92fd54dfed24e520ae11cf6115d7219de7eb67fe44cbf0d5",
+  "ai_player/knowledge/world/campaign.json": "e2e7d2f437f9df71055eac8ea5e9aaec594a36ccbf2a2c51a09ebf9534d6d787",
   "ai_player/knowledge/world/maps.json": "ecc1cec58ee498de4c7a9912132a768ed9cd8f469048b238f63f78072b4c0991",
   "ai_player/knowledge/world/trainers.json": "2f329852a38e14168ad312746ac01bf3529008a16b7c60f3579783ab7e78fe17"
  },
@@ -25,15 +25,16 @@
   "verifier_sha256": "bf3cc8ad096082ed870826a1aa2b32eb567f26e6e7edd227f58a496e90795640",
   "command": "py -3.12 ai_player/gates/verify_world.py --data ai_player/knowledge/world --knowledge ai_player/knowledge/world",
   "exit": 0,
-  "result": "[VERIFY-WORLD] PASS: 0 mismatches (every record; checked {'bosses': 57, 'campaign': 71, 'citations': 2042, 'events_dead': 54, 'events_gates': 32, 'events_labels': 2300, 'events_matchcall': 76, 'field_moves': 8, 'items': 274, 'items_dead': 5, 'items_eon_excluded': 1, 'items_gift_lines': 176, 'items_golden': 40, 'items_mart_lists': 37, 'map_battles': 543, 'maps': 518, 'trainers': 855}; W1 scanned 6 knowledge files)"
+  "result": "[VERIFY-WORLD] PASS: 0 mismatches (every record; checked {'bosses': 57, 'campaign': 76, 'citations': 2042, 'events_dead': 54, 'events_gates': 32, 'events_labels': 2300, 'events_matchcall': 76, 'field_moves': 8, 'items': 274, 'items_dead': 5, 'items_eon_excluded': 1, 'items_gift_lines': 176, 'items_golden': 40, 'items_mart_lists': 37, 'map_battles': 543, 'maps': 518, 'trainers': 855}; W1 scanned 7 knowledge files)"
  },
  "entries": [
   {
-   "id": "ch7_granite_cave",
+   "id": "ch7_steven",
    "chapter": 7,
-   "order": 30,
+   "order": 32,
    "area": [
     "DEWFORD_TOWN",
+    "ROUTE106",
     "GRANITE_CAVE_1F",
     "GRANITE_CAVE_B1F",
     "GRANITE_CAVE_B2F",
@@ -69,9 +70,83 @@
    "measured": null
   },
   {
+   "id": "ch7_flash",
+   "chapter": 7,
+   "order": 33,
+   "area": [
+    "GRANITE_CAVE_1F"
+   ],
+   "boss": null,
+   "fights": [],
+   "area_bosses": [],
+   "needs": {
+    "field_moves": [],
+    "badges": [],
+    "badge_refs": {},
+    "badge_gates": [],
+    "key_items": [],
+    "party_min": 1,
+    "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
+    "double_battle": false,
+    "types_ahead": [
+     "FIGHTING",
+     "PSYCHIC"
+    ],
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
+    "level_band": {
+     "low": 16,
+     "high": 19,
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY, the fights ahead)"
+    },
+    "money_checkpoint": null
+   },
+   "measured": null
+  },
+  {
+   "id": "ch7_gym_trainers",
+   "chapter": 7,
+   "order": 34,
+   "area": [
+    "DEWFORD_TOWN_GYM"
+   ],
+   "boss": null,
+   "fights": [],
+   "area_bosses": [
+    "BRAWLY"
+   ],
+   "needs": {
+    "field_moves": [],
+    "badges": [],
+    "badge_refs": {},
+    "badge_gates": [],
+    "key_items": [],
+    "party_min": 1,
+    "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
+    "double_battle": false,
+    "types_ahead": [
+     "FIGHTING",
+     "PSYCHIC"
+    ],
+    "types_ahead_of": [
+     "BRAWLY"
+    ],
+    "level_band": {
+     "low": 16,
+     "high": 19,
+     "basis": "decomp boss party levels, lowest and highest (bosses.json BRAWLY, the fights ahead)"
+    },
+    "money_checkpoint": null
+   },
+   "measured": null
+  },
+  {
    "id": "ch7_brawly",
    "chapter": 7,
-   "order": 31,
+   "order": 35,
    "area": [
     "DEWFORD_TOWN",
     "DEWFORD_TOWN_GYM"
@@ -108,6 +183,48 @@
     "money_checkpoint": null
    },
    "measured": null
+  },
+  {
+   "id": "ch7_exp_share",
+   "chapter": 7,
+   "order": 36,
+   "area": [
+    "RUSTBORO_CITY_DEVON_CORP_1F",
+    "RUSTBORO_CITY_DEVON_CORP_2F",
+    "RUSTBORO_CITY_DEVON_CORP_3F"
+   ],
+   "boss": null,
+   "fights": [],
+   "area_bosses": [],
+   "needs": {
+    "field_moves": [],
+    "badges": [],
+    "badge_refs": {},
+    "badge_gates": [],
+    "key_items": [],
+    "party_min": 1,
+    "party_min_basis": "a single battle (or none): one able mon is enough to start it",
+    "party_min_ref": null,
+    "double_battle": false,
+    "types_ahead": [
+     "FIGHTING",
+     "FIRE",
+     "FLYING",
+     "GRASS",
+     "GROUND",
+     "WATER"
+    ],
+    "types_ahead_of": [
+     "RIVAL_ROUTE_110"
+    ],
+    "level_band": {
+     "low": 18,
+     "high": 20,
+     "basis": "decomp boss party levels, lowest and highest (bosses.json RIVAL_ROUTE_110, the fights ahead)"
+    },
+    "money_checkpoint": null
+   },
+   "measured": null
   }
  ],
  "maps": [
@@ -116,6 +233,16 @@
    "role": "area",
    "name": "DewfordTown",
    "map_type": "MAP_TYPE_TOWN",
+   "requires_flash": false,
+   "allow_cycling": true,
+   "allow_escaping": false,
+   "allow_running": true
+  },
+  {
+   "id": "MAP_ROUTE106",
+   "role": "area",
+   "name": "Route106",
+   "map_type": "MAP_TYPE_ROUTE",
    "requires_flash": false,
    "allow_cycling": true,
    "allow_escaping": false,
@@ -172,6 +299,36 @@
    "allow_running": false
   },
   {
+   "id": "MAP_RUSTBORO_CITY_DEVON_CORP_1F",
+   "role": "area",
+   "name": "RustboroCity_DevonCorp_1F",
+   "map_type": "MAP_TYPE_INDOOR",
+   "requires_flash": false,
+   "allow_cycling": false,
+   "allow_escaping": false,
+   "allow_running": false
+  },
+  {
+   "id": "MAP_RUSTBORO_CITY_DEVON_CORP_2F",
+   "role": "area",
+   "name": "RustboroCity_DevonCorp_2F",
+   "map_type": "MAP_TYPE_INDOOR",
+   "requires_flash": false,
+   "allow_cycling": false,
+   "allow_escaping": false,
+   "allow_running": false
+  },
+  {
+   "id": "MAP_RUSTBORO_CITY_DEVON_CORP_3F",
+   "role": "area",
+   "name": "RustboroCity_DevonCorp_3F",
+   "map_type": "MAP_TYPE_INDOOR",
+   "requires_flash": false,
+   "allow_cycling": false,
+   "allow_escaping": false,
+   "allow_running": false
+  },
+  {
    "id": "MAP_DEWFORD_TOWN_HALL",
    "role": "neighbour",
    "name": "DewfordTown_Hall",
@@ -212,9 +369,9 @@
    "allow_running": false
   },
   {
-   "id": "MAP_ROUTE106",
+   "id": "MAP_ROUTE105",
    "role": "neighbour",
-   "name": "Route106",
+   "name": "Route105",
    "map_type": "MAP_TYPE_ROUTE",
    "requires_flash": false,
    "allow_cycling": true,
@@ -226,6 +383,16 @@
    "role": "neighbour",
    "name": "Route107",
    "map_type": "MAP_TYPE_ROUTE",
+   "requires_flash": false,
+   "allow_cycling": true,
+   "allow_escaping": false,
+   "allow_running": true
+  },
+  {
+   "id": "MAP_RUSTBORO_CITY",
+   "role": "neighbour",
+   "name": "RustboroCity",
+   "map_type": "MAP_TYPE_CITY",
    "requires_flash": false,
    "allow_cycling": true,
    "allow_escaping": false,
@@ -291,6 +458,34 @@
      "x": 8,
      "y": 8,
      "dest_map": "MAP_DEWFORD_TOWN_HOUSE2",
+     "dest_warp_id": 0,
+     "kind": "two_way",
+     "why": null
+    }
+   ]
+  },
+  {
+   "map": "MAP_ROUTE106",
+   "connections": [
+    {
+     "dir": "up",
+     "map": "MAP_ROUTE105",
+     "offset": 0,
+     "connects_back": true
+    },
+    {
+     "dir": "down",
+     "map": "MAP_DEWFORD_TOWN",
+     "offset": 60,
+     "connects_back": true
+    }
+   ],
+   "warps": [
+    {
+     "warp": 0,
+     "x": 48,
+     "y": 16,
+     "dest_map": "MAP_GRANITE_CAVE_1F",
      "dest_warp_id": 0,
      "kind": "two_way",
      "why": null
@@ -497,6 +692,78 @@
      "why": null
     }
    ]
+  },
+  {
+   "map": "MAP_RUSTBORO_CITY_DEVON_CORP_1F",
+   "connections": [],
+   "warps": [
+    {
+     "warp": 0,
+     "x": 5,
+     "y": 8,
+     "dest_map": "MAP_RUSTBORO_CITY",
+     "dest_warp_id": 5,
+     "kind": "two_way",
+     "why": null
+    },
+    {
+     "warp": 1,
+     "x": 6,
+     "y": 8,
+     "dest_map": "MAP_RUSTBORO_CITY",
+     "dest_warp_id": 6,
+     "kind": "two_way",
+     "why": null
+    },
+    {
+     "warp": 2,
+     "x": 14,
+     "y": 1,
+     "dest_map": "MAP_RUSTBORO_CITY_DEVON_CORP_2F",
+     "dest_warp_id": 0,
+     "kind": "two_way",
+     "why": null
+    }
+   ]
+  },
+  {
+   "map": "MAP_RUSTBORO_CITY_DEVON_CORP_2F",
+   "connections": [],
+   "warps": [
+    {
+     "warp": 0,
+     "x": 14,
+     "y": 1,
+     "dest_map": "MAP_RUSTBORO_CITY_DEVON_CORP_1F",
+     "dest_warp_id": 2,
+     "kind": "two_way",
+     "why": null
+    },
+    {
+     "warp": 1,
+     "x": 2,
+     "y": 1,
+     "dest_map": "MAP_RUSTBORO_CITY_DEVON_CORP_3F",
+     "dest_warp_id": 0,
+     "kind": "two_way",
+     "why": null
+    }
+   ]
+  },
+  {
+   "map": "MAP_RUSTBORO_CITY_DEVON_CORP_3F",
+   "connections": [],
+   "warps": [
+    {
+     "warp": 0,
+     "x": 2,
+     "y": 1,
+     "dest_map": "MAP_RUSTBORO_CITY_DEVON_CORP_2F",
+     "dest_warp_id": 1,
+     "kind": "two_way",
+     "why": null
+    }
+   ]
   }
  ],
  "warps_in": [
@@ -565,10 +832,18 @@
    "why": null
   },
   {
-   "from": "MAP_ROUTE106",
-   "warp": 0,
-   "dest_map": "MAP_GRANITE_CAVE_1F",
+   "from": "MAP_RUSTBORO_CITY",
+   "warp": 5,
+   "dest_map": "MAP_RUSTBORO_CITY_DEVON_CORP_1F",
    "dest_warp_id": 0,
+   "kind": "two_way",
+   "why": null
+  },
+  {
+   "from": "MAP_RUSTBORO_CITY",
+   "warp": 6,
+   "dest_map": "MAP_RUSTBORO_CITY_DEVON_CORP_1F",
+   "dest_warp_id": 1,
    "kind": "two_way",
    "why": null
   }
@@ -799,7 +1074,7 @@
     "SPECIES_TENTACOOL"
    ],
    "ref": "src/data/trainers.h:1840",
-   "in_area": false,
+   "in_area": true,
    "seen": [
     {
      "map": "MAP_ROUTE106",
@@ -832,7 +1107,7 @@
     "SPECIES_MAGIKARP"
    ],
    "ref": "src/data/trainers.h:4072",
-   "in_area": false,
+   "in_area": true,
    "seen": [
     {
      "map": "MAP_ROUTE106",
@@ -861,7 +1136,7 @@
     "SPECIES_WAILMER"
    ],
    "ref": "src/data/trainers.h:5320",
-   "in_area": false,
+   "in_area": true,
    "seen": [
     {
      "map": "MAP_ROUTE106",
@@ -890,7 +1165,7 @@
     "SPECIES_TENTACOOL"
    ],
    "ref": "src/data/trainers.h:4084",
-   "in_area": false,
+   "in_area": true,
    "seen": [
     {
      "map": "MAP_ROUTE106",
@@ -900,6 +1175,217 @@
      "sight": 3,
      "x": 65,
      "y": 14
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_ANDRES_1",
+   "id": 737,
+   "name": "ANDRES",
+   "class": "RUIN MANIAC",
+   "double": false,
+   "flag": 2017,
+   "levels": [
+    25,
+    25
+   ],
+   "level_min": 25,
+   "level_max": 25,
+   "species": [
+    "SPECIES_SANDSHREW",
+    "SPECIES_SANDSHREW"
+   ],
+   "ref": "src/data/trainers.h:8848",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_ROUTE105",
+     "source": "object",
+     "script": "Route105_EventScript_Andres",
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": 4,
+     "x": 4,
+     "y": 58
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_BEVERLY",
+   "id": 441,
+   "name": "BEVERLY",
+   "class": "SWIMMER♀",
+   "double": false,
+   "flag": 1721,
+   "levels": [
+    25,
+    25
+   ],
+   "level_min": 25,
+   "level_max": 25,
+   "species": [
+    "SPECIES_WINGULL",
+    "SPECIES_WAILMER"
+   ],
+   "ref": "src/data/trainers.h:5296",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_ROUTE105",
+     "source": "object",
+     "script": "Route105_EventScript_Beverly",
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": 3,
+     "x": 8,
+     "y": 45
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_DOMINIK",
+   "id": 152,
+   "name": "DOMINIK",
+   "class": "SWIMMER♂",
+   "double": false,
+   "flag": 1432,
+   "levels": [
+    26
+   ],
+   "level_min": 26,
+   "level_max": 26,
+   "species": [
+    "SPECIES_TENTACOOL"
+   ],
+   "ref": "src/data/trainers.h:1828",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_ROUTE105",
+     "source": "object",
+     "script": "Route105_EventScript_Dominik",
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": 3,
+     "x": 27,
+     "y": 36
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_FOSTER",
+   "id": 46,
+   "name": "FOSTER",
+   "class": "RUIN MANIAC",
+   "double": false,
+   "flag": 1326,
+   "levels": [
+    25,
+    25
+   ],
+   "level_min": 25,
+   "level_max": 25,
+   "species": [
+    "SPECIES_SANDSHREW",
+    "SPECIES_SANDSLASH"
+   ],
+   "ref": "src/data/trainers.h:556",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_ROUTE105",
+     "source": "object",
+     "script": "Route105_EventScript_Foster",
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": 3,
+     "x": 17,
+     "y": 48
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_IMANI",
+   "id": 442,
+   "name": "IMANI",
+   "class": "SWIMMER♀",
+   "double": false,
+   "flag": 1722,
+   "levels": [
+    26
+   ],
+   "level_min": 26,
+   "level_max": 26,
+   "species": [
+    "SPECIES_MARILL"
+   ],
+   "ref": "src/data/trainers.h:5308",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_ROUTE105",
+     "source": "object",
+     "script": "Route105_EventScript_Imani",
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": 3,
+     "x": 19,
+     "y": 9
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_JOSUE",
+   "id": 738,
+   "name": "JOSUE",
+   "class": "BIRD KEEPER",
+   "double": false,
+   "flag": 2018,
+   "levels": [
+    25,
+    25
+   ],
+   "level_min": 25,
+   "level_max": 25,
+   "species": [
+    "SPECIES_TAILLOW",
+    "SPECIES_WINGULL"
+   ],
+   "ref": "src/data/trainers.h:8860",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_ROUTE105",
+     "source": "object",
+     "script": "Route105_EventScript_Josue",
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": 2,
+     "x": 4,
+     "y": 54
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_LUIS",
+   "id": 151,
+   "name": "LUIS",
+   "class": "SWIMMER♂",
+   "double": false,
+   "flag": 1431,
+   "levels": [
+    26
+   ],
+   "level_min": 26,
+   "level_max": 26,
+   "species": [
+    "SPECIES_CARVANHA"
+   ],
+   "ref": "src/data/trainers.h:1816",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_ROUTE105",
+     "source": "object",
+     "script": "Route105_EventScript_Luis",
+     "trainer_type": "TRAINER_TYPE_NORMAL",
+     "sight": 6,
+     "x": 19,
+     "y": 60
     }
    ]
   },
@@ -1093,6 +1579,528 @@
      "y": 11
     }
    ]
+  },
+  {
+   "symbol": "TRAINER_BRENDAN_RUSTBORO_MUDKIP",
+   "id": 593,
+   "name": "BRENDAN",
+   "class": "{PKMN} TRAINER",
+   "double": false,
+   "flag": 1873,
+   "levels": [
+    13,
+    15
+   ],
+   "level_min": 13,
+   "level_max": 15,
+   "species": [
+    "SPECIES_WINGULL",
+    "SPECIES_TREECKO"
+   ],
+   "ref": "src/data/trainers.h:7120",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "object",
+     "script": "RustboroCity_EventScript_Rival",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 16,
+     "y": 50
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger0",
+     "x": 12,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger1",
+     "x": 13,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger2",
+     "x": 14,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger3",
+     "x": 15,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger4",
+     "x": 16,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger5",
+     "x": 17,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger6",
+     "x": 18,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger7",
+     "x": 19,
+     "y": 53
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_BRENDAN_RUSTBORO_TORCHIC",
+   "id": 599,
+   "name": "BRENDAN",
+   "class": "{PKMN} TRAINER",
+   "double": false,
+   "flag": 1879,
+   "levels": [
+    13,
+    15
+   ],
+   "level_min": 13,
+   "level_max": 15,
+   "species": [
+    "SPECIES_SLUGMA",
+    "SPECIES_MUDKIP"
+   ],
+   "ref": "src/data/trainers.h:7192",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "object",
+     "script": "RustboroCity_EventScript_Rival",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 16,
+     "y": 50
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger0",
+     "x": 12,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger1",
+     "x": 13,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger2",
+     "x": 14,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger3",
+     "x": 15,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger4",
+     "x": 16,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger5",
+     "x": 17,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger6",
+     "x": 18,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger7",
+     "x": 19,
+     "y": 53
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_BRENDAN_RUSTBORO_TREECKO",
+   "id": 592,
+   "name": "BRENDAN",
+   "class": "{PKMN} TRAINER",
+   "double": false,
+   "flag": 1872,
+   "levels": [
+    13,
+    15
+   ],
+   "level_min": 13,
+   "level_max": 15,
+   "species": [
+    "SPECIES_LOTAD",
+    "SPECIES_TORCHIC"
+   ],
+   "ref": "src/data/trainers.h:7108",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "object",
+     "script": "RustboroCity_EventScript_Rival",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 16,
+     "y": 50
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger0",
+     "x": 12,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger1",
+     "x": 13,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger2",
+     "x": 14,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger3",
+     "x": 15,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger4",
+     "x": 16,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger5",
+     "x": 17,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger6",
+     "x": 18,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger7",
+     "x": 19,
+     "y": 53
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_MAY_RUSTBORO_MUDKIP",
+   "id": 600,
+   "name": "MAY",
+   "class": "{PKMN} TRAINER",
+   "double": false,
+   "flag": 1880,
+   "levels": [
+    13,
+    15
+   ],
+   "level_min": 13,
+   "level_max": 15,
+   "species": [
+    "SPECIES_WINGULL",
+    "SPECIES_TREECKO"
+   ],
+   "ref": "src/data/trainers.h:7204",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "object",
+     "script": "RustboroCity_EventScript_Rival",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 16,
+     "y": 50
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger0",
+     "x": 12,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger1",
+     "x": 13,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger2",
+     "x": 14,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger3",
+     "x": 15,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger4",
+     "x": 16,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger5",
+     "x": 17,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger6",
+     "x": 18,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger7",
+     "x": 19,
+     "y": 53
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_MAY_RUSTBORO_TORCHIC",
+   "id": 769,
+   "name": "MAY",
+   "class": "{PKMN} TRAINER",
+   "double": false,
+   "flag": 2049,
+   "levels": [
+    13,
+    15
+   ],
+   "level_min": 13,
+   "level_max": 15,
+   "species": [
+    "SPECIES_TORKOAL",
+    "SPECIES_MUDKIP"
+   ],
+   "ref": "src/data/trainers.h:9232",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "object",
+     "script": "RustboroCity_EventScript_Rival",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 16,
+     "y": 50
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger0",
+     "x": 12,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger1",
+     "x": 13,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger2",
+     "x": 14,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger3",
+     "x": 15,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger4",
+     "x": 16,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger5",
+     "x": 17,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger6",
+     "x": 18,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger7",
+     "x": 19,
+     "y": 53
+    }
+   ]
+  },
+  {
+   "symbol": "TRAINER_MAY_RUSTBORO_TREECKO",
+   "id": 768,
+   "name": "MAY",
+   "class": "{PKMN} TRAINER",
+   "double": false,
+   "flag": 2048,
+   "levels": [
+    13,
+    15
+   ],
+   "level_min": 13,
+   "level_max": 15,
+   "species": [
+    "SPECIES_LOTAD",
+    "SPECIES_TORCHIC"
+   ],
+   "ref": "src/data/trainers.h:9220",
+   "in_area": false,
+   "seen": [
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "object",
+     "script": "RustboroCity_EventScript_Rival",
+     "trainer_type": "TRAINER_TYPE_NONE",
+     "sight": 0,
+     "x": 16,
+     "y": 50
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger0",
+     "x": 12,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger1",
+     "x": 13,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger2",
+     "x": 14,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger3",
+     "x": 15,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger4",
+     "x": 16,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger5",
+     "x": 17,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger6",
+     "x": 18,
+     "y": 53
+    },
+    {
+     "map": "MAP_RUSTBORO_CITY",
+     "source": "coord_event",
+     "script": "RustboroCity_EventScript_RivalTrigger7",
+     "x": 19,
+     "y": 53
+    }
+   ]
   }
  ],
  "bosses": [
@@ -1101,7 +2109,7 @@
    "id": "TRAINER_BRAWLY_1",
    "name": "BRAWLY",
    "role": "gym_leader",
-   "order": 31,
+   "order": 35,
    "entry": "ch7_brawly",
    "double": false,
    "party": [
@@ -1312,6 +2320,105 @@
      "chance_pct": 30,
      "min_level": 10,
      "max_level": 20
+    }
+   ]
+  },
+  {
+   "map": "MAP_ROUTE106",
+   "method": "good_rod",
+   "encounter_rate": 30,
+   "requires": null,
+   "condition": null,
+   "species": [
+    {
+     "species": "SPECIES_MAGIKARP",
+     "name": "MAGIKARP",
+     "chance_pct": 60,
+     "min_level": 10,
+     "max_level": 30
+    },
+    {
+     "species": "SPECIES_TENTACOOL",
+     "name": "TENTACOOL",
+     "chance_pct": 20,
+     "min_level": 10,
+     "max_level": 30
+    },
+    {
+     "species": "SPECIES_WAILMER",
+     "name": "WAILMER",
+     "chance_pct": 20,
+     "min_level": 10,
+     "max_level": 30
+    }
+   ]
+  },
+  {
+   "map": "MAP_ROUTE106",
+   "method": "old_rod",
+   "encounter_rate": 30,
+   "requires": null,
+   "condition": null,
+   "species": [
+    {
+     "species": "SPECIES_MAGIKARP",
+     "name": "MAGIKARP",
+     "chance_pct": 70,
+     "min_level": 5,
+     "max_level": 10
+    },
+    {
+     "species": "SPECIES_TENTACOOL",
+     "name": "TENTACOOL",
+     "chance_pct": 30,
+     "min_level": 5,
+     "max_level": 10
+    }
+   ]
+  },
+  {
+   "map": "MAP_ROUTE106",
+   "method": "super_rod",
+   "encounter_rate": 30,
+   "requires": null,
+   "condition": null,
+   "species": [
+    {
+     "species": "SPECIES_WAILMER",
+     "name": "WAILMER",
+     "chance_pct": 100,
+     "min_level": 20,
+     "max_level": 45
+    }
+   ]
+  },
+  {
+   "map": "MAP_ROUTE106",
+   "method": "water",
+   "encounter_rate": 4,
+   "requires": null,
+   "condition": null,
+   "species": [
+    {
+     "species": "SPECIES_TENTACOOL",
+     "name": "TENTACOOL",
+     "chance_pct": 60,
+     "min_level": 5,
+     "max_level": 35
+    },
+    {
+     "species": "SPECIES_WINGULL",
+     "name": "WINGULL",
+     "chance_pct": 35,
+     "min_level": 10,
+     "max_level": 30
+    },
+    {
+     "species": "SPECIES_PELIPPER",
+     "name": "PELIPPER",
+     "chance_pct": 5,
+     "min_level": 25,
+     "max_level": 30
     }
    ]
   },
@@ -1663,7 +2770,7 @@
   {
    "n": 7,
    "kind": "one_way_warp",
-   "claim": "none of the 33 warps touching the area maps is one-way by warp data (ledges, holes and scripted movement are NOT modelled)",
+   "claim": "none of the 41 warps touching the area maps is one-way by warp data (ledges, holes and scripted movement are NOT modelled)",
    "source": "maps.json warps"
   }
  ]

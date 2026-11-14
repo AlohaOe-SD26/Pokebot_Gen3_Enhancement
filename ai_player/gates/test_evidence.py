@@ -63,6 +63,19 @@ def this_head() -> str:
                           text=True).stdout.strip()
 
 
+def in_git_repository(root: Path = REPO) -> bool:
+    """(boss preparation round 3, the round-2 verifier's V2-n1) Is the package inside a git repository? The tests that read
+    THIS tree's git (its HEAD, its diff) skip in a copy with no .git instead of failing on `git rev-parse`; the throw-away
+    repository tests make their own and run everywhere."""
+    try:
+        return subprocess.run(["git", "rev-parse", "--git-dir"], cwd=str(root), capture_output=True, timeout=30).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+NO_GIT = "no git repository holds this package (a copy without .git): the test reads this tree's git"
+
+
 class Folder(unittest.TestCase):
     def setUp(self) -> None:
         self.root = Path(tempfile.mkdtemp(prefix="ai_test_evidence_"))
@@ -91,6 +104,7 @@ class KeepEarlierTests(Folder):
         found = [p for p in self.folder.rglob("*.txt") if "the earlier run" in p.read_text(encoding="utf-8")]
         self.assertEqual(found, [])
 
+    @unittest.skipUnless(in_git_repository(), NO_GIT)
     def test_this_trees_file_is_left_to_be_rewritten_and_outside_files_are_not_touched(self) -> None:
         mine = self.folder / "a.txt"
         # (#28-evidence-identity) THIS tree's file: this HEAD's ai_player/ files and this digest
@@ -469,6 +483,7 @@ class SnapshotTests(Folder):
     comments" could not be checked) `provenance.snapshot_tree` keeps the tree a graded driver ran on; its digest is
     recomputed from the kept zip's own contents and two kept trees are compared file by file."""
 
+    @unittest.skipUnless(in_git_repository(), NO_GIT)
     def test_this_tree_is_kept_and_its_digest_recomputed_from_the_zip(self) -> None:
         from ai_player.gates.provenance import compare_trees, provenance, snapshot_tree, tree_files
 

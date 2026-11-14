@@ -1,0 +1,1 @@
+{"schema":1,"lane":"full","started":"2026-11-13T22:46:31","wall_s":14363.9,"code_line":"HEAD fa9f073d; covers:revert_r1 clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)","overall":"PASS","suites":[{"name":"revert_r1","status":"PASS","exit":0,"seconds":3362.8,"tests":641,"skipped":0,"failing":[],"shards":null}]}

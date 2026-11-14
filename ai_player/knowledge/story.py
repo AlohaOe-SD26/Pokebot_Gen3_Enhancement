@@ -4,7 +4,7 @@ WHY A FILE OF MILESTONES AND NOTHING ELSE (USER RULING 35; design draft §3: "th
 decides HOW"): a person who plays Pokemon knows the shape of the story (a starter, a rival, a POKéDEX, gyms) and learns the
 particulars from what the game says. The file (`knowledge/milestones.json`, extracted from the bot's teaching docstrings and
 data by the TEST-side `gates/extract_milestones.py`, every proof checked against pret/pokeemerald by its `--verify`) holds,
-per milestone of badge 1 (RULING 37 Q3: 4 chapters) and of chapter 5, RUSTBORO after the badge (2026-11-01; 28 milestones in all): the flags / vars / trainers that PROVE it happened, where it happens,
+per milestone of badge 1 (RULING 37 Q3: 4 chapters) of chapter 5, RUSTBORO after the badge (2026-11-01), and of chapters 6-7, MR. BRINEY's boat to DEWFORD and the DEWFORD GYM (2026-11-05; 36 milestones in all): the flags / vars / trainers that PROVE it happened, where it happens,
 what a person DOES for it (`steps`), the HINT the game gives (with the words whose reading unlocks it), the fight and its
 levels, and the LOOKS a person recognises (a figure, a door, the wall clock). This module only READS the file, once, and
 answers from the eyes' `Progress.marks`: which milestone is the current one, and what the maps of a step are for this
@@ -78,6 +78,8 @@ class Milestone:
     fight_named: bool = False
     #: (build step 5.1) not required for the story: never the current milestone (the gym's trainers)
     optional: bool = False
+    #: (chapter 6 stops round 7, VR6-5) who the fight is with, by trainer name ("BRAWLY_1"): milestones.json `fight.trainers`
+    fight_trainers: tuple[str, ...] = ()
 
     def done(self, marks: dict[str, int]) -> bool | None:
         """Every proof holds on the eyes' marks; None when a proof is not in the marks (not read)."""
@@ -127,7 +129,8 @@ class Story:
                         for s in raw.get("steps", [])),
             hint_said=hint.get("said", ""), hint_words=hint.get("words"), hint_map=self.resolve(hint.get("map")),
             fight_levels=tuple(fight.get("levels", ())), waypoint=raw.get("waypoint"),
-            fight_named=bool(fight.get("named")), optional=bool(raw.get("optional")))
+            fight_named=bool(fight.get("named")), optional=bool(raw.get("optional")),
+            fight_trainers=tuple(fight.get("trainers", ())))
 
     def index(self, milestone_id: str) -> int:
         for number, milestone in enumerate(self.milestones):

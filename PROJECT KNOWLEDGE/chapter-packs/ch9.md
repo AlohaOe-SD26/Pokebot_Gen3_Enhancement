@@ -15,15 +15,15 @@ Inputs verified first by `ai_player/gates/verify_world.py` (sha256 `bf3cc8ad0960
 | `ai_player/knowledge/seasoned/encounters.json` | `33532fcacf233912` |
 | `ai_player/knowledge/seasoned/learnsets.json` | `83115ad6b9b4747a` |
 | `ai_player/knowledge/seasoned/species.json` | `244a970b1aeacb67` |
-| `ai_player/knowledge/world/bosses.json` | `3ef0c4e273c6f7c7` |
-| `ai_player/knowledge/world/campaign.json` | `8b980f653291f315` |
+| `ai_player/knowledge/world/bosses.json` | `3551b535cd896e2b` |
+| `ai_player/knowledge/world/campaign.json` | `e2e7d2f437f9df71` |
 | `ai_player/knowledge/world/maps.json` | `ecc1cec58ee498de` |
 | `ai_player/knowledge/world/trainers.json` | `2f329852a38e1416` |
 
 ## Entries
-- **ch9_rival_route110** (order 34) area SLATEPORT_CITY, ROUTE110; boss RIVAL_ROUTE_110; party_min 1; types ahead FIGHTING/FIRE/FLYING/GRASS/GROUND/WATER; level band 18-20
-- **ch9_wally_mauville** (order 35) area ROUTE110, MAUVILLE_CITY; boss WALLY_MAUVILLE; party_min 1; types ahead PSYCHIC; level band 16-16
-- **ch9_wattson** (order 36) area MAUVILLE_CITY, MAUVILLE_CITY_GYM; boss WATTSON; party_min 1; types ahead ELECTRIC/STEEL; level band 20-24
+- **ch9_rival_route110** (order 39) area SLATEPORT_CITY, ROUTE110; boss RIVAL_ROUTE_110; party_min 1; types ahead FIGHTING/FIRE/FLYING/GRASS/GROUND/WATER; level band 18-20
+- **ch9_wally_mauville** (order 40) area ROUTE110, MAUVILLE_CITY; boss WALLY_MAUVILLE; party_min 1; types ahead PSYCHIC; level band 16-16
+- **ch9_wattson** (order 41) area MAUVILLE_CITY, MAUVILLE_CITY_GYM; boss WATTSON; party_min 1; types ahead ELECTRIC/STEEL; level band 20-24
 
 ## Maps and links
 - **SLATEPORT_CITY** (city). Connections: up ROUTE110, down ROUTE109, right ROUTE134. Warps: SLATEPORT_CITY_POKEMON_CENTER_1F, SLATEPORT_CITY_MART, SLATEPORT_CITY_STERNS_SHIPYARD_1F, SLATEPORT_CITY_BATTLE_TENT_LOBBY, SLATEPORT_CITY_POKEMON_FAN_CLUB, SLATEPORT_CITY_OCEANIC_MUSEUM_1F x2, SLATEPORT_CITY_NAME_RATERS_HOUSE, SLATEPORT_CITY_HARBOR x2, SLATEPORT_CITY_HOUSE.

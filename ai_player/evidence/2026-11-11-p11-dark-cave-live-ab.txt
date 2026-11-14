@@ -1,0 +1,142 @@
+AI PLAYER P11-1, THE DARK GRANITE CAVE CROSSING - THE LIVE RUNS (development: one trajectory per seed, never a rate)
+date: 2026-11-11
+worktree: .claude/worktrees/ch6-p11, branch wip/ch6-p11, base 18c3d51b, the change UNCOMMITTED
+spec: PROJECT KNOWLEDGE/ai-research-notes/2026-11-09-P11-1-DARK-CAVE-DIAGNOSIS.md, section 4 (option B with A folded in)
+run book: C:/Remote Projects/_ai_lab/s53/p11r1/STATE.md (every step, dated; the round was cut by a usage limit at about
+11:32 and resumed at 11:56 by a second builder)
+LEDGER IDS: this branch's #112 up OVERLAP wip/ch6-bp1's #112-#121; they are renumbered at the merge.
+STEPS are counted from the AI's own position digests (records on GRANITE CAVE B1F 24:8 / B2F 24:9; a step = a position
+change), never from frames; the GAME's records (the end state's flags, the launcher's map and frame) say what a run reached.
+Judges (read only, in the run book's folder): judge_p11.py (stays, steps, the discriminator, the control streams),
+judge_ab_extra.py (first kinded decide per dark stay, where every `way` decide was, the ladder each one named), ab_frames.py
+(first frame on 1F after the crossing, first frame in STEVEN's room, the map changes).
+
+THE ARMS (s53/p11r1/stage, made by make_arm_p11.py; digests in stage/manifest.json):
+  A  the BASE 18c3d51b (git archive), play digest e471e2e5
+  B  FIX: the worktree's ai_player at the time (round 1 4ae16f7f; round 2a b0e3506c; round 2b, the final, 18ec75fd)
+  F  FAULT: B with knowledge/world/ways.json removed (the loader then knows no dark map: today's behaviour)
+  K  B with ONE planted extra CHOICES draw at the top of brain/explore.py dark_way (the replay control's fault arm)
+
+#112 p11_starts (seeds 6431-6433): VOID, no frame played (the start makers crashed at import); seeds not re-used.
+#113 p11_starts2 (6443-6445, the base code's play brain): S1-S3 HELD: the first settled looks on ROUTE 106, GRANITE CAVE 1F
+     and B1F from probe-C3 / C1 / C2 (B1F at f846512 / f769693 / f654114, every B1F arrival (4, 21) from 1F (17, 11)).
+
+#114 ab (6434-6436, prediction 3473e997, ROUND 1, code a3cd8adf): THE FIX NEVER FIRED. FIX = FAULT frame for frame in 3 of 3
+     pairs (the same stays, steps, frames), 0 `way` decides: the walk toward STEVEN is GOAL-LESS (its goal record: "to
+     GRANITE_CAVE_STEVENS_ROOM (by looking around: not told yet)", "map": null) and round 1 asked for a way only toward a
+     goal. D held on F (B2F exit lit after 175 / 255 / 207 steps), so the A/B was not vacuous: the code was. Today's crossing
+     measured again: B2F 405 / 265 / 217 steps, the (29, 13) B1F stay 42 / 38 / 38. P1-P5, P7 MISSED (FIX = FAULT); P6 HELD.
+     (judge_p11's own "FIX B2F > 120 FAIL; escalate to C" lines on #114 are about today's code, not option B.)
+
+#115 ab2 (6446-6448, prediction 12d58893, ROUND 2a: goal-less way through, code c8029ea3): THE WAY FIRED.
+     pair  F B2F exit lit after  FIX B2F / F B2F  FIX (29,13) stay / F  FIX first B1F (left by)  dark steps FIX / F  dark battles
+     C1    237 steps            127 / 247        4 / 36                78 by (28, 21)           209 / 503           9 / 34
+     C2    249                  101 / 259        4 / 42                80 by (28, 21)           292 / 1012          18 / 48
+     C3    337                  103 / 347        4 / 44                72 by (28, 21)           286 / 575           16 / 38
+     D HELD 3/3. P1a HELD as predicted (the diagnosis's 120 missed in C1); P1b (<= 135) HELD; P1c (never > 150) HELD; P2 HELD;
+     P3 HELD; P4 HELD; P5 HELD (every FIX dark stay's first kinded decide is `way`; F none); P6 HELD (CLEAN 6/6, every run
+     ended "ch7_steven reached"); P7 HELD 3/3 (FIX first on 1F after the crossing earlier by 41,188 / 30,726 / 54,009 frames);
+     P8 HELD (no `way` decide off the dark maps); P9 HELD 3/3; P10 HELD 3/3. DELIVERED_STEVEN_LETTER 6/6.
+
+#116 ab3 (6449-6451, prediction 9feb5230, ROUND 2b = THE FINAL CODE, never straight back, code 55a895d3):
+     pair  F B2F exit lit after  FIX B2F / F B2F  FIX (29,13) stay / F  FIX first B1F (left by)  dark steps FIX / F  dark battles
+     C1    205 steps            141 / 215        4 / 32                56 by (28, 21)           308 / 457           16 / 27
+     C2    241                  127 / 251        4 / 44                50 by (28, 21)           296 / 467           23 / 29
+     C3    never lit (204, back  103 / 204        4 / 44                50 by (28, 21)           157 / 767           13 / 49
+           up by (28, 21))
+     D HELD C1, C2; C3 VACUOUS BY THE PRE-REGISTERED JUDGE (F-C3's first B2F stay never lit the exit at all, then went back up;
+     judge_p11 reads "never lit" as not late): C3 is information only. P1 MISSED: FIX B2F C1 141 > 135 (C2 127 held); never
+     above 150 HELD. P2, P3, P4, P5, P6, P7 (earlier by 28,376 / 47,444 / 116,740 frames), P8, P9, P10 HELD. P11 HELD for its
+     first half (no FIX `way` decide names the ladder its stay arrived by); its second half (a stay arrived at B1F (25, 13) or
+     B2F (29, 13)) never occurred: NOT EXERCISED LIVE.
+
+ACROSS #115 AND #116 (6 pairs, one trajectory each): FIX's first B2F stay 101-141 steps (FAULT 204-347); its (29, 13) stay
+4 steps in 6 of 6 (FAULT 32-44); its first B1F stay 50-80 steps by the named ladder in 6 of 6; on a second crossing (a
+memory that has seen the tiles) FIX walked 42 + 61 + 4, the static shortest walk. No FIX B2F stay above 150: the diagnosis's
+escalation to option C is NOT indicated. Against its line "about 120": 3 of 6 above (127, 141, 127).
+THE CAVEAT THE HEADLINE CARRIES: to STEVEN's room OVERALL, FIX was earlier in 3 of 6 (#115 C1, C2; #116 C3) and LATER in 3
+(#115 C3: +97,782 vs +77,969 frames; #116 C1: +86,784 vs +53,301; #116 C2: +115,243 vs +83,656). In each of those, after
+the crossing, the go goal (its 9,000-frame budget eaten by dark battles, "failed 2 times in a row: put aside") walked on as
+a look_around, a `pick_up` errand for the item ball at 1F (17, 7) took it back over 1F's one-way ledge ("not picked up: no
+item ball where it lay at (17, 7) any more" in #116 C1), and the walk left the cave (ROUTE 106, DEWFORD, its gym) and
+crossed the dark again. Post-crossing departures: FIX 4 of 6, FAULT 1 of 6 (FAULT also left the cave BEFORE crossing in 2
+of 6). The fact never applies on 1F (lit); whether its faster arrival makes the departure likelier is a FREQUENCY question
+6 trajectories cannot answer. Logged as a separate finding (the errand for a gone item ball; the goal-less walk leaving).
+
+#117 lit (6437-6439, prediction aca9c96b written 11:17 for the round-1 code, used unchanged: its claims hold for any version
+     whose fact applies only on requires_flash maps; code 55a895d3, round 2b): L1 HELD 3/3 (the control streams, decide, goal,
+     goal_end, instructed and every press WITH frames, identical up to the first GRANITE CAVE B1F record: 27 / 57 / 62
+     records, 10 / 13 / 16 decides, on ROUTE 106 and GRANITE CAVE 1F); L2 HELD 3/3 (the first difference is the first B1F
+     decide: FIX `way` toward (28, 21), F a frontier); L3 HELD (CLEAN 6/6). Caveat: the lit stretch is short (the R106 start
+     is near the cave mouth).
+
+THE CHAPTERS 1-5 REPLAY CONTROL (BP-1's #113 design; predictions 2b98bcf9 / 60512d1e written 11:17, used unchanged; code
+round 2b; a determinism check: one trajectory replayed per pair, never "measured twice"):
+#118 control1 (6440-6441): C1 HELD: A (base) = B (FIX) WITH FRAMES on L1 (a fresh New Game to ch1_pokedex, Story/TREECKO,
+     566 records) and C1L4 (the BADGE-1 chain end to ch5_rival_meet, Story, 739 records), so also by (kind, choice).
+     C2 HELD: K (B + one planted CHOICES draw at the top of dark_way) differs from A on L1 at record 58 of 566 (f9714, a
+     decide's score 6.49 -> 6.76: the comparison sees a one-draw difference). C3 HELD (the GAME's marks equal A/B; end-state
+     md5 differ, as predicted). C4 HELD (CLEAN 5/5). Every run ended "<target> reached".
+#119 control2 (6442): C1 MISSED AS WORDED: on C2L4 (Catcher, to ch5_rival_meet) the A and B control streams first differ at
+     record 589 of 1,044 (a goal_end one frame apart: f611729 / f611728). On the FULL actions.jsonl (first_split.py --acts)
+     every record's frame, decision, action and digest is IDENTICAL for 6,091 records, every press with its frame, through
+     the door warp out of RUSTBORO's Pokemon Center (11:5 -> 0:3, `transition` at f611661 in both); the GAME then settled
+     that map load after 19 frames in A and 18 in B ("watch busy 19f" / "18f"), and every later record is one frame apart,
+     then the runs diverge (end frames 706,595 / 708,962; Combusken EXP 7,637 / 7,877; the same party PIDs). C3 HELD (the
+     GAME's marks equal), C4 HELD (CLEAN 2/2); both "ch5_rival_meet reached".
+     READING (the difference is the GAME's, with identical AI inputs before it; its cause is argued, not shown): the GBA's
+     inputs are the buttons per frame (identical here), the start state (one file) and the real-time clock, which the
+     launcher sets from the HOST clock (the two arms started 3 s apart). The pinned decomp's DoTimeBasedEvents
+     (src/clock.c:26-34: RtcCalcLocalTime, UpdatePerDay, UpdatePerMinute; SKIPPED while InPokemonCenter()) runs on every map
+     load (src/overworld.c:802, :853), and the split is at the first map load after a Pokemon Center stay: consistent with
+     clock-dependent work, not proven (no A-vs-A arm was run). BP-1's #121 recorded the same on the same leg (C2L4: identical
+     inputs, a one-frame difference at a map change). P11-1's code on a lit map: `dark_way` returns None at its first
+     statement (`dark(memory.const)` false).
+     A SECOND, HARMLESS NONDETERMINISM the full comparison shows: the first record that differs at all is #1,341, only in
+     the ORDER of a printed set of map keys in a `world say` reason ({'0:3', '0:31', '0:30'} vs {'0:31', '0:30', '0:3'}):
+     Python's string hashing differs per process. Text only here; a decision that iterated such a set would break replay.
+
+THE OFFLINE EVIDENCE (the run book's folder): dark_sim_repro.out (the diagnosis's model reproduced: P0 114/217/40, P2
+70/99/4, P3 42/61/4); base_vs_fault.out (the base 18c3d51b and the worktree with the fact removed walk the dark model
+identically in 15 of 15 legs: FAULT = today's code); model_legs_v1.out / model_legs_v2.out (the real explorer on the
+decomp-drawn model, toward STEVEN and goal-less); through_cycles_round2a.out / _round2b.out (following the way-through
+marks: round 2a 21 of 29 step back, 11 starts cycle; round 2b 8 marks, 0 back, 0 cycles).
+THE FINAL TREE AGAINST THE LIVE ARM B (round 2b, play 18ec75fd): after the live runs, test_kb2's pins of the world files
+were extended to ways.json (the first builder had not run test_kb2: 3 real failures) and that exposed one KI-128 hit:
+knowledge/ways.py's docstring named "maps.json"; reworded. diff -rq of stage/armB against the final worktree: ways.py (that
+docstring line), test_kb2.py, ledger.json; ast_same.py: ways.py the SAME apart from docstrings (its fault arm, armB vs armK
+explore.py, reads DIFFERENT). The live runs therefore ran the final play code's behaviour.
+
+GENERALITY: the fact covers the 7 requires_flash maps of maps.json (test: exactly those). After round 2b it marks 8 ways
+through: GRANITE CAVE B1F (4, 21) -> (28, 21), B2F (28, 21) -> (29, 13), B1F (29, 13) -> (25, 13) [LIVE: #115, #116],
+B1F (8, 5) -> (28, 21) and B2F (12, 3) -> (8, 5) [not live], VICTORY ROAD B1F (42, 25) -> (30, 25) [not live], and two in
+the unused CAVE_OF_ORIGIN_UNUSED_RUBY_SAPPHIRE maps (unreachable in Emerald). The goal-keyed ways (`way_on`, 45 entries) are
+unchanged by 2b. VICTORY ROAD: the extractor's walk on foot treats HM obstacles as walls and surfable water as impassable,
+so its VICTORY ROAD facts describe a player WITHOUT Surf, Strength or Rock Smash; most of its arrivals had only "back the
+way you came" (removed by 2b); the one mark left is UNTESTED and may not be the way a player with those HMs takes.
+
+THE MUTANTS: gates/revert_p11.py v3 (sha256 aca839a3, hashed before its run): OVERALL PASS, P0 159 tests, 28 CAUGHT and 2
+REDUNDANT ALONE as predicted (ai_player/evidence/2026-11-11-p11-REVERT.txt). v1 (b16f47b3) ran once on round 1's code
+(PASS; its evidence archived under evidence/archive/a7066fb4e7ee4fa5-18c3d51b/); v2 (8ba47d1f) ran once with every
+prediction held but its frozen-tree check FAILED (the worktree was edited while it ran): not evidence. v3 ran twice: on the
+tree 5da56a39 (before the test_kb2 / docstring fix; archived) and on the FINAL tree 044dacd1 (the current REVERT.txt), both
+PASS with the same counts; the second run's checksum line flags only knowledge/ways.py (the docstring).
+THE GATES on the final tree 044dacd1 (ai_player/evidence/2026-11-11-p11-UNITS.txt, run_units.py): 20 of 20 suites exit 0
+(test_goals, test_world, test_eyes, test_kb2, test_battle, test_saving, test_hands, test_host, test_check_purity,
+test_step53_a2, test_evidence, test_safety_gates, check_fairness, check_purity, call_census, check_paths, check_anchors,
+test_check_anchors, test_ways, ledger_check), FROZEN TREE PASS, with the worktree's sandbox staged (a junction to the main
+mgba and copies of small config files, s53/p11r1/stage_wt_p11.py; removed after). The first run, unstaged, failed
+test_eyes / test_saving / test_hands / test_host for the missing mgba and test_kb2 for 3 real pins (fixed, above).
+
+CORRECTION (appended by P11-2's builder, 2026-11-11; the P11-1 verifier's V6; nothing above is rewritten)
+The caveat above quotes "not picked up: no item ball where it lay at (17, 7) any more" (#116 C1) as if the game said it. It
+is the AI's OWN goal_end record (its look found no ball there), not the game's words, and the item's flag was not read
+then. The GAME's record, read now from the kept end state of #116 C1 (s53/p11r1/out/ab3/ab3-B-C1-6450/end_state.ss1) by
+s53/p11r2/read_flags.py (an offline reader of the save state's event flags, checked first against the harness's GAME
+marks: FLAG_DELIVERED_STEVEN_LETTER reads 0 at the start and 1 at the end, as the run's marks_before / marks_after say):
+FLAG_ITEM_GRANITE_CAVE_1F_ESCAPE_ROPE (0x41A, the ball at 1F (17, 7)) = 1, so the ball WAS gone. It was gone before the run
+began: the flag reads 1 in all three B1F start states and 0 in all three G1F ones (s53/p11r2/read_flags.out), so the
+start maker's own play picked it up, and the B1F starts restored the AI's world memory (which still lists the ball) without
+its goal memory (which records the pick-up). P11-2's diagnosis of the detour (s53/p11r2/P11X-DIAGNOSIS.md): the errand is
+an artifact of those starts, not of the AI's code; the three pairs where FIX reached STEVEN later (#115 C3, #116 C1, #116
+C2) are exactly the three where only FIX ran it.

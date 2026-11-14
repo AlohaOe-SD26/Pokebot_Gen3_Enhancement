@@ -53,7 +53,7 @@ from ai_player.personality import (  # noqa: E402
     DRIFT_CHANCE, DRIFT_EVERY, DRIFT_STEPS, ERRANDS, PersonalityState, choose_favourite, choose_starter, wild_species,
 )
 from ai_player.skills.story import answer_question  # noqa: E402
-from ai_player.world.memory import MapMemory, TileFact, WorldMemory  # noqa: E402
+from ai_player.world.memory import MapMemory, TileFact, WorldMemory, learn_edges  # noqa: E402
 
 KNOWLEDGE = json.loads((REPO / "ai_player" / "knowledge" / "milestones.json").read_text(encoding="utf-8"))
 #: (build step 5.2) the page PROF. BIRCH's lab scene shows after "go see MAY?" (the `ask` step's own words)
@@ -868,6 +868,10 @@ class PlayLoopTests(unittest.TestCase):
                 self.manager = manager_
                 self.roams, self.heals, self.shopping, self.picked = [], [], [], []
                 self.saver = None  # (R1) set by the play brain when it keeps a memory file, as on the real GoalRunner
+
+            def ride(self, target):  # (chapter 6 NS2) what the play brain hands the navigator as its `rider`
+                return "not taken: the test's stand-in runner"
+                yield  # noqa: unreachable - a generator
 
             def pursue(self, goal, milestone, index, current):
                 pursued.append(goal.kind)
@@ -4127,6 +4131,476 @@ class WayTests(unittest.TestCase):
         self.assertTrue(keeps_going(world, road, "ROUTE103"))
 
 
+# ------------------------------------------------------------------------------------------------ KI-134 (2026-11-05)
+#: A tile of a picture (`ki134_map`): '.' floor, '#' a wall, 'D' a door (used pressing up, from the tile below), 'v' a ledge
+#: jumped going down, ' ' a tile never seen.
+KI134_TILES = {".": (False, None, False, "NORMAL"), "#": (True, None, False, "NORMAL"), "D": (True, None, True, "ANIMATED_DOOR"),
+               "v": (False, "down", False, "JUMP_SOUTH")}
+
+
+def ki134_map(world: WorldMemory, key: str, const: str, rows: list[str], left: int = -1, top: int = -1) -> MapMemory:
+    """(KI-134) A visited map drawn as a picture (`KI134_TILES`), its first character at (`left`, `top`): a border of walls
+    drawn round every map, so no walk goes round a part through the unseen tiles the navigator is optimistic about."""
+    memory = MapMemory(key, const, const)
+    for dy, row in enumerate(rows):
+        for dx, char in enumerate(row):
+            if char == " ":
+                continue
+            xy = (left + dx, top + dy)
+            blocked, ledge, door, behavior = KI134_TILES[char]
+            memory.tiles[xy] = TileFact(blocked, False, False, False, ledge, door, door, 3, behavior, 0, xy)
+    memory.visits[next(xy for xy in sorted(memory.tiles) if memory.passable(xy))] = 1
+    world.maps[key] = memory
+    return memory
+
+
+def ki134_link(world: WorldMemory, key: str, tile: tuple[int, int], to: str, arrival) -> None:
+    world.warps[f"{key}|{tile[0]},{tile[1]}"] = {"to": to, "arrival": list(arrival) if arrival else None, "direction": "up",
+                                                  "uses": 1, "by": "ai", "inferred": False}
+
+
+#: ROUTE 104 in miniature (`ki134_world`): a north part (rows 0-4: the woods' north door N (1, 2), the flower shop's door F
+#: (8, 2)) and a south part (rows 6-11: the woods' south door S (1, 7), the cottage's door G (5, 9)), row 5 between them
+KI134_ROUTE = ["############", "#..........#", "#..........#", "#.D......D.#", "#..........#", "#..........#",
+               "############", "#..........#", "#.D........#", "#..........#", "#.....D....#", "#..........#", "#..........#",
+               "############"]
+KI134_KEYS = {"route": "0:19", "woods": "24:11", "cottage": "17:0", "shop": "13:0", "city": "0:3", "gym": "11:3"}
+
+
+def ki134_world(between: str = "############", city: bool = False) -> WorldMemory:
+    """(KI-134) ROUTE 104 (`KI134_ROUTE`, its row 5 drawn `between`) and the woods (one part: the north door WN (1, 0) lands
+    in ROUTE 104's north part, the south door WS (3, 0) in its south part; WN first in the warp graph, as in the probe's
+    memory), the cottage and the flower shop; with `city`, RUSTBORO above ROUTE 104 (a road down, crossed once from
+    (2, 3) to (2, 0): the edges learned as a crossing teaches them) and its GYM's door (6, 1)."""
+    world = WorldMemory()
+    keys = KI134_KEYS
+    rows = list(KI134_ROUTE)
+    rows[6] = between
+    if city:  # what ROUTE 104 shows of RUSTBORO past its top edge (its rows 2 and 3, at y -2 and -1), the top row open to it
+        rows = ["############", "#..........#", "#..........#"] + rows[1:]
+    route = ki134_map(world, keys["route"], "ROUTE104", rows, top=-3 if city else -1)
+    ki134_map(world, keys["woods"], "PETALBURG_WOODS", ["#######", "#.D.D.#", "#.....#", "#######"])
+    ki134_map(world, keys["cottage"], "ROUTE104_MR_BRINEYS_HOUSE", ["#####", "#...#", "#####"])
+    ki134_map(world, keys["shop"], "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", ["#####", "#...#", "#####"])
+    for tile, to, arrival in (((1, 2), "woods", (1, 1)), ((8, 2), "shop", (2, 0)), ((1, 7), "woods", (3, 1)),
+                              ((5, 9), "cottage", (1, 0))):
+        ki134_link(world, keys["route"], tile, keys[to], arrival)
+    ki134_link(world, keys["woods"], (1, 0), keys["route"], (1, 3))
+    ki134_link(world, keys["woods"], (3, 0), keys["route"], (1, 8))
+    if city:
+        rustboro = ki134_map(world, keys["city"], "RUSTBORO_CITY",
+                             ["############", "#..........#", "#......D...#", "#..........#", "#..........#",
+                              "#..........#", "#..........#"])  # rows 0-3 its own, rows 4-5 ROUTE 104's seen past its edge
+        ki134_map(world, keys["gym"], "RUSTBORO_CITY_GYM", ["#####", "#...#", "#####"])
+        ki134_link(world, keys["city"], (6, 1), keys["gym"], (2, 0))
+        world.connections.append({"source": keys["city"], "target": keys["route"], "direction": "down", "from": [2, 3],
+                                  "arrival": [2, 0], "offset": [0, -4], "by": "ai", "frame": 1})
+        learn_edges(rustboro, route, "down", (2, 3), (2, 0))
+    return world
+
+
+def ki134_goal(const: str):
+    return lambda memory, key: memory is not None and memory.const == const
+
+
+def ki134_hops(route) -> list:
+    """A route as (kind, the warp's tile or the road's side) per link."""
+    return None if route is None else [(kind, tuple(link["tile"]) if kind == "warp" else link["direction"])
+                                       for kind, link in route]
+
+
+class KI134RegionTests(unittest.TestCase):
+    """(KI-134, 2026-11-05: the chapters 6-7 probe, ledger #96, 0 of 3 runs reached MR. BRINEY's cottage) THE ROUTE IS
+    FROM WHERE THE PLAYER STANDS, over the parts of maps a walk gets to (`brain/explore.py` route_to). A map in two parts is
+    two places: from the woods the route to the cottage is the SOUTH door, and from ROUTE 104's north part it is out
+    through the woods and back in. The navigator's own reach decides what is one part: a ledge one way, an unseen tile
+    optimistic. A connected map routes exactly as the search by maps did."""
+
+    N, F, S, G, WN, WS = (1, 2), (8, 2), (1, 7), (5, 9), (1, 0), (3, 0)
+
+    def route(self, world, key: str, const: str, at=None, walls=frozenset()):
+        from ai_player.brain.explore import route_to
+        return ki134_hops(route_to(world, KI134_KEYS[key], ki134_goal(const), at, walls)
+                          if at is not None else route_to(world, KI134_KEYS[key], ki134_goal(const)))
+
+    def chosen(self, world, key: str, at, const: str, scene_walls=None):
+        """What the travel intent's explorer would go to first (the jitter off: its best place), standing on `at`."""
+        from ai_player.brain.explore import candidates, weights_for
+        world._last.key, world._last.xy = KI134_KEYS[key], at  # noqa: SLF001 - test side: where the player stands
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        if scene_walls:
+            nav.scene_walls = {KI134_KEYS[key]: set(scene_walls)}
+        seen = look(const=world.maps[KI134_KEYS[key]].const)
+        seen = replace(seen, player=replace(seen.player, x=at[0], y=at[1]))
+        found = candidates(nav, seen, weights_for("Story"), ki134_goal(const), jitter_on=False)
+        best = max(found, key=lambda t: (t.score, t.kind))
+        return best.kind, best.tile, best.exit
+
+    def test_f1_from_the_woods_the_route_to_the_cottage_is_the_south_door(self):
+        """FAULT (the probe's 47 ping-pongs on `24:11|14,5`): searched by maps, the first link from the woods into ROUTE 104
+        was the north door it had just come through."""
+        world = ki134_world()
+        self.assertEqual(self.route(world, "woods", "ROUTE104_MR_BRINEYS_HOUSE"), [("warp", self.WN), ("warp", self.G)])  # by maps
+        self.assertEqual(self.route(world, "woods", "ROUTE104_MR_BRINEYS_HOUSE", (1, 1)), [("warp", self.WS), ("warp", self.G)])
+        self.assertEqual(self.chosen(world, "woods", (1, 1), "ROUTE104_MR_BRINEYS_HOUSE"), ("route", (3, 1), self.WS))
+
+    def test_f2_from_the_north_part_the_route_goes_out_through_the_woods_and_back_in(self):
+        """FAULT (the probe's C1 and C2: on ROUTE 104's north strip the route was the cottage's own door, which no walk there
+        gets to; the explorer then walked off the map): the way is the woods' north door, then the south door."""
+        world = ki134_world()
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE"), [("warp", self.G)])  # by maps
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)),
+                         [("warp", self.N), ("warp", self.WS), ("warp", self.G)])
+        self.assertEqual(self.chosen(world, "route", (3, 1), "ROUTE104_MR_BRINEYS_HOUSE"), ("route", (1, 3), self.N))
+        from ai_player.brain.goals import travel_intent  # the probe's path: the go goal's travel intent
+        world._last.key, world._last.xy = KI134_KEYS["route"], (3, 1)  # noqa: SLF001
+        nav = Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+        seen = look(const="ROUTE104")
+        target = travel_intent("ROUTE104_MR_BRINEYS_HOUSE", "Story", 9000, lambda s: False).choose(
+            nav, replace(seen, player=replace(seen.player, x=3, y=1)))
+        self.assertEqual((target.kind, target.exit), ("route", self.N))
+        # CONTROL: in the south part the cottage's door is the way, as before
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 10)), [("warp", self.G)])
+        self.assertEqual(self.chosen(world, "route", (3, 10), "ROUTE104_MR_BRINEYS_HOUSE"), ("route", (5, 10), self.G))
+
+    def test_c1_a_connected_map_routes_exactly_as_the_search_by_maps(self):
+        """CONTROL: with row 5 open, ROUTE 104 is one part, and from EVERY tile the route to every map is the search by
+        maps', link for link (the warp graph's order kept)."""
+        for city in (False, True):
+            world = ki134_world("#..........#", city=city)
+            for key in ("route", "woods") + (("city",) if city else ()):
+                memory = world.maps[KI134_KEYS[key]]
+                tiles = [xy for xy in memory.tiles if memory.passable(xy) and not memory.outside(xy)]
+                for const in ("ROUTE104_MR_BRINEYS_HOUSE", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", "PETALBURG_WOODS",
+                              "RUSTBORO_CITY_GYM", "ROUTE104"):
+                    by_maps = self.route(world, key, const)
+                    for xy in tiles:
+                        self.assertEqual(self.route(world, key, const, xy), by_maps, (city, key, const, xy))
+
+    def test_l1_a_ledge_is_one_way(self):
+        """A LEDGE row between the parts: jumped going down, so the north part gets to the cottage's door; never climbed,
+        so from the south part the flower shop (north) is out through the woods and in by the north door, and with no
+        woods known there is no way at all (by maps: the shop's own door)."""
+        world = ki134_world("#vvvvvvvvvv#")
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)), [("warp", self.G)])  # down: a way
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP"), [("warp", self.F)])  # by maps
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", (3, 10)),
+                         [("warp", self.S), ("warp", self.WN), ("warp", self.F)])
+        del world.warps["24:11|1,0"], world.warps["24:11|3,0"]
+        self.assertIsNone(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", (3, 10)))
+
+    def test_u1_an_unseen_gap_is_walked_through_as_the_navigator_plans_until_it_is_seen(self):
+        """STATED BEHAVIOUR: tiles never seen between the parts are optimistic, exactly as the navigator plans a walk (cost
+        3, maybe floor): the parts count as one and the cottage's door is the way. Once the gap is seen to be wall, the
+        route goes round through the woods (the walk there shows it: the next decision routes round)."""
+        world = ki134_world("#####  #####")
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)), [("warp", self.G)])
+        for x in (4, 5):
+            world.maps[KI134_KEYS["route"]].tiles[(x, 5)] = TileFact(True, False, False, False, None, False, False, 3,
+                                                                     "NORMAL", 0, (x, 4))
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)),
+                         [("warp", self.N), ("warp", self.WS), ("warp", self.G)])
+
+    def test_k1_a_road_lands_in_the_part_its_edge_tiles_step_into(self):
+        """CONNECTIONS: RUSTBORO's road down lands on ROUTE 104's top row, its NORTH part (the edge tiles walked across,
+        moved by the crossing's offset), so the way on to the cottage is through the woods (by maps: straight to the
+        cottage's door). Known from its far side, the road up is crossed only from the north part, and lands on
+        RUSTBORO's bottom row (the offset taken back): from the south part the GYM is out through the woods first."""
+        world = ki134_world(city=True)
+        self.assertEqual(self.route(world, "city", "ROUTE104_MR_BRINEYS_HOUSE"), [("connection", "down"), ("warp", self.G)])
+        self.assertEqual(self.route(world, "city", "ROUTE104_MR_BRINEYS_HOUSE", (5, 2)),
+                         [("connection", "down"), ("warp", self.N), ("warp", self.WS), ("warp", self.G)])
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY_GYM", (3, 1)), [("connection", "up"), ("warp", (6, 1))])
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY_GYM"), [("connection", "up"), ("warp", (6, 1))])  # by maps
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY_GYM", (3, 10)),
+                         [("warp", self.S), ("warp", self.WN), ("connection", "up"), ("warp", (6, 1))])
+
+    def test_k2_two_parts_joined_only_past_an_edge_are_two_parts(self):
+        """The tiles seen past a crossed edge are the next map's (`in_map_walls`, KI-129 Part A): ROUTE 104's top row split
+        by a wall, RUSTBORO's tiles above joining the halves, the east half's door is no way from the west half but up the
+        road and down again (the probe's C1 and C2 walked off the map's top edge toward the far part this way)."""
+        world = ki134_world(city=True)
+        route, rustboro = world.maps[KI134_KEYS["route"]], world.maps[KI134_KEYS["city"]]
+        for y in (0, 1, 2, 3, 4):  # a wall down x = 4 of the north part; the shop's door (8, 2) is in its east half
+            route.tiles[(4, y)] = TileFact(True, False, False, False, None, False, False, 3, "NORMAL", 0, (4, y))
+        for y in (4, 5):  # the same wall, as RUSTBORO shows ROUTE 104's top rows past its own edge
+            rustboro.tiles[(4, y)] = TileFact(True, False, False, False, None, False, False, 3, "NORMAL", 0, (4, y))
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP"), [("warp", self.F)])  # by maps
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", (1, 1)),
+                         [("connection", "up"), ("connection", "down"), ("warp", self.F)])
+        self.assertEqual(self.route(world, "route", "ROUTE104_PRETTY_PETAL_FLOWER_SHOP", (7, 1)), [("warp", self.F)])
+
+    def test_w1_a_tile_a_scene_sent_the_player_back_from_cuts_the_parts_as_the_walk_does(self):
+        """The route goes round what the navigator's walk goes round (`Navigator.walls` less the people): a scene wall on
+        the one gap of row 5 makes two parts of ROUTE 104, as `cut_off` counts them."""
+        world = ki134_world("#####.######")
+        self.assertEqual(self.chosen(world, "route", (3, 1), "ROUTE104_MR_BRINEYS_HOUSE"), ("route", (5, 10), self.G))
+        self.assertEqual(self.chosen(world, "route", (3, 1), "ROUTE104_MR_BRINEYS_HOUSE", scene_walls={(4, 5)}),
+                         ("route", (1, 3), self.N))
+
+    def test_p1_a_pocket_above_a_ledge_is_a_part_of_its_own(self):
+        """An arrival on a WALKABLE tile is searched though every step from it lands in a part already searched: a one-tile
+        pocket above a ledge (the jump down its only step) stands before a door the part below never gets to."""
+        world = WorldMemory()
+        ki134_map(world, "0:40", "ROUTE200", ["######", "##D###", "##.###", "#.v..#", "#....#", "#....#", "######"])
+        ki134_map(world, "0:41", "ROUTE201", ["#######", "#.D.D.#", "#.....#", "#######"])
+        ki134_map(world, "0:42", "SECRET_ROOM", ["#####", "#...#", "#####"])
+        ki134_link(world, "0:41", (1, 0), "0:40", (2, 4))  # first: the part below the ledge
+        ki134_link(world, "0:41", (3, 0), "0:40", (1, 1))  # then: the pocket, above the ledge (1, 2)
+        ki134_link(world, "0:40", (1, 0), "0:42", (2, 0))  # the pocket's door
+        from ai_player.brain.explore import route_to
+        self.assertEqual(ki134_hops(route_to(world, "0:41", ki134_goal("SECRET_ROOM"), (1, 1))), [("warp", (3, 0)), ("warp", (1, 0))])
+
+    def test_e1_a_goal_on_no_map_it_knows_works_out_no_reach(self):
+        """COST: a way through parts of maps is a way through maps, so when the search by maps knows none (a goal on no map
+        it knows: the commonest walk of all) no part is worked out; with a goal it knows, they are."""
+        from ai_player.brain import explore
+        world = ki134_world()
+        calls = []
+        real = explore.distances
+        with mock.patch.object(explore, "distances", lambda *args, **kw: calls.append(args[1]) or real(*args, **kw)):
+            self.assertIsNone(explore.route_to(world, KI134_KEYS["route"], ki134_goal("DEWFORD_TOWN"), (3, 1)))
+            self.assertEqual(calls, [])
+            explore.route_to(world, KI134_KEYS["route"], ki134_goal("ROUTE104_MR_BRINEYS_HOUSE"), (3, 1))
+            self.assertTrue(calls)
+
+    def test_e2_a_part_is_searched_once_whatever_tile_or_door_the_walk_comes_back_in_by(self):
+        """COST: an arrival inside a part already searched, or ON a door whose steps all lead into one (a door is never
+        walked through, so it is in no reach), is not searched again: one reach per part, not one per door of a town."""
+        from ai_player.brain import explore
+        real = explore.distances
+        for arrival in ((1, 3), (1, 2)):  # back by the floor below the north door, then ON that door, as the eyes record it
+            world = ki134_world()
+            world.warps["24:11|1,0"]["arrival"] = list(arrival)
+            calls = []
+            with mock.patch.object(explore, "distances", lambda *args, **kw: calls.append((args[0].key, args[1])) or real(*args, **kw)):
+                explore.route_to(world, KI134_KEYS["route"], ki134_goal("ROUTE104_MR_BRINEYS_HOUSE"), (3, 1))
+            self.assertEqual(calls, [("0:19", (3, 1)), ("24:11", (1, 1)), ("13:0", (2, 0)), ("0:19", (1, 8))], arrival)
+
+    def test_n1_a_door_with_no_arrival_recorded_is_a_way_to_the_goal_never_a_way_on(self):
+        """A warp whose arrival is not recorded is still the way INTO the map it leads to, but no part of that map is known
+        to be reached by it, so no route goes on from it (by maps: on to the cottage as if the arrival did not matter)."""
+        world = ki134_world()
+        world.warps["0:19|1,2"]["arrival"] = None
+        self.assertEqual(self.route(world, "route", "PETALBURG_WOODS", (3, 1)), [("warp", self.N)])
+        self.assertIsNone(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE", (3, 1)))
+        self.assertEqual(self.route(world, "route", "ROUTE104_MR_BRINEYS_HOUSE"), [("warp", self.G)])
+
+
+def ki134_towns(between: str = "############") -> WorldMemory:
+    """(KI-134 V3) `ki134_world(between, city=True)` with PETALBURG beside ROUTE 104's SOUTH part (a door at (8, 9) there,
+    the way the real PETALBURG touches only the south part) and a POKéMON CENTER been in in each town: RUSTBORO's (door
+    (2, 1)), PETALBURG's (door (3, 0)). Keys: PETALBURG 0:0, its centre 1:0, RUSTBORO's centre 1:1."""
+    world = ki134_world(between, city=True)
+    door = lambda xy: TileFact(True, False, False, False, None, True, True, 3, "ANIMATED_DOOR", 0, xy)  # noqa: E731
+    world.maps[KI134_KEYS["route"]].tiles[(8, 9)] = door((8, 9))
+    world.maps[KI134_KEYS["city"]].tiles[(2, 1)] = door((2, 1))
+    ki134_map(world, "0:0", "PETALBURG_CITY", ["#######", "#.D.D.#", "#.....#", "#######"])
+    ki134_map(world, "1:0", "PETALBURG_CITY_POKEMON_CENTER_1F", ["#####", "#...#", "#####"])
+    ki134_map(world, "1:1", "RUSTBORO_CITY_POKEMON_CENTER_1F", ["#####", "#...#", "#####"])
+    ki134_link(world, KI134_KEYS["route"], (8, 9), "0:0", (1, 1))
+    ki134_link(world, "0:0", (1, 0), KI134_KEYS["route"], (8, 10))
+    ki134_link(world, "0:0", (3, 0), "1:0", (1, 0))
+    ki134_link(world, KI134_KEYS["city"], (2, 1), "1:1", (1, 0))
+    return world
+
+
+class KI134FollowUpTests(unittest.TestCase):
+    """(the KI-134 verifier's MINOR findings, 2026-11-06; its report s53/ki134/verify_report.md) K134-V1: every map's walls
+    go into the route, so decisions on two maps agree; K134-V2: a road no walk in the part can cross is no way even TO the
+    map it leads to (its mutant V10 survived); K134-V3: places are ranked by the links of the route from where the player
+    stands (`goals.world_distance`); K134-V4: the guards its mutants V5, V6, V11, V13 and V16 showed untested; the NIT V8:
+    the landings cache is keyed by the part, not by `id()`. Each test carries its FAULT half (what the code did before, or
+    what the guard's mutant does) and a CONTROL."""
+
+    N, F, S, G, WN, WS = KI134RegionTests.N, KI134RegionTests.F, KI134RegionTests.S, KI134RegionTests.G, \
+        KI134RegionTests.WN, KI134RegionTests.WS
+    COTTAGE = "ROUTE104_MR_BRINEYS_HOUSE"
+
+    @staticmethod
+    def nav(world) -> Navigator:
+        return Navigator(Hands(None, None, random.Random(1), random.Random(1), None, lambda line: None), world, random.Random(1))
+
+    @staticmethod
+    def decide(world, nav, key: str, at, const: str):
+        """What the travel intent's explorer would go to first (jitter off), standing on `at` of map `key`, with `nav`."""
+        from ai_player.brain.explore import candidates, weights_for
+        world._last.key, world._last.xy = KI134_KEYS[key], at  # noqa: SLF001 - test side: where the player stands
+        seen = look(const=world.maps[KI134_KEYS[key]].const)
+        seen = replace(seen, player=replace(seen.player, x=at[0], y=at[1]))
+        found = candidates(nav, seen, weights_for("Story"), ki134_goal(const), jitter_on=False)
+        best = max(found, key=lambda t: (t.score, t.kind))
+        return best.kind, best.tile, best.exit
+
+    @staticmethod
+    def route(world, key: str, const: str, at=None, walls=frozenset()):
+        from ai_player.brain.explore import route_to
+        source = KI134_KEYS.get(key, key)
+        return ki134_hops(route_to(world, source, ki134_goal(const), at, walls) if at is not None
+                          else route_to(world, source, ki134_goal(const)))
+
+    def test_v1_decisions_on_two_maps_see_the_same_walls(self):
+        """K134-V1: a tile a scene sent the player back from on ROUTE 104 (the one gap of row 5) is a wall of ROUTE 104 for
+        the decision in the woods too: from the north part the way is the woods' north door, and from the woods the SOUTH
+        door, not back out of the north one. FAULT half (the verifier's flipflop.py): with only the source's walls, the
+        woods' route was [WN, G], back out where the player came in. CONTROL: no wall, ROUTE 104 is one part, and both
+        decisions take the short way (the cottage's door; the woods' north door, then the gap)."""
+        world = ki134_world("#####.######")
+        nav = self.nav(world)
+        nav.scene_walls = {KI134_KEYS["route"]: {(4, 5)}}
+        self.assertEqual(self.decide(world, nav, "route", (3, 1), self.COTTAGE), ("route", (1, 3), self.N))
+        self.assertEqual(self.decide(world, nav, "woods", (1, 1), self.COTTAGE), ("route", (3, 1), self.WS))
+        self.assertEqual(self.route(world, "woods", self.COTTAGE, (1, 1), frozenset()), [("warp", self.WN), ("warp", self.G)])  # FAULT
+        control = ki134_world("#####.######")
+        nav = self.nav(control)
+        self.assertEqual(self.decide(control, nav, "route", (3, 1), self.COTTAGE), ("route", (5, 10), self.G))
+        self.assertEqual(self.decide(control, nav, "woods", (1, 1), self.COTTAGE), ("route", (1, 1), self.WN))
+
+    def test_v2_a_road_no_walk_here_crosses_is_no_way_even_to_the_map_it_leads_to(self):
+        """K134-V2 (its mutant V10 survived every test): from ROUTE 104's SOUTH part, the goal RUSTBORO_CITY itself (the map
+        the road leads to) is out through the woods and in again by the north door, then up the road; the road up is no
+        way from the south part even though it leads straight to the goal. FAULT half: by maps, the road up."""
+        world = ki134_world(city=True)
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY", (3, 10)),
+                         [("warp", self.S), ("warp", self.WN), ("connection", "up")])
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY"), [("connection", "up")])  # FAULT half: by maps
+        self.assertEqual(self.route(world, "route", "RUSTBORO_CITY", (3, 1)), [("connection", "up")])  # CONTROL: north part
+
+    def test_v3_the_nearest_centre_is_counted_from_where_the_player_stands(self):
+        """K134-V3 (the verifier's rank_check.py on probe-C1's chapter-5 memory): on ROUTE 104's NORTH part the nearest
+        POKéMON CENTER is RUSTBORO's (up the road, then its door: 2 links), not PETALBURG's (out through the woods, back in
+        by the south door, then PETALBURG's road and door: 4). FAULT half: counted by maps (no tile known: the rule before),
+        ROUTE 104 touches both towns, the two tie, and the tie goes to PETALBURG by name. CONTROL: in the SOUTH part,
+        PETALBURG's is the nearest, as before."""
+        from ai_player.brain.goals import part_hops, world_distance
+        world = ki134_towns()
+        world._last.key, world._last.xy = KI134_KEYS["route"], (3, 1)  # noqa: SLF001 - the north part
+        self.assertEqual((world_distance(world, KI134_KEYS["city"]), world_distance(world, "0:0")), (1, 3))
+        self.assertEqual((world_distance(world, "1:1"), world_distance(world, "1:0")), (2, 4))
+        self.assertEqual((world_distance(world, KI134_KEYS["route"]), world_distance(world, KI134_KEYS["woods"])), (0, 1))
+        self.assertEqual(manager("Story").heal_place(world)[0], "RUSTBORO_CITY_POKEMON_CENTER_1F")
+        world._last.xy = (3, 10)  # noqa: SLF001 - CONTROL: the south part, the same memory (the hops worked out again)
+        self.assertEqual((world_distance(world, KI134_KEYS["city"]), world_distance(world, "0:0")), (3, 1))
+        self.assertEqual(manager("Story").heal_place(world)[0], "PETALBURG_CITY_POKEMON_CENTER_1F")
+        world._last.xy = None  # noqa: SLF001 - FAULT half: by maps
+        self.assertIsNone(part_hops(world))
+        self.assertEqual((world_distance(world, KI134_KEYS["city"]), world_distance(world, "0:0")), (1, 1))
+        self.assertEqual(manager("Story").heal_place(world)[0], "PETALBURG_CITY_POKEMON_CENTER_1F")
+        # a map no walk from here is known to get to counts by maps, as before: the woods' south door with no arrival
+        world._last.xy = (3, 1)  # noqa: SLF001
+        world.warps["24:11|3,0"]["arrival"] = None
+        self.assertNotIn("0:0", part_hops(world))
+        self.assertEqual(world_distance(world, "0:0"), 1)
+        # the two centres only SEEN as doors (`GoalManager.memory.landmarks`), never been in: the same ranking by their towns
+        world = ki134_towns()
+        del world.warps["0:0|3,0"], world.warps[f"{KI134_KEYS['city']}|2,1"], world.maps["1:0"], world.maps["1:1"]
+        for at, nearest in (((3, 1), "RUSTBORO_CITY_POKEMON_CENTER_1F"), ((3, 10), "PETALBURG_CITY_POKEMON_CENTER_1F"),
+                            (None, "PETALBURG_CITY_POKEMON_CENTER_1F")):  # None: FAULT half, by maps (the tie, by name)
+            world._last.key, world._last.xy = KI134_KEYS["route"], at  # noqa: SLF001
+            mgr = manager("Story")
+            mgr.memory.landmarks[(KI134_KEYS["city"], (2, 1))] = "pokemon_center"
+            mgr.memory.landmarks[("0:0", (3, 0))] = "pokemon_center"
+            self.assertEqual(mgr.heal_place(world)[0], nearest, at)
+            self.assertIsNotNone(mgr.heal_place(world)[2], at)  # a door SEEN: the place is that door's tile
+
+    def test_v3b_what_stands_on_a_map_counts_for_the_distance_and_people_walk_on(self):
+        """K134-V3, the walls it ranks round (`explore.standing_walls`, as the route does): ROUTE 104 with ONE gap in row 5
+        is one part, so from the north part PETALBURG is one link (its door, through the gap), as near as RUSTBORO, and the
+        tie goes to PETALBURG by name. A THING standing in the gap (an item ball, a rock: it never moves) makes ROUTE 104 two
+        parts again: PETALBURG is three links, and RUSTBORO's centre is the nearest. A PERSON standing there walks on: one
+        link, as with the gap open."""
+        from ai_player.brain.goals import world_distance
+        for kind, things, people, expected, nearest in (
+                ("open", set(), set(), 1, "PETALBURG_CITY_POKEMON_CENTER_1F"),
+                ("thing", {(4, 5)}, set(), 3, "RUSTBORO_CITY_POKEMON_CENTER_1F"),
+                ("person", {(4, 5)}, {(4, 5)}, 1, "PETALBURG_CITY_POKEMON_CENTER_1F")):
+            world = ki134_towns("#####.######")
+            memory = world.maps[KI134_KEYS["route"]]
+            memory.objects_now, memory.people_now = frozenset(things), frozenset(people)
+            world._last.key, world._last.xy = KI134_KEYS["route"], (3, 1)  # noqa: SLF001
+            self.assertEqual((world_distance(world, KI134_KEYS["city"]), world_distance(world, "0:0")), (1, expected), kind)
+            self.assertEqual(manager("Story").heal_place(world)[0], nearest, kind)
+
+    def test_v4a_a_maps_walls_count_on_that_map_only(self):
+        """K134-V4 (its mutant V5: the source's walls on every map): a wall of the WOODS at (4, 5) is no wall of ROUTE 104,
+        whose one gap is at (4, 5): from the woods the way to the cottage is the north door and the gap. FAULT half: the
+        same tile given as ROUTE 104's cuts it in two, and the way is the south door."""
+        world = ki134_world("#####.######")
+        self.assertEqual(self.route(world, "woods", self.COTTAGE, (1, 1), frozenset({(4, 5)})), [("warp", self.WN), ("warp", self.G)])
+        self.assertEqual(self.route(world, "woods", self.COTTAGE, (1, 1), {KI134_KEYS["woods"]: frozenset({(4, 5)})}),
+                         [("warp", self.WN), ("warp", self.G)])
+        self.assertEqual(self.route(world, "woods", self.COTTAGE, (1, 1), {KI134_KEYS["route"]: frozenset({(4, 5)})}),
+                         [("warp", self.WS), ("warp", self.G)])  # FAULT half
+
+    def test_v4b_a_road_is_crossed_round_the_walls_of_its_map(self):
+        """K134-V4 (its mutant V6: a crossing ignores the walls): with every tile of the road row past RUSTBORO's bottom
+        edge a wall (a THING standing on each, as the screen shows it past the edge: people are no walls in `map_walls`;
+        the test passes the walls as a raw set), the road down is no way and no route
+        to the cottage is known. CONTROL: no wall, down the road, through the woods, to the cottage."""
+        world = ki134_world(city=True)
+        row = frozenset((x, 4) for x in range(10))
+        self.assertIsNone(self.route(world, "city", self.COTTAGE, (5, 2), row))
+        self.assertEqual(self.route(world, "city", self.COTTAGE, (5, 2), frozenset()),
+                         [("connection", "down"), ("warp", self.N), ("warp", self.WS), ("warp", self.G)])
+
+    def test_v4c_people_walk_on_and_things_do_not(self):
+        """K134-V4 (its mutant V11: the people passed as walls): STATED RULE, people walk on. A PERSON in the one gap of row 5
+        is no wall of the route (`map_walls`): from the north part it is the cottage's door, on this map and seen from the
+        woods alike; a THING standing there (an item ball, a rock: never moves) cuts ROUTE 104 in two. (The explorer's own
+        reach still walks round the person NOW: the walk itself goes round whoever stands in the way.)"""
+        from ai_player.brain.explore import map_walls, route_to
+        for kind, people, expected in (("person", True, [("warp", self.G)]),
+                                       ("thing", False, [("warp", self.N), ("warp", self.WS), ("warp", self.G)])):
+            world = ki134_world("#####.######")
+            memory = world.maps[KI134_KEYS["route"]]
+            memory.objects_now = frozenset({(4, 5)})
+            memory.people_now = frozenset({(4, 5)}) if people else frozenset()
+            nav = self.nav(world)
+            walls = map_walls(nav, memory, nav.walls(memory, (3, 1)))
+            self.assertEqual(ki134_hops(route_to(world, memory.key, ki134_goal(self.COTTAGE), (3, 1), walls)), expected, kind)
+            # seen from the woods (ROUTE 104 another map): the same answer (`standing_walls`)
+            woods = world.maps[KI134_KEYS["woods"]]
+            walls = map_walls(nav, woods, nav.walls(woods, (1, 1)))
+            self.assertEqual(ki134_hops(route_to(world, woods.key, ki134_goal(self.COTTAGE), (1, 1), walls))[0],
+                             ("warp", self.WN) if people else ("warp", self.WS), kind)
+
+    def test_v4d_a_door_is_used_from_the_side_its_look_asks_for(self):
+        """K134-V4 (its mutant V13: a warp a way on when ANY neighbour is in the reach): a door used pressing UP, whose tile
+        below is a wall, is no way from a part that reaches only its sides and the tile above. CONTROL: the tile below
+        walkable, the door is the way. By maps it is the way either way."""
+        for below, expected in (("#", None), (".", [("warp", (1, 1))])):
+            world = WorldMemory()
+            ki134_map(world, "0:50", "ROUTE300", ["#####", "#...#", "#.D.#", f"#.{below}.#", "#####"])
+            ki134_map(world, "0:51", "ROOM300", ["#####", "#...#", "#####"])
+            ki134_link(world, "0:50", (1, 1), "0:51", (1, 0))
+            self.assertEqual(self.route(world, "0:50", "ROOM300", (0, 0)), expected, below)
+            self.assertEqual(self.route(world, "0:50", "ROOM300"), [("warp", (1, 1))], below)
+
+    def test_v4e_a_connection_with_no_offset_is_no_way_on(self):
+        """K134-V4 (its mutant V16: the offset-less guard dropped; live it would raise on `int(None)`): a road crossed with no
+        offset recorded lands nowhere known, so it is no way on and the route is None, with no error. By maps it is the
+        way, as before."""
+        world = ki134_world(city=True)
+        world.connections[0]["offset"] = None
+        self.assertIsNone(self.route(world, "city", self.COTTAGE, (5, 2)))
+        self.assertEqual(self.route(world, "city", self.COTTAGE), [("connection", "down"), ("warp", self.G)])
+
+    def test_v8_the_landings_of_a_reach_the_search_did_not_work_out_are_never_kept(self):
+        """The verifier's NIT V8: the landings cache was keyed by `id(reach)`, and a freed reach's id, reused, hit a stale
+        entry. Keyed by the PART (its index among the parts searched), a reach the search did not work out keeps nothing
+        and is answered afresh every time; one it did is kept."""
+        from ai_player.brain.explore import _Regions
+        world = ki134_world(city=True)
+        regions = _Regions(world, KI134_KEYS["city"], frozenset())
+        link = world.connections[0]
+        loose = {(x, 3): 0.0 for x in range(10)}  # a reach this search never worked out (a caller's own)
+        self.assertEqual(regions.landings(KI134_KEYS["city"], loose, "connection", link), [(x, 0) for x in range(10)])
+        self.assertEqual(regions.landing, {})  # FAULT half (`id()`): kept under the id of a dict that may be freed
+        part = regions.part_from(KI134_KEYS["city"], (5, 2))
+        self.assertEqual(regions.landings(KI134_KEYS["city"], part, "connection", link), [(x, 0) for x in range(10)])
+        self.assertEqual(list(regions.landing), [(KI134_KEYS["city"], 0, "down", (0, -4))])
+
+
 class BossLevelTests(unittest.TestCase):
     def boss_levels(self) -> dict:
         support = Path(os.environ.get("AI_PLAYER_TEST_SUPPORT_ROOT") or REPO)
@@ -6687,10 +7161,12 @@ class Chapter5Tests(unittest.TestCase):
 
     def test_the_eight_follow_the_badge_in_this_order(self):
         story = load_story("BOY")
-        self.assertEqual([m.id for m in story.milestones[20:]], self.CH5)
-        self.assertEqual({m.id for m in story.milestones[20:] if m.optional}, self.OPTIONAL)
-        self.assertEqual({m.chapter for m in story.milestones[20:]}, {5})
+        # (2026-11-05) the slice ends at 28: chapters 6-7 follow (`Chapter67Tests`), so chapter 5 is no longer the file's end
+        self.assertEqual([m.id for m in story.milestones[20:28]], self.CH5)
+        self.assertEqual({m.id for m in story.milestones[20:28] if m.optional}, self.OPTIONAL)
+        self.assertEqual({m.chapter for m in story.milestones[20:28]}, {5})
         self.assertEqual(story.milestones[19].id, "ch4_roxanne")  # chapters 1-4 stay where they were
+        self.assertEqual(story.milestones[28].id, "ch6_briney_house")  # and chapter 6 begins right after chapter 5
 
     def test_the_story_walks_through_the_required_ones_and_skips_the_optional(self):
         story = load_story("BOY")
@@ -6755,7 +7231,9 @@ class Chapter5Tests(unittest.TestCase):
         before = ch_proofs("ch5_rival_meet")
         route104_road = dict(before, ENABLE_RIVAL_MATCH_CALL=1, RUSTBORO_CITY_STATE=8)
         self.assertTrue(meet.done(route104_road))
-        self.assertEqual(story.current(route104_road), (len(story.milestones), None))
+        # (2026-11-05) chapter 5 is no longer the end: with the rival met, the story is at chapter 6's first milestone
+        self.assertEqual(story.current(route104_road)[1].id, "ch6_briney_house")
+        self.assertEqual(story.current(dict(before, RUSTBORO_CITY_STATE=8))[1].id, "ch5_rival_meet")  # FAULT half: not met
         drafted = replace(meet, flags=(*meet.flags, "MET_RIVAL_RUSTBORO"))
         self.assertFalse(drafted.done({**route104_road, "MET_RIVAL_RUSTBORO": 0}))  # FAULT: stuck for good
         self.assertTrue(meet.done({**route104_road, "MET_RIVAL_RUSTBORO": 1}))  # the Rustboro road passes too
@@ -6834,6 +7312,281 @@ class Chapter5Tests(unittest.TestCase):
         # FAULT half of the looks' pin: the whole looks block (13 since the grunt's step) no longer gives that digest
         self.assertNotEqual(digest([KNOWLEDGE["gendered_maps"], KNOWLEDGE["looks"], list(KNOWLEDGE["trainers"].items())[:14]]),
                             "de26718a062c5f1e5a47b2ffe3b90f78fbe7fe90388c533899690b6b9d23e302")
+
+
+#: (2026-11-05, chapters 6-7) What MAY says about MR. BRINEY (`RustboroCity/scripts.inc`, the words 'cottage'), the DEWFORD gym sign, and
+#: the pages the first sail's yes/no ends on.
+COTTAGE_LINE = "MAY: Oh, by the way, I passed MR. BRINEY in PETALBURG WOODS. I guess he's on his way home to his cottage by the sea."
+BRAWLY_SIGN = "DEWFORD TOWN POKéMON GYM LEADER: BRAWLY"
+BRINEY_YESNO = "You've come to the right man! We'll set sail for DEWFORD."
+
+
+def _steven_data(shape: str) -> dict:
+    """The milestones as the file has them (`shape` 'now': ONE talk step) or as the cloud note's draft had them ('draft': go
+    DEWFORD_TOWN, go GRANITE_CAVE_1F, go GRANITE_CAVE_STEVENS_ROOM, talk): the FAULT halves run the real goal manager on the draft."""
+    import copy
+
+    data = copy.deepcopy(KNOWLEDGE)
+    if shape == "draft":
+        steven = next(m for m in data["milestones"] if m["id"] == "ch7_steven")
+        steven["steps"] = [{"do": "go", "map": "DEWFORD_TOWN", "told": "STEVEN in DEWFORD"},
+                           {"do": "go", "map": "GRANITE_CAVE_1F"}, {"do": "go", "map": "GRANITE_CAVE_STEVENS_ROOM"},
+                           {"do": "talk", "map": "GRANITE_CAVE_STEVENS_ROOM", "look": "steven"}]
+    return data
+
+
+class Chapter67Tests(unittest.TestCase):
+    """(2026-11-05) CHAPTERS 6 AND 7, MR. BRINEY's boat to DEWFORD and the DEWFORD GYM (`knowledge/milestones.json` entries
+    28-35, `gates/extract_milestones.py`): each rule has a FAULT half (the proof or step missing / the draft's shape) and a
+    CONTROL half (the real data)."""
+
+    CH6 = ["ch6_briney_house", "ch6_dewford", "ch6_old_rod"]
+    CH7 = ["ch7_steven", "ch7_flash", "ch7_gym_trainers", "ch7_brawly", "ch7_exp_share"]
+    OPTIONAL = {"ch6_old_rod", "ch7_flash", "ch7_gym_trainers", "ch7_exp_share"}
+    REQUIRED = ["ch6_briney_house", "ch6_dewford", "ch7_steven", "ch7_brawly"]
+
+    def test_the_eight_follow_chapter_5_in_this_order(self):
+        story = load_story("BOY")
+        self.assertEqual(len(story.milestones), 36)
+        self.assertEqual([m.id for m in story.milestones[28:]], self.CH6 + self.CH7)
+        self.assertEqual({m.id for m in story.milestones[28:] if m.optional}, self.OPTIONAL)
+        self.assertEqual([m.chapter for m in story.milestones[28:]], [6, 6, 6, 7, 7, 7, 7, 7])
+        self.assertEqual(story.milestones[27].id, "ch5_rival_battle")  # chapters 1-5 stay where they were
+
+    def test_the_story_walks_through_the_required_ones_and_skips_the_optional(self):
+        story = load_story("BOY")
+        for milestone_id in self.REQUIRED:
+            with self.subTest(milestone=milestone_id):
+                self.assertEqual(story.current(ch_proofs(milestone_id))[1].id, milestone_id)
+        self.assertEqual(story.current(ch_proofs(None)), (len(story.milestones), None))  # every required one proven
+        # an optional one is never current, even when its own proof is the only one missing (`ch_proofs` leaves them out)
+        self.assertEqual(story.current(ch_proofs("ch7_steven"))[1].id, "ch7_steven")  # not ch6_old_rod
+        self.assertEqual(story.current(ch_proofs("ch7_brawly"))[1].id, "ch7_brawly")  # not ch7_flash / ch7_gym_trainers
+        everything_but_brawly = dict(ch_proofs(None), DEFEATED_DEWFORD_GYM=0, BADGE02_GET=0)
+        self.assertEqual(story.current(everything_but_brawly)[1].id, "ch7_brawly")  # FAULT half: the end is not reached
+        # FAULT half: with ch5 done and nothing else, the story is at chapter 6's first milestone (not the end)
+        self.assertEqual(story.current(ch_proofs("ch6_briney_house"))[1].id, "ch6_briney_house")
+
+    def test_a_later_proof_never_makes_up_for_an_earlier_one(self):
+        story = load_story("BOY")
+        everything = ch_proofs(None)
+        for name, expected in (("VISITED_DEWFORD_TOWN", "ch6_dewford"), ("MR_BRINEY_SAILING_INTRO", "ch6_briney_house"),
+                               ("BADGE02_GET", "ch7_brawly")):
+            with self.subTest(missing=name):
+                self.assertEqual(story.current(dict(everything, **{name: 0}))[1].id, expected)
+                unread = {k: v for k, v in everything.items() if k != name}  # the mark was not READ at all
+                self.assertEqual(story.current(unread)[1].id, expected)  # an unread proof is never progress
+        self.assertEqual(story.current(everything), (len(story.milestones), None))  # CONTROL
+
+    def test_talking_to_briney_is_not_sailing(self):
+        """FLAG_MR_BRINEY_SAILING_INTRO is set BEFORE the yes/no (`Route104_MrBrineysHouse_EventScript_SailingIntro`), so it
+        proves 'talked to him'; only FLAG_VISITED_DEWFORD_TOWN proves the landing. FAULT: the intro flag alone does not pass
+        ch6_dewford; the arrival alone does not pass ch6_briney_house either."""
+        story = load_story("BOY")
+        before = ch_proofs("ch6_briney_house")
+        talked = dict(before, MR_BRINEY_SAILING_INTRO=1)
+        self.assertEqual(story.current(talked)[1].id, "ch6_dewford")  # FAULT: talked, not sailed
+        self.assertEqual(story.current(dict(talked, VISITED_DEWFORD_TOWN=1))[1].id, "ch7_steven")  # CONTROL: landed
+        self.assertEqual(story.current(dict(before, VISITED_DEWFORD_TOWN=1))[1].id, "ch6_briney_house")
+        self.assertEqual(story.milestones[story.index("ch6_briney_house")].flags, ("MR_BRINEY_SAILING_INTRO",))
+        self.assertEqual(story.milestones[story.index("ch6_dewford")].flags, ("VISITED_DEWFORD_TOWN",))
+
+    def test_the_first_sails_question_is_answered_yes(self):
+        """The yes/no after 'We'll set sail for DEWFORD.' matches no rule: a person goes along (YES). FAULT: a nickname
+        question, which has a rule, is NO, so the default is not simply 'always yes'."""
+        def ask(words):
+            screen = ScreenState(game_state="OVERWORLD", screen="text", menu="yes_no", text_box_open=True,
+                                 waits_for_button=False, in_battle=False, text=words)
+            return answer_question(Observation(frame=1, screen=screen, player=None, view=None, party=(), bag=None,
+                                               progress=None, battle=None, last_battle_outcome=0, problems=(), cost_ms=0.0))
+        self.assertTrue(ask(BRINEY_YESNO)[0])
+        self.assertFalse(ask("Why don't you give a nickname to the MUDKIP you received?")[0])
+
+    def test_steven_needs_both_flags(self):
+        story = load_story("BOY")
+        steven = story.milestones[story.index("ch7_steven")]
+        self.assertEqual(steven.flags, ("DELIVERED_STEVEN_LETTER", "REGISTERED_STEVEN_POKENAV"))
+        before = ch_proofs("ch7_steven")
+        self.assertEqual(story.current(dict(before, DELIVERED_STEVEN_LETTER=1))[1].id, "ch7_steven")  # FAULT: one
+        self.assertEqual(story.current(dict(before, REGISTERED_STEVEN_POKENAV=1))[1].id, "ch7_steven")  # FAULT: the other
+        both = dict(before, DELIVERED_STEVEN_LETTER=1, REGISTERED_STEVEN_POKENAV=1)
+        self.assertEqual(story.current(both)[1].id, "ch7_brawly")  # CONTROL (the gym trainers / flash are optional)
+
+    def test_brawlys_levels_are_the_verified_boss_table(self):
+        story = load_story("BOY")
+        brawly = story.milestones[story.index("ch7_brawly")]
+        self.assertEqual(sorted(brawly.fight_levels), sorted(set(BossLevelTests().boss_levels()["BRAWLY"])))
+        self.assertEqual(brawly.fight_levels, (16, 19))
+        self.assertTrue(brawly.fight_named and not brawly.optional)
+        self.assertEqual(story.trainer_levels["BRAWLY_1"], (16, 16, 19))
+        trainers = story.milestones[story.index("ch7_gym_trainers")]
+        self.assertTrue(trainers.optional and not trainers.fight_named)  # learned when SEEN, never required
+        self.assertEqual({story.trainer_levels[name] for name in trainers.trainers}, {(13,)})
+        self.assertEqual(sorted(trainers.trainers), ["BRENDEN", "CRISTIAN", "JOCELYN", "LAURA", "LILITH", "TAKAO"])
+
+    def brawly_goal(self, level: int, train_off: bool = False, heard=(BRAWLY_SIGN,), prep_steps=None):
+        mgr = manager("Story", train_off=train_off)
+        world = world_with("PETALBURG_CITY", "DEWFORD_TOWN", current="DEWFORD_TOWN", heard=heard)
+        observation = look(ch_proofs("ch7_brawly"), party=[mon(level, hp=40, max_hp=40)], const="DEWFORD_TOWN")
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_brawly")
+        if prep_steps is not None:
+            mgr.next_goal(observation, world, milestone, index)
+            mgr.memory.fight_prep["ch7_brawly"]["steps"] = prep_steps
+        return mgr.next_goal(observation, world, milestone, index)
+
+    def test_it_trains_for_brawly_then_walks_to_the_gym_the_sign_named(self):
+        """The leader is a named fight (the gym sign: 'LEADER: BRAWLY'), so the train-before-a-fight errand applies, to
+        19 + the personality's margin. FAULT: under train_off it goes straight; CONTROL: a trained party goes to the gym."""
+        trains = self.brawly_goal(level=9)
+        self.assertEqual(trains.kind, "train")
+        self.assertIn(f"target L{19 + ERRANDS['Story'].train_margin}", trains.reason)
+        self.assertEqual(self.brawly_goal(level=9, train_off=True).kind, "go")
+        ready = self.brawly_goal(level=30, prep_steps=ERRANDS["Story"].train_min_steps)
+        self.assertEqual((ready.kind, ready.map), ("go", "DEWFORD_TOWN_GYM"))
+
+    def test_the_gym_is_only_walked_to_once_the_sign_is_read(self):
+        """`told` 'BRAWLY': nobody has said it, it explores (map None); read, it heads for the gym. FAULT: unread -> never a
+        guess at the map."""
+        unread = self.brawly_goal(level=30, train_off=True, heard=())
+        self.assertEqual((unread.kind, unread.map), ("go", None))
+        read = self.brawly_goal(level=30, train_off=True)
+        self.assertEqual((read.kind, read.map), ("go", "DEWFORD_TOWN_GYM"))
+
+    def briney_goal(self, heard=(COTTAGE_LINE,), const="ROUTE104", known=("RUSTBORO_CITY", "ROUTE104"), objects=(),
+                    proofs="ch6_briney_house"):
+        mgr = manager("Story", train_off=True, errands_off=True)  # (a stranger would otherwise draw the CHAT errand)
+        world = world_with(*known, current=const, heard=heard)
+        observation = look(ch_proofs(proofs), party=[mon(20, hp=40, max_hp=40)], const=const, objects=objects)
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, proofs)
+        return mgr.next_goal(observation, world, milestone, index)
+
+    def test_the_cottage_is_only_walked_to_once_it_is_said(self):
+        unread = self.briney_goal(heard=())
+        self.assertEqual((unread.kind, unread.map), ("go", None))  # FAULT: nobody said 'cottage': explores
+        read = self.briney_goal()
+        self.assertEqual((read.kind, read.map), ("go", "ROUTE104_MR_BRINEYS_HOUSE"))  # CONTROL
+
+    def test_in_the_cottage_briney_is_talked_to_and_nobody_else(self):
+        briney = person(x=12, y=10, gfx=21, local_id=1)
+        someone = person(x=12, y=10, gfx=1, local_id=2)
+        known = ("RUSTBORO_CITY", "ROUTE104", "ROUTE104_MR_BRINEYS_HOUSE")
+        for proofs in ("ch6_briney_house", "ch6_dewford"):
+            goal = self.briney_goal(const="ROUTE104_MR_BRINEYS_HOUSE", known=known, objects=(briney,), proofs=proofs)
+            self.assertEqual((goal.kind, goal.key, goal.target.graphics_id), ("talk", "talk:mr_briney", 21), proofs)
+            other = self.briney_goal(const="ROUTE104_MR_BRINEYS_HOUSE", known=known, objects=(someone,), proofs=proofs)
+            self.assertEqual((other.kind, other.key), ("find", "find:mr_briney"), proofs)  # FAULT: a stranger is no Briney
+
+    def test_ch6_dewford_goes_back_to_the_cottage_when_the_sail_was_declined(self):
+        """ch6_briney_house is proven (the flag is set before the yes/no) but the AI is elsewhere and not aboard: ch6_dewford's
+        ONE talk step sends it back to a map it has been to. FAULT: it has not been there -> it explores."""
+        known = ("RUSTBORO_CITY", "ROUTE104", "ROUTE104_MR_BRINEYS_HOUSE")
+        back = self.briney_goal(const="ROUTE104", known=known, heard=(), proofs="ch6_dewford")
+        self.assertEqual((back.kind, back.map), ("go", "ROUTE104_MR_BRINEYS_HOUSE"))
+        lost = self.briney_goal(const="ROUTE104", heard=(), proofs="ch6_dewford")
+        self.assertEqual((lost.kind, lost.map), ("go", None))
+
+    def steven_steps(self, shape: str, consts=("DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", "GRANITE_CAVE_B1F",
+                                              "GRANITE_CAVE_B2F", "GRANITE_CAVE_STEVENS_ROOM")):
+        """`story_step` as the real goal manager answers it on each map the player passes on the road to STEVEN's door."""
+        from ai_player.knowledge.story import Story
+
+        out = {}
+        for const in consts:
+            mgr = GoalManager(Story(_steven_data(shape), "BOY"), PersonalityState("Story", random.Random(1), drift_on=False),
+                              random.Random(1))
+            world = world_with("DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", "GRANITE_CAVE_B1F", "GRANITE_CAVE_B2F",
+                               "GRANITE_CAVE_STEVENS_ROOM", current=const,
+                               heard=("I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",))
+            observation = look(ch_proofs("ch7_steven"), party=[mon(20, hp=40, max_hp=40)], const=const)
+            milestone = mgr.milestone(observation, visited_in(world))[1]
+            self.assertEqual(milestone.id, "ch7_steven")
+            step = mgr.story_step(observation, world, milestone)
+            out[const] = (step.do, step.map)
+        return out
+
+    def test_stevens_step_never_sends_it_back_out_of_the_cave(self):
+        """The draft's four steps made `story_step` answer 'go DEWFORD_TOWN' on ROUTE 106 and on the cave's B1F/B2F: the real
+        road (1F -> B1F -> B2F -> B1F -> 1F -> the room) revisits maps, and a `go` step is done only on its own map or a LATER
+        step's. ONE talk step is returned unconditionally, so it cannot flap. FAULT: the draft's shape does regress."""
+        now = self.steven_steps("now")
+        self.assertEqual(set(now.values()), {("talk", "GRANITE_CAVE_STEVENS_ROOM")}, now)
+        draft = self.steven_steps("draft")
+        self.assertEqual(draft["ROUTE106"], ("go", "DEWFORD_TOWN"), draft)  # the FAULT: back to town from the road
+        self.assertEqual(draft["GRANITE_CAVE_B1F"], ("go", "DEWFORD_TOWN"), draft)  # and from inside the cave
+        self.assertEqual(draft["GRANITE_CAVE_B2F"], ("go", "DEWFORD_TOWN"), draft)
+
+    def steven_goal(self, objects=(), const="DEWFORD_TOWN", been_to_room=False):
+        mgr = manager("Story", train_off=True, errands_off=True)  # (a stranger would otherwise draw the CHAT errand)
+        known = ["DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", "GRANITE_CAVE_B1F", "GRANITE_CAVE_B2F"]
+        if been_to_room or const == "GRANITE_CAVE_STEVENS_ROOM":
+            known.append("GRANITE_CAVE_STEVENS_ROOM")
+        world = world_with(*known, current=const, heard=("I was hoping that you'd deliver a LETTER to STEVEN in DEWFORD.",))
+        observation = look(ch_proofs("ch7_steven"), party=[mon(20, hp=40, max_hp=40)], const=const, objects=objects)
+        index, milestone = mgr.milestone(observation, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_steven")
+        return mgr.next_goal(observation, world, milestone, index)
+
+    def test_nothing_names_the_cave_so_it_explores_until_it_has_been_to_stevens_room(self):
+        """No `told` on the talk step (no line names the cave): even with 'STEVEN in DEWFORD' heard it EXPLORES (map None),
+        never guessing a map it was not told; once it has been to the room's map it goes there; in the room, STEVEN (a figure
+        of the 'steven' look) is talked to and a stranger is not."""
+        lost = self.steven_goal()
+        self.assertEqual((lost.kind, lost.map), ("go", None))
+        there = self.steven_goal(been_to_room=True)
+        self.assertEqual((there.kind, there.map), ("go", "GRANITE_CAVE_STEVENS_ROOM"))
+        steven, stranger = person(x=11, y=10, gfx=134, local_id=1), person(x=11, y=10, gfx=1, local_id=2)
+        talk = self.steven_goal(objects=(steven,), const="GRANITE_CAVE_STEVENS_ROOM", been_to_room=True)
+        self.assertEqual((talk.kind, talk.key, talk.target.graphics_id), ("talk", "talk:steven", 134))
+        other = self.steven_goal(objects=(stranger,), const="GRANITE_CAVE_STEVENS_ROOM", been_to_room=True)
+        self.assertEqual((other.kind, other.key), ("find", "find:steven"))
+
+    def test_the_optional_ones_are_never_the_current_milestone_and_name_no_required_step(self):
+        story = load_story("BOY")
+        for milestone_id in sorted(self.OPTIONAL):
+            milestone = story.milestones[story.index(milestone_id)]
+            self.assertTrue(milestone.optional, milestone_id)
+        # EXP. SHARE's hint is the PRE-delivery line (said while FLAG_DELIVERED_STEVEN_LETTER is unset): the note says so
+        exp = KNOWLEDGE["milestones"][story.index("ch7_exp_share")]
+        self.assertIn("PRE-delivery", exp["note"])
+        self.assertIn("NOT yet walkable", exp["note"])
+
+    def test_the_new_looks_are_the_figures_the_game_draws(self):
+        story = load_story("BOY")
+        got = {name: story.looks[name].gfx for name in ("mr_briney", "old_rod_fisherman", "steven", "brawly", "mr_stone")}
+        self.assertEqual(got, {"mr_briney": (21,), "old_rod_fisherman": (50,), "steven": (134,), "brawly": (126,),
+                               "mr_stone": (48,)})
+        for milestone in story.milestones[28:]:
+            for step in milestone.steps:
+                if step.do in ("talk", "use"):
+                    self.assertIn(step.look, story.looks, (milestone.id, step.look))  # a talk step names a look that exists
+
+    def test_chapters_1_to_5_are_untouched(self):
+        """The first 28 entries, the 13 looks of chapters 1-5 (by name), the first 21 trainers and the gendered maps are what
+        they were before chapters 6-7: the digests were measured on the committed file (979754bf), and the same digests of
+        the 36-milestone file match. A deliberate change to chapters 1-5 updates these constants, in the open."""
+        import hashlib
+
+        def digest(parts) -> str:
+            return hashlib.sha256(json.dumps(parts, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+
+        self.assertEqual(digest(KNOWLEDGE["milestones"][:28]),
+                         "17d1b7477b6c5378e647f129183661c992029a34e2de46d569e165866f3c6e91")
+        looks13 = {name: KNOWLEDGE["looks"][name] for name in (*OLD_LOOKS, "aqua_member")}
+        self.assertEqual(digest(looks13), "1165e014d0ce7040f71f50340b311908ea1ae7e55bd26ac0d3ba7f4b2b5af81e")
+        self.assertEqual(digest(list(KNOWLEDGE["trainers"].items())[:21]),
+                         "3f8f87c440a89c3f96eae983d13b32878a8af8efb9f1bfd3924f62b86c26686d")
+        self.assertEqual(digest(KNOWLEDGE["gendered_maps"]),
+                         "2c219a8bb949f61239fa08663c7f832d9f141cadaeff86303606b5bce4658744")
+        # FAULT halves: the digests do see a 29th milestone, a 14th look and a 22nd trainer
+        self.assertNotEqual(digest(KNOWLEDGE["milestones"][:29]),
+                            "17d1b7477b6c5378e647f129183661c992029a34e2de46d569e165866f3c6e91")
+        self.assertNotEqual(digest({**looks13, "mr_briney": KNOWLEDGE["looks"]["mr_briney"]}),
+                            "1165e014d0ce7040f71f50340b311908ea1ae7e55bd26ac0d3ba7f4b2b5af81e")
+        self.assertNotEqual(digest(list(KNOWLEDGE["trainers"].items())[:22]),
+                            "3f8f87c440a89c3f96eae983d13b32878a8af8efb9f1bfd3924f62b86c26686d")
+        self.assertEqual((len(KNOWLEDGE["milestones"]), len(KNOWLEDGE["looks"]), len(KNOWLEDGE["trainers"])), (36, 18, 28))
 
 
 #: (2026-11-05) The twelve looks of chapters 1-4, in the order the file had them (`test_chapters_1_to_4_are_untouched`).
@@ -7343,7 +8096,8 @@ class InstructedTests(unittest.TestCase):
     def test_g4b_a_field_menu_back_with_no_new_page_keeps_what_was_followed(self):
         """G4 on a FIELD menu: `used` is cleared for the menu's own kind only when it comes back under NEW pages (the
         instruction given again). A menu that comes back SILENTLY (no page read since) keeps what was followed: SAVE is
-        not chosen again, nothing else is named, and it is left to the caller (False). FAULT half (`revert_step5.py`
+        not chosen again, nothing else is named, and it is not the skill's to choose (False; since round 5 a forced menu
+        nothing names, in a scene the AI did not open: no press, said). FAULT half (`revert_step5.py`
         G467: `>` read as `>=`): SAVE is chosen again on every return, until FIELD_CHOICES_MAX stops it. CONTROL: a menu
         back under a new page clears ITS kind's pairs (SAVE chosen again) and keeps an app's (`pokenav_menu`'s MATCH
         CALL); `revert_step5.py` G468 clears every kind's."""
@@ -7360,7 +8114,7 @@ class InstructedTests(unittest.TestCase):
         game, hands, brain, skill = scene(paged=False)
         self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
         self.assertEqual((game.chosen, buttons(hands).count("A")), (["SAVE"], 1))
-        self.assertTrue(any("left to the caller" in line for line in hands.told))
+        self.assertTrue(any("that nothing read names" in line for line in hands.told))  # (round 5: was "left to the caller")
         self.assertEqual(skill.used, {("multichoice", "SAVE"), ("pokenav_menu", "MATCH CALL")})
         game, hands, brain, skill = scene(paged=True)  # CONTROL: back under a new page
         self.assertTrue(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
@@ -7395,7 +8149,7 @@ class InstructedTests(unittest.TestCase):
         game, hands, brain, skill = scene(paged=False)  # CONTROL: back with no new page
         self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
         self.assertEqual(game.chosen, ["SAVE"])
-        self.assertTrue(any("left to the caller" in line for line in hands.told))
+        self.assertTrue(any("that nothing read names" in line for line in hands.told))  # (round 5: was "left to the caller")
 
     def test_the_transcript_is_the_field_pages_read_since_the_player_was_free(self):
         """The pages the player READ (each once it waits for a press) since the player was last free, in order; cleared
@@ -7587,7 +8341,9 @@ class InstructedTests(unittest.TestCase):
 
     def test_c3_a_field_menu_nothing_names_is_still_the_stop_it_was(self):
         """C3: the field multichoices chapters 1-4 (and later) meet, under their own words: nothing is named, no press, the
-        stop is the same as before (False). Each built as the eyes would read it, after the player was free."""
+        stop is the same as before (False). Each built as the eyes would read it, after the player was free. (Round 5,
+        VR4-1) Here the scene was not opened by the AI's own A (no opener: `Round5MenuTests` has the one it opens, which is
+        backed out of), so each is a FORCED menu: the skill keeps the stop, said, and the run ends at once."""
         from ai_player.eyes.observation import MenuView
 
         cases = {
@@ -7615,6 +8371,7 @@ class InstructedTests(unittest.TestCase):
                 hands.eyes.script = lambda frame, m=menu: replace(base, screen=replace(base.screen, ui=m, text=pages[-1]))
                 self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 10_000))
                 self.assertEqual(buttons(hands), [])
+                self.assertIn("the game forces it", getattr(brain._instructed, "forced", None) or "")
 
     def test_c1_c2_the_menus_chapters_1_to_4_meet_go_where_they_went(self):
         """C1: a starter's bag, the clock, a mart and the save screens reach their own handlers, never the skill; an unknown
@@ -7646,8 +8403,3395 @@ class InstructedTests(unittest.TestCase):
                     self.assertFalse(drive(brain._story_menu(hands, kind, "a scene", "MUDKIP")))
 
 
+# ------------------------------------------------------------------------------------------------ (chapter 6) the stops
+#: MR. BRINEY's cottage as the AI's own memory has it (the KI-134 B arm's C2 world.jsonl, ROUTE104_MR_BRINEYS_HOUSE): local
+#: x 0..11 from the left, rows y 2..8; '#' a vase, the table (7..8, 4..5) or the door's two warp tiles (5..6, 8).
+COTTAGE = {2: "............", 3: "##..........", 4: "#......##...", 5: ".......##...", 6: "............",
+           7: "............", 8: ".....##....."}
+#: His round once PEEKO is home (pinned decomp `data/maps/Route104_MrBrineysHouse/scripts.inc` SetBrineyPeekoPos: (9,3),
+#: MOVEMENT_TYPE_WALK_SEQUENCE_DOWN_LEFT_UP_RIGHT, range 3), and PEEKO three steps ahead on the same round ((9,6),
+#: WALK_SEQUENCE_LEFT_UP_RIGHT_DOWN): both walk round the table, a step every 16 frames, never stopping.
+BRINEY_ROUND = [(9, 3), (9, 4), (9, 5), (9, 6), (8, 6), (7, 6), (6, 6), (6, 5), (6, 4), (6, 3), (7, 3), (8, 3)]
+BRINEY_ID, PEEKO_ID, STILL_ID, BRINEY_GFX = 1, 2, 3, 21  # gfx 21: OBJ_EVENT_GFX_EXPERT_M (the B arm's 'npc (gfx 21)')
+
+
+class _Cottage:
+    """A small SIMULATION of the cottage, for the talk skill (test side). The PLAYER moves by the pad's holds the way the game
+    does it: a direction held while facing another way turns; held on facing it, a step every 16 frames whose tile changes 8
+    frames in; a wall or someone on the tile: no step. The WALKERS step round BRINEY_ROUND every `pace` frames and walk in
+    place while someone stands on their next tile (`src/event_object_movement.c` MoveNextDirectionInSequence: a collision
+    walks in place, the round's index unchanged). An A on its FIRST frame, with nothing running, talks to whoever STANDS on
+    the faced tile (`GetInteractedObjectEventScript`: an object's current tile): everyone stops (`lock`), a page prints for
+    10 frames and waits for A, and that A ends the talk. `talks` records WHO was talked to (map ids), `starts` the tiles at
+    the A that began each talk."""
+
+    def __init__(self, phase: int = 0, player=(5, 7), facing: str = "up", pace: int = 16, walkers: dict | None = None,
+                 still: dict | None = None, round_: list | None = None) -> None:
+        self.frame = 0
+        self.player = tuple(player)
+        self.facing = facing
+        self.pace = pace
+        self.round = round_ or BRINEY_ROUND
+        self.held = 0
+        self.talking: int | None = None
+        self.printed = 0
+        self.talks: list[int] = []
+        self.starts: list[dict] = []
+        self.walkers = walkers if walkers is not None else {BRINEY_ID: [phase % 12, 0], PEEKO_ID: [(phase + 3) % 12, 0]}
+        self.still = dict(still or {})
+
+    def tile_of(self, who: int) -> tuple[int, int]:
+        return self.round[self.walkers[who][0]] if who in self.walkers else self.still[who]
+
+    def people(self) -> list[int]:
+        return list(self.walkers) + list(self.still)
+
+    def occupied(self, tile: tuple[int, int], but: int | None = None) -> bool:
+        return tile == self.player or any(self.tile_of(who) == tile for who in self.people() if who != but)
+
+    @staticmethod
+    def walkable(tile: tuple[int, int]) -> bool:
+        row = COTTAGE.get(tile[1])
+        return row is not None and 0 <= tile[0] < len(row) and row[tile[0]] == "."
+
+    def step_frame(self, button: str | None, new: bool) -> None:
+        if button in ("Up", "Down", "Left", "Right") and self.talking is None:
+            direction = button.lower()
+            if self.facing != direction:
+                self.facing, self.held = direction, 0
+            else:
+                self.held += 1
+                if self.held == 8:
+                    ahead = (self.player[0] + DIRS[direction][0], self.player[1] + DIRS[direction][1])
+                    if self.walkable(ahead) and not self.occupied(ahead):
+                        self.player = ahead
+                    self.held = -8
+        else:
+            self.held = 0
+        if button == "A" and new:
+            if self.talking is None:
+                faced = (self.player[0] + DIRS[self.facing][0], self.player[1] + DIRS[self.facing][1])
+                who = next((w for w in self.people() if self.tile_of(w) == faced), None)
+                if who is not None:
+                    self.talking, self.printed = who, 0
+                    self.starts.append({"frame": self.frame, "who": who, "player": self.player, "facing": self.facing,
+                                        "tiles": {w: self.tile_of(w) for w in self.people()}})
+            elif self.printed >= 10:
+                self.talks.append(self.talking)
+                self.talking = None
+        if self.talking is not None:
+            self.printed += 1
+        else:
+            for who, state in self.walkers.items():
+                state[1] += 1
+                if state[1] >= self.pace:
+                    state[1] = 0
+                    ahead = self.round[(state[0] + 1) % len(self.round)]
+                    if not self.occupied(ahead, but=who):
+                        state[0] = (state[0] + 1) % len(self.round)
+        self.frame += 1
+
+
+DIRS = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
+
+
+class _CottageControls:
+    def __init__(self, sim: _Cottage) -> None:
+        self.sim = sim
+
+    def wait(self, frames: int):
+        for _ in range(frames):
+            self.sim.step_frame(None, False)
+            yield
+
+    def tap(self, button: str):
+        for i in range(2):
+            self.sim.step_frame(button, i == 0)
+            yield
+
+    def hold(self, button: str, frames: int):
+        for i in range(frames):
+            self.sim.step_frame(button, i == 0)
+            yield
+
+
+class _CottageEyes:
+    """What the screen shows of the simulation: the player's tile and facing, every person on their CURRENT tile (the eyes'
+    `current_coords`), and the talk's page (printing, then waiting for A)."""
+
+    def __init__(self, sim: _Cottage) -> None:
+        self.sim = sim
+        self.base = look(const="ROUTE104_MR_BRINEYS_HOUSE", map_number=17)
+
+    def look(self) -> Observation:
+        sim = self.sim
+        x, y = sim.player
+        talking = sim.talking is not None
+        waits = talking and sim.printed >= 10
+        words = {BRINEY_ID: "MR. BRINEY: Hold on, lass! Wait up, PEEKO!", PEEKO_ID: "PEEKO: Pihyoh!"}.get(sim.talking, "Hello!")
+        screen = ScreenState(game_state="OVERWORLD", screen="text" if talking else "overworld", menu=None,
+                             text_box_open=talking, waits_for_button=waits, in_battle=False,
+                             wait_reason="text printer 0 CLEAR" if waits else None, text=words if talking else None,
+                             script_running=talking, controls_locked=talking)
+        objects = tuple(SeenObject(kind="npc", x=tx, y=ty, dx=tx - x, dy=ty - y, local_id=who,
+                                   graphics_id=BRINEY_GFX if who == BRINEY_ID else 5, facing="down", elevation=3,
+                                   source="object")
+                        for who, (tx, ty) in ((w, sim.tile_of(w)) for w in sim.people()))
+        player = replace(self.base.player, x=x, y=y, facing=sim.facing)
+        return replace(self.base, frame=sim.frame, screen=screen, player=player, view=replace(self.base.view, objects=objects))
+
+
+def cottage_world() -> WorldMemory:
+    """The cottage in the AI's memory (`COTTAGE`), walls all round, on the map key the eyes' player gives (0:17)."""
+    world = WorldMemory()
+    memory = MapMemory("0:17", "ROUTE104_MR_BRINEYS_HOUSE", "ROUTE104_MR_BRINEYS_HOUSE")
+    wall = TileFact(True, False, False, False, None, False, False, 3, "WALL", 0, (0, 0))
+    for y in range(1, 10):
+        for x in range(-1, 13):
+            memory.tiles[(x, y)] = _open_tile() if _Cottage.walkable((x, y)) else wall
+    world.maps["0:17"] = memory
+    return world
+
+
+def cottage(sim: _Cottage, seed: int = 1) -> tuple[Hands, Navigator]:
+    world = cottage_world()
+    hands = Hands(_CottageEyes(sim), _CottageControls(sim), random.Random(seed), random.Random(seed), None, lambda line: None)
+    hands.watchers.append(world.observe)
+    return hands, Navigator(hands, world, random.Random(seed))
+
+
+def _no_walker(hands, nav, target, why, budget=0, since=None):
+    """FAULT (test side): `meet_walker` as if everyone stood still: the approach of the ordinary way, the old code's."""
+    return "standing"
+    yield  # noqa: unreachable - a generator that takes no frame
+
+
+class WalkerTests(unittest.TestCase):
+    """(chapter 6, 2026-11-05) STOP 1 of the KI-134 B arm (ledger #98): MR. BRINEY walks round his table and never stops, and
+    the talk skill walked to a tile beside where he WAS seen (C1: 54 talk goals, none landed; its ends 'interrupted on the
+    way: played out', 'unreachable: no tile from which the npc at (x,y) can be talked to', 'the npc did not answer'). Now
+    `skills/story.py` meets someone seen to move the way a person does (`meet_walker`): watch where they walk, wait beside
+    the way facing it, speak as they step in front. Every check is on the simulation's record of WHO was talked to (PEEKO
+    walks the same round three steps ahead: a talk that lands on PEEKO is no talk with MR. BRINEY)."""
+
+    def talk(self, phase: int, idle: int = 20, fault: bool = False, sim: _Cottage | None = None, who: int = BRINEY_ID,
+             seed: int = 1):
+        from ai_player.skills import story as story_skill
+
+        sim = sim or _Cottage(phase)
+        hands, nav = cottage(sim, seed)
+        first = hands.look()
+        target = next(o for o in first.view.objects if o.local_id == who)
+
+        def run():
+            yield from hands.pad.idle(idle, "deciding: talk to him") if idle else iter(())
+            return (yield from story_skill.talk_to(hands, nav, target, "talk to MR. BRINEY"))
+
+        patch = mock.patch.object(story_skill, "meet_walker", _no_walker) if fault else contextlib.nullcontext()
+        with patch:
+            outcome = drive(run(), budget=30000)
+        return outcome, sim
+
+    def test_w1_he_is_spoken_to_from_every_point_of_his_round(self):
+        """From each of the 12 points of his round at the moment the goal chose him (the goal manager's deciding pause
+        between), the talk lands on MR. BRINEY himself, the A pressed while he STOOD on the tile the player faced, within
+        a watch and two of his rounds (measured 251-416 frames). FAULT half: with `meet_walker` reporting everyone as
+        standing (the ordinary approach alone), the same 12 starts talk to him in 1 (measured; bound 3), the others
+        ending 'unreachable: no tile from which the npc at (x, y) can be talked to', the B arm's words."""
+        for phase in range(12):
+            with self.subTest(phase=phase):
+                outcome, sim = self.talk(phase)
+                self.assertEqual(outcome, "talked", outcome)
+                self.assertEqual(sim.talks, [BRINEY_ID])
+                start = sim.starts[0]
+                faced = (start["player"][0] + DIRS[start["facing"]][0], start["player"][1] + DIRS[start["facing"]][1])
+                self.assertEqual(start["tiles"][BRINEY_ID], faced)
+                self.assertLess(start["frame"], 20 + WALKER_WATCH_BOUND + 2 * 12 * 16 + 100, start)
+        old = [phase for phase in range(12) if self.talk(phase, fault=True)[1].talks[:1] == [BRINEY_ID]]
+        self.assertLessEqual(len(old), 3, f"the ordinary approach alone talked to him from {old}")
+
+    def test_w2_someone_who_moved_since_the_choice_is_watched_before_any_step(self):
+        """He walked on during the deciding pause: from every point of his round, the first thing the skill does is WATCH him
+        from where the player stands (no step before it), and it watches once. (Its first form tried one start only, phase
+        4, where the first walk up could not begin, so mutant G491 survived it: the round's first prediction was wrong.)"""
+        from ai_player.skills import story as story_skill
+
+        real = story_skill.watch_walker
+        for phase in range(12):
+            with self.subTest(phase=phase):
+                calls = []
+                sim = _Cottage(phase)
+
+                def spy(hands, target, why, frames=story_skill.WALKER_WATCH):
+                    calls.append((sim.frame, sim.player))
+                    return (yield from real(hands, target, why, frames))
+
+                with mock.patch.object(story_skill, "watch_walker", spy):
+                    outcome, _ = self.talk(phase, sim=sim)
+                self.assertEqual(outcome, "talked")
+                self.assertEqual(len(calls), 1, calls)
+                self.assertEqual(calls[0][1], (5, 7))  # where the player stood: no step before the watch
+
+    def test_w3_he_walks_on_while_the_player_walks_up(self):
+        """Chosen and approached on the SAME frame (no pause: he is where the goal saw him), the ordinary walk begins; he
+        has walked on when it ends, and he is met as a walker then: MR. BRINEY talked to from every point of his round.
+        (The second of `approach`'s two meetings; the first never fires here.)"""
+        for phase in range(12):
+            with self.subTest(phase=phase):
+                outcome, sim = self.talk(phase, idle=0)
+                self.assertEqual((outcome, sim.talks), ("talked", [BRINEY_ID]))
+
+    def test_w4_control_someone_standing_is_walked_up_to_the_ordinary_way(self):
+        """CONTROL: a person who never moves (every talk of chapters 1-5 but this one) is never watched: the walk up to a tile
+        beside them, the look before speaking, the talk, exactly as before."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        watched = []
+        real = story_skill.meet_walker
+
+        def spy(*args, **kwargs):
+            watched.append(args[2].local_id)
+            return (yield from real(*args, **kwargs))
+
+        with mock.patch.object(story_skill, "meet_walker", spy):
+            outcome, _ = self.talk(0, sim=sim, who=STILL_ID)
+        self.assertEqual((outcome, sim.talks, watched), ("talked", [STILL_ID], []))
+
+    def test_w5_someone_who_keeps_a_tile_is_not_waited_for(self):
+        """CONTROL for wanderers: someone who steps and then keeps a tile (a WANDERER waits 32 to 128 frames between steps,
+        `sMovementDelaysMedium`: here 96, stepping between (10,4) and (10,5)) is seen to keep still within the watch
+        (`WALKER_STILL`), and `meet_walker` hands them back as "standing": never waited for beside a way, and walked up to
+        the ordinary way, each walk AIMED at a tile beside where they stand at its start. (Whether the talk then lands
+        depends on their next step, as it did before this change: the look before speaking, a KNOWN LIMIT not changed
+        here; this test does not ask for it.)"""
+        from ai_player.skills import story as story_skill
+
+        def wanderer() -> _Cottage:
+            return _Cottage(0, pace=96, walkers={BRINEY_ID: [0, 0]}, round_=[(10, 4), (10, 5)])
+
+        sim = wanderer()
+        hands, _nav = cottage(sim)
+        target = next(o for o in hands.look().view.objects if o.local_id == BRINEY_ID)
+        way, others, standing, now = drive(story_skill.watch_walker(hands, target, "watch"), budget=1000)
+        self.assertTrue(standing)
+        self.assertEqual(sim.frame, story_skill.WALKER_STILL - 1)
+        met, waited = [], []
+        real_meet, real_wait = story_skill.meet_walker, story_skill._wait_for_walker
+
+        def spy_meet(*args, **kwargs):
+            outcome = yield from real_meet(*args, **kwargs)
+            met.append(outcome)
+            return outcome
+
+        def spy_wait(*args, **kwargs):
+            waited.append(args[2])
+            return (yield from real_wait(*args, **kwargs))
+
+        sim = wanderer()
+        aims = []
+        real_go_to = Navigator.go_to
+
+        def spy_go_to(nav_, tile, why, budget):
+            aims.append((tile, sim.tile_of(BRINEY_ID)))
+            return (yield from real_go_to(nav_, tile, why, budget))
+
+        with mock.patch.object(story_skill, "meet_walker", spy_meet), mock.patch.object(story_skill, "_wait_for_walker",
+                                                                                        spy_wait), \
+                mock.patch.object(Navigator, "go_to", spy_go_to):
+            self.talk(0, sim=sim, idle=100)
+        self.assertTrue(met and all(m == "standing" for m in met), met)
+        self.assertEqual(waited, [])
+        self.assertTrue(aims)
+        for tile, his in aims:
+            self.assertEqual(abs(tile[0] - his[0]) + abs(tile[1] - his[1]), 1, aims)
+
+    def test_w6_the_watch_ends_once_his_round_has_been_seen(self):
+        """The watch ends when the way comes back round to where it began: his whole round, in order, well inside
+        `WALKER_WATCH`, never keeping still."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(5)
+        hands, _nav = cottage(sim)
+        target = next(o for o in hands.look().view.objects if o.local_id == BRINEY_ID)
+        way, others, standing, now = drive(story_skill.watch_walker(hands, target, "watch"), budget=1000)
+        self.assertFalse(standing)
+        self.assertEqual(way, BRINEY_ROUND[5:] + BRINEY_ROUND[:5])
+        self.assertEqual(set(others), set(BRINEY_ROUND))  # PEEKO walked the same round meanwhile
+        self.assertLess(sim.frame, story_skill.WALKER_WATCH)
+        self.assertEqual((now.x, now.y), BRINEY_ROUND[5])
+
+    def test_w7_a_waiting_spot_is_beside_the_way_never_on_anyones_way(self):
+        from ai_player.skills import story as story_skill
+
+        memory = cottage_world().maps["0:17"]
+        spots = story_skill.waiting_spots(memory, (5, 7), BRINEY_ROUND, {(1, 6)})
+        self.assertTrue(spots)
+        for spot, tile, direction in spots:
+            self.assertNotIn(spot, BRINEY_ROUND)
+            self.assertNotEqual(spot, (1, 6))
+            self.assertTrue(memory.passable(spot))
+            self.assertEqual((spot[0] + DIRS[direction][0], spot[1] + DIRS[direction][1]), tile)
+            self.assertIn(tile, BRINEY_ROUND)
+        self.assertEqual(len({s[0] for s in spots}), len(spots))
+        distances = [abs(s[0][0] - 5) + abs(s[0][1] - 7) for s in spots]
+        self.assertEqual(distances, sorted(distances))
+        self.assertEqual(spots[0][0], (5, 6))
+
+    def test_b1_a_spot_that_cannot_be_reached_is_no_battle(self):
+        """The old check ('"battle" in outcome') matched the "0 battles" of a stuck walk's own summary, so the first spot
+        that could not be reached ended the approach as a battle ('interrupted on the way: played out', 28 times in the B
+        arm's Story run). Now the next spot is tried, and the person is talked to. FAULT half: that summary does contain
+        the word."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+        real = nav.go_to
+        stuck = ("stuck: the goto at (9, 5) cannot be reached (unreachable), and nothing else is wanted (0 steps, 0 bumps, "
+                 "0 people in the way, 0 exits used, 0 battles, 0 scenes, 1 decisions (0 detours, 0 carried on); 1 maps, "
+                 "0 tiles learned)")
+        self.assertIn("battle", stuck)  # FAULT half: the old test fires on it
+        calls = []
+
+        def go_to(tile, why, budget):
+            calls.append(tile)
+            if len(calls) == 1:
+                yield from hands.pad.busy("planning")
+                return stuck
+            return (yield from real(tile, why, budget))
+
+        nav.go_to = go_to
+        target = next(o for o in hands.look().view.objects if o.local_id == STILL_ID)
+        outcome = drive(story_skill.talk_to(hands, nav, target, "chat"), budget=20000)
+        self.assertEqual((outcome, sim.talks), ("talked", [STILL_ID]))
+        self.assertGreaterEqual(len(calls), 2)
+
+    def test_b2_control_a_walk_a_battle_stopped_is_still_a_battle(self):
+        """CONTROL: a walk that a BATTLE stopped (the navigator's battle log grew) still ends the approach as one, and the
+        talk says it was interrupted."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+
+        def go_to(tile, why, budget):
+            nav.battle_log.append((sim.frame, "wild", "the battle: it could not flee"))
+            yield from hands.pad.busy("a battle")
+            return "stuck: the battle: it could not flee"
+
+        nav.go_to = go_to
+        target = next(o for o in hands.look().view.objects if o.local_id == STILL_ID)
+        outcome = drive(story_skill.talk_to(hands, nav, target, "chat"), budget=20000)
+        self.assertTrue(outcome.startswith("interrupted on the way"), outcome)
+        self.assertEqual(sim.talks, [])
+
+
+#: the frames a watch of MR. BRINEY may take: one round of 12 steps and a step more
+WALKER_WATCH_BOUND = 13 * 16
+
+
+class CallEndTests(unittest.TestCase):
+    """(chapter 6, 2026-11-05) STOP 2 of the KI-134 B arm: after a call's last page nothing pressed (DAD on the first sail in
+    C2 and C3: 400 lines of 'STUCK ... reading along: a text is printing'; CINDY's MATCH CALL in C1: 172 of 'a scene
+    plays'). Pinned decomp `src/match_call.c` MatchCall_PrintMessage (the task `ExecuteMatchCall`, state 5) ends the call on
+    A or B once its window's printer has finished and no sound effect plays: a wait no text printer shows
+    (`eyes/screens.py` match_call_wait)."""
+
+    CALL = bytes([5, 0, 0, 0, 1, 0]) + bytes(26)  # data[0] tState 5 (PrintMessage), data[2] tWindowId 1
+
+    def call(self, state: int) -> bytes:
+        return bytes([state, 0, 0, 0, 1, 0]) + bytes(26)
+
+    def test_c1_the_call_waits_only_when_its_last_page_has_printed_and_nothing_plays(self):
+        from ai_player.eyes.screens import match_call_wait, pokenav_wait, task_wait
+        from ai_player.eyes.view import text_printer_wait
+
+        self.assertEqual(match_call_wait(self.CALL, False, False),
+                         "task ExecuteMatchCall (A or B: the call's last page has printed; a press hangs up)")
+        self.assertIsNone(match_call_wait(self.CALL, True, False))  # a page printing (its \p is the printer's own wait)
+        self.assertIsNone(match_call_wait(self.CALL, False, True))  # a sound effect playing: A is not read yet
+        for state in (0, 1, 2, 3, 4, 6, 7):  # the window loading, sliding in, the intro, sliding out, ending
+            with self.subTest(state=state):
+                self.assertIsNone(match_call_wait(self.call(state), False, False))
+        self.assertIsNone(match_call_wait(None, False, False))  # no call
+        self.assertIsNone(match_call_wait(self.CALL, None, False))  # a read missing: never a wait on a guess
+        self.assertIsNone(match_call_wait(self.CALL, False, None))
+        self.assertIsNone(match_call_wait(self.CALL[:4], False, False))
+        # FAULT half: the eyes' earlier rules see nothing on this screen (printer 1 done, the call task running)
+        self.assertIsNone(text_printer_wait([(1, 0, 0)] + [(i, 0, 0) for i in range(2, 32)], 0))
+        self.assertIsNone(task_wait({"ExecuteMatchCall", "Task_SpinPokenavIcon", "Task_HidePokenavMessageWhenDone"}))
+        self.assertIsNone(pokenav_wait(None))
+
+    def test_c2_a_sound_effect_plays_by_the_games_own_rule(self):
+        """`src/sound.c` IsSEPlaying from the two sound-effect players' status words: both paused is silence, a track on
+        either is a sound."""
+        from ai_player.eyes.screens import sound_effect_playing
+
+        paused, track = 0x80000000, 0x00000003
+        self.assertFalse(sound_effect_playing(0, 0))
+        self.assertTrue(sound_effect_playing(track, 0))
+        self.assertTrue(sound_effect_playing(0, track))
+        self.assertFalse(sound_effect_playing(paused | track, paused | track))  # both paused
+        self.assertTrue(sound_effect_playing(paused | track, track))  # one paused, the other playing
+        self.assertFalse(sound_effect_playing(paused, 0))
+
+    def test_c3_the_hands_hang_up_once_and_never_while_the_page_prints(self):
+        """The hands' `advance` on the call's end: its last page prints for 60 frames (no wait), then the call waits; ONE A,
+        gated on that wait, after the page has printed; then the window slides out with the controls still locked (no
+        wait) and the player is free. FAULT half: with the wait unreported (the eyes before the fix), `advance` presses
+        nothing and comes back STUCK 'reading along: a text is printing', as the B arm's C2 and C3 logged 400 times."""
+        from ai_player.eyes.screens import match_call_wait
+        from ai_player.hands.dialogue import advance, player_free
+
+        reason = match_call_wait(self.CALL, False, False)
+        for fault in (False, True):
+            with self.subTest(fault=fault):
+                pressed: list[int] = []
+
+                def script(frames: int) -> Observation:
+                    if pressed and frames - pressed[0] > 40:
+                        return screen_look(frames)
+                    printing = not pressed and frames < 60
+                    waits = not pressed and not printing and not fault
+                    base = screen_look(frames, script=True, text="It sounds like you're doing fine.¶You take care now.¶"
+                                                                 "… … … … … …… … … … … Click!")
+                    return replace(base, screen=replace(base.screen, text_box_open=True, waits_for_button=waits,
+                                                        wait_reason=reason if waits else None))
+
+                hands = script_hands(script)
+                real_press = hands.pad.press
+
+                def press(button, why, gate, hold=None):
+                    pressed.append(hands.pad.frames)
+                    return real_press(button, why, gate, hold)
+
+                hands.pad.press = press
+                outcome = drive(advance(hands, player_free, "a scene"), budget=5000)
+                if fault:
+                    self.assertEqual((outcome, pressed), ("stuck:reading along: a text is printing", []))
+                else:
+                    self.assertEqual(outcome, "done")
+                    self.assertEqual(len(pressed), 1, pressed)
+                    self.assertGreaterEqual(pressed[0], 60)
+                    self.assertEqual(hands.pad.history[0]["gate"], reason)
+
+
+# ------------------------------------------------------------------------------------------------ chapter 6 stops, round 3
+#: (chapter 6 stops, round 3, 2026-11-06) MR. BRINEY's five yes/no questions (pinned decomp: the page on screen when the
+#: yes/no opens, `data/maps/Route104_MrBrineysHouse/scripts.inc`, `DewfordTown/scripts.inc`, `Route109/scripts.inc`)
+BRINEY_QUESTIONS = {
+    "first sail": ("You've come to the right man! We'll set sail for DEWFORD.", "DEWFORD_TOWN"),
+    "cottage, letter": ("First, we'll set sail for DEWFORD.", "DEWFORD_TOWN"),
+    "dewford, letter": ("Or were you meaning to sail back to PETALBURG?", "PETALBURG_CITY"),
+    "route 109": ("Would you like to sail back to DEWFORD, then?", "DEWFORD_TOWN"),
+    "southern island": ("What say we sail back to LILYCOVE?", "LILYCOVE_CITY"),
+}
+#: a slice of probe7 C1's OWN kept memory (ledger #101, seed 6314; `s53/ch6stops3/make_world_fixture.py`, every kept map's
+#: record unchanged): ROUTE 104, the cottage, the woods, RUSTBORO, PETALBURG, DEWFORD, its gym, ROUTE 106, GRANITE CAVE
+ISLAND_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "probe7_c1_island.world.jsonl"
+#: the ride the first sail gives in that memory, as `brain/rides.py` RideWatch keeps it: MR. BRINEY (the cottage's person 1,
+#: gfx 21) asked, the boat's scenes carried the player through ROUTE 104, 105 and 106, the controls came back in DEWFORD
+FIRST_SAIL_RIDE = {"from": "17:0", "to": "0:11", "arrival": [11, 9], "who": 1, "gfx": 21, "tile": [6, 6],
+                   "words": "you've come to the right man! we'll set sail for dewford.", "place": "DEWFORD_TOWN",
+                   "via": ["0:19", "0:20", "0:21"], "frame": 759685}
+
+
+def island_world() -> WorldMemory:
+    return WorldMemory.from_dict(json.loads(ISLAND_FIXTURE.read_text(encoding="utf-8")))
+
+
+def question_look(words: str, const: str, group: int, number: int, at=(10, 10), facing: str = "right", speaker=None,
+                  mark_values=None, frame: int = 5000) -> Observation:
+    """A yes/no on screen with `words` as its page, the player on map (`group`:`number`, `const`) at `at`, facing `facing`,
+    `speaker` (a person) in front."""
+    base = look(mark_values, const=const, map_number=number, frame=frame)
+    screen = replace(base.screen, screen="menu", menu="yes_no", text=words, script_running=True, controls_locked=True)
+    player = replace(base.player, map_group=group, x=at[0], y=at[1], facing=facing)
+    objects = (speaker,) if speaker is not None else ()
+    return replace(base, screen=screen, player=player, view=replace(base.view, objects=objects))
+
+
+def travel_sense(world: WorldMemory, milestone_id: str | None = None, heading: str | None = None, watch=None):
+    from ai_player.brain.goals import TravelSense
+
+    mgr = manager("Story")
+    nav = Navigator(None, world, random.Random(1))
+    milestone = mgr.story.milestones[mgr.story.index(milestone_id)] if milestone_id else None
+    runner = types.SimpleNamespace(heading=heading, milestone_now=milestone, nav=nav)
+    return TravelSense(mgr, runner, watch, visited_in(world)), mgr
+
+
+class Round3TravelTests(unittest.TestCase):
+    """(chapter 6 stops round 3, NS1, 2026-11-06) In DEWFORD MR. BRINEY asks "Or were you meaning to sail back to
+    PETALBURG?" and the story skill's default answered YES (`QUESTION_RULES`: "a person goes along"): 4 of 6 probe runs
+    (#101 C2, C3; #102 C1, C2) sailed off the island with the letter undelivered. A question whose words OFFER A TRIP to a
+    named town (`brain/rides.py` trip_offer) is answered by where the AI's goal is (`brain/goals.py` TravelSense); every
+    other question as before. Mutants: `revert_step5.py` G539-G546, G576-G583 (G583 REDUNDANT ALONE, with why), G595-G598,
+    G611-G613."""
+
+    def test_t1_a_trip_offer_is_read_from_the_words(self):
+        from ai_player.brain.rides import trip_offer
+
+        for name, (words, place) in BRINEY_QUESTIONS.items():
+            with self.subTest(name=name):
+                self.assertEqual(trip_offer(words), place)
+                self.assertEqual(trip_offer(words.lower().replace("'", "’")), place)  # as the eyes fold it
+        for words in ("Do you choose this POKéMON?", "Would you like to give a nickname to the TORCHIC you received?",
+                      "Would you like to rest your POKéMON?", "So... How about a little battle?",
+                      "PETALBURG is a nice town. Do you want to rest?", "Are you getting the itch to fish?",
+                      "Do you want to go to the POKéMON CENTER?", "Have you delivered your LETTER?"):
+            self.assertIsNone(trip_offer(words), words)
+
+    def test_t2_control_the_games_other_questions_are_answered_as_before(self):
+        """CONTROL, the whole game: every field yes/no of the pinned decomp (`msgbox ..., MSGBOX_YESNO`, the page on screen
+        when it opens). Exactly MR. BRINEY's five and the SOUTHERN ISLAND sailor's offer a trip; every other question is
+        answered by the travel answer exactly as `answer_question` answers it."""
+        root = Path(os.environ.get("POKEBOT_DECOMP") or "C:/Remote Projects/_decomp/pokeemerald")
+        self.assertTrue((root / "data" / "maps").is_dir(), f"the pinned decomp is not at {root} (POKEBOT_DECOMP)")
+        from ai_player.brain.rides import trip_offer
+
+        label, string = re.compile(r"^([A-Za-z0-9_]+):{1,2}\s*$"), re.compile(r'^\s*\.string\s+"(.*)"\s*$')
+        texts, current = {}, None
+        files = sorted(list((root / "data").rglob("*.inc")) + list((root / "data").rglob("*.s")))
+        for path in files:
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                head, body = label.match(line), string.match(line)
+                if head:
+                    current = head.group(1)
+                    texts.setdefault(current, "")
+                elif body and current is not None:
+                    texts[current] += body.group(1)
+        call = re.compile(r"^\s*msgbox\s+([A-Za-z0-9_]+)\s*,\s*MSGBOX_YESNO")
+        pages = []
+        for path in files:
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                found = call.match(line)
+                if found:
+                    page = texts.get(found.group(1), "").replace("$", "").split("\\p")[-1]
+                    pages.append(re.sub(r"\{[A-Z_]+\}", "X", page.replace("\\n", " ").replace("\\l", " ")))
+        self.assertGreater(len(pages), 300)
+        offers = sorted({(trip_offer(page), page) for page in pages if trip_offer(page) is not None})
+        self.assertEqual(offers, sorted({(place, words) for words, place in BRINEY_QUESTIONS.values()}))
+        sense, _ = travel_sense(world_with("PETALBURG_CITY", current="PETALBURG_CITY"), "ch2_dad")
+        for page in pages:
+            if trip_offer(page) is None:
+                seen = question_look(page, "PETALBURG_CITY", 0, 1)
+                self.assertEqual(sense.answer(seen), answer_question(seen), page)
+
+    def test_t3_sail_back_from_dewford_with_the_letter_undelivered_is_no(self):
+        """THE STOP: ch7_steven (deliver the LETTER to STEVEN), in DEWFORD. NO: its goal is here. FAULT half: the old
+        answer, YES."""
+        words = BRINEY_QUESTIONS["dewford, letter"][0]
+        world = island_world()
+        world._last.key, world._last.xy = "0:11", (11, 9)  # noqa: SLF001
+        seen = question_look(words, "DEWFORD_TOWN", 0, 11, at=(11, 9), mark_values=ch_proofs("ch7_steven"))
+        self.assertTrue(answer_question(seen)[0])  # FAULT half: QUESTION_RULES' default
+        sense, _ = travel_sense(world, "ch7_steven")
+        yes, why = sense.answer(seen)
+        self.assertFalse(yes, why)
+        self.assertIn("its goal is here", why)
+        sense, _ = travel_sense(world, None)  # no goal played yet: the milestone the marks prove (ch7_steven)
+        self.assertFalse(sense.answer(seen)[0])
+
+    def test_t3b_a_goal_in_a_building_of_the_town_it_stands_in_is_here(self):
+        """(round 3, the second builder, 2026-11-06) Rule 2 counts a BUILDING of the town it stands in: BRAWLY's step
+        (ch7_brawly: its one map DEWFORD_TOWN_GYM, no milestone after it), asked "sail back to PETALBURG?" in DEWFORD: NO,
+        "its goal is here" (`town_of`, `in_place`: the gym is in DEWFORD TOWN). Without the town rule the answer is NO
+        only by a known way (rule 3), whose reason says so: the pin is the reason."""
+        words = BRINEY_QUESTIONS["dewford, letter"][0]
+        world = island_world()
+        world._last.key, world._last.xy = "0:11", (11, 9)  # noqa: SLF001
+        seen = question_look(words, "DEWFORD_TOWN", 0, 11, at=(11, 9), mark_values=ch_proofs("ch7_brawly"))
+        sense, _ = travel_sense(world, "ch7_brawly")
+        self.assertEqual(sense.goal_places(seen), {"DEWFORD_TOWN_GYM": "the story: BRAWLY: the KNUCKLE BADGE"})
+        yes, why = sense.answer(seen)
+        self.assertFalse(yes, why)
+        self.assertIn("its goal is here, not there: DEWFORD_TOWN_GYM", why)
+
+    def test_t4_control_the_first_sail_is_yes(self):
+        """CONTROL: MR. BRINEY's first offer in his cottage ("We'll set sail for DEWFORD."), asked during the talk goal of
+        ch6_briney_house: YES, DEWFORD TOWN is the next milestone's place; and by the marks alone (the intro flag set before
+        the question: ch6_dewford) YES too."""
+        words = BRINEY_QUESTIONS["first sail"][0]
+        world = island_world()
+        world._last.key, world._last.xy = "17:0", (5, 6)  # noqa: SLF001
+        seen = question_look(words, "ROUTE104_MR_BRINEYS_HOUSE", 17, 0, at=(5, 6), mark_values=ch_proofs("ch6_dewford"))
+        for milestone_id in ("ch6_briney_house", None):
+            sense, _ = travel_sense(world, milestone_id)
+            yes, why = sense.answer(seen)
+            self.assertTrue(yes, (milestone_id, why))
+            self.assertIn("DEWFORD_TOWN", why)
+
+    def test_t5_back_in_the_cottage_with_the_letter_it_sails_again(self):
+        """In the cottage with the letter still undelivered (ch7_steven) or BRAWLY next: "First, we'll set sail for
+        DEWFORD.": YES, its goal is there."""
+        words = BRINEY_QUESTIONS["cottage, letter"][0]
+        world = island_world()
+        world._last.key, world._last.xy = "17:0", (5, 6)  # noqa: SLF001
+        for milestone_id in ("ch7_steven", "ch7_brawly"):
+            seen = question_look(words, "ROUTE104_MR_BRINEYS_HOUSE", 17, 0, at=(5, 6), mark_values=ch_proofs(milestone_id))
+            sense, _ = travel_sense(world, milestone_id)
+            self.assertTrue(sense.answer(seen)[0], milestone_id)
+
+    def test_t6_a_walk_judges_by_where_it_is_heading(self):
+        """A walk on its way somewhere (`GoalRunner.heading`): in DEWFORD, heading for RUSTBORO's MART, "sail back to
+        PETALBURG?" is NO while no known way leads there through the trip and DEWFORD still has things to see; with the
+        ride DEWFORD -> the cottage known (its YES to these words), it is the way: YES."""
+        words = BRINEY_QUESTIONS["dewford, letter"][0]
+        world = island_world()
+        world._last.key, world._last.xy = "0:11", (11, 9)  # noqa: SLF001
+        seen = question_look(words, "DEWFORD_TOWN", 0, 11, at=(11, 9), mark_values=ch_proofs("ch7_steven"))
+        sense, _ = travel_sense(world, "ch7_steven", heading="RUSTBORO_CITY")
+        yes, why = sense.answer(seen)
+        self.assertFalse(yes, why)
+        world.record_ride({"from": "0:11", "to": "17:0", "arrival": [5, 4], "who": 2, "gfx": 21, "tile": [12, 9],
+                           "words": words.lower(), "place": "PETALBURG_CITY", "via": ["0:21", "0:20", "0:19"], "frame": 1})
+        world.maps["0:11"].tiles[(11, 9)] = _open_tile()
+        yes, why = sense.answer(seen)
+        self.assertTrue(yes, why)
+        self.assertIn("begins with this trip", why)
+
+    def test_t7_the_ride_being_taken_is_yes_and_a_yes_tells_the_watch(self):
+        from ai_player.brain.rides import RideWatch
+
+        words = BRINEY_QUESTIONS["dewford, letter"][0]
+        world = island_world()
+        world._last.key, world._last.xy = "0:11", (11, 9)  # noqa: SLF001
+        briney = SeenObject("npc", 12, 9, 1, 0, 2, 21, "left", 3, "object")
+        seen = question_look(words, "DEWFORD_TOWN", 0, 11, at=(11, 9), speaker=briney, mark_values=ch_proofs("ch7_steven"))
+        watch = RideWatch(world, lambda: 0, lambda line, extra=None: None)
+        sense, _ = travel_sense(world, "ch7_steven", watch=watch)
+        self.assertFalse(sense.answer(seen)[0])
+        self.assertIsNone(watch.pending)  # a NO opens no ride
+        sense.riding = {"place": "PETALBURG_CITY", "to": "17:0"}
+        yes, why = sense.answer(seen)
+        self.assertTrue(yes, why)
+        self.assertEqual((watch.pending["from"], watch.pending["who"], watch.pending["place"]), ("0:11", 2, "PETALBURG_CITY"))
+        sense.riding = {"place": "SLATEPORT_CITY", "to": "0:4"}  # a ride to another town: the ordinary rules
+        self.assertFalse(sense.answer(seen)[0])
+
+    def test_t8_no_known_way_yes_only_when_nothing_is_left_to_get_to_here(self):
+        """Rule 4: its goal (here, the map its walk heads for, RUSTBORO) not the offered town, not here, no known way: YES
+        only when nothing is left it could get to from where it stands (its goal cannot be reached from here); with one
+        frontier tile left on the map it stands on, NO (it looks round first)."""
+        words = BRINEY_QUESTIONS["dewford, letter"][0]
+        world = world_with("DEWFORD_TOWN", current="DEWFORD_TOWN")
+        seen = question_look(words, "DEWFORD_TOWN", 0, 1, mark_values=ch_proofs("ch7_steven"))
+        sense, _ = travel_sense(world, "ch7_steven", heading="RUSTBORO_CITY")
+        yes, why = sense.answer(seen)
+        self.assertTrue(yes, why)
+        self.assertIn("cannot be reached from where it stands", why)
+        world.maps["0:1"].tiles[(10, 10)] = _open_tile()  # one seen tile, its neighbours unseen: a frontier
+        world.maps["0:1"].tiles[(11, 10)] = _open_tile()
+        yes, why = sense.answer(seen)
+        self.assertFalse(yes, why)
+        self.assertIn("has not looked round all it can get to here", why)
+
+    def test_t9_the_play_brain_answers_with_the_travel_sense_and_keeps_rides(self):
+        """The REAL play loop wires it: the navigator's `answer` is the travel answer's, its `rider` the goal runner's
+        `ride`, a ride watch is told every look, and the navigator learns slides (NS6). FAULT halves: the old
+        `answer_question`, no rider, no watch, `learn_slides` off."""
+        from ai_player.brain.goals import TravelSense
+        from ai_player.brain.rides import RideWatch
+        seen: list = []
+
+        def effect(goal, world, runner):
+            nav = runner.nav
+            seen.append((getattr(nav.answer, "__self__", None).__class__, getattr(nav.rider, "__self__", None) is runner,
+                         nav.learn_slides, runner.travel is getattr(nav.answer, "__self__", None)))
+            return None
+
+        loop = PlayLoopTests()
+        _, hands, _, _, _ = loop.run_loop(screen=loop.free_screen(), budget=5000, effect=effect)
+        self.assertTrue(seen)
+        cls, rider_is_the_runners, learn, same = seen[0]
+        self.assertIs(cls, TravelSense)
+        self.assertTrue(rider_is_the_runners)
+        self.assertTrue(learn)
+        self.assertTrue(same)
+        self.assertTrue(any(isinstance(w, RideWatch) for w in hands.watchers))
+
+    def test_t10_a_walk_names_where_it_is_heading_while_it_walks(self):
+        """(round 3, the second builder, 2026-11-06) What rule 1 calls "the map its walk is on its way to"
+        (`GoalRunner.heading`) is set by `_travel` for its walk (`_travel_on`) and put back after it, so a question met on
+        the way is judged by that map and one met after it is not."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import GoalRunner
+
+        runner = GoalRunner(None, Navigator(None, world_with("DEWFORD_TOWN", current="DEWFORD_TOWN"), random.Random(1)),
+                            manager("Story"), None, lambda line: None)
+        heading_seen = []
+
+        def travel_on(self_, target_map, why, budget, done):
+            heading_seen.append(self_.heading)
+            return f"arrived at {target_map}"
+            yield  # noqa: unreachable - a generator
+
+        with mock.patch.object(goals_module.GoalRunner, "_travel_on", travel_on):
+            outcome = drive(runner._travel("RUSTBORO_CITY", "why", 100, lambda seen: False), budget=10)  # noqa: SLF001
+        self.assertEqual((outcome, heading_seen, runner.heading), ("arrived at RUSTBORO_CITY", ["RUSTBORO_CITY"], None))
+
+
+def ride_look(frame: int, group: int, number: int, const: str, at, free: bool = True, fading: bool = False,
+              battle: bool = False) -> Observation:
+    base = look(const=const, map_number=number, frame=frame)
+    screen = replace(base.screen, script_running=not free, controls_locked=not free, fading=fading, in_battle=battle,
+                     game_state="BATTLE" if battle else "OVERWORLD")
+    player = replace(base.player, map_group=group, x=at[0], y=at[1])
+    return replace(base, screen=screen, player=player)
+
+
+class Round3RideTests(unittest.TestCase):
+    """(chapter 6 stops round 3, NS2, 2026-11-06) Back on the mainland the AI had no way back: the sail's map changes are a
+    scene's, from tiles that look like no way out, so `route_to` ROUTE104 -> DEWFORD_TOWN was None on probe7 C1's own
+    memory (`ISLAND_FIXTURE`). What the AI SAW is kept as a RIDE (`brain/rides.py` RideWatch: a YES to someone's offer of
+    a trip, then scenes only, the controls back on another map) and used as a link (`brain/explore.py` ways_from, route_to,
+    region_hops; `goals.world_distance`; the navigator's `rider`). Mutants: `revert_step5.py` G547-G556, G584-G594."""
+
+    def sail(self, settle_frames: int = 200, watch_settle=None):
+        """The first sail as the looks show it: the YES in the cottage (MR. BRINEY in front), the fade, ROUTE 104's dock
+        FREE for 2 frames (probe8 C1 f755049-f755051), the boat's scene across ROUTE 104, 105 and 106 (fades between),
+        DEWFORD locked, then free for `settle_frames` frames with no press."""
+        from ai_player.brain import rides as rides_module
+
+        world = WorldMemory()
+        presses = [0]
+        told = []
+        watch = rides_module.RideWatch(world, lambda: presses[0], lambda line, extra=None: told.append(line))
+        if watch_settle is not None:
+            patch = mock.patch.object(rides_module, "RIDE_SETTLE", watch_settle)
+        else:
+            patch = contextlib.nullcontext()
+        frame = [100]
+
+        def feed(seen: Observation, frames: int = 1) -> None:
+            for _ in range(frames):
+                seen = replace(seen, frame=frame[0])
+                world.observe(seen)
+                watch(seen)
+                frame[0] += 1
+
+        with patch:
+            feed(ride_look(0, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6)), 3)
+            briney = SeenObject("npc", 6, 6, 1, 0, 1, 21, "left", 3, "object")
+            question = question_look(BRINEY_QUESTIONS["first sail"][0], "ROUTE104_MR_BRINEYS_HOUSE", 17, 0, at=(5, 6),
+                                     speaker=briney, frame=frame[0])
+            world.observe(question)
+            watch.offered(question, "DEWFORD_TOWN", "you've come to the right man! we'll set sail for dewford.")
+            feed(ride_look(0, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=False), 30)
+            feed(ride_look(0, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=False, fading=True), 20)
+            feed(ride_look(0, 0, 19, "ROUTE104", (13, 51)), 2)  # the dock: free for two frames
+            for number, const, at in ((19, "ROUTE104", (13, 51)), (20, "ROUTE105", (22, 0)), (21, "ROUTE106", (22, 0)),
+                                      (11, "DEWFORD_TOWN", (12, 0))):
+                feed(ride_look(0, 0, number, const, at, free=False), 40)
+                feed(ride_look(0, 0, number, const, at, free=False, fading=True), 10)
+            feed(ride_look(0, 0, 11, "DEWFORD_TOWN", (11, 9), free=False), 60)
+            feed(ride_look(0, 0, 11, "DEWFORD_TOWN", (11, 9)), settle_frames)
+        return world, watch, told
+
+    def test_r1_the_first_sail_is_kept_as_a_ride_to_dewford(self):
+        """The ride ends in DEWFORD, where the controls came back and stayed: from the cottage, MR. BRINEY (1, gfx 21) at
+        (6, 6), the words answered, DEWFORD TOWN offered, arriving at (11, 9), through ROUTE 104, 105 and 106. FAULT half:
+        a ride that ends at the first free look (`RIDE_SETTLE` 0) is taken to end on ROUTE 104's dock."""
+        world, watch, told = self.sail()
+        self.assertEqual(len(world.rides), 1, (watch.history, told))
+        ride = next(iter(world.rides.values()))
+        self.assertEqual((ride["from"], ride["to"], ride["arrival"], ride["who"], ride["gfx"], ride["tile"], ride["place"]),
+                         ("17:0", "0:11", [11, 9], 1, 21, [6, 6], "DEWFORD_TOWN"))
+        self.assertEqual(ride["via"], ["0:19", "0:20", "0:21"])
+        self.assertTrue(any(line.startswith("RIDE:") for line in told), told)
+        world, watch, _ = self.sail(watch_settle=0)
+        self.assertEqual([r["to"] for r in world.rides.values()], ["0:19"])  # FAULT half: the dock
+
+    def test_r2_what_is_no_ride(self):
+        """No YES to a trip: nothing is kept. A battle after the YES: dropped. A YES whose scene ends on the map it was asked
+        on: dropped. The AI walking off by itself before any scene: dropped. (Round 3, the second builder) A scene after
+        the YES that does not end within `RIDE_MAX_FRAMES` (here 50): dropped."""
+        from ai_player.brain import rides as rides_module
+        from ai_player.brain.rides import RideWatch
+
+        world, watch, _ = self.sail(settle_frames=10)  # not yet settled: still pending
+        self.assertEqual(world.rides, {})
+        self.assertIsNotNone(watch.pending)
+        for case in ("battle", "same map", "own step", "round trip", "never ends"):
+            with self.subTest(case=case):
+                world = WorldMemory()
+                watch = RideWatch(world, lambda: 0, lambda line, extra=None: None)
+                feed = [ride_look(f, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6)) for f in range(3)]
+                for seen in feed:
+                    world.observe(seen)
+                briney = SeenObject("npc", 6, 6, 1, 0, 1, 21, "left", 3, "object")
+                watch.offered(question_look("x", "ROUTE104_MR_BRINEYS_HOUSE", 17, 0, at=(5, 6), speaker=briney, frame=3),
+                              "DEWFORD_TOWN", "x")
+                if case == "battle":
+                    later = [ride_look(10, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=False, battle=True)]
+                elif case == "same map":
+                    later = [ride_look(10 + f, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=f > 50) for f in range(300)]
+                elif case == "round trip":  # out to ROUTE 104 by a scene and back in by one: no ride
+                    later = ([ride_look(10, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=False, fading=True),
+                              ride_look(11, 0, 19, "ROUTE104", (17, 50), free=False),
+                              ride_look(12, 0, 19, "ROUTE104", (17, 50), free=False, fading=True)]
+                             + [ride_look(13 + f, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 8)) for f in range(300)])
+                elif case == "never ends":  # locked on the map it was asked on, frame after frame
+                    later = [ride_look(10 + f, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=False) for f in range(100)]
+                else:
+                    world.intend("step", "down")
+                    later = [ride_look(10, 17, 0, "ROUTE104_MR_BRINEYS_HOUSE", (5, 6), free=False, fading=True),
+                             ride_look(11, 0, 19, "ROUTE104", (17, 50))] + [
+                        ride_look(12 + f, 0, 19, "ROUTE104", (17, 50)) for f in range(300)]
+                patch = (mock.patch.object(rides_module, "RIDE_MAX_FRAMES", 50) if case == "never ends"
+                         else contextlib.nullcontext())
+                with patch:
+                    for seen in later:
+                        world.observe(seen)
+                        watch(seen)
+                self.assertEqual(world.rides, {}, case)
+                self.assertIsNone(watch.pending, case)
+                self.assertEqual(watch.history[-1][1], "dropped", case)
+
+    def test_r3_kept_with_the_memory_and_put_aside_when_it_fails(self):
+        world, _, _ = self.sail()
+        again = WorldMemory.from_dict(json.loads(world.snapshot()))
+        self.assertEqual(again.rides, world.rides)
+        old = json.loads(world.snapshot())
+        old.pop("rides")
+        self.assertEqual(WorldMemory.from_dict(old).rides, {})  # a memory written before rides loads as before
+        name = next(iter(world.rides))
+        self.assertEqual([n for n, _ in world.rides_from("17:0")], [name])
+        world.close_ride(name, "the person was not there", world._last.frame)  # noqa: SLF001
+        self.assertEqual(world.rides_from("17:0"), [])  # put aside
+        world.news += 1
+        self.assertEqual([n for n, _ in world.rides_from("17:0")], [name])  # news: tried again
+
+    def test_r4_the_way_back_to_the_island_on_probe7_c1s_own_memory(self):
+        """THE STOP, on probe7 C1's own memory: ROUTE 104 -> DEWFORD TOWN and -> STEVEN's room are None by maps and from
+        the cottage's door (FAULT half, `ways_from` without rides); with the first sail kept as a ride, the route is the
+        cottage's door, then the ride; and from the north strip the woods' south door first (KI-134's parts)."""
+        from ai_player.brain.explore import route_to
+
+        world = island_world()
+        goal = lambda const: (lambda memory, key: memory is not None and memory.const == const)  # noqa: E731
+        for target in ("DEWFORD_TOWN", "GRANITE_CAVE_STEVENS_ROOM"):
+            self.assertIsNone(route_to(world, "0:19", goal(target)), target)  # FAULT half
+        world.record_ride(dict(FIRST_SAIL_RIDE))
+        route = route_to(world, "0:19", goal("DEWFORD_TOWN"))
+        self.assertEqual([kind for kind, _ in route], ["warp", "ride"])
+        self.assertEqual(route[0][1]["to"], "17:0")
+        south = route_to(world, "0:19", goal("GRANITE_CAVE_STEVENS_ROOM"), (17, 51))
+        self.assertIsNotNone(south)
+        self.assertEqual([kind for kind, _ in south][:2], ["warp", "ride"])
+        north = route_to(world, "0:19", goal("DEWFORD_TOWN"), (19, 0))
+        self.assertIsNotNone(north)
+        self.assertEqual(world.maps[north[0][1]["to"]].const, "PETALBURG_WOODS")  # through the woods first
+        self.assertEqual(north[-1][0], "ride")
+        # the ranking of places counts the ride too: by the region route from where the player stands, and by maps
+        from ai_player.brain.explore import region_hops
+        from ai_player.brain.goals import UNREACHABLE, world_distance
+        self.assertIn("0:11", region_hops(world, "0:19", (17, 51)))
+        world._last.key, world._last.xy = "0:19", None  # noqa: SLF001 - no tile: the count by maps
+        self.assertLess(world_distance(world, "0:11"), UNREACHABLE)
+        world.rides.clear()
+        self.assertNotIn("0:11", region_hops(world, "0:19", (17, 51)))  # FAULT halves: no ride, no way
+        self.assertEqual(world_distance(world, "0:11"), UNREACHABLE)
+
+    def test_r5_the_explorer_walks_up_beside_the_rides_person(self):
+        from ai_player.brain.explore import candidates, weights_for
+
+        world = island_world()
+        world.record_ride(dict(FIRST_SAIL_RIDE))
+        world._last.key, world._last.xy = "17:0", (5, 7)  # noqa: SLF001
+        memory = world.maps["17:0"]
+        memory.objects_now = memory.people_now = frozenset()
+        nav = Navigator(None, world, random.Random(1))
+        nav.where = lambda seen: (memory, (5, 7))
+        found = candidates(nav, types.SimpleNamespace(frame=10 ** 6), weights_for("Story"),
+                           lambda m, key: m is not None and m.const == "DEWFORD_TOWN", jitter_on=False)
+        rides = [t for t in found if t.ride is not None]
+        self.assertEqual(len(rides), 1, found)
+        self.assertEqual(rides[0].kind, "route")
+        self.assertEqual(abs(rides[0].tile[0] - 6) + abs(rides[0].tile[1] - 6), 1)
+        world.rides.clear()  # FAULT half: no ride, no such target
+        self.assertEqual([t for t in candidates(nav, types.SimpleNamespace(frame=10 ** 6), weights_for("Story"),
+                                                lambda m, key: m is not None and m.const == "DEWFORD_TOWN", jitter_on=False)
+                          if t.ride is not None], [])
+
+    def test_r6_the_navigator_takes_a_ride_through_its_rider(self):
+        """Arrived beside the person (the cottage simulation: someone standing at (9, 4) who took the player to DEWFORD
+        before), the navigator hands the ride to the play brain's `rider`, once. CONTROL: with no rider (every earlier
+        brain) the ride is given up for the intent, untaken."""
+        from ai_player.brain.goals import travel_intent
+
+        for with_rider in (True, False):
+            with self.subTest(with_rider=with_rider):
+                sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+                hands, nav = cottage(sim)
+                world = nav.world
+                world.maps["0:11"] = MapMemory("0:11", "DEWFORD_TOWN", "DEWFORD_TOWN")
+                world.maps["0:11"].visits[(11, 9)] = 1
+                world.record_ride({"from": "0:17", "to": "0:11", "arrival": [11, 9], "who": STILL_ID, "gfx": 5,
+                                   "tile": [9, 4], "words": "first, we'll set sail for dewford.", "place": "DEWFORD_TOWN",
+                                   "via": [], "frame": 1})
+                taken = []
+
+                def rider(target):
+                    taken.append((target.ride, sim.player))
+                    yield from hands.pad.busy("riding")
+                    return "rode: to DEWFORD"
+
+                nav.rider = rider if with_rider else None
+                hands.look()
+                outcome = drive(nav.run(travel_intent("DEWFORD_TOWN", "Story", 3000, lambda seen: bool(taken)),
+                                        "to DEWFORD"), budget=20000)
+                if with_rider:
+                    self.assertEqual(len(taken), 1, outcome)
+                    self.assertEqual(taken[0][0], "0:17|3|0:11")
+                    self.assertEqual(abs(taken[0][1][0] - 9) + abs(taken[0][1][1] - 4), 1)
+                else:
+                    self.assertEqual(taken, [])
+                    self.assertTrue(any("no one here takes rides" in why for why in nav.excluded.values()), nav.excluded)
+
+    def test_r8_taking_a_ride_talks_to_its_person_and_puts_aside_one_not_taken(self):
+        """`GoalRunner.ride`: the person found on the screen by id and figure is talked to with the travel answer told
+        which ride it is (`TravelSense.riding`); a person not on the screen, or a talk that leaves the player free where
+        it began, puts the ride aside (`close_ride`)."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import GoalRunner
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+        world = nav.world
+        name = "0:17|3|0:11"
+        world.rides[name] = {"from": "0:17", "to": "0:11", "arrival": [11, 9], "who": STILL_ID, "gfx": 5, "tile": [9, 4],
+                             "words": "w", "place": "DEWFORD_TOWN", "uses": 1}
+        runner = GoalRunner(hands, nav, manager("Story"), None, lambda line: None)
+        runner.travel = types.SimpleNamespace(riding=None)
+        riding_seen = []
+
+        def talk_to(hands_, nav_, seen, why):
+            riding_seen.append((seen.local_id, runner.travel.riding["place"]))
+            yield from hands_.pad.busy("talking")
+            return "talked"
+
+        with mock.patch.object(goals_module, "talk_to", talk_to):
+            outcome = drive(runner.ride(Target("route", (9, 5), "r", ride=name)), budget=2000)
+        self.assertTrue(outcome.startswith("not taken: talked"), outcome)
+        self.assertEqual(riding_seen, [(STILL_ID, "DEWFORD_TOWN")])
+        self.assertIsNone(runner.travel.riding)
+        self.assertIn("closed", world.rides[name])
+        world.rides[name].pop("closed")
+        world.rides[name]["who"] = 99  # nobody with that id on the screen
+        outcome = drive(runner.ride(Target("route", (9, 5), "r", ride=name)), budget=2000)
+        self.assertTrue(outcome.startswith("not taken: the person"), outcome)
+        self.assertIn("closed", world.rides[name])
+
+    def test_r7_control_no_rides_no_change(self):
+        """CONTROL: on chapter 1-5 memories (no ride was ever seen there) the ways out of every map are the links alone,
+        exactly as before."""
+        from ai_player.brain.explore import ways_from
+
+        for path in (ROUTE104_FIXTURE, ISLAND_FIXTURE):
+            world = WorldMemory.from_dict(json.loads(path.read_text(encoding="utf-8").splitlines()[-1]))
+            self.assertEqual(world.rides, {})
+            for key in world.maps:
+                self.assertEqual(ways_from(world, key), world.links_from(key), (path.name, key))
+
+
+def _old_in_map_walls(memory, walls, target_tile):
+    """FAULT (test side): `navigator.in_map_walls` as it was before round 3 (a road target's walk may go through the tiles
+    seen past ANY crossed edge)."""
+    if memory.edges and (target_tile is None or not memory.outside(target_tile)):
+        walls = walls | frozenset(xy for xy in memory.tiles if memory.outside(xy))
+    return walls
+
+
+class Round3CrossingTests(unittest.TestCase):
+    """(chapter 6 stops round 3, NS2's second reading, 2026-11-06) probe8's C1 and C2 bounced on the RUSTBORO / ROUTE 104
+    crossing (287 and 228 ping-pong ends): a look round on ROUTE 104's north strip chose the road RIGHT toward PETALBURG
+    ("back (46, 59): the road right: it leads back to PETALBURG_CITY"), whose walk was planned through RUSTBORO's tiles
+    past the UP edge: its first step crossed into RUSTBORO, and RUSTBORO's lost walk led straight back down. A road is now
+    walked to over this map and its own side's tiles only (`navigator.in_map_walls`, `explore.candidates`' road walk).
+    Mutants: `revert_step5.py` G557, G558, G599."""
+
+    def north_strip(self, fault: bool = False):
+        from ai_player.brain import explore as explore_module
+        from ai_player.brain.explore import candidates, weights_for
+        from ai_player.world.memory import road_side
+
+        world = island_world()
+        world._last.key, world._last.xy = "0:19", (19, 0)  # noqa: SLF001
+        memory = world.maps["0:19"]
+        memory.objects_now = memory.people_now = frozenset()
+        nav = Navigator(None, world, random.Random(1))
+        nav.where = lambda seen: (memory, (19, 0))
+        patch = mock.patch.object(explore_module, "in_map_walls", _old_in_map_walls) if fault else contextlib.nullcontext()
+        with patch:
+            found = candidates(nav, types.SimpleNamespace(frame=10 ** 9), weights_for("Story"), None, jitter_on=False)
+        return memory, [t for t in found if memory.outside(t.tile) and road_side(memory, t.tile) == "right"]
+
+    def test_x1_a_road_is_never_walked_to_through_another_edge(self):
+        """From the north strip (19, 0) of probe7 C1's own ROUTE 104 (edges right and up seen crossed) no road past the
+        RIGHT edge is a place to go: no walk over ROUTE 104's own tiles gets there. FAULT half (the old rule): the road
+        right (44, 57) is one, its planned walk 96 steps through RUSTBORO's tiles, its first step UP across the up edge."""
+        from ai_player.brain.navigator import astar, in_map_walls
+
+        memory, right = self.north_strip()
+        self.assertEqual(memory.edges, {"right": 40, "up": -1})
+        self.assertEqual(right, [])
+        memory, right = self.north_strip(fault=True)
+        self.assertTrue(right)
+        road = max(right, key=lambda t: t.score)
+        old = astar(memory, (19, 0), {road.tile}, _old_in_map_walls(memory, frozenset(), road.tile), 0.0)
+        self.assertEqual(old[0], "up")
+        self.assertIsNone(astar(memory, (19, 0), {road.tile}, in_map_walls(memory, frozenset(), road.tile), 0.0))
+
+    def test_x2_control_from_the_south_part_the_road_right_is_as_before(self):
+        """CONTROL: from ROUTE 104's south part (39, 63) the road right is walked to as before (the same walk), and a road UP
+        from the north strip too: only a walk THROUGH another edge's tiles is gone."""
+        from ai_player.brain.explore import candidates, weights_for
+
+        for at, side in (((39, 63), "right"), ((19, 0), "up")):
+            scores = {}
+            for fault in (False, True):
+                world = island_world()
+                world._last.key, world._last.xy = "0:19", at  # noqa: SLF001
+                memory = world.maps["0:19"]
+                memory.objects_now = memory.people_now = frozenset()
+                nav = Navigator(None, world, random.Random(1))
+                nav.where = lambda seen, memory=memory, at=at: (memory, at)
+                from ai_player.brain import explore as explore_module
+                from ai_player.world.memory import road_side
+                patch = (mock.patch.object(explore_module, "in_map_walls", _old_in_map_walls) if fault
+                         else contextlib.nullcontext())
+                with patch:
+                    found = candidates(nav, types.SimpleNamespace(frame=10 ** 9), weights_for("Story"), None,
+                                       jitter_on=False)
+                scores[fault] = sorted((t.tile, round(t.score, 3)) for t in found
+                                       if memory.outside(t.tile) and road_side(memory, t.tile) == side)
+            self.assertTrue(scores[False], at)
+            self.assertEqual(scores[False], scores[True], at)
+
+
+class Round3StevenTests(unittest.TestCase):
+    """(chapter 7 stops round 3, NS3, 2026-11-06) The AI walked into STEVEN's room and out again without a word: probe7 C2
+    on a shop errand (in at f761588, out at f761786), C1 under a go goal that looked round. Every walk that is not the walk
+    to the one the story's next step names now STOPS when they come into view on that step's map
+    (`GoalRunner.story_in_view`, `Navigator.stop_for`), and with them in view there a heal not in danger and a shop wait
+    (`next_goal`'s `story_here`). Mutants: `revert_step5.py` G559-G563, G600-G602."""
+
+    def steven_look(self, in_view: bool = True, const: str = "GRANITE_CAVE_STEVENS_ROOM", **kwargs):
+        mgr = manager("Story")
+        steven = person(10, 7, gfx=mgr.story.looks["steven"].gfx[0], local_id=1)
+        return look(ch_proofs("ch7_steven"), const=const, map_number=10, objects=(steven,) if in_view else (), **kwargs)
+
+    def test_s1_steven_in_view_on_his_map_stops_a_walk(self):
+        from ai_player.brain.goals import GoalRunner
+
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", "GRANITE_CAVE_STEVENS_ROOM", current="GRANITE_CAVE_STEVENS_ROOM")
+        runner = GoalRunner(None, Navigator(None, world, random.Random(1)), mgr, None, lambda line: None)
+        milestone = mgr.story.milestones[mgr.story.index("ch7_steven")]
+        why = runner.story_in_view(self.steven_look(), milestone)
+        self.assertIsNotNone(why)
+        self.assertIn("STEVEN", why)
+        self.assertIsNone(runner.story_in_view(self.steven_look(in_view=False), milestone))  # not on the screen
+        world._last.key = "0:1"  # noqa: SLF001 - in DEWFORD: not the step's map
+        self.assertIsNone(runner.story_in_view(self.steven_look(const="DEWFORD_TOWN"), milestone))
+
+    def test_s2_the_navigator_stops_a_walk_for_it_and_pursue_sets_it_for_errands_only(self):
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import Goal, GoalRunner, travel_intent
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+        nav.stop_for = lambda seen: "STEVEN is in view"
+        outcome = drive(nav.run(travel_intent(None, "Story", 2000, lambda seen: False), "a shop errand"), budget=5000)
+        self.assertTrue(outcome.startswith("stopped: STEVEN is in view"), outcome)
+        nav.stop_for = None
+        mgr = manager("Story")
+        runner = GoalRunner(hands, nav, mgr, None, lambda line: None)
+        milestone = mgr.story.milestones[mgr.story.index("ch7_steven")]
+        seen_stop = {}
+
+        def pursue(goal, milestone_, index, current):
+            seen_stop[goal.kind] = nav.stop_for
+            return False, "x"
+            yield  # noqa: unreachable - a generator
+
+        with mock.patch.object(goals_module.GoalRunner, "_pursue", lambda self_, *a: pursue(*a)):
+            for kind in ("shop", "explore", "go", "talk", "heal", "find"):
+                drive(runner.pursue(Goal(kind, "r", milestone.id), milestone, 31, lambda seen: 31), budget=10)
+        self.assertEqual({kind: stop is not None for kind, stop in seen_stop.items()},
+                         {"shop": True, "explore": True, "go": True, "talk": False, "heal": False, "find": False})
+        self.assertIsNone(nav.stop_for)  # put back after each goal
+        # (round 3, the second builder) the stop an errand's walk is given asks `story_in_view` with the goal's milestone
+        asked = []
+        runner.story_in_view = lambda seen, milestone_: asked.append((seen, milestone_.id)) or "STEVEN is in view"
+        self.assertEqual(seen_stop["shop"]("a look"), "STEVEN is in view")
+        self.assertEqual(asked, [("a look", "ch7_steven")])
+
+    def test_s3_with_steven_in_view_a_shop_and_a_heal_not_in_danger_wait(self):
+        """In his room with STEVEN in view and the letter undelivered: no POKé BALLS and money (a mart known and reachable),
+        or the party under its heal line: the talk to STEVEN comes first. FAULT half: STEVEN not on the screen, the shop
+        and the heal come first as before. CONTROL: a Pokemon fainted (danger): the heal first."""
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", "GRANITE_CAVE_STEVENS_ROOM", current="GRANITE_CAVE_STEVENS_ROOM",
+                           mart_from="GRANITE_CAVE_STEVENS_ROOM", center_from="DEWFORD_TOWN")
+        for in_view, party, want in ((True, [mon(30, hp=90, max_hp=100)], "talk"), (False, [mon(30, hp=90, max_hp=100)], "shop"),
+                                     (True, [mon(30, hp=40, max_hp=100)], "talk"), (False, [mon(30, hp=40, max_hp=100)], "heal"),
+                                     (True, [mon(30, hp=0, max_hp=100), mon(31, hp=90, max_hp=100, pid=2)], "heal")):
+            with self.subTest(in_view=in_view, hp=party[0].hp):
+                seen = self.steven_look(in_view=in_view, party=party, balls=0, money=5000)
+                index, milestone = mgr.milestone(seen, visited_in(world))
+                self.assertEqual(milestone.id, "ch7_steven")
+                goal = mgr.next_goal(seen, world, milestone, index)
+                self.assertEqual(goal.kind, want, goal.reason)
+
+    def test_s4_control_a_fight_next_still_trains_first(self):
+        """CONTROL: ROXANNE in view in her gym, the party short of her levels: training first, as before (a fight is no
+        talk that waits for nothing)."""
+        mgr = manager("Trainer")
+        world = world_with("RUSTBORO_CITY", "RUSTBORO_CITY_GYM", current="RUSTBORO_CITY_GYM", grass=True)
+        roxanne = person(11, 10, gfx=mgr.story.looks["roxanne"].gfx[0], local_id=1)
+        seen = look(ch_proofs("ch4_roxanne"), party=[mon(8)], const="RUSTBORO_CITY_GYM", map_number=2, objects=(roxanne,))
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, "ch4_roxanne")
+        self.assertEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")
+        # and with no POKé BALLS and a mart in reach, the shop first, as before (no talk waits for a fight)
+        world = world_with("RUSTBORO_CITY", "RUSTBORO_CITY_GYM", current="RUSTBORO_CITY_GYM", grass=True,
+                           mart_from="RUSTBORO_CITY_GYM")
+        seen = look(ch_proofs("ch4_roxanne"), party=[mon(8)], balls=0, money=5000, const="RUSTBORO_CITY_GYM", map_number=2,
+                    objects=(roxanne,))
+        self.assertEqual(manager("Trainer").next_goal(seen, world, milestone, index).kind, "shop")
+
+
+class Round3GymTests(unittest.TestCase):
+    """(chapter 7 stops round 3, NS4, 2026-11-06) After STEVEN, BRAWLY's step waited for the words 'BRAWLY' (the gym sign's)
+    and made 36 "where to? nobody has said yet" goals over 502,847 frames (probe7 C1), although it had been inside DEWFORD's
+    gym. The knowledge base now knows which leader holds which gym (`knowledge/atlas.py` gym_leaders, the world file
+    `bosses.json`'s second loader slice, classified by `check_fairness.py`), and a step told by a leader's name is known
+    once the AI has stood inside that leader's gym (`GoalManager.knows_gym`). And errands no longer pick a mart or grass no
+    known way leads to (`_nearest_place(reachable=True)`, `grass_target`). Mutants: `revert_step5.py` G564-G569, G603-G610;
+    the fairness gate's change (the `bosses.json` slice): test_kb2 NotReadTests.test_k_f3b, mutants CH7F1 and CH7F2
+    (`s53/ch6stops3/gate_mutants3.py`: revert_r1's copy cannot import test_kb2)."""
+
+    def test_g1_the_knowledge_base_knows_each_gyms_leader(self):
+        from ai_player.knowledge.atlas import gym_leaders
+
+        leaders = gym_leaders()
+        self.assertEqual(len(leaders), 8)
+        self.assertEqual((leaders["ROXANNE"], leaders["BRAWLY"], leaders["NORMAN"]),
+                         ("RUSTBORO_CITY_GYM", "DEWFORD_TOWN_GYM", "PETALBURG_CITY_GYM"))
+
+    def test_g2_brawlys_step_is_known_once_it_has_been_inside_his_gym(self):
+        """BRAWLY's go step, the words never read: inside DEWFORD_TOWN_GYM before, the step is known and the goal goes there,
+        saying why. FAULT half: never inside it: "where to? nobody has said yet"."""
+        mgr = manager("Story")
+        step = next(s for s in mgr.story.milestones[mgr.story.index("ch7_brawly")].steps if s.do == "go")
+        for inside in (True, False):
+            with self.subTest(inside=inside):
+                consts = ("DEWFORD_TOWN", "DEWFORD_TOWN_GYM", "GRANITE_CAVE_1F") if inside else ("DEWFORD_TOWN",
+                                                                                                 "GRANITE_CAVE_1F")
+                world = world_with(*consts, current="GRANITE_CAVE_1F")
+                self.assertEqual(mgr.step_known(step, world.heard, world), inside)
+                seen = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="GRANITE_CAVE_1F", map_number=7)
+                index, milestone = mgr.milestone(seen, visited_in(world))
+                goal = mgr._story_step_goal(seen, world, milestone, mgr.story_step(seen, world, milestone))  # noqa: SLF001
+                if inside:
+                    self.assertEqual((goal.kind, goal.map), ("go", "DEWFORD_TOWN_GYM"))
+                    self.assertIn("it knows BRAWLY holds DEWFORD_TOWN_GYM", goal.reason)
+                else:
+                    self.assertEqual((goal.kind, goal.map), ("go", None))
+
+    def test_g3_control_roxannes_step_is_as_before(self):
+        """CONTROL: ROXANNE's step (chapter 4) with RUSTBORO visited and her gym NOT: unknown until her words are read, as
+        before; the words read: known. And under the no-hints fault nothing is known."""
+        mgr = manager("Story")
+        step = next(s for s in mgr.story.milestones[mgr.story.index("ch4_roxanne")].steps if s.do == "go")
+        world = world_with("RUSTBORO_CITY", current="RUSTBORO_CITY")
+        self.assertFalse(mgr.step_known(step, world.heard, world))
+        world.heard = {"RUSTBORO CITY POKéMON GYM LEADER: ROXANNE “The rock-loving honor student.”"}
+        self.assertTrue(mgr.step_known(step, world.heard, world))
+        world = world_with("RUSTBORO_CITY", "RUSTBORO_CITY_GYM", current="RUSTBORO_CITY")
+        self.assertFalse(manager("Story", hints_off=True).step_known(step, world.heard, world))
+
+    def test_g4_a_shop_never_picks_a_mart_no_known_way_leads_to(self):
+        """FAULT half: a mart entered once from a map with no known way from here (the island, the mainland's mart): no shop
+        goal. With a link to it: the shop, as before."""
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", "OLDALE_TOWN", current="DEWFORD_TOWN", mart_from="OLDALE_TOWN")
+        seen = look(ch_proofs("ch7_steven"), party=[mon(30)], balls=0, money=5000, const="DEWFORD_TOWN", map_number=1)
+        self.assertIsNone(mgr._mart_place(world))  # noqa: SLF001
+        world.connections.append({"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
+                                  "offset": [0, 10], "by": "ai", "frame": 1})
+        self.assertEqual(mgr._mart_place(world)[0], "OLDALE_TOWN_MART")  # noqa: SLF001
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(mgr.next_goal(seen, world, milestone, index).kind, "shop")
+
+    def test_g5_training_never_heads_for_grass_no_known_way_leads_to(self):
+        from ai_player.brain.goals import grass_target
+
+        world = world_with("DEWFORD_TOWN", "ROUTE104", current="DEWFORD_TOWN")
+        grass = TileFact(False, False, True, True, None, False, False, 3, "TALL_GRASS", 0, (0, 0))
+        world.maps["0:2"].tiles[(3, 3)] = grass
+        self.assertEqual(grass_target(world), ("out of reach", None))
+        world.connections.append({"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
+                                  "offset": [0, 10], "by": "ai", "frame": 1})
+        self.assertEqual(grass_target(world), ("there", "ROUTE104"))
+        self.assertEqual(grass_target(world_with("DEWFORD_TOWN", current="DEWFORD_TOWN")), ("none", None))
+        mgr = manager("Trainer")
+        world = world_with("DEWFORD_TOWN", "ROUTE104", current="DEWFORD_TOWN")
+        world.maps["0:2"].tiles[(3, 3)] = grass
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(10)], const="DEWFORD_TOWN", map_number=1)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertNotEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")  # out of reach: no training
+        # (round 3, the second builder) and the training is NOT taken as done ("ready") because the grass was out of reach
+        self.assertFalse(mgr.prep(milestone)["ready"])
+        # (round 4, V3-1) but the HEAL before the fight is chosen all the same: the party at 75% (over its heal line, under
+        # HEAL_BEFORE_FIGHT), a centre known on the island, the grass out of reach: it tops up first, and the record still
+        # says it did not train (`prep["ready"]` False: trained and ready for the fight are kept apart)
+        island = world_with("DEWFORD_TOWN", "ROUTE104", current="DEWFORD_TOWN", center_from="DEWFORD_TOWN")
+        island.maps["0:2"].tiles[(3, 3)] = grass
+        hurt = look(ch_proofs("ch7_brawly"), party=[mon(10, hp=15, max_hp=20)], const="DEWFORD_TOWN", map_number=1)
+        healer = manager("Trainer")
+        h_index, h_milestone = healer.milestone(hurt, visited_in(island))
+        goal = healer.next_goal(hurt, island, h_milestone, h_index)
+        self.assertEqual(goal.kind, "heal", goal.reason)
+        self.assertIn("a known fight is next (it cannot train here", goal.reason)
+        self.assertFalse(healer.prep(h_milestone)["ready"])
+        world.connections.append({"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
+                                  "offset": [0, 10], "by": "ai", "frame": 1})
+        self.assertEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")  # CONTROL: reachable, as before
+
+    def test_g6_control_a_heal_keeps_every_place_it_knows(self):
+        """CONTROL: a heal still goes to the centre it knows, a known way or not (a party in danger tries, as before)."""
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", "OLDALE_TOWN", current="DEWFORD_TOWN", center_from="OLDALE_TOWN")
+        self.assertEqual(mgr.heal_place(world)[0], "OLDALE_TOWN_POKEMON_CENTER_1F")
+
+    def test_g7_a_training_roam_goes_only_to_grass_a_known_way_leads_to(self):
+        """(round 3, the second builder, 2026-11-06) The roam itself (`GoalRunner._grass_map`, by `grass_target`): with the
+        mainland's grass out of reach from the island it stays (None), never sets off for it; FAULT half (no reachability
+        rule: `UNREACHABLE` raised past the count of a map no way leads to) it heads for ROUTE104 as the old rule did;
+        CONTROL: with a known way, ROUTE104, as before."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import GoalRunner
+
+        mgr = manager("Trainer")
+        world = world_with("DEWFORD_TOWN", "ROUTE104", current="DEWFORD_TOWN")
+        world.maps["0:2"].tiles[(3, 3)] = TileFact(False, False, True, True, None, False, False, 3, "TALL_GRASS", 0, (0, 0))
+        runner = GoalRunner(None, Navigator(None, world, random.Random(1)), mgr, None, lambda line: None)
+        milestone = mgr.story.milestones[mgr.story.index("ch7_brawly")]
+        self.assertIsNone(runner._grass_map(milestone))  # noqa: SLF001
+        with mock.patch.object(goals_module, "UNREACHABLE", 100):
+            self.assertEqual(runner._grass_map(milestone), "ROUTE104")  # noqa: SLF001 - FAULT half
+        world.connections.append({"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
+                                  "offset": [0, 10], "by": "ai", "frame": 1})
+        self.assertEqual(runner._grass_map(milestone), "ROUTE104")  # noqa: SLF001 - CONTROL
+        # CONTROL: standing on a map with grass of its own, the roam stays (`grass_target` "here")
+        from ai_player.brain.goals import grass_target
+        world._last.key = "0:2"  # noqa: SLF001 - on ROUTE104
+        self.assertEqual(grass_target(world), ("here", None))
+        self.assertIsNone(runner._grass_map(milestone))  # noqa: SLF001
+
+
+from ai_player.brain.goals import Goal, GoalRunner  # noqa: E402 - (round 4) the goal runner's tests below
+
+
+class _GymEyes(_CottageEyes):
+    """(chapter 7 stops round 4, V3-3) The cottage simulation as a GYM: the eyes name the map `const` and every person
+    wears `gfx` (the leader's figure), so the story's next step sees its leader in view."""
+
+    def __init__(self, sim: _Cottage, const: str, gfx: int, marks: dict) -> None:
+        super().__init__(sim)
+        self.base = look(marks, party=[mon(8)], const=const, map_number=17)
+        self.gfx = gfx
+
+    def look(self) -> Observation:
+        seen = super().look()
+        objects = tuple(replace(o, graphics_id=self.gfx) for o in seen.view.objects)
+        return replace(seen, view=replace(seen.view, objects=objects))
+
+
+class Round4Tests(unittest.TestCase):
+    """(chapter 7 stops round 4, 2026-11-06) The round-3 verifier's findings. V3-1 (MAJOR): with grass out of reach (the
+    island), the party was never 'ready', so the heal before a known fight never fired (probe #104: C3 talked to BRAWLY at
+    77% of its HP, C2 at 89.9%): trained and ready for the fight are now two things (`next_goal`'s `cannot_train`). V3-3:
+    NS3's stop was given to a TRAINING walk with a fight next (`PREP_WALK_KINDS`). V3-4: `GoalRunner.ride` said "rode"
+    with the screen held on the same map. V3-7: the rides' untested guards (a closed ride offered again; `SPEAKER_REACH`).
+    Mutants: `revert_step5.py` G614-G623 (and G591, re-anchored on V3-4's changed line)."""
+
+    CENTRE_LINK = {"source": "0:1", "target": "0:2", "direction": "up", "from": [1, 0], "arrival": [1, 9],
+                   "offset": [0, 10], "by": "ai", "frame": 1}
+    GRASS = TileFact(False, False, True, True, None, False, False, 3, "TALL_GRASS", 0, (0, 0))
+
+    def island(self, reachable: bool = False, milestone_id: str = "ch7_brawly", hp: int = 15, personality="Trainer",
+               steps: int = 0, train_allowed: bool = True, ready: bool = False):
+        """The verifier's VT1: DEWFORD, its centre known, ROUTE104's grass seen (a known way to it or not), the party at
+        `hp`/20 (75%: over the Trainer's heal line, under HEAL_BEFORE_FIGHT). Returns the first two decisions' goals and
+        whether the record says it trained (`prep["ready"]`)."""
+        mgr = manager(personality)
+        world = world_with("DEWFORD_TOWN", "ROUTE104", current="DEWFORD_TOWN", center_from="DEWFORD_TOWN")
+        world.maps["0:2"].tiles[(3, 3)] = self.GRASS
+        if reachable:
+            world.connections.append(dict(self.CENTRE_LINK))
+        seen = look(ch_proofs(milestone_id), party=[mon(30, hp=hp, max_hp=20)], const="DEWFORD_TOWN", map_number=1)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, milestone_id)
+        errands = mgr.state.errands
+        self.assertLess(errands.heal_below, 0.75)
+        mgr.prep(milestone)["steps"] = steps
+        mgr.prep(milestone)["ready"] = ready
+        patch = (contextlib.nullcontext() if train_allowed else
+                 mock.patch.object(mgr, "_allowed", lambda key, real=mgr._allowed: False if key == "train" else real(key)))
+        goals = []
+        with patch:
+            for _ in range(2):
+                goals.append(mgr.next_goal(seen, world, milestone, index))
+        return goals, bool(mgr.prep(milestone)["ready"]), mgr
+
+    def test_v1_the_heal_before_a_fight_fires_where_it_cannot_train(self):
+        """V3-1, the verifier's VT1 as a test. FAULT (the round-3 defect): on the island, untrained, the grass out of reach,
+        the party at 75%: the FIRST decision is the heal before the fight, saying why; training put aside (cooled down) the
+        same; the record still says it did not train. CONTROLS: grass a known way leads to and untrained: training first,
+        as before (no heal first); trained there: the heal on the second decision (VT1's own CONTROL); the party at 90% or
+        more: no heal; a talk next (STEVEN), not a fight: no heal before a fight."""
+        for train_allowed in (True, False):
+            with self.subTest(train_allowed=train_allowed):
+                goals, ready, _ = self.island(train_allowed=train_allowed)
+                self.assertEqual(goals[0].kind, "heal", goals[0].reason)
+                self.assertIn("a known fight is next (it cannot train here: no known way leads to grass)", goals[0].reason)
+                self.assertFalse(ready)
+        goals, ready, mgr = self.island(reachable=True)
+        self.assertEqual(goals[0].kind, "train", goals[0].reason)  # CONTROL: it can train: training first
+        goals, ready, mgr = self.island(reachable=True, steps=mgr.state.errands.train_min_steps + 10)
+        self.assertNotEqual(goals[0].kind, "heal", goals[0].reason)  # CONTROL (VT1): trained, judged on the first ...
+        self.assertEqual(goals[1].kind, "heal", goals[1].reason)  # ... and the heal before the fight on the second
+        self.assertNotIn("cannot train here", goals[1].reason)
+        self.assertTrue(ready)
+        goals, _, _ = self.island(hp=18)  # 90%: not under HEAL_BEFORE_FIGHT
+        self.assertNotIn("heal", [g.kind for g in goals])
+        goals, _, _ = self.island(milestone_id="ch7_steven")
+        self.assertNotIn("heal", [g.kind for g in goals])
+        # CONTROL: a party already judged ready (trained) on the island heals because it is READY; its reason does not
+        # claim it cannot train (the island's words are only for a party that has not trained)
+        goals, ready, _ = self.island(ready=True)
+        self.assertEqual(goals[0].kind, "heal", goals[0].reason)
+        self.assertNotIn("cannot train here", goals[0].reason)
+        self.assertTrue(ready)
+
+    def test_v1b_control_in_danger_it_heals_as_before(self):
+        """CONTROL: under its heal line (the Trainer's) the heal comes first as before (its reason names the line; the
+        island's words are added since a fight is next there too)."""
+        goals, _, mgr = self.island(hp=5)
+        self.assertEqual(goals[0].kind, "heal")
+        self.assertIn(f"(under {mgr.state.errands.heal_below:.0%})", goals[0].reason)
+
+    def leader_runner(self, leader: str, milestone_id: str, gym: str, number: int):
+        town = gym.rsplit("_GYM", 1)[0]
+        mgr = manager("Trainer")
+        world = world_with(town, gym, current=gym, grass=True)
+        who = person(11, 10, gfx=mgr.story.looks[leader].gfx[0], local_id=1)
+        seen = look(ch_proofs(milestone_id), party=[mon(8)], const=gym, map_number=number, objects=(who,))
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        nav = Navigator(None, world, random.Random(1))
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: seen), nav, mgr, None, lambda line: None)
+        return mgr, world, seen, index, milestone, nav, runner
+
+    def stops_given(self, runner, nav, seen, milestone, index, kinds):
+        from ai_player.brain import goals as goals_module
+
+        captured = {}
+
+        def fake_pursue(goal_, milestone_, index_, current_):
+            captured[goal_.kind] = nav.stop_for(seen) if nav.stop_for is not None else None
+            return False, "x"
+            yield  # noqa: unreachable - a generator
+
+        with mock.patch.object(goals_module.GoalRunner, "_pursue", lambda self_, *a: fake_pursue(*a)):
+            for kind in kinds:
+                drive(runner.pursue(Goal(kind, "r", milestone.id), milestone, index, lambda s: index), budget=10)
+        return captured
+
+    def test_v3_a_training_walk_is_not_stopped_by_the_leader_in_view(self):
+        """V3-3, the verifier's VT8. ROXANNE (chapter 4) and BRAWLY (chapter 7) in view in their gyms, the party short: the
+        decision is to train (as before), the leader IS in view (`story_in_view`), and the training walk is NOT given the
+        stop; a go walk still is (it stops for the leader, as NS3 meant). FAULT half: no `PREP_WALK_KINDS` (the round-3
+        code): the training walk is given the stop."""
+        from ai_player.brain import goals as goals_module
+
+        for leader, milestone_id, gym, number in (("roxanne", "ch4_roxanne", "RUSTBORO_CITY_GYM", 2),
+                                                  ("brawly", "ch7_brawly", "DEWFORD_TOWN_GYM", 2)):
+            with self.subTest(leader=leader):
+                mgr, world, seen, index, milestone, nav, runner = self.leader_runner(leader, milestone_id, gym, number)
+                self.assertEqual(mgr.next_goal(seen, world, milestone, index).kind, "train")
+                self.assertIsNotNone(runner.story_in_view(seen, milestone))
+                given = self.stops_given(runner, nav, seen, milestone, index, ("train", "catch", "go", "explore"))
+                self.assertEqual({k: v is not None for k, v in given.items()},
+                                 {"train": False, "catch": False, "go": True, "explore": True})
+                with mock.patch.object(goals_module, "PREP_WALK_KINDS", ()):
+                    given = self.stops_given(runner, nav, seen, milestone, index, ("train",))
+                self.assertIsNotNone(given["train"])  # FAULT half: the round-3 code's stop
+
+    def test_v3b_control_with_a_talk_next_a_catch_walk_still_stops(self):
+        """CONTROL: STEVEN next (a talk, no fight), in view in his room: a catch walk and a training walk are given NS3's
+        stop as before (PREP_WALK_KINDS only while the next step is a fight)."""
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", "GRANITE_CAVE_STEVENS_ROOM", current="GRANITE_CAVE_STEVENS_ROOM")
+        steven = person(10, 7, gfx=mgr.story.looks["steven"].gfx[0], local_id=1)
+        seen = look(ch_proofs("ch7_steven"), const="GRANITE_CAVE_STEVENS_ROOM", map_number=2, objects=(steven,))
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_steven")
+        nav = Navigator(None, world, random.Random(1))
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: seen), nav, mgr, None, lambda line: None)
+        given = self.stops_given(runner, nav, seen, milestone, index, ("catch", "train"))
+        self.assertTrue(all(v is not None for v in given.values()), given)
+
+    def test_v3c_a_training_walk_is_driven_out_of_the_gym_with_brawly_in_view(self):
+        """V3-3 DRIVEN: the gym as the cottage simulation, BRAWLY standing in view, the navigator's own walk (`Navigator.run`)
+        with the stop `pursue` gives each goal. The training walk walks on (no "stopped:"); the go walk stops at its first
+        look ("stopped: BRAWLY ... is in view"). FAULT half: `PREP_WALK_KINDS` emptied: the training walk is stopped too."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import travel_intent
+
+        mgr = manager("Trainer")
+        marks = ch_proofs("ch7_brawly")
+        gfx = mgr.story.looks["brawly"].gfx[0]
+
+        def walk(kind: str) -> str:
+            sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+            world = cottage_world()
+            world.maps["0:17"].const = "DEWFORD_TOWN_GYM"
+            hands = Hands(_GymEyes(sim, "DEWFORD_TOWN_GYM", gfx, marks), _CottageControls(sim), random.Random(1),
+                          random.Random(1), None, lambda line: None)
+            hands.watchers.append(world.observe)
+            nav = Navigator(hands, world, random.Random(1))
+            seen = hands.look()
+            index, milestone = mgr.milestone(seen, visited_in(world))
+            self.assertEqual(milestone.id, "ch7_brawly")
+            runner = GoalRunner(hands, nav, mgr, None, lambda line: None)
+            self.assertIsNotNone(runner.story_in_view(seen, milestone))
+            ended = {}
+
+            def real_walk(goal_, milestone_, index_, current_):
+                ended["outcome"] = yield from nav.run(travel_intent(None, "Trainer", 400, lambda s: False),
+                                                      f"a {goal_.kind} walk")
+                return False, ended["outcome"]
+
+            with mock.patch.object(goals_module.GoalRunner, "_pursue", lambda self_, *a: real_walk(*a)):
+                drive(runner.pursue(Goal(kind, "r", milestone.id), milestone, index, lambda s: index), budget=20000)
+            ended["frames"] = sim.frame
+            return ended["outcome"]
+
+        self.assertTrue(walk("go").startswith("stopped: BRAWLY"), walk("go"))
+        trained = walk("train")
+        self.assertFalse(trained.startswith("stopped:"), trained)
+        self.assertRegex(trained, r"\((?:[1-9]\d*) steps,", "the training walk walked on with BRAWLY in view")
+        with mock.patch.object(goals_module, "PREP_WALK_KINDS", ()):
+            self.assertTrue(walk("train").startswith("stopped: BRAWLY"))  # FAULT half
+
+    def ride_runner(self, talk_outcome: str, free_after: bool, carried_to: str | None = None):
+        """The verifier's VT9: MR. BRINEY's ride known, him in front; the talk (faked) ends `talk_outcome`, the player
+        free or not, on the same map or carried to `carried_to`."""
+        from ai_player.brain import goals as goals_module
+
+        world = world_with("ROUTE104_MR_BRINEYS_HOUSE", "DEWFORD_TOWN", current="ROUTE104_MR_BRINEYS_HOUSE")
+        world.record_ride({"from": "0:1", "to": "0:2", "arrival": [11, 9], "who": 1, "gfx": 5, "tile": [6, 6],
+                           "words": "first, we'll set sail for dewford.", "place": "DEWFORD_TOWN", "via": [], "frame": 10})
+        name = next(iter(world.rides))
+        briney = person(6, 6, gfx=5, local_id=1)
+        seen = look(ch_proofs("ch7_brawly"), const="ROUTE104_MR_BRINEYS_HOUSE", map_number=1, objects=(briney,))
+        hands = types.SimpleNamespace(look=lambda: seen, last=seen)
+        nav = Navigator(None, world, random.Random(1))
+        runner = GoalRunner(hands, nav, manager("Story"), None, lambda line: None)
+
+        def fake_talk(hands_, nav_, target, why):
+            if carried_to is not None:
+                world._last.key = carried_to  # noqa: SLF001 - the scene carried the player off
+            return talk_outcome
+            yield  # noqa: unreachable - a generator
+
+        with mock.patch.object(goals_module, "talk_to", fake_talk), \
+                mock.patch.object(goals_module, "nav_free", lambda look_: free_after):
+            outcome = drive(runner.ride(Target("route", (6, 7), "r", 0.0, None, None, None, name)))
+        return outcome, world.rides[name]
+
+    def test_v4_rode_only_once_the_map_changed(self):
+        """V3-4, the verifier's VT9. The talk ended held on the same map (a multichoice left open): "not taken", the ride
+        put aside (the base said "rode" and put nothing aside). CONTROLS: carried to DEWFORD: "rode", nothing put aside;
+        free on the same map (the person said something else): "not taken", put aside, as before."""
+        outcome, ride = self.ride_runner("talked; then stuck: an unexpected multichoice on screen", free_after=False)
+        self.assertTrue(outcome.startswith("not taken"), outcome)
+        self.assertIn("the screen still held there", outcome)
+        self.assertIn("closed", ride)
+        outcome, ride = self.ride_runner("talked", free_after=True, carried_to="0:2")
+        self.assertTrue(outcome.startswith("rode"), outcome)
+        self.assertNotIn("closed", ride)
+        outcome, ride = self.ride_runner("talked", free_after=True)
+        self.assertTrue(outcome.startswith("not taken"), outcome)
+        self.assertIn("closed", ride)
+
+    def test_v7_a_closed_ride_is_offered_again_after_the_retry_frames_or_when_seen_again(self):
+        """V3-7 (the verifier's VM2, VM3). A ride put aside (`close_ride`) is not offered while nothing new was seen and
+        fewer than `CLOSED_RETRY_FRAMES` frames passed; it is offered again at that many frames, on news, and when the ride
+        is SEEN again (`record_ride` reopens it)."""
+        from ai_player.world.memory import CLOSED_RETRY_FRAMES
+
+        world = WorldMemory()
+        ride = {"from": "0:1", "to": "0:2", "arrival": [11, 9], "who": 1, "gfx": 5, "tile": [6, 6], "words": "w",
+                "place": "DEWFORD_TOWN", "via": [], "frame": 10}
+        world.record_ride(dict(ride))
+        name = next(iter(world.rides))
+        world.close_ride(name, "not carried off", 100)
+        world._last.frame = 100 + CLOSED_RETRY_FRAMES - 1  # noqa: SLF001
+        self.assertEqual(world.rides_from("0:1"), [])
+        world._last.frame = 100 + CLOSED_RETRY_FRAMES  # noqa: SLF001
+        self.assertEqual([n for n, _ in world.rides_from("0:1")], [name])  # the retry frames passed
+        world.close_ride(name, "not carried off", 200)
+        world._last.frame = 300  # noqa: SLF001
+        self.assertEqual(world.rides_from("0:1"), [])
+        world.news += 1
+        self.assertEqual([n for n, _ in world.rides_from("0:1")], [name])  # news since
+        world.close_ride(name, "not carried off", 300)
+        self.assertEqual(world.rides_from("0:1"), [])
+        world.record_ride(dict(ride, frame=310))  # seen again
+        self.assertNotIn("closed", world.rides[name])
+        self.assertEqual([n for n, _ in world.rides_from("0:1")], [name])
+
+    def test_v7b_the_one_who_asks_stands_at_most_two_tiles_ahead(self):
+        """V3-7 (the verifier's VM7): `SPEAKER_REACH` 2, pinned: the person straight ahead one tile away is the speaker
+        before one two away; two away (a counter between: the nurse, the clerk) still is; three away is not; one beside the
+        player (not ahead) is not."""
+        from ai_player.brain.rides import SPEAKER_REACH, speaker_of
+
+        self.assertEqual(SPEAKER_REACH, 2)
+        base = look(const="ROUTE104_MR_BRINEYS_HOUSE", map_number=17)
+
+        def ahead(*people):
+            objects = tuple(SeenObject("npc", 10 + dx, 10 + dy, dx, dy, who, 5, "down", 3, "object")
+                            for who, (dx, dy) in enumerate(people, 1))
+            return replace(base, player=replace(base.player, x=10, y=10, facing="up"),
+                           view=replace(base.view, objects=objects))
+
+        self.assertEqual(speaker_of(ahead((0, -2), (0, -1))).local_id, 2)
+        self.assertEqual(speaker_of(ahead((0, -2))).local_id, 1)
+        self.assertIsNone(speaker_of(ahead((0, -3))))
+        self.assertIsNone(speaker_of(ahead((1, 0))))
+
+
+class Round3WalkerPinTests(unittest.TestCase):
+    """(chapter 6 stops round 3, the last verifier's V-N4, 2026-11-06) The guards of the talk skill's walker code whose
+    mutants survived the verifier's run (VM3, VM4, VM6, VM7, VM10), each pinned by a test that fails without it. Mutants:
+    `revert_step5.py` G570-G574 (the verifier's VM3, VM4, VM6, VM7, VM10)."""
+
+    def target(self, hands, who=STILL_ID):
+        return next(o for o in hands.look().view.objects if o.local_id == who)
+
+    def test_p1_a_walk_that_met_a_battle_and_did_not_get_stuck_tries_the_next_spot(self):
+        """(VM3) The approach ends as "battle" only for a walk a battle STOPPED (stuck); a walk that met a battle and then
+        ran out of its frames tries the next spot, and the talk lands."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+        real, calls = nav.go_to, []
+
+        def go_to(tile, why, budget):
+            calls.append(tile)
+            if len(calls) == 1:
+                nav.battle_log.append((sim.frame, "wild", "won"))
+                yield from hands.pad.busy("a battle, won")
+                return "budget: 4000 frames ran out (0 steps, 0 bumps, 1 battles)"
+            return (yield from real(tile, why, budget))
+
+        nav.go_to = go_to
+        outcome = drive(story_skill.talk_to(hands, nav, self.target(hands), "chat"), budget=20000)
+        self.assertEqual((outcome, sim.talks), ("talked", [STILL_ID]))
+        self.assertGreaterEqual(len(calls), 2)
+
+    def test_p2_a_re_aim_never_walks_to_a_spot_already_tried(self):
+        """(VM4) Someone who moved while the player walked up: the spots beside their new tile are tried, never one already
+        tried. (Round 3, the second builder, 2026-11-06: run 1 of the mutants showed the first version VACUOUS, G571 not
+        caught: the person stepped to (10, 4), and no spot beside it had been tried. Now they step to the tile just past the
+        spot tried first, (9, 5) -> (10, 5), so that spot is beside them again, the nearest to the player on a tie.)"""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+        calls = []
+
+        def go_to(tile, why, budget):
+            calls.append(tile)
+            if len(calls) == 1:
+                sim.still[STILL_ID] = (tile[0] + 1, tile[1])  # they step aside once: to the tile past the spot tried
+            yield from hands.pad.busy("walking: no way there")
+            return "stuck: the goto cannot be reached (unreachable), and nothing else is wanted (0 battles)"
+
+        nav.go_to = go_to
+        with mock.patch.object(story_skill, "meet_walker", _no_walker):
+            drive(story_skill.talk_to(hands, nav, self.target(hands), "chat"), budget=20000)
+        self.assertEqual(calls[0], (9, 5))  # the nearest spot beside (9, 4) to the player at (5, 7)
+        self.assertEqual(sim.still[STILL_ID], (10, 5))  # so (9, 5) is beside them again: the case is not vacuous
+        self.assertGreaterEqual(len(calls), 2, calls)
+        self.assertEqual(len(calls), len(set(calls)), calls)
+
+    def test_p3_someone_seen_on_the_players_tile_at_the_approachs_first_frame_is_stepped_aside_from(self):
+        """(VM6) Standing where a person was seen AT the frame the approach began (`>= since`): it steps aside first."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(0)
+        hands, nav = cottage(sim)
+        first = hands.look()
+        memory = nav.world.maps["0:17"]
+        memory.people[(5, 7)] = first.frame
+        moves = []
+        real = nav.go_to
+
+        def go_to(tile, why, budget):
+            moves.append((tile, why))
+            return (yield from real(tile, why, budget))
+
+        nav.go_to = go_to
+
+        def still(*args, **kwargs):
+            return [], set(), True, None
+            yield  # noqa: unreachable - a generator
+
+        with mock.patch.object(story_skill, "watch_walker", still):
+            drive(story_skill.meet_walker(hands, nav, self.target(hands, BRINEY_ID), "talk", since=first.frame),
+                  budget=5000)
+        self.assertTrue(moves and "out of the way" in moves[0][1], moves)
+
+    def test_p4_a_scene_during_the_watch_hands_the_screen_back(self):
+        """(VM7) A scene that begins while the walker is watched ends the watch on that frame: nothing seen of him."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(0)
+        hands, _nav = cottage(sim)
+        target = self.target(hands, BRINEY_ID)
+        started = []
+
+        def watch():
+            gen = story_skill.watch_walker(hands, target, "watch")
+            for count in range(1000):
+                if count == 20 and sim.talking is None:
+                    sim.talking, sim.printed = PEEKO_ID, 0  # a scene: the script runs, the controls are locked
+                    started.append(sim.frame)
+                try:
+                    next(gen)
+                except StopIteration as done:
+                    return done.value
+            raise AssertionError("the watch did not end")
+
+        way, others, standing, now = watch()
+        self.assertIsNone(now)
+        self.assertFalse(standing)
+        self.assertLessEqual(sim.frame - started[0], 2)
+
+    def test_p5_a_walker_is_met_at_most_twice_an_approach(self):
+        """(VM10) Someone who walks on after every walk up: met as a walker `WALKER_MEETINGS` (2) times, no more."""
+        from ai_player.skills import story as story_skill
+
+        sim = _Cottage(walkers={}, still={STILL_ID: (9, 4)})
+        hands, nav = cottage(sim)
+        target = self.target(hands)
+        sim.still[STILL_ID] = (9, 5)  # moved since chosen
+        met, calls = [], []
+        tiles = [(9, 4), (10, 4), (10, 3), (9, 3), (10, 5), (11, 4)]
+
+        def meeting(hands_, nav_, seen, why, budget=0, since=None):
+            met.append((seen.x, seen.y))
+            return "standing"
+            yield  # noqa: unreachable - a generator
+
+        def go_to(tile, why, budget):
+            calls.append(tile)
+            sim.still[STILL_ID] = tiles[len(calls) % len(tiles)]  # they walk on during every walk up
+            yield from hands.pad.busy("walking")
+            return "stuck: the goto cannot be reached (unreachable), and nothing else is wanted (0 battles)"
+
+        nav.go_to = go_to
+        with mock.patch.object(story_skill, "meet_walker", meeting):
+            drive(story_skill.talk_to(hands, nav, target, "chat"), budget=20000)
+        self.assertEqual(len(met), story_skill.WALKER_MEETINGS, met)
+
+
+class Round3HopsPinTests(unittest.TestCase):
+    """(chapter 6 stops round 3, the last verifier's V-N4: VM9) `region_hops` leaves out a map a SCENE carried the player to
+    from a tile that looks like no way out (the cottage's (5, 6) -> ROUTE 104's dock, the sail's first change): no walk
+    takes that link. Mutant: `revert_step5.py` G575 (the verifier's VM9)."""
+
+    def test_h1_a_scenes_warp_from_a_floor_tile_is_no_hop(self):
+        from ai_player.brain.explore import region_hops
+
+        world = WorldMemory()
+        cottage = ki134_map(world, "17:0", "ROUTE104_MR_BRINEYS_HOUSE", ["#######", "#.....#", "#.....#", "#######"])
+        ki134_map(world, "0:19", "ROUTE104", ["#####", "#...#", "#####"])
+        world.warps["17:0|2,0"] = {"to": "0:19", "arrival": [1, 0], "direction": "right", "uses": 1, "by": "scene",
+                                   "inferred": False}
+        self.assertFalse(cottage.fact((2, 0)).warp or cottage.fact((2, 0)).door)
+        self.assertNotIn("0:19", region_hops(world, "17:0", (0, 0)))
+        cottage.tiles[(2, 0)] = TileFact(False, False, False, False, None, True, True, 3, "ANIMATED_DOOR", 0, (2, 0))
+        self.assertEqual(region_hops(world, "17:0", (0, 0)).get("0:19"), 1)  # CONTROL: a door is a way
+
+
 def _unused_tile() -> Tile:  # keeps the builder import honest (a Tile is what View rows hold)
     return Tile(0, 0, 0, 0, 0, 0, "NORMAL", 0, 3, False, False, None, False, None, False, False, False)
+
+
+# ------------------------------------------------------------------------------------------------ (chapter 6 stops round 5)
+#: (round 5, VR4-1) MR. BRINEY on DEWFORD's dock once STEVEN's letter is delivered (pinned decomp
+#: data/maps/DewfordTown/scripts.inc DewfordTown_EventScript_Briney): lock, faceplayer, his words (the page break waits for
+#: A), then `multichoicedefault 21, 6, MULTI_BRINEY_ON_DEWFORD, 2, FALSE` (the cursor on EXIT, B allowed); B
+#: (MULTI_B_PRESSED) or EXIT -> DewfordTown_EventScript_CancelSailSelect's page; PETALBURG or SLATEPORT sails
+DOCK_OPTIONS = ("PETALBURG", "SLATEPORT", "EXIT")
+DOCK_PAGE = "MR. BRINEY: Ahoy!\nFor you, I’ll go out to sea anytime!"
+DOCK_ASK = "Now, my friend, where are we bound?"
+DOCK_CANCEL = "MR. BRINEY: You just tell me whenever\nyou need to set sail again!"
+DOCK_NAG = "MR. BRINEY: Come now, where are we bound?"
+#: MR. BRINEY one tile right of the player (`look`'s player stands at (10, 10)): the AI's `talk` turns right, then A
+BRINEY_ON_DOCK = person(11, 10, gfx=21, local_id=4)
+#: (round 6, V5-2) a BATTLE TENT's question after a battle (pinned decomp: `multichoice 20, 6, MULTI_GO_ON_REST_RETIRE,
+#: TRUE`, B ignored; GO ON starts the next battle): a menu of `skills/instructed.py` NO_ANSWER_MENUS
+TENT_OPTIONS = ("GO ON", "REST", "RETIRE")
+
+
+class _Dock:
+    """A SIMULATION of the dock (test side): the player FREE on DEWFORD_TOWN; a direction press while free turns the player;
+    an A while free and facing MR. BRINEY begins his scene (`talk`'s own A). `b_ok`: the menu takes B (the game's FALSE
+    ignoreBPress); `has_exit`: EXIT is on it; `exit_reopens`: EXIT is answered by a nag page and the SAME menu again (a
+    menu the game will not let go); `b_reopens`: the same after B. `start`: "free", or "page"/"menu" for a run that began
+    inside the scene. `page`: his first page's words (a CONTROL names an option with them)."""
+
+    def __init__(self, b_ok=True, has_exit=True, exit_reopens=False, b_reopens=False, start="free", page=DOCK_PAGE,
+                 options=None):
+        self.b_ok, self.exit_reopens, self.b_reopens = b_ok, exit_reopens, b_reopens
+        self.options = options or (DOCK_OPTIONS if has_exit else DOCK_OPTIONS[:2])  # (round 6) `options`: another menu's
+        self.state, self.facing, self.page = start, "down", page
+        self.first = len(self.options) - 1  # where the menu's cursor starts (the game's default: EXIT); a test may move it
+        self.cursor = self.first
+        self.chosen: list[str] = []
+        self.backs = 0
+
+    def press(self, button: str) -> None:
+        state = self.state
+        if state == "free":
+            if button in ("Up", "Down", "Left", "Right"):
+                self.facing = button.lower()
+            elif button == "A" and self.facing == "right":
+                self.state = "page"
+        elif state == "page" and button == "A":
+            self.state, self.cursor = "menu", self.first
+        elif state == "menu":
+            if button in ("Up", "Down"):
+                self.cursor = max(0, min(len(self.options) - 1, self.cursor + (1 if button == "Down" else -1)))
+            elif button == "B" and self.b_ok:
+                self.backs += 1
+                self.state = "nag" if self.b_reopens else "cancel"
+            elif button == "A":
+                option = self.options[self.cursor]
+                self.chosen.append(option)
+                # (round 6, V5-5) an option reading CANCEL backs out as EXIT does (the cable club's TRADE CENTER /
+                # COLOSSEUM / CANCEL)
+                self.state = ("nag" if self.exit_reopens else "cancel") if option in ("EXIT", "CANCEL") else "sailing"
+        elif state == "cancel" and button == "A":
+            self.state = "free"
+        elif state == "nag" and button == "A":
+            self.state, self.cursor = "menu", self.first
+
+    def tick(self) -> None:
+        pass
+
+    def look(self, frame: int) -> Observation:
+        from ai_player.eyes.observation import MenuView
+
+        base = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", frame=frame, objects=(BRINEY_ON_DOCK,),
+                    map_number=1)
+        base = replace(base, player=replace(base.player, name="Milo", facing=self.facing))
+        state = self.state
+        ui = MenuView("multichoice", self.options, self.cursor, True) if state == "menu" else None
+        waits = state in ("page", "cancel", "nag")
+        text = {"page": self.page, "menu": DOCK_ASK, "cancel": DOCK_CANCEL, "nag": DOCK_NAG}.get(state)
+        script = state != "free"
+        screen = ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=text is not None,
+                             waits_for_button=waits, in_battle=False, wait_reason="text printer 0 CLEAR" if waits else None,
+                             ui=ui, text=text, script_running=script, controls_locked=script)
+        return replace(base, screen=screen)
+
+
+def dock_hands(game):
+    """Hands on `_Dock`, and the play brain's `_story_menu` with its instructed-choice skill and (round 5) its scene opener
+    watching every look, as `mode.py` _play sets them (on a tree without the opener: the skill alone, as it was)."""
+    from ai_player.skills.instructed import Instructed
+
+    try:
+        from ai_player.skills.instructed import SceneOpener
+    except ImportError:  # the base, before round 5 (the reproduction on c41db547)
+        SceneOpener = None
+    eyes = _ScriptEyes(game.look)
+    hands = Hands(eyes, _TutorialControls(game), random.Random(1), random.Random(1), None, lambda line: None)
+    eyes.hands = hands
+    hands.told = []
+    hands.say = hands.told.append
+    brain = HandsBrain.__new__(HandsBrain)
+    brain.options = types.SimpleNamespace(fault_no_instructed=False)
+    brain._instructed = Instructed()
+    hands.watchers.append(brain._instructed.read_along)
+    if SceneOpener is not None:
+        brain._instructed.opener = SceneOpener(hands.pad)
+        hands.watchers.append(brain._instructed.opener.watch)
+    return hands, brain
+
+
+def chat_on_the_dock(game):
+    """The AI's own chat with MR. BRINEY (`hands/dialogue.py` talk: it turns to face him, then A), then what the navigator
+    does with the scene (`play_scene`). Returns (the scene's end, hands, brain)."""
+    from ai_player.hands.dialogue import talk
+
+    hands, brain = dock_hands(game)
+    hands.look()
+    assert drive(talk(hands, BRINEY_ON_DOCK, "a chat"), 5_000), "the talk did not start"
+    return drive(play_scene(hands, brain), 50_000), hands, brain
+
+
+class Round5MenuTests(unittest.TestCase):
+    """(chapter 6 stops round 5, 2026-11-06) The round-4 verifier's VR4-1 (MAJOR, KI-132's class): after a curiosity chat
+    with MR. BRINEY on DEWFORD's dock, his PETALBURG/SLATEPORT/EXIT multichoice opened, nothing read named an option, and
+    the play loop returned "stuck: an unexpected multichoice on screen" once a frame until the run's end (#106 arm A, both
+    runs: 20,167 and 15,360 frames). THE RULE (`skills/instructed.py` THE MENU NOBODY ASKED FOR): a field menu the AI
+    opened itself (its own A, `SceneOpener`) that nothing names is backed out of (B, else EXIT/CANCEL), the talk that opened
+    it fails (`GoalRunner`); one that stays, or one in a scene the AI did not open, is FORCED: no press, and the run ends at
+    once (`mode.py` _play). Mutants: `revert_step5.py` G624 onward."""
+
+    def test_m1_the_dock_menu_after_a_chat_is_backed_out_of(self):
+        """FAULT (reproduced on c41db547: "stuck: an unexpected multichoice on screen", no press): the AI's own chat opens
+        the dock menu; B backs out of it, read from the screen (the menu left, his "You just tell me whenever..." page
+        played), no place is chosen, the player is FREE again, and the cancel is counted; nothing is forced."""
+        game = _Dock()
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(end, "free")
+        self.assertEqual((game.chosen, game.backs, game.state), ([], 1, "free"))
+        self.assertEqual(buttons(hands).count("B"), 1)
+        self.assertEqual(getattr(brain._instructed, "backouts", None), 1)
+        self.assertIsNone(getattr(brain._instructed, "forced", None))
+        self.assertTrue(any("wants none of it: it backs out" in line for line in hands.told))
+        self.assertTrue(any("left the screen after B" in line for line in hands.told))
+
+    def test_m2_a_menu_whose_b_is_refused_is_left_by_its_exit(self):
+        """The cancel's second half: a menu that ignores B (`B_REACT_FRAMES` with the menu still on screen) is left by the
+        option whose words read EXIT (`CANCEL_WORDS`), chosen like any option; the player is free again."""
+        game = _Dock(b_ok=False)
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(end, "free")
+        self.assertEqual((game.chosen, game.backs), (["EXIT"], 0))
+        self.assertEqual(buttons(hands).count("B"), 1)
+        self.assertEqual(brain._instructed.backouts, 1)
+        self.assertIsNone(brain._instructed.forced)
+
+    def test_m3_a_menu_that_stays_after_the_cancel_is_forced_and_said_once(self):
+        """FAULT: a menu the game will not let go is FORCED: (a) it ignores B and has no EXIT, and its starting option
+        commits something (round 6: a menu of `NO_ANSWER_MENUS`, here the BATTLE TENT's GO ON/REST/RETIRE; any other such
+        menu is answered, `Round6MenuTests`): one B, no choice, the stop said; (b) its EXIT is answered by the same menu
+        again; (c) its B is. Each: the scene ends "stuck", `forced` holds the stop, it is told ONCE, and a later call presses
+        nothing (the latch: the run's loop ends at once, `test_m5_the_play_loop_ends_at_once_on_a_forced_menu`)."""
+        cases = {"no exit": (dict(b_ok=False, has_exit=False, options=TENT_OPTIONS),
+                             "it ignored B, and no option reading EXIT or CANCEL took it off the screen; its first option "
+                             "starts a battle or makes a one-way choice (MULTI_GO_ON_REST_RETIRE)", [], 0),
+                 "exit reopens": (dict(b_ok=False, exit_reopens=True), "it is on screen again after the AI backed out of it",
+                                  ["EXIT"], 0),
+                 "b reopens": (dict(b_reopens=True), "it is on screen again after the AI backed out of it", [], 1)}
+        for name, (kwargs, why, chosen, backs) in cases.items():
+            with self.subTest(name):
+                game = _Dock(**kwargs)
+                end, hands, brain = chat_on_the_dock(game)
+                self.assertEqual(end, "stuck: an unexpected multichoice on screen")
+                self.assertEqual((game.chosen, game.backs, game.state), (chosen, backs, "menu"))
+                forced = brain._instructed.forced
+                self.assertIsNotNone(forced)
+                self.assertIn(why, forced)
+                self.assertEqual(sum(1 for line in hands.told if "the instructed menus stop: a forced" in line), 1)
+                presses = len(buttons(hands))
+                self.assertFalse(drive(brain._story_menu(hands, "multichoice", "a scene", "MUDKIP"), 1_000))
+                self.assertEqual(len(buttons(hands)), presses)  # latched: nothing more pressed
+
+    def test_m4_control_a_scene_the_ai_did_not_open_is_forced_with_no_press(self):
+        """CONTROL (the rule's other half): the same menu in a scene the AI did NOT open (the run began inside it: no free
+        look, no A of its own) is not backed out of: no press, FORCED, said. FAULT half (`SceneOpener` never consulted:
+        `revert_step5.py`): it would be cancelled with B."""
+        for start in ("page", "menu"):
+            with self.subTest(start=start):
+                game = _Dock(start=start)
+                hands, brain = dock_hands(game)
+                self.assertEqual(drive(play_scene(hands, brain), 50_000), "stuck: an unexpected multichoice on screen")
+                self.assertEqual(buttons(hands), ["A"] if start == "page" else [])  # only the page's own A
+                self.assertEqual((game.backs, game.chosen), (0, []))
+                self.assertIn("in a scene the AI did not open itself: the game forces it", brain._instructed.forced)
+
+    def test_m5_the_play_loop_ends_at_once_on_a_forced_menu(self):
+        """FAULT (reproduced on c41db547: the REAL loop returns "stuck: an unexpected multichoice on screen" once a pass
+        until the story's patience, ~120,000 frames): the REAL `HandsBrain._play` loop on a dock menu it did not open, its
+        `play_out` standing in for the navigator's (`on_menu`, the REAL skill): the run ends with the forced stop on the
+        first pass, before any frame passes, with ONE play-out."""
+        base = _Dock(start="menu").look(0)
+        loop = PlayLoopTests("test_patience_ends_a_screen_that_never_frees")
+
+        def settle(hands_, nav_, why):
+            if (yield from nav_.on_menu("multichoice", why)):
+                return None
+            return "stuck: an unexpected multichoice on screen"
+
+        def target(brain, hands_):
+            brain.options.target = "ch7_brawly"
+
+        reason, hands, pursued, screens, report = loop.run_loop(base, settle=settle, setup=target, budget=400_000,
+                                                                world=world_with("DEWFORD_TOWN", current="DEWFORD_TOWN"))
+        self.assertTrue(reason.startswith("stuck: a forced multichoice ['PETALBURG', 'SLATEPORT', 'EXIT']"), reason)
+        self.assertIn("the game forces it", reason)
+        self.assertEqual((len(screens), pursued), (1, []))
+        self.assertEqual(hands.pad.frames, 0)  # no frame passed: not even the wait for the screen to settle
+        self.assertEqual(sum(1 for line in hands.told if "what was on screen ended" in line), 1)
+
+    def test_m11_a_forced_menu_met_inside_a_goal_ends_the_run_before_any_play_out(self):
+        """FAULT: a forced menu latched INSIDE a goal (a chat's talk plays its scene through the navigator: `talk_to`) ends
+        the run at the loop's next pass, before it plays the screen out again and before any frame passes after the goal.
+        The goal stands in here: it latches the stop as the skill would and leaves the menu on screen."""
+        loop = PlayLoopTests("test_patience_ends_a_screen_that_never_frees")
+        free = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", map_number=1)
+        menu = _Dock(start="menu").look(0)
+        state = {"menu": False, "frames": None}
+        stop = "a forced multichoice ['PETALBURG', 'SLATEPORT', 'EXIT'] that nothing read names (a test's stand-in)"
+
+        def effect(goal, world, runner):
+            loop.last_brain._instructed.forced = stop
+            state["menu"] = True
+            return False, "talked; then stuck: an unexpected multichoice on screen"
+
+        def screen(frames):
+            if state["menu"] and state["frames"] is None:
+                state["frames"] = frames
+            return menu if state["menu"] else free
+
+        def setup(brain, hands_):
+            brain.options.target = "ch7_brawly"
+            loop.last_brain = brain
+
+        reason, hands, pursued, screens, _ = loop.run_loop(screen, effect=effect, setup=setup,
+                                                           world=world_with("DEWFORD_TOWN", current="DEWFORD_TOWN"))
+        self.assertEqual(reason, f"stuck: {stop}")
+        self.assertEqual((len(pursued), screens), (1, []))
+        self.assertEqual(hands.pad.frames, state["frames"])  # no frame after the goal's end
+
+    def test_m6_control_a_named_option_is_still_chosen_in_a_scene_the_ai_opened(self):
+        """CONTROL: THE RULE before the cancel: when a page read names an option, it is chosen, even in a scene the AI
+        opened (no B, nothing cancelled)."""
+        game = _Dock(page="MR. BRINEY: Ahoy! Shall we set sail for SLATEPORT?")
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(game.chosen, ["SLATEPORT"])
+        self.assertEqual(buttons(hands).count("B"), 0)
+        self.assertEqual(brain._instructed.backouts, 0)
+        self.assertIsNone(brain._instructed.forced)
+
+    def test_m7_the_scene_opener_reads_only_the_ais_own_last_press_while_free(self):
+        """`SceneOpener`: a scene is the AI's own when the LAST press it made while free, before the scene began, was A.
+        CONTROLS: a step into a trigger (a direction), a scene with no press since the player was free, and an A from an
+        EARLIER free stretch (a talk that ended, then an idle, then someone else's scene) are not; an A followed by a free
+        look before the lock (the game's lag) still is."""
+        from ai_player.skills.instructed import SceneOpener
+
+        game = _Dock()
+        free, busy = game.look(0), _Dock(start="page").look(0)
+        pad = types.SimpleNamespace(history=[])
+
+        def run(steps):
+            opener = SceneOpener(pad)
+            pad.history.clear()
+            opener.seen = 0
+            for step in steps:
+                if step in ("free", "busy"):
+                    opener.watch(free if step == "free" else busy)
+                else:
+                    pad.history.append({"button": step})
+            return opener.opened
+
+        self.assertTrue(run(["free", "Right", "free", "A", "busy"]))  # turn, then A: the AI's own talk
+        self.assertTrue(run(["free", "A", "free", "busy"]))  # the lag: still free one look after the A
+        self.assertFalse(run(["free", "Right", "busy"]))  # walked into a trigger
+        self.assertFalse(run(["free", "busy"]))  # a scene with no press
+        self.assertFalse(run(["free", "A", "busy", "A", "free", "free", "busy"]))  # an A of the last stretch: not this one
+        self.assertFalse(run(["busy", "A", "busy"]))  # a run that began inside a scene
+
+    def test_m8_a_talk_that_backed_out_of_a_menu_failed_and_is_put_aside(self):
+        """`GoalRunner`: a chat (or a story talk, or a use) whose talk backed out of a menu nobody asked for FAILED (its
+        outcome says why), so `GoalManager.outcome` counts it like any failed chat: FAIL_LIMIT of them put it aside
+        (cooldown). CONTROL: the same talk with no menu backed out of is "talked", as before; a runner without the play
+        brain's count (`backed_out` None) is unchanged."""
+        from ai_player.brain import goals as goals_module
+        from ai_player.brain.goals import COOLDOWN_DECISIONS, FAIL_LIMIT
+
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", current="DEWFORD_TOWN")
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", map_number=1, objects=(BRINEY_ON_DOCK,))
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        nav = Navigator(None, world, random.Random(1))
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: seen, last=seen), nav, mgr,
+                            types.SimpleNamespace(purpose=None), lambda line: None)
+        count = [0]
+        bump = [1]
+
+        def fake_talk(hands_, nav_, target, why):
+            count[0] += bump[0]
+            return "talked"
+            yield  # noqa: unreachable - a generator
+
+        goal = Goal("chat", "someone stands near at (11, 10)", milestone.id, target=BRINEY_ON_DOCK, key="chat:0:1|4")
+        with mock.patch.object(goals_module, "talk_to", fake_talk):
+            runner.backed_out = lambda: count[0]
+            ok, outcome = drive(runner.pursue(goal, milestone, index, lambda _: index))
+            self.assertFalse(ok)
+            self.assertEqual(outcome, "talked; it backed out of a menu nobody asked it to choose from")
+            for _ in range(FAIL_LIMIT):
+                mgr.outcome(goal, False)
+            self.assertEqual(mgr.memory.cooldown.get(goal.key), mgr.memory.decisions + COOLDOWN_DECISIONS)
+            bump[0] = 0  # CONTROL: no menu backed out of
+            self.assertEqual(drive(runner.pursue(goal, milestone, index, lambda _: index)), (True, "talked"))
+            runner.backed_out = None  # CONTROL: no count from the play brain
+            bump[0] = 1
+            self.assertEqual(drive(runner.pursue(goal, milestone, index, lambda _: index)), (True, "talked"))
+
+    def test_m9_the_play_brain_wires_the_opener_and_the_count(self):
+        """`mode.py` _play gives the skill its `SceneOpener` (watching every look after the skill's own watcher) and the
+        goal runner its count of menus backed out of (`backed_out`)."""
+        from ai_player.skills.instructed import SceneOpener
+
+        loop = PlayLoopTests("test_patience_ends_a_screen_that_never_frees")
+        counts: list = []
+
+        def effect(goal, world, runner):
+            counts.append(getattr(runner, "backed_out", None))
+            return False, "not done: the test's stand-in goal"
+
+        free = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", map_number=1)
+        reason, hands, pursued, _, _ = loop.run_loop(
+            free, effect=effect, world=world_with("DEWFORD_TOWN", current="DEWFORD_TOWN"),
+            setup=lambda brain, hands_: setattr(brain.options, "target", "ch7_brawly"))
+        brain = loop.last_brain
+        self.assertIsInstance(brain._instructed.opener, SceneOpener)
+        watchers = hands.watchers
+        self.assertLess(watchers.index(brain._instructed.read_along), watchers.index(brain._instructed.opener.watch))
+        self.assertTrue(pursued and callable(counts[0]), counts[:1])
+        self.assertEqual(counts[0](), 0)
+        brain._instructed.backouts = 3
+        self.assertEqual(counts[0](), 3)
+
+    def test_m10_control_the_pokenav_tutorial_is_played_as_before_with_the_opener(self):
+        """CONTROL (chapter 5): with the scene opener watching, as `mode.py` sets it, the POKéNAV tutorial (a scene the
+        game forces, its menus NAMED by the scientist's words) is played exactly as `test_u1` plays it: the forced START
+        menu's POKéNAV chosen, the call made once, the app's menus backed out of with B; nothing forced, nothing counted
+        as backed out of a field menu."""
+        from ai_player.skills.instructed import SceneOpener
+
+        game = _Tutorial()
+        hands, brain = tutorial_hands(game)
+        brain._instructed.opener = SceneOpener(hands.pad)
+        hands.watchers.append(brain._instructed.opener.watch)
+        self.assertEqual(drive(play_scene(hands, brain), 200_000), "free")
+        self.assertEqual(game.chosen, [("forced", "POKéNAV"), ("menu", "MATCH CALL"), ("list", "MR. STONE"),
+                                       ("options", "CALL"), ("list", "B"), ("menu", "B")])
+        self.assertEqual(game.calls, 1)
+        self.assertEqual((brain._instructed.backouts, brain._instructed.forced), (0, None))
+
+
+class Round5HealTests(unittest.TestCase):
+    """(chapter 6 stops round 5, 2026-11-06) The round-4 verifier's VR4-2 (MINOR): V3-1's heal before a fight where the AI
+    cannot train (a TOP-UP: the party neither in danger nor under its heal line) headed for a centre no known way leads to,
+    and again after each cooldown (its VT-R1, VT-R2). A top-up now uses only a centre a known way leads to
+    (`GoalManager.heal_place(reachable=True)`), else no heal. Mutants: `revert_step5.py` (round 5)."""
+
+    GRASS = TileFact(False, False, True, True, None, False, False, 3, "TALL_GRASS", 0, (0, 0))
+
+    @staticmethod
+    def link(world, a, b):
+        for source, target in ((a, b), (b, a)):
+            world.connections.append({"source": source, "target": target, "direction": "up", "from": [1, 0],
+                                      "arrival": [1, 9], "offset": [0, 10], "by": "ai", "frame": 1})
+
+    def gym(self, centre: str, hp: int = 15, personality: str = "Trainer", decisions: int = 2, fail_heals: bool = False):
+        """The verifier's VT-R1: in DEWFORD's GYM (indoors: no `find_center`), ch7_brawly, untrained, ROUTE104's grass seen
+        with no known way to it; the only centre known is `centre`'s (RUSTBORO: no known way; DEWFORD: the gym's town,
+        linked). The goals of `decisions` decisions (each failed heal recorded as failed when `fail_heals`)."""
+        mgr = manager(personality)
+        world = world_with("DEWFORD_TOWN", "DEWFORD_TOWN_GYM", "ROUTE104", "RUSTBORO_CITY", current="DEWFORD_TOWN_GYM",
+                           center_from=centre)
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = self.GRASS
+        self.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        self.link(world, keys["DEWFORD_TOWN"], keys["DEWFORD_TOWN_GYM"])
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=hp, max_hp=20)], const="DEWFORD_TOWN_GYM", map_number=3)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_brawly")
+        goals = []
+        for _ in range(decisions):
+            goal = mgr.next_goal(seen, world, milestone, index)
+            goals.append(goal)
+            if fail_heals and goal.kind == "heal":
+                mgr.outcome(goal, False)
+        return goals, mgr
+
+    def test_r1_a_top_up_heads_only_for_a_centre_a_known_way_leads_to(self):
+        """FAULT (the verifier's VT-R1, reproduced on c41db547: 'heal' to RUSTBORO_CITY_POKEMON_CENTER_1F twice): the party
+        at 75% (over the Trainer's heal line, under HEAL_BEFORE_FIGHT), the only centre known on the mainland with no known
+        way to it: NO heal (VT-R2: none in 30 decisions with every heal failing). CONTROL: DEWFORD's centre, a known way
+        from the gym: the top-up heals there, saying it cannot train here."""
+        goals, _ = self.gym("RUSTBORO_CITY")
+        self.assertEqual([g.kind for g in goals if g.kind == "heal"], [], [g.reason for g in goals])
+        goals, _ = self.gym("RUSTBORO_CITY", decisions=30, fail_heals=True)
+        self.assertEqual(sum(g.kind == "heal" for g in goals), 0)
+        goals, _ = self.gym("DEWFORD_TOWN")  # CONTROL
+        self.assertEqual((goals[0].kind, goals[0].map), ("heal", "DEWFORD_TOWN_POKEMON_CENTER_1F"), goals[0].reason)
+        self.assertIn("(it cannot train here: no known way leads to grass)", goals[0].reason)
+
+    def test_r2_control_heals_for_the_partys_own_state_keep_every_centre(self):
+        """CONTROLS (unchanged): a party IN DANGER (the strongest under a third) and one under its heal line (not in danger)
+        still head for the only centre known, RUSTBORO's, with no known way to it, as before the round: only the top-up is
+        held to a known way."""
+        mgr = manager("Trainer")
+        line = mgr.state.errands.heal_below
+        for name, hp in (("danger", 4), ("under the heal line", int(20 * line) - 1)):
+            with self.subTest(name):
+                self.assertGreater(hp / 20, 0 if name == "danger" else 1 / 3)
+                goals, _ = self.gym("RUSTBORO_CITY", hp=hp)
+                self.assertEqual((goals[0].kind, goals[0].map), ("heal", "RUSTBORO_CITY_POKEMON_CENTER_1F"),
+                                 goals[0].reason)
+
+    def test_r3_heal_place_reachable_home_and_centres(self):
+        """`heal_place(reachable=True)`: a centre or HOME only when a known way leads there (`world_distance` under
+        UNREACHABLE); in a centre, that centre. CONTROL: `reachable` False keeps every place it knows, as before."""
+        mgr = manager("Story")
+        world = world_with("DEWFORD_TOWN", "RUSTBORO_CITY", current="DEWFORD_TOWN", center_from="RUSTBORO_CITY")
+        self.assertEqual(mgr.heal_place(world)[0], "RUSTBORO_CITY_POKEMON_CENTER_1F")  # CONTROL
+        self.assertIsNone(mgr.heal_place(world, reachable=True))
+        keys = {m.const: k for k, m in world.maps.items()}
+        self.link(world, keys["DEWFORD_TOWN"], keys["RUSTBORO_CITY"])
+        self.assertEqual(mgr.heal_place(world, reachable=True)[0], "RUSTBORO_CITY_POKEMON_CENTER_1F")
+        home = mgr.story.resolve("<player_house_1f>")
+        world = world_with("DEWFORD_TOWN", home, current="DEWFORD_TOWN")
+        mgr.memory.home_heals = 1
+        self.assertEqual(mgr.heal_place(world)[0], home)  # CONTROL: home, where MOM heals
+        self.assertIsNone(mgr.heal_place(world, reachable=True))  # no known way home from the island
+        keys = {m.const: k for k, m in world.maps.items()}
+        self.link(world, keys["DEWFORD_TOWN"], keys[home])
+        self.assertEqual(mgr.heal_place(world, reachable=True)[0], home)
+
+
+class Round6HealTests(unittest.TestCase):
+    """(chapter 6 stops round 6, 2026-11-07) The round-5 verifier's V5-1 (MAJOR): round 5 held V3-1's TOP-UP (it cannot
+    train, the party neither in danger nor under its heal line) to a centre a known way leads to, and decided the LOOK for
+    a town's own centre on that same place, so OUTDOORS in a town whose centre it had not seen, knowing only a centre no
+    known way leads to, it looked for none and walked to BRAWLY at 75% (VT5-1; on c41db547 it looked for DEWFORD's). The
+    look is decided on every centre it knows again (`known`); only the walk to a known centre is held to a known way.
+    Mutants: `revert_step5.py` (round 6)."""
+
+    def decide(self, hp: int, centre: str = "RUSTBORO_CITY", looked: bool = False, decisions: int = 1):
+        """The verifier's VT5-1: OUTDOORS in DEWFORD TOWN, ch7_brawly, untrained, ROUTE104's grass seen with no known way
+        to it; the only centre known is `centre`'s (RUSTBORO: no known way; DEWFORD: this town's own); the party at
+        `hp`/20 (Trainer). `looked`: the AI has looked for DEWFORD's centre already. The goals of `decisions` decisions."""
+        mgr = manager("Trainer")
+        world = world_with("DEWFORD_TOWN", "DEWFORD_TOWN_GYM", "ROUTE104", "RUSTBORO_CITY", current="DEWFORD_TOWN",
+                           center_from=centre)
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS
+        Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        Round5HealTests.link(world, keys["DEWFORD_TOWN"], keys["DEWFORD_TOWN_GYM"])
+        if looked:
+            mgr.memory.center_looked.add(world.current)
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=hp, max_hp=20)], const="DEWFORD_TOWN", map_number=1)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_brawly")
+        return [mgr.next_goal(seen, world, milestone, index) for _ in range(decisions)]
+
+    def test_t1_a_top_up_in_a_town_whose_centre_is_unseen_looks_for_it_first(self):
+        """FAULT (the verifier's VT5-1, reproduced on 095ea511: the first goal was 'go DEWFORD_TOWN_GYM'): the party at 75%,
+        DEWFORD's centre never seen, only RUSTBORO's known with no known way to it: it LOOKS for DEWFORD's centre first
+        (find_center, once a town, saying no known way leads back to RUSTBORO's); the next decision, the town looked for,
+        neither heals at RUSTBORO's nor looks again (only a centre KNOWN and UNREACHABLE is refused)."""
+        first, second = self.decide(15, decisions=2)
+        self.assertEqual((first.kind, first.map), ("find_center", "DEWFORD_TOWN"), first.reason)
+        self.assertIn("(it cannot train here: no known way leads to grass)", first.reason)
+        self.assertIn("looks here first: no known way leads back to the POKéMON CENTER it knows "
+                      "(RUSTBORO_CITY_POKEMON_CENTER_1F)", first.reason)
+        self.assertNotIn(second.kind, ("heal", "find_center"), second.reason)
+
+    def test_t2_control_a_known_reachable_centre_heals_and_a_looked_town_gives_no_heal(self):
+        """CONTROLS: (a) DEWFORD's own centre known (a known way: this town): the top-up heals THERE, no look; (b) the town
+        looked for already, only RUSTBORO's known with no known way to it: no heal and no look (round 5's VR4-2 refusal,
+        here outdoors; in the gym it is `Round5HealTests.test_r1`)."""
+        goal = self.decide(15, centre="DEWFORD_TOWN")[0]
+        self.assertEqual((goal.kind, goal.map), ("heal", "DEWFORD_TOWN_POKEMON_CENTER_1F"), goal.reason)
+        goal = self.decide(15, looked=True)[0]
+        self.assertNotIn(goal.kind, ("heal", "find_center"), goal.reason)
+
+    def test_t3_control_a_party_in_danger_or_under_its_line_is_unchanged(self):
+        """CONTROLS (as on 095ea511 and c41db547): a party in danger (4/20) or under its heal line looks for DEWFORD's
+        centre first, saying it would walk back to RUSTBORO's; once the town is looked for, it heads for RUSTBORO's, with no
+        known way to it (only the top-up is held to a known way)."""
+        line = manager("Trainer").state.errands.heal_below
+        for name, hp in (("danger", 4), ("under the heal line", int(20 * line) - 1)):
+            with self.subTest(name):
+                goal = self.decide(hp)[0]
+                self.assertEqual((goal.kind, goal.map), ("find_center", "DEWFORD_TOWN"), goal.reason)
+                self.assertIn("looks here before walking back to the POKéMON CENTER it knows "
+                              "(RUSTBORO_CITY_POKEMON_CENTER_1F)", goal.reason)
+                goal = self.decide(hp, looked=True)[0]
+                self.assertEqual((goal.kind, goal.map), ("heal", "RUSTBORO_CITY_POKEMON_CENTER_1F"), goal.reason)
+
+
+#: (round 6, V5-2) DEWFORD's fisherman once FLAG_RECEIVED_OLD_ROD is set (pinned decomp data/maps/DewfordTown/scripts.inc
+#: DewfordTown_EventScript_OldRodFisherman -> DewfordTown_EventScript_HowsFishing): lock, faceplayer, `message
+#: DewfordTown_Text_HowsYourFishing` + `waitmessage` (no page waits for A), then `multichoice 20, 8, MULTI_HOWS_FISHING,
+#: TRUE`: B IGNORED, the cursor on its first option, no EXIT; Excellent -> DewfordTown_Text_GreatHaulInSomeBigOnes,
+#: Not so good -> DewfordTown_Text_FishingAdvice; release
+FISHING_OPTIONS = ("Excellent", "Not so good")
+FISHING_ASK = "Yo!\nHow's your fishing?"
+FISHING_REPLY = {"Excellent": "Is that right! That's great!\nHaul in some big ones!",
+                 "Not so good": "Oh, hey, don't get down on yourself!\nI'll give you a little fishing advice."}
+
+
+class _Question(_Dock):
+    """(round 6, V5-2) A SIMULATION (test side) of a question the game will not let the player decline, on the dock's
+    stage (`_Dock`: the player free on DEWFORD_TOWN, the person one tile right): the AI's own A while facing him opens the
+    question at once (`FISHING_ASK` shown, no page waiting), the menu IGNORES B (the game's TRUE), its cursor STARTS on the
+    first option; an answer plays its reply page, then the player is free. `options`: another B-ignored menu's (the
+    census's `NO_ANSWER_MENUS`); `page`: a page that waits for A before the question (a CONTROL names an option with it);
+    `again`: the same question comes back after an answer (the loop guard's case); `start`: as `_Dock`."""
+
+    def __init__(self, options=FISHING_OPTIONS, page=None, again=False, start="free"):
+        super().__init__(b_ok=False, start=start, page=page, options=tuple(options))
+        self.again = again
+        self.cursor = 0
+        self.replied: str | None = None
+
+    def press(self, button: str) -> None:
+        state = self.state
+        if state == "free" and button == "A" and self.facing == "right":
+            self.state, self.cursor = ("page" if self.page else "menu"), 0
+        elif state == "page" and button == "A":
+            self.state, self.cursor = "menu", 0
+        elif state == "menu":
+            if button in ("Up", "Down"):
+                self.cursor = max(0, min(len(self.options) - 1, self.cursor + (1 if button == "Down" else -1)))
+            elif button == "A":
+                option = self.options[self.cursor]
+                self.chosen.append(option)
+                self.replied = FISHING_REPLY.get(option, f"({option})")
+                self.state, self.cursor = ("again" if self.again else "reply"), 0
+            # B: IGNORED (the game's TRUE): nothing changes on screen
+        elif state == "again" and button == "A":
+            self.state, self.cursor = "menu", 0  # the same question again
+        elif state == "reply" and button == "A":
+            self.state = "free"
+        else:
+            super().press(button)
+
+    def look(self, frame: int) -> Observation:
+        from ai_player.eyes.observation import MenuView
+
+        base = look(ch_proofs("ch7_brawly"), party=[mon(30)], const="DEWFORD_TOWN", frame=frame, objects=(BRINEY_ON_DOCK,),
+                    map_number=1)
+        base = replace(base, player=replace(base.player, name="Milo", facing=self.facing))
+        state = self.state
+        ui = MenuView("multichoice", self.options, self.cursor, True) if state == "menu" else None
+        waits = state in ("page", "reply", "again")
+        text = {"page": self.page, "menu": FISHING_ASK, "reply": self.replied, "again": self.replied}.get(state)
+        script = state != "free"
+        screen = ScreenState(game_state="OVERWORLD", screen="overworld", menu=None, text_box_open=text is not None,
+                             waits_for_button=waits, in_battle=False, wait_reason="text printer 0 CLEAR" if waits else None,
+                             ui=ui, text=text, script_running=script, controls_locked=script)
+        return replace(base, screen=screen)
+
+
+class Round6MenuTests(unittest.TestCase):
+    """(chapter 6 stops round 6, 2026-11-07) The round-5 verifier's V5-2 (MINOR): once the OLD ROD is received, DEWFORD's
+    fisherman asks "Yo! How's your fishing?" on a menu that IGNORES B and has no EXIT, so round 5's rule ended the run
+    ('forced') on a second chat with him. THE RULE (the lead's decision; `skills/instructed.py` THE QUESTION IT CANNOT
+    DECLINE): such a field menu, in a scene the AI opened, that nothing read names, is ANSWERED with the option the cursor
+    starts on, counted (`answers`) and said once; the loop guard, a scene the AI did not open, and the census's
+    `NO_ANSWER_MENUS` stay FORCED. V5-5: an option reading CANCEL backs out of a menu whose B is refused. Mutants:
+    `revert_step5.py` (round 6)."""
+
+    def test_q1_the_fishermans_question_is_answered_with_its_first_option(self):
+        """FAULT (the verifier's VT5-2, reproduced on 095ea511: one B, then `forced` and the run ends): the AI's own chat
+        with the fisherman; his question ignores B (read from the screen) and has no EXIT: it answers 'Excellent', the
+        option the cursor starts on, with A; his reply plays, the player is FREE, the answer is counted (not as a
+        back-out: the chat is not put aside) and said ONCE; nothing forced."""
+        game = _Question()
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(end, "free")
+        self.assertEqual((game.chosen, game.state), (["Excellent"], "free"))
+        self.assertEqual(buttons(hands).count("B"), 1)
+        self.assertEqual(buttons(hands).count("Down"), 0)  # the cursor never moved: the option it started on
+        self.assertEqual((brain._instructed.answers, brain._instructed.backouts, brain._instructed.forced), (1, 0, None))
+        self.assertEqual(sum(1 for line in hands.told if "a question it cannot decline" in line), 1)
+        self.assertTrue(any("it answers 'Excellent', the option the cursor starts on" in line for line in hands.told))
+
+    def test_q2_control_the_same_question_again_after_an_answer_is_forced(self):
+        """CONTROL (the loop guard stays): the same question back on screen in the same scene after the answer is FORCED
+        ("on screen again after the AI answered it"): ONE answer, no second A on it, the stop said once. (A control of
+        the new rule only: the base, 095ea511, answers nothing, so it fails there by its first assertion.)"""
+        game = _Question(again=True)
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(end, "stuck: an unexpected multichoice on screen")
+        self.assertEqual((game.chosen, game.state), (["Excellent"], "menu"))
+        self.assertIn("it is on screen again after the AI answered it", brain._instructed.forced)
+        self.assertEqual(brain._instructed.answers, 1)
+        self.assertEqual(sum(1 for line in hands.told if "the instructed menus stop: a forced" in line), 1)
+
+    def test_q3_control_a_scene_the_ai_did_not_open_is_still_forced_with_no_press(self):
+        """CONTROL: the same question in a scene the AI did NOT open (the run began on it) is FORCED with no press."""
+        game = _Question(start="menu")
+        hands, brain = dock_hands(game)
+        self.assertEqual(drive(play_scene(hands, brain), 50_000), "stuck: an unexpected multichoice on screen")
+        self.assertEqual((buttons(hands), game.chosen), ([], []))
+        self.assertIn("in a scene the AI did not open itself: the game forces it", brain._instructed.forced)
+        self.assertEqual(getattr(brain._instructed, "answers", 0), 0)  # (getattr: the base, 095ea511, has no count)
+
+    def test_q4_control_the_censuss_excluded_menus_still_end_the_run(self):
+        """CONTROL: each of the census's `NO_ANSWER_MENUS` (a starting option that starts a battle or makes a one-way
+        choice), asked the same way in a scene the AI opened: one B, NO answer, FORCED, its id named in the stop. (On the
+        base, 095ea511, which answers nothing: the BATTLE TENT's menu, forced, with no id to name.)"""
+        try:
+            from ai_player.skills.instructed import NO_ANSWER_MENUS
+        except ImportError:  # the base, before round 6
+            NO_ANSWER_MENUS = None
+        menus = NO_ANSWER_MENUS or {"MULTI_GO_ON_REST_RETIRE": TENT_OPTIONS}
+        self.assertIn("MULTI_GO_ON_REST_RETIRE", menus)  # SLATEPORT's BATTLE TENT: chapter 8's city
+        for name, options in menus.items():
+            with self.subTest(name):
+                game = _Question(options=options)
+                end, hands, brain = chat_on_the_dock(game)
+                self.assertEqual(end, "stuck: an unexpected multichoice on screen")
+                self.assertEqual((game.chosen, buttons(hands).count("B")), ([], 1))
+                if NO_ANSWER_MENUS is not None:
+                    self.assertIn(f"starts a battle or makes a one-way choice ({name})", brain._instructed.forced)
+                self.assertIsNotNone(brain._instructed.forced)
+                self.assertEqual(getattr(brain._instructed, "answers", 0), 0)
+
+    def test_q5_control_a_named_option_and_the_dock_menu_are_unchanged(self):
+        """CONTROLS: (a) a page read before the question that NAMES an option ("... not so good ...") chooses it by THE
+        RULE (no B, no answer counted); (b) the dock menu, whose B is allowed, is still backed out of with B (`test_m1`):
+        nothing answered."""
+        game = _Question(page="Hey there! Don't tell me it's not so good!")
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual((end, game.chosen), ("free", ["Not so good"]))
+        self.assertEqual((buttons(hands).count("B"), getattr(brain._instructed, "answers", 0)), (0, 0))
+        game = _Dock()
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual((end, game.chosen, game.backs), ("free", [], 1))
+        self.assertEqual((brain._instructed.backouts, getattr(brain._instructed, "answers", 0)), (1, 0))
+
+    def test_q7_a_question_with_no_option_highlighted_is_not_answered(self):
+        """CONTROL (the answer's own guard): the same question, but the eyes show NO highlighted option (a `MenuView`
+        cursor of None): there is no option the cursor starts on, so nothing is answered: one B, FORCED, said why."""
+
+        class _NoCursor(_Question):
+            def look(self, frame: int) -> Observation:
+                seen = super().look(frame)
+                ui = seen.screen.ui
+                return seen if ui is None else replace(seen, screen=replace(seen.screen, ui=replace(ui, cursor=None)))
+
+        game = _NoCursor()
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(end, "stuck: an unexpected multichoice on screen")
+        self.assertEqual((game.chosen, buttons(hands).count("B")), ([], 1))
+        self.assertIn("no option is highlighted to answer with", brain._instructed.forced)
+        self.assertEqual(brain._instructed.answers, 0)
+
+    def test_q6_a_refused_b_is_left_by_an_option_reading_cancel(self):
+        """V5-5 (the 'cancel' half of CANCEL_WORDS, until now pinned only by the stop's wording): a menu whose B is refused
+        and whose LAST option reads CANCEL (the cable club's TRADE CENTER / COLOSSEUM / CANCEL) is left by CANCEL, chosen
+        like any option; counted as a back-out, nothing answered."""
+        game = _Dock(b_ok=False, options=("TRADE CENTER", "COLOSSEUM", "CANCEL"))
+        game.first = 0  # the cursor starts on TRADE CENTER: CANCEL is reached by its words, never by where it starts
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(end, "free")
+        self.assertEqual((game.chosen, game.backs), (["CANCEL"], 0))
+        self.assertEqual(buttons(hands).count("Down"), 2)
+        self.assertEqual((brain._instructed.backouts, getattr(brain._instructed, "answers", 0), brain._instructed.forced),
+                         (1, 0, None))
+
+
+# ------------------------------------------------------------------------------------------- (chapter 6 stops round 6) P5-1
+from ai_player.gates.test_world import GridControls, GridEyes, GridGame  # noqa: E402 - the overworld model, for P5-1
+
+#: DEWFORD's GYM as the AI's own world memory knew it at #108's start (s53/ch6stops5/build/starts/D1_world.jsonl: 652
+#: tiles, every one seen; printed by s53/ch6stops6/diag/gym_rows.py), x 0..19, y 0..28: '.' walkable, '#' a wall, 'M' the
+#: door's two warp tiles (5, 27), (6, 27). BRAWLY stands at (4, 3) (the pinned decomp's DewfordTown_Gym). The gym's
+#: trainers are left out (the model fights no battles); the gym's darkness is not modelled (the eyes report what is in
+#: their window, as they do in the game today).
+DEWFORD_GYM_ROWS = [
+    "####################", "####################", "####################", "###..#####.####.####",
+    "#.#..#.###..###.####", "#............##.####", "##....######....####", "############..######",
+    "#######.......######", "##.######.##.###.###", "#....####.##.###.###", "#..######.##.###.###",
+    "##.######.##.#...###", "##.####...##.###.###", "##.##........###.###", "#..##.####...###.###",
+    "#.....#####.####.###", "#..########.####.###", "##.#####.##.##...###", "########.##.....####",
+    "########.##..#######", "##.#####.....#######", "##..............####", "###.....####.#######",
+    "#####..#####.#######", "####....####.#######", "#####..#############", "#####MM#############",
+    "####################",
+]
+#: a plain gym room for the chapters 1-5 CONTROL (ROXANNE's, and NORMAN's for chapter 2): the door's warp tiles at the
+#: bottom (5, 19), (6, 19), the leader at (5, 2)
+ROOM_GYM_ROWS = ["############"] + ["#..........#"] * 18 + ["#####MM#####", "############"]
+#: the bit of the gym's TOWN at its door: the door 'D' at (5, 1), pressed Up into; arriving from the gym, below it at (5, 2)
+GYM_TOWN_ROWS = ["##########", "#####D####", "#........#", "#........#", "##########"]
+
+
+class _GymWalk(GridGame):
+    """(round 6, P5-1) The overworld model (`test_world.GridGame`) as a GYM and the bit of its town at its door: the player
+    starts on the gym's door tile; the one person on the gym wears the leader's figure (`gfx`), seen only inside the eyes'
+    window (7 tiles left and right, 5 up and down); the look carries the story's `marks` and a party."""
+
+    def __init__(self, gym: str, rows: list[str], leader: tuple[int, int], gfx: int, marks: dict) -> None:
+        self.gym, self.town = gym, gym[: -len("_GYM")]
+        doors = [(x, y) for y, row in enumerate(rows) for x, c in enumerate(row) if c == "M"]
+        warps = {(gym, door): (self.town, (5, 2)) for door in doors}
+        warps[(self.town, (5, 1))] = (gym, doors[0])
+        super().__init__({gym: rows, self.town: GYM_TOWN_ROWS}, (gym, doors[0]), warps=warps, people={gym: {leader}})
+        self.doors, self.leader, self.gfx = doors, leader, gfx
+        self.template = look(marks, party=[mon(30)], const=gym)
+
+    def tick(self, button: str | None, new: bool) -> None:
+        before = self.map
+        super().tick(button, new)
+        if self.map != before:
+            self.trail.append((self.map, self.pos))  # a warp is on the trail too (the model's trail has only steps)
+
+    def view(self):
+        seen = super().view()
+        if seen is None:
+            return None
+        return replace(seen, objects=tuple(replace(o, graphics_id=self.gfx) for o in seen.objects))
+
+    def look(self) -> Observation:
+        seen = super().look()
+        return replace(seen, party=self.template.party, progress=self.template.progress, bag=self.template.bag)
+
+    def learn(self, world: WorldMemory, where: str, at: tuple[int, int]) -> None:
+        """Teach `world` the map `where` whole (its every tile and a margin of wall, NO person: as D1's memory had the
+        gym, every tile seen and BRAWLY's spot not a recent sighting), with no transition from the map before."""
+        self.map, self.pos, crop = where, at, self.crop
+        self.crop = False
+        seen = self.look()
+        self.crop = crop
+        world._last.key = None  # noqa: SLF001 - test side: the learning looks are no walk from map to map
+        world.observe(replace(seen, view=replace(seen.view, objects=())))
+
+    def in_gym(self, max_y: int) -> bool:
+        """Did the player ever stand in the gym on a row at or above `max_y` (the trail of every step taken)?"""
+        return any(name == self.gym and xy[1] <= max_y for name, xy in self.trail)
+
+
+class Round6GymTests(unittest.TestCase):
+    """(chapter 6 stops round 6, 2026-11-07) Round 5's new stop P5-1: in #108 arm B, each 'find BRAWLY' entered DEWFORD's
+    gym and walked straight out of its door (21 entries onto the gym's map a run, never past the row above the door, no
+    BRAWLY fight in 20,000 frames). CAUSE (s53/ch6stops6/diag/diag_p51.py on #108's records, and the log): the start's
+    world memory knew every tile of the gym while the run had never SEEN BRAWLY (no sighting: the 'seek' of #106 had one),
+    so the find's explorer found nothing on the map left to see, and `travel_intent(stay=True)` fell back to
+    `choose_target`, whose best place was the way back out ("it leads back to DEWFORD_TOWN, seen all of"); on the town the
+    same rule sent it back in: the warp's ping-pong ended each find. THE RULE (static knowledge, USER RULING 40: a gym's
+    leader stands at its back, opposite its door): a FIND for the leader the AI has come to FIGHT, on that leader's gym, with
+    nothing on the map left to see, first walks to the BACK of the gym (`brain/goals.py` gym_back), never out of its door.
+    Mutants: `revert_step5.py` (round 6)."""
+
+    def walk(self, look_name: str, milestone_id: str, gym: str, rows: list[str], leader: tuple[int, int],
+             known: bool = True, budget: int = 60_000):
+        """The REAL find (`GoalRunner.pursue`, the navigator's own walk) from the gym's door tile, the gym and the town
+        known whole (`known`) or the gym never seen (only the town known). Returns (outcome, ok, game, lines told)."""
+        mgr = manager("Story")
+        game = _GymWalk(gym, rows, leader, mgr.story.looks[look_name].gfx[0], ch_proofs(milestone_id))
+        world = WorldMemory()
+        game.learn(world, game.town, (5, 2))
+        town_key = world._last.key  # noqa: SLF001
+        if known:
+            game.learn(world, gym, game.doors[0])
+            gym_key = world._last.key  # noqa: SLF001
+            for door in game.doors:
+                world.warps[f"{gym_key}|{door[0]},{door[1]}"] = {"to": town_key, "arrival": [5, 2], "direction": "down",
+                                                                 "uses": 2, "by": "ai", "first": 1, "last": 1,
+                                                                 "inferred": False}
+            world.warps[f"{town_key}|5,1"] = {"to": gym_key, "arrival": list(game.doors[0]), "direction": "up", "uses": 2,
+                                              "by": "ai", "first": 1, "last": 1, "inferred": False}
+        else:
+            world._last.key = None  # noqa: SLF001 - the gym is a new place: no walk into it is learned here
+        game.map, game.pos, game.trail = gym, game.doors[0], [(gym, game.doors[0])]
+        lines: list[str] = []
+        hands = Hands(GridEyes(game), GridControls(game), random.Random(1), random.Random(1), None, lines.append)
+        hands.watchers.append(world.observe)
+        nav = Navigator(hands, world, random.Random(1))
+        seen = hands.look()
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, milestone_id)
+        self.assertIsNone(mgr.looks_like(seen, look_name))  # the leader is out of the eyes' window at the door
+        goal = Goal("find", f"{milestone.title}: looking for {look_name} on {gym}", milestone.id, look=look_name,
+                    key=f"find:{look_name}")
+        runner = GoalRunner(hands, nav, mgr, types.SimpleNamespace(purpose=None), lambda line: None)
+        ok, outcome = drive(runner.pursue(goal, milestone, index, lambda s: index), budget)
+        return outcome, ok, game, lines
+
+    def test_p1_a_find_for_brawly_in_his_gym_seen_all_of_walks_to_its_back(self):
+        """FAULT (P5-1, reproduced on 095ea511: the find walks out of the door and ends on the warp's ping-pong, the player
+        never above the row over the door): DEWFORD's gym as #108's start knew it (every tile, no sighting of BRAWLY), the
+        player on the door tile. The find walks INTO the gym toward its back, never leaves it, and ends DONE with BRAWLY
+        in view (the next decision talks to him)."""
+        outcome, ok, game, lines = self.walk("brawly", "ch7_brawly", "DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3))
+        self.assertTrue(ok, outcome)
+        self.assertTrue(outcome.startswith("done"), outcome)
+        self.assertEqual({name for name, _ in game.trail}, {"DEWFORD_TOWN_GYM"})  # never out of the door
+        self.assertTrue(game.in_gym(8))  # on a row from which BRAWLY, at (4, 3), is in the eyes' window
+        self.assertTrue(any("the back of the gym" in line for line in lines), lines[-5:])
+
+    def test_p2_control_a_first_visit_is_explored_as_before(self):
+        """CONTROLS (chapters 1-5 and 7, a gym never seen: frontiers on it): ROXANNE's gym (ch4_roxanne) and BRAWLY's
+        (ch7_brawly) are explored as before; the leader is found, and the back of the gym is never chosen (the rule is
+        consulted only when nothing on the map is left to see)."""
+        for look_name, milestone_id, gym, rows, leader in (
+                ("roxanne", "ch4_roxanne", "RUSTBORO_CITY_GYM", ROOM_GYM_ROWS, (5, 2)),
+                ("brawly", "ch7_brawly", "DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3))):
+            with self.subTest(milestone_id):
+                outcome, ok, game, lines = self.walk(look_name, milestone_id, gym, rows, leader, known=False)
+                self.assertFalse(any("the back of the gym" in line for line in lines))
+                if milestone_id == "ch4_roxanne":
+                    self.assertTrue(ok and outcome.startswith("done"), outcome)
+
+    def test_p3_roxannes_gym_seen_all_of_is_walked_to_its_back_too(self):
+        """The same rule in chapter 4's gym (ROXANNE, ch4_roxanne), seen all of, no sighting: the find walks up the room
+        to its back and ends DONE with her in view, never out of the door (on 095ea511 it leaves, as in DEWFORD)."""
+        outcome, ok, game, lines = self.walk("roxanne", "ch4_roxanne", "RUSTBORO_CITY_GYM", ROOM_GYM_ROWS, (5, 2))
+        self.assertTrue(ok and outcome.startswith("done"), outcome)
+        self.assertEqual({name for name, _ in game.trail}, {"RUSTBORO_CITY_GYM"})
+
+    def test_p4_control_no_fight_with_the_leader_no_back_of_the_gym(self):
+        """CONTROL (the rule's scope): chapter 2's NORMAN (ch2_dad: a TALK with DAD, no fight; a script stands him in the
+        gym's FRONT room, `data/maps/PetalburgCity_Gym/scripts.inc` setobjectxyperm ... 4, 107) is not looked for at the
+        back: the find in his gym, seen all of, never chooses the back of the gym (it does what it did before)."""
+        outcome, ok, game, lines = self.walk("norman", "ch2_dad", "PETALBURG_CITY_GYM", ROOM_GYM_ROWS, (5, 2))
+        self.assertFalse(any("the back of the gym" in line for line in lines))
+
+    def test_p5_gym_back_on_dewfords_layout(self):
+        """`gym_back`: from the door tile of DEWFORD's gym as the AI knew it, the back is the reachable row farthest from
+        the door, nearest the door's column: (4, 3), BRAWLY's own tile (the walk ends once he is in view). CONTROLS: no
+        door known, or the player's tile unknown: None."""
+        from ai_player.brain.goals import gym_back
+
+        game = _GymWalk("DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3), 1, ch_proofs("ch7_brawly"))
+        world = WorldMemory()
+        game.learn(world, "DEWFORD_TOWN_GYM", (5, 27))
+        hands = Hands(GridEyes(game), GridControls(game), random.Random(1), random.Random(1), None, lambda line: None)
+        nav = Navigator(hands, world, random.Random(1))
+        target = gym_back(nav, game.look())
+        self.assertEqual((target.kind, target.tile), ("goto", (4, 3)))
+        memory = world.here()
+        memory.tiles = {xy: fact for xy, fact in memory.tiles.items() if not (fact.warp or fact.door)}
+        self.assertIsNone(gym_back(nav, game.look()))
+
+    def test_p6_travel_intent_offers_the_back_only_until_reached_and_never_excluded(self):
+        """`travel_intent(back=...)`, on DEWFORD's gym seen all of (nothing on the map left to see): its choice is the
+        back while it is neither reached nor excluded; once excluded (a walk found no way) or REACHED (`Intent.reached`),
+        the choice is the explorer's own fallback again (`choose_target`), as before the round. CONTROL: with places left on
+        the map (a first visit), the back is never consulted."""
+        from ai_player.brain.goals import GYM_BACK, gym_back, travel_intent
+
+        def fresh(known: bool = True):
+            game = _GymWalk("DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3), 1, ch_proofs("ch7_brawly"))
+            world = WorldMemory()
+            if known:
+                game.learn(world, "DEWFORD_TOWN_GYM", (5, 27))
+            else:
+                game.crop = True
+                world.observe(game.look())
+            hands = Hands(GridEyes(game), GridControls(game), random.Random(1), random.Random(1), None, lambda line: None)
+            return game, Navigator(hands, world, random.Random(1))
+
+        game, nav = fresh()
+        intent = travel_intent(None, "Story", 4000, lambda look_: False, stay=True, back=gym_back)
+        target = intent.choose(nav, game.look())
+        self.assertTrue(target.reason.startswith(GYM_BACK), target)
+        nav.exclude(target, "a test: no way there")
+        self.assertFalse(intent.choose(nav, game.look()).reason.startswith(GYM_BACK))  # excluded: the old fallback
+        game, nav = fresh()
+        intent = travel_intent(None, "Story", 4000, lambda look_: False, stay=True, back=gym_back)
+        target = intent.choose(nav, game.look())
+        intent.reached(target)
+        self.assertFalse(intent.choose(nav, game.look()).reason.startswith(GYM_BACK))  # reached: the old fallback
+        game, nav = fresh(known=False)  # CONTROL: a first visit, frontiers on the map
+        intent = travel_intent(None, "Story", 4000, lambda look_: False, stay=True, back=gym_back)
+        self.assertNotIn(intent.choose(nav, game.look()).kind, ("goto",))
+
+    def test_p7_the_leader_it_has_come_to_fight_on_that_leaders_gym(self):
+        """`GoalRunner._fights_its_leader`, each of its conditions alone: a FIND for BRAWLY on DEWFORD's gym with his fight
+        next (ch7_brawly) is one; the same find standing in RUSTBORO's gym is not (not that leader's gym); chapter 2's
+        NORMAN on his own gym is not (ch2_dad: a talk, no fight); a GO goal is not; a find on the town is not."""
+        mgr = manager("Story")
+
+        def fights(const: str, look_name: str, milestone_id: str, kind: str = "find") -> bool:
+            world = world_with("DEWFORD_TOWN", const, current=const)
+            nav = Navigator(None, world, random.Random(1))
+            runner = GoalRunner(None, nav, mgr, types.SimpleNamespace(purpose=None), lambda line: None)
+            milestone = next(m for m in mgr.story.milestones if m.id == milestone_id)
+            return runner._fights_its_leader(Goal(kind, "r", milestone_id, look=look_name), milestone)  # noqa: SLF001
+
+        self.assertTrue(fights("DEWFORD_TOWN_GYM", "brawly", "ch7_brawly"))
+        self.assertFalse(fights("RUSTBORO_CITY_GYM", "brawly", "ch7_brawly"))
+        self.assertFalse(fights("PETALBURG_CITY_GYM", "norman", "ch2_dad"))
+        self.assertFalse(fights("DEWFORD_TOWN_GYM", "brawly", "ch7_brawly", kind="go"))
+        self.assertFalse(fights("DEWFORD_TOWN", "brawly", "ch7_brawly"))
+
+
+class _DimGym(_GymWalk):
+    """(round 7) `_GymWalk` whose eyes see a PERSON only inside the lit circle of DEWFORD's gym at flash level 7 (24 px:
+    the player's tile and the 8 round it, `eyes/view.py` lit), the tiles as the window shows them (the round-6 verifier's
+    dark-gym model; it runs on adf6c246 too). The learning looks (`learn`, crop off) see everything."""
+
+    def view(self):
+        seen = super().view()
+        if seen is None or not self.crop:
+            return seen
+        return replace(seen, objects=tuple(o for o in seen.objects if abs(o.dx) <= 1 and abs(o.dy) <= 1))
+
+
+#: (round 7, VR6-6) DEWFORD's gym's right-hand corridor (x 16, rows 9-17, and the side tiles (14, 12), (15, 12)): left
+#: unknown so a find there has something to explore first, far from BRAWLY at (4, 3)
+DEWFORD_GYM_POCKET = [(16, y) for y in range(9, 18)] + [(14, 12), (15, 12)]
+
+
+class Round7GymTests(unittest.TestCase):
+    """(chapter 6 stops round 7, 2026-11-07) The round-6 verifier's VR6-1 (MINOR: the back of the gym was offered on a map
+    that is not the gym: a find whose back was excluded walked out to the town and was offered 'the back of the gym'
+    there), VR6-5 (NIT: `_fights_its_leader` checked that SOME fight is next, not that it is with this leader) and VR6-6
+    (NIT: nothing pinned that only reaching the BACK disarms it: the verifier's mutant VM2 survived every test). Mutants:
+    `revert_step5.py` (round 7)."""
+
+    @staticmethod
+    def gym_nav(game: _GymWalk, world: WorldMemory) -> Navigator:
+        hands = Hands(GridEyes(game), GridControls(game), random.Random(1), random.Random(1), None, lambda line: None)
+        return Navigator(hands, world, random.Random(1))
+
+    def test_g1_the_back_of_the_gym_is_offered_only_on_that_gym(self):
+        """FAULT (the round-6 verifier's VT6-3, reproduced on adf6c246: the choice on DEWFORD_TOWN was 'the back of the gym'
+        (5, 3)): a find made in DEWFORD's gym, its back EXCLUDED (a walk found no way), the player now on the TOWN: its
+        choice there is not the back. The runner's own `back` (`GoalRunner._leader_back`, bound to the gym the find began
+        on) offers none on the town nor on another gym (RUSTBORO's); CONTROL: on DEWFORD's gym it offers (4, 3)."""
+        from ai_player.brain.goals import GYM_BACK, gym_back, travel_intent
+
+        game = _GymWalk("DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3), 1, ch_proofs("ch7_brawly"))
+        world = WorldMemory()
+        game.learn(world, "DEWFORD_TOWN", (5, 2))
+        game.learn(world, "DEWFORD_TOWN_GYM", (5, 27))
+        nav = self.gym_nav(game, world)
+        intent = travel_intent(None, "Story", 4000, lambda look_: False, stay=True, back=gym_back)
+        target = intent.choose(nav, game.look())
+        self.assertTrue(target.reason.startswith(GYM_BACK), target)
+        nav.exclude(target, "a test: no way there")
+        game.learn(world, "DEWFORD_TOWN", (5, 2))  # the player now on the town, below the gym's door
+        there = intent.choose(nav, game.look())
+        self.assertFalse(there is not None and there.reason.startswith(GYM_BACK), there)
+        # the runner's own binding
+        mgr = manager("Story")
+        game.learn(world, "DEWFORD_TOWN_GYM", (5, 27))
+        milestone = next(m for m in mgr.story.milestones if m.id == "ch7_brawly")
+        runner = GoalRunner(None, nav, mgr, types.SimpleNamespace(purpose=None), lambda line: None)
+        back = runner._leader_back(Goal("find", "r", "ch7_brawly", look="brawly"), milestone)  # noqa: SLF001
+        self.assertEqual(back(nav, game.look()).tile, (4, 3))  # CONTROL: on the leader's own gym
+        game.learn(world, "DEWFORD_TOWN", (5, 2))
+        self.assertIsNone(back(nav, game.look()))
+        other, elsewhere = _GymWalk("RUSTBORO_CITY_GYM", ROOM_GYM_ROWS, (5, 2), 1, ch_proofs("ch7_brawly")), WorldMemory()
+        other.learn(elsewhere, "RUSTBORO_CITY_GYM", (5, 19))
+        self.assertIsNotNone(gym_back(self.gym_nav(other, elsewhere), other.look()))  # an unbound back there: a gym
+        self.assertIsNone(back(self.gym_nav(other, elsewhere), other.look()))  # bound to DEWFORD's: not RUSTBORO's
+        self.assertIsNone(GoalRunner(None, nav, mgr, types.SimpleNamespace(purpose=None), lambda line: None)
+                          ._leader_back(Goal("go", "r", "ch7_brawly", map="DEWFORD_TOWN_GYM"), milestone))  # noqa: SLF001
+
+    def test_g2_only_reaching_the_back_disarms_it(self):
+        """VR6-6 (the round-6 verifier's VM2: 'any reached target marks the back done' SURVIVED every test). (a) The
+        intent: an EXPLORATION target reached leaves the back offered; the back reached disarms it. (b) DRIVEN, the real
+        find (`GoalRunner.pursue`) on DEWFORD's real layout seen through eyes that see a person only beside the player
+        (`_DimGym`), the gym known but for its right-hand corridor (`DEWFORD_GYM_POCKET`): the find first REACHES a target
+        exploring the corridor, then, nothing left to see, walks to the back and ends DONE beside BRAWLY, never out of the
+        door. A test gap, not a defect: it passes on adf6c246 too."""
+        from ai_player.brain.goals import GYM_BACK, gym_back, travel_intent
+
+        game = _GymWalk("DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3), 1, ch_proofs("ch7_brawly"))
+        world = WorldMemory()
+        game.learn(world, "DEWFORD_TOWN_GYM", (5, 27))
+        nav = self.gym_nav(game, world)
+        intent = travel_intent(None, "Story", 4000, lambda look_: False, stay=True, back=gym_back)
+        intent.reached(Target("goto", (9, 13), "an exploration target: the unseen side"))
+        target = intent.choose(nav, game.look())
+        self.assertTrue(target.reason.startswith(GYM_BACK), target)  # not disarmed by another target
+        intent.reached(target)
+        self.assertFalse(intent.choose(nav, game.look()).reason.startswith(GYM_BACK))  # the back reached: disarmed
+        # (b) the driven find
+        mgr = manager("Story")
+        game = _DimGym("DEWFORD_TOWN_GYM", DEWFORD_GYM_ROWS, (4, 3), mgr.story.looks["brawly"].gfx[0],
+                       ch_proofs("ch7_brawly"))
+        world = WorldMemory()
+        game.learn(world, game.town, (5, 2))
+        town_key = world._last.key  # noqa: SLF001
+        game.learn(world, game.gym, game.doors[0])
+        gym_key = world._last.key  # noqa: SLF001
+        for xy in DEWFORD_GYM_POCKET:
+            del world.maps[gym_key].tiles[xy]
+        for door in game.doors:
+            world.warps[f"{gym_key}|{door[0]},{door[1]}"] = {"to": town_key, "arrival": [5, 2], "direction": "down",
+                                                             "uses": 2, "by": "ai", "first": 1, "last": 1, "inferred": False}
+        world.warps[f"{town_key}|5,1"] = {"to": gym_key, "arrival": list(game.doors[0]), "direction": "up", "uses": 2,
+                                          "by": "ai", "first": 1, "last": 1, "inferred": False}
+        game.map, game.pos, game.trail = game.gym, game.doors[0], [(game.gym, game.doors[0])]
+        lines: list[str] = []
+        hands = Hands(GridEyes(game), GridControls(game), random.Random(1), random.Random(1), None, lines.append)
+        hands.watchers.append(world.observe)
+        nav = Navigator(hands, world, random.Random(1))
+        seen = hands.look()
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        self.assertEqual(milestone.id, "ch7_brawly")
+        runner = GoalRunner(hands, nav, mgr, types.SimpleNamespace(purpose=None), lambda line: None)
+        goal = Goal("find", "BRAWLY: looking for brawly", milestone.id, look="brawly", key="find:brawly")
+        ok, outcome = drive(runner.pursue(goal, milestone, index, lambda s: index), 60_000)
+        self.assertTrue(ok and outcome.startswith("done"), outcome)
+        self.assertEqual({name for name, _ in game.trail}, {"DEWFORD_TOWN_GYM"})  # never out of the door
+        self.assertTrue(any(name == game.gym and xy[0] == 16 and xy[1] <= 17 for name, xy in game.trail))  # explored first
+        last = game.trail[-1][1]
+        self.assertLessEqual(max(abs(last[0] - 4), abs(last[1] - 3)), 1, game.trail[-3:])
+        self.assertTrue(all(xy in world.maps[gym_key].tiles for xy in DEWFORD_GYM_POCKET))
+
+    def test_g3_the_fight_next_must_be_with_that_leader(self):
+        """VR6-5 (the round-6 verifier's VT6-8 found True here): a find for ROXANNE in her own gym while BRAWLY's fight is
+        next (ch7_brawly) is NOT one (`Milestone.fight_trainers` is BRAWLY_1). CONTROLS: BRAWLY in his gym with his fight
+        next is one; ROXANNE in hers with hers next (ch4_roxanne) is one; BRAWLY after his milestone (ch7_exp_share: no
+        fight next) is not."""
+        mgr = manager("Story")
+
+        def fights(const: str, look_name: str, milestone_id: str) -> bool:
+            world = world_with("DEWFORD_TOWN", const, current=const)
+            runner = GoalRunner(None, Navigator(None, world, random.Random(1)), mgr, types.SimpleNamespace(purpose=None),
+                                lambda line: None)
+            milestone = next(m for m in mgr.story.milestones if m.id == milestone_id)
+            return runner._fights_its_leader(Goal("find", "r", milestone_id, look=look_name), milestone)  # noqa: SLF001
+
+        self.assertFalse(fights("RUSTBORO_CITY_GYM", "roxanne", "ch7_brawly"))
+        self.assertTrue(fights("DEWFORD_TOWN_GYM", "brawly", "ch7_brawly"))
+        self.assertTrue(fights("RUSTBORO_CITY_GYM", "roxanne", "ch4_roxanne"))
+        self.assertFalse(fights("DEWFORD_TOWN_GYM", "brawly", "ch7_exp_share"))
+        self.assertEqual(next(m for m in mgr.story.milestones if m.id == "ch7_brawly").fight_trainers, ("BRAWLY_1",))
+
+    def test_g4_a_dark_look_teaches_no_landmark_from_the_dark(self):
+        """(round 7, N6-1) A look on a DARK map (`View.rows` holds None for a tile outside the lit circle) is noticed by the
+        goal manager (`GoalManager.notice`, the doors it recognises): the lit POKéMON CENTER door is remembered, the dark
+        tiles are passed over (no error); CONTROL: the same door in the dark is not remembered."""
+        mgr = manager("Story")
+        door = Tile(x=11, y=10, dx=1, dy=0, metatile=mgr.story.looks["pokemon_center_door"].metatile[0], behavior=0x69,
+                    behavior_name="ANIMATED_DOOR", collision=1, elevation=3, blocked=True, water=False, encounter=None,
+                    tall_grass=False, ledge=None, door=True, warp=True, half_visible=False)
+        mgr.notice(look(const="DEWFORD_TOWN", tiles=(None, None, door, None), map_number=1))
+        self.assertEqual(mgr.memory.landmarks, {("0:1", (11, 10)): "pokemon_center"})
+        mgr = manager("Story")
+        mgr.notice(look(const="DEWFORD_TOWN", tiles=(None, None, None, None), map_number=1))
+        self.assertEqual(mgr.memory.landmarks, {})
+
+
+class Round7HealTests(unittest.TestCase):
+    """(chapter 6 stops round 7, 2026-11-07) The round-6 verifier's VR6-4 (MINOR): a TOP-UP (it cannot train, the party
+    neither in danger nor under its heal line) that starts INSIDE DEWFORD's gym, knowing only RUSTBORO's centre (no known
+    way to it) and never having seen DEWFORD's, neither looked for the town's centre nor healed: `next_goal`'s look needed
+    an OUTDOOR town map. Now the look is for the centre of the town the building's door leads to (`_building_town`: the
+    world memory's way out, else a gym's own town by its name), walked out to first. Mutants: `revert_step5.py` (round 7)."""
+
+    def test_h1_a_top_up_inside_the_gym_looks_for_its_towns_centre(self):
+        """FAULT (VR6-4, reproduced on adf6c246: no look and no heal, `Round5HealTests.test_r1` pinned 'no heal' there): in
+        DEWFORD's gym (the way out to DEWFORD_TOWN known), the party at 75% (Trainer), only RUSTBORO's centre known with no
+        known way to it: the first goal LOOKS for DEWFORD's centre (find_center on the town's own key, saying it looks out
+        of this building); the next decision neither heals nor looks again (once a town), and 30 decisions with every heal
+        failing still hold no heal (round 5's VT-R2)."""
+        goals, mgr = Round5HealTests().gym("RUSTBORO_CITY")
+        first, second = goals
+        self.assertEqual((first.kind, first.map, first.via), ("find_center", "DEWFORD_TOWN", "0:1"), first.reason)
+        self.assertIn("looks in DEWFORD_TOWN, out of this building, first: no known way leads back to the POKéMON "
+                      "CENTER it knows (RUSTBORO_CITY_POKEMON_CENTER_1F)", first.reason)
+        self.assertIn("(it cannot train here: no known way leads to grass)", first.reason)
+        self.assertNotIn(second.kind, ("heal", "find_center"), second.reason)
+        goals, _ = Round5HealTests().gym("RUSTBORO_CITY", decisions=30, fail_heals=True)
+        self.assertEqual([g.kind for g in goals].count("find_center"), 1)
+        self.assertEqual([g.kind for g in goals].count("heal"), 0)
+
+    def test_h2_the_look_walks_out_to_the_town_first(self):
+        """The find_center made in the gym (`via` the TOWN's key, the player in the gym): the runner walks OUT to the town
+        first (`_travel` to DEWFORD_TOWN), then looks round it keeping to it, until the centre's door is seen; DONE, and
+        the next decision heals at DEWFORD's centre. CONTROL (the outdoor look, unchanged): standing on the town already,
+        no walk out."""
+        from ai_player.brain.goals import CENTER_LOOK_FRAMES
+
+        for start in ("DEWFORD_TOWN_GYM", "DEWFORD_TOWN"):
+            with self.subTest(start=start):
+                mgr = manager("Trainer")
+                world = world_with("DEWFORD_TOWN", "DEWFORD_TOWN_GYM", "ROUTE104", "RUSTBORO_CITY", current=start,
+                                   center_from="RUSTBORO_CITY")
+                keys = {m.const: k for k, m in world.maps.items()}
+                world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS  # grass seen, no known way: no training
+                Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+                Round5HealTests.link(world, keys["DEWFORD_TOWN"], keys["DEWFORD_TOWN_GYM"])
+                seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const=start,
+                            map_number=1 if start == "DEWFORD_TOWN" else 3)
+                walks, looks, ends = [], [], []
+                # (round 8, the round-7 verifier's VM-E survived) the walk out ENDS on arriving in the town, before the look
+                # begins, though the centre is not seen yet: its done check, asked of a look still in the gym and of one on
+                # the town (no centre door known yet)
+                in_gym = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const="DEWFORD_TOWN_GYM",
+                              map_number=3)
+                in_town = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const="DEWFORD_TOWN",
+                               map_number=1)
+
+                def travel(target, why, budget, done):
+                    walks.append(target)
+                    ends.append((done(in_gym), done(in_town)))
+                    world._last.key = keys[target]  # noqa: SLF001 - out of the gym's door, on the town
+                    yield
+                    return "done: travel"
+
+                def run(intent, why):
+                    before = intent.done(seen)
+                    mgr.memory.landmarks[(keys["DEWFORD_TOWN"], (2, 6))] = "pokemon_center"  # its red roof in view
+                    looks.append((intent.budget, before, intent.done(seen)))
+                    yield
+                    return "done: looked round"
+
+                nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+                runner = GoalRunner(types.SimpleNamespace(look=lambda: seen), nav, mgr, types.SimpleNamespace(purpose=""),
+                                    lambda line: None)
+                runner._travel = travel  # noqa: SLF001
+                index = mgr.story.index("ch7_brawly")
+                goal = Goal("find_center", "top-up", map="DEWFORD_TOWN", via=keys["DEWFORD_TOWN"],
+                            key=f"find_center:{keys['DEWFORD_TOWN']}")
+                ok, outcome = drive(runner.pursue(goal, mgr.story.milestones[index], index, lambda observation: index))
+                self.assertTrue(ok, outcome)
+                self.assertEqual(walks, ["DEWFORD_TOWN"] if start == "DEWFORD_TOWN_GYM" else [])
+                self.assertEqual(ends, [(False, True)] if start == "DEWFORD_TOWN_GYM" else [])
+                self.assertEqual(looks, [(CENTER_LOOK_FRAMES, False, True)])
+                self.assertIn("its door seen on DEWFORD_TOWN", outcome)
+                after = mgr.next_goal(seen, world, mgr.story.milestones[index], index)
+                self.assertEqual((after.kind, after.map), ("heal", "DEWFORD_TOWN_POKEMON_CENTER_1F"), after.reason)
+
+    def test_h3_controls_a_heal_for_the_partys_own_state_and_an_unknown_town(self):
+        """CONTROLS: (a) a party IN DANGER or under its heal line in the gym still heads for the only centre known
+        (RUSTBORO's), as `Round5HealTests.test_r2` pins: the look from a building is the top-up's only; (b) a top-up in a gym
+        whose town the AI does not know (no way out known, the town's map never seen) neither looks nor heals; (c) on a
+        ROUTE (no town), unchanged: no look, no heal (the round-6 verifier's VT6-4)."""
+        mgr = manager("Trainer")
+        line = mgr.state.errands.heal_below
+        for name, hp in (("danger", 4), ("under the heal line", int(20 * line) - 1)):
+            with self.subTest(name):
+                goals, _ = Round5HealTests().gym("RUSTBORO_CITY", hp=hp)
+                self.assertEqual((goals[0].kind, goals[0].map), ("heal", "RUSTBORO_CITY_POKEMON_CENTER_1F"),
+                                 goals[0].reason)
+        world = world_with("DEWFORD_TOWN_GYM", "ROUTE104", "RUSTBORO_CITY", current="DEWFORD_TOWN_GYM",
+                           center_from="RUSTBORO_CITY")
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS
+        Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const="DEWFORD_TOWN_GYM", map_number=3)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        goals = [mgr.next_goal(seen, world, milestone, index) for _ in range(3)]
+        self.assertEqual([g.kind for g in goals if g.kind in ("heal", "find_center")], [], [g.reason for g in goals])
+        world = world_with("DEWFORD_TOWN", "ROUTE104", "RUSTBORO_CITY", "ROUTE106", current="ROUTE106",
+                           center_from="RUSTBORO_CITY")
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS
+        Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        Round5HealTests.link(world, keys["DEWFORD_TOWN"], keys["ROUTE106"])
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const="ROUTE106", map_number=5)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        goals = [mgr.next_goal(seen, world, milestone, index) for _ in range(3)]
+        self.assertEqual([g.kind for g in goals if g.kind in ("heal", "find_center")], [], [g.reason for g in goals])
+
+    @staticmethod
+    def top_up_in(building: str, way_out: bool) -> Goal:
+        """A top-up (Trainer, 15/20, ch7_brawly, ROUTE 104's grass seen with no known way, only RUSTBORO's centre known with
+        no known way) standing in `building` of DEWFORD (map 0:2); `way_out`: the warp out to DEWFORD_TOWN (0:1) known (the
+        door it came in by). The first goal."""
+        mgr = manager("Trainer")
+        world = world_with("DEWFORD_TOWN", building, "ROUTE104", "RUSTBORO_CITY", current=building,
+                           center_from="RUSTBORO_CITY")
+        keys = {m.const: k for k, m in world.maps.items()}
+        world.maps[keys["ROUTE104"]].tiles[(3, 3)] = Round5HealTests.GRASS
+        Round5HealTests.link(world, keys["ROUTE104"], keys["RUSTBORO_CITY"])
+        if way_out:
+            world.warps[f"{keys[building]}|3,8"] = {"to": keys["DEWFORD_TOWN"], "arrival": [8, 18], "uses": 1,
+                                                     "inferred": False}
+        seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const=building, map_number=2)
+        index, milestone = mgr.milestone(seen, visited_in(world))
+        return mgr.next_goal(seen, world, milestone, index)
+
+    def test_h4_the_buildings_town_by_its_way_out_or_a_gyms_own_name(self):
+        """`GoalManager._building_town`: (a) a top-up in another building of the town (DEWFORD_TOWN_HALL), its way out to
+        DEWFORD_TOWN known: it looks for DEWFORD's centre; CONTROL: the same building with no way out known (and not a gym)
+        has no known town: no look. (b) a GYM whose way out is not known (the town's map known, no link between them): its
+        town by the gym's own name (static map data): it looks for DEWFORD's centre."""
+        goal = self.top_up_in("DEWFORD_TOWN_HALL", way_out=True)
+        self.assertEqual((goal.kind, goal.map, goal.via), ("find_center", "DEWFORD_TOWN", "0:1"), goal.reason)
+        goal = self.top_up_in("DEWFORD_TOWN_HALL", way_out=False)
+        self.assertNotIn(goal.kind, ("heal", "find_center"), goal.reason)
+        goal = self.top_up_in("DEWFORD_TOWN_GYM", way_out=False)
+        self.assertEqual((goal.kind, goal.map, goal.via), ("find_center", "DEWFORD_TOWN", "0:1"), goal.reason)
+
+    def test_h5_a_building_whose_way_out_is_a_route_has_no_town(self):
+        """(Round 8, the round-7 verifier's V7-3: its mutant VM-D, the ROUTE filter dropped, survived) `_building_town`
+        passes over a way out to a ROUTE: a top-up inside MR. BRINEY's cottage (ROUTE104_MR_BRINEYS_HOUSE, chapters 5-6),
+        whose only known way out is ROUTE 104, gives (None, None), and its first goal neither looks for a POKéMON CENTER on
+        the route nor heals (the only centre known, RUSTBORO's, has no known way; grass is seen only where no known way
+        leads, so it cannot train). CONTROL: the same cottage with its known way out to DEWFORD_TOWN instead gives that town,
+        and the top-up looks for DEWFORD's centre."""
+        from ai_player.brain.goals import GoalManager
+
+        for out_to, expected in (("ROUTE104", (None, None)), ("DEWFORD_TOWN", ("0:1", "DEWFORD_TOWN"))):
+            with self.subTest(out_to=out_to):
+                mgr = manager("Trainer")
+                cottage = "ROUTE104_MR_BRINEYS_HOUSE"
+                world = world_with("DEWFORD_TOWN", cottage, "ROUTE104", "RUSTBORO_CITY", current=cottage,
+                                   center_from="RUSTBORO_CITY")
+                keys = {m.const: k for k, m in world.maps.items()}
+                world.maps[keys["RUSTBORO_CITY"]].tiles[(3, 3)] = Round5HealTests.GRASS  # seen, no known way to it
+                world.warps[f"{keys[cottage]}|5,8"] = {"to": keys[out_to], "arrival": [12, 6], "uses": 1, "inferred": False}
+                self.assertEqual(GoalManager._building_town(world), expected)  # noqa: SLF001
+                seen = look(ch_proofs("ch7_brawly"), party=[mon(30, hp=15, max_hp=20)], const=cottage, map_number=2)
+                index, milestone = mgr.milestone(seen, visited_in(world))
+                goal = mgr.next_goal(seen, world, milestone, index)
+                if out_to == "ROUTE104":
+                    self.assertNotIn(goal.kind, ("heal", "find_center"), goal.reason)
+                else:
+                    self.assertEqual((goal.kind, goal.map, goal.via), ("find_center", "DEWFORD_TOWN", "0:1"), goal.reason)
+
+
+class _Questions(_Question):
+    """(round 7, VM5) `_Question` whose every answer is followed by a NEW question (other options each time), all ignoring
+    B with no EXIT, each reply a page that names no option: a scene of endless questions."""
+
+    def __init__(self):
+        super().__init__(options=("Yes 1", "No 1"), again=True)
+        self.asked = 1
+
+    def press(self, button: str) -> None:
+        if self.state == "again" and button == "A":
+            self.asked += 1
+            self.options = (f"Yes {self.asked}", f"No {self.asked}")
+        super().press(button)
+        if self.state == "again":
+            self.replied = "Hmm, I see."
+
+
+class Round7MenuTests(unittest.TestCase):
+    """(chapter 6 stops round 7, 2026-11-07) The round-6 verifier's VM5 survived: nothing pinned that an ANSWER
+    (`Instructed._answer`) counts toward `MAX_DECISIONS`, the bound on one scene's choices. It does (the field menu's back
+    out and its answer: two decisions an answered question), and this pins it."""
+
+    def test_m1_a_scene_of_endless_questions_stops_at_max_decisions(self):
+        """A scene that asks a NEW question after every answer (`_Questions`): the AI answers each with its first option,
+        and the scene stops at `MAX_DECISIONS` (16: 8 answers, two decisions each), said in the log; never more answers."""
+        from ai_player.skills.instructed import MAX_DECISIONS
+
+        game = _Questions()
+        end, hands, brain = chat_on_the_dock(game)
+        self.assertEqual(brain._instructed.answers, MAX_DECISIONS // 2)
+        self.assertEqual(game.chosen, [f"Yes {n}" for n in range(1, MAX_DECISIONS // 2 + 1)])
+        self.assertTrue(any("(MAX_DECISIONS)" in line for line in hands.told), hands.told[-3:])
+
+
+# ------------------------------------------------------------------------------- the chapter-5 search fix (2026-11-13)
+#: The AI's REAL memory inside the E0 T leg's ROUTE 104 <-> PETALBURG WOODS loop (`make_ch5loop_fixture.py`): ROUTE 104
+#: (0:19), the woods (24:11), RUSTBORO (0:3) and ROUTE 116 (0:31)
+CH5LOOP_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "ch5loop_tcap.world.jsonl"
+#: (E) a field split by a wall at x 10 with ONE gap, (10, 5), where a cut tree stands (`E_TREE`). From (8, 5) the window
+#: shows the field behind it up to x 15, so its tiles at x 15 are frontier (`E_BEHIND`); no way but through the gap leads
+#: there (the field's border rows and columns are seen walls)
+E_FIELD = ["#" * 40] + ["#" + "." * 9 + ("." if y == 5 else "#") + "." * 28 + "#" for y in range(1, 10)] + ["#" * 40]
+E_TREE = (10, 5)
+E_BEHIND = [(15, y) for y in range(1, 10)]
+#: (E, MECHANISM 4.(d)) ROUTE 116's heal-walk flip in miniature: the floor of row 5 runs west through a cut tree at (10, 5)
+#: to (1, 5); tall grass lies south of it (rows 6-7, x 1-16); the long way round is north (x 20 up to row 2, west along
+#: row 2, down x 2). From x 17 the tree is at the window's left edge; from x 18 it is off screen.
+E_FLIP = ["#######################",
+          "#######################",
+          "##...................##",
+          "##.#################.##",
+          "##.#################.##",
+          "#.....................#",
+          '#""""""""""""""""######',
+          '#""""""""""""""""######',
+          "#######################"]
+
+
+def _alternation(trail: list) -> int:
+    """The most steps in a row that went back and forth between the same two tiles (A B A B ... : its steps)."""
+    best = run = 0
+    for i in range(2, len(trail)):
+        if trail[i] == trail[i - 2] and trail[i] != trail[i - 1]:
+            run = run + 1 if run else 2
+            best = max(best, run)
+        else:
+            run = 0
+    return best
+
+
+class _Pad:
+    presses = 0
+
+
+class StandingThingsTests(unittest.TestCase):
+    """(The chapter-5 search fix E, 2026-11-13) A THING SEEN STANDING (a cut tree, a rock, an item ball) STAYS A WALL OFF
+    SCREEN in the session (`MapMemory.standing`, `see_objects`): `objects_now` was the last look alone, so a frontier behind
+    a tree was offered again as soon as the tree left the screen (every "unreachable" woods frontier and (37, 22) of both
+    missed E0 legs' loops lay behind a cut tree), and ROUTE 116's heal walk flipped between two tiles at the window's edge.
+    FAULT arms: `revert_step5.py` G691-G697 (the call of `see_objects` deleted, the memory not joined to `objects_now`, the
+    shown check, the forgetting, the expiry, people remembered too, the memory saved); and (the fix round's verifier's
+    V1-M1, e10-e11) G704-G705 (the expiry counted from the FIRST sighting, item balls not remembered)."""
+
+    def rig(self, things=None, people=None, maps=None, start=("FIELD", (8, 5))):
+        from ai_player.gates.test_world import GridGame, rig
+        game = GridGame(maps or {"FIELD": list(E_FIELD)}, start,
+                        things={"FIELD": {E_TREE: "cut_tree"}} if things is None else things, people=people)
+        hands, nav, world, _, _ = rig(game)
+        return game, hands, nav, world
+
+    @staticmethod
+    def at(game, hands, xy, frames: int = 1):
+        """The model's player put on `xy` and a look taken `frames` later (the world memory sees it)."""
+        game.pos = xy
+        game.frame += frames
+        return hands.look()
+
+    @staticmethod
+    def offered_behind(nav, look) -> list:
+        from ai_player.brain.explore import candidates, weights_for
+        return sorted({t.tile for t in candidates(nav, look, weights_for("Story")) if t.kind == "frontier" and t.tile[0] > 10})
+
+    def test_e1_a_frontier_behind_a_tree_seen_once_is_not_offered_after_the_tree_leaves_the_screen(self):
+        game, hands, nav, world = self.rig()
+        first = hands.look()  # at (8, 5): the tree on screen, and the field behind it to x 15
+        self.assertIn(E_TREE, {(seen.x, seen.y) for seen in first.view.objects})
+        look = self.at(game, hands, (2, 5))  # eight tiles west: the tree is off screen
+        self.assertNotIn(E_TREE, {(seen.x, seen.y) for seen in look.view.objects})
+        memory = world.here()
+        self.assertEqual([xy for xy in memory.frontier() if xy[0] > 10], E_BEHIND)  # the frontier is there
+        self.assertIn(E_TREE, memory.objects_now)  # FAULT (E removed, a90c8e8f): only what is on screen
+        self.assertEqual(self.offered_behind(nav, look), [])  # FAULT (E removed): E_BEHIND, "reached" through the tree
+
+    def test_e2_cut_off_cuts_it_from_a_tile_where_the_tree_is_off_screen(self):
+        game, hands, nav, world = self.rig()
+        hands.look()
+        nav.mark_cut = True
+        for xy in ((2, 5), (8, 5)):  # off screen and on screen: the same cut (it no longer hangs on where it stands)
+            look = self.at(game, hands, xy)
+            self.assertEqual(sorted(t for t in nav.cut_off(look) if t[0] > 10), E_BEHIND, xy)  # FAULT (E removed): [] at (2, 5)
+            self.assertEqual(world.promise(world.current), 0, xy)  # FAULT (E removed): 9 at (2, 5)
+
+    def test_e3_a_tree_seen_gone_is_forgotten(self):
+        game, hands, nav, world = self.rig()
+        hands.look()
+        look = self.at(game, hands, (2, 5))
+        self.assertEqual(self.offered_behind(nav, look), [])  # remembered (FAULT, E removed: offered)
+        del game.things["FIELD"][E_TREE]  # cut by someone
+        self.at(game, hands, (8, 5))  # the gap SHOWN with nothing standing in it
+        self.assertNotIn(E_TREE, world.here().standing)  # FAULT (the forgetting deleted): still remembered
+        look = self.at(game, hands, (2, 5))
+        self.assertEqual(self.offered_behind(nav, look), E_BEHIND)
+
+    def test_e4_a_thing_not_seen_for_closed_retry_frames_is_forgotten(self):
+        from ai_player.world.memory import CLOSED_RETRY_FRAMES
+        game, hands, nav, world = self.rig()
+        hands.look()  # seen at frame 0
+        look = self.at(game, hands, (2, 5), CLOSED_RETRY_FRAMES - 2)
+        self.assertIn(E_TREE, world.here().objects_now)  # still remembered (FAULT, E removed: gone off screen)
+        self.assertEqual(self.offered_behind(nav, look), [])
+        look = self.at(game, hands, (2, 5), 2)  # CLOSED_RETRY_FRAMES since it was seen: a person looks again
+        self.assertNotIn(E_TREE, world.here().objects_now)  # FAULT (no expiry): a wall for ever
+        self.assertEqual(self.offered_behind(nav, look), E_BEHIND)
+
+    def test_e5_people_are_never_remembered_off_screen(self):
+        game, hands, nav, world = self.rig(people={"FIELD": {(14, 2)}})
+        hands.look()  # the tree and someone at (14, 2), both on screen
+        self.assertTrue({E_TREE, (14, 2)} <= world.here().objects_now)
+        self.at(game, hands, (2, 5))  # both off screen now
+        memory = world.here()
+        self.assertIn(E_TREE, memory.objects_now)  # FAULT (E removed): the tree gone with the screen
+        self.assertNotIn((14, 2), memory.objects_now)  # FAULT (people remembered too): a wall where nobody may stand
+        self.assertNotIn((14, 2), memory.standing)
+
+    def test_e6_never_saved_with_the_memory(self):
+        """KI-134 V-N5's ruling (explore.py standing_walls): a thing saved across sessions would be a wall that outlives
+        what made it; within a session it is what the AI last saw."""
+        game, hands, nav, world = self.rig()
+        hands.look()
+        self.at(game, hands, (2, 5))
+        key = world.current
+        self.assertIn(E_TREE, world.maps[key].objects_now)  # remembered in the session (FAULT, E removed)
+        saved = world.to_dict()
+        self.assertNotIn("standing", saved["maps"][key])  # FAULT (saved with the memory)
+        again = WorldMemory.from_dict(json.loads(json.dumps(saved)))
+        self.assertEqual((again.maps[key].standing, again.maps[key].objects_now), ({}, frozenset()))
+
+    def test_e7_on_a_dark_map_only_a_lit_tile_shows_a_thing_gone(self):
+        """(Chapter 6 stops round 7, N6-1) On a dark map the screen shows a lit circle only: a remembered thing whose tile
+        is in the window but dark is not seen gone; lit and empty, it is."""
+        memory = MapMemory("24:8", "GRANITE_CAVE_B1F", "GRANITE_CAVE_B1F")
+        rock = SeenObject("smash_rock", 5, 5, 0, -1, 3, 86, "down", 3, "object")
+        near = {(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)}
+
+        def look_at(frame, at, objects):
+            rows = tuple(tuple(True if (dx, dy) in near else None for dx in range(-7, 8)) for dy in range(-5, 6))
+            view = View(left=7, right=7, up=5, down=5, rows=rows, objects=tuple(objects), cropped=True, lit=24)
+            return types.SimpleNamespace(frame=frame, view=view, player=types.SimpleNamespace(x=at[0], y=at[1]))
+
+        memory.see_objects(look_at(1, (5, 6), [rock]))
+        self.assertIn((5, 5), memory.objects_now)
+        memory.see_objects(look_at(2, (5, 8), []))  # (5, 5) in the window, three tiles up, but dark
+        self.assertIn((5, 5), memory.objects_now)  # FAULT (E removed; or forgotten by the window alone): gone
+        memory.see_objects(look_at(3, (5, 6), []))  # lit now, and nothing there: smashed
+        self.assertNotIn((5, 5), memory.objects_now)
+
+    def test_e8_the_heal_walk_does_not_flip_at_the_window_edge(self):
+        """MECHANISM 4.(d) (the E0 T leg: (39, 10) / (40, 10) on ROUTE 116, 466 right steps) in miniature: a heal walk
+        (grass at `HURT_GRASS_COST`) west toward (1, 5) after the whole map was seen. From x 17 the tree at (10, 5) is on
+        screen: the way through it is refused and the way round is NORTH-EAST, a step right; from x 18 the tree is off
+        screen and, forgotten, the way through it is the cheapest again: a step left. With the tree remembered the walk
+        takes the way round. The walk must not go back and forth between two tiles for more than 4 steps."""
+        from ai_player.brain.goals import HURT_GRASS_COST
+        from ai_player.gates.test_world import drive as drive_world
+        game, hands, nav, world = self.rig(things={"R116": {E_TREE: "cut_tree"}}, maps={"R116": list(E_FLIP)},
+                                           start=("R116", (7, 5)))
+        hands.look()  # the west half, the tree on screen
+        self.at(game, hands, (15, 5))  # the east half
+        self.at(game, hands, (20, 5))  # the start: the tree off screen
+        nav.grass_cost = HURT_GRASS_COST
+        game.trail = [("R116", (20, 5))]
+        outcome = drive_world(nav.go_to((1, 5), "a heal walk (test)", 6000), budget=200_000)
+        tiles = [xy for _, xy in game.trail]
+        self.assertLessEqual(_alternation(tiles), 4, f"{outcome}; {tiles[:30]}")  # FAULT (E removed): 17 <-> 18 for ever
+        self.assertEqual(game.pos, (1, 5), outcome)
+
+    def test_e9_the_woods_of_the_e0_loop_offer_no_frontier_behind_their_trees(self):
+        """MECHANISM 5.1's second assertion, on the AI's REAL memory of the woods (`CH5LOOP_FIXTURE`): a look one step in
+        at (15, 6) shows both trees, (19, 10) and (19, 11); back on the door tile (15, 5) only (19, 10) is on screen. From
+        there the explorer offered "the frontier at (22, 10)" (the S3t-T log, line 1921) and the planner refused it one step
+        later. Remembered, no frontier behind the trees is offered, and the woods' promise is the same from both tiles."""
+        from ai_player.brain.explore import candidates, weights_for
+        world = WorldMemory.from_dict(json.loads(CH5LOOP_FIXTURE.read_text(encoding="utf-8")))
+        woods = world.maps["24:11"]
+        trees = [SeenObject("cut_tree", 19, 10, 0, 0, 5, 82, "down", 3, "object"),
+                 SeenObject("cut_tree", 19, 11, 0, 0, 6, 82, "down", 3, "object")]
+
+        def look_at(frame, at):
+            rows = tuple(tuple(True if woods.known((at[0] + dx, at[1] + dy)) else None for dx in range(-7, 8))
+                         for dy in range(-5, 6))
+            shown = tuple(tree for tree in trees if abs(tree.x - at[0]) <= 7 and -5 <= tree.y - at[1] <= 5)
+            view = View(left=7, right=7, up=5, down=5, rows=rows, objects=shown, cropped=True)
+            world._last.key, world._last.xy = "24:11", at  # noqa: SLF001 - test side: where the player stands
+            return types.SimpleNamespace(frame=frame, view=view,
+                                         player=types.SimpleNamespace(x=at[0], y=at[1], map_const="PETALBURG_WOODS"))
+
+        behind = [xy for xy in woods.frontier() if 22 <= xy[0] <= 27 and 8 <= xy[1] <= 11]
+        self.assertGreater(len(behind), 3)  # the fixture holds them
+        nav = Navigator(types.SimpleNamespace(pad=_Pad()), world, random.Random(1), personality="Story")
+        nav.mark_cut = True
+        promise = {}
+        for frame, at in ((1, (15, 6)), (2, (15, 5))):
+            look = look_at(frame, at)
+            woods.see_objects(look)
+            nav.cut_off(look)
+            promise[at] = world.promise("24:11")
+        offered = sorted(t.tile for t in candidates(nav, look, weights_for("Story")) if t.tile in behind)
+        self.assertEqual(offered, [])  # FAULT (E removed): (22, 10) and its row, round the one tree on screen
+        self.assertEqual(promise[(15, 5)], promise[(15, 6)])  # FAULT (E removed): more "left to see" from the door
+        self.assertEqual(woods.objects_now, {(19, 10), (19, 11)})  # FAULT (E removed): {(19, 10)} only
+
+    def test_e10_the_expiry_counts_from_the_last_sighting_not_the_first(self):
+        """(The fix round's verifier, V1-M1: its m3 kept the FIRST sighting's frame and passed every E test) A thing seen
+        again is seen NOW: `CLOSED_RETRY_FRAMES` count from the LAST sighting. A tree seen at frame f and again at
+        f + 20000 is still a wall at f + 36000, when 36,000 frames have passed since it was FIRST seen, and at f + 55999;
+        it is forgotten at f + 56000, `CLOSED_RETRY_FRAMES` after it was last seen (e4's rule, from the last sighting).
+        FAULT arm: `revert_step5.py` G704 (the first sighting's frame kept: `standing.setdefault`)."""
+        from ai_player.world.memory import CLOSED_RETRY_FRAMES
+        game, hands, nav, world = self.rig()
+        first = hands.look().frame  # frame f, at (8, 5): the tree on screen
+        self.at(game, hands, (2, 5))  # f + 1: off screen, remembered
+        self.assertIn(E_TREE, world.here().objects_now)  # FAULT (E removed, a90c8e8f): gone with the screen
+        look = self.at(game, hands, (8, 5), 20_000 - 1)  # f + 20000: back, the tree on screen AGAIN (its last sighting)
+        self.assertIn(E_TREE, {(seen.x, seen.y) for seen in look.view.objects})
+        look = self.at(game, hands, (2, 5), CLOSED_RETRY_FRAMES - 20_000)  # off screen again
+        self.assertEqual(look.frame - first, CLOSED_RETRY_FRAMES)  # CLOSED_RETRY_FRAMES since the FIRST sighting
+        self.assertIn(E_TREE, world.here().objects_now)  # FAULT (G704, counted from the first sighting): forgotten
+        self.assertEqual(self.offered_behind(nav, look), [])
+        look = self.at(game, hands, (2, 5), 20_000 - 1)  # f + 55999: one frame short of it since the LAST sighting
+        self.assertIn(E_TREE, world.here().objects_now)
+        self.assertEqual(self.offered_behind(nav, look), [])
+        look = self.at(game, hands, (2, 5), 1)  # f + 56000: CLOSED_RETRY_FRAMES since the last sighting: looked at again
+        self.assertNotIn(E_TREE, world.here().objects_now)
+        self.assertEqual(self.offered_behind(nav, look), E_BEHIND)
+
+    def test_e11_a_frontier_behind_an_item_ball_seen_once_is_not_offered_after_the_ball_leaves_the_screen(self):
+        """(The fix round's verifier, V1-M1: its m4 left ITEM BALLS out of `standing` and passed every E test, none of
+        which had a ball) e1 with an item ball in the gap: a ball stands in the way as a tree does, and was a wall only
+        while on screen. Seen once, it stays a wall off screen; picked up (its tile shown with nothing on it), the frontier
+        behind it is offered again: the ball, and only the ball, was the wall. FAULT arm: `revert_step5.py` G705 (item
+        balls not remembered)."""
+        game, hands, nav, world = self.rig(things={"FIELD": {E_TREE: "item_ball"}})
+        first = hands.look()  # at (8, 5): the ball on screen, and the field behind it to x 15
+        self.assertIn((E_TREE, "item_ball"), {((seen.x, seen.y), seen.kind) for seen in first.view.objects})
+        look = self.at(game, hands, (2, 5))  # eight tiles west: the ball is off screen
+        self.assertNotIn(E_TREE, {(seen.x, seen.y) for seen in look.view.objects})
+        memory = world.here()
+        self.assertEqual([xy for xy in memory.frontier() if xy[0] > 10], E_BEHIND)  # the frontier is there
+        self.assertIn(E_TREE, memory.objects_now)  # FAULT (G705; E removed): only what is on screen
+        self.assertEqual(self.offered_behind(nav, look), [])  # FAULT (G705; E removed): E_BEHIND, "reached" through it
+        del game.things["FIELD"][E_TREE]  # picked up
+        self.at(game, hands, (8, 5))  # the gap SHOWN with nothing in it
+        look = self.at(game, hands, (2, 5))
+        self.assertNotIn(E_TREE, world.here().objects_now)
+        self.assertEqual(self.offered_behind(nav, look), E_BEHIND)
+
+
+class EntryLeadTests(unittest.TestCase):
+    """(The chapter-5 search fix K1, 2026-11-13) A SEASONED PLAYER'S ENTRY-MAP LEAD (`brain/goals.py` entry_lead, through
+    `lead_toward`): told of a place never seen that is no open country and whose name no town holds (RUSTURF TUNNEL), the
+    walk goes first to the OPEN map it is entered from that the AI has stood on (ROUTE 116), nearest by the known way, then
+    searches there by its own taste. FAULT arms: `revert_step5.py` G698-G703 (lead_toward's call of entry_lead deleted, the
+    atlas's call deleted, the visits test, the stand-on-it rule, `UNREACHABLE`, the told reason); (the fix round's
+    verifier's V1-M1, k6-k7) G706-G707 (the farthest entry map, the open-country filter dropped); and here, the atlas
+    without the fact."""
+
+    @staticmethod
+    def fixture_world(key: str, xy: tuple[int, int]) -> WorldMemory:
+        world = WorldMemory.from_dict(json.loads(CH5LOOP_FIXTURE.read_text(encoding="utf-8")))
+        world._last.key, world._last.xy = key, xy  # noqa: SLF001 - test side: where the player stands
+        return world
+
+    def test_k1_the_atlas_knows_which_maps_a_place_is_entered_from(self):
+        from ai_player.knowledge.atlas import entry_maps
+        self.assertEqual(entry_maps("RUSTURF_TUNNEL"), {"ROUTE116", "VERDANTURF_TOWN"})  # ROUTE 116's two mouths, a door
+        self.assertEqual(entry_maps("ROUTE101"), {"LITTLEROOT_TOWN", "OLDALE_TOWN"})  # by its edges only
+        self.assertEqual(entry_maps("PETALBURG_WOODS"), {"ROUTE104"})
+        self.assertEqual(entry_maps("INSIDE_OF_TRUCK"), frozenset())  # no map leads there (the intro's scene does)
+        self.assertEqual(entry_maps(None), frozenset())
+        self.assertNotIn("RUSTURF_TUNNEL", entry_maps("RUSTURF_TUNNEL"))  # never itself
+
+    def test_k2_on_the_loops_memory_the_lead_is_route116(self):
+        """KNOWLEDGE section 5's table, on the AI's real memory of the loop: from the woods, ROUTE 104's north strip and
+        RUSTBORO the lead toward RUSTURF_TUNNEL is ROUTE 116 (a90c8e8f: None everywhere, the walk the bare explorer), with a
+        seasoned player's reason; on ROUTE 116 itself, None: the search there is its own."""
+        from ai_player.brain.goals import WAY_IN, lead_toward
+        from ai_player.knowledge import atlas
+        for key, xy in (("24:11", (15, 5)), ("24:11", (24, 11)), ("0:19", (11, 29)), ("0:19", (10, 29)), ("0:3", (16, 39))):
+            lead = lead_toward(self.fixture_world(key, xy), "RUSTURF_TUNNEL")
+            self.assertEqual(lead, "ROUTE116", (key, xy))  # FAULT (K1 removed): None
+            self.assertEqual(lead.why, f"{WAY_IN}: ROUTE116 has a way into it")
+        self.assertIsNone(lead_toward(self.fixture_world("0:31", (38, 10)), "RUSTURF_TUNNEL"))  # on it
+        with mock.patch.dict(atlas._CACHE, {"entries": {}}):  # noqa: SLF001 - FAULT half: the atlas without the fact
+            self.assertIsNone(lead_toward(self.fixture_world("0:19", (11, 29)), "RUSTURF_TUNNEL"))
+
+    def test_k3_none_when_it_has_stood_on_no_entry_map(self):
+        """The E0 C and T legs began chapter 5 (their L4 memories, measured) without ever having stood on ROUTE 116: the
+        lead is None, as before, until they have."""
+        from ai_player.brain.goals import lead_toward
+        world = self.fixture_world("0:19", (11, 29))
+        del world.maps["0:31"]
+        self.assertIsNone(lead_toward(world, "RUSTURF_TUNNEL"))
+        world = self.fixture_world("0:19", (11, 29))
+        world.maps["0:31"].visits.clear()  # seen across RUSTBORO's edge, never stood on
+        self.assertIsNone(lead_toward(world, "RUSTURF_TUNNEL"))
+
+    def test_k4_controls_a_known_goal_a_town_building_a_cave_entered_from_a_cave(self):
+        from ai_player.brain.goals import Lead, lead_toward
+        known = world_with("ROUTE116", "RUSTURF_TUNNEL", "RUSTBORO_CITY", current="RUSTBORO_CITY")
+        self.assertIsNone(lead_toward(known, "RUSTURF_TUNNEL"))  # a map it knows: straight there
+        town = world_with("PETALBURG_CITY", "ROUTE102", current="ROUTE102")
+        lead = lead_toward(town, "PETALBURG_CITY_GYM")
+        self.assertEqual(lead, "PETALBURG_CITY")  # a building: its own town, by the name, as before
+        self.assertNotIsInstance(lead, Lead)
+        cave = world_with("ROUTE106", "GRANITE_CAVE_1F", current="ROUTE106")
+        self.assertIsNone(lead_toward(cave, "GRANITE_CAVE_STEVENS_ROOM"))  # its only entry (the cave's 1F) is no open country
+        dewford = world_with("DEWFORD_TOWN", "ROUTE106", current="DEWFORD_TOWN")
+        dewford.connections.append({"source": "0:1", "target": "0:2", "direction": "left", "from": [0, 5], "arrival": [39, 5],
+                                    "offset": [40, 0], "by": "ai", "frame": 1})
+        self.assertEqual(lead_toward(dewford, "GRANITE_CAVE_1F"), "ROUTE106")  # chapter 7's cave: its mouth's route
+        lost = world_with("DEWFORD_TOWN", "ROUTE106", current="DEWFORD_TOWN")  # no known way to ROUTE 106: no lead
+        self.assertIsNone(lead_toward(lost, "GRANITE_CAVE_1F"))
+
+    def test_k5_the_walk_goes_first_to_route116_and_says_why(self):
+        """(The census: `lead_toward`'s one site, `GoalRunner._travel_on`) Told of RUSTURF TUNNEL on ROUTE 104's north
+        strip, the go walks FIRST to ROUTE 116 (the lead), then on, and its line says it is a seasoned player's knowledge."""
+        from ai_player.brain.goals import GoalRunner
+        world = self.fixture_world("0:19", (11, 29))
+        walks: list[str] = []
+        told: list[str] = []
+
+        def run(intent, why):
+            walks.append(intent.name)
+            yield
+            return "done (test)"
+
+        nav = types.SimpleNamespace(world=world, run=run, battle_log=[])
+        runner = GoalRunner(types.SimpleNamespace(look=lambda: look(party=[mon(20)], const="ROUTE104")), nav,
+                            manager("Trainer"), types.SimpleNamespace(purpose=""), told.append)
+        drive(runner._travel("RUSTURF_TUNNEL", "to RUSTURF_TUNNEL", 9000, lambda seen: False))  # noqa: SLF001
+        self.assertEqual(walks, ["travel to ROUTE116", "travel to RUSTURF_TUNNEL"])  # FAULT (G698/G699): no lead
+        self.assertTrue(any("first to ROUTE116, a seasoned player's knowledge: ROUTE116 has a way into it" in line
+                            for line in told), told)
+
+    def test_k6_of_two_entry_maps_stood_on_the_lead_is_the_nearer(self):
+        """(The fix round's verifier, V1-M1: its m5 took the FARTHEST entry map and passed every K1 test, in each of which
+        at most one entry map had been stood on) Of RUSTURF TUNNEL's two entry maps, both stood on, the lead is the one
+        NEARER by the known way (`world_distance`). On ROUTE 117 (in Emerald the tunnel is entered from VERDANTURF too)
+        VERDANTURF TOWN is one link away and ROUTE 116 two: VERDANTURF TOWN. On RUSTBORO the same two maps are the other
+        way round: ROUTE 116. The two worlds hold the same two entry maps under the same names, keys and order (ROUTE116
+        0:2, put in first; VERDANTURF_TOWN 0:3, put in second); only where the player stands and the links differ. So a
+        pick that does not read the distance (the first or the last one found in `world.maps`, the lowest or highest
+        name or key, the atlas set's own order) gives both worlds one answer and fails one of them; in the first world
+        the nearer is LAST by name, by key and by order, so "the first found" fails there. Their one shared link,
+        VERDANTURF <-> ROUTE 116, is an edge of the game's map data (the atlas lists it); the test gives the AI a crossing
+        of it so that the farther map has a known way. FAULT arm: `revert_step5.py` G706 (the farthest: `max`)."""
+        from ai_player.brain.goals import WAY_IN, lead_toward, world_distance
+
+        def edge(source, target):  # crossed going west (k4's edge): known both ways (`WorldMemory.links_from`)
+            return {"source": source, "target": target, "direction": "left", "from": [0, 5], "arrival": [39, 5],
+                    "offset": [40, 0], "by": "ai", "frame": 1}
+
+        on_117 = world_with("ROUTE117", "ROUTE116", "VERDANTURF_TOWN", current="ROUTE117")
+        on_117.connections += [edge("0:1", "0:3"), edge("0:3", "0:2")]  # ROUTE 117 -> VERDANTURF -> ROUTE 116
+        self.assertEqual((world_distance(on_117, "0:3"), world_distance(on_117, "0:2")), (1, 2))
+        lead = lead_toward(on_117, "RUSTURF_TUNNEL")
+        self.assertEqual(lead, "VERDANTURF_TOWN")  # FAULT (G706, the farthest): ROUTE116
+        self.assertEqual(lead.why, f"{WAY_IN}: VERDANTURF_TOWN has a way into it")
+        on_rustboro = world_with("RUSTBORO_CITY", "ROUTE116", "VERDANTURF_TOWN", current="RUSTBORO_CITY")
+        on_rustboro.connections += [edge("0:2", "0:1"), edge("0:3", "0:2")]  # RUSTBORO -> ROUTE 116 -> VERDANTURF
+        self.assertEqual((world_distance(on_rustboro, "0:2"), world_distance(on_rustboro, "0:3")), (1, 2))
+        self.assertEqual(lead_toward(on_rustboro, "RUSTURF_TUNNEL"), "ROUTE116")  # FAULT (G706): VERDANTURF_TOWN
+
+    def test_k7_a_cave_entered_only_from_a_cave_gives_no_lead_even_with_a_known_way_to_it(self):
+        """(The fix round's verifier, V1-M1: its m6 dropped the `open_way` filter and passed every K1 test) The lead is
+        OPEN country only. GRANITE CAVE's STEVEN'S ROOM is entered only from the cave's 1F, which is no open country. k4
+        asks this with NO known way to the 1F (`world_distance` 99), where None holds by construction (`UNREACHABLE`
+        alone gives it). Here the 1F was walked into once from ROUTE 106 (its mouth at (48, 16), the atlas's warp,
+        seen as a way out; DEWFORD -> ROUTE 106 by k4's edge): two links away, stood on, the place's only entry map. So
+        only the open-country filter says no: None, and the walk is as before. With K1 removed this test passes (None is
+        the old answer): its fault arm is G707, as k3's is G700. FAULT arm: `revert_step5.py` G707 (the `open_way`
+        filter dropped: the lead would be GRANITE_CAVE_1F)."""
+        from ai_player.brain.goals import UNREACHABLE, lead_toward, open_way, world_distance
+        walked = world_with("DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", current="DEWFORD_TOWN")
+        walked.connections.append({"source": "0:1", "target": "0:2", "direction": "left", "from": [0, 5], "arrival": [39, 5],
+                                   "offset": [40, 0], "by": "ai", "frame": 1})
+        walked.warps["0:2|48,16"] = {"to": "0:3", "arrival": [37, 12], "uses": 1, "inferred": False}
+        walked.maps["0:2"].tiles[(48, 16)] = TileFact(False, False, False, False, None, True, True, 3, "NON_ANIMATED_DOOR",
+                                                     0, (48, 17))  # a way out by its look (`looks_like_exit`)
+        self.assertEqual(world_distance(walked, "0:3"), 2)  # a known way: UNREACHABLE does not decide here
+        self.assertLess(world_distance(walked, "0:3"), UNREACHABLE)
+        self.assertTrue(walked.maps["0:3"].visits)  # stood on
+        self.assertFalse(open_way("GRANITE_CAVE_1F"))  # no open country
+        self.assertIsNone(lead_toward(walked, "GRANITE_CAVE_STEVENS_ROOM"))  # FAULT (G707): 'GRANITE_CAVE_1F'
 
 
 if __name__ == "__main__":

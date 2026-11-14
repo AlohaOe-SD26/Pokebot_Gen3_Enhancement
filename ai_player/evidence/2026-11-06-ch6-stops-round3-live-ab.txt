@@ -1,0 +1,169 @@
+CHAPTER 6 STOPS ROUND 3 - THE LIVE A/B (ledger #103, interrupted, and #105, its re-run on new seeds) AND THE ROUND'S OFFLINE PROOF (development, never graded; one trajectory per start and seed, never a rate)
+HEADLINE (carries the caveat): #105, the re-run on NEW seeds 6326-6331 (12 runs, the same start and seed per pair, arm A = base 66acbd1c, arm B = round 3's final code): every one of the prediction's seven claims held in every pair it covers. Read from the GAME and the runs' own records: NS1, in DEWFORD with the sail-back question on screen, A answered YES and ended off the island (RUSTURF TUNNEL, RUSTBORO's POKéMON CENTER) both times; B answered NO and stayed on the island both times. NS2, from the mainland with a memory that knows the ride, B walked to MR. BRINEY, rode to DEWFORD and DELIVERED STEVEN's LETTER (the game's flag) in both pairs; A never reached DEWFORD (NS2's caveat, added in round 4 for the verifier's V3-8: the USE of a known ride is A/B-proven, the start's memory having been GIVEN the ride; the RECORDING of a ride is seen in probe #104; recording and then reusing a ride in one run is not yet seen). NS6, at the foot of GRANITE CAVE B1F's muddy slope, A stood on (9, 10) 623 and 579 times and never left B1F; B slid back twice, put the way aside and left (one pair delivered the letter within 30,000 frames). Caveats: 2 pairs per stop, one trajectory each, development only; the runs are short (20,000-60,000 frames) and say nothing about the rest of the chapter. #103 (seeds 6320-6325) was INTERRUPTED with the first builder: 1 of its 12 runs ended through the harness and it gives NO A/B conclusion; those seeds are spent and were not re-run.
+WHO: the second builder of round 3 (s53/ch6stops3, 2026-11-06), who finished the round after the first builder was cut off by a usage limit at about 08:20. The first builder wrote the round's code, most of its tests, the starts and the batch runner; the second closed #103, finished the tests, wrote and ran the mutants, ran the gates, re-ran the A/B and ran the probe.
+
+===== LEDGER #103 (batch abr3, seeds 6320-6325): INTERRUPTED, closed by the second builder; NO A/B conclusion
+started 2026-11-06 08:18:08 (prediction_abr3.txt sha256 6a401a15fb6ca53dd04741232a3dec3fd978e00416964bd2f51122422e3ecf3c, recorded
+in the ledger at registration, before the first launch at 08:18:08; arm B tree 27e5d405d4dda09c). Its orchestrator (arms3.py run
+abr3) died with the first builder (a usage limit, about 08:20). The entry was closed at 2026-11-06 09:29:00 (the 'ended' field
+holds the closure time, not a batch end). Seeds 6320-6325 stay spent and were NOT re-run; the A/B was re-run on NEW seeds
+6326-6331 (#105, below).
+What became of its 12 jobs (6 seeds x 2 arms), from batch_abr3.out, the stage profiles and the GAME:
+  abr3-B-S1q-6320  ENDED through the full harness (child exit 0 at 08:19:48; 20,000 frames; purity CLEAN, 0 foreign presses,
+                   writes or loads; L5.THIS_RUN PASS). GAME, start: DEWFORD_TOWN (0,11) (11, 9), frame 1,069,822. GAME, end:
+                   GRANITE_CAVE_B1F (24,8) (18, 14), frame 1,089,822; TRAINER_CRISTIAN 0 -> 1 (a DEWFORD GYM trainer, set by
+                   the game); DELIVERED_STEVEN_LETTER 0, BADGE02_GET 0. The AI's records: its first yes/no press 'yes_no cursor
+                   on 1 (NO)' at f1069856, the travel answer's reason "its goal is here, not there: DEWFORD_TOWN (the story:
+                   GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN)"; maps stood on DEWFORD, the gym (3,3) and other DEWFORD
+                   buildings, ROUTE 107, ROUTE 106, GRANITE CAVE 1F and B1F; 2 'SLID BACK' lines for the way into (9, 10) going
+                   up (f1088108, f1088132: dear, then refused), 5 records on (9, 10).
+  abr3-A-S1q-6320  its PLAY finished in the launcher (the run folder holds end_state.ss1, purity.json and the exit line '[AI-EXIT]
+                   reason=play: stopped: not finished within 20000 frames code=0', all written 08:19:49), but its harness
+                   child was killed with the orchestrator before it wrote a result, so the harness's own checks never ran.
+                   Read afterwards (salvage_abr3.py, the launcher's own truth reader): GAME end ROUTE116 (0,31) (30, 13), frame
+                   1,089,822 = the start + 20,000, md5 aa5929ff... (not the start's): this run's state; no flag of the round
+                   changed; purity CLEAN (counters: 0 foreign presses, writes or loads). The AI's records: its first yes/no
+                   press 'yes_no cursor on 0 (YES)' at f1069844 ("a person goes along with what the game asks"); then
+                   ROUTE104_MR_BRINEYS_HOUSE (17,0), ROUTE 104, PETALBURG WOODS, RUSTBORO, ROUTE 115, ROUTE 116, RUSTURF TUNNEL.
+  abr3-A-S1q-6321  INTERRUPTED: its last record f1085065 (about 15,200 of 20,000 frames: RUSTBORO_CITY (16, 38)); no end state,
+                   no purity verdict. Its records: first yes/no 'yes_no cursor on 0 (YES)' at f1069857.
+  the other 9 jobs (B-S1q-6321, every S2 and S6 job) never started.
+READING: the one complete harness run (B-S1q-6320) and the A side of its pair agree with the round's NS1 claim, but this is one
+pair, half of it unchecked by the harness, on one seed: NOT an A/B result. The re-run below (#105) is the A/B.
+Files: s53/ch6stops3/batch_abr3.out, verdict_abr3.txt, out/abr3/ (abr3-B-S1q-6320.json and its run folder; the salvaged
+abr3-A-S1q-6320 and abr3-A-S1q-6321 folders and their .salvage.json), salvage_abr3.py, cleanup_abr3_stage.out (that stage torn
+down at 09:29, junctions first; the main sandbox's linked folders' counts unchanged: modules 4461, plugins 43, mgba 44, roms 2).
+
+===== LEDGER #105 (batch abr3b, NEW seeds 6326-6331): 2026-11-06 10:11:08 -> 10:24:09
+seeds: checked FREE in every ledger at 10:10 (s53/ch6/seeds_free.py: main, every .claude worktree's ledger including
+wf_213590e7-d34-3, lc-c2 and this one, and the scratch copies: 399 ledgers). prediction_abr3b.txt sha256
+d12c31833762d19616aec9c10309402612a6a74ee2d47ebf04827a9769a04f38, written and hashed before the launch (predictions_live.sha256)
+and recorded by the ledger at registration, before the first run. Harness: s53/ch6stops3/arms3.py (the real launcher through
+live_step5.run_arm, a purity gate per launch, the GAME read by the launcher's truth reader on each end state, L5.THIS_RUN).
+code: arm A = 66acbd1c's ai_player (`git archive`), play-code digest 14e3277a5be8a782 (= the base's own); arm B = the worktree's
+ai_player copied at 10:09 (make_arm3.py), digest fe93070a45e284f2 (= the worktree's then), play-code digest 8120c0ed19a6461c
+(= the worktree's play code; the same play code #103's arm B ran); both arms' digests unchanged from before to after the batch.
+The gates/ folder changed after the arms were made (tests, mutants, waivers, ledger, this file); the play code did not.
+Starts (md5, the same files as #103's): S1q 368cfd15 (DEWFORD (11, 9), the sail-back question on screen, made by
+make_question_start.py from leg L1, the round's code in-process from #100's start W1; the harness pressed only A on pages and
+the A that talks), S2 304be217 (probe8 C1's end, ROUTE 104's north strip (19, 0); memory = probe7 C1's own last snapshot plus ONE
+key, the ride L1 recorded live), S6 75e3a359 (probe8 C3's end, GRANITE CAVE B1F (9, 11); memory = its own last snapshot).
+Per pair, from the GAME (end map and flags) and the runs' own records (judge_abr3b.py -> judge_abr3b.json); every run exit 0,
+purity CLEAN, L5.THIS_RUN PASS:
+  S1q 6326  A: first yes/no YES (f1069847); on the cottage 25 records; GAME end RUSTURF_TUNNEL (24,4) (7, 2). B: first yes/no NO
+            (f1069863); never on the cottage or ROUTE 104; 2 SLID BACK; GAME end GRANITE_CAVE_B1F (24,8) (14, 20).
+  S1q 6327  A: YES (f1069841); cottage 23; GAME end RUSTBORO_CITY_POKEMON_CENTER_1F (11,5) (7, 8). B: NO (f1069860); GAME end GRANITE_CAVE_B2F
+            (24,9) (17, 14); 2 SLID BACK.
+  S2 6328   A: never on DEWFORD; GAME end ROUTE116 (0,31) (25, 14); 4 ping-pong ends (none on the crossing). B: walked to the
+            cottage, YES to "first, we'll set sail for dewford." by rule 0 ("the ride it is taking toward its goal"), 'the ride
+            17:0|1|0:11: rode' at f886546, first on DEWFORD f887841; GAME end DEWFORD_TOWN (8, 17) with DELIVERED_STEVEN_LETTER,
+            REGISTERED_STEVEN_POKENAV and RECEIVED_HM_FLASH 0 -> 1; 13 ping-pong ends, none on the crossing (DEWFORD's edges and
+            the gym door, looking for BRAWLY: not predicted).
+  S2 6329   A: never on DEWFORD; GAME end ROUTE116 (8, 7); 8 ping-pong ends, 1 on the crossing ('0:19|edge:up'). B: rode at
+            f889430, first on DEWFORD f890725; GAME end DEWFORD_TOWN_GYM (3,3) (5, 27) with DELIVERED_STEVEN_LETTER and
+            REGISTERED_STEVEN_POKENAV 0 -> 1; 10 ping-pong ends, none on the crossing.
+  S6 6330   A: every record on B1F; 623 records on (9, 10); no SLID BACK; GAME end B1F (9, 10). B: 2 SLID BACK, both the way into
+            (9, 10) going up; 4 records on (9, 10); left B1F (DEWFORD, ROUTE 106/107, the cave's other floors); GAME end
+            GRANITE_CAVE_1F (24,7) (36, 10).
+  S6 6331   A: every record on B1F; 579 on (9, 10); no SLID BACK; GAME end B1F (9, 11). B: 2 SLID BACK; 4 on (9, 10); GAME end
+            DEWFORD_TOWN_GYM (5, 25) with DELIVERED_STEVEN_LETTER and REGISTERED_STEVEN_POKENAV 0 -> 1.
+PREDICTION: P1 HELD (2 of 2 pairs), P2 HELD (2/2), P3 HELD (2/2), P4 HELD (2/2), P5 HELD (2/2), P6 HELD (2/2), P7 HELD (12 of 12
+runs CLEAN). No pair was VOID (each start showed its stop: the question answered first in S1q, the foot of the slope in S6).
+NOT PREDICTED, reported: B's S2 runs and one S6 run delivered STEVEN's letter within their bound (the game's flag); B's S2 runs
+ping-ponged on DEWFORD's edges and its gym door looking for BRAWLY (the probe below met BRAWLY in all three runs).
+Files: s53/ch6stops3/batch_abr3b.out, out/abr3b/ (each run's result JSON, actions, log, purity, end state; world.jsonl kept,
+16-50 MB each), judge_abr3b.py, judge_abr3b.json, prediction_abr3b.txt, note_abr3b.txt, predictions_live.sha256.
+
+===== THE ROUND'S OFFLINE PROOF (tests, mutants, gates)
+STOPS (from the probes #101 and #102; each reproduced offline from the probes' records or kept states before the fix):
+  NS1 (the sail-back question): cause, QUESTION_RULES' default YES for every story question. Change: brain/rides.py trip_offer
+      (a travelling verb, "to"/"for", a TOWN or CITY by the name people say, knowledge/atlas.py town_places from maps.json's id
+      and map_type), brain/goals.py TravelSense (rules 0-4: the ride being taken; the goal in the offered town; the goal here
+      (the map or the town it stands in); the known way's first link; nothing left to get to here), wired in mode.py as the
+      navigator's `answer`. Coverage: every MSGBOX_YESNO page of the pinned decomp (over 300) is read by trip_offer, and exactly
+      MR. BRINEY's five offers (the first sail, the cottage with the letter, DEWFORD, ROUTE 109, SOUTHERN ISLAND's sail back to
+      LILYCOVE) are trips; every other question is answered exactly as answer_question answers it (test_t2, CONTROL).
+      Tests Round3TravelTests t1-t10 (t3 FAULT: the old answer YES; t4 CONTROL: the first sail YES; t3b the goal in a building
+      of this town; t10 the walk's heading).
+  NS2 (no way back to the island): cause, the sail's map changes are a scene's, so route_to by links knew no way to DEWFORD
+      (route_to ROUTE104 -> DEWFORD_TOWN None on probe7 C1's own memory, fixture probe7_c1_island.world.jsonl). Change:
+      brain/rides.py RideWatch keeps what the AI SAW (a YES to someone's trip offer, scenes only, the controls back on another
+      map) as a RIDE in world memory (saved in world.jsonl; old memories load as before); explore.ways_from gives route_to,
+      region_hops and world_distance the rides as links; the explorer walks up beside the ride's person and the navigator hands
+      the ride to the play brain's rider (GoalRunner.ride: talk, the travel answer says YES to the known trip); a ride not taken
+      is put aside until there is news. Tests Round3RideTests r1-r8 (r4 FAULT on probe7 C1's memory; r7 CONTROL: no ride, every
+      map's ways exactly its links; r2 what is no ride: a battle, the same map, the AI's own step, a round trip, a scene that
+      never ends) and test_eyes LiveCallEndTests.test_the_sail_after_the_call_is_kept_as_a_ride (the real game).
+      NS2's OUTCOME, with its caveat (round 4, the verifier's V3-8): the use of a known ride is A/B-proven (#105, S2's memory
+      was GIVEN the ride, copied from leg L1: make_start_memories.py); the recording of a ride is seen in probe #104 (the
+      first sail kept as house -> DEWFORD (11, 9) in 3 of 3); recording a ride and then reusing it in one run was not seen in
+      round 3 (round 4's probe #107 then saw it once, C2: one development trajectory, not an A/B;
+      2026-11-06-ch6-stops-development-probe-4.txt).
+      The crossing ping-pong (probe8 C1 and C2, 287 and 228 ends): a defect of its own, not only the unreachable goal. MEASURED
+      on probe7 C1's own memory (s53/ch6stops3/pong_repro.py): from ROUTE 104's north strip (19, 0) the road RIGHT toward
+      PETALBURG was planned 96 steps through RUSTBORO's tiles past the UP edge, its first step "up", so each look round crossed
+      into RUSTBORO and RUSTBORO's walk led back. Change: navigator.in_map_walls walks to a road over this map and its OWN side's
+      tiles only (the explorer's road walk uses the same rule). Tests Round3CrossingTests x1 (FAULT: the old rule's 96-step plan,
+      first step up) and x2 (CONTROL: from the south part the road right is scored exactly as before).
+  NS3 (STEVEN's room left without a word): change, any walk that is not the walk to the story's own person stops when the one
+      the next step names comes into view on that step's map (GoalRunner.story_in_view, Navigator.stop_for); with them in view a
+      heal not in danger and a shop wait. What the screen shows only. Tests Round3StevenTests s1-s4 (s4 CONTROL: a fight next
+      still trains first; a shop with no fight next still first).
+  NS4 (BRAWLY's step waited for his name): change, knowledge/atlas.py gym_leaders (the world file bosses.json, its second
+      loader slice: role, name and battled_on only), GoalManager.knows_gym (the leader the step waits to hear of holds the step's
+      map AND the AI has stood inside that gym); errands never pick a mart (_nearest_place reachable=True) or grass (grass_target)
+      that no known way, ride included, leads to. Tests Round3GymTests g1-g7 (g3 CONTROL: ROXANNE's step as before; g6 CONTROL:
+      a heal keeps every place it knows; g7 the roam itself).
+  NS6 (the muddy slope): learned from what the SCREEN shows, no MACH BIKE knowledge used: a step that got the player into a tile
+      and was undone (back on the tile it began on, no press back, nothing holding the screen) is a failed step that way, kept
+      like a bump ('slid'), forgotten when the tile holds the player (Navigator._undone, WorldMemory.learn_slide, forget_slide;
+      off for every earlier brain, `learn_slides`). On the real game the slide is seen as the next step's result (measured,
+      s53/ch6stops3/which_undone_live.py). Tests test_world SlopeTests s1-s7 (s2 CONTROL: a scene walking the player back;
+      s3 CONTROL: ledges and ordinary steps; s7 CONTROL: a way back by its own press) and test_eyes LiveCallEndTests.
+      test_the_muddy_slope_is_learned_as_one_way_on_the_real_game (FAULT half: learn off, nothing learned; CONTROL: a step on
+      the floor). Other forced movement: ledges are tested (s3); a fall through GRANITE CAVE's cracked floor changes the map, and
+      `_undone` asks the same map; currents, ice and spinners lie on maps chapters 1-7 do not reach on foot (surf routes,
+      Shoal Cave, Sootopolis and Mossdeep's gyms): NOT tested here.
+  The last verifier's NITs: V-N4 pinned (Round3WalkerPinTests p1-p5: VM3, VM4, VM6, VM7, VM10; Round3HopsPinTests h1: VM9);
+      V-N5 decided and said (explore.standing_walls' docstring: other maps' standing things are known only once seen in this
+      session, not saved; the KI-134 evidence file carries the caveat); V-N1, V-N3, V-N8 wording fixed in the round-2 evidence
+      files and the test docstring; V-N2 answered in the report (the digest was equal "when the arm was made"); V-N6, V-N7 noted.
+THE FAIRNESS GATE'S CHANGE (gates/check_fairness.py, by the first builder, reviewed here): LOADERS lets knowledge/atlas.py name a
+  SECOND world file, world/bosses.json, and KNOWLEDGE_FIELDS classifies every key path of it leaf by leaf (name, role,
+  battled_on, the party: AI, a seasoned player knows them, USER RULING 40; badge.flag, id, ref, fight, order, entry, rematches,
+  notes: DEVELOPER; the extractor's notes: META). Measured (s53/ch6stops3/fairness_compare.py, and pinned by test_kb2
+  NotReadTests.test_k_f3b): the change REMOVES no developer-only key (a world file's AI names never excuse a name elsewhere)
+  and leaves the hidden keys as they were; it ADDS four developer-only keys (entry, notes, order, rematches), and deciding code
+  that names bosses.json now breaks B1 (before, a world file no loader named was not one of B1's names: FAULT half of the
+  test). New breaches of its kind FAIL: the loader reading a boss's badge FLAG or its rematch constants (B2), deciding code
+  naming the file (B1), a key planted under a boss's badge (RULE B); a docstring mention does not fire. The existing fault tests
+  still fail on real breaches: test_kb2 K-F3 and test_safety_gates FairnessTests PASS on the final tree (gates below). Gate
+  mutants CH7F1 (rematches classified AI) and CH7F2 (the slice dropped from LOADERS): CAUGHT (s53/ch6stops3/gate_mutants3.py,
+  a copy with the decomp pin: revert_r1's copy cannot import test_kb2; gate_mutants3.out, its CONTROL PASS). The known LIMIT
+  stays as the gate's docstring says: a key name that is AI in one file and developer in another (`id`) is not refused by name.
+MUTANTS (predictions written and hashed BEFORE each run):
+  prediction_mutants3.txt sha256 e5b6ededbc4cb1154eee0e35acf29910d8df8c0856f81b5f018e444c52da2f6d (09:47, 87 mutants, from
+  mutants3.py sha256 8d602af4...); addendum 1 (CH6S12, CH6S13, G613) sha256 84bb47903cb5e5a021909a34f15aaed4a60ebff4e5ed69addf37c223df0bba43
+  (09:50); addendum 2 (after run 1) sha256 0d5e091fbd2ac89204695806db986b2b8c6267a0ad1829092e7492e5a75924b5; addendum 3 (four older
+  mutants re-anchored) sha256 23fb50ef83a16adf9c0260b6a02039bc54ade0d92ade06f1fe5be4556260dd3f.
+  Run 1 (mutants3_step5_run1.out, mutants3_r1_run1.out): G571 (VM4) NOT CAUGHT: Round3WalkerPinTests.test_p2 was VACUOUS (the
+  person stepped to a tile none of whose spots had been tried); the TEST was strengthened (the person steps to the tile past
+  the spot tried first, and the test asserts it), prediction unchanged. CH6S8 (handle keeps the last step through a scene) was
+  predicted REDUNDANT and was CAUGHT by SlopeTests.test_s2: the prediction was WRONG and is corrected in addendum 2 (a scene met
+  DURING a step goes by the step's result path, which asks no press guard). CH7F1, CH7F2 and the CH6S0 control gave no verdict
+  (test_kb2 cannot import in revert_r1's copy): moved to gate_mutants3.py.
+  Run 2 (mutants3_step5_run2.out, mutants3_r1_run2.out): revert_step5 G0 CONTROL PASS (413 tests) and 75 round-3 mutants: 74
+  CAUGHT as predicted (G539-G582, G584-G613), G583 REDUNDANT ALONE as predicted (trip_offer folds the words itself); OVERALL
+  PASS, frozen tree PASS. revert_r1 CH6S0 CONTROL PASS and CH6S1-CH6S13: 10 CAUGHT as predicted, CH6S7, CH6S9, CH6S10 REDUNDANT
+  ALONE as predicted; OVERALL PASS. Addendum 3: G30, G33, G69, G490 (anchors broken by the round's code: their lines changed)
+  re-anchored, rule and prediction kept: 4 of 4 CAUGHT, G0 PASS (mutants3_reanchor.out). Every anchor of the 610 + 590 mutants
+  of revert_step5 and revert_r1 occurs exactly once (anchors_all.py).
+  The call-site census since 66acbd1c: 244 sites, 0 MISSING (24 waivers added to census_waivers.json, each with why: name
+  collisions, log lines, old call sites of functions changed in their body only).
+GATES on the final tree (s53/ch6stops3/final_gates3.py, 10:18-10:38; gates_final.txt, fairness_tests_final.out, census_final.txt,
+  anchors_final.out): test_goals 413, test_kb2 125, test_world 139, test_saving 151, test_eyes 75, test_hands 57, test_battle 107,
+  test_check_purity 30, test_step53_a2 34 (5 skipped), test_host 37, test_safety_gates FairnessTests 9, test_evidence 27: all OK;
+  check_fairness PASS (0 breaches), check_purity PASS, check_paths PASS, ledger --check PASS (105 entries); call_census since
+  66acbd1c PASS (0 MISSING; 'since HEAD' is empty because HEAD 07913cde holds the round); every mutant anchor unique. (An
+  earlier test_check_purity pass (gates_pass2a.txt), run beside mutant run 1, had 1 error whose text was not kept; the same suite passed 30 of 30 alone and again
+  in this final pass: recorded, not explained.) run_regression.py was not run.

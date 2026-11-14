@@ -1,0 +1,6 @@
+[VERIFY] code: HEAD 979754bf; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:e31a1888aecf12dc over git diff HEAD (2 files, 44194 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+[VERIFY] ai_player\knowledge\milestones.json: 36 milestones; teacher sandbox-pokebot/modules/story/early_game.py sha256 9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77
+[VERIFY] pret/pokeemerald via gh api (its default branch, NOT the pin): flags.h 2419 defines, vars.h 294, opponents.h 857, event_objects.h 276, metatile_labels.h 693
+[VERIFY] note: ch1_rival_route103: ROUTE103 has no ['OBJ_EVENT_GFX_RIVAL_BRENDAN_NORMAL', 'OBJ_EVENT_GFX_RIVAL_MAY_NORMAL'] object; its figures set at runtime (['OBJ_EVENT_GFX_VAR_0']) are not checked
+[VERIFY] checked: 33 flag numbers, 19 var numbers, 61 proofs set by their scripts, 34 trainer ids, 34 party level lists, 18 looks, 23 hint words in their scripts, 26 steps' own words in their scripts, 11 step looks on their maps
+[VERIFY] OVERALL PASS

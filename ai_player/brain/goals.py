@@ -129,6 +129,39 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass, field, replace
 
 from ai_player.brain.battle import BattleMind, needs_rest
+from ai_player.brain.bossprep import (
+    ACT_ON,
+    ACTING,
+    BUDGET,
+    CLOSE,
+    LEADS_MAX,
+    NO_FAULTS,
+    NOT_READY,
+    PARTNER_MARGIN,
+    READY,
+    RELEAD_FAILS_MAX,
+    TRAINEE_FLOOR,
+    RaiseWatch,
+    choose_plan,
+    described,
+    member_now,
+    members_of,
+    near_best,
+    new_record,
+    next_boss,
+    out_of_pp,
+    partner_line_full,
+    partner_worn,
+    raise_partner_of,
+    rank_of,
+    spend,
+    spent_reason,
+    team_line,
+    trainee_rest,
+    with_target,
+)
+from ai_player.brain.bossprep import options as raise_options
+from ai_player.brain.bossprep import verdict as judge_party
 from ai_player.brain.explore import (
     JUST_COME_FROM,
     ONWARD_KINDS,
@@ -137,25 +170,36 @@ from ai_player.brain.explore import (
     carry_on,
     choose_target,
     looks_like_exit,
+    map_walls,
     pick,
     pick_on_the_move,
+    region_hops,
+    route_to,
+    standing_walls,
+    ways_from,
     weights_for,
 )
-from ai_player.brain.navigator import Intent, Navigator, Target, step_from
+from ai_player.brain.navigator import Intent, Navigator, Target, distances, nav_free, step_from
+from ai_player.brain.rides import RideWatch, folded, trip_offer
 from ai_player.eyes.observation import Observation, SeenObject
 from ai_player.eyes.screens import page_text
 from ai_player.hands.dialogue import player_free
+from ai_player.hands.field_item import use_on
 from ai_player.hands.pad import Hands
-from ai_player.knowledge.atlas import open_map
+from ai_player.hands.party_order import lead_with
+from ai_player.knowledge.atlas import boss_party, entry_maps, gym_leaders, open_map, town_places
+from ai_player.knowledge.seasoned import land_levels
 from ai_player.knowledge.story import Milestone, Step, Story
 from ai_player.personality import PersonalityState
 from ai_player.world.memory import DIRECTIONS, moved
 from ai_player.skills.roam_train import roam_train
 from ai_player.skills.story import (
     NOT_FOR_SALE,
+    answer_question,
     enter_door,
     heal_at_center,
     pick_up,
+    play_out,
     shop_at_mart,
     talk_to,
     use_thing,
@@ -198,10 +242,18 @@ __all__ = [
     "HEARD_KINDS",
     "LOST_KEYS",
     "OUT_OF_IDEAS",
+    "OWN_PERSON_KINDS",
+    "PREP_WALK_KINDS",
     "SPOKE_REACH",
+    "UNREACHABLE",
     "Goal",
     "GoalManager",
     "GoalRunner",
+    "TravelSense",
+    "grass_target",
+    "in_place",
+    "inside_grass",
+    "town_of",
     "ITEM_STOP",
     "ITEM_TRIES",
     "LOOK_AROUND_FRAMES",
@@ -219,6 +271,7 @@ __all__ = [
     "lost_intent",
     "lost_way",
     "marks_of",
+    "part_hops",
     "party_share",
     "quote",
     "roam_numbers",
@@ -275,6 +328,14 @@ NEW_MAP_STOP = "arrived somewhere it has not looked round"
 #: (build step 5.1, review #5) The goal kinds that are the STORY's (every other kind is an errand), and the key prefix of a
 #: story goal put aside after failing (the look around meanwhile is never put aside: never without a goal).
 STORY_KINDS = ("intro", "go", "ask", "talk", "use", "follow", "find", "seek", "look_around")
+#: (chapter 7 NS3, 2026-11-06) the goals whose walk is the walk TO someone, or a heal, a save or a scene: every other goal's
+#: walk stops when the one the story's next step names comes into view on that step's map (`GoalRunner.story_in_view`)
+OWN_PERSON_KINDS = ("talk", "use", "seek", "find", "heal", "find_center", "save", "intro", "follow")
+#: (chapter 7 stops round 4, V3-3, 2026-11-06) the walks that PREPARE for a fight: while the story's next step is a fight,
+#: they are not stopped when its person comes into view (a party short of the leader's levels, in his gym with him in
+#: view, walks out to the grass to train; stopped at its first look, the goal failed and training was put aside). With a
+#: talk next (STEVEN), they stop as every errand does
+PREP_WALK_KINDS = ("train", "catch")
 ASIDE = "aside:"
 #: (build step 5.1) The ERRAND kinds (the intent mix the graders count: `gates/rate_step5.py`).
 ERRAND_KINDS = ("heal", "find_center", "shop", "train", "catch", "pick_up", "chat", "explore", "detour")
@@ -383,6 +444,17 @@ HEARD_KINDS = ("heal", "shop", "chat", "detour")
 LOST_KEYS = ("go:?", "aside:go:?")
 #: (the same) what such a walk says when nothing is left on any map it knows that it could get to
 OUT_OF_IDEAS = "out of ideas"
+#: (boss preparation round 2, USER RULING 59, spec section 2.1) a heal place this many known links away or fewer is NEAR
+#: (`world_distance`): the raise's trainee is healed there; farther, with a Potion in the bag, a Potion on the spot
+CENTRE_NEAR_LINKS = 2
+#: (round 2) the field items a potion goal uses, weakest first (a seasoned player knows they heal 20 and 50)
+FIELD_POTIONS = ("Potion", "Super Potion")
+#: (round 2) a potion goal stops once the trainee is at this share of its max HP, or after this many items
+POTION_TO = 2 / 3
+POTIONS_PER_GOAL = 2
+#: (round 2, V-m3) the goals whose frames, begun while a raise plan is active, count in its budget (the walks to heal
+#: between raise sessions: the first spec's section 3.3 intent; BP-1's build counted only the raise goal)
+PLAN_HEAL_KINDS = ("heal", "find_center", "potion")
 
 
 @dataclass(frozen=True)
@@ -402,6 +474,8 @@ class Goal:
     via: str | None = None
     #: (a go with no hint yet) the words whose reading ends the goal: the AI decides again, now told where to go
     words: str | None = None
+    #: (boss preparation round 2) the Pokemon a goal is FOR, by PID: a potion's target, a lead goal's member
+    pid: int | None = None
 
 
 @dataclass
@@ -666,31 +740,98 @@ def open_way(const: str | None) -> bool:
     return bool(OUTDOOR.match(const or "")) or open_map(const) is True
 
 
+#: (KI-134 V3) the last `region_hops` worked out (`part_hops`): (the world memory it was for, what for, the hops). ONE
+#: entry, held by REFERENCE (never by `id()`, which the next object may reuse once one is freed: the verifier's NIT V8), so a
+#: run's one world memory is searched once a decision, not once per place ranked
+_PART_HOPS: list = [None]
+
+
+def part_hops(world) -> dict[str, int] | None:
+    """(KI-134 V3, 2026-11-06) The links from WHERE THE PLAYER STANDS to every map a walk from there is known to get to
+    (`explore.region_hops`, round what stands on each map: `explore.standing_walls`); None when the player's tile or map
+    is not known. Worked out once for each place the player stands and each new thing the memory has seen (its `stamp`,
+    its links and their uses), and kept for that."""
+    start, at = world.current, world.position
+    if start is None or at is None or world.maps.get(start) is None:
+        return None
+    uses = sum(int(link.get("uses") or 0) for link in world.warps.values())
+    asked = (start, tuple(at), world.stamp(), len(world.warps), len(world.connections), uses)
+    kept = _PART_HOPS[0]
+    if kept is not None and kept[0] is world and kept[1] == asked:
+        return kept[2]
+    hops = region_hops(world, start, at, standing_walls(world))
+    _PART_HOPS[0] = (world, asked, hops)
+    return hops
+
+
 def world_distance(world, key: str) -> int:
-    """How many known links (warps, connections) lie between the current map and map `key` (99 when no way is known)."""
+    """How many known links (warps, connections) lie between the current map and map `key` (99 when no way is known).
+
+    (KI-134 V3, 2026-11-06) FROM WHERE THE PLAYER STANDS, when its tile is known: the links of the route over the PARTS of
+    maps a walk gets to (`part_hops`, `explore.region_hops`). WHY (the KI-134 verifier's K134-V3, on probe-C1's chapter-5
+    memory): counted by maps, ROUTE 104 touches both PETALBURG and RUSTBORO, so from its north strip the two centres were
+    equally near and the tie went to PETALBURG's (its name sorts first), four links away through the woods, when RUSTBORO's
+    is two. The heal and shop places (`GoalRunner._nearest_place`), the open map to head for (`lead_toward`) and the grass
+    to train in (`_grass_map`) all rank by this. A map no walk from here is known to get to (a door whose arrival was
+    never recorded leads to no part: `route_to`) counts by maps, exactly as before."""
     start = world.current
     if start is None:
         return 99
+    hops = part_hops(world)
+    if hops is not None and key in hops:
+        return hops[key]
     seen, frontier = {start}, [(start, 0)]
     while frontier:
         here, depth = frontier.pop(0)
         if here == key:
             return depth
-        for kind, link in world.links_from(here):
+        for kind, link in ways_from(world, here):  # (chapter 6 NS2) a ride counts as a link too
             if kind == "warp" and not looks_like_exit(world, here, link.get("tile")):
                 continue  # a "warp" from a tile that is no way out (a scene's, from the grass) is no way to walk (route_to)
-            target = link.get("to") if kind == "warp" else link.get("target")
+            target = link.get("to") if kind in ("warp", "ride") else link.get("target")
             if target is not None and target not in seen:
                 seen.add(target)
                 frontier.append((target, depth + 1))
     return 99
 
 
+#: (chapter 7 NS4, 2026-11-06) `world_distance` for a map no known way leads to (no link, no ride)
+UNREACHABLE = 99
+
+
+def inside_grass(memory) -> list:
+    """Tall grass tiles INSIDE map `memory` (none past its edges: those are the next map's)."""
+    return [xy for xy in memory.grass() if xy[0] >= 0 and xy[1] >= 0 and not memory.outside(xy)]
+
+
+def grass_target(world, fight_maps=()) -> tuple[str, str | None]:
+    """Where a training (or catching) roam goes: ("here", None) when this map has grass of its own; ("there", map const)
+    for the map with grass nearest by the known way, the fight's own maps (`fight_maps`) first; ("none", None) when it
+    has seen no grass at all (the roam stays, as before); ("out of reach", None) when it has seen grass but no known way
+    leads to any of it. (Chapter 7 NS4, 2026-11-06) grass no known way leads to (no link, no ride: `world_distance`
+    `UNREACHABLE`) is no place to train: probe7 C1, on the island with no way back known, chose 16 train errands for the
+    mainland's grass (`GoalManager.next_goal` chooses no training then)."""
+    here = world.here()
+    if here is not None and inside_grass(here):
+        return "here", None
+    options = []
+    for key, memory in world.maps.items():
+        if memory.visits and inside_grass(memory) and memory.const:
+            first = 0 if memory.const in fight_maps else 1
+            options.append((world_distance(world, key), first, memory.const))
+    if not options:
+        return "none", None
+    options = [option for option in options if option[0] < UNREACHABLE]
+    return ("there", min(options)[2]) if options else ("out of reach", None)
+
+
 def lead_toward(world, goal_const: str | None) -> str | None:
     """Heading for a map it has NOT been to (`goal_const` unknown to its memory): the open map (`open_way`: a town, a route,
     the woods; KI-128) it HAS been to where the most is left to see (`WorldMemory.promise`: frontier, exits not used, roads), routes before towns, nearer first; None
     when the goal is known, or nothing promising is known. A person who is told "ROUTE 103" and has seen only Littleroot
-    and part of ROUTE 101 walks on up ROUTE 101, not into the houses."""
+    and part of ROUTE 101 walks on up ROUTE 101, not into the houses. (The chapter-5 search fix K1, 2026-11-13) A place
+    that is no open country and whose name no town holds (a cave, a tunnel): the map a seasoned player knows it is entered
+    from, where it has been (`entry_lead`)."""
     if goal_const is not None and any(memory.const == goal_const for memory in world.maps.values()):
         return None
     if goal_const is not None and not open_way(goal_const):
@@ -703,6 +844,10 @@ def lead_toward(world, goal_const: str | None) -> str | None:
                  and goal_const.startswith(f"{m.const}_")]
         town = max(towns, key=len) if towns else None
         there = here is not None and (here.const == town or str(here.const or "").startswith(f"{town}_"))
+        if town is None:
+            # (K1) no town's name holds it: the map it is entered from, as a seasoned player knows (None as before when it
+            # stands on one, has been to none, or knows no way to one)
+            return entry_lead(world, goal_const)
         return town if town is not None and not there else None
     here = world.here()
     if here is not None and open_way(here.const) and world.promise(here.key) > 0:
@@ -717,6 +862,48 @@ def lead_toward(world, goal_const: str | None) -> str | None:
             continue
         options.append((world_distance(world, key), -(1 if const.startswith("ROUTE") else 0), -promise, const))
     return min(options)[3] if options else None
+
+
+class Lead(str):
+    """(The chapter-5 search fix K1, 2026-11-13) A map `lead_toward` names, carrying WHY it is the lead (`why`), which
+    `GoalRunner._travel_on` tells. A lead given as a plain string is where the most is left to see."""
+
+    why = "where the most is left to see"
+
+
+#: (K1) the words a seasoned player's lead gives (`entry_lead`), as `knows_gym`'s and `GYM_BACK`'s do
+WAY_IN = "a seasoned player's knowledge"
+
+
+def entry_lead(world, goal_const: str) -> Lead | None:
+    """(The chapter-5 search fix K1, 2026-11-13) A SEASONED PLAYER'S LEAD toward a place never seen that is no open country
+    and whose name no town holds (a cave, a tunnel: `lead_toward`'s building rule finds no town). Of the maps the place is
+    entered from (`knowledge/atlas.py` entry_maps: a guide's map, USER RULING 40, "the maps and their connections"), the
+    OPEN map (`open_way`) it HAS stood on that is nearest by the known way (`world_distance`). None while the player stands
+    on one of them (the search there is the explorer's own taste), and None when it has stood on none of them or knows no
+    way to any (a person heads only where they know the way): then the walk is as before.
+    WHY (the E0 chapter 1-5 check, 2026-11-13, seeds 6481-6483): told of RUSTURF TUNNEL, the two runs that missed searched
+    ROUTE 104 and PETALBURG WOODS for it, back and forth, until the frame budget or the patience ran out, while ROUTE 116,
+    the tunnel's way in and a map they had walked, was never a lead (`lead_toward` gave None: the tunnel is no open country
+    and no town's name holds it). A seasoned player knows the tunnel is on ROUTE 116, east of RUSTBORO.
+    NOT A ROUTE PLANNER (KI-128's rejection, 06 2026-10-31): it names ONE MAP; the walk there is the AI's own explorer over
+    the links it has walked itself, and on that map the search for the way in is its own: no tile of the warp is read (no
+    beeline, RULING 40)."""
+    entries = entry_maps(goal_const)
+    here = world.here()
+    if not entries or (here is not None and here.const in entries):
+        return None
+    options = []
+    for key, memory in world.maps.items():
+        if memory.const in entries and memory.visits and open_way(memory.const):
+            hops = world_distance(world, key)
+            if hops < UNREACHABLE:
+                options.append((hops, memory.const))
+    if not options:
+        return None
+    lead = Lead(min(options)[1])
+    lead.why = f"{WAY_IN}: {lead} has a way into it"
+    return lead
 
 
 #: The places that keep the player ON the map it searches (`travel_intent(stay=True)`): no road, exit or way back off it.
@@ -770,15 +957,54 @@ def lost_way(nav: Navigator, look: Observation, weights, moving: bool) -> tuple[
                                 f"({', '.join(f'{names.get(k, k)} {n}' for k, n in left[:4])})"), left
 
 
+#: (chapter 6 stops round 6, round 5's new stop P5-1) the reason a walk to the back of a gym gives (`gym_back`)
+GYM_BACK = "the back of the gym, opposite its door: a gym's leader stands there (a seasoned player's knowledge)"
+
+
+def gym_back(nav: Navigator, look: Observation, gym: str | None = None) -> Target | None:
+    """(chapter 6 stops round 6, round 5's new stop P5-1) THE BACK OF A GYM: where a person who has come to FIGHT the
+    leader walks to find them, through the gym and the trainers in the way. A seasoned player knows a gym's leader stands at
+    its back, the side opposite its door (USER RULING 40: static knowledge of every gym; the AI is never told a tile). Of
+    the known walkable tiles of this map a walk from here reaches (`navigator.distances`), the one farthest from the door it
+    knows nearest to it (its `exits`) across the gym (by rows), the one nearest the door's column on a tie, then the nearer
+    by the walk. None when no door, no player's tile, or no such tile is known. (Chapter 6 stops round 7, VR6-1) None, too,
+    on a map that is not a gym, or not `gym` (the leader's gym the find was made for): a find whose back was excluded
+    walked out to the TOWN and was offered "the back of the gym" there (the round-6 verifier's VT6-3).
+    LIMIT (the round-6 verifier's VR6-2): "the farthest row from the door" is the leader's own tile in RUSTBORO's and
+    DEWFORD's gyms (chapters 4 and 7, measured on the pinned layouts); MAUVILLE's, FORTREE's and PETALBURG's leaders do not
+    stand there (rooms, side columns, intra-map doors), so a find there in the rare state this serves (the gym fully known,
+    no sighting) is not proven: define the back by the gym's rooms before chapter 9."""
+    found = nav.where(look)
+    if found is None:
+        return None
+    memory, here = found
+    if not is_gym(memory.const) or (gym is not None and memory.const != gym):
+        return None
+    doors = memory.exits()
+    if not doors:
+        return None
+    door = min(doors, key=lambda xy: (abs(xy[0] - here[0]) + abs(xy[1] - here[1]), xy))
+    reach = distances(memory, here, nav.walls(memory, here), 0.0)
+    tiles = [xy for xy in reach if xy != here and xy not in doors and memory.passable(xy) and not memory.outside(xy)]
+    if not tiles:
+        return None
+    tile = min(tiles, key=lambda xy: (-abs(xy[1] - door[1]), abs(xy[0] - door[0]), reach[xy], xy))
+    return Target("goto", tile, f"{GYM_BACK}: {tile}")
+
+
 def travel_intent(goal_map: str | None, personality: str, budget: int, done: Callable[[Observation], bool],
-                  stay: bool = False) -> Intent:
+                  stay: bool = False, back: Callable[[Navigator, Observation], Target | None] | None = None) -> Intent:
     """`brain/explore.py` explore_intent's taste and walk, for a person who is GOING somewhere: the ways BACK into a building
     already visited (a house, the lab: an interior, not a town or a route) are no option (measured 2026-10-14, the play
     brain's first chapter-1 run: told "ROUTE 103" in the rival's house, the explorer went up and down its stairs for the
     unseen corners of the bedroom until its ping-pong rule stopped it, eight times). Everything else is the explorer's own
     (`candidates`, `pick`, `pick_on_the_move`, `carry_on`); with nothing left it falls back to `choose_target` (never
-    idle)."""
+    idle). (Chapter 6 stops round 6, P5-1) `back`: where a search of this map goes when nothing on it is left to see,
+    before that fallback (`gym_back`: the leader it has come to fight, at the back of the gym), until it is reached; the
+    fallback's best place was the way back OUT (#108: 21 entries onto DEWFORD's gym a run, each find ended on the door's
+    ping-pong)."""
     weights = weights_for(personality)
+    backed: list = []  # (round 6, P5-1) the back of the gym, once reached
 
     def goal(memory, key: str) -> bool:
         return goal_map is not None and memory is not None and memory.const == goal_map
@@ -788,6 +1014,10 @@ def travel_intent(goal_map: str | None, personality: str, budget: int, done: Cal
         found = [t for t in candidates(nav, look, weights, goal if goal_map else None, jitter_on=not moving)
                  if keeps_going(nav.world, t, goal_map, stay)]
         located = nav.where(look)
+        if not found and back is not None and not backed and located is not None:
+            target = back(nav, look)
+            if target is not None and not nav.is_excluded(target):
+                return target
         if not found or located is None:
             return choose_target(nav, look, weights, goal if goal_map else None)
         if moving:
@@ -797,7 +1027,12 @@ def travel_intent(goal_map: str | None, personality: str, budget: int, done: Cal
     def carry(nav: Navigator, look: Observation, old: Target) -> Target | None:
         return carry_on(nav, look, weights, old, goal if goal_map else None)
 
-    return Intent(f"travel to {goal_map}" if goal_map else "look around", budget, choose, done, carry_on=carry)
+    def reached(target: Target) -> None:
+        if target.reason.startswith(GYM_BACK):
+            backed.append(target.tile)
+
+    return Intent(f"travel to {goal_map}" if goal_map else "look around", budget, choose, done,
+                  reached=reached if back is not None else None, carry_on=carry)
 
 
 def lost_intent(personality: str, budget: int, done: Callable[[Observation], bool], told: Callable[[str], None]) -> Intent:
@@ -948,6 +1183,14 @@ class GoalManager:
         #: run's frames left; set by the play brain only when it keeps a memory file (D14), else None: no save goal ever
         self.saving = None
         self.frames_left: Callable[[], int] | None = None
+        #: (boss preparation BP-1, 2026-11-09) the run's own `<seed>:bossprep` stream (the play brain sets it: no other
+        #: stream moves), the signature of the last verdict run (party and boss: the verdict runs again only when it
+        #: changes), and the next boss as (its milestone id, its leader's name, its gym map)
+        self.bossprep_rng: random.Random | None = None
+        self._bp_seen: tuple | None = None
+        self.bp_boss: tuple[str, str, str | None] | None = None
+        #: (round 2) the boss preparation's FAULT switches (test side, `brain/bossprep.py` BossprepFaults): none in play
+        self.bp_faults = NO_FAULTS
 
     def _say(self, line: str) -> None:
         if self.say is not None:
@@ -1137,8 +1380,19 @@ class GoalManager:
         if self.hints_off:
             return False
         if step.told:
-            return heard_words(heard, step.told)
+            return heard_words(heard, step.told) or self.knows_gym(step, world)
         return self.been_to(world, step.map)
+
+    def knows_gym(self, step: Step, world) -> bool:
+        """(chapter 7 NS4, 2026-11-06) May the AI head for this step's map without its words? Yes when the words it waits
+        for NAME A GYM LEADER whom the AI knows to hold the step's map (`knowledge/atlas.py` gym_leaders: a seasoned
+        player knows each town's leader, USER RULING 40) AND it has stood inside that gym itself (its own world memory):
+        a person who has been in DEWFORD's gym knows it is BRAWLY's. WHY (probe7 C1, ledger #101): after STEVEN, BRAWLY's
+        step waited for the words 'BRAWLY' (the gym sign's) and made 36 "where to? nobody has said yet" goals over
+        502,847 frames, although it had been inside DEWFORD_TOWN_GYM. Being inside is asked so that a chapter whose
+        leader's words come first (ROXANNE's sign, read before her gym is entered) is as it was."""
+        leader = gym_leaders().get((step.told or "").strip().upper())
+        return leader is not None and leader == step.map and self.been_to(world, step.map)
 
     # ------------------------------------------------------------------ the landmarks a person notices
     def notice(self, look: Observation) -> None:
@@ -1176,8 +1430,8 @@ class GoalManager:
         for row in look.view.rows:
             for tile in row:
                 # a door seen ACROSS a map's edge belongs to the next map (its coordinates here are past this map's): it is
-                # remembered when the AI stands on that map and sees it again
-                if not tile.door or tile.x < 0 or tile.y < 0:
+                # remembered when the AI stands on that map and sees it again; a tile in the dark (round 7, N6-1) is unseen
+                if tile is None or not tile.door or tile.x < 0 or tile.y < 0:
                     continue
                 if center is not None and tile.metatile in center.metatile:
                     self.memory.landmarks.setdefault((key, (tile.x, tile.y)), "pokemon_center")
@@ -1213,39 +1467,104 @@ class GoalManager:
         fight_next = bool(levels) and has_party and step is not None and step.do in ("go", "talk")
         share = party_share(look)
         fainted = any(m.hp <= 0 for m in look.party or () if not m.is_egg)
+        # (boss preparation BP-1) the readiness verdict for the next gym leader: run when the party or the boss changed,
+        # logged; for a leader in `ACT_ON` it may make (or re-judge) the plan this run commits to. (Round 2) decided
+        # BEFORE the danger below, which reads the plan's trainee; it reads nothing the danger lines set
+        bp_plan = self.boss_prep(look, index) if has_party else None
+        # (round 4, the round-3 verifier's V3-M1; the lead's design E1) the plan's BUDGET (and grass to raise on) is checked
+        # BEFORE any rest is decided for it: a plan over its budget is spent here, so it never heals for the plan (round 3
+        # checked it inside the raise goal, which the heal step below returned before: with a heal loop, never). FAULT
+        # `budget_after_rest`: round 3's order
+        if bp_plan is not None and not self.bp_faults.budget_after_rest:
+            self._spend_if_over(look, world, bp_plan)
+        # (round 2, the verifier's V-M1) THE TRAINEE'S FLOOR: an active plan's trainee fainted or under `TRAINEE_FLOOR`
+        # (and, the builder's addition, its knock-out partner worn, `bossprep.partner_worn`) is a party that must rest. The
+        # danger was keyed on the STRONGEST (`needs_rest`) and the party's share: a Wurmple at 1/18 left the party at 89 %,
+        # the raise was chosen again, it ran from every battle and 12 sessions of +0 EXP spent the plan (6378, 6379).
+        # Always None in chapters 1-5, where no plan is active
+        trainee_low = self._trainee_low(look, bp_plan)
+        worn = self._partner_worn(look, bp_plan, world)
+        if self.bp_faults.trainee_floor_off:
+            trainee_low = worn = None
         # the party in real danger (a Pokemon fainted, the strongest under a third: `needs_rest`): healing is then the only
         # sensible errand, so a heal put aside after failing (`FAIL_LIMIT`) is tried again at once (the development sweep
         # step5dev7, seed 3: two walks home ran out, the heal was put aside, and the AI trained, then walked to the rival, at
         # 2/26 HP, and whited out)
-        must_rest = has_party and (fainted or needs_rest(look.party) is not None)
+        must_rest = has_party and (fainted or needs_rest(look.party) is not None or trainee_low is not None
+                                   or worn is not None)
         hurt = has_party and share is not None and (must_rest or share < errands.heal_below)
+        # (chapter 7 NS3, 2026-11-06) THE STORY'S OWN PERSON, HERE AND IN VIEW: the story's next step talks to (or uses)
+        # someone it recognises, on that step's map, on the screen now, and no fight is next. Then a walk OFF this map for
+        # an errand (a heal while not in danger, a shop) waits: a person carrying a letter for STEVEN who stands in his
+        # room hands it over first (probe7 C2 left the room on a shop errand). Curiosity here keeps its place
+        story_here = (step is not None and step.do in ("talk", "use") and bool(step.look) and here_const == step.map
+                      and not fight_next and self.looks_like(look, step.look) is not None)
         # 1. HEAL
-        if has_party and share is not None:
+        if has_party and share is not None and not (story_here and not must_rest):
             # ready for the fight: trained (`prep` ready), or, under the no-training FAULT, at once (the fault removes the
             # TRAINING only; healing before the fight stays, so the fault arm measures training alone: the step-5
             # verifier, 2026-10-14, found it removed both)
             ready = self.train_off or bool(self.prep(milestone).get("ready"))
-            before_fight = fight_next and share < HEAL_BEFORE_FIGHT and ready
+            # (chapter 7 stops round 4, V3-1, 2026-11-06) TRAINED and READY FOR THE FIGHT are two things. A party that
+            # cannot train where it stands (it has seen grass, but no known way leads to any: `grass_target` "out of
+            # reach", the island before a way back is known) is as ready as it will get, so it tops up before the fight
+            # all the same; `prep["ready"]` (trained, or training put aside) is NOT set by this. MEASURED (probe #104):
+            # with the heal tied to `prep["ready"]` alone, C3 talked to BRAWLY at 77% of its HP and C2 at 89.9%
+            cannot_train = (fight_next and share < HEAL_BEFORE_FIGHT and not ready
+                            and grass_target(world, milestone.maps)[0] == "out of reach")
+            before_fight = fight_next and share < HEAL_BEFORE_FIGHT and (ready or cannot_train)
             if hurt or before_fight:
-                where = self.heal_place(world)
+                # (chapter 6 stops round 5, the round-4 verifier's VR4-2) V3-1's TOP-UP where it cannot train (the party
+                # neither in danger nor under its heal line) goes only to a centre a known way leads to, as the shop does
+                # (NS4): a party at 75% in DEWFORD's gym knowing only RUSTBORO's centre, no way back known, headed there
+                # twice per cooldown (the verifier's VT-R1, VT-R2). A heal for the party's own state (under its heal line,
+                # or in danger) and the TRAINED party's heal before the fight (step 5's, chapters 1-5: ErrandTests
+                # test_the_no_training_fault_still_heals_before_the_fight, TunnelGruntTests test_c8, unlinked worlds, pin
+                # it; this round's first version also held it to a known way, and both failed) keep every centre it knows
+                topup = cannot_train and not hurt
+                # (chapter 6 stops round 6, the round-5 verifier's V5-1) the LOOK for a town's own centre is decided on
+                # every centre it knows (`known`), as before round 5; only the walk to a centre is held to a known way
+                # (`where`). Round 5 decided both on `where`, so a top-up in a town whose centre it had not seen, knowing
+                # only an unreachable one, looked for none and walked to BRAWLY at 75% (the verifier's VT5-1)
+                known = self.heal_place(world)
+                where = self.heal_place(world, reachable=True) if topup else known
                 why = ("a Pokemon has fainted" if fainted else f"the party is at {share:.0%} of its HP"
                        + (f" (under {errands.heal_below:.0%})" if share < errands.heal_below else "")
-                       + ("; a known fight is next" if before_fight else ""))
-                town = here_const if here_const and OUTDOOR.match(here_const) and not here_const.startswith("ROUTE") \
-                    else None
-                if (where is not None and town is not None and self._place_key(world, where) not in (None, world.current)
-                        and world.current not in self.memory.center_looked
+                       + ("; a known fight is next" if before_fight else "")
+                       + (" (it cannot train here: no known way leads to grass)" if before_fight and cannot_train
+                          else ""))
+                if not fainted and (trainee_low is not None or worn is not None):
+                    # (round 2) the raise's own reason to rest, said: the trainee under its floor, or its partner worn
+                    why = (f"{self._raise_name(look, bp_plan)} is {trainee_low}" if trainee_low is not None else worn)
+                    why += f" (the party at {share:.0%} of its HP)"
+                potion = self._potion_goal(look, world, milestone, bp_plan, trainee_low, worn, fainted, share)
+                if potion is not None:
+                    return potion
+                town_key, town = ((world.current, here_const) if here_const and OUTDOOR.match(here_const)
+                                  and not here_const.startswith("ROUTE") else (None, None))
+                if town is None and topup:
+                    # (chapter 6 stops round 7, the round-6 verifier's VR6-4) a TOP-UP that starts INSIDE a building of a
+                    # town (its gym) looks for that town's centre as it would outdoors: the town its door leads to
+                    # (`_building_town`). Before, the look needed an outdoor town map, so in DEWFORD's gym, knowing only
+                    # an unreachable centre, it neither looked nor healed. Only the top-up: a heal for the party's own
+                    # state from a building keeps the nearest centre it knows (Round5HealTests r2, chapters 1-5)
+                    town_key, town = self._building_town(world)
+                if (known is not None and town is not None and self._place_key(world, known) not in (None, town_key)
+                        and town_key not in self.memory.center_looked
                         # (the graded sweep on 701-720, seed 706: a look round of PETALBURG did not pass its centre, and
                         # the AI took the town for one with none) only a town SEEN ALL OF (nothing left to see there) and
                         # looked round has no centre to look for
-                        and not (world.current in self.memory.explored and world.promise(world.current) <= 0)):
+                        and not (town_key in self.memory.explored and world.promise(town_key) <= 0)):
                     # (build step 5.1, the verifier's second round: CH2T, hurt on arriving in PETALBURG CITY, walked back
                     # to OLDALE's centre, the one it knew) in a TOWN whose own centre it has not seen, a person looks for
                     # it here first (a town has one), once; then the nearest it knows
-                    self.memory.center_looked.add(world.current)
+                    self.memory.center_looked.add(town_key)
+                    back = (f"before walking back to {where[3]}" if where is not None else
+                            f"first: no known way leads back to {known[3]}")
+                    here_said = "here" if town_key == world.current else f"in {town}, out of this building,"
                     return Goal("find_center", f"{why}: it has not seen {town}'s POKéMON CENTER yet; a town has one, so it "
-                                               f"looks here before walking back to {where[3]}", milestone.id, map=town,
-                                via=world.current, key=f"find_center:{world.current}")
+                                               f"looks {here_said} {back}", milestone.id, map=town,
+                                via=town_key, key=f"find_center:{town_key}")
                 allowed = self._allowed(f"heal:{where[0]}") if where is not None else False
                 retries = self.memory.danger_again.get(f"heal:{where[0]}", 0) if where is not None else 0
                 if where is not None and (allowed or (must_rest and retries < DANGER_RETRIES)):
@@ -1273,7 +1592,8 @@ class GoalManager:
         # set, a flag no player sees): a mart whose list had no POKé BALLS is tried again only once the story moved on
         balls = look.bag.ball_total if look.bag is not None else 0
         money = look.progress.money if look.progress is not None else 0
-        if has_party and balls < errands.balls_low and money >= BALL_PRICE * min(errands.balls_buy, 5):
+        if (has_party and balls < errands.balls_low and money >= BALL_PRICE * min(errands.balls_buy, 5)
+                and not story_here):
             where = self._mart_place(world, index)
             if where is not None and self._allowed(f"shop:{where[0]}"):
                 return Goal("shop", f"{balls} POKé BALLS left (fewer than {errands.balls_low}) and {money} money: "
@@ -1326,20 +1646,39 @@ class GoalManager:
             self.memory.passed_new += 1
             self._say(f"[AI-GOALS] a new place, {here_const}: it goes on without looking round (draw {draw:.2f} >= "
                       f"{odds:.2f}, {odds_why}; {self.memory.passed_new} in a row)")
+        # 5a. (boss preparation BP-1, spec section 3.1) RAISE the plan's trainee for the next leader: in the place of step 5,
+        # never while hurt, NOT tied to `fight_next` (the plan is made where the grass is, before the trip to the gym);
+        # and on the leader's own gym map, with the raise done, the trainee is put back in the lead first
+        if bp_plan is not None and not hurt:
+            raised = self._raise_goal(look, world, bp_plan)
+            if raised is not None:
+                return raised
+            relead = self._lead_goal(look, here_const, bp_plan)
+            if relead is not None:
+                return relead
+        # (round 2, V-m5 E1 and E3) at step 5a's place on EVERY decision, whatever the plan: a plan that ended (spent before
+        # its boss, or its boss beaten) gives the lead back as it was before the plan, after a re-judge; nothing to do (no
+        # record, chapters 1-5) is None at once
+        settle = self._settle_goal(look, index) if has_party and not hurt else None
+        if settle is not None:
+            return settle
         # 5. TRAIN before a fight it KNOWS of (never while hurt: a person heals first, and a roam begun hurt stops at its first
-        # battle, `training_rest`, burning a session of `TRAIN_SESSIONS` for nothing: step5dev7, seed 3, six in a row)
-        if fight_next and not self.train_off and not hurt:
+        # battle, `training_rest`, burning a session of `TRAIN_SESSIONS` for nothing: step5dev7, seed 3, six in a row).
+        # (BP-1, m11: ONE budget) never while a raise plan is active for this very fight
+        if fight_next and not self.train_off and not hurt and not self.raising_for(milestone.id):
             prep = self.prep(milestone)
             target = self.training_target(levels)
             level = strongest_level(look)
             short = level < target or prep["steps"] < errands.train_min_steps
-            if short and prep["sessions"] < TRAIN_SESSIONS and self._allowed("train"):
+            # (chapter 7 NS4, 2026-11-06) never toward grass no known way leads to (`grass_target`: no link, no ride)
+            out_of_reach = short and grass_target(world, milestone.maps)[0] == "out of reach"
+            if short and prep["sessions"] < TRAIN_SESSIONS and self._allowed("train") and not out_of_reach:
                 why = (f"the next fight ({milestone.title}) has levels {list(levels)} ({levels_from}): its strongest "
                        f"Pokemon is L{level}, the {self.state.active}'s target L{target}; {prep['steps']} of at least "
                        f"{errands.train_min_steps} training steps roamed in {prep['sessions']} of at most "
                        f"{TRAIN_SESSIONS} sessions")
                 return Goal("train", why, milestone.id, steps=errands.train_session, key="train")
-            if not prep["ready"]:
+            if not prep["ready"] and not (out_of_reach and prep["sessions"] < TRAIN_SESSIONS):
                 prep["ready"] = True
                 prep["why_ready"] = ("trained" if not short else f"{TRAIN_SESSIONS} sessions roamed: no endless grind"
                                      if prep["sessions"] >= TRAIN_SESSIONS else "training put aside for a while")
@@ -1568,6 +1907,9 @@ class GoalManager:
         """Why the AI may head for this step's map, as a reason says it: the page it READ that says the step's own words
         (the most recent: never the milestone's stored line, the step-5 verifier's round 2), or a place it has been."""
         page = heard_page(world.heard, step.told, self.memory.pages) if step.told else None
+        if page is None and step.told and self.knows_gym(step, world):
+            # (chapter 7 NS4) the leader it waits to hear of is one it KNOWS: it has been inside their gym
+            return f"it knows {step.told} holds {step.map} (a seasoned player's knowledge) and it has been inside it"
         return f"the game said: {quote(page, step.told)!r}" if page is not None else "a place it has been to; nothing was said"
 
     # ------------------------------------------------------------------ the fight ahead
@@ -1687,11 +2029,13 @@ class GoalManager:
             return f"it saw MOM heal the party ({self.memory.home_heals} time(s))"
         return None
 
-    def _nearest_place(self, world, suffix: str, landmark: str, name: str, keep=lambda const: True) -> tuple | None:
+    def _nearest_place(self, world, suffix: str, landmark: str, name: str, keep=lambda const: True,
+                       reachable: bool = False) -> tuple | None:
         """(build step 5.1, the verifier's second round: CH2T walked back to OLDALE's centre and mart, the ones it had been
         IN, past PETALBURG's, whose doors it had seen) The NEAREST place of a kind by the known way (`world_distance`): one
         it has been in (`suffix`) or one whose door it has SEEN (`landmark`), the one it has been in on a tie; `keep`
-        filters by the interior's map constant. Step 5 took any place it had been in before any door it had seen."""
+        filters by the interior's map constant. Step 5 took any place it had been in before any door it had seen.
+        (chapter 7 NS4, 2026-11-06) `reachable` (the SHOP): only a place a known way leads to (`UNREACHABLE`)."""
         options = []
         for const, source in self._known_interiors(world, suffix):
             if keep(const):
@@ -1707,6 +2051,11 @@ class GoalManager:
                 continue  # its inside is known already: that is the same place
             options.append((world_distance(world, key), 1, const,
                             (const, key, tile, f"the {name} door it saw on {world.maps[key].const} at {tile}")))
+        # (chapter 7 NS4, 2026-11-06) a MART no known way leads to from here (`world_distance` 99: no link, no ride) is no
+        # place to go: probe7 C1, on the island with no way back known, chose 7 shop errands for the mainland's marts. (A
+        # HEAL keeps every place it knows: a party in danger tries the nearest it knows, as before)
+        if reachable:
+            options = [option for option in options if option[0] < UNREACHABLE]
         return min(options, key=lambda option: option[:3])[3] if options else None
 
     def _place_key(self, world, where: tuple) -> str | None:
@@ -1716,6 +2065,27 @@ class GoalManager:
             return where[1]
         return next((source for const, source in self._known_interiors(world, CENTER_SUFFIX)
                      + self._known_interiors(world, MART_SUFFIX) if const == where[0]), None)
+
+    @staticmethod
+    def _building_town(world) -> tuple[str | None, str | None]:
+        """(chapter 6 stops round 7, VR6-4) The TOWN of the building the player is in, as (its map key, its map const): the
+        town a known way out of this map leads to (the world memory's warps and edges: the door it came in by), else, for a
+        GYM, the town its name carries (static map data, `door_of`'s rule: "DEWFORD_TOWN_GYM" is DEWFORD_TOWN's) when the AI
+        knows that town's map. (None, None) outdoors, or for a building whose town it does not know."""
+        here = world.here()
+        if here is None or not here.const or open_way(here.const):
+            return None, None
+        for kind, link in world.links_from(world.current):
+            key = link.get("to") if kind == "warp" else link.get("target")
+            memory = world.maps.get(key)
+            if memory is not None and memory.const and OUTDOOR.match(memory.const) and not memory.const.startswith("ROUTE"):
+                return key, memory.const
+        if is_gym(here.const):
+            name = here.const[: -len(GYM_SUFFIX) - 1]
+            keys = sorted(key for key, memory in world.maps.items() if memory.const == name)
+            if keys:
+                return keys[0], name
+        return None, None
 
     def center_seen_on(self, key: str | None) -> bool:
         """(build step 5.1, the verifier's second round) A POKéMON CENTER's door seen on map `key`."""
@@ -1732,20 +2102,26 @@ class GoalManager:
                        if kind == "gym" and key in world.maps and world.maps[key].const == town)
         return doors[0] if doors else None
 
-    def heal_place(self, world) -> tuple | None:
+    def heal_place(self, world, reachable: bool = False) -> tuple | None:
         """Where it would heal: (the map to be in, the map key of a door seen but never used or None, that door or None,
         how it knows): the NEAREST centre it has been in or whose door it has seen (`_nearest_place`; build step 5.1);
-        home, once it KNOWS MOM heals (`home_heals`), when no centre is known."""
+        home, once it KNOWS MOM heals (`home_heals`), when no centre is known. (Chapter 6 stops round 5, VR4-2)
+        `reachable` (V3-1's TOP-UP before a fight where it cannot train, the party neither in danger nor under its heal
+        line): only a place a known way leads to, as the SHOP (`_nearest_place`); home too only when a known way leads
+        there; else None (no heal)."""
         here = world.here()
         if here is not None and (here.const or "").endswith(CENTER_SUFFIX):
             return here.const, None, None, "in a POKéMON CENTER: the nurse"
-        nearest = self._nearest_place(world, CENTER_SUFFIX, "pokemon_center", "POKéMON CENTER")
+        nearest = self._nearest_place(world, CENTER_SUFFIX, "pokemon_center", "POKéMON CENTER", reachable=reachable)
         if nearest is not None:
             return nearest
         why = self.home_heals(world)
         if why is not None:
             home = self.story.resolve("<player_house_1f>")
-            if any(memory.const == home for memory in world.maps.values()):
+            homes = [key for key, memory in world.maps.items() if memory.const == home]
+            if reachable and homes and min(world_distance(world, key) for key in homes) >= UNREACHABLE:
+                return None  # (round 5, VR4-2) a top-up does not head home when no known way leads there
+            if homes:
                 return home, None, None, f"no POKéMON CENTER known yet: home, where MOM heals ({why})"
         return None
 
@@ -1760,12 +2136,463 @@ class GoalManager:
         if here is not None and (here.const or "").endswith(MART_SUFFIX) and stocked(here.const):
             return here.const, None, None, "in a MART"
         # (build step 5.1, the verifier's second round) the NEAREST stocked mart, been in or its door seen
-        return self._nearest_place(world, MART_SUFFIX, "mart", "MART", keep=stocked)
+        return self._nearest_place(world, MART_SUFFIX, "mart", "MART", keep=stocked, reachable=True)
 
     # ------------------------------------------------------------------ bookkeeping
     def prep(self, milestone: Milestone) -> dict:
         return self.memory.fight_prep.setdefault(milestone.id, {"steps": 0, "sessions": 0, "wild": 0, "won": 0,
                                                                 "rests": 0, "ready": False})
+
+    # ------------------------------------------------------------------ (BP-1) boss preparation
+    def bp_record(self, milestone_id: str | None) -> dict | None:
+        """The boss-preparation record of the fight `milestone_id` (`fight_prep[...]["bp"]`, game memory: a continue keeps
+        it), or None."""
+        prep = self.memory.fight_prep.get(milestone_id or "")
+        return prep.get("bp") if prep else None
+
+    def raising_for(self, milestone_id: str) -> bool:
+        """(m11) A raise plan is ACTIVE for this fight: its step-5 training is not chosen (one budget per boss)."""
+        record = self.bp_record(milestone_id)
+        return record is not None and record.get("status") == "active"
+
+    def boss_prep(self, look: Observation, index: int) -> tuple | None:
+        """(BP-1, spec sections 1 and 1.6) The readiness verdict for the NEXT gym leader (`next_boss`), run when
+        the party's signature (PID, species, level, max HP, moves) or the boss changed since the last run, and logged
+        (`[AI-BOSSPREP]`); no RNG drawn but the plan's own draw (`bossprep_rng`). For a leader in `ACT_ON` only:
+        a NOT READY verdict with no plan yet makes ONE plan (Story, Catcher: `active`; Trainer: `logged`, the in-run
+        control), stored once (m10); an active plan whose trainee reached its target is re-judged (READY or CLOSE: done;
+        else the target one higher). Returns (the boss milestone id, the leader's name, its gym, the record) for a leader
+        in ACT_ON, else None."""
+        found = next_boss(self.story.milestones, index)
+        if found is None:
+            self.bp_boss = None
+            return None
+        boss_ms, name = found
+        gym = gym_leaders().get(name)
+        self.bp_boss = (boss_ms.id, name, gym)
+        party = members_of(look)
+        team = boss_party(name)
+        if not party or not team:
+            return None
+        # acted on only for a leader in ACT_ON whose fight is the NEXT NAMED FIGHT ahead: in chapter 5 the rival's fight
+        # (`ch5_rival_meet`) comes first, so BRAWLY's plan waits for chapter 6 and chapters 1-5 play exactly as before
+        # (the spec's scope guard, section 0: "chapters 1-5 unchanged by construction"; its "next boss" alone looks
+        # past the rival)
+        named = next((m for m in self.story.milestones[max(0, index):] if not m.optional and m.fight_named), None)
+        acts = name in ACT_ON and named is boss_ms
+        record = self.prep(boss_ms).setdefault("bp", new_record()) if acts else None
+        if record is not None and record.get("boss") is None:
+            record["boss"] = name  # (round 2) who the record is for: a plan settled after its boss is beaten (E3)
+        # the run's BASE personality decides the plan and its budget (round 2, V-m3: the active one drifts mid-raise, 6379;
+        # FAULT `base_to_active`)
+        personality = self.state.active if self.bp_faults.base_to_active else self.state.base
+        signature = (name, tuple((m.pid, m.species, m.level, m.max_hp, m.moves) for m in party))
+        if signature != self._bp_seen:
+            self._bp_seen = signature
+            self._judge(boss_ms.id, name, party, team, personality, record)
+        return (boss_ms.id, name, gym, record) if acts else None
+
+    def _judge(self, boss_id: str, name: str, party: list, team, personality: str, record: dict | None) -> None:
+        """One verdict run (`boss_prep`): logged; the plan made or re-judged for a leader in ACT_ON."""
+        active = record is not None and record["status"] == "active"
+        lead = record["trainee"] if active else party[0].pid
+        verdict = judge_party(party, lead, team, personality)
+        self._say(f"[AI-BOSSPREP] {name} ({boss_id}): team {team_line(team)}; party "
+                  f"{described(party)}; verdict for the {personality}: {verdict.line()}"
+                  + (f"; plan {record['plan'] or '-'} ({record['status']})" if record is not None else
+                     " (not acted on in BP-1: logged)"))
+        if record is None:
+            return
+        if active:
+            trainee = next((m for m in party if m.pid == record["trainee"]), None)
+            if trainee is None:
+                spend(record, "the trainee is no longer in the party")
+                self._say(f"[AI-BOSSPREP] {name}: the trainee {record['trainee']:08x} is no longer in the party: the plan "
+                          f"is given up")
+            elif trainee.level >= record["target"]:
+                if verdict.cls in (READY, CLOSE):
+                    record["status"] = "done"
+                    self._say(f"[AI-BOSSPREP] {name}: the trainee {trainee.species} reached L{trainee.level} (target "
+                              f"{record['target']}): {verdict.cls}: the raise is done")
+                else:
+                    record.update(with_target(record, record["target"] + 1))
+                    self._say(f"[AI-BOSSPREP] {name}: the trainee {trainee.species} reached L{trainee.level} and the "
+                              f"verdict still reads NOT READY: the target is now L{record['target']} (within the budget)")
+            return
+        if record["status"] != "none" or verdict.cls != NOT_READY:
+            return
+        self._plan(name, party, team, personality, record)
+
+    def _plan(self, name: str, party: list, team, personality: str, record: dict) -> None:
+        """Make the ONE plan (spec section 1.6): the options, one draw among the near-best from `bossprep_rng`."""
+        found, said = raise_options(party, team, personality)
+        rng = self.bossprep_rng if self.bossprep_rng is not None else random.Random(0)
+        choice, how = choose_plan(rng, near_best(personality), found, record["failed"])
+        self._say(f"[AI-BOSSPREP] {name}: options "
+                  f"{[f'{o.species} L{o.level} -> L{o.target} ({o.projected}, cost {o.cost}, left {o.party_left:.2f})' for o in found]}"
+                  f"; {'; '.join(said) or 'every member has one'}")
+        if choice is None:
+            self._say(f"[AI-BOSSPREP] {name}: no plan ({how}): it fights as it is")
+            return
+        record.update(plan=choice.plan, trainee=choice.pid, target=choice.target)
+        record["status"] = "active" if personality in ACTING else "logged"
+        self._say(f"[AI-BOSSPREP] {name}: the plan: raise {choice.species} ({choice.pid:08x}) from L{choice.level} to "
+                  f"L{choice.target} as the one who leads ({choice.projected}); {how}; "
+                  + ("it acts on it" if record["status"] == "active" else
+                     f"the {personality} only logs it (it trains as it always has)"))
+
+    def raise_maps(self, world, cap: int) -> list[str]:
+        """(round 2, spec section 2.5, BP1-L1) Where to raise, RANKED: among the maps it has visited with grass of their own
+        and a known way there, whose wild land levels a guide lists (`knowledge/seasoned.py` land_levels), first those
+        whose top level is at most `cap` (the strongest map the party's knock-out Pokemon clears with room to spare), by
+        the highest top (higher-level foes give more experience: the RULE a seasoned player knows, never a yield), then the
+        nearer, then the name; then every other one by the lowest top. [] when none is."""
+        found = []
+        for key, memory in world.maps.items():
+            if not (memory.visits and memory.const and inside_grass(memory)):
+                continue
+            levels = land_levels(memory.const)
+            if levels is None:
+                continue
+            distance = world_distance(world, key)
+            if distance >= UNREACHABLE:
+                continue
+            found.append((levels[1], distance, memory.const))
+        fit = sorted((item for item in found if item[0] <= cap), key=lambda item: (-item[0], item[1], item[2]))
+        rest = sorted((item for item in found if item[0] > cap), key=lambda item: (item[0], item[1], item[2]))
+        out: list[str] = []
+        for item in fit + rest:
+            if item[2] not in out:
+                out.append(item[2])
+        return out
+
+    def raise_cap(self, look: Observation, trainee) -> tuple[int, str]:
+        """(round 2, spec section 2.5) The raise map's cap and why: the stronger of the trainee and its partner (the
+        strongest other member by (level, max HP), no eggs) less `PARTNER_MARGIN`; the trainee's level counts only when it
+        is the stronger (a strong trainee fights its own battles). FAULT `map_by_trainee`: BP-1's rule (the trainee + 2)."""
+        if self.bp_faults.map_by_trainee:
+            return trainee.level + 2, f"FAULT map_by_trainee: the trainee's L{trainee.level} + 2"
+        others = [m for m in look.party or () if not m.is_egg and m.pid != trainee.pid]
+        partner = max(others, key=lambda m: (m.level, m.max_hp), default=None)
+        top = max(trainee.level, partner.level if partner is not None else 0)
+        who = (f"its {partner.species} L{partner.level}" if partner is not None and partner.level > trainee.level
+               else f"the trainee's own L{trainee.level}")
+        return top - PARTNER_MARGIN, f"{who} less {PARTNER_MARGIN}"
+
+    def _trainee_low(self, look: Observation, bp_plan: tuple | None) -> str | None:
+        """(round 2, spec section 2.4, V-M1) "fainted" or "low (<hp>/<max>)" when the plan's record is ACTIVE, its trainee
+        is in the party, and its HP is 0 or under `TRAINEE_FLOOR` of its max; (round 4, V3-m3, the lead's E5) "out of PP"
+        when every move it has that hurts is at 0 PP (`bossprep.out_of_pp`: a heal at a POKéMON CENTER restores PP; a
+        Potion does not, so `_potion_goal` takes only "low"); None otherwise (always in chapters 1-5). FAULT `pp_ignored`:
+        PP not asked (round 3)."""
+        record = bp_plan[3] if bp_plan is not None else None
+        if record is None or record.get("status") != "active":
+            return None
+        trainee = next((m for m in look.party or () if m.pid == record.get("trainee") and not m.is_egg), None)
+        if trainee is None:
+            return None
+        if trainee.hp <= 0:
+            return "fainted"
+        if trainee.hp < trainee.max_hp * TRAINEE_FLOOR:
+            return f"low ({trainee.hp}/{trainee.max_hp})"
+        if not self.bp_faults.pp_ignored and out_of_pp(member_now(look, trainee.pid)):
+            return "out of PP (no PP left in any move that hurts)"
+        return None
+
+    def _partner_worn(self, look: Observation, bp_plan: tuple | None, world=None) -> str | None:
+        """(round 2, the builder's addition) An ACTIVE plan's knock-out partner fainted or (round 3, V2-M1) not a partner
+        against the wild Pokemon of the map the next raise goes to (`_raise_place`; `bossprep.partner_worn`): no member
+        could then take the trainee's place and the raise battle would be run from. (Round 4, E1) never on a map where it
+        fails the line even healed: the trainee raises there by its own fights only (`mode_on`)."""
+        record = bp_plan[3] if bp_plan is not None else None
+        if record is None or record.get("status") != "active" or record.get("trainee") is None:
+            return None
+        place = self._raise_place(look, world, record) if world is not None else None
+        return partner_worn(look, int(record["trainee"]), self.bp_faults, place)
+
+    def _raise_key(self, place: str) -> str:
+        """(BP1-L2) A raise map's own cooldown key. FAULT `one_raise_key`: one key for every map."""
+        return "raise" if self.bp_faults.one_raise_key else f"raise:{place}"
+
+    def _raise_place(self, look: Observation, world, record: dict) -> str | None:
+        """(round 3) The map the next raise session goes to, as `_raise_goal` chooses it, or None. (Round 4, the round-3
+        verifier's V3-m4 and the lead's E6) THE SAME choice, `_raise_choice`, for both: round 3 repeated the rule here, and
+        a mutant that let this copy ignore a map put aside left every test green."""
+        choice = self._raise_choice(look, world, record)
+        return choice[0] if choice is not None else None
+
+    def mode_on(self, look: Observation, place: str | None, trainee: int) -> tuple[str, str]:
+        """(round 4, the round-3 verifier's V3-M1; the lead's design E1) HOW the trainee is raised on `place`: "mix" (USER
+        RULING 59's mix: switch-training to the knock-out partner, its own winnable fights, and the party resting when the
+        partner is worn) when the partner, HEALED, is a partner against every wild Pokemon of that map
+        (`bossprep.partner_line_full`), or when there is no knock-out partner (a strong trainee fights its own battles);
+        "own" (its own winnable fights ONLY: no switch-training, and no rest for the partner) when the partner fails the
+        line there even healed: no heal could make it fit, so a rest for it would never end (the heal loop). Returns (mode,
+        why). FAULT `partner_full_unchecked`: always "mix" (round 3)."""
+        if self.bp_faults.partner_full_unchecked:
+            return "mix", "FAULT partner_full_unchecked"
+        healed = partner_line_full(look, trainee, place, self.bp_faults)
+        if healed is None or healed[0]:
+            return "mix", "its knock-out partner is fit there once healed" if healed is not None else "no knock-out partner"
+        partner = raise_partner_of(look.party, trainee)
+        return "own", (f"its knock-out Pokemon {partner.species} L{partner.level} is no partner on {place} even healed "
+                       f"({healed[1]}): its own winnable fights only")
+
+    def _raise_choice(self, look: Observation, world, record: dict) -> tuple | None:
+        """(round 4, E1 and E6) WHERE and HOW the next raise session goes, the ONE rule `_raise_goal` and `_raise_place`
+        both read: among the ranked maps (`raise_maps`, under the partner's cap first) that are not put aside, the first
+        map UNDER THE CAP where the healed partner is fit (`mode_on` "mix"); with none, the first map not put aside, in
+        "own" mode (the trainee's own winnable fights only). Returns (place, mode, why, maps, cap, cap_why), or None when the
+        trainee is not in the party or every map is put aside."""
+        trainee = next((m for m in look.party or () if m.pid == record.get("trainee")), None)
+        if trainee is None:
+            return None
+        cap, cap_why = self.raise_cap(look, trainee)
+        maps = self.raise_maps(world, cap)
+        allowed = [place for place in maps if self._allowed(self._raise_key(place))]
+        if not allowed:
+            return None
+        for place in allowed:
+            levels = land_levels(place)
+            if levels is None or levels[1] > cap:
+                continue
+            mode, why = self.mode_on(look, place, trainee.pid)
+            if mode == "mix":
+                return place, mode, why, maps, cap, cap_why
+        mode, why = self.mode_on(look, allowed[0], trainee.pid)
+        return allowed[0], mode, why, maps, cap, cap_why
+
+    def _plan_spent(self, look: Observation, world, record: dict, personality: str) -> str | None:
+        """(round 4, E1) Why an ACTIVE plan is SPENT now, or None: the first bound of its one budget reached
+        (`spent_reason`, M5), or no grass within reach to raise on. Read by the decision BEFORE any rest
+        (`_spend_if_over`) and, as before, by `_raise_goal`."""
+        spent = spent_reason(record, personality)
+        if spent is not None:
+            return spent
+        trainee = next((m for m in look.party or () if m.pid == record.get("trainee")), None)
+        if trainee is not None and not self.raise_maps(world, self.raise_cap(look, trainee)[0]):
+            return "no grass within reach for the raise"
+        return None
+
+    def _spend_if_over(self, look: Observation, world, plan: tuple) -> None:
+        """(round 4, the round-3 verifier's V3-M1; the lead's design E1) An ACTIVE plan over its budget is spent at the
+        START of the decision, before the heal step: a spent plan never heals for the plan (round 3 checked the budget only
+        in `_raise_goal`, after the heal step; with the partner failing its line even at full HP every decision was a heal
+        and the budget was never read: frames at 10**7, still active)."""
+        _boss_id, name, _gym, record = plan
+        if record is None or record.get("status") != "active":
+            return
+        personality = self.state.active if self.bp_faults.base_to_active else self.state.base
+        spent = self._plan_spent(look, world, record, personality)
+        if spent is not None:
+            self._spend(record, name, spent)
+
+    @staticmethod
+    def _raise_name(look: Observation, bp_plan: tuple | None) -> str:
+        record = bp_plan[3] if bp_plan is not None else None
+        trainee = next((m for m in look.party or () if record is not None and m.pid == record.get("trainee")), None)
+        return f"the raise's trainee {trainee.species} L{trainee.level}" if trainee is not None else "the raise's trainee"
+
+    def _potion_goal(self, look: Observation, world, milestone: Milestone, bp_plan: tuple | None, trainee_low: str | None,
+                     worn: str | None, fainted: bool, share: float) -> Goal | None:
+        """(round 2, spec section 2.4 point 4, USER RULING 59) A POTION on the spot for the raise's trainee, when ALL hold:
+        (a) it is LOW, not fainted (a Potion revives nothing); (b) nothing else needs the heal (no other member fainted,
+        the strongest not in danger, the party at its heal line or above, the partner not worn: Potions are for the
+        trainee alone); (c) the nearest heal place it can get to is NOT near (more than `CENTRE_NEAR_LINKS` known links,
+        or none); (d) the bag holds a `FIELD_POTIONS` item; (e) the potion goal is not put aside. Otherwise None and the
+        heal step's own goal stands (a centre when one is near, the trainee fainted, or the bag holds nothing). FAULTS
+        `potion_always` (c ignored), `centre_always` (never), `potion_revives` (a ignored)."""
+        faults = self.bp_faults
+        if trainee_low is None or faults.centre_always:
+            return None
+        if not trainee_low.startswith("low") and not (faults.potion_revives and trainee_low == "fainted"):
+            return None
+        boss_id, _name, _gym, record = bp_plan
+        trainee_pid = int(record["trainee"])
+        others_fainted = any(m.hp <= 0 for m in look.party or () if not m.is_egg and m.pid != trainee_pid)
+        if (others_fainted or (fainted and not faults.potion_revives) or needs_rest(look.party) is not None
+                or share < self.state.errands.heal_below or worn is not None):
+            return None
+        where = self.heal_place(world, reachable=True)
+        key = self._place_key(world, where) if where is not None else None
+        links = world_distance(world, key) if key is not None else UNREACHABLE
+        near = where is not None and key is not None and links <= CENTRE_NEAR_LINKS
+        if near and not faults.potion_always:
+            return None
+        items = [(name, count) for name, count in (look.bag.healing if look.bag is not None else ())
+                 if count > 0 and name in FIELD_POTIONS]
+        if not items or not self._allowed("potion"):
+            return None
+        trainee = next(m for m in look.party or () if m.pid == trainee_pid)
+        place = (f"the nearest POKéMON CENTER it can get to is {links} links away" if where is not None and key is not None
+                 else "it knows no POKéMON CENTER it can get to")
+        return Goal("potion", f"{trainee.species} is low ({trainee.hp}/{trainee.max_hp}) and {place}: a "
+                              f"{sorted(items, key=lambda i: FIELD_POTIONS.index(i[0]))[0][0]} here", boss_id,
+                    key="potion", pid=trainee_pid)
+
+    def _raise_goal(self, look: Observation, world, plan: tuple) -> Goal | None:
+        """(BP-1; round 2) The RAISE goal while the plan is active (spec section 3.1), or None; the budget spent (M5) or no
+        grass within reach ends the plan ("spent": `spend`, the boss is then fought as today). (Round 2, V-M1's second
+        guard) never begun with the trainee under its floor (or its partner worn), even when no heal goal could be made:
+        "the raise waits". (BP1-L1, BP1-L2) the map from `raise_maps` under the partner's cap, one cooldown key a map
+        (`raise:<map>`): a map that fails twice is put aside and the next one tried; every one put aside: the raise waits
+        (counted nowhere). FAULTS `raise_guard_off`, `one_raise_key`. (Round 4, E1 and E6) the map and the MODE from
+        `_raise_choice`, the one rule `_raise_place` reads too: a map where the healed knock-out partner fails its line is
+        no switch-training map ("own": the trainee's own winnable fights only), said in the goal's reason."""
+        boss_id, name, _gym, record = plan
+        if record is None or record["status"] != "active":
+            return None
+        personality = self.state.active if self.bp_faults.base_to_active else self.state.base
+        trainee = next((m for m in look.party or () if m.pid == record["trainee"]), None)
+        spent = self._plan_spent(look, world, record, personality) if trainee is not None else spent_reason(record,
+                                                                                                             personality)
+        if spent is None and trainee is None:
+            spent = "no grass within reach for the raise"
+        if spent is not None:
+            self._spend(record, name, spent)
+            return None
+        low = self._trainee_low(look, plan) or self._partner_worn(look, plan, world)
+        if low is not None and not self.bp_faults.raise_guard_off:
+            self._say(f"[AI-BOSSPREP] {name}: the raise waits: the trainee is low ({low})")
+            return None
+        choice = self._raise_choice(look, world, record)
+        if choice is None:
+            cap, _ = self.raise_cap(look, trainee)
+            self._say(f"[AI-BOSSPREP] {name}: the raise waits: every raise map is put aside for now "
+                      f"({self.raise_maps(world, cap)})")
+            return None
+        where, mode, mode_why, _maps, cap, cap_why = choice
+        levels = land_levels(where)
+        how = "" if mode == "mix" else f"; OWN FIGHTS ONLY: {mode_why}"
+        return Goal("raise", f"the plan for {name}: raise {trainee.species} L{trainee.level} ({trainee.pid:08x}) to "
+                             f"L{record['target']}, leading, on {where} (wild L{levels[0]}-{levels[1]}; the cap L{cap}: "
+                             f"{cap_why}){how}; {record['battles']} battles, {record['frames']} frames, "
+                             f"{record['sessions']} sessions so far",
+                    boss_id, map=where, steps=self.state.errands.train_session, key=self._raise_key(where))
+
+    def _spend(self, record: dict, name: str, why: str) -> None:
+        """(round 2, E1) The plan SPENT (`bossprep.spend`: its lead left to settle), said."""
+        spend(record, why)
+        self._say(f"[AI-BOSSPREP] {name}: the raise ends, budget spent ({why}): no endless grind; it fights as it is")
+
+    def _lead_goal(self, look: Observation, here_const: str | None, plan: tuple) -> Goal | None:
+        """(spec section 3.1) On the leader's own gym map with the raise DONE: the trainee back in the lead (a battle can
+        leave the order changed), when it is not first and has HP. (Round 2, V-m5 E2) bounded: none once the plan's
+        `reorder_fails` reached its budget, `relead_fails` reached `RELEAD_FAILS_MAX`, or `leads` reached `LEADS_MAX` (the
+        verifier's V4: with `reorder_fails` at 99 it still made one). FAULTS `lead_ignores_budget`, `relead_unbounded`."""
+        boss_id, name, gym, record = plan
+        if record is None or record["status"] != "done" or here_const != gym or not self._allowed("lead"):
+            return None
+        faults = self.bp_faults
+        bounds = BUDGET.get(self.state.base) or BUDGET["Story"]
+        if not faults.lead_ignores_budget and (record.get("reorder_fails", 0) >= bounds["reorder_fails"]
+                                               or record.get("leads", 0) >= LEADS_MAX):
+            return None
+        if not faults.relead_unbounded and not faults.lead_ignores_budget and record.get("relead_fails", 0) >= RELEAD_FAILS_MAX:
+            return None
+        party = [m for m in look.party or () if not m.is_egg]
+        trainee = next((m for m in party if m.pid == record["trainee"]), None)
+        if trainee is None or trainee.hp <= 0 or not party or party[0].pid == trainee.pid:
+            return None
+        return Goal("lead", f"before {name}: its raised {trainee.species} L{trainee.level} ({trainee.pid:08x}) leads, as "
+                            f"the plan judged", boss_id, key="lead", pid=trainee.pid)
+
+    def _settle_goal(self, look: Observation, index: int) -> Goal | None:
+        """(round 2, spec section 3, V-m5) The LEAD when a plan has ENDED, on every decision, whatever the plan now:
+          E1, a plan SPENT before its boss (`settle` pending): the verdict is run with the usual lead (`lead_before`) and
+              with the trainee leading; the trainee is KEPT first only when its verdict is strictly better (the class, then
+              the party's HP left: a counter that fell short may still beat the usual lead on paper), else the usual lead
+              is restored;
+          E3, the boss BEATEN (its milestone behind the story) with the plan done or spent and the trainee still first:
+              the usual lead is restored (`settle_after`): the plan's change ends with the fight it was for.
+        No restore (the settle is "done", no press) when there is no usual lead, it is the trainee, it has left the party
+        or fainted, or the trainee is not first (nothing of the plan's to undo). FAULTS `restore_never`, `restore_always`."""
+        faults = self.bp_faults
+        party = [m for m in look.party or () if not m.is_egg]
+        if not party:
+            return None
+        for boss_id, prep in sorted(self.memory.fight_prep.items()):
+            record = prep.get("bp") if isinstance(prep, dict) else None
+            if not isinstance(record, dict) or record.get("trainee") is None:
+                continue
+            try:
+                behind = self.story.index(boss_id) < index
+            except (KeyError, ValueError):
+                behind = False
+            if record.get("settle") == "pending" and not behind:
+                field, which = "settle", "E1"
+            elif (behind and record.get("status") in ("done", "spent")
+                  and record.get("settle_after", "none") not in ("done", "kept", "gave up")):
+                field, which = "settle_after", "E3"
+            else:
+                continue
+            goal = self._settle_one(look, party, boss_id, record, field, which, faults)
+            if goal is not None:
+                return goal
+        return None
+
+    def _settle_one(self, look: Observation, party: list, boss_id: str, record: dict, field: str, which: str,
+                    faults) -> Goal | None:
+        name = record.get("boss") or boss_id
+        trainee = int(record["trainee"])
+        before = record.get("lead_before")
+        usual = next((m for m in party if before is not None and m.pid == before), None)
+        if faults.restore_never or before is None or before == trainee or usual is None or usual.hp <= 0 \
+                or party[0].pid != trainee:
+            record[field] = "done"
+            self._say(f"[AI-BOSSPREP] {name}: the raise is over ({which}): the lead stays as it is (nothing to restore)")
+            return None
+        if which == "E1" and not faults.restore_always:
+            team = boss_party(name)
+            members = members_of(look)
+            personality = self.state.base
+            if team and members:
+                kept = judge_party(members, trainee, team, personality)
+                usual_verdict = judge_party(members, before, team, personality)
+                if rank_of(kept) > rank_of(usual_verdict):
+                    record[field] = "kept"
+                    self._say(f"[AI-BOSSPREP] {name}: the raise is over ({record.get('spent_why') or 'spent'}): the "
+                              f"trainee stays first: its verdict {kept.cls} ({kept.party_left:.2f}) beats the usual lead's "
+                              f"{usual_verdict.cls} ({usual_verdict.party_left:.2f})")
+                    return None
+        if record.get("relead_fails", 0) >= RELEAD_FAILS_MAX and not faults.relead_unbounded:
+            record[field] = "gave up"
+            return None
+        key = "lead:settle" if field == "settle" else "lead:after"
+        if not self._allowed(key):
+            return None
+        why = record.get("spent_why") or ("the boss is beaten" if which == "E3" else "spent")
+        return Goal("lead", f"{name}: the raise is over ({why}): {usual.species} leads again, as before the plan", boss_id,
+                    key=key, pid=before)
+
+    def boss_lost(self, look: Observation) -> None:
+        """(spec section 3.3, after a loss to the boss) A battle LOST on the boss's gym map: `losses` + 1; a DONE plan was
+        too optimistic: it joins `failed` and ONE new plan is chosen among the options not failed, within the budget left
+        (a raise map is checked when the goal is chosen); otherwise it fights as today. `MAX_LOSSES` stays the run's stop."""
+        if self.bp_boss is None:
+            return
+        boss_id, name, _gym = self.bp_boss
+        record = self.bp_record(boss_id)
+        if record is None:
+            return
+        record["losses"] += 1
+        self._bp_seen = None
+        state = record["status"]
+        self._say(f"[AI-BOSSPREP] {name}: a battle lost on the gym map ({record['losses']} so far; the plan was {state})")
+        if state != "done":
+            return
+        record["failed"].append(record["plan"])
+        party = members_of(look)
+        team = boss_party(name)
+        personality = self.state.base
+        if not party or not team or spent_reason(record, personality) is not None:
+            spend(record, "a loss after the plan was done, and no new plan (budget or party)")
+            self._say(f"[AI-BOSSPREP] {name}: no new plan (budget or party): it fights as it is")
+            return
+        record["status"] = "none"
+        self._plan(name, party, team, personality, record)
+        if record["status"] == "none":
+            spend(record, "a loss after the plan was done, and no other plan")
 
     def _allowed(self, key: str) -> bool:
         return self.memory.cooldown.get(key, -1) <= self.memory.decisions
@@ -1783,6 +2610,122 @@ class GoalManager:
         if fails >= FAIL_LIMIT:
             self.memory.cooldown[goal.key] = self.memory.decisions + COOLDOWN_DECISIONS
             self.memory.fails[goal.key] = 0
+
+
+def in_place(const: str | None, place: str | None) -> bool:
+    """(chapter 6 NS1) Is map `const` the town `place` (a map const) or one of its buildings ("DEWFORD_TOWN_GYM" is in
+    "DEWFORD_TOWN")?"""
+    return bool(const) and bool(place) and (const == place or const.startswith(f"{place}_"))
+
+
+def town_of(const: str | None) -> str | None:
+    """(chapter 6 NS1) The town or city map `const` is in (itself, or the town its name begins with), or None."""
+    towns = [town for town in town_places().values() if in_place(const, town)]
+    return max(towns, key=len) if towns else None
+
+
+class TravelSense:
+    """(chapter 6 NS1 and NS2, 2026-11-06) The play brain's answer to a scene's yes/no (`Navigator.answer`): a question
+    whose words OFFER A TRIP to a named town (`brain/rides.py` trip_offer) is judged the way a person judges it; every
+    other question is answered exactly as before (`skills/story.py` answer_question). A YES to a trip is told to the
+    ride watch (`RideWatch.offered`), which keeps what follows as a RIDE if the trip happens.
+
+    THE RULE (USER RULING 40: the words are on the screen; the story's places are what a seasoned player knows): YES only
+    when the AI's current goal is reached THROUGH the offered place, or cannot be reached from where it stands:
+      0. the RIDE it is taking now (`riding`, `GoalRunner.ride`) offers the trip it is known for: YES;
+      1. its goal (`goal_places`: the map its walk is heading for, or else the maps of the milestone it is playing and of
+         the next one it needs) is the offered town or a building of it: YES (the first sail: "We'll set sail for
+         DEWFORD", with DEWFORD TOWN the next milestone's);
+      2. its goal is where it stands (the map, or the town it is in): NO ("sail back to PETALBURG?" in DEWFORD, with the
+         letter for STEVEN in DEWFORD: probe8 C1 and C2 said YES and sailed off the island, NS1);
+      3. a known way from where it stands to its goal (`brain/explore.py` route_to, the rides counted): YES only when that
+         way's first link is a ride to the offered town; otherwise NO, it knows a way without the trip;
+      4. no known way: YES when nothing is left it could get to from here on any map (`WorldMemory.left_anywhere`, by the
+         region route from where it stands): its goal cannot be reached from here; otherwise NO, it looks round first."""
+
+    def __init__(self, manager: "GoalManager", runner: "GoalRunner", watch: RideWatch | None = None,
+                 visited: Callable[[str], bool] | None = None) -> None:
+        self.manager = manager
+        self.runner = runner
+        self.watch = watch
+        self.visited = visited or (lambda const: False)
+        #: the ride the navigator is taking now (`GoalRunner.ride`), or None
+        self.riding: dict | None = None
+        #: (frame, the offered place, yes, why) of the last trip judged (for the log and the tests)
+        self.last: tuple | None = None
+
+    def answer(self, look: Observation) -> tuple[bool, str]:
+        words = folded(look.screen.text)
+        place = trip_offer(words)
+        if place is None:
+            return answer_question(look)
+        yes, why = self.judge(look, place)
+        self.last = (look.frame, place, yes, why)
+        if yes and self.watch is not None:
+            self.watch.offered(look, place, words)
+        return yes, f"a trip offered to {place} ({words[:60]!r}): {'YES' if yes else 'NO'}, {why}"
+
+    def goal_places(self, look: Observation) -> dict[str, str]:
+        """{map const: why} of what the AI takes for its goal now (the class docstring's rule 1)."""
+        heading = getattr(self.runner, "heading", None)
+        if heading:
+            return {heading: "the map its walk is on its way to"}
+        story = self.manager.story
+        milestone = getattr(self.runner, "milestone_now", None)
+        if milestone is None:
+            milestone = self.manager.milestone(look, self.visited)[1]
+        if milestone is None:
+            return {}
+        out: dict[str, str] = {}
+        index = story.index(milestone.id)
+        following = next((m for m in story.milestones[index + 1:] if not m.optional), None)
+        for owner in (milestone, following):
+            if owner is None:
+                continue
+            consts = list(owner.maps) + [step.map for step in owner.steps if step.map] + [owner.hint_map]
+            for const in consts:
+                if const:
+                    out.setdefault(const, f"the story: {owner.title}")
+        return out
+
+    def judge(self, look: Observation, place: str) -> tuple[bool, str]:
+        """(yes, why) for a trip offered to the town `place` (the class docstring's rules 0-4)."""
+        ride = self.riding
+        if ride is not None and ride.get("place") == place:
+            return True, (f"the ride it is taking toward its goal (it went to {ride.get('to')} for this YES before)")
+        world = self.runner.nav.world
+        goals = self.goal_places(look)
+        if not goals:
+            return True, "it has no goal it could name: a person goes along with what the game asks"
+        there = next((const for const in sorted(goals) if in_place(const, place)), None)
+        if there is not None:
+            return True, f"its goal is there: {there} ({goals[there]})"
+        here = world.here()
+        here_const = here.const if here is not None else None
+        area = town_of(here_const)
+        at_goal = next((const for const in sorted(goals) if const == here_const or (area and in_place(const, area))),
+                       None)
+        if at_goal is not None:
+            return False, f"its goal is here, not there: {at_goal} ({goals[at_goal]}); a person does not leave it behind"
+        nav = self.runner.nav
+        found = nav.where(look) if hasattr(nav, "where") else None
+        if found is not None:
+            memory, at = found
+            walls = map_walls(nav, memory, nav.walls(memory, at)) if hasattr(nav, "walls") else frozenset()
+            route = route_to(world, memory.key, lambda m, key: m is not None and m.const in goals, at, walls)
+            if route is not None:
+                first = route[0]
+                if first[0] == "ride" and first[1].get("place") == place:
+                    return True, f"the way it knows to its goal begins with this trip ({len(route)} link(s))"
+                return False, f"it knows a way to its goal from here without the trip ({len(route)} link(s))"
+            reachable = region_hops(world, memory.key, at, standing_walls(world))
+            left = [key for key, _ in world.left_anywhere() if key in reachable]
+            if not left:
+                return True, "its goal cannot be reached from where it stands: nothing is left it could get to here"
+            names = world.names()
+            return False, (f"its goal ({', '.join(sorted(goals)[:3])}) is not there, and it has not looked round all it "
+                           f"can get to here yet ({', '.join(names.get(key, key) for key in left[:3])})")
+        return False, f"its goal ({', '.join(sorted(goals)[:3])}) is not there"
 
 
 class _BattleClock:
@@ -1861,6 +2804,15 @@ class GoalRunner:
         #: (R1) how a `save` goal is played: the play brain's own save (`mode.py` HandsBrain._save, which owns the memory
         #: file): a generator of the save's outcome; None (no memory file) and no save goal is ever chosen
         self.saver: Callable[[Goal], Generator[None, None, str]] | None = None
+        #: (chapter 6 NS1, 2026-11-06) the map a walk of this runner is on its way to now (`_travel`), and the milestone
+        #: of the goal being played (`pursue`): what the travel answer (`TravelSense`) takes for "its goal"
+        self.heading: str | None = None
+        self.milestone_now: Milestone | None = None
+        #: (chapter 6 NS2) the travel answer that knows which ride is being taken (`ride`); set by the play brain
+        self.travel: TravelSense | None = None
+        #: (chapter 6 stops round 5, VR4-1) how many field menus nobody asked for the AI has backed out of so far
+        #: (`skills/instructed.py` Instructed.backouts); set by the play brain. A talk that backed out of one failed
+        self.backed_out: Callable[[], int] | None = None
 
     def pursue(self, goal: Goal, milestone: Milestone, index: int, current: Callable[[Observation], int]) -> Generator[None, None, tuple[bool, str]]:
         """`_pursue` the goal; (build step 5.1) a person whose Pokemon is HURT keeps out of the tall grass on ANY walk, not
@@ -1875,7 +2827,7 @@ class GoalRunner:
             return outcome.startswith("saved"), outcome
         nav = self.nav
         own = getattr(nav, "grass_cost", None)
-        hurt = (own is not None and goal.kind not in ("train", "catch", "heal")
+        hurt = (own is not None and goal.kind not in ("train", "catch", "heal", "raise")
                 and self.manager.hurt(self.hands.look()))
         if hurt:
             nav.grass_cost = max(own, HURT_GRASS_COST)
@@ -1913,9 +2865,49 @@ class GoalRunner:
         turned_from = len(turned)
         # (build step 5.2, the verifier's round) who speaks in a service talk or a chat is remembered (`notice`)
         self.manager.memory.hearing = goal.kind in HEARD_KINDS
+        self.milestone_now = milestone
+        # (chapter 7 NS3, 2026-11-06) any walk that is not the story's own (an errand, a look round, a go) STOPS when the
+        # one its story's next step names comes into view on that step's map (`story_in_view`): a person carrying a
+        # letter for STEVEN who walks into his room speaks to him (probe7 C2 walked into STEVEN's room on a shop errand
+        # and out again 198 frames later; C1 did it under a go goal that looked round)
+        stops = goal.kind not in OWN_PERSON_KINDS and hasattr(nav, "stop_for")
+        # (chapter 7 stops round 4, V3-3) never a walk that prepares for the fight the story's next step is
+        # (`PREP_WALK_KINDS`): with BRAWLY in view in his gym, a training walk out to the grass goes on
+        if stops and goal.kind in PREP_WALK_KINDS and self.manager.fight_levels(milestone)[0]:
+            stops = False
+        if goal.kind == "raise":
+            stops = False  # (BP-1) a committed raise for the next leader goes on, as a training walk before a known fight
+        if stops:
+            nav.stop_for = lambda look: self.story_in_view(look, milestone)
+        # (BP-1, spec section 3.3) a battle LOST in a goal begun on (or headed for) the next leader's gym map is a loss to
+        # that leader: the boss-preparation record learns it
+        world_now = getattr(nav, "world", None)
+        start = world_now.here() if hasattr(world_now, "here") else None
+        start_const = getattr(start, "const", None)
+        lost_before = battles_lost(getattr(nav, "battle_log", None) or ())
+        # (boss preparation round 2, V-m3, spec section 2.6) a heal, a look for a centre or a potion BEGUN while a raise plan
+        # is active is part of that plan's ONE budget: its frames are counted into the plan's (the first spec's 3.3 intent)
+        plan_record = self._plan_heal_record(goal)
+        plan_began = self.hands.pad.frames if plan_record is not None else 0
         try:
-            return (yield from self._pursue(goal, milestone, index, current))
+            result = yield from self._pursue(goal, milestone, index, current)
+            boss = self.manager.bp_boss
+            if (boss is not None and boss[2] is not None and boss[2] in (start_const, goal.map)
+                    and self.manager.bp_record(boss[0]) is not None
+                    and battles_lost(getattr(nav, "battle_log", None) or ()) > lost_before):
+                # the last look the hands took (no new look: nothing else is told of this check)
+                self.manager.boss_lost(self.hands.last if self.hands.last is not None else self.hands.look())
+            return result
         finally:
+            # (round 4, V3-m2, the lead's E4) the goal's purpose and guard end with it: the battles until the next goal
+            # take the plan's own state (`between_goals`)
+            self.between_goals(goal)
+            if plan_record is not None:
+                plan_record["frames"] = plan_record.get("frames", 0) + self.hands.pad.frames - plan_began
+                if goal.kind in ("heal", "find_center"):
+                    plan_record["heals"] = plan_record.get("heals", 0) + 1
+            if stops:
+                nav.stop_for = None
             self.manager.memory.hearing = False
             if watch is not None and watch in watchers:
                 watchers.remove(watch)
@@ -1943,6 +2935,72 @@ class GoalRunner:
                     walls[key] -= corners.get(key, set())
                 nav.carried_scene_walls = None
 
+    def _guard_for(self, goal: Goal) -> int | None:
+        """(round 3, the round-2 verifier's V2-M2; the lead's design D2) Whom the battle brain protects in this goal's
+        battles: the trainee of the next boss's plan while that plan is ACTIVE, in every goal but a raise (the raise
+        battle's own rules) and the BOSS FIGHT itself (the story's own talk to the leader: `talk:<look>` in the boss's
+        milestone; a plan done or spent is not active, and its trainee may lead the boss on purpose). The trainee stays
+        FIRST between raise sessions (the spec; the rejected alternative, restoring the lead each session, costs a reorder
+        a session and loses the trainee's share of the walks' battles). WHY: round 2 told the battle brain nothing outside a
+        raise, and the trainee led the walks to heal it, the pick-ups and the travel: 5 faints in 6 live runs, one from
+        3/21 on the walk to the POKéMON CENTER. FAULTS `guard_unset` (never: round 2), `guard_in_boss_fight` (the boss
+        fight not left out). (Round 4) the plan's trainee and the boss fight are read by `_plan_trainee` and `_boss_fight`,
+        which the battles BETWEEN goals read too (`between_goals`)."""
+        if goal.kind == "raise" or self._boss_fight(goal):
+            return None
+        return self._plan_trainee()
+
+    def _plan_trainee(self) -> int | None:
+        """(round 3; round 4, E4) The PLAN's own state: the trainee of the next boss's plan while that plan is ACTIVE, else
+        None (always in chapters 1-5). FAULT `guard_unset`: None (round 2)."""
+        manager = self.manager
+        if manager.bp_faults.guard_unset or manager.bp_boss is None:
+            return None
+        record = manager.bp_record(manager.bp_boss[0])
+        if record is None or record.get("status") != "active" or record.get("trainee") is None:
+            return None
+        return int(record["trainee"])
+
+    def _boss_fight(self, goal: Goal) -> bool:
+        """(round 3) The BOSS FIGHT itself: the story's own talk to (or use of) the leader in the next boss's milestone
+        (`talk:<look>`). FAULT `guard_in_boss_fight`: never."""
+        manager = self.manager
+        if manager.bp_faults.guard_in_boss_fight or manager.bp_boss is None:
+            return False
+        return (goal.milestone == manager.bp_boss[0] and goal.kind in ("talk", "use") and goal.look is not None
+                and goal.key == f"{goal.kind}:{goal.look}")
+
+    def between_goals(self, goal: Goal | None = None) -> None:
+        """(round 4, the round-3 verifier's V3-m2; the lead's design E4) The battle brain as a goal ENDS (`pursue`): a
+        battle between goals (a scene that begins while the next goal is decided, or one a goal hands back mid-screen) is
+        fought with the guard of the PLAN's state, never the last goal's: the active plan's trainee is guarded whenever no
+        raise goal runs (`_plan_trainee`), and a raise's purpose "raise" and trainee end with it ("travel", the play brain's
+        own between goals). WHY: round 3 set them per goal and reset nothing, so after a raise goal a scene's battle had
+        purpose "raise" with no trainee and no guard: no protection and no switch (4 such battles in 6 live runs, Grovyle at
+        28/68 fighting on with Struggle). After the BOSS FIGHT's own talk the guard stays off (its battle may still be on
+        screen). Only a raise's purpose is reset: a story battle a talk hands back is fought, not run from ("train", the
+        purpose `_pursue` gives talks), as in chapters 1-5. FAULT `seam_kept`: nothing reset (round 3)."""
+        mind, manager = self.mind, self.manager
+        if mind is None or manager.bp_faults.seam_kept:
+            return
+        if getattr(mind, "purpose", None) == "raise":
+            mind.purpose = "travel"
+            mind.trainee = None
+        guard = None if goal is not None and self._boss_fight(goal) else self._plan_trainee()
+        mind.guard = guard
+        mind.say = self.tell if guard is not None else None
+        if guard is not None:
+            mind.bp_faults = manager.bp_faults
+
+    def _plan_heal_record(self, goal: Goal) -> dict | None:
+        """(round 2) The ACTIVE raise plan's record a goal of `PLAN_HEAL_KINDS` counts into (the next boss's, by
+        `bp_boss`, its status read at the goal's START), or None (FAULT `heal_frames_uncounted`: always None)."""
+        manager = self.manager
+        if goal.kind not in PLAN_HEAL_KINDS or manager.bp_boss is None or manager.bp_faults.heal_frames_uncounted:
+            return None
+        record = manager.bp_record(manager.bp_boss[0])
+        return record if record is not None and record.get("status") == "active" else None
+
     def _blocked(self, milestone: Milestone, key: str, tile: tuple[int, int], why: str) -> None:
         """(build step 5.2) `_PersonBlock` found a place blocked: a wall of this walk now (the navigator plans round it and
         chooses another place), and blocked for curiosity in the milestone (`GoalManager.blocked_on`)."""
@@ -1952,6 +3010,62 @@ class GoalRunner:
             walls.setdefault(key, set()).add(tile)
         name = getattr(self.nav.world.maps.get(key), "const", None) or key
         self.tell(f"[AI-GOALS] the place at {tile} on {name}: {why}: given up, and kept from curiosity in this milestone")
+
+    def story_in_view(self, look: Observation, milestone: Milestone) -> str | None:
+        """(chapter 7 NS3, 2026-11-06) Why a walk that is not the story's own stops here, or None: the milestone's next
+        step is a talk (or a use) of someone (something) it RECOGNISES by their look, the player stands on that step's
+        map, and they are on the screen now (`GoalManager.looks_like`): what the screen shows, nothing else."""
+        player = look.player
+        if player is None or player.settling or look.screen.game_state != "OVERWORLD" or look.view is None:
+            return None
+        manager = self.manager
+        step = manager.story_step(look, self.nav.world, milestone)
+        if step is None or step.do not in ("talk", "use") or not step.look or step.map != player.map_const:
+            return None
+        seen = manager.looks_like(look, step.look)
+        if seen is None:
+            return None
+        return (f"{manager.story.looks[step.look].what}, whom its story's next step names, is in view on {step.map} at "
+                f"{(seen.x, seen.y)}")
+
+    def ride(self, target: Target) -> Generator[None, None, str]:
+        """(chapter 6 NS2, 2026-11-06) TAKE A RIDE (`Navigator.rider`): the walk has arrived beside where the ride's person
+        stood (`Target.ride`, `WorldMemory.rides`). The person is found on the screen by their id and figure, talked to
+        (`skills/story.py` talk_to, which meets a walker the way it does), and the travel answer says YES to the trip the
+        ride is known for (`TravelSense.riding`); a person who asks something else is answered by the ordinary rules.
+        Returns "rode ..." once the controls are back on another map, or why not; a ride not taken (the person not on
+        the screen, or the talk ended on the map it began on, free or held there by a menu left open) is put aside until
+        there is news (`WorldMemory.close_ride`). (Chapter 7 stops round 4, V3-4, 2026-11-06) "rode" is said only once
+        the map has changed: with the screen still held on the same map (MR. BRINEY's multichoice once both deliveries are
+        done, `data/maps/Route104_MrBrineysHouse/scripts.inc`), the base said "rode" and put nothing aside."""
+        world, hands = self.nav.world, self.hands
+        name = target.ride
+        ride = world.rides.get(name) if name is not None else None
+        if ride is None:
+            return "not taken: no such ride is known"
+        look = hands.look()
+        seen = next((o for o in (look.view.objects if look.view is not None else ())
+                     if o.source == "object" and o.kind == "npc" and o.local_id == ride.get("who")
+                     and o.graphics_id == ride.get("gfx")), None)
+        if seen is None:
+            world.close_ride(name, "the person was not on the screen", look.frame)
+            return f"not taken: the person who took it (id {ride.get('who')}) is not on the screen here"
+        began = world.current
+        why = (f"the ride to {world.names().get(ride.get('to'), ride.get('to'))}: the person at {(seen.x, seen.y)} took it "
+               f"there for a YES to {str(ride.get('words'))[:60]!r}")
+        if self.travel is not None:
+            self.travel.riding = ride
+        try:
+            outcome = yield from talk_to(hands, self.nav, seen, why)
+        finally:
+            if self.travel is not None:
+                self.travel.riding = None
+        if world.current == began:
+            held = "" if nav_free(hands.look()) else " (the screen still held there)"
+            world.close_ride(name, f"talked ({outcome}) and was not carried off{held}",
+                             hands.last.frame if hands.last else 0)
+            return f"not taken: {outcome}; still on {world.names().get(began, began)}{held}"
+        return f"rode: {outcome}; now on {world.names().get(world.current, world.current)}"
 
     def _out_of_ideas(self, milestone: Milestone, why: str, said: list[str]) -> None:
         """(build step 5.2, the verifier's round) A walk with NO LEAD found nothing left on any map it knows that it could
@@ -1965,7 +3079,17 @@ class GoalRunner:
         moved_on = lambda look: current(look) != index  # noqa: E731 - the milestone changed: the story moved on
         # a battle the STORY starts (PROF. BIRCH's bag, a talk) is fought, not run from (measured 2026-10-14: the play brain's
         # first chapter-1 run tried RUN in PROF. BIRCH's battle, which the game refuses); training and catching fight too
-        self.mind.purpose = "train" if goal.kind in ("train", "catch", "use", "talk", "follow") else "travel"
+        self.mind.purpose = ("raise" if goal.kind == "raise" else
+                             "train" if goal.kind in ("train", "catch", "use", "talk", "follow") else "travel")
+        # (boss preparation round 3, the round-2 verifier's V2-M2) an ACTIVE plan's trainee is protected in every battle of
+        # this goal (`_guard_for`): the battle brain is told whom (`BattleMind.guard`, its line through `say`). None in
+        # chapters 1-5 (no plan), in a raise (its own rules) and in the boss fight itself
+        guard = self._guard_for(goal)
+        self.mind.guard = guard
+        if goal.kind != "raise":
+            self.mind.say = self.tell if guard is not None else None
+            if guard is not None:
+                self.mind.bp_faults = manager.bp_faults
         if goal.kind in ("go", "look_around", "follow", "find", "explore"):
             target_map = goal.map if goal.kind == "go" else None
             look_for = goal.look
@@ -2080,7 +3204,8 @@ class GoalRunner:
                           else lost_intent(manager.state.active, budget, walk_done,
                                            lambda why: self._out_of_ideas(milestone, why, lost_why))
                           if goal.kind in ("go", "look_around") and goal.key.startswith(LOST_KEYS)
-                          else travel_intent(None, manager.state.active, budget, walk_done, stay=goal.kind == "find"))
+                          else travel_intent(None, manager.state.active, budget, walk_done, stay=goal.kind == "find",
+                                             back=self._leader_back(goal, milestone)))
                 outcome = yield from nav.run(intent, goal.reason)
                 if lost_why:
                     outcome = f"{lost_why[-1]} ({outcome})"
@@ -2100,11 +3225,24 @@ class GoalRunner:
         if goal.kind == "find_center" and goal.via is not None:
             # (build step 5.1, the verifier's second round) THIS town's own centre: looked for here, keeping to the town,
             # until its door is seen (the next decision heals at the nearest place it knows: that door, now)
+            walked = ""
+            if nav.world.current != goal.via and goal.map:
+                # (chapter 6 stops round 7, VR6-4) looked for from a building of the town (its gym): out to the town first,
+                # as `_go_inside` walks back to a door's town
+                outcome = yield from self._travel(goal.map, f"{goal.reason}: out to {goal.map}", CENTER_LOOK_FRAMES,
+                                                  lambda look: moved_on(look) or manager.center_seen_on(goal.via)
+                                                  or (look.player is not None and look.player.map_const == goal.map))
+                if nav.world.current != goal.via or manager.center_seen_on(goal.via) or moved_on(self.hands.look()):
+                    seen = manager.center_seen_on(goal.via)
+                    return seen, outcome + (f"; its door seen on {goal.map}" if seen else
+                                            f"; did not get out to {goal.map} to look")
+                walked = f"out to {goal.map}: {outcome}; "
             outcome = yield from nav.run(travel_intent(None, manager.state.active, CENTER_LOOK_FRAMES,
                                                        lambda look: moved_on(look) or manager.center_seen_on(goal.via),
                                                        stay=True), goal.reason)
             seen = manager.center_seen_on(goal.via)
-            return seen, outcome + (f"; its door seen on {goal.map}" if seen else f"; no POKéMON CENTER seen on {goal.map}")
+            return seen, walked + outcome + (f"; its door seen on {goal.map}" if seen else
+                                             f"; no POKéMON CENTER seen on {goal.map}")
         if goal.kind == "find_center":
             outcome = yield from nav.run(travel_intent(None, manager.state.active, FIND_FRAMES * 2,
                                                        lambda look: moved_on(look) or manager.heal_place(nav.world) is not None),
@@ -2132,11 +3270,18 @@ class GoalRunner:
             key = f"{nav.world.current}|{goal.target.local_id}"
             manager.memory.talked.add(key)
             before = party_share(hands.look())
+            backed = self.backed_out() if self.backed_out is not None else 0
             if goal.kind == "use":
                 outcome = yield from use_thing(hands, nav, goal.target, goal.reason)
             else:
                 outcome = yield from talk_to(hands, nav, goal.target, goal.reason)
             self._saw_mom_heal(goal.target, before)
+            if self.backed_out is not None and self.backed_out() > backed:
+                # (chapter 6 stops round 5, VR4-1) the talk opened a field menu nobody asked it to choose from (MR.
+                # BRINEY's PETALBURG/SLATEPORT/EXIT on DEWFORD's dock after a curiosity chat, #106 arm A) and the AI backed
+                # out of it: the talk did not do what it was for, so it FAILED, as any failed chat (`GoalManager.outcome`
+                # counts it toward `FAIL_LIMIT`; the person is in `talked`, never chatted with again)
+                return False, f"{outcome}; it backed out of a menu nobody asked it to choose from"
             return outcome.startswith("talked"), outcome
         if goal.kind == "pick_up" and goal.target is None and goal.tile is not None:
             outcome = yield from self._back_to_ball(goal, milestone, index, current)
@@ -2160,6 +3305,12 @@ class GoalRunner:
             if outcome.startswith("picked up"):
                 self.picked.append(f"{nav.world.here().const if nav.world.here() else '?'} {(ball.x, ball.y)}: {outcome}")
             return outcome.startswith("picked up"), outcome
+        if goal.kind == "raise":
+            return (yield from self._raise(goal, moved_on))
+        if goal.kind == "lead":
+            return (yield from self._lead(goal))
+        if goal.kind == "potion":
+            return (yield from self._potion(goal))
         if goal.kind in ("train", "catch"):
             where = self._grass_map(milestone)
             if where is not None:
@@ -2241,7 +3392,160 @@ class GoalRunner:
         outcome = yield from self.pursue(replace(goal, target=ball, tile=None), milestone, index, current)
         return outcome[1]
 
-    def roam_hooks(self, hunt: bool = False) -> None:
+    def _raise(self, goal: Goal, moved_on: Callable[[Observation], bool]) -> Generator[None, None, tuple[bool, str]]:
+        """(BP-1, spec sections 3.1 and 3.2) One RAISE session for the plan of `goal.milestone`: the trainee put FIRST
+        (`hands/party_order.py` lead_with) before anything, the trainee rule on every battle from then on (its rest, M4), the
+        walk to the raise map, the roam; the battles fought with purpose "raise" (no switch, no catch) and the trainee as
+        the battle mind's `trainee`. Counted into the ONE budget (M5): wild battles begun, the goal's frames, sessions,
+        stalls (no level gained), reorder failures, leaked battles (the trainee fainted and another finished it). The
+        EXPERIENCE is measured: the trainee's and the strongest other member's summary EXP at the start and the end."""
+        hands, nav, manager = self.hands, self.nav, self.manager
+        record = manager.bp_record(goal.milestone)
+        if record is None or record.get("trainee") is None:
+            return False, "no raise plan"
+        pid = int(record["trainee"])
+        faults = manager.bp_faults
+        began = hands.pad.frames
+        look = hands.look()
+        start_level = next((m.level for m in look.party or () if m.pid == pid), None)
+        start_hp = next((f"{m.hp}/{m.max_hp}" for m in look.party or () if m.pid == pid), "?")
+        exp_before = self._raise_exp(look, pid)
+        watch = RaiseWatch(pid, self.tell)
+        before = len(nav.battle_log)
+        outcome = "the raise did not begin"
+        mind = self.mind
+        if getattr(mind, "raise_modes", None) is not None:
+            mind.raise_modes.clear()
+        if record.get("lead_before") is None and not record.get("sessions"):
+            # (round 2, V-m5) the lead BEFORE the plan, set ONCE, at its first raise session, before the trainee is put
+            # first: the lead a plan that ends gives back (`GoalManager._settle_goal`)
+            first = next((m for m in look.party or () if not m.is_egg), None)
+            record["lead_before"] = first.pid if first is not None else None
+        try:
+            if not (yield from lead_with(hands, pid, f"{goal.reason}: the trainee first")):
+                record["reorder_fails"] += 1
+                outcome = "the trainee could not be put first"
+                return False, outcome
+            self.mind.trainee = pid
+            if hasattr(mind, "say"):
+                mind.say = self.tell  # (round 2) the raise battle's one line a battle
+            if hasattr(mind, "bp_faults"):
+                mind.bp_faults = faults
+            # (round 4, V3-M1, the lead's E1) HOW this map is raised on (`GoalManager.mode_on`, the rule its choice
+            # read): "own", the knock-out partner unfit here even healed, means no switch-training in its battles
+            mode, mode_why = manager.mode_on(hands.last if hands.last is not None else look, goal.map, pid)
+            if hasattr(mind, "raise_switch"):
+                mind.raise_switch = mode == "mix"
+            if mode != "mix":
+                self.tell(f"[AI-BOSSPREP] raise session on {goal.map}: {mode_why}")
+            hands.watchers.append(watch)
+            self.roam_hooks(trainee=pid, after_battle=watch.after, raise_map=goal.map)
+            where = goal.map
+            if where is not None and (nav.world.here() is None or nav.world.here().const != where):
+                went = yield from self._travel(where, f"{goal.reason}: to the grass of {where}", GO_FRAMES,
+                                               lambda seen: moved_on(seen) or (seen.player is not None
+                                                                                and seen.player.map_const == where))
+                if nav.world.here() is None or nav.world.here().const != where:
+                    outcome = f"could not get to the grass of {where}: {went}"
+                    return False, outcome
+            outcome = yield from roam_train(hands, nav, goal.steps, goal.reason)
+            self.roams.append(outcome)
+            numbers = roam_numbers(outcome)
+            if numbers is not None and not outcome.startswith("roamed"):
+                hands.note("roam", "metrics", outcome[:300], {**numbers, "stopped": outcome.split(";", 1)[0][:160]})
+            return ("roamed" in outcome or "rest:" in outcome or ITEM_STOP in outcome), outcome
+        finally:
+            self.clear_roam_hooks()
+            if watch in hands.watchers:
+                hands.watchers.remove(watch)
+            self.mind.trainee = None
+            if hasattr(mind, "raise_switch"):
+                mind.raise_switch = True  # (round 4, E1) switch-training is the raise's default ("mix")
+            if hasattr(mind, "say"):
+                mind.say = None
+            modes = list(getattr(mind, "raise_modes", None) or ())
+            if getattr(mind, "raise_modes", None) is not None:
+                mind.raise_modes.clear()
+            met = nav.battle_log[before:]
+            record["battles"] += sum(1 for _, kind, _ in met if kind == "wild")
+            if not faults.frames_uncounted:
+                record["frames"] += hands.pad.frames - began
+            record["sessions"] += 1
+            record["leak_battles"] += watch.leaks
+            record["reorder_fails"] += watch.not_leading
+            own = modes.count("own")
+            switched = modes.count("switch") + modes.count("rescue")
+            runs = modes.count("run")
+            record["own_fights"] = record.get("own_fights", 0) + own
+            record["switch_fights"] = record.get("switch_fights", 0) + switched
+            record["raise_runs"] = record.get("raise_runs", 0) + runs
+            last = hands.last if hands.last is not None else look
+            end_level = next((m.level for m in last.party or () if m.pid == pid), None)
+            exp_after = self._raise_exp(last, pid)
+            gained_exp = exp_after[0] - exp_before[0]
+            record["exp_gained"] = record.get("exp_gained", 0) + max(0, gained_exp)
+            record["partner_exp"] = record.get("partner_exp", 0) + max(0, exp_after[1] - exp_before[1])
+            # (round 2, spec section 2.6, V-m3) a STALL is a session in which the trainee's summary EXP did not rise (BP-1
+            # counted "no level gained": at L15 and up a session of 7-10 battles gains 300-450 EXP of the 721-1,141 a level
+            # needs, so honest progress read as a stall). FAULTS `stall_by_level` (BP-1's), `stalls_never`
+            if faults.stall_by_level:
+                gained = start_level is not None and end_level is not None and end_level > start_level
+            else:
+                gained = gained_exp > 0
+            record["stalls"] = 0 if (gained or faults.stalls_never) else record["stalls"] + 1
+            self.tell(f"[AI-BOSSPREP] raise exp: trainee +{gained_exp}, others +"
+                      f"{exp_after[1] - exp_before[1]} ({exp_before[2]}); L{start_level} -> L{end_level}; "
+                      f"{len(met)} battles ({watch.leaks} leaked, {watch.not_leading} not led by the trainee); own {own}, "
+                      f"switch-trained {switched}, run {runs}; trainee {start_hp} at start; stalls {record['stalls']}; "
+                      f"{outcome[:120]}")
+
+    def _lead(self, goal: Goal) -> Generator[None, None, tuple[bool, str]]:
+        """(BP-1; round 2, spec section 3) A LEAD goal: the member `goal.pid` (the trainee when none is named) put first by
+        the party-order hand. Every run counts in the plan's `leads`; a failure in `relead_fails` and `reorder_fails`; at
+        `RELEAD_FAILS_MAX` failures the settle it was for is "gave up" (the lead stays as it is); a success settles it."""
+        record = self.manager.bp_record(goal.milestone)
+        pid = goal.pid if goal.pid is not None else (record.get("trainee") if record is not None else None)
+        ok = pid is not None and (yield from lead_with(self.hands, int(pid), f"{goal.reason}: put first"))
+        field = {"lead:settle": "settle", "lead:after": "settle_after"}.get(goal.key)
+        if record is not None:
+            record["leads"] = record.get("leads", 0) + 1
+            if not ok:
+                record["relead_fails"] = record.get("relead_fails", 0) + 1
+                record["reorder_fails"] = record.get("reorder_fails", 0) + 1
+                if field is not None and record["relead_fails"] >= RELEAD_FAILS_MAX and not self.manager.bp_faults.relead_unbounded:
+                    record[field] = "gave up"
+                    self.tell(f"[AI-BOSSPREP] {record.get('boss') or goal.milestone}: the lead could not be restored "
+                              f"({record['relead_fails']} failures): the lead stays as it is")
+            elif field is not None:
+                record[field] = "done"
+        if pid is None:
+            return False, "nobody to put first"
+        return bool(ok), (f"{int(pid):08x} leads" if ok else f"{int(pid):08x} could not be put first")
+
+    def _potion(self, goal: Goal) -> Generator[None, None, tuple[bool, str]]:
+        """(round 2, spec section 2.4 points 7-8, USER RULING 59) A POTION goal: the field item hand (`hands/field_item.py`
+        use_on) gives the trainee `FIELD_POTIONS`, weakest first, until it is at `POTION_TO` of its max HP or
+        `POTIONS_PER_GOAL` are used. Counted in the plan's `potions`. A failure counts toward `FAIL_LIMIT` as any goal."""
+        if goal.pid is None:
+            return False, "no Pokemon to give a Potion to"
+        ok, used, why = yield from use_on(self.hands, goal.pid, FIELD_POTIONS, POTION_TO, POTIONS_PER_GOAL, goal.reason)
+        record = self.manager.bp_record(goal.milestone)
+        if record is not None:
+            record["potions"] = record.get("potions", 0) + used
+        return ok, why
+
+    @staticmethod
+    def _raise_exp(look: Observation, pid: int) -> tuple[int, int, str]:
+        """(M4, point 6) The summary EXP of the trainee and of the strongest OTHER member (by level), and who that is."""
+        mons = [m for m in look.party or () if not m.is_egg]
+        trainee = next((m for m in mons if m.pid == pid), None)
+        others = [m for m in mons if m.pid != pid]
+        strongest = max(others, key=lambda m: (m.level, m.max_hp), default=None)
+        return ((trainee.experience if trainee is not None else 0), (strongest.experience if strongest is not None else 0),
+                f"the strongest other: {strongest.species} L{strongest.level}" if strongest is not None else "no other")
+
+    def roam_hooks(self, hunt: bool = False, trainee: int | None = None,
+                   after_battle: Callable[[Observation], str | None] | None = None, raise_map: str | None = None) -> None:
         """What a TRAINING or CATCHING roam asks (set for the roam only, `clear_roam_hooks` after): after every battle, a
         reason to stop and heal (`training_rest`: under the personality's `heal_below`; the navigator asks it with no battle
         limit set: until the step-5 verifier's round of 2026-10-14 it asked only WITH one, so the rule never fired and a run
@@ -2252,6 +3556,19 @@ class GoalRunner:
         heal_below, active = manager.state.errands.heal_below, manager.state.active
         nav.battle_limit = None
         nav.battle_rest = lambda look: training_rest(look, heal_below, active)
+        if trainee is not None:
+            # (BP-1, M4) a RAISE: the trainee's own state decides the rest (fainted, or under a third), not the strongest's;
+            # and a battle it did not lead ends the roam (`RaiseWatch`)
+            def raise_rest(look: Observation) -> str | None:
+                stop = after_battle(look) if after_battle is not None else None
+                # (round 2, the builder's addition) and its knock-out partner worn: no member could take the trainee's
+                # place, so the roam would run from every battle (`bossprep.partner_worn`; round 3, V2-M1: the partner
+                # line against the wild Pokemon of the map it roams, `raise_map`)
+                # (round 4, V3-m3, E5) and the trainee out of PP in every move that hurts (`bossprep.trainee_rest`)
+                return (stop or trainee_rest(look, trainee, heal_below, active, manager.bp_faults)
+                        or partner_worn(look, trainee, manager.bp_faults, raise_map))
+
+            nav.battle_rest = raise_rest
         since = {"battles": len(getattr(nav, "battle_log", None) or ()), "dex": None}
 
         def hunt_fruitless(look: Observation) -> str | None:
@@ -2274,6 +3591,35 @@ class GoalRunner:
         self.nav.roam_stop = None
 
     # ------------------------------------------------------------------ going somewhere
+    def _fights_its_leader(self, goal: Goal, milestone: Milestone) -> bool:
+        """(chapter 6 stops round 6, P5-1) Is this a FIND for the gym leader the AI has come to FIGHT (a fight next:
+        `GoalManager.fight_levels`), on that leader's own gym (`knowledge/atlas.py` gym_leaders: a seasoned player knows
+        each gym's leader)? Then, nothing on the map left to see, the back of the gym is where to look (`gym_back`). Not a
+        talk with no fight: chapter 2's NORMAN, whom a script stands in his gym's FRONT room. (Chapter 6 stops round 7,
+        VR6-5) The fight next must be with THAT leader (`Milestone.fight_trainers`, milestones.json `fight.trainers`:
+        "BRAWLY_1"), not merely some fight: a find for ROXANNE in her gym while BRAWLY's fight is next is not one."""
+        if goal.kind != "find" or not goal.look:
+            return False
+        here = self.nav.world.here()
+        const = here.const if here is not None else None
+        leader = goal.look.upper()
+        return (is_gym(const) and gym_leaders().get(leader) == const
+                and any(name == leader or name.startswith(f"{leader}_") for name in milestone.fight_trainers)
+                and bool(self.manager.fight_levels(milestone)[0]))
+
+    def _leader_back(self, goal: Goal, milestone: Milestone) -> Callable[[Navigator, Observation], Target | None] | None:
+        """(chapter 6 stops round 7, VR6-1) The `back` of a find for the leader it has come to fight (`_fights_its_leader`):
+        `gym_back` bound to THAT leader's gym (the map the find began on), so it is offered there and nowhere else; None
+        for any other walk."""
+        if not self._fights_its_leader(goal, milestone):
+            return None
+        gym = self.nav.world.here().const
+
+        def back(nav: Navigator, look: Observation) -> Target | None:
+            return gym_back(nav, look, gym)
+
+        return back
+
     def _to_building(self, goal: Goal, target_map: str, budget: int,
                      done: Callable[[Observation], bool]) -> Generator[None, None, str]:
         """(build step 5.1, the verifier's second round: the live CH2T arm searched PETALBURG CITY door by door for its GYM,
@@ -2336,10 +3682,21 @@ class GoalRunner:
     def _travel(self, target_map: str, why: str, budget: int, done: Callable[[Observation], bool]) -> Generator[None, None, str]:
         """To `target_map`: straight there when the way is known or the map is; when it is not, first to the outdoor map
         with the most left to see (`lead_toward`: a person heads out, not into the houses), then on from there."""
+        # (chapter 6 NS1) where this walk goes is "its goal" to the travel answer while it walks (`TravelSense`)
+        heading, self.heading = self.heading, target_map
+        try:
+            return (yield from self._travel_on(target_map, why, budget, done))
+        finally:
+            self.heading = heading
+
+    def _travel_on(self, target_map: str, why: str, budget: int, done: Callable[[Observation], bool]) -> Generator[None, None, str]:
         nav, active = self.nav, self.manager.state.active
         lead = lead_toward(nav.world, target_map)
         if lead is not None:
-            self.tell(f"[AI-GOALS] {target_map} is somewhere it has not been: first to {lead}, where the most is left to see")
+            # (the chapter-5 search fix K1, 2026-11-13) the lead says why it is the lead (`Lead`): a seasoned player's lead
+            # says what it knows (`entry_lead`)
+            because = lead.why if isinstance(lead, Lead) else Lead.why
+            self.tell(f"[AI-GOALS] {target_map} is somewhere it has not been: first to {lead}, {because}")
             outcome = yield from nav.run(travel_intent(lead, active, budget // 2,
                                                        lambda look: done(look) or (look.player is not None
                                                                                    and look.player.map_const == lead)),
@@ -2351,21 +3708,8 @@ class GoalRunner:
 
     def _grass_map(self, milestone: Milestone) -> str | None:
         """Where to roam: None to stay (this map has grass of its own: tiles inside it); otherwise the map with grass
-        nearest by the known way, the fight's own map first."""
-        world = self.nav.world
-        here = world.here()
-
-        def inside_grass(memory) -> list:
-            return [xy for xy in memory.grass() if xy[0] >= 0 and xy[1] >= 0 and not memory.outside(xy)]
-
-        if here is not None and inside_grass(here):
-            return None
-        options = []
-        for key, memory in world.maps.items():
-            if memory.visits and inside_grass(memory) and memory.const:
-                first = 0 if memory.const in milestone.maps else 1
-                options.append((world_distance(world, key), first, memory.const))
-        return min(options)[2] if options else None
+        nearest by the known way, the fight's own map first (`grass_target`)."""
+        return grass_target(self.nav.world, milestone.maps)[1]  # "out of reach" is never chosen (`next_goal`)
 
     def _go_inside(self, goal: Goal) -> Generator[None, None, str]:
         """Into the place of `goal` (a heal or a shop): a map it knows (the way to it known), or a door it SAW on the map

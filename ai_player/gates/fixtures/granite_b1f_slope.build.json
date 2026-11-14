@@ -1,0 +1,12 @@
+{
+ "fixture": "granite_b1f_slope.ss1",
+ "md5": "75e3a359ff4c37658232e2e0b8784a07",
+ "source": "the chapter-6 stops development probe 2 (ledger #102, batch probe8, seed 6319, the Trainer run C3): the launcher's end_state.ss1 of run probe8-B-C3-6319, copied unchanged (s53/ch6stops2/out/probe8/probe8-B-C3-6319/end_state.ss1)",
+ "played_by": "the AI (worktree wf_e7452923-f06-3, stage digest 417008c98f062b42); nothing pressed by the test side",
+ "at": {
+  "frame": 1962966,
+  "map": "GRANITE_CAVE_B1F (24, 8), the player on (9, 11) facing up, free on foot, at the foot of the MUDDY SLOPE (9, 9)-(9, 10)",
+  "exit": "[AI-EXIT] reason=play: stuck: no progress for 120132 frames (... since GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN)"
+ },
+ "why": "chapter 6 stops round 3, NS6: the run's own memory had (9, 10) visited 7,536 times and no bump there; pinned decomp src/field_player_avatar.c ForcedMovement_MuddySlope forces a player on foot back south. gates/test_eyes.py LiveCallEndTests.test_the_muddy_slope_is_learned_as_one_way drives the navigator's own steps on this state."
+}

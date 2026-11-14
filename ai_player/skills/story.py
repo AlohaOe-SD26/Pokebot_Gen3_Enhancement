@@ -2,7 +2,9 @@
 hands and navigator. Framework-free.
 
   approach       walk to a tile from which a person or a thing on screen can be TALKED to: beside it, or across a counter
-                 (the nurse, the clerk); the navigator's own walk (`brain/navigator.py` go_to), bounded
+                 (the nurse, the clerk); the navigator's own walk (`brain/navigator.py` go_to), bounded. Someone seen to
+                 MOVE is met the way a person meets someone walking round a room (`meet_walker`): watch where they walk,
+                 stand beside the way facing it, and speak when they step in front
   talk_to        approach someone and TALK: face them, A only while the player is free (`hands/dialogue.py` talk), then
                  the whole conversation and whatever it leads to (a question, a battle, a scene) played through the
                  navigator's `handle` with the brain's own answers (`answer_question`)
@@ -24,6 +26,7 @@ manager logs.
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import Generator
 
 from ai_player.brain.navigator import Navigator, Target, nav_free
@@ -42,6 +45,13 @@ __all__ = [
     "QUESTION_RULES",
     "SCENE_ROUNDS",
     "STARTER_WAIT",
+    "APPROACH_SPOTS",
+    "ASIDE_STEPS",
+    "WALKER_MEETINGS",
+    "WALKER_SPOTS",
+    "WALKER_STILL",
+    "WALKER_WAIT",
+    "WALKER_WATCH",
     "answer_question",
     "approach",
     "bag_or_its_question",
@@ -49,12 +59,15 @@ __all__ = [
     "leave_shop",
     "enter_door",
     "heal_at_center",
+    "meet_walker",
     "pick_up",
     "play_out",
     "shop_at_mart",
     "stand_tiles",
     "talk_to",
     "use_thing",
+    "waiting_spots",
+    "watch_walker",
 ]
 
 #: Frames a walk up to someone may take (the navigator's intent budget).
@@ -70,6 +83,30 @@ LIST_WAIT = 300
 #: (build step 5.1) Frames PROF. BIRCH's bag may take to take input again (a ball opening: measured 2026-10-14, the yes/no
 #: came 39 frames after the A in the live arm CH1T): a bound, never a wait for something that will not come.
 STARTER_WAIT = 600
+#: (chapter 6, 2026-11-05) SOMEONE WHO WALKS ROUND and never stands still: MR. BRINEY in his cottage once PEEKO is home
+#: (pinned decomp `data/maps/Route104_MrBrineysHouse/scripts.inc` SetBrineyPeekoPos: MOVEMENT_TYPE_WALK_SEQUENCE_DOWN_LEFT_
+#: UP_RIGHT from (9,3), range 3; `src/event_object_movement.c` MoveNextDirectionInSequence takes the next step the frame the
+#: last one ends, so his tile changes every 16-17 frames round his table, and PEEKO walks the same round three steps ahead).
+#: Walking to the tile beside where he WAS seen arrives after he has gone: the KI-134 B arm (ledger #98) made 54 talk goals
+#: in the Story run and none landed. A person watches where he walks, stands beside the way facing it, and speaks when he
+#: steps in front (`meet_walker`). How long it watches before choosing where to wait (his round of 12 steps is ~200 frames;
+#: the watch ends sooner once the way comes back round to where it began):
+WALKER_WATCH = 240
+#: Someone who keeps one tile this many frames is not walking round (a step takes 16 frames; a wanderer waits 32 or more
+#: between steps, `src/event_object_movement.c` sMovementDelaysMedium/Short): they are walked up to the ordinary way.
+WALKER_STILL = 24
+#: How long it waits beside the way, facing it, for them to step in front (three of MR. BRINEY's rounds): a bound.
+WALKER_WAIT = 600
+#: Waiting places tried, nearest first.
+WALKER_SPOTS = 3
+#: How many times one approach meets a walker (a second when the one met first turned out to keep still, then walked on).
+WALKER_MEETINGS = 2
+#: Tiles beside a person walked to at most, in one approach (the step-5 number, unchanged).
+APPROACH_SPOTS = 6
+#: How far it steps aside, at most, when it finds it stands where people walk (a walker meets the player on its way and
+#: walks in place: MOVEMENT_TYPE_WALK_SEQUENCE's collision rule).
+ASIDE_STEPS = 3
+_FACE = {"up": "Up", "down": "Down", "left": "Left", "right": "Right"}
 #: The QUESTIONS a person answers by their words (lower-case words -> (yes, why)); first match wins. Anything else: YES,
 #: a person goes along with what the story asks (`answer_question`).
 QUESTION_RULES: tuple[tuple[str, bool, str], ...] = (
@@ -119,20 +156,57 @@ def _same(look: Observation, target: SeenObject) -> SeenObject | None:
     return None
 
 
+def _moved(now: SeenObject, before: SeenObject) -> bool:
+    """A PERSON (an object event) is on another tile than before: they walk."""
+    return now.source == "object" and (now.x, now.y) != (before.x, before.y)
+
+
 def approach(hands: Hands, nav: Navigator, target: SeenObject, why: str,
              budget: int = APPROACH_BUDGET) -> Generator[None, None, str]:
     """Walk to a tile from which `target` can be talked to. Returns "reached", "battle" (something stopped the walk), or
-    "unreachable: ..."."""
+    "unreachable: ...". (Chapter 6) Someone seen on another tile than where they were chosen, or than where a walk up to
+    them began, is MOVING: `meet_walker` meets them (at most `WALKER_MEETINGS` times an approach). Someone who turns out to
+    keep still is walked up to the ordinary way, AIMED at where they stand now: once they have moved, the tiles beside them
+    are worked out again from their new tile (the tiles already tried left out). Someone who never moves is walked up to
+    exactly as before: the tiles beside them, nearest first, at most `APPROACH_SPOTS`."""
     look = hands.look()
+    began = look.frame
     seen = _same(look, target) or target
     if talk_direction(look, seen) is not None:
         return "reached"
-    for spot in stand_tiles(look, nav, seen)[:6]:
+    meetings = 0
+    if _moved(seen, target):
+        meetings += 1
+        met = yield from meet_walker(hands, nav, seen, why, since=began)
+        if met != "standing":
+            return met
+        # the look the meeting ended on (it found them keeping still): beside them already, the first spot below is the
+        # player's own tile (`stand_tiles` keeps it), and the walk to it ends at once
+        look = hands.last
+        seen = _same(look, target) or seen
+    spots = stand_tiles(look, nav, seen)[:APPROACH_SPOTS]
+    tried: list[tuple[int, int]] = []
+    while spots and len(tried) < APPROACH_SPOTS:
+        spot = spots.pop(0)
+        tried.append(spot)
+        battles = len(nav.battle_log)
         outcome = yield from nav.go_to(spot, f"{why}: walk up to the {seen.kind} at {(seen.x, seen.y)}", budget)
         look = hands.look()
         if in_battle(look) or not nav_free(look):
             return "battle" if in_battle(look) else "scene"
         now = _same(look, target)
+        if now is not None and _moved(now, seen):
+            # (chapter 6) they walked on while the player walked up: met as someone walking round (the pause below would
+            # lose even one who is beside the player now: MR. BRINEY takes a step every 16 frames)
+            if meetings < WALKER_MEETINGS:
+                meetings += 1
+                met = yield from meet_walker(hands, nav, now, why, since=began)
+                if met != "standing":
+                    return met
+                look = hands.last  # the look the meeting ended on
+                now = _same(look, target) or now
+            seen = now
+            spots = [s for s in stand_tiles(look, nav, seen) if s not in tried][:APPROACH_SPOTS - len(tried)]
         if now is not None and talk_direction(look, now) is not None:
             # a person who has just walked up to someone looks at them before speaking (measured 2026-10-14: an A on the
             # frame the walk ended, the step's last frames still playing, started no conversation with the nurse: "no
@@ -140,9 +214,162 @@ def approach(hands: Hands, nav: Navigator, target: SeenObject, why: str,
             yield from hands.pad.idle(hands.pad.think_frames(), f"walked up to the {now.kind} at {(now.x, now.y)}: "
                                                                 f"looking at them before speaking")
             return "reached"
-        if outcome.startswith("stuck") and "battle" in outcome:
+        # (chapter 6) a walk a BATTLE stopped, by the navigator's own battle log (an event, never a word: the old test,
+        # '"battle" in outcome', matched the "N battles" of every stuck walk's summary, so ANY spot that could not be
+        # reached ended the approach as "battle" and the next spot was never tried: 'interrupted on the way: played out'
+        # 28 times in the KI-134 B arm's Story run)
+        if outcome.startswith("stuck") and len(nav.battle_log) > battles:
             return "battle"
     return f"unreachable: no tile from which the {seen.kind} at {(seen.x, seen.y)} can be talked to was reached"
+
+
+def watch_walker(hands: Hands, target: SeenObject, why: str,
+                 frames: int = WALKER_WATCH) -> Generator[None, None, tuple[list, set, bool, SeenObject | None]]:
+    """(chapter 6) Watch `target` walk, one look a frame, for at most `frames` frames: (the tiles it walked, in order: its
+    WAY; every tile anyone ELSE stood on meanwhile; whether it kept one tile `WALKER_STILL` frames, i.e. it is not walking
+    round; where it is now, None when out of sight or when something else took the screen). The watch ends early once the
+    way comes back round to the tile it began on (a round seen whole), or the person keeps still."""
+    way: list[tuple[int, int]] = []
+    others: set[tuple[int, int]] = set()
+    kept = 0
+    now: SeenObject | None = None
+    for _ in range(frames):
+        look = hands.look()
+        if not nav_free(look):
+            return way, others, False, None
+        now = _same(look, target)
+        if now is None:
+            return way, others, False, None
+        others.update((o.x, o.y) for o in look.view.objects if o.source == "object" and o.local_id != target.local_id)
+        tile = (now.x, now.y)
+        if way and way[-1] == tile:
+            kept += 1
+        elif len(way) >= 4 and tile == way[0]:
+            return way, others, False, now
+        else:
+            way.append(tile)
+            kept = 1
+        if kept >= WALKER_STILL:
+            return way, others, True, now
+        yield from hands.pad.busy(f"{why}: watching the {target.kind} walk: where does the way go?")
+    return way, others, False, now
+
+
+def waiting_spots(memory, here: tuple[int, int], way: list, others: set) -> list[tuple[tuple[int, int], tuple[int, int], str]]:
+    """(chapter 6) Where to wait for someone who walks `way`: (a spot, the tile of the way it looks at, the direction to
+    face). A spot is a known walkable tile BESIDE a tile of the way and on no tile anyone was seen on while watching (the
+    way itself, the others' ways), so the player blocks nobody; each spot once, nearest to the player first."""
+    walked = set(way) | set(others)
+    best: dict[tuple[int, int], tuple[tuple[int, int], str]] = {}
+    for tile in dict.fromkeys(way):
+        for direction, (dx, dy) in DIRECTIONS.items():
+            spot = (tile[0] - dx, tile[1] - dy)
+            if spot in walked or spot in best or not memory.passable(spot):
+                continue
+            best[spot] = (tile, direction)
+    spots = [(spot, tile, direction) for spot, (tile, direction) in best.items()]
+    return sorted(spots, key=lambda s: (abs(s[0][0] - here[0]) + abs(s[0][1] - here[1]), s[0]))
+
+
+def _out_of_the_way(memory, here: tuple[int, int], since: int) -> tuple[int, int] | None:
+    """The nearest known walkable tile, at most `ASIDE_STEPS` steps away over walkable tiles, on which nobody has been seen
+    since frame `since` and nobody stands now (`MapMemory.people`: the last frame a person was seen on a tile); None if none."""
+    seen_tiles, queue = {here}, deque([(here, 0)])
+    while queue:
+        tile, steps = queue.popleft()
+        if tile != here and memory.people.get(tile, -1) < since and tile not in memory.objects_now:
+            return tile
+        if steps >= ASIDE_STEPS:
+            continue
+        for dx, dy in DIRECTIONS.values():
+            ahead = (tile[0] + dx, tile[1] + dy)
+            if ahead not in seen_tiles and memory.passable(ahead) and ahead not in memory.objects_now:
+                seen_tiles.add(ahead)
+                queue.append((ahead, steps + 1))
+    return None
+
+
+def meet_walker(hands: Hands, nav: Navigator, target: SeenObject, why: str, budget: int = APPROACH_BUDGET,
+                since: int | None = None) -> Generator[None, None, str]:
+    """(chapter 6, module constants WALKER_*) Meet someone who walks round the way a person does, from what the screen shows:
+    WATCH where they walk (`watch_walker`), stand at the nearest spot BESIDE the way (`waiting_spots`), face the way, and
+    wait for them to step onto the tile in front. Returns "reached" on the look that shows them there, the player facing
+    them (no pause: a person waiting for someone speaks up as they come past; the caller's `talk` presses A at once);
+    "standing" when they turn out to keep still (the caller walks up the ordinary way); "battle" / "scene"; or
+    "unreachable: ...". With `since` (the frame the approach began): a player standing where someone has been seen since
+    then is IN THEIR WAY (a walker walks in place against it, and the one behind against the walker: no round is watched)
+    and first steps aside (`_out_of_the_way`)."""
+    look = hands.look()
+    found = nav.where(look)
+    if since is not None and found is not None and found[0].people.get(found[1], -1) >= since:
+        aside = _out_of_the_way(found[0], found[1], since)
+        if aside is not None:
+            hands.tell(f"talk: {why}: the player stands where people have walked ({found[1]}): it steps aside to {aside} "
+                       f"to watch the {target.kind} walk")
+            yield from nav.go_to(aside, f"{why}: out of the way of the people walking here, to {aside}", budget)
+            look = hands.look()
+            if in_battle(look) or not nav_free(look):
+                return "battle" if in_battle(look) else "scene"
+    way, others, standing, now = yield from watch_walker(hands, target, why)
+    look = hands.look()
+    if in_battle(look) or not nav_free(look):
+        return "battle" if in_battle(look) else "scene"
+    if now is None:
+        return f"unreachable: the {target.kind} walked out of sight while it watched"
+    if standing:
+        return "standing"
+    found = nav.where(look)
+    if found is None:
+        return "unreachable: the player's tile is not known"
+    memory, here = found
+    spots = waiting_spots(memory, here, way, others)
+    hands.tell(f"talk: {why}: the {target.kind} (gfx {target.graphics_id}) walks round without stopping (the way seen: "
+               f"{way[:14]}): it waits beside the way, facing it, at the nearest of {len(spots)} places "
+               f"{[s[0] for s in spots[:WALKER_SPOTS]]}")
+    for spot, tile, direction in spots[:WALKER_SPOTS]:
+        if here != spot:
+            yield from nav.go_to(spot, f"{why}: to wait beside the way the {target.kind} walks, at {spot}", budget)
+            look = hands.look()
+            if in_battle(look) or not nav_free(look):
+                return "battle" if in_battle(look) else "scene"
+            found = nav.where(look)
+            if found is None or found[1] != spot:
+                here = found[1] if found is not None else here
+                continue
+            here = spot
+        result = yield from _wait_for_walker(hands, target, tile, direction, why)
+        if result is not None:
+            return result
+    return (f"unreachable: the {target.kind} who walks round did not step in front of any of "
+            f"{min(len(spots), WALKER_SPOTS)} waiting places")
+
+
+def _wait_for_walker(hands: Hands, target: SeenObject, tile: tuple[int, int], direction: str,
+                     why: str) -> Generator[None, None, str | None]:
+    """Face `tile` (a tile of the way, `direction` from the player) and wait, a look a frame, for `target` (by its map id)
+    to step onto it: "reached" then; None after `WALKER_WAIT` frames or when the player cannot face it; "battle" / "scene"
+    when something else takes the screen. Someone else on that tile (PEEKO walks MR. BRINEY's round three steps ahead) is
+    let pass: only the person it came for is spoken to."""
+    for turns in range(4):
+        look = hands.look()
+        if in_battle(look) or not nav_free(look):
+            return "battle" if in_battle(look) else "scene"
+        if look.player.facing == direction:
+            break
+        if turns == 3:
+            return None
+        yield from hands.pad.turn(_FACE[direction], why, f"turn {direction} to face {tile}, a tile of the way the "
+                                                         f"{target.kind} walks; the player free")
+    for _ in range(WALKER_WAIT):
+        look = hands.look()
+        if in_battle(look) or not nav_free(look):
+            return "battle" if in_battle(look) else "scene"
+        now = _same(look, target)
+        if now is not None and (now.x, now.y) == tile and look.player.facing == direction:
+            return "reached"
+        yield from hands.pad.busy(f"{why}: waiting beside the way the {target.kind} walks, facing {tile}, for them to "
+                                  f"step in front")
+    return None
 
 
 def play_out(hands: Hands, nav: Navigator, why: str) -> Generator[None, None, str | None]:

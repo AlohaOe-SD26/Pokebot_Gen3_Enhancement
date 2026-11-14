@@ -1100,6 +1100,10 @@ POSITIVE = {
     # R1 + R2: the paths gate
     "check_paths PASS": ["PATHS GATE: PASS (46 files, 0 findings)"],
     "check_paths FAIL": ["PATHS GATE: FAIL (46 files, 2 findings)"],
+    # the anchor gate (2026-11-09)
+    "check_anchors PASS": ["ANCHORS GATE: PASS (7 of 7 runners, 1572 mutants, 1593 edits, 0 not unique, 0 errors)"],
+    "check_anchors FAIL": ["ANCHORS GATE: FAIL (7 of 7 runners, 1572 mutants, 1593 edits, 1 not unique, 0 errors)",
+                           "ANCHORS GATE: FAIL (6 of 7 runners, 929 mutants, 941 edits, 0 not unique, 1 errors)"],
 }
 NEGATIVE = {
     "unittest Ran": ["  Ran 3 tests in 1s", "Ran tests", "Ran 3 tests in 1s and more"],
@@ -1134,6 +1138,12 @@ NEGATIVE = {
     # a PASS with findings is no PASS; a FAIL line is no PASS
     "check_paths PASS": ["PATHS GATE: PASS (46 files, 1 findings)", "PATHS GATE: FAIL (46 files, 2 findings)"],
     "check_paths FAIL": ["PATHS GATE: PASS (46 files, 0 findings)"],
+    # an anchor off one hit, an unreadable table, or a runner not read is no PASS; a PASS line is no FAIL
+    "check_anchors PASS": ["ANCHORS GATE: PASS (7 of 7 runners, 1572 mutants, 1593 edits, 1 not unique, 0 errors)",
+                           "ANCHORS GATE: PASS (7 of 7 runners, 1572 mutants, 1593 edits, 0 not unique, 1 errors)",
+                           "ANCHORS GATE: PASS (6 of 7 runners, 929 mutants, 941 edits, 0 not unique, 0 errors)",
+                           "ANCHORS GATE: FAIL (7 of 7 runners, 1572 mutants, 1593 edits, 1 not unique, 0 errors)"],
+    "check_anchors FAIL": ["ANCHORS GATE: PASS (7 of 7 runners, 1572 mutants, 1593 edits, 0 not unique, 0 errors)"],
 }
 
 

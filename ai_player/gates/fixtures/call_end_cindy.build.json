@@ -1,0 +1,12 @@
+{
+ "fixture": "call_end_cindy.ss1",
+ "md5": "5cda3fff1ea63913faaeada58ae59bb4",
+ "source": "the KI-134 live B arm (development, ledger #98, batch ki134c, seed 6307, the Story run C1): the launcher's end_state.ss1 of run ki134c-C1, copied unchanged (s53/ki134/out/ki134c/ki134c-C1/end_state.ss1)",
+ "played_by": "the AI (worktree wf_e7452923-f06-3 at the KI-134 fix, stage digest 34270fdf3e990a8c); nothing pressed by the test side",
+ "at": {
+  "frame": 1057153,
+  "map": "PETALBURG_WOODS (14, 34)",
+  "screen": "a trainer's MATCH CALL (CINDY's, started by TryStartMatchCall: LockPlayerFieldControls, no field message box) after its last page 'I need to try harder! See you again!': ExecuteMatchCall tState 5, tWindowId 1, sTextPrinters[1] inactive, no sound effect playing, sFieldMessageBoxMode 0, no script running, sLockFieldControls 1"
+ },
+ "measured_2026_11_05": "s53/ch6stops/repro_call.py on this state: the eyes before the chapter-6 fix report waits_for_button False ('a scene plays (a script runs, the controls are locked)') and no text; ONE A by the harness: tState 6, 7, the task gone and the field controls free within 40 frames"
+}

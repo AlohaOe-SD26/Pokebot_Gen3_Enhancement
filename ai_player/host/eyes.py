@@ -101,6 +101,31 @@ CHAPTER 5 (2026-11-05, the instructed-choice skill), READ ONLY, no new door (the
     and the call-exit wait are `eyes/screens.py` pokenav_view and pokenav_wait;
   * the player's own NAME (`PlayerState.name`): SaveBlock2 playerName[8], through `_play_time`'s doors.
 
+CHAPTER 6 STOPS ROUND 7 (2026-11-07, N6-1, a USER RULING 40 gap), READ ONLY, no new door: ON A DARK MAP ONLY THE LIT CIRCLE IS
+SEEN. DEWFORD's gym (flash level 7 with no gym trainer beaten: 24 px) and GRANITE CAVE B1F and B2F (`requires_flash`) show
+the map and its people only inside a circle round the player; the eyes listed every object, and the world memory learned
+every tile, of the whole window (#109's records: 150 of 154 gym records a run listed someone outside the circle, up to 12
+tiles away). `_lit_radius` reads save block 1's `flashLevel` (one byte, through `_player`'s doors) to know which circle the
+screen draws; `eyes/view.py` lit has the game's drawing rule (`SetFlashScanlineEffectWindowBoundaries`). A tile outside
+the circle is None in `View.rows` (the world memory does not learn it), an object or sign outside it is not listed, and
+`View.lit` says the radius. A lit map's look is unchanged, byte for byte (`View.lit` None is left out of the record).
+Tiles the world memory already knows, and the AI's static knowledge (`brain/goals.py` gym_back), stay: a seasoned player
+knows the map; it does not SEE a person in the dark.
+
+CHAPTER 6 STOPS ROUND 8 (2026-11-07, the round-7 verifier's V7-1 and V7-2), READ ONLY, no new door (`read_symbol`), read on a
+DARK map only: (V7-1) a PERSON is judged by the sprite the screen draws, not by their feet tile: `_drawn_lit` reads the
+object's sprite (`gSprites`, `gSpriteCoordOffsetX/Y`: where it is drawn) and counts its lit pixels. Round 7 missed a ring
+of people drawn largely in the light with a dark feet tile (16 gym records a run in #110). (V7-2) `_step_shift` reads the
+field camera's pixel offset inside a step (`gFieldCamera`), so the circle is placed on the map where the screen draws it
+while a step is in progress; round 7 centred it on the step's destination, up to 15 px ahead of the screen. Tiles and signs
+keep the tile rule (a sign is drawn as a tile). A lit map's look is unchanged.
+CHAPTER 6 STOPS ROUND 9 (2026-11-07, the round-8 verifier's V8-1), READ ONLY, no new door (`read_symbol` and the cartridge
+read `_rom_bytes`), on a DARK map only: round 8 counted every pixel of the sprite's rectangle, whose top 10 or 11 rows a
+person leaves transparent, so it listed a person the screen drew none of. `_drawn_lit` now counts only the pixels the
+sprite DRAWS: its current animation frame (the frame command `animNum` / `animCmdIndex` point to, whose image the game
+copies into VRAM: `images[imageValue]`, cartridge data), palette index 0 transparent, mirrored by its OAM flip bits; a
+person is listed by `eyes/view.py` person_seen (some of them lit, and at least SEEN_SHARE, 74 / 227, of what is drawn).
+
 COST: `gates/live_step1.py` and `gates/test_eyes.py` measure `cost_ms` (it is in every Observation).
 """
 
@@ -141,14 +166,19 @@ from ai_player.eyes.screens import (
     ERROR_PAGE_PRINTER,
     ERROR_PAGE_TASKS,
     MATCH_CALL_NAMES,
+    MATCH_CALL_TASK,
+    MATCH_CALL_TEXT_STATE,
+    MUSIC_PLAYER_STATUS_AT,
     SAVE_DIALOG_CALLBACKS,
     SAVE_MENU_CALLBACKS,
     SCENE_CALLBACKS,
     decode_text,
+    match_call_wait,
     pokenav_wait,
     read_ui,
     save_dialog_wait,
     scene_of,
+    sound_effect_playing,
     task_wait,
 )
 from ai_player.eyes.view import (
@@ -156,8 +186,10 @@ from ai_player.eyes.view import (
     DOOR_BEHAVIORS,
     EXIT_BEHAVIORS,
     LEDGE_DIRECTIONS,
+    OBJ_SIZES,
     SAVE_BLOCK_1_FLAG_BYTES,
     SAVE_BLOCK_1_FLAGS,
+    SAVE_BLOCK_1_FLASH_LEVEL,
     SAVE_BLOCK_1_VARS,
     SCRIPT_CONTEXT_SHUTDOWN,
     STORY_FLAGS,
@@ -171,16 +203,22 @@ from ai_player.eyes.view import (
     VIEW_UP,
     behavior_name,
     classify_screen,
+    drawn_pixels,
     facing_name,
+    flash_radius,
     foe_move_seen,
     hp_bar_pixels,
     in_view,
+    lit,
     milestone_marks,
     movement_mode,
     object_kind,
+    person_seen,
     script_waits_for_button,
     settled_position,
+    sprite_mask,
     status_name,
+    step_offset,
     text_printer_wait,
     visible_id,
 )
@@ -281,6 +319,8 @@ NAMING_INPUT_ENABLED = 1
 SPRITE_SIZE, SPRITE_DATA = 0x44, 0x2E
 #: `include/party_menu.h` struct PartyMenu: slotId (s8) @9.
 PARTY_MENU_SLOT_ID = 9
+#: (BP-1) `include/constants/party_menu.h` PARTY_ACTION_SWITCH: the field menu's SWITCH, choosing the second Pokemon
+PARTY_ACTION_SWITCH = 8
 #: `include/constants/items.h` ITEMS_COUNT (377 in Emerald), `include/sprite.h` MAX_SPRITES (64).
 ITEMS_COUNT, MAX_SPRITES = 377, 64
 #: ‼ BUILD STEP 2, found by the first run of the new eyes: the framework's `read_bytes` bounds EWRAM and IWRAM
@@ -507,8 +547,12 @@ class FrameworkEyes:
         if reason is None and "Task_Pokenav" in tasks:
             # (chapter 5, E5) a call has ended and the POKéNAV reads A or B: no text printer shows it (`pokenav_wait`)
             reason = pokenav_wait(self._pokenav_raw)
+        call = task_data.get(MATCH_CALL_TASK)
+        if reason is None and call is not None:
+            # (chapter 6) a call in the field has printed its last page and A or B hangs up (`match_call_wait`)
+            reason = self._guarded("call wait", problems, lambda: self._match_call_wait(call))
         shown = reason is not None or ui is not None or text_box_mode != 0
-        text = self._guarded("text", problems, lambda: self._text(shown, tasks))
+        text = self._guarded("text", problems, lambda: self._text(shown, tasks, self._call_window(call)))
         status = self._guarded("script status", problems, lambda: read_symbol("sGlobalScriptContextStatus", size=1)[0])
         locked = self._guarded("field controls", problems, lambda: read_symbol("sLockFieldControls", size=1)[0])
         callback = self._guarded("main callback", problems, self._callback_name)
@@ -616,7 +660,11 @@ class FrameworkEyes:
                 raw["menu"] = bytes(read_symbol("sMenu", 0, 12))
                 raw["bag_action"] = {"actions": self._bag_actions()}
         if game_state == "PARTY_MENU":
-            slot = read_symbol("gPartyMenu", PARTY_MENU_SLOT_ID, 1)[0]
+            # slotId @9, slotId2 @10, action @11 (`include/party_menu.h` struct PartyMenu). (BP-1, 2026-11-09) while two
+            # Pokemon are being SWITCHED (the field menu's SWITCH: action PARTY_ACTION_SWITCH) the cursor that moves is
+            # slotId2 (`src/party_menu.c` GetCurrentPartySlotPtr): the one on screen; otherwise slotId, as before
+            ids = read_symbol("gPartyMenu", PARTY_MENU_SLOT_ID, 3)
+            slot = ids[1] if ids[2] == PARTY_ACTION_SWITCH else ids[0]
             raw["party_slot"] = slot - 256 if slot >= 128 else slot
             raw["party_tasks_known"] = True  # build step 4: the list takes input only while its task runs
             if "Task_HandleSelectionMenuInput" in tasks:
@@ -856,7 +904,28 @@ class FrameworkEyes:
         return names, prices
 
     @staticmethod
-    def _text(shown: bool, tasks: frozenset = frozenset()) -> str | None:
+    def _call_window(call: bytes | None) -> int | None:
+        """(chapter 6) The window (and so the text printer) a call in the field prints on, `ExecuteMatchCall`'s data[2], once
+        its printer holds the call's words (`MATCH_CALL_TEXT_STATE` on, `eyes/screens.py`); None otherwise."""
+        if call is None or len(call) < 6:
+            return None
+        state = int.from_bytes(call[0:2], "little", signed=True)
+        window = int.from_bytes(call[4:6], "little", signed=True)
+        return window if state >= MATCH_CALL_TEXT_STATE and 0 <= window < TEXT_PRINTER_COUNT else None
+
+    def _match_call_wait(self, call: bytes) -> str | None:
+        """(chapter 6) `eyes/screens.py` match_call_wait from three reads: the call window's printer (`sTextPrinters`), and
+        the two sound-effect players' status (`gMPlayInfo_SE1`, `gMPlayInfo_SE2`: `IsSEPlaying`)."""
+        window = int.from_bytes(call[4:6], "little", signed=True) if len(call) >= 6 else -1
+        active = None
+        if 0 <= window < TEXT_PRINTER_COUNT:
+            active = bool(read_symbol("sTextPrinters", window * TEXT_PRINTER_SIZE + TEXT_PRINTER_ACTIVE, 1)[0])
+        se1 = _u32(read_symbol("gMPlayInfo_SE1", MUSIC_PLAYER_STATUS_AT, 4), 0)
+        se2 = _u32(read_symbol("gMPlayInfo_SE2", MUSIC_PLAYER_STATUS_AT, 4), 0)
+        return match_call_wait(call, active, sound_effect_playing(se1, se2))
+
+    @staticmethod
+    def _text(shown: bool, tasks: frozenset = frozenset(), call_window: int | None = None) -> str | None:
         """The message on screen, decoded by the AI's own charmap (`eyes/screens.py`).
           * While a printer is ACTIVE (a waiting one first): as far as it has printed, up to its next character
             (`currentChar`): from the start of `gStringVar4` (field, intro and shop messages are expanded there
@@ -874,7 +943,11 @@ class FrameworkEyes:
         message of its own (the start menu): `text` is what was printed last, not proof it is still drawn.
           * R1 (build spec E4): while a main-menu ERROR PAGE's task runs (`eyes/screens.py` ERROR_PAGE_TASKS), the
             page is PRINTER 7's (`src/main_menu.c` CreateMainMenuErrorWindow), a ROM string: once it has printed,
-            printer 0's pointer is stale (it is not that page's), so the last message is printer 7's string."""
+            printer 0's pointer is stale (it is not that page's), so the last message is printer 7's string.
+          * (chapter 6) While a call in the field runs (`call_window`: `_call_window`), the CALL WINDOW's printer first,
+            active or not: the call's words as far as they have printed. A trainer's call opens no field message box, so
+            printer 0 then holds some older message, and the wait at the call's end (`match_call_wait`) would otherwise
+            show it."""
         raw = read_symbol("sTextPrinters", 0, TEXT_PRINTER_SIZE * TEXT_PRINTER_COUNT)
         if tasks & frozenset(ERROR_PAGE_TASKS):
             at = ERROR_PAGE_PRINTER * TEXT_PRINTER_SIZE
@@ -882,6 +955,14 @@ class FrameworkEyes:
             if ROM_START <= pointer < ROM_END:
                 return _rom_string(pointer)
         buffers = (get_symbol("gStringVar4"), get_symbol("gDisplayedStringBattle"))
+        if call_window is not None:
+            # (the names differ from the loop's below on purpose: the revert mutants anchor on that loop's exact lines)
+            words_at = _u32(raw, call_window * TEXT_PRINTER_SIZE)
+            for start, length in buffers:
+                if start <= words_at <= start + length:
+                    return decode_text(context.emulator.read_bytes(start, words_at - start)) if words_at > start else ""
+            if ROM_START <= words_at < ROM_END:
+                return _rom_string(words_at)
         candidates = []
         for index in range(TEXT_PRINTER_COUNT):
             at = index * TEXT_PRINTER_SIZE
@@ -1017,6 +1098,12 @@ class FrameworkEyes:
         secondary = self._tileset_attributes(_u32(map_layout, 20))
         tile_bits = self._tile_flags()
         _, _, signs = self._map_facts(player.map_group, player.map_number)
+        # (chapter 6 stops round 7, N6-1) on a DARK map only the lit circle the screen draws is seen: a tile outside it is
+        # None, an object or sign outside it is not listed (`eyes/view.py` lit). Not under the NO_CROP fault, which sees all
+        radius = self._lit_radius() if self.crop else None
+        # (round 8, V7-2) while a step is in progress the screen still draws the player's tile (the step's destination) up
+        # to 15 px off its middle: the circle is placed on the map where the screen draws it. Read on a dark map only
+        shift = self._step_shift() if radius is not None else (0, 0)
         if self.crop:
             up, down, left_of, right_of = VIEW_UP, VIEW_DOWN, VIEW_HALF_WIDTH, VIEW_HALF_WIDTH
         else:
@@ -1042,11 +1129,72 @@ class FrameworkEyes:
                 else:
                     block = MAPGRID_UNDEFINED
                 row.append(self._tile(player, vx - MAP_OFFSET, vy - MAP_OFFSET, block, border, primary, secondary,
-                                      tile_bits, dy))
+                                      tile_bits, dy) if lit(column - left_of, dy, radius, shift) else None)
             rows.append(tuple(row))
-        objects = self._objects(player) + self._signs(player, signs)
+        objects = self._objects(player, radius) + self._signs(player, signs, radius, shift)
         return View(left=left_of, right=right_of, up=up, down=down, rows=tuple(rows), objects=tuple(objects),
-                    cropped=self.crop)
+                    cropped=self.crop, lit=radius)
+
+    @staticmethod
+    def _lit_radius() -> int | None:
+        """(chapter 6 stops round 7, N6-1) The radius of the lit circle the screen draws on this map, or None when it is lit
+        whole (`eyes/view.py` flash_radius): save block 1's `flashLevel`, the level the game draws its circle by
+        (`InitCurrentFlashLevelScanlineEffect`), through the doors `_player` uses (`read_symbol` for the save block's
+        pointer, `context.emulator.read_bytes`). While a script ANIMATES the circle wider (`animateflash`, DEWFORD's gym
+        after a trainer) the level is still the old one until its `setflashlevel`: the AI sees the smaller circle, less
+        than the screen for those frames (the player's controls are locked through it), never more."""
+        save_block_1 = _u32(read_symbol("gSaveBlock1Ptr", size=4), 0)
+        return flash_radius(context.emulator.read_bytes(save_block_1 + SAVE_BLOCK_1_FLASH_LEVEL, 1)[0])
+
+    @staticmethod
+    def _step_shift() -> tuple[int, int]:
+        """(Chapter 6 stops round 8, the round-7 verifier's V7-2) Where the screen draws the player's tile, in pixels from
+        its standing-still place (`eyes/view.py` step_offset), from the field camera's pixel offset inside a step
+        (`gFieldCamera`, struct CameraObject: s32 x @0x10, s32 y @0x14): how far the screen has scrolled, which it shows.
+        (0, 0) standing still. Through the `read_symbol` door."""
+        camera = read_symbol("gFieldCamera", 0x10, 8)
+        return step_offset(_s32(camera, 0)), step_offset(_s32(camera, 4))
+
+    @staticmethod
+    def _drawn_lit(sprite_id: int, radius: int) -> tuple[int, int]:
+        """(Chapter 6 stops round 8, V7-1; round 9, the round-8 verifier's V8-1) What the screen draws of a map object's
+        sprite: (how many of its DRAWN pixels are lit, how many pixels it draws). WHERE (round 8; `include/sprite.h` struct
+        Sprite: x @0x20, y @0x22, x2 @0x24, y2 @0x26, centerToCornerVecX/Y @0x28/0x29, inUse bit 0, coordOffsetEnabled bit 1
+        and invisible bit 2 of @0x3E): its top-left at x + x2 + centerToCornerVecX (+ gSpriteCoordOffsetX), so a person part
+        way through a step, or a jump's offset (x2, y2), is counted where drawn. WHAT (round 9): its current animation frame,
+        the image of the frame command `anims[animNum][animCmdIndex]` (anims @0x08, animNum @0x2A, animCmdIndex @0x2B;
+        `AnimCmd_frame` copies `images[imageValue]` into VRAM: images @0x0C, struct SpriteFrameImage {data, size}), cartridge
+        data, at the OAM's size (attr0 @0 shape bits 14-15, attr1 @2 size bits 14-15) and flips (attr1 bits 12 and 13, set by
+        `SetSpriteOamFlipBits`), its palette index 0 transparent (`eyes/view.py` sprite_mask), counted in the circle
+        (drawn_pixels). NOTHING drawn (0, 0): no sprite, not in use, invisible; and, so that the AI sees LESS than the screen,
+        never more: an affine, hidden or 256-colour sprite (attr0 bits 8, 9, 13: no overworld person's; only KYOGRE's and
+        GROUDON's scene sprites are affine) and a command that is not a frame (an animation ended right after a loop: the
+        image shown is not the command's)."""
+        if sprite_id >= MAX_SPRITES:
+            return 0, 0
+        sprite = read_symbol("gSprites", sprite_id * SPRITE_SIZE, SPRITE_SIZE)
+        flags = sprite[0x3E]
+        if not flags & 0x01 or flags & 0x04:
+            return 0, 0
+        attr0, attr1 = _u16(sprite, 0), _u16(sprite, 2)
+        size = OBJ_SIZES.get((attr0 >> 14, attr1 >> 14))
+        if attr0 & 0x2300 or size is None:
+            return 0, 0
+        animation = _u32(_rom_bytes(_u32(sprite, 0x08) + 4 * sprite[0x2A], 4), 0)
+        command = _u32(_rom_bytes(animation + 4 * sprite[0x2B], 4), 0)
+        if command & 0x8000:
+            return 0, 0
+        width, height = size
+        image = _u32(_rom_bytes(_u32(sprite, 0x0C) + 8 * (command & 0xFFFF), 4), 0)
+        mask = sprite_mask(bytes(_rom_bytes(image, width * height // 2)), width, bool(attr1 & 0x1000), bool(attr1 & 0x2000))
+        corner_x = int.from_bytes(bytes(sprite[0x28:0x29]), "little", signed=True)
+        corner_y = int.from_bytes(bytes(sprite[0x29:0x2A]), "little", signed=True)
+        left = _s16(sprite, 0x20) + _s16(sprite, 0x24) + corner_x
+        top = _s16(sprite, 0x22) + _s16(sprite, 0x26) + corner_y
+        if flags & 0x02:
+            left += _s16(read_symbol("gSpriteCoordOffsetX", size=2), 0)
+            top += _s16(read_symbol("gSpriteCoordOffsetY", size=2), 0)
+        return drawn_pixels(left, top, mask, radius), sum(len(row) for row in mask)
 
     @staticmethod
     def _tile(player: PlayerState, x: int, y: int, block: int, border: bytes, primary: bytes, secondary: bytes,
@@ -1097,7 +1245,7 @@ class FrameworkEyes:
             self._tile_bits = read_symbol("sTileBitAttributes")
         return self._tile_bits
 
-    def _objects(self, player: PlayerState) -> list[SeenObject]:
+    def _objects(self, player: PlayerState, radius: int | None = None) -> list[SeenObject]:
         seen = []
         for event in get_map_objects():
             flags = event.flags
@@ -1106,6 +1254,10 @@ class FrameworkEyes:
             x, y = event.current_coords
             if self.crop and not in_view(player.x, player.y, x, y):
                 continue
+            if radius is not None and not person_seen(*self._drawn_lit(event.sprite_id, radius)):
+                # (round 7, N6-1) a person in the dark is not seen: black on screen. (Round 8, V7-1) judged by the sprite
+                # the screen DRAWS, not by the feet tile alone. (Round 9, V8-1) by the pixels it draws, not its rectangle
+                continue
             seen.append(SeenObject(
                 kind=object_kind(event.graphics_id), x=x, y=y, dx=x - player.x,
                 dy=y - player.y, local_id=event.local_id, graphics_id=event.graphics_id,
@@ -1113,12 +1265,16 @@ class FrameworkEyes:
             ))
         return seen
 
-    def _signs(self, player: PlayerState, signs: tuple) -> list[SeenObject]:
+    def _signs(self, player: PlayerState, signs: tuple, radius: int | None = None,
+               shift: tuple[int, int] = (0, 0)) -> list[SeenObject]:
         """Interactable tiles of the map (`MapBgEvent` kind Script: signposts, PCs, bookshelves). Hidden
-        items are never here: nobody can see them."""
+        items are never here: nobody can see them. (Round 7, N6-1) Nor is a sign in the dark. (Round 8) A sign is drawn as
+        a map TILE (the BG layers, no sprite), so the tile rule is its rule, placed as the tiles are (`shift`)."""
         seen = []
         for (x, y), elevation in signs:
             if self.crop and not in_view(player.x, player.y, x, y):
+                continue
+            if not lit(x - player.x, y - player.y, radius, shift):
                 continue
             seen.append(SeenObject(kind="sign", x=x, y=y, dx=x - player.x, dy=y - player.y, local_id=-1,
                                    graphics_id=-1, facing=None, elevation=elevation, source="bg_event"))

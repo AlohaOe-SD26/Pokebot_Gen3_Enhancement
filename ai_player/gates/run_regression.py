@@ -161,6 +161,9 @@ LINE_RULES: dict[str, tuple[str, str | None]] = {
     "check_grader_imports": (r"^GRADER IMPORTS: PASS\b", r"^GRADER IMPORTS: FAIL\b"),
     # R1 + R2 (DP1): the paths gate's own last line
     "check_paths": (r"^PATHS GATE: PASS \(\d+ files, 0 findings\)$", r"^PATHS GATE: FAIL\b"),
+    # the anchor gate (2026-11-09): every runner read (N of N), no anchor off one hit, no unreadable table
+    "check_anchors": (r"^ANCHORS GATE: PASS \((\d+) of \1 runners, \d+ mutants, \d+ edits, 0 not unique, 0 errors\)$",
+                      r"^ANCHORS GATE: FAIL\b"),
     # a REPORT: it always exits 0 (recon Q1); its line proves it ran to its end
     "disk_budget": (r"^DISK BUDGET: \S", None),
 }
@@ -203,7 +206,11 @@ def _kind(name: str) -> str:
 
 REVERTS = ("revert_step3", "revert_safety_gates", "revert_step5", "revert_step2", "revert_step11", "revert_step4",
            # R1 + R2 (build spec 2026-10-29 section 6): saving, continuing, the memory file, and their call-census sites
-           "revert_r1")
+           "revert_r1",
+           # (boss preparation BP-1, 2026-11-09) the verdict, the plan, the raise and their call sites
+           "revert_bossprep",
+           # (P11-1, 2026-11-11) the way through a dark cave and its call sites
+           "revert_p11")
 #: evidence group -> the file stem it writes (`<date>-<stem>.txt`): each must match its suite's glob in suite_map.json
 EVIDENCE_NAMES = {"units": "regression-units", "revert_step5": "regression-step5-revert",
                   "revert_safety_gates": "regression-revert-gates", "revert_r1": "regression-r1-revert"}
@@ -218,7 +225,9 @@ QUICK = ("check_purity", "test_eyes", "test_hands", "test_battle", "test_evidenc
          # build step 5.3, the re-sourcing build: the re-sourced checks and the re-grade (offline)
          "test_step53_rs",
          # R1 + R2 (build spec 2026-10-29 section 7): saving, continuing and the memory file; the paths gate (offline)
-         "test_saving", "check_paths")
+         "test_saving", "check_paths",
+         # the anchor gate (08-MISTAKES 2026-11-09): every mutant runner's anchors, each round, without running a mutant
+         "check_anchors", "test_check_anchors")
 
 
 def all_suites() -> list[Suite]:

@@ -6,12 +6,12 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 ## Reading order
 | # | File | What it tells you | Type |
 |---|------|-------------------|------|
-| 1 | `04-HANDOFF.md` | Where we are RIGHT NOW + what's next — ⚠ **start at the single `➡➡➡ START HERE` marker** (`grep -n '^>    ➡➡➡' 04-HANDOFF.md`). Since 2026-10-22 (S2-1b) it holds CURRENT STATE only, about 66 KB: a one-sentence `**Last updated:**` on line 6, WHAT THIS IS, `## If stopped mid-task` (the resume point the session-start hook injects), STATE, NEXT ACTIONS, the rules that bind every session, the parked story bot's live rules, HOW TO RUN / TEST. Its history, and the full pre-slim file, are in `28` | current-state |
+| 1 | `04-HANDOFF.md` | Where we are RIGHT NOW + what's next — ⚠ **start at the single `➡➡➡ START HERE` marker** (`grep -n '^>    ➡➡➡' 04-HANDOFF.md`). Since 2026-10-22 (S2-1b) it holds CURRENT STATE only, about 75 KB: a one-sentence `**Last updated:**` on line 6, WHAT THIS IS, `## If stopped mid-task` (the resume point the session-start hook injects), STATE, NEXT ACTIONS, the rules that bind every session, the parked story bot's live rules, HOW TO RUN / TEST. Its history, and the full pre-slim file, are in `28` | current-state |
 | 2 | `14-AGENT-PLAYBOOK.md` | **HOW to work on this excellently** — tools, debugging method, story-mapping method, faithfulness rules, bug patterns | reference |
 | 3 | `01-VISION-AND-DESIGN.md` | What this program is for; intent of each part | current-state |
 | 4 | `02-ARCHITECTURE.md` | How it's built; how to run it | current-state |
 | 5 | `03-PUNCH-LIST.md` | The work queue | current-state |
-| 6 | `05-KNOWN-ISSUES.md` | Open bugs and traps (a few CLOSED entries stay, each marked CLOSED or FIXED in its header, where an auditor would otherwise re-flag them) | current-state |
+| 6 | `05-KNOWN-ISSUES.md` | Open bugs and traps, plus FIXED or CLOSED entries kept while their record still matters (each marked so in its header; closed blocks move to `31`) | current-state |
 | 7 | `08-MISTAKES.md` | Bugs/dead-ends already solved — don't repeat them | append-only |
 | 8 | `06-DECISIONS-LOG.md` | Why things are the way they are. ⭐ Since 2026-10-21 it has a finding aid: `RULINGS.md` (generated, with the hand-curated `rulings-overlay.json`), searched by `py -3.12 tools/decomp_lookup.py ask "<topic>"` together with `facts-ledger.jsonl` (verified facts, append-only) and the pinned decomp; `06` always wins. `cost-ledger.jsonl` is the usage audit's per-workflow cost ledger (`tools/usage_audit.py`) | append-only |
 | 9 | `07-CHANGELOG.md` | Everything that has ever changed | append-only |
@@ -75,11 +75,12 @@ Full version: see the managed block in the project root's `CLAUDE.md`.
 ‼ **The two gate steps are NOT optional and were missing from this summary until
 2026-08-14** — a session orienting from this file alone would have committed over
 an unrun gate. From `tools/story-dev/`, these must exit 0 before ANY commit
-touching `PROJECT KNOWLEDGE/`. ‼ **IT SAID "ALL THREE" OVER *FOUR* COMMANDS AND NAMED NO SUBSET** (fixed 2026-09-26, found by a Tier 2 cold start) — so: a **DOC-ONLY** commit needs the last three (CLAUDE.md's Tier 0 is `lint_docs` + `audit_doc_consistency`; `audit_encoding` is cheap and catches mojibake). `run_gates.py` is required before any commit touching **CODE** — it takes ~130 s to 15 min, which is why the distinction matters:
+touching `PROJECT KNOWLEDGE/`. ‼ **IT SAID "ALL THREE" OVER *FOUR* COMMANDS AND NAMED NO SUBSET** (fixed 2026-09-26, found by a Tier 2 cold start) — so: a **DOC-ONLY** commit needs the last four (CLAUDE.md's Tier 0 is `lint_docs` + `audit_doc_consistency`; `audit_handoff_invariants` guards the handoff's single START HERE marker; `audit_encoding` is cheap and catches mojibake). `run_gates.py` is required before any commit touching **CODE** — it takes minutes (it prints its own time), which is why the distinction matters:
 
 ```
 PYTHONUTF8=1 py -3.12 run_gates.py              # THE STANDING SUITE — required before any CODE commit
 PYTHONUTF8=1 py -3.12 lint_docs.py              # line budgets, banners, flag registry, R8 byte ratchet (new text on its own line)
+PYTHONUTF8=1 py -3.12 audit_handoff_invariants.py  # the handoff's structure (one START HERE marker, HOW TO RUN present)
 PYTHONUTF8=1 py -3.12 audit_doc_consistency.py  # docs vs code vs each other
 PYTHONUTF8=1 py -3.12 audit_encoding.py         # mojibake + BOM (--repair fixes in place)
 ```

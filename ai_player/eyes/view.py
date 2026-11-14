@@ -43,6 +43,8 @@ __all__ = [
     "BEHAVIOR_NAMES",
     "DOOR_BEHAVIORS",
     "EXIT_BEHAVIORS",
+    "FLASH_CENTRE",
+    "FLASH_RADIUS",
     "GFX_KINDS",
     "GLYPHS",
     "HP_BAR_PIXELS",
@@ -51,13 +53,16 @@ __all__ = [
     "MENU_TASKS",
     "MILESTONE_FLAGS",
     "MILESTONE_VARS",
+    "OBJ_SIZES",
     "OUTCOME_CAUGHT",
     "OUTCOME_NAMES",
     "RENDER_STATE_NAMES",
     "SAVE_BLOCK_1_FLAGS",
     "SAVE_BLOCK_1_FLAG_BYTES",
+    "SAVE_BLOCK_1_FLASH_LEVEL",
     "SAVE_BLOCK_1_VARS",
     "SCRIPT_CONTEXT_SHUTDOWN",
+    "SEEN_SHARE",
     "STORY_FLAGS",
     "TALL_GRASS_BEHAVIORS",
     "TEXT_FLAG_AUTO_SCROLL",
@@ -71,16 +76,24 @@ __all__ = [
     "VIEW_UP",
     "behavior_name",
     "classify_screen",
+    "drawn_pixels",
     "facing_name",
     "foe_move_seen",
+    "flash_radius",
+    "flash_window",
     "hp_bar_pixels",
     "in_view",
+    "lit",
+    "lit_pixels",
     "milestone_marks",
     "movement_mode",
     "object_kind",
+    "person_seen",
     "script_waits_for_button",
     "settled_position",
+    "sprite_mask",
     "status_name",
+    "step_offset",
     "text_printer_wait",
     "view_offsets",
     "visible_id",
@@ -105,6 +118,174 @@ def view_offsets() -> tuple[tuple[int, int], ...]:
     return tuple(
         (dx, dy) for dy in range(-VIEW_UP, VIEW_DOWN + 1) for dx in range(-VIEW_HALF_WIDTH, VIEW_HALF_WIDTH + 1)
     )
+
+
+# ------------------------------------------------------------------------------------------- the dark
+# (chapter 6 stops round 7, N6-1: a USER RULING 40 gap) ON A DARK MAP THE SCREEN SHOWS ONLY A LIT CIRCLE ROUND THE PLAYER.
+# Pinned decomp: `SetDefaultFlashLevel` (src/overworld.c) sets save block 1's `flashLevel` on a map whose header has `cave`
+# (map.json `requires_flash`: GRANITE CAVE B1F and B2F, VICTORY ROAD B1F and B2F) to gMaxFlashLevel - 1 = 7, or to 1 once
+# FLASH is used (FLAG_SYS_USE_FLASH); a script can set it (`setflashlevel`, `animateflash`: DEWFORD's gym,
+# DewfordTown_Gym_EventScript_SetFlashLevel, 7 with no gym trainer beaten, one level brighter per trainer, 0 after BRAWLY).
+# `InitCurrentFlashLevelScanlineEffect` then draws, for a level other than 0, a circle of `sFlashLevelToRadius[level]`
+# pixels centred on the screen's middle (DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2) into WIN0's per-scanline bounds
+# (`SetFlashScanlineEffectWindowBoundaries`, src/field_screen_effect.c); inside WIN0 every BG and the sprites are drawn
+# (REG_WININ), outside it only BG0, the text layer (REG_WINOUT, `InitOverworldGraphicsRegisters`): the map and the people
+# there are black. The scanline buffers start cleared (`ScanlineEffect_Clear`), so a scanline the circle does not reach is
+# black whole. That drawing rule is the SCREEN's, so applying it is fair (what is not drawn is not seen); the level is read
+# from the save block only to know which circle the screen draws. NOT HERE: the BATTLE PYRAMID draws its own radius
+# (`WriteBattlePyramidViewScanlineEffectBuffer`, post-game, `frontier.pyramidLightRadius`); a later chapter must add it.
+#: `sFlashLevelToRadius` (src/field_screen_effect.c): the lit circle's radius in pixels, by flash level
+FLASH_RADIUS = (200, 72, 64, 56, 48, 40, 32, 24, 0)
+#: `struct SaveBlock1` /*0x30*/ u8 flashLevel (include/global.h)
+SAVE_BLOCK_1_FLASH_LEVEL = 0x30
+#: the circle's centre on screen (DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2): the middle of the player's tile, which is drawn at
+#: screen (112..127, 72..87) (the module docstring), so a tile (dx, dy) from the player has its middle at
+#: (120 + 16 dx, 80 + 16 dy)
+FLASH_CENTRE = (120, 80)
+
+
+def flash_radius(level: int) -> int | None:
+    """The radius of the lit circle the screen draws at flash `level`, or None when the screen is lit whole (level 0: no
+    circle is drawn). A level outside the game's table (never set by the game: `SetFlashLevel` turns one into 0; only a
+    bad read) is radius 0, nothing lit: the AI then sees LESS than the screen, never more."""
+    if level == 0:
+        return None
+    return FLASH_RADIUS[level] if 0 < level < len(FLASH_RADIUS) else 0
+
+
+_WINDOWS: dict[int, dict[int, tuple[int, int]]] = {}
+
+
+def flash_window(radius: int) -> dict[int, tuple[int, int]]:
+    """The lit circle as the game draws it: scanline y -> (left, right), WIN0H's bounds (a pixel x is lit when
+    left <= x < right), from `SetFlashScanlineEffectWindowBoundaries` and `SetFlashScanlineEffectWindowBoundary` line for
+    line (a midpoint circle; bounds clamped to 0..255; only scanlines y <= 160 are written). A scanline not in the result
+    is black (the buffer was cleared)."""
+    if radius not in _WINDOWS:
+        rows: dict[int, tuple[int, int]] = {}
+
+        def bound(y: int, left: int, right: int) -> None:
+            if y <= 160:
+                rows[y] = (min(max(left, 0), 255), min(max(right, 0), 255))
+
+        cx, cy = FLASH_CENTRE
+        r, v2, v3 = radius, radius, 0
+        while r >= v3:
+            bound(cy - v3, cx - r, cx + r)
+            bound(cy + v3, cx - r, cx + r)
+            bound(cy - r, cx - v3, cx + v3)
+            bound(cy + r, cx - v3, cx + v3)
+            v2 -= (v3 * 2) - 1
+            v3 += 1
+            if v2 < 0:
+                v2 += 2 * (r - 1)
+                r -= 1
+        _WINDOWS[radius] = rows
+    return _WINDOWS[radius]
+
+
+def lit(dx: int, dy: int, radius: int | None, shift: tuple[int, int] = (0, 0)) -> bool:
+    """Is the tile (dx, dy) from the player inside the lit circle the screen draws (`flash_window`)? Its MIDDLE pixel
+    (120 + 16 dx, 80 + 16 dy) must be lit, so a tile the AI sees is at least partly on screen; a tile only grazed by the
+    circle's rim (a few pixels of its edge) is not seen. At flash level 7 (24 px) that is the player's tile and the 8 round
+    it; at level 1 (72 px, FLASH used) 69 tiles of the window. `radius` None (a lit map): every tile. (Round 8, V7-2)
+    `shift`: where the screen draws the player's tile, in pixels from where it is drawn standing still (`step_offset`: up
+    to 15 px while a step is in progress), so the circle is placed on the map as the screen draws it. LIMIT: a tile exactly
+    half lit at the circle's widest row (r = 32, 48, 64: dx = -r/16 and +r/16) is seen on the left and not on the right
+    (the middle pixel 120 + 16 dx is right of the tile's true centre, 119.5 + 16 dx); either verdict is half the screen's."""
+    if radius is None:
+        return True
+    left, right = flash_window(radius).get(FLASH_CENTRE[1] + 16 * dy + shift[1], (0, 0))
+    return left <= FLASH_CENTRE[0] + 16 * dx + shift[0] < right
+
+
+def step_offset(camera: int) -> int:
+    """(Chapter 6 stops round 8, the round-7 verifier's V7-2) How many pixels from its standing-still place the screen
+    draws the player's tile along one axis, from the field camera's pixel offset inside a step (`gFieldCamera.x` or `.y`,
+    struct CameraObject): `CameraUpdate` (src/field_camera.c) moves the camera's TILE (save block 1's pos) at the step's
+    FIRST frame and its pixels one frame at a time, so a look while a step is in progress has the player's tile (the step's
+    destination) still up to 15 px off the screen's middle; `SetSpritePosToMapCoords` (src/event_object_movement.c) places
+    a sprite on a map tile by the same rule (+16 when the offset is positive, -16 when negative, minus the offset). 0 when
+    the camera stands still."""
+    return (16 if camera > 0 else -16 if camera < 0 else 0) - camera
+
+
+#: (Chapter 6 stops round 9, the round-8 verifier's V8-1) A PERSON (a map object's sprite) on a dark map is seen when the
+#: screen draws some of them lit and the lit share of what it draws of them (their sprite frame's non-transparent pixels,
+#: `sprite_mask`, counted in the circle by `drawn_pixels`) is at least SEEN_SHARE = 74 / 227. DERIVED, not chosen
+#: (`gates/test_eyes.py` DarkTests.test_d7): the least lit share of a person standing still whose FEET tile the tile rule
+#: (`lit`) sees, over every flash level and every place of the window, for the gym guide's frame as the game draws it (74
+#: of his 227 drawn pixels: 2 rows above the player under the 32 px circle's top; the player's own frame gives 74 of 216
+#: there, a larger share). So, at rest, a person whose feet tile is seen is seen (for those two frames; a thinner frame can
+#: be seen less), a person drawn half lit with a dark feet tile is seen (109 of 227 at (-1, 2) under 32 px), and the slivers
+#: of a head at the circle's rim (39 drawn pixels or fewer at rest, 0 to 29 in the round-8 verifier's cases) are not. A
+#: share, not a count, because what a sprite draws differs in size: an item ball draws 76 pixels, a person 173 to 252.
+#: Round 8 counted every pixel of the sprite's RECTANGLE, whose top 10 or 11 rows a person leaves transparent, so it listed
+#: a person the screen drew none of. LIMITS: (1) mid-step (1 to 4 frames of a step) a standing person whose feet tile the
+#: shifted tile rule sees can be unlisted, 65 to 73 of 227 drawn pixels lit (the round-9 probe's seven looks of one walk;
+#: the round-8 verifier's six; `gates/test_eyes.py` DarkTests.test_d11 pins one); (2) a pixel the map draws over the
+#: sprite (a top-layer metatile: the top of a wall) or another sprite covers is still counted: the eyes do not read the
+#: background layers. Measured: with the guide moved onto a wall tile by a probe-only write, (0, -2) at 32 px, he was
+#: listed with 74 pixels counted and 0 on the screen; in the natural walk no listed person had 0 on the screen, and no
+#: wall was measured covering one at rest: the fewest the screen drew of a listed person (60 of 74 counted, gym32 s1Up
+#: after2) was the screen one frame behind the memory the eyes read (the next frame drew 74), as was the other at-rest
+#: look where it drew fewer (224 of 225); so the only evidence for (2) is the probe-only placement (round 10, V9-2).
+SEEN_SHARE = (74, 227)
+
+#: The GBA's OBJ sizes (width, height) by (OAM shape, OAM size): square, horizontal, vertical.
+OBJ_SIZES = {(0, 0): (8, 8), (0, 1): (16, 16), (0, 2): (32, 32), (0, 3): (64, 64),
+             (1, 0): (16, 8), (1, 1): (32, 8), (1, 2): (32, 16), (1, 3): (64, 32),
+             (2, 0): (8, 16), (2, 1): (8, 32), (2, 2): (16, 32), (2, 3): (32, 64)}
+
+
+def lit_pixels(left: int, top: int, width: int, height: int, radius: int) -> int:
+    """How many pixels of the screen rectangle (`left`, `top`, `width` x `height`) the screen draws lit: on the screen
+    (0..239 x 0..159) and inside the circle (`flash_window`). A tile's light (every pixel of a tile is drawn)."""
+    window = flash_window(radius)
+    count = 0
+    for y in range(max(top, 0), min(top + height, 160)):
+        low, high = window.get(y, (0, 0))
+        count += max(0, min(high, left + width, 240) - max(low, left, 0))
+    return count
+
+
+def sprite_mask(frame: bytes, width: int, h_flip: bool = False, v_flip: bool = False) -> tuple[tuple[int, ...], ...]:
+    """(Round 9, V8-1) The pixels a 4 bpp sprite frame DRAWS, as the screen draws it: for each row of the sprite (top to
+    bottom), the columns (0 = its left) whose colour is not palette index 0, the transparent one. `frame`: the frame's tiles
+    (`width` / 8 tiles across, row after row, the 1D OBJ mapping `RequestSpriteFrameImageCopy` copies into VRAM whole; each
+    8 x 8 tile 4 bytes a row, the low nibble the left pixel). `h_flip`, `v_flip`: the sprite's OAM flip bits (the screen
+    mirrors it)."""
+    across = width // 8
+    height = len(frame) * 2 // width
+    rows = []
+    for y in range(height):
+        source_y = height - 1 - y if v_flip else y
+        row = []
+        for x in range(width):
+            source_x = width - 1 - x if h_flip else x
+            byte = frame[(source_y // 8 * across + source_x // 8) * 32 + source_y % 8 * 4 + source_x % 8 // 2]
+            if (byte >> 4 if source_x & 1 else byte & 0x0F) != 0:
+                row.append(x)
+        rows.append(tuple(row))
+    return tuple(rows)
+
+
+def drawn_pixels(left: int, top: int, mask: tuple[tuple[int, ...], ...], radius: int) -> int:
+    """(Round 9, V8-1) How many of a sprite's DRAWN pixels (`sprite_mask`, the sprite's top-left at screen (`left`, `top`))
+    the screen draws lit: on the screen (0..239 x 0..159) and inside the circle (`flash_window`)."""
+    window = flash_window(radius)
+    count = 0
+    for row, columns in enumerate(mask):
+        if 0 <= top + row < 160:
+            low, high = window.get(top + row, (0, 0))
+            count += sum(1 for x in columns if max(low, 0) <= left + x < min(high, 240))
+    return count
+
+
+def person_seen(lit_count: int, drawn: int) -> bool:
+    """(Round 9, V8-1) Is a person (a map object) on a dark map seen: some of what the screen draws of them is lit
+    (`lit_count` of their `drawn` pixels), and at least SEEN_SHARE of it?"""
+    return lit_count > 0 and lit_count * SEEN_SHARE[1] >= drawn * SEEN_SHARE[0]
 
 
 # ------------------------------------------------------------------------------------------- tiles
@@ -388,6 +569,13 @@ MILESTONE_FLAGS: tuple[tuple[str, int], ...] = (
     ("TRAINER_GRUNT_RUSTURF_TUNNEL", 0x510), ("RETURNED_DEVON_GOODS", 0x90), ("RECEIVED_POKENAV", 0xBC),
     ("SYS_POKENAV_GET", 0x862), ("HAS_MATCH_CALL", 0x12F), ("ADDED_MATCH_CALL_TO_POKENAV", 0x130),
     ("ENABLE_RIVAL_MATCH_CALL", 0xFD), ("DEFEATED_RIVAL_RUSTBORO", 0xD3),
+    # (chapters 6-7, 2026-11-05: MR. BRINEY's boat and the DEWFORD GYM; numbers checked by `gates/extract_milestones.py --verify`;
+    # no variable is new. A proof the eyes do not read is never progress: `Story.done` is None for it and the story would stop)
+    ("MR_BRINEY_SAILING_INTRO", 0x93), ("VISITED_DEWFORD_TOWN", 0x871), ("RECEIVED_OLD_ROD", 0x101),
+    ("DELIVERED_STEVEN_LETTER", 0xBD), ("REGISTERED_STEVEN_POKENAV", 0x131), ("RECEIVED_HM_FLASH", 0x6D),
+    ("TRAINER_TAKAO", 0x5B3), ("TRAINER_JOCELYN", 0x6A9), ("TRAINER_LAURA", 0x6AA), ("TRAINER_BRENDEN", 0x73C),
+    ("TRAINER_CRISTIAN", 0x73E), ("TRAINER_LILITH", 0x73D), ("DEFEATED_DEWFORD_GYM", 0x4F1), ("BADGE02_GET", 0x868),
+    ("RECEIVED_EXP_SHARE", 0x110),
 )
 MILESTONE_VARS: tuple[tuple[str, int], ...] = (
     ("BIRCH_LAB_STATE", 0x4084), ("PETALBURG_GYM_STATE", 0x4085), ("LITTLEROOT_RIVAL_STATE", 0x408D),

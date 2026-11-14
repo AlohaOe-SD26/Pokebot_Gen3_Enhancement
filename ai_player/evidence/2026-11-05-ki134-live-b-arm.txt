@@ -1,0 +1,262 @@
+KI-134 - THE LIVE B ARM (development, never graded): the region-aware route planner (brain/explore.py route_to) from the three chapter-5 chain ends, target ch7_brawly; the A arm is ledger #96 (s53/ch6, the old code, 0 of 3 at the cottage)
+HEADLINE (carries the caveat): the route fix works live where the A arm failed, but no run reached DEWFORD. In 3 of 3 runs the AI walked from ROUTE 104's north strip in by the woods' north door, out by a woods SOUTH door and into MR. BRINEY's cottage (first entry f752443, f639595, f822880), with 0 ping-pong ends (the A arm, ledger #96: 0 of 3 entered the cottage; 16, 43 and 47 ping-pongs). 2 of 3 set FLAG_MR_BRINEY_SAILING_INTRO (the A arm: 0 of 3). Two NEW stops, NOT fixed in this round, ended every run: talking to MR. BRINEY, who walks a fixed loop in his cottage (C1: 54 talk goals, none landed), and the END of a PokeNav call (DAD's call on the first sail in C2 and C3, CINDY's call in the woods in C1), after which the AI never gets control back. The prediction is WRONG on Q3 (C1's exit line still names the cottage milestone, though C1 had entered the cottage 50 times) and on Q4 (no run reached DEWFORD). One trajectory per start; development, never a rate; the seeds differ from the A arm's.
+written 2026-11-05 by s53/ki134/write_evidence.py; worktree wf_e7452923-f06-3 HEAD 4b84131a + the uncommitted KI-134 fix; stage armB code digest 34270fdf3e990a8c (unchanged during the batch: True)
+method: s53/ch6's (arms.py copied to s53/ki134 with the seeds, profiles and batch renamed): the real launcher through live_step5.run_arm, a purity gate per launch, what each run reached read from the GAME (L5.THIS_RUN freshness-checked), one stage (s53/ki134/stage: junctions to the main sandbox's code folders, read only), at most 3 runs at once, a world.jsonl kept only under 300 MB (decimal; KI-130). The starts are byte-identical to the A arm's (s53/ch5stops/out/probe/probe-C1..C3).
+
+===== LEDGER #97 (batch ki134b, seeds 6304-6306): REFUSED, 0 of 3 played a game frame
+  [ki134b-C1] launcher exit 7 in 2.5 s (GATE_REFUSED_EXIT = 7: the purity gate refused the package), frames 746397 -> None
+  [ki134b-C2] launcher exit 7 in 2.4 s (GATE_REFUSED_EXIT = 7: the purity gate refused the package), frames 634570 -> None
+  [ki134b-C3] launcher exit 7 in 2.9 s (GATE_REFUSED_EXIT = 7: the purity gate refused the package), frames 812544 -> None
+  cause: rule [a] of gates/check_purity.py: `from ai_player.brain.navigator import in_map_walls` while `in_map_walls` was not in navigator.__all__ (the builder's own defect). Fixed by adding it to __all__; nothing else changed. #97's ledger verdict reads '(3 of 3 ran)' (the ch6 harness counted result files): the truth is 0 of 3 played. Its seeds are spent.
+  its prediction (prediction_ki134b.txt, sha256 a78c79aae1d4cb96b0886c3cc9e7cc13bd68d8428d5b37b283487cb2d0f58aaa) was never tested.
+
+===== LEDGER #98 (batch ki134c, seeds 6307-6309): 2026-11-05 18:55:47 -> 2026-11-05 19:22:31, prediction sha256 65d2b42281664474818c76d619aeb02a776f8f98082b881cfa6fade55a813c2e (the file now: 65d2b42281664474818c76d619aeb02a776f8f98082b881cfa6fade55a813c2e)
+--- the prediction, verbatim:
+KI-134 LIVE B ARM, batch ki134c (s53/ki134/arms.py run ki134c), written 2026-11-05 BEFORE the runs. DEVELOPMENT, never graded.
+
+WHY A SECOND ENTRY: batch ki134b (ledger #97, seeds 6304-6306, prediction prediction_ki134b.txt sha256 a78c79aa...) never
+played a game frame. The launcher's purity gate refused all three launches (exit 7, GATE_REFUSED_EXIT): rule [a], the new
+import `in_map_walls` of brain/explore.py was not in brain/navigator.py's __all__. Fixed by adding it to __all__ (no other
+change). #97's ledger verdict reads "3 of 3 ran" (the ch6 harness counted result files); the truth is 0 of 3 played. Its seeds
+are spent; this batch uses 6307-6309. The claims below are #97's, unchanged but for the seeds.
+
+The A arm already exists: ledger #96 (s53/ch6, seeds 6301-6303), the code at worktree HEAD 4b84131a: 0 of 3 runs set
+FLAG_MR_BRINEY_SAILING_INTRO; all three ended "stuck: no progress for 120,025 / 120,342 / 127,264 frames ... since ROUTE 104:
+MR. BRINEY's cottage", their go goals ending in warp ping-pongs on 24:11|14,5 (C3) and edge ping-pongs RUSTBORO <-> ROUTE 104
+(C1, C2).
+
+This B arm: the NEW code (the KI-134 fix: brain/explore.py route_to searches from the player's tile over the parts of maps a
+walk gets to), from the SAME three chapter-5 chain ends (the ch5-stops probe's probe-C1 Story, probe-C2 Catcher, probe-C3
+Trainer: end_state.ss1 + world.jsonl, RUSTBORO (19,53), the rival beaten), target ch7_brawly, 1,200,000 frames, 4,800 s,
+seeds 6307 (C1), 6308 (C2), 6309 (C3). The real launcher (a purity gate per launch); what each run reached read from the GAME.
+ONE trajectory per start: a sample, never a rate. Seeds differ from the A arm's, so the two arms are not one trajectory each.
+
+What I expect, and why:
+  Q1  at least 2 of 3 runs set FLAG_MR_BRINEY_SAILING_INTRO: the route from ROUTE 104's north strip is now the woods' north
+      door, and from the woods the SOUTH door (shown offline on C1's own memory), so the walk reaches the cottage's part; the
+      woods' path north to south is downhill over its ledges, and the AI walked it the other way in chapter 4;
+  Q2  in every run that sets Q1's flag, the AI left PETALBURG WOODS by a south door (a map change 24:11 -> 0:19 arriving at
+      y >= 38 in the run's actions.jsonl) before the flag was set;
+  Q3  0 of 3 runs end with "no progress ... since ROUTE 104: MR. BRINEY's cottage" (the A arm's stop, 3 of 3);
+  Q4  at least 1 of 3 sets FLAG_VISITED_DEWFORD_TOWN (the yes/no after the sail offer answered YES; the sail is a cut scene).
+      Less sure than Q1: nothing of the sail has ever run live;
+  Q5  0 of 3 deliver STEVEN's letter (DELIVERED_STEVEN_LETTER 0) and 0 of 3 earn BADGE02 (nothing names the cave; its dark
+      floors and its loop are unexercised);
+  Q6  purity CLEAN in 3 of 3.
+Not predicted (reported): every NEW stop past the cottage (the Briney yes/no, the sail and DAD's call, DEWFORD, finding GRANITE
+CAVE, the dark floors, STEVEN, BRAWLY), its evidence and a reading of its cause; the frames each step took; world.jsonl sizes.
+Wrong if any of Q1-Q6 fails. Q1-Q3 are the fix's claims; Q4-Q6 are the stage's.
+--- the runs (read from the GAME):
+[ki134c-C1] seed 6307 Story: frames 746397 -> 1057153 (310756 real), 1589.2 s, map [0, 3] -> [24, 11], purity CLEAN, world.jsonl 236440873 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (the nonzero ones): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1}
+    exit: [AI-EXIT] reason=play: stuck: no progress for 120142 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)) code=0
+    ch6_briney_house passed at: never
+[ki134c-C2] seed 6308 Catcher: frames 634570 -> 781235 (146665 real), 852.6 s, map [0, 3] -> [0, 20], purity CLEAN, world.jsonl 11344369 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (the nonzero ones): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1}
+    exit: [AI-EXIT] reason=play: stuck: no progress for 120099 frames (no milestone, battle won training, level, new map, catch, item or heal; since Sail with MR. BRINEY to DEWFORD TOWN) code=0
+    ch6_briney_house passed at: f658194
+[ki134c-C3] seed 6309 Trainer: frames 812544 -> 975532 (162988 real), 938.7 s, map [0, 3] -> [0, 20], purity CLEAN, world.jsonl 17263084 B (kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (the nonzero ones): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1}
+    exit: [AI-EXIT] reason=play: stuck: no progress for 120099 frames (no milestone, battle won training, level, new map, catch, item or heal; since Sail with MR. BRINEY to DEWFORD TOWN) code=0
+    ch6_briney_house passed at: f852459
+
+--- the prediction judged (computed):
+Q1 (at least 2 of 3 set MR_BRINEY_SAILING_INTRO): 2 of 3 -> held
+Q2 (every run that set Q1's flag left the woods by a south door first): 2 of 2 -> held
+Q3 (0 of 3 end 'no progress ... since ROUTE 104: MR. BRINEY's cottage'): 1 of 3 -> WRONG (the string names the MILESTONE the story is at, not where the AI stood: read the stops below)
+Q4 (at least 1 of 3 set VISITED_DEWFORD_TOWN): 0 of 3 -> WRONG
+Q5 (0 of 3 deliver the letter, 0 of 3 earn BADGE02): 0 and 0 -> held (vacuously if no run reached DEWFORD)
+Q6 (purity CLEAN in 3 of 3): 3 of 3 -> held
+
+--- per run, from its own log and action records (s53/ki134/analyse_b.py):
+
+===== ki134c-C1
+   map changes: 209 | maps by visits: [('ROUTE 104', 151), ('PETALBURG WOODS', 48), ('PETALBURG CITY', 9), ('RUSTBORO CITY', 1)]
+   woods -> ROUTE 104 exits, each as (frame, the tile it ENTERED the woods on, the ROUTE 104 tile it landed on): 47 (by a south door, landing y >= 38: 43); first south: (751849, (14, 5), (10, 38)); first 6: [(751849, (14, 5), (10, 38)), (760404, (17, 38), (10, 38)), (769661, (17, 38), (10, 38)), (774377, (16, 38), (10, 38)), (777510, (16, 38), (10, 38)), (781006, (16, 38), (10, 30))]
+   first visit of each map (frame, tile): {'RUSTBORO CITY': (746397, (19, 53)), 'ROUTE 104': (746614, (19, 0)), 'PETALBURG WOODS': (751139, (14, 5)), 'PETALBURG CITY': (794393, (0, 12))}
+   goals not done: 113
+      48 goal look_around not done: budget: N frames ran out (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, N decisions (N detours,
+      28 goal talk not done: interrupted on the way: played out
+      19 goal talk not done: unreachable: no tile from which the npc at (N, N) can be talked to was reached
+      7 goal talk not done: the npc did not answer
+      5 goal pick_up not done: not picked up: no item ball where it lay at (N, N) any more
+      3 goal pick_up not done: not picked up: interrupted on the way: played out
+      1 goal catch not done: roam: the hunt brought nothing new: N battles in a row with no POKéMON first seen and none caught; roam: N training steps (N pres
+      1 goal detour not done: not reached: nothing off the way here that it can walk to (stuck: nothing left to try on ROUTEN (no frontier, no exit, no target
+   ping-pong ends by link: []
+   last lines:
+      [AI-HANDS] ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD): what is on screen: a scene: STUCK: nothing on screen changed for 300 frames while watching: a scene plays (a script runs, the controls are locked) (scene None, OVERWORLD; the limit 300)
+      [AI-HANDS] what was on screen ended: stuck: a scene: stuck:watching: a scene plays (a script runs, the controls are locked)
+      [AI-HANDS] [AI-GOALS] the end (stuck: no progress for 120142 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD))); milestones []; before the fights {'ch6_briney_h
+      [AI-WORLD] memory at the end: 48 maps (PETALBURG_CITY 993 tiles 0 bumped, OLDALE_TOWN 808 tiles 0 bumped, ROUTE101 832 tiles 0 bumped, ROUTE102 1380 tiles 0 bumped, ROUTE103 650 tiles 0 bumped, ROUTE104 3111 tiles 0 bumped, RUSTBORO_CITY 2500 tiles 0 bumped, R
+      [AI-WORLD] navigator: 6114 steps, 0 bumps, 80 people in the way, 201 exits used, 57 battles, 420 scenes, 479 decisions (32 detours, 0 carried on); 48 maps, 25213 tiles learned
+      [AI-HANDS] outcome="stuck: no progress for 120142 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD))" presses=13387 frames=310756 looks=193903 records=20653
+      [AI-HANDS] presses by gate: {'A:bag cursor on 0': 11, 'A:bag cursor on 2': 1, 'A:bag_action cursor on 0': 12, 'A:battle level-up stats box': 2, 'A:battle_action cursor on 0': 19, 'A:battle_action cursor on 1': 12, 'A:battle_action cursor on 3': 38, 'A:battle_m
+      [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=26774 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_fi
+      [AI-PURITY-ORIGINS] none
+      [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRe
+      [AI-LIFECYCLE] verdict file written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\ki134\stage\build\profiles\ai-ki134-ki134c-C1\ai_player_runs\20261105-185547-ki134c-C1
+      [AI-EXIT] reason=play: stuck: no progress for 120142 frames (no milestone, battle won training, level, new map, catch, item or heal; since ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)) code=0
+
+===== ki134c-C2
+   MILESTONE ch6_briney_house done at f658194 (ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)): MR_BRINEY_SAILING_INTRO=1
+   map changes: 12 | maps by visits: [('ROUTE 104', 9), ('PETALBURG WOODS', 2), ('RUSTBORO CITY', 1)]
+   woods -> ROUTE 104 exits, each as (frame, the tile it ENTERED the woods on, the ROUTE 104 tile it landed on): 2 (by a south door, landing y >= 38: 2); first south: (636950, (14, 5), (10, 38)); first 6: [(636950, (14, 5), (10, 38)), (654107, (16, 38), (10, 38))]
+   first visit of each map (frame, tile): {'RUSTBORO CITY': (634570, (19, 53)), 'ROUTE 104': (634734, (19, 0)), 'PETALBURG WOODS': (636145, (14, 5))}
+   goals not done: 12
+      3 goal pick_up not done: not picked up: interrupted on the way: played out
+      3 goal pick_up not done: not picked up: no item ball where it lay at (N, N) any more
+      2 goal look_around not done: budget: N frames ran out (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, N decisions (N detours,
+      1 goal catch not done: roam: no seen grass can be reached
+      1 goal chat not done: unreachable: no tile from which the npc at (N, N) can be talked to was reached
+      1 goal talk not done: the npc did not answer
+      1 goal talk not done: unreachable: no tile from which the npc at (N, N) can be talked to was reached
+   ping-pong ends by link: []
+   last lines:
+      [AI-HANDS] Sail with MR. BRINEY to DEWFORD TOWN: what is on screen: a scene: STUCK: nothing on screen changed for 300 frames while reading along: a text is printing (scene None, OVERWORLD; the limit 300): f781234 text ROUTE 105(0,20) xy=(22,60) facing=down wal
+      [AI-HANDS] what was on screen ended: stuck: a scene: stuck:reading along: a text is printing
+      [AI-HANDS] [AI-GOALS] the end (stuck: no progress for 120099 frames (no milestone, battle won training, level, new map, catch, item or heal; since Sail with MR. BRINEY to DEWFORD TOWN)); milestones ['ch6_briney_house']; before the fights {'ch6_briney_house': {
+      [AI-WORLD] memory at the end: 33 maps (PETALBURG_CITY 964 tiles 0 bumped, OLDALE_TOWN 741 tiles 0 bumped, ROUTE101 875 tiles 0 bumped, ROUTE102 1457 tiles 0 bumped, ROUTE103 586 tiles 0 bumped, ROUTE104 2822 tiles 0 bumped, RUSTBORO_CITY 1758 tiles 0 bumped, R
+      [AI-WORLD] navigator: 382 steps, 0 bumps, 6 people in the way, 9 exits used, 8 battles, 410 scenes, 32 decisions (6 detours, 0 carried on); 33 maps, 20905 tiles learned
+      [AI-HANDS] outcome='stuck: no progress for 120099 frames (no milestone, battle won training, level, new map, catch, item or heal; since Sail with MR. BRINEY to DEWFORD TOWN)' presses=868 frames=146665 looks=136863 records=3131
+      [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 3, 'A:battle_action cursor on 3': 5, 'A:battle_move cursor on 2': 1, 'A:battle_move cursor on 3': 2, 'A:script waitbuttonpress': 2, 'A:talk': 1, 'A:text printer 0 CLEAR': 26, 'A:text printer 0 SCROLL_
+      [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=1736 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_fin
+      [AI-PURITY-ORIGINS] none
+      [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRe
+      [AI-LIFECYCLE] verdict file written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\ki134\stage\build\profiles\ai-ki134-ki134c-C2\ai_player_runs\20261105-185558-ki134c-C2
+      [AI-EXIT] reason=play: stuck: no progress for 120099 frames (no milestone, battle won training, level, new map, catch, item or heal; since Sail with MR. BRINEY to DEWFORD TOWN) code=0
+
+===== ki134c-C3
+   MILESTONE ch6_briney_house done at f852459 (ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)): MR_BRINEY_SAILING_INTRO=1
+   map changes: 14 | maps by visits: [('ROUTE 104', 9), ('RUSTBORO CITY', 3), ('PETALBURG WOODS', 2)]
+   woods -> ROUTE 104 exits, each as (frame, the tile it ENTERED the woods on, the ROUTE 104 tile it landed on): 2 (by a south door, landing y >= 38: 2); first south: (820584, (14, 5), (10, 38)); first 6: [(820584, (14, 5), (10, 38)), (836762, (17, 38), (10, 38))]
+   first visit of each map (frame, tile): {'RUSTBORO CITY': (812544, (19, 53)), 'ROUTE 104': (817067, (16, 0)), 'PETALBURG WOODS': (819872, (14, 5))}
+   goals not done: 14
+      5 goal pick_up not done: not picked up: no item ball where it lay at (N, N) any more
+      3 goal talk not done: interrupted on the way: played out
+      2 goal talk not done: unreachable: no tile from which the npc at (N, N) can be talked to was reached
+      2 goal look_around not done: budget: N frames ran out (N steps, N bumps, N people in the way, N exits used, N battles, N scenes, N decisions (N detours,
+      1 goal chat not done: unreachable: no tile from which the npc at (N, N) can be talked to was reached
+      1 goal catch not done: roam: the hunt brought nothing new: N battles in a row with no POKéMON first seen and none caught; roam: N training steps (N pres
+   ping-pong ends by link: []
+   last lines:
+      [AI-HANDS] Sail with MR. BRINEY to DEWFORD TOWN: what is on screen: a scene: STUCK: nothing on screen changed for 300 frames while reading along: a text is printing (scene None, OVERWORLD; the limit 300): f975531 text ROUTE 105(0,20) xy=(22,60) facing=down wal
+      [AI-HANDS] what was on screen ended: stuck: a scene: stuck:reading along: a text is printing
+      [AI-HANDS] [AI-GOALS] the end (stuck: no progress for 120099 frames (no milestone, battle won training, level, new map, catch, item or heal; since Sail with MR. BRINEY to DEWFORD TOWN)); milestones ['ch6_briney_house']; before the fights {'ch6_briney_house': {
+      [AI-WORLD] memory at the end: 49 maps (PETALBURG_CITY 1046 tiles 0 bumped, OLDALE_TOWN 793 tiles 0 bumped, ROUTE101 875 tiles 0 bumped, ROUTE102 1498 tiles 0 bumped, ROUTE103 790 tiles 0 bumped, ROUTE104 3289 tiles 0 bumped, RUSTBORO_CITY 2424 tiles 0 bumped, 
+      [AI-WORLD] navigator: 552 steps, 0 bumps, 6 people in the way, 11 exits used, 12 battles, 412 scenes, 46 decisions (0 detours, 0 carried on); 49 maps, 27227 tiles learned
+      [AI-HANDS] outcome='stuck: no progress for 120099 frames (no milestone, battle won training, level, new map, catch, item or heal; since Sail with MR. BRINEY to DEWFORD TOWN)' presses=1254 frames=162988 looks=147884 records=3830
+      [AI-HANDS] presses by gate: {'A:battle_action cursor on 0': 11, 'A:battle_action cursor on 3': 1, 'A:battle_move cursor on 0': 4, 'A:battle_move cursor on 2': 5, 'A:battle_move cursor on 3': 2, 'A:save_yes_no cursor on 0': 2, 'A:script waitbuttonpress': 3, 'A:
+      [AI-PURITY] foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=2508 ai_writes=0 ai_loads=0 ai_bot_calls=0 ai_unrouted_presses=0 extra_frames=0 unattributed_inputs=0 unattributed_state_changes=0 instrument_tampered=0 instrument_errors=0 ran_after_fin
+      [AI-PURITY-ORIGINS] none
+      [AI-ISOLATION] exit restored n=14 types=[BattleListener,FishingListener,EggHatchListener,TrainerApproachListener,RepelListener,PoisonListener,SafariZoneListener,WhiteoutListener,PokenavListener,_IntervalBackupListener,GamepadListener,GameCheatsListener,MacroRe
+      [AI-LIFECYCLE] verdict file written: C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\2cb1657d-9e66-4a34-afd4-cbf84eb4a4a8\scratchpad\s53\ki134\stage\build\profiles\ai-ki134-ki134c-C3\ai_player_runs\20261105-185608-ki134c-C3
+      [AI-EXIT] reason=play: stuck: no progress for 120099 frames (no milestone, battle won training, level, new map, catch, item or heal; since Sail with MR. BRINEY to DEWFORD TOWN) code=0
+
+--- NEW STOPS past the cottage's door (read from the logs; NOT fixed in this round):
+STOP 1 - TALKING TO MR. BRINEY, WHO WALKS A FIXED LOOP (the talk step of ch6_briney_house). Seen in 3 of 3 runs; it held C1
+  for good (54 talk goals, 0 landed, 50 entries into the cottage, ~238,000 frames), and cost C2 3 talk goals and C3 6 before one
+  landed (C2 at f658192, C3 at f852457).
+  Evidence: the goal ends 'interrupted on the way: played out' (C1 28, C3 3), 'unreachable: no tile from which the npc at
+  (x, y) can be talked to was reached' (C1 19, C2 1, C3 2), 'the npc did not answer' (C1 7, C2 1); the targets move between
+  attempts ((9,5), (8,6), (7,6), (6,6), (6,5), (8,3)); one C2 line: 'the npc (gfx 21) at (1,-2) is not in talking reach'.
+  Reading (from the pinned decomp, developer-side): MR. BRINEY is OBJ_EVENT_GFX_EXPERT_M (gfx 21) with
+  MOVEMENT_TYPE_WALK_SEQUENCE_DOWN_LEFT_UP_RIGHT: he never stands still. The talk skill walks to a tile beside where he was
+  SEEN; by the time it arrives he has walked on. PEEKO (the WINGULL) stands at (6,3). A person waits in his path or follows
+  him. Not investigated further; not fixed.
+
+STOP 2 - THE END OF A POKENAV CALL. Seen in 3 of 3 runs; it ended C2 and C3 (on the first sail) and C1 (in the woods).
+  Evidence (C2, ROUTE 105 at (22,60), during the sail after the yes/no): the call is read and pressed through page by page,
+  'Beep!' ... 'DAD: Oh, ELI?' ... 'You take care now.' (f660723). From then on the play loop reports 'STUCK: nothing on screen
+  changed for 300 frames while reading along: a text is printing' every 300 frames (400 such lines in C2, 400 in C3) and
+  never presses; the player stays at (22,60) until the 120,000-frame bound. C1: in PETALBURG WOODS at (14,34), f990579, a
+  MATCH CALL ('Oh, Milo, how do you do? This is CINDY speaking.') is pressed through; then 'STUCK: ... while watching: a scene
+  plays (a script runs, the controls are locked)' 172 times to the bound.
+  Reading (NOT tested): the call's window waits for one more press to hang up, and the eyes report a printer still printing
+  (C2, C3) or a running script (C1) rather than a wait, so the reader never presses. KI-133 (the MATCH CALL text window's
+  garbage first frame) is the same window. Not fixed.
+
+NOT REACHED in any run (still unexercised live): the sail's arrival and FLAG_VISITED_DEWFORD_TOWN, DEWFORD, finding GRANITE
+  CAVE, the dark floors, STEVEN, the gym and BRAWLY.
+The yes/no after the sail offer WAS answered in C2 and C3 (each was taken from the cottage to ROUTE 104 (13,51) by a scene,
+  then to ROUTE 105: the sail began).
+
+--- the OFFLINE REPRO on the A arm's own memory (probe6-C1's kept world.jsonl; s53/ki134/repro.py; the OLD planner is explore.py at 4b84131a):
+
+=== REPRO C1 f781107: ROUTE 104 north strip, just come down from RUSTBORO (the edge ping-pong's decision)
+    snapshot line 24 (its last map change f781107); on ROUTE104 at (19, 0); goal ROUTE104_MR_BRINEYS_HOUSE
+    OLD route: warp (17, 50) -> ROUTE104_MR_BRINEYS_HOUSE at (5, 8)
+    NEW route: warp (10, 30) -> PETALBURG_WOODS at (14, 5) | warp (16, 38) -> ROUTE104 at (11, 38) | warp (17, 50) -> ROUTE104_MR_BRINEYS_HOUSE at (5, 8) (65.8 ms)
+    the OLD first hop's door (17, 50): a stand tile in the walk's reach from here: False
+    OLD candidates, best first:
+        back     (11, 29) exit=(11, 30) down score -52.5: it leads back to PETALBURG_WOODS, where 20 thing(s) are left to see
+        back     (10, 29) exit=(10, 30) down score -53.5: it leads back to PETALBURG_WOODS, where 20 thing(s) are left to see
+        frontier (38, 15) exit=None None score -106.7: 1 unseen tile(s) beside it
+        frontier (38, 16) exit=None None score -107.7: 1 unseen tile(s) beside it
+    NEW candidates, best first:
+        route    (10, 29) exit=(10, 30) down score 40.0: it leads toward the goal (3 link(s) known)
+        back     (11, 29) exit=(11, 30) down score -52.5: it leads back to PETALBURG_WOODS, where 20 thing(s) are left to see
+        frontier (38, 15) exit=None None score -106.7: 1 unseen tile(s) beside it
+        frontier (38, 16) exit=None None score -107.7: 1 unseen tile(s) beside it
+
+=== REPRO C1 f751130: PETALBURG WOODS at its north arrival (the warp ping-pong's decision)
+    snapshot line 1 (its last map change f751112); on PETALBURG_WOODS at (14, 5); goal ROUTE104_MR_BRINEYS_HOUSE
+    OLD route: warp (14, 5) -> ROUTE104 at (10, 30) | warp (17, 50) -> ROUTE104_MR_BRINEYS_HOUSE at (5, 8)
+    NEW route: warp (16, 38) -> ROUTE104 at (11, 38) | warp (17, 50) -> ROUTE104_MR_BRINEYS_HOUSE at (5, 8) (37.3 ms)
+    the OLD first hop's door (14, 5): a stand tile in the walk's reach from here: True
+    OLD candidates, best first:
+        route    (14, 6) exit=(14, 5) up score 99.0: it leads toward the goal (2 link(s) known)
+        frontier (22, 10) exit=None None score 0.2: 1 unseen tile(s) beside it
+        frontier (23, 11) exit=None None score -1.2: 1 unseen tile(s) beside it
+        frontier (24, 11) exit=None None score -3.9: 1 unseen tile(s) beside it
+    NEW candidates, best first:
+        route    (16, 37) exit=(16, 38) down score 66.0: it leads toward the goal (2 link(s) known)
+        frontier (22, 10) exit=None None score 0.2: 1 unseen tile(s) beside it
+        frontier (23, 11) exit=None None score -1.2: 1 unseen tile(s) beside it
+        frontier (24, 11) exit=None None score -3.9: 1 unseen tile(s) beside it
+
+=== CONTROL C1 f781052: RUSTBORO, just come up from ROUTE 104 (the old route 'road down' was right)
+    snapshot line 23 (its last map change f781052); on RUSTBORO_CITY at (19, 59); goal ROUTE104_MR_BRINEYS_HOUSE
+    OLD route: road down -> ROUTE104 | warp (17, 50) -> ROUTE104_MR_BRINEYS_HOUSE at (5, 8)
+    NEW route: road down -> ROUTE104 | warp (10, 30) -> PETALBURG_WOODS at (14, 5) | warp (16, 38) -> ROUTE104 at (11, 38) | warp (17, 50) -> ROUTE104_MR_BRINEYS_HOUSE at (5, 8) (110.9 ms)
+    OLD candidates, best first:
+        route    (19, 60) exit=None None score 99.0: the road down leads toward the goal
+        route    (18, 60) exit=None None score 98.0: the road down leads toward the goal
+        route    (19, 61) exit=None None score 98.0: the road down leads toward the goal
+        route    (20, 60) exit=None None score 98.0: the road down leads toward the goal
+    NEW candidates, best first:
+        route    (19, 60) exit=None None score 99.0: the road down leads toward the goal
+        route    (18, 60) exit=None None score 98.0: the road down leads toward the goal
+        route    (19, 61) exit=None None score 98.0: the road down leads toward the goal
+        route    (20, 60) exit=None None score 98.0: the road down leads toward the goal
+
+=== CONTROL C1 f776603: ROUTE 116 (the old route 'road left' was right)
+    snapshot line 20 (its last map change f772444); on ROUTE116 at (11, 17); goal ROUTE104_MR_BRINEYS_HOUSE
+    OLD route: road left -> RUSTBORO_CITY | road down -> ROUTE104 | warp (17, 50) -> ROUTE104_MR_BRINEYS_HOUSE at (5, 8)
+    NEW route: road left -> RUSTBORO_CITY | road down -> ROUTE104 | warp (10, 30) -> PETALBURG_WOODS at (14, 5) | warp (16, 38) -> ROUTE104 at (11, 38) | warp (17, 50) -> ROUTE104_MR_BRINEYS_HOUSE at (5, 8) (111.3 ms)
+    OLD candidates, best first:
+        route    (-1, 13) exit=None None score 70.0: the road left leads toward the goal
+        route    (-1, 12) exit=None None score 69.0: the road left leads toward the goal
+        route    (-1, 14) exit=None None score 69.0: the road left leads toward the goal
+        route    (-2, 12) exit=None None score 68.0: the road left leads toward the goal
+    NEW candidates, best first:
+        route    (-1, 13) exit=None None score 70.0: the road left leads toward the goal
+        route    (-1, 12) exit=None None score 69.0: the road left leads toward the goal
+        route    (-1, 14) exit=None None score 69.0: the road left leads toward the goal
+        route    (-2, 12) exit=None None score 68.0: the road left leads toward the goal
+
+=== CONTROL C1 memory: the woods' south part, going to RUSTBORO (chapter 4's walk: the north door was right)
+    snapshot line 1 (its last map change f751112); on PETALBURG_WOODS at (16, 37); goal RUSTBORO_CITY
+    OLD route: warp (14, 5) -> ROUTE104 at (10, 30) | road up -> RUSTBORO_CITY
+    NEW route: warp (14, 5) -> ROUTE104 at (10, 30) | road up -> RUSTBORO_CITY (33.4 ms)
+    the OLD first hop's door (14, 5): a stand tile in the walk's reach from here: True
+    OLD candidates, best first:
+        route    (14, 6) exit=(14, 5) up score -17.0: it leads toward the goal (2 link(s) known)
+        frontier (22, 10) exit=None None score -105.7: 1 unseen tile(s) beside it
+        frontier (23, 11) exit=None None score -105.7: 1 unseen tile(s) beside it
+        frontier (24, 11) exit=None None score -108.7: 1 unseen tile(s) beside it
+    NEW candidates, best first:
+        route    (14, 6) exit=(14, 5) up score -17.0: it leads toward the goal (2 link(s) known)
+        frontier (22, 10) exit=None None score -105.7: 1 unseen tile(s) beside it
+        frontier (23, 11) exit=None None score -105.7: 1 unseen tile(s) beside it
+        frontier (24, 11) exit=None None score -108.7: 1 unseen tile(s) beside it

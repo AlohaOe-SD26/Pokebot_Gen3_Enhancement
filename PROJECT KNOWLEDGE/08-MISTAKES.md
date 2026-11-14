@@ -24206,6 +24206,12 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **The fix:** `read_total`, the pages read (never capped), is compared and stored; FAULT/CONTROL test `test_g4c_...`; mutant G469 is the code as built.
 - **Prevention rule:** "something new happened" is a monotonic counter or an identity, never the size of a bounded buffer.
 
+## 2026-11-05 — A cloud draft's step list was correct as a LIST and wrong as DATA: `go` steps that revisit maps regress (chapter 7's STEVEN); and a prediction assumed the route planner reasons inside a map
+
+- **Symptom:** (1) the draft's [go DEWFORD_TOWN, go GRANITE_CAVE_1F, go STEVENS_ROOM, talk] read right, yet the real `GoalManager.story_step` answered 'go DEWFORD_TOWN' on ROUTE 106 and in the cave's B1F/B2F (found offline by the names check, before any run). (2) The chapters 6-7 probe's prediction ('the cottage is found in 2 of 3, once the AI crosses the woods') failed 0 of 3: the AI crosses into the woods and walks straight back out, 172 times in one run.
+- **Root cause:** (1) a `go` step is done only on its own map or a LATER step's map, and the real road revisits maps. (2) `route_to` searches known MAP-level links; ROUTE 104 is one node with two parts that do not join on foot, so 'toward the goal' from the woods is the north door it came through (KI-134). I had the flood-fill fact (the schema check's F9) and still predicted success: I never asked how the planner would use it.
+- **The fix that worked:** (1) ONE talk step, with `Chapter67Tests` running the real `story_step` on both shapes and mutant G474. (2) None yet: the stop is filed (KI-134) with a fix direction.
+- **Prevention rules:** a step list is DATA for `story_step`: run the real function on every map of the road before wiring it, never reason from the list. And a prediction that depends on a planner's behaviour needs the planner's data structure named in the prediction's own text: when a fact about the world (two disconnected parts) meets a map-granular planner, predict the stop, not the success.
 ## 2026-11-06 — The full regression lane FAILED on the graded driver because its tests assumed a CLEAN checkout: the lane stages the emulator's git-ignored library
 
 - **Symptom:** `run_regression.py --full --evidence` on `fcb997f5` (branch `wip/live-chain`): overall FAIL, one suite, `test_live_chain`, 2 failures, both `test_closure_toplevel_names`: "ai_player/gates/probe_save_kill.py imports 'mgba', a name of sandbox-pokebot the closure does not follow". The suite was OK in the builder's worktree.
@@ -24267,3 +24273,99 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** an `agent()` call with no `model` inherits the main loop's model, and the main session had moved to a newer model (`claude-fable-5-2`). Every earlier round's agents had run on `claude-opus-5-5` (their transcripts say so). Nobody chose the change: it came with the session, and the cost estimate did not show it, because it weighs tokens and not the allowance.
 - **The fix:** every `agent()` of every workflow names `model: 'opus'`, and a run's models are read from its transcripts (`grep -o '"model":"[^"]*"' <agent jsonl> | sort | uniq -c`). Measured after the fix, one window, not a controlled comparison: the next window began at about 1:20 PM on 2026-11-12 (the workflow launched at 1:50 PM) and was cut at about 4:50 PM, about 3.5 hours and about 34 Mtok into it, counted the same way. So the window lasted longer with the pin, and the pin did not prevent a cut.
 - **Prevention rule:** every workflow `agent()` names its model, and a run's models are read from its transcripts before its cost is trusted; a pin is not a cure, so every agent must also survive a cut (run book first, long jobs detached).
+
+## 2026-11-14 — A fairness rule counted a person as seen by the lit pixels of the sprite's RECTANGLE, and listed people the screen did not draw (chapter 6 round 8; the approach was abandoned)
+
+- **Symptom:** round 8's rule (a person is seen when at least 124 pixels of their sprite's 16x32 rectangle are lit) read its verifier FAIL on 2026-11-07. On a real frame at 32 px, a person drawn where (0,3) is drawn was listed with 140 counted pixels and 0 drawn. At 24 px the gym guide at (-1,2) was listed with 8 drawn pixels in 50 rest-phase looks (one trajectory). Round 7's rule listed none of these: a USER RULING 40 breach in the other direction.
+- **Root cause:** the top 10 to 11 rows of every 16x32 person sprite are transparent. A person below the player has only those rows in the light, so a box around the sprite counted them as seen while the screen drew nothing of them.
+- **The fix that worked:** the approach was abandoned (kept on `wip/ch6-r8`). The verifier measured the real sprite masks first, and its model matched its probe exactly. Round 9 counts the pixels the sprite's current frame DRAWS (`host/eyes.py` `_drawn_lit`; `test_eyes.py` `DarkTests` d4, d7 to d9), and round 10 takes the frame of the animation the sprite plays (d12 to d14).
+- **Prevention rule:** a rule about what a person sees is measured on what the screen draws (the real masks, the rendered frame), never on a box around it.
+- **LESSONS:** PF-24.
+
+## 2026-11-14 — BP-1's raise watch read a battle's lead on its FIRST look, where the game still shows the LAST battle's battler, and false "not leading" reads spent every raise's budget
+
+- **Symptom:** in BP-1's first live A/B (#118 (was wip/ch6-bp1#112), 2026-11-09), false "the trainee is not leading" reads spent every raise's budget. Grovyle was read as leading a battle Wurmple led.
+- **Root cause:** the watch took the lead from the battle's first look. The looks before the first action menu may still show the previous battle's battler.
+- **The fix that worked:** the lead is read at the battle's first ACTION MENU. `test_bossprep.py` `TraineeRuleTests.test_the_raise_watch` pins it (FAULT: the first look taken reads "not leading"; CONTROL: a real non-trainee at the action menu still does), and `revert_bossprep.py`'s mutant `stale_lead` is CAUGHT. In the next A/B (#120 (was wip/ch6-bp1#114)) the trainee led all 48 raise battles.
+- **Prevention rule:** read who is on the field at the battle's first action menu, never at its first look.
+- **LESSONS:** PL-20.
+
+## 2026-11-14 — The battle skill named a move's learner from a 40-page window, lost the page, and looped forever on "Stop learning GUST?" once switch-training put another Pokémon on the field (a step-4 bug)
+
+- **Symptom:** in BP-1 round 2's first live A/B (#124 (was wip/ch6-bp1#118), 2026-11-11), all three B runs got stuck before BRAWLY. The switched-out trainee reached Dustox L13 and was asked to learn GUST. The skill took Grovyle, the battler on the field, for the learner and looped on "Stop learning GUST?".
+- **Root cause:** the learner was named from a 40-page window that fills with partial prints, so the page naming the learner was gone. The bug dates from build step 4. Switch-training exposed it, because the learner was no longer the battler.
+- **The fix that worked:** reproduced offline first (4 of 4 predictions). `skills/battle.py` keeps the learner's page apart from the window and uses it only for the move it names (`test_bossprep.py` `LearnerTests.test_the_learner_named_by_its_page` and `LearnerKeptPageTests`; mutants `no_learning_kept`, `learner_page_off` and `learning_any_move` CAUGHT). In the A/B after the fix (#126 (was wip/ch6-bp1#120)), GUST was learned by the right Pokémon in all three runs.
+- **Prevention rule:** a battle question's subject is read from the page that names it, kept apart, never from a window of recent pages.
+- **LESSONS:** PL-21.
+
+## 2026-11-14 — P11-1's first round never fired live: FIX equaled FAULT frame for frame, because the walk it served had no goal map
+
+- **Symptom:** in P11-1's first live A/B (#140 (was wip/ch6-p11#114), 2026-11-11), FIX equaled FAULT frame for frame in 3 of 3 pairs.
+- **Root cause:** round 1 offered a way through the dark cave only toward a goal map. The live walk toward STEVEN has none ("by looking around: not told yet"), so the new code was never asked.
+- **The fix that worked:** round 2 added a way through for walks with no goal (`knowledge/ways.py` `way_through`), and round 2b made it never point straight back. Every FIX dark stay then began with a `way` decide, and FIX crossed the dark B2F in 101 to 141 steps against FAULT's 204 to 347. Before each pair, the discriminator was checked on the FAULT arm first.
+- **Prevention rule:** before a live A/B, name the decide the change must make and show it fires on the live intent's shape; FIX equal to FAULT frame for frame means the change never fired.
+- **LESSONS:** PF-22.
+
+## 2026-11-14 — P11-1's extractor walked GRANITE CAVE B1F's muddy slope both ways, although the project had already measured live that it only goes down
+
+- **Symptom:** P11-1's verifier (2026-11-11), MAJOR V1: the shipped fact "from (4,21) take (8,5) toward B2F" (a 24-step walk) is unreachable on foot. `test_ways` pinned it in two tests, with a fixture that drew the slope as two-way floor.
+- **Root cause:** B1F (9,9) and (9,10) are MB_MUDDY_SLOPE, the only link between B1F's two parts, and the game forces a walk south on foot (`src/field_player_avatar.c:567-581`). The extractor had no forced-movement rule. The project had measured this live before: the `granite_b1f_slope` fixture (stuck for 120,132 frames) and `test_eyes`' live slope test.
+- **The fix that worked:** P11-2 models the slope from the decomp. The walk to B2F went from 24 to 42 steps, as the verifier's probe predicted. The extractor also refuses any map with a forced movement or HM obstacle it does not model (`test_ways.py` `ExtractorTests.test_the_muddy_slope_only_goes_down_on_foot`; mutants `slope_two_way` and `model_slope_floor` CAUGHT).
+- **Prevention rule:** a static walk model models every one-way tile the project has already measured, and refuses a map with a movement it does not model.
+- **LESSONS:** PF-23.
+
+## 2026-11-14 — A side branch went red on a fast gate because `run_gates.py` was never run there: P11-1 added a seventh world file, and the branch's 24 chapter packs went stale
+
+- **Symptom:** the merge plan's review (2026-11-12, MAJOR M1) found the chapter-pack check red on `wip/ch6-p11`: every pack's recorded result line was off by one number.
+- **Root cause:** `knowledge/world/ways.json` is a seventh file under `knowledge/world`, so every chapter pack changes. The rounds on that branch ran their own gates and suites, and `run_gates.py`, which holds the pack check, was never run there.
+- **The fix that worked:** the lead regenerated the 24 packs in P11's closing commit (`896c69f7`): `make_chapter_pack.py --all --check` then read "CHECK: PASS", and `selftest_chapter_pack.py` 137 of 137. The merge's gate sets gained the pack check and its selftest, and `run_gates.py --quick` was read before each merge commit.
+- **Prevention rule:** run `run_gates.py --quick` on a branch before each of its commits, not only the round's own gates.
+- **LESSONS:** PR-17.
+
+## 2026-11-14 — Clean merge hunks hid semantic conflicts twice, and the first test fix for one of them stopped matching when a side branch changed the test
+
+- **Symptom:** at the chapter 6-7 merge (2026-11-13). (1) `test_check_anchors.py`: each side branch raised the runner count in its regexes from 7 to 8. The merged tree has 9 runners, so it must read "9 of 9" in both regexes, a change neither side's text contains (the run book: "a semantic conflict inside a clean hunk"). (2) `test_ways.py`: P11's closing pass (`896c69f7`) added assertions (VV3) that fail on the merged tree, on the three unused CAVE OF ORIGIN map consts that BP-1's `seasoned/encounters.json` uses as keys. The first fix (v1, written for P11's `1cf3ae6a`) read NOT APPLICABLE on the closing heads. The first draft of v2 excused those keys even where no loader reads the file, and its own proof's second arm failed.
+- **Root cause:** each side was green alone; the conflict is in what the two sides mean together. A fix proven on one pair of heads is a claim about those heads only.
+- **The fix that worked:** a dry merge on the exact heads ran every gate on the staged tree (`_ai_lab/s53/mergeplan/dry_merge.py`). The conflict sides were written by script from validated previews ("9 of 9"). v2 was re-derived and proven on the closing heads ("PROVE WAYS FIX: PROVEN (v2, test_ways v2 (P11 896c69f7's test, VV3); 16 arms; ...)"), proven again in stage I before it was applied at S2, and the merge gates read "MERGE GATES S2: PASS (13 of 13 pass; 772 s; ...)".
+- **Prevention rule:** a merge runs both sides' tests on the merged tree before its commit, and a semantic fix is re-proven on the exact heads that merge, again after any head moves.
+- **LESSONS:** PR-16.
+
+## 2026-11-14 — The merge's chapter 1-5 check chains found a search loop whose rules `main` already had (read, not measured live); the miss rate is unmeasured
+
+- **Symptom:** E0 (2026-11-13, seeds 6481-6483, ledger #147): "E0 VERDICT: NOT REACHED (1 of 3 reached ch5_rival_meet); legs ran 15, purity-clean 15; wall 41 min (cap 120); problems 5 -> STOP". Both misses looped between ROUTE 104 and PETALBURG WOODS while looking for RUSTURF TUNNEL (37 and 59 crossings).
+- **Root cause:** the rules that make the loop are `main`'s too (read, not measured live; the merge's own road rule `road_walk` also runs there): a wall seen only while on screen, and no direction for a walk to a map not found yet (KI-136). `main`'s graded chapter 5 batch (#101) had reached 6 of 6. Long loops showed in 3 of about 9 merged-code paths against 0 of about 11 `main` paths: suggestive only.
+- **The fix that worked:** E and K1 (`9d2f3fc5`, `3caf9c47`; `07` 2026-11-14), proven on the decisive fixture (one trajectory per arm). Then E0 again read "E0 VERDICT: REACHED 3 of 3; legs ran 15, purity-clean 15; wall 31 min (cap 120); problems 0 -> GO" (#148): three games, not a rate.
+- **Prevention rule:** every merge plays chapters 1-5 from New Game before it lands, not only the new chapters (A1's amendment AM-05, not applied yet, proposes it as a SHOULD on later merges).
+- **LESSONS:** PF-26.
+
+## 2026-11-14 — A cut tree, a rock or an item ball was a wall only while it was on screen, so the explorer retried the same blocked places until its 600,000-frame budget ran out
+
+- **Symptom:** E0's Trainer chain looped 59 times between ROUTE 104 and PETALBURG WOODS and ran out of its 600,000 frames before `ch5_rival_meet`; the Catcher chain stalled at `ch5_rusturf_grunt` (37 crossings).
+- **Root cause (measured):** `MapMemory.objects_now` held only this look's objects, so `Navigator.walls` forgot a tree once it left the screen. Every woods-frontier and (37,22) "unreachable" event of the loop runs had a cut tree on screen (E0 T 106 of 106, E0 C 90 of 90). The ROUTE116 two-tile heal flip is the same mechanism: the tree at (32,10) is on screen from x=39 and off from x=40 (656 of 656 steps).
+- **The fix that worked:** E (`world/memory.py` `MapMemory.standing`): a thing seen standing stays a wall for the session. It is forgotten when a look shows its tile empty or after 36,000 frames unseen, and it is never saved (`test_goals.py` `StandingThingsTests` e1 to e11; mutants G691 to G697, G704 and G705). On the decisive fixture the fixed code reached `ch5_rival_meet` in 198,539 frames (one trajectory, replayed).
+- **Prevention rule:** a standing thing the AI saw stays a wall in its memory for the session, until it sees it gone.
+- **LESSONS:** PL-22.
+
+## 2026-11-14 — An offline inference about the loop's STATE ("E alone cannot end it") said nothing about whether a trajectory reaches that state; live, E alone kept T's run out of the loop
+
+- **Symptom:** the mechanism note INFERRED that E alone would not end the loop state. Live, from T's leg-4 start, the fixed code minus K1 (E alone) reached `ch5_rival_meet` in 198,539 frames, and the pre-registered "both needed" reading was REFUTED on that start.
+- **Root cause:** the inference was about a state inside the loop. E's first changed decision (f738135, the ROUTE116 heal walk) came before the loop's first burst (f1032970), so the trajectory never reached that state. A start inside the loop with E's memory cannot be made (the memory is session-only).
+- **The fix that worked:** the A/B ran from the start before the loop and recorded each change alone. The docs say "each alone sufficient on T's start, neither shown necessary".
+- **Prevention rule:** test a fix from a start before the loop, not only from inside it; an inference about a state says nothing about reaching it.
+- **LESSONS:** PF-25.
+
+## 2026-11-14 — The fix was fast-forwarded into the merge worktree before the quick gates and pushed only after them, so `preflight.py` read the branch AHEAD and the operator stopped
+
+- **Symptom:** "QUICK GATES qg-FX: FAIL (NEW red: preflight.py; ...)": `preflight.py`'s git-sync check read the merge worktree "[ahead 2]" (2026-11-13). The operator stopped, a checker found it procedural (142 of 143 rows equal qg-S3's), and the quick gates ran again: about 35 minutes.
+- **Root cause:** the FX steps fast-forwarded the fix in FX1 and pushed only after FX3. In stage I the same order had passed only by circumstance.
+- **The fix that worked:** the lead's amendment FX-A1: the quick lane and the push as written, then the quick gates again: "QUICK GATES qg-FX-2: PASS (143 gates; red only where main's own tree is red in a worktree: probe_fly_disjunct.py, selftest_facts_ledger.py)".
+- **Prevention rule:** push a branch before any quick-gate run on its new head.
+- **LESSONS:** PR-18.
+
+## 2026-11-14 — The merge's run book raised timing rows only for the two NEW revert drivers, while an older driver had already run past its cap on a side branch; the lead found it before the lane, no check did (a recurrence of `08` 2026-10-31)
+
+- **Symptom:** the run book's D10 raised only `revert_bossprep` and `revert_p11` (`lane_times.py` models only those). `revert_step5` had grown to 704 entries (703 mutants and the G0 control). The side branches' own full lanes had run it 105 s under its 12,110 s cap (2026-11-09) and then past it (TIMEOUT, 2026-11-11), as with `revert_r1` and `revert_step3`. The merge's lane then ran `revert_step5` for 14,362.8 s, past that old cap.
+- **Root cause:** the timing check looks only at the drivers a step adds, and the rows of the older drivers were not re-measured as the side branches grew them. The prevention rule of `08` 2026-10-31 (re-measure a revert suite when a build adds mutants) is prose.
+- **The fix that worked:** the lead's amendment II-A1, before the lane: a second timing-rows commit (`fa9f073d`) from the side lanes' measured seconds (revert_step5 3460 -> 12110, revert_r1 1167 -> 4085, revert_step3 2014 -> 7049, revert_safety_gates 326 -> 3456). The lane read "REGRESSION: PASS (full, 41 suites, 14363.9 s wall)".
+- **Prevention rule:** before a full lane, compare EVERY revert driver's cap (3.5 times its row) with its newest measured full-lane time; `lane_times.py` should read every driver's last lane time (an open item in `03`).
+- **LESSONS:** PR-19.

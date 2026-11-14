@@ -1,0 +1,156 @@
+BOSS PREPARATION BP-1 - THE LIVE A/B AND THE CHAPTERS 1-5 REPLAY CONTROL (2026-11-09; DEVELOPMENT, never graded)
+
+CORRECTED 2026-11-11 (BP-1 round 2, spec section 4, the verifier's V-M2): five sentences below were reworded to what the records
+support (who was on the FIELD when a bar reached 0, never who knocked it out; the stalls' cause; the raise's own levels;
+no training goal ran). The verdict lines are otherwise as written on 2026-11-09.
+
+Harness: s53/bp1/armsbp1.py (a copy of #111's arms11.py), the real launcher, one stage whose build root's modules, plugins,
+mgba and roms are junctions to the main sandbox (read only). Arm A = the parent commit 18c3d51b (git archive); arm B =
+BP-1 in worktree wf_e7452923-f06-3, uncommitted; arm F = B with one planted extra :goals draw per verdict run (the
+control's fault arm). Start of the A/B: probe-C1 (RUSTBORO (19,53), md5 e909e537, Story), target ch7_brawly, 1,200,000
+frames, wall 9,000 s. Every job of a batch started together (the launcher's game clock is the host's).
+
+WHAT IS READ FROM THE GAME: BADGE02_GET and DEFEATED_DEWFORD_GYM on the end state (the launcher's after-truth, a second
+path); the party at the end by PID, species, EXP and level (the framework's party reader); each BRAWLY battle (records whose
+digest names trainer 266): its first record's party and each foe's HP bar (the eyes' read of the game's memory), its end
+with the game's gBattleOutcome (quoted on the battle skill's line). WHO WAS ON THE FIELD when a foe's bar reached 0 is the
+lead at the battle's first record and each send-in after, as the run's own records name them: an inference from records,
+not a second-path read (the digest holds no battler PID). The AI's [AI-BOSSPREP] words are only quoted.
+
+THE ROUNDS:
+  #112 (ab, seeds 6371-6373): found a BUG in BP-1 (the raise watch read a battle's lead on its FIRST look, where the game
+       still held the LAST battle's battler: three false "not leading" reads spent every B raise's budget on reorder_fails
+       after 4-6 raise goals). Its B runs are NOT a test of the plan. Fixed (the lead read at the first action menu; test
+       FAULT/CONTROL; mutant stale_lead CAUGHT).
+  #113 (control, seeds 6374-6376): run on the pre-fix B (the fix touches only code a raise goal installs).
+  #114 (ab2, seeds 6377-6379): the A/B of the FIXED B.
+  #115 (control2, seeds 6380-6382): the control on the FIXED B.
+
+VERDICT, read against the hashed predictions (development; one trajectory per seed and arm, never a rate):
+  * A (the parent) earned BADGE02 in 0 of 6 runs (#112, #114): all 18 BRAWLY fights lost.
+  * #114 (the fixed B): the plan raise:55cfbff3:20 was made on 3 of 3 (= the discriminator); the trainee led every raise
+    battle (0 "not the trainee" reads in 48); but the raise was SPENT far below its target on all three: by stalls on 6378 and 6379: 12 raise sessions in a row at
+    L4 -> L4 with +0 EXP. The trainee sat at 1/18 HP and ran from every battle, because no heal came between a session
+    that ended 'the trainee is low' and the next raise (the verifier's V-M1: 3, 10 and 11 such sequences on 6377, 6378
+    and 6379); by "no grass within reach" on 6377 (two failed walks put the raise
+    aside by the failure cooldown, the story sailed to DEWFORD meanwhile), after 62,702-92,485 raise frames (predicted
+    150,000-450,000: WRONG). The trainee met BRAWLY as Cascoon L9, Dustox L10, Dustox L10 (predicted Dustox/Beautifly L14+:
+    WRONG). The raise itself took it from L3 to L5 (6377), L4 (6378) and L4 (6379). It reached L9-L10 afterwards,
+    leading the story's own battles from first place in the party. B earned BADGE02 on 1 of 3 (6379; predicted at least 2: WRONG); in that win the records put the trainee (Dustox L12,
+    leading) on the field when MACHOP's bar reached 0, Grovyle L24 when MEDITITE's did (the battle brain had switched the
+    Dustox out against MEDITITE by typing), and Poochyena L8 when MAKUHITA's did. Poochyena took no turn and the last
+    recorded hit was Shroomish's Absorb (turn 20), so who knocked MAKUHITA out is not read. B's Grovyle was L24 against
+    A's L22 (above A + 1: CONFOUNDED). The leaked raise battles do not explain it: they gave the others +251 EXP, a
+    tenth of the 2,631 from L22 to L24. The extra levels came from B's far longer play after the spend (22-23 heal
+    goals after it in B, 1 in A). On 6377 the spent plan left the Cascoon L9 FIRST in the party, and it led all
+    three lost BRAWLY fights.
+  * #112 (the buggy B, NOT the plan): BADGE02 on 2 of 3 (6371, 6372), each on the third fight with the Wurmple (left first
+    in the party by the raise) leading as a Dustox L14, on the field when MACHOP's and MEDITITE's bars reached 0; Grovyle L23/L22 against A's L22/L22.
+    What carried those wins was the REORDER: the Wurmple, left first by the spent raise, led the story's own
+    battles from first place and grew into a Dustox L14 there. No training goal ran in any B run (0 'train' goals in
+    six).
+  * The controls (#113, #115): A vs B decision streams IDENTICAL in 6 of 6 pairs (fresh New Game to ch1_pokedex; C1L4 and
+    C2L4 to ch5_rival_meet), the end frames and the end marks equal, the parties equal by the framework; F vs B DIFFERS in
+    both (records 210 and 246): the comparison sees a leak. B logged the verdict in every run (against ROXANNE from the
+    starter on; against BRAWLY in chapter 5) and chose no raise and no lead goal. The END STATES' md5 differ (#113's
+    prediction claimed equal: WRONG): the raw states differ in 5-53 of 397,312 bytes, among them two BCD clock values;
+    the launcher's game clock is the host's.
+  * purity CLEAN in 26 of 26 launches.
+
+prediction prediction_ab.txt: sha256 4bb9331a218fca32425feaa36fec4f24f6dfa53e590421669a762d903ae14d78 (the ledger's bounds field)
+prediction prediction_control.txt: sha256 215f29cbbf20ae020ece7062b5bc8818b8475302486c5be510c08403f165f34e (the ledger's bounds field)
+prediction prediction_ab2.txt: sha256 4adefe723ef13cf51f430c25124d6e38b81ed39bc3764fe4cd0568155a989dba (the ledger's bounds field)
+prediction prediction_control2.txt: sha256 b24881f4f3529b03f63774e2f634895654b1ae4d6011fced383dc7bd01d63035 (the ledger's bounds field)
+
+== batch ab (ledger #112): one trajectory per seed and arm, never a rate
+[ab-A-C1-6371] exit 0, purity CLEAN, frames 746397 -> 1008462; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 0 (0 frames), lead reads 0 (not the trainee 0), leaked battles 0; Grovyle at the first BRAWLY record ['Grovyle', 22, 56, 60]
+    BRAWLY fight at f850338: the lead ['Grovyle', 22, 56, 60]; the end {'frame': 874054, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 22), ('Meditite', 'Grovyle', 22)]
+    BRAWLY fight at f919049: the lead ['Grovyle', 22, 60, 60]; the end {'frame': 974881, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 22), ('Meditite', 'Shroomish', 5)]
+    BRAWLY fight at f986532: the lead ['Grovyle', 23, 62, 62]; the end {'frame': 1008462, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 23), ('Meditite', 'Grovyle', 23)]
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Wurmple', 27, 3]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+[ab-B-C1-6371] exit 0, purity CLEAN, frames 746397 -> 1275890; GAME: BADGE02_GET=1 DEFEATED_DEWFORD_GYM=1; raise goals 6 (28845 frames), lead reads 6 (not the trainee 3), leaked battles 3; Grovyle at the first BRAWLY record ['Grovyle', 23, 62, 62]
+    AI words: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] 
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (reorder_fails 3 of at most 3): no endless grind; it fights as it is
+    BRAWLY fight at f1167019: the lead ['Dustox', 12, 32, 40]; the end {'frame': 1200587, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 12), ('Meditite', 'Dustox', 12)]
+    BRAWLY fight at f1204485: the lead ['Dustox', 13, 42, 42]; the end {'frame': 1239956, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 13), ('Meditite', 'Dustox', 13)]
+    BRAWLY fight at f1243854: the lead ['Dustox', 14, 45, 45]; the end {'frame': 1272824, 'result': 'won', 'gBattleOutcome': 1}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 14), ('Meditite', 'Dustox', 14), ('Makuhita', 'Grovyle', 23)]
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Dustox', 3812, 15]; [AI-EXIT] reason=play: done: ch7_brawly reached code=0
+[ab-A-C1-6372] exit 0, purity CLEAN, frames 746397 -> 924053; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 0 (0 frames), lead reads 0 (not the trainee 0), leaked battles 0; Grovyle at the first BRAWLY record ['Grovyle', 22, 59, 59]
+    BRAWLY fight at f837614: the lead ['Grovyle', 22, 59, 59]; the end {'frame': 851136, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    BRAWLY fight at f855015: the lead ['Grovyle', 22, 59, 59]; the end {'frame': 905492, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 22), ('Meditite', 'Shroomish', 5)]
+    BRAWLY fight at f909500: the lead ['Grovyle', 22, 59, 59]; the end {'frame': 924053, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Wurmple', 27, 3]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+[ab-B-C1-6372] exit 0, purity CLEAN, frames 746397 -> 1211374; GAME: BADGE02_GET=1 DEFEATED_DEWFORD_GYM=1; raise goals 5 (30232 frames), lead reads 5 (not the trainee 3), leaked battles 2; Grovyle at the first BRAWLY record ['Grovyle', 22, 60, 60]
+    AI words: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] 
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (reorder_fails 3 of at most 3): no endless grind; it fights as it is
+    BRAWLY fight at f1109456: the lead ['Dustox', 12, 35, 40]; the end {'frame': 1138857, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 12), ('Meditite', 'Grovyle', 22)]
+    BRAWLY fight at f1142683: the lead ['Dustox', 13, 42, 42]; the end {'frame': 1177301, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 13), ('Meditite', 'Dustox', 13)]
+    BRAWLY fight at f1181134: the lead ['Dustox', 14, 45, 45]; the end {'frame': 1208311, 'result': 'won', 'gBattleOutcome': 1}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 14), ('Meditite', 'Dustox', 14), ('Makuhita', 'Dustox', 14)]
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Dustox', 4068, 15]; [AI-EXIT] reason=play: done: ch7_brawly reached code=0
+[ab-A-C1-6373] exit 0, purity CLEAN, frames 746397 -> 910661; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 0 (0 frames), lead reads 0 (not the trainee 0), leaked battles 0; Grovyle at the first BRAWLY record ['Grovyle', 22, 51, 59]
+    BRAWLY fight at f857342: the lead ['Grovyle', 22, 51, 59]; the end {'frame': 869333, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    BRAWLY fight at f873233: the lead ['Grovyle', 22, 59, 59]; the end {'frame': 893792, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 22), ('Meditite', 'Grovyle', 22)]
+    BRAWLY fight at f897738: the lead ['Grovyle', 22, 59, 59]; the end {'frame': 910661, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Wurmple', 27, 3]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+[ab-B-C1-6373] exit 0, purity CLEAN, frames 746397 -> 1134572; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 4 (29036 frames), lead reads 4 (not the trainee 3), leaked battles 2; Grovyle at the first BRAWLY record ['Grovyle', 22, 60, 60]
+    AI words: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] 
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (reorder_fails 3 of at most 3): no endless grind; it fights as it is
+    BRAWLY fight at f1073177: the lead ['Dustox', 11, 30, 37]; the end {'frame': 1103780, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 22), ('Meditite', 'Grovyle', 22)]
+    BRAWLY fight at f1107630: the lead ['Dustox', 11, 37, 37]; the end {'frame': 1134572, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 23), ('Meditite', 'Grovyle', 23)]
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Dustox', 1397, 11]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+
+== batch ab2 (ledger #114): one trajectory per seed and arm, never a rate
+[ab2-A-C1-6377] exit 0, purity CLEAN, frames 746397 -> 937002; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 0 (0 frames), lead reads 0 (not the trainee 0), leaked battles 0; Grovyle at the first BRAWLY record ['Grovyle', 23, 62, 62]
+    BRAWLY fight at f886773: the lead ['Grovyle', 23, 62, 62]; the end {'frame': 901099, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    BRAWLY fight at f904939: the lead ['Grovyle', 23, 62, 62]; the end {'frame': 920289, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    BRAWLY fight at f924140: the lead ['Grovyle', 23, 62, 62]; the end {'frame': 937002, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Wurmple', 274, 6]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+[ab2-B-C1-6377] exit 0, purity CLEAN, frames 746397 -> 1367869; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 9 (62702 frames), lead reads 10 (not the trainee 0), leaked battles 4; Grovyle at the first BRAWLY record ['Grovyle', 24, 64, 64]
+    AI words: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] 
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (no grass within reach for the raise): no endless grind; it fights as it is
+    BRAWLY fight at f1308046: the lead ['Cascoon', 9, 30, 30]; the end {'frame': 1324442, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    BRAWLY fight at f1328342: the lead ['Cascoon', 9, 30, 30]; the end {'frame': 1350794, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 24), ('Meditite', 'Grovyle', 24)]
+    BRAWLY fight at f1354657: the lead ['Cascoon', 9, 30, 30]; the end {'frame': 1367869, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Cascoon', 893, 9]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+[ab2-A-C1-6378] exit 0, purity CLEAN, frames 746397 -> 904703; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 0 (0 frames), lead reads 0 (not the trainee 0), leaked battles 0; Grovyle at the first BRAWLY record ['Grovyle', 22, 59, 59]
+    BRAWLY fight at f844422: the lead ['Grovyle', 22, 59, 59]; the end {'frame': 858410, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    BRAWLY fight at f862349: the lead ['Grovyle', 22, 59, 59]; the end {'frame': 886886, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 22), ('Meditite', 'Grovyle', 22)]
+    BRAWLY fight at f890777: the lead ['Grovyle', 22, 59, 59]; the end {'frame': 904703, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Wurmple', 27, 3]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+[ab2-B-C1-6378] exit 0, purity CLEAN, frames 746397 -> 1245733; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 14 (63964 frames), lead reads 16 (not the trainee 0), leaked battles 4; Grovyle at the first BRAWLY record ['Grovyle', 23, 62, 62]
+    AI words: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] 
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (stalls 12 of at most 12): no endless grind; it fights as it is
+    BRAWLY fight at f1180803: the lead ['Dustox', 10, 35, 35]; the end {'frame': 1209257, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Grovyle', 23), ('Meditite', 'Grovyle', 23)]
+    BRAWLY fight at f1213155: the lead ['Dustox', 10, 35, 35]; the end {'frame': 1245733, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 10), ('Meditite', 'Dustox', 10)]
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Dustox', 1593, 11]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+[ab2-A-C1-6379] exit 0, purity CLEAN, frames 746397 -> 937120; GAME: BADGE02_GET=0 DEFEATED_DEWFORD_GYM=0; raise goals 0 (0 frames), lead reads 0 (not the trainee 0), leaked battles 0; Grovyle at the first BRAWLY record ['Grovyle', 22, 60, 60]
+    BRAWLY fight at f887761: the lead ['Grovyle', 22, 60, 60]; the end {'frame': 900680, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    BRAWLY fight at f904556: the lead ['Grovyle', 22, 60, 60]; the end {'frame': 918969, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    BRAWLY fight at f922804: the lead ['Grovyle', 22, 60, 60]; the end {'frame': 937120, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field []
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Wurmple', 27, 3]; [AI-EXIT] reason=play: stuck: 3 battles lost (MAX_LOSSES 3) code=0
+[ab2-B-C1-6379] exit 0, purity CLEAN, frames 746397 -> 1473030; GAME: BADGE02_GET=1 DEFEATED_DEWFORD_GYM=1; raise goals 20 (92485 frames), lead reads 22 (not the trainee 0), leaked battles 7; Grovyle at the first BRAWLY record ['Grovyle', 24, 65, 65]
+    AI words: the plan: raise Wurmple (55cfbff3) from L3 to L20 as the one who leads (Dustox L20 [Tackle, Confusion, Poison Sting, Gust]); drawn among ['Wurmple L20 (391)', 'Grovyle L30 (459)'] 
+    AI words: [AI-BOSSPREP] BRAWLY: the raise ends, budget spent (stalls 12 of at most 12): no endless grind; it fights as it is
+    BRAWLY fight at f1365628: the lead ['Dustox', 10, 35, 35]; the end {'frame': 1397607, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 10), ('Meditite', 'Dustox', 10)]
+    BRAWLY fight at f1401418: the lead ['Dustox', 11, 37, 37]; the end {'frame': 1434150, 'result': 'lost', 'gBattleOutcome': 2}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 11), ('Meditite', 'Dustox', 11)]
+    BRAWLY fight at f1437982: the lead ['Dustox', 12, 40, 40]; the end {'frame': 1469991, 'result': 'won', 'gBattleOutcome': 1}; each foe's bar at 0 with on the field [('Machop', 'Dustox', 12), ('Meditite', 'Grovyle', 24), ('Makuhita', 'Poochyena', 8)]
+    the trainee 55cfbff3 at the end (the framework's party reader): ['55cfbff3', 'Dustox', 2458, 13]; [AI-EXIT] reason=play: done: ch7_brawly reached code=0
+
+== batch control (ledger #113): a determinism check, one trajectory replayed per pair
+[L1 A/B] decision streams identical: True (lengths [690, 690], first difference at None); end frame [143889, 143889]; end marks equal: True; end state md5 equal: False; purity ['CLEAN', 'CLEAN']
+[C1L4 A/B] decision streams identical: True (lengths [772, 772], first difference at None); end frame [662359, 662359]; end marks equal: True; end state md5 equal: False; purity ['CLEAN', 'CLEAN']
+[C2L4 A/B] decision streams identical: True (lengths [884, 884], first difference at None); end frame [650045, 650045]; end marks equal: True; end state md5 equal: False; purity ['CLEAN', 'CLEAN']
+[L1 F/B] decision streams identical: False (lengths [692, 690], first difference at 210); end frame [143930, 143889]; end marks equal: True; end state md5 equal: False; purity ['CLEAN', 'CLEAN']
+[C1L4 B] [AI-BOSSPREP] lines 3; raise goals 0; lead goals 0; first: -BOSSPREP] BRAWLY (ch7_brawly): team Machop L16, Meditite L16, Makuhita L19 @Sitrus Berry; party Grovyle L18 50 [Pound, Pursuit, Absorb, Quick Attack], Poochyena L4 17 [Tackle], Wurmple 
+[C2L4 B] [AI-BOSSPREP] lines 3; raise goals 0; lead goals 0; first: -BOSSPREP] BRAWLY (ch7_brawly): team Machop L16, Meditite L16, Makuhita L19 @Sitrus Berry; party Combusken L18 56 [Scratch, Double Kick, Peck, Ember], Wurmple L4 18 [Tackle, String Shot]
+[L1 B] [AI-BOSSPREP] lines 4; raise goals 0; lead goals 0; first: -BOSSPREP] ROXANNE (ch4_roxanne): team Geodude L12, Geodude L12, Nosepass L15 @Oran Berry; party Treecko L5 20 [Pound, Leer]; verdict for the Story: NOT READY (party left 0.00; Geodude s
+
+== batch control2 (ledger #115): a determinism check, one trajectory replayed per pair
+[L1 A/B] decision streams identical: True (lengths [603, 603], first difference at None); end frame [121126, 121126]; end marks equal: True; end state md5 equal: False; purity ['CLEAN', 'CLEAN']
+[C1L4 A/B] decision streams identical: True (lengths [480, 480], first difference at None); end frame [602420, 602420]; end marks equal: True; end state md5 equal: False; purity ['CLEAN', 'CLEAN']
+[C2L4 A/B] decision streams identical: True (lengths [580, 580], first difference at None); end frame [618833, 618833]; end marks equal: True; end state md5 equal: False; purity ['CLEAN', 'CLEAN']
+[L1 F/B] decision streams identical: False (lengths [638, 603], first difference at 246); end frame [126231, 121126]; end marks equal: True; end state md5 equal: False; purity ['CLEAN', 'CLEAN']
+[C1L4 B] [AI-BOSSPREP] lines 3; raise goals 0; lead goals 0; first: -BOSSPREP] BRAWLY (ch7_brawly): team Machop L16, Meditite L16, Makuhita L19 @Sitrus Berry; party Grovyle L18 50 [Pound, Pursuit, Absorb, Quick Attack], Poochyena L4 17 [Tackle], Wurmple 
+[C2L4 B] [AI-BOSSPREP] lines 3; raise goals 0; lead goals 0; first: -BOSSPREP] BRAWLY (ch7_brawly): team Machop L16, Meditite L16, Makuhita L19 @Sitrus Berry; party Combusken L18 56 [Scratch, Double Kick, Peck, Ember], Wurmple L4 18 [Tackle, String Shot]
+[L1 B] [AI-BOSSPREP] lines 3; raise goals 0; lead goals 0; first: -BOSSPREP] ROXANNE (ch4_roxanne): team Geodude L12, Geodude L12, Nosepass L15 @Oran Berry; party Treecko L5 20 [Pound, Leer]; verdict for the Story: NOT READY (party left 0.00; Geodude s
+

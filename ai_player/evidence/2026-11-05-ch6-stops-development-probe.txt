@@ -1,0 +1,136 @@
+CHAPTER 6 STOPS - THE DEVELOPMENT PROBE (ledger #101; development, never graded; one trajectory per start, never a rate): the AI with the round's two fixes from the three chapter-5 chain ends, target ch7_brawly, seeds 6314-6316
+HEADLINE (carries the caveat): Probe7 (ledger #101, seeds 6314-6316): 2 of 3 runs ENDED, and C1 was INTERRUPTED (its orchestrator died with the first builder) after 647,844 frames, with no end state. From the GAME: all 3 set MR_BRINEY_SAILING_INTRO and VISITED_DEWFORD_TOWN (C1 from its last in-game save), each with its FIRST MR. BRINEY talk goal landing, and no run stood at a call; only C1 delivered STEVEN's LETTER (in its save; no badge 2); C2 and C3 each said YES to MR. BRINEY's 'sail back to PETALBURG?' in DEWFORD, sailed back to the mainland, never found a way back and exited 'stuck: no progress' (C2 in PETALBURG WOODS, C3 on ROUTE 104). Five NEW stops past the two fixed ones (NS1-NS4, and NS6, the GRANITE CAVE B1F muddy slope, found in probe8 and present in C1 here), none fixed here. Caveats: development, one trajectory per start (never a rate); C1's judgement rests on its last save (21:33:59) and its own records, as it left no end state.
+WHO WROTE THIS: the second builder (s53/ch6stops2/write_evidence2.py, 2026-11-06). The first builder launched the batch (2026-11-05 21:02:40) and was cut off by a usage limit while it ran; its orchestrator died with it, so the batch never wrote results.json, a verdict or C1's result. C2 and C3 had ended by then (their child results exist); C1 was killed mid-run. The entry was closed by the second builder with that verdict; seeds 6314-6316 stay spent, never re-run.
+prediction sha256 35c8add58d47bb0a5934ee2e006e17cce8a825076d21185049d59fc4f919fe18 (the ledger's bounds field 35c8add5...); stage arm B digest 4be84b8a8cd83b89 (the A/Bs' tree); starts: the chapter-5 chain ends C1-C3 (md5 e909e537, 6c903935, bbcc172f), byte-identical to #96 and #98's
+batch log (s53/ch6stops/batch_probe7.out), verbatim:
+    SEED LEDGER: DEVELOPMENT, seeds 6314-6316 (ledger entry #101): NOT a graded result; these seeds can never be graded now
+    ENTRY 101 seeds 6314-6316 prediction sha256 35c8add58d47bb0a5934ee2e006e17cce8a825076d21185049d59fc4f919fe18 code 4be84b8a8cd83b89
+    
+    [probe7] started probe7-B-C1-6314 (21:02:40)
+    [probe7] started probe7-B-C2-6315 (21:02:50)
+    [probe7] started probe7-B-C3-6316 (21:03:00)
+    [probe7] probe7-B-C2-6315 child exit 0 (21:36:52)
+    [probe7] probe7-B-C3-6316 child exit 0 (21:39:42)
+--- the prediction, verbatim:
+PREDICTION (written before the runs; its sha256 is the ledger entry's bounds field). Batch probe7 of s53/ch6stops/arms.py:
+the chapter 6-7 DEVELOPMENT probe after the round's two fixes. Development, never graded; one trajectory per start, NEW seeds
+(6314 C1 Story, 6315 C2 Catcher, 6316 C3 Trainer), never a rate. Arm B = stage/armB (the worktree's ai_player with the fixes,
+digest 4be84b8a8cd83b89, the same tree the A/Bs #99 and #100 ran). Starts: the three chapter-5 chain ends (s53/ch5stops/out/
+probe/probe-C1..C3: RUSTBORO (19,53), the rival beaten), byte-identical to the KI-134 A arm's (#96) and B arm's (#98) starts;
+target ch7_brawly; 1,200,000 frames; wall 9,000 s. Read from the GAME on the state each run left, and from the runs' logs.
+
+Q1: 3 of 3 set MR_BRINEY_SAILING_INTRO (#98: 2 of 3), and in each the FIRST talk goal for MR. BRINEY ends 'talked'.
+Q2: 3 of 3 set VISITED_DEWFORD_TOWN (#98: 0 of 3), and no run ends at a call: no run logs 20 or more 'STUCK: nothing on screen
+    changed' lines in a row at a call's end; every press gated on a call's end (task ExecuteMatchCall) is the only such press
+    of its call.
+Q3: purity CLEAN in all three.
+Not predicted: anything past DEWFORD (GRANITE CAVE, STEVEN, the gym, BRAWLY): never played live before. Each run's furthest
+milestone (the game's flags), its frames, its exit line, and every NEW stop with its evidence are reported, not fixed.
+--- the runs, read from the GAME:
+[probe7-B-C2-6315] arm B start C2 (md5 6c9039355b86af9ffca529c618eda00f) seed 6315 Catcher: frames 634570 -> 1023773 (389203 real), 2035.3 s, map [0, 3] [19, 53] -> [24, 11] [14, 5], purity CLEAN, world.jsonl 925207692 B (NOT kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1, 'VISITED_DEWFORD_TOWN': 1}
+    exit: [AI-EXIT] reason=play: stuck: no progress for 121777 frames (no milestone, battle won training, level, new map, catch, item or heal; since GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN) code=0
+    first MR. BRINEY talk goal ended 'talked' (1 for him); presses gated on a call's end (frame, page before): [(643584, '… … … … … … … … … … … Click!')]; STUCK lines 0 (longest run 0)
+    harness_stop: {'by': 'ai', 'cause': 'the AI exited by itself (exit code 0)', 'exit_code': 0, 'real_frames': 389203, 'frame_budget': 1200000, 'elapsed_seconds': 2035.3, 'wall_clock_seconds': 9000.0}
+[probe7-B-C3-6316] arm B start C3 (md5 bbcc172f3b2d51e8b5a5e5c3c8eeb581) seed 6316 Trainer: frames 812544 -> 1036134 (223590 real), 2193.9 s, map [0, 3] [19, 53] -> [0, 19] [39, 62], purity CLEAN, world.jsonl 2834107568 B (NOT kept), checks [('L5.THIS_RUN', 'PASS')]
+    marks after (nonzero, the game's): {'RUSTBORO_CITY_STATE': 8, 'ROUTE104_STATE': 2, 'BRINEY_HOUSE_STATE': 1, 'DEFEATED_RIVAL_RUSTBORO': 1, 'BADGE01_GET': 1, 'MR_BRINEY_SAILING_INTRO': 1, 'VISITED_DEWFORD_TOWN': 1}
+    exit: [AI-EXIT] reason=play: stuck: no progress for 120229 frames (no milestone, battle won training, level, new map, catch, item or heal; since GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN) code=0
+    first MR. BRINEY talk goal ended 'talked' (1 for him); presses gated on a call's end (frame, page before): [(829339, '… … … … … … … … … … … Click!')]; STUCK lines 0 (longest run 0)
+    harness_stop: {'by': 'ai', 'cause': 'the AI exited by itself (exit code 0)', 'exit_code': 0, 'real_frames': 223590, 'frame_budget': 1200000, 'elapsed_seconds': 2193.9, 'wall_clock_seconds': 9000.0}
+[probe7-B-C1-6314] arm B start C1 (md5 e909e537...) seed 6314 Story: INTERRUPTED. No end state was written (the profile's current_state.ss1 is the start, md5 e909e537..., unchanged), no purity verdict, no child result.
+    the last heartbeat (the purity counters so far): [AI-HEARTBEAT] frames=647000 ai_steps=646999 foreign_presses=0 foreign_writes=0 foreign_loads=0 ai_presses=39214 unattributed_inputs=0 unattributed_state_changes=0
+    the last action record: f1394241 (start f746397: 647844 frames played), f1394241 overworld GRANITE CAVE(24,8) xy=(9,10) facing=up walking party=[Grovyle:L28 60/74,Poochyena:L6 21/21,Wurmple:L3 16/16,Seedot:L3 16/16,Shroomish:L5 21/2
+    the log's last line: [AI-WORLD] battle 259: ran
+    THE GAME'S OWN SAVE (the battery save the AI's in-game SAVE wrote; its 4th and last, 21:33:59; read by s53/ch6stops2/sav_read.py from the save sectors): save counter 20, play time 5:44:44, DewfordTown_PokemonCenter_1F [7, 4], party (level, HP, max) [(26, 69, 69), (6, 21, 21), (3, 16, 16), (3, 16, 16), (5, 21, 21), (5, 20, 20)]
+    its story marks (the eyes' MILESTONE flag and var numbers): {'MR_BRINEY_SAILING_INTRO': 1, 'VISITED_DEWFORD_TOWN': 1, 'DELIVERED_STEVEN_LETTER': 1, 'REGISTERED_STEVEN_POKENAV': 1}; BADGE02_GET 0, DEFEATED_DEWFORD_GYM 0
+    (after that save the run played on to f1394241, about 6 minutes, without a milestone: the log's own words; nothing the game wrote after 21:33:59 survives.)
+--- judgement against the prediction (computed; C1 from its last save and its records, as it left no end state):
+  Q1 (3 of 3 set the intro flag, each first MR. BRINEY talk goal 'talked'): HELD - C1 (1, 'talked'), probe7-B-C2-6315 (1, 'talked'), probe7-B-C3-6316 (1, 'talked')
+  Q2 (3 of 3 set VISITED_DEWFORD_TOWN; no run with 20+ STUCK lines in a row): HELD - C1 (1, 0), probe7-B-C2-6315 (1, 0), probe7-B-C3-6316 (1, 0)
+  Q3 (purity CLEAN 3 of 3): 2 of 2 ENDED runs CLEAN; C1 has no verdict (its last heartbeat counts 0 foreign presses, writes and loads)
+--- the facts behind the stops (s53/ch6stops2/stops_facts.py on each run's own files, verbatim):
+    == probe7-B-C1-6314
+      L69 MILESTONE ch6_briney_house done at f759166 (ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)): MR_BRINEY_SAILING_INTRO=1
+      L80 MILESTONE ch6_dewford done at f763776 (Sail with MR. BRINEY to DEWFORD TOWN): VISITED_DEWFORD_TOWN=1
+      L81 MILESTONE ch6_old_rod passed as OPTIONAL (not required; its proofs do not hold) at f763776 (DEWFORD TOWN: the fisherman's OLD ROD): RECEIVED_OLD_ROD=0
+      L153 MAP DEWFORD_TOWN -> DEWFORD_TOWN_GYM at (5, 27): the warp at (8, 17) (the AI, f765729); 165 tiles of it known  | goal then: goal go: GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN: to GRANITE_CAVE_STEVENS_ROOM (by looking around: 
+      L188 MAP DEWFORD_TOWN_GYM -> DEWFORD_TOWN at (8, 17): the warp at (6, 27) (the AI, f767064); 687 tiles of it known  | goal then: goal go: GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN: to GRANITE_CAVE_STEVENS_ROOM (by looking around: 
+      L746 MAP GRANITE_CAVE_1F -> GRANITE_CAVE_STEVENS_ROOM at (7, 3): the warp at (5, 10) (the AI, f873205); 165 tiles of it known  | goal then: goal go: GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN: to GRANITE_CAVE_STEVENS_ROOM (by looking around: 
+      L752 MAP GRANITE_CAVE_STEVENS_ROOM -> GRANITE_CAVE_1F at (5, 10): the warp at (7, 3) (the AI, f873453); 846 tiles of it known  | goal then: goal go: GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN: to GRANITE_CAVE_STEVENS_ROOM (by looking around: 
+      L813 MAP GRANITE_CAVE_1F -> GRANITE_CAVE_STEVENS_ROOM at (7, 3): the warp at (5, 10) (the AI, f886319); 222 tiles of it known  | goal then: goal go: GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN: to GRANITE_CAVE_STEVENS_ROOM (a place it has been
+      L826 MILESTONE ch7_steven done at f891394 (GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN): DELIVERED_STEVEN_LETTER=1, REGISTERED_STEVEN_POKENAV=1
+      L827 MILESTONE ch7_flash passed as OPTIONAL (not required; its proofs do not hold) at f891394 (GRANITE CAVE 1F: the HIKER's HM FLASH): RECEIVED_HM_FLASH=0
+      L828 MILESTONE ch7_gym_trainers passed as OPTIONAL (not required; its proofs do not hold) at f891394 (The DEWFORD GYM's trainers): TRAINER_TAKAO=0, TRAINER
+      L836 MAP GRANITE_CAVE_STEVENS_ROOM -> GRANITE_CAVE_1F at (5, 10): the warp at (7, 3) (the AI, f891549); 852 tiles of it known  | goal then: goal train: the next fight (BRAWLY: the KNUCKLE BADGE) has levels [16, 19] (a fight the game names): its stron
+      'where to? nobody has said yet' go goals: 36 (words ['BRAWLY']), log lines L945..L2890
+      ping-pong goal ends by link: []
+      errands that could not get to a place: [('PETALBURG_WOODS', 16), ('OLDALE_TOWN_MART', 7), ('DEWFORD_TOWN_POKEMON_CENTER_1F', 1)]
+      map changes: 91; the last: MAP GRANITE_CAVE_1F -> GRANITE_CAVE_B1F at (4, 21): the warp at (17, 11) (the AI, f1272898); 821 tiles of it known
+      f758452 a sailing question answered: 'you’ve come to the right man! we’ll set sail for dewford.' -> YES
+      the last record: f1394241 f1394241 overworld GRANITE CAVE(24,8) xy=(9,10) facing=up walking party=[Grovyle:L28 60/74,Poochyena:L6 21/21,Wurmple:L3 16/16,Seedot:L3 16/16,Shroomish:L5 21/21,Cascoon:L5 20/20] boxed=7 sees=[] dex=
+    == probe7-B-C2-6315
+      L48 MILESTONE ch6_briney_house done at f640819 (ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)): MR_BRINEY_SAILING_INTRO=1
+      L58 MILESTONE ch6_dewford done at f645412 (Sail with MR. BRINEY to DEWFORD TOWN): VISITED_DEWFORD_TOWN=1
+      L59 MILESTONE ch6_old_rod passed as OPTIONAL (not required; its proofs do not hold) at f645412 (DEWFORD TOWN: the fisherman's OLD ROD): RECEIVED_OLD_ROD=0
+      L132 MAP DEWFORD_TOWN -> DEWFORD_TOWN_GYM at (5, 27): the warp at (8, 17) (the AI, f647375); 165 tiles of it known  | goal then: goal go: GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN: to GRANITE_CAVE_STEVENS_ROOM (by looking around: 
+      L167 MAP DEWFORD_TOWN_GYM -> DEWFORD_TOWN at (8, 17): the warp at (6, 27) (the AI, f648752); 687 tiles of it known  | goal then: goal go: GRANITE CAVE: deliver MR. STONE's LETTER to STEVEN: to GRANITE_CAVE_STEVENS_ROOM (by looking around: 
+      L718 MAP GRANITE_CAVE_1F -> GRANITE_CAVE_STEVENS_ROOM at (7, 3): the warp at (5, 10) (the AI, f761588); 165 tiles of it known  | goal then: goal shop: 3 POKé BALLS left (fewer than 8) and 4240 money: the MART it knows (OLDALE_TOWN_MART) (milestone ch
+      L723 MAP GRANITE_CAVE_STEVENS_ROOM -> GRANITE_CAVE_1F at (5, 10): the warp at (7, 3) (the AI, f761786); 835 tiles of it known  | goal then: goal shop: 3 POKé BALLS left (fewer than 8) and 4240 money: the MART it knows (OLDALE_TOWN_MART) (milestone ch
+      ping-pong goal ends by link: [('0:19|10,30', 26), ('24:11|14,5', 20), ('0:19|11,30', 17), ('24:11|15,5', 11), ('0:9|edge:up', 3), ('0:16|edge:down', 1)]
+      errands that could not get to a place: [('OLDALE_TOWN_MART', 4)]
+      map changes: 678; the last: MAP ROUTE104 -> PETALBURG_WOODS at (14, 5): the warp at (10, 30) (the AI, f1023755); 1672 tiles of it known
+      f640145 a sailing question answered: 'you’ve come to the right man! we’ll set sail for dewford.' -> YES
+      f776514 a sailing question answered: 'or were you meaning to sail back to petalburg?' -> YES
+      the last record: f1023773 f1023773 overworld PETALBURG WOODS(24,11) xy=(14,5) facing=down walking party=[Combusken:L24 28/72,Wurmple:L4 18/18,Poochyena:L3 15/15,Lotad:L4 18/18,Zigzagoon:L4 17/17,Seedot:L3 15/15] boxed=13 sees=
+    == probe7-B-C3-6316
+      L87 MILESTONE ch6_briney_house done at f826605 (ROUTE 104: MR. BRINEY's cottage (he offers to sail to DEWFORD)): MR_BRINEY_SAILING_INTRO=1
+      L97 MILESTONE ch6_dewford done at f831189 (Sail with MR. BRINEY to DEWFORD TOWN): VISITED_DEWFORD_TOWN=1
+      L98 MILESTONE ch6_old_rod passed as OPTIONAL (not required; its proofs do not hold) at f831189 (DEWFORD TOWN: the fisherman's OLD ROD): RECEIVED_OLD_ROD=0
+      ping-pong goal ends by link: [('0:0|edge:left', 183), ('0:19|edge:right', 181)]
+      errands that could not get to a place: []
+      map changes: 1861; the last: MAP PETALBURG_CITY -> ROUTE104 at (39, 62): the left edge from (0, 12) (the AI, f1036134); 3309 tiles of it known
+      f825917 a sailing question answered: 'you’ve come to the right man! we’ll set sail for dewford.' -> YES
+      f831754 a sailing question answered: 'or were you meaning to sail back to petalburg?' -> YES
+      the last record: f1036134 f1036134 overworld ROUTE 104(0,19) xy=(39,62) facing=left walking party=[Marshtomp:L23 68/72,Poochyena:L7 22/22,Ralts:L4 17/17,Wurmple:L3 15/15,Zigzagoon:L3 15/15,Seedot:L3 15/15] boxed=9 sees=[] dex=
+--- every NEW stop past the two fixed ones, and a reading of its cause (NOT fixed in this round):
+NS1 - a YES to MR. BRINEY's 'sail back to PETALBURG?' in DEWFORD (C2 f776514, C3 f831754; 2 of 3 runs). EVIDENCE: each run's
+  own records: a 'chat' goal ('someone stands near at (12, 9): a person says hello now and then'), the talk to the npc gfx 21 at
+  (12, 9), then 'a question in the story ('or were you meaning to sail back to petalburg?'): YES, a person goes along with what
+  the game asks', then the scene's map changes DEWFORD_TOWN -> ROUTE106 -> ROUTE105 -> ROUTE104 -> ROUTE104_MR_BRINEYS_HOUSE
+  (C3: f832507-f833659, 565 frames after it reached DEWFORD; C2: f777243-f778395, after GRANITE CAVE). READING: the curiosity
+  'chat' picks MR. BRINEY at his boat as 'someone who stands near', and skills/story.py QUESTION_RULES answers any question it
+  has no rule for with YES; a person who has just sailed to DEWFORD to deliver a letter there would answer NO. The question's
+  words are on screen, so a rule for them is fair (USER RULING 40).
+NS2 - once back on the mainland, no way back to DEWFORD (C2, C3). EVIDENCE: C3's go goal 'to GRANITE_CAVE_STEVENS_ROOM (by
+  looking around: not told yet)', then 364 'stuck: ping-pong' goal ends on the PETALBURG / ROUTE 104 edge ('0:0|edge:left' 183,
+  '0:19|edge:right' 181) and the exit 'stuck: no progress for 120229 frames ... since GRANITE CAVE: deliver MR. STONE's LETTER
+  to STEVEN' on ROUTE 104 (39, 62); C2's go goal 'to GRANITE_CAVE_STEVENS_ROOM (a place it has been to; nothing was said)',
+  74 ping-pong ends on the woods' doors ('0:19|10,30' 26, '24:11|14,5' 20, '0:19|11,30' 17, '24:11|15,5' 11) and the same exit
+  ('no progress for 121777 frames') in PETALBURG WOODS (14, 5). READING: the sail is remembered as a SCENE's map changes, and
+  `route_to` refuses those as ways to walk (build step 5's rule), so no route to the island exists in the AI's memory.
+  MEASURED on C1's kept memory (its world.jsonl's last line; C2's and C3's were over 300 MB and not kept), by
+  s53/ch6stops2/sail_links.py: the sail's map changes are warps 'by scene' from ROUTE104 (22, 79), ROUTE105 (22, 79), ROUTE106
+  (72, 19) and the cottage's (5, 6), none of which looks like a way out; route_to by maps from ROUTE104 or PETALBURG_CITY to
+  DEWFORD_TOWN or GRANITE_CAVE_STEVENS_ROOM: None, all four. Nothing tells the AI to ask MR. BRINEY at his cottage again (the
+  step 'talk to MR. BRINEY' belongs to the milestone ch6_dewford, done).
+NS3 - GRANITE CAVE: STEVEN's room entered and left without a word (C2; C1 once before it came back). EVIDENCE: C2 walked
+  GRANITE_CAVE_1F -> GRANITE_CAVE_STEVENS_ROOM at f761588 and out at f761786 (198 frames) while its goal was 'shop: 3 POKe BALLS
+  left (fewer than 8) ... (OLDALE_TOWN_MART)'; the explorer went to the room's frontier, then 'the back at (7, 4): it leads back
+  to GRANITE_CAVE_1F, seen all of'. C1 did the same once (f873205-f873453, under 'go: ... (by looking around: not told yet)'),
+  came back 12,866 frames later and talked to STEVEN (ch7_steven at f891394). READING: an errand (shop) with a target on the
+  mainland, or a go goal that only looks around, does not look for STEVEN in his room; the talk step comes only once the go
+  goal names his room as 'a place it has been to'.
+NS4 - BRAWLY's GYM waits for the words 'BRAWLY' (C1). EVIDENCE: after ch7_steven (f891394) C1 made 36 go goals 'BRAWLY: the
+  KNUCKLE BADGE: where to? nobody has said yet (words 'BRAWLY' not heard): exploring' (log L945..L2890) and no milestone for
+  502,847 frames to its interruption, though it had been inside DEWFORD_TOWN_GYM (f765729-f767064); meanwhile 16 'train' errands
+  'could not get to the grass of PETALBURG_WOODS' and 7 'shop' errands 'could not get to OLDALE_TOWN_MART' (both on the mainland,
+  out of reach from the island, NS2's cause). READING: knowledge/milestones.json ch7_brawly's go step is `told: BRAWLY`, whose
+  hint is the GYM SIGN in DEWFORD ('DEWFORD TOWN POKeMON GYM LEADER: BRAWLY'); the AI never read that sign. A seasoned player
+  (USER RULING 40) knows DEWFORD's gym is BRAWLY's.
+NS6 (found by the second builder in probe8, #102; it is in this probe too) - GRANITE CAVE B1F's MUDDY SLOPE at (9, 9)-(9, 10).
+  EVIDENCE: C1's own memory (world.jsonl kept, 130 MB, last written 21:34; s53/ch6stops2/tile_peek.py) has both tiles
+  MUDDY_SLOPE, walkable in its record, (9, 10) visited 3,471 times and (9, 11) 3,476; its last action record (f1394241) is
+  'hold Up 8f: keep walking up: the step from (9, 10) has not begun' on GRANITE_CAVE_B1F. READING: pinned decomp
+  src/field_player_avatar.c ForcedMovement_MuddySlope forces the player SOUTH on a muddy slope unless moving north at the
+  fastest speed (the MACH BIKE): on foot it is one-way down; the navigator plans up it and no bump is recorded (the player moves,
+  sliding back). Part of C1's 502,847 frames with no milestone after STEVEN was spent there.

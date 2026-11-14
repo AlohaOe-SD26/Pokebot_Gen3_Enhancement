@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "285f6af51eb55d6e5e8f5a1df1e2139503d186b3",
+ "source_sha1_lf": "b20a4d152036e5676e149c2b790a4227a0388bf3",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 374,
-  "donot_candidates": 37,
-  "sections_naming_user_rulings": 56
+  "sections": 378,
+  "donot_candidates": 39,
+  "sections_naming_user_rulings": 57
  },
  "sections": [
   {
@@ -5723,10 +5723,33 @@
    "cues": []
   },
   {
+   "id": "2026-11-05-0d6710",
+   "date": "2026-11-05",
+   "line_start": 10029,
+   "line_end": 10038,
+   "title": "2026-11-05 — Chapters 6-7 wired from the cloud note: ONE talk step for STEVEN, the chapter-5 method, the pinned decomp for `--verify` (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-134"
+   ],
+   "donot": [
+    {
+     "key": "861dca18",
+     "line": 10038,
+     "text": "- **Do not reopen:** the draft's four-step STEVEN list (probed against the real `story_step`, not argued); copying the cloud note."
+    }
+   ],
+   "cues": []
+  },
+  {
    "id": "2026-11-06-dc449a",
    "date": "2026-11-06",
-   "line_start": 10029,
-   "line_end": 10037,
+   "line_start": 10039,
+   "line_end": 10047,
    "title": "2026-11-06 — The graded chain driver `live_chain.py`: a WRITTEN threat model, \"grade DIR is never better than the ledger\", its refusals and exit codes, and a stopping rule for its checks (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
@@ -5737,7 +5760,7 @@
    "donot": [
     {
      "key": "5ff117c0",
-     "line": 10037,
+     "line": 10047,
      "text": "- **Do not reopen:** an in-process defense against code written to disable the grader (that is the purity gate's and R9's job); `grade DIR` trusting results.json over the ledger."
     }
    ],
@@ -5746,8 +5769,8 @@
   {
    "id": "2026-11-07-08dac8",
    "date": "2026-11-07",
-   "line_start": 10039,
-   "line_end": 10051,
+   "line_start": 10049,
+   "line_end": 10061,
    "title": "2026-11-07 — USER RULING 58: against a boss the party loses to, all three plans are viable (train the whole team, bring a counter, fight smarter) for BRAWLY and every gym leader, boss and the Elite Four; a counter is judged by its typing's RESISTANCES and by its MOVES' type advantages (punch-list #28-aiagent-v2)",
    "rulings": [
     58
@@ -5760,7 +5783,7 @@
    "donot": [
     {
      "key": "7dc65651",
-     "line": 10051,
+     "line": 10061,
      "text": "- **Do not re-ask** what a seasoned player does against a boss the party loses to: all three (train the whole team; a counter judged by its resistances AND its moves' type advantages; smarter fights) are viable for every gym leader, boss and the Elite Four (2026-11-07)."
     }
    ],
@@ -5769,8 +5792,8 @@
   {
    "id": "2026-11-07-62bc04",
    "date": "2026-11-07",
-   "line_start": 10053,
-   "line_end": 10057,
+   "line_start": 10063,
+   "line_end": 10067,
    "title": "2026-11-07 — Correction to the USER RULING 58 entry above: a boss Pokémon's HELD ITEM is known (USER RULING 44), so it is not hidden state for boss preparation (punch-list #28-aiagent-v2)",
    "rulings": [
     44,
@@ -5784,7 +5807,7 @@
    "donot": [
     {
      "key": "e4653cf6",
-     "line": 10055,
+     "line": 10065,
      "text": "- **The error:** the USER RULING 58 entry's knowledge bullet lists \"held items not shown\" among the live hidden state the AI may not read. For bosses that is wrong: USER RULING 44 (2026-10-21, \"Do not re-ask\") says the AI KNOWS each boss Pokémon's held item; it does not know their exact stats (IVs, "
     }
    ],
@@ -5795,8 +5818,8 @@
   {
    "id": "2026-11-09-4acd7f",
    "date": "2026-11-09",
-   "line_start": 10059,
-   "line_end": 10070,
+   "line_start": 10069,
+   "line_end": 10080,
    "title": "2026-11-09 — USER RULING 59: raising a weak Pokémon to counter a boss is \"some mix that makes logical sense\" of switch-training, its own fights, and healing (a Pokémon Center or Potions) (punch-list #28-aiagent-v2)",
    "rulings": [
     59
@@ -5809,7 +5832,7 @@
    "donot": [
     {
      "key": "0156a392",
-     "line": 10070,
+     "line": 10080,
      "text": "- **Do not re-ask** how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09)."
     }
    ],
@@ -5818,8 +5841,8 @@
   {
    "id": "2026-11-11-334134",
    "date": "2026-11-11",
-   "line_start": 10072,
-   "line_end": 10078,
+   "line_start": 10082,
+   "line_end": 10088,
    "title": "2026-11-11 — The order stays: chapter 6's boss preparation and dark cave, then the chapter 6-7 merge, then A1 (the trainer training the AI player); the user was unsure, so it is the lead's call (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
@@ -5830,7 +5853,7 @@
    "donot": [
     {
      "key": "1da96edb",
-     "line": 10078,
+     "line": 10088,
      "text": "- **Revisit** when the chapter 6-7 merge lands, or whenever the user asks. Not a do-not-reopen ruling."
     }
    ],
@@ -5839,8 +5862,8 @@
   {
    "id": "2026-11-11-9db0c9",
    "date": "2026-11-11",
-   "line_start": 10080,
-   "line_end": 10086,
+   "line_start": 10090,
+   "line_end": 10096,
    "title": "2026-11-11 — Boss prep BP-1 round 3: the trainee is protected in every battle of an active plan by a turn-1 switch, not by re-ordering the party between sessions; round 3 runs beside P11-1 (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
@@ -5854,8 +5877,8 @@
   {
    "id": "2026-11-11-65d48b",
    "date": "2026-11-11",
-   "line_start": 10088,
-   "line_end": 10099,
+   "line_start": 10098,
+   "line_end": 10109,
    "title": "2026-11-11 — The fix round after BP-1 round 3 and P11-1: a heal only when it can change the decision; a member that cannot win is the last resort; the dark-cave fact refuses what it cannot model (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
@@ -5869,8 +5892,8 @@
   {
    "id": "2026-11-12-c7562b",
    "date": "2026-11-12",
-   "line_start": 10100,
-   "line_end": 10119,
+   "line_start": 10110,
+   "line_end": 10129,
    "title": "2026-11-12 — After BP-1 round 4 and P11-2: a closing pass with no play code; evidence is found by its tree digest; the measured boss-prep gaps go to BP-2 after the merge; every workflow agent names its model (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
@@ -5884,8 +5907,8 @@
   {
    "id": "2026-11-12-6c76f7",
    "date": "2026-11-12",
-   "line_start": 10120,
-   "line_end": 10135,
+   "line_start": 10130,
+   "line_end": 10145,
    "title": "2026-11-12 — The chapter 6-7 merge: its docs are written on the integration branch before `main` is touched, and a frozen `main` takes the finished head in one merge commit; one full lane must read PASS; a chapter 1-5 check chain runs first; what \"no emulator\" means in a closing pass; BP-1's two carried MINORs go to BP-2 (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
@@ -5895,6 +5918,69 @@
    "ki": [],
    "donot": [],
    "cues": []
+  },
+  {
+   "id": "2026-11-14-bd6ffa",
+   "date": "2026-11-14",
+   "line_start": 10147,
+   "line_end": 10171,
+   "title": "2026-11-14 — Chapters 6-7, boss preparation BP-1 and the dark-cave way P11, as built: the design choices their rounds made, recorded when they merged (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-134"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-14-15ba9c",
+   "date": "2026-11-14",
+   "line_start": 10173,
+   "line_end": 10191,
+   "title": "2026-11-14 — The chapter 6-7 merge as run: `main` keeps its ledger ids and the side branches' are renumbered once; C5b v2, a narrow test-side fix; the lead's rulings on the run book's calls 1-7 (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-14-b23f35",
+   "date": "2026-11-14",
+   "line_start": 10193,
+   "line_end": 10207,
+   "title": "2026-11-14 — E0's STOP and the fix-forward (2026-11-13): the chapter 5 search fix (E and K1) went onto the merge branch after E0's commit; K2 rejected; K1 is not a route planner; a correction to one reason given for USER RULING 55's frame budget (punch-list #28-aiagent-v2)",
+   "rulings": [
+    55
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-128",
+    "KI-134",
+    "KI-136",
+    "KI-137",
+    "KI-138"
+   ],
+   "donot": [
+    {
+     "key": "61b14443",
+     "line": 10205,
+     "text": "- **Do not reopen:** saving `MapMemory.standing` (a saved thing would outlive what made it, KI-134 V-N5's ruling); aiming K1 at a warp tile (K2)."
+    }
+   ],
+   "cues": [
+    "correction"
+   ]
   }
  ]
 }

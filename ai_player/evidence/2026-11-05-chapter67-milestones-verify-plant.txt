@@ -1,0 +1,20 @@
+[VERIFY] code: HEAD 979754bf; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:e31a1888aecf12dc over git diff HEAD (2 files, 44194 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+[VERIFY] ai_player\knowledge\milestones.json: 36 milestones; teacher sandbox-pokebot/modules/story/early_game.py sha256 9faee7af5c878ccdf38695946857932578345812bb11573968bef46ef0a63a77
+[VERIFY] the local decomp clone pokeemerald at HEAD 731ad5bfd6e6f265508d0efcca0ba42f9dcf5881 (env POKEBOT_DECOMP): flags.h 2419 defines, vars.h 294, opponents.h 857, event_objects.h 276, metatile_labels.h 693
+[VERIFY] note: ch1_rival_route103: ROUTE103 has no ['OBJ_EVENT_GFX_RIVAL_BRENDAN_NORMAL', 'OBJ_EVENT_GFX_RIVAL_MAY_NORMAL'] object; its figures set at runtime (['OBJ_EVENT_GFX_VAR_0']) are not checked
+[VERIFY] checked: 33 flag numbers, 19 var numbers, 61 proofs set by their scripts, 34 trainer ids, 34 party level lists, 18 looks, 23 hint words in their scripts, 26 steps' own words in their scripts, 11 step looks on their maps
+[VERIFY] MISMATCH ch1_clock: FLAG_SET_WALL_CLOCK: ours 82, pret 81
+[VERIFY] MISMATCH fight: TRAINER_MAY_ROUTE_103_MUDKIP levels: ours [6], pret [5] (sParty_MayRoute103Mudkip)
+[VERIFY] MISMATCH ch5_rusturf_grunt: FLAG_RECOVERED_DEVON_GOODS: ours 144, pret 143
+[VERIFY] MISMATCH fight: TRAINER_GRUNT_RUSTURF_TUNNEL levels: ours [12], pret [11] (sParty_GruntRusturfTunnel)
+[VERIFY] MISMATCH ch5_return_goods: VAR_RUSTBORO_CITY_STATE is never set to 9 in data/maps/RustboroCity/scripts.inc (setvar values there: [2, 3, 5, 7, 8])
+[VERIFY] MISMATCH ch6_dewford: FLAG_VISITED_DEWFORD_TOWN: ours 2162, pret 2161
+[VERIFY] MISMATCH ch6_old_rod: FLAG_RECEIVED_OLD_ROD: ours 258, pret 257
+[VERIFY] MISMATCH ch7_gym_trainers: TRAINER_TAKAO is not fought in data/maps/DewfordTown/scripts.inc
+[VERIFY] MISMATCH fight: TRAINER_BRAWLY_1 levels: ours [16, 16, 20], pret [16, 16, 19] (sParty_Brawly1)
+[VERIFY] MISMATCH looks: nurse: ours gfx [57], pret [58] (OBJ_EVENT_GFX_NURSE)
+[VERIFY] MISMATCH ch5_rusturf_grunt: the talk step's look 'aqua_member' (['OBJ_EVENT_GFX_AQUA_MEMBER_F', 'OBJ_EVENT_GFX_AQUA_MEMBER_M']) stands nowhere on ROUTE116 (data/maps/Route116/map.json)
+[VERIFY] MISMATCH ch7_steven: the talk step's look 'steven' (['OBJ_EVENT_GFX_STEVEN']) stands nowhere on GRANITE_CAVE_1F (data/maps/GraniteCave_1F/map.json)
+[VERIFY] MISMATCH ch5_rusturf_grunt: the go step's words 'tunnl' are not in data/maps/RustboroCity/scripts.inc
+[VERIFY] MISMATCH ch6_briney_house: the go step's words 'cotage' are not in data/maps/RustboroCity/scripts.inc
+[VERIFY] OVERALL PASS (the plants were found, and nothing else)

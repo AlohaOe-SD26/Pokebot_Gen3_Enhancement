@@ -116,6 +116,36 @@ and `CLAUDE` (`CLAUDE.md`).
 - **Enforced:** `ai_player/gates/extract_world.py::load_json`, `ai_player/gates/rate_step5.py::file_sha256`, `ai_player/gates/test_kb2.py::OutputsTests.test_input_hashes_do_not_depend_on_line_ends`.
 - **Retires:** the prose, once every hash a committed file records goes through one helper.
 
+### PR-15. A round checks the anchors of EVERY mutant runner, not only the ones it adds to.
+- **Origin:** 2026-11-09, 08 "an OLDER mutant runner's anchor matched twice".
+- **Status:** GATED (2026-11-09)
+- **Enforced:** `gates/check_anchors.py`, `gates/test_check_anchors.py::FaultTests`, `run_units:check_anchors`.
+- **Retires:** the prose.
+
+### PR-16. A clean merge hunk is not a clean merge: run both sides' tests on the merged tree, and re-prove a semantic fix on the exact heads that merge.
+- **Origin:** 2026-11-14, 08 "Clean merge hunks hid semantic conflicts twice".
+- **Status:** PROSE ONLY
+- **Needs:** a merge check in the repo that runs every suite on the staged merge tree and refuses the merge commit on a red one (the chapter 6-7 merge used the lab's `merge_gates.py` and `dry_merge.py`).
+- **Retires:** when that check is in the repo and fault-tested.
+
+### PR-17. Run `run_gates.py --quick` on a branch before each of its commits, not only the round's own gates.
+- **Origin:** 2026-11-14, 08 "because `run_gates.py` was never run there".
+- **Status:** PROSE ONLY
+- **Needs:** a commit-time check that the quick gates read PASS on the tree being committed.
+- **Retires:** when that check exists.
+
+### PR-18. Push a branch before any quick-gate run on its new head.
+- **Origin:** 2026-11-14, 08 "pushed only after them, so `preflight.py` read the branch AHEAD".
+- **Status:** PROSE ONLY
+- **Needs:** the quick-gate launcher refuses a head the remote does not have (or pushes it first).
+- **Retires:** when the launcher checks it.
+
+### PR-19. Before a full lane, compare EVERY revert driver's cap with its newest measured full-lane time.
+- **Origin:** 2026-11-14, 08 "raised timing rows only for the two NEW revert drivers"; 2026-10-31, 08 "its MEASURED time in run_regression_times.json was ten days stale".
+- **Status:** PROSE ONLY
+- **Needs:** a gate in git that reads every driver's last full-lane time and flags a cap below it (an open item in `03`; the lab tool `lane_times.py` does it today, kept in `_ai_lab/keep/2026-11-13-a1-sources/checkers/`, not in git).
+- **Retires:** when that gate does it and is fault-tested.
+
 ## B. Proofs: property not label, call-deleting mutants, independent reads, held-out seeds, pre-registration
 
 ### PF-1. Grade the PROPERTY, never the label the code chose for itself.
@@ -244,6 +274,49 @@ and `CLAUDE` (`CLAUDE.md`).
 - **Needs:** a table of every framework read the gates' second paths make, each checked against the states the eyes' live arms measured (`gates/live_step1.py` SW and the rest), with a unit test per trap.
 - **Retires:** when that table exists and each row has its test.
 
+### PF-20. A step list is DATA for `story_step`: run the real function on every map of the road before wiring it.
+- **Origin:** 2026-11-05, 08 "correct as a LIST and wrong as DATA".
+- **Status:** PARTIAL
+- **Enforced:** `gates/test_goals.py::Chapter67Tests`, `revert_step5:G474`.
+- **Needs:** a gate that runs `story_step` on every map of each milestone's road.
+- **Retires:** with that gate.
+
+### PF-21. A live judge follows a Pokémon by its PID and ends with a self-check against the game's identity read; a failed self-check gives no verdict.
+- **Origin:** 2026-11-11, 08 "instead of by identity, and counted the wrong".
+- **Status:** PROSE ONLY (the judges live in the lab)
+- **Needs:** a judge helper in the repo with a planted-faint test.
+- **Retires:** when the judges import it.
+
+### PF-22. Before a live A/B, show the change's decide fires on the live intent's shape; FIX equal to FAULT frame for frame means the change never fired.
+- **Origin:** 2026-11-14, 08 "FIX equaled FAULT frame for frame".
+- **Status:** PROSE ONLY
+- **Needs:** an A/B judge that counts the change's own decide lines in every FIX arm and calls a pair with none VACUOUS.
+- **Retires:** when the A/B harness does it.
+
+### PF-23. A static walk model models every one-way tile the project has measured, and refuses a map with a movement it does not model.
+- **Origin:** 2026-11-14, 08 "although the project had already measured live that it only goes down".
+- **Status:** GATED (2026-11-12, P11-2)
+- **Enforced:** `gates/test_ways.py::ExtractorTests.test_the_muddy_slope_only_goes_down_on_foot`, `revert_p11:slope_two_way`, `revert_p11:model_slope_floor`.
+- **Retires:** the prose, for the dark-cave extractor (a new walk model needs its own test).
+
+### PF-24. A rule about what a person sees is measured on what the screen DRAWS, never on a box around the sprite.
+- **Origin:** 2026-11-14, 08 "listed people the screen did not draw".
+- **Status:** GATED (2026-11-07, chapter 6 round 9)
+- **Enforced:** `gates/test_eyes.py::DarkTests.test_d4_a_tiles_light_and_a_sprites_drawn_pixels`, `run_units:test_eyes`.
+- **Retires:** the prose, for the eyes' person rule.
+
+### PF-25. Test a fix from a start BEFORE the loop too: an inference about a loop's state says nothing about whether a trajectory reaches it.
+- **Origin:** 2026-11-14, 08 "said nothing about whether a trajectory reaches that state".
+- **Status:** PROSE ONLY
+- **Needs:** a fix round's A/B template with an arm from a start before the failure, beside the arm at it.
+- **Retires:** when the template carries it.
+
+### PF-26. Every merge plays chapters 1-5 from a New Game before it lands, not only the new chapters.
+- **Origin:** 2026-11-14, 08 "found a search loop whose rules `main` already had".
+- **Status:** PROSE ONLY
+- **Needs:** MC, the chapter 1-5 merge check in A1's runner (A1's amendment AM-05, not applied yet: its first run MUST pass, later merges SHOULD run it).
+- **Retires:** when MC runs on every merge.
+
 ## C. Play: never idle, no hidden information, bounded loops, patience
 
 ### PL-1. Never idle: no `AWAIT_MAX` frames while a screen waits for a press, whatever the reason.
@@ -364,6 +437,24 @@ and `CLAUDE` (`CLAUDE.md`).
 - **Origin:** 2026-10-29, 08 "turns a reached target into an unrecorded stop".
 - **Status:** GATED (backlog R5's fix round)
 - **Enforced:** `ai_player/mode.py::DONE_BUDGET_MARGIN`, `ai_player/mode.py::HandsBrain._settle_frames`, `revert_step5:G356`, `revert_step5:G357`, `revert_step5:G371`.
+- **Retires:** the prose.
+
+### PL-20. Read who is on the field at the battle's first ACTION MENU: the looks before it may still show the last battle's battler.
+- **Origin:** 2026-11-14, 08 "where the game still shows the LAST battle's battler".
+- **Status:** GATED (2026-11-09, BP-1)
+- **Enforced:** `gates/test_bossprep.py::TraineeRuleTests.test_the_raise_watch`, `revert_bossprep:stale_lead`.
+- **Retires:** the prose, for the raise watch.
+
+### PL-21. A battle question's subject is read from the page that names it, kept apart, never from a window of recent pages.
+- **Origin:** 2026-11-14, 08 "named a move's learner from a 40-page window".
+- **Status:** GATED (2026-11-11, BP-1 round 2)
+- **Enforced:** `gates/test_bossprep.py::LearnerTests.test_the_learner_named_by_its_page`, `gates/test_bossprep.py::LearnerKeptPageTests`, `revert_bossprep:no_learning_kept`, `revert_bossprep:learner_page_off`, `revert_bossprep:learning_any_move`.
+- **Retires:** the prose, for the learner question.
+
+### PL-22. A standing thing the AI saw stays a wall in its memory for the session, until it sees it gone.
+- **Origin:** 2026-11-14, 08 "was a wall only while it was on screen".
+- **Status:** GATED (2026-11-13, the chapter 5 search fix)
+- **Enforced:** `gates/test_goals.py::StandingThingsTests`, `revert_step5:G691`, `revert_step5:G692`, `revert_step5:G697`.
 - **Retires:** the prose.
 
 ## D. Environment: host clock, disk, deployment clone

@@ -5,8 +5,8 @@
 > is NOT the AI player.
 >
 > The AI version must play the game ITSELF (navigation, battles, menus, decisions) with no bot code and no bot-like
-> behaviour. The bot's logic, scripts and docs only teach it. The AI player is still to be designed
-> (`#28-aiagent-v2`; `HUMAN-PLAY-DESIGN.md`).
+> behaviour. The bot's logic, scripts and docs only teach it. The AI player is `ai_player/` (`#28-aiagent-v2`;
+> design `HUMAN-PLAY-DESIGN.md`): it plays the game itself; `PROJECT KNOWLEDGE/04-HANDOFF.md` has its state.
 
 > ⭐ **THE ULTIMATE GOAL (the user, 2026-10-03): play Pokémon Emerald the way a PERSON does.** That means the story,
 > catching Pokémon along the way, picking up items, exploring, training sensibly and the Pokédex, looking and acting
