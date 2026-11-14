@@ -3720,3 +3720,319 @@ implement-drive-revert cycles, three of them VOID, before one control-lined cens
 **Repro:** `PYTHONUTF8=1 py -3.12 story_harness.py post_grind_L60.ss1 --driver ch23chapter --frames 400000`
 (wedges by ~f27k, ~6 min). Stall states are saved under `stalls/`.
 
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ‼ KI-41 — FIXED 2026-07-31 (same day). `#24-smashroute`.
+`modules/story/obstacle_clearing.py` reads the ROM's own object events, keeps the ones whose
+script is a known field-move obstacle, and offers only those the bot can both REACH (an
+adjacent tile pathable right now) and CLEAR (party move + badge). Hooked into
+`early_game._navigate_riding_out` **before** its fail-fast guard — that guard is right that
+"the field is idle and we have not moved, so retrying cannot change the result", but smashing
+the rock CHANGES THE WORLD, which is the premise it tests.
+**Live A/B** (`story_harness.py --driver smashroute`, `rocksmash_taught.ss1`): OLD arm
+`arrived=False map=MAUVILLE_CITY`; **NEW arm `arrived=True map=FIERY_PATH`, 45,305 frames.**
+Only Rock Smash is actionable; Cut is known-but-unvalidated and **Strength is excluded on
+purpose** (a boulder is PUSHED, not removed, so the success test can never fire).
+Repro: `repro_obstacle_clearing.py`. ‼ It shipped with a re-entrancy bug — `clear_obstacle`
+→ `_smash_rock` → `_navigate_riding_out` runs through the hook itself — caught by
+`repro_smashrock_battle_wedge.py` going from sub-90s to >500s. See `08-MISTAKES` 2026-07-31.
+
+**Original shape of the fix (as written before it was built).** When a journey leg fails, ask whether a smashable rock
+(or a cuttable tree) sits on the blocked corridor, and if the party has the move and badge,
+clear it and re-plan. `_smash_rock` already exists and is idempotent. The rock coordinates
+must come from map data or the decomp, never from memory. ‼ Bound it: a rock that respawns
+must not become an infinite smash-and-retry loop.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ✅ THE MAXIE FIGHT, READ TURN BY TURN (2026-08-11, from `mh-anchor2`'s own telemetry)
+`#24-bosstelemetry` was already in the tree, so the losing fight is on record. Maxie's team is
+**Mightyena L37 / Crobat L38 / Camerupt L39**; the party opened at full strength (Sceptile 122/122).
+
+**✅ FINDING 1 — SOLID AND UNAMBIGUOUS: Maxie HEALED Camerupt out of the kill.**
+```
+[TURN 14] Skitty L17 45/45 -> UseMove:Tackle(pp35)  vs Camerupt L39  22/110
+[TURN 15] Skitty L17 45/45 -> UseMove:Tackle(pp34)  vs Camerupt L39  67/110
+```
+Skitty's PP went 35 -> 34, so its Tackle DID execute — and Camerupt still went **22 -> 67, a heal
+of at least +45**, one or two hits from death. This is the known boss-healing problem
+(`probe_boss_healing.py`: 17.0% of boss-length battles show a >=50 HP heal) **deciding a
+story-content chapter for the first time on record.** The party had Camerupt beaten and could not
+close.
+
+**⚠ FINDING 2 — REAL OBSERVATION, NOT DIAGNOSABLE WITH TODAY'S TELEMETRY.** The party's best
+attacker did nothing for three consecutive selections while dying:
+```
+[TURN 3] Sceptile L44 122/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 4] Sceptile L44 110/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 5] Sceptile L44  30/122 -> UseItem              vs Crobat L38 90/119
+[TURN 6] Sceptile L44   4/122 -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+```
+**PP frozen at 19 across all three Slams, Crobat's HP frozen at 90/119, Sceptile 122 -> 4.**
+(Its Leaf Blade had decremented normally on turns 0-2: pp12 -> 11 -> 10, killing Mightyena — so
+the mon and the logger were both working moments earlier.)
+
+‼ **A MISS CANNOT EXPLAIN FROZEN PP** — a missed move still consumes it. But **two causes remain
+and this telemetry cannot separate them**:
+1. the standing `#24-bosstelemetry` **lead 2**, "selected but not executed" on natural mons
+   (2026-08-09, undiagnosed); or
+2. **ordinary incapacitation** — sleep, freeze, flinch, full paralysis, or a confusion self-hit.
+   None of those consume PP either, and Crobat learns **Confuse Ray** and **Bite** (flinch). The
+   HP pattern (−12, then −80, then −26 while never acting) fits confusion self-damage well.
+
+⇒ **RESOLVED THE SAME DAY — IT IS CONFUSION, NOT A BOT BUG.** The status field was added to the
+turn logger and the deterministic fixture re-run. One run answered it:
+```
+[TURN 3] Sceptile L44 122/122            -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 4] Sceptile L44 110/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+[TURN 5] Sceptile L44  30/122 [Confused] -> UseItem              vs Crobat L38 90/119
+[TURN 6] Sceptile L44   4/122 [Confused] -> UseMove:Slam(pp19)  vs Crobat L38 90/119
+```
+Crobat used **Confuse Ray**; Sceptile hit itself 122 -> 110 -> 30 -> 4. Confusion self-hits do not
+consume PP, which is the whole of the "frozen PP" mystery. **Castform was confused too**
+(turns 8-9, 100 -> 46). ‼ **`#24-bosstelemetry` LEAD 2 is REFUTED for this instance** — the action
+pipeline is fine; the bot simply has **no answer to confusion** (it neither switches out nor
+carries a Persim Berry), which is a STRATEGY gap, not a bug.
+‼ Scope it honestly: the 2026-08-09 sightings (Cross Chop at pp2, Ninjask's Scratch at pp30) were
+recorded WITHOUT status and are not retro-explained by this — but confusion is now the leading
+hypothesis for them, and the field to check them with exists.
+
+**CONTROL: the telemetry change is behaviourally inert.** With the status suffix stripped, the new
+run's 41 turn lines are md5-identical to the three earlier runs (`07f99a10ac8b`) — same fight, one
+extra field.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ✅ DONE: the turn logger now prints STATUS
+`modules/battle_action_selection.py`'s `_describe(mon)` printed species / level / HP and no status,
+which is why every boss-loss post-mortem here had to end in "either a bot bug or ordinary status".
+It now appends `[Confused]` / `[Sleep]` / `[Paralysis]` / … from `status_permanent` +
+`status_temporary`, and **only when there is something** — a healthy mon must not add noise to the
+~800 battle-level samples a batch produces.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ✅ MEASURED 2026-08-13: the four routes we actually plan do NOT spring it
+`probe_ch20_currents.py` section 3b now asserts that no waypoint lands on a warp tile before the
+destination is reached. **Result: 0 offenders across all routes.** P1's route rides four currents and
+its waypoints `(14,16) (19,11) (8,12) (4,8)` are exactly the documented Room 6 chain termini —
+`(14,8)`, the trap, never appears. ‼ **That is NOT a general guarantee**: the defect is real, it is
+simply not exercised by these source/destination pairs. **Any NEW route through Room 6 must be
+re-checked with that same assertion**, which is why it lives in the probe rather than in prose.
+‼ **AND THE CHECK WAS WRONG ON ITS FIRST RUN — the planner was right.** It flagged P4 as riding into
+a warp; in fact `(3,23)` IS P4's destination, and when the destination is itself a warp tile the
+planner emits it and THEN one more waypoint — the arrival on the far side. So the destination sits at
+index `len-2`, and a naive "is it the last waypoint?" test reports the intended exit as a trap.
+**Fourth time in this project that a failing probe was the instrument, not the subject.**
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ✅✅ CONFIRMED LIVE 2026-08-17 — THE ENDS-ON-A-WARP DEFECT IS NO LONGER STATIC ANALYSIS
+
+`--driver ki76warp` (NEW) staged the avatar on ROOM6 `(8,12)`, pressed EAST once onto `(9,12)`, and
+recorded every tile of the slide. ⛔ **Nothing is fixed — this makes the fix's A/B possible.**
+
+* **Our chain model is right — and here is the precise version of that claim.** Production
+  predicted a COUNT and an ENDPOINT (`steps=9`, terminus `(14,8)`); the live slide took **exactly
+  nine steps and ended exactly there**. ⚠ The intermediate tiles
+  `(9,12)→(10,12)→(10,11)→(10,10)→(11,10)→(12,10)→(13,10)→(14,10)→(14,9)→(14,8)` were **NOT
+  separately predicted** in the evidence — they are what the recorded tile TYPES imply, and the
+  live trail matches that derivation exactly. *(An earlier draft of this bullet said "EXACTLY
+  right, tile for tile", which credited the prediction with more than it made.)*
+  ⇒ **the slide SIMULATION is not what is broken.**
+* **The warp FIRES.** The avatar ends on `SEAFLOOR_CAVERN_ENTRANCE` — warp-arrival tile `(10,1)` at f+142, then the game's own auto-step to `(10,2)`, which is the FINAL settled tile the driver graded on — a different MAP. Our
+  planner would have emitted `(14,8)` in ROOM6 as an ordinary resting waypoint — unpenalised and
+  not marked `is_warp`.
+* ‼ **AND A THIRD THING NOBODY ASKED FOR: `surfing=True` throughout the slide, `surfing=False` on
+  arrival — THE AVATAR DISMOUNTS.** ⇒ a planner believing it is on `(14,8)` in ROOM6 and still
+  surfing is wrong on **all three** of map, tile and movement mode.
+* ✅✅ **AND THE OBVIOUS OBJECTION IS ANSWERED BY AN ARM, NOT BY AN ARGUMENT.** The default run
+  HOLDS the direction button through the ride, so "the warp fired" could have meant "a held button
+  kept pressing once we arrived". `KI76_RELEASE_EARLY=1` releases it the instant the avatar first
+  moves: **released at f+9, and the ride is byte-for-byte identical** — same ten tiles, same frames,
+  same warp, `ARM R`, `ACCEPTANCE: PASS`. Nine of the ten tiles and the entire warp happen with NO
+  input held. ⇒ the button is exonerated by MEASUREMENT.
+  📁 `evidence/2026-08-17-ki76warp-CONTROL-release-early.stdout.txt`.
+* ⚠ **One thing left UNATTRIBUTED rather than explained away:** the avatar auto-steps from the
+  warp-arrival tile `(10,1)` to the settled `(10,2)` ~29 frames after release. It is NOT the driver
+  (no button is held by then, in either arm); it is most plausibly vanilla's own "step off the warp".
+  ⛔ Not asserted — flagged.
+⚠ **HONEST LIMITS:** this confirms the ENDS-ON-A-WARP defect. It does **NOT** confirm the DISMOUNT
+defect in its own right — that one is about a slide ending beside walkable LAND, and what was seen
+here is a dismount caused by a WARP transition. Related, suggestive, **not the same measurement**.
+📁 `evidence/2026-08-17-ki76warp-RUN3-CONFIRMED.stdout.txt`.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ✅✅ RECON 2026-08-16 — THE ITEM IS NOW BUILD-READY, AND ONE OF ITS SUB-CLAIMS IS NARROWED
+
+⛔ **Read this before writing a line.** A Tier 2 cold-start agent tried to BEGIN this item and
+could not: the handoff called it *"fully startable with zero input"* while naming no fixture and no
+way to trigger the code. Both gaps are now closed by recon, and a third finding NARROWS the item.
+
+**(1) AND (2) — THE FIXTURE AND THE FAINT MECHANISM: MOVED to `31-KNOWN-ISSUES-ARCHIVE.md`
+(2026-08-17), because both are now EMBODIED IN THE DRIVER and its docstring documents them.**
+‼ **Keep only the two facts:** the fixture is `--driver ki66faint` / `saves/at_steven_2f.ss1`; and
+the faint is produced by staging ONE of our picks at **1 HP** before the battle (1, not 0 — a 0-HP
+mon is never SELECTED), which needs no `gBattleMons` writer and stays faithful gameplay.
+
+**(3) ⛔⛔ SUPERSEDED BY MEASUREMENT 2026-08-17 — THIS BLOCK'S "NARROWING" WAS WRONG.** It argued that
+an "only ally candidates" state requires all three of our picks to be down, and that this equals the
+game's LOSS condition. **Both halves are false, and the live run refutes them:**
+* At faint #2 the candidate set WAS ally-only (`alive_slots=[4,5]`, allies `[1,4,5]`) while
+  **Swellow was alive on the BENCH** — proven by its send-out at `f21009`. TWO of ours were down,
+  not three. So the precondition is a BOT defect, not a game state.
+* In a multi battle the player's side is `gPlayerParty[0..5]` — our three AND Steven's — so "all
+  three of ours down" is not the loss condition at all. The run **WON**, `whiteouts=0`.
+‼ *Derived by reading; refuted on first contact with the emulator. Left visible rather than deleted,
+because it is the exact shape this project keeps paying for.*
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ✅✅ DRIVEN 2026-08-17 — `--driver ki66faint` — AND THE HEADLINE IS **NOT** WHAT FIRES
+
+‼ **THE INSTRUMENT EXISTS AND WORKS. ⛔ DO NOT REBUILD IT.** `Ki66FaintMode` SUBCLASSES
+`SpaceCenter2Mode` (so every run re-proves the party-selection + multi battle first), stages ONE of
+our own picks at 1 HP before the battle — exactly two bytes, `data[86:88]` — and lets it faint in
+real combat. Anchor `saves/at_steven_2f.ss1`. Transcripts:
+`tools/story-dev/evidence/2026-08-17-ki66faint-RUN{1,2,3-instrumented}.stdout.txt`.
+⛔ **SAFETY, AND IT MATTERS:** `SpaceCenter2Mode` CAPTURES `saves/post_space_center.ss1` on a PASS,
+and that fixture is **not pinned** in `preflight.py` or `FIXTURES.md5` — an injected run overwriting
+it would be SILENT and permanent. The driver disables capture AND re-hashes the file afterwards;
+the hash was also recorded out-of-band before the first run. Verified intact every run.
+
+**MEASURED (one deterministic trajectory; RUN1 and RUN2 are BYTE-IDENTICAL, so that is a replay
+confirming determinism, NOT independent confirmation — n=1 trajectory, 2 faints):**
+
+| | faint 1 | faint 2 |
+|---|---|---|
+| `alive_slots` | `[1,2,4,5]` | `[4,5]` |
+| `ally_party_indices()` | `[1,4,5]` | `[1,4,5]` |
+| ally slots present as CANDIDATES | yes (3) | yes (2 — **ALL** of them) |
+| slot the chooser ACTUALLY ASKED FOR | **2 (ours)** | **3 (ours)** |
+| menu-open → send-out | **59 frames** | **1263 frames** |
+
+✅ **OBSERVER CONTROL:** RUN3 added the instrumentation (the requested-slot capture and the
+press counter) and reproduced the SAME trajectory — identical milestone frames `f7908 / f7967 /
+f19746 / f21009`. So the instrumentation does not perturb what it measures, which is what licenses
+quoting RUN1's frame deltas beside RUN3's press count.
+
+✅ **WHAT IS CONFIRMED:** `alive_slots` (`:633-636`) is built from the merged party with NO owner
+filter, and it does drive A-vs-Down (`:739`, `:758-765`). Offering slots 1/4/5 is objectively wrong —
+the decomp's `TrySwitchInPokemon` refuses them **unconditionally** in any multi battle.
+
+⛔⛔ **WHAT IS REFUTED — AND THIS IS THE FINDING THAT MATTERS:** **the bot never ATTEMPTED an ally
+slot.** It asked for slot 2, then slot 3 — both ours, `IS_ALLY=False` — because
+`choose_new_lead_after_faint` DOES filter allies (`default.py:189-193`) and its pick is what
+`:600 scroll_to_party_menu_index` receives. ‼ **A CANDIDATE IS NOT AN ATTEMPT.** Faint 1 is the
+control: three ally slots in `alive_slots`, resolved in 59 frames, zero cost.
+⇒ **AN A/B THAT FIXES ONLY THE ALLY FILTER WILL SHOW NO DIFFERENCE ON THIS FIXTURE**, and could
+make things WORSE: removing 1/4/5 at faint 2 leaves `alive_slots` **EMPTY**, tripping the
+`‼ NO ELIGIBLE REPLACEMENT — cannot succeed` branch (`:654`) as a FALSE alarm while Swellow sat on
+the bench. ⛔ **Do not "fix" the ally filter on the strength of this run.**
+
+‼‼ **THE REAL DEFECT THIS EXPOSED — `_on_field` IS IN THE WRONG INDEX SPACE (a THIRD instance in
+this one function, after KI-18 and KI-34).** `_on_field` is built from `battler.party_index`
+(`gBattlerPartyIndexes`, FIELD order) and compared against `get_party()`, which
+`UpdatePartyToBattleOrder` has already permuted into BATTLE-SLOT order. At faint 2 it logged
+`on_field=[1,3]` and thereby excluded **Swellow (slot 3), which was on the BENCH** — proven by its
+send-out at `f21009` — while failing to exclude the ally that WAS active. That is what manufactured
+the ally-only candidate set, and it is what cost **1263 frames vs 59** (21×), tripping the harness's
+own `NO-PROGRESS x1200` alarm at `f20970` with `Task_ReturnToChooseMonAfterText` — the refusal
+signature the code keys on at `:731`. ⚠ **486 party-menu presses** across the run.
+⚠ **HONEST LIMITS:** no press/refusal counter existed per-faint until RUN3, and the give-up dump
+only fires after 6000 frames, so *which* layer absorbed the cost (KI-38's refusal learning vs
+`scroll_to_party_menu_index`'s own bounded walk) is **NOT determined**. No hang, no whiteout, chapter
+PASSED — true for THIS configuration and under-measured as a general property (1263 frames is 21% of
+the 6000-frame per-invocation bound, with only two refusable slots to burn through).
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED AS #39, FAULT-TESTED. ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`).
+
+📦 **The full resolution is ARCHIVED** → `28-HANDOFF-ARCHIVE.md` (2026-09-07), and it is also
+in `07-CHANGELOG.md` 2026-09-06. **In one line:** the offensive term now scores EXPECTED DAMAGE
+via the shipped `calculate_move_damage_range` instead of a bare type multiplier; the ranking is
+the pure `rank_replacement`, gated offline by `probe_faint_chooser_rank.py` (**gate #39**, **9**
+cases as of 2026-09-17, fault-tested **two independent ways** — `POKEBOT_KI95_PROBE_FAULT=legacy` turns exactly C1 red, and REVERTING the `cannot_damage` term in `rank_replacement` turns exactly C8 red. —— *(this read “7 cases” and named only the `legacy` arm until 2026-09-17, when `#24-ghostreplacement` added **C8** — a mon that deals ZERO must never outrank one that can fight, the Phoebe/Ghost defect — and **C9**, its control: among mons that CAN fight, defence must still decide first. A Tier 1 reviewer caught the understatement; `05` is a CURRENT-STATE file, so a gate's coverage described here moves when the gate does.)*). It also fixed two
+things the report never named: a Ground move vs a **Levitate** foe scored 1.0 and now scores 0,
+and the chooser no longer ranks mons on `banned_moves` that `decide_turn` would refuse to use.
+
+**Still live below:** the fix rests on a DEPRECATED CPython behaviour, and it is unpromoted.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Moved by `archive_sweep.py` on 2026-11-14: R7 (`lint_docs.py`) counts this `###` block CLOSED — its heading says done, it holds no `- [ ]` / `- [~]` box, and it is not MIXED / STILL OPEN.
+
+### ✅ RESOLUTION (2026-09-25, same day) — reproduced FIRST, then fixed
+
+**THE REPRO, with both predicates taken verbatim from the tree** (offline, no emulator):
+
+    party = 5 mon + 1 egg
+      producer (pc_trip, egg-FILTERED)   len(alive)=5 -> makes room? False
+      consumer (pc_interaction, RAW len) len(party)=6 -> refuses?   True
+    => no deposit is queued, then the withdraw RAISES "already contains 6".
+    CONTROL (5 mon, no egg): makes room? False  refuses? False  -> agree
+
+⭐ The control is what makes the fix narrow: **the two predicates differ on exactly one case.**
+
+**THE FIX** — the sibling bug's prevention rule applied literally: a new PURE
+`party_has_room_for_withdraw(party)` (`modules/story/pc_trip.py`) that is the consumer's predicate
+**copied verbatim**, `len(party) < 6`. The egg-filtered `alive` list is **deleted**, not kept: it
+had exactly one reader, and a variable retained "for logging" that nothing logs is how a false
+comment gets written.
+⛔ **NO `p is not None` FILTER, DELIBERATELY** — `get_party_size()` does not filter either. Adding
+one would make it an *equivalent-looking* predicate again, which is the exact thing the rule
+forbids.
+
+**GATED:** `repro_withdraw_room.py` (7 checks, offline). Two are unusual and both earn their place:
+* **W2 HISTORICAL CONTROL** — recomputes the OLD egg-filtered predicate and requires it to
+  **DISAGREE** with the new one on 5 mon + 1 egg. This pins the bug so it cannot return wearing a
+  different name; if W2 ever stops disagreeing, the gate has stopped testing anything.
+* **W7 CONSUMER PARITY** — the function must equal `len(party) < 6` EXACTLY. ⭐ Fault-testing proved
+  this one catches an *"equivalent-looking"* rewrite: a version filtering `None` fails W7 while
+  passing every other check.
+
+**FAULT-TESTED BOTH WAYS:** restoring the egg filter fails W1 **and** W2; the `None`-filtered
+lookalike fails W7; control green and the source restored in the same run.
+
+⚠ **SCOPE, STATED:** this makes the two halves AGREE. It does **not** relitigate which authority is
+right — `get_party_size`'s own docstring says capacity questions belong to
+`party_accounting.game_party_count()`, and also that *"Stage 0 has re-pointed NO call site"*.
+Re-pointing the consumer is that project's job; doing it here would have widened the blast radius of
+a change to a SHARED path (the counter hunt withdraws through this code).
+

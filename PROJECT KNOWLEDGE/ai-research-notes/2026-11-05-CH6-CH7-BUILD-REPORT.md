@@ -5,8 +5,7 @@
 > adversarial check of the cloud draft, KI-134's verification (`43485a36`), then the chapter 6 stop rounds 1-9 with one
 > independent verifier each (commits `2bce9c0c`, `66acbd1c`, `07913cde`, `bbb68eb9`, `c41db547`, `095ea511`,
 > `adf6c246`, `986a5816`, `059a65ff` and round 9's; round 8's verifier read FAIL and round 9 fixed its MAJOR). Every live claim is development (one trajectory per seed, never a rate); the ledger ids
-> on this branch from #96 overlap `main`'s #96-#101 and are renumbered at the merge. Nothing here is on `main` until
-> `07` records the merge. The cloud draft that the wiring checked is appendix A.
+> on this branch from #96 overlap `main`'s #96-#101 and are renumbered at the merge. This copy came to `main` with the chapter 6-7 merge (its docs pass is dated 2026-11-14, and `07` records the merge with the full lane's line); the ledger ids it cites from #96 on are the ids the branches wrote, and the table below gives each one's id on `main` (every renumbered entry keeps its branch id in `was`). The cloud draft that the wiring checked is appendix A.
 > After round 9 come probe 11, round 10, and boss preparation BP-1 on side branch `wip/ch6-bp1`: round 1 (verifier
 > FAIL), round 2 (2026-11-11, verifier CONDITIONAL PASS with two MAJOR trainee-safety findings, V2-M1 and V2-M2) and
 > round 3 (2026-11-11, verifier CONDITIONAL PASS: V2-M1 and V2-M2 closed on six development runs; two new MAJORs, V3-M1
@@ -39,6 +38,14 @@
 > (the rest parses equal, and the loader never reads `_check`). Mutants: 61 CAUGHT and 3 REDUNDANT of 64. The extractor
 > still neither models nor refuses five things; none changes today's two maps, and each must be handled before any
 > VICTORY ROAD way ships. The branch's 24 chapter packs were regenerated in the same commit.
+
+### The ledger ids at the merge (`id_table.py`)
+
+| branch | ids on the branch | ids on main | shift |
+|---|---|---|---|
+| `wip/ch6-ch7` | #96-#111 | #102-#117 | +6 |
+| `wip/ch6-bp1` | #112-#131 | #118-#137 | +6 |
+| `wip/ch6-p11` | #112-#120 | #138-#146 | +26 |
 
 ## Chapters 6-7 builder report (worktree wf_e7452923-f06-3, base 979754bf, nothing committed)
 

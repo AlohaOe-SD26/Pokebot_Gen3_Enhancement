@@ -8,13 +8,28 @@
       "raised": []
     },
     "01-VISION-AND-DESIGN.md": {
-      "ceiling": 45540,
+      "ceiling": 51372,
       "headroom": 8192,
       "target": null,
-      "raised": []
+      "raised": [
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 45540,
+          "to": 51291,
+          "why": "the chapter 6-7 merge: BP-1, P11 and the chapter 1-5 change"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 51291,
+          "to": 51372,
+          "why": "the chapter 6-7 merge: 01-A7's caveat (read, not measured live; road_walk also runs there) after the docs pass's coverage check"
+        }
+      ]
     },
     "02-ARCHITECTURE.md": {
-      "ceiling": 72741,
+      "ceiling": 79771,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -45,6 +60,27 @@
           "from": 71900,
           "to": 72741,
           "why": "2026-11-06: the graded New Game chain driver ai_player/gates/live_chain.py merged to main; 02 gains its module paragraph (commands, refusals, exit codes, tests), the architecture of a new gate, not history"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 72741,
+          "to": 79650,
+          "why": "the chapter 6-7 merge adds the seasoned, ways, rides and bossprep modules"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 79650,
+          "to": 79758,
+          "why": "the chapter 6-7 merge, Tier 1 and Tier 2 fixes: archive_sweep first applied; dated suite counts marked as then"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 79758,
+          "to": 79771,
+          "why": "the chapter 6-7 merge, Tier round 2: stage 2a's rule names its file (items_gifts.json)"
         }
       ]
     },
@@ -55,7 +91,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 68389,
+      "ceiling": 74876,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -100,11 +136,60 @@
           "from": 68250,
           "to": 68389,
           "why": "2026-11-09: the queue's chapter 6-7 line must say that boss prep BP-1 is built on side branch wip/ch6-bp1 with a verifier FAIL and what to fix next; no caveat trimmed, and the session stops at the week's usage cap"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 68389,
+          "to": 70250,
+          "why": "the chapter 6-7 merge: the merged resume point and queue (A1 next; the fix and E0-2), the merge's lane, its HOW TO RUN lines"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 70250,
+          "to": 71830,
+          "why": "the chapter 6-7 merge, Tier 1 and Tier 2 fixes: the F7 follow-ups line, DUE after the merge, A1's disk floor and the order after A1, lane rule, counts"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 71830,
+          "to": 71857,
+          "why": "the chapter 6-7 merge: Last updated and the resume point's time after the Tier fixes"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 71857,
+          "to": 73171,
+          "why": "the chapter 6-7 merge, Tier round 2: the F7 line's marker, commands and cleanup bounds; A1's decimal disk floor; chapters 3-4 as done; lane and gate notes"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 73171,
+          "to": 73956,
+          "why": "the chapter 6-7 merge, Tier round 3: the F7 lines without a log-substring test, the cleanup list's own line, the JUNCTIONS line, 19 timing rows, disk readings"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 73956,
+          "to": 74694,
+          "why": "the chapter 6-7 merge, Tier round 4: the cleanup list kept in queue item 4 until the USER rules, the junction unlink command, A1's docs duties and labels"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 74694,
+          "to": 74876,
+          "why": "the chapter 6-7 merge, Tier round 5: what F7's commit edits, and where the 273.37 calibration figure came from"
         }
       ]
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 298200,
+      "ceiling": 293439,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -163,6 +248,48 @@
           "from": 295750,
           "to": 298200,
           "why": "KI-134 filed (2026-11-05: a goal behind a map's disconnected part ping-pongs, found by the chapters 6-7 probe) and a KI-130 update line; 05 must list open defects (CLAUDE.md section 2)"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 288647,
+          "to": 292200,
+          "why": "the chapter 6-7 merge: KI-131/132/134, BP-1's carried MINORs (KI-135) and the chapter 5 search fix's KI-136 to KI-139"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 292200,
+          "to": 292407,
+          "why": "the chapter 6-7 merge, Tier 1 and Tier 2 fixes: KI-95's heading after the sweep, KI-132/134/136 wording, the reading guide names the AI-player KIs"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 292407,
+          "to": 292939,
+          "why": "the chapter 6-7 merge, Tier round 2: KI-131 FIXED on development evidence (5 of 5 grunt battles in E0 and E0 again)"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 292939,
+          "to": 293192,
+          "why": "the chapter 6-7 merge, Tier round 3: 05's header rule matches its FIXED entries; KI-131's answered unknown and its five kept logs"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 293192,
+          "to": 293329,
+          "why": "the chapter 6-7 merge, Tier round 4: the lab goes only with the USER's OK; KI-76's swept pointer keeps its open defect; KI-136 per arm"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 293329,
+          "to": 293439,
+          "why": "the chapter 6-7 merge, Tier round 5: KI-66's swept pointers keep its open OWNER filter"
         }
       ]
     }

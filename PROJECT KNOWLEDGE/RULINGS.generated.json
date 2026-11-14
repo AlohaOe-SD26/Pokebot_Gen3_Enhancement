@@ -1,12 +1,12 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "0500f3d2b7c0fdb26f26840689c6d0efebd2f51d",
+ "source_sha1_lf": "b20a4d152036e5676e149c2b790a4227a0388bf3",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 375,
-  "donot_candidates": 38,
-  "sections_naming_user_rulings": 56
+  "sections": 378,
+  "donot_candidates": 39,
+  "sections_naming_user_rulings": 57
  },
  "sections": [
   {
@@ -5918,6 +5918,69 @@
    "ki": [],
    "donot": [],
    "cues": []
+  },
+  {
+   "id": "2026-11-14-bd6ffa",
+   "date": "2026-11-14",
+   "line_start": 10147,
+   "line_end": 10171,
+   "title": "2026-11-14 — Chapters 6-7, boss preparation BP-1 and the dark-cave way P11, as built: the design choices their rounds made, recorded when they merged (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-134"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-14-15ba9c",
+   "date": "2026-11-14",
+   "line_start": 10173,
+   "line_end": 10191,
+   "title": "2026-11-14 — The chapter 6-7 merge as run: `main` keeps its ledger ids and the side branches' are renumbered once; C5b v2, a narrow test-side fix; the lead's rulings on the run book's calls 1-7 (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-14-b23f35",
+   "date": "2026-11-14",
+   "line_start": 10193,
+   "line_end": 10207,
+   "title": "2026-11-14 — E0's STOP and the fix-forward (2026-11-13): the chapter 5 search fix (E and K1) went onto the merge branch after E0's commit; K2 rejected; K1 is not a route planner; a correction to one reason given for USER RULING 55's frame budget (punch-list #28-aiagent-v2)",
+   "rulings": [
+    55
+   ],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-128",
+    "KI-134",
+    "KI-136",
+    "KI-137",
+    "KI-138"
+   ],
+   "donot": [
+    {
+     "key": "61b14443",
+     "line": 10205,
+     "text": "- **Do not reopen:** saving `MapMemory.standing` (a saved thing would outlive what made it, KI-134 V-N5's ruling); aiming K1 at a warp tile (K2)."
+    }
+   ],
+   "cues": [
+    "correction"
+   ]
   }
  ]
 }

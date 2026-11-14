@@ -13,8 +13,8 @@
 - **The bot is its TEACHER:** its logic, scripts and documentation teach what to do, how and why, as a head start.
   Every pillar below describes the AI player's behaviour. "Today" notes describe what the BOT does, which is useful
   as a lesson or as a counter-example, never as the AI's mechanism.
-- The 24/7 learner in this folder tunes the BOT: teacher-side knowledge and a corpus of games. The AI player is
-  still to be designed (`#28-aiagent-v2`).
+- The 24/7 learner in this folder tunes the BOT: teacher-side knowledge and a corpus of games. The AI player was
+  still to be designed when this was written (`#28-aiagent-v2`; it is `ai_player/` now, and `04` has its state).
 
 ## The AI player's architecture: decisions so far (USER RULING 36, 2026-10-03)
 

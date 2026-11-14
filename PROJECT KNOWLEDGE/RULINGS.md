@@ -44,6 +44,7 @@
 | `2026-11-06-dc449a` | 10039 | Do not reopen an in-process defense in live_chain.py against code written to disable the grader (the purity gate's and R9's job), or grade DIR trusting results.json over the ledger (2026-11-06). |
 | `2026-11-07-08dac8` | 10049 | Do not re-ask what a seasoned player does against a boss the party loses to: all three (train the whole team; a counter judged by its resistances AND its moves' type advantages; smarter fights) are viable for every gym leader, boss and the Elite Four (2026-11-07). |
 | `2026-11-09-4acd7f` | 10069 | Do not re-ask how the AI raises a weak Pokémon for a boss: a mix that makes logical sense of switch-training, its own winnable fights, and healing at a Pokémon Center or with Potions (2026-11-09). |
+| `2026-11-14-b23f35` | 10193 | Do not reopen saving the AI's session memory of things seen standing (`MapMemory.standing`), or aiming K1's entry-map lead at a warp tile (K2, rejected) (2026-11-13). |
 
 ## Repeated USER RULING numbers (a number is not a key)
 
@@ -69,6 +70,8 @@
 | 47 | `2026-10-28-7d117a` | 2026-10-28 | 9792 | applies `2026-10-27-5b5b7d` |
 | 53 | `2026-10-29-2afa57` | 2026-10-29 | 9904 | defines 53@2026-10-29 |
 | 53 | `2026-10-30-cc5521` | 2026-10-30 | 9927 | applies `2026-10-29-2afa57` |
+| 55 | `2026-10-31-911bb5` | 2026-10-31 | 9958 | defines 55@2026-10-31 |
+| 55 | `2026-11-14-b23f35` | 2026-11-14 | 10193 | amends `2026-10-31-911bb5` |
 
 ## Superseded or withdrawn
 
@@ -84,10 +87,13 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 375 sections (newest first)
+## All 378 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-14-b23f35` | 10193 | 55 | DO-NOT-REOPEN cue | 2026-11-14 — E0's STOP and the fix-forward (2026-11-13): the chapter 5 search fix (E and K1) went onto the merge branch after E0's commit; K2 rejected; K1 is no |
+| `2026-11-14-15ba9c` | 10173 |  |  | 2026-11-14 — The chapter 6-7 merge as run: `main` keeps its ledger ids and the side branches' are renumbered once; C5b v2, a narrow test-side fix; the lead's ru |
+| `2026-11-14-bd6ffa` | 10147 |  |  | 2026-11-14 — Chapters 6-7, boss preparation BP-1 and the dark-cave way P11, as built: the design choices their rounds made, recorded when they merged (punch-lis |
 | `2026-11-12-6c76f7` | 10130 |  |  | 2026-11-12 — The chapter 6-7 merge: its docs are written on the integration branch before `main` is touched, and a frozen `main` takes the finished head in one  |
 | `2026-11-12-c7562b` | 10110 |  |  | 2026-11-12 — After BP-1 round 4 and P11-2: a closing pass with no play code; evidence is found by its tree digest; the measured boss-prep gaps go to BP-2 after  |
 | `2026-11-11-65d48b` | 10098 |  |  | 2026-11-11 — The fix round after BP-1 round 3 and P11-1: a heal only when it can change the decision; a member that cannot win is the last resort; the dark-cave |

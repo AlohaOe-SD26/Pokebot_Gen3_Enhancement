@@ -11,7 +11,21 @@ the bot is hard-coded.
 Design: `PROJECT KNOWLEDGE/ai-research-notes/2026-10-07-ai-player-v1-DESIGN-DRAFT.md` (sections 10
 and 11 win over 2-9) and `ai-agent/HUMAN-PLAY-DESIGN.md`.
 
-**Where it is now: backlog R5, a FREE SCREEN before "done"** (section "A free screen before 'done' (backlog R5, 2026-10-29)" below; tree `07ea150c30288b24`). A run whose target is reached plays out what is on screen before it
+**Where it is now (2026-11-14): chapters 6-7 MERGED, with boss preparation BP-1, the dark cave's way through (P11) and the
+chapter 5 search fix (E and K1). DEVELOPMENT evidence only: nothing here is graded.** The AI plays from MR. BRINEY's boat to
+DEWFORD through BRAWLY's badge (stop rounds 1-10 and KI-134's fix: section "Chapters 6-7, MR. BRINEY's boat and the DEWFORD
+GYM" below). It prepares for BRAWLY by raising its own counter (BP-1, USER RULINGS 58 and 59), and it finds the way through
+GRANITE CAVE's dark floors from a guide's knowledge (P11). The merge's chapter 1-5 check first read STOP. The fix forward,
+E (things seen standing stay walls for the session) and K1 (a seasoned player's entry-map lead), reached `ch5_rival_meet` on
+its one decisive fixture (one trajectory per arm; each change alone reached there, neither shown necessary). The check
+again read "E0 VERDICT: REACHED 3 of 3; legs ran 15, purity-clean 15; wall 31 min (cap 120); problems 0 -> GO" (ledger
+#148): three games, not a rate. The full lane read "REGRESSION: PASS (full, 41 suites, 14363.9 s wall)". The GRADED
+frontier is still the end of chapter 5 (ledger #101, the code before the merge; `PROJECT KNOWLEDGE/ai-frontier.txt`).
+The R5 banner below was never updated for saving and CONTINUE (backlog R1 + R2), chapters 3-5 or the graded New Game
+chain to the end of chapter 5 (#101, 6 of 6; `07` 2026-11-07). Details: `PROJECT KNOWLEDGE/07-CHANGELOG.md` 2026-11-14 and the build report
+`PROJECT KNOWLEDGE/ai-research-notes/2026-11-05-CH6-CH7-BUILD-REPORT.md`.
+
+**Before that, backlog R5, a FREE SCREEN before "done"** (section "A free screen before 'done' (backlog R5, 2026-10-29)" below; tree `07ea150c30288b24`). A run whose target is reached plays out what is on screen before it
 ends, and every "done" and "stuck" end records its screen. Live A/B on held-out seeds 5361-5364 (ledger #49): PASS, 4 of 4.
 
 **Before that, build step 5.2, the verifier's SECOND round** (section "Step 5.2, the verifier's second round
@@ -453,6 +467,12 @@ WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3
 | `skills/story.py` | step 5: the story's person-level skills: talk to someone seen (beside or across a counter), use a thing, pick up an item ball (read what was found), walk into a door, the nurse and the clerk (found by their look), the starter chosen in the bag by its cursor, a scene's yes/no answered by its words (`answer_question`, `QUESTION_RULES`), a scene played to its end (`play_out`) |
 | `knowledge/milestones.json`, `knowledge/story.py`, `knowledge/wild_species.json` | step 5: the story to badge 1 as DATA (20 milestones in 4 chapters, since 2026-11-01 8 more in chapter 5 and since 2026-11-05 8 more in chapters 6-7: proofs, maps, steps, the game's own hint, the fight's levels), extracted from the bot's `story/early_game.py` (teaching material, named with its sha256) by `gates/extract_milestones.py` and checked against pret/pokeemerald by its `--verify`; `story.py` reads it (which milestone the marks prove, the player's own gender's houses); the species a person meets in the wild (the favourite's pool) |
 | `skills/instructed.py` | chapter 5 (2026-11-05): THE INSTRUCTED CHOICE, a menu a scene FORCES chosen by the words read (`named_option`: an option is named when a page says every word of its label, the player's own name left out; pages newest first; two named is ambiguous, nothing chosen). The instruction is the FIELD pages read since the player was last free (`read_along`, a watcher on every look; an app's pages never count); (chapter 6 stops round 5, 2026-11-06, VR4-1) a field menu nothing names is backed out of (B, else the option reading EXIT or CANCEL) when the AI opened its scene itself (`SceneOpener`: its own A was its last press while free), and the talk that opened it fails (`brain/goals.py` GoalRunner `backed_out`); one that stays after the cancel, or in a scene the AI did not open, is FORCED (`forced`): no press, and the play loop ends the run at once (`mode.py` _play); (chapter 6 stops round 6, 2026-11-07, V5-2) one whose B the game ignores and that has no EXIT or CANCEL, in a scene the AI opened, is a question it cannot decline: answered with the option the cursor starts on (`_answer`, counted in `answers`), unless its starting option starts a battle or makes a one-way choice (`NO_ANSWER_MENUS`, the pinned decomp's census: forced); a POKéNAV menu nothing names is backed out of with B; a grid is refused; every loop bounded (`EPISODE_BUDGET`, `MAX_DECISIONS`, `B_REFUSALS`, `FIELD_CHOICES_MAX`, `STILL_PASSES_MAX`) |
+| `brain/rides.py` | chapter 6 (2026-11-06; MERGED 2026-11-14): RIDES AND TRIPS. A yes/no whose words offer to take the player to a named town (`trip_offer`) is answered by where the goal is (NS1), and a trip a YES carries the player on by scenes alone (MR. BRINEY's boat) is kept in the world memory as a ride, a link the routes use (`RideWatch`; NS2); a cutscene warp, a fall or a whiteout records none |
+| `brain/bossprep.py` | boss preparation BP-1 (2026-11-09 to 12, USER RULINGS 58 and 59; MERGED 2026-11-14): is the party READY for the next gym leader (`verdict`: a small deterministic duel against the leader's known team, scored with the battle brain's own valuation), and if not, which ONE of its own Pokemon to raise and to which level (`options`, `choose_plan`); the raise's rules (`partner_fit`, `partner_worn`, `fight_safe`, `trainee_rest`, `RaiseWatch`), which `brain/goals.py` and `brain/battle.py` use; it acts only for BRAWLY (`ACT_ON`), in Story and Catcher runs |
+| `hands/party_order.py` | BP-1 (2026-11-09): the PARTY ORDER hand: one Pokemon, by its PID, put FIRST in the party through the field menus as a person does (START, POKéMON, that Pokemon, SWITCH, the first slot), each press gated on the look before it; success read from the game's party |
+| `hands/field_item.py` | BP-1 round 2 (2026-11-11, USER RULING 59): the FIELD ITEM hand: a healing item from the BAG used on one Pokemon, by its PID, on the overworld (START, BAG, the ITEMS pocket, the item, USE, that Pokemon), again while it is still low |
+| `knowledge/seasoned.py` | BP-1 (2026-11-09): what a SEASONED player knows of a species' future and of where wild Pokemon live (USER RULINGS 40 and 58): `evolutions`, `level_up`, `land_levels`, `land_slots`; the loader of `knowledge/seasoned/species.json`, `learnsets.json` and `encounters.json`, each key classified in `gates/check_fairness.py` (`moves.json` there is still unread) |
+| `knowledge/ways.py`, `knowledge/world/ways.json` | P11 (2026-11-11 to 12, USER RULING 40; MERGED 2026-11-14): the way through a DARK cave at a guide's level: is a map dark (`dark`), and from the ladder the player arrived by, which ladder or exit leads on (`way_on`, `way_through`; never straight back); no tile, no wall, no step list. The file is written by `gates/extract_ways.py` from the pinned decomp's layouts (GRANITE CAVE B1F and B2F, the muddy slope modelled; a map it cannot model is left out); without the file every map reads "not dark" (the live A/B's FAULT arm) |
 | `skills/roam_train.py`, `skills/flee.py` | step 3: training by ROAMING through seen grass (training steps, every press an attempt, the spin ratio over the training steps, distinct tiles, encounters fled); a WILD battle fled by choosing RUN on the cursor read (a trainer battle: the reason, nothing pressed) |
 | `hands/pad.py` | step 2: the PAD (every press a jittered hold and gap, a gate it names, logged; reading and thinking delays; never an idle without a reason) and `Hands`, what every skill holds (eyes, pad, the choices stream, the faults, the log) |
 | `hands/dialogue.py` | step 2: advance text only on the eyes' waits, stop at every menu; start a conversation only while the player is free (`talk`); step 5.1: what on screen waits for a press (`awaits_press`) and `talk(give_way=True)`, which gives a screen that waits for a press back to its caller at once (the story skills use it; the default is step 2's rule) |
@@ -701,6 +721,8 @@ Read inside the AI's own code, never set on the happy path:
 | (a COPY) | R1 + R2 follow-up: mutant CH1, a continued writer chains its first save to the NEWEST save line (`live_r1.CH1_EDITS` = `revert_r1` CH1) | CHAIN-OLD (`live_r1.py chain --old CHAIN-OLD`) |
 | (a COPY) | R1 + R2 follow-up: mutant FX1, a save line's goals built from the state BEFORE the save (`live_r1.FX1_EDITS` = `revert_r1` FX1) | CHAIN-R1-OLD (`live_r1.py chain --old CHAIN-R1-OLD`) |
 | (a COPY) | R1 + R2 follow-up: mutant FX3, the launcher never looks through a continue that stopped before its restore (`live_r1.FX3_EDITS` = `revert_r1` FX3) | R2-RETRY-OLD (`live_r1.py r2 --old`) |
+| (a COPY) | boss preparation BP-1 (2026-11-09 to 12): one rule of the readiness verdict, the raise, the trainee's guard and rescue, the party-order or field-item hand, or the learner's page broken, or its call deleted (`revert_bossprep.MUTANTS`: 163 on the closing tree, 161 CAUGHT and 2 REDUNDANT, as predicted) | `revert_bossprep.py` (`test_bossprep.py` from the copy, and `test_hands.py` FieldItemTests) |
+| (a COPY) | P11, the way through a dark cave (2026-11-11 to 12): one rule of the extractor (the muddy slope, the refusals, never straight back), the loader or the explorer's dark-map way broken, or its call deleted (`revert_p11.MUTANTS`: 64, 61 CAUGHT and 3 REDUNDANT, as predicted); P11's live FAULT arm is the same code with `knowledge/world/ways.json` removed | `revert_p11.py` (`test_ways.py` and `test_world.py` from the copy) |
 | `AI_PLAYER_FAULT_UNGATED_A=1` | the dialogue driver presses A on its cadence with no wait gate and never stops for a menu (step 2) | XU (live_step2) |
 | `AI_PLAYER_FAULT_BLIND_COUNT=1` | the menu driver moves every cursor by a count from the top, without reading it (step 2); since step 2.1 it still waits for a menu to take input before its A (it is blind to the CURSOR only: an A dropped in the gender menu's sprite slide now ends the intro, the review's item 6) | XBN, XBC (live_step2) |
 | (a COPY of the package, not a switch) | step 2.1: the eyes' TASK_WAITS list a timer task (`Task_NewGameBirchSpeech_WaitToShowBirch`) as a wait | XTW (live_step2): the press-behaviour probe must flag every A pressed on it |
@@ -2121,7 +2143,7 @@ Its probe re-captures at 39 and 45 filler pages, where the built code did not.
 Seen on the way, not fixed: the base code's stop spins one play-loop pass a frame; a ROUTE 116 run (seed 6016) wrote a
 774 MB world.jsonl in 200,000 frames (both arms: one trajectory), over the 300 MB keep line.
 
-### Chapters 6-7, MR. BRINEY's boat and the DEWFORD GYM (2026-11-05): 8 more milestones, a development probe that stopped at the first
+### Chapters 6-7, MR. BRINEY's boat and the DEWFORD GYM (wired 2026-11-05, MERGED 2026-11-14): 8 more milestones; the first development probe stopped at the first (KI-134, fixed since)
 
 Entries 28-35 of `milestones.json` (authored in `gates/extract_milestones.py` from the cloud note `claude/milestones-ch5-ch8-o0janq`, an UNVERIFIED
 draft, after a names check and a schema check against the pinned decomp): `ch6_briney_house` (FLAG_MR_BRINEY_SAILING_INTRO, set BEFORE the
@@ -2139,12 +2161,21 @@ on both shapes); `ch6_dewford` is one `talk` step (a second step could never be 
 is never progress); `campaign_skeleton.json` replaced three ids by eight and the four world files and the 48 chapter packs were regenerated;
 chapters 1-5's entries, the 13 looks and 21 trainers are byte-identical (digests pinned in `Chapter67Tests`).
 
-**The development probe** (`evidence/2026-11-05-chapter67-development-probe.txt`, ledger #96, seeds 6301-6303; never graded): from the three
+**The development probe** (`evidence/2026-11-05-chapter67-development-probe.txt`, ledger #102 (was wip/ch6-ch7#96), seeds 6301-6303; never graded): from the three
 chapter-5 chain ends, target `ch7_brawly`. **0 of 3 reached the cottage; all three stopped at `ch6_briney_house`** ('no progress for 120,000 frames'),
 so nothing of the sail or of chapter 7 ran live. The prediction (the cottage found in 2 of 3) was wrong. The stop is the route planner, not the
 data: the cottage's door is in the SOUTH part of ROUTE 104, which the north strip (where `ch5_rival_meet` ends) reaches only through the woods'
 south doors; `explore.route_to` is a search over known map-level links, so from the woods 'toward ROUTE104' is the north door it came through, and the
 AI leaves the woods and re-enters them (`stuck: ping-pong: the warp 24:11|14,5`, 47 of 49 ended goals in the Trainer run).
+
+**After that probe (2026-11-05 to 2026-11-13; MERGED 2026-11-14; development evidence only, one trajectory per seed, never
+graded):** KI-134 is fixed (`brain/explore.py` `route_to` plans over the parts of maps a walk reaches; its A/B, 0 of 3 against
+3 of 3 at the cottage). Stop rounds 1-10 (one verifier each) and probe 11 took the AI to BRAWLY (BADGE02 in 2 of 3). With boss
+preparation BP-1, round 3's A/B earned BADGE02 in 3 of 3 runs on each plan against 0 of 3 without it, and round 4's
+builder runs in 4 of 6. With P11 the dark B2F was crossed in 101-141 steps against 204-347 without it. Their rules, rounds
+and numbers: `PROJECT KNOWLEDGE/01-VISION-AND-DESIGN.md` (the chapters 6-7, boss preparation and dark cave sections), `06`
+and `07` 2026-11-14, and the build report `PROJECT KNOWLEDGE/ai-research-notes/2026-11-05-CH6-CH7-BUILD-REPORT.md`. The
+frontier stays at the end of chapter 5: a graded chapter 6-7 test needs chapter 6-7 bounds in `gates/live_chain.py` first.
 
 ### The goal manager: `brain/goals.py`
 

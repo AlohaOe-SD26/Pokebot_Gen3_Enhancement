@@ -581,6 +581,17 @@
    "reason": "06 2026-11-11: the user was unsure (\"I am not exactly sure at this moment in time\"); the lead kept the order and wrote \"Not a do-not-reopen ruling\", so nothing here forbids re-asking",
    "status": "ACTIVE",
    "topics": "order priority A1 trainer train the AI player BP-1 P11-1 chapter 6-7 merge sequence impatient process"
+  },
+  "2026-11-14-b23f35": {
+   "title": "2026-11-14 — E0's STOP and the fix-forward (2026-11-13): the chapter 5 search fix (E and K1) went onto the merge branch after E0's commit; K2 rejected; K1 is not a route planner; a correction to one reason given for USER RULING 55's frame budget (punch-list #28-aiagent-v2)",
+   "candidates": {
+    "61b14443": "marker"
+   },
+   "amends": "2026-10-31-911bb5",
+   "do_not_reopen": "Do not reopen saving the AI's session memory of things seen standing (`MapMemory.standing`), or aiming K1's entry-map lead at a warp tile (K2, rejected) (2026-11-13).",
+   "reason": "06 2026-11-14 \"E0's STOP and the fix-forward\": \"Do not reopen: saving `MapMemory.standing` (a saved thing would outlive what made it, KI-134 V-N5's ruling); aiming K1 at a warp tile (K2).\" Its correction paragraph amends one REASON of USER RULING 55 part (2) (\"so runs replay and can be checked\"); the 2026-10-31 decision stands on its other reasons.",
+   "status": "ACTIVE",
+   "topics": "chapter 5 search loop RUSTURF TUNNEL PETALBURG WOODS ROUTE 104 ping-pong E0 STOP fix-forward standing things cut tree wall memory K1 entry map lead K2 warp beeline route planner frame budget replay one-frame split KI-136 KI-138"
   }
  }
 }

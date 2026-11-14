@@ -486,7 +486,9 @@ and `/checkpoint` carry these steps explicitly (they are outside the managed blo
     story bot is the hands".
 - ⇒ **The 24/7 learner in `ai-agent/` tunes the BOT. It is TEACHER-side: strategy knowledge plus a corpus of games.
   It is NOT the AI player.** The AI player (its perception of the game, its button-level control, and how it learns
-  from the bot's demonstrations) is still to be designed: `#28-aiagent-v2`.
+  from the bot's demonstrations) is `#28-aiagent-v2`: it plays the game itself, graded to the end of chapter 5 and on
+  development evidence through chapter 7; how it learns, the trainer (USER RULING 54), is designed and partly built
+  (`04` has the state).
 - ⭐ **USER RULING 40 (2026-10-15): the AI is a SEASONED PLAYER.** It KNOWS Pokemon and Emerald (species, learnsets, items and where they are, rarity, bosses, maps) and REMEMBERS past games. It still PLAYS each new game like a person, with cycled personality archetypes. Static game KNOWLEDGE is allowed; LIVE HIDDEN STATE the screen does not show (RNG, unrevealed PID/IV/held items, foe stats) is not. This supersedes the step 5-5.2 "dialogue-level hints only" limit (`06`).
 - ⭐ **USER RULING 41 (2026-10-16): THE GOAL is a deployable AI agent that plays the WHOLE game on its own through the emulator, like a person, with NO bot programs; time is acceptable.** The 24/7 learner is "THE BOT TUNER" until it is pointed at the AI player; its Champion rate is the scripted bot's, never evidence about the AI.
 - **Never change the bot's default behaviour to serve the AI.** (The one knob already added,
