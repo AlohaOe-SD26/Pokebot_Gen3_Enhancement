@@ -11448,7 +11448,8 @@ class StandingThingsTests(unittest.TestCase):
     a tree was offered again as soon as the tree left the screen (every "unreachable" woods frontier and (37, 22) of both
     missed E0 legs' loops lay behind a cut tree), and ROUTE 116's heal walk flipped between two tiles at the window's edge.
     FAULT arms: `revert_step5.py` G691-G697 (the call of `see_objects` deleted, the memory not joined to `objects_now`, the
-    shown check, the forgetting, the expiry, people remembered too, the memory saved)."""
+    shown check, the forgetting, the expiry, people remembered too, the memory saved); and (the fix round's verifier's
+    V1-M1, e10-e11) G704-G705 (the expiry counted from the FIRST sighting, item balls not remembered)."""
 
     def rig(self, things=None, people=None, maps=None, start=("FIELD", (8, 5))):
         from ai_player.gates.test_world import GridGame, rig
@@ -11608,13 +11609,59 @@ class StandingThingsTests(unittest.TestCase):
         self.assertEqual(promise[(15, 5)], promise[(15, 6)])  # FAULT (E removed): more "left to see" from the door
         self.assertEqual(woods.objects_now, {(19, 10), (19, 11)})  # FAULT (E removed): {(19, 10)} only
 
+    def test_e10_the_expiry_counts_from_the_last_sighting_not_the_first(self):
+        """(The fix round's verifier, V1-M1: its m3 kept the FIRST sighting's frame and passed every E test) A thing seen
+        again is seen NOW: `CLOSED_RETRY_FRAMES` count from the LAST sighting. A tree seen at frame f and again at
+        f + 20000 is still a wall at f + 36000, when 36,000 frames have passed since it was FIRST seen, and at f + 55999;
+        it is forgotten at f + 56000, `CLOSED_RETRY_FRAMES` after it was last seen (e4's rule, from the last sighting).
+        FAULT arm: `revert_step5.py` G704 (the first sighting's frame kept: `standing.setdefault`)."""
+        from ai_player.world.memory import CLOSED_RETRY_FRAMES
+        game, hands, nav, world = self.rig()
+        first = hands.look().frame  # frame f, at (8, 5): the tree on screen
+        self.at(game, hands, (2, 5))  # f + 1: off screen, remembered
+        self.assertIn(E_TREE, world.here().objects_now)  # FAULT (E removed, a90c8e8f): gone with the screen
+        look = self.at(game, hands, (8, 5), 20_000 - 1)  # f + 20000: back, the tree on screen AGAIN (its last sighting)
+        self.assertIn(E_TREE, {(seen.x, seen.y) for seen in look.view.objects})
+        look = self.at(game, hands, (2, 5), CLOSED_RETRY_FRAMES - 20_000)  # off screen again
+        self.assertEqual(look.frame - first, CLOSED_RETRY_FRAMES)  # CLOSED_RETRY_FRAMES since the FIRST sighting
+        self.assertIn(E_TREE, world.here().objects_now)  # FAULT (G704, counted from the first sighting): forgotten
+        self.assertEqual(self.offered_behind(nav, look), [])
+        look = self.at(game, hands, (2, 5), 20_000 - 1)  # f + 55999: one frame short of it since the LAST sighting
+        self.assertIn(E_TREE, world.here().objects_now)
+        self.assertEqual(self.offered_behind(nav, look), [])
+        look = self.at(game, hands, (2, 5), 1)  # f + 56000: CLOSED_RETRY_FRAMES since the last sighting: looked at again
+        self.assertNotIn(E_TREE, world.here().objects_now)
+        self.assertEqual(self.offered_behind(nav, look), E_BEHIND)
+
+    def test_e11_a_frontier_behind_an_item_ball_seen_once_is_not_offered_after_the_ball_leaves_the_screen(self):
+        """(The fix round's verifier, V1-M1: its m4 left ITEM BALLS out of `standing` and passed every E test, none of
+        which had a ball) e1 with an item ball in the gap: a ball stands in the way as a tree does, and was a wall only
+        while on screen. Seen once, it stays a wall off screen; picked up (its tile shown with nothing on it), the frontier
+        behind it is offered again: the ball, and only the ball, was the wall. FAULT arm: `revert_step5.py` G705 (item
+        balls not remembered)."""
+        game, hands, nav, world = self.rig(things={"FIELD": {E_TREE: "item_ball"}})
+        first = hands.look()  # at (8, 5): the ball on screen, and the field behind it to x 15
+        self.assertIn((E_TREE, "item_ball"), {((seen.x, seen.y), seen.kind) for seen in first.view.objects})
+        look = self.at(game, hands, (2, 5))  # eight tiles west: the ball is off screen
+        self.assertNotIn(E_TREE, {(seen.x, seen.y) for seen in look.view.objects})
+        memory = world.here()
+        self.assertEqual([xy for xy in memory.frontier() if xy[0] > 10], E_BEHIND)  # the frontier is there
+        self.assertIn(E_TREE, memory.objects_now)  # FAULT (G705; E removed): only what is on screen
+        self.assertEqual(self.offered_behind(nav, look), [])  # FAULT (G705; E removed): E_BEHIND, "reached" through it
+        del game.things["FIELD"][E_TREE]  # picked up
+        self.at(game, hands, (8, 5))  # the gap SHOWN with nothing in it
+        look = self.at(game, hands, (2, 5))
+        self.assertNotIn(E_TREE, world.here().objects_now)
+        self.assertEqual(self.offered_behind(nav, look), E_BEHIND)
+
 
 class EntryLeadTests(unittest.TestCase):
     """(The chapter-5 search fix K1, 2026-11-13) A SEASONED PLAYER'S ENTRY-MAP LEAD (`brain/goals.py` entry_lead, through
     `lead_toward`): told of a place never seen that is no open country and whose name no town holds (RUSTURF TUNNEL), the
     walk goes first to the OPEN map it is entered from that the AI has stood on (ROUTE 116), nearest by the known way, then
     searches there by its own taste. FAULT arms: `revert_step5.py` G698-G703 (lead_toward's call of entry_lead deleted, the
-    atlas's call deleted, the visits test, the stand-on-it rule, `UNREACHABLE`, the told reason); and here, the atlas
+    atlas's call deleted, the visits test, the stand-on-it rule, `UNREACHABLE`, the told reason); (the fix round's
+    verifier's V1-M1, k6-k7) G706-G707 (the farthest entry map, the open-country filter dropped); and here, the atlas
     without the fact."""
 
     @staticmethod
@@ -11694,6 +11741,57 @@ class EntryLeadTests(unittest.TestCase):
         self.assertEqual(walks, ["travel to ROUTE116", "travel to RUSTURF_TUNNEL"])  # FAULT (G698/G699): no lead
         self.assertTrue(any("first to ROUTE116, a seasoned player's knowledge: ROUTE116 has a way into it" in line
                             for line in told), told)
+
+    def test_k6_of_two_entry_maps_stood_on_the_lead_is_the_nearer(self):
+        """(The fix round's verifier, V1-M1: its m5 took the FARTHEST entry map and passed every K1 test, in each of which
+        at most one entry map had been stood on) Of RUSTURF TUNNEL's two entry maps, both stood on, the lead is the one
+        NEARER by the known way (`world_distance`). On ROUTE 117 (in Emerald the tunnel is entered from VERDANTURF too)
+        VERDANTURF TOWN is one link away and ROUTE 116 two: VERDANTURF TOWN. On RUSTBORO the same two maps are the other
+        way round: ROUTE 116. The two worlds hold the same two entry maps under the same names, keys and order (ROUTE116
+        0:2, put in first; VERDANTURF_TOWN 0:3, put in second); only where the player stands and the links differ. So a
+        pick that does not read the distance (the first or the last one found in `world.maps`, the lowest or highest
+        name or key, the atlas set's own order) gives both worlds one answer and fails one of them; in the first world
+        the nearer is LAST by name, by key and by order, so "the first found" fails there. Their one shared link,
+        VERDANTURF <-> ROUTE 116, is an edge of the game's map data (the atlas lists it); the test gives the AI a crossing
+        of it so that the farther map has a known way. FAULT arm: `revert_step5.py` G706 (the farthest: `max`)."""
+        from ai_player.brain.goals import WAY_IN, lead_toward, world_distance
+
+        def edge(source, target):  # crossed going west (k4's edge): known both ways (`WorldMemory.links_from`)
+            return {"source": source, "target": target, "direction": "left", "from": [0, 5], "arrival": [39, 5],
+                    "offset": [40, 0], "by": "ai", "frame": 1}
+
+        on_117 = world_with("ROUTE117", "ROUTE116", "VERDANTURF_TOWN", current="ROUTE117")
+        on_117.connections += [edge("0:1", "0:3"), edge("0:3", "0:2")]  # ROUTE 117 -> VERDANTURF -> ROUTE 116
+        self.assertEqual((world_distance(on_117, "0:3"), world_distance(on_117, "0:2")), (1, 2))
+        lead = lead_toward(on_117, "RUSTURF_TUNNEL")
+        self.assertEqual(lead, "VERDANTURF_TOWN")  # FAULT (G706, the farthest): ROUTE116
+        self.assertEqual(lead.why, f"{WAY_IN}: VERDANTURF_TOWN has a way into it")
+        on_rustboro = world_with("RUSTBORO_CITY", "ROUTE116", "VERDANTURF_TOWN", current="RUSTBORO_CITY")
+        on_rustboro.connections += [edge("0:2", "0:1"), edge("0:3", "0:2")]  # RUSTBORO -> ROUTE 116 -> VERDANTURF
+        self.assertEqual((world_distance(on_rustboro, "0:2"), world_distance(on_rustboro, "0:3")), (1, 2))
+        self.assertEqual(lead_toward(on_rustboro, "RUSTURF_TUNNEL"), "ROUTE116")  # FAULT (G706): VERDANTURF_TOWN
+
+    def test_k7_a_cave_entered_only_from_a_cave_gives_no_lead_even_with_a_known_way_to_it(self):
+        """(The fix round's verifier, V1-M1: its m6 dropped the `open_way` filter and passed every K1 test) The lead is
+        OPEN country only. GRANITE CAVE's STEVEN'S ROOM is entered only from the cave's 1F, which is no open country. k4
+        asks this with NO known way to the 1F (`world_distance` 99), where None holds by construction (`UNREACHABLE`
+        alone gives it). Here the 1F was walked into once from ROUTE 106 (its mouth at (48, 16), the atlas's warp,
+        seen as a way out; DEWFORD -> ROUTE 106 by k4's edge): two links away, stood on, the place's only entry map. So
+        only the open-country filter says no: None, and the walk is as before. With K1 removed this test passes (None is
+        the old answer): its fault arm is G707, as k3's is G700. FAULT arm: `revert_step5.py` G707 (the `open_way`
+        filter dropped: the lead would be GRANITE_CAVE_1F)."""
+        from ai_player.brain.goals import UNREACHABLE, lead_toward, open_way, world_distance
+        walked = world_with("DEWFORD_TOWN", "ROUTE106", "GRANITE_CAVE_1F", current="DEWFORD_TOWN")
+        walked.connections.append({"source": "0:1", "target": "0:2", "direction": "left", "from": [0, 5], "arrival": [39, 5],
+                                   "offset": [40, 0], "by": "ai", "frame": 1})
+        walked.warps["0:2|48,16"] = {"to": "0:3", "arrival": [37, 12], "uses": 1, "inferred": False}
+        walked.maps["0:2"].tiles[(48, 16)] = TileFact(False, False, False, False, None, True, True, 3, "NON_ANIMATED_DOOR",
+                                                     0, (48, 17))  # a way out by its look (`looks_like_exit`)
+        self.assertEqual(world_distance(walked, "0:3"), 2)  # a known way: UNREACHABLE does not decide here
+        self.assertLess(world_distance(walked, "0:3"), UNREACHABLE)
+        self.assertTrue(walked.maps["0:3"].visits)  # stood on
+        self.assertFalse(open_way("GRANITE_CAVE_1F"))  # no open country
+        self.assertIsNone(lead_toward(walked, "GRANITE_CAVE_STEVENS_ROOM"))  # FAULT (G707): 'GRANITE_CAVE_1F'
 
 
 if __name__ == "__main__":

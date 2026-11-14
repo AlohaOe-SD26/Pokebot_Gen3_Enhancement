@@ -2988,6 +2988,25 @@ MUTANTS: dict[str, tuple[str, str, list[tuple[str, str, str]], list[str] | str]]
              [(GOALS, "            because = lead.why if isinstance(lead, Lead) else Lead.why\n",
                "            because = Lead.why  # MUTANT G703\n")],
              ['EntryLeadTests.test_k5_the_walk_goes_first_to_route116_and_says_why']),
+    # (the chapter-5 search fix's fix-up, 2026-11-13 (s53 lab fix5/fixup): predictions written and hashed (fix5/
+    # PREDICTIONS-fixup.md) BEFORE the run. The fix round's verifier's V1-M1: four rules of E and K1 that no test pinned
+    # (its one-rule mutants m3-m6 passed all 14 E and K1 tests), each now with a test: G704-G705 (E, test_goals e10-e11),
+    # G706-G707 (K1, k6-k7). G707 breaks the line G700 breaks, another way: each copy takes one mutant)
+    'G704': (CAUGHT, "E: a thing seen again keeps its FIRST sighting's frame (`standing.setdefault`): the expiry counts from the first sight, not the last",
+             [(WORLD, "            self.standing[xy] = (kind, look.frame)\n",
+               "            self.standing.setdefault(xy, (kind, look.frame))  # MUTANT G704\n")],
+             ['StandingThingsTests.test_e10_the_expiry_counts_from_the_last_sighting_not_the_first']),
+    'G705': (CAUGHT, "E: item balls are not remembered (only the other things stay walls off screen)",
+             [(WORLD, "                things[(seen.x, seen.y)] = seen.kind\n",
+               '                if seen.kind != "item_ball":  # MUTANT G705\n                    things[(seen.x, seen.y)] = seen.kind\n')],
+             ['StandingThingsTests.test_e11_a_frontier_behind_an_item_ball_seen_once_is_not_offered_after_the_ball_leaves_the_screen']),
+    'G706': (CAUGHT, "K1: the lead is the FARTHEST entry map stood on (`max` for `min`)",
+             [(GOALS, "    lead = Lead(min(options)[1])\n", "    lead = Lead(max(options)[1])  # MUTANT G706\n")],
+             ['EntryLeadTests.test_k6_of_two_entry_maps_stood_on_the_lead_is_the_nearer']),
+    'G707': (CAUGHT, "K1: the lead may be an entry map that is no open country (the `open_way` filter dropped: a cave leads into a cave)",
+             [(GOALS, "        if memory.const in entries and memory.visits and open_way(memory.const):\n",
+               "        if memory.const in entries and memory.visits:  # MUTANT G707\n")],
+             ['EntryLeadTests.test_k7_a_cave_entered_only_from_a_cave_gives_no_lead_even_with_a_known_way_to_it']),
 }
 
 DRIVER = '''
