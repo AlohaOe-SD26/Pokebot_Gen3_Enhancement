@@ -27,7 +27,7 @@ from pathlib import Path
 
 from ai_player import MODE_NAME
 from ai_player.options import (
-    ALL_SWITCHES, ENV_CART, ENV_CONTINUE, ENV_HOST, ENV_MEMORY, ENV_WORLD, VERDICT_FILE_NAME,
+    ALL_SWITCHES, ENV_CART, ENV_CONTINUE, ENV_GOALS, ENV_HOST, ENV_MEMORY, ENV_WORLD, VERDICT_FILE_NAME,
 )
 from ai_player.host.launcher import (
     GATE_REFUSED_EXIT,
@@ -156,6 +156,10 @@ def cmd_run(args: argparse.Namespace) -> int:
             # (D19) a continued game's memory is its save's: no world file beside it
             if os.environ.get(ENV_WORLD, "").strip():
                 raise LaunchError(f"--continue refused: {ENV_WORLD} is set, and the memory of a continued game is its "
+                                  f"save's")
+            # (A1 part 0, spec 3.15 items 2-3) nor a goal snapshot: the same rule, before anything in the profile changes
+            if os.environ.get(ENV_GOALS, "").strip():
+                raise LaunchError(f"--continue refused: {ENV_GOALS} is set, and the memory of a continued game is its "
                                   f"save's")
             # (D11, D12 (a)) the memory file, judged BEFORE anything in the profile changes
             check = memory_check(game)
