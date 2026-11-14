@@ -1,6 +1,10 @@
 # A1 spec: amendments v4 (the final copy), after the adversarial review and its three re-checks (2026-11-13)
 
-> **A NOTE for the lead. NOT APPLIED.** v4 was revised read-only by the AMV4 reviser on 2026-11-13, from about 10:04 PM
+> **A NOTE for the lead. APPLIED 2026-11-14** to the spec on `main` after the merge (all 87 blocks in id order, each
+> old text once at its turn; `<the merge commit>` filled with `1971e130`; the spec's flag line emptied; the result
+> equals `count3.py`'s span apply), so 70 of its 87 old texts are gone from the spec (the 17 that keep their own old
+> text inside the new still match once) and its checkers now fail by design; it
+> stays as the record of why each edit was made, and its section 5 is A1's build plan. v4 was revised read-only by the AMV4 reviser on 2026-11-13, from about 10:04 PM
 > PST, from v3 (`AMENDMENTS-v3.md`, 144,729 bytes, md5 `a77a0fe5...`, kept unchanged). v4 answers v3's delta re-check
 > (`result.a1.check` in `wf_result_wug76nq4r.json`: READY_WITH_FIXES; 2 MINOR, 6 NIT, no MAJOR) with the lead's calls
 > D1-D8 on it (section 1.0b). Two calls are applied in an adapted form, with the reason: D7's "a few frames" and D8's

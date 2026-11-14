@@ -320,7 +320,7 @@ and `CLAUDE` (`CLAUDE.md`).
 ### PF-26. Every merge plays chapters 1-5 from a New Game before it lands, not only the new chapters.
 - **Origin:** 2026-11-14, 08 "found a search loop whose rules `main` already had".
 - **Status:** PROSE ONLY
-- **Needs:** MC, the chapter 1-5 merge check in A1's runner (A1's amendment AM-05, not applied yet: its first run MUST pass, later merges SHOULD run it).
+- **Needs:** MC, the chapter 1-5 merge check in A1's runner (A1's amendment AM-05, in the spec since 2026-11-14, not built yet: its first run MUST pass, later merges SHOULD run it).
 - **Retires:** when MC runs on every merge.
 
 ## C. Play: never idle, no hidden information, bounded loops, patience
