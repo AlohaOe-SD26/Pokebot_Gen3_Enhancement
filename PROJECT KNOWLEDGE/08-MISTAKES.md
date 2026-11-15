@@ -24378,3 +24378,17 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Found in the same rounds (near misses):** the build worktree `wf_e7452923-f06-3` held a junction into the main sandbox's `mgba` that no doc named, while the cleanup list offered that worktree for deletion (a recursive delete through it deletes the main emulator; `04`'s JUNCTIONS line now names it, with the unlink command). And a kept old-text checker (`count3.py`) parsed 0 blocks on a CRLF note, which is how the repo checks notes out (the kept copy now folds CRLF; the unpatched lab original was the control).
 - **Prevention rule:** test state, never a log substring; if a marker is unavoidable, anchor it (a line that BEGINS with an exact form) and never write it in prose. Before offering any folder for deletion, run `find_junctions.py` on it.
 - **LESSONS:** PR-20.
+
+## 2026-11-14 — A disk stop line set between the tuner's floor and its early-archive line stopped A1's offline build (punch-list #28-aiagent-v2)
+
+- **Symptom:** A1's build workflow stopped in segment B2 at 2:41 PM. Its rule "stop if C: free is under 41 GB" had held since 1:31 PM (40.5-41.0 GB), and the segment's agent spent about an hour polling for space before it returned STOPPED, its work green and uncommitted.
+- **Root cause:** the 41 GB line was chosen without reading the tuner's own disk lines. The tuner archives early, and its watchdog alarms, at `min_free_gb + early_prune_margin_gb` = 25 + 15 = 40 GiB (42.9 GB), so free space sits near 42.9 GB by design, and the build's own worktree and outputs (about 1 GB) pushed it under 41 and kept it there. The lab's `mp_job.py` also refused under 40 GB.
+- **The fix that worked:** the offline stop line is 36 GB (decimal), derived from the tuner's lines (`06` 2026-11-14): about 9 GB above its 25 GiB floor, for jobs that write only temp files. The relaunch resumed B2 from its run book, with B0 and B1 replayed from the workflow's cache.
+- **Prevention rule:** derive a disk stop line from the tuner's config (`min_free_gb` and `early_prune_margin_gb`, in GiB, as `tools/ops/watchdog.py` reads them) and the job's own peak use; a fixed line between the tuner's floor and its early-archive line stops work for no safety gain.
+
+## 2026-11-14 — A FAULT that checked a prefix passed with its guard removed (A1's cap on single jobs, G67) (punch-list #28-aiagent-v2)
+
+- **Symptom:** A1's guard-removed run (B2.3) found G67, the scheduler's cap of 16 single jobs at once, NOT CAUGHT: with the cap removed every test still passed, while the suite and the gates were green.
+- **Root cause:** T26's FAULT checked only the first six launches, which hold with or without the cap.
+- **The fix that worked:** the test records the other singles shown in each pass and asserts at EVERY launch that the job's own plus the others plus one never passes 16; G67 is CAUGHT (`wip/a1` `20add9b4`).
+- **Prevention rule:** a FAULT must check the quantity its guard bounds at every event, not a prefix of the sequence; only a run with the guard removed shows that a FAULT can fail.

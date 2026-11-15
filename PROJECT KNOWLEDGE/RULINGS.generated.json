@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "b20a4d152036e5676e149c2b790a4227a0388bf3",
+ "source_sha1_lf": "f5b3956b40fc193a8512d0943d4c5c15cdf33e76",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 378,
+  "sections": 379,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -5981,6 +5981,21 @@
    "cues": [
     "correction"
    ]
+  },
+  {
+   "id": "2026-11-14-0bfb3b",
+   "date": "2026-11-14",
+   "line_start": 10209,
+   "line_end": 10230,
+   "title": "2026-11-14 — A1's decisions: AM-22's list (spec 4.4 item 8) and the lead's calls during A1's offline build (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
   }
  ]
 }

@@ -98,7 +98,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 74876,
+      "ceiling": 76400,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -192,6 +192,20 @@
           "from": 74694,
           "to": 74876,
           "why": "the chapter 6-7 merge, Tier round 5: what F7's commit edits, and where the 273.37 calibration figure came from"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 74876,
+          "to": 75700,
+          "why": "2026-11-14: A1 is mid-build on wip/a1; queue item 4 carries its six commits, its verifier state and its ordered next steps (fix round 3, the lane, the live steps, the docs, the merge). These lines collapse to one at A1's merge."
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 75700,
+          "to": 76400,
+          "why": "2026-11-14: A1 is mid-build on wip/a1 and its fix round 3 is in flight; queue item 4 carries its six commits, its verifier state, its ordered next steps and the in-flight warning, and the JUNCTIONS line names A1's stage junction (Tier 1's findings). These lines collapse to one at A1's merge."
         }
       ]
     },
