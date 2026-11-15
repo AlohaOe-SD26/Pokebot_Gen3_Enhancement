@@ -11,7 +11,7 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (126 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (135 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
            caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
@@ -20,6 +20,12 @@ THE TABLE (126 mutants; the spec's "about 54" predates the amendments' tests T31
   V05-V44  the verifier's round 1 (2026-11-14): the guards its own mutants showed NO case caught (V05-V31, its names kept,
            re-anchored where the fix moved a line) and the round's further guards (V40-V44), each caught by the FAULT or
            CONTROL the round added. Two of its gaps stay open as NITs: replay's and `child_env`'s environment strips.
+  V55-V74  the verifier's round 2 (2026-11-14): its one-edit mutants of its two findings, which NO case caught (R2-M1, the
+           disk guard's and the batch's terminal ends: V69, V70, V72, V73, V74; R2-M2, the development seed check's two
+           refusals: V55, V56), its names, anchors and replacements kept, each now caught by the FAULT arm the round added
+           to T14 (through the real `run_batch`) or T13.
+  K1-K2    the round's own two: a seed ledger that cannot be read at a path ending in the KNOWN non-ledger is allowed (K1)
+           and LISTED (K2), as 2.5 says (before the round it was skipped unlisted), each caught by T13's CONTROL.
   H1-H4    the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
@@ -360,6 +366,35 @@ _ROUND1 = [
      '                if f"{key}|{xy}" in tried:', "                if True:", ("test_t34_fault",)),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): the verifier's round-2 gaps (2026-11-14, verdict
+#: CONDITIONAL_PASS on 3632d5ad, "VERIFIER ROUND 2 MUTANTS: 22 of 22 as predicted"; these seven reproduced as GAPs before
+#: the fix by the build's fix2_repro, "8 of 8 as predicted"; names, anchors and replacements verbatim) and the round's own
+#: K1-K2 (the known non-ledger allowed and listed): each now caught by the FAULT or CONTROL arm the round added
+_ROUND2 = [
+    ("V55", "T13", "a seed ledger that cannot be read, and is no known non-ledger, refuses the batch (2.5)",
+     '                problems += [f"a ledger could not be read: {item}" for item in unreadable[:8]]',
+     "                problems += []", ("test_t13_fault",)),
+    ("V56", "T13", "development seeds must be ONE contiguous range (2.5, 3.10)",
+     "    if not seeds or seeds != list(range(seeds[0], seeds[-1] + 1)):", "    if not seeds:", ("test_t13_fault",)),
+    ("V69", "T14", "a pending job is DROPPED once the tick found --out over its cap (2.7, 3.13)",
+     '("out_over", f"--out is over its cap', '("out_over_never", f"--out is over its cap', ("test_t14_fault",)),
+    ("V70", "T14", "a pending job is DROPPED once the disk guard ABORTED the batch (2.7: no launch)",
+     '("abort", "ABORT.txt: the disk guard aborted the batch")',
+     '("abort_never", "ABORT.txt: the disk guard aborted the batch")', ("test_t14_fault",)),
+    ("V72", "T14", "an ABORTED batch exits 3 (3.2)",
+     '    if result["aborted"]:\n        return 3', '    if False:\n        return 3', ("test_t14_fault",)),
+    ("V73", "T14", "an ABORTED batch's entry is finished ABORTED (2.7, 3.10)",
+     '    if result["aborted"]:\n        return f"ABORTED', '    if False:\n        return f"ABORTED', ("test_t14_fault",)),
+    ("V74", "T14", "a harness error after ledger.begin finishes the entry as ERROR (exit 4's ledger half, 3.2)",
+     '        if mode == "development" and entry_id is not None:\n            with contextlib.suppress(Exception):',
+     '        if False:\n            with contextlib.suppress(Exception):', ("test_t14_fault",)),
+    ("K1", "T13", "a seed ledger that cannot be read at a path ending in the KNOWN non-ledger is allowed (2.5)",
+     "            if any(text.endswith(name) for name in KNOWN_NON_LEDGERS):", "            if False:",
+     ("test_t13_control",)),
+    ("K2", "T13", "a known non-ledger that cannot be read is LISTED (2.5; before the round it was skipped unlisted)",
+     "                known.append(item)", "                pass", ("test_t13_control",)),
+]
+
 #: (name, the rule that is broken, (file, anchor, replacement), the test predicted to fail): the test-side guards (H1-H4,
 #: whose guard lives in the suite or in the G-3 scan it calls) and 4.2's named mutants the guard table lacked (X1-X4)
 _MORE = [
@@ -412,7 +447,7 @@ for _name, _what, _edit, _test in _MORE:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
-for _name, _tid, _guard, _old, _new, _tests in _ROUND1:
+for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],

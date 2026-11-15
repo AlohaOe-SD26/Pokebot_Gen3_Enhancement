@@ -791,6 +791,16 @@ def run_quiet(M, args, deps) -> int:
         return M.run_batch(args, deps)
 
 
+def run_text(M, args, deps) -> tuple[int, str]:
+    """`run_batch`'s exit and what it printed (its REFUSED and NOTE lines; stderr dropped)."""
+    from contextlib import redirect_stderr
+
+    printed = io.StringIO()
+    with redirect_stdout(printed), redirect_stderr(io.StringIO()):
+        code = M.run_batch(args, deps)
+    return code, printed.getvalue()
+
+
 # ---------------------------------------------------------------------------------------------------- T10: the trainer writes nothing tracked
 def git(repo: Path, *args: str) -> str:
     done = subprocess.run(["git", "-C", str(repo), "-c", "user.email=t@t", "-c", "user.name=t", "-c",
@@ -976,6 +986,28 @@ def case_t13_seeds(M, tmp):
                                        prediction=prediction), batch_deps(M, tmp, log=order))
     eq(code, 0, "fresh seeds ran")
     eq(order[0][0], "begin", f"begin BEFORE the first launch: {order[:3]}")
+    # the seed check's two refusals no case reached before (verifier round 2, R2-M2; 2.5, 3.10): a seed ledger that
+    # cannot be read and is NOT a known non-ledger, and seeds that are not ONE contiguous range; each refused (exit 2)
+    # with no ledger write and no launch, its REFUSED line naming why
+    path.write_text(json.dumps({"what": "", "entries": []}), encoding="utf-8")
+    start = path.read_bytes()
+    broken = tmp / "elsewhere" / "ai_player" / "gates" / "ledger.json"
+    broken.parent.mkdir(parents=True)
+    broken.write_text('{"what": "", "entries": [', encoding="utf-8")  # cut off mid-file: not JSON
+    spawned: list = []
+    code, text = run_text(M, batch_args(write_jobs(tmp, jobs, "j3.json"), tmp / "out3", stages, trainer=False,
+                                        prediction=prediction),
+                          batch_deps(M, tmp, log=spawned, seed_ledgers=lambda own: [own, broken]))
+    eq((code, path.read_bytes() == start, spawned), (2, True, []),
+       "an unreadable ledger that is no known non-ledger: refused, no ledger write, no launch")
+    ok(f"REFUSED: a ledger could not be read: {broken}: JSONDecodeError" in text, f"the refusal names it: {text[-500:]}")
+    gap = [job for job in jobs if job["seed"] != 7602]
+    eq(sorted({job["seed"] for job in gap}), [7601, 7603], "the planted seeds")
+    code, text = run_text(M, batch_args(write_jobs(tmp, gap, "j4.json"), tmp / "out4", stages, trainer=False,
+                                        prediction=prediction), batch_deps(M, tmp, log=spawned))
+    eq((code, path.read_bytes() == start, spawned), (2, True, []),
+       "seeds 7601 and 7603 (not ONE contiguous range): refused, no ledger write, no launch")
+    ok("REFUSED: development seeds must be ONE contiguous range" in text, f"the refusal names it: {text[-500:]}")
 
 
 def case_t13_control(M, tmp):
@@ -985,8 +1017,18 @@ def case_t13_control(M, tmp):
     stages = {"REAL": fake_stage(M, tmp, "REAL"), "WALL-OLDALE": fake_stage(M, tmp, "WALL-OLDALE")}
     prediction = tmp / "p.txt"
     prediction.write_text("x\n", encoding="utf-8")
-    eq(run_quiet(M, batch_args(write_jobs(tmp, jobs), tmp / "out", stages, trainer=False, prediction=prediction),
-                 batch_deps(M, tmp)), 0, "ran")
+    # a seed ledger that cannot be read at a path ending in the KNOWN non-ledger (2.5: the export cut off on 2026-11-13)
+    # is LISTED (a NOTE line, batch.json's known_non_ledgers) and ALLOWED (verifier round 2, R2-M2's CONTROL)
+    known = tmp.joinpath(*M.KNOWN_NON_LEDGERS[0].split("/"))
+    known.parent.mkdir(parents=True)
+    known.write_text('{"what": "", "entries": [', encoding="utf-8")
+    code, text = run_text(M, batch_args(write_jobs(tmp, jobs), tmp / "out", stages, trainer=False, prediction=prediction),
+                          batch_deps(M, tmp, seed_ledgers=lambda own: [own, known]))
+    eq(code, 0, "ran beside a known non-ledger that cannot be read")
+    ok(f"NOTE: a known non-ledger could not be read (allowed, 2.5): {known}: JSONDecodeError" in text,
+       f"the known non-ledger is listed: {text[:500]}")
+    eq(json.loads((tmp / "out" / M.BATCH_FILE).read_text(encoding="utf-8")).get("known_non_ledgers"),
+       [f"{known}: JSONDecodeError"], "and listed in batch.json")
     entries = ledger.load(path)["entries"]
     eq([(e["first"], e["last"], e["status"], e["purpose"]) for e in entries], [(7601, 7603, "done", "development")],
        "one begin, one finish")
@@ -1025,6 +1067,77 @@ def one_tick(M, tmp: Path, job: dict, world=None, profile=0, free=100.0, out_byt
     M.tick([(job, Running(), deps.clock())], out, {}, {}, {}, state, deps)
     marker = LC.guard_mark(out, job["chain"], "L1")
     return state, marker, killed
+
+
+def disk_batch(M, tmp: Path, free_at_tick: float = 100.0, out_bytes: int = 0,
+               spawn_raises: bool = False) -> SimpleNamespace:
+    """Two plain jobs at P 1 through the REAL `run_batch` in development mode (a temp ledger and evidence folder; stub
+    children that end at their third poll, or at their next poll once killed, then with no job record): the TICK of the
+    pass that launched the first job reads `free_at_tick` GB free while the second job is still PENDING (every other free
+    reading is 100.0 GB, so the disk reservation never holds the second job), and --out's size reads `out_bytes`
+    throughout. `spawn_raises`: the first launch raises, after `ledger.begin` (a harness error). The guard's TERMINAL
+    consequences (verifier round 2, R2-M1; 2.7, 3.2): who launched, who was dropped and why, who was killed, the exit and
+    the entry's verdict."""
+    (tmp / "ledger.json").parent.mkdir(parents=True, exist_ok=True)
+    (tmp / "ledger.json").write_text(json.dumps({"what": "", "entries": []}), encoding="utf-8")
+    jobs = plain_jobs(M, 2, first=7601)
+    stages = {"REAL": fake_stage(M, tmp, "REAL")}
+    prediction = tmp / "p.txt"
+    prediction.write_text("x\n", encoding="utf-8")
+    out = (tmp / "out").resolve()
+    seen = SimpleNamespace(spawned=[], killed=[], handles={}, dip=None, out_reads=[], result=None)
+    in_tick = {"now": False, "used": False}
+    real_tick, real_drive = M.tick, M.drive
+
+    def tick(running, *rest):
+        in_tick["now"] = bool(running) and not in_tick["used"]  # the first tick that has a running job
+        try:
+            return real_tick(running, *rest)
+        finally:
+            in_tick["used"] = in_tick["used"] or in_tick["now"]
+            in_tick["now"] = False
+
+    def free(path):
+        if in_tick["now"]:
+            seen.dip = (free_at_tick, list(seen.spawned))
+            return free_at_tick
+        return 100.0
+
+    def sizes(path):
+        if Path(path).resolve() == out:
+            seen.out_reads.append((out_bytes, len(seen.spawned)))
+            return out_bytes
+        return 0
+
+    def spawn(job, job_path, log_path):
+        if spawn_raises:
+            raise RuntimeError("a planted harness failure after ledger.begin")
+        seen.spawned.append(job["chain"])
+        handle = TimedChild(M, job, passes=3)
+        handle.pid = 100 + len(seen.spawned)
+        seen.handles[handle.pid] = handle
+        return handle
+
+    def kill(pid):
+        seen.killed.append(pid)
+        seen.handles[pid].die = True  # a killed child writes no job record: the orchestrator salvages it
+        seen.handles[pid].kill_tree()
+        return [pid]
+
+    def drive(*args, **kwargs):
+        seen.result = real_drive(*args, **kwargs)
+        return seen.result
+    deps = batch_deps(M, tmp, spawn=spawn, free=free, kill=kill, folder_bytes=sizes)
+    args = batch_args(write_jobs(tmp, jobs), out, stages, trainer=False, prediction=prediction, parallel=1, max_wait=30)
+    with mock.patch.object(M, "tick", tick), mock.patch.object(M, "drive", drive):
+        seen.code = run_quiet(M, args, deps)
+    entries = ledger.load(tmp / "ledger.json")["entries"]
+    seen.entry = entries[0] if len(entries) == 1 else {"verdict": f"{len(entries)} entries"}
+    seen.verdict = str(seen.entry.get("verdict") or "")
+    seen.chains = [job["chain"] for job in jobs]
+    seen.dropped = dict((seen.result or {}).get("not_started") or [])
+    seen.out = out
+    return seen
 
 
 def case_t14_disk(M, tmp):
@@ -1075,6 +1188,26 @@ def case_t14_disk(M, tmp):
                                prediction=prediction), batch_deps(M, tmp, free=44.99, log=spawned)), 2,
        "44.99 GB at start: refused")
     eq(((tmp / "ledger.json").read_bytes(), spawned), (band, []), "no launch, no ledger write")
+    # THE BATCH'S ENDS, through the real run_batch (verifier round 2, R2-M1: the lines above stop at the tick's flags).
+    # 2.7: an abort is no launch, the running launches killed, ABORT.txt, the entry ABORTED; 3.2: exit 3 ABORTED, exit 4
+    # a harness ERROR after ledger.begin; 2.7 and 3.13: --out over its cap DROPS the pending jobs
+    a = disk_batch(M, tmp / "ba", free_at_tick=39.99)
+    first, second = a.chains
+    eq(a.dip, (39.99, [first]), "the tick read 39.99 GB with the second job still pending")
+    eq(a.spawned, [first], "39.99 GB: the pending job is never launched")
+    ok(a.dropped.get(second, "").startswith("ABORT.txt"), f"the pending job DROPPED by the ABORT: {a.dropped}")
+    ok((a.out / M.ABORT_FILE).is_file(), "ABORT.txt written")
+    eq(a.killed, [101], "the running launch killed")
+    eq(a.code, 3, "an ABORTED batch exits 3")
+    ok(a.verdict.startswith("ABORTED"), f"the entry is finished ABORTED: {a.verdict!r}")
+    b = disk_batch(M, tmp / "bb", out_bytes=5_000_000_001)
+    ok((5_000_000_001, 1) in b.out_reads, f"--out read 5,000,000,001 bytes with the second job pending: {b.out_reads}")
+    eq(b.spawned, [b.chains[0]], "--out over its cap: the pending job is never launched")
+    ok(b.dropped.get(b.chains[1], "").startswith("--out is over its cap"), f"DROPPED by the cap: {b.dropped}")
+    eq(b.killed, [], "the cap drops the pending jobs and kills no running one")
+    c = disk_batch(M, tmp / "bc", spawn_raises=True)
+    eq(c.code, 4, "a harness error after ledger.begin exits 4")
+    ok(c.verdict.startswith("ERROR (harness: RuntimeError"), f"the entry is finished as ERROR: {c.verdict!r}")
 
 
 def case_t14_control(M, tmp):
@@ -1109,6 +1242,14 @@ def case_t14_control(M, tmp):
     (runs / "20261114-000001-X-L1" / "world.jsonl").write_bytes(b"x" * 10)
     (runs / "20261114-000002-X-L2").mkdir()
     eq(LC.newest_world(runs), ("20261114-000002-X-L2", None), "an older folder's world kills nothing")
+    # THE BATCH at the boundaries (verifier round 2, R2-M1): the tick reads 40.0 GB free and --out at 5,000,000,000 bytes
+    # with the second job still pending: no ABORT and no DROP, every job launches, exit 0, the entry a DEVELOPMENT one
+    c = disk_batch(M, tmp / "bc", free_at_tick=40.0, out_bytes=5_000_000_000)
+    eq(c.dip, (40.0, [c.chains[0]]), "the tick read 40.0 GB with the second job still pending")
+    ok((5_000_000_000, 1) in c.out_reads, f"--out read 5,000,000,000 bytes with the second job pending: {c.out_reads}")
+    eq((c.spawned, c.dropped, c.killed, (c.out / M.ABORT_FILE).exists(), c.code), (c.chains, {}, [], False, 0),
+       "every job launched, none dropped or killed, no ABORT.txt, exit 0")
+    ok(c.verdict.startswith("DEVELOPMENT, never graded"), f"the entry is a DEVELOPMENT one: {c.verdict!r}")
 
 
 # ---------------------------------------------------------------------------------------------------- T15: retention
@@ -2085,7 +2226,7 @@ def case_t33_mc(M, tmp):
     path = tmp / "ledger.json"
     path.write_text(json.dumps({"entries": [{"id": 1, "first": 6701, "last": 6701, "purpose": "development"}]}),
                     encoding="utf-8")
-    hits, _ = M.seeds_named(6701, 6703, [path])
+    hits, _, _ = M.seeds_named(6701, 6703, [path])
     ok(hits, "an MC seed named by an entry")
     hung = job_of(M, tmp / "hung", to="ch2_wally", seed=6704, mc=True, goals="never")
     play(M, hung, {"L2": {"exit": 124, "no_verdict": True}})

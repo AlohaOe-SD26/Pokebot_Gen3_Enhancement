@@ -1,6 +1,6 @@
 AI PLAYER A1, THE FRONTIER PROBE - MUTANT PROOF OF ITS GUARDS (gates/revert_frontier.py)
-date: 2026-11-14 17:44:12
-code: HEAD e71d319d; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:e4d9c916db890291 over git diff HEAD (3 files, 43973 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
+date: 2026-11-14 19:45:14
+code: HEAD 3632d5ad; ai_player/ has UNCOMMITTED changes (the code under test is the working tree): working-tree digest sha256:0d481dc0950300dc over git diff HEAD (3 files, 23000 bytes) and 0 untracked files (recompute: py -3.12 ai_player/gates/provenance.py)
 Each mutant breaks ONE guard of the frontier probe (or of its suite's own scans and pins) in a copy; CAUGHT = the run fails and every predicted test of gates/test_frontier_probe.py is among the failing ones.
 
 [F0] CONTROL, the unchanged copy: 81 tests of ['test_frontier_probe'], failing none (ran the copy: True) -> PASS
@@ -38,7 +38,7 @@ Each mutant breaks ONE guard of the frontier probe (or of its suite's own scans 
 [G32] BROKEN: T14 guard removed: P_fit (an off-by-one starts a job that does not fit). Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_control': 'FAIL', 'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
 [G33] BROKEN: T14 guard removed: the tick ABORTS under 40 GB. Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
 [G34] BROKEN: T14 guard removed: the tick cuts a world over the cut. Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
-[G35] BROKEN: T14 guard removed: the tick drops pending jobs over the --out cap. Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
+[G35] BROKEN: T14 guard removed: the tick drops pending jobs over the --out cap. Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_control': 'FAIL', 'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
 [G36] BROKEN: T14 guard removed: the tick cuts a profile folder over its budget. Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
 [G37] BROKEN: T15 guard removed: a zip that fails its check keeps the raw logs. Predicted CAUGHT by ['GuardTests.test_t15_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t15_fault': 'FAIL'} -> CAUGHT
 [G38] BROKEN: T15 guard removed: an AI file's copy is size-checked. Predicted CAUGHT by ['GuardTests.test_t15_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t15_fault': 'FAIL'} -> CAUGHT
@@ -130,7 +130,16 @@ Each mutant breaks ONE guard of the frontier probe (or of its suite's own scans 
 [V42] BROKEN: T25 guard removed: the watchdog kills only a child strictly PAST it (exactly at it: kept). Predicted CAUGHT by ['GuardTests.test_t25_control']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t25_control': 'FAIL'} -> CAUGHT
 [V43] BROKEN: T34 guard removed: GM's discriminator counts only the maps the next leg starts on or crosses early. Predicted CAUGHT by ['GuardTests.test_t34_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t34_fault': 'FAIL'} -> CAUGHT
 [V44] BROKEN: T34 guard removed: GM's discriminator counts only tiles the end snapshot tried. Predicted CAUGHT by ['GuardTests.test_t34_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t34_fault': 'FAIL'} -> CAUGHT
+[V55] BROKEN: T13 guard removed: a seed ledger that cannot be read, and is no known non-ledger, refuses the batch (2.5). Predicted CAUGHT by ['GuardTests.test_t13_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t13_fault': 'FAIL'} -> CAUGHT
+[V56] BROKEN: T13 guard removed: development seeds must be ONE contiguous range (2.5, 3.10). Predicted CAUGHT by ['GuardTests.test_t13_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t13_fault': 'FAIL'} -> CAUGHT
+[V69] BROKEN: T14 guard removed: a pending job is DROPPED once the tick found --out over its cap (2.7, 3.13). Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
+[V70] BROKEN: T14 guard removed: a pending job is DROPPED once the disk guard ABORTED the batch (2.7: no launch). Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
+[V72] BROKEN: T14 guard removed: an ABORTED batch exits 3 (3.2). Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
+[V73] BROKEN: T14 guard removed: an ABORTED batch's entry is finished ABORTED (2.7, 3.10). Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
+[V74] BROKEN: T14 guard removed: a harness error after ledger.begin finishes the entry as ERROR (exit 4's ledger half, 3.2). Predicted CAUGHT by ['GuardTests.test_t14_fault']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t14_fault': 'FAIL'} -> CAUGHT
+[K1] BROKEN: T13 guard removed: a seed ledger that cannot be read at a path ending in the KNOWN non-ledger is allowed (2.5). Predicted CAUGHT by ['GuardTests.test_t13_control']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t13_control': 'FAIL'} -> CAUGHT
+[K2] BROKEN: T13 guard removed: a known non-ledger that cannot be read is LISTED (2.5; before the round it was skipped unlisted). Predicted CAUGHT by ['GuardTests.test_t13_control']. The copy ran 80 tests (the copy); failing: {'test_frontier_probe.GuardTests.test_t13_control': 'FAIL'} -> CAUGHT
 
-126 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 126 run (126 defined)
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (128 checks of 243 files, files digest 11051190f15ecdf6)
+135 mutants CAUGHT as predicted, 0 REDUNDANT ALONE as predicted, of 135 run (135 defined)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (137 checks of 243 files, files digest de7e66ffb60974ae)
 OVERALL: PASS

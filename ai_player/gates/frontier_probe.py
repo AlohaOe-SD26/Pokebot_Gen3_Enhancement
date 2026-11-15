@@ -1454,18 +1454,24 @@ def default_seed_ledgers(extra: Iterable[Path] = ()) -> list[Path]:
 
 
 def seeds_named(first: int, last: int, paths: Iterable[Path], ignore: tuple[tuple[str, int], ...] = ()
-                ) -> tuple[list[str], list[str]]:
+                ) -> tuple[list[str], list[str], list[str]]:
     """(every entry of every ledger that names a seed of first-last, every ledger that could not be read and is not a
-    KNOWN non-ledger). `ignore`: (ledger path, entry id) pairs to skip (a resumed batch's own entry)."""
-    hits, unreadable = [], []
+    KNOWN non-ledger, every KNOWN non-ledger that could not be read). 2.5: the check LISTS every ledger it could not read
+    and refuses unless each is a known non-ledger, so `run` refuses the second list and lists the third (its NOTE lines and
+    batch.json's `known_non_ledgers`; verifier round 2, R2-M2: it was skipped unlisted). `ignore`: (ledger path, entry id)
+    pairs to skip (a resumed batch's own entry)."""
+    hits, unreadable, known = [], [], []
     ignored = {(os.path.normcase(os.path.abspath(p)), i) for p, i in ignore}
     for path in paths:
         try:
             entries = json.loads(Path(path).read_text(encoding="utf-8"))["entries"]
         except Exception as error:  # noqa: BLE001 - listed, and refused unless a known non-ledger
             text = str(path).replace("\\", "/")
-            if not any(text.endswith(known) for known in KNOWN_NON_LEDGERS):
-                unreadable.append(f"{path}: {type(error).__name__}")
+            item = f"{path}: {type(error).__name__}"
+            if any(text.endswith(name) for name in KNOWN_NON_LEDGERS):
+                known.append(item)
+            else:
+                unreadable.append(item)
             continue
         norm = os.path.normcase(os.path.abspath(str(path)))
         for entry in entries:
@@ -1476,7 +1482,7 @@ def seeds_named(first: int, last: int, paths: Iterable[Path], ignore: tuple[tupl
                     hits.append(f"{path} #{entry['id']} ({entry.get('purpose')}, {entry['first']}-{entry['last']})")
             except (KeyError, TypeError):
                 unreadable.append(f"{path}: an entry without first/last")
-    return hits, unreadable
+    return hits, unreadable, known
 
 
 def seed_span(jobs: list[dict]) -> tuple[int, int] | None:
@@ -2654,6 +2660,7 @@ def run_batch(args, deps: Deps | None = None) -> int:
         parallel = min(parallel, MC_PARALLEL)
     prediction_raw = None
     entry_id = None
+    known: list[str] = []
     old = read_json(out / BATCH_FILE) if args.resume else None
     if jobs:
         if mode == "development":
@@ -2674,9 +2681,11 @@ def run_batch(args, deps: Deps | None = None) -> int:
                 if isinstance(old, dict) and old.get("entry_id") is not None:
                     ignore = ((str(ledger_path), int(old["entry_id"])),)
                     entry_id = int(old["entry_id"])
-                hits, unreadable = seeds_named(span[0], span[1], deps.seed_ledgers(ledger_path), ignore)
+                hits, unreadable, known = seeds_named(span[0], span[1], deps.seed_ledgers(ledger_path), ignore)
                 problems += [f"a seed of {span[0]}-{span[1]} is named: {hit}" for hit in hits[:8]]
                 problems += [f"a ledger could not be read: {item}" for item in unreadable[:8]]
+                for item in known:
+                    print(f"NOTE: a known non-ledger could not be read (allowed, 2.5): {item}", flush=True)
         else:
             try:
                 data = ledger.load(ledger_path)
@@ -2710,7 +2719,7 @@ def run_batch(args, deps: Deps | None = None) -> int:
              "jobs_sha256": hashlib.sha256(jobs_raw).hexdigest(), "bounds_sha256": bounds, "bounds": parts,
              "parallel": parallel, "parallel_asked": int(args.parallel), "free_gb": free,
              "stages": {name: str(path) for name, path in stages.items()}, "deadline": args.deadline,
-             "max_wait": args.max_wait, "resumed": bool(args.resume)}
+             "max_wait": args.max_wait, "resumed": bool(args.resume), "known_non_ledgers": known}
     write_json(out / BATCH_FILE, facts)
     try:
         result = drive(jobs, out, stages, manifests, facts, args, deps)
