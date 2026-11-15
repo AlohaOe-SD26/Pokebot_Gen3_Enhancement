@@ -11,7 +11,7 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (218 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (222 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
            caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
@@ -37,6 +37,11 @@ THE TABLE (218 mutants; the spec's "about 54" predates the amendments' tests T31
            continue_rule, replay and their kin that no row edited): each guard among them, on its FAULT arm; Z25 (C2's
            class half) is predicted REDUNDANT ALONE, because C2's purity half stops the same legs. The lines the sweep
            left are bookkeeping or redundant by construction (ai_player/README.md, A1's "Run it" lines).
+  H07, H09, U01, U02   the verifier's round 4 (2026-11-15): the two one-edit mutants of its bounded hunt that NO case
+           caught (H-names, anchors and replacements verbatim; not the test-side H1-H4 below): a resume's skip that drops
+           the LEDGER-PATH half of its (ledger path, entry id) key (H07) and the end-map rule without CUT_WORLD (H09), each
+           now caught by the FAULT arm fix round 4 added to T24d or T7; and the other half of each rule, the key's id
+           (U02) and HUNG (U01), caught by the arm that was there.
   H1-H4    the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
@@ -642,6 +647,30 @@ _ROUND3 = [
      ("test_t26_fault",)),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): the verifier's round-4 gaps (2026-11-15, verdict
+#: CONDITIONAL_PASS on bf75965a: two one-edit mutants of its bounded hunt, beside fix round 3's new arms, that NO case
+#: caught, "failing (0)"; reproduced before the fix by fix round 4, "VERIFIER ROUND 3 RUNNER: 11 of 11 as predicted", both
+#: gaps as the verifier read them; names, anchors and replacements verbatim) and the OTHER half of each rule they split
+#: (U01, U02): H07 and H09 now caught by the FAULT arm fix round 4 added, U01 and U02 by the arm that was there
+_ROUND4 = [
+    # V4-M1: seeds_named's resume skip is keyed by the pair (ledger path, entry id); H07 drops the path half, U02 the id half
+    ("H07", "T24d", "a resume skips its own entry only IN ITS OWN LEDGER (a divergent copy's entry of the same id naming its "
+                    "seeds still refuses)",
+     '                if (norm, entry["id"]) in ignored:', '                if entry["id"] in {i for _, i in ignored}:',
+     ("test_t24d_fault",)),
+    ("U02", "T24d", "a resume skips only its own entry's ID in its own ledger (another entry of that ledger naming its seeds "
+                    "still refuses)",
+     '                if (norm, entry["id"]) in ignored:', "                if norm in {p for p, _ in ignored}:",
+     ("test_t24d_fault",)),
+    # V4-M2: end_map_of's tail rule names two classes; H09 drops CUT_WORLD, U01 drops HUNG (W60 drops both)
+    ("H09", "T7", "a CUT-WORLD leg's end map is the kept world tail's (3.5; CUT_WORLD's half of the rule alone)",
+     "    if klass not in (CUT_WORLD, HUNG) and isinstance(", "    if klass not in (HUNG,) and isinstance(",
+     ("test_t7_fault",)),
+    ("U01", "T7", "a HUNG leg's end map is the kept world tail's (3.5; HUNG's half of the rule alone)",
+     "    if klass not in (CUT_WORLD, HUNG) and isinstance(", "    if klass not in (CUT_WORLD,) and isinstance(",
+     ("test_t7_fault",)),
+]
+
 #: (name, T, the guard, anchor, replacement, why no test catches it ALONE): fix round 3's sweep found these guards
 #: REDUNDANT on every arm the suite can plant, so each is predicted REDUNDANT ALONE (the copy passes every test)
 _REDUNDANT = [
@@ -705,7 +734,7 @@ for _name, _what, _edit, _test in _MORE:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
-for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3:
+for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3 + _ROUND4:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],

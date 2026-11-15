@@ -480,9 +480,15 @@ ledger entry and its evidence, `--trainer` writes nothing tracked); prints the b
 junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run from its stage. Exits: 0 ran, 2 refused
 before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
 crash, 6 the AI-only stop. Its offline proofs are `gates/test_frontier_probe.py` (T1-T36, T24d and AM-11, each a FAULT
-and a CONTROL) and `gates/revert_frontier.py` (218 mutants: each guard the suite tests, broken in a copy, fails its
+and a CONTROL) and `gates/revert_frontier.py` (222 mutants: each guard the suite tests, broken in a copy, fails its
 predicted test; Z25, the continue rule's class half, is REDUNDANT ALONE, its purity half stopping the same legs). Every
-guard the three verifier rounds named now has a FAULT case. Fix round 3's sweep of the refusal family (2026-11-14; code
+guard the four verifier rounds named now has a case that fails with that guard removed (its row CAUGHT), round 4's
+two MINORs (2026-11-15) included: a development resume skips its own entry only in its OWN ledger, never a same-id entry of a
+divergent copy (H07, T24d), and a CUT-WORLD leg's end map is its kept world tail's (H09, T7). Not asserted: round 4's
+two NITs (an ABORTED MC batch's verdict naming its reading, H02; an MC verdict's chain count other than 3, H03); and,
+found outside round 4's hunt and open for the lead, `run --parallel 0` (or below) is accepted and never ends
+(`parallel_of` gives 0 with no refusal, so `drive` admits no job and nothing but a Ctrl+C ends its loop). Fix round 3's
+sweep of the refusal family (2026-11-14; code
 outside it was not swept) left five guards with none, each redundant or unreachable rather than unproven: `run`'s P_fit
 refusal (P_fit under 1 needs under 44.25 GB free, where the 45 GB start floor refuses first; `parallel_of` itself is
 tested), the child's "no legs" (`plan` and `run` refuse such a job first), the continue rule's C3 "not measured" and

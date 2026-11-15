@@ -543,6 +543,15 @@ def case_t7_next_unmet(M, tmp):
     _, _, records = play(M, hung, {"L1": {**TAIL_LEG, "exit": 124, "no_verdict": True, "miss": True}})
     eq((records[0]["class"], records[0]["end_map"], (records[0]["blocker"] or {}).get("key", [None] * 5)[3]),
        (M.HUNG, {"pair": [0, 2], "const": "ROUTE102"}, "ROUTE102"), "a HUNG leg's end map: the kept world tail's, in its key")
+    # a CUT-WORLD leg's END MAP likewise (verifier round 4, V4-M2: the HUNG arm pinned only the HUNG half, and CUT_WORLD
+    # dropped from the rule passed every case): a leg the WORLD GUARD killed (no verdict, exit 1, its kill marker) ends
+    # on its kept tail's ROUTE102, in its key, never on its end truth's RUSTBORO_CITY
+    cut = job_of(M, tmp / "cut", to="ch1_pokedex", seed=7805)
+    _, _, records = play(M, cut, {"L1": {**TAIL_LEG, "no_verdict": True, "exit": 1, "miss": True,
+                                         "after": guard_after(Path(cut["out"]), cut["chain"])}})
+    eq((records[0]["class"], records[0]["end_map"], (records[0]["blocker"] or {}).get("key", [None] * 5)[3]),
+       (M.CUT_WORLD, {"pair": [0, 2], "const": "ROUTE102"}, "ROUTE102"),
+       "a CUT-WORLD leg's end map: the kept world tail's, in its key")
 
 
 #: a leg whose kept world tail ends on ROUTE102 (0:2) while its end truth reads RUSTBORO_CITY ([0, 3]): T7's end-map arms
@@ -2052,9 +2061,23 @@ def dev_resume_setup(M, tmp: Path) -> tuple[list[dict], dict, Path, Path]:
     return jobs, stages, prediction, out
 
 
+def divergent_copy(tmp: Path, seed: int) -> Path:
+    """A DIVERGENT COPY of the seed ledger: SEED_LEDGER_GLOBS reads the copies in the work trees, the lab and the learner
+    clone, which share ONE id sequence, so a copy that diverged can hold a resumed batch's own id. Its entry #1 names
+    `seed` (verifier round 4, V4-M1)."""
+    other = tmp / "other-copy" / "ledger.json"
+    other.parent.mkdir(parents=True)
+    other.write_text(json.dumps({"what": "a divergent copy", "entries": [
+        {"id": 1, "family": "story", "driver": "another session", "purpose": "development", "first": seed, "last": seed,
+         "status": "started"}]}), encoding="utf-8")
+    return other
+
+
 def case_t24d_resume(M, tmp):
-    """3.13's resume of a DEVELOPMENT batch skips ONLY the batch's OWN ledger entry (verifier round 3, R3-M3): another entry
-    naming its seeds (one written while it was down) still refuses the resume: exit 2, the ledger byte-unchanged, no launch."""
+    """3.13's resume of a DEVELOPMENT batch skips ONLY the batch's OWN ledger entry, the (ledger path, entry id) pair
+    (verifier round 3, R3-M3): another entry naming its seeds still refuses the resume (exit 2, no ledger write, no
+    launch), whether it sits in the batch's own ledger (one written while it was down) or in a DIVERGENT COPY under the
+    batch's own id (verifier round 4, V4-M1: the key's ledger-path half)."""
     jobs, stages, prediction, out = dev_resume_setup(M, tmp)
     data_ = json.loads((tmp / "ledger.json").read_text(encoding="utf-8"))
     data_["entries"].append({"id": 2, "family": "story", "driver": "another", "purpose": "development", "first": 7601,
@@ -2068,12 +2091,29 @@ def case_t24d_resume(M, tmp):
        "another entry naming the seeds: the resume refused, no ledger write, no launch")
     lines = [line for line in text.splitlines() if line.startswith("REFUSED: a seed of 7601-7601 is named")]
     ok(len(lines) == 1 and lines[0].endswith("#2 (development, 7601-7601)"), f"only the OTHER entry refuses: {lines}")
+    # the ledger-path half: a FRESH killed batch (its own ledger holds #1 only) read beside a divergent copy whose #1, the
+    # batch's own id, names 7601: refused, both ledgers byte-unchanged, no launch, the refusal naming THAT copy's #1 alone
+    fresh = tmp / "divergent"
+    fresh.mkdir()
+    jobs, stages, prediction, out = dev_resume_setup(M, fresh)
+    other = divergent_copy(fresh, 7601)
+    ledgers = (fresh / "ledger.json", other)
+    start = [path.read_bytes() for path in ledgers]
+    spawned = []
+    code, text = refusal_of(M, batch_args(fresh / "jobs.json", out, stages, trainer=False, prediction=prediction, resume=True),
+                            batch_deps(M, fresh, log=spawned, seed_ledgers=lambda path: [path, other]))
+    eq((code, [path.read_bytes() for path in ledgers] == start, spawned), (2, True, []),
+       "a divergent copy's #1 naming the seeds: the resume refused, no ledger write, no launch")
+    lines = [line for line in text.splitlines() if line.startswith("REFUSED: a seed of 7601-7601 is named")]
+    ok(len(lines) == 1 and lines[0].endswith(f"{other} #1 (development, 7601-7601)"),
+       f"only the divergent copy's #1 refuses, never the batch's own #1: {lines}")
 
 
 def case_t24d_control(M, tmp):
     """A DEVELOPMENT batch resumed (3.13; WP1 starts "with --resume ready"; verifier round 3, R3-M3: T24 resumes only trainer
     batches): its OWN entry names its seeds and is never a refusal; the resume exits 0, keeps ONE entry and finishes it as a
-    DEVELOPMENT one; the resumed job is never launched again; no run_id twice."""
+    DEVELOPMENT one; the resumed job is never launched again; no run_id twice. The same with a divergent copy of the ledger
+    read beside it whose entry #1, the batch's own id, names another seed (verifier round 4, V4-M1)."""
     jobs, stages, prediction, out = dev_resume_setup(M, tmp)
     spawned: list = []
     code, text = run_text(M, batch_args(tmp / "jobs.json", out, stages, trainer=False, prediction=prediction, resume=True),
@@ -2086,6 +2126,20 @@ def case_t24d_control(M, tmp):
        f"the resumed job never relaunched, the job never started run: {spawned}")
     ids = [r["run_id"] for r in M.read_records(out) if r.get("record") == "leg"]
     eq(len(ids), len(set(ids)), f"no run_id twice: {ids}")
+    # the ledger-path half's CONTROL (verifier round 4, V4-M1): the same divergent copy beside it, its #1 (the batch's own
+    # id) naming a seed the batch does NOT use, never refuses: the batch's own #1 is still skipped with a second ledger read
+    fresh = tmp / "divergent"
+    fresh.mkdir()
+    jobs, stages, prediction, out = dev_resume_setup(M, fresh)
+    other = divergent_copy(fresh, 7700)
+    spawned = []
+    code, text = run_text(M, batch_args(fresh / "jobs.json", out, stages, trainer=False, prediction=prediction, resume=True),
+                          batch_deps(M, fresh, log=spawned, seed_ledgers=lambda path: [path, other]))
+    eq(code, 0, f"a divergent copy's #1 naming another seed: the resume runs: {text[-400:]}")
+    eq([(e["id"], e["first"], e["last"]) for e in ledger.load(fresh / "ledger.json")["entries"]], [(1, 7601, 7601)],
+       "beside the divergent copy: still ONE entry, the batch's own")
+    ok(("spawn", jobs[0]["chain"]) not in spawned and ("spawn", jobs[1]["chain"]) in spawned,
+       f"beside the divergent copy: the resumed job never relaunched, the job never started run: {spawned}")
 
 
 # ---------------------------------------------------------------------------------------------------- T25: the deadline
