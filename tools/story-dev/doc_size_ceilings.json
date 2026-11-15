@@ -98,7 +98,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 76400,
+      "ceiling": 76800,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -206,6 +206,13 @@
           "from": 75700,
           "to": 76400,
           "why": "2026-11-14: A1 is mid-build on wip/a1 and its fix round 3 is in flight; queue item 4 carries its six commits, its verifier state, its ordered next steps and the in-flight warning, and the JUNCTIONS line names A1's stage junction (Tier 1's findings). These lines collapse to one at A1's merge."
+        },
+        {
+          "date": "2026-11-15",
+          "field": "ceiling",
+          "from": 76400,
+          "to": 76800,
+          "why": "2026-11-15: A1's full lane is in flight; START HERE says how to check it and what to do when it ends (PASS, a red suite, DEAD), queue item 4 restores POKEBOT_DECOMP for any lane in a worktree, names the second full lane after the planted walls, and lists step 9's spec corrections (Tier 1's findings). These lines collapse to one at A1's merge."
         }
       ]
     },

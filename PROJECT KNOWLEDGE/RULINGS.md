@@ -87,10 +87,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 380 sections (newest first)
+## All 381 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-15-9dc33b` | 10241 |  |  | 2026-11-15 — A1's merge check counts every PLANNED chain; the lead closes verifier round 7's NIT directly; the full lane runs before step 5's planted walls (pun |
 | `2026-11-15-da9ccd` | 10232 |  |  | 2026-11-15 — A1's fix round 5: the lead's calls on the `run --parallel` hang, a job's env and the trainer smoke's jobs (punch-list #28-aiagent-v2) |
 | `2026-11-14-0bfb3b` | 10209 |  |  | 2026-11-14 — A1's decisions: AM-22's list (spec 4.4 item 8) and the lead's calls during A1's offline build (punch-list #28-aiagent-v2) |
 | `2026-11-14-b23f35` | 10193 | 55 | DO-NOT-REOPEN cue | 2026-11-14 — E0's STOP and the fix-forward (2026-11-13): the chapter 5 search fix (E and K1) went onto the merge branch after E0's commit; K2 rejected; K1 is no |
