@@ -257,10 +257,65 @@ STARTS = {
 }
 #: a pair whose WP1a chain missed takes its persona's next start (2.1): its G starts, then its C start
 FALLBACKS = {"Story": ("G1", "G2", "C1"), "Catcher": ("G3", "G4", "C2"), "Trainer": ("G5", "G6", "C3")}
-#: the planted walls of P1 and P2 (4.3): each ONE anchored edit to a staged copy. EMPTY in this build: the anchors are
-#: picked, with their offline planner tests, on the final head before P1 and P2 (build plan step 5); `stage --mutant`
-#: refuses a name not listed here
-MUTANTS: dict[str, dict] = {}
+#: the planted walls of P1 and P2 (4.3): each ONE anchored edit to a staged copy (`apply_mutant`; `stage --mutant NAME`
+#: refuses a name not listed here; the arms WALL-OLDALE and WALL-BRINEY are the stages built with `oldale` and `briney`).
+#: Picked on wip/a1 a999429f (build plan step 5; its `ai_player/brain` and `ai_player/world` are main's), each with its
+#: offline planner test (T39, T40: the walled copy finds no way in, the real one does, on the AI's own kept memory). Each
+#: wall's facts are maps.json's (`ai_player/knowledge/world/maps.json`); `walls` keeps them, and T39/T40 assert they still
+#: are the file's.
+_OLDALE = "OLDALE_TOWN"
+#: the maps a walk enters OLDALE TOWN from, and the side of each it lies past (maps.json: every connection whose `map` is
+#: MAP_OLDALE_TOWN): ROUTE101's up, ROUTE102's right, ROUTE103's down
+_OLDALE_INTO = {"ROUTE101": "up", "ROUTE102": "right", "ROUTE103": "down"}
+_BRINEY = "ROUTE104_MR_BRINEYS_HOUSE"
+#: every warp or door tile leading into MR. BRINEY's cottage (maps.json: every warp whose `dest_map` is
+#: MAP_ROUTE104_MR_BRINEYS_HOUSE): ROUTE104's door at (17, 50), the only way in (the start memories' one link to 17:0)
+_BRINEY_DOORS = (("ROUTE104", 17, 50),)
+MUTANTS: dict[str, dict] = {
+    # spec 4.3 P1: "the navigator's planner treats every tile of OLDALE_TOWN (0, 10) as a wall, and no go goal targets
+    # it". The edit is in `step_from`, the planner's ONE step: under `astar` (the walk), `distances` (every reach: the
+    # explorer's targets, `cut_off`, the parts of maps `route_to` and `region_hops` search) and `_Regions.landings`'
+    # crossing of an edge. So a step refused there walls OLDALE for the walk, for every target and for every route or hop
+    # into it, seen tiles and unseen ones alike (`Navigator.walls`, :816-820, holds the CURRENT map's seen tiles only, and
+    # `route_to` plans every other map round `standing_walls`). Walled: on OLDALE every tile not past an edge seen crossed;
+    # on a map that borders it every tile past the edge toward it once that edge was seen crossed, and past ROUTE101's up
+    # edge always (a map's own coordinates begin at 0, so y < 0 is past its up edge before any crossing: how a New Game
+    # first comes to OLDALE). Not walled: a down or right edge never crossed (the AI's data holds no map size).
+    "oldale": {
+        "file": "ai_player/brain/navigator.py",
+        "anchor": "    nxt = moved(xy, direction)\n    if nxt in walls:\n        return None\n",
+        "replacement": (
+            "    nxt = moved(xy, direction)\n"
+            "    # A1's planted wall WALL-OLDALE (frontier_probe.py MUTANTS['oldale'], spec 4.3 P1): a staged copy only\n"
+            f"    side = {_OLDALE_INTO!r}.get(memory.const)\n"
+            "    edge = memory.edges.get(side) if side is not None else None\n"
+            f"    if (memory.const == {_OLDALE!r} and not memory.outside(nxt)) or (side == \"up\" and nxt[1] < 0) or (\n"
+            "            edge is not None and (nxt[1] <= edge if side == \"up\" else nxt[1] >= edge if side == \"down\"\n"
+            "                                  else nxt[0] <= edge if side == \"left\" else nxt[0] >= edge)):\n"
+            "        return None\n"
+            "    if nxt in walls:\n"
+            "        return None\n"),
+        "walls": {"map": _OLDALE, "into": _OLDALE_INTO},
+    },
+    # spec 4.3 P2: "WALL-BRINEY walls ROUTE104_MR_BRINEYS_HOUSE (17, 0) and, since the house is entered only by its door
+    # warp on ROUTE104, every warp or door tile leading to (17, 0), including those the start's memory knows". A door is
+    # used only by pressing into it from a stand tile, and `_approaches` is the one place that stand is found for both the
+    # explorer's exit targets (`candidates`) and the warp hops of `route_to` and `region_hops` (`_Regions.landings`). It
+    # keys on the TILE, so a link the start's memory holds there is walled exactly as a door only seen. Not walled: the
+    # house's own tiles (no way reaches them but the door); `skills/story.py` enter_door, which walks to a door by a
+    # POKeMON CENTER's or a MART's look only
+    "briney": {
+        "file": "ai_player/brain/explore.py",
+        "anchor": "    fact = memory.fact(exit_tile)\n    asked = exit_press(fact.behavior) if fact is not None else None\n",
+        "replacement": (
+            "    fact = memory.fact(exit_tile)\n"
+            "    # A1's planted wall WALL-BRINEY (frontier_probe.py MUTANTS['briney'], spec 4.3 P2): a staged copy only\n"
+            f"    if (memory.const, int(exit_tile[0]), int(exit_tile[1])) in {_BRINEY_DOORS!r}:\n"
+            "        return []\n"
+            "    asked = exit_press(fact.behavior) if fact is not None else None\n"),
+        "walls": {"map": _BRINEY, "doors": _BRINEY_DOORS},
+    },
+}
 LINKS = ("modules", "plugins", "mgba", "roms")
 
 

@@ -1,5 +1,7 @@
 """UNIT PROOFS of A1's frontier probe (`gates/frontier_probe.py`, spec `2026-11-11-A1-FRONTIER-PROBE-SPEC.md` 4.1: T1-T36;
 T37 and T38 are fix round 5's: --parallel under 1 and a job's env, each refused), on PLANTED facts, rows, records, run folders and milestone data, with STUB launches (no emulator, no live run). Test side.
+T39 and T40 (build plan step 5, 4.3 P1 and P2) are the planted walls: each `MUTANTS` edit applied to a copy of the AI's code,
+whose own planner is driven, in its own process, on the AI's own kept memory (no emulator either).
 
     py -3.12 -B ai_player/gates/test_frontier_probe.py         (or: py -3.12 -B -m unittest ai_player.gates.test_frontier_probe)
 
@@ -3245,6 +3247,294 @@ def case_t38_control(M, tmp):
     eq((r.code, r.spawned), (0, [("spawn", "REAL-N-STRE-2000001")]), "a job whose env is {} runs")
 
 
+# ---------------------------------------------------------------------------------------------------- T39, T40: the planted walls
+#: (4.3 P1 and P2, build plan step 5) each wall (`frontier_probe.MUTANTS`) applied with the module's own `apply_mutant` to a
+#: COPY of the AI's code, and the copy's REAL planner driven, in its own process (one `ai_player` per process), on the AI's
+#: own kept memory: OLDALE TOWN and its three neighbours from the C1 start's memory (`make_a1_walls_fixture.py`), ROUTE 104
+#: and the cottage from probe7 C1's (`probe7_c1_island`, test_goals' fixture); what borders what, and which warp leads into
+#: the cottage, from maps.json (the AI's static map data), never typed here. The FAULT reads the walled copy, the CONTROL the
+#: unwalled one, on the same inputs.
+MAPS_JSON = REPO / "ai_player" / "knowledge" / "world" / "maps.json"
+WALLS_OLDALE_FIXTURE = FIXTURES / "a1_walls_oldale.world.jsonl"
+WALLS_ISLAND_FIXTURE = FIXTURES / "probe7_c1_island.world.jsonl"
+WALLS_OLDALE_SHA256 = "cd0e2769b03a4bbf467abd38c43c476ff188eb30218f59dd4c76fc2364457cbc"
+#: the planner probe one copy's process runs: argv tree root, the OLDALE fixture, the island fixture, maps.json; one JSON line
+WALLS_PROBE = r'''
+import json
+import random
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+ROOT = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(ROOT))
+from ai_player.brain.explore import _approaches, candidates, region_hops, route_to, weights_for  # noqa: E402
+from ai_player.brain.navigator import Navigator, astar, distances, in_map_walls  # noqa: E402
+from ai_player.world.memory import WorldMemory, past_edge  # noqa: E402
+
+OLDALE_FIXTURE, ISLAND_FIXTURE, MAPS_JSON = (Path(arg) for arg in sys.argv[2:5])
+MAPS = json.loads(MAPS_JSON.read_text(encoding="utf-8"))["maps"]
+
+
+def load(path):
+    return WorldMemory.from_dict(json.loads(path.read_text(encoding="utf-8")))
+
+
+def key_of(world, const):
+    return next(key for key, memory in world.maps.items() if memory.const == const)
+
+
+def targets(world, key, xy, goal):
+    # the explorer's places from xy on map key toward goal (candidates: what a go goal's walk chooses from)
+    world._last.key, world._last.xy = key, xy
+    look = SimpleNamespace(frame=10**7, player=SimpleNamespace(x=xy[0], y=xy[1]))
+    nav = Navigator(None, world, random.Random(1))
+    return [[t.kind, list(t.tile), list(t.exit) if t.exit is not None else None]
+            for t in candidates(nav, look, weights_for("Story"), goal)]
+
+
+facts = {"tree": ROOT.name}
+# OLDALE TOWN (P1): from each map maps.json connects into it, at the arrival of the memory's own crossing from OLDALE
+into = {e["id"].removeprefix("MAP_"): c["dir"] for e in MAPS for c in e.get("connections") or []
+        if c.get("map") == "MAP_OLDALE_TOWN"}
+borders = {}
+for const, side in sorted(into.items()):
+    world = load(OLDALE_FIXTURE)
+    walled, key = key_of(world, "OLDALE_TOWN"), key_of(world, const)
+    memory = world.maps[key]
+
+    def goal(_memory, name, walled=walled):
+        return name == walled
+
+    start = next(tuple(c["arrival"]) for c in world.connections if c["source"] == walled and c["target"] == key)
+    tiles = sorted(xy for xy in memory.tiles if memory.passable(xy) and past_edge(memory.edges, xy, side))
+    walls = in_map_walls(memory, frozenset(), tiles[0]) if tiles else frozenset()
+    path = astar(memory, start, set(tiles), walls, 0.0) if tiles else None
+    reach = distances(memory, start, walls, 0.0)
+    places = targets(world, key, start, goal)
+    borders[const] = {
+        "key": key, "side": side, "edge": memory.edges.get(side), "start": list(start), "tiles": len(tiles),
+        "path": path is not None, "reached": sum(1 for xy in tiles if xy in reach),
+        "inside": sum(1 for xy in distances(memory, start, in_map_walls(memory, frozenset(), None), 0.0)
+                      if memory.passable(xy) and not memory.outside(xy)),
+        "route": route_to(world, key, goal, start, frozenset()) is not None,
+        "hops": walled in region_hops(world, key, start),
+        "places_into": [p for p in places if p[0] == "route" or past_edge(memory.edges, tuple(p[1]), side)]}
+facts["oldale_into"], facts["borders"] = into, borders
+# a New Game's first way in: ROUTE101 before any crossing (its edges and its crossings taken out of the kept memory)
+world = load(OLDALE_FIXTURE)
+walled, key = key_of(world, "OLDALE_TOWN"), key_of(world, "ROUTE101")
+memory = world.maps[key]
+start = next(tuple(c["arrival"]) for c in world.connections if c["source"] == walled and c["target"] == key)
+memory.edges = {}
+world.connections = [c for c in world.connections if key not in (c.get("source"), c.get("target"))]
+tiles = sorted(xy for xy in memory.tiles if memory.passable(xy) and xy[1] < 0)
+reach = distances(memory, start, frozenset(), 0.0)
+path = astar(memory, start, set(tiles), frozenset(), 0.0) if tiles else None
+facts["first_way_in"] = {"start": list(start), "tiles": len(tiles), "path": path is not None,
+                         "reached": sum(1 for xy in tiles if xy in reach),
+                         "inside": sum(1 for xy in reach if memory.passable(xy) and xy[1] >= 0),
+                         "places_in": [p for p in targets(world, key, start, None) if p[1][1] < 0]}
+# OLDALE itself, from the arrival of the memory's own crossing onto it from ROUTE101
+world = load(OLDALE_FIXTURE)
+walled, key = key_of(world, "OLDALE_TOWN"), key_of(world, "ROUTE101")
+memory = world.maps[walled]
+start = next(tuple(c["arrival"]) for c in world.connections if c["source"] == key and c["target"] == walled)
+reach = distances(memory, start, in_map_walls(memory, frozenset(), None), 0.0)
+facts["oldale_itself"] = {"start": list(start),
+                          "inside": sum(1 for xy in reach if xy != start and memory.passable(xy)
+                                        and not memory.outside(xy)),
+                          "places_on": [p for p in targets(world, walled, start, None)
+                                        if not memory.outside(tuple(p[1])) and tuple(p[1]) != start]}
+# MR. BRINEY's cottage (P2): every warp maps.json leads into it, from where the memory's own warp out of it landed
+doors = sorted((e["id"].removeprefix("MAP_"), int(w["x"]), int(w["y"])) for e in MAPS for w in e.get("warps") or []
+               if w.get("dest_map") == "MAP_ROUTE104_MR_BRINEYS_HOUSE")
+facts["briney_doors"] = [list(d) for d in doors]
+cottage = {}
+for const, x, y in doors:
+    world = load(ISLAND_FIXTURE)
+    house, key = key_of(world, "ROUTE104_MR_BRINEYS_HOUSE"), key_of(world, const)
+    memory = world.maps[key]
+
+    def goal(_memory, name, house=house):
+        return name == house
+
+    link = world.link_of(key, (x, y))
+    start = next(tuple(v["arrival"]) for name, v in sorted(world.warps.items())
+                 if name.split("|")[0] == house and v.get("to") == key and v.get("arrival"))
+    reach = distances(memory, start, in_map_walls(memory, frozenset(), None), 0.0)
+    others = [xy for xy in memory.exits() if xy != (x, y)]
+    seen_only = load(ISLAND_FIXTURE)
+    del seen_only.warps[f"{key}|{x},{y}"]
+    cottage[f"{const} {x},{y}"] = {
+        "key": key, "link_to": (link or {}).get("to"), "house": house, "start": list(start),
+        "approaches": len(_approaches(memory, (x, y), reach)),
+        "others": len(others), "others_approached": sum(1 for xy in others if _approaches(memory, xy, reach)),
+        "route": route_to(world, key, goal, start, frozenset()) is not None,
+        "hops": house in region_hops(world, key, start),
+        "places_door": [p for p in targets(world, key, start, goal) if p[2] == [x, y]],
+        "places_door_seen_only": [p for p in targets(seen_only, key, start, goal) if p[2] == [x, y]]}
+facts["cottage"] = cottage
+print(json.dumps(facts, sort_keys=True))
+'''
+_WALLS: dict[int, dict] = {}
+
+
+def map_facts() -> tuple[dict, list]:
+    """maps.json's own facts of both walls: the maps a connection leads INTO OLDALE TOWN from, each with the side it lies
+    past ({const: side}), and every warp tile whose destination is MR. BRINEY's cottage ([(const, x, y)])."""
+    maps = json.loads(MAPS_JSON.read_text(encoding="utf-8"))["maps"]
+    into = {e["id"].removeprefix("MAP_"): c["dir"] for e in maps for c in e.get("connections") or []
+            if c.get("map") == "MAP_OLDALE_TOWN"}
+    doors = sorted((e["id"].removeprefix("MAP_"), int(w["x"]), int(w["y"])) for e in maps for w in e.get("warps") or []
+                   if w.get("dest_map") == "MAP_ROUTE104_MR_BRINEYS_HOUSE")
+    return into, doors
+
+
+def staged_walls(M) -> dict:
+    """The AI's code (`ai_player` less gates, evidence and states) copied once as REAL and once per wall, each wall applied
+    by `M.apply_mutant`, and the planner probe run on each copy at once (its own process, 180 s each at most). Kept per
+    module, so a FAULT and its CONTROL read one staging. The source files the walls name are hashed before and after."""
+    if id(M) in _WALLS:
+        return _WALLS[id(M)]
+    root = Path(tempfile.mkdtemp(prefix="walls_", dir=_TEMP_ROOT))
+    names = sorted(M.MUTANTS)
+
+    def sources() -> dict:
+        return {name: hashlib.sha256((REPO / M.MUTANTS[name]["file"]).read_bytes()).hexdigest() for name in names}
+
+    before = sources()
+    trees = {}
+    for tree in ("REAL", *names):
+        shutil.copytree(REPO / "ai_player", root / tree / "ai_player",
+                        ignore=shutil.ignore_patterns("__pycache__", "evidence", "gates", "*.ss1"))
+        trees[tree] = root / tree
+    made = {name: M.apply_mutant(trees[name], name, M.MUTANTS[name]) for name in names}
+    script = root / "walls_probe.py"
+    script.write_text(WALLS_PROBE, encoding="utf-8")
+    running = {tree: subprocess.Popen([sys.executable, "-B", str(script), str(path), str(WALLS_OLDALE_FIXTURE),
+                                       str(WALLS_ISLAND_FIXTURE), str(MAPS_JSON)], cwd=path, stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, text=True, encoding="utf-8")
+               for tree, path in trees.items()}
+    results = {}
+    for tree, process in running.items():
+        try:
+            out, err = process.communicate(timeout=180)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            out, err = process.communicate()
+            err = f"TIMEOUT after 180 s; {err}"
+        lines = [line for line in out.splitlines() if line.startswith("{")]
+        results[tree] = {"code": process.returncode, "facts": json.loads(lines[-1]) if lines else None,
+                         "err": err[-600:]}
+    _WALLS[id(M)] = staged = {"trees": trees, "made": made, "before": before, "after": sources(), "results": results,
+                              "real_files": files_of(trees["REAL"] / "ai_player")}
+    return staged
+
+
+def probe_facts(staged: dict, tree: str) -> dict:
+    result = staged["results"][tree]
+    ok(result["code"] == 0 and result["facts"] is not None,
+       f"the planner probe ran on the {tree} copy (exit {result['code']}): {result['err']!r}")
+    return result["facts"]
+
+
+def check_edit(M, staged: dict, name: str) -> None:
+    """The staged copy differs from the REAL copy by EXACTLY the wall's edit (the test's own CRLF-aware replace, not
+    apply_mutant's), and the source tree the copies came from is untouched."""
+    mutant = M.MUTANTS[name]
+    rel = mutant["file"].removeprefix("ai_player/")
+    real, walled = staged["real_files"], files_of(staged["trees"][name] / "ai_player")
+    eq(sorted(k for k in set(real) | set(walled) if real.get(k) != walled.get(k)), [rel],
+       f"{name}: the staged copy differs from the real one in exactly {rel}")
+    raw = real[rel].decode("utf-8")
+    anchor, new = mutant["anchor"], mutant["replacement"]
+    if "\r\n" in raw:
+        anchor, new = (text.replace("\r\n", "\n").replace("\n", "\r\n") for text in (anchor, new))
+    eq(raw.count(anchor), 1, f"{name}: its anchor hits the real {rel} exactly once")
+    ok(walled[rel].decode("utf-8") == raw.replace(anchor, new, 1),
+       f"{name}: the staged {rel} is the real one with exactly that edit")
+    eq(staged["made"][name]["file"], mutant["file"], f"{name}: apply_mutant names the file")
+    eq(staged["after"][name], staged["before"][name], f"{name}: the source tree's {mutant['file']} is untouched")
+
+
+def case_t39_oldale(M, tmp):
+    """FAULT: WALL-OLDALE's copy finds NO way into OLDALE TOWN from any map that borders it, and no place on it."""
+    into, _ = map_facts()
+    walls = M.MUTANTS["oldale"]["walls"]
+    eq((walls["map"], walls["into"]), ("OLDALE_TOWN", into), "WALL-OLDALE walls OLDALE_TOWN on the sides maps.json names")
+    staged = staged_walls(M)
+    check_edit(M, staged, "oldale")
+    wall, real = probe_facts(staged, "oldale"), probe_facts(staged, "REAL")
+    eq(sorted(wall["borders"]), sorted(into), "every map maps.json connects into OLDALE was driven")
+    for const, facts in wall["borders"].items():
+        ok(facts["tiles"] > 0, f"{const}: the memory holds OLDALE tiles past its {facts['side']} edge")
+        eq((facts["path"], facts["reached"], facts["route"], facts["hops"], facts["places_into"]),
+           (False, 0, False, False, []), f"WALLED from {const}: no path, no reach, no route, no hop and no place into "
+                                         f"OLDALE")
+        eq(facts["inside"], real["borders"][const]["inside"], f"WALLED: {const}'s own tiles are walked as before")
+    first = wall["first_way_in"]
+    ok(first["tiles"] > 0, "ROUTE101 before any crossing: OLDALE tiles seen past y 0")
+    eq((first["path"], first["reached"], first["places_in"]), (False, 0, []),
+       "WALLED before any crossing: no path, no reach and no place past ROUTE101's up edge")
+    eq(first["inside"], real["first_way_in"]["inside"], "WALLED before any crossing: ROUTE101's own tiles as before")
+    eq((wall["oldale_itself"]["inside"], wall["oldale_itself"]["places_on"]), (0, []),
+       "WALLED: on OLDALE itself every tile is a wall (no step, no place)")
+    eq(wall["cottage"], real["cottage"], "WALL-OLDALE leaves the cottage's way in as it is")
+
+
+def case_t39_control(M, tmp):
+    """CONTROL: the REAL copy, same inputs, finds every way into OLDALE that the walled one does not."""
+    eq(hashlib.sha256(WALLS_OLDALE_FIXTURE.read_bytes().replace(b"\r\n", b"\n")).hexdigest(), WALLS_OLDALE_SHA256,
+       "the committed OLDALE fixture's sha256")
+    staged = staged_walls(M)
+    real = probe_facts(staged, "REAL")
+    eq(sorted(real["borders"]), sorted(map_facts()[0]), "every map maps.json connects into OLDALE was driven")
+    for const, facts in real["borders"].items():
+        ok(facts["tiles"] > 0 and facts["path"] and facts["reached"] == facts["tiles"] and facts["route"]
+           and facts["hops"] and facts["places_into"], f"REAL from {const}: a path, a route, a hop and a place into "
+                                                       f"OLDALE ({facts})")
+    first = real["first_way_in"]
+    ok(first["path"] and first["reached"] > 0 and first["places_in"], f"REAL before any crossing: OLDALE reached ({first})")
+    ok(real["oldale_itself"]["inside"] > 0 and real["oldale_itself"]["places_on"],
+       f"REAL: OLDALE's own tiles walked ({real['oldale_itself']['inside']} reached)")
+    eq(staged["after"], staged["before"], "the source tree is untouched")
+
+
+def case_t40_briney(M, tmp):
+    """FAULT: WALL-BRINEY's copy finds NO way through the cottage's door warp from ROUTE 104, the start's memory knowing
+    that warp or only seeing the door."""
+    _, doors = map_facts()
+    walls = M.MUTANTS["briney"]["walls"]
+    eq((walls["map"], sorted(tuple(d) for d in walls["doors"])), ("ROUTE104_MR_BRINEYS_HOUSE", doors),
+       "WALL-BRINEY walls every warp maps.json leads into the cottage")
+    staged = staged_walls(M)
+    check_edit(M, staged, "briney")
+    wall, real = probe_facts(staged, "briney"), probe_facts(staged, "REAL")
+    eq(wall["briney_doors"], [list(d) for d in doors], "every warp into the cottage was driven")
+    for door, facts in wall["cottage"].items():
+        eq(facts["link_to"], facts["house"], f"the start's memory knows the warp at {door} into the cottage")
+        eq((facts["approaches"], facts["route"], facts["hops"], facts["places_door"], facts["places_door_seen_only"]),
+           (0, False, False, [], []), f"WALLED at {door}: no stand tile, no route, no hop and no place, the link known "
+                                      f"or the door only seen")
+        eq((facts["others"], facts["others_approached"]),
+           (real["cottage"][door]["others"], real["cottage"][door]["others_approached"]),
+           f"WALLED at {door}: ROUTE 104's other exits as before")
+    eq((wall["borders"], wall["first_way_in"], wall["oldale_itself"]),
+       (real["borders"], real["first_way_in"], real["oldale_itself"]), "WALL-BRINEY leaves OLDALE as it is")
+
+
+def case_t40_control(M, tmp):
+    """CONTROL: the REAL copy, same inputs, finds the cottage's door, its route and its hop."""
+    staged = staged_walls(M)
+    real = probe_facts(staged, "REAL")
+    eq(real["briney_doors"], [list(d) for d in map_facts()[1]], "every warp into the cottage was driven")
+    for door, facts in real["cottage"].items():
+        ok(facts["approaches"] > 0 and facts["route"] and facts["hops"] and facts["places_door"]
+           and facts["places_door_seen_only"], f"REAL at {door}: a stand tile, a route, a hop and a place ({facts})")
+    eq(staged["after"], staged["before"], "the source tree is untouched")
+
+
 # ---------------------------------------------------------------------------------------------------- AM-11: compare and replay
 def moves(*pairs) -> list[dict]:
     return [{"frame": f, "decision": "decide", "action": a, "reason": "r"} for f, a in pairs]
@@ -3380,12 +3670,13 @@ CASES = [
     ("T33", case_t33_mc, case_t33_control), ("T34", case_t34_dependency, case_t34_control),
     ("T35", case_t35_stale, case_t35_control), ("T36", case_t36_raise, case_t36_control),
     ("T37", case_t37_parallel, case_t37_control), ("T38", case_t38_job_env, case_t38_control),
+    ("T39", case_t39_oldale, case_t39_control), ("T40", case_t40_briney, case_t40_control),
     ("AM11c", case_am11_compare, case_am11_compare_control), ("AM11r", case_am11_replay, case_am11_replay_control),
 ]
 
 
 class GuardTests(Base):
-    """One FAULT and one CONTROL test per guard (T1-T38); the methods are made from CASES below."""
+    """One FAULT and one CONTROL test per guard (T1-T40); the methods are made from CASES below."""
 
 
 def _make(fn):

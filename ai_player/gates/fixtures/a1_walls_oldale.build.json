@@ -1,0 +1,19 @@
+{
+ "fixture": "ai_player/gates/fixtures/a1_walls_oldale.world.jsonl",
+ "fixture_sha256_lf": "cd0e2769b03a4bbf467abd38c43c476ff188eb30218f59dd4c76fc2364457cbc",
+ "made_by": "ai_player/gates/make_a1_walls_fixture.py KEEP_DIR (KEEP_DIR = the merge lead's A1 keep folder _ai_lab/keep/2026-11-13-a1-sources: this PC only, not git)",
+ "sources_sha256": {
+  "ch5stops/out/probe/probe-C1/world.jsonl": "79a7078a0e22978ceb7f600fe21f254ee0e2af0952e6b474912464b0ccf9d969"
+ },
+ "kept": {
+  "maps": {
+   "0:10": "OLDALE_TOWN",
+   "0:16": "ROUTE101",
+   "0:17": "ROUTE102",
+   "0:18": "ROUTE103"
+  },
+  "warps": "every warp from a kept map",
+  "connections": "every connection between two kept maps"
+ },
+ "why": "T39: WALL-OLDALE's planner test on the C1 start's own memory of OLDALE TOWN and its three neighbours"
+}

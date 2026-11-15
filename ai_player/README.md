@@ -470,8 +470,13 @@ py -3.12 -B ai_player/gates/frontier_probe.py teardown --stage DIR
 ```
 
 builds ONE stage (the code one commit holds, by `git archive`, outside every git work tree; the sandbox's emulator files
-JUNCTIONED in; the starts copied and custody-checked; `--mutant` names a planted wall of `frontier_probe.MUTANTS`, empty
-until the live proof's walls are picked, and an unknown name is refused); writes a batch's job list (pure: P1, GM, WP1, or
+JUNCTIONED in; the starts copied and custody-checked; `--mutant` names a planted wall of `frontier_probe.MUTANTS`, ONE
+anchored edit to the staged copy, and an unknown name is refused: `oldale`, WALL-OLDALE (4.3 P1: the planner's step,
+`brain/navigator.py` step_from, refuses every tile of OLDALE_TOWN, on its own map and past the edge of each map maps.json
+connects into it, ROUTE101's up side even before any crossing, so no walk, target, route or hop gets in) and `briney`,
+WALL-BRINEY (4.3 P2: `brain/explore.py` _approaches gives ROUTE104's door at (17, 50), maps.json's only warp into MR.
+BRINEY's cottage, no stand tile, so no target, route or hop uses it, the start memory's known link included); the house's
+own tiles and a down or right edge of OLDALE never crossed are not walled); writes a batch's job list (pure: P1, GM, WP1, or
 MC, the merge check: the 3 diagonal New Game chains to the newest graded target, no goal snapshot); runs it (at most P jobs
 at once: GO, WAIT, SKIP or DROP; the disk guard, the stage watch, the AI-only stop; `--ledger development` writes one
 ledger entry and its evidence, `--trainer` writes nothing tracked); prints the blocker report of a batch's `records.jsonl`
@@ -481,14 +486,18 @@ junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run
 before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
 crash, 6 the AI-only stop. A job's env must be EMPTY (the probe sets every launch key itself, so `plan` and `run` refuse a
 job env naming any key), and `run` refuses `--parallel` under 1 (no job could ever start). Its offline proofs are
-`gates/test_frontier_probe.py` (T1-T38, T24d and AM-11, each a FAULT and a CONTROL) and `gates/revert_frontier.py` (239
-mutants: each guard the suite tests, broken in a copy, fails its predicted test; Z25, the continue rule's class half, is
+`gates/test_frontier_probe.py` (T1-T40, T24d and AM-11, each a FAULT and a CONTROL; T39 and T40 apply each wall to a copy
+of the AI's code and drive that copy's own planner, in its own process, on the AI's kept memory, `fixtures/a1_walls_oldale`
+from the C1 start's and `probe7_c1_island`: walled, no way in; real, the same inputs, every way in) and
+`gates/revert_frontier.py` (247 mutants: each guard the suite tests, broken in a copy, fails its predicted test; Z25, the continue rule's class half, is
 REDUNDANT ALONE, its purity half stopping the same legs). Every guard the six verifier rounds named now has a case that
 fails with that guard removed, though the 7 rows fix round 5 added (2026-11-15: `--parallel` under 1, P01-P03, T37; a job
 env key, E01-E02, T38; an ABORTED MC verdict's reading, H02, T14; an MC verdict's own chain count, H03, T33) and the 9
 fix round 6 added (D01-D06, T33: a dropped MC chain; V6M2, V6M3 and P04, T37: the --parallel refusal in development
 mode and on --resume) and the lead's V6M1 (a job env key on an MC job, T38: verifier round 6's NIT V6-3) were run BY NAME
-only, and the full lane over all 239 rows is build step 4's. A development
+only, and the full lane over all 239 rows is build step 4's; build step 5's 8 (WL1-WL8, T39 and T40: a wall's edit broken
+in `MUTANTS`, or `apply_mutant` adding to the staged edit or writing the source tree) were run BY NAME only, and are not
+yet in a full lane. A development
 resume skips its own entry only in its OWN ledger, never a same-id entry of a divergent copy (H07, T24d), so a FAITHFUL copy of the ledger that holds the
 batch's own entry also refuses its resume (safe: a refusal writes nothing; reconcile the copy first). An MC batch's
 reading counts every PLANNED chain (batch.json's `mc_planned`; fix round 6, V6-1): a job DROPPED before its launch

@@ -11,7 +11,7 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (239 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (247 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
            caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
@@ -53,6 +53,11 @@ THE TABLE (239 mutants; the spec's "about 54" predates the amendments' tests T31
            replacements verbatim; P04 its CONTROL side (a --resume at --parallel 1 carries no --parallel refusal).
   V6M1     the lead's closing row (2026-11-15): a job's env must be EMPTY on an MC job too (the verifier's round-6 NIT
            V6-3, its name and the same edit; T38's MC arm).
+  WL1-WL8  build plan step 5 (2026-11-15): the planted walls (`frontier_probe.MUTANTS`, 4.3 P1 and P2) and their offline
+           planner tests T39 (WALL-OLDALE) and T40 (WALL-BRINEY): each wall's edit broken in `MUTANTS` (its refusal gone,
+           the wrong map or door, a side missing: WL1-WL6, each caught by its FAULT on the walled copy's own planner), and
+           `apply_mutant` adding to the staged edit (WL7) or editing the source tree instead of the staged copy (WL8, T39's
+           and T40's CONTROL too).
   H1-H4   the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
@@ -741,6 +746,33 @@ _ROUND7 = [
      "if k in ENV_ALLOWED)", "if k in ENV_ALLOWED and not job.get(\"mc\"))", ("test_t38_fault",)),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): build plan step 5 (2026-11-15, on a999429f), the
+#: planted walls (`MUTANTS`, 4.3 P1 and P2) and their offline planner tests T39 and T40: each wall's edit broken (its
+#: wall does nothing, sits on the wrong map or door, or misses a side) or `apply_mutant` made to touch more than the staged
+#: copy's one edit. The anchors are in `MUTANTS`' own text (the replacement strings as frontier_probe.py spells them)
+_ROUND8 = [
+    ("WL1", "T39", "WALL-OLDALE's walled step is refused (its `return None`)",
+     r'"        return None\n"' + "\n" + r'            "    if nxt in walls:\n"',
+     r'"        pass\n"' + "\n" + r'            "    if nxt in walls:\n"', ("test_t39_fault",)),
+    ("WL2", "T39", "WALL-OLDALE walls OLDALE_TOWN itself (not another map)",
+     '_OLDALE = "OLDALE_TOWN"', '_OLDALE = "LITTLEROOT_TOWN"', ("test_t39_fault",)),
+    ("WL3", "T39", "WALL-OLDALE walls every side maps.json connects into OLDALE (ROUTE103's down side among them)",
+     '_OLDALE_INTO = {"ROUTE101": "up", "ROUTE102": "right", "ROUTE103": "down"}',
+     '_OLDALE_INTO = {"ROUTE101": "up", "ROUTE102": "right"}', ("test_t39_fault",)),
+    ("WL4", "T39", "WALL-OLDALE walls past ROUTE101's up edge before any crossing (y < 0: a New Game's first way in)",
+     r' or (side == \"up\" and nxt[1] < 0)', "", ("test_t39_fault",)),
+    ("WL5", "T40", "WALL-BRINEY's walled door has no stand tile (its `return []`)",
+     r'"        return []\n"', r'"        pass\n"', ("test_t40_fault",)),
+    ("WL6", "T40", "WALL-BRINEY walls the door maps.json leads into the cottage (not the tile below it)",
+     '_BRINEY_DOORS = (("ROUTE104", 17, 50),)', '_BRINEY_DOORS = (("ROUTE104", 17, 51),)', ("test_t40_fault",)),
+    ("WL7", "T39/T40", "a staged copy differs from the real one by EXACTLY the wall's edit (apply_mutant adds nothing)",
+     '    path.write_bytes(raw.replace(anchor, new, 1).encode("utf-8"))',
+     '    path.write_bytes((raw.replace(anchor, new, 1) + "\\n").encode("utf-8"))', ("test_t39_fault", "test_t40_fault")),
+    ("WL8", "T39/T40", "apply_mutant edits the STAGED copy, never the source tree",
+     '    path = Path(code_root) / mutant["file"]', '    path = REPO / mutant["file"]',
+     ("test_t39_fault", "test_t39_control", "test_t40_fault", "test_t40_control")),
+]
+
 #: (name, T, the guard, anchor, replacement, why no test catches it ALONE): fix round 3's sweep found these guards
 #: REDUNDANT on every arm the suite can plant, so each is predicted REDUNDANT ALONE (the copy passes every test)
 _REDUNDANT = [
@@ -804,7 +836,8 @@ for _name, _what, _edit, _test in _MORE:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
-for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3 + _ROUND4 + _ROUND5 + _ROUND6 + _ROUND7:
+for _name, _tid, _guard, _old, _new, _tests in (_ROUND1 + _ROUND2 + _ROUND3 + _ROUND4 + _ROUND5 + _ROUND6 + _ROUND7
+                                                + _ROUND8):
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],
