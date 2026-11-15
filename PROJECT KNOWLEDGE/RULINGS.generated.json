@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "f5b3956b40fc193a8512d0943d4c5c15cdf33e76",
+ "source_sha1_lf": "d80ebf89db5e2bd0c60f25888bddb78b04d33425",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 379,
+  "sections": 380,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -5988,6 +5988,21 @@
    "line_start": 10209,
    "line_end": 10230,
    "title": "2026-11-14 — A1's decisions: AM-22's list (spec 4.4 item 8) and the lead's calls during A1's offline build (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-15-da9ccd",
+   "date": "2026-11-15",
+   "line_start": 10232,
+   "line_end": 10239,
+   "title": "2026-11-15 — A1's fix round 5: the lead's calls on the `run --parallel` hang, a job's env and the trainer smoke's jobs (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [

@@ -24392,3 +24392,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** T26's FAULT checked only the first six launches, which hold with or without the cap.
 - **The fix that worked:** the test records the other singles shown in each pass and asserts at EVERY launch that the job's own plus the others plus one never passes 16; G67 is CAUGHT (`wip/a1` `20add9b4`).
 - **Prevention rule:** a FAULT must check the quantity its guard bounds at every event, not a prefix of the sequence; only a run with the guard removed shows that a FAULT can fail.
+
+## 2026-11-15 — A test helper with no failing bound turned two removed guards into 600 s timeouts instead of failures (A1's scheduler test, verifier round 3, R3-M2) (punch-list #28-aiagent-v2)
+
+- **Symptom:** verifier round 3 removed A1's max-wait DROP (W12) and froze the WAIT clock (W41) in copies, one each. Neither copy failed a test: each run ended at the runner's 600 s timeout ("TIMEOUT after 600.5 s"). A guard whose removal makes its test hang reads as "not caught", and it costs 10 minutes per mutant.
+- **Root cause:** the suite's planted scheduler `sched()` slept and looped until the batch ended, with no limit of its own. With the guard gone the batch never ends, so the test never ends either.
+- **The fix that worked:** `sched(limit=300)` and the planted `Clock(limit)` raise an AssertionError past 300 passes ("the scheduler slept past 300 passes: a loop that never ends (a removed bound?)"). W12 and W41 now FAIL test_t26_fault in about 1 s (fix round 3, `bf75965a`). The same reading later exposed a real hang in the code: `run --parallel 0` never admits a job and never ends (verifier round 4; fix round 5, IN FLIGHT, is to refuse it).
+- **Prevention rule:** every waiting loop needs a bound that FAILS when reached, and that holds for the loops in a test's helpers as much as in the code, or a removed guard shows up as a timeout instead of a failure. Every integer option that sizes a loop gets a refusal at its lower bound.
