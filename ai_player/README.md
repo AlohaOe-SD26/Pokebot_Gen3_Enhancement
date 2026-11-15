@@ -481,17 +481,19 @@ junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run
 before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
 crash, 6 the AI-only stop. A job's env must be EMPTY (the probe sets every launch key itself, so `plan` and `run` refuse a
 job env naming any key), and `run` refuses `--parallel` under 1 (no job could ever start). Its offline proofs are
-`gates/test_frontier_probe.py` (T1-T38, T24d and AM-11, each a FAULT and a CONTROL) and `gates/revert_frontier.py` (229
+`gates/test_frontier_probe.py` (T1-T38, T24d and AM-11, each a FAULT and a CONTROL) and `gates/revert_frontier.py` (238
 mutants: each guard the suite tests, broken in a copy, fails its predicted test; Z25, the continue rule's class half, is
-REDUNDANT ALONE, its purity half stopping the same legs). Every guard the five verifier rounds named now has a case that
+REDUNDANT ALONE, its purity half stopping the same legs). Every guard the six verifier rounds named now has a case that
 fails with that guard removed, though the 7 rows fix round 5 added (2026-11-15: `--parallel` under 1, P01-P03, T37; a job
-env key, E01-E02, T38; an ABORTED MC verdict's reading, H02, T14; an MC verdict's own chain count, H03, T33) were run BY
-NAME only, and the full lane over all 229 rows is build step 4's. A development resume skips its own entry only in
-its OWN ledger, never a same-id entry of a divergent copy (H07, T24d), so a FAITHFUL copy of the ledger that holds the
-batch's own entry also refuses its resume (safe: a refusal writes nothing; reconcile the copy first). Still open after
-fix round 5: an MC batch's reading counts only the chains that STARTED, so a job DROPPED before its launch (ABORT.txt,
-STOP.txt, the --out cap, --max-wait) is not one of its chains (an MC batch of 2 aborted by the disk tick reads "STOP over
-1 chains"); that is for the lead, and is not fixed here. Fix round 3's
+env key, E01-E02, T38; an ABORTED MC verdict's reading, H02, T14; an MC verdict's own chain count, H03, T33) and the 9
+fix round 6 added (D01-D06, T33: a dropped MC chain; V6M2, V6M3 and P04, T37: the --parallel refusal in development
+mode and on --resume) were run BY NAME only, and the full lane over all 238 rows is build step 4's. A development
+resume skips its own entry only in its OWN ledger, never a same-id entry of a divergent copy (H07, T24d), so a FAITHFUL copy of the ledger that holds the
+batch's own entry also refuses its resume (safe: a refusal writes nothing; reconcile the copy first). An MC batch's
+reading counts every PLANNED chain (batch.json's `mc_planned`; fix round 6, V6-1): a job DROPPED before its launch
+(ABORT.txt, STOP.txt, the --out cap, --max-wait, the deadline) reads "<chain>: DROPPED, not run" and the entry STOP over
+all its chains; before that fix, an MC batch of 3 whose --out cap dropped the third read PASS over 2 chains. An --out
+written before fix round 6 holds no `mc_planned`, so its report still counts only the chains that started. Fix round 3's
 sweep of the refusal family (2026-11-14; code
 outside it was not swept) left five guards with none, each redundant or unreachable rather than unproven: `run`'s P_fit
 refusal (P_fit under 1 needs under 44.25 GB free, where the 45 GB start floor refuses first; `parallel_of` itself is

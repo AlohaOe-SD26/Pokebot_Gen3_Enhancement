@@ -2744,7 +2744,10 @@ def run_batch(args, deps: Deps | None = None) -> int:
              "jobs_sha256": hashlib.sha256(jobs_raw).hexdigest(), "bounds_sha256": bounds, "bounds": parts,
              "parallel": parallel, "parallel_asked": int(args.parallel), "free_gb": free,
              "stages": {name: str(path) for name, path in stages.items()}, "deadline": args.deadline,
-             "max_wait": args.max_wait, "resumed": bool(args.resume), "known_non_ledgers": known}
+             "max_wait": args.max_wait, "resumed": bool(args.resume), "known_non_ledgers": known,
+             # (fix round 6, V6-1) every PLANNED MC chain and its legs, so the merge check counts a job DROPPED before its
+             # launch (it writes no leg and no job record) as a chain that did not run, never as no chain
+             "mc_planned": {job["chain"]: [leg["leg"] for leg in job.get("legs") or []] for job in jobs if job.get("mc")}}
     write_json(out / BATCH_FILE, facts)
     try:
         result = drive(jobs, out, stages, manifests, facts, args, deps)
@@ -3154,28 +3157,37 @@ def build_report(out: Path) -> dict:
         trees.setdefault(digest, {})[str(chapter)] = chapter_report
         flat += ranked
     experience = read_records_named(out, EXPERIENCE)
+    batch = read_json(Path(out) / BATCH_FILE)
     return {"header": HEADER, "legs": len(legs), "reached": sum(1 for r in legs if r.get("reached")), "classes": classes,
             "trees": trees, "blockers": flat, "experience_rows": len(experience),
             "experience_unclassified": sorted({u for row in experience for u in row.get("unclassified") or []}),
-            "mc": mc_reading(records)}
+            "mc": mc_reading(records, batch.get("mc_planned") if isinstance(batch, dict) else None)}
 
 
-def mc_reading(records: list[dict]) -> dict | None:
+def mc_reading(records: list[dict], plan: dict | None = None) -> dict | None:
     """THE MERGE CHECK'S READING (2.4b; a hard-break check, NEVER a rate): PASS when every MC job ran every planned leg,
     each CLEAN-*, fresh, continuing by `continue_after` (purity, custody, the world), and its last leg reached its target.
-    Any HUNG, NOT CLEAN, REFUSED, freshness INFRA, CUT-WORLD, a leg not run or a miss is a STOP. None: no MC job."""
+    Any HUNG, NOT CLEAN, REFUSED, freshness INFRA, CUT-WORLD, a leg not run or a miss is a STOP. None: no MC job.
+    `plan` (batch.json's `mc_planned`, {chain: [legs]}): every PLANNED MC chain counts, so a job DROPPED before its launch
+    (the --out cap, STOP.txt, --max-wait, the deadline; it writes no leg and no job record) is a STOP, never a PASS over
+    the chains that happened to start (fix round 6, V6-1)."""
     legs = [r for r in records if r.get("record") == "leg" and (r.get("job") or {}).get("mc")]
     jobs = {r.get("job"): r for r in records if r.get("record") == "job" and r.get("mc")}
-    if not legs and not jobs:
+    planned_jobs = {str(k): list(v or []) for k, v in plan.items()} if isinstance(plan, dict) else {}
+    if not legs and not jobs and not planned_jobs:
         return None
     by_job: dict[str, list[dict]] = {}
     for record in legs:
         by_job.setdefault(record["job"]["id"], []).append(record)
     problems: list[str] = []
-    for job_id in sorted(set(by_job) | set(jobs)):
+    ids = sorted(set(by_job) | set(jobs) | set(planned_jobs))
+    for job_id in ids:
         members = by_job.get(job_id) or []
+        if not members and job_id not in jobs:
+            problems.append(f"{job_id}: DROPPED, not run (no leg and no job record)")
+            continue
         planned = (members[0]["job"].get("legs_planned") if members else None) or (jobs.get(job_id) or {}).get(
-            "legs_planned") or []
+            "legs_planned") or planned_jobs.get(job_id) or []
         have = {r["leg"]["leg"]: r for r in members}
         for leg in planned:
             record = have.get(leg)
@@ -3190,7 +3202,7 @@ def mc_reading(records: list[dict]) -> dict | None:
         last = have.get(planned[-1]) if planned else None
         if last is None or not last.get("reached"):
             problems.append(f"{job_id}: did not reach its target")
-    return {"reading": "PASS" if not problems else "STOP", "chains": len(set(by_job) | set(jobs)),
+    return {"reading": "PASS" if not problems else "STOP", "chains": len(ids),
             "problems": sorted(set(problems))}
 
 

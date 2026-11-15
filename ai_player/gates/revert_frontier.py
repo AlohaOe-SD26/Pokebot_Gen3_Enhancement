@@ -11,7 +11,7 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (229 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (238 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
            caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
@@ -46,7 +46,12 @@ THE TABLE (229 mutants; the spec's "about 54" predates the amendments' tests T31
            at 2, P03, the CONTROL side; T37), a job's env must be EMPTY (E01; every allowed key, E02; T38), and the verifier's
            round-4 NITs H02 (an ABORTED MC verdict's reading, T14) and H03 (an MC verdict's own chain count, T33's CONTROL),
            their names, anchors and replacements verbatim.
-  H1-H4    the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
+  D01-D06, V6M2, V6M3, P04   fix round 6 (2026-11-15): the merge check counts every PLANNED MC chain (batch.json's
+           `mc_planned`), so an MC job DROPPED before its launch reads STOP, never a PASS over the chains that started
+           (the verifier's round-6 V6-1, MAJOR; D01-D05 on T33's FAULT, D06 and D03 on its CONTROL), and T37 asserts the
+           --parallel refusal in development mode (V6M3) and on --resume (V6M2), the verifier's names, anchors and
+           replacements verbatim; P04 its CONTROL side (a --resume at --parallel 1 carries no --parallel refusal).
+  H1-H4   the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
            --max-wait, a resume keyed by seed, and an MC job sending AI_PLAYER_GOALS (the job's goal policy ignored).
@@ -697,6 +702,35 @@ _ROUND5 = [
      "f\"{mc['chains']} chains{", "f\"3 chains{", ("test_t33_control",)),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): fix round 6 (2026-11-15, on b19b11f9): the
+#: merge check counts every PLANNED MC chain, so a job DROPPED before its launch reads STOP (verifier round 6's V6-1,
+#: MAJOR: it read "PASS over 2 chains" with a third planned chain never run; D01-D06), and T37's --parallel refusal is
+#: asserted in development mode and on --resume (V6-2; V6M2 and V6M3, names, anchors and replacements verbatim from
+#: `_ai_lab/a1/verify6/v6_hunt.py`, reproduced "failing (0)" on b19b11f9 before the fix; P04 its control side)
+_ROUND6 = [
+    ("D01", "T33", "the merge check's chains include every PLANNED MC chain (a dropped one among them)",
+     "    ids = sorted(set(by_job) | set(jobs) | set(planned_jobs))", "    ids = sorted(set(by_job) | set(jobs))",
+     ("test_t33_fault",)),
+    ("D02", "T33", "the merge check's chain count is the planned one, not the started one",
+     "\"chains\": len(ids),", "\"chains\": len(set(by_job) | set(jobs)),", ("test_t33_fault",)),
+    ("D03", "T33", "run writes every planned MC chain and its legs into batch.json (mc_planned)",
+     "\"mc_planned\": {job[\"chain\"]: [leg[\"leg\"] for leg in job.get(\"legs\") or []] for job in jobs if job.get(\"mc\")}}",
+     "\"mc_planned\": {}}", ("test_t33_fault", "test_t33_control")),
+    ("D04", "T33", "the report hands batch.json's plan to the merge check",
+     "\"mc\": mc_reading(records, batch.get(\"mc_planned\") if isinstance(batch, dict) else None)}",
+     "\"mc\": mc_reading(records)}", ("test_t33_fault",)),
+    ("D05", "T33", "an MC batch whose every planned job was dropped reads STOP, never None",
+     "    if not legs and not jobs and not planned_jobs:", "    if not legs and not jobs:", ("test_t33_fault",)),
+    ("D06", "T33", "a planned MC job that RAN (a leg, no job record) is never called DROPPED",
+     "        if not members and job_id not in jobs:", "        if job_id not in jobs:", ("test_t33_control",)),
+    ("V6M2", "T37", "the --parallel refusal is not skipped on --resume (verifier round 6's V6M2)",
+     "    if int(args.parallel) < 1:", "    if int(args.parallel) < 1 and not args.resume:", ("test_t37_fault",)),
+    ("V6M3", "T37", "the --parallel refusal is not a trainer-only one (verifier round 6's V6M3)",
+     "    if int(args.parallel) < 1:", "    if int(args.parallel) < 1 and mode == \"trainer\":", ("test_t37_fault",)),
+    ("P04", "T37", "a --resume at --parallel 1 carries no --parallel refusal (the refusal's other side on --resume)",
+     "    if int(args.parallel) < 1:", "    if int(args.parallel) < 1 or args.resume:", ("test_t37_control",)),
+]
+
 #: (name, T, the guard, anchor, replacement, why no test catches it ALONE): fix round 3's sweep found these guards
 #: REDUNDANT on every arm the suite can plant, so each is predicted REDUNDANT ALONE (the copy passes every test)
 _REDUNDANT = [
@@ -760,7 +794,7 @@ for _name, _what, _edit, _test in _MORE:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
-for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3 + _ROUND4 + _ROUND5:
+for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3 + _ROUND4 + _ROUND5 + _ROUND6:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],

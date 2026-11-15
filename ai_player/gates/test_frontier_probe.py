@@ -2762,11 +2762,13 @@ def mc_leg(leg: str, go: bool = True, why: str = "C1-C6 held") -> dict:
             "job": {"id": "MC-X", "mc": True, "legs_planned": [leg]}}
 
 
-def mc_batch(M, tmp: Path, jobs: list[dict], plans: dict | None = None, timed: bool = False) -> SimpleNamespace:
-    """An MC batch (2.4b) through the REAL run_batch in development mode (a temp ledger and evidence folder, --parallel 8,
-    100 GB free): stub children run in this process (`plans` per chain), or with `timed` stay running for 3 polls each, the
-    children alive at each launch counted. Returns the exit, the ledger entry's verdict, the most alive at once and
-    batch.json."""
+def mc_batch(M, tmp: Path, jobs: list[dict], plans: dict | None = None, timed: bool = False, parallel: int = 8,
+             out_capped: bool = False) -> SimpleNamespace:
+    """An MC batch (2.4b) through the REAL run_batch in development mode (a temp ledger and evidence folder, --parallel
+    `parallel`, 100 GB free): stub children run in this process (`plans` per chain), or with `timed` stay running for 3
+    polls each, the children alive at each launch counted; with `out_capped` --out reads over its cap at every tick (so a
+    job still pending after the first pass is DROPPED unlaunched; the planted clock fails past 200 passes). Returns the
+    exit, the ledger entry's verdict, the most alive at once, batch.json and the launches."""
     (tmp / "ledger.json").parent.mkdir(parents=True, exist_ok=True)
     (tmp / "ledger.json").write_text(json.dumps({"what": "", "entries": []}), encoding="utf-8")
     stages = {"REAL": fake_stage(M, tmp, "REAL")}
@@ -2779,12 +2781,17 @@ def mc_batch(M, tmp: Path, jobs: list[dict], plans: dict | None = None, timed: b
         handles.append(TimedChild(M, job, passes=3))
         most[0] = max(most[0], sum(1 for h in handles if not h.done))
         return handles[-1]
-    out = tmp / "out"
-    code = run_quiet(M, batch_args(write_jobs(tmp, jobs), out, stages, trainer=False, prediction=prediction),
-                     batch_deps(M, tmp, plans=plans, spawn=spawn if timed else None))
+    out = (tmp / "out").resolve()
+    launched: list = []
+    sizes = {"folder_bytes": lambda path: M.OUT_CAP_BYTES + 1 if Path(path).resolve() == out else 0} if out_capped else {}
+    code = run_quiet(M, batch_args(write_jobs(tmp, jobs), out, stages, trainer=False, prediction=prediction,
+                                   parallel=parallel),
+                     batch_deps(M, tmp, plans=plans, spawn=spawn if timed else None, log=launched,
+                                limit=200 if out_capped else 2000, **sizes))
     entries = ledger.load(tmp / "ledger.json")["entries"]
     return SimpleNamespace(code=code, verdict=str(entries[0].get("verdict")) if len(entries) == 1 else f"{entries}",
-                           most=most[0], batch=json.loads((out / M.BATCH_FILE).read_text(encoding="utf-8")))
+                           most=most[0], batch=json.loads((out / M.BATCH_FILE).read_text(encoding="utf-8")),
+                           launched=[chain for _, chain in launched])
 
 
 MC_READS = "THE MERGE CHECK (MC, 2.4b, a hard-break check, never a rate) reads"
@@ -2828,6 +2835,20 @@ def case_t33_mc(M, tmp):
     stop = mc_batch(M, tmp / "verdict", jobs, plans={jobs[1]["chain"]: {"L1": {"exit": 124, "no_verdict": True}}})
     ok(stop.code == 0 and stop.verdict.startswith(f"DEVELOPMENT, never graded: {MC_READS} STOP over 3 chains: "
                                                   f"{jobs[1]['chain']} L1: HUNG"), f"the entry reads STOP: {stop.verdict!r}")
+    # (fix round 6, verifier round 6's V6-1, MAJOR) a PLANNED MC chain DROPPED before its launch is a chain that did not run,
+    # never no chain: an MC batch of 3 at P 2 whose --out reads over its cap launches 2 (both reach) and DROPS the third,
+    # and its entry reads STOP over 3 chains naming it (it read "PASS over 2 chains" before the fix)
+    jobs = M.plan_jobs("MC", 6721, data(), to="ch1_pokedex")
+    dropped = mc_batch(M, tmp / "dropped", jobs, parallel=2, out_capped=True)
+    eq((dropped.code, dropped.launched), (0, [jobs[0]["chain"], jobs[1]["chain"]]),
+       "the --out cap: 2 launched, the third never")
+    ok(dropped.verdict.startswith(f"DEVELOPMENT, never graded: {MC_READS} STOP over 3 chains: {jobs[2]['chain']}: "
+                                  "DROPPED, not run"), f"a dropped MC chain reads STOP over 3: {dropped.verdict[:300]!r}")
+    eq(M.mc_reading([], {"MC-Y": ["L1"]}),
+       {"reading": "STOP", "chains": 1, "problems": ["MC-Y: DROPPED, not run (no leg and no job record)"]},
+       "an MC batch whose every planned job was dropped reads STOP, never None")
+    eq(M.mc_reading([mc_leg("L1")], {"MC-X": ["L1"], "MC-Y": ["L1"]})["chains"], 2,
+       "the chain count is the planned one, not the started one")
     # an MC job whose goal policy is not "never" is refused by plan and run (round 2's V59, a NIT until round 3)
     jobs = M.plan_jobs("MC", 6701, data(), to="ch1_pokedex")
     jobs[0]["goals"] = "carry"
@@ -2872,6 +2893,17 @@ def case_t33_control(M, tmp):
     passing = mc_batch(M, tmp / "verdict", M.plan_jobs("MC", 6721, data(), to="ch1_pokedex"))
     ok(passing.code == 0 and passing.verdict.startswith(f"DEVELOPMENT, never graded: {MC_READS} PASS over 3 chains; "),
        f"the entry reads PASS: {passing.verdict!r}")
+    # (fix round 6, V6-1's CONTROL) the same 3 chains at P 2 with no cap: all 3 launch and reach, PASS over 3 chains, and a
+    # planned job that RAN (a leg, no job record) is never called DROPPED; batch.json carries the plan
+    jobs = M.plan_jobs("MC", 6721, data(), to="ch1_pokedex")
+    p2 = mc_batch(M, tmp / "p2", jobs, parallel=2)
+    eq((p2.code, p2.launched), (0, [job["chain"] for job in jobs]), "P 2, no cap: all 3 launch")
+    ok(p2.verdict.startswith(f"DEVELOPMENT, never graded: {MC_READS} PASS over 3 chains; "),
+       f"P 2, no cap: the entry reads PASS over 3: {p2.verdict[:300]!r}")
+    eq(p2.batch["mc_planned"], {job["chain"]: [leg["leg"] for leg in job["legs"]] for job in jobs},
+       "batch.json names every planned MC chain and its legs")
+    eq(M.mc_reading([mc_leg("L1")], {"MC-X": ["L1"]}), {"reading": "PASS", "chains": 1, "problems": []},
+       "a planned MC job that ran its leg: PASS")
 
 
 # ---------------------------------------------------------------------------------------------------- T34: WP1b dependency and fallback
@@ -3108,21 +3140,32 @@ def case_t36_control(M, tmp):
 
 
 # ---------------------------------------------------------------------------------------------------- T37: --parallel under 1
-def parallel_run(M, tmp: Path, parallel: int, env: dict | None = None) -> SimpleNamespace:
-    """One P1 REAL job through the REAL run_batch (--trainer, a temp band ledger, a valid fake stage, stub children) with
-    `--parallel parallel` and the job's env `env`; the planted clock FAILS past 50 passes, so a scheduler that admits no
-    job fails this case fast instead of hanging the suite. Returns the exit, the printed text, the launches, whether the
-    temp ledger is byte-unchanged and whether --out was made."""
-    band = band_ledger(tmp / "ledger.json").read_bytes()
+def parallel_run(M, tmp: Path, parallel: int, env: dict | None = None, trainer: bool = True,
+                 resume: bool = False) -> SimpleNamespace:
+    """One P1 REAL job through the REAL run_batch (--trainer with a temp band ledger, or with `trainer` False development
+    mode with an EMPTY temp ledger and a prediction file; a valid fake stage, stub children) with `--parallel parallel`,
+    the job's env `env` and `--resume resume`; the planted clock FAILS past 50 passes, so a scheduler that admits no job
+    fails this case fast instead of hanging the suite. Returns the exit, the printed text, the launches, whether the temp
+    ledger is byte-unchanged, its entries and whether --out was made."""
+    prediction = None
+    if trainer:
+        band_ledger(tmp / "ledger.json")
+    else:
+        tmp.mkdir(parents=True, exist_ok=True)
+        (tmp / "ledger.json").write_text(json.dumps({"what": "", "entries": []}), encoding="utf-8")
+        prediction = tmp / "p.txt"
+        prediction.write_text("T37 predicted\n", encoding="utf-8")
+    band = (tmp / "ledger.json").read_bytes()
     stages = {"REAL": fake_stage(M, tmp, "REAL")}
     jobs = [job for job in M.plan_jobs("P1", 2000001, data()) if job["stage"] == "REAL"][:1]
     if env is not None:
         jobs[0]["env"] = env
     spawned: list = []
-    code, text = refusal_of(M, batch_args(write_jobs(tmp, jobs), tmp / "out", stages, parallel=parallel),
+    code, text = refusal_of(M, batch_args(write_jobs(tmp, jobs), tmp / "out", stages, trainer=trainer,
+                                          prediction=prediction, parallel=parallel, resume=resume),
                             batch_deps(M, tmp, log=spawned, limit=50))
     return SimpleNamespace(code=code, text=text, spawned=spawned, ledger_same=(tmp / "ledger.json").read_bytes() == band,
-                           out_made=(tmp / "out").exists())
+                           entries=ledger.load(tmp / "ledger.json")["entries"], out_made=(tmp / "out").exists())
 
 
 def case_t37_parallel(M, tmp):
@@ -3134,12 +3177,33 @@ def case_t37_parallel(M, tmp):
            f"--parallel {parallel}: refused (exit 2), nothing launched, the ledger byte-unchanged, --out not made "
            f"({r.text[-300:]!r})")
         ok(f"REFUSED: --parallel {parallel} is under 1" in r.text, f"the refusal names the value: {r.text[-300:]!r}")
+    # (fix round 6, verifier round 6's V6-2) the refusal is not a trainer-only one: in DEVELOPMENT mode --parallel 0 is
+    # refused before ledger.begin (the temp ledger holds no entry) and before --out is made
+    r = parallel_run(M, tmp / "dev0", 0, trainer=False)
+    eq((r.code, r.spawned, r.ledger_same, r.entries, r.out_made), (2, [], True, [], False),
+       f"development mode, --parallel 0: refused, nothing launched, no ledger entry, --out not made ({r.text[-300:]!r})")
+    ok("REFUSED: --parallel 0 is under 1" in r.text, f"development mode names the refusal: {r.text[-300:]!r}")
+    # ... and it is not skipped on --resume: the --parallel refusal is among the REFUSED lines of a resume
+    r = parallel_run(M, tmp / "res0", 0, resume=True)
+    refusals = [line for line in r.text.splitlines() if line.startswith("REFUSED: ")]
+    eq((r.code, r.spawned), (2, []), f"--resume with --parallel 0: refused, nothing launched ({r.text[-300:]!r})")
+    ok(any(line.startswith("REFUSED: --parallel 0 is under 1") for line in refusals),
+       f"--resume: the --parallel refusal is among the REFUSED lines: {refusals}")
 
 
 def case_t37_control(M, tmp):
     r = parallel_run(M, tmp / "p1", 1)
     eq((r.code, r.spawned, r.ledger_same), (0, [("spawn", "REAL-N-STRE-2000001")], True), "--parallel 1 runs its one job")
     ok("--parallel" not in r.text, f"no --parallel refusal at 1: {r.text[-300:]!r}")
+    # (fix round 6, V6-2's CONTROLs) development mode at --parallel 1 runs its job; a --resume at --parallel 1 (refused for
+    # its missing batch.json) carries no --parallel refusal
+    r = parallel_run(M, tmp / "dev1", 1, trainer=False)
+    eq((r.code, r.spawned, len(r.entries)), (0, [("spawn", "REAL-N-STRE-2000001")], 1),
+       f"development mode, --parallel 1: runs its one job, one ledger entry ({r.text[-300:]!r})")
+    ok("--parallel" not in r.text, f"development mode: no --parallel refusal at 1: {r.text[-300:]!r}")
+    r = parallel_run(M, tmp / "res1", 1, resume=True)
+    ok(r.code == 2 and "holds no batch.json" in r.text and "--parallel" not in r.text,
+       f"--resume at --parallel 1: refused for its batch.json only, no --parallel refusal: {r.text[-300:]!r}")
 
 
 # ---------------------------------------------------------------------------------------------------- T38: a job's env is EMPTY
