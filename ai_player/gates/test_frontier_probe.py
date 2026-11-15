@@ -2705,8 +2705,12 @@ def case_t32_goal_custody(M, tmp):
     eq(by_leg(records)["L2"]["class"], M.REFUSED, "a next leg whose snapshot's sha256 differs")
     jobs = M.plan_jobs("MC", 6701, data(), to="ch1_pokedex")
     jobs[0]["env"] = {ENV_GOALS: "x"}
-    ok(any(ENV_GOALS in p for p in M.jobs_problems(jobs)), "an MC job naming AI_PLAYER_GOALS: refused")
-    refused(M, M.plan_jobs, "MC", 6701, data(), "ch1_pokedex", {ENV_GOALS: "x"})
+    # its OWN reason (the lead, 2026-11-15: fix round 5's empty-env rule refuses the key too, so a check that only
+    # some refusal names it passed with this guard removed: G84 read NOT CAUGHT in the first full lane)
+    mc_reason = f"an MC job never sends {ENV_GOALS} (E0's harness, 2.4b)"
+    ok(any(p.endswith(mc_reason) for p in M.jobs_problems(jobs)), "an MC job naming AI_PLAYER_GOALS: refused, MC's reason")
+    msg = refused(M, M.plan_jobs, "MC", 6701, data(), "ch1_pokedex", {ENV_GOALS: "x"})
+    ok(mc_reason in msg, f"plan's refusal gives MC's reason: {msg}")
     # AI_PLAYER_GOALS on a leg that carries NO snapshot (C5, 3.11; verifier round 3, N1): a GOALS-OFF chain's L2 whose
     # checked environment names it (a harness regression, planted): REFUSED before its launch
     off = job_of(M, tmp / "off", seed=7603, goals="off")
