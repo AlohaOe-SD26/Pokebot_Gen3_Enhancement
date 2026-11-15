@@ -11,7 +11,7 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (222 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (229 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
            caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
@@ -42,6 +42,10 @@ THE TABLE (222 mutants; the spec's "about 54" predates the amendments' tests T31
            the LEDGER-PATH half of its (ledger path, entry id) key (H07) and the end-map rule without CUT_WORLD (H09), each
            now caught by the FAULT arm fix round 4 added to T24d or T7; and the other half of each rule, the key's id
            (U02) and HUNG (U01), caught by the arm that was there.
+  P01-P03, E01-E02, H02, H03   fix round 5 (2026-11-15): `run` refuses --parallel under 1 (P01; its bound at 0, P02, and
+           at 2, P03, the CONTROL side; T37), a job's env must be EMPTY (E01; every allowed key, E02; T38), and the verifier's
+           round-4 NITs H02 (an ABORTED MC verdict's reading, T14) and H03 (an MC verdict's own chain count, T33's CONTROL),
+           their names, anchors and replacements verbatim.
   H1-H4    the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
@@ -671,6 +675,28 @@ _ROUND4 = [
      ("test_t7_fault",)),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): fix round 5 (2026-11-15, on 615ad99d): the
+#: guards it added (`run` refuses --parallel under 1, V4-N3, rated MAJOR by impact: P01-P03; a job's env must be EMPTY:
+#: E01-E02) and verifier round 4's two NITs, H02 and H03 (names, anchors and replacements verbatim from its hunt,
+#: `_ai_lab/a1/verify4/v4_hunt.py`; reproduced "failing (0)" on 615ad99d before the fix), each now caught by the arm fix
+#: round 5 added to T14 or T33's CONTROL
+_ROUND5 = [
+    ("P01", "T37", "run refuses --parallel under 1 (P 0 admits no job: the scheduler would never end)",
+     "    if int(args.parallel) < 1:", "    if False:", ("test_t37_fault",)),
+    ("P02", "T37", "the --parallel bound is 1, not 0 (--parallel 0 refused, not only a negative P)",
+     "    if int(args.parallel) < 1:", "    if int(args.parallel) < 0:", ("test_t37_fault",)),
+    ("P03", "T37", "the --parallel bound is 1, not 2 (--parallel 1 runs: the refusal's other side)",
+     "    if int(args.parallel) < 1:", "    if int(args.parallel) < 2:", ("test_t37_control",)),
+    ("E01", "T38", "plan and run refuse an ALLOWED key in a job's env (it is never sent: the probe sets every key itself)",
+     "if k in ENV_ALLOWED)", "if k in ENV_ALLOWED and False)", ("test_t38_fault",)),
+    ("E02", "T38", "a job's env refuses EVERY allowed key, not only AI_PLAYER_TARGET",
+     "if k in ENV_ALLOWED)", "if k == ENV_TARGET)", ("test_t38_fault",)),
+    ("H02", "T14", "an ABORTED MC batch's ledger verdict names the merge check's reading (verifier round 4's V4-N1)",
+     "GB free): {reading}{legs} legs ran", "GB free): {legs} legs ran", ("test_t14_fault",)),
+    ("H03", "T33", "an MC verdict names the batch's own chain count, not a fixed 3 (verifier round 4's V4-N2)",
+     "f\"{mc['chains']} chains{", "f\"3 chains{", ("test_t33_control",)),
+]
+
 #: (name, T, the guard, anchor, replacement, why no test catches it ALONE): fix round 3's sweep found these guards
 #: REDUNDANT on every arm the suite can plant, so each is predicted REDUNDANT ALONE (the copy passes every test)
 _REDUNDANT = [
@@ -734,7 +760,7 @@ for _name, _what, _edit, _test in _MORE:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
-for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3 + _ROUND4:
+for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3 + _ROUND4 + _ROUND5:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],

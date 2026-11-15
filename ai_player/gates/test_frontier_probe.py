@@ -1,5 +1,5 @@
-"""UNIT PROOFS of A1's frontier probe (`gates/frontier_probe.py`, spec `2026-11-11-A1-FRONTIER-PROBE-SPEC.md` 4.1: T1-T36),
-on PLANTED facts, rows, records, run folders and milestone data, with STUB launches (no emulator, no live run). Test side.
+"""UNIT PROOFS of A1's frontier probe (`gates/frontier_probe.py`, spec `2026-11-11-A1-FRONTIER-PROBE-SPEC.md` 4.1: T1-T36;
+T37 and T38 are fix round 5's: --parallel under 1 and a job's env, each refused), on PLANTED facts, rows, records, run folders and milestone data, with STUB launches (no emulator, no live run). Test side.
 
     py -3.12 -B ai_player/gates/test_frontier_probe.py         (or: py -3.12 -B -m unittest ai_player.gates.test_frontier_probe)
 
@@ -1270,17 +1270,17 @@ def one_tick(M, tmp: Path, job: dict, world=None, profile=0, free=100.0, out_byt
 
 
 def disk_batch(M, tmp: Path, free_at_tick: float = 100.0, out_bytes: int = 0,
-               spawn_raises: bool = False) -> SimpleNamespace:
+               spawn_raises: bool = False, mc: bool = False) -> SimpleNamespace:
     """Two plain jobs at P 1 through the REAL `run_batch` in development mode (a temp ledger and evidence folder; stub
     children that end at their third poll, or at their next poll once killed, then with no job record): the TICK of the
     pass that launched the first job reads `free_at_tick` GB free while the second job is still PENDING (every other free
     reading is 100.0 GB, so the disk reservation never holds the second job), and --out's size reads `out_bytes`
     throughout. `spawn_raises`: the first launch raises, after `ledger.begin` (a harness error). The guard's TERMINAL
     consequences (verifier round 2, R2-M1; 2.7, 3.2): who launched, who was dropped and why, who was killed, the exit and
-    the entry's verdict."""
+    the entry's verdict. `mc`: the two jobs are MC jobs (the first two of an MC plan, seeds 6741-6742; fix round 5)."""
     (tmp / "ledger.json").parent.mkdir(parents=True, exist_ok=True)
     (tmp / "ledger.json").write_text(json.dumps({"what": "", "entries": []}), encoding="utf-8")
-    jobs = plain_jobs(M, 2, first=7601)
+    jobs = M.plan_jobs("MC", 6741, data(), to="ch1_pokedex")[:2] if mc else plain_jobs(M, 2, first=7601)
     stages = {"REAL": fake_stage(M, tmp, "REAL")}
     prediction = tmp / "p.txt"
     prediction.write_text("x\n", encoding="utf-8")
@@ -1400,6 +1400,14 @@ def case_t14_disk(M, tmp):
     eq(a.killed, [101], "the running launch killed")
     eq(a.code, 3, "an ABORTED batch exits 3")
     ok(a.verdict.startswith("ABORTED"), f"the entry is finished ABORTED: {a.verdict!r}")
+    # (fix round 5, verifier round 4's V4-N1 = H02) an ABORTED MC batch's entry names the merge check's reading, as
+    # finish_verdict writes it; the CONTROL beside it: an aborted batch that is not MC names none
+    amc = disk_batch(M, tmp / "bamc", free_at_tick=39.99, mc=True)
+    eq((amc.code, amc.spawned, amc.killed), (3, [amc.chains[0]], [101]), "an MC batch ABORTED by the disk tick")
+    ok(amc.verdict.startswith(f"ABORTED (disk: under 40 GB free): {MC_READS} STOP over ")
+       and f"{amc.chains[0]} L1: not run" in amc.verdict, f"an ABORTED MC entry names its reading: {amc.verdict!r}")
+    ok(MC_READS not in a.verdict and "MERGE CHECK" not in a.verdict,
+       f"an ABORTED batch that is not MC names no merge-check reading: {a.verdict!r}")
     b = disk_batch(M, tmp / "bb", out_bytes=5_000_000_001)
     ok((5_000_000_001, 1) in b.out_reads, f"--out read 5,000,000,001 bytes with the second job pending: {b.out_reads}")
     eq(b.spawned, [b.chains[0]], "--out over its cap: the pending job is never launched")
@@ -2856,6 +2864,10 @@ def case_t33_control(M, tmp):
     capped = mc_batch(M, tmp / "p3", six, timed=True)
     eq((capped.code, capped.most, capped.batch["parallel"], capped.batch["parallel_asked"]), (0, 3, 3, 8),
        "an MC batch of 6 runs at most 3 at once (asked 8)")
+    # (fix round 5, verifier round 4's V4-N2 = H03) the verdict's chain count is the batch's own, not a fixed 3: these 6
+    # chains (stub children that write no leg) finish the entry reading STOP over 6 chains
+    ok(capped.verdict.startswith(f"DEVELOPMENT, never graded: {MC_READS} STOP over 6 chains: "),
+       f"a 6-chain MC entry reads over 6 chains: {capped.verdict[:200]!r}")
     # MC's LEDGER VERDICT (2.4b; verifier round 3, N7): an MC batch whose 3 chains all reach finishes its entry reading PASS
     passing = mc_batch(M, tmp / "verdict", M.plan_jobs("MC", 6721, data(), to="ch1_pokedex"))
     ok(passing.code == 0 and passing.verdict.startswith(f"DEVELOPMENT, never graded: {MC_READS} PASS over 3 chains; "),
@@ -3095,6 +3107,68 @@ def case_t36_control(M, tmp):
     eq([(b["chapter"], "bossprep" in b) for b in blockers], [(1, False)], "a chapter 1 key: no boss-prep breakdown")
 
 
+# ---------------------------------------------------------------------------------------------------- T37: --parallel under 1
+def parallel_run(M, tmp: Path, parallel: int, env: dict | None = None) -> SimpleNamespace:
+    """One P1 REAL job through the REAL run_batch (--trainer, a temp band ledger, a valid fake stage, stub children) with
+    `--parallel parallel` and the job's env `env`; the planted clock FAILS past 50 passes, so a scheduler that admits no
+    job fails this case fast instead of hanging the suite. Returns the exit, the printed text, the launches, whether the
+    temp ledger is byte-unchanged and whether --out was made."""
+    band = band_ledger(tmp / "ledger.json").read_bytes()
+    stages = {"REAL": fake_stage(M, tmp, "REAL")}
+    jobs = [job for job in M.plan_jobs("P1", 2000001, data()) if job["stage"] == "REAL"][:1]
+    if env is not None:
+        jobs[0]["env"] = env
+    spawned: list = []
+    code, text = refusal_of(M, batch_args(write_jobs(tmp, jobs), tmp / "out", stages, parallel=parallel),
+                            batch_deps(M, tmp, log=spawned, limit=50))
+    return SimpleNamespace(code=code, text=text, spawned=spawned, ledger_same=(tmp / "ledger.json").read_bytes() == band,
+                           out_made=(tmp / "out").exists())
+
+
+def case_t37_parallel(M, tmp):
+    # (fix round 5, verifier round 4's V4-N3, rated MAJOR by impact: the never-hang rule) P under 1 admits no job, so the
+    # scheduler would wait forever: `run` refuses it before --out is made, with no ledger write and no launch
+    for parallel in (0, -1):
+        r = parallel_run(M, tmp / f"p{parallel}", parallel)
+        eq((r.code, r.spawned, r.ledger_same, r.out_made), (2, [], True, False),
+           f"--parallel {parallel}: refused (exit 2), nothing launched, the ledger byte-unchanged, --out not made "
+           f"({r.text[-300:]!r})")
+        ok(f"REFUSED: --parallel {parallel} is under 1" in r.text, f"the refusal names the value: {r.text[-300:]!r}")
+
+
+def case_t37_control(M, tmp):
+    r = parallel_run(M, tmp / "p1", 1)
+    eq((r.code, r.spawned, r.ledger_same), (0, [("spawn", "REAL-N-STRE-2000001")], True), "--parallel 1 runs its one job")
+    ok("--parallel" not in r.text, f"no --parallel refusal at 1: {r.text[-300:]!r}")
+
+
+# ---------------------------------------------------------------------------------------------------- T38: a job's env is EMPTY
+def case_t38_job_env(M, tmp):
+    # (fix round 5) the probe derives every launch key itself (run_job's `sent`) and never sends a job's own env, so a key
+    # there would be silently dropped: plan and run refuse ANY key, the allowed ones each named
+    msg = refused(M, M.plan_jobs, "P1", 6601, data(), None, {ENV_TARGET: "ch1_pokedex"})
+    ok(f"{ENV_TARGET} is set by the probe itself" in msg, f"plan refuses an allowed key: {msg}")
+    for key in M.ENV_ALLOWED:
+        jobs = M.plan_jobs("P1", 6601, data())
+        jobs[0]["env"] = {key: "1"}
+        ok(any(p.endswith(f"{key} is set by the probe itself: a job's env is never sent") for p in M.jobs_problems(jobs)),
+           f"jobs_problems refuses a job env naming {key}")
+    r = parallel_run(M, tmp / "clock", 1, env={"AI_PLAYER_CLOCK": "1"})
+    eq((r.code, r.spawned, r.ledger_same, r.out_made), (2, [], True, False),
+       f"run: a jobs.json whose job env names AI_PLAYER_CLOCK: refused, no launch, no ledger write, --out not made "
+       f"({r.text[-300:]!r})")
+    ok("AI_PLAYER_CLOCK is set by the probe itself" in r.text, f"the refusal names the key: {r.text[-300:]!r}")
+
+
+def case_t38_control(M, tmp):
+    for batch, first, to in (("P1", 6601, None), ("GM", 6611, None), ("WP1", 6621, None), ("MC", 6701, "ch1_pokedex")):
+        jobs = M.plan_jobs(batch, first, data(), to)
+        eq(([j["env"] for j in jobs if j["env"] != {}], M.jobs_problems(jobs)), ([], []),
+           f"every {batch} job carries env {{}} and is accepted")
+    r = parallel_run(M, tmp / "empty", 1, env={})
+    eq((r.code, r.spawned), (0, [("spawn", "REAL-N-STRE-2000001")]), "a job whose env is {} runs")
+
+
 # ---------------------------------------------------------------------------------------------------- AM-11: compare and replay
 def moves(*pairs) -> list[dict]:
     return [{"frame": f, "decision": "decide", "action": a, "reason": "r"} for f, a in pairs]
@@ -3229,12 +3303,13 @@ CASES = [
     ("T31", case_t31_loop, case_t31_control), ("T32", case_t32_goal_custody, case_t32_control),
     ("T33", case_t33_mc, case_t33_control), ("T34", case_t34_dependency, case_t34_control),
     ("T35", case_t35_stale, case_t35_control), ("T36", case_t36_raise, case_t36_control),
+    ("T37", case_t37_parallel, case_t37_control), ("T38", case_t38_job_env, case_t38_control),
     ("AM11c", case_am11_compare, case_am11_compare_control), ("AM11r", case_am11_replay, case_am11_replay_control),
 ]
 
 
 class GuardTests(Base):
-    """One FAULT and one CONTROL test per guard (T1-T36); the methods are made from CASES below."""
+    """One FAULT and one CONTROL test per guard (T1-T38); the methods are made from CASES below."""
 
 
 def _make(fn):

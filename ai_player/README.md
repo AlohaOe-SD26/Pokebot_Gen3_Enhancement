@@ -460,7 +460,7 @@ trainer calls (`run --trainer`). Its commands, one row each:
 
 ```
 py -3.12 -B ai_player/gates/frontier_probe.py stage --commit SHA --stage DIR [--repo DIR] [--sandbox DIR] [--donor DIR] [--mutant NAME] [--starts G1,...] [--g-root DIR] [--c-root DIR]
-py -3.12 -B ai_player/gates/frontier_probe.py plan P1|GM|WP1|MC --first-seed N [--to T] [--env K=V ...] > jobs.json
+py -3.12 -B ai_player/gates/frontier_probe.py plan P1|GM|WP1|MC --first-seed N [--to T] > jobs.json
 py -3.12 -B ai_player/gates/frontier_probe.py run --jobs F --out DIR --stage ARM=DIR[,ARM=DIR] (--ledger development --prediction-file F | --trainer) [--parallel 8] [--deadline EPOCH] [--max-wait 7200] [--resume]
 py -3.12 -B ai_player/gates/frontier_probe.py report DIR
 py -3.12 -B ai_player/gates/frontier_probe.py replay EXAMPLE --stage DIR --profile NAME [--seed N] [--frames F] [--code-tree DIR]
@@ -479,15 +479,19 @@ ledger entry and its evidence, `--trainer` writes nothing tracked); prints the b
 (frame, action) of two action logs (offline); writes the AI trainer's seed band row (once); and takes a stage down, its
 junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run from its stage. Exits: 0 ran, 2 refused
 before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
-crash, 6 the AI-only stop. Its offline proofs are `gates/test_frontier_probe.py` (T1-T36, T24d and AM-11, each a FAULT
-and a CONTROL) and `gates/revert_frontier.py` (222 mutants: each guard the suite tests, broken in a copy, fails its
-predicted test; Z25, the continue rule's class half, is REDUNDANT ALONE, its purity half stopping the same legs). Every
-guard the four verifier rounds named now has a case that fails with that guard removed (its row CAUGHT), round 4's
-two MINORs (2026-11-15) included: a development resume skips its own entry only in its OWN ledger, never a same-id entry of a
-divergent copy (H07, T24d), and a CUT-WORLD leg's end map is its kept world tail's (H09, T7). Not asserted: round 4's
-two NITs (an ABORTED MC batch's verdict naming its reading, H02; an MC verdict's chain count other than 3, H03); and,
-found outside round 4's hunt and open for the lead, `run --parallel 0` (or below) is accepted and never ends
-(`parallel_of` gives 0 with no refusal, so `drive` admits no job and nothing but a Ctrl+C ends its loop). Fix round 3's
+crash, 6 the AI-only stop. A job's env must be EMPTY (the probe sets every launch key itself, so `plan` and `run` refuse a
+job env naming any key), and `run` refuses `--parallel` under 1 (no job could ever start). Its offline proofs are
+`gates/test_frontier_probe.py` (T1-T38, T24d and AM-11, each a FAULT and a CONTROL) and `gates/revert_frontier.py` (229
+mutants: each guard the suite tests, broken in a copy, fails its predicted test; Z25, the continue rule's class half, is
+REDUNDANT ALONE, its purity half stopping the same legs). Every guard the five verifier rounds named now has a case that
+fails with that guard removed, though the 7 rows fix round 5 added (2026-11-15: `--parallel` under 1, P01-P03, T37; a job
+env key, E01-E02, T38; an ABORTED MC verdict's reading, H02, T14; an MC verdict's own chain count, H03, T33) were run BY
+NAME only, and the full lane over all 229 rows is build step 4's. A development resume skips its own entry only in
+its OWN ledger, never a same-id entry of a divergent copy (H07, T24d), so a FAITHFUL copy of the ledger that holds the
+batch's own entry also refuses its resume (safe: a refusal writes nothing; reconcile the copy first). Still open after
+fix round 5: an MC batch's reading counts only the chains that STARTED, so a job DROPPED before its launch (ABORT.txt,
+STOP.txt, the --out cap, --max-wait) is not one of its chains (an MC batch of 2 aborted by the disk tick reads "STOP over
+1 chains"); that is for the lead, and is not fixed here. Fix round 3's
 sweep of the refusal family (2026-11-14; code
 outside it was not swept) left five guards with none, each redundant or unreachable rather than unproven: `run`'s P_fit
 refusal (P_fit under 1 needs under 44.25 GB free, where the 45 GB start floor refuses first; `parallel_of` itself is

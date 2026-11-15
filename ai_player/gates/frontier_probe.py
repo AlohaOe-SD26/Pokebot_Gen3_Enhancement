@@ -17,9 +17,9 @@ next leg by `live_chain.continue_after` itself. `live_chain.py`, `live_step5.py`
         archive` (evidence excluded), a build root whose modules, plugins, mgba and roms are JUNCTIONS to the sandbox, the
         donor profile `ai-fp-donor`, the starts COPIED and custody-checked (md5, the start truth holding ch5_rival_meet's
         proof, a world file of JSON lines, one starter line), and manifest.json (play digest, digest, md5s, junctions)
-    py -3.12 -B ai_player/gates/frontier_probe.py plan P1|GM|WP1|MC --first-seed N [--to T] [--env K=V ...] > jobs.json
-        the batch's job list (pure; every job's environment keys are checked against the allow-list; MC sends no
-        AI_PLAYER_GOALS)
+    py -3.12 -B ai_player/gates/frontier_probe.py plan P1|GM|WP1|MC --first-seed N [--to T] > jobs.json
+        the batch's job list (pure; every job's env is EMPTY: the probe sets every launch key itself, and `plan` and `run`
+        refuse a job env naming any key; MC sends no AI_PLAYER_GOALS)
     py -3.12 -B ai_player/gates/frontier_probe.py run --jobs F --out DIR --stage ARM=DIR[,ARM=DIR]
             (--ledger development --prediction-file F | --trainer) [--parallel 8] [--deadline EPOCH] [--max-wait 7200]
             [--resume]
@@ -1312,7 +1312,8 @@ def make_job(batch: str, arm: str, stage: str, kind: str, persona: str, starter:
 
 def plan_jobs(batch: str, first: int, data: dict, to: str | None = None, env: dict | None = None,
               repo: Path | None = None) -> list[dict]:
-    """THE JOB LIST of a batch (2.4, 2.4b; pure, and every job's environment is checked: a FAULT switch is refused):
+    """THE JOB LIST of a batch (2.4, 2.4b; pure, and every job's env is checked: it must be EMPTY, so `env` given here is
+    always refused, a FAULT switch with its own message):
       P1   REAL and WALL-OLDALE, the 3 diagonal New Game chains, the SAME 3 seeds in both arms, L1-L2, snapshots carried
       GM   one diagonal New Game chain L1-L5 (it makes the start), then GOALS-ON and GOALS-OFF from its L5 end on 2 seeds,
            L6 (dropped as VACUOUS when its end holds no discriminating tile)
@@ -1385,7 +1386,8 @@ def plan_jobs(batch: str, first: int, data: dict, to: str | None = None, env: di
 
 def jobs_problems(jobs: list[dict]) -> list[str]:
     """What `plan` and `run` refuse in a job list (exit 2): an environment key off the allow-list (a FAULT switch, a
-    POKEBOT_* or PYTHON* variable), AI_PLAYER_GOALS on an MC job, a profile name the launcher refuses or that is not the
+    POKEBOT_* or PYTHON* variable), AI_PLAYER_GOALS on an MC job, ANY key at all (a job's env must be empty: the probe
+    sets every launch key itself; fix round 5), a profile name the launcher refuses or that is not the
     probe's, a chain id twice, an MC seed outside 6701-6799, an MC job that carries goals."""
     from ai_player.host import launcher
 
@@ -1395,6 +1397,10 @@ def jobs_problems(jobs: list[dict]) -> list[str]:
         name = job.get("chain")
         for problem in env_problems(job.get("env") or {}, bool(job.get("mc"))):
             problems.append(f"{name}: {problem}")
+        # (fix round 5) a job's env must be EMPTY: run_job derives every launch key itself and never sends job["env"], so
+        # an allowed key there would pass and be silently dropped
+        for key in sorted(k for k in (job.get("env") or {}) if k in ENV_ALLOWED):
+            problems.append(f"{name}: {key} is set by the probe itself: a job's env is never sent")
         profile = str(job.get("profile") or "")
         if not launcher._PROFILE_NAME_RE.match(profile) or not profile.startswith(PROFILE_PREFIX):
             problems.append(f"{name}: the profile {profile!r} is not a probe profile the launcher accepts")
@@ -2609,6 +2615,10 @@ def run_refusals(args, deps: Deps, jobs: list | None, stages: dict[str, Path], m
     if not jobs:
         # an EMPTY list is refused here, before --out is made (verifier round 3, N4: it crashed after the mkdir, exit 5)
         return ["--jobs holds no job (an empty list): nothing to run"]
+    if int(args.parallel) < 1:
+        # (fix round 5, V4-N3, MAJOR by impact) P under 1 admits no job, so the scheduler would wait forever: refused here,
+        # before --out is made, any ledger write or any launch
+        problems.append(f"--parallel {args.parallel} is under 1: no job could ever start (the scheduler would never end)")
     problems += jobs_problems(jobs)
     for name, stage in stages.items():
         problems += placement_problems(stage, f"the stage {name}", deps.work_tree)
@@ -3360,7 +3370,6 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("batch", choices=("P1", "GM", "WP1", "MC"))
     plan.add_argument("--first-seed", type=int, required=True)
     plan.add_argument("--to", default=None)
-    plan.add_argument("--env", action="append", default=[])
     run = sub.add_parser("run")
     run.add_argument("--jobs", required=True)
     run.add_argument("--out", required=True)
@@ -3399,12 +3408,8 @@ def command(args) -> int:
     if args.command == "child":
         return child(Path(args.job))
     if args.command == "plan":
-        env = {}
-        for item in args.env:
-            name, _, value = item.partition("=")
-            env[name] = value
         try:
-            jobs = plan_jobs(args.batch, args.first_seed, LC.load_milestones(REPO), args.to, env)
+            jobs = plan_jobs(args.batch, args.first_seed, LC.load_milestones(REPO), args.to)
         except Refusal as error:
             print(f"REFUSED: {error}", file=sys.stderr, flush=True)
             return 2
