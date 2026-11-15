@@ -481,13 +481,14 @@ junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run
 before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
 crash, 6 the AI-only stop. A job's env must be EMPTY (the probe sets every launch key itself, so `plan` and `run` refuse a
 job env naming any key), and `run` refuses `--parallel` under 1 (no job could ever start). Its offline proofs are
-`gates/test_frontier_probe.py` (T1-T38, T24d and AM-11, each a FAULT and a CONTROL) and `gates/revert_frontier.py` (238
+`gates/test_frontier_probe.py` (T1-T38, T24d and AM-11, each a FAULT and a CONTROL) and `gates/revert_frontier.py` (239
 mutants: each guard the suite tests, broken in a copy, fails its predicted test; Z25, the continue rule's class half, is
 REDUNDANT ALONE, its purity half stopping the same legs). Every guard the six verifier rounds named now has a case that
 fails with that guard removed, though the 7 rows fix round 5 added (2026-11-15: `--parallel` under 1, P01-P03, T37; a job
 env key, E01-E02, T38; an ABORTED MC verdict's reading, H02, T14; an MC verdict's own chain count, H03, T33) and the 9
 fix round 6 added (D01-D06, T33: a dropped MC chain; V6M2, V6M3 and P04, T37: the --parallel refusal in development
-mode and on --resume) were run BY NAME only, and the full lane over all 238 rows is build step 4's. A development
+mode and on --resume) and the lead's V6M1 (a job env key on an MC job, T38: verifier round 6's NIT V6-3) were run BY NAME
+only, and the full lane over all 239 rows is build step 4's. A development
 resume skips its own entry only in its OWN ledger, never a same-id entry of a divergent copy (H07, T24d), so a FAITHFUL copy of the ledger that holds the
 batch's own entry also refuses its resume (safe: a refusal writes nothing; reconcile the copy first). An MC batch's
 reading counts every PLANNED chain (batch.json's `mc_planned`; fix round 6, V6-1): a job DROPPED before its launch

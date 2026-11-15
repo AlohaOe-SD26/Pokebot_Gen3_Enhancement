@@ -11,7 +11,7 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (238 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (239 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
            caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
@@ -51,6 +51,8 @@ THE TABLE (238 mutants; the spec's "about 54" predates the amendments' tests T31
            (the verifier's round-6 V6-1, MAJOR; D01-D05 on T33's FAULT, D06 and D03 on its CONTROL), and T37 asserts the
            --parallel refusal in development mode (V6M3) and on --resume (V6M2), the verifier's names, anchors and
            replacements verbatim; P04 its CONTROL side (a --resume at --parallel 1 carries no --parallel refusal).
+  V6M1     the lead's closing row (2026-11-15): a job's env must be EMPTY on an MC job too (the verifier's round-6 NIT
+           V6-3, its name and the same edit; T38's MC arm).
   H1-H4   the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
@@ -731,6 +733,14 @@ _ROUND6 = [
      "    if int(args.parallel) < 1:", "    if int(args.parallel) < 1 or args.resume:", ("test_t37_control",)),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): the lead's closing row (2026-11-15, on
+#: 196882fa): verifier round 6's NIT V6-3 (V6M1: its name, and the same edit as `_ai_lab/a1/verify6/v6_hunt.py`'s, here
+#: anchored on E01's anchor; it read "failing (0)" on 196882fa in verifier round 7), now caught by T38's MC arm
+_ROUND7 = [
+    ("V6M1", "T38", "a job's env must be EMPTY on an MC job too (verifier round 6's V6M1)",
+     "if k in ENV_ALLOWED)", "if k in ENV_ALLOWED and not job.get(\"mc\"))", ("test_t38_fault",)),
+]
+
 #: (name, T, the guard, anchor, replacement, why no test catches it ALONE): fix round 3's sweep found these guards
 #: REDUNDANT on every arm the suite can plant, so each is predicted REDUNDANT ALONE (the copy passes every test)
 _REDUNDANT = [
@@ -794,7 +804,7 @@ for _name, _what, _edit, _test in _MORE:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
-for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3 + _ROUND4 + _ROUND5 + _ROUND6:
+for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3 + _ROUND4 + _ROUND5 + _ROUND6 + _ROUND7:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],

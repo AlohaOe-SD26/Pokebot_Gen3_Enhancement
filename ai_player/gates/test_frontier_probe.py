@@ -3217,6 +3217,14 @@ def case_t38_job_env(M, tmp):
         jobs[0]["env"] = {key: "1"}
         ok(any(p.endswith(f"{key} is set by the probe itself: a job's env is never sent") for p in M.jobs_problems(jobs)),
            f"jobs_problems refuses a job env naming {key}")
+    # (the lead, 2026-11-15: verifier round 6's V6-3, V6M1) an MC job's env is refused the same way, each allowed key named
+    msg = refused(M, M.plan_jobs, "MC", 6701, data(), "ch1_pokedex", {"AI_PLAYER_CLOCK": "10:00"})
+    ok("AI_PLAYER_CLOCK is set by the probe itself" in msg, f"plan refuses an allowed key on an MC job: {msg}")
+    for key in M.ENV_ALLOWED:
+        jobs = M.plan_jobs("MC", 6701, data(), "ch1_pokedex")
+        jobs[0]["env"] = {key: "1"}
+        ok(any(p.endswith(f"{key} is set by the probe itself: a job's env is never sent") for p in M.jobs_problems(jobs)),
+           f"jobs_problems refuses an MC job env naming {key}")
     r = parallel_run(M, tmp / "clock", 1, env={"AI_PLAYER_CLOCK": "1"})
     eq((r.code, r.spawned, r.ledger_same, r.out_made), (2, [], True, False),
        f"run: a jobs.json whose job env names AI_PLAYER_CLOCK: refused, no launch, no ledger write, --out not made "
