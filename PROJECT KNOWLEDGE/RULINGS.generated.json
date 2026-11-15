@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "d7a54e9cde070e83957638a9c1b4403f21b23490",
+ "source_sha1_lf": "7e82c67e89d0242b4cd5643c5cc23a9cadc0bc06",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 381,
+  "sections": 382,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -6018,6 +6018,21 @@
    "line_start": 10241,
    "line_end": 10246,
    "title": "2026-11-15 — A1's merge check counts every PLANNED chain; the lead closes verifier round 7's NIT directly; the full lane runs before step 5's planted walls (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-15-d1afc0",
+   "date": "2026-11-15",
+   "line_start": 10248,
+   "line_end": 10253,
+   "title": "2026-11-15 — A1's planted walls: the OLDALE wall sits in the navigator's single step, not `Navigator.walls`; ROUTE102 is walled too; stage manifests are checked by hand before P1 (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [
