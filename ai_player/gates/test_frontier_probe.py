@@ -20,11 +20,13 @@ import io
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+import zipfile
 from contextlib import redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
@@ -45,15 +47,36 @@ GATES = Path(__file__).resolve().parent
 SOURCE = GATES / "frontier_probe.py"
 FIXTURES = GATES / "fixtures"
 LEDGER_AT_START = ledger.LEDGER.read_bytes() if ledger.LEDGER.is_file() else None
+
+
+def _retry_writable(function, name, _info) -> None:
+    """rmtree's error hook: a path it could not delete (git makes `.git/objects` files READ-ONLY, and T10's and T11's temp
+    repositories hold them) gets its read-only bit cleared and is deleted once more; a path still in the way stays."""
+    try:
+        os.chmod(name, stat.S_IWRITE)
+        function(name)
+    except OSError:
+        pass
+
+
+def remove_tree(path: Path) -> None:
+    """The suite's temp root removed WHOLE, read-only files included (verifier round 3, N5: `ignore_errors=True` left every
+    run's root in %TEMP%, its repositories' read-only objects in it)."""
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=_retry_writable)
+    else:  # pragma: no cover - the project runs 3.12
+        shutil.rmtree(path, onerror=_retry_writable)
+
+
 _TEMP_ROOT = Path(tempfile.mkdtemp(prefix="a1fp_test_"))
-atexit.register(shutil.rmtree, _TEMP_ROOT, ignore_errors=True)
+atexit.register(remove_tree, _TEMP_ROOT)
 #: the LF sha256 of the two real-data fixtures (`make_a1_fixtures.py`, their .build.json)
 LOOPS_SHA256 = "2491379ea22a3b1895025d01b86837bd7a402f8ab8a0e2fbb25aeeb1ed99e90d"
 TELLS_SHA256 = "80dc799c8469ed2e19b2492491f939efeb4e48197180a59c65b8e5f3e82365ee"
 
 
 def tearDownModule() -> None:
-    shutil.rmtree(_TEMP_ROOT, ignore_errors=True)
+    remove_tree(_TEMP_ROOT)
     now = ledger.LEDGER.read_bytes() if ledger.LEDGER.is_file() else None
     if now != LEDGER_AT_START:
         raise AssertionError("the REAL ledger.json changed while test_frontier_probe ran: a test forgot its temp ledger")
@@ -514,6 +537,17 @@ def case_t7_next_unmet(M, tmp):
     eq(M.truth_for_next(before, {"frame": 10, "state_md5": "aaa", "marks": {}}, True)[1], "start",
        "a HUNG leg ending at its start (the same md5)")
     eq(M.truth_for_next(before, {"frame": 99, "state_md5": "bbb"}, False)[1], "start", "an end state not written by it")
+    # a HUNG leg's END MAP is the kept world tail's current map (3.5; verifier round 3, R3-M4 c: no case read it), part of
+    # its key: the tail's last transition enters 0:2 (ROUTE102) while its end truth reads [0, 3] (RUSTBORO_CITY)
+    hung = job_of(M, tmp / "hung", to="ch1_pokedex", seed=7801)
+    _, _, records = play(M, hung, {"L1": {**TAIL_LEG, "exit": 124, "no_verdict": True, "miss": True}})
+    eq((records[0]["class"], records[0]["end_map"], (records[0]["blocker"] or {}).get("key", [None] * 5)[3]),
+       (M.HUNG, {"pair": [0, 2], "const": "ROUTE102"}, "ROUTE102"), "a HUNG leg's end map: the kept world tail's, in its key")
+
+
+#: a leg whose kept world tail ends on ROUTE102 (0:2) while its end truth reads RUSTBORO_CITY ([0, 3]): T7's end-map arms
+TAIL_LEG = {"end_map": [0, 3], "transitions": [[10, "0:3", "0:2", "warp", "ai", [1, 1], [2, 2], "up"]],
+            "consts": {"0:3": "RUSTBORO_CITY", "0:2": "ROUTE102"}}
 
 
 def case_t7_control(M, tmp):
@@ -522,6 +556,12 @@ def case_t7_control(M, tmp):
     eq(found["unread"], [], "all marks present")
     before = {"frame": 10, "state_md5": "aaa"}
     eq(M.truth_for_next(before, {"frame": 99, "state_md5": "bbb"}, True)[1], "end", "next_unmet_from: end")
+    # every other class reads the END TRUTH's map (3.5): a CLEAN leg with the same files ends on RUSTBORO_CITY
+    clean = job_of(M, tmp / "clean", to="ch1_pokedex", seed=7802)
+    _, _, records = play(M, clean, {"L1": {**TAIL_LEG, "miss": True}})
+    eq((records[0]["class"], records[0]["end_map"], (records[0]["blocker"] or {}).get("key", [None] * 5)[3]),
+       (M.CLEAN_CHOSEN, {"pair": [0, 3], "const": "RUSTBORO_CITY"}, "RUSTBORO_CITY"),
+       "a CLEAN leg's end map: its end truth's, in its key")
 
 
 # ---------------------------------------------------------------------------------------------------- T8: ranking
@@ -557,6 +597,14 @@ def case_t8_ranking(M, tmp):
     eq(top["share"], round(2 / 4, 4), "share = count / judged")
     eq(wall_cell["excluded"], {M.INFRA: 1, M.REFUSED: 1, M.NOT_CLEAN: 1}, "excluded counts shown")
     ok(not any(M.names_milestone(b, wall) for b in real_cell["blockers"]), "absent on the other tree")
+    # the REACH SPLIT BY START KIND (3.8, DoD 4.4 item 6; verifier round 3, N3), through run_job and build_report: a chain
+    # whose L2 CARRIES the goal snapshot counts it as "chain leg with a goal snapshot", its L1 as "new game"
+    job = job_of(M, tmp / "kind", seed=7811)
+    play(M, job, {})
+    kinds = M.build_report(Path(job["out"]))["trees"]["PLAY"]
+    eq((kinds["1"]["reach_by_start_kind"], kinds["2"]["reach_by_start_kind"]),
+       ({"new game": {"reached": 1, "judged": 1}}, {"chain leg with a goal snapshot": {"reached": 1, "judged": 1}}),
+       "a carried chain leg: 'chain leg with a goal snapshot'")
 
 
 def case_t8_control(M, tmp):
@@ -569,6 +617,11 @@ def case_t8_control(M, tmp):
                                   "LITTLEROOT_TOWN|ROUTE101")])
     ok(not any(M.names_milestone(b, "ch1_rival_route103") for b in report["trees"]["REAL"]["1"]["blockers"]),
        "a tree whose only LOOP key's records never name the wall's milestone shows no wall")
+    # a GOALS-OFF chain's L2 carries no snapshot: "chain leg without", never "with a goal snapshot" (3.8; round 3, N3)
+    job = job_of(M, tmp / "kind", seed=7812, goals="off")
+    play(M, job, {})
+    eq(M.build_report(Path(job["out"]))["trees"]["PLAY"]["2"]["reach_by_start_kind"],
+       {"chain leg without": {"reached": 1, "judged": 1}}, "a GOALS-OFF chain leg: 'chain leg without'")
 
 
 # ---------------------------------------------------------------------------------------------------- T9: the env allow-list
@@ -591,18 +644,24 @@ class FakePopen:
         return None
 
 
-def child_through_real_run_arm(M, job: dict, tmp: Path, truths: dict) -> list[dict]:
-    """The CHILD's path (`child JOB.json`: the env sanitized, then `run_job` with the REAL `run_arm`), Popen replaced."""
+def child_through_real_run_arm(M, job: dict, tmp: Path, truths: dict, stub_l1: Stub | None = None) -> list[dict]:
+    """The CHILD's path (`child JOB.json`: the env sanitized, then `run_job` with the REAL `run_arm`), Popen replaced.
+    `stub_l1`: L1 is played by that Stub (its end state, world line and goal snapshot kept as a real leg's), every later leg
+    by the real run_arm, so a NON-FRESH leg's launch is seen (verifier round 3, N7)."""
     path = tmp / f"{job['chain']}.job.json"
     path.write_text(json.dumps(job), encoding="utf-8")
     FakePopen.seen = []
     saved = L5.PROFILE
     planted = {"AI_PLAYER_FAULT_NO_HINTS": "1", "POKEBOT_BOSSMODE_TOPUP": "1", "PYTHONPATH": "x",
                "AI_PLAYER_BUILD_ROOT": "elsewhere"}
+    real = L5.run_arm
+
+    def run_arm(arm, build_root, carried):
+        return (stub_l1 if stub_l1 is not None and arm.name.endswith("-L1") else real)(arm, build_root, carried)
     try:
         with mock.patch.dict(os.environ, planted), mock.patch.object(L5.subprocess, "Popen", FakePopen), \
                 mock.patch.object(L5, "truth_of", lambda state: (copy.deepcopy(truths.get(md5(state))), "")), \
-                redirect_stdout(io.StringIO()):
+                mock.patch.object(L5, "run_arm", run_arm), redirect_stdout(io.StringIO()):
             M.child(path)
     finally:
         L5.PROFILE = saved
@@ -632,6 +691,17 @@ def case_t9_env(M, tmp):
     jobs = M.plan_jobs("P1", 6601, data())
     jobs[0]["env"] = {"AI_PLAYER_FAULT_NO_HINTS": "1"}
     ok(any("AI_PLAYER_FAULT_NO_HINTS" in p for p in M.jobs_problems(jobs)), "run refuses a FAULT key (jobs_problems)")
+    # the ORCHESTRATOR's strip too (3.11; verifier round 1's V15, a NIT until round 3): the environment every child is
+    # started with (`child_env`, ChildProcess's Popen env) holds none of the parent's AI_PLAYER_*, POKEBOT_* or PYTHONPATH
+    planted = {"AI_PLAYER_FAULT_NO_HINTS": "1", "POKEBOT_BOSSMODE_TOPUP": "1", "PYTHONPATH": "x",
+               "AI_PLAYER_BUILD_ROOT": "elsewhere"}
+    with mock.patch.dict(os.environ, planted):
+        env = M.child_env()
+    eq(sorted(name for name in planted if name in env), [], "child_env strips the parent's variables")
+    # (fix round 3's sweep, N6) a job with no legs is refused by plan and run (jobs_problems)
+    jobs = M.plan_jobs("P1", 6601, data())
+    jobs[0]["legs"] = []
+    ok(any(p.endswith(": no legs") for p in M.jobs_problems(jobs)), "a job with no legs: refused (jobs_problems)")
 
 
 def case_t9_control(M, tmp):
@@ -646,9 +716,23 @@ def case_t9_control(M, tmp):
     eq(seen[0]["env"][ENV_GOALS], job["start"]["goals"], "the carried snapshot is the kept one")
     eq(seen[0]["command"], launch_command(job, job["legs"][0], seen[0], ["--state", job["start"]["state"]]),
        "the command line, byte for byte")
-    mc = job_of(M, tmp / "mc", to="ch1_pokedex", seed=6701, mc=True, goals="never")
-    seen = child_through_real_run_arm(M, mc, tmp, {})
-    ok(ENV_GOALS not in seen[0]["env"], "an MC job never sends AI_PLAYER_GOALS")
+    # an MC chain's NON-FRESH leg (verifier round 2's NIT, round 3's N7: a fresh L1, the line here before, sends no
+    # AI_PLAYER_GOALS in any job, so it proved nothing): L1 played by the stub KEEPS a goal snapshot, which a carrying
+    # chain's L2 would send; the MC chain's L2, launched through the real run_arm from L1's kept end, sends none
+    mc = job_of(M, tmp / "mc", to="ch2_wally", seed=6701, mc=True, goals="never")
+    stub = Stub(mc, {})
+    seen = child_through_real_run_arm(M, mc, tmp / "mc", stub.truths, stub_l1=stub)
+    l1 = by_leg([r for r in M.read_records(Path(mc["out"])) if r.get("record") == "leg"])["L1"]
+    ok(l1["kept"]["goals_sha256"] and l1["continue"]["go"], f"the MC chain's L1 kept a goal snapshot and went on: "
+                                                              f"{l1['kept']['goals_sha256']}, {l1['continue']}")
+    eq(len(seen), 1, "the MC chain's L2 launched through the real run_arm")
+    ok("--state" in seen[0]["command"] and ENV_WORLD in seen[0]["env"], "L2 is a non-fresh leg (its start state and line)")
+    ok(ENV_GOALS not in seen[0]["env"], "an MC chain's non-fresh L2 never sends AI_PLAYER_GOALS")
+    # the orchestrator's strip keeps every other variable, and sets the child's two Python ones (3.11)
+    with mock.patch.dict(os.environ, {"A1FP_HARMLESS": "kept"}):
+        env = M.child_env()
+    eq((env.get("A1FP_HARMLESS"), env.get("PYTHONUTF8"), env.get("PYTHONDONTWRITEBYTECODE")), ("kept", "1", "1"),
+       "child_env keeps a variable off the strip list")
 
 
 # ---------------------------------------------------------------------------------------------------- batch harness
@@ -742,19 +826,27 @@ def batch_args(jobs_path: Path, out: Path, stages: dict[str, Path], trainer: boo
 
 
 class Clock:
-    def __init__(self) -> None:
+    """The batch's planted clock: each sleep moves it at least 1 s. Past `limit` sleeps it FAILS (an AssertionError): a
+    scheduler whose bound was removed (a WAIT never DROPPED, a WAIT clock that never runs, a dependency that can never
+    resolve) fails its case instead of hanging the suite (verifier round 3, R3-M2: W12 and W41 hung T26 for 600 s)."""
+
+    def __init__(self, limit: int = 2000) -> None:
         self.t = 1000.0
+        self.limit, self.sleeps = limit, 0
 
     def __call__(self) -> float:
         return self.t
 
     def sleep(self, seconds: float) -> None:
+        self.sleeps += 1
+        if self.sleeps > self.limit:
+            raise AssertionError(f"the scheduler slept past {self.limit} passes: a loop that never ends (a removed bound?)")
         self.t += max(seconds, 1.0)
 
 
 def batch_deps(M, tmp: Path, plans: dict | None = None, free=100.0, processes=(), spawn=None, log: list | None = None,
-               **changes):
-    clock = Clock()
+               limit: int = 2000, **changes):
+    clock = Clock(limit)
 
     def default_spawn(job, job_path, log_path):
         return InProcessChild(M, job, (plans or {}).get(job["chain"]), log)
@@ -799,6 +891,15 @@ def run_text(M, args, deps) -> tuple[int, str]:
     with redirect_stdout(printed), redirect_stderr(io.StringIO()):
         code = M.run_batch(args, deps)
     return code, printed.getvalue()
+
+
+def refusal_of(M, args, deps) -> tuple[int, str]:
+    """`run_text` for a batch that must be REFUSED: an exception out of run_batch (an unguarded crash, `main`'s exit 5) FAILS
+    the case as an AssertionError naming it, never as a crash of the suite (a refusal is exit 2, 3.2)."""
+    try:
+        return run_text(M, args, deps)
+    except Exception as error:  # noqa: BLE001
+        raise AssertionError(f"run_batch CRASHED instead of refusing: {type(error).__name__}: {error}") from None
 
 
 # ---------------------------------------------------------------------------------------------------- T10: the trainer writes nothing tracked
@@ -914,6 +1015,44 @@ def case_t11_placement(M, tmp):
             if code != 2 or written:
                 wrong.append(f"{name} ({mode}): exit {code}{', a ledger write' if written else ''}")
     eq(wrong, [], "every placement FAULT refused (exit 2) with no ledger write")
+    # verifier round 3 (N1, N4, N7): a job whose stage is not given; an EMPTY job list (refused BEFORE --out is made); --out
+    # or a stage AT or UNDER the graded chapter 1-5 folder (3.14; a temp folder stands in for GRADED_CH5): each refused by
+    # run_batch (exit 2) with no ledger write and no launch, its REFUSED line naming why
+    graded = tmp / "graded-ch5"
+    under = fake_stage(M, graded / "st", "REAL")
+    spawned: list = []
+    with mock.patch.object(M, "GRADED_CH5", graded):
+        for name, jobs_path, out, stage_map, why in (
+                ("a job whose stage is not given", path, tmp / "o7", {"REAL": stages["REAL"]},
+                 "its stage 'WALL-OLDALE' is not given"),
+                ("an empty job list", write_jobs(tmp, [], "empty.json"), tmp / "o8", stages, "--jobs holds no job"),
+                ("--out under the graded folder", path, graded / "out", stages, "lies at or under"),
+                ("--out AT the graded folder", path, graded, stages, "lies at or under"),
+                ("a stage under the graded folder", path, tmp / "o9", {**stages, "REAL": under}, "lies at or under")):
+            ledger_path.write_bytes(start)
+            made = out.exists()
+            code, text = refusal_of(M, batch_args(jobs_path, out, stage_map), batch_deps(M, tmp, log=spawned))
+            eq((code, ledger_path.read_bytes() == start, spawned), (2, True, []),
+               f"{name}: refused, no ledger write, no launch")
+            ok("REFUSED: " in text and why in text, f"{name}: the refusal names it: {text[-400:]}")
+            ok(made or not out.exists(), f"{name}: --out never made")
+    # (fix round 3's bounded sweep of the refusal family, N6) a --stage not in the ARM=DIR form, a --jobs file that is not a
+    # JSON list, and a stage whose manifest.json is of another schema: each refused, exit 2, no ledger write, no launch
+    other_schema = fake_stage(M, tmp / "schema", "REAL")
+    manifest = json.loads((other_schema / "manifest.json").read_text(encoding="utf-8"))
+    manifest["schema_version"] = 2
+    (other_schema / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    not_list = tmp / "dict.json"
+    not_list.write_text(json.dumps({"jobs": []}), encoding="utf-8")
+    for name, args, why in (
+            ("a --stage with no ARM=DIR", batch_args(path, tmp / "o10", stages, stage="REAL"), "ARM=DIR"),
+            ("a --jobs file that is not a JSON list", batch_args(not_list, tmp / "o11", stages), "is not a JSON list of jobs"),
+            ("a stage manifest of another schema", batch_args(path, tmp / "o12", {**stages, "REAL": other_schema}),
+             "has schema 2")):
+        ledger_path.write_bytes(start)
+        code, text = refusal_of(M, args, batch_deps(M, tmp, log=spawned))
+        eq((code, ledger_path.read_bytes() == start, spawned), (2, True, []), f"{name}: refused, no ledger write, no launch")
+        ok("REFUSED: " in text and why in text, f"{name}: the refusal names it: {text[-400:]}")
 
 
 def case_t11_control(M, tmp):
@@ -921,6 +1060,13 @@ def case_t11_control(M, tmp):
     jobs, stages = p1_batch(M, tmp)
     eq(run_quiet(M, batch_args(write_jobs(tmp, jobs), tmp / "outside" / "out", stages),
                  batch_deps(M, tmp, work_tree=M.inside_work_tree)), 0, "outside every work tree: accepted")
+    # the graded-folder check is a PATH check (verifier round 3, N7): a sibling of the graded folder, and one whose name
+    # merely BEGINS with the graded folder's name, are accepted
+    graded = tmp / "graded-ch5"
+    with mock.patch.object(M, "GRADED_CH5", graded):
+        eq([M.placement_problems(p, "--out", lambda path: False)
+            for p in (tmp / "graded-ch4" / "out", tmp / "graded-ch5-other" / "out")], [[], []],
+           "a sibling of the graded folder, and graded-ch5-other: accepted")
 
 
 # ---------------------------------------------------------------------------------------------------- T12: the seed band
@@ -942,11 +1088,42 @@ def case_t12_band(M, tmp):
     path3 = tmp / "l3.json"
     M.reserve_band(path3)
     refused(M, M.reserve_band, path3)
+    # THE WIRING (verifier round 3, R3-M1 b: the lines above call trainer_problems alone): run_batch itself refuses a
+    # --trainer batch with a seed outside the band, or whose ledger holds no band row: exit 2, no ledger write, no launch
+    stages = {"REAL": fake_stage(M, tmp, "REAL")}
+    for i, (name, first, band, why) in enumerate((
+            ("a seed outside the band", 1999999, True, "REFUSED: the trainer seed 1999999 lies outside the band"),
+            ("no band row", 2000001, False, "REFUSED: the ledger holds no band row"))):
+        arm = tmp / f"wired{i}"
+        arm.mkdir()
+        if band:
+            band_ledger(arm / "ledger.json")
+        else:
+            (arm / "ledger.json").write_text(json.dumps({"what": "", "entries": []}), encoding="utf-8")
+        start = (arm / "ledger.json").read_bytes()
+        jobs = [job for job in M.plan_jobs("P1", first, data()) if job["stage"] == "REAL"][:1]
+        spawned: list = []
+        code, text = refusal_of(M, batch_args(write_jobs(arm, jobs), arm / "out", stages), batch_deps(M, arm, log=spawned))
+        eq((code, (arm / "ledger.json").read_bytes() == start, spawned), (2, True, []),
+           f"{name}: refused by run_batch, no ledger write, no launch")
+        ok(why in text, f"{name}: the refusal names it: {text[-400:]}")
 
 
 def case_t12_control(M, tmp):
     data_band = json.loads(band_ledger(tmp / "l1.json").read_text(encoding="utf-8"))
     eq(M.trainer_problems([2000001, 2000002], data_band), [], "inside the band: accepted")
+    # the wiring's CONTROL (verifier round 3, R3-M1 b): a --trainer batch inside the band, its ledger holding the band row,
+    # runs through run_batch (exit 0) and never writes the ledger
+    stages = {"REAL": fake_stage(M, tmp, "REAL")}
+    arm = tmp / "wired"
+    arm.mkdir()
+    band_ledger(arm / "ledger.json")
+    start = (arm / "ledger.json").read_bytes()
+    jobs = [job for job in M.plan_jobs("P1", 2000001, data()) if job["stage"] == "REAL"][:1]
+    spawned: list = []
+    eq((run_quiet(M, batch_args(write_jobs(arm, jobs), arm / "out", stages), batch_deps(M, arm, log=spawned)),
+        (arm / "ledger.json").read_bytes() == start, spawned), (0, True, [("spawn", jobs[0]["chain"])]),
+       "inside the band with its row: run, the ledger never written")
     path = band_ledger(tmp / "l2.json")
     ledger.register("story", "x", 7000, 7001, "b", path=path)
     path3 = tmp / "l3.json"
@@ -1008,6 +1185,20 @@ def case_t13_seeds(M, tmp):
     eq((code, path.read_bytes() == start, spawned), (2, True, []),
        "seeds 7601 and 7603 (not ONE contiguous range): refused, no ledger write, no launch")
     ok("REFUSED: development seeds must be ONE contiguous range" in text, f"the refusal names it: {text[-500:]}")
+    # development mode needs --prediction-file (3.10; verifier round 3, N1): without one, refused (exit 2), no ledger
+    # write, no launch
+    code, text = refusal_of(M, batch_args(write_jobs(tmp, jobs, "j5.json"), tmp / "out5", stages, trainer=False),
+                            batch_deps(M, tmp, log=spawned))
+    eq((code, path.read_bytes() == start, spawned), (2, True, []),
+       "development mode with no --prediction-file: refused, no ledger write, no launch")
+    ok("REFUSED: development mode needs --prediction-file" in text, f"the refusal names it: {text[-500:]}")
+    # (fix round 3's sweep, N6) a prediction file holding only white space: refused, no ledger write, no launch
+    blank = tmp / "blank.txt"
+    blank.write_text("  \n", encoding="utf-8")
+    code, text = refusal_of(M, batch_args(write_jobs(tmp, jobs, "j6.json"), tmp / "out6", stages, trainer=False,
+                                          prediction=blank), batch_deps(M, tmp, log=spawned))
+    eq((code, path.read_bytes() == start, spawned), (2, True, []), "an empty prediction file: refused, no ledger write")
+    ok("REFUSED: the prediction file is empty" in text, f"the refusal names it: {text[-500:]}")
 
 
 def case_t13_control(M, tmp):
@@ -1208,6 +1399,21 @@ def case_t14_disk(M, tmp):
     c = disk_batch(M, tmp / "bc", spawn_raises=True)
     eq(c.code, 4, "a harness error after ledger.begin exits 4")
     ok(c.verdict.startswith("ERROR (harness: RuntimeError"), f"the entry is finished as ERROR: {c.verdict!r}")
+    # (fix round 3's sweep, N6) the start floor drive by drive: the free space unreadable; ONLY a stage's drive under 45 GB;
+    # ONLY --out's drive under 45 GB: each refused (exit 2), no ledger write, no launch (the 44.99 GB arm above lowers both)
+    jobs = [job for job in M.plan_jobs("P1", 2000001, data()) if job["stage"] == "REAL"][:1]
+    stages = {"REAL": fake_stage(M, tmp / "fl", "REAL")}
+    spawned = []
+    for i, (name, free, why) in enumerate((
+            ("the free space unreadable", lambda path: None, "REFUSED: the stage REAL's drive: the free space could not be read"),
+            ("a stage's drive under 45 GB", lambda path: 44.99 if "stage-" in str(path) else 100.0,
+             "REFUSED: the stage REAL's drive: 44.99 GB free"),
+            ("--out's drive under 45 GB", lambda path: 100.0 if "stage-" in str(path) else 44.99,
+             "REFUSED: --out's drive: 44.99 GB free"))):
+        code, text = refusal_of(M, batch_args(write_jobs(tmp, jobs, f"floor{i}.json"), tmp / f"floor{i}", stages),
+                                batch_deps(M, tmp, free=free, log=spawned))
+        eq((code, (tmp / "ledger.json").read_bytes(), spawned), (2, band, []), f"{name}: refused, no ledger write, no launch")
+        ok(why in text, f"{name}: the refusal names it: {text[-400:]}")
 
 
 def case_t14_control(M, tmp):
@@ -1271,6 +1477,48 @@ def case_t15_retention(M, tmp):
         _, _, records = play(M, job_of(M, tmp / "c", to="ch1_pokedex"), {"L1": {"before": plant}})
     ok(str(records[0]["kept"]["ai_files"]["current_save.sav"]).startswith("size check FAILED"),
        f"a copy failing its size check is recorded: {records[0]['kept']['ai_files']}")
+    # THE REAL verify_zip DECIDES (verifier round 3, R3-M1 c: the first arm above replaces it whole): the zip zip_logs
+    # wrote is DAMAGED on disk, then handed to the module's own verify_zip, three ways: a member's CRC-32 wrong (its data
+    # still reads: testzip names it), a member missing, a member of another size (members and sizes differ). Each: not
+    # verified, the raw logs kept, the problem the real verify_zip wrote recorded
+    real = M.verify_zip
+    for i, (name, damage, word) in enumerate((("a damaged CRC", damage_crc, "testzip names"),
+                                              ("a member missing", drop_member, "members and sizes"),
+                                              ("a member of another size", resize_member, "members and sizes"))):
+        def damaged(path, sizes, damage=damage):
+            damage(Path(path))
+            return real(path, sizes)
+        with mock.patch.object(M, "verify_zip", damaged):
+            _, _, records = play(M, job_of(M, tmp / f"d{i}", to="ch1_pokedex", seed=7330 + i), {})
+        kept = records[0]["kept"]
+        ok(not kept["zip_verified"] and (Path(kept["folder"]) / "actions.jsonl").is_file(), f"{name}: the raw logs kept")
+        ok(word in str(kept["zip_problem"]), f"{name}: the real verify_zip names it: {kept['zip_problem']}")
+
+
+def damage_crc(path: Path) -> None:
+    """A REAL corrupt zip: the first member's CRC-32 in the central directory flipped (its data still inflates; the CRC
+    check at its end fails, so `testzip` names it)."""
+    raw = bytearray(path.read_bytes())
+    at = raw.find(b"PK\x01\x02")
+    raw[at + 16] ^= 0xFF
+    path.write_bytes(bytes(raw))
+
+
+def rewrite_zip(path: Path, change) -> None:
+    """The zip at `path` written again, its members (name, bytes) changed by `change` (every CRC right)."""
+    with zipfile.ZipFile(path) as old:
+        members = [(info.filename, old.read(info.filename)) for info in old.infolist()]
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as new:
+        for name, body in change(members):
+            new.writestr(name, body)
+
+
+def drop_member(path: Path) -> None:
+    rewrite_zip(path, lambda members: members[:-1])
+
+
+def resize_member(path: Path) -> None:
+    rewrite_zip(path, lambda members: [(name, body + b"x" if i == 0 else body) for i, (name, body) in enumerate(members)])
 
 
 def case_t15_control(M, tmp):
@@ -1329,6 +1577,19 @@ def case_t16_filter(M, tmp):
         ok(listed in unclassified, f"{listed} dropped AND listed: {unclassified}")
     ok("0:2" not in static["maps"] and any(u.startswith("maps.0:2") for u in unclassified),
        "a map whose tile_fields differ is dropped and listed")
+    # THROUGH judge_leg (verifier round 3, N3). The Exp column of 3.5: a NOT CLEAN leg writes NO experience row, and its
+    # record says so (its world tail is there to extract)
+    job = job_of(M, tmp / "nc", to="ch1_pokedex", seed=7803)
+    _, _, records = play(M, job, {"L1": {"word": "NOT CLEAN"}})
+    eq((records[0]["class"], records[0]["experience"]["written"], len(M.read_records_named(Path(job["out"]), M.EXPERIENCE))),
+       (M.NOT_CLEAN, False, 0), "a NOT CLEAN leg: no experience row")
+    # 3.7's rides: a ride whose `uses` grew in the leg against the START's line is listed as used, by its delta; one whose
+    # `uses` did not grow is not
+    start = world_of([[100, "0:3", "0:19", "connection", "ai", [1, 1], [2, 2], "down"]],
+                     rides={"R1": {"from": "0:3", "uses": 1}, "R2": {"from": "0:3", "uses": 2}})
+    plan = {"L6": {"world_extra": {"rides": {"R1": {"from": "0:3", "uses": 3}, "R2": {"from": "0:3", "uses": 2}}}}}
+    _, _, records = practice_job(M, tmp / "rides", plan, to="ch6_dewford", world=start)
+    eq(records[0]["rides"]["used"], {"R1": 2}, "the ride used twice in the leg, by its delta; the unused one not listed")
 
 
 def case_t16_control(M, tmp):
@@ -1349,6 +1610,11 @@ def case_t16_control(M, tmp):
     fights, _ = M.fights_of([k1, battle])
     eq(fights[0]["foe"], None, "a K1 tell is never a fight's foe")
     eq(M.fights_of([k1])[0], [], "a K1 tell alone makes no fight")
+    # the Exp column's CONTROL (3.5; verifier round 3, N3): a CLEAN leg writes its experience row, its record says so
+    job = job_of(M, tmp / "cl", to="ch1_pokedex", seed=7804)
+    _, _, records = play(M, job, {})
+    eq((records[0]["class"], records[0]["experience"]["written"], len(M.read_records_named(Path(job["out"]), M.EXPERIENCE))),
+       (M.CLEAN_CHOSEN, True, 1), "a CLEAN leg: one experience row")
 
 
 # ---------------------------------------------------------------------------------------------------- T17: origin
@@ -1382,6 +1648,9 @@ def guard_after(out_dir: Path, chain: str, cause: str = "world", leg: str = "L1"
 def case_t18_continue(M, tmp):
     cases = [("not reached", {"L1": {"miss": True}}, "C1"),
              ("purity not clean", {"L1": {"breach": True}}, "C2"),
+             # (fix round 3's sweep) a REACHED NOT CLEAN leg; C2 stops it on both halves, its class and its purity (a NOT
+             # CLEAN word fails L5.PURITY_CLEAN too), so the class half alone is redundant here (revert_frontier's Z25)
+             ("a reached NOT CLEAN leg", {"L1": {"word": "NOT CLEAN"}}, "C2"),
              ("tail not kept", {"L1": {"truncate": True}}, "C3"),
              ("STOP", None, "C6")]
     for i, (name, plan, word) in enumerate(cases):
@@ -1461,6 +1730,26 @@ def case_t19_custody(M, tmp):
     other["legs"][0]["proof"]["flags"]["ADVENTURE_STARTED"] = 1
     _, stub, records = play(M, other, {})
     eq((stub.calls, records[0]["class"]), ([], M.REFUSED), "legs that are not the staged milestones': REFUSED")
+    # C5's WORLD half (3.6; verifier round 3, R3-M1 a): a start whose world line is no longer the kept line (its sha256
+    # differs), its state untouched: REFUSED before launch; a practice job's kept chain end, and a chain's next leg whose
+    # kept line changed between the legs
+    stub_truths = {}
+    job = job_of(M, tmp / "w", to="ch6_dewford", kind="practice", from_chapter=6, seed=7205)
+    job["start"] = planted_start(M, tmp / "w", stub_truths)
+    Path(job["start"]["world"]).write_text(json.dumps(world_of([])) + "\n", encoding="utf-8")
+    stub = Stub(job, {})
+    stub.truths.update(stub_truths)
+    _, stub, records = play(M, job, {}, stub=stub)
+    eq((stub.calls, records[0]["class"]), ([], M.REFUSED), "a start whose world line's sha256 differs: REFUSED before launch")
+    ok("the world line" in records[0]["class_why"], f"the refusal names the world line: {records[0]['class_why']}")
+    chain = job_of(M, tmp / "c", seed=7206)
+
+    def tamper(index, leg, start, env):
+        if index == 1:
+            Path(start["world"]).write_text(json.dumps(world_of([])) + "\n", encoding="utf-8")
+    _, stub, records = play(M, chain, {}, before_leg=tamper)
+    eq((len(stub.calls), by_leg(records)["L2"]["class"]), (1, M.REFUSED),
+       "a next leg whose kept world line changed between the legs: REFUSED before launch")
 
 
 def case_t19_control(M, tmp):
@@ -1469,6 +1758,14 @@ def case_t19_control(M, tmp):
         entry, problems = M.start_custody("C2", files, truth, data())
     eq(problems, [], "a matching start")
     eq((entry["starter"], entry["starter_from"]), ("TORCHIC", "truth_party"), "starter_from kept")
+    # C5's CONTROL (verifier round 3, R3-M1 a): a kept start whose state and world line are the kept ones is launched
+    stub_truths = {}
+    job = job_of(M, tmp / "w", to="ch6_dewford", kind="practice", from_chapter=6, seed=7207)
+    job["start"] = planted_start(M, tmp / "w", stub_truths)
+    stub = Stub(job, {})
+    stub.truths.update(stub_truths)
+    _, stub, records = play(M, job, {}, stub=stub)
+    eq((len(stub.calls), records[0]["class"]), (1, M.CLEAN_CHOSEN), "a start whose state and world line match: launched")
 
 
 # ---------------------------------------------------------------------------------------------------- T20: the donor
@@ -1480,6 +1777,41 @@ def case_t20_donor(M, tmp):
     record, stub, records = play(M, job, {})
     eq((stub.calls, records[0]["class"]), ([], M.REFUSED), "no donor: REFUSED")
     ok("LaunchError" in records[0]["class_why"], f"with the LaunchError text: {records[0]['class_why']}")
+    # the PROFILE refusals (verifier round 2's V61 and V63, NITs until round 3): a profile the launcher refuses, or one that
+    # is not a probe profile, is refused by `plan` and `run` (jobs_problems); a profile that EXISTS before the job (a
+    # leftover) is REFUSED by the child, never launched in, named and never deleted by it
+    jobs = M.plan_jobs("P1", 6601, data())
+    for profile in ("endless-P1-torchic", "ai-fp-a name with spaces"):
+        bad = copy.deepcopy(jobs)
+        bad[0]["profile"] = profile
+        ok(any("is not a probe profile the launcher accepts" in p for p in M.jobs_problems(bad)),
+           f"the profile {profile!r}: refused")
+    left = job_of(M, tmp / "left", to="ch1_pokedex", seed=7208)
+    leftover = Path(left["build_root"]) / "profiles" / left["profile"]
+    leftover.mkdir(parents=True)
+    (leftover / "x.txt").write_text("a leftover\n", encoding="utf-8")
+    record, stub, records = play(M, left, {})
+    eq((stub.calls, records[0]["class"]), ([], M.REFUSED), "a leftover profile: REFUSED before launch")
+    ok((leftover / "x.txt").is_file() and not record["profile_deleted"] and str(leftover) in str(record["leftover"]),
+       f"the leftover named, never deleted by the job: {record['leftover']}")
+    # (fix round 3's sweep, N6) the CHILD's own profile refusals: a job whose profile is not a probe profile, and a child
+    # whose live_step5.PROFILE is not its job's: each REFUSED before any launch
+    main = job_of(M, tmp / "main", to="ch1_pokedex", seed=7209)
+    main["profile"] = "endless-P1-x"
+    _, stub, records = play(M, main, {})
+    eq((stub.calls, records[0]["class"]), ([], M.REFUSED), "a job whose profile is not a probe profile: REFUSED")
+    ok("is not a probe profile" in records[0]["class_why"], f"the refusal names it: {records[0]['class_why']}")
+    other = job_of(M, tmp / "other", to="ch1_pokedex", seed=7210)
+    stub = Stub(other, {})
+    saved = L5.PROFILE
+    L5.PROFILE = "ai-fp-another-jobs-profile"
+    try:
+        M.run_job(other, stub)
+    finally:
+        L5.PROFILE = saved
+    records = [r for r in M.read_records(Path(other["out"])) if r.get("record") == "leg"]
+    eq((stub.calls, records[0]["class"]), ([], M.REFUSED), "live_step5.PROFILE not the job's: REFUSED")
+    ok("live_step5.PROFILE is" in records[0]["class_why"], f"the refusal names it: {records[0]['class_why']}")
 
 
 def case_t20_control(M, tmp):
@@ -1491,6 +1823,7 @@ def case_t20_control(M, tmp):
         seen.append(marker.read_text(encoding="utf-8"))
     play(M, job, {}, before_leg=look)
     ok(seen and M.DONOR in seen[0], f"the marker names {M.DONOR}: {seen}")
+    eq(M.jobs_problems(M.plan_jobs("P1", 6601, data())), [], "the plan's own profiles: accepted (round 3, N7)")
 
 
 # ---------------------------------------------------------------------------------------------------- T21: the stage watch
@@ -1527,12 +1860,21 @@ def case_t21_stage_watch(M, tmp):
     out = sandbox_tick(M, tmp / "sb", "CHANGED")
     ok((out / "STOP.txt").is_file() and "sandbox" in (out / "STOP.txt").read_text(encoding="utf-8"),
        "the junctioned sandbox's modules/ or plugins/ changed: STOP.txt (verifier round 1, F3)")
+    # the ORCHESTRATOR's half (3.13; verifier round 3, N1: only the child's check was tested): with STOP.txt in --out, every
+    # pending job is DROPPED with the reason and never spawned
+    stop = "STOP.txt: the code under test changed mid-batch"
+    eq(M.start_check({"legs": []}, view(stop=True)), (M.DROP, stop), "start_check DROPs a pending job on STOP.txt")
+    (tmp / "st" / "out").mkdir(parents=True)
+    (tmp / "st" / "out" / M.STOP_FILE).write_text("planted\n", encoding="utf-8")
+    result, log, _ = sched(M, tmp / "st", plain_jobs(M, 2))
+    eq((log, [why for _, why in result["not_started"]]), ([], [stop, stop]), "both pending jobs DROPPED, none spawned")
 
 
 def case_t21_control(M, tmp):
     out = watch_tick(M, tmp, "ALL")
     ok(not (out / "STOP.txt").exists(), "unchanged: no STOP")
     ok(not (sandbox_tick(M, tmp / "sb", "SANDBOX") / "STOP.txt").exists(), "an unchanged sandbox: no STOP")
+    eq(M.start_check({"legs": []}, view()), (M.GO, ""), "no STOP.txt: GO (round 3, N1)")
 
 
 # ---------------------------------------------------------------------------------------------------- T22: the AI-only stop
@@ -1592,8 +1934,9 @@ class Killable(Running):
         self.killed = True
 
 
-def killed_first_run(M, tmp: Path, jobs: list[dict], stages: dict, handles: list | None = None) -> Path:
-    """A batch whose ORCHESTRATOR was killed while its first job played L2: L1's record written, L2's run folder made."""
+def killed_first_run(M, tmp: Path, jobs: list[dict], stages: dict, handles: list | None = None, **changes) -> Path:
+    """A batch whose ORCHESTRATOR was killed while its first job played L2: L1's record written, L2's run folder made.
+    `changes` go to batch_args (a development batch: `trainer=False, prediction=...`)."""
     out = tmp / "out"
 
     class Interrupted(KeyboardInterrupt):
@@ -1617,7 +1960,7 @@ def killed_first_run(M, tmp: Path, jobs: list[dict], stages: dict, handles: list
     deps = batch_deps(M, tmp, spawn=spawn)
     deps.sleep = interrupted
     try:
-        run_quiet(M, batch_args(write_jobs(tmp, jobs), out, stages), deps)
+        run_quiet(M, batch_args(write_jobs(tmp, jobs), out, stages, **changes), deps)
     except KeyboardInterrupt:
         return out
     raise AssertionError("the first run was not interrupted")
@@ -1630,6 +1973,34 @@ def case_t24_resume(M, tmp):
     handles: list = []
     out = killed_first_run(M, tmp, jobs, stages, handles)
     ok(handles and all(h.killed for h in handles), "an interrupt while the jobs run kills every running child")
+    # the RESUME's refusals (3.13; verifier rounds 2 and 3: V57, V58, W37, NITs until round 3), each on the killed batch,
+    # BEFORE its real resume below: exit 2, no launch, the records untouched
+    records_before = (out / M.RECORDS).read_bytes()
+    child = (f"{sys.executable} -B C:/stage/code/ai_player/gates/frontier_probe.py child "
+             f"{out.resolve() / 'jobs' / (jobs[1]['chain'] + '.job.json')}")
+    for name, args, processes, why in (
+            ("--resume while a child of this --out still runs", batch_args(tmp / "jobs.json", out, stages, resume=True),
+             (child,), "child process(es) of this --out still run"),
+            ("--resume with another jobs.json than the batch's",
+             batch_args(write_jobs(tmp, jobs[:1], "other.json"), out, stages, resume=True), (), "another jobs.json"),
+            ("a non-empty --out without --resume", batch_args(tmp / "jobs.json", out, stages), (), "is not empty")):
+        spawned = []
+        code, text = refusal_of(M, args, batch_deps(M, tmp, log=spawned, processes=processes))
+        eq((code, spawned, (out / M.RECORDS).read_bytes() == records_before), (2, [], True),
+           f"{name}: refused, no launch, the records untouched")
+        ok(why in text, f"{name}: the refusal names it: {text[-400:]}")
+    ok(any("the job id is given twice" in p for p in M.jobs_problems([jobs[0], jobs[0]])),
+       "a job id given twice: refused (a run_id is keyed by it; round 2's V60)")
+    # (fix round 3's sweep, N6) --resume on an --out that holds no batch.json (a folder no batch wrote): refused, nothing
+    # written in it
+    stray = tmp / "stray"
+    stray.mkdir()
+    (stray / "x.txt").write_text("not a batch\n", encoding="utf-8")
+    spawned = []
+    code, text = refusal_of(M, batch_args(tmp / "jobs.json", stray, stages, resume=True), batch_deps(M, tmp, log=spawned))
+    eq((code, spawned, sorted(p.name for p in stray.iterdir())), (2, [], ["x.txt"]),
+       "--resume on an --out with no batch.json: refused, nothing written")
+    ok(f"holds no {M.BATCH_FILE}" in text, f"the refusal names it: {text[-400:]}")
     spawned: list = []
     eq(run_quiet(M, batch_args(tmp / "jobs.json", out, stages, resume=True), batch_deps(M, tmp, log=spawned)), 0,
        "resumed")
@@ -1656,10 +2027,65 @@ def case_t24_control(M, tmp):
     eq(len(legs), 12, "both arms on the 3 shared seeds, 2 legs each")
     eq(len({r["run_id"] for r in legs}), 12, "12 distinct run_ids")
     eq({r["job"]["arm"] for r in legs}, {"REAL", "WALL-OLDALE"}, "both arms")
+    eq(M.jobs_problems(jobs), [], "distinct job ids: accepted (round 3, N7)")
     spawned: list = []
-    eq(run_quiet(M, batch_args(tmp / "jobs.json", tmp / "out", stages, resume=True), batch_deps(M, tmp, log=spawned)), 0,
-       "the finished batch resumed")
+    # (verifier round 3, N1) a child of ANOTHER batch's --out still running never blocks this one's resume
+    other = f"{sys.executable} -B C:/stage/code/ai_player/gates/frontier_probe.py child {tmp / 'elsewhere' / 'jobs' / 'x.job.json'}"
+    eq(run_quiet(M, batch_args(tmp / "jobs.json", tmp / "out", stages, resume=True),
+                 batch_deps(M, tmp, log=spawned, processes=(other,))), 0,
+       "the finished batch resumed, beside another --out's running child")
     eq(spawned, [], "a finished batch launches nothing")
+
+
+# ---------------------------------------------------------------------------------------------------- T24d: a DEVELOPMENT resume
+def dev_resume_setup(M, tmp: Path) -> tuple[list[dict], dict, Path, Path]:
+    """A DEVELOPMENT P1 batch (seed 7601, its two arms; a temp ledger, no entry before it) whose orchestrator was killed
+    while its first job played L2: its ledger entry was begun BEFORE the first launch (and finished ERROR by the interrupt)."""
+    (tmp / "ledger.json").write_text(json.dumps({"what": "", "entries": []}), encoding="utf-8")
+    jobs, stages = p1_batch(M, tmp, first=7601)
+    jobs = jobs[:2]
+    prediction = tmp / "p.txt"
+    prediction.write_text("x\n", encoding="utf-8")
+    out = killed_first_run(M, tmp, jobs, stages, trainer=False, prediction=prediction)
+    eq([(e["id"], e["first"], e["last"]) for e in ledger.load(tmp / "ledger.json")["entries"]], [(1, 7601, 7601)],
+       "the killed development batch began ONE entry")
+    return jobs, stages, prediction, out
+
+
+def case_t24d_resume(M, tmp):
+    """3.13's resume of a DEVELOPMENT batch skips ONLY the batch's OWN ledger entry (verifier round 3, R3-M3): another entry
+    naming its seeds (one written while it was down) still refuses the resume: exit 2, the ledger byte-unchanged, no launch."""
+    jobs, stages, prediction, out = dev_resume_setup(M, tmp)
+    data_ = json.loads((tmp / "ledger.json").read_text(encoding="utf-8"))
+    data_["entries"].append({"id": 2, "family": "story", "driver": "another", "purpose": "development", "first": 7601,
+                             "last": 7601, "status": "done"})
+    (tmp / "ledger.json").write_text(json.dumps(data_), encoding="utf-8")
+    start = (tmp / "ledger.json").read_bytes()
+    spawned: list = []
+    code, text = refusal_of(M, batch_args(tmp / "jobs.json", out, stages, trainer=False, prediction=prediction, resume=True),
+                            batch_deps(M, tmp, log=spawned))
+    eq((code, (tmp / "ledger.json").read_bytes() == start, spawned), (2, True, []),
+       "another entry naming the seeds: the resume refused, no ledger write, no launch")
+    lines = [line for line in text.splitlines() if line.startswith("REFUSED: a seed of 7601-7601 is named")]
+    ok(len(lines) == 1 and lines[0].endswith("#2 (development, 7601-7601)"), f"only the OTHER entry refuses: {lines}")
+
+
+def case_t24d_control(M, tmp):
+    """A DEVELOPMENT batch resumed (3.13; WP1 starts "with --resume ready"; verifier round 3, R3-M3: T24 resumes only trainer
+    batches): its OWN entry names its seeds and is never a refusal; the resume exits 0, keeps ONE entry and finishes it as a
+    DEVELOPMENT one; the resumed job is never launched again; no run_id twice."""
+    jobs, stages, prediction, out = dev_resume_setup(M, tmp)
+    spawned: list = []
+    code, text = run_text(M, batch_args(tmp / "jobs.json", out, stages, trainer=False, prediction=prediction, resume=True),
+                          batch_deps(M, tmp, log=spawned))
+    eq(code, 0, f"the development batch resumed: {text[-400:]}")
+    entries = ledger.load(tmp / "ledger.json")["entries"]
+    eq([(e["id"], e["first"], e["last"]) for e in entries], [(1, 7601, 7601)], "still ONE entry, the batch's own")
+    ok(str(entries[0]["verdict"]).startswith("DEVELOPMENT, never graded"), f"finished DEVELOPMENT: {entries[0]['verdict']!r}")
+    ok(("spawn", jobs[0]["chain"]) not in spawned and ("spawn", jobs[1]["chain"]) in spawned,
+       f"the resumed job never relaunched, the job never started run: {spawned}")
+    ids = [r["run_id"] for r in M.read_records(out) if r.get("record") == "leg"]
+    eq(len(ids), len(set(ids)), f"no run_id twice: {ids}")
 
 
 # ---------------------------------------------------------------------------------------------------- T25: the deadline
@@ -1751,7 +2177,11 @@ def case_t25_control(M, tmp):
 
 # ---------------------------------------------------------------------------------------------------- T26: the scheduler
 def sched(M, tmp: Path, jobs: list[dict], passes: int = 3, processes=(), free=100.0, parallel: int = 8,
-          max_wait: float = 7200, on_end: dict | None = None, stages: dict | None = None, codes: dict | None = None):
+          max_wait: float = 7200, on_end: dict | None = None, stages: dict | None = None, codes: dict | None = None,
+          limit: int = 300):
+    """`drive` on `jobs` with TimedChild children (each ends at its `passes`-th poll), a planted process list and free
+    space. At most `limit` passes: past it the planted clock FAILS the case (an AssertionError), so a scheduler whose bound
+    was removed fails its case instead of hanging it (verifier round 3, R3-M2)."""
     out = tmp / "out"
     out.mkdir(parents=True, exist_ok=True)
     stages = stages or {"REAL": fake_stage(M, tmp, "REAL")}
@@ -1776,7 +2206,7 @@ def sched(M, tmp: Path, jobs: list[dict], passes: int = 3, processes=(), free=10
         handle = TimedChild(M, job, passes, (on_end or {}).get(job["chain"]))
         handles.append(handle)
         return handle
-    deps = batch_deps(M, tmp, spawn=spawn, processes=measured, free=free)
+    deps = batch_deps(M, tmp, spawn=spawn, processes=measured, free=free, limit=limit)
     facts = {"batch": jobs[0]["batch"], "mode": "trainer", "started": "now", "entry_id": None, "parallel": parallel}
     args = SimpleNamespace(deadline=None, max_wait=max_wait, resume=False)
     result = M.drive(jobs, out, stages, manifests, facts, args, deps)
@@ -1854,11 +2284,18 @@ def case_t26_scheduler(M, tmp):
     result, log, _ = sched(M, tmp / "f", plain_jobs(M, 1), max_wait=3,
                            processes=lambda: ["python run_regression.py"])
     ok(log == [] and "max-wait" in result["not_started"][0][1], f"a WAIT past --max-wait: DROPPED ({result['not_started']})")
+    # the reservation's boundary from below (3.13 says "under" 40 + 2.0 GB; verifier round 3, N1): 0.01 GB under it WAITs
+    eq(M.start_check({"legs": []}, view(reserve_gb=41.99))[0], M.WAIT, "a reservation of 41.99 GB: WAIT")
 
 
 def case_t26_control(M, tmp):
     result, log, _ = sched(M, tmp / "a", plain_jobs(M, 8), passes=3)
     eq(result["most_running"], 8, "0 others: 8 at once")
+    # the reservation EXACTLY at 40 + 2.0 GB is not under it (3.13; verifier round 3, N1; the spec's numbers): GO, and in a
+    # batch 43.25 GB free less one running job's 1.25 GB budget (its profile folder empty) lets the second start beside it
+    eq(M.start_check({"legs": []}, view(reserve_gb=42.0))[0], M.GO, "a reservation of exactly 42.0 GB: GO")
+    result, log, _ = sched(M, tmp / "r", plain_jobs(M, 2), free=43.25, parallel=2)
+    eq([e["done"] for e in log], [[], []], "43.25 - 1.25 = 42.0 GB: the second starts beside the first")
     source, practice = wp1_pair(M)
     other = plain_jobs(M, 1, 2000099)[0]
     result, log, _ = sched(M, tmp / "b", [source, practice, other], passes=3,
@@ -1917,6 +2354,15 @@ def case_t27_control(M, tmp):
     eq((len(stub.calls), l1["continue"]["go"]), (1, False), "an MC job STOPS at the 500,000,000-byte leg")
     eq(l1["continue"]["why"], l1["continue"]["live_chain"]["why"], "exactly as continue_after")
     ok(all(ENV_GOALS not in arm.env for arm in stub.arms), "and sends no AI_PLAYER_GOALS")
+    # an MC chain that CONTINUES (verifier round 2's NIT, round 3's N7: the job above launches only a fresh L1, which no
+    # job sends AI_PLAYER_GOALS): L1 keeps a goal snapshot a carrying chain's L2 would send; the MC chain's L2 starts from
+    # L1's kept end and sends none
+    cont = job_of(M, tmp / "mc2", to="ch2_wally", seed=6706, mc=True, goals="never")
+    _, stub, records = play(M, cont, {})
+    l1 = by_leg(records)["L1"]
+    eq((len(stub.arms), stub.arms[-1].state_from), (2, "START"), "the MC chain continued to a non-fresh L2")
+    ok(l1["kept"]["goals_sha256"], "L1 kept a goal snapshot")
+    ok(ENV_GOALS not in stub.arms[1].env, "an MC chain's non-fresh L2 sends no AI_PLAYER_GOALS")
 
 
 # ---------------------------------------------------------------------------------------------------- T28: imports
@@ -2080,8 +2526,19 @@ def loop_leg(M, trans: list, start: int, end: int, klass: str, reason: str, nxt:
              reached: bool = False, records: list | None = None, frames: int = 600000):
     loop = M.loop_measure(world_of(trans, CONSTS), start, end, frames, records or [])
     loop["keyed"] = M.loop_keyed(loop, reached, klass, reason)
-    loop["churn"] = reached and loop["crossings"] - loop["crossings_raise"] >= M.LOOP_MIN_CROSSINGS
+    # (no churn here: the churn rule is judge_leg's own, and T31's CONTROL reads it from run_job's record and the report;
+    # verifier round 3, R3-M4 a: this helper's copy of the rule made that item vacuous)
     return loop, M.blocker_of(5, nxt, reason, end_const, klass, reached, loop)
+
+
+def loop_practice(M, tmp: Path, n: int, start_world: dict | None = None, **plan_changes):
+    """ONE practice leg (L6) through run_job and judge_leg with `n` PETALBURG_WOODS|ROUTE104 crossings of its own after its
+    start truth's frame 5000 (its kept start line `start_world`, default one connection), and the report of its --out:
+    (its record, its report's chapter-6 cell)."""
+    plan = {"L6": {"transitions": alternating(n, 5000 + 400_000, first=5000 + 100), "consts": CONSTS, **plan_changes}}
+    _, _, records = practice_job(M, tmp, plan, to="ch6_dewford", world=start_world)
+    report = M.build_report(Path(records[0]["kept"]["folder"]).parents[1])
+    return records[0], report["trees"]["PLAY"]["6"]
 
 
 def case_t31_loop(M, tmp):
@@ -2118,6 +2575,19 @@ def case_t31_loop(M, tmp):
     eq(keys["LC-C-6482"][0]["key"], key_t["key"], "E0 C's own transitions give the same key")
     eq((keys["LC-T-6483"][1], keys["LC-C-6482"][1]), ("ch5_return_goods", "ch5_rusturf_grunt"), "their own next unmet")
     eq((keys["LC-T-6483"][2]["crossings"], keys["LC-C-6482"][2]["crossings"]), (118, 74), "59 and 37 each way")
+    # THE MODULE's START-FRAME CUT (3.8; verifier round 3, R3-M1 d: the fixture above is cut by make_a1_fixtures.py, so it
+    # tested the script's cut): a practice leg whose kept start line already carries 20 PETALBURG_WOODS|ROUTE104 crossings
+    # (frames 3,100-5,000, the last AT the start truth's frame 5000) and which makes 30 of its own counts ONLY its own 30
+    # (with the carried prefix: 50, over the bar of 40)
+    record, _ = loop_practice(M, tmp / "cut", 30, start_world=world_of(alternating(20, 5000), CONSTS))
+    loop = record["measures"]["loop"]
+    eq((loop["pair"], loop["crossings"], loop["transitions_in_leg"]), ("PETALBURG_WOODS|ROUTE104", 30, 30),
+       "only the leg's own crossings and transitions, never the carried prefix's")
+    # 3.8's "LOOPS SEEN" table (verifier round 3, N3): a flagged leg (60 crossings, then a discrete battle-loss stop: its
+    # own key) is listed there, through judge_leg and build_report, never hidden
+    record, cell = loop_practice(M, tmp / "flag", 60, miss=True, reason="play: stuck: 3 battles lost (MAX_LOSSES 3)")
+    eq((record["measures"]["loop"]["keyed"], [row["run_id"] for row in cell["loops_seen"]]), ("flag", [record["run_id"]]),
+       "a flagged leg is listed under loops seen")
 
 
 def case_t31_control(M, tmp):
@@ -2135,7 +2605,17 @@ def case_t31_control(M, tmp):
     eq(shaped(39)[0]["keyed"], "none", "39 crossings: no LOOP")
     loop, key = loop_leg(M, alternating(118, end - 50), start, end, M.CLEAN_CHOSEN, "play: done: chN reached",
                          "ch6_briney_house", "RUSTBORO_CITY", reached=True)
-    eq((loop["keyed"], loop["churn"], key), ("none", True, None), "a reached leg with 118 crossings: churn table only")
+    eq((loop["keyed"], key), ("none", None), "a reached leg with 118 crossings: never LOOP, no blocker")
+    # CHURN BY THE MODULE'S OWN RULE (3.8; verifier round 3, R3-M4 a: the line above once checked this helper's copy of the
+    # rule): through run_job, judge_leg and build_report, a REACHED leg with 118 crossings is churn, listed in the report's
+    # churn table (never ranked, never a loop seen); one with 38 is neither
+    got = {}
+    for name, n in (("many", 118), ("few", 38)):
+        record, cell = loop_practice(M, tmp / name, n)
+        got[name] = (record["reached"], record["measures"]["loop"]["crossings"], record["measures"]["loop"]["churn"],
+                     [row["run_id"] for row in cell["churn"]] == [record["run_id"]], record["blocker"], cell["loops_seen"])
+    eq(got, {"many": (True, 118, True, True, None, []), "few": (True, 38, False, False, None, [])},
+       "(reached, crossings, churn, alone in the churn table, blocker, loops seen)")
     raise_records = [{"frame": start, "decision": "goal", "action": "raise"}, {"frame": end - 60_000,
                                                                                "decision": "goal_end", "action": "raise"}]
     loop, _ = loop_leg(M, alternating(60, end - 70_000), start, end, M.CLEAN_BUDGET, "play: stopped", "ch6_dewford",
@@ -2165,6 +2645,22 @@ def case_t32_goal_custody(M, tmp):
     jobs[0]["env"] = {ENV_GOALS: "x"}
     ok(any(ENV_GOALS in p for p in M.jobs_problems(jobs)), "an MC job naming AI_PLAYER_GOALS: refused")
     refused(M, M.plan_jobs, "MC", 6701, data(), "ch1_pokedex", {ENV_GOALS: "x"})
+    # AI_PLAYER_GOALS on a leg that carries NO snapshot (C5, 3.11; verifier round 3, N1): a GOALS-OFF chain's L2 whose
+    # checked environment names it (a harness regression, planted): REFUSED before its launch
+    off = job_of(M, tmp / "off", seed=7603, goals="off")
+
+    def plant(index, leg, start, env):
+        if index == 1:
+            env[ENV_GOALS] = str(start["goals"])
+    _, stub, records = play(M, off, {}, before_leg=plant)
+    l2 = by_leg(records)["L2"]
+    eq((len(stub.calls), l2["class"]), (1, M.REFUSED), "AI_PLAYER_GOALS on a leg carrying none: REFUSED before launch")
+    ok("carries no goal snapshot" in l2["class_why"], f"the refusal names it: {l2['class_why']}")
+    # 3.7's losses_carried (verifier round 3, R3-M4 b): a GOALS-OFF leg from a kept 2-loss snapshot carries none of it: 0
+    _, _, records = practice_job(M, tmp / "lossoff", {}, goals={"losses": 2, "tried": []}, to="ch6_dewford",
+                                 goals_policy="off")
+    eq((records[0]["start_memory"]["goal_memory"], records[0]["start_memory"]["losses_carried"]), ("none", 0),
+       "a GOALS-OFF leg from a kept 2-loss snapshot: losses_carried 0")
 
 
 def case_t32_control(M, tmp):
@@ -2182,6 +2678,11 @@ def case_t32_control(M, tmp):
     eq(by_leg(records)["L2"]["start_memory"]["goal_memory"], "carried", "goal_memory: carried")
     _, _, records = practice_job(M, tmp / "none", {}, goals=False, to="ch6_dewford")
     eq(records[0]["start_memory"]["goal_memory"], "none", "a start with none runs, goal_memory: none")
+    # 3.7's losses_carried (verifier round 3, R3-M4 b; P2's CONTROL and the report's carried-in losses read it): a leg that
+    # CARRIES a snapshot holding 2 battles lost records 2
+    _, _, records = practice_job(M, tmp / "loss", {}, goals={"losses": 2, "tried": []}, to="ch6_dewford")
+    eq((records[0]["start_memory"]["goal_memory"], records[0]["start_memory"]["losses_carried"]), ("carried", 2),
+       "a carried 2-loss snapshot: losses_carried 2")
 
 
 # ---------------------------------------------------------------------------------------------------- T33: MC is E0's harness
@@ -2197,6 +2698,34 @@ def mc_leg(leg: str, go: bool = True, why: str = "C1-C6 held") -> dict:
     return {"schema_version": 1, "record": "leg", "run_id": f"MC-X-{leg}", "class": "CLEAN-CHOSEN", "reached": True,
             "fresh": {"ok": True}, "continue": {"go": go, "why": why}, "leg": {"leg": leg},
             "job": {"id": "MC-X", "mc": True, "legs_planned": [leg]}}
+
+
+def mc_batch(M, tmp: Path, jobs: list[dict], plans: dict | None = None, timed: bool = False) -> SimpleNamespace:
+    """An MC batch (2.4b) through the REAL run_batch in development mode (a temp ledger and evidence folder, --parallel 8,
+    100 GB free): stub children run in this process (`plans` per chain), or with `timed` stay running for 3 polls each, the
+    children alive at each launch counted. Returns the exit, the ledger entry's verdict, the most alive at once and
+    batch.json."""
+    (tmp / "ledger.json").parent.mkdir(parents=True, exist_ok=True)
+    (tmp / "ledger.json").write_text(json.dumps({"what": "", "entries": []}), encoding="utf-8")
+    stages = {"REAL": fake_stage(M, tmp, "REAL")}
+    prediction = tmp / "p.txt"
+    prediction.write_text("MC predicted\n", encoding="utf-8")
+    handles: list = []
+    most = [0]
+
+    def spawn(job, job_path, log_path):
+        handles.append(TimedChild(M, job, passes=3))
+        most[0] = max(most[0], sum(1 for h in handles if not h.done))
+        return handles[-1]
+    out = tmp / "out"
+    code = run_quiet(M, batch_args(write_jobs(tmp, jobs), out, stages, trainer=False, prediction=prediction),
+                     batch_deps(M, tmp, plans=plans, spawn=spawn if timed else None))
+    entries = ledger.load(tmp / "ledger.json")["entries"]
+    return SimpleNamespace(code=code, verdict=str(entries[0].get("verdict")) if len(entries) == 1 else f"{entries}",
+                           most=most[0], batch=json.loads((out / M.BATCH_FILE).read_text(encoding="utf-8")))
+
+
+MC_READS = "THE MERGE CHECK (MC, 2.4b, a hard-break check, never a rate) reads"
 
 
 def case_t33_mc(M, tmp):
@@ -2231,6 +2760,17 @@ def case_t33_mc(M, tmp):
     hung = job_of(M, tmp / "hung", to="ch2_wally", seed=6704, mc=True, goals="never")
     play(M, hung, {"L2": {"exit": 124, "no_verdict": True}})
     eq(M.build_report(Path(hung["out"]))["mc"]["reading"], "STOP", "a HUNG MC leg reads STOP")
+    # MC's LEDGER VERDICT names its reading (2.4b names PASS and STOP; verifier round 3, N7): an MC batch, through the real
+    # run_batch, one of whose chains HANGS, finishes its development entry reading STOP, naming that chain
+    jobs = M.plan_jobs("MC", 6721, data(), to="ch1_pokedex")
+    stop = mc_batch(M, tmp / "verdict", jobs, plans={jobs[1]["chain"]: {"L1": {"exit": 124, "no_verdict": True}}})
+    ok(stop.code == 0 and stop.verdict.startswith(f"DEVELOPMENT, never graded: {MC_READS} STOP over 3 chains: "
+                                                  f"{jobs[1]['chain']} L1: HUNG"), f"the entry reads STOP: {stop.verdict!r}")
+    # an MC job whose goal policy is not "never" is refused by plan and run (round 2's V59, a NIT until round 3)
+    jobs = M.plan_jobs("MC", 6701, data(), to="ch1_pokedex")
+    jobs[0]["goals"] = "carry"
+    ok(any("an MC job carries no goal snapshot" in p for p in M.jobs_problems(jobs)),
+       "an MC job whose goal policy is not 'never': refused")
 
 
 def case_t33_mc_control_pass(M, tmp):
@@ -2251,9 +2791,21 @@ def case_t33_control(M, tmp):
     eq(M.MC_PARALLEL, 3, "P = 3")
     with mock.patch.object(LC, "GUARD_WORLD_BYTES", 1234):
         eq(M.world_cut(True), 1234, "an MC job's world cut IS live_chain.GUARD_WORLD_BYTES (read, never copied)")
+        # (verifier round 3, N2: this was asserted outside the patch, so a copied 1,750,000,000 passed)
+        eq(M.profile_budget(True), 1234 + 250_000_000, "its profile budget is that READ value + 250,000,000")
     ok(M.profile_budget(True) > M.world_cut(True), "its profile budget lies above it")
     eq(M.mc_reading([mc_leg("L1")]), {"reading": "PASS", "chains": 1, "problems": []}, "a leg that continued: PASS")
     case_t33_mc_control_pass(M, tmp / "pass")
+    # P = 3 AT RUN TIME, on a batch where it BINDS (2.4b; verifier round 3, N2: every MC plan has 3 jobs): 6 MC jobs asked
+    # --parallel 8 with room for 8 run at most 3 at once, and batch.json says P 3
+    six = M.plan_jobs("MC", 6711, data(), to="ch1_pokedex") + M.plan_jobs("MC", 6714, data(), to="ch1_pokedex")
+    capped = mc_batch(M, tmp / "p3", six, timed=True)
+    eq((capped.code, capped.most, capped.batch["parallel"], capped.batch["parallel_asked"]), (0, 3, 3, 8),
+       "an MC batch of 6 runs at most 3 at once (asked 8)")
+    # MC's LEDGER VERDICT (2.4b; verifier round 3, N7): an MC batch whose 3 chains all reach finishes its entry reading PASS
+    passing = mc_batch(M, tmp / "verdict", M.plan_jobs("MC", 6721, data(), to="ch1_pokedex"))
+    ok(passing.code == 0 and passing.verdict.startswith(f"DEVELOPMENT, never graded: {MC_READS} PASS over 3 chains; "),
+       f"the entry reads PASS: {passing.verdict!r}")
 
 
 # ---------------------------------------------------------------------------------------------------- T34: WP1b dependency and fallback
@@ -2318,6 +2870,42 @@ def case_t34_dependency(M, tmp):
     ok(prac["chain"] not in [e["chain"] for e in log], "a start of another persona is never launched")
     eq([why for chain, why in result["not_started"] if chain == prac["chain"]], ["its start G1 is a Catcher's"],
        "it is named in not_started")
+    # the fallback SLOT (2.1; verifier round 3, N3): a missed chain's SECOND practice job (slot 1) takes its persona's
+    # SECOND start, G2, never the first one
+    slot1 = next(j for j in M.plan_jobs("WP1", 2000001, data()) if (j.get("depends_on") or {}).get("chain") ==
+                 source["chain"] and (j.get("fallback") or {}).get("slot") == 1)
+    two = fake_stage(M, tmp / "s2", "REAL", {sid: {"persona": "Story", "starter": "TREECKO", "starter_from": "job_file",
+                                                   "made_by": "x"} for sid in ("G1", "G2")})
+    state, start = M.dependency_of(slot1, {}, {source["chain"]}, tmp, {"REAL": (two, json.loads(
+        (two / "manifest.json").read_text(encoding="utf-8")))})
+    eq((state, start["id"], start["fallback_for"]), ("ready", "G2", "STRE"), "slot 1: the persona's second start, G2")
+    # 3.7's start_memory.fallback_for (verifier round 3, N3; a fallback is counted apart): the leg a fallback start plays
+    # records the pair it stands in for
+    job = job_of(M, tmp / "fbleg", to="ch6_dewford", kind="practice", from_chapter=6, seed=7213)
+    job["start"] = start
+    stub = Stub(job, {})
+    stub.truths[md5(Path(start["state"]))] = {"frame": 5000, "map": [0, 3], "state_md5": md5(Path(start["state"])),
+                                              "story": {"marks": marks_through("ch5_rival_meet"), "stats": {}}}
+    _, stub, records = play(M, job, {}, stub=stub)
+    eq((len(stub.calls), records[0]["start_memory"]["fallback_for"]), (1, "STRE"),
+       "a fallback start's leg: start_memory.fallback_for names its pair")
+    # the dependency HANG GUARD (3.13; verifier round 2's V62, a NIT until round 3): a WP1b job whose source chain is not in
+    # the batch (nothing runs, its dependency can never resolve) is DROPPED with the reason, never waited on forever
+    result, log, _ = sched(M, tmp / "orphan", [practice])
+    eq((log, [why for _, why in result["not_started"]]), ([], ["its dependency can never resolve (nothing runs)"]),
+       "an orphaned WP1b job: DROPPED, never launched")
+    # (fix round 3's sweep, N6) dependency_of's other DROPs: a REACHED source whose kept files are not all recorded; a
+    # source chain that ENDED without a reached L5 for a job with no fallback; and, through drive (start_check's DROP of a
+    # dependency), a missed chain's fallback start that is not on the stage: each DROPPED with its reason, never launched
+    unkept = {M.run_id_of("WP1", source["chain"], "L5"): {"reached": True, "kept": {"folder": str(tmp)}}}
+    state, why = M.dependency_of(practice, unkept, set(), tmp, stages)
+    ok(state == "drop" and "kept files are not all recorded" in str(why), f"a source's kept files unrecorded: {state}, {why}")
+    state, why = M.dependency_of({**practice, "fallback": None}, {}, {source["chain"]}, tmp, stages)
+    ok(state == "drop" and "ended without a reached L5" in str(why), f"no fallback: {state}, {why}")
+    result, log, _ = sched(M, tmp / "nofb", [source, practice], passes=2)
+    eq(([e["chain"] for e in log], [why for chain, why in result["not_started"] if chain == practice["chain"]]),
+       ([source["chain"]], [f"its source chain {source['chain']} missed and its fallback start G1 is not on the stage"]),
+       "a fallback start not on the stage: DROPPED, never launched")
 
 
 def case_t34_control(M, tmp):
@@ -2407,6 +2995,25 @@ def case_t36_raise(M, tmp):
     eq(record["blocker"]["key"][2], M.RAISE_TEXT, "the raise reason")
     eq(record["measures"]["loop"]["keyed"], "flag", "its own key, flagged, never LOOP")
     ok(record["blocker"]["key"][4] != "LOOP", "never the LOOP key")
+    # through judge_leg and build_report (verifier round 3, N3): 3.7's raise_end read from the AI's log ("the raise ends,
+    # budget spent"), and 3.8's BOSS-PREP BREAKDOWN of a chapter 6-7 key: a not-reached L6 leg that planned, raised and ran
+    # out of budget, carrying in a snapshot with 2 battles lost
+    plan = {"L6": {"miss": True, "exit": 4, "reason": "frame-budget", "real": 1_000_000, "records": [
+        {"frame": 6000, "decision": "tell", "reason": PLAN_TELL},
+        {"frame": 7000, "decision": "goal", "action": "raise", "reason": "raise for BRAWLY"},
+        {"frame": 900_000, "decision": "goal_end", "action": "raise", "reason": "the budget is spent"}],
+        "log": ["[AI-BOSSPREP] BRAWLY: the raise ends, budget spent (Mudkip at L14 of L16)"]}}
+    _, _, records = practice_job(M, tmp / "bp", plan, goals={"losses": 2, "tried": []}, to="ch6_dewford")
+    eq(records[0]["bossprep"]["raise_end"], "budget spent", "a raise ended by its budget, read from the AI's log")
+    entry = next(b for b in M.build_report(Path(records[0]["kept"]["folder"]).parents[1])["blockers"] if b["chapter"] == 6)
+    eq(entry.get("bossprep"), {"plan_made": 1, "raise_ended_by_budget": 1, "trainee_reached_target": 0,
+                               "trainer_only_logged": 0, "losses_carried_in": 2, "losses_in_leg": 0},
+       "the chapter 6 key's boss-prep breakdown")
+
+
+#: a boss-prep plan tell in the form `brain/bossprep.py` writes it (T36)
+PLAN_TELL = ("[AI-BOSSPREP] BRAWLY: the plan: raise Mudkip (0000beef) from L12 to L16 as the one who leads (close); a "
+             "near-best option; the Trainer only logs it")
 
 
 def case_t36_control(M, tmp):
@@ -2421,6 +3028,17 @@ def case_t36_control(M, tmp):
     bossprep = records[0]["bossprep"]
     eq((bossprep["acting"], bossprep["raise_goals"]), ("logs only", 0), "a Trainer leg: acting logged only, no raise")
     eq(bossprep["plan"]["trainee"], "Mudkip", "its plan read")
+    # (verifier round 3, N3) a raise the AI says is DONE ends "target reached", never "budget spent"; and a chapter 1-5
+    # key carries no boss-prep breakdown
+    plan = {"L6": {"records": [{"frame": 7000, "decision": "goal", "action": "raise", "reason": "raise for BRAWLY"},
+                               {"frame": 9000, "decision": "goal_end", "action": "raise", "reason": "done"}],
+                   "log": ["[AI-BOSSPREP] BRAWLY: the raise is done (Mudkip at L16)"]}}
+    _, _, records = practice_job(M, tmp / "done", plan, to="ch6_dewford")
+    eq(records[0]["bossprep"]["raise_end"], "target reached", "a raise that is done: target reached")
+    job = job_of(M, tmp / "c1", to="ch1_pokedex", seed=7813)
+    play(M, job, {"L1": {"miss": True}})
+    blockers = M.build_report(Path(job["out"]))["blockers"]
+    eq([(b["chapter"], "bossprep" in b) for b in blockers], [(1, False)], "a chapter 1 key: no boss-prep breakdown")
 
 
 # ---------------------------------------------------------------------------------------------------- AM-11: compare and replay
@@ -2470,6 +3088,40 @@ def case_am11_replay(M, tmp):
     record, folder, stage = replay_setup(M, tmp / "b")
     (stage / "build" / "profiles" / "ai-fp-replay-1").mkdir(parents=True)
     refused(M, replay_quiet, M, folder, stage, "ai-fp-replay-1", run_leg=lambda *a: None)
+    # replay SANITIZES the environment before its launch (3.11; verifier round 1's V09, a NIT until round 3): a parent's
+    # AI_PLAYER_FAULT_*, POKEBOT_* and PYTHONPATH are gone when the leg is launched
+    record, folder, stage = replay_setup(M, tmp / "env")
+    planted = {"AI_PLAYER_FAULT_NO_HINTS": "1", "POKEBOT_BOSSMODE_TOPUP": "1", "PYTHONPATH": "x"}
+    environs: list = []
+    with mock.patch.dict(os.environ, planted):
+        replay_quiet(M, folder, stage, "ai-fp-replay-2", run_leg=lambda arm, build, carried: environs.append(
+            dict(os.environ)) or SimpleNamespace(exit_code=0, elapsed=1.0, run_dir=None))
+    eq(sorted(name for name in planted if name in environs[0]), [], "none of the parent's variables at the launch")
+    # an MC example is replayed as MC plays (2.4b; verifier round 3, N7): its KEPT goal snapshot is never sent
+    arms, folder, stage = mc_replay(M, tmp / "mc")
+    ok((folder / "goals_last.jsonl").is_file() and ENV_GOALS not in arms[0].env,
+       f"an MC example's kept snapshot is never sent: {sorted(arms[0].env)}")
+    # (fix round 3's sweep, N6) replay refuses a folder no leg record keeps (a copy elsewhere in --out), and a profile that
+    # is not a probe profile
+    record, folder, stage = replay_setup(M, tmp / "c")
+    lone = Path(record["kept"]["folder"]).parents[1] / "elsewhere" / "L9"
+    shutil.copytree(folder, lone)
+    refused(M, replay_quiet, M, lone, stage, "ai-fp-replay-4", run_leg=lambda *a: None)
+    refused(M, replay_quiet, M, folder, stage, "endless-P1-x", run_leg=lambda *a: None)
+
+
+def mc_replay(M, tmp: Path) -> tuple[list, Path, Path]:
+    """ONE MC leg played (it keeps a goal snapshot, as every leg does), then replayed from its kept example: (the arms the
+    replay launched, the example folder, the stage)."""
+    job = job_of(M, tmp, to="ch1_pokedex", seed=6708, mc=True, goals="never")
+    _, _, records = play(M, job, {})
+    folder = Path(records[0]["kept"]["folder"])
+    stage = tmp / "stage"
+    donor(stage / "build")
+    arms: list = []
+    replay_quiet(M, folder, stage, "ai-fp-replay-3", run_leg=lambda arm, build, carried: arms.append(arm) or
+                 SimpleNamespace(exit_code=0, elapsed=1.0, run_dir=None))
+    return arms, folder, stage
 
 
 def case_am11_replay_control(M, tmp):
@@ -2485,6 +3137,13 @@ def case_am11_replay_control(M, tmp):
     eq(carried["EXAMPLE"], (str(folder / "end_state.ss1"), str(folder / "world_last.jsonl")), "the kept state and line")
     eq(arm.env[ENV_GOALS], str(folder / "goals_last.jsonl"), "the kept goal snapshot")
     eq(Path(build), stage / "build", "on the stage's build root")
+    # (verifier round 3) the sanitize keeps a variable off its strip list
+    environs: list = []
+    record, folder, stage = replay_setup(M, tmp / "env")
+    with mock.patch.dict(os.environ, {"A1FP_HARMLESS": "kept"}):
+        replay_quiet(M, folder, stage, "ai-fp-replay-2", run_leg=lambda arm, build, carried: environs.append(
+            dict(os.environ)) or SimpleNamespace(exit_code=0, elapsed=1.0, run_dir=None))
+    eq(environs[0].get("A1FP_HARMLESS"), "kept", "a variable off the strip list reaches the launch")
 
 
 # ==================================================================================================== THE TESTS
@@ -2509,6 +3168,7 @@ CASES = [
     ("T19", case_t19_custody, case_t19_control), ("T20", case_t20_donor, case_t20_control),
     ("T21", case_t21_stage_watch, case_t21_control), ("T22", case_t22_ai_stop, case_t22_control),
     ("T23", case_t23_schema, case_t23_control), ("T24", case_t24_resume, case_t24_control),
+    ("T24d", case_t24d_resume, case_t24d_control),
     ("T25", case_t25_deadline, case_t25_control), ("T26", case_t26_scheduler, case_t26_control),
     ("T27", case_t27_agreement, case_t27_control), ("T28", case_t28_imports, case_t28_control),
     ("T29", case_t29_mutant, case_t29_control), ("T30", case_t30_copies, case_t30_control),

@@ -1427,12 +1427,24 @@ def inside_work_tree(path: Path) -> bool:
     return done.returncode == 0 and done.stdout.strip() == "true"
 
 
+def at_or_under(path: Path, root: Path) -> bool:
+    """`path` IS `root` or lies under it: a PATH test (both resolved, case-folded as Windows compares them), so a sibling
+    whose name merely begins with the root's name is NOT under it."""
+    a, b = os.path.normcase(str(Path(path).resolve())), os.path.normcase(str(Path(root).resolve()))
+    return a == b or a.startswith(b.rstrip("\\/") + os.sep)
+
+
 def placement_problems(path: Path, what: str, work_tree: Callable[[Path], bool] = inside_work_tree) -> list[str]:
-    """--out and every stage lie outside every git work tree, ignored or not, and outside any pokebot-learner folder."""
+    """--out and every stage lie outside every git work tree, ignored or not, outside any pokebot-learner folder, and
+    neither at nor under `GRADED_CH5` (3.14: A1 reads the graded chapter 1-5 chains' starts there and never writes there;
+    verifier round 3, N7)."""
     resolved = Path(path).resolve()
     problems = []
     if "pokebot-learner" in (part.lower() for part in resolved.parts):
         problems.append(f"{what} {resolved} lies in a folder named pokebot-learner: the learner clone is never touched")
+    if at_or_under(resolved, Path(GRADED_CH5)):
+        problems.append(f"{what} {resolved} lies at or under {GRADED_CH5}: the graded chapter 1-5 chains are never written "
+                        f"(3.14)")
     if work_tree(resolved):
         problems.append(f"{what} {resolved} lies inside a git work tree (ignored or not): a batch writes outside every one")
     return problems
@@ -2594,6 +2606,9 @@ def run_refusals(args, deps: Deps, jobs: list | None, stages: dict[str, Path], m
     problems: list[str] = []
     if jobs is None:
         return ["--jobs is not a JSON list of jobs"]
+    if not jobs:
+        # an EMPTY list is refused here, before --out is made (verifier round 3, N4: it crashed after the mkdir, exit 5)
+        return ["--jobs holds no job (an empty list): nothing to run"]
     problems += jobs_problems(jobs)
     for name, stage in stages.items():
         problems += placement_problems(stage, f"the stage {name}", deps.work_tree)
@@ -2747,12 +2762,21 @@ def run_batch(args, deps: Deps | None = None) -> int:
 
 
 def finish_verdict(result: dict, report: dict) -> str:
+    """The development entry's verdict. An MC batch's names the merge check's READING, PASS or STOP (2.4b names both: a
+    hard-break check, never a rate; verifier round 3, N7), first, so the ledger line says it."""
     legs = report.get("legs", 0)
     reached = report.get("reached", 0)
+    mc = report.get("mc")
+    reading = ""
+    if mc:
+        problems = "; ".join(str(p) for p in mc.get("problems") or [])
+        reading = (f"THE MERGE CHECK (MC, 2.4b, a hard-break check, never a rate) reads {mc['reading']} over "
+                   f"{mc['chains']} chains{': ' + problems[:400] if problems else ''}; ")
     if result["aborted"]:
-        return f"ABORTED (disk: under {ABORT_FREE_GB:g} GB free): {legs} legs ran, {reached} reached; DEVELOPMENT, never graded"
+        return f"ABORTED (disk: under {ABORT_FREE_GB:g} GB free): {reading}{legs} legs ran, {reached} reached; " \
+               "DEVELOPMENT, never graded"
     stop = "; the AI-only stop" if result["ai_stop"] else ""
-    return (f"DEVELOPMENT, never graded: {legs} legs ran, {reached} reached, classes {report.get('classes')}; "
+    return (f"DEVELOPMENT, never graded: {reading}{legs} legs ran, {reached} reached, classes {report.get('classes')}; "
             f"{len(report.get('blockers') or [])} blocker keys{stop}; the report is blockers.json")
 
 
@@ -3278,7 +3302,8 @@ def replay_arm(example: Path, record: dict, profile: str, seed: int | None, fram
         raise Refusal(f"the example {example} lacks {missing}")
     job, leg = record.get("job") or {}, record.get("leg") or {}
     env = L5.play_env(job.get("persona"), None, leg.get("target"))
-    if (example / "goals_last.jsonl").is_file():
+    # an MC example is replayed as MC plays it, E0's harness: its kept snapshot is never sent (2.4b; verifier round 3, N7)
+    if (example / "goals_last.jsonl").is_file() and not job.get("mc"):
         env[ENV_GOALS] = str(example / "goals_last.jsonl")
     arm = L5.Arm(f"replay-{record.get('run_id')}", f"A1 replay of {record.get('run_id')} (one new trajectory)",
                  int(frames or leg.get("frames")), float(leg.get("wall") or LEG_WALL.get(leg.get("chapter"), LC.WALL)), env,

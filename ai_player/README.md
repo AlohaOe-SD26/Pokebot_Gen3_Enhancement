@@ -479,10 +479,16 @@ ledger entry and its evidence, `--trainer` writes nothing tracked); prints the b
 (frame, action) of two action logs (offline); writes the AI trainer's seed band row (once); and takes a stage down, its
 junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run from its stage. Exits: 0 ran, 2 refused
 before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
-crash, 6 the AI-only stop. Its offline proofs are `gates/test_frontier_probe.py` (T1-T36 and AM-11, each a FAULT and a
-CONTROL) and `gates/revert_frontier.py` (each guard the suite tests, broken in a copy; `replay`'s and `child_env`'s
-environment strips have no FAULT case yet). What it measures is DEVELOPMENT data, never a grade:
-`PROJECT KNOWLEDGE/ai-frontier.txt` stays the authority.
+crash, 6 the AI-only stop. Its offline proofs are `gates/test_frontier_probe.py` (T1-T36, T24d and AM-11, each a FAULT
+and a CONTROL) and `gates/revert_frontier.py` (218 mutants: each guard the suite tests, broken in a copy, fails its
+predicted test; Z25, the continue rule's class half, is REDUNDANT ALONE, its purity half stopping the same legs). Every
+guard the three verifier rounds named now has a FAULT case. Fix round 3's sweep of the refusal family (2026-11-14; code
+outside it was not swept) left five guards with none, each redundant or unreachable rather than unproven: `run`'s P_fit
+refusal (P_fit under 1 needs under 44.25 GB free, where the 45 GB start floor refuses first; `parallel_of` itself is
+tested), the child's "no legs" (`plan` and `run` refuse such a job first), the continue rule's C3 "not measured" and
+"not kept" (the stub cannot plant a leg failing either without C3's parse check) and its C5 (an A1 leg's custody is
+checked before its launch; only an MC row carries custody, and an MC leg decides by `continue_after`). What it measures
+is DEVELOPMENT data, never a grade: `PROJECT KNOWLEDGE/ai-frontier.txt` stays the authority.
 
 ## Layout
 

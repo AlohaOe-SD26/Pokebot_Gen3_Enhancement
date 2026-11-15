@@ -11,7 +11,7 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (135 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (218 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
            caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
@@ -19,13 +19,24 @@ THE TABLE (135 mutants; the spec's "about 54" predates the amendments' tests T31
            predictions), and G27-G30 (`disk_decision`'s boundaries) now break the code a batch runs.
   V05-V44  the verifier's round 1 (2026-11-14): the guards its own mutants showed NO case caught (V05-V31, its names kept,
            re-anchored where the fix moved a line) and the round's further guards (V40-V44), each caught by the FAULT or
-           CONTROL the round added. Two of its gaps stay open as NITs: replay's and `child_env`'s environment strips.
+           CONTROL the round added. Its two NITs, replay's and `child_env`'s environment strips, are V09 and V15 below.
   V55-V74  the verifier's round 2 (2026-11-14): its one-edit mutants of its two findings, which NO case caught (R2-M1, the
            disk guard's and the batch's terminal ends: V69, V70, V72, V73, V74; R2-M2, the development seed check's two
            refusals: V55, V56), its names, anchors and replacements kept, each now caught by the FAULT arm the round added
            to T14 (through the real `run_batch`) or T13.
   K1-K2    the round's own two: a seed ledger that cannot be read at a path ending in the KNOWN non-ledger is allowed (K1)
            and LISTED (K2), as 2.5 says (before the round it was skipped unlisted), each caught by T13's CONTROL.
+  W06-W69, V09-V80, Y01-Y12   the verifier's round 3 (2026-11-14): its one-edit mutants that NO case caught (W-names,
+           anchors and replacements verbatim; W12 and W41 HUNG T26 until the suite's planted clock got a pass limit that
+           FAILS), the earlier rounds' NITs it re-read (round 1's V09 and V15, round 2's V57-V63, and V80, X4's edit, now
+           seen by T9's and T27's MC lines too), and the round's own guards and CONTROL-side edits (Y01-Y12: the empty job
+           list, the graded-ch5 refusal, an MC replay's snapshot, MC's ledger verdict, and the other side of six rules).
+  Z01-Z33  fix round 3's BOUNDED SWEEP of the refusal family (`_ai_lab/a1/fix3/sweep_guards.py`: every if/elif line of
+           run_refusals, run_batch, parse_stages, start_refusal, placement_problems, manifest_problems, jobs_problems,
+           seeds_named, trainer_problems, dependency_of, start_check, custody_problems, profile_refusal, legs_refusal,
+           continue_rule, replay and their kin that no row edited): each guard among them, on its FAULT arm; Z25 (C2's
+           class half) is predicted REDUNDANT ALONE, because C2's purity half stops the same legs. The lines the sweep
+           left are bookkeeping or redundant by construction (ai_player/README.md, A1's "Run it" lines).
   H1-H4    the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
@@ -395,6 +406,253 @@ _ROUND2 = [
      "                known.append(item)", "                pass", ("test_t13_control",)),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): the verifier's round-3 gaps (2026-11-14, verdict
+#: CONDITIONAL_PASS on a2897998: its one-edit mutants that NO case caught, "failing (0)" or a TIMEOUT; reproduced before the
+#: fix by fix round 3, "VERIFIER ROUND 3 RUNNER: 28 of 30" and "6 of 7 as predicted", every gap as the verifier read it;
+#: names, anchors and replacements verbatim), the earlier rounds' NITs it re-read (V09, V15, V57-V63; V80 is X4's edit,
+#: now caught by T9's and T27's MC lines too), and the round's own guards and CONTROL-side edits (Y01-Y12): each now caught
+#: by the FAULT or CONTROL arm fix round 3 added
+_ROUND3 = [
+    # R3-M1: four guards with no FAULT
+    ("W06", "T15", "verify_zip compares the zip's members and sizes with the raw files' (3.12; the REAL verify_zip decides)",
+     "    if got != sizes:", "    if False:", ("test_t15_fault",)),
+    ("W07", "T15", "verify_zip fails a zip whose testzip() names a member (a damaged CRC; the REAL verify_zip decides)",
+     "            if bad is not None:", "            if False:", ("test_t15_fault",)),
+    ("W10", "T19", "C5: the start world line's sha256 is the kept line's (3.6)",
+     '        if now is None or now != start.get("world_sha256"):', "        if False:", ("test_t19_fault",)),
+    ("W35", "T12", "run_batch refuses a --trainer batch with a seed outside the band or no band row (trainer_problems wired)",
+     '            problems += trainer_problems([job["seed"] for job in jobs], data)', "            problems += []",
+     ("test_t12_fault",)),
+    ("W61", "T31", "the loop measure counts only the leg's own transitions, newer than the start truth's frame (3.8)",
+     "                and item[0] > start):", "                ):", ("test_t31_fault",)),
+    # R3-M2: the WAIT bound, whose removal HUNG T26 (now a FAIL past the suite's pass limit)
+    ("W12", "T26", "a WAIT past --max-wait is DROPPED (3.13)",
+     '        if view.get("waited", 0.0) >= view.get("max_wait", MAX_WAIT_SECONDS):', "        if False:",
+     ("test_t26_fault",)),
+    ("W41", "T26", "drive's WAIT clock advances (a WAIT can pass --max-wait)",
+     '                    waited[job["chain"]] = waited.get(job["chain"], 0.0) + delta',
+     '                    waited[job["chain"]] = waited.get(job["chain"], 0.0) + 0.0', ("test_t26_fault",)),
+    # R3-M3: a DEVELOPMENT resume
+    ("W15", "T24d", "seeds_named skips a resumed development batch's OWN entry (its --resume runs)",
+     '                if (norm, entry["id"]) in ignored:', "                if False:", ("test_t24d_control",)),
+    # R3-M4: record and report rules read through run_job, judge_leg and build_report
+    ("W16", "T31", "judge_leg marks a reached leg's churn (3.8's churn rule, the module's own)",
+     '        loop["churn"] = reached and loop["crossings"] - loop["crossings_raise"] >= LOOP_MIN_CROSSINGS',
+     '        loop["churn"] = False', ("test_t31_control",)),
+    ("W17", "T31", "the report's churn table lists a churn leg",
+     '                      for r in group if ((r.get("measures") or {}).get("loop") or {}).get("churn")]}',
+     "                      for r in group if False]}", ("test_t31_control",)),
+    ("W47", "T32", "start_memory.losses_carried is the carried snapshot's loss count (3.7)",
+     '                        "losses_carried": losses_of(start["snapshot"]) if start["carry"] else 0,',
+     '                        "losses_carried": 0,', ("test_t32_control",)),
+    ("W60", "T7", "a CUT-WORLD or HUNG leg's end map is the kept world tail's (3.5; the key's end map)",
+     '    if klass not in (CUT_WORLD, HUNG) and isinstance((after or {}).get("map"), list) and len(after["map"]) == 2:',
+     '    if isinstance((after or {}).get("map"), list) and len(after["map"]) == 2:', ("test_t7_fault",)),
+    # N1: refusals and checks with no FAULT
+    ("W11", "T32", "C5 refuses AI_PLAYER_GOALS on a leg that carries no snapshot",
+     "    elif ENV_GOALS in env:", "    elif False:", ("test_t32_fault",)),
+    ("W36", "T11", "run refuses a job whose stage is not given",
+     '        if job.get("stage") not in stages:', "        if False:", ("test_t11_fault",)),
+    ("W37", "T24", "--resume is refused while a child of this --out still runs",
+     "        if alive:", "        if False:", ("test_t24_fault",)),
+    ("W38", "T13", "development mode needs --prediction-file",
+     "            if not args.prediction_file:", "            if False:", ("test_t13_fault",)),
+    ("W62", "T21", "the orchestrator DROPs a pending job on STOP.txt (the child checks it again)",
+     '("stop", "STOP.txt: the code under test changed mid-batch")',
+     '("stop_never", "STOP.txt: the code under test changed mid-batch")', ("test_t21_fault",)),
+    ("W50", "T26", "the disk reservation WAITs only UNDER 40 + 2.0 GB (exactly 42.0 GB: GO)",
+     "    if reserve is None or reserve < ABORT_FREE_GB + RESERVE_MARGIN_GB:",
+     "    if reserve is None or reserve <= ABORT_FREE_GB + RESERVE_MARGIN_GB:", ("test_t26_control",)),
+    # N2: values checked only as constants
+    ("W14", "T33", "an MC batch runs at most P = 3 at once (at run time, on a batch where it binds)",
+     "        parallel = min(parallel, MC_PARALLEL)", "        parallel = parallel", ("test_t33_control",)),
+    ("W31", "T33", "an MC job's profile budget is live_chain.GUARD_WORLD_BYTES + 250,000,000, READ (never copied)",
+     "    return LC.GUARD_WORLD_BYTES + MC_PROFILE_MARGIN_BYTES if mc else PROFILE_BUDGET_BYTES",
+     "    return 1_750_000_000 if mc else PROFILE_BUDGET_BYTES", ("test_t33_control",)),
+    # N3: report and record fields no case asserted
+    ("W49", "T8", "the reach split by start kind names 'chain leg with a goal snapshot' (3.8)",
+     "        return START_KINDS[1] if carried else START_KINDS[2]", "        return START_KINDS[2]", ("test_t8_fault",)),
+    ("W18", "T31", "the report's 'loops seen' table lists a flagged leg (3.8: never hidden)",
+     '                           for r in group if ((r.get("measures") or {}).get("loop") or {}).get("keyed") == "flag"],',
+     "                           for r in group if False],", ("test_t31_fault",)),
+    ("W51", "T36", "the report gives a chapter 6-7 key its boss-prep breakdown (3.8)",
+     "            if isinstance(chapter, int) and chapter >= 6:", "            if False:", ("test_t36_fault",)),
+    ("W48", "T34", "a leg's start_memory.fallback_for names the pair its fallback start stands in for (3.7)",
+     '                        "fallback_for": start.get("fallback_for")}', '                        "fallback_for": None}',
+     ("test_t34_fault",)),
+    ("W64", "T16", "experience is written only for CLEAN-* legs (3.5's Exp column)",
+     "    if klass in CLEAN_CLASSES and world is not None:", "    if world is not None:", ("test_t16_fault",)),
+    ("W68", "T16", "rides_delta reports a ride used in the leg, by its delta against the start's line (3.7)",
+     "        if delta > 0:", "        if False:", ("test_t16_fault",)),
+    ("W69", "T36", "bossprep_fields reads a raise that ended by its budget (3.7 raise_end)",
+     '    elif any("the raise ends, budget spent" in line for line in texts):', "    elif False:", ("test_t36_fault",)),
+    ("W32", "T34", "a fallback takes the persona's start of the job's SLOT (2.1)",
+     '        start_id = ids[int(fallback.get("slot", 0)) % len(ids)]', "        start_id = ids[0]", ("test_t34_fault",)),
+    # N7: the earlier rounds' NITs (V09 and V15 of round 1, V57-V63 of round 2; V80 is X4's edit)
+    ("V09", "AM11r", "replay sanitizes the environment before its launch (3.11)",
+     "    sanitize_environ()\n    from ai_player.gates import live_step5 as L5\n\n    example = Path(example).resolve()",
+     "    from ai_player.gates import live_step5 as L5\n\n    example = Path(example).resolve()", ("test_am11r_fault",)),
+    ("V15", "T9", "the orchestrator's child_env strips AI_PLAYER_*, POKEBOT_* and refused PYTHON* (3.11)",
+     "           if not (k.upper().startswith(STRIPPED_PREFIXES) or LC.python_env_refused(k))}", "           if True}",
+     ("test_t9_fault",)),
+    ("V57", "T24", "a non-empty --out is refused without --resume",
+     "    if not args.resume and out.exists() and any(out.iterdir()):", "    if False:", ("test_t24_fault",)),
+    ("V58", "T24", "--resume with another jobs.json than the batch's is refused",
+     '    if isinstance(old, dict) and old.get("jobs_sha256") != hashlib.sha256(jobs_raw).hexdigest():', "    if False:",
+     ("test_t24_fault",)),
+    ("V59", "T33", "an MC job whose goal policy is not 'never' is refused (plan and run)",
+     '            if job.get("goals") != "never":', "            if False:", ("test_t33_fault",)),
+    ("V60", "T24", "a job id given twice is refused (plan and run; a run_id is keyed by it)",
+     "        if name in seen:", "        if False:", ("test_t24_fault",)),
+    ("V61", "T20", "a profile that is not a probe profile the launcher accepts is refused (plan and run)",
+     "        if not launcher._PROFILE_NAME_RE.match(profile) or not profile.startswith(PROFILE_PREFIX):", "        if False:",
+     ("test_t20_fault",)),
+    ("V62", "T34", "drive's dependency hang guard: pending jobs that can never resolve while nothing runs are DROPPED",
+     "            if pending and idle_at_start and not launched and not running and skipped == len(pending):",
+     "            if False:", ("test_t34_fault",)),
+    ("V63", "T20", "a leftover profile (it exists before the job) is refused by the child, never launched in",
+     '    if (Path(build_root) / "profiles" / name).exists():', "    if False:", ("test_t20_fault",)),
+    ("V80", "T33", "an MC chain never sends AI_PLAYER_GOALS (X4's edit: the job's goal policy ignored), seen by T9's and "
+                   "T27's MC lines too (non-fresh L2s since round 3)",
+     '    out["carry"] = has and policy == "carry"', '    out["carry"] = has',
+     ("test_t33_control", "test_t9_control", "test_t27_control")),
+    # the round's own guards (N4, N7) and CONTROL-side edits
+    ("Y01", "T11", "an EMPTY job list is refused before --out is made (N4: it crashed after the mkdir, exit 5)",
+     "    if not jobs:\n        # an EMPTY list", "    if False:\n        # an EMPTY list", ("test_t11_fault",)),
+    ("Y02", "T11", "--out and stages never at or under the graded chapter 1-5 folder (3.14)",
+     "    if at_or_under(resolved, Path(GRADED_CH5)):", "    if False:", ("test_t11_fault",)),
+    ("Y03", "AM11r", "replay of an MC example never sends its kept goal snapshot (2.4b)",
+     '    if (example / "goals_last.jsonl").is_file() and not job.get("mc"):',
+     '    if (example / "goals_last.jsonl").is_file():', ("test_am11r_fault",)),
+    ("Y04", "T33", "an MC batch's ledger verdict names the merge check's reading, PASS or STOP (2.4b)",
+     '    reading = ""\n    if mc:', '    reading = ""\n    if False:', ("test_t33_fault", "test_t33_control")),
+    ("Y05", "T24d", "a resume skips ONLY the batch's own entry (another entry naming its seeds still refuses)",
+     '                if (norm, entry["id"]) in ignored:', "                if ignored:", ("test_t24d_fault",)),
+    ("Y06", "T32", "losses_carried is 0 when the snapshot is not carried (a GOALS-OFF leg)",
+     '                        "losses_carried": losses_of(start["snapshot"]) if start["carry"] else 0,',
+     '                        "losses_carried": losses_of(start["snapshot"]),', ("test_t32_fault",)),
+    ("Y07", "T7", "every class but CUT-WORLD and HUNG reads the END TRUTH's map (a CLEAN leg's end map)",
+     '    if klass not in (CUT_WORLD, HUNG) and isinstance((after or {}).get("map"), list) and len(after["map"]) == 2:',
+     "    if False:", ("test_t7_control",)),
+    ("Y08", "T16", "a CLEAN leg writes its experience row",
+     "    if klass in CLEAN_CLASSES and world is not None:", "    if False:", ("test_t16_control",)),
+    ("Y09", "T36", "a chapter 1-5 key carries no boss-prep breakdown",
+     "            if isinstance(chapter, int) and chapter >= 6:", "            if True:", ("test_t36_control",)),
+    ("Y10", "T8", "a GOALS-OFF chain leg is 'chain leg without', never 'with a goal snapshot'",
+     "        return START_KINDS[1] if carried else START_KINDS[2]", "        return START_KINDS[1]", ("test_t8_control",)),
+    ("Y11", "T24", "--resume is refused only for a child of THIS --out (another batch's child never blocks it)",
+     '" child " in f" {c} " and str(out) in c]', '" child " in f" {c} "]', ("test_t24_control",)),
+    ("Y12", "T11", "the graded-folder check is a PATH check (a sibling whose name begins with the folder's is accepted)",
+     r'    return a == b or a.startswith(b.rstrip("\\/") + os.sep)', r'    return a == b or a.startswith(b.rstrip("\\/"))',
+     ("test_t11_control",)),
+    # fix round 3's BOUNDED SWEEP (N6: the README says what remains): the decision lines of the refusal family no row
+    # edited (run_refusals, run_batch, parse_stages, start_refusal, manifest_problems, jobs_problems, seeds_named,
+    # trainer_problems, dependency_of, start_check, profile_refusal, legs_refusal, continue_rule, replay), each a guard
+    # now shown to FAIL its FAULT with the guard removed (Z01-Z08 on FAULT arms that were there, Z09-Z26 on new ones)
+    ("Z01", "T11", "a stage whose manifest's repo or sandbox lies in a pokebot-learner folder is refused",
+     '            if target and "pokebot-learner" in (part.lower() for part in Path(target).parts):', "            if False:",
+     ("test_t11_fault",)),
+    ("Z02", "T11", "a stage with no valid manifest.json is refused",
+     '    if not isinstance(data, dict):\n        return None, [f"{stage}: no valid manifest.json"]',
+     '    if False:\n        return None, [f"{stage}: no valid manifest.json"]', ("test_t11_fault",)),
+    ("Z03", "T19", "a job's legs must equal the ones the staged milestones give (the comparison itself)",
+     "    if got != [{k: leg.get(k) for k in fields} for leg in want]:", "    if False:", ("test_t19_fault",)),
+    ("Z04", "AM11r", "replay refuses a profile that already exists (a replay plays in a NEW profile)",
+     '    if (build / "profiles" / profile).exists():', "    if False:", ("test_am11r_fault",)),
+    ("Z05", "T13", "a development seed range overlapping an entry's is a hit (the overlap test itself)",
+     '                if entry["first"] <= last and first <= entry["last"]:', "                if False:", ("test_t13_fault",)),
+    ("Z06", "T12", "a trainer seed outside the band is a problem (the band test itself)",
+     "                if not TRAINER_BAND[0] <= s <= TRAINER_BAND[1]]", "                if False]", ("test_t12_fault",)),
+    ("Z07", "T12", "a registered entry overlapping the trainer's seeds is a problem",
+     '            if entry.get("status") == "registered" and entry.get("first", 0) <= seeds[-1] and seeds[0] <= '
+     'entry.get("last", -1):', "            if False:", ("test_t12_fault",)),
+    ("Z08", "T11", "run_batch's refusal gate: any problem refuses the batch (exit 2) before any launch",
+     '    if problems:\n        for problem in problems:\n            print(f"REFUSED: {problem}", flush=True)\n        return 2',
+     '    if False:\n        for problem in problems:\n            print(f"REFUSED: {problem}", flush=True)\n        return 2',
+     ("test_t11_fault",)),
+    ("Z09", "T11", "a --stage not in the ARM=DIR form is refused (its own text; the stage it would name has no manifest)",
+     "        if not name.strip() or not folder.strip():", "        if False:", ("test_t11_fault",)),
+    ("Z10", "T14", "a free space that cannot be read refuses the start (never compared as a number)",
+     '    if free_gb is None:\n        return "the free space could not be read"',
+     '    if False:\n        return "the free space could not be read"', ("test_t14_fault",)),
+    ("Z11", "T11", "a --jobs file that is not a JSON list of jobs is refused",
+     '    if jobs is None:\n        return ["--jobs is not a JSON list of jobs"]',
+     '    if False:\n        return ["--jobs is not a JSON list of jobs"]', ("test_t11_fault",)),
+    ("Z12", "T24", "--resume on an --out that holds no batch.json is refused",
+     "    if args.resume and not (out / BATCH_FILE).is_file():", "    if False:", ("test_t24_fault",)),
+    ("Z13", "T13", "an empty prediction file is refused (development mode)",
+     '                    if not prediction_raw.decode("utf-8").strip():', "                    if False:",
+     ("test_t13_fault",)),
+    ("Z14", "T9", "a job with no legs is refused (plan and run)",
+     '        if not job.get("legs"):\n            problems.append(f"{name}: no legs")',
+     '        if False:\n            problems.append(f"{name}: no legs")', ("test_t9_fault",)),
+    ("Z15", "T34", "a reached source whose kept files are not all recorded is DROPPED, never started from",
+     '        if start is None:\n            return "drop", f"the source {source} {leg}\'s kept files are not all recorded"',
+     '        if False:\n            return "drop", f"the source {source} {leg}\'s kept files are not all recorded"',
+     ("test_t34_fault",)),
+    ("Z16", "T34", "a job with no fallback whose source chain ENDED without a reached L5 is DROPPED",
+     "        if not fallback:", "        if False:", ("test_t34_fault",)),
+    ("Z17", "T34", "a missed chain's fallback start that is not on the stage is DROPPED",
+     '        if start is None:\n            return "drop", f"its source chain {source} missed',
+     '        if False:\n            return "drop", f"its source chain {source} missed', ("test_t34_fault",)),
+    ("Z18", "T34", "start_check DROPs a job whose dependency can never be met (drive's half)",
+     '        if state == "drop":\n            return DROP, str(info)', '        if False:\n            return DROP, str(info)',
+     ("test_t34_fault",)),
+    ("Z19", "T20", "the child refuses a job whose profile is not a probe profile",
+     "    if not name.startswith(PROFILE_PREFIX) or name == DONOR:\n        return f\"the job's profile",
+     "    if False:\n        return f\"the job's profile", ("test_t20_fault",)),
+    ("Z20", "T20", "the child refuses when live_step5.PROFILE is not its job's",
+     "    if profile != name:", "    if False:", ("test_t20_fault",)),
+    ("Z21", "AM11r", "replay refuses a folder no leg record keeps",
+     '    if record is None:\n        raise Refusal(f"no leg record in', '    if False:\n        raise Refusal(f"no leg record in',
+     ("test_am11r_fault",)),
+    ("Z22", "AM11r", "replay refuses a profile that is not a probe profile",
+     "    if not profile.startswith(PROFILE_PREFIX) or profile == DONOR:\n        raise Refusal(f\"the replay's profile",
+     "    if False:\n        raise Refusal(f\"the replay's profile", ("test_am11r_fault",)),
+    ("Z23", "T14", "a STAGE's drive under 45 GB refuses the start (the --out's drive above it)",
+     "        refusal = start_refusal(free)\n        if refusal:\n            problems.append(f\"the stage {name}'s drive: {refusal}\")",
+     "        refusal = start_refusal(free)\n        if False:\n            problems.append(f\"the stage {name}'s drive: {refusal}\")",
+     ("test_t14_fault",)),
+    ("Z24", "T14", "--out's drive under 45 GB refuses the start (the stage's drive above it)",
+     "    refusal = start_refusal(free)\n    if refusal:\n        problems.append(f\"--out's drive: {refusal}\")",
+     "    refusal = start_refusal(free)\n    if False:\n        problems.append(f\"--out's drive: {refusal}\")",
+     ("test_t14_fault",)),
+    ("Z26", "T11", "a stage manifest that lacks a key or is of another schema is refused",
+     '    if missing or data.get("schema_version") != SCHEMA_VERSION:', "    if False:", ("test_t11_fault",)),
+    ("Z27", "T13", "run_batch refuses development seeds that are not ONE contiguous range (seed_span's wiring)",
+     '            if span is None:\n                problems.append("development seeds must be ONE contiguous range")',
+     '            if False:\n                problems.append("development seeds must be ONE contiguous range")',
+     ("test_t13_fault",)),
+    ("Z28", "T24d", "a resumed batch skips its OWN ledger entry and keeps it (the resume's wiring of seeds_named's ignore)",
+     '                if isinstance(old, dict) and old.get("entry_id") is not None:', "                if False:",
+     ("test_t24d_control",)),
+    ("Z29", "T10", "the trainer writes no evidence and finishes no entry (the batch's end, development only)",
+     '        if mode == "development":\n            evidence = write_evidence(',
+     '        if True:\n            evidence = write_evidence(', ("test_t10_fault",)),
+    ("Z30", "T24", "a Ctrl+C (a BaseException that is no Exception) still ends the batch, after its entry is finished",
+     "        if not isinstance(error, Exception):\n            raise\n        return 4",
+     "        if False:\n            raise\n        return 4", ("test_t24_fault",)),
+    ("Z31", "T34", "a REACHED source chain's L5 end is the dependency's start (ready)",
+     '    if record is not None and record.get("reached"):', "    if False:", ("test_t34_control",)),
+    ("Z32", "T21", "start_check DROPs every pending job on STOP.txt, ABORT.txt, the AI-only stop and the --out cap",
+     "        if view.get(flag):\n            return DROP, why", "        if False:\n            return DROP, why",
+     ("test_t21_fault", "test_t14_fault")),
+    ("Z33", "T26", "start_check WAITs a job while a reason holds (the singles cap, a lane, the reservation)",
+     '    if reasons:\n        if view.get("waited", 0.0)', '    if False:\n        if view.get("waited", 0.0)',
+     ("test_t26_fault",)),
+]
+
+#: (name, T, the guard, anchor, replacement, why no test catches it ALONE): fix round 3's sweep found these guards
+#: REDUNDANT on every arm the suite can plant, so each is predicted REDUNDANT ALONE (the copy passes every test)
+_REDUNDANT = [
+    ("Z25", "T18", "C2's CLASS half: a leg of a class other than CLEAN-* stops the chain",
+     '    if klass not in CLEAN_CLASSES:\n        why.append(f"C2 the class is {klass}, not CLEAN-*")',
+     '    if False:\n        why.append(f"C2 the class is {klass}, not CLEAN-*")',
+     "a reached NOT CLEAN leg (T18's arm) fails L5.PURITY_CLEAN too, so C2's PURITY half stops it (measured, "
+     "_ai_lab/a1/fix3/z25_probe.py: the real module's reason \"C2 the class is NOT CLEAN, not CLEAN-*; C2 purity not "
+     "clean: L5.PURITY_CLEAN FAIL\", Z25's copy \"C2 purity not clean: L5.PURITY_CLEAN FAIL\", both stop)."),
+]
+
 #: (name, the rule that is broken, (file, anchor, replacement), the test predicted to fail): the test-side guards (H1-H4,
 #: whose guard lives in the suite or in the G-3 scan it calls) and 4.2's named mutants the guard table lacked (X1-X4)
 _MORE = [
@@ -447,11 +705,15 @@ for _name, _what, _edit, _test in _MORE:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
-for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2:
+for _name, _tid, _guard, _old, _new, _tests in _ROUND1 + _ROUND2 + _ROUND3:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],
                       DEFAULT_SUITES)
+for _name, _tid, _guard, _old, _new, _why in _REDUNDANT:
+    if _name in MUTANTS:
+        raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
+    MUTANTS[_name] = (REDUNDANT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], _why, DEFAULT_SUITES)
 
 DRIVER = '''
 import importlib, json, sys, unittest
