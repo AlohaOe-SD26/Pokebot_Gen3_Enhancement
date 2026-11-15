@@ -452,6 +452,37 @@ CH1,ERRANDS_OFF,CH2,CH2_OFF --seeds 9 --first-seed 41` goes on from each chapter
 WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3.12 ai_player/gates/provenance.py
 --snapshot`, `--compare A B`).
 
+A1, the FRONTIER PROBE (test side, `gates/frontier_probe.py`; build spec
+`PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md` 3.2, amended 2026-11-13): it plays the AI's
+legs through the real launcher (`live_step5.run_arm`, the purity gate on every launch), several at once beside the bot
+tuner, and ranks where the AI stops across chapters 1-7, with a kept example of each; it is also the runner the learner's
+trainer calls (`run --trainer`). Its commands, one row each:
+
+```
+py -3.12 -B ai_player/gates/frontier_probe.py stage --commit SHA --stage DIR [--repo DIR] [--sandbox DIR] [--donor DIR] [--mutant NAME] [--starts G1,...] [--g-root DIR] [--c-root DIR]
+py -3.12 -B ai_player/gates/frontier_probe.py plan P1|GM|WP1|MC --first-seed N [--to T] [--env K=V ...] > jobs.json
+py -3.12 -B ai_player/gates/frontier_probe.py run --jobs F --out DIR --stage ARM=DIR[,ARM=DIR] (--ledger development --prediction-file F | --trainer) [--parallel 8] [--deadline EPOCH] [--max-wait 7200] [--resume]
+py -3.12 -B ai_player/gates/frontier_probe.py report DIR
+py -3.12 -B ai_player/gates/frontier_probe.py replay EXAMPLE --stage DIR --profile NAME [--seed N] [--frames F] [--code-tree DIR]
+py -3.12 -B ai_player/gates/frontier_probe.py compare A.jsonl B.jsonl [--context N]
+py -3.12 -B ai_player/gates/frontier_probe.py reserve-band [--ledger PATH]
+py -3.12 -B ai_player/gates/frontier_probe.py teardown --stage DIR
+```
+
+builds ONE stage (the code one commit holds, by `git archive`, outside every git work tree; the sandbox's emulator files
+JUNCTIONED in; the starts copied and custody-checked; `--mutant` names a planted wall of `frontier_probe.MUTANTS`, empty
+until the live proof's walls are picked, and an unknown name is refused); writes a batch's job list (pure: P1, GM, WP1, or
+MC, the merge check: the 3 diagonal New Game chains to the newest graded target, no goal snapshot); runs it (at most P jobs
+at once: GO, WAIT, SKIP or DROP; the disk guard, the stage watch, the AI-only stop; `--ledger development` writes one
+ledger entry and its evidence, `--trainer` writes nothing tracked); prints the blocker report of a batch's `records.jsonl`
+(offline); plays ONE leg again from a kept example (one NEW trajectory, never a replication); prints the first differing
+(frame, action) of two action logs (offline); writes the AI trainer's seed band row (once); and takes a stage down, its
+junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run from its stage. Exits: 0 ran, 2 refused
+before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
+crash, 6 the AI-only stop. Its offline proofs are `gates/test_frontier_probe.py` (T1-T36 and AM-11, each a FAULT and a
+CONTROL) and `gates/revert_frontier.py` (each guard broken in a copy). What it measures is DEVELOPMENT data, never a grade:
+`PROJECT KNOWLEDGE/ai-frontier.txt` stays the authority.
+
 ## Layout
 
 | file | what it is for |

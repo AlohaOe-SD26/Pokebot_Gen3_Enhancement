@@ -58,8 +58,9 @@ class ControlTests(unittest.TestCase):
     def test_the_cli_passes_on_the_real_tree(self) -> None:
         code, out = run_cli(REPO)
         self.assertEqual(code, 0, out)
-        # (BP-1, 2026-11-09; P11-1, 2026-11-11) 9 runners: revert_bossprep and revert_p11 joined
-        self.assertRegex(out.strip().splitlines()[-1], r"^ANCHORS GATE: PASS \(9 of 9 runners, \d+ mutants, \d+ edits, "
+        # (BP-1, 2026-11-09; P11-1, 2026-11-11) 9 runners: revert_bossprep and revert_p11 joined; (A1, 2026-11-14) 10:
+        # revert_frontier joined
+        self.assertRegex(out.strip().splitlines()[-1], r"^ANCHORS GATE: PASS \(10 of 10 runners, \d+ mutants, \d+ edits, "
                                                        r"0 not unique, 0 errors\)$")
 
 
@@ -105,7 +106,7 @@ class FaultTests(unittest.TestCase):
         code, out = run_cli(self.root)
         self.assertEqual(code, 1, out)
         self.assertIn("NOT UNIQUE revert_step3 W64 world/memory.py: 2 hits", out)
-        self.assertRegex(out, r"(?m)^ANCHORS GATE: FAIL \(9 of 9 runners, .*1 not unique, 0 errors\)$")
+        self.assertRegex(out, r"(?m)^ANCHORS GATE: FAIL \(10 of 10 runners, .*1 not unique, 0 errors\)$")
 
     def test_an_anchor_gone_from_its_file_hits_zero(self) -> None:
         def rewrite_forget_bump(text: str) -> str:
