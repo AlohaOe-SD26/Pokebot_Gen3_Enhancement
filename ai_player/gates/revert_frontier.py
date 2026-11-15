@@ -11,10 +11,15 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (106 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (126 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
-           caught"). The anchors and replacements are that table's, unchanged; the case is named by the test that runs it.
+           caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
+           ask `disk_decision` about each measurement, so those four are anchored on the tick's new lines (same guards, same
+           predictions), and G27-G30 (`disk_decision`'s boundaries) now break the code a batch runs.
+  V05-V44  the verifier's round 1 (2026-11-14): the guards its own mutants showed NO case caught (V05-V31, its names kept,
+           re-anchored where the fix moved a line) and the round's further guards (V40-V44), each caught by the FAULT or
+           CONTROL the round added. Two of its gaps stay open as NITs: replay's and `child_env`'s environment strips.
   H1-H4    the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
@@ -129,13 +134,16 @@ _GUARDS = [
     ("G32", "T14", "P_fit (an off-by-one starts a job that does not fit)",
      "    return math.floor(round(room / per, 6))", "    return math.floor(round(room / per, 6)) + 1", "test_t14_fault"),
     ("G33", "T14", "the tick ABORTS under 40 GB",
-     '    if free is not None and free < ABORT_FREE_GB and not state["aborted"]:', "    if False:", "test_t14_fault"),
+     '    if disk_decision(None, free, None) == "abort" and not state["aborted"]:', "    if False:", "test_t14_fault"),
     ("G34", "T14", "the tick cuts a world over the cut",
-     "        if leg is not None and size is not None and size > world_cut(mc):", "        if False:", "test_t14_fault"),
+     '        if leg is not None and disk_decision(size, None, None, mc=mc) == "cut-world":', "        if False:",
+     "test_t14_fault"),
     ("G35", "T14", "the tick drops pending jobs over the --out cap",
-     '    if not state["out_over"] and deps.folder_bytes(out) > OUT_CAP_BYTES:', "    if False:", "test_t14_fault"),
+     '    if not state["out_over"] and disk_decision(None, None, deps.folder_bytes(out)) == "drop":', "    if False:",
+     "test_t14_fault"),
     ("G36", "T14", "the tick cuts a profile folder over its budget",
-     "        if leg is not None and held > profile_budget(mc):", "        if False:", "test_t14_fault"),
+     '        if leg is not None and disk_decision(None, None, None, held, mc=mc) == "cut-profile":', "        if False:",
+     "test_t14_fault"),
     ("G37", "T15", "a zip that fails its check keeps the raw logs",
      "    if problem is not None:\n        return {\"zip\": str(target)", "    if False:\n        return {\"zip\": str(target)",
      "test_t15_fault"),
@@ -292,6 +300,66 @@ _GUARDS = [
      "    refusal = profile_refusal(job, L5.PROFILE, build_root)", "test_t19_fault"),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): the verifier's round-1 gaps (2026-11-14,
+#: verdict CONDITIONAL_PASS on e71d319d: its own one-edit mutants that NO case caught, reproduced before the fix by the
+#: build's fix1_repro, "18 of 18 as predicted"; their names kept, each re-anchored where the fix moved its line) and the
+#: round's further guards (V40-V44): each now caught by the FAULT or CONTROL case the round added
+_ROUND1 = [
+    ("V05", "T14", "the tick cuts an MC job's world by live_chain's own guard, never A1's 1 GB (its call keeps mc)",
+     '        if leg is not None and disk_decision(size, None, None, mc=mc) == "cut-world":',
+     '        if leg is not None and disk_decision(size, None, None) == "cut-world":', ("test_t14_control", "test_t33_fault")),
+    ("V06", "T14", "the tick holds an MC job to its own profile budget, never A1's 1.25 GB (its call keeps mc)",
+     '        if leg is not None and disk_decision(None, None, None, held, mc=mc) == "cut-profile":',
+     '        if leg is not None and disk_decision(None, None, None, held) == "cut-profile":', ("test_t14_control",)),
+    ("V07", "T11", "a stage inside a git work tree is refused (run_refusals' placement call for each stage)",
+     '        problems += placement_problems(stage, f"the stage {name}", deps.work_tree)', "        problems += []",
+     ("test_t11_fault",)),
+    ("V08", "T21", "the stage watch's SANDBOX half (the junctioned modules/ and plugins/ changed: STOP.txt)",
+     "            if deps.sandbox_digest(sandbox) != sandbox_marks.get(name) and not (out / STOP_FILE).is_file():",
+     "            if False:", ("test_t21_fault",)),
+    ("V10", "T25", "the child's own deadline check before every leg (a later leg never launched past --deadline)",
+     '        if why is None and not leg_fits(time.time(), leg, job.get("deadline")):', "        if False:",
+     ("test_t25_fault",)),
+    ("V11", "T25", "the watchdog: a child alive past its job's summed watchdog is killed (then salvaged)",
+     '        if now - started > float(job.get("watchdog_seconds") or job_watchdog_seconds(job)) \\',
+     '        if False and now - started > float(job.get("watchdog_seconds") or job_watchdog_seconds(job)) \\',
+     ("test_t25_fault",)),
+    ("V12", "T33", "an MC job's custody is live_chain's own (custody_problems, continue_after's C5)",
+     '    row["custody"] = LC.custody_problems(row, prev_row, lc_job, index) if mc else []', '    row["custody"] = []',
+     ("test_t33_fault",)),
+    ("V13", "T33", "the MC reading reads each leg's continue decision (purity, custody, the world)",
+     '            elif not (record.get("continue") or {}).get("go"):', "            elif False:", ("test_t33_fault",)),
+    ("V14", "T34", "GM's A/B is dropped as VACUOUS when its source's end holds no discriminating tile",
+     '            if not tiles:\n                return "drop", (f"VACUOUS', '            if False:\n                return "drop", (f"VACUOUS',
+     ("test_t34_fault",)),
+    ("V16", "T18", "C3: a carrying chain's leg that kept no goal snapshot stops the chain",
+     '    if carries_goals and not row.get("kept_goals"):', "    if False:", ("test_t18_fault",)),
+    ("V20", "T14", "a launch the disk guard's ABORT killed is INFRA (never the AI's NOT CLEAN)",
+     '    if guard == "abort":\n        return INFRA,', '    if False:\n        return INFRA,', ("test_t14_fault",)),
+    ("V21", "T14", "a launch the world cut killed is CUT-WORLD (its kill marker judged first)",
+     '    if guard == "world":\n        return CUT_WORLD,', '    if False:\n        return CUT_WORLD,', ("test_t14_fault",)),
+    ("V22", "T14", "a launch the profile budget killed is CUT-WORLD (its kill marker judged first)",
+     '    if guard == "profile":\n        return CUT_WORLD,', '    if False:\n        return CUT_WORLD,', ("test_t14_fault",)),
+    ("V30", "T34", "a fallback start gives the job that start's OWN starter and starter_from (2.1)",
+     '                    if start.get("kind") == "stage":', "                    if False:", ("test_t34_fault",)),
+    ("V31", "T34", "a resolved start of ANOTHER persona is never launched (2.2)",
+     '                    if start.get("persona") and start["persona"] != job["persona"]:', "                    if False:",
+     ("test_t34_fault",)),
+    ("V40", "T14", "the tick cuts an MC job's world over live_chain's guard at all",
+     '        if leg is not None and disk_decision(size, None, None, mc=mc) == "cut-world":',
+     '        if leg is not None and not mc and disk_decision(size, None, None, mc=mc) == "cut-world":', ("test_t14_fault",)),
+    ("V41", "T18", "C4: a leg the probe's guard killed stops the chain, by name",
+     '    if row.get("guard_killed"):\n        why.append(f"C4', '    if False:\n        why.append(f"C4', ("test_t18_fault",)),
+    ("V42", "T25", "the watchdog kills only a child strictly PAST it (exactly at it: kept)",
+     '        if now - started > float(job.get("watchdog_seconds") or job_watchdog_seconds(job)) \\',
+     '        if now - started >= float(job.get("watchdog_seconds") or job_watchdog_seconds(job)) \\', ("test_t25_control",)),
+    ("V43", "T34", "GM's discriminator counts only the maps the next leg starts on or crosses early",
+     '        if isinstance(entry, dict) and entry.get("const") in DISCRIMINATOR_MAPS:', "        if isinstance(entry, dict):",
+     ("test_t34_fault",)),
+    ("V44", "T34", "GM's discriminator counts only tiles the end snapshot tried",
+     '                if f"{key}|{xy}" in tried:', "                if True:", ("test_t34_fault",)),
+]
+
 #: (name, the rule that is broken, (file, anchor, replacement), the test predicted to fail): the test-side guards (H1-H4,
 #: whose guard lives in the suite or in the G-3 scan it calls) and 4.2's named mutants the guard table lacked (X1-X4)
 _MORE = [
@@ -344,6 +412,11 @@ for _name, _what, _edit, _test in _MORE:
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
+for _name, _tid, _guard, _old, _new, _tests in _ROUND1:
+    if _name in MUTANTS:
+        raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
+    MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],
+                      DEFAULT_SUITES)
 
 DRIVER = '''
 import importlib, json, sys, unittest

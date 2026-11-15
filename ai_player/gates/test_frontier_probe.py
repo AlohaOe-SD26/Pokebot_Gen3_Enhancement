@@ -867,6 +867,7 @@ def case_t10_control(M, tmp):
 # ---------------------------------------------------------------------------------------------------- T11: placement
 def case_t11_placement(M, tmp):
     repo = temp_repo(tmp)
+    (repo / ".gitignore").write_text("ignored/\n", encoding="utf-8")
     ledger_path = band_ledger(tmp / "ledger.json")
     start = ledger_path.read_bytes()
     jobs, stages = p1_batch(M, tmp)
@@ -879,18 +880,30 @@ def case_t11_placement(M, tmp):
     manifest = json.loads((learner / "manifest.json").read_text(encoding="utf-8"))
     manifest["sandbox"] = str(tmp / "pokebot-learner" / "sandbox-pokebot")
     (learner / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    for name, out, stage_map in (("--out in a work tree", repo / "ignored" / "out", stages),
+    # VALID stages (each manifest.json reads) inside the temp work tree, one in a plain folder and one in a git-IGNORED
+    # folder, so only the placement check can refuse them (verifier round 1, F2: the stage planted before had no manifest,
+    # so manifest_problems refused it whatever its placement)
+    tracked, ignored = fake_stage(M, repo / "tracked", "REAL"), fake_stage(M, repo / "ignored", "REAL")
+    eq([M.manifest_problems(stage)[1] for stage in (tracked, ignored)], [[], []], "both planted stages are valid stages")
+    git(repo, "check-ignore", "-q", str(ignored / "manifest.json"))  # raises unless git ignores it: the arm is real
+    (tmp / "empty-stage").mkdir(exist_ok=True)
+    wrong: list[str] = []
+    for name, out, stage_map in (("--out in a work tree", repo / "tracked" / "out", stages),
+                                 ("--out in an ignored folder of a work tree", repo / "ignored" / "out", stages),
                                  ("a stage whose sandbox lies in a pokebot-learner folder", tmp / "o5",
                                   {**stages, "REAL": learner}),
                                  ("--out in a pokebot-learner folder", tmp / "pokebot-learner" / "out", stages),
-                                 ("a stage in a work tree", tmp / "o3", {**stages, "REAL": repo}),
+                                 ("a stage in a work tree", tmp / "o3", {**stages, "REAL": tracked}),
+                                 ("a stage in an ignored folder of a work tree", tmp / "o6", {**stages, "REAL": ignored}),
                                  ("a stage without a manifest", tmp / "o4", {**stages, "REAL": tmp / "empty-stage"})):
-        (tmp / "empty-stage").mkdir(exist_ok=True)
         for mode, jobs_path, extra in (("trainer", path, {}), ("development", dev_path,
                                                                {"trainer": False, "prediction": prediction})):
-            code = run_quiet(M, batch_args(jobs_path, out, stage_map, **extra), batch_deps(M, tmp, **real_tree))
-            eq(code, 2, f"{name} ({mode})")
-            eq(ledger_path.read_bytes(), start, f"{name} ({mode}): no ledger write")
+            ledger_path.write_bytes(start)  # every arm from the same ledger, in its own --out: one arm never refuses the next
+            code = run_quiet(M, batch_args(jobs_path, out / mode, stage_map, **extra), batch_deps(M, tmp, **real_tree))
+            written = ledger_path.read_bytes() != start
+            if code != 2 or written:
+                wrong.append(f"{name} ({mode}): exit {code}{', a ledger write' if written else ''}")
+    eq(wrong, [], "every placement FAULT refused (exit 2) with no ledger write")
 
 
 def case_t11_control(M, tmp):
@@ -1033,6 +1046,26 @@ def case_t14_disk(M, tmp):
     eq((marker or {}).get("cause"), "profile", "the tick cuts a profile folder of 1,250,000,001 bytes")
     _, marker, _ = one_tick(M, tmp / "e", tick_job(M, tmp / "e", mc=True), profile=1_750_000_001)
     eq((marker or {}).get("cause"), "profile", "the tick cuts an MC profile folder of 1,750,000,001 bytes")
+    _, marker, killed = one_tick(M, tmp / "g", tick_job(M, tmp / "g", mc=True), world=1_500_000_001)
+    eq(((marker or {}).get("cause"), bool(killed)), ("world", True),
+       "the tick cuts an MC world of 1,500,000,001 bytes (live_chain's own guard, 3.12)")
+    # THE CLASS of a leg the probe's guard killed (3.5: the kill marker is judged before any verdict rule). A killed launch
+    # leaves no verdict file (exit 1 here): without its marker that end is the AI's own NOT CLEAN, which counts toward the
+    # AI-only stop (T14's CONTROL); with a world or profile marker it is CUT-WORLD (it resets the stop), with the disk
+    # guard's ABORT marker INFRA (neither counts nor resets). Verifier round 1, F3: no case read the class before.
+    killed_end = {"no_verdict": True, "exit": 1}
+    four = [leg_record(f"n{i}", M.NOT_CLEAN, float(i)) for i in range(4)]
+    arms = (("world", False, (M.CUT_WORLD, M.CUT_TEXT)), ("profile", False, (M.CUT_WORLD, M.CUT_PROFILE_TEXT)),
+            ("world", True, (M.CUT_WORLD, M.CUT_TEXT_MC)), ("abort", False, (M.INFRA, "the disk guard's ABORT killed the launch")))
+    for i, (cause, mc, want) in enumerate(arms):
+        eq(M.classify(facts(guard=cause, mc=mc, exit=1, verdict=None)), want, f"classify: a {cause} kill marker (MC {mc})")
+        job = job_of(M, tmp / f"k{i}", to="ch1_pokedex", seed=(6708 if mc else 7310 + i), mc=mc,
+                     goals="never" if mc else "carry")
+        _, _, records = play(M, job, {"L1": {**killed_end, "after": guard_after(Path(job["out"]), job["chain"], cause)}})
+        eq((records[0]["class"], records[0]["class_why"]), want, f"a leg the {cause} guard killed (MC {mc})")
+        eq(M.ai_stop_streak(four + [{**records[0], "ended": 9.0}]), 4 if want[0] == M.INFRA else 0,
+           f"a leg the {cause} guard killed: {'INFRA neither counts nor resets' if want[0] == M.INFRA else 'CUT-WORLD resets'} "
+           f"the AI-only stop")
     band = band_ledger(tmp / "ledger.json").read_bytes()
     _, stages = p1_batch(M, tmp / "f")
     prediction = tmp / "p.txt"
@@ -1045,6 +1078,16 @@ def case_t14_disk(M, tmp):
 
 
 def case_t14_control(M, tmp):
+    # the TICK at every boundary FIRST: it asks disk_decision about each measurement (verifier round 1, F1), so a boundary
+    # broken there fails HERE, on the code a batch runs, before the unit lines below
+    state, marker, killed = one_tick(M, tmp / "a", tick_job(M, tmp / "a"), world=1_000_000_000, profile=1_250_000_000,
+                                     free=40.0, out_bytes=5_000_000_000)
+    ok(not state["aborted"] and not state["out_over"] and marker is None and not killed, "every boundary passes")
+    for i, (name, world, profile) in enumerate((("an MC world of 1,000,000,001 bytes (over A1's cut)", 1_000_000_001, 0),
+                                                ("an MC world of 1,500,000,000 bytes", 1_500_000_000, 0),
+                                                ("an MC profile folder of 1,750,000,000 bytes", None, 1_750_000_000))):
+        _, marker, killed = one_tick(M, tmp / f"mc{i}", tick_job(M, tmp / f"mc{i}", mc=True), world=world, profile=profile)
+        ok(marker is None and not killed, f"the tick keeps {name}")
     eq(M.start_refusal(45.0), None, "45.0 GB starts")
     eq(M.disk_decision(None, 40.0, None), None, "40.0 GB no abort")
     eq(M.disk_decision(1_000_000_000, 50.0, None), None, "1,000,000,000 kept")
@@ -1055,9 +1098,12 @@ def case_t14_control(M, tmp):
     eq(M.disk_decision(1_000_000_001, 50.0, None, mc=True), None, "an MC world of 1,000,000,001 kept")
     eq(M.disk_decision(1_500_000_000, 50.0, None, mc=True), None, "an MC world of 1,500,000,000 kept")
     eq(M.disk_decision(None, 50.0, 0, 1_750_000_000, mc=True), None, "an MC profile folder of 1,750,000,000 kept")
-    state, marker, killed = one_tick(M, tmp / "a", tick_job(M, tmp / "a"), world=1_000_000_000, profile=1_250_000_000,
-                                     free=40.0, out_bytes=5_000_000_000)
-    ok(not state["aborted"] and not state["out_over"] and marker is None and not killed, "every boundary passes")
+    # no kill marker: the same killed-looking end (exit 1, no verdict file) is the AI's own NOT CLEAN, never CUT-WORLD or
+    # INFRA (so the marker, not the end's shape, is what T14's FAULT classes)
+    eq(M.classify(facts(exit=1, verdict=None)), (M.NOT_CLEAN, "exit 1 with no verdict file"), "no marker: NOT CLEAN")
+    job = job_of(M, tmp / "k", to="ch1_pokedex", seed=7320)
+    _, _, records = play(M, job, {"L1": {"no_verdict": True, "exit": 1}})
+    eq(records[0]["class"], M.NOT_CLEAN, "a leg with no kill marker keeps its own class")
     runs = tmp / "runs"
     (runs / "20261114-000001-X-L1").mkdir(parents=True)
     (runs / "20261114-000001-X-L1" / "world.jsonl").write_bytes(b"x" * 10)
@@ -1184,9 +1230,11 @@ def case_t17_control(M, tmp):
 
 
 # ---------------------------------------------------------------------------------------------------- T18: the continue rule
-def guard_after(out_dir: Path, chain: str):
+def guard_after(out_dir: Path, chain: str, cause: str = "world", leg: str = "L1"):
+    """A stub's `after` hook: the probe's kill marker `<leg>.KILLED.json` as the tick writes it (cause world, profile or
+    abort), planted once the leg's launch has ended."""
     def after(run):
-        LC._write_json(out_dir / chain / "L1.KILLED.json", {"cause": "world", "text": "planted"})
+        LC._write_json(out_dir / chain / f"{leg}.KILLED.json", {"cause": cause, "text": "planted"})
     return after
 
 
@@ -1206,7 +1254,13 @@ def case_t18_continue(M, tmp):
     job = job_of(M, tmp / "g", seed=7410)
     record, stub, _ = play(M, job, {"L1": {"after": guard_after(Path(job["out"]), job["chain"])}})
     eq(len(stub.calls), 1, "guard-cut: L2 NOT RUN")
-    ok("C4" in record["stop_reason"] or "C2" in record["stop_reason"], record["stop_reason"])
+    ok("C4 the probe's guard killed it" in (record["stop_reason"] or ""), f"the reason names C4: {record['stop_reason']}")
+    # a CARRYING chain whose leg kept no goal snapshot (a soft-deadline or killed end writes none): the next leg could not
+    # carry one, so C3 stops the chain (the lead's accepted rule; verifier round 1, F3)
+    job = job_of(M, tmp / "s", seed=7411)
+    record, stub, _ = play(M, job, {"L1": {"goals": False}})
+    eq(stub.calls, [f"{job['chain']}-L1"], "no goal snapshot kept in a carrying chain: L2 NOT RUN")
+    ok("C3 no goal snapshot was kept" in (record["stop_reason"] or ""), f"the reason names C3: {record['stop_reason']}")
 
 
 def case_t18_control(M, tmp):
@@ -1218,6 +1272,9 @@ def case_t18_control(M, tmp):
     ok(stub.carried[1]["START"][0].endswith("end_state.ss1"), "from L1's end state")
     eq(md5(Path(l1["kept"]["folder"]) / "end_state.ss1"), l1["kept"]["state_md5"], "the kept state")
     eq(Path(stub.carried[1]["START"][0]).parent.name.rsplit("-", 1)[1], "L1", "L1's own run folder")
+    off = job_of(M, tmp / "off", seed=7421, goals="off")
+    _, stub, _ = play(M, off, {"L1": {"goals": False}})
+    eq(len(stub.calls), 2, "a chain that carries no snapshot (GOALS-OFF) needs none kept: L2 runs")
 
 
 # ---------------------------------------------------------------------------------------------------- T19: start custody
@@ -1306,6 +1363,19 @@ def watch_tick(M, tmp: Path, digest: str) -> Path:
     return out
 
 
+def sandbox_tick(M, tmp: Path, digest: str) -> Path:
+    """One tick whose SANDBOX watch is due (3.13: the junctioned sandbox's tracked modules/ and plugins/, every 10 min;
+    here `sandbox_every` 0) and whose stage watch is not; the sandbox's digest at the batch's start is "SANDBOX"."""
+    out = tmp / "sout"
+    out.mkdir(parents=True, exist_ok=True)
+    deps = batch_deps(M, tmp, sandbox_digest=lambda sandbox: digest, sandbox_every=0.0)
+    state = {"aborted": False, "ai_stop": False, "out_over": False, "last_stage": deps.clock(), "last_sandbox": -10.0,
+             "last_pass": None}
+    M.tick([], out, {"REAL": tmp}, {"REAL": {"digest": "ALL", "sandbox": str(tmp / "sandbox")}}, {"REAL": "SANDBOX"},
+           state, deps)
+    return out
+
+
 def case_t21_stage_watch(M, tmp):
     out = watch_tick(M, tmp, "CHANGED")
     ok((out / "STOP.txt").is_file(), "a staged file changed: STOP.txt")
@@ -1313,11 +1383,15 @@ def case_t21_stage_watch(M, tmp):
     job["out"] = str(out)
     _, stub, _ = play(M, job, {})
     eq(stub.calls, [], "no new leg after STOP.txt")
+    out = sandbox_tick(M, tmp / "sb", "CHANGED")
+    ok((out / "STOP.txt").is_file() and "sandbox" in (out / "STOP.txt").read_text(encoding="utf-8"),
+       "the junctioned sandbox's modules/ or plugins/ changed: STOP.txt (verifier round 1, F3)")
 
 
 def case_t21_control(M, tmp):
     out = watch_tick(M, tmp, "ALL")
     ok(not (out / "STOP.txt").exists(), "unchanged: no STOP")
+    ok(not (sandbox_tick(M, tmp / "sb", "SANDBOX") / "STOP.txt").exists(), "an unchanged sandbox: no STOP")
 
 
 # ---------------------------------------------------------------------------------------------------- T22: the AI-only stop
@@ -1455,16 +1529,83 @@ def view(**changes) -> dict:
     return out
 
 
+class HungChild:
+    """A stub child whose brain hangs: it writes no job record and ends when its process tree is killed, or (so a removed
+    watchdog cannot hang the suite) by itself after `limit` polls, still with no job record."""
+
+    def __init__(self, job: dict, limit: int = 40) -> None:
+        self.job, self.limit, self.pid, self.kills, self.polls = job, limit, 8, 0, 0
+
+    def poll(self):
+        self.polls += 1
+        return 1 if self.kills or self.polls > self.limit else None
+
+    def kill_tree(self):
+        self.kills += 1
+
+
+def watchdog_drive(M, tmp: Path, make_child, seconds: int = 3):
+    """One plain job through `drive` with its watchdog at `seconds` (the clock moves 1 s a pass) and `make_child(job)` as
+    its child. Returns (the result, the children, --out)."""
+    out = tmp / "out"
+    out.mkdir(parents=True, exist_ok=True)
+    stages = {"REAL": fake_stage(M, tmp, "REAL")}
+    manifests = {"REAL": json.loads((stages["REAL"] / "manifest.json").read_text(encoding="utf-8"))}
+    handles: list = []
+
+    def spawn(job, job_path, log_path):
+        handles.append(make_child(job))
+        return handles[-1]
+    deps = batch_deps(M, tmp, spawn=spawn)
+    facts = {"batch": "S", "mode": "trainer", "started": "now", "entry_id": None, "parallel": 1}
+    with mock.patch.object(M, "job_watchdog_seconds", lambda job: seconds), redirect_stdout(io.StringIO()):
+        result = M.drive(plain_jobs(M, 1), out, stages, manifests, facts,
+                         SimpleNamespace(deadline=None, max_wait=7200, resume=False), deps)
+    return result, handles, out
+
+
 def case_t25_deadline(M, tmp):
     job = {"legs": [{"leg": "L1", "wall": 3600.0}]}
     eq(M.start_check(job, view(deadline=1000.0 + 3600 + 300 + 1200 - 1))[0], M.DROP, "wall plus margins past --deadline")
     eq(M.start_check(job, view(deadline=1000.0 + 3600, regression=True))[0], M.DROP, "a WAIT reaching it")
+    # the CHILD's own check before every leg (3.13; verifier round 1, F3): a deadline reached between legs keeps the next
+    # leg from launching
+    job = job_of(M, tmp / "d", seed=7430)
+    record, stub, _ = play(M, job, {"L1": {"after": lambda run: job.update(deadline=time.time())}})
+    eq(stub.calls, [f"{job['chain']}-L1"], "a deadline reached between legs: L2 never launched")
+    eq((record["stopped_at"], record["not_run"]), ("L2", ["L2"]), "L2 NOT RUN")
+    ok("deadline" in (record["stop_reason"] or ""), f"the reason names the deadline: {record['stop_reason']}")
+    # the watchdog (3.13): a child alive past its job's summed watchdog is killed (its process tree, once) and salvaged
+    _, handles, out = watchdog_drive(M, tmp / "w", HungChild)
+    eq(handles[0].kills, 1, "a child alive past its watchdog: its process tree killed, once")
+    ok((out / handles[0].job["chain"] / "WATCHDOG.txt").is_file(), "WATCHDOG.txt written")
+    eq([r.get("stop_reason") for r in M.read_records(out) if r.get("record") == "job"],
+       ["the job's process ended (killed by its watchdog)"], "salvaged, as killed by its watchdog")
 
 
 def case_t25_control(M, tmp):
     job = {"legs": [{"leg": "L1", "wall": 3600.0}]}
     eq(M.start_check(job, view(deadline=1000.0 + 3600 + 300 + 1200))[0], M.GO, "exactly the margins: launched")
     eq(M.start_check(job, view(deadline=10 ** 9))[0], M.GO, "far from it")
+    job = job_of(M, tmp / "d", seed=7431)
+    job["deadline"] = time.time() + 10 ** 6
+    _, stub, _ = play(M, job, {})
+    eq(len(stub.calls), 2, "a deadline with room for both legs: both run")
+    wd = tick_job(M, tmp / "wd")
+    wd["watchdog_seconds"] = 3
+    out = Path(wd["out"])
+    out.mkdir(parents=True, exist_ok=True)
+    deps = batch_deps(M, tmp / "wd", newest_world=lambda runs: (None, None), folder_bytes=lambda path: 0)
+    handle = Killable()
+    state = {"aborted": False, "ai_stop": False, "out_over": False, "last_stage": deps.clock(),
+             "last_sandbox": deps.clock(), "last_pass": None}
+    M.tick([(wd, handle, deps.clock() - 3)], out, {}, {}, {}, state, deps)
+    ok(not handle.killed and not (out / wd["chain"] / "WATCHDOG.txt").exists(),
+       "exactly at its watchdog: not killed (only a child strictly past it is)")
+    _, handles, out = watchdog_drive(M, tmp / "w", lambda job: TimedChild(M, job, passes=2))
+    eq([r.get("stop_reason") for r in M.read_records(out) if r.get("record") == "job"], [None],
+       "a child that ends by itself in time keeps its own job record (nothing salvaged)")
+    ok(not (out / handles[0].job["chain"] / "WATCHDOG.txt").exists(), "and is never killed by the watchdog")
 
 
 # ---------------------------------------------------------------------------------------------------- T26: the scheduler
@@ -1506,14 +1647,17 @@ def plain_jobs(M, n: int, first: int = 2000001) -> list[dict]:
                        {"kind": "new_game", "id": "NG"}, "carry") for i in range(n)]
 
 
-def reached_l5(M, folder_tmp: Path):
-    """An on_end hook: the source chain's REACHED L5 record, with its kept example files and their hashes."""
+def reached_l5(M, folder_tmp: Path, world: dict | None = None, tried: list[str] | None = None):
+    """An on_end hook: the source chain's REACHED L5 record, with its kept example files and their hashes (its world line
+    `world`, default empty; its goal snapshot's `tried_items` `tried`, default none)."""
     def write(job):
         keep = Path(job["out"]) / job["chain"] / "L5"
         keep.mkdir(parents=True, exist_ok=True)
         (keep / "end_state.ss1").write_bytes(b"L5 end")
-        (keep / "world_last.jsonl").write_text(json.dumps(world_of([])) + "\n", encoding="utf-8")
-        (keep / "goals_last.jsonl").write_text(json.dumps({"kind": "goals", "memory": {"goals": {}}}) + "\n",
+        (keep / "world_last.jsonl").write_text(json.dumps(world if world is not None else world_of([])) + "\n",
+                                               encoding="utf-8")
+        goals = {} if tried is None else {"tried_items": {"$set": sorted(tried)}}
+        (keep / "goals_last.jsonl").write_text(json.dumps({"kind": "goals", "memory": {"goals": goals}}) + "\n",
                                                encoding="utf-8")
         M.append_record(Path(job["out"]), {**leg_record(M.run_id_of(job["batch"], job["chain"], "L5"), M.CLEAN_CHOSEN,
                                                         5.0, reached=True),
@@ -1900,12 +2044,40 @@ def case_t32_control(M, tmp):
 
 
 # ---------------------------------------------------------------------------------------------------- T33: MC is E0's harness
+def other_state(run) -> None:
+    """A stub's `after` hook: the launch command names another --state than the one the leg started from (a harness
+    regression): live_chain's custody sees it on the row; A1's own pre-launch check ran before the launch."""
+    at = run.command.index("--state")
+    run.command[at + 1] = run.command[at + 1] + ".other"
+
+
+def mc_leg(leg: str, go: bool = True, why: str = "C1-C6 held") -> dict:
+    """A planted leg record of the one-leg MC job MC-X: CLEAN, fresh and reached, continuing or not."""
+    return {"schema_version": 1, "record": "leg", "run_id": f"MC-X-{leg}", "class": "CLEAN-CHOSEN", "reached": True,
+            "fresh": {"ok": True}, "continue": {"go": go, "why": why}, "leg": {"leg": leg},
+            "job": {"id": "MC-X", "mc": True, "legs_planned": [leg]}}
+
+
 def case_t33_mc(M, tmp):
     mc = job_of(M, tmp, to="ch2_wally", seed=6703, mc=True, goals="never")
     with big_world({"L1": 500_000_000}):
         _, stub, records = play(M, mc, {})
     eq(len(stub.calls), 1, "an MC job decides by continue_after (the 500,000,000-byte leg stops it)")
     eq(M.disk_decision(1_000_000_001, 50.0, None, mc=True), None, "an MC leg is never cut at 1,000,000,000")
+    _, marker, killed = one_tick(M, tmp / "tick", tick_job(M, tmp / "tick", mc=True), world=1_000_000_001)
+    ok(marker is None and not killed, "the tick itself never cuts an MC leg at 1,000,000,000 (verifier round 1, F1)")
+    # an MC job's custody is live_chain's own (custody_problems, continue_after's C5; verifier round 1, F3): a break planted
+    # AFTER the launch (L2's command names another --state than L1's end state) stops the chain, and MC reads STOP
+    broken = job_of(M, tmp / "custody", to="ch2_wally", seed=6707, mc=True, goals="never")
+    _, _, records = play(M, broken, {"L2": {"after": other_state}})
+    l2 = by_leg(records)["L2"]
+    ok(l2["custody"] and not l2["continue"]["go"] and "C5 custody" in (l2["continue"]["why"] or ""),
+       f"L2's custody break stops it: {l2['custody']}, {l2['continue']}")
+    reading = M.build_report(Path(broken["out"]))["mc"]
+    eq(reading["reading"], "STOP", f"an MC chain with a custody break reads STOP ({reading})")
+    eq(M.mc_reading([mc_leg("L1", go=False, why="C5 custody: planted")]),
+       {"reading": "STOP", "chains": 1, "problems": ["MC-X L1: C5 custody: planted"]},
+       "MC reads each leg's continue decision: a CLEAN, fresh, reached leg that did not continue is a STOP")
     jobs = M.plan_jobs("MC", 6701, data(), to="ch1_pokedex")
     for job in jobs:
         job["seed"] = 6800
@@ -1922,7 +2094,8 @@ def case_t33_mc(M, tmp):
 
 def case_t33_mc_control_pass(M, tmp):
     good = job_of(M, tmp, to="ch2_wally", seed=6705, mc=True, goals="never")
-    play(M, good, {})
+    _, _, records = play(M, good, {})
+    eq([r["custody"] for r in records], [[], []], "live_chain's custody holds on both legs of an untouched MC chain")
     reading = M.build_report(Path(good["out"]))["mc"]
     eq((reading["reading"], reading["problems"]), ("PASS", []), "an MC chain that reached its target reads PASS")
 
@@ -1938,10 +2111,42 @@ def case_t33_control(M, tmp):
     with mock.patch.object(LC, "GUARD_WORLD_BYTES", 1234):
         eq(M.world_cut(True), 1234, "an MC job's world cut IS live_chain.GUARD_WORLD_BYTES (read, never copied)")
     ok(M.profile_budget(True) > M.world_cut(True), "its profile budget lies above it")
+    eq(M.mc_reading([mc_leg("L1")]), {"reading": "PASS", "chains": 1, "problems": []}, "a leg that continued: PASS")
     case_t33_mc_control_pass(M, tmp / "pass")
 
 
 # ---------------------------------------------------------------------------------------------------- T34: WP1b dependency and fallback
+def gm_world() -> dict:
+    """A source L5 end's world line for GM's discriminator (3.15 item 7): one remembered item tile on RUSTBORO_CITY (a
+    map the next leg starts on) and one on ROUTE101 (off the list)."""
+    world = world_of([])
+    world["maps"] = {"0:3": {"key": "0:3", "name": "R", "const": "RUSTBORO_CITY", "items": {"5,5": 1}},
+                     "0:16": {"key": "0:16", "name": "S", "const": "ROUTE101", "items": {"3,3": 1}}}
+    return world
+
+
+def gm_dependency(M, tmp: Path, tried: list[str]):
+    """GM's GOALS-ON A/B job resolved against its source chain's reached L5 end (the world line `gm_world()`, the
+    snapshot's `tried_items` `tried`)."""
+    gm = M.plan_jobs("GM", 2000001, data())
+    out = tmp / "gm"
+    reached_l5(M, tmp, world=gm_world(), tried=tried)({**gm[0], "out": str(out)})
+    legs = {r["run_id"]: r for r in M.read_records(out) if r.get("record") == "leg"}
+    return M.dependency_of(gm[1], legs, set(), out, {})
+
+
+def pair_jobs(M, persona: str, starter: str) -> tuple[dict, dict]:
+    """WP1's New Game chain of one pair and its first WP1b practice job."""
+    jobs = M.plan_jobs("WP1", 2000001, data())
+    source = next(j for j in jobs if j["kind"] == "chain" and (j["persona"], j["starter"]) == (persona, starter))
+    return source, next(j for j in jobs if (j.get("depends_on") or {}).get("chain") == source["chain"])
+
+
+def g1_stage(M, tmp: Path, persona: str, starter: str) -> dict:
+    return {"REAL": fake_stage(M, tmp, "REAL", {"G1": {"persona": persona, "starter": starter, "starter_from": "job_file",
+                                                       "made_by": "x"}})}
+
+
 def case_t34_dependency(M, tmp):
     source, practice = wp1_pair(M)
     stage = fake_stage(M, tmp, "REAL", {"G1": {"persona": "Story", "starter": "TREECKO", "starter_from": "job_file",
@@ -1955,6 +2160,23 @@ def case_t34_dependency(M, tmp):
     eq(state, "skip", "a fallback start taken while that chain still runs: never")
     state, start = M.dependency_of(practice, {}, {source["chain"]}, tmp, stages)
     eq((state, start["id"], start["fallback_for"]), ("ready", "G1", "STRE"), "a missed pair's G start carries fallback_for")
+    # GM's A/B is DROPPED as VACUOUS when its source's end holds no discriminating tile (3.15 item 7; verifier round 1,
+    # F3): here an UNTRIED item tile on RUSTBORO_CITY and a TRIED one on a map off the list
+    eq(M.discriminator_tiles(gm_world(), {"memory": {"goals": {"tried_items": {"$set": ["0:16|3,3"]}}}}), [],
+       "no discriminating tile: a tried tile off the list, an untried one on it")
+    found = gm_dependency(M, tmp / "v", ["0:16|3,3"])
+    ok(found[0] == "drop" and "VACUOUS" in str(found[1]), f"no discriminating tile: the A/B DROPPED as VACUOUS ({found})")
+    # drive (2.1, 2.2): a fallback start plays its OWN starter (from its job file), never the plan's; a start of another
+    # persona is never launched (a saved start keeps its game's persona)
+    src, prac = pair_jobs(M, "Story", "TORCHIC")
+    _, log, _ = sched(M, tmp / "fb", [src, prac], passes=2, stages=g1_stage(M, tmp / "fb", "Story", "TREECKO"))
+    entry = next(e for e in log if e["chain"] == prac["chain"])
+    eq((entry["job"]["start"]["id"], entry["job"]["starter"], entry["job"]["starter_from"]), ("G1", "TREECKO", "job_file"),
+       "a Story/TORCHIC pair's fallback G1 plays G1's own TREECKO (job_file), never the plan's TORCHIC")
+    result, log, _ = sched(M, tmp / "fp", [src, prac], passes=2, stages=g1_stage(M, tmp / "fp", "Catcher", "TORCHIC"))
+    ok(prac["chain"] not in [e["chain"] for e in log], "a start of another persona is never launched")
+    eq([why for chain, why in result["not_started"] if chain == prac["chain"]], ["its start G1 is a Catcher's"],
+       "it is named in not_started")
 
 
 def case_t34_control(M, tmp):
@@ -1975,6 +2197,14 @@ def case_t34_control(M, tmp):
               and j["persona"] == "Story")
     eq((p2["depends_on"], p2["fallback"], p2["seed"]), (practice["depends_on"], practice["fallback"], practice["seed"]),
        "P2 takes its twin's start and seed")
+    eq(M.discriminator_tiles(gm_world(), {"memory": {"goals": {"tried_items": {"$set": ["0:3|5,5"]}}}}), ["0:3|5,5"],
+       "a tried item tile on RUSTBORO_CITY discriminates")
+    state, start = gm_dependency(M, tmp / "v", ["0:3|5,5"])
+    eq((state, start.get("discriminator")), ("ready", ["0:3|5,5"]), "the A/B runs, its discriminating tile recorded")
+    _, log, _ = sched(M, tmp / "own", [source, practice], passes=3, on_end={source["chain"]: reached_l5(M, tmp / "own")})
+    entry = next(e for e in log if e["chain"] == practice["chain"])
+    eq((entry["job"]["start"]["kind"], entry["job"]["starter"], entry["job"]["starter_from"]), ("chain_end", "TREECKO", "plan"),
+       "a start of the job's own persona (its source's L5 end) launches, the plan's starter kept")
 
 
 # ---------------------------------------------------------------------------------------------------- T35: stale and K1

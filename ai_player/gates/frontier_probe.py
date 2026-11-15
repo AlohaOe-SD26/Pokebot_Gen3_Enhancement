@@ -991,9 +991,11 @@ def profile_budget(mc: bool = False) -> int:
 
 def disk_decision(world_bytes: int | None, free_gb: float | None, out_bytes: int | None,
                   profile_bytes: int | None = None, mc: bool = False) -> str | None:
-    """One tick's disk rule for one running job, in order (3.12; strict comparisons: each boundary value passes): "abort"
-    (free under ABORT_FREE_GB), "cut-world" (the newest world.jsonl over the cut), "drop" (--out over its cap: the pending
-    jobs are dropped), "cut-profile" (the job's profile folder over its budget), or None."""
+    """THE disk rule (3.12; strict comparisons: each boundary value passes), in order: "abort" (free under ABORT_FREE_GB),
+    "cut-world" (the newest world.jsonl over the cut), "drop" (--out over its cap: the pending jobs are dropped),
+    "cut-profile" (the job's profile folder over its budget), or None. The tick asks it about ONE measurement at a time,
+    in the tick's own order (the free space; each running job's newest world.jsonl; --out; each job's profile folder), so
+    every comparison of the running batch is made here and nowhere else (verifier round 1, F1: the tick had its own)."""
     if free_gb is not None and free_gb < ABORT_FREE_GB:
         return "abort"
     if world_bytes is not None and world_bytes > world_cut(mc):
@@ -2909,7 +2911,7 @@ def tick(running: list, out: Path, stages: dict[str, Path], manifests: dict[str,
     and plugins/ every 10 min: a change writes STOP.txt); free under ABORT_FREE_GB: ABORT (ABORT.txt, every running launch
     killed); each running job's newest world.jsonl over its cut: killed (CUT-WORLD); --out over its cap: the pending jobs
     DROPPED; a job's profile folder over its budget: killed; a child past its watchdog: killed (then salvaged); the AI-only
-    stop."""
+    stop. Every disk comparison is `disk_decision`'s (one measurement per call)."""
     now = deps.clock()
     if now - state["last_stage"] >= deps.stage_every:
         state["last_stage"] = now
@@ -2925,7 +2927,7 @@ def tick(running: list, out: Path, stages: dict[str, Path], manifests: dict[str,
                 (out / STOP_FILE).write_text(f"the sandbox {sandbox} changed (modules/ or plugins/)\n", encoding="utf-8")
                 event(out, deps, f"STOP: the junctioned sandbox {sandbox} changed")
     free = deps.free(out)
-    if free is not None and free < ABORT_FREE_GB and not state["aborted"]:
+    if disk_decision(None, free, None) == "abort" and not state["aborted"]:
         state["aborted"] = True
         (out / ABORT_FILE).write_text(f"under {ABORT_FREE_GB:g} GB free: {free}\n", encoding="utf-8")
         event(out, deps, f"ABORT: {free} GB free, under {ABORT_FREE_GB:g}: every running launch is killed")
@@ -2942,18 +2944,18 @@ def tick(running: list, out: Path, stages: dict[str, Path], manifests: dict[str,
         profile = Path(job["build_root"]) / "profiles" / job["profile"]
         name, size = deps.newest_world(profile / "ai_player_runs")
         leg = legs_now[job["chain"]] = LC.leg_of_folder(name, job["chain"])
-        if leg is not None and size is not None and size > world_cut(mc):
+        if leg is not None and disk_decision(size, None, None, mc=mc) == "cut-world":
             if write_marker(out, job["chain"], leg, "world", f"world.jsonl {size} bytes over {world_cut(mc)}"):
                 deps.kill(handle.pid)
                 event(out, deps, f"{job['chain']} {leg}: CUT-WORLD (world.jsonl {size} bytes over {world_cut(mc)})")
-    if not state["out_over"] and deps.folder_bytes(out) > OUT_CAP_BYTES:
+    if not state["out_over"] and disk_decision(None, None, deps.folder_bytes(out)) == "drop":
         state["out_over"] = True
         event(out, deps, f"--out over its cap of {OUT_CAP_BYTES} bytes: the pending jobs are DROPPED")
     for job, handle, started in alive:
         mc = bool(job.get("mc"))
         leg = legs_now.get(job["chain"])
         held = deps.folder_bytes(Path(job["build_root"]) / "profiles" / job["profile"])
-        if leg is not None and held > profile_budget(mc):
+        if leg is not None and disk_decision(None, None, None, held, mc=mc) == "cut-profile":
             if write_marker(out, job["chain"], leg, "profile", f"profile folder {held} bytes over {profile_budget(mc)}"):
                 deps.kill(handle.pid)
                 event(out, deps, f"{job['chain']} {leg}: CUT-WORLD (profile folder {held} bytes over {profile_budget(mc)})")

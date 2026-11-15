@@ -480,7 +480,8 @@ ledger entry and its evidence, `--trainer` writes nothing tracked); prints the b
 junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run from its stage. Exits: 0 ran, 2 refused
 before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
 crash, 6 the AI-only stop. Its offline proofs are `gates/test_frontier_probe.py` (T1-T36 and AM-11, each a FAULT and a
-CONTROL) and `gates/revert_frontier.py` (each guard broken in a copy). What it measures is DEVELOPMENT data, never a grade:
+CONTROL) and `gates/revert_frontier.py` (each guard the suite tests, broken in a copy; `replay`'s and `child_env`'s
+environment strips have no FAULT case yet). What it measures is DEVELOPMENT data, never a grade:
 `PROJECT KNOWLEDGE/ai-frontier.txt` stays the authority.
 
 ## Layout
