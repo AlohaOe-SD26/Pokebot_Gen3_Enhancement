@@ -2490,10 +2490,18 @@ def folder_bytes(path: Path) -> int:
 
 
 def python_processes() -> list[str]:
-    """The command lines of every process running pokebot.py or run_regression.py (the singles cap and the lane WAIT)."""
+    """The command lines of every python.exe process running pokebot.py, run_regression.py or frontier_probe.py (the
+    singles cap, the lane WAIT, the --resume child check).
+
+    Only python.exe (fix round 7, found by the first live run, 2026-11-16): with no image filter the query's OWN
+    PowerShell process names all three scripts in its command line, so regression_running() was always True and every
+    job WAITed (singles_of() counted it too). Measured on this PC: a `py -3.12 X.py` launch shows py.exe (the launcher)
+    AND python.exe (the interpreter), both with the script on the command line; python.exe alone counts each run once,
+    as live_chain.leftover_processes does. The real query is tested in test_frontier_probe (no stub)."""
     try:
         done = subprocess.run(["powershell", "-NoProfile", "-Command",
-                               "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*pokebot.py*' -or "
+                               "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { "
+                               "$_.CommandLine -like '*pokebot.py*' -or "
                                "$_.CommandLine -like '*run_regression.py*' -or $_.CommandLine -like '*frontier_probe.py*' } "
                                "| ForEach-Object { $_.CommandLine }"], capture_output=True, timeout=60)
     except (OSError, subprocess.SubprocessError):

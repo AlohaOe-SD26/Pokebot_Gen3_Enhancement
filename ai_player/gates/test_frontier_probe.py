@@ -2,6 +2,8 @@
 T37 and T38 are fix round 5's: --parallel under 1 and a job's env, each refused), on PLANTED facts, rows, records, run folders and milestone data, with STUB launches (no emulator, no live run). Test side.
 T39 and T40 (build plan step 5, 4.3 P1 and P2) are the planted walls: each `MUTANTS` edit applied to a copy of the AI's code,
 whose own planner is driven, in its own process, on the AI's own kept memory (no emulator either).
+T41 (fix round 7, 2026-11-16) is the one case pair with NO stub: `python_processes()`'s REAL query on the REAL process table,
+with planted sleeper processes it starts and stops by their own pids (the query once returned its own PowerShell process).
 
     py -3.12 -B ai_player/gates/test_frontier_probe.py         (or: py -3.12 -B -m unittest ai_player.gates.test_frontier_probe)
 
@@ -15,6 +17,7 @@ from __future__ import annotations
 
 import ast
 import atexit
+import contextlib
 import copy
 import hashlib
 import importlib.util
@@ -3535,6 +3538,93 @@ def case_t40_control(M, tmp):
     eq(staged["after"], staged["before"], "the source tree is untouched")
 
 
+# ---------------------------------------------------------------------------------------------------- T41: the real process table
+# Fix round 7 (2026-11-16, found by the first live run): `python_processes()` had no image filter, so its OWN PowerShell
+# query (whose command line names pokebot.py, run_regression.py and frontier_probe.py) was returned, regression_running()
+# was always True and every job WAITed. Every other case stubs the process list; these two run the REAL query on the REAL
+# process table, beside whatever else runs (the full lane's run_regression.py, the bot tuner's pokebot.py), so they assert
+# only about lines carrying their own planted markers, and about the query's own text. They start ONLY their own planted
+# processes and stop them by their own pids (a `py` launcher's interpreter child is found by its parent pid and checked to
+# carry the marker), in a finally block.
+_SLEEPER = "import time; time.sleep(120)"
+
+
+def plant(args: list[str]) -> subprocess.Popen:
+    return subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
+def unplant(procs: list[subprocess.Popen], markers: list[str]) -> None:
+    """Stop the planted processes: each one's children that carry a marker first (a `py` launcher's interpreter), then
+    the planted process itself, every one by its own pid."""
+    import psutil
+
+    for proc in procs:
+        try:
+            for child in psutil.Process(proc.pid).children(recursive=True):
+                with contextlib.suppress(psutil.Error):
+                    if any(m in " ".join(child.cmdline()) for m in markers):
+                        child.kill()
+        except psutil.Error:
+            pass
+        if proc.poll() is None:
+            proc.kill()
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            proc.wait(timeout=30)
+
+
+def marked_lines(M, markers: list[str], tries: int = 30) -> list[str]:
+    """`M.python_processes()` (the REAL query), re-read until a line carries every marker (bounded: `tries` reads)."""
+    lines: list[str] = []
+    for _ in range(tries):
+        lines = M.python_processes()
+        if all(any(m in line for line in lines) for m in markers):
+            return lines
+        time.sleep(0.5)
+    return lines
+
+
+def case_t41_real_table(M, tmp):
+    """FAULT: a planted python process naming run_regression.py IS returned (once) and makes regression_running() True;
+    a planted `py` launch of a dummy pokebot.py (no --endless-target) is returned ONCE (its interpreter, not its launcher
+    too) and singles_of() counts it 1."""
+    ok(os.name == "nt", "the real process query is Windows' (Get-CimInstance through PowerShell)")
+    tag = "t41-" + os.urandom(6).hex()
+    lane, single = f"{tag}-lane", f"{tag}-single"
+    dummy = tmp / "dummy" / "pokebot.py"
+    version = f"-{sys.version_info.major}.{sys.version_info.minor}"
+    procs = []
+    try:
+        procs.append(plant([sys.executable, "-c", _SLEEPER, "run_regression.py", lane]))
+        procs.append(plant(["py", version, "-c", _SLEEPER, str(dummy), single]))
+        lines = marked_lines(M, [lane, single])
+        lane_lines = [line for line in lines if lane in line]
+        single_lines = [line for line in lines if single in line]
+        eq(len(lane_lines), 1, f"the planted run_regression.py python process is returned once ({lane_lines})")
+        ok(M.regression_running(lane_lines), f"regression_running() of the planted lane's line is True ({lane_lines})")
+        eq(len(single_lines), 1, f"the planted `py` launch of pokebot.py is returned ONCE, its interpreter only "
+                                 f"({single_lines})")
+        eq(M.singles_of(single_lines), 1, f"singles_of() counts the planted pokebot.py once ({single_lines})")
+    finally:
+        unplant(procs, [lane, single])
+
+
+def case_t41_control(M, tmp):
+    """CONTROL: no line python_processes() returns is its own query (none names Get-CimInstance or Win32_Process), while
+    the query is shown to have run (a planted python process carrying a marker IS returned)."""
+    ok(os.name == "nt", "the real process query is Windows' (Get-CimInstance through PowerShell)")
+    marker = "t41c-" + os.urandom(6).hex()
+    procs = []
+    try:
+        procs.append(plant([sys.executable, "-c", _SLEEPER, "frontier_probe.py", marker]))
+        lines = marked_lines(M, [marker])
+        ok(any(marker in line for line in lines), f"the query ran: the planted marker {marker} is returned")
+        own = [line[:200] for line in lines if "Get-CimInstance" in line or "Win32_Process" in line]
+        eq(own, [], "python_processes() never returns its own query's process")
+    finally:
+        unplant(procs, [marker])
+
+
 # ---------------------------------------------------------------------------------------------------- AM-11: compare and replay
 def moves(*pairs) -> list[dict]:
     return [{"frame": f, "decision": "decide", "action": a, "reason": "r"} for f, a in pairs]
@@ -3671,12 +3761,13 @@ CASES = [
     ("T35", case_t35_stale, case_t35_control), ("T36", case_t36_raise, case_t36_control),
     ("T37", case_t37_parallel, case_t37_control), ("T38", case_t38_job_env, case_t38_control),
     ("T39", case_t39_oldale, case_t39_control), ("T40", case_t40_briney, case_t40_control),
+    ("T41", case_t41_real_table, case_t41_control),
     ("AM11c", case_am11_compare, case_am11_compare_control), ("AM11r", case_am11_replay, case_am11_replay_control),
 ]
 
 
 class GuardTests(Base):
-    """One FAULT and one CONTROL test per guard (T1-T40); the methods are made from CASES below."""
+    """One FAULT and one CONTROL test per guard (T1-T41); the methods are made from CASES below."""
 
 
 def _make(fn):

@@ -11,7 +11,7 @@ predicted test is among the failing ones. The unchanged copy F0 must pass every 
 (`run_regression.py`) runs it with no --workers. The frozen-tree watch (`provenance.watch`) is checked before every mutant
 and seals the verdict. Evidence: `ai_player/evidence/<date>-frontier-REVERT.txt` (only when every mutant is run).
 
-THE TABLE (247 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
+THE TABLE (250 mutants; the spec's "about 54" predates the amendments' tests T31-T36 and AM-11, so it is not this count):
   G01-G98  the build's guard table (B2.3, 2026-11-14): ONE edit of `frontier_probe.py` per guard of T1-T36 and AM-11, each
            shown, on a temp copy loaded by the suite's own `load_module`, to FAIL the case named here ("98 caught, 0 not
            caught"). The anchors and replacements are that table's, but G33-G36's: the verifier's round 1 (F1) made the tick
@@ -58,7 +58,10 @@ THE TABLE (247 mutants; the spec's "about 54" predates the amendments' tests T31
            the wrong map or door, a side missing: WL1-WL6, each caught by its FAULT on the walled copy's own planner), and
            `apply_mutant` adding to the staged edit (WL7) or editing the source tree instead of the staged copy (WL8, T39's
            and T40's CONTROL too).
-  H1-H4   the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
+  PQ1-PQ3  fix round 7 (2026-11-16, found by the first live run): `python_processes()` lists python.exe only (PQ1: no
+           filter, its own PowerShell query returned; PQ2: the `py` launcher image instead; PQ3: the launcher too, a `py`
+           launch counted twice), each caught by T41, which runs the REAL query on the REAL process table (no stub).
+  H1-H4  the test-side guards (B2.3b), whose guard is not in `frontier_probe.py`: T28's two import scans (the suite's
            `importers` and `check_grader_imports.scan`'s chain report) and T30's two pins, each removed by one edit.
   X1-X4    four of 4.2's named mutants the guard table lacked: a WAIT that drops the job, a dependency SKIP DROPPED by
            --max-wait, a resume keyed by seed, and an MC job sending AI_PLAYER_GOALS (the job's goal policy ignored).
@@ -773,6 +776,20 @@ _ROUND8 = [
      ("test_t39_fault", "test_t39_control", "test_t40_fault", "test_t40_control")),
 ]
 
+#: (name, T, the guard, anchor, replacement, the tests predicted to fail): fix round 7 (2026-11-16, on dc643cd0), found by
+#: the first live run: `python_processes()` lists python.exe ONLY, so its own PowerShell query is never returned (PQ1: the
+#: filter removed, the query returns itself and a `py` launch twice), never only the launcher image (PQ2: the planted
+#: interpreters are missed) and never the launcher too (PQ3: a `py` launch of pokebot.py counted twice by singles_of).
+#: T41 runs the REAL query on the REAL process table with planted sleeper processes (no stub)
+_ROUND9 = [
+    ("PQ1", "T41", "python_processes() lists python.exe only, so its own PowerShell query is never returned",
+     " -Filter \\\"Name='python.exe'\\\" | Where-Object", " | Where-Object", ("test_t41_control", "test_t41_fault")),
+    ("PQ2", "T41", "python_processes() lists the interpreter (python.exe), not the `py` launcher image",
+     "-Filter \\\"Name='python.exe'\\\"", "-Filter \\\"Name='py.exe'\\\"", ("test_t41_fault", "test_t41_control")),
+    ("PQ3", "T41", "python_processes() lists the interpreter ONLY: a `py` launch is one run, never two",
+     "-Filter \\\"Name='python.exe'\\\"", "-Filter \\\"Name='python.exe' OR Name='py.exe'\\\"", ("test_t41_fault",)),
+]
+
 #: (name, T, the guard, anchor, replacement, why no test catches it ALONE): fix round 3's sweep found these guards
 #: REDUNDANT on every arm the suite can plant, so each is predicted REDUNDANT ALONE (the copy passes every test)
 _REDUNDANT = [
@@ -837,7 +854,7 @@ for _name, _what, _edit, _test in _MORE:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, _what, [_edit], [f"GuardTests.{_test}"], DEFAULT_SUITES)
 for _name, _tid, _guard, _old, _new, _tests in (_ROUND1 + _ROUND2 + _ROUND3 + _ROUND4 + _ROUND5 + _ROUND6 + _ROUND7
-                                                + _ROUND8):
+                                                + _ROUND8 + _ROUND9):
     if _name in MUTANTS:
         raise SystemExit(f"revert_frontier: mutant {_name} is defined twice")
     MUTANTS[_name] = (CAUGHT, f"{_tid} guard removed: {_guard}", [(PROBE, _old, _new)], [f"GuardTests.{t}" for t in _tests],
