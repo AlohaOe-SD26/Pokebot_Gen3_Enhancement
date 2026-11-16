@@ -98,7 +98,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 76800,
+      "ceiling": 77100,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -213,11 +213,18 @@
           "from": 76400,
           "to": 76800,
           "why": "2026-11-15: A1's full lane is in flight; START HERE says how to check it and what to do when it ends (PASS, a red suite, DEAD), queue item 4 restores POKEBOT_DECOMP for any lane in a worktree, names the second full lane after the planted walls, and lists step 9's spec corrections (Tier 1's findings). These lines collapse to one at A1's merge."
+        },
+        {
+          "date": "2026-11-16",
+          "field": "ceiling",
+          "from": 76800,
+          "to": 77100,
+          "why": "2026-11-16: A1's live steps: queue item 4 records that MC's first run read STOP on the known KI-137 and that its PASS-before-WP1 rule was relaxed once, knowingly (never \"MC PASS\"); it names the new stages and the ones left UP with their junctions; START HERE orders the run book first and names the in-flight steps 7-8 workflow (Tier 1's fixes). These lines collapse to one at A1's merge."
         }
       ]
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 293439,
+      "ceiling": 294400,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -318,6 +325,13 @@
           "from": 293329,
           "to": 293439,
           "why": "the chapter 6-7 merge, Tier round 5: KI-66's swept pointers keep its open OWNER filter"
+        },
+        {
+          "date": "2026-11-16",
+          "field": "ceiling",
+          "from": 293439,
+          "to": 294400,
+          "why": "2026-11-16: KI-137 (OPEN) gains its first LIVE evidence: A1's merge check looped through RUSTBORO's south-east pocket at ch5_rusturf_grunt, and the A/B on that start loops the same on the base tree; the line names the deterministic fixture its fix will need. An open issue's evidence, not a closed block to archive."
         }
       ]
     }

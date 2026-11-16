@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "dc470ba87c9c8d0f3ab630db455bc7762d463d11",
+ "source_sha1_lf": "4cf14a4e8933f0b4d07bddfd5f86fa0c36395f4b",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 384,
+  "sections": 385,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -6069,6 +6069,23 @@
     "#28-aiagent-v2"
    ],
    "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-16-062c33",
+   "date": "2026-11-16",
+   "line_start": 10270,
+   "line_end": 10276,
+   "title": "2026-11-16 — A1's first merge check (MC, ledger #152): its one miss is the known blocker KI-137 (c) and F, already in the base tree, so MC reads STOP with one known blocker recorded, and WP1 may start (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-137"
+   ],
    "donot": [],
    "cues": []
   }

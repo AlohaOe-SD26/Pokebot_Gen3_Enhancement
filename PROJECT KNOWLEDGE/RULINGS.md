@@ -87,10 +87,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 384 sections (newest first)
+## All 385 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-16-062c33` | 10270 |  |  | 2026-11-16 — A1's first merge check (MC, ledger #152): its one miss is the known blocker KI-137 (c) and F, already in the base tree, so MC reads STOP with one k |
 | `2026-11-16-d45cfe` | 10261 |  |  | 2026-11-16 — A1's first live steps: the lead's calls on the self-matching process check, ledger #149, P1's loop-key reading and MC's STOP (punch-list #28-aiagen |
 | `2026-11-16-eea408` | 10255 |  |  | 2026-11-16 — USER: delete the chapter 6-7 merge's cleanup list ("Yes, delete all") (punch-list #28-aiagent-v2) |
 | `2026-11-15-d1afc0` | 10248 |  |  | 2026-11-15 — A1's planted walls: the OLDALE wall sits in the navigator's single step, not `Navigator.walls`; ROUTE102 is walled too; stage manifests are checked |
