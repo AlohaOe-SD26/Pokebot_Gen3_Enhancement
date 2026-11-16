@@ -10251,3 +10251,9 @@ on all three questions:
 - **ROUTE102 is walled as well as ROUTE101 and ROUTE103.** `maps.json` connects ROUTE102's right side into OLDALE; the spec named two borders. The test reads all three from `maps.json`.
 - **Before P1, the lead checks each stage manifest's `mutant` by hand** (REAL: none; WALL-OLDALE: `oldale`, edit sha256 `9ad704458ae9...`). Nothing in `run_batch` ties an arm name to its stage's mutant (verifier NIT VW-2, pre-existing), so a swapped or unwalled stage would run unrefused and show only in the leg records' `tree.mutant`. Rejected for now: a new refusal in `run_refusals` (a code change under `ai_player/`, which would need its own proof; filed as a follow-up for the final lane's round).
 - **Revisit:** the manifest check as a refusal, if a stage is ever built by anyone but the lead or a script.
+
+## 2026-11-16 — USER: delete the chapter 6-7 merge's cleanup list ("Yes, delete all") (punch-list #28-aiagent-v2)
+
+- **The question** (put to the USER on 2026-11-14 and again on 2026-11-16, when C: read 43.4 GB, under A1's 45 GB live floor): may the six clean worktrees `ch67-merge`, `ch6-p11`, `wf_e7452923-f06-3`, `ch5-fix`, `lc-c2`, `wf_213590e7-d34-3` (all commits in `main`; branches kept) and the lab `_ai_lab/s53/` (12.9 GB) be deleted, about 16 GB in all?
+- **The USER's answer:** "Yes, delete all" (the options were all, only `s53`, or not now). Done the same morning (`07` 2026-11-16).
+- **Scope:** this OK covered exactly that list. It does NOT cover the five `wf_*` worktrees with uncommitted files, the two parked story-bot worktrees, `_ai_lab/keep/`, `tools/story-dev/x4-runs` or `sandbox-pokebot/profiles`: each of those needs its own OK.

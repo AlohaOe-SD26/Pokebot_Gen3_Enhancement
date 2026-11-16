@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "7e82c67e89d0242b4cd5643c5cc23a9cadc0bc06",
+ "source_sha1_lf": "970820f7e4ac5926bda5d78929a73ef18c4cac3e",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 382,
+  "sections": 383,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -6033,6 +6033,21 @@
    "line_start": 10248,
    "line_end": 10253,
    "title": "2026-11-15 — A1's planted walls: the OLDALE wall sits in the navigator's single step, not `Navigator.walls`; ROUTE102 is walled too; stage manifests are checked by hand before P1 (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-16-eea408",
+   "date": "2026-11-16",
+   "line_start": 10255,
+   "line_end": 10259,
+   "title": "2026-11-16 — USER: delete the chapter 6-7 merge's cleanup list (\"Yes, delete all\") (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [
