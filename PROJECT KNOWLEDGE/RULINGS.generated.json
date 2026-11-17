@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "b20a4d152036e5676e149c2b790a4227a0388bf3",
+ "source_sha1_lf": "f171403baeca60e9415b38a69a904035e6b79f35",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 378,
+  "sections": 386,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -5981,6 +5981,132 @@
    "cues": [
     "correction"
    ]
+  },
+  {
+   "id": "2026-11-14-0bfb3b",
+   "date": "2026-11-14",
+   "line_start": 10209,
+   "line_end": 10230,
+   "title": "2026-11-14 — A1's decisions: AM-22's list (spec 4.4 item 8) and the lead's calls during A1's offline build (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-15-da9ccd",
+   "date": "2026-11-15",
+   "line_start": 10232,
+   "line_end": 10239,
+   "title": "2026-11-15 — A1's fix round 5: the lead's calls on the `run --parallel` hang, a job's env and the trainer smoke's jobs (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-15-9dc33b",
+   "date": "2026-11-15",
+   "line_start": 10241,
+   "line_end": 10246,
+   "title": "2026-11-15 — A1's merge check counts every PLANNED chain; the lead closes verifier round 7's NIT directly; the full lane runs before step 5's planted walls (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-15-d1afc0",
+   "date": "2026-11-15",
+   "line_start": 10248,
+   "line_end": 10253,
+   "title": "2026-11-15 — A1's planted walls: the OLDALE wall sits in the navigator's single step, not `Navigator.walls`; ROUTE102 is walled too; stage manifests are checked by hand before P1 (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-16-eea408",
+   "date": "2026-11-16",
+   "line_start": 10255,
+   "line_end": 10259,
+   "title": "2026-11-16 — USER: delete the chapter 6-7 merge's cleanup list (\"Yes, delete all\") (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-16-d45cfe",
+   "date": "2026-11-16",
+   "line_start": 10261,
+   "line_end": 10268,
+   "title": "2026-11-16 — A1's first live steps: the lead's calls on the self-matching process check, ledger #149, P1's loop-key reading and MC's STOP (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-16-062c33",
+   "date": "2026-11-16",
+   "line_start": 10270,
+   "line_end": 10276,
+   "title": "2026-11-16 — A1's first merge check (MC, ledger #152): its one miss is the known blocker KI-137 (c) and F, already in the base tree, so MC reads STOP with one known blocker recorded, and WP1 may start (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-137"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-16-ef8a3a",
+   "date": "2026-11-16",
+   "line_start": 10278,
+   "line_end": 10284,
+   "title": "2026-11-16 — A1's WP1 (ledger #154): P2 read through the loop-key allowance, the planted wall's own loops get no KI, BRAWLY is the next skill build, and the second full lane runs on the final code (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-137",
+    "KI-140",
+    "KI-141"
+   ],
+   "donot": [],
+   "cues": []
   }
  ]
 }

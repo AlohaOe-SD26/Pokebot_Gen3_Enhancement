@@ -87,10 +87,18 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 378 sections (newest first)
+## All 386 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-16-ef8a3a` | 10278 |  |  | 2026-11-16 — A1's WP1 (ledger #154): P2 read through the loop-key allowance, the planted wall's own loops get no KI, BRAWLY is the next skill build, and the sec |
+| `2026-11-16-062c33` | 10270 |  |  | 2026-11-16 — A1's first merge check (MC, ledger #152): its one miss is the known blocker KI-137 (c) and F, already in the base tree, so MC reads STOP with one k |
+| `2026-11-16-d45cfe` | 10261 |  |  | 2026-11-16 — A1's first live steps: the lead's calls on the self-matching process check, ledger #149, P1's loop-key reading and MC's STOP (punch-list #28-aiagen |
+| `2026-11-16-eea408` | 10255 |  |  | 2026-11-16 — USER: delete the chapter 6-7 merge's cleanup list ("Yes, delete all") (punch-list #28-aiagent-v2) |
+| `2026-11-15-d1afc0` | 10248 |  |  | 2026-11-15 — A1's planted walls: the OLDALE wall sits in the navigator's single step, not `Navigator.walls`; ROUTE102 is walled too; stage manifests are checked |
+| `2026-11-15-9dc33b` | 10241 |  |  | 2026-11-15 — A1's merge check counts every PLANNED chain; the lead closes verifier round 7's NIT directly; the full lane runs before step 5's planted walls (pun |
+| `2026-11-15-da9ccd` | 10232 |  |  | 2026-11-15 — A1's fix round 5: the lead's calls on the `run --parallel` hang, a job's env and the trainer smoke's jobs (punch-list #28-aiagent-v2) |
+| `2026-11-14-0bfb3b` | 10209 |  |  | 2026-11-14 — A1's decisions: AM-22's list (spec 4.4 item 8) and the lead's calls during A1's offline build (punch-list #28-aiagent-v2) |
 | `2026-11-14-b23f35` | 10193 | 55 | DO-NOT-REOPEN cue | 2026-11-14 — E0's STOP and the fix-forward (2026-11-13): the chapter 5 search fix (E and K1) went onto the merge branch after E0's commit; K2 rejected; K1 is no |
 | `2026-11-14-15ba9c` | 10173 |  |  | 2026-11-14 — The chapter 6-7 merge as run: `main` keeps its ledger ids and the side branches' are renumbered once; C5b v2, a narrow test-side fix; the lead's ru |
 | `2026-11-14-bd6ffa` | 10147 |  |  | 2026-11-14 — Chapters 6-7, boss preparation BP-1 and the dark-cave way P11, as built: the design choices their rounds made, recorded when they merged (punch-lis |

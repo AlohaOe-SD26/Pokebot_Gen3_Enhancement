@@ -98,7 +98,7 @@
       "raised": []
     },
     "04-HANDOFF.md": {
-      "ceiling": 74876,
+      "ceiling": 77400,
       "headroom": 8192,
       "target": 61440,
       "raised": [
@@ -192,11 +192,46 @@
           "from": 74694,
           "to": 74876,
           "why": "the chapter 6-7 merge, Tier round 5: what F7's commit edits, and where the 273.37 calibration figure came from"
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 74876,
+          "to": 75700,
+          "why": "2026-11-14: A1 is mid-build on wip/a1; queue item 4 carries its six commits, its verifier state and its ordered next steps (fix round 3, the lane, the live steps, the docs, the merge). These lines collapse to one at A1's merge."
+        },
+        {
+          "date": "2026-11-14",
+          "field": "ceiling",
+          "from": 75700,
+          "to": 76400,
+          "why": "2026-11-14: A1 is mid-build on wip/a1 and its fix round 3 is in flight; queue item 4 carries its six commits, its verifier state, its ordered next steps and the in-flight warning, and the JUNCTIONS line names A1's stage junction (Tier 1's findings). These lines collapse to one at A1's merge."
+        },
+        {
+          "date": "2026-11-15",
+          "field": "ceiling",
+          "from": 76400,
+          "to": 76800,
+          "why": "2026-11-15: A1's full lane is in flight; START HERE says how to check it and what to do when it ends (PASS, a red suite, DEAD), queue item 4 restores POKEBOT_DECOMP for any lane in a worktree, names the second full lane after the planted walls, and lists step 9's spec corrections (Tier 1's findings). These lines collapse to one at A1's merge."
+        },
+        {
+          "date": "2026-11-16",
+          "field": "ceiling",
+          "from": 76800,
+          "to": 77100,
+          "why": "2026-11-16: A1's live steps: queue item 4 records that MC's first run read STOP on the known KI-137 and that its PASS-before-WP1 rule was relaxed once, knowingly (never \"MC PASS\"); it names the new stages and the ones left UP with their junctions; START HERE orders the run book first and names the in-flight steps 7-8 workflow (Tier 1's fixes). These lines collapse to one at A1's merge."
+        },
+        {
+          "date": "2026-11-16",
+          "field": "ceiling",
+          "from": 77100,
+          "to": 77400,
+          "why": "2026-11-16: A1's merge order (main merged into wip/a1 after the lane, step 9's docs there, the DUE suites re-run, then main takes the merge: units and revert_safety_gates read the README and 06-08), the WP1 caveats (one run per seed) and the band and WP1 commits in the built-so-far list (Tier 1's findings). These lines collapse to one at A1's merge."
         }
       ]
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 293439,
+      "ceiling": 296200,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -297,6 +332,20 @@
           "from": 293329,
           "to": 293439,
           "why": "the chapter 6-7 merge, Tier round 5: KI-66's swept pointers keep its open OWNER filter"
+        },
+        {
+          "date": "2026-11-16",
+          "field": "ceiling",
+          "from": 293439,
+          "to": 294400,
+          "why": "2026-11-16: KI-137 (OPEN) gains its first LIVE evidence: A1's merge check looped through RUSTBORO's south-east pocket at ch5_rusturf_grunt, and the A/B on that start loops the same on the base tree; the line names the deterministic fixture its fix will need. An open issue's evidence, not a closed block to archive."
+        },
+        {
+          "date": "2026-11-16",
+          "field": "ceiling",
+          "from": 294400,
+          "to": 296200,
+          "why": "2026-11-16: two new OPEN KIs that A1's definition of done requires from its WP1 report (spec 4.4 item 8: a KI for each new blocker holding at least 2 runs and for every LOOP key): KI-140 (BRAWLY's gym, 8 of 36 chapter 7 legs) and KI-141 (a PETALBURG_WOODS|ROUTE104 loop, 3 legs). Open issues, nothing closed to archive."
         }
       ]
     }
