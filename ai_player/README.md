@@ -19,7 +19,8 @@ GRANITE CAVE's dark floors from a guide's knowledge (P11). The merge's chapter 1
 E (things seen standing stay walls for the session) and K1 (a seasoned player's entry-map lead), reached `ch5_rival_meet` on
 its one decisive fixture (one trajectory per arm; each change alone reached there, neither shown necessary). The check
 again read "E0 VERDICT: REACHED 3 of 3; legs ran 15, purity-clean 15; wall 31 min (cap 120); problems 0 -> GO" (ledger
-#148): three games, not a rate. The full lane read "REGRESSION: PASS (full, 41 suites, 14363.9 s wall)". The GRADED
+#148): three games, not a rate. The full lane read "REGRESSION: PASS (full, 41 suites, 14363.9 s wall)"; at A1's merge
+(2026-11-16) it read "REGRESSION: PASS (full, 43 suites, 15452.8 s wall)". The GRADED
 frontier is still the end of chapter 5 (ledger #101, the code before the merge; `PROJECT KNOWLEDGE/ai-frontier.txt`).
 The R5 banner below was never updated for saving and CONTINUE (backlog R1 + R2), chapters 3-5 or the graded New Game
 chain to the end of chapter 5 (#101, 6 of 6; `07` 2026-11-07). Details: `PROJECT KNOWLEDGE/07-CHANGELOG.md` 2026-11-14 and the build report
@@ -486,18 +487,18 @@ junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run
 before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
 crash, 6 the AI-only stop. A job's env must be EMPTY (the probe sets every launch key itself, so `plan` and `run` refuse a
 job env naming any key), and `run` refuses `--parallel` under 1 (no job could ever start). Its offline proofs are
-`gates/test_frontier_probe.py` (T1-T40, T24d and AM-11, each a FAULT and a CONTROL; T39 and T40 apply each wall to a copy
+`gates/test_frontier_probe.py` (T1-T41, T24d and AM-11, each a FAULT and a CONTROL; T39 and T40 apply each wall to a copy
 of the AI's code and drive that copy's own planner, in its own process, on the AI's kept memory, `fixtures/a1_walls_oldale`
 from the C1 start's and `probe7_c1_island`: walled, no way in; real, the same inputs, every way in) and
-`gates/revert_frontier.py` (247 mutants: each guard the suite tests, broken in a copy, fails its predicted test; Z25, the continue rule's class half, is
+`gates/revert_frontier.py` (250 mutants: each guard the suite tests, broken in a copy, fails its predicted test; Z25, the continue rule's class half, is
 REDUNDANT ALONE, its purity half stopping the same legs). Every guard the six verifier rounds named now has a case that
 fails with that guard removed, though the 7 rows fix round 5 added (2026-11-15: `--parallel` under 1, P01-P03, T37; a job
 env key, E01-E02, T38; an ABORTED MC verdict's reading, H02, T14; an MC verdict's own chain count, H03, T33) and the 9
 fix round 6 added (D01-D06, T33: a dropped MC chain; V6M2, V6M3 and P04, T37: the --parallel refusal in development
 mode and on --resume) and the lead's V6M1 (a job env key on an MC job, T38: verifier round 6's NIT V6-3) were run BY NAME
-only, and the full lane over all 239 rows is build step 4's; build step 5's 8 (WL1-WL8, T39 and T40: a wall's edit broken
-in `MUTANTS`, or `apply_mutant` adding to the staged edit or writing the source tree) were run BY NAME only, and are not
-yet in a full lane. A development
+at first, as were build step 5's 8 (WL1-WL8, T39 and T40: a wall's edit broken in `MUTANTS`, or `apply_mutant` adding to
+the staged edit or writing the source tree) and fix round 7's PQ1-PQ3 (T41); the second full lane (2026-11-16, on
+`7977320d`) ran all 250: "249 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 250 run". A development
 resume skips its own entry only in its OWN ledger, never a same-id entry of a divergent copy (H07, T24d), so a FAITHFUL copy of the ledger that holds the
 batch's own entry also refuses its resume (safe: a refusal writes nothing; reconcile the copy first). An MC batch's
 reading counts every PLANNED chain (batch.json's `mc_planned`; fix round 6, V6-1): a job DROPPED before its launch
@@ -783,6 +784,7 @@ Read inside the AI's own code, never set on the happy path:
 | (a COPY) | R1 + R2 follow-up: mutant FX3, the launcher never looks through a continue that stopped before its restore (`live_r1.FX3_EDITS` = `revert_r1` FX3) | R2-RETRY-OLD (`live_r1.py r2 --old`) |
 | (a COPY) | boss preparation BP-1 (2026-11-09 to 12): one rule of the readiness verdict, the raise, the trainee's guard and rescue, the party-order or field-item hand, or the learner's page broken, or its call deleted (`revert_bossprep.MUTANTS`: 163 on the closing tree, 161 CAUGHT and 2 REDUNDANT, as predicted) | `revert_bossprep.py` (`test_bossprep.py` from the copy, and `test_hands.py` FieldItemTests) |
 | (a COPY) | P11, the way through a dark cave (2026-11-11 to 12): one rule of the extractor (the muddy slope, the refusals, never straight back), the loader or the explorer's dark-map way broken, or its call deleted (`revert_p11.MUTANTS`: 64, 61 CAUGHT and 3 REDUNDANT, as predicted); P11's live FAULT arm is the same code with `knowledge/world/ways.json` removed | `revert_p11.py` (`test_ways.py` and `test_world.py` from the copy) |
+| (a COPY) | A1, the frontier probe (2026-11-14 to 16): one guard of `gates/frontier_probe.py` (a refusal, the scheduler, the disk rule, a record or report field, the merge check, the process check, a planted wall's edit) broken, or its call deleted (`revert_frontier.MUTANTS`: 250, 249 CAUGHT and 1 REDUNDANT ALONE, as predicted); the planted walls themselves are the live FAULT arms of P1 and P2 (`stage --mutant oldale` or `briney`) | `revert_frontier.py` (`test_frontier_probe.py` from the copy) |
 | `AI_PLAYER_FAULT_UNGATED_A=1` | the dialogue driver presses A on its cadence with no wait gate and never stops for a menu (step 2) | XU (live_step2) |
 | `AI_PLAYER_FAULT_BLIND_COUNT=1` | the menu driver moves every cursor by a count from the top, without reading it (step 2); since step 2.1 it still waits for a menu to take input before its A (it is blind to the CURSOR only: an A dropped in the gender menu's sprite slide now ends the intro, the review's item 6) | XBN, XBC (live_step2) |
 | (a COPY of the package, not a switch) | step 2.1: the eyes' TASK_WAITS list a timer task (`Task_NewGameBirchSpeech_WaitToShowBirch`) as a wait | XTW (live_step2): the press-behaviour probe must flag every A pressed on it |

@@ -1,6 +1,6 @@
 # A1: the wide frontier probe and the trainer's runner core: BUILD SPEC (2026-11-11, revised after review; amended 2026-11-13)
 
-> **Claude's spec, NOT BUILT, a NOTE like every agent output.** Written read-only by a spec agent of session `2cb1657d`,
+> **BUILT and MERGED 2026-11-16 (`07` 2026-11-14 to 16; the build's departures from this text are in `06` 2026-11-14 to 16 and in the dated notes below).** **Claude's spec, a NOTE like every agent output.** Written read-only by a spec agent of session `2cb1657d`,
 > revised the same day on an independent review's 21 findings (`2026-11-11-A1-FRONTIER-PROBE-SPEC-REVIEW.md` beside it; Review log at the end). Each code
 > claim names a path and line, or a symbol whose line is in table 1.2; the builder re-reads it before relying on it.
 > UNKNOWN = not checked. **Read at** `main` `10ceb4f7`, re-checked at `879b1fe3` (docs only since; no `ai_player/` code
@@ -231,7 +231,7 @@ development ledger entry; the prediction hashed before the first launch.
   check before the first launch (2.5; 3.10's `--ledger development`; T13). The range read FREE in 308 ledgers at 7:46
   PM 2026-11-13 (the repo note `2026-11-13-A1-SPEC-AMENDMENTS.md`, section 2.6). Never a seed any entry names:
   6481-6483 (E0, ledger #147) and 6484-6486 (E0-2, ledger #148) are spent.
-- **Reading (a hard-break check, NEVER a rate, `06` :10127).** PASS = every leg CLEAN-*, every `PURITY_IDS` check and
+- **Reading (a hard-break check, NEVER a rate, `06` :10127).** (2026-11-16, as built: the chains counted are the PLANNED ones, from `batch.json`'s `mc_planned`, so a job dropped before its launch reads "DROPPED, not run" and the entry STOP: `06` 2026-11-15, fix round 6.) PASS = every leg CLEAN-*, every `PURITY_IDS` check and
   L5.THIS_RUN passing, every chain reaching its target. Any HUNG, NOT CLEAN, REFUSED, freshness INFRA, CUT-WORLD or
   miss is a STOP. A miss's records (its key, or LOOP, 3.8) start the diagnosis, which is an A/B on the miss's own saved
   start (E0's method), never a reroll.
@@ -619,7 +619,7 @@ default folder, `provenance.py` :529), or a file `git ls-files` lists in the orc
   `arms11.py` pops it), every `POKEBOT_*` and every `PYTHON*` that `python_env_refused` refuses is removed from
   `os.environ`. `run_arm`'s `clean_env` strips only `AI_PLAYER_*`, so without this `POKEBOT_BOSSMODE_TOPUP` or
   `PYTHONPATH` would reach the launch.
-- **A job's env** may name only these (`plan` and `run` refuse any other key, exit 2), lines in `ai_player/options.py`:
+- **A job's env** (2026-11-16, as built: a job's own `env` field must be EMPTY, `plan --env` is gone, and the list below is the LAUNCH env the probe derives itself and checks before every launch: `06` 2026-11-15) may name only these (`plan` and `run` refuse any other key, exit 2), lines in `ai_player/options.py`:
   `AI_PLAYER_BRAIN` :138 (always `play`), `AI_PLAYER_SEED` :163, `AI_PLAYER_PERSONALITY` :165, `AI_PLAYER_STARTER` :232
   (fresh legs only), `AI_PLAYER_TARGET` :228, `AI_PLAYER_CLOCK` :170 (always "10:00"), `AI_PLAYER_WORLD` :189.
   Part 0 adds an eighth key, `AI_PLAYER_GOALS` (its `options.py` line is new, beside `ENV_WORLD` :189): the
@@ -697,7 +697,7 @@ harness can give the third today: `--state` archives the profile's memory file (
 `AI_PLAYER_MEMORY` itself (`__main__.py` :190), and the play brain refuses an existing memory file outside a continue
 (`mode.py` :460). So part 0 is AI-side code, built and proven BEFORE A1's runner relies on it. Lines are at `3caf9c47`.
 
-1. **The end snapshot.** At every end the play brain controls (`done`, `stuck`, `stopped`, the soft deadline) it appends
+1. **The end snapshot.** (2026-11-16, as built: the soft deadline is the HOST's end, not the brain's, and writes NO snapshot; a carrying leg with none fails C3: `06` 2026-11-14.) At every end the play brain controls (`done`, `stuck`, `stopped`, the soft deadline) it appends
    ONE line to `<run_dir>/goals.jsonl` through `runlog.RecordFile` (the play side writes files only through `runlog.py`
    and the instrument, `check_purity.py` FILE_WRITERS :639-642): the save payload without its world (`game_memory.py`
    `build_payload` :447: `goals_part`, the personality, the battle mind, the registry, the loss count). A hard kill, or

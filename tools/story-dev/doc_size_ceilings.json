@@ -8,7 +8,7 @@
       "raised": []
     },
     "01-VISION-AND-DESIGN.md": {
-      "ceiling": 51372,
+      "ceiling": 53400,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -25,11 +25,18 @@
           "from": 51291,
           "to": 51372,
           "why": "the chapter 6-7 merge: 01-A7's caveat (read, not measured live; road_walk also runs there) after the docs pass's coverage check"
+        },
+        {
+          "date": "2026-11-16",
+          "field": "ceiling",
+          "from": 51372,
+          "to": 53400,
+          "why": "2026-11-16: A1, the frontier probe, merged: the Definition of Done requires 01 to state each new component's intent, so 01 gains A1's section (what it is for, how a person would see it, its proofs, where it stands)."
         }
       ]
     },
     "02-ARCHITECTURE.md": {
-      "ceiling": 79856,
+      "ceiling": 80950,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -88,6 +95,13 @@
           "from": 79771,
           "to": 79856,
           "why": "the chapter 6-7 merge's follow-ups (F7): the dated suite budget says --quick now takes over ten minutes"
+        },
+        {
+          "date": "2026-11-16",
+          "field": "ceiling",
+          "from": 79856,
+          "to": 80950,
+          "why": "2026-11-16: A1, the frontier probe, merged: 02 must map the new module (frontier_probe.py's commands, part 0's files, its proofs) and the anchor gate's tenth runner. Kept to one line; the file stays at its 700-line budget (two wrapped lines joined)."
         }
       ]
     },

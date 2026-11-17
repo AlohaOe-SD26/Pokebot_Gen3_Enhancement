@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "f171403baeca60e9415b38a69a904035e6b79f35",
+ "source_sha1_lf": "7aecf46927c5b8360c72a88894ef05a6220ae00b",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 386,
+  "sections": 387,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -6104,6 +6104,23 @@
     "KI-137",
     "KI-140",
     "KI-141"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-16-a5d72f",
+   "date": "2026-11-16",
+   "line_start": 10286,
+   "line_end": 10290,
+   "title": "2026-11-16 — After A1: KI-140 is diagnosed on its own saved starts before BP-2 is built (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-140"
    ],
    "donot": [],
    "cues": []
