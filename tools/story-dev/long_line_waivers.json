@@ -14,7 +14,7 @@
     {
       "file": "03-PUNCH-LIST.md",
       "sha1": "54aca1de5e3740ded0d6e96483a6e99e51641c3c",
-      "chars": 7046,
+      "chars": 7089,
       "head": "- [~] ⭐ `#28-aiagent-v2` — ⛔ **USER RULING 35: the AI PLAYS ",
       "tails": [
         "its for the step's words; USER RULING 32: never a speedrun.)"
@@ -157,6 +157,12 @@
           "from_chars": 6917,
           "to_chars": 7046,
           "why": "2026-11-14: #28-aiagent-v2's A1 sentence now says A1 is MID-BUILD on wip/a1 (CONDITIONAL_PASS, four MINOR gaps open, its next steps); 03 is at its 4,400-line budget, so the status stays on this line."
+        },
+        {
+          "date": "2026-11-16",
+          "from_chars": 7046,
+          "to_chars": 7089,
+          "why": "2026-11-16: A1's sentence must carry its caveats where a reader acts from it (Tier 1): MC read STOP on the pre-existing KI-137, and P1 and P2 passed only through the loop-key allowance; the line shrinks to one sentence at A1's merge."
         }
       ]
     },

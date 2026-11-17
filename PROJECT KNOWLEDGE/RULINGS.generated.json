@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "4cf14a4e8933f0b4d07bddfd5f86fa0c36395f4b",
+ "source_sha1_lf": "f171403baeca60e9415b38a69a904035e6b79f35",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 385,
+  "sections": 386,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -6085,6 +6085,25 @@
    ],
    "ki": [
     "KI-137"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-16-ef8a3a",
+   "date": "2026-11-16",
+   "line_start": 10278,
+   "line_end": 10284,
+   "title": "2026-11-16 — A1's WP1 (ledger #154): P2 read through the loop-key allowance, the planted wall's own loops get no KI, BRAWLY is the next skill build, and the second full lane runs on the final code (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-137",
+    "KI-140",
+    "KI-141"
    ],
    "donot": [],
    "cues": []
