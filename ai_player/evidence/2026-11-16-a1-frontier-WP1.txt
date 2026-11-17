@@ -1,0 +1,792 @@
+A1 FRONTIER PROBE, batch WP1 (development): DEVELOPMENT DATA, NEVER A GRADED PROOF; PROJECT KNOWLEDGE/ai-frontier.txt is the authority
+ledger entry #154; bounds sha256 6a571df9413c50f82b39d61bd2ec2afabc3e48737f4f7c4ab7e57d10b4f9a880; started 2026-11-16 14:39:49
+stages {'REAL': 'C:\\Remote Projects\\_ai_lab\\a1\\stages\\REAL-3', 'WALL-BRINEY': 'C:\\Remote Projects\\_ai_lab\\a1\\stages\\WALL-BRINEY-1'}; P 8 (asked 8, 91.622596608 GB free)
+prediction file C:/Remote Projects/_ai_lab/a1/live/wp1-predictions.txt sha256 36faf85372b9b5d6dc9f6cf902d5cc9812577d602222aa615e5bc70cbab50385
+
+LEG WP1-REAL-N-STOR-6614-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 532.0
+LEG WP1-REAL-N-CTOR-6612-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 536.1
+LEG WP1-REAL-N-STRE-6611-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 550.3
+LEG WP1-REAL-N-SMUD-6615-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 528.4
+LEG WP1-REAL-N-TMUD-6613-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 533.5
+LEG WP1-REAL-N-CTRE-6616-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 519.5
+LEG WP1-REAL-N-CMUD-6617-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 531.1
+LEG WP1-REAL-N-STOR-6614-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 501.6
+LEG WP1-REAL-N-STRE-6611-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 484.4
+LEG WP1-REAL-N-TTRE-6618-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 523.4
+LEG WP1-REAL-N-CTOR-6612-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 472.0
+LEG WP1-REAL-N-SMUD-6615-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 488.7
+LEG WP1-REAL-N-STRE-6611-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 480.2
+LEG WP1-REAL-N-CMUD-6617-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 457.1
+LEG WP1-REAL-N-STOR-6614-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 480.8
+LEG WP1-REAL-N-TMUD-6613-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 469.4
+LEG WP1-REAL-N-CTRE-6616-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 476.1
+LEG WP1-REAL-N-SMUD-6615-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 431.9
+LEG WP1-REAL-N-STRE-6611-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 439.8
+LEG WP1-REAL-N-TTRE-6618-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 474.9
+LEG WP1-REAL-N-CTOR-6612-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 494.9
+LEG WP1-REAL-N-STOR-6614-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 444.6
+LEG WP1-REAL-N-TMUD-6613-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 484.7
+LEG WP1-REAL-N-CMUD-6617-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 473.3
+LEG WP1-REAL-N-CTOR-6612-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 362.4
+LEG WP1-REAL-N-STRE-6611-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 476.0
+LEG WP1-REAL-N-SMUD-6615-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 463.1
+LEG WP1-REAL-N-STOR-6614-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 454.5
+LEG WP1-REAL-N-CTRE-6616-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 487.0
+LEG WP1-REAL-N-TTRE-6618-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 493.1
+LEG WP1-REAL-N-STOR-6614-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 324.9
+LEG WP1-REAL-N-CMUD-6617-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 425.6
+LEG WP1-REAL-N-CTOR-6612-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 426.9
+LEG WP1-REAL-N-CTOR-6612-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 350.4
+LEG WP1-REAL-N-TMUD-6613-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 477.8
+LEG WP1-REAL-N-TTRE-6618-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 454.0
+LEG WP1-REAL-N-STOR-6614-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, 'ch7_brawly', 'play: stuck: N battles lost (MAX_LOSSES N)', 'DEWFORD_TOWN', 'CLEAN-CHOSEN'] fps 497.1
+LEG WP1-REAL-N-CTRE-6616-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 481.3
+LEG WP1-REAL-N-SMUD-6615-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 382.9
+LEG WP1-REAL-N-SMUD-6615-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 351.9
+LEG WP1-REAL-N-CMUD-6617-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 471.5
+LEG WP1-REAL-N-CTOR-6612-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, 'ch7_brawly', 'play: stuck: N battles lost (MAX_LOSSES N)', 'DEWFORD_TOWN', 'CLEAN-CHOSEN'] fps 496.0
+LEG WP1-REAL-N-CMUD-6617-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 375.9
+LEG WP1-REAL-N-TTOR-6619-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 524.0
+LEG WP1-REAL-N-SMUD-6615-L7: CLEAN-CHOSEN reached True next unmet None key None fps 492.7
+LEG WP1-REAL-F-CTOR-6621-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 356.4
+LEG WP1-REAL-N-TTRE-6618-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 448.1
+LEG WP1-REAL-N-STRE-6611-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 513.0
+LEG WP1-REAL-N-TTRE-6618-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 341.0
+LEG WP1-REAL-N-CTRE-6616-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 415.7
+LEG WP1-REAL-N-CMUD-6617-L7: CLEAN-CHOSEN reached True next unmet None key None fps 484.1
+LEG WP1-REAL-F-STOR-6623-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 345.7
+LEG WP1-REAL-N-TTOR-6619-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 457.2
+LEG WP1-REAL-F-CTOR-6621-L7: CLEAN-CHOSEN reached True next unmet None key None fps 496.4
+LEG WP1-REAL-N-TMUD-6613-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 451.1
+LEG WP1-REAL-F-SMUD-6624-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 350.4
+LEG WP1-REAL-N-TMUD-6613-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 338.9
+LEG WP1-REAL-N-STRE-6611-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, 'ch7_brawly', 'play: stuck: N battles lost (MAX_LOSSES N)', 'DEWFORD_TOWN', 'CLEAN-CHOSEN'] fps 509.1
+LEG WP1-REAL-F-TMUD-6622-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 333.1
+LEG WP1-REAL-F-STOR-6623-L7: CLEAN-CHOSEN reached True next unmet None key None fps 493.2
+LEG WP1-REAL-N-TTRE-6618-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, 'ch7_brawly', 'play: stuck: N battles lost (MAX_LOSSES N)', 'DEWFORD_TOWN', 'CLEAN-CHOSEN'] fps 498.5
+LEG WP1-REAL-F-CMUD-6626-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 338.3
+LEG WP1-REAL-N-TMUD-6613-L7: CLEAN-CHOSEN reached True next unmet None key None fps 481.8
+LEG WP1-REAL-F-TTRE-6627-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 345.5
+LEG WP1-REAL-N-TTOR-6619-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 494.0
+LEG WP1-REAL-F-SMUD-6624-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, 'ch7_brawly', 'play: stuck: N battles lost (MAX_LOSSES N)', 'DEWFORD_TOWN', 'CLEAN-CHOSEN'] fps 495.5
+LEG WP1-REAL-F-STRE-6620-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 496.0
+LEG WP1-REAL-F-TMUD-6622-L7: CLEAN-CHOSEN reached True next unmet None key None fps 487.2
+LEG WP1-REAL-F-CTOR-6630-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 351.0
+LEG WP1-REAL-N-TTOR-6619-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 360.6
+LEG WP1-REAL-F-CMUD-6626-L7: CLEAN-CHOSEN reached True next unmet None key None fps 473.4
+LEG WP1-REAL-F-TMUD-6631-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 353.7
+LEG WP1-REAL-F-STRE-6620-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, 'ch7_brawly', 'play: stuck: N battles lost (MAX_LOSSES N)', 'DEWFORD_TOWN', 'CLEAN-CHOSEN'] fps 498.4
+LEG WP1-REAL-F-STOR-6632-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 331.5
+LEG WP1-REAL-F-CTOR-6630-L7: CLEAN-CHOSEN reached True next unmet None key None fps 482.6
+LEG WP1-REAL-F-SMUD-6633-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 341.8
+LEG WP1-REAL-N-CTRE-6616-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 514.5
+LEG WP1-REAL-N-TTOR-6619-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 493.3
+LEG WP1-REAL-F-STOR-6632-L7: CLEAN-CHOSEN reached True next unmet None key None fps 488.2
+LEG WP1-REAL-F-TMUD-6631-L7: CLEAN-CHOSEN reached True next unmet None key None fps 493.5
+LEG WP1-REAL-N-TTOR-6619-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 367.2
+LEG WP1-REAL-F-TTOR-6628-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 335.5
+LEG WP1-REAL-N-CTRE-6616-L7: CLEAN-CHOSEN reached True next unmet None key None fps 493.6
+LEG WP1-REAL-F-CMUD-6635-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 335.1
+LEG WP1-REAL-N-TTOR-6619-L7: CLEAN-CHOSEN reached True next unmet None key None fps 472.9
+LEG WP1-REAL-F-SMUD-6633-L7: CLEAN-CHOSEN reached True next unmet None key None fps 490.6
+LEG WP1-REAL-F-TTRE-6636-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 337.5
+LEG WP1-REAL-F-TTOR-6628-L7: CLEAN-CHOSEN reached True next unmet None key None fps 500.6
+LEG WP1-REAL-F-CTRE-6625-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 503.7
+LEG WP1-REAL-F-TTOR-6637-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 357.7
+LEG WP1-REAL-F-CMUD-6635-L7: CLEAN-CHOSEN reached True next unmet None key None fps 484.0
+LEG WP1-REAL-F-STRE-6629-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 500.1
+LEG WP1-REAL-F-CTOR-6639-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 347.2
+LEG WP1-REAL-F-CTRE-6625-L7: CLEAN-CHOSEN reached True next unmet None key None fps 481.4
+LEG WP1-REAL-F-TTOR-6637-L7: CLEAN-CHOSEN reached True next unmet None key None fps 506.3
+LEG WP1-REAL-F-TMUD-6640-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 339.4
+LEG WP1-REAL-F-STOR-6641-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 388.3
+LEG WP1-REAL-F-TTRE-6627-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, '-', 'loop', 'PETALBURG_WOODS|ROUTE104', 'LOOP'] fps 271.9
+LEG WP1-REAL-F-STRE-6629-L7: CLEAN-CHOSEN reached True next unmet None key None fps 481.1
+LEG WP1-REAL-F-CTOR-6639-L7: CLEAN-CHOSEN reached True next unmet None key None fps 471.7
+LEG WP1-REAL-F-TTRE-6636-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, 'ch7_brawly', 'play: stuck: N battles lost (MAX_LOSSES N)', 'DEWFORD_TOWN', 'CLEAN-CHOSEN'] fps 498.2
+LEG WP1-REAL-F-SMUD-6642-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 357.8
+LEG WP1-REAL-F-CMUD-6644-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 344.4
+LEG WP1-REAL-F-TTRE-6645-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 343.8
+LEG WP1-REAL-F-TMUD-6640-L7: CLEAN-CHOSEN reached True next unmet None key None fps 494.0
+LEG WP1-REAL-F-SMUD-6642-L7: CLEAN-CHOSEN reached True next unmet None key None fps 487.4
+LEG WP1-REAL-F-TTOR-6646-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 393.2
+LEG WP1-REAL-F-STOR-6641-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, 'ch7_brawly', 'play: stuck: N battles lost (MAX_LOSSES N)', 'DEWFORD_TOWN', 'CLEAN-CHOSEN'] fps 520.6
+LEG WP1-REAL-F-CMUD-6644-L7: CLEAN-CHOSEN reached True next unmet None key None fps 482.2
+LEG WP1-REAL-F-STRE-6638-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 543.1
+LEG WP1-REAL-F-TTOR-6646-L7: CLEAN-CHOSEN reached True next unmet None key None fps 493.5
+LEG WP1-REAL-F-CTRE-6634-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 510.0
+LEG WP1-REAL-F-STRE-6638-L7: CLEAN-CHOSEN reached True next unmet None key None fps 505.5
+LEG WP1-WALL-BRINEY-F-TMUD-6622-L6: CLEAN-CHOSEN reached False next unmet ch6_briney_house key [6, '-', 'loop', 'PETALBURG_WOODS|ROUTE104', 'LOOP'] fps 331.2
+LEG WP1-REAL-F-TTRE-6645-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, '-', 'loop', 'PETALBURG_WOODS|ROUTE104', 'LOOP'] fps 304.6
+LEG WP1-REAL-F-CTRE-6643-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 531.5
+LEG WP1-REAL-F-CTRE-6643-L7: CLEAN-CHOSEN reached True next unmet None key None fps 536.7
+LEG WP1-REAL-F-CTRE-6634-L7: CLEAN-CHOSEN reached False next unmet ch7_brawly key [7, '-', 'loop', 'PETALBURG_WOODS|ROUTE104', 'LOOP'] fps 358.8
+LEG WP1-WALL-BRINEY-F-CTOR-6621-L6: CLEAN-CHOSEN reached False next unmet ch6_briney_house key [6, '-', 'loop', 'ROUTE116|RUSTBORO_CITY', 'LOOP'] fps 293.8
+LEG WP1-WALL-BRINEY-F-STRE-6620-L6: CLEAN-CHOSEN reached False next unmet ch6_briney_house key [6, '-', 'loop', 'PETALBURG_WOODS|ROUTE104', 'LOOP'] fps 397.8
+
+not started: []
+most jobs at once: 8
+free space: 91.622596608 GB at the start, 90.960535552 GB at the end
+events: ['REAL-N-STRE-6611: started (1 running)', 'REAL-N-CTOR-6612: started (2 running)', 'REAL-N-TMUD-6613: started (3 running)', 'REAL-N-STOR-6614: started (4 running)', 'REAL-N-SMUD-6615: started (5 running)', 'REAL-N-CTRE-6616: started (6 running)', 'REAL-N-CMUD-6617: started (7 running)', 'REAL-N-TTRE-6618: started (8 running)', 'REAL-N-TTOR-6619: started (8 running)', 'REAL-F-STRE-6620: started (8 running)', 'REAL-F-CTOR-6621: started (8 running)', 'REAL-F-STOR-6623: started (8 running)', 'REAL-F-SMUD-6624: started (8 running)', 'REAL-F-TMUD-6622: started (8 running)', 'REAL-F-CTRE-6625: started (8 running)', 'REAL-F-CMUD-6626: started (8 running)', 'REAL-F-TTRE-6627: started (8 running)', 'REAL-F-STRE-6629: started (8 running)', 'REAL-F-CTOR-6630: started (8 running)', 'REAL-F-TMUD-6631: started (8 running)', 'REAL-F-STOR-6632: started (8 running)', 'REAL-F-SMUD-6633: started (8 running)', 'REAL-F-TTOR-6628: started (8 running)', 'REAL-F-CTRE-6634: started (8 running)', 'REAL-F-CMUD-6635: started (8 running)', 'REAL-F-TTRE-6636: started (8 running)', 'REAL-F-TTOR-6637: started (8 running)', 'REAL-F-STRE-6638: started (8 running)', 'REAL-F-CTOR-6639: started (8 running)', 'REAL-F-TMUD-6640: started (8 running)', 'REAL-F-STOR-6641: started (8 running)', 'REAL-F-SMUD-6642: started (8 running)', 'REAL-F-CTRE-6643: started (8 running)', 'REAL-F-CMUD-6644: started (8 running)', 'REAL-F-TTRE-6645: started (8 running)', 'REAL-F-TTOR-6646: started (8 running)', 'WALL-BRINEY-F-STRE-6620: started (8 running)', 'WALL-BRINEY-F-CTOR-6621: started (8 running)', 'WALL-BRINEY-F-TMUD-6622: started (8 running)']
+
+{
+ "header": "DEVELOPMENT DATA, NEVER A GRADED PROOF; PROJECT KNOWLEDGE/ai-frontier.txt is the authority",
+ "legs": 120,
+ "reached": 106,
+ "classes": {
+  "CLEAN-CHOSEN": 120
+ },
+ "trees": {
+  "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9": {
+   "1": {
+    "legs": 9,
+    "judged": 9,
+    "excluded": {},
+    "reached": 9,
+    "reach": 1.0,
+    "frames_per_second": 530.6,
+    "classes": {
+     "CLEAN-CHOSEN": 9
+    },
+    "reach_by_start_kind": {
+     "new game": {
+      "reached": 9,
+      "judged": 9
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "2": {
+    "legs": 9,
+    "judged": 9,
+    "excluded": {},
+    "reached": 9,
+    "reach": 1.0,
+    "frames_per_second": 473.9,
+    "classes": {
+     "CLEAN-CHOSEN": 9
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 9,
+      "judged": 9
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "3": {
+    "legs": 9,
+    "judged": 9,
+    "excluded": {},
+    "reached": 9,
+    "reach": 1.0,
+    "frames_per_second": 484.0,
+    "classes": {
+     "CLEAN-CHOSEN": 9
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 9,
+      "judged": 9
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "4": {
+    "legs": 9,
+    "judged": 9,
+    "excluded": {},
+    "reached": 9,
+    "reach": 1.0,
+    "frames_per_second": 446.3,
+    "classes": {
+     "CLEAN-CHOSEN": 9
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 9,
+      "judged": 9
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "5": {
+    "legs": 9,
+    "judged": 9,
+    "excluded": {},
+    "reached": 9,
+    "reach": 1.0,
+    "frames_per_second": 444.2,
+    "classes": {
+     "CLEAN-CHOSEN": 9
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 9,
+      "judged": 9
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "6": {
+    "legs": 36,
+    "judged": 36,
+    "excluded": {},
+    "reached": 36,
+    "reach": 1.0,
+    "frames_per_second": 492.5,
+    "classes": {
+     "CLEAN-CHOSEN": 36
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 9,
+      "judged": 9
+     },
+     "practice with a snapshot": {
+      "reached": 27,
+      "judged": 27
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "7": {
+    "legs": 36,
+    "judged": 36,
+    "excluded": {},
+    "reached": 25,
+    "reach": 0.6944,
+    "frames_per_second": 444.8,
+    "classes": {
+     "CLEAN-CHOSEN": 36
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 5,
+      "judged": 9
+     },
+     "practice with a snapshot": {
+      "reached": 20,
+      "judged": 27
+     }
+    },
+    "blockers": [
+     {
+      "tree": "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9",
+      "chapter": 7,
+      "key": [
+       7,
+       "ch7_brawly",
+       "play: stuck: N battles lost (MAX_LOSSES N)",
+       "DEWFORD_TOWN",
+       "CLEAN-CHOSEN"
+      ],
+      "key_id": "84bd94b1ad63",
+      "count": 8,
+      "share": 0.2222,
+      "real_frames": {
+       "min": 117507,
+       "median": 134170.0,
+       "max": 167828
+      },
+      "pairs": {
+       "Story/TORCHIC": 2,
+       "Catcher/TORCHIC": 1,
+       "Story/TREECKO": 2,
+       "Trainer/TREECKO": 2,
+       "Story/MUDKIP": 1
+      },
+      "next_unmet_of_records": {
+       "ch7_brawly": 8
+      },
+      "examples": [
+       {
+        "run_id": "WP1-REAL-F-STOR-6641-L7",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-STOR-6641\\L7",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-STOR-6641\\L7\\logs.zip"
+       },
+       {
+        "run_id": "WP1-REAL-F-TTRE-6636-L7",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6636\\L7",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6636\\L7\\logs.zip"
+       },
+       {
+        "run_id": "WP1-REAL-F-STRE-6620-L7",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-STRE-6620\\L7",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-STRE-6620\\L7\\logs.zip"
+       }
+      ],
+      "bossprep": {
+       "plan_made": 2,
+       "raise_ended_by_budget": 2,
+       "trainee_reached_target": 0,
+       "trainer_only_logged": 2,
+       "losses_carried_in": 4,
+       "losses_in_leg": 20
+      }
+     },
+     {
+      "tree": "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9",
+      "chapter": 7,
+      "key": [
+       7,
+       "-",
+       "loop",
+       "PETALBURG_WOODS|ROUTE104",
+       "LOOP"
+      ],
+      "key_id": "a997099c5452",
+      "count": 3,
+      "share": 0.0833,
+      "real_frames": {
+       "min": 249906,
+       "median": 257918,
+       "max": 281877
+      },
+      "pairs": {
+       "Trainer/TREECKO": 2,
+       "Catcher/TREECKO": 1
+      },
+      "next_unmet_of_records": {
+       "ch7_brawly": 3
+      },
+      "examples": [
+       {
+        "run_id": "WP1-REAL-F-CTRE-6634-L7",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-CTRE-6634\\L7",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-CTRE-6634\\L7\\logs.zip"
+       },
+       {
+        "run_id": "WP1-REAL-F-TTRE-6645-L7",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6645\\L7",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6645\\L7\\logs.zip"
+       },
+       {
+        "run_id": "WP1-REAL-F-TTRE-6627-L7",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6627\\L7",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6627\\L7\\logs.zip"
+       }
+      ],
+      "bossprep": {
+       "plan_made": 0,
+       "raise_ended_by_budget": 0,
+       "trainee_reached_target": 0,
+       "trainer_only_logged": 2,
+       "losses_carried_in": 0,
+       "losses_in_leg": 3
+      }
+     }
+    ],
+    "loops_seen": [],
+    "churn": []
+   }
+  },
+  "f59f13a202fa8ed842edfcf1e6278c5c40cb13f2db657d9c684b03586b944280": {
+   "6": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 0,
+    "reach": 0.0,
+    "frames_per_second": 348.7,
+    "classes": {
+     "CLEAN-CHOSEN": 3
+    },
+    "reach_by_start_kind": {
+     "practice with a snapshot": {
+      "reached": 0,
+      "judged": 3
+     }
+    },
+    "blockers": [
+     {
+      "tree": "f59f13a202fa8ed842edfcf1e6278c5c40cb13f2db657d9c684b03586b944280",
+      "chapter": 6,
+      "key": [
+       6,
+       "-",
+       "loop",
+       "PETALBURG_WOODS|ROUTE104",
+       "LOOP"
+      ],
+      "key_id": "40fdadb28e24",
+      "count": 2,
+      "share": 0.6667,
+      "real_frames": {
+       "min": 151519,
+       "median": 365185.0,
+       "max": 578851
+      },
+      "pairs": {
+       "Trainer/MUDKIP": 1,
+       "Story/TREECKO": 1
+      },
+      "next_unmet_of_records": {
+       "ch6_briney_house": 2
+      },
+      "examples": [
+       {
+        "run_id": "WP1-WALL-BRINEY-F-STRE-6620-L6",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-STRE-6620\\L6",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-STRE-6620\\L6\\logs.zip"
+       },
+       {
+        "run_id": "WP1-WALL-BRINEY-F-TMUD-6622-L6",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-TMUD-6622\\L6",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-TMUD-6622\\L6\\logs.zip"
+       }
+      ],
+      "bossprep": {
+       "plan_made": 1,
+       "raise_ended_by_budget": 1,
+       "trainee_reached_target": 0,
+       "trainer_only_logged": 1,
+       "losses_carried_in": 2,
+       "losses_in_leg": 0
+      }
+     },
+     {
+      "tree": "f59f13a202fa8ed842edfcf1e6278c5c40cb13f2db657d9c684b03586b944280",
+      "chapter": 6,
+      "key": [
+       6,
+       "-",
+       "loop",
+       "ROUTE116|RUSTBORO_CITY",
+       "LOOP"
+      ],
+      "key_id": "ea525cacd70d",
+      "count": 1,
+      "share": 0.3333,
+      "real_frames": {
+       "min": 340107,
+       "median": 340107,
+       "max": 340107
+      },
+      "pairs": {
+       "Catcher/TORCHIC": 1
+      },
+      "next_unmet_of_records": {
+       "ch6_briney_house": 1
+      },
+      "examples": [
+       {
+        "run_id": "WP1-WALL-BRINEY-F-CTOR-6621-L6",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-CTOR-6621\\L6",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-CTOR-6621\\L6\\logs.zip"
+       }
+      ],
+      "bossprep": {
+       "plan_made": 1,
+       "raise_ended_by_budget": 0,
+       "trainee_reached_target": 1,
+       "trainer_only_logged": 0,
+       "losses_carried_in": 0,
+       "losses_in_leg": 0
+      }
+     }
+    ],
+    "loops_seen": [],
+    "churn": []
+   }
+  }
+ },
+ "blockers": [
+  {
+   "tree": "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9",
+   "chapter": 7,
+   "key": [
+    7,
+    "ch7_brawly",
+    "play: stuck: N battles lost (MAX_LOSSES N)",
+    "DEWFORD_TOWN",
+    "CLEAN-CHOSEN"
+   ],
+   "key_id": "84bd94b1ad63",
+   "count": 8,
+   "share": 0.2222,
+   "real_frames": {
+    "min": 117507,
+    "median": 134170.0,
+    "max": 167828
+   },
+   "pairs": {
+    "Story/TORCHIC": 2,
+    "Catcher/TORCHIC": 1,
+    "Story/TREECKO": 2,
+    "Trainer/TREECKO": 2,
+    "Story/MUDKIP": 1
+   },
+   "next_unmet_of_records": {
+    "ch7_brawly": 8
+   },
+   "examples": [
+    {
+     "run_id": "WP1-REAL-F-STOR-6641-L7",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-STOR-6641\\L7",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-STOR-6641\\L7\\logs.zip"
+    },
+    {
+     "run_id": "WP1-REAL-F-TTRE-6636-L7",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6636\\L7",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6636\\L7\\logs.zip"
+    },
+    {
+     "run_id": "WP1-REAL-F-STRE-6620-L7",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-STRE-6620\\L7",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-STRE-6620\\L7\\logs.zip"
+    }
+   ],
+   "bossprep": {
+    "plan_made": 2,
+    "raise_ended_by_budget": 2,
+    "trainee_reached_target": 0,
+    "trainer_only_logged": 2,
+    "losses_carried_in": 4,
+    "losses_in_leg": 20
+   }
+  },
+  {
+   "tree": "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9",
+   "chapter": 7,
+   "key": [
+    7,
+    "-",
+    "loop",
+    "PETALBURG_WOODS|ROUTE104",
+    "LOOP"
+   ],
+   "key_id": "a997099c5452",
+   "count": 3,
+   "share": 0.0833,
+   "real_frames": {
+    "min": 249906,
+    "median": 257918,
+    "max": 281877
+   },
+   "pairs": {
+    "Trainer/TREECKO": 2,
+    "Catcher/TREECKO": 1
+   },
+   "next_unmet_of_records": {
+    "ch7_brawly": 3
+   },
+   "examples": [
+    {
+     "run_id": "WP1-REAL-F-CTRE-6634-L7",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-CTRE-6634\\L7",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-CTRE-6634\\L7\\logs.zip"
+    },
+    {
+     "run_id": "WP1-REAL-F-TTRE-6645-L7",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6645\\L7",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6645\\L7\\logs.zip"
+    },
+    {
+     "run_id": "WP1-REAL-F-TTRE-6627-L7",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6627\\L7",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\REAL-F-TTRE-6627\\L7\\logs.zip"
+    }
+   ],
+   "bossprep": {
+    "plan_made": 0,
+    "raise_ended_by_budget": 0,
+    "trainee_reached_target": 0,
+    "trainer_only_logged": 2,
+    "losses_carried_in": 0,
+    "losses_in_leg": 3
+   }
+  },
+  {
+   "tree": "f59f13a202fa8ed842edfcf1e6278c5c40cb13f2db657d9c684b03586b944280",
+   "chapter": 6,
+   "key": [
+    6,
+    "-",
+    "loop",
+    "PETALBURG_WOODS|ROUTE104",
+    "LOOP"
+   ],
+   "key_id": "40fdadb28e24",
+   "count": 2,
+   "share": 0.6667,
+   "real_frames": {
+    "min": 151519,
+    "median": 365185.0,
+    "max": 578851
+   },
+   "pairs": {
+    "Trainer/MUDKIP": 1,
+    "Story/TREECKO": 1
+   },
+   "next_unmet_of_records": {
+    "ch6_briney_house": 2
+   },
+   "examples": [
+    {
+     "run_id": "WP1-WALL-BRINEY-F-STRE-6620-L6",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-STRE-6620\\L6",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-STRE-6620\\L6\\logs.zip"
+    },
+    {
+     "run_id": "WP1-WALL-BRINEY-F-TMUD-6622-L6",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-TMUD-6622\\L6",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-TMUD-6622\\L6\\logs.zip"
+    }
+   ],
+   "bossprep": {
+    "plan_made": 1,
+    "raise_ended_by_budget": 1,
+    "trainee_reached_target": 0,
+    "trainer_only_logged": 1,
+    "losses_carried_in": 2,
+    "losses_in_leg": 0
+   }
+  },
+  {
+   "tree": "f59f13a202fa8ed842edfcf1e6278c5c40cb13f2db657d9c684b03586b944280",
+   "chapter": 6,
+   "key": [
+    6,
+    "-",
+    "loop",
+    "ROUTE116|RUSTBORO_CITY",
+    "LOOP"
+   ],
+   "key_id": "ea525cacd70d",
+   "count": 1,
+   "share": 0.3333,
+   "real_frames": {
+    "min": 340107,
+    "median": 340107,
+    "max": 340107
+   },
+   "pairs": {
+    "Catcher/TORCHIC": 1
+   },
+   "next_unmet_of_records": {
+    "ch6_briney_house": 1
+   },
+   "examples": [
+    {
+     "run_id": "WP1-WALL-BRINEY-F-CTOR-6621-L6",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-CTOR-6621\\L6",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\WP1\\WALL-BRINEY-F-CTOR-6621\\L6\\logs.zip"
+    }
+   ],
+   "bossprep": {
+    "plan_made": 1,
+    "raise_ended_by_budget": 0,
+    "trainee_reached_target": 1,
+    "trainer_only_logged": 0,
+    "losses_carried_in": 0,
+    "losses_in_leg": 0
+   }
+  }
+ ],
+ "experience_rows": 120,
+ "experience_unclassified": [],
+ "mc": null
+}
+
+PREDICTION:
+A1 FRONTIER PROBE: WP1, THE WIDE PROBE (WP1a + WP1b + P2 in ONE batch, spec 2.4) -- PREDICTIONS, written and hashed BEFORE the batch launches
+Written 2026-11-16 (PST) by the a1-live78 STEP8 segment, on wip/a1 741c16b9c5906d4ac13c651c6c5990c85a6ffaf9 (play code = 456c4df8; 741c16b9 adds
+only ledger entry #153, the AI trainer band). Nothing is retuned after the run (CLAUDE.md rule 8): a miss is reported, never retuned.
+
+SOURCE: PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md (amended 2026-11-13), sections 2.1, 2.4, 2.5,
+2.6, 3.8, 4.3 ("WP1 CONTROLS" and "P2"), 4.4 items 6-8.
+
+BATCH: `frontier_probe.py plan WP1 --first-seed 6611` -> live/wp1-jobs.json (sha256 5cc71a861666d30257f673a7e6d6373a28768be22d2f0874f607b7295fc4c51b):
+39 jobs = 9 REAL chains (WP1a, J-N: one per persona x starter pair, seeds 6611-6619, New Game, L1-L7, goals "carry")
++ 27 REAL practice jobs (WP1b, J-F: the 9 chains' L5 ends x 3 seeds, seeds 6620-6646, L6-L7, interleaved by start, each
+with its persona's fallback starts) + 3 WALL-BRINEY practice jobs (P2: the first-seed J-F job of each diagonal pair, seeds
+6620, 6621, 6622 shared with their REAL twins, L6 only). Seeds 6611-6646, 36 distinct. Stages: REAL = stages/REAL-3
+(mutant none, play digest 9e3f4a359bb39ef2), WALL-BRINEY = stages/WALL-BRINEY-1 (mutant briney, edit sha256 832456c67bba...,
+play digest f59f13a202fa8ed8); the two code trees differ in ONE file (brain/explore.py, the wall). P = 8,
+--ledger development (one ledger entry). Legs: L1 ch1_pokedex 330,000 frames, L2 ch2_wally 330,000, L3 ch3_rustboro 600,000,
+L4 ch4_roxanne 900,000, L5 ch5_rival_meet 600,000, L6 ch6_dewford 1,000,000, L7 ch7_brawly 1,200,000.
+
+PRE-REGISTERED CONSTANTS (3.8): LOOP_MIN_CROSSINGS = 40 (both directions, crossings less crossings_raise);
+LOOP_END_FRAMES = 120,000 (= STORY_PATIENCE). Churn: a REACHED leg with crossings - crossings_raise >= 40, never ranked.
+
+KNOWN BLOCKER CARRIED IN (06 2026-11-16, the lead's call): MC (#152) read STOP on one chapter 5 loop, ROUTE104|RUSTBORO_CITY at
+ch5_rusturf_grunt, which its A/B showed is KI-137 (c) and F, already in the base tree (arms A and B IDENTICAL over 10302 moves).
+2.4b's PASS-before-WP1 rule was relaxed once, knowingly. So that LOOP key can recur here and is NOT new.
+
+==== WP1 CONTROLS (spec 4.3, its words) ====
+"WP1a's diagonal J-N chains reach `ch5_rival_meet` in at least 2 of 3 (D15's "chapters 1-5 did not regress", in
+development form)." [The diagonal chains: REAL-N-STRE-6611, REAL-N-CTOR-6612, REAL-N-TMUD-6613.]
+"The prediction expects few or no chapter-5 LOOP keys after E and K1 ... and chapter-3 churn rows are possible (E0-2's T L3
+reached with 92 crossings); at least 90% of legs run are judged; experience `unclassified` empty. A miss is reported, never
+retuned (rule 8)."
+Amended by what is known since (06 2026-11-16): KI-137 (c) and F is a KNOWN chapter-5 loop in this tree, so "few or no
+chapter-5 LOOP keys" is read as: any chapter-5 LOOP key is reported with its count; a ROUTE104|RUSTBORO_CITY key at
+ch5_rusturf_grunt is named as KI-137, any other is new.
+Read as:
+  C1 diagonal reach: at least 2 of the 3 diagonal chains hold a reached L5 record (ch5_rival_meet). PASS / MISS.
+  C2 chapter-5 LOOP keys: counted and named (expected few or none; KI-137's key possible). Reported, not a pass rule by itself.
+  C3 chapter-3 churn: rows possible, reported.
+  C4 judged share: judged legs / legs run >= 0.90 across the batch. PASS / MISS.
+  C5 experience `unclassified` empty in every job record. PASS / MISS.
+The prior: E0-2 "E0 VERDICT: REACHED 3 of 3; legs ran 15, purity-clean 15" on 3caf9c47 (ledger #148), one trajectory per
+seed, carrying NO goal snapshot; WP1a carries one (the report names that difference); MC #152 on this play digest
+(9e3f4a35) read STOP on the KI-137 loop (runs/MC-report.txt: "chapter 5: reach 2 of 3 judged (0.6667)"; REAL-N-CTOR-6702 L5 CUT-WORLD; no
+goal snapshot there either). PREDICTED: C1 PASS (2 or 3 of 3), C4 PASS,
+C5 PASS; chapter-5 LOOP keys at most a few, KI-137's possible.
+
+==== P2, THE PLANTED WALL AT MR. BRINEY's COTTAGE (spec 4.3, its words) ====
+"WALL-BRINEY walls `ROUTE104_MR_BRINEYS_HOUSE` (17, 0) and, since the house is entered only by its door warp on ROUTE104,
+every warp or door tile leading to (17, 0), including those the start's memory knows; a unit test like OLDALE's shows no
+path from ROUTE104 through that warp."
+PREDICTED (FAULT): "key (6, `ch6_briney_house`, `play: stuck: ...`, -, CLEAN-CHOSEN) first at chapter 6 on that tree, a
+CLEAN-BUDGET form counting as in P1 (`FLAG_MR_BRINEY_SAILING_INTRO` is set only inside the house,
+`Route104_MrBrineysHouse/scripts.inc` :25, :32); a LOOP key whose records all name `ch6_briney_house` counts as well."
+CONTROL: "no leg record of the 3 paired REAL jobs (WP1b's first-seed J-F job of each diagonal pair, or its fallback, 2.1)
+ends not reached with next unmet `ch6_briney_house`, under any key, except an end `play: stuck: N battles lost` whose leg
+carried losses in (`losses_carried` > 0, 3.15 item 2): such an end is reported apart, beside the CONTROL, and never read as
+the wall or as its absence." [The 3 paired REAL jobs: REAL-F-STRE-6620, REAL-F-CTOR-6621, REAL-F-TMUD-6622, their L6
+records.]
+DISCRIMINATOR (computed before this file is hashed): "the next unmet milestone at L6's end. On WALL-BRINEY it stays
+`ch6_briney_house` in every case (the flag is set only inside the house). On REAL, L6's 1,000,000 frames (2.3) hold a Story
+raise (the largest measured L6 from C1: 520,366 frames) and a Catcher raise (its 550,000-frame budget x 1.156, the largest
+measured L6 over Story's 450,000: about 636,000 frames) with room to spare, so a REAL leg that nothing blocks reaches
+`ch6_dewford`." Computed here from the staged milestones.json order (stages/REAL-3 = WALL-BRINEY-1 apart from the wall):
+... ch5_rival_meet, ch5_rival_battle (optional), ch6_briney_house, ch6_dewford, ch6_old_rod (optional), ch7_steven ... So
+every L6 starts (from a ch5_rival_meet end) with next unmet ch6_briney_house; a REAL L6 that reaches ch6_dewford ends with
+next unmet ch7_steven (the trainer smoke's G3 L6 on REAL-3 did exactly that: "reached True | next_unmet ch7_steven"); a
+WALL-BRINEY L6 cannot set FLAG_MR_BRINEY_SAILING_INTRO, so it ends next unmet ch6_briney_house. The arms differ unless a
+REAL L6 also ends before the house (the carried-loss path the spec names: "possible and was not seen", 0 of 8 from C1).
+Both arms share the start (the same L5 end or the same fallback) and the seed.
+P2 PASS = the PREDICTED (FAULT) form AND the CONTROL both hold (as P1's PASS = (a) and (b)). The spec gives no "N of 3" for
+P2's FAULT: it is read on the WALL-BRINEY tree's chapter-6 ranking (its own play digest f59f13a2): the top-ranked chapter 6
+key is (6, ch6_briney_house, play: stuck: ..., -, CLEAN-CHOSEN), or a CLEAN-BUDGET form / a LOOP key whose records all name
+ch6_briney_house, counted toward it and reported as a miss of the form.
+
+==== WHAT COUNTS AS WP1's REPORT (3.8; 4.4 item 6) ====
+`frontier_probe.py report runs/WP1` (blockers.json / blockers.md, "DEVELOPMENT DATA, NEVER A GRADED PROOF"): the chapters
+1-7 blocker list ranked per (tree play digest, chapter) on the exact key, each with count, share, real frames (min, median,
+max), counts per persona x starter, up to 3 examples; chapter 6-7 keys with the boss-prep breakdown and losses carried vs
+lost; per chapter: reach = reached / judged, frames/s, class counts (CLEAN-BUDGET apart from CLEAN-CHOSEN), and reach SPLIT
+BY START KIND (new game; chain leg with a goal snapshot; chain leg without; practice with a snapshot; practice world-only
+`goal_memory: none`); the "loops seen" and "churn" tables. Every LOOP key, and every blocker holding 2 or more runs, is named
+(4.4 item 8: each needs a KI).
+
+FRAMES/S RULE (2.6): "under 300 in WP1's first wave, the lead lowers P, recorded" -> drain with STOP.txt, let running legs
+end, --resume at P = 4.
+
+CAVEAT: one run per seed is ONE TRAJECTORY, never a replication; seeds shared by P2's arms are paired near-replays until the
+wall bites or the game's one-frame warp split (E0), never independent samples. About 4-9 hours of wall time.
+
