@@ -50,8 +50,9 @@ from ai_player.brain.rides import RideWatch
 from ai_player.brain.navigator import Navigator, nav_free
 from ai_player.eyes.observation import Observation
 from ai_player.game_memory import (
-    MemoryFileError, MemoryWriter, MonRegistry, battle_part, build_payload, goals_part, party_of, personality_part,
-    read_book, restore, restore_battle, restore_goals, restore_personality, where_of,
+    GOALS_FILE_NAME, STATE_RESET, MemoryFileError, MemoryWriter, MonRegistry, battle_part, build_payload, goals_part,
+    party_of, personality_part, read_book, read_snapshot, restore, restore_battle, restore_goals, restore_personality,
+    snapshot_payload, where_of, write_snapshot,
 )
 from ai_player.hands.dialogue import advance, busy_reason, player_free, talk
 from ai_player.hands.waiting import BattleClock, PushWatch, WaitWatch
@@ -337,6 +338,11 @@ class HandsBrain:
     _continue_may_retry = False
     _kept = None
     _choices = None
+    #: (A1 part 0) a `--state` start's goal snapshot as read (`_open_goals`, `game_memory.read_snapshot`), handed to `_play`
+    #: as a continue's restore is; and what the end snapshot is made of (`_play` sets it, `_end_goals` writes it). None for
+    #: a brain built without `__init__` (the play-loop tests) and for every run with no snapshot or no play loop.
+    _snapshot = None
+    _goal_parts = None
 
     def __init__(self, settings: BrainSettings, say: Callable[[str], None], options: HandsOptions) -> None:
         self.settings = settings
@@ -364,6 +370,9 @@ class HandsBrain:
             eyes = _RebasedEyes(eyes, self._frame_base)
         hands = Hands(eyes, controls, pacing, choices, self.actions, self._say, faults)
         personality = pick_personality(choices, self.seed, self._remembered_personality() or options.personality)
+        if refused is None:
+            # (A1 part 0, spec 3.15 item 2) a `--state` start's goal snapshot, read before anything is pressed
+            refused = self._open_goals(personality.name)
         self._say(f"[AI-HANDS] brain={options.brain} seed={self.seed} ({'given' if options.seed is not None else 'from the clock'}) "
                   f"personality={personality.name} ({personality.chosen_by}) faults=ungated_a:{faults.ungated_a},"
                   f"blind_count:{faults.blind_count} frames={self.settings.frames}")
@@ -385,6 +394,7 @@ class HandsBrain:
         last = hands.look()
         self.actions.record(last, decision="end", action=options.brain, reason=outcome, full=True)
         self._end_memory(hands, outcome, last)
+        self._end_goals(hands, outcome, last)
         if self.world is not None:
             self._save_world("the end of the run")
             self._say(f"[AI-WORLD] memory at the end: {self._memory_line()}")
@@ -422,6 +432,9 @@ class HandsBrain:
         if options.brain == "play":
             if self._continuing:
                 return (yield from self._continue(hands, personality))
+            if self._snapshot is not None:
+                # (A1 part 0) a `--state` start's goal snapshot, restored as a continue restores its save (`_play`)
+                return (yield from self._play(hands, personality, restored=self._snapshot))
             return (yield from self._play(hands, personality))
         raise ValueError(f"no hands skill named {options.brain!r}")
 
@@ -466,6 +479,33 @@ class HandsBrain:
         if not self._continuing or self._book is None:
             return None
         return (self._book.header_line.get("identity") or {}).get("personality")
+
+    def _open_goals(self, personality: str) -> str | None:
+        """(A1 part 0, spec 3.15 item 2) THE GOAL SNAPSHOT of a `--state` start (`AI_PLAYER_GOALS`, `options.goals_in`):
+        the goal memory the leg before it ended with (`game_memory.py` read_snapshot), read once before anything is pressed
+        and kept for `_play`, which restores it as a continue's save (every KEEP field but R1's save fields, the
+        personality, the battle mind, the registry; the battles lost carried). Returns the run's end reason when the
+        snapshot refuses the run, else None: a file that is not ONE parseable snapshot line, or the memory of another
+        personality (`restore_personality`: another base is refused, here before play rather than as a crash in it). The
+        two environment refusals (with a continue; without a world file) are `options.py` HandsOptions' (D19's rule)."""
+        options = self.options
+        path = getattr(options, "goals_in", None) if options.brain == "play" else None
+        if path is None:
+            return None
+        try:
+            snapshot = read_snapshot(path)
+        except MemoryFileError as error:
+            return f"stuck: the goal snapshot cannot be used ({error})"
+        base = snapshot.personality.get("base")
+        if base != personality:
+            return (f"stuck: the goal snapshot {path} is the memory of a {base} game and this run plays {personality}: "
+                    f"another base is refused")
+        self._snapshot = snapshot
+        self._say(f"[AI-GOALS] goal memory from the snapshot {path} (its end {snapshot.save.get('end')!r} at "
+                  f"f{snapshot.save.get('frame')}): {len(snapshot.goals)} remembered fields restored, "
+                  f"{' and '.join(STATE_RESET)} reset (this cartridge holds no save of the AI's), "
+                  f"{len(snapshot.mons.entries)} Pokemon registered, {snapshot.losses} battles lost carried")
+        return None
 
     def _session(self, how: str, cart: str | None, **more) -> dict:
         """(R2) This run's `session` line (`game_memory.py`): how it began, who started it, where its logs are, what the
@@ -667,6 +707,24 @@ class HandsBrain:
         for problem in writer.problems:
             hands.tell(f"[AI-SAVE] memory file: {problem}")
 
+    def _end_goals(self, hands: Hands, outcome: str, last: Observation) -> None:
+        """(A1 part 0, spec 3.15 item 1) THE END SNAPSHOT: at every end the play brain controls (its `done`, `stuck` and
+        `stopped` ends: the ones `play` reaches after the skill), ONE line appended to `<run_dir>/goals.jsonl` through
+        `runlog.RecordFile` (`game_memory.py` write_snapshot): a save's payload without its world (the goal manager's KEEP
+        fields, the personality, the battle mind, the registry, the battles lost), so the next leg's `--state` start can
+        restore what the AI remembers (`AI_PLAYER_GOALS`). Only a run whose play loop began (`_play` set the parts) has one;
+        a run with no run directory drops it, as every record (`RecordFile`). An end the HOST makes (its soft wall-clock
+        deadline, a kill) never reaches here: the brain is not resumed after it, so it leaves no line."""
+        parts = self._goal_parts
+        if parts is None or getattr(self.options, "run_dir", None) is None:
+            return
+        manager, state, mind, report = parts
+        registry = self._registry.to_dict() if self._registry is not None else {}
+        payload = snapshot_payload(goals=goals_part(manager.memory), personality=personality_part(state),
+                                   battle=battle_part(mind), mons=registry, losses=report["losses"])
+        if not write_snapshot(RecordFile(self.options.run_dir, GOALS_FILE_NAME), outcome, last.frame, payload):
+            hands.tell(f"[AI-GOALS] the end snapshot did not reach {self.options.run_dir / GOALS_FILE_NAME}")
+
     def _save_screen(self, hands: Hands, kind: str, why: str) -> Generator[None, None, bool]:
         """(R1, build spec D13) A save screen the play loop met OUTSIDE the save skill (the navigator's `on_menu`): the
         loop NEVER presses on a save page. A `save_dialog` (the write, a page) is waited out with no press, at most
@@ -711,8 +769,10 @@ class HandsBrain:
         no milestone for `STORY_PATIENCE` frames, `MAX_LOSSES` battles lost). (R5) "Done" comes after what is on screen has
         been played out (`_settle_before_done`), and every end records the screen it ends on (`_end_screen`).
         (R1 + R2) `restored`: a continue's memory as of its save (`game_memory.Restored`): the goal manager's KEEP fields,
-        the personality, the battle mind, the registry and the battles lost so far start from it (D16, T5). `stop`: the run
-        ends "stuck" with it at once, through the loop's own end (a continue that stopped)."""
+        the personality, the battle mind, the registry and the battles lost so far start from it (D16, T5). (A1 part 0) Or
+        a `--state` start's goal snapshot (`game_memory.read_snapshot`, `_open_goals`), restored the same way: its `goals`
+        already leave R1's save fields out (`STATE_RESET`), and the battles lost are carried. `stop`: the run ends "stuck"
+        with it at once, through the loop's own end (a continue that stopped)."""
         options, nav, world = self.options, self.navigator, self.world
         seed = self.seed
         story_rng = random.Random(f"{seed}:story")
@@ -797,6 +857,8 @@ class HandsBrain:
             report["losses"] = report["restored_losses"] = restored.losses
         # (R1) with a memory file: the save policy, the save goal's player, the registry (`_start_saving`)
         self._start_saving(hands, manager, state, mind, runner, starter, report)
+        # (A1 part 0) the parts of the end snapshot (`_end_goals`): a save payload's, all but its world
+        self._goal_parts = (manager, state, mind, report)
         self._waits = waits
         self._pushes = pushes
         ended: list = [None]  # (the second round) the pad's frames when the last goal ended (what played after it: a scene)

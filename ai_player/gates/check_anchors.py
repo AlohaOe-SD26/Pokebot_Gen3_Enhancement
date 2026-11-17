@@ -48,6 +48,8 @@ RUNNERS: dict[str, tuple[str, str | None]] = {
     "revert_bossprep": ("MUTANTS", None),
     # (P11-1, 2026-11-11) the way through a dark cave
     "revert_p11": ("MUTANTS", None),
+    # (A1, 2026-11-14) the frontier probe's guards (gates/frontier_probe.py) and its suite's own scans and pins
+    "revert_frontier": ("MUTANTS", None),
 }
 _SERIAL = itertools.count()
 

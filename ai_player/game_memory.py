@@ -48,6 +48,21 @@ L3 (a)-(b), `MonRegistry`: every Pokemon of the player's by its PID (hex), with 
 that PID: evolution keeps the PID), where and when it was first seen in the party, how it came, and `roles` (vocabulary
 `ROLES`; none is assigned in this build).
 
+(A1 part 0, GM: the frontier probe spec `2026-11-11-A1-FRONTIER-PROBE-SPEC.md` 3.15) THE GOAL SNAPSHOT, `goals.jsonl` in the
+run directory. A test start (`--state`) is the emulator state PLUS the AI's world memory PLUS its goal memory (`06`
+2026-11-12 item 4): a person who puts the game down and picks it up again remembers which item balls they took and whom
+they talked to, not only the map. The world memory already crosses legs (`AI_PLAYER_WORLD`); the goal memory did not, so a
+`--state` leg began with a NEW one and walked back for a ball it had taken (P11-x: `_remembered_ball`). So the play brain
+appends ONE line at every end it controls (`write_snapshot`: its `done`, `stuck` and `stopped` ends) holding a save's
+payload without its world (`snapshot_payload`), and a `--state` start given `AI_PLAYER_GOALS` restores it (`read_snapshot`)
+as a continue restores a save (`GOAL_KEEP`, the personality, the battle mind, the registry), EXCEPT R1's save fields
+(`STATE_RESET`: the `--state` start empties the cartridge, so there is no AI save to remember), with the loss count CARRIED
+(one game, one count: `MAX_LOSSES` counts across the legs as across a continue's processes). WHAT LEAVES NO LINE: an end the
+HOST makes. Its soft wall-clock deadline is the guard listener's (`host/session.py` `_on_frame`): it ends the process from
+the framework's frame loop while the brain's generator is suspended, so no brain code runs after it (as the `end` line
+above: "a session ended by the soft wall clock or a hard kill writes no `end` line"); a kill, a crash and a refusal before
+the play loop leave none either.
+
 FRAMES (D7): in a continue run the brain's frames are the emulator's plus `MemoryBook.frame_base()`, 1 + the largest
 frame stamp in the file, so every carried stamp stays in the past after a cold boot (the emulator's counter starts at 0).
 (U2 spec 2026-10-30 1.4, corrected) The stamps are NOT monotonic across sessions in every case: only `save`, `saved`,
@@ -71,6 +86,7 @@ __all__ = [
     "CARTS",
     "DELTA_DEPTH",
     "FULL_EVERY",
+    "GOALS_FILE_NAME",
     "GOAL_IN_WORLD",
     "GOAL_KEEP",
     "GOAL_RESET",
@@ -84,6 +100,8 @@ __all__ = [
     "ROLES",
     "SCHEMA_VERSION",
     "SESSION_HOW",
+    "SNAPSHOT_KIND",
+    "STATE_RESET",
     "TAGS",
     "MemoryBook",
     "MemoryFileError",
@@ -104,11 +122,14 @@ __all__ = [
     "personality_part",
     "pid_hex",
     "read_book",
+    "read_snapshot",
     "restore",
     "restore_battle",
     "restore_goals",
     "restore_personality",
+    "snapshot_payload",
     "where_of",
+    "write_snapshot",
 ]
 
 MEMORY_FILE_NAME = "memory.jsonl"
@@ -189,6 +210,18 @@ R1_NEW_FIELDS = ("saved_for", "last_save", "save_due")
 #: What a continue keeps of the personality (`personality.py` PersonalityState) and the battle mind (`brain/battle.py`).
 PERSONALITY_FIELDS = ("base", "favourite", "history", "draws")
 BATTLE_FIELDS = ("wishes", "met", "wild_met")
+#: (A1 part 0) THE GOAL SNAPSHOT's file in the run directory (one line per end the play brain controls, `write_snapshot`) and
+#: its line's kind.
+GOALS_FILE_NAME = "goals.jsonl"
+SNAPSHOT_KIND = "goals"
+#: (A1 part 0, spec 3.15 item 2) RESET at a `--state` start besides `GOAL_RESET`: R1's save fields. The `--state` start
+#: empties the cartridge (`__main__.py`: cart `empty`), so there is no AI save to remember; kept, they would make the save
+#: policy skip a due save for a save that is not there (`brain/saving.py`: the 3-minute gap; `before_leader`). A continue
+#: keeps them (its cartridge holds that save).
+STATE_RESET: dict[str, str] = {
+    "saved_for": "the gym approaches it saved before: the cartridge of a --state start holds no save of the AI's",
+    "last_save": "its last save: the cartridge of a --state start holds no save of the AI's",
+}
 
 
 class MemoryFileError(ValueError):
@@ -502,6 +535,77 @@ def end_line(session: int, reason: str, at_save: bool, frame: int, stopped_befor
     line["play_time"] = _stamp_of(look) if look is not None else None
     line["where"] = where_of(look) if look is not None else None
     return line
+
+
+# ------------------------------------------------------------------ (A1 part 0) the goal snapshot of a --state start
+def snapshot_payload(*, goals: dict, personality: dict, battle: dict, mons: dict, losses: int) -> dict:
+    """(A1 part 0, spec 3.15 item 1) A SAVE's payload WITHOUT its world (`build_payload`, its world section dropped): the
+    goal manager's KEEP fields, the personality, the battle mind, the registry, the battles lost so far. The world memory
+    crosses legs in its own file (`AI_PLAYER_WORLD`), so the snapshot never carries a second copy of it."""
+    payload = build_payload(world={}, goals=goals, personality=personality, battle=battle, mons=mons, losses=losses)
+    del payload["world"]
+    return payload
+
+
+def write_snapshot(records: RecordFile, end: str, frame: int, payload: dict) -> bool:
+    """(A1 part 0, spec 3.15 item 1) Append ONE snapshot line to `records` (`<run_dir>/goals.jsonl`, through
+    `runlog.RecordFile`: the play side writes files only through `runlog.py`): `{"kind": "goals", "schema_version", "end"
+    (the play brain's outcome: "done: ...", "stuck: ..." or "stopped: ..."), "frame" (the last look's), "memory"
+    (`snapshot_payload`)}`, written with `ensure_ascii=True` as every memory line is. True when the line reached the file
+    (`RecordFile.written` rose)."""
+    line = {"kind": SNAPSHOT_KIND, "schema_version": SCHEMA_VERSION, "end": str(end), "frame": int(frame),
+            "memory": _copy(payload)}
+    before = records.written
+    records.append(json.dumps(line, separators=(",", ":"), ensure_ascii=True))
+    return records.written == before + 1
+
+
+def read_snapshot(path) -> Restored:
+    """(A1 part 0, spec 3.15 item 2) The goal snapshot a `--state` start was given (`AI_PLAYER_GOALS`: the last line of the
+    leg before's `goals.jsonl`, kept as `goals_last.jsonl`), read only, as the restore a continue makes from its save
+    (`restore`): `goals` holds every KEEP field the snapshot carries BUT `STATE_RESET` (R1's save fields: this cartridge holds
+    no save of the AI's), for `restore_goals`; `personality`, `battle`, `mons` and the CARRIED `losses` as a save's; `world`
+    is empty (the world memory comes only from `AI_PLAYER_WORLD`). Raises `MemoryFileError` ("snapshot"; "newer" for a
+    newer schema) for a file that is not ONE parseable snapshot line: no file, an empty one, two lines or more (a blank
+    line counts), a line that is not ASCII (every line is written with `ensure_ascii=True`: one is a corrupted byte), not a
+    JSON object of kind "goals", a schema that is not a version, or a memory without its five parts (a world in it is
+    refused too: the snapshot never carries one)."""
+    try:
+        # errors="replace" ON PURPOSE (as `read_book`): a bad byte refuses the file through the ASCII check below, never
+        # through a UnicodeDecodeError past the MemoryFileError contract
+        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+    except OSError as error:
+        raise MemoryFileError("snapshot", f"the goal snapshot {path} cannot be read ({error})")
+    parts = text.split("\n")
+    if parts and parts[-1] == "":
+        parts = parts[:-1]  # the newline that ends the one line
+    if len(parts) != 1:
+        raise MemoryFileError("snapshot", f"the goal snapshot {path} holds {len(parts)} lines: a snapshot is ONE line")
+    raw = parts[0]
+    try:
+        line = json.loads(raw) if raw.isascii() else None
+    except ValueError:
+        line = None
+    if not isinstance(line, dict) or line.get("kind") != SNAPSHOT_KIND:
+        raise MemoryFileError("snapshot", f"the goal snapshot {path}: its line is not a parseable goal snapshot")
+    version = line.get("schema_version")
+    if not isinstance(version, int) or isinstance(version, bool) or version < 1:
+        raise MemoryFileError("snapshot", f"the goal snapshot {path}: its schema_version {version!r} is not a version")
+    if version > SCHEMA_VERSION:
+        raise MemoryFileError("newer", f"the goal snapshot {path} was written by a newer program (schema {version}; this "
+                                       f"program reads {SCHEMA_VERSION})")
+    memory = line.get("memory")
+    losses = memory.get("losses") if isinstance(memory, dict) else None
+    if not isinstance(memory, dict) or "world" in memory \
+            or not all(isinstance(memory.get(part), dict) for part in ("goals", "personality", "battle", "mons")) \
+            or not isinstance(losses, int) or isinstance(losses, bool) or losses < 0:
+        raise MemoryFileError("snapshot", f"the goal snapshot {path}: its memory is not goals, personality, battle, mons "
+                                          f"and losses (and never a world)")
+    goals = {name: value for name, value in memory["goals"].items() if name not in STATE_RESET}
+    return Restored(save={key: value for key, value in line.items() if key != "memory"}, payload=_copy(memory), world={},
+                    goals=goals, personality=decode_value(memory["personality"]), battle=decode_value(memory["battle"]),
+                    mons=MonRegistry(memory["mons"]), losses=int(losses))
 
 
 # ------------------------------------------------------------------ reading

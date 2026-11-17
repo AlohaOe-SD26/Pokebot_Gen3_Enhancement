@@ -1,0 +1,1 @@
+{"schema":1,"lane":"full","started":"2026-11-16T16:15:52","wall_s":15452.8,"code_line":"HEAD 7977320d; covers:revert_safety_gates clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)","overall":"PASS","suites":[{"name":"revert_safety_gates","status":"PASS","exit":0,"seconds":2043.5,"tests":23,"skipped":0,"failing":[],"shards":null}]}

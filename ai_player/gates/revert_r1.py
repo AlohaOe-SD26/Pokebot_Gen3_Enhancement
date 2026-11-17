@@ -24,6 +24,11 @@ THE MUTANTS, three kinds:
     site of an R1 function, each DELETING that one call (a statement call becomes `pass`, a value `None`, a reference
     `None`), kept in `revert_r1_mutants.json` with the site it covers (`site`). Their predicted tests were RECORDED from
     their first run (the tests that failed then), so a later run proves the same tests still catch them.
+  * (A1 part 0, GM: the frontier probe spec `PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md`
+    3.15 item 6, "part 0's own mutants sit with its AI-side tests") GM01-GM20, hand-written below: the goal snapshot a
+    `--state` start carries (its end line, its restore, its reset and carried fields, its refusals). GM01-GM06 each
+    DELETE one call the census lists (or guard it off), GM07-GM20 each break one guard; every prediction was written and
+    hashed before their first run (the lab's `_ai_lab/a1/out/b1-gm-predictions.txt`).
 `gates/call_census.py` reads every mutant here (`MUTANT_SOURCES`). Evidence: `ai_player/evidence/<date>-r1-REVERT.txt`.
 
 THE ENVIRONMENT: `test_saving.py`'s host-eyes tests import the framework (`mgba`), which a worktree does not have:
@@ -64,6 +69,9 @@ RESET_TEST = "test_host:ResetRefusalTests"
 SESSION = "host/session.py"
 RRT = "ResetRefusalTests."
 LCT = "LauncherContinueTests."
+#: (A1 part 0) the goal snapshot's test classes (`test_saving.py`, `test_goals.py`)
+GST = "GoalSnapshotTests."
+GSP = "GoalSnapshotPlayTests."
 
 #: name -> (prediction, the rule that is broken, [edits (file, anchor, replacement)], [tests that MUST fail] or the reason
 #: (REDUNDANT), the suites it runs). The spec's hand-written mutants; `revert_r1_mutants.json` adds the rest (`_load`).
@@ -573,6 +581,119 @@ MUTANTS: dict[str, tuple] = {
             [("gates/rate_step5.py", "    spans = [s for s in every if s[\"kind\"] != SAVE_KIND]\n",
               "    spans = list(every)  # MUTANT FX7\n")],
             ["SecondRoundTests.test_a_save_goal_is_out_of_the_errand_share"], ("test_goals",)),
+    # ---------------------------------------------------------------- A1 part 0 (GM): the goal snapshot of a --state start
+    # (spec 2026-11-11-A1-FRONTIER-PROBE-SPEC.md 3.15). GM01-GM06: the call sites the census lists, each call deleted or
+    # guarded off; GM07-GM20: one guard each.
+    "GM01": (CAUGHT, "A1 part 0 [census]: `_open_goals`'s call in `HandsBrain.play` deleted (the snapshot never read: no "
+                     "restore and no refusal)",
+             [("mode.py", "            refused = self._open_goals(personality.name)\n",
+               "            refused = None  # MUTANT GM01\n")],
+             [GSP + "test_gm_a_state_start_hands_the_leg_befores_snapshot_to_the_play_loop",
+              GSP + "test_gm_a_snapshot_that_is_not_one_parseable_line_refuses_the_run_before_play"], ("test_goals",)),
+    "GM02": (CAUGHT, "A1 part 0 [census]: `_skill`'s snapshot branch guarded off (the snapshot read but not handed to "
+                     "`_play`: the restore switched off)",
+             [("mode.py", "            if self._snapshot is not None:\n"
+                          "                # (A1 part 0) a `--state` start's goal snapshot, restored as a continue restores "
+                          "its save (`_play`)\n"
+                          "                return (yield from self._play(hands, personality, restored=self._snapshot))\n",
+               "            if False:  # MUTANT GM02\n"
+               "                # (A1 part 0) a `--state` start's goal snapshot, restored as a continue restores its save "
+               "(`_play`)\n"
+               "                return (yield from self._play(hands, personality, restored=self._snapshot))\n")],
+             [GSP + "test_gm_a_state_start_hands_the_leg_befores_snapshot_to_the_play_loop",
+              GSP + "test_gm_a_snapshot_that_is_not_one_parseable_line_refuses_the_run_before_play",
+              GSP + "test_gm_a_snapshot_of_another_personality_refuses_the_run_before_play"], ("test_goals",)),
+    "GM03": (CAUGHT, "A1 part 0 [census]: `_end_goals`'s call in `HandsBrain.play` deleted (no end snapshot)",
+             [("mode.py", "        self._end_goals(hands, outcome, last)\n", "        pass  # MUTANT GM03\n")],
+             [GSP + "test_gm_one_end_line_at_each_end_the_play_brain_controls",
+              GSP + "test_gm_a_state_start_hands_the_leg_befores_snapshot_to_the_play_loop",
+              GSP + "test_gm_no_end_line_after_a_run_ended_from_outside_never_played_or_without_a_run_dir"], ("test_goals",)),
+    "GM04": (CAUGHT, "A1 part 0 [census]: `read_snapshot`'s call in `_open_goals` deleted",
+             [("mode.py", "            snapshot = read_snapshot(path)\n", "            snapshot = None  # MUTANT GM04\n")],
+             [GSP + "test_gm_a_state_start_hands_the_leg_befores_snapshot_to_the_play_loop",
+              GSP + "test_gm_a_snapshot_that_is_not_one_parseable_line_refuses_the_run_before_play",
+              GSP + "test_gm_a_snapshot_of_another_personality_refuses_the_run_before_play"], ("test_goals",)),
+    "GM05": (CAUGHT, "A1 part 0 [census]: `snapshot_payload`'s call in `_end_goals` deleted (an empty memory written)",
+             [("mode.py", "        payload = snapshot_payload(goals=goals_part(manager.memory), "
+                          "personality=personality_part(state),\n"
+                          "                                   battle=battle_part(mind), mons=registry, "
+                          "losses=report[\"losses\"])\n",
+               "        payload = {}  # MUTANT GM05\n")],
+             [GSP + "test_gm_one_end_line_at_each_end_the_play_brain_controls",
+              GSP + "test_gm_a_state_start_hands_the_leg_befores_snapshot_to_the_play_loop"], ("test_goals",)),
+    "GM06": (CAUGHT, "A1 part 0 [census]: `write_snapshot`'s call in `_end_goals` deleted (the line never written)",
+             [("mode.py", "        if not write_snapshot(RecordFile(self.options.run_dir, GOALS_FILE_NAME), outcome, "
+                          "last.frame, payload):\n"
+                          "            hands.tell(f\"[AI-GOALS] the end snapshot did not reach "
+                          "{self.options.run_dir / GOALS_FILE_NAME}\")\n",
+               "        pass  # MUTANT GM06\n")],
+             [GSP + "test_gm_one_end_line_at_each_end_the_play_brain_controls",
+              GSP + "test_gm_a_state_start_hands_the_leg_befores_snapshot_to_the_play_loop"], ("test_goals",)),
+    "GM07": (CAUGHT, "A1 part 0: R1's save fields kept at a `--state` start (`STATE_RESET` not applied: the save policy "
+                     "would skip a due save for a save the cartridge does not hold)",
+             [("game_memory.py", "    goals = {name: value for name, value in memory[\"goals\"].items() if name not in "
+                                 "STATE_RESET}\n",
+               "    goals = dict(memory[\"goals\"])  # MUTANT GM07\n")],
+             [GST + "test_gm_a_state_start_restores_all_but_the_save_fields_and_a_continue_keeps_them",
+              "PlayLoopTests.test_gm_the_play_loop_restores_its_snapshot_and_keeps_the_parts_of_its_end"], DEFAULT_SUITES),
+    "GM08": (CAUGHT, "A1 part 0: the loss count not carried (a snapshot's battles lost read as 0)",
+             [("game_memory.py", "                    mons=MonRegistry(memory[\"mons\"]), losses=int(losses))\n",
+               "                    mons=MonRegistry(memory[\"mons\"]), losses=0)  # MUTANT GM08\n")],
+             [GST + "test_gm_a_state_start_restores_all_but_the_save_fields_and_a_continue_keeps_them",
+              GST + "test_gm_a_file_that_is_not_one_parseable_snapshot_line_is_refused",
+              "PlayLoopTests.test_gm_a_snapshot_with_2_losses_ends_the_run_at_its_first_new_loss"], DEFAULT_SUITES),
+    "GM09": (CAUGHT, "A1 part 0: a snapshot file of more (or fewer) than ONE line taken (its line count unchecked)",
+             [("game_memory.py", "    if len(parts) != 1:\n", "    if False:  # MUTANT GM09\n")],
+             [GST + "test_gm_a_file_that_is_not_one_parseable_snapshot_line_is_refused",
+              GSP + "test_gm_a_snapshot_that_is_not_one_parseable_line_refuses_the_run_before_play",
+              GSP + "test_gm_no_end_line_after_a_run_ended_from_outside_never_played_or_without_a_run_dir"], DEFAULT_SUITES),
+    "GM10": (CAUGHT, "A1 part 0: a line of another kind taken as a goal snapshot (its kind unchecked)",
+             [("game_memory.py", "    if not isinstance(line, dict) or line.get(\"kind\") != SNAPSHOT_KIND:\n",
+               "    if not isinstance(line, dict):  # MUTANT GM10\n")],
+             [GST + "test_gm_a_file_that_is_not_one_parseable_snapshot_line_is_refused"], ("test_saving",)),
+    "GM11": (CAUGHT, "A1 part 0: a NEWER program's snapshot taken (its schema's ceiling unchecked)",
+             [("game_memory.py", "    if version > SCHEMA_VERSION:\n        raise MemoryFileError(\"newer\", f\"the goal "
+                                 "snapshot {path}",
+               "    if False:  # MUTANT GM11\n        raise MemoryFileError(\"newer\", f\"the goal snapshot {path}")],
+             [GST + "test_gm_a_file_that_is_not_one_parseable_snapshot_line_is_refused"], ("test_saving",)),
+    "GM12": (CAUGHT, "A1 part 0: a snapshot's memory taken without its parts checked (a missing part, a world, bad losses)",
+             [("game_memory.py", "    if not isinstance(memory, dict) or \"world\" in memory \\\n"
+                                 "            or not all(isinstance(memory.get(part), dict) for part in (\"goals\", "
+                                 "\"personality\", \"battle\", \"mons\")) \\\n"
+                                 "            or not isinstance(losses, int) or isinstance(losses, bool) or losses < 0:\n"
+                                 "        raise MemoryFileError(\"snapshot\", f\"the goal snapshot {path}: its memory is "
+                                 "not goals, personality, battle, mons \"\n"
+                                 "                                          f\"and losses (and never a world)\")\n",
+               "    pass  # MUTANT GM12\n")],
+             [GST + "test_gm_a_file_that_is_not_one_parseable_snapshot_line_is_refused"], ("test_saving",)),
+    "GM13": (CAUGHT, "A1 part 0: the brain's options accept a goal snapshot with a continue (D19)",
+             [(OPTIONS, "        if self.continue_game and self.goals_in is not None:\n", "        if False:  # MUTANT GM13\n")],
+             [GST + "test_gm_the_options_refuse_a_snapshot_with_a_continue"], ("test_saving",)),
+    "GM14": (CAUGHT, "A1 part 0: the brain's options accept a goal snapshot without a world file",
+             [(OPTIONS, "        if self.goals_in is not None and self.world_in is None:\n", "        if False:  # MUTANT GM14\n")],
+             [GST + "test_gm_the_options_refuse_a_snapshot_without_a_world_file"], ("test_saving",)),
+    "GM15": (CAUGHT, "A1 part 0: `AI_PLAYER_GOALS` accepted by the launcher in continue mode",
+             [(MAIN, "            if os.environ.get(ENV_GOALS, \"\").strip():\n", "            if False:  # MUTANT GM15\n")],
+             [LCT + "test_gm_continue_refused_with_a_goal_snapshot_set"], ("test_saving",)),
+    "GM16": (CAUGHT, "A1 part 0: another personality's snapshot taken (its base unchecked before play)",
+             [("mode.py", "        if base != personality:\n", "        if False:  # MUTANT GM16\n")],
+             [GSP + "test_gm_a_snapshot_of_another_personality_refuses_the_run_before_play"], ("test_goals",)),
+    "GM17": (CAUGHT, "A1 part 0: a refused snapshot ignored (the run plays on a new goal memory instead of ending)",
+             [("mode.py", "            return f\"stuck: the goal snapshot cannot be used ({error})\"\n",
+               "            return None  # MUTANT GM17\n")],
+             [GSP + "test_gm_a_snapshot_that_is_not_one_parseable_line_refuses_the_run_before_play",
+              GSP + "test_gm_no_end_line_after_a_run_ended_from_outside_never_played_or_without_a_run_dir"], ("test_goals",)),
+    "GM18": (CAUGHT, "A1 part 0: the play loop does not keep the parts of its end snapshot (`_goal_parts`)",
+             [("mode.py", "        self._goal_parts = (manager, state, mind, report)\n", "        pass  # MUTANT GM18\n")],
+             ["PlayLoopTests.test_gm_the_play_loop_restores_its_snapshot_and_keeps_the_parts_of_its_end"], ("test_goals",)),
+    "GM19": (CAUGHT, "A1 part 0: the snapshot keeps the save payload's world section",
+             [("game_memory.py", "    del payload[\"world\"]\n", "    pass  # MUTANT GM19\n")],
+             [GST + "test_gm_the_snapshot_is_a_saves_payload_without_its_world",
+              GST + "test_gm_a_state_start_restores_all_but_the_save_fields_and_a_continue_keeps_them"], ("test_saving",)),
+    "GM20": (CAUGHT, "A1 part 0: the end snapshot written with no run directory (a run with none crashes at its end)",
+             [("mode.py", "        if parts is None or getattr(self.options, \"run_dir\", None) is None:\n",
+               "        if parts is None:  # MUTANT GM20\n")],
+             [GSP + "test_gm_no_end_line_after_a_run_ended_from_outside_never_played_or_without_a_run_dir"], ("test_goals",)),
 }
 
 

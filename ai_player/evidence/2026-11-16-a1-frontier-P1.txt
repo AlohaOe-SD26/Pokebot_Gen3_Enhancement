@@ -1,0 +1,239 @@
+A1 FRONTIER PROBE, batch P1 (development): DEVELOPMENT DATA, NEVER A GRADED PROOF; PROJECT KNOWLEDGE/ai-frontier.txt is the authority
+ledger entry #150; bounds sha256 969a59000ca48ec8a504d0c5c84d5856ad9c623b15633fcbc26aef9f1bdf846c; started 2026-11-16 11:41:41
+stages {'REAL': 'C:\\Remote Projects\\_ai_lab\\a1\\stages\\REAL-2', 'WALL-OLDALE': 'C:\\Remote Projects\\_ai_lab\\a1\\stages\\WALL-OLDALE-2'}; P 6 (asked 6, 59.3317888 GB free)
+prediction file C:/Remote Projects/_ai_lab/a1/live/p1b-predictions.txt sha256 c3661009833f2abddabeb0563f0d473e1bb24f9a9de017bf9e606a9634587b32
+
+LEG P1-REAL-N-STRE-6607-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 584.4
+LEG P1-REAL-N-CTOR-6608-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 552.8
+LEG P1-REAL-N-STRE-6607-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 499.2
+LEG P1-WALL-OLDALE-N-STRE-6607-L1: CLEAN-CHOSEN reached False next unmet ch1_rival_route103 key [1, '-', 'loop', 'LITTLEROOT_TOWN|ROUTE101', 'LOOP'] fps 538.1
+LEG P1-REAL-N-TMUD-6609-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 562.2
+LEG P1-WALL-OLDALE-N-CTOR-6608-L1: CLEAN-CHOSEN reached False next unmet ch1_rival_route103 key [1, '-', 'loop', 'LITTLEROOT_TOWN|ROUTE101', 'LOOP'] fps 514.8
+LEG P1-WALL-OLDALE-N-TMUD-6609-L1: CLEAN-CHOSEN reached False next unmet ch1_rival_route103 key [1, '-', 'loop', 'LITTLEROOT_TOWN|ROUTE101', 'LOOP'] fps 544.4
+LEG P1-REAL-N-CTOR-6608-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 529.1
+LEG P1-REAL-N-TMUD-6609-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 551.9
+
+not started: []
+most jobs at once: 6
+free space: 59.3317888 GB at the start, 59.305828352 GB at the end
+events: ['REAL-N-STRE-6607: started (1 running)', 'WALL-OLDALE-N-STRE-6607: started (2 running)', 'REAL-N-CTOR-6608: started (3 running)', 'WALL-OLDALE-N-CTOR-6608: started (4 running)', 'REAL-N-TMUD-6609: started (5 running)', 'WALL-OLDALE-N-TMUD-6609: started (6 running)']
+
+{
+ "header": "DEVELOPMENT DATA, NEVER A GRADED PROOF; PROJECT KNOWLEDGE/ai-frontier.txt is the authority",
+ "legs": 9,
+ "reached": 6,
+ "classes": {
+  "CLEAN-CHOSEN": 9
+ },
+ "trees": {
+  "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9": {
+   "1": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 3,
+    "reach": 1.0,
+    "frames_per_second": 565.2,
+    "classes": {
+     "CLEAN-CHOSEN": 3
+    },
+    "reach_by_start_kind": {
+     "new game": {
+      "reached": 3,
+      "judged": 3
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "2": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 3,
+    "reach": 1.0,
+    "frames_per_second": 528.4,
+    "classes": {
+     "CLEAN-CHOSEN": 3
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 3,
+      "judged": 3
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   }
+  },
+  "dacc537a3460493d076e5bb883a96d5082eee349d0b187fa3e0f81fbad7c2a64": {
+   "1": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 0,
+    "reach": 0.0,
+    "frames_per_second": 532.7,
+    "classes": {
+     "CLEAN-CHOSEN": 3
+    },
+    "reach_by_start_kind": {
+     "new game": {
+      "reached": 0,
+      "judged": 3
+     }
+    },
+    "blockers": [
+     {
+      "tree": "dacc537a3460493d076e5bb883a96d5082eee349d0b187fa3e0f81fbad7c2a64",
+      "chapter": 1,
+      "key": [
+       1,
+       "-",
+       "loop",
+       "LITTLEROOT_TOWN|ROUTE101",
+       "LOOP"
+      ],
+      "key_id": "4972904f1f44",
+      "count": 3,
+      "share": 1.0,
+      "real_frames": {
+       "min": 181441,
+       "median": 187969,
+       "max": 203090
+      },
+      "pairs": {
+       "Story/TREECKO": 1,
+       "Catcher/TORCHIC": 1,
+       "Trainer/MUDKIP": 1
+      },
+      "next_unmet_of_records": {
+       "ch1_rival_route103": 3
+      },
+      "examples": [
+       {
+        "run_id": "P1-WALL-OLDALE-N-TMUD-6609-L1",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-TMUD-6609\\L1",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-TMUD-6609\\L1\\logs.zip"
+       },
+       {
+        "run_id": "P1-WALL-OLDALE-N-CTOR-6608-L1",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-CTOR-6608\\L1",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-CTOR-6608\\L1\\logs.zip"
+       },
+       {
+        "run_id": "P1-WALL-OLDALE-N-STRE-6607-L1",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-STRE-6607\\L1",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-STRE-6607\\L1\\logs.zip"
+       }
+      ]
+     }
+    ],
+    "loops_seen": [],
+    "churn": []
+   }
+  }
+ },
+ "blockers": [
+  {
+   "tree": "dacc537a3460493d076e5bb883a96d5082eee349d0b187fa3e0f81fbad7c2a64",
+   "chapter": 1,
+   "key": [
+    1,
+    "-",
+    "loop",
+    "LITTLEROOT_TOWN|ROUTE101",
+    "LOOP"
+   ],
+   "key_id": "4972904f1f44",
+   "count": 3,
+   "share": 1.0,
+   "real_frames": {
+    "min": 181441,
+    "median": 187969,
+    "max": 203090
+   },
+   "pairs": {
+    "Story/TREECKO": 1,
+    "Catcher/TORCHIC": 1,
+    "Trainer/MUDKIP": 1
+   },
+   "next_unmet_of_records": {
+    "ch1_rival_route103": 3
+   },
+   "examples": [
+    {
+     "run_id": "P1-WALL-OLDALE-N-TMUD-6609-L1",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-TMUD-6609\\L1",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-TMUD-6609\\L1\\logs.zip"
+    },
+    {
+     "run_id": "P1-WALL-OLDALE-N-CTOR-6608-L1",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-CTOR-6608\\L1",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-CTOR-6608\\L1\\logs.zip"
+    },
+    {
+     "run_id": "P1-WALL-OLDALE-N-STRE-6607-L1",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-STRE-6607\\L1",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\P1b\\WALL-OLDALE-N-STRE-6607\\L1\\logs.zip"
+    }
+   ]
+  }
+ ],
+ "experience_rows": 9,
+ "experience_unclassified": [],
+ "mc": null
+}
+
+PREDICTION:
+A1 FRONTIER PROBE: P1 (SECOND ATTEMPT, "P1b"), THE PLANTED WALL AT OLDALE TOWN -- PREDICTIONS, written and hashed BEFORE the batch launches
+Written 2026-11-16 (PST) by the a1-fix7live Live segment, on wip/a1 79a3546e1068aaf22f5939b071b76379a5381a9d.
+
+WHAT CHANGED FROM live/p1-predictions.txt (sha256 788aa753..., the first attempt, a1-live5) AND WHY: only the seeds
+(6601-6603 -> 6607-6609), the commit (2cf6452d -> 79a3546e) and the stage folders (stages/REAL, stages/WALL-OLDALE ->
+stages/REAL-2, stages/WALL-OLDALE-2). Reason: the first attempt began ledger entry #149 (seeds 6601-6603) and a code
+defect (python_processes() matched its own PowerShell query, so every job WAITed) stopped it before any leg ran; fix
+round 7 (e778811c) fixed that, #149 was finished as ERROR through ledger.py's finish() (79a3546e), and a seed named by
+any entry is never reused, so P1 re-runs under a NEW entry on the next free seeds 6607-6609 (6604-6606 are GM's). The
+play code is unchanged by fix round 7 (the gates only): REAL-2's play digest 9e3f4a359bb39ef2... and WALL-OLDALE-2's
+dacc537a3460493d... equal the first attempt's. The predictions themselves are unchanged, word for word.
+
+SOURCE: PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md, section 4.3 "P1, the planted wall at
+OLDALE TOWN" (amended 2026-11-13, AM-12), and 2.4's P1 row, 2.6 ("P1 measures P = 6"). The prediction text below is the
+spec's own words; nothing is retuned after the run (CLAUDE.md rule 8).
+
+BATCH: plan P1 --first-seed 6607 (live/p1b-jobs.json, sha256 507b326483bce539588ba811e1f77ad393873a6f24055fd39f9860b87c1be746;
+identical to live/p1-jobs.json but for the seeds): arms REAL (stage stages/REAL-2, mutant None, play digest
+9e3f4a359bb39ef2...) and WALL-OLDALE (stage stages/WALL-OLDALE-2, mutant oldale, ai_player/brain/navigator.py
+step_from, edit sha256 9ad704458ae9a04b..., play digest dacc537a3460493d...), the 3 diagonal New Game chains each
+(Story/TREECKO 6607, Catcher/TORCHIC 6608, Trainer/MUDKIP 6609), the SAME seeds in both arms, L1 (ch1_pokedex) and L2
+(ch2_wally), 330,000 frames and 3,600 s each, the goal snapshot carried in both arms, P = 6, --ledger development.
+Stage note: both stages are built from the A1 commit 79a3546e on wip/a1 (not yet merged to main); the spec's 4.3 says
+"on the merged main"; the lead's build plan step 5 runs it on the A1 commit's stage.
+
+PREDICTIONS (spec 4.3, word for word):
+- (a) FAULT: on WALL-OLDALE at least 2 of 3 chains end L1 not reached with next unmet `ch1_rival_route103`, and the
+  top chapter-1 key on that tree names it. Predicted form CLEAN-CHOSEN with a reason beginning `play: stuck:`. A
+  CLEAN-BUDGET end, or a LOOP key whose legs' records all have next unmet `ch1_rival_route103`, still counts toward
+  (a), reported as a miss of the form; "the top chapter-1 key names it" reads a LOOP key's records. Confirmed at
+  decomp pin `731ad5b`: `VAR_BIRCH_LAB_STATE` 3 is set right after the starter
+  (`LittlerootTown_ProfessorBirchsLab/scripts.inc` :132-134) and NO loops back to YES (:138-141), so `ch1_lab` holds
+  before the ROUTE 103 trip.
+- (b) CONTROL: on REAL no chapter-1 leg record ends not reached with next unmet `ch1_rival_route103`, under its own
+  key or a LOOP key, and at least 2 of 3 chains reach `ch2_wally`.
+- (c) Reported: paired arms on one seed replay until the FIRST of: the wall biting, or the game's own one-frame
+  split at a warp onto an outdoor map (E0). The report says which came first. A `[watch] busy Nf` record that differs
+  by one frame at a warp is a game split; an AI decision record naming an OLDALE plan or step is the wall. (c) never
+  decides (a) or (b).
+- PASS = (a) and (b). If (a) fails, the blocker list cannot see a wall, and A1 is not done.
+
+HOW EACH IS READ (from records.jsonl and the report, quoted; never from memory or a log substring):
+- (a): for each WALL-OLDALE chain, its L1 leg record's `reached`, `class`, `reason`, `next_unmet` and `blocker.key`;
+  "the top chapter-1 key on that tree" = rank 1 of the report's chapter-1 blockers under the WALL-OLDALE play digest
+  (dacc537a...); it names ch1_rival_route103 when key[1] is it, or (a LOOP key) its records' next unmet are it.
+- (b): every REAL chapter-1 leg record (reached or not, own key or LOOP key) checked for next unmet ch1_rival_route103
+  on a not-reached end; and the count of REAL chains whose L2 record is reached (ch2_wally).
+- One run per arm per seed is ONE TRAJECTORY each, never a replication; identical outputs are a determinism check only.
+

@@ -77,6 +77,7 @@ __all__ = [
     "ENV_WALL_DEADLINE",
     "ENV_WATCH_EVERY",
     "ENV_WORLD",
+    "ENV_GOALS",
     "ENV_MEMORY",
     "ENV_CONTINUE",
     "ENV_CART",
@@ -187,6 +188,13 @@ ENV_GOTO = "AI_PLAYER_GOTO"
 #: A `world.jsonl` a previous run wrote: the AI starts with that memory (its last line), so knowledge grows over a
 #: playthrough. Unset: it starts knowing nothing.
 ENV_WORLD = "AI_PLAYER_WORLD"
+#: (A1 part 0, GM: spec 2026-11-11-A1-FRONTIER-PROBE-SPEC.md 3.15 item 2) THE GOAL SNAPSHOT of the leg before: ONE line of
+#: the `goals.jsonl` the play brain writes at every end it controls (`game_memory.py` write_snapshot). At a `--state` start
+#: the play brain restores its goal memory from it as a continue restores a save's (what it remembers, its personality, its
+#: battle mind, its Pokemon; R1's save fields reset; the battles lost carried). Only beside `AI_PLAYER_WORLD` (the snapshot
+#: holds no world memory) and never with `AI_PLAYER_CONTINUE` (D19: a continued game's memory is its save's). Unset: a new
+#: goal memory, as before part 0.
+ENV_GOALS = "AI_PLAYER_GOALS"
 #: The intent's own frame budget (it ends itself with "budget:" before the run's frame budget stops it); unset:
 #: the run's frames minus `INTENT_MARGIN`.
 ENV_INTENT_FRAMES = "AI_PLAYER_INTENT_FRAMES"
@@ -410,6 +418,8 @@ class HandsOptions:
     # (chapter 5, 2026-11-05) the instructed-choice skill's two faults; defaults: the skill plays, no slip
     fault_no_instructed: bool = False
     fault_instructed_misstep: bool = False
+    # (A1 part 0) the goal snapshot of a `--state` start (`ENV_GOALS`); default: none, a new goal memory as before part 0
+    goals_in: Path | None = None
 
     def __post_init__(self) -> None:
         # D19: a continued game's memory is its save's, and nothing else's: a world file beside a continue is an error
@@ -418,6 +428,15 @@ class HandsOptions:
                              f"save's (the memory file), never another world file")
         if self.continue_game and self.memory_file is None:
             raise ValueError(f"{ENV_CONTINUE} needs {ENV_MEMORY}: a continue restores the memory of the save it continues")
+        # (A1 part 0, spec 3.15 item 2) the goal snapshot, refused before play: with a continue (D19, as the world file
+        # above), and without a world file (the snapshot holds no world memory: alone it would restore what the AI did
+        # into a world it had never seen)
+        if self.continue_game and self.goals_in is not None:
+            raise ValueError(f"{ENV_GOALS} cannot be given with {ENV_CONTINUE}: the memory of a continued game is its "
+                             f"save's (the memory file), never a goal snapshot")
+        if self.goals_in is not None and self.world_in is None:
+            raise ValueError(f"{ENV_GOALS} needs {ENV_WORLD}: a goal snapshot holds no world memory, which crosses legs in "
+                             f"its own file")
         if self.cart is not None and self.cart not in CARTS:
             raise ValueError(f"{ENV_CART} must be one of {CARTS}, got {self.cart!r}")
         if self.host not in HOSTS:
@@ -444,6 +463,7 @@ class HandsOptions:
         if not 1 <= steps <= 5000:
             raise ValueError(f"{ENV_ROAM_STEPS} must be 1..5000, got {steps}")
         raw_world = os.environ.get(ENV_WORLD, "").strip()
+        raw_goals = os.environ.get(ENV_GOALS, "").strip()
         raw_memory = os.environ.get(ENV_MEMORY, "").strip()
         raw_intent = os.environ.get(ENV_INTENT_FRAMES, "").strip()
         raw_battles = os.environ.get(ENV_BATTLES, "").strip()
@@ -495,6 +515,7 @@ class HandsOptions:
             host=os.environ.get(ENV_HOST, "").strip() or "launcher",
             fault_no_instructed=_flag(ENV_FAULT_NO_INSTRUCTED),
             fault_instructed_misstep=_flag(ENV_FAULT_INSTRUCTED_MISSTEP),
+            goals_in=Path(raw_goals) if raw_goals else None,
         )
 
 

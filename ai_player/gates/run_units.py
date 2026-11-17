@@ -100,6 +100,10 @@ SUITES: dict[str, tuple[list[str], int]] = {
     # the New Game chain held-out driver (USER RULING 55, 2026-11-05): every guard's FAULT and CONTROL on stub launches,
     # planted rows and whole stub batches, and its in-suite MUTANTS (each breaks one guard; the control M0 passes)
     "test_live_chain": ([str(GATES / "test_live_chain.py")], 2),
+    # (A1, 2026-11-14) the frontier probe: every guard's FAULT and CONTROL (T1-T36, AM-11) on stub launches, planted rows,
+    # temp ledgers, repositories and stages, and each case again on the unchanged source loaded as a copy (offline, about
+    # 30 s); `revert_frontier.py` breaks each guard in a copy of the package
+    "test_frontier_probe": ([str(GATES / "test_frontier_probe.py")], 2),
 }
 
 

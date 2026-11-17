@@ -3069,6 +3069,23 @@ class LauncherContinueTests(unittest.TestCase):
         code, env, out = self.run_cli("--continue")
         self.assertEqual((code, env["AI_PLAYER_CONTINUE"]), (8, "1"), out)
 
+    def test_gm_continue_refused_with_a_goal_snapshot_set(self) -> None:
+        """(A1 part 0, spec 3.15 items 2-3) `--continue` with `AI_PLAYER_GOALS` set is refused by the LAUNCHER (exit 2, the
+        "cannot start" path) before anything in the profile changes: a continued game's memory is its save's (D19's rule,
+        as for the world file above). FAULT (mutant GM15): the check removed, the continue starts with the snapshot in its
+        environment. CONTROL: without it the same continue starts."""
+        self.memory(run_dir=self.runs / "killed")
+        (self.runs / "killed").mkdir(parents=True)
+        snapshot = self.tmp / "goals_last.jsonl"
+        code, env, out = self.run_cli("--continue", environ={"AI_PLAYER_GOALS": str(snapshot)})
+        self.assertEqual((code, env), (2, None), out)
+        self.assertIn("--continue refused: AI_PLAYER_GOALS is set", out)
+        self.assertTrue((self.profile / self.launcher.STATE_FILE).exists())  # refused before anything changed
+        # CONTROL: without the snapshot the same continue starts (the fake child leaves no verdict: the launcher's 8)
+        code, env, out = self.run_cli("--continue")
+        self.assertEqual((code, env["AI_PLAYER_CONTINUE"]), (8, "1"), out)
+        self.assertNotIn("AI_PLAYER_GOALS", env)
+
     def test_a_chosen_end_is_refused_by_the_cli(self) -> None:
         """The refusal is the launcher's "cannot start" path (exit 2), before anything in the profile changes."""
         run_dir = self.runs / "done"
@@ -3118,6 +3135,202 @@ class LauncherContinueTests(unittest.TestCase):
             plain = run_options.HandsOptions.from_env()
         self.assertEqual((plain.memory_file, plain.continue_game, plain.cart, plain.fault_no_save, plain.host),
                          (None, False, None, False, "launcher"))
+
+
+# ==================================================================== A1 part 0 (GM): the goal snapshot of a --state start
+from ai_player.game_memory import (  # noqa: E402
+    GOALS_FILE_NAME, SNAPSHOT_KIND, STATE_RESET, read_snapshot, snapshot_payload, write_snapshot,
+)
+from ai_player.options import ENV_CONTINUE, ENV_GOALS, ENV_WORLD, HandsOptions  # noqa: E402
+from ai_player.runlog import RecordFile  # noqa: E402
+
+
+def snapshot_parts(memory: _Memory | None = None, losses: int = 0, base: str = "Story") -> dict:
+    """(A1 part 0) The parts of a goal snapshot as the play brain's end writes them (`mode.py` _end_goals): the goal
+    manager's KEEP fields (`rich_memory`: every field away from its default), a personality with its draws and its history,
+    a battle mind, a registry of one Pokemon, the battles lost."""
+    state = PersonalityState(base, random.Random(1))
+    state.favourite, state.draws = "ZIGZAGOON", 3
+    state.history = [{"step": 400, "kind": "drift", "active": "Trainer", "line": "it drifts"}]
+    mind = BattleMind(base, random.Random(2))
+    mind.wishes, mind.met, mind.wild_met = {"ZIGZAGOON": True}, {"MAY": 1}, 4
+    registry = MonRegistry()
+    registry.observe(party_look([mon(0xABCD, "TREECKO")]))
+    return {"goals": goals_part(memory if memory is not None else rich_memory()), "personality": personality_part(state),
+            "battle": battle_part(mind), "mons": registry.to_dict(), "losses": losses}
+
+
+class GoalSnapshotTests(unittest.TestCase):
+    """(A1 part 0, GM: the frontier probe spec `PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md`
+    3.15 items 1, 2 and 6) THE GOAL SNAPSHOT of `game_memory.py`, offline, on temporary files: a save's payload WITHOUT its
+    world, ONE line per end (`snapshot_payload`, `write_snapshot`); its restore at a `--state` start (`read_snapshot`):
+    every KEEP field but R1's save fields (`STATE_RESET`: absent after a `--state` restore, kept by a continue, and why:
+    the save policy's gap), the personality, the battle mind, the registry, the battles lost CARRIED; the file refused
+    unless it is ONE parseable snapshot line; and the options' refusals (with a continue; without a world file). Each
+    guard's FAULT half is the broken case; `gates/revert_r1.py`'s GM mutants break each guard in a copy (the play brain's
+    halves: `gates/test_goals.py` GoalSnapshotPlayTests and PlayLoopTests `test_gm_*`)."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp(prefix="ai_gm_snapshot_"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.run_dir = self.tmp / "run"
+
+    def write(self, end: str = "done: ch1_pokedex reached", frame: int = 4321, **parts) -> Path:
+        """One snapshot line, written as the play brain's end writes it, into `<run_dir>/goals.jsonl`."""
+        self.assertTrue(write_snapshot(RecordFile(self.run_dir, GOALS_FILE_NAME), end, frame,
+                                       snapshot_payload(**snapshot_parts(**parts))))
+        return self.run_dir / GOALS_FILE_NAME
+
+    def only_line(self, path: Path) -> dict:
+        lines = path.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(lines), 1, lines)
+        return json.loads(lines[0])
+
+    def planted(self, text: str) -> Path:
+        path = self.tmp / "planted.jsonl"
+        path.write_bytes(text.encode("utf-8"))
+        return path
+
+    @staticmethod
+    def options_from(env: dict) -> HandsOptions:
+        keep = {key: value for key, value in os.environ.items() if not key.startswith("AI_PLAYER_")}
+        with mock.patch.dict(os.environ, {**keep, **env}, clear=True):
+            return HandsOptions.from_env()
+
+    BASE = dict(brain="play", run_dir=None, seed=1, personality="Story", mart_item="x", mart_count=1, clock=None,
+                fault_ungated_a=False, fault_blind_count=False)
+
+    def test_gm_the_snapshot_is_a_saves_payload_without_its_world(self) -> None:
+        """Item 1: the line holds a save's payload (`build_payload`) with its world section dropped (the world memory
+        crosses legs in `AI_PLAYER_WORLD`); one line per end, appended through `runlog.RecordFile`. FAULT (mutant GM19):
+        the world section kept."""
+        parts = snapshot_parts(losses=2)
+        snap = snapshot_payload(**parts)
+        self.assertNotIn("world", snap)
+        self.assertEqual(snap, {key: value for key, value in build_payload(world=WORLDS[0], **parts).items()
+                                if key != "world"})
+        self.assertEqual(sorted(snap), ["battle", "goals", "losses", "mons", "personality"])
+        path = self.write(end="stuck: 3 battles lost (MAX_LOSSES 3)", frame=777, losses=2)
+        line = self.only_line(path)
+        self.assertEqual((line["kind"], line["schema_version"], line["end"], line["frame"]),
+                         (SNAPSHOT_KIND, SCHEMA_VERSION, "stuck: 3 battles lost (MAX_LOSSES 3)", 777))
+        self.assertEqual(line["memory"], snap)
+        self.assertTrue(path.read_text(encoding="utf-8").isascii())  # written with ensure_ascii, as every memory line
+        # one line per END: a second end appends a second line (the leg's end keeps the LAST, `goals_last.jsonl`)
+        self.write(end="stopped: not finished within 600000 frames", frame=900)
+        self.assertEqual(len(path.read_text(encoding="utf-8").splitlines()), 2)
+        # no run directory, no file (as every record: `RecordFile` drops it), and the write says it reached none
+        self.assertFalse(write_snapshot(RecordFile(None, GOALS_FILE_NAME), "done: x", 1, snap))
+
+    def test_gm_a_state_start_restores_all_but_the_save_fields_and_a_continue_keeps_them(self) -> None:
+        """Item 2: at a `--state` start every KEEP field comes back as the snapshot holds it EXCEPT R1's save fields
+        (`STATE_RESET`), every RESET field starts afresh, and the personality, the battle mind, the registry and the
+        battles lost (CARRIED) come back. FAULT (mutant GM07): the save fields kept; (mutant GM08) the loss count dropped.
+        CONTROL: a continue keeps the save fields. WHY: one game minute after the last save, the save policy lets the
+        `--state` start save (its cartridge holds no save of the AI's) and holds a continue to the 3-minute gap."""
+        rich, fresh = rich_memory(), _Memory()
+        self.assertEqual(set(STATE_RESET), {"saved_for", "last_save"})
+        self.assertTrue(set(STATE_RESET) <= set(GOAL_KEEP) and set(STATE_RESET) <= set(R1_NEW_FIELDS))
+        for name in STATE_RESET:  # planted: the snapshot does carry them (the check below is not vacuous)
+            self.assertNotEqual(getattr(rich, name), getattr(fresh, name), name)
+        snap = read_snapshot(self.write(losses=2))
+        self.assertTrue(set(STATE_RESET) <= set(snap.payload["goals"]))  # written as the AI had them ...
+        self.assertFalse(set(STATE_RESET) & set(snap.goals))  # ... and left out of the restore
+        restored = restore_goals(_Memory(), snap.goals)
+        names = {field.name for field in dataclasses.fields(_Memory)}
+        for name in sorted(names & (set(GOAL_KEEP) - set(STATE_RESET))):
+            self.assertEqual(getattr(restored, name), getattr(rich, name), f"KEEP field {name}")
+        for name in sorted(names & (set(GOAL_RESET) | set(GOAL_IN_WORLD) | set(STATE_RESET))):
+            self.assertEqual(getattr(restored, name), getattr(fresh, name), f"{name} starts afresh at a --state start")
+        parts = snapshot_parts(losses=2)
+        self.assertEqual((snap.personality, snap.battle, snap.mons.to_dict()),
+                         (parts["personality"], parts["battle"], parts["mons"]))
+        self.assertEqual((snap.losses, snap.world), (2, {}))  # the battles lost CARRIED; no world in a snapshot
+        # CONTROL: a CONTINUE restores the same goal memory WITH R1's save fields (its cartridge holds that save)
+        book_path = self.tmp / "memory.jsonl"
+        write_save(MemoryWriter(book_path, None, header=HEADER, session=session()), 1,
+                   payload_of(WORLDS[0]) | {"goals": goals_part(rich)})
+        continued = restore_goals(_Memory(), restore(read_book(book_path), 1).goals)
+        for name in STATE_RESET:
+            self.assertEqual(getattr(continued, name), getattr(rich, name), f"a continue keeps {name}")
+        minute_after = (rich.last_save["play_time"][0], rich.last_save["play_time"][1] + 1)
+        held, why = SavePolicy(continued, lambda line: None).may_save(free_look(minute_after), 10 ** 6)
+        self.assertFalse(held)
+        self.assertIn("between saves", why)
+        self.assertEqual(SavePolicy(restored, lambda line: None).may_save(free_look(minute_after), 10 ** 6), (True, ""))
+
+    def test_gm_a_file_that_is_not_one_parseable_snapshot_line_is_refused(self) -> None:
+        """Item 2: REFUSED unless the file is ONE parseable snapshot line. FAULT halves, one per case (mutants GM09, the
+        line count; GM11, the kind; GM12, a newer schema; GM13, the memory's parts); CONTROL: the one line, with its
+        newline, without it, and with a Windows line end."""
+        good = self.only_line(self.write(losses=1))
+        text = json.dumps(good, separators=(",", ":"), ensure_ascii=True)
+        memory = good["memory"]
+
+        def with_memory(**changes) -> str:
+            return json.dumps(dict(good, memory={**memory, **changes})) + "\n"
+
+        cases = {
+            "no file": None,
+            "an empty file": "",
+            "a newline only": "\n",
+            "two lines": text + "\n" + text + "\n",
+            "a blank line after it": text + "\n\n",
+            "not JSON": "{not json\n",
+            "a JSON list": "[1, 2]\n",
+            "another kind of line (a save line's)": json.dumps(dict(good, kind="save")) + "\n",
+            "a schema that is not a version": json.dumps(dict(good, schema_version="1")) + "\n",
+            "schema 0": json.dumps(dict(good, schema_version=0)) + "\n",
+            "a memory without its battle mind": json.dumps(dict(good, memory={key: value for key, value in memory.items()
+                                                                               if key != "battle"})) + "\n",
+            "a memory with a world": with_memory(world={}),
+            "losses as text": with_memory(losses="1"),
+            "negative losses": with_memory(losses=-1),
+            "losses as a bool": with_memory(losses=True),
+            "a corrupted byte": text.replace('"goals"', '"goéls"', 1) + "\n",
+        }
+        for why, body in cases.items():
+            with self.subTest(why):
+                path = self.tmp / "absent.jsonl" if body is None else self.planted(body)
+                with self.assertRaises(MemoryFileError) as caught:
+                    read_snapshot(path)
+                self.assertEqual(caught.exception.kind, "snapshot", str(caught.exception))
+        # a NEWER program's snapshot: refused, as a newer memory file is (D9)
+        with self.assertRaises(MemoryFileError) as caught:
+            read_snapshot(self.planted(json.dumps(dict(good, schema_version=SCHEMA_VERSION + 1)) + "\n"))
+        self.assertEqual(caught.exception.kind, "newer")
+        # CONTROL: the ONE line, with its newline, without it (a copy that dropped it), and with a Windows line end
+        for why, body in (("with its newline", text + "\n"), ("without it", text), ("CRLF", text + "\r\n")):
+            with self.subTest(why):
+                snap = read_snapshot(self.planted(body))
+                self.assertEqual((snap.losses, snap.save["end"], snap.save["frame"]), (1, "done: ch1_pokedex reached", 4321))
+
+    def test_gm_the_options_refuse_a_snapshot_with_a_continue(self) -> None:
+        """Item 2 (D19's rule, as for the world file): `AI_PLAYER_GOALS` with `AI_PLAYER_CONTINUE` is refused by the
+        brain's options (the launcher refuses it first: LauncherContinueTests). FAULT (mutant GM13): accepted. CONTROL: a
+        snapshot beside a world file and no continue is taken; none at all is a new goal memory, as before part 0."""
+        with self.assertRaises(ValueError) as caught:
+            HandsOptions(**self.BASE, memory_file=Path("m.jsonl"), continue_game=True, goals_in=Path("g.jsonl"))
+        self.assertIn(f"{ENV_GOALS} cannot be given with {ENV_CONTINUE}", str(caught.exception))
+        with self.assertRaises(ValueError) as caught:
+            self.options_from({"AI_PLAYER_BRAIN": "play", "AI_PLAYER_MEMORY": "m.jsonl", "AI_PLAYER_CONTINUE": "1",
+                               "AI_PLAYER_GOALS": "g.jsonl"})
+        self.assertIn(ENV_CONTINUE, str(caught.exception))
+        taken = HandsOptions(**self.BASE, world_in=Path("w.jsonl"), goals_in=Path("g.jsonl"))
+        self.assertEqual((taken.goals_in, taken.world_in), (Path("g.jsonl"), Path("w.jsonl")))
+        self.assertIsNone(self.options_from({"AI_PLAYER_BRAIN": "play"}).goals_in)
+
+    def test_gm_the_options_refuse_a_snapshot_without_a_world_file(self) -> None:
+        """Item 2: `AI_PLAYER_GOALS` without `AI_PLAYER_WORLD` is refused (the snapshot holds no world memory: alone it
+        would restore what the AI did into a world it never saw). FAULT (mutant GM14): accepted. CONTROL: with the world
+        file the environment's snapshot is taken."""
+        with self.assertRaises(ValueError) as caught:
+            HandsOptions(**self.BASE, goals_in=Path("g.jsonl"))
+        self.assertIn(f"{ENV_GOALS} needs {ENV_WORLD}", str(caught.exception))
+        with self.assertRaises(ValueError):
+            self.options_from({"AI_PLAYER_BRAIN": "play", "AI_PLAYER_GOALS": "g.jsonl"})
+        found = self.options_from({"AI_PLAYER_BRAIN": "play", "AI_PLAYER_GOALS": "g.jsonl", "AI_PLAYER_WORLD": "w.jsonl"})
+        self.assertEqual((found.goals_in, found.world_in), (Path("g.jsonl"), Path("w.jsonl")))
 
 
 # ---------------------------------------------------------------------------------------------------- build stage 4

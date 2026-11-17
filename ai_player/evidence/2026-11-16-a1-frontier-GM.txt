@@ -1,0 +1,207 @@
+A1 FRONTIER PROBE, batch GM (development): DEVELOPMENT DATA, NEVER A GRADED PROOF; PROJECT KNOWLEDGE/ai-frontier.txt is the authority
+ledger entry #151; bounds sha256 3ef63377473d41aedf32a28e20de1b9b00a1afaee185d349ca55f7e64e94679e; started 2026-11-16 11:54:48
+stages {'REAL': 'C:\\Remote Projects\\_ai_lab\\a1\\stages\\REAL-2'}; P 4 (asked 4, 59.268509696 GB free)
+prediction file C:/Remote Projects/_ai_lab/a1/live/gm-predictions.txt sha256 804e99511c6e2349bd23db31badbb0868d8b16bced8eb0158c16c4ed5a864206
+
+LEG GM-REAL-N-STRE-6604-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 637.0
+LEG GM-REAL-N-STRE-6604-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 580.6
+LEG GM-REAL-N-STRE-6604-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 560.6
+LEG GM-REAL-N-STRE-6604-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 541.8
+LEG GM-REAL-N-STRE-6604-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 540.1
+LEG GM-GOALS-ON-F-STRE-6605-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 586.0
+LEG GM-GOALS-OFF-F-STRE-6605-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 587.8
+LEG GM-GOALS-ON-F-STRE-6606-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 592.3
+LEG GM-GOALS-OFF-F-STRE-6606-L6: CLEAN-CHOSEN reached True next unmet ch7_steven key None fps 591.1
+
+not started: []
+most jobs at once: 4
+free space: 59.268509696 GB at the start, 59.12870912 GB at the end
+events: ['REAL-N-STRE-6604: started (1 running)', 'GOALS-ON-F-STRE-6605: started (2 running)', 'GOALS-OFF-F-STRE-6605: started (3 running)', 'GOALS-ON-F-STRE-6606: started (4 running)', 'GOALS-OFF-F-STRE-6606: started (4 running)']
+
+{
+ "header": "DEVELOPMENT DATA, NEVER A GRADED PROOF; PROJECT KNOWLEDGE/ai-frontier.txt is the authority",
+ "legs": 9,
+ "reached": 9,
+ "classes": {
+  "CLEAN-CHOSEN": 9
+ },
+ "trees": {
+  "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9": {
+   "1": {
+    "legs": 1,
+    "judged": 1,
+    "excluded": {},
+    "reached": 1,
+    "reach": 1.0,
+    "frames_per_second": 636.9,
+    "classes": {
+     "CLEAN-CHOSEN": 1
+    },
+    "reach_by_start_kind": {
+     "new game": {
+      "reached": 1,
+      "judged": 1
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "2": {
+    "legs": 1,
+    "judged": 1,
+    "excluded": {},
+    "reached": 1,
+    "reach": 1.0,
+    "frames_per_second": 580.7,
+    "classes": {
+     "CLEAN-CHOSEN": 1
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 1,
+      "judged": 1
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "3": {
+    "legs": 1,
+    "judged": 1,
+    "excluded": {},
+    "reached": 1,
+    "reach": 1.0,
+    "frames_per_second": 560.6,
+    "classes": {
+     "CLEAN-CHOSEN": 1
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 1,
+      "judged": 1
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "4": {
+    "legs": 1,
+    "judged": 1,
+    "excluded": {},
+    "reached": 1,
+    "reach": 1.0,
+    "frames_per_second": 541.8,
+    "classes": {
+     "CLEAN-CHOSEN": 1
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 1,
+      "judged": 1
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "5": {
+    "legs": 1,
+    "judged": 1,
+    "excluded": {},
+    "reached": 1,
+    "reach": 1.0,
+    "frames_per_second": 540.2,
+    "classes": {
+     "CLEAN-CHOSEN": 1
+    },
+    "reach_by_start_kind": {
+     "chain leg with a goal snapshot": {
+      "reached": 1,
+      "judged": 1
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "6": {
+    "legs": 4,
+    "judged": 4,
+    "excluded": {},
+    "reached": 4,
+    "reach": 1.0,
+    "frames_per_second": 589.9,
+    "classes": {
+     "CLEAN-CHOSEN": 4
+    },
+    "reach_by_start_kind": {
+     "practice with a snapshot": {
+      "reached": 2,
+      "judged": 2
+     },
+     "practice world-only": {
+      "reached": 2,
+      "judged": 2
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   }
+  }
+ },
+ "blockers": [],
+ "experience_rows": 9,
+ "experience_unclassified": [],
+ "mc": null
+}
+
+PREDICTION:
+A1 FRONTIER PROBE: GM, THE GOAL-MEMORY LIVE A/B (spec 3.15 item 7) -- PREDICTIONS, written and hashed BEFORE the batch launches
+Written 2026-11-16 (PST) by the a1-fix7live Live segment, on wip/a1 dc11cbc1 (code = FIXED 79a3546e; dc11cbc1 adds
+only P1b's ledger entry #150 and evidence file).
+
+SOURCE: PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md, section 3.15 item 7 (amended
+2026-11-13), with 3.7's `measures.stale` and 3.15 item 5 (who carries a snapshot). Nothing is retuned after the run
+(CLAUDE.md rule 8).
+
+BATCH: plan GM --first-seed 6604 (live/gm-jobs-2.json, sha256 5b83ce98bb5ac32b5eb5886c12614d7fd4f2d028901e57977b0e9ce5701b87a9,
+byte-identical to live/gm-jobs.json planned at the first attempt from 2cf6452d). All jobs on stage REAL = stages/REAL-2
+(mutant None, play digest 9e3f4a359bb39ef2...). Jobs:
+- REAL-N-STRE-6604: one diagonal New Game chain, Story/TREECKO, seed 6604, L1 ch1_pokedex (330,000 frames), L2
+  ch2_wally (330,000), L3 ch3_rustboro (600,000), L4 ch4_roxanne (900,000), L5 ch5_rival_meet (600,000); the goal
+  snapshot carried leg to leg.
+- GOALS-ON-F-STRE-6605 and GOALS-OFF-F-STRE-6605 (paired, seed 6605), GOALS-ON-F-STRE-6606 and GOALS-OFF-F-STRE-6606
+  (paired, seed 6606): each ONE leg L6 ch6_dewford (1,000,000 frames) from REAL-N-STRE-6604's reached L5 end
+  (depends_on that L5, discriminator True, no fallback). GOALS-ON carries that end's kept goals_last.jsonl; GOALS-OFF
+  runs with goal_memory none and keeps the snapshot only as the yardstick.
+P = 4, --ledger development.
+
+PREDICTIONS (spec 3.15 item 7, its words):
+- THE DISCRIMINATOR, computed by the probe offline on the L5 end BEFORE any A/B launch (frontier_probe.py
+  discriminator_tiles, called in dependency_of): "the tiles of the end snapshot's `tried_items` that are remembered item
+  tiles (`MapMemory.items`) of a map the next leg starts on or crosses early (RUSTBORO_CITY, ROUTE116, ROUTE104), that
+  is, tiles `_remembered_ball` offers with a new goal memory and not with the snapshot."
+- WITH AT LEAST ONE such tile: arms GOALS-ON and GOALS-OFF run L6 from that end on seeds 6605 and 6606 (paired). The
+  measure is `measures.stale.item_errands` (3.7), per tile, counted in BOTH arms against their common start's kept
+  `goals_last.jsonl`. PREDICTED: **0 in every GOALS-ON leg** and **at least 1 in every GOALS-OFF leg**.
+  PASS = both hold in all four A/B legs (2 GOALS-ON, 2 GOALS-OFF). A GOALS-ON leg with item_errands >= 1, or a
+  GOALS-OFF leg with item_errands 0, FAILS the prediction and is reported, never retuned.
+- WITH NONE: "the A/B is VACUOUS, is not run, and is reported so" (the probe drops the four A/B jobs with a reason
+  beginning "VACUOUS:"). A VACUOUS drop is a RESULT, not a pass and not a failure of part 0. "The chain's earlier leg
+  ends are tried the same way; with none anywhere, part 0 rests on item 6 plus the live custody records, named as
+  such": that fallback is done BY THE LEAD BY HAND, not in this segment.
+- IF THE SOURCE CHAIN DOES NOT REACH L5 (ch5_rival_meet): the A/B jobs have no start (no fallback) and are dropped
+  by the probe; reported as NOT RUN with the chain's stop record; no prediction about the A/B is then judged.
+
+HOW EACH IS READ (records.jsonl and the report, quoted):
+- the source chain: each L1-L5 leg record's reached, class, reason, next unmet, key, start_memory.goal_memory.
+- the discriminator: the A/B leg records' start (its `discriminator` tile list as the code computed it) or, when
+  dropped, the events/job record's "VACUOUS: ..." reason, quoted.
+- each A/B leg record: start_memory.goal_memory (GOALS-ON "carried", GOALS-OFF "none"), measures.stale (snapshot mode,
+  item_errands, item_outcomes, gone_or_unreachable), reached, class, reason.
+- One run per arm per seed is ONE TRAJECTORY each, never a replication; the two seeds are two trajectories per arm.
+

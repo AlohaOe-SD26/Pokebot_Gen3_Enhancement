@@ -2019,6 +2019,74 @@ class PlayLoopTests(unittest.TestCase):
             self.assertEqual(again.memory.saved_for, {"ch4_roxanne": 5000})
             self.assertEqual(decide(again, gym(continued, (5000, 12000)), (1, 30)), "save")  # CONTROL: a new approach
 
+    # ---- (A1 part 0, GM: the frontier probe spec 3.15) THE GOAL SNAPSHOT through the REAL loop: a `--state` start's
+    # snapshot (`game_memory.read_snapshot`) handed to `_play` as `restored`, as `_skill` hands it. Mutants GM07, GM08 and
+    # GM18 (`gates/revert_r1.py`).
+    def gm_snapshot(self, folder: Path, losses: int, memory=None, base: str = "Story"):
+        """A snapshot line as the play brain's end writes it (`game_memory.write_snapshot`), read back as a `--state`
+        start reads it (`read_snapshot`)."""
+        from ai_player.brain.goals import _Memory
+        from ai_player.game_memory import GOALS_FILE_NAME, goals_part, read_snapshot, snapshot_payload, write_snapshot
+        from ai_player.runlog import RecordFile
+
+        payload = snapshot_payload(goals=goals_part(memory if memory is not None else _Memory(talked={"0:1|9"})),
+                                   personality={"base": base, "favourite": "ZIGZAGOON", "history": [], "draws": 3},
+                                   battle={"wishes": {}, "met": {"MAY": 1}, "wild_met": 5}, mons={}, losses=losses)
+        self.assertTrue(write_snapshot(RecordFile(folder, GOALS_FILE_NAME), "done: ch5_rival_meet reached", 9000, payload))
+        return read_snapshot(folder / GOALS_FILE_NAME)
+
+    def test_gm_a_snapshot_with_2_losses_ends_the_run_at_its_first_new_loss(self):
+        """(A1 part 0, spec 3.15 items 2 and 6) The loss count is CARRIED: one game has one count, and `MAX_LOSSES`
+        counts across its legs as across a continue's processes. A `--state` start whose snapshot holds 2 battles lost
+        ends at its FIRST new loss (MAX_LOSSES 3). FAULT half (mutant GM08 drops the count): the same loop from a snapshot
+        with 0 lost loses MAX_LOSSES battles of its own."""
+        with tempfile.TemporaryDirectory(prefix="ai_gm_losses_") as tmp:
+            reason, hands, pursued, _, report = self.run_loop(self.free_screen(), lose=True,
+                                                              play_kwargs={"restored": self.gm_snapshot(Path(tmp), 2)})
+            self.assertEqual(reason, f"stuck: {MAX_LOSSES} battles lost (MAX_LOSSES {MAX_LOSSES})")
+            self.assertEqual(len(pursued), 1)
+            self.assertEqual((report["losses"], report["restored_losses"]), (MAX_LOSSES, 2))
+            self.assertFalse(any("the loop counted" in line for line in hands.told))  # the end agrees with the loop
+        with tempfile.TemporaryDirectory(prefix="ai_gm_losses_") as tmp:
+            reason, _, pursued, _, report = self.run_loop(self.free_screen(), lose=True,
+                                                          play_kwargs={"restored": self.gm_snapshot(Path(tmp), 0)})
+        self.assertEqual((reason, len(pursued), report["losses"]),
+                         (f"stuck: {MAX_LOSSES} battles lost (MAX_LOSSES {MAX_LOSSES})", MAX_LOSSES, MAX_LOSSES))
+
+    def test_gm_the_play_loop_restores_its_snapshot_and_keeps_the_parts_of_its_end(self):
+        """(A1 part 0, spec 3.15 items 1, 2 and 6) Through the REAL loop, from a snapshot: the goal manager's memory as
+        the snapshot holds it (every KEEP field but R1's save fields, which start afresh: mutant GM07), the personality
+        and the battle mind as it holds them, its registry handed on; and `_play` keeps the parts its end snapshot is made
+        of (`_goal_parts`: this manager, state, mind and report: mutant GM18). THE P11-x FAULT AND CONTROL
+        (`ai-research-notes/2026-11-12-P11-X-DETOUR-DIAGNOSIS.md` :51-58): asked on GRANITE CAVE 1F at (35, 3), where the
+        AI arrives after the crossing, `_remembered_ball` sends it back to the ESCAPE ROPE ball at (17, 7) it took before
+        the snapshot when the restore is switched OFF (the same loop with no snapshot: a new goal memory), and does NOT
+        when it is ON (`tried_items` holds "24:7|17,7")."""
+        from ai_player.brain.goals import _Memory
+
+        cave = WorldMemory()
+        floor = MapMemory("24:7", "GRANITE_CAVE_1F", "GRANITE CAVE 1F")
+        floor.items[(17, 7)] = 768_974  # seen before the start was saved (the B1F starts' memory, P11-x item 2)
+        cave.maps["24:7"] = floor
+        cave._last.key, cave._last.xy = "24:7", (35, 3)  # noqa: SLF001 - test side: it stands at 1F's arrival
+        arrival = replace(look(const="GRANITE_CAVE_1F"), player=replace(look().player, x=35, y=3))
+        kept = _Memory(tried_items={"24:7|17,7"}, talked={"0:1|9"}, saved_for={"ch5_rival_meet": 8000},
+                       last_save={"id": 3, "play_time": [1, 10], "frame": 9000, "why": "a test save"})
+        with tempfile.TemporaryDirectory(prefix="ai_gm_restore_") as tmp:
+            snapshot = self.gm_snapshot(Path(tmp), 1, memory=kept)
+            _, _, _, _, report = self.run_loop(self.free_screen(), lose=True, play_kwargs={"restored": snapshot})
+        brain = self.last_brain
+        manager_, state, mind, parts_report = brain._goal_parts
+        self.assertIs(parts_report, report)  # the loop's own report: its loss count is the end snapshot's
+        self.assertEqual((manager_.memory.tried_items, manager_.memory.talked), ({"24:7|17,7"}, {"0:1|9"}))
+        self.assertEqual((manager_.memory.last_save, manager_.memory.saved_for), (None, {}))  # R1's save fields reset
+        self.assertEqual((state.favourite, state.draws, mind.met, mind.wild_met), ("ZIGZAGOON", 3, {"MAY": 1}, 5))
+        self.assertIs(brain._registry, snapshot.mons)
+        self.assertIsNone(manager_._remembered_ball(arrival, cave))  # CONTROL: the restore ON: no errand back to it
+        # FAULT: the restore switched OFF (the same loop, no snapshot: a new goal memory) walks back for the ball it took
+        self.run_loop(self.free_screen(), lose=True)
+        self.assertEqual(self.last_brain._goal_parts[0]._remembered_ball(arrival, cave), (17, 7))
+
 
 class _StepEyes:
     """Eyes for `HandsBrain.play`: `seen` at a frame that rises by one per look (the emulator's counter)."""
@@ -2311,6 +2379,199 @@ class R1PlayTests(unittest.TestCase):
                 self.assertEqual((end["chosen"], end["stopped_before_restore"], end["at_save"]), (chosen, retry, False))
                 judgement = judge_end(book, [])
                 self.assertEqual(judgement.allowed, allowed, judgement.words)
+
+
+class GoalSnapshotPlayTests(unittest.TestCase):
+    """(A1 part 0, GM: the frontier probe spec `PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md`
+    3.15 items 1, 2, 5 and 6) `HandsBrain.play` with the GOAL SNAPSHOT, its `_play` stood in (it keeps the parts of its
+    end as the real loop does: `_goal_parts`) and the files REAL: the END SNAPSHOT is ONE line in `<run_dir>/goals.jsonl`
+    at each end the play brain controls (`done`, `stuck`, and `stopped` through the brain's REAL frame bound), and NONE
+    after a run ended from outside (the hard kill's stub: the generator closed mid-run, which is also all the host's soft
+    wall-clock deadline leaves the brain), when the play loop never began (a refusal), or with no run directory; a
+    `--state` start given `AI_PLAYER_GOALS` hands the leg before's own end line to the play loop as a continue hands its
+    save; a snapshot that is not ONE parseable line, or the memory of another personality, refuses the run before anything
+    is pressed. The real loop's halves are PlayLoopTests `test_gm_*`; the mutants GM01-GM06 and GM16-GM20 are
+    `gates/revert_r1.py`'s."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp(prefix="ai_gm_play_"))
+        self.addCleanup(__import__("shutil").rmtree, self.tmp, True)
+        self.memory_file = self.tmp / "game" / "ai_player" / "memory.jsonl"
+        self.seen = replace(look(ch1_through("ch1_rival_route103"), party=[mon(6)], const="ROUTE101"), frame=100)
+        self.world_file = self.tmp / "world_last.jsonl"
+        self.world_file.write_text(world_with("LITTLEROOT_TOWN", "ROUTE101", current="ROUTE101").snapshot() + "\n",
+                                   encoding="utf-8")
+
+    def brain(self, run: str | None = "run", frames: int = 5000, **extra) -> tuple[HandsBrain, list[str]]:
+        """A play brain of a `--state` leg (a world file, a memory file as the launcher gives every run)."""
+        from ai_player.mode import BrainSettings
+        from ai_player.options import HandsOptions
+
+        options = dict(brain="play", run_dir=self.tmp / run if run is not None else None, seed=7, personality="Story",
+                       mart_item="x", mart_count=1, clock=None, fault_ungated_a=False, fault_blind_count=False,
+                       memory_file=self.memory_file, cart="empty", host="harness", world_in=self.world_file)
+        options.update(extra)
+        told: list[str] = []
+        return HandsBrain(BrainSettings(frames=frames), told.append, HandsOptions(**options)), told
+
+    def play(self, brain: HandsBrain) -> str:
+        return drive(brain.play(_Controls(), _StepEyes(self.seen)), 20_000)
+
+    @staticmethod
+    def fake_play(outcome: str, losses: int = 1, idle: int = 2, seen: dict | None = None):
+        """`_play` stood in: it keeps the parts of its end as the real loop does (a goal memory that took the ESCAPE ROPE
+        ball at GRANITE CAVE 1F (17, 7), a Story personality with its draws, a battle mind, the report's loss count),
+        plays `idle` frames and returns `outcome`; `seen` records the restore it was handed."""
+        from ai_player.brain.battle import BattleMind
+        from ai_player.brain.goals import _Memory
+
+        def play(brain, hands, personality, restored=None, stop=None):
+            if seen is not None:
+                seen["restored"] = restored
+            state = PersonalityState(personality.name, random.Random(1))
+            state.favourite, state.draws = "ZIGZAGOON", 3
+            mind = BattleMind(personality.name, random.Random(2))
+            mind.met = {"MAY": 1}
+            memory = _Memory(tried_items={"24:7|17,7"}, talked={"0:1|9"})
+            brain._goal_parts = (types.SimpleNamespace(memory=memory), state, mind, {"losses": losses})
+            yield from hands.pad.idle(idle, "a test")
+            return outcome
+        return play
+
+    def snapshot_file(self, name: str, base: str = "Story", losses: int = 2, lines: int = 1) -> Path:
+        """A snapshot file of `lines` lines, each as the play brain's end writes it (`game_memory.write_snapshot`)."""
+        from ai_player.brain.goals import _Memory
+        from ai_player.game_memory import goals_part, snapshot_payload, write_snapshot
+        from ai_player.runlog import RecordFile
+
+        payload = snapshot_payload(goals=goals_part(_Memory(tried_items={"24:7|17,7"})),
+                                   personality={"base": base, "favourite": "ZIGZAGOON", "history": [], "draws": 3},
+                                   battle={"wishes": {}, "met": {"MAY": 1}, "wild_met": 5}, mons={}, losses=losses)
+        records = RecordFile(self.tmp / "snapshots", name)
+        for _ in range(lines):
+            self.assertTrue(write_snapshot(records, "done: ch5_rival_meet reached", 9000, payload))
+        return self.tmp / "snapshots" / name
+
+    def test_gm_one_end_line_at_each_end_the_play_brain_controls(self):
+        """Item 1: ONE line at each end the play brain controls: `done`, `stuck`, and `stopped` by the brain's REAL frame
+        bound (`_bounded`), each holding the save payload's parts, never a world. FAULT (mutants GM03, GM05, GM06): the
+        end's call, the payload's or the write's deleted; no line, or an empty memory."""
+        from ai_player.game_memory import GOALS_FILE_NAME, decode_value
+
+        for kind, outcome in (("done", "done: ch1_pokedex reached"), ("stuck", "stuck: 3 battles lost (MAX_LOSSES 3)")):
+            with self.subTest(kind):
+                brain, _ = self.brain(run=kind)
+                with mock.patch.object(HandsBrain, "_play", self.fake_play(outcome)):
+                    self.assertEqual(self.play(brain), f"play: {outcome}")
+                lines = (self.tmp / kind / GOALS_FILE_NAME).read_text(encoding="utf-8").splitlines()
+                self.assertEqual(len(lines), 1)
+                line = json.loads(lines[0])
+                self.assertEqual((line["kind"], line["end"]), ("goals", outcome))
+                self.assertEqual(decode_value(line["memory"]["goals"]["tried_items"]), {"24:7|17,7"})
+                self.assertEqual((line["memory"]["losses"], line["memory"]["personality"]["base"],
+                                  line["memory"]["battle"]["met"]), (1, "Story", {"MAY": 1}))
+                self.assertNotIn("world", line["memory"])
+        brain, _ = self.brain(run="stopped", frames=50)
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("never reached", idle=500)):
+            self.assertEqual(self.play(brain), "play: stopped: not finished within 50 frames")
+        line = json.loads((self.tmp / "stopped" / GOALS_FILE_NAME).read_text(encoding="utf-8"))
+        self.assertEqual(line["end"], "stopped: not finished within 50 frames")
+
+    def test_gm_no_end_line_after_a_run_ended_from_outside_never_played_or_without_a_run_dir(self):
+        """Item 1's other half: NO line (1) after a run ended from outside, the hard kill's STUB: the generator closed
+        mid-run, so no brain code runs after it (the launcher's kill; and the host's soft wall-clock deadline, which ends
+        the process from the guard listener while the brain is suspended, `host/session.py` `_on_frame`); (2) when the
+        play loop never began (a refused snapshot); (3) with no run directory, where the run still ends as it would
+        (mutant GM20: it crashes). CONTROL: the same run, let end, writes its one line."""
+        from ai_player.game_memory import GOALS_FILE_NAME
+
+        brain, _ = self.brain(run="killed")
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("done: never", idle=500)):
+            game = brain.play(_Controls(), _StepEyes(self.seen))
+            for _ in range(20):
+                next(game)
+            game.close()
+        self.assertIsNotNone(brain._goal_parts)  # the loop had begun and kept its parts: only its END never came
+        self.assertFalse((self.tmp / "killed" / GOALS_FILE_NAME).exists())
+        brain, _ = self.brain(run="refused", goals_in=self.snapshot_file("two.jsonl", lines=2))
+        with mock.patch.object(HandsBrain, "_skill", side_effect=AssertionError("the skill must not run")):
+            self.assertTrue(self.play(brain).startswith("play: stuck: the goal snapshot cannot be used"))
+        self.assertIsNone(brain._goal_parts)
+        self.assertFalse((self.tmp / "refused" / GOALS_FILE_NAME).exists())
+        brain, _ = self.brain(run=None)
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("done: ch1_pokedex reached")):
+            self.assertEqual(self.play(brain), "play: done: ch1_pokedex reached")
+        brain, _ = self.brain(run="ended")  # CONTROL
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("done: ch1_pokedex reached", idle=30)):
+            self.play(brain)
+        self.assertEqual(len((self.tmp / "ended" / GOALS_FILE_NAME).read_text(encoding="utf-8").splitlines()), 1)
+
+    def test_gm_a_state_start_hands_the_leg_befores_snapshot_to_the_play_loop(self):
+        """Item 2: leg 1 ends and writes its line; its LAST line, kept as the probe keeps it (`goals_last.jsonl`), is
+        the next `--state` leg's `AI_PLAYER_GOALS` (beside its `AI_PLAYER_WORLD`): the play loop is handed it as a
+        continue is handed its save (what it remembers, its personality, its battle mind; the battles lost carried), and
+        the run SAYS so. FAULT (mutants GM01, GM02, GM04): the snapshot never read, or not handed on; the same leg with no
+        snapshot plays on a NEW goal memory (restored None)."""
+        from ai_player.game_memory import GOALS_FILE_NAME, decode_value
+
+        brain, _ = self.brain(run="leg1")
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("done: ch5_rival_meet reached", losses=2)):
+            self.play(brain)
+        kept = self.tmp / "goals_last.jsonl"
+        kept.write_text((self.tmp / "leg1" / GOALS_FILE_NAME).read_text(encoding="utf-8").splitlines()[-1] + "\n",
+                        encoding="utf-8")
+        seen: dict = {}
+        brain, told = self.brain(run="leg2", goals_in=kept)
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("done: x", seen=seen)):
+            self.assertEqual(self.play(brain), "play: done: x")
+        restored = seen["restored"]
+        self.assertIsNotNone(restored)
+        self.assertEqual(decode_value(restored.goals["tried_items"]), {"24:7|17,7"})
+        self.assertEqual((restored.losses, restored.personality["base"], restored.personality["draws"]), (2, "Story", 3))
+        self.assertEqual(restored.battle["met"], {"MAY": 1})
+        said = [line for line in told if line.startswith("[AI-GOALS] goal memory from the snapshot")]
+        self.assertTrue(said and str(kept) in said[0] and "2 battles lost carried" in said[0], told)
+        seen.clear()
+        brain, _ = self.brain(run="leg2-new")  # FAULT half: the same leg, no snapshot
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("done: x", seen=seen)):
+            self.play(brain)
+        self.assertIsNone(seen["restored"])
+
+    def test_gm_a_snapshot_that_is_not_one_parseable_line_refuses_the_run_before_play(self):
+        """Item 2: a snapshot file that is not ONE parseable line (two lines; no file) refuses the run before anything is
+        pressed: the skill never runs, and the run says why. FAULT (mutants GM01, GM04, GM17): the snapshot never read,
+        or its refusal ignored (the run plays on a new goal memory). CONTROL: the same line, alone, is taken."""
+        from ai_player.game_memory import GOALS_FILE_NAME
+
+        for why, path in (("two lines", self.snapshot_file("two.jsonl", lines=2)), ("no file", self.tmp / "absent.jsonl")):
+            with self.subTest(why):
+                run = why.replace(" ", "-")
+                brain, _ = self.brain(run=run, goals_in=path)
+                with mock.patch.object(HandsBrain, "_skill", side_effect=AssertionError("the skill must not run")):
+                    reason = self.play(brain)
+                self.assertTrue(reason.startswith("play: stuck: the goal snapshot cannot be used"), reason)
+                self.assertIsNone(brain._snapshot)
+                self.assertFalse((self.tmp / run / GOALS_FILE_NAME).exists())
+        seen: dict = {}
+        brain, _ = self.brain(run="one", goals_in=self.snapshot_file("one.jsonl"))
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("done: x", seen=seen)):
+            self.assertEqual(self.play(brain), "play: done: x")
+        self.assertEqual(seen["restored"].losses, 2)
+
+    def test_gm_a_snapshot_of_another_personality_refuses_the_run_before_play(self):
+        """Item 2 (`restore_personality`: another base is refused): a Trainer game's snapshot given to a Story run
+        refuses it before anything is pressed, never as a crash inside the play loop. FAULT (mutant GM16): the check
+        removed. CONTROL: the run's own personality's snapshot is taken."""
+        brain, _ = self.brain(run="other", goals_in=self.snapshot_file("trainer.jsonl", base="Trainer"))
+        with mock.patch.object(HandsBrain, "_skill", side_effect=AssertionError("the skill must not run")):
+            reason = self.play(brain)
+        self.assertIn("is the memory of a Trainer game and this run plays Story: another base is refused", reason)
+        self.assertTrue(reason.startswith("play: stuck: the goal snapshot"), reason)
+        seen: dict = {}
+        brain, _ = self.brain(run="own", goals_in=self.snapshot_file("story.jsonl", base="Story"))
+        with mock.patch.object(HandsBrain, "_play", self.fake_play("done: x", seen=seen)):
+            self.assertEqual(self.play(brain), "play: done: x")
+        self.assertEqual(seen["restored"].personality["base"], "Story")
 
 
 def mode_module_patience() -> int:

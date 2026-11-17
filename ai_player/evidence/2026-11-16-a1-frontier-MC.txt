@@ -1,0 +1,254 @@
+A1 FRONTIER PROBE, batch MC (development): DEVELOPMENT DATA, NEVER A GRADED PROOF; PROJECT KNOWLEDGE/ai-frontier.txt is the authority
+ledger entry #152; bounds sha256 26e19f41dc58ac385d077a188ef505fe660afc807b127733b51a7038da64598b; started 2026-11-16 12:33:24
+stages {'REAL': 'C:\\Remote Projects\\_ai_lab\\a1\\stages\\REAL-2'}; P 3 (asked 3, 59.125600256 GB free)
+prediction file C:/Remote Projects/_ai_lab/a1/live/mc-predictions.txt sha256 ee625851b46f4fa6686ae8b1b7157474253f8da7c257628f72d76051a7e7b745
+
+LEG MC-REAL-N-CTOR-6702-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 600.8
+LEG MC-REAL-N-STRE-6701-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 608.9
+LEG MC-REAL-N-TMUD-6703-L1: CLEAN-CHOSEN reached True next unmet ch2_petalburg key None fps 601.3
+LEG MC-REAL-N-STRE-6701-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 573.9
+LEG MC-REAL-N-TMUD-6703-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 563.1
+LEG MC-REAL-N-CTOR-6702-L2: CLEAN-CHOSEN reached True next unmet ch3_woods key None fps 549.8
+LEG MC-REAL-N-TMUD-6703-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 560.6
+LEG MC-REAL-N-STRE-6701-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 562.2
+LEG MC-REAL-N-CTOR-6702-L3: CLEAN-CHOSEN reached True next unmet ch4_roxanne key None fps 577.1
+LEG MC-REAL-N-TMUD-6703-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 503.7
+LEG MC-REAL-N-STRE-6701-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 522.8
+LEG MC-REAL-N-STRE-6701-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 514.5
+LEG MC-REAL-N-CTOR-6702-L4: CLEAN-CHOSEN reached True next unmet ch5_stolen_goods key None fps 494.1
+LEG MC-REAL-N-TMUD-6703-L5: CLEAN-CHOSEN reached True next unmet ch6_briney_house key None fps 496.8
+LEG MC-REAL-N-CTOR-6702-L5: CUT-WORLD reached False next unmet ch5_stolen_goods key [5, '-', 'loop', 'ROUTE104|RUSTBORO_CITY', 'LOOP'] fps None
+
+not started: []
+most jobs at once: 3
+free space: 59.125600256 GB at the start, 58.780594176 GB at the end
+events: ['REAL-N-STRE-6701: started (1 running)', 'REAL-N-CTOR-6702: started (2 running)', 'REAL-N-TMUD-6703: started (3 running)', 'REAL-N-CTOR-6702 L5: CUT-WORLD (world.jsonl 1508532709 bytes over 1500000000)']
+
+{
+ "header": "DEVELOPMENT DATA, NEVER A GRADED PROOF; PROJECT KNOWLEDGE/ai-frontier.txt is the authority",
+ "legs": 15,
+ "reached": 14,
+ "classes": {
+  "CLEAN-CHOSEN": 14,
+  "CUT-WORLD": 1
+ },
+ "trees": {
+  "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9": {
+   "1": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 3,
+    "reach": 1.0,
+    "frames_per_second": 603.7,
+    "classes": {
+     "CLEAN-CHOSEN": 3
+    },
+    "reach_by_start_kind": {
+     "new game": {
+      "reached": 3,
+      "judged": 3
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "2": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 3,
+    "reach": 1.0,
+    "frames_per_second": 560.5,
+    "classes": {
+     "CLEAN-CHOSEN": 3
+    },
+    "reach_by_start_kind": {
+     "chain leg without": {
+      "reached": 3,
+      "judged": 3
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "3": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 3,
+    "reach": 1.0,
+    "frames_per_second": 566.9,
+    "classes": {
+     "CLEAN-CHOSEN": 3
+    },
+    "reach_by_start_kind": {
+     "chain leg without": {
+      "reached": 3,
+      "judged": 3
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "4": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 3,
+    "reach": 1.0,
+    "frames_per_second": 505.0,
+    "classes": {
+     "CLEAN-CHOSEN": 3
+    },
+    "reach_by_start_kind": {
+     "chain leg without": {
+      "reached": 3,
+      "judged": 3
+     }
+    },
+    "blockers": [],
+    "loops_seen": [],
+    "churn": []
+   },
+   "5": {
+    "legs": 3,
+    "judged": 3,
+    "excluded": {},
+    "reached": 2,
+    "reach": 0.6667,
+    "frames_per_second": 501.3,
+    "classes": {
+     "CLEAN-CHOSEN": 2,
+     "CUT-WORLD": 1
+    },
+    "reach_by_start_kind": {
+     "chain leg without": {
+      "reached": 2,
+      "judged": 3
+     }
+    },
+    "blockers": [
+     {
+      "tree": "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9",
+      "chapter": 5,
+      "key": [
+       5,
+       "-",
+       "loop",
+       "ROUTE104|RUSTBORO_CITY",
+       "LOOP"
+      ],
+      "key_id": "9376c4eb54ba",
+      "count": 1,
+      "share": 0.3333,
+      "real_frames": {
+       "min": 136256,
+       "median": 136256,
+       "max": 136256
+      },
+      "pairs": {
+       "Catcher/TORCHIC": 1
+      },
+      "next_unmet_of_records": {
+       "ch5_stolen_goods": 1
+      },
+      "examples": [
+       {
+        "run_id": "MC-REAL-N-CTOR-6702-L5",
+        "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\MC\\REAL-N-CTOR-6702\\L5",
+        "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\MC\\REAL-N-CTOR-6702\\L5\\logs.zip"
+       }
+      ]
+     }
+    ],
+    "loops_seen": [],
+    "churn": []
+   }
+  }
+ },
+ "blockers": [
+  {
+   "tree": "9e3f4a359bb39ef26ae54faadf97b04270e751662f0ebc86036ed348323ec8e9",
+   "chapter": 5,
+   "key": [
+    5,
+    "-",
+    "loop",
+    "ROUTE104|RUSTBORO_CITY",
+    "LOOP"
+   ],
+   "key_id": "9376c4eb54ba",
+   "count": 1,
+   "share": 0.3333,
+   "real_frames": {
+    "min": 136256,
+    "median": 136256,
+    "max": 136256
+   },
+   "pairs": {
+    "Catcher/TORCHIC": 1
+   },
+   "next_unmet_of_records": {
+    "ch5_stolen_goods": 1
+   },
+   "examples": [
+    {
+     "run_id": "MC-REAL-N-CTOR-6702-L5",
+     "folder": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\MC\\REAL-N-CTOR-6702\\L5",
+     "zip": "C:\\Remote Projects\\_ai_lab\\a1\\runs\\MC\\REAL-N-CTOR-6702\\L5\\logs.zip"
+    }
+   ]
+  }
+ ],
+ "experience_rows": 14,
+ "experience_unclassified": [],
+ "mc": {
+  "reading": "STOP",
+  "chains": 3,
+  "problems": [
+   "REAL-N-CTOR-6702 L5: CUT-WORLD",
+   "REAL-N-CTOR-6702: did not reach its target"
+  ]
+ }
+}
+
+PREDICTION:
+A1 FRONTIER PROBE: MC, THE MERGE CHECK'S FIRST RUN ON A1'S OWN COMMIT (spec 2.4b) -- PREDICTIONS, written and hashed BEFORE the batch launches
+Written 2026-11-16 (PST) by the a1-fix7live Live segment, on wip/a1 dc11cbc1 (code = FIXED 79a3546e; the commits after
+it add only ledger entries and evidence files).
+
+SOURCE: PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md, section 2.4b "The merge check (MC)"
+(amended 2026-11-13), with 3.15 item 8 (the play digest moves, so MC's first run on the A1 commit MUST read PASS before
+WP1). Nothing is retuned after the run (CLAUDE.md rule 8).
+
+BATCH: plan MC --first-seed 6701 (live/mc-jobs-2.json, sha256 01c6a6d33d324830be6bf4245c2077bc67ea6d8d8a7466f81ae1c8a76f5644de,
+byte-identical to live/mc-jobs.json planned at the first attempt from 2cf6452d); --to left at its default, the newest
+GRADED target in PROJECT KNOWLEDGE/ai-frontier.txt, `ch5_rival_meet`. The three diagonal New Game chains (live_chain
+JOB_ORDER_3): REAL-N-STRE-6701 (Story/TREECKO), REAL-N-CTOR-6702 (Catcher/TORCHIC), REAL-N-TMUD-6703 (Trainer/MUDKIP),
+each L1 ch1_pokedex (330,000 frames), L2 ch2_wally (330,000), L3 ch3_rustboro (600,000), L4 ch4_roxanne (900,000), L5
+ch5_rival_meet (600,000); goals "never" (no AI_PLAYER_GOALS is ever sent), mc True. Stage REAL = stages/REAL-2 (mutant
+None, play digest 9e3f4a359bb39ef2...). P = 3, --ledger development. Seeds 6701-6703: the first 3 of the MC range
+6701-6799, to be read FREE by the probe's own seed check before the first launch.
+
+PREDICTIONS (spec 2.4b, its words):
+- E0's harness, exactly: no goal snapshot is carried; the next leg is decided by `live_chain.continue_after` itself
+  (its 300 MB cap included); an MC leg's world.jsonl is cut only over live_chain.GUARD_WORLD_BYTES (1,500,000,000
+  bytes), never at A1's 1,000,000,000; an MC job's profile budget is 1,750,000,000 bytes.
+- "Reading (a hard-break check, NEVER a rate)": **PASS = every leg CLEAN-*, every PURITY_IDS check and L5.THIS_RUN
+  passing, every chain reaching its target.** "Any HUNG, NOT CLEAN, REFUSED, freshness INFRA, CUT-WORLD or miss is a
+  STOP." A miss's records (its key, or LOOP, 3.8) start the diagnosis, which is an A/B on the miss's own saved start
+  (E0's method), never a reroll: that diagnosis is the lead's, not this segment's.
+- PREDICTED: PASS (3 of 3 chains reach ch5_rival_meet, 15 of 15 legs CLEAN-* and fresh). The prior: E0-2 "REACHED 3 of 3;
+  legs ran 15, purity-clean 15" on 3caf9c47 (ledger #148), one trajectory per seed, another play digest. The spec
+  itself says the false-STOP rate is UNKNOWN (14 % at p = 0.95, 27 % at p = 0.9, 49 % at p = 0.8): a STOP here is
+  reported as a STOP, with its records, and is not explained away.
+- About 30-45 minutes of wall time (E0 41 min, E0-2 31 min).
+
+HOW IT IS READ: the probe's own MERGE CHECK reading (frontier_probe.mc_reading, printed by `report` and written into
+the ledger entry's verdict), quoted; plus each chain's L1-L5 leg records (reached, class, reason, next unmet, key,
+fresh, continue) and its job record. One run per seed is ONE TRAJECTORY each, never a replication.
+

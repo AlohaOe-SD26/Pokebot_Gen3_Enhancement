@@ -19,7 +19,8 @@ GRANITE CAVE's dark floors from a guide's knowledge (P11). The merge's chapter 1
 E (things seen standing stay walls for the session) and K1 (a seasoned player's entry-map lead), reached `ch5_rival_meet` on
 its one decisive fixture (one trajectory per arm; each change alone reached there, neither shown necessary). The check
 again read "E0 VERDICT: REACHED 3 of 3; legs ran 15, purity-clean 15; wall 31 min (cap 120); problems 0 -> GO" (ledger
-#148): three games, not a rate. The full lane read "REGRESSION: PASS (full, 41 suites, 14363.9 s wall)". The GRADED
+#148): three games, not a rate. The full lane read "REGRESSION: PASS (full, 41 suites, 14363.9 s wall)"; at A1's merge
+(2026-11-16) it read "REGRESSION: PASS (full, 43 suites, 15452.8 s wall)". The GRADED
 frontier is still the end of chapter 5 (ledger #101, the code before the merge; `PROJECT KNOWLEDGE/ai-frontier.txt`).
 The R5 banner below was never updated for saving and CONTINUE (backlog R1 + R2), chapters 3-5 or the graded New Game
 chain to the end of chapter 5 (#101, 6 of 6; `07` 2026-11-07). Details: `PROJECT KNOWLEDGE/07-CHANGELOG.md` 2026-11-14 and the build report
@@ -452,6 +453,66 @@ CH1,ERRANDS_OFF,CH2,CH2_OFF --seeds 9 --first-seed 41` goes on from each chapter
 WALLY's tutorial, in the same worker; every graded driver keeps its tree (`py -3.12 ai_player/gates/provenance.py
 --snapshot`, `--compare A B`).
 
+A1, the FRONTIER PROBE (test side, `gates/frontier_probe.py`; build spec
+`PROJECT KNOWLEDGE/ai-research-notes/2026-11-11-A1-FRONTIER-PROBE-SPEC.md` 3.2, amended 2026-11-13): it plays the AI's
+legs through the real launcher (`live_step5.run_arm`, the purity gate on every launch), several at once beside the bot
+tuner, and ranks where the AI stops across chapters 1-7, with a kept example of each; it is also the runner the learner's
+trainer calls (`run --trainer`). Its commands, one row each:
+
+```
+py -3.12 -B ai_player/gates/frontier_probe.py stage --commit SHA --stage DIR [--repo DIR] [--sandbox DIR] [--donor DIR] [--mutant NAME] [--starts G1,...] [--g-root DIR] [--c-root DIR]
+py -3.12 -B ai_player/gates/frontier_probe.py plan P1|GM|WP1|MC --first-seed N [--to T] > jobs.json
+py -3.12 -B ai_player/gates/frontier_probe.py run --jobs F --out DIR --stage ARM=DIR[,ARM=DIR] (--ledger development --prediction-file F | --trainer) [--parallel 8] [--deadline EPOCH] [--max-wait 7200] [--resume]
+py -3.12 -B ai_player/gates/frontier_probe.py report DIR
+py -3.12 -B ai_player/gates/frontier_probe.py replay EXAMPLE --stage DIR --profile NAME [--seed N] [--frames F] [--code-tree DIR]
+py -3.12 -B ai_player/gates/frontier_probe.py compare A.jsonl B.jsonl [--context N]
+py -3.12 -B ai_player/gates/frontier_probe.py reserve-band [--ledger PATH]
+py -3.12 -B ai_player/gates/frontier_probe.py teardown --stage DIR
+```
+
+builds ONE stage (the code one commit holds, by `git archive`, outside every git work tree; the sandbox's emulator files
+JUNCTIONED in; the starts copied and custody-checked; `--mutant` names a planted wall of `frontier_probe.MUTANTS`, ONE
+anchored edit to the staged copy, and an unknown name is refused: `oldale`, WALL-OLDALE (4.3 P1: the planner's step,
+`brain/navigator.py` step_from, refuses every tile of OLDALE_TOWN, on its own map and past the edge of each map maps.json
+connects into it, ROUTE101's up side even before any crossing, so no walk, target, route or hop gets in) and `briney`,
+WALL-BRINEY (4.3 P2: `brain/explore.py` _approaches gives ROUTE104's door at (17, 50), maps.json's only warp into MR.
+BRINEY's cottage, no stand tile, so no target, route or hop uses it, the start memory's known link included); the house's
+own tiles and a down or right edge of OLDALE never crossed are not walled); writes a batch's job list (pure: P1, GM, WP1, or
+MC, the merge check: the 3 diagonal New Game chains to the newest graded target, no goal snapshot); runs it (at most P jobs
+at once: GO, WAIT, SKIP or DROP; the disk guard, the stage watch, the AI-only stop; `--ledger development` writes one
+ledger entry and its evidence, `--trainer` writes nothing tracked); prints the blocker report of a batch's `records.jsonl`
+(offline); plays ONE leg again from a kept example (one NEW trajectory, never a replication); prints the first differing
+(frame, action) of two action logs (offline); writes the AI trainer's seed band row (once); and takes a stage down, its
+junctions unlinked FIRST. `child JOB.json` is the internal entry of one job, run from its stage. Exits: 0 ran, 2 refused
+before any launch (no ledger write), 3 ABORTED by the disk guard, 4 a harness ERROR after `ledger.begin`, 5 an unguarded
+crash, 6 the AI-only stop. A job's env must be EMPTY (the probe sets every launch key itself, so `plan` and `run` refuse a
+job env naming any key), and `run` refuses `--parallel` under 1 (no job could ever start). Its offline proofs are
+`gates/test_frontier_probe.py` (T1-T41, T24d and AM-11, each a FAULT and a CONTROL; T39 and T40 apply each wall to a copy
+of the AI's code and drive that copy's own planner, in its own process, on the AI's kept memory, `fixtures/a1_walls_oldale`
+from the C1 start's and `probe7_c1_island`: walled, no way in; real, the same inputs, every way in) and
+`gates/revert_frontier.py` (250 mutants: each guard the suite tests, broken in a copy, fails its predicted test; Z25, the continue rule's class half, is
+REDUNDANT ALONE, its purity half stopping the same legs). Every guard the six verifier rounds named now has a case that
+fails with that guard removed, though the 7 rows fix round 5 added (2026-11-15: `--parallel` under 1, P01-P03, T37; a job
+env key, E01-E02, T38; an ABORTED MC verdict's reading, H02, T14; an MC verdict's own chain count, H03, T33) and the 9
+fix round 6 added (D01-D06, T33: a dropped MC chain; V6M2, V6M3 and P04, T37: the --parallel refusal in development
+mode and on --resume) and the lead's V6M1 (a job env key on an MC job, T38: verifier round 6's NIT V6-3) were run BY NAME
+at first, as were build step 5's 8 (WL1-WL8, T39 and T40: a wall's edit broken in `MUTANTS`, or `apply_mutant` adding to
+the staged edit or writing the source tree) and fix round 7's PQ1-PQ3 (T41); the second full lane (2026-11-16, on
+`7977320d`) ran all 250: "249 mutants CAUGHT as predicted, 1 REDUNDANT ALONE as predicted, of 250 run". A development
+resume skips its own entry only in its OWN ledger, never a same-id entry of a divergent copy (H07, T24d), so a FAITHFUL copy of the ledger that holds the
+batch's own entry also refuses its resume (safe: a refusal writes nothing; reconcile the copy first). An MC batch's
+reading counts every PLANNED chain (batch.json's `mc_planned`; fix round 6, V6-1): a job DROPPED before its launch
+(ABORT.txt, STOP.txt, the --out cap, --max-wait, the deadline) reads "<chain>: DROPPED, not run" and the entry STOP over
+all its chains; before that fix, an MC batch of 3 whose --out cap dropped the third read PASS over 2 chains. An --out
+written before fix round 6 holds no `mc_planned`, so its report still counts only the chains that started. Fix round 3's
+sweep of the refusal family (2026-11-14; code
+outside it was not swept) left five guards with none, each redundant or unreachable rather than unproven: `run`'s P_fit
+refusal (P_fit under 1 needs under 44.25 GB free, where the 45 GB start floor refuses first; `parallel_of` itself is
+tested), the child's "no legs" (`plan` and `run` refuse such a job first), the continue rule's C3 "not measured" and
+"not kept" (the stub cannot plant a leg failing either without C3's parse check) and its C5 (an A1 leg's custody is
+checked before its launch; only an MC row carries custody, and an MC leg decides by `continue_after`). What it measures
+is DEVELOPMENT data, never a grade: `PROJECT KNOWLEDGE/ai-frontier.txt` stays the authority.
+
 ## Layout
 
 | file | what it is for |
@@ -723,6 +784,7 @@ Read inside the AI's own code, never set on the happy path:
 | (a COPY) | R1 + R2 follow-up: mutant FX3, the launcher never looks through a continue that stopped before its restore (`live_r1.FX3_EDITS` = `revert_r1` FX3) | R2-RETRY-OLD (`live_r1.py r2 --old`) |
 | (a COPY) | boss preparation BP-1 (2026-11-09 to 12): one rule of the readiness verdict, the raise, the trainee's guard and rescue, the party-order or field-item hand, or the learner's page broken, or its call deleted (`revert_bossprep.MUTANTS`: 163 on the closing tree, 161 CAUGHT and 2 REDUNDANT, as predicted) | `revert_bossprep.py` (`test_bossprep.py` from the copy, and `test_hands.py` FieldItemTests) |
 | (a COPY) | P11, the way through a dark cave (2026-11-11 to 12): one rule of the extractor (the muddy slope, the refusals, never straight back), the loader or the explorer's dark-map way broken, or its call deleted (`revert_p11.MUTANTS`: 64, 61 CAUGHT and 3 REDUNDANT, as predicted); P11's live FAULT arm is the same code with `knowledge/world/ways.json` removed | `revert_p11.py` (`test_ways.py` and `test_world.py` from the copy) |
+| (a COPY) | A1, the frontier probe (2026-11-14 to 16): one guard of `gates/frontier_probe.py` (a refusal, the scheduler, the disk rule, a record or report field, the merge check, the process check, a planted wall's edit) broken, or its call deleted (`revert_frontier.MUTANTS`: 250, 249 CAUGHT and 1 REDUNDANT ALONE, as predicted); the planted walls themselves are the live FAULT arms of P1 and P2 (`stage --mutant oldale` or `briney`) | `revert_frontier.py` (`test_frontier_probe.py` from the copy) |
 | `AI_PLAYER_FAULT_UNGATED_A=1` | the dialogue driver presses A on its cadence with no wait gate and never stops for a menu (step 2) | XU (live_step2) |
 | `AI_PLAYER_FAULT_BLIND_COUNT=1` | the menu driver moves every cursor by a count from the top, without reading it (step 2); since step 2.1 it still waits for a menu to take input before its A (it is blind to the CURSOR only: an A dropped in the gender menu's sprite slide now ends the intro, the review's item 6) | XBN, XBC (live_step2) |
 | (a COPY of the package, not a switch) | step 2.1: the eyes' TASK_WAITS list a timer task (`Task_NewGameBirchSpeech_WaitToShowBirch`) as a wait | XTW (live_step2): the press-behaviour probe must flag every A pressed on it |
