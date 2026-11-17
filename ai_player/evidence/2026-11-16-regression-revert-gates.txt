@@ -1,10 +1,10 @@
 AI PLAYER REGRESSION - full lane, evidence group `revert_safety_gates` (gates/run_regression.py, spec S4-1)
-date: 2026-11-16 20:33:25
-code: HEAD 7977320d; covers:revert_safety_gates clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
-command: py -3.12 ai_player/gates/run_regression.py --full --evidence
+date: 2026-11-16 21:29:22
+code: HEAD a84f59a4; covers:revert_safety_gates clean at HEAD (working-tree digest sha256:53e0c26e7812db47, an empty diff)
+command: py -3.12 ai_player/gates/run_regression.py --only check_purity test_check_purity test_host test_eyes test_hands test_world test_battle test_evidence extract_knowledge_check test_goals extract_milestones_check test_safety_gates ledger_check call_census check_fairness check_lessons disk_budget test_run_regression test_kb2 test_bossprep test_ways test_step53_a1 test_step53_a2 test_step53_rs test_measure_step5 check_grader_imports test_saving check_paths test_live_ki128 check_anchors test_check_anchors test_live_chain test_frontier_probe revert_safety_gates --evidence
 Each section is one suite: the runner's typed status, then the suite's raw output (indented).
 
-== revert_safety_gates: PASS (exit 0, 2043.5 s, 23 mutants)
+== revert_safety_gates: PASS (exit 0, 1824.6 s, 23 mutants)
     | [S0] CONTROL, the unchanged copy: 50 tests, failing none (ran the copy: True) -> PASS
     | [S1] BROKEN: G1: the watch never sees a move. Predicted CAUGHT by ['FrozenTreeTests.test_an_edit_mid_sweep_fails_the_verdict_and_stops_the_runs', 'FrozenTreeTests.test_an_added_module_fails', 'FrozenTreeTests.test_an_edit_undone_before_the_end_still_fails', 'FrozenTreeTests.test_the_backstop_fails_a_driver_that_never_seals']. The copy ran 50 tests (the copy); failing: {'FrozenTreeTests.test_an_added_module_fails': 'FAIL', 'FrozenTreeTests.test_an_edit_mid_sweep_fails_the_verdict_and_stops_the_runs': 'FAIL', 'FrozenTreeTests.test_an_edit_undone_before_the_end_still_fails': 'FAIL', 'FrozenTreeTests.test_the_backstop_fails_a_driver_that_never_seals': 'FAIL'} -> CAUGHT
     | [S2] BROKEN: G1: the sweep's CHECK before each run deleted (rate_step5.run_one). Predicted CAUGHT by ['WiringTests.test_a_sweep_checks_before_and_after_every_run']. The copy ran 50 tests (the copy); failing: {'WiringTests.test_a_sweep_checks_before_and_after_every_run': 'FAIL'} -> CAUGHT
@@ -34,5 +34,5 @@ Each section is one suite: the runner's typed status, then the suite's raw outpu
     | OVERALL: PASS
 
 
-FROZEN TREE: PASS - the tree did not change from the start to the verdict (48 checks of 246 files, files digest 00eb1bff61e6f0e2); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
-REGRESSION: PASS (full, 43 suites, 15452.8 s wall)
+FROZEN TREE: PASS - the tree did not change from the start to the verdict (39 checks of 246 files, files digest 00eb1bff61e6f0e2); the covers digests of revert_r1, revert_safety_gates, revert_step5, units did not move either
+REGRESSION: PASS (full, 34 suites, 1825.7 s wall)
