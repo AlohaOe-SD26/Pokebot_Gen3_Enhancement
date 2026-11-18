@@ -87,10 +87,11 @@
 | `2026-09-26-38271b` | 7300 | SUPERSEDED | `2026-09-26-cc050f` | 2026-09-26 — `#26-ch24organic` R1 REFUSES AT THE PRODUCTION FLOOR (USER RULING 12 APPLIED LITERALLY) — ⚠ RELAXATION IS THE USER'S CALL, FLAG |
 | `2026-10-28-35b2cb` | 9814 | SUPERSEDED | `2026-10-28-77ea25` | 2026-10-28 — USER RULING 49: PAUSE the project at the end of the bot tuner's round ai0053 (about 4:28 PM 2026-10-28): park the tuner, switch |
 
-## All 387 sections (newest first)
+## All 388 sections (newest first)
 
 | id | 06 line | user rulings | flags | title |
 |---|---|---|---|---|
+| `2026-11-18-6935d5` | 10292 |  |  | 2026-11-18 — USER: wrap up and PAUSE the tuner now (another project needs this PC), stopping its running round at once (punch-list #28-aiagent-v2) |
 | `2026-11-16-a5d72f` | 10286 |  |  | 2026-11-16 — After A1: KI-140 is diagnosed on its own saved starts before BP-2 is built (punch-list #28-aiagent-v2) |
 | `2026-11-16-ef8a3a` | 10278 |  |  | 2026-11-16 — A1's WP1 (ledger #154): P2 read through the loop-key allowance, the planted wall's own loops get no KI, BRAWLY is the next skill build, and the sec |
 | `2026-11-16-062c33` | 10270 |  |  | 2026-11-16 — A1's first merge check (MC, ledger #152): its one miss is the known blocker KI-137 (c) and F, already in the base tree, so MC reads STOP with one k |

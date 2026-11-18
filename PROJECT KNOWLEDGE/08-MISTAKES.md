@@ -24427,3 +24427,10 @@ and give each row a mutant that turns it red. A property with no row is a claim 
 - **Root cause:** the prediction was written from the stuck REASON the AI gives, not from how it MOVES when a place is shut: it keeps walking between the maps it can reach, so the blocker key, which ranks a back-and-forth before the reason, reads LOOP.
 - **The fix that worked:** none needed in code: the allowance in 4.3 held both proofs, and the records (next unmet, the stuck reason naming the place, the REAL twins reaching) pin each stop on its wall (`06` 2026-11-16).
 - **Prevention rule:** predict a blocked AI's key from its movement as well as its words: a wall the AI cannot pass shows as a LOOP between the maps around it; write that form into the prediction, and keep the stuck-reason form only as the alternative.
+
+## 2026-11-18 — "Who beat the AI is not recorded" was written without opening the stopped legs' own logs, which name every foe (KI-140) (punch-list #28-aiagent-v2)
+
+- **Symptom:** KI-140 and `06` 2026-11-16 said who beat the AI in its 8 stopped chapter 7 legs "is not recorded". The session-end audit opened one leg's `L7/logs.zip` `ai_player.log` and found "a trainer battle against Machop L16 (Fighting)" before each loss; all 8 legs read the same way.
+- **Root cause:** the claim was read off A1's structured records (`records.jsonl`, `blockers.json`), which carry no foe field, and was then stated about the legs as a whole.
+- **The fix that worked:** KI-140's header and a dated line now give the foe from the logs (`05`); `06` 2026-11-18 carries the correction.
+- **Prevention rule:** before writing that something "is not recorded", grep the run's own logs as well as its structured records, and name which of them the claim covers.

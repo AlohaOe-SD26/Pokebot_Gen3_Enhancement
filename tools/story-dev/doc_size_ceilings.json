@@ -245,7 +245,7 @@
       ]
     },
     "05-KNOWN-ISSUES.md": {
-      "ceiling": 296200,
+      "ceiling": 296900,
       "headroom": 8192,
       "target": null,
       "raised": [
@@ -360,6 +360,13 @@
           "from": 294400,
           "to": 296200,
           "why": "2026-11-16: two new OPEN KIs that A1's definition of done requires from its WP1 report (spec 4.4 item 8: a KI for each new blocker holding at least 2 runs and for every LOOP key): KI-140 (BRAWLY's gym, 8 of 36 chapter 7 legs) and KI-141 (a PETALBURG_WOODS|ROUTE104 loop, 3 legs). Open issues, nothing closed to archive."
+        },
+        {
+          "date": "2026-11-18",
+          "field": "ceiling",
+          "from": 296200,
+          "to": 296900,
+          "why": "2026-11-18: KI-140 (OPEN) gains its diagnosis's first measured step (the 8 stopped legs by name, their starts, and the foe of every lost battle read from their own logs) and its header no longer says who beat the AI is unrecorded (the session-end audit's finding). An open issue's evidence, not a closed block to archive."
         }
       ]
     }

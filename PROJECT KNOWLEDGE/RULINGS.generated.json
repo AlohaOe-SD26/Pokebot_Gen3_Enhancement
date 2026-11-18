@@ -1,10 +1,10 @@
 {
  "_READ_FIRST": "06 wins. This file is a finding aid; quote the section, never this table.",
  "source": "PROJECT KNOWLEDGE/06-DECISIONS-LOG.md",
- "source_sha1_lf": "7aecf46927c5b8360c72a88894ef05a6220ae00b",
+ "source_sha1_lf": "82641014b445cf65e322e8fb07cece6ce7101072",
  "regenerate": "py -3.12 tools/story-dev/build_rulings_index.py",
  "counts": {
-  "sections": 387,
+  "sections": 388,
   "donot_candidates": 39,
   "sections_naming_user_rulings": 57
  },
@@ -6114,6 +6114,23 @@
    "line_start": 10286,
    "line_end": 10290,
    "title": "2026-11-16 — After A1: KI-140 is diagnosed on its own saved starts before BP-2 is built (punch-list #28-aiagent-v2)",
+   "rulings": [],
+   "ruling_mentions": [],
+   "slugs": [
+    "#28-aiagent-v2"
+   ],
+   "ki": [
+    "KI-140"
+   ],
+   "donot": [],
+   "cues": []
+  },
+  {
+   "id": "2026-11-18-6935d5",
+   "date": "2026-11-18",
+   "line_start": 10292,
+   "line_end": 10299,
+   "title": "2026-11-18 — USER: wrap up and PAUSE the tuner now (another project needs this PC), stopping its running round at once (punch-list #28-aiagent-v2)",
    "rulings": [],
    "ruling_mentions": [],
    "slugs": [
